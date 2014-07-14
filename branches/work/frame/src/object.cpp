@@ -67,13 +67,14 @@ void ObjectBase::unregister(Manager &_rm){
 }
 
 ObjectBase::~ObjectBase(){
-	unregister();
+	//TODO: must we call unregister() now?!
+	//unregister();
 }
 
 /*virtual*/void ObjectBase::doStop(Manager &_rm){
 }
 void ObjectBase::stop(Manager &_rm){
-	doStop();
+	doStop(_rm);
 	unregister(_rm);
 }
 //--------------------------------------------------------------
@@ -129,7 +130,6 @@ bool Object::registerCompletionHandler(CompletionHandler &_rch){
 }
 
 bool Object::unregisterCompletionHandler(CompletionHandler &_rch){
-	cassert(_rch.isRegisteredOnObject());
 	const bool rv = isRunning();
 	if(rv){
 		if(_rch.pprev){
@@ -152,10 +152,21 @@ bool Object::unregisterCompletionHandler(CompletionHandler &_rch){
 			pchfirst = _rch.pprev;
 		}
 	}
-	_rch.pobj = NULL;
 	_rch.pprev = NULL;
 	_rch.pnext = NULL;
 	return rv;
+}
+
+Reactor* Object::reactor()const{
+	Reactor *preactor = Reactor::safeSpecific();
+	
+	if(preactor && preactor->idInManager() == preactor->manager().reactorId(this->runId().index)){
+		return preactor;
+	}
+	return NULL;
+}
+void Object::fail(){
+	//TODO: mark object as fail - will be checked when the object is unregistered from Reactor
 }
 //---------------------------------------------------------------------
 //----	Message	----

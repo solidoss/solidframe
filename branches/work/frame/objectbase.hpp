@@ -57,11 +57,12 @@ protected:
 	void unregister(Manager &_rm);
 	bool isRegistered()const;
 	virtual void doStop(Manager &_rm);
+	UidT const& runId()const;
 	
 	bool notify(const size_t _smask);
 private:
 	void id(const IndexT &_fullid);
-	UidT const& runId()const;
+	
 	void runId(UidT const& _runid);
 	void prepareSpecific();
 	

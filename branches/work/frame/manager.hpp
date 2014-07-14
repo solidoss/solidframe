@@ -89,6 +89,8 @@ public:
 	
 	ObjectUidT  id(const ObjectBase &_robj)const;
 	
+	IndexT	reactorId(IndexT _idx)const;
+	
 protected:
 	size_t serviceCount()const;
 	

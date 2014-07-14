@@ -363,6 +363,12 @@ bool Manager::raise(const ObjectBase &_robj, Event const &_re){
 	return d.preactorarr[selidx].load(/*ATOMIC_NS::memory_order_seq_cst*/)->raise(uid, _re);
 }
 
+IndexT	Manager::reactorId(IndexT _idx)const{
+	IndexT selidx;
+	split_index(selidx, _idx, d.reactorbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), _idx);
+	return selidx;
+}
+
 Mutex& Manager::mutex(const ObjectBase &_robj)const{
 	IndexT			svcidx;
 	IndexT			objidx;

@@ -28,11 +28,15 @@ class Reactor: public ReactorBase{
 public:
 	typedef Object			ObjectT;
 	static Reactor& specific();
+	static Reactor* safeSpecific();
+
 	Reactor(SchedulerBase &);
 	~Reactor();
 	
 	bool push(ObjectPointerT &_rjob);
 	void run();
+	
+	size_t id();
 	void registerCompletionHandler(CompletionHandler &_rch);
 	void unregisterCompletionHandler(CompletionHandler &_rch);
 private:

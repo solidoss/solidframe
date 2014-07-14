@@ -83,7 +83,10 @@ struct Reactor::Data{
 /*static*/ Reactor& Reactor::specific(){
 	return *reinterpret_cast<Reactor*>(Thread::specific(specificPosition()));
 }
-Reactor::Reactor(SchedulerBase &):d(*(new Data)){
+/*static*/ Reactor* Reactor::safeSpecific(){
+	return reinterpret_cast<Reactor*>(Thread::specific(specificPosition()));
+}
+Reactor::Reactor(SchedulerBase &_rsch):ReactorBase(rsch), d(*(new Data)){
 }
 Reactor::~Reactor(){
 	delete &d;
