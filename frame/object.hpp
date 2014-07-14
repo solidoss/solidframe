@@ -39,7 +39,7 @@ struct ExecuteContext{
 	}
 	
 	ERROR_NS::error_code const& systemError()const{
-		return err;
+		return syserr;
 	}
 	
 	ERROR_NS::error_condition const& error()const{
@@ -59,6 +59,18 @@ protected:
 	ERROR_NS::error_condition	err;
 };
 
+class Object;
+
+struct ObjectProxy{
+private:
+	friend class Object;
+	ObjectProxy(Object &_robj): robj(_robj){}
+	ObjectProxy(ObjectProxy const &_rd):robj(_rd.robj){}
+	ObjectProxy& operator=(ObjectProxy const&_rd);
+private:
+	Object &robj;
+};
+
 class Object: public Dynamic<Object, ObjectBase>{
 public:	
 	static Object& specific(){
@@ -68,6 +80,9 @@ protected:
 	//! Constructor
 	Object();
 	
+	ObjectProxy proxy(){
+		return ObjectProxy(*this);
+	}
 private:
 	friend class CompletionHandler;
 	virtual void execute(ExecuteContext &_rexectx) = 0;
@@ -75,11 +90,12 @@ private:
 	bool registerCompletionHandler(CompletionHandler &_rch);
 	bool unregisterCompletionHandler(CompletionHandler &_rch);
 	
+	
+	
 	bool isRunning()const;
 	void enterRunning();
 private:
 	CompletionHandler	*pchfirst;//A double linked list of completion handlers
-	Reactor				*preactor;
 };
 
 }//namespace frame

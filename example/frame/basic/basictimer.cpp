@@ -23,7 +23,7 @@ typedef frame::Scheduler<frame::Reactor>	SchedulerT;
 
 class BasicObject: public Dynamic<BasicObject, frame::Object>{
 public:
-	BasicObject(size_t _repeat = 10):repeat(_repeat), t1(*this), t2(*this){}
+	BasicObject(size_t _repeat = 10):repeat(_repeat), t1(proxy()), t2(proxy()){}
 	
 	/*virtual*/ void execute(frame::ExecuteContext &_rexectx);
 	

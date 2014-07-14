@@ -19,12 +19,12 @@ namespace solid{
 class TimeSpec;
 
 namespace frame{
-class	Object;
+struct	ObjectProxy;
 struct	ExecuteContext;
 
 class Timer: public CompletionHandler{
 public:
-	Timer(Object &_robj);
+	Timer(ObjectProxy &_rop);
 	~Timer();
 	void cancel(ExecuteContext &_rexectx);
 	bool waitUntil(

@@ -18,6 +18,7 @@ namespace solid{
 namespace frame{
 
 class Object;
+struct ObjectProxy;
 class CompletionHandler;
 struct ExecuteContext;
 
@@ -40,28 +41,19 @@ struct Action{
 
 class CompletionHandler{
 	static Action	dummy_init_action;
-	friend class Object;
 public:
 	
-	struct InitData{
-	private:
-		InitData(Object &_robj): robj(_robj){}
-		InitData(InitData const &_rd):robj(_rd.robj){}
-		InitData& operator=(InitData const&_rd);
-	private:
-		Object &robj;
-	};
-	
 	CompletionHandler(
-		InitData const &_rid
+		ObjectProxy const &_rid
 	);
 	
 	~CompletionHandler();
 	
-	bool isRegistered()const{
+	bool isActive()const{
 		return selidx != static_cast<size_t>(-1);
 	}
-	void init(InitData const &_rd);
+	bool activate(ObjectProxy const &_rd);
+	void deactivate(ObjectProxy const &_rd);
 private:
 	
 	void handleCompletion(ActionContext &_rctx){
@@ -69,11 +61,12 @@ private:
 		pact->call(this, _rctx);
 	}
 private:
+	friend class Object;
 	static void doInitComplete(CompletionHandler *_ph, ActionContext &){
 		_ph->pact = NULL;
 	}
 private:
-	Object					&robj;
+	Object					robj;
 	CompletionHandler		*pprev;
 	CompletionHandler		*pnext;//double linked list within the object
 	size_t					selidx;//index within selector

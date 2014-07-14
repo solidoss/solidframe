@@ -32,14 +32,13 @@ public:
 	virtual bool raise(UidT const& _robjuid, Event const& _re) = 0;
 	virtual void stop() = 0;
 	virtual void update() = 0;
-	
+	IndexT const& idInManager()const;
+	Manager& manager();
 protected:
+	ReactorBase(SchedulerBase &_rsch):rsch(_rsch){}
 	bool setObjectThread(ObjectBase &_robj, const UidT &_uid);
 	void stopObject(ObjectBase &_robj);
-	SchedulerBase& scheduler(){
-		static SchedulerBase	*ps;
-		return *ps;
-	}
+	SchedulerBase& scheduler();
 	bool prepareThread();
 	void unprepareThread();
 private:
@@ -47,17 +46,20 @@ private:
 	friend	class SchedulerBase;
 	void idInManager(size_t _id);
 	void idInScheduler(size_t _id);
-	IndexT const& idInManager()const;
 	size_t idInScheduler()const;
 private:
+	SchedulerBase	&rsch;
 	IndexT			mgridx;//
 	size_t			schidx;
 	UidVectorT		freeuidvec;
 };
 
+inline SchedulerBase& ReactorBase::scheduler(){
+	return rsch;
+}
 
 inline void ReactorBase::stopObject(ObjectBase &_robj){
-	_robj.stop();
+	_robj.stop(manager());
 }
 inline void ReactorBase::idInManager(size_t _id){
 	mgridx = _id;
