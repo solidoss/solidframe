@@ -23,6 +23,7 @@
 namespace solid{
 namespace frame{
 
+class Reactor;
 class CompletionHandler;
 
 struct ExecuteContext{
@@ -90,7 +91,8 @@ private:
 	bool registerCompletionHandler(CompletionHandler &_rch);
 	bool unregisterCompletionHandler(CompletionHandler &_rch);
 	
-	
+	Reactor* reactor()const;
+	void fail();
 	
 	bool isRunning()const;
 	void enterRunning();
