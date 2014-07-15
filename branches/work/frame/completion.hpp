@@ -47,10 +47,12 @@ public:
 		ObjectProxy const &_rid
 	);
 	
+	CompletionHandler();
+	
 	~CompletionHandler();
 	
 	bool isActive()const{
-		return selidx != static_cast<size_t>(-1);
+		return  pobj != NULL && selidx != static_cast<size_t>(-1);
 	}
 	bool activate(ObjectProxy const &_rd);
 	void deactivate(ObjectProxy const &_rd);
@@ -66,7 +68,7 @@ private:
 		_ph->pact = NULL;
 	}
 private:
-	Object					robj;
+	Object					*pobj;
 	CompletionHandler		*pprev;
 	CompletionHandler		*pnext;//double linked list within the object
 	size_t					selidx;//index within selector
