@@ -24,7 +24,7 @@ struct	ExecuteContext;
 
 class Timer: public CompletionHandler{
 public:
-	Timer(ObjectProxy &_rop);
+	Timer(ObjectProxy const &_rop);
 	~Timer();
 	void cancel(ExecuteContext &_rexectx);
 	bool waitUntil(

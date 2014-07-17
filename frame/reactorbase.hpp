@@ -75,6 +75,7 @@ inline size_t ReactorBase::idInScheduler()const{
 	return schidx;
 }
 
+
 }//namespace frame
 }//namespace solid
 

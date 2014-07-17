@@ -14,7 +14,7 @@
 namespace solid{
 namespace frame{
 
-Timer::Timer(ObjectProxy &_rop):CompletionHandler(_rop){}
+Timer::Timer(ObjectProxy const &_rop):CompletionHandler(_rop){}
 Timer::~Timer(){}
 void Timer::cancel(ExecuteContext &_rexectx){
 	

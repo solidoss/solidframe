@@ -63,6 +63,9 @@ protected:
 class Object;
 
 struct ObjectProxy{
+	Object& object()const{
+		return robj;
+	}
 private:
 	friend class Object;
 	ObjectProxy(Object &_robj): robj(_robj){}
@@ -92,7 +95,6 @@ private:
 	bool unregisterCompletionHandler(CompletionHandler &_rch);
 	
 	Reactor* reactor()const;
-	void fail();
 	
 	bool isRunning()const;
 	void enterRunning();
