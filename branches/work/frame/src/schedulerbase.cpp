@@ -71,6 +71,10 @@ SchedulerBase::~SchedulerBase(){
 	delete &d;
 }
 
+Manager& SchedulerBase::manager(){
+	return d.rm;
+}
+
 bool SchedulerBase::update(ReactorBase &_rsel){
 	Locker<Mutex>	lock(d.mtx);
 	ReactorStub		&rselstb = d.reactvec[_rsel.schidx];

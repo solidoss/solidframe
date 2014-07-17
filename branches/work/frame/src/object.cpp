@@ -165,9 +165,6 @@ Reactor* Object::reactor()const{
 	}
 	return NULL;
 }
-void Object::fail(){
-	//TODO: mark object as fail - will be checked when the object is unregistered from Reactor
-}
 //---------------------------------------------------------------------
 //----	Message	----
 //---------------------------------------------------------------------

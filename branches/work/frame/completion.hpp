@@ -42,7 +42,6 @@ struct Action{
 class CompletionHandler{
 	static Action	dummy_init_action;
 public:
-	
 	CompletionHandler(
 		ObjectProxy const &_rid
 	);
@@ -56,6 +55,7 @@ public:
 	}
 	bool activate(ObjectProxy const &_rd);
 	void deactivate(ObjectProxy const &_rd);
+	
 private:
 	
 	void handleCompletion(ActionContext &_rctx){

@@ -86,7 +86,7 @@ struct Reactor::Data{
 /*static*/ Reactor* Reactor::safeSpecific(){
 	return reinterpret_cast<Reactor*>(Thread::specific(specificPosition()));
 }
-Reactor::Reactor(SchedulerBase &_rsch):ReactorBase(rsch), d(*(new Data)){
+Reactor::Reactor(SchedulerBase &_rsch):ReactorBase(_rsch), d(*(new Data)){
 }
 Reactor::~Reactor(){
 	delete &d;
@@ -342,6 +342,10 @@ bool ReactorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
 		return false;
 	}
 }
+Manager& ReactorBase::manager(){
+	return scheduler().manager();
+}
+
 bool ReactorBase::prepareThread(){
 	return scheduler().prepareThread(*this);
 }

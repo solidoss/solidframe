@@ -39,6 +39,9 @@ protected:
 	~SchedulerBase();
 private:
 	friend class ReactorBase;
+	
+	Manager& manager();
+	
 	bool prepareThread(ReactorBase &_rsel);
 	void unprepareThread(ReactorBase &_rsel);
 	bool update(ReactorBase &_rsel);
