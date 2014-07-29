@@ -33,7 +33,10 @@ public:
 		size_t _event,
 		size_t _index = 0
 	);
-
+	bool doneWait(ExecuteContext &_rexectx);
+	
+private:
+	TimeSpec ts;
 };
 
 }//namespace frame

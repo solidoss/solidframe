@@ -49,11 +49,19 @@ struct ExecuteContext{
 protected:
 	friend class CompletionHandler;
 	
+	Reactor& reactor(){
+		return rreactor;
+	}
+	
+	
 	ExecuteContext(
+		Reactor	&_rreactor,
 		const Event &_evn,
 		const TimeSpec &_rcrttm
-	):	evn(_evn), rcrttm(_rcrttm){}
+	):	rreactor(_rreactor),
+		evn(_evn), rcrttm(_rcrttm){}
 	
+	Reactor						&rreactor;
 	Event						evn;
 	const TimeSpec				&rcrttm;
 	ERROR_NS::error_code		syserr;
