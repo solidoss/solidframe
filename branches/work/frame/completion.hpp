@@ -55,7 +55,9 @@ public:
 	}
 	bool activate(ObjectProxy const &_rd);
 	void deactivate(ObjectProxy const &_rd);
-	
+protected:
+	Action* action() const;
+	void action(Action *_pact);
 private:
 	
 	void handleCompletion(ActionContext &_rctx){
@@ -64,9 +66,7 @@ private:
 	}
 private:
 	friend class Object;
-	static void doInitComplete(CompletionHandler *_ph, ActionContext &){
-		_ph->pact = NULL;
-	}
+	static void doInitComplete(CompletionHandler *_ph, ActionContext &);
 private:
 	Object					*pobj;
 	CompletionHandler		*pprev;
@@ -75,6 +75,13 @@ private:
 	Action					*pact;
 };
 
+inline Action* CompletionHandler::action() const{
+	return pact;
+}
+
+inline void CompletionHandler::action(Action *_pact){
+	pact = _pact;
+}
 
 
 }//namespace frame
