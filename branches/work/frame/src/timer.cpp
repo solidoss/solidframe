@@ -16,13 +16,12 @@ namespace solid{
 namespace frame{
 
 
-
 Timer::Timer(ObjectProxy const &_rop):CompletionHandler(_rop){}
 
 Timer::~Timer(){}
 
 void Timer::cancel(ExecuteContext &_rexectx){
-	_rexectx.reactor().cancelCompletion(*this);
+	//_rexectx.reactor().cancelCompletion(*this);
 }
 
 bool Timer::waitUntil(
@@ -31,13 +30,13 @@ bool Timer::waitUntil(
 	size_t _event,
 	size_t _index
 ){
-	_rexectx.reactor();
+	//_rexectx.reactor();
 	return false;
 }
 
 bool Timer::doneWait(ExecuteContext &_rexectx){
 	if(_rexectx.time() >= ts){
-		ts.set();
+		ts.set(0);
 		return true;
 	}
 	return false;
