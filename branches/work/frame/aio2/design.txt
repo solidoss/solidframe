@@ -228,13 +228,15 @@ class Listener: public aio::CompletionHandler{
 public:
 	bool accept(
 		frame::aio::ExecuteContext &_rexectx,
-		error_code &_err, Device &_rdev,
-		frame::Event const &_evs = Event(EventAccept)
+		SocketDevice &_rdev,
+		
 	){
 		
 	}
 	
-	bool doneAccept(error_code &_rerr, Device &_rdev){
+	
+	
+	bool doneAccept(error_code &_rerr, SocketDevice &_rdev){
 		
 	}
 private:

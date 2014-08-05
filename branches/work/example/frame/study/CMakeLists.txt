@@ -1,2 +1,3 @@
 add_subdirectory(sharedobjectmanager)
 add_subdirectory(manyobjects)
+add_subdirectory(aio)
