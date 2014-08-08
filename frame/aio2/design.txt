@@ -128,14 +128,14 @@ public:
 			return rcrttm;
 		}
 		
-		void reschedule(size_t _event, size_t _index = 0);
+		void reschedule(Event const &_evt);
+		
+		void reschedule(
 		void close();
-		
-	protected:
-		
 	};
+protected:
 private:
-	virtual void execute(ExecuteContext &_rctx) = 0;
+	virtual void onEvent(ExecuteContext &_rctx, Event const &_evt) = 0;
 };
 
 
