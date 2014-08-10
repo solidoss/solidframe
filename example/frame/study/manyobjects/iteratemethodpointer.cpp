@@ -268,8 +268,10 @@ void operator delete(void* ptr) throw()
 int main(int argc, char *argv[]){
 #ifdef TEST_BIND
 	FirstObject 	obj;
+	SecondObject 	obj1;
 	cout<<"Begin"<<endl;
 	Fnc1T			fnc = std::bind(&FirstObject::onEvent1, &obj, std::placeholders::_1);
+	fnc = std::bind(&SecondObject::onEvent1, &obj1, std::placeholders::_1);
 	cout<<"End"<<endl;
 	return 0;
 #endif

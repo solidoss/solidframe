@@ -1021,11 +1021,11 @@ bool SocketDevice::disableNoDelay(){
 
 
 bool SocketDevice::enableLinger(){
-	
+	return false;
 }
 
 bool SocketDevice::disableLinger(){
-	
+	return false;
 }
 
 pair<bool, bool> SocketDevice::hasNoDelay()const{
