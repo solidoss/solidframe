@@ -16,23 +16,6 @@
 namespace solid{
 namespace frame{
 namespace aio{
-	
-
-struct ActionData{
-	uint8	want;
-};
-
-class BaseSocket{
-public:
-	size_t	id()const{
-		return idx;
-	}
-protected:
-	SocketDevice	dev;
-	size_t			idx;
-	ActionData		*precvaction;
-	ActionData		*psendaction;
-};
 
 }//namespace aio
 }//namespace frame
