@@ -1,18 +1,18 @@
-// frame/aio/selector.hpp
+// frame/aio/reactor.hpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_AIO_SELECTOR_HPP
-#define SOLID_FRAME_AIO_SELECTOR_HPP
+#ifndef SOLID_FRAME_AIO_REACTOR_HPP
+#define SOLID_FRAME_AIO_REACTOR_HPP
 
 #include "system/timespec.hpp"
 #include "frame/common.hpp"
-#include "frame/selectorbase.hpp"
+#include "frame/reactorbase.hpp"
 #include "utility/dynamicpointer.hpp"
 
 namespace solid{
@@ -27,19 +27,17 @@ class Socket;
 
 typedef DynamicPointer<Object>	ObjectPointerT;
 
-//! An asynchronous IO selector to be used with the template SelectPool
+//! 
 /*!
-	A selector will help SelectPool to actively hold aio::objects.
-	A selector must export a certain interface requested by the SelectPool,
-	and the pool will have one for its every thread.
+	
 */
-class Selector: public frame::SelectorBase{
+class Selector: public frame::ReactorBase{
 public:
 	typedef ObjectPointerT		JobT;
 	typedef Object				ObjectT;
 	
-	Selector();
-	~Selector();
+	Reactor();
+	~Reactor();
 	bool init(ulong _cp);
 	//signal a specific object
 	void raise(uint32 _pos);

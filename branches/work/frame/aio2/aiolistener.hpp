@@ -26,7 +26,7 @@ public:
 	Listener(ObjectProxy &_robj);
 	
 	
-	//returns true when an error (like opp already in progress) occurs
+	//returns true when an error (like operation already in progress) occurs
 	template <typename F>
 	bool accept(ReactorContext &_rctx, F _f){
 		
@@ -36,8 +36,8 @@ public:
 	bool accept(ReactorContext &_rctx, SocketDevice &_rsd, F _f){
 		
 	}
-	
 private:
+	
 };
 
 }//namespace aio
