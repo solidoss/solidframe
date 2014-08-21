@@ -14,9 +14,11 @@
 
 #include <signal.h>
 #include <iostream>
+#include <functional>
 
 using namespace std;
 using namespace solid;
+using namespace std::placeholders;
 
 typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
 
@@ -44,16 +46,16 @@ struct Params{
 namespace{
 	Mutex					mtx;
 	Condition				cnd;
-	bool					run(true);
+	bool					running(false);
 }
 
 static void term_handler(int signum){
     switch(signum) {
 		case SIGINT:
 		case SIGTERM:{
-			if(run){
+			if(running){
 				Locker<Mutex>  lock(mtx);
-				run = false;
+				running = false;
 				cnd.broadcast();
 			}
 		}
@@ -67,14 +69,16 @@ public:
 	Listener(frame::Manager &_rm, AioSchedulerT &_rsched, const SocketDevice &_rsd);
 	~Listener();
 private:
-	/*virtual*/ void onEvent(ReactorContext &_rctx);
-	/*virtual*/ void onEvent(ReactorContext &_rctx, SocketDevice &_rdev);
+	/*virtual*/ bool onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	bool onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
 	
-	typedef frame::aio::Listener<frame::aio::Socket>	ListenerSocketT;
+	typedef frame::aio::ListenerSocket	ListenerSocketT;
+	typedef frame::aio::Timer			TimerT;
 	
 	frame::Manager		&rm;
 	AioSchedulerT		&rsched;
 	ListenerSocketT		sock;
+	TimerT				timer;
 };
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
@@ -82,14 +86,16 @@ public:
 	Connection(const SocketDevice &_rsd);
 	~Connection();
 private:
-	/*virtual*/ void onEvent(ReactorContext &_rexectx);
-	/*virtual*/ void onEvent(ReactorContext &_rexectx, size_t _data);
+	/*virtual*/ bool onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>	StreamSocketT;
+	typedef frame::aio::Timer						TimerT;
 	enum {BUFCP = 1024};
+	
 	char			buf[BUFCP];
 	StreamSocketT	sock;
+	TimerT			timer;
 };
 
 
@@ -101,8 +107,7 @@ int main(int argc, char *argv[]){
 		if(!s.start(0)){
 			running = false;
 			cout<<"Error starting scheduler"<<endl;
-		}
-		{
+		}else{
 			ResolveData		rd =  synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	
 			SocketDevice	sd;
@@ -126,7 +131,7 @@ int main(int argc, char *argv[]){
 				cnd.wait(lock);
 			}
 		}
-		m.stop(Event(EventStopE));
+		m.stop(frame::Event(EventStopE));
 	}
 	Thread::waitAll();
 	return 0;
@@ -134,62 +139,80 @@ int main(int argc, char *argv[]){
 
 //-----------------------------------------------------------------------------
 
-/*virtual*/ void Listener::onEvent(ReactorContext &_rctx){
-	if(_rctx.event().id == EventStartE){
-		sock.asyncAccept(_rctx, Event());//fully asynchronous call
-	}else if(_rctx.event().id == EventStopE){
-		this->stop(_rctx);
+/*virtual*/ bool Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	if(_revent.id == EventStartE){
+		sock.scheduleAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
+	}else if(_revent.id == EventStopE){
+		return false;
 	}
+	return true;
 }
-/*virtual*/ void Listener::onEvent(ReactorContext &_rctx, SocketDevice &_rsd){
-	unsigned		repeatcnt = 10;
+
+bool Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
+	unsigned	repeatcnt = 10;
+	
 	do{
 		if(!_rctx.error()){
-			DynamicPointer<frame::aio::Object>	objptr(new Connection(sd));
+			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			rm.registerObject(objptr, rsched, frame::Event(EventStartE));
 		}else{
-			//timer.waitFor(_rctx, 10);
+			timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onAccept, this, _1, frame::Event(EventStartE)));
 			break;
 		}
 		--repeatcnt;
-	}while(repeatcnt && sock.accept(_rctx, _rsd, Event()));
+	}while(repeatcnt && sock.accept(_rctx, std::bind(&Listener::onAccept, this, _1, _2)), _rsd);
+	
 	if(!repeatcnt){
-		sock.accept(_rctx, Event());//fully asynchronous call
+		sock.scheduleAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));//fully asynchronous call
 	}
+	return true;
 }
 
 //-----------------------------------------------------------------------------
 
-/*virtual*/ void Connection::onEvent(ReactorContext &_rctx){
+/*virtual*/ bool Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(_rctx.event().id == EventStartE){
-		sock.asyncRecvSome(_rctx, buf, BUFCP, Event());//fully asynchronous call
-	}else if(_rctx.event().id == EventSendE){
-		if(!_rctx.error()){
-			sock.asyncRecvSome(_rctx, buf, BUFCP, Event());//fully asynchronous call
-		}else{
-			this->stop(_rctx);
-		}
+		sock.scheduleRecvSome(_rctx, buf, BUFCP, std::bind(&Listener::onRecv, this, _1, _2));//fully asynchronous call
+		timer.waitFor(_rctx, TimeSpec(30), std::bind(&Listener::onTimer, this, _1));
 	}else if(_rctx.event().id == EventStopE){
-		this->stop(_rctx);
+		return false;
 	}
+	return true;
 }
 
-/*virtual*/ void Connection::onEvent(ReactorContext &_rctx, size_t _sz){
-	unsigned		repeatcnt = 10;
+bool Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
+	unsigned	repeatcnt = 10;
 	do{
 		if(!_rctx.error()){
 			if(sock.writeAll(_rctx, buf, _sz, Event(EventSendE))){
 				if(_rctx.error()){
-					this->stop(_rctx);
+					return false;
 				}
 			}else{
 				break;
 			}
 		}else{
-			this->stop(_rctx);
+			return false;
 		}
 		--repeatcnt;
-	}while(repeatcnt && sock.recvSome(_rctx, buf, BUFCP, _sz, Event()));
+	}while(repeatcnt && sock.recvSome(_rctx, buf, BUFCP, std::bind(&Listener::onRecv, this, _1, _2), _sz));
+	
+	timer.waitFor(_rctx, TimeSpec(30), std::bind(&Listener::onTimer, this, _1));
+	return true;
+}
+
+bool Connection::onSend(frame::aio::ReactorContext &_rctx){
+	if(!_rctx.error()){
+		sock.scheduleRecvSome(_rctx, buf, BUFCP, std::bind(&Listener::onRecv, this, _1, _2));//fully asynchronous call
+		timer.waitFor(_rctx, TimeSpec(30), std::bind(&Listener::onTimer, this, _1));
+	}else{
+		return false;
+	}
+	return true;
+}
+
+bool Connection::onTimer(frame::aio::ReactorContext &_rctx){
+	return false;
 }
 
 //-----------------------------------------------------------------------------
