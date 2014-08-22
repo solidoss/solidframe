@@ -1,4 +1,4 @@
-// frame/aio/aioplainsocket.hpp
+// frame/aio/aiosocket.hpp
 //
 // Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_AIO_PLAINSOCKET_HPP
-#define SOLID_FRAME_AIO_PLAINSOCKET_HPP
+#ifndef SOLID_FRAME_AIO_SOCKET_HPP
+#define SOLID_FRAME_AIO_SOCKET_HPP
 
 #include "system/common.hpp"
 #include "system/socketdevice.hpp"
