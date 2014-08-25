@@ -22,8 +22,8 @@ namespace frame{
 typedef Queue<UidT>		UidQueueT;
 
 struct ReactorStub{
-	ReactorStub(ReactorBase *_psel = NULL):psel(_psel), cnt(0){}
-	ReactorBase		*psel;
+	ReactorStub(ReactorBase *_preactor = NULL):preactor(_preactor), cnt(0){}
+	ReactorBase		*preactor;
 	size_t			cnt;
 	size_t			crtidx;
 	UidQueueT		freeuidq;
@@ -41,8 +41,8 @@ enum StateE{
 };
 
 struct SchedulerBase::Data{
-	Data(Manager &_rm):rm(_rm), crtselidx(0), selchunkcp(0), selcnt(0), state(StateStopped){
-		crtminchunkcp = selchunkcp;
+	Data(Manager &_rm):rm(_rm), crtreactoridx(0), reactorchunkcp(0), reactorcnt(0), state(StateStopped){
+		crtminchunkcp = reactorchunkcp;
 	}
 	
 	bool isTransientState()const{
@@ -51,12 +51,12 @@ struct SchedulerBase::Data{
 	
 	
 	Manager				&rm;
-	size_t				crtselidx;
-	size_t				selchunkcp;
+	size_t				crtreactoridx;
+	size_t				reactorchunkcp;
 	size_t				crtminchunkcp;
-	size_t				selcnt;
+	size_t				reactorcnt;
 	StateE				state;
-	ReactorVectorT		reactvec;
+	ReactorVectorT		reactorvec;
 	Mutex				mtx;
 	Condition			cnd;
 };
@@ -75,23 +75,23 @@ Manager& SchedulerBase::manager(){
 	return d.rm;
 }
 
-bool SchedulerBase::update(ReactorBase &_rsel){
+bool SchedulerBase::update(ReactorBase &_rreactor){
 	Locker<Mutex>	lock(d.mtx);
-	ReactorStub		&rselstb = d.reactvec[_rsel.schidx];
+	ReactorStub		&rreactorstb = d.reactorvec[_rreactor.schidx];
 	
-	for(UidVectorT::const_iterator it(_rsel.freeuidvec.begin()); it != _rsel.freeuidvec.end(); ++it){
-		rselstb.freeuidq.push(*it);
+	for(UidVectorT::const_iterator it(_rreactor.freeuidvec.begin()); it != _rreactor.freeuidvec.end(); ++it){
+		rreactorstb.freeuidq.push(*it);
 	}
-	rselstb.cnt -= _rsel.freeuidvec.size();
-	_rsel.freeuidvec.clear();
+	rreactorstb.cnt -= _rreactor.freeuidvec.size();
+	_rreactor.freeuidvec.clear();
 	
-	const size_t	chunkcp = ((rselstb.cnt / d.selchunkcp) + 1) * d.selchunkcp;
+	const size_t	chunkcp = ((rreactorstb.cnt / d.reactorchunkcp) + 1) * d.reactorchunkcp;
 	
 	if(chunkcp < d.crtminchunkcp/* && rselstb.cnt < (chunkcp / 2)*/){
-		d.crtselidx = _rsel.schidx;
+		d.crtreactoridx = _rreactor.schidx;
 		d.crtminchunkcp = chunkcp;
 	}
-	_rsel.update();
+	_rreactor.update();
 	return true;
 }
 
@@ -109,36 +109,36 @@ bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* = 1*/, size_
 		return true;
 	}
 	d.state = StateStarting;
-	d.selchunkcp = _reactorchunkcp;
+	d.reactorchunkcp = _reactorchunkcp;
 	
 	for(size_t i = 0; i < _reactorcnt; ++i){
 		if((*_pf)(*this)){
-			++d.selcnt;
+			++d.reactorcnt;
 		}else{
 			d.state = StateStoppingError;
 			break;
 		}
 	}
 	if(d.state == StateStoppingError){
-		while(d.selcnt){
+		while(d.reactorcnt){
 			d.cnd.wait(lock);
 		}
 		d.state = StateError;
 	}else{
-		while(d.reactvec.size() != d.selcnt && d.state == StateStarting){
+		while(d.reactorvec.size() != d.reactorcnt && d.state == StateStarting){
 			d.cnd.wait(lock);
 		}
-		if(d.reactvec.size() != d.selcnt){
-			for(ReactorVectorT::const_iterator it(d.reactvec.begin()); it != d.reactvec.end(); ++it){
-				if(it->psel){
-					it->psel->stop();
+		if(d.reactorvec.size() != d.reactorcnt){
+			for(ReactorVectorT::const_iterator it(d.reactorvec.begin()); it != d.reactorvec.end(); ++it){
+				if(it->preactor){
+					it->preactor->stop();
 				}
 			}
-			while(d.selcnt){
+			while(d.reactorcnt){
 				d.cnd.wait(lock);
 			}
 			d.state = StateError;
-		}else if(d.reactvec.size() == d.selcnt){
+		}else if(d.reactorvec.size() == d.reactorcnt){
 			d.state = StateRunning;
 			return true;
 		}
@@ -148,19 +148,19 @@ bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* = 1*/, size_
 
 void SchedulerBase::doStop(bool _wait/* = true*/){
 	Locker<Mutex>	lock(d.mtx);
-	while(d.isTransientState() || d.selcnt){
+	while(d.isTransientState() || d.reactorcnt){
 		d.cnd.wait(lock);
 	}
-	if(_wait && d.selcnt == 0 && d.state == StateRunning){
+	if(_wait && d.reactorcnt == 0 && d.state == StateRunning){
 		d.state = StateStopped;
 	}
 	if(d.state == StateStopped || d.state == StateError){
 		return;
 	}
 	d.state = StateStopping;
-	for(ReactorVectorT::const_iterator it(d.reactvec.begin()); it != d.reactvec.end(); ++it){
-		if(it->psel){
-			it->psel->stop();
+	for(ReactorVectorT::const_iterator it(d.reactorvec.begin()); it != d.reactorvec.end(); ++it){
+		if(it->preactor){
+			it->preactor->stop();
 		}
 	}
 	if(_wait){
@@ -173,6 +173,7 @@ void SchedulerBase::doStop(bool _wait/* = true*/){
 
 bool SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
 	Locker<Mutex>	lock(d.mtx);
+	
 	if(d.state == StateRunning){
 		
 	}else{
@@ -183,52 +184,55 @@ bool SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
 			return false;
 		}
 	}
-	if(d.reactvec[d.crtselidx].cnt < d.crtminchunkcp){
+	if(d.reactorvec[d.crtreactoridx].cnt < d.crtminchunkcp){
 		
 	}else{
 		size_t mincp = -1;
 		size_t idx = 0;
-		for(ReactorVectorT::const_iterator it(d.reactvec.begin()); it != d.reactvec.end(); ++it){
+		for(ReactorVectorT::const_iterator it(d.reactorvec.begin()); it != d.reactorvec.end(); ++it){
 			if(it->cnt < mincp){
-				idx = d.reactvec.end() - it;
+				idx = d.reactorvec.end() - it;
 				mincp = it->cnt;
 			}
 		}
-		d.crtminchunkcp = ((mincp / d.selchunkcp) + 1) * d.selchunkcp;
-		d.crtselidx = idx;
+		d.crtminchunkcp = ((mincp / d.reactorchunkcp) + 1) * d.reactorchunkcp;
+		d.crtreactoridx = idx;
 	}
-	ReactorStub	&rsel = d.reactvec[d.crtselidx];
-	UidT			uid(rsel.crtidx, 0);
-	if(rsel.freeuidq.size()){
-		uid = rsel.freeuidq.front();
-		rsel.freeuidq.pop();
+	
+	ReactorStub		&rreactor = d.reactorvec[d.crtreactoridx];
+	UidT			uid(rreactor.crtidx, 0);
+	
+	if(rreactor.freeuidq.size()){
+		uid = rreactor.freeuidq.front();
+		rreactor.freeuidq.pop();
 	}else{
-		uid.index = d.rm.computeThreadId(rsel.psel->mgridx, uid.index);
-		++rsel.crtidx;
+		uid.index = d.rm.computeThreadId(rreactor.preactor->mgridx, uid.index);
+		++rreactor.crtidx;
 	}
 	if(uid.isValid()){
-		rsel.psel->setObjectThread(_robj, uid);
-		bool rv = _rfct(*rsel.psel);
+		rreactor.preactor->setObjectThread(_robj, uid);
+		bool rv = _rfct(*rreactor.preactor);
 		if(rv){
 			return true;
 		}
-		rsel.freeuidq.push(uid);
+		rreactor.freeuidq.push(uid);
 	}
 	return false;
 }
 
-bool SchedulerBase::prepareThread(ReactorBase &_rs){
+bool SchedulerBase::prepareThread(ReactorBase &_rreactor){
 	Locker<Mutex>	lock(d.mtx);
+	
 	if(d.state == StateStoppingError){
-		--d.selcnt;
-		if(d.selcnt == 0){
+		--d.reactorcnt;
+		if(d.reactorcnt == 0){
 			d.cnd.broadcast();
 		}
 		return false;
-	}else if(d.rm.prepareThread(&_rs)){
-		_rs.idInScheduler(d.reactvec.size());
-		d.reactvec.push_back(ReactorStub(&_rs));
-		if(d.reactvec.size() == d.selcnt){
+	}else if(d.rm.prepareThread(&_rreactor)){
+		_rreactor.idInScheduler(d.reactorvec.size());
+		d.reactorvec.push_back(ReactorStub(&_rreactor));
+		if(d.reactorvec.size() == d.reactorcnt){
 			d.cnd.broadcast();
 		}
 		return true;
@@ -238,14 +242,15 @@ bool SchedulerBase::prepareThread(ReactorBase &_rs){
 	}
 }
 
-void SchedulerBase::unprepareThread(ReactorBase &_rs){
+void SchedulerBase::unprepareThread(ReactorBase &_rreactor){
 	Locker<Mutex>	lock(d.mtx);
-	d.rm.unprepareThread(&_rs);
-	--d.selcnt;
-	d.reactvec[_rs.idInScheduler()].psel = NULL;
-	d.reactvec[_rs.idInScheduler()].cnt = 0;
-	if(d.selcnt == 0){
-		d.reactvec.clear();
+	
+	d.rm.unprepareThread(&_rreactor);
+	--d.reactorcnt;
+	d.reactorvec[_rreactor.idInScheduler()].preactor = NULL;
+	d.reactorvec[_rreactor.idInScheduler()].cnt = 0;
+	if(d.reactorcnt == 0){
+		d.reactorvec.clear();
 		d.cnd.broadcast();
 	}
 }
