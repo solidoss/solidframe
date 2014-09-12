@@ -20,53 +20,24 @@ namespace solid{
 namespace frame{
 namespace aio{
 class Message;
+struct ReactorContext;
 
 class Object: public Dynamic<Object, ObjectBase>{
 public:
 	typedef DynamicPointer<Message>	MessagePointerT;
 	
-	struct ExecuteContext{
-		~ExecuteContext();
-		size_t event()const{
-			return evn;
-		}
-		size_t index()const{
-			return idx;
-		}
-		MessagePointerT& message(){
-			return msgptr;
-		}
-		const TimeSpec& currentTime()const{
-			return rcrttm;
-		}
-		void reschedule(size_t _evn, size_t _idx = 0);
-		void close();
-	protected:
-		ExecuteContext(
-			const size_t _evn,
-			const size_t _idx,
-			MessagePointerT &_rmsgptr,
-			const TimeSpec &_rcrttm
-		):	evn(_evn), idx(_idx), msgptr(_rmsgptr), rcrttm(_rcrttm){}
-		
-		size_t			evn;
-		size_t			idx;
-		MessagePointerT	msgptr;
-		const TimeSpec	&rcrttm;
-	};
-
-	
-	static Object& specific(){
-		return static_cast<ThisT&>(ObjectBase::specific());
-	}
+// 	static Object& specific(){
+// 		return static_cast<ThisT&>(ObjectBase::specific());
+// 	}
 protected:
 	//! Constructor
-	Object();
+	Object(){}
 private:
-	virtual void execute(ExecuteContext &_rexectx);
+	virtual bool onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+		return false;
+	}
 private:
 };
-#endif
 
 }//namespace aio
 }//namespace frame

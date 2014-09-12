@@ -31,19 +31,19 @@ typedef DynamicPointer<Object>	ObjectPointerT;
 /*!
 	
 */
-class Selector: public frame::ReactorBase{
+class Reactor: public frame::ReactorBase{
 public:
 	typedef ObjectPointerT		JobT;
 	typedef Object				ObjectT;
 	
-	Reactor();
+	Reactor(SchedulerBase &_rsched);
 	~Reactor();
-	bool init(ulong _cp);
+	bool init(size_t _cp);
 	//signal a specific object
-	void raise(uint32 _pos);
+	void raise(size_t _pos);
 	void run();
-	ulong capacity()const;
-	ulong size() const;
+	size_t capacity()const;
+	size_t size() const;
 	bool empty()const;
 	bool full()const;
 	
@@ -51,6 +51,11 @@ public:
 	void prepare();
 	void unprepare();
 private:
+	
+	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _re);
+	/*virtual*/ void stop();
+	/*virtual*/ void update();
+	
 	struct Stub;
 	ulong doReadPipe();
 	ulong doAllIo();

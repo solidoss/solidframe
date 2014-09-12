@@ -35,5 +35,5 @@ add_library (solid_frame
 
 #add_subdirectory(ipc)
 #add_subdirectory(ipc2)
-#add_subdirectory(aio)
+add_subdirectory(aio2)
 #add_subdirectory(file)
