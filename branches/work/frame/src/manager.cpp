@@ -231,7 +231,7 @@ Manager::Manager(
 	delete &d;
 }
 
-void Manager::stop(){
+void Manager::stop(Event const &_revt){
 	Locker<Mutex> lock(d.mtx);
 	size_t crtsvccnt = d.svccnt;
 	for(size_t i = 0; i < d.svcprovisioncp && crtsvccnt; ++i){

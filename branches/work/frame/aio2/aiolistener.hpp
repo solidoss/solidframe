@@ -13,6 +13,8 @@
 #include "system/common.hpp"
 #include "system/socketdevice.hpp"
 
+#include "aioreactorcontext.hpp"
+
 namespace solid{
 namespace frame{
 namespace aio{
@@ -22,19 +24,21 @@ struct	ReactorContex;
 
 class Listener{
 public:
-	Listener(ObjectProxy &_robj, SocketDevice &_rsd);
-	Listener(ObjectProxy &_robj);
+	Listener(ObjectProxy &_robj, SocketDevice &_rsd){}
+	Listener(ObjectProxy &_robj){}
+	//TODO delete this line
+	Listener(){}
 	
 	
 	//returns true when an error (like operation already in progress) occurs
 	template <typename F>
-	bool accept(ReactorContext &_rctx, F _f){
-		
+	bool scheduleAccept(ReactorContext &_rctx, F _f){
+		return false;
 	}
 	
 	template <typename F>
-	bool accept(ReactorContext &_rctx, SocketDevice &_rsd, F _f){
-		
+	bool accept(ReactorContext &_rctx, F _f, SocketDevice &_rsd){
+		return false;
 	}
 private:
 	

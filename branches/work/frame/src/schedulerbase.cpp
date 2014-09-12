@@ -164,7 +164,7 @@ void SchedulerBase::doStop(bool _wait/* = true*/){
 		}
 	}
 	if(_wait){
-		while(d.selcnt){
+		while(d.reactorcnt){
 			d.cnd.wait(lock);
 		}
 		d.state = StateStopped;

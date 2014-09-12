@@ -34,10 +34,10 @@
 #include "frame/object.hpp"
 #include "frame/common.hpp"
 
-#include "frame/aio/aioselector.hpp"
-#include "frame/aio/aioobject.hpp"
+#include "frame/aio2/aioreactor.hpp"
+#include "frame/aio2/aioobject.hpp"
 
-#include "aiosocket.hpp"
+#include "frame/aio2/aiosocket.hpp"
 
 
 namespace solid{
@@ -49,7 +49,7 @@ namespace aio{
 //
 //=============================================================
 
-struct Selector::Stub{
+struct Reactor::Stub{
 	enum State{
 		InExecQueue,
 		OutExecQueue
@@ -74,7 +74,7 @@ struct Selector::Stub{
 	uint			events;
 };
 
-struct Selector::Data{
+struct Reactor::Data{
 	enum{
 		EPOLLMASK = EPOLLET | EPOLLIN | EPOLLOUT,
 		MAXPOLLWAIT = 0x7FFFFFFF,
@@ -120,7 +120,7 @@ public://methods:
 	void stub(uint32 &_objpos, uint32 &_sockpos, const epoll_event &_ev);
 };
 //-------------------------------------------------------------
-Selector::Data::Data():
+Reactor::Data::Data():
 	objcp(0), objsz(0), /*sockcp(0),*/ socksz(0), selcnt(0), epollfd(-1),
 	rep_fullscancount(0){
 #ifdef UPIPESIGNAL
@@ -132,7 +132,7 @@ Selector::Data::Data():
 #endif
 }
 
-Selector::Data::~Data(){
+Reactor::Data::~Data(){
 	if(epollfd >= 0){
 		close(epollfd);
 	}
@@ -148,17 +148,17 @@ Selector::Data::~Data(){
 #endif
 }
 
-int Selector::Data::computeWaitTimeout()const{
+int Reactor::Data::computeWaitTimeout()const{
 	if(ntimepos.isMax()) return -1;//return MAXPOLLWAIT;
 	int rv = (ntimepos.seconds() - ctimepos.seconds()) * 1000;
 	rv += ((long)ntimepos.nanoSeconds() - ctimepos.nanoSeconds()) / 1000000;
 	if(rv < 0) return MAXPOLLWAIT;
 	return rv;
 }
-void Selector::Data::addNewSocket(){
+void Reactor::Data::addNewSocket(){
 	++socksz;
 }
-inline epoll_event* Selector::Data::eventPrepare(
+inline epoll_event* Reactor::Data::eventPrepare(
 	epoll_event &_ev, const uint32 _objpos, const uint32 _sockpos
 ){
 	//TODO:we are now limited to uint32 objects and uint32 sockets per object
@@ -167,184 +167,56 @@ inline epoll_event* Selector::Data::eventPrepare(
 	_ev.data.u64 |= _sockpos;
 	return &_ev;
 }
-void Selector::Data::stub(uint32 &_objpos, uint32 &_sockpos, const epoll_event &_ev){
+void Reactor::Data::stub(uint32 &_objpos, uint32 &_sockpos, const epoll_event &_ev){
 	_objpos = (_ev.data.u64 >> 32);
 	_sockpos = (_ev.data.u64 & 0xffffffff);
 }
 //=============================================================
-Selector::Selector():d(*(new Data)){
+Reactor::Reactor(SchedulerBase &_rsched):ReactorBase(_rsched), d(*(new Data)){
 }
-Selector::~Selector(){
+Reactor::~Reactor(){
 	delete &d;
 }
-bool Selector::init(ulong _cp){
-	idbgx(Debug::aio, "aio::Selector "<<(void*)this);
-	cassert(_cp);
-	d.objcp = _cp;
-	//d.sockcp = _cp;
+
+/*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _re){}
+/*virtual*/ void Reactor::stop(){
 	
-	setCurrentTimeSpecific(d.ctimepos);
+}
+/*virtual*/ void Reactor::update(){
 	
-	//first create the epoll descriptor:
-	cassert(d.epollfd < 0);
-	d.epollfd = epoll_create(_cp);
-	if(d.epollfd < 0){
-		edbgx(Debug::aio, "epoll_create: "<<strerror(errno));
-		cassert(false);
-		return false;
-	}
-#ifdef UPIPESIGNAL
-	//next create the pipefds:
-	cassert(d.pipefds[0] < 0 && d.pipefds[1] < 0);
-	if(pipe(d.pipefds)){
-		edbgx(Debug::aio, "pipe: "<<strerror(errno));
-		cassert(false);
-		return false;
-	}
+}
 	
-	//make the pipes nonblocking
-	fcntl(d.pipefds[0], F_SETFL, O_NONBLOCK);
-	fcntl(d.pipefds[1], F_SETFL, O_NONBLOCK);
-	
-	//register the pipes onto epoll
-	epoll_event ev;
-	ev.data.u64 = 0;
-	ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
-	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-		edbgx(Debug::aio, "epoll_ctl: "<<strerror(errno));
-		cassert(false);
-		return false;
-	}
-#else
-	cassert(d.efd < 0);
-	d.efd = eventfd(0, EFD_NONBLOCK);
-	//register the pipes onto epoll
-	epoll_event ev;
-	ev.data.u64 = 0;
-	ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
-	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.efd, &ev)){
-		edbgx(Debug::aio, "epoll_ctl: "<<strerror(errno));
-		cassert(false);
-		return false;
-	}
-#endif
-	//allocate the events
-	//d.events = new epoll_event[d.sockcp];
-	for(ulong i = 0; i < Data::MAX_EVENTS_COUNT; ++i){
-		d.events[i].events = 0;
-		d.events[i].data.u64 = 0L;
-	}
-	//We need to have the stubs preallocated
-	//because of aio::Object::ptimeout
-	d.stubs.reserve(d.objcp);
-	//add the pipe stub:
-	doAddNewStub();
-	
-	d.ctimepos.set(0);
-	d.ntimepos = TimeSpec::maximum;
-	d.objsz = 1;
-	d.socksz = 1;
+bool Reactor::init(size_t _cp){
 	return true;
 }
 
-void Selector::prepare(){
-	setCurrentTimeSpecific(d.ctimepos);
+void Reactor::prepare(){
+	//setCurrentTimeSpecific(d.ctimepos);
 }
-void Selector::unprepare(){
-}
-
-void Selector::raise(uint32 _pos){
-#ifdef UPIPESIGNAL
-	idbgx(Debug::aio, "signal connection pipe: "<<_pos<<" this "<<(void*)this);
-	write(d.pipefds[1], &_pos, sizeof(uint32));
-#else
-	idbgx(Debug::aio, "signal connection evnt: "<<_pos<<" this "<<(void*)this);
-	uint64 v(1);
-	{
-		Locker<Mutex> lock(d.m);
-		d.sigq.push(_pos);
-	}
-	int rv = write(d.efd, &v, sizeof(v));
-	cassert(rv == sizeof(v));
-#endif
+void Reactor::unprepare(){
 }
 
-ulong Selector::capacity()const{
+void Reactor::raise(size_t _pos){
+}
+
+size_t Reactor::capacity()const{
 	return d.objcp;
 }
-ulong Selector::size() const{
+size_t Reactor::size() const{
 	return d.objsz;
 }
-bool Selector::empty()const{
+bool Reactor::empty()const{
 	return d.objsz == 1;
 }
-bool Selector::full()const{
+bool Reactor::full()const{
 	return d.objsz == d.objcp;
 }
 
-bool Selector::push(JobT &_objptr){
-	if(full()){
-		//NOTE:we cannot increase selvec because, objects keep pointers to Stub structures from vector
-		//if we'd use deque instead, we'd have a performance penalty 
-		THROW_EXCEPTION("Selector full");
-	}
-	uint stubpos = doAddNewStub();
-	Stub &stub = d.stubs[stubpos];
-	
-	if(!this->setObjectThread(*_objptr, stubpos)){
-		return false;
-	}
-	
-	stub.timepos  = TimeSpec::maximum;
-	stub.itimepos = TimeSpec::maximum;
-	stub.otimepos = TimeSpec::maximum;
-	
-	_objptr->doPrepare(&stub.itimepos, &stub.otimepos);
-	
-	//add events for every socket
-	bool fail = false;
-	uint failpos = 0;
-	{
-		epoll_event ev;
-		ev.data.u64 = 0L;
-		ev.events = 0;
-		
-		Object::SocketStub *psockstub = _objptr->pstubs;
-		for(uint i = 0; i < _objptr->stubcp; ++i, ++psockstub){
-			Socket *psock = psockstub->psock;
-			if(psock && psock->descriptor() >= 0){
-				if(
-					epoll_ctl(d.epollfd, EPOLL_CTL_ADD, psock->descriptor(), d.eventPrepare(ev, stubpos, i))
-				){
-					edbgx(Debug::aio, "epoll_ctl adding filedesc "<<psock->descriptor()<<" stubpos = "<<stubpos<<" pos = "<<i<<" err = "<<strerror(errno));
-					fail = true;
-					failpos = i;
-					break;
-				}else{
-					//success adding new
-					d.addNewSocket();
-					psock->doPrepare();
-				}
-			}
-		}
-	}
-	if(fail){
-		doUnregisterObject(*_objptr, failpos);
-		stub.reset();
-		d.freestubsstk.push(stubpos);
-		return false;
-	}else{
-		++d.objsz;
-		stub.objptr = _objptr;
-		stub.objptr->doPrepare(&stub.itimepos, &stub.otimepos);
-		vdbgx(Debug::aio, "pushing object "<<&(*(stub.objptr))<<" on position "<<stubpos);
-		stub.state = Stub::InExecQueue;
-		d.execq.push(stubpos);
-	}
+bool Reactor::push(JobT &_objptr){
 	return true;
 }
 
-inline ulong Selector::doExecuteQueue(){
+inline ulong Reactor::doExecuteQueue(){
 	ulong		flags = 0;
 	ulong		qsz(d.execq.size());
 	while(qsz){//we only do a single scan:
@@ -357,7 +229,7 @@ inline ulong Selector::doExecuteQueue(){
 }
 
 
-void Selector::run(){
+void Reactor::run(){
 	static const int	maxnbcnt = 16;
 	uint 				flags;
 	int					nbcnt = -1;	//non blocking opperations count,
@@ -410,228 +282,22 @@ void Selector::run(){
 }
 
 //-------------------------------------------------------------
-ulong Selector::doReadPipe(){
-#ifdef UPIPESIGNAL
-	enum {BUFSZ = 128, BUFLEN = BUFSZ * sizeof(uint32)};
-	uint32		buf[128];
-	ulong		rv(0);//no
-	long		rsz(0);
-	long		j(0);
-	long		maxcnt((d.objcp / BUFSZ) + 1);
-	Stub		*pstub(NULL);
-	
-	while((++j <= maxcnt) && ((rsz = read(d.pipefds[0], buf, BUFLEN)) == BUFLEN)){
-		for(int i = 0; i < BUFSZ; ++i){
-			uint pos(buf[i]);
-			if(pos){
-				if(pos < d.stubs.size() && !(pstub = &d.stubs[pos])->objptr.empty() && pstub->objptr->notified(S_RAISE)){
-					pstub->events |= EventSignal;
-					if(pstub->state == Stub::OutExecQueue){
-						d.execq.push(pos);
-						pstub->state = Stub::InExecQueue;
-					}
-				}
-			}else rv = Data::EXIT_LOOP;
-		}
-	}
-	if(rsz){
-		rsz >>= 2;
-		for(int i = 0; i < rsz; ++i){	
-			uint pos(buf[i]);
-			if(pos){
-				if(pos < d.stubs.size() && !(pstub = &d.stubs[pos])->objptr.empty() && pstub->objptr->notified(S_RAISE)){
-					pstub->events |= EventSignal;
-					if(pstub->state == Stub::OutExecQueue){
-						d.execq.push(pos);
-						pstub->state = Stub::InExecQueue;
-					}
-				}
-			}else rv = Data::EXIT_LOOP;
-		}
-	}
-	if(j > maxcnt){
-		//dummy read:
-		rv = Data::EXIT_LOOP | Data::FULL_SCAN;//scan all filedescriptors for events
-		wdbgx(Debug::aio, "reading pipe dummy");
-		while((rsz = read(d.pipefds[0], buf, BUFSZ)) > 0);
-	}
-	return rv;
-#else
-	//using eventfd
-	int		rv = 0;
-	uint64	v = 0;
-	bool mustempty = false;
-	Stub		*pstub(NULL);
-	
-	while(read(d.efd, &v, sizeof(v)) == sizeof(v)){
-		Locker<Mutex> lock(d.m);
-		uint	limiter = 16;
-		while(d.sigq.size() && --limiter){
-			uint pos(d.sigq.front());
-			d.sigq.pop();
-			if(pos){
-				idbgx(Debug::aio, "signaling object on pos "<<pos);
-				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
-					idbgx(Debug::aio, "signaled object on pos "<<pos);
-					pstub->events |= EventSignal;
-					if(pstub->state == Stub::OutExecQueue){
-						d.execq.push(pos);
-						pstub->state = Stub::InExecQueue;
-					}
-				}
-			}else rv = Data::EXIT_LOOP;
-		}
-		if(limiter == 0){
-			//d.sigq.size() != 0
-			mustempty = true;
-		}else{
-			mustempty = false;
-		}
-	}
-	if(mustempty){
-		Locker<Mutex> lock(d.m);
-		while(d.sigq.size()){
-			uint pos(d.sigq.front());
-			d.sigq.pop();
-			if(pos){
-				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
-					pstub->events |= EventSignal;
-					if(pstub->state == Stub::OutExecQueue){
-						d.execq.push(pos);
-						pstub->state = Stub::InExecQueue;
-					}
-				}
-			}else rv = Data::EXIT_LOOP;
-		}
-	}
-	return rv;
-#endif
+ulong Reactor::doReadPipe(){
+	return 0;
 }
-void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
-	Object::SocketStub *psockstub = _robj.pstubs;
-	uint to = _robj.stubcp;
-	if(_lastfailpos >= 0){
-		to = _lastfailpos + 1;
-	}
-	for(uint i = 0; i < to; ++i, ++psockstub){
-		Socket *psock = psockstub->psock;
-		if(psock && psock->descriptor() >= 0){
-			check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_DEL, psock->descriptor(), NULL));
-			--d.socksz;
-			psock->doUnprepare();
-		}
-	}
+void Reactor::doUnregisterObject(Object &_robj, int _lastfailpos){
 }
 
-inline ulong Selector::doIo(Socket &_rsock, ulong _evs, ulong){
-	if(_evs & (EPOLLERR | EPOLLHUP)){
-		_rsock.doClear();
-		int err(0);
-		socklen_t len(sizeof(err));
-		int rv = getsockopt(_rsock.descriptor(), SOL_SOCKET, SO_ERROR, &err, &len);
-		wdbgx(Debug::aio, "sock error evs = "<<_evs<<" err = "<<err<<" errstr = "<<strerror(err));
-		wdbgx(Debug::aio, "rv = "<<rv<<" "<<strerror(errno)<<" desc"<<_rsock.descriptor());
-		if(rv || err || (_evs & EPOLLERR)){
-			return EventDoneError;
-		}//else ignore spurious EPOLLHUP for just created sockets
-	}
-	ulong rv = 0;
-	if(_evs & EPOLLIN){
-		rv = _rsock.doRecv();
-	}
-	if(!(rv & EventDoneError) && (_evs & EPOLLOUT)){
-		rv |= _rsock.doSend();
-	}
-	return rv;
+inline ulong Reactor::doIo(Socket &_rsock, ulong _evs, ulong){
+	return 0;
 }
 
-ulong Selector::doAllIo(){
-	ulong		flags = 0;
-	TimeSpec	crttout;
-	uint32		evs;
-	uint32		stubpos;
-	uint32		sockpos;
-	const ulong	selcnt = d.selcnt;
-	for(ulong i = 0; i < selcnt; ++i){
-		d.stub(stubpos, sockpos, d.events[i]);
-		vdbgx(Debug::aio, "stubpos = "<<stubpos);
-		if(stubpos){
-			cassert(stubpos < d.stubs.size());
-			Stub				&stub(d.stubs[stubpos]);
-			Object::SocketStub	&sockstub(stub.objptr->pstubs[sockpos]);
-			Socket				&sock(*sockstub.psock);
-			
-			cassert(sockpos < stub.objptr->stubcp);
-			cassert(stub.objptr->pstubs[sockpos].psock);
-			
-			vdbgx(Debug::aio, "io events stubpos = "<<stubpos<<" events = "<<d.events[i].events);
-			evs = doIo(sock, d.events[i].events);
-			{
-				const uint t = sockstub.psock->ioRequest();
-				if((sockstub.selevents & Data::EPOLLMASK) != t){
-					sockstub.selevents = t;
-					
-					epoll_event ev;
-					ev.events = t | EPOLLERR | EPOLLHUP | EPOLLET;
-					ev.data.u64 = d.events[i].data.u64;
-					check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), &ev));
-				}
-			}
-			if(evs){
-				//first mark the socket in connection
-				vdbgx(Debug::aio, "evs = "<<evs<<" indone = "<<EventDoneRecv<<" stubpos = "<<stubpos);
-				stub.objptr->socketPostEvents(sockpos, evs);
-				stub.events |= evs;
-				//push channel execqueue
-				if(stub.state == Stub::OutExecQueue){
-					d.execq.push(stubpos);
-					stub.state = Stub::InExecQueue;
-				}
-			}
-		}else{//the pipe stub
-			flags |= Data::READ_PIPE;
-		}
-	}
-	return flags;
+ulong Reactor::doAllIo(){
+	return 0;
 }
-void Selector::doFullScanCheck(Stub &_rstub, const ulong _pos){
-	ulong	evs = 0;
-	if(d.ctimepos >= _rstub.itimepos){
-		evs |= _rstub.objptr->doOnTimeoutRecv(d.ctimepos);
-		if(d.ntimepos > _rstub.itimepos){
-			d.ntimepos = _rstub.itimepos;
-		}
-	}else if(d.ntimepos > _rstub.itimepos){
-		d.ntimepos = _rstub.itimepos;
-	}
-	
-	if(d.ctimepos >= _rstub.otimepos){
-		evs |= _rstub.objptr->doOnTimeoutSend(d.ctimepos);
-		if(d.ntimepos > _rstub.otimepos){
-			d.ntimepos = _rstub.otimepos;
-		}
-	}else if(d.ntimepos > _rstub.otimepos){
-		d.ntimepos = _rstub.otimepos;
-	}
-	
-	if(d.ctimepos >= _rstub.timepos){
-		evs |= EventTimeout;
-	}else if(d.ntimepos > _rstub.timepos){
-		d.ntimepos = _rstub.timepos;
-	}
-	
-	if(_rstub.objptr->notified(S_RAISE)){
-		evs |= EventSignal;//should not be checked by objs
-	}
-	if(evs){
-		_rstub.events |= evs;
-		if(_rstub.state == Stub::OutExecQueue){
-			d.execq.push(_pos);
-			_rstub.state = Stub::InExecQueue;
-		}
-	}
+void Reactor::doFullScanCheck(Stub &_rstub, const ulong _pos){
 }
-ulong Selector::doFullScan(){
+ulong Reactor::doFullScan(){
 	++d.rep_fullscancount;
 	idbgx(Debug::aio, "fullscan count "<<d.rep_fullscancount);
 	d.ntimepos = TimeSpec::maximum;
@@ -651,177 +317,16 @@ ulong Selector::doFullScan(){
 	}
 	return 0;
 }
-ulong Selector::doExecute(const ulong _pos){
-	Stub						&stub(d.stubs[_pos]);
-	
-	cassert(stub.state == Stub::InExecQueue);
-	stub.state = Stub::OutExecQueue;
-	
-	ulong						rv(0);
-	Object::ExecuteController	exectl(stub.events, d.ctimepos);
-	
-	stub.timepos = TimeSpec::maximum;
-	
-	stub.events = 0;
-	stub.objptr->doClearRequests();//clears the requests from object to selector
-	
-	idbgx(Debug::aio, "execute object "<<_pos);
-	
-	this->associateObjectToCurrentThread(*stub.objptr);
-	
-	this->executeObject(*stub.objptr, exectl);
-	
-	switch(exectl.returnValue()){
-		case Object::ExecuteContext::RescheduleRequest:
-			d.execq.push(_pos);
-			stub.state = Stub::InExecQueue;
-			stub.events |= EventReschedule;
-		case Object::ExecuteContext::WaitRequest:
-			doPrepareObjectWait(_pos, d.ctimepos);
-			break;
-		case Object::ExecuteContext::WaitUntilRequest:
-			doPrepareObjectWait(_pos, exectl.waitTime());
-			break;
-		case Object::ExecuteContext::CloseRequest:
-			idbgx(Debug::aio, "BAD: removing the connection");
-			d.freestubsstk.push(_pos);
-			//unregister all channels
-			doUnregisterObject(*stub.objptr);
-			//stub.objptr->doUnprepare();
-			this->stopObject(*stub.objptr);
-			stub.objptr.clear();
-			stub.timepos = TimeSpec::maximum;
-			--d.objsz;
-			rv = Data::EXIT_LOOP;
-			break;
-		case Object::ExecuteContext::LeaveRequest:
-			d.freestubsstk.push(_pos);
-			doUnregisterObject(*stub.objptr);
-			stub.timepos = TimeSpec::maximum;
-			--d.objsz;
-			stub.objptr->doUnprepare();
-			stub.objptr.release();
-			rv = Data::EXIT_LOOP;
-		default:
-			cassert(false);
-	}
-	return rv;
+ulong Reactor::doExecute(const ulong _pos){
+	return 0;
 }
-void Selector::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
-	Stub 					&stub(d.stubs[_pos]);
-	const size_t * const	pend(stub.objptr->reqpos);
-	bool 					mustwait = true;
-	vdbgx(Debug::aio, "stub "<<_pos);
-	for(const size_t *pit(stub.objptr->reqbeg); pit != pend; ++pit){
-		Object::SocketStub	&sockstub(stub.objptr->pstubs[*pit]);
-		const 				uint8 reqtp = sockstub.requesttype;
-		sockstub.requesttype = 0;
-		switch(reqtp){
-			case Object::SocketStub::IORequest:{
-				uint t = sockstub.psock->ioRequest();
-				vdbgx(Debug::aio, "sockstub "<<*pit<<" ioreq "<<t);
-				if((sockstub.selevents & Data::EPOLLMASK) != t){
-					vdbgx(Debug::aio, "sockstub "<<*pit);
-					epoll_event ev;
-					sockstub.selevents = t;
-					ev.events = t | EPOLLERR | EPOLLHUP | EPOLLET;
-					check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
-				}
-			}break;
-			case Object::SocketStub::RegisterRequest:{
-				vdbgx(Debug::aio, "sockstub "<<*pit<<" regreq");
-				/*
-					NOTE: may be a good ideea to add RegisterAndIORequest
-					Epoll doesn't like sockets that are only created, it signals
-					EPOLLET on them.
-				*/
-				epoll_event ev;
-				sockstub.psock->doPrepare();
-				sockstub.selevents = 0;
-				ev.events =  EPOLLERR | EPOLLHUP | EPOLLET;
-				check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_ADD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
-				stub.objptr->socketPostEvents(*pit, EventDoneSuccess);
-				d.addNewSocket();
-				mustwait = false;
-			}break;
-			case Object::SocketStub::UnregisterRequest:{
-				vdbgx(Debug::aio, "sockstub "<<*pit<<" unregreq");
-				if(sockstub.psock->ok()){
-					check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_DEL, sockstub.psock->descriptor(), NULL));
-					--d.socksz;
-					sockstub.psock->doUnprepare();
-					stub.objptr->socketPostEvents(*pit, EventDoneSuccess);
-					mustwait = false;
-				}
-			}break;
-			default:
-				cassert(false);
-		}
-	}
-	if(mustwait){
-		//will step here when, for example, the object waits for an external signal.
-		if(_timepos < stub.timepos && _timepos != d.ctimepos){
-			stub.timepos = _timepos;
-		}
-		
-		if(stub.timepos == d.ctimepos){
-			stub.timepos = TimeSpec::maximum;
-		}else if(d.ntimepos > stub.timepos){
-			d.ntimepos = stub.timepos;
-		}
-		
-		if(d.ntimepos > stub.itimepos){
-			d.ntimepos = stub.itimepos;
-		}
-		if(d.ntimepos > stub.otimepos){
-			d.ntimepos = stub.otimepos;
-		}
-		
-	}else if(stub.state != Stub::InExecQueue){
-		d.execq.push(_pos);
-		stub.state = Stub::InExecQueue;
-	}
+void Reactor::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
+	
 }
 
-ulong Selector::doAddNewStub(){
+ulong Reactor::doAddNewStub(){
 	ulong pos = 0;
-	if(d.freestubsstk.size()){
-		pos = d.freestubsstk.top();
-		d.freestubsstk.pop();
-	}else{
-		size_t cp = d.stubs.capacity();
-		pos = d.stubs.size();
-		size_t nextsize(fast_padding_size(pos, 2));
-		d.stubs.push_back(Stub());
-		for(size_t i(pos + 1); i < nextsize; ++i){
-			d.stubs.push_back(Stub());
-			d.freestubsstk.push(i);
-		}
-		if(cp != d.stubs.capacity()){
-			//we need to reset the aioobject's pointer to timepos
-			for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); it += 4){
-				if(!it->objptr.empty()){
-					//TODO: is it ok commenting the following lines?!
-					//it->timepos  = TimeSpec::maximum;
-					//it->itimepos = TimeSpec::maximum;
-					//it->otimepos = TimeSpec::maximum;
-					it->objptr->doPrepare(&it->itimepos, &it->otimepos);
-				}
-				if(!(it + 1)->objptr.empty()){
-					//TODO: see above
-					(it + 1)->objptr->doPrepare(&(it + 1)->itimepos, &(it + 1)->otimepos);
-				}
-				if(!(it + 2)->objptr.empty()){
-					//TODO: see above
-					(it + 2)->objptr->doPrepare(&(it + 2)->itimepos, &(it + 2)->otimepos);
-				}
-				if(!(it + 3)->objptr.empty()){
-					//TODO: see above
-					(it + 3)->objptr->doPrepare(&(it + 3)->itimepos, &(it + 3)->otimepos);
-				}
-			}
-		}
-	}
+	
 	return pos;
 }
 

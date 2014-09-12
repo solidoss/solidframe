@@ -2,13 +2,16 @@
 #include "frame/scheduler.hpp"
 
 #include "frame/aio2/aioreactor.hpp"
-#include "frame/aio/aioobject.hpp"
+#include "frame/aio2/aioobject.hpp"
+#include "frame/aio2/aiolistener.hpp"
 
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
+#include "system/debug.hpp"
+
 
 #include "boost/program_options.hpp"
 
@@ -67,21 +70,25 @@ static void term_handler(int signum){
 
 class Listener: public Dynamic<Listener, frame::aio::Object>{
 public:
-	Listener(frame::Manager &_rm, AioSchedulerT &_rsched, const SocketDevice &_rsd);
-	~Listener();
+	Listener(
+		frame::Manager &_rm,
+		AioSchedulerT &_rsched,
+		const SocketDevice &_rsd
+	):rm(_rm), rsched(_rsched){}
 private:
 	/*virtual*/ bool onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	bool onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
 	
-	typedef frame::aio::ListenerSocket	ListenerSocketT;
-	typedef frame::aio::Timer			TimerT;
+	typedef frame::aio::Listener		ListenerSocketT;
+	//typedef frame::aio::Timer			TimerT;
 	
 	frame::Manager		&rm;
 	AioSchedulerT		&rsched;
 	ListenerSocketT		sock;
-	TimerT				timer;
+	//TimerT				timer;
 };
 
+#ifdef USE_CONNECTION
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
 	Connection(const SocketDevice &_rsd);
@@ -94,13 +101,15 @@ private:
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>	StreamSocketT;
 	typedef frame::aio::Timer						TimerT;
-	enum {BUFCP = 1024};
+	enum {BufferCapacity = 1024};
 	
-	char			buf[BUFCP];
+	char			buf[BufferCapacity];
 	StreamSocketT	sock;
 	TimerT			timer;
 };
+#endif
 
+#ifdef USE_TALKER
 class Talker: public Dynamic<Talker, frame::aio::Object>{
 public:
 	Talker(const SocketDevice &_rsd);
@@ -112,11 +121,12 @@ private:
 private:
 	typedef frame::aio::Datagram<frame::aio::Socket>	DatagramSocketT;
 	typedef frame::aio::Timer							TimerT;
-	enum {BUFCP = 1024};
+	enum {BufferCapacity = 1024};
 	
-	char			buf[BUFCP];
+	char			buf[BufferCapacity];
 	DatagramSocketT	sock;
 };
+#endif
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
@@ -173,8 +183,8 @@ int main(int argc, char *argv[]){
 			SocketDevice	sd;
 			
 			sd.create(rd.begin());
-			sd.makeNonBlocking();
 			sd.prepareAccept(rd.begin(), 100);
+			
 			if(sd.ok()){
 				DynamicPointer<frame::aio::Object>	objptr(new Listener(m, s, sd));
 				
@@ -184,14 +194,12 @@ int main(int argc, char *argv[]){
 				cout<<"Error creating listener socket"<<endl;
 				running = false;
 			}
-			
+#ifdef USE_TALKER			
 			rd = synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 			
 			sd.create(rd.begin());
 			sd.bind(rd.begin());
 			
-			
-	
 			if(sd.ok()){
 				DynamicPointer<frame::aio::Object>	objptr(new Talker(sd));
 				
@@ -200,6 +208,7 @@ int main(int argc, char *argv[]){
 				cout<<"Error creating talker socket"<<endl;
 				running = false;
 			}
+#endif
 		}
 		
 		{
@@ -221,8 +230,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		options_description desc("SolidFrame concept application");
 		desc.add_options()
 			("help,h", "List program options")
-			("lsn_port,b", value<int>(&_par.listener_port)->default_value(2000),"Listener port")
-			("tkr_port,b", value<int>(&_par.talker_port)->default_value(3000),"Talker port")
+			("listen-port,l", value<int>(&_par.listener_port)->default_value(2000),"Listener port")
+			("talk-port,t", value<int>(&_par.talker_port)->default_value(3000),"Talker port")
 			("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("iew"),"Debug logging levels")
 			("debug-modules,M", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
@@ -244,6 +253,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	}
 }
 //-----------------------------------------------------------------------------
+//		Listener
+//-----------------------------------------------------------------------------
 
 /*virtual*/ bool Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(_revent.id == EventStartE){
@@ -259,14 +270,19 @@ bool Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	
 	do{
 		if(!_rctx.error()){
+#ifdef USE_CONNECTION			
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			rm.registerObject(objptr, rsched, frame::Event(EventStartE));
+#else
+			cout<<"Accepted connection"<<endl;
+#endif
 		}else{
-			timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onAccept, this, _1, frame::Event(EventStartE)));
+			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+			//timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
 			break;
 		}
 		--repeatcnt;
-	}while(repeatcnt && sock.accept(_rctx, std::bind(&Listener::onAccept, this, _1, _2)), _rsd);
+	}while(repeatcnt && sock.accept(_rctx, std::bind(&Listener::onAccept, this, _1, _2), _rsd));
 	
 	if(!repeatcnt){
 		sock.scheduleAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));//fully asynchronous call
@@ -275,10 +291,12 @@ bool Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 }
 
 //-----------------------------------------------------------------------------
-
+//		Connection
+//-----------------------------------------------------------------------------
+#ifdef USE_CONNECTION
 /*virtual*/ bool Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(_rctx.event().id == EventStartE){
-		sock.scheduleRecvSome(_rctx, buf, BUFCP, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
+		sock.scheduleRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
 		timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	}else if(_rctx.event().id == EventStopE){
 		return false;
@@ -301,7 +319,7 @@ bool Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
 			return false;
 		}
 		--repeatcnt;
-	}while(repeatcnt && sock.recvSome(_rctx, buf, BUFCP, std::bind(&Connection::onRecv, this, _1, _2), _sz));
+	}while(repeatcnt && sock.recvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2), _sz));
 	
 	timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	return true;
@@ -309,7 +327,7 @@ bool Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
 
 bool Connection::onSend(frame::aio::ReactorContext &_rctx){
 	if(!_rctx.error()){
-		sock.scheduleRecvSome(_rctx, buf, BUFCP, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
+		sock.scheduleRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
 		timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	}else{
 		return false;
@@ -320,14 +338,15 @@ bool Connection::onSend(frame::aio::ReactorContext &_rctx){
 bool Connection::onTimer(frame::aio::ReactorContext &_rctx){
 	return false;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 //		Talker
 //-----------------------------------------------------------------------------
-
+#ifdef USE_TALKER
 /*virtual*/ bool Talker::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(_rctx.event().id == EventStartE){
-		sock.scheduleRecvFrom(_rctx, buf, BUFCP, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
+		sock.scheduleRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
 	}else if(_rctx.event().id == EventStopE){
 		return false;
 	}
@@ -350,17 +369,18 @@ bool Talker::onRecv(frame::aio::ReactorContext &_rctx, SocketAddressInet &_raddr
 			return false;
 		}
 		--repeatcnt;
-	}while(repeatcnt && sock.recvFrom(_rctx, buf, BUFCP, std::bind(&Talker::onRecv, this, _1, _2), _raddr, _sz));
+	}while(repeatcnt && sock.recvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2), _raddr, _sz));
 	
 	return true;
 }
 
 bool Talker::onSend(frame::aio::ReactorContext &_rctx){
 	if(!_rctx.error()){
-		sock.scheduleRecvFrom(_rctx, buf, BUFCP, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
+		sock.scheduleRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
 	}else{
 		return false;
 	}
 	return true;
 }
 
+#endif

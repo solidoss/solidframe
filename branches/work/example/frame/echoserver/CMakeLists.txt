@@ -1,11 +1,10 @@
-add_executable (example_echoserver echoserver.cpp)
+add_executable (example_echoserver echoserver2.cpp)
 
-set_source_files_properties(echoserver.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\"")
+#set_source_files_properties(echoserver.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\"")
 
 target_link_libraries (example_echoserver
-	solid_frame_aio
-	solid_frame_aio_openssl
-	solid_frame_core
+	solid_frame
+	solid_frame_aio2
 	solid_serialization
 	solid_utility
 	solid_system

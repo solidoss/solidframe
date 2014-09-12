@@ -64,7 +64,7 @@ public:
 	
 	virtual ~Manager();
 
-	void stop();
+	void stop(Event const &_revt);
 	
 	bool registerService(
 		Service &_rsvc,
@@ -73,7 +73,7 @@ public:
 	void unregisterService(Service &_rsvc);
 	
 	template <class Obj, class Sch>
-	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch){
+	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt){
 		ScheduleObjectF<Obj, Sch>	fnc(_robjptr, _rsch);
 		ObjectScheduleFunctorT		fctor(fnc);
 		return doRegisterObject(*_robjptr, fctor);
