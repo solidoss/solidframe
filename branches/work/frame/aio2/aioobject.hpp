@@ -22,6 +22,21 @@ namespace aio{
 class Message;
 struct ReactorContext;
 
+class Object;
+
+struct ObjectProxy{
+	Object& object()const{
+		return robj;
+	}
+private:
+	friend class Object;
+	ObjectProxy(Object &_robj): robj(_robj){}
+	ObjectProxy(ObjectProxy const &_rd):robj(_rd.robj){}
+	ObjectProxy& operator=(ObjectProxy const&_rd);
+private:
+	Object &robj;
+};
+
 class Object: public Dynamic<Object, ObjectBase>{
 public:
 	typedef DynamicPointer<Message>	MessagePointerT;
@@ -32,6 +47,10 @@ public:
 protected:
 	//! Constructor
 	Object(){}
+	
+	ObjectProxy proxy(){
+		return ObjectProxy(*this);
+	}
 private:
 	virtual bool onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 		return false;

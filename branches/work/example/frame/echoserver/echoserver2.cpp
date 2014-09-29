@@ -74,7 +74,7 @@ public:
 		frame::Manager &_rm,
 		AioSchedulerT &_rsched,
 		const SocketDevice &_rsd
-	):rm(_rm), rsched(_rsched){}
+	):rm(_rm), rsched(_rsched), sock(this->proxy()){}
 private:
 	/*virtual*/ bool onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	bool onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
