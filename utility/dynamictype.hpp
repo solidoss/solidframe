@@ -50,14 +50,6 @@ struct DynamicBase{
 	}
 	//! Get the type id for a Dynamic object.
 	virtual size_t dynamicTypeId()const = 0;
-	//! Used by DynamicPointer - smartpointers
-	virtual size_t use();
-	//! Used by DynamicPointer to know if the object must be deleted
-	/*!
-	 * For the return value, think of use count. Returning zero means the object should
-	 * be deleted. Returning non zero means the object should not be deleted.
-	 */
-	virtual size_t release();
 	
 	virtual bool isTypeDynamic(const size_t _id)const;
 	
@@ -68,91 +60,19 @@ protected:
 	
 	friend class DynamicPointerBase;
 	virtual ~DynamicBase();
-};
-
-//----------------------------------------------------------------
-//		DynamicSharedImpl
-//----------------------------------------------------------------
-
-
-struct DynamicSharedImpl{
-protected:
-	DynamicSharedImpl():usecount(ATOMIC_VAR_INIT(0)){}
-	size_t doUse(){
-		return usecount.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/) + 1;
-	}
-	size_t doRelease(){
-		return usecount.fetch_sub(1/*, ATOMIC_NS::memory_order_seq_cst*/) - 1;
-	}
-protected:
-	typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
-
-	AtomicSizeT		usecount;
-};
-
-//----------------------------------------------------------------
-//		DynamicShared
-//----------------------------------------------------------------
-
-//! A class for 
-template <class T = DynamicBase>
-struct DynamicShared: T, DynamicSharedImpl{
-    DynamicShared(){}
-	//! One parameter constructor to forward to base
-	template<class G1>
-	explicit DynamicShared(G1 &_g1):T(_g1){}
-	
-	template<class G1>
-	explicit DynamicShared(const G1 &_g1):T(_g1){}
-	
-	//! Two parameters constructor to forward to base
-	template<class G1, class G2>
-	explicit DynamicShared(G1 &_g1, G2 &_g2):T(_g1, _g2){}
-	
-	template<class G1, class G2>
-	explicit DynamicShared(const G1 &_g1, const G2 &_g2):T(_g1, _g2){}
-	
-	//! Three parameters constructor to forward to base
-	template<class G1, class G2, class G3>
-	explicit DynamicShared(G1 &_g1, G2 &_g2, G3 &_g3):T(_g1, _g2, _g3){}
-	
-	template<class G1, class G2, class G3>
-	explicit DynamicShared(const G1 &_g1, const G2 &_g2, const G3 &_g3):T(_g1, _g2, _g3){}
-	
-	template<class G1, class G2, class G3, class G4>
-	explicit DynamicShared(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4):T(_g1, _g2, _g3, _g4){}
-	
-	template<class G1, class G2, class G3, class G4>
-	explicit DynamicShared(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4):T(_g1, _g2, _g3, _g4){}
-	
-	template<class G1, class G2, class G3, class G4, class G5>
-	explicit DynamicShared(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4, G5 &_g5):T(_g1, _g2, _g3, _g4, _g5){}
-	
-	template<class G1, class G2, class G3, class G4, class G5>
-	explicit DynamicShared(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5):T(_g1, _g2, _g3, _g4, _g5){}
-	
-	template<class G1, class G2, class G3, class G4, class G5, class G6>
-	explicit DynamicShared(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5, const G6 &_g6):T(_g1, _g2, _g3, _g4, _g5, _g6){}
-	
-	template<class G1, class G2, class G3, class G4, class G5, class G6, class G7>
-	explicit DynamicShared(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4, G5 &_g5, G6 &_g6, G7 &_g7):T(_g1, _g2, _g3, _g4, _g5, _g6, _g7){}
-	
-	template<class G1, class G2, class G3, class G4, class G5, class G6>
-	explicit DynamicShared(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4, G5 &_g5, G6 &_g6):T(_g1, _g2, _g3, _g4, _g5, _g6){}
-	
-	template<class G1, class G2, class G3, class G4, class G5, class G6, class G7>
-	explicit DynamicShared(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5, const G6 &_g6, const G7 &_g7):T(_g1, _g2, _g3, _g4, _g5, _g6, _g7){}
-	
 	
 	//! Used by DynamicPointer - smartpointers
-	/*virtual*/ size_t use(){
-		return doUse();
-	}
+	size_t use();
 	//! Used by DynamicPointer to know if the object must be deleted
-	/*virtual*/ size_t release(){
-		return doRelease();
-	}
+	/*!
+	 * For the return value, think of use count. Returning zero means the object should
+	 * be deleted. Returning non zero means the object should not be deleted.
+	 */
+	size_t release();
+private:
+	typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 	
+	AtomicSizeT		usecount;
 };
 
 //----------------------------------------------------------------

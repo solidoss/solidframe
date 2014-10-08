@@ -107,15 +107,6 @@ void DynamicPointerBase::use(DynamicBase *_pdyn){
 	_pdyn->use();
 }
 
-void DynamicPointerBase::storeSpecific(void *_pv)const{
-	Thread::specific(specificId(), _pv);
-}
-
-/*static*/ void* DynamicPointerBase::fetchSpecific(){
-	return Thread::specific(specificId());
-}
-
-
 //--------------------------------------------------------------------
 //		DynamicBase
 //--------------------------------------------------------------------
@@ -130,15 +121,15 @@ typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 
 DynamicBase::~DynamicBase(){}
 
-/*virtual*/ size_t DynamicBase::use(){
+size_t DynamicBase::use(){
 	idbgx(Debug::utility, "DynamicBase");
-	return 0;
+	return usecount.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/) + 1;;
 }
 
 //! Used by DynamicPointer to know if the object must be deleted
-/*virtual*/ size_t DynamicBase::release(){
+size_t DynamicBase::release(){
 	idbgx(Debug::utility, "DynamicBase");
-	return 0;
+	return usecount.fetch_sub(1/*, ATOMIC_NS::memory_order_seq_cst*/) - 1;
 }
 
 /*virtual*/ bool DynamicBase::isTypeDynamic(const size_t _id)const{

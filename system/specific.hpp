@@ -67,10 +67,6 @@ public:
 	
 	static Specific& the();
 
-	
-	template <class T>
-	
-	
 	template <class T>
 	inline T* pop(){
 		T *p = object<T>();
@@ -119,7 +115,7 @@ private:
 	}
 	
 	template <typename T>
-	T* object(T *_p = NULL, const ObjectCacheConfiguration *_pcfg){
+	T* object(T *_p = NULL, const ObjectCacheConfiguration *_pcfg = NULL){
 		static const size_t id = stackid(&Specific::template cleaner<T>);
 		if(_p){
 			doPushObject(id, _p);

@@ -7,6 +7,8 @@ set(Sources
 	src/cstring.cpp
 	src/sharedbackend.cpp
 	src/error.cpp
+	src/memory.cpp
+	src/memorycache.cpp
 )
 
 set(Headers
