@@ -1,4 +1,4 @@
-// memorycache.hpp
+// memory.hpp
 //
 // Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -7,26 +7,14 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_SYSTEM_MEMORY_CACHE_HPP
-#define SOLID_SYSTEM_MEMORY_CACHE_HPP
+#ifndef SOLID_SYSTEM_MEMORY_HPP
+#define SOLID_SYSTEM_MEMORY_HPP
 
 #include "system/common.hpp"
 
 namespace solid{
 
-class MemoryCache{
-public:
-	MemoryCache(
-		unsigned _pagecpbts = 0
-	);
-	~MemoryCache();
-	
-	void *allocate(size_t _sz);
-	void free(void *_pv, size_t _sz);
-private:
-	struct Data;
-	Data	&d;
-};
+size_t page_size();
 
 }//namespace solid
 #endif

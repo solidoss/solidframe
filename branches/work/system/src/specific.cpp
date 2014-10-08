@@ -62,12 +62,15 @@ void* SpecificObject::operator new (std::size_t _sz){
 /*static*/ size_t Specific::stackid(Specific::CleanupFncT _pf){
 	//The lock is not actually necessary - 
 	Locker<Mutex>	lock(Thread::gmutex());
+	return 0;
 }
 
-void Specific::doPushObject(const size_t _id, void *_pv){
+bool Specific::doPushObject(const size_t _id, void *_pv){
+	return false;
 }
 
 void* Specific::doPopObject(const size_t _id){
+	return 0;
 }
 
 }//namespace solid
