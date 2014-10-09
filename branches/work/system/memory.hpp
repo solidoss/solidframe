@@ -14,7 +14,9 @@
 
 namespace solid{
 
-size_t page_size();
+size_t memory_page_size();
+void * memory_allocate_aligned(size_t _align, size_t _size);
+void   memory_free_aligned(void *_pv);
 
 }//namespace solid
 #endif
