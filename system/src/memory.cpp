@@ -8,13 +8,31 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "system/memory.hpp"
+#include <cstdlib>
 
 size_t getMemorySize();
 
 namespace solid{
 	
-size_t page_size(){
+size_t memory_page_size(){
 	return getMemorySize();
+}
+
+
+void * memory_allocate_aligned(size_t _align, size_t _size){
+#ifdef ON_WINDOWS
+	return NULL;
+#else
+	void *pv = NULL;
+	int rv = posix_memalign(&pv, _align, _size);
+	return !rv ? pv : NULL;
+#endif
+}
+void   memory_free_aligned(void *_pv){
+#ifdef ON_WINDOWS
+#else
+	free(_pv);
+#endif
 }
 
 }//namespace solid
