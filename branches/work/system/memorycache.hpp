@@ -23,6 +23,9 @@ public:
 	
 	void *allocate(size_t _sz);
 	void free(void *_pv, size_t _sz);
+	
+	
+	void reserve(size_t _sz, size_t _cnt);
 private:
 	struct Data;
 	Data	&d;
