@@ -10,8 +10,10 @@
 
 #include "system/memorycache.hpp"
 #include "system/memory.hpp"
+#include "system/cassert.hpp"
 #include <vector>
 #include <type_traits>
+#include <memory>
 
 namespace solid{
 
@@ -19,17 +21,28 @@ struct Configuration{
 	Configuration(
 		const size_t _pagecp,
 		const size_t _alignsz,
-		const size_t _cachepagecnt = 1
-	):pagecp(_pagecp), alignsz(_alignsz), cachepagecnt(_cachepagecnt){}
+		const size_t _emptypagecnt = 1
+	):pagecp(_pagecp), alignsz(_alignsz), emptypagecnt(_emptypagecnt){}
 	
 	size_t	pagecp;
 	size_t	alignsz;
-	size_t	cachepagecnt;
+	size_t	emptypagecnt;
 };
 
 struct Node{
 	Node *pnext;
 };
+
+
+inline void *align( std::size_t alignment, std::size_t size,
+                    void *&ptr, std::size_t &space ) {
+	std::uintptr_t pn = reinterpret_cast< std::uintptr_t >( ptr );
+	std::uintptr_t aligned = ( pn + alignment - 1 ) & - alignment;
+	std::size_t padding = aligned - pn;
+	if ( space < size + padding ) return nullptr;
+	space -= padding;
+	return ptr = reinterpret_cast< void * >( aligned );
+}
 
 struct Page{
 	static size_t	dataCapacity(Configuration const &_rcfg){
@@ -60,10 +73,29 @@ struct Page{
 		
 	}
 	
-	uint16	usecount;
+	void init(const size_t _cp, Configuration const &_rcfg){
+		pprev = pnext = NULL;
+		ptop = NULL;
+		usecount = 0;
+		char 	*pc = reinterpret_cast<char *>(this);
+		void 	*pv = pc + sizeof(*this);
+		size_t	sz = _rcfg.pagecp - sizeof(*this);
+		Node	*pn = NULL;
+		while(align(_rcfg.alignsz, _cp, pv, sz)){
+			pn = reinterpret_cast<Node*>(pv);
+			pn->pnext = ptop;
+			ptop = pn;
+			uint8 *pu = static_cast<uint8*>(pv);
+			pv = pu + _cp;
+		}
+	}
 	
 	Page	*pprev;
 	Page	*pnext;
+	
+	Node	*ptop;
+	
+	uint16	usecount;
 	
 	Node*	first()const;
 	void*	data()const;
@@ -71,7 +103,22 @@ struct Page{
 
 
 struct CacheStub{
-	CacheStub():ptoppage(NULL), pagecnt(0){}
+	CacheStub():pfrontpage(NULL), pbackpage(NULL), emptypagecnt(0){}
+	
+	~CacheStub(){
+		clear();
+	}
+	
+	void clear(){
+		Page *pit = pfrontpage;
+		while(pit){
+			Page *ptmp = pit;
+			pit = pit->pprev;
+			
+			memory_free_aligned(ptmp);
+		}
+		pfrontpage = pbackpage = NULL;
+	}
 	
 	void* pop(const size_t _cp, Configuration const &_rcfg){
 		if(!pfrontpage || pfrontpage->full()){
@@ -79,31 +126,84 @@ struct CacheStub{
 				return NULL;
 			}
 		}
-		return pfrontpage->pop(_cp, _rcfg);
+		
+		if(pfrontpage->empty()){
+			--emptypagecnt;
+		}
+		
+		void *pv = pfrontpage->pop(_cp, _rcfg);
+		
+		if(pfrontpage->full() && pfrontpage != pbackpage && !pfrontpage->pprev->full()){
+			//move the frontpage to back
+			Page *ptmp = pfrontpage;
+			
+			pfrontpage = ptmp->pprev;
+			pfrontpage->pnext = NULL;
+			
+			pbackpage->pprev = ptmp;
+			ptmp->pnext = pbackpage;
+			pbackpage = ptmp;
+		}
+		return pv;
 	}
 	
 	void push(void *_pv, size_t _cp, Configuration const &_rcfg){
 		Page *ppage = Page::computePage(_pv, _rcfg);
+		
 		ppage->push(_pv, _cp, _rcfg);
-		if(ppage->empty()){
+		
+		if(ppage->empty() && shouldFreeEmptyPage(_rcfg)){
+			//the page can be deleted
+			if(ppage->pnext){
+				ppage->pnext->pprev = ppage->pprev;
+			}else{
+				cassert(pfrontpage == ppage);
+				pfrontpage = ppage->pprev;
+			}
 			
-		}else if(ppage->full()){
+			if(ppage->pprev){
+				ppage->pprev->pnext = ppage->pnext;
+			}else{
+				cassert(pbackpage == ppage);
+				pbackpage = ppage->pnext;
+			}
+			--emptypagecnt;
+			memory_free_aligned(ppage);
+		}else if(pfrontpage != ppage){
+			//move the page to front
+			ppage->pnext->pprev = ppage->pprev;
+			if(ppage->pprev){
+				ppage->pprev->pnext = ppage->pnext;
+			}
 			
+			ppage->pnext = NULL;
+			ppage->pprev = pfrontpage;
+			pfrontpage->pnext = ppage;
+			pfrontpage = ppage;
 		}
-	}
-	
-	bool empty()const{
-		return true;
+		
+		
 	}
 	
 	bool allocate(const size_t _cp, Configuration const &_rcfg){
+		void *pv = memory_allocate_aligned(_rcfg.pagecp, _rcfg.pagecp);
+		if(pv){
+			Page *ppage = reinterpret_cast<Page*>(pv);
+			ppage->init(_cp, _rcfg);
+			return true;
+		}
 		return false;
+	}
+	
+    bool shouldFreeEmptyPage(Configuration const &_rcfg){
+		++emptypagecnt;
+		return emptypagecnt > _rcfg.emptypagecnt;
 	}
     
 	
 	Page	*pfrontpage;
 	Page	*pbackpage;
-	size_t	pagecnt;
+	size_t	emptypagecnt;
 };
 
 typedef std::vector<CacheStub>	CacheVectorT;
@@ -112,7 +212,7 @@ struct MemoryCache::Data{
 	Data(
 		size_t _pagecpbts
 	):cfg((_pagecpbts ? 1 << _pagecpbts : memory_page_size()), std::alignment_of<long long int>::value){
-		cachevec.resize((Page::dataCapacity(cfg.pagecp, cfg.alignsz) / cfg.alignsz) + 1);
+		cachevec.resize((Page::dataCapacity(cfg) / cfg.alignsz) + 1);
 	}
 	
 	bool isSmall(const size_t _sz)const{
@@ -157,11 +257,16 @@ void MemoryCache::free(void *_pv, size_t _sz){
 		const size_t	idx = d.sizeToIndex(_sz);
 		const size_t	cp = d.indexToCapacity(_sz);
 		CacheStub		&cs(d.cachevec[idx]);
-		cs.push(_pv, cp);
+		cs.push(_pv, cp, d.cfg);
 	}else{
 		delete []static_cast<char*>(_pv);
 	}
 }
+
+void MemoryCache::reserve(size_t _sz, size_t _cnt){
+	
+}
+
 //-----------------------------------------------------------------------------
 
 }//namespace solid
