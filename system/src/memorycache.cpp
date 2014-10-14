@@ -12,7 +12,7 @@
 #include "system/memory.hpp"
 #include "system/cassert.hpp"
 #include <vector>
-#include <type_traits>
+#include <boost/type_traits.hpp>
 #include <memory>
 
 namespace solid{
@@ -46,41 +46,48 @@ inline void *align( std::size_t alignment, std::size_t size,
 
 struct Page{
 	static size_t	dataCapacity(Configuration const &_rcfg){
-		const size_t	headsz = sizeof(uint16) - sizeof(Page*) - sizeof(Page*);
+		const size_t	headsz = sizeof(Page);
 		size_t 			headpadd = (_rcfg.alignsz - (headsz % _rcfg.alignsz)) %  _rcfg.alignsz;
-		if(headpadd < sizeof(uint16)){
-			headpadd += _rcfg.alignsz;
-		}
 		return _rcfg.pagecp - headsz - headpadd;
 	}
 	static Page* computePage(void *_pv, Configuration const &_rcfg){
-		return NULL;
+		std::uintptr_t pn = reinterpret_cast< std::uintptr_t >( _pv );
+		pn -= (pn % _rcfg.pagecp);
+		return reinterpret_cast<Page*>(pn);
 	}
 	
 	bool empty()const{
-		return false;
+		return usecount == 0;
 	}
 	
 	bool full()const{
-		return true;
+		return ptop == NULL;
 	}
 	
 	void* pop(const size_t _cp, Configuration const &_rcfg){
-		return NULL;
+		void *pv = ptop;
+		ptop = ptop->pnext;
+		++usecount;
+		return pv;
 	}
 	
 	void push(void *_pv, const size_t _cp, Configuration const &_rcfg){
-		
+		--usecount;
+		Node *pnode = static_cast<Node*>(_pv);
+		pnode->pnext = ptop;
+		ptop = pnode;
 	}
 	
 	void init(const size_t _cp, Configuration const &_rcfg){
 		pprev = pnext = NULL;
 		ptop = NULL;
 		usecount = 0;
+		
 		char 	*pc = reinterpret_cast<char *>(this);
 		void 	*pv = pc + sizeof(*this);
 		size_t	sz = _rcfg.pagecp - sizeof(*this);
 		Node	*pn = NULL;
+		
 		while(align(_rcfg.alignsz, _cp, pv, sz)){
 			pn = reinterpret_cast<Node*>(pv);
 			pn->pnext = ptop;
@@ -96,9 +103,6 @@ struct Page{
 	Node	*ptop;
 	
 	uint16	usecount;
-	
-	Node*	first()const;
-	void*	data()const;
 };
 
 
@@ -211,7 +215,7 @@ typedef std::vector<CacheStub>	CacheVectorT;
 struct MemoryCache::Data{
 	Data(
 		size_t _pagecpbts
-	):cfg((_pagecpbts ? 1 << _pagecpbts : memory_page_size()), std::alignment_of<long long int>::value){
+	):cfg((_pagecpbts ? 1 << _pagecpbts : memory_page_size()), boost::alignment_of<long>::value){
 		cachevec.resize((Page::dataCapacity(cfg) / cfg.alignsz) + 1);
 	}
 	
@@ -243,7 +247,7 @@ MemoryCache::~MemoryCache(){
 void *MemoryCache::allocate(size_t _sz){
 	if(d.isSmall(_sz)){
 		const size_t idx = d.sizeToIndex(_sz);
-		const size_t cp = d.indexToCapacity(_sz);
+		const size_t cp = d.indexToCapacity(idx);
 		
 		CacheStub		&cs(d.cachevec[idx]);
 		return cs.pop(cp, d.cfg);
@@ -255,7 +259,7 @@ void *MemoryCache::allocate(size_t _sz){
 void MemoryCache::free(void *_pv, size_t _sz){
 	if(d.isSmall(_sz)){
 		const size_t	idx = d.sizeToIndex(_sz);
-		const size_t	cp = d.indexToCapacity(_sz);
+		const size_t	cp = d.indexToCapacity(idx);
 		CacheStub		&cs(d.cachevec[idx]);
 		cs.push(_pv, cp, d.cfg);
 	}else{

@@ -8,14 +8,16 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "system/memory.hpp"
+#include <unistd.h>
 #include <cstdlib>
 
 size_t getMemorySize();
+size_t getMemoryPageSize();
 
 namespace solid{
 	
 size_t memory_page_size(){
-	return getMemorySize();
+	return getMemoryPageSize();
 }
 
 
@@ -35,7 +37,24 @@ void   memory_free_aligned(void *_pv){
 #endif
 }
 
+size_t memory_size(){
+	return getMemorySize();
+}
+
+
 }//namespace solid
+
+
+/**
+ * Returns the size of physical memory (RAM) in bytes.
+ */
+size_t getMemoryPageSize(){
+#ifdef ON_WINDOWS
+#else
+	return (size_t)sysconf( _SC_PAGESIZE );
+#endif
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
@@ -135,4 +154,5 @@ size_t getMemorySize()
 	return 0L;			/* Unknown OS. */
 #endif
 }
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
