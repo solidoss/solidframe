@@ -21,7 +21,7 @@ struct Configuration{
 	Configuration(
 		const size_t _pagecp,
 		const size_t _alignsz,
-		const size_t _emptypagecnt = 1
+		const size_t _emptypagecnt = 100
 	):pagecp(_pagecp), alignsz(_alignsz), emptypagecnt(_emptypagecnt){}
 	
 	size_t	pagecp;
@@ -94,6 +94,7 @@ struct Page{
 			ptop = pn;
 			uint8 *pu = static_cast<uint8*>(pv);
 			pv = pu + _cp;
+			sz -= _cp;
 		}
 	}
 	
@@ -146,6 +147,7 @@ struct CacheStub{
 			
 			pbackpage->pprev = ptmp;
 			ptmp->pnext = pbackpage;
+			ptmp->pprev = NULL;
 			pbackpage = ptmp;
 		}
 		return pv;
@@ -194,6 +196,17 @@ struct CacheStub{
 		if(pv){
 			Page *ppage = reinterpret_cast<Page*>(pv);
 			ppage->init(_cp, _rcfg);
+			
+			ppage->pprev = pfrontpage;
+			
+			if(pfrontpage){
+				pfrontpage->pnext = ppage;
+				pfrontpage = ppage;
+			}else{
+				pbackpage = pfrontpage = ppage;
+			}
+			
+			++emptypagecnt;
 			return true;
 		}
 		return false;
@@ -224,11 +237,11 @@ struct MemoryCache::Data{
 	}
 	
 	size_t indexToCapacity(const size_t _idx)const{
-		return _idx * cfg.alignsz;
+		return (_idx + 1) * cfg.alignsz;
 	}
 	
 	size_t sizeToIndex(const size_t _sz)const{
-		return _sz / cfg.alignsz;
+		return (_sz - 1) / cfg.alignsz;
 	}
 	
 	CacheVectorT		cachevec;
