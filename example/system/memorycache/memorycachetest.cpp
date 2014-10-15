@@ -2,6 +2,7 @@
 #include "system/debug.hpp"
 #include <cstring>
 #include <vector>
+#include <iostream>
 using namespace std;
 using namespace solid;
 
@@ -11,9 +12,11 @@ MemoryCache mc(8 * 1024);
 struct BaseObject{
 	static void operator delete (void *_p, std::size_t _sz){
 		mc.free(_p, _sz);
+		//free(_p);
 	}
 	static void* operator new (std::size_t _sz){
 		return mc.allocate(_sz);
+		//return malloc(_sz);
 	}
 };
 
@@ -40,6 +43,7 @@ int main(int argc, char *argv[]){
 	
 	size_t rescnt = mc.reserve(4, cp);
 	idbg("Reserved "<<rescnt<<" items");
+	cout<<"Reserved "<<rescnt<<" items"<<endl;
 	//return 0;
 	size_t crtcp = 0;
 	for(size_t i = 0; i < repeatcnt; ++i){

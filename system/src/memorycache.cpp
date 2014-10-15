@@ -11,10 +11,13 @@
 #include "system/memorycache.hpp"
 #include "system/memory.hpp"
 #include "system/cassert.hpp"
+#undef UDEBUG
 #include "system/debug.hpp"
 #include <vector>
 #include <boost/type_traits.hpp>
 #include <memory>
+
+
 
 namespace solid{
 
@@ -22,7 +25,7 @@ struct Configuration{
 	Configuration(
 		const size_t _pagecp,
 		const size_t _alignsz,
-		const size_t _emptypagecnt = 100
+		const size_t _emptypagecnt = 10000
 	):pagecp(_pagecp), alignsz(_alignsz), emptypagecnt(_emptypagecnt){}
 	
 	size_t	pagecp;
