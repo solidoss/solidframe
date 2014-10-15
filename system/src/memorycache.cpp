@@ -11,6 +11,7 @@
 #include "system/memorycache.hpp"
 #include "system/memory.hpp"
 #include "system/cassert.hpp"
+#include "system/debug.hpp"
 #include <vector>
 #include <boost/type_traits.hpp>
 #include <memory>
@@ -78,7 +79,7 @@ struct Page{
 		ptop = pnode;
 	}
 	
-	void init(const size_t _cp, Configuration const &_rcfg){
+	size_t init(const size_t _cp, Configuration const &_rcfg){
 		pprev = pnext = NULL;
 		ptop = NULL;
 		usecount = 0;
@@ -87,7 +88,7 @@ struct Page{
 		void 	*pv = pc + sizeof(*this);
 		size_t	sz = _rcfg.pagecp - sizeof(*this);
 		Node	*pn = NULL;
-		
+		size_t	cnt = 0;
 		while(align(_rcfg.alignsz, _cp, pv, sz)){
 			pn = reinterpret_cast<Node*>(pv);
 			pn->pnext = ptop;
@@ -95,7 +96,13 @@ struct Page{
 			uint8 *pu = static_cast<uint8*>(pv);
 			pv = pu + _cp;
 			sz -= _cp;
+			++cnt;
 		}
+		return cnt;
+	}
+	
+	void print()const{
+		idbg("Page: "<<(void*)this<<" pnext = "<<(void*)pnext<<" pprev = "<<(void*)pprev<<" ptop = "<<ptop<<" usecount = "<<usecount);
 	}
 	
 	Page	*pprev;
@@ -108,7 +115,7 @@ struct Page{
 
 
 struct CacheStub{
-	CacheStub():pfrontpage(NULL), pbackpage(NULL), emptypagecnt(0){}
+	CacheStub():pfrontpage(NULL), pbackpage(NULL), emptypagecnt(0), pagecnt(0), itemcnt(0){}
 	
 	~CacheStub(){
 		clear();
@@ -127,9 +134,12 @@ struct CacheStub{
 	
 	void* pop(const size_t _cp, Configuration const &_rcfg){
 		if(!pfrontpage || pfrontpage->full()){
-			if(!allocate(_cp, _rcfg)){
+			idbg("must allocate");
+			size_t cnt = allocate(_cp, _rcfg);
+			if(!cnt){
 				return NULL;
 			}
+			itemcnt += cnt;
 		}
 		
 		if(pfrontpage->empty()){
@@ -139,6 +149,7 @@ struct CacheStub{
 		void *pv = pfrontpage->pop(_cp, _rcfg);
 		
 		if(pfrontpage->full() && pfrontpage != pbackpage && !pfrontpage->pprev->full()){
+			idbg("move frontpage to back: itemcnt = "<<itemcnt);
 			//move the frontpage to back
 			Page *ptmp = pfrontpage;
 			
@@ -150,6 +161,7 @@ struct CacheStub{
 			ptmp->pprev = NULL;
 			pbackpage = ptmp;
 		}
+		--itemcnt;
 		return pv;
 	}
 	
@@ -157,7 +169,7 @@ struct CacheStub{
 		Page *ppage = Page::computePage(_pv, _rcfg);
 		
 		ppage->push(_pv, _cp, _rcfg);
-		
+		++itemcnt;
 		if(ppage->empty() && shouldFreeEmptyPage(_rcfg)){
 			//the page can be deleted
 			if(ppage->pnext){
@@ -174,12 +186,17 @@ struct CacheStub{
 				pbackpage = ppage->pnext;
 			}
 			--emptypagecnt;
+			--pagecnt;
+			idbg("free page - pagecnt = "<<pagecnt<<" emptypagecnt = "<<emptypagecnt<<" itemcnt = "<<itemcnt);
 			memory_free_aligned(ppage);
-		}else if(pfrontpage != ppage){
+		}else if(pfrontpage != ppage && pfrontpage->usecount > ppage->usecount){
 			//move the page to front
 			ppage->pnext->pprev = ppage->pprev;
 			if(ppage->pprev){
 				ppage->pprev->pnext = ppage->pnext;
+			}
+			if(pbackpage == ppage){
+				pbackpage = ppage->pnext;
 			}
 			
 			ppage->pnext = NULL;
@@ -191,11 +208,12 @@ struct CacheStub{
 		
 	}
 	
-	bool allocate(const size_t _cp, Configuration const &_rcfg){
+	size_t allocate(const size_t _cp, Configuration const &_rcfg){
 		void *pv = memory_allocate_aligned(_rcfg.pagecp, _rcfg.pagecp);
+		size_t cnt = 0;
 		if(pv){
 			Page *ppage = reinterpret_cast<Page*>(pv);
-			ppage->init(_cp, _rcfg);
+			cnt = ppage->init(_cp, _rcfg);
 			
 			ppage->pprev = pfrontpage;
 			
@@ -205,11 +223,12 @@ struct CacheStub{
 			}else{
 				pbackpage = pfrontpage = ppage;
 			}
-			
+			++pagecnt;
 			++emptypagecnt;
-			return true;
+			itemcnt += cnt;
+			idbg("itemcnt = "<<itemcnt);
 		}
-		return false;
+		return cnt;
 	}
 	
     bool shouldFreeEmptyPage(Configuration const &_rcfg){
@@ -217,18 +236,31 @@ struct CacheStub{
 		return emptypagecnt > _rcfg.emptypagecnt;
 	}
     
+    void print(size_t _cp, Configuration const &_rcfg)const;
 	
 	Page	*pfrontpage;
 	Page	*pbackpage;
 	size_t	emptypagecnt;
+	size_t	pagecnt;
+	size_t	itemcnt;
 };
+
+void CacheStub::print(size_t _cp, Configuration const &_rcfg)const{
+	idbg("emptypagecnt = "<<emptypagecnt<<" pagecnt = "<<pagecnt<<" itemcnt = "<<itemcnt);
+	idbg("pfrontpage = "<<(void*)pfrontpage<<" pbackpage = "<<(void*)pbackpage);
+	Page *ppage = pfrontpage;
+	while(ppage){
+		ppage->print();
+		ppage = ppage->pprev;
+	}
+}
 
 typedef std::vector<CacheStub>	CacheVectorT;
 //-----------------------------------------------------------------------------
 struct MemoryCache::Data{
 	Data(
-		size_t _pagecpbts
-	):cfg((_pagecpbts ? 1 << _pagecpbts : memory_page_size()), boost::alignment_of<long>::value){
+		size_t _pagecp
+	):cfg((_pagecp ? _pagecp : memory_page_size()), boost::alignment_of<long>::value){
 		cachevec.resize((Page::dataCapacity(cfg) / cfg.alignsz) + 1);
 	}
 	
@@ -280,8 +312,26 @@ void MemoryCache::free(void *_pv, size_t _sz){
 	}
 }
 
-void MemoryCache::reserve(size_t _sz, size_t _cnt){
-	
+void MemoryCache::print(size_t _sz)const{
+	const size_t	idx = d.sizeToIndex(_sz);
+	const size_t	cp = d.indexToCapacity(idx);
+	CacheStub		&cs(d.cachevec[idx]);
+	cs.print(cp, d.cfg);
+}
+
+size_t MemoryCache::reserve(size_t _sz, size_t _cnt){
+	size_t			crtcnt;
+	size_t			totcnt = 0;
+	const size_t	idx = d.sizeToIndex(_sz);
+	const size_t	cp = d.indexToCapacity(idx);
+	CacheStub		&cs(d.cachevec[idx]);
+	size_t			pgcnt = 0;
+	while(totcnt < _cnt && (crtcnt = cs.allocate(cp, d.cfg))){
+		totcnt += crtcnt;
+		++pgcnt;
+	}
+	idbg("page count = "<<pgcnt);
+	return totcnt;
 }
 
 //-----------------------------------------------------------------------------
