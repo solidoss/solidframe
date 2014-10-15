@@ -17,7 +17,7 @@ namespace solid{
 class MemoryCache{
 public:
 	MemoryCache(
-		unsigned _pagecpbts = 0
+		unsigned _pagecp = 0
 	);
 	~MemoryCache();
 	
@@ -25,7 +25,8 @@ public:
 	void free(void *_pv, size_t _sz);
 	
 	
-	void reserve(size_t _sz, size_t _cnt);
+	size_t reserve(size_t _sz, size_t _cnt);
+	void print(size_t _sz)const;
 private:
 	struct Data;
 	Data	&d;
