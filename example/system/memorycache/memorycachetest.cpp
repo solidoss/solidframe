@@ -6,17 +6,24 @@
 using namespace std;
 using namespace solid;
 
-MemoryCache mc(8 * 1024);
+MemoryCache mc/*(8 * 1024)*/;
 
+bool	usemc = true;
 
 struct BaseObject{
 	static void operator delete (void *_p, std::size_t _sz){
-		mc.free(_p, _sz);
-		//free(_p);
+		if(usemc){
+			mc.free(_p, _sz);
+		}else{
+			free(_p);
+		}
 	}
 	static void* operator new (std::size_t _sz){
-		return mc.allocate(_sz);
-		//return malloc(_sz);
+		if(usemc){
+			return mc.allocate(_sz);
+		}else{
+			return malloc(_sz);
+		}
 	}
 };
 
@@ -28,6 +35,9 @@ struct TestObject: BaseObject{
 
 
 int main(int argc, char *argv[]){
+	if(argc >= 2){
+		usemc = false;
+	}
 	solid::Debug::the().initStdErr(false);
 	solid::Debug::the().moduleMask("all");
 	
@@ -36,8 +46,8 @@ int main(int argc, char *argv[]){
 // 	delete p4;
 	std::vector<TestObject<4>* > vec;
 	
-	size_t step = 1000;
-	size_t repeatcnt = 500;
+	size_t step = 1000000;
+	size_t repeatcnt = 1;
 	size_t cp = repeatcnt * step;
 	vec.reserve(cp);
 	
