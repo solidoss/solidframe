@@ -17,7 +17,8 @@ namespace solid{
 class MemoryCache{
 public:
 	MemoryCache(
-		unsigned _pagecp = 0
+		size_t _pagecp = 0,
+		size_t _emptypagecnt = 1
 	);
 	~MemoryCache();
 	

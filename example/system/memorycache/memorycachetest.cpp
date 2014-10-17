@@ -6,9 +6,10 @@
 using namespace std;
 using namespace solid;
 
-MemoryCache mc/*(8 * 1024)*/;
-
-bool	usemc = true;
+namespace {
+MemoryCache	mc(0, 512 + 256);
+bool		usemc = true;
+}
 
 struct BaseObject{
 	static void operator delete (void *_p, std::size_t _sz){
@@ -25,6 +26,22 @@ struct BaseObject{
 			return malloc(_sz);
 		}
 	}
+	virtual ~BaseObject(){}
+};
+
+template <uint16 Sz>
+struct TestObject;
+
+template <>
+struct TestObject<4>: BaseObject{
+	uint32	v;
+	TestObject(uint32 _v = 0):v(_v){}
+};
+
+template <>
+struct TestObject<8>: BaseObject{
+	uint64	v;
+	TestObject(uint64 _v = 0):v(_v){}
 };
 
 
@@ -40,27 +57,33 @@ int main(int argc, char *argv[]){
 	}
 	solid::Debug::the().initStdErr(false);
 	solid::Debug::the().moduleMask("all");
+	solid::Debug::the().levelMask("iew");
 	
 // 	TestObject<4> *p4 = new TestObject<4>;
 // 	memset(p4->buf, 0, 4);
 // 	delete p4;
-	std::vector<TestObject<4>* > vec;
+	std::vector<BaseObject* > vec;
 	
-	size_t step = 1000000;
-	size_t repeatcnt = 1;
+	size_t step = 3000;
+	size_t repeatcnt = 100;
 	size_t cp = repeatcnt * step;
-	vec.reserve(cp);
+	vec.reserve(cp * 3);
 	
-	size_t rescnt = mc.reserve(4, cp);
+	size_t rescnt = 0;
+	//rescnt = mc.reserve(sizeof(TestObject<4>),  cp);
+	//rescnt = mc.reserve(sizeof(TestObject<8>),  cp);
+	//rescnt = mc.reserve(sizeof(TestObject<16>), cp);
 	idbg("Reserved "<<rescnt<<" items");
 	cout<<"Reserved "<<rescnt<<" items"<<endl;
-	//return 0;
+	
 	size_t crtcp = 0;
 	for(size_t i = 0; i < repeatcnt; ++i){
 		crtcp += step;
 		idbg("Allocate "<<crtcp<<" items");
 		for(size_t j = 0; j < crtcp; ++j){
-			vec.push_back(new TestObject<4>);
+			vec.push_back(new TestObject<4>(j));
+			vec.push_back(new TestObject<8>(j));
+			vec.push_back(new TestObject<16>);
 		}
 		idbg("+++++++++++++++++++++++++++++");
 		mc.print(4);
