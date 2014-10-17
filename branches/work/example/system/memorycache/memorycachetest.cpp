@@ -44,6 +44,12 @@ struct TestObject<8>: BaseObject{
 	TestObject(uint64 _v = 0):v(_v){}
 };
 
+template <>
+struct TestObject<12>: BaseObject{
+	uint64	v1;
+	uint32	v2;
+	TestObject(uint64 _v = 0):v1(_v),v2(_v){}
+};
 
 template <uint16 Sz>
 struct TestObject: BaseObject{
@@ -59,9 +65,6 @@ int main(int argc, char *argv[]){
 	solid::Debug::the().moduleMask("all");
 	solid::Debug::the().levelMask("iew");
 	
-// 	TestObject<4> *p4 = new TestObject<4>;
-// 	memset(p4->buf, 0, 4);
-// 	delete p4;
 	std::vector<BaseObject* > vec;
 	
 	size_t step = 3000;
@@ -70,9 +73,12 @@ int main(int argc, char *argv[]){
 	vec.reserve(cp * 3);
 	
 	size_t rescnt = 0;
-	//rescnt = mc.reserve(sizeof(TestObject<4>),  cp);
-	//rescnt = mc.reserve(sizeof(TestObject<8>),  cp);
-	//rescnt = mc.reserve(sizeof(TestObject<16>), cp);
+	if(usemc){
+		rescnt = mc.reserve(sizeof(TestObject<4>),  cp);
+		rescnt = mc.reserve(sizeof(TestObject<8>),  cp);
+		rescnt = mc.reserve(sizeof(TestObject<12>), cp);
+		rescnt = mc.reserve(sizeof(TestObject<32>), cp);
+	}
 	idbg("Reserved "<<rescnt<<" items");
 	cout<<"Reserved "<<rescnt<<" items"<<endl;
 	
@@ -83,7 +89,8 @@ int main(int argc, char *argv[]){
 		for(size_t j = 0; j < crtcp; ++j){
 			vec.push_back(new TestObject<4>(j));
 			vec.push_back(new TestObject<8>(j));
-			vec.push_back(new TestObject<16>);
+			vec.push_back(new TestObject<12>(j));
+			vec.push_back(new TestObject<32>);
 		}
 		idbg("+++++++++++++++++++++++++++++");
 		mc.print(4);

@@ -249,7 +249,7 @@ struct CacheStub{
 	
     bool shouldFreeEmptyPage(Configuration const &_rcfg){
 		++emptypagecnt;
-		return emptypagecnt > _rcfg.emptypagecnt && emptypagecnt > keeppagecnt;
+		return /*emptypagecnt > _rcfg.emptypagecnt && */emptypagecnt > keeppagecnt;
 	}
     
     void print(size_t _cp, Configuration const &_rcfg)const;
@@ -355,11 +355,15 @@ size_t MemoryCache::reserve(size_t _sz, size_t _cnt){
 	const size_t	cp = d.indexToCapacity(idx);
 	CacheStub		&cs(d.cachevec[idx]);
 	size_t			pgcnt = 0;
+	if(!cs.pagecnt){
+		cs.keeppagecnt = 0;
+	}
+	
 	while(totcnt < _cnt && (crtcnt = cs.allocate(cp, d.cfg))){
 		totcnt += crtcnt;
 		++pgcnt;
 	}
-	cs.keeppagecnt = pgcnt;
+	cs.keeppagecnt += pgcnt;
 	idbg("page count = "<<pgcnt);
 	return totcnt;
 }
