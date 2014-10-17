@@ -136,6 +136,9 @@ struct CacheStub{
 	}
 	
 	void* pop(const size_t _cp, Configuration const &_rcfg){
+		//static char buf[128];
+		//void *pv = buf;//malloc(_cp);
+		//return buf;
 		if(!pfrontpage || pfrontpage->full()){
 			idbg("must allocate");
 			size_t cnt = allocate(_cp, _rcfg);
@@ -169,10 +172,13 @@ struct CacheStub{
 	}
 	
 	void push(void *_pv, size_t _cp, Configuration const &_rcfg){
-		Page *ppage = Page::computePage(_pv, _rcfg);
 		
-		ppage->push(_pv, _cp, _rcfg);
+		
+		//free(_pv);
 		++itemcnt;
+		//return;
+		Page *ppage = Page::computePage(_pv, _rcfg);
+		ppage->push(_pv, _cp, _rcfg);
 		if(ppage->empty() && shouldFreeEmptyPage(_rcfg)){
 			//the page can be deleted
 			if(ppage->pnext){
@@ -263,24 +269,26 @@ typedef std::vector<CacheStub>	CacheVectorT;
 struct MemoryCache::Data{
 	Data(
 		size_t _pagecp
-	):cfg((_pagecp ? _pagecp : memory_page_size()), boost::alignment_of<long>::value){
-		cachevec.resize((Page::dataCapacity(cfg) / cfg.alignsz) + 1);
+	):	cfg((_pagecp ? _pagecp : memory_page_size()), boost::alignment_of<long>::value),
+		pagedatacp(Page::dataCapacity(cfg)){
+		cachevec.resize((pagedatacp / cfg.alignsz) + 1);
 	}
 	
-	bool isSmall(const size_t _sz)const{
-		return _sz <= Page::dataCapacity(cfg);
+	inline bool isSmall(const size_t _sz)const{
+		return _sz <= pagedatacp;
 	}
 	
-	size_t indexToCapacity(const size_t _idx)const{
+	inline size_t indexToCapacity(const size_t _idx)const{
 		return (_idx + 1) * cfg.alignsz;
 	}
 	
-	size_t sizeToIndex(const size_t _sz)const{
+	inline size_t sizeToIndex(const size_t _sz)const{
 		return (_sz - 1) / cfg.alignsz;
 	}
 	
 	CacheVectorT		cachevec;
 	const Configuration cfg;
+	const size_t		pagedatacp;
 };
 
 //-----------------------------------------------------------------------------
@@ -307,7 +315,7 @@ void *MemoryCache::allocate(size_t _sz){
 void MemoryCache::free(void *_pv, size_t _sz){
 	if(d.isSmall(_sz)){
 		const size_t	idx = d.sizeToIndex(_sz);
-		const size_t	cp = d.indexToCapacity(idx);
+		const size_t	cp = 8;//d.indexToCapacity(idx);
 		CacheStub		&cs(d.cachevec[idx]);
 		cs.push(_pv, cp, d.cfg);
 	}else{

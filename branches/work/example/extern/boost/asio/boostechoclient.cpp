@@ -105,13 +105,13 @@ private:
 		);
 		const std::string &data = rm.dataVector()[writeidx % rm.dataVector().size()].data;
 		//cout<<"write "<<(writeidx % rm.dataVector().size())<<" size = "<<data.size()<<endl;
-		timeq.push(TimeSpec::createRealTime());
-		boost::asio::async_write(
-			socket_,
-			boost::asio::buffer(data.data(), data.size()),
-			boost::bind(&session::handle_write, this,
-			boost::asio::placeholders::error)
-		);
+// 		timeq.push(TimeSpec::createRealTime());
+// 		boost::asio::async_write(
+// 			socket_,
+// 			boost::asio::buffer(data.data(), data.size()),
+// 			boost::bind(&session::handle_write, this,
+// 			boost::asio::placeholders::error)
+// 		);
 	}
 	void handle_read(const boost::system::error_code& error,
 		size_t bytes_transferred)
