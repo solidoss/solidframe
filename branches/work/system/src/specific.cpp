@@ -61,8 +61,11 @@ void* SpecificObject::operator new (std::size_t _sz){
 	const size_t _pagecp,
 	const size_t _emptypagecnt
 ){
-	Specific *ps = new Specific(_pagecp, _emptypagecnt);
-	Thread::specific(specificPosition(), ps, Specific::destroy);
+	Specific *ps = static_cast<Specific*>(Thread::specific(specificPosition()));
+	if(ps == NULL){
+		ps = new Specific(_pagecp, _emptypagecnt);
+		Thread::specific(specificPosition(), ps, Specific::destroy);
+	}
 	return *ps;
 }
 
