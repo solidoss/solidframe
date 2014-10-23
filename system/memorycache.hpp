@@ -17,17 +17,18 @@ namespace solid{
 class MemoryCache{
 public:
 	MemoryCache(
-		size_t _pagecp = 0,
-		size_t _emptypagecnt = 1
+		const size_t _pagecp = 0,
+		const size_t _emptypagecnt = 1
 	);
 	~MemoryCache();
 	
-	void *allocate(size_t _sz);
-	void free(void *_pv, size_t _sz);
+	void *allocate(const size_t _sz);
+	void free(void *_pv, const size_t _sz);
 	
 	
-	size_t reserve(size_t _sz, size_t _cnt);
-	void print(size_t _sz)const;
+	size_t reserve(const size_t _sz, const size_t _cnt, const bool _lazy = true);
+	
+	void print(const size_t _sz)const;
 private:
 	struct Data;
 	Data	&d;

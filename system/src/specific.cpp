@@ -43,13 +43,6 @@ const unsigned specificPosition(){
 
 #endif
 
-//This is what is held on a thread
-struct Specific::Data{
-	Data();
-	~Data();
-	
-};
-
 //----------------------------------------------------------------------------------------------------
 void SpecificObject::operator delete (void *_pv, std::size_t _sz){
 	Specific::the().free(_pv, _sz);
@@ -57,20 +50,31 @@ void SpecificObject::operator delete (void *_pv, std::size_t _sz){
 void* SpecificObject::operator new (std::size_t _sz){
 	return Specific::the().allocate(_sz);
 }
+
 //----------------------------------------------------------------------------------------------------
-//for caching objects
-/*static*/ size_t Specific::stackid(Specific::CleanupFncT _pf){
-	//The lock is not actually necessary - 
-	Locker<Mutex>	lock(Thread::gmutex());
-	return 0;
+/*static*/ void Specific::destroy(void *_pv){
+	Specific *ps = reinterpret_cast<Specific*>(_pv);
+	delete ps;
 }
 
-bool Specific::doPushObject(const size_t _id, void *_pv){
-	return false;
+/*static*/ Specific& Specific::prepareThread(
+	const size_t _pagecp,
+	const size_t _emptypagecnt
+){
+	Specific *ps = new Specific(_pagecp, _emptypagecnt);
+	Thread::specific(specificPosition(), ps, Specific::destroy);
+	return *ps;
 }
 
-void* Specific::doPopObject(const size_t _id){
-	return 0;
+/*static*/ Specific& Specific::the(){
+	Specific *pspec = static_cast<Specific*>(Thread::specific(specificPosition()));
+	if(pspec){
+		return *pspec;
+	}else{
+		return prepareThread();
+	}
+	
 }
+
 
 }//namespace solid
