@@ -310,15 +310,15 @@ struct MemoryCache::Data{
 
 //-----------------------------------------------------------------------------
 MemoryCache::MemoryCache(
-	size_t _pagecp,
-	size_t _emptypagecnt
+	const size_t _pagecp,
+	const size_t _emptypagecnt
 ):d(*(new Data(_pagecp, _emptypagecnt))){}
 
 MemoryCache::~MemoryCache(){
 	delete &d;
 }
 
-void *MemoryCache::allocate(size_t _sz){
+void *MemoryCache::allocate(const size_t _sz){
 	if(d.isSmall(_sz)){
 		const size_t idx = d.sizeToIndex(_sz);
 		const size_t cp = d.indexToCapacity(idx);
@@ -330,7 +330,7 @@ void *MemoryCache::allocate(size_t _sz){
 	}
 }
 
-void MemoryCache::free(void *_pv, size_t _sz){
+void MemoryCache::free(void *_pv, const size_t _sz){
 	if(d.isSmall(_sz)){
 		const size_t	idx = d.sizeToIndex(_sz);
 		const size_t	cp = d.indexToCapacity(idx);
@@ -341,20 +341,21 @@ void MemoryCache::free(void *_pv, size_t _sz){
 	}
 }
 
-void MemoryCache::print(size_t _sz)const{
+void MemoryCache::print(const size_t _sz)const{
 	const size_t	idx = d.sizeToIndex(_sz);
 	const size_t	cp = d.indexToCapacity(idx);
 	CacheStub		&cs(d.cachevec[idx]);
 	cs.print(cp, d.cfg);
 }
 
-size_t MemoryCache::reserve(size_t _sz, size_t _cnt){
+size_t MemoryCache::reserve(const size_t _sz, const size_t _cnt, const bool _lazy){
 	size_t			crtcnt;
 	size_t			totcnt = 0;
 	const size_t	idx = d.sizeToIndex(_sz);
 	const size_t	cp = d.indexToCapacity(idx);
 	CacheStub		&cs(d.cachevec[idx]);
 	size_t			pgcnt = 0;
+	
 	if(!cs.pagecnt){
 		cs.keeppagecnt = 0;
 	}
@@ -362,8 +363,16 @@ size_t MemoryCache::reserve(size_t _sz, size_t _cnt){
 	while(totcnt < _cnt && (crtcnt = cs.allocate(cp, d.cfg))){
 		totcnt += crtcnt;
 		++pgcnt;
+		if(_lazy){
+			break;
+		}
 	}
 	cs.keeppagecnt += pgcnt;
+	if(_lazy && totcnt < _cnt){
+		size_t remaincnt = _cnt - totcnt;
+		size_t pgcnt = (remaincnt / crtcnt) + 1;
+		cs.keeppagecnt += pgcnt;
+	}
 	idbg("page count = "<<pgcnt);
 	return totcnt;
 }
