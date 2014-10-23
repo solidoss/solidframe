@@ -16,7 +16,6 @@
 namespace solid{
 namespace frame{
 
-typedef DynamicSharedPointer<Message>		MessageSharedPointerT;
 typedef DynamicPointer<Message>				MessagePointerT;
 
 //! Some events
@@ -26,28 +25,6 @@ enum EventIdE{
 	EventDie,
 	EventTimer,
 	EventLast = 16
-};
-
-
-struct SharedEvent{
-	SharedEvent(
-		const size_t _id = EventUnknown,
-		const size_t _idx = 0
-	):id(_id), index(_idx){}
-	
-	SharedEvent(
-		MessagePointerT const &_rmsgptr,
-		const size_t _id = EventUnknown,
-		const size_t _idx = 0
-	):id(_id), index(_idx), msgptr(_rmsgptr){}
-	
-	SharedEvent(
-		SharedEvent const &_e
-	):id(_e.id), index(_e.index), msgptr(_e.msgptr){}
-	
-	size_t						id;
-	size_t						index;
-	MessageSharedPointerT		msgptr;
 };
 
 
@@ -67,9 +44,6 @@ struct Event{
 		Event const &_e
 	):id(_e.id), index(_e.index), msgptr(_e.msgptr){}
 	
-	Event(
-		SharedEvent const &_e
-	):id(_e.id), index(_e.index), msgptr(_e.msgptr){}
 	
 	size_t				id;
 	size_t				index;

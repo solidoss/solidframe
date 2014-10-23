@@ -797,7 +797,7 @@ void Manager::doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, boo
 		}
 		if(rss.state == ServiceStub::StateRunning){
 			rss.state = Data::StateStopping;
-			EventNotifier		notifier(*this, SharedEvent(EventDie));
+			EventNotifier		notifier(*this, Event(EventDie));
 			ObjectVisitFunctorT fctor(notifier);
 			bool b = doForEachServiceObject(_svcidx, fctor);
 			if(!b){

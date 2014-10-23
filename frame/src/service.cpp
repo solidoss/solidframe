@@ -40,7 +40,7 @@ Service::~Service(){
 	}
 }
 
-bool Service::notifyAll(SharedEvent const & _revt, const size_t _sigmsk/* = 0*/){
+bool Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){
 	if(isRegistered()){
 		EventNotifier	notifier(rm, _revt, _sigmsk);
 		return rm.forEachServiceObject(*this, notifier);
