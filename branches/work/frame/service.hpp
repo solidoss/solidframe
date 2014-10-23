@@ -47,7 +47,7 @@ public:
 	
 	bool isRegistered()const;
 	
-	bool notifyAll(SharedEvent const &_e, const size_t _sigmsk = 0);
+	bool notifyAll(Event const &_e, const size_t _sigmsk = 0);
 
 	template <class N>
 	bool forEachObject(N &_rn){

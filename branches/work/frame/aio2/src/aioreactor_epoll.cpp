@@ -178,7 +178,9 @@ Reactor::~Reactor(){
 	delete &d;
 }
 
-/*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _re){}
+/*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _re){
+	return false;
+}
 /*virtual*/ void Reactor::stop(){
 	
 }

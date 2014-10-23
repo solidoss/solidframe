@@ -32,7 +32,7 @@ struct EventNotifier;
 
 typedef DynamicPointer<Message>	MessagePointerT;
 
-class ObjectBase: public Dynamic<ObjectBase, DynamicShared<> >{
+class ObjectBase: public Dynamic<ObjectBase>{
 public:
 	static ObjectBase& specific();
 	

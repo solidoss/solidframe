@@ -123,37 +123,6 @@ class IdTypeMapper: public TypeMapperBase{
 		rd.push(rp, _name);
 		return true;
 	}
-	template <class T>
-	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void */*_pctx*/, FncInitPointerT _pinicbk){
-		Des		&rd	= *reinterpret_cast<Des*>(_pd);
-		T		*pt = Specific::template uncache<T>();
-		if(_pinicbk){
-			(*_pinicbk)(_p, pt);
-		}else{
-			T*		&rpt = *reinterpret_cast<T**>(_p);
-			rpt = pt;
-		}
-		
-		T		&rp = *pt;
-		rd.push(rp, _name);
-		return true;
-	}
-	template <class T, class CT>
-	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void */*_pctx*/, FncInitPointerT _pinicbk){
-		Des		&rd	= *reinterpret_cast<Des*>(_pd);
-		T		*pt = Specific::template uncache<T>(CT());
-		
-		if(_pinicbk){
-			(*_pinicbk)(_p, pt);
-		}else{
-			T*		&rpt = *reinterpret_cast<T**>(_p);
-			rpt = pt;
-		}
-		
-		T		&rp = *pt;
-		rd.push(rp, _name);
-		return true;
-	}
 public:
 	IdTypeMapper(){}
 	template <class T>
@@ -175,18 +144,6 @@ public:
 		return this->insertFunction(&ThisT::template doMapSerHandle<T, H>, &ThisT::template doMapDesHandle<T, H>, idx, typeid(T).name());
 	}
 	
-	template <class T>
-	uint32 insertSpecific(uint32 _idx = 0){
-		typename UnsignedType<Int>::Type idx(_idx);
-		Locker<Mtx>		lock(m);
-		return this->insertFunction(&ThisT::template doMapSer<T>, &ThisT::template doMapDesSpecific<T>, idx, typeid(T).name());
-	}
-	template <class T, typename CT>
-	uint32 insertSpecific(uint32 _idx = 0){
-		typename UnsignedType<Int>::Type idx(_idx);
-		Locker<Mtx>		lock(m);
-		return this->insertFunction(&ThisT::template doMapSer<T>, &ThisT::template doMapDesSpecific<T, CT>, idx, typeid(T).name());
-	}
 	uint32 realIdentifier(uint32 _idx)const{
 		return _idx;
 	}

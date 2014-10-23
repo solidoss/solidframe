@@ -38,11 +38,11 @@ struct ScheduleObjectF{
 
 struct EventNotifier{
 	EventNotifier(
-		Manager &_rm, SharedEvent const &_revt, const size_t _sigmsk = 0
+		Manager &_rm, Event const &_revt, const size_t _sigmsk = 0
 	):rm(_rm), evt(_revt), sigmsk(_sigmsk){}
 	
 	Manager			&rm;
-	SharedEvent		evt;
+	Event			evt;
 	const size_t	sigmsk;
 	
 	void operator()(ObjectBase &_robj);
@@ -81,7 +81,7 @@ public:
 	
 	bool notify(ObjectUidT const &_ruid, Event const &_e, const size_t _sigmsk = 0);
 
-	bool notifyAll(SharedEvent const &_e, const size_t _sigmsk = 0);
+	bool notifyAll(Event const &_e, const size_t _sigmsk = 0);
 	
 	Mutex& mutex(const ObjectBase &_robj)const;
 	
