@@ -14,6 +14,7 @@
 #include "system/common.hpp"
 #include "system/socketdevice.hpp"
 
+#include "aiocompletion.hpp"
 #include "aioreactorcontext.hpp"
 
 namespace solid{
@@ -33,12 +34,12 @@ struct AcceptCommand{
 	}
 };
 
-class Listener{
+class Listener: public CompletionHandler{
 static void react_cbk(CompletionHandler *_ph, ReactorContext &_rctx);
 public:
-	Listener(ObjectProxy &_robj, SocketDevice &_rsd){
+	Listener(ObjectProxy const &_robj, SocketDevice &_rsd){
 	}
-	Listener(ObjectProxy &_robj){}
+	Listener(ObjectProxy const &_robj){}
 	
 	//Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
 	//Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
@@ -48,7 +49,7 @@ public:
 			f = _f;
 			doPostAccept(_rctx);
 		}else{
-			_rctx.error(-1, _rctx.error().category());
+			this->contextError(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 			return true;
 		}
 	}
@@ -58,18 +59,19 @@ public:
 	template <typename F>
 	bool accept(ReactorContext &_rctx, F _f, SocketDevice &_rsd){
 		if(f.empty()){
-			if(this->tryAccept(_rctx, _rsd)){
+			if(this->doTryAccept(_rctx, _rsd)){
 				return true;
 			}
 			f = _f;
 			return false;
 		}else{
-			_rctx.error(-1, _rctx.error().category());
+			this->contextError(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 			return true;
 		}
 	}
 private:
 	void doPostAccept(ReactorContext &_rctx);
+	bool doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd);
 private:
 	typedef boost::function<void(ReactorContext&, SocketDevice&)>		FunctionT;
 	FunctionT		f;

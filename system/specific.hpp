@@ -27,6 +27,9 @@ namespace solid{
 struct SpecificObject{
 	static void operator delete (void *_p, std::size_t _sz);
 	static void* operator new (std::size_t _sz);
+	static void * operator new (std::size_t, void *_p) throw() {
+		return _p;
+	}
 };
 
 //! A thread specific container wrapper
