@@ -547,8 +547,11 @@ void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
 // }
 //-------------------------------------------------------------------------
 void* Thread::specific(unsigned _pos){
-	cassert(_pos < current().specvec.size());
-	return current().specvec[_pos].first;
+	if(_pos < current().specvec.size()){
+		return current().specvec[_pos].first;
+	}else{
+		return NULL;
+	}
 }
 Mutex& Thread::gmutex(){
 	return threadData().gmut;

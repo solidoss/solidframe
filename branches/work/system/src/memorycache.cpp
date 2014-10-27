@@ -18,6 +18,13 @@
 #include <memory>
 
 
+#ifdef UDEBUG
+namespace{
+	size_t dbgid = solid::Debug::the().registerModule("memory_cache");
+}
+#endif
+
+
 
 namespace solid{
 
@@ -105,7 +112,7 @@ struct Page{
 	}
 	
 	void print()const{
-		idbg("Page: "<<(void*)this<<" pnext = "<<(void*)pnext<<" pprev = "<<(void*)pprev<<" ptop = "<<ptop<<" usecount = "<<usecount);
+		idbgx(dbgid, "Page: "<<(void*)this<<" pnext = "<<(void*)pnext<<" pprev = "<<(void*)pprev<<" ptop = "<<ptop<<" usecount = "<<usecount);
 	}
 	
 	Page	*pprev;
@@ -143,7 +150,7 @@ struct CacheStub{
 	
 	void* pop(const size_t _cp, Configuration const &_rcfg){
 		if(!pfrontpage || pfrontpage->full()){
-			vdbg("must allocate");
+			vdbgx(dbgid, "must allocate");
 			size_t cnt = allocate(_cp, _rcfg);
 			if(!cnt){
 				return NULL;
@@ -160,7 +167,7 @@ struct CacheStub{
 		void *pv = pfrontpage->pop(_cp, _rcfg);
 		
 		if(pfrontpage->full() && pfrontpage != pbackpage && !pfrontpage->pprev->full()){
-			vdbg("move frontpage to back: itemcnt = "<<itemcnt);
+			vdbgx(dbgid, "move frontpage to back: itemcnt = "<<itemcnt);
 			//move the frontpage to back
 			Page *ptmp = pfrontpage;
 			
@@ -201,7 +208,7 @@ struct CacheStub{
 			}
 			--emptypagecnt;
 			--pagecnt;
-			idbg("free page - pagecnt = "<<pagecnt<<" emptypagecnt = "<<emptypagecnt<<" itemcnt = "<<itemcnt);
+			idbgx(dbgid, "free page - pagecnt = "<<pagecnt<<" emptypagecnt = "<<emptypagecnt<<" itemcnt = "<<itemcnt);
 			memory_free_aligned(ppage);
 		}else if(pfrontpage != ppage && pfrontpage->usecount > ppage->usecount){
 			//move the page to front
@@ -241,7 +248,7 @@ struct CacheStub{
 			++emptypagecnt;
 #ifdef UDEBUG
 			itemcnt += cnt;
-			vdbg("itemcnt = "<<itemcnt);
+			vdbgx(dbgid, "itemcnt = "<<itemcnt);
 #endif
 		}
 		return cnt;
@@ -265,8 +272,8 @@ struct CacheStub{
 };
 
 void CacheStub::print(size_t _cp, Configuration const &_rcfg)const{
-	idbg("emptypagecnt = "<<emptypagecnt<<" pagecnt = "<<pagecnt<<" itemcnt = "<<itemcnt);
-	idbg("pfrontpage = "<<(void*)pfrontpage<<" pbackpage = "<<(void*)pbackpage);
+	idbgx(dbgid, "emptypagecnt = "<<emptypagecnt<<" pagecnt = "<<pagecnt<<" itemcnt = "<<itemcnt);
+	idbgx(dbgid, "pfrontpage = "<<(void*)pfrontpage<<" pbackpage = "<<(void*)pbackpage);
 	Page *ppage = pfrontpage;
 	while(ppage){
 		ppage->print();
@@ -320,13 +327,18 @@ MemoryCache::~MemoryCache(){
 
 void *MemoryCache::allocate(const size_t _sz){
 	if(d.isSmall(_sz)){
-		const size_t idx = d.sizeToIndex(_sz);
-		const size_t cp = d.indexToCapacity(idx);
+		
+		const size_t	idx = d.sizeToIndex(_sz);
+		const size_t	cp = d.indexToCapacity(idx);
 		
 		CacheStub		&cs(d.cachevec[idx]);
-		return cs.pop(cp, d.cfg);
+		void*			pv = cs.pop(cp, d.cfg);
+		vdbgx(dbgid, "Allocated "<<pv<<" of capacity "<<cp<<" using cachestub "<<idx);
+		return pv;
 	}else{
-		return new char[_sz];
+		void*			pv = new char[_sz];
+		vdbgx(dbgid, "Allocated "<<pv<<" using default allocator");
+		return pv;
 	}
 }
 
@@ -336,7 +348,9 @@ void MemoryCache::free(void *_pv, const size_t _sz){
 		const size_t	cp = d.indexToCapacity(idx);
 		CacheStub		&cs(d.cachevec[idx]);
 		cs.push(_pv, cp, d.cfg);
+		vdbgx(dbgid, "Freed "<<_pv<<" of capacity "<<cp<<" using cachestub "<<idx);
 	}else{
+		vdbgx(dbgid, "Freed "<<_pv<<" using default allocator");
 		delete []static_cast<char*>(_pv);
 	}
 }
