@@ -1,6 +1,7 @@
 #include "system/memorycache.hpp"
 #include "system/specific.hpp"
 #include "system/debug.hpp"
+#include "system/thread.hpp"
 #include <cstring>
 #include <vector>
 #include <iostream>
@@ -12,6 +13,7 @@ MemoryCache	mc(0, 512 + 256);
 bool		usemc = true;
 }
 
+//#define USE_MEMORYCACHE
 
 #ifdef USE_MEMORYCACHE
 
@@ -20,14 +22,14 @@ struct BaseObject{
 		if(!usemc){
 			free(_p);
 		}else{
-			//mc.free(_p, _sz);
+			mc.free(_p, _sz);
 		}
 	}
 	static void* operator new (std::size_t _sz){
 		if(!usemc){
 			return malloc(_sz);
 		}else{
-			//return mc.allocate(_sz);
+			return mc.allocate(_sz);
 		}
 	}
 	virtual ~BaseObject(){}
@@ -75,6 +77,7 @@ int main(int argc, char *argv[]){
 	if(argc >= 2){
 		usemc = false;
 	}
+	solid::Thread::init();
 	solid::Debug::the().initStdErr(false);
 	solid::Debug::the().moduleMask("all");
 	solid::Debug::the().levelMask("iew");
