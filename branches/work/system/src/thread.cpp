@@ -403,8 +403,10 @@ Thread& Thread::current(){
 	Thread * pth = reinterpret_cast<Thread*>(TlsGetValue(threadData().crtthread_key));
 	return pth ? *pth : *associate_to_current_thread();
 #else
-	Thread * pth = reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
-	return pth ? *pth : *associateToCurrent();
+	//Thread * pth = reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
+	//return pth ? *pth : *associateToCurrent();
+	static Thread *pth = associateToCurrent();
+	return *pth;
 #endif
 }
 //-------------------------------------------------------------------------
@@ -529,7 +531,7 @@ size_t Thread::specificId(){
 
 #endif
 //-------------------------------------------------------------------------
-void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
+void Thread::specific(const size_t _pos, void *_psd, SpecificFncT _pf){
 	Thread &rct = current();
 	if(_pos >= rct.specvec.size()) rct.specvec.resize(_pos + 4);
 	//This is safe because pair will initialize with NULL on resize
@@ -540,19 +542,14 @@ void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
 	//return _pos;
 }
 //-------------------------------------------------------------------------
-// unsigned Thread::specific(void *_psd){
-// 	cassert(current());
-// 	current()->specvec.push_back(_psd);
-// 	return current()->specvec.size() - 1;
-// }
-//-------------------------------------------------------------------------
-void* Thread::specific(unsigned _pos){
+void* Thread::specific(const size_t _pos){
 	if(_pos < current().specvec.size()){
 		return current().specvec[_pos].first;
 	}else{
 		return NULL;
 	}
 }
+//-------------------------------------------------------------------------
 Mutex& Thread::gmutex(){
 	return threadData().gmut;
 }

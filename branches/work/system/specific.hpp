@@ -15,10 +15,10 @@
 
 #include "system/common.hpp"
 #include "system/memorycache.hpp"
-#include "system/thread.hpp"
 
 namespace solid{
 
+class Thread;
 //! A base class for thread specific objects
 /*!
 	A thread specific object is allocated and destroyed by one and the same thread.
@@ -41,12 +41,13 @@ struct SpecificObject{
 */
 class Specific{
 public:
-	static Specific& prepareThread(
+	static Specific& the();
+	
+	void configure(
 		const size_t _pagecp = 0,
 		const size_t _emptypagecnt = 1
 	);
-	static Specific& the();
-
+	
 	void *allocate(const size_t _cp);
 	
 	void free(void *_p, const size_t _cp);
@@ -54,14 +55,10 @@ public:
 	size_t reserve(const size_t _sz, const size_t _cnt, const bool _lazy = true);
 	
 private:
+	friend class Thread;
 	static void destroy(void *_pv);
-	//! One cannot create a Specific object - use prepareThread instead
-	Specific(const size_t _pagecp = 0,
-		const size_t _emptypagecnt = 1
-	):cache(_pagecp, _emptypagecnt){
-
-	}
-	
+	//! One cannot create a Specific object
+	Specific(){}
 	Specific(const Specific&);
 	Specific& operator=(const Specific&);
 private:
@@ -80,15 +77,6 @@ inline size_t Specific::reserve(const size_t _sz, const size_t _cnt, const bool 
 	return cache.reserve(_sz, _cnt, _lazy);
 }
 
-inline /*static*/ Specific& Specific::the(){
-	Specific *pspec = static_cast<Specific*>(Thread::specific(0/*specificPosition()*/));
-	if(pspec){
-		return *pspec;
-	}else{
-		return prepareThread();
-	}
-	
-}
 
 inline void SpecificObject::operator delete (void *_pv, std::size_t _sz){
 	Specific::the().free(_pv, _sz);

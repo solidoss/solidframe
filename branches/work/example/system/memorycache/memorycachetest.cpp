@@ -9,12 +9,12 @@ using namespace std;
 using namespace solid;
 
 namespace {
-MemoryCache	mc/*(0, 512 + 256)*/;
+MemoryCache	mc(0)/*(0, 512 + 256)*/;
 enum{
-	UnknownE,
-	MallocE,
+	MallocE = 0,
 	CacheE,
-	SpecificE
+	SpecificE,
+	UnknownE,
 } choice(UnknownE);
 }
 
@@ -33,6 +33,7 @@ struct CacheBase: Base{
 };
 
 struct SpecificBase: SpecificObject, Base{
+	
 };
 
 template <uint16 Sz, class B>
@@ -62,6 +63,36 @@ struct Test: B{
 	char buf[Sz];
 };
 
+static void push_cache(std::vector<Base* > &_rvec, const size_t _cp){
+	for(size_t i = 0; i < _cp; ++i){
+		_rvec.push_back(new Test<4,  CacheBase>(i));
+		_rvec.push_back(new Test<8,  CacheBase>(i));
+		_rvec.push_back(new Test<12, CacheBase>(i));
+		_rvec.push_back(new Test<32, CacheBase>);
+	}
+}
+
+static void push_specific(std::vector<Base* > &_rvec, const size_t _cp){
+	for(size_t i = 0; i < _cp; ++i){
+		_rvec.push_back(new Test<4,  SpecificBase>(i));
+		_rvec.push_back(new Test<8,  SpecificBase>(i));
+		_rvec.push_back(new Test<12, SpecificBase>(i));
+		_rvec.push_back(new Test<32, SpecificBase>);
+	}
+}
+
+static void push_malloc(std::vector<Base* > &_rvec, const size_t _cp){
+	for(size_t i = 0; i < _cp; ++i){
+		_rvec.push_back(new Test<4,  Base>(i));
+		_rvec.push_back(new Test<8,  Base>(i));
+		_rvec.push_back(new Test<12, Base>(i));
+		_rvec.push_back(new Test<32, Base>);
+	}
+}
+
+typedef void (*FncT)(std::vector<Base* > &, const size_t);
+
+const FncT	pushfnctbl[3] = {push_malloc, push_cache, push_specific};
 
 int main(int argc, char *argv[]){
 	if(argc == 2){
@@ -85,7 +116,7 @@ int main(int argc, char *argv[]){
 	}
 	
 	solid::Thread::init();
-	solid::Specific::prepareThread();
+	solid::Specific::the().configure();
 	
 	solid::Debug::the().initStdErr(false);
 	solid::Debug::the().moduleMask("all");
@@ -119,28 +150,9 @@ int main(int argc, char *argv[]){
 		for(size_t i = 0; i < repeatcnt; ++i){
 			crtcp += step;
 			idbg("Allocate "<<crtcp<<" items");
-			if(choice == CacheE){
-				for(size_t j = 0; j < crtcp; ++j){
-					vec.push_back(new Test<4,  CacheBase>(j));
-					vec.push_back(new Test<8,  CacheBase>(j));
-					vec.push_back(new Test<12, CacheBase>(j));
-					vec.push_back(new Test<32, CacheBase>);
-				}
-			}else if(choice == SpecificE){
-				for(size_t j = 0; j < crtcp; ++j){
-					vec.push_back(new Test<4,  SpecificBase>(j));
-					vec.push_back(new Test<8,  SpecificBase>(j));
-					vec.push_back(new Test<12, SpecificBase>(j));
-					vec.push_back(new Test<32, SpecificBase>);
-				}
-			}else{
-				for(size_t j = 0; j < crtcp; ++j){
-					vec.push_back(new Test<4,  Base>(j));
-					vec.push_back(new Test<8,  Base>(j));
-					vec.push_back(new Test<12, Base>(j));
-					vec.push_back(new Test<32, Base>);
-				}
-			}
+
+			(pushfnctbl[choice])(vec, crtcp);
+			
 			idbg("+++++++++++++++++++++++++++++");
 			mc.print(4);
 			idbg("-----------------------------");
