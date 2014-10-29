@@ -15,6 +15,7 @@
 
 #include "system/common.hpp"
 #include "system/memorycache.hpp"
+#include "system/thread.hpp"
 
 namespace solid{
 
@@ -57,7 +58,9 @@ private:
 	//! One cannot create a Specific object - use prepareThread instead
 	Specific(const size_t _pagecp = 0,
 		const size_t _emptypagecnt = 1
-	):cache(_pagecp, _emptypagecnt){}
+	):cache(_pagecp, _emptypagecnt){
+
+	}
 	
 	Specific(const Specific&);
 	Specific& operator=(const Specific&);
@@ -75,6 +78,24 @@ inline void Specific::free(void *_p, const size_t _cp){
 
 inline size_t Specific::reserve(const size_t _sz, const size_t _cnt, const bool _lazy){
 	return cache.reserve(_sz, _cnt, _lazy);
+}
+
+inline /*static*/ Specific& Specific::the(){
+	Specific *pspec = static_cast<Specific*>(Thread::specific(0/*specificPosition()*/));
+	if(pspec){
+		return *pspec;
+	}else{
+		return prepareThread();
+	}
+	
+}
+
+inline void SpecificObject::operator delete (void *_pv, std::size_t _sz){
+	Specific::the().free(_pv, _sz);
+}
+
+inline void* SpecificObject::operator new (std::size_t _sz){
+	return Specific::the().allocate(_sz);
 }
 
 }//namespace solid

@@ -9,80 +9,89 @@ using namespace std;
 using namespace solid;
 
 namespace {
-MemoryCache	mc(0, 512 + 256);
-bool		usemc = true;
+MemoryCache	mc/*(0, 512 + 256)*/;
+enum{
+	UnknownE,
+	MallocE,
+	CacheE,
+	SpecificE
+} choice(UnknownE);
 }
 
-//#define USE_MEMORYCACHE
+struct Base{
+	virtual ~Base(){}
+};
 
-#ifdef USE_MEMORYCACHE
-
-struct BaseObject{
+struct CacheBase: Base{
 	static void operator delete (void *_p, std::size_t _sz){
-		if(!usemc){
-			free(_p);
-		}else{
-			mc.free(_p, _sz);
-		}
+		mc.free(_p, _sz);
 	}
 	static void* operator new (std::size_t _sz){
-		if(!usemc){
-			return malloc(_sz);
-		}else{
-			return mc.allocate(_sz);
-		}
+		return mc.allocate(_sz);
 	}
-	virtual ~BaseObject(){}
+	
 };
 
-#define MEMCACHE mc
-
-#else
-
-struct BaseObject: SpecificObject{
-	virtual ~BaseObject(){}
+struct SpecificBase: SpecificObject, Base{
 };
-#define MEMCACHE Specific::the()
-#endif
 
-template <uint16 Sz>
-struct TestObject;
+template <uint16 Sz, class B>
+struct Test;
 
-template <>
-struct TestObject<4>: BaseObject{
+template <class B>
+struct Test<4, B>: B{
 	uint32	v;
-	TestObject(uint32 _v = 0):v(_v){}
+	Test(uint32 _v = 0):v(_v){}
 };
 
-template <>
-struct TestObject<8>: BaseObject{
+template <class B>
+struct Test<8, B>: B{
 	uint64	v;
-	TestObject(uint64 _v = 0):v(_v){}
+	Test(uint64 _v = 0):v(_v){}
 };
 
-template <>
-struct TestObject<12>: BaseObject{
+template <class B>
+struct Test<12, B>: B{
 	uint64	v1;
 	uint32	v2;
-	TestObject(uint64 _v = 0):v1(_v),v2(_v){}
+	Test(uint64 _v = 0):v1(_v),v2(_v){}
 };
 
-template <uint16 Sz>
-struct TestObject: BaseObject{
+template <uint16 Sz, class B>
+struct Test: B{
 	char buf[Sz];
 };
 
 
 int main(int argc, char *argv[]){
-	if(argc >= 2){
-		usemc = false;
+	if(argc == 2){
+		if(*argv[1] == 'm' || *argv[1] == 'M'){
+			choice = MallocE;
+		}else if(*argv[1] == 'c' || *argv[1] == 'C'){
+			choice = CacheE;
+		}else if(*argv[1] == 's' || *argv[1] == 'S'){
+			choice = SpecificE;
+		}
 	}
+	if(argc != 2 || choice == UnknownE){
+		cout<<"Usage: "<<endl;
+		cout<<argv[0]<<" m"<<endl;
+		cout<<"\tUse system malloc/free"<<endl;
+		cout<<argv[0]<<" c"<<endl;
+		cout<<"\tUse MemoryCache directly"<<endl;
+		cout<<argv[0]<<" s"<<endl;
+		cout<<"\tUse specific MemoryCache"<<endl;
+		return 0;
+	}
+	
 	solid::Thread::init();
+	solid::Specific::prepareThread();
+	
 	solid::Debug::the().initStdErr(false);
 	solid::Debug::the().moduleMask("all");
 	solid::Debug::the().levelMask("iew");
 	
-	std::vector<BaseObject* > vec;
+	std::vector<Base* > vec;
 	
 	const size_t step = 3000;
 	const size_t repeatcnt = 100;
@@ -91,11 +100,16 @@ int main(int argc, char *argv[]){
 	vec.reserve(cp * 3);
 	
 	size_t rescnt = 0;
-	if(usemc){
-		rescnt = MEMCACHE.reserve(sizeof(TestObject<4>),  cp);
-		rescnt = MEMCACHE.reserve(sizeof(TestObject<8>),  cp);
-		rescnt = MEMCACHE.reserve(sizeof(TestObject<12>), cp);
-		rescnt = MEMCACHE.reserve(sizeof(TestObject<32>), cp);
+	if(choice == CacheE){
+		rescnt = mc.reserve(sizeof(Test<4,  CacheBase>),  cp);
+		rescnt = mc.reserve(sizeof(Test<8,  CacheBase>),  cp);
+		rescnt = mc.reserve(sizeof(Test<12, CacheBase>), cp);
+		rescnt = mc.reserve(sizeof(Test<32, CacheBase>), cp);
+	}else if(choice == SpecificE){
+		rescnt = Specific::the().reserve(sizeof(Test<4,  SpecificBase>),  cp);
+		rescnt = Specific::the().reserve(sizeof(Test<8,  SpecificBase>),  cp);
+		rescnt = Specific::the().reserve(sizeof(Test<12, SpecificBase>), cp);
+		rescnt = Specific::the().reserve(sizeof(Test<32, SpecificBase>), cp);
 	}
 	idbg("Reserved "<<rescnt<<" items");
 	cout<<"Reserved "<<rescnt<<" items"<<endl;
@@ -105,11 +119,27 @@ int main(int argc, char *argv[]){
 		for(size_t i = 0; i < repeatcnt; ++i){
 			crtcp += step;
 			idbg("Allocate "<<crtcp<<" items");
-			for(size_t j = 0; j < crtcp; ++j){
-				vec.push_back(new TestObject<4>(j));
-				vec.push_back(new TestObject<8>(j));
-				vec.push_back(new TestObject<12>(j));
-				vec.push_back(new TestObject<32>);
+			if(choice == CacheE){
+				for(size_t j = 0; j < crtcp; ++j){
+					vec.push_back(new Test<4,  CacheBase>(j));
+					vec.push_back(new Test<8,  CacheBase>(j));
+					vec.push_back(new Test<12, CacheBase>(j));
+					vec.push_back(new Test<32, CacheBase>);
+				}
+			}else if(choice == SpecificE){
+				for(size_t j = 0; j < crtcp; ++j){
+					vec.push_back(new Test<4,  SpecificBase>(j));
+					vec.push_back(new Test<8,  SpecificBase>(j));
+					vec.push_back(new Test<12, SpecificBase>(j));
+					vec.push_back(new Test<32, SpecificBase>);
+				}
+			}else{
+				for(size_t j = 0; j < crtcp; ++j){
+					vec.push_back(new Test<4,  Base>(j));
+					vec.push_back(new Test<8,  Base>(j));
+					vec.push_back(new Test<12, Base>(j));
+					vec.push_back(new Test<32, Base>);
+				}
 			}
 			idbg("+++++++++++++++++++++++++++++");
 			mc.print(4);
