@@ -22,9 +22,9 @@
 #include <vector>
 #include "system/error.hpp"
 #include "system/common.hpp"
+#include "system/specific.hpp"
 
 namespace solid{
-
 
 
 struct Mutex;
@@ -50,7 +50,7 @@ public:
 	//! Make the current thread to sleep fo _msec milliseconds
 	static void sleep(ulong _msec);
 	//! Returns the number of processors on the running machine
-	static unsigned processorCount();
+	static size_t processorCount();
 	
 	static long processId();
 	static void waitAll();
@@ -63,10 +63,13 @@ public:
 	//! Returns a new id for use with specific objects
 	static size_t specificId();
 	//! Returns the data for a specific id
-	static void* specific(unsigned _pos);
+	static void* specific(const size_t _pos);
 	//! Sets the data for a specific id, allong with a pointer to a destructor function
-	static void specific(unsigned _pos, void *_psd, SpecificFncT _pfnc = &dummySpecificDestroy);
-	//static unsigned specific(void *_psd);
+	static void specific(const size_t _pos, void *_psd, SpecificFncT _pfnc = &dummySpecificDestroy);
+	
+	
+	static Specific& specific();
+	
 	//! Returns a reference to a global mutex
 	static Mutex& gmutex();
 	//! Starts a new thread
@@ -133,6 +136,7 @@ private:
 	SpecVecT		specvec;
 	ErrorVectorT	errvec;
 	ThreadStub		*pthrstub;
+	Specific		spec;
 };
 
 #ifndef ON_WINDOWS
@@ -156,6 +160,10 @@ inline void Thread::specificErrorPush(const ErrorStub &_rerr){
 }
 inline ErrorVectorT const& Thread::specificErrorGet()const{
 	return errvec;
+}
+
+inline /*static*/ Specific& Thread::specific(){
+	return current().spec;
 }
 
 }//namespace solid

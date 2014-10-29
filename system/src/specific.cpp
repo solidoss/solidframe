@@ -49,16 +49,15 @@ const unsigned specificPosition(){
 	delete ps;
 }
 
-/*static*/ Specific& Specific::prepareThread(
+void Specific::configure(
 	const size_t _pagecp,
 	const size_t _emptypagecnt
 ){
-	Specific *ps = static_cast<Specific*>(Thread::specific(specificPosition()));
-	if(ps == NULL){
-		ps = new Specific(_pagecp, _emptypagecnt);
-		Thread::specific(specificPosition(), ps, Specific::destroy);
-	}
-	return *ps;
+	cache.configure(_pagecp, _emptypagecnt);
+}
+
+/*static*/ Specific& Specific::the(){
+	return Thread::specific();
 }
 
 // /*static*/ Specific& Specific::the(){
