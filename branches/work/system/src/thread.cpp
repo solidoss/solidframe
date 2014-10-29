@@ -448,7 +448,7 @@ void Thread::yield(){
 void Thread::dummySpecificDestroy(void*){
 }
 //-------------------------------------------------------------------------
-/*static*/ unsigned Thread::processorCount(){
+/*static*/ size_t Thread::processorCount(){
 #if		defined(ON_SOLARIS)
 	return 1;
 #elif	defined(ON_FREEBSD) || defined(ON_MACOS)
