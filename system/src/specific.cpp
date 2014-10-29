@@ -44,14 +44,6 @@ const unsigned specificPosition(){
 #endif
 
 //----------------------------------------------------------------------------------------------------
-void SpecificObject::operator delete (void *_pv, std::size_t _sz){
-	Specific::the().free(_pv, _sz);
-}
-void* SpecificObject::operator new (std::size_t _sz){
-	return Specific::the().allocate(_sz);
-}
-
-//----------------------------------------------------------------------------------------------------
 /*static*/ void Specific::destroy(void *_pv){
 	Specific *ps = reinterpret_cast<Specific*>(_pv);
 	delete ps;
@@ -69,15 +61,15 @@ void* SpecificObject::operator new (std::size_t _sz){
 	return *ps;
 }
 
-/*static*/ Specific& Specific::the(){
-	Specific *pspec = static_cast<Specific*>(Thread::specific(specificPosition()));
-	if(pspec){
-		return *pspec;
-	}else{
-		return prepareThread();
-	}
-	
-}
+// /*static*/ Specific& Specific::the(){
+// 	Specific *pspec = static_cast<Specific*>(Thread::specific(specificPosition()));
+// 	if(pspec){
+// 		return *pspec;
+// 	}else{
+// 		return prepareThread();
+// 	}
+// 	
+// }
 
 
 }//namespace solid
