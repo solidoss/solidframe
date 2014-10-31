@@ -85,6 +85,25 @@ struct Fun3{
 	}
 };
 
+typedef boost::function<int(int, std::string const &)>	FunT;
+
+class Test{
+public:
+	Test(int _v):value(_v){}
+	void set(FunT &_rf){
+		auto l = [this](int _v1, std::string const &_v2){return cbk(_v1, _v2);};
+		vdbg("sizeof(l) = "<<sizeof(l));
+		_rf = l;
+	}
+private:
+	int cbk(int _v1, std::string const &_v2){
+		vdbg("Operator4 "<<value);
+		return 1;
+	}
+private:
+	int value;
+};
+
 
 int main(int argc, char *argv[]){
 	
@@ -94,7 +113,7 @@ int main(int argc, char *argv[]){
 	
 	solid::Thread::init();
 	
-	typedef boost::function<int(int, std::string const &)>	FunT;
+	Test t(10);
 	
 	FunT f;
 	
@@ -109,6 +128,10 @@ int main(int argc, char *argv[]){
 	f.assign(Fun3(3, "cleva"), solid::SpecificAllocator<Fun3>());
 	
 	f(3, "ceva");
+	
+	t.set(f);
+	
+	f(4, "test");
 	
 	return 0;
 }

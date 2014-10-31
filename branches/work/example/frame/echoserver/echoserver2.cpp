@@ -258,7 +258,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 
 /*virtual*/ bool Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(_revent.id == EventStartE){
-		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
+		//sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
+		sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
 	}else if(_revent.id == EventStopE){
 		return false;
 	}
