@@ -724,7 +724,7 @@ bool Manager::prepareThread(ReactorBase *_ps){
 		return false;
 	}
 	Thread::specific(specificPosition(), this);
-	Specific::prepareThread();
+	Specific::the().configure();
 	//requestuidptr.prepareThread();
 	return true;
 }

@@ -48,6 +48,7 @@ public:
 		if(f.empty()){
 			f = _f;
 			doPostAccept(_rctx);
+			return false;
 		}else{
 			this->contextError(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 			return true;
