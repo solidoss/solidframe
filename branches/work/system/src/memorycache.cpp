@@ -135,7 +135,32 @@ void CacheStub::clear(){
 	pfrontpage = pbackpage = NULL;
 }
 
-inline void* CacheStub::pop(const size_t _cp, Configuration const &_rcfg){
+inline size_t CacheStub::allocate(const size_t _cp, Configuration const &_rcfg){
+	void *pv = memory_allocate_aligned(_rcfg.pagecp, _rcfg.pagecp);
+	size_t cnt = 0;
+	if(pv){
+		Page *ppage = reinterpret_cast<Page*>(pv);
+		cnt = ppage->init(_cp, _rcfg);
+		
+		ppage->pprev = pfrontpage;
+		
+		if(pfrontpage){
+			pfrontpage->pnext = ppage;
+			pfrontpage = ppage;
+		}else{
+			pbackpage = pfrontpage = ppage;
+		}
+		++pagecnt;
+		++emptypagecnt;
+#ifdef UDEBUG
+		itemcnt += cnt;
+		vdbgx(dbgid, "itemcnt = "<<itemcnt);
+#endif
+	}
+	return cnt;
+}
+
+void* CacheStub::pop(const size_t _cp, Configuration const &_rcfg){
 	if(!pfrontpage || pfrontpage->full()){
 		vdbgx(dbgid, "must allocate");
 		size_t cnt = allocate(_cp, _rcfg);
@@ -172,7 +197,7 @@ inline void* CacheStub::pop(const size_t _cp, Configuration const &_rcfg){
 	return pv;
 }
 	
-inline void CacheStub::push(void *_pv, size_t _cp, Configuration const &_rcfg){
+void CacheStub::push(void *_pv, size_t _cp, Configuration const &_rcfg){
 #ifdef UDEBUG
 	++itemcnt;
 #endif
@@ -212,33 +237,6 @@ inline void CacheStub::push(void *_pv, size_t _cp, Configuration const &_rcfg){
 		pfrontpage->pnext = ppage;
 		pfrontpage = ppage;
 	}
-	
-	
-}
-
-inline size_t CacheStub::allocate(const size_t _cp, Configuration const &_rcfg){
-	void *pv = memory_allocate_aligned(_rcfg.pagecp, _rcfg.pagecp);
-	size_t cnt = 0;
-	if(pv){
-		Page *ppage = reinterpret_cast<Page*>(pv);
-		cnt = ppage->init(_cp, _rcfg);
-		
-		ppage->pprev = pfrontpage;
-		
-		if(pfrontpage){
-			pfrontpage->pnext = ppage;
-			pfrontpage = ppage;
-		}else{
-			pbackpage = pfrontpage = ppage;
-		}
-		++pagecnt;
-		++emptypagecnt;
-#ifdef UDEBUG
-		itemcnt += cnt;
-		vdbgx(dbgid, "itemcnt = "<<itemcnt);
-#endif
-	}
-	return cnt;
 }
 
 bool CacheStub::shouldFreeEmptyPage(Configuration const &_rcfg){
@@ -256,17 +254,6 @@ void CacheStub::print(size_t _cp, Configuration const &_rcfg)const{
 	}
 }
 //-----------------------------------------------------------------------------
-inline bool MemoryCache::isSmall(const size_t _sz)const{
-	return _sz <= pagedatacp;
-}
-
-inline size_t MemoryCache::indexToCapacity(const size_t _idx)const{
-	return (_idx + 1) * cfg.alignsz;
-}
-
-inline size_t MemoryCache::sizeToIndex(const size_t _sz)const{
-	return (_sz - 1) / cfg.alignsz;
-}
 //-----------------------------------------------------------------------------
 MemoryCache::MemoryCache():pagedatacp(0){}
 
@@ -295,35 +282,6 @@ void MemoryCache::configure(
 	}
 }
 
-void *MemoryCache::allocate(const size_t _sz){
-	if(isSmall(_sz)){
-		
-		const size_t	idx = sizeToIndex(_sz);
-		const size_t	cp = indexToCapacity(idx);
-		
-		CacheStub		&cs(cachevec[idx]);
-		void*			pv = cs.pop(cp, cfg);
-		vdbgx(dbgid, "Allocated "<<pv<<" of capacity "<<cp<<" using cachestub "<<idx);
-		return pv;
-	}else{
-		void*			pv = new char[_sz];
-		vdbgx(dbgid, "Allocated "<<pv<<" using default allocator");
-		return pv;
-	}
-}
-
-void MemoryCache::free(void *_pv, const size_t _sz){
-	if(isSmall(_sz)){
-		const size_t	idx = sizeToIndex(_sz);
-		const size_t	cp = indexToCapacity(idx);
-		CacheStub		&cs(cachevec[idx]);
-		cs.push(_pv, cp, cfg);
-		vdbgx(dbgid, "Freed "<<_pv<<" of capacity "<<cp<<" using cachestub "<<idx);
-	}else{
-		vdbgx(dbgid, "Freed "<<_pv<<" using default allocator");
-		delete []static_cast<char*>(_pv);
-	}
-}
 
 void MemoryCache::print(const size_t _sz)const{
 	const size_t	idx = sizeToIndex(_sz);
@@ -360,6 +318,10 @@ size_t MemoryCache::reserve(const size_t _sz, const size_t _cnt, const bool _laz
 	idbg("page count = "<<pgcnt);
 	return totcnt;
 }
+
+#ifdef NINLINES
+#include "system/memorycache.ipp"
+#endif
 
 //-----------------------------------------------------------------------------
 
