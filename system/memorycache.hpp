@@ -83,6 +83,7 @@ public:
 		const size_t _emptypagecnt = 1
 	);
 	
+	
 	void *allocate(const size_t _sz);
 	void free(void *_pv, const size_t _sz);
 	
@@ -102,6 +103,25 @@ private:
 	Configuration 		cfg;
 	size_t				pagedatacp;
 };
+
+inline bool MemoryCache::isSmall(const size_t _sz)const{
+	return _sz <= pagedatacp;
+}
+
+inline size_t MemoryCache::indexToCapacity(const size_t _idx)const{
+	return (_idx + 1) * cfg.alignsz;
+}
+
+inline size_t MemoryCache::sizeToIndex(const size_t _sz)const{
+	return (_sz - 1) / cfg.alignsz;
+}
+
+//==================================================================
+#ifndef NINLINES
+#include "system/memorycache.ipp"
+#endif
+//==================================================================
+
 
 }//namespace solid
 #endif
