@@ -35,7 +35,7 @@ struct AcceptCommand{
 };
 
 class Listener: public CompletionHandler{
-static void react_cbk(CompletionHandler *_ph, ReactorContext &_rctx);
+static void on_completion(ReactorContext &_rctx);
 public:
 	Listener(ObjectProxy const &_robj, SocketDevice &_rsd){
 	}

@@ -21,6 +21,10 @@ namespace frame{
 namespace aio{
 
 class Reactor;
+struct ReactorContext;
+
+template <typename F>
+void post(ReactorContext &_rctx, F _f);
 
 struct ReactorContext{
 	~ReactorContext();
@@ -45,6 +49,10 @@ struct ReactorContext{
 protected:
 	friend class CompletionHandler;
 	
+	template <typename F>
+	friend void post(ReactorContext &_rctx, F _f);
+
+	
 	Reactor& reactor(){
 		return rreactor;
 	}
@@ -63,6 +71,11 @@ protected:
 	ERROR_NS::error_code		syserr;
 	ERROR_NS::error_condition	err;
 };
+
+template <typename F>
+void post(ReactorContext &_rctx, F _f){
+	_rctx.reactor().post(_rctx, _f, /*CompletionHandler**/NULL);
+}
 
 }//namespace aio
 }//namespace frame

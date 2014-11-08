@@ -15,8 +15,8 @@ namespace solid{
 namespace frame{
 namespace aio{
 
-/*static*/ void Listener::react_cbk(CompletionHandler *_ph, ReactorContext &_rctx){
-	Listener *pthis = static_cast<Listener*>(_ph);
+/*static*/ void Listener::on_completion(ReactorContext &_rctx){
+	Listener *pthis = static_cast<Listener*>(_rctx.completionHandler());
 	if(_ev == EventRecvE){
 		cassert(!pthis->f.empty());
 		SocketDevice sd;
@@ -29,10 +29,15 @@ namespace aio{
 		f.clear();
 	}
 }
-
+/*static*/ void Listener::on_posted_accept(ReactorContext &_rctx){
+	Listener *pthis = static_cast<Listener*>(_rctx.completionHandler());
+	
+}
 
 void Listener::doPostAccept(ReactorContext &_rctx){
-	_rctx.post(
+	//The post queue will keep [function, object_uid, completion_handler_uid]
+	
+	_rctx.reactor().post(_rctx, &Listener::on_posted_accept, this);
 }
 
 }//namespace aio
