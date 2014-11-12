@@ -16,7 +16,20 @@ namespace solid{
 namespace frame{
 namespace aio{
 
+enum ReactorEventsE{
+	ReactorEventRecv = 1,
+	ReactorEventSend = 2,
+	ReactorEventRecvSend = ReactorEventRecv | ReactorEventSend,
+	ReactorEventError,
+	ReactorEventClear,
+	ReactorEventInit,
+};
 
+enum ReactorWaitRequestsE{
+	ReactorWaitRead,
+	ReactorWaitWrite,
+	ReactorWaitReadOrWrite
+};
 
 }//namespace aio
 }//namespace frame
