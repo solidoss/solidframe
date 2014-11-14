@@ -15,13 +15,13 @@
 #include "system/socketdevice.hpp"
 #include "system/timespec.hpp"
 #include "frame/event.hpp"
-#include "aiocommon.hpp"
+#include "frame/aio2/aiocommon.hpp"
+#include "frame/aio2/aioreactor.hpp"
 
 namespace solid{
 namespace frame{
 namespace aio{
 
-class Reactor;
 class Listener;
 struct ReactorContext;
 class CompletionHandler;
@@ -64,7 +64,7 @@ private:
 	Reactor& reactor(){
 		return rreactor;
 	}
-	ReactorEvents reactorEvent()const{
+	ReactorEventsE reactorEvent()const{
 		return reactevn;
 	}
 	
@@ -89,7 +89,7 @@ private:
 	
 	Reactor						&rreactor;
 	Event						evn;
-	ReactorEvents				reactevn;
+	ReactorEventsE				reactevn;
 	const TimeSpec				&rcrttm;
 	ERROR_NS::error_code		syserr;
 	ERROR_NS::error_condition	err;

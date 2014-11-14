@@ -19,8 +19,11 @@ namespace solid{
 
 namespace frame{
 namespace aio{
+
 class Message;
+class Reactor;
 struct ReactorContext;
+class CompletionHandler;
 
 class Object;
 
@@ -45,17 +48,29 @@ public:
 // 		return static_cast<ThisT&>(ObjectBase::specific());
 // 	}
 protected:
+	friend class CompletionHandler;
+	
 	//! Constructor
-	Object(){}
+	Object();
 	
 	ObjectProxy proxy(){
 		return ObjectProxy(*this);
 	}
+	
+	bool registerCompletionHandler(CompletionHandler &_rch);
+	bool unregisterCompletionHandler(CompletionHandler &_rch);
+	
+	bool isRunning()const;
+	void enterRunning();
+	
+	Reactor* safeSpecificReactor()const;
+	
 private:
-	virtual bool onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	virtual bool onEvent(ReactorContext &_rctx, Event const &_revent){
 		return false;
 	}
 private:
+	CompletionHandler	*pchfirst;//A linked list of completion handlers
 };
 
 }//namespace aio

@@ -107,7 +107,7 @@ private:
 	bool isRunning()const;
 	void enterRunning();
 private:
-	CompletionHandler	*pchfirst;//A double linked list of completion handlers
+	CompletionHandler	*pchfirst;//A linked list of completion handlers
 };
 
 }//namespace frame

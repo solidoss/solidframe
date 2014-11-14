@@ -22,14 +22,14 @@ namespace aio{
 		cassert(!pthis->f.empty());
 		SocketDevice sd;
 		pthis->doAccept(_rctx, sd);
-		FunctionT	tmpf(std::move(this->f));
+		FunctionT	tmpf(std::move(pthis->f));
 		tmpf(_rctx, sd);
 	}else if(_rctx.reactorEvent() == ReactorEventError){
 		SocketDevice	sd;
-		FunctionT		tmpf(std::move(this->f));
+		FunctionT		tmpf(std::move(pthis->f));
 		tmpf(_rctx, sd);
 	}else if(_rctx.reactorEvent() == ReactorEventClear){
-		f.clear();
+		pthis->f.clear();
 	}
 }
 
@@ -37,15 +37,19 @@ namespace aio{
 	Listener *pthis = static_cast<Listener*>(_rctx.completionHandler());
 	SocketDevice sd;
 	if(pthis->doTryAccept(_rctx, sd)){
-		FunctionT	tmpf(std::move(this->f));
+		FunctionT	tmpf(std::move(pthis->f));
 		tmpf(_rctx, sd);
 	}
+}
+
+/*static*/ void Listener::on_init_completion(ReactorContext &_rctx){
+	
 }
 
 void Listener::doPostAccept(ReactorContext &_rctx){
 	//The post queue will keep [function, object_uid, completion_handler_uid, Event]
 	
-	_rctx.reactor().post(_rctx, &Listener::on_posted_accept, this);
+	_rctx.reactor().post(_rctx, &Listener::on_posted_accept, Event(), this);
 }
 
 

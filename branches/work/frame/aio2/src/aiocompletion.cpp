@@ -8,7 +8,9 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "system/cassert.hpp"
+#include "frame/aio2/aioobject.hpp"
 #include "frame/aio2/aiocompletion.hpp"
+#include "frame/aio2/aioreactorcontext.hpp"
 #include "system/exception.hpp"
 
 namespace solid{
@@ -17,17 +19,17 @@ namespace aio{
 //---------------------------------------------------------------------
 //----	Completion	----
 //---------------------------------------------------------------------
-/*static*/ Action	CompletionHandler::dummy_init_action(&CompletionHandler::doInitComplete);
+
 
 CompletionHandler::CompletionHandler(
-	ObjectProxy const &_rop
-):pobj(&_rop.object()), pprev(NULL), pnext(NULL), selidx(-1), pact(&dummy_init_action){
-	
+	ObjectProxy const &_rop,
+	CallbackT _pcall/* = &on_init_completion*/
+):pobj(&_rop.object()), pprev(NULL), pnext(NULL), idxreactor(-1), call(_pcall)
+{
 	pobj->registerCompletionHandler(*this);
-	activate(_rop);
 }
 
-CompletionHandler::CompletionHandler():pobj(NULL), pprev(NULL), pnext(NULL), selidx(-1), pact(&dummy_init_action){
+CompletionHandler::CompletionHandler():pobj(NULL), pprev(NULL), pnext(NULL), idxreactor(-1), call(CompletionHandler::on_init_completion){
 	
 }
 
@@ -35,27 +37,24 @@ CompletionHandler::CompletionHandler():pobj(NULL), pprev(NULL), pnext(NULL), sel
 CompletionHandler::~CompletionHandler(){
 	if(pobj){
 		pobj->unregisterCompletionHandler(*this);
-		if(isActive()){
-			deactivate(pobj->proxy());
-		}
+		deactivate();
 	}
 }
 
-bool CompletionHandler::activate(ObjectProxy const &_rop){
-	Reactor *preactor = NULL;
-	if(!isActive() && pobj->isRunning() && (preactor = pobj->reactor())){
+bool CompletionHandler::activate(ReactorContext &_rctx){
+	if(!isActive() && pobj->isRunning()){
 		//the object has entered the reactor
-		preactor->registerCompletionHandler(*this);
+		_rctx.reactor().registerCompletionHandler(*this);
 	}
 	return isActive();
 }
 
-void CompletionHandler::deactivate(ObjectProxy const &_rop){
+void CompletionHandler::deactivate(){
 	Reactor *preactor = NULL;
-	if(isActive() && pobj->isRunning() && (preactor = pobj->reactor())){
+	if(isActive() && pobj->isRunning() && (preactor = pobj->safeSpecificReactor())){
 		//the object has entered the reactor
 		preactor->unregisterCompletionHandler(*this);
-		selidx = -1;
+		idxreactor = -1;
 	}
 	if(isActive()){
 		THROW_EXCEPTION("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");
@@ -63,8 +62,8 @@ void CompletionHandler::deactivate(ObjectProxy const &_rop){
 	}
 }
 
-/*static*/ void CompletionHandler::doInitComplete(CompletionHandler *_ph, ActionContext &){
-	_ph->pact = NULL;
+/*static*/ void CompletionHandler::on_init_completion(ReactorContext &_rctx){
+	_rctx.completionHandler()->call = NULL;
 }
 
 }//namespace aio

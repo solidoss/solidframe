@@ -14,6 +14,7 @@
 #include "frame/common.hpp"
 #include "frame/reactorbase.hpp"
 #include "utility/dynamicpointer.hpp"
+#include "frame/aio2/aiocommon.hpp"
 
 namespace solid{
 
@@ -23,7 +24,8 @@ namespace frame{
 namespace aio{
 
 class Object;
-class Socket;
+struct ReactorContext;
+struct CompletionHandler;
 
 typedef DynamicPointer<Object>	ObjectPointerT;
 
@@ -38,36 +40,27 @@ public:
 	
 	Reactor(SchedulerBase &_rsched);
 	~Reactor();
-	bool init(size_t _cp);
-	//signal a specific object
-	void raise(size_t _pos);
-	void run();
-	size_t capacity()const;
-	size_t size() const;
-	bool empty()const;
-	bool full()const;
 	
-	bool push(JobT &_rcon);
-	void prepare();
-	void unprepare();
-private:
+	static Reactor* safeSpecific();
+	static Reactor& specific();
+	
+	template <typename F>
+	void post(ReactorContext &_rctx, F _f, Event const &_rev, CompletionHandler *_pch){
+		
+	}
+	
+	void wait(ReactorContext &_rctx, CompletionHandler *_pch, ReactorWaitRequestsE _req);
 	
 	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _re);
 	/*virtual*/ void stop();
 	/*virtual*/ void update();
 	
-	struct Stub;
-	ulong doReadPipe();
-	ulong doAllIo();
-	ulong doFullScan();
-	void doFullScanCheck(Stub &_rs, const ulong _pos);
-	ulong doExecuteQueue();
-	ulong doAddNewStub();
+	void registerCompletionHandler(CompletionHandler &_rch);
+	void unregisterCompletionHandler(CompletionHandler &_rch);
 	
-	void doUnregisterObject(Object &_robj, int _lastfailpos = -1);
-	ulong doIo(Socket &_rsock, ulong _evs, ulong _filter = 0);
-	ulong doExecute(const ulong _pos);
-	void doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos);
+	void run();
+	bool push(JobT &_rcon);
+private:
 private://data
 	struct Data;
 	Data	&d;
