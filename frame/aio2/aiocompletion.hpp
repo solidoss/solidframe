@@ -25,38 +25,39 @@ struct ReactorContext;
 struct ReactorEvent;
 
 class CompletionHandler{
-//	typedef boost::function<void (CompletionContext &)>	FunctionT;
+	static void on_init_completion(ReactorContext &);
+protected:
+	typedef void (*CallbackT)(ReactorContext &);
 public:
 	CompletionHandler(
-		ObjectProxy const &_rop
+		ObjectProxy const &_rop,
+		CallbackT _pcall = &on_init_completion
 	);
 	
-	//CompletionHandler();
+	CompletionHandler();
 	
 	~CompletionHandler();
 	
 	bool isActive()const{
 		return  pobj != NULL && idxreactor != static_cast<size_t>(-1);
 	}
-	bool activate(ObjectProxy const &_rd);
-	void deactivate(ObjectProxy const &_rd);
+	bool activate(ReactorContext &_rctx);
+	void deactivate();
 protected:
-	typedef void (*CallbackT)(CompletionHandler *, ReactorContext &);
 	void completionCallback(CallbackT *_pcbk);
 private:
 	friend class Reactor;
 	void handleCompletion(ReactorContext &_rctx){
-		(*call)(this, _rctx);
+		(*call)(_rctx);
 	}
 private:
 	friend class Object;
-	static void doInitComplete(CompletionHandler *_ph, ReactorContext &);
 private:
 	Object					*pobj;
 	CompletionHandler		*pprev;
 	CompletionHandler		*pnext;//double linked list within the object
 	size_t					idxreactor;//index within reactor
-	CallbackT				*call;
+	CallbackT				call;
 };
 
 

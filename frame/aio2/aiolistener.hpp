@@ -27,9 +27,20 @@ struct	ReactorContext;
 class Listener: public CompletionHandler{
 static void on_completion(ReactorContext &_rctx);
 static void on_posted_accept(ReactorContext &_rctx);
+static void on_init_completion(ReactorContext &_rctx);
 public:
-	Listener(ObjectProxy const &_robj, SocketDevice &_rsd);
-	Listener(ObjectProxy const &_robj);
+	Listener(
+		ReactorContext &_rctx,
+		ObjectProxy const &_robj,
+		SocketDevice &_rsd
+	):CompletionHandler(_robj, on_init_completion), sd(_rsd)
+	{
+		activate(_rctx);
+	}
+	
+	Listener(
+		ObjectProxy const &_robj
+	):CompletionHandler(_robj){}
 	
 	void device(ReactorContext &_rctx, SocketDevice &_rsd);
 	
