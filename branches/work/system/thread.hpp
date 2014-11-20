@@ -94,9 +94,9 @@ public:
 	
 protected:
 #ifdef _WIN32
-	Thread(bool _detached = true, void* _th = NULL);
+	Thread(bool _detached = false, void* _th = NULL);
 #else
-	Thread(bool _detached = true, pthread_t _th = 0);
+	Thread(bool _detached = false, pthread_t _th = 0);
 #endif
 	virtual ~Thread();
 	//! Method called right before run
