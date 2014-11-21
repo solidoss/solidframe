@@ -43,6 +43,7 @@ class IntTask: public Task{
 public:
 	IntTask(int _v = 0):v(_v){}
 };
+typedef std::unique_ptr<Task>	TaskPtrT;
 
 //=========================================================
 //	Scheduler
@@ -54,65 +55,396 @@ public:
 	virtual bool start(const size_t _conscnt){
 		return false;
 	}
-	virtual void schedule(Task *_ptsk){}
+	virtual void schedule(TaskPtrT &_tskptr){}
 	virtual void stop(bool _wait = true){}
 };
-
+ATOMIC_NS::atomic<size_t>	constskcnt(0);
 //=========================================================
-//	LockScheduler
+//	lock::Scheduler
 //=========================================================
 
-typedef std::unique_ptr<Task>	TaskPtrT;
+namespace lock{
+
 typedef std::vector<TaskPtrT>	TaskVectorT;
-class LockScheduler;
 
-class LockWorker: public Thread{
-	LockScheduler	&rsched;
-	TaskVectorT		tskm[2];
+class Scheduler;
+
+class Worker: public Thread{
+	friend class 	Scheduler;
+	Scheduler		&rsched;
+	TaskVectorT		tskvec[2];
+	Condition		cnd;
+	size_t			crtpushtskvecidx;
 	
 	
-	LockWorker(LockScheduler &_rsched):rsched(_rsched){}
+	Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0){}
 	
 	TaskVectorT* waitTasks();
 	void run();
+	void schedule(TaskPtrT &_rtskptr);
 };
 
-class LockScheduler: public Scheduler{
-	~LockScheduler();
+
+typedef std::unique_ptr<Worker>		WorkerPtrT;
+typedef std::vector<WorkerPtrT>		WorkerVectorT;
+
+class Scheduler: public ::Scheduler{
+	enum Status{
+		StatusStoppedE = 0,
+		StatusRunningE,
+		StatusStoppingE,
+		StatusStoppingWaitE
+	};
+	friend class Worker;
+	Mutex			mtx;
+	Condition		cnd;
+	WorkerVectorT	wkrvec;
+	Status			status;
+	size_t			stopwaitcnt;
+	size_t			crtwkridx;
+	
+	~Scheduler();
 	virtual bool start(const size_t _conscnt);
-	virtual void schedule(Task *_ptsk);
+	virtual void schedule(TaskPtrT &_rtskptr);
 	virtual void stop(bool _wait);
+public:
+	Scheduler():status(StatusStoppedE), stopwaitcnt(0), crtwkridx(0){}
 };
 
-LockScheduler::~LockScheduler(){
+Scheduler::~Scheduler(){
 	
 }
-/*virtual*/ bool LockScheduler::start(const size_t _conscnt){
-	return false;
+/*virtual*/ bool Scheduler::start(const size_t _conscnt){
+	bool			err = false;
+	{
+		Locker<Mutex>	lock(mtx);
+		
+		if(status == StatusRunningE){
+			idbg("status == StatusRunningE");
+			return true;
+		}else if(status != StatusStoppedE || stopwaitcnt){
+			idbg("status != StatusStoppedE and stopwaitcnt = "<<stopwaitcnt);
+			do{
+				cnd.wait(lock);
+			}while(status != StatusStoppedE || stopwaitcnt);
+		}
+		
+		for(size_t i = 0; i < _conscnt; ++i){
+			WorkerPtrT	wkrptr(new Worker(*this));
+			if(wkrptr->start(false, false)){
+				wkrvec.push_back(std::move(wkrptr));
+			}else{
+				err = true;
+				break;
+			}
+		}
+		
+		if(err){
+			edbg("status = StatusStoppingWaitE");
+			status = StatusStoppingWaitE;
+		}
+	}
+	if(err){
+		edbg("before join all");
+		for(auto it = wkrvec.begin(); it != wkrvec.end(); ++it){
+			(*it)->join();
+		}
+		edbg("after join all");
+		Locker<Mutex>	lock(mtx);
+		status = StatusStoppedE;
+		cnd.broadcast();
+		idbg("status = StatusStoppedE");
+		return false;
+	}
+	status = StatusRunningE;
+	idbg("status = StatusRunningE");
+	return true;
 }
-/*virtual*/ void LockScheduler::schedule(Task *_ptsk){
-	
+/*virtual*/ void Scheduler::schedule(TaskPtrT &_rtskptr){
+	Locker<Mutex>	lock(mtx);
+	if(status == StatusRunningE){
+		wkrvec[crtwkridx]->schedule(_rtskptr);
+		crtwkridx = (crtwkridx + 1) % wkrvec.size();
+	}
 }
-/*virtual*/ void LockScheduler::stop(bool _wait){
-	
+/*virtual*/ void Scheduler::stop(bool _wait){
+	{
+		Locker<Mutex>	lock(mtx);
+		if(status == StatusRunningE){
+			idbg("status == StatusRunningE");
+			status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+			for(auto it = wkrvec.begin(); it != wkrvec.end(); ++it){
+				(*it)->cnd.signal();
+			}
+		}else if(status == StatusStoppingE){
+			idbg("status == StatusStoppingE");
+			status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+		}else if(status == StatusStoppingWaitE){
+			idbg("status == StatusStoppingWaitE and _wait = "<<_wait);
+			if(_wait){
+				++stopwaitcnt;
+				do{
+					cnd.wait(lock);
+				}while(status != StatusStoppedE);
+				--stopwaitcnt;
+				cnd.signal();
+			}
+			return;
+		}else if(status == StatusStoppedE){
+			idbg("status == StatusStoppedE");
+			return;
+		}
+	}
+	if(_wait){
+		for(auto it = wkrvec.begin(); it != wkrvec.end(); ++it){
+			(*it)->join();
+		}
+		Locker<Mutex>	lock(mtx);
+		status = StatusStoppedE;
+		idbg("status = StatusStoppedE");
+		cnd.broadcast();
+	}
 }
+
 //---------------------------------------------------------
-TaskVectorT* LockWorker::waitTasks(){
+TaskVectorT* Worker::waitTasks(){
+	Locker<Mutex>	lock(rsched.mtx);
+	if(rsched.status <= Scheduler::StatusRunningE){
+		if(tskvec[crtpushtskvecidx].empty()){
+			do{
+				cnd.wait(lock);
+			}while(tskvec[crtpushtskvecidx].empty() && rsched.status <= Scheduler::StatusRunningE);
+		}
+	}
+	if(tskvec[crtpushtskvecidx].size()){
+		TaskVectorT *pvec = &tskvec[crtpushtskvecidx];
+		crtpushtskvecidx = (crtpushtskvecidx + 1) % 2;
+		return pvec;
+	}
 	return NULL;
 }
-
-void LockWorker::run(){
+void Worker::schedule(TaskPtrT &_rtskptr){
+	tskvec[crtpushtskvecidx].push_back(std::move(_rtskptr));
+	if(tskvec[crtpushtskvecidx].size() == 1){
+		cnd.signal();
+	}
+}
+void Worker::run(){
+	vdbg("Worker enter");
 	Context		ctx;
 	TaskVectorT	*ptv = NULL;
+	size_t		maxtsks = 0;
+	size_t		conscnt = 0;
 	while((ptv = waitTasks())){
 		for(auto it = ptv->begin(); it != ptv->end(); ++it){
 			(*it)->run(ctx);
 			it->reset();
 		}
+		if(ptv->size() > maxtsks){
+			maxtsks = ptv->size();
+		}
+		conscnt += ptv->size();
+		constskcnt += ptv->size();
 		ptv->clear();
 	}
+	vdbg("Worker exit - maxtsks = "<<maxtsks<<" conscnt = "<<conscnt);
+}
+
+}//namespace lock
+
+
+//=========================================================
+//	waitfree::Scheduler
+//=========================================================
+namespace waitfree{
+
+typedef std::vector<TaskPtrT>	TaskVectorT;
+
+class Scheduler;
+
+class Worker: public Thread{
+	friend class 	Scheduler;
+	Scheduler		&rsched;
+	TaskVectorT		tskvec[2];
+	Condition		cnd;
+	size_t			crtpushtskvecidx;
+	
+	
+	Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0){}
+	
+	TaskVectorT* waitTasks();
+	void run();
+	void schedule(TaskPtrT &_rtskptr);
+};
+
+
+typedef std::unique_ptr<Worker>		WorkerPtrT;
+typedef std::vector<WorkerPtrT>		WorkerVectorT;
+
+class Scheduler: public ::Scheduler{
+	enum Status{
+		StatusStoppedE = 0,
+		StatusRunningE,
+		StatusStoppingE,
+		StatusStoppingWaitE
+	};
+	friend class Worker;
+	Mutex			mtx;
+	Condition		cnd;
+	WorkerVectorT	wkrvec;
+	Status			status;
+	size_t			stopwaitcnt;
+	size_t			crtwkridx;
+	
+	~Scheduler();
+	virtual bool start(const size_t _conscnt);
+	virtual void schedule(TaskPtrT &_rtskptr);
+	virtual void stop(bool _wait);
+public:
+	Scheduler():status(StatusStoppedE), stopwaitcnt(0), crtwkridx(0){}
+};
+
+Scheduler::~Scheduler(){
 	
 }
+/*virtual*/ bool Scheduler::start(const size_t _conscnt){
+	bool			err = false;
+	{
+		Locker<Mutex>	lock(mtx);
+		
+		if(status == StatusRunningE){
+			idbg("status == StatusRunningE");
+			return true;
+		}else if(status != StatusStoppedE || stopwaitcnt){
+			idbg("status != StatusStoppedE and stopwaitcnt = "<<stopwaitcnt);
+			do{
+				cnd.wait(lock);
+			}while(status != StatusStoppedE || stopwaitcnt);
+		}
+		
+		for(size_t i = 0; i < _conscnt; ++i){
+			WorkerPtrT	wkrptr(new Worker(*this));
+			if(wkrptr->start(false, false)){
+				wkrvec.push_back(std::move(wkrptr));
+			}else{
+				err = true;
+				break;
+			}
+		}
+		
+		if(err){
+			edbg("status = StatusStoppingWaitE");
+			status = StatusStoppingWaitE;
+		}
+	}
+	if(err){
+		edbg("before join all");
+		for(auto it = wkrvec.begin(); it != wkrvec.end(); ++it){
+			(*it)->join();
+		}
+		edbg("after join all");
+		Locker<Mutex>	lock(mtx);
+		status = StatusStoppedE;
+		cnd.broadcast();
+		idbg("status = StatusStoppedE");
+		return false;
+	}
+	status = StatusRunningE;
+	idbg("status = StatusRunningE");
+	return true;
+}
+/*virtual*/ void Scheduler::schedule(TaskPtrT &_rtskptr){
+	Locker<Mutex>	lock(mtx);
+	if(status == StatusRunningE){
+		wkrvec[crtwkridx]->schedule(_rtskptr);
+		crtwkridx = (crtwkridx + 1) % wkrvec.size();
+	}
+}
+/*virtual*/ void Scheduler::stop(bool _wait){
+	{
+		Locker<Mutex>	lock(mtx);
+		if(status == StatusRunningE){
+			idbg("status == StatusRunningE");
+			status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+			for(auto it = wkrvec.begin(); it != wkrvec.end(); ++it){
+				(*it)->cnd.signal();
+			}
+		}else if(status == StatusStoppingE){
+			idbg("status == StatusStoppingE");
+			status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+		}else if(status == StatusStoppingWaitE){
+			idbg("status == StatusStoppingWaitE and _wait = "<<_wait);
+			if(_wait){
+				++stopwaitcnt;
+				do{
+					cnd.wait(lock);
+				}while(status != StatusStoppedE);
+				--stopwaitcnt;
+				cnd.signal();
+			}
+			return;
+		}else if(status == StatusStoppedE){
+			idbg("status == StatusStoppedE");
+			return;
+		}
+	}
+	if(_wait){
+		for(auto it = wkrvec.begin(); it != wkrvec.end(); ++it){
+			(*it)->join();
+		}
+		Locker<Mutex>	lock(mtx);
+		status = StatusStoppedE;
+		idbg("status = StatusStoppedE");
+		cnd.broadcast();
+	}
+}
+
+//---------------------------------------------------------
+TaskVectorT* Worker::waitTasks(){
+	Locker<Mutex>	lock(rsched.mtx);
+	if(rsched.status <= Scheduler::StatusRunningE){
+		if(tskvec[crtpushtskvecidx].empty()){
+			do{
+				cnd.wait(lock);
+			}while(tskvec[crtpushtskvecidx].empty() && rsched.status <= Scheduler::StatusRunningE);
+		}
+	}
+	if(tskvec[crtpushtskvecidx].size()){
+		TaskVectorT *pvec = &tskvec[crtpushtskvecidx];
+		crtpushtskvecidx = (crtpushtskvecidx + 1) % 2;
+		return pvec;
+	}
+	return NULL;
+}
+void Worker::schedule(TaskPtrT &_rtskptr){
+	tskvec[crtpushtskvecidx].push_back(std::move(_rtskptr));
+	if(tskvec[crtpushtskvecidx].size() == 1){
+		cnd.signal();
+	}
+}
+void Worker::run(){
+	vdbg("Worker enter");
+	Context		ctx;
+	TaskVectorT	*ptv = NULL;
+	size_t		maxtsks = 0;
+	size_t		conscnt = 0;
+	while((ptv = waitTasks())){
+		for(auto it = ptv->begin(); it != ptv->end(); ++it){
+			(*it)->run(ctx);
+			it->reset();
+		}
+		if(ptv->size() > maxtsks){
+			maxtsks = ptv->size();
+		}
+		conscnt += ptv->size();
+		constskcnt += ptv->size();
+		ptv->clear();
+	}
+	vdbg("Worker exit - maxtsks = "<<maxtsks<<" conscnt = "<<conscnt);
+}
+
+}//namespace waitfree
+
 
 //=========================================================
 //	Producers
@@ -143,10 +475,12 @@ class Producer: public Thread{
 		for(size_t i = 0; i < taskcnt; ++i){
 			++prodtskcnt;
 			if(i % 2){
-				rsched.schedule(new IntTask(i));
+				TaskPtrT		tskptr(new IntTask(i));
+				rsched.schedule(tskptr);
 			}else{
 				size_t stridx = (i/2) % (sizeof(strs)/sizeof(const char*));
-				rsched.schedule(new StringTask(strs[stridx]));
+				TaskPtrT		tskptr(new StringTask(strs[stridx]));
+				rsched.schedule(tskptr);
 			}
 		}
 	}
@@ -163,13 +497,15 @@ typedef std::vector<ProducerPtrT>	ProducerVectorT;
 enum SchedulerType{
 	SchedulerEmptyE,
 	SchedulerLockE,
-	SchedulerNoLockE,
+	SchedulerWaitFreeE,
 };
 
 Scheduler * schedulerFactory(const SchedulerType _tp){
 	switch(_tp){
 		case SchedulerLockE:
-			return new LockScheduler;
+			return new lock::Scheduler;
+		case SchedulerWaitFreeE:
+			return new waitfree::Scheduler;
 		default:
 			return new Scheduler;
 	}
@@ -184,8 +520,8 @@ int main(int argc, char *argv[]){
 	const size_t		prodcnt = 4;
 	const size_t		conscnt = 4;
 	
-	const size_t		prodtaskcnt = 100 * 100;
-	const SchedulerType	schedtype = SchedulerLockE;
+	const size_t		prodtaskcnt = 1000 * 1000;
+	const SchedulerType	schedtype = SchedulerWaitFreeE;
 	
 	Scheduler			&sched(*schedulerFactory(schedtype));
 	
@@ -202,8 +538,12 @@ int main(int argc, char *argv[]){
 	for(auto it = prodvec.begin(); it != prodvec.end(); ++it){
 		(*it)->join();
 	}
-	idbg("produced "<<prodtskcnt<<" tasks");
+	
 	sched.stop();
+	
+	idbg("produced "<<prodtskcnt<<" tasks");
+	idbg("consumed "<<constskcnt<<" tasks");
+	
 	
 	Thread::waitAll();
 	

@@ -72,6 +72,9 @@ public:
 	
 	//! Returns a reference to a global mutex
 	static Mutex& gmutex();
+	
+	virtual ~Thread();
+	
 	//! Starts a new thread
 	/*!
 		\param _wait If true, the function will return after the the thread was started.
@@ -98,7 +101,6 @@ protected:
 #else
 	Thread(bool _detached = false, pthread_t _th = 0);
 #endif
-	virtual ~Thread();
 	//! Method called right before run
 	virtual void prepare(){}
 	//! Method called right after run
