@@ -13,8 +13,8 @@ printUsage()
 	echo
 }
 
-BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2"
-OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1g.tar.gz"
+BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.57.0/boost_1_57_0.tar.bz2"
+OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1j.tar.gz"
 
 downloadArchive()
 {
@@ -72,10 +72,8 @@ buildBoost()
 
 	cd "$BOOST_DIR"
 	#cd tools/jam
-	cd tools/build/v2/engine/
-	sh build.sh
-	cd ../../../../
-	JAMTOOL=`find . -name bjam`
+	#cd tools/build/v2/engine/
+	bash bootstrap.sh --with-toolset=clang
 	VARIANT_BUILD=
 	
 	if [ $DEBUG ] ; then
@@ -85,9 +83,9 @@ buildBoost()
 	fi
 	
 	if [ $BUILD_BOOST_FULL ] ; then
-		$JAMTOOL toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+		./b2 toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
 	else
-		$JAMTOOL toolset=clang --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
+		./b2 toolset=clang --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
 	fi
 	echo
 	echo "Done BOOST!"
