@@ -454,7 +454,7 @@ void Thread::dummySpecificDestroy(void*){
 #elif	defined(ON_FREEBSD) || defined(ON_MACOS)
 	int count;
     size_t size=sizeof(count);
-    return sysctlbyname("hw.ncpu",&count,&size,NULL,0)?0:count;
+    return 1;//sysctlbyname("hw.ncpu",&count,&size,NULL,0)?0:count;
 #elif	defined(ON_WINDOWS)
 	SYSTEM_INFO info={{0}};
     GetSystemInfo(&info);
