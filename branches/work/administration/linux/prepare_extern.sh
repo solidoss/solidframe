@@ -13,8 +13,8 @@ printUsage()
 	echo
 }
 
-BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2"
-OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1g.tar.gz"
+BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.57.0/boost_1_57_0.tar.bz2"
+OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1j.tar.gz"
 LEVELDB_ADDR="https://leveldb.googlecode.com/files/leveldb-1.15.0.tar.gz"
 SNAPPY_ADDR="http://snappy.googlecode.com/files/snappy-1.0.5.tar.gz"
 
@@ -73,12 +73,7 @@ buildBoost()
 	echo
 
 	cd "$BOOST_DIR"
-	#cd tools/jam
-	cd tools/build/v2/engine/
-	sh build.sh
-	cd ../../../../
-	JAMTOOL=`find . -name bjam`
-	VARIANT_BUILD=
+	sh bootstrap.sh
 	
 	if [ $DEBUG ] ; then
 		VARIANT_BUILD="variant=debug"
@@ -87,9 +82,9 @@ buildBoost()
 	fi
 	
 	if [ $BUILD_BOOST_FULL ] ; then
-		$JAMTOOL --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+		./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
 	else
-		$JAMTOOL --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
+		./b2 --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
 	fi
 	echo
 	echo "Done BOOST!"
