@@ -270,7 +270,10 @@ class Worker: public Thread{
 	size_t			crtpushtskvecidx;
 	
 	
-	Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0){}
+	Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0){
+		tskvec[0].reserve(1024*4);
+		tskvec[1].reserve(1024*4);
+	}
 	
 	TaskVectorT* waitTasks();
 	void run();
@@ -543,8 +546,8 @@ int main(int argc, char *argv[]){
 	
 	idbg("produced "<<prodtskcnt<<" tasks");
 	idbg("consumed "<<constskcnt<<" tasks");
-	
-	
+	cout<<"produced "<<prodtskcnt<<" tasks"<<endl;
+	cout<<"consumed "<<constskcnt<<" tasks"<<endl;
 	Thread::waitAll();
 	
 	return 0;
