@@ -273,8 +273,8 @@ class Worker: public Thread{
 	
 	
 	Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0){
-		tskvec[0].reserve(1024*4);
-		tskvec[1].reserve(1024*4);
+		tskvec[0].reserve(1024*8);
+		tskvec[1].reserve(1024*8);
 	}
 	
 	TaskVectorT* waitTasks();
@@ -362,11 +362,10 @@ Scheduler::~Scheduler(){
 /*virtual*/ void Scheduler::schedule(TaskPtrT &_rtskptr){
 	if(status == StatusRunningE){
 		const size_t cwi = crtwkridx;
-		size_t cwit = cwi;
+		//size_t cwit = cwi;
 		//crtwkridx.compare_exchange_weak(cwit, (cwi + 1) % wkrvec.size());
 		crtwkridx = (cwi + 1) % wkrvec.size();
 		wkrvec[cwi]->schedule(_rtskptr);
-		//crtwkridx = (crtwkridx + 1) % wkrvec.size();
 	}
 }
 /*virtual*/ void Scheduler::stop(bool _wait){
@@ -410,15 +409,15 @@ Scheduler::~Scheduler(){
 }
 
 //---------------------------------------------------------
-TaskVectorT* Worker::waitTasks(){
+inline TaskVectorT* Worker::waitTasks(){
 	Locker<Mutex>	lock(mtx);
-	if(tskvec[crtpushtskvecidx].empty()){
+	TaskVectorT		*pvec = &tskvec[crtpushtskvecidx];
+	
+	if(pvec->empty()){
 		do{
 			cnd.wait(lock);
-		}while(tskvec[crtpushtskvecidx].empty());
+		}while(pvec->empty());
 	}
-	
-	TaskVectorT *pvec = &tskvec[crtpushtskvecidx];
 	crtpushtskvecidx = (crtpushtskvecidx + 1) % 2;
 	return pvec;
 }
