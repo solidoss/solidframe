@@ -38,7 +38,7 @@ public:
 	typedef ObjectPointerT		JobT;
 	typedef Object				ObjectT;
 	
-	Reactor(SchedulerBase &_rsched);
+	Reactor(SchedulerBase &_rsched, const size_t _schedidx);
 	~Reactor();
 	
 	static Reactor* safeSpecific();

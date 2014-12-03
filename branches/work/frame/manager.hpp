@@ -13,6 +13,7 @@
 #include "frame/common.hpp"
 #include "frame/event.hpp"
 #include "system/mutex.hpp"
+#include "system/error.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "utility/functor.hpp"
 
@@ -31,7 +32,7 @@ struct ScheduleObjectF{
 	
 	ScheduleObjectF(DynamicPointer<Obj> &_robjptr, Sch &_rsch):robjptr(_robjptr), rsch(_rsch){}
 	
-	bool operator()(){
+	ErrorConditionT operator()(){
 		return rsch.schedule(robjptr);
 	}
 };
@@ -50,7 +51,7 @@ struct EventNotifier{
 
 
 class Manager{
-	typedef FunctorReference<bool>	ObjectScheduleFunctorT;
+	typedef FunctorReference<ErrorConditionT>	ObjectScheduleFunctorT;
 public:
 	static Manager& specific();
 	

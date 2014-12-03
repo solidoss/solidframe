@@ -12,8 +12,12 @@
 
 #include "frame/common.hpp"
 #include "utility/functor.hpp"
+#include "system/error.hpp"
 
 namespace solid{
+
+class Thread;
+
 namespace frame{
 
 class Manager;
@@ -22,16 +26,17 @@ class ObjectBase;
 
 //! A base class for all schedulers
 class SchedulerBase{
+public:
 protected:
-	typedef bool (*CreateWorkerF)(SchedulerBase &_rsch);
+	typedef Thread* (*CreateWorkerF)(SchedulerBase &_rsch, const size_t);
 	
 	typedef FunctorReference<bool, ReactorBase&>	ScheduleFunctorT;
 	
-	bool doStart(CreateWorkerF _pf, size_t _reactorcnt = 1, size_t _reactorchunkcp = 1024);
+	ErrorConditionT doStart(CreateWorkerF _pf, size_t _reactorcnt = 1, size_t _reactorchunkcp = 1024);
 
 	void doStop(bool _wait = true);
 	
-	bool doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct);
+	ErrorConditionT doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct);
 protected:
 	SchedulerBase(
 		Manager &_rm
@@ -42,8 +47,8 @@ private:
 	
 	Manager& manager();
 	
-	bool prepareThread(ReactorBase &_rsel);
-	void unprepareThread(ReactorBase &_rsel);
+	void prepareThread(const size_t _idx, ReactorBase &_rsel);
+	void unprepareThread(const size_t _idx, ReactorBase &_rsel);
 	bool update(ReactorBase &_rsel);
 private:
 	struct Data;

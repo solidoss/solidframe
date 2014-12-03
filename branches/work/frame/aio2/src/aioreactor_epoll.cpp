@@ -27,6 +27,7 @@
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
 #include "system/mutex.hpp"
+#include "system/thread.hpp"
 
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
@@ -47,8 +48,9 @@ struct Reactor::Data{
 };
 
 Reactor::Reactor(
-	SchedulerBase &_rsched
-):ReactorBase(_rsched), d(*(new Data)){}
+	SchedulerBase &_rsched,
+	const size_t _idx 
+):ReactorBase(_rsched, _idx), d(*(new Data)){}
 
 Reactor::~Reactor(){
 	delete &d;
@@ -65,7 +67,9 @@ Reactor::~Reactor(){
 }
 
 void Reactor::run(){
+	prepareThread();
 	
+	unprepareThread();
 }
 
 bool Reactor::push(JobT &_rcon){

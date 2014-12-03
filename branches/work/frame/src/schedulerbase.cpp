@@ -14,15 +14,55 @@
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
+#include "system/cassert.hpp"
 #include "utility/queue.hpp"
+
+#include <memory>
 
 namespace solid{
 namespace frame{
 
-typedef Queue<UidT>		UidQueueT;
+namespace{
+class ErrorCategory: public ERROR_NS::error_category{
+public:
+	enum{
+		AlreadyE,
+		WorkerE,
+	};
+private:
+	const char*   name() const noexcept (true){
+		return "solid::frame::Scheduler Error";
+	}
+	
+    std::string    message(int _ev) const{
+		switch(_ev){
+			case AlreadyE:
+				return "Already started";
+			case WorkerE:
+				return "Failed to start worker";
+			default:
+				return "Unknown";
+		}
+	}
+};
 
+const ErrorCategory		ec;
+
+inline ErrorConditionT error_already(){
+	return ErrorConditionT(ErrorCategory::AlreadyE, ec);
+}
+inline ErrorConditionT error_worker(){
+	return ErrorConditionT(ErrorCategory::WorkerE, ec);
+}
+
+
+}//namespace
+
+typedef Queue<UidT>					UidQueueT;
+typedef std::unique_ptr<Thread>		ThreadPointerT;
 struct ReactorStub{
 	ReactorStub(ReactorBase *_preactor = NULL):preactor(_preactor), cnt(0){}
+	ThreadPointerT	thrptr;
 	ReactorBase		*preactor;
 	size_t			cnt;
 	size_t			crtidx;
@@ -31,31 +71,25 @@ struct ReactorStub{
 
 typedef std::vector<ReactorStub>	ReactorVectorT;
 
-enum StateE{
-	StateStopped,
-	StateError,
-	StateStarting,
-	StateRunning,
-	StateStopping,
-	StateStoppingError,
+enum Statuses{
+	StatusStoppedE = 0,
+	StatusRunningE,
+	StatusStoppingE,
+	StatusStoppingWaitE
 };
 
 struct SchedulerBase::Data{
-	Data(Manager &_rm):rm(_rm), crtreactoridx(0), reactorchunkcp(0), reactorcnt(0), state(StateStopped){
+	Data(Manager &_rm):rm(_rm), crtreactoridx(0), reactorchunkcp(0), reactorcnt(0), status(StatusStoppedE){
 		crtminchunkcp = reactorchunkcp;
 	}
-	
-	bool isTransientState()const{
-		return state == StateStarting || state == StateStopping || state == StateStoppingError;
-	}
-	
 	
 	Manager				&rm;
 	size_t				crtreactoridx;
 	size_t				reactorchunkcp;
 	size_t				crtminchunkcp;
 	size_t				reactorcnt;
-	StateE				state;
+	size_t				stopwaitcnt;
+	Statuses			status;
 	ReactorVectorT		reactorvec;
 	Mutex				mtx;
 	Condition			cnd;
@@ -68,6 +102,7 @@ SchedulerBase::SchedulerBase(
 }
 
 SchedulerBase::~SchedulerBase(){
+	doStop(true);
 	delete &d;
 }
 
@@ -95,135 +130,114 @@ bool SchedulerBase::update(ReactorBase &_rreactor){
 	return true;
 }
 
-bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* = 1*/, size_t _reactorchunkcp/* = 1024*/){
+ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* = 1*/, size_t _reactorchunkcp/* = 1024*/){
 	if(_reactorcnt == 0){
 		_reactorcnt = Thread::processorCount();
 	}
-	Locker<Mutex>	lock(d.mtx);
+	bool start_err = false;
 	
-	while(d.isTransientState()){
-		d.cnd.wait(lock);
-	}
-	
-	if(d.state == StateRunning){
-		return true;
-	}
-	d.state = StateStarting;
-	d.reactorchunkcp = _reactorchunkcp;
-	
-	for(size_t i = 0; i < _reactorcnt; ++i){
-		if((*_pf)(*this)){
-			++d.reactorcnt;
+	{
+		Locker<Mutex>	lock(d.mtx);
+		
+		if(d.status == StatusRunningE){
+			return error_already();
+		}else if(d.status != StatusStoppedE || d.stopwaitcnt){
+			do{
+				d.cnd.wait(lock);
+			}while(d.status != StatusStoppedE || d.stopwaitcnt);
+		}
+		
+		d.reactorvec.resize(_reactorcnt);
+		
+		for(size_t i = 0; i < _reactorcnt; ++i){
+			ReactorStub &rrs = d.reactorvec[i];
+			rrs.thrptr.reset((*_pf)(*this, i));
+			if(rrs.thrptr.get()){
+				if(rrs.thrptr->start(false, false)){
+					start_err = true;
+					break;
+				}
+			}
+		}
+		
+		if(start_err){
+			d.status = StatusStoppingWaitE;
 		}else{
-			d.state = StateStoppingError;
-			break;
+			while(d.reactorcnt){
+				d.cnd.wait(lock);
+			}
 		}
 	}
-	if(d.state == StateStoppingError){
-		while(d.reactorcnt){
-			d.cnd.wait(lock);
+	if(start_err){
+		for(auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it){
+			if(it->thrptr.get()){
+				it->thrptr->join();
+			}
 		}
-		d.state = StateError;
-	}else{
-		while(d.reactorvec.size() != d.reactorcnt && d.state == StateStarting){
-			d.cnd.wait(lock);
-		}
-		if(d.reactorvec.size() != d.reactorcnt){
-			for(ReactorVectorT::const_iterator it(d.reactorvec.begin()); it != d.reactorvec.end(); ++it){
+		Locker<Mutex>	lock(d.mtx);
+		d.status = StatusStoppedE;
+		d.cnd.broadcast();
+		return error_worker();
+	}
+	d.status = StatusRunningE;
+	return ErrorConditionT();
+}
+
+void SchedulerBase::doStop(bool _wait/* = true*/){
+	{
+		Locker<Mutex>	lock(d.mtx);
+		if(d.status == StatusRunningE){
+			d.status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+			for(auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it){
 				if(it->preactor){
 					it->preactor->stop();
 				}
 			}
-			while(d.reactorcnt){
-				d.cnd.wait(lock);
+		}else if(d.status == StatusStoppingE){
+			d.status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+		}else if(d.status == StatusStoppingWaitE){
+			if(_wait){
+				++d.stopwaitcnt;
+				do{
+					d.cnd.wait(lock);
+				}while(d.status != StatusStoppedE);
+				--d.stopwaitcnt;
+				d.cnd.signal();
 			}
-			d.state = StateError;
-		}else if(d.reactorvec.size() == d.reactorcnt){
-			d.state = StateRunning;
-			return true;
-		}
-	}
-	return false;
-}
-
-void SchedulerBase::doStop(bool _wait/* = true*/){
-	Locker<Mutex>	lock(d.mtx);
-	while(d.isTransientState() || d.reactorcnt){
-		d.cnd.wait(lock);
-	}
-	if(_wait && d.reactorcnt == 0 && d.state == StateRunning){
-		d.state = StateStopped;
-	}
-	if(d.state == StateStopped || d.state == StateError){
-		return;
-	}
-	d.state = StateStopping;
-	for(ReactorVectorT::const_iterator it(d.reactorvec.begin()); it != d.reactorvec.end(); ++it){
-		if(it->preactor){
-			it->preactor->stop();
+			return;
+		}else if(d.status == StatusStoppedE){
+			return;
 		}
 	}
 	if(_wait){
-		while(d.reactorcnt){
-			d.cnd.wait(lock);
-		}
-		d.state = StateStopped;
-	}
-}
-
-bool SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
-	Locker<Mutex>	lock(d.mtx);
-	
-	if(d.state == StateRunning){
-		
-	}else{
-		while(d.isTransientState()){
-			d.cnd.wait(lock);
-		}
-		if(d.state != StateRunning){
-			return false;
-		}
-	}
-	if(d.reactorvec[d.crtreactoridx].cnt < d.crtminchunkcp){
-		
-	}else{
-		size_t mincp = -1;
-		size_t idx = 0;
-		for(ReactorVectorT::const_iterator it(d.reactorvec.begin()); it != d.reactorvec.end(); ++it){
-			if(it->cnt < mincp){
-				idx = d.reactorvec.end() - it;
-				mincp = it->cnt;
+		for(auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it){
+			if(it->thrptr.get()){
+				it->thrptr->join();
 			}
 		}
-		d.crtminchunkcp = ((mincp / d.reactorchunkcp) + 1) * d.reactorchunkcp;
-		d.crtreactoridx = idx;
+		Locker<Mutex>	lock(d.mtx);
+		d.status = StatusStoppedE;
+		d.cnd.broadcast();
 	}
-	
-	ReactorStub		&rreactor = d.reactorvec[d.crtreactoridx];
-	UidT			uid(rreactor.crtidx, 0);
-	
-	if(rreactor.freeuidq.size()){
-		uid = rreactor.freeuidq.front();
-		rreactor.freeuidq.pop();
-	}else{
-		uid.index = d.rm.computeThreadId(rreactor.preactor->mgridx, uid.index);
-		++rreactor.crtidx;
-	}
-	if(uid.isValid()){
-		rreactor.preactor->setObjectThread(_robj, uid);
-		bool rv = _rfct(*rreactor.preactor);
-		if(rv){
-			return true;
-		}
-		rreactor.freeuidq.push(uid);
-	}
-	return false;
 }
 
-bool SchedulerBase::prepareThread(ReactorBase &_rreactor){
+ErrorConditionT SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
 	Locker<Mutex>	lock(d.mtx);
 	
-	if(d.state == StateStoppingError){
+	
+	return ErrorConditionT();
+}
+
+void SchedulerBase::prepareThread(const size_t _idx, ReactorBase &_rreactor){
+	Locker<Mutex>	lock(d.mtx);
+	ReactorStub 	&rrs = d.reactorvec[_idx];
+	
+	manager().prepareThread(_rreactor);
+	rrs.preactor = &_rreactor;
+	++d.reactorcnt;
+	d.cnd.broadcast();
+#if 0
+	if(d.status == StatusStoppingErrorE){
 		--d.reactorcnt;
 		if(d.reactorcnt == 0){
 			d.cnd.broadcast();
@@ -237,14 +251,19 @@ bool SchedulerBase::prepareThread(ReactorBase &_rreactor){
 		}
 		return true;
 	}else{
-		d.state = StateStoppingError;
+		d.status = StatusStoppingError;
 		return false;
 	}
+#endif
 }
 
-void SchedulerBase::unprepareThread(ReactorBase &_rreactor){
+void SchedulerBase::unprepareThread(const size_t _idx, ReactorBase &_rreactor){
 	Locker<Mutex>	lock(d.mtx);
-	
+	ReactorStub 	&rrs = d.reactorvec[_idx];
+	manager().unprepareThread(&_rreactor);
+	--d.reactorcnt;
+	d.cnd.broadcast();
+#if 0
 	d.rm.unprepareThread(&_rreactor);
 	--d.reactorcnt;
 	d.reactorvec[_rreactor.idInScheduler()].preactor = NULL;
@@ -253,6 +272,7 @@ void SchedulerBase::unprepareThread(ReactorBase &_rreactor){
 		d.reactorvec.clear();
 		d.cnd.broadcast();
 	}
+#endif
 }
 
 

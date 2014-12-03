@@ -86,7 +86,7 @@ struct Reactor::Data{
 /*static*/ Reactor* Reactor::safeSpecific(){
 	return reinterpret_cast<Reactor*>(Thread::specific(specificPosition()));
 }
-Reactor::Reactor(SchedulerBase &_rsch):ReactorBase(_rsch), d(*(new Data)){
+Reactor::Reactor(SchedulerBase &_rsch, const size_t _schidx):ReactorBase(_rsch, _schidx), d(*(new Data)){
 }
 Reactor::~Reactor(){
 	delete &d;
@@ -104,10 +104,10 @@ Reactor::~Reactor(){
 
 void Reactor::run(){
 	Thread::specific(specificPosition(), this);
-	if(!prepareThread()){
-		Thread::specific(specificPosition(), NULL);
-		return;
-	}
+	prepareThread();
+	
+	unprepareThread();
+	Thread::specific(specificPosition(), NULL);
 #if 0
 	//ulong		crttout;
 	int 		state;
@@ -202,10 +202,7 @@ void Reactor::run(){
 	}while(state != Data::EXIT_LOOP);
 
 #endif
-	unprepareThread();
-	Thread::specific(specificPosition(), NULL);
 }
-
 
 bool Reactor::push(ObjectPointerT &_robj){
 	cassert(d.fstk.size());
@@ -346,11 +343,11 @@ Manager& ReactorBase::manager(){
 	return scheduler().manager();
 }
 
-bool ReactorBase::prepareThread(){
-	return scheduler().prepareThread(*this);
+void ReactorBase::prepareThread(){
+	scheduler().prepareThread(idInScheduler(), *this);
 }
 void ReactorBase::unprepareThread(){
-	scheduler().unprepareThread(*this);
+	scheduler().unprepareThread(idInScheduler(), *this);
 }
 
 }//namespace frame
