@@ -30,7 +30,7 @@ public:
 	static Reactor& specific();
 	static Reactor* safeSpecific();
 
-	Reactor(SchedulerBase &);
+	Reactor(SchedulerBase &, const size_t);
 	~Reactor();
 	
 	bool push(ObjectPointerT &_rjob);

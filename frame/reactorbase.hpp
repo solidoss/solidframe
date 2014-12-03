@@ -35,17 +35,16 @@ public:
 	IndexT const& idInManager()const;
 	Manager& manager();
 protected:
-	ReactorBase(SchedulerBase &_rsch):rsch(_rsch){}
+	ReactorBase(SchedulerBase &_rsch, const size_t _schidx):rsch(_rsch), schidx(_schidx), mgridx(-1){}
 	bool setObjectThread(ObjectBase &_robj, const UidT &_uid);
 	void stopObject(ObjectBase &_robj);
 	SchedulerBase& scheduler();
-	bool prepareThread();
+	void prepareThread();
 	void unprepareThread();
 private:
 	friend	class Manager;
 	friend	class SchedulerBase;
 	void idInManager(size_t _id);
-	void idInScheduler(size_t _id);
 	size_t idInScheduler()const;
 private:
 	SchedulerBase	&rsch;
@@ -63,9 +62,6 @@ inline void ReactorBase::stopObject(ObjectBase &_robj){
 }
 inline void ReactorBase::idInManager(size_t _id){
 	mgridx = _id;
-}
-inline void ReactorBase::idInScheduler(size_t _id){
-	schidx = _id;
 }
 
 inline IndexT const& ReactorBase::idInManager()const{

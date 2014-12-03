@@ -92,6 +92,11 @@ ERROR_NS::error_code specific_error_back();
 ErrorVectorT const & specific_error_get();
 void specific_error_print(std::ostream &_ros, const bool _withcodeinfo = true);
 
+
+typedef ERROR_NS::error_condition	ErrorConditionT;
+typedef ERROR_NS::error_condition	ErrorCodeT;
+
+
 }//namespace solid
 
 #endif
