@@ -47,9 +47,10 @@ private:
 	
 	Manager& manager();
 	
-	void prepareThread(const size_t _idx, ReactorBase &_rsel);
+	bool prepareThread(const size_t _idx, ReactorBase &_rsel);
 	void unprepareThread(const size_t _idx, ReactorBase &_rsel);
 	bool update(ReactorBase &_rsel);
+	size_t doComputeScheduleReactorIndex();
 private:
 	struct Data;
 	Data	&d;

@@ -264,10 +264,10 @@ bool Manager::registerService(
 	return doRegisterService(_rs, _objpermutbts);
 }
 
-ObjectUidT Manager::doRegisterObject(ObjectBase &_robj, ObjectScheduleFunctorT &_rfct){
+ObjectUidT Manager::doRegisterObject(ObjectBase &_robj, ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr){
 	ServiceStub		&rss = d.psvcarr[0];
 	Locker<Mutex>	lock(rss.mtx);
-	return doUnsafeRegisterServiceObject(0, _robj, _rfct);
+	return doUnsafeRegisterServiceObject(0, _robj, _rfct, _rerr);
 }
 
 void Manager::unregisterService(Service &_rsvc){
@@ -428,12 +428,14 @@ Mutex& Manager::serviceMutex(const Service &_rsvc)const{
 	return rss.mtx;
 }
 
-ObjectUidT Manager::registerServiceObject(const Service &_rsvc, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct){
+ObjectUidT Manager::registerServiceObject(
+	const Service &_rsvc, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr
+){
 	cassert(_rsvc.idx < d.svcprovisioncp);
 	ServiceStub		&rss = d.psvcarr[_rsvc.idx];
 	cassert(!_rsvc.idx || rss.psvc != NULL);
 	Locker<Mutex>	lock(rss.mtx);
-	return doUnsafeRegisterServiceObject(_rsvc.idx, _robj, _rfct);
+	return doUnsafeRegisterServiceObject(_rsvc.idx, _robj, _rfct, _rerr);
 }
 
 
@@ -503,10 +505,13 @@ bool Manager::doRegisterService(
 // 	return doUnsafeRegisterServiceObject(_svcidx, _robj);
 // }
 
-ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct){
+ObjectUidT Manager::doUnsafeRegisterServiceObject(
+	const IndexT _svcidx, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr
+){
 	ServiceStub		&rss = d.psvcarr[_svcidx];
 	vdbgx(Debug::frame, ""<<(void*)&_robj);
 	if(rss.state != ServiceStub::StateRunning){
+		//TODO: set error
 		return ObjectUidT();
 	}
 	
@@ -518,7 +523,9 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, ObjectBa
 		const IndexT	fullid = unite_index(_svcidx, objidx, d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/));
 		Locker<Mutex>	lock2(rss.mtxstore.at(objidx, rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/)));
 		
-		if(_rfct()){
+		_rerr = _rfct();
+		
+		if(!_rerr){
 			rss.objvec[objidx].pobj = &_robj;
 			_robj.fullid = fullid;
 			return ObjectUidT(fullid, rss.objvec[objidx].uid);
@@ -576,7 +583,9 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, ObjectBa
 		
 		rss.objvec.resize(newobjcnt);
 		
-		if(_rfct()){
+		_rerr = _rfct();
+		
+		if(!_rerr){
 			rss.objfreestk.pop();
 			rss.objvec[idx].pobj = &_robj;
 			_robj.fullid = retval.index;

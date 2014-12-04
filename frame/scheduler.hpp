@@ -38,7 +38,11 @@ private:
 		
 		void run(){
 			ReactorT	reactor(rsched, idx);
+			if(!reactor.prepareThread()){
+				return;
+			}
 			reactor.run();
+			reactor.unprepareThread();
 		}
 	};
 	

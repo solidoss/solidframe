@@ -343,8 +343,8 @@ Manager& ReactorBase::manager(){
 	return scheduler().manager();
 }
 
-void ReactorBase::prepareThread(){
-	scheduler().prepareThread(idInScheduler(), *this);
+bool ReactorBase::prepareThread(){
+	return scheduler().prepareThread(idInScheduler(), *this);
 }
 void ReactorBase::unprepareThread(){
 	scheduler().unprepareThread(idInScheduler(), *this);
