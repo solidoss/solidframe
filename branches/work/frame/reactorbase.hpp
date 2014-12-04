@@ -34,13 +34,14 @@ public:
 	virtual void update() = 0;
 	IndexT const& idInManager()const;
 	Manager& manager();
+	
+	bool prepareThread();
+	void unprepareThread();
 protected:
-	ReactorBase(SchedulerBase &_rsch, const size_t _schidx):rsch(_rsch), schidx(_schidx), mgridx(-1){}
+	ReactorBase(SchedulerBase &_rsch, const size_t _schidx):rsch(_rsch), mgridx(-1), schidx(_schidx){}
 	bool setObjectThread(ObjectBase &_robj, const UidT &_uid);
 	void stopObject(ObjectBase &_robj);
 	SchedulerBase& scheduler();
-	void prepareThread();
-	void unprepareThread();
 private:
 	friend	class Manager;
 	friend	class SchedulerBase;

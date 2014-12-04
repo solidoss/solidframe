@@ -74,10 +74,10 @@ public:
 	void unregisterService(Service &_rsvc);
 	
 	template <class Obj, class Sch>
-	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt){
+	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt, ErrorConditionT &_rerr){
 		ScheduleObjectF<Obj, Sch>	fnc(_robjptr, _rsch);
 		ObjectScheduleFunctorT		fctor(fnc);
-		return doRegisterObject(*_robjptr, fctor);
+		return doRegisterObject(*_robjptr, fctor, _rerr);
 	}
 	
 	bool notify(ObjectUidT const &_ruid, Event const &_e, const size_t _sigmsk = 0);
@@ -108,8 +108,13 @@ private:
 	
 	Mutex& serviceMutex(const Service &_rsvc)const;
 	
-	ObjectUidT registerServiceObject(const Service &_rsvc, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct);
-	ObjectUidT doRegisterObject(ObjectBase &_robj, ObjectScheduleFunctorT &_rfct);
+	ObjectUidT registerServiceObject(
+		const Service &_rsvc, ObjectBase &_robj,
+		ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr
+	);
+	ObjectUidT doRegisterObject(
+		ObjectBase &_robj, ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr
+	);
 	
 	template <typename F>
 	bool forEachServiceObject(const Service &_rsvc, F &_f){
@@ -136,7 +141,12 @@ private:
 	virtual bool doPrepareThread();
 	virtual void doUnprepareThread();
 	//ObjectUidT doRegisterServiceObject(const IndexT _svcidx, Object &_robj);
-	ObjectUidT doUnsafeRegisterServiceObject(const IndexT _svcidx, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct);
+	ObjectUidT doUnsafeRegisterServiceObject(
+		const IndexT _svcidx,
+		ObjectBase &_robj,
+		ObjectScheduleFunctorT &_rfct,
+		ErrorConditionT &_rerr
+	);
 	
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);

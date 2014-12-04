@@ -35,12 +35,13 @@ public:
 	~Service();
 	
 	template <class Obj, class Sch>
-	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch){
+	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch, ErrorConditionT &_rerr){
 		if(isRegistered()){
 			ScheduleObjectF<Obj, Sch>			fnc(_robjptr, _rsch);
 			Manager::ObjectScheduleFunctorT		fctor(fnc);
-			return rm.registerServiceObject(*this, *_robjptr, fctor);
+			return rm.registerServiceObject(*this, *_robjptr, fctor, _rerr);
 		}else{
+			//TODO: set _rerr
 			return ObjectUidT();
 		}
 	}

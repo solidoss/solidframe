@@ -187,8 +187,8 @@ int main(int argc, char *argv[]){
 			
 			if(sd.ok()){
 				DynamicPointer<frame::aio::Object>	objptr(new Listener(m, s, sd));
-				
-				m.registerObject(objptr, s, frame::Event(EventStartE));
+				solid::ErrorConditionT				err;
+				m.registerObject(objptr, s, frame::Event(EventStartE), err);
 
 			}else{
 				cout<<"Error creating listener socket"<<endl;
