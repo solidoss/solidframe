@@ -139,7 +139,7 @@ buildOpenssl()
 	else
 		CC=cc ./config --prefix="$EXT_DIR" --openssldir="ssl_"
 	fi
-	make && make install
+	make && make install_sw
 	cd ..
 	echo "Copy test certificates to ssl_ dir..."
 	cp $DIR_NAME/demos/tunala/*.pem ssl_/certs/.
