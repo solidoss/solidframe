@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 #include <queue>
+#include <array>
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "system/atomic.hpp"
@@ -315,6 +316,137 @@ void Worker::run(){
 }//namespace baseline
 
 
+template <class C>
+size_t find_min(const std::array<C, 2> &_ra, size_t &_rcrtidx){
+	if(_ra[0] < _ra[1]){
+		return 0;
+	}else if(_ra[0] > _ra[1]){
+		return 1;
+	}
+	const size_t idx = _rcrtidx;
+	_rcrtidx = (idx + 1) % 2;
+	return idx;
+}
+
+template <class C>
+size_t find_min(const std::array<C, 3> &_ra, size_t &_rcrtidx){
+	size_t	crtidx;
+	C		crtmin;
+	
+	if(_ra[0] < _ra[1]){
+		crtidx = 0;
+		crtmin = _ra[0];
+	}else if(_ra[0] > _ra[1]){
+		crtidx = 1;
+		crtmin = _ra[1];
+	}else if(_ra[1] == _ra[2]){
+		const size_t idx = _rcrtidx;
+		_rcrtidx = (idx + 1) % 3;
+		return idx;
+	}else{
+		crtidx = 0;
+		crtmin = _ra[0];
+	}
+	
+	if(crtmin < _ra[2]){
+		return crtidx;
+	}else if(crtmin > _ra[2]){
+		return 2;
+	}
+	
+	
+}
+template <class C>
+size_t find_min(const std::array<C, 4> &_ra, size_t &_rcrtidx){
+#if 1
+	size_t	crtidx;
+	C		crtmin;
+	size_t	eqlcnt = 0;
+
+	if(_ra[0] == _ra[1] && _ra[1] == _ra[2] && _ra[2] == _ra[3]){
+		crtidx = _rcrtidx;
+		_rcrtidx = (crtidx + 1) % 4;
+	}else{
+		if(_ra[0] <= _ra[1]){
+			crtmin = _ra[0];
+			crtidx = 0;
+		}else{
+			crtmin = _ra[1];
+			crtidx = 1;
+		}
+		if(_ra[2] < crtmin){
+			crtmin = _ra[2];
+			crtidx = 2;
+		}
+		if(_ra[3] < crtmin){
+			crtidx = 3;
+		}
+	}
+	return crtidx;
+#else
+	size_t	crtidx;
+	C		crtmin;
+	size_t	eqlcnt = 0;
+	
+	if(_ra[0] < _ra[1]){
+		crtidx = 0;
+		crtmin = _ra[0];
+	}else if(_ra[0] > _ra[1]){
+		crtidx = 1;
+		crtmin = _ra[1];
+	}else{//==
+		crtidx = 0;
+		crtmin = _ra[0];
+		eqlcnt = 2;
+	}
+	
+	if(crtmin < _ra[2]){
+		
+	}else if(crtmin > _ra[2]){
+		crtmin = _ra[2];
+		crtidx = 2;
+	}else{//==
+		++eqlcnt;
+	}
+	
+	if(crtmin < _ra[3]){
+		return crtidx;
+	}else if(crtmin > _ra[3]){
+		return 3;
+	}else if(eqlcnt < 3){//==
+		return crtidx;
+	}
+		
+	crtidx = _rcrtidx;
+	_rcrtidx = (crtidx + 1) % 4;
+	return crtidx;
+#endif
+}
+template <class C>
+size_t find_min(const std::array<C, 5> &_ra, size_t &_rcrtidx){
+	const size_t idx = _rcrtidx;
+	_rcrtidx = (idx + 1) % 5;
+	return idx;
+}
+template <class C>
+size_t find_min(const std::array<C, 6> &_ra, size_t &_rcrtidx){
+	const size_t idx = _rcrtidx;
+	_rcrtidx = (idx + 1) % 6;
+	return idx;
+}
+template <class C>
+size_t find_min(const std::array<C, 7> &_ra, size_t &_rcrtidx){
+	const size_t idx = _rcrtidx;
+	_rcrtidx = (idx + 1) % 7;
+	return idx;
+}
+template <class C>
+size_t find_min(const std::array<C, 8> &_ra, size_t &_rcrtidx){
+	const size_t idx = _rcrtidx;
+	_rcrtidx = (idx + 1) % 8;
+	return idx;
+}
+
 //=========================================================
 //	optimized::Scheduler
 //=========================================================
@@ -421,65 +553,60 @@ Scheduler::~Scheduler(){
 }
 
 inline size_t	Scheduler::computeScheduleWorkerIndex(){
-	size_t	load;
-	size_t	cwi = crtwkridx;
 	switch(wkrvec.size()){
 		case 1:
 			return 0;
 		case 2:{
-			const size_t l0 = wkrvec[0]->load;
-			const size_t l1 = wkrvec[1]->load;
-			
-			if(l0 < l1){
-				return 0;
-			}else if(l1 > l0){
-				return 1;
-			}
-			break;
+			const std::array<size_t, 2> arr = {
+				wkrvec[0]->load, wkrvec[1]->load
+			};
+			return find_min(arr, crtwkridx);
 		}
 		case 3:{
-			const size_t l0 = wkrvec[0]->load;
-			const size_t l1 = wkrvec[1]->load;
-			const size_t l2 = wkrvec[2]->load;
-			if(l0 == l1 && l1 == l2) break;
-			if(l0 <= l1){
-				load = l0;
-				cwi = 0;
-			}else{
-				load = l1;
-				cwi = 1;
-			}
-			if(l2 < load){
-				cwi = 2;
-			}
-		}	return cwi;
+			const std::array<size_t, 3> arr = {
+				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load
+			};
+			return find_min(arr, crtwkridx);
+		}
 		case 4:{
-			const size_t l0 = wkrvec[0]->load;
-			const size_t l1 = wkrvec[1]->load;
-			const size_t l2 = wkrvec[2]->load;
-			const size_t l3 = wkrvec[3]->load;
-			if(l0 == l1 && l1 == l2 && l2 == l3) break;
-			if(l0 <= l1){
-				load = l0;
-				cwi = 0;
-			}else{
-				load = l1;
-				cwi = 1;
-			}
-			if(l2 < load){
-				load = l2;
-				cwi = 2;
-			}
-			if(l3 < load){
-				cwi = 3;
-			}
-			++wkrvec[cwi]->load;
-		}	return cwi;
+			const std::array<size_t, 4> arr = {
+				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load
+			};
+			return find_min(arr, crtwkridx);
+		}
+		case 5:{
+			const std::array<size_t, 5> arr = {
+				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load,
+				wkrvec[4]->load
+			};
+			return find_min(arr, crtwkridx);
+		}
+		case 6:{
+			const std::array<size_t, 6> arr = {
+				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load,
+				wkrvec[4]->load, wkrvec[5]->load
+			};
+			return find_min(arr, crtwkridx);
+		}
+		case 7:{
+			const std::array<size_t, 7> arr = {
+				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load,
+				wkrvec[4]->load, wkrvec[5]->load, wkrvec[6]->load
+			};
+			return find_min(arr, crtwkridx);
+		}
+		case 8:{
+			const std::array<size_t, 8> arr = {
+				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load,
+				wkrvec[4]->load, wkrvec[5]->load, wkrvec[6]->load, wkrvec[7]->load
+			};
+			return find_min(arr, crtwkridx);
+		}
 		default:
 			break;
 	}
 	
-	
+	const size_t	cwi = crtwkridx;
 	crtwkridx = (cwi + 1) % wkrvec.size();
 	return cwi;
 }
@@ -558,6 +685,7 @@ TaskVectorT* Worker::waitTasks(bool _peek, bool &_risrunning){
 }
 void Worker::schedule(TaskPtrT &_rtskptr){
 	++crtpushsz;
+	++load;
 	tskvec[crtpushtskvecidx].push_back(std::move(_rtskptr));
 	if(tskvec[crtpushtskvecidx].size() == 1){
 		cnd.signal();
@@ -578,8 +706,7 @@ void Worker::run(){
 	size_t		opcnt = 0;
 	
 	do{
-		size_t	tskqsz = tskq.size();
-		
+		const size_t	tskqsz = tskq.size();
 		if(tskqsz > maxqtsks){
 			maxqtsks = tskqsz;
 		}
@@ -587,14 +714,17 @@ void Worker::run(){
 		consloopcnt += tskqsz;
 		opcnt += tskqsz;
 		
-		while(tskqsz--){
+		size_t			qcnt = tskqsz;
+		while(qcnt--){
 			if(tskq.front()->run(ctx)){
 				tskq.push(std::move(tskq.front()));
 				tskq.pop();
 			}else{
 				tskq.pop();
+ 				--load;
 			}
 		}
+		//load -= (tskqsz - tskq.size());
 		ptv = waitTasks(!tskq.empty(), isrunning);
 		if(ptv){
 			if(ptv->size() > maxtsks){
