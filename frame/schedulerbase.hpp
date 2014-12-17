@@ -32,7 +32,7 @@ protected:
 	
 	typedef FunctorReference<bool, ReactorBase&>	ScheduleFunctorT;
 	
-	ErrorConditionT doStart(CreateWorkerF _pf, size_t _reactorcnt = 1, size_t _reactorchunkcp = 1024);
+	ErrorConditionT doStart(CreateWorkerF _pf, size_t _reactorcnt = 1);
 
 	void doStop(bool _wait = true);
 	

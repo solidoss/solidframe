@@ -37,6 +37,8 @@ public:
 	
 	bool prepareThread();
 	void unprepareThread();
+	size_t load()const;
+	void loadAdd(const size_t _v = 1);
 protected:
 	ReactorBase(SchedulerBase &_rsch, const size_t _schidx):rsch(_rsch), mgridx(-1), schidx(_schidx){}
 	bool setObjectThread(ObjectBase &_robj, const UidT &_uid);
@@ -48,10 +50,12 @@ private:
 	void idInManager(size_t _id);
 	size_t idInScheduler()const;
 private:
+	typedef ATOMIC_NS::atomic<size_t> AtomicSizeT;
 	SchedulerBase	&rsch;
 	IndexT			mgridx;//
 	size_t			schidx;
 	UidVectorT		freeuidvec;
+	AtomicSizeT		ld;
 };
 
 inline SchedulerBase& ReactorBase::scheduler(){
@@ -70,6 +74,14 @@ inline IndexT const& ReactorBase::idInManager()const{
 }
 inline size_t ReactorBase::idInScheduler()const{
 	return schidx;
+}
+
+inline size_t ReactorBase::load()const{
+	return ld;
+}
+
+inline void ReactorBase::loadAdd(const size_t _v){
+	ld += _v;
 }
 
 
