@@ -59,8 +59,8 @@ public:
 	
 	Scheduler(Manager &_rm):SchedulerBase(_rm){}
 	
-	ErrorConditionT start(size_t _reactorcnt = 1, size_t _reactorchunkcp = 1024){
-		return SchedulerBase::doStart(Worker::create, _reactorcnt, _reactorchunkcp);
+	ErrorConditionT start(size_t _reactorcnt = 1){
+		return SchedulerBase::doStart(Worker::create, _reactorcnt);
 	}
 
 	void stop(bool _wait = true){

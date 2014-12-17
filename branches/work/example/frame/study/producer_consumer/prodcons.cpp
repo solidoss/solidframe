@@ -350,7 +350,7 @@ size_t find_min(const std::array<C, 3> &_ra, size_t &_rcrtidx){
 	
 	if(crtmin < _ra[2]){
 		return crtidx;
-	}else if(crtmin > _ra[2]){
+	}else{
 		return 2;
 	}
 	

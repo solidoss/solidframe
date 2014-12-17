@@ -17,6 +17,7 @@
 #include "system/cassert.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
+#include "arrayfind.hpp"
 
 #include <memory>
 
@@ -155,7 +156,7 @@ bool SchedulerBase::update(ReactorBase &_rreactor){
 	return true;
 }
 
-ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* = 1*/, size_t _reactorchunkcp/* = 1024*/){
+ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* = 1*/){
 	if(_reactorcnt == 0){
 		_reactorcnt = Thread::processorCount();
 	}
@@ -298,10 +299,62 @@ ErrorConditionT SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_
 }
 
 size_t SchedulerBase::doComputeScheduleReactorIndex(){
-	{
-		ReactorStub 	&rrs = d.reactorvec[d.crtreactoridx];
-		
+	switch(d.reactorvec.size()){
+		case 1:
+			return 0;
+		case 2:{
+			const std::array<size_t, 2> arr = {
+				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load()
+			};
+			return find_min(arr, d.crtreactoridx);
+		}
+		case 3:{
+			const std::array<size_t, 3> arr = {
+				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load()
+			};
+			return find_min(arr, d.crtreactoridx);
+		}
+		case 4:{
+			const std::array<size_t, 4> arr = {
+				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load()
+			};
+			return find_min(arr, d.crtreactoridx);
+		}
+		case 5:{
+			const std::array<size_t, 5> arr = {
+				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load(),
+				d.reactorvec[4].preactor->load()
+			};
+			return find_min(arr, d.crtreactoridx);
+		}
+		case 6:{
+			const std::array<size_t, 6> arr = {
+				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load(),
+				d.reactorvec[4].preactor->load(), d.reactorvec[5].preactor->load()
+			};
+			return find_min(arr, d.crtreactoridx);
+		}
+		case 7:{
+			const std::array<size_t, 7> arr = {
+				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load(),
+				d.reactorvec[4].preactor->load(), d.reactorvec[5].preactor->load(), d.reactorvec[6].preactor->load()
+			};
+			return find_min(arr, d.crtreactoridx);
+		}
+		case 8:{
+			const std::array<size_t, 8> arr = {
+				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load(),
+				d.reactorvec[4].preactor->load(), d.reactorvec[5].preactor->load(), d.reactorvec[6].preactor->load(), d.reactorvec[7].preactor->load()
+			};
+			return find_min(arr, d.crtreactoridx);
+		}
+		default:
+			break;
 	}
+	
+	const size_t	cwi = d.crtreactoridx;
+	d.crtreactoridx = (cwi + 1) % d.reactorvec.size();
+	return cwi;
 }
 
 bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase &_rreactor){
