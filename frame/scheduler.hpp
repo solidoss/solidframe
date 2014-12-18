@@ -38,7 +38,7 @@ private:
 		
 		void run(){
 			ReactorT	reactor(rsched, idx);
-			if(!reactor.prepareThread()){
+			if(!reactor.prepareThread(reactor.start())){
 				return;
 			}
 			reactor.run();

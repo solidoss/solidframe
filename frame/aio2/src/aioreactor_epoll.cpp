@@ -44,7 +44,10 @@ namespace frame{
 namespace aio{
 
 struct Reactor::Data{
-	
+	int					epollfd;
+	int					eventfd;
+	bool				running;
+	epoll_event 		events[4096];
 };
 
 Reactor::Reactor(
@@ -56,20 +59,46 @@ Reactor::~Reactor(){
 	delete &d;
 }
 
+bool Reactor::start(){
+	d.epollfd = epoll_create(4096);
+	if(d.epollfd < 0){
+		edbgx(Debug::aio, "epoll_create: "<<strerror(errno));
+		return false;
+	}
+	d.eventfd = eventfd(0, EFD_NONBLOCK);
+	if(d.eventfd < 0){
+		edbgx(Debug::aio, "eventfd: "<<strerror(errno));
+		return false;
+	}
+	epoll_event ev;
+	ev.data.u64 = 0;
+	ev.events = EPOLLIN | EPOLLPRI;
+	
+	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.eventfd, &ev)){
+		edbgx(Debug::aio, "epoll_ctl: "<<strerror(errno));
+		return false;
+	}
+	d.running = true;
+	return true;
+}
+
 /*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _re){
 	return false;
 }
 /*virtual*/ void Reactor::stop(){
-	
+	uint8 v(1);
+	d.running = true;
+	::write(d.eventfd, &v, sizeof(v));
 }
 /*virtual*/ void Reactor::update(){
 	
 }
 
 void Reactor::run(){
-	prepareThread();
-	
-	unprepareThread();
+	int		selcnt;
+	while(d.running){
+		selcnt = epoll_wait(d.epollfd, d.events, Data::MAX_EVENTS_COUNT, pollwait);
+	}
 }
 
 bool Reactor::push(JobT &_rcon){
