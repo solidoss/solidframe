@@ -51,6 +51,8 @@ public:
 	
 	void wait(ReactorContext &_rctx, CompletionHandler *_pch, ReactorWaitRequestsE _req);
 	
+	bool start();
+	
 	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _re);
 	/*virtual*/ void stop();
 	/*virtual*/ void update();
@@ -60,6 +62,7 @@ public:
 	
 	void run();
 	bool push(JobT &_rcon);
+	
 private:
 private://data
 	struct Data;

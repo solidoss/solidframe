@@ -35,7 +35,7 @@ public:
 	IndexT const& idInManager()const;
 	Manager& manager();
 	
-	bool prepareThread();
+	bool prepareThread(const bool _success);
 	void unprepareThread();
 	size_t load()const;
 	void loadAdd(const size_t _v = 1);
@@ -44,6 +44,7 @@ protected:
 	bool setObjectThread(ObjectBase &_robj, const UidT &_uid);
 	void stopObject(ObjectBase &_robj);
 	SchedulerBase& scheduler();
+	void loadReset(const size_t _v);
 private:
 	friend	class Manager;
 	friend	class SchedulerBase;
@@ -83,7 +84,9 @@ inline size_t ReactorBase::load()const{
 inline void ReactorBase::loadAdd(const size_t _v){
 	ld += _v;
 }
-
+inline void ReactorBase::loadReset(const size_t _v){
+	ld = _v;
+}
 
 }//namespace frame
 }//namespace solid
