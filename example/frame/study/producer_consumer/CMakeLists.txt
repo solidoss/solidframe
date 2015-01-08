@@ -17,3 +17,10 @@ target_link_libraries (study_boost_queue
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )
+
+add_executable (study_findmin findmin.cpp)
+
+target_link_libraries (study_findmin
+	${SYS_BASIC_LIBS}
+	${SYS_DYNAMIC_LOAD_LIB}
+)
