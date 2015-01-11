@@ -966,7 +966,7 @@ inline size_t	Scheduler::computeScheduleWorkerIndex(){
 TaskVectorT* Worker::waitTasks(const bool _peek){
 	static TaskVectorT emptyvec;
 	if(_peek && crtpushsz == 0){
-		if(running){
+		if(isrunning){
 			return &emptyvec;
 		}else{
 			return nullptr;
@@ -985,6 +985,7 @@ TaskVectorT* Worker::waitTasks(const bool _peek){
 			}
 		}
 	}else{
+		
 		_risrunning = false;
 	}
 	if(tskvec[crtpushtskvecidx].size()){
