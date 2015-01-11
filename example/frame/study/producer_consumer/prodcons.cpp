@@ -9,6 +9,7 @@
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
 #include "system/timespec.hpp"
+#include "findmin.hpp"
 
 using namespace std;
 using namespace solid;
@@ -369,7 +370,7 @@ size_t find_min(const std::array<C, 4> &_ra, size_t &_rcrtidx){
 #if 1
 	size_t	crtidx;
 	C		crtmin;
-	size_t	eqlcnt = 0;
+	//size_t	eqlcnt = 0;
 
 	if(_ra[0] == _ra[1] && _ra[1] == _ra[2] && _ra[2] == _ra[3]){
 		crtidx = _rcrtidx;
@@ -694,6 +695,7 @@ void Worker::schedule(TaskPtrT &_rtskptr){
 		cnd.signal();
 	}
 }
+
 void Worker::run(){
 	vdbg("Worker enter");
 	Context		ctx;
@@ -760,136 +762,6 @@ void Worker::run(){
 namespace optim2{
 
 
-template <class C>
-size_t find_min(const std::array<C, 2> &_ra, size_t &_rcrtidx){
-	if(_ra[0] < _ra[1]){
-		return 0;
-	}else if(_ra[0] > _ra[1]){
-		return 1;
-	}
-	const size_t idx = _rcrtidx;
-	_rcrtidx = (idx + 1) % 2;
-	return idx;
-}
-
-template <class C>
-size_t find_min(const std::array<C, 3> &_ra, size_t &_rcrtidx){
-	size_t	crtidx;
-	C		crtmin;
-	
-	if(_ra[0] < _ra[1]){
-		crtidx = 0;
-		crtmin = _ra[0];
-	}else if(_ra[0] > _ra[1]){
-		crtidx = 1;
-		crtmin = _ra[1];
-	}else if(_ra[1] == _ra[2]){
-		const size_t idx = _rcrtidx;
-		_rcrtidx = (idx + 1) % 3;
-		return idx;
-	}else{
-		crtidx = 0;
-		crtmin = _ra[0];
-	}
-	
-	if(crtmin < _ra[2]){
-		return crtidx;
-	}else{
-		return 2;
-	}
-	
-	
-}
-template <class C>
-size_t find_min(const std::array<C, 4> &_ra, size_t &_rcrtidx){
-#if 1
-	size_t	crtidx;
-	C		crtmin;
-	size_t	eqlcnt = 0;
-
-	if(_ra[0] == _ra[1] && _ra[1] == _ra[2] && _ra[2] == _ra[3]){
-		crtidx = _rcrtidx;
-		_rcrtidx = (crtidx + 1) % 4;
-	}else{
-		if(_ra[0] <= _ra[1]){
-			crtmin = _ra[0];
-			crtidx = 0;
-		}else{
-			crtmin = _ra[1];
-			crtidx = 1;
-		}
-		if(_ra[2] < crtmin){
-			crtmin = _ra[2];
-			crtidx = 2;
-		}
-		if(_ra[3] < crtmin){
-			crtidx = 3;
-		}
-	}
-	return crtidx;
-#else
-	size_t	crtidx;
-	C		crtmin;
-	size_t	eqlcnt = 0;
-	
-	if(_ra[0] < _ra[1]){
-		crtidx = 0;
-		crtmin = _ra[0];
-	}else if(_ra[0] > _ra[1]){
-		crtidx = 1;
-		crtmin = _ra[1];
-	}else{//==
-		crtidx = 0;
-		crtmin = _ra[0];
-		eqlcnt = 2;
-	}
-	
-	if(crtmin < _ra[2]){
-		
-	}else if(crtmin > _ra[2]){
-		crtmin = _ra[2];
-		crtidx = 2;
-	}else{//==
-		++eqlcnt;
-	}
-	
-	if(crtmin < _ra[3]){
-		return crtidx;
-	}else if(crtmin > _ra[3]){
-		return 3;
-	}else if(eqlcnt < 3){//==
-		return crtidx;
-	}
-		
-	crtidx = _rcrtidx;
-	_rcrtidx = (crtidx + 1) % 4;
-	return crtidx;
-#endif
-}
-template <class C>
-size_t find_min(const std::array<C, 5> &_ra, size_t &_rcrtidx){
-	const size_t idx = _rcrtidx;
-	_rcrtidx = (idx + 1) % 5;
-	return idx;
-}
-template <class C>
-size_t find_min(const std::array<C, 6> &_ra, size_t &_rcrtidx){
-	const size_t idx = _rcrtidx;
-	_rcrtidx = (idx + 1) % 6;
-	return idx;
-}
-template <class C>
-size_t find_min(const std::array<C, 7> &_ra, size_t &_rcrtidx){
-	const size_t idx = _rcrtidx;
-	_rcrtidx = (idx + 1) % 7;
-	return idx;
-}
-template <class C>
-size_t find_min(const std::array<C, 8> &_ra, size_t &_rcrtidx){
-	const size_t idx = _rcrtidx;
-	_rcrtidx = (idx + 1) % 8;
-	return idx;
-}
 
 typedef std::vector<TaskPtrT>	TaskVectorT;
 typedef std::queue<TaskPtrT>	TaskQueueT;
@@ -900,6 +772,7 @@ class Worker: public Thread{
 	friend class 	Scheduler;
 	Scheduler		&rsched;
 	TaskVectorT		tskvec[2];
+	Mutex			mtx;
 	Condition		cnd;
 	size_t			crtpushtskvecidx;
 	AtomicSizeT		crtpushsz;
@@ -908,14 +781,20 @@ class Worker: public Thread{
 	
 	Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0), crtpushsz(0), load(0){}
 	
-	TaskVectorT* waitTasks(bool _peek, bool &_isrunning);
+	TaskVectorT* waitTasks(const bool _peek, bool &_isrunning);
 	void run();
 	void schedule(TaskPtrT &_rtskptr);
+	
+public:
+	size_t currentLoad()const{
+		return load;
+	}
 };
 
 
 typedef std::unique_ptr<Worker>		WorkerPtrT;
 typedef std::vector<WorkerPtrT>		WorkerVectorT;
+typedef std::atomic<WorkerVectorT*>	AtomicWorkerVectorPtrT;
 
 class Scheduler: public ::Scheduler{
 	enum Status{
@@ -925,12 +804,14 @@ class Scheduler: public ::Scheduler{
 		StatusStoppingWaitE
 	};
 	friend class Worker;
-	Mutex			mtx;
-	Condition		cnd;
-	WorkerVectorT	wkrvec;
-	Status			status;
-	size_t			stopwaitcnt;
-	size_t			crtwkridx;
+	Mutex					mtx;
+	Condition				cnd;
+	AtomicWorkerVectorPtrT	pwrkvec;
+	WorkerVectorT			wkrvec;
+	Status					status;
+	size_t					stopwaitcnt;
+	size_t					crtwkridx;
+	AtomicSizeT				usecnt;
 	
 	~Scheduler();
 	virtual bool start(const size_t _conscnt);
@@ -938,7 +819,7 @@ class Scheduler: public ::Scheduler{
 	virtual void stop(bool _wait);
 	size_t	computeScheduleWorkerIndex();
 public:
-	Scheduler():status(StatusStoppedE), stopwaitcnt(0), crtwkridx(0){}
+	Scheduler():pwrkvec(nullptr), status(StatusStoppedE), stopwaitcnt(0), crtwkridx(0), usecnt(0){}
 };
 
 Scheduler::~Scheduler(){
@@ -986,9 +867,14 @@ Scheduler::~Scheduler(){
 		idbg("status = StatusStoppedE");
 		return false;
 	}
+	pwrkvec.store(&wkrvec);
 	status = StatusRunningE;
 	idbg("status = StatusRunningE");
 	return true;
+}
+
+inline bool wkr_less_cmp(WorkerPtrT const &_rwkr1, WorkerPtrT const &_rwkr2){
+	return _rwkr1->currentLoad() < _rwkr2->currentLoad();
 }
 
 inline size_t	Scheduler::computeScheduleWorkerIndex(){
@@ -996,50 +882,25 @@ inline size_t	Scheduler::computeScheduleWorkerIndex(){
 		case 1:
 			return 0;
 		case 2:{
-			const std::array<size_t, 2> arr = {
-				wkrvec[0]->load, wkrvec[1]->load
-			};
-			return find_min(arr, crtwkridx);
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<2>());
 		}
 		case 3:{
-			const std::array<size_t, 3> arr = {
-				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load
-			};
-			return find_min(arr, crtwkridx);
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<3>());
 		}
 		case 4:{
-			const std::array<size_t, 4> arr = {
-				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load
-			};
-			return find_min(arr, crtwkridx);
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<4>());
 		}
 		case 5:{
-			const std::array<size_t, 5> arr = {
-				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load,
-				wkrvec[4]->load
-			};
-			return find_min(arr, crtwkridx);
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<5>());
 		}
 		case 6:{
-			const std::array<size_t, 6> arr = {
-				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load,
-				wkrvec[4]->load, wkrvec[5]->load
-			};
-			return find_min(arr, crtwkridx);
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<6>());
 		}
 		case 7:{
-			const std::array<size_t, 7> arr = {
-				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load,
-				wkrvec[4]->load, wkrvec[5]->load, wkrvec[6]->load
-			};
-			return find_min(arr, crtwkridx);
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<7>());
 		}
 		case 8:{
-			const std::array<size_t, 8> arr = {
-				wkrvec[0]->load, wkrvec[1]->load, wkrvec[2]->load, wkrvec[3]->load,
-				wkrvec[4]->load, wkrvec[5]->load, wkrvec[6]->load, wkrvec[7]->load
-			};
-			return find_min(arr, crtwkridx);
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<8>());
 		}
 		default:
 			break;
@@ -1051,10 +912,12 @@ inline size_t	Scheduler::computeScheduleWorkerIndex(){
 }
 
 /*virtual*/ void Scheduler::schedule(TaskPtrT &_rtskptr){
-	Locker<Mutex>	lock(mtx);
-	if(status == StatusRunningE){
-		wkrvec[computeScheduleWorkerIndex()]->schedule(_rtskptr);
+	++usecnt;
+	WorkerVectorT	*pwv = pwrkvec.load();
+	if(pwv){
+		(*pwv)[computeScheduleWorkerIndex()]->schedule(_rtskptr);
 	}
+	--usecnt;
 }
 /*virtual*/ void Scheduler::stop(bool _wait){
 	{
@@ -1062,6 +925,7 @@ inline size_t	Scheduler::computeScheduleWorkerIndex(){
 		if(status == StatusRunningE){
 			idbg("status == StatusRunningE");
 			status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+			pwrkvec.store(nullptr);
 			for(auto it = wkrvec.begin(); it != wkrvec.end(); ++it){
 				(*it)->cnd.signal();
 			}
@@ -1085,6 +949,9 @@ inline size_t	Scheduler::computeScheduleWorkerIndex(){
 		}
 	}
 	if(_wait){
+		while(usecnt){
+			Thread::yield();
+		}
 		for(auto it = wkrvec.begin(); it != wkrvec.end(); ++it){
 			(*it)->join();
 		}
@@ -1096,11 +963,16 @@ inline size_t	Scheduler::computeScheduleWorkerIndex(){
 }
 
 //---------------------------------------------------------
-TaskVectorT* Worker::waitTasks(bool _peek, bool &_risrunning){
+TaskVectorT* Worker::waitTasks(const bool _peek){
+	static TaskVectorT emptyvec;
 	if(_peek && crtpushsz == 0){
-		return NULL;
+		if(running){
+			return &emptyvec;
+		}else{
+			return nullptr;
+		}
 	}
-	Locker<Mutex>	lock(rsched.mtx);
+	Locker<Mutex>	lock(mtx);
 	crtpushsz = 0;
 	if(rsched.status <= Scheduler::StatusRunningE){
 		if(tskvec[crtpushtskvecidx].empty()){
@@ -1123,6 +995,7 @@ TaskVectorT* Worker::waitTasks(bool _peek, bool &_risrunning){
 	return NULL;
 }
 void Worker::schedule(TaskPtrT &_rtskptr){
+	Locker<Mutex>	lock(mtx);
 	++crtpushsz;
 	++load;
 	tskvec[crtpushtskvecidx].push_back(std::move(_rtskptr));
@@ -1139,8 +1012,6 @@ void Worker::run(){
 	size_t		conscnt = 0;
 	size_t		loopcnt = 0;
 	TaskQueueT	tskq;
-	
-	bool		isrunning = true;
 	
 	size_t		opcnt = 0;
 	
@@ -1164,7 +1035,7 @@ void Worker::run(){
 			}
 		}
 		//load -= (tskqsz - tskq.size());
-		ptv = waitTasks(!tskq.empty(), isrunning);
+		ptv = waitTasks(!tskq.empty());
 		if(ptv){
 			if(ptv->size() > maxtsks){
 				maxtsks = ptv->size();
@@ -1180,7 +1051,7 @@ void Worker::run(){
 		}
 		ctx.ct.currentMonotonic();
 		load = tskq.size();
-	}while(tskq.size() || isrunning);
+	}while(tskq.size() || ptv);
 	
 	vdbg("Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt);
 	cout<<"Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt<<endl;
