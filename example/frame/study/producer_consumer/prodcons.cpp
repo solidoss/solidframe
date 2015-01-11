@@ -985,6 +985,7 @@ TaskVectorT* Worker::waitTasks(const bool _peek){
 			}
 		}
 	}else{
+		
 		_risrunning = false;
 	}
 	if(tskvec[crtpushtskvecidx].size()){
