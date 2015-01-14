@@ -55,7 +55,6 @@ public:
 	
 	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _re);
 	/*virtual*/ void stop();
-	/*virtual*/ void update();
 	
 	void registerCompletionHandler(CompletionHandler &_rch);
 	void unregisterCompletionHandler(CompletionHandler &_rch);

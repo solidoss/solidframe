@@ -18,6 +18,7 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "utility/common.hpp"
+#include "utility/algorithm.hpp"
 #include "utility/stack.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "serialization/typemapperbase.hpp"

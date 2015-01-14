@@ -1192,44 +1192,32 @@ inline bool wkr_less_cmp(WorkerPtrT const &_rwkr1, WorkerPtrT const &_rwkr2){
 }
 
 inline size_t	Scheduler::computeScheduleWorkerIndex(){
-	FindRetValT rv(0, true);
 	switch(wkrvec.size()){
 		case 1:
 			return 0;
 		case 2:{
-			rv = find_min_or_equal_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<2>());
-			break;
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<2>());
 		}
 		case 3:{
-			rv = find_min_or_equal_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<3>());
-			break;
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<3>());
 		}
 		case 4:{
-			rv = find_min_or_equal_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<4>());
-			break;
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<4>());
 		}
 		case 5:{
-			rv = find_min_or_equal_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<5>());
-			break;
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<5>());
 		}
 		case 6:{
-			rv = find_min_or_equal_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<6>());
-			break;
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<6>());
 		}
 		case 7:{
-			rv = find_min_or_equal_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<7>());
-			break;
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<7>());
 		}
 		case 8:{
-			rv = find_min_or_equal_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<8>());
-			break;
+			return find_min_cmp(wkrvec.begin(), wkr_less_cmp, NumberToType<8>());
 		}
 		default:
 			break;
-	}
-	
-	if(!rv.second){
-		return rv.first;
 	}
 	
 	++eqlcount;

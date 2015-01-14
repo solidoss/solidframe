@@ -59,11 +59,11 @@ public:
 	
 	Scheduler(Manager &_rm):SchedulerBase(_rm){}
 	
-	ErrorConditionT start(size_t _reactorcnt = 1){
+	ErrorConditionT start(const size_t _reactorcnt = 1){
 		return SchedulerBase::doStart(Worker::create, _reactorcnt);
 	}
 
-	void stop(bool _wait = true){
+	void stop(const bool _wait = true){
 		SchedulerBase::doStop(_wait);
 	}
 	
