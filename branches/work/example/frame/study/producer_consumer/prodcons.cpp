@@ -102,7 +102,10 @@ class Worker: public Thread{
 	size_t			crtpushtskvecidx;
 	
 	
-	Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0){}
+	Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0){
+		tskvec[0].reserve(1024 * 30);
+		tskvec[1].reserve(1024 * 30);
+	}
 	
 	TaskVectorT* waitTasks(bool _peek, bool &_isrunning);
 	void run();
@@ -1799,7 +1802,7 @@ int main(int argc, char *argv[]){
 	for(auto it = prodvec.begin(); it != prodvec.end(); ++it){
 		(*it)->join();
 	}
-	
+	return 0;
 	sched.stop();
 	
 	idbg("produced "<<prodtskcnt<<" tasks");

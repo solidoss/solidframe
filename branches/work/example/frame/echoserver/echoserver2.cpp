@@ -174,7 +174,7 @@ int main(int argc, char *argv[]){
 		frame::Manager		m;
 		AioSchedulerT		s(m);
 		
-		if(!s.start(0)){
+		if(s.start(0)){
 			running = false;
 			cout<<"Error starting scheduler"<<endl;
 		}else{

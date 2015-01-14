@@ -344,7 +344,7 @@ void SchedulerBase::unprepareThread(const size_t _idx, ReactorBase &_rreactor){
 	Locker<Mutex>	lock(d.mtx);
 	ReactorStub 	&rrs = d.reactorvec[_idx];
 	manager().unprepareThread(&_rreactor);
-	rrs.clear();
+	rrs.preactor = nullptr;
 	--d.reactorcnt;
 	d.cnd.signal();
 }
