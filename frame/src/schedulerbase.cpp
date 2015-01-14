@@ -17,7 +17,8 @@
 #include "system/cassert.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
-#include "arrayfind.hpp"
+#include "utility/algorithm.hpp"
+#include "system/atomic.hpp"
 
 #include <memory>
 
@@ -25,6 +26,7 @@ namespace solid{
 namespace frame{
 
 namespace{
+
 class ErrorCategory: public ERROR_NS::error_category{
 public:
 	enum{
@@ -76,24 +78,21 @@ inline ErrorConditionT error_reactor(){
 typedef Queue<UidT>					UidQueueT;
 typedef Stack<UidT>					UidStackT;
 typedef std::unique_ptr<Thread>		ThreadPointerT;
+typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
+
 struct ReactorStub{
-	ReactorStub(ReactorBase *_preactor = NULL):preactor(_preactor), cnt(0){}
+	ReactorStub(ReactorBase *_preactor = nullptr):preactor(_preactor){}
 	
 	void clear(){
-		preactor = NULL;
-		cnt = 0;
-		crtidx = 0;
-		while(freeuidstk.size()) freeuidstk.pop();
+		preactor = nullptr;
+		thrptr.reset(nullptr);
 	}
 	
 	ThreadPointerT	thrptr;
 	ReactorBase		*preactor;
-	size_t			cnt;
-	size_t			crtidx;
-	UidStackT		freeuidstk;
 };
 
-typedef std::vector<ReactorStub>	ReactorVectorT;
+typedef std::vector<ReactorStub>			ReactorVectorT;
 
 enum Statuses{
 	StatusStoppedE = 0,
@@ -104,21 +103,22 @@ enum Statuses{
 	StatusStoppingWaitE
 };
 
+typedef ATOMIC_NS::atomic<Statuses>			AtomicStatuesT;
+
 struct SchedulerBase::Data{
-	Data(Manager &_rm):rm(_rm), crtreactoridx(0), reactorchunkcp(0), reactorcnt(0), status(StatusStoppedE){
-		crtminchunkcp = reactorchunkcp;
+	Data(Manager &_rm):rm(_rm), crtreactoridx(0), reactorcnt(0), status(StatusStoppedE), usecnt(0){
 	}
 	
-	Manager				&rm;
-	size_t				crtreactoridx;
-	size_t				reactorchunkcp;
-	size_t				crtminchunkcp;
-	size_t				reactorcnt;
-	size_t				stopwaitcnt;
-	Statuses			status;
-	ReactorVectorT		reactorvec;
-	Mutex				mtx;
-	Condition			cnd;
+	Manager						&rm;
+	size_t						crtreactoridx;
+	size_t						reactorcnt;
+	size_t						stopwaitcnt;
+	AtomicStatuesT				status;
+	AtomicSizeT					usecnt;
+	
+	ReactorVectorT				reactorvec;
+	Mutex						mtx;
+	Condition					cnd;
 };
 
 
@@ -136,27 +136,7 @@ Manager& SchedulerBase::manager(){
 	return d.rm;
 }
 
-bool SchedulerBase::update(ReactorBase &_rreactor){
-	Locker<Mutex>	lock(d.mtx);
-	ReactorStub		&rreactorstb = d.reactorvec[_rreactor.schidx];
-	
-	for(UidVectorT::const_iterator it(_rreactor.freeuidvec.begin()); it != _rreactor.freeuidvec.end(); ++it){
-		rreactorstb.freeuidstk.push(*it);
-	}
-	rreactorstb.cnt -= _rreactor.freeuidvec.size();
-	_rreactor.freeuidvec.clear();
-	
-	const size_t	chunkcp = ((rreactorstb.cnt / d.reactorchunkcp) + 1) * d.reactorchunkcp;
-	
-	if(chunkcp < d.crtminchunkcp/* && rselstb.cnt < (chunkcp / 2)*/){
-		d.crtreactoridx = _rreactor.schidx;
-		d.crtminchunkcp = chunkcp;
-	}
-	_rreactor.update();
-	return true;
-}
-
-ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* = 1*/){
+ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt){
 	if(_reactorcnt == 0){
 		_reactorcnt = Thread::processorCount();
 	}
@@ -178,11 +158,9 @@ ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* =
 		for(size_t i = 0; i < _reactorcnt; ++i){
 			ReactorStub &rrs = d.reactorvec[i];
 			rrs.thrptr.reset((*_pf)(*this, i));
-			if(rrs.thrptr.get()){
-				if(rrs.thrptr->start(false, false)){
-					start_err = true;
-					break;
-				}
+			if(rrs.thrptr.get() == nullptr || !rrs.thrptr->start(false, false)){
+				start_err = true;
+				break;
 			}
 		}
 		
@@ -214,6 +192,7 @@ ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* =
 	for(auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it){
 		if(it->thrptr.get()){
 			it->thrptr->join();
+			it->clear();
 		}
 	}
 	
@@ -258,9 +237,13 @@ void SchedulerBase::doStop(bool _wait/* = true*/){
 	}
 	
 	if(_wait){
+		while(d.usecnt){
+			Thread::yield();
+		}
 		for(auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it){
 			if(it->thrptr.get()){
 				it->thrptr->join();
+				it->clear();
 			}
 		}
 		Locker<Mutex>	lock(d.mtx);
@@ -270,32 +253,42 @@ void SchedulerBase::doStop(bool _wait/* = true*/){
 }
 
 ErrorConditionT SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
-	Locker<Mutex>	lock(d.mtx);
-	
+	++d.usecnt;
+	ErrorConditionT	rv;
 	if(d.status == StatusRunningE){
 		ReactorStub 	&rrs = d.reactorvec[doComputeScheduleReactorIndex()];
 		
-		UidT			uid(rrs.crtidx, 0);
-		
-		if(rrs.freeuidstk.size()){
-			uid = rrs.freeuidstk.top();
-			rrs.freeuidstk.pop();
+		if(_rfct(*rrs.preactor)){
 		}else{
-			uid.index = manager().computeThreadId(rrs.preactor->idInManager(), uid.index);
-			++rrs.crtidx;
+			rv = error_reactor();
 		}
 		
-		if(uid.isValid()){
-			if(_rfct(*rrs.preactor)){
-				return ErrorConditionT();
-			}else{
-				rrs.freeuidstk.push(uid);
-			}
-		}
-		return error_reactor();
+// 		UidT			uid(rrs.crtidx, 0);
+// 		
+// 		if(rrs.freeuidstk.size()){
+// 			uid = rrs.freeuidstk.top();
+// 			rrs.freeuidstk.pop();
+// 		}else{
+// 			uid.index = manager().computeThreadId(rrs.preactor->idInManager(), uid.index);
+// 			++rrs.crtidx;
+// 		}
+// 		
+// 		if(uid.isValid()){
+// 			if(_rfct(*rrs.preactor)){
+// 				return ErrorConditionT();
+// 			}else{
+// 				rrs.freeuidstk.push(uid);
+// 			}
+// 		}
 	}else{
-		return error_running();
+		rv = error_running();
 	}
+	--d.usecnt;
+	return rv;
+}
+
+bool less_cmp(ReactorStub const &_rrs1, ReactorStub const &_rrs2){
+	return _rrs1.preactor->load() < _rrs2.preactor->load();
 }
 
 size_t SchedulerBase::doComputeScheduleReactorIndex(){
@@ -303,50 +296,25 @@ size_t SchedulerBase::doComputeScheduleReactorIndex(){
 		case 1:
 			return 0;
 		case 2:{
-			const std::array<size_t, 2> arr = {
-				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load()
-			};
-			return find_min(arr, d.crtreactoridx);
+			return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<2>());
 		}
 		case 3:{
-			const std::array<size_t, 3> arr = {
-				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load()
-			};
-			return find_min(arr, d.crtreactoridx);
+			return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<3>());
 		}
 		case 4:{
-			const std::array<size_t, 4> arr = {
-				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load()
-			};
-			return find_min(arr, d.crtreactoridx);
+			return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<4>());
 		}
 		case 5:{
-			const std::array<size_t, 5> arr = {
-				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load(),
-				d.reactorvec[4].preactor->load()
-			};
-			return find_min(arr, d.crtreactoridx);
+			return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<5>());
 		}
 		case 6:{
-			const std::array<size_t, 6> arr = {
-				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load(),
-				d.reactorvec[4].preactor->load(), d.reactorvec[5].preactor->load()
-			};
-			return find_min(arr, d.crtreactoridx);
+			return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<6>());
 		}
 		case 7:{
-			const std::array<size_t, 7> arr = {
-				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load(),
-				d.reactorvec[4].preactor->load(), d.reactorvec[5].preactor->load(), d.reactorvec[6].preactor->load()
-			};
-			return find_min(arr, d.crtreactoridx);
+			return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<7>());
 		}
 		case 8:{
-			const std::array<size_t, 8> arr = {
-				d.reactorvec[0].preactor->load(), d.reactorvec[1].preactor->load(), d.reactorvec[2].preactor->load(), d.reactorvec[3].preactor->load(),
-				d.reactorvec[4].preactor->load(), d.reactorvec[5].preactor->load(), d.reactorvec[6].preactor->load(), d.reactorvec[7].preactor->load()
-			};
-			return find_min(arr, d.crtreactoridx);
+			return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<8>());
 		}
 		default:
 			break;
@@ -357,11 +325,11 @@ size_t SchedulerBase::doComputeScheduleReactorIndex(){
 	return cwi;
 }
 
-bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase &_rreactor){
+bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase &_rreactor, const bool _success){
 	Locker<Mutex>	lock(d.mtx);
 	ReactorStub 	&rrs = d.reactorvec[_idx];
 	
-	if(d.status == StatusStartingWaitE && manager().prepareThread(&_rreactor)){
+	if(_success && d.status == StatusStartingWaitE && manager().prepareThread(&_rreactor)){
 		rrs.preactor = &_rreactor;
 		++d.reactorcnt;
 		d.cnd.broadcast();

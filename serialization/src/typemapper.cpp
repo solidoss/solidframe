@@ -12,6 +12,7 @@
 
 #include "system/common.hpp"
 #include "system/exception.hpp"
+#include "utility/algorithm.hpp"
 
 #ifdef HAS_CPP11
 #include <unordered_map>

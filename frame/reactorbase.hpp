@@ -31,32 +31,31 @@ class ReactorBase{
 public:
 	virtual bool raise(UidT const& _robjuid, Event const& _re) = 0;
 	virtual void stop() = 0;
-	virtual void update() = 0;
 	IndexT const& idInManager()const;
 	Manager& manager();
 	
 	bool prepareThread(const bool _success);
 	void unprepareThread();
 	size_t load()const;
-	void loadAdd(const size_t _v = 1);
 protected:
+	typedef ATOMIC_NS::atomic<size_t> AtomicSizeT;
+	
 	ReactorBase(SchedulerBase &_rsch, const size_t _schidx):rsch(_rsch), mgridx(-1), schidx(_schidx){}
 	bool setObjectThread(ObjectBase &_robj, const UidT &_uid);
 	void stopObject(ObjectBase &_robj);
 	SchedulerBase& scheduler();
-	void loadReset(const size_t _v);
+	
+	AtomicSizeT		crtload;
 private:
 	friend	class Manager;
 	friend	class SchedulerBase;
 	void idInManager(size_t _id);
 	size_t idInScheduler()const;
 private:
-	typedef ATOMIC_NS::atomic<size_t> AtomicSizeT;
 	SchedulerBase	&rsch;
 	IndexT			mgridx;//
 	size_t			schidx;
 	UidVectorT		freeuidvec;
-	AtomicSizeT		ld;
 };
 
 inline SchedulerBase& ReactorBase::scheduler(){
@@ -78,14 +77,7 @@ inline size_t ReactorBase::idInScheduler()const{
 }
 
 inline size_t ReactorBase::load()const{
-	return ld;
-}
-
-inline void ReactorBase::loadAdd(const size_t _v){
-	ld += _v;
-}
-inline void ReactorBase::loadReset(const size_t _v){
-	ld = _v;
+	return crtload;
 }
 
 }//namespace frame

@@ -104,7 +104,7 @@ Reactor::~Reactor(){
 
 void Reactor::run(){
 	Thread::specific(specificPosition(), this);
-	prepareThread();
+	prepareThread(true);
 	
 	unprepareThread();
 	Thread::specific(specificPosition(), NULL);

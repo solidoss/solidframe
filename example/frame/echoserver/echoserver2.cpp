@@ -50,7 +50,7 @@ struct Params{
 namespace{
 	Mutex					mtx;
 	Condition				cnd;
-	bool					running(false);
+	bool					running(true);
 }
 
 static void term_handler(int signum){
@@ -232,7 +232,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("listen-port,l", value<int>(&_par.listener_port)->default_value(2000),"Listener port")
 			("talk-port,t", value<int>(&_par.talker_port)->default_value(3000),"Talker port")
-			("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("iew"),"Debug logging levels")
+			("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug-modules,M", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")

@@ -10,6 +10,8 @@
 #include "utility/workpool.hpp"
 #include "utility/polycontainer.hpp"
 #include "utility/common.hpp"
+#include "utility/algorithm.hpp"
+
 
 namespace solid{
 

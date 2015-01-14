@@ -87,6 +87,11 @@ enum AsyncE{
 struct EmptyType{};
 class NullType{};
 
+template <size_t V>
+struct SizeToType{
+	enum {value = V};
+};
+
 template <class T>
 struct UnsignedType;
 

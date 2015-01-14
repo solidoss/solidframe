@@ -32,9 +32,9 @@ protected:
 	
 	typedef FunctorReference<bool, ReactorBase&>	ScheduleFunctorT;
 	
-	ErrorConditionT doStart(CreateWorkerF _pf, size_t _reactorcnt = 1);
+	ErrorConditionT doStart(CreateWorkerF _pf, size_t _reactorcnt);
 
-	void doStop(bool _wait = true);
+	void doStop(const bool _wait = true);
 	
 	ErrorConditionT doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct);
 protected:
@@ -47,9 +47,8 @@ private:
 	
 	Manager& manager();
 	
-	bool prepareThread(const size_t _idx, ReactorBase &_rsel);
+	bool prepareThread(const size_t _idx, ReactorBase &_rsel, const bool _success);
 	void unprepareThread(const size_t _idx, ReactorBase &_rsel);
-	bool update(ReactorBase &_rsel);
 	size_t doComputeScheduleReactorIndex();
 private:
 	struct Data;
