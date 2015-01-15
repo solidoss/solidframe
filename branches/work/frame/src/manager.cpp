@@ -533,8 +533,6 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(
 			rss.objfreestk.push(objidx);
 			return ObjectUidT();
 		}
-		
-		
 	}else{
 		const size_t	objcnt = rss.objvecsz.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 		const uint		objbts = d.objbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);

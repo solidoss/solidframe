@@ -38,28 +38,50 @@ namespace solid{
 namespace frame{
 namespace aio{
 
+
+typedef ATOMIC_NS::atomic<bool>		AtomicBoolT;
+typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
+typedef Reactor::TaskT				TaskT;
+struct NewTaskStub{
+	NewTaskStub(UidT const&_ruid, TaskT const&_rtsk):uid(_ruid), tsk(_rtsk){}
+	NewTaskStub(){}
+	UidT	uid;
+	TaskT	tsk;
+};
+
+typedef std::vector<NewTaskStub>	NewTaskVectorT;
+enum{
+	EventCapacity = 4096
+};
+
 struct Reactor::Data{
+	Data():epollfd(-1), running(0), crtpushtskvecidx(0), crtpushvecsz(0){}
 	int					epollfd;
 	Device				eventdev;
-	bool				running;
-	epoll_event 		events[4096];
+	AtomicBoolT			running;
+	size_t				crtpushtskvecidx;
+	AtomicSizeT			crtpushvecsz;
+	
+	Mutex				mtx;
+	epoll_event 		events[EventCapacity];
+	NewTaskVectorT		pushtskvec[2];
 };
 
 Reactor::Reactor(
 	SchedulerBase &_rsched,
 	const size_t _idx 
 ):ReactorBase(_rsched, _idx), d(*(new Data)){
-	idbgx(Debug::aio, "");
+	vdbgx(Debug::aio, "");
 }
 
 Reactor::~Reactor(){
 	delete &d;
-	idbgx(Debug::aio, "");
+	vdbgx(Debug::aio, "");
 }
 
 bool Reactor::start(){
-	idbgx(Debug::aio, "");
-	d.epollfd = epoll_create(4096);
+	vdbgx(Debug::aio, "");
+	d.epollfd = epoll_create(EventCapacity);
 	if(d.epollfd < 0){
 		edbgx(Debug::aio, "epoll_create: "<<strerror(errno));
 		return false;
@@ -71,7 +93,7 @@ bool Reactor::start(){
 	}
 	epoll_event ev;
 	ev.data.u64 = 0;
-	ev.events = EPOLLIN | EPOLLPRI;
+	ev.events = EPOLLIN | EPOLLPRI | EPOLLET;
 	
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.eventdev.descriptor(), &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<strerror(errno));
@@ -82,49 +104,82 @@ bool Reactor::start(){
 }
 
 /*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _re){
-	idbgx(Debug::aio, "");
+	vdbgx(Debug::aio, "");
 	return false;
 }
 /*virtual*/ void Reactor::stop(){
-	idbgx(Debug::aio, "");
-	char v(1);
+	vdbgx(Debug::aio, "");
 	d.running = false;
-	d.eventdev.write(&v, sizeof(v));
+	
+	const uint64 v = 1;
+	d.eventdev.write(reinterpret_cast<const char*>(&v), sizeof(v));
 }
+
+//Called from outside reactor's thread
+bool Reactor::push(TaskT &_rcon){
+	vdbgx(Debug::aio, "");
+	bool 	rv = true;
+	size_t	pushvecsz = 0;
+	{
+		Locker<Mutex>	lock(d.mtx);
+		const UidT		uid = this->popUid();
+
+		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _rcon));
+		pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();
+	}
+	d.crtpushvecsz = pushvecsz;
+	if(pushvecsz == 1){
+		const uint64 v = 1;
+		d.eventdev.write(reinterpret_cast<const char*>(&v), sizeof(v));
+	}
+	return rv;
+}
+
 
 void Reactor::run(){
-	idbgx(Debug::aio, "<enter>");
+	vdbgx(Debug::aio, "<enter>");
 	int		selcnt;
-	while(d.running){
-		//selcnt = epoll_wait(d.epollfd, d.events, Data::MAX_EVENTS_COUNT, pollwait);
+	bool	running = true;
+	while(running){
+		selcnt = epoll_wait(d.epollfd, d.events, EventCapacity, -1);
+		if(selcnt > 0){
+			for(int i = 0; i < selcnt; ++i){
+				if(d.events[i].data.u64 == 0){
+					//event
+					uint64 v = 0;
+					d.eventdev.read(reinterpret_cast<char*>(&v), sizeof(v));
+					vdbgx(Debug::aio, "Event - Stopping - read: "<<v);
+					running = d.running;
+				}else{
+					
+				}
+			}
+		}else if(selcnt < 0){
+			running = false;
+		}
 	}
-	idbgx(Debug::aio, "<exit>");
+	vdbgx(Debug::aio, "<exit>");
 }
 
-bool Reactor::push(JobT &_rcon){
-	idbgx(Debug::aio, "");
-	return false;
-}
-
-void Reactor::wait(ReactorContext &_rctx, CompletionHandler *_pch, ReactorWaitRequestsE _req){
-	idbgx(Debug::aio, "");
+void Reactor::wait(ReactorContext &_rctx, CompletionHandler const *_pch, const ReactorWaitRequestsE _req){
+	vdbgx(Debug::aio, "");
 }
 
 void Reactor::registerCompletionHandler(CompletionHandler &_rch){
-	idbgx(Debug::aio, "");
+	vdbgx(Debug::aio, "");
 }
 
 void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
-	idbgx(Debug::aio, "");
+	vdbgx(Debug::aio, "");
 }
 
 /*static*/ Reactor* Reactor::safeSpecific(){
-	idbgx(Debug::aio, "");
+	vdbgx(Debug::aio, "");
 	return NULL;
 }
 
 /*static*/ Reactor& Reactor::specific(){
-	idbgx(Debug::aio, "");
+	vdbgx(Debug::aio, "");
 	return *safeSpecific();
 }
 

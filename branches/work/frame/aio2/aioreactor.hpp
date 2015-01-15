@@ -35,7 +35,7 @@ typedef DynamicPointer<Object>	ObjectPointerT;
 */
 class Reactor: public frame::ReactorBase{
 public:
-	typedef ObjectPointerT		JobT;
+	typedef ObjectPointerT		TaskT;
 	typedef Object				ObjectT;
 	
 	Reactor(SchedulerBase &_rsched, const size_t _schedidx);
@@ -45,11 +45,11 @@ public:
 	static Reactor& specific();
 	
 	template <typename F>
-	void post(ReactorContext &_rctx, F _f, Event const &_rev, CompletionHandler *_pch){
+	void post(ReactorContext &_rctx, F _f, Event const &_rev, CompletionHandler const *_pch){
 		
 	}
 	
-	void wait(ReactorContext &_rctx, CompletionHandler *_pch, ReactorWaitRequestsE _req);
+	void wait(ReactorContext &_rctx, CompletionHandler const *_pch, const ReactorWaitRequestsE _req);
 	
 	bool start();
 	
@@ -60,7 +60,7 @@ public:
 	void unregisterCompletionHandler(CompletionHandler &_rch);
 	
 	void run();
-	bool push(JobT &_rcon);
+	bool push(TaskT &_rcon);
 	
 private:
 private://data
