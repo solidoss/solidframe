@@ -60,7 +60,7 @@ public:
 		const size_t _selprovisioncp = 1024,
 		uint _objpermutbts = 6,
 		uint _mutrowsbts = 4,
-		uint _mutcolsbts = 8
+		uint _mutcolsbts = 4
 	);
 	
 	virtual ~Manager();

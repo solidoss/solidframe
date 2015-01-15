@@ -10,8 +10,7 @@
 #ifndef SOLID_FRAME_REACTOR_BASE_HPP
 #define SOLID_FRAME_REACTOR_BASE_HPP
 
-#include <deque>
-#include <vector>
+#include "utility/stack.hpp"
 #include "frame/objectbase.hpp"
 
 namespace solid{
@@ -19,8 +18,6 @@ namespace frame{
 
 class Manager;
 class SchedulerBase;
-
-typedef std::vector<UidT>			UidVectorT;
 
 //! The base for every selector
 /*!
@@ -40,10 +37,14 @@ public:
 protected:
 	typedef ATOMIC_NS::atomic<size_t> AtomicSizeT;
 	
-	ReactorBase(SchedulerBase &_rsch, const size_t _schidx):rsch(_rsch), mgridx(-1), schidx(_schidx){}
+	ReactorBase(
+		SchedulerBase &_rsch, const size_t _schidx
+	):rsch(_rsch), mgridx(-1), schidx(_schidx), crtidx(0){}
 	bool setObjectThread(ObjectBase &_robj, const UidT &_uid);
 	void stopObject(ObjectBase &_robj);
 	SchedulerBase& scheduler();
+	UidT popUid();
+	void pushUid(UidT const &_ruid);
 	
 	AtomicSizeT		crtload;
 private:
@@ -52,10 +53,13 @@ private:
 	void idInManager(size_t _id);
 	size_t idInScheduler()const;
 private:
+	typedef Stack<UidT>		UidStackT;
+	
 	SchedulerBase	&rsch;
 	IndexT			mgridx;//
 	size_t			schidx;
-	UidVectorT		freeuidvec;
+	size_t			crtidx;
+	UidStackT		uidstk;
 };
 
 inline SchedulerBase& ReactorBase::scheduler(){
@@ -78,6 +82,20 @@ inline size_t ReactorBase::idInScheduler()const{
 
 inline size_t ReactorBase::load()const{
 	return crtload;
+}
+
+inline UidT ReactorBase::popUid(){
+	UidT	rv(crtidx, 0);
+	if(uidstk.size()){
+		rv = uidstk.top();
+		uidstk.pop();
+	}else{
+		++crtidx;
+	}
+	return rv;
+}
+inline void ReactorBase::pushUid(UidT const &_ruid){
+	uidstk.push(_ruid);
 }
 
 }//namespace frame
