@@ -329,15 +329,17 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 }
 
 //=====================================================================
-bool ReactorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
-	//we are sure that the method is called from within a Manager thread
-	UidT	uid(Manager::specific().computeThreadId(mgridx, _uid.index), _uid.unique);
-	if(uid.isValid()){
-		_robj.runId(uid);
-		return true;
+UidT ReactorBase::popUid(ObjectBase &_robj){
+	UidT	rv(crtidx, 0);
+	if(uidstk.size()){
+		rv = uidstk.top();
+		uidstk.pop();
 	}else{
-		return false;
+		++crtidx;
 	}
+	UidT	runid(Manager::specific().computeThreadId(mgridx, rv.index), rv.unique);
+	_robj.runId(runid);
+	return rv;
 }
 Manager& ReactorBase::manager(){
 	return scheduler().manager();

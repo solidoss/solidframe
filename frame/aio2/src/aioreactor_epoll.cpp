@@ -43,10 +43,14 @@ typedef ATOMIC_NS::atomic<bool>		AtomicBoolT;
 typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
 typedef Reactor::TaskT				TaskT;
 struct NewTaskStub{
-	NewTaskStub(UidT const&_ruid, TaskT const&_rtsk):uid(_ruid), tsk(_rtsk){}
+	NewTaskStub(
+		UidT const&_ruid, TaskT const&_rtsk, Event const &_revt
+	):uid(_ruid), tsk(_rtsk), evt(_revt){}
+	
 	NewTaskStub(){}
 	UidT	uid;
 	TaskT	tsk;
+	Event	evt;
 };
 
 typedef std::vector<NewTaskStub>	NewTaskVectorT;
@@ -116,15 +120,15 @@ bool Reactor::start(){
 }
 
 //Called from outside reactor's thread
-bool Reactor::push(TaskT &_rcon){
+bool Reactor::push(TaskT &_rcon, Event const &_revt){
 	vdbgx(Debug::aio, "");
 	bool 	rv = true;
 	size_t	pushvecsz = 0;
 	{
 		Locker<Mutex>	lock(d.mtx);
-		const UidT		uid = this->popUid();
+		const UidT		uid = this->popUid(*_rcon);
 
-		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _rcon));
+		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _rcon, _revt));
 		pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();
 	}
 	d.crtpushvecsz = pushvecsz;

@@ -40,10 +40,10 @@ protected:
 	ReactorBase(
 		SchedulerBase &_rsch, const size_t _schidx
 	):rsch(_rsch), mgridx(-1), schidx(_schidx), crtidx(0){}
-	bool setObjectThread(ObjectBase &_robj, const UidT &_uid);
+	
 	void stopObject(ObjectBase &_robj);
 	SchedulerBase& scheduler();
-	UidT popUid();
+	UidT popUid(ObjectBase &_robj);
 	void pushUid(UidT const &_ruid);
 	
 	AtomicSizeT		crtload;
@@ -84,16 +84,6 @@ inline size_t ReactorBase::load()const{
 	return crtload;
 }
 
-inline UidT ReactorBase::popUid(){
-	UidT	rv(crtidx, 0);
-	if(uidstk.size()){
-		rv = uidstk.top();
-		uidstk.pop();
-	}else{
-		++crtidx;
-	}
-	return rv;
-}
 inline void ReactorBase::pushUid(UidT const &_ruid){
 	uidstk.push(_ruid);
 }

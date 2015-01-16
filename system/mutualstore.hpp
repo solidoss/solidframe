@@ -123,7 +123,7 @@ public:
 	template <typename V>
 	void visit(const size_t _upto, V &_rv){
 		const size_t mutcnt = mutrowscnt * mutcolscnt;
-		const size_t cnt = _upto ? (_upto >> objpermutbts) + 1 : 0;
+		const size_t cnt = _upto >> objpermutbts/* ? (_upto >> objpermutbts) + 1 : 0*/;
 		const size_t end = cnt > mutcnt ? mutcnt : cnt;
 		for(size_t i(0); i < end; ++i){
 			_rv(doGetObject(i));
@@ -132,7 +132,7 @@ public:
 	template <typename V>
 	void visit(const size_t _upto, V &_rv)const{
 		const size_t mutcnt = mutrowscnt * mutcolscnt;
-		const size_t cnt = _upto ? (_upto >> objpermutbts) + 1 : 0;
+		const size_t cnt = _upto >> objpermutbts/* ? (_upto >> objpermutbts) + 1 : 0*/;
 		const size_t end = cnt > mutcnt ? mutcnt : cnt;
 		for(size_t i(0); i < end; ++i){
 			_rv(doGetObject(i));
@@ -141,7 +141,7 @@ public:
 	template <typename V>
 	void visit(const size_t _upto, V &_rv, const unsigned _objpermutbts){
 		const size_t mutcnt = mutrowscnt * mutcolscnt;
-		const size_t cnt = _upto ? (_upto >> _objpermutbts) + 1 : 0;
+		const size_t cnt = _upto >> _objpermutbts/* ? (_upto >> _objpermutbts) + 1 : 0*/;
 		const size_t end = cnt > mutcnt ? mutcnt : cnt;
 		for(size_t i(0); i < end; ++i){
 			_rv(doGetObject(i/*, _objpermutbts*/));
@@ -150,7 +150,7 @@ public:
 	template <typename V>
 	void visit(const size_t _upto, V &_rv, const unsigned _objpermutbts)const{
 		const size_t mutcnt = mutrowscnt * mutcolscnt;
-		const size_t cnt = _upto ? (_upto >> _objpermutbts) + 1 : 0;
+		const size_t cnt = _upto >> _objpermutbts/* ? (_upto >> _objpermutbts) + 1 : 0*/;
 		const size_t end = cnt > mutcnt ? mutcnt : cnt;
 		for(size_t i(0); i < end; ++i){
 			_rv(doGetObject(i/*, _objpermutbts*/));

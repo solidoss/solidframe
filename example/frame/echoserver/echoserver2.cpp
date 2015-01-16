@@ -211,12 +211,18 @@ int main(int argc, char *argv[]){
 #endif
 		}
 		
-		{
+		if(0){
 			Locker<Mutex>	lock(mtx);
 			while(running){
 				cnd.wait(lock);
 			}
+		}else{
+			char c;
+			cin>>c;
 		}
+		
+		
+		
 		m.stop(frame::Event(EventStopE));
 	}
 	Thread::waitAll();

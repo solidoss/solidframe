@@ -29,11 +29,14 @@ template <class Obj, class Sch>
 struct ScheduleObjectF{
 	DynamicPointer<Obj>	&robjptr;
 	Sch					&rsch;
+	Event const			&revt;
 	
-	ScheduleObjectF(DynamicPointer<Obj> &_robjptr, Sch &_rsch):robjptr(_robjptr), rsch(_rsch){}
+	ScheduleObjectF(
+		DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt
+	):robjptr(_robjptr), rsch(_rsch), revt(_revt){}
 	
 	ErrorConditionT operator()(){
-		return rsch.schedule(robjptr);
+		return rsch.schedule(robjptr, revt);
 	}
 };
 
@@ -59,8 +62,8 @@ public:
 		const size_t _svcprovisioncp = 1024,
 		const size_t _selprovisioncp = 1024,
 		uint _objpermutbts = 6,
-		uint _mutrowsbts = 4,
-		uint _mutcolsbts = 4
+		uint _mutrowsbts = 4,//! not used for now
+		uint _mutcolsbts = 4 //! not used for now
 	);
 	
 	virtual ~Manager();
@@ -75,7 +78,7 @@ public:
 	
 	template <class Obj, class Sch>
 	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt, ErrorConditionT &_rerr){
-		ScheduleObjectF<Obj, Sch>	fnc(_robjptr, _rsch);
+		ScheduleObjectF<Obj, Sch>	fnc(_robjptr, _rsch, _revt);
 		ObjectScheduleFunctorT		fctor(fnc);
 		return doRegisterObject(*_robjptr, fctor, _rerr);
 	}
