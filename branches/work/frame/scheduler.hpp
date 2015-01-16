@@ -47,12 +47,13 @@ private:
 	};
 	
 	struct ScheduleCommand{
-		ObjectPointerT &robjptr;
+		ObjectPointerT	&robjptr;
+		Event const 	&revt;
 		
-		ScheduleCommand(ObjectPointerT &_robjptr):robjptr(_robjptr){}
+		ScheduleCommand(ObjectPointerT &_robjptr, Event const &_revt):robjptr(_robjptr), revt(_revt){}
 		
 		bool operator()(ReactorBase &_rreactor){
-			return static_cast<ReactorT&>(_rreactor).push(robjptr);
+			return static_cast<ReactorT&>(_rreactor).push(robjptr, revt);
 		}
 	};
 public:
@@ -67,8 +68,8 @@ public:
 		SchedulerBase::doStop(_wait);
 	}
 	
-	ErrorConditionT schedule(ObjectPointerT &_robjptr){
-		ScheduleCommand		cmd(_robjptr);
+	ErrorConditionT schedule(ObjectPointerT &_robjptr, Event const &_revt){
+		ScheduleCommand		cmd(_robjptr, _revt);
 		ScheduleFunctorT	sfct(cmd);
 		return doSchedule(*_robjptr, sfct);
 	}

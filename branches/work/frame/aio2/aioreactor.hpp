@@ -60,7 +60,7 @@ public:
 	void unregisterCompletionHandler(CompletionHandler &_rch);
 	
 	void run();
-	bool push(TaskT &_rcon);
+	bool push(TaskT &_rcon, Event const &_revt);
 	
 private:
 private://data
