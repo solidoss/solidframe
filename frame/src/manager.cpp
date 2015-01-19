@@ -41,15 +41,15 @@ typedef ATOMIC_NS::atomic<IndexT>			AtomicIndexT;
 struct ObjectStub{
 	ObjectStub(
 		ObjectBase *_pobj = NULL,
-		uint32 _uid = 0
-	): pobj(_pobj), uid(_uid){}
+		UniqueT _unique = 0
+	): pobj(_pobj), unique(_unique){}
 	
 	void clear(){
 		pobj = NULL;
-		++uid;
+		++unique;
 	}
 	ObjectBase	*pobj;
-	uint32		uid;
+	UniqueT		unique;
 	
 };
 typedef std::deque<ObjectStub>				ObjectVectorT;
@@ -232,8 +232,9 @@ Manager::Manager(
 }
 
 void Manager::stop(Event const &_revt){
-	Locker<Mutex> lock(d.mtx);
-	size_t crtsvccnt = d.svccnt;
+	Locker<Mutex>	lock(d.mtx);
+	size_t			crtsvccnt = d.svccnt;
+	
 	for(size_t i = 0; i < d.svcprovisioncp && crtsvccnt; ++i){
 		ServiceStub &rss = d.psvcarr[i];
 		if(rss.psvc){
@@ -343,9 +344,9 @@ bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _si
 		const size_t	objcnt = rss.objvecsz.load(ATOMIC_NS::memory_order_acquire);
 		
 		if(objpermutbts && objidx < objcnt){
-			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
+			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));//we don't need safeAt because "objidx < objcnt"
 			
-			if(rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/) == objpermutbts && rss.objvec[objidx].uid == _ruid.unique){
+			if(rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/) == objpermutbts && rss.objvec[objidx].unique == _ruid.unique){
 				ObjectBase &robj = *rss.objvec[objidx].pobj;
 				if(!_sigmsk || robj.notify(_sigmsk)){
 					return this->raise(robj, _re);
@@ -357,7 +358,7 @@ bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _si
 }
 
 bool Manager::raise(const ObjectBase &_robj, Event const &_re){
-	IndexT selidx;
+	IndexT	selidx;
 	UidT	uid = _robj.runId();
 	split_index(selidx, uid.index, d.reactorbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), uid.index);
 	return d.preactorarr[selidx].load(/*ATOMIC_NS::memory_order_seq_cst*/)->raise(uid, _re);
@@ -393,7 +394,7 @@ ObjectUidT  Manager::id(const ObjectBase &_robj)const{
 	cassert(objidx < rss.objvecsz.load(/*ATOMIC_NS::memory_order_seq_cst*/));
 	const uint 		objpermutbts = rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 	Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
-	return ObjectUidT(_robj.fullid, rss.objvec[objidx].uid);
+	return ObjectUidT(_robj.fullid, rss.objvec[objidx].unique);
 }
 
 Service& Manager::service(const ObjectBase &_robj)const{
@@ -417,7 +418,7 @@ ObjectUidT  Manager::unsafeId(const ObjectBase &_robj)const{
 	ServiceStub		&rss = d.psvcarr[svcidx];
 	cassert(objidx < rss.objvecsz.load(/*ATOMIC_NS::memory_order_seq_cst*/));
 	cassert(!rss.mtxstore.at(objidx, rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/)).tryLock());
-	return ObjectUidT(_robj.fullid, rss.objvec[objidx].uid);
+	return ObjectUidT(_robj.fullid, rss.objvec[objidx].unique);
 }
 
 Mutex& Manager::serviceMutex(const Service &_rsvc)const{
@@ -453,6 +454,7 @@ bool Manager::doRegisterService(
 			const uint		svcbtst = d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 			const size_t	svcmaxcntt = bitsToCount(svcbtst);
 			const uint		objbtst = d.objbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+			
 			if(idx >= svcmaxcntt){
 				if((svcbtst + objbtst + 1) > (sizeof(IndexT) * 8)){
 					return false;
@@ -528,7 +530,7 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(
 		if(!_rerr){
 			rss.objvec[objidx].pobj = &_robj;
 			_robj.fullid = fullid;
-			return ObjectUidT(fullid, rss.objvec[objidx].uid);
+			return ObjectUidT(fullid, rss.objvec[objidx].unique);
 		}else{
 			rss.objfreestk.push(objidx);
 			return ObjectUidT();
@@ -587,7 +589,7 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(
 			rss.objfreestk.pop();
 			rss.objvec[idx].pobj = &_robj;
 			_robj.fullid = retval.index;
-			retval.unique = rss.objvec[idx].uid;
+			retval.unique = rss.objvec[idx].unique;
 		}else{
 			retval = ObjectUidT();
 		}

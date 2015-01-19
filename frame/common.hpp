@@ -29,9 +29,11 @@ typedef size_t IndexT;
 
 #define INVALID_INDEX ID_MASK
 
+typedef uint32 UniqueT;
+
 struct UniqueId{
 	IndexT		index;
-	uint32		unique;
+	UniqueT		unique;
 	
 	
 	static UniqueId invalid(){
@@ -40,8 +42,9 @@ struct UniqueId{
 	
 	UniqueId(
 		IndexT const& _idx = INVALID_INDEX,
-		uint32 _unq = -1
+		UniqueT _unq = static_cast<UniqueT>(-1)
 	): index(_idx), unique(_unq){}
+	
 	bool isInvalid()const{
 		return index == INVALID_INDEX;
 	}
