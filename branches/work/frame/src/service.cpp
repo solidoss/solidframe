@@ -32,59 +32,32 @@ namespace frame{
 
 Service::Service(
 	Manager &_rm
-):rm(_rm), idx(-1){}
+):rm(_rm), idx(-1){
+	_rm.registerService(*this);
+}
 
 Service::~Service(){
-	if(isRegistered()){
-		rm.unregisterService(*this);
-	}
+	rm.unregisterService(*this);
 }
 
-bool Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){
-	if(isRegistered()){
-		EventNotifier	notifier(rm, _revt, _sigmsk);
-		return rm.forEachServiceObject(*this, notifier);
-	}else{
-		return false;
-	}
-}
-
-void Service::reset(){
-	if(isRegistered()){
-		rm.resetService(*this);
-	}
+void Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){
+	EventNotifierF	notifier(rm, _revt, _sigmsk);
+	rm.forEachServiceObject(*this, notifier);
 }
 
 void Service::stop(bool _wait){
-	if(isRegistered()){
-		rm.stopService(*this, _wait);
-	}
+	rm.stopService(*this, _wait);
 }
+
 Mutex& Service::mutex()const{
-	return rm.serviceMutex(*this);
+	return rm.mutex(*this);
 }
 
-Mutex& Service::mutex(const IndexT &_rfullid)const{
-	return rm.mutex(_rfullid);
-}
 
-ObjectBase* Service::object(const IndexT &_rfullid)const{
-	return rm.unsafeObject(_rfullid);
-}
-
-// ObjectUidT Service::unsafeRegisterObject(ObjectBase &_robj)const{
+// void Service::unsafeStop(Locker<Mutex> &_rlock, bool _wait){
 // 	const size_t	svcidx = idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 	return rm.doUnsafeRegisterServiceObject(svcidx, _robj);
+// 	rm.doWaitStopService(svcidx, _rlock, true);
 // }
-
-void Service::unsafeStop(Locker<Mutex> &_rlock, bool _wait){
-	const size_t	svcidx = idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-	rm.doWaitStopService(svcidx, _rlock, true);
-}
-void Service::unsafeReset(Locker<Mutex> &_rlock){
-	const size_t	svcidx = idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-	rm.doResetService(svcidx, _rlock);
-}
 
 }//namespace frame
 }//namespace solid

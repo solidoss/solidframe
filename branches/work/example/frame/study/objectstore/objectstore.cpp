@@ -43,13 +43,6 @@ public:
 	Manager();
 	~Manager();
 	
-	
-	UniqueIdT registerObject(ObjectBase *_pobj);
-	
-	template <class F>
-	void forEach(F _fnc){
-		
-	}
 	template <class F>
 	void forOne(UniqueIdT const &_ruid, F _fnc){
 		

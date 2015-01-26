@@ -34,44 +34,27 @@ public:
 	);
 	~Service();
 	
-	template <class Obj, class Sch>
-	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch, ErrorConditionT &_rerr){
-		if(isRegistered()){
-			ScheduleObjectF<Obj, Sch>			fnc(_robjptr, _rsch);
-			Manager::ObjectScheduleFunctorT		fctor(fnc);
-			return rm.registerServiceObject(*this, *_robjptr, fctor, _rerr);
-		}else{
-			//TODO: set _rerr
-			return ObjectUidT();
-		}
-	}
-	
 	bool isRegistered()const;
 	
-	bool notifyAll(Event const &_e, const size_t _sigmsk = 0);
-
-	template <class N>
-	bool forEachObject(N &_rn){
-		if(isRegistered()){
-			return rm.forEachServiceObject(*this, _rn);
-		}else{
-			return false;
-		}
+	template <class Obj, class Sch>
+	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt, ErrorConditionT &_rerr){
+		ScheduleObjectF<Obj, Sch>			fnc(_robjptr, _rsch, _revt);
+		Manager::ObjectScheduleFunctorT		fctor(fnc);
+		return rm.registerServiceObject(*this, *_robjptr, fctor, _rerr);
 	}
 	
-	void reset();
+	void notifyAll(Event const &_e, const size_t _sigmsk = 0);
+
+	template <class N>
+	bool forEach(N &_rn){
+		return rm.forEachServiceObject(*this, _rn);
+	}
 	
 	void stop(bool _wait = true);
 	
 	Manager& manager();
-	
-	Mutex& mutex()const;
 protected:
-	Mutex& mutex(const IndexT &_rfullid)const;
-	ObjectBase* object(const IndexT &_rfullid)const;
-	//ObjectUidT unsafeRegisterObject(ObjectBase &_robj)const;
-	void unsafeStop(Locker<Mutex> &_rlock, bool _wait);
-	void unsafeReset(Locker<Mutex> &_rlock);
+	Mutex& mutex()const;
 private:
 	friend class Manager;
 	Manager 					&rm;
