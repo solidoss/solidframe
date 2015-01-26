@@ -98,9 +98,9 @@ bool Object::unregisterCompletionHandler(CompletionHandler &_rch){
 Reactor* Object::safeSpecificReactor()const{
 	Reactor *preactor = Reactor::safeSpecific();
 	
-	if(preactor && preactor->idInManager() == preactor->manager().reactorId(this->runId().index)){
-		return preactor;
-	}
+// 	if(preactor && preactor->idInManager() == preactor->manager().reactorId(this->runId().index)){
+// 		return preactor;
+// 	}
 	return NULL;
 }
 }//namespace aio

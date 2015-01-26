@@ -329,7 +329,7 @@ bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase &_rreactor, con
 	Locker<Mutex>	lock(d.mtx);
 	ReactorStub 	&rrs = d.reactorvec[_idx];
 	
-	if(_success && d.status == StatusStartingWaitE && manager().prepareThread(&_rreactor)){
+	if(_success && d.status == StatusStartingWaitE && manager().prepareThread()){
 		rrs.preactor = &_rreactor;
 		++d.reactorcnt;
 		d.cnd.broadcast();
@@ -343,7 +343,7 @@ bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase &_rreactor, con
 void SchedulerBase::unprepareThread(const size_t _idx, ReactorBase &_rreactor){
 	Locker<Mutex>	lock(d.mtx);
 	ReactorStub 	&rrs = d.reactorvec[_idx];
-	manager().unprepareThread(&_rreactor);
+	manager().unprepareThread();
 	rrs.preactor = nullptr;
 	--d.reactorcnt;
 	d.cnd.signal();

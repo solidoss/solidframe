@@ -1,5 +1,6 @@
 #include "frame/manager.hpp"
 #include "frame/scheduler.hpp"
+#include "frame/service.hpp"
 
 #include "frame/aio2/aioreactor.hpp"
 #include "frame/aio2/aioobject.hpp"
@@ -172,9 +173,10 @@ int main(int argc, char *argv[]){
 #endif
 	{
 		frame::Manager		m;
-		AioSchedulerT		s(m);
+		frame::Service		svc(m);
+		AioSchedulerT		sch(m);
 		
-		if(s.start(0)){
+		if(sch.start(0)){
 			running = false;
 			cout<<"Error starting scheduler"<<endl;
 		}else{
@@ -186,9 +188,9 @@ int main(int argc, char *argv[]){
 			sd.prepareAccept(rd.begin(), 100);
 			
 			if(sd.ok()){
-				DynamicPointer<frame::aio::Object>	objptr(new Listener(m, s, sd));
+				DynamicPointer<frame::aio::Object>	objptr(new Listener(sch, svc, sd));
 				solid::ErrorConditionT				err;
-				m.registerObject(objptr, s, frame::Event(EventStartE), err);
+				svc.registerObject(objptr, sch, frame::Event(EventStartE), err);
 
 			}else{
 				cout<<"Error creating listener socket"<<endl;
@@ -203,7 +205,7 @@ int main(int argc, char *argv[]){
 			if(sd.ok()){
 				DynamicPointer<frame::aio::Object>	objptr(new Talker(sd));
 				
-				m.registerObject(objptr, s, frame::Event(EventStartE));
+				svc.registerObject(objptr, s, frame::Event(EventStartE));
 			}else{
 				cout<<"Error creating talker socket"<<endl;
 				running = false;

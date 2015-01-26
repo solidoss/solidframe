@@ -25,11 +25,11 @@ typedef uint64 IndexT;
 typedef size_t IndexT;
 #endif
 
-#define ID_MASK ((frame::IndexT)-1)
+#define ID_MASK (static_cast<frame::IndexT>(-1))
 
 #define INVALID_INDEX ID_MASK
 
-typedef uint32 UniqueT;
+typedef size_t UniqueT;
 
 struct UniqueId{
 	IndexT		index;

@@ -115,15 +115,17 @@ private:
 	Mutex& mutex(const IndexT &_rfullid)const;
 	ObjectBase* unsafeObject(const IndexT &_rfullid)const;
 	
+	IndexT computeThreadId(const IndexT &_selidx, const IndexT &_objidx);
+	
 	bool prepareThread();
 	void unprepareThread();
 	
-	virtual bool doPrepareThread();
-	virtual void doUnprepareThread();
-	
+	void resetService(Service &_rsvc);
 	void stopService(Service &_rsvc, bool _wait);
 	
-	
+	virtual bool doPrepareThread();
+	virtual void doUnprepareThread();
+	//ObjectUidT doRegisterServiceObject(const IndexT _svcidx, Object &_robj);
 	ObjectUidT doUnsafeRegisterServiceObject(
 		const IndexT _svcidx,
 		ObjectBase &_robj,
@@ -134,7 +136,10 @@ private:
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);
 	void doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, bool _wait);
-	bool doRegisterService(Service &_rsvc);
+	bool doRegisterService(
+		Service &_rsvc,
+		uint _objpermutbts = 0
+	);
 	void doResetService(const size_t _svcidx, Locker<Mutex> &_rlock);
 private:
 	struct Data;

@@ -46,7 +46,7 @@ protected:
 	friend class Service;
 	friend class Manager;
 	friend class ReactorBase;
-	friend struct EventNotifier;
+	friend struct EventNotifierF;
 	
 	//! Constructor
 	ObjectBase();
