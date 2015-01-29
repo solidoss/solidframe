@@ -16,6 +16,7 @@
 #include "system/mutex.hpp"
 #include "utility/dynamictype.hpp"
 #include <vector>
+#include "frame/schedulerbase.hpp"
 #ifdef HAS_STDATOMIC
 #include <atomic>
 #else
@@ -30,18 +31,13 @@ class	ObjectBase;
 class Service: public Dynamic<Service>{
 public:
 	Service(
-		Manager &_rm
+		Manager &_rm,
+		Event const &_rstopevt
 	);
 	~Service();
 	
 	bool isRegistered()const;
 	
-	template <class Obj, class Sch>
-	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt, ErrorConditionT &_rerr){
-		ScheduleObjectF<Obj, Sch>			fnc(_robjptr, _rsch, _revt);
-		Manager::ObjectScheduleFunctorT		fctor(fnc);
-		return rm.registerServiceObject(*this, *_robjptr, fctor, _rerr);
-	}
 	
 	void notifyAll(Event const &_e, const size_t _sigmsk = 0);
 
@@ -50,14 +46,18 @@ public:
 		return rm.forEachServiceObject(*this, _rn);
 	}
 	
-	void stop(bool _wait = true);
+	void stop(const bool _wait = true);
 	
 	Manager& manager();
 protected:
 	Mutex& mutex()const;
 private:
+	ObjectUidT registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctorT &_rfct, ErrorConditionT &_rerr);
+private:
 	friend class Manager;
+	friend class SchedulerBase;
 	Manager 					&rm;
+	Event 						stopevent;
 	ATOMIC_NS::atomic<size_t>	idx;
 };
 

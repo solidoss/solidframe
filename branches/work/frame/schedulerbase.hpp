@@ -13,6 +13,7 @@
 #include "frame/common.hpp"
 #include "utility/functor.hpp"
 #include "system/error.hpp"
+#include "boost/function.hpp"
 
 namespace solid{
 
@@ -20,9 +21,12 @@ class Thread;
 
 namespace frame{
 
-class Manager;
+class Service;
 class ReactorBase;
 class ObjectBase;
+
+
+typedef FunctorReference<bool, ReactorBase&>	ScheduleFunctorT;
 
 //! A base class for all schedulers
 class SchedulerBase{
@@ -30,22 +34,25 @@ public:
 protected:
 	typedef Thread* (*CreateWorkerF)(SchedulerBase &_rsch, const size_t);
 	
-	typedef FunctorReference<bool, ReactorBase&>	ScheduleFunctorT;
+	typedef boost::function<bool()>					ThreadEnterFunctorT;
+	typedef boost::function<void()>					ThreadExitFunctorT;
 	
-	ErrorConditionT doStart(CreateWorkerF _pf, size_t _reactorcnt);
+	ErrorConditionT doStart(
+		CreateWorkerF _pf,
+		ThreadEnterFunctorT _enf,
+		ThreadExitFunctorT _exf,
+		size_t _reactorcnt
+	);
 
 	void doStop(const bool _wait = true);
 	
-	ErrorConditionT doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct);
+	ObjectUidT doStartObject(ObjectBase &_robj, Service &_rsvc, ScheduleFunctorT &_rfct, ErrorConditionT &_rerr);
+	
 protected:
-	SchedulerBase(
-		Manager &_rm
-	);
+	SchedulerBase();
 	~SchedulerBase();
 private:
 	friend class ReactorBase;
-	
-	Manager& manager();
 	
 	bool prepareThread(const size_t _idx, ReactorBase &_rsel, const bool _success);
 	void unprepareThread(const size_t _idx, ReactorBase &_rsel);

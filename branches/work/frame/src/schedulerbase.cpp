@@ -11,6 +11,7 @@
 #include "frame/schedulerbase.hpp"
 #include "frame/reactorbase.hpp"
 #include "frame/manager.hpp"
+#include "frame/service.hpp"
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
@@ -106,15 +107,16 @@ enum Statuses{
 typedef ATOMIC_NS::atomic<Statuses>			AtomicStatuesT;
 
 struct SchedulerBase::Data{
-	Data(Manager &_rm):rm(_rm), crtreactoridx(0), reactorcnt(0), status(StatusStoppedE), usecnt(0){
+	Data():crtreactoridx(0), reactorcnt(0), status(StatusStoppedE), usecnt(0){
 	}
 	
-	Manager						&rm;
 	size_t						crtreactoridx;
 	size_t						reactorcnt;
 	size_t						stopwaitcnt;
 	AtomicStatuesT				status;
 	AtomicSizeT					usecnt;
+	ThreadEnterFunctorT			threnfnc;
+	ThreadExitFunctorT			threxfnc;
 	
 	ReactorVectorT				reactorvec;
 	Mutex						mtx;
@@ -123,8 +125,7 @@ struct SchedulerBase::Data{
 
 
 SchedulerBase::SchedulerBase(
-	Manager &_rm
-):d(*(new Data(_rm))){
+):d(*(new Data)){
 }
 
 SchedulerBase::~SchedulerBase(){
@@ -132,11 +133,18 @@ SchedulerBase::~SchedulerBase(){
 	delete &d;
 }
 
-Manager& SchedulerBase::manager(){
-	return d.rm;
+
+bool dummy_thread_enter(){
+	return true;
+}
+void dummy_thread_exit(){
 }
 
-ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt){
+ErrorConditionT SchedulerBase::doStart(
+	CreateWorkerF _pf,
+	ThreadEnterFunctorT _enf, ThreadExitFunctorT _exf,
+	size_t _reactorcnt
+){
 	if(_reactorcnt == 0){
 		_reactorcnt = Thread::processorCount();
 	}
@@ -155,6 +163,19 @@ ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt){
 		
 		d.reactorvec.resize(_reactorcnt);
 		
+		
+		if(_enf){
+			d.threnfnc = _enf;
+		}else{
+			d.threnfnc = dummy_thread_enter;
+		}
+		
+		if(_exf){
+			d.threxfnc = _exf;
+		}else{
+			d.threxfnc = dummy_thread_exit;
+		}
+		
 		for(size_t i = 0; i < _reactorcnt; ++i){
 			ReactorStub &rrs = d.reactorvec[i];
 			rrs.thrptr.reset((*_pf)(*this, i));
@@ -163,6 +184,7 @@ ErrorConditionT SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt){
 				break;
 			}
 		}
+		
 		
 		if(!start_err){
 			d.status = StatusStartingWaitE;
@@ -252,36 +274,15 @@ void SchedulerBase::doStop(bool _wait/* = true*/){
 	}
 }
 
-ErrorConditionT SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
+ObjectUidT SchedulerBase::doStartObject(ObjectBase &_robj, Service &_rsvc, ScheduleFunctorT &_rfct, ErrorConditionT &_rerr){
 	++d.usecnt;
-	ErrorConditionT	rv;
+	ObjectUidT	rv;
 	if(d.status == StatusRunningE){
 		ReactorStub 	&rrs = d.reactorvec[doComputeScheduleReactorIndex()];
 		
-		if(_rfct(*rrs.preactor)){
-		}else{
-			rv = error_reactor();
-		}
-		
-// 		UidT			uid(rrs.crtidx, 0);
-// 		
-// 		if(rrs.freeuidstk.size()){
-// 			uid = rrs.freeuidstk.top();
-// 			rrs.freeuidstk.pop();
-// 		}else{
-// 			uid.index = manager().computeThreadId(rrs.preactor->idInManager(), uid.index);
-// 			++rrs.crtidx;
-// 		}
-// 		
-// 		if(uid.isValid()){
-// 			if(_rfct(*rrs.preactor)){
-// 				return ErrorConditionT();
-// 			}else{
-// 				rrs.freeuidstk.push(uid);
-// 			}
-// 		}
+		rv = _rsvc.registerObject(_robj, *rrs.preactor, _rfct, _rerr);
 	}else{
-		rv = error_running();
+		_rerr = error_running();
 	}
 	--d.usecnt;
 	return rv;
@@ -326,27 +327,36 @@ size_t SchedulerBase::doComputeScheduleReactorIndex(){
 }
 
 bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase &_rreactor, const bool _success){
-	Locker<Mutex>	lock(d.mtx);
-	ReactorStub 	&rrs = d.reactorvec[_idx];
-	
-	if(_success && d.status == StatusStartingWaitE && manager().prepareThread()){
-		rrs.preactor = &_rreactor;
-		++d.reactorcnt;
-		d.cnd.broadcast();
-		return true;
+	const bool 		thrensuccess = d.threnfnc();
+	{
+		Locker<Mutex>	lock(d.mtx);
+		ReactorStub 	&rrs = d.reactorvec[_idx];
+		
+		if(_success && d.status == StatusStartingWaitE && thrensuccess){
+			rrs.preactor = &_rreactor;
+			++d.reactorcnt;
+			d.cnd.broadcast();
+			return true;
+		}
+		
+		d.status = StatusStartingErrorE;
+		d.cnd.signal();
 	}
-	d.status = StatusStartingErrorE;
-	d.cnd.signal();
+	
+	d.threxfnc();
+	
 	return false;
 }
 
 void SchedulerBase::unprepareThread(const size_t _idx, ReactorBase &_rreactor){
-	Locker<Mutex>	lock(d.mtx);
-	ReactorStub 	&rrs = d.reactorvec[_idx];
-	manager().unprepareThread();
-	rrs.preactor = nullptr;
-	--d.reactorcnt;
-	d.cnd.signal();
+	{
+		Locker<Mutex>	lock(d.mtx);
+		ReactorStub 	&rrs = d.reactorvec[_idx];
+		rrs.preactor = nullptr;
+		--d.reactorcnt;
+		d.cnd.signal();
+	}
+	d.threxfnc();
 }
 
 

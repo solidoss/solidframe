@@ -72,10 +72,10 @@ static void term_handler(int signum){
 class Listener: public Dynamic<Listener, frame::aio::Object>{
 public:
 	Listener(
-		frame::Manager &_rm,
+		frame::Service &_rsvc,
 		AioSchedulerT &_rsched,
 		const SocketDevice &_rsd
-	):rm(_rm), rsched(_rsched), sock(this->proxy()){}
+	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy()){}
 private:
 	/*virtual*/ bool onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	bool onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
@@ -83,8 +83,8 @@ private:
 	typedef frame::aio::Listener		ListenerSocketT;
 	//typedef frame::aio::Timer			TimerT;
 	
-	frame::Manager		&rm;
-	AioSchedulerT		&rsched;
+	frame::Service		&rsvc;
+	AioSchedulerT		&rsch;
 	ListenerSocketT		sock;
 	//TimerT				timer;
 };
@@ -172,9 +172,12 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	{
+		
+		AioSchedulerT		sch;
+		
+		
 		frame::Manager		m;
-		frame::Service		svc(m);
-		AioSchedulerT		sch(m);
+		frame::Service		svc(m, frame::Event(EventStopE));
 		
 		if(sch.start(0)){
 			running = false;
@@ -188,10 +191,9 @@ int main(int argc, char *argv[]){
 			sd.prepareAccept(rd.begin(), 100);
 			
 			if(sd.ok()){
-				DynamicPointer<frame::aio::Object>	objptr(new Listener(sch, svc, sd));
+				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, sd));
 				solid::ErrorConditionT				err;
-				svc.registerObject(objptr, sch, frame::Event(EventStartE), err);
-
+				sch.startObject(objptr, svc, frame::Event(EventStartE), err);
 			}else{
 				cout<<"Error creating listener socket"<<endl;
 				running = false;
@@ -225,7 +227,7 @@ int main(int argc, char *argv[]){
 		
 		
 		
-		m.stop(frame::Event(EventStopE));
+		m.stop(false);
 	}
 	Thread::waitAll();
 	return 0;
@@ -281,7 +283,9 @@ bool Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 		if(!_rctx.error()){
 #ifdef USE_CONNECTION			
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
-			rm.registerObject(objptr, rsched, frame::Event(EventStartE));
+			solid::ErrorConditionT				err;
+			
+			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);
 #else
 			cout<<"Accepted connection"<<endl;
 #endif

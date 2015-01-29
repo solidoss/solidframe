@@ -14,6 +14,7 @@
 #include "system/debug.hpp"
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
+#include "system/memory.hpp"
 #include "system/condition.hpp"
 #include "system/specific.hpp"
 #include "system/exception.hpp"
@@ -38,17 +39,34 @@ typedef ATOMIC_NS::atomic<ReactorBase*>		AtomicReactorBaseT;
 typedef ATOMIC_NS::atomic<IndexT>			AtomicIndexT;
 
 //---------------------------------------------------------
+//POD structure
 struct ObjectStub{
+	ObjectBase *pobj;
 	
 };
-typedef std::deque<ObjectStub>				ObjectVectorT;
+
+struct ObjectChunk{
+	ObjectChunk(Mutex &_rmtx):rmtx(_rmtx), psvc(NULL){}
+	Mutex		&rmtx;
+	Service		*psvc;
+	
+	char *data(){
+		return reinterpret_cast<char*>(this);
+	}
+	ObjectStub* objects(){
+		return reinterpret_cast<ObjectStub*>(reinterpret_cast<char*>(this) + sizeof(*this));
+	}
+};
+
+
+typedef std::deque<ObjectChunk>				ChunkDequeT;
 typedef Queue<size_t>						SizeQueueT;
 typedef Stack<size_t>						SizeStackT;
 typedef MutualStore<Mutex>					MutexMutualStoreT;
-//---------------------------------------------------------
 
-struct ServiceStub{
-};
+//---------------------------------------------------------
+typedef std::vector<Service*>				ServiceVectorT;
+
 //---------------------------------------------------------
 struct Manager::Data{
 	enum States{
@@ -60,29 +78,30 @@ struct Manager::Data{
 	Data(
 		Manager &_rm
 	);
+	
+	
+	ObjectChunk* allocateChunk(Mutex &_rmtx)const{
+		char *p = new char[sizeof(ObjectChunk) + chkobjcnt * sizeof(ObjectStub)];
+		ObjectChunk *poc = new(p) ObjectChunk(_rmtx);
+		return poc;
+	}
+	
+	AtomicSizeT				crtsvcvecidx;
+	ServiceVectorT			svcvec[2];
+	AtomicSizeT				svcuse[2];
+	AtomicSizeT				svccnt;
+	Mutex					mtx;
+	Condition				cnd;
+	SizeStackT				svcfreeidxstk;
+	Mutex					*pmtxarr;
+	size_t					mtxcnt;
+	size_t					chkobjcnt;
+	ChunkDequeT				chkdq[2];
+	AtomicSizeT				chkuse[2];
+	AtomicSizeT				objcnt;
+	AtomicSizeT				maxobjcnt;
 };
 
-
-#ifdef HAS_SAFE_STATIC
-static const unsigned specificPosition(){
-	static const unsigned thrspecpos = Thread::specificId();
-	return thrspecpos;
-}
-#else
-const unsigned specificIdStub(){
-	static const uint id(Thread::specificId());
-	return id;
-}
-void once_stub(){
-	specificIdStub();
-}
-
-const unsigned specificPosition(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_stub, once);
-	return specificIdStub();
-}
-#endif
 
 void EventNotifierF::operator()(ObjectBase &_robj){
 	Event tmpevt(evt);
@@ -96,27 +115,42 @@ void EventNotifierF::operator()(ObjectBase &_robj){
 
 Manager::Data::Data(
 	Manager &_rm
-)
+):crtsvcvecidx(0), svccnt(0)
 {
+	svcuse[0].store(0);
+	svcuse[1].store(0);
 }
 
-/*static*/ Manager& Manager::specific(){
-	return *reinterpret_cast<Manager*>(Thread::specific(specificPosition()));
-}
-	
+
 Manager::Manager(
 	const size_t _mtxcnt/* = 0*/,
 	const size_t _objbucketsize/* = 0*/
 ):d(*(new Data(*this))){
-	Thread::specific(specificPosition(), this);
+	if(_mtxcnt == 0){
+		d.mtxcnt = memory_page_size() / sizeof(Mutex);
+	}else{
+		d.mtxcnt =  _mtxcnt;
+	}
+	
+	d.pmtxarr = new Mutex[d.mtxcnt];
+	
+	if(_objbucketsize == 0){
+		d.chkobjcnt = (memory_page_size() - sizeof(ObjectChunk)) / sizeof(ObjectStub);
+	}else{
+		d.chkobjcnt = _objbucketsize;
+	}
+	
+	
 }
 
 /*virtual*/ Manager::~Manager(){
 	
+	stop(true);
 	delete &d;
+	delete []d.pmtxarr;
 }
 
-void Manager::stop(Event const &_revt){
+void Manager::stop(const bool _wait){
 }
 
 bool Manager::registerService(
@@ -125,33 +159,51 @@ bool Manager::registerService(
 	if(_rs.isRegistered()){
 		return false;
 	}
-	//Locker<Mutex>	lock(d.mtx);
-	return doRegisterService(_rs);
+	Locker<Mutex>	lock(d.mtx);
+	
+	size_t	crtsvcvecidx = d.crtsvcvecidx;
+	size_t	svcidx = -1;
+	
+	if(d.svcfreeidxstk.size()){
+		svcidx = d.svcfreeidxstk.top();
+		d.svcfreeidxstk.top();
+		
+	}else if(d.svccnt < d.svcvec[crtsvcvecidx].size()){
+		++d.svccnt;
+		svcidx = d.svccnt;
+	}else{
+		const size_t newsvcvecidx = (crtsvcvecidx + 1) & 1;
+		
+		
+		while(d.svcuse[newsvcvecidx] != 0){
+			Thread::yield();
+		}
+		
+		d.svcvec[newsvcvecidx] = d.svcvec[crtsvcvecidx];//update the new vector
+		
+		
+		d.svcvec[newsvcvecidx].push_back(nullptr);
+		d.svcvec[newsvcvecidx].resize(d.svcvec[newsvcvecidx].capacity());
+		
+		d.crtsvcvecidx = newsvcvecidx;
+		crtsvcvecidx = newsvcvecidx;
+		++d.svccnt;
+		svcidx = d.svccnt;
+	}
+	_rs.idx = svcidx;
+	
+	d.svcvec[crtsvcvecidx][svcidx] = &_rs;
+	return true;
 }
 
-ObjectUidT Manager::doRegisterObject(ObjectBase &_robj, ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr){
-	//ServiceStub		&rss = d.psvcarr[0];
-	//Locker<Mutex>	lock(rss.mtx);
-	return doUnsafeRegisterServiceObject(0, _robj, _rfct, _rerr);
-}
 
-void Manager::unregisterService(Service &_rsvc){
-// 	if(!_rsvc.isRegistered()){
-// 		return;
-// 	}
-// 	Locker<Mutex>	lock(d.mtx);
-// 	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 	cassert(svcidx < d.svcprovisioncp);
-// 	ServiceStub		&rss = d.psvcarr[svcidx];
-// 	cassert(rss.psvc == &_rsvc);
-// 	Locker<Mutex>	lock2(rss.mtx);
-// 	
-// 	doWaitStopService(svcidx, lock2, true);
-// 	
-// 	rss.psvc = NULL;
-// 	d.svcfreestk.push(_rsvc.idx);
-// 	_rsvc.idx.store(-1/*, ATOMIC_NS::memory_order_seq_cst*/);
-// 	--d.svccnt;
+void Manager::unregisterService(Service &_rs){
+	if(!_rs.isRegistered()){
+		return;
+	}
+	Locker<Mutex>	lock(d.mtx);
+	d.svcfreeidxstk.push(_rs.idx);
+	d.svcvec[d.crtsvcvecidx][_rs.idx] = nullptr;
 }
 
 void Manager::unregisterObject(ObjectBase &_robj){
@@ -284,75 +336,20 @@ Mutex& Manager::mutex(const Service &_rsvc)const{
 	return m;
 }
 
-ObjectUidT Manager::registerServiceObject(
-	const Service &_rsvc, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr
+ObjectUidT Manager::registerObject(
+	const Service &_rsvc,
+	ObjectBase &_robj,
+	ReactorBase &_rr,
+	ScheduleFunctorT &_rfct,
+	ErrorConditionT &_rerr
 ){
 // 	cassert(_rsvc.idx < d.svcprovisioncp);
 // 	ServiceStub		&rss = d.psvcarr[_rsvc.idx];
 // 	cassert(!_rsvc.idx || rss.psvc != NULL);
 // 	Locker<Mutex>	lock(rss.mtx);
-	return doUnsafeRegisterServiceObject(_rsvc.idx, _robj, _rfct, _rerr);
+	return doUnsafeRegisterServiceObject(_rsvc.idx, _robj, _rr, _rfct, _rerr);
 }
 
-
-bool Manager::doRegisterService(
-	Service &_rs
-){
-// 	if(d.svcfreestk.size()){
-// 		const size_t	idx = d.svcfreestk.top();
-// 		const uint		svcbts = d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 		const size_t	svcmaxcnt = bitsToCount(svcbts);
-// 		
-// 		if(idx >= svcmaxcnt){
-// 			Locker<Mutex>	lockt(d.mtxobj);
-// 			const uint		svcbtst = d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 			const size_t	svcmaxcntt = bitsToCount(svcbtst);
-// 			const uint		objbtst = d.objbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 			
-// 			if(idx >= svcmaxcntt){
-// 				if((svcbtst + objbtst + 1) > (sizeof(IndexT) * 8)){
-// 					return false;
-// 				}
-// 				d.svcbts.store(svcbtst + 1/*, ATOMIC_NS::memory_order_seq_cst*/);
-// 			}
-// 		}
-// 		
-// 		d.svcfreestk.pop();
-// 		_rs.idx.store(idx/*, ATOMIC_NS::memory_order_seq_cst*/);
-// 		
-// 		ServiceStub		&rss = d.psvcarr[idx];
-// 		Locker<Mutex>	lock2(rss.mtx);
-// 		
-// 		rss.psvc = &_rs;
-// 		if(!_objpermutbts){
-// 			_objpermutbts = d.objpermutbts;
-// 		}
-// 		
-// 		rss.state = ServiceStub::StateRunning;
-// 		
-// 		const size_t	objcnt = rss.objvecsz.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 		const uint		oldobjpermutbts = rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 		
-// 		lock_all(rss.mtxstore, objcnt, oldobjpermutbts);
-// 		
-// 		rss.objpermutbts.store(_objpermutbts, ATOMIC_NS::memory_order_release);
-// 		
-// 		while(rss.objfreestk.size()){
-// 			rss.objfreestk.pop();
-// 		}
-// 		for(size_t i = objcnt; i > 0; --i){
-// 			rss.objfreestk.push(i - 1);
-// 			rss.mtxstore.safeAt(i - 1, _objpermutbts);
-// 		}
-// 		vdbgx(Debug::frame, "Last safe at = "<<(objcnt - 1));
-// 		unlock_all(rss.mtxstore, objcnt, oldobjpermutbts);
-// 		++d.svccnt;
-// 		return true;
-// 	}else{
-// 		return false;
-// 	}
-	return false;
-}
 
 // ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj){
 // 	cassert(_svcidx < d.svcprovisioncp);
@@ -363,7 +360,11 @@ bool Manager::doRegisterService(
 // }
 
 ObjectUidT Manager::doUnsafeRegisterServiceObject(
-	const IndexT _svcidx, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr
+	const IndexT _svcidx,
+	ObjectBase &_robj,
+	ReactorBase &_rr,
+	ScheduleFunctorT &_rfct,
+	ErrorConditionT &_rerr
 ){
 // 	ServiceStub		&rss = d.psvcarr[_svcidx];
 // 	vdbgx(Debug::frame, ""<<(void*)&_robj);
@@ -533,25 +534,9 @@ ObjectBase* Manager::unsafeObject(const IndexT &_rfullid)const{
 	return NULL;
 }
 
-bool Manager::prepareThread(){
-	if(!doPrepareThread()){
-		return false;
-	}
-	Thread::specific(specificPosition(), this);
-	Specific::the().configure();
-	return true;
-}
-
-void Manager::unprepareThread(){
-	doUnprepareThread();
-	Thread::specific(specificPosition(), NULL);
-}
-
-/*virtual*/ bool Manager::doPrepareThread(){
-	return true;
-}
-/*virtual*/ void Manager::doUnprepareThread(){
-	
+Service& Manager::service(const ObjectBase &_robj)const{
+	static Service *psvc = nullptr;
+	return *psvc;
 }
 
 void Manager::stopService(Service &_rsvc, bool _wait){

@@ -49,7 +49,6 @@ protected:
 private:
 	friend	class Manager;
 	friend	class SchedulerBase;
-	void idInManager(size_t _id);
 	size_t idInScheduler()const;
 private:
 	typedef Stack<UidT>		UidStackT;
