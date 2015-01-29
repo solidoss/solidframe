@@ -341,9 +341,6 @@ UidT ReactorBase::popUid(ObjectBase &_robj){
 	//_robj.runId(runid);
 	return rv;
 }
-Manager& ReactorBase::manager(){
-	return scheduler().manager();
-}
 
 bool ReactorBase::prepareThread(const bool _success){
 	return scheduler().prepareThread(idInScheduler(), *this, _success);

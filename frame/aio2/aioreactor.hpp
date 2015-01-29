@@ -21,6 +21,9 @@ namespace solid{
 struct TimeSpec;
 
 namespace frame{
+
+class Service;
+
 namespace aio{
 
 class Object;
@@ -60,7 +63,7 @@ public:
 	void unregisterCompletionHandler(CompletionHandler &_rch);
 	
 	void run();
-	bool push(TaskT &_rcon, Event const &_revt);
+	bool push(TaskT &_rcon, Service &_rsvc, Event const &_revt);
 	
 private:
 private://data

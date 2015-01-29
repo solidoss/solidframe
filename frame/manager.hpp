@@ -16,6 +16,7 @@
 #include "system/error.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "utility/functor.hpp"
+#include "frame/schedulerbase.hpp"
 
 namespace solid{
 namespace frame{
@@ -54,10 +55,7 @@ struct EventNotifierF{
 
 
 class Manager{
-	typedef FunctorReference<ErrorConditionT>	ObjectScheduleFunctorT;
 public:
-	static Manager& specific();
-	
 	Manager(
 		const size_t _mtxcnt = 0,
 		const size_t _objbucketsize = 0
@@ -65,7 +63,7 @@ public:
 	
 	virtual ~Manager();
 
-	void stop(Event const &_revt);
+	void stop(const bool _wait = true);
 	
 	bool notify(ObjectUidT const &_ruid, Event const &_e, const size_t _sigmsk = 0);
 
@@ -74,6 +72,7 @@ public:
 	
 	ObjectUidT  id(const ObjectBase &_robj)const;
 	
+	Service& service(const ObjectBase &_robj)const;
 protected:
 	size_t serviceCount()const;
 	
@@ -86,6 +85,7 @@ private:
 	
 	typedef FunctorReference<void, ObjectBase&>	ObjectVisitFunctorT;
 	
+	
 	bool registerService(Service &_rsvc);
 	void unregisterService(Service &_rsvc);
 	
@@ -96,14 +96,14 @@ private:
 	Mutex& mutex(const Service &_rsvc)const;
 	Mutex& mutex(const ObjectBase &_robj)const;
 	
-	ObjectUidT registerServiceObject(
-		const Service &_rsvc, ObjectBase &_robj,
-		ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr
+	ObjectUidT registerObject(
+		const Service &_rsvc,
+		ObjectBase &_robj,
+		ReactorBase &_rr,
+		ScheduleFunctorT &_rfct,
+		ErrorConditionT &_rerr
 	);
-	ObjectUidT doRegisterObject(
-		ObjectBase &_robj, ObjectScheduleFunctorT &_rfct, ErrorConditionT &_rerr
-	);
-	
+		
 	template <typename F>
 	bool forEachServiceObject(const Service &_rsvc, F &_f){
 		ObjectVisitFunctorT fctor(_f);
@@ -115,26 +115,20 @@ private:
 	Mutex& mutex(const IndexT &_rfullid)const;
 	ObjectBase* unsafeObject(const IndexT &_rfullid)const;
 	
-	bool prepareThread();
-	void unprepareThread();
-	
-	virtual bool doPrepareThread();
-	virtual void doUnprepareThread();
-	
 	void stopService(Service &_rsvc, bool _wait);
 	
 	
 	ObjectUidT doUnsafeRegisterServiceObject(
 		const IndexT _svcidx,
 		ObjectBase &_robj,
-		ObjectScheduleFunctorT &_rfct,
+		ReactorBase &_rr,
+		ScheduleFunctorT &_rfct,
 		ErrorConditionT &_rerr
 	);
 	
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);
 	void doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, bool _wait);
-	bool doRegisterService(Service &_rsvc);
 	void doResetService(const size_t _svcidx, Locker<Mutex> &_rlock);
 private:
 	struct Data;

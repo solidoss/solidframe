@@ -31,12 +31,14 @@ namespace solid{
 namespace frame{
 
 Service::Service(
-	Manager &_rm
-):rm(_rm), idx(-1){
+	Manager &_rm,
+	Event const &_rstopevt
+):rm(_rm), stopevent(_rstopevt), idx(-1){
 	_rm.registerService(*this);
 }
 
 Service::~Service(){
+	stop(true);
 	rm.unregisterService(*this);
 }
 
@@ -45,7 +47,7 @@ void Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){
 	rm.forEachServiceObject(*this, notifier);
 }
 
-void Service::stop(bool _wait){
+void Service::stop(const bool _wait){
 	rm.stopService(*this, _wait);
 }
 
@@ -53,6 +55,10 @@ Mutex& Service::mutex()const{
 	return rm.mutex(*this);
 }
 
+
+ObjectUidT Service::registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctorT &_rfct, ErrorConditionT &_rerr){
+	return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
+}
 
 // void Service::unsafeStop(Locker<Mutex> &_rlock, bool _wait){
 // 	const size_t	svcidx = idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
