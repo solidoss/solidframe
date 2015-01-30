@@ -18,7 +18,6 @@
 #include "system/condition.hpp"
 #include "system/specific.hpp"
 #include "system/exception.hpp"
-#include "system/mutualstore.hpp"
 #include "system/atomic.hpp"
 
 #include "frame/manager.hpp"
@@ -38,6 +37,9 @@ typedef ATOMIC_NS::atomic<uint>				AtomicUintT;
 typedef ATOMIC_NS::atomic<ReactorBase*>		AtomicReactorBaseT;
 typedef ATOMIC_NS::atomic<IndexT>			AtomicIndexT;
 
+typedef Queue<size_t>						SizeQueueT;
+typedef Stack<size_t>						SizeStackT;
+
 //---------------------------------------------------------
 //POD structure
 struct ObjectStub{
@@ -46,9 +48,15 @@ struct ObjectStub{
 };
 
 struct ObjectChunk{
-	ObjectChunk(Mutex &_rmtx):rmtx(_rmtx), psvc(NULL){}
+	ObjectChunk(Mutex &_rmtx):rmtx(_rmtx), svcidx(-1){}
 	Mutex		&rmtx;
-	Service		*psvc;
+	size_t		svcidx;
+	size_t		nextchk;
+	
+	void clear(){
+		svcidx = -1;
+		nextchk = -1;
+	}
 	
 	char *data(){
 		return reinterpret_cast<char*>(this);
@@ -58,14 +66,26 @@ struct ObjectChunk{
 	}
 };
 
+struct ServiceStub{
+	ServiceStub():psvc(nullptr), firstchk(-1), lastchk(-1){}
+	
+	void reset(Service *_psvc = nullptr){
+		psvc = _psvc;
+		firstchk = -1;
+		lastchk = -1;
+		while(objcache.size())objcache.pop();
+	}
+	
+	Service 	*psvc;
+	size_t		firstchk;
+	size_t		lastchk;
+	SizeStackT	objcache;
+};
 
-typedef std::deque<ObjectChunk>				ChunkDequeT;
-typedef Queue<size_t>						SizeQueueT;
-typedef Stack<size_t>						SizeStackT;
-typedef MutualStore<Mutex>					MutexMutualStoreT;
 
-//---------------------------------------------------------
-typedef std::vector<Service*>				ServiceVectorT;
+typedef std::deque<ObjectChunk*>			ChunkDequeT;
+typedef std::deque<ServiceStub>				ServiceDequeT;
+typedef std::vector<ServiceStub*>			ServiceVectorT;
 
 //---------------------------------------------------------
 struct Manager::Data{
@@ -86,13 +106,20 @@ struct Manager::Data{
 		return poc;
 	}
 	
+	ObjectChunk* chunk(const size_t _dqidx, const size_t _idx)const{
+		return chkdq[_dqidx][_idx / chkobjcnt];
+	}
+	
 	AtomicSizeT				crtsvcvecidx;
+	AtomicSizeT				crtchkdqidx;
+	ServiceDequeT			svcdq;
 	ServiceVectorT			svcvec[2];
 	AtomicSizeT				svcuse[2];
 	AtomicSizeT				svccnt;
 	Mutex					mtx;
 	Condition				cnd;
-	SizeStackT				svcfreeidxstk;
+	SizeStackT				svccache;
+	SizeStackT				chkcache;
 	Mutex					*pmtxarr;
 	size_t					mtxcnt;
 	size_t					chkobjcnt;
@@ -115,7 +142,7 @@ void EventNotifierF::operator()(ObjectBase &_robj){
 
 Manager::Data::Data(
 	Manager &_rm
-):crtsvcvecidx(0), svccnt(0)
+):crtsvcvecidx(0), crtchkdqidx(0), svccnt(0)
 {
 	svcuse[0].store(0);
 	svcuse[1].store(0);
@@ -164,14 +191,21 @@ bool Manager::registerService(
 	size_t	crtsvcvecidx = d.crtsvcvecidx;
 	size_t	svcidx = -1;
 	
-	if(d.svcfreeidxstk.size()){
-		svcidx = d.svcfreeidxstk.top();
-		d.svcfreeidxstk.top();
+	if(d.svccache.size()){
+		
+		svcidx = d.svccache.top();
+		d.svccache.top();
 		
 	}else if(d.svccnt < d.svcvec[crtsvcvecidx].size()){
+		
 		++d.svccnt;
+		
 		svcidx = d.svccnt;
+		d.svcdq.push_back(ServiceStub());
+		d.svcvec[crtsvcvecidx][svcidx] = &d.svcdq[svcidx];
+		
 	}else{
+		
 		const size_t newsvcvecidx = (crtsvcvecidx + 1) & 1;
 		
 		
@@ -181,7 +215,6 @@ bool Manager::registerService(
 		
 		d.svcvec[newsvcvecidx] = d.svcvec[crtsvcvecidx];//update the new vector
 		
-		
 		d.svcvec[newsvcvecidx].push_back(nullptr);
 		d.svcvec[newsvcvecidx].resize(d.svcvec[newsvcvecidx].capacity());
 		
@@ -189,10 +222,14 @@ bool Manager::registerService(
 		crtsvcvecidx = newsvcvecidx;
 		++d.svccnt;
 		svcidx = d.svccnt;
+		
+		d.svcdq.push_back(ServiceStub());
+		d.svcvec[crtsvcvecidx][svcidx] = &d.svcdq[svcidx];
+
 	}
 	_rs.idx = svcidx;
 	
-	d.svcvec[crtsvcvecidx][svcidx] = &_rs;
+	d.svcvec[crtsvcvecidx][svcidx]->reset(&_rs);
 	return true;
 }
 
@@ -202,8 +239,32 @@ void Manager::unregisterService(Service &_rs){
 		return;
 	}
 	Locker<Mutex>	lock(d.mtx);
-	d.svcfreeidxstk.push(_rs.idx);
-	d.svcvec[d.crtsvcvecidx][_rs.idx] = nullptr;
+	d.svccache.push(_rs.idx);
+	
+	const size_t	svcvecidx = d.crtsvcvecidx;
+	const size_t	chkdqidx = d.crtchkdqidx;
+	ServiceStub		&rss = *d.svcvec[svcvecidx][_rs.idx];
+	
+	size_t			chkidx = rss.firstchk;
+	
+	while(chkidx != static_cast<size_t>(-1)){
+		ObjectChunk *pchk = d.chkdq[chkdqidx][chkidx];
+		chkidx = pchk->nextchk;
+		pchk->clear();
+		d.chkcache.push(chkidx);
+	}
+	
+	rss.reset();
+}
+
+ObjectUidT Manager::registerObject(
+	const Service &_rsvc,
+	ObjectBase &_robj,
+	ReactorBase &_rr,
+	ScheduleFunctorT &_rfct,
+	ErrorConditionT &_rerr
+){
+	return ObjectUidT();
 }
 
 void Manager::unregisterObject(ObjectBase &_robj){
@@ -335,21 +396,6 @@ Mutex& Manager::mutex(const Service &_rsvc)const{
 	static Mutex m;
 	return m;
 }
-
-ObjectUidT Manager::registerObject(
-	const Service &_rsvc,
-	ObjectBase &_robj,
-	ReactorBase &_rr,
-	ScheduleFunctorT &_rfct,
-	ErrorConditionT &_rerr
-){
-// 	cassert(_rsvc.idx < d.svcprovisioncp);
-// 	ServiceStub		&rss = d.psvcarr[_rsvc.idx];
-// 	cassert(!_rsvc.idx || rss.psvc != NULL);
-// 	Locker<Mutex>	lock(rss.mtx);
-	return doUnsafeRegisterServiceObject(_rsvc.idx, _robj, _rr, _rfct, _rerr);
-}
-
 
 // ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj){
 // 	cassert(_svcidx < d.svcprovisioncp);
