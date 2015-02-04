@@ -10,6 +10,8 @@
 #include <vector>
 #include <deque>
 
+#include <climits>
+
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/thread.hpp"
@@ -33,7 +35,9 @@ namespace solid{
 namespace frame{
 
 typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+typedef ATOMIC_NS::atomic<bool>				AtomicBoolT;
 typedef ATOMIC_NS::atomic<uint>				AtomicUintT;
+typedef ATOMIC_NS::atomic<long>				AtomicLongT;
 typedef ATOMIC_NS::atomic<ReactorBase*>		AtomicReactorBaseT;
 typedef ATOMIC_NS::atomic<IndexT>			AtomicIndexT;
 
@@ -43,15 +47,17 @@ typedef Stack<size_t>						SizeStackT;
 //---------------------------------------------------------
 //POD structure
 struct ObjectStub{
-	ObjectBase *pobj;
-	
+	ObjectBase 		*pobject;
+	ReactorBase		*preactor;
+	UniqueT			unique;
 };
 
 struct ObjectChunk{
-	ObjectChunk(Mutex &_rmtx):rmtx(_rmtx), svcidx(-1){}
+	ObjectChunk(Mutex &_rmtx):rmtx(_rmtx), svcidx(-1), objcnt(0){}
 	Mutex		&rmtx;
 	size_t		svcidx;
 	size_t		nextchk;
+	size_t		objcnt;
 	
 	void clear(){
 		svcidx = -1;
@@ -63,6 +69,18 @@ struct ObjectChunk{
 	}
 	ObjectStub* objects(){
 		return reinterpret_cast<ObjectStub*>(reinterpret_cast<char*>(this) + sizeof(*this));
+	}
+	
+	ObjectStub& object(const size_t _idx){
+		return objects()[_idx];
+	}
+	
+	const ObjectStub* objects()const{
+		return reinterpret_cast<const ObjectStub*>(reinterpret_cast<const char*>(this) + sizeof(*this));
+	}
+	
+	ObjectStub const& object(const size_t _idx)const{
+		return objects()[_idx];
 	}
 };
 
@@ -87,6 +105,21 @@ typedef std::deque<ObjectChunk*>			ChunkDequeT;
 typedef std::deque<ServiceStub>				ServiceDequeT;
 typedef std::vector<ServiceStub*>			ServiceVectorT;
 
+
+struct ServiceContainerStub{
+	ServiceContainerStub(): nowantwrite(true), usecnt(0){}
+	AtomicBoolT			nowantwrite;
+	AtomicLongT			usecnt;
+	ServiceVectorT		vec;
+};
+
+struct ChunkContainerStub{
+	ChunkContainerStub(): nowantwrite(true), usecnt(0){}
+	AtomicBoolT			nowantwrite;
+	AtomicLongT			usecnt;
+	ChunkDequeT			vec;
+};
+
 //---------------------------------------------------------
 struct Manager::Data{
 	enum States{
@@ -106,27 +139,104 @@ struct Manager::Data{
 		return poc;
 	}
 	
-	ObjectChunk* chunk(const size_t _dqidx, const size_t _idx)const{
-		return chkdq[_dqidx][_idx / chkobjcnt];
+	ObjectChunk* chunk(const size_t _containeridx, const size_t _idx)const{
+		return chk[_containeridx].vec[_idx / chkobjcnt];
 	}
 	
-	AtomicSizeT				crtsvcvecidx;
-	AtomicSizeT				crtchkdqidx;
+	
+	ObjectStub& object(const size_t _containeridx, const size_t _idx){
+		return chunk(_containeridx, _idx)->object(_idx % chkobjcnt);
+	}
+	
+	size_t aquireReadServiceContainer(){
+		size_t idx = crtsvccontaineridx;
+		if(svc[idx].nowantwrite && svc[idx].usecnt.fetch_add(1) >= 0){
+			return idx;
+		}
+		Locker<Mutex>	lock(mtx);
+		idx = crtsvccontaineridx;
+		long v = svc[idx].usecnt.fetch_add(1);
+		cassert(v >= 0);
+		return idx;
+	}
+	
+	void releaseReadServiceContainer(const size_t _idx){
+		svc[_idx].usecnt.fetch_sub(1);
+	}
+	
+	size_t aquireWriteServiceContainer(){
+		//NOTE: mtx must be locked
+		size_t	idx = (crtsvccontaineridx + 1) % 2;
+		long	expect = 0;
+		
+		svc[idx].nowantwrite = false;
+		
+		while(!svc[idx].usecnt.compare_exchange_weak(expect, LONG_MIN)){
+			expect = 0;
+			Thread::yield();
+		}
+		return idx;
+	}
+	
+	size_t releaseWriteServiceContainer(const size_t _idx){
+		svc[_idx].usecnt = 0;
+		crtsvccontaineridx = _idx;
+		return _idx;
+	}
+	
+	size_t aquireReadChunkContainer(){
+		size_t idx = crtchkcontaineridx;
+		if(chk[idx].nowantwrite && chk[idx].usecnt.fetch_add(1) >= 0){
+			return idx;
+		}
+		Locker<Mutex>	lock(mtx);
+		idx = crtchkcontaineridx;
+		long v = chk[idx].usecnt.fetch_add(1);
+		cassert(v >= 0);
+		return idx;
+	}
+	void releaseReadChunkContainer(const size_t _idx){
+		chk[_idx].usecnt.fetch_sub(1);
+	}
+	
+	size_t aquireWriteChunkContainer(){
+		//NOTE: mtx must be locked
+		size_t	idx = (crtchkcontaineridx + 1) % 2;
+		long	expect = 0;
+		
+		chk[idx].nowantwrite = false;
+		
+		while(!chk[idx].usecnt.compare_exchange_weak(expect, LONG_MIN)){
+			expect = 0;
+			Thread::yield();
+		}
+		return idx;
+	}
+	size_t releaseWriteChunkContainer(const size_t _idx){
+		chk[_idx].usecnt = 0;
+		crtchkcontaineridx = _idx;
+		return _idx;
+	}
+	
+	AtomicSizeT				crtsvccontaineridx;
 	ServiceDequeT			svcdq;
-	ServiceVectorT			svcvec[2];
-	AtomicSizeT				svcuse[2];
+	ServiceContainerStub	svc[2];
 	AtomicSizeT				svccnt;
-	Mutex					mtx;
-	Condition				cnd;
 	SizeStackT				svccache;
-	SizeStackT				chkcache;
+	
 	Mutex					*pmtxarr;
 	size_t					mtxcnt;
+	
+	AtomicSizeT				crtchkcontaineridx;
+	ChunkContainerStub		chk[2];
+	SizeStackT				chkcache;
 	size_t					chkobjcnt;
-	ChunkDequeT				chkdq[2];
-	AtomicSizeT				chkuse[2];
 	AtomicSizeT				objcnt;
 	AtomicSizeT				maxobjcnt;
+	
+	Mutex					mtx;
+	Condition				cnd;
+	
 };
 
 
@@ -142,10 +252,8 @@ void EventNotifierF::operator()(ObjectBase &_robj){
 
 Manager::Data::Data(
 	Manager &_rm
-):crtsvcvecidx(0), crtchkdqidx(0), svccnt(0)
+):crtsvccontaineridx(0), svccnt(0), crtchkcontaineridx(0)
 {
-	svcuse[0].store(0);
-	svcuse[1].store(0);
 }
 
 
@@ -188,7 +296,7 @@ bool Manager::registerService(
 	}
 	Locker<Mutex>	lock(d.mtx);
 	
-	size_t	crtsvcvecidx = d.crtsvcvecidx;
+	size_t	crtsvccontaineridx = d.crtsvccontaineridx;
 	size_t	svcidx = -1;
 	
 	if(d.svccache.size()){
@@ -196,40 +304,35 @@ bool Manager::registerService(
 		svcidx = d.svccache.top();
 		d.svccache.top();
 		
-	}else if(d.svccnt < d.svcvec[crtsvcvecidx].size()){
-		
-		++d.svccnt;
+	}else if(d.svccnt < d.svc[crtsvccontaineridx].vec.size()){
 		
 		svcidx = d.svccnt;
 		d.svcdq.push_back(ServiceStub());
-		d.svcvec[crtsvcvecidx][svcidx] = &d.svcdq[svcidx];
+		d.svc[crtsvccontaineridx].vec[svcidx] = &d.svcdq[svcidx];
+		++d.svccnt;
 		
 	}else{
 		
-		const size_t newsvcvecidx = (crtsvcvecidx + 1) & 1;
+		const size_t newsvcvecidx = d.aquireWriteServiceContainer();
 		
 		
-		while(d.svcuse[newsvcvecidx] != 0){
-			Thread::yield();
-		}
+		d.svc[newsvcvecidx].vec = d.svc[crtsvccontaineridx].vec;//update the new vector
 		
-		d.svcvec[newsvcvecidx] = d.svcvec[crtsvcvecidx];//update the new vector
+		d.svc[newsvcvecidx].vec.push_back(nullptr);
+		d.svc[newsvcvecidx].vec.resize(d.svc[newsvcvecidx].vec.capacity());
 		
-		d.svcvec[newsvcvecidx].push_back(nullptr);
-		d.svcvec[newsvcvecidx].resize(d.svcvec[newsvcvecidx].capacity());
-		
-		d.crtsvcvecidx = newsvcvecidx;
-		crtsvcvecidx = newsvcvecidx;
-		++d.svccnt;
 		svcidx = d.svccnt;
 		
 		d.svcdq.push_back(ServiceStub());
-		d.svcvec[crtsvcvecidx][svcidx] = &d.svcdq[svcidx];
+		d.svc[newsvcvecidx].vec[svcidx] = &d.svcdq[svcidx];
+		
+		crtsvccontaineridx = d.releaseWriteServiceContainer(newsvcvecidx);
+		++d.svccnt;
 
 	}
 	_rs.idx = svcidx;
 	
-	d.svcvec[crtsvcvecidx][svcidx]->reset(&_rs);
+	d.svc[crtsvccontaineridx].vec[svcidx]->reset(&_rs);
 	return true;
 }
 
@@ -238,23 +341,26 @@ void Manager::unregisterService(Service &_rs){
 	if(!_rs.isRegistered()){
 		return;
 	}
-	Locker<Mutex>	lock(d.mtx);
-	d.svccache.push(_rs.idx);
-	
-	const size_t	svcvecidx = d.crtsvcvecidx;
-	const size_t	chkdqidx = d.crtchkdqidx;
-	ServiceStub		&rss = *d.svcvec[svcvecidx][_rs.idx];
-	
-	size_t			chkidx = rss.firstchk;
-	
-	while(chkidx != static_cast<size_t>(-1)){
-		ObjectChunk *pchk = d.chkdq[chkdqidx][chkidx];
-		chkidx = pchk->nextchk;
-		pchk->clear();
-		d.chkcache.push(chkidx);
+	const size_t	chkvecidx = d.aquireReadChunkContainer();//can lock d.mtx
+	const size_t	svcvecidx = d.aquireReadServiceContainer();//can lock d.mtx
+	{
+		Locker<Mutex>	lock(d.mtx);
+		d.svccache.push(_rs.idx);
+		
+		ServiceStub		&rss = *d.svc[svcvecidx].vec[_rs.idx];
+		
+		size_t			chkidx = rss.firstchk;
+		
+		while(chkidx != static_cast<size_t>(-1)){
+			ObjectChunk *pchk = d.chk[chkvecidx].vec[chkidx];
+			chkidx = pchk->nextchk;
+			pchk->clear();
+			d.chkcache.push(chkidx);
+		}
+		rss.reset();
 	}
-	
-	rss.reset();
+	d.releaseReadChunkContainer(chkvecidx);
+	d.releaseReadServiceContainer(svcvecidx);
 }
 
 ObjectUidT Manager::registerObject(
@@ -296,50 +402,37 @@ void Manager::unregisterObject(ObjectBase &_robj){
 // 	}
 // 	cassert(false);
 }
-/*
- * NOTE:
- * 1) rss.objpermuts & rss.objvecsz:
- * 	[0,0] -> [X,0] -> [X,1] .. [X,a]  -> [0,0] -> [Y,0] -> [Y,1] .. [Y,b]
- * Situations:
- * Read:
- * [0,0] OK
- * [0,a] OK
- * [X,0] OK
- * [Y,a]\
- *		prevented with memory_order_acquire
- * [x,b]/ 
-*/
+
 bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _sigmsk/* = 0*/){
-// 	IndexT		svcidx;
-// 	IndexT		objidx;
-// 	
-// 	split_index(svcidx, objidx, d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), _ruid.index);
-// 	
-// 	if(svcidx < d.svcprovisioncp){
-// 		ServiceStub		&rss = d.psvcarr[svcidx];
-// 		const uint 		objpermutbts = rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);//set it with release
-// 		const size_t	objcnt = rss.objvecsz.load(ATOMIC_NS::memory_order_acquire);
-// 		
-// 		if(objpermutbts && objidx < objcnt){
-// 			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));//we don't need safeAt because "objidx < objcnt"
-// 			
-// 			if(rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/) == objpermutbts && rss.objvec[objidx].unique == _ruid.unique){
-// 				ObjectBase &robj = *rss.objvec[objidx].pobj;
-// 				if(!_sigmsk || robj.notify(_sigmsk)){
-// 					return this->raise(robj, _re);
-// 				}
-// 			}
-// 		}
-// 	}
-	return false;
+	bool	retval = false;
+	if(_ruid.index < d.objcnt){
+		const size_t		chkcontaineridx = d.aquireReadChunkContainer();
+		ObjectChunk			&rchk(*d.chunk(chkcontaineridx, _ruid.index));
+		{
+			Locker<Mutex>	lock(rchk.rmtx);
+			ObjectStub const 	&robj(d.object(chkcontaineridx, _ruid.index));
+			
+			if(robj.unique == _ruid.unique && robj.pobject){
+				if(!_sigmsk || robj.pobject->notify(_sigmsk)){
+					retval = robj.preactor->raise(robj.pobject->runId(), _re);
+				}
+			}
+		}
+		d.releaseReadChunkContainer(chkcontaineridx);
+	}
+	return retval;
 }
 
 bool Manager::raise(const ObjectBase &_robj, Event const &_re){
-// 	IndexT	selidx;
-// 	UidT	uid = _robj.runId();
-// 	split_index(selidx, uid.index, d.reactorbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), uid.index);
-// 	return d.preactorarr[selidx].load(/*ATOMIC_NS::memory_order_seq_cst*/)->raise(uid, _re);
-	return false;
+	//Current chunk's mutex must be locked
+	
+	const size_t		chkcontaineridx = d.aquireReadChunkContainer();
+	ObjectStub const 	&robj(d.object(chkcontaineridx, _robj.id()));
+	d.releaseReadChunkContainer(chkcontaineridx);
+	
+	cassert(robj.pobject == &_robj);
+	
+	return robj.preactor->raise(robj.pobject->runId(), _re);
 }
 
 
@@ -504,45 +597,48 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(
 	return ObjectUidT();
 }
 bool Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor){
-// 	Locker<Mutex>	lock1(d.mtx);
+	if(!_rsvc.isRegistered()){
+		return false;
+	}
 	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 	cassert(svcidx < d.svcprovisioncp);
-// 	ServiceStub		&rss = d.psvcarr[svcidx];
-// 	cassert(rss.psvc == &_rsvc);
-// 	Locker<Mutex>	lock2(rss.mtx);
 	return doForEachServiceObject(svcidx, _fctor);
 }
 
 bool Manager::doForEachServiceObject(const size_t _svcidx, Manager::ObjectVisitFunctorT &_fctor){
-// 	ServiceStub		&rss = d.psvcarr[_svcidx];
-// 	const uint		objpermutbts = rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 	if(rss.objvec.empty()){
-// 		return false;
-// 	}
-// 	size_t			loopcnt = 0;
-// 	size_t			hitcnt = 0;
-// 	const size_t	objcnt = rss.objvec.size() - rss.objfreestk.size();
-// 	Mutex			*poldmtx = &rss.mtxstore[0];
-// 	
-// 	poldmtx->lock();
-// 	for(ObjectVectorT::const_iterator it(rss.objvec.begin()); it != rss.objvec.end() && hitcnt < objcnt; ++it){
-// 		++loopcnt;
-// 		const size_t idx = it - rss.objvec.begin();
-// 		Mutex &rmtx = rss.mtxstore.at(idx, objpermutbts);
-// 		if(&rmtx != poldmtx){
-// 			poldmtx->unlock();
-// 			rmtx.lock();
-// 			poldmtx = &rmtx;
-// 		}
-// 		if(it->pobj){
-// 			_fctor(*it->pobj);
-// 			++hitcnt;
-// 		}
-// 	}
-// 	poldmtx->unlock();
-// 	vdbgx(Debug::frame, "Looped "<<loopcnt<<" times for "<<objcnt<<" objects");
-// 	return hitcnt != 0;
-	return false;
+	
+	size_t	crtchkidx;
+	bool	retval = false;
+	
+	{
+		const size_t	svcvecidx = d.aquireReadServiceContainer();//can lock d.mtx
+		{
+			Locker<Mutex>	lock(d.mtx);
+			crtchkidx = d.svc[svcvecidx].vec[_svcidx]->firstchk;
+		}
+		d.releaseReadServiceContainer(svcvecidx);
+	}
+	
+	while(crtchkidx != static_cast<size_t>(-1)){
+		
+		const size_t	chkvecidx = d.aquireReadChunkContainer();//can lock d.mtx
+		
+		ObjectChunk		&rchk = *d.chk[chkvecidx].vec[crtchkidx];
+		
+		d.releaseReadChunkContainer(chkvecidx);
+		
+		Locker<Mutex>	lock(rchk.rmtx);
+		ObjectStub		*pobjs = rchk.objects();
+		for(size_t i(0), cnt(0); i < d.chkobjcnt && cnt < rchk.objcnt; ++i){
+			if(pobjs[i].pobject){
+				_fctor(*pobjs[i].pobject);
+				retval = true;
+			}
+		}
+		
+		crtchkidx = rchk.nextchk;
+	}
+	
+	return retval;
 }
 
 Mutex& Manager::mutex(const IndexT &_rfullid)const{

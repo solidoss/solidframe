@@ -20,6 +20,7 @@
 
 namespace solid{
 namespace frame{
+
 class	Manager;
 class	Service;
 class	ObjectBase;
