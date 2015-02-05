@@ -52,10 +52,12 @@ public:
 protected:
 	Mutex& mutex()const;
 private:
-	ObjectUidT registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctorT &_rfct, ErrorConditionT &_rerr);
-private:
 	friend class Manager;
 	friend class SchedulerBase;
+	
+	ObjectUidT registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctorT &_rfct, ErrorConditionT &_rerr);
+private:
+	
 	Manager 					&rm;
 	Event 						stopevent;
 	ATOMIC_NS::atomic<size_t>	idx;

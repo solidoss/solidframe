@@ -114,18 +114,9 @@ private:
 	bool raise(const ObjectBase &_robj, Event const &_re);
 	
 	Mutex& mutex(const IndexT &_rfullid)const;
-	ObjectBase* unsafeObject(const IndexT &_rfullid)const;
 	
 	void stopService(Service &_rsvc, bool _wait);
 	
-	
-	ObjectUidT doUnsafeRegisterServiceObject(
-		const IndexT _svcidx,
-		ObjectBase &_robj,
-		ReactorBase &_rr,
-		ScheduleFunctorT &_rfct,
-		ErrorConditionT &_rerr
-	);
 	
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);
