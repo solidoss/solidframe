@@ -58,7 +58,8 @@ struct EventNotifierF{
 class Manager{
 public:
 	Manager(
-		const size_t _mtxcnt = 0,
+		const size_t _svcmtxcnt = 0,
+		const size_t _objmtxcnt = 0,
 		const size_t _objbucketsize = 0
 	);
 	
