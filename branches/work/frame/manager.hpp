@@ -113,16 +113,12 @@ private:
 	}
 	
 	bool raise(const ObjectBase &_robj, Event const &_re);
-	
-	Mutex& mutex(const IndexT &_rfullid)const;
-	
+
 	void stopService(Service &_rsvc, bool _wait);
 	
 	
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
-	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);
-	void doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, bool _wait);
-	void doResetService(const size_t _svcidx, Locker<Mutex> &_rlock);
+	bool doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctorT &_fctor);
 private:
 	struct Data;
 	Data	&d;
