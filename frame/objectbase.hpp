@@ -68,7 +68,7 @@ private:
 	
 	void stop(Manager &_rm);
 private:
-	IndexT						fullid;
+	ATOMIC_NS::atomic<IndexT>	fullid;
 	UidT						runid;
 	ATOMIC_NS::atomic<size_t>	smask;
 };

@@ -85,8 +85,15 @@ struct ObjectChunk{
 	}
 };
 
+enum States{
+	StateStartingE = 1,
+	StateRunningE,
+	StateStoppingE,
+	StateStoppedE
+};
+
 struct ServiceStub{
-	ServiceStub(Mutex &_rmtx):psvc(nullptr), rmtx(_rmtx), firstchk(-1), lastchk(-1){}
+	ServiceStub(Mutex &_rmtx):psvc(nullptr), rmtx(_rmtx), firstchk(-1), lastchk(-1), state(StateRunningE){}
 	
 	void reset(Service *_psvc = nullptr){
 		psvc = _psvc;
@@ -99,8 +106,10 @@ struct ServiceStub{
 	Mutex		&rmtx;
 	size_t		firstchk;
 	size_t		lastchk;
+	States		state;
 	size_t		crtobjidx;
 	size_t		endobjidx;
+	size_t		objcnt;
 	SizeStackT	objcache;
 };
 
@@ -126,12 +135,6 @@ struct ObjectStoreStub{
 
 //---------------------------------------------------------
 struct Manager::Data{
-	enum States{
-		StateStarting = 1,
-		StateRunning,
-		StateStopping,
-		StateStopped
-	};
 	Data(
 		Manager &_rm
 	);
@@ -303,9 +306,6 @@ Manager::Manager(
 	delete []d.pobjmtxarr;
 }
 
-void Manager::stop(const bool _wait){
-}
-
 bool Manager::registerService(
 	Service &_rs
 ){
@@ -398,6 +398,10 @@ ObjectUidT Manager::registerObject(
 	
 	d.releaseReadServiceStore(svcstoreidx);
 	
+	if(rsvc.state != StateRunningE){
+		return retval;
+	}
+	
 	if(rsvc.objcache.size()){
 		
 		objidx = rsvc.objcache.top();
@@ -473,6 +477,7 @@ ObjectUidT Manager::registerObject(
 			retval.index = objidx;
 			retval.unique = robj.unique;
 			++robjchk.objcnt;
+			++rsvc.objcnt;
 		}else{
 			//the object was not scheduled
 			rsvc.objcache.push(objidx);
@@ -480,6 +485,7 @@ ObjectUidT Manager::registerObject(
 	}
 	return retval;
 }
+
 
 void Manager::unregisterObject(ObjectBase &_robj){
 	size_t		svcidx = -1;
@@ -511,6 +517,10 @@ void Manager::unregisterObject(ObjectBase &_robj){
 		Locker<Mutex>	lock(rsvc.rmtx);
 		
 		rsvc.objcache.push(objidx);
+		--rsvc.objcnt;
+		if(rsvc.objcnt == 0 && rsvc.state == StateStoppingE){
+			d.cnd.broadcast();
+		}
 	}
 }
 
@@ -548,44 +558,40 @@ bool Manager::raise(const ObjectBase &_robj, Event const &_re){
 
 
 Mutex& Manager::mutex(const ObjectBase &_robj)const{
-// 	IndexT			svcidx;
-// 	IndexT			objidx;
-// 	
-// 	split_index(svcidx, objidx, d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), _robj.fullid);
-// 	cassert(svcidx < d.svcprovisioncp);
-// 	
-// 	ServiceStub		&rss = d.psvcarr[svcidx];
-// 	const uint 		objpermutbts = rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 	cassert(objidx < rss.objvecsz.load(ATOMIC_NS::memory_order_acquire));
-// 	return rss.mtxstore.at(objidx, objpermutbts);
-	static Mutex m;
-	return m;
+	Mutex	*pmtx;
+	{
+		const size_t		objstoreidx = d.aquireReadObjectStore();
+		ObjectChunk			&rchk(*d.chunk(objstoreidx, _robj.id()));
+		
+		d.releaseReadObjectStore(objstoreidx);
+		pmtx = &rchk.rmtx;
+	}
+	return *pmtx;
 }
 
 ObjectUidT  Manager::id(const ObjectBase &_robj)const{
-// 	IndexT			svcidx;
-// 	IndexT			objidx;
-// 	
-// 	split_index(svcidx, objidx, d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), _robj.fullid);
-// 	cassert(svcidx < d.svcprovisioncp);
-// 	
-// 	ServiceStub		&rss = d.psvcarr[svcidx];
-// 	cassert(objidx < rss.objvecsz.load(/*ATOMIC_NS::memory_order_seq_cst*/));
-// 	const uint 		objpermutbts = rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 	Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
-// 	return ObjectUidT(_robj.fullid, rss.objvec[objidx].unique);
-	return ObjectUidT();
+	const IndexT		objidx = _robj.id();
+	if(objidx != static_cast<IndexT>(-1)){
+		const size_t		objstoreidx = d.aquireReadObjectStore();
+		ObjectStub const 	&robj(d.object(objstoreidx, objidx));
+		d.releaseReadObjectStore(objstoreidx);
+		
+		cassert(robj.pobject == &_robj);
+		return ObjectUidT(objidx, robj.unique);
+	}else{
+		return ObjectUidT();
+	}
 }
 
 
 Mutex& Manager::mutex(const Service &_rsvc)const{
-// 	cassert(_rsvc.idx < d.svcprovisioncp);
-// 	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 	ServiceStub		&rss = d.psvcarr[svcidx];
-// 	cassert(rss.psvc == &_rsvc);
-// 	return rss.mtx;
-	static Mutex m;
-	return m;
+	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
+	ServiceStub		&rsvc = *d.svcstore[svcstoreidx].vec[svcidx];
+		
+	d.releaseReadServiceStore(svcstoreidx);
+		
+	return rsvc.rmtx;
 }
 
 
@@ -594,22 +600,26 @@ bool Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &
 		return false;
 	}
 	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-	return doForEachServiceObject(svcidx, _fctor);
+	size_t			chkidx = -1;
+	{
+		const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
+		{
+			ServiceStub		&rsvc = *d.svcstore[svcstoreidx].vec[svcidx];
+			Locker<Mutex>	lock(rsvc.rmtx);
+		
+			chkidx = rsvc.firstchk;
+		}
+		d.releaseReadServiceStore(svcstoreidx);
+	}
+	
+	return doForEachServiceObject(chkidx, _fctor);
 }
 
-bool Manager::doForEachServiceObject(const size_t _svcidx, Manager::ObjectVisitFunctorT &_fctor){
+bool Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitFunctorT &_fctor){
 	
-	size_t	crtchkidx;
+	size_t	crtchkidx = _chkidx;
 	bool	retval = false;
 	
-	{
-		const size_t	svcvecidx = d.aquireReadServiceStore();//can lock d.mtx
-		{
-			Locker<Mutex>	lock(d.mtx);
-			crtchkidx = d.svcstore[svcvecidx].vec[_svcidx]->firstchk;
-		}
-		d.releaseReadServiceStore(svcvecidx);
-	}
 	
 	while(crtchkidx != static_cast<size_t>(-1)){
 		
@@ -634,103 +644,67 @@ bool Manager::doForEachServiceObject(const size_t _svcidx, Manager::ObjectVisitF
 	return retval;
 }
 
-Mutex& Manager::mutex(const IndexT &_rfullid)const{
-// 	IndexT			svcidx;
-// 	IndexT			objidx;
-// 	
-// 	split_index(svcidx, objidx, d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), _rfullid);
-// 	cassert(svcidx < d.svcprovisioncp);
-// 	
-// 	ServiceStub		&rss = d.psvcarr[svcidx];
-// 	const uint 		objpermutbts = rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 	cassert(objidx < rss.objvecsz.load(ATOMIC_NS::memory_order_acquire));
-// 	return rss.mtxstore.at(objidx, objpermutbts);
-	static Mutex m;
-	return m;
-}
-
 Service& Manager::service(const ObjectBase &_robj)const{
-	Service		*psvc = nullptr;
-	
-	if(_robj.id() < d.objcnt){
-		size_t				svcidx = -1;
+	Service		*psvc = nullptr;	
+	size_t		svcidx = -1;
+	{
+		const size_t		objstoreidx = d.aquireReadObjectStore();
+		ObjectChunk			&rchk(*d.chunk(objstoreidx, _robj.id()));
+		
+		d.releaseReadObjectStore(objstoreidx);
+		
 		{
-			const size_t		objstoreidx = d.aquireReadObjectStore();
-			ObjectChunk			&rchk(*d.chunk(objstoreidx, _robj.id()));
+			Locker<Mutex>		lock(rchk.rmtx);
 			
-			{
-				Locker<Mutex>		lock(rchk.rmtx);
-				
-				cassert(d.object(objstoreidx, _robj.id()).pobject == &_robj);
-				
-				svcidx = rchk.svcidx;
-			}
-			d.releaseReadObjectStore(objstoreidx);
+			cassert(rchk.object(_robj.id() % d.objchkcnt).pobject == &_robj);
+			
+			svcidx = rchk.svcidx;
 		}
-		{
-			const size_t	svcstoreidx = d.aquireReadServiceStore();
-			psvc = d.svcstore[svcstoreidx].vec[svcidx]->psvc;
-		}
+	}
+	{
+		const size_t	svcstoreidx = d.aquireReadServiceStore();
+		psvc = d.svcstore[svcstoreidx].vec[svcidx]->psvc;
+		d.releaseReadServiceStore(svcstoreidx);
 	}
 	return *psvc;
 }
 
-void Manager::stopService(Service &_rsvc, bool _wait){
-// 	//Locker<Mutex>	lock1(d.mtx);
-// 	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-// 	cassert(svcidx < d.svcprovisioncp);
-// 	ServiceStub		&rss = d.psvcarr[svcidx];
-// 	cassert(rss.psvc == &_rsvc);
-// 	Locker<Mutex>	lock2(rss.mtx);
-// 	
-// 	doWaitStopService(svcidx, lock2, _wait);
+void Manager::stopService(Service &_rsvc, const bool _wait){
+	if(!_rsvc.isRegistered()){
+		return;
+	}
+	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
+	ServiceStub		&rsvc = *d.svcstore[svcstoreidx].vec[svcidx];
+	
+	d.releaseReadServiceStore(svcstoreidx);
+	
+	Locker<Mutex>	lock(rsvc.rmtx);
+	
+	if(rsvc.state == StateStoppedE){
+		return;
+	}
+	if(rsvc.state == StateRunningE){
+		EventNotifierF		evtntf(*this, _rsvc.stopevent);
+		ObjectVisitFunctorT fctor(evtntf);
+		const bool		any = doForEachServiceObject(rsvc.firstchk, fctor);
+		if(!any){
+			rsvc.state = StateStoppedE;
+			return;
+		}
+		rsvc.state = StateStoppingE;
+	}
+	
+	if(rsvc.state == StateStoppingE && _wait){
+		while(rsvc.objcnt){
+			d.cnd.wait(lock);
+		}
+		rsvc.state = StateStoppedE;
+	}
 }
 
-
-void Manager::doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, bool _wait){
-// 	ServiceStub		&rss = d.psvcarr[_svcidx];
-// 	while(rss.state != ServiceStub::StateStopped){
-// 		if(rss.state == ServiceStub::StateStarting){
-// 			if(!_wait){
-// 				return;
-// 			}
-// 			while(rss.state == ServiceStub::StateStarting){
-// 				rss.cnd.wait(_rlock);
-// 			}
-// 			continue;
-// 		}
-// 		if(rss.state == ServiceStub::StateStopping){
-// 			if(!_wait){
-// 				return;
-// 			}
-// 			while(rss.state == ServiceStub::StateStopping){
-// 				rss.cnd.wait(_rlock);
-// 			}
-// 			continue;
-// 		}
-// 		if(rss.state == ServiceStub::StateRunning){
-// 			rss.state = Data::StateStopping;
-// 			EventNotifier		notifier(*this, Event(EventDie));
-// 			ObjectVisitFunctorT fctor(notifier);
-// 			bool b = doForEachServiceObject(_svcidx, fctor);
-// 			if(!b){
-// 				rss.state = ServiceStub::StateStopped;
-// 				rss.cnd.broadcast();
-// 			}
-// 		}
-// 	}
-}
-
-void Manager::doResetService(const size_t _svcidx, Locker<Mutex> &_rlock){
-// 	//Locker<Mutex>	lock1(d.mtx);
-// 	cassert(_svcidx < d.svcprovisioncp);
-// 	ServiceStub		&rss = d.psvcarr[_svcidx];
-// 	cassert(rss.psvc);
-// 	
-// 	doWaitStopService(_svcidx, _rlock, true);
-// 	
-// 	rss.state = ServiceStub::StateRunning;
-// 	rss.cnd.broadcast();
+void Manager::stop(const bool _wait){
+	
 }
 
 

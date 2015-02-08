@@ -2,6 +2,7 @@
 #include <deque>
 #include "system/common.hpp"
 #include "system/atomic.hpp"
+#include "system/mutex.hpp"
 
 using namespace std;
 using namespace solid;
@@ -103,7 +104,7 @@ int main(int argc, char *argv[]){
 			udq2.push_back(s2.registerObject(new ObjectBase(i)));
 		}
 	}
-	
+	cout<<"Sizeof(Mutex): "<<sizeof(Mutex)<<endl;
 	cout<<"Manager:"<<endl;
 	s0.forEach(object_print);
 	
