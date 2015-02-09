@@ -65,7 +65,7 @@ public:
 	
 	virtual ~Manager();
 
-	void stop(const bool _wait = true);
+	void stop();
 	
 	bool notify(ObjectUidT const &_ruid, Event const &_e, const size_t _sigmsk = 0);
 
