@@ -85,7 +85,7 @@ struct ObjectChunk{
 	}
 };
 
-enum States{
+enum State{
 	StateStartingE = 1,
 	StateRunningE,
 	StateStoppingE,
@@ -132,6 +132,8 @@ struct ObjectStoreStub{
 	AtomicLongT			usecnt;
 	ChunkDequeT			vec;
 };
+
+typedef ATOMIC_NS::atomic<State>	AtomicStateT;
 
 //---------------------------------------------------------
 struct Manager::Data{
@@ -228,7 +230,8 @@ struct Manager::Data{
 	AtomicSizeT				crtsvcstoreidx;
 	ServiceDequeT			svcdq;
 	ServiceStoreStub		svcstore[2];
-	AtomicSizeT				svccnt;
+	AtomicSizeT				crtsvcidx;
+	size_t					svccnt;
 	SizeStackT				svccache;
 	
 	Mutex					*pobjmtxarr;
@@ -244,6 +247,8 @@ struct Manager::Data{
 	AtomicSizeT				maxobjcnt;
 	
 	SizeStackT				chkcache;
+	
+	AtomicStateT			state;
 	
 	Mutex					mtx;
 	Condition				cnd;
@@ -263,7 +268,7 @@ void EventNotifierF::operator()(ObjectBase &_robj){
 
 Manager::Data::Data(
 	Manager &_rm
-):crtsvcstoreidx(0), svccnt(0), crtobjstoreidx(0)
+):crtsvcstoreidx(0), crtsvcidx(0), svccnt(0), crtobjstoreidx(0), state(StateRunningE)
 {
 }
 
@@ -314,6 +319,10 @@ bool Manager::registerService(
 	}
 	Locker<Mutex>	lock(d.mtx);
 	
+	if(d.state != StateRunningE){
+		return false;
+	}
+	
 	size_t	crtsvcstoreidx = d.crtsvcstoreidx;
 	size_t	svcidx = -1;
 	
@@ -322,12 +331,12 @@ bool Manager::registerService(
 		svcidx = d.svccache.top();
 		d.svccache.top();
 		
-	}else if(d.svccnt < d.svcstore[crtsvcstoreidx].vec.size()){
+	}else if(d.crtsvcidx < d.svcstore[crtsvcstoreidx].vec.size()){
 		
-		svcidx = d.svccnt;
+		svcidx = d.crtsvcidx;
 		d.svcdq.push_back(ServiceStub(d.psvcmtxarr[svcidx % d.svcmtxcnt]));
 		d.svcstore[crtsvcstoreidx].vec[svcidx] = &d.svcdq[svcidx];
-		++d.svccnt;
+		++d.crtsvcidx;
 		
 	}else{
 		
@@ -339,17 +348,17 @@ bool Manager::registerService(
 		d.svcstore[newsvcvecidx].vec.push_back(nullptr);
 		d.svcstore[newsvcvecidx].vec.resize(d.svcstore[newsvcvecidx].vec.capacity());
 		
-		svcidx = d.svccnt;
+		svcidx = d.crtsvcidx;
 		
 		d.svcdq.push_back(ServiceStub(d.psvcmtxarr[svcidx % d.svcmtxcnt]));
 		d.svcstore[newsvcvecidx].vec[svcidx] = &d.svcdq[svcidx];
 		
 		crtsvcstoreidx = d.releaseWriteServiceStore(newsvcvecidx);
-		++d.svccnt;
+		++d.crtsvcidx;
 
 	}
 	_rs.idx = svcidx;
-	
+	++d.svccnt;
 	d.svcstore[crtsvcstoreidx].vec[svcidx]->reset(&_rs);
 	return true;
 }
@@ -376,6 +385,10 @@ void Manager::unregisterService(Service &_rs){
 		d.chkcache.push(chkidx);
 	}
 	rss.reset();
+	--d.svccnt;
+	if(d.svccnt == 0 && d.state == StateStoppingE){
+		d.cnd.broadcast();
+	}
 }
 
 ObjectUidT Manager::registerObject(
@@ -703,8 +716,39 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 	}
 }
 
-void Manager::stop(const bool _wait){
+void Manager::stop(){
+	{
+		Locker<Mutex>	lock(d.mtx);
+		if(d.state == StateStoppedE){
+			return;
+		}
+		if(d.state == StateRunningE){
+			d.state = StateStoppingE;
+		}else if(d.state == StateStoppingE){
+			while(d.svccnt){
+				d.cnd.wait(lock);
+			}
+		}else{
+			return;
+		}
+	}
 	
+	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
+	
+	for(auto it = d.svcstore[svcstoreidx].vec.begin(); it != d.svcstore[svcstoreidx].vec.end(); ++it){
+		ServiceStub		&rsvc = *(*it);
+		
+		Locker<Mutex>	lock(rsvc.rmtx);
+		if(rsvc.psvc && rsvc.state == StateRunningE){
+			EventNotifierF		evtntf(*this, rsvc.psvc->stopevent);
+			ObjectVisitFunctorT fctor(evtntf);
+			const bool			any = doForEachServiceObject(rsvc.firstchk, fctor);
+			
+			rsvc.state = any ? StateStoppingE : StateStoppedE;
+		}
+	}
+	
+	d.releaseReadServiceStore(svcstoreidx);
 }
 
 
