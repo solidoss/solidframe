@@ -337,8 +337,7 @@ UidT ReactorBase::popUid(ObjectBase &_robj){
 	}else{
 		++crtidx;
 	}
-	//UidT	runid(Manager::specific().computeThreadId(mgridx, rv.index), rv.unique);
-	//_robj.runId(runid);
+	_robj.runId(rv);
 	return rv;
 }
 

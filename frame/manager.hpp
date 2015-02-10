@@ -27,6 +27,8 @@ class	ObjectBase;
 class	SchedulerBase;
 class	ReactorBase;
 
+struct	ServiceStub;
+
 template <class Obj, class Sch>
 struct ScheduleObjectF{
 	DynamicPointer<Obj>	&robjptr;
@@ -119,6 +121,7 @@ private:
 	
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctorT &_fctor);
+	void doUnregisterService(ServiceStub &_rss);
 private:
 	struct Data;
 	Data	&d;

@@ -179,7 +179,7 @@ int main(int argc, char *argv[]){
 		frame::Manager		m;
 		frame::Service		svc(m, frame::Event(EventStopE));
 		
-		if(sch.start(0)){
+		if(sch.start(3)){
 			running = false;
 			cout<<"Error starting scheduler"<<endl;
 		}else{
@@ -193,7 +193,10 @@ int main(int argc, char *argv[]){
 			if(sd.ok()){
 				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, sd));
 				solid::ErrorConditionT				err;
-				sch.startObject(objptr, svc, frame::Event(EventStartE), err);
+				solid::frame::ObjectUidT			objuid;
+				
+				objuid = sch.startObject(objptr, svc, frame::Event(EventStartE), err);
+				idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
 			}else{
 				cout<<"Error creating listener socket"<<endl;
 				running = false;
@@ -227,7 +230,7 @@ int main(int argc, char *argv[]){
 		
 		
 		
-		m.stop(false);
+		m.stop();
 	}
 	Thread::waitAll();
 	return 0;

@@ -56,14 +56,14 @@ public:
 	
 	bool start();
 	
-	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _re);
+	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _revt);
 	/*virtual*/ void stop();
 	
 	void registerCompletionHandler(CompletionHandler &_rch);
 	void unregisterCompletionHandler(CompletionHandler &_rch);
 	
 	void run();
-	bool push(TaskT &_rcon, Service &_rsvc, Event const &_revt);
+	bool push(TaskT &_robj, Service &_rsvc, Event const &_revt);
 	
 private:
 private://data

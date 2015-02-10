@@ -107,7 +107,7 @@ enum Statuses{
 typedef ATOMIC_NS::atomic<Statuses>			AtomicStatuesT;
 
 struct SchedulerBase::Data{
-	Data():crtreactoridx(0), reactorcnt(0), status(StatusStoppedE), usecnt(0){
+	Data():crtreactoridx(0), reactorcnt(0), stopwaitcnt(0), status(StatusStoppedE), usecnt(0){
 	}
 	
 	size_t						crtreactoridx;
