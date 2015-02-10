@@ -23,11 +23,13 @@
 #include "system/mutex.hpp"
 #include "system/thread.hpp"
 #include "system/device.hpp"
+#include "system/error.hpp"
 
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
 #include "frame/object.hpp"
+#include "frame/service.hpp"
 #include "frame/common.hpp"
 
 #include "frame/aio2/aioreactor.hpp"
@@ -44,13 +46,14 @@ typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
 typedef Reactor::TaskT				TaskT;
 struct NewTaskStub{
 	NewTaskStub(
-		UidT const&_ruid, TaskT const&_rtsk, Event const &_revt
-	):uid(_ruid), tsk(_rtsk), evt(_revt){}
+		UidT const&_ruid, TaskT const&_rtsk, Service &_rsvc, Event const &_revt
+	):uid(_ruid), tsk(_rtsk), rsvc(_rsvc), evt(_revt){}
 	
-	NewTaskStub(){}
-	UidT	uid;
-	TaskT	tsk;
-	Event	evt;
+	//NewTaskStub(){}
+	UidT		uid;
+	TaskT		tsk;
+	Service		&rsvc;
+	Event		evt;
 };
 
 typedef std::vector<NewTaskStub>	NewTaskVectorT;
@@ -87,12 +90,12 @@ bool Reactor::start(){
 	vdbgx(Debug::aio, "");
 	d.epollfd = epoll_create(EventCapacity);
 	if(d.epollfd < 0){
-		edbgx(Debug::aio, "epoll_create: "<<strerror(errno));
+		edbgx(Debug::aio, "epoll_create: "<<last_system_error().message());
 		return false;
 	}
 	d.eventdev = Device(eventfd(0, EFD_NONBLOCK));
 	if(!d.eventdev.ok()){
-		edbgx(Debug::aio, "eventfd: "<<strerror(errno));
+		edbgx(Debug::aio, "eventfd: "<<last_system_error().message());
 		return false;
 	}
 	epoll_event ev;
@@ -100,15 +103,15 @@ bool Reactor::start(){
 	ev.events = EPOLLIN | EPOLLPRI | EPOLLET;
 	
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.eventdev.descriptor(), &ev)){
-		edbgx(Debug::aio, "epoll_ctl: "<<strerror(errno));
+		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
 		return false;
 	}
 	d.running = true;
 	return true;
 }
 
-/*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _re){
-	vdbgx(Debug::aio, "");
+/*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _revt){
+	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event id = "<<_revt.id);
 	return false;
 }
 /*virtual*/ void Reactor::stop(){
@@ -120,16 +123,19 @@ bool Reactor::start(){
 }
 
 //Called from outside reactor's thread
-bool Reactor::push(TaskT &_rcon, Service &_rsvc, Event const &_revt){
-	vdbgx(Debug::aio, "");
+bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revt){
+	vdbgx(Debug::aio, (void*)this);
 	bool 	rv = true;
 	size_t	pushvecsz = 0;
 	{
 		Locker<Mutex>	lock(d.mtx);
-		const UidT		uid = this->popUid(*_rcon);
-
-		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _rcon, _revt));
+		const UidT		uid = this->popUid(*_robj);
+		
+		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event id = "<<_revt.id);
+			
+		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revt));
 		pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();
+		
 	}
 	d.crtpushvecsz = pushvecsz;
 	if(pushvecsz == 1){
@@ -159,7 +165,10 @@ void Reactor::run(){
 				}
 			}
 		}else if(selcnt < 0){
-			running = false;
+			if(errno != EINTR){
+				edbgx(Debug::aio, "epoll_wait errno  = "<<last_system_error().message());
+				running = false;	
+			}
 		}
 	}
 	vdbgx(Debug::aio, "<exit>");
