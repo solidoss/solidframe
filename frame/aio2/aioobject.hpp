@@ -65,10 +65,15 @@ protected:
 	
 	Reactor* safeSpecificReactor()const;
 	
-private:
-	virtual bool onEvent(ReactorContext &_rctx, Event const &_revent){
-		return false;
+	void postStop(ReactorContext &_rctx);
+	
+	template <class F>
+	void post(ReactorContext &_rctx, F _f){
+		
 	}
+	
+private:
+	virtual void onEvent(ReactorContext &_rctx, Event const &_revent);
 private:
 	CompletionHandler	*pchfirst;//A linked list of completion handlers
 };
