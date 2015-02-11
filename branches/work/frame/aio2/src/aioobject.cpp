@@ -30,6 +30,14 @@ static CompletionHandler	dummy_ch;//used for detecting object preparing / runnin
 
 Object::Object():pchfirst(&dummy_ch){}
 
+/*virtual*/ void Object::onEvent(ReactorContext &_rctx, Event const &_revent){
+	
+}
+
+void Object::postStop(ReactorContext &_rctx){
+	
+}
+
 bool Object::isRunning()const{
 	return pchfirst != &dummy_ch && (pchfirst == NULL || pchfirst->pprev != &dummy_ch);
 }
