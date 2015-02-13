@@ -301,9 +301,15 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	
 	if(!repeatcnt){
 #if 0
+		//the normal way
 		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));//fully asynchronous call
 #else
-		//use here this->post(...) as an example
+		//using this->post(...) as an example
+		this->post(
+			_rctx,
+			 [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){onEvent(_rctx, _revent);},
+			frame::Event(EventStartE)
+		);
 #endif
 	}
 }
