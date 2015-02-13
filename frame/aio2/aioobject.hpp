@@ -68,7 +68,7 @@ protected:
 	void postStop(ReactorContext &_rctx);
 	
 	template <class F>
-	void post(ReactorContext &_rctx, F _f){
+	void post(ReactorContext &_rctx, F _f, Event const &_revent = Event()){
 		
 	}
 	
