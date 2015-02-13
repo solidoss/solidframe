@@ -150,14 +150,6 @@ private:
 	Data &d;
 };
 
-//#ifdef __PRETTY_FUNCTION__
-//#define CRT_FUNCTION_NAME __PRETTY_FUNCTION__
-// #else
-// 
-#ifndef __FUNCTION__
-#define __FUNCTION__ __func__
-#endif
-
 
 struct DebugTraceTest{
 	DebugTraceTest(
@@ -175,10 +167,35 @@ struct DebugTraceTest{
 
 }//namespace solid
 
-#ifdef UDEBUG
+//#ifdef __PRETTY_FUNCTION__
+//#define CRT_FUNCTION_NAME __PRETTY_FUNCTION__
+// #else
+// 
 
-#define CRT_FUNCTION_NAME __FUNCTION__
+// #ifndef __FUNCTION__
+// #define __FUNCTION__ __func__
 // #endif
+// 
+// #ifdef __PRETTY_FUNCTION__
+// #define CRT_FUNCTION_NAME __PRETTY_FUNCTION__
+// #else
+// #define CRT_FUNCTION_NAME __FUNCTION__
+// #endif
+
+
+#ifndef CRT_FUNCTION_NAME
+    #ifdef __PRETTY_FUNCTION__
+        #define CRT_FUNCTION_NAME __PRETTY_FUNCTION__
+    #elif defined(__FUNCTION__)
+        #define CRT_FUNCTION_NAME __FUNCTION__
+    #elif __func__
+        #define CRT_FUNCTION_NAME __func__
+    #else
+        #define CRT_FUNCTION_NAME ""
+    #endif
+#endif
+
+#ifdef UDEBUG
 
 #define idbg(x)\
 	if(solid::Debug::the().isSet(solid::Debug::Info, solid::Debug::any)){\

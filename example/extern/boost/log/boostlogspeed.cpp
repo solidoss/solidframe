@@ -100,7 +100,7 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	string dbgout;
-	Debug::the().levelMask("vie");
+	Debug::the().levelMask("view");
 	Debug::the().moduleMask("test");
 	
 	Debug::the().initStdErr(
