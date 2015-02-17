@@ -66,6 +66,7 @@ public:
 	bool push(TaskT &_robj, Service &_rsvc, Event const &_revt);
 	
 private:
+	void doIo(const size_t _sz);
 private://data
 	struct Data;
 	Data	&d;

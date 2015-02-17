@@ -48,8 +48,8 @@ void producer(){
 		
 		for(size_t j = 0; j < size; ++j){
 			v2[j] =  solid::bit_revert(v1[j] + j);
-			//BOOST_LOG_SEV(logger, boost::log::trivial::debug)<<" Some value = "<<v2[j];
-			wdbgx(testmodule, " Some value = "<<v2[j]);
+			BOOST_LOG_SEV(logger, boost::log::trivial::debug)<<" Some value = "<<v2[j];
+			//wdbgx(testmodule, " Some value = "<<v2[j]);
 		}
 		
 	}
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]){
     
     logging::core::get()->set_filter
     (
-        logging::trivial::severity > logging::trivial::debug
+        logging::trivial::severity >= logging::trivial::debug
     );
     logging::add_common_attributes();
 	

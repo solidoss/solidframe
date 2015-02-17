@@ -149,15 +149,11 @@ void throw_exception(const char* const _pt, const T& _rt, const char *const _fil
 
 
 #ifndef CRT_FUNCTION_NAME
-    #ifdef __PRETTY_FUNCTION__
-        #define CRT_FUNCTION_NAME __PRETTY_FUNCTION__
-    #elif __FUNCTION__
-        #define CRT_FUNCTION_NAME __FUNCTION__
-    #elif __func__
-        #define CRT_FUNCTION_NAME __func__
-    #else
-        #define CRT_FUNCTION_NAME ""
-    #endif
+	#ifdef ON_WINDOWS
+		#define CRT_FUNCTION_NAME __func__
+	#else
+		#define CRT_FUNCTION_NAME __FUNCTION__
+	#endif
 #endif
 
 
