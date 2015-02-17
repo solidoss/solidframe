@@ -61,8 +61,16 @@ enum{
 	EventCapacity = 4096
 };
 
+typedef std::vector<epoll_event>	EpollEventVectorT;
+
 struct Reactor::Data{
 	Data():epollfd(-1), running(0), crtpushtskvecidx(0), crtpushvecsz(0){}
+	
+	int computeWaitTimeMilliseconds()const{
+		//TODO:
+		return -1;
+	}
+	
 	int					epollfd;
 	Device				eventdev;
 	AtomicBoolT			running;
@@ -71,6 +79,7 @@ struct Reactor::Data{
 	
 	Mutex				mtx;
 	epoll_event 		events[EventCapacity];
+	EpollEventVectorT	eventvec;
 	NewTaskVectorT		pushtskvec[2];
 };
 
@@ -106,6 +115,7 @@ bool Reactor::start(){
 		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
 		return false;
 	}
+	d.eventvec.resize(EventCapacity);
 	d.running = true;
 	return true;
 }
@@ -151,27 +161,29 @@ void Reactor::run(){
 	int		selcnt;
 	bool	running = true;
 	while(running){
-		selcnt = epoll_wait(d.epollfd, d.events, EventCapacity, -1);
+		selcnt = epoll_wait(d.epollfd, d.eventvec.data(), d.eventvec.size(), d.computeWaitTimeMilliseconds());
 		if(selcnt > 0){
-			for(int i = 0; i < selcnt; ++i){
-				if(d.events[i].data.u64 == 0){
-					//event
-					uint64 v = 0;
-					d.eventdev.read(reinterpret_cast<char*>(&v), sizeof(v));
-					vdbgx(Debug::aio, "Event - Stopping - read: "<<v);
-					running = d.running;
-				}else{
-					
-				}
-			}
-		}else if(selcnt < 0){
-			if(errno != EINTR){
-				edbgx(Debug::aio, "epoll_wait errno  = "<<last_system_error().message());
-				running = false;	
-			}
+			doIo(selcnt);
+		}else if(selcnt < 0 && errno != EINTR){
+			edbgx(Debug::aio, "epoll_wait errno  = "<<last_system_error().message());
+			running = false;	
 		}
 	}
 	vdbgx(Debug::aio, "<exit>");
+}
+
+void Reactor::doIo(const size_t _sz){
+	for(int i = 0; i < _sz; ++i){
+		if(d.eventvec[i].data.u64 == 0){
+			//event
+			uint64 v = 0;
+			d.eventdev.read(reinterpret_cast<char*>(&v), sizeof(v));
+			vdbgx(Debug::aio, "Event - Stopping - read: "<<v);
+			//running = d.running;
+		}else{
+			
+		}
+	}
 }
 
 void Reactor::wait(ReactorContext &_rctx, CompletionHandler const *_pch, const ReactorWaitRequestsE _req){
