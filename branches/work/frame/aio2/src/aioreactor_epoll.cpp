@@ -34,6 +34,7 @@
 
 #include "frame/aio2/aioreactor.hpp"
 #include "frame/aio2/aioobject.hpp"
+#include "frame/aio2/aiocompletion.hpp"
 
 
 namespace solid{
@@ -44,6 +45,8 @@ namespace aio{
 typedef ATOMIC_NS::atomic<bool>		AtomicBoolT;
 typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
 typedef Reactor::TaskT				TaskT;
+
+
 struct NewTaskStub{
 	NewTaskStub(
 		UidT const&_ruid, TaskT const&_rtsk, Service &_rsvc, Event const &_revt
@@ -56,12 +59,24 @@ struct NewTaskStub{
 	Event		evt;
 };
 
-typedef std::vector<NewTaskStub>	NewTaskVectorT;
+struct CompletionHandlerStub{
+	CompletionHandlerStub(
+		CompletionHandler *_pch = nullptr
+	):pch(_pch), waitreq(ReactorWaitNone){}
+	
+	CompletionHandler		*pch;
+	ReactorWaitRequestsE	waitreq;
+};
+
+
 enum{
 	EventCapacity = 4096
 };
 
-typedef std::vector<epoll_event>	EpollEventVectorT;
+
+typedef std::vector<NewTaskStub>			NewTaskVectorT;
+typedef std::vector<epoll_event>			EpollEventVectorT;
+typedef std::deque<CompletionHandlerStub>	CompletionHandlerDequeT;
 
 struct Reactor::Data{
 	Data():epollfd(-1), running(0), crtpushtskvecidx(0), crtpushvecsz(0){}
@@ -71,16 +86,17 @@ struct Reactor::Data{
 		return -1;
 	}
 	
-	int					epollfd;
-	Device				eventdev;
-	AtomicBoolT			running;
-	size_t				crtpushtskvecidx;
-	AtomicSizeT			crtpushvecsz;
+	int							epollfd;
+	Device						eventdev;
+	AtomicBoolT					running;
+	size_t						crtpushtskvecidx;
+	AtomicSizeT					crtpushvecsz;
 	
-	Mutex				mtx;
-	epoll_event 		events[EventCapacity];
-	EpollEventVectorT	eventvec;
-	NewTaskVectorT		pushtskvec[2];
+	Mutex						mtx;
+	epoll_event 				events[EventCapacity];
+	EpollEventVectorT			eventvec;
+	NewTaskVectorT				pushtskvec[2];
+	CompletionHandlerDequeT		chdq;
 };
 
 Reactor::Reactor(
@@ -162,28 +178,46 @@ void Reactor::run(){
 	bool	running = true;
 	while(running){
 		selcnt = epoll_wait(d.epollfd, d.eventvec.data(), d.eventvec.size(), d.computeWaitTimeMilliseconds());
+		
 		if(selcnt > 0){
-			doIo(selcnt);
+			doCompleteIo(selcnt);
 		}else if(selcnt < 0 && errno != EINTR){
 			edbgx(Debug::aio, "epoll_wait errno  = "<<last_system_error().message());
 			running = false;	
 		}
+		
+		doCompleteTimer();
+		
+		doCompleteExec();
+		
 	}
 	vdbgx(Debug::aio, "<exit>");
 }
 
-void Reactor::doIo(const size_t _sz){
+void Reactor::doCompleteIo(const size_t _sz){
 	for(int i = 0; i < _sz; ++i){
-		if(d.eventvec[i].data.u64 == 0){
-			//event
-			uint64 v = 0;
-			d.eventdev.read(reinterpret_cast<char*>(&v), sizeof(v));
-			vdbgx(Debug::aio, "Event - Stopping - read: "<<v);
-			//running = d.running;
-		}else{
-			
+		epoll_event				&rev = d.eventvec[i];
+		CompletionHandlerStub	&rch = d.chdq[rev.data.u64];
+		
+		if(rch.pch){
+			rch.pch->handleCompletion();
 		}
+		
+// 		if(d.eventvec[i].data.u64 == 0){
+// 			//event
+// 			uint64 v = 0;
+// 			d.eventdev.read(reinterpret_cast<char*>(&v), sizeof(v));
+// 			vdbgx(Debug::aio, "Event - Stopping - read: "<<v);
+// 			//running = d.running;
+// 		}
 	}
+}
+void Reactor::doCompleteTimer(){
+	
+}
+
+void Reactor::doCompleteExec(){
+	
 }
 
 void Reactor::wait(ReactorContext &_rctx, CompletionHandler const *_pch, const ReactorWaitRequestsE _req){

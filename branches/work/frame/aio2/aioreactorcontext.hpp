@@ -96,10 +96,10 @@ private:
 	CompletionHandler			*pch;
 };
 
-template <typename F>
-void post(ReactorContext &_rctx, F _f, Event const& _ev){
-	_rctx.reactor().post(_rctx, _f, _ev, /*CompletionHandler**/NULL);
-}
+// template <typename F>
+// void post(ReactorContext &_rctx, F _f, Event const& _ev){
+// 	_rctx.reactor().post(_rctx, _f, _ev, /*CompletionHandler**/NULL);
+// }
 
 }//namespace aio
 }//namespace frame

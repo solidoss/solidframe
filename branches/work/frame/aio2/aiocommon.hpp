@@ -26,6 +26,7 @@ enum ReactorEventsE{
 };
 
 enum ReactorWaitRequestsE{
+	ReactorWaitNone = 0,
 	ReactorWaitRead,
 	ReactorWaitWrite,
 	ReactorWaitReadOrWrite
