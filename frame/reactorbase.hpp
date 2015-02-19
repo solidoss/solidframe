@@ -37,8 +37,8 @@ protected:
 	typedef ATOMIC_NS::atomic<size_t> AtomicSizeT;
 	
 	ReactorBase(
-		SchedulerBase &_rsch, const size_t _schidx
-	):rsch(_rsch), schidx(_schidx), crtidx(0){}
+		SchedulerBase &_rsch, const size_t _schidx, const size_t _crtidx = 0
+	):rsch(_rsch), schidx(_schidx), crtidx(_crtidx){}
 	
 	void stopObject(ObjectBase &_robj);
 	SchedulerBase& scheduler();
@@ -46,6 +46,8 @@ protected:
 	void pushUid(UidT const &_ruid);
 	
 	AtomicSizeT		crtload;
+	
+	size_t runIndex(ObjectBase &_robj)const;
 private:
 	friend	class Manager;
 	friend	class SchedulerBase;
@@ -77,6 +79,10 @@ inline size_t ReactorBase::load()const{
 
 inline void ReactorBase::pushUid(UidT const &_ruid){
 	uidstk.push(_ruid);
+}
+
+inline size_t ReactorBase::runIndex(ObjectBase &_robj)const{
+	return _robj.runId().index;
 }
 
 }//namespace frame

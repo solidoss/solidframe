@@ -10,7 +10,7 @@
 #ifndef SOLID_FRAME_AIO_COMPLETION_HPP
 #define SOLID_FRAME_AIO_COMPLETION_HPP
 
-#include "frame/aio/aiocommon.hpp"
+#include "frame/aio2/aiocommon.hpp"
 #include "system/error.hpp"
 #include "system/cassert.hpp"
 
@@ -25,16 +25,16 @@ struct ReactorContext;
 struct ReactorEvent;
 
 class CompletionHandler{
-	static void on_init_completion(ReactorContext &);
+	static void on_init_completion(CompletionHandler&, ReactorContext &);
 protected:
-	typedef void (*CallbackT)(ReactorContext &);
+	typedef void (*CallbackT)(CompletionHandler&, ReactorContext &);
 public:
 	CompletionHandler(
 		ObjectProxy const &_rop,
 		CallbackT _pcall = &on_init_completion
 	);
 	
-	CompletionHandler();
+	CompletionHandler(CallbackT _pcall = &on_init_completion);
 	
 	~CompletionHandler();
 	
@@ -45,10 +45,15 @@ public:
 	void deactivate();
 protected:
 	void completionCallback(CallbackT *_pcbk);
+	ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
+	Reactor& reactor(ReactorContext &_rctx)const;
+	void error(ReactorContext &_rctx, ERROR_NS::error_condition const& _err)const;
+	void systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const;
 private:
 	friend class Reactor;
+	
 	void handleCompletion(ReactorContext &_rctx){
-		(*call)(_rctx);
+		(*call)(*this, _rctx);
 	}
 private:
 	friend class Object;

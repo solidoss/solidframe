@@ -66,10 +66,12 @@ public:
 	bool push(TaskT &_robj, Service &_rsvc, Event const &_revt);
 	
 private:
-	void doCompleteIo(const size_t _sz);
-	void doCompleteTimer();
-	void doCompleteExec();
+	void doCompleteIo(TimeSpec const &_rcrttime, const size_t _sz);
+	void doCompleteTimer(TimeSpec  const &_rcrttime);
+	void doCompleteExec(TimeSpec  const &_rcrttime);
+	void doCompleteEvents();
 private://data
+	friend struct EventHandler;
 	struct Data;
 	Data	&d;
 };

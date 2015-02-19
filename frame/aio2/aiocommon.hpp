@@ -17,12 +17,17 @@ namespace frame{
 namespace aio{
 
 enum ReactorEventsE{
+	ReactorEventNone = 0,
 	ReactorEventRecv = 1,
 	ReactorEventSend = 2,
 	ReactorEventRecvSend = ReactorEventRecv | ReactorEventSend,
-	ReactorEventError,
-	ReactorEventClear,
-	ReactorEventInit,
+	ReactorEventError = 4,
+	ReactorEventHangup = 8,
+	ReactorEventOOB = 16,//receive Out Of Band Data
+	ReactorEventOOBSend = ReactorEventOOB | ReactorEventSend,
+	ReactorEventRecvHangup = 32,
+	ReactorEventClear = 64,
+	ReactorEventInit = 128,
 };
 
 enum ReactorWaitRequestsE{
