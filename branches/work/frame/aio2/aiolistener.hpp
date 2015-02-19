@@ -25,9 +25,9 @@ struct	ObjectProxy;
 struct	ReactorContext;
 
 class Listener: public CompletionHandler{
-static void on_completion(ReactorContext &_rctx);
-static void on_posted_accept(ReactorContext &_rctx);
-static void on_init_completion(ReactorContext &_rctx);
+static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx);
+static void on_posted_accept(CompletionHandler& _rch, ReactorContext &_rctx);
+static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx);
 public:
 	Listener(
 		ReactorContext &_rctx,
@@ -56,7 +56,7 @@ public:
 			return false;
 		}else{
 			//TODO: set proper error
-			_rctx.error(ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 			return true;
 		}
 	}
@@ -73,7 +73,7 @@ public:
 			return false;
 		}else{
 			//TODO: set proper error
-			_rctx.error(ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 			return true;
 		}
 	}

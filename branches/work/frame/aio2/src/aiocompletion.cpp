@@ -12,6 +12,7 @@
 #include "frame/aio2/aiocompletion.hpp"
 #include "frame/aio2/aioreactorcontext.hpp"
 #include "system/exception.hpp"
+#include "frame/aio2/aioreactor.hpp"
 
 namespace solid{
 namespace frame{
@@ -29,7 +30,9 @@ CompletionHandler::CompletionHandler(
 	pobj->registerCompletionHandler(*this);
 }
 
-CompletionHandler::CompletionHandler():pobj(NULL), pprev(NULL), pnext(NULL), idxreactor(-1), call(CompletionHandler::on_init_completion){
+CompletionHandler::CompletionHandler(
+	CallbackT _pcall/* = &on_init_completion*/
+):pobj(NULL), pprev(NULL), pnext(NULL), idxreactor(-1), call(_pcall){
 	
 }
 
@@ -39,6 +42,22 @@ CompletionHandler::~CompletionHandler(){
 		pobj->unregisterCompletionHandler(*this);
 		deactivate();
 	}
+}
+
+ReactorEventsE CompletionHandler::reactorEvent(ReactorContext &_rctx)const{
+	return _rctx.reactorEvent();
+}
+
+Reactor& CompletionHandler::reactor(ReactorContext &_rctx)const{
+	return _rctx.reactor();
+}
+
+void CompletionHandler::error(ReactorContext &_rctx, ERROR_NS::error_condition const& _err)const{
+	_rctx.error(_err);
+}
+
+void CompletionHandler::systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const{
+	_rctx.systemError(_err);
 }
 
 bool CompletionHandler::activate(ReactorContext &_rctx){
@@ -62,8 +81,8 @@ void CompletionHandler::deactivate(){
 	}
 }
 
-/*static*/ void CompletionHandler::on_init_completion(ReactorContext &_rctx){
-	_rctx.completionHandler()->call = NULL;
+/*static*/ void CompletionHandler::on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
+	_rch.call = NULL;
 }
 
 }//namespace aio

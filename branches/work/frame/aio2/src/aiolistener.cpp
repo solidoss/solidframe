@@ -10,59 +10,60 @@
 
 #include "frame/aio2/aiolistener.hpp"
 #include "frame/aio2/aiocommon.hpp"
+#include "frame/aio2/aioreactor.hpp"
 
 
 namespace solid{
 namespace frame{
 namespace aio{
 
-/*static*/ void Listener::on_completion(ReactorContext &_rctx){
-	Listener *pthis = static_cast<Listener*>(_rctx.completionHandler());
-	if(_rctx.reactorEvent() == ReactorEventRecv){
-		cassert(!pthis->f.empty());
+/*static*/ void Listener::on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
+	Listener &rthis = static_cast<Listener&>(_rch);
+	if(rthis.reactorEvent(_rctx) == ReactorEventRecv){
+		cassert(!rthis.f.empty());
 		SocketDevice sd;
-		pthis->doAccept(_rctx, sd);
-		FunctionT	tmpf(std::move(pthis->f));
+		rthis.doAccept(_rctx, sd);
+		FunctionT	tmpf(std::move(rthis.f));
 		tmpf(_rctx, sd);
-	}else if(_rctx.reactorEvent() == ReactorEventError){
+	}else if(rthis.reactorEvent(_rctx) == ReactorEventError){
 		SocketDevice	sd;
-		FunctionT		tmpf(std::move(pthis->f));
+		FunctionT		tmpf(std::move(rthis.f));
 		tmpf(_rctx, sd);
-	}else if(_rctx.reactorEvent() == ReactorEventClear){
-		pthis->f.clear();
+	}else if(rthis.reactorEvent(_rctx) == ReactorEventClear){
+		rthis.f.clear();
 	}
 }
 
-/*static*/ void Listener::on_posted_accept(ReactorContext &_rctx){
-	Listener *pthis = static_cast<Listener*>(_rctx.completionHandler());
-	SocketDevice sd;
-	if(pthis->doTryAccept(_rctx, sd)){
-		FunctionT	tmpf(std::move(pthis->f));
+/*static*/ void Listener::on_posted_accept(CompletionHandler& _rch, ReactorContext &_rctx){
+	Listener		&rthis = static_cast<Listener&>(_rch);
+	SocketDevice	sd;
+	if(rthis.doTryAccept(_rctx, sd)){
+		FunctionT	tmpf(std::move(rthis.f));
 		tmpf(_rctx, sd);
 	}
 }
 
-/*static*/ void Listener::on_init_completion(ReactorContext &_rctx){
+/*static*/ void Listener::on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 	
 }
 
 void Listener::doPostAccept(ReactorContext &_rctx){
 	//The post queue will keep [function, object_uid, completion_handler_uid, Event]
 	
-	_rctx.reactor().post(_rctx, &Listener::on_posted_accept, Event(), this);
+	reactor(_rctx).post(_rctx, &Listener::on_posted_accept, Event(), this);
 }
 
 
 bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 	switch(sd.acceptNonBlocking(_rsd)){
 		case AsyncError:
-			_rctx.systemError(specific_error_back());
+			systemError(_rctx, specific_error_back());
 			//TODO: set proper error
-			_rctx.error(ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 		case AsyncSuccess:
 			return true;
 		case AsyncWait:
-			_rctx.reactor().wait(_rctx, this, ReactorWaitRead);
+			reactor(_rctx).wait(_rctx, this, ReactorWaitRead);
 			break;
 	}
 	return false;
@@ -71,9 +72,9 @@ bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 void Listener::doAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 	if(sd.accept(_rsd)){
 	}else{
-		_rctx.systemError(specific_error_back());
+		systemError(_rctx, specific_error_back());
 		//TODO: set proper error
-		_rctx.error(ERROR_NS::error_condition(-1, _rctx.error().category()));
+		error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 	}
 }
 
