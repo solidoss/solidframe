@@ -179,7 +179,7 @@ int main(int argc, char *argv[]){
 		frame::Manager		m;
 		frame::Service		svc(m, frame::Event(EventStopE));
 		
-		if(sch.start(3)){
+		if(sch.start(1)){
 			running = false;
 			cout<<"Error starting scheduler"<<endl;
 		}else{

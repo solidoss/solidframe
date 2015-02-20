@@ -38,7 +38,7 @@ int thr = 4;
 size_t	testmodule;
 
 namespace {
-    boost::log::sources::severity_logger_mt<boost::log::trivial::severity_level> logger;
+	boost::log::sources::severity_logger_mt<boost::log::trivial::severity_level> logger;
 }
 
 void producer(){
@@ -85,13 +85,13 @@ int main(int argc, char *argv[]){
 	);
 	
 	logging::core::get()->add_sink(sink);
-    
-    logging::core::get()->set_filter
-    (
-        logging::trivial::severity >= logging::trivial::debug
-    );
-    logging::add_common_attributes();
-	
+
+	logging::core::get()->set_filter
+	(
+		logging::trivial::severity >= logging::trivial::debug
+	);
+	logging::add_common_attributes();
+
 	
 	boost::thread_group producer_threads;
 	

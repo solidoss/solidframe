@@ -62,7 +62,7 @@ typedef Reactor::TaskT				TaskT;
 struct EventHandler: CompletionHandler{
 	static void on_completion(CompletionHandler&, ReactorContext &);
 	
-	EventHandler(): CompletionHandler(&on_completion){}
+	EventHandler(ObjectProxy const &_rop): CompletionHandler(_rop, &on_completion){}
 	
 	void write(){
 		const uint64 v = 1;
@@ -97,13 +97,16 @@ bool EventHandler::init(){
 
 class EventObject: public Object{
 public:
-	EventObject(){}
-	
-	void init(EventHandler &_reventch, CompletionHandler &_rdummych){
-		enterRunning();
-		this->registerCompletionHandler(_reventch);
-		this->registerCompletionHandler(_rdummych);
+	EventObject():eventhandler(proxy()), dummyhandler(proxy(), dummy_completion){
+		use();
 	}
+	
+	void init(){
+		this->registerCompletionHandler(eventhandler);
+		this->registerCompletionHandler(dummyhandler);
+	}
+	EventHandler			eventhandler;
+	CompletionHandler		dummyhandler;
 };
 
 struct NewTaskStub{
@@ -163,7 +166,7 @@ struct Reactor::Data{
 	Data(
 		
 	):	epollfd(-1), running(0), crtpushtskvecidx(0),
-		crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0), dummyhandler(&dummy_completion){}
+		crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0){}
 	
 	int computeWaitTimeMilliseconds()const{
 		//TODO:
@@ -181,8 +184,7 @@ struct Reactor::Data{
 	EpollEventVectorT			eventvec;
 	NewTaskVectorT				pushtskvec[2];
 	RaiseEventVectorT			raisevec[2];
-	EventHandler				eventhandler;
-	CompletionHandler 			dummyhandler;
+	EventObject					eventobj;
 	CompletionHandlerDequeT		chdq;
 	UidVectorT					freeuidvec;
 	ObjectDequeT				objdq;
@@ -208,27 +210,27 @@ bool Reactor::start(){
 		return false;
 	}
 	
-	if(!d.eventhandler.init()){
+	if(!d.eventobj.eventhandler.init()){
 		return false;
 	}
 	
 	d.objdq.push_back(ObjectStub());
-	d.objdq.back().objptr = new EventObject;
+	d.objdq.back().objptr = &d.eventobj;
 	
-	d.chdq.push_back(CompletionHandlerStub(&d.eventhandler));
-	d.chdq.push_back(CompletionHandlerStub(&d.dummyhandler));
+	d.chdq.push_back(CompletionHandlerStub(&d.eventobj.eventhandler));
+	d.chdq.push_back(CompletionHandlerStub(&d.eventobj.dummyhandler));
 	
 	popUid(*d.objdq.back().objptr);
 	
-	static_cast<EventObject&>(*d.objdq.back().objptr).init(d.eventhandler, d.dummyhandler);
+	d.eventobj.init();
 	
-	d.chdq.back().waitreq = ReactorWaitRead;
+	d.chdq.front().waitreq = ReactorWaitRead;
 	
 	epoll_event ev;
 	ev.data.u64 = 0;
 	ev.events = EPOLLIN | EPOLLET;
 	
-	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.eventhandler.descriptor(), &ev)){
+	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.eventobj.eventhandler.descriptor(), &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
 		return false;
 	}
@@ -251,14 +253,14 @@ bool Reactor::start(){
 		d.crtraisevecsz = raisevecsz;
 	}
 	if(raisevecsz == 1){
-		d.eventhandler.write();
+		d.eventobj.eventhandler.write();
 	}
 	return rv;
 }
 /*virtual*/ void Reactor::stop(){
 	vdbgx(Debug::aio, "");
 	d.running = false;
-	d.eventhandler.write();
+	d.eventobj.eventhandler.write();
 }
 
 //Called from outside reactor's thread
@@ -278,7 +280,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revt){
 	}
 	
 	if(pushvecsz == 1){
-		d.eventhandler.write();
+		d.eventobj.eventhandler.write();
 	}
 	return rv;
 }

@@ -61,9 +61,6 @@ protected:
 	bool unregisterCompletionHandler(CompletionHandler &_rch);
 	
 	bool isRunning()const;
-	void enterRunning();
-	
-	Reactor* safeSpecificReactor()const;
 	
 	void postStop(ReactorContext &_rctx);
 	
