@@ -358,6 +358,7 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 		ctx.objidx = rch.objidx;
 		
 		rch.pch->handleCompletion(ctx);
+		ctx.clearError();
 	}
 }
 void Reactor::doCompleteTimer(TimeSpec  const &_rcrttime){

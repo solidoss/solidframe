@@ -52,10 +52,10 @@ struct ReactorContext{
 	Object& object()const;
 	Service& service()const;
 	
-// 	void clearError(){
-// 		err.clear();
-// 		syserr.clear();
-// 	}
+	void clearError(){
+		err.clear();
+		syserr.clear();
+	}
 private:
 	friend class CompletionHandler;
 	friend class Reactor;
