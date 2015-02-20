@@ -49,12 +49,8 @@ struct ReactorContext{
 		return err;
 	}
 	
-	Object& object()const{
-		return *pobj;
-	}
-	Service& service()const{
-		return *psvc;
-	}
+	Object& object()const;
+	Service& service()const;
 	
 // 	void clearError(){
 // 		err.clear();
@@ -65,6 +61,10 @@ private:
 	friend class Reactor;
 	
 	Reactor& reactor(){
+		return rreactor;
+	}
+	
+	Reactor const& reactor()const{
 		return rreactor;
 	}
 	ReactorEventsE reactorEvent()const{
@@ -84,13 +84,13 @@ private:
 		Reactor	&_rreactor,
 		const TimeSpec &_rcrttm
 	):	rreactor(_rreactor),
-		rcrttm(_rcrttm), pobj(nullptr), psvc(nullptr){}
+		rcrttm(_rcrttm), chidx(-1), objidx(-1), reactevn(ReactorEventNone){}
 	
 	Reactor						&rreactor;
 	const TimeSpec				&rcrttm;
-	Object						*pobj;
-	Service						*psvc;
 	Event						evn;
+	size_t						chidx;
+	size_t						objidx;
 	ReactorEventsE				reactevn;
 	ERROR_NS::error_code		syserr;
 	ERROR_NS::error_condition	err;

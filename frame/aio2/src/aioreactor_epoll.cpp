@@ -132,11 +132,13 @@ struct RaiseEventStub{
 
 struct CompletionHandlerStub{
 	CompletionHandlerStub(
-		CompletionHandler *_pch = nullptr
-	):pch(_pch), waitreq(ReactorWaitNone){}
+		CompletionHandler *_pch = nullptr,
+		const size_t _objidx = -1
+	):pch(_pch), waitreq(ReactorWaitNone), objidx(_objidx){}
 	
 	CompletionHandler		*pch;
 	ReactorWaitRequestsE	waitreq;
+	size_t					objidx;
 };
 
 
@@ -217,10 +219,12 @@ bool Reactor::start(){
 	d.objdq.push_back(ObjectStub());
 	d.objdq.back().objptr = &d.eventobj;
 	
-	d.chdq.push_back(CompletionHandlerStub(&d.eventobj.eventhandler));
-	d.chdq.push_back(CompletionHandlerStub(&d.eventobj.dummyhandler));
-	
 	popUid(*d.objdq.back().objptr);
+	
+	const size_t objidx = runIndex(d.eventobj);
+	
+	d.chdq.push_back(CompletionHandlerStub(&d.eventobj.eventhandler, objidx));
+	d.chdq.push_back(CompletionHandlerStub(&d.eventobj.dummyhandler, objidx));
 	
 	d.eventobj.init();
 	
@@ -335,6 +339,14 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32 _sysevents){
 	return retval;
 }
 
+Service& Reactor::service(ReactorContext const &_rctx)const{
+	return *d.objdq[_rctx.objidx].psvc;
+}
+	
+Object& Reactor::object(ReactorContext const &_rctx)const{
+	return *d.objdq[_rctx.objidx].objptr;
+}
+
 void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 	ReactorContext	ctx(*this, _rcrttime);
 	for(int i = 0; i < _sz; ++i){
@@ -342,8 +354,8 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 		CompletionHandlerStub	&rch = d.chdq[rev.data.u64];
 		
 		ctx.reactevn = systemEventsToReactorEvents(rev.events);
-		ctx.pobj = rch.pch->pobj;
-		ctx.psvc = d.objdq[runIndex(*ctx.pobj)].psvc;
+		ctx.chidx =  rev.data.u64;
+		ctx.objidx = rch.objidx;
 		
 		rch.pch->handleCompletion(ctx);
 	}
@@ -411,6 +423,17 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 /*static*/ Reactor& Reactor::specific(){
 	vdbgx(Debug::aio, "");
 	return *safeSpecific();
+}
+
+//=============================================================================
+//		ReactorContext
+//=============================================================================
+
+Object& ReactorContext::object()const{
+	return reactor().object(*this);
+}
+Service& ReactorContext::service()const{
+	return reactor().service(*this);
 }
 
 }//namespace aio

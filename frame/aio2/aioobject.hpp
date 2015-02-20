@@ -14,6 +14,7 @@
 
 #include "frame/objectbase.hpp"
 #include "frame/aio2/aiocommon.hpp"
+#include "frame/aio2/aioforwardcompletion.hpp"
 
 namespace solid{
 
@@ -40,7 +41,7 @@ private:
 	Object &robj;
 };
 
-class Object: public Dynamic<Object, ObjectBase>{
+class Object: public Dynamic<Object, ObjectBase>, ForwardCompletionHandler{
 public:
 	typedef DynamicPointer<Message>	MessagePointerT;
 	
@@ -57,8 +58,7 @@ protected:
 		return ObjectProxy(*this);
 	}
 	
-	bool registerCompletionHandler(CompletionHandler &_rch);
-	bool unregisterCompletionHandler(CompletionHandler &_rch);
+	void registerCompletionHandler(CompletionHandler &_rch);
 	
 	bool isRunning()const;
 	
@@ -71,8 +71,6 @@ protected:
 	
 private:
 	virtual void onEvent(ReactorContext &_rctx, Event const &_revent);
-private:
-	CompletionHandler	*pchfirst;//A linked list of completion handlers
 };
 
 }//namespace aio
