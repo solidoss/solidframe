@@ -11,6 +11,7 @@
 #define SOLID_FRAME_AIO_COMPLETION_HPP
 
 #include "frame/aio2/aiocommon.hpp"
+#include "frame/aio2/aioforwardcompletion.hpp"
 #include "system/error.hpp"
 #include "system/cassert.hpp"
 
@@ -24,7 +25,7 @@ struct ObjectProxy;
 struct ReactorContext;
 struct ReactorEvent;
 
-class CompletionHandler{
+class CompletionHandler: public ForwardCompletionHandler{
 	static void on_init_completion(CompletionHandler&, ReactorContext &);
 protected:
 	typedef void (*CallbackT)(CompletionHandler&, ReactorContext &);
@@ -37,10 +38,14 @@ public:
 	~CompletionHandler();
 	
 	bool isActive()const{
-		return  pobj != NULL && idxreactor != static_cast<size_t>(-1);
+		return  idxreactor != static_cast<size_t>(-1);
+	}
+	bool isRegistered()const{
+		return pprev != nullptr;
 	}
 	bool activate(ReactorContext &_rctx);
 	void deactivate();
+	void unregister();
 protected:
 	CompletionHandler(CallbackT _pcall = &on_init_completion);
 	
@@ -58,11 +63,9 @@ private:
 private:
 	friend class Object;
 private:
-	Object					*pobj;
-	CompletionHandler		*pprev;
-	CompletionHandler		*pnext;//double linked list within the object
-	size_t					idxreactor;//index within reactor
-	CallbackT				call;
+	ForwardCompletionHandler		*pprev;
+	size_t							idxreactor;//index within reactor
+	CallbackT						call;
 };
 
 

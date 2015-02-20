@@ -27,7 +27,7 @@ namespace aio{
 //----	Object	----
 //---------------------------------------------------------------------
 
-Object::Object():pchfirst(nullptr){}
+Object::Object(){}
 
 /*virtual*/ void Object::onEvent(ReactorContext &_rctx, Event const &_revent){
 	
@@ -41,31 +41,13 @@ bool Object::isRunning()const{
 	return runId().isValid();
 }
 
-bool Object::registerCompletionHandler(CompletionHandler &_rch){
-	CompletionHandler *poldfirst = pchfirst;
-	pchfirst = &_rch;
-	pchfirst->pprev = poldfirst;
-	pchfirst->pnext = NULL;
-	if(poldfirst){
-		poldfirst->pnext = pchfirst;
-	}
-	return isRunning();
-}
-
-bool Object::unregisterCompletionHandler(CompletionHandler &_rch){
-	if(_rch.pprev){
-		_rch.pprev->pnext = _rch.pnext;
-	}
+void Object::registerCompletionHandler(CompletionHandler &_rch){
+	_rch.pnext = this->pnext;
 	if(_rch.pnext){
-		_rch.pnext->pprev = _rch.pprev;
+		_rch.pnext->pprev = &_rch;
 	}
-	if(&_rch == pchfirst){
-		pchfirst = _rch.pprev;
-	}
-
-	_rch.pprev = NULL;
-	_rch.pnext = NULL;
-	return isRunning();
+	this->pnext = &_rch;
+	_rch.pprev = this;
 }
 
 }//namespace aio

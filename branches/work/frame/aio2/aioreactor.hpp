@@ -65,6 +65,10 @@ public:
 	void run();
 	bool push(TaskT &_robj, Service &_rsvc, Event const &_revt);
 	
+	Service& service(ReactorContext const &_rctx)const;
+	
+	Object& object(ReactorContext const &_rctx)const;
+	
 private:
 	void doCompleteIo(TimeSpec const &_rcrttime, const size_t _sz);
 	void doCompleteTimer(TimeSpec  const &_rcrttime);

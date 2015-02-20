@@ -25,23 +25,21 @@ namespace aio{
 CompletionHandler::CompletionHandler(
 	ObjectProxy const &_rop,
 	CallbackT _pcall/* = &on_init_completion*/
-):pobj(&_rop.object()), pprev(NULL), pnext(NULL), idxreactor(-1), call(_pcall)
+):pprev(nullptr), idxreactor(-1), call(_pcall)
 {
-	pobj->registerCompletionHandler(*this);
+	_rop.object().registerCompletionHandler(*this);
 }
 
 CompletionHandler::CompletionHandler(
 	CallbackT _pcall/* = &on_init_completion*/
-):pobj(NULL), pprev(NULL), pnext(NULL), idxreactor(-1), call(_pcall){
+):pprev(nullptr), idxreactor(-1), call(_pcall){
 	
 }
 
 
 CompletionHandler::~CompletionHandler(){
-	if(pobj){
-		pobj->unregisterCompletionHandler(*this);
-		deactivate();
-	}
+	unregister();
+	deactivate();
 }
 
 ReactorEventsE CompletionHandler::reactorEvent(ReactorContext &_rctx)const{
@@ -61,16 +59,21 @@ void CompletionHandler::systemError(ReactorContext &_rctx, ERROR_NS::error_code 
 }
 
 bool CompletionHandler::activate(ReactorContext &_rctx){
-	if(!isActive() && pobj->isRunning()){
-		//the object has entered the reactor
+	if(!isActive()){
 		_rctx.reactor().registerCompletionHandler(*this);
 	}
 	return isActive();
 }
 
+
+void CompletionHandler::unregister(){
+	this->pprev->pnext = this->pnext;
+	this->pprev = this->pnext = nullptr;
+}
+
 void CompletionHandler::deactivate(){
 	Reactor *preactor = NULL;
-	if(isActive() && pobj->isRunning() && (preactor = Reactor::safeSpecific())){
+	if(isActive() && (preactor = Reactor::safeSpecific())){
 		//the object has entered the reactor
 		preactor->unregisterCompletionHandler(*this);
 		idxreactor = -1;
@@ -84,6 +87,7 @@ void CompletionHandler::deactivate(){
 /*static*/ void CompletionHandler::on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 	_rch.call = NULL;
 }
+
 
 }//namespace aio
 }//namespace frame
