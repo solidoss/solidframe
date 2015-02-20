@@ -70,7 +70,7 @@ bool CompletionHandler::activate(ReactorContext &_rctx){
 
 void CompletionHandler::deactivate(){
 	Reactor *preactor = NULL;
-	if(isActive() && pobj->isRunning() && (preactor = pobj->safeSpecificReactor())){
+	if(isActive() && pobj->isRunning() && (preactor = Reactor::safeSpecific())){
 		//the object has entered the reactor
 		preactor->unregisterCompletionHandler(*this);
 		idxreactor = -1;

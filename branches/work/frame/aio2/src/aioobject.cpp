@@ -26,9 +26,8 @@ namespace aio{
 //---------------------------------------------------------------------
 //----	Object	----
 //---------------------------------------------------------------------
-static CompletionHandler	dummy_ch;//used for detecting object preparing / running state
 
-Object::Object():pchfirst(&dummy_ch){}
+Object::Object():pchfirst(nullptr){}
 
 /*virtual*/ void Object::onEvent(ReactorContext &_rctx, Event const &_revent){
 	
@@ -39,78 +38,36 @@ void Object::postStop(ReactorContext &_rctx){
 }
 
 bool Object::isRunning()const{
-	return pchfirst != &dummy_ch && (pchfirst == NULL || pchfirst->pprev != &dummy_ch);
-}
-
-void Object::enterRunning(){
-	cassert(!isRunning());
-	if(pchfirst == &dummy_ch){
-		pchfirst = NULL;
-	}else{
-		pchfirst->pprev = NULL;
-	}
+	return runId().isValid();
 }
 
 bool Object::registerCompletionHandler(CompletionHandler &_rch){
-	const bool rv = isRunning();
-	if(rv){
-		CompletionHandler *poldfirst = pchfirst;
-		pchfirst = &_rch;
-		pchfirst->pprev = poldfirst;
-		pchfirst->pnext = NULL;
-		if(poldfirst){
-			poldfirst->pnext = pchfirst;
-		}
-	}else{
-		CompletionHandler *poldfirst = pchfirst;
-		pchfirst = &_rch;
-		pchfirst->pprev = poldfirst;
-		pchfirst->pnext = &dummy_ch;
-		if(poldfirst != &dummy_ch){
-			poldfirst->pnext = pchfirst;
-		}else{
-			pchfirst->pprev = NULL;
-		}
+	CompletionHandler *poldfirst = pchfirst;
+	pchfirst = &_rch;
+	pchfirst->pprev = poldfirst;
+	pchfirst->pnext = NULL;
+	if(poldfirst){
+		poldfirst->pnext = pchfirst;
 	}
-	return rv;
+	return isRunning();
 }
 
 bool Object::unregisterCompletionHandler(CompletionHandler &_rch){
-	const bool rv = isRunning();
-	if(rv){
-		if(_rch.pprev){
-			_rch.pprev->pnext = _rch.pnext;
-		}
-		if(_rch.pnext){
-			_rch.pnext->pprev = _rch.pprev;
-		}
-		if(&_rch == pchfirst){
-			pchfirst = _rch.pprev;
-		}
-	}else{
-		if(_rch.pprev){
-			_rch.pprev->pnext = _rch.pnext;
-		}
-		if(_rch.pnext != &dummy_ch){
-			_rch.pnext->pprev = _rch.pprev;
-		}
-		if(&_rch == pchfirst){
-			pchfirst = _rch.pprev;
-		}
+	if(_rch.pprev){
+		_rch.pprev->pnext = _rch.pnext;
 	}
+	if(_rch.pnext){
+		_rch.pnext->pprev = _rch.pprev;
+	}
+	if(&_rch == pchfirst){
+		pchfirst = _rch.pprev;
+	}
+
 	_rch.pprev = NULL;
 	_rch.pnext = NULL;
-	return rv;
+	return isRunning();
 }
 
-Reactor* Object::safeSpecificReactor()const{
-	//Reactor *preactor = Reactor::safeSpecific();
-	
-// 	if(preactor && preactor->idInManager() == preactor->manager().reactorId(this->runId().index)){
-// 		return preactor;
-// 	}
-	return NULL;
-}
 }//namespace aio
 }//namespace frame
 }//namespace solid

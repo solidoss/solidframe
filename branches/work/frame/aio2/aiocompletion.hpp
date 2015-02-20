@@ -34,8 +34,6 @@ public:
 		CallbackT _pcall = &on_init_completion
 	);
 	
-	CompletionHandler(CallbackT _pcall = &on_init_completion);
-	
 	~CompletionHandler();
 	
 	bool isActive()const{
@@ -44,6 +42,8 @@ public:
 	bool activate(ReactorContext &_rctx);
 	void deactivate();
 protected:
+	CompletionHandler(CallbackT _pcall = &on_init_completion);
+	
 	void completionCallback(CallbackT *_pcbk);
 	ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
 	Reactor& reactor(ReactorContext &_rctx)const;
