@@ -93,12 +93,20 @@ enum State{
 };
 
 struct ServiceStub{
-	ServiceStub(Mutex &_rmtx):psvc(nullptr), rmtx(_rmtx), firstchk(-1), lastchk(-1), state(StateRunningE){}
+	ServiceStub(
+		Mutex &_rmtx
+	):	psvc(nullptr), rmtx(_rmtx), firstchk(-1),
+		lastchk(-1), state(StateRunningE),
+		crtobjidx(-1), endobjidx(-1), objcnt(0){}
 	
 	void reset(Service *_psvc = nullptr){
 		psvc = _psvc;
 		firstchk = -1;
 		lastchk = -1;
+		crtobjidx = -1;
+		endobjidx = -1;
+		objcnt = 0;
+		state = StateRunningE;
 		while(objcache.size())objcache.pop();
 	}
 	
