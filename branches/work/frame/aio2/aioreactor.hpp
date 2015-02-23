@@ -44,13 +44,8 @@ public:
 	Reactor(SchedulerBase &_rsched, const size_t _schedidx);
 	~Reactor();
 	
-	static Reactor* safeSpecific();
-	static Reactor& specific();
-	
-	template <typename F>
-	void post(ReactorContext &_rctx, F _f, Event const &_rev, CompletionHandler const *_pch){
-		
-	}
+	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev);
+	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch);
 	
 	void wait(ReactorContext &_rctx, CompletionHandler const *_pch, const ReactorWaitRequestsE _req);
 	
@@ -59,7 +54,7 @@ public:
 	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _revt);
 	/*virtual*/ void stop();
 	
-	void registerCompletionHandler(CompletionHandler &_rch);
+	void registerCompletionHandler(ReactorContext &_rctx, CompletionHandler &_rch);
 	void unregisterCompletionHandler(CompletionHandler &_rch);
 	
 	void run();
@@ -68,14 +63,24 @@ public:
 	Service& service(ReactorContext const &_rctx)const;
 	
 	Object& object(ReactorContext const &_rctx)const;
+	UidT objectUid(ReactorContext const &_rctx)const;
 	
+	CompletionHandler *completionHandler(ReactorContext const &_rctx)const;
 private:
+	friend struct EventHandler;
+	friend class CompletionHandler;
+	
+	static Reactor* safeSpecific();
+	static Reactor& specific();
+	
 	void doCompleteIo(TimeSpec const &_rcrttime, const size_t _sz);
 	void doCompleteTimer(TimeSpec  const &_rcrttime);
 	void doCompleteExec(TimeSpec  const &_rcrttime);
-	void doCompleteEvents();
+	void doCompleteEvents(ReactorContext const &_rctx);
+	void doStoreSpecific();
+	void doClearSpecific();
+	static void call_object_on_event(ReactorContext &_rctx, Event const &_rev);
 private://data
-	friend struct EventHandler;
 	struct Data;
 	Data	&d;
 };

@@ -33,9 +33,6 @@ struct ReactorContext{
 	~ReactorContext(){
 		
 	}
-	Event const& event()const{
-		return evn;
-	}
 	
 	const TimeSpec& time()const{
 		return rcrttm;
@@ -52,6 +49,8 @@ struct ReactorContext{
 	Object& object()const;
 	Service& service()const;
 	
+	UidT objectUid()const;
+	
 	void clearError(){
 		err.clear();
 		syserr.clear();
@@ -59,6 +58,7 @@ struct ReactorContext{
 private:
 	friend class CompletionHandler;
 	friend class Reactor;
+	friend class Object;
 	
 	Reactor& reactor(){
 		return rreactor;
@@ -70,6 +70,7 @@ private:
 	ReactorEventsE reactorEvent()const{
 		return reactevn;
 	}
+	CompletionHandler* completionHandler()const;
 	
 	
 	void error(ERROR_NS::error_condition const& _err){
@@ -84,22 +85,16 @@ private:
 		Reactor	&_rreactor,
 		const TimeSpec &_rcrttm
 	):	rreactor(_rreactor),
-		rcrttm(_rcrttm), chidx(-1), objidx(-1), reactevn(ReactorEventNone){}
+		rcrttm(_rcrttm), chnidx(-1), objidx(-1), reactevn(ReactorEventNone){}
 	
 	Reactor						&rreactor;
 	const TimeSpec				&rcrttm;
-	Event						evn;
-	size_t						chidx;
+	size_t						chnidx;
 	size_t						objidx;
 	ReactorEventsE				reactevn;
 	ERROR_NS::error_code		syserr;
 	ERROR_NS::error_condition	err;
 };
-
-// template <typename F>
-// void post(ReactorContext &_rctx, F _f, Event const& _ev){
-// 	_rctx.reactor().post(_rctx, _f, _ev, /*CompletionHandler**/NULL);
-// }
 
 }//namespace aio
 }//namespace frame

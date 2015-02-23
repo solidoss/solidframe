@@ -50,6 +50,7 @@ public:
 // 	}
 protected:
 	friend class CompletionHandler;
+	friend class Reactor;
 	
 	//! Constructor
 	Object();
@@ -60,17 +61,20 @@ protected:
 	
 	void registerCompletionHandler(CompletionHandler &_rch);
 	
+	void registerCompletionHandlers(ReactorContext &_rctx);
+	
 	bool isRunning()const;
 	
 	void postStop(ReactorContext &_rctx);
 	
 	template <class F>
 	void post(ReactorContext &_rctx, F _f, Event const &_revent = Event()){
-		
+		EventFunctionT	evfn(_f);
+		doPost(_rctx, evfn, _revent);
 	}
-	
 private:
 	virtual void onEvent(ReactorContext &_rctx, Event const &_revent);
+	void doPost(ReactorContext &_rctx, EventFunctionT &_revfn, Event const &_revent);
 };
 
 }//namespace aio

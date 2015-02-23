@@ -32,11 +32,14 @@
 #include "frame/object.hpp"
 #include "frame/service.hpp"
 #include "frame/common.hpp"
+#include "frame/event.hpp"
 
 #include "frame/aio2/aioreactor.hpp"
 #include "frame/aio2/aioobject.hpp"
 #include "frame/aio2/aiocompletion.hpp"
 #include "frame/aio2/aioreactorcontext.hpp"
+
+
 
 
 
@@ -83,7 +86,7 @@ private:
 	uint64 v;
 	
 	rthis.dev.read(reinterpret_cast<char*>(&v), sizeof(v));
-	rthis.reactor(_rctx).doCompleteEvents();
+	rthis.reactor(_rctx).doCompleteEvents(_rctx);
 }
 
 bool EventHandler::init(){
@@ -111,12 +114,12 @@ public:
 
 struct NewTaskStub{
 	NewTaskStub(
-		UidT const&_ruid, TaskT const&_rtsk, Service &_rsvc, Event const &_revt
-	):uid(_ruid), tsk(_rtsk), rsvc(_rsvc), evt(_revt){}
+		UidT const&_ruid, TaskT const&_robjptr, Service &_rsvc, Event const &_revt
+	):uid(_ruid), objptr(_robjptr), rsvc(_rsvc), evt(_revt){}
 	
 	//NewTaskStub(){}
 	UidT		uid;
-	TaskT		tsk;
+	TaskT		objptr;
 	Service		&rsvc;
 	Event		evt;
 };
@@ -134,11 +137,12 @@ struct CompletionHandlerStub{
 	CompletionHandlerStub(
 		CompletionHandler *_pch = nullptr,
 		const size_t _objidx = -1
-	):pch(_pch), waitreq(ReactorWaitNone), objidx(_objidx){}
+	):pch(_pch), waitreq(ReactorWaitNone), objidx(_objidx), unique(0){}
 	
 	CompletionHandler		*pch;
 	ReactorWaitRequestsE	waitreq;
 	size_t					objidx;
+	UniqueT					unique;
 };
 
 
@@ -156,12 +160,29 @@ enum{
 };
 
 
+struct ExecStub{
+	template <class F>
+	ExecStub(
+		UidT const &_ruid, F _f, Event const &_revt = Event()
+	):objuid(_ruid), exefnc(_f), evt(_revt){}
+	
+	ExecStub(
+		UidT const &_ruid, Event const &_revt = Event()
+	):objuid(_ruid), evt(_revt){}
+	
+	UidT			objuid;
+	UidT			chnuid;
+	EventFunctionT	exefnc;
+	Event			evt;
+};
+
 typedef std::vector<NewTaskStub>			NewTaskVectorT;
 typedef std::vector<RaiseEventStub>			RaiseEventVectorT;
 typedef std::vector<epoll_event>			EpollEventVectorT;
 typedef std::deque<CompletionHandlerStub>	CompletionHandlerDequeT;
 typedef std::vector<UidT>					UidVectorT;
 typedef std::deque<ObjectStub>				ObjectDequeT;
+typedef Queue<ExecStub>						ExecQueueT;
 
 
 struct Reactor::Data{
@@ -173,6 +194,11 @@ struct Reactor::Data{
 	int computeWaitTimeMilliseconds()const{
 		//TODO:
 		return -1;
+	}
+	
+	UidT dummyCompletionHandlerUid()const{
+		const size_t idx = eventobj.dummyhandler.idxreactor;
+		return UidT(idx, chdq[idx].unique);
 	}
 	
 	int							epollfd;
@@ -190,6 +216,8 @@ struct Reactor::Data{
 	CompletionHandlerDequeT		chdq;
 	UidVectorT					freeuidvec;
 	ObjectDequeT				objdq;
+	ExecQueueT					exeq;
+	
 };
 
 Reactor::Reactor(
@@ -295,6 +323,9 @@ void Reactor::run(){
 	int			selcnt;
 	bool		running = true;
 	TimeSpec	crttime;
+	
+	doStoreSpecific();
+	
 	while(running){
 		selcnt = epoll_wait(d.epollfd, d.eventvec.data(), d.eventvec.size(), d.computeWaitTimeMilliseconds());
 		crttime.currentMonotonic();
@@ -310,6 +341,7 @@ void Reactor::run(){
 		doCompleteExec(crttime);
 		
 	}
+	doClearSpecific();
 	vdbgx(Debug::aio, "<exit>");
 }
 
@@ -339,12 +371,32 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32 _sysevents){
 	return retval;
 }
 
+UidT Reactor::objectUid(ReactorContext const &_rctx)const{
+	return UidT(_rctx.objidx, d.objdq[_rctx.objidx].unique);
+}
+
 Service& Reactor::service(ReactorContext const &_rctx)const{
 	return *d.objdq[_rctx.objidx].psvc;
 }
 	
 Object& Reactor::object(ReactorContext const &_rctx)const{
 	return *d.objdq[_rctx.objidx].objptr;
+}
+
+CompletionHandler *Reactor::completionHandler(ReactorContext const &_rctx)const{
+	return d.chdq[_rctx.chnidx].pch;
+}
+
+void Reactor::post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev){
+	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
+	d.exeq.back().exefnc = std::move(_revfn);
+	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
+}
+
+void Reactor::post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch){
+	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
+	d.exeq.back().exefnc = std::move(_revfn);
+	d.exeq.back().chnuid = UidT(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
 }
 
 void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
@@ -354,7 +406,7 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 		CompletionHandlerStub	&rch = d.chdq[rev.data.u64];
 		
 		ctx.reactevn = systemEventsToReactorEvents(rev.events);
-		ctx.chidx =  rev.data.u64;
+		ctx.chnidx =  rev.data.u64;
 		ctx.objidx = rch.objidx;
 		
 		rch.pch->handleCompletion(ctx);
@@ -366,9 +418,23 @@ void Reactor::doCompleteTimer(TimeSpec  const &_rcrttime){
 }
 
 void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
-	
+	ReactorContext	ctx(*this, _rcrttime);
+	size_t	sz = d.exeq.size();
+	while(sz--){
+		ExecStub				&rexe(d.exeq.front());
+		ObjectStub				&ros(d.objdq[rexe.objuid.index]);
+		CompletionHandlerStub	&rcs(d.chdq[rexe.chnuid.index]);
+		
+		if(ros.unique == rexe.objuid.index && rcs.unique == rexe.chnuid.unique){
+			ctx.clearError();
+			ctx.chnidx = rexe.chnuid.index;
+			ctx.objidx = rexe.objuid.index;
+			rexe.exefnc(ctx, rexe.evt);
+		}
+		d.exeq.pop();
+	}
 }
-void Reactor::doCompleteEvents(){
+void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 	vdbgx(Debug::aio, "");
 	
 	if(d.crtpushvecsz || d.crtraisevecsz){
@@ -392,23 +458,45 @@ void Reactor::doCompleteEvents(){
 		NewTaskVectorT		&crtpushvec = d.pushtskvec[crtpushvecidx];
 		RaiseEventVectorT	&crtraisevec = d.raisevec[crtraisevecidx];
 		
+		ReactorContext		ctx(_rctx);
+		
 		for(auto it = crtpushvec.begin(); it != crtpushvec.end(); ++it){
+			NewTaskStub		&rnewobj(*it);
+			if(rnewobj.uid.index >= d.objdq.size()){
+				d.objdq.resize(rnewobj.uid.index + 1);
+			}
+			ObjectStub 		&ros = d.objdq[rnewobj.uid.index];
+			cassert(ros.unique == rnewobj.uid.unique);
+			ros.objptr = rnewobj.objptr;
+			ros.psvc = &rnewobj.rsvc;
 			
+			ctx.clearError();
+			ctx.chnidx =  -1;
+			ctx.objidx = rnewobj.uid.index;
+			
+			ros.objptr->registerCompletionHandlers(ctx);
+			
+			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, rnewobj.evt));
 		}
 		crtpushvec.clear();
 		
 		for(auto it = crtraisevec.begin(); it != crtraisevec.end(); ++it){
-			
+			RaiseEventStub	&revt = *it;
+			d.exeq.push(ExecStub(revt.uid, &call_object_on_event, revt.evt));
 		}
 		crtraisevec.clear();
 	}
+}
+
+/*static*/ void Reactor::call_object_on_event(ReactorContext &_rctx, Event const &_revt){
+	_rctx.object().onEvent(_rctx, _revt);
 }
 
 void Reactor::wait(ReactorContext &_rctx, CompletionHandler const *_pch, const ReactorWaitRequestsE _req){
 	vdbgx(Debug::aio, "");
 }
 
-void Reactor::registerCompletionHandler(CompletionHandler &_rch){
+void Reactor::registerCompletionHandler(ReactorContext &_rctx, CompletionHandler &_rch){
 	vdbgx(Debug::aio, "");
 }
 
@@ -416,16 +504,45 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 	vdbgx(Debug::aio, "");
 }
 
+
+namespace{
+#ifdef HAS_SAFE_STATIC
+static const size_t specificPosition(){
+	static const size_t	thrspecpos = Thread::specificId();
+	return thrspecpos;
+}
+#else
+const size_t specificIdStub(){
+	static const size_t id(Thread::specificId());
+	return id;
+}
+
+void once_stub(){
+	specificIdStub();
+}
+
+static const size_t specificPosition(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_stub, once);
+	return specificIdStub();
+}
+#endif
+}//namespace
+
 /*static*/ Reactor* Reactor::safeSpecific(){
-	vdbgx(Debug::aio, "");
-	return NULL;
+	return reinterpret_cast<Reactor*>(Thread::specific(specificPosition()));
 }
 
 /*static*/ Reactor& Reactor::specific(){
 	vdbgx(Debug::aio, "");
 	return *safeSpecific();
 }
-
+void Reactor::doStoreSpecific(){
+	Thread::specific(specificPosition(), this);
+}
+void Reactor::doClearSpecific(){
+	Thread::specific(specificPosition(), nullptr);
+}
 //=============================================================================
 //		ReactorContext
 //=============================================================================
@@ -436,6 +553,16 @@ Object& ReactorContext::object()const{
 Service& ReactorContext::service()const{
 	return reactor().service(*this);
 }
+
+UidT ReactorContext::objectUid()const{
+	return reactor().objectUid(*this);
+}
+
+CompletionHandler*  ReactorContext::completionHandler()const{
+	return reactor().completionHandler(*this);
+}
+
+
 
 }//namespace aio
 }//namespace frame
