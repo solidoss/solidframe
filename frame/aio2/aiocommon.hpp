@@ -11,9 +11,12 @@
 #define SOLID_FRAME_AIO2_COMMON_HPP
 
 #include "frame/common.hpp"
+#include "boost/function.hpp"
 
 namespace solid{
 namespace frame{
+struct Event;
+
 namespace aio{
 
 enum ReactorEventsE{
@@ -36,6 +39,11 @@ enum ReactorWaitRequestsE{
 	ReactorWaitWrite,
 	ReactorWaitReadOrWrite
 };
+
+
+class ReactorContext;
+
+typedef boost::function<void(ReactorContext&, Event const &)>		EventFunctionT;
 
 }//namespace aio
 }//namespace frame

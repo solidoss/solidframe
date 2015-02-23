@@ -46,6 +46,10 @@ ReactorEventsE CompletionHandler::reactorEvent(ReactorContext &_rctx)const{
 	return _rctx.reactorEvent();
 }
 
+/*static*/ CompletionHandler* CompletionHandler::completion_handler(ReactorContext &_rctx){
+	return _rctx.completionHandler();
+}
+
 Reactor& CompletionHandler::reactor(ReactorContext &_rctx)const{
 	return _rctx.reactor();
 }
@@ -60,7 +64,7 @@ void CompletionHandler::systemError(ReactorContext &_rctx, ERROR_NS::error_code 
 
 bool CompletionHandler::activate(ReactorContext &_rctx){
 	if(!isActive()){
-		_rctx.reactor().registerCompletionHandler(*this);
+		_rctx.reactor().registerCompletionHandler(_rctx, *this);
 	}
 	return isActive();
 }

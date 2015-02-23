@@ -16,6 +16,7 @@
 #include "frame/aio2/aioobject.hpp"
 #include "frame/aio2/aioreactor.hpp"
 #include "frame/aio2/aiocompletion.hpp"
+#include "frame/aio2/aioreactorcontext.hpp"
 
 #include "utility/memory.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -48,6 +49,19 @@ void Object::registerCompletionHandler(CompletionHandler &_rch){
 	}
 	this->pnext = &_rch;
 	_rch.pprev = this;
+}
+
+void Object::registerCompletionHandlers(ReactorContext &_rctx){
+	CompletionHandler *pch = this->pnext;
+	
+	while(pch != nullptr){
+		pch->activate(_rctx);
+		pch = pch->pnext;
+	}
+}
+
+void Object::doPost(ReactorContext &_rctx, EventFunctionT &_revfn, Event const &_revent){
+	_rctx.reactor().post(_rctx, _revfn, _revent);
 }
 
 }//namespace aio

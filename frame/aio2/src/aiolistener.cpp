@@ -34,8 +34,9 @@ namespace aio{
 	}
 }
 
-/*static*/ void Listener::on_posted_accept(CompletionHandler& _rch, ReactorContext &_rctx){
-	Listener		&rthis = static_cast<Listener&>(_rch);
+/*static*/ void Listener::on_posted_accept(ReactorContext &_rctx, Event const&){
+	Listener		*pthis = static_cast<Listener*>(completion_handler(_rctx));
+	Listener		&rthis = *pthis;
 	SocketDevice	sd;
 	if(rthis.doTryAccept(_rctx, sd)){
 		FunctionT	tmpf(std::move(rthis.f));
@@ -49,8 +50,8 @@ namespace aio{
 
 void Listener::doPostAccept(ReactorContext &_rctx){
 	//The post queue will keep [function, object_uid, completion_handler_uid, Event]
-	
-	reactor(_rctx).post(_rctx, &Listener::on_posted_accept, Event(), this);
+	EventFunctionT	evfn(&Listener::on_posted_accept);
+	reactor(_rctx).post(_rctx, evfn, Event(), *this);
 }
 
 

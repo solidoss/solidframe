@@ -28,6 +28,7 @@ struct ReactorEvent;
 class CompletionHandler: public ForwardCompletionHandler{
 	static void on_init_completion(CompletionHandler&, ReactorContext &);
 protected:
+	static CompletionHandler* completion_handler(ReactorContext &);
 	typedef void (*CallbackT)(CompletionHandler&, ReactorContext &);
 public:
 	CompletionHandler(

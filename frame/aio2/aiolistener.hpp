@@ -26,7 +26,7 @@ struct	ReactorContext;
 
 class Listener: public CompletionHandler{
 static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx);
-static void on_posted_accept(CompletionHandler& _rch, ReactorContext &_rctx);
+static void on_posted_accept(ReactorContext &_rctx, Event const&);
 static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx);
 public:
 	Listener(
