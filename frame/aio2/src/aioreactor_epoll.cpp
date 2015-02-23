@@ -166,6 +166,11 @@ struct ExecStub{
 		UidT const &_ruid, F _f, Event const &_revt = Event()
 	):objuid(_ruid), exefnc(_f), evt(_revt){}
 	
+	template <class F>
+	ExecStub(
+		UidT const &_ruid, F _f, UidT const &_rchnuid, Event const &_revt = Event()
+	):objuid(_ruid), chnuid(_rchnuid), exefnc(_f), evt(_revt){}
+	
 	ExecStub(
 		UidT const &_ruid, Event const &_revt = Event()
 	):objuid(_ruid), evt(_revt){}
@@ -476,13 +481,13 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 			
 			ros.objptr->registerCompletionHandlers(ctx);
 			
-			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, rnewobj.evt));
+			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), rnewobj.evt));
 		}
 		crtpushvec.clear();
 		
 		for(auto it = crtraisevec.begin(); it != crtraisevec.end(); ++it){
 			RaiseEventStub	&revt = *it;
-			d.exeq.push(ExecStub(revt.uid, &call_object_on_event, revt.evt));
+			d.exeq.push(ExecStub(revt.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), revt.evt));
 		}
 		crtraisevec.clear();
 	}
