@@ -26,23 +26,19 @@ struct	ReactorContext;
 
 class Listener: public CompletionHandler{
 static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx);
+static void on_dummy_completion(CompletionHandler& _rch, ReactorContext &_rctx);
 static void on_posted_accept(ReactorContext &_rctx, Event const&);
 static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx);
 public:
 	Listener(
-		ReactorContext &_rctx,
 		ObjectProxy const &_robj,
 		SocketDevice &_rsd
-	):CompletionHandler(_robj, on_init_completion), sd(_rsd)
+	):CompletionHandler(_robj, Listener::on_init_completion), sd(_rsd), req(ReactorWaitNone)
 	{
-		activate(_rctx);
+		if(sd.ok()){
+			sd.makeNonBlocking();
+		}
 	}
-	
-	Listener(
-		ObjectProxy const &_robj
-	):CompletionHandler(_robj){}
-	
-	void device(ReactorContext &_rctx, SocketDevice &_rsd);
 	
 	const SocketDevice& device()const;
 	
@@ -83,8 +79,9 @@ private:
 	void doAccept(solid::frame::aio::ReactorContext& _rctx, solid::SocketDevice& _rsd);
 private:
 	typedef boost::function<void(ReactorContext&, SocketDevice&)>		FunctionT;
-	FunctionT		f;
-	SocketDevice	sd;
+	FunctionT				f;
+	SocketDevice			sd;
+	ReactorWaitRequestsE	req;
 };
 
 }//namespace aio

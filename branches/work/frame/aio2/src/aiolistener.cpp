@@ -19,19 +19,30 @@ namespace aio{
 
 /*static*/ void Listener::on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 	Listener &rthis = static_cast<Listener&>(_rch);
-	if(rthis.reactorEvent(_rctx) == ReactorEventRecv){
-		cassert(!rthis.f.empty());
-		SocketDevice sd;
-		rthis.doAccept(_rctx, sd);
-		FunctionT	tmpf(std::move(rthis.f));
-		tmpf(_rctx, sd);
-	}else if(rthis.reactorEvent(_rctx) == ReactorEventError){
-		SocketDevice	sd;
-		FunctionT		tmpf(std::move(rthis.f));
-		tmpf(_rctx, sd);
-	}else if(rthis.reactorEvent(_rctx) == ReactorEventClear){
-		rthis.f.clear();
+	
+	switch(rthis.reactorEvent(_rctx)){
+		case ReactorEventRecv:{
+			cassert(!rthis.f.empty());
+			SocketDevice sd;
+			rthis.doAccept(_rctx, sd);
+			FunctionT	tmpf(std::move(rthis.f));
+			tmpf(_rctx, sd);
+		}break;
+		case ReactorEventError:{
+			SocketDevice	sd;
+			FunctionT		tmpf(std::move(rthis.f));
+			tmpf(_rctx, sd);
+		}break;
+		case ReactorEventClear:
+			rthis.f.clear();
+			break;
+		default:
+			cassert(false);
 	}
+}
+
+/*static*/ void Listener::on_dummy_completion(CompletionHandler& _rch, ReactorContext &_rctx){
+	
 }
 
 /*static*/ void Listener::on_posted_accept(ReactorContext &_rctx, Event const&){
@@ -45,7 +56,9 @@ namespace aio{
 }
 
 /*static*/ void Listener::on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
-	
+	Listener		&rthis = static_cast<Listener&>(_rch);
+	rthis.completionCallback(on_dummy_completion);
+	rthis.addDevice(_rctx, rthis.sd);
 }
 
 void Listener::doPostAccept(ReactorContext &_rctx){
@@ -62,9 +75,15 @@ bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 			//TODO: set proper error
 			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 		case AsyncSuccess:
+			//make sure we're not receiving any io event
+			completionCallback(&on_dummy_completion);
 			return true;
 		case AsyncWait:
-			reactor(_rctx).wait(_rctx, this, ReactorWaitRead);
+			if(req == ReactorWaitNone){
+				req = ReactorWaitRead;
+				reactor(_rctx).waitDevice(_rctx, *this, sd, req);
+			}
+			completionCallback(&on_completion);
 			break;
 	}
 	return false;
