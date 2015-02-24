@@ -37,7 +37,10 @@ enum ReactorWaitRequestsE{
 	ReactorWaitNone = 0,
 	ReactorWaitRead,
 	ReactorWaitWrite,
-	ReactorWaitReadOrWrite
+	ReactorWaitReadOrWrite,
+	
+	//Add above!
+	ReactorWaitError
 };
 
 

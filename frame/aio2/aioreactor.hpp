@@ -19,6 +19,7 @@
 namespace solid{
 
 struct TimeSpec;
+struct Device;
 
 namespace frame{
 
@@ -47,14 +48,15 @@ public:
 	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev);
 	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch);
 	
-	void wait(ReactorContext &_rctx, CompletionHandler const *_pch, const ReactorWaitRequestsE _req);
+	bool waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
+	bool addDevice(ReactorContext &_rctx, Device const &_rsd);
 	
 	bool start();
 	
 	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _revt);
 	/*virtual*/ void stop();
 	
-	void registerCompletionHandler(ReactorContext &_rctx, CompletionHandler &_rch);
+	void registerCompletionHandler(CompletionHandler &_rch, Object const &_robj);
 	void unregisterCompletionHandler(CompletionHandler &_rch);
 	
 	void run();

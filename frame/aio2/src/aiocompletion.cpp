@@ -27,7 +27,9 @@ CompletionHandler::CompletionHandler(
 	CallbackT _pcall/* = &on_init_completion*/
 ):pprev(nullptr), idxreactor(-1), call(_pcall)
 {
-	_rop.object().registerCompletionHandler(*this);
+	if(_rop.object().registerCompletionHandler(*this)){
+		this->activate(_rop.object());
+	}
 }
 
 CompletionHandler::CompletionHandler(
@@ -62,9 +64,10 @@ void CompletionHandler::systemError(ReactorContext &_rctx, ERROR_NS::error_code 
 	_rctx.systemError(_err);
 }
 
-bool CompletionHandler::activate(ReactorContext &_rctx){
-	if(!isActive()){
-		_rctx.reactor().registerCompletionHandler(_rctx, *this);
+bool CompletionHandler::activate(Object const &_robj){
+	Reactor *preactor = nullptr;
+	if(!isActive() && (preactor = Reactor::safeSpecific())){
+		preactor->registerCompletionHandler(*this, _robj);
 	}
 	return isActive();
 }
@@ -76,7 +79,7 @@ void CompletionHandler::unregister(){
 }
 
 void CompletionHandler::deactivate(){
-	Reactor *preactor = NULL;
+	Reactor *preactor = nullptr;
 	if(isActive() && (preactor = Reactor::safeSpecific())){
 		//the object has entered the reactor
 		preactor->unregisterCompletionHandler(*this);
@@ -89,7 +92,11 @@ void CompletionHandler::deactivate(){
 }
 
 /*static*/ void CompletionHandler::on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
-	_rch.call = NULL;
+	_rch.call = nullptr;
+}
+
+void CompletionHandler::addDevice(ReactorContext &_rctx, Device const &_rsd){
+	_rctx.reactor().addDevice(_rctx, _rsd);
 }
 
 

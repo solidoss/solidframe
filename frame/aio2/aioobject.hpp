@@ -59,9 +59,9 @@ protected:
 		return ObjectProxy(*this);
 	}
 	
-	void registerCompletionHandler(CompletionHandler &_rch);
+	bool registerCompletionHandler(CompletionHandler &_rch);
 	
-	void registerCompletionHandlers(ReactorContext &_rctx);
+	void registerCompletionHandlers();
 	
 	bool isRunning()const;
 	

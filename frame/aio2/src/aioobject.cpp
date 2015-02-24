@@ -42,20 +42,21 @@ bool Object::isRunning()const{
 	return runId().isValid();
 }
 
-void Object::registerCompletionHandler(CompletionHandler &_rch){
+bool Object::registerCompletionHandler(CompletionHandler &_rch){
 	_rch.pnext = this->pnext;
 	if(_rch.pnext){
 		_rch.pnext->pprev = &_rch;
 	}
 	this->pnext = &_rch;
 	_rch.pprev = this;
+	return isRunning();
 }
 
-void Object::registerCompletionHandlers(ReactorContext &_rctx){
+void Object::registerCompletionHandlers(){
 	CompletionHandler *pch = this->pnext;
 	
 	while(pch != nullptr){
-		pch->activate(_rctx);
+		pch->activate(*this);
 		pch = pch->pnext;
 	}
 }

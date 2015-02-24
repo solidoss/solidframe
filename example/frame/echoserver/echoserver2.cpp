@@ -74,8 +74,8 @@ public:
 	Listener(
 		frame::Service &_rsvc,
 		AioSchedulerT &_rsched,
-		const SocketDevice &_rsd
-	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy()){}
+		SocketDevice &_rsd
+	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd){}
 private:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
@@ -270,6 +270,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 //-----------------------------------------------------------------------------
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	idbg("event = "<<_revent.id);
 	if(_revent.id == EventStartE){
 		//sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
 		sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
@@ -279,6 +280,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
+	idbg("");
 	unsigned	repeatcnt = 10;
 	
 	do{

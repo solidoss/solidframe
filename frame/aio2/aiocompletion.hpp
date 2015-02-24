@@ -16,6 +16,7 @@
 #include "system/cassert.hpp"
 
 namespace solid{
+struct Device;
 namespace frame{
 namespace aio{
 
@@ -44,17 +45,18 @@ public:
 	bool isRegistered()const{
 		return pprev != nullptr;
 	}
-	bool activate(ReactorContext &_rctx);
+	bool activate(Object const &_robj);
 	void deactivate();
 	void unregister();
 protected:
 	CompletionHandler(CallbackT _pcall = &on_init_completion);
 	
-	void completionCallback(CallbackT *_pcbk);
+	void completionCallback(CallbackT _pcbk);
 	ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
 	Reactor& reactor(ReactorContext &_rctx)const;
 	void error(ReactorContext &_rctx, ERROR_NS::error_condition const& _err)const;
 	void systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const;
+	void addDevice(ReactorContext &_rctx, Device const &_rsd);
 private:
 	friend class Reactor;
 	
@@ -68,6 +70,10 @@ private:
 	size_t							idxreactor;//index within reactor
 	CallbackT						call;
 };
+
+inline void CompletionHandler::completionCallback(CallbackT _pcbk){
+	call = _pcbk;
+}
 
 
 }//namespace aio
