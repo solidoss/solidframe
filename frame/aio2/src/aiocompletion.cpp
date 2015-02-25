@@ -95,8 +95,8 @@ void CompletionHandler::deactivate(){
 	_rch.call = nullptr;
 }
 
-void CompletionHandler::addDevice(ReactorContext &_rctx, Device const &_rsd){
-	_rctx.reactor().addDevice(_rctx, _rsd);
+void CompletionHandler::addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req){
+	_rctx.reactor().addDevice(_rctx, _rsd, _req);
 }
 
 

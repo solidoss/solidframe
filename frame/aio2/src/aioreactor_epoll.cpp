@@ -47,7 +47,6 @@ namespace solid{
 namespace frame{
 namespace aio{
 
-
 namespace{
 
 void dummy_completion(CompletionHandler&, ReactorContext &){
@@ -83,8 +82,7 @@ private:
 
 /*static*/ void EventHandler::on_init(CompletionHandler& _rch, ReactorContext &_rctx){
 	EventHandler &rthis = static_cast<EventHandler&>(_rch);
-	rthis.reactor(_rctx).addDevice(_rctx, rthis.dev);
-	rthis.reactor(_rctx).waitDevice(_rctx, rthis, rthis.dev, ReactorWaitRead);
+	rthis.reactor(_rctx).addDevice(_rctx, rthis.dev, ReactorWaitRead);
 	rthis.completionCallback(&on_completion);
 }
 
@@ -532,11 +530,11 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 	return true;
 }
 
-bool Reactor::addDevice(ReactorContext &_rctx, Device const &_rsd){
+bool Reactor::addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req){
 	epoll_event ev;
 	
 	ev.data.u64 = _rctx.chnidx;
-	ev.events = EPOLLET;
+	ev.events = reactorRequestsToSystemEvents(_req);
 	
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());

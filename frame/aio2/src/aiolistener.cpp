@@ -21,20 +21,20 @@ namespace aio{
 	Listener &rthis = static_cast<Listener&>(_rch);
 	
 	switch(rthis.reactorEvent(_rctx)){
-		case ReactorEventRecv:{
-			cassert(!rthis.f.empty());
-			SocketDevice	sd;
-			FunctionT		tmpf(std::move(rthis.f));
-			cassert(tmpf.empty());
-			rthis.doAccept(_rctx, sd);
-			
-			tmpf(_rctx, sd);
-		}break;
-		case ReactorEventError:{
-			SocketDevice	sd;
-			FunctionT		tmpf(std::move(rthis.f));
-			tmpf(_rctx, sd);
-		}break;
+		case ReactorEventRecv:
+			if(rthis.f.empty()){
+				SocketDevice	sd;
+				FunctionT		tmpf(std::move(rthis.f));
+				rthis.doAccept(_rctx, sd);
+				
+				tmpf(_rctx, sd);
+			}break;
+		case ReactorEventError:
+			if(rthis.f.empty()){
+				SocketDevice	sd;
+				FunctionT		tmpf(std::move(rthis.f));
+				tmpf(_rctx, sd);
+			}break;
 		case ReactorEventClear:
 			rthis.f.clear();
 			break;
@@ -61,7 +61,7 @@ namespace aio{
 	Listener		&rthis = static_cast<Listener&>(_rch);
 	//rthis.completionCallback(on_dummy_completion);
 	rthis.completionCallback(&on_completion);
-	rthis.addDevice(_rctx, rthis.sd);
+	rthis.addDevice(_rctx, rthis.sd, ReactorWaitRead);
 }
 
 void Listener::doPostAccept(ReactorContext &_rctx){
@@ -81,10 +81,6 @@ bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 			//make sure we're not receiving any io event
 			return true;
 		case AsyncWait:
-			if(waitreq == ReactorWaitNone){
-				waitreq = ReactorWaitRead;
-				reactor(_rctx).waitDevice(_rctx, *this, sd, waitreq);
-			}
 			break;
 	}
 	return false;

@@ -56,7 +56,7 @@ protected:
 	Reactor& reactor(ReactorContext &_rctx)const;
 	void error(ReactorContext &_rctx, ERROR_NS::error_condition const& _err)const;
 	void systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const;
-	void addDevice(ReactorContext &_rctx, Device const &_rsd);
+	void addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req);
 private:
 	friend class Reactor;
 	
