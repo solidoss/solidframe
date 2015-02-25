@@ -90,7 +90,7 @@ private:
 };
 
 
-#define USE_CONNECTION
+//#define USE_CONNECTION
 #ifdef USE_CONNECTION
 
 #include "frame/aio2/aiostream.hpp"
