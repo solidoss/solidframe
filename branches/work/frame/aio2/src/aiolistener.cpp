@@ -23,9 +23,11 @@ namespace aio{
 	switch(rthis.reactorEvent(_rctx)){
 		case ReactorEventRecv:{
 			cassert(!rthis.f.empty());
-			SocketDevice sd;
+			SocketDevice	sd;
+			FunctionT		tmpf(std::move(rthis.f));
+			cassert(tmpf.empty());
 			rthis.doAccept(_rctx, sd);
-			FunctionT	tmpf(std::move(rthis.f));
+			
 			tmpf(_rctx, sd);
 		}break;
 		case ReactorEventError:{
@@ -57,7 +59,8 @@ namespace aio{
 
 /*static*/ void Listener::on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 	Listener		&rthis = static_cast<Listener&>(_rch);
-	rthis.completionCallback(on_dummy_completion);
+	//rthis.completionCallback(on_dummy_completion);
+	rthis.completionCallback(&on_completion);
 	rthis.addDevice(_rctx, rthis.sd);
 }
 
@@ -76,14 +79,12 @@ bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 		case AsyncSuccess:
 			//make sure we're not receiving any io event
-			completionCallback(&on_dummy_completion);
 			return true;
 		case AsyncWait:
-			if(req == ReactorWaitNone){
-				req = ReactorWaitRead;
-				reactor(_rctx).waitDevice(_rctx, *this, sd, req);
+			if(waitreq == ReactorWaitNone){
+				waitreq = ReactorWaitRead;
+				reactor(_rctx).waitDevice(_rctx, *this, sd, waitreq);
 			}
-			completionCallback(&on_completion);
 			break;
 	}
 	return false;
