@@ -89,24 +89,30 @@ private:
 	//TimerT				timer;
 };
 
+
+#define USE_CONNECTION
 #ifdef USE_CONNECTION
+
+#include "frame/aio2/aiostream.hpp"
+#include "frame/aio2/aioplainsocket.hpp"
+
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
-	Connection(const SocketDevice &_rsd);
-	~Connection();
+	Connection(SocketDevice &_rsd):sock(this->proxy(), _rsd){}
+	~Connection(){}
 private:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	void onSend(frame::aio::ReactorContext &_rctx);
 	void onTimer(frame::aio::ReactorContext &_rctx);
 private:
-	typedef frame::aio::Stream<frame::aio::Socket>	StreamSocketT;
-	typedef frame::aio::Timer						TimerT;
+	typedef frame::aio::Stream<frame::aio::PlainSocket>		StreamSocketT;
+	//typedef frame::aio::Timer								TimerT;
 	enum {BufferCapacity = 1024};
 	
 	char			buf[BufferCapacity];
 	StreamSocketT	sock;
-	TimerT			timer;
+	//TimerT			timer;
 };
 #endif
 
@@ -321,13 +327,12 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //-----------------------------------------------------------------------------
 #ifdef USE_CONNECTION
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	if(_rctx.event().id == EventStartE){
-		sock.scheduleRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
-		timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
-	}else if(_rctx.event().id == EventStopE){
+	if(_revent.id == EventStartE){
+		sock.postRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
+		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+	}else if(_revent.id == EventStopE){
 		postStop(_rctx);
 	}
-	return true;
 }
 
 void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
@@ -336,24 +341,26 @@ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
 		if(!_rctx.error()){
 			if(sock.sendAll(_rctx, buf, _sz, std::bind(&Connection::onSend, this, _1))){
 				if(_rctx.error()){
-					return false;
+					postStop(_rctx);
+					break;
 				}
 			}else{
 				break;
 			}
 		}else{
-			return false;
+			postStop(_rctx);
+			break;
 		}
 		--repeatcnt;
 	}while(repeatcnt && sock.recvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2), _sz));
 	
-	timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+	//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 }
 
 void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	if(!_rctx.error()){
-		sock.scheduleRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
-		timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+		sock.postRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
+		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	}else{
 		postStop(_rctx);
 	}

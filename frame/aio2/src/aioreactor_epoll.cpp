@@ -90,10 +90,13 @@ private:
 
 /*static*/ void EventHandler::on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 	EventHandler &rthis = static_cast<EventHandler&>(_rch);
-	uint64 v = -1;
+	uint64	v = -1;
+	int 	rv;
+	do{
+		rv = rthis.dev.read(reinterpret_cast<char*>(&v), sizeof(v));
+		idbgx(Debug::aio, "Read from event "<<rv<<" value = "<<v);
+	}while(rv == sizeof(v));
 	
-	int rv = rthis.dev.read(reinterpret_cast<char*>(&v), sizeof(v));
-	idbgx(Debug::aio, "Read from event "<<rv<<" value = "<<v);
 	rthis.reactor(_rctx).doCompleteEvents(_rctx);
 }
 

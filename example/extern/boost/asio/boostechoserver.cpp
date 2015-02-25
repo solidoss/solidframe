@@ -7,7 +7,7 @@
 
 using boost::asio::ip::tcp;
 using namespace std;
-
+#if 0
 static void *(*old_malloc_hook)(size_t, const void *);
 
 static void *new_malloc_hook(size_t size, const void *caller) {
@@ -44,6 +44,8 @@ void operator delete(void* ptr) throw()
     cerr << "deallocating at " << ptr << endl;
     free(ptr);
 }
+
+#endif
 
 class session
 {
@@ -143,7 +145,7 @@ private:
 
 int main(int argc, char* argv[])
 {
-	mtrace();
+	//mtrace();
 	try
 	{
 		if (argc != 2)
