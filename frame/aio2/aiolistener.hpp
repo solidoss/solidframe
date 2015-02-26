@@ -25,10 +25,9 @@ struct	ObjectProxy;
 struct	ReactorContext;
 
 class Listener: public CompletionHandler{
-static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx);
-static void on_dummy_completion(CompletionHandler& _rch, ReactorContext &_rctx);
-static void on_posted_accept(ReactorContext &_rctx, Event const&);
-static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx);
+	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx);
+	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx);
+	static void on_posted_accept(ReactorContext &_rctx, Event const&);
 public:
 	Listener(
 		ObjectProxy const &_robj,

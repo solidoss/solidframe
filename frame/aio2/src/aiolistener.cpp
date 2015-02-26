@@ -22,7 +22,7 @@ namespace aio{
 	
 	switch(rthis.reactorEvent(_rctx)){
 		case ReactorEventRecv:
-			if(rthis.f.empty()){
+			if(!rthis.f.empty()){
 				SocketDevice	sd;
 				FunctionT		tmpf(std::move(rthis.f));
 				rthis.doAccept(_rctx, sd);
@@ -30,7 +30,7 @@ namespace aio{
 				tmpf(_rctx, sd);
 			}break;
 		case ReactorEventError:
-			if(rthis.f.empty()){
+			if(!rthis.f.empty()){
 				SocketDevice	sd;
 				FunctionT		tmpf(std::move(rthis.f));
 				tmpf(_rctx, sd);
@@ -41,10 +41,6 @@ namespace aio{
 		default:
 			cassert(false);
 	}
-}
-
-/*static*/ void Listener::on_dummy_completion(CompletionHandler& _rch, ReactorContext &_rctx){
-	
 }
 
 /*static*/ void Listener::on_posted_accept(ReactorContext &_rctx, Event const&){
@@ -65,7 +61,6 @@ namespace aio{
 }
 
 void Listener::doPostAccept(ReactorContext &_rctx){
-	//The post queue will keep [function, object_uid, completion_handler_uid, Event]
 	EventFunctionT	evfn(&Listener::on_posted_accept);
 	reactor(_rctx).post(_rctx, evfn, Event(), *this);
 }

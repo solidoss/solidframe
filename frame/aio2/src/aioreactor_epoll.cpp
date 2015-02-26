@@ -484,7 +484,7 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 			}
 			ObjectStub 		&ros = d.objdq[rnewobj.uid.index];
 			cassert(ros.unique == rnewobj.uid.unique);
-			ros.objptr = rnewobj.objptr;
+			ros.objptr = std::move(rnewobj.objptr);
 			ros.psvc = &rnewobj.rsvc;
 			
 			ctx.clearError();
