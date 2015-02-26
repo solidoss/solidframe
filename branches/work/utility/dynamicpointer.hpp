@@ -34,20 +34,30 @@ public:
 	typedef T							DynamicT;
 	typedef T							element_type;
 	
-	DynamicPointer(DynamicT *_pdyn = NULL):pdyn(_pdyn){
+	DynamicPointer(DynamicT *_pdyn = nullptr):pdyn(_pdyn){
 		if(_pdyn){
 			use(static_cast<DynamicBase*>(_pdyn));
 		}
 	}
 	template <class B>
-	explicit DynamicPointer(const DynamicPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.get())){
+	explicit DynamicPointer(DynamicPointer<B> const &_rcp):pdyn(static_cast<T*>(_rcp.get())){
 		if(pdyn){
 			use(static_cast<DynamicBase*>(pdyn));
 		}
 	}
+
+#ifdef HAS_CPP11
+	template <class B>
+	DynamicPointer(DynamicPointer<B> &&_rcp):pdyn(static_cast<T*>(_rcp.release())){
+	}
+	
+	DynamicPointer(ThisT &&_rcp):pdyn(static_cast<T*>(_rcp.release())){
+	}
+	
+#endif
 	
 	//The copy constructor must be specified - the compiler wount consider the above constructor as copy-constructor
-	DynamicPointer(const ThisT &_rcp):pdyn(static_cast<T*>(_rcp.get())){
+	DynamicPointer(ThisT const &_rcp):pdyn(static_cast<T*>(_rcp.get())){
 		if(pdyn){
 			use(static_cast<DynamicBase*>(pdyn));
 		}
@@ -58,8 +68,36 @@ public:
 			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
 		}
 	}
+	
 	template <class O>
-	ThisT& operator=(const DynamicPointer<O> &_rcp){
+	ThisT& operator=(DynamicPointer<O> const &_rcp){
+		DynamicT *p(_rcp.get());
+		if(p == pdyn){
+			return *this;
+		}
+		if(pdyn) clear();
+		set(p);
+		return *this;
+	}
+
+#ifdef HAS_CPP11	
+	template <class O>
+	ThisT& operator=(DynamicPointer<O> &&_rcp){
+		DynamicT *p(_rcp.release());
+		if(pdyn) clear();
+		pdyn = p;
+		return *this;
+	}
+	
+	ThisT& operator=(ThisT &&_rcp){
+		DynamicT *p(_rcp.release());
+		if(pdyn) clear();
+		pdyn = p;
+		return *this;
+	}
+#endif
+
+	ThisT& operator=(ThisT const &_rcp){
 		DynamicT *p(_rcp.get());
 		if(p == pdyn){
 			return *this;
@@ -96,6 +134,11 @@ protected:
 		if(pdyn){
 			use(static_cast<DynamicBase*>(pdyn));
 		}
+	}
+	DynamicT* release(){
+		DynamicT *ptmp = pdyn;
+		pdyn = nullptr;
+		return ptmp;
 	}
 private:
 	mutable DynamicT *pdyn;
