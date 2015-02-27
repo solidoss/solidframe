@@ -112,11 +112,13 @@ public:
 			recv_fnc = RecvSomeFunctor<F>(_f);
 			recv_buf = _buf;
 			recv_buf_cp = _bufcp;
+			recv_buf_sz = 0;
 			doPostRecvSome(_rctx);
 			return false;
 		}else{
 			//TODO: set proper error
 			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			cassert(false);
 			return true;
 		}
 	}
@@ -146,6 +148,7 @@ public:
 		}else{
 			//TODO: set proper error
 			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			cassert(false);
 		}
 		return true;
 	}
@@ -156,12 +159,14 @@ public:
 		if(send_fnc.empty()){
 			send_fnc = _f;
 			send_buf = _buf;
-			send_buf_sz = _bufcp;
+			send_buf_cp = _bufcp;
+			send_buf_sz = 0;
 			doPostSendAll(_rctx);
 			return false;
 		}else{
 			//TODO: set proper error
 			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			cassert(false);
 			return true;
 		}
 	}
@@ -174,9 +179,9 @@ public:
 			if(rv > 0){
 				_bufcp -= rv;
 				if(_bufcp){
-					send_buf = _buf + rv;
+					send_buf = _buf;
 					send_buf_cp = _bufcp;
-					send_buf_sz = rv;
+					send_buf_sz = 0;
 					send_fnc = SendAllFunctor<F>(_f);
 					return false;
 				}
@@ -196,6 +201,7 @@ public:
 		}else{
 			//TODO: set proper error
 			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			cassert(false);
 		}
 		return true;
 	}
@@ -258,7 +264,6 @@ private:
 				recv_buf_sz = recv_buf_cp = 0;
 				
 			}else if(rv == -1){
-				recv_buf_sz = 0;
 				if(can_retry){
 					return;
 				}else{
@@ -276,12 +281,12 @@ private:
 			
 			if(rv > 0){
 				send_buf_sz += rv;
+				send_buf += rv;
 			}else if(rv == 0){
 				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 				send_buf_sz = send_buf_cp = 0;
 				
 			}else if(rv == -1){
-				send_buf_sz = 0;
 				if(can_retry){
 					return;
 				}else{
