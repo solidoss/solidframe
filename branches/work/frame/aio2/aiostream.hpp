@@ -179,7 +179,7 @@ public:
 			if(rv > 0){
 				_bufcp -= rv;
 				if(_bufcp){
-					send_buf = _buf;
+					send_buf = _buf + rv;
 					send_buf_cp = _bufcp;
 					send_buf_sz = 0;
 					send_fnc = SendAllFunctor<F>(_f);
