@@ -359,9 +359,11 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32 _events){
 		case EPOLLERR:
 			retval = ReactorEventError;break;
 		case EPOLLHUP:
+		case EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT:
 			retval = ReactorEventHangup;break;
 		case EPOLLRDHUP:
 			retval = ReactorEventRecvHangup;break;
+			
 		default:
 			cassert(false);
 			break;
@@ -379,8 +381,10 @@ inline uint32 reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests
 			break;
 		case ReactorWaitWrite:
 			evs = EPOLLET | EPOLLOUT;
+			break;
 		case ReactorWaitReadOrWrite:
 			evs = EPOLLET | EPOLLIN | EPOLLOUT;
+			break;
 		default:
 			cassert(false);
 	}

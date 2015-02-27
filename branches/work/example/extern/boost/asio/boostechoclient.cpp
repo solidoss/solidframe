@@ -40,13 +40,14 @@ struct Manager{
 		return endpoint;
 	}
 	
-	void report(uint32_t _mintime, uint32_t _maxtime, const uint64_t &_readcnt){
+	void report(uint32_t _mintime, uint32_t _maxtime, const uint64_t &_readsz, const uint64_t &_writesz){
 		if(mintime > _mintime) mintime = _mintime;
 		if(maxtime < _maxtime) maxtime = _maxtime;
-		readcnt += _readcnt;
+		readsz += _readsz;
+		writesz += _writesz;
 	}
 	void print(){
-		std::cerr<<"mintime = "<<mintime<<" maxtime = "<<maxtime<<" readcnt = "<<readcnt<<std::endl;
+		std::cerr<<"mintime = "<<mintime<<" maxtime = "<<maxtime<<" readsz = "<<readsz<<" writesz = "<<writesz<<std::endl;
 	}
 private:
 	DataVectorT		datavec;
@@ -55,7 +56,8 @@ private:
 	
 	uint32_t		mintime;
 	uint32_t		maxtime;
-	uint64_t		readcnt;
+	uint64_t		readsz;
+	uint64_t		writesz;
 };
 
 
@@ -63,13 +65,13 @@ class session
 {
 public:
 	session(boost::asio::io_service& io_service, Manager &_rm, uint32_t _idx)
-		: rm(_rm), socket_(io_service), mintime(0xffffffff), maxtime(0), crtread(0), readcnt(0)
+		: rm(_rm), socket_(io_service), mintime(0xffffffff), maxtime(0), crtread(0), readcnt(0), readsz(0), writecnt(0), writesz(0)
 	{
 		writeidx = _idx % rm.dataVector().size();
 		readidx = writeidx;
 	}
 	~session(){
-		rm.report(mintime, maxtime, readcnt);
+		rm.report(mintime, maxtime, readsz, writesz);
 	}
 	tcp::socket& socket()
 	{
@@ -112,6 +114,8 @@ private:
  			boost::bind(&session::handle_write, this,
  			boost::asio::placeholders::error)
  		);
+		writesz += data.size();
+		writecnt = 1;
 	}
 	void handle_read(const boost::system::error_code& error,
 		size_t bytes_transferred)
@@ -140,11 +144,13 @@ private:
 		if (!error)
 		{
 			++writeidx;
-			if(writeidx == rm.repeatCount()){
+			++writecnt;
+			if(writecnt >  rm.repeatCount()){
 				return;
 			}
 			const std::string &data = rm.dataVector()[writeidx%rm.dataVector().size()].data;
 			//cout<<"write2 "<<(writeidx % rm.dataVector().size())<<" size = "<<data.size()<<endl;
+			
 			timeq.push(TimeSpec::createRealTime());
 			boost::asio::async_write(
 				socket_,
@@ -152,6 +158,7 @@ private:
 				boost::bind(&session::handle_write, this,
 				boost::asio::placeholders::error)
 			);
+			writesz += data.size();
 		}
 		else
 		{
@@ -172,6 +179,9 @@ private:
 	uint32_t		maxtime;
 	uint32_t		crtread;
 	uint64_t		readcnt;
+	uint64_t		readsz;
+	uint64_t		writecnt;
+	uint64_t		writesz;
 };
 
 int main(int argc, char* argv[])
@@ -217,7 +227,8 @@ Manager::Manager(
 ):repeat_count(_repeatcnt){
 	mintime = 0xffffffff;
 	maxtime = 0;
-	readcnt = 0;
+	readsz = 0;
+	writesz = 0;
 	string line;
 	for(char c = '0'; c <= '9'; ++c) line += c;
 	for(char c = 'a'; c <= 'z'; ++c) line += c;
@@ -243,7 +254,7 @@ Manager::Manager(
 bool session::consume_data(const char *_p, size_t _l){
 	//cout<<"consume [";
 	//cout.write(_p, _l)<<']'<<endl;
-	readcnt += _l;
+	readsz += _l;
 	
 	while(_l){
 		const uint32_t	crtdatalen = rm.dataVector()[readidx % rm.dataVector().size()].data.size();
@@ -264,7 +275,8 @@ bool session::consume_data(const char *_p, size_t _l){
 			if(mintime > msec) mintime = msec;
 			if(maxtime < msec) maxtime = msec;
 			++readidx;
-			if(readidx == rm.repeatCount()){
+			++readcnt;
+			if(readcnt >= rm.repeatCount()){
 				return true;
 			}
 		}
