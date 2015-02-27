@@ -24,13 +24,14 @@ enum ReactorEventsE{
 	ReactorEventRecv = 1,
 	ReactorEventSend = 2,
 	ReactorEventRecvSend = ReactorEventRecv | ReactorEventSend,
-	ReactorEventError = 4,
-	ReactorEventHangup = 8,
-	ReactorEventOOB = 16,//receive Out Of Band Data
+	ReactorEventSendRecv = 4,
+	ReactorEventError = 8,
+	ReactorEventHangup = 16,
+	ReactorEventOOB = 32,//receive Out Of Band Data
 	ReactorEventOOBSend = ReactorEventOOB | ReactorEventSend,
-	ReactorEventRecvHangup = 32,
-	ReactorEventClear = 64,
-	ReactorEventInit = 128,
+	ReactorEventRecvHangup = 64,
+	ReactorEventClear = 128,
+	ReactorEventInit = 256,
 };
 
 enum ReactorWaitRequestsE{

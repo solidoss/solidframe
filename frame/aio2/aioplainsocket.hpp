@@ -10,15 +10,50 @@
 #ifndef SOLID_FRAME_AIO_INTERNET_SOCKET_HPP
 #define SOLID_FRAME_AIO_INTERNET_SOCKET_HPP
 
-#include "system/common.hpp"
+#include "frame/aio2/aiocommon.hpp"
 #include "system/socketdevice.hpp"
+#include <cerrno>
 
 namespace solid{
 namespace frame{
 namespace aio{
 
 class PlainSocket{
+public:
 	
+	PlainSocket(SocketDevice &_rsd):sd(_rsd){
+		if(sd.ok()){
+			sd.makeNonBlocking();
+		}
+	}
+	
+	
+	ReactorEventsE filterReactorEvents(
+		const  ReactorEventsE _evt,
+		const bool /*_pending_recv*/,
+		const bool /*_pendign_send*/
+	) const {
+		return _evt;
+	}
+	
+	int recv(char *_pb, size_t _bl, bool &_can_retry){
+		int rv = sd.recv(_pb, _bl);
+		_can_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
+		return rv;
+	}
+	
+	int send(const char *_pb, size_t _bl, bool &_can_retry){
+		int rv = sd.send(_pb, _bl);
+		_can_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
+		return rv;
+	}
+	
+	SocketDevice const& device()const{
+		return sd;
+	}
+	
+private:
+	SocketDevice sd;
 };
 
 }//namespace aio

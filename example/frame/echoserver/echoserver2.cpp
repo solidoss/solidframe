@@ -90,7 +90,7 @@ private:
 };
 
 
-//#define USE_CONNECTION
+#define USE_CONNECTION
 #ifdef USE_CONNECTION
 
 #include "frame/aio2/aiostream.hpp"
@@ -327,41 +327,55 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //-----------------------------------------------------------------------------
 #ifdef USE_CONNECTION
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	idbg(this<<" "<<_revent.id);
 	if(_revent.id == EventStartE){
 		sock.postRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	}else if(_revent.id == EventStopE){
+		idbg(this<<" postStop");
 		postStop(_rctx);
 	}
 }
 
 void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
+	idbg(this<<" "<<_sz);
 	unsigned	repeatcnt = 10;
 	do{
 		if(!_rctx.error()){
+			idbg(this<<" write: "<<_sz);
 			if(sock.sendAll(_rctx, buf, _sz, std::bind(&Connection::onSend, this, _1))){
 				if(_rctx.error()){
+					idbg(this<<" postStop");
 					postStop(_rctx);
 					break;
 				}
 			}else{
+				idbg(this<<"");
 				break;
 			}
 		}else{
+			idbg(this<<" postStop");
 			postStop(_rctx);
 			break;
 		}
 		--repeatcnt;
 	}while(repeatcnt && sock.recvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2), _sz));
 	
+	idbg(this<<" "<<repeatcnt);
 	//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+	if(repeatcnt == 0){
+		bool rv = sock.postRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
+		cassert(!rv);
+	}
 }
 
 void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	if(!_rctx.error()){
+		idbg(this<<" postRecvSome");
 		sock.postRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	}else{
+		idbg(this<<" postStop");
 		postStop(_rctx);
 	}
 }

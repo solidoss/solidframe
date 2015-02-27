@@ -47,7 +47,7 @@ namespace aio{
 	Listener		*pthis = static_cast<Listener*>(completion_handler(_rctx));
 	Listener		&rthis = *pthis;
 	SocketDevice	sd;
-	if(rthis.doTryAccept(_rctx, sd)){
+	if(!rthis.f.empty() && rthis.doTryAccept(_rctx, sd)){
 		FunctionT	tmpf(std::move(rthis.f));
 		tmpf(_rctx, sd);
 	}
