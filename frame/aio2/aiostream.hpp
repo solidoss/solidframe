@@ -39,6 +39,7 @@ class Stream: public CompletionHandler{
 	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
 		
+		//switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx), rthis.recv_fnc != nullptr, rthis.send_fnc != nullptr)){
 		switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx), !rthis.recv_fnc.empty(), !rthis.send_fnc.empty())){
 			case ReactorEventRecv:
 				rthis.doRecv(_rctx);
@@ -109,6 +110,7 @@ public:
 	template <typename F>
 	bool postRecvSome(ReactorContext &_rctx, char *_buf, size_t _bufcp, F _f){
 		if(recv_fnc.empty()){
+		//if(recv_fnc == nullptr){
 			recv_fnc = RecvSomeFunctor<F>(_f);
 			recv_buf = _buf;
 			recv_buf_cp = _bufcp;
@@ -126,6 +128,7 @@ public:
 	template <typename F>
 	bool recvSome(ReactorContext &_rctx, char *_buf, size_t _bufcp, F _f, size_t &_sz){
 		if(recv_fnc.empty()){
+		//if(recv_fnc == nullptr){
 			bool	can_retry;
 			int		rv = s.recv(_buf, _bufcp, can_retry);
 			if(rv > 0){
@@ -174,6 +177,7 @@ public:
 	template <typename F>
 	bool sendAll(ReactorContext &_rctx, char *_buf, size_t _bufcp, F _f){
 		if(send_fnc.empty()){
+		//if(send_fnc == nullptr){
 			bool	can_retry;
 			int		rv = s.send(_buf, _bufcp, can_retry);
 			if(rv > 0){
@@ -217,6 +221,7 @@ private:
 	
 	void doRecv(ReactorContext &_rctx){
 		if(!recv_fnc.empty()){
+		//if(recv_fnc != nullptr){
 			bool	can_retry;
 			int		rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry);
 			if(rv > 0){
@@ -235,6 +240,7 @@ private:
 	
 	void doSend(ReactorContext &_rctx){
 		if(!send_fnc.empty()){
+		//if(send_fnc != nullptr){
 			bool	can_retry;
 			int		rv = s.send(send_buf, send_buf_cp - send_buf_sz, can_retry);
 			if(rv > 0){
@@ -253,6 +259,7 @@ private:
 	
 	void doTryRecv(ReactorContext &_rctx){
 		if(!recv_fnc.empty()){
+		//if(recv_fnc != nullptr){
 			bool	can_retry;
 			int		rv = s.recv(recv_buf, recv_buf_cp, can_retry);
 			
@@ -302,10 +309,12 @@ private:
 		error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 		
 		if(!send_fnc.empty()){
+		//if(send_fnc != nullptr){
 			recv_buf_sz = recv_buf_cp = 0;
 			send_fnc(*this, _rctx);
 		}
 		if(!recv_fnc.empty()){
+		//if(recv_fnc != nullptr){
 			send_buf_sz = send_buf_cp = 0;
 			recv_fnc(*this, _rctx);
 		}
@@ -313,6 +322,7 @@ private:
 	
 	void doClearRecv(ReactorContext &_rctx){
 		recv_fnc.clear();
+		//recv_fnc = nullptr;
 		recv_buf = nullptr;
 		recv_buf_sz = 0;
 		recv_buf_cp = 0;
@@ -320,6 +330,7 @@ private:
 	
 	void doClearSend(ReactorContext &_rctx){
 		send_fnc.clear();
+		//send_fnc = nullptr;
 		send_buf = nullptr;
 		send_buf_sz = 0;
 		recv_buf_cp = 0;
@@ -328,6 +339,7 @@ private:
 private:
 	typedef boost::function<void(ThisT&, ReactorContext&)>		RecvFunctionT;
 	typedef boost::function<void(ThisT&, ReactorContext&)>		SendFunctionT;
+	
 	Sock			s;
 	
 	char 			*recv_buf;

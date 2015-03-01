@@ -212,6 +212,7 @@ struct Manager::Data{
 		cassert(v >= 0);
 		return idx;
 	}
+
 	void releaseReadObjectStore(const size_t _idx){
 		objstore[_idx].usecnt.fetch_sub(1);
 	}
@@ -490,10 +491,11 @@ ObjectUidT Manager::registerObject(
 		}else{
 			
 			//make the link with the last chunk
-			const size_t	objstoreidx = d.aquireReadObjectStore();
+			const size_t	objstoreidx = d.crtobjstoreidx;//d.mtx is locked so it is safe to fetch the value of 
+
 			ObjectChunk 	&laschk(*d.objstore[objstoreidx].vec[rss.lastchk]);
+
 			Locker<Mutex>	lock3(laschk.rmtx);
-			d.releaseReadObjectStore(objstoreidx);
 			
 			laschk.nextchk = chkidx;
 		}

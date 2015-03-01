@@ -62,6 +62,7 @@ public:
 
 	void start()
 	{
+		//socket_.lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
 		socket_.async_read_some(boost::asio::buffer(data_, max_length),
 			boost::bind(&session::handle_read, this,
 			boost::asio::placeholders::error,
@@ -101,7 +102,7 @@ private:
 	}
 
 	tcp::socket socket_;
-	enum { max_length = 1024 };
+	enum { max_length = 1024 * 2 };
 	char data_[max_length];
 };
 

@@ -108,7 +108,7 @@ private:
 private:
 	typedef frame::aio::Stream<frame::aio::PlainSocket>		StreamSocketT;
 	//typedef frame::aio::Timer								TimerT;
-	enum {BufferCapacity = 1024};
+	enum {BufferCapacity = 1024 * 2};
 	
 	char			buf[BufferCapacity];
 	StreamSocketT	sock;
@@ -128,7 +128,7 @@ private:
 private:
 	typedef frame::aio::Datagram<frame::aio::Socket>	DatagramSocketT;
 	typedef frame::aio::Timer							TimerT;
-	enum {BufferCapacity = 1024};
+	enum {BufferCapacity = 1024 * 2 };
 	
 	char			buf[BufferCapacity];
 	DatagramSocketT	sock;
@@ -291,6 +291,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	
 	do{
 		if(!_rctx.error()){
+			//_rsd.enableNoDelay();
 #ifdef USE_CONNECTION			
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			solid::ErrorConditionT				err;
