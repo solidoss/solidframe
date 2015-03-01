@@ -99,12 +99,15 @@ private:
 			return;
 		}
 		
+		socket().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
+		
 		socket().async_read_some(
 			boost::asio::buffer(data_, max_length),
 			boost::bind(&session::handle_read, this,
 			boost::asio::placeholders::error,
 			boost::asio::placeholders::bytes_transferred)
 		);
+		
 		const std::string &data = rm.dataVector()[writeidx % rm.dataVector().size()].data;
 		//cout<<"write "<<(writeidx % rm.dataVector().size())<<" size = "<<data.size()<<endl;
  		timeq.push(TimeSpec::createRealTime());

@@ -161,7 +161,7 @@ struct ObjectStub{
 
 
 enum{
-	MinEventCapacity = 4,
+	MinEventCapacity = 4096,
 	MaxEventCapacity = 1024 * 64
 };
 
