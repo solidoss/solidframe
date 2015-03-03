@@ -57,6 +57,7 @@ struct DynamicBase{
 
 protected:
 	static size_t generateId();
+	DynamicBase():usecount(0){}
 	
 	friend class DynamicPointerBase;
 	virtual ~DynamicBase();

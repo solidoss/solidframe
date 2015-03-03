@@ -13,6 +13,7 @@
 #include "system/common.hpp"
 #include "system/socketdevice.hpp"
 #include "aiocompletion.hpp"
+#include "system/debug.hpp"
 
 namespace solid{
 namespace frame{
@@ -39,8 +40,7 @@ class Stream: public CompletionHandler{
 	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
 		
-		//switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx), rthis.recv_fnc != nullptr, rthis.send_fnc != nullptr)){
-		switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx), !rthis.recv_fnc.empty(), !rthis.send_fnc.empty())){
+		switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx), !FUNCTION_EMPTY(rthis.recv_fnc), !FUNCTION_EMPTY(rthis.send_fnc))){
 			case ReactorEventRecv:
 				rthis.doRecv(_rctx);
 				break;
@@ -49,11 +49,11 @@ class Stream: public CompletionHandler{
 				break;
 			case ReactorEventRecvSend:
 				rthis.doRecv(_rctx);
-				rthis.doSend(_rctx);
+				rthis.doTrySend(_rctx);
 				break;
 			case ReactorEventSendRecv:
 				rthis.doSend(_rctx);
-				rthis.doRecv(_rctx);
+				rthis.doTryRecv(_rctx);
 				break;
 			case ReactorEventHangup:
 			case ReactorEventError:
@@ -109,8 +109,7 @@ public:
 	
 	template <typename F>
 	bool postRecvSome(ReactorContext &_rctx, char *_buf, size_t _bufcp, F _f){
-		if(recv_fnc.empty()){
-		//if(recv_fnc == nullptr){
+		if(FUNCTION_EMPTY(recv_fnc)){
 			recv_fnc = RecvSomeFunctor<F>(_f);
 			recv_buf = _buf;
 			recv_buf_cp = _bufcp;
@@ -127,8 +126,7 @@ public:
 	
 	template <typename F>
 	bool recvSome(ReactorContext &_rctx, char *_buf, size_t _bufcp, F _f, size_t &_sz){
-		if(recv_fnc.empty()){
-		//if(recv_fnc == nullptr){
+		if(FUNCTION_EMPTY(recv_fnc)){
 			bool	can_retry;
 			int		rv = s.recv(_buf, _bufcp, can_retry);
 			if(rv > 0){
@@ -159,7 +157,7 @@ public:
 	
 	template <typename F>
 	bool postSendAll(ReactorContext &_rctx, const char *_buf, size_t _bufcp, F _f){
-		if(send_fnc.empty()){
+		if(FUNCTION_EMPTY(send_fnc)){
 			send_fnc = _f;
 			send_buf = _buf;
 			send_buf_cp = _bufcp;
@@ -176,8 +174,7 @@ public:
 	
 	template <typename F>
 	bool sendAll(ReactorContext &_rctx, char *_buf, size_t _bufcp, F _f){
-		if(send_fnc.empty()){
-		//if(send_fnc == nullptr){
+		if(FUNCTION_EMPTY(send_fnc)){
 			bool	can_retry;
 			int		rv = s.send(_buf, _bufcp, can_retry);
 			if(rv > 0){
@@ -220,8 +217,7 @@ private:
 	}
 	
 	void doRecv(ReactorContext &_rctx){
-		if(!recv_fnc.empty()){
-		//if(recv_fnc != nullptr){
+		if(!FUNCTION_EMPTY(recv_fnc)){
 			bool	can_retry;
 			int		rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry);
 			if(rv > 0){
@@ -239,17 +235,18 @@ private:
 	}
 	
 	void doSend(ReactorContext &_rctx){
-		if(!send_fnc.empty()){
-		//if(send_fnc != nullptr){
+		if(!FUNCTION_EMPTY(send_fnc)){
 			bool	can_retry;
 			int		rv = s.send(send_buf, send_buf_cp - send_buf_sz, can_retry);
 			if(rv > 0){
 				send_buf_sz += rv;
 				send_buf += rv;
 			}else if(rv == 0){
+				edbg("");
 				send_buf_sz = send_buf_cp = 0;
 				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 			}else if(rv < 0){
+				edbg(""<<can_retry);
 				send_buf_sz = send_buf_cp = 0;
 				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 			}
@@ -258,10 +255,9 @@ private:
 	}
 	
 	void doTryRecv(ReactorContext &_rctx){
-		if(!recv_fnc.empty()){
-		//if(recv_fnc != nullptr){
+		if(!FUNCTION_EMPTY(recv_fnc)){
 			bool	can_retry;
-			int		rv = s.recv(recv_buf, recv_buf_cp, can_retry);
+			int		rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry);
 			
 			if(rv > 0){
 				recv_buf_sz += rv;
@@ -282,7 +278,7 @@ private:
 		}
 	}
 	void doTrySend(ReactorContext &_rctx){
-		if(!send_fnc.empty()){
+		if(!FUNCTION_EMPTY(send_fnc)){
 			bool	can_retry;
 			int		rv = s.send(send_buf, send_buf_cp - send_buf_sz, can_retry);
 			
@@ -305,40 +301,37 @@ private:
 		}
 	}
 	void doError(ReactorContext &_rctx){
+		edbg("");
 		//TODO: set propper error
 		error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 		
-		if(!send_fnc.empty()){
-		//if(send_fnc != nullptr){
-			recv_buf_sz = recv_buf_cp = 0;
+		if(!FUNCTION_EMPTY(send_fnc)){
+			send_buf_sz = send_buf_cp = 0;
 			send_fnc(*this, _rctx);
 		}
-		if(!recv_fnc.empty()){
-		//if(recv_fnc != nullptr){
-			send_buf_sz = send_buf_cp = 0;
+		if(!FUNCTION_EMPTY(recv_fnc)){
+			recv_buf_sz = recv_buf_cp = 0;
 			recv_fnc(*this, _rctx);
 		}
 	}
 	
 	void doClearRecv(ReactorContext &_rctx){
-		recv_fnc.clear();
-		//recv_fnc = nullptr;
+		FUNCTION_CLEAR(recv_fnc);
 		recv_buf = nullptr;
 		recv_buf_sz = 0;
 		recv_buf_cp = 0;
 	}
 	
 	void doClearSend(ReactorContext &_rctx){
-		send_fnc.clear();
-		//send_fnc = nullptr;
+		FUNCTION_CLEAR(send_fnc);
 		send_buf = nullptr;
 		send_buf_sz = 0;
 		recv_buf_cp = 0;
 	}
 	
 private:
-	typedef boost::function<void(ThisT&, ReactorContext&)>		RecvFunctionT;
-	typedef boost::function<void(ThisT&, ReactorContext&)>		SendFunctionT;
+	typedef FUNCTION<void(ThisT&, ReactorContext&)>		RecvFunctionT;
+	typedef FUNCTION<void(ThisT&, ReactorContext&)>		SendFunctionT;
 	
 	Sock			s;
 	

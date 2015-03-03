@@ -18,6 +18,7 @@
 #include <deque>
 #include <cerrno>
 #include <cstring>
+#include <queue>
 
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
@@ -161,7 +162,7 @@ struct ObjectStub{
 
 
 enum{
-	MinEventCapacity = 4096,
+	MinEventCapacity = 1024 * 4,
 	MaxEventCapacity = 1024 * 64
 };
 
