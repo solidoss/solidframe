@@ -22,7 +22,7 @@ namespace aio{
 	
 	switch(rthis.reactorEvent(_rctx)){
 		case ReactorEventRecv:
-			if(!rthis.f.empty()){
+			if(!FUNCTION_EMPTY(rthis.f)){
 				SocketDevice	sd;
 				FunctionT		tmpf(std::move(rthis.f));
 				rthis.doAccept(_rctx, sd);
@@ -30,13 +30,13 @@ namespace aio{
 				tmpf(_rctx, sd);
 			}break;
 		case ReactorEventError:
-			if(!rthis.f.empty()){
+			if(!FUNCTION_EMPTY(rthis.f)){
 				SocketDevice	sd;
 				FunctionT		tmpf(std::move(rthis.f));
 				tmpf(_rctx, sd);
 			}break;
 		case ReactorEventClear:
-			rthis.f.clear();
+			FUNCTION_CLEAR(rthis.f);
 			break;
 		default:
 			cassert(false);
@@ -47,7 +47,7 @@ namespace aio{
 	Listener		*pthis = static_cast<Listener*>(completion_handler(_rctx));
 	Listener		&rthis = *pthis;
 	SocketDevice	sd;
-	if(!rthis.f.empty() && rthis.doTryAccept(_rctx, sd)){
+	if(!FUNCTION_EMPTY(rthis.f) && rthis.doTryAccept(_rctx, sd)){
 		FunctionT	tmpf(std::move(rthis.f));
 		tmpf(_rctx, sd);
 	}

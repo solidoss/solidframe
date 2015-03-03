@@ -45,7 +45,7 @@ public:
 	//Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
 	template <typename F>
 	bool postAccept(ReactorContext &_rctx, F _f){
-		if(f.empty()){
+		if(FUNCTION_EMPTY(f)){
 			f = _f;
 			doPostAccept(_rctx);
 			return false;
@@ -60,7 +60,7 @@ public:
 	//Returns false when operation is scheduled for completion. On completion _f(...) will be called.
 	template <typename F>
 	bool accept(ReactorContext &_rctx, F _f, SocketDevice &_rsd){
-		if(f.empty()){
+		if(FUNCTION_EMPTY(f)){
 			if(this->doTryAccept(_rctx, _rsd)){
 				return true;
 			}
@@ -77,7 +77,7 @@ private:
 	bool doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd);
 	void doAccept(solid::frame::aio::ReactorContext& _rctx, solid::SocketDevice& _rsd);
 private:
-	typedef boost::function<void(ReactorContext&, SocketDevice&)>		FunctionT;
+	typedef FUNCTION<void(ReactorContext&, SocketDevice&)>		FunctionT;
 	FunctionT				f;
 	SocketDevice			sd;
 	ReactorWaitRequestsE	waitreq;

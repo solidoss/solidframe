@@ -98,12 +98,12 @@ private:
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
-	Connection(SocketDevice &_rsd):sock(this->proxy(), _rsd){}
+	Connection(SocketDevice &_rsd):sock(this->proxy(), _rsd), recvcnt(0), sendcnt(0){}
 	~Connection(){}
 private:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
-	void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
-	void onSend(frame::aio::ReactorContext &_rctx);
+	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
+	static void onSend(frame::aio::ReactorContext &_rctx);
 	void onTimer(frame::aio::ReactorContext &_rctx);
 private:
 	typedef frame::aio::Stream<frame::aio::PlainSocket>		StreamSocketT;
@@ -112,6 +112,9 @@ private:
 	
 	char			buf[BufferCapacity];
 	StreamSocketT	sock;
+	uint64 			recvcnt;
+	uint64			sendcnt;
+	size_t			sendcrt;
 	//TimerT			timer;
 };
 #endif
@@ -232,6 +235,7 @@ int main(int argc, char *argv[]){
 		}else{
 			char c;
 			cin>>c;
+			exit(0);
 		}
 		
 		
@@ -287,7 +291,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	idbg("");
-	unsigned	repeatcnt = 10;
+	unsigned	repeatcnt = 100;
 	
 	do{
 		if(!_rctx.error()){
@@ -328,56 +332,62 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //-----------------------------------------------------------------------------
 #ifdef USE_CONNECTION
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg(this<<" "<<_revent.id);
+	edbg(this<<" "<<_revent.id);
 	if(_revent.id == EventStartE){
-		sock.postRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
+		sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	}else if(_revent.id == EventStopE){
-		idbg(this<<" postStop");
+		edbg(this<<" postStop");
 		postStop(_rctx);
 	}
 }
 
-void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
-	idbg(this<<" "<<_sz);
+/*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
 	unsigned	repeatcnt = 10;
+	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	idbg(&rthis<<" "<<_sz);
 	do{
 		if(!_rctx.error()){
-			idbg(this<<" write: "<<_sz);
-			if(sock.sendAll(_rctx, buf, _sz, std::bind(&Connection::onSend, this, _1))){
+			idbg(&rthis<<" write: "<<_sz);
+			rthis.recvcnt += _sz;
+			rthis.sendcrt = _sz;
+			if(rthis.sock.sendAll(_rctx, rthis.buf, _sz, Connection::onSend/*std::bind(&Connection::onSend, this, _1)*/)){
 				if(_rctx.error()){
-					idbg(this<<" postStop");
-					postStop(_rctx);
+					edbg(&rthis<<" postStop "<<rthis.recvcnt<<" "<<rthis.sendcnt);
+					rthis.postStop(_rctx);
 					break;
 				}
+				rthis.sendcnt += rthis.sendcrt;
 			}else{
-				idbg(this<<"");
+				idbg(&rthis<<"");
 				break;
 			}
 		}else{
-			idbg(this<<" postStop");
-			postStop(_rctx);
+			edbg(&rthis<<" postStop "<<rthis.recvcnt<<" "<<rthis.sendcnt);
+			rthis.postStop(_rctx);
 			break;
 		}
 		--repeatcnt;
-	}while(repeatcnt && sock.recvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2), _sz));
+	}while(repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/, _sz));
 	
-	idbg(this<<" "<<repeatcnt);
+	idbg(&rthis<<" "<<repeatcnt);
 	//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	if(repeatcnt == 0){
-		bool rv = sock.postRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
+		bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
 		cassert(!rv);
 	}
 }
 
-void Connection::onSend(frame::aio::ReactorContext &_rctx){
+/*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
+	Connection &rthis = static_cast<Connection&>(_rctx.object());
 	if(!_rctx.error()){
-		idbg(this<<" postRecvSome");
-		sock.postRecvSome(_rctx, buf, BufferCapacity, std::bind(&Connection::onRecv, this, _1, _2));//fully asynchronous call
+		idbg(&rthis<<" postRecvSome");
+		rthis.sendcnt += rthis.sendcrt;
+		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	}else{
-		idbg(this<<" postStop");
-		postStop(_rctx);
+		edbg(&rthis<<" postStop "<<rthis.recvcnt<<" "<<rthis.sendcnt);
+		rthis.postStop(_rctx);
 	}
 }
 
