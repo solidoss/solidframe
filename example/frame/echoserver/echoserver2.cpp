@@ -145,6 +145,7 @@ int main(int argc, char *argv[]){
 	if(parseArguments(p, argc, argv)) return 0;
 	
 	signal(SIGINT, term_handler); /* Die on SIGTERM */
+	signal(SIGPIPE, SIG_IGN);
 	
 	/*solid::*/Thread::init();
 	
@@ -343,7 +344,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 }
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
-	unsigned	repeatcnt = 10;
+	unsigned	repeatcnt = 2;
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	idbg(&rthis<<" "<<_sz);
 	do{

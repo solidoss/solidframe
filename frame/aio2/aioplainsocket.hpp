@@ -38,13 +38,13 @@ public:
 	
 	int recv(char *_pb, size_t _bl, bool &_can_retry){
 		int rv = sd.recv(_pb, _bl);
-		_can_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
+		_can_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
 		return rv;
 	}
 	
 	int send(const char *_pb, size_t _bl, bool &_can_retry){
 		int rv = sd.send(_pb, _bl);
-		_can_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
+		_can_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
 		return rv;
 	}
 	

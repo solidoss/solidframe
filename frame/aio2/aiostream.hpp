@@ -28,7 +28,6 @@ class Stream: public CompletionHandler{
 	
 	static void on_posted_recv_some(ReactorContext &_rctx, Event const&){
 		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-		
 		rthis.doTryRecv(_rctx);
 	}
 	
@@ -220,6 +219,7 @@ private:
 		if(!FUNCTION_EMPTY(recv_fnc)){
 			bool	can_retry;
 			int		rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry);
+			
 			if(rv > 0){
 				recv_buf_sz += rv;
 				recv_buf += rv;
@@ -229,6 +229,29 @@ private:
 			}else if(rv < 0){
 				recv_buf_sz = recv_buf_cp = 0;
 				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			}
+			recv_fnc(*this, _rctx);
+		}
+	}
+	
+	void doTryRecv(ReactorContext &_rctx){
+		if(!FUNCTION_EMPTY(recv_fnc)){
+			bool	can_retry;
+			int		rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry);
+			if(rv > 0){
+				recv_buf_sz += rv;
+				recv_buf += rv;
+			}else if(rv == 0){
+				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				recv_buf_sz = recv_buf_cp = 0;
+				
+			}else if(rv == -1){
+				if(can_retry){
+					return;
+				}else{
+					recv_buf_sz = recv_buf_cp = 0;
+					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				}
 			}
 			recv_fnc(*this, _rctx);
 		}
@@ -254,29 +277,6 @@ private:
 		}
 	}
 	
-	void doTryRecv(ReactorContext &_rctx){
-		if(!FUNCTION_EMPTY(recv_fnc)){
-			bool	can_retry;
-			int		rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry);
-			
-			if(rv > 0){
-				recv_buf_sz += rv;
-				recv_buf += rv;
-			}else if(rv == 0){
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-				recv_buf_sz = recv_buf_cp = 0;
-				
-			}else if(rv == -1){
-				if(can_retry){
-					return;
-				}else{
-					recv_buf_sz = recv_buf_cp = 0;
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-				}
-			}
-			recv_fnc(*this, _rctx);
-		}
-	}
 	void doTrySend(ReactorContext &_rctx){
 		if(!FUNCTION_EMPTY(send_fnc)){
 			bool	can_retry;
@@ -328,7 +328,6 @@ private:
 		send_buf_sz = 0;
 		recv_buf_cp = 0;
 	}
-	
 private:
 	typedef FUNCTION<void(ThisT&, ReactorContext&)>		RecvFunctionT;
 	typedef FUNCTION<void(ThisT&, ReactorContext&)>		SendFunctionT;
