@@ -198,7 +198,7 @@ int main(int argc, char *argv[]){
 			SocketDevice	sd;
 			
 			sd.create(rd.begin());
-			sd.prepareAccept(rd.begin(), 100);
+			sd.prepareAccept(rd.begin(), 2000);
 			
 			if(sd.ok()){
 				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, sd));
@@ -292,12 +292,14 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	idbg("");
-	unsigned	repeatcnt = 100;
+	unsigned	repeatcnt = 4;
 	
 	do{
 		if(!_rctx.error()){
 			//_rsd.enableNoDelay();
-#ifdef USE_CONNECTION			
+#ifdef USE_CONNECTION
+			_rsd.recvBufferSize(1024 * 16);
+			_rsd.sendBufferSize(1024 * 16);
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			solid::ErrorConditionT				err;
 			
@@ -314,9 +316,13 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	}while(repeatcnt && sock.accept(_rctx, std::bind(&Listener::onAccept, this, _1, _2), _rsd));
 	
 	if(!repeatcnt){
-#if 0
+#if 1
 		//the normal way
-		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));//fully asynchronous call
+		//sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));//fully asynchronous call
+		sock.postAccept(
+			_rctx,
+			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
+		);//fully asynchronous call
 #else
 		//using this->post(...) as an example
 		this->post(
