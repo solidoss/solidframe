@@ -65,13 +65,14 @@ class session
 {
 public:
 	session(boost::asio::io_service& io_service, Manager &_rm, uint32_t _idx)
-		: rm(_rm), socket_(io_service), mintime(0xffffffff), maxtime(0), crtread(0), readcnt(0), readsz(0), writecnt(0), writesz(0)
+		: rm(_rm), socket_(io_service), mintime(0xffffffff), maxtime(0), crtread(0), readcnt(0), readsz(0), writecnt(0), writesz(0), writecrt(0), usecnt(0)
 	{
 		writeidx = _idx % rm.dataVector().size();
 		readidx = writeidx;
 	}
 	~session(){
 		rm.report(mintime, maxtime, readsz, writesz);
+		cout<<this<<" "<<readsz<<" "<<writesz<<endl;
 	}
 	tcp::socket& socket()
 	{
@@ -80,6 +81,7 @@ public:
 
 	void start(const TcpEndPointT &_rendpoint)
 	{
+		++usecnt;
 		socket().async_connect(
 			_rendpoint,
 			boost::bind(
@@ -94,13 +96,15 @@ private:
 	void handle_connect(
 		const boost::system::error_code &_rerr
 	){
+		--usecnt;
 		if(_rerr){
-			delete this;
+			if(!usecnt)
+				delete this;
 			return;
 		}
 		
-		socket().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
-		
+		//socket().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
+		usecnt += 2;
 		socket().async_read_some(
 			boost::asio::buffer(data_, max_length),
 			boost::bind(&session::handle_read, this,
@@ -117,18 +121,21 @@ private:
  			boost::bind(&session::handle_write, this,
  			boost::asio::placeholders::error)
  		);
-		writesz += data.size();
+		writecrt = data.size();
 		writecnt = 1;
 	}
 	void handle_read(const boost::system::error_code& error,
 		size_t bytes_transferred)
 	{
+		--usecnt;
 		if (!error)
 		{	
 			if(consume_data(data_, bytes_transferred)){
-				delete this;
+				if(!usecnt)
+					delete this;
 				return;
 			}
+			++usecnt;
 			socket().async_read_some(
 				boost::asio::buffer(data_, max_length),
 				boost::bind(&session::handle_read, this,
@@ -136,24 +143,27 @@ private:
 				boost::asio::placeholders::bytes_transferred)
 			);
 		}
-		else
-		{
+		else if(!usecnt)
+ 		{	
 			delete this;
 		}
 	}
 
 	void handle_write(const boost::system::error_code& error)
 	{
+		--usecnt;
 		if (!error)
 		{
 			++writeidx;
 			++writecnt;
+			writesz += writecrt;
+			
 			if(writecnt >  rm.repeatCount()){
 				return;
 			}
 			const std::string &data = rm.dataVector()[writeidx%rm.dataVector().size()].data;
 			//cout<<"write2 "<<(writeidx % rm.dataVector().size())<<" size = "<<data.size()<<endl;
-			
+			++usecnt;
 			timeq.push(TimeSpec::createRealTime());
 			boost::asio::async_write(
 				socket_,
@@ -161,11 +171,11 @@ private:
 				boost::bind(&session::handle_write, this,
 				boost::asio::placeholders::error)
 			);
-			writesz += data.size();
+			writecrt = data.size();
 		}
-		else
+		else if(!usecnt)
 		{
-			//delete this;
+			delete this;
 		}
 	}
 	bool consume_data(const char *_p, size_t _l);
@@ -185,6 +195,8 @@ private:
 	uint64_t		readsz;
 	uint64_t		writecnt;
 	uint64_t		writesz;
+	uint16_t		writecrt;
+	uint16_t		usecnt;
 };
 
 int main(int argc, char* argv[])
