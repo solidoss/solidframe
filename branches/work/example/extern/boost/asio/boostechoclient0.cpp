@@ -129,6 +129,7 @@ private:
 		writecrt = data.size();
 		writecnt = 1;
 	}
+	
 	void handle_read(const boost::system::error_code& error,
 		size_t bytes_transferred)
 	{
