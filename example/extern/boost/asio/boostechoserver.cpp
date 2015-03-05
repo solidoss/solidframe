@@ -63,6 +63,12 @@ public:
 	void start()
 	{
 		//socket_.lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
+		boost::asio::socket_base::receive_buffer_size	recvoption(1024 * 64);
+		boost::asio::socket_base::send_buffer_size		sendoption(1024 * 32);
+		socket_.set_option(sendoption);
+		socket_.set_option(recvoption);
+		//cout<<"recv_buffer_size = "<<recvoption.value()<<endl;
+		//cout<<"send_buffer_size = "<<sendoption.value()<<endl;
 		socket_.async_read_some(boost::asio::buffer(data_, max_length),
 			boost::bind(&session::handle_read, this,
 			boost::asio::placeholders::error,

@@ -72,7 +72,7 @@ public:
 	}
 	~session(){
 		rm.report(mintime, maxtime, readsz, writesz);
-		cout<<this<<" "<<readsz<<" "<<writesz<<endl;
+		//cout<<this<<" "<<readsz<<" "<<writesz<<endl;
 	}
 	tcp::socket& socket()
 	{
@@ -102,6 +102,11 @@ private:
 				delete this;
 			return;
 		}
+		
+		boost::asio::socket_base::receive_buffer_size	recvoption(1024 * 64);
+		boost::asio::socket_base::send_buffer_size		sendoption(1024 * 32);
+		socket().set_option(sendoption);
+		socket().set_option(recvoption);
 		
 		//socket().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
 		usecnt += 2;
