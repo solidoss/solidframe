@@ -69,22 +69,46 @@ public:
 		socket_.set_option(recvoption);
 		//cout<<"recv_buffer_size = "<<recvoption.value()<<endl;
 		//cout<<"send_buffer_size = "<<sendoption.value()<<endl;
-		socket_.async_read_some(boost::asio::buffer(data_, max_length),
+		
+#ifdef USE_BIND
+		socket_.async_read_some(
+			boost::asio::buffer(data_, max_length),
 			boost::bind(&session::handle_read, this,
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred));
+				boost::asio::placeholders::error,
+				boost::asio::placeholders::bytes_transferred
+			)
+		);
+#else		
+		socket_.async_read_some(
+			boost::asio::buffer(data_, max_length),
+			[this](const boost::system::error_code& _error, size_t _sz){handle_read(_error, _sz);}
+		);
+#endif
 	}
 
 private:
-	void handle_read(const boost::system::error_code& error,
-		size_t bytes_transferred)
+	
+	void handle_read(const boost::system::error_code& error, size_t bytes_transferred)
 	{
 		if (!error)
 		{
-			boost::asio::async_write(socket_,
+#ifdef USE_BIND
+			boost::asio::async_write(
+				socket_,
 				boost::asio::buffer(data_, bytes_transferred),
-				boost::bind(&session::handle_write, this,
-					boost::asio::placeholders::error));
+				boost::bind(
+					&session::handle_write,
+					this,
+					boost::asio::placeholders::error
+				)
+			);
+#else
+			boost::asio::async_write(
+				socket_,
+				boost::asio::buffer(data_, bytes_transferred),
+				[this](const boost::system::error_code& _error, size_t /*_sz*/){handle_write(_error);}
+			);
+#endif
 		}
 		else
 		{
@@ -96,10 +120,22 @@ private:
 	{
 		if (!error)
 		{
-			socket_.async_read_some(boost::asio::buffer(data_, max_length),
-				boost::bind(&session::handle_read, this,
+#ifdef USE_BIND
+			socket_.async_read_some(
+				boost::asio::buffer(data_, max_length),
+				boost::bind(
+					&session::handle_read,
+					this,
 					boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred));
+					boost::asio::placeholders::bytes_transferred
+				)
+			);
+#else
+			socket_.async_read_some(
+				boost::asio::buffer(data_, max_length),
+				[this](const boost::system::error_code& _error, size_t _sz){handle_read(_error, _sz);}
+			);
+#endif
 		}
 		else
 		{

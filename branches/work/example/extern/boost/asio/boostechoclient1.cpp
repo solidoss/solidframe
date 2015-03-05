@@ -266,7 +266,7 @@ int main(int argc, char* argv[])
 
 		using namespace std; // For atoi.
 		
-		Manager m(atoi(argv[4]), 1024 * 12, 24 * 1024, 10);
+		Manager m(atoi(argv[4]), 1024 * 2, 1024 * 8, 10);
 		
 		m.endPoint(ip::tcp::endpoint(ip::address::from_string(argv[1]), atoi(argv[2])));
 		
