@@ -298,8 +298,10 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 		if(!_rctx.error()){
 			//_rsd.enableNoDelay();
 #ifdef USE_CONNECTION
-			_rsd.recvBufferSize(1024 * 16);
-			_rsd.sendBufferSize(1024 * 16);
+			//cout<<"recvbuffsz = "<<_rsd.recvBufferSize().second<<endl;
+			//cout<<"sendbuffsz = "<<_rsd.sendBufferSize().second<<endl;
+			_rsd.recvBufferSize(1024 * 64);
+			_rsd.sendBufferSize(1024 * 32);
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			solid::ErrorConditionT				err;
 			
