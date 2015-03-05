@@ -187,7 +187,7 @@ private:
 	bool consume_data(const char *_p, size_t _l);
 	
 	typedef std::queue<TimeSpec>	TimeSpecQueueT;
-	enum { max_length = 1024 };
+	enum { max_length = 1024 * 4 };
 	Manager			&rm;
 	tcp::socket		socket_;
 	char			data_[max_length];
