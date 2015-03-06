@@ -1,4 +1,4 @@
-// frame/aio/aioplainsocket.hpp
+// frame/aio/aiosocket.hpp
 //
 // Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_AIO_INTERNET_SOCKET_HPP
-#define SOLID_FRAME_AIO_INTERNET_SOCKET_HPP
+#ifndef SOLID_FRAME_AIO_SOCKET_HPP
+#define SOLID_FRAME_AIO_SOCKET_HPP
 
 #include "frame/aio/aiocommon.hpp"
 #include "system/socketdevice.hpp"
@@ -18,16 +18,16 @@ namespace solid{
 namespace frame{
 namespace aio{
 
-class PlainSocket{
+class	Socket{
 public:
 	
-	PlainSocket(SocketDevice &_rsd):sd(_rsd){
+	Socket(SocketDevice &_rsd):sd(_rsd){
 		if(sd.ok()){
 			sd.makeNonBlocking();
 		}
 	}
 	
-	PlainSocket(){
+	Socket(){
 	}
 	
 	bool create(SocketAddressStub const &_rsas){
@@ -74,6 +74,17 @@ public:
 		return sd;
 	}
 	
+	int recvFrom(char *_pb, size_t _bl, SocketAddress &_addr, bool &_can_retry){
+		int rv = sd.recv(_pb, _bl, _addr);
+		_can_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+		return rv;
+	}
+	
+	int sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, bool &_can_retry){
+		int rv = sd.send(_pb, _bl, _rsas);
+		_can_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+		return rv;
+	}
 private:
 	SocketDevice sd;
 };
