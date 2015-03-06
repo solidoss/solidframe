@@ -14,7 +14,7 @@
 #include "frame/common.hpp"
 #include "frame/reactorbase.hpp"
 #include "utility/dynamicpointer.hpp"
-#include "frame/aio2/aiocommon.hpp"
+#include "frame/aio/aiocommon.hpp"
 
 namespace solid{
 

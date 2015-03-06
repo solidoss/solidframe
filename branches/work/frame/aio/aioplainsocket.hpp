@@ -10,7 +10,7 @@
 #ifndef SOLID_FRAME_AIO_INTERNET_SOCKET_HPP
 #define SOLID_FRAME_AIO_INTERNET_SOCKET_HPP
 
-#include "frame/aio2/aiocommon.hpp"
+#include "frame/aio/aiocommon.hpp"
 #include "system/socketdevice.hpp"
 #include <cerrno>
 

@@ -124,8 +124,6 @@ static ThreadData& threadData(){
 	boost::call_once(&once_cbk_thread_data, once);
 	return threadDataStub();
 }
-
-
 #endif
 
 Cleaner             			cleaner;

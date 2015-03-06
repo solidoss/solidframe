@@ -8,4 +8,4 @@ add_subdirectory(study)
 
 #add_subdirectory(file)
 #add_subdirectory(proxy)
-add_subdirectory(basic)
+#add_subdirectory(basic)

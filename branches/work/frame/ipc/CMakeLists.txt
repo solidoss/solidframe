@@ -1,27 +1,21 @@
 
 set(Sources
-	src/ipcpacket.cpp
 	src/ipcservice.cpp
-	src/ipctalker.cpp
-	src/ipcsession.cpp
+	src/ipcconnection.cpp
 	src/ipclistener.cpp
-	src/ipcnode.cpp
 )
 
 set(Headers
-	ipcconnectionuid.hpp
+	ipcsessionuid.hpp
 	ipcservice.hpp
-	src/ipcutility.hpp
-	src/ipcpacket.hpp
-	src/ipctalker.hpp
-	src/ipcsession.hpp
+	src/ipcconnection.hpp
 	src/ipclistener.hpp
-	src/ipcnode.hpp
+	src/ipcutility.hpp
 )
 
 set(Inlines
 )
 
-add_library (solid_frame_ipc
+add_library (solid_frame_ipc2
 	${Sources} ${Headers} ${Inlines}
 )

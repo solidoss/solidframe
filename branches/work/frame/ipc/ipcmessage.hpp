@@ -12,19 +12,15 @@
 
 #include "system/common.hpp"
 #include "frame/message.hpp"
-#include "frame/ipc/ipcconnectionuid.hpp"
+#include "frame/ipc2/ipcsessionuid.hpp"
 
 namespace solid{
 namespace frame{
 namespace ipc{
 
 struct Message: Dynamic<Message, frame::Message>{
-	enum IPCFlags{
-		IPCIsRequestFlag = 1,
-		IPCIsResponseFlag = 2
-	};
-	
 	typedef DynamicPointer<Message>		MessagePointerT;
+	typedef std::pair<uint32, uint32>	UInt32PairT;
 	
 	Message(uint8 _state = 0):stt(_state){}
 	virtual ~Message();
@@ -45,7 +41,7 @@ struct Message: Dynamic<Message, frame::Message>{
 	//! Called by ipc module, before the signal begins to be serialized
 	//TODO: change return to pair<uint32, uint32>
 	//	and use flags |= p.first; flags &= p.second
-	virtual uint32 ipcOnPrepare(ConnectionContext const &_ripcctx);
+	virtual UInt32PairT ipcOnPrepare(ConnectionContext const &_ripcctx);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
 	virtual void ipcOnComplete(ConnectionContext const &_ripcctx, int _error);
 	

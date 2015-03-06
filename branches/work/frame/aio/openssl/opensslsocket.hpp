@@ -10,7 +10,6 @@
 #ifndef SOLID_FRAME_AIO_OPENSSL_SOCKET_HPP
 #define SOLID_FRAME_AIO_OPENSSL_SOCKET_HPP
 
-#include "frame/aio/aiosecuresocket.hpp"
 #include "openssl/ssl.h"
 
 namespace solid{
@@ -61,7 +60,7 @@ protected:
 	OpenSSL. One can extend and improve the interface to offer
 	more of OpenSSL functionality.
 */
-class Socket: public SecureSocket{
+class Socket{
 public:
 	/*virtual*/ ~Socket();
 	/*virtual*/ void descriptor(const SocketDevice &);
