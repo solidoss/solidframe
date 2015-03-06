@@ -27,6 +27,28 @@ public:
 		}
 	}
 	
+	PlainSocket(){
+	}
+	
+	bool create(SocketAddressStub const &_rsas){
+		bool rv = sd.create(_rsas.family());
+		if(rv){
+			rv = sd.makeNonBlocking();
+		}
+		return rv;
+	}
+	
+	bool connect(SocketAddressStub const &_rsas, bool &_can_retry){
+		AsyncE rv = sd.connectNonBlocking(_rsas);
+		switch(rv){
+			case AsyncError:
+				_can_retry = false;
+				return false;
+			case AsyncSuccess: _can_retry = false; return true;
+			case AsyncWait: _can_retry = true; return false;
+		}
+		return false;
+	}
 	
 	ReactorEventsE filterReactorEvents(
 		const  ReactorEventsE _evt,

@@ -83,7 +83,7 @@ private:
 
 /*static*/ void EventHandler::on_init(CompletionHandler& _rch, ReactorContext &_rctx){
 	EventHandler &rthis = static_cast<EventHandler&>(_rch);
-	rthis.reactor(_rctx).addDevice(_rctx, rthis.dev, ReactorWaitRead);
+	rthis.reactor(_rctx).addDevice(_rctx, rthis, rthis.dev, ReactorWaitRead);
 	rthis.completionCallback(&on_completion);
 }
 
@@ -360,6 +360,8 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32 _events){
 		case EPOLLERR:
 			retval = ReactorEventError;break;
 		case EPOLLHUP:
+		case EPOLLHUP | EPOLLOUT:
+		case EPOLLHUP | EPOLLIN:
 		case EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT:
 			retval = ReactorEventHangup;break;
 		case EPOLLRDHUP:
@@ -519,7 +521,7 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 	//CompletionHandlerStub &rcs = d.chdq[_rch.idxreactor];
 	epoll_event ev;
 	
-	ev.data.u64 = _rctx.chnidx;
+	ev.data.u64 = _rch.idxreactor;
 	ev.events = reactorRequestsToSystemEvents(_req);
 	
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev)){
@@ -535,10 +537,10 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 	return true;
 }
 
-bool Reactor::addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req){
+bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req){
 	epoll_event ev;
 	
-	ev.data.u64 = _rctx.chnidx;
+	ev.data.u64 = _rch.idxreactor;
 	ev.events = reactorRequestsToSystemEvents(_req);
 	
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)){

@@ -39,6 +39,7 @@ enum Events{
 struct Params{
 	int			listener_port;
 	int			talker_port;
+	int			connect_port;
 	string		dbg_levels;
 	string		dbg_modules;
 	string		dbg_addr;
@@ -91,21 +92,25 @@ private:
 
 
 #define USE_CONNECTION
+
+
 #ifdef USE_CONNECTION
 
 #include "frame/aio/aiostream.hpp"
 #include "frame/aio/aioplainsocket.hpp"
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
+protected:
+	Connection():sock(this->proxy()), recvcnt(0), sendcnt(0){}
 public:
 	Connection(SocketDevice &_rsd):sock(this->proxy(), _rsd), recvcnt(0), sendcnt(0){}
 	~Connection(){}
-private:
+protected:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	void onTimer(frame::aio::ReactorContext &_rctx);
-private:
+protected:
 	typedef frame::aio::Stream<frame::aio::PlainSocket>		StreamSocketT;
 	//typedef frame::aio::Timer								TimerT;
 	enum {BufferCapacity = 1024 * 2};
@@ -116,6 +121,15 @@ private:
 	uint64			sendcnt;
 	size_t			sendcrt;
 	//TimerT			timer;
+};
+
+class ClientConnection: public Dynamic<Connection, Connection>{
+	ResolveData		rd;
+private:
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	void onConnect(frame::aio::ReactorContext &_rctx);
+public:
+	ClientConnection(ResolveData const & _rd): rd(_rd){}
 };
 #endif
 
@@ -211,6 +225,20 @@ int main(int argc, char *argv[]){
 				cout<<"Error creating listener socket"<<endl;
 				running = false;
 			}
+#ifdef USE_CONNECTION
+			{
+				rd = synchronous_resolve("127.0.0.1", p.connect_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+				
+				DynamicPointer<frame::aio::Object>	objptr(new ClientConnection(rd));
+				solid::ErrorConditionT				err;
+				solid::frame::ObjectUidT			objuid;
+				
+				objuid = sch.startObject(objptr, svc, frame::Event(EventStartE), err);
+				
+				idbg("Started Client Connection object: "<<objuid.index<<','<<objuid.unique);
+				
+			}
+#endif
 #ifdef USE_TALKER			
 			rd = synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 			
@@ -256,6 +284,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("listen-port,l", value<int>(&_par.listener_port)->default_value(2000),"Listener port")
 			("talk-port,t", value<int>(&_par.talker_port)->default_value(3000),"Talker port")
+			("connection-port,c", value<int>(&_par.connect_port)->default_value(5000),"Connection port")
 			("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug-modules,M", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
@@ -401,7 +430,46 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 }
 
 void Connection::onTimer(frame::aio::ReactorContext &_rctx){
+	
 }
+
+//-----------------------------------------------------------------------------
+
+/*virtual*/ void ClientConnection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	edbg(this<<" "<<_revent.id);
+	if(_revent.id == EventStartE){
+		
+		string				hoststr;
+		string				servstr;
+		
+		synchronous_resolve(
+			hoststr,
+			servstr,
+			rd.begin(),
+			ReverseResolveInfo::Numeric
+		);
+		
+		idbg("Connect to "<<hoststr<<":"<<servstr);
+		
+		if(sock.connect(_rctx, rd.begin(), std::bind(&ClientConnection::onConnect, this, _1))){
+			onConnect(_rctx);
+		}
+		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+	}else if(_revent.id == EventStopE){
+		edbg(this<<" postStop");
+		postStop(_rctx);
+	}
+}
+void ClientConnection::onConnect(frame::aio::ReactorContext &_rctx){
+	if(!_rctx.error()){
+		idbg(this<<" SUCCESS");
+		sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
+	}else{
+		edbg(this<<" postStop "<<recvcnt<<" "<<sendcnt<<" "<<_rctx.systemError().message());
+		postStop(_rctx);
+	}
+}
+
 #endif
 
 //-----------------------------------------------------------------------------

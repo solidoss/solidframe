@@ -49,7 +49,7 @@ public:
 	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch);
 	
 	bool waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
-	bool addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req);
+	bool addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
 	
 	bool start();
 	
