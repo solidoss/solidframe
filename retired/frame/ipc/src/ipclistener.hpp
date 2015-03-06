@@ -1,6 +1,6 @@
 // frame/ipc/src/ipclistener.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
@@ -11,6 +11,7 @@
 #define SOLID_FRAME_IPC_SRC_IPC_LISTENER_HPP
 
 #include "frame/aio/aiosingleobject.hpp"
+#include "frame/ipc/ipcservice.hpp"
 #include "system/socketdevice.hpp"
 
 namespace solid{
@@ -23,19 +24,22 @@ class Context;
 
 namespace ipc{
 
-class Service;
-
 class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
 public:
 	Listener(
 		Service &_rsvc,
-		const SocketDevice &_rsd
+		const SocketDevice &_rsd,
+		Service::Types	_type,
+		frame::aio::openssl::Context *_pctx = NULL
 	);
 private:
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
+	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
 	Service				&rsvc;
 	SocketDevice		sd;
+	Service::Types		type;
+	SslContextPtrT		pctx;
 	int					state;
 };
 

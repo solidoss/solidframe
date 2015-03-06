@@ -1,35 +1,36 @@
 
-
-#FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
-#FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
-
 if(${HAS_EPOLL})
-	set(selector_source src/aioselector_epoll.cpp)
+	set(reactor_source src/aioreactor_epoll.cpp)
 endif(${HAS_EPOLL})
 
 
 if(${HAS_KQUEUE})
-	set(selector_source src/aioselector_kqueue.cpp)
+	set(reactor_source src/aioreactor_kqueue.cpp)
 endif(${HAS_KQUEUE})
 
 
 set(Sources
-	src/aioobject.cpp
+#	src/aioobject.cpp
 	src/aioresolver.cpp
-	${selector_source}
-	src/aiosocket.cpp
+	src/aiocompletion.cpp
+	${reactor_source}
+	src/aiolistener.cpp
+	src/aioobject.cpp
+#	src/aiosocket.cpp
 )
 
 set(Headers
 	aioobject.hpp
-	aiosecuresocket.hpp
-	aioselector.hpp
+#	aiosecuresocket.hpp
+	aiocompletion.hpp
+	aioreactor.hpp
 	aioresolver.hpp
-	src/aiosocket.hpp
+	aiolistener.hpp
+#	src/aiosocket.hpp
 )
 
 set(Inlines
-	src/aiosocket.ipp
+#	src/aiosocket.ipp
 )
 
 add_library (solid_frame_aio
@@ -37,3 +38,4 @@ add_library (solid_frame_aio
 )
 
 add_subdirectory(openssl)
+
