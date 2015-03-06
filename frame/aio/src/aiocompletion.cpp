@@ -62,6 +62,10 @@ void CompletionHandler::error(ReactorContext &_rctx, ERROR_NS::error_condition c
 	_rctx.error(_err);
 }
 
+void CompletionHandler::errorClear(ReactorContext &_rctx)const{
+	_rctx.clearError();
+}
+
 void CompletionHandler::systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const{
 	_rctx.systemError(_err);
 }
@@ -97,8 +101,11 @@ void CompletionHandler::deactivate(){
 	_rch.call = nullptr;
 }
 
+/*static*/ void CompletionHandler::on_dummy_completion(CompletionHandler&, ReactorContext &){
+}
+
 void CompletionHandler::addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req){
-	_rctx.reactor().addDevice(_rctx, _rsd, _req);
+	_rctx.reactor().addDevice(_rctx, *this, _rsd, _req);
 }
 
 
