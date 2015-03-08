@@ -50,6 +50,7 @@ public:
 	
 	bool waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
 	bool addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
+	bool remDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd);
 	
 	bool start();
 	
@@ -82,6 +83,7 @@ private:
 	void doStoreSpecific();
 	void doClearSpecific();
 	static void call_object_on_event(ReactorContext &_rctx, Event const &_rev);
+	static void increase_event_vector_size(ReactorContext &_rctx, Event const &_rev);
 private://data
 	struct Data;
 	Data	&d;

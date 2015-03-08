@@ -114,6 +114,11 @@ public:
 		use();
 	}
 	
+	template <class F>
+	void post(ReactorContext &_rctx, F _f){
+		this->post(_rctx, _f);
+	}
+	
 	EventHandler			eventhandler;
 	CompletionHandler		dummyhandler;
 };
@@ -162,7 +167,7 @@ struct ObjectStub{
 
 
 enum{
-	MinEventCapacity = 1024 * 4,
+	MinEventCapacity = 32,
 	MaxEventCapacity = 1024 * 64
 };
 
@@ -268,6 +273,7 @@ bool Reactor::start(){
 	d.eventobj.registerCompletionHandlers();
 	
 	d.eventvec.resize(MinEventCapacity);
+	d.eventvec.resize(d.eventvec.capacity());
 	d.running = true;
 	++d.devcnt;
 	
@@ -515,6 +521,16 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 /*static*/ void Reactor::call_object_on_event(ReactorContext &_rctx, Event const &_revt){
 	_rctx.object().onEvent(_rctx, _revt);
 }
+/*static*/ void Reactor::increase_event_vector_size(ReactorContext &_rctx, Event const &/*_rev*/){
+	Reactor &rthis = _rctx.reactor();
+	
+	idbgx(Debug::aio, ""<<rthis.d.devcnt<<" >= "<<rthis.d.eventvec.size());
+	
+	if(rthis.d.devcnt >= rthis.d.eventvec.size()){
+		rthis.d.eventvec.resize(rthis.d.devcnt);
+		rthis.d.eventvec.resize(rthis.d.eventvec.capacity());
+	}
+}
 
 bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req){
 	vdbgx(Debug::aio, "");
@@ -545,14 +561,26 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 	
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
-		//d.chdq[_rctx.chnidx].waitreq = ReactorWaitError;
 		return false;
 	}else{
 		++d.devcnt;
 		if(d.devcnt == (d.eventvec.size() + 1)){
 			//TODO: schedule increase d.eventvec.size
+			d.eventobj.post(_rctx, &Reactor::increase_event_vector_size);
 		}
 		
+	}
+	return true;
+}
+
+bool Reactor::remDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd){
+	epoll_event ev;
+	
+	if(epoll_ctl(d.epollfd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev)){
+		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
+		return false;
+	}else{
+		--d.devcnt;
 	}
 	return true;
 }

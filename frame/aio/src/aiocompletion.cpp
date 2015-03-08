@@ -107,7 +107,15 @@ void CompletionHandler::deactivate(){
 void CompletionHandler::addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req){
 	_rctx.reactor().addDevice(_rctx, *this, _rsd, _req);
 }
+void CompletionHandler::remDevice(ReactorContext &_rctx, Device const &_rsd){
+	_rctx.reactor().remDevice(_rctx, *this, _rsd);
+}
 
+
+SocketDevice & dummy_socket_device(){
+	static SocketDevice sd;
+	return sd;
+}
 
 }//namespace aio
 }//namespace frame

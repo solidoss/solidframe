@@ -17,6 +17,7 @@
 
 namespace solid{
 struct Device;
+struct SocketDevice;
 namespace frame{
 namespace aio{
 
@@ -59,6 +60,7 @@ protected:
 	void errorClear(ReactorContext &_rctx)const;
 	void systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const;
 	void addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req);
+	void remDevice(ReactorContext &_rctx, Device const &_rsd);
 private:
 	friend class Reactor;
 	
@@ -77,6 +79,7 @@ inline void CompletionHandler::completionCallback(CallbackT _pcbk){
 	call = _pcbk;
 }
 
+SocketDevice & dummy_socket_device();
 
 }//namespace aio
 }//namespace frame
