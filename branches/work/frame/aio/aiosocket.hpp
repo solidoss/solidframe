@@ -30,6 +30,12 @@ public:
 	Socket(){
 	}
 	
+	SocketDevice reset(SocketDevice &_rsd){
+		SocketDevice tmpsd = sd;
+		sd = _rsd;
+		return tmpsd;
+	}
+	
 	bool create(SocketAddressStub const &_rsas){
 		bool rv = sd.create(_rsas.family());
 		if(rv){

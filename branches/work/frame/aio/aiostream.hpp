@@ -146,6 +146,18 @@ public:
 		ObjectProxy const &_robj
 	):CompletionHandler(_robj, on_dummy_completion){}
 	
+	
+	SocketDevice reset(ReactorContext &_rctx, SocketDevice &_rnewdev = dummy_socket_device()){
+		if(s.device().isOk()){
+			remDevice(_rctx, s.device());
+		}
+		SocketDevice sd(s.reset(_rnewdev));
+		if(s.device().isOk()){
+			addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
+		}
+		return sd;
+	} 
+	
 	template <typename F>
 	bool postRecvSome(ReactorContext &_rctx, char *_buf, size_t _bufcp, F _f){
 		if(FUNCTION_EMPTY(recv_fnc)){
@@ -282,7 +294,26 @@ public:
 		}
 		return true;
 	}
-	
+	template <typename F>
+	bool secureConnect(ReactorContext &_rctx, F _f){
+		if(FUNCTION_EMPTY(send_fnc)){
+			errorClear(_rctx);
+			if(s.secureConnect()){
+				
+			}
+		}
+		return true;
+	}
+	template <typename F>
+	bool secureAccept(ReactorContext &_rctx, F _f){
+		if(FUNCTION_EMPTY(recv_fnc)){
+			errorClear(_rctx);
+			if(s.secureAccept()){
+				
+			}
+		}
+		return true;
+	}
 private:
 	void doPostRecvSome(ReactorContext &_rctx){
 		EventFunctionT	evfn(&on_posted_recv_some);
