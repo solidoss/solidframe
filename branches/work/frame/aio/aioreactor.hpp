@@ -52,6 +52,9 @@ public:
 	bool addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
 	bool remDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd);
 	
+	bool addTimer(ReactorContext &_rctx, CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx);
+	bool remTimer(ReactorContext &_rctx, CompletionHandler const &_rch, size_t const &_rstoreidx);
+	
 	bool start();
 	
 	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _revt);
