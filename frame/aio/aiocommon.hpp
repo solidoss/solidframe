@@ -33,6 +33,7 @@ enum ReactorEventsE{
 	ReactorEventRecvHangup = 64,
 	ReactorEventClear = 128,
 	ReactorEventInit = 256,
+	ReactorEventTimer = 512,
 };
 
 enum ReactorWaitRequestsE{

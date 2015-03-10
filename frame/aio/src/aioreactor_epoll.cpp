@@ -34,6 +34,7 @@
 #include "frame/service.hpp"
 #include "frame/common.hpp"
 #include "frame/event.hpp"
+#include "frame/timestore.hpp"
 
 #include "frame/aio/aioreactor.hpp"
 #include "frame/aio/aioobject.hpp"
@@ -201,13 +202,14 @@ typedef std::vector<UidT>					UidVectorT;
 typedef std::deque<ObjectStub>				ObjectDequeT;
 typedef Queue<ExecStub>						ExecQueueT;
 typedef Stack<size_t>						SizeStackT;
-
+typedef TimeStore<size_t>					TimeStoreT;
 
 struct Reactor::Data{
 	Data(
 		
 	):	epollfd(-1), running(0), crtpushtskvecidx(0),
-		crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0), devcnt(0){}
+		crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0), devcnt(0),
+		timestore(MinEventCapacity){}
 	
 	int computeWaitTimeMilliseconds()const{
 		return exeq.size() ? 0 : -1;
@@ -225,6 +227,7 @@ struct Reactor::Data{
 	AtomicSizeT					crtpushvecsz;
 	AtomicSizeT					crtraisevecsz;
 	size_t						devcnt;
+	TimeStoreT					timestore;
 	
 	Mutex						mtx;
 	EpollEventVectorT			eventvec;
@@ -236,8 +239,6 @@ struct Reactor::Data{
 	ObjectDequeT				objdq;
 	ExecQueueT					exeq;
 	SizeStackT					chposcache;
-	
-	
 };
 
 Reactor::Reactor(
@@ -581,6 +582,27 @@ bool Reactor::remDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 		return false;
 	}else{
 		--d.devcnt;
+	}
+	return true;
+}
+
+bool Reactor::addTimer(ReactorContext &_rctx, CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx){
+	if(_rstoreidx != static_cast<size_t>(-1)){
+		size_t idx = d.timestore.change(_rstoreidx, _rt);
+		cassert(idx == _rch.idxreactor);
+	}else{
+		_rstoreidx = d.timestore.push(_rt, _rch.idxreactor);
+	}
+	return true;
+}
+
+struct ChangeTimerIndexCallback{
+	
+};
+
+bool Reactor::remTimer(ReactorContext &_rctx, CompletionHandler const &_rch, size_t const &_rstoreidx){
+	if(_rstoreidx != static_cast<size_t>(-1)){
+		
 	}
 	return true;
 }

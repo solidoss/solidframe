@@ -111,6 +111,12 @@ void CompletionHandler::remDevice(ReactorContext &_rctx, Device const &_rsd){
 	_rctx.reactor().remDevice(_rctx, *this, _rsd);
 }
 
+void CompletionHandler::addTimer(ReactorContext &_rctx, TimeSpec const &_rt, size_t &_storedidx){
+	_rctx.reactor().addTimer(_rctx, *this, _rt, _storedidx);
+}
+void CompletionHandler::remTimer(ReactorContext &_rctx, size_t const &_storedidx){
+	_rctx.reactor().remTimer(_rctx, *this, _storedidx);
+}
 
 SocketDevice & dummy_socket_device(){
 	static SocketDevice sd;

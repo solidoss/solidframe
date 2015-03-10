@@ -24,13 +24,30 @@ struct	ObjectProxy;
 struct	ReactorContext;
 
 class Timer: public CompletionHandler{
-	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx);
-	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx);
-	static void on_posted_accept(ReactorContext &_rctx, Event const&);
+	typedef Timer	ThisT;
+	
+	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
+		ThisT &rthis = static_cast<ThisT&>(_rch);
+		
+		switch(rthis.reactorEvent(_rctx)){
+			case ReactorEventTimer:
+				rthis.doExec(_rctx);
+				break;
+			case ReactorEventClear:
+				rthis.doClear();
+				break;
+			default:
+				cassert(false);
+		}
+	}
+	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
+		ThisT &rthis = static_cast<ThisT&>(_rch);
+		rthis.completionCallback(Timer::on_completion);
+	}
 public:
 	Listener(
 		ObjectProxy const &_robj
-	):CompletionHandler(_robj, Timer::on_init_completion)
+	):CompletionHandler(_robj, Timer::on_init_completion), storeidx(-1)
 	{
 	}
 	
@@ -38,14 +55,9 @@ public:
 	//Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
 	template <typename F>
 	bool waitFor(ReactorContext &_rctx, TimeSpec const& _tm, F _f){
-		if(FUNCTION_EMPTY(f)){
-			f = _f;
-			return false;
-		}else{
-			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-			return true;
-		}
+		TimeSpec t = _rctx.time();
+		t += _tm;
+		return waitUntil(_rctx, _tm, _f);
 	}
 	
 	//Returns true when the operation completed. Check _rctx.error() for success or fail
@@ -54,6 +66,7 @@ public:
 	bool waitUntil(ReactorContext &_rctx, TimeSpec const& _tm, F _f){
 		if(FUNCTION_EMPTY(f)){
 			f = _f;
+			this->addTimer(_rctx, _tm, storeidx);
 			return false;
 		}else{
 			//TODO: set proper error
@@ -61,11 +74,25 @@ public:
 			return true;
 		}
 	}
+	void cancel(ReactorContext &_rctx){
+		this->remTimer(_rctx, storeidx);
+		doClear();
+	}
 private:
+	void doExec(ReactorContext &_rctx){
+		FunctionT	tmpf(std::move(f));
+		storeidx = -1;
+		tmpf(_rctx);
+	}
+	void doClear(){
+		FUNCTION_CLEAR(f);
+		storeidx = -1;
+	}
 private:
 	typedef FUNCTION<void(ReactorContext&)>		FunctionT;
 	
 	FunctionT				f;
+	size_t					storeidx;
 };
 
 }//namespace aio
