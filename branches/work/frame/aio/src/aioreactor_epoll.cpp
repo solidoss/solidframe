@@ -210,7 +210,7 @@ struct Reactor::Data{
 		
 	):	epollfd(-1), running(0), crtpushtskvecidx(0),
 		crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0), devcnt(0),
-		timestore(MinEventCapacity){}
+		objcnt(0), timestore(MinEventCapacity){}
 	
 	int computeWaitTimeMilliseconds(TimeSpec const & _rcrt)const{
 		if(exeq.size()){
@@ -248,6 +248,7 @@ struct Reactor::Data{
 	AtomicSizeT					crtpushvecsz;
 	AtomicSizeT					crtraisevecsz;
 	size_t						devcnt;
+	size_t						objcnt;
 	TimeStoreT					timestore;
 	
 	Mutex						mtx;
@@ -357,9 +358,13 @@ void Reactor::run(){
 	while(running){
 		crttime.currentMonotonic();
 		waitmsec = d.computeWaitTimeMilliseconds(crttime);
+		
+		crtload = d.objcnt + d.devcnt + d.exeq.size();
+		
 		selcnt = epoll_wait(d.epollfd, d.eventvec.data(), d.eventvec.size(), waitmsec);
 		crttime.currentMonotonic();
 		if(selcnt > 0){
+			crtload += selcnt;
 			doCompleteIo(crttime, selcnt);
 		}else if(selcnt < 0 && errno != EINTR){
 			edbgx(Debug::aio, "epoll_wait errno  = "<<last_system_error().message());
@@ -370,6 +375,7 @@ void Reactor::run(){
 		
 		doCompleteExec(crttime);
 		
+		running = d.running || (d.objcnt != 1) || !d.exeq.empty();
 	}
 	doClearSpecific();
 	vdbgx(Debug::aio, "<exit>");
@@ -548,6 +554,8 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 		
 		ReactorContext		ctx(_rctx);
 		
+		d.objcnt += crtpushvec.size();
+		
 		for(auto it = crtpushvec.begin(); it != crtpushvec.end(); ++it){
 			NewTaskStub		&rnewobj(*it);
 			if(rnewobj.uid.index >= d.objdq.size()){
@@ -601,12 +609,6 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
 		return false;
-	}else{
-		++d.devcnt;
-		if(d.devcnt == (d.eventvec.size() + 1)){
-			//TODO: schedule increase d.eventvec.size
-		}
-		
 	}
 	return true;
 }
@@ -623,7 +625,6 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 	}else{
 		++d.devcnt;
 		if(d.devcnt == (d.eventvec.size() + 1)){
-			//TODO: schedule increase d.eventvec.size
 			d.eventobj.post(_rctx, &Reactor::increase_event_vector_size);
 		}
 		
