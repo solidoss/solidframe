@@ -28,6 +28,10 @@ public:
 	}
 	~TimeStore(){}
 	
+	size_t size()const{
+		return tv.size();
+	}
+	
 	size_t push(TimeSpec const& _rt, ValueT const &_rv){
 		const size_t rv = tv.size();
 		tv.push_back(TimePairT(_rt, _rv));
@@ -39,10 +43,11 @@ public:
 	
 	template <typename F>
 	void pop(const size_t _idx, F const &_rf){
+		const size_t oldidx = tv.size() - 1;
 		tv[_idx] = tv.back();
 		tv.pop_back();
-		if(tv.size()){
-			_rf(tv[_idx].second, _idx);
+		if(_idx < tv.size()){
+			_rf(tv[_idx].second, _idx, oldidx);
 		}
 	}
 	
@@ -51,8 +56,8 @@ public:
 		return tv[_idx].second;
 	}
 	
-	template <typename F>
-	void pop(TimeSpec const& _rt, F const &_rf){
+	template <typename F1, typename F2>
+	void pop(TimeSpec const& _rt, F1 const &_rf1, F2 const &_rf2){
 		
 		TimeSpec crtmin = TimeSpec::maximum;
 		for(size_t i = 0; i < tv.size();){
@@ -63,15 +68,22 @@ public:
 					crtmin = rtp.first;
 				}
 			}else{
-				_rf(i, rtp.second);
+				_rf1(i, rtp.second);
+				
+				const size_t oldidx = tv.size() - 1;
 				tv[i] = tv.back();
 				tv.pop_back();
+				if(i < tv.size()){
+					_rf2(tv[i].second, i, oldidx);
+				}
 			}
 		}
 		
 		mint = crtmin;
 	}
-	
+	TimeSpec const & next()const{
+		return mint;
+	}
 private:
 	typedef std::pair<TimeSpec, ValueT>		TimePairT;
 	typedef std::vector<TimePairT>			TimeVectorT;

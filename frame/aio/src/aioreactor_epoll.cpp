@@ -38,6 +38,7 @@
 
 #include "frame/aio/aioreactor.hpp"
 #include "frame/aio/aioobject.hpp"
+#include "frame/aio/aiotimer.hpp"
 #include "frame/aio/aiocompletion.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
 
@@ -117,7 +118,7 @@ public:
 	
 	template <class F>
 	void post(ReactorContext &_rctx, F _f){
-		this->post(_rctx, _f);
+		Object::post(_rctx, _f);
 	}
 	
 	EventHandler			eventhandler;
@@ -211,8 +212,28 @@ struct Reactor::Data{
 		crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0), devcnt(0),
 		timestore(MinEventCapacity){}
 	
-	int computeWaitTimeMilliseconds()const{
-		return exeq.size() ? 0 : -1;
+	int computeWaitTimeMilliseconds(TimeSpec const & _rcrt)const{
+		if(exeq.size()){
+			return 0;
+		}else if(timestore.size()){
+			if(_rcrt < timestore.next()){
+				const int64	maxwait = 1000 * 60 * 10; //ten minutes
+				int64 		diff = 0;
+				TimeSpec	delta = timestore.next();
+				delta -= _rcrt;
+				diff = (delta.seconds() * 1000);
+				diff += (delta.nanoSeconds() / 1000000);
+				if(diff > maxwait){
+					return maxwait;
+				}else{
+					return diff;
+				}
+			}else{
+				return 0;
+			}
+		}else{
+			return -1;
+		}
 	}
 	
 	UidT dummyCompletionHandlerUid()const{
@@ -331,9 +352,12 @@ void Reactor::run(){
 	int			selcnt;
 	bool		running = true;
 	TimeSpec	crttime;
+	int			waitmsec;
 	
 	while(running){
-		selcnt = epoll_wait(d.epollfd, d.eventvec.data(), d.eventvec.size(), d.computeWaitTimeMilliseconds());
+		crttime.currentMonotonic();
+		waitmsec = d.computeWaitTimeMilliseconds(crttime);
+		selcnt = epoll_wait(d.epollfd, d.eventvec.data(), d.eventvec.size(), waitmsec);
 		crttime.currentMonotonic();
 		if(selcnt > 0){
 			doCompleteIo(crttime, selcnt);
@@ -444,8 +468,41 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 		ctx.clearError();
 	}
 }
-void Reactor::doCompleteTimer(TimeSpec  const &_rcrttime){
+
+struct ChangeTimerIndexCallback{
+	Reactor &r;
+	ChangeTimerIndexCallback(Reactor &_r):r(_r){}
 	
+	void operator()(const size_t _chidx, const size_t _newidx, const size_t _oldidx)const{
+		r.doUpdateTimerIndex(_chidx, _newidx, _oldidx);
+	}
+};
+
+struct TimerCallback{
+	Reactor			&r;
+	ReactorContext	&rctx;
+	TimerCallback(Reactor &_r, ReactorContext &_rctx): r(_r), rctx(_rctx){}
+	
+	void operator()(const size_t _tidx, const size_t _chidx)const{
+		r.onTimer(rctx, _tidx, _chidx);
+	}
+};
+
+void Reactor::onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _chidx){
+	CompletionHandlerStub	&rch = d.chdq[_chidx];
+		
+	_rctx.reactevn = ReactorEventTimer;
+	_rctx.chnidx =  _chidx;
+	_rctx.objidx = rch.objidx;
+	
+	rch.pch->handleCompletion(_rctx);
+	_rctx.clearError();
+}
+
+void Reactor::doCompleteTimer(TimeSpec  const &_rcrttime){
+	ReactorContext	ctx(*this, _rcrttime);
+	TimerCallback 	tcbk(*this, ctx);
+	d.timestore.pop(_rcrttime, tcbk, ChangeTimerIndexCallback(*this));
 }
 
 void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
@@ -596,13 +653,15 @@ bool Reactor::addTimer(ReactorContext &_rctx, CompletionHandler const &_rch, Tim
 	return true;
 }
 
-struct ChangeTimerIndexCallback{
-	
-};
+void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx){
+	CompletionHandlerStub &rch = d.chdq[_chidx];
+	cassert(static_cast<Timer*>(rch.pch)->storeidx == _oldidx);
+	static_cast<Timer*>(rch.pch)->storeidx = _newidx;
+}
 
 bool Reactor::remTimer(ReactorContext &_rctx, CompletionHandler const &_rch, size_t const &_rstoreidx){
 	if(_rstoreidx != static_cast<size_t>(-1)){
-		
+		d.timestore.pop(_rstoreidx, ChangeTimerIndexCallback(*this));
 	}
 	return true;
 }

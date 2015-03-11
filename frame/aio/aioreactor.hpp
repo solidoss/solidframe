@@ -30,6 +30,8 @@ namespace aio{
 class Object;
 struct ReactorContext;
 struct CompletionHandler;
+struct ChangeTimerIndexCallback;
+struct TimerCallback;
 
 typedef DynamicPointer<Object>	ObjectPointerT;
 
@@ -75,6 +77,8 @@ public:
 private:
 	friend struct EventHandler;
 	friend class CompletionHandler;
+	friend struct ChangeTimerIndexCallback;
+	friend struct TimerCallback;
 	
 	static Reactor* safeSpecific();
 	static Reactor& specific();
@@ -85,6 +89,9 @@ private:
 	void doCompleteEvents(ReactorContext const &_rctx);
 	void doStoreSpecific();
 	void doClearSpecific();
+	void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
+	
+	void onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _chidx);
 	static void call_object_on_event(ReactorContext &_rctx, Event const &_rev);
 	static void increase_event_vector_size(ReactorContext &_rctx, Event const &_rev);
 private://data
