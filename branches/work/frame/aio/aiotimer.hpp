@@ -45,7 +45,7 @@ class Timer: public CompletionHandler{
 		rthis.completionCallback(Timer::on_completion);
 	}
 public:
-	Listener(
+	Timer(
 		ObjectProxy const &_robj
 	):CompletionHandler(_robj, Timer::on_init_completion), storeidx(-1)
 	{
@@ -79,6 +79,7 @@ public:
 		doClear();
 	}
 private:
+	friend class Reactor;
 	void doExec(ReactorContext &_rctx){
 		FunctionT	tmpf(std::move(f));
 		storeidx = -1;
