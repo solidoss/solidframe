@@ -35,7 +35,16 @@ Object::Object(){}
 }
 
 void Object::postStop(ReactorContext &_rctx){
+	CompletionHandler *pch = this->pnext;
 	
+	while(pch != nullptr){
+		pch->pprev = nullptr;//unregister
+		pch->deactivate();
+		
+		pch = pch->pnext;
+	}
+	this->pnext = nullptr;
+	_rctx.reactor().postObjectStop(_rctx);
 }
 
 bool Object::isRunning()const{

@@ -80,8 +80,10 @@ bool CompletionHandler::activate(Object const &_robj){
 
 
 void CompletionHandler::unregister(){
-	this->pprev->pnext = this->pnext;
-	this->pprev = this->pnext = nullptr;
+	if(isRegistered()){
+		this->pprev->pnext = this->pnext;
+		this->pprev = this->pnext = nullptr;
+	}
 }
 
 void CompletionHandler::deactivate(){
@@ -108,14 +110,14 @@ void CompletionHandler::addDevice(ReactorContext &_rctx, Device const &_rsd, con
 	_rctx.reactor().addDevice(_rctx, *this, _rsd, _req);
 }
 void CompletionHandler::remDevice(ReactorContext &_rctx, Device const &_rsd){
-	_rctx.reactor().remDevice(_rctx, *this, _rsd);
+	_rctx.reactor().remDevice(*this, _rsd);
 }
 
 void CompletionHandler::addTimer(ReactorContext &_rctx, TimeSpec const &_rt, size_t &_storedidx){
-	_rctx.reactor().addTimer(_rctx, *this, _rt, _storedidx);
+	_rctx.reactor().addTimer(*this, _rt, _storedidx);
 }
 void CompletionHandler::remTimer(ReactorContext &_rctx, size_t const &_storedidx){
-	_rctx.reactor().remTimer(_rctx, *this, _storedidx);
+	_rctx.reactor().remTimer(*this, _storedidx);
 }
 
 SocketDevice & dummy_socket_device(){

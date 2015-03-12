@@ -28,7 +28,6 @@ class ReactorBase{
 public:
 	virtual bool raise(UidT const& _robjuid, Event const& _re) = 0;
 	virtual void stop() = 0;
-	Manager& manager();
 	
 	bool prepareThread(const bool _success);
 	void unprepareThread();
@@ -40,7 +39,7 @@ protected:
 		SchedulerBase &_rsch, const size_t _schidx, const size_t _crtidx = 0
 	):rsch(_rsch), schidx(_schidx), crtidx(_crtidx){}
 	
-	void stopObject(ObjectBase &_robj);
+	void stopObject(ObjectBase &_robj, Manager &_rm);
 	SchedulerBase& scheduler();
 	UidT popUid(ObjectBase &_robj);
 	void pushUid(UidT const &_ruid);
@@ -49,7 +48,6 @@ protected:
 	
 	size_t runIndex(ObjectBase &_robj)const;
 private:
-	friend	class Manager;
 	friend	class SchedulerBase;
 	size_t idInScheduler()const;
 private:
@@ -65,8 +63,8 @@ inline SchedulerBase& ReactorBase::scheduler(){
 	return rsch;
 }
 
-inline void ReactorBase::stopObject(ObjectBase &_robj){
-	_robj.stop(manager());
+inline void ReactorBase::stopObject(ObjectBase &_robj, Manager &_rm){
+	_robj.stop(_rm);
 }
 
 inline size_t ReactorBase::idInScheduler()const{

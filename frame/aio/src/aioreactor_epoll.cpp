@@ -116,6 +116,13 @@ public:
 		use();
 	}
 	
+	void stop(){
+		eventhandler.deactivate();
+		eventhandler.unregister();
+		dummyhandler.deactivate();
+		dummyhandler.unregister();
+	}
+	
 	template <class F>
 	void post(ReactorContext &_rctx, F _f){
 		Object::post(_rctx, _f);
@@ -375,8 +382,9 @@ void Reactor::run(){
 		
 		doCompleteExec(crttime);
 		
-		running = d.running || (d.objcnt != 1) || !d.exeq.empty();
+		running = d.running || (d.objcnt != 0) || !d.exeq.empty();
 	}
+	d.eventobj.stop();
 	doClearSpecific();
 	vdbgx(Debug::aio, "<exit>");
 }
@@ -458,6 +466,26 @@ void Reactor::post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &
 	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
 	d.exeq.back().exefnc = std::move(_revfn);
 	d.exeq.back().chnuid = UidT(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
+}
+
+/*static*/ void Reactor::stop_object(ReactorContext &_rctx, Event const &){
+	Reactor			&rthis = _rctx.reactor();
+	ObjectStub		&ros = rthis.d.objdq[_rctx.objidx];
+	
+	
+	rthis.stopObject(*ros.objptr, ros.psvc->manager());
+	
+	ros.objptr.clear();
+	ros.psvc = nullptr;
+ 	++ros.unique;
+	--rthis.d.objcnt;
+	rthis.d.freeuidvec.push_back(UidT(_rctx.objidx, ros.unique));
+}
+
+void Reactor::postObjectStop(ReactorContext &_rctx){
+	d.exeq.push(ExecStub(_rctx.objectUid()));
+	d.exeq.back().exefnc = &stop_object;
+	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
 
 void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
@@ -632,8 +660,12 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 	return true;
 }
 
-bool Reactor::remDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd){
+bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
 	epoll_event ev;
+	
+	if(!_rsd.ok()){
+		return false;
+	}
 	
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
@@ -644,7 +676,7 @@ bool Reactor::remDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 	return true;
 }
 
-bool Reactor::addTimer(ReactorContext &_rctx, CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx){
+bool Reactor::addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx){
 	if(_rstoreidx != static_cast<size_t>(-1)){
 		size_t idx = d.timestore.change(_rstoreidx, _rt);
 		cassert(idx == _rch.idxreactor);
@@ -660,7 +692,7 @@ void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, cons
 	static_cast<Timer*>(rch.pch)->storeidx = _newidx;
 }
 
-bool Reactor::remTimer(ReactorContext &_rctx, CompletionHandler const &_rch, size_t const &_rstoreidx){
+bool Reactor::remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx){
 	if(_rstoreidx != static_cast<size_t>(-1)){
 		d.timestore.pop(_rstoreidx, ChangeTimerIndexCallback(*this));
 	}
@@ -685,6 +717,8 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 	{
 		TimeSpec		dummytime;
 		ReactorContext	ctx(*this, dummytime);
+		
+		ctx.reactevn = ReactorEventInit;
 		ctx.objidx = rcs.objidx;
 		ctx.chnidx = idx;
 		
@@ -694,6 +728,22 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 
 void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 	vdbgx(Debug::aio, "");
+	CompletionHandlerStub &rcs = d.chdq[_rch.idxreactor];
+	{
+		TimeSpec		dummytime;
+		ReactorContext	ctx(*this, dummytime);
+		
+		ctx.reactevn = ReactorEventClear;
+		ctx.objidx = rcs.objidx;
+		ctx.chnidx = _rch.idxreactor;
+		
+		_rch.handleCompletion(ctx);
+	}
+	
+	
+	rcs.pch = &d.eventobj.dummyhandler;
+	rcs.objidx = 0;
+	++rcs.unique;
 }
 
 

@@ -17,6 +17,14 @@ namespace solid{
 namespace frame{
 namespace aio{
 
+/*static*/ void Listener::on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
+	Listener		&rthis = static_cast<Listener&>(_rch);
+	//rthis.completionCallback(on_dummy_completion);
+	rthis.completionCallback(&on_completion);
+	rthis.addDevice(_rctx, rthis.sd, ReactorWaitRead);
+}
+
+
 /*static*/ void Listener::on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 	Listener &rthis = static_cast<Listener&>(_rch);
 	
@@ -36,7 +44,7 @@ namespace aio{
 				tmpf(_rctx, sd);
 			}break;
 		case ReactorEventClear:
-			FUNCTION_CLEAR(rthis.f);
+			rthis.doClear(_rctx);
 			break;
 		default:
 			cassert(false);
@@ -53,11 +61,8 @@ namespace aio{
 	}
 }
 
-/*static*/ void Listener::on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
-	Listener		&rthis = static_cast<Listener&>(_rch);
-	//rthis.completionCallback(on_dummy_completion);
-	rthis.completionCallback(&on_completion);
-	rthis.addDevice(_rctx, rthis.sd, ReactorWaitRead);
+/*static*/ void Listener::on_dummy(ReactorContext&, SocketDevice&){
+	
 }
 
 void Listener::doPostAccept(ReactorContext &_rctx){
@@ -88,6 +93,12 @@ void Listener::doAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 		//TODO: set proper error
 		error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 	}
+}
+
+void Listener::doClear(ReactorContext& _rctx){
+	FUNCTION_CLEAR(f);
+	remDevice(_rctx, sd);
+	f = &on_dummy;
 }
 
 }//namespace aio

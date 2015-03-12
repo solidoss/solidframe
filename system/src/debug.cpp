@@ -220,7 +220,7 @@ struct StrLess{
 struct ModuleStub{
 	ModuleStub(const char *_name, uint32 _lvlmsk):name(_name), lvlmsk(_lvlmsk){}
 	string	name;
-	uint32			lvlmsk;
+	uint32	lvlmsk;
 };
 struct Debug::Data{
 	typedef std::bitset<DEBUG_BITSET_SIZE>			BitSetT;
@@ -301,7 +301,7 @@ Debug::~Debug(){
 	d.dos.close();
 	d.dbos.close();
 	d.pos = &cerr;
-	//delete &d;
+	delete &d;
 }
 
 namespace{

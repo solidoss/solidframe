@@ -148,7 +148,7 @@ struct Manager::Data{
 	Data(
 		Manager &_rm
 	);
-	
+	~Data();
 	
 	ObjectChunk* allocateChunk(Mutex &_rmtx)const{
 		char *p = new char[sizeof(ObjectChunk) + objchkcnt * sizeof(ObjectStub)];
@@ -281,6 +281,16 @@ Manager::Data::Data(
 {
 }
 
+Manager::Data::~Data(){
+	size_t objstoreidx = 0;
+	if(objstore[1].vec.size() > objstore[0].vec.size()){
+		objstoreidx = 1;
+	}
+	ChunkDequeT &rchdq = objstore[objstoreidx].vec;
+	for(auto it = rchdq.begin(); it != rchdq.end(); ++it){
+		delete [](*it)->data();
+	}
+}
 
 Manager::Manager(
 	const size_t _svcmtxcnt/* = 0*/,
@@ -316,8 +326,10 @@ Manager::Manager(
 /*virtual*/ Manager::~Manager(){
 	
 	stop();
-	delete &d;
 	delete []d.pobjmtxarr;
+	delete []d.psvcmtxarr;
+	
+	delete &d;
 }
 
 bool Manager::registerService(
@@ -514,17 +526,19 @@ ObjectUidT Manager::registerObject(
 		
 		cassert(robjchk.svcidx == _rsvc.idx);
 		
+		_robj.id(objidx);
+		
 		if(_rfct(_rr)){
 			//the object is scheduled
 			ObjectStub &ros= robjchk.object(objidx % d.objchkcnt);
 			ros.pobject = &_robj;
 			ros.preactor = &_rr;
-			_robj.id(objidx);
 			retval.index = objidx;
 			retval.unique = ros.unique;
 			++robjchk.objcnt;
 			++rss.objcnt;
 		}else{
+			_robj.id(-1);
 			//the object was not scheduled
 			rss.objcache.push(objidx);
 		}
@@ -540,6 +554,8 @@ void Manager::unregisterObject(ObjectBase &_robj){
 		const size_t	objstoreidx = d.aquireReadObjectStore();
 		ObjectChunk		&robjchk(*d.chunk(objstoreidx, _robj.id()));
 		Locker<Mutex>	lock2(robjchk.rmtx);
+		
+		objidx = _robj.id();
 			
 		d.releaseReadObjectStore(objstoreidx);
 		
@@ -801,6 +817,12 @@ void Manager::stop(){
 	}
 	
 	d.releaseReadServiceStore(svcstoreidx);
+	
+	{
+		Locker<Mutex>	lock(d.mtx);
+		d.state = StateStoppedE;
+		d.cnd.broadcast();
+	}
 }
 
 
