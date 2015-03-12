@@ -26,6 +26,11 @@ struct	ReactorContext;
 class Timer: public CompletionHandler{
 	typedef Timer	ThisT;
 	
+	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
+		ThisT &rthis = static_cast<ThisT&>(_rch);
+		rthis.completionCallback(Timer::on_completion);
+	}
+	
 	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
 		
@@ -34,15 +39,15 @@ class Timer: public CompletionHandler{
 				rthis.doExec(_rctx);
 				break;
 			case ReactorEventClear:
-				rthis.doClear();
+				rthis.doClear(_rctx);
+				rthis.f = &on_dummy;
 				break;
 			default:
 				cassert(false);
 		}
 	}
-	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
-		ThisT &rthis = static_cast<ThisT&>(_rch);
-		rthis.completionCallback(Timer::on_completion);
+	static void on_dummy(ReactorContext &_rctx){
+		
 	}
 public:
 	Timer(
@@ -76,7 +81,7 @@ public:
 	}
 	void cancel(ReactorContext &_rctx){
 		this->remTimer(_rctx, storeidx);
-		doClear();
+		doClear(_rctx);
 	}
 private:
 	friend class Reactor;
@@ -85,8 +90,9 @@ private:
 		storeidx = -1;
 		tmpf(_rctx);
 	}
-	void doClear(){
+	void doClear(ReactorContext &_rctx){
 		FUNCTION_CLEAR(f);
+		remTimer(_rctx, storeidx);
 		storeidx = -1;
 	}
 private:

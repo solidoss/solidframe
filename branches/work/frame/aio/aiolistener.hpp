@@ -27,6 +27,7 @@ class Listener: public CompletionHandler{
 	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx);
 	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx);
 	static void on_posted_accept(ReactorContext &_rctx, Event const&);
+	static void on_dummy(ReactorContext&, SocketDevice&);
 public:
 	Listener(
 		ObjectProxy const &_robj,
@@ -74,7 +75,8 @@ public:
 private:
 	void doPostAccept(ReactorContext &_rctx);
 	bool doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd);
-	void doAccept(solid::frame::aio::ReactorContext& _rctx, solid::SocketDevice& _rsd);
+	void doAccept(ReactorContext& _rctx, solid::SocketDevice& _rsd);
+	void doClear(ReactorContext& _rctx);
 private:
 	typedef FUNCTION<void(ReactorContext&, SocketDevice&)>		FunctionT;
 	FunctionT				f;

@@ -26,16 +26,12 @@ template <class Sock>
 class Stream: public CompletionHandler{
 	typedef Stream<Sock>	ThisT;
 	
-	static void on_posted_recv_some(ReactorContext &_rctx, Event const&){
-		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-		rthis.doRecv(_rctx);
+	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
+		ThisT &rthis = static_cast<ThisT&>(_rch);
+		rthis.completionCallback(&on_completion);
+		rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitReadOrWrite);
 	}
 	
-	static void on_posted_send_all(ReactorContext &_rctx, Event const&){
-		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-		
-		rthis.doSend(_rctx);
-	}
 	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
 		
@@ -59,8 +55,7 @@ class Stream: public CompletionHandler{
 				rthis.doError(_rctx);
 				break;
 			case ReactorEventClear:
-				rthis.doClearRecv(_rctx);
-				rthis.doClearSend(_rctx);
+				rthis.doClear(_rctx);
 				break;
 			default:
 				cassert(false);
@@ -82,20 +77,30 @@ class Stream: public CompletionHandler{
 				rthis.doError(_rctx);
 				break;
 			case ReactorEventClear:
-				rthis.doClearRecv(_rctx);
-				rthis.doClearSend(_rctx);
+				rthis.doClear(_rctx);
 				break;
 			default:
 				cassert(false);
 		}
 	}
 	
-	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
-		ThisT &rthis = static_cast<ThisT&>(_rch);
-		rthis.completionCallback(&on_completion);
-		rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitReadOrWrite);
+	//-------------
+	static void on_posted_recv_some(ReactorContext &_rctx, Event const&){
+		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
+		rthis.doRecv(_rctx);
 	}
 	
+	static void on_posted_send_all(ReactorContext &_rctx, Event const&){
+		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
+		
+		rthis.doSend(_rctx);
+	}
+	
+	static void on_dummy(ThisT &_rthis, ReactorContext &_rctx){
+		
+	}
+	
+	//-------------
 	template <class F>
 	struct RecvSomeFunctor{
 		F	f;
@@ -400,6 +405,14 @@ private:
 		FUNCTION_CLEAR(send_fnc);
 		send_buf = nullptr;
 		send_buf_sz = send_buf_cp = 0;
+	}
+	
+	void doClear(ReactorContext &_rctx){
+		doClearRecv(_rctx);
+		doClearSend(_rctx);
+		remDevice(_rctx, s.device());
+		recv_fnc = &on_dummy;//we prevent new send/recv calls
+		send_fnc = &on_dummy;
 	}
 private:
 	typedef FUNCTION<void(ThisT&, ReactorContext&)>		RecvFunctionT;

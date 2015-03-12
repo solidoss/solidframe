@@ -77,7 +77,10 @@ public:
 		frame::Service &_rsvc,
 		AioSchedulerT &_rsched,
 		SocketDevice &_rsd
-	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd), timer(this->proxy()){}
+	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd), ptimer(nullptr), timercnt(0){}
+	~Listener(){
+		delete ptimer;
+	}
 private:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
@@ -90,7 +93,8 @@ private:
 	frame::Service		&rsvc;
 	AioSchedulerT		&rsch;
 	ListenerSocketT		sock;
-	TimerT				timer;
+	TimerT				*ptimer;
+	size_t				timercnt;
 };
 
 
@@ -278,7 +282,7 @@ int main(int argc, char *argv[]){
 		}else{
 			char c;
 			cin>>c;
-			exit(0);
+			//exit(0);
 		}
 		
 		
@@ -328,9 +332,10 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	if(_revent.id == EventStartE){
 		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
 		//sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
+		ptimer = new TimerT(this->proxy());
 		TimeSpec waittime = _rctx.time();
 		waittime += 2000;
-		timer.waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
+		ptimer->waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
 	}else if(_revent.id == EventStopE){
 		postStop(_rctx);
 	}
@@ -340,7 +345,12 @@ void Listener::onTimer(frame::aio::ReactorContext &_rctx){
 	idbg("On Listener Timer");
 	TimeSpec waittime = _rctx.time();
 	waittime += 2000;
-	timer.waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
+	ptimer->waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
+	++timercnt;
+	if(timercnt == 4){
+		delete ptimer;
+		ptimer = nullptr;
+	}
 }
 
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){

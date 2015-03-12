@@ -49,13 +49,14 @@ public:
 	
 	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev);
 	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch);
+	void postObjectStop(ReactorContext &_rctx);
 	
 	bool waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
 	bool addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
-	bool remDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd);
+	bool remDevice(CompletionHandler const &_rch, Device const &_rsd);
 	
-	bool addTimer(ReactorContext &_rctx, CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx);
-	bool remTimer(ReactorContext &_rctx, CompletionHandler const &_rch, size_t const &_rstoreidx);
+	bool addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx);
+	bool remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx);
 	
 	bool start();
 	
@@ -94,6 +95,7 @@ private:
 	void onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _chidx);
 	static void call_object_on_event(ReactorContext &_rctx, Event const &_rev);
 	static void increase_event_vector_size(ReactorContext &_rctx, Event const &_rev);
+	static void stop_object(ReactorContext &_rctx, Event const &_revent);
 private://data
 	struct Data;
 	Data	&d;
