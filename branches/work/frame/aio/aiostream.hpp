@@ -319,6 +319,9 @@ public:
 		}
 		return true;
 	}
+	void shutdown(ReactorContext &_rctx){
+		s.shutdown();
+	}
 private:
 	void doPostRecvSome(ReactorContext &_rctx){
 		EventFunctionT	evfn(&on_posted_recv_some);

@@ -36,6 +36,12 @@ public:
 		return tmpsd;
 	}
 	
+	void shutdown(){
+		if(sd.ok()){
+			sd.shutdownReadWrite();
+		}
+	}
+	
 	bool create(SocketAddressStub const &_rsas){
 		bool rv = sd.create(_rsas.family());
 		if(rv){
