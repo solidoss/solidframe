@@ -693,10 +693,12 @@ bool Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitF
 		
 		Locker<Mutex>	lock(rchk.rmtx);
 		ObjectStub		*poss = rchk.objects();
+
 		for(size_t i(0), cnt(0); i < d.objchkcnt && cnt < rchk.objcnt; ++i){
 			if(poss[i].pobject){
 				_fctor(*poss[i].pobject);
 				retval = true;
+				++cnt;
 			}
 		}
 		

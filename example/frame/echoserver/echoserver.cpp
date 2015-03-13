@@ -410,6 +410,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	}else if(_revent.id == EventStopE){
 		edbg(this<<" postStop");
+		sock.shutdown(_rctx);
 		postStop(_rctx);
 	}
 }
