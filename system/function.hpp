@@ -24,4 +24,19 @@
 #include "boost/function.hpp"
 #endif
 
+
+#define USE_BOOST_FUNCTION
+
+#ifdef USE_BOOST_FUNCTION
+#include "boost/function.hpp"
+#define FUNCTION boost::function
+#define FUNCTION_EMPTY(f) (f.empty())
+#define FUNCTION_CLEAR(f) (f.clear())
+#else
+#define FUNCTION std::function
+#define FUNCTION_EMPTY(f) (f == nullptr)
+#define FUNCTION_CLEAR(f) (f = nullptr)
+#endif
+
+
 #endif

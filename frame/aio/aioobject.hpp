@@ -10,8 +10,6 @@
 #ifndef SOLID_FRAME_AIO_OBJECT_HPP
 #define SOLID_FRAME_AIO_OBJECT_HPP
 
-#include "system/timespec.hpp"
-
 #include "frame/objectbase.hpp"
 #include "frame/aio/aiocommon.hpp"
 #include "frame/aio/aioforwardcompletion.hpp"
@@ -21,7 +19,6 @@ namespace solid{
 namespace frame{
 namespace aio{
 
-class Message;
 class Reactor;
 struct ReactorContext;
 class CompletionHandler;
@@ -42,12 +39,6 @@ private:
 };
 
 class Object: public Dynamic<Object, ObjectBase>, ForwardCompletionHandler{
-public:
-	typedef DynamicPointer<Message>	MessagePointerT;
-	
-// 	static Object& specific(){
-// 		return static_cast<ThisT&>(ObjectBase::specific());
-// 	}
 protected:
 	friend class CompletionHandler;
 	friend class Reactor;

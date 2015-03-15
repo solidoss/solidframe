@@ -34,8 +34,6 @@ typedef DynamicPointer<Message>	MessagePointerT;
 
 class ObjectBase: public Dynamic<ObjectBase>{
 public:
-	static ObjectBase& specific();
-	
 	//! Get the id of the object
 	IndexT id() const;
 	

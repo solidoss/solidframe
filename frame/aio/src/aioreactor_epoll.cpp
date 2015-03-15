@@ -1,17 +1,14 @@
-// frame/aio/src/aioselector_epoll.cpp
+// frame/aio/src/aioreactor_epoll.cpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#include "system/common.hpp"
 #include <fcntl.h>
 #include <sys/epoll.h>
-#include "system/exception.hpp"
-
 #include <sys/eventfd.h>
 
 #include <vector>
@@ -20,6 +17,8 @@
 #include <cstring>
 #include <queue>
 
+#include "system/common.hpp"
+#include "system/exception.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
 #include "system/mutex.hpp"
@@ -41,9 +40,6 @@
 #include "frame/aio/aiotimer.hpp"
 #include "frame/aio/aiocompletion.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
-
-
-
 
 
 namespace solid{
@@ -157,10 +153,9 @@ struct CompletionHandlerStub{
 	CompletionHandlerStub(
 		CompletionHandler *_pch = nullptr,
 		const size_t _objidx = -1
-	):pch(_pch)/*, waitreq(ReactorWaitNone)*/, objidx(_objidx), unique(0){}
+	):pch(_pch), objidx(_objidx), unique(0){}
 	
 	CompletionHandler		*pch;
-	//ReactorWaitRequestsE	waitreq;
 	size_t					objidx;
 	UniqueT					unique;
 };
@@ -378,8 +373,10 @@ void Reactor::run(){
 			running = false;	
 		}
 		
+		crttime.currentMonotonic();
 		doCompleteTimer(crttime);
 		
+		crttime.currentMonotonic();
 		doCompleteExec(crttime);
 		
 		running = d.running || (d.objcnt != 0) || !d.exeq.empty();
@@ -575,6 +572,8 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 				this->pushUid(*it);
 			}
 			d.freeuidvec.clear();
+			
+			d.crtpushvecsz = d.crtraisevecsz = 0;
 		}
 		
 		NewTaskVectorT		&crtpushvec = d.pushtskvec[crtpushvecidx];

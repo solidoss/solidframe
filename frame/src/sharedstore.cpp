@@ -20,6 +20,10 @@ namespace solid{
 namespace frame{
 namespace shared{
 
+enum{
+	S_RAISE = 1,
+};
+
 void PointerBase::doClear(const bool _isalive){
 	if(psb){
 		psb->erasePointer(id(), _isalive);
@@ -39,12 +43,23 @@ typedef Stack<void*>						VoidPtrStackT;
 
 
 struct StoreBase::Data{
-	Data(Manager &_rm):rm(_rm), objmaxcnt(ATOMIC_VAR_INIT(0)){
+	Data(
+		Manager &_rm,
+		const size_t _inieventid,
+		const size_t _killeventid,
+		const size_t _raiseeventid
+	):	rm(_rm),
+		inieventid(_inieventid), killeventid(_killeventid), raiseeventid(_raiseeventid),
+		objmaxcnt(ATOMIC_VAR_INIT(0))
+	{
 		pfillerasevec = &erasevec[0];
 		pconserasevec = &erasevec[1];
 	}
 	Manager				&rm;
-	AtomicSizeT			objmaxcnt;
+	const size_t 		inieventid;
+	const size_t 		killeventid;
+	const size_t 		raiseeventid;
+	shared::AtomicSizeT	objmaxcnt;
 	MutexMutualStoreT	mtxstore;
 	UidVectorT			erasevec[2];
 	UidVectorT			*pfillerasevec;
@@ -53,16 +68,20 @@ struct StoreBase::Data{
 	SizeStackT			cacheobjidxstk;
 	ExecWaitVectorT		exewaitvec;
 	VoidPtrStackT		cachewaitstk;
+	Mutex				mtx;
 };
 
 
 void StoreBase::Accessor::notify(size_t _evt){
-	if(store().notify(_evt)){
-		store().manager().raise(store());
-	}
+	store().raise();
 }
 
-StoreBase::StoreBase(Manager &_rm):d(*(new Data(_rm))){}
+StoreBase::StoreBase(
+	Manager &_rm,
+	const size_t _inieventid,
+	const size_t _killeventid,
+	const size_t _raiseeventidx
+):d(*(new Data(_rm, _inieventid, _killeventid, _raiseeventidx))){}
 
 /*virtual*/ StoreBase::~StoreBase(){
 	delete &d;
@@ -74,7 +93,7 @@ Manager& StoreBase::manager(){
 }
 
 Mutex &StoreBase::mutex(){
-	return manager().mutex(*this);
+	return d.mtx;
 }
 Mutex &StoreBase::mutex(const size_t _idx){
 	return d.mtxstore.at(_idx);
@@ -157,35 +176,46 @@ void StoreBase::notifyObject(UidT const & _ruid){
 		Locker<Mutex>	lock(mutex());
 		d.pfillerasevec->push_back(_ruid);
 		if(d.pfillerasevec->size() == 1){
-			do_raise = Object::notify(frame::S_SIG | frame::S_RAISE);
+			do_raise = Object::notify(S_RAISE);
 		}
 	}
 	if(do_raise){
-		manager().raise(*this);
+		manager().notify(manager().id(*this), Event(d.raiseeventid));
 	}
 }
 
-/*virtual*/ void StoreBase::execute(ExecuteContext &_rexectx){
+void StoreBase::raise(){
+	manager().notify(manager().id(*this), Event(d.raiseeventid));
+}
+
+/*virtual*/void StoreBase::onEvent(frame::ReactorContext &_rctx, frame::Event const &_revent){
 	vdbgx(Debug::frame, "");
-	if(notified()){
-		Locker<Mutex>	lock(mutex());
-		ulong sm = grabSignalMask();
-		if(sm & frame::S_KILL){
-			_rexectx.close();
-			return;
-		}
-		if(sm & frame::S_RAISE){
-			if(d.pfillerasevec->size()){
-				solid::exchange(d.pconserasevec, d.pfillerasevec);
+	if(_revent.id == d.raiseeventid){
+		{
+			Locker<Mutex>	lock(mutex());
+			ulong sm = grabSignalMask();
+			if(sm & S_RAISE){
+				if(d.pfillerasevec->size()){
+					solid::exchange(d.pconserasevec, d.pfillerasevec);
+				}
+				doExecuteOnSignal(sm);
 			}
-			doExecuteOnSignal(sm);
 		}
+		vdbgx(Debug::frame, "");
+		if(this->doExecute()){
+			this->post(
+				_rctx,
+				[this](frame::ReactorContext &_rctx, frame::Event const &_revent){onEvent(_rctx, _revent);},
+				frame::Event(d.raiseeventid)
+			);
+		}
+		d.pconserasevec->clear();
+	}else if(_revent.id == d.killeventid){
+		this->postStop(_rctx);
+		return;
+	}else if(_revent.id == d.inieventid){
+		return;
 	}
-	vdbgx(Debug::frame, "");
-	if(this->doExecute()){
-		_rexectx.reschedule();
-	}
-	d.pconserasevec->clear();
 }
 
 void StoreBase::doCacheObjectIndex(const size_t _idx){

@@ -80,7 +80,6 @@ public:
 		}
 	}
 	void cancel(ReactorContext &_rctx){
-		this->remTimer(_rctx, storeidx);
 		doClear(_rctx);
 	}
 private:

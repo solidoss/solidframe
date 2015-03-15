@@ -13,6 +13,7 @@
 #include <utility>
 #include "utility/common.hpp"
 #include "system/convertors.hpp"
+#include "system/function.hpp"
 
 namespace solid{
 namespace frame{
@@ -121,6 +122,25 @@ IndexT fast_smart_resize(V &_rv, const size_t _bitby){
 }
 
 
+enum ReactorEventsE{
+	ReactorEventNone = 0,
+	ReactorEventError = 8,
+	ReactorEventClear = 128,
+	ReactorEventInit = 256,
+	ReactorEventTimer = 512,
+};
+
+enum ReactorWaitRequestsE{
+	ReactorWaitNone = 0,
+	//Add above!
+	ReactorWaitError
+};
+
+
+class ReactorContext;
+struct Event;
+
+typedef FUNCTION<void(ReactorContext&, Event const &)>		EventFunctionT;
 
 }//namespace frame
 }//namespace solid

@@ -26,7 +26,11 @@ inline TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2){
 	}
 	return ts;
 }
-
+inline TimeSpec operator+(const TimeSpec &_ts1, unsigned _msec){
+	TimeSpec rv = _ts1;
+	rv += _msec;
+	return rv;
+}
 inline void TimeSpec::add(const TimeT &_s, long _ns){
 	tv_sec += _s;
 	tv_nsec += _ns;

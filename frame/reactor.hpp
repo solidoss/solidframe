@@ -16,36 +16,76 @@
 
 
 namespace solid{
+class TimeSpec;
 namespace frame{
 
-typedef DynamicPointer<Object> ObjectPointerT;
+class Service;
+class Object;
+struct ReactorContext;
+struct CompletionHandler;
+struct ChangeTimerIndexCallback;
+struct TimerCallback;
 
-//! An object reactor
+typedef DynamicPointer<Object>	ObjectPointerT;
+
+//! 
 /*!
 	
 */
-class Reactor: public ReactorBase{
+class Reactor: public frame::ReactorBase{
 public:
-	typedef Object			ObjectT;
-	static Reactor& specific();
-	static Reactor* safeSpecific();
-
-	Reactor(SchedulerBase &, const size_t);
+	typedef ObjectPointerT		TaskT;
+	typedef Object				ObjectT;
+	
+	Reactor(SchedulerBase &_rsched, const size_t _schedidx);
 	~Reactor();
 	
-	bool push(ObjectPointerT &_rjob);
-	void run();
+	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev);
+	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch);
+	void postObjectStop(ReactorContext &_rctx);
 	
-	size_t id();
-	void registerCompletionHandler(CompletionHandler &_rch);
-	void unregisterCompletionHandler(CompletionHandler &_rch);
-private:
-	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _re);
+	bool addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx);
+	bool remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx);
+	
+	bool start();
+	
+	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _revt);
 	/*virtual*/ void stop();
-	/*virtual*/ void update();
-	int doExecute(unsigned _i, ulong _evs, TimeSpec _crttout);
-	int doWait(int _wt);
+	
+	void registerCompletionHandler(CompletionHandler &_rch, Object const &_robj);
+	void unregisterCompletionHandler(CompletionHandler &_rch);
+	
+	void run();
+	bool push(TaskT &_robj, Service &_rsvc, Event const &_revt);
+	
+	Service& service(ReactorContext const &_rctx)const;
+	
+	Object& object(ReactorContext const &_rctx)const;
+	UidT objectUid(ReactorContext const &_rctx)const;
+	
+	CompletionHandler *completionHandler(ReactorContext const &_rctx)const;
 private:
+	friend struct EventHandler;
+	friend class CompletionHandler;
+	friend struct ChangeTimerIndexCallback;
+	friend struct TimerCallback;
+	
+	static Reactor* safeSpecific();
+	static Reactor& specific();
+	
+	bool doWaitEvent(TimeSpec const &_rcrttime);
+	
+	void doCompleteTimer(TimeSpec  const &_rcrttime);
+	void doCompleteExec(TimeSpec  const &_rcrttime);
+	void doCompleteEvents(TimeSpec const &_rcrttime);
+	void doStoreSpecific();
+	void doClearSpecific();
+	void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
+	
+	void onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _chidx);
+	static void call_object_on_event(ReactorContext &_rctx, Event const &_rev);
+	static void stop_object(ReactorContext &_rctx, Event const &_revent);
+private://data
 	struct Data;
 	Data	&d;
 };

@@ -22,6 +22,9 @@
 
 namespace solid{
 namespace frame{
+
+struct ReactorContext;
+
 namespace shared{
 
 struct PointerBase;
@@ -77,7 +80,13 @@ protected:
 	typedef std::vector<size_t>					SizeVectorT;
 	typedef std::vector<ExecWaitStub>			ExecWaitVectorT;
 	
-	StoreBase(Manager &_rm);
+	StoreBase(
+		Manager &_rm,
+		const size_t _inieventid,
+		const size_t _killeventid,
+		const size_t _raiseeventidx
+	);
+	
 	Mutex &mutex();
 	Mutex &mutex(const size_t _idx);
 	
@@ -95,6 +104,7 @@ protected:
 	ExecWaitVectorT& executeWaitVector()const;
 	Accessor accessor();
 	void notifyObject(UidT const & _ruid);
+	void raise();
 private:
 	friend struct PointerBase;
 	void erasePointer(UidT const & _ruid, const bool _isalive);
@@ -102,7 +112,7 @@ private:
 	virtual bool doExecute() = 0;
 	virtual void doResizeObjectVector(const size_t _newsz) = 0;
 	virtual void doExecuteOnSignal(ulong _sm) = 0;
-	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	/*virtual*/void onEvent(frame::ReactorContext &_rctx, frame::Event const &_revent);
 private:
 	struct Data;
 	Data &d;
@@ -211,7 +221,12 @@ public:
 	typedef Ctl									ControllerT;
 	typedef Dynamic<Store<T, Ctl>, StoreBase>	BaseT;
 	
-	Store(Manager &_rm):BaseT(_rm){}
+	Store(
+		Manager &_rm,
+		const size_t _inieventid,
+		const size_t _killeventid,
+		const size_t _raiseeventidx
+	):BaseT(_rm, _inieventid, _killeventid, _raiseeventidx){}
 	
 	PointerT	insertAlive(T &_rt){
 		Locker<Mutex>	lock(this->mutex());

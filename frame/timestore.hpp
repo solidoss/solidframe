@@ -45,6 +45,7 @@ public:
 	void pop(const size_t _idx, F const &_rf){
 		const size_t oldidx = tv.size() - 1;
 		tv[_idx] = tv.back();
+		cassert(!tv.empty());
 		tv.pop_back();
 		if(_idx < tv.size()){
 			_rf(tv[_idx].second, _idx, oldidx);
@@ -68,14 +69,15 @@ public:
 					crtmin = rtp.first;
 				}
 			}else{
-				_rf1(i, rtp.second);
-				
-				const size_t oldidx = tv.size() - 1;
+				ValueT			v = rtp.second;
+				const size_t	oldidx = tv.size() - 1;
 				tv[i] = tv.back();
 				tv.pop_back();
 				if(i < tv.size()){
 					_rf2(tv[i].second, i, oldidx);
 				}
+				
+				_rf1(i, v);
 			}
 		}
 		

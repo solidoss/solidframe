@@ -1,6 +1,6 @@
-// frame/src/object.cpp
+// frame/object.cpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
@@ -8,51 +8,67 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "system/cassert.hpp"
-#include "system/mutex.hpp"
-#include "system/thread.hpp"
-#include "system/debug.hpp"
 
-#include "frame/objectbase.hpp"
 #include "frame/object.hpp"
-#include "frame/message.hpp"
-#include "frame/manager.hpp"
-#include "frame/service.hpp"
 #include "frame/reactor.hpp"
 #include "frame/completion.hpp"
-
-#include "utility/memory.hpp"
-#include "utility/dynamicpointer.hpp"
+#include "frame/reactorcontext.hpp"
+#include "frame/manager.hpp"
 
 namespace solid{
-//--------------------------------------------------------------
-namespace{
-#ifdef HAS_SAFE_STATIC
-static const unsigned specificPosition(){
-	static const unsigned	thrspecpos = Thread::specificId();
-	return thrspecpos;
-}
-#else
-const uint specificIdStub(){
-	static const uint id(Thread::specificId());
-	return id;
-}
-
-void once_stub(){
-	specificIdStub();
-}
-
-static const unsigned specificPosition(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_stub, once);
-	return specificIdStub();
-}
-#endif
-}
-
 namespace frame{
+//---------------------------------------------------------------------
+//----	Object	----
+//---------------------------------------------------------------------
+
+Object::Object(){}
+
+/*virtual*/ void Object::onEvent(ReactorContext &_rctx, Event const &_revent){
+	
+}
+
+void Object::postStop(ReactorContext &_rctx){
+	CompletionHandler *pch = this->pnext;
+	
+	while(pch != nullptr){
+		pch->pprev = nullptr;//unregister
+		pch->deactivate();
+		
+		pch = pch->pnext;
+	}
+	this->pnext = nullptr;
+	_rctx.reactor().postObjectStop(_rctx);
+}
+
+bool Object::isRunning()const{
+	return runId().isValid();
+}
+
+bool Object::registerCompletionHandler(CompletionHandler &_rch){
+	_rch.pnext = this->pnext;
+	if(_rch.pnext){
+		_rch.pnext->pprev = &_rch;
+	}
+	this->pnext = &_rch;
+	_rch.pprev = this;
+	return isRunning();
+}
+
+void Object::registerCompletionHandlers(){
+	CompletionHandler *pch = this->pnext;
+	
+	while(pch != nullptr){
+		pch->activate(*this);
+		pch = pch->pnext;
+	}
+}
+
+void Object::doPost(ReactorContext &_rctx, EventFunctionT &_revfn, Event const &_revent){
+	_rctx.reactor().post(_rctx, _revfn, _revent);
+}
 
 //---------------------------------------------------------------------
-//----	ObjectBase	----
+//----  ObjectBase      ----
 //---------------------------------------------------------------------
 
 ObjectBase::ObjectBase():
@@ -67,8 +83,6 @@ void ObjectBase::unregister(Manager &_rm){
 }
 
 ObjectBase::~ObjectBase(){
-	//TODO: must we call unregister() now?!
-	//unregister();
 }
 
 /*virtual*/void ObjectBase::doStop(Manager &_rm){
@@ -77,105 +91,8 @@ void ObjectBase::stop(Manager &_rm){
 	doStop(_rm);
 	unregister(_rm);
 }
-//--------------------------------------------------------------
-/*static*/ ObjectBase& ObjectBase::specific(){
-	return *reinterpret_cast<Object*>(Thread::specific(specificPosition()));
-}
-//--------------------------------------------------------------
-void ObjectBase::prepareSpecific(){
-	Thread::specific(specificPosition(), this);
-}
-//---------------------------------------------------------------------
-//----	Object	----
-//---------------------------------------------------------------------
-static CompletionHandler	dummy_ch;//used for detecting object preparing / running state
 
-Object::Object():pchfirst(&dummy_ch){}
 
-bool Object::isRunning()const{
-	return pchfirst != &dummy_ch && (pchfirst == NULL || pchfirst->pprev != &dummy_ch);
-}
-
-void Object::enterRunning(){
-	cassert(!isRunning());
-	if(pchfirst == &dummy_ch){
-		pchfirst = NULL;
-	}else{
-		pchfirst->pprev = NULL;
-	}
-}
-
-bool Object::registerCompletionHandler(CompletionHandler &_rch){
-	const bool rv = isRunning();
-	if(rv){
-		CompletionHandler *poldfirst = pchfirst;
-		pchfirst = &_rch;
-		pchfirst->pprev = poldfirst;
-		pchfirst->pnext = NULL;
-		if(poldfirst){
-			poldfirst->pnext = pchfirst;
-		}
-	}else{
-		CompletionHandler *poldfirst = pchfirst;
-		pchfirst = &_rch;
-		pchfirst->pprev = poldfirst;
-		pchfirst->pnext = &dummy_ch;
-		if(poldfirst != &dummy_ch){
-			poldfirst->pnext = pchfirst;
-		}else{
-			pchfirst->pprev = NULL;
-		}
-	}
-	return rv;
-}
-
-bool Object::unregisterCompletionHandler(CompletionHandler &_rch){
-	const bool rv = isRunning();
-	if(rv){
-		if(_rch.pprev){
-			_rch.pprev->pnext = _rch.pnext;
-		}
-		if(_rch.pnext){
-			_rch.pnext->pprev = _rch.pprev;
-		}
-		if(&_rch == pchfirst){
-			pchfirst = _rch.pprev;
-		}
-	}else{
-		if(_rch.pprev){
-			_rch.pprev->pnext = _rch.pnext;
-		}
-		if(_rch.pnext != &dummy_ch){
-			_rch.pnext->pprev = _rch.pprev;
-		}
-		if(&_rch == pchfirst){
-			pchfirst = _rch.pprev;
-		}
-	}
-	_rch.pprev = NULL;
-	_rch.pnext = NULL;
-	return rv;
-}
-
-Reactor* Object::reactor()const{
-//	Reactor *preactor = Reactor::safeSpecific();
-	
-// 	if(preactor && preactor->idInManager() == preactor->manager().reactorId(this->runId().index)){
-// 		return preactor;
-// 	}
-	return NULL;
-}
-//---------------------------------------------------------------------
-//----	Message	----
-//---------------------------------------------------------------------
-Message::Message(){
-	objectCheck<Message>(true, __FUNCTION__);
-	vdbgx(Debug::frame, "memadd "<<(void*)this);
-}
-Message::~Message(){
-	objectCheck<Message>(false, __FUNCTION__);
-	vdbgx(Debug::frame, "memsub "<<(void*)this);
-}
 }//namespace frame
 }//namespace solid
 

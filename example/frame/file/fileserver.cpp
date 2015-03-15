@@ -1,11 +1,14 @@
 #include "frame/manager.hpp"
 #include "frame/scheduler.hpp"
-#include "frame/objectselector.hpp"
+#include "frame/reactor.hpp"
 
-#include "frame/aio/aioselector.hpp"
-#include "frame/aio/aiosingleobject.hpp"
-#include "frame/aio/openssl/opensslsocket.hpp"
+#include "frame/aio/aioreactor.hpp"
+#include "frame/aio/aioreactorcontext.hpp"
+#include "frame/aio/aioobject.hpp"
+#include "frame/aio/aiostream.hpp"
+#include "frame/aio/aiolistener.hpp"
 #include "frame/message.hpp"
+#include "frame/service.hpp"
 
 #include "frame/file/filestream.hpp"
 
@@ -22,13 +25,23 @@
 #include <signal.h>
 #include <iostream>
 #include <fstream>
+#include <functional>
 
 using namespace std;
 using namespace solid;
+using namespace std::placeholders;
 
 typedef frame::IndexT							IndexT;
-typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
-typedef frame::Scheduler<frame::ObjectSelector>	SchedulerT;
+typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
+typedef frame::Scheduler<frame::Reactor>		SchedulerT;
+
+
+enum Events{
+	EventStartE = 0,
+	EventRunE,
+	EventStopE,
+	EventSendE,
+};
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -62,7 +75,7 @@ namespace{
 		}
 	}
 	
-	typedef DynamicSharedPointer<frame::file::Store<> >	FileStoreSharedPointerT;
+	typedef DynamicPointer<frame::file::Store<> >	FileStoreSharedPointerT;
 	
 	FileStoreSharedPointerT		filestoreptr;
 
@@ -71,21 +84,24 @@ namespace{
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
+class Listener: public Dynamic<Listener, frame::aio::Object>{
 public:
 	Listener(
-		frame::Manager &_rm,
+		frame::Service &_rsvc,
 		AioSchedulerT &_rsched,
-		const SocketDevice &_rsd
-	);
-	~Listener();
+		SocketDevice &_rsd
+	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd){}
+	~Listener(){
+	}
 private:
-	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
 	
-	int					state;
-	SocketDevice		sd;
-	frame::Manager		&rm;
-	AioSchedulerT		&rsched;
+	typedef frame::aio::Listener		ListenerSocketT;
+	
+	frame::Service		&rsvc;
+	AioSchedulerT		&rsch;
+	ListenerSocketT		sock;
 };
 
 //------------------------------------------------------------------
@@ -93,7 +109,7 @@ private:
 
 struct FilePointerMessage;
 
-class Connection: public Dynamic<Connection, frame::aio::SingleObject>{
+class Connection: public Dynamic<Connection, frame::aio::Object>{
 	typedef solid::DynamicMapper<void, Connection>	DynamicMapperT;
 	typedef std::vector<solid::DynamicPointer<> >	DynamicPointerVectorT;
 	typedef frame::file::FileIOStream< 1024  >		IOFileStreamT;
@@ -108,8 +124,7 @@ public:
 	void dynamicHandle(solid::DynamicPointer<> &_dp);
 	void dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr);
 private:
-	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
-	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	const char * findEnd(const char *_p);
 private:
 	enum {BUFSZ = 1024};
@@ -144,7 +159,6 @@ private:
 //------------------------------------------------------------------
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
-void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr, int _port);
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
@@ -192,47 +206,79 @@ int main(int argc, char *argv[]){
 #endif
 	
 	{
-		frame::Manager	m;
-		AioSchedulerT	aiosched(m);
-		SchedulerT		sched(m);
+		AioSchedulerT	aiosched;
+		SchedulerT		sched;
 		
-		{
-			frame::file::Utf8Configuration	utf8cfg;
-			frame::file::TempConfiguration	tempcfg;
+		frame::Manager	m;
+		frame::Service	svc(m, frame::Event(EventStopE));
+		
+		if(!sched.start(1) && !aiosched.start(1)){
+			{
+				frame::file::Utf8Configuration	utf8cfg;
+				frame::file::TempConfiguration	tempcfg;
+				
+				system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver");
+				
+				const char *homedir = getenv("HOME");
+				
+				utf8cfg.storagevec.push_back(frame::file::Utf8Configuration::Storage());
+				utf8cfg.storagevec.back().globalprefix = "/";
+				utf8cfg.storagevec.back().localprefix = homedir;
+				if(utf8cfg.storagevec.back().localprefix.size() && *utf8cfg.storagevec.back().localprefix.rbegin() != '/'){
+					utf8cfg.storagevec.back().localprefix.push_back('/');
+				}
+				
+				tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
+				tempcfg.storagevec.back().level = frame::file::MemoryLevelFlag;
+				tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
+				tempcfg.storagevec.back().minsize = 0;
+				tempcfg.storagevec.back().maxsize = 1024 * 10;
+				
+				tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
+				tempcfg.storagevec.back().path = "/tmp/fileserver/";
+				tempcfg.storagevec.back().level = frame::file::VeryFastLevelFlag;
+				tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
+				tempcfg.storagevec.back().minsize = 0;
+				tempcfg.storagevec.back().maxsize = 1024 * 10;
+				tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
 			
-			system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver");
-			
-			const char *homedir = getenv("HOME");
-			
-			utf8cfg.storagevec.push_back(frame::file::Utf8Configuration::Storage());
-			utf8cfg.storagevec.back().globalprefix = "/";
-			utf8cfg.storagevec.back().localprefix = homedir;
-			if(utf8cfg.storagevec.back().localprefix.size() && *utf8cfg.storagevec.back().localprefix.rbegin() != '/'){
-				utf8cfg.storagevec.back().localprefix.push_back('/');
+				filestoreptr = new frame::file::Store<>(m, EventStartE, EventStopE, EventRunE, utf8cfg, tempcfg);
 			}
 			
-			tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
-			tempcfg.storagevec.back().level = frame::file::MemoryLevelFlag;
-			tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
-			tempcfg.storagevec.back().minsize = 0;
-			tempcfg.storagevec.back().maxsize = 1024 * 10;
+			solid::ErrorConditionT				err;
+			solid::frame::ObjectUidT			objuid;
 			
-			tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
-			tempcfg.storagevec.back().path = "/tmp/fileserver/";
-			tempcfg.storagevec.back().level = frame::file::VeryFastLevelFlag;
-			tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
-			tempcfg.storagevec.back().minsize = 0;
-			tempcfg.storagevec.back().maxsize = 1024 * 10;
-			tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
-		
-			filestoreptr = new frame::file::Store<>(m, utf8cfg, tempcfg);
+			{
+				SchedulerT::ObjectPointerT		objptr(filestoreptr);
+				objuid = sched.startObject(objptr, svc, frame::Event(EventStartE), err);
+			}
+			
+			//insertListener(m, aiosched, "0.0.0.0", p.start_port);
+			
+			{
+				ResolveData		rd =  synchronous_resolve("0.0.0.0", p.start_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+	
+				SocketDevice	sd;
+				
+				sd.create(rd.begin());
+				sd.prepareAccept(rd.begin(), 2000);
+				
+				if(sd.ok()){
+					DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, aiosched, sd));
+					solid::ErrorConditionT				err;
+					solid::frame::ObjectUidT			objuid;
+					
+					objuid = aiosched.startObject(objptr, svc, frame::Event(EventStartE), err);
+					idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
+				}else{
+					cout<<"Error creating listener socket"<<endl;
+					run = false;
+				}
+			}
+		}else{
+			run = false;
+			std::cerr<<"Could not start schedulers"<<endl;
 		}
-		
-		m.registerObject(*filestoreptr);
-		sched.schedule(filestoreptr);
-		
-		insertListener(m, aiosched, "0.0.0.0", p.start_port);
-		
 		
 		
 		cout<<"Here some examples how to test: "<<endl;
@@ -243,7 +289,7 @@ int main(int argc, char *argv[]){
 			while(run){
 				cnd.wait(lock);
 			}
-		}else{
+		}else if(!run){
 			char c;
 			cin>>c;
 		}
@@ -257,26 +303,6 @@ int main(int argc, char *argv[]){
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-void insertListener(frame::Manager& _rm, AioSchedulerT& _rsched, const char* _addr, int _port){
-	ResolveData		rd =  synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-	
-	SocketDevice	sd;
-	
-	sd.create(rd.begin());
-	sd.makeNonBlocking();
-	sd.prepareAccept(rd.begin(), 100);
-	if(!sd.ok()){
-		cout<<"error creating listener"<<endl;
-		return;
-	}
-	
-	DynamicPointer<Listener> lsnptr(new Listener(_rm, _rsched, sd));
-	
-	_rm.registerObject(*lsnptr);
-	_rsched.schedule(lsnptr);
-	
-	cout<<"inserted listener on port "<<_port<<endl;
-}
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 bool parseArguments(Params &_par, int argc, char *argv[]){
@@ -309,48 +335,43 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 //------------------------------------------------------------------
 //------------------------------------------------------------------
-Listener::Listener(
-	frame::Manager& _rm,
-	AioSchedulerT& _rsched,
-	const SocketDevice& _rsd
-):BaseT(_rsd, true), rm(_rm), rsched(_rsched){
-	state = 0;
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	idbg("event = "<<_revent.id);
+	if(_revent.id == EventStartE){
+		sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
+	}else if(_revent.id == EventStopE){
+		postStop(_rctx);
+	}
 }
 
-Listener::~Listener(){
-}
-
-/*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
-	idbg("here");
-	cassert(this->socketOk());
-	if(notified()){
-		//Locker<Mutex>	lock(this->mutex());
-		solid::ulong sm = this->grabSignalMask();
-		if(sm & frame::S_KILL){
-			_rexectx.close();
-			return;
+void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
+	idbg("");
+	unsigned	repeatcnt = 4;
+	
+	do{
+		if(!_rctx.error()){
+			//cout<<"recvbuffsz = "<<_rsd.recvBufferSize().second<<endl;
+			//cout<<"sendbuffsz = "<<_rsd.sendBufferSize().second<<endl;
+			_rsd.recvBufferSize(1024 * 64);
+			_rsd.sendBufferSize(1024 * 32);
+			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
+			solid::ErrorConditionT				err;
+			
+			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);
+		}else{
+			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+			//timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+			break;
 		}
+		--repeatcnt;
+	}while(repeatcnt && sock.accept(_rctx, std::bind(&Listener::onAccept, this, _1, _2), _rsd));
+	
+	if(!repeatcnt){
+		sock.postAccept(
+			_rctx,
+			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
+		);
 	}
-	solid::uint cnt(10);
-	while(cnt--){
-		if(state == 0){
-			switch(this->socketAccept(sd)){
-				case frame::aio::AsyncError:
-					_rexectx.close();
-					return;
-				case frame::aio::AsyncSuccess:break;
-				case frame::aio::AsyncWait:
-					state = 1;
-					return;
-			}
-		}
-		state = 0;
-		cassert(sd.ok());
-		DynamicPointer<Connection> conptr(new Connection(sd));
-		rm.registerObject(*conptr);
-		rsched.schedule(conptr);
-	}
-	_rexectx.reschedule();
 }
 
 //------------------------------------------------------------------
@@ -371,7 +392,7 @@ Connection::DynamicRegister::DynamicRegister(Connection::DynamicMapperT& _rdm){
 /*static*/ Connection::DynamicMapperT		Connection::dm;
 /*static*/ Connection::DynamicRegister		Connection::dr(Connection::dm);
 
-static frame::UidT							tempuid = frame::invalid_uid();
+static frame::UidT							tempuid;
 
 Connection::Connection(const char *_node, const char *_srv): 
 	BaseT(), b(false), crtpat(patt)
@@ -384,7 +405,7 @@ Connection::Connection(const char *_node, const char *_srv):
 	
 }
 Connection::Connection(const SocketDevice &_rsd):
-	BaseT(_rsd), b(false), crtpat(patt)
+	b(false), crtpat(patt)
 {
 	state = ReadInit;
 	bend = bbeg;
@@ -411,6 +432,11 @@ const char * Connection::findEnd(const char *_p){
 	return p - (crtpat - patt);
 }
 
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	
+}
+
+#if 0
 struct OpenCbk{
 	frame::ObjectUidT	uid;
 	OpenCbk(){}
@@ -428,6 +454,7 @@ struct OpenCbk{
 		rm.notify(msgptr, uid);
 	}
 };
+
 
 /*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	idbg("time.sec "<<_rexectx.currentTime().seconds()<<" time.nsec = "<<_rexectx.currentTime().nanoSeconds());
@@ -645,6 +672,7 @@ struct OpenCbk{
 	dv.push_back(DynamicPointer<>(_rmsgptr));
 	return Object::notify(frame::S_SIG | frame::S_RAISE);
 }
+#endif
 
 void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){
 	idbg("");

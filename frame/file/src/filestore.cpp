@@ -61,7 +61,7 @@ typedef std::deque<Utf8PathStub>	PathDequeT;
 
 struct TempWaitStub{
 	TempWaitStub(
-		UidT const &_uid = frame::invalid_uid(),
+		UidT const &_uid = UidT(),
 		File *_pfile = NULL,
 		uint64 _size = 0,
 		size_t _value = 0
@@ -356,7 +356,7 @@ bool Utf8Controller::preparePointer(
 		d.pathdq.push_back(_rcmd.outpath);
 		ppath = &d.pathdq.back();
 	}
-	ppath->idx = _rptr.id().first;
+	ppath->idx = _rptr.id().index;
 	d.pathset.insert(ppath);
 	d.indexset.insert(ppath);
 	return true;//we don't store _runiptr for later use
@@ -394,7 +394,7 @@ bool Utf8Controller::preparePointer(
 	d.pfilltempwaitvec->push_back(TempWaitStub(uid, pf, _rcmd.size, _rcmd.openflags));
 	if(d.pfilltempwaitvec->size() == 1){
 		//notify the shared store object
-		_rsbacc.notify(frame::S_SIG | frame::S_RAISE);
+		_rsbacc.notify(0);
 	}
 	
 	return false;//will always store _rptr
@@ -539,7 +539,7 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const s
 		//first we find the first item waiting on storage
 		TempWaitDequeT::iterator 		waitit = it;
 		for(; it != d.tempwaitdq.end(); ++it){
-			if(it->objuid.first != waitit->objuid.first){
+			if(it->objuid.index != waitit->objuid.index){
 				waitit = it;
 			}
 			if(it->value == _storeid){
@@ -561,14 +561,14 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const s
 		//we schedule for erase the waitit pointer
 		_rsbacc.consumeEraseVector().push_back(it->objuid);
 		//delete the whole range [waitit, itend]
-		const size_t	objidx = it->objuid.first;
+		const size_t	objidx = it->objuid.index;
 		
 		if(waitit == d.tempwaitdq.begin()){
-			while(waitit != d.tempwaitdq.end() && (waitit->objuid.first == objidx || waitit->pfile == NULL)){
+			while(waitit != d.tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == NULL)){
 				waitit = d.tempwaitdq.erase(waitit);
 			}
 		}else{
-			while(waitit != d.tempwaitdq.end() && (waitit->objuid.first == objidx || waitit->pfile == NULL)){
+			while(waitit != d.tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == NULL)){
 				waitit->pfile = NULL;
 				++waitit;
 			}

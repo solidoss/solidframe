@@ -5,9 +5,8 @@ set(Sources
 	src/service.cpp
 	src/schedulerbase.cpp
 	src/reactor.cpp
-	src/timer.cpp
 	src/completion.cpp
-#	src/sharedstore.cpp
+	src/sharedstore.cpp
 )
 
 set(Headers
@@ -22,7 +21,7 @@ set(Headers
 	service.hpp
 	timer.hpp
 	completion.hpp
-#	sharedstore.hpp
+	sharedstore.hpp
 )
 
 set(Inlines
@@ -35,4 +34,4 @@ add_library (solid_frame
 
 #add_subdirectory(ipc2)
 add_subdirectory(aio)
-#add_subdirectory(file)
+add_subdirectory(file)

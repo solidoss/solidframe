@@ -11,7 +11,6 @@
 #define SOLID_FRAME_AIO2_COMMON_HPP
 
 #include "frame/common.hpp"
-#include "boost/function.hpp"
 
 namespace solid{
 namespace frame{
@@ -48,21 +47,6 @@ enum ReactorWaitRequestsE{
 
 
 class ReactorContext;
-
-#define USE_BOOST_FUNCTION
-
-#ifdef USE_BOOST_FUNCTION
-#define FUNCTION boost::function
-#define FUNCTION_EMPTY(f) (f.empty())
-#define FUNCTION_CLEAR(f) (f.clear())
-#else
-#define FUNCTION std::function
-#define FUNCTION_EMPTY(f) (f == nullptr)
-#define FUNCTION_CLEAR(f) (f = nullptr)
-#endif
-
-
-
 
 typedef FUNCTION<void(ReactorContext&, Event const &)>		EventFunctionT;
 

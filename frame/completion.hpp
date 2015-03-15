@@ -11,76 +11,70 @@
 #define SOLID_FRAME_COMPLETION_HPP
 
 #include "frame/common.hpp"
+#include "frame/forwardcompletion.hpp"
 #include "system/error.hpp"
 #include "system/cassert.hpp"
 
 namespace solid{
+class TimeSpec;
 namespace frame{
 
 class Object;
+class Reactor;
 struct ObjectProxy;
-class CompletionHandler;
-struct ExecuteContext;
+struct ReactorContext;
+struct ReactorEvent;
 
-struct ActionContext{
-};
-
-struct Action{
-	typedef void (*CallbackT)(CompletionHandler *, ActionContext &);
-	
-	Action(CallbackT _pcbk):pcbk(_pcbk){}
-	
-	void call(CompletionHandler *_ph, ActionContext &_rctx){
-		(*pcbk)(_ph, _rctx);
-	}
-	
-	ERROR_NS::error_code	error;
-	CallbackT				pcbk;
-};
-
-
-class CompletionHandler{
-	static Action	dummy_init_action;
+class CompletionHandler: public ForwardCompletionHandler{
+	static void on_init_completion(CompletionHandler&, ReactorContext &);
+protected:
+	static void on_dummy_completion(CompletionHandler&, ReactorContext &);
+	static CompletionHandler* completion_handler(ReactorContext &);
+	typedef void (*CallbackT)(CompletionHandler&, ReactorContext &);
 public:
 	CompletionHandler(
-		ObjectProxy const &_rid
+		ObjectProxy const &_rop,
+		CallbackT _pcall = &on_init_completion
 	);
-	
-	CompletionHandler();
 	
 	~CompletionHandler();
 	
 	bool isActive()const{
-		return  pobj != NULL && selidx != static_cast<size_t>(-1);
+		return  idxreactor != static_cast<size_t>(-1);
 	}
-	bool activate(ObjectProxy const &_rd);
-	void deactivate(ObjectProxy const &_rd);
+	bool isRegistered()const{
+		return pprev != nullptr;
+	}
+	bool activate(Object const &_robj);
+	void deactivate();
+	void unregister();
 protected:
-	Action* action() const;
-	void action(Action *_pact);
-private:
+	CompletionHandler(CallbackT _pcall = &on_init_completion);
 	
-	void handleCompletion(ActionContext &_rctx){
-		cassert(pact);
-		pact->call(this, _rctx);
+	void completionCallback(CallbackT _pcbk);
+	ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
+	Reactor& reactor(ReactorContext &_rctx)const;
+	void error(ReactorContext &_rctx, ERROR_NS::error_condition const& _err)const;
+	void errorClear(ReactorContext &_rctx)const;
+	void systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const;
+	void addTimer(ReactorContext &_rctx, TimeSpec const&_rt, size_t &_storedidx);
+	void remTimer(ReactorContext &_rctx, size_t const &_storedidx);
+private:
+	friend class Reactor;
+	
+	void handleCompletion(ReactorContext &_rctx){
+		(*call)(*this, _rctx);
 	}
 private:
 	friend class Object;
-	static void doInitComplete(CompletionHandler *_ph, ActionContext &);
 private:
-	Object					*pobj;
-	CompletionHandler		*pprev;
-	CompletionHandler		*pnext;//double linked list within the object
-	size_t					selidx;//index within selector
-	Action					*pact;
+	ForwardCompletionHandler		*pprev;
+	size_t							idxreactor;//index within reactor
+	CallbackT						call;
 };
 
-inline Action* CompletionHandler::action() const{
-	return pact;
-}
-
-inline void CompletionHandler::action(Action *_pact){
-	pact = _pact;
+inline void CompletionHandler::completionCallback(CallbackT _pcbk){
+	call = _pcbk;
 }
 
 

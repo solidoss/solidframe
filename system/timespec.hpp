@@ -56,11 +56,12 @@ struct TimeSpec: public timespec{
 	bool operator <(const TimeSpec &_ts)const;
 	TimeSpec& operator += (const TimeSpec &_ts);
 	TimeSpec& operator -= (const TimeSpec &_ts);
-	operator bool () const{	return (tv_sec | tv_nsec) != 0;}
+	//operator bool () const{	return (tv_sec | tv_nsec) != 0;}
 	TimeSpec& operator += (unsigned _msec);
 };
 
 TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2);
+TimeSpec operator+(const TimeSpec &_ts1, unsigned _msec);
 
 #ifndef NINLINES
 #include "system/timespec.ipp"

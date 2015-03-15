@@ -1,4 +1,4 @@
-// frame/aio2/src/aioobject.cpp
+// frame/aio/src/aioobject.cpp
 //
 // Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -8,18 +8,11 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "system/cassert.hpp"
-#include "system/mutex.hpp"
-#include "system/thread.hpp"
-#include "system/debug.hpp"
 
-#include "frame/service.hpp"
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aioreactor.hpp"
 #include "frame/aio/aiocompletion.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
-
-#include "utility/memory.hpp"
-#include "utility/dynamicpointer.hpp"
 
 namespace solid{
 namespace frame{

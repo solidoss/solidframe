@@ -27,7 +27,6 @@ namespace aio{
 
 class Object;
 class Reactor;
-struct ReactorContext;
 class CompletionHandler;
 
 struct ReactorContext{
