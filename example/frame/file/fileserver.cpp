@@ -7,6 +7,8 @@
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aiostream.hpp"
 #include "frame/aio/aiolistener.hpp"
+#include "frame/aio/aiosocket.hpp"
+
 #include "frame/message.hpp"
 #include "frame/service.hpp"
 
@@ -40,7 +42,7 @@ enum Events{
 	EventStartE = 0,
 	EventRunE,
 	EventStopE,
-	EventSendE,
+	EventMessageE,
 };
 
 //------------------------------------------------------------------
@@ -113,21 +115,26 @@ class Connection: public Dynamic<Connection, frame::aio::Object>{
 	typedef solid::DynamicMapper<void, Connection>	DynamicMapperT;
 	typedef std::vector<solid::DynamicPointer<> >	DynamicPointerVectorT;
 	typedef frame::file::FileIOStream< 1024  >		IOFileStreamT;
+	typedef frame::aio::Stream<frame::aio::Socket>	StreamSocketT;
+	
 	struct DynamicRegister{
 		DynamicRegister(DynamicMapperT &_rdm);
 	};
 public:
-	Connection(const char *_node, const char *_srv);
-	Connection(const SocketDevice &_rsd);
+	Connection(SocketDevice &_rsd);
 	~Connection();
 	
 	void dynamicHandle(solid::DynamicPointer<> &_dp);
 	void dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr);
 private:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
+	static void onSend(frame::aio::ReactorContext &_rctx);
 	const char * findEnd(const char *_p);
+	void doExecuteCommand(frame::aio::ReactorContext &_rctx);
+	void doRun(frame::aio::ReactorContext &_rctx);
 private:
-	enum {BUFSZ = 1024};
+	enum {BufferCapacity = 1024};
 	enum {
 		ReadInit,
 		ReadCommand,
@@ -139,14 +146,14 @@ private:
 		RunWrite,
 		CloseFileError,
 	};
+	
 	static DynamicMapperT		dm;
 	static DynamicRegister		dr;
+	StreamSocketT				sock;
 	int							state;
-	char						bbeg[BUFSZ];
+	char						bbeg[BufferCapacity];
 	char 						*bpos;
 	char						*bend;
-	ResolveData					rd;
-	ResolveIterator				it;
 	bool						b;
 	char						cmd;
 	std::string					path;
@@ -242,7 +249,7 @@ int main(int argc, char *argv[]){
 				tempcfg.storagevec.back().maxsize = 1024 * 10;
 				tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
 			
-				filestoreptr = new frame::file::Store<>(m, EventStartE, EventStopE, EventRunE, utf8cfg, tempcfg);
+				filestoreptr = new frame::file::Store<>(m, EventRunE, utf8cfg, tempcfg);
 			}
 			
 			solid::ErrorConditionT				err;
@@ -252,8 +259,6 @@ int main(int argc, char *argv[]){
 				SchedulerT::ObjectPointerT		objptr(filestoreptr);
 				objuid = sched.startObject(objptr, svc, frame::Event(EventStartE), err);
 			}
-			
-			//insertListener(m, aiosched, "0.0.0.0", p.start_port);
 			
 			{
 				ResolveData		rd =  synchronous_resolve("0.0.0.0", p.start_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
@@ -394,18 +399,9 @@ Connection::DynamicRegister::DynamicRegister(Connection::DynamicMapperT& _rdm){
 
 static frame::UidT							tempuid;
 
-Connection::Connection(const char *_node, const char *_srv): 
-	BaseT(), b(false), crtpat(patt)
-{
-	cassert(_node && _srv);
-	rd = synchronous_resolve(_node, _srv);
-	it = rd.begin();
-	state = ReadInit;
-	bend = bbeg;
-	
-}
-Connection::Connection(const SocketDevice &_rsd):
-	b(false), crtpat(patt)
+
+Connection::Connection(SocketDevice &_rsd):
+	sock(this->proxy(), _rsd), b(false), crtpat(patt)
 {
 	state = ReadInit;
 	bend = bbeg;
@@ -433,14 +429,63 @@ const char * Connection::findEnd(const char *_p){
 }
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	
+	if(_revent.id == EventStartE){
+		sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
+	}else if(_revent.id == EventStopE){
+		this->postStop(_rctx);
+	}
 }
 
-#if 0
+/*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
+	Connection &rthis = static_cast<Connection&>(_rctx.object());
+	if(!_rctx.error()){
+		rthis.bend = rthis.bbeg + _sz + (rthis.crtpat - patt);
+		rthis.crtpat = patt;
+		rthis.bpos = rthis.bbeg;
+		rthis.doRun(_rctx);
+	}else{
+		rthis.postStop(_rctx);
+	}
+}
+
+
+void Connection::doRun(frame::aio::ReactorContext &_rctx){
+	switch(state){
+		case ReadInit:
+			state = ReadCommand;
+			sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
+			break;
+		case ReadCommand:
+			cmd = *bpos;
+			++bpos;
+			state = ReadPath;
+		case ReadPath:{
+			const char *p = bpos;
+			for(; p != bend; ++p){
+				if(*p == '\n') break;
+			}
+			path.append(bpos, p - bpos);
+			if(*p == '\n'){
+				bpos = const_cast<char *>(p);
+				state = ExecCommand;
+			}else{
+				sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
+				break;
+			}
+		}
+		case ExecCommand:
+			doExecuteCommand(_rctx);
+			break;
+	}
+}
 struct OpenCbk{
+	frame::Manager 		&rm;
 	frame::ObjectUidT	uid;
-	OpenCbk(){}
-	OpenCbk(const frame::ObjectUidT &_robjuid):uid(_robjuid){}
+	
+	OpenCbk(
+		frame::Manager &_rm,
+		const frame::ObjectUidT &_robjuid
+	):rm(_rm), uid(_robjuid){}
 	
 	void operator()(
 		frame::file::Store<> &,
@@ -448,12 +493,93 @@ struct OpenCbk{
 		ERROR_NS::error_code err
 	){
 		idbg("");
-		tempuid = _rptr.id();
-		frame::Manager 			&rm = frame::Manager::specific();
 		frame::MessagePointerT	msgptr(new FilePointerMessage(_rptr));
-		rm.notify(msgptr, uid);
+		rm.notify(uid, frame::Event(msgptr, EventMessageE));
 	}
 };
+
+void Connection::doExecuteCommand(frame::aio::ReactorContext &_rctx){
+	if(path.size() && path[path.size() - 1] == '\r'){
+		path.resize(path.size() - 1);
+	}
+	
+	frame::Manager &rm = _rctx.service().manager();
+	
+	switch(cmd){
+		case 'R':
+		case 'r':
+			state = WaitRead;
+			++bpos;
+			idbg("Request open file: "<<path);
+			filestoreptr->requestOpenFile(OpenCbk(rm, rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
+			//post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
+			break;
+		case 'W':
+		case 'w':
+			state = WaitWrite;
+			++bpos;
+			idbg("Request create file: "<<path);
+			filestoreptr->requestCreateFile(OpenCbk(rm, rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
+			//post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
+			break;
+		case 'S':
+		case 's':
+			if(tempuid.isValid()){
+				idbg("Request shared temp - no temp");
+				this->postStop(_rctx);
+			}else{
+				idbg("Request shared temp - "<<tempuid.index<<'.'<<tempuid.unique);
+				state = WaitRead;
+				++bpos;
+				filestoreptr->requestShared(OpenCbk(rm, rm.id(*this)), tempuid);
+				//post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
+			}
+			break;
+		case 'U':
+		case 'u':
+			if(tempuid.isValid()){
+				idbg("Request unique temp - no temp");
+				postStop(_rctx);
+			}else{
+				idbg("Request unique temp - "<<tempuid.index<<'.'<<tempuid.unique);
+				state = WaitRead;
+				++bpos;
+				filestoreptr->requestShared(OpenCbk(rm, rm.id(*this)), tempuid);
+			}
+			break;
+		case 'T':
+		case 't':
+			state = WaitWrite;
+			++bpos;
+			idbg("Request read temp");
+			filestoreptr->requestCreateTemp(OpenCbk(rm, rm.id(*this)), 4 * 1024);
+			state = WaitWrite;
+			break;
+		case 'F':
+		case 'f':
+			state = WaitWrite;
+			++bpos;
+			idbg("Request file temp");
+			filestoreptr->requestCreateTemp(OpenCbk(rm, rm.id(*this)), 4 * 1024, frame::file::VeryFastLevelFlag);
+			break;
+		case 'M':
+		case 'm':
+			state = WaitWrite;
+			++bpos;
+			idbg("Request memory temp");
+			filestoreptr->requestCreateTemp(OpenCbk(rm, rm.id(*this)), 4 * 1024, frame::file::MemoryLevelFlag);
+			state = WaitWrite;
+		default:
+			postStop(_rctx);
+			break;
+	}
+}
+
+/*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
+	Connection &rthis = static_cast<Connection&>(_rctx.object());
+}
+#if 0
+
 
 
 /*virtual*/ void Connection::execute(ExecuteContext &_rexectx){

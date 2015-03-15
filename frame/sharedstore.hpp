@@ -46,7 +46,7 @@ public:
 		UidVectorT& consumeEraseVector()const{
 			return rs.consumeEraseVector();
 		}
-		void notify(size_t _evt);
+		void notify();
 	private:
 		friend class StoreBase;
 		StoreBase	&rs;
@@ -82,8 +82,6 @@ protected:
 	
 	StoreBase(
 		Manager &_rm,
-		const size_t _inieventid,
-		const size_t _killeventid,
 		const size_t _raiseeventidx
 	);
 	
@@ -223,10 +221,8 @@ public:
 	
 	Store(
 		Manager &_rm,
-		const size_t _inieventid,
-		const size_t _killeventid,
 		const size_t _raiseeventidx
-	):BaseT(_rm, _inieventid, _killeventid, _raiseeventidx){}
+	):BaseT(_rm, _raiseeventidx){}
 	
 	PointerT	insertAlive(T &_rt){
 		Locker<Mutex>	lock(this->mutex());
@@ -482,7 +478,7 @@ public:
 		return *static_cast<ControllerT*>(this);
 	}
 private:
-	typedef FUNCTION_NS::function<void(ControllerT&, PointerT&, ERROR_NS::error_code const&)>	FunctionT;
+	typedef FUNCTION<void(ControllerT&, PointerT&, ERROR_NS::error_code const&)>	FunctionT;
 	struct WaitStub{
 		WaitStub():kind(StoreBase::ReinitWaitE), pnext(NULL){}
 		StoreBase::WaitKind		kind;

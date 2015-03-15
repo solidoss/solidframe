@@ -14,6 +14,8 @@
 #include "system/atomic.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
+#include "frame/reactorcontext.hpp"
+#include "frame/service.hpp"
 
 
 namespace solid{
@@ -45,20 +47,16 @@ typedef Stack<void*>						VoidPtrStackT;
 struct StoreBase::Data{
 	Data(
 		Manager &_rm,
-		const size_t _inieventid,
-		const size_t _killeventid,
 		const size_t _raiseeventid
 	):	rm(_rm),
-		inieventid(_inieventid), killeventid(_killeventid), raiseeventid(_raiseeventid),
+		raiseeventid(_raiseeventid),
 		objmaxcnt(ATOMIC_VAR_INIT(0))
 	{
 		pfillerasevec = &erasevec[0];
 		pconserasevec = &erasevec[1];
 	}
 	Manager				&rm;
-	const size_t 		inieventid;
-	const size_t 		killeventid;
-	const size_t 		raiseeventid;
+	size_t				raiseeventid;
 	shared::AtomicSizeT	objmaxcnt;
 	MutexMutualStoreT	mtxstore;
 	UidVectorT			erasevec[2];
@@ -72,16 +70,14 @@ struct StoreBase::Data{
 };
 
 
-void StoreBase::Accessor::notify(size_t _evt){
+void StoreBase::Accessor::notify(){
 	store().raise();
 }
 
 StoreBase::StoreBase(
 	Manager &_rm,
-	const size_t _inieventid,
-	const size_t _killeventid,
 	const size_t _raiseeventidx
-):d(*(new Data(_rm, _inieventid, _killeventid, _raiseeventidx))){}
+):d(*(new Data(_rm, _raiseeventidx))){}
 
 /*virtual*/ StoreBase::~StoreBase(){
 	delete &d;
@@ -190,6 +186,7 @@ void StoreBase::raise(){
 
 /*virtual*/void StoreBase::onEvent(frame::ReactorContext &_rctx, frame::Event const &_revent){
 	vdbgx(Debug::frame, "");
+	
 	if(_revent.id == d.raiseeventid){
 		{
 			Locker<Mutex>	lock(mutex());
@@ -210,11 +207,8 @@ void StoreBase::raise(){
 			);
 		}
 		d.pconserasevec->clear();
-	}else if(_revent.id == d.killeventid){
+	}else if(_revent.id == _rctx.service().stopEvent().id){
 		this->postStop(_rctx);
-		return;
-	}else if(_revent.id == d.inieventid){
-		return;
 	}
 }
 

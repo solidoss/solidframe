@@ -826,7 +826,14 @@ void Manager::stop(){
 		d.cnd.broadcast();
 	}
 }
-
-
+//=============================================================================
+//		Message:
+//=============================================================================
+Message::Message(){
+	
+}
+/*virtual*/ Message::~Message(){
+	
+}
 }//namespace frame
 }//namespace solid

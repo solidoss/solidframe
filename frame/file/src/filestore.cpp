@@ -394,7 +394,7 @@ bool Utf8Controller::preparePointer(
 	d.pfilltempwaitvec->push_back(TempWaitStub(uid, pf, _rcmd.size, _rcmd.openflags));
 	if(d.pfilltempwaitvec->size() == 1){
 		//notify the shared store object
-		_rsbacc.notify(0);
+		_rsbacc.notify();
 	}
 	
 	return false;//will always store _rptr

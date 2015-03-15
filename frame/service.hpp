@@ -46,6 +46,8 @@ public:
 		return rm.forEachServiceObject(*this, _rn);
 	}
 	
+	Event const& stopEvent();
+	
 	void stop(const bool _wait = true);
 	
 	Manager& manager();
@@ -69,6 +71,10 @@ inline Manager& Service::manager(){
 inline bool Service::isRegistered()const{
 	//return idx != static_cast<size_t>(-1);
 	return idx.load(/*ATOMIC_NS::memory_order_seq_cst*/) != static_cast<size_t>(-1);
+}
+
+inline Event const & Service::stopEvent(){
+	return stopevent;
 }
 
 }//namespace frame
