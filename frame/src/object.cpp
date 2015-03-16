@@ -72,7 +72,7 @@ void Object::doPost(ReactorContext &_rctx, EventFunctionT &_revfn, Event const &
 //---------------------------------------------------------------------
 
 ObjectBase::ObjectBase():
-	fullid(-1){
+	fullid(-1), smask(0){
 }
 
 void ObjectBase::unregister(Manager &_rm){

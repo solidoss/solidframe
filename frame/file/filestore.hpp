@@ -139,7 +139,9 @@ struct OpenCommand: Base{
 	
 
 	void operator()(S &_rstore, FilePointerT &_rptr, ERROR_NS::error_code err){
-		Base::openFile(_rstore, _rptr, err);
+		if(!err){
+			Base::openFile(_rstore, _rptr, err);
+		}
 		cmd(_rstore, _rptr, err);
 	}
 };

@@ -153,6 +153,12 @@ struct Manager::Data{
 	ObjectChunk* allocateChunk(Mutex &_rmtx)const{
 		char *p = new char[sizeof(ObjectChunk) + objchkcnt * sizeof(ObjectStub)];
 		ObjectChunk *poc = new(p) ObjectChunk(_rmtx);
+		for(size_t i = 0; i < objchkcnt; ++i){
+			ObjectStub &ros(poc->object(i));
+			ros.pobject = nullptr;
+			ros.preactor = nullptr;
+			ros.unique = 0;
+		}
 		return poc;
 	}
 	
@@ -252,7 +258,7 @@ struct Manager::Data{
 	AtomicSizeT				crtobjstoreidx;
 	ObjectStoreStub			objstore[2];
 	size_t					objchkcnt;
-	AtomicSizeT				objcnt;
+	//AtomicSizeT				objcnt;
 	AtomicSizeT				maxobjcnt;
 	
 	SizeStackT				chkcache;
@@ -277,7 +283,7 @@ void EventNotifierF::operator()(ObjectBase &_robj){
 
 Manager::Data::Data(
 	Manager &_rm
-):crtsvcstoreidx(0), crtsvcidx(0), svccnt(0), crtobjstoreidx(0), state(StateRunningE)
+):crtsvcstoreidx(0), crtsvcidx(0), svccnt(0), crtobjstoreidx(0), maxobjcnt(0),  state(StateRunningE)
 {
 }
 
@@ -498,6 +504,10 @@ ObjectUidT Manager::registerObject(
 		rss.crtobjidx = objidx + 1;
 		rss.endobjidx = objidx + d.objchkcnt;
 		
+		if(d.maxobjcnt < rss.endobjidx){
+			d.maxobjcnt = rss.endobjidx;
+		}
+		
 		if(rss.firstchk == static_cast<size_t>(-1)){
 			rss.firstchk = rss.lastchk = chkidx;
 		}else{
@@ -588,7 +598,7 @@ void Manager::unregisterObject(ObjectBase &_robj){
 
 bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _sigmsk/* = 0*/){
 	bool	retval = false;
-	if(_ruid.index < d.objcnt){
+	if(_ruid.index < d.maxobjcnt){
 		const size_t		objstoreidx = d.aquireReadObjectStore();
 		ObjectChunk			&rchk(*d.chunk(objstoreidx, _ruid.index));
 		{

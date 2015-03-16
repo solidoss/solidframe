@@ -294,12 +294,14 @@ int main(int argc, char *argv[]){
 			while(run){
 				cnd.wait(lock);
 			}
-		}else if(!run){
+		}else if(run){
 			char c;
 			cin>>c;
 		}
 		m.stop();
-		
+		aiosched.stop();
+		sched.stop();
+		filestoreptr.clear();
 	}
 	/*solid::*/Thread::waitAll();
 	
@@ -355,10 +357,6 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	
 	do{
 		if(!_rctx.error()){
-			//cout<<"recvbuffsz = "<<_rsd.recvBufferSize().second<<endl;
-			//cout<<"sendbuffsz = "<<_rsd.sendBufferSize().second<<endl;
-			_rsd.recvBufferSize(1024 * 64);
-			_rsd.sendBufferSize(1024 * 32);
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			solid::ErrorConditionT				err;
 			
@@ -429,10 +427,22 @@ const char * Connection::findEnd(const char *_p){
 }
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	idbg("");
 	if(_revent.id == EventStartE){
+		idbg("Start");
 		sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
+		state = ReadCommand;
 	}else if(_revent.id == EventStopE){
+		idbg("Stop");
 		this->postStop(_rctx);
+	}else if(_revent.id == EventMessageE){
+		idbg("Message");
+		DynamicHandler<DynamicMapperT>  dh(dm);
+		dv.push_back(DynamicPointer<>(_revent.msgptr));
+		dh.init(dv.begin(), dv.end());
+        dv.clear();
+		dh.handle(*this, 0);
+		doRun(_rctx);
 	}
 }
 
@@ -475,6 +485,37 @@ void Connection::doRun(frame::aio::ReactorContext &_rctx){
 		}
 		case ExecCommand:
 			doExecuteCommand(_rctx);
+			break;
+		case WaitRead:
+		case WaitWrite:
+			//keep waiting
+			idbg("keep waiting");
+			break;
+		case RunRead:
+			if(!iofs.eof()){
+				iofs.read(bbeg, BufferCapacity);
+				
+				sock.postSendAll(_rctx, bbeg, iofs.gcount(), onSend);
+			}else{
+				iofs.close();
+				postStop(_rctx);
+			}
+			break;
+		case RunWrite:{
+			const char *p = findEnd(bpos);
+			iofs.write(bpos, p - bpos);
+			if(crtpat != patt){
+				memcpy(bbeg, patt, crtpat - patt);
+			}
+			if(p != bend && *p == '.'){
+				iofs.close();
+				postStop(_rctx);
+				return;
+			}
+			sock.postRecvSome(_rctx, bbeg + (crtpat - patt), BufferCapacity - (crtpat - patt), Connection::onRecv);
+		}break;
+		case CloseFileError:
+			postStop(_rctx);
 			break;
 	}
 }
@@ -577,228 +618,12 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext &_rctx){
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	Connection &rthis = static_cast<Connection&>(_rctx.object());
-}
-#if 0
-
-
-
-/*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
-	idbg("time.sec "<<_rexectx.currentTime().seconds()<<" time.nsec = "<<_rexectx.currentTime().nanoSeconds());
-	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError | frame::EventTimeoutRecv | frame::EventTimeoutSend)){
-		idbg("connecton timeout or error");
-		_rexectx.close();
-		return;
-	}
-	frame::Manager &rm = frame::Manager::specific();
-	
-	if(notified()){
-		DynamicHandler<DynamicMapperT>	dh(dm);
-		solid::ulong					sm;
-		{
-			Locker<Mutex>				lock(rm.mutex(*this));
-			
-			sm = grabSignalMask();
-			if(sm & frame::S_KILL){
-				_rexectx.close();
-				return;
-			}
-			if(sm & frame::S_SIG){//we have signals
-				dh.init(dv.begin(), dv.end());
-				dv.clear();
-			}
-		}
-		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			for(size_t i = 0; i < dh.size(); ++i){
-				dh.handle(*this, i);
-			}
-		}
-	}
-	const uint32 sevs(socketEventsGrab());
-	if(sevs & frame::EventDoneError){
-		_rexectx.close();
-		return;
-	}
-	if(sevs & frame::EventDoneRecv){
-		bend = bbeg + socketRecvSize() + (crtpat - patt);
-		crtpat = patt;
-		bpos = bbeg;
-	}
-	
-	frame::aio::AsyncE rv;
-	switch(state){
-		case ReadInit:
-			rv = this->socketRecv(bbeg, BUFSZ);
-			if(rv == frame::aio::AsyncSuccess){
-				state = ReadCommand;
-				bend = bbeg + socketRecvSize();
-				bpos = bbeg;
-			}else if(rv == frame::aio::AsyncWait){
-				state = ReadCommand;
-				return;
-			}else{
-				_rexectx.close();
-				return;
-			}
-		case ReadCommand:
-			if(socketHasPendingRecv()){
-				return;//continue waiting
-			}
-			cmd = *bpos;
-			++bpos;
-			state = ReadPath;
-		case ReadPath:{
-			const char *p = bpos;
-			for(; p != bend; ++p){
-				if(*p == '\n') break;
-			}
-			path.append(bpos, p - bpos);
-			if(*p == '\n'){
-				bpos = const_cast<char *>(p);
-				state = ExecCommand;
-			}else{
-				rv = this->socketRecv(bbeg, BUFSZ);
-				if(rv == frame::aio::AsyncSuccess){
-					_rexectx.reschedule();
-				}else if(rv == frame::aio::AsyncWait){
-					return;
-				}else{
-					_rexectx.close();
-					return;
-				}
-			}
-		}
-		case ExecCommand:
-			if(path.size() && path[path.size() - 1] == '\r'){
-				path.resize(path.size() - 1);
-			}
-			if(cmd == 'R' || cmd == 'r'){
-				state = WaitRead;
-				++bpos;
-				idbg("Request open file: "<<path);
-				filestoreptr->requestOpenFile(OpenCbk(rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
-				_rexectx.reschedule();
-			}else if(cmd == 'w' || cmd == 'W'){
-				state = WaitWrite;
-				++bpos;
-				idbg("Request create file: "<<path);
-				filestoreptr->requestCreateFile(OpenCbk(rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
-				_rexectx.reschedule();
-			}else if(cmd == 's' || cmd == 'S'){//temp read
-				if(frame::is_valid_uid(tempuid)){
-					idbg("Request shared temp - no temp");
-					_rexectx.close();
-				}else{
-					idbg("Request shared temp - "<<tempuid.first<<'.'<<tempuid.second);
-					state = WaitRead;
-					++bpos;
-					filestoreptr->requestShared(OpenCbk(rm.id(*this)), tempuid);
-					_rexectx.reschedule();
-				}
-			}else if(cmd == 'u' || cmd == 'U'){//temp read
-				if(frame::is_valid_uid(tempuid)){
-					idbg("Request unique temp - no temp");
-					_rexectx.close();
-				}else{
-					idbg("Request unique temp - "<<tempuid.first<<'.'<<tempuid.second);
-					state = WaitRead;
-					++bpos;
-					filestoreptr->requestShared(OpenCbk(rm.id(*this)), tempuid);
-					_rexectx.reschedule();
-				}
-			}else if(cmd == 'T' || cmd == 't'){//temp write
-				state = WaitWrite;
-				++bpos;
-				idbg("Request read temp");
-				filestoreptr->requestCreateTemp(OpenCbk(rm.id(*this)), 4 * 1024);
-				state = WaitWrite;
-				_rexectx.reschedule();
-			}else if(cmd == 'F' || cmd == 'f'){//temp write
-				state = WaitWrite;
-				++bpos;
-				idbg("Request file temp");
-				filestoreptr->requestCreateTemp(OpenCbk(rm.id(*this)), 4 * 1024, frame::file::VeryFastLevelFlag);
-				state = WaitWrite;
-				_rexectx.reschedule();
-			}else if(cmd == 'm' || cmd == 'M'){//temp write
-				state = WaitWrite;
-				++bpos;
-				idbg("Request memory temp");
-				filestoreptr->requestCreateTemp(OpenCbk(rm.id(*this)), 4 * 1024, frame::file::MemoryLevelFlag);
-				state = WaitWrite;
-				_rexectx.reschedule();
-			}else{
-				_rexectx.close();
-			}
-			break;
-		case WaitRead:
-		case WaitWrite:
-			//keep waiting
-			idbg("keep waiting");
-			break;
-		case RunRead:
-			if(socketHasPendingSend()){
-				return;
-			}
-			if(!iofs.eof()){
-				iofs.read(bbeg, BUFSZ);
-				rv = socketSend(bbeg, iofs.gcount());
-				if(rv == frame::aio::AsyncSuccess){
-					_rexectx.reschedule();
-				}else if(rv == frame::aio::AsyncWait){
-				}else{
-					_rexectx.close();
-				}
-			}else{
-				iofs.close();
-				_rexectx.close();
-			}
-			break;
-		case RunWrite:{
-			if(socketHasPendingRecv()){
-				return;
-			}
-			const char *p = findEnd(bpos);
-			iofs.write(bpos, p - bpos);
-			if(crtpat != patt){
-				memcpy(bbeg, patt, crtpat - patt);
-			}
-			if(p != bend && *p == '.'){
-				iofs.close();
-				_rexectx.close();
-				return;
-			}
-			rv = socketRecv(bbeg + (crtpat - patt), BUFSZ - (crtpat - patt));
-			if(rv == frame::aio::AsyncSuccess){
-				bpos = bbeg;
-				bend = bbeg + socketRecvSize();
-				crtpat = patt;
-				p = findEnd(bpos);
-				iofs.write(bpos, p - bpos);
-				if(crtpat != patt){
-					memcpy(bbeg, patt, crtpat - patt);
-				}
-				if(p != bend && *p == '.'){
-					iofs.close();
-					_rexectx.close();
-					return;
-				}
-				_rexectx.reschedule();
-			}else if(rv == frame::aio::AsyncWait){
-			}else{
-				_rexectx.close();
-			}
-		}break;
-		case CloseFileError:
-			_rexectx.close();
-			break;
+	if(!_rctx.error()){
+		rthis.doRun(_rctx);
+	}else{
+		rthis.postStop(_rctx);
 	}
 }
-
-/*virtual*/ bool Connection::notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr){
-	dv.push_back(DynamicPointer<>(_rmsgptr));
-	return Object::notify(frame::S_SIG | frame::S_RAISE);
-}
-#endif
 
 void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){
 	idbg("");

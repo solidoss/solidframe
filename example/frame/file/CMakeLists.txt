@@ -17,7 +17,7 @@ target_link_libraries (example_fileserver
 add_executable (example_filebuf filebuf.cpp)
 target_link_libraries (example_filebuf
 	solid_frame_file
-	solid_frame_core
+	solid_frame
 	solid_utility
 	solid_system
 	${SYS_BASIC_LIBS}
