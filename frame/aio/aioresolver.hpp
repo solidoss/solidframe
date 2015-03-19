@@ -20,7 +20,7 @@ namespace solid{
 namespace frame{
 namespace aio{
 
-struct ResolveBase: DynamicBase{
+struct ResolveBase: Dynamic<ResolveBase>{
 	ERROR_NS::error_code	err;
 	int 					flags;
 	
@@ -122,7 +122,7 @@ public:
 		int _type = -1,
 		int _proto = -1
 	){
-		doSchedule(new DirectResolveCbk<Cbk>(_host, _srvc, _flags, _family, _type, _proto));
+		doSchedule(new DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
 	}
 	template <class Cbk>
 	void requestResolve(

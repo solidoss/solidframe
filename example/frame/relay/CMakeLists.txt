@@ -2,7 +2,7 @@ add_executable (example_relayserver relayserver.cpp)
 
 #set_source_files_properties(echoserver.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\"")
 
-target_link_libraries (example_echoserver
+target_link_libraries (example_relayserver
 	solid_frame
 	solid_frame_aio
 	solid_serialization

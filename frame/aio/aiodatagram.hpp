@@ -243,6 +243,14 @@ public:
 	):CompletionHandler(_robj, on_dummy_completion){}
 	
 	
+	bool hasPendingRecv()const{
+		return !FUNCTION_EMPTY(recv_fnc);
+	}
+	
+	bool hasPendingSend()const{
+		return !FUNCTION_EMPTY(send_fnc);
+	}
+	
 	template <typename F>
 	bool connect(ReactorContext &_rctx, SocketAddressStub const &_rsas, F _f){
 		if(FUNCTION_EMPTY(send_fnc)){

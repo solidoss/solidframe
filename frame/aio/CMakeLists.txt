@@ -10,27 +10,22 @@ endif(${HAS_KQUEUE})
 
 
 set(Sources
-#	src/aioobject.cpp
 	src/aioresolver.cpp
 	src/aiocompletion.cpp
 	${reactor_source}
 	src/aiolistener.cpp
 	src/aioobject.cpp
-#	src/aiosocket.cpp
 )
 
 set(Headers
 	aioobject.hpp
-#	aiosecuresocket.hpp
 	aiocompletion.hpp
 	aioreactor.hpp
 	aioresolver.hpp
 	aiolistener.hpp
-#	src/aiosocket.hpp
 )
 
 set(Inlines
-#	src/aiosocket.ipp
 )
 
 add_library (solid_frame_aio

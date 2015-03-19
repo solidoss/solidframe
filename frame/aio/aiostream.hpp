@@ -152,6 +152,14 @@ public:
 	):CompletionHandler(_robj, on_dummy_completion){}
 	
 	
+	bool hasPendingRecv()const{
+		return !FUNCTION_EMPTY(recv_fnc);
+	}
+	
+	bool hasPendingSend()const{
+		return !FUNCTION_EMPTY(send_fnc);
+	}
+	
 	SocketDevice reset(ReactorContext &_rctx, SocketDevice &_rnewdev = dummy_socket_device()){
 		if(s.device().isOk()){
 			remDevice(_rctx, s.device());

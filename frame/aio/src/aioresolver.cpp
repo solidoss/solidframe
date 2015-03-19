@@ -47,6 +47,11 @@ struct Resolver::Data{
 	size_t		thrcnt;
 };
 
+
+/*virtual*/ ResolveBase::~ResolveBase(){
+	
+}
+
 Resolver::Resolver(size_t _thrcnt):d(*(new Data(_thrcnt))){
 	
 	if(_thrcnt == 0){
