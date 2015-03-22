@@ -15,22 +15,19 @@ string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\1" VERSION_MAJOR ${VE
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\2" VERSION_MINOR ${VERSION})
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\3" VERSION_PATCH ${VERSION})
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
-	find_package(Subversion)
-	if(Subversion_FOUND)
-		Subversion_WC_INFO(${PROJECT_SOURCE_DIR} SVNINFO)
-		message("-- Current SVN revision is ${SVNINFO_WC_REVISION}")
-		set(VERSION_PATCH ${SVNINFO_WC_REVISION})
-	else(Subversion_FOUND)
-		message("")
-		message(AUTHOR_WARNING "Could not determine SVN revision -- assumming ${VERSION_PATCH}")
-		message("")
-	endif(Subversion_FOUND)
-else(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
-	message("")
-	message(AUTHOR_WARNING "Could not determine SVN revision -- assumming ${VERSION_PATCH}")
-	message("")
-endif(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
+
+exec_program(
+    "git"
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ARGS "rev-parse HEAD"
+    OUTPUT_VARIABLE GIT_VERSION )
+
+#string( REGEX MATCH "-g.*$" VERSION_SHA1 ${GIT_VERSION} )
+
+#string( REGEX REPLACE "[-g]" "" VERSION_SHA1 "${VERSION_SHA1}" )
+
+set(VERSION_PATCH "${GIT_VERSION}")
+
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------

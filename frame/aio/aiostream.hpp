@@ -161,11 +161,11 @@ public:
 	}
 	
 	SocketDevice reset(ReactorContext &_rctx, SocketDevice &_rnewdev = dummy_socket_device()){
-		if(s.device().isOk()){
+		if(s.device().ok()){
 			remDevice(_rctx, s.device());
 		}
 		SocketDevice sd(s.reset(_rnewdev));
-		if(s.device().isOk()){
+		if(s.device().ok()){
 			addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
 		}
 		return sd;

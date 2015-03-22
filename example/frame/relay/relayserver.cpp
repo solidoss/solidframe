@@ -95,6 +95,24 @@ frame::aio::Resolver& async_resolver(){
 	return r;
 }
 
+void connection_register(uint32 _id, frame::ObjectUidT const &_ruid){
+	umap[_id] = _ruid;
+}
+
+frame::ObjectUidT connection_uid(uint32 _id){
+	frame::ObjectUidT rv;
+	auto it = umap.find(_id);
+	if(it != umap.end()){
+		rv = it->second;
+		umap.erase(it);
+	}
+	return rv;
+}
+
+void connection_unregister(uint32 _id){
+	connection_uid(_id);
+}
+
 }//namespace
 
 //------------------------------------------------------------------
@@ -125,12 +143,15 @@ private:
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
-	Connection(SocketDevice &_rsd):sock1(this->proxy(), _rsd), sock2(this->proxy(), _rsd), recvcnt(0), sendcnt(0){}
+	Connection(SocketDevice &_rsd):sock1(this->proxy(), _rsd), sock2(this->proxy(), _rsd), recvcnt(0), sendcnt(0), crtid(-1){}
 	~Connection(){}
 protected:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	/*virtual*/void doStop(frame::Manager &_rm);
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
+	void onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
+	static void onSendId(frame::aio::ReactorContext &_rctx);
 protected:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	//typedef frame::aio::Timer							TimerT;
@@ -144,6 +165,7 @@ protected:
 	uint64					sendcnt;
 	size_t					sendcrt;
 	frame::MessagePointerT	resolv_msgptr;
+	uint32					crtid;
 	//TimerT			timer;
 };
 
@@ -345,15 +367,23 @@ struct ResolvFunc{
 				params.destination_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream
 			);
 		}else{
-			uint32 id = crt_id++;
-			snprintf(buf1, BufferCapacity, "%ul", id);
+			const uint32 id = crtid = crt_id++;
 			
+			connection_register(id, _rctx.service().manager().id(*this));
+			
+			snprintf(buf1, BufferCapacity, "%ul\r\n", id);
+			sock1.postSendAll(_rctx, buf1, strlen(buf1), Connection::onSendId);
+			sock1.postRecvSome(_rctx, buf2, BufferCapacity, [this](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, 0, _sz);});
 		}
 	}else if(_revent.id == EventStopE){
 		edbg(this<<" postStop");
 		//sock.shutdown(_rctx);
 		postStop(_rctx);
 	}
+}
+
+/*virtual*/void Connection::doStop(frame::Manager &_rm){
+	connection_unregister(crtid);
 }
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
@@ -363,11 +393,57 @@ struct ResolvFunc{
 	
 }
 
+void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t _sz){
+	_sz += _off;
+	size_t i = _off;
+	for(; i < _sz; ++i){
+		if(buf2[i] == '\n'){
+			buf2[i] = '\0';
+			break;
+		}
+		if(buf2[i] == '\r'){
+			buf2[i] = '\0';
+			if((i + 1) < _sz && buf2[i + 1] == '\n'){
+				++i;
+			} 
+		} 
+	}
+	if(i < _sz){
+		uint32 idx = -1;
+		sscanf(buf2, "%ul", &idx);
+		if(idx == crtid){
+			//wait for a peer connection
+		}else{
+			//move to a peer connection
+			frame::ObjectUidT objid = connection_uid(idx);
+			SocketDevice sd = sock1.reset(_rctx);
+		}
+	}else{
+		//not found
+		if(_sz < 12){
+			_off = _sz;
+			sock1.postRecvSome(_rctx, buf2 + _sz, BufferCapacity - _sz, [this, _off](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, _off, _sz);});
+		}else{
+			edbg(this<<" postStop");
+			postStop(_rctx);
+		}
+	}
+}
+
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	Connection &rthis = static_cast<Connection&>(_rctx.object());
 	
 }
 
+/*static*/ void Connection::onSendId(frame::aio::ReactorContext &_rctx){
+	Connection &rthis = static_cast<Connection&>(_rctx.object());
+	if(!_rctx.error()){
+		idbg(&rthis<<"");
+	}else{
+		edbg(&rthis<<" postStop "<<rthis.recvcnt<<" "<<rthis.sendcnt);
+		rthis.postStop(_rctx);
+	}
+}
 
 //-----------------------------------------------------------------------------
 
