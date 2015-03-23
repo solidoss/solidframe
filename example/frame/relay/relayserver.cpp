@@ -39,7 +39,8 @@ enum Events{
 	EventStartE = 0,
 	EventRunE,
 	EventStopE,
-	EventSendE,
+	EventMoveE,
+	EventResolveE,
 };
 
 
@@ -85,10 +86,6 @@ static void term_handler(int signum){
 AtomicUint32T		crt_id(0);
 
 UniqueMapT			umap;
-
-struct ResolvMessage: frame::Message{
-	ResolveData		resolv_data;
-};
 
 frame::aio::Resolver& async_resolver(){
 	static frame::aio::Resolver r;
@@ -148,10 +145,15 @@ public:
 protected:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	/*virtual*/void doStop(frame::Manager &_rm);
-	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
+	static void onRecvSock1(frame::aio::ReactorContext &_rctx, size_t _sz);
+	static void onRecvSock2(frame::aio::ReactorContext &_rctx, size_t _sz);
+	static void onSendSock1(frame::aio::ReactorContext &_rctx);
+	static void onSendSock2(frame::aio::ReactorContext &_rctx);
+	
 	void onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t _sz);
-	static void onSend(frame::aio::ReactorContext &_rctx);
 	static void onSendId(frame::aio::ReactorContext &_rctx);
+	
+	void onConnect(frame::aio::ReactorContext &_rctx);
 protected:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	//typedef frame::aio::Timer							TimerT;
@@ -212,6 +214,7 @@ int main(int argc, char *argv[]){
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
+	async_resolver().start(1);
 	{
 		
 		AioSchedulerT		sch;
@@ -257,7 +260,7 @@ int main(int argc, char *argv[]){
 		}
 		
 		
-		
+		async_resolver().stop();
 		m.stop();
 	}
 	Thread::waitAll();
@@ -351,33 +354,103 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //-----------------------------------------------------------------------------
 //		Connection
 //-----------------------------------------------------------------------------
+
+struct ResolveMessage: Dynamic<ResolveMessage, frame::Message>{
+	ResolveData		rd;
+	
+	ResolveMessage(ResolveData &_rd):rd(_rd){}
+};
+
+
 struct ResolvFunc{
+	frame::Manager		&rm;
+	frame::ObjectUidT	objuid;
+	
+	ResolvFunc(frame::Manager &_rm, frame::ObjectUidT const& _robjuid): rm(_rm), objuid(_robjuid){}
+	
 	void operator()(ResolveData &_rrd, ERROR_NS::error_code const &_rerr){
-		
+		frame::Event		ev(EventResolveE);
+		ev.msgptr = frame::MessagePointerT(new ResolveMessage(_rrd));
+		idbg(this<<" send resolv_message");
+		rm.notify(objuid, ev);
 	}
 };
+
+struct MoveMessage: Dynamic<MoveMessage, frame::Message>{
+	SocketDevice		sd;
+	uint8				sz;
+	char 				buf[12];
+	
+	MoveMessage(
+		SocketDevice &_rsd, 
+		char *_buf, uint8 _buflen
+	): sd(_rsd)
+	{
+		cassert(_buflen < 12);
+		memcpy(buf, _buf, _buflen);
+	}
+};
+
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	edbg(this<<" "<<_revent.id);
 	if(_revent.id == EventStartE){
 		//sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
 		if(params.destination_addr_str.size()){
 			//we must resolve the address then connect
+			idbg("async_resolve = "<<params.destination_addr_str<<" "<<params.destination_port_str);
 			async_resolver().requestResolve(
-				ResolvFunc(), params.destination_addr_str.c_str(),
+				ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), params.destination_addr_str.c_str(),
 				params.destination_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream
 			);
 		}else{
 			const uint32 id = crtid = crt_id++;
 			
-			connection_register(id, _rctx.service().manager().id(*this));
-			
-			snprintf(buf1, BufferCapacity, "%ul\r\n", id);
+			snprintf(buf1, BufferCapacity, "%lu\r\n", id);
 			sock1.postSendAll(_rctx, buf1, strlen(buf1), Connection::onSendId);
-			sock1.postRecvSome(_rctx, buf2, BufferCapacity, [this](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, 0, _sz);});
+			sock1.postRecvSome(_rctx, buf2, 12, [this](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, 0, _sz);});
 		}
 	}else if(_revent.id == EventStopE){
 		edbg(this<<" postStop");
 		//sock.shutdown(_rctx);
+		postStop(_rctx);
+	}else if(_revent.id == EventMoveE){
+		MoveMessage *pmsg = MoveMessage::cast(_revent.msgptr.get());
+		cassert(pmsg != nullptr);
+		sock2.reset(_rctx, pmsg->sd);
+		if(pmsg->sz){
+			memcpy(buf2, pmsg->buf, pmsg->sz);
+			sock1.postSendAll(_rctx, buf2, pmsg->sz, Connection::onSendSock1);
+		}else{
+			sock2.postRecvSome(_rctx, buf2, BufferCapacity, Connection::onRecvSock2);
+		}
+		if(buf1[0]){
+			sock2.postSendAll(_rctx, buf1 + 1, buf1[0], Connection::onSendSock2);
+		}else{
+			sock1.postRecvSome(_rctx, buf1, BufferCapacity, Connection::onRecvSock1);
+		}
+	}else if(_revent.id == EventResolveE){
+		ResolveMessage *pmsg = ResolveMessage::cast(_revent.msgptr.get());
+		cassert(pmsg != nullptr);
+		
+		if(pmsg->rd.empty()){
+			edbg(this<<" postStop");
+			//sock.shutdown(_rctx);
+			postStop(_rctx);
+		}else{
+			if(sock2.connect(_rctx, pmsg->rd.begin(), std::bind(&Connection::onConnect, this, _1))){
+				onConnect(_rctx);
+			}
+		}
+	}
+}
+
+void Connection::onConnect(frame::aio::ReactorContext &_rctx){
+	if(!_rctx.error()){
+		idbg(this<<" SUCCESS");
+		sock1.postRecvSome(_rctx, buf1, BufferCapacity, Connection::onRecvSock1);
+		sock2.postRecvSome(_rctx, buf2, BufferCapacity, Connection::onRecvSock2);
+	}else{
+		edbg(this<<" postStop "<<recvcnt<<" "<<sendcnt<<" "<<_rctx.systemError().message());
 		postStop(_rctx);
 	}
 }
@@ -386,53 +459,142 @@ struct ResolvFunc{
 	connection_unregister(crtid);
 }
 
-/*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
-	unsigned	repeatcnt = 2;
+/*static*/ void Connection::onRecvSock1(frame::aio::ReactorContext &_rctx, size_t _sz){
+	unsigned	repeatcnt = 4;
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	idbg(&rthis<<" "<<_sz);
+	do{
+		if(!_rctx.error()){
+			bool rv = rthis.sock2.sendAll(_rctx, rthis.buf1, _sz, Connection::onSendSock2);
+			if(rv){
+				if(_rctx.error()){
+					edbg(&rthis<<" postStop");
+					rthis.postStop(_rctx);
+					break;
+				}
+			}else{
+				break;
+			}
+		}else{
+			edbg(&rthis<<" postStop");
+			rthis.postStop(_rctx);
+			break;
+		}
+		--repeatcnt;
+	}while(repeatcnt && rthis.sock1.recvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1, _sz));
 	
+	if(repeatcnt == 0){
+		bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1);//fully asynchronous call
+		cassert(!rv);
+	}
 }
 
+/*static*/ void Connection::onRecvSock2(frame::aio::ReactorContext &_rctx, size_t _sz){
+	unsigned	repeatcnt = 4;
+	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	idbg(&rthis<<" "<<_sz);
+	do{
+		if(!_rctx.error()){
+			bool rv = rthis.sock1.sendAll(_rctx, rthis.buf2, _sz, Connection::onSendSock1);
+			if(rv){
+				if(_rctx.error()){
+					edbg(&rthis<<" postStop");
+					rthis.postStop(_rctx);
+					break;
+				}
+			}else{
+				break;
+			}
+		}else{
+			edbg(&rthis<<" postStop");
+			rthis.postStop(_rctx);
+			break;
+		}
+		--repeatcnt;
+	}while(repeatcnt && rthis.sock2.recvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2, _sz));
+	
+	if(repeatcnt == 0){
+		bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2);//fully asynchronous call
+		cassert(!rv);
+	}
+}
+
+
+/*static*/ void Connection::onSendSock1(frame::aio::ReactorContext &_rctx){
+	Connection &rthis = static_cast<Connection&>(_rctx.object());
+	if(!_rctx.error()){
+		rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2);
+	}else{
+		edbg(&rthis<<" postStop");
+		rthis.postStop(_rctx);
+	}
+}
+
+/*static*/ void Connection::onSendSock2(frame::aio::ReactorContext &_rctx){
+	Connection &rthis = static_cast<Connection&>(_rctx.object());
+	if(!_rctx.error()){
+		rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1);
+	}else{
+		edbg(&rthis<<" postStop");
+		rthis.postStop(_rctx);
+	}
+}
+
+
 void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t _sz){
+	idbg("sz = "<<_sz<<" off = "<<_off);
 	_sz += _off;
-	size_t i = _off;
+	
+	size_t	i = _off;
+	bool 	found_eol = false;
 	for(; i < _sz; ++i){
 		if(buf2[i] == '\n'){
 			buf2[i] = '\0';
+			found_eol = true;
 			break;
 		}
 		if(buf2[i] == '\r'){
 			buf2[i] = '\0';
+			found_eol = true;
 			if((i + 1) < _sz && buf2[i + 1] == '\n'){
 				++i;
 			} 
 		} 
 	}
-	if(i < _sz){
+	
+	if(found_eol){
 		uint32 idx = -1;
-		sscanf(buf2, "%ul", &idx);
-		if(idx == crtid){
+		if(strlen(buf2) >= 1){
+			sscanf(buf2, "%ul", &idx);
+			idbg(this<<" received idx = "<<idx);
+		}
+		if(idx == crtid || idx == static_cast<uint32>(-1)){
 			//wait for a peer connection
+			buf1[0] = _sz - i;
+			buf1[1] = i;
+			memcpy(buf1 + 1, buf2 + i, _sz - i);
+			connection_register(crtid, _rctx.service().manager().id(*this));
 		}else{
 			//move to a peer connection
-			frame::ObjectUidT objid = connection_uid(idx);
-			SocketDevice sd = sock1.reset(_rctx);
+			frame::ObjectUidT	objid = connection_uid(idx);
+			frame::Event		ev(EventMoveE);
+			SocketDevice		sd(sock1.reset(_rctx));
+			ev.msgptr = frame::MessagePointerT(new MoveMessage(sd, buf2 + i, _sz - i));
+			idbg(this<<" send move_message with size = "<<(_sz - i));
+			_rctx.service().manager().notify(objid, ev);
+			edbg(this<<" postStop");
+			postStop(_rctx);
 		}
 	}else{
 		//not found
 		if(_sz < 12){
 			_off = _sz;
-			sock1.postRecvSome(_rctx, buf2 + _sz, BufferCapacity - _sz, [this, _off](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, _off, _sz);});
+			sock1.postRecvSome(_rctx, buf2 + _sz, 12 - _sz, [this, _off](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, _off, _sz);});
 		}else{
 			edbg(this<<" postStop");
 			postStop(_rctx);
 		}
 	}
-}
-
-/*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
-	Connection &rthis = static_cast<Connection&>(_rctx.object());
-	
 }
 
 /*static*/ void Connection::onSendId(frame::aio::ReactorContext &_rctx){

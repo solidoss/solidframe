@@ -132,6 +132,7 @@ public:
 	){
 		doSchedule(new ReverseResolveCbk<Cbk>(_rsa, _flags));
 	}
+	void stop();
 private:
 	void doSchedule(ResolveBase *_pb);
 private:

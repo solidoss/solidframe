@@ -51,7 +51,7 @@ struct DynamicBase{
 	//! Get the type id for a Dynamic object.
 	virtual size_t dynamicTypeId()const = 0;
 	
-	virtual bool isTypeDynamic(const size_t _id)const;
+	static bool isTypeDynamic(const size_t _id);
 	
 	virtual size_t callback(const DynamicMapperBase &_rdm)const;
 
@@ -175,7 +175,7 @@ public:
 	virtual size_t dynamicTypeId()const{
 		return staticTypeId();
 	}
-	virtual bool isTypeDynamic(const size_t _id)const{
+	static bool isTypeDynamic(const size_t _id){
 		if(_id == staticTypeId()) return true;
 		return T::isTypeDynamic(_id);
 	}
@@ -186,11 +186,11 @@ public:
 		}
 		return T::callback(_rdm);
 	}
-	X* cast(DynamicBase *_pdb){
+	static X* cast(DynamicBase *_pdb){
 		if(isTypeDynamic(_pdb->dynamicTypeId())){
 			return static_cast<X*>(_pdb);
 		}
-		return NULL;
+		return nullptr;
 	}
 };
 

@@ -132,7 +132,7 @@ size_t DynamicBase::release(){
 	return usecount.fetch_sub(1/*, ATOMIC_NS::memory_order_seq_cst*/) - 1;
 }
 
-/*virtual*/ bool DynamicBase::isTypeDynamic(const size_t _id)const{
+/*virtual*/ bool DynamicBase::isTypeDynamic(const size_t _id){
 	return false;
 }
 /*virtual*/ size_t DynamicBase::callback(const DynamicMapperBase &_rdm)const{

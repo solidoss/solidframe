@@ -67,6 +67,10 @@ void Resolver::start(ushort _thrcnt){
 	d.wp.start(_thrcnt);
 }
 
+void Resolver::stop(){
+	d.wp.stop();
+}
+
 void Resolver::doSchedule(ResolveBase *_pb){
 	ResolverPointerT ptr(_pb);
 	d.wp.push(ptr);
