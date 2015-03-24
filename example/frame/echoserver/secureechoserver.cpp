@@ -141,6 +141,30 @@ public:
 #endif
 
 
+#define USE_TALKER
+
+#include "frame/aio/aiodatagram.hpp"
+#include "frame/aio/aiosocket.hpp"
+
+#ifdef USE_TALKER
+class Talker: public Dynamic<Talker, frame::aio::Object>{
+public:
+	Talker(SocketDevice &_rsd):sock(this->proxy(), _rsd){}
+	~Talker(){}
+private:
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	void onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz);
+	void onSend(frame::aio::ReactorContext &_rctx);
+private:
+	typedef frame::aio::Datagram<frame::aio::Socket>	DatagramSocketT;
+	
+	enum {BufferCapacity = 1024 * 2 };
+	
+	char			buf[BufferCapacity];
+	DatagramSocketT	sock;
+};
+#endif
+
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
@@ -226,6 +250,26 @@ int main(int argc, char *argv[]){
 				
 				idbg("Started Client Connection object: "<<objuid.index<<','<<objuid.unique);
 				
+			}
+#endif
+#ifdef USE_TALKER			
+			rd = synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+			
+			sd.create(rd.begin());
+			sd.bind(rd.begin());
+			
+			if(sd.ok()){
+				DynamicPointer<frame::aio::Object>	objptr(new Talker(sd));
+				
+				solid::ErrorConditionT				err;
+				solid::frame::ObjectUidT			objuid;
+				
+				objuid = sch.startObject(objptr, svc, frame::Event(EventStartE), err);
+				
+				idbg("Started Talker object: "<<objuid.index<<','<<objuid.unique);
+			}else{
+				cout<<"Error creating talker socket"<<endl;
+				running = false;
 			}
 #endif
 		}
@@ -463,3 +507,56 @@ void ClientConnection::onConnect(frame::aio::ReactorContext &_rctx){
 
 #endif
 
+//-----------------------------------------------------------------------------
+//		Talker
+//-----------------------------------------------------------------------------
+#ifdef USE_TALKER
+/*virtual*/ void Talker::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	idbg(this<<" "<<_revent.id);
+	
+	if(_revent.id == EventStartE){
+		sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
+	}else if(_revent.id == EventStopE){
+		edbg(this<<" postStop");
+		postStop(_rctx);
+	}
+}
+
+
+void Talker::onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){
+	unsigned	repeatcnt = 10;
+	do{
+		if(!_rctx.error()){
+			if(sock.sendTo(_rctx, buf, _sz, _raddr, std::bind(&Talker::onSend, this, _1))){
+				if(_rctx.error()){
+					edbg(this<<" postStop");
+					postStop(_rctx);
+					break;
+				}
+			}else{
+				break;
+			}
+		}else{
+			edbg(this<<" postStop");
+			postStop(_rctx);
+			break;
+		}
+		--repeatcnt;
+	}while(repeatcnt && sock.recvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3), _raddr, _sz));
+	
+	idbg(repeatcnt);
+	if(repeatcnt == 0){
+		bool rv = sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
+		cassert(!rv);
+	}
+}
+
+void Talker::onSend(frame::aio::ReactorContext &_rctx){
+	if(!_rctx.error()){
+		sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
+	}else{
+		postStop(_rctx);
+	}
+}
+
+#endif
