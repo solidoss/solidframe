@@ -1056,5 +1056,37 @@ ErrorCodeT SocketDevice::recvBufferSize(int &_rsz){
 #endif
 }
 
+ErrorCodeT SocketDevice::sendBufferSize(int &_rsz)const{
+#ifdef ON_WINDOWS
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+#else
+	int 		sockbufsz(0);
+	socklen_t	sz(sizeof(sockbufsz));
+	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+	
+	if(rv == 0){
+		_rsz = sockbufsz;
+		return ErrorCodeT();
+	}
+	return last_socket_error();
+#endif
+}
+
+ErrorCodeT SocketDevice::recvBufferSize(int &_rsz)const{
+#ifdef ON_WINDOWS
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+#else
+	int 		sockbufsz(0);
+	socklen_t	sz(sizeof(sockbufsz));
+	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+	if(rv == 0){
+		_rsz = sockbufsz;
+		return ErrorCodeT();
+	}
+	return last_socket_error();
+#endif
+}
+
+
 }//namespace solid
 

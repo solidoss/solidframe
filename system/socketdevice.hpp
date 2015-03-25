@@ -83,6 +83,9 @@ public:
 	//ErrorCodeT recvBufferSize(size_t _sz);
 	ErrorCodeT sendBufferSize(int &_rrv);
 	ErrorCodeT recvBufferSize(int &_rrv);
+	
+	ErrorCodeT sendBufferSize(int &_rrv)const;
+	ErrorCodeT recvBufferSize(int &_rrv)const;
 	//! Write data on socket
 	int send(const char* _pb, size_t _ul, bool &_rcan_retry, ErrorCodeT &_rerr, unsigned _flags = 0);
 	//! Reads data from a socket

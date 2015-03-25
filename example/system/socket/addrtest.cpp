@@ -102,11 +102,11 @@ int main(int argc, char *argv[]){
 		SocketDevice sd;
 		sd.create(it);
 		
-		bool rv = sd.connect(it);
+		ErrorCodeT rv = sd.connect(it);
 		
-		cout<<"rv = "<<rv<<endl;
+		cout<<"rv = "<<rv.message()<<endl;
 		
-		if(rv){
+		if(!rv){
 			sd.write("hello word\r\n", strlen("hello word\r\n"));
 		}
 		

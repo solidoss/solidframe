@@ -72,24 +72,27 @@ void Listener::doPostAccept(ReactorContext &_rctx){
 
 
 bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
-	switch(sd.acceptNonBlocking(_rsd)){
-		case AsyncError:
-			systemError(_rctx, specific_error_back());
-			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-		case AsyncSuccess:
-			//make sure we're not receiving any io event
-			return true;
-		case AsyncWait:
-			break;
+	bool		can_retry;
+	ErrorCodeT	err = sd.accept(_rsd, can_retry);
+	
+	
+	if(can_retry){
+		return false;
+	}else if(err){
+		systemError(_rctx, err);
+		//TODO: set proper error
+		error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 	}
-	return false;
+	return true;
 }
 
 void Listener::doAccept(ReactorContext &_rctx, SocketDevice &_rsd){
-	if(sd.accept(_rsd)){
+	bool		can_retry;
+	ErrorCodeT	err = sd.accept(_rsd, can_retry);
+	
+	if(!err){
 	}else{
-		systemError(_rctx, specific_error_back());
+		systemError(_rctx, err);
 		//TODO: set proper error
 		error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 	}

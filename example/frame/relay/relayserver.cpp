@@ -329,8 +329,10 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	
 	do{
 		if(!_rctx.error()){
-			_rsd.recvBufferSize(1024 * 64);
-			_rsd.sendBufferSize(1024 * 32);
+			int sz = 1024 * 64;
+			_rsd.recvBufferSize(sz);
+			sz = 1024 * 32;
+			_rsd.sendBufferSize(sz);
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			solid::ErrorConditionT				err;
 			

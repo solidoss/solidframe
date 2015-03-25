@@ -87,7 +87,7 @@ class Stream: public CompletionHandler{
 		RecvSomeFunctor(F &_rf):f(_rf){}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
-			if(_rthis.doRecv(_rctx)){
+			if(_rthis.doTryRecv(_rctx)){
 				F				tmpf(f);
 				const size_t	recv_sz = _rthis.recv_buf_sz;
 				_rthis.doClearRecv(_rctx);
@@ -103,7 +103,7 @@ class Stream: public CompletionHandler{
 		SendAllFunctor(F &_rf):f(_rf){}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
-			if(_rthis.doSend(_rctx)){
+			if(_rthis.doTrySend(_rctx)){
 				if(_rthis.send_buf_sz == _rthis.send_buf_cp){
 					F	tmpf(f);
 					_rthis.doClearSend(_rctx);
@@ -123,6 +123,36 @@ class Stream: public CompletionHandler{
 			F	tmpf(f);
 			_rthis.doClearSend(_rctx);
 			tmpf(_rctx);
+		}
+	};
+	
+	template <class F>
+	struct SecureConnectFunctor{
+		F	f;
+		
+		SecureConnectFunctor(F &_rf):f(_rf){}
+		
+		void operator()(ThisT &_rthis, ReactorContext &_rctx){
+		}
+	};
+	
+	template <class F>
+	struct SecureAcceptFunctor{
+		F	f;
+		
+		SecureAcceptFunctor(F &_rf):f(_rf){}
+		
+		void operator()(ThisT &_rthis, ReactorContext &_rctx){
+		}
+	};
+	
+	template <class F>
+	struct SecureShutdownFunctor{
+		F	f;
+		
+		SecureShutdownFunctor(F &_rf):f(_rf){}
+		
+		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 		}
 	};
 	
@@ -179,7 +209,7 @@ public:
 			recv_buf_cp = _bufcp;
 			recv_buf_sz = 0;
 			
-			if(doRecv(_rctx)){
+			if(doTryRecv(_rctx)){
 				return true;
 			}else{
 				recv_fnc = RecvSomeFunctor<F>(_f);
@@ -219,7 +249,7 @@ public:
 			send_buf_cp = _bufcp;
 			send_buf_sz = 0;
 			
-			if(doSend(_rctx)){
+			if(doTrySend(_rctx)){
 				if(send_buf_sz == send_buf_cp){
 					return true;
 				}else{
@@ -350,7 +380,7 @@ private:
 			send_fnc(*this, _rctx);
 		}
 	}
-	bool doRecv(ReactorContext &_rctx){
+	bool doTryRecv(ReactorContext &_rctx){
 		bool		can_retry;
 		ErrorCodeT	err;
 		int			rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
@@ -372,7 +402,7 @@ private:
 		return true;
 	}
 	
-	bool doSend(ReactorContext &_rctx){
+	bool doTrySend(ReactorContext &_rctx){
 		bool		can_retry;
 		ErrorCodeT	err;
 		int			rv = s.send(send_buf, send_buf_cp - send_buf_sz, can_retry, err);
