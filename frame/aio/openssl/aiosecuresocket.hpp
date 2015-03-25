@@ -18,19 +18,23 @@ namespace solid{
 namespace frame{
 namespace aio{
 namespace openssl{
-	
+
+class Context;
+
 class	Socket{
 public:
 	
-	Socket(SocketDevice &_rsd);
+	Socket(Context &_rctx, SocketDevice &_rsd);
 	
 	Socket();
 	
-	SocketDevice reset(SocketDevice &_rsd);
+	~Socket();
+	
+	SocketDevice reset(Context &_rctx, SocketDevice &_rsd);
 	
 	void shutdown();
 	
-	bool create(SocketAddressStub const &_rsas);
+	bool create(Context &_rctx, SocketAddressStub const &_rsas);
 	
 	bool connect(SocketAddressStub const &_rsas, bool &_can_retry);
 	
@@ -49,8 +53,13 @@ public:
 	int recvFrom(char *_pb, size_t _bl, SocketAddress &_addr, bool &_can_retry);
 	
 	int sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, bool &_can_retry);
-private:
 	
+	bool secureAccept(bool &_can_retry);
+	bool secureConnect(bool &_can_retry);
+	bool secureShutdown(bool &_can_retry);
+private:
+	SSL				*pssl;
+	SocketDevice	sd;
 };
 
 }//namespace openssl

@@ -494,10 +494,10 @@ struct wsa_cleaner{
 #endif
 
 //---- SocketDevice ---------------------------------
-/*static*/ ERROR_NS::error_code last_socket_error(){
+/*static*/ ErrorCodeT last_socket_error(){
 #ifdef ON_WINDOWS
 	const DWORD err = WSAGetLastError();
-	return ERROR_NS::error_code(err, ERROR_NS::system_category());
+	return ErrorCodeT(err, ERROR_NS::system_category());
 #else
 	return solid::last_system_error();
 #endif
@@ -552,19 +552,19 @@ void SocketDevice::close(){
 #endif
 }
 
-bool SocketDevice::create(const ResolveIterator &_rri){
+ErrorCodeT SocketDevice::create(const ResolveIterator &_rri){
 #ifdef ON_WINDOWS
 	//SOCKET s = socket(_rai.family(), _rai.type(), _rai.protocol());
 	SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
-	return ok();
+	return last_socket_error();
 #else
 	Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));
-	return ok();
+	return last_socket_error();
 #endif
 }
 
-bool SocketDevice::create(
+ErrorCodeT SocketDevice::create(
 	SocketInfo::Family _family,
 	SocketInfo::Type _type,
 	int _proto
@@ -573,59 +573,33 @@ bool SocketDevice::create(
 	//SOCKET s = socket(_family, _type, _proto);
 	SOCKET s = WSASocket(_family, _type, _proto, NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
-	return ok();
+	return last_socket_error();
 #else
 	Device::descriptor(socket(_family, _type, _proto));
-	return ok();
+	return last_socket_error();
 #endif
 }
 
-AsyncE SocketDevice::connectNonBlocking(const SocketAddressStub &_rsas){
+ErrorCodeT SocketDevice::connect(const SocketAddressStub &_rsas, bool &_rcan_wait){
 #ifdef ON_WINDOWS
-	const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-	specific_error_clear();
-	if(rv >= 0){
-		return AsyncSuccess;
-	}
-	
-	const DWORD err = WSAGetLastError();
-	if(err == WSAEWOULDBLOCK){
-		return AsyncWait;
-	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return AsyncError;
+	/*const int rv = */::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
+	return last_socket_error();
 #else
-	const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-	specific_error_clear();
-	if(rv >= 0){
-		return AsyncSuccess;
-	}
-	
-	if(errno == EINPROGRESS){
-		return AsyncWait;
-	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return AsyncError;
+	/*const int rv = */::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+	_rcan_wait = (errno == EINPROGRESS);
+	return last_socket_error();
 #endif
 }
 
-bool SocketDevice::connect(const SocketAddressStub &_rsas){
+ErrorCodeT SocketDevice::connect(const SocketAddressStub &_rsas){
 #ifdef ON_WINDOWS
-	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-	specific_error_clear();
-	if (rv < 0) { // sau rv == -1 ...
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
-	}
-	return true;
+	/*int rv = */::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+	
+	return last_socket_error();
 #else
-	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-	specific_error_clear();
-	if (rv < 0) { // sau rv == -1 ...
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
-	}
-	return true;
+	/*int rv = */::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+	return last_socket_error();
 #endif
 }
 
@@ -650,321 +624,271 @@ bool SocketDevice::connect(const SocketAddressStub &_rsas){
 // 	return OK;
 // #endif
 // }
-bool SocketDevice::prepareAccept(const SocketAddressStub &_rsas, size_t _listencnt){
-	specific_error_clear();
+ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub &_rsas, size_t _listencnt){
 #ifdef ON_WINDOWS
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 
 	rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if(rv < 0) {
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 	rv = listen(descriptor(), _listencnt);
 	if(rv < 0){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
-	return true;
+	return last_socket_error();
 #else
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 
 	rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if(rv < 0) {
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 	rv = listen(descriptor(), _listencnt);
 	if(rv < 0){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
-	return true;
+	return last_socket_error();
 #endif
 }
 
-AsyncE SocketDevice::acceptNonBlocking(SocketDevice &_dev){
-	specific_error_clear();
+ErrorCodeT SocketDevice::accept(SocketDevice &_dev, bool &_rcan_retry){
 #ifdef ON_WINDOWS
 	SocketAddress sa;
 	const SOCKET rv = ::accept(descriptor(), sa, &sa.sz);
-	if (rv == invalidDescriptor()) {
-		if(WSAGetLastError() == WSAEWOULDBLOCK){
-			return AsyncWait;
-		}
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return AsyncError;
-	}
+	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
 	_dev.Device::descriptor((HANDLE)rv);
-	return AsyncSuccess;
+	return last_socket_error();
 #else
 	SocketAddress sa;
 	const int rv = ::accept(descriptor(), sa, &sa.sz);
-	if (rv < 0) {
-		if(errno == EAGAIN){
-			return AsyncWait;
-		}
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return AsyncError;
-	}
+	_rcan_retry = (errno == EAGAIN);
 	_dev.Device::descriptor(rv);
-	return AsyncSuccess;
+	return last_socket_error();
 #endif
 }
 
-bool SocketDevice::accept(SocketDevice &_dev){
-	specific_error_clear();
+ErrorCodeT SocketDevice::accept(SocketDevice &_dev){
 #ifdef ON_WINDOWS
 	SocketAddress sa;
 	SOCKET rv = ::accept(descriptor(), sa, &sa.sz);
-	if (rv == invalidDescriptor()) {
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
-	}
 	_dev.Device::descriptor((HANDLE)rv);
-	return true;
+	return last_socket_error();
 #else
 	SocketAddress sa;
 	int rv = ::accept(descriptor(), sa, &sa.sz);
-	if (rv < 0) {
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
-	}
 	_dev.Device::descriptor(rv);
-	return true;
+	return last_socket_error();
 #endif
 }
 
 
-bool SocketDevice::bind(const SocketAddressStub &_rsa){
+ErrorCodeT SocketDevice::bind(const SocketAddressStub &_rsa){
 	specific_error_clear();
 #ifdef ON_WINDOWS
-	int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
-	if(rv < 0){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
-	}
-	return true;
+	/*int rv = */::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
+	return last_socket_error();
 #else
-	int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
-	if(rv < 0){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
-	}
-	return true;
+	/*int rv = */::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
+	return last_socket_error();
 #endif
 }
 
-bool SocketDevice::makeBlocking(){
-	specific_error_clear();
+ErrorCodeT SocketDevice::makeBlocking(){
 #ifdef ON_WINDOWS
 	u_long mode = 0;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	if (rv != NO_ERROR){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
-	return true;
+	return ErrorCodeT();
 #else
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 	flg &= ~O_NONBLOCK;
-	int rv = fcntl(descriptor(), F_SETFL, flg);
-	if (rv < 0){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
-	}
-	return true;
+	/*int rv = */fcntl(descriptor(), F_SETFL, flg);
+	return last_socket_error();
 #endif
 }
 
 
-bool SocketDevice::makeBlocking(size_t _msec){
+ErrorCodeT SocketDevice::makeBlocking(size_t _msec){
 	specific_error_clear();
 #ifdef ON_WINDOWS
 	u_long mode = 0;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	if (rv != NO_ERROR){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 	DWORD tout(_msec);
 	rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char *) &tout, sizeof(tout));
 	if (rv == SOCKET_ERROR){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 	tout = _msec;
 	rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char *) &tout, sizeof(tout));
 	if (rv == SOCKET_ERROR){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
-	return true;
+	return ErrorCodeT();
 #else
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 	flg &= ~O_NONBLOCK;
 	int rv = fcntl(descriptor(), F_SETFL, flg);
 	if (rv < 0){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 	struct timeval timeout;      
 	timeout.tv_sec = _msec / 1000;
 	timeout.tv_usec = _msec % 1000;
 	rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 	if(rv != 0){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 	rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
 	if(rv != 0){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
-	return true;
+	return ErrorCodeT();
 #endif
 }
 
-bool SocketDevice::makeNonBlocking(){
+ErrorCodeT SocketDevice::makeNonBlocking(){
 	specific_error_clear();
 #ifdef ON_WINDOWS
 	u_long mode = 1;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	
 	if (rv == NO_ERROR){
-		return true;
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
+	return last_socket_error();
 #else
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return last_socket_error();
 	}
 	int rv = fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK);
 	if(rv >= 0){
-		return true;
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
+	return last_socket_error();
 #endif
 }
 
-pair<bool, bool> SocketDevice::isBlocking()const{
+ ErrorCodeT SocketDevice::isBlocking(bool &_rrv)const{
 	specific_error_clear();
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return pair<bool, bool>(false, false);
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 
 	const int flg = fcntl(descriptor(), F_GETFL);
 	
 	if(flg != -1){
-		return pair<bool, bool>(true, (flg & O_NONBLOCK));
+		_rrv = ((flg & O_NONBLOCK) == 0);
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return pair<bool, bool>(false, false);
+	return last_socket_error();
 #endif
 }
 
-int SocketDevice::send(const char* _pb, size_t _ul, unsigned){
+int SocketDevice::send(const char* _pb, size_t _ul, bool &_rcan_retry, ErrorCodeT &_rerr, unsigned){
 #ifdef ON_WINDOWS
 	return -1;
 #else
-	return ::send(descriptor(), _pb, _ul, 0);
+	int rv = ::send(descriptor(), _pb, _ul, 0);
+	_rcan_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+	_rerr = last_socket_error();
+	return rv;
 #endif
 }
-int SocketDevice::recv(char *_pb, size_t _ul, unsigned){
+int SocketDevice::recv(char *_pb, size_t _ul, bool &_rcan_retry, ErrorCodeT &_rerr, unsigned){
 #ifdef ON_WINDOWS
 	return -1;
 #else
-	return ::recv(descriptor(), _pb, _ul, 0);
+	int rv = ::recv(descriptor(), _pb, _ul, 0);
+	_rcan_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+	_rerr = last_socket_error();
+	return rv;
 #endif
 }
-int SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub &_sap){
+int SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub &_sap, bool &_rcan_retry, ErrorCodeT &_rerr){
 #ifdef ON_WINDOWS
 	return -1;
 #else
-	return ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
+	int rv = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
+	_rcan_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+	_rerr = last_socket_error();
+	return rv;
 #endif
 }
-int SocketDevice::recv(char *_pb, size_t _ul, SocketAddress &_rsa){
+int SocketDevice::recv(char *_pb, size_t _ul, SocketAddress &_rsa, bool &_rcan_retry, ErrorCodeT &_rerr){
 #ifdef ON_WINDOWS
 	return -1;
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
-	return ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
+	int rv = ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
+	_rcan_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+	_rerr = last_socket_error();
+	return rv;
 #endif
 }
 
-bool SocketDevice::remoteAddress(SocketAddress &_rsa)const{
-	specific_error_clear();
+ErrorCodeT SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(!rv){
-		return true;
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
+	return last_socket_error();
 #endif
 }
 
-bool SocketDevice::localAddress(SocketAddress &_rsa)const{
-	specific_error_clear();
+ErrorCodeT SocketDevice::localAddress(SocketAddress &_rsa)const{
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(!rv){
-		return true;
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
+	return last_socket_error();
 #endif
 }
 
-pair<bool, int> SocketDevice::type()const{
-	specific_error_clear();
+ErrorCodeT SocketDevice::type(int &_rrv)const{
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return pair<bool, int>(false, -1);
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int			val = 0;
 	socklen_t	valsz = sizeof(int);
 	int rv = getsockopt(descriptor(), SOL_SOCKET, SO_TYPE, &val, &valsz);
 	if(rv == 0){
-		return pair<bool, int>(true, val);
+		_rrv = val;
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return pair<bool, int>(false, -1);
+	
+	return last_socket_error();
 #endif
 }
 
@@ -987,186 +911,148 @@ pair<bool, int> SocketDevice::type()const{
 // #endif
 // }
 
-bool SocketDevice::enableNoDelay(){
-	specific_error_clear();
+ErrorCodeT SocketDevice::enableNoDelay(){
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 	if(rv == 0){
-		return true;
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
+	return last_socket_error();
 #endif
 }
 
-bool SocketDevice::disableNoDelay(){
-	specific_error_clear();
+ErrorCodeT SocketDevice::disableNoDelay(){
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 	if(rv == 0){
-		return true;
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
+	return last_socket_error();
 #endif
 }
 
 
-bool SocketDevice::enableLinger(){
-	return false;
+ErrorCodeT SocketDevice::enableLinger(){
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 }
 
-bool SocketDevice::disableLinger(){
-	return false;
+ErrorCodeT SocketDevice::disableLinger(){
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 }
 
-pair<bool, bool> SocketDevice::hasNoDelay()const{
-	specific_error_clear();
+ErrorCodeT SocketDevice::hasNoDelay(bool &_rrv)const{
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return pair<bool, bool>(false, false);
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
 	int			rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
 	if(rv == 0){
-		return pair<bool, bool>(true, flag != 0);
+		_rrv = (flag != 0);
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return pair<bool, bool>(false, false);
+	return last_socket_error();
 #endif
 }
 	
-bool SocketDevice::enableCork(){
-	specific_error_clear();
+ErrorCodeT SocketDevice::enableCork(){
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #elif defined(ON_LINUX)
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv == 0){
-		return true;
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
+	return last_socket_error();
 #else
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #endif
 }
 
-bool SocketDevice::disableCork(){
-	specific_error_clear();
+ErrorCodeT SocketDevice::disableCork(){
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #elif defined(ON_LINUX)
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv == 0){
-		return true;
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
+	return last_socket_error();
 #else
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #endif
 }
 
-pair<bool, bool> SocketDevice::hasCork()const{
-	specific_error_clear();
+ErrorCodeT SocketDevice::hasCork(bool &_rrv)const{
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return pair<bool, bool>(false, false);
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #elif defined(ON_LINUX)
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
 	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
 	if(rv == 0){
-		return pair<bool, bool>(true, flag != 0);
+		_rrv = (flag != 0);
+		return ErrorCodeT();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return pair<bool, bool>(false, false);
+	return last_socket_error();
 #else
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return pair<bool, bool>(false, false);
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #endif
 }
 
-bool SocketDevice::sendBufferSize(size_t _sz){
-	specific_error_clear();
+ErrorCodeT SocketDevice::sendBufferSize(int &_rsz){
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
-	int sockbufsz(_sz);
-	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, sizeof(sockbufsz));
-	if(rv == 0){
-		return true;
+	if(_rsz >= 0){
+		int sockbufsz(_rsz);
+		int rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, sizeof(sockbufsz));
+		if(rv == 0){
+			return ErrorCodeT();
+		}
+		return last_socket_error();
+	}else{
+		int 		sockbufsz(0);
+		socklen_t	sz(sizeof(sockbufsz));
+		int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+		
+		if(rv == 0){
+			_rsz = sockbufsz;
+			return ErrorCodeT();
+		}
+		return last_socket_error();
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
 #endif
 }
 
-bool SocketDevice::recvBufferSize(size_t _sz){
-	specific_error_clear();
+ErrorCodeT SocketDevice::recvBufferSize(int &_rsz){
 #ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return false;
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
-	int sockbufsz(_sz);
-	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, sizeof(sockbufsz));
-	if(rv == 0){
-		return true;
+	if(_rsz >= 0){
+		int sockbufsz(_rsz);
+		int rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, sizeof(sockbufsz));
+		if(rv == 0){
+			return ErrorCodeT();
+		}
+	}else{
+		int 		sockbufsz(0);
+		socklen_t	sz(sizeof(sockbufsz));
+		int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+		if(rv == 0){
+			_rsz = sockbufsz;
+			return ErrorCodeT();
+		}
 	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return false;
-#endif
-}
-
-pair<bool, size_t> SocketDevice::sendBufferSize()const{
-	specific_error_clear();
-#ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH(error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return pair<bool, size_t>(false, -1);
-#else
-	int 		sockbufsz(0);
-	socklen_t	sz(sizeof(sockbufsz));
-	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
-	
-	if(rv == 0){
-		return pair<bool, size_t>(true, sockbufsz);
-	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return pair<bool, size_t>(false, -1);
-#endif
-}
-
-pair<bool, size_t> SocketDevice::recvBufferSize()const{
-	specific_error_clear();
-#ifdef ON_WINDOWS
-	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
-	return pair<bool, size_t>(false, -1);
-#else
-	int 		sockbufsz(0);
-	socklen_t	sz(sizeof(sockbufsz));
-	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
-	if(rv == 0){
-		return pair<bool, size_t>(true, sockbufsz);
-	}
-	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return pair<bool, size_t>(false, -1);
+	return last_socket_error();
 #endif
 }
 

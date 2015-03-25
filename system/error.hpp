@@ -29,7 +29,10 @@
 
 namespace solid{
 
-ERROR_NS::error_code last_system_error();
+typedef ERROR_NS::error_condition	ErrorConditionT;
+typedef ERROR_NS::error_condition	ErrorCodeT;
+
+ErrorCodeT last_system_error();
 
 enum Errors{
 	ERROR_NOERROR = 0,
@@ -47,13 +50,13 @@ struct ErrorStub{
 	):	value(_value), category(_category), line(_line), file(_file){}
 	
 	ErrorStub(
-		ERROR_NS::error_code const	&_code,
+		ErrorCodeT const	&_code,
 		unsigned _line = -1,
 		const char *_file = NULL
 	):	value(_code.value()), category(&_code.category()), line(_line), file(_file){}
 	
-	ERROR_NS::error_code errorCode()const{
-		return ERROR_NS::error_code(value, category ? *category : ERROR_NS::system_category());
+	ErrorCodeT errorCode()const{
+		return ErrorCodeT(value, category ? *category : ERROR_NS::system_category());
 	}
 		
 	int								value;
@@ -65,7 +68,7 @@ struct ErrorStub{
 typedef std::vector<ErrorStub>	ErrorVectorT;
 
 ERROR_NS::error_category const	&error_category_get();
-ERROR_NS::error_code 			error_make(Errors _err);
+ErrorCodeT 			error_make(Errors _err);
 
 void specific_error_clear();
 void specific_error_push(
@@ -76,12 +79,12 @@ void specific_error_push(
 );
 
 void specific_error_push(
-	ERROR_NS::error_code const	&_rcode,
+	ErrorCodeT const	&_rcode,
 	unsigned _line = -1,
 	const char *_file = NULL
 );
 
-ERROR_NS::error_code specific_error_back();
+ErrorCodeT specific_error_back();
 
 #define SPECIFIC_ERROR_PUSH1(c)	solid::specific_error_push((c), __LINE__, __FILE__) 
 #define SPECIFIC_ERROR_PUSH2(v, c)	solid::specific_error_push(static_cast<int>((v)), &(c), __LINE__, __FILE__) 
@@ -92,9 +95,6 @@ ERROR_NS::error_code specific_error_back();
 ErrorVectorT const & specific_error_get();
 void specific_error_print(std::ostream &_ros, const bool _withcodeinfo = true);
 
-
-typedef ERROR_NS::error_condition	ErrorConditionT;
-typedef ERROR_NS::error_condition	ErrorCodeT;
 
 
 }//namespace solid

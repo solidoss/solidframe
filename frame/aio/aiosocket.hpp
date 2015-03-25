@@ -20,6 +20,7 @@ namespace aio{
 
 class	Socket{
 public:
+	typedef ERROR_NS::error_code	ErrorCodeT;
 	
 	Socket(SocketDevice &_rsd):sd(_rsd){
 		if(sd.ok()){
@@ -42,19 +43,23 @@ public:
 		}
 	}
 	
-	bool create(SocketAddressStub const &_rsas){
+	bool create(SocketAddressStub const &_rsas, ErrorCodeT &_rerr){
 		bool rv = sd.create(_rsas.family());
 		if(rv){
 			rv = sd.makeNonBlocking();
 		}
+		if(!rv){
+			_rerr.assign(-1, _rerr.category());
+		}
 		return rv;
 	}
 	
-	bool connect(SocketAddressStub const &_rsas, bool &_can_retry){
+	bool connect(SocketAddressStub const &_rsas, bool &_can_retry, ErrorCodeT &_rerr){
 		AsyncE rv = sd.connectNonBlocking(_rsas);
 		switch(rv){
 			case AsyncError:
 				_can_retry = false;
+				_rerr.assign(-1, _rerr.category());
 				return false;
 			case AsyncSuccess: _can_retry = false; return true;
 			case AsyncWait: _can_retry = true; return false;
@@ -70,15 +75,17 @@ public:
 		return _evt;
 	}
 	
-	int recv(char *_pb, size_t _bl, bool &_can_retry){
+	int recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 		int rv = sd.recv(_pb, _bl);
 		_can_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+		if(errno) _rerr.assign(errno, _rerr.category());
 		return rv;
 	}
 	
-	int send(const char *_pb, size_t _bl, bool &_can_retry){
+	int send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 		int rv = sd.send(_pb, _bl);
 		_can_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+		if(errno) _rerr.assign(errno, _rerr.category());
 		return rv;
 	}
 	
@@ -86,15 +93,17 @@ public:
 		return sd;
 	}
 	
-	int recvFrom(char *_pb, size_t _bl, SocketAddress &_addr, bool &_can_retry){
+	int recvFrom(char *_pb, size_t _bl, SocketAddress &_addr, bool &_can_retry, ErrorCodeT &_rerr){
 		int rv = sd.recv(_pb, _bl, _addr);
 		_can_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+		if(errno) _rerr.assign(errno, _rerr.category());
 		return rv;
 	}
 	
-	int sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, bool &_can_retry){
+	int sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, bool &_can_retry, ErrorCodeT &_rerr){
 		int rv = sd.send(_pb, _bl, _rsas);
 		_can_retry = (errno == EAGAIN/* || errno == EWOULDBLOCK*/);
+		if(errno) _rerr.assign(errno, _rerr.category());
 		return rv;
 	}
 private:

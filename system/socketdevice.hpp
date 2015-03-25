@@ -24,6 +24,7 @@ public:
 #else
 	typedef int DescriptorT;
 #endif
+	
 	//!Copy constructor
 	SocketDevice(const SocketDevice &_sd);
 	//!Basic constructor
@@ -39,61 +40,61 @@ public:
 	//! Shutdown reading and writing 
 	void shutdownReadWrite();
 	//! Create a socket based ResolveIterator
-	bool create(const ResolveIterator &_rri);
+	ErrorCodeT create(const ResolveIterator &_rri);
 	//! Create a socket given its family, its type and its protocol type
-	bool create(
+	ErrorCodeT create(
 		SocketInfo::Family = SocketInfo::Inet4,
 		SocketInfo::Type _type = SocketInfo::Stream,
 		int _proto = 0
 	);
 	//! Connect the socket
-	AsyncE connectNonBlocking(const SocketAddressStub &_rsas);
-	bool connect(const SocketAddressStub &_rsas);
+	ErrorCodeT connect(const SocketAddressStub &_rsas, bool &_can_wait);
+	ErrorCodeT connect(const SocketAddressStub &_rsas);
 	//! Bind the socket to a specific addr:port
-	bool bind(const SocketAddressStub &_rsa);
+	ErrorCodeT bind(const SocketAddressStub &_rsa);
 	//! Prepares the socket for accepting
-	bool prepareAccept(const SocketAddressStub &_rsas, size_t _listencnt = 10);
+	ErrorCodeT prepareAccept(const SocketAddressStub &_rsas, size_t _listencnt = 10);
 	//! Accept an incomming connection
-	AsyncE acceptNonBlocking(SocketDevice &_dev);
-	bool accept(SocketDevice &_dev);
+	ErrorCodeT accept(SocketDevice &_dev, bool &_can_retry);
+	ErrorCodeT accept(SocketDevice &_dev);
 	//! Make a connection blocking
 	/*!
 		\param _msec if _msec > 0 will make socket blocking with the given amount of milliseconds
 	*/
-	bool makeBlocking(size_t _msec);
-	bool makeBlocking();
+	ErrorCodeT makeBlocking(size_t _msec);
+	ErrorCodeT makeBlocking();
 	//! Make the socket nonblocking
-	bool makeNonBlocking();
+	ErrorCodeT makeNonBlocking();
 	//! Check if its blocking
-	std::pair<bool, bool> isBlocking()const;
-	bool enableNoDelay();
-	bool disableNoDelay();
+	ErrorCodeT isBlocking(bool &_rrv)const;
+	ErrorCodeT enableNoDelay();
+	ErrorCodeT disableNoDelay();
 	
-	bool enableLinger();
-	bool disableLinger();
+	ErrorCodeT enableLinger();
+	ErrorCodeT disableLinger();
 	
-	std::pair<bool, bool> hasNoDelay()const;
+	ErrorCodeT hasNoDelay(bool &_rrv)const;
 	
-	bool enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
-	bool disableCork();
-	std::pair<bool, bool> hasCork()const;
+	ErrorCodeT enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
+	ErrorCodeT disableCork();
+	ErrorCodeT hasCork(bool &_rrv)const;
 	
-	bool sendBufferSize(size_t _sz);
-	bool recvBufferSize(size_t _sz);
-	std::pair<bool, size_t> sendBufferSize()const;
-	std::pair<bool, size_t> recvBufferSize()const;
+	//ErrorCodeT sendBufferSize(size_t _sz);
+	//ErrorCodeT recvBufferSize(size_t _sz);
+	ErrorCodeT sendBufferSize(int &_rrv);
+	ErrorCodeT recvBufferSize(int &_rrv);
 	//! Write data on socket
-	int send(const char* _pb, size_t _ul, unsigned _flags = 0);
+	int send(const char* _pb, size_t _ul, bool &_rcan_retry, ErrorCodeT &_rerr, unsigned _flags = 0);
 	//! Reads data from a socket
-	int recv(char *_pb, size_t _ul, unsigned _flags = 0);
+	int recv(char *_pb, size_t _ul, bool &_rcan_retry, ErrorCodeT &_rerr, unsigned _flags = 0);
 	//! Send a datagram to a socket
-	int send(const char* _pb, size_t _ul, const SocketAddressStub &_sap);
+	int send(const char* _pb, size_t _ul, const SocketAddressStub &_sap, bool &_rcan_retry, ErrorCodeT &_rerr);
 	//! Recv data from a socket
-	int recv(char *_pb, size_t _ul, SocketAddress &_rsa);
+	int recv(char *_pb, size_t _ul, SocketAddress &_rsa, bool &_rcan_retry, ErrorCodeT &_rerr);
 	//! Gets the remote address for a connected socket
-	bool remoteAddress(SocketAddress &_rsa)const;
+	ErrorCodeT remoteAddress(SocketAddress &_rsa)const;
 	//! Gets the local address for a socket
-	bool localAddress(SocketAddress &_rsa)const;
+	ErrorCodeT localAddress(SocketAddress &_rsa)const;
 #ifdef ON_WINDOWS
 	static const DescriptorT invalidDescriptor(){
 		return INVALID_SOCKET;
@@ -105,7 +106,7 @@ public:
 #endif
 	void close();
 	//! Get the socket type
-	std::pair<bool, int> type()const;
+	ErrorCodeT type(int &_rerr)const;
 	//! Return true if the socket is listening
 	//bool isListening()const;
 };

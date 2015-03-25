@@ -24,7 +24,8 @@ struct	ReactorContext;
 
 template <class Sock>
 class Stream: public CompletionHandler{
-	typedef Stream<Sock>	ThisT;
+	typedef Stream<Sock>			ThisT;
+	typedef ERROR_NS::error_code	ErrorCodeT;
 	
 	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
@@ -62,28 +63,6 @@ class Stream: public CompletionHandler{
 		}
 	}
 	
-	static void on_connect_completion(CompletionHandler& _rch, ReactorContext &_rctx){
-		ThisT &rthis = static_cast<ThisT&>(_rch);
-		
-		switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx), !FUNCTION_EMPTY(rthis.recv_fnc), !FUNCTION_EMPTY(rthis.send_fnc))){
-			case ReactorEventSend:
-				rthis.doConnect(_rctx);
-				break;
-			case ReactorEventRecvSend:
-				rthis.doConnect(_rctx);
-				break;
-			case ReactorEventHangup:
-			case ReactorEventError:
-				rthis.doError(_rctx);
-				break;
-			case ReactorEventClear:
-				rthis.doClear(_rctx);
-				break;
-			default:
-				cassert(false);
-		}
-	}
-	
 	//-------------
 	static void on_posted_recv_some(ReactorContext &_rctx, Event const&){
 		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
@@ -108,10 +87,12 @@ class Stream: public CompletionHandler{
 		RecvSomeFunctor(F &_rf):f(_rf){}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
-			F				tmpf(f);
-			const size_t	recv_sz = _rthis.recv_buf_sz;
-			_rthis.doClearRecv(_rctx);
-			tmpf(_rctx, recv_sz);
+			if(_rthis.doRecv(_rctx)){
+				F				tmpf(f);
+				const size_t	recv_sz = _rthis.recv_buf_sz;
+				_rthis.doClearRecv(_rctx);
+				tmpf(_rctx, recv_sz);
+			}
 		}
 	};
 	
@@ -122,10 +103,12 @@ class Stream: public CompletionHandler{
 		SendAllFunctor(F &_rf):f(_rf){}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
-			if(_rthis.send_buf_sz == _rthis.send_buf_cp){
-				F	tmpf(f);
-				_rthis.doClearSend(_rctx);
-				tmpf(_rctx);
+			if(_rthis.doSend(_rctx)){
+				if(_rthis.send_buf_sz == _rthis.send_buf_cp){
+					F	tmpf(f);
+					_rthis.doClearSend(_rctx);
+					tmpf(_rctx);
+				}
 			}
 		}
 	};
@@ -142,6 +125,7 @@ class Stream: public CompletionHandler{
 			tmpf(_rctx);
 		}
 	};
+	
 public:
 	Stream(
 		ObjectProxy const &_robj, SocketDevice &_rsd
@@ -191,27 +175,17 @@ public:
 	template <typename F>
 	bool recvSome(ReactorContext &_rctx, char *_buf, size_t _bufcp, F _f, size_t &_sz){
 		if(FUNCTION_EMPTY(recv_fnc)){
-			bool	can_retry;
-			int		rv = s.recv(_buf, _bufcp, can_retry);
-			if(rv > 0){
-				_sz = rv;
-				errorClear(_rctx);
-			}else if(rv == 0){
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-				_sz = 0;
-			}else if(rv == -1){
-				_sz = 0;
-				if(can_retry){
-					recv_buf = _buf;
-					recv_buf_cp = _bufcp;
-					recv_buf_sz = 0;
-					recv_fnc = RecvSomeFunctor<F>(_f);
-					errorClear(_rctx);
-					return false;
-				}else{
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-				}
+			recv_buf = _buf;
+			recv_buf_cp = _bufcp;
+			recv_buf_sz = 0;
+			
+			if(doRecv(_rctx)){
+				return true;
+			}else{
+				recv_fnc = RecvSomeFunctor<F>(_f);
+				return false;
 			}
+			
 		}else{
 			//TODO: set proper error
 			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
@@ -241,33 +215,20 @@ public:
 	template <typename F>
 	bool sendAll(ReactorContext &_rctx, char *_buf, size_t _bufcp, F _f){
 		if(FUNCTION_EMPTY(send_fnc)){
-			bool	can_retry;
-			int		rv = s.send(_buf, _bufcp, can_retry);
-			if(rv > 0){
-				_bufcp -= rv;
-				errorClear(_rctx);
-				if(_bufcp){
-					send_buf = _buf + rv;
-					send_buf_cp = _bufcp;
-					send_buf_sz = 0;
-					send_fnc = SendAllFunctor<F>(_f);
-					return false;
-				}
-			}else if(rv == 0){
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-			}else if(rv == -1){
-				if(can_retry){
-					send_buf = _buf;
-					send_buf_cp = _bufcp;
-					send_buf_sz = 0;
-					send_fnc = SendAllFunctor<F>(_f);
-					errorClear(_rctx);
-					return false;
+			send_buf = _buf;
+			send_buf_cp = _bufcp;
+			send_buf_sz = 0;
+			
+			if(doSend(_rctx)){
+				if(send_buf_sz == send_buf_cp){
+					return true;
 				}else{
-					//TODO: set proper error
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					send_fnc = SendAllFunctor<F>(_f);
 				}
+			}else{
+				return false;
 			}
+			
 		}else{
 			//TODO: set proper error
 			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
@@ -279,26 +240,27 @@ public:
 	bool connect(ReactorContext &_rctx, SocketAddressStub const &_rsas, F _f){
 		if(FUNCTION_EMPTY(send_fnc)){
 			errorClear(_rctx);
-			if(s.create(_rsas)){
+			ErrorCodeT	err;
+			if(s.create(_rsas, err)){
 				completionCallback(&on_completion);
 				addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
 				
-				bool	can_retry;
-				bool	rv = s.connect(_rsas, can_retry);
+				bool		can_retry;
+				bool		rv = s.connect(_rsas, can_retry, err);
 				if(rv){
 					
 				}else if(can_retry){
-					completionCallback(&on_connect_completion);
 					send_fnc = ConnectFunctor<F>(_f);
 					return false;
 				}else{
+					systemError(_rctx, err);
 					//TODO: set proper error
-					systemError(_rctx, specific_error_back());
 					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 				}
 			}else{
 				//TODO: set proper error
 				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				systemError(_rctx, err);
 			}
 			
 		}else{
@@ -311,22 +273,56 @@ public:
 	bool secureConnect(ReactorContext &_rctx, F _f){
 		if(FUNCTION_EMPTY(send_fnc)){
 			errorClear(_rctx);
-			if(s.secureConnect()){
-				
+			bool		can_retry;
+			ErrorCodeT	err;
+			if(s.secureConnect(can_retry, err)){
+			}else if(can_retry){
+				send_fnc = SecureConnectFunctor<F>(_f);
+				return false;
+			}else{
+				systemError(_rctx, err);
+				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 			}
 		}
 		return true;
 	}
+	
 	template <typename F>
 	bool secureAccept(ReactorContext &_rctx, F _f){
 		if(FUNCTION_EMPTY(recv_fnc)){
 			errorClear(_rctx);
-			if(s.secureAccept()){
-				
+			bool		can_retry;
+			ErrorCodeT	err;
+			if(s.secureAccept(can_retry, err)){
+			}else if(can_retry){
+				send_fnc = SecureAcceptFunctor<F>(_f);
+				return false;
+			}else{
+				systemError(_rctx, err);
+				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
 			}
 		}
 		return true;
 	}
+	
+	template <typename F>
+	bool secureShutdown(ReactorContext &_rctx, F _f){
+		if(FUNCTION_EMPTY(send_fnc)){
+			errorClear(_rctx);
+			bool		can_retry;
+			ErrorCodeT	err;
+			if(s.secureShutdown(can_retry, err)){
+			}else if(can_retry){
+				send_fnc = SecureShutdownFunctor<F>(_f);
+				return false;
+			}else{
+				systemError(_rctx, err);
+				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			}
+		}
+		return true;
+	}
+	
 	void shutdown(ReactorContext &_rctx){
 		s.shutdown();
 	}
@@ -340,49 +336,63 @@ private:
 		reactor(_rctx).post(_rctx, evfn, Event(), *this);
 	}
 	
+	
 	void doRecv(ReactorContext &_rctx){
 		if(!FUNCTION_EMPTY(recv_fnc)){
-			bool	can_retry;
-			int		rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry);
-			if(rv > 0){
-				recv_buf_sz += rv;
-				recv_buf += rv;
-			}else if(rv == 0){
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-				recv_buf_sz = recv_buf_cp = 0;
-			}else if(rv < 0){
-				if(can_retry){
-					return;
-				}else{
-					recv_buf_sz = recv_buf_cp = 0;
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-				}
-			}
+			errorClear(_rctx);
 			recv_fnc(*this, _rctx);
 		}
 	}
 	
 	void doSend(ReactorContext &_rctx){
 		if(!FUNCTION_EMPTY(send_fnc)){
-			bool	can_retry;
-			int		rv = s.send(send_buf, send_buf_cp - send_buf_sz, can_retry);
-			
-			if(rv > 0){
-				send_buf_sz += rv;
-				send_buf += rv;
-			}else if(rv == 0){
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-				send_buf_sz = send_buf_cp = 0;
-			}else if(rv < 0){
-				if(can_retry){
-					return;
-				}else{
-					send_buf_sz = send_buf_cp = 0;
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
-				}
-			}
+			errorClear(_rctx);
 			send_fnc(*this, _rctx);
 		}
+	}
+	bool doRecv(ReactorContext &_rctx){
+		bool		can_retry;
+		ErrorCodeT	err;
+		int			rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
+		if(rv > 0){
+			recv_buf_sz += rv;
+			recv_buf += rv;
+		}else if(rv == 0){
+			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			recv_buf_sz = recv_buf_cp = 0;
+		}else if(rv < 0){
+			if(can_retry){
+				return false;
+			}else{
+				recv_buf_sz = recv_buf_cp = 0;
+				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				systemError(_rctx, err);
+			}
+		}
+		return true;
+	}
+	
+	bool doSend(ReactorContext &_rctx){
+		bool		can_retry;
+		ErrorCodeT	err;
+		int			rv = s.send(send_buf, send_buf_cp - send_buf_sz, can_retry, err);
+		
+		if(rv > 0){
+			send_buf_sz += rv;
+			send_buf += rv;
+		}else if(rv == 0){
+			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			send_buf_sz = send_buf_cp = 0;
+		}else if(rv < 0){
+			if(can_retry){
+				return false;
+			}else{
+				send_buf_sz = send_buf_cp = 0;
+				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				systemError(_rctx, err);
+			}
+		}
+		return true;
 	}
 	
 	void doError(ReactorContext &_rctx){
@@ -398,12 +408,6 @@ private:
 			recv_buf_sz = recv_buf_cp = 0;
 			recv_fnc(*this, _rctx);
 		}
-	}
-	
-	void doConnect(ReactorContext &_rctx){
-		cassert(!FUNCTION_EMPTY(send_fnc));
-		completionCallback(&on_completion);
-		send_fnc(*this, _rctx);
 	}
 	
 	void doClearRecv(ReactorContext &_rctx){
