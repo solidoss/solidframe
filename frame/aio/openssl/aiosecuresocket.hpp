@@ -12,6 +12,7 @@
 
 #include "frame/aio/aiocommon.hpp"
 #include "system/socketdevice.hpp"
+#include "openssl/ssl.h"
 #include <cerrno>
 
 namespace solid{
@@ -26,17 +27,17 @@ public:
 	
 	Socket(Context &_rctx, SocketDevice &_rsd);
 	
-	Socket();
+	Socket(Context &_rctx);
 	
 	~Socket();
 	
-	SocketDevice reset(Context &_rctx, SocketDevice &_rsd);
+	SocketDevice reset(Context &_rctx, SocketDevice &_rsd, ErrorCodeT &_rerr);
 	
 	void shutdown();
 	
-	bool create(Context &_rctx, SocketAddressStub const &_rsas);
+	bool create(SocketAddressStub const &_rsas, ErrorCodeT &_rerr);
 	
-	bool connect(SocketAddressStub const &_rsas, bool &_can_retry);
+	bool connect(SocketAddressStub const &_rsas, bool &_can_retry, ErrorCodeT &_rerr);
 	
 	ReactorEventsE filterReactorEvents(
 		const  ReactorEventsE _evt,
@@ -44,19 +45,19 @@ public:
 		const bool /*_pendign_send*/
 	) const;
 	
-	int recv(char *_pb, size_t _bl, bool &_can_retry);
+	int recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr);
 	
-	int send(const char *_pb, size_t _bl, bool &_can_retry);
+	int send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr);
 	
 	SocketDevice const& device()const;
 	
-	int recvFrom(char *_pb, size_t _bl, SocketAddress &_addr, bool &_can_retry);
+	int recvFrom(char *_pb, size_t _bl, SocketAddress &_addr, bool &_can_retry, ErrorCodeT &_rerr);
 	
-	int sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, bool &_can_retry);
+	int sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, bool &_can_retry, ErrorCodeT &_rerr);
 	
-	bool secureAccept(bool &_can_retry);
-	bool secureConnect(bool &_can_retry);
-	bool secureShutdown(bool &_can_retry);
+	bool secureAccept(bool &_can_retry, ErrorCodeT &_rerr);
+	bool secureConnect(bool &_can_retry, ErrorCodeT &_rerr);
+	bool secureShutdown(bool &_can_retry, ErrorCodeT &_rerr);
 private:
 	SSL				*pssl;
 	SocketDevice	sd;

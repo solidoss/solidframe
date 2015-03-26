@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_AIO_OPENSSL_SECURE_SOCKET_HPP
-#define SOLID_FRAME_AIO_OPENSSL_SECURE_SOCKET_HPP
+#ifndef SOLID_FRAME_AIO_OPENSSL_SECURE_CONTEXT_HPP
+#define SOLID_FRAME_AIO_OPENSSL_SECURE_CONTEXT_HPP
 
 #include "openssl/ssl.h"
 #include "system/error.hpp"
@@ -18,6 +18,7 @@ namespace frame{
 namespace aio{
 namespace openssl{
 
+class Socket;
 class Context{
 public:
 	typedef ERROR_NS::error_code ErrorCodeT;
@@ -43,6 +44,7 @@ private:
 	Context(Context const&);
 	Context& operator=(Context const&);
 private:
+	friend class Socket;
 	SSL_CTX	*pctx;
 };
 

@@ -255,7 +255,6 @@ public:
 				if(rv){
 					
 				}else if(can_retry){
-					completionCallback(&on_connect_completion);
 					send_fnc = ConnectFunctor<F>(_f);
 					return false;
 				}else{

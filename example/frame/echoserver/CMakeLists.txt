@@ -21,6 +21,7 @@ add_executable (example_secure_echoserver secureechoserver.cpp)
 target_link_libraries (example_secure_echoserver
 	solid_frame
 	solid_frame_aio
+	solid_frame_aio_openssl
 	solid_serialization
 	solid_utility
 	solid_system

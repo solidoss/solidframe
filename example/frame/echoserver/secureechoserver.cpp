@@ -6,6 +6,9 @@
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aiolistener.hpp"
 #include "frame/aio/aiotimer.hpp"
+#include "frame/aio/openssl/aiosecurecontext.hpp"
+#include "frame/aio/openssl/aiosecuresocket.hpp"
+
 
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
@@ -26,6 +29,7 @@ using namespace solid;
 using namespace std::placeholders;
 
 typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
+typedef frame::aio::openssl::Context			SecureContextT;
 
 enum Events{
 	EventStartE = 0,
@@ -68,6 +72,9 @@ static void term_handler(int signum){
 		}
     }
 }
+
+SecureContextT		secure_ctx(SecureContextT::create());
+
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
@@ -77,7 +84,9 @@ public:
 		frame::Service &_rsvc,
 		AioSchedulerT &_rsched,
 		SocketDevice &_rsd
-	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd), ptimer(nullptr), timercnt(0){}
+	):
+		rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd), ptimer(nullptr), timercnt(0)
+	{}
 	~Listener(){
 		delete ptimer;
 	}
@@ -87,8 +96,8 @@ private:
 	
 	void onTimer(frame::aio::ReactorContext &_rctx);
 	
-	typedef frame::aio::Listener		ListenerSocketT;
-	typedef frame::aio::Timer			TimerT;
+	typedef frame::aio::Listener			ListenerSocketT;
+	typedef frame::aio::Timer				TimerT;
 	
 	frame::Service		&rsvc;
 	AioSchedulerT		&rsch;
@@ -108,9 +117,9 @@ private:
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 protected:
-	Connection():sock(this->proxy()), recvcnt(0), sendcnt(0){}
+	Connection():sock(this->proxy(), secure_ctx), recvcnt(0), sendcnt(0){}
 public:
-	Connection(SocketDevice &_rsd):sock(this->proxy(), _rsd), recvcnt(0), sendcnt(0){}
+	Connection(SocketDevice &_rsd, SecureContextT &_rctx):sock(this->proxy(), _rsd, _rctx), recvcnt(0), sendcnt(0){}
 	~Connection(){}
 protected:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
@@ -118,8 +127,8 @@ protected:
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	void onTimer(frame::aio::ReactorContext &_rctx);
 protected:
-	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
-	//typedef frame::aio::Timer							TimerT;
+	typedef frame::aio::Stream<frame::aio::openssl::Socket>		StreamSocketT;
+	//typedef frame::aio::Timer									TimerT;
 	enum {BufferCapacity = 1024 * 2};
 	
 	char			buf[BufferCapacity];
@@ -140,30 +149,6 @@ public:
 };
 #endif
 
-
-#define USE_TALKER
-
-#include "frame/aio/aiodatagram.hpp"
-#include "frame/aio/aiosocket.hpp"
-
-#ifdef USE_TALKER
-class Talker: public Dynamic<Talker, frame::aio::Object>{
-public:
-	Talker(SocketDevice &_rsd):sock(this->proxy(), _rsd){}
-	~Talker(){}
-private:
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
-	void onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz);
-	void onSend(frame::aio::ReactorContext &_rctx);
-private:
-	typedef frame::aio::Datagram<frame::aio::Socket>	DatagramSocketT;
-	
-	enum {BufferCapacity = 1024 * 2 };
-	
-	char			buf[BufferCapacity];
-	DatagramSocketT	sock;
-};
-#endif
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
@@ -250,26 +235,6 @@ int main(int argc, char *argv[]){
 				
 				idbg("Started Client Connection object: "<<objuid.index<<','<<objuid.unique);
 				
-			}
-#endif
-#ifdef USE_TALKER			
-			rd = synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-			
-			sd.create(rd.begin());
-			sd.bind(rd.begin());
-			
-			if(sd.ok()){
-				DynamicPointer<frame::aio::Object>	objptr(new Talker(sd));
-				
-				solid::ErrorConditionT				err;
-				solid::frame::ObjectUidT			objuid;
-				
-				objuid = sch.startObject(objptr, svc, frame::Event(EventStartE), err);
-				
-				idbg("Started Talker object: "<<objuid.index<<','<<objuid.unique);
-			}else{
-				cout<<"Error creating talker socket"<<endl;
-				running = false;
 			}
 #endif
 		}
@@ -363,9 +328,11 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 #ifdef USE_CONNECTION
 			//cout<<"recvbuffsz = "<<_rsd.recvBufferSize().second<<endl;
 			//cout<<"sendbuffsz = "<<_rsd.sendBufferSize().second<<endl;
-			_rsd.recvBufferSize(1024 * 64);
-			_rsd.sendBufferSize(1024 * 32);
-			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
+			int sz = 1024 * 64;
+			_rsd.recvBufferSize(sz);
+			sz = 10224 * 32;
+			_rsd.sendBufferSize(sz);
+			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd, secure_ctx));
 			solid::ErrorConditionT				err;
 			
 			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);
@@ -507,56 +474,3 @@ void ClientConnection::onConnect(frame::aio::ReactorContext &_rctx){
 
 #endif
 
-//-----------------------------------------------------------------------------
-//		Talker
-//-----------------------------------------------------------------------------
-#ifdef USE_TALKER
-/*virtual*/ void Talker::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg(this<<" "<<_revent.id);
-	
-	if(_revent.id == EventStartE){
-		sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
-	}else if(_revent.id == EventStopE){
-		edbg(this<<" postStop");
-		postStop(_rctx);
-	}
-}
-
-
-void Talker::onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){
-	unsigned	repeatcnt = 10;
-	do{
-		if(!_rctx.error()){
-			if(sock.sendTo(_rctx, buf, _sz, _raddr, std::bind(&Talker::onSend, this, _1))){
-				if(_rctx.error()){
-					edbg(this<<" postStop");
-					postStop(_rctx);
-					break;
-				}
-			}else{
-				break;
-			}
-		}else{
-			edbg(this<<" postStop");
-			postStop(_rctx);
-			break;
-		}
-		--repeatcnt;
-	}while(repeatcnt && sock.recvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3), _raddr, _sz));
-	
-	idbg(repeatcnt);
-	if(repeatcnt == 0){
-		bool rv = sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
-		cassert(!rv);
-	}
-}
-
-void Talker::onSend(frame::aio::ReactorContext &_rctx){
-	if(!_rctx.error()){
-		sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
-	}else{
-		postStop(_rctx);
-	}
-}
-
-#endif

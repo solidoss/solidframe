@@ -157,13 +157,23 @@ class Stream: public CompletionHandler{
 	};
 	
 public:
-	Stream(
+	explicit Stream(
 		ObjectProxy const &_robj, SocketDevice &_rsd
 	):CompletionHandler(_robj, on_init_completion), s(_rsd){}
+	
+	template <class Ctx>
+	Stream(
+		ObjectProxy const &_robj, SocketDevice &_rsd, Ctx &_rctx
+	):CompletionHandler(_robj, on_init_completion), s(_rctx, _rsd){}
 	
 	Stream(
 		ObjectProxy const &_robj
 	):CompletionHandler(_robj, on_dummy_completion){}
+	
+	template <class Ctx>
+	explicit Stream(
+		ObjectProxy const &_robj, Ctx &_rctx
+	):CompletionHandler(_robj, on_dummy_completion), s(_rctx){}
 	
 	
 	bool hasPendingRecv()const{
