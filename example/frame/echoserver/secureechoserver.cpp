@@ -1,3 +1,12 @@
+/* 
+
+$ openssl genrsa 2048 > ca-key.pem
+$ openssl req -new -x509 -nodes -days 1000 -key ca-key.pem > ca-cert.pem
+$ openssl req -newkey rsa:2048 -days 1000 -nodes -keyout server-key.pem > server-req.pem
+$ openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 > server-cert.pem
+
+*/
+
 #include "frame/manager.hpp"
 #include "frame/scheduler.hpp"
 #include "frame/service.hpp"
@@ -126,6 +135,7 @@ protected:
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	void onTimer(frame::aio::ReactorContext &_rctx);
+	static void onSecureAccept(frame::aio::ReactorContext &_rctx);
 protected:
 	typedef frame::aio::Stream<frame::aio::openssl::Socket>		StreamSocketT;
 	//typedef frame::aio::Timer									TimerT;
@@ -193,6 +203,9 @@ int main(int argc, char *argv[]){
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
+	secure_ctx.loadCertificateFile("echo-server-cert.pem");
+	secure_ctx.loadPrivateKeyFile("echo-server-key.pem");
+	
 	{
 		
 		AioSchedulerT		sch;
@@ -324,7 +337,6 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	
 	do{
 		if(!_rctx.error()){
-			//_rsd.enableNoDelay();
 #ifdef USE_CONNECTION
 			//cout<<"recvbuffsz = "<<_rsd.recvBufferSize().second<<endl;
 			//cout<<"sendbuffsz = "<<_rsd.sendBufferSize().second<<endl;
@@ -336,6 +348,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			solid::ErrorConditionT				err;
 			
 			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);
+			
 #else
 			cout<<"Accepted connection: "<<_rsd.descriptor()<<endl;
 #endif
@@ -373,7 +386,15 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	edbg(this<<" "<<_revent.id);
 	if(_revent.id == EventStartE){
-		sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
+		//sock.secureRenegotiate(_rctx);
+		if(sock.secureAccept(_rctx, Connection::onSecureAccept)){
+			if(_rctx.error()){
+				sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
+			}else{
+				edbg(this<<" postStop");
+				postStop(_rctx);
+			}
+		}
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	}else if(_revent.id == EventStopE){
 		edbg(this<<" postStop");
@@ -424,7 +445,18 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 		idbg(&rthis<<" postRecvSome");
 		rthis.sendcnt += rthis.sendcrt;
 		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
+		rthis.sock.secureRenegotiate(_rctx);
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+	}else{
+		edbg(&rthis<<" postStop "<<rthis.recvcnt<<" "<<rthis.sendcnt);
+		rthis.postStop(_rctx);
+	}
+}
+
+/*static*/ void Connection::onSecureAccept(frame::aio::ReactorContext &_rctx){
+	Connection &rthis = static_cast<Connection&>(_rctx.object());
+	if(!_rctx.error()){
+		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
 	}else{
 		edbg(&rthis<<" postStop "<<rthis.recvcnt<<" "<<rthis.sendcnt);
 		rthis.postStop(_rctx);

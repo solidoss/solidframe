@@ -11,6 +11,7 @@
 #include "frame/aio/openssl/aiosecurecontext.hpp"
 #include "system/mutex.hpp"
 #include "system/thread.hpp"
+#include "system/cassert.hpp"
 
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
@@ -143,13 +144,22 @@ ErrorCodeT Context::loadPrivateKeyFile(const char *_path){
 //=============================================================================
 
 
-Socket::Socket(Context &_rctx, SocketDevice &_rsd):sd(_rsd){
+Socket::Socket(
+	Context &_rctx, SocketDevice &_rsd
+):sd(_rsd), want_read_on_recv(false), want_read_on_send(false), want_write_on_recv(false), want_write_on_send(false){
 	pssl = SSL_new(_rctx.pctx);
-	
+	::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
+	::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+	if(sd.ok()){
+		sd.makeNonBlocking();
+		SSL_set_fd(pssl, sd.descriptor());
+	}
 }
 	
-Socket::Socket(Context &_rctx){
+Socket::Socket(Context &_rctx): want_read_on_recv(false), want_read_on_send(false), want_write_on_recv(false), want_write_on_send(false){
 	pssl = SSL_new(_rctx.pctx);
+	::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
+	::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
 }
 
 Socket::~Socket(){
@@ -157,17 +167,32 @@ Socket::~Socket(){
 }
 
 SocketDevice Socket::reset(Context &_rctx, SocketDevice &_rsd, ErrorCodeT &_rerr){
-	return SocketDevice();
+	SocketDevice tmpsd = sd;
+	sd = _rsd;
+	if(sd.ok()){
+		sd.makeNonBlocking();
+		SSL_set_fd(pssl, sd.descriptor());
+	}else{
+		SSL_set_fd(pssl, -1);
+	}
+	return tmpsd;
 }
 
 void Socket::shutdown(){
 	sd.shutdownReadWrite();
 }
 
+SocketDevice const& Socket::device()const{
+	return sd;
+}
+
 bool Socket::create(SocketAddressStub const &_rsas, ErrorCodeT &_rerr){
 	_rerr = sd.create(_rsas.family());
 	if(!_rerr){
 		_rerr = sd.makeNonBlocking();
+	}
+	if(!_rerr){
+		SSL_set_fd(pssl, sd.descriptor());
 	}
 	return !_rerr;
 }
@@ -177,24 +202,201 @@ bool Socket::connect(SocketAddressStub const &_rsas, bool &_can_retry, ErrorCode
 	return !_rerr;
 }
 
+ErrorCodeT Socket::renegotiate(){
+	int rv = ::SSL_renegotiate(pssl);
+	ErrorCodeT err;
+	err.assign(rv, err.category());
+	return err;
+}
+
 ReactorEventsE Socket::filterReactorEvents(
-	const  ReactorEventsE _evt,
-	const bool /*_pending_recv*/,
-	const bool /*_pendign_send*/
+	const  ReactorEventsE _evt
 ) const{
-	return _evt;
+	switch(_evt){
+		case ReactorEventRecv:
+			if(want_read_on_send and want_read_on_recv){
+				return ReactorEventSendRecv;
+			}else if(want_read_on_send){
+				return ReactorEventSend;
+			}else if(want_read_on_recv){
+				return ReactorEventRecv;
+			}
+			break;
+		case ReactorEventSend:
+			if(want_write_on_send and want_write_on_recv){
+				return ReactorEventRecvSend;
+			}else if(want_write_on_recv){
+				return ReactorEventRecv;
+			}else if(want_write_on_send){
+				return ReactorEventSend;
+			}
+			break;
+		case ReactorEventRecvSend:
+			if(want_read_on_send and (want_read_on_recv or want_write_on_recv)){
+				return ReactorEventSendRecv;
+			}else if((want_write_on_send or want_write_on_send) and (want_write_on_recv or want_read_on_recv)){
+				return _evt;
+			}else if(want_write_on_send or want_read_on_send){
+				return ReactorEventSend;
+			}else if(want_read_on_recv or want_write_on_recv){
+				return ReactorEventRecv;
+			}
+			break;
+		default:
+			break;
+	}
+	return ReactorEventNone;
 }
 
 int Socket::recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
+	want_read_on_recv = want_write_on_recv = false;
+	int rv = ::SSL_read(pssl, _pb, _bl);
+	switch(::SSL_get_error(pssl, rv)){
+		case SSL_ERROR_NONE:
+			_can_retry = false;
+			return rv;
+		case SSL_ERROR_ZERO_RETURN:
+			_can_retry = false;
+			return 0;
+		case SSL_ERROR_WANT_READ:
+			_can_retry = true;
+			want_read_on_recv = true;
+			return -1;
+		case SSL_ERROR_WANT_WRITE:
+			_can_retry = true;
+			want_write_on_recv = true;
+			return -1;
+		case SSL_ERROR_SYSCALL:
+		case SSL_ERROR_SSL:
+			_can_retry = false;
+			_rerr.assign(-1, _rerr.category());
+			break;
+		case SSL_ERROR_WANT_X509_LOOKUP:
+			//for reschedule, we can return -1 but not set the _rerr
+		default:
+			cassert(false);
+			break;
+	}
 	return -1;
 }
 
 int Socket::send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
+	want_read_on_send = want_write_on_send = false;
+	int rv = ::SSL_write(pssl, _pb, _bl);
+	switch(::SSL_get_error(pssl, rv)){
+		case SSL_ERROR_NONE:
+			_can_retry = false;
+			return rv;
+		case SSL_ERROR_ZERO_RETURN:
+			_can_retry = false;
+			return 0;
+		case SSL_ERROR_WANT_READ:
+			_can_retry = true;
+			want_read_on_send = true;
+			return -1;
+		case SSL_ERROR_WANT_WRITE:
+			_can_retry = true;
+			want_write_on_send = true;
+			return -1;
+		case SSL_ERROR_SYSCALL:
+		case SSL_ERROR_SSL:
+			_can_retry = false;
+			_rerr.assign(-1, _rerr.category());
+			break;
+		case SSL_ERROR_WANT_X509_LOOKUP:
+			//for reschedule, we can return -1 but not set the _rerr
+		default:
+			cassert(false);
+			break;
+	}
 	return -1;
 }
 
-SocketDevice const& Socket::device()const{
-	return sd;
+bool Socket::secureAccept(bool &_can_retry, ErrorCodeT &_rerr){
+	want_read_on_recv = want_write_on_recv = false;
+	int rv = ::SSL_accept(pssl);
+	switch(::SSL_get_error(pssl, rv)){
+		case SSL_ERROR_NONE:
+			_can_retry = false;
+			return true;
+		case SSL_ERROR_WANT_READ:
+			_can_retry = true;
+			want_read_on_recv = true;
+			return false;
+		case SSL_ERROR_WANT_WRITE:
+			_can_retry = true;
+			want_write_on_recv = true;
+			return false;
+		case SSL_ERROR_SYSCALL:
+		case SSL_ERROR_SSL:
+			_can_retry = false;
+			_rerr.assign(-1, _rerr.category());
+			break;
+		case SSL_ERROR_WANT_X509_LOOKUP:
+			//for reschedule, we can return -1 but not set the _rerr
+		default:
+			cassert(false);
+			break;
+	}
+	return false;
+}
+
+bool Socket::secureConnect(bool &_can_retry, ErrorCodeT &_rerr){
+	want_read_on_send = want_write_on_send = false;
+	int rv = ::SSL_connect(pssl);
+	switch(::SSL_get_error(pssl, rv)){
+		case SSL_ERROR_NONE:
+			_can_retry = false;
+			return true;
+		case SSL_ERROR_WANT_READ:
+			_can_retry = true;
+			want_read_on_send = true;
+			return false;
+		case SSL_ERROR_WANT_WRITE:
+			_can_retry = true;
+			want_write_on_send = true;
+			return false;
+		case SSL_ERROR_SYSCALL:
+		case SSL_ERROR_SSL:
+			_can_retry = false;
+			_rerr.assign(-1, _rerr.category());
+			break;
+		case SSL_ERROR_WANT_X509_LOOKUP:
+			//for reschedule, we can return -1 but not set the _rerr
+		default:
+			cassert(false);
+			break;
+	}
+	return false;
+}
+
+bool Socket::secureShutdown(bool &_can_retry, ErrorCodeT &_rerr){
+	want_read_on_send = want_write_on_send = false;
+	int rv = ::SSL_shutdown(pssl);
+	switch(::SSL_get_error(pssl, rv)){
+		case SSL_ERROR_NONE:
+			_can_retry = false;
+			return true;
+		case SSL_ERROR_WANT_READ:
+			_can_retry = true;
+			want_read_on_send = true;
+			return false;
+		case SSL_ERROR_WANT_WRITE:
+			_can_retry = true;
+			want_write_on_send = true;
+			return false;
+		case SSL_ERROR_SYSCALL:
+		case SSL_ERROR_SSL:
+			_can_retry = false;
+			_rerr.assign(-1, _rerr.category());
+			break;
+		case SSL_ERROR_WANT_X509_LOOKUP:
+			//for reschedule, we can return -1 but not set the _rerr
+		default:
+			cassert(false);
+			break;
+	}
+	return false;
 }
 
 int Socket::recvFrom(char *_pb, size_t _bl, SocketAddress &_addr, bool &_can_retry, ErrorCodeT &_rerr){
@@ -205,17 +407,6 @@ int Socket::sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, 
 	return -1;
 }
 
-bool Socket::secureAccept(bool &_can_retry, ErrorCodeT &_rerr){
-	return false;
-}
-
-bool Socket::secureConnect(bool &_can_retry, ErrorCodeT &_rerr){
-	return false;
-}
-
-bool Socket::secureShutdown(bool &_can_retry, ErrorCodeT &_rerr){
-	return false;
-}
 
 }//namespace openssl
 }//namespace aio

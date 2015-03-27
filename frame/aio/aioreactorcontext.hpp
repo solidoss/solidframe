@@ -42,7 +42,7 @@ struct ReactorContext{
 		return syserr;
 	}
 	
-	ERROR_NS::error_condition const& error()const{
+	ErrorConditionT const& error()const{
 		return err;
 	}
 	
@@ -73,7 +73,7 @@ private:
 	CompletionHandler* completionHandler()const;
 	
 	
-	void error(ERROR_NS::error_condition const& _err){
+	void error(ErrorConditionT const& _err){
 		err = _err;
 	}
 	
@@ -93,7 +93,7 @@ private:
 	size_t						objidx;
 	ReactorEventsE				reactevn;
 	ERROR_NS::error_code		syserr;
-	ERROR_NS::error_condition	err;
+	ErrorConditionT	err;
 };
 
 }//namespace aio

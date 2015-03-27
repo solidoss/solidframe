@@ -557,11 +557,10 @@ ErrorCodeT SocketDevice::create(const ResolveIterator &_rri){
 	//SOCKET s = socket(_rai.family(), _rai.type(), _rai.protocol());
 	SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
-	return last_socket_error();
 #else
-	Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));
-	return last_socket_error();
+	Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));	
 #endif
+	return ok() ? ErrorCodeT() : last_socket_error();
 }
 
 ErrorCodeT SocketDevice::create(
@@ -573,34 +572,30 @@ ErrorCodeT SocketDevice::create(
 	//SOCKET s = socket(_family, _type, _proto);
 	SOCKET s = WSASocket(_family, _type, _proto, NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
-	return last_socket_error();
 #else
 	Device::descriptor(socket(_family, _type, _proto));
-	return last_socket_error();
 #endif
+	return ok() ? ErrorCodeT() : last_socket_error();
 }
 
 ErrorCodeT SocketDevice::connect(const SocketAddressStub &_rsas, bool &_rcan_wait){
 #ifdef ON_WINDOWS
-	/*const int rv = */::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-	return last_socket_error();
+	const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+	_rcan_wait = (WSAGetLastError() == WSAEWOULDBLOCK);
 #else
-	/*const int rv = */::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+	const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	_rcan_wait = (errno == EINPROGRESS);
-	return last_socket_error();
 #endif
+	return rv == 0 ? ErrorCodeT() : last_socket_error();
 }
 
 ErrorCodeT SocketDevice::connect(const SocketAddressStub &_rsas){
 #ifdef ON_WINDOWS
-	/*int rv = */::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-	
-	return last_socket_error();
+	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #else
-	/*int rv = */::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-	return last_socket_error();
+	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #endif
+	return rv == 0 ? ErrorCodeT() : last_socket_error();
 }
 
 // int SocketDevice::connect(const ResolveIterator &_rai){
@@ -656,7 +651,7 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub &_rsas, size_t _l
 	if(rv < 0){
 		return last_socket_error();
 	}
-	return last_socket_error();
+	return ErrorCodeT();
 #endif
 }
 
@@ -672,7 +667,7 @@ ErrorCodeT SocketDevice::accept(SocketDevice &_dev, bool &_rcan_retry){
 	const int rv = ::accept(descriptor(), sa, &sa.sz);
 	_rcan_retry = (errno == EAGAIN);
 	_dev.Device::descriptor(rv);
-	return last_socket_error();
+	return rv > 0 ? ErrorCodeT() : last_socket_error();
 #endif
 }
 
@@ -686,7 +681,7 @@ ErrorCodeT SocketDevice::accept(SocketDevice &_dev){
 	SocketAddress sa;
 	int rv = ::accept(descriptor(), sa, &sa.sz);
 	_dev.Device::descriptor(rv);
-	return last_socket_error();
+	return rv > 0 ? ErrorCodeT() : last_socket_error();
 #endif
 }
 
@@ -697,8 +692,8 @@ ErrorCodeT SocketDevice::bind(const SocketAddressStub &_rsa){
 	/*int rv = */::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
 	return last_socket_error();
 #else
-	/*int rv = */::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
-	return last_socket_error();
+	int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
+	return rv == 0 ? ErrorCodeT() : last_socket_error();
 #endif
 }
 

@@ -36,7 +36,9 @@ class Stream: public CompletionHandler{
 	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
 		
-		switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx), !FUNCTION_EMPTY(rthis.recv_fnc), !FUNCTION_EMPTY(rthis.send_fnc))){
+		switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx))){
+			case ReactorEventNone:
+				break;
 			case ReactorEventRecv:
 				rthis.doRecv(_rctx);
 				break;
@@ -133,6 +135,19 @@ class Stream: public CompletionHandler{
 		SecureConnectFunctor(F &_rf):f(_rf){}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
+			_rthis.errorClear(_rctx);
+			bool		can_retry;
+			ErrorCodeT	err;
+			if(_rthis.s.secureConnect(can_retry, err)){
+			}else if(can_retry){
+				return;
+			}else{
+				_rthis.systemError(_rctx, err);
+				_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			}
+			F	tmpf(f);
+			_rthis.doClearRecv(_rctx);
+			tmpf(_rctx);
 		}
 	};
 	
@@ -143,6 +158,19 @@ class Stream: public CompletionHandler{
 		SecureAcceptFunctor(F &_rf):f(_rf){}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
+			_rthis.errorClear(_rctx);
+			bool		can_retry;
+			ErrorCodeT	err;
+			if(_rthis.s.secureAccept(can_retry, err)){
+			}else if(can_retry){
+				return;
+			}else{
+				_rthis.systemError(_rctx, err);
+				_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			}
+			F	tmpf(f);
+			_rthis.doClearRecv(_rctx);
+			tmpf(_rctx);
 		}
 	};
 	
@@ -153,6 +181,19 @@ class Stream: public CompletionHandler{
 		SecureShutdownFunctor(F &_rf):f(_rf){}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
+			_rthis.errorClear(_rctx);
+			bool		can_retry;
+			ErrorCodeT	err;
+			if(_rthis.s.secureShutdown(can_retry, err)){
+			}else if(can_retry){
+				return;
+			}else{
+				_rthis.systemError(_rctx, err);
+				_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			}
+			F	tmpf(f);
+			_rthis.doClearSend(_rctx);
+			tmpf(_rctx);
 		}
 	};
 	
@@ -207,7 +248,7 @@ public:
 			return false;
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			return true;
 		}
 	}
@@ -228,7 +269,7 @@ public:
 			
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		}
 		return true;
 	}
@@ -246,7 +287,7 @@ public:
 			return false;
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			cassert(false);
 			return true;
 		}
@@ -271,7 +312,7 @@ public:
 			
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		}
 		return true;
 	}
@@ -295,20 +336,25 @@ public:
 				}else{
 					systemError(_rctx, err);
 					//TODO: set proper error
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				}
 			}else{
 				//TODO: set proper error
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				systemError(_rctx, err);
 			}
 			
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		}
 		return true;
 	}
+	
+	void shutdown(ReactorContext &_rctx){
+		s.shutdown();
+	}
+	
 	template <typename F>
 	bool secureConnect(ReactorContext &_rctx, F _f){
 		if(FUNCTION_EMPTY(send_fnc)){
@@ -321,7 +367,7 @@ public:
 				return false;
 			}else{
 				systemError(_rctx, err);
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			}
 		}
 		return true;
@@ -335,11 +381,11 @@ public:
 			ErrorCodeT	err;
 			if(s.secureAccept(can_retry, err)){
 			}else if(can_retry){
-				send_fnc = SecureAcceptFunctor<F>(_f);
+				recv_fnc = SecureAcceptFunctor<F>(_f);
 				return false;
 			}else{
 				systemError(_rctx, err);
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			}
 		}
 		return true;
@@ -357,14 +403,18 @@ public:
 				return false;
 			}else{
 				systemError(_rctx, err);
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			}
 		}
 		return true;
 	}
 	
-	void shutdown(ReactorContext &_rctx){
-		s.shutdown();
+	void secureRenegotiate(ReactorContext &_rctx){
+		ErrorCodeT	err = s.renegotiate();
+		if(err){
+			systemError(_rctx, err);
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+		}
 	}
 private:
 	void doPostRecvSome(ReactorContext &_rctx){
@@ -398,14 +448,14 @@ private:
 			recv_buf_sz += rv;
 			recv_buf += rv;
 		}else if(rv == 0){
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			recv_buf_sz = recv_buf_cp = 0;
 		}else if(rv < 0){
 			if(can_retry){
 				return false;
 			}else{
 				recv_buf_sz = recv_buf_cp = 0;
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				systemError(_rctx, err);
 			}
 		}
@@ -421,14 +471,14 @@ private:
 			send_buf_sz += rv;
 			send_buf += rv;
 		}else if(rv == 0){
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			send_buf_sz = send_buf_cp = 0;
 		}else if(rv < 0){
 			if(can_retry){
 				return false;
 			}else{
 				send_buf_sz = send_buf_cp = 0;
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				systemError(_rctx, err);
 			}
 		}
@@ -438,7 +488,7 @@ private:
 	void doError(ReactorContext &_rctx){
 		edbg("");
 		//TODO: set propper error
-		error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+		error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		
 		if(!FUNCTION_EMPTY(send_fnc)){
 			send_buf_sz = send_buf_cp = 0;

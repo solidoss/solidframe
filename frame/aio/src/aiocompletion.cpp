@@ -58,7 +58,7 @@ Reactor& CompletionHandler::reactor(ReactorContext &_rctx)const{
 	return _rctx.reactor();
 }
 
-void CompletionHandler::error(ReactorContext &_rctx, ERROR_NS::error_condition const& _err)const{
+void CompletionHandler::error(ReactorContext &_rctx, ErrorConditionT const& _err)const{
 	_rctx.error(_err);
 }
 

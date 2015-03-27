@@ -54,7 +54,7 @@ protected:
 	void completionCallback(CallbackT _pcbk);
 	ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
 	Reactor& reactor(ReactorContext &_rctx)const;
-	void error(ReactorContext &_rctx, ERROR_NS::error_condition const& _err)const;
+	void error(ReactorContext &_rctx, ErrorConditionT const& _err)const;
 	void errorClear(ReactorContext &_rctx)const;
 	void systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const;
 	void addTimer(ReactorContext &_rctx, TimeSpec const&_rt, size_t &_storedidx);

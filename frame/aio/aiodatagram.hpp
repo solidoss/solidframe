@@ -36,7 +36,9 @@ class Datagram: public CompletionHandler{
 	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
 		
-		switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx), !FUNCTION_EMPTY(rthis.recv_fnc), !FUNCTION_EMPTY(rthis.send_fnc))){
+		switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx))){
+			case ReactorEventNone:
+				break;
 			case ReactorEventRecv:
 				rthis.doRecv(_rctx);
 				break;
@@ -95,12 +97,12 @@ class Datagram: public CompletionHandler{
 				if(rv > 0){
 					recv_sz = rv;
 				}else if(rv == 0){
-					_rthis.error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				}else if(rv == -1){
 					if(can_retry){
 						return;
 					}else{
-						_rthis.error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+						_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 						_rthis.systemError(_rctx, err);
 					}
 				}
@@ -131,12 +133,12 @@ class Datagram: public CompletionHandler{
 				if(rv > 0){
 					recv_sz = rv;
 				}else if(rv == 0){
-					_rthis.error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				}else if(rv == -1){
 					if(can_retry){
 						return;
 					}else{
-						_rthis.error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+						_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 						_rthis.systemError(_rctx, err);
 					}
 				}
@@ -163,12 +165,12 @@ class Datagram: public CompletionHandler{
 				
 				if(rv == _rthis.send_buf_cp){
 				}else if(rv >= 0){
-					_rthis.error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				}else if(rv == -1){
 					if(can_retry){
 						return;
 					}else{
-						_rthis.error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+						_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 						_rthis.systemError(_rctx, err);
 					}
 				}
@@ -194,12 +196,12 @@ class Datagram: public CompletionHandler{
 				
 				if(rv == _rthis.send_buf_cp){
 				}else if(rv >= 0){
-					_rthis.error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				}else if(rv == -1){
 					if(can_retry){
 						return;
 					}else{
-						_rthis.error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+						_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 						_rthis.systemError(_rctx, err);
 					}
 				}
@@ -260,16 +262,16 @@ public:
 				}else{
 					//TODO: set proper error
 					systemError(_rctx, err);
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				}
 			}else{
 				//TODO: set proper error
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			}
 			
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		}
 		return true;
 	}
@@ -289,7 +291,7 @@ public:
 			return false;
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			return true;
 		}
 	}
@@ -309,7 +311,7 @@ public:
 			return false;
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			return true;
 		}
 	}
@@ -331,7 +333,7 @@ public:
 				_sz = rv;
 				errorClear(_rctx);
 			}else if(rv >= 0){
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				_sz = 0;
 			}else if(rv == -1){
 				_sz = 0;
@@ -342,13 +344,13 @@ public:
 					errorClear(_rctx);
 					return false;
 				}else{
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 					systemError(_rctx, err);
 				}
 			}
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		}
 		return true;
 	}
@@ -369,7 +371,7 @@ public:
 				_sz = rv;
 				errorClear(_rctx);
 			}else if(rv >= 0){
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 				_sz = 0;
 			}else if(rv == -1){
 				_sz = 0;
@@ -380,13 +382,13 @@ public:
 					errorClear(_rctx);
 					return false;
 				}else{
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 					systemError(_rctx, err);
 				}
 			}
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		}
 		return true;
 	}
@@ -408,7 +410,7 @@ public:
 			return false;
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			cassert(false);
 			return true;
 		}
@@ -429,7 +431,7 @@ public:
 			return false;
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			cassert(false);
 			return true;
 		}
@@ -450,7 +452,7 @@ public:
 			if(rv == _bufcp){
 				errorClear(_rctx);
 			}else if(rv >= 0){
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			}else if(rv == -1){
 				if(can_retry){
 					send_buf = _buf;
@@ -461,13 +463,13 @@ public:
 					return false;
 				}else{
 					//TODO: set proper error
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 					systemError(_rctx, err);
 				}
 			}
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		}
 		return true;
 	}
@@ -487,7 +489,7 @@ public:
 			if(rv == _bufcp){
 				errorClear(_rctx);
 			}else if(rv >= 0){
-				error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			}else if(rv == -1){
 				if(can_retry){
 					send_buf = _buf;
@@ -497,13 +499,13 @@ public:
 					return false;
 				}else{
 					//TODO: set proper error
-					error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 					systemError(_rctx, err);
 				}
 			}
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		}
 		return true;
 		
@@ -536,7 +538,7 @@ private:
 	void doError(ReactorContext &_rctx){
 		edbg("");
 		//TODO: set propper error
-		error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+		error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		
 		if(!FUNCTION_EMPTY(send_fnc)){
 			send_fnc(*this, _rctx);

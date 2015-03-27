@@ -361,7 +361,6 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	
 	do{
 		if(!_rctx.error()){
-			//_rsd.enableNoDelay();
 #ifdef USE_CONNECTION
 			//cout<<"recvbuffsz = "<<_rsd.recvBufferSize().second<<endl;
 			//cout<<"sendbuffsz = "<<_rsd.sendBufferSize().second<<endl;

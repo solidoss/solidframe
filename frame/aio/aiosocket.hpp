@@ -57,9 +57,7 @@ public:
 	}
 	
 	ReactorEventsE filterReactorEvents(
-		const  ReactorEventsE _evt,
-		const bool /*_pending_recv*/,
-		const bool /*_pendign_send*/
+		const  ReactorEventsE _evt
 	) const {
 		return _evt;
 	}

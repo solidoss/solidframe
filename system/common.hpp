@@ -78,12 +78,6 @@ enum SeekRef {
 	SeekEnd=2
 };
 
-enum AsyncE{
-	AsyncError = -1,
-	AsyncSuccess = 0,
-	AsyncWait = 1,
-};
-
 struct EmptyType{};
 class NullType{};
 

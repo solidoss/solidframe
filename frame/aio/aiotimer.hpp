@@ -75,7 +75,7 @@ public:
 			return false;
 		}else{
 			//TODO: set proper error
-			error(_rctx, ERROR_NS::error_condition(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			return true;
 		}
 	}

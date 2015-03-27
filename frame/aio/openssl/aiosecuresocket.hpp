@@ -39,10 +39,11 @@ public:
 	
 	bool connect(SocketAddressStub const &_rsas, bool &_can_retry, ErrorCodeT &_rerr);
 	
+	
+	ErrorCodeT renegotiate();
+	
 	ReactorEventsE filterReactorEvents(
-		const  ReactorEventsE _evt,
-		const bool /*_pending_recv*/,
-		const bool /*_pendign_send*/
+		const  ReactorEventsE _evt
 	) const;
 	
 	int recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr);
@@ -61,6 +62,11 @@ public:
 private:
 	SSL				*pssl;
 	SocketDevice	sd;
+	
+	bool			want_read_on_recv;
+	bool			want_read_on_send;
+	bool			want_write_on_recv;
+	bool			want_write_on_send;
 };
 
 }//namespace openssl
