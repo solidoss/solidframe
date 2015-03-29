@@ -75,10 +75,10 @@ bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 	bool		can_retry;
 	ErrorCodeT	err = sd.accept(_rsd, can_retry);
 	
-	
-	if(can_retry){
+	if(!err){
+	}else if(can_retry){
 		return false;
-	}else if(err){
+	}else{
 		systemError(_rctx, err);
 		//TODO: set proper error
 		error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
@@ -91,6 +91,8 @@ void Listener::doAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 	ErrorCodeT	err = sd.accept(_rsd, can_retry);
 	
 	if(!err){
+	}else if(can_retry){
+		cassert(false);
 	}else{
 		systemError(_rctx, err);
 		//TODO: set proper error

@@ -120,8 +120,8 @@ public:
 	Listener(
 		frame::Service &_rsvc,
 		AioSchedulerT &_rsched,
-		SocketDevice &_rsd
-	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd){}
+		SocketDevice &&_rsd
+	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), std::move(_rsd)){}
 	~Listener(){
 	}
 private:
@@ -140,7 +140,7 @@ private:
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
-	Connection(SocketDevice &_rsd):sock1(this->proxy(), _rsd), sock2(this->proxy(), _rsd), recvcnt(0), sendcnt(0), crtid(-1){}
+	Connection(SocketDevice &&_rsd):sock1(this->proxy(), std::move(_rsd)), sock2(this->proxy()), recvcnt(0), sendcnt(0), crtid(-1){}
 	~Connection(){}
 protected:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]){
 			sd.prepareAccept(rd.begin(), 2000);
 			
 			if(sd.ok()){
-				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, sd));
+				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, std::move(sd)));
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectUidT			objuid;
 				
@@ -333,7 +333,8 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			_rsd.recvBufferSize(sz);
 			sz = 1024 * 32;
 			_rsd.sendBufferSize(sz);
-			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
+			_rsd.enableNoDelay();
+			DynamicPointer<frame::aio::Object>	objptr(new Connection(std::move(_rsd)));
 			solid::ErrorConditionT				err;
 			
 			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);
@@ -384,9 +385,9 @@ struct MoveMessage: Dynamic<MoveMessage, frame::Message>{
 	char 				buf[12];
 	
 	MoveMessage(
-		SocketDevice &_rsd, 
+		SocketDevice &&_rsd, 
 		char *_buf, uint8 _buflen
-	): sd(_rsd)
+	): sd(std::move(_rsd))
 	{
 		cassert(_buflen < 12);
 		memcpy(buf, _buf, _buflen);
@@ -418,7 +419,7 @@ struct MoveMessage: Dynamic<MoveMessage, frame::Message>{
 	}else if(_revent.id == EventMoveE){
 		MoveMessage *pmsg = MoveMessage::cast(_revent.msgptr.get());
 		cassert(pmsg != nullptr);
-		sock2.reset(_rctx, pmsg->sd);
+		sock2.reset(_rctx, std::move(pmsg->sd));
 		if(pmsg->sz){
 			memcpy(buf2, pmsg->buf, pmsg->sz);
 			sock1.postSendAll(_rctx, buf2, pmsg->sz, Connection::onSendSock1);
@@ -449,6 +450,7 @@ struct MoveMessage: Dynamic<MoveMessage, frame::Message>{
 void Connection::onConnect(frame::aio::ReactorContext &_rctx){
 	if(!_rctx.error()){
 		idbg(this<<" SUCCESS");
+		sock2.device().enableNoDelay();
 		sock1.postRecvSome(_rctx, buf1, BufferCapacity, Connection::onRecvSock1);
 		sock2.postRecvSome(_rctx, buf2, BufferCapacity, Connection::onRecvSock2);
 	}else{
@@ -581,7 +583,7 @@ void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t
 			frame::ObjectUidT	objid = connection_uid(idx);
 			frame::Event		ev(EventMoveE);
 			SocketDevice		sd(sock1.reset(_rctx));
-			ev.msgptr = frame::MessagePointerT(new MoveMessage(sd, buf2 + i, _sz - i));
+			ev.msgptr = frame::MessagePointerT(new MoveMessage(std::move(sd), buf2 + i, _sz - i));
 			idbg(this<<" send move_message with size = "<<(_sz - i));
 			_rctx.service().manager().notify(objid, ev);
 			edbg(this<<" postStop");

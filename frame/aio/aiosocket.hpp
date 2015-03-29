@@ -22,7 +22,7 @@ class	Socket{
 public:
 	typedef ERROR_NS::error_code	ErrorCodeT;
 	
-	Socket(SocketDevice &_rsd):sd(_rsd){
+	Socket(SocketDevice &&_rsd):sd(std::move(_rsd)){
 		if(sd.ok()){
 			sd.makeNonBlocking();
 		}
@@ -31,9 +31,9 @@ public:
 	Socket(){
 	}
 	
-	SocketDevice reset(SocketDevice &_rsd){
-		SocketDevice tmpsd = sd;
-		sd = _rsd;
+	SocketDevice reset(SocketDevice &&_rsd){
+		SocketDevice tmpsd = std::move(sd);
+		sd = std::move(_rsd);
 		return tmpsd;
 	}
 	
@@ -71,6 +71,10 @@ public:
 	}
 	
 	SocketDevice const& device()const{
+		return sd;
+	}
+	
+	SocketDevice& device(){
 		return sd;
 	}
 	

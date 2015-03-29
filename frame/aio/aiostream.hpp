@@ -146,7 +146,7 @@ class Stream: public CompletionHandler{
 				_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			}
 			F	tmpf(f);
-			_rthis.doClearRecv(_rctx);
+			_rthis.doClearSend(_rctx);
 			tmpf(_rctx);
 		}
 	};
@@ -199,13 +199,13 @@ class Stream: public CompletionHandler{
 	
 public:
 	explicit Stream(
-		ObjectProxy const &_robj, SocketDevice &_rsd
-	):CompletionHandler(_robj, on_init_completion), s(_rsd){}
+		ObjectProxy const &_robj, SocketDevice &&_rsd
+	):CompletionHandler(_robj, on_init_completion), s(std::move(_rsd)){}
 	
 	template <class Ctx>
 	Stream(
-		ObjectProxy const &_robj, SocketDevice &_rsd, Ctx &_rctx
-	):CompletionHandler(_robj, on_init_completion), s(_rctx, _rsd){}
+		ObjectProxy const &_robj, SocketDevice &&_rsd, Ctx &_rctx
+	):CompletionHandler(_robj, on_init_completion), s(_rctx, std::move(_rsd)){}
 	
 	Stream(
 		ObjectProxy const &_robj
@@ -224,12 +224,14 @@ public:
 	bool hasPendingSend()const{
 		return !FUNCTION_EMPTY(send_fnc);
 	}
-	
-	SocketDevice reset(ReactorContext &_rctx, SocketDevice &_rnewdev = dummy_socket_device()){
+	SocketDevice& device(){
+		return s.device();
+	}
+	SocketDevice reset(ReactorContext &_rctx, SocketDevice &&_rnewdev = std::move(dummy_socket_device())){
 		if(s.device().ok()){
 			remDevice(_rctx, s.device());
 		}
-		SocketDevice sd(s.reset(_rnewdev));
+		SocketDevice sd(s.reset(std::move(_rnewdev)));
 		if(s.device().ok()){
 			addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
 		}
@@ -261,6 +263,7 @@ public:
 			recv_buf_sz = 0;
 			
 			if(doTryRecv(_rctx)){
+				_sz = recv_buf_sz;
 				return true;
 			}else{
 				recv_fnc = RecvSomeFunctor<F>(_f);

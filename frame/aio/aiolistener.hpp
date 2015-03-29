@@ -31,8 +31,8 @@ class Listener: public CompletionHandler{
 public:
 	Listener(
 		ObjectProxy const &_robj,
-		SocketDevice &_rsd
-	):CompletionHandler(_robj, Listener::on_init_completion), sd(_rsd), waitreq(ReactorWaitNone)
+		SocketDevice &&_rsd
+	):CompletionHandler(_robj, Listener::on_init_completion), sd(std::move(_rsd)), waitreq(ReactorWaitNone)
 	{
 		if(sd.ok()){
 			sd.makeNonBlocking();

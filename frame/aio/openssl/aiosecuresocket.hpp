@@ -25,13 +25,13 @@ class Context;
 class	Socket{
 public:
 	
-	Socket(Context &_rctx, SocketDevice &_rsd);
+	Socket(Context &_rctx, SocketDevice &&_rsd);
 	
 	Socket(Context &_rctx);
 	
 	~Socket();
 	
-	SocketDevice reset(Context &_rctx, SocketDevice &_rsd, ErrorCodeT &_rerr);
+	SocketDevice reset(Context &_rctx, SocketDevice &&_rsd, ErrorCodeT &_rerr);
 	
 	void shutdown();
 	
@@ -51,6 +51,7 @@ public:
 	int send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr);
 	
 	SocketDevice const& device()const;
+	SocketDevice& device();
 	
 	int recvFrom(char *_pb, size_t _bl, SocketAddress &_addr, bool &_can_retry, ErrorCodeT &_rerr);
 	

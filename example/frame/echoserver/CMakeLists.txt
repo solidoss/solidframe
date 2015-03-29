@@ -33,7 +33,7 @@ add_custom_command(
 	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/echo-server-cert.pem
 )
 
-add_custom_target(example_secure
+add_custom_target(example_secure_certs
 	DEPENDS
 	${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem
 	${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem

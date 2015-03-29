@@ -38,8 +38,8 @@ public:
 		return -1;
 #endif
 	}
+	Device(Device &&_dev);
 	//! The copy constructor which will grab the desc from the given device (like std::autoptr)
-	Device(const Device &_dev);
 	Device(DescriptorT _desc = invalidDescriptor());
 	~Device();
 	//! Read call
@@ -54,13 +54,15 @@ public:
 	void flush();
 	//! Check if the device is valid
 	bool ok()const{return desc != invalidDescriptor();}
-	Device& operator=(const Device &_dev);
+	Device& operator=(Device &&_dev);
 	//! The native descriptor associated to the socket
 	DescriptorT descriptor()const;
 protected:
 	void descriptor(DescriptorT _desc);
 private:
-	mutable DescriptorT desc;
+	Device(const Device &_dev);
+	Device& operator=(const Device &_dev);
+	DescriptorT desc;
 };
 
 inline Device::DescriptorT Device::descriptor()const{return desc;}

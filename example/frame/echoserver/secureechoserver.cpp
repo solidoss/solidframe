@@ -92,18 +92,16 @@ public:
 	Listener(
 		frame::Service &_rsvc,
 		AioSchedulerT &_rsched,
-		SocketDevice &_rsd
+		SocketDevice &&_rsd
 	):
-		rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd), ptimer(nullptr), timercnt(0)
+		rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), std::move(_rsd)), timercnt(0)
 	{}
 	~Listener(){
-		delete ptimer;
 	}
 private:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
 	
-	void onTimer(frame::aio::ReactorContext &_rctx);
 	
 	typedef frame::aio::Listener			ListenerSocketT;
 	typedef frame::aio::Timer				TimerT;
@@ -111,7 +109,6 @@ private:
 	frame::Service		&rsvc;
 	AioSchedulerT		&rsch;
 	ListenerSocketT		sock;
-	TimerT				*ptimer;
 	size_t				timercnt;
 };
 
@@ -128,7 +125,7 @@ class Connection: public Dynamic<Connection, frame::aio::Object>{
 protected:
 	Connection():sock(this->proxy(), secure_ctx), recvcnt(0), sendcnt(0){}
 public:
-	Connection(SocketDevice &_rsd, SecureContextT &_rctx):sock(this->proxy(), _rsd, _rctx), recvcnt(0), sendcnt(0){}
+	Connection(SocketDevice &&_rsd, SecureContextT &_rctx):sock(this->proxy(), std::move(_rsd), _rctx), recvcnt(0), sendcnt(0){}
 	~Connection(){}
 protected:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
@@ -226,7 +223,7 @@ int main(int argc, char *argv[]){
 			sd.prepareAccept(rd.begin(), 2000);
 			
 			if(sd.ok()){
-				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, sd));
+				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, std::move(sd)));
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectUidT			objuid;
 				
@@ -310,24 +307,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	if(_revent.id == EventStartE){
 		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
 		//sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-		ptimer = new TimerT(this->proxy());
-		TimeSpec waittime = _rctx.time();
-		waittime += 2000;
-		ptimer->waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
 	}else if(_revent.id == EventStopE){
 		postStop(_rctx);
-	}
-}
-
-void Listener::onTimer(frame::aio::ReactorContext &_rctx){
-	idbg("On Listener Timer");
-	TimeSpec waittime = _rctx.time();
-	waittime += 2000;
-	ptimer->waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
-	++timercnt;
-	if(timercnt == 4){
-		delete ptimer;
-		ptimer = nullptr;
 	}
 }
 
@@ -344,7 +325,8 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			_rsd.recvBufferSize(sz);
 			sz = 10224 * 32;
 			_rsd.sendBufferSize(sz);
-			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd, secure_ctx));
+			edbg("new_connection");
+			DynamicPointer<frame::aio::Object>	objptr(new Connection(std::move(_rsd), secure_ctx));
 			solid::ErrorConditionT				err;
 			
 			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);
@@ -445,8 +427,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 		idbg(&rthis<<" postRecvSome");
 		rthis.sendcnt += rthis.sendcrt;
 		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
-		rthis.sock.secureRenegotiate(_rctx);
-		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+		//rthis.sock.secureRenegotiate(_rctx);
 	}else{
 		edbg(&rthis<<" postStop "<<rthis.recvcnt<<" "<<rthis.sendcnt);
 		rthis.postStop(_rctx);
@@ -456,6 +437,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 /*static*/ void Connection::onSecureAccept(frame::aio::ReactorContext &_rctx){
 	Connection &rthis = static_cast<Connection&>(_rctx.object());
 	if(!_rctx.error()){
+		idbg(&rthis<<" postRecvSome");
 		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
 	}else{
 		edbg(&rthis<<" postStop "<<rthis.recvcnt<<" "<<rthis.sendcnt);

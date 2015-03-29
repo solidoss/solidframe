@@ -76,9 +76,9 @@ public:
 	Listener(
 		frame::Service &_rsvc,
 		AioSchedulerT &_rsched,
-		SocketDevice &_rsd
+		SocketDevice &&_rsd
 	):
-		rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd), ptimer(nullptr), timercnt(0)
+		rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), std::move(_rsd)), ptimer(nullptr), timercnt(0)
 	{}
 	~Listener(){
 		delete ptimer;
@@ -112,7 +112,7 @@ class Connection: public Dynamic<Connection, frame::aio::Object>{
 protected:
 	Connection():sock(this->proxy()), recvcnt(0), sendcnt(0){}
 public:
-	Connection(SocketDevice &_rsd):sock(this->proxy(), _rsd), recvcnt(0), sendcnt(0){}
+	Connection(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)), recvcnt(0), sendcnt(0){}
 	~Connection(){}
 protected:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
@@ -151,7 +151,7 @@ public:
 #ifdef USE_TALKER
 class Talker: public Dynamic<Talker, frame::aio::Object>{
 public:
-	Talker(SocketDevice &_rsd):sock(this->proxy(), _rsd){}
+	Talker(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)){}
 	~Talker(){}
 private:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
@@ -230,7 +230,7 @@ int main(int argc, char *argv[]){
 			sd.prepareAccept(rd.begin(), 2000);
 			
 			if(sd.ok()){
-				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, sd));
+				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, std::move(sd)));
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectUidT			objuid;
 				
@@ -261,7 +261,7 @@ int main(int argc, char *argv[]){
 			sd.bind(rd.begin());
 			
 			if(sd.ok()){
-				DynamicPointer<frame::aio::Object>	objptr(new Talker(sd));
+				DynamicPointer<frame::aio::Object>	objptr(new Talker(std::move(sd)));
 				
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectUidT			objuid;
@@ -368,7 +368,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			_rsd.recvBufferSize(sz);
 			sz = 10224 * 32;
 			_rsd.sendBufferSize(sz);
-			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
+			DynamicPointer<frame::aio::Object>	objptr(new Connection(std::move(_rsd)));
 			solid::ErrorConditionT				err;
 			
 			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);

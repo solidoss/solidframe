@@ -405,7 +405,8 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32 _events){
 		case EPOLLHUP | EPOLLOUT:
 		case EPOLLHUP | EPOLLIN:
 		case EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT:
-		case EPOLLIN | EPOLLOUT | EPOLLHUP:
+		case EPOLLIN  | EPOLLOUT | EPOLLHUP:
+		case EPOLLERR | EPOLLOUT | EPOLLIN:
 			retval = ReactorEventHangup;break;
 		case EPOLLRDHUP:
 			retval = ReactorEventRecvHangup;break;

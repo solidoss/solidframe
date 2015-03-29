@@ -26,13 +26,13 @@ public:
 #endif
 	
 	//!Copy constructor
-	SocketDevice(const SocketDevice &_sd);
+	SocketDevice(SocketDevice &&_sd);
 	//!Basic constructor
 	SocketDevice();
 	//!Destructor
 	~SocketDevice();
 	//!Assign operator
-	SocketDevice& operator=(const SocketDevice &_dev);
+	SocketDevice& operator=(SocketDevice &&_dev);
 	//! Shutdown reading
 	void shutdownRead();
 	//! Shutdown writing
@@ -112,6 +112,9 @@ public:
 	ErrorCodeT type(int &_rerr)const;
 	//! Return true if the socket is listening
 	//bool isListening()const;
+private:
+    SocketDevice(const SocketDevice& _dev);
+	SocketDevice& operator=(const SocketDevice& _dev);
 };
 
 }//namespace solid

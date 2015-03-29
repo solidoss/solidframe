@@ -12,6 +12,7 @@
 #include "system/mutex.hpp"
 #include "system/thread.hpp"
 #include "system/cassert.hpp"
+#include "system/debug.hpp"
 
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
@@ -145,8 +146,8 @@ ErrorCodeT Context::loadPrivateKeyFile(const char *_path){
 
 
 Socket::Socket(
-	Context &_rctx, SocketDevice &_rsd
-):sd(_rsd), want_read_on_recv(false), want_read_on_send(false), want_write_on_recv(false), want_write_on_send(false){
+	Context &_rctx, SocketDevice &&_rsd
+):sd(std::move(_rsd)), want_read_on_recv(false), want_read_on_send(false), want_write_on_recv(false), want_write_on_send(false){
 	pssl = SSL_new(_rctx.pctx);
 	::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
 	::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
@@ -166,9 +167,9 @@ Socket::~Socket(){
 	SSL_free(pssl);
 }
 
-SocketDevice Socket::reset(Context &_rctx, SocketDevice &_rsd, ErrorCodeT &_rerr){
-	SocketDevice tmpsd = sd;
-	sd = _rsd;
+SocketDevice Socket::reset(Context &_rctx, SocketDevice &&_rsd, ErrorCodeT &_rerr){
+	SocketDevice tmpsd = std::move(sd);
+	sd = std::move(_rsd);
 	if(sd.ok()){
 		sd.makeNonBlocking();
 		SSL_set_fd(pssl, sd.descriptor());
@@ -183,6 +184,10 @@ void Socket::shutdown(){
 }
 
 SocketDevice const& Socket::device()const{
+	return sd;
+}
+
+SocketDevice& Socket::device(){
 	return sd;
 }
 
@@ -214,6 +219,7 @@ ReactorEventsE Socket::filterReactorEvents(
 ) const{
 	switch(_evt){
 		case ReactorEventRecv:
+			//idbgx(Debug::aio, "EventRecv "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
 			if(want_read_on_send and want_read_on_recv){
 				return ReactorEventSendRecv;
 			}else if(want_read_on_send){
@@ -223,6 +229,7 @@ ReactorEventsE Socket::filterReactorEvents(
 			}
 			break;
 		case ReactorEventSend:
+			//idbgx(Debug::aio, "EventSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
 			if(want_write_on_send and want_write_on_recv){
 				return ReactorEventRecvSend;
 			}else if(want_write_on_recv){
@@ -232,6 +239,7 @@ ReactorEventsE Socket::filterReactorEvents(
 			}
 			break;
 		case ReactorEventRecvSend:
+			//idbgx(Debug::aio, "EventRecvSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
 			if(want_read_on_send and (want_read_on_recv or want_write_on_recv)){
 				return ReactorEventSendRecv;
 			}else if((want_write_on_send or want_write_on_send) and (want_write_on_recv or want_read_on_recv)){

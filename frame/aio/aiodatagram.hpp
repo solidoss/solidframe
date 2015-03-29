@@ -227,8 +227,8 @@ class Datagram: public CompletionHandler{
 	};
 public:
 	Datagram(
-		ObjectProxy const &_robj, SocketDevice &_rsd
-	):CompletionHandler(_robj, on_init_completion), s(_rsd){}
+		ObjectProxy const &_robj, SocketDevice &&_rsd
+	):CompletionHandler(_robj, on_init_completion), s(std::move(_rsd)){}
 	
 	Datagram(
 		ObjectProxy const &_robj

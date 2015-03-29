@@ -30,11 +30,11 @@ using namespace std;
 
 namespace solid{
 
-Device::Device(const Device &_dev):desc(_dev.descriptor()) {
+Device::Device(Device &&_dev):desc(_dev.descriptor()) {
 	_dev.desc = invalidDescriptor();
 }
 
-Device& Device::operator=(const Device &_dev){
+Device& Device::operator=(Device &&_dev){
 	close();
 	desc = _dev.descriptor();
 	_dev.desc = invalidDescriptor();
@@ -502,7 +502,7 @@ struct wsa_cleaner{
 	return solid::last_system_error();
 #endif
 }
-SocketDevice::SocketDevice(const SocketDevice &_sd):Device(_sd){
+SocketDevice::SocketDevice(SocketDevice &&_sd):Device(std::move(_sd)){
 #ifndef UDEBUG
 #ifdef ON_WINDOWS
 	static const wsa_cleaner wsaclean;
@@ -511,8 +511,8 @@ SocketDevice::SocketDevice(const SocketDevice &_sd):Device(_sd){
 }
 SocketDevice::SocketDevice(){
 }
-SocketDevice& SocketDevice::operator=(const SocketDevice &_dev){
-	*static_cast<Device*>(this) = static_cast<const Device&>(_dev);
+SocketDevice& SocketDevice::operator=(SocketDevice &&_dev){
+	*static_cast<Device*>(this) = static_cast<Device&&>(_dev);
 	return *this;
 }
 SocketDevice::~SocketDevice(){
