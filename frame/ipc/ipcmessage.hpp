@@ -12,7 +12,7 @@
 
 #include "system/common.hpp"
 #include "frame/message.hpp"
-#include "frame/ipc2/ipcsessionuid.hpp"
+#include "frame/ipc/ipcsessionuid.hpp"
 
 namespace solid{
 namespace frame{
@@ -36,14 +36,6 @@ struct Message: Dynamic<Message, frame::Message>{
 	bool ipcIsBackOnSender()const;
 	bool ipcIsOnSender()const;
 	bool ipcIsOnReceiver()const;
-	
-	virtual void ipcOnReceive(ConnectionContext const &_ripcctx, MessagePointerT &_rmsgptr);
-	//! Called by ipc module, before the signal begins to be serialized
-	//TODO: change return to pair<uint32, uint32>
-	//	and use flags |= p.first; flags &= p.second
-	virtual UInt32PairT ipcOnPrepare(ConnectionContext const &_ripcctx);
-	//! Called by ipc module on peer failure detection (disconnect,reconnect)
-	virtual void ipcOnComplete(ConnectionContext const &_ripcctx, int _error);
 	
 private:
 	MessageUid	msguid;

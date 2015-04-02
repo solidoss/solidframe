@@ -19,10 +19,10 @@ target_link_libraries (example_ipcstress
 add_executable (example_ipcecho ipcecho.cpp)
 
 target_link_libraries (example_ipcecho
-	solid_frame_ipc2
+	solid_frame_ipc
 	solid_frame_aio
 	solid_frame_aio_openssl
-	solid_frame_core
+	solid_frame
 	solid_serialization
 	solid_utility
 	solid_system

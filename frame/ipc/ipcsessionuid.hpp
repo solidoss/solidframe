@@ -96,6 +96,20 @@ struct ConnectionContext{
 	int					pairport;
 	
 	
+	bool isOnSender()const{
+		return false;
+	}
+	
+	bool isOnPeer()const{
+		return false;
+	}
+	bool isBackOnSender()const{
+		return false;
+	}
+	uint32 flags()const{
+		return 0;
+	}
+	
 	MessagePointerT& requestMessage(const Message &_rmsg)const;
 	
 	Service& service()const{

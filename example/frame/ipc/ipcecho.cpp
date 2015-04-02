@@ -1,11 +1,15 @@
 #include "frame/manager.hpp"
 #include "frame/scheduler.hpp"
+#include "frame/service.hpp"
 
-#include "frame/aio/aioselector.hpp"
+#include "frame/aio/aioreactor.hpp"
 #include "frame/aio/aioobject.hpp"
+#include "frame/aio/aiolistener.hpp"
+#include "frame/aio/aiotimer.hpp"
+#include "frame/aio/openssl/aiosecurecontext.hpp"
+#include "frame/aio/openssl/aiosecuresocket.hpp"
 
-#include "frame/ipc2/ipcservice.hpp"
-#include "frame/ipc2/ipcmessage.hpp"
+#include "frame/ipc/ipcservice.hpp"
 
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
@@ -20,9 +24,15 @@
 using namespace std;
 using namespace solid;
 
-typedef frame::IndexT							IndexT;
-typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
+typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
+typedef frame::aio::openssl::Context			SecureContextT;
 
+enum Events{
+	EventStartE = 0,
+	EventRunE,
+	EventStopE,
+	EventSendE,
+};
 
 
 //------------------------------------------------------------------
@@ -78,7 +88,7 @@ namespace{
 }
 
 
-struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
+struct FirstMessage: Dynamic<FirstMessage, frame::ipc::Message>{
     std::string						str;
 	
 	FirstMessage(std::string const &_str):str(_str){
@@ -91,15 +101,44 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
 		idbg("DELETE ---------------- "<<(void*)this);
 	}
 
-	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
-	/*virtual*/ UInt32PairT ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
-	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
+// 	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+// 	/*virtual*/ UInt32PairT ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
+// 	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	template <class S>
 	void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
 		_s.push(str, "data");
 	}
 	
+};
+
+struct MessageHandler{
+	frame::ipc::Service &rsvc;
+	MessageHandler(frame::ipc::Service &_rsvc): rsvc(_rsvc){}
+	
+	//Called on message receive
+	void operator()(frame::ipc::ConnectionContext const &_rctx, DynamicPointer<FirstMessage> &_rmsg){
+		idbg("Message received: is_on_sender: "<<_rctx.isOnSender()<<", is_on_peer: "<<_rctx.isOnPeer()<<", is_back_on_sender: "<<_rctx.isBackOnSender());
+		if(_rctx.isOnPeer()){
+			//rsvc.sendResponse(_rctx.connectionId(), _rmsg);
+		}
+	}
+	
+	//Called when message is confirmed that:
+	// * was successfully sent on peer-side - for requests, a message is considered successfully sent when the response was received
+	// * was not successfuly sent - i.e. the connection was closed before message ACK
+	
+	void operator()(frame::ipc::ConnectionContext const &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorCodeT const &_rerr){
+		if(!_rerr){
+			idbg("Message successfully sent");
+		}else{
+			idbg("Message not confirmed: "<<_rerr);
+		}
+	}
+	
+	uint32 operator()(frame::ipc::ConnectionContext const &_rctx, FirstMessage const &_rmsg){
+		return _rctx.flags();
+	}
 };
 
 //------------------------------------------------------------------
@@ -146,40 +185,36 @@ int main(int argc, char *argv[]){
 #endif
 	
 	{
-		frame::Manager			m;
+		AioSchedulerT		sch;
 		
-		AioSchedulerT			aiosched(m);
 		
-		frame::ipc::Service		ipcsvc(m, new frame::ipc::BasicController(aiosched));
+		frame::Manager		m;
+		frame::ipc::Service	ipcsvc(m, frame::Event(EventStopE));
+		ErrorConditionT		err;
 		
-		ipcsvc.registerMessageType<FirstMessage>();
+		err = sch.start(1);
 		
-		m.registerService(ipcsvc);
+		if(err){
+			cout<<"Error starting aio scheduler: "<<err.message()<<endl;
+			return 1;
+		}
+		
 		
 		{
 			frame::ipc::Configuration	cfg;
-			ResolveData					rd = synchronous_resolve("0.0.0.0", p.baseport, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-			//frame::aio::Error			err;
-			bool						rv;
 			
-			{
-				string errstr;
-				if(!p.prepare(cfg, errstr)){
-					cout<<"Error preparing ipc configuration: "<<errstr<<endl;
-					Thread::waitAll();
-					return 0;
+			cfg.registerMessages(
+				[&ipcsvc](frame::ipc::RegisterProxy& _rrp){
+					_rrp.registerMessage<FirstMessage>(MessageHandler(ipcsvc), MessageHandler(ipcsvc), MessageHandler(ipcsvc));
 				}
-			}
+			);
 			
-			//TODO:
-			//cfg.baseaddr = rd.begin();
+			err = ipcsvc.reconfigure(cfg);
 			
-			rv = ipcsvc.reconfigure(cfg);
-			if(!rv){
-				//TODO:
-				//cout<<"Error starting ipcservice: "<<err.toString()<<endl;
+			if(err){
+				cout<<"Error starting ipcservice: "<<err.message()<<endl;
 				Thread::waitAll();
-				return 0;
+				return 1;
 			}
 		}
 		{
@@ -255,37 +290,37 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
 //		FirstMessage
 //------------------------------------------------------
 
-/*virtual*/ void FirstMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
-	idbg("EXECUTE ----------------  size = "<<str.size());
-	
-	if(ipcIsOnReceiver()){
-		//TODO:
-		//_rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, (uint32)0/*fdt::ipc::Service::SynchronousSendFlag*/);
-	}else{
-		on_receive(*this);
-	}
-}
-/*virtual*/ FirstMessage::UInt32PairT FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
-// 	if(isOnSender()){
-// 		return frame::ipc::WaitResponseFlag;
+// /*virtual*/ void FirstMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
+// 	idbg("EXECUTE ----------------  size = "<<str.size());
+// 	
+// 	if(ipcIsOnReceiver()){
+// 		//TODO:
+// 		//_rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, (uint32)0/*fdt::ipc::Service::SynchronousSendFlag*/);
 // 	}else{
-// 		return 0;
+// 		on_receive(*this);
 // 	}
-	return UInt32PairT();
-}
-/*virtual*/ void FirstMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
-	if(!_err){
-        idbg("SUCCESS ----------------");
-    }else{
-        idbg("ERROR ------------------");
-    }
-}
+// }
+// /*virtual*/ FirstMessage::UInt32PairT FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
+// // 	if(isOnSender()){
+// // 		return frame::ipc::WaitResponseFlag;
+// // 	}else{
+// // 		return 0;
+// // 	}
+// 	return UInt32PairT();
+// }
+// /*virtual*/ void FirstMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
+// 	if(!_err){
+//         idbg("SUCCESS ----------------");
+//     }else{
+//         idbg("ERROR ------------------");
+//     }
+// }
 
 namespace{
 
 void broadcast_message(frame::ipc::Service &_rsvc, DynamicPointer<frame::ipc::Message> &_rmsgptr){
 	for(Params::PeerAddressVectorT::const_iterator it(p.connectvec.begin()); it != p.connectvec.end(); ++it){
-		_rsvc.sendMessage(_rmsgptr, *it);
+		//_rsvc.sendMessage(_rmsgptr, *it);
 	}
 }
 

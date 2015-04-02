@@ -14,10 +14,10 @@
 #include "serialization/binary.hpp"
 
 #include "frame/service.hpp"
-#include "frame/aio/aioselector.hpp"
+#include "frame/aio/aioreactor.hpp"
 #include "frame/scheduler.hpp"
-#include "frame/ipc2/ipcsessionuid.hpp"
-#include "frame/ipc2/ipcmessage.hpp"
+#include "frame/ipc/ipcsessionuid.hpp"
+#include "frame/ipc/ipcmessage.hpp"
 
 namespace solid{
 
@@ -38,133 +38,28 @@ class Context;
 }
 
 namespace ipc{
-struct PacketContext;
-class Service;
 
-enum {
-	SameConnectorFlag = 1,							//!< Do not send message to a restarted peer process
-	ResponseFlag	= SameConnectorFlag,			//!< The sent message is a response
-	WaitResponseFlag = 2,
-	SynchronousSendFlag = 4,						//!< Make the message synchronous
-	CompressedSendFlag = 8,
-	NotCompressedSendFlag = 16,
-	SecureSendFlag = 32,
-	NotSecureSendFlag = 64,
-	DisconnectAfterSendFlag = 128,					//!< Disconnect the session after sending the message
-	LastFlag = (1 << 24)
-};
-
-enum ErrorE{
-	NoError = 0,
-	GenericError = -1,
-	NoGatewayError = -100,
-	UnsupportedSocketFamilyError = -101,
-	NoConnectionError = -102,
-	TryReconnectError = -103,
-	
-};
-
-struct Controller: Dynamic<Controller, DynamicShared<> >{
-	virtual ~Controller();
-
-	virtual void scheduleListener(DynamicPointer<frame::aio::Object> &_objptr) = 0;
-	virtual void scheduleConnection(DynamicPointer<frame::aio::Object> &_objptr) = 0;
-	
-	virtual bool compressPacket(
-		PacketContext &_rpc,
-		const uint32 _bufsz,
-		char* &_rpb,
-		uint32 &_bl
-	);
-	virtual bool decompressPacket(
-		PacketContext &_rpc,
-		char* &_rpb,
-		uint32 &_bl
-	);
-	
-	virtual bool onMessageReceive(
-		DynamicPointer<Message> &_rmsgptr,
-		ConnectionContext const &_rctx
-	);
-	
-	virtual Message::UInt32PairT onMessagePrepare(
-		Message &_rmsg,
-		ConnectionContext const &_rctx
-	);
-	
-	virtual void onMessageComplete(
-		Message &_rmsg,
-		ConnectionContext const &_rctx,
-		int _error
-	);
-	
-	const uint32 reservedDataSize()const{
-		return resdatasz;
-	}
-	
-	virtual void onDisconnect(const SocketAddressInet &_raddr);
-
-protected:
-	Controller(
-		const uint32 _flags = 0,
-		const uint32 _resdatasz = 0
-	):flags(0), resdatasz(_resdatasz){}
-	
-private:
-	uint32		flags;
-	uint32		resdatasz;
-};
-
-typedef frame::Scheduler<frame::aio::Selector> AioSchedulerT;
-
-struct BasicController: Controller{
-    BasicController(
-		AioSchedulerT &_rsched,
-		const uint32 _flags = 0,
-		const uint32 _resdatasz = 0
-	);
-	BasicController(
-		AioSchedulerT &_rsched_l,
-		AioSchedulerT &_rsched_c,
-		const uint32 _flags = 0,
-		const uint32 _resdatasz = 0
-	);
-	~BasicController();
-	/*virtual*/ void scheduleListener(DynamicPointer<frame::aio::Object> &_objptr);
-	/*virtual*/ void scheduleConnection(DynamicPointer<frame::aio::Object> &_objptr);
-private:
-	AioSchedulerT &rsched_l;
-	AioSchedulerT &rsched_c;
-};
+typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
 
 
 struct Configuration{
-	Configuration(
-	):	defaultsendsecure(true), forcesendsecure(false), forcesendplain(false),
-		maxsecureconcnt(1), maxplainconcnt(1)
-	{}
-	bool			defaultsendsecure;
-	bool			forcesendsecure;
-	bool			forcesendplain;
-	uint16			maxsecureconcnt;
-	uint16			maxplainconcnt;
+	template <class F>
+	void registerMessages(F _f){
+		
+	}
+};
+
+
+struct RegisterProxy{
+	template <class Msg, class ReceiveFnc, class PrepareFnc, class CompleteFnc>
+	void registerMessage(ReceiveFnc _regf, PrepareFnc _prepf, CompleteFnc _cmpltf){
+		
+	}
 	
-	bool mustSendSecure(const uint32 _msgflags)const{
-		if(forcesendsecure || (maxsecureconcnt == 1 && !forcesendplain)){
-			//TODO: optimize this by setting on service.configure: forcesendsecure = forcesendsecure || (maxconcnt == 1 && !forcesendplain)
-			return true;
-		}else if(forcesendplain){
-			return false;
-		}else if(_msgflags & SecureSendFlag){
-			return true;
-		}else if(_msgflags & NotSecureSendFlag){
-			return false;
-		}return defaultsendsecure;
-	}
-	bool operator==(const Configuration &_rcfg)const{
-		return	false;
-	}
-	//TODO:...
+private:
+	friend class Service;
+	RegisterProxy(Service &_rs):rs(_rs){}
+	Service &rs;
 };
 
 //! An Inter Process Communication service
@@ -218,8 +113,7 @@ public:
 	static const char* errorText(int _err);
 	
 	Service(
-		frame::Manager &_rm,
-		const DynamicPointer<Controller> &_rctrlptr
+		frame::Manager &_rm, frame::Event const &_revt
 	);
 	
 	template <class T>
@@ -235,185 +129,20 @@ public:
 	//! Destructor
 	~Service();
 
-	bool reconfigure(Configuration const& _rcfg);
+	ErrorConditionT reconfigure(Configuration const& _rcfg);
 	
-	int listenPort()const;
 	
-	bool createSession(
-		SessionUid &_rssnid,
-		const char *_addr_str,
-		int	_port = -1
-		//TODO: add other session configuration params
-	);
-	
-	//!Send a message (usually a response) to a peer process using a previously saved ConnectionUid
-	/*!
-		The message is send only if the connector exists. If the peer process,
-		restarts the message is not sent.
-		\param _rmsgptr A DynamicPointer with the message to be sent.
-		\param _rssnid A previously saved SessionUid
-		\param _flags Control flags
-	*/
-	//TODO: maybe rename sendMessage -> send( or shedule( 
-	bool sendMessage(
-		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const SessionUid &_rssnid,//the id of the process session
-		uint32	_flags = 0
-	);
-	
-	//!Send a message to a peer process using it's base address.
-	/*!
-		The base address of a process is the address on which the process listens for new UDP connections.
-		If the connection does not already exist, it will be created.
-		\param _rmsgptr The message.
-		\param _rssnid An output value, which on success will contain the uid of the connector.
-		\param _rsa_dest Destination address
-		\param _flags Control flags
-	*/
-	bool sendMessage(
-		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		SessionUid &_rssnid,
-		const SocketAddressStub &_rsa_dest,
-		uint32	_flags = 0
-	);
-	//!Send a message to a peer process using it's base address.
-	/*!
-		The base address of a process is the address on which the process listens for new UDP connections.
-		If the connection does not already exist, it will be created.
-		\param _rmsgptr The message.
-		\param _rsa_dest Destination address
-		\param _flags Control flags
-	*/
-	bool sendMessage(
-		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const SocketAddressStub &_rsa_dest,
-		uint32	_flags = 0
-	);
-	
-	///////
-	bool sendMessage(
-		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const SerializationTypeIdT &_rtid,
-		const SessionUid &_rssnid,
-		uint32	_flags = 0
-	);
-	
-	//!Send a message to a peer process using it's base address.
-	/*!
-		The base address of a process is the address on which the process listens for new UDP connections.
-		If the connection does not already exist, it will be created.
-		\param _rmsgptr The message.
-		\param _rssnid An output value, which on success will contain the uid of the connector.
-		\param _rsa_dest Destination address
-		\param _flags Control flags
-	*/
-	bool sendMessage(
-		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const SerializationTypeIdT &_rtid,
-		SessionUid &_rssnid,
-		const SocketAddressStub &_rsa_dest,
-		uint32	_flags = 0
-	);
-	//!Send a message to a peer process using it's base address.
-	/*!
-		The base address of a process is the address on which the process listens for new UDP connections.
-		If the connection does not already exist, it will be created.
-		\param _rmsgptr The message.
-		\param _rsa_dest Destination address
-		\param _flags Control flags
-	*/
-	bool sendMessage(
-		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const SerializationTypeIdT &_rtid,
-		const SocketAddressStub &_rsa_dest,
-		uint32	_flags = 0
-	);
-	
-	serialization::TypeMapperBase const& typeMapperBase() const;
-	Configuration const& configuration()const;
 private:
-	friend class Connection;
-	friend class Controller;
-	friend class Listener;
-	
+	const serialization::TypeMapperBase& typeMapperBase() const;
+
 	IdTypeMapperT& typeMapper();
-	
-	bool doScheduleMessage(
-		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const SerializationTypeIdT &_rtid,
-		SessionUid *_psesid,
-		const SocketAddressStub &_rsa_dest,
-		uint32	_flags = 0
-	);
-	
-	
-	
-	bool doUnsafeScheduleMessage(
-		const size_t _idx,
-		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const SerializationTypeIdT &_rtid,
-		uint32	_flags
-	);
-	
-	//TODO:
-	//called by connection
-	//bool poll(ConnectionUid const &_rconid, MessageStub &_rmsgstb);
-	//bool onConnectionError(error);
-	
-	void doNotifyConnection(ObjectUidT const &_objid);
-	
-	void insertConnection(
-		SocketDevice &_rsd
-	);
-	
-	uint32 keepAliveTimeout()const;
-	
-	Controller& controller();
-	
-	Controller const& controller()const;
 private:
 	struct Data;
-	friend struct Data;
 	Data			&d;
 	IdTypeMapperT	typemapper;
 };
 
 
-inline bool Service::sendMessage(
-	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	SessionUid &_rsesid,
-	const SocketAddressStub &_rsa_dest,
-	uint32	_flags
-){
-	return doScheduleMessage(_rmsgptr, SERIALIZATION_INVALIDID, &_rsesid, _rsa_dest, _flags);
-}
-
-inline bool Service::sendMessage(
-	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	const SocketAddressStub &_rsa_dest,
-	uint32	_flags
-){
-	return doScheduleMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _rsa_dest, _flags);
-}
-
-inline bool Service::sendMessage(
-	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	const SerializationTypeIdT &_rtid,
-	SessionUid &_rsesid,
-	const SocketAddressStub &_rsa_dest,
-	uint32	_flags
-){
-	return doScheduleMessage(_rmsgptr, _rtid, &_rsesid, _rsa_dest, _flags);
-}
-
-inline bool Service::sendMessage(
-	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	const SerializationTypeIdT &_rtid,
-	const SocketAddressStub &_rsa_dest,
-	uint32	_flags
-){
-	return doScheduleMessage(_rmsgptr, _rtid, NULL, _rsa_dest, _flags);
-}
 
 inline const serialization::TypeMapperBase& Service::typeMapperBase() const{
 	return typemapper;
