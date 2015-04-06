@@ -44,7 +44,7 @@ typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
 
 struct Configuration{
 	template <class F>
-	void registerMessages(F _f){
+	void protocolCallback(F _f){
 		
 	}
 };
