@@ -106,7 +106,7 @@ struct FirstMessage: Dynamic<FirstMessage, frame::ipc::Message>{
 // 	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	template <class S>
-	void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+	void serialize(S &_s, frame::ipc::ConnectionContext &_rctx){
 		_s.push(str, "data");
 	}
 	
@@ -117,7 +117,7 @@ struct MessageHandler{
 	MessageHandler(frame::ipc::Service &_rsvc): rsvc(_rsvc){}
 	
 	//Called on message receive
-	void operator()(frame::ipc::ConnectionContext const &_rctx, DynamicPointer<FirstMessage> &_rmsg){
+	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg){
 		idbg("Message received: is_on_sender: "<<_rctx.isOnSender()<<", is_on_peer: "<<_rctx.isOnPeer()<<", is_back_on_sender: "<<_rctx.isBackOnSender());
 		if(_rctx.isOnPeer()){
 			//rsvc.sendResponse(_rctx.connectionId(), _rmsg);
@@ -128,7 +128,7 @@ struct MessageHandler{
 	// * was successfully sent on peer-side - for requests, a message is considered successfully sent when the response was received
 	// * was not successfuly sent - i.e. the connection was closed before message ACK
 	
-	void operator()(frame::ipc::ConnectionContext const &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorCodeT const &_rerr){
+	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorCodeT const &_rerr){
 		if(!_rerr){
 			idbg("Message successfully sent");
 		}else{
@@ -136,7 +136,7 @@ struct MessageHandler{
 		}
 	}
 	
-	uint32 operator()(frame::ipc::ConnectionContext const &_rctx, FirstMessage const &_rmsg){
+	uint32 operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg){
 		return _rctx.flags();
 	}
 };
@@ -185,12 +185,12 @@ int main(int argc, char *argv[]){
 #endif
 	
 	{
-		AioSchedulerT		sch;
+		AioSchedulerT			sch;
 		
 		
-		frame::Manager		m;
-		frame::ipc::Service	ipcsvc(m, frame::Event(EventStopE));
-		ErrorConditionT		err;
+		frame::Manager			m;
+		frame::ipc::Service		ipcsvc(m, frame::Event(EventStopE));
+		ErrorConditionT			err;
 		
 		err = sch.start(1);
 		
@@ -204,8 +204,11 @@ int main(int argc, char *argv[]){
 			frame::ipc::Configuration	cfg;
 			
 			err = cfg.protocolCallback(
-				[&ipcsvc](frame::ipc::RegisterProxy& _rrp){
-					_rrp.registerMessage<FirstMessage>(MessageHandler(ipcsvc), MessageHandler(ipcsvc), MessageHandler(ipcsvc));
+				[&ipcsvc](frame::ipc::MessageRegisterProxy& _rrp){
+					_rrp.registerMessage<FirstMessage>(
+						frame::ipc::factory<FirstMessage>,
+						MessageHandler(ipcsvc), MessageHandler(ipcsvc), MessageHandler(ipcsvc)
+					);
 				}
 			);
 			

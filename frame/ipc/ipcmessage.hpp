@@ -18,8 +18,8 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
+
 struct Message: Dynamic<Message, frame::Message>{
-	typedef DynamicPointer<Message>		MessagePointerT;
 	typedef std::pair<uint32, uint32>	UInt32PairT;
 	
 	Message(uint8 _state = 0):stt(_state){}
@@ -41,6 +41,8 @@ private:
 	MessageUid	msguid;
 	uint8		stt;
 };
+
+typedef DynamicPointer<Message>		MessagePointerT;
 
 inline MessageUid& Message::ipcRequestMessageUid(){
 	return msguid;

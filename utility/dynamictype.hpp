@@ -41,6 +41,7 @@ private:
 //----------------------------------------------------------------
 //		DynamicBase
 //----------------------------------------------------------------
+typedef std::vector<size_t>	DynamicIdVectorT;
 
 //struct DynamicPointerBase;
 //! A base for all types that needs dynamic typeid.
@@ -54,7 +55,11 @@ struct DynamicBase{
 	static bool isTypeDynamic(const size_t _id);
 	
 	virtual size_t callback(const DynamicMapperBase &_rdm)const;
-
+	
+	static void staticTypeIds(DynamicIdVectorT &_rv){
+	}
+	virtual void dynamicTypeIds(DynamicIdVectorT &_rv)const{
+	}
 protected:
 	static size_t generateId();
 	DynamicBase():usecount(0){}
@@ -191,6 +196,15 @@ public:
 			return static_cast<X*>(_pdb);
 		}
 		return nullptr;
+	}
+	
+	static void staticTypeIds(DynamicIdVectorT &_rv){
+		_rv.push_back(BaseT::staticTypeId());
+		T::staticTypeIds(_rv);
+	}
+	
+	/*virtual*/ void dynamicTypeIds(DynamicIdVectorT &_rv)const{
+		staticTypeIds(_rv);
 	}
 };
 
