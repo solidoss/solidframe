@@ -128,6 +128,12 @@ public:
 		}
 	}
 	
+	DynamicT* release(){
+		DynamicT *ptmp = pdyn;
+		pdyn = nullptr;
+		return ptmp;
+	}
+	
 protected:
 	void set(DynamicT *_pdyn){
 		pdyn = _pdyn;
@@ -135,11 +141,7 @@ protected:
 			use(static_cast<DynamicBase*>(pdyn));
 		}
 	}
-	DynamicT* release(){
-		DynamicT *ptmp = pdyn;
-		pdyn = nullptr;
-		return ptmp;
-	}
+	
 private:
 	mutable DynamicT *pdyn;
 };

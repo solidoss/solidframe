@@ -203,7 +203,7 @@ int main(int argc, char *argv[]){
 		{
 			frame::ipc::Configuration	cfg;
 			
-			err = cfg.protocolCallback(
+			cfg.protocolCallback(
 				[&ipcsvc](frame::ipc::MessageRegisterProxy& _rrp){
 					_rrp.registerMessage<FirstMessage>(
 						frame::ipc::factory<FirstMessage>,
