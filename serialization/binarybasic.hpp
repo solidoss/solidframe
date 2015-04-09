@@ -18,6 +18,15 @@ namespace solid{
 namespace serialization{
 namespace binary{
 
+#define BASIC_DECL(tp) \
+template <class S>\
+void serialize(S &_s, tp &_t){\
+	_s.push(_t, "basic");\
+}\
+template <class S, class Ctx>\
+void serialize(S &_s, tp &_t, Ctx &){\
+	_s.push(_t, "basic");\
+}
 
 inline char *store(char *_pd, const uint8 _val){
 	uint8 *pd = reinterpret_cast<uint8*>(_pd);
@@ -94,20 +103,20 @@ inline const char *load(const char *_ps, Binary<S> &_val){
 	return _ps + S;
 }
 
-inline unsigned crossSize(const char *_ps){
+inline size_t crossSize(const char *_ps){
 	const uint8 *ps = reinterpret_cast<const uint8*>(_ps);
 	uint8 		v = *ps;
 	return v & 0xf;//4 bits
 }
 
-inline unsigned crossSize(uint8 _v){
+inline size_t crossSize(uint8 _v){
 	_v >>= 4;
 	if(!_v){
 		return 1;
 	}
 	return 2;
 }
-inline unsigned crossSize(uint16 _v){
+inline size_t crossSize(uint16 _v){
 	_v >>= 4;
 	if(!_v){
 		return 1;
@@ -118,7 +127,7 @@ inline unsigned crossSize(uint16 _v){
 	}
 	return 3;
 }
-inline unsigned crossSize(uint32 _v){
+inline size_t crossSize(uint32 _v){
 	_v >>= 4;
 	if(!_v){
 		return 1;
@@ -137,7 +146,7 @@ inline unsigned crossSize(uint32 _v){
 	}
 	return 5;
 }
-inline unsigned crossSize(uint64 _v){
+inline size_t crossSize(uint64 _v){
 	_v >>= 4;
 	if(!_v){
 		return 1;
@@ -291,7 +300,7 @@ inline char* storeCross(char *_pd, uint64 _v){
 
 inline const char* loadCross(const char *_ps, uint8 &_val){
 	const uint8		*ps = reinterpret_cast<const uint8*>(_ps);
-	const unsigned	sz = crossSize(_ps);
+	const size_t	sz = crossSize(_ps);
 	if(sz == 0){
 		_val = (*ps >> 4);
 		return _ps + 1;
@@ -301,7 +310,7 @@ inline const char* loadCross(const char *_ps, uint8 &_val){
 }
 inline const char* loadCross(const char *_ps, uint16 &_val){
 	const uint8		*ps = reinterpret_cast<const uint8*>(_ps);
-	const unsigned	sz = crossSize(_ps);
+	const size_t	sz = crossSize(_ps);
 	switch(sz){
 		case 0:
 			_val = (*ps >> 4);
@@ -316,7 +325,7 @@ inline const char* loadCross(const char *_ps, uint16 &_val){
 }
 inline const char* loadCross(const char *_ps, uint32 &_val){
 	const uint8		*ps = reinterpret_cast<const uint8*>(_ps);
-	const unsigned	sz = crossSize(_ps);
+	const size_t	sz = crossSize(_ps);
 	switch(sz){
 		case 0:
 			_val = (*ps >> 4);
@@ -338,7 +347,7 @@ inline const char* loadCross(const char *_ps, uint32 &_val){
 }
 inline const char* loadCross(const char *_ps, uint64 &_val){
 	const uint8		*ps = reinterpret_cast<const uint8*>(_ps);
-	const unsigned	sz = crossSize(_ps);
+	const size_t	sz = crossSize(_ps);
 	switch(sz){
 		case 0:
 			_val = (*ps >> 4);

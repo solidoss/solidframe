@@ -1,12 +1,11 @@
 
 set(Sources
 	src/binary.cpp
-	src/typemapper.cpp
 )
 
 set(Headers
 	binary.hpp
-	idtypemapper.hpp
+	binarybasic.hpp
 )
 
 set(Inlines

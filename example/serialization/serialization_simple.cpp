@@ -16,7 +16,6 @@
 //#undef UDEBUG
 #include "system/thread.hpp"
 #include "system/debug.hpp"
-#include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 #include "serialization/binarybasic.hpp"
 #include "system/socketaddress.hpp"
