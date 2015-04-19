@@ -70,3 +70,11 @@ FIND_LIBRARY(BOOST_CHRONO_LIB
                 PATHS
                     ${EXTERN_PATH}/lib
                 NO_DEFAULT_PATH)
+FIND_LIBRARY(BOOST_SERIALIZATION_LIB
+                NAMES
+                    libboost_serialization.lib
+                    libboost_serialization.a
+                    boost_serialization
+                PATHS
+                    ${EXTERN_PATH}/lib
+                NO_DEFAULT_PATH)
