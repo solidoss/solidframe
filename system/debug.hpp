@@ -146,6 +146,9 @@ struct /*EXPORT_DLL*/ Debug{
 private:
 	static Debug& dbg_the();
 	Debug();
+	Debug(Debug const&);
+	Debug& operator=(Debug const&);
+	
 	struct Data;
 	Data &d;
 };

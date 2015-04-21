@@ -72,6 +72,8 @@ typedef signed long long	int64;
 #define MAX_ULONG			0xffffffffUL
 #endif
 
+#define SOLID_INVALID_SIZE	static_cast<size_t>(-1)
+
 enum SeekRef {
 	SeekBeg=0,
 	SeekCur=1,

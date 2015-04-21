@@ -13,7 +13,6 @@
 #include <deque>
 #include <map>
 #include <list>
-//#undef UDEBUG
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "serialization/binary.hpp"

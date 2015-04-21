@@ -16,7 +16,6 @@
 //#undef UDEBUG
 #include "system/thread.hpp"
 #include "system/debug.hpp"
-#include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 #include "system/socketaddress.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -34,17 +33,13 @@ struct Context{
 	int 	i;
 };
 
-template <int T>
-struct IndexType{
-	enum{ Index = T};
-};
 
 ///\cond 0
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
-	template <class S>
-	void serialize(S &_s, Context &_rctx){
-		_rctx.print();
+	template <class S, class C>
+	void serialize(S &_s, C ){
+		_s.context().print();
 		_s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
 	int32 		a;
@@ -58,8 +53,8 @@ struct TestB{
 	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
 	template <class S>
-	void serialize(S &_s, Context &_rctx){
-		_rctx.print();
+	void serialize(S &_s){
+		_s.context().print();
 		_s.push(a, "b::a");
 	}
 };
@@ -99,8 +94,7 @@ struct TestD{
 		
 	}
 	template <class S>
-	void serialize(S &_s, Context &_rctx){
-		_rctx.print();
+	void serialize(S &_s){
 		_s.push(a, "b::a");
 		const SocketAddressInet4 &rsa = sa;
 		const sockaddr *psa = rsa;
