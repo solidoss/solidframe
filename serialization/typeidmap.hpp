@@ -13,15 +13,14 @@
 #include "utility/dynamicpointer.hpp"
 #include "system/function.hpp"
 #include <unordered_map>
+#include <typeindex>
 
 namespace solid{
 namespace serialization{
 
-template <class Ser, class Des, class Data = void>
-class TypeIdMap;
 
-template <class Ser, class Des>
-class TypeIdMap<void>{
+class TypeIdMapBase{
+protected:
 	typedef FUNCTION<void*()>							FactoryFunctionT;
 	
 	typedef void(*LoadFunctionT)(void*, void*);
@@ -36,33 +35,16 @@ class TypeIdMap<void>{
 	typedef std::vector<Stub>							StubVectorT;
 	
 	typedef std::unordered_map<std::type_index, size_t>	TypeIndexMapT;
+protected:
+	TypeIndexMapT	typemap;
+	StubVectorT		stubvec;	
+};
+
+
+template <class Ser>
+class TypeIdMapSer: virtual protected TypeIdMapBase{
 public:
-	
-	TypeIdMap(){
-	}
-	~TypeIdMap(){
-		
-	}
-	
-	template <class T>
-	size_t registerType(size_t _idx = SOLID_INVALID_SIZE){
-		
-	}
-	
-	template <class T, class FactoryF>
-	size_t registerType(FactoryF _f, size_t _idx = SOLID_INVALID_SIZE){
-		
-	}
-	
-	template <class Base, class Derived>
-	size_t registerCast(){
-		
-	}
-	
-	template <class Derived>
-	size_t registerCast(size_t _idx){
-		
-	}
+	TypeIdMapSer(){}
 	
 	template <class T>
 	bool store(Ser &_rs, T* _pt) const {
@@ -77,6 +59,15 @@ public:
 		}
 		return false;
 	}
+private:
+	TypeIdMapSer(TypeIdMapSer&&);
+	TypeIdMapSer& operator=(TypeIdMapSer&&);
+};
+
+template <class Des>
+class TypeIdMapDes: virtual public TypeIdMapBase{
+public:
+	TypeIdMapDes(){}
 	
 	template <class T>
 	void load(Des &_rs, T* & _pt) const {
@@ -87,13 +78,51 @@ public:
 	void load(Des &_rs, DynamicPointer<T> &_rptr) const {
 		
 	}
+private:
+	TypeIdMapDes(TypeIdMapDes&&);
+	TypeIdMapDes& operator=(TypeIdMapDes&&);
+};
+
+
+template <class Ser, class Des, class Data = void>
+class TypeIdMap;
+
+template <class Ser, class Des>
+class TypeIdMap<Ser, Des, void>: public TypeIdMapSer<Ser>, public TypeIdMapDes<Des>{
+public:
+	
+	TypeIdMap(){
+	}
+	~TypeIdMap(){
+		
+	}
+	
+	template <class T>
+	size_t registerType(size_t _idx = SOLID_INVALID_SIZE){
+		return 0;
+	}
+	
+	template <class T, class FactoryF>
+	size_t registerType(FactoryF _f, size_t _idx = SOLID_INVALID_SIZE){
+		return 0;
+	}
+	
+	template <class Base, class Derived>
+	size_t registerCast(){
+		return 0;
+	}
+	
+	template <class Derived>
+	size_t registerCast(size_t _idx){
+		return 0;
+	}
 	
 private:
 	TypeIdMap(TypeIdMap const &);
+	TypeIdMap(TypeIdMap &&);
 	TypeIdMap& operator=(TypeIdMap const &);
+	TypeIdMap& operator=(TypeIdMap &&);
 private:
-	TypeIndexMapT	typemap;
-	StubVectorT		stubvec;
 };
 
 

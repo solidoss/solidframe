@@ -12,9 +12,11 @@
 
 #include <typeinfo>
 #include <string>
-
 #include <istream>
 #include <ostream>
+
+#include "serialization/typeidmap.hpp"
+
 #include "binarybasic.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
