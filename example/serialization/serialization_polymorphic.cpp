@@ -6,7 +6,11 @@
 using namespace solid;
 using namespace std;
 
-struct TestA{
+struct Base{
+	virtual ~Base(){}
+};
+
+struct TestA: Base{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S>
 	void serialize(S &_s){
@@ -18,7 +22,7 @@ struct TestA{
 	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<endl;}
 };
 
-struct TestB{
+struct TestB: Base{
 	TestB(int _a = 4):a(_a){}
 	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
@@ -37,6 +41,9 @@ int main(){
 	string		data;
 	
 	TypeIdMapT	typemap;
+	
+	typemap.registerType<TestA>();
+	typemap.registerType<TestB>();
 	
 	{
 		const size_t		bufcp = 64;
