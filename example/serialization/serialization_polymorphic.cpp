@@ -8,6 +8,7 @@ using namespace std;
 
 struct Base{
 	virtual ~Base(){}
+	virtual void print()const = 0;
 };
 
 struct TestA: Base{
@@ -54,7 +55,10 @@ int main(){
 		TestA				a;
 		TestB				b;
 		
-		ser.push(a, "a").push(b, "b");
+		Base				*pa = &a;
+		Base				*pb = &b;
+		
+		ser.push(pa, "pa").push(pb, "pb");
 		
 		while((rv = ser.run(buf, bufcp)) == bufcp){
 			data.append(buf, rv);
@@ -68,19 +72,20 @@ int main(){
 	}
 	{
 		BinDeserializerT	des;
-		TestA				a(0,0,0);
-		TestB				b(0);
 		int					rv;
 		
-		des.push(a, "a").push(b, "b");
+		Base				*pa = nullptr;
+		Base				*pb = nullptr;
+		
+		des.push(pa, "pa").push(pb, "pb");
 		
 		rv = des.run(data.data(), data.size());
 		if(rv != data.size()){
 			cout<<"ERROR: deserialization: "<<des.errorString()<<endl;
 			return 0;
 		}
-		a.print();
-		b.print();
+		pa->print();
+		pb->print();
 	}
 	return 0;
 }

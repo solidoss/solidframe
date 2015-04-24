@@ -172,6 +172,7 @@ protected:
 		ERR_UTF8_MAX_LIMIT,
 		ERR_POINTER_UNKNOWN,
 		ERR_REINIT,
+		ERR_NO_TYPE_MAP,
 	};
 	struct FncData;
 	typedef CbkReturnValueE (*FncT)(Base &, FncData &, void*);
@@ -470,7 +471,6 @@ protected:
 private:
 	template <class T>
 	friend struct SerializerPushHelper;
-	friend class TypeMapperBase;
 	friend class Base;
 	char					*pb;
 	char					*cpb;
@@ -630,11 +630,12 @@ class Serializer;
 template <>
 class Serializer<void>: public SerializerBase{
 public:
-	typedef void 				ContextT;
-	typedef Serializer<void>	SerializerT;
-	typedef SerializerBase		BaseT;
+	typedef void 						ContextT;
+	typedef Serializer<void>			SerializerT;
+	typedef SerializerBase				BaseT;
+	typedef TypeIdMapSer<SerializerT>	TypeIdMapT;
 	
-	Serializer(){
+	Serializer(const TypeIdMapT *_ptypeidmap = nullptr): ptypeidmap(_ptypeidmap){
 	}
 	Serializer(
 		Limits const & _rdefaultlmts
@@ -685,6 +686,31 @@ public:
 		sph(*this, _t, _name);
 		return *this;
 	}
+	
+	template <typename T>
+	SerializerT& push(T* _pt, const char *_name = Base::default_name){
+		if(ptypeidmap){
+			if(!ptypeidmap->store(*this, _pt, _name)){
+				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_POINTER_UNKNOWN));
+			}
+		}else{
+			SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_NO_TYPE_MAP));
+		}
+		return *this;
+	}
+	
+	template <typename T>
+	SerializerT& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
+		if(ptypeidmap){
+			if(!ptypeidmap->store(*this, _rptr.get(), _name)){
+				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_POINTER_UNKNOWN));
+			}
+		}else{
+			SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_NO_TYPE_MAP));
+		}
+		return *this;
+	}
+	
 	
 	//! Schedules a stl style container for serialization
 	template <typename T>
@@ -773,16 +799,26 @@ public:
 		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, const_cast<uint64*>(&_rv), _name));
 		return *this;
 	}
+	SerializerT& pushCrossValue(const uint32 &_rv, const char *_name = Base::default_name){
+		//TODO:
+		//this->Base::fstk.push(Base::FncData(&SerializerBase::storeCrossValue<uint64>, &_rv, _name));
+		return *this;
+	}
+private:
+	const TypeIdMapT	*ptypeidmap;
 };
 //--------------------------------------------------------------
 template <class Ctx>
 class Serializer: public SerializerBase{
 public:
-	typedef Ctx 				ContextT;
-	typedef Serializer<Ctx>		SerializerT;
-	typedef SerializerBase		BaseT;
-	Serializer(){
+	typedef Ctx 						ContextT;
+	typedef Serializer<Ctx>				SerializerT;
+	typedef SerializerBase				BaseT;
+	typedef TypeIdMapSer<SerializerT>	TypeIdMapT;
+	
+	Serializer(const TypeIdMapT *_ptypeidmap = nullptr): ptypeidmap(_ptypeidmap){
 	}
+	
 	Serializer(
 		Limits const & _rdefaultlmts
 	):BaseT(_rdefaultlmts){
@@ -832,6 +868,30 @@ public:
 		//fstk.push(FncData(&SerializerBase::template store<T, SerializerT>, (void*)&_t, _name));
 		SerializerPushHelper<T>	sph;
 		sph(*this, _t, _name, true);
+		return *this;
+	}
+	
+	template <typename T>
+	SerializerT& push(T* _pt, const char *_name =  Base::default_name){
+		if(ptypeidmap){
+			if(!ptypeidmap->store(*this, _pt, _name)){
+				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_POINTER_UNKNOWN));
+			}
+		}else{
+			SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_NO_TYPE_MAP));
+		}
+		return *this;
+	}
+	
+	template <typename T>
+	SerializerT& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
+		if(ptypeidmap){
+			if(!ptypeidmap->store(*this, _rptr.get(), _name)){
+				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_POINTER_UNKNOWN));
+			}
+		}else{
+			SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_NO_TYPE_MAP));
+		}
 		return *this;
 	}
 	
@@ -922,6 +982,14 @@ public:
 		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &_rv, _name));
 		return *this;
 	}
+	
+	SerializerT& pushCrossValue(const uint32 &_rv, const char *_name = Base::default_name){
+		//TODO:
+		//this->Base::fstk.push(Base::FncData(&SerializerBase::storeCrossValue<uint64>, &_rv, _name));
+		return *this;
+	}
+private:
+	const TypeIdMapT	*ptypeidmap;
 };
 
 //===============================================================
@@ -939,8 +1007,39 @@ protected:
 		T					*pt = reinterpret_cast<T*>(_pt);
 		dp = pt;
 	}
-	static CbkReturnValueE loadTypeIdDone(Base& _rd, FncData &_rfd, void */*_pctx*/);
-	static CbkReturnValueE loadTypeId(Base& _rd, FncData &_rfd, void */*_pctx*/);
+	
+	template <typename T, typename Des>
+	static CbkReturnValueE loadPointer(Base& _rd, FncData &_rfd, void */*_pctx*/){
+		Des		&rd(static_cast<Des&>(_rd));
+		if(!rd.cpb){
+			return Success;
+		}
+		
+		bool rv = rd.typeIdMap()->load<T>(rd, _rfd.p, rd.estk.top().p(), rd.estk.top().u64_1(), rd.tmpstr, _rfd.n);
+		
+		if(rv){
+			return Success;
+		}else{
+			rd.err = ERR_POINTER_UNKNOWN;
+			return Failure;
+		}
+	}
+	
+	template <typename T, typename Des>
+	static CbkReturnValueE loadPointerPrepare(Base& _rd, FncData &_rfd, void */*_pctx*/){
+		Des		&rd(static_cast<Des&>(_rd));
+		if(!rd.cpb){
+			return Success;
+		}
+		
+		rd.estk.top().u64_1() = 0;
+		
+		_rfd.f = &loadPointer<T, Des>;
+		
+		rd.typeIdMap()->loadTypeId(rd, rd.estk.top().u64_1(), rd.tmpstr, _rfd.n);
+		
+		return Continue;
+	}
 	
 	template <typename T>
 	static CbkReturnValueE loadCrossDone(Base& _rd, FncData &_rfd, void */*_pctx*/){
@@ -975,19 +1074,6 @@ protected:
 	static CbkReturnValueE loadBinaryString(Base &_rb, FncData &_rfd, void */*_pctx*/);
 	static CbkReturnValueE loadBinaryStringCheck(Base &_rb, FncData &_rfd, void */*_pctx*/);
 	static CbkReturnValueE loadUtf8(Base &_rb, FncData &_rfd, void */*_pctx*/);
-	
-	template <typename T, class Des, class H>
-	static CbkReturnValueE loadHandle(Base &_rb, FncData &_rfd, void *_pctx){
-		Des &rd = static_cast<Des&>(_rb);
-		if(!rd.cpb){
-			return Success;
-		}
-		typename Des::ContextT	&rctx = *reinterpret_cast<typename Des::ContextT*>(_pctx);
-		H						h;
-		T						*pt = reinterpret_cast<T*>(_rfd.p);
-		h.afterSerialization(rd, pt, rctx);
-		return Success;
-	}
 	
 	template <typename T, class Des>
 	static CbkReturnValueE loadContainer(Base &_rb, FncData &_rfd, void */*_pctx*/){
@@ -1174,6 +1260,12 @@ protected:
 			rd.err = ERR_REINIT;
 		}
 		return rv;
+	}
+	
+	static CbkReturnValueE loadReturnError(Base &_rs, FncData &_rfd, void */*_pctx*/){
+		DeserializerBase		&rs(static_cast<DeserializerBase&>(_rs));
+		rs.err = _rfd.s;
+		return Failure;
 	}
 	
 	void doPushStringLimit();
@@ -1371,11 +1463,12 @@ class Deserializer;
 template <>
 class Deserializer<void>: public DeserializerBase{
 public:
-	typedef void 					ContextT;
-	typedef Deserializer<void>		DeserializerT;
-	typedef DeserializerBase		BaseT;
+	typedef void 						ContextT;
+	typedef Deserializer<void>			DeserializerT;
+	typedef DeserializerBase			BaseT;
+	typedef TypeIdMapDes<DeserializerT>	TypeIdMapT;
 	
-	Deserializer(){
+	Deserializer(const TypeIdMapT *_ptypeidmap = nullptr): ptypeidmap(_ptypeidmap){
 	}
 	Deserializer(
 		Limits const & _rdefaultlmts
@@ -1420,9 +1513,21 @@ public:
 	
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = Base::default_name){
-		this->Base::fstk.push(Base::FncData(&Deserializer::loadTypeId, &_t, _name));
+		if(ptypeidmap){
+			this->Base::estk.push(Base::ExtData((void*)nullptr));
+			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT>, reinterpret_cast<void*>(&_t), _name));
+		}else{
+			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
+		}
 		return *this;
 	}
+	
+	template <typename T>
+	Deserializer& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
+		return *this;
+	}
+	
 	template <class T, uint32 I>
 	Deserializer& pushReinit(
 		T *_pt, const uint64 &_rval = 0, const char *_name = Base::default_name
@@ -1521,6 +1626,11 @@ public:
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &_rv, _name));
 		return *this;
 	}
+	const TypeIdMapT* typeIdMap()const{
+		return ptypeidmap;
+	}
+private:
+	const TypeIdMapT	*ptypeidmap;
 };
 
 //--------------------------------------------------------------
@@ -1529,10 +1639,12 @@ public:
 template <class Ctx>
 class Deserializer: public DeserializerBase{
 public:
-	typedef Ctx 					ContextT;
-	typedef Deserializer<Ctx>		DeserializerT;
-	typedef DeserializerBase		BaseT;
-	Deserializer(){
+	typedef Ctx 						ContextT;
+	typedef Deserializer<Ctx>			DeserializerT;
+	typedef DeserializerBase			BaseT;
+	typedef TypeIdMapDes<DeserializerT>	TypeIdMapT;
+	
+	Deserializer(const TypeIdMapT *_ptypeidmap = nullptr):ptypeidmap(_ptypeidmap){
 	}
 	Deserializer(
 		Limits const & _rdefaultlmts
@@ -1681,6 +1793,8 @@ public:
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &_rv, _name));
 		return *this;
 	}
+private:
+	const TypeIdMapT	*ptypeidmap;
 };
 
 }//namespace binary

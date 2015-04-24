@@ -24,10 +24,11 @@ T* basic_factory(){
 }
 
 class TypeIdMapBase{
+protected:
 	typedef FUNCTION<void*()>							FactoryFunctionT;
 	
 	typedef void(*LoadFunctionT)(void*, void*);
-	typedef void(*StoreFunctionT)(void*, void*);
+	typedef void(*StoreFunctionT)(void*, void*, const char*);
 	
 	struct Stub{
 		FactoryFunctionT	factoryfnc;
@@ -37,7 +38,7 @@ class TypeIdMapBase{
 	
 	typedef std::vector<Stub>							StubVectorT;
 	
-	typedef std::unordered_map<std::type_index, size_t>	TypeIndexMapT;
+	typedef std::unordered_map<std::type_index, uint32>	TypeIndexMapT;
 	
 	template <class F>
 	struct FactoryStub{
@@ -49,11 +50,11 @@ class TypeIdMapBase{
 	};
 	
 	template <class T, class Ser>
-	static void store_pointer(void *_pser, void *_pt){
+	static void store_pointer(void *_pser, void *_pt, const char *_name){
 		Ser &rs = *(reinterpret_cast<Ser*>(_pser));
 		T	&rt = *(reinterpret_cast<T*>(_pt));
 		
-		rs.push(rt, "pointer_data");
+		rs.push(rt, _name);
 	}
 	
 	template <class T, class Des>
@@ -108,18 +109,17 @@ public:
 	TypeIdMapSer(){}
 	
 	template <class T>
-	bool store(Ser &_rs, T* _pt) const {
+	bool store(Ser &_rs, T* _pt, const char *_name) const {
 		if(_pt == nullptr){
-			storeNullPointer(_rs);
+			return storeNullPointer(_rs, _name);
 		}else{
-			storePointer(_rs, _pt, std::type_index(typeid(_pt)));
+			return storePointer(_rs, _pt, std::type_index(typeid(_pt)), _name);
 		}
-		return false;
 	}
-	
-	virtual void storeNullPointer(Ser &_rs) = 0;
-	virtual void storePointer(Ser &_rs, void *_p, std::type_index const&) = 0;
 private:
+	virtual bool storeNullPointer(Ser &_rs, const char *_name) const = 0;
+	virtual bool storePointer(Ser &_rs, void *_p, std::type_index const&, const char *_name) const = 0;
+
 	TypeIdMapSer(TypeIdMapSer&&);
 	TypeIdMapSer& operator=(TypeIdMapSer&&);
 };
@@ -130,15 +130,26 @@ public:
 	TypeIdMapDes(){}
 	
 	template <class T>
-	void load(Des &_rs, T* & _pt) const {
-		
+	bool load(
+		Des &_rd,
+		void* &_rptr,				//store destination pointer, the real type must be static_cast-ed to this pointer
+		void* & _rrealptr,			//store pointer to real type
+		const uint64 &_riv,			//integer value that may store the typeid
+		std::string const &_rsv,	//string value that may store the typeid
+		const char *_name
+	) const {
+		return loadPointer(_rd, _rptr, _rrealptr, std::type_index(typeid(T)), _riv, _rsv, _name);
 	}
 	
-	template <class T>
-	void load(Des &_rs, DynamicPointer<T> &_rptr) const {
-		
-	}
+	virtual void loadTypeId(Des &_rd, uint64 &_rv, std::string &_rstr, const char* _name)const = 0;
 private:
+	
+	virtual bool loadPointer(
+		Des &_rd, void* &_rptr, void* & _rrealptr,
+		std::type_index const& _rtidx,		//type_index of the destination pointer
+		const uint64 &_riv, std::string const &_rsv, const char *_name
+	) const = 0;
+	
 	TypeIdMapDes(TypeIdMapDes&&);
 	TypeIdMapDes& operator=(TypeIdMapDes&&);
 };
@@ -177,12 +188,36 @@ public:
 		return TypeIdMapBase::doRegisterCast<Derived>(_idx);
 	}
 private:
-	/*virtual*/ void storeNullPointer(Ser &_rs){
-		
+	/*virtual*/ bool storeNullPointer(Ser &_rs, const char *_name) const {
+		static const uint32 nulltypeid = 0;
+		_rs.pushCross(nulltypeid, _name);
+		return true;
 	}
-	/*virtual*/ void storePointer(Ser &_rs, void *_p, std::type_index const&){
-		
+	/*virtual*/ bool storePointer(Ser &_rs, void *_p, std::type_index const& _tid, const char *_name) const {
+		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(_tid);
+		if(it != TypeIdMapBase::typemap.end()){
+			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[it->second];
+			(*rstub.storefnc)(&_rs, _p, _name);
+			_rs.pushCrossValue(it->second, _name); 
+			return true;
+		}
+		return false;
 	}
+	
+	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
+		_rd.pushCross(_rv, _name);
+	}
+	// Returns true, if the type identified by _riv exists
+	// and a cast from that type to the type identified by _rtidx, exists
+	/*virtual*/ bool loadPointer(
+		Des &_rd, void* &_rptr, void* & _rrealptr,
+		std::type_index const& _rtidx,		//type_index of the destination pointer
+		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
+	) const {
+		//TODO:
+		return false;
+	}
+	
 private:
 	TypeIdMap(TypeIdMap const &);
 	TypeIdMap(TypeIdMap &&);

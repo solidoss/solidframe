@@ -77,6 +77,8 @@ void once_limits(){
 			return "Unknown pointer type id";
 		case ERR_REINIT:
 			return "Reinit error";
+		case ERR_NO_TYPE_MAP:
+			return "Serializer/Deserializer not initialized with a TypeIdMap";
 		default:
 			return "Unknown error";
 	};
@@ -697,34 +699,6 @@ void DeserializerBase::clear(){
 	idbgx(Debug::ser_bin, "clear_deser");
 	run(nullptr, 0, nullptr);
 }
-
-// /*static*/ CbkReturnValueE DeserializerBase::loadTypeIdDone(Base& _rd, FncData &_rfd, void *_pctx){
-// 	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
-// 	void				*p = _rfd.p;
-// 	const char			*n = _rfd.n;
-// 	
-// 	if(!rd.cpb) return Success;
-// 	
-// 	rd.fstk.pop();
-// 	
-// 	if(rd.typeMapper().prepareParsePointer(&rd, rd.tmpstr, p, n, _pctx)){
-// 		return Continue;
-// 	}else{
-// 		idbgx(Debug::ser_bin, "error");
-// 		rd.err = ERR_POINTER_UNKNOWN;
-// 		return Failure;
-// 	}
-// }
-
-// /*static*/ CbkReturnValueE DeserializerBase::loadTypeId(Base& _rd, FncData &_rfd, void */*_pctx*/){
-// 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
-// 	
-// 	if(!rd.cpb) return Success;
-// 	
-// 	rd.typeMapper().prepareParsePointerId(&rd, rd.tmpstr, _rfd.n);
-// 	_rfd.f = &loadTypeIdDone;
-// 	return Continue;
-// }
 
 void DeserializerBase::doPushStringLimit(){
 	fstk.push(FncData(&Base::setStringLimit, 0, 0, rdefaultlmts.stringlimit));
