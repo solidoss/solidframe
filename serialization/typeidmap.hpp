@@ -12,6 +12,8 @@
 
 #include "utility/dynamicpointer.hpp"
 #include "system/function.hpp"
+#include "system/exception.hpp"
+#include "system/error.hpp"
 #include <unordered_map>
 #include <typeindex>
 
@@ -25,16 +27,30 @@ T* basic_factory(){
 
 class TypeIdMapBase{
 protected:
-	typedef FUNCTION<void*()>							FactoryFunctionT;
+	typedef FUNCTION<void*()>										FactoryFunctionT;
 	
-	typedef void(*LoadFunctionT)(void*, void*);
+	typedef void(*LoadFunctionT)(void*, void*, const char*);
 	typedef void(*StoreFunctionT)(void*, void*, const char*);
+	
+	typedef void(*CastFunctionT)(void*, void*);
+	
+	typedef std::pair<std::type_index, size_t>						CastIdT;
+	struct CastHash{
+		size_t operator()(CastIdT const &_id)const{
+			return _id.first.hash_code() ^ _id.second;
+		}
+	};
+
+	typedef std::unordered_map<CastIdT, CastFunctionT, CastHash>	CastMapT;
 	
 	struct Stub{
 		FactoryFunctionT	factoryfnc;
 		LoadFunctionT		loadfnc;
 		StoreFunctionT		storefnc;
 	};
+	
+	static ErrorConditionT error_no_cast();
+	static ErrorConditionT error_no_type();
 	
 	typedef std::vector<Stub>							StubVectorT;
 	
@@ -58,13 +74,19 @@ protected:
 	}
 	
 	template <class T, class Des>
-	static void load_pointer(void *_pser, void *_pt){
+	static void load_pointer(void *_pser, void *_pt, const char *_name){
 		Des &rs = *(reinterpret_cast<Des*>(_pser));
 		T	&rt = *(reinterpret_cast<T*>(_pt));
 		
-		rs.push(rt, "pointer_data");
+		rs.push(rt, _name);
 	}
 	
+	template <class Base, class Derived>
+	static void cast_pointer(void *_pderived, void* _pbase){
+		Derived *pd = reinterpret_cast<Derived*>(_pderived);
+		Base 	*&rpb = *reinterpret_cast<Base**>(_pbase);
+		rpb = static_cast<Base*>(pd);
+	}
 protected:
 	TypeIdMapBase():crtidx(1){
 		stubvec.push_back(Stub());
@@ -73,7 +95,7 @@ protected:
 	template <class T, class Ser, class Des, class Factory>
 	size_t doRegisterType(Factory _f, size_t _idx){
 		
-		if(_idx == SOLID_INVALID_SIZE){
+		if(_idx == 0){
 			_idx = crtidx;
 			++crtidx;
 		}
@@ -83,21 +105,48 @@ protected:
 		stubvec[_idx].factoryfnc = _f;
 		stubvec[_idx].loadfnc = load_pointer<T, Des>;
 		stubvec[_idx].storefnc = store_pointer<T, Ser>;
+		typemap[std::type_index(typeid(T))] = _idx;
+		doRegisterCast<T, T>();
 		return _idx;
 	}
 	
-	template <class Base, class Derived>
-	size_t doRegisterCast(){
-		return 0;
+	template <class Derived, class Base>
+	bool doRegisterDownCast(){
+		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(Base)));
+		if(it != TypeIdMapBase::typemap.end()){
+			return doRegisterDownCast<Derived>(it->second);
+		}else{
+			THROW_EXCEPTION("Base type not registered");
+			return false;
+		}
 	}
 	
 	template <class Derived>
-	size_t registerCast(size_t _idx){
-		return 0;
+	bool doRegisterDownCast(const size_t _idx){
+		if(_idx < stubvec.size()){
+			typemap[std::type_index(typeid(Derived))] = _idx;
+			return true;
+		}else{
+			THROW_EXCEPTION_EX("Invalid type index ", _idx);
+			return false;
+		}
+	}
+	
+	template <class Base, class Derived>
+	bool doRegisterCast(){
+		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(Derived)));
+		if(it != TypeIdMapBase::typemap.end()){
+			castmap[CastIdT(std::type_index(typeid(Base)), it->second)] = &cast_pointer<Base, Derived>;
+			return true;
+		}else{
+			THROW_EXCEPTION("Derived type not registered");
+			return false;
+		}
 	}
 	
 protected:
 	TypeIndexMapT	typemap;
+	CastMapT		castmap;
 	StubVectorT		stubvec;
 	size_t			crtidx;
 };
@@ -109,16 +158,16 @@ public:
 	TypeIdMapSer(){}
 	
 	template <class T>
-	bool store(Ser &_rs, T* _pt, const char *_name) const {
+	ErrorConditionT store(Ser &_rs, T* _pt, const char *_name) const {
 		if(_pt == nullptr){
 			return storeNullPointer(_rs, _name);
 		}else{
-			return storePointer(_rs, _pt, std::type_index(typeid(_pt)), _name);
+			return storePointer(_rs, _pt, std::type_index(typeid(*_pt)), _name);
 		}
 	}
 private:
-	virtual bool storeNullPointer(Ser &_rs, const char *_name) const = 0;
-	virtual bool storePointer(Ser &_rs, void *_p, std::type_index const&, const char *_name) const = 0;
+	virtual ErrorConditionT storeNullPointer(Ser &_rs, const char *_name) const = 0;
+	virtual ErrorConditionT storePointer(Ser &_rs, void *_p, std::type_index const&, const char *_name) const = 0;
 
 	TypeIdMapSer(TypeIdMapSer&&);
 	TypeIdMapSer& operator=(TypeIdMapSer&&);
@@ -130,22 +179,21 @@ public:
 	TypeIdMapDes(){}
 	
 	template <class T>
-	bool load(
+	ErrorConditionT load(
 		Des &_rd,
-		void* &_rptr,				//store destination pointer, the real type must be static_cast-ed to this pointer
-		void* & _rrealptr,			//store pointer to real type
+		void* _rptr,				//store destination pointer, the real type must be static_cast-ed to this pointer
 		const uint64 &_riv,			//integer value that may store the typeid
 		std::string const &_rsv,	//string value that may store the typeid
 		const char *_name
 	) const {
-		return loadPointer(_rd, _rptr, _rrealptr, std::type_index(typeid(T)), _riv, _rsv, _name);
+		return loadPointer(_rd, _rptr, std::type_index(typeid(T)), _riv, _rsv, _name);
 	}
 	
 	virtual void loadTypeId(Des &_rd, uint64 &_rv, std::string &_rstr, const char* _name)const = 0;
 private:
 	
-	virtual bool loadPointer(
-		Des &_rd, void* &_rptr, void* & _rrealptr,
+	virtual ErrorConditionT loadPointer(
+		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
 		const uint64 &_riv, std::string const &_rsv, const char *_name
 	) const = 0;
@@ -169,53 +217,69 @@ public:
 	}
 	
 	template <class T>
-	size_t registerType(size_t _idx = SOLID_INVALID_SIZE){
+	size_t registerType(size_t _idx = 0){
 		return TypeIdMapBase::doRegisterType<T, Ser, Des>(basic_factory<T>, _idx);
 	}
 	
 	template <class T, class FactoryF>
-	size_t registerType(FactoryF _f, size_t _idx = SOLID_INVALID_SIZE){
+	size_t registerType(FactoryF _f, size_t _idx = 0){
 		return TypeIdMapBase::doRegisterType<T, Ser, Des>(_f, _idx);
 	}
 	
-	template <class Base, class Derived>
-	size_t registerCast(){
-		return TypeIdMapBase::doRegisterCast<Base, Derived>();
+	template <class Derived, class Base>
+	bool registerDownCast(){
+		return TypeIdMapBase::doRegisterDownCast<Derived, Base>();
 	}
 	
-	template <class Derived>
-	size_t registerCast(size_t _idx){
-		return TypeIdMapBase::doRegisterCast<Derived>(_idx);
+	
+	template <class Derived, class Base>
+	bool registerCast(){
+		return TypeIdMapBase::doRegisterCast<Derived, Base>();
 	}
+	
 private:
-	/*virtual*/ bool storeNullPointer(Ser &_rs, const char *_name) const {
+	/*virtual*/ ErrorConditionT storeNullPointer(Ser &_rs, const char *_name) const {
 		static const uint32 nulltypeid = 0;
 		_rs.pushCross(nulltypeid, _name);
-		return true;
+		return ErrorConditionT();
 	}
-	/*virtual*/ bool storePointer(Ser &_rs, void *_p, std::type_index const& _tid, const char *_name) const {
+	
+	/*virtual*/ ErrorConditionT storePointer(Ser &_rs, void *_p, std::type_index const& _tid, const char *_name) const {
 		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(_tid);
 		if(it != TypeIdMapBase::typemap.end()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[it->second];
 			(*rstub.storefnc)(&_rs, _p, _name);
 			_rs.pushCrossValue(it->second, _name); 
-			return true;
+			return ErrorConditionT();
 		}
-		return false;
+		return TypeIdMapBase::error_no_type();
 	}
 	
 	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
 		_rd.pushCross(_rv, _name);
 	}
+	
+	
 	// Returns true, if the type identified by _riv exists
 	// and a cast from that type to the type identified by _rtidx, exists
-	/*virtual*/ bool loadPointer(
-		Des &_rd, void* &_rptr, void* & _rrealptr,
+	/*virtual*/ ErrorConditionT loadPointer(
+		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
 		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
 	) const {
-		//TODO:
-		return false;
+		const size_t							typeindex = static_cast<size_t>(_riv);
+		TypeIdMapBase::CastMapT::const_iterator	it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, typeindex));
+		
+		if(it != TypeIdMapBase::castmap.end()){
+			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[typeindex];
+			void 						*realptr = rstub.factoryfnc();
+			
+			(*it->second)(realptr, _rptr);//store the pointer
+			
+			(*rstub.loadfnc)(&_rd, realptr, _name);
+			return ErrorConditionT();
+		}
+		return TypeIdMapBase::error_no_cast();
 	}
 	
 private:

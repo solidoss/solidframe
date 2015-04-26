@@ -28,10 +28,10 @@ namespace frame{
 
 namespace{
 
-class ErrorCategory: public ERROR_NS::error_category{
+class ErrorCategory: public ErrorCategoryT{
 public:
 	enum{
-		AlreadyE,
+		AlreadyE = 1,
 		WorkerE,
 		RunningE,
 		ReactorE

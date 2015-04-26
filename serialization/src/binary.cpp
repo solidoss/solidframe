@@ -41,48 +41,65 @@ void once_limits(){
 #endif
 //========================================================================
 /*static*/ const char*		Base::default_name = "-";
-/*static*/ const char *Base::errorString(const uint16 _err){
-	switch(_err){
-		case ERR_NOERROR:
-			return "No error";
-		case ERR_ARRAY_LIMIT:
-			return "Array limit";
-		case ERR_ARRAY_MAX_LIMIT:
-			return "Array max limit";
-		case ERR_CONTAINER_LIMIT:
-			return "Container limit";
-		case ERR_CONTAINER_MAX_LIMIT:
-			return "Container max limit";
-		case ERR_STREAM_LIMIT:
-			return "Stream limit";
-		case ERR_STREAM_CHUNK_MAX_LIMIT:
-			return "Stream chunk max limit";
-		case ERR_STREAM_SEEK:
-			return "Stream seek";
-		case ERR_STREAM_READ:
-			return "Stream read";
-		case ERR_STREAM_WRITE:
-			return "Stream write";
-		case ERR_STREAM_SENDER:
-			return "Stream sender";
-		case ERR_STRING_LIMIT:
-			return "String limit";
-		case ERR_STRING_MAX_LIMIT:
-			return "String max limit";
-		case ERR_UTF8_LIMIT:
-			return "Utf8 limit";
-		case ERR_UTF8_MAX_LIMIT:
-			return "Utf8 max limit";
-		case ERR_POINTER_UNKNOWN:
-			return "Unknown pointer type id";
-		case ERR_REINIT:
-			return "Reinit error";
-		case ERR_NO_TYPE_MAP:
-			return "Serializer/Deserializer not initialized with a TypeIdMap";
-		default:
-			return "Unknown error";
-	};
+
+class ErrorCategory: public ErrorCategoryT{
+public:
+private:
+	const char*   name() const noexcept (true){
+		return "solid::serialization::binary Error";
+	}
+	
+    std::string    message(int _ev) const{
+		switch(_ev){
+			case Base::ERR_NOERROR:
+				return "No error";
+			case Base::ERR_ARRAY_LIMIT:
+				return "Array limit";
+			case Base::ERR_ARRAY_MAX_LIMIT:
+				return "Array max limit";
+			case Base::ERR_CONTAINER_LIMIT:
+				return "Container limit";
+			case Base::ERR_CONTAINER_MAX_LIMIT:
+				return "Container max limit";
+			case Base::ERR_STREAM_LIMIT:
+				return "Stream limit";
+			case Base::ERR_STREAM_CHUNK_MAX_LIMIT:
+				return "Stream chunk max limit";
+			case Base::ERR_STREAM_SEEK:
+				return "Stream seek";
+			case Base::ERR_STREAM_READ:
+				return "Stream read";
+			case Base::ERR_STREAM_WRITE:
+				return "Stream write";
+			case Base::ERR_STREAM_SENDER:
+				return "Stream sender";
+			case Base::ERR_STRING_LIMIT:
+				return "String limit";
+			case Base::ERR_STRING_MAX_LIMIT:
+				return "String max limit";
+			case Base::ERR_UTF8_LIMIT:
+				return "Utf8 limit";
+			case Base::ERR_UTF8_MAX_LIMIT:
+				return "Utf8 max limit";
+			case Base::ERR_POINTER_UNKNOWN:
+				return "Unknown pointer type id";
+			case Base::ERR_REINIT:
+				return "Reinit error";
+			case Base::ERR_NO_TYPE_MAP:
+				return "Serializer/Deserializer not initialized with a TypeIdMap";
+			default:
+				return "Unknown error";
+		}
+	}
+};
+
+const ErrorCategory	ec;
+
+/*static*/ ErrorConditionT Base::make_error(Errors _err){
+	return ErrorConditionT(_err, ec);
 }
+
+
 /*static*/ CbkReturnValueE Base::setStringLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
 	_rb.lmts.stringlimit = static_cast<size_t>(_rfd.s);
 	return Success;
@@ -413,11 +430,11 @@ CbkReturnValueE SerializerBase::store<std::string>(Base &_rb, FncData &_rfd, voi
 	if(!rs.cpb) return Success;
 	std::string * c = reinterpret_cast<std::string*>(_rfd.p);
 	if(c->size() > rs.lmts.stringlimit){
-		rs.err = ERR_STRING_LIMIT;
+		rs.err = make_error(ERR_STRING_LIMIT);
 		return Failure;
 	}
 	if(c->size() > CRCValue<uint64>::maximum()){
-		rs.err = ERR_STRING_MAX_LIMIT;
+		rs.err = make_error(ERR_STRING_MAX_LIMIT);
 		return Failure;
 	}
 	const CRCValue<uint64> crcsz((uint64)c->size());
@@ -438,7 +455,7 @@ CbkReturnValueE SerializerBase::storeStreamBegin(Base &_rb, FncData &_rfd, void 
 	
 	if(toread < MIN_STREAM_BUFFER_SIZE) return Wait;
 	
-	rs.streamerr = 0;
+	rs.streamerr.clear();
 	rs.streamsz = 0;
 	if(_rfd.p == nullptr){
 		rs.cpb = storeValue(rs.cpb, (uint16)0xffff);
@@ -451,7 +468,7 @@ CbkReturnValueE SerializerBase::storeStreamBegin(Base &_rb, FncData &_rfd, void 
 		if(
 			static_cast<int64>(_rfd.s) != ris.tellg()
 		){
-			rs.streamerr = ERR_STREAM_SEEK;
+			rs.streamerr = make_error(ERR_STREAM_SEEK);
 			rs.cpb = storeValue(rs.cpb, (uint16)0xffff);
 			rs.pop();//returning ok will also pop storeStream
 		}
@@ -462,7 +479,7 @@ CbkReturnValueE SerializerBase::storeStreamCheck(Base &_rb, FncData &_rfd, void 
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return Success;
 	if(_rfd.s > rs.lmts.streamlimit){
-		rs.streamerr = rs.err = ERR_STREAM_LIMIT;
+		rs.streamerr = rs.err = make_error(ERR_STREAM_LIMIT);
 		return Failure;
 	}
 	return Success;
@@ -506,7 +523,7 @@ CbkReturnValueE SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_p
 	if(rv > 0){
 		
 		if((rs.streamsz + rv) > rs.lmts.streamlimit){
-			rs.streamerr = rs.err = ERR_STREAM_LIMIT;
+			rs.streamerr = rs.err = make_error(ERR_STREAM_LIMIT);
 			idbgx(Debug::ser_bin, "ERR_STREAM_LIMIT");
 			return Failure;
 		}
@@ -527,7 +544,7 @@ CbkReturnValueE SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_p
 		rs.cpb = storeValue(rs.cpb, (uint16)0);
 		return Success;
 	}else{
-		rs.streamerr = ERR_STREAM_READ;
+		rs.streamerr = make_error(ERR_STREAM_READ);
 		idbgx(Debug::ser_bin, "ERR_STREAM_READ");
 		rs.cpb = storeValue(rs.cpb, (uint16)0xffff);
 		return Success;
@@ -546,11 +563,11 @@ CbkReturnValueE SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_p
 /*static*/ CbkReturnValueE SerializerBase::storeUtf8(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	SerializerBase &rs(static_cast<SerializerBase&>(_rs));
 	if((_rfd.s - 1) > rs.lmts.stringlimit){
-		rs.err = ERR_UTF8_LIMIT;
+		rs.err = make_error(ERR_UTF8_LIMIT);
 		return Failure;
 	}
 	if((_rfd.s - 1) > CRCValue<uint32>::maximum()){
-		rs.err = ERR_UTF8_MAX_LIMIT;
+		rs.err = make_error(ERR_UTF8_MAX_LIMIT);
 		return Failure;
 	}
 	_rfd.f = &SerializerBase::storeBinary<0>;
@@ -729,7 +746,7 @@ int DeserializerBase::run(const char *_pb, unsigned _bl, void *_pctx){
 			case Success: fstk.pop(); break;
 			case Wait: goto Done;
 			case Failure:
-				idbgx(Debug::ser_bin, "error: "<<errorString());
+				idbgx(Debug::ser_bin, "error: "<<err.message());
 				resetLimits();
 				return -1;
 			default:
@@ -1195,7 +1212,7 @@ CbkReturnValueE DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd
 		if(crcsz.ok()){
 			rd.estk.top().u64() = crcsz.value();
 		}else{
-			rd.err = ERR_STRING_MAX_LIMIT;
+			rd.err = make_error(ERR_STRING_MAX_LIMIT);
 			return Failure;
 		}
 	}
@@ -1203,7 +1220,7 @@ CbkReturnValueE DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd
 	
 	if(ul >= rd.lmts.stringlimit){
 		idbgx(Debug::ser_bin, "error");
-		rd.err = ERR_STRING_LIMIT;
+		rd.err = make_error(ERR_STRING_LIMIT);
 		return Failure;
 	}
 	return Success;
@@ -1243,7 +1260,7 @@ CbkReturnValueE DeserializerBase::loadStreamCheck(Base &_rb, FncData &_rfd, void
 	
 	if(_rfd.s > static_cast<int64>(rd.lmts.streamlimit)){
 		idbgx(Debug::ser_bin, "error");
-		rd.err = ERR_STREAM_LIMIT;
+		rd.err = make_error(ERR_STREAM_LIMIT);
 		return Failure;
 	}
 	return Success;
@@ -1253,7 +1270,7 @@ CbkReturnValueE DeserializerBase::loadStreamBegin(Base &_rb, FncData &_rfd, void
 	
 	if(!rd.cpb) return Success;
 	
-	rd.streamerr = 0;
+	rd.streamerr.clear();
 	rd.streamsz = 0;
 	
 	if(_rfd.p == nullptr){
@@ -1269,7 +1286,7 @@ CbkReturnValueE DeserializerBase::loadStreamBegin(Base &_rb, FncData &_rfd, void
 		if(
 			static_cast<int64>(_rfd.s) != ros.tellp()
 		){
-			rd.streamerr = ERR_STREAM_SEEK;
+			rd.streamerr = make_error(ERR_STREAM_SEEK);
 			rd.pop();
 			rd.fstk.top().f = &DeserializerBase::loadDummyStream;
 			rd.fstk.top().s = 0;
@@ -1305,14 +1322,14 @@ CbkReturnValueE DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_
 	
 	if(sz == 0xffff){//error on storing side - the stream is incomplete
 		idbgx(Debug::ser_bin, "error on storing side");
-		rd.streamerr = ERR_STREAM_SENDER;
+		rd.streamerr = make_error(ERR_STREAM_SENDER);
 		return Success;
 	}else{
 		CRCValue<uint16> crcsz(CRCValue<uint16>::check_and_create(sz));
 		if(crcsz.ok()){
 			sz = crcsz.value();
 		}else{
-			rd.streamerr = rd.err = ERR_STREAM_CHUNK_MAX_LIMIT;
+			rd.streamerr = rd.err = make_error(ERR_STREAM_CHUNK_MAX_LIMIT);
 			idbgx(Debug::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
 			return Failure;
 		}
@@ -1325,7 +1342,7 @@ CbkReturnValueE DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_
 	
 	if((rd.streamsz + towrite) > rd.lmts.streamlimit){
 		idbgx(Debug::ser_bin, "ERR_STREAM_LIMIT");
-		rd.streamerr = rd.err = ERR_STREAM_LIMIT;
+		rd.streamerr = rd.err = make_error(ERR_STREAM_LIMIT);
 		return Failure;
 	}
 	
@@ -1353,7 +1370,7 @@ CbkReturnValueE DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_
 	}
 	
 	if(rv != towrite){
-		rd.streamerr = ERR_STREAM_WRITE;
+		rd.streamerr = make_error(ERR_STREAM_WRITE);
 		_rfd.f = &loadDummyStream;
 		_rfd.s = rd.streamsz + sz;
 	}else{
@@ -1388,7 +1405,7 @@ CbkReturnValueE DeserializerBase::loadDummyStream(Base &_rb, FncData &_rfd, void
 	idbgx(Debug::ser_bin, "sz = "<<sz);
 	
 	if(sz == 0xffff){//error on storing side - the stream is incomplete
-		rd.streamerr = ERR_STREAM_SENDER;
+		rd.streamerr = make_error(ERR_STREAM_SENDER);
 		return Success;
 	}else if(sz == 0){
 		return Success;
@@ -1397,7 +1414,7 @@ CbkReturnValueE DeserializerBase::loadDummyStream(Base &_rb, FncData &_rfd, void
 		if(crcsz.ok()){
 			sz = crcsz.value();
 		}else{
-			rd.streamerr = rd.err = ERR_STREAM_CHUNK_MAX_LIMIT;
+			rd.streamerr = rd.err = make_error(ERR_STREAM_CHUNK_MAX_LIMIT);
 			idbgx(Debug::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
 			return Failure;
 		}
@@ -1406,7 +1423,7 @@ CbkReturnValueE DeserializerBase::loadDummyStream(Base &_rb, FncData &_rfd, void
 	_rfd.s += sz;
 	if(_rfd.s > rd.lmts.streamlimit){
 		idbgx(Debug::ser_bin, "ERR_STREAM_LIMIT");
-		rd.streamerr = rd.err = ERR_STREAM_LIMIT;
+		rd.streamerr = rd.err = make_error(ERR_STREAM_LIMIT);
 		return Failure;
 	}
 	return Continue;
@@ -1420,11 +1437,11 @@ CbkReturnValueE DeserializerBase::loadUtf8(Base &_rb, FncData &_rfd, void */*_pc
 	size_t				totlen = ps->size() + slen;
 	idbgx(Debug::ser_bin, "len = "<<len);
 	if(totlen > rd.lmts.stringlimit){
-		rd.err = ERR_UTF8_LIMIT;
+		rd.err = make_error(ERR_UTF8_LIMIT);
 		return Failure;
 	}
 	if(totlen > CRCValue<uint32>::maximum()){
-		rd.err = ERR_UTF8_MAX_LIMIT;
+		rd.err = make_error(ERR_UTF8_MAX_LIMIT);
 		return Failure;
 	}
 	ps->append(rd.cpb, slen);

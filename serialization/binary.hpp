@@ -126,23 +126,15 @@ struct Limits{
 */
 class Base{
 public:
-	static const char *errorString(const uint16 _err);
-	
 	void resetLimits(){
 		lmts = rdefaultlmts;
 	}
-	bool ok()const{return err == 0;}
-	uint16 error()const{
+	bool ok()const{return !err;}
+	ErrorConditionT error()const{
 		return err;
 	}
-	uint16 streamError()const{
+	ErrorConditionT streamError()const{
 		return streamerr;
-	}
-	const char* errorString()const{
-		return errorString(err);
-	}
-	const char* streamErrorString()const{
-		return errorString(streamerr);
 	}
 	void pop(){
 		fstk.pop();
@@ -154,6 +146,7 @@ public:
 		return lmts;
 	}
 protected:
+	friend class ErrorCategory;
 	enum Errors{
 		ERR_NOERROR = 0,
 		ERR_ARRAY_LIMIT,
@@ -235,6 +228,8 @@ protected:
 	static CbkReturnValueE setStringLimit(Base& _rd, FncData &_rfd, void */*_pctx*/);
 	static CbkReturnValueE setStreamLimit(Base& _rd, FncData &_rfd, void */*_pctx*/);
 	static CbkReturnValueE setContainerLimit(Base& _rd, FncData &_rfd, void */*_pctx*/);
+	
+	static ErrorConditionT make_error(Errors _err);
 
 	Base():rdefaultlmts(Limits::the()), lmts(rdefaultlmts){}
 	
@@ -250,8 +245,8 @@ protected:
 	typedef Stack<ExtData>	ExtDataStackT;
 	const Limits			&rdefaultlmts;
 	Limits					lmts;
-	uint16					err;
-	uint16					streamerr;
+	ErrorConditionT			err;
+	ErrorConditionT			streamerr;
 	uint64					streamsz;
 	ulong					uls;
 	FncDataStackT			fstk;
@@ -297,11 +292,11 @@ protected:
 		if(c){
 			cassert(sizeof(typename T::iterator) <= sizeof(ExtData));
 			if(c->size() > rs.lmts.containerlimit){
-				rs.err = ERR_CONTAINER_LIMIT;
+				rs.err = make_error(ERR_CONTAINER_LIMIT);
 				return Failure;
 			}
 			if(c->size() > CRCValue<uint64>::maximum()){
-				rs.err = ERR_CONTAINER_MAX_LIMIT;
+				rs.err = make_error(ERR_CONTAINER_MAX_LIMIT);
 				return Failure;
 			}
 			rs.estk.push(ExtData());
@@ -353,7 +348,7 @@ protected:
 		const char	*n = _rfd.n;
 		if(c && rs.estk.top().u64() != static_cast<uint64>(-1)){
 			if(rs.estk.top().u64() > rs.lmts.containerlimit){
-				rs.err = ERR_ARRAY_LIMIT;
+				rs.err = make_error(ERR_ARRAY_LIMIT);
 				return Failure;
 			}else if(rs.estk.top().u64() <= CRCValue<uint64>::maximum()){
 				_rfd.f = &SerializerBase::storeArrayContinue<T, Ser>;
@@ -363,7 +358,7 @@ protected:
 				idbgx(Debug::ser_bin, "store array size "<<rs.estk.top().u64());
 				rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().u64(), n));
 			}else{
-				rs.err = ERR_ARRAY_MAX_LIMIT;
+				rs.err = make_error(ERR_ARRAY_MAX_LIMIT);
 				return Failure;
 			}
 		}else{
@@ -412,7 +407,7 @@ protected:
 
 		CbkReturnValueE rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val);
 		if(rv == Failure){
-			rs.err = ERR_REINIT;
+			rs.err = make_error(ERR_REINIT);
 		}
 		return rv;
 	}
@@ -428,14 +423,16 @@ protected:
 		Ctx 			&rctx = *reinterpret_cast<Ctx*>(_pctx);
 		CbkReturnValueE rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val, rctx);
 		if(rv == Failure){
-			rs.err = ERR_REINIT;
+			rs.err = make_error(ERR_REINIT);
 		}
 		return rv;
 	}
 	
 	static CbkReturnValueE storeReturnError(Base &_rs, FncData &_rfd, void */*_pctx*/){
 		SerializerBase		&rs(static_cast<SerializerBase&>(_rs));
-		rs.err = _rfd.s;
+		if(!rs.err){
+			rs.err = make_error(static_cast<Errors>(_rfd.s));
+		}
 		return Failure;
 	}
 	
@@ -690,8 +687,9 @@ public:
 	template <typename T>
 	SerializerT& push(T* _pt, const char *_name = Base::default_name){
 		if(ptypeidmap){
-			if(!ptypeidmap->store(*this, _pt, _name)){
-				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_POINTER_UNKNOWN));
+			err = ptypeidmap->store(*this, _pt, _name);
+			if(err){
+				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, 0));
 			}
 		}else{
 			SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_NO_TYPE_MAP));
@@ -702,7 +700,8 @@ public:
 	template <typename T>
 	SerializerT& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
 		if(ptypeidmap){
-			if(!ptypeidmap->store(*this, _rptr.get(), _name)){
+			err = ptypeidmap->store(*this, _rptr.get(), _name);
+			if(err){
 				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_POINTER_UNKNOWN));
 			}
 		}else{
@@ -800,8 +799,9 @@ public:
 		return *this;
 	}
 	SerializerT& pushCrossValue(const uint32 &_rv, const char *_name = Base::default_name){
-		//TODO:
-		//this->Base::fstk.push(Base::FncData(&SerializerBase::storeCrossValue<uint64>, &_rv, _name));
+		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint32>, &this->Base::estk.top().u32(), _name));
 		return *this;
 	}
 private:
@@ -874,7 +874,8 @@ public:
 	template <typename T>
 	SerializerT& push(T* _pt, const char *_name =  Base::default_name){
 		if(ptypeidmap){
-			if(!ptypeidmap->store(*this, _pt, _name)){
+			err = ptypeidmap->store(*this, _pt, _name);
+			if(err){
 				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_POINTER_UNKNOWN));
 			}
 		}else{
@@ -886,7 +887,8 @@ public:
 	template <typename T>
 	SerializerT& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
 		if(ptypeidmap){
-			if(!ptypeidmap->store(*this, _rptr.get(), _name)){
+			err = ptypeidmap->store(*this, _rptr.get(), _name);
+			if(err){
 				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_POINTER_UNKNOWN));
 			}
 		}else{
@@ -984,8 +986,9 @@ public:
 	}
 	
 	SerializerT& pushCrossValue(const uint32 &_rv, const char *_name = Base::default_name){
-		//TODO:
-		//this->Base::fstk.push(Base::FncData(&SerializerBase::storeCrossValue<uint64>, &_rv, _name));
+		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &this->Base::estk.top().u32(), _name));
 		return *this;
 	}
 private:
@@ -1014,13 +1017,14 @@ protected:
 		if(!rd.cpb){
 			return Success;
 		}
+		FncData fd = _rfd;
+		rd.pop();
 		
-		bool rv = rd.typeIdMap()->load<T>(rd, _rfd.p, rd.estk.top().p(), rd.estk.top().u64_1(), rd.tmpstr, _rfd.n);
+		rd.err = rd.typeIdMap()->load<T>(rd, fd.p, rd.estk.top().u64(), rd.tmpstr, fd.n);
 		
-		if(rv){
-			return Success;
+		if(!rd.err){
+			return Continue;
 		}else{
-			rd.err = ERR_POINTER_UNKNOWN;
 			return Failure;
 		}
 	}
@@ -1032,11 +1036,9 @@ protected:
 			return Success;
 		}
 		
-		rd.estk.top().u64_1() = 0;
-		
 		_rfd.f = &loadPointer<T, Des>;
 		
-		rd.typeIdMap()->loadTypeId(rd, rd.estk.top().u64_1(), rd.tmpstr, _rfd.n);
+		rd.typeIdMap()->loadTypeId(rd, rd.estk.top().u64(), rd.tmpstr, _rfd.n);
 		
 		return Continue;
 	}
@@ -1101,7 +1103,7 @@ protected:
 				if(crcsz.ok()){
 					rd.estk.top().u64() = crcsz.value();
 				}else{
-					rd.err = ERR_CONTAINER_MAX_LIMIT;
+					rd.err = make_error(ERR_CONTAINER_MAX_LIMIT);
 					return Failure;
 				}
 			}
@@ -1114,7 +1116,7 @@ protected:
 			i > rd.lmts.containerlimit
 		){
 			idbgx(Debug::ser_bin, "error");
-			rd.err = ERR_CONTAINER_LIMIT;
+			rd.err = make_error(ERR_CONTAINER_LIMIT);
 			return Failure;
 		}
 		
@@ -1169,7 +1171,7 @@ protected:
 				if(crcsz.ok()){
 					rd.estk.top().u64() = crcsz.value();
 				}else{
-					rd.err = ERR_ARRAY_MAX_LIMIT;
+					rd.err = make_error(ERR_ARRAY_MAX_LIMIT);
 					return Failure;
 				}
 			}
@@ -1179,7 +1181,7 @@ protected:
 		idbgx(Debug::ser_bin, "size "<<rsz);
 		if(rsz != static_cast<uint64>(-1) && rsz > rd.lmts.containerlimit){
 			idbgx(Debug::ser_bin, "error");
-			rd.err = ERR_ARRAY_LIMIT;
+			rd.err = make_error(ERR_ARRAY_LIMIT);
 			return Failure;
 		}
 		
@@ -1241,7 +1243,7 @@ protected:
 		
 		CbkReturnValueE rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val);
 		if(rv == Failure){
-			rd.err = ERR_REINIT;
+			rd.err = make_error(ERR_REINIT);
 		}
 		return rv;
 	}
@@ -1257,14 +1259,16 @@ protected:
 		Ctx 			&rctx = *reinterpret_cast<Ctx*>(_pctx);
 		CbkReturnValueE rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val, rctx);
 		if(rv == Failure){
-			rd.err = ERR_REINIT;
+			rd.err = make_error(ERR_REINIT);
 		}
 		return rv;
 	}
 	
 	static CbkReturnValueE loadReturnError(Base &_rs, FncData &_rfd, void */*_pctx*/){
 		DeserializerBase		&rs(static_cast<DeserializerBase&>(_rs));
-		rs.err = _rfd.s;
+		if(!rs.err){
+			rs.err = make_error(static_cast<Errors>(_rfd.s));
+		}
 		return Failure;
 	}
 	
@@ -1514,7 +1518,7 @@ public:
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = Base::default_name){
 		if(ptypeidmap){
-			this->Base::estk.push(Base::ExtData((void*)nullptr));
+			this->Base::estk.push(Base::ExtData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
 			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT>, reinterpret_cast<void*>(&_t), _name));
 		}else{
@@ -1690,7 +1694,13 @@ public:
 	
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = Base::default_name){
-		this->Base::fstk.push(Base::FncData(&Deserializer::loadTypeId, &_t, _name));
+		if(ptypeidmap){
+			this->Base::estk.push(Base::ExtData((uint64)0));
+			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT>, reinterpret_cast<void*>(&_t), _name));
+		}else{
+			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
+		}
 		return *this;
 	}
 	

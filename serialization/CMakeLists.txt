@@ -1,6 +1,7 @@
 
 set(Sources
 	src/binary.cpp
+	src/typeidmap.cpp
 )
 
 set(Headers

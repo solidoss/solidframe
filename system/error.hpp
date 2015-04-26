@@ -31,6 +31,7 @@ namespace solid{
 
 typedef ERROR_NS::error_condition	ErrorConditionT;
 typedef ERROR_NS::error_code		ErrorCodeT;
+typedef ERROR_NS::error_category	ErrorCategoryT;
 
 ErrorCodeT last_system_error();
 

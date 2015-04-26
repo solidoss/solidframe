@@ -45,11 +45,12 @@ int main(){
 	
 	typemap.registerType<TestA>();
 	typemap.registerType<TestB>();
-	
+	//typemap.registerCast<Base,TestA>();
+	typemap.registerCast<Base,TestB>();
 	{
 		const size_t		bufcp = 64;
 		char 				buf[bufcp];
-		BinSerializerT		ser;
+		BinSerializerT		ser(&typemap);
 		int					rv;
 		
 		TestA				a;
@@ -58,20 +59,22 @@ int main(){
 		Base				*pa = &a;
 		Base				*pb = &b;
 		
+		cout<<"Typename pa: "<<typeid(*pa).name()<<endl;
+		
 		ser.push(pa, "pa").push(pb, "pb");
 		
 		while((rv = ser.run(buf, bufcp)) == bufcp){
 			data.append(buf, rv);
 		}
 		if(rv < 0){
-			cout<<"ERROR: serialization: "<<ser.errorString()<<endl;
+			cout<<"ERROR: serialization: "<<ser.error().category().name()<<": "<<ser.error().message()<<endl;
 			return 0;
 		}else{
 			data.append(buf, rv);
 		}
 	}
 	{
-		BinDeserializerT	des;
+		BinDeserializerT	des(&typemap);
 		int					rv;
 		
 		Base				*pa = nullptr;
@@ -81,7 +84,7 @@ int main(){
 		
 		rv = des.run(data.data(), data.size());
 		if(rv != data.size()){
-			cout<<"ERROR: deserialization: "<<des.errorString()<<endl;
+			cout<<"ERROR: deserialization: "<<des.error().category().name()<<": "<<des.error().message()<<endl;
 			return 0;
 		}
 		pa->print();
