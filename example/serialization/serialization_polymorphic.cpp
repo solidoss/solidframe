@@ -45,8 +45,9 @@ int main(){
 	
 	typemap.registerType<TestA>();
 	typemap.registerType<TestB>();
-	//typemap.registerCast<Base,TestA>();
+	typemap.registerCast<Base,TestA>();
 	typemap.registerCast<Base,TestB>();
+	
 	{
 		const size_t		bufcp = 64;
 		char 				buf[bufcp];
