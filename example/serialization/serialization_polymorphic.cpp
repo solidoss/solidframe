@@ -1,4 +1,5 @@
 #include "serialization/binary.hpp"
+#include "utility/dynamictype.hpp"
 
 #include <iostream>
 #include <string>
@@ -6,8 +7,7 @@
 using namespace solid;
 using namespace std;
 
-struct Base{
-	virtual ~Base(){}
+struct Base: Dynamic<Base>{
 	virtual void print()const = 0;
 };
 
@@ -37,6 +37,8 @@ typedef serialization::binary::Serializer<void>									BinSerializerT;
 typedef serialization::binary::Deserializer<void>								BinDeserializerT;
 typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>				TypeIdMapT;
 
+
+typedef DynamicPointer<Base>													BasePointerT;
 int main(){
 	
 	string		data;
@@ -55,14 +57,13 @@ int main(){
 		int					rv;
 		
 		TestA				a;
-		TestB				b;
 		
 		Base				*pa = &a;
-		Base				*pb = &b;
+		BasePointerT		bptr = new TestB;
 		
 		cout<<"Typename pa: "<<typeid(*pa).name()<<endl;
 		
-		ser.push(pa, "pa").push(pb, "pb");
+		ser.push(pa, "pa").push(bptr, "pb");
 		
 		while((rv = ser.run(buf, bufcp)) == bufcp){
 			data.append(buf, rv);
@@ -79,9 +80,9 @@ int main(){
 		int					rv;
 		
 		Base				*pa = nullptr;
-		Base				*pb = nullptr;
+		BasePointerT		bptr;
 		
-		des.push(pa, "pa").push(pb, "pb");
+		des.push(pa, "pa").push(bptr, "pb");
 		
 		rv = des.run(data.data(), data.size());
 		if(rv != data.size()){
@@ -89,7 +90,7 @@ int main(){
 			return 0;
 		}
 		pa->print();
-		pb->print();
+		bptr->print();
 	}
 	return 0;
 }

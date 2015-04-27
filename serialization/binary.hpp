@@ -1004,14 +1004,14 @@ struct DeserializerPushHelper;
 */
 class DeserializerBase: public Base{
 protected:
-	template <typename T>
-	static void dynamicPointerInit(void *_pptr, void *_pt){
-		DynamicPointer<T>	&dp = *reinterpret_cast<DynamicPointer<T>*>(_pptr);
-		T					*pt = reinterpret_cast<T*>(_pt);
-		dp = pt;
-	}
+// 	template <typename T>
+// 	static void dynamicPointerInit(void *_pptr, void *_pt){
+// 		DynamicPointer<T>	&dp = *reinterpret_cast<DynamicPointer<T>*>(_pptr);
+// 		T					*pt = reinterpret_cast<T*>(_pt);
+// 		dp = pt;
+// 	}
 	
-	template <typename T, typename Des>
+	template <typename T, typename Des, typename P>
 	static CbkReturnValueE loadPointer(Base& _rd, FncData &_rfd, void */*_pctx*/){
 		Des		&rd(static_cast<Des&>(_rd));
 		if(!rd.cpb){
@@ -1020,7 +1020,11 @@ protected:
 		FncData fd = _rfd;
 		rd.pop();
 		
-		rd.err = rd.typeIdMap()->load<T>(rd, fd.p, rd.estk.top().u64(), rd.tmpstr, fd.n);
+		void *p;
+		
+		rd.err = rd.typeIdMap()->load<T>(rd, &p, rd.estk.top().u64(), rd.tmpstr, fd.n);
+		
+		*reinterpret_cast<P>(fd.p) = reinterpret_cast<T*>(p);
 		
 		if(!rd.err){
 			return Continue;
@@ -1029,14 +1033,14 @@ protected:
 		}
 	}
 	
-	template <typename T, typename Des>
+	template <typename T, typename Des, typename P>
 	static CbkReturnValueE loadPointerPrepare(Base& _rd, FncData &_rfd, void */*_pctx*/){
 		Des		&rd(static_cast<Des&>(_rd));
 		if(!rd.cpb){
 			return Success;
 		}
 		
-		_rfd.f = &loadPointer<T, Des>;
+		_rfd.f = &loadPointer<T, Des, P>;
 		
 		rd.typeIdMap()->loadTypeId(rd, rd.estk.top().u64(), rd.tmpstr, _rfd.n);
 		
@@ -1520,7 +1524,7 @@ public:
 		if(ptypeidmap){
 			this->Base::estk.push(Base::ExtData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT>, reinterpret_cast<void*>(&_t), _name));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, T**>, reinterpret_cast<void*>(&_t), _name));
 		}else{
 			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
 		}
@@ -1529,6 +1533,13 @@ public:
 	
 	template <typename T>
 	Deserializer& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
+		if(ptypeidmap){
+			this->Base::estk.push(Base::ExtData((uint64)0));
+			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, DynamicPointer<T>*>, reinterpret_cast<void*>(&_rptr), _name));
+		}else{
+			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
+		}
 		return *this;
 	}
 	
