@@ -291,6 +291,120 @@ private:
 };
 
 
+template <class Ser, class Des, class Data>
+class TypeIdMap: public TypeIdMapSer<Ser>, public TypeIdMapDes<Des>{
+	typedef std::vector<Data>	DataVectorT;
+public:
+	TypeIdMap(){
+		datavec.resize(1);
+	}
+	
+	~TypeIdMap(){
+		
+	}
+	
+	template <class T>
+	size_t registerType(Data const &_rd, size_t _idx = 0){
+		const size_t rv = TypeIdMapBase::doRegisterType<T, Ser, Des>(basic_factory<T>, _idx);
+		if(datavec.size() <= rv){
+			datavec.resize(rv + 1);
+		}
+		datavec[rv] = _rd;
+		return rv;
+	}
+	
+	template <class T, class FactoryF>
+	size_t registerType(FactoryF _f, Data const &_rd, size_t _idx = 0){
+		const size_t rv = TypeIdMapBase::doRegisterType<T, Ser, Des>(_f, _idx);
+		if(datavec.size() <= rv){
+			datavec.resize(rv + 1);
+		}
+		datavec[rv] = _rd;
+		return rv;
+	}
+	
+	template <class Derived, class Base>
+	bool registerDownCast(){
+		return TypeIdMapBase::doRegisterDownCast<Derived, Base>();
+	}
+	
+	
+	template <class Derived, class Base>
+	bool registerCast(){
+		return TypeIdMapBase::doRegisterCast<Derived, Base>();
+	}
+	template <class T>
+	Data& operator[](const T *_pt){
+		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(*_pt)));
+		if(it != TypeIdMapBase::typemap.end()){
+			return datavec[it->second];
+		}else{
+			return datavec[0];
+		}
+	}
+	template <class T>
+	Data const& operator[](const T *_pt)const{
+		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(*_pt)));
+		if(it != TypeIdMapBase::typemap.end()){
+			return datavec[it->second];
+		}else{
+			return datavec[0];
+		}
+	}
+private:
+	/*virtual*/ ErrorConditionT storeNullPointer(Ser &_rs, const char *_name) const {
+		static const uint32 nulltypeid = 0;
+		_rs.pushCross(nulltypeid, _name);
+		return ErrorConditionT();
+	}
+	
+	/*virtual*/ ErrorConditionT storePointer(Ser &_rs, void *_p, std::type_index const& _tid, const char *_name) const {
+		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(_tid);
+		if(it != TypeIdMapBase::typemap.end()){
+			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[it->second];
+			(*rstub.storefnc)(&_rs, _p, _name);
+			_rs.pushCrossValue(it->second, _name); 
+			return ErrorConditionT();
+		}
+		return TypeIdMapBase::error_no_type();
+	}
+	
+	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
+		_rd.pushCross(_rv, _name);
+	}
+	
+	
+	// Returns true, if the type identified by _riv exists
+	// and a cast from that type to the type identified by _rtidx, exists
+	/*virtual*/ ErrorConditionT loadPointer(
+		Des &_rd, void* _rptr,
+		std::type_index const& _rtidx,		//type_index of the destination pointer
+		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
+	) const {
+		const size_t							typeindex = static_cast<size_t>(_riv);
+		TypeIdMapBase::CastMapT::const_iterator	it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, typeindex));
+		
+		if(it != TypeIdMapBase::castmap.end()){
+			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[typeindex];
+			void 						*realptr = rstub.factoryfnc();
+			
+			(*it->second)(realptr, _rptr);//store the pointer
+			
+			(*rstub.loadfnc)(&_rd, realptr, _name);
+			return ErrorConditionT();
+		}
+		return TypeIdMapBase::error_no_cast();
+	}
+	
+private:
+	TypeIdMap(TypeIdMap const &);
+	TypeIdMap(TypeIdMap &&);
+	TypeIdMap& operator=(TypeIdMap const &);
+	TypeIdMap& operator=(TypeIdMap &&);
+private:
+	DataVectorT	datavec;
+};
+
 }//namespace serialization
 }//namespace solid
 #endif

@@ -16,7 +16,6 @@
 //#undef UDEBUG
 #include "system/thread.hpp"
 #include "system/debug.hpp"
-#include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 #include "serialization/binarybasic.hpp"
 #include "system/socketaddress.hpp"
@@ -47,10 +46,7 @@ int main(int argc, char *argv[]){
 	
 	typedef serialization::binary::Serializer<void>									BinSerializerT;
 	typedef serialization::binary::Deserializer<void>								BinDeserializerT;
-	typedef serialization::IdTypeMapper<BinSerializerT, BinDeserializerT, uint16>	UInt16TypeMapperT;
 	
-	
-	UInt16TypeMapperT		tm;
 	
 	cout<<"test basic serialization:"<<endl;
 	test_basic_serialization();
@@ -60,7 +56,7 @@ int main(int argc, char *argv[]){
 	for(int i = 0; i < 1; ++i){
 		{	
 			idbg("");
-			BinSerializerT 	ser(tm);
+			BinSerializerT 	ser;
 			
 			uint8			v08_00 = 0xff;
 			uint16			v16_00 = 0xffff;
@@ -103,7 +99,7 @@ int main(int argc, char *argv[]){
 				++v;
 			}
 			if(rv < 0){
-				cout<<"ERROR: serialization: "<<ser.errorString()<<endl;
+				cout<<"ERROR: serialization: "<<ser.error().message()<<endl;
 				return 0;
 			}
 			idbg("");
@@ -112,7 +108,7 @@ int main(int argc, char *argv[]){
 		}
 		cout<<"Deserialization: =================================== "<<endl;
 		{
-			BinDeserializerT	des(tm);
+			BinDeserializerT	des;
 			
 			uint64	v08_00, v16_00, v32_00, v64_00;
 			des.pushCross(v08_00, "v08").pushCross(v16_00, "v16").pushCross(v32_00, "v32").pushCross(v64_00, "v64");
@@ -132,7 +128,7 @@ int main(int argc, char *argv[]){
 				++v;
 			}
 			if(rv < 0){
-				cout<<"ERROR: deserialization "<<des.errorString()<<endl;
+				cout<<"ERROR: deserialization "<<des.error().message()<<endl;
 				return 0;
 			}
 			

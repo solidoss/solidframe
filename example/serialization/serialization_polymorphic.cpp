@@ -35,20 +35,20 @@ struct TestB: Base{
 
 typedef serialization::binary::Serializer<void>									BinSerializerT;
 typedef serialization::binary::Deserializer<void>								BinDeserializerT;
-typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>				TypeIdMapT;
-
+typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT, std::string>	TypeIdMapT;
 
 typedef DynamicPointer<Base>													BasePointerT;
+
 int main(){
 	
 	string		data;
 	
 	TypeIdMapT	typemap;
 	
-	typemap.registerType<TestA>();
-	typemap.registerType<TestB>();
-	typemap.registerCast<Base,TestA>();
-	typemap.registerCast<Base,TestB>();
+	typemap.registerType<TestA>("testa");
+	typemap.registerType<TestB>("testb");
+	typemap.registerCast<Base, TestA>();
+	typemap.registerCast<Base, TestB>();
 	
 	{
 		const size_t		bufcp = 64;
@@ -85,10 +85,15 @@ int main(){
 		des.push(pa, "pa").push(bptr, "pb");
 		
 		rv = des.run(data.data(), data.size());
+		
 		if(rv != data.size()){
 			cout<<"ERROR: deserialization: "<<des.error().category().name()<<": "<<des.error().message()<<endl;
 			return 0;
 		}
+		
+		cout<<"Data for pa = "<<typemap[pa]<<endl;
+		cout<<"Data for pb = "<<typemap[bptr.get()]<<endl;
+		
 		pa->print();
 		bptr->print();
 	}
