@@ -317,21 +317,26 @@ int main(int argc, char *argv[]){
 	//cout<<ta<<endl;
 	typedef serialization::binary::Serializer<void>									BinSerializerT;
 	typedef serialization::binary::Deserializer<void>								BinDeserializerT;
-	typedef serialization::IdTypeMapper<BinSerializerT, BinDeserializerT, uint16>	UInt16TypeMapperT;
+	typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>				TypeIdMapT;
 	
 	
-	UInt16TypeMapperT		tm;
+	TypeIdMapT		tm;
 	
-	tm.insert<String>(STRING_TYPE_INDEX);
-	tm.insert<String, IndexType<1> >(STRING_DEFAULT_TYPE_INDEX);
-	tm.insert<UnsignedInteger>(UNSIGNED_TYPE_INDEX);
-	tm.insert<IntegerVector>(INTEGER_VECTOR_TYPE_INDEX);
-	tm.insert<Array>(ARRAY_TYPE_INDEX);
+	tm.registerType<String>(STRING_TYPE_INDEX);
+	tm.registerType<UnsignedInteger>(UNSIGNED_TYPE_INDEX);
+	tm.registerType<IntegerVector>(INTEGER_VECTOR_TYPE_INDEX);
+	tm.registerType<Array>(ARRAY_TYPE_INDEX);
+	
+	tm.registerCast<String, Base>();
+	tm.registerCast<UnsignedInteger, Base>();
+	tm.registerCast<IntegerVector, Base>();
+	tm.registerCast<Array, Base>();
+	
 	//const char* str = NULL;
 	for(int i = 0; i < 1; ++i){
 		{	
 			idbg("");
-			BinSerializerT 	ser(tm);
+			BinSerializerT 	ser(&tm);
 			
 			TestA 			ta;
 			TestB 			tb;// = new TestB;
@@ -391,7 +396,7 @@ int main(int argc, char *argv[]){
 				++v;
 			}
 			if(rv < 0){
-				cout<<"ERROR: serialization: "<<ser.errorString()<<endl;
+				cout<<"ERROR: serialization: "<<ser.error().message()<<endl;
 				return 0;
 			}
 			idbg("");
@@ -400,7 +405,7 @@ int main(int argc, char *argv[]){
 		}
 		cout<<"Deserialization: =================================== "<<endl;
 		{
-			BinDeserializerT	des(tm);
+			BinDeserializerT	des(&tm);
 			TestA				ta;
 			TestB				tb;// = new TestB;
 			TestC				tc;
@@ -431,7 +436,7 @@ int main(int argc, char *argv[]){
 				++v;
 			}
 			if(rv < 0){
-				cout<<"ERROR: deserialization "<<des.errorString()<<endl;
+				cout<<"ERROR: deserialization "<<des.error().message()<<endl;
 				return 0;
 			}
 			cnt += rv;

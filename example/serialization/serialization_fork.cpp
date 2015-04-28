@@ -18,7 +18,6 @@
 #include "system/debug.hpp"
 #include "system/thread.hpp"
 #include "serialization/binary.hpp"
-#include "serialization/idtypemapper.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <cerrno>
@@ -79,13 +78,6 @@ void childRun(int _sd);
 
 typedef serialization::binary::Serializer<void>			BinSerializer;
 typedef serialization::binary::Deserializer<void>		BinDeserializer;
-typedef serialization::IdTypeMapper<
-	BinSerializer,
-	BinDeserializer,
-	uint32
->													TypeMapper;
-
-static TypeMapper		tpmap;
 
 ///\endcond
 
@@ -131,7 +123,7 @@ enum {BUFSZ = 4 * 1024};
 void parentRun(int _sd, const char *_fn){
 	char buf[BUFSZ];
 	Test t(_fn);
-	BinSerializer	ser(tpmap);
+	BinSerializer	ser;
 	ser.push(t, "test");
 	t.print();
 	int rv;
@@ -151,7 +143,7 @@ void parentRun(int _sd, const char *_fn){
 void childRun(int _sd){
 	char buf[BUFSZ];
 	Test t;
-	BinDeserializer	des(tpmap);
+	BinDeserializer	des;
 	des.push(t, "test");
 	int rv;
 	cout<<"Client reading"<<endl;

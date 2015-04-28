@@ -38,8 +38,7 @@ struct Context{
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S, class C>
-	void serialize(S &_s, C ){
-		_s.context().print();
+	void serialize(S &_s, C &_ctx){
 		_s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
 	int32 		a;
@@ -52,9 +51,8 @@ struct TestB{
 	TestB(int _a = 4):a(_a){}
 	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
-	template <class S>
-	void serialize(S &_s){
-		_s.context().print();
+	template <class S, class C>
+	void serialize(S &_s, C &){
 		_s.push(a, "b::a");
 	}
 };
@@ -94,7 +92,7 @@ struct TestD{
 		
 	}
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, Context &){
 		_s.push(a, "b::a");
 		const SocketAddressInet4 &rsa = sa;
 		const sockaddr *psa = rsa;
@@ -110,7 +108,6 @@ struct Base: Dynamic<Base>{
 
 struct String: Base{
 	String():dflt(false){}
-	String(const IndexType<1>&):dflt(true), str("default"){}
 	String(const char *_str):dflt(false), str(_str){}
 	template <class S>
 	void serialize(S &_s, Context &_rctx){
@@ -333,23 +330,27 @@ int main(int argc, char *argv[]){
 	//cout<<ta<<endl;
 	typedef serialization::binary::Serializer<Context>								BinSerializerT;
 	typedef serialization::binary::Deserializer<Context>							BinDeserializerT;
-	typedef serialization::IdTypeMapper<BinSerializerT, BinDeserializerT, uint16>	UInt16TypeMapperT;
+	typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>				TypeIdMapT;
 	
 	
-	UInt16TypeMapperT		tm;
+	TypeIdMapT		tm;
 	
 	
-	tm.insert<String>(STRING_TYPE_INDEX);
-	tm.insert<String, IndexType<1> >(STRING_DEFAULT_TYPE_INDEX);
-	tm.insert<UnsignedInteger>(UNSIGNED_TYPE_INDEX);
-	tm.insert<IntegerVector>(INTEGER_VECTOR_TYPE_INDEX);
-	tm.insert<Array>(ARRAY_TYPE_INDEX);
+	tm.registerType<String>(STRING_TYPE_INDEX);
+	tm.registerType<UnsignedInteger>(UNSIGNED_TYPE_INDEX);
+	tm.registerType<IntegerVector>(INTEGER_VECTOR_TYPE_INDEX);
+	tm.registerType<Array>(ARRAY_TYPE_INDEX);
+	
+	tm.registerCast<String, Base>();
+	tm.registerCast<UnsignedInteger, Base>();
+	tm.registerCast<IntegerVector, Base>();
+	tm.registerCast<Array, Base>();
 	//const char* str = NULL;
 	for(int i = 0; i < 1; ++i){
 		{	
 			idbg("");
 			Context			ctx("Serialization", 1000);
-			BinSerializerT 	ser(tm);
+			BinSerializerT 	ser(&tm);
 			
 			TestA 			ta;
 			TestB 			tb;// = new TestB;
@@ -409,7 +410,7 @@ int main(int argc, char *argv[]){
 				++v;
 			}
 			if(rv < 0){
-				cout<<"ERROR: serialization: "<<ser.errorString()<<endl;
+				cout<<"ERROR: serialization: "<<ser.error().message()<<endl;
 				return 0;
 			}
 			idbg("");
@@ -419,7 +420,7 @@ int main(int argc, char *argv[]){
 		cout<<"Deserialization: =================================== "<<endl;
 		{
 			Context					ctx("Deserialization", 1111);
-			BinDeserializerT		des(tm);
+			BinDeserializerT		des(&tm);
 			TestA					ta;
 			TestB					tb;// = new TestB;
 			TestC					tc;
@@ -450,7 +451,7 @@ int main(int argc, char *argv[]){
 				++v;
 			}
 			if(rv < 0){
-				cout<<"ERROR: deserialization "<<des.errorString()<<endl;
+				cout<<"ERROR: deserialization "<<des.error().message()<<endl;
 				return 0;
 			}
 			cnt += rv;

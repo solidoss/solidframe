@@ -16,7 +16,6 @@
 //#undef UDEBUG
 #include "system/thread.hpp"
 #include "system/debug.hpp"
-#include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 #include "system/socketaddress.hpp"
 #include "utility/dynamictype.hpp"
@@ -164,7 +163,7 @@ int main(int argc, char *argv[]){
 			++v;
 		}
 		if(rv < 0){
-			cout<<"ERROR: serialization: "<<ser.errorString()<<endl;
+			cout<<"ERROR: serialization: "<<ser.error().message()<<endl;
 			return 0;
 		}else{
 			cnt += rv;
@@ -186,7 +185,7 @@ int main(int argc, char *argv[]){
 		}
 		
 		if(rv < 0){
-			cout<<"ERROR: deserialization "<<des.errorString()<<endl;
+			cout<<"ERROR: deserialization "<<des.error().message()<<endl;
 			return 0;
 		}
 		

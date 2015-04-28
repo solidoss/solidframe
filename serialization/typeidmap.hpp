@@ -132,7 +132,7 @@ protected:
 		}
 	}
 	
-	template <class Base, class Derived>
+	template <class Derived, class Base>
 	bool doRegisterCast(){
 		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(Derived)));
 		if(it != TypeIdMapBase::typemap.end()){
@@ -222,7 +222,7 @@ public:
 	}
 	
 	template <class T, class FactoryF>
-	size_t registerType(FactoryF _f, size_t _idx = 0){
+	size_t registerTypeFactory(FactoryF _f, size_t _idx = 0){
 		return TypeIdMapBase::doRegisterType<T, Ser, Des>(_f, _idx);
 	}
 	
@@ -314,7 +314,7 @@ public:
 	}
 	
 	template <class T, class FactoryF>
-	size_t registerType(FactoryF _f, Data const &_rd, size_t _idx = 0){
+	size_t registerTypeFactory(FactoryF _f, Data const &_rd, size_t _idx = 0){
 		const size_t rv = TypeIdMapBase::doRegisterType<T, Ser, Des>(_f, _idx);
 		if(datavec.size() <= rv){
 			datavec.resize(rv + 1);
