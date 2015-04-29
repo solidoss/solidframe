@@ -204,19 +204,13 @@ int main(int argc, char *argv[]){
 			frame::ipc::Configuration	cfg;
 			
 			cfg.protocolCallback(
-				[&ipcsvc](frame::ipc::MessageRegisterProxy& _rrp){
-					_rrp.registerMessage<FirstMessage>(
-						frame::ipc::factory<FirstMessage>,
+				[&ipcsvc](frame::ipc::ServiceProxy& _rsp){
+					_rsp.registerType<FirstMessage>(
+						serialization::basic_factory<FirstMessage>,
 						MessageHandler(ipcsvc), MessageHandler(ipcsvc), MessageHandler(ipcsvc)
 					);
 				}
 			);
-			
-			if(err){
-				cout<<"Error registering protocol callback: "<<err.message()<<endl;
-				Thread::waitAll();
-				return 1;
-			}
 			
 			err = ipcsvc.reconfigure(cfg);
 			

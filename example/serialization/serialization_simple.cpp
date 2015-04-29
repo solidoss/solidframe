@@ -322,10 +322,10 @@ int main(int argc, char *argv[]){
 	
 	TypeIdMapT		tm;
 	
-	tm.registerType<String>(STRING_TYPE_INDEX);
-	tm.registerType<UnsignedInteger>(UNSIGNED_TYPE_INDEX);
-	tm.registerType<IntegerVector>(INTEGER_VECTOR_TYPE_INDEX);
-	tm.registerType<Array>(ARRAY_TYPE_INDEX);
+	tm.registerType<String>(serialization::basic_factory<String>, STRING_TYPE_INDEX);
+	tm.registerType<UnsignedInteger>(serialization::basic_factory<UnsignedInteger>, UNSIGNED_TYPE_INDEX);
+	tm.registerType<IntegerVector>(serialization::basic_factory<IntegerVector>, INTEGER_VECTOR_TYPE_INDEX);
+	tm.registerType<Array>(serialization::basic_factory<Array>, ARRAY_TYPE_INDEX);
 	
 	tm.registerCast<String, Base>();
 	tm.registerCast<UnsignedInteger, Base>();

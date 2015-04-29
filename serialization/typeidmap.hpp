@@ -216,13 +216,9 @@ public:
 		
 	}
 	
-	template <class T>
-	size_t registerType(size_t _idx = 0){
-		return TypeIdMapBase::doRegisterType<T, Ser, Des>(basic_factory<T>, _idx);
-	}
 	
 	template <class T, class FactoryF>
-	size_t registerTypeFactory(FactoryF _f, size_t _idx = 0){
+	size_t registerType(FactoryF _f, size_t _idx = 0){
 		return TypeIdMapBase::doRegisterType<T, Ser, Des>(_f, _idx);
 	}
 	
@@ -281,7 +277,12 @@ private:
 		}
 		return TypeIdMapBase::error_no_cast();
 	}
-	
+	void clear(){
+		TypeIdMapBase::typemap.clear();
+		TypeIdMapBase::castmap.clear();
+		TypeIdMapBase::stubvec.clear();
+		TypeIdMapBase::crtidx = 1;
+	}
 private:
 	TypeIdMap(TypeIdMap const &);
 	TypeIdMap(TypeIdMap &&);
@@ -303,18 +304,8 @@ public:
 		
 	}
 	
-	template <class T>
-	size_t registerType(Data const &_rd, size_t _idx = 0){
-		const size_t rv = TypeIdMapBase::doRegisterType<T, Ser, Des>(basic_factory<T>, _idx);
-		if(datavec.size() <= rv){
-			datavec.resize(rv + 1);
-		}
-		datavec[rv] = _rd;
-		return rv;
-	}
-	
 	template <class T, class FactoryF>
-	size_t registerTypeFactory(FactoryF _f, Data const &_rd, size_t _idx = 0){
+	size_t registerType(Data const &_rd, FactoryF _f, size_t _idx = 0){
 		const size_t rv = TypeIdMapBase::doRegisterType<T, Ser, Des>(_f, _idx);
 		if(datavec.size() <= rv){
 			datavec.resize(rv + 1);
@@ -394,6 +385,14 @@ private:
 			return ErrorConditionT();
 		}
 		return TypeIdMapBase::error_no_cast();
+	}
+	
+	void clear(){
+		TypeIdMapBase::typemap.clear();
+		TypeIdMapBase::castmap.clear();
+		TypeIdMapBase::stubvec.clear();
+		TypeIdMapBase::crtidx = 1;
+		datavec.clear();
 	}
 	
 private:

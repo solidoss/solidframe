@@ -45,10 +45,10 @@ int main(){
 	
 	TypeIdMapT	typemap;
 	
-	typemap.registerType<TestA>("testa");
-	typemap.registerType<TestB>("testb");
-	typemap.registerCast<Base, TestA>();
-	typemap.registerCast<Base, TestB>();
+	typemap.registerType<TestA>("testa", serialization::basic_factory<TestA>);
+	typemap.registerType<TestB>("testb", serialization::basic_factory<TestB>);
+	typemap.registerCast<TestA, Base>();
+	typemap.registerCast<TestB, Base>();
 	
 	{
 		const size_t		bufcp = 64;
