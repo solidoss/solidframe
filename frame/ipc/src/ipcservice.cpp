@@ -26,7 +26,7 @@
 
 
 #include "frame/ipc/ipcservice.hpp"
-#include "frame/ipc/ipcsessionuid.hpp"
+#include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 
 #include "system/mutualstore.hpp"
@@ -72,6 +72,15 @@ ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 	return ErrorConditionT();
 }
 //-----------------------------------------------------------------------------
+ErrorConditionT Service::doSendMessage(
+	const char *_session_name,
+	const ConnectionUid	&_rconuid_in,
+	MessagePointerT &_rmsgptr,
+	ConnectionUid &_rconuid_out,
+	ulong _flags
+){
+	return ErrorConditionT();
+}
 //=============================================================================
 //-----------------------------------------------------------------------------
 /*virtual*/ Message::~Message(){

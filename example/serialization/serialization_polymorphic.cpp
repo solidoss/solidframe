@@ -8,6 +8,8 @@ using namespace solid;
 using namespace std;
 
 struct Base: Dynamic<Base>{
+	Base(size_t _val = 0): val(_val){}
+	size_t		val;
 	virtual void print()const = 0;
 };
 
@@ -20,13 +22,13 @@ struct TestA: Base{
 	int32 		a;
 	int16 		b;
 	uint32		c;
-	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<endl;}
+	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<" Base::value = "<<val<<endl;}
 };
 
 struct TestB: Base{
-	TestB(int _a = 4):a(_a){}
+	TestB(int _a = 4, size_t _val = 8):Base(_val), a(_a){}
 	int32			a;
-	void print()const {cout<<"testb: a = "<<a<<endl;}
+	void print()const {cout<<"testb: a = "<<a<<" Base::value = "<<val<<endl;}
 	template <class S>
 	void serialize(S &_s){
 		_s.push(a, "b::a");
@@ -37,6 +39,13 @@ typedef serialization::binary::Serializer<void>									BinSerializerT;
 typedef serialization::binary::Deserializer<void>								BinDeserializerT;
 typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT, std::string>	TypeIdMapT;
 
+
+template <class S, class T>
+void serialize(S &_rs, T &_rt, const char *_name){
+	_rs.pushCross(static_cast<Base&>(_rt).val, "base::value");
+	_rs.push(_rt, _name);
+}
+
 typedef DynamicPointer<Base>													BasePointerT;
 
 int main(){
@@ -46,7 +55,7 @@ int main(){
 	TypeIdMapT	typemap;
 	
 	typemap.registerType<TestA>("testa", serialization::basic_factory<TestA>);
-	typemap.registerType<TestB>("testb", serialization::basic_factory<TestB>);
+	typemap.registerType<TestB>("testb", serialize<BinSerializerT, TestB>, serialize<BinDeserializerT, TestB>, serialization::basic_factory<TestB>);
 	typemap.registerCast<TestA, Base>();
 	typemap.registerCast<TestB, Base>();
 	
@@ -59,7 +68,7 @@ int main(){
 		TestA				a;
 		
 		Base				*pa = &a;
-		BasePointerT		bptr = new TestB;
+		BasePointerT		bptr = new TestB(2, 4);
 		
 		cout<<"Typename pa: "<<typeid(*pa).name()<<endl;
 		

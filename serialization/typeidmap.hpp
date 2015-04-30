@@ -29,8 +29,10 @@ class TypeIdMapBase{
 protected:
 	typedef FUNCTION<void*()>										FactoryFunctionT;
 	
-	typedef void(*LoadFunctionT)(void*, void*, const char*);
-	typedef void(*StoreFunctionT)(void*, void*, const char*);
+	//typedef void(*LoadFunctionT)(void*, void*, const char*);
+	//typedef void(*StoreFunctionT)(void*, void*, const char*);
+	typedef FUNCTION<void(void*, void*, const char*)>				LoadFunctionT;
+	typedef FUNCTION<void(void*, void*, const char*)>				StoreFunctionT;
 	
 	typedef void(*CastFunctionT)(void*, void*);
 	
@@ -81,6 +83,32 @@ protected:
 		rs.push(rt, _name);
 	}
 	
+	template <class F, class T, class Ser>
+	struct StoreFunctor{
+		F	f;
+		StoreFunctor(F _f):f(_f){}
+		
+		void operator()(void *_pser, void *_pt, const char *_name){
+			Ser &rs = *(reinterpret_cast<Ser*>(_pser));
+			T	&rt = *(reinterpret_cast<T*>(_pt));
+			
+			f(rs, rt, _name);
+		}
+	};
+	
+	template <class F, class T, class Des>
+	struct LoadFunctor{
+		F	f;
+		LoadFunctor(F _f):f(_f){}
+		
+		void operator()(void *_pser, void *_pt, const char *_name){
+			Des &rs = *(reinterpret_cast<Des*>(_pser));
+			T	&rt = *(reinterpret_cast<T*>(_pt));
+			
+			f(rs, rt, _name);
+		}
+	};
+	
 	template <class Base, class Derived>
 	static void cast_pointer(void *_pderived, void* _pbase){
 		Derived *pd = reinterpret_cast<Derived*>(_pderived);
@@ -92,8 +120,8 @@ protected:
 		stubvec.push_back(Stub());
 	}
 	
-	template <class T, class Ser, class Des, class Factory>
-	size_t doRegisterType(Factory _f, size_t _idx){
+	template <class T, class StoreF, class LoadF, class FactoryF>
+	size_t doRegisterType(StoreF _sf, LoadF _lf, FactoryF _ff, size_t _idx){
 		
 		if(_idx == 0){
 			_idx = crtidx;
@@ -102,9 +130,9 @@ protected:
 		if(_idx >= stubvec.size()){
 			stubvec.resize(_idx + 1);
 		}
-		stubvec[_idx].factoryfnc = _f;
-		stubvec[_idx].loadfnc = load_pointer<T, Des>;
-		stubvec[_idx].storefnc = store_pointer<T, Ser>;
+		stubvec[_idx].factoryfnc = _ff;
+		stubvec[_idx].loadfnc = _lf;
+		stubvec[_idx].storefnc = _sf;
 		typemap[std::type_index(typeid(T))] = _idx;
 		doRegisterCast<T, T>();
 		return _idx;
@@ -218,8 +246,15 @@ public:
 	
 	
 	template <class T, class FactoryF>
-	size_t registerType(FactoryF _f, size_t _idx = 0){
-		return TypeIdMapBase::doRegisterType<T, Ser, Des>(_f, _idx);
+	size_t registerType(FactoryF _ff, size_t _idx = 0){
+		return TypeIdMapBase::doRegisterType<T>(TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>, _ff, _idx);
+	}
+	
+	template <class T, class StoreF, class LoadF, class FactoryF>
+	size_t registerType(StoreF _sf, LoadF _lf, FactoryF _ff, size_t _idx = 0){
+		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
+		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
+		return TypeIdMapBase::doRegisterType<T>(sf, lf, _ff, _idx);
 	}
 	
 	template <class Derived, class Base>
@@ -244,7 +279,7 @@ private:
 		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(_tid);
 		if(it != TypeIdMapBase::typemap.end()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[it->second];
-			(*rstub.storefnc)(&_rs, _p, _name);
+			rstub.storefnc(&_rs, _p, _name);
 			_rs.pushCrossValue(it->second, _name); 
 			return ErrorConditionT();
 		}
@@ -272,7 +307,7 @@ private:
 			
 			(*it->second)(realptr, _rptr);//store the pointer
 			
-			(*rstub.loadfnc)(&_rd, realptr, _name);
+			rstub.loadfnc(&_rd, realptr, _name);
 			return ErrorConditionT();
 		}
 		return TypeIdMapBase::error_no_cast();
@@ -305,8 +340,22 @@ public:
 	}
 	
 	template <class T, class FactoryF>
-	size_t registerType(Data const &_rd, FactoryF _f, size_t _idx = 0){
-		const size_t rv = TypeIdMapBase::doRegisterType<T, Ser, Des>(_f, _idx);
+	size_t registerType(Data const &_rd, FactoryF _ff, size_t _idx = 0){
+		const size_t rv = TypeIdMapBase::doRegisterType<T>(TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>, _ff, _idx);
+		if(datavec.size() <= rv){
+			datavec.resize(rv + 1);
+		}
+		datavec[rv] = _rd;
+		return rv;
+	}
+	
+	template <class T, class StoreF, class LoadF, class FactoryF>
+	size_t registerType(Data const &_rd, StoreF _sf, LoadF _lf, FactoryF _ff, size_t _idx = 0){
+		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
+		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
+		
+		const size_t rv = TypeIdMapBase::doRegisterType<T>(sf, lf, _ff, _idx);
+		
 		if(datavec.size() <= rv){
 			datavec.resize(rv + 1);
 		}
@@ -353,7 +402,7 @@ private:
 		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(_tid);
 		if(it != TypeIdMapBase::typemap.end()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[it->second];
-			(*rstub.storefnc)(&_rs, _p, _name);
+			rstub.storefnc(&_rs, _p, _name);
 			_rs.pushCrossValue(it->second, _name); 
 			return ErrorConditionT();
 		}
@@ -381,7 +430,7 @@ private:
 			
 			(*it->second)(realptr, _rptr);//store the pointer
 			
-			(*rstub.loadfnc)(&_rd, realptr, _name);
+			rstub.loadfnc(&_rd, realptr, _name);
 			return ErrorConditionT();
 		}
 		return TypeIdMapBase::error_no_cast();

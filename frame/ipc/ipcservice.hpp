@@ -17,7 +17,7 @@
 #include "frame/service.hpp"
 #include "frame/aio/aioreactor.hpp"
 #include "frame/scheduler.hpp"
-#include "frame/ipc/ipcsessionuid.hpp"
+#include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 
 namespace solid{
@@ -44,6 +44,11 @@ typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
 
 struct ServiceProxy;
 class Service;
+
+enum SendFlags{
+	SendRequestFlagE	= 1,
+	SendResponseFlagE	= 2,
+};
 
 struct Configuration{
 	typedef FUNCTION<void(ServiceProxy &_rproxy)>	MessageRegisterFunctionT;
@@ -75,7 +80,50 @@ public:
 
 	ErrorConditionT reconfigure(Configuration const& _rcfg);
 	
+	template <class T>
+	ErrorConditionT sendMessage(
+		const char *_session_name,
+		DynamicPointer<T> const &_rmsgptr,
+		ulong _flags = 0
+	){
+		MessagePointerT		msgptr(_rmsgptr);
+		ConnectionUid		conuid;
+		return doSendMessage(_session_name, conuid, msgptr, conuid, _flags);
+	}
 	
+	template <class T>
+	ErrorConditionT sendMessage(
+		const char *_session_name,
+		DynamicPointer<T> const &_rmsgptr,
+		ConnectionUid &_rconnection_uid,
+		ulong _flags = 0
+	){
+		MessagePointerT		msgptr(_rmsgptr);
+		ConnectionUid		conuid;
+		return doSendMessage(_session_name, conuid, msgptr, _rconnection_uid, _flags);
+	}
+	
+	template <class T>
+	ErrorConditionT sendMessage(
+		ConnectionUid const &_rconnection_uid,
+		DynamicPointer<T> const &_rmsgptr,
+		ulong _flags = 0
+	){
+		MessagePointerT		msgptr(_rmsgptr);
+		ConnectionUid		conuid;
+		return doSendMessage(nullptr, _rconnection_uid, msgptr, conuid, _flags);
+	}
+	
+	template <class T>
+	ErrorConditionT sendMessage(
+		SessionUid const &_rsession_uid,
+		DynamicPointer<T> const &_rmsgptr,
+		ulong _flags = 0
+	){
+		MessagePointerT		msgptr(_rmsgptr);
+		ConnectionUid		conuid(_rsession_uid);
+		return doSendMessage(nullptr, conuid, msgptr, conuid, _flags);
+	}
 private:
 	friend struct ServiceProxy;
 	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &)>						MessageReceiveFunctionT;
@@ -139,7 +187,7 @@ private:
 		ts.complete_fnc = MessageCompleteFunctionT(CompleteProxy<CompleteFnc, T>(_cmpltf));
 		ts.prepare_fnc = MessagePrepareFunctionT(PrepareProxy<PrepareFnc, T>(_prepf));
 		ts.receive_fnc = MessageReceiveFunctionT(ReceiveProxy<ReceiveFnc, T>(_rcvf));
-		return tm.registerType<T>(ts, _facf, _idx);
+		return tm.registerType<T>(ts, Message::serialize<SerializerT, T>, Message::serialize<DeserializerT, T>, _facf, _idx);
 	}
 	
 	template <class Derived, class Base>
@@ -157,6 +205,13 @@ private:
 		return tm;
 	}
 	
+	ErrorConditionT doSendMessage(
+		const char *_session_name,
+		const ConnectionUid	&_rconuid_in,
+		MessagePointerT &_rmsgptr,
+		ConnectionUid &_rconuid_out,
+		ulong _flags
+	);
 private:
 	struct	Data;
 	Data			&d;

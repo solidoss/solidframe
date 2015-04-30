@@ -52,8 +52,6 @@ struct Params{
 	bool					log;
 	StringVectorT			connectstringvec;
 	
-	PeerAddressVectorT		connectvec;
-    
 	bool prepare(frame::ipc::Configuration &_rcfg, string &_err);
 };
 
@@ -117,28 +115,14 @@ struct MessageHandler{
 	MessageHandler(frame::ipc::Service &_rsvc): rsvc(_rsvc){}
 	
 	//Called on message receive
-	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg){
-		idbg("Message received: is_on_sender: "<<_rctx.isOnSender()<<", is_on_peer: "<<_rctx.isOnPeer()<<", is_back_on_sender: "<<_rctx.isBackOnSender());
-		if(_rctx.isOnPeer()){
-			//rsvc.sendResponse(_rctx.connectionId(), _rmsg);
-		}
-	}
+	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg);
 	
 	//Called when message is confirmed that:
 	// * was successfully sent on peer-side - for requests, a message is considered successfully sent when the response was received
 	// * was not successfuly sent - i.e. the connection was closed before message ACK
 	
-	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorCodeT const &_rerr){
-		if(!_rerr){
-			idbg("Message successfully sent");
-		}else{
-			idbg("Message not confirmed: "<<_rerr);
-		}
-	}
-	
-	uint32 operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg){
-		return _rctx.flags();
-	}
+	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorCodeT const &_rerr);
+	uint32 operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg);
 };
 
 //------------------------------------------------------------------
@@ -253,7 +237,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("listen-port,l", value<int>(&_par.baseport)->default_value(2000), "IPC Listen port")
-			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
+			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: host:port")
 		;
 		variables_map vm;
 		store(parse_command_line(argc, argv, desc), vm);
@@ -270,21 +254,6 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 //------------------------------------------------------
 bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
-	const uint16	default_port = 2000;
-	size_t			pos;
-	
-	for(std::vector<std::string>::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
-		pos = it->rfind(':');
-		if(pos == std::string::npos){
-			connectvec.push_back(SocketAddressInet(it->c_str(), default_port));
-		}else{
-			(*it)[pos] = '\0';
-			int port = atoi(it->c_str() + pos + 1);
-			connectvec.push_back(SocketAddressInet(it->c_str(), port));
-		}
-		idbg("added connect address "<<connectvec.back());
-	}
-
 	return true;
 }
 
@@ -319,11 +288,35 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
 //     }
 // }
 
+//Called on message receive
+void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg){
+	idbg("Message received: is_on_sender: "<<_rctx.isOnSender()<<", is_on_peer: "<<_rctx.isOnPeer()<<", is_back_on_sender: "<<_rctx.isBackOnSender());
+	if(_rctx.isOnPeer()){
+		//rsvc.sendResponse(_rctx.connectionId(), _rmsg);
+	}
+}
+	
+//Called when message is confirmed that:
+// * was successfully sent on peer-side - for requests, a message is considered successfully sent when the response was received
+// * was not successfuly sent - i.e. the connection was closed before message ACK
+
+void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorCodeT const &_rerr){
+	if(!_rerr){
+		idbg("Message successfully sent");
+	}else{
+		idbg("Message not confirmed: "<<_rerr);
+	}
+}
+
+uint32 MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg){
+	return _rctx.flags();
+}
+
 namespace{
 
 void broadcast_message(frame::ipc::Service &_rsvc, DynamicPointer<frame::ipc::Message> &_rmsgptr){
-	for(Params::PeerAddressVectorT::const_iterator it(p.connectvec.begin()); it != p.connectvec.end(); ++it){
-		//_rsvc.sendMessage(_rmsgptr, *it);
+	for(Params::StringVectorT::const_iterator it(p.connectstringvec.begin()); it != p.connectstringvec.end(); ++it){
+		_rsvc.sendMessage(it->c_str(), _rmsgptr);
 	}
 }
 

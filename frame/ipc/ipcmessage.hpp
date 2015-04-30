@@ -12,31 +12,31 @@
 
 #include "system/common.hpp"
 #include "frame/message.hpp"
-#include "frame/ipc/ipcsessionuid.hpp"
+#include "frame/ipc/ipccontext.hpp"
 
 namespace solid{
 namespace frame{
 namespace ipc{
 
+class Service;
 
 struct Message: Dynamic<Message, frame::Message>{
-	typedef std::pair<uint32, uint32>	UInt32PairT;
 	
 	Message(uint8 _state = 0):stt(_state){}
+	Message(Message const &_rmsg): msguid(_rmsg.msguid), stt(_rmsg.stt){}
+	
 	virtual ~Message();
 	
-	MessageUid& ipcRequestMessageUid();
-	MessageUid const & ipcRequestMessageUid()const;
 	
-	uint8& ipcState();
-	uint8 const& ipcState()const;
-	
-	void ipcResetState(uint8 _stt = 0);
-	
-	bool ipcIsBackOnSender()const;
-	bool ipcIsOnSender()const;
-	bool ipcIsOnReceiver()const;
-	
+private:
+	friend class Service;
+	template <class S, class T>
+	static void serialize(S &_rs, T &_rt, const char *_name){
+		_rs.push(_rt, _name);
+		_rs.pushCross(static_cast<Message&>(_rt).msguid.idx, "msguid_idx");
+		_rs.pushCross(static_cast<Message&>(_rt).msguid.uid, "msguid_uid");
+		_rs.push(static_cast<Message&>(_rt).stt, "state");
+	}
 private:
 	MessageUid	msguid;
 	uint8		stt;
@@ -44,33 +44,6 @@ private:
 
 typedef DynamicPointer<Message>		MessagePointerT;
 
-inline MessageUid& Message::ipcRequestMessageUid(){
-	return msguid;
-}
-inline MessageUid const & Message::ipcRequestMessageUid()const{
-	return msguid;
-}
-
-inline uint8& Message::ipcState(){
-	return stt;
-}
-inline uint8 const& Message::ipcState()const{
-	return stt;
-}
-
-inline bool Message::ipcIsOnSender()const{
-	return stt == 0;
-}
-inline bool Message::ipcIsOnReceiver()const{
-	return stt == 1;
-}
-inline bool Message::ipcIsBackOnSender()const{
-	return stt == 2;
-}
-
-inline void Message::ipcResetState(uint8 _stt){
-	stt = _stt;
-}
 
 }//namespace ipc
 }//namespace frame
