@@ -24,7 +24,6 @@
 #include "frame/manager.hpp"
 #include "frame/service.hpp"
 #include "frame/object.hpp"
-#include "frame/message.hpp"
 #include "frame/common.hpp"
 
 namespace solid{
@@ -43,12 +42,16 @@ Service::~Service(){
 }
 
 void Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){
-	EventNotifierF	notifier(rm, _revt, _sigmsk);
+	EventNotifierF	notifier(_revt, _sigmsk);
 	rm.forEachServiceObject(*this, notifier);
 }
 
 void Service::stop(const bool _wait){
 	rm.stopService(*this, _wait);
+}
+
+Mutex& Service::mutex(const ObjectBase &_robj)const{
+	return rm.mutex(_robj);
 }
 
 Mutex& Service::mutex()const{

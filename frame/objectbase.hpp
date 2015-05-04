@@ -12,7 +12,6 @@
 
 #include <vector>
 
-#include "frame/message.hpp"
 #include "frame/common.hpp"
 #include "frame/event.hpp"
 #include "utility/dynamictype.hpp"
@@ -30,8 +29,6 @@ class Object;
 class CompletionHandler;
 struct EventNotifier;
 
-typedef DynamicPointer<Message>	MessagePointerT;
-
 class ObjectBase: public Dynamic<ObjectBase>{
 public:
 	//! Get the id of the object
@@ -39,6 +36,8 @@ public:
 	
 	//! Virtual destructor
 	virtual ~ObjectBase();
+	
+	UidT const& runId()const;
 	
 protected:
 	friend class Service;
@@ -55,7 +54,6 @@ protected:
 	void unregister(Manager &_rm);
 	bool isRegistered()const;
 	virtual void doStop(Manager &_rm);
-	UidT const& runId()const;
 	
 	bool notify(const size_t _smask);
 private:

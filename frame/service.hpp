@@ -41,9 +41,9 @@ public:
 	
 	void notifyAll(Event const &_e, const size_t _sigmsk = 0);
 
-	template <class N>
-	bool forEach(N &_rn){
-		return rm.forEachServiceObject(*this, _rn);
+	template <class F>
+	bool forEach(F &_rf){
+		return rm.forEachServiceObject(*this, _rf);
 	}
 	
 	Event const& stopEvent();
@@ -51,6 +51,9 @@ public:
 	void stop(const bool _wait = true);
 	
 	Manager& manager();
+	
+	Mutex& mutex(const ObjectBase &_robj)const;
+	
 protected:
 	Mutex& mutex()const;
 private:

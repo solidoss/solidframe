@@ -46,14 +46,13 @@ struct ScheduleObjectF{
 
 struct EventNotifierF{
 	EventNotifierF(
-		Manager &_rm, Event const &_revt, const size_t _sigmsk = 0
-	):rm(_rm), evt(_revt), sigmsk(_sigmsk){}
+		Event const &_revt, const size_t _sigmsk = 0
+	):evt(_revt), sigmsk(_sigmsk){}
 	
-	Manager			&rm;
 	Event			evt;
 	const size_t	sigmsk;
 	
-	void operator()(ObjectBase &_robj);
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact);
 };
 
 
@@ -74,6 +73,13 @@ public:
 	bool notifyAll(Event const &_e, const size_t _sigmsk = 0);
 	
 	
+	template <class F>
+	bool visit(ObjectUidT const &_ruid, F &_rf){
+		ObjectVisitFunctorT fctor(_rf);
+		return doVisit(_ruid, fctor);
+	}
+	
+	
 	ObjectUidT  id(const ObjectBase &_robj)const;
 	
 	Service& service(const ObjectBase &_robj)const;
@@ -87,7 +93,7 @@ private:
 	friend class SchedulerBase;
 	friend struct EventNotifierF;
 	
-	typedef FunctorReference<void, ObjectBase&>	ObjectVisitFunctorT;
+	typedef FunctorReference<bool, ObjectBase&, ReactorBase&>	ObjectVisitFunctorT;
 	
 	
 	bool registerService(Service &_rsvc);
@@ -121,6 +127,7 @@ private:
 	
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctorT &_fctor);
+	bool doVisit(ObjectUidT const &_ruid, ObjectVisitFunctorT &_fctor);
 	void doUnregisterService(ServiceStub &_rss);
 private:
 	struct Data;

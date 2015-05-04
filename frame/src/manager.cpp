@@ -23,7 +23,6 @@
 #include "system/atomic.hpp"
 
 #include "frame/manager.hpp"
-#include "frame/message.hpp"
 #include "frame/reactorbase.hpp"
 #include "frame/service.hpp"
 #include "frame/event.hpp"
@@ -271,12 +270,13 @@ struct Manager::Data{
 };
 
 
-void EventNotifierF::operator()(ObjectBase &_robj){
+bool EventNotifierF::operator()(ObjectBase &_robj, ReactorBase &_rreact){
 	Event tmpevt(evt);
 	
 	if(!sigmsk || _robj.notify(sigmsk)){
-		rm.raise(_robj, tmpevt);
+		return _rreact.raise(_robj.runId(), tmpevt);
 	}
+	return false;
 }
 
 
@@ -597,6 +597,14 @@ void Manager::unregisterObject(ObjectBase &_robj){
 }
 
 bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _sigmsk/* = 0*/){
+	
+	EventNotifierF			notifier(_re, _sigmsk);
+	ObjectVisitFunctorT		f(notifier);
+	
+	return doVisit(_ruid, f);
+}
+
+bool Manager::doVisit(ObjectUidT const &_ruid, ObjectVisitFunctorT &_fctor){
 	bool	retval = false;
 	if(_ruid.index < d.maxobjcnt){
 		const size_t		objstoreidx = d.aquireReadObjectStore();
@@ -606,9 +614,7 @@ bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _si
 			ObjectStub const 	&ros(d.object(objstoreidx, _ruid.index));
 			
 			if(ros.unique == _ruid.unique && ros.pobject){
-				if(!_sigmsk || ros.pobject->notify(_sigmsk)){
-					retval = ros.preactor->raise(ros.pobject->runId(), _re);
-				}
+				retval = _fctor(*ros.pobject, *ros.preactor);
 			}
 		}
 		d.releaseReadObjectStore(objstoreidx);
@@ -706,7 +712,7 @@ bool Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitF
 
 		for(size_t i(0), cnt(0); i < d.objchkcnt && cnt < rchk.objcnt; ++i){
 			if(poss[i].pobject){
-				_fctor(*poss[i].pobject);
+				_fctor(*poss[i].pobject, *poss[i].preactor);
 				retval = true;
 				++cnt;
 			}
@@ -759,7 +765,7 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 		return;
 	}
 	if(rss.state == StateRunningE){
-		EventNotifierF		evtntf(*this, _rsvc.stopevent);
+		EventNotifierF		evtntf(_rsvc.stopevent);
 		ObjectVisitFunctorT fctor(evtntf);
 		const bool		any = doForEachServiceObject(rss.firstchk, fctor);
 		if(!any){
@@ -805,7 +811,7 @@ void Manager::stop(){
 		Locker<Mutex>	lock(rss.rmtx);
 		
 		if(rss.psvc && rss.state == StateRunningE){
-			EventNotifierF		evtntf(*this, rss.psvc->stopevent);
+			EventNotifierF		evtntf(rss.psvc->stopevent);
 			ObjectVisitFunctorT fctor(evtntf);
 			const bool			any = doForEachServiceObject(rss.firstchk, fctor);
 			
@@ -835,15 +841,6 @@ void Manager::stop(){
 		d.state = StateStoppedE;
 		d.cnd.broadcast();
 	}
-}
-//=============================================================================
-//		Message:
-//=============================================================================
-Message::Message(){
-	
-}
-/*virtual*/ Message::~Message(){
-	
 }
 }//namespace frame
 }//namespace solid

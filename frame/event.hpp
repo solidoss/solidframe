@@ -11,32 +11,23 @@
 #define SOLID_FRAME_EVENT_HPP
 
 #include "frame/common.hpp"
-#include "frame/message.hpp"
+#include "utility/dynamicpointer.hpp"
 
 namespace solid{
 namespace frame{
 
-typedef DynamicPointer<Message>				MessagePointerT;
-
-//! Some events
-enum EventIdE{
-	EventUnknown = 0,
-	EventInit,
-	EventDie,
-	EventTimer,
-	EventLast = 16
-};
+typedef DynamicPointer<>				MessagePointerT;
 
 
 struct Event{
 	Event(
-		const size_t _id = EventUnknown,
+		const size_t _id = -1,
 		const size_t _idx = 0
 	):id(_id), index(_idx){}
 	
 	Event(
 		MessagePointerT const &_rmsgptr,
-		const size_t _id = EventUnknown,
+		const size_t _id = -1,
 		const size_t _idx = 0
 	):id(_id), index(_idx), msgptr(_rmsgptr){}
 	

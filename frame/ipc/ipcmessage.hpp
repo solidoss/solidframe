@@ -11,8 +11,8 @@
 #define SOLID_FRAME_IPC_IPCMESSAGE_HPP
 
 #include "system/common.hpp"
-#include "frame/message.hpp"
 #include "frame/ipc/ipccontext.hpp"
+#include "utility/dynamictype.hpp"
 
 namespace solid{
 namespace frame{
@@ -20,7 +20,7 @@ namespace ipc{
 
 class Service;
 
-struct Message: Dynamic<Message, frame::Message>{
+struct Message: Dynamic<Message>{
 	
 	Message(uint8 _state = 0):stt(_state){}
 	Message(Message const &_rmsg): msguid(_rmsg.msguid), stt(_rmsg.stt){}
