@@ -110,7 +110,7 @@ public:
 	Resolver(size_t _thrcnt = 0);
 	~Resolver();
 	
-	void start(ushort _thrcnt = 0);
+	ErrorConditionT start(ushort _thrcnt = 0);
 	
 	template <class Cbk>
 	void requestResolve(

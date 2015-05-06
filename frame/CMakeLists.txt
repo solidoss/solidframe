@@ -11,7 +11,6 @@ set(Sources
 
 set(Headers
 	schedulerbase.hpp
-	message.hpp
 	common.hpp
 	manager.hpp
 	object.hpp

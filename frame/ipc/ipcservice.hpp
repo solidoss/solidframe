@@ -15,52 +15,20 @@
 #include "serialization/binary.hpp"
 
 #include "frame/service.hpp"
-#include "frame/aio/aioreactor.hpp"
-#include "frame/scheduler.hpp"
 #include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 
 namespace solid{
-
-struct SocketAddressStub;
-struct SocketDevice;
-struct ResolveIterator;
-
-
 namespace frame{
-
-namespace aio{
-class Object;
-
-namespace openssl{
-class Context;
-}
-
-}
-
 namespace ipc{
 
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-
-struct ServiceProxy;
-class Service;
+struct Message;
+class Configuration;
 
 enum SendFlags{
 	SendRequestFlagE	= 1,
 	SendResponseFlagE	= 2,
 };
-
-struct Configuration{
-	typedef FUNCTION<void(ServiceProxy &_rproxy)>	MessageRegisterFunctionT;
-	
-	
-	template <class F>
-	void protocolCallback(F _f);
-private:
-	friend class Service;
-	MessageRegisterFunctionT	regfnc;
-};
-
 
 //! Inter Process Communication service
 /*!
@@ -88,7 +56,7 @@ public:
 	){
 		MessagePointerT		msgptr(_rmsgptr);
 		ConnectionUid		conuid;
-		return doSendMessage(_session_name, conuid, msgptr, conuid, _flags);
+		return doSendMessage(_session_name, conuid, msgptr, nullptr, _flags);
 	}
 	
 	template <class T>
@@ -100,7 +68,7 @@ public:
 	){
 		MessagePointerT		msgptr(_rmsgptr);
 		ConnectionUid		conuid;
-		return doSendMessage(_session_name, conuid, msgptr, _rconnection_uid, _flags);
+		return doSendMessage(_session_name, conuid, msgptr, &_rconnection_uid, _flags);
 	}
 	
 	template <class T>
@@ -110,8 +78,7 @@ public:
 		ulong _flags = 0
 	){
 		MessagePointerT		msgptr(_rmsgptr);
-		ConnectionUid		conuid;
-		return doSendMessage(nullptr, _rconnection_uid, msgptr, conuid, _flags);
+		return doSendMessage(nullptr, _rconnection_uid, msgptr, nullptr, _flags);
 	}
 	
 	template <class T>
@@ -122,10 +89,13 @@ public:
 	){
 		MessagePointerT		msgptr(_rmsgptr);
 		ConnectionUid		conuid(_rsession_uid);
-		return doSendMessage(nullptr, conuid, msgptr, conuid, _flags);
+		return doSendMessage(nullptr, conuid, msgptr, nullptr, _flags);
 	}
 private:
 	friend struct ServiceProxy;
+	friend class Listener;
+	friend class Session;
+	
 	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &)>						MessageReceiveFunctionT;
 	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &, ErrorCodeT const &)>	MessageCompleteFunctionT;
 	typedef FUNCTION<uint32(ConnectionContext &, Message const &)>						MessagePrepareFunctionT;
@@ -140,7 +110,10 @@ private:
 	typedef serialization::binary::Deserializer<ConnectionContext>						DeserializerT;
 	typedef serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>				TypeIdMapT;
 	
+	bool isEventStart(Event const&_revent);
+	bool isEventStop(Event const&_revent);
 	
+	void receiveConnection(SocketDevice &_rsd);
 	
 	template <class F, class M>
 	struct ReceiveProxy{
@@ -209,7 +182,7 @@ private:
 		const char *_session_name,
 		const ConnectionUid	&_rconuid_in,
 		MessagePointerT &_rmsgptr,
-		ConnectionUid &_rconuid_out,
+		ConnectionUid *_rconuid_out,
 		ulong _flags
 	);
 private:
@@ -233,12 +206,6 @@ private:
 	ServiceProxy(Service &_rservice):rservice(_rservice){}
 	Service &rservice;
 };
-
-
-template <class F>
-void Configuration::protocolCallback(F _f){
-	regfnc = _f;
-}
 
 }//namespace ipc
 }//namespace frame

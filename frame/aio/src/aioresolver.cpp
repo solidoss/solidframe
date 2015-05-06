@@ -63,8 +63,10 @@ Resolver::~Resolver(){
 	delete &d;
 }
 
-void Resolver::start(ushort _thrcnt){
+ErrorConditionT Resolver::start(ushort _thrcnt){
 	d.wp.start(_thrcnt);
+	//TODO: compute a proper error response
+	return ErrorConditionT();
 }
 
 void Resolver::stop(){

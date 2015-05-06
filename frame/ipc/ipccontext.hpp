@@ -27,27 +27,26 @@ namespace ipc{
 */
 struct SessionUid{
 	SessionUid(
-		const uint16 _idx = 0xffff,
-		const uint16 _uid = 0xffff
+		const size_t _idx = 0xffff,
+		const uint32 _uid = 0xffff
 	):ssnidx(_idx), ssnuid(_uid){}
 	bool isInvalid()const{
-		return ssnidx == 0xffff;
+		return ssnidx == static_cast<size_t>(-1);
 	}
-	uint16	ssnidx;
-	uint16	ssnuid;
+	size_t	ssnidx;
+	uint32	ssnuid;
 };
 
 
-struct ConnectionUid{
+struct ConnectionUid: SessionUid{
 	ConnectionUid(
 		const SessionUid &_rssnid = SessionUid(),
 		const uint16 _idx = 0xffff,
 		const uint16 _uid = 0xffff
-	):conidx(_idx), conuid(_uid){}
+	):SessionUid(_rssnid), conidx(_idx), conuid(_uid){}
 	bool isInvalid()const{
 		return conidx == 0xffff;
 	}
-	SessionUid	sessionid;
 	uint16		conidx;
 	uint16		conuid;
 };

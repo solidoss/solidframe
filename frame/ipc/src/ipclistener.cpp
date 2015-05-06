@@ -1,58 +1,66 @@
 // frame/ipc/src/ipclistener.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#include "frame/manager.hpp"
+
+#include "frame/aio/aioreactorcontext.hpp"
 #include "ipclistener.hpp"
-#include "frame/ipc2/ipcservice.hpp"
-#include "frame/aio/openssl/opensslsocket.hpp"
+#include "frame/ipc/ipcservice.hpp"
 
 namespace solid{
 namespace frame{
 namespace ipc{
 
-Listener::Listener(
-	Service &_rsvc,
-	const SocketDevice &_rsd
-):BaseT(_rsd), rsvc(_rsvc){
-	state = 0;
+inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
+	return static_cast<Service&>(_rctx.service());
 }
 
-void Listener::execute(ExecuteContext &_rexectx){
-	idbgx(Debug::ipc, "");
-	cassert(this->socketOk());
-	{
-		ulong sm = this->grabSignalMask();
-		if(sm & frame::S_KILL){
-			_rexectx.close();
-			return;
-		}
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+	idbg("event = "<<_revent.id);
+	if(service(_rctx).isEventStart(_revent)){
+		sock.postAccept(
+			_rctx,
+			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
+		);
+	}else if(service(_rctx).isEventStop(_revent)){
+		postStop(_rctx);
 	}
+}
+
+void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
+	idbg("");
+	unsigned	repeatcnt = 4;
 	
-	uint cnt(10);
-	while(cnt--){
-		if(state == 0){
-			switch(this->socketAccept(sd)){
-				case aio::AsyncSuccess:break;
-				case aio::AsyncWait:
-					state = 1;
-					return;
-				case aio::AsyncError:
-					_rexectx.close();
-					return;
-			}
+	do{
+		if(!_rctx.error()){
+			service(_rctx).receiveConnection(_rsd);
+		}else{
+			//TODO:
+			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
+			//timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+			break;
 		}
-		state = 0;
-		cassert(sd.ok());
-		idbgx(Debug::ipc, "accepted new connection");
-		rsvc.insertConnection(sd);
+		--repeatcnt;
+	}while(
+		repeatcnt && 
+		sock.accept(
+			_rctx,
+			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);},
+			_rsd
+		)
+	);
+	
+	if(!repeatcnt){
+		sock.postAccept(
+			_rctx,
+			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
+		);//fully asynchronous call
 	}
-	_rexectx.reschedule();
 }
 
 }//namespace ipc

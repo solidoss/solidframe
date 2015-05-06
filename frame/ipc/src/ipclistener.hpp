@@ -1,6 +1,6 @@
 // frame/ipc/src/ipclistener.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
@@ -10,7 +10,10 @@
 #ifndef SOLID_FRAME_IPC_SRC_IPC_LISTENER_HPP
 #define SOLID_FRAME_IPC_SRC_IPC_LISTENER_HPP
 
-#include "frame/aio/aiosingleobject.hpp"
+#include "frame/aio/aioobject.hpp"
+#include "frame/aio/aiolistener.hpp"
+#include "frame/aio/aiotimer.hpp"
+
 #include "system/socketdevice.hpp"
 
 namespace solid{
@@ -25,18 +28,25 @@ namespace ipc{
 
 class Service;
 
-class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
+class Listener: public Dynamic<Listener, frame::aio::Object>{
 public:
 	Listener(
-		Service &_rsvc,
-		const SocketDevice &_rsd
-	);
+		SocketDevice &&_rsd
+	):
+		sock(this->proxy(), std::move(_rsd))
+	{}
+	~Listener(){
+	}
 private:
-	/*virtual*/ void execute(ExecuteContext &_rexectx);
-private:
-	Service				&rsvc;
-	SocketDevice		sd;
-	int					state;
+	Service& service(frame::aio::ReactorContext &_rctx);
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
+	
+	
+	typedef frame::aio::Listener			ListenerSocketT;
+	typedef frame::aio::Timer				TimerT;
+	
+	ListenerSocketT		sock;
 };
 
 

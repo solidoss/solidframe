@@ -31,7 +31,7 @@ namespace solid{
 namespace audit{
 
 struct SocketInputStream: InputStream{
-	SocketInputStream(SocketDevice &_rsd):sd(_rsd){}
+	SocketInputStream(SocketDevice &_rsd):sd(std::move(_rsd)){}
 	int read(char *_pb, uint32 _bl, uint32){
 		return sd.read(_pb, _bl);
 	}
@@ -249,7 +249,7 @@ void LogManager::runListener(ListenerWorker &_w){
 	if(sd.ok()){
 		d.m.lock();
 		if(d.lsnv[_w.idx].ready){
-			d.lsnv[_w.idx].sd = sd;
+			d.lsnv[_w.idx].sd = std::move(sd);
 		}
 		d.m.unlock();
 		SocketDevice &rsd(d.lsnv[_w.idx].sd);

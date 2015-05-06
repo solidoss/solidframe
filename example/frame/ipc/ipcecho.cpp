@@ -6,10 +6,13 @@
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aiolistener.hpp"
 #include "frame/aio/aiotimer.hpp"
+#include "frame/aio/aioresolver.hpp"
+
 #include "frame/aio/openssl/aiosecurecontext.hpp"
 #include "frame/aio/openssl/aiosecuresocket.hpp"
 
 #include "frame/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcconfiguration.hpp"
 
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
@@ -176,10 +179,19 @@ int main(int argc, char *argv[]){
 		frame::ipc::Service		ipcsvc(m, frame::Event(EventStopE));
 		ErrorConditionT			err;
 		
+		frame::aio::Resolver	resolver;
+		
 		err = sch.start(1);
 		
 		if(err){
 			cout<<"Error starting aio scheduler: "<<err.message()<<endl;
+			return 1;
+		}
+		
+		err = resolver.start();
+		
+		if(err){
+			cout<<"Error starting aio resolver: "<<err.message()<<endl;
 			return 1;
 		}
 		
@@ -195,6 +207,8 @@ int main(int argc, char *argv[]){
 					);
 				}
 			);
+			
+			cfg.resolve_fnc = frame::ipc::ResolverF(resolver, "2000");//TODO: use something from Param
 			
 			err = ipcsvc.reconfigure(cfg);
 			

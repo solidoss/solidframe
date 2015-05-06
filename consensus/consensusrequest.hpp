@@ -12,7 +12,7 @@
 
 
 #include "frame/ipc/ipcmessage.hpp"
-#include "frame/ipc/ipcconnectionuid.hpp"
+#include "frame/ipc/ipccontext.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/socketaddress.hpp"
 #include "system/atomic.hpp"
