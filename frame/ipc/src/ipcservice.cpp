@@ -96,6 +96,7 @@ Service::~Service(){
 ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 	ServiceProxy	sp(*this);
 	_rcfg.regfnc(sp);
+	d.config = _rcfg;
 	return ErrorConditionT();
 }
 //-----------------------------------------------------------------------------
@@ -103,14 +104,13 @@ struct PushMessageVisitorF{
 	PushMessageVisitorF(
 		MessagePointerT	&_rmsgptr,
 		ConnectionUid const  &_rconuid_in,
-		ConnectionUid	*_pconuid_out,
 		ulong			_flags,
 		Event const &	_revt
-	):rmsgptr(_rmsgptr), rconuid_in(_rconuid_in), pconuid_out(_pconuid_out), flags(_flags), raise_event(_revt){}
+	):rmsgptr(_rmsgptr), rconuid_in(_rconuid_in), flags(_flags), raise_event(_revt){}
 	
 	
 	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
-		if(static_cast<Session&>(_robj).pushMessage(rmsgptr, rconuid_in, pconuid_out, flags)){
+		if(static_cast<Session&>(_robj).pushMessage(rmsgptr, rconuid_in, flags)){
 			_rreact.raise(_robj.runId(), raise_event);
 		}
 		
@@ -119,7 +119,6 @@ struct PushMessageVisitorF{
 	
 	MessagePointerT		&rmsgptr;
 	ConnectionUid const	&rconuid_in;
-	ConnectionUid		*pconuid_out;
 	ulong				flags;
 	Event				raise_event;
 };
@@ -138,6 +137,7 @@ struct OnRelsolveF{
 	):rm(_rm), objuid(_robjuid), event(_revent){}
 	
 	void operator()(AddressVectorT &_raddrvec){
+		idbgx(Debug::ipc, "OnRelsolveF(addrvec of size "<<_raddrvec.size()<<")");
 		event.msgptr = new ResolveMessage(_raddrvec);
 		rm.notify(objuid, event);
 	}
@@ -147,7 +147,7 @@ ErrorConditionT Service::doSendMessage(
 	const char *_session_name,
 	const ConnectionUid	&_rconuid_in,
 	MessagePointerT &_rmsgptr,
-	ConnectionUid *_pconuid_out,
+	SessionUid *_psession_out,
 	ulong _flags
 ){
 	solid::ErrorConditionT		err;
@@ -169,18 +169,23 @@ ErrorConditionT Service::doSendMessage(
 			SessionStub 					&rss(d.sessiondq[idx]);
 			
 			rss.name = _session_name;
-			d.namemap[rss.name.c_str()] = idx;
 			
 			DynamicPointer<aio::Object>		objptr(new Session(idx));
 			
-			rss.sessionuid = d.config.scheduler().startObject(objptr, *this, d.config.start_event, err);
+			rss.sessionuid = d.config.scheduler().startObject(objptr, *this, d.config.event_start, err);
 			if(err){
+				idbgx(Debug::ipc, "Error starting Session object: "<<err.message());
 				rss.clear();
 				d.cachestk.push(idx);
 				return err;
 			}
+			
+			d.namemap[rss.name.c_str()] = idx;
+			
+			idbgx(Debug::ipc, "Success starting Session object: "<<rss.sessionuid.index<<','<<rss.sessionuid.unique);
 			//resolve the name
-			ResolveCompleteFunctionT	cbk(OnRelsolveF(manager(), rss.sessionuid, d.config.raise_event));
+			ResolveCompleteFunctionT	cbk(OnRelsolveF(manager(), rss.sessionuid, d.config.event_raise));
+			
 			d.config.resolve_fnc(rss.name, cbk);
 		}
 	}else if(_rconuid_in.ssnidx < d.sessiondq.size() && _rconuid_in.ssnuid == d.sessiondq[_rconuid_in.ssnidx].uid){
@@ -190,22 +195,26 @@ ErrorConditionT Service::doSendMessage(
 		return err;
 	}
 	SessionStub 			&rss(d.sessiondq[idx]);
-	PushMessageVisitorF		fnc(_rmsgptr, _rconuid_in, _pconuid_out, _flags, d.config.raise_event);
+	PushMessageVisitorF		fnc(_rmsgptr, _rconuid_in, _flags, d.config.event_raise);
 	bool 					rv = manager().visit(rss.sessionuid, fnc);
 	
-	if(!rv){
+	if(rv){
+		if(_psession_out){
+			_psession_out->ssnidx = idx;
+			_psession_out->ssnuid = rss.uid;
+		}
+	}else{
 		err.assign(-1, err.category());//TODO
 	}
-	
 	return err;
 }
 //-----------------------------------------------------------------------------
 bool Service::isEventStart(Event const&_revent){
-	return false;
+	return _revent.id == d.config.event_start.id;
 }
 //-----------------------------------------------------------------------------
 bool Service::isEventStop(Event const&_revent){
-	return false;
+	return _revent.id == this->stopEvent().id;
 }
 //-----------------------------------------------------------------------------
 void Service::receiveConnection(SocketDevice &_rsd){
@@ -226,6 +235,7 @@ struct ResolveF{
 		if(!_rerr){
 			for(auto it = _rrd.begin(); it != _rrd.end(); ++it){
 				addrvec.push_back(SocketAddressStub(it));
+				idbgx(Debug::ipc, "Add resolved address: "<<addrvec.back());
 			}
 		}
 		cbk(addrvec);
@@ -254,7 +264,7 @@ void ResolverF::operator()(const std::string&_name, ResolveCompleteFunctionT& _c
 	
 	fnc.cbk = std::move(_cbk);
 	
-	rresolver.requestResolve(fnc, hst_name, svc_name);
+	rresolver.requestResolve(fnc, hst_name, svc_name, 0, -1, SocketInfo::Stream);
 }
 //=============================================================================
 }//namespace ipc

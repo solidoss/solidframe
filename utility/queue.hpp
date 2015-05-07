@@ -32,7 +32,7 @@ class Queue{
 		NodeSize = BitsToCount(NBits)
 	};
 	struct Node{
-		Node(Node *_pnext = NULL): next(_pnext){}
+		Node(Node *_pnext = nullptr): next(_pnext){}
 		Node	*next;
 		char	data[NodeSize * sizeof(T)];
 	};
@@ -41,10 +41,17 @@ public:
 	typedef T const&	const_reference;
 
 public:
-	Queue():sz(0),popsz(0),pb(NULL),pf(NULL),ptn(NULL){}
+	Queue():sz(0), popsz(0), pb(nullptr), pf(nullptr), ptn(nullptr){}
+	Queue(Queue &&_rq):sz(_rq.sz), popsz(_rq.popsz), pb(_rq.pb), pf(_rq.pf), ptn(_rq.ptn){
+		_rq.sz = 0;
+		_rq.popsz = 0;
+		_rq.pb = nullptr;
+		_rq.pf = nullptr;
+		_rq.ptn = nullptr;
+	}
 	~Queue(){
 		while(sz) pop();
-		Node *pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)): NULL;
+		Node *pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)): nullptr;
 		while(ptn){
 			Node *tn = ptn->next;
 			cassert(ptn != pn);
@@ -53,6 +60,22 @@ public:
 		}
 		delete pn;
 	}
+	
+	Queue& operator=(Queue &&_rq){
+		sz = _rq.sz;
+		popsz = _rq.popsz;
+		pb = _rq.pb;
+		pf = _rq.pf;
+		ptn = _rq.ptn;
+		
+		_rq.sz = 0;
+		_rq.popsz = 0;
+		_rq.pb = nullptr;
+		_rq.pf = nullptr;
+		_rq.ptn = nullptr;
+		return *this;
+	}
+	
 	bool empty()const	{ return !sz;}
 	size_t size() const	{ return sz;}
 	
@@ -84,11 +107,11 @@ public:
 	}
 private:
 	T* pushNode(void *_p){
-		Node *pn = _p ? (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*)): NULL;
+		Node *pn = _p ? (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*)): nullptr;
 		if(ptn){
 			Node *tn = ptn;
 			ptn = ptn->next;
-			tn->next = NULL;
+			tn->next = nullptr;
 			if(pn){
 				pn->next = tn;
 				return (T*)tn->data;
@@ -116,11 +139,14 @@ private:
 			return (T*)(ppn->data);
 		}else{
 			cassert(!sz);
-			pb = NULL;
-			//pf = NULL;
-			return NULL;
+			pb = nullptr;
+			//pf = nullptr;
+			return nullptr;
 		}
 	}
+private:
+	Queue(const Queue&);
+	Queue& operator=(const Queue&);
 private:
 	size_t		sz;
 	size_t		popsz;

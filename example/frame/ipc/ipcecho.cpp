@@ -35,6 +35,7 @@ enum Events{
 	EventRunE,
 	EventStopE,
 	EventSendE,
+	EventRaiseE
 };
 
 
@@ -51,7 +52,7 @@ struct Params{
 	bool					dbg_console;
 	bool					dbg_buffered;
 	
-	int						baseport;
+	std::string				baseport;
 	bool					log;
 	StringVectorT			connectstringvec;
 	
@@ -188,7 +189,7 @@ int main(int argc, char *argv[]){
 			return 1;
 		}
 		
-		err = resolver.start();
+		err = resolver.start(1);
 		
 		if(err){
 			cout<<"Error starting aio resolver: "<<err.message()<<endl;
@@ -197,7 +198,7 @@ int main(int argc, char *argv[]){
 		
 		
 		{
-			frame::ipc::Configuration	cfg;
+			frame::ipc::Configuration	cfg(sch);
 			
 			cfg.protocolCallback(
 				[&ipcsvc](frame::ipc::ServiceProxy& _rsp){
@@ -208,7 +209,9 @@ int main(int argc, char *argv[]){
 				}
 			);
 			
-			cfg.resolve_fnc = frame::ipc::ResolverF(resolver, "2000");//TODO: use something from Param
+			cfg.resolve_fnc = frame::ipc::ResolverF(resolver, p.baseport.c_str());//TODO: use something from Param
+			cfg.event_raise = frame::Event(EventRaiseE);
+			cfg.event_start = frame::Event(EventStartE);
 			
 			err = ipcsvc.reconfigure(cfg);
 			
@@ -250,7 +253,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug-port,P", value<string>(&_par.dbg_port)->default_value("9999"), "Debug server port (e.g. on linux use: nc -l 9999)")
 			("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
-			("listen-port,l", value<int>(&_par.baseport)->default_value(2000), "IPC Listen port")
+			("listen-port,l", value<std::string>(&_par.baseport)->default_value("2000"), "IPC Listen port")
 			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: host:port")
 		;
 		variables_map vm;

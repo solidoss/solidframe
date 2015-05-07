@@ -38,6 +38,11 @@ public:
 	typedef T const&	const_reference;
 public:
 	Stack():sz(0),p(NULL),ptn(NULL){}
+	Stack(Stack &&_rs):sz(_rs.sz), p(_rs.p), ptn(_rs.ptn){
+		_rs.sz = 0;
+		_rs.p = nullptr;
+		_rs.ptn = nullptr;
+	}
 	~Stack(){
 		while(sz) pop();
 		while(ptn){
@@ -46,6 +51,18 @@ public:
 			ptn = tn;
 		}
 	}
+	
+	Stack& operator=(Stack&& _rs){
+		sz = _rs.sz;
+		p = _rs.p;
+		ptn = _rs.ptn;
+		
+		_rs.sz = 0;
+		_rs.p = nullptr;
+		_rs.ptn = nullptr;
+		return *this;
+	}
+	
 	bool empty()const{return !sz;}
 	size_t size()const{return sz;}
 	void push(const T &_t){
@@ -88,6 +105,9 @@ private:
 			return NULL;
 		}
 	}
+private:
+	Stack(const Stack &);
+	Stack& operator=(const Stack &);
 private:
 	size_t 		sz;
 	T			*p;

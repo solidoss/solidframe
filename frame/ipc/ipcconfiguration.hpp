@@ -41,17 +41,21 @@ typedef FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>	AsyncResol
 
 struct Configuration{
 	
+	Configuration(AioSchedulerT &_rsch): psch(&_rsch){}
+	
+	Configuration():psch(nullptr){}
+	
 	template <class F>
 	void protocolCallback(F _f);
 	AioSchedulerT & scheduler(){
 		return *psch;
 	}
 	
-	MessageRegisterFunctionT	regfnc;
 	AioSchedulerT				*psch;
-	Event 						start_event;
-	Event						stop_event;
-	Event						raise_event;
+	
+	MessageRegisterFunctionT	regfnc;
+	Event 						event_start;
+	Event						event_raise;
 	AsyncResolveFunctionT		resolve_fnc;
 };
 

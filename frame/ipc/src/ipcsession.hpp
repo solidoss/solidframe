@@ -10,12 +10,16 @@
 #ifndef SOLID_FRAME_IPC_SRC_IPC_CONNECTION_HPP
 #define SOLID_FRAME_IPC_SRC_IPC_CONNECTION_HPP
 
+#include "system/socketdevice.hpp"
+
+#include "utility/queue.hpp"
+
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
-#include "system/socketdevice.hpp"
 #include "frame/aio/aiostream.hpp"
 #include "frame/aio/aiosocket.hpp"
 #include "frame/aio/aiotimer.hpp"
+
 #include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
 
@@ -56,7 +60,6 @@ public:
 	bool pushMessage(
 		MessagePointerT &_rmsgptr,
 		const ConnectionUid	&_rconuid_in,
-		ConnectionUid *_pconuid_out,
 		ulong _flags
 	);
 private:
@@ -67,17 +70,49 @@ private:
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;
+	
+	struct MessageStub{
+		MessageStub(
+			MessagePointerT &_rmsgptr,
+			ulong _flags
+		): msgptr(std::move(_rmsgptr)), flags(_flags){}
+		MessagePointerT msgptr;
+		ulong			flags;
+	};
+	
+	typedef Queue<MessageStub>							MessageQueueT;
+	
 	struct ConnectionStub{
-		ConnectionStub(ConnectionStub && _rcs):sock(std::move(_rcs.sock)), timer(std::move(_rcs.timer)){}
+		ConnectionStub(aio::ObjectProxy const &_robj):sock(_robj), timer(_robj), unique(0){}
+		ConnectionStub(
+			ConnectionStub && _rcs
+		):sock(std::move(_rcs.sock)), timer(std::move(_rcs.timer)), msgq(std::move(_rcs.msgq)), unique(_rcs.unique){}
 		
 		StreamSocketT	sock;
 		TimerT			timer;
+		MessageQueueT	msgq;
+		uint16			unique;
+	};
+	typedef std::vector<ConnectionStub>					ConnectionVectorT;
+	struct IncommingMessageStub{
+		IncommingMessageStub(
+			MessagePointerT &_rmsgptr,
+			UidT const& _rconuid,
+			ulong _flags
+		): msgptr(_rmsgptr), conuid(_rconuid), flags(_flags){}
+		
+		MessagePointerT		msgptr;
+		UidT				conuid;
+		ulong				flags;
 	};
 	
-	typedef std::vector<ConnectionStub>					ConnectionVectorT;
+	typedef std::vector<IncommingMessageStub>			IncommingMessageVectorT;
 	
 	size_t					idx;
+	uint16					crtpushvecidx;
 	ConnectionVectorT		convec;
+	IncommingMessageVectorT	incommingmsgvec[2];
+	MessageQueueT			msgq;
 };
 
 

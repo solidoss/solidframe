@@ -63,12 +63,12 @@ public:
 	ErrorConditionT sendMessage(
 		const char *_session_name,
 		DynamicPointer<T> const &_rmsgptr,
-		ConnectionUid &_rconnection_uid,
+		SessionUid &_rsession_uid,
 		ulong _flags = 0
 	){
 		MessagePointerT		msgptr(_rmsgptr);
 		ConnectionUid		conuid;
-		return doSendMessage(_session_name, conuid, msgptr, &_rconnection_uid, _flags);
+		return doSendMessage(_session_name, conuid, msgptr, &_rsession_uid, _flags);
 	}
 	
 	template <class T>
@@ -182,7 +182,7 @@ private:
 		const char *_session_name,
 		const ConnectionUid	&_rconuid_in,
 		MessagePointerT &_rmsgptr,
-		ConnectionUid *_rconuid_out,
+		SessionUid *_psession_out,
 		ulong _flags
 	);
 private:
