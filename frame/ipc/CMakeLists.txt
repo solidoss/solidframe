@@ -2,7 +2,7 @@
 set(Sources
 	src/ipcservice.cpp
 	src/ipclistener.cpp
-	src/ipcsession.cpp
+	src/ipcconnection.cpp
 )
 
 set(Headers
@@ -11,7 +11,7 @@ set(Headers
 	ipcmessage.hpp
 	ipcconfiguration.hpp
 	src/ipclistener.hpp
-	src/ipcsession.hpp
+	src/ipcconnection.hpp
 	src/ipcutility.hpp
 )
 

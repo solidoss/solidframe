@@ -373,6 +373,7 @@ public:
 	bool registerCast(){
 		return TypeIdMapBase::doRegisterCast<Derived, Base>();
 	}
+	
 	template <class T>
 	Data& operator[](const T *_pt){
 		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(*_pt)));
@@ -391,6 +392,24 @@ public:
 			return datavec[0];
 		}
 	}
+	
+	template <class T>
+	size_t index(const T *_pt)const{
+		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(*_pt)));
+		if(it != TypeIdMapBase::typemap.end()){
+			return it->second;
+		}else{
+			return 0;
+		}
+	}
+	
+	Data& operator[](const size_t _idx){
+		return datavec[_idx];
+	}
+	Data const& operator[](const size_t _idx)const{
+		return datavec[_idx];
+	}
+	
 private:
 	/*virtual*/ ErrorConditionT storeNullPointer(Ser &_rs, const char *_name) const {
 		static const uint32 nulltypeid = 0;

@@ -94,7 +94,7 @@ public:
 private:
 	friend struct ServiceProxy;
 	friend class Listener;
-	friend class Session;
+	friend class Connection;
 	
 	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &)>						MessageReceiveFunctionT;
 	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &, ErrorCodeT const &)>	MessageCompleteFunctionT;
@@ -182,6 +182,15 @@ private:
 		const char *_session_name,
 		const ConnectionUid	&_rconuid_in,
 		MessagePointerT &_rmsgptr,
+		SessionUid *_psession_out,
+		ulong _flags
+	);
+	
+	ErrorConditionT doSendMessage(
+		ObjectUidT const &_robjuid,
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		SessionUid const &_rsessionuid,
 		SessionUid *_psession_out,
 		ulong _flags
 	);

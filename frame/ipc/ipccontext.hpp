@@ -39,16 +39,24 @@ struct SessionUid{
 
 
 struct ConnectionUid: SessionUid{
+	
 	ConnectionUid(
 		const SessionUid &_rssnid = SessionUid(),
-		const uint16 _idx = 0xffff,
-		const uint16 _uid = 0xffff
-	):SessionUid(_rssnid), conidx(_idx), conuid(_uid){}
+		const ObjectUidT &_rconid = ObjectUidT()
+	):SessionUid(_rssnid), conid(_rconid){}
+	
 	bool isInvalid()const{
-		return conidx == 0xffff;
+		return isInvalidConnection() || isInvalidSession();
 	}
-	uint16		conidx;
-	uint16		conuid;
+	
+	bool isInvalidConnection()const{
+		return conid.isInvalid();
+	}
+	
+	bool isInvalidSession()const{
+		return SessionUid::isInvalid();
+	}
+	ObjectUidT		conid;
 };
 
 struct MessageUid{

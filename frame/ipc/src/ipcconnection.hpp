@@ -1,4 +1,4 @@
-// frame/ipc/src/ipcsession.hpp
+// frame/ipc/src/ipcconnection.hpp
 //
 // Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -36,30 +36,30 @@ class Context;
 namespace ipc{
 
 class Service;
-struct ConnectionUid;
 
 
 struct ResolveMessage: Dynamic<ResolveMessage>{
 	AddressVectorT	addrvec;
-	
-	ResolveMessage(AddressVectorT &_raddrvec):addrvec(std::move(_raddrvec)){}
+	size_t			crtidx;
+	ResolveMessage(AddressVectorT &_raddrvec):addrvec(std::move(_raddrvec)), crtidx(0){}
 };
 
 
-class Session: public Dynamic<Session, frame::aio::Object>{
+class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
-	Session(
-		const size_t _idx,
-		const SocketDevice &_rsd
+	//Called when connection is accepted
+	Connection(
+		SocketDevice &_rsd
 	);
-	Session(
-		const size_t _idx
+	//Called when connection is 
+	Connection(
+		SessionUid const &_rssnid
 	);
-	~Session();
+	~Connection();
 	
 	bool pushMessage(
 		MessagePointerT &_rmsgptr,
-		const ConnectionUid	&_rconuid_in,
+		const size_t _msg_type_idx,
 		ulong _flags
 	);
 private:
@@ -74,45 +74,37 @@ private:
 	struct MessageStub{
 		MessageStub(
 			MessagePointerT &_rmsgptr,
+			const size_t _msg_type_idx,
 			ulong _flags
-		): msgptr(std::move(_rmsgptr)), flags(_flags){}
+		): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), flags(_flags){}
+		
 		MessagePointerT msgptr;
+		const size_t	msg_type_idx;
 		ulong			flags;
 	};
 	
 	typedef Queue<MessageStub>							MessageQueueT;
 	
-	struct ConnectionStub{
-		ConnectionStub(aio::ObjectProxy const &_robj):sock(_robj), timer(_robj), unique(0){}
-		ConnectionStub(
-			ConnectionStub && _rcs
-		):sock(std::move(_rcs.sock)), timer(std::move(_rcs.timer)), msgq(std::move(_rcs.msgq)), unique(_rcs.unique){}
-		
-		StreamSocketT	sock;
-		TimerT			timer;
-		MessageQueueT	msgq;
-		uint16			unique;
-	};
-	typedef std::vector<ConnectionStub>					ConnectionVectorT;
 	struct IncommingMessageStub{
 		IncommingMessageStub(
 			MessagePointerT &_rmsgptr,
-			UidT const& _rconuid,
+			const size_t _msg_type_idx,
 			ulong _flags
-		): msgptr(_rmsgptr), conuid(_rconuid), flags(_flags){}
+		): msgptr(_rmsgptr), msg_type_idx(_msg_type_idx), flags(_flags){}
 		
 		MessagePointerT		msgptr;
-		UidT				conuid;
+		const size_t		msg_type_idx;
 		ulong				flags;
 	};
 	
 	typedef std::vector<IncommingMessageStub>			IncommingMessageVectorT;
 	
-	size_t					idx;
-	uint16					crtpushvecidx;
-	ConnectionVectorT		convec;
+	SessionUid				ssnid;
 	IncommingMessageVectorT	incommingmsgvec[2];
+	StreamSocketT			sock;
+	TimerT					timer;
 	MessageQueueT			msgq;
+	uint16					crtpushvecidx;
 };
 
 

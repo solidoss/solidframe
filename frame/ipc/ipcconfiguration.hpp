@@ -51,8 +51,13 @@ struct Configuration{
 		return *psch;
 	}
 	
-	AioSchedulerT				*psch;
+	bool isServerOnly()const{
+		//TODO:
+		return false;
+	}
 	
+	AioSchedulerT				*psch;
+	size_t						max_per_session_connection_count;
 	MessageRegisterFunctionT	regfnc;
 	Event 						event_start;
 	Event						event_raise;
