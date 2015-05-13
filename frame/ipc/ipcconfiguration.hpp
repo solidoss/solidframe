@@ -41,27 +41,33 @@ typedef FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>	AsyncResol
 
 struct Configuration{
 	
-	Configuration(AioSchedulerT &_rsch): psch(&_rsch){}
-	
-	Configuration():psch(nullptr){}
+	Configuration(
+		AioSchedulerT &_rsch
+	): psch(&_rsch), session_mutex_count(16){}
 	
 	template <class F>
 	void protocolCallback(F _f);
+	
 	AioSchedulerT & scheduler(){
 		return *psch;
 	}
 	
-	bool isServerOnly()const{
-		//TODO:
-		return false;
+	bool isServer()const{
+		return listen_addr_str.size() != 0;
 	}
 	
 	AioSchedulerT				*psch;
 	size_t						max_per_session_connection_count;
+	size_t						session_mutex_count;
 	MessageRegisterFunctionT	regfnc;
 	Event 						event_start;
 	Event						event_raise;
 	AsyncResolveFunctionT		resolve_fnc;
+	std::string					listen_addr_str;
+	std::string					default_listen_port_str;
+private:
+	friend class Service;
+	Configuration():psch(nullptr){}
 };
 
 template <class F>

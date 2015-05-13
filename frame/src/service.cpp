@@ -46,6 +46,11 @@ void Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){
 	rm.forEachServiceObject(*this, notifier);
 }
 
+
+bool Service::start(){
+	return rm.startService(*this);
+}
+
 void Service::stop(const bool _wait){
 	rm.stopService(*this, _wait);
 }

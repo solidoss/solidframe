@@ -123,6 +123,7 @@ private:
 	bool raise(const ObjectBase &_robj, Event const &_re);
 
 	void stopService(Service &_rsvc, bool _wait);
+	bool startService(Service &_rsvc);
 	
 	
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);

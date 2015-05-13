@@ -102,10 +102,15 @@ typedef Stack<size_t>									SizeStackT;
 
 
 struct Service::Data{
-	Data():pmtxarr(nullptr){}
+	Data():pmtxarr(nullptr), mtxsarrcp(0){}
 	
 	~Data(){
 		delete []pmtxarr;
+	}
+	
+	
+	Mutex & sessionMutex(size_t _idx)const{
+		return pmtxarr[_idx % mtxsarrcp];
 	}
 	
 	Mutex			mtx;
@@ -128,9 +133,61 @@ Service::~Service(){
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
+	this->stop(true);
+	this->start();
+	
+	ErrorConditionT err;
+	
 	ServiceProxy	sp(*this);
+	
 	_rcfg.regfnc(sp);
+	
 	d.config = _rcfg;
+	
+	if(d.config.listen_addr_str.size()){
+		std::string		tmp;
+		const char 		*hst_name;
+		const char		*svc_name;
+		
+		size_t off = d.config.listen_addr_str.rfind(':');
+		if(off != std::string::npos){
+			tmp = d.config.listen_addr_str.substr(0, off);
+			hst_name = tmp.c_str();
+			svc_name = d.config.listen_addr_str.c_str() + off + 1;
+			if(!svc_name[0]){
+				svc_name = d.config.default_listen_port_str.c_str();
+			}
+		}else{
+			hst_name = d.config.listen_addr_str.c_str();
+			svc_name = d.config.default_listen_port_str.c_str();
+		}
+		
+		ResolveData		rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
+		SocketDevice	sd;
+			
+		sd.create(rd.begin());
+		sd.prepareAccept(rd.begin(), 2000);
+			
+		if(sd.ok()){
+			DynamicPointer<aio::Object>		objptr(new Listener(sd));
+			
+			ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, d.config.event_start, err);
+			
+			if(err){
+				return err;
+			}
+		}else{
+			err.assign(-1, err.category());
+			return err;
+		}
+	}
+	
+	if(d.config.session_mutex_count > d.mtxsarrcp){
+		delete []d.pmtxarr;
+		d.pmtxarr = new Mutex[d.config.session_mutex_count];
+		d.mtxsarrcp = d.config.session_mutex_count;
+	}
+	
 	return ErrorConditionT();
 }
 //-----------------------------------------------------------------------------
@@ -208,7 +265,7 @@ ErrorConditionT Service::doSendMessage(
 				idx = d.sessiondq.size();
 				d.sessiondq.push_back(SessionStub());
 			}
-			Locker<Mutex>					lock2(d.pmtxarr[idx % d.mtxsarrcp]);
+			Locker<Mutex>					lock2(d.sessionMutex(idx));
 			SessionStub 					&rss(d.sessiondq[idx]);
 			
 			rss.name = _session_name;
@@ -249,7 +306,7 @@ ErrorConditionT Service::doSendMessage(
 		return err;
 	}
 	
-	Locker<Mutex>			lock2(d.pmtxarr[idx % d.mtxsarrcp]);
+	Locker<Mutex>			lock2(d.sessionMutex(idx));
 	SessionStub 			&rss(d.sessiondq[idx]);
 	
 	if(check_uid && rss.uid != uid){
@@ -326,8 +383,29 @@ bool Service::isEventStop(Event const&_revent){
 	return _revent.id == this->stopEvent().id;
 }
 //-----------------------------------------------------------------------------
-void Service::receiveConnection(SocketDevice &_rsd){
+void Service::connectionReceive(SocketDevice &_rsd){
+	DynamicPointer<aio::Object>		objptr(new Connection(_rsd));
+	solid::ErrorConditionT			err;
+	ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, d.config.event_start, err);
 	
+	idbgx(Debug::ipc, "receive connection ["<<conuid<<"] err = "<<err.message());
+}
+//-----------------------------------------------------------------------------
+void Service::forwardResolveMessage(SessionUid const &_rssnuid, Event const&_revent){
+	ResolveMessage 	*presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
+	ErrorConditionT	err;
+	++presolvemsg->crtidx;
+	if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
+		DynamicPointer<aio::Object>		objptr(new Connection(_rssnuid));
+		
+		Locker<Mutex>					lock(d.sessionMutex(_rssnuid.ssnidx));
+		SessionStub						&rssn(d.sessiondq[_rssnuid.ssnidx]);
+		ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, _revent, err);
+		idbgx(Debug::ipc, conuid<<" "<<err.message());
+		if(!err){
+			++rssn.conn_pending;
+		}
+	}
 }
 //=============================================================================
 //-----------------------------------------------------------------------------

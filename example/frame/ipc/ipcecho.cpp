@@ -125,7 +125,7 @@ struct MessageHandler{
 	// * was successfully sent on peer-side - for requests, a message is considered successfully sent when the response was received
 	// * was not successfuly sent - i.e. the connection was closed before message ACK
 	
-	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorCodeT const &_rerr);
+	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorConditionT const &_rerr);
 	uint32 operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg);
 };
 
@@ -209,6 +209,8 @@ int main(int argc, char *argv[]){
 				}
 			);
 			
+			cfg.listen_addr_str = "0.0.0.0:"; cfg.listen_addr_str += p.baseport;
+			cfg.default_listen_port_str = p.baseport;
 			cfg.resolve_fnc = frame::ipc::ResolverF(resolver, p.baseport.c_str());//TODO: use something from Param
 			cfg.event_raise = frame::Event(EventRaiseE);
 			cfg.event_start = frame::Event(EventStartE);
@@ -317,11 +319,11 @@ void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPoi
 // * was successfully sent on peer-side - for requests, a message is considered successfully sent when the response was received
 // * was not successfuly sent - i.e. the connection was closed before message ACK
 
-void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorCodeT const &_rerr){
+void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorConditionT const &_rerr){
 	if(!_rerr){
 		idbg("Message successfully sent");
 	}else{
-		idbg("Message not confirmed: "<<_rerr);
+		idbg("Message not confirmed: "<<_rerr.message());
 	}
 }
 

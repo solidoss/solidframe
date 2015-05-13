@@ -11,9 +11,12 @@
 #define SOLID_FRAME_COMMON_HPP
 
 #include <utility>
+#include <ostream>
+
 #include "utility/common.hpp"
 #include "system/convertors.hpp"
 #include "system/function.hpp"
+
 
 namespace solid{
 namespace frame{
@@ -56,6 +59,8 @@ struct UniqueId{
 
 typedef UniqueId		UidT;
 typedef UidT			ObjectUidT;
+
+std::ostream& operator<<(std::ostream &_ros, UniqueId const& _uid);
 
 enum{
 	IndexBitCount = sizeof(IndexT) * 8,

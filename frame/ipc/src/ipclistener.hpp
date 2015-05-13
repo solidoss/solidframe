@@ -31,7 +31,7 @@ class Service;
 class Listener: public Dynamic<Listener, frame::aio::Object>{
 public:
 	Listener(
-		SocketDevice &&_rsd
+		SocketDevice &_rsd
 	):
 		sock(this->proxy(), std::move(_rsd))
 	{}

@@ -34,6 +34,7 @@ public:
 		Manager &_rm,
 		Event const &_rstopevt
 	);
+	
 	~Service();
 	
 	bool isRegistered()const;
@@ -49,6 +50,8 @@ public:
 	Event const& stopEvent();
 	
 	void stop(const bool _wait = true);
+	
+	bool start();
 	
 	Manager& manager();
 	

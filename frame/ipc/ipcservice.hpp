@@ -96,9 +96,9 @@ private:
 	friend class Listener;
 	friend class Connection;
 	
-	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &)>						MessageReceiveFunctionT;
-	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &, ErrorCodeT const &)>	MessageCompleteFunctionT;
-	typedef FUNCTION<uint32(ConnectionContext &, Message const &)>						MessagePrepareFunctionT;
+	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &)>							MessageReceiveFunctionT;
+	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &, ErrorConditionT const &)>	MessageCompleteFunctionT;
+	typedef FUNCTION<uint32(ConnectionContext &, Message const &)>							MessagePrepareFunctionT;
 	
 	struct TypeStub{
 		MessagePrepareFunctionT		prepare_fnc;
@@ -113,7 +113,10 @@ private:
 	bool isEventStart(Event const&_revent);
 	bool isEventStop(Event const&_revent);
 	
-	void receiveConnection(SocketDevice &_rsd);
+	void connectionReceive(SocketDevice &_rsd);
+	void connectionLeave();
+	
+	void forwardResolveMessage(SessionUid const &_rssnuid, Event const&_revent);
 	
 	template <class F, class M>
 	struct ReceiveProxy{
@@ -131,7 +134,7 @@ private:
 		F	f;
 		CompleteProxy(F _f):f(_f){}
 		
-		void operator()(ConnectionContext &_rctx, MessagePointerT &_rmsgptr, ErrorCodeT const &_err){
+		void operator()(ConnectionContext &_rctx, MessagePointerT &_rmsgptr, ErrorConditionT const &_err){
 			DynamicPointer<M>	msgptr(std::move(_rmsgptr));
 			f(_rctx, msgptr, _err);
 		}

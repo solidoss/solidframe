@@ -18,22 +18,29 @@ namespace frame{
 namespace ipc{
 
 
+inline Service& Connection::service(frame::aio::ReactorContext &_rctx)const{
+	return static_cast<Service&>(_rctx.service());
+}
+
+inline ObjectUidT Connection::uid(frame::aio::ReactorContext &_rctx)const{
+	return service(_rctx).manager().id(*this);
+}
 Connection::Connection(
 	SocketDevice &_rsd
-): sock(this->proxy(), std::move(_rsd)), timer(this->proxy()), crtpushvecidx(0){}
+): sock(this->proxy(), std::move(_rsd)), timer(this->proxy()), crtpushvecidx(0)
+{
+	idbgx(Debug::ipc, this);
+}
 
 Connection::Connection(
 	SessionUid const &_rssnid
-): ssnid(_rssnid), sock(this->proxy()), timer(this->proxy()),  crtpushvecidx(0){
-	
+): ssnid(_rssnid), sock(this->proxy()), timer(this->proxy()),  crtpushvecidx(0)
+{
+	idbgx(Debug::ipc, this);
 }
 
 Connection::~Connection(){
-	
-}
-
-inline Service& Connection::service(frame::aio::ReactorContext &_rctx){
-	return static_cast<Service&>(_rctx.service());
+	idbgx(Debug::ipc, this);
 }
 
 bool Connection::pushMessage(
@@ -49,7 +56,7 @@ bool Connection::pushMessage(
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(service(_rctx).isEventStart(_revent)){
-		idbgx(Debug::ipc, this->id()<<" Session start");
+		idbgx(Debug::ipc, this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
 	}else if(service(_rctx).isEventStop(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session postStop");
 		postStop(_rctx);
@@ -57,6 +64,17 @@ bool Connection::pushMessage(
 		ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
 		if(presolvemsg){
 			idbgx(Debug::ipc, this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size()<<" crtidx = "<<presolvemsg->crtidx);
+			if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
+				//initiate connect:
+				if(sock.connect(_rctx, presolvemsg->currentAddress(), Connection::onConnect)){
+					onConnect(_rctx);
+				}
+				
+				service(_rctx).forwardResolveMessage(ssnid, _revent.msgptr);
+			}else{
+				//service(_rctx).connectionLeave();
+				postStop(_rctx);
+			}
 		}
 	}else{
 		size_t		vecidx = -1;
@@ -85,6 +103,16 @@ bool Connection::pushMessage(
 }
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	
+}
+
+/*static*/ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
+	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	if(!_rctx.error()){
+		idbgx(Debug::ipc, rthis.id());
+	}else{
+		idbgx(Debug::ipc, rthis.id()<<" error: "<<_rctx.error().message());
+		rthis.postStop(_rctx);
+	}
 }
 
 }//namespace ipc

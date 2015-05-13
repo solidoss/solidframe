@@ -33,6 +33,11 @@
 namespace solid{
 namespace frame{
 
+std::ostream& operator<<(std::ostream &_ros, UniqueId const& _uid){
+	_ros<<_uid.index<<':'<<_uid.unique;
+	return _ros;
+}
+
 typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 typedef ATOMIC_NS::atomic<bool>				AtomicBoolT;
 typedef ATOMIC_NS::atomic<uint>				AtomicUintT;
@@ -747,6 +752,25 @@ Service& Manager::service(const ObjectBase &_robj)const{
 		d.releaseReadServiceStore(svcstoreidx);
 	}
 	return *psvc;
+}
+
+bool Manager::startService(Service &_rsvc){
+	if(!_rsvc.isRegistered()){
+		return false;
+	}
+	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
+	ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
+	
+	d.releaseReadServiceStore(svcstoreidx);
+	
+	Locker<Mutex>	lock(rss.rmtx);
+	
+	if(rss.state == StateStoppedE){
+		rss.state = StateRunningE;
+		return true;
+	}
+	return false;
 }
 
 void Manager::stopService(Service &_rsvc, const bool _wait){
