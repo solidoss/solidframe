@@ -306,7 +306,7 @@ bool Reactor::start(){
 }
 
 /*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _revt){
-	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event id = "<<_revt.id);
+	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event = "<<_revt);
 	bool 	rv = true;
 	size_t	raisevecsz = 0;
 	{
@@ -336,7 +336,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revt){
 		Locker<Mutex>	lock(d.mtx);
 		const UidT		uid = this->popUid(*_robj);
 		
-		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event id = "<<_revt.id);
+		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event = "<<_revt);
 			
 		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revt));
 		pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();

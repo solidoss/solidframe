@@ -40,7 +40,7 @@ public:
 	typedef Dynamic<Service, frame::Service> BaseT;
 	
 	Service(
-		frame::Manager &_rm, frame::Event const &_revt
+		frame::Manager &_rm
 	);
 	
 	//! Destructor
@@ -110,8 +110,6 @@ private:
 	typedef serialization::binary::Deserializer<ConnectionContext>						DeserializerT;
 	typedef serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>				TypeIdMapT;
 	
-	bool isEventStart(Event const&_revent);
-	bool isEventStop(Event const&_revent);
 	
 	void connectionReceive(SocketDevice &_rsd);
 	void connectionLeave();

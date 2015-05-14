@@ -30,15 +30,6 @@ using namespace solid;
 typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
 typedef frame::aio::openssl::Context			SecureContextT;
 
-enum Events{
-	EventStartE = 0,
-	EventRunE,
-	EventStopE,
-	EventSendE,
-	EventRaiseE
-};
-
-
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
@@ -177,7 +168,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager			m;
-		frame::ipc::Service		ipcsvc(m, frame::Event(EventStopE));
+		frame::ipc::Service		ipcsvc(m);
 		ErrorConditionT			err;
 		
 		frame::aio::Resolver	resolver;
@@ -212,8 +203,6 @@ int main(int argc, char *argv[]){
 			cfg.listen_addr_str = "0.0.0.0:"; cfg.listen_addr_str += p.baseport;
 			cfg.default_listen_port_str = p.baseport;
 			cfg.resolve_fnc = frame::ipc::ResolverF(resolver, p.baseport.c_str());//TODO: use something from Param
-			cfg.event_raise = frame::Event(EventRaiseE);
-			cfg.event_start = frame::Event(EventStartE);
 			
 			err = ipcsvc.reconfigure(cfg);
 			

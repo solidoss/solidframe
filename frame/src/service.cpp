@@ -30,9 +30,8 @@ namespace solid{
 namespace frame{
 
 Service::Service(
-	Manager &_rm,
-	Event const &_rstopevt
-):rm(_rm), stopevent(_rstopevt), idx(-1){
+	Manager &_rm
+):rm(_rm), idx(-1){
 	_rm.registerService(*this);
 }
 

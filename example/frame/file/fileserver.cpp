@@ -9,7 +9,6 @@
 #include "frame/aio/aiolistener.hpp"
 #include "frame/aio/aiosocket.hpp"
 
-#include "frame/message.hpp"
 #include "frame/service.hpp"
 
 #include "frame/file/filestream.hpp"
@@ -92,7 +91,7 @@ public:
 		frame::Service &_rsvc,
 		AioSchedulerT &_rsched,
 		SocketDevice &_rsd
-	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), _rsd){}
+	):rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), std::move(_rsd)){}
 	~Listener(){
 	}
 private:
@@ -217,7 +216,7 @@ int main(int argc, char *argv[]){
 		SchedulerT		sched;
 		
 		frame::Manager	m;
-		frame::Service	svc(m, frame::Event(EventStopE));
+		frame::Service	svc(m);
 		
 		if(!sched.start(1) && !aiosched.start(1)){
 			{
@@ -249,7 +248,7 @@ int main(int argc, char *argv[]){
 				tempcfg.storagevec.back().maxsize = 1024 * 10;
 				tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
 			
-				filestoreptr = new frame::file::Store<>(m, EventRunE, utf8cfg, tempcfg);
+				filestoreptr = new frame::file::Store<>(m, utf8cfg, tempcfg);
 			}
 			
 			solid::ErrorConditionT				err;
@@ -257,7 +256,7 @@ int main(int argc, char *argv[]){
 			
 			{
 				SchedulerT::ObjectPointerT		objptr(filestoreptr);
-				objuid = sched.startObject(objptr, svc, frame::Event(EventStartE), err);
+				objuid = sched.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 			}
 			
 			{
@@ -273,7 +272,7 @@ int main(int argc, char *argv[]){
 					solid::ErrorConditionT				err;
 					solid::frame::ObjectUidT			objuid;
 					
-					objuid = aiosched.startObject(objptr, svc, frame::Event(EventStartE), err);
+					objuid = aiosched.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 					idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
 				}else{
 					cout<<"Error creating listener socket"<<endl;
@@ -343,10 +342,10 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg("event = "<<_revent.id);
-	if(_revent.id == EventStartE){
+	idbg("event = "<<_revent);
+	if(frame::EventCategory::isStart(_revent)){
 		sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-	}else if(_revent.id == EventStopE){
+	}else if(frame::EventCategory::isKill(_revent)){
 		postStop(_rctx);
 	}
 }
@@ -360,7 +359,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			solid::ErrorConditionT				err;
 			
-			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);
+			rsch.startObject(objptr, rsvc, frame::EventCategory::createStart(), err);
 		}else{
 			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
 			//timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -381,7 +380,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //------------------------------------------------------------------
 static const char * patt = "\n.\r\n";
 
-struct FilePointerMessage: solid::Dynamic<FilePointerMessage, solid::frame::Message>{
+struct FilePointerMessage: solid::Dynamic<FilePointerMessage>{
 	FilePointerMessage(){}
 	FilePointerMessage(frame::file::FilePointerT _ptr):ptr(_ptr){}
 	
@@ -399,7 +398,7 @@ static frame::UidT							tempuid;
 
 
 Connection::Connection(SocketDevice &_rsd):
-	sock(this->proxy(), _rsd), b(false), crtpat(patt)
+	sock(this->proxy(), std::move(_rsd)), b(false), crtpat(patt)
 {
 	state = ReadInit;
 	bend = bbeg;
@@ -428,14 +427,14 @@ const char * Connection::findEnd(const char *_p){
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	idbg("");
-	if(_revent.id == EventStartE){
+	if(frame::EventCategory::isStart(_revent)){
 		idbg("Start");
 		sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
 		state = ReadCommand;
-	}else if(_revent.id == EventStopE){
+	}else if(frame::EventCategory::isKill(_revent)){
 		idbg("Stop");
 		this->postStop(_rctx);
-	}else if(_revent.id == EventMessageE){
+	}else if(frame::EventCategory::isMessage(_revent)){
 		idbg("Message");
 		DynamicHandler<DynamicMapperT>  dh(dm);
 		dv.push_back(DynamicPointer<>(_revent.msgptr));
@@ -534,8 +533,8 @@ struct OpenCbk{
 		ERROR_NS::error_code err
 	){
 		idbg("");
-		frame::MessagePointerT	msgptr(new FilePointerMessage(_rptr));
-		rm.notify(uid, frame::Event(msgptr, EventMessageE));
+		DynamicPointer<>	msgptr(new FilePointerMessage(_rptr));
+		rm.notify(uid, frame::EventCategory::createMessage().assign(0, msgptr));
 	}
 };
 

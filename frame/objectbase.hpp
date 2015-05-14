@@ -23,7 +23,6 @@ namespace frame{
 
 class Manager;
 class Service;
-class Message;
 class ReactorBase;
 class Object;
 class CompletionHandler;

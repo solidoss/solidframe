@@ -21,13 +21,13 @@ inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
 }
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg("event = "<<_revent.id);
-	if(service(_rctx).isEventStart(_revent)){
+	idbg("event = "<<_revent);
+	if(EventCategory::isStart(_revent)){
 		sock.postAccept(
 			_rctx,
 			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
 		);
-	}else if(service(_rctx).isEventStop(_revent)){
+	}else if(EventCategory::isKill(_revent)){
 		postStop(_rctx);
 	}
 }

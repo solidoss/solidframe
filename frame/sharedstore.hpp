@@ -81,8 +81,7 @@ protected:
 	typedef std::vector<ExecWaitStub>			ExecWaitVectorT;
 	
 	StoreBase(
-		Manager &_rm,
-		const size_t _raiseeventidx
+		Manager &_rm
 	);
 	
 	Mutex &mutex();
@@ -220,9 +219,8 @@ public:
 	typedef Dynamic<Store<T, Ctl>, StoreBase>	BaseT;
 	
 	Store(
-		Manager &_rm,
-		const size_t _raiseeventidx
-	):BaseT(_rm, _raiseeventidx){}
+		Manager &_rm
+	):BaseT(_rm){}
 	
 	PointerT	insertAlive(T &_rt){
 		Locker<Mutex>	lock(this->mutex());

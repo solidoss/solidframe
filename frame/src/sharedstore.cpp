@@ -46,17 +46,14 @@ typedef Stack<void*>						VoidPtrStackT;
 
 struct StoreBase::Data{
 	Data(
-		Manager &_rm,
-		const size_t _raiseeventid
+		Manager &_rm
 	):	rm(_rm),
-		raiseeventid(_raiseeventid),
 		objmaxcnt(ATOMIC_VAR_INIT(0))
 	{
 		pfillerasevec = &erasevec[0];
 		pconserasevec = &erasevec[1];
 	}
 	Manager				&rm;
-	size_t				raiseeventid;
 	shared::AtomicSizeT	objmaxcnt;
 	MutexMutualStoreT	mtxstore;
 	UidVectorT			erasevec[2];
@@ -75,9 +72,8 @@ void StoreBase::Accessor::notify(){
 }
 
 StoreBase::StoreBase(
-	Manager &_rm,
-	const size_t _raiseeventidx
-):d(*(new Data(_rm, _raiseeventidx))){}
+	Manager &_rm
+):d(*(new Data(_rm))){}
 
 /*virtual*/ StoreBase::~StoreBase(){
 	delete &d;
@@ -176,39 +172,43 @@ void StoreBase::notifyObject(UidT const & _ruid){
 		}
 	}
 	if(do_raise){
-		manager().notify(manager().id(*this), Event(d.raiseeventid));
+		manager().notify(manager().id(*this), EventCategory::create(EventCategory::RaiseE));
 	}
 }
 
 void StoreBase::raise(){
-	manager().notify(manager().id(*this), Event(d.raiseeventid));
+	manager().notify(manager().id(*this), EventCategory::create(EventCategory::RaiseE));
 }
 
 /*virtual*/void StoreBase::onEvent(frame::ReactorContext &_rctx, frame::Event const &_revent){
 	vdbgx(Debug::frame, "");
 	
-	if(_revent.id == d.raiseeventid){
-		{
-			Locker<Mutex>	lock(mutex());
-			ulong sm = grabSignalMask();
-			if(sm & S_RAISE){
-				if(d.pfillerasevec->size()){
-					solid::exchange(d.pconserasevec, d.pfillerasevec);
+	if(EventCategory::cast(&_revent.category())){
+		EventCategory::EventId id = EventCategory::id(_revent);
+	
+		if(id == EventCategory::RaiseE){
+			{
+				Locker<Mutex>	lock(mutex());
+				ulong sm = grabSignalMask();
+				if(sm & S_RAISE){
+					if(d.pfillerasevec->size()){
+						solid::exchange(d.pconserasevec, d.pfillerasevec);
+					}
+					doExecuteOnSignal(sm);
 				}
-				doExecuteOnSignal(sm);
 			}
+			vdbgx(Debug::frame, "");
+			if(this->doExecute()){
+				this->post(
+					_rctx,
+					[this](frame::ReactorContext &_rctx, frame::Event const &_revent){onEvent(_rctx, _revent);},
+					EventCategory::create(EventCategory::RaiseE)
+				);
+			}
+			d.pconserasevec->clear();
+		}else if(id == EventCategory::KillE){
+			this->postStop(_rctx);
 		}
-		vdbgx(Debug::frame, "");
-		if(this->doExecute()){
-			this->post(
-				_rctx,
-				[this](frame::ReactorContext &_rctx, frame::Event const &_revent){onEvent(_rctx, _revent);},
-				frame::Event(d.raiseeventid)
-			);
-		}
-		d.pconserasevec->clear();
-	}else if(_revent.id == _rctx.service().stopEvent().id){
-		this->postStop(_rctx);
 	}
 }
 

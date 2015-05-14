@@ -789,7 +789,7 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 		return;
 	}
 	if(rss.state == StateRunningE){
-		EventNotifierF		evtntf(_rsvc.stopevent);
+		EventNotifierF		evtntf(EventCategory::create(EventCategory::KillE));
 		ObjectVisitFunctorT fctor(evtntf);
 		const bool		any = doForEachServiceObject(rss.firstchk, fctor);
 		if(!any){
@@ -835,7 +835,7 @@ void Manager::stop(){
 		Locker<Mutex>	lock(rss.rmtx);
 		
 		if(rss.psvc && rss.state == StateRunningE){
-			EventNotifierF		evtntf(rss.psvc->stopevent);
+			EventNotifierF		evtntf(EventCategory::create(EventCategory::KillE));
 			ObjectVisitFunctorT fctor(evtntf);
 			const bool			any = doForEachServiceObject(rss.firstchk, fctor);
 			

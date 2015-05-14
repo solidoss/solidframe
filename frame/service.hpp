@@ -31,8 +31,7 @@ class	ObjectBase;
 class Service: public Dynamic<Service>{
 public:
 	Service(
-		Manager &_rm,
-		Event const &_rstopevt
+		Manager &_rm
 	);
 	
 	~Service();
@@ -46,8 +45,6 @@ public:
 	bool forEach(F &_rf){
 		return rm.forEachServiceObject(*this, _rf);
 	}
-	
-	Event const& stopEvent();
 	
 	void stop(const bool _wait = true);
 	
@@ -67,7 +64,6 @@ private:
 private:
 	
 	Manager 					&rm;
-	Event 						stopevent;
 	ATOMIC_NS::atomic<size_t>	idx;
 };
 
@@ -77,10 +73,6 @@ inline Manager& Service::manager(){
 inline bool Service::isRegistered()const{
 	//return idx != static_cast<size_t>(-1);
 	return idx.load(/*ATOMIC_NS::memory_order_seq_cst*/) != static_cast<size_t>(-1);
-}
-
-inline Event const & Service::stopEvent(){
-	return stopevent;
 }
 
 }//namespace frame

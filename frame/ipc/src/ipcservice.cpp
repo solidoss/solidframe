@@ -124,8 +124,8 @@ struct Service::Data{
 //=============================================================================
 
 Service::Service(
-	frame::Manager &_rm, frame::Event const &_revt
-):BaseT(_rm, _revt), d(*(new Data)){}
+	frame::Manager &_rm
+):BaseT(_rm), d(*(new Data)){}
 	
 //! Destructor
 Service::~Service(){
@@ -171,7 +171,7 @@ ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 		if(sd.ok()){
 			DynamicPointer<aio::Object>		objptr(new Listener(sd));
 			
-			ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, d.config.event_start, err);
+			ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 			
 			if(err){
 				return err;
@@ -272,7 +272,7 @@ ErrorConditionT Service::doSendMessage(
 			
 			DynamicPointer<aio::Object>		objptr(new Connection(SessionUid(idx, rss.uid)));
 			
-			ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, d.config.event_start, err);
+			ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 			
 			if(err){
 				idbgx(Debug::ipc, "Error starting Session object: "<<err.message());
@@ -285,7 +285,7 @@ ErrorConditionT Service::doSendMessage(
 			
 			idbgx(Debug::ipc, "Success starting Session object: "<<conuid.index<<','<<conuid.unique);
 			//resolve the name
-			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, d.config.event_raise));
+			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, EventCategory::createRaise()));
 			
 			d.config.resolve_fnc(rss.name, cbk);
 			
@@ -327,10 +327,10 @@ ErrorConditionT Service::doSendMessage(
 	if((rss.conn_active + rss.conn_pending + 1) < d.config.max_per_session_connection_count){
 		DynamicPointer<aio::Object>		objptr(new Connection(SessionUid(idx, rss.uid)));
 			
-		ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, d.config.event_start, err);
+		ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 		
 		if(!err){
-			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, d.config.event_raise));
+			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, EventCategory::createRaise()));
 			
 			d.config.resolve_fnc(rss.name, cbk);
 			++rss.conn_pending;
@@ -361,7 +361,7 @@ ErrorConditionT Service::doSendMessage(
 	ulong _flags
 ){
 	solid::ErrorConditionT	err;
-	PushMessageVisitorF		fnc(_rmsgptr, _msg_type_idx, _flags, d.config.event_raise);
+	PushMessageVisitorF		fnc(_rmsgptr, _msg_type_idx, _flags, EventCategory::createRaise());
 	bool					rv = manager().visit(_robjuid, fnc);
 	if(rv){
 		//message successfully delivered
@@ -375,18 +375,10 @@ ErrorConditionT Service::doSendMessage(
 	return err;
 }
 //-----------------------------------------------------------------------------
-bool Service::isEventStart(Event const&_revent){
-	return _revent.id == d.config.event_start.id;
-}
-//-----------------------------------------------------------------------------
-bool Service::isEventStop(Event const&_revent){
-	return _revent.id == this->stopEvent().id;
-}
-//-----------------------------------------------------------------------------
 void Service::connectionReceive(SocketDevice &_rsd){
 	DynamicPointer<aio::Object>		objptr(new Connection(_rsd));
 	solid::ErrorConditionT			err;
-	ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, d.config.event_start, err);
+	ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 	
 	idbgx(Debug::ipc, "receive connection ["<<conuid<<"] err = "<<err.message());
 }

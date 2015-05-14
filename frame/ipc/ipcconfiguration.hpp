@@ -60,8 +60,6 @@ struct Configuration{
 	size_t						max_per_session_connection_count;
 	size_t						session_mutex_count;
 	MessageRegisterFunctionT	regfnc;
-	Event 						event_start;
-	Event						event_raise;
 	AsyncResolveFunctionT		resolve_fnc;
 	std::string					listen_addr_str;
 	std::string					default_listen_port_str;

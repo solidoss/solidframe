@@ -27,13 +27,6 @@ using namespace std::placeholders;
 
 typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
 
-enum Events{
-	EventStartE = 0,
-	EventRunE,
-	EventStopE,
-	EventSendE,
-};
-
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
@@ -216,7 +209,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager		m;
-		frame::Service		svc(m, frame::Event(EventStopE));
+		frame::Service		svc(m);
 		
 		if(sch.start(1)){
 			running = false;
@@ -234,7 +227,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectUidT			objuid;
 				
-				objuid = sch.startObject(objptr, svc, frame::Event(EventStartE), err);
+				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 				idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
 			}else{
 				cout<<"Error creating listener socket"<<endl;
@@ -248,7 +241,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectUidT			objuid;
 				
-				objuid = sch.startObject(objptr, svc, frame::Event(EventStartE), err);
+				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 				
 				idbg("Started Client Connection object: "<<objuid.index<<','<<objuid.unique);
 				
@@ -266,7 +259,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectUidT			objuid;
 				
-				objuid = sch.startObject(objptr, svc, frame::Event(EventStartE), err);
+				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 				
 				idbg("Started Talker object: "<<objuid.index<<','<<objuid.unique);
 			}else{
@@ -330,16 +323,19 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 //-----------------------------------------------------------------------------
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg("event = "<<_revent.id);
-	if(_revent.id == EventStartE){
-		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
-		//sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-		ptimer = new TimerT(this->proxy());
-		TimeSpec waittime = _rctx.time();
-		waittime += 2000;
-		ptimer->waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
-	}else if(_revent.id == EventStopE){
-		postStop(_rctx);
+	idbg("event = "<<_revent);
+	if(frame::EventCategory::cast(&_revent.category())){
+		frame::EventCategory::EventId id = frame::EventCategory::id(_revent);
+		if(id == frame::EventCategory::StartE){
+			sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
+			//sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
+			ptimer = new TimerT(this->proxy());
+			TimeSpec waittime = _rctx.time();
+			waittime += 2000;
+			ptimer->waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
+		}else if(id == frame::EventCategory::KillE){
+			postStop(_rctx);
+		}
 	}
 }
 
@@ -371,7 +367,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(std::move(_rsd)));
 			solid::ErrorConditionT				err;
 			
-			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);
+			rsch.startObject(objptr, rsvc, frame::EventCategory::createStart(), err);
 #else
 			cout<<"Accepted connection: "<<_rsd.descriptor()<<endl;
 #endif
@@ -407,11 +403,11 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //-----------------------------------------------------------------------------
 #ifdef USE_CONNECTION
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	edbg(this<<" "<<_revent.id);
-	if(_revent.id == EventStartE){
+	edbg(this<<" event = "<<_revent);
+	if(frame::EventCategory::isStart(_revent)){
 		sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
-	}else if(_revent.id == EventStopE){
+	}else if(frame::EventCategory::isKill(_revent)){
 		edbg(this<<" postStop");
 		sock.shutdown(_rctx);
 		postStop(_rctx);
@@ -474,8 +470,8 @@ void Connection::onTimer(frame::aio::ReactorContext &_rctx){
 //-----------------------------------------------------------------------------
 
 /*virtual*/ void ClientConnection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	edbg(this<<" "<<_revent.id);
-	if(_revent.id == EventStartE){
+	edbg(this<<" event = "<<_revent);
+	if(frame::EventCategory::isStart(_revent)){
 		
 		string				hoststr;
 		string				servstr;
@@ -493,7 +489,7 @@ void Connection::onTimer(frame::aio::ReactorContext &_rctx){
 			onConnect(_rctx);
 		}
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
-	}else if(_revent.id == EventStopE){
+	}else if(frame::EventCategory::isKill(_revent)){
 		edbg(this<<" postStop");
 		postStop(_rctx);
 	}
@@ -515,11 +511,10 @@ void ClientConnection::onConnect(frame::aio::ReactorContext &_rctx){
 //-----------------------------------------------------------------------------
 #ifdef USE_TALKER
 /*virtual*/ void Talker::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg(this<<" "<<_revent.id);
-	
-	if(_revent.id == EventStartE){
+	idbg(this<<" event = "<<_revent);
+	if(frame::EventCategory::isStart(_revent)){
 		sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
-	}else if(_revent.id == EventStopE){
+	}else if(frame::EventCategory::isKill(_revent)){
 		edbg(this<<" postStop");
 		postStop(_rctx);
 	}

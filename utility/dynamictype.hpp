@@ -198,6 +198,13 @@ public:
 		return nullptr;
 	}
 	
+	static const X* cast(const DynamicBase *_pdb){
+		if(isTypeDynamic(_pdb->dynamicTypeId())){
+			return static_cast<const X*>(_pdb);
+		}
+		return nullptr;
+	}
+	
 	static void staticTypeIds(DynamicIdVectorT &_rv){
 		_rv.push_back(BaseT::staticTypeId());
 		T::staticTypeIds(_rv);

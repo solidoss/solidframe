@@ -55,9 +55,9 @@ bool Connection::pushMessage(
 }
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	if(service(_rctx).isEventStart(_revent)){
+	if(EventCategory::isStart(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
-	}else if(service(_rctx).isEventStop(_revent)){
+	}else if(EventCategory::isKill(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session postStop");
 		postStop(_rctx);
 	}else if(_revent.msgptr.get()){
@@ -70,7 +70,7 @@ bool Connection::pushMessage(
 					onConnect(_rctx);
 				}
 				
-				service(_rctx).forwardResolveMessage(ssnid, _revent.msgptr);
+				service(_rctx).forwardResolveMessage(ssnid, _revent);
 			}else{
 				//service(_rctx).connectionLeave();
 				postStop(_rctx);
