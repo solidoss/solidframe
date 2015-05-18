@@ -33,8 +33,8 @@ Connection::Connection(
 }
 
 Connection::Connection(
-	SessionUid const &_rssnid
-): ssnid(_rssnid), sock(this->proxy()), timer(this->proxy()),  crtpushvecidx(0)
+	ConnectionPoolUid const &_rconpoolid
+): conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),  crtpushvecidx(0)
 {
 	idbgx(Debug::ipc, this);
 }
@@ -70,7 +70,7 @@ bool Connection::pushMessage(
 					onConnect(_rctx);
 				}
 				
-				service(_rctx).forwardResolveMessage(ssnid, _revent);
+				service(_rctx).forwardResolveMessage(conpoolid, _revent);
 			}else{
 				//service(_rctx).connectionLeave();
 				postStop(_rctx);

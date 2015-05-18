@@ -27,6 +27,15 @@ struct Message: Dynamic<Message>{
 	
 	virtual ~Message();
 	
+	bool isOnSender()const{
+		return stt == 0;
+	}
+	bool isOnPeer()const{
+		return stt == 1;
+	}
+	bool isBackOnSender()const{
+		return stt == 2;
+	}
 	
 private:
 	friend class Service;
@@ -36,6 +45,10 @@ private:
 		_rs.pushCross(static_cast<Message&>(_rt).msguid.idx, "msguid_idx");
 		_rs.pushCross(static_cast<Message&>(_rt).msguid.uid, "msguid_uid");
 		_rs.push(static_cast<Message&>(_rt).stt, "state");
+	}
+	void nextState(){
+		++stt;
+		if(stt == 3) stt = 0;
 	}
 private:
 	MessageUid	msguid;

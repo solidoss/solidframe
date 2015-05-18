@@ -48,27 +48,29 @@ public:
 
 	ErrorConditionT reconfigure(Configuration const& _rcfg);
 	
+	Configuration const & configuration()const;
+	
 	template <class T>
 	ErrorConditionT sendMessage(
-		const char *_session_name,
+		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
 		ulong _flags = 0
 	){
 		MessagePointerT		msgptr(_rmsgptr);
 		ConnectionUid		conuid;
-		return doSendMessage(_session_name, conuid, msgptr, nullptr, _flags);
+		return doSendMessage(_recipient_name, conuid, msgptr, nullptr, _flags);
 	}
 	
 	template <class T>
 	ErrorConditionT sendMessage(
-		const char *_session_name,
+		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
-		SessionUid &_rsession_uid,
+		ConnectionPoolUid &_rconpool_uid,
 		ulong _flags = 0
 	){
 		MessagePointerT		msgptr(_rmsgptr);
 		ConnectionUid		conuid;
-		return doSendMessage(_session_name, conuid, msgptr, &_rsession_uid, _flags);
+		return doSendMessage(_recipient_name, conuid, msgptr, &_rconpool_uid, _flags);
 	}
 	
 	template <class T>
@@ -83,7 +85,7 @@ public:
 	
 	template <class T>
 	ErrorConditionT sendMessage(
-		SessionUid const &_rsession_uid,
+		ConnectionPoolUid const &_rsession_uid,
 		DynamicPointer<T> const &_rmsgptr,
 		ulong _flags = 0
 	){
@@ -114,7 +116,7 @@ private:
 	void connectionReceive(SocketDevice &_rsd);
 	void connectionLeave();
 	
-	void forwardResolveMessage(SessionUid const &_rssnuid, Event const&_revent);
+	void forwardResolveMessage(ConnectionPoolUid const &_rconpoolid, Event const&_revent);
 	
 	template <class F, class M>
 	struct ReceiveProxy{
@@ -183,7 +185,7 @@ private:
 		const char *_session_name,
 		const ConnectionUid	&_rconuid_in,
 		MessagePointerT &_rmsgptr,
-		SessionUid *_psession_out,
+		ConnectionPoolUid *_pconpoolid_out,
 		ulong _flags
 	);
 	
@@ -191,8 +193,8 @@ private:
 		ObjectUidT const &_robjuid,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
-		SessionUid const &_rsessionuid,
-		SessionUid *_psession_out,
+		ConnectionPoolUid const &_rconpooluid,
+		ConnectionPoolUid *_pconpoolid_out,
 		ulong _flags
 	);
 private:

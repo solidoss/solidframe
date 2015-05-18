@@ -18,51 +18,49 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
-//! A structure to uniquely indetify an IPC connection/session
+//! A structure to uniquely indetify an IPC connection pool
 /*!
 	<b>Overview:</b><br>
 	
 	<b>Usage:</b><br>
 	
 */
-struct SessionUid{
-	SessionUid(
-		const size_t _idx = 0xffff,
-		const uint32 _uid = 0xffff
-	):ssnidx(_idx), ssnuid(_uid){}
-	bool isInvalid()const{
-		return ssnidx == static_cast<size_t>(-1);
-	}
-	size_t	ssnidx;
-	uint32	ssnuid;
+struct ConnectionPoolUid: UniqueId{
+	ConnectionPoolUid(
+		const size_t _idx = -1,
+		const uint32 _uid = -1
+	):UniqueId(_idx, _uid){}
+	
 };
 
 
-struct ConnectionUid: SessionUid{
+struct ConnectionUid{
 	
 	ConnectionUid(
-		const SessionUid &_rssnid = SessionUid(),
+		const ConnectionPoolUid &_rpoolid = ConnectionPoolUid(),
 		const ObjectUidT &_rconid = ObjectUidT()
-	):SessionUid(_rssnid), conid(_rconid){}
+	):poolid(_rpoolid), conid(_rconid){}
 	
 	bool isInvalid()const{
-		return isInvalidConnection() || isInvalidSession();
+		return isInvalidConnection() || isInvalidPool();
 	}
 	
 	bool isInvalidConnection()const{
 		return conid.isInvalid();
 	}
 	
-	bool isInvalidSession()const{
-		return SessionUid::isInvalid();
+	bool isInvalidPool()const{
+		return poolid.isInvalid();
 	}
-	ObjectUidT		conid;
+	
+	ConnectionPoolUid	poolid;
+	ObjectUidT			conid;
 };
 
 struct MessageUid{
 	MessageUid(
-		const uint32 _idx = 0xffffffff,
-		const uint32 _uid = 0xffffffff
+		const uint32 _idx = -1,
+		const uint32 _uid = -1
 	):idx(_idx), uid(_uid){}
 	uint32	idx;
 	uint32	uid;
@@ -88,28 +86,26 @@ class Service;
 	
 */
 struct ConnectionContext{
-	Service				&rservice;
-	ConnectionUid 		connectionuid;
 	
-	
-	bool isOnSender()const{
-		return false;
-	}
-	
-	bool isOnPeer()const{
-		return false;
-	}
-	bool isBackOnSender()const{
-		return false;
-	}
-	uint32 flags()const{
-		return 0;
-	}
 	
 	Service& service()const{
 		return rservice;
 	}
+	
+	ConnectionUid	connectionId()const{
+		return ConnectionUid();
+	}
+	
+// 	SocketDevice const & device()const{
+// 		
+// 	}
+	
+	uint32 messageFlags()const{
+		return 0;
+	}
 private:
+	Service				&rservice;
+	
 	friend class Context;
 	
 	ConnectionContext(

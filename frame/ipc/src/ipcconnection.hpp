@@ -58,7 +58,7 @@ public:
 	);
 	//Called when connection is 
 	Connection(
-		SessionUid const &_rssnid
+		ConnectionPoolUid const &_rconpoolid
 	);
 	~Connection();
 	
@@ -107,7 +107,7 @@ private:
 	
 	typedef std::vector<IncommingMessageStub>			IncommingMessageVectorT;
 	
-	SessionUid				ssnid;
+	ConnectionPoolUid		conpoolid;
 	IncommingMessageVectorT	incommingmsgvec[2];
 	StreamSocketT			sock;
 	TimerT					timer;

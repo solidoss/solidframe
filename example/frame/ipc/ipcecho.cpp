@@ -298,8 +298,8 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
 
 //Called on message receive
 void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg){
-	idbg("Message received: is_on_sender: "<<_rctx.isOnSender()<<", is_on_peer: "<<_rctx.isOnPeer()<<", is_back_on_sender: "<<_rctx.isBackOnSender());
-	if(_rctx.isOnPeer()){
+	idbg("Message received: is_on_sender: "<<_rmsg->isOnSender()<<", is_on_peer: "<<_rmsg->isOnPeer()<<", is_back_on_sender: "<<_rmsg->isBackOnSender());
+	if(_rmsg->isOnPeer()){
 		//rsvc.sendResponse(_rctx.connectionId(), _rmsg);
 	}
 }
@@ -317,7 +317,7 @@ void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPoi
 }
 
 uint32 MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg){
-	return _rctx.flags();
+	return _rctx.messageFlags();
 }
 
 namespace{

@@ -73,8 +73,8 @@ struct MessageStub{
 
 typedef Queue<MessageStub>								MessageQueueT;
 
-struct SessionStub{
-	SessionStub():uid(0), conn_pending(0), conn_active(0){}
+struct ConnectionPoolStub{
+	ConnectionPoolStub():uid(0), conn_pending(0), conn_active(0){}
 	
 	void clear(){
 		name.clear();
@@ -97,7 +97,7 @@ struct SessionStub{
 	ObjectUidQueueT	conn_waitingq;
 };
 
-typedef std::deque<SessionStub>							SessionDequeT;
+typedef std::deque<ConnectionPoolStub>					ConnectionPoolDequeT;
 typedef Stack<size_t>									SizeStackT;
 
 
@@ -109,17 +109,17 @@ struct Service::Data{
 	}
 	
 	
-	Mutex & sessionMutex(size_t _idx)const{
+	Mutex & connectionPoolMutex(size_t _idx)const{
 		return pmtxarr[_idx % mtxsarrcp];
 	}
 	
-	Mutex			mtx;
-	Mutex			*pmtxarr;
-	size_t			mtxsarrcp;
-	NameMapT		namemap;
-	SessionDequeT	sessiondq;
-	SizeStackT		cachestk;
-	Configuration	config;
+	Mutex					mtx;
+	Mutex					*pmtxarr;
+	size_t					mtxsarrcp;
+	NameMapT				namemap;
+	ConnectionPoolDequeT	conpooldq;
+	SizeStackT				cachestk;
+	Configuration			config;
 };
 //=============================================================================
 
@@ -130,6 +130,10 @@ Service::Service(
 //! Destructor
 Service::~Service(){
 	delete &d;
+}
+//-----------------------------------------------------------------------------
+Configuration const & Service::configuration()const{
+	return d.config;
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
@@ -234,10 +238,10 @@ struct OnRelsolveF{
 };
 
 ErrorConditionT Service::doSendMessage(
-	const char *_session_name,
+	const char *_recipient_name,
 	const ConnectionUid	&_rconuid_in,
 	MessagePointerT &_rmsgptr,
-	SessionUid *_psession_out,
+	ConnectionPoolUid *_pconpoolid_out,
 	ulong _flags
 ){
 	solid::ErrorConditionT		err;
@@ -252,8 +256,8 @@ ErrorConditionT Service::doSendMessage(
 		return err;
 	}
 	
-	if(_session_name){
-		NameMapT::const_iterator	it = d.namemap.find(_session_name);
+	if(_recipient_name){
+		NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
 		
 		if(it != d.namemap.end()){
 			idx = it->second;
@@ -262,80 +266,80 @@ ErrorConditionT Service::doSendMessage(
 				idx = d.cachestk.top();
 				d.cachestk.pop();
 			}else{
-				idx = d.sessiondq.size();
-				d.sessiondq.push_back(SessionStub());
+				idx = d.conpooldq.size();
+				d.conpooldq.push_back(ConnectionPoolStub());
 			}
-			Locker<Mutex>					lock2(d.sessionMutex(idx));
-			SessionStub 					&rss(d.sessiondq[idx]);
+			Locker<Mutex>					lock2(d.connectionPoolMutex(idx));
+			ConnectionPoolStub 				&rconpool(d.conpooldq[idx]);
 			
-			rss.name = _session_name;
+			rconpool.name = _recipient_name;
 			
-			DynamicPointer<aio::Object>		objptr(new Connection(SessionUid(idx, rss.uid)));
+			DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolUid(idx, rconpool.uid)));
 			
 			ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 			
 			if(err){
 				idbgx(Debug::ipc, "Error starting Session object: "<<err.message());
-				rss.clear();
+				rconpool.clear();
 				d.cachestk.push(idx);
 				return err;
 			}
 			
-			d.namemap[rss.name.c_str()] = idx;
+			d.namemap[rconpool.name.c_str()] = idx;
 			
-			idbgx(Debug::ipc, "Success starting Session object: "<<conuid.index<<','<<conuid.unique);
+			idbgx(Debug::ipc, "Success starting Connction Pool object: "<<conuid.index<<','<<conuid.unique);
 			//resolve the name
 			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, EventCategory::createRaise()));
 			
-			d.config.resolve_fnc(rss.name, cbk);
+			d.config.resolve_fnc(rconpool.name, cbk);
 			
-			rss.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _flags));
-			++rss.conn_pending;
+			rconpool.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _flags));
+			++rconpool.conn_pending;
 			
 			return err;
 		}
-	}else if(_rconuid_in.ssnidx < d.sessiondq.size()/* && _rconuid_in.ssnuid == d.sessiondq[_rconuid_in.ssnidx].uid*/){
+	}else if(_rconuid_in.poolid.index < d.conpooldq.size()/* && _rconuid_in.ssnuid == d.conpooldq[_rconuid_in.ssnidx].uid*/){
 		//we cannot check the uid right now because we need a lock on the session's mutex
 		check_uid = true;
-		idx = _rconuid_in.ssnidx;
-		uid = _rconuid_in.ssnuid;
-	}else if(_rconuid_in.isInvalidSession() && !_rconuid_in.isInvalidConnection()/* && d.config.isServerOnly()*/){
-		return doSendMessage(_rconuid_in.conid, _rmsgptr, msg_type_idx, _rconuid_in, _psession_out, _flags);
+		idx = _rconuid_in.poolid.index;
+		uid = _rconuid_in.poolid.unique;
+	}else if(_rconuid_in.isInvalidPool() && !_rconuid_in.isInvalidConnection()/* && d.config.isServerOnly()*/){
+		return doSendMessage(_rconuid_in.conid, _rmsgptr, msg_type_idx, _rconuid_in.poolid, _pconpoolid_out, _flags);
 	}else{
 		err.assign(-1, err.category());//TODO: session does not exist
 		return err;
 	}
 	
-	Locker<Mutex>			lock2(d.sessionMutex(idx));
-	SessionStub 			&rss(d.sessiondq[idx]);
+	Locker<Mutex>			lock2(d.connectionPoolMutex(idx));
+	ConnectionPoolStub 		&rconpool(d.conpooldq[idx]);
 	
-	if(check_uid && rss.uid != uid){
+	if(check_uid && rconpool.uid != uid){
 		//failed uid check
 		err.assign(-1, err.category());//TODO: session does not exist
 		return err;
 	}
 	
-	if(rss.conn_waitingq.size()){//there are connections waiting for something to send
-		ObjectUidT objuid = rss.conn_waitingq.front();
-		rss.conn_waitingq.pop();
-		return doSendMessage(objuid, _rmsgptr, msg_type_idx, SessionUid(idx, rss.uid), _psession_out, _flags);
+	if(rconpool.conn_waitingq.size()){//there are connections waiting for something to send
+		ObjectUidT objuid = rconpool.conn_waitingq.front();
+		rconpool.conn_waitingq.pop();
+		return doSendMessage(objuid, _rmsgptr, msg_type_idx, ConnectionPoolUid(idx, rconpool.uid), _pconpoolid_out, _flags);
 	}
 	
 	//All connections are busy
 	//Check if we should create a new connection
 	
-	if((rss.conn_active + rss.conn_pending + 1) < d.config.max_per_session_connection_count){
-		DynamicPointer<aio::Object>		objptr(new Connection(SessionUid(idx, rss.uid)));
+	if((rconpool.conn_active + rconpool.conn_pending + 1) < d.config.max_per_session_connection_count){
+		DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolUid(idx, rconpool.uid)));
 			
 		ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 		
 		if(!err){
 			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, EventCategory::createRaise()));
 			
-			d.config.resolve_fnc(rss.name, cbk);
-			++rss.conn_pending;
+			d.config.resolve_fnc(rconpool.name, cbk);
+			++rconpool.conn_pending;
 		}else{
-			cassert(rss.conn_pending + rss.conn_active);//there must be at least one connection to handle the message
+			cassert(rconpool.conn_pending + rconpool.conn_active);//there must be at least one connection to handle the message
 			//NOTE:
 			//The last connection before dying MUST:
 			//	1. Lock service.d.mtx
@@ -347,7 +351,7 @@ ErrorConditionT Service::doSendMessage(
 		}
 	}
 	
-	rss.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _flags));
+	rconpool.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _flags));
 	
 	return err;
 }
@@ -356,8 +360,8 @@ ErrorConditionT Service::doSendMessage(
 	ObjectUidT const &_robjuid,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
-	SessionUid const &_rsessionuid,
-	SessionUid *_psession_out,
+	ConnectionPoolUid const &_rconpooluid,
+	ConnectionPoolUid *_pconpoolid_out,
 	ulong _flags
 ){
 	solid::ErrorConditionT	err;
@@ -365,8 +369,8 @@ ErrorConditionT Service::doSendMessage(
 	bool					rv = manager().visit(_robjuid, fnc);
 	if(rv){
 		//message successfully delivered
-		if(_psession_out){
-			*_psession_out = _rsessionuid;
+		if(_pconpoolid_out){
+			*_pconpoolid_out = _rconpooluid;
 		}
 	}else{
 		//connection does not exist
@@ -383,19 +387,19 @@ void Service::connectionReceive(SocketDevice &_rsd){
 	idbgx(Debug::ipc, "receive connection ["<<conuid<<"] err = "<<err.message());
 }
 //-----------------------------------------------------------------------------
-void Service::forwardResolveMessage(SessionUid const &_rssnuid, Event const&_revent){
+void Service::forwardResolveMessage(ConnectionPoolUid const &_rconpoolid, Event const&_revent){
 	ResolveMessage 	*presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
 	ErrorConditionT	err;
 	++presolvemsg->crtidx;
 	if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
-		DynamicPointer<aio::Object>		objptr(new Connection(_rssnuid));
+		DynamicPointer<aio::Object>		objptr(new Connection(_rconpoolid));
 		
-		Locker<Mutex>					lock(d.sessionMutex(_rssnuid.ssnidx));
-		SessionStub						&rssn(d.sessiondq[_rssnuid.ssnidx]);
+		Locker<Mutex>					lock(d.connectionPoolMutex(_rconpoolid.index));
+		ConnectionPoolStub				&rconpool(d.conpooldq[_rconpoolid.index]);
 		ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, _revent, err);
 		idbgx(Debug::ipc, conuid<<" "<<err.message());
 		if(!err){
-			++rssn.conn_pending;
+			++rconpool.conn_pending;
 		}
 	}
 }
