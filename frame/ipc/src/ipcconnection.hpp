@@ -69,12 +69,18 @@ public:
 	);
 	
 private:
+	friend struct ConnectionContext;
+	
 	Service& service(frame::aio::ReactorContext &_rctx)const;
 	ObjectUidT uid(frame::aio::ReactorContext &_rctx)const;
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	static void onConnect(frame::aio::ReactorContext &_rctx);
+	
+	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
+	
+	void doMoveIncommingMessagesToQueue(const size_t _vecidx);
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;
@@ -93,8 +99,8 @@ private:
 	
 	typedef Queue<MessageStub>							MessageQueueT;
 	
-	struct IncommingMessageStub{
-		IncommingMessageStub(
+	struct IncomingMessageStub{
+		IncomingMessageStub(
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
 			ulong _flags
@@ -105,10 +111,10 @@ private:
 		ulong				flags;
 	};
 	
-	typedef std::vector<IncommingMessageStub>			IncommingMessageVectorT;
+	typedef std::vector<IncomingMessageStub>			IncomingMessageVectorT;
 	
 	ConnectionPoolUid		conpoolid;
-	IncommingMessageVectorT	incommingmsgvec[2];
+	IncomingMessageVectorT	incomingmsgvec[2];
 	StreamSocketT			sock;
 	TimerT					timer;
 	MessageQueueT			msgq;

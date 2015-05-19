@@ -24,6 +24,7 @@ namespace ipc{
 
 struct Message;
 class Configuration;
+class Connection;
 
 enum SendFlags{
 	SendRequestFlagE	= 1,
@@ -93,6 +94,11 @@ public:
 		ConnectionUid		conuid(_rsession_uid);
 		return doSendMessage(nullptr, conuid, msgptr, nullptr, _flags);
 	}
+	
+	ErrorConditionT scheduleConnectionClose(
+		ConnectionUid const &_rconnection_uid
+	);
+	
 private:
 	friend struct ServiceProxy;
 	friend class Listener;
@@ -113,8 +119,14 @@ private:
 	typedef serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>				TypeIdMapT;
 	
 	
-	void connectionReceive(SocketDevice &_rsd);
-	void connectionLeave();
+	void acceptIncomingConnection(SocketDevice &_rsd);
+	
+	void onConnectionClose(Connection &_rcon);
+	
+	void onIncomingConnectionStart(ConnectionContext &_rconctx);
+	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
+	void onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err);
+	
 	
 	void forwardResolveMessage(ConnectionPoolUid const &_rconpoolid, Event const&_revent);
 	

@@ -200,9 +200,9 @@ int main(int argc, char *argv[]){
 				}
 			);
 			
-			cfg.listen_addr_str = "0.0.0.0:"; cfg.listen_addr_str += p.baseport;
+			cfg.listen_address_str = "0.0.0.0:"; cfg.listen_address_str += p.baseport;
 			cfg.default_listen_port_str = p.baseport;
-			cfg.resolve_fnc = frame::ipc::ResolverF(resolver, p.baseport.c_str());//TODO: use something from Param
+			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, p.baseport.c_str());//TODO: use something from Param
 			
 			err = ipcsvc.reconfigure(cfg);
 			

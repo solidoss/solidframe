@@ -50,13 +50,27 @@ bool Connection::pushMessage(
 ){
 	idbgx(Debug::ipc, this->id()<<" crtpushvecidx = "<<crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//We're under lock
-	incommingmsgvec[crtpushvecidx].push_back(IncommingMessageStub(_rmsgptr, _msg_type_idx, _flags));
-	return incommingmsgvec[crtpushvecidx].size() == 1;
+	incomingmsgvec[crtpushvecidx].push_back(IncomingMessageStub(_rmsgptr, _msg_type_idx, _flags));
+	return incomingmsgvec[crtpushvecidx].size() == 1;
+}
+
+void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
+	ConnectionContext conctx(service(_rctx), *this);
+	
+	service(_rctx).onConnectionClose(*this);
+	//TODO: terminate all messages
+	
+	service(_rctx).onConnectionStop(conctx, _rerr);
+	postStop(_rctx);
 }
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(EventCategory::isStart(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
+		{
+			ConnectionContext conctx(service(_rctx), *this);
+			service(_rctx).onIncomingConnectionStart(conctx);
+		}
 	}else if(EventCategory::isKill(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session postStop");
 		postStop(_rctx);
@@ -72,8 +86,9 @@ bool Connection::pushMessage(
 				
 				service(_rctx).forwardResolveMessage(conpoolid, _revent);
 			}else{
-				//service(_rctx).connectionLeave();
-				postStop(_rctx);
+				ErrorConditionT err;
+				err.assign(-1, err.category());//TODO:
+				doStop(_rctx, err);
 			}
 		}
 	}else{
@@ -82,19 +97,13 @@ bool Connection::pushMessage(
 			Locker<Mutex>	lock(service(_rctx).mutex(*this));
 			
 			idbgx(Debug::ipc, this->id()<<" Session message");
-			if(incommingmsgvec[crtpushvecidx].size()){
+			if(incomingmsgvec[crtpushvecidx].size()){
 				vecidx = crtpushvecidx;
 				crtpushvecidx += 1;
 				crtpushvecidx %= 2;
 			}
 		}
-		if(vecidx < 2){
-			IncommingMessageVectorT &riv(incommingmsgvec[vecidx]);
-			
-			for(auto it = riv.begin(); it != riv.end(); ++it){
-				msgq.push(MessageStub(it->msgptr, it->msg_type_idx, it->flags));
-			}
-		}
+		doMoveIncommingMessagesToQueue(vecidx);
 	}
 }
 
@@ -109,9 +118,24 @@ bool Connection::pushMessage(
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	if(!_rctx.error()){
 		idbgx(Debug::ipc, rthis.id());
+		{
+			ConnectionContext conctx(rthis.service(_rctx), rthis);
+			rthis.service(_rctx).onOutgoingConnectionStart(conctx);
+		}
 	}else{
 		idbgx(Debug::ipc, rthis.id()<<" error: "<<_rctx.error().message());
-		rthis.postStop(_rctx);
+		rthis.doStop(_rctx, _rctx.error());
+	}
+}
+
+void Connection::doMoveIncommingMessagesToQueue(const size_t _vecidx){
+	if(_vecidx < 2){
+		IncomingMessageVectorT &riv(incomingmsgvec[_vecidx]);
+		
+		for(auto it = riv.begin(); it != riv.end(); ++it){
+			msgq.push(MessageStub(it->msgptr, it->msg_type_idx, it->flags));
+		}
+		riv.clear();
 	}
 }
 

@@ -144,25 +144,25 @@ ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 	
 	ServiceProxy	sp(*this);
 	
-	_rcfg.regfnc(sp);
+	_rcfg.message_register_fnc(sp);
 	
 	d.config = _rcfg;
 	
-	if(d.config.listen_addr_str.size()){
+	if(d.config.listen_address_str.size()){
 		std::string		tmp;
 		const char 		*hst_name;
 		const char		*svc_name;
 		
-		size_t off = d.config.listen_addr_str.rfind(':');
+		size_t off = d.config.listen_address_str.rfind(':');
 		if(off != std::string::npos){
-			tmp = d.config.listen_addr_str.substr(0, off);
+			tmp = d.config.listen_address_str.substr(0, off);
 			hst_name = tmp.c_str();
-			svc_name = d.config.listen_addr_str.c_str() + off + 1;
+			svc_name = d.config.listen_address_str.c_str() + off + 1;
 			if(!svc_name[0]){
 				svc_name = d.config.default_listen_port_str.c_str();
 			}
 		}else{
-			hst_name = d.config.listen_addr_str.c_str();
+			hst_name = d.config.listen_address_str.c_str();
 			svc_name = d.config.default_listen_port_str.c_str();
 		}
 		
@@ -291,7 +291,7 @@ ErrorConditionT Service::doSendMessage(
 			//resolve the name
 			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, EventCategory::createRaise()));
 			
-			d.config.resolve_fnc(rconpool.name, cbk);
+			d.config.name_resolve_fnc(rconpool.name, cbk);
 			
 			rconpool.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _flags));
 			++rconpool.conn_pending;
@@ -304,7 +304,7 @@ ErrorConditionT Service::doSendMessage(
 		idx = _rconuid_in.poolid.index;
 		uid = _rconuid_in.poolid.unique;
 	}else if(_rconuid_in.isInvalidPool() && !_rconuid_in.isInvalidConnection()/* && d.config.isServerOnly()*/){
-		return doSendMessage(_rconuid_in.conid, _rmsgptr, msg_type_idx, _rconuid_in.poolid, _pconpoolid_out, _flags);
+		return doSendMessage(_rconuid_in.connectionid, _rmsgptr, msg_type_idx, _rconuid_in.poolid, _pconpoolid_out, _flags);
 	}else{
 		err.assign(-1, err.category());//TODO: session does not exist
 		return err;
@@ -328,7 +328,7 @@ ErrorConditionT Service::doSendMessage(
 	//All connections are busy
 	//Check if we should create a new connection
 	
-	if((rconpool.conn_active + rconpool.conn_pending + 1) < d.config.max_per_session_connection_count){
+	if((rconpool.conn_active + rconpool.conn_pending + 1) < d.config.max_per_pool_connection_count){
 		DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolUid(idx, rconpool.uid)));
 			
 		ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
@@ -336,7 +336,7 @@ ErrorConditionT Service::doSendMessage(
 		if(!err){
 			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, EventCategory::createRaise()));
 			
-			d.config.resolve_fnc(rconpool.name, cbk);
+			d.config.name_resolve_fnc(rconpool.name, cbk);
 			++rconpool.conn_pending;
 		}else{
 			cassert(rconpool.conn_pending + rconpool.conn_active);//there must be at least one connection to handle the message
@@ -379,12 +379,35 @@ ErrorConditionT Service::doSendMessage(
 	return err;
 }
 //-----------------------------------------------------------------------------
-void Service::connectionReceive(SocketDevice &_rsd){
+ErrorConditionT Service::scheduleConnectionClose(
+	ConnectionUid const &_rconnection_uid
+){
+	ConnectionPoolUid	fakeuid;
+	MessagePointerT		msgptr;
+	return doSendMessage(_rconnection_uid.connectionid, msgptr, -1, fakeuid, nullptr, 0);
+}
+//-----------------------------------------------------------------------------
+void Service::acceptIncomingConnection(SocketDevice &_rsd){
 	DynamicPointer<aio::Object>		objptr(new Connection(_rsd));
 	solid::ErrorConditionT			err;
 	ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 	
 	idbgx(Debug::ipc, "receive connection ["<<conuid<<"] err = "<<err.message());
+}
+//-----------------------------------------------------------------------------
+void Service::onIncomingConnectionStart(ConnectionContext &_rconctx){
+	configuration().incoming_connection_start_fnc(_rconctx);
+}
+//-----------------------------------------------------------------------------
+void Service::onOutgoingConnectionStart(ConnectionContext &_rconctx){
+	configuration().outgoing_connection_start_fnc(_rconctx);
+}
+//-----------------------------------------------------------------------------
+void Service::onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err){
+	configuration().connection_stop_fnc(_rconctx, _err);
+}
+//-----------------------------------------------------------------------------
+void Service::onConnectionClose(Connection &_rcon){
 }
 //-----------------------------------------------------------------------------
 void Service::forwardResolveMessage(ConnectionPoolUid const &_rconpoolid, Event const&_revent){

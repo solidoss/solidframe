@@ -42,8 +42,8 @@ private:
 	template <class S, class T>
 	static void serialize(S &_rs, T &_rt, const char *_name){
 		_rs.push(_rt, _name);
-		_rs.pushCross(static_cast<Message&>(_rt).msguid.idx, "msguid_idx");
-		_rs.pushCross(static_cast<Message&>(_rt).msguid.uid, "msguid_uid");
+		_rs.pushCross(static_cast<Message&>(_rt).msguid.index, "msguid_idx");
+		_rs.pushCross(static_cast<Message&>(_rt).msguid.unique, "msguid_uid");
 		_rs.push(static_cast<Message&>(_rt).stt, "state");
 	}
 	void nextState(){

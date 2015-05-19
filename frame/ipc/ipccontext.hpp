@@ -39,14 +39,14 @@ struct ConnectionUid{
 	ConnectionUid(
 		const ConnectionPoolUid &_rpoolid = ConnectionPoolUid(),
 		const ObjectUidT &_rconid = ObjectUidT()
-	):poolid(_rpoolid), conid(_rconid){}
+	):poolid(_rpoolid), connectionid(_rconid){}
 	
 	bool isInvalid()const{
 		return isInvalidConnection() || isInvalidPool();
 	}
 	
 	bool isInvalidConnection()const{
-		return conid.isInvalid();
+		return connectionid.isInvalid();
 	}
 	
 	bool isInvalidPool()const{
@@ -54,19 +54,20 @@ struct ConnectionUid{
 	}
 	
 	ConnectionPoolUid	poolid;
-	ObjectUidT			conid;
+	ObjectUidT			connectionid;
 };
 
 struct MessageUid{
 	MessageUid(
 		const uint32 _idx = -1,
 		const uint32 _uid = -1
-	):idx(_idx), uid(_uid){}
-	uint32	idx;
-	uint32	uid;
+	):index(_idx), unique(_uid){}
+	uint32	index;
+	uint32	unique;
 };
 
 class Service;
+class Connection;
 
 //! Thread specific information about current ipc context
 /*!
@@ -86,8 +87,6 @@ class Service;
 	
 */
 struct ConnectionContext{
-	
-	
 	Service& service()const{
 		return rservice;
 	}
@@ -104,13 +103,16 @@ struct ConnectionContext{
 		return 0;
 	}
 private:
+	friend class Connection;
 	Service				&rservice;
-	
-	friend class Context;
+	Connection			&rconnection;
 	
 	ConnectionContext(
-		Service &_rsrv
-	):rservice(_rsrv){}
+		Service &_rsrv, Connection &_rcon
+	):rservice(_rsrv), rconnection(_rcon){}
+	
+	ConnectionContext(ConnectionContext const&);
+	ConnectionContext& operator=(ConnectionContext const&);
 };
 
 }//namespace ipc

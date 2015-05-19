@@ -22,7 +22,7 @@ inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	idbg("event = "<<_revent);
-	if(EventCategory::isStart(_revent)){
+	if(EventCategory::isStart(_revent) || EventCategory::isTimer(_revent)){
 		sock.postAccept(
 			_rctx,
 			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
@@ -38,11 +38,12 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	
 	do{
 		if(!_rctx.error()){
-			service(_rctx).connectionReceive(_rsd);
+			service(_rctx).acceptIncomingConnection(_rsd);
 		}else{
-			//TODO:
-			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-			//timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+			timer.waitFor(
+				_rctx, TimeSpec(10),
+				[this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, EventCategory::createTimer());}
+			);
 			break;
 		}
 		--repeatcnt;

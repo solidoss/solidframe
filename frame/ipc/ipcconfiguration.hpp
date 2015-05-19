@@ -30,14 +30,17 @@ namespace ipc{
 
 struct	ServiceProxy;
 class	Service;
+struct ConnectionContext;
 
-typedef frame::Scheduler<frame::aio::Reactor> 							AioSchedulerT;
+typedef frame::Scheduler<frame::aio::Reactor> 								AioSchedulerT;
 
-typedef std::vector<SocketAddressInet>									AddressVectorT;
+typedef std::vector<SocketAddressInet>										AddressVectorT;
 	
-typedef FUNCTION<void(ServiceProxy &)>									MessageRegisterFunctionT;
-typedef FUNCTION<void(AddressVectorT &)>								ResolveCompleteFunctionT;
-typedef FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>	AsyncResolveFunctionT;
+typedef FUNCTION<void(ServiceProxy &)>										MessageRegisterFunctionT;
+typedef FUNCTION<void(AddressVectorT &)>									ResolveCompleteFunctionT;
+typedef FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>		AsyncResolveFunctionT;
+typedef FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>			ConnectionStopFunctionT;
+typedef FUNCTION<void(ConnectionContext &)>									ConnectionStartFunctionT;
 
 struct Configuration{
 	
@@ -53,15 +56,20 @@ struct Configuration{
 	}
 	
 	bool isServer()const{
-		return listen_addr_str.size() != 0;
+		return listen_address_str.size() != 0;
 	}
 	
 	AioSchedulerT				*psch;
-	size_t						max_per_session_connection_count;
+	size_t						max_per_pool_connection_count;
 	size_t						session_mutex_count;
-	MessageRegisterFunctionT	regfnc;
-	AsyncResolveFunctionT		resolve_fnc;
-	std::string					listen_addr_str;
+	
+	MessageRegisterFunctionT	message_register_fnc;
+	AsyncResolveFunctionT		name_resolve_fnc;
+	ConnectionStartFunctionT	incoming_connection_start_fnc;
+	ConnectionStartFunctionT	outgoing_connection_start_fnc;
+	ConnectionStopFunctionT		connection_stop_fnc;
+	
+	std::string					listen_address_str;
 	std::string					default_listen_port_str;
 private:
 	friend class Service;
@@ -70,7 +78,7 @@ private:
 
 template <class F>
 void Configuration::protocolCallback(F _f){
-	regfnc = _f;
+	message_register_fnc = _f;
 }
 
 

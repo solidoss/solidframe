@@ -45,6 +45,7 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 		StopE,
 		RaiseE,
 		MessageE,
+		TimerE,
 		InvalidE
 	};
 	
@@ -55,6 +56,7 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 	static bool isStop(Event const&_re);
 	static bool isRaise(Event const&_re);
 	static bool isMessage(Event const&_re);
+	static bool isTimer(Event const&_re);
 	
 	
 	static Event create(EventId _evid);
@@ -64,6 +66,7 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 	static Event createStop();
 	static Event createRaise();
 	static Event createMessage();
+	static Event createTimer();
 	
 	static EventCategory const& the();
 
@@ -184,7 +187,9 @@ inline bool EventCategoryBase::check(Event const&_re)const{
 /*static*/ inline bool EventCategory::isMessage(Event const&_re){
 	return id(_re) == MessageE;
 }
-
+/*static*/ inline bool EventCategory::isTimer(Event const&_re){
+	return id(_re) == TimerE;
+}
 
 /*static*/ inline Event EventCategory::createStart(){
 	return create(StartE);
@@ -200,6 +205,9 @@ inline bool EventCategoryBase::check(Event const&_re)const{
 }
 /*static*/ inline Event EventCategory::createMessage(){
 	return create(MessageE);
+}
+/*static*/ inline Event EventCategory::createTimer(){
+	return create(TimerE);
 }
 
 }//namespace frame

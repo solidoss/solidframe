@@ -33,7 +33,7 @@ public:
 	Listener(
 		SocketDevice &_rsd
 	):
-		sock(this->proxy(), std::move(_rsd))
+		sock(this->proxy(), std::move(_rsd)), timer(this->proxy())
 	{}
 	~Listener(){
 	}
@@ -47,6 +47,7 @@ private:
 	typedef frame::aio::Timer				TimerT;
 	
 	ListenerSocketT		sock;
+	TimerT				timer;
 };
 
 
