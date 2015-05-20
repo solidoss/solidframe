@@ -88,6 +88,7 @@ private:
 	void doCompleteTimer(TimeSpec  const &_rcrttime);
 	void doCompleteExec(TimeSpec  const &_rcrttime);
 	void doCompleteEvents(ReactorContext const &_rctx);
+	void doCompleteEvents(TimeSpec  const &_rcrttime);
 	void doStoreSpecific();
 	void doClearSpecific();
 	void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
@@ -96,6 +97,7 @@ private:
 	static void call_object_on_event(ReactorContext &_rctx, Event const &_rev);
 	static void increase_event_vector_size(ReactorContext &_rctx, Event const &_rev);
 	static void stop_object(ReactorContext &_rctx, Event const &_revent);
+	static void stop_object_repost(ReactorContext &_rctx, Event const &_revent);
 private://data
 	struct Data;
 	Data	&d;

@@ -14,6 +14,8 @@
 #include "frame/aio/aiocompletion.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
 
+#include "frame/service.hpp"
+
 namespace solid{
 namespace frame{
 namespace aio{
@@ -28,15 +30,20 @@ Object::Object(){}
 }
 
 void Object::postStop(ReactorContext &_rctx){
-	CompletionHandler *pch = this->pnext;
 	
-	while(pch != nullptr){
-		pch->pprev = nullptr;//unregister
-		pch->deactivate();
+	this->disableVisits(_rctx.service().manager());
+	
+	{
+		CompletionHandler *pch = this->pnext;
 		
-		pch = pch->pnext;
+		while(pch != nullptr){
+			pch->pprev = nullptr;//unregister
+			pch->deactivate();
+			
+			pch = pch->pnext;
+		}
+		this->pnext = nullptr;
 	}
-	this->pnext = nullptr;
 	_rctx.reactor().postObjectStop(_rctx);
 }
 

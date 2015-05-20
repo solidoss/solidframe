@@ -344,6 +344,13 @@ void Reactor::post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &
 	d.exeq.back().chnuid = UidT(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
 }
 
+/*static*/ void Reactor::stop_object_repost(ReactorContext &_rctx, Event const &_revent){
+	Reactor			&rthis = _rctx.reactor();
+	rthis.d.exeq.push(ExecStub(_rctx.objectUid()));
+	rthis.d.exeq.back().exefnc = &stop_object;
+	rthis.d.exeq.back().chnuid = rthis.d.dummyCompletionHandlerUid();
+}
+
 /*static*/ void Reactor::stop_object(ReactorContext &_rctx, Event const &){
 	Reactor			&rthis = _rctx.reactor();
 	ObjectStub		&ros = rthis.d.objdq[_rctx.objidx];
@@ -358,9 +365,13 @@ void Reactor::post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &
 	rthis.d.freeuidvec.push_back(UidT(_rctx.objidx, ros.unique));
 }
 
+/*NOTE:
+	We do not stop the object rightaway - we make sure that any
+	pending Events are delivered to the object before we stop
+*/
 void Reactor::postObjectStop(ReactorContext &_rctx){
 	d.exeq.push(ExecStub(_rctx.objectUid()));
-	d.exeq.back().exefnc = &stop_object;
+	d.exeq.back().exefnc = &stop_object_repost;
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
 

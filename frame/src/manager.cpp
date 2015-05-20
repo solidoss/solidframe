@@ -601,6 +601,19 @@ void Manager::unregisterObject(ObjectBase &_robj){
 	}
 }
 
+void Manager::disableObjectVisits(ObjectBase &_robj){
+	if(_robj.isRegistered()){
+		const size_t	objstoreidx = d.aquireReadObjectStore();
+		ObjectChunk		&robjchk(*d.chunk(objstoreidx, _robj.id()));
+		Locker<Mutex>	lock(robjchk.rmtx);
+			
+		d.releaseReadObjectStore(objstoreidx);
+		
+		ObjectStub 		&ros = robjchk.object(_robj.id() % d.objchkcnt);
+		ros.preactor = nullptr;
+	}
+}
+
 bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _sigmsk/* = 0*/){
 	
 	EventNotifierF			notifier(_re, _sigmsk);
@@ -618,7 +631,7 @@ bool Manager::doVisit(ObjectUidT const &_ruid, ObjectVisitFunctorT &_fctor){
 			Locker<Mutex>		lock(rchk.rmtx);
 			ObjectStub const 	&ros(d.object(objstoreidx, _ruid.index));
 			
-			if(ros.unique == _ruid.unique && ros.pobject){
+			if(ros.unique == _ruid.unique && ros.pobject && ros.preactor){
 				retval = _fctor(*ros.pobject, *ros.preactor);
 			}
 		}
@@ -716,7 +729,7 @@ bool Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitF
 		ObjectStub		*poss = rchk.objects();
 
 		for(size_t i(0), cnt(0); i < d.objchkcnt && cnt < rchk.objcnt; ++i){
-			if(poss[i].pobject){
+			if(poss[i].pobject && poss[i].preactor){
 				_fctor(*poss[i].pobject, *poss[i].preactor);
 				retval = true;
 				++cnt;

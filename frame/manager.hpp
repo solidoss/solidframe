@@ -100,6 +100,7 @@ private:
 	void unregisterService(Service &_rsvc);
 	
 	void unregisterObject(ObjectBase &_robj);
+	void disableObjectVisits(ObjectBase &_robj);
 	
 	ObjectUidT  unsafeId(const ObjectBase &_robj)const;
 	

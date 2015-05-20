@@ -321,6 +321,7 @@ bool Reactor::start(){
 	}
 	return rv;
 }
+
 /*virtual*/ void Reactor::stop(){
 	vdbgx(Debug::aio, "");
 	d.running = false;
@@ -349,7 +350,18 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revt){
 	return rv;
 }
 
+/*NOTE:
+	
+	We MUST call doCompleteEvents before doCompleteExec
+	because we must ensure that on successful Event notification from
+	frame::Manager, the Object actually receives the Event before stopping.
+	
+	For that, on Object::postStop, we mark the Object as “unable to
+	receive any notifications” (we do not unregister it, because the
+	Object may want access to it’s mutex on events already waiting
+	to be delivered to the object.
 
+*/
 void Reactor::run(){
 	vdbgx(Debug::aio, "<enter>");
 	int			selcnt;
@@ -377,6 +389,7 @@ void Reactor::run(){
 		doCompleteTimer(crttime);
 		
 		crttime.currentMonotonic();
+		doCompleteEvents(crttime);//See NOTE above
 		doCompleteExec(crttime);
 		
 		running = d.running || (d.objcnt != 0) || !d.exeq.empty();
@@ -481,9 +494,21 @@ void Reactor::post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &
 	rthis.d.freeuidvec.push_back(UidT(_rctx.objidx, ros.unique));
 }
 
+/*static*/ void Reactor::stop_object_repost(ReactorContext &_rctx, Event const &_revent){
+	Reactor			&rthis = _rctx.reactor();
+	
+	rthis.d.exeq.push(ExecStub(_rctx.objectUid()));
+	rthis.d.exeq.back().exefnc = &stop_object;
+	rthis.d.exeq.back().chnuid = rthis.d.dummyCompletionHandlerUid();
+}
+
+/*NOTE:
+	We do not stop the object rightaway - we make sure that any
+	pending Events are delivered to the object before we stop
+*/
 void Reactor::postObjectStop(ReactorContext &_rctx){
 	d.exeq.push(ExecStub(_rctx.objectUid()));
-	d.exeq.back().exefnc = &stop_object;
+	d.exeq.back().exefnc = &stop_object_repost;
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
 
@@ -540,7 +565,8 @@ void Reactor::doCompleteTimer(TimeSpec  const &_rcrttime){
 
 void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 	ReactorContext	ctx(*this, _rcrttime);
-	size_t	sz = d.exeq.size();
+	size_t			sz = d.exeq.size();
+	
 	while(sz--){
 		ExecStub				&rexe(d.exeq.front());
 		ObjectStub				&ros(d.objdq[rexe.objuid.index]);
@@ -555,6 +581,12 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 		d.exeq.pop();
 	}
 }
+
+void Reactor::doCompleteEvents(TimeSpec  const &_rcrttime){
+	ReactorContext	ctx(*this, _rcrttime);
+	doCompleteEvents(ctx);
+}
+
 void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 	vdbgx(Debug::aio, "");
 	

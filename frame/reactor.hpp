@@ -84,6 +84,7 @@ private:
 	
 	void onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _chidx);
 	static void call_object_on_event(ReactorContext &_rctx, Event const &_rev);
+	static void stop_object_repost(ReactorContext &_rctx, Event const &_revent);
 	static void stop_object(ReactorContext &_rctx, Event const &_revent);
 private://data
 	struct Data;

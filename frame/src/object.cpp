@@ -14,6 +14,7 @@
 #include "frame/completion.hpp"
 #include "frame/reactorcontext.hpp"
 #include "frame/manager.hpp"
+#include "frame/service.hpp"
 
 namespace solid{
 namespace frame{
@@ -28,15 +29,20 @@ Object::Object(){}
 }
 
 void Object::postStop(ReactorContext &_rctx){
-	CompletionHandler *pch = this->pnext;
 	
-	while(pch != nullptr){
-		pch->pprev = nullptr;//unregister
-		pch->deactivate();
+	this->disableVisits(_rctx.service().manager());
+	
+	{
+		CompletionHandler *pch = this->pnext;
 		
-		pch = pch->pnext;
+		while(pch != nullptr){
+			pch->pprev = nullptr;//unregister
+			pch->deactivate();
+			
+			pch = pch->pnext;
+		}
+		this->pnext = nullptr;
 	}
-	this->pnext = nullptr;
 	_rctx.reactor().postObjectStop(_rctx);
 }
 
@@ -80,6 +86,25 @@ void ObjectBase::unregister(Manager &_rm){
 		_rm.unregisterObject(*this);
 		fullid = -1;
 	}
+}
+
+/*NOTE:
+	Disable visit i.e. ensures that after this call, the manager will
+	not permit any visits (and	implicitly no event notification) on the object.
+	If the manager’s visit method manages to acquire object’s lock after
+	disableVisit terminates, the visit will not take place.
+	If the visit happens before disableVisit acquires Lock on the object,
+	and an event is delivered to object, the reactor handling the object,
+	must ensure that the object receives the event before stopping
+	the object:
+		it does that by not stopping the object right away,
+		and instead reposting the stop to ensure that all incoming events
+		are fetched and delivered.
+		This works because disableVisits is only called on the Reactor thread.
+*/
+
+void ObjectBase::disableVisits(Manager &_rm){
+	_rm.disableObjectVisits(*this);
 }
 
 ObjectBase::~ObjectBase(){

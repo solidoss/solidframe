@@ -38,6 +38,8 @@ public:
 	
 	UidT const& runId()const;
 	
+	bool isAcceptingEvents()const;
+	
 protected:
 	friend class Service;
 	friend class Manager;
@@ -55,6 +57,8 @@ protected:
 	virtual void doStop(Manager &_rm);
 	
 	bool notify(const size_t _smask);
+	
+	void disableVisits(Manager &_rm);
 private:
 	void id(const IndexT &_fullid);
 	
@@ -96,7 +100,6 @@ inline bool ObjectBase::notify(const size_t _smask){
 	const size_t osm = smask.fetch_or(_smask/*, ATOMIC_NS::memory_order_seq_cst*/);
 	return (_smask | osm) != osm;
 }
-
 
 }//namespace frame
 }//namespace solid
