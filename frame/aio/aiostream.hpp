@@ -227,6 +227,9 @@ public:
 	SocketDevice& device(){
 		return s.device();
 	}
+	SocketDevice const & device()const{
+		return s.device();
+	}
 	SocketDevice reset(ReactorContext &_rctx, SocketDevice &&_rnewdev = std::move(dummy_socket_device())){
 		if(s.device().ok()){
 			remDevice(_rctx, s.device());

@@ -81,6 +81,11 @@ private:
 	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 	
 	void doMoveIncommingMessagesToQueue(const size_t _vecidx);
+	
+	SocketDevice const & device()const{
+		return sock.device();
+	}
+	
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;

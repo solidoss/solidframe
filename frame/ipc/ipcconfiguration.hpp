@@ -59,6 +59,18 @@ struct Configuration{
 		return listen_address_str.size() != 0;
 	}
 	
+	bool isClient()const{
+		return !name_resolve_fnc.empty();
+	}
+	
+	bool isServerOnly()const{
+		return isServer() && !isClient();
+	}
+	
+	bool isClientOnly()const{
+		return !isServer() && isClient();
+	}
+	
 	AioSchedulerT				*psch;
 	size_t						max_per_pool_connection_count;
 	size_t						session_mutex_count;

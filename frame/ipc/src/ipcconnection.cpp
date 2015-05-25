@@ -16,44 +16,44 @@
 namespace solid{
 namespace frame{
 namespace ipc{
-
-
+//-----------------------------------------------------------------------------
 inline Service& Connection::service(frame::aio::ReactorContext &_rctx)const{
 	return static_cast<Service&>(_rctx.service());
 }
-
+//-----------------------------------------------------------------------------
 inline ObjectUidT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	return service(_rctx).manager().id(*this);
 }
+//-----------------------------------------------------------------------------
 Connection::Connection(
 	SocketDevice &_rsd
 ): sock(this->proxy(), std::move(_rsd)), timer(this->proxy()), crtpushvecidx(0)
 {
 	idbgx(Debug::ipc, this);
 }
-
+//-----------------------------------------------------------------------------
 Connection::Connection(
 	ConnectionPoolUid const &_rconpoolid
 ): conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),  crtpushvecidx(0)
 {
 	idbgx(Debug::ipc, this);
 }
-
+//-----------------------------------------------------------------------------
 Connection::~Connection(){
 	idbgx(Debug::ipc, this);
 }
-
+//-----------------------------------------------------------------------------
 bool Connection::pushMessage(
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
 	ulong _flags
 ){
 	idbgx(Debug::ipc, this->id()<<" crtpushvecidx = "<<crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
-	//We're under lock
+	//Under lock
 	incomingmsgvec[crtpushvecidx].push_back(IncomingMessageStub(_rmsgptr, _msg_type_idx, _flags));
 	return incomingmsgvec[crtpushvecidx].size() == 1;
 }
-
+//-----------------------------------------------------------------------------
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
 	ConnectionContext conctx(service(_rctx), *this);
 	
@@ -63,7 +63,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	service(_rctx).onConnectionStop(conctx, _rerr);
 	postStop(_rctx);
 }
-
+//-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(EventCategory::isStart(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
@@ -97,6 +97,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 			Locker<Mutex>	lock(service(_rctx).mutex(*this));
 			
 			idbgx(Debug::ipc, this->id()<<" Session message");
+			
 			if(incomingmsgvec[crtpushvecidx].size()){
 				vecidx = crtpushvecidx;
 				crtpushvecidx += 1;
@@ -106,14 +107,15 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		doMoveIncommingMessagesToQueue(vecidx);
 	}
 }
-
+//-----------------------------------------------------------------------------
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
 	
 }
+//-----------------------------------------------------------------------------
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	
 }
-
+//-----------------------------------------------------------------------------
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	if(!_rctx.error()){
@@ -127,7 +129,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		rthis.doStop(_rctx, _rctx.error());
 	}
 }
-
+//-----------------------------------------------------------------------------
 void Connection::doMoveIncommingMessagesToQueue(const size_t _vecidx){
 	if(_vecidx < 2){
 		IncomingMessageVectorT &riv(incomingmsgvec[_vecidx]);
@@ -139,6 +141,11 @@ void Connection::doMoveIncommingMessagesToQueue(const size_t _vecidx){
 	}
 }
 
+//-----------------------------------------------------------------------------
+SocketDevice const & ConnectionContext::device()const{
+	return rconnection.device();
+}
+//-----------------------------------------------------------------------------
 }//namespace ipc
 }//namespace frame
 }//namespace solid

@@ -252,6 +252,7 @@ ErrorConditionT Service::doSendMessage(
 	size_t						msg_type_idx = tm.index(_rmsgptr.get());
 	
 	if(msg_type_idx == 0){
+		edbgx(Debug::ipc, "type not registered");
 		err.assign(-1, err.category());//TODO:type not registered
 		return err;
 	}
@@ -262,6 +263,13 @@ ErrorConditionT Service::doSendMessage(
 		if(it != d.namemap.end()){
 			idx = it->second;
 		}else{
+			
+			if(d.config.isServerOnly()){
+				edbgx(Debug::ipc, "request for name resolve for a server only configuration");
+				err.assign(-1, err.category());//TODO: server only
+				return err;
+			}
+			
 			if(d.cachestk.size()){
 				idx = d.cachestk.top();
 				d.cachestk.pop();
@@ -279,7 +287,7 @@ ErrorConditionT Service::doSendMessage(
 			ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 			
 			if(err){
-				idbgx(Debug::ipc, "Error starting Session object: "<<err.message());
+				edbgx(Debug::ipc, "starting Session object: "<<err.message());
 				rconpool.clear();
 				d.cachestk.push(idx);
 				return err;
@@ -306,6 +314,7 @@ ErrorConditionT Service::doSendMessage(
 	}else if(_rconuid_in.isInvalidPool() && !_rconuid_in.isInvalidConnection()/* && d.config.isServerOnly()*/){
 		return doSendMessage(_rconuid_in.connectionid, _rmsgptr, msg_type_idx, _rconuid_in.poolid, _pconpoolid_out, _flags);
 	}else{
+		edbgx(Debug::ipc, "session does not exist");
 		err.assign(-1, err.category());//TODO: session does not exist
 		return err;
 	}
@@ -315,6 +324,7 @@ ErrorConditionT Service::doSendMessage(
 	
 	if(check_uid && rconpool.uid != uid){
 		//failed uid check
+		edbgx(Debug::ipc, "session does not exist");
 		err.assign(-1, err.category());//TODO: session does not exist
 		return err;
 	}
@@ -385,6 +395,15 @@ ErrorConditionT Service::scheduleConnectionClose(
 	ConnectionPoolUid	fakeuid;
 	MessagePointerT		msgptr;
 	return doSendMessage(_rconnection_uid.connectionid, msgptr, -1, fakeuid, nullptr, 0);
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::activateConnection(
+	ConnectionUid const &_rconnection_uid,
+	const char *_recipient_name,
+	bool _can_give_up
+){
+	
+	return ErrorConditionT();
 }
 //-----------------------------------------------------------------------------
 void Service::acceptIncomingConnection(SocketDevice &_rsd){

@@ -99,6 +99,12 @@ public:
 		ConnectionUid const &_rconnection_uid
 	);
 	
+	ErrorConditionT activateConnection(
+		ConnectionUid const &_rconnection_uid,
+		const char *_recipient_name = nullptr,
+		bool _can_give_up = true
+	);
+	
 private:
 	friend struct ServiceProxy;
 	friend class Listener;

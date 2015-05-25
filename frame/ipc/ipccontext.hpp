@@ -95,9 +95,7 @@ struct ConnectionContext{
 		return ConnectionUid();
 	}
 	
-// 	SocketDevice const & device()const{
-// 		
-// 	}
+	SocketDevice const & device()const;
 	
 	uint32 messageFlags()const{
 		return 0;

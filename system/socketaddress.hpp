@@ -458,6 +458,8 @@ std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa);
 
 std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet& _rsa);
 
+std::ostream& operator<<(std::ostream& _ros, const SocketAddress& _rsa);
+
 //==================================================================
 #ifndef ON_WINDOWS
 struct SocketAddressLocal{
