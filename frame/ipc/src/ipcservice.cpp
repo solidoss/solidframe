@@ -205,10 +205,16 @@ struct PushMessageVisitorF{
 	
 	
 	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
-		if(static_cast<Connection&>(_robj).pushMessage(rmsgptr, msg_type_idx, flags)){
-			_rreact.raise(_robj.runId(), raise_event);
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			if(pcon->pushMessage(rmsgptr, msg_type_idx, flags)){
+				_rreact.raise(_robj.runId(), raise_event);
+			}
+			return true;
+		}else{
+			return false;
 		}
-		return true;
 	}
 	
 	MessagePointerT		&rmsgptr;
@@ -295,7 +301,7 @@ ErrorConditionT Service::doSendMessage(
 			
 			d.namemap[rconpool.name.c_str()] = idx;
 			
-			idbgx(Debug::ipc, "Success starting Connction Pool object: "<<conuid.index<<','<<conuid.unique);
+			idbgx(Debug::ipc, "Success starting Connection Pool object: "<<conuid.index<<','<<conuid.unique);
 			//resolve the name
 			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, EventCategory::createRaise()));
 			
@@ -402,8 +408,71 @@ ErrorConditionT Service::activateConnection(
 	const char *_recipient_name,
 	bool _can_give_up
 ){
+	solid::ErrorConditionT	err;
+	Event					evt;
 	
-	return ErrorConditionT();
+	if(_recipient_name){
+		ConnectionPoolUid			poolid;
+		{
+			Locker<Mutex>				lock(d.mtx);
+			NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
+			
+			if(it != d.namemap.end()){
+				poolid.index = it->second;
+				Locker<Mutex>		lock2(d.connectionPoolMutex(poolid.index));
+				ConnectionPoolStub	&rconpool(d.conpooldq[poolid.index]);
+				
+				poolid.unique = rconpool.uid;
+				++rconpool.conn_pending;
+			}else{
+				
+				if(d.config.isServerOnly()){
+					edbgx(Debug::ipc, "request for name resolve for a server only configuration");
+					err.assign(-1, err.category());//TODO: server only
+					return err;
+				}
+				
+				if(d.cachestk.size()){
+					poolid.index = d.cachestk.top();
+					d.cachestk.pop();
+				}else{
+					poolid.index = d.conpooldq.size();
+					d.conpooldq.push_back(ConnectionPoolStub());
+				}
+				Locker<Mutex>					lock2(d.connectionPoolMutex(poolid.index));
+				ConnectionPoolStub 				&rconpool(d.conpooldq[poolid.index]);
+				
+				rconpool.name = _recipient_name;
+			
+				d.namemap[rconpool.name.c_str()] = poolid.index;
+				
+				poolid.unique = rconpool.uid;
+				++rconpool.conn_pending;
+			}
+		}
+		evt = Connection::activateEvent(_can_give_up, poolid);
+	}else{
+		evt = Connection::activateEvent(_can_give_up);
+	}
+	
+	if(manager().notify(_rconnection_uid.connectionid, evt)){
+	}else{
+		edbgx(Debug::ipc, "connection does not exist");
+		err.assign(-1, err.category());//TODO: server only
+	}
+	
+	return err;
+}
+//-----------------------------------------------------------------------------
+void Service::onConnectionClose(Connection &_rcon){
+	if(_rcon.conpoolid.isValid()){
+		Locker<Mutex>		lock(d.mtx);
+		Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
+		ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
+		
+		
+		//TODO:
+	}
 }
 //-----------------------------------------------------------------------------
 void Service::acceptIncomingConnection(SocketDevice &_rsd){
@@ -424,9 +493,6 @@ void Service::onOutgoingConnectionStart(ConnectionContext &_rconctx){
 //-----------------------------------------------------------------------------
 void Service::onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err){
 	configuration().connection_stop_fnc(_rconctx, _err);
-}
-//-----------------------------------------------------------------------------
-void Service::onConnectionClose(Connection &_rcon){
 }
 //-----------------------------------------------------------------------------
 void Service::forwardResolveMessage(ConnectionPoolUid const &_rconpoolid, Event const&_revent){

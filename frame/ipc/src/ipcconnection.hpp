@@ -52,6 +52,10 @@ struct ResolveMessage: Dynamic<ResolveMessage>{
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
+	
+	static Event activateEvent(bool _can_give_up, ConnectionPoolUid const& _rconpoolid);
+	static Event activateEvent(bool _can_give_up);
+	
 	//Called when connection is accepted
 	Connection(
 		SocketDevice &_rsd
@@ -70,6 +74,7 @@ public:
 	
 private:
 	friend struct ConnectionContext;
+	friend class Service;
 	
 	Service& service(frame::aio::ReactorContext &_rctx)const;
 	ObjectUidT uid(frame::aio::ReactorContext &_rctx)const;
@@ -123,7 +128,8 @@ private:
 	StreamSocketT			sock;
 	TimerT					timer;
 	MessageQueueT			msgq;
-	uint16					crtpushvecidx;
+	uint8					crtpushvecidx;
+	bool					active;
 };
 
 

@@ -16,6 +16,62 @@
 namespace solid{
 namespace frame{
 namespace ipc{
+
+struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
+	enum EventId{
+		ActivateGiveUpE,
+		ActivateNoGiveUpE,
+		InvalidE
+	};
+	
+	static EventId id(Event const&_re){
+		if(the().check(_re)){
+			return static_cast<EventId>(the().eventId(_re));
+		}else{
+			return InvalidE;
+	}
+	}
+	
+	static bool isActivateGiveUp(Event const&_re){
+		return id(_re) == ActivateGiveUpE;
+	}
+	static bool isActivateNoGiveUp(Event const&_re){
+		return id(_re) == ActivateNoGiveUpE;
+	}
+	
+	
+	static Event create(EventId _evid){
+		return the().doCreate(static_cast<size_t>(_evid));
+	}
+	
+	static Event createActivateGiveUp(){
+		return create(ActivateGiveUpE);
+	}
+	static Event createActivateNoGiveUp(){
+		return create(ActivateNoGiveUpE);
+	}
+	
+	static EventCategory const& the(){
+		static const EventCategory evc;
+		return evc;
+	}
+
+private:
+	/*virtual*/ void print(std::ostream &_ros, Event const &_re)const{
+		const char *pstr;
+		switch(eventId(_re)){
+			case ActivateGiveUpE:
+				pstr = "frame::ipc::ActivateGiveUpE";break;
+			case ActivateNoGiveUpE:
+				pstr = "frame::ipc::ActivateGiveUpE";break;
+			default:
+				_ros<<"frame::ipc::Unkonwn::"<<eventId(_re);
+				return;
+		}
+		_ros<<pstr;
+	}
+};
+
 //-----------------------------------------------------------------------------
 inline Service& Connection::service(frame::aio::ReactorContext &_rctx)const{
 	return static_cast<Service&>(_rctx.service());
@@ -25,16 +81,38 @@ inline ObjectUidT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	return service(_rctx).manager().id(*this);
 }
 //-----------------------------------------------------------------------------
+
+struct ActivateMessage: Dynamic<ResolveMessage>{
+	ConnectionPoolUid	poolid;
+	ActivateMessage(){}
+	ActivateMessage(ConnectionPoolUid const& _rconpoolid):poolid(_rconpoolid){}
+};
+
+/*static*/ Event Connection::activateEvent(bool _can_give_up, ConnectionPoolUid const& _rconpoolid){
+	Event ev = activateEvent(_can_give_up);
+	ev.msgptr = new ActivateMessage(_rconpoolid);
+	return ev;
+}
+/*static*/ Event Connection::activateEvent(bool _can_give_up){
+	if(_can_give_up){
+		return EventCategory::createActivateGiveUp();
+	}else{
+		return EventCategory::createActivateNoGiveUp();
+	}
+}
+//-----------------------------------------------------------------------------
 Connection::Connection(
 	SocketDevice &_rsd
-): sock(this->proxy(), std::move(_rsd)), timer(this->proxy()), crtpushvecidx(0)
+):	sock(this->proxy(), std::move(_rsd)), timer(this->proxy()),
+	crtpushvecidx(0), active(false)
 {
 	idbgx(Debug::ipc, this);
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
 	ConnectionPoolUid const &_rconpoolid
-): conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),  crtpushvecidx(0)
+):	conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),
+	crtpushvecidx(0), active(false)
 {
 	idbgx(Debug::ipc, this);
 }
@@ -65,13 +143,13 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	if(EventCategory::isStart(_revent)){
+	if(frame::EventCategory::isStart(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
 		{
 			ConnectionContext conctx(service(_rctx), *this);
 			service(_rctx).onIncomingConnectionStart(conctx);
 		}
-	}else if(EventCategory::isKill(_revent)){
+	}else if(frame::EventCategory::isKill(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session postStop");
 		postStop(_rctx);
 	}else if(_revent.msgptr.get()){
@@ -91,6 +169,10 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 				doStop(_rctx, err);
 			}
 		}
+	}else if(EventCategory::isActivateGiveUp(_revent)){
+		//TODO:
+	}else if(EventCategory::isActivateNoGiveUp(_revent)){
+		//TODO:
 	}else{
 		size_t		vecidx = -1;
 		{
