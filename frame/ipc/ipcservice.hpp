@@ -100,10 +100,22 @@ public:
 	);
 	
 	ErrorConditionT activateConnection(
+		ConnectionUid const &_rconnection_uid
+	){
+		MessagePointerT		msgptr;
+		return doActivateConnection(_rconnection_uid, nullptr, msgptr, 0);
+	}
+	
+	template <class T>
+	ErrorConditionT activateConnection(
 		ConnectionUid const &_rconnection_uid,
-		const char *_recipient_name = nullptr,
-		bool _can_give_up = false
-	);
+		const char *_recipient_name,
+		DynamicPointer<T> const &_rmsgptr,
+		ulong _flags = 0
+	){
+		MessagePointerT		msgptr(_rmsgptr);
+		return doActivateConnection(_rconnection_uid, _recipient_name, msgptr, _flags);
+	}
 	
 private:
 	friend struct ServiceProxy;
@@ -127,7 +139,16 @@ private:
 	
 	void acceptIncomingConnection(SocketDevice &_rsd);
 	
-	void onConnectionClose(Connection &_rcon);
+	ErrorConditionT doActivateConnection(
+		ConnectionUid const &_rconnection_uid,
+		const char *_recipient_name,
+		MessagePointerT const &_rmsgptr,
+		ulong _flags
+	);
+	
+	bool activateConnectionComplete(Connection &_rcon);
+	
+	void onConnectionClose(Connection &_rcon, ObjectUidT const &_robjuid);
 	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);

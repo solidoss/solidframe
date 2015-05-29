@@ -79,7 +79,7 @@ struct ConnectionPoolStub{
 	void clear(){
 		name.clear();
 		synch_conn_uid = ObjectUidT();
-		uid = -1;
+		++uid;
 		conn_pending = 0;
 		conn_active = 0;
 		cassert(msgq.empty());
@@ -118,7 +118,7 @@ struct Service::Data{
 	size_t					mtxsarrcp;
 	NameMapT				namemap;
 	ConnectionPoolDequeT	conpooldq;
-	SizeStackT				cachestk;
+	SizeStackT				conpoolcachestk;
 	Configuration			config;
 };
 //=============================================================================
@@ -276,9 +276,9 @@ ErrorConditionT Service::doSendMessage(
 				return err;
 			}
 			
-			if(d.cachestk.size()){
-				idx = d.cachestk.top();
-				d.cachestk.pop();
+			if(d.conpoolcachestk.size()){
+				idx = d.conpoolcachestk.top();
+				d.conpoolcachestk.pop();
 			}else{
 				idx = d.conpooldq.size();
 				d.conpooldq.push_back(ConnectionPoolStub());
@@ -295,7 +295,7 @@ ErrorConditionT Service::doSendMessage(
 			if(err){
 				edbgx(Debug::ipc, "starting Session object: "<<err.message());
 				rconpool.clear();
-				d.cachestk.push(idx);
+				d.conpoolcachestk.push(idx);
 				return err;
 			}
 			
@@ -403,10 +403,11 @@ ErrorConditionT Service::scheduleConnectionClose(
 	return doSendMessage(_rconnection_uid.connectionid, msgptr, -1, fakeuid, nullptr, 0);
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::activateConnection(
+ErrorConditionT Service::doActivateConnection(
 	ConnectionUid const &_rconnection_uid,
 	const char *_recipient_name,
-	bool _can_give_up
+	MessagePointerT const &_rmsgptr,
+	ulong _flags
 ){
 	solid::ErrorConditionT	err;
 	Event					evt;
@@ -432,13 +433,14 @@ ErrorConditionT Service::activateConnection(
 					return err;
 				}
 				
-				if(d.cachestk.size()){
-					poolid.index = d.cachestk.top();
-					d.cachestk.pop();
+				if(d.conpoolcachestk.size()){
+					poolid.index = d.conpoolcachestk.top();
+					d.conpoolcachestk.pop();
 				}else{
 					poolid.index = d.conpooldq.size();
 					d.conpooldq.push_back(ConnectionPoolStub());
 				}
+				
 				Locker<Mutex>					lock2(d.connectionPoolMutex(poolid.index));
 				ConnectionPoolStub 				&rconpool(d.conpooldq[poolid.index]);
 				
@@ -450,9 +452,9 @@ ErrorConditionT Service::activateConnection(
 				++rconpool.conn_pending;
 			}
 		}
-		evt = Connection::activateEvent(_can_give_up, poolid);
+		evt = Connection::activateEvent(poolid);
 	}else{
-		evt = Connection::activateEvent(_can_give_up);
+		evt = Connection::activateEvent();
 	}
 	
 	if(manager().notify(_rconnection_uid.connectionid, evt)){
@@ -464,14 +466,78 @@ ErrorConditionT Service::activateConnection(
 	return err;
 }
 //-----------------------------------------------------------------------------
-void Service::onConnectionClose(Connection &_rcon){
+bool Service::activateConnectionComplete(Connection &_rcon){
+	cassert(_rcon.conpoolid.isValid());
+	
+	Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
+	ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
+	
+	const size_t		wouldbe_active_con_count = rconpool.conn_active + 1;
+	//try moving from pending to active connection set:
+	if(
+		(wouldbe_active_con_count <= d.config.max_per_pool_connection_count) or
+		((wouldbe_active_con_count == (d.config.max_per_pool_connection_count + 1)))
+		
+	){
+		//success
+		--rconpool.conn_pending;
+		++rconpool.conn_active;
+		if(_rcon.msgq.empty() and not rconpool.msgq.empty()){
+			MessageStub &rms = rconpool.msgq.front();
+			_rcon.msgq.push(Connection::MessageStub(rms.msgptr, rms.msg_type_idx, rms.flags));
+			rconpool.msgq.pop();
+		}
+		return true;
+	}else{
+		//fail - not moving from pending to active
+		return false;
+	}
+}
+//-----------------------------------------------------------------------------
+void Service::onConnectionClose(Connection &_rcon, ObjectUidT const &_robjuid){
 	if(_rcon.conpoolid.isValid()){
 		Locker<Mutex>		lock(d.mtx);
 		Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
 		ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
 		
+		cassert(rconpool.uid == _rcon.conpoolid.unique);
 		
-		//TODO:
+		if(_rcon.isActive()){
+			--rconpool.conn_active;
+			if(_robjuid.isValid()){
+				//pop the connection from 
+				size_t	sz = rconpool.conn_waitingq.size();
+				while(sz){
+					if(
+						rconpool.conn_waitingq.front().index != _robjuid.index /*and
+						rconpool.conn_waitingq.front().unique == _robjuid.unique*/
+					){
+						rconpool.conn_waitingq.push(rconpool.conn_waitingq.front());
+					}else{
+						cassert(rconpool.conn_waitingq.front().unique == _robjuid.unique);
+					}
+					
+					rconpool.conn_waitingq.pop();
+					
+					--sz;
+				}
+			}
+		}else{
+			--rconpool.conn_pending;
+		}
+		
+		if(!rconpool.conn_active and !rconpool.conn_pending){
+			//move all pending messages to _rcon for completion
+			while(rconpool.msgq.size()){
+				MessageStub &rms = rconpool.msgq.front();
+				_rcon.msgq.push(Connection::MessageStub(rms.msgptr, rms.msg_type_idx, rms.flags));
+				rconpool.msgq.pop();
+			}
+		}
+		
+		d.conpoolcachestk.push(_rcon.conpoolid.index);
+		
+		rconpool.clear();
 	}
 }
 //-----------------------------------------------------------------------------

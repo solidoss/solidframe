@@ -17,10 +17,15 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
+enum States{
+	StateInactiveE = 0,
+	StateActiveE = 1,
+	StateStoppingE = 2
+};
+namespace{
 struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 	enum EventId{
-		ActivateGiveUpE,
-		ActivateNoGiveUpE,
+		ActivateE,
 		InvalidE
 	};
 	
@@ -32,11 +37,8 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 	}
 	}
 	
-	static bool isActivateGiveUp(Event const&_re){
-		return id(_re) == ActivateGiveUpE;
-	}
-	static bool isActivateNoGiveUp(Event const&_re){
-		return id(_re) == ActivateNoGiveUpE;
+	static bool isActivate(Event const&_re){
+		return id(_re) == ActivateE;
 	}
 	
 	
@@ -44,11 +46,8 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 		return the().doCreate(static_cast<size_t>(_evid));
 	}
 	
-	static Event createActivateGiveUp(){
-		return create(ActivateGiveUpE);
-	}
-	static Event createActivateNoGiveUp(){
-		return create(ActivateNoGiveUpE);
+	static Event createActivate(){
+		return create(ActivateE);
 	}
 	
 	static EventCategory const& the(){
@@ -60,10 +59,8 @@ private:
 	/*virtual*/ void print(std::ostream &_ros, Event const &_re)const{
 		const char *pstr;
 		switch(eventId(_re)){
-			case ActivateGiveUpE:
-				pstr = "frame::ipc::ActivateGiveUpE";break;
-			case ActivateNoGiveUpE:
-				pstr = "frame::ipc::ActivateGiveUpE";break;
+			case ActivateE:
+				pstr = "frame::ipc::ActivateE";break;
 			default:
 				_ros<<"frame::ipc::Unkonwn::"<<eventId(_re);
 				return;
@@ -71,7 +68,7 @@ private:
 		_ros<<pstr;
 	}
 };
-
+}//namespace
 //-----------------------------------------------------------------------------
 inline Service& Connection::service(frame::aio::ReactorContext &_rctx)const{
 	return static_cast<Service&>(_rctx.service());
@@ -82,29 +79,25 @@ inline ObjectUidT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 }
 //-----------------------------------------------------------------------------
 
-struct ActivateMessage: Dynamic<ResolveMessage>{
+struct ActivateMessage: Dynamic<ActivateMessage>{
 	ConnectionPoolUid	poolid;
 	ActivateMessage(){}
 	ActivateMessage(ConnectionPoolUid const& _rconpoolid):poolid(_rconpoolid){}
 };
 
-/*static*/ Event Connection::activateEvent(bool _can_give_up, ConnectionPoolUid const& _rconpoolid){
-	Event ev = activateEvent(_can_give_up);
+/*static*/ Event Connection::activateEvent(ConnectionPoolUid const& _rconpoolid){
+	Event ev = activateEvent();
 	ev.msgptr = new ActivateMessage(_rconpoolid);
 	return ev;
 }
-/*static*/ Event Connection::activateEvent(bool _can_give_up){
-	if(_can_give_up){
-		return EventCategory::createActivateGiveUp();
-	}else{
-		return EventCategory::createActivateNoGiveUp();
-	}
+/*static*/ Event Connection::activateEvent(){
+	return EventCategory::createActivate();
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
 	SocketDevice &_rsd
 ):	sock(this->proxy(), std::move(_rsd)), timer(this->proxy()),
-	crtpushvecidx(0), active(false)
+	crtpushvecidx(0), state(0)
 {
 	idbgx(Debug::ipc, this);
 }
@@ -112,7 +105,7 @@ Connection::Connection(
 Connection::Connection(
 	ConnectionPoolUid const &_rconpoolid
 ):	conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),
-	crtpushvecidx(0), active(false)
+	crtpushvecidx(0), state(0)
 {
 	idbgx(Debug::ipc, this);
 }
@@ -132,14 +125,27 @@ bool Connection::pushMessage(
 	return incomingmsgvec[crtpushvecidx].size() == 1;
 }
 //-----------------------------------------------------------------------------
+bool Connection::isActive()const{
+	return state & StateActiveE;
+}
+//-----------------------------------------------------------------------------
+bool Connection::isStopping()const{
+	return state & StateStoppingE;
+}
+//-----------------------------------------------------------------------------
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
-	ConnectionContext conctx(service(_rctx), *this);
+	ConnectionContext	conctx(service(_rctx), *this);
+	ObjectUidT			objuid(uid(_rctx));
 	
-	service(_rctx).onConnectionClose(*this);
-	//TODO: terminate all messages
+	postStop(_rctx);//there might be events pending which will be delivered, but after this call
+					//no event get posted
+	
+	service(_rctx).onConnectionClose(*this, objuid);
+	
+	doCompleteAllMessages(_rctx);
 	
 	service(_rctx).onConnectionStop(conctx, _rerr);
-	postStop(_rctx);
+	state |= StateStoppingE;
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
@@ -169,10 +175,8 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 				doStop(_rctx, err);
 			}
 		}
-	}else if(EventCategory::isActivateGiveUp(_revent)){
-		//TODO:
-	}else if(EventCategory::isActivateNoGiveUp(_revent)){
-		//TODO:
+	}else if(EventCategory::isActivate(_revent)){
+		doActivate(_rctx, _revent);
 	}else{
 		size_t		vecidx = -1;
 		{
@@ -188,6 +192,44 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		}
 		doMoveIncommingMessagesToQueue(vecidx);
 	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doActivate(
+	frame::aio::ReactorContext &_rctx,
+	frame::Event const &_revent
+){
+	ActivateMessage *pactivatemsg = ActivateMessage::cast(_revent.msgptr.get());
+	
+	cassert(pactivatemsg == nullptr and _revent.msgptr.get() == nullptr);
+	
+	if(pactivatemsg){
+		this->conpoolid = pactivatemsg->poolid;
+	}
+	
+	if(not isStopping()){
+		cassert(!isActive());
+		if(service(_rctx).activateConnectionComplete(*this)){
+			state |= StateActiveE;
+			//TODO: start sending messages
+		}else{
+			ErrorConditionT err;
+			err.assign(-1, err.category());//TODO:
+			doStop(_rctx, err);
+		}
+	}else{
+		ObjectUidT			objuid;
+		
+		service(_rctx).onConnectionClose(*this, objuid);
+		
+		doCompleteAllMessages(_rctx);
+	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doCompleteAllMessages(
+	frame::aio::ReactorContext &_rctx
+){
+	ConnectionContext	conctx(service(_rctx), *this);
+	//TODO:
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){

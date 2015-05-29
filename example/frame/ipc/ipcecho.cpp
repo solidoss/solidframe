@@ -75,7 +75,7 @@ namespace{
 	Condition				cnd;
 	//bool					run = true;
 	//uint32					wait_count = 0;
-	Params					p;
+	Params					app_params;
 	void broadcast_message(frame::ipc::Service &_rsvc, DynamicPointer<frame::ipc::Message> &_rmsgptr);
 	void on_receive(FirstMessage const &_rmsg);
 }
@@ -153,31 +153,31 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
 	
-	if(parseArguments(p, argc, argv)) return 0;
+	if(parseArguments(app_params, argc, argv)) return 0;
 	
 	Thread::init();
 	
 #ifdef UDEBUG
 	{
 	string dbgout;
-	Debug::the().levelMask(p.dbg_levels.c_str());
-	Debug::the().moduleMask(p.dbg_modules.c_str());
-	if(p.dbg_addr.size() && p.dbg_port.size()){
+	Debug::the().levelMask(app_params.dbg_levels.c_str());
+	Debug::the().moduleMask(app_params.dbg_modules.c_str());
+	if(app_params.dbg_addr.size() && app_params.dbg_port.size()){
 		Debug::the().initSocket(
-			p.dbg_addr.c_str(),
-			p.dbg_port.c_str(),
-			p.dbg_buffered,
+			app_params.dbg_addr.c_str(),
+			app_params.dbg_port.c_str(),
+			app_params.dbg_buffered,
 			&dbgout
 		);
-	}else if(p.dbg_console){
+	}else if(app_params.dbg_console){
 		Debug::the().initStdErr(
-			p.dbg_buffered,
+			app_params.dbg_buffered,
 			&dbgout
 		);
 	}else{
 		Debug::the().initFile(
 			*argv[0] == '.' ? argv[0] + 2 : argv[0],
-			p.dbg_buffered,
+			app_params.dbg_buffered,
 			3,
 			1024 * 1024 * 64,
 			&dbgout
@@ -231,9 +231,9 @@ int main(int argc, char *argv[]){
 				}
 			);
 			
-			cfg.listen_address_str = "0.0.0.0:"; cfg.listen_address_str += p.baseport;
-			cfg.default_listen_port_str = p.baseport;
-			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, p.baseport.c_str());
+			cfg.listen_address_str = "0.0.0.0:"; cfg.listen_address_str += app_params.baseport;
+			cfg.default_listen_port_str = app_params.baseport;
+			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, app_params.baseport.c_str());
 			cfg.incoming_connection_start_fnc = [](frame::ipc::ConnectionContext &_rctx){
 				if(_rctx.service().configuration().isServerOnly()){
 					_rctx.service().activateConnection(_rctx.connectionId());
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]){
 					_rctx.service().activateConnection(_rctx.connectionId());
 				}else{
 					//peer2peer mode: send InitMessage
-					frame::ipc::MessagePointerT msgptr(new InitMessage(p.baseport));
+					frame::ipc::MessagePointerT msgptr(new InitMessage(app_params.baseport));
 					_rctx.service().sendMessage(_rctx.connectionId(), msgptr);
 				}
 			};
@@ -369,34 +369,33 @@ uint32 MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, FirstMes
 
 
 void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<InitMessage> &_rmsg){
-	//activate the connection
-	if(_rmsg->port.empty()){
-		_rctx.service().activateConnection(_rctx.connectionId());
-	}else{
-		frame::ipc::MessagePointerT msgptr(new InitMessage(p.baseport));
-		_rctx.service().sendMessage(_rctx.connectionId(), msgptr);
+	
+	SocketAddress				localaddr;
+	SocketAddress				remoteaddr;
+	
+	
+	_rctx.device().localAddress(localaddr);
+	_rctx.device().remoteAddress(remoteaddr);
+	
+	
+	std::ostringstream			tmposs;
 		
-		
-		SocketAddress			localaddr;
-		SocketAddress			remoteaddr;
-		
-		
-		_rctx.device().localAddress(localaddr);
-		_rctx.device().remoteAddress(remoteaddr);
-		
-		
-		std::ostringstream		tmposs;
-		
-		tmposs<<remoteaddr<<':'<<_rmsg->port;
-		
-		_rctx.service().activateConnection(_rctx.connectionId(), tmposs.str().c_str(), localaddr < remoteaddr);
+	tmposs<<remoteaddr<<':'<<_rmsg->port;
+	
+	idbg("Received init from: "<<tmposs.str());
+	
+	frame::ipc::MessagePointerT msgptr(new InitMessage(app_params.baseport));
+	ErrorConditionT				err = _rctx.service().activateConnection(_rctx.connectionId(), tmposs.str().c_str(), msgptr);
+	
+	if(err){
+		edbg("Activating connection: "<<err.message());
 	}
 }
 
 namespace{
 
 void broadcast_message(frame::ipc::Service &_rsvc, DynamicPointer<frame::ipc::Message> &_rmsgptr){
-	for(Params::StringVectorT::const_iterator it(p.connectstringvec.begin()); it != p.connectstringvec.end(); ++it){
+	for(Params::StringVectorT::const_iterator it(app_params.connectstringvec.begin()); it != app_params.connectstringvec.end(); ++it){
 		_rsvc.sendMessage(it->c_str(), _rmsgptr);
 	}
 }
