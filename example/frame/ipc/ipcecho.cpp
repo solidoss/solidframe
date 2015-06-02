@@ -385,7 +385,17 @@ void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPoi
 	idbg("Received init from: "<<tmposs.str());
 	
 	frame::ipc::MessagePointerT msgptr(new InitMessage(app_params.baseport));
-	ErrorConditionT				err = _rctx.service().activateConnection(_rctx.connectionId(), tmposs.str().c_str(), msgptr);
+	ErrorConditionT				err = _rctx.service().activateConnection(
+		_rctx.connectionId(), tmposs.str().c_str(),
+		[](ErrorConditionT const &_rerr){
+			if(not _rerr){
+				return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage(app_params.baseport), 0);
+			}else{
+				return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage(), 0);
+			}
+		},
+		localaddr < remoteaddr
+	);
 	
 	if(err){
 		edbg("Activating connection: "<<err.message());

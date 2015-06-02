@@ -406,72 +406,79 @@ ErrorConditionT Service::scheduleConnectionClose(
 ErrorConditionT Service::doActivateConnection(
 	ConnectionUid const &_rconnection_uid,
 	const char *_recipient_name,
-	MessagePointerT const &_rmsgptr,
-	ulong _flags
+	ActivateConnectionMessageFactoryFunctionT const &_rmsgfactory,
+	const bool _may_quit
 ){
-	solid::ErrorConditionT	err;
-	Event					evt;
+	solid::ErrorConditionT					err;
+	Event									evt;
+	std::pair<MessagePointerT, uint32>		msgpair;
 	
-	if(_recipient_name){
-		ConnectionPoolUid			poolid;
-		{
-			Locker<Mutex>				lock(d.mtx);
-			NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
-			
-			if(it != d.namemap.end()){
-				poolid.index = it->second;
-				Locker<Mutex>		lock2(d.connectionPoolMutex(poolid.index));
-				ConnectionPoolStub	&rconpool(d.conpooldq[poolid.index]);
-				
-				poolid.unique = rconpool.uid;
-				++rconpool.conn_pending;
-			}else{
-				
-				if(d.config.isServerOnly()){
-					edbgx(Debug::ipc, "request for name resolve for a server only configuration");
-					err.assign(-1, err.category());//TODO: server only
-					return err;
-				}
-				
-				if(d.conpoolcachestk.size()){
-					poolid.index = d.conpoolcachestk.top();
-					d.conpoolcachestk.pop();
-				}else{
-					poolid.index = d.conpooldq.size();
-					d.conpooldq.push_back(ConnectionPoolStub());
-				}
-				
-				Locker<Mutex>					lock2(d.connectionPoolMutex(poolid.index));
-				ConnectionPoolStub 				&rconpool(d.conpooldq[poolid.index]);
-				
-				rconpool.name = _recipient_name;
-			
-				d.namemap[rconpool.name.c_str()] = poolid.index;
-				
-				poolid.unique = rconpool.uid;
-				++rconpool.conn_pending;
-			}
-		}
-		evt = Connection::activateEvent(poolid);
-	}else{
+	if(_recipient_name == nullptr){
 		evt = Connection::activateEvent();
+		if(manager().notify(_rconnection_uid.connectionid, evt)){
+		}else{
+			edbgx(Debug::ipc, "connection does not exist");
+			err.assign(-1, err.category());//TODO: server only
+		}
+		return err;
 	}
 	
-	if(manager().notify(_rconnection_uid.connectionid, evt)){
-	}else{
-		edbgx(Debug::ipc, "connection does not exist");
-		err.assign(-1, err.category());//TODO: server only
+	ConnectionPoolUid			poolid;
+	Locker<Mutex>				lock(d.mtx);
+	NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
+	
+	SmartLocker<Mutex>			lock2;
+	
+	if(it != d.namemap.end()){//connection pool exists
+		poolid.index = it->second;
+		SmartLocker<Mutex>		tmplock(d.connectionPoolMutex(poolid.index));
+		
+		lock2 = std::move(tmplock);
+	}else{//connection pool does not exist
+		
+		if(d.config.isServerOnly()){
+			edbgx(Debug::ipc, "request for name resolve for a server only configuration");
+			err.assign(-1, err.category());//TODO: server only
+			return err;
+		}
+		
+		if(d.conpoolcachestk.size()){
+			poolid.index = d.conpoolcachestk.top();
+			d.conpoolcachestk.pop();
+		}else{
+			poolid.index = d.conpooldq.size();
+			d.conpooldq.push_back(ConnectionPoolStub());
+		}
+		
+		SmartLocker<Mutex>				tmplock(d.connectionPoolMutex(poolid.index));
+		ConnectionPoolStub 				&rconpool(d.conpooldq[poolid.index]);
+		
+		rconpool.name = _recipient_name;
+	
+		d.namemap[rconpool.name.c_str()] = poolid.index;
+		
+		++rconpool.conn_pending;
+		lock2 = std::move(tmplock);
 	}
 	
+	evt = Connection::activateEvent(poolid);
+	
+	ConnectionPoolStub		&rconpool(d.conpooldq[poolid.index]);
+		
+	poolid.unique = rconpool.uid;
+	++rconpool.conn_active;
+
 	return err;
 }
 //-----------------------------------------------------------------------------
-bool Service::activateConnectionComplete(Connection &_rcon){
+void Service::activateConnectionComplete(Connection &_rcon){
 	cassert(_rcon.conpoolid.isValid());
 	
 	Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
 	ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
 	
+	--rconpool.conn_pending;
+#if 0	
 	const size_t		wouldbe_active_con_count = rconpool.conn_active + 1;
 	//try moving from pending to active connection set:
 	if(
@@ -492,6 +499,7 @@ bool Service::activateConnectionComplete(Connection &_rcon){
 		//fail - not moving from pending to active
 		return false;
 	}
+#endif
 }
 //-----------------------------------------------------------------------------
 void Service::onConnectionClose(Connection &_rcon, ObjectUidT const &_robjuid){

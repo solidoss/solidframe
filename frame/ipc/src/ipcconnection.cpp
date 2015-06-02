@@ -206,16 +206,11 @@ void Connection::doActivate(
 		this->conpoolid = pactivatemsg->poolid;
 	}
 	
+	cassert(!isActive());
+	state |= StateActiveE;
+	
 	if(not isStopping()){
-		cassert(!isActive());
-		if(service(_rctx).activateConnectionComplete(*this)){
-			state |= StateActiveE;
-			//TODO: start sending messages
-		}else{
-			ErrorConditionT err;
-			err.assign(-1, err.category());//TODO:
-			doStop(_rctx, err);
-		}
+		service(_rctx).activateConnectionComplete(*this);
 	}else{
 		ObjectUidT			objuid;
 		

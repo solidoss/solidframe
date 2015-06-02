@@ -37,6 +37,7 @@ enum SendFlags{
 	<br>
 */
 class Service: public Dynamic<Service, frame::Service>{
+	typedef FUNCTION<std::pair<MessagePointerT, uint32>(ErrorConditionT const &)>		ActivateConnectionMessageFactoryFunctionT;
 public:
 	typedef Dynamic<Service, frame::Service> BaseT;
 	
@@ -102,19 +103,19 @@ public:
 	ErrorConditionT activateConnection(
 		ConnectionUid const &_rconnection_uid
 	){
-		MessagePointerT		msgptr;
-		return doActivateConnection(_rconnection_uid, nullptr, msgptr, 0);
+		ActivateConnectionMessageFactoryFunctionT	msgfactory;
+		return doActivateConnection(_rconnection_uid, nullptr, msgfactory, false);
 	}
 	
-	template <class T>
+	template <class MF>
 	ErrorConditionT activateConnection(
 		ConnectionUid const &_rconnection_uid,
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
-		ulong _flags = 0
+		MF _msgfactory,
+		const bool _may_quit
 	){
-		MessagePointerT		msgptr(_rmsgptr);
-		return doActivateConnection(_rconnection_uid, _recipient_name, msgptr, _flags);
+		ActivateConnectionMessageFactoryFunctionT	msgfactory(_msgfactory);
+		return doActivateConnection(_rconnection_uid, _recipient_name, msgfactory, _may_quit);
 	}
 	
 private:
@@ -142,11 +143,11 @@ private:
 	ErrorConditionT doActivateConnection(
 		ConnectionUid const &_rconnection_uid,
 		const char *_recipient_name,
-		MessagePointerT const &_rmsgptr,
-		ulong _flags
+		ActivateConnectionMessageFactoryFunctionT const &_rmsgfactory,
+		const bool _may_quit
 	);
 	
-	bool activateConnectionComplete(Connection &_rcon);
+	void activateConnectionComplete(Connection &_rcon);
 	
 	void onConnectionClose(Connection &_rcon, ObjectUidT const &_robjuid);
 	

@@ -91,6 +91,8 @@ private:
 
 template <class M>
 struct Locker{
+	typedef Locker<M> ThisT;
+	
 	Locker(M &_m):m(_m){
 		m.lock();
 	}
@@ -98,6 +100,35 @@ struct Locker{
 		m.unlock();
 	}
 	M &m;
+private:
+	Locker(ThisT const &);
+	ThisT& operator=(ThisT const&);
+};
+
+template <class M>
+struct SmartLocker{
+	typedef SmartLocker<M> ThisT;
+	
+	SmartLocker(M &_rm): pm(&_rm){}
+	
+	SmartLocker():pm(nullptr){}
+	
+	ThisT& operator=(ThisT && _rl){
+		if(pm){
+			pm->unlock();
+		}
+		pm = _rl.pm;
+		_rl.pm = nullptr;
+	}
+	
+	~SmartLocker(){
+		if(pm) pm->unlock();
+	}
+private:
+	SmartLocker(ThisT const&);
+	ThisT& operator=(ThisT const&);
+private:
+	M	*pm;
 };
 
 template <class M>
