@@ -119,6 +119,7 @@ struct SmartLocker{
 		}
 		pm = _rl.pm;
 		_rl.pm = nullptr;
+		return *this;
 	}
 	
 	~SmartLocker(){
