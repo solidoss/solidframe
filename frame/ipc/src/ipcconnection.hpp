@@ -85,9 +85,14 @@ private:
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	static void onConnect(frame::aio::ReactorContext &_rctx);
 	
+	void doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming);
+	
 	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 	
 	void doMoveIncommingMessagesToQueue(const size_t _vecidx);
+	
+	
+	void doSend(frame::aio::ReactorContext &_rctx);
 	
 	SocketDevice const & device()const{
 		return sock.device();
@@ -101,6 +106,10 @@ private:
 	void doCompleteAllMessages(
 		frame::aio::ReactorContext &_rctx
 	);
+	
+	void doOptimizeRecvBuffer();
+	void doPrepare(frame::aio::ReactorContext &_rctx);
+	void doUnprepare(frame::aio::ReactorContext &_rctx);
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;
@@ -140,6 +149,15 @@ private:
 	MessageQueueT			msgq;
 	uint8					crtpushvecidx;
 	uint8					state;
+	
+	uint16					receivebufoff;
+	uint16					consumebufoff;
+	
+	uint16					recvbufcp;
+	uint16					sendbufcp;
+	
+	char					*recvbuf;
+	char					*sendbuf;
 };
 
 

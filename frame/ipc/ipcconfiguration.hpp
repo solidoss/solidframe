@@ -41,12 +41,14 @@ typedef FUNCTION<void(AddressVectorT &)>									ResolveCompleteFunctionT;
 typedef FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>		AsyncResolveFunctionT;
 typedef FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>			ConnectionStopFunctionT;
 typedef FUNCTION<void(ConnectionContext &)>									ConnectionStartFunctionT;
+typedef FUNCTION<char*(uint16 &)>											AllocateBufferFunctionT;
+typedef FUNCTION<void(char*)>												FreeBufferFunctionT;
 
 struct Configuration{
 	
 	Configuration(
 		AioSchedulerT &_rsch
-	): psch(&_rsch), session_mutex_count(16){}
+	);
 	
 	template <class F>
 	void protocolCallback(F _f);
@@ -80,6 +82,12 @@ struct Configuration{
 	ConnectionStartFunctionT	incoming_connection_start_fnc;
 	ConnectionStartFunctionT	outgoing_connection_start_fnc;
 	ConnectionStopFunctionT		connection_stop_fnc;
+	
+	AllocateBufferFunctionT		allocate_recv_buffer_fnc;
+	AllocateBufferFunctionT		allocate_send_buffer_fnc;
+	
+	FreeBufferFunctionT			free_recv_buffer_fnc;
+	FreeBufferFunctionT			free_send_buffer_fnc;
 	
 	std::string					listen_address_str;
 	std::string					default_listen_port_str;

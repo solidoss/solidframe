@@ -3,6 +3,7 @@ set(Sources
 	src/ipcservice.cpp
 	src/ipclistener.cpp
 	src/ipcconnection.cpp
+	src/ipcconfiguration.cpp
 )
 
 set(Headers

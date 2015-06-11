@@ -94,6 +94,16 @@ struct ActivateMessage: Dynamic<ActivateMessage>{
 	return EventCategory::createActivate();
 }
 //-----------------------------------------------------------------------------
+inline void Connection::doOptimizeRecvBuffer(){
+	const size_t cnssz = receivebufoff - consumebufoff;
+	if(cnssz <= consumebufoff){
+		idbgx(Debug::proto_bin, "memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
+		memcpy(recvbuf, recvbuf + consumebufoff, cnssz);
+		consumebufoff = 0;
+		receivebufoff = cnssz;
+	}
+}
+//-----------------------------------------------------------------------------
 Connection::Connection(
 	SocketDevice &_rsd
 ):	sock(this->proxy(), std::move(_rsd)), timer(this->proxy()),
@@ -133,6 +143,36 @@ bool Connection::isStopping()const{
 	return state & StateStoppingE;
 }
 //-----------------------------------------------------------------------------
+void Connection::doPrepare(frame::aio::ReactorContext &_rctx){
+	recvbuf = service(_rctx).configuration().allocate_recv_buffer_fnc(recvbufcp);
+	sendbuf = service(_rctx).configuration().allocate_send_buffer_fnc(sendbufcp);
+}
+//-----------------------------------------------------------------------------
+void Connection::doUnprepare(frame::aio::ReactorContext &_rctx){
+	service(_rctx).configuration().free_recv_buffer_fnc(recvbuf);
+	service(_rctx).configuration().free_send_buffer_fnc(sendbuf);
+}
+//-----------------------------------------------------------------------------
+void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming){
+	ConnectionContext conctx(service(_rctx), *this);
+	doPrepare(_rctx);
+	if(_is_incomming){
+		service(_rctx).onIncomingConnectionStart(conctx);
+	}else{
+		service(_rctx).onOutgoingConnectionStart(conctx);
+	}
+	//start sending messages.
+	this->post(
+		_rctx,
+		[this](frame::aio::ReactorContext &_rctx, frame::Event const &/*_revent*/){
+			doSend(_rctx);
+		}
+	);
+	
+	//start receiving messages
+	sock.postRecvSome(_rctx, recvbuf, recvbufcp, Connection::onRecv);
+}
+//-----------------------------------------------------------------------------
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
 	ConnectionContext	conctx(service(_rctx), *this);
 	ObjectUidT			objuid(uid(_rctx));
@@ -146,14 +186,15 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	
 	service(_rctx).onConnectionStop(conctx, _rerr);
 	state |= StateStoppingE;
+	
+	doUnprepare(_rctx);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(frame::EventCategory::isStart(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
-		{
-			ConnectionContext conctx(service(_rctx), *this);
-			service(_rctx).onIncomingConnectionStart(conctx);
+		if(sock.device().ok()){
+			doStart(_rctx, true);
 		}
 	}else if(frame::EventCategory::isKill(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session postStop");
@@ -227,22 +268,45 @@ void Connection::doCompleteAllMessages(
 	//TODO:
 }
 //-----------------------------------------------------------------------------
-/*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
+void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	
 }
 //-----------------------------------------------------------------------------
-/*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
+/*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
+	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	
+	unsigned	repeatcnt = 4;
+	char		*pbuf = rthis.recvbuf + rthis.receivebufoff;
+	size_t		bufsz;
+	do{
+		if(!_rctx.error()){
+			//msgreader.read(
+		}else{
+			idbgx(Debug::ipc, rthis.id()<<" error: "<<_rctx.error().message());
+			rthis.doStop(_rctx, _rctx.error());
+			break;
+		}
+		--repeatcnt;
+		rthis.doOptimizeRecvBuffer();
+		pbuf = rthis.recvbuf + rthis.receivebufoff;
+		bufsz =  rthis.recvbufcp - rthis.receivebufoff;
+	}while(repeatcnt && rthis.sock.recvSome(_rctx, pbuf, bufsz, Connection::onRecv, _sz));
+	
+	if(repeatcnt == 0){
+		bool rv = rthis.sock.postRecvSome(_rctx, pbuf, bufsz, Connection::onRecv);//fully asynchronous call
+		cassert(!rv);
+	}
+}
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
+	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	if(!_rctx.error()){
 		idbgx(Debug::ipc, rthis.id());
-		{
-			ConnectionContext conctx(rthis.service(_rctx), rthis);
-			rthis.service(_rctx).onOutgoingConnectionStart(conctx);
-		}
+		rthis.doStart(_rctx, false);
 	}else{
 		idbgx(Debug::ipc, rthis.id()<<" error: "<<_rctx.error().message());
 		rthis.doStop(_rctx, _rctx.error());
