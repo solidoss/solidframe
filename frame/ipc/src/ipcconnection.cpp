@@ -276,11 +276,15 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	
 	unsigned	repeatcnt = 4;
-	char		*pbuf = rthis.recvbuf + rthis.receivebufoff;
+	char		*pbuf;
 	size_t		bufsz;
+	
 	do{
 		if(!_rctx.error()){
-			//msgreader.read(
+			rthis.receivebufoff += _sz;
+			pbuf = rthis.recvbuf + rthis.consumebufoff;
+			bufsz = rthis.receivebufoff - rthis.consumebufoff;
+			//rthis.consumebufoff += msgreader.read(pbuf, bufsz);
 		}else{
 			idbgx(Debug::ipc, rthis.id()<<" error: "<<_rctx.error().message());
 			rthis.doStop(_rctx, _rctx.error());
