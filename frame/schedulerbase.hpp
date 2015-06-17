@@ -11,9 +11,8 @@
 #define SOLID_FRAME_SCHEDULER_BASE_HPP
 
 #include "frame/common.hpp"
-#include "utility/functor.hpp"
 #include "system/error.hpp"
-#include "boost/function.hpp"
+#include "system/function.hpp"
 
 namespace solid{
 
@@ -26,7 +25,8 @@ class ReactorBase;
 class ObjectBase;
 
 
-typedef FunctorReference<bool, ReactorBase&>	ScheduleFunctorT;
+//typedef FunctorReference<bool, ReactorBase&>	ScheduleFunctorT;
+typedef FUNCTION<bool(ReactorBase&)>			ScheduleFunctionT;
 
 //! A base class for all schedulers
 class SchedulerBase{
@@ -34,8 +34,8 @@ public:
 protected:
 	typedef Thread* (*CreateWorkerF)(SchedulerBase &_rsch, const size_t);
 	
-	typedef boost::function<bool()>					ThreadEnterFunctorT;
-	typedef boost::function<void()>					ThreadExitFunctorT;
+	typedef FUNCTION<bool()>					ThreadEnterFunctorT;
+	typedef FUNCTION<void()>					ThreadExitFunctorT;
 	
 	ErrorConditionT doStart(
 		CreateWorkerF _pf,
@@ -46,7 +46,7 @@ protected:
 
 	void doStop(const bool _wait = true);
 	
-	ObjectUidT doStartObject(ObjectBase &_robj, Service &_rsvc, ScheduleFunctorT &_rfct, ErrorConditionT &_rerr);
+	ObjectUidT doStartObject(ObjectBase &_robj, Service &_rsvc, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr);
 	
 protected:
 	SchedulerBase();

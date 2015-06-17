@@ -448,7 +448,7 @@ ObjectUidT Manager::registerObject(
 	const Service &_rsvc,
 	ObjectBase &_robj,
 	ReactorBase &_rr,
-	ScheduleFunctorT &_rfct,
+	ScheduleFunctionT &_rfct,
 	ErrorConditionT &_rerr
 ){
 	ObjectUidT		retval;

@@ -15,7 +15,6 @@ set(Headers
 	list.hpp
 	memory.hpp
 	ostream.hpp
-	polycontainer.hpp
 	queue.hpp
 	stack.hpp
 	stream.hpp

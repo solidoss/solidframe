@@ -273,18 +273,19 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
-	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	Connection			&rthis = static_cast<Connection&>(_rctx.object());
+	ConnectionContext	conctx(rthis.service(_rctx), rthis);
 	
-	unsigned	repeatcnt = 4;
-	char		*pbuf;
-	size_t		bufsz;
+	unsigned			repeatcnt = 4;
+	char				*pbuf;
+	size_t				bufsz;
 	
 	do{
 		if(!_rctx.error()){
 			rthis.receivebufoff += _sz;
 			pbuf = rthis.recvbuf + rthis.consumebufoff;
 			bufsz = rthis.receivebufoff - rthis.consumebufoff;
-			//rthis.consumebufoff += msgreader.read(pbuf, bufsz);
+			//rthis.consumebufoff += msgreader.read(pbuf, bufsz, conctx);
 		}else{
 			idbgx(Debug::ipc, rthis.id()<<" error: "<<_rctx.error().message());
 			rthis.doStop(_rctx, _rctx.error());
@@ -299,6 +300,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	if(repeatcnt == 0){
 		bool rv = rthis.sock.postRecvSome(_rctx, pbuf, bufsz, Connection::onRecv);//fully asynchronous call
 		cassert(!rv);
+		(void)rv;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -328,9 +330,14 @@ void Connection::doMoveIncommingMessagesToQueue(const size_t _vecidx){
 	}
 }
 
+//=============================================================================
 //-----------------------------------------------------------------------------
 SocketDevice const & ConnectionContext::device()const{
 	return rconnection.device();
+}
+//-----------------------------------------------------------------------------
+HolderT& ConnectionContext::holder(){
+	return rconnection.holder();
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

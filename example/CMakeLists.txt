@@ -1,7 +1,6 @@
 add_subdirectory(system)
 add_subdirectory(utility)
 add_subdirectory(serialization)
-add_subdirectory(client)
 add_subdirectory(audit)
 add_subdirectory(tools)
 add_subdirectory(extern)

@@ -274,7 +274,7 @@ void SchedulerBase::doStop(bool _wait/* = true*/){
 	}
 }
 
-ObjectUidT SchedulerBase::doStartObject(ObjectBase &_robj, Service &_rsvc, ScheduleFunctorT &_rfct, ErrorConditionT &_rerr){
+ObjectUidT SchedulerBase::doStartObject(ObjectBase &_robj, Service &_rsvc, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr){
 	++d.usecnt;
 	ObjectUidT	rv;
 	if(d.status == StatusRunningE){

@@ -25,7 +25,7 @@
 #endif
 
 
-#define USE_BOOST_FUNCTION
+//#define USE_BOOST_FUNCTION
 
 #ifdef USE_BOOST_FUNCTION
 #include "boost/function.hpp"

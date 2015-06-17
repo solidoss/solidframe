@@ -15,8 +15,10 @@
 #include "system/mutex.hpp"
 #include "system/error.hpp"
 #include "utility/dynamicpointer.hpp"
-#include "utility/functor.hpp"
+#include "system/function.hpp"
 #include "frame/schedulerbase.hpp"
+
+#include "utility/functor.hpp"
 
 namespace solid{
 namespace frame{
@@ -29,20 +31,20 @@ class	ReactorBase;
 
 struct	ServiceStub;
 
-template <class Obj, class Sch>
-struct ScheduleObjectF{
-	DynamicPointer<Obj>	&robjptr;
-	Sch					&rsch;
-	Event const			&revt;
-	
-	ScheduleObjectF(
-		DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt
-	):robjptr(_robjptr), rsch(_rsch), revt(_revt){}
-	
-	ErrorConditionT operator()(){
-		return rsch.schedule(robjptr, revt);
-	}
-};
+// template <class Obj, class Sch>
+// struct ScheduleObjectF{
+// 	DynamicPointer<Obj>	&robjptr;
+// 	Sch					&rsch;
+// 	Event const			&revt;
+// 	
+// 	ScheduleObjectF(
+// 		DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt
+// 	):robjptr(_robjptr), rsch(_rsch), revt(_revt){}
+// 	
+// 	ErrorConditionT operator()(){
+// 		return rsch.schedule(robjptr, revt);
+// 	}
+// };
 
 struct EventNotifierF{
 	EventNotifierF(
@@ -111,7 +113,7 @@ private:
 		const Service &_rsvc,
 		ObjectBase &_robj,
 		ReactorBase &_rr,
-		ScheduleFunctorT &_rfct,
+		ScheduleFunctionT &_rfct,
 		ErrorConditionT &_rerr
 	);
 		

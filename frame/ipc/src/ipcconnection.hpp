@@ -74,6 +74,9 @@ public:
 	
 	bool isActive()const;
 	bool isStopping()const;
+	
+	HolderT& holder();
+	
 private:
 	friend struct ConnectionContext;
 	friend class Service;
@@ -158,8 +161,13 @@ private:
 	
 	char					*recvbuf;
 	char					*sendbuf;
+	
+	HolderT					hldr;
 };
 
+inline HolderT& Connection::holder(){
+	return hldr;
+}
 
 }//namespace ipc
 }//namespace frame

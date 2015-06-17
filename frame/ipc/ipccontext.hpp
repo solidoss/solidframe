@@ -11,7 +11,10 @@
 #define SOLID_FRAME_IPC_IPC_CONTEXT_HPP
 
 #include "system/socketaddress.hpp"
+
 #include "utility/dynamicpointer.hpp"
+#include "utility/holder.hpp"
+
 #include "frame/common.hpp"
 
 namespace solid{
@@ -69,6 +72,8 @@ struct MessageUid{
 class Service;
 class Connection;
 
+typedef Holder<>		HolderT;
+
 //! Thread specific information about current ipc context
 /*!
 	This should be used by signals to get information about the current
@@ -100,6 +105,8 @@ struct ConnectionContext{
 	uint32 messageFlags()const{
 		return 0;
 	}
+	//! Holder to be used to keep per connection data
+	HolderT& holder();
 private:
 	friend class Connection;
 	Service				&rservice;

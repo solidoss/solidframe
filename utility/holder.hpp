@@ -16,69 +16,63 @@
 
 namespace solid{
 
-//! A template holder of objects derived from a base class
+namespace impl{
+
+typedef void(*DeleteF)(void *);
+
+}//namespace impl
+
+//! A template holder of objects
 /*!
-	The interface resembles somehow that of a smart/auto pointer, but while
-	a smart/auto pointer only holds a pointer/reference to an object
-	a holder also keeps the object's allocation space.
-	It uses new(buf) for allocating the object and calls the 
-	destructor on deletion.
-	For a good example of usage and benefits see ::protocol::Buffer,
-	::protocol::Writer, ::protocol::Reader
 */
-template <class B, uint32 Sz = sizeof(B)>
+template <size_t Cp = 32>
 struct Holder{
 	enum{
-		Capacity = Sz > sizeof(B) ? Sz : sizeof(B)
+		Capacity = Cp > sizeof(void*) ? Cp : sizeof(void*)
 	};
+	
+	
 	//! Default constructor
 	Holder(){
-		new(b) B;
 	}
+	
 	//! A template constructor for object's copy constructor
 	template <class C>
 	Holder(const C& _c){
-		cstatic_assert(sizeof(C) <= Capacity);
-		cassert(&static_cast<const B&>(_c) == &_c);
-		new(b) C(_c);
 	}
+	
 	//! Destructor
 	/*!
 		Only call the objects destructor
 	*/
 	~Holder(){
-		get()->~B();
+		
 	}
 	
-	//! A template assertion operator
+	
 	template <class C>
-	Holder& operator=(const C &_c){
-		get()->~B();
-		cstatic_assert(sizeof(C) <= Capacity);
-		cassert(&static_cast<const B&>(_c) == &_c);
-		new(b) C(_c);
-		return *this;
-	}
-	//! Gets a reference to the internal object
-	B& operator*(){
-		return *get();
+	C* pcast(){
+		return reinterpret_cast<C*>(b);
 	}
 	
-	//! Gets a const reference to the internal object
-	const B& operator*()const{
-		return *get();
+	template <class C>
+	const C* pcast()const{
+		return reinterpret_cast<const C*>(b);
 	}
 	
-	B* get()const{
-		return reinterpret_cast<B*>(const_cast<char*>(b));
+	template <class C>
+	C& cast(){
+		return *pcast();
 	}
 	
-	//! The interface for a pointer
-	B* operator->()const{
-		return get();
+	template <class C>
+	C const& cast()const{
+		return *pcast();
 	}
+	
 private:
-	char	b[Capacity];
+	impl::DeleteF	pf;
+	char			b[Capacity];
 };
 
 }//namespace solid

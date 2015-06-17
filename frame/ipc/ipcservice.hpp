@@ -133,7 +133,7 @@ private:
 		MessageCompleteFunctionT	complete_fnc;
 	};
 	
-	typedef serialization::binary::Serializer<ConnectionContext	>						SerializerT;
+	typedef serialization::binary::Serializer<ConnectionContext>						SerializerT;
 	typedef serialization::binary::Deserializer<ConnectionContext>						DeserializerT;
 	typedef serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>				TypeIdMapT;
 	
