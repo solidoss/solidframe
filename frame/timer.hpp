@@ -55,6 +55,10 @@ public:
 	{
 	}
 	
+	~Timer(){
+		//MUST call here and not in the ~CompletionHandler
+		this->deactivate();
+	}
 	//Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
 	//Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
 	template <typename F>

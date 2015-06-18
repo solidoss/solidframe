@@ -39,6 +39,11 @@ public:
 		}
 	}
 	
+	~Listener(){
+		//MUST call here and not in the ~CompletionHandler
+		this->deactivate();
+	}
+	
 	const SocketDevice& device()const;
 	
 	//Returns false when the operation is scheduled for completion. On completion _f(...) will be called.

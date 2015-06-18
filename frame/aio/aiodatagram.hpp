@@ -235,6 +235,11 @@ public:
 	):CompletionHandler(_robj, on_dummy_completion){}
 	
 	
+	~Datagram(){
+		//MUST call here and not in the ~CompletionHandler
+		this->deactivate();
+	}
+	
 	bool hasPendingRecv()const{
 		return !FUNCTION_EMPTY(recv_fnc);
 	}

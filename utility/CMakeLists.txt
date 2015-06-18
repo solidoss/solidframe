@@ -23,7 +23,6 @@ set(Headers
 	dynamictype.hpp
 	dynamicpointer.hpp
 	memoryfile.hpp
-	functor.hpp
 )
 
 set(Inlines

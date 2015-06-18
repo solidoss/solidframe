@@ -18,7 +18,7 @@
 #include "system/function.hpp"
 #include "frame/schedulerbase.hpp"
 
-#include "utility/functor.hpp"
+//#include "utility/functor.hpp"
 
 namespace solid{
 namespace frame{
@@ -30,32 +30,6 @@ class	SchedulerBase;
 class	ReactorBase;
 
 struct	ServiceStub;
-
-// template <class Obj, class Sch>
-// struct ScheduleObjectF{
-// 	DynamicPointer<Obj>	&robjptr;
-// 	Sch					&rsch;
-// 	Event const			&revt;
-// 	
-// 	ScheduleObjectF(
-// 		DynamicPointer<Obj> &_robjptr, Sch &_rsch, Event const &_revt
-// 	):robjptr(_robjptr), rsch(_rsch), revt(_revt){}
-// 	
-// 	ErrorConditionT operator()(){
-// 		return rsch.schedule(robjptr, revt);
-// 	}
-// };
-
-struct EventNotifierF{
-	EventNotifierF(
-		Event const &_revt, const size_t _sigmsk = 0
-	):evt(_revt), sigmsk(_sigmsk){}
-	
-	Event			evt;
-	const size_t	sigmsk;
-	
-	bool operator()(ObjectBase &_robj, ReactorBase &_rreact);
-};
 
 
 class Manager{
@@ -76,9 +50,9 @@ public:
 	
 	
 	template <class F>
-	bool visit(ObjectUidT const &_ruid, F &_rf){
-		ObjectVisitFunctorT fctor(_rf);
-		return doVisit(_ruid, fctor);
+	bool visit(ObjectUidT const &_ruid, F _f){
+		ObjectVisitFunctionT fct(_f);
+		return doVisit(_ruid, fct);
 	}
 	
 	
@@ -93,10 +67,13 @@ private:
 	friend class ObjectBase;
 	friend class ReactorBase;
 	friend class SchedulerBase;
-	friend struct EventNotifierF;
 	
-	typedef FunctorReference<bool, ObjectBase&, ReactorBase&>	ObjectVisitFunctorT;
+	typedef FUNCTION<bool(ObjectBase&, ReactorBase&)>			ObjectVisitFunctionT;
 	
+	static bool notify_object(
+		ObjectBase &_robj, ReactorBase &_rreact,
+		Event const &_revt, const size_t _sigmsk
+	);
 	
 	bool registerService(Service &_rsvc);
 	void unregisterService(Service &_rsvc);
@@ -116,11 +93,13 @@ private:
 		ScheduleFunctionT &_rfct,
 		ErrorConditionT &_rerr
 	);
-		
+	
+	bool notifyAll(const Service &_rsvc, Event const & _revt, const size_t _sigmsk);
+	
 	template <typename F>
-	bool forEachServiceObject(const Service &_rsvc, F &_f){
-		ObjectVisitFunctorT fctor(_f);
-		return doForEachServiceObject(_rsvc, fctor);
+	bool forEachServiceObject(const Service &_rsvc, F _f){
+		ObjectVisitFunctionT fct(_f);
+		return doForEachServiceObject(_rsvc, fct);
 	}
 	
 	bool raise(const ObjectBase &_robj, Event const &_re);
@@ -129,9 +108,9 @@ private:
 	bool startService(Service &_rsvc);
 	
 	
-	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
-	bool doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctorT &_fctor);
-	bool doVisit(ObjectUidT const &_ruid, ObjectVisitFunctorT &_fctor);
+	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctionT &_rfct);
+	bool doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctionT &_rfct);
+	bool doVisit(ObjectUidT const &_ruid, ObjectVisitFunctionT &_fctor);
 	void doUnregisterService(ServiceStub &_rss);
 private:
 	struct Data;

@@ -216,6 +216,10 @@ public:
 		ObjectProxy const &_robj, Ctx &_rctx
 	):CompletionHandler(_robj, on_dummy_completion), s(_rctx){}
 	
+	~Stream(){
+		//MUST call here and not in the ~CompletionHandler
+		this->deactivate();
+	}
 	
 	bool hasPendingRecv()const{
 		return !FUNCTION_EMPTY(recv_fnc);

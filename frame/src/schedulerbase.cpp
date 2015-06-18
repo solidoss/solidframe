@@ -115,8 +115,8 @@ struct SchedulerBase::Data{
 	size_t						stopwaitcnt;
 	AtomicStatuesT				status;
 	AtomicSizeT					usecnt;
-	ThreadEnterFunctorT			threnfnc;
-	ThreadExitFunctorT			threxfnc;
+	ThreadEnterFunctionT		threnfnc;
+	ThreadExitFunctionT			threxfnc;
 	
 	ReactorVectorT				reactorvec;
 	Mutex						mtx;
@@ -142,7 +142,7 @@ void dummy_thread_exit(){
 
 ErrorConditionT SchedulerBase::doStart(
 	CreateWorkerF _pf,
-	ThreadEnterFunctorT _enf, ThreadExitFunctorT _exf,
+	ThreadEnterFunctionT &_renf, ThreadExitFunctionT &_rexf,
 	size_t _reactorcnt
 ){
 	if(_reactorcnt == 0){
@@ -164,14 +164,14 @@ ErrorConditionT SchedulerBase::doStart(
 		d.reactorvec.resize(_reactorcnt);
 		
 		
-		if(_enf){
-			d.threnfnc = _enf;
+		if(not FUNCTION_EMPTY(_renf)){
+			d.threnfnc = std::move(_renf);
 		}else{
 			d.threnfnc = dummy_thread_enter;
 		}
 		
-		if(_exf){
-			d.threxfnc = _exf;
+		if(not FUNCTION_EMPTY(_rexf)){
+			d.threxfnc = std::move(_rexf);
 		}else{
 			d.threxfnc = dummy_thread_exit;
 		}

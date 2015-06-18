@@ -34,13 +34,13 @@ public:
 protected:
 	typedef Thread* (*CreateWorkerF)(SchedulerBase &_rsch, const size_t);
 	
-	typedef FUNCTION<bool()>					ThreadEnterFunctorT;
-	typedef FUNCTION<void()>					ThreadExitFunctorT;
+	typedef FUNCTION<bool()>					ThreadEnterFunctionT;
+	typedef FUNCTION<void()>					ThreadExitFunctionT;
 	
 	ErrorConditionT doStart(
 		CreateWorkerF _pf,
-		ThreadEnterFunctorT _enf,
-		ThreadExitFunctorT _exf,
+		ThreadEnterFunctionT &_renf,
+		ThreadExitFunctionT &_rexf,
 		size_t _reactorcnt
 	);
 

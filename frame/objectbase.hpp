@@ -26,7 +26,6 @@ class Service;
 class ReactorBase;
 class Object;
 class CompletionHandler;
-struct EventNotifier;
 
 class ObjectBase: public Dynamic<ObjectBase>{
 public:
@@ -44,7 +43,6 @@ protected:
 	friend class Service;
 	friend class Manager;
 	friend class ReactorBase;
-	friend struct EventNotifierF;
 	
 	//! Constructor
 	ObjectBase();

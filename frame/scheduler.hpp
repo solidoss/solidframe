@@ -63,15 +63,15 @@ public:
 	Scheduler(){}
 	
 	ErrorConditionT start(const size_t _reactorcnt = 1){
-		ThreadEnterFunctorT		enf;
-		ThreadExitFunctorT 		exf;
+		ThreadEnterFunctionT		enf;
+		ThreadExitFunctionT 		exf;
 		return SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
 	}
 	
 	template <class EnterFct, class ExitFct>
 	ErrorConditionT start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1){
-		ThreadEnterFunctorT		enf(_enf);
-		ThreadExitFunctorT 		exf(_exf);
+		ThreadEnterFunctionT		enf(_enf);
+		ThreadExitFunctionT 		exf(_exf);//we don't want to copy _exf
 		return SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
 	}
 
@@ -85,7 +85,7 @@ public:
 		Event const &_revt, ErrorConditionT &_rerr
 	){
 		ScheduleCommand		cmd(_robjptr, _rsvc, _revt);
-		ScheduleFunctorT	fct(cmd);
+		ScheduleFunctionT	fct([&cmd](ReactorBase &_rreactor){return cmd(_rreactor);});
 		
 		return doStartObject(*_robjptr, _rsvc, fct, _rerr);
 	}

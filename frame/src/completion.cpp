@@ -42,7 +42,8 @@ CompletionHandler::CompletionHandler(
 
 CompletionHandler::~CompletionHandler(){
 	unregister();
-	deactivate();
+	//Cannot call deactivate here - must be called by inheritants in their destructor.
+	//deactivate();
 }
 
 ReactorEventsE CompletionHandler::reactorEvent(ReactorContext &_rctx)const{

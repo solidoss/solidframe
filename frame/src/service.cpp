@@ -41,8 +41,7 @@ Service::~Service(){
 }
 
 void Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){
-	EventNotifierF	notifier(_revt, _sigmsk);
-	rm.forEachServiceObject(*this, notifier);
+	rm.notifyAll(*this, _revt, _sigmsk);
 }
 
 
@@ -63,7 +62,7 @@ Mutex& Service::mutex()const{
 }
 
 
-ObjectUidT Service::registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctorT &_rfct, ErrorConditionT &_rerr){
+ObjectUidT Service::registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr){
 	return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
 }
 

@@ -62,7 +62,7 @@ struct Configuration{
 	}
 	
 	bool isClient()const{
-		return !name_resolve_fnc.empty();
+		return not FUNCTION_EMPTY(name_resolve_fnc);
 	}
 	
 	bool isServerOnly()const{

@@ -54,7 +54,7 @@ public:
 protected:
 	CompletionHandler(CallbackT _pcall = &on_init_completion);
 	
-	void completionCallback(CallbackT _pcbk);
+	void completionCallback(CallbackT _pcbk = &on_dummy_completion);
 	ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
 	Reactor& reactor(ReactorContext &_rctx)const;
 	void error(ReactorContext &_rctx, ErrorConditionT const& _err)const;

@@ -33,6 +33,7 @@
 namespace solid{
 namespace frame{
 
+
 std::ostream& operator<<(std::ostream &_ros, UniqueId const& _uid){
 	_ros<<_uid.index<<':'<<_uid.unique;
 	return _ros;
@@ -274,18 +275,6 @@ struct Manager::Data{
 	
 };
 
-
-bool EventNotifierF::operator()(ObjectBase &_robj, ReactorBase &_rreact){
-	Event tmpevt(evt);
-	
-	if(!sigmsk || _robj.notify(sigmsk)){
-		return _rreact.raise(_robj.runId(), tmpevt);
-	}
-	return false;
-}
-
-
-
 Manager::Data::Data(
 	Manager &_rm
 ):crtsvcstoreidx(0), crtsvcidx(0), svccnt(0), crtobjstoreidx(0), maxobjcnt(0),  state(StateRunningE)
@@ -301,6 +290,19 @@ Manager::Data::~Data(){
 	for(auto it = rchdq.begin(); it != rchdq.end(); ++it){
 		delete [](*it)->data();
 	}
+}
+
+
+/*static*/ inline bool Manager::notify_object(
+	ObjectBase &_robj, ReactorBase &_rreact,
+	Event const &_revt, const size_t _sigmsk
+){
+	Event tmpevt(_revt);
+	
+	if(!_sigmsk || _robj.notify(_sigmsk)){
+		return _rreact.raise(_robj.runId(), tmpevt);
+	}
+	return false;
 }
 
 Manager::Manager(
@@ -614,15 +616,27 @@ void Manager::disableObjectVisits(ObjectBase &_robj){
 	}
 }
 
-bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _sigmsk/* = 0*/){
+bool Manager::notify(ObjectUidT const &_ruid, Event const &_revt, const size_t _sigmsk/* = 0*/){
 	
-	EventNotifierF			notifier(_re, _sigmsk);
-	ObjectVisitFunctorT		f(notifier);
+	ObjectVisitFunctionT	f(
+		[_revt, _sigmsk](ObjectBase &_robj, ReactorBase &_rreact){
+			return notify_object(_robj, _rreact, _revt, _sigmsk);
+		}
+	);
 	
 	return doVisit(_ruid, f);
 }
 
-bool Manager::doVisit(ObjectUidT const &_ruid, ObjectVisitFunctorT &_fctor){
+bool Manager::notifyAll(const Service &_rsvc, Event const & _revt, const size_t _sigmsk){
+	ObjectVisitFunctionT	f(
+		[_revt, _sigmsk](ObjectBase &_robj, ReactorBase &_rreact){
+			return notify_object(_robj, _rreact, _revt, _sigmsk);
+		}
+	);
+	return doForEachServiceObject(_rsvc, f);
+}
+
+bool Manager::doVisit(ObjectUidT const &_ruid, ObjectVisitFunctionT &_rfct){
 	bool	retval = false;
 	if(_ruid.index < d.maxobjcnt){
 		const size_t		objstoreidx = d.aquireReadObjectStore();
@@ -632,7 +646,7 @@ bool Manager::doVisit(ObjectUidT const &_ruid, ObjectVisitFunctorT &_fctor){
 			ObjectStub const 	&ros(d.object(objstoreidx, _ruid.index));
 			
 			if(ros.unique == _ruid.unique && ros.pobject && ros.preactor){
-				retval = _fctor(*ros.pobject, *ros.preactor);
+				retval = _rfct(*ros.pobject, *ros.preactor);
 			}
 		}
 		d.releaseReadObjectStore(objstoreidx);
@@ -691,7 +705,7 @@ Mutex& Manager::mutex(const Service &_rsvc)const{
 }
 
 
-bool Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor){
+bool Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctionT &_rfct){
 	if(!_rsvc.isRegistered()){
 		return false;
 	}
@@ -708,10 +722,10 @@ bool Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &
 		d.releaseReadServiceStore(svcstoreidx);
 	}
 	
-	return doForEachServiceObject(chkidx, _fctor);
+	return doForEachServiceObject(chkidx, _rfct);
 }
 
-bool Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitFunctorT &_fctor){
+bool Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitFunctionT &_rfct){
 	
 	size_t	crtchkidx = _chkidx;
 	bool	retval = false;
@@ -730,7 +744,7 @@ bool Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitF
 
 		for(size_t i(0), cnt(0); i < d.objchkcnt && cnt < rchk.objcnt; ++i){
 			if(poss[i].pobject && poss[i].preactor){
-				_fctor(*poss[i].pobject, *poss[i].preactor);
+				_rfct(*poss[i].pobject, *poss[i].preactor);
 				retval = true;
 				++cnt;
 			}
@@ -802,9 +816,12 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 		return;
 	}
 	if(rss.state == StateRunningE){
-		EventNotifierF		evtntf(EventCategory::create(EventCategory::KillE));
-		ObjectVisitFunctorT fctor(evtntf);
-		const bool		any = doForEachServiceObject(rss.firstchk, fctor);
+		ObjectVisitFunctionT	fctor(
+			[](ObjectBase &_robj, ReactorBase &_rreact){
+				return notify_object(_robj, _rreact, EventCategory::create(EventCategory::KillE), 0);
+			}
+		);
+		const bool				any = doForEachServiceObject(rss.firstchk, fctor);
 		if(!any){
 			rss.state = StateStoppedE;
 			return;
@@ -848,9 +865,12 @@ void Manager::stop(){
 		Locker<Mutex>	lock(rss.rmtx);
 		
 		if(rss.psvc && rss.state == StateRunningE){
-			EventNotifierF		evtntf(EventCategory::create(EventCategory::KillE));
-			ObjectVisitFunctorT fctor(evtntf);
-			const bool			any = doForEachServiceObject(rss.firstchk, fctor);
+			ObjectVisitFunctionT	fctor(
+				[](ObjectBase &_robj, ReactorBase &_rreact){
+					return notify_object(_robj, _rreact, EventCategory::create(EventCategory::KillE), 0);
+				}
+			);
+			const bool				any = doForEachServiceObject(rss.firstchk, fctor);
 			
 			rss.state = any ? StateStoppingE : StateStoppedE;
 		}
