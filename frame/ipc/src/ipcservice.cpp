@@ -583,7 +583,7 @@ void Service::onConnectionClose(Connection &_rcon, ObjectUidT const &_robjuid){
 			//move all pending messages to _rcon for completion
 			while(rconpool.msgq.size()){
 				MessageStub &rms = rconpool.msgq.front();
-				_rcon.msgq.push(Connection::MessageStub(rms.msgptr, rms.msg_type_idx, rms.flags));
+				_rcon.directPushMessage(rms.msgptr, rms.msg_type_idx, rms.flags);
 				rconpool.msgq.pop();
 			}
 		}

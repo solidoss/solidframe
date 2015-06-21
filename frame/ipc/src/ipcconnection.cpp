@@ -131,8 +131,15 @@ bool Connection::pushMessage(
 ){
 	idbgx(Debug::ipc, this->id()<<" crtpushvecidx = "<<crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
-	incomingmsgvec[crtpushvecidx].push_back(IncomingMessageStub(_rmsgptr, _msg_type_idx, _flags));
-	return incomingmsgvec[crtpushvecidx].size() == 1;
+	sendmsgvec[crtpushvecidx].push_back(PendingSendMessageStub(_rmsgptr, _msg_type_idx, _flags));
+	return sendmsgvec[crtpushvecidx].size() == 1;
+}
+void Connection::directPushMessage(
+	MessagePointerT &_rmsgptr,
+	const size_t _msg_type_idx,
+	ulong _flags
+){
+	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _flags);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isActive()const{
@@ -225,13 +232,17 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 			
 			idbgx(Debug::ipc, this->id()<<" Session message");
 			
-			if(incomingmsgvec[crtpushvecidx].size()){
+			if(sendmsgvec[crtpushvecidx].size()){
 				vecidx = crtpushvecidx;
 				crtpushvecidx += 1;
 				crtpushvecidx %= 2;
 			}
 		}
-		doMoveIncommingMessagesToQueue(vecidx);
+		
+		if(vecidx < 2){
+			msgwriter.enqueue(sendmsgvec[vecidx]);
+			sendmsgvec[vecidx].clear();
+		}
 	}
 }
 //-----------------------------------------------------------------------------
@@ -268,10 +279,6 @@ void Connection::doCompleteAllMessages(
 	//TODO:
 }
 //-----------------------------------------------------------------------------
-void Connection::doSend(frame::aio::ReactorContext &_rctx){
-	
-}
-//-----------------------------------------------------------------------------
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
 	Connection			&rthis = static_cast<Connection&>(_rctx.object());
 	ConnectionContext	conctx(rthis.service(_rctx), rthis);
@@ -285,9 +292,16 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 			rthis.receivebufoff += _sz;
 			pbuf = rthis.recvbuf + rthis.consumebufoff;
 			bufsz = rthis.receivebufoff - rthis.consumebufoff;
-			//rthis.consumebufoff += msgreader.read(pbuf, bufsz, conctx);
+			ErrorConditionT		error;
+			//rthis.consumebufoff += msgreader.read(pbuf, bufsz, conctx, error);
+			
+			if(error){
+				edbgx(Debug::ipc, rthis.id()<<" parsing "<<error.message());
+				rthis.doStop(_rctx, error);
+				break;
+			}
 		}else{
-			idbgx(Debug::ipc, rthis.id()<<" error: "<<_rctx.error().message());
+			edbgx(Debug::ipc, rthis.id()<<" receiving "<<_rctx.error().message());
 			rthis.doStop(_rctx, _rctx.error());
 			break;
 		}
@@ -304,8 +318,46 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	}
 }
 //-----------------------------------------------------------------------------
+void Connection::doSend(frame::aio::ReactorContext &_rctx){
+	if(!sock.hasPendingSend()){
+		ConnectionContext	conctx(service(_rctx), *this);
+		unsigned 			repeatcnt = 4;
+		ErrorConditionT		error;
+		
+		while(repeatcnt){
+			
+			uint16 sz = msgwriter.write(sendbuf, sendbufcp, conctx, error);
+			
+			if(!error){
+				if(sock.sendAll(_rctx, sendbuf, sz, Connection::onSend)){
+					if(_rctx.error()){
+						edbgx(Debug::ipc, id()<<" sending "<<_rctx.error().message());
+						doStop(_rctx, _rctx.error());
+					}
+				}else{
+					break;
+				}
+			}else{
+				edbgx(Debug::ipc, id()<<" storring "<<error.message());
+				doStop(_rctx, error);
+				break;
+			}
+			--repeatcnt;
+		}
+		if(repeatcnt == 0){
+			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
+		}
+	}
+}
+//-----------------------------------------------------------------------------
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	if(!_rctx.error()){
+		rthis.doSend(_rctx);
+	}else{
+		edbgx(Debug::ipc, rthis.id()<<" sending "<<_rctx.error().message());
+		rthis.doStop(_rctx, _rctx.error());
+	}
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
@@ -314,22 +366,10 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		idbgx(Debug::ipc, rthis.id());
 		rthis.doStart(_rctx, false);
 	}else{
-		idbgx(Debug::ipc, rthis.id()<<" error: "<<_rctx.error().message());
+		edbgx(Debug::ipc, rthis.id()<<" connecting "<<_rctx.error().message());
 		rthis.doStop(_rctx, _rctx.error());
 	}
 }
-//-----------------------------------------------------------------------------
-void Connection::doMoveIncommingMessagesToQueue(const size_t _vecidx){
-	if(_vecidx < 2){
-		IncomingMessageVectorT &riv(incomingmsgvec[_vecidx]);
-		
-		for(auto it = riv.begin(); it != riv.end(); ++it){
-			msgq.push(MessageStub(it->msgptr, it->msg_type_idx, it->flags));
-		}
-		riv.clear();
-	}
-}
-
 //=============================================================================
 //-----------------------------------------------------------------------------
 SocketDevice const & ConnectionContext::device()const{

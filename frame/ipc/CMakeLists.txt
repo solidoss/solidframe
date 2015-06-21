@@ -4,6 +4,8 @@ set(Sources
 	src/ipclistener.cpp
 	src/ipcconnection.cpp
 	src/ipcconfiguration.cpp
+	src/ipcmessagereader.cpp
+	src/ipcmessagewriter.cpp
 )
 
 set(Headers
@@ -14,6 +16,8 @@ set(Headers
 	src/ipclistener.hpp
 	src/ipcconnection.hpp
 	src/ipcutility.hpp
+	src/ipcmessagereader.hpp
+	src/ipcmessagewriter.hpp
 )
 
 set(Inlines

@@ -20,8 +20,10 @@
 #include "frame/aio/aiosocket.hpp"
 #include "frame/aio/aiotimer.hpp"
 
-#include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
+
+#include "ipcmessagereader.hpp"
+#include "ipcmessagewriter.hpp"
 
 namespace solid{
 namespace frame{
@@ -72,6 +74,12 @@ public:
 		ulong _flags
 	);
 	
+	void directPushMessage(
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		ulong _flags
+	);
+	
 	bool isActive()const;
 	bool isStopping()const;
 	
@@ -91,9 +99,6 @@ private:
 	void doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming);
 	
 	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
-	
-	void doMoveIncommingMessagesToQueue(const size_t _vecidx);
-	
 	
 	void doSend(frame::aio::ReactorContext &_rctx);
 	
@@ -117,52 +122,27 @@ private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;
 	
-	struct MessageStub{
-		MessageStub(
-			MessagePointerT &_rmsgptr,
-			const size_t _msg_type_idx,
-			ulong _flags
-		): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), flags(_flags){}
-		
-		MessagePointerT msgptr;
-		const size_t	msg_type_idx;
-		ulong			flags;
-	};
+	ConnectionPoolUid			conpoolid;
+	PendingSendMessageVectorT	sendmsgvec[2];
+	StreamSocketT				sock;
+	TimerT						timer;
 	
-	typedef Queue<MessageStub>							MessageQueueT;
+	uint8						crtpushvecidx;
+	uint8						state;
 	
-	struct IncomingMessageStub{
-		IncomingMessageStub(
-			MessagePointerT &_rmsgptr,
-			const size_t _msg_type_idx,
-			ulong _flags
-		): msgptr(_rmsgptr), msg_type_idx(_msg_type_idx), flags(_flags){}
-		
-		MessagePointerT		msgptr;
-		const size_t		msg_type_idx;
-		ulong				flags;
-	};
+	uint16						receivebufoff;
+	uint16						consumebufoff;
 	
-	typedef std::vector<IncomingMessageStub>			IncomingMessageVectorT;
+	uint16						recvbufcp;
+	uint16						sendbufcp;
 	
-	ConnectionPoolUid		conpoolid;
-	IncomingMessageVectorT	incomingmsgvec[2];
-	StreamSocketT			sock;
-	TimerT					timer;
-	MessageQueueT			msgq;
-	uint8					crtpushvecidx;
-	uint8					state;
+	char						*recvbuf;
+	char						*sendbuf;
 	
-	uint16					receivebufoff;
-	uint16					consumebufoff;
+	MessageReader				msgreader;
+	MessageWriter				msgwriter;
 	
-	uint16					recvbufcp;
-	uint16					sendbufcp;
-	
-	char					*recvbuf;
-	char					*sendbuf;
-	
-	HolderT					hldr;
+	HolderT						hldr;
 };
 
 inline HolderT& Connection::holder(){
