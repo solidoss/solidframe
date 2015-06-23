@@ -80,7 +80,7 @@ namespace{
 	void on_receive(FirstMessage const &_rmsg);
 }
 
-struct InitMessage: Dynamic<FirstMessage, frame::ipc::Message>{
+struct InitMessage: Dynamic<InitMessage, frame::ipc::Message>{
 	std::string		port;
 	
 	InitMessage(std::string const &_port):port(_port){}

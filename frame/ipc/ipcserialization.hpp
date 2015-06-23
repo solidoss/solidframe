@@ -32,9 +32,9 @@ struct TypeStub{
 	MessageCompleteFunctionT	complete_fnc;
 };
 
-typedef serialization::binary::Serializer<ConnectionContext>						SerializerT;
-typedef serialization::binary::Deserializer<ConnectionContext>						DeserializerT;
-typedef serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>				TypeIdMapT;
+typedef serialization::binary::Serializer<ConnectionContext>							SerializerT;
+typedef serialization::binary::Deserializer<ConnectionContext>							DeserializerT;
+typedef serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>					TypeIdMapT;
 
 }//namespace ipc
 }//namespace frame

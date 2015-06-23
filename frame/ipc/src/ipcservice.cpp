@@ -543,7 +543,7 @@ void Service::activateConnectionComplete(Connection &_rcon){
 	--rconpool.pending_connection_count;
 }
 //-----------------------------------------------------------------------------
-void Service::onConnectionClose(Connection &_rcon, ObjectUidT const &_robjuid){
+void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectUidT const &_robjuid){
 	if(_rcon.conpoolid.isValid()){
 		Locker<Mutex>		lock(d.mtx);
 		Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
@@ -583,7 +583,7 @@ void Service::onConnectionClose(Connection &_rcon, ObjectUidT const &_robjuid){
 			//move all pending messages to _rcon for completion
 			while(rconpool.msgq.size()){
 				MessageStub &rms = rconpool.msgq.front();
-				_rcon.directPushMessage(rms.msgptr, rms.msg_type_idx, rms.flags);
+				_rcon.directPushMessage(_rctx, rms.msgptr, rms.msg_type_idx, rms.flags);
 				rconpool.msgq.pop();
 			}
 		}

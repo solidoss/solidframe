@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "ipcmessagewriter.hpp"
-#include "frame/ipc/ipccontext.hpp"
+#include "frame/ipc/ipcconfiguration.hpp"
 
 namespace solid{
 namespace frame{
@@ -18,20 +18,48 @@ MessageWriter::MessageWriter(){}
 //-----------------------------------------------------------------------------
 MessageWriter::~MessageWriter(){}
 //-----------------------------------------------------------------------------
-void MessageWriter::enqueue(PendingSendMessageVectorT const& _rmsgvec){
-	
-}
-//-----------------------------------------------------------------------------
+// Needs:
+// max prequeue size
+// max multiplexed message count
+// max waiting message count
+// function message_complete
+//
 void MessageWriter::enqueue(
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
-	ulong _flags
+	ulong _flags,
+	Configuration const &_rconfig,
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx
 ){
 	
 }
 //-----------------------------------------------------------------------------
-uint16 MessageWriter::write(const char *_pbuf, uint16 _bufsz, ConnectionContext &_rctx, ErrorConditionT &_rerror){
+// Does:
+// prepare message
+// serialize messages on buffer
+// completes messages - those that do not need wait for response
+// keeps a serializer for every message that is multiplexed
+// compress the filled buffer
+// 
+// Needs:
+// 
+// 
+uint16 MessageWriter::write(
+	const char *_pbuf, uint16 _bufsz,
+	Configuration const &_rconfig,
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx, ErrorConditionT &_rerror
+){
 	return 0;
+}
+//-----------------------------------------------------------------------------
+void MessageWriter::completeMessage(
+	MessageUid const &_rmsguid,
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx
+){
+	
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

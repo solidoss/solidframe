@@ -135,11 +135,15 @@ bool Connection::pushMessage(
 	return sendmsgvec[crtpushvecidx].size() == 1;
 }
 void Connection::directPushMessage(
+	frame::aio::ReactorContext &_rctx,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
 	ulong _flags
 ){
-	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _flags);
+	ConnectionContext	conctx(service(_rctx), *this);
+	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
+	const Configuration &rconfig  = service(_rctx).configuration();
+	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _flags, rconfig, rtypemap, conctx);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isActive()const{
@@ -151,13 +155,13 @@ bool Connection::isStopping()const{
 }
 //-----------------------------------------------------------------------------
 void Connection::doPrepare(frame::aio::ReactorContext &_rctx){
-	recvbuf = service(_rctx).configuration().allocate_recv_buffer_fnc(recvbufcp);
-	sendbuf = service(_rctx).configuration().allocate_send_buffer_fnc(sendbufcp);
+	recvbuf = service(_rctx).configuration().allocateRecvBuffer();
+	sendbuf = service(_rctx).configuration().allocateSendBuffer();
 }
 //-----------------------------------------------------------------------------
 void Connection::doUnprepare(frame::aio::ReactorContext &_rctx){
-	service(_rctx).configuration().free_recv_buffer_fnc(recvbuf);
-	service(_rctx).configuration().free_send_buffer_fnc(sendbuf);
+	service(_rctx).configuration().freeRecvBuffer(recvbuf);
+	service(_rctx).configuration().freeSendBuffer(sendbuf);
 }
 //-----------------------------------------------------------------------------
 void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming){
@@ -177,7 +181,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	);
 	
 	//start receiving messages
-	sock.postRecvSome(_rctx, recvbuf, recvbufcp, Connection::onRecv);
+	sock.postRecvSome(_rctx, recvbuf, service(_rctx).configuration().recv_buffer_capacity, Connection::onRecv);
 }
 //-----------------------------------------------------------------------------
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
@@ -187,7 +191,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	postStop(_rctx);//there might be events pending which will be delivered, but after this call
 					//no event get posted
 	
-	service(_rctx).onConnectionClose(*this, objuid);
+	service(_rctx).onConnectionClose(*this, _rctx, objuid);
 	
 	doCompleteAllMessages(_rctx);
 	
@@ -240,8 +244,17 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		}
 		
 		if(vecidx < 2){
-			msgwriter.enqueue(sendmsgvec[vecidx]);
-			sendmsgvec[vecidx].clear();
+			ConnectionContext				conctx(service(_rctx), *this);
+			const TypeIdMapT				&rtypemap = service(_rctx).typeMap();
+			const Configuration 			&rconfig  = service(_rctx).configuration();
+			
+			PendingSendMessageVectorT 		&rsendmsgvec = sendmsgvec[vecidx];
+			
+			for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
+				msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->flags, rconfig, rtypemap, conctx);
+			}
+			
+			rsendmsgvec.clear();
 		}
 	}
 }
@@ -266,7 +279,7 @@ void Connection::doActivate(
 	}else{
 		ObjectUidT			objuid;
 		
-		service(_rctx).onConnectionClose(*this, objuid);
+		service(_rctx).onConnectionClose(*this, _rctx, objuid);
 		
 		doCompleteAllMessages(_rctx);
 	}
@@ -282,10 +295,14 @@ void Connection::doCompleteAllMessages(
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
 	Connection			&rthis = static_cast<Connection&>(_rctx.object());
 	ConnectionContext	conctx(rthis.service(_rctx), rthis);
+	const TypeIdMapT	&rtypemap = rthis.service(_rctx).typeMap();
+	const Configuration &rconfig  = rthis.service(_rctx).configuration();
 	
 	unsigned			repeatcnt = 4;
 	char				*pbuf;
 	size_t				bufsz;
+	
+	const uint16		recvbufcp = rthis.service(_rctx).configuration().recv_buffer_capacity;
 	
 	do{
 		if(!_rctx.error()){
@@ -293,7 +310,7 @@ void Connection::doCompleteAllMessages(
 			pbuf = rthis.recvbuf + rthis.consumebufoff;
 			bufsz = rthis.receivebufoff - rthis.consumebufoff;
 			ErrorConditionT		error;
-			//rthis.consumebufoff += msgreader.read(pbuf, bufsz, conctx, error);
+			rthis.consumebufoff += rthis.msgreader.read(pbuf, bufsz, rconfig, rtypemap, conctx, error);
 			
 			if(error){
 				edbgx(Debug::ipc, rthis.id()<<" parsing "<<error.message());
@@ -308,7 +325,7 @@ void Connection::doCompleteAllMessages(
 		--repeatcnt;
 		rthis.doOptimizeRecvBuffer();
 		pbuf = rthis.recvbuf + rthis.receivebufoff;
-		bufsz =  rthis.recvbufcp - rthis.receivebufoff;
+		bufsz =  recvbufcp - rthis.receivebufoff;
 	}while(repeatcnt && rthis.sock.recvSome(_rctx, pbuf, bufsz, Connection::onRecv, _sz));
 	
 	if(repeatcnt == 0){
@@ -323,10 +340,13 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		ConnectionContext	conctx(service(_rctx), *this);
 		unsigned 			repeatcnt = 4;
 		ErrorConditionT		error;
+		const uint16		sendbufcp = service(_rctx).configuration().send_buffer_capacity;
+		const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
+		const Configuration &rconfig  = service(_rctx).configuration();
 		
 		while(repeatcnt){
 			
-			uint16 sz = msgwriter.write(sendbuf, sendbufcp, conctx, error);
+			uint16 sz = msgwriter.write(sendbuf, sendbufcp, rconfig, rtypemap, conctx, error);
 			
 			if(!error){
 				if(sock.sendAll(_rctx, sendbuf, sz, Connection::onSend)){

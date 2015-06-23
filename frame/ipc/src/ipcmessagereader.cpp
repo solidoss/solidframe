@@ -10,6 +10,7 @@
 #include "ipcmessagereader.hpp"
 #include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
+#include "frame/ipc/ipcconfiguration.hpp"
 
 
 namespace solid{
@@ -25,7 +26,14 @@ MessageReader::~MessageReader(){
 	
 }
 //-----------------------------------------------------------------------------
-uint16 MessageReader::read(const char *_pbuf, uint16 _bufsz, ConnectionContext &_rctx, ErrorConditionT &_rerror){
+uint16 MessageReader::read(
+	const char *_pbuf,
+	uint16 _bufsz,
+	Configuration const &_rconfig,
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx,
+	ErrorConditionT &_rerror
+){
 	return 0;
 }
 //-----------------------------------------------------------------------------

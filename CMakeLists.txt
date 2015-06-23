@@ -362,10 +362,8 @@ link_directories(
 #-----------------------------------------------------------------
 # Testing support (CTest & CDash)
 #-----------------------------------------------------------------
-if(UTESTING)
-	INCLUDE(CTest)
-	ENABLE_TESTING()
-endif(UTESTING)
+INCLUDE(CTest)
+ENABLE_TESTING()
 
 #-----------------------------------------------------------------
 # Project subdirectories

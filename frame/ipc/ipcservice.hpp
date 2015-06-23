@@ -12,14 +12,19 @@
 
 #include "system/function.hpp"
 #include "system/exception.hpp"
-#include "serialization/binary.hpp"
 
 #include "frame/service.hpp"
 #include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
+#include "frame/ipc/ipcserialization.hpp"
 
 namespace solid{
 namespace frame{
+
+namespace aio{
+struct ReactorContext;
+}//namespace aio
+
 namespace ipc{
 
 struct Message;
@@ -34,7 +39,6 @@ enum SendFlags{
 //! Inter Process Communication service
 /*!
 	Allows exchanging ipc::Messages between processes.
-	<br>
 */
 class Service: public Dynamic<Service, frame::Service>{
 	typedef FUNCTION<std::pair<MessagePointerT, uint32>(ErrorConditionT const &)>		ActivateConnectionMessageFactoryFunctionT;
@@ -123,21 +127,6 @@ private:
 	friend class Listener;
 	friend class Connection;
 	
-	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &)>							MessageReceiveFunctionT;
-	typedef FUNCTION<void(ConnectionContext &, MessagePointerT &, ErrorConditionT const &)>	MessageCompleteFunctionT;
-	typedef FUNCTION<uint32(ConnectionContext &, Message const &)>							MessagePrepareFunctionT;
-	
-	struct TypeStub{
-		MessagePrepareFunctionT		prepare_fnc;
-		MessageReceiveFunctionT		receive_fnc;
-		MessageCompleteFunctionT	complete_fnc;
-	};
-	
-	typedef serialization::binary::Serializer<ConnectionContext>						SerializerT;
-	typedef serialization::binary::Deserializer<ConnectionContext>						DeserializerT;
-	typedef serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>				TypeIdMapT;
-	
-	
 	void acceptIncomingConnection(SocketDevice &_rsd);
 	
 	ErrorConditionT doActivateConnection(
@@ -149,7 +138,7 @@ private:
 	
 	void activateConnectionComplete(Connection &_rcon);
 	
-	void onConnectionClose(Connection &_rcon, ObjectUidT const &_robjuid);
+	void onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectUidT const &_robjuid);
 	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);

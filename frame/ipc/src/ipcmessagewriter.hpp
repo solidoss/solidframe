@@ -16,43 +16,42 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
-#include "frame/ipc/ipcmessage.hpp"
+#include "frame/ipc/ipcserialization.hpp"
+
 
 
 namespace solid{
 namespace frame{
 namespace ipc{
 
-
-struct PendingSendMessageStub{
-	PendingSendMessageStub(
-		MessagePointerT &_rmsgptr,
-		const size_t _msg_type_idx,
-		ulong _flags
-	): msgptr(_rmsgptr), msg_type_idx(_msg_type_idx), flags(_flags){}
-	
-	MessagePointerT		msgptr;
-	const size_t		msg_type_idx;
-	ulong				flags;
-};
-
-typedef std::vector<PendingSendMessageStub>			PendingSendMessageVectorT;
+struct Configuration;
 
 class MessageWriter{
 public:
 	MessageWriter();
 	~MessageWriter();
-	void enqueue(PendingSendMessageVectorT const& _rmsgvec);
+	
 	void enqueue(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
-		ulong _flags
+		ulong _flags,
+		Configuration const &_rconfig,
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx
 	);
+	
 	uint16 write(
 		const char *_pbuf,
 		uint16 _bufsz,
+		Configuration const &_rconfig,
+		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
+	);
+	void completeMessage(
+		MessageUid const &_rmsguid,
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx
 	);
 private:
 	struct MessageStub{

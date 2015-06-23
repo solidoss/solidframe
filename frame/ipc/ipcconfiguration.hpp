@@ -41,7 +41,7 @@ typedef FUNCTION<void(AddressVectorT &)>									ResolveCompleteFunctionT;
 typedef FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>		AsyncResolveFunctionT;
 typedef FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>			ConnectionStopFunctionT;
 typedef FUNCTION<void(ConnectionContext &)>									ConnectionStartFunctionT;
-typedef FUNCTION<char*(uint16 &)>											AllocateBufferFunctionT;
+typedef FUNCTION<char*(const uint16)>										AllocateBufferFunctionT;
 typedef FUNCTION<void(char*)>												FreeBufferFunctionT;
 
 struct Configuration{
@@ -73,9 +73,18 @@ struct Configuration{
 		return !isServer() && isClient();
 	}
 	
+	char* allocateRecvBuffer()const;
+	void freeRecvBuffer(char *_pb)const;
+	
+	char* allocateSendBuffer()const;
+	void freeSendBuffer(char *_pb)const;
+	
 	AioSchedulerT				*psch;
 	size_t						max_per_pool_connection_count;
 	size_t						session_mutex_count;
+	
+	uint16						recv_buffer_capacity;
+	uint16						send_buffer_capacity;
 	
 	MessageRegisterFunctionT	message_register_fnc;
 	AsyncResolveFunctionT		name_resolve_fnc;

@@ -13,6 +13,7 @@ set(Headers
 	ipcservice.hpp
 	ipcmessage.hpp
 	ipcconfiguration.hpp
+	ipcserialization.hpp
 	src/ipclistener.hpp
 	src/ipcconnection.hpp
 	src/ipcutility.hpp
@@ -27,3 +28,5 @@ add_library (solid_frame_ipc
 	${Sources} ${Headers} ${Inlines}
 )
 
+
+add_subdirectory(test)

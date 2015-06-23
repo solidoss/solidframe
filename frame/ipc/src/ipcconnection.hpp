@@ -75,6 +75,7 @@ public:
 	);
 	
 	void directPushMessage(
+		frame::aio::ReactorContext &_rctx,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ulong _flags
@@ -121,6 +122,20 @@ private:
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;
+	
+	struct PendingSendMessageStub{
+		PendingSendMessageStub(
+			MessagePointerT &_rmsgptr,
+			const size_t _msg_type_idx,
+			ulong _flags
+		): msgptr(_rmsgptr), msg_type_idx(_msg_type_idx), flags(_flags){}
+		
+		MessagePointerT		msgptr;
+		const size_t		msg_type_idx;
+		ulong				flags;
+	};
+
+	typedef std::vector<PendingSendMessageStub>			PendingSendMessageVectorT;
 	
 	ConnectionPoolUid			conpoolid;
 	PendingSendMessageVectorT	sendmsgvec[2];

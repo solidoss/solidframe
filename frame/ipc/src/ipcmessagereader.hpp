@@ -12,18 +12,28 @@
 
 #include "system/common.hpp"
 #include "system/error.hpp"
+#include "frame/ipc/ipcserialization.hpp"
 
 namespace solid{
 namespace frame{
 namespace ipc{
 
-struct ConnectionContext;
+struct Configuration;
 
 class MessageReader{
 public:
 	MessageReader();
+	
 	~MessageReader();
-	uint16 read(const char *_pbuf, uint16 _bufsz, ConnectionContext &_rctx, ErrorConditionT &_rerror);
+	
+	uint16 read(
+		const char *_pbuf,
+		uint16 _bufsz,
+		Configuration const &_rconfig,
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx,
+		ErrorConditionT &_rerror
+	);
 private:
 	
 };
