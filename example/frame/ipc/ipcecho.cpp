@@ -129,7 +129,7 @@ struct MessageHandler{
 	// * was not successfuly sent - i.e. the connection was closed before message ACK
 	
 	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorConditionT const &_rerr);
-	uint32 operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg);
+	ulong operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg);
 	
 	
 	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<InitMessage> &_rmsg);
@@ -142,7 +142,7 @@ struct MessageHandler{
 		
 	}
 	
-	uint32 operator()(frame::ipc::ConnectionContext &_rctx, InitMessage const &_rmsg){
+	ulong operator()(frame::ipc::ConnectionContext &_rctx, InitMessage const &_rmsg){
 		return _rctx.messageFlags();
 	}
 };
@@ -363,7 +363,7 @@ void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPoi
 	}
 }
 
-uint32 MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg){
+ulong MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg){
 	return _rctx.messageFlags();
 }
 

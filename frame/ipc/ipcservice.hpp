@@ -31,11 +31,6 @@ struct Message;
 class Configuration;
 class Connection;
 
-enum SendFlags{
-	SendRequestFlagE	= 1,
-	SendResponseFlagE	= 2,
-};
-
 //! Inter Process Communication service
 /*!
 	Allows exchanging ipc::Messages between processes.

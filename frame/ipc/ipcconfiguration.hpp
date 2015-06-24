@@ -83,6 +83,9 @@ struct Configuration{
 	size_t						max_per_pool_connection_count;
 	size_t						session_mutex_count;
 	
+	size_t						max_writer_multiplex_message_count;
+	size_t						max_writer_pending_message_count;
+	
 	uint16						recv_buffer_capacity;
 	uint16						send_buffer_capacity;
 	

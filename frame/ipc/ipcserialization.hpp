@@ -20,11 +20,19 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
+
+enum MessageFlags{
+	MessageRequestFlagE		= 1,
+	MessageResponseFlagE	= 2,
+	MessageSynchronousFlagE = 4,
+};
+
+
 struct ConnectionContext;
 
 typedef FUNCTION<void(ConnectionContext &, MessagePointerT &)>							MessageReceiveFunctionT;
 typedef FUNCTION<void(ConnectionContext &, MessagePointerT &, ErrorConditionT const &)>	MessageCompleteFunctionT;
-typedef FUNCTION<uint32(ConnectionContext &, Message const &)>							MessagePrepareFunctionT;
+typedef FUNCTION<ulong(ConnectionContext &, Message const &)>							MessagePrepareFunctionT;
 
 struct TypeStub{
 	MessagePrepareFunctionT		prepare_fnc;

@@ -9,10 +9,14 @@
 //
 #include "ipcmessagewriter.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
+#include "system/specific.hpp"
 
 namespace solid{
 namespace frame{
 namespace ipc{
+
+struct Serializer: public SerializerT, public SpecificObject{
+};
 //-----------------------------------------------------------------------------
 MessageWriter::MessageWriter(){}
 //-----------------------------------------------------------------------------
@@ -33,6 +37,31 @@ void MessageWriter::enqueue(
 	ConnectionContext &_rctx
 ){
 	
+	if(
+		write_q.size() < _rconfig.max_writer_multiplex_message_count or _rmsgptr.empty()
+	){
+		//put message in write_q
+		uint32		idx;
+		
+		if(cache_stk.size()){
+			idx = cache_stk.top();
+			cache_stk.pop();
+		}else{
+			idx = message_vec.size();
+			message_vec.push_back(MessageStub()); 
+		}
+		
+		MessageStub		&rmsgstub(message_vec[idx]);
+		rmsgstub.flags = _flags;
+		rmsgstub.msg_type_idx = _msg_type_idx;
+		rmsgstub.msgptr = std::move(_rmsgptr);
+		
+		write_q.push(WriteStub(idx));
+	}else if(_rconfig.max_writer_pending_message_count == 0 or pending_message_q.size() < _rconfig.max_writer_pending_message_count){
+		pending_message_q.push(PendingMessageStub(_rmsgptr, _msg_type_idx, _flags));
+	}else{
+		//fail to enqueue message
+	}
 }
 //-----------------------------------------------------------------------------
 // Does:

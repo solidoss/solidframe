@@ -26,6 +26,8 @@ namespace ipc{
 
 struct Configuration;
 
+struct Serializer;
+
 class MessageWriter{
 public:
 	MessageWriter();
@@ -54,8 +56,8 @@ public:
 		ConnectionContext &_rctx
 	);
 private:
-	struct MessageStub{
-		MessageStub(
+	struct PendingMessageStub{
+		PendingMessageStub(
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
 			ulong _flags
@@ -65,8 +67,41 @@ private:
 		const size_t	msg_type_idx;
 		ulong			flags;
 	};
-	typedef Queue<MessageStub>							MessageQueueT;
+	
+	struct MessageStub{
+		MessageStub(
+			MessagePointerT &_rmsgptr,
+			const size_t _msg_type_idx,
+			ulong _flags
+		): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), flags(_flags){}
+		
+		MessageStub():msg_type_idx(-1), flags(-1), unique(0){}
+		
+		MessagePointerT msgptr;
+		size_t			msg_type_idx;
+		ulong			flags;
+		uint32			unique;
+	};
+	typedef Queue<PendingMessageStub>							PendingMessageQueueT;
+	typedef std::vector<MessageStub>							MessageVectorT;
+	struct WriteStub{
+		WriteStub(
+			size_t _idx = -1,
+			Serializer *_pser = nullptr
+		):idx(_idx), pserializer(_pser){}
+		
+		size_t		idx;
+		Serializer	*pserializer;
+	};
+	
+	typedef Queue<WriteStub>									WriteQueueT;
+	typedef Stack<size_t>										CacheStackT;
 private:
+	PendingMessageQueueT		pending_message_q;
+	MessageVectorT				message_vec;
+	WriteQueueT					write_q;
+	CacheStackT					cache_stk;
+	
 };
 
 
