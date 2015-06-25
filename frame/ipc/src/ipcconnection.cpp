@@ -400,6 +400,10 @@ HolderT& ConnectionContext::holder(){
 	return rconnection.holder();
 }
 //-----------------------------------------------------------------------------
+ConnectionUid	ConnectionContext::connectionId()const{
+	return ConnectionUid(rconnection.poolUid(), rservice.manager().id(rconnection));
+}
+//-----------------------------------------------------------------------------
 }//namespace ipc
 }//namespace frame
 }//namespace solid

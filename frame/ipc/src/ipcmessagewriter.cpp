@@ -58,9 +58,15 @@ void MessageWriter::enqueue(
 		
 		write_q.push(WriteStub(idx));
 	}else if(_rconfig.max_writer_pending_message_count == 0 or pending_message_q.size() < _rconfig.max_writer_pending_message_count){
+		//put the message in pending queue
 		pending_message_q.push(PendingMessageStub(_rmsgptr, _msg_type_idx, _flags));
 	}else{
-		//fail to enqueue message
+		//fail to enqueue message - complete the message
+		ErrorConditionT error;
+		error.assign(-1, error.category());//TODO:
+		_rctx.messageflags = _flags;
+		_ridmap[_msg_type_idx].complete_fnc(_rctx, _rmsgptr, error);
+		_rmsgptr.clear();
 	}
 }
 //-----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 
 set( TestSuite
-	test_protocol.cpp
+	test_protocol_basic.cpp
 )
 
 create_test_sourcelist( IpcTests test_ipc.cpp ${TestSuite})
@@ -18,6 +18,8 @@ target_link_libraries(test_ipc
 )
 
 add_test( TestProtocol test_ipc
-	test_protocol
+	test_protocol_basic
 )
-
+add_test( TestProtocol test_ipc
+	test_protocol_multi
+)

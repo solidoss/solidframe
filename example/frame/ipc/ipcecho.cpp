@@ -106,10 +106,6 @@ struct FirstMessage: Dynamic<FirstMessage, frame::ipc::Message>{
 		idbg("DELETE ---------------- "<<(void*)this);
 	}
 
-// 	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
-// 	/*virtual*/ UInt32PairT ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
-// 	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
-	
 	template <class S>
 	void serialize(S &_s, frame::ipc::ConnectionContext &_rctx){
 		_s.push(str, "data");

@@ -39,6 +39,7 @@ struct Message: Dynamic<Message>{
 	
 private:
 	friend class Service;
+	friend class TestEntryway;
 	template <class S, class T>
 	static void serialize(S &_rs, T &_rt, const char *_name){
 		_rs.push(_rt, _name);

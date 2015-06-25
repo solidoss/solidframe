@@ -85,7 +85,7 @@ public:
 	bool isStopping()const;
 	
 	HolderT& holder();
-	
+	ConnectionPoolUid const& poolUid()const;
 private:
 	friend struct ConnectionContext;
 	friend class Service;
@@ -162,6 +162,10 @@ private:
 
 inline HolderT& Connection::holder(){
 	return hldr;
+}
+
+inline ConnectionPoolUid const& Connection::poolUid()const{
+	return conpoolid;
 }
 
 }//namespace ipc

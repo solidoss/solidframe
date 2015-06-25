@@ -96,21 +96,28 @@ struct ConnectionContext{
 		return rservice;
 	}
 	
-	ConnectionUid	connectionId()const{
-		return ConnectionUid();
-	}
+	ConnectionUid	connectionId()const;
 	
 	SocketDevice const & device()const;
 	
-	uint32 messageFlags()const{
-		return 0;
+	ulong messageFlags()const{
+		return messageflags;
+	}
+	MessageUid const& messageUid()const{
+		return messageuid;
 	}
 	//! Holder to be used to keep per connection data
 	HolderT& holder();
 private:
 	friend class Connection;
+	friend class MessageWriter;
+	friend class TestEntryway;
+	
 	Service				&rservice;
 	Connection			&rconnection;
+	
+	ulong				messageflags;
+	MessageUid			messageuid;
 	
 	ConnectionContext(
 		Service &_rsrv, Connection &_rcon
