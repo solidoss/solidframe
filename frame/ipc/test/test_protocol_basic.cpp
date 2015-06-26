@@ -181,7 +181,7 @@ int test_protocol_basic(int argc, char **argv){
 	}
 	
 	while(!error){
-		uint16 bufsz = ipcmsgwriter.write(buf, bufcp, ipcconfig, ipctypemap, ipcconctx, error);
+		uint16 bufsz = ipcmsgwriter.write(buf, bufcp, false, ipcconfig, ipctypemap, ipcconctx, error);
 		if(!error){
 			ipcmsgreader.read(buf, bufsz, ipcconfig, ipctypemap, ipcconctx, error);
 		}

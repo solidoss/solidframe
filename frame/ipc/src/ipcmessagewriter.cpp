@@ -81,7 +81,7 @@ void MessageWriter::enqueue(
 // 
 // 
 uint16 MessageWriter::write(
-	const char *_pbuf, uint16 _bufsz,
+	const char *_pbuf, uint16 _bufsz, const bool _keep_alive,
 	Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx, ErrorConditionT &_rerror

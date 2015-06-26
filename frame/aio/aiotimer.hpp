@@ -74,15 +74,15 @@ public:
 	//Returns false when operation is scheduled for completion. On completion _f(...) will be called.
 	template <typename F>
 	bool waitUntil(ReactorContext &_rctx, TimeSpec const& _tm, F _f){
-		if(FUNCTION_EMPTY(f)){
+		//if(FUNCTION_EMPTY(f)){
 			f = _f;
 			this->addTimer(_rctx, _tm, storeidx);
 			return false;
-		}else{
+		//}else{
 			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
-			return true;
-		}
+		//	error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+		//	return true;
+		//}
 	}
 	void cancel(ReactorContext &_rctx){
 		doClear(_rctx);

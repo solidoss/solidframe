@@ -44,7 +44,7 @@ public:
 	
 	uint16 write(
 		const char *_pbuf,
-		uint16 _bufsz,
+		uint16 _bufsz, const bool _keep_alive, 
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,

@@ -29,6 +29,7 @@ MessageReader::~MessageReader(){
 uint16 MessageReader::read(
 	const char *_pbuf,
 	uint16 _bufsz,
+	CompleteFunctionT &_complete_fnc,
 	Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,

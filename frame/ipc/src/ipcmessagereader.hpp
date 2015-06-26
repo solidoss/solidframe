@@ -22,6 +22,12 @@ struct Configuration;
 
 class MessageReader{
 public:
+	enum Events{
+		MessageCompleteE,
+		KeepaliveCompleteE,
+	};
+	typedef FUNCTION<void(const Events, MessagePointerT const&)>	CompleteFunctionT;
+	
 	MessageReader();
 	
 	~MessageReader();
@@ -29,6 +35,7 @@ public:
 	uint16 read(
 		const char *_pbuf,
 		uint16 _bufsz,
+		CompleteFunctionT &_complete_fnc,
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,

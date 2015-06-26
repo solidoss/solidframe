@@ -83,6 +83,8 @@ public:
 	
 	bool isActive()const;
 	bool isStopping()const;
+	bool isServer()const;
+	bool shouldSendKeepalive()const;
 	
 	HolderT& holder();
 	ConnectionPoolUid const& poolUid()const;
@@ -96,6 +98,8 @@ private:
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	static void onConnect(frame::aio::ReactorContext &_rctx);
+	static void onTimerInactivity(frame::aio::ReactorContext &_rctx);
+	static void onTimerKeepalive(frame::aio::ReactorContext &_rctx);
 	
 	void doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming);
 	
@@ -113,12 +117,16 @@ private:
 	);
 	
 	void doCompleteAllMessages(
-		frame::aio::ReactorContext &_rctx
+		frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr
 	);
 	
 	void doOptimizeRecvBuffer();
 	void doPrepare(frame::aio::ReactorContext &_rctx);
 	void doUnprepare(frame::aio::ReactorContext &_rctx);
+	void doResetTimerSend(frame::aio::ReactorContext &_rctx);
+	void doResetTimerRecv(frame::aio::ReactorContext &_rctx);
+	void doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT const &_rmsgptr);
+	void doCompleteKeepalive(frame::aio::ReactorContext &_rctx);
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;
@@ -143,13 +151,10 @@ private:
 	TimerT						timer;
 	
 	uint8						crtpushvecidx;
-	uint8						state;
+	uint8						flags;
 	
 	uint16						receivebufoff;
 	uint16						consumebufoff;
-	
-	uint16						recvbufcp;
-	uint16						sendbufcp;
 	
 	char						*recvbuf;
 	char						*sendbuf;
