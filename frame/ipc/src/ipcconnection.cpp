@@ -23,6 +23,7 @@ enum Flags{
 	FlagStoppingE = 2,
 	FlagServerE = 4,
 	FlagKeepaliveE = 8,
+	FlagWaitKeepAliveTimerE = 16,
 };
 namespace{
 struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
@@ -164,6 +165,10 @@ bool Connection::shouldSendKeepalive()const{
 	return flags & FlagKeepaliveE;
 }
 //-----------------------------------------------------------------------------
+bool Connection::isWaitingKeepAliveTimer()const{
+	return flags & FlagWaitKeepAliveTimerE;
+}
+//-----------------------------------------------------------------------------
 void Connection::doPrepare(frame::aio::ReactorContext &_rctx){
 	recvbuf = service(_rctx).configuration().allocateRecvBuffer();
 	sendbuf = service(_rctx).configuration().allocateSendBuffer();
@@ -194,7 +199,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	
 	//start receiving messages
 	sock.postRecvSome(_rctx, recvbuf, config.recv_buffer_capacity, Connection::onRecv);
-	doResetTimerSend(_rctx);
+	doResetTimerStart(_rctx);
 }
 //-----------------------------------------------------------------------------
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
@@ -301,7 +306,7 @@ void Connection::doActivate(
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
+void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
 		if(config.inactivity_timeout_seconds){
@@ -309,7 +314,21 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
 		}
 	}else{//client
 		if(config.keepalive_timeout_seconds){
-			timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerKeepalive);
+			flags |= FlagWaitKeepAliveTimerE;
+			timer.waitFor(_rctx, TimeSpec(config.keepalive_timeout_seconds), onTimerKeepalive);
+		}
+	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
+	Configuration const &config = service(_rctx).configuration();
+	if(isServer()){
+		if(config.inactivity_timeout_seconds){
+			timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
+		}
+	}else{//client
+		if(config.keepalive_timeout_seconds and isWaitingKeepAliveTimer()){
+			timer.waitFor(_rctx, TimeSpec(config.keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
 }
@@ -321,8 +340,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 			timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
 		}
 	}else{//client
-		if(config.keepalive_timeout_seconds){
-			timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerKeepalive);
+		if(config.keepalive_timeout_seconds and not isWaitingKeepAliveTimer()){
+			flags |= FlagWaitKeepAliveTimerE;
+			timer.waitFor(_rctx, TimeSpec(config.keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
 }
@@ -336,8 +356,8 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	unsigned			repeatcnt = 4;
 	char				*pbuf;
 	size_t				bufsz;
-	
 	const uint16		recvbufcp = rthis.service(_rctx).configuration().recv_buffer_capacity;
+	bool				recv_something = false;
 	
 	auto				complete_lambda(
 		[&rthis, &_rctx](const MessageReader::Events _event, MessagePointerT const& _rmsgptr){
@@ -356,6 +376,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 	do{
 		if(!_rctx.error()){
+			recv_something = true;
 			rthis.receivebufoff += _sz;
 			pbuf = rthis.recvbuf + rthis.consumebufoff;
 			bufsz = rthis.receivebufoff - rthis.consumebufoff;
@@ -380,6 +401,10 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		bufsz =  recvbufcp - rthis.receivebufoff;
 	}while(repeatcnt && rthis.sock.recvSome(_rctx, pbuf, bufsz, Connection::onRecv, _sz));
 	
+	if(recv_something){
+		rthis.doResetTimerRecv(_rctx);
+	}
+	
 	if(repeatcnt == 0){
 		bool rv = rthis.sock.postRecvSome(_rctx, pbuf, bufsz, Connection::onRecv);//fully asynchronous call
 		cassert(!rv);
@@ -387,7 +412,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doSend(frame::aio::ReactorContext &_rctx){
+void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_something/* = false*/){
 	if(!sock.hasPendingSend()){
 		ConnectionContext	conctx(service(_rctx), *this);
 		unsigned 			repeatcnt = 4;
@@ -395,6 +420,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		const uint16		sendbufcp = service(_rctx).configuration().send_buffer_capacity;
 		const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 		const Configuration &rconfig  = service(_rctx).configuration();
+		bool				sent_something = _sent_something;
 		
 		doResetTimerSend(_rctx);
 		
@@ -407,6 +433,8 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 					if(_rctx.error()){
 						edbgx(Debug::ipc, id()<<" sending "<<_rctx.error().message());
 						doStop(_rctx, _rctx.error());
+					}else{
+						sent_something = true;
 					}
 				}else{
 					break;
@@ -418,11 +446,15 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 			}
 			--repeatcnt;
 		}
+		
+		if(sent_something){
+			doResetTimerSend(_rctx);
+		}
+		
 		if(repeatcnt == 0){
 			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 		}
-	}else if(shouldSendKeepalive()){
-		flags &= (~FlagKeepaliveE);
+		
 	}
 }
 //-----------------------------------------------------------------------------
@@ -437,14 +469,15 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	cassert(not rthis.isServer());
 	rthis.flags |= FlagKeepaliveE;
+	rthis.flags &= (~FlagWaitKeepAliveTimerE);
 	rthis.post(_rctx, [&rthis](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){rthis.doSend(_rctx);});
 	
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
-	//rthis.doResetTimerSend(_rctx);
 	if(!_rctx.error()){
+		rthis.doResetTimerSend(_rctx);
 		rthis.doSend(_rctx);
 	}else{
 		edbgx(Debug::ipc, rthis.id()<<" sending "<<_rctx.error().message());

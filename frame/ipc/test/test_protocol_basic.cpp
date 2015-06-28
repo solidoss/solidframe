@@ -180,10 +180,26 @@ int test_protocol_basic(int argc, char **argv){
 		ipcmsgwriter.enqueue(msgptr, ipctypemap.index(msgptr.get()), initarray[crtwriteidx % initarraysize].flags, ipcconfig, ipctypemap, ipcconctx);
 	}
 	
+	
+	auto				complete_lambda(
+		[](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT const& _rmsgptr){
+			switch(_event){
+				case frame::ipc::MessageReader::MessageCompleteE:
+					idbg("complete message");
+					break;
+				case frame::ipc::MessageReader::KeepaliveCompleteE:
+					idbg("complete keepalive");
+					break;
+			}
+		}
+	);
+	
 	while(!error){
 		uint16 bufsz = ipcmsgwriter.write(buf, bufcp, false, ipcconfig, ipctypemap, ipcconctx, error);
 		if(!error){
-			ipcmsgreader.read(buf, bufsz, ipcconfig, ipctypemap, ipcconctx, error);
+			frame::ipc::MessageReader::CompleteFunctionT	completefnc(std::cref(complete_lambda));
+			
+			ipcmsgreader.read(buf, bufsz, completefnc, ipcconfig, ipctypemap, ipcconctx, error);
 		}
 	}
 	

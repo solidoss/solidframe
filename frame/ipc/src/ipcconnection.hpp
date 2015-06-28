@@ -85,6 +85,7 @@ public:
 	bool isStopping()const;
 	bool isServer()const;
 	bool shouldSendKeepalive()const;
+	bool isWaitingKeepAliveTimer()const;
 	
 	HolderT& holder();
 	ConnectionPoolUid const& poolUid()const;
@@ -105,7 +106,7 @@ private:
 	
 	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 	
-	void doSend(frame::aio::ReactorContext &_rctx);
+	void doSend(frame::aio::ReactorContext &_rctx, const bool _sent_something = false);
 	
 	SocketDevice const & device()const{
 		return sock.device();
@@ -123,6 +124,7 @@ private:
 	void doOptimizeRecvBuffer();
 	void doPrepare(frame::aio::ReactorContext &_rctx);
 	void doUnprepare(frame::aio::ReactorContext &_rctx);
+	void doResetTimerStart(frame::aio::ReactorContext &_rctx);
 	void doResetTimerSend(frame::aio::ReactorContext &_rctx);
 	void doResetTimerRecv(frame::aio::ReactorContext &_rctx);
 	void doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT const &_rmsgptr);
