@@ -34,6 +34,61 @@ struct SocketAddressEqual{
 	}
 };
 
+struct PacketHeader{
+	enum {
+        SizeOfE = 4,
+    };
+	enum Types{
+		DataTypeE = 1,
+		KeepAliveTypeE = 2,
+	};
+	enum Flags{
+		CompressedFlagE = 1,
+	};
+	
+	PacketHeader(
+		const uint8 _type = 0,
+		const uint8 _flags = 0,
+		const uint16 _size = 0
+	): type(_type), flags(_flags), size(_size){}
+	void reset(
+		const uint8 _type = 0,
+		const uint8 _flags = 0,
+		const uint16 _size = 0
+	){
+		type = _type;
+		flags = _flags;
+		size = _size;
+	}
+	
+	bool isDataType()const{
+        return type == DataTypeE;
+    }
+    
+    bool isCompressed()const{
+        return flags & CompressedFlagE;
+    }
+    template <class S>
+    char* store(char * _pc)const{
+		_pc = S::storeValue(_pc, type);
+		_pc = S::storeValue(_pc, flags);
+		_pc = S::storeValue(_pc, size);
+		return _pc;
+	}
+	
+	template <class D>
+    const char* load(const char *_pc){
+		_pc = D::loadValue(_pc, type);
+		_pc = D::loadValue(_pc, flags);
+		_pc = D::loadValue(_pc, size);
+		return _pc;
+	}
+	
+	uint8	type;
+	uint8	flags;
+	uint16	size;
+};
+
 }//namespace ipc
 }//namespace frame
 }//namespace solid

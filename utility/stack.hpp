@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include "system/convertors.hpp"
 #include "system/cassert.hpp"
+#include <algorithm>
 
 namespace solid{
 
@@ -72,6 +73,15 @@ public:
 		++sz;
 		new(p) T(_t);
 	}
+	
+	void push(T &&_t){
+		if((sz) & NodeMask) ++p;
+		else p = pushNode(p);
+		
+		++sz;
+		new(p) T(std::move(_t));
+	}
+	
 	reference top(){return *p;}
 	const_reference top()const{return *p;}
 	void pop(){

@@ -12,6 +12,7 @@
 
 #include "system/common.hpp"
 #include "system/error.hpp"
+#include "system/specific.hpp"
 
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
@@ -26,7 +27,10 @@ namespace ipc{
 
 struct Configuration;
 
-struct Serializer;
+struct Serializer: public SerializerT, public SpecificObject{
+};
+
+typedef std::unique_ptr<Serializer>		SerializerPointerT;
 
 class MessageWriter{
 public:
@@ -42,9 +46,9 @@ public:
 		ConnectionContext &_rctx
 	);
 	
-	uint16 write(
-		const char *_pbuf,
-		uint16 _bufsz, const bool _keep_alive, 
+	uint32 write(
+		char *_pbuf,
+		uint32 _bufsz, const bool _keep_alive, 
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
@@ -55,6 +59,9 @@ public:
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx
 	);
+	
+	void prepare(Configuration const &_rconfig);
+	void unprepare();
 private:
 	struct PendingMessageStub{
 		PendingMessageStub(
@@ -88,20 +95,40 @@ private:
 		WriteStub(
 			size_t _idx = -1,
 			Serializer *_pser = nullptr
-		):idx(_idx), pserializer(_pser){}
+		):idx(_idx), serializer_ptr(_pser){}
 		
-		size_t		idx;
-		Serializer	*pserializer;
+		WriteStub(
+			WriteStub &&_ws
+		):idx(_ws.idx), serializer_ptr(std::move(_ws.serializer_ptr)){}
+		
+		size_t				idx;
+		SerializerPointerT	serializer_ptr;
+	};
+	
+	
+	struct FillOptionsOut{
+		FillOptionsOut():force_no_compress(false){}
+		bool force_no_compress;
 	};
 	
 	typedef Queue<WriteStub>									WriteQueueT;
 	typedef Stack<size_t>										CacheStackT;
+	
+	char* doFill(
+		char* pbufbeg,
+		char* pbufend,
+		FillOptionsOut &_roptions,
+		ipc::Configuration const &_rconfig,
+		TypeIdMapT const & _ridmap,
+		ConnectionContext &_rctx,
+		ErrorConditionT & _rerror
+	);
+	
 private:
 	PendingMessageQueueT		pending_message_q;
 	MessageVectorT				message_vec;
 	WriteQueueT					write_q;
 	CacheStackT					cache_stk;
-	
 };
 
 

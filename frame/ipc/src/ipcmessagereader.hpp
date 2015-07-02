@@ -41,6 +41,9 @@ public:
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
 	);
+	void prepare(Configuration const &_rconfig);
+	void unprepare();
+
 private:
 	
 };

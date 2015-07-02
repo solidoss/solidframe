@@ -172,11 +172,15 @@ bool Connection::isWaitingKeepAliveTimer()const{
 void Connection::doPrepare(frame::aio::ReactorContext &_rctx){
 	recvbuf = service(_rctx).configuration().allocateRecvBuffer();
 	sendbuf = service(_rctx).configuration().allocateSendBuffer();
+	msgreader.prepare(service(_rctx).configuration());
+	msgwriter.prepare(service(_rctx).configuration());
 }
 //-----------------------------------------------------------------------------
 void Connection::doUnprepare(frame::aio::ReactorContext &_rctx){
 	service(_rctx).configuration().freeRecvBuffer(recvbuf);
 	service(_rctx).configuration().freeSendBuffer(sendbuf);
+	msgreader.unprepare();
+	msgwriter.unprepare();
 }
 //-----------------------------------------------------------------------------
 void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming){
@@ -356,7 +360,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	unsigned			repeatcnt = 4;
 	char				*pbuf;
 	size_t				bufsz;
-	const uint16		recvbufcp = rthis.service(_rctx).configuration().recv_buffer_capacity;
+	const uint32		recvbufcp = rthis.service(_rctx).configuration().recv_buffer_capacity;
 	bool				recv_something = false;
 	
 	auto				complete_lambda(
@@ -417,7 +421,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		ConnectionContext	conctx(service(_rctx), *this);
 		unsigned 			repeatcnt = 4;
 		ErrorConditionT		error;
-		const uint16		sendbufcp = service(_rctx).configuration().send_buffer_capacity;
+		const uint32		sendbufcp = service(_rctx).configuration().send_buffer_capacity;
 		const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 		const Configuration &rconfig  = service(_rctx).configuration();
 		bool				sent_something = _sent_something;
@@ -426,7 +430,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		
 		while(repeatcnt){
 			
-			uint16 sz = msgwriter.write(sendbuf, sendbufcp, shouldSendKeepalive(), rconfig, rtypemap, conctx, error);
+			uint32 sz = msgwriter.write(sendbuf, sendbufcp, shouldSendKeepalive(), rconfig, rtypemap, conctx, error);
 			flags &= (~FlagKeepaliveE);
 			if(!error){
 				if(sock.sendAll(_rctx, sendbuf, sz, Connection::onSend)){

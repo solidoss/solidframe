@@ -30,6 +30,7 @@ namespace ipc{
 
 struct	ServiceProxy;
 class	Service;
+class	MessageWriter;
 struct ConnectionContext;
 
 typedef frame::Scheduler<frame::aio::Reactor> 								AioSchedulerT;
@@ -43,6 +44,7 @@ typedef FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>			Connection
 typedef FUNCTION<void(ConnectionContext &)>									ConnectionStartFunctionT;
 typedef FUNCTION<char*(const uint16)>										AllocateBufferFunctionT;
 typedef FUNCTION<void(char*)>												FreeBufferFunctionT;
+typedef FUNCTION<char*(char*, size_t)>										CompressFunctionT;
 
 struct Configuration{
 	
@@ -89,8 +91,8 @@ struct Configuration{
 	uint32						inactivity_timeout_seconds;
 	uint32						keepalive_timeout_seconds;
 	
-	uint16						recv_buffer_capacity;
-	uint16						send_buffer_capacity;
+	uint32						recv_buffer_capacity;
+	uint32						send_buffer_capacity;
 	
 	MessageRegisterFunctionT	message_register_fnc;
 	AsyncResolveFunctionT		name_resolve_fnc;
@@ -104,10 +106,34 @@ struct Configuration{
 	FreeBufferFunctionT			free_recv_buffer_fnc;
 	FreeBufferFunctionT			free_send_buffer_fnc;
 	
+	CompressFunctionT			inplace_compress_fnc;
+	
 	std::string					listen_address_str;
 	std::string					default_listen_port_str;
+	
+	ErrorConditionT prepare();
+	
+private:
+	enum WriterFunctions{
+		WriterNoCompressE = 0,
+		WriterCompress01kE,
+		WriterCompress02kE,
+		WriterCompress04kE,
+		WriterCompress08kE,
+		WriterCompress12kE,
+		WriterCompress16kE,
+		WriterCompress20kE,
+		WriterCompress24kE,
+		WriterCompress32kE,
+		WriterCompress36kE,
+		WriterCompress64kE,
+		WriterCompress96kE,
+	};
+	
+	WriterFunctions		writerfunctionidx;
 private:
 	friend class Service;
+	friend class MessageWriter;
 	Configuration():psch(nullptr){}
 };
 

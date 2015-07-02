@@ -86,6 +86,15 @@ public:
 		++sz;
 		new(pb) T(_t);
 	}
+	
+	void push(T &&_t){
+		if((sz + popsz) & NodeMask) ++pb;
+		else pb = pushNode(pb);
+		
+		++sz;
+		new(pb) T(std::move(_t));
+	}
+	
 	reference back(){
 		return *pb;
 	}

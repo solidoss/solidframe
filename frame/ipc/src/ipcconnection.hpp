@@ -155,8 +155,8 @@ private:
 	uint8						crtpushvecidx;
 	uint8						flags;
 	
-	uint16						receivebufoff;
-	uint16						consumebufoff;
+	uint32						receivebufoff;
+	uint32						consumebufoff;
 	
 	char						*recvbuf;
 	char						*sendbuf;

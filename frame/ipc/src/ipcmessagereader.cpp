@@ -26,6 +26,14 @@ MessageReader::~MessageReader(){
 	
 }
 //-----------------------------------------------------------------------------
+void MessageReader::prepare(Configuration const &_rconfig){
+	
+}
+//-----------------------------------------------------------------------------
+void MessageReader::unprepare(){
+	
+}
+//-----------------------------------------------------------------------------
 uint16 MessageReader::read(
 	const char *_pbuf,
 	uint16 _bufsz,

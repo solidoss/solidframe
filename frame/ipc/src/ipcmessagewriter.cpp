@@ -8,19 +8,25 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "ipcmessagewriter.hpp"
+#include "ipcutility.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
-#include "system/specific.hpp"
 
 namespace solid{
 namespace frame{
 namespace ipc{
 
-struct Serializer: public SerializerT, public SpecificObject{
-};
 //-----------------------------------------------------------------------------
 MessageWriter::MessageWriter(){}
 //-----------------------------------------------------------------------------
 MessageWriter::~MessageWriter(){}
+//-----------------------------------------------------------------------------
+void MessageWriter::prepare(Configuration const &_rconfig){
+	
+}
+//-----------------------------------------------------------------------------
+void MessageWriter::unprepare(){
+	
+}
 //-----------------------------------------------------------------------------
 // Needs:
 // max prequeue size
@@ -52,11 +58,12 @@ void MessageWriter::enqueue(
 		}
 		
 		MessageStub		&rmsgstub(message_vec[idx]);
+		
 		rmsgstub.flags = _flags;
 		rmsgstub.msg_type_idx = _msg_type_idx;
 		rmsgstub.msgptr = std::move(_rmsgptr);
 		
-		write_q.push(WriteStub(idx));
+		write_q.push(std::move(WriteStub(idx)));
 	}else if(_rconfig.max_writer_pending_message_count == 0 or pending_message_q.size() < _rconfig.max_writer_pending_message_count){
 		//put the message in pending queue
 		pending_message_q.push(PendingMessageStub(_rmsgptr, _msg_type_idx, _flags));
@@ -80,13 +87,64 @@ void MessageWriter::enqueue(
 // Needs:
 // 
 // 
-uint16 MessageWriter::write(
-	const char *_pbuf, uint16 _bufsz, const bool _keep_alive,
+uint32 MessageWriter::write(
+	char *_pbuf, uint32 _bufsz, const bool _keep_alive,
 	Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx, ErrorConditionT &_rerror
 ){
-	return 0;
+	char		*pbufpos = _pbuf;
+	char		*pbufend = _pbuf + _bufsz;
+	
+	uint32		freesz = pbufend - pbufpos;
+	
+	bool		more = true;
+	
+	while(freesz >= (PacketHeader::SizeOfE + 16) and more){
+		PacketHeader	packet_header(PacketHeader::DataTypeE, 0, 0);
+		FillOptionsOut	filloptions;
+		char			*pbufdata = pbufpos + PacketHeader::SizeOfE;
+		char			*pbuftmp = doFill(pbufdata, pbufend, filloptions, _rconfig, _ridmap, _rctx, _rerror);
+		
+		if(not _rerror){
+			
+			if(not filloptions.force_no_compress){
+				pbuftmp = _rconfig.inplace_compress_fnc(pbufdata, pbuftmp - pbufdata);
+				if(pbuftmp){
+					packet_header.flags |= PacketHeader::CompressedFlagE;
+				}
+			}
+			
+			packet_header.size = pbuftmp - pbufpos + PacketHeader::SizeOfE;
+			pbufpos = packet_header.store<SerializerT>(pbufpos);
+			pbufpos = pbuftmp;
+			freesz  = pbufend - pbufpos;
+		}else{
+			more = false;
+		}
+	}
+	
+	if(not _rerror){
+		if(pbufpos == _pbuf and _keep_alive){
+			PacketHeader			packet_header(PacketHeader::KeepAliveTypeE, 0, 0);
+			pbufpos = packet_header.store<SerializerT>(pbufpos);
+		}
+		return pbufpos - _pbuf;
+	}else{
+		return 0;
+	}
+}
+//-----------------------------------------------------------------------------
+char* MessageWriter::doFill(
+	char* pbufbeg,
+	char* pbufend,
+	FillOptionsOut &_roptions,
+	ipc::Configuration const &_rconfig,
+	TypeIdMapT const & _ridmap,
+	ConnectionContext &_rctx,
+	ErrorConditionT & _rerror
+){
+	return nullptr;
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::completeMessage(

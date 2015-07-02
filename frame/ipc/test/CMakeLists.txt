@@ -20,6 +20,3 @@ target_link_libraries(test_ipc
 add_test( TestProtocol test_ipc
 	test_protocol_basic
 )
-add_test( TestProtocol test_ipc
-	test_protocol_multi
-)

@@ -37,6 +37,11 @@ Configuration::Configuration(
 	free_send_buffer_fnc = default_free_buffer;
 }
 //-----------------------------------------------------------------------------
+ErrorConditionT Configuration::prepare(){
+	
+	return ErrorConditionT();
+}
+//-----------------------------------------------------------------------------
 char* Configuration::allocateRecvBuffer()const{
 	return allocate_recv_buffer_fnc(recv_buffer_capacity);
 }
