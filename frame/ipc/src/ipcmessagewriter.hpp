@@ -17,7 +17,9 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
+#include "ipcutility.hpp"
 #include "frame/ipc/ipcserialization.hpp"
+
 
 
 
@@ -106,18 +108,20 @@ private:
 	};
 	
 	
-	struct FillOptionsOut{
-		FillOptionsOut():force_no_compress(false){}
-		bool force_no_compress;
+	struct PacketOptions{
+		PacketOptions(): packet_type(PacketHeader::NewMessageTypeE), force_no_compress(false){}
+		
+		PacketHeader::Types		packet_type;
+		bool 					force_no_compress;
 	};
 	
 	typedef Queue<WriteStub>									WriteQueueT;
 	typedef Stack<size_t>										CacheStackT;
 	
-	char* doFill(
-		char* pbufbeg,
-		char* pbufend,
-		FillOptionsOut &_roptions,
+	char* doFillPacket(
+		char* _pbufbeg,
+		char* _pbufend,
+		PacketOptions &_rpacket_options,
 		ipc::Configuration const &_rconfig,
 		TypeIdMapT const & _ridmap,
 		ConnectionContext &_rctx,

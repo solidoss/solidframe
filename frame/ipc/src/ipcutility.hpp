@@ -39,8 +39,12 @@ struct PacketHeader{
         SizeOfE = 4,
     };
 	enum Types{
-		DataTypeE = 1,
-		KeepAliveTypeE = 2,
+		NewMessageTypeE = 1,
+		OldMessageTypeE,
+		ContinuedMessageTypeE,
+		
+		KeepAliveTypeE = 1,
+		
 	};
 	enum Flags{
 		CompressedFlagE = 1,
@@ -61,10 +65,7 @@ struct PacketHeader{
 		size = _size;
 	}
 	
-	bool isDataType()const{
-        return type == DataTypeE;
-    }
-    
+	
     bool isCompressed()const{
         return flags & CompressedFlagE;
     }

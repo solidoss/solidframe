@@ -101,21 +101,25 @@ uint32 MessageWriter::write(
 	bool		more = true;
 	
 	while(freesz >= (PacketHeader::SizeOfE + 16) and more){
-		PacketHeader	packet_header(PacketHeader::DataTypeE, 0, 0);
-		FillOptionsOut	filloptions;
+		PacketHeader	packet_header(PacketHeader::NewMessageTypeE, 0, 0);
+		PacketOptions	packet_options;
 		char			*pbufdata = pbufpos + PacketHeader::SizeOfE;
-		char			*pbuftmp = doFill(pbufdata, pbufend, filloptions, _rconfig, _ridmap, _rctx, _rerror);
+		char			*pbuftmp = doFillPacket(pbufdata, pbufend, packet_options, _rconfig, _ridmap, _rctx, _rerror);
 		
 		if(not _rerror){
 			
-			if(not filloptions.force_no_compress){
+			if(not packet_options.force_no_compress){
 				pbuftmp = _rconfig.inplace_compress_fnc(pbufdata, pbuftmp - pbufdata);
 				if(pbuftmp){
 					packet_header.flags |= PacketHeader::CompressedFlagE;
 				}
 			}
 			
+			cassert((pbuftmp - pbufpos + PacketHeader::SizeOfE) < static_cast<size_t>(0xffff));
+			
+			packet_header.type = packet_options.packet_type;
 			packet_header.size = pbuftmp - pbufpos + PacketHeader::SizeOfE;
+			
 			pbufpos = packet_header.store<SerializerT>(pbufpos);
 			pbufpos = pbuftmp;
 			freesz  = pbufend - pbufpos;
@@ -135,10 +139,34 @@ uint32 MessageWriter::write(
 	}
 }
 //-----------------------------------------------------------------------------
-char* MessageWriter::doFill(
-	char* pbufbeg,
-	char* pbufend,
-	FillOptionsOut &_roptions,
+//	|4B - PacketHeader|PacketHeader.size - PacketData|
+//	Examples:
+//
+//	3 Messages Packet
+//	|[PH(NewMessageTypeE)]|[MessageData-1][1B - DataType = NewMessageTypeE][MessageData-2][NewMessageTypeE][MessageData-3]|
+//
+//	2 Messages, one spread over 3 packets and one new:
+//	|[PH(NewMessageTypeE)]|[MessageData-1]|
+//	|[PH(ContinuedMessageTypeE)]|[MessageData-1]|
+//	|[PH(ContinuedMessageTypeE)]|[MessageData-1][NewMessageTypeE][MessageData-2]|
+//
+//	3 Messages, one Continued, one old continued and one new
+//	|[PH(ContinuedMessageTypeE)]|[MessageData-3]|
+//	|[PH(ContinuedMessageTypeE)]|[MessageData-3]| # message 3 not finished
+//	|[PH(OldMessageTypeE)]|[MessageData-2]|
+//	|[PH(ContinuedMessageTypeE)]|[MessageData-2]|
+//	|[PH(ContinuedMessageTypeE)]|[MessageData-2]|
+//	|[PH(ContinuedMessageTypeE)]|[MessageData-2][NewMessageTypeE][MessageData-4][OldMessageTypeE][MessageData-3]| # message 2 finished, message 3 still not finished
+//	|[PH(ContinuedMessageTypeE)]|[MessageData-3]|
+//
+//
+//	NOTE:
+//	Header type can be: NewMessageTypeE, OldMessageTypeE, ContinuedMessageTypeE
+//	Data type can be: NewMessageTypeE, OldMessageTypeE
+char* MessageWriter::doFillPacket(
+	char* _pbufbeg,
+	char* _pbufend,
+	PacketOptions &_rpacket_options,
 	ipc::Configuration const &_rconfig,
 	TypeIdMapT const & _ridmap,
 	ConnectionContext &_rctx,
