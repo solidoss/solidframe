@@ -15,6 +15,7 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
+
 //-----------------------------------------------------------------------------
 MessageWriter::MessageWriter(){}
 //-----------------------------------------------------------------------------
@@ -100,11 +101,11 @@ uint32 MessageWriter::write(
 	
 	bool		more = true;
 	
-	while(freesz >= (PacketHeader::SizeOfE + 16) and more){
+	while(freesz >= (PacketHeader::SizeOfE + MinimumFreePacketDataSize) and more){
 		PacketHeader	packet_header(PacketHeader::NewMessageTypeE, 0, 0);
 		PacketOptions	packet_options;
 		char			*pbufdata = pbufpos + PacketHeader::SizeOfE;
-		char			*pbuftmp = doFillPacket(pbufdata, pbufend, packet_options, _rconfig, _ridmap, _rctx, _rerror);
+		char			*pbuftmp = doFillPacket(pbufdata, pbufend, packet_options, more, _rconfig, _ridmap, _rctx, _rerror);
 		
 		if(not _rerror){
 			
@@ -167,12 +168,34 @@ char* MessageWriter::doFillPacket(
 	char* _pbufbeg,
 	char* _pbufend,
 	PacketOptions &_rpacket_options,
+	bool &_rmore,
 	ipc::Configuration const &_rconfig,
 	TypeIdMapT const & _ridmap,
 	ConnectionContext &_rctx,
 	ErrorConditionT & _rerror
 ){
-	return nullptr;
+	char 		*pbufpos = _pbufbeg;
+	uint32		freesz = _pbufend - pbufpos;
+	while(write_q.size() and freesz >= MinimumFreePacketDataSize){
+		WriteStub				&rwritestub = write_q.front();
+		MessageStub				&rmsgstub = message_vec[rwritestub.idx];
+		PacketHeader::Types		msgswitch = PacketHeader::NewMessageTypeE;
+		
+		if(not rwritestub.serializer_ptr){
+			//new message
+		}else if(r
+		
+		if(pbufpos == _pbufbeg){
+			//first message in the packet
+			
+			_rpacket_options.packet_type = 
+		}else{
+			
+		}
+		
+	}
+	
+	return pbufpos;
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::completeMessage(

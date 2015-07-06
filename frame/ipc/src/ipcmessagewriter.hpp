@@ -96,14 +96,16 @@ private:
 	struct WriteStub{
 		WriteStub(
 			size_t _idx = -1,
+			size_t _packet_count = 0, 
 			Serializer *_pser = nullptr
-		):idx(_idx), serializer_ptr(_pser){}
+		):idx(_idx), packet_count(_packet_count), serializer_ptr(_pser){}
 		
 		WriteStub(
 			WriteStub &&_ws
-		):idx(_ws.idx), serializer_ptr(std::move(_ws.serializer_ptr)){}
+		):idx(_ws.idx), packet_count(_ws.packet_count), serializer_ptr(std::move(_ws.serializer_ptr)){}
 		
 		size_t				idx;
+		size_t				packet_count;
 		SerializerPointerT	serializer_ptr;
 	};
 	
@@ -122,6 +124,7 @@ private:
 		char* _pbufbeg,
 		char* _pbufend,
 		PacketOptions &_rpacket_options,
+		bool &_rmore,
 		ipc::Configuration const &_rconfig,
 		TypeIdMapT const & _ridmap,
 		ConnectionContext &_rctx,

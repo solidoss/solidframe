@@ -19,6 +19,11 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
+enum{
+	MinimumFreePacketDataSize = 16,
+};
+
+
 struct SocketAddressHash{
 	size_t operator()(const SocketAddressInet* const &_rsa)const{
 		return _rsa->hash();
