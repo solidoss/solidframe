@@ -74,23 +74,7 @@ class Connection;
 
 typedef Holder<>		HolderT;
 
-//! Thread specific information about current ipc context
-/*!
-	This should be used by signals to get information about the current
-	ipc context:<br>
-	- the current ipc connection uid;<br>
-	- the peer address and peer base port for current connection;<br>
-	- the unique id of the signal<br>
-	<br>
-	Remember that signals can be broadcasted to multiple destinations.
-	The ConnectionContext helps a signal know which ipc sessions calls its
-	callbacks (Signal::ipcComplete, Signal::ipcReceive).<br>
-	Also for the case when we want to wait for response, on signal
-	serialization we need to use the signaluid from the current context.
-	
-	See concept::alpha::RemoteListSignal from alphasignals.hpp for an example.
-	
-*/
+
 struct ConnectionContext{
 	Service& service()const{
 		return rservice;

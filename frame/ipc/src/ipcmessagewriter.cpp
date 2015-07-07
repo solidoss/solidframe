@@ -64,7 +64,7 @@ void MessageWriter::enqueue(
 		rmsgstub.msg_type_idx = _msg_type_idx;
 		rmsgstub.msgptr = std::move(_rmsgptr);
 		
-		write_q.push(std::move(WriteStub(idx)));
+		write_q.push(idx);
 	}else if(_rconfig.max_writer_pending_message_count == 0 or pending_message_q.size() < _rconfig.max_writer_pending_message_count){
 		//put the message in pending queue
 		pending_message_q.push(PendingMessageStub(_rmsgptr, _msg_type_idx, _flags));
@@ -87,7 +87,7 @@ void MessageWriter::enqueue(
 // 
 // Needs:
 // 
-// 
+
 uint32 MessageWriter::write(
 	char *_pbuf, uint32 _bufsz, const bool _keep_alive,
 	Configuration const &_rconfig,
@@ -102,7 +102,7 @@ uint32 MessageWriter::write(
 	bool		more = true;
 	
 	while(freesz >= (PacketHeader::SizeOfE + MinimumFreePacketDataSize) and more){
-		PacketHeader	packet_header(PacketHeader::NewMessageTypeE, 0, 0);
+		PacketHeader	packet_header(PacketHeader::SwitchToNewMessageTypeE, 0, 0);
 		PacketOptions	packet_options;
 		char			*pbufdata = pbufpos + PacketHeader::SizeOfE;
 		char			*pbuftmp = doFillPacket(pbufdata, pbufend, packet_options, more, _rconfig, _ridmap, _rctx, _rerror);
@@ -164,6 +164,18 @@ uint32 MessageWriter::write(
 //	NOTE:
 //	Header type can be: NewMessageTypeE, OldMessageTypeE, ContinuedMessageTypeE
 //	Data type can be: NewMessageTypeE, OldMessageTypeE
+//	
+//	PROBLEM:
+//	1)When should we call prepare on a message?
+//		> If we call it on doFillPacket, we cannot use prepare as a flags filter.
+//			This is because of Send Synchronous Flag which, if sent on prepare would be too late.
+//			One cannot set Send Synchronous Flag because the connection might not be the
+//			one handling Synchronous Messages.
+//		
+//		> If we call it before message gets to a connection we do not have a MessageId (e.g. can be used for tracing).
+//		
+//		* Decided to drop the ability to modify the message flags from within prepare callback.
+//
 char* MessageWriter::doFillPacket(
 	char* _pbufbeg,
 	char* _pbufend,
@@ -177,18 +189,22 @@ char* MessageWriter::doFillPacket(
 	char 		*pbufpos = _pbufbeg;
 	uint32		freesz = _pbufend - pbufpos;
 	while(write_q.size() and freesz >= MinimumFreePacketDataSize){
-		WriteStub				&rwritestub = write_q.front();
-		MessageStub				&rmsgstub = message_vec[rwritestub.idx];
-		PacketHeader::Types		msgswitch = PacketHeader::NewMessageTypeE;
+		const size_t			msgidx = write_q.front();
+		MessageStub				&rmsgstub = message_vec[msgidx];
+		PacketHeader::Types		msgswitch = PacketHeader::SwitchToNewMessageTypeE;
 		
-		if(not rwritestub.serializer_ptr){
-			//new message
-		}else if(r
+		if(not rmsgstub.serializer_ptr){
+			//switch to new message
+		}else if(rmsgstub.packet_count == 0){
+			//switch to old message
+		}else{
+			//continued message
+		}
 		
 		if(pbufpos == _pbufbeg){
 			//first message in the packet
 			
-			_rpacket_options.packet_type = 
+			_rpacket_options.packet_type = msgswitch;
 		}else{
 			
 		}

@@ -44,8 +44,8 @@ struct PacketHeader{
         SizeOfE = 4,
     };
 	enum Types{
-		NewMessageTypeE = 1,
-		OldMessageTypeE,
+		SwitchToNewMessageTypeE = 1,
+		SwitchToOldMessageTypeE,
 		ContinuedMessageTypeE,
 		
 		KeepAliveTypeE = 1,

@@ -84,40 +84,26 @@ private:
 			ulong _flags
 		): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), flags(_flags){}
 		
-		MessageStub():msg_type_idx(-1), flags(-1), unique(0){}
+		MessageStub():msg_type_idx(-1), flags(-1), unique(0), packet_count(0){}
 		
-		MessagePointerT msgptr;
-		size_t			msg_type_idx;
-		ulong			flags;
-		uint32			unique;
+		MessagePointerT 		msgptr;
+		size_t					msg_type_idx;
+		ulong					flags;
+		uint32					unique;
+		size_t					packet_count;
+		SerializerPointerT		serializer_ptr;
 	};
 	typedef Queue<PendingMessageStub>							PendingMessageQueueT;
 	typedef std::vector<MessageStub>							MessageVectorT;
-	struct WriteStub{
-		WriteStub(
-			size_t _idx = -1,
-			size_t _packet_count = 0, 
-			Serializer *_pser = nullptr
-		):idx(_idx), packet_count(_packet_count), serializer_ptr(_pser){}
-		
-		WriteStub(
-			WriteStub &&_ws
-		):idx(_ws.idx), packet_count(_ws.packet_count), serializer_ptr(std::move(_ws.serializer_ptr)){}
-		
-		size_t				idx;
-		size_t				packet_count;
-		SerializerPointerT	serializer_ptr;
-	};
-	
 	
 	struct PacketOptions{
-		PacketOptions(): packet_type(PacketHeader::NewMessageTypeE), force_no_compress(false){}
+		PacketOptions(): packet_type(PacketHeader::SwitchToNewMessageTypeE), force_no_compress(false){}
 		
 		PacketHeader::Types		packet_type;
 		bool 					force_no_compress;
 	};
 	
-	typedef Queue<WriteStub>									WriteQueueT;
+	typedef Queue<size_t>										SizeTQueueT;
 	typedef Stack<size_t>										CacheStackT;
 	
 	char* doFillPacket(
@@ -134,7 +120,7 @@ private:
 private:
 	PendingMessageQueueT		pending_message_q;
 	MessageVectorT				message_vec;
-	WriteQueueT					write_q;
+	SizeTQueueT					write_q;
 	CacheStackT					cache_stk;
 };
 

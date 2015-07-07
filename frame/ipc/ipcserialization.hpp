@@ -32,7 +32,7 @@ struct ConnectionContext;
 
 typedef FUNCTION<void(ConnectionContext &, MessagePointerT &)>							MessageReceiveFunctionT;
 typedef FUNCTION<void(ConnectionContext &, MessagePointerT &, ErrorConditionT const &)>	MessageCompleteFunctionT;
-typedef FUNCTION<ulong(ConnectionContext &, Message const &)>							MessagePrepareFunctionT;
+typedef FUNCTION<void(ConnectionContext &, Message const &)>							MessagePrepareFunctionT;
 
 struct TypeStub{
 	MessagePrepareFunctionT		prepare_fnc;

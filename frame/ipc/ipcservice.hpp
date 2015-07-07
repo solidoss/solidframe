@@ -169,9 +169,9 @@ private:
 		F	f;
 		PrepareProxy(F _f):f(_f){}
 		
-		ulong operator()(ConnectionContext &_rctx, Message const &_rmsg){
+		void operator()(ConnectionContext &_rctx, Message const &_rmsg){
 			M const	&rmsg = static_cast<M const &>(_rmsg);
-			return f(_rctx, rmsg);
+			f(_rctx, rmsg);
 		}
 	};
 	
