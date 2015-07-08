@@ -181,11 +181,11 @@ private:
 		return tm.registerType<T>(_facf, ts, _idx);
 	}
 	
-	template <class T, class FactoryFnc, class ReceiveFnc, class PrepareFnc, class CompleteFnc>
-	size_t registerType(FactoryFnc _facf, ReceiveFnc _rcvf, PrepareFnc _prepf, CompleteFnc _cmpltf, size_t _idx = 0){
+	template <class T, class FactoryFnc, class ReceiveFnc/*, class PrepareFnc*/, class CompleteFnc>
+	size_t registerType(FactoryFnc _facf, ReceiveFnc _rcvf/*, PrepareFnc _prepf*/, CompleteFnc _cmpltf, size_t _idx = 0){
 		TypeStub ts;
 		ts.complete_fnc = MessageCompleteFunctionT(CompleteProxy<CompleteFnc, T>(_cmpltf));
-		ts.prepare_fnc = MessagePrepareFunctionT(PrepareProxy<PrepareFnc, T>(_prepf));
+		//ts.prepare_fnc = MessagePrepareFunctionT(PrepareProxy<PrepareFnc, T>(_prepf));
 		ts.receive_fnc = MessageReceiveFunctionT(ReceiveProxy<ReceiveFnc, T>(_rcvf));
 		return tm.registerType<T>(ts, Message::serialize<SerializerT, T>, Message::serialize<DeserializerT, T>, _facf, _idx);
 	}
@@ -228,9 +228,9 @@ private:
 };
 
 struct ServiceProxy{
-	template <class T, class FactoryFnc, class ReceiveFnc, class PrepareFnc, class CompleteFnc>
-	size_t registerType(FactoryFnc _facf, ReceiveFnc _rcvf, PrepareFnc _prepf, CompleteFnc _cmpltf, size_t _idx = 0){
-		return rservice.registerType<T>(_facf, _rcvf, _prepf, _cmpltf, _idx);
+	template <class T, class FactoryFnc, class ReceiveFnc/*, class PrepareFnc*/, class CompleteFnc>
+	size_t registerType(FactoryFnc _facf, ReceiveFnc _rcvf/*, PrepareFnc _prepf*/, CompleteFnc _cmpltf, size_t _idx = 0){
+		return rservice.registerType<T>(_facf, _rcvf/*, _prepf*/, _cmpltf, _idx);
 	}
 	template <class T, class FactoryFnc>
 	size_t registerType(FactoryFnc _facf, size_t _idx = 0){

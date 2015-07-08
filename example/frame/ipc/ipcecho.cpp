@@ -217,11 +217,11 @@ int main(int argc, char *argv[]){
 				[&ipcsvc](frame::ipc::ServiceProxy& _rsp){
 					_rsp.registerType<InitMessage>(
 						serialization::basic_factory<FirstMessage>,
-						MessageHandler(ipcsvc), MessageHandler(ipcsvc), MessageHandler(ipcsvc)
+						MessageHandler(ipcsvc), MessageHandler(ipcsvc)
 					);
 					_rsp.registerType<FirstMessage>(
 						serialization::basic_factory<FirstMessage>,
-						MessageHandler(ipcsvc), MessageHandler(ipcsvc), MessageHandler(ipcsvc)
+						MessageHandler(ipcsvc), MessageHandler(ipcsvc)
 					);
 				}
 			);

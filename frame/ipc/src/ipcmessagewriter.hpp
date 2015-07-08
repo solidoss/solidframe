@@ -30,6 +30,7 @@ namespace ipc{
 struct Configuration;
 
 struct Serializer: public SerializerT, public SpecificObject{
+	Serializer(TypeIdMapT const &_ridmap): SerializerT(&_ridmap){}
 };
 
 typedef std::unique_ptr<Serializer>		SerializerPointerT;
@@ -82,12 +83,12 @@ private:
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
 			ulong _flags
-		): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), flags(_flags){}
+		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), flags(_flags){}
 		
-		MessageStub():msg_type_idx(-1), flags(-1), unique(0), packet_count(0){}
+		MessageStub():message_type_idx(-1), flags(-1), unique(0), packet_count(0){}
 		
-		MessagePointerT 		msgptr;
-		size_t					msg_type_idx;
+		MessagePointerT 		message_ptr;
+		size_t					message_type_idx;
 		ulong					flags;
 		uint32					unique;
 		size_t					packet_count;

@@ -61,8 +61,8 @@ void MessageWriter::enqueue(
 		MessageStub		&rmsgstub(message_vec[idx]);
 		
 		rmsgstub.flags = _flags;
-		rmsgstub.msg_type_idx = _msg_type_idx;
-		rmsgstub.msgptr = std::move(_rmsgptr);
+		rmsgstub.message_type_idx = _msg_type_idx;
+		rmsgstub.message_ptr = std::move(_rmsgptr);
 		
 		write_q.push(idx);
 	}else if(_rconfig.max_writer_pending_message_count == 0 or pending_message_q.size() < _rconfig.max_writer_pending_message_count){
@@ -166,15 +166,16 @@ uint32 MessageWriter::write(
 //	Data type can be: NewMessageTypeE, OldMessageTypeE
 //	
 //	PROBLEM:
-//	1)When should we call prepare on a message?
+//	1) Should we call prepare on a message, and if so when?
 //		> If we call it on doFillPacket, we cannot use prepare as a flags filter.
 //			This is because of Send Synchronous Flag which, if sent on prepare would be too late.
 //			One cannot set Send Synchronous Flag because the connection might not be the
 //			one handling Synchronous Messages.
 //		
 //		> If we call it before message gets to a connection we do not have a MessageId (e.g. can be used for tracing).
+//
 //		
-//		* Decided to drop the ability to modify the message flags from within prepare callback.
+//		* Decided to drop the "prepare" functionality.
 //
 char* MessageWriter::doFillPacket(
 	char* _pbufbeg,
@@ -188,27 +189,54 @@ char* MessageWriter::doFillPacket(
 ){
 	char 		*pbufpos = _pbufbeg;
 	uint32		freesz = _pbufend - pbufpos;
+	
+	SerializerPointerT		tmp_serializer;
+	
 	while(write_q.size() and freesz >= MinimumFreePacketDataSize){
 		const size_t			msgidx = write_q.front();
 		MessageStub				&rmsgstub = message_vec[msgidx];
-		PacketHeader::Types		msgswitch = PacketHeader::SwitchToNewMessageTypeE;
+		PacketHeader::Types		msgswitch;// = PacketHeader::ContinuedMessageTypeE;
 		
 		if(not rmsgstub.serializer_ptr){
 			//switch to new message
+			msgswitch = PacketHeader::SwitchToNewMessageTypeE;
+			if(tmp_serializer){
+				rmsgstub.serializer_ptr = std::move(tmp_serializer);
+			}else{
+				rmsgstub.serializer_ptr = std::move(SerializerPointerT(new Serializer(_ridmap)));
+			}
+			
+			//TODO: set serializer limits
+			//_rconfig.reset_serializer_limits_fnc(rmsgstub.serializer_ptr->limits(), _rctx);
+			
+			rmsgstub.serializer_ptr->push(rmsgstub.message_ptr, "message");
 		}else if(rmsgstub.packet_count == 0){
 			//switch to old message
+			msgswitch = PacketHeader::PacketHeader::SwitchToOldMessageTypeE;
 		}else{
 			//continued message
+			msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;
 		}
 		
 		if(pbufpos == _pbufbeg){
 			//first message in the packet
-			
 			_rpacket_options.packet_type = msgswitch;
 		}else{
-			
+			uint8	tmp = static_cast<uint8>(msgswitch);
+			pbufpos = SerializerT::storeValue(pbufpos, tmp);
 		}
 		
+		int rv = rmsgstub.serializer_ptr->run(pbufpos, _pbufend - pbufpos, _rctx);
+		
+		if(rv > 0){
+			pbufpos += rv;
+			
+			if(rmsgstub.serializer_ptr->empty()){
+				
+			}
+		}else{
+			_rerror = rmsgstub.serializer_ptr->error();
+		}
 	}
 	
 	return pbufpos;

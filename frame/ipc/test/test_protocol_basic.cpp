@@ -98,7 +98,6 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 
 void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr);
 void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr);
-ulong prepare_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::Message const &_rmsg);
 
 
 namespace solid{namespace frame{namespace ipc{
@@ -117,7 +116,6 @@ public:
 void TestEntryway::initTypeMap(frame::ipc::TypeIdMapT &_rtm){
 	TypeStub ts;
 	ts.complete_fnc = MessageCompleteFunctionT(::complete_message);
-	ts.prepare_fnc = MessagePrepareFunctionT(::prepare_message);
 	ts.receive_fnc = MessageReceiveFunctionT(::receive_message);
 	
 	_rtm.registerType<::Message>(
@@ -149,11 +147,6 @@ void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessageP
 	idbg(static_cast<Message*>(_rmsgptr.get())->idx);
 }
  
-ulong prepare_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::Message const &_rmsg){
-	idbg(static_cast<Message const &>(_rmsg).idx);
-	return _rctx.messageFlags();
-}
-
 int test_protocol_basic(int argc, char **argv){
 	
 	Thread::init();
