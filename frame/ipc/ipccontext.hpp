@@ -74,7 +74,6 @@ class Connection;
 
 typedef Holder<>		HolderT;
 
-
 struct ConnectionContext{
 	Service& service()const{
 		return rservice;
@@ -95,6 +94,7 @@ struct ConnectionContext{
 private:
 	friend class Connection;
 	friend class MessageWriter;
+	friend struct Message;
 	friend class TestEntryway;
 	
 	Service				&rservice;

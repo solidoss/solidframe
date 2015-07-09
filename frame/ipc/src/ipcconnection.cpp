@@ -24,6 +24,7 @@ enum Flags{
 	FlagServerE = 4,
 	FlagKeepaliveE = 8,
 	FlagWaitKeepAliveTimerE = 16,
+	FlagStopForcedE = 32,
 };
 namespace{
 struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
@@ -169,6 +170,10 @@ bool Connection::isWaitingKeepAliveTimer()const{
 	return flags & FlagWaitKeepAliveTimerE;
 }
 //-----------------------------------------------------------------------------
+bool Connection::isStopForced()const{
+	return flags & FlagStopForcedE;
+}
+//-----------------------------------------------------------------------------
 void Connection::doPrepare(frame::aio::ReactorContext &_rctx){
 	recvbuf = service(_rctx).configuration().allocateRecvBuffer();
 	sendbuf = service(_rctx).configuration().allocateSendBuffer();
@@ -232,6 +237,10 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	}else if(frame::EventCategory::isKill(_revent)){
 		idbgx(Debug::ipc, this->id()<<" Session postStop");
 		postStop(_rctx);
+		flags |= FlagStopForcedE;
+		ErrorConditionT err;
+		err.assign(-1, err.category());//TODO:
+		doStop(_rctx, err);
 	}else if(_revent.msgptr.get()){
 		ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
 		if(presolvemsg){
@@ -445,6 +454,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				}
 			}else{
 				edbgx(Debug::ipc, id()<<" storring "<<error.message());
+				flags |= FlagStopForcedE;//TODO: maybe you should not set this all the time
 				doStop(_rctx, error);
 				break;
 			}
@@ -463,8 +473,8 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onTimerInactivity(frame::aio::ReactorContext &_rctx){
-	Connection	&rthis = static_cast<Connection&>(_rctx.object());
-	ErrorConditionT err;
+	Connection		&rthis = static_cast<Connection&>(_rctx.object());
+	ErrorConditionT	err;
 	err.assign(-1, err.category());//TODO:
  	rthis.doStop(_rctx, err);
 }
@@ -501,7 +511,13 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT const &_rmsgptr){
-	
+	//_rmsgptr is the received message
+	ConnectionContext	conctx(service(_rctx), *this);
+	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
+	ErrorConditionT		error;
+	if(_rmsgptr->isBackOnSender()){
+		msgwriter.completeMessage(_rmsgptr->msguid, rtypemap, conctx, error);
+	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
@@ -515,7 +531,14 @@ void Connection::doCompleteAllMessages(
 	frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr
 ){
 	ConnectionContext	conctx(service(_rctx), *this);
+	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	//TODO:
+	if(isStopForced() or conpoolid.isInvalid()){
+		//really complete
+		msgwriter.completeAllMessages(rtypemap, conctx, _rerr);
+	}else{
+		//connection lost - try reschedule whatever messages we can
+	}
 }
 //-----------------------------------------------------------------------------
 //=============================================================================

@@ -142,9 +142,13 @@ int SerializerBase::run(char *_pb, unsigned _bl, void *_pctx){
 	while(fstk.size()){
 		FncData &rfd = fstk.top();
 		switch((*reinterpret_cast<FncT>(rfd.f))(*this, rfd, _pctx)) {
-			case Continue: continue;
-			case Success: fstk.pop(); break;
-			case Wait: goto Done;
+			case Continue:
+				continue;
+			case Success:
+				fstk.pop();
+				break;
+			case Wait:
+				goto Done;
 			case Failure: 
 				resetLimits();
 				return -1;
@@ -748,9 +752,13 @@ int DeserializerBase::run(const char *_pb, unsigned _bl, void *_pctx){
 	while(fstk.size()){
 		FncData &rfd = fstk.top();
 		switch((*reinterpret_cast<FncT>(rfd.f))(*this, rfd, _pctx)){
-			case Continue: continue;
-			case Success: fstk.pop(); break;
-			case Wait: goto Done;
+			case Continue:
+				continue;
+			case Success:
+				fstk.pop();
+				break;
+			case Wait:
+				goto Done;
 			case Failure:
 				idbgx(Debug::ser_bin, "error: "<<errorString());
 				resetLimits();

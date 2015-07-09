@@ -20,6 +20,11 @@
 
 
 namespace solid{
+
+namespace serialization{ namespace binary{
+struct Limits;
+}/*namespace binary*/}/*namespace serialization*/
+
 namespace frame{
 
 namespace aio{
@@ -45,6 +50,7 @@ typedef FUNCTION<void(ConnectionContext &)>									ConnectionStartFunctionT;
 typedef FUNCTION<char*(const uint16)>										AllocateBufferFunctionT;
 typedef FUNCTION<void(char*)>												FreeBufferFunctionT;
 typedef FUNCTION<char*(char*, size_t)>										CompressFunctionT;
+typedef FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>	ResetSerializerLimitsFunctionT;
 
 struct Configuration{
 	
@@ -81,30 +87,33 @@ struct Configuration{
 	char* allocateSendBuffer()const;
 	void freeSendBuffer(char *_pb)const;
 	
-	AioSchedulerT				*psch;
-	size_t						max_per_pool_connection_count;
-	size_t						session_mutex_count;
+	AioSchedulerT						*psch;
+	size_t								max_per_pool_connection_count;
+	size_t								session_mutex_count;
 	
-	size_t						max_writer_multiplex_message_count;
-	size_t						max_writer_pending_message_count;
+	size_t								max_writer_multiplex_message_count;
+	size_t								max_writer_pending_message_count;
+	size_t								max_writer_message_continuous_packet_count;
 	
-	uint32						inactivity_timeout_seconds;
-	uint32						keepalive_timeout_seconds;
+	uint32								inactivity_timeout_seconds;
+	uint32								keepalive_timeout_seconds;
 	
-	uint32						recv_buffer_capacity;
-	uint32						send_buffer_capacity;
+	uint32								recv_buffer_capacity;
+	uint32								send_buffer_capacity;
 	
-	MessageRegisterFunctionT	message_register_fnc;
-	AsyncResolveFunctionT		name_resolve_fnc;
-	ConnectionStartFunctionT	incoming_connection_start_fnc;
-	ConnectionStartFunctionT	outgoing_connection_start_fnc;
-	ConnectionStopFunctionT		connection_stop_fnc;
+	MessageRegisterFunctionT			message_register_fnc;
+	AsyncResolveFunctionT				name_resolve_fnc;
+	ConnectionStartFunctionT			incoming_connection_start_fnc;
+	ConnectionStartFunctionT			outgoing_connection_start_fnc;
+	ConnectionStopFunctionT				connection_stop_fnc;
 	
-	AllocateBufferFunctionT		allocate_recv_buffer_fnc;
-	AllocateBufferFunctionT		allocate_send_buffer_fnc;
+	AllocateBufferFunctionT				allocate_recv_buffer_fnc;
+	AllocateBufferFunctionT				allocate_send_buffer_fnc;
 	
-	FreeBufferFunctionT			free_recv_buffer_fnc;
-	FreeBufferFunctionT			free_send_buffer_fnc;
+	FreeBufferFunctionT					free_recv_buffer_fnc;
+	FreeBufferFunctionT					free_send_buffer_fnc;
+	
+	ResetSerializerLimitsFunctionT		reset_serializer_limits_fnc;
 	
 	CompressFunctionT			inplace_compress_fnc;
 	

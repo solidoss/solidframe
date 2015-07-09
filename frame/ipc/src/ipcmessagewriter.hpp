@@ -60,7 +60,14 @@ public:
 	void completeMessage(
 		MessageUid const &_rmsguid,
 		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx
+		ConnectionContext &_rctx,
+		ErrorConditionT const & _rerror
+	);
+	
+	void completeAllMessages(
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx,
+		ErrorConditionT const & _rerror
 	);
 	
 	void prepare(Configuration const &_rconfig);
@@ -71,10 +78,10 @@ private:
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
 			ulong _flags
-		): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), flags(_flags){}
+		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), flags(_flags){}
 		
-		MessagePointerT msgptr;
-		const size_t	msg_type_idx;
+		MessagePointerT message_ptr;
+		const size_t	message_type_idx;
 		ulong			flags;
 	};
 	
@@ -87,6 +94,14 @@ private:
 		
 		MessageStub():message_type_idx(-1), flags(-1), unique(0), packet_count(0){}
 		
+		void clear(){
+			message_ptr.clear();
+			flags = 0;
+			++unique;
+			packet_count = 0;
+			serializer_ptr = nullptr;
+		}
+		
 		MessagePointerT 		message_ptr;
 		size_t					message_type_idx;
 		ulong					flags;
@@ -94,6 +109,7 @@ private:
 		size_t					packet_count;
 		SerializerPointerT		serializer_ptr;
 	};
+	
 	typedef Queue<PendingMessageStub>							PendingMessageQueueT;
 	typedef std::vector<MessageStub>							MessageVectorT;
 	

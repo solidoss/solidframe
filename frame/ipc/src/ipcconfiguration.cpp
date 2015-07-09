@@ -21,6 +21,9 @@ namespace{
 	void default_free_buffer(char *_pbuf){
 		delete []_pbuf;
 	}
+	
+	void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
+	
 }//namespace
 
 Configuration::Configuration(
@@ -30,11 +33,18 @@ Configuration::Configuration(
 	recv_buffer_capacity = 4096;
 	send_buffer_capacity = 4096;
 	
+	
+	max_writer_pending_message_count = -1;
+	max_writer_multiplex_message_count = 16;
+	max_writer_message_continuous_packet_count = 4;
+	
 	allocate_recv_buffer_fnc = default_allocate_buffer;
 	allocate_send_buffer_fnc = default_allocate_buffer;
 	
 	free_recv_buffer_fnc = default_free_buffer;
 	free_send_buffer_fnc = default_free_buffer;
+	
+	reset_serializer_limits_fnc = empty_reset_serializer_limits;
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Configuration::prepare(){

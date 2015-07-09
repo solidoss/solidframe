@@ -19,8 +19,13 @@ namespace frame{
 namespace ipc{
 
 class Service;
+class Connection;
 
 struct Message: Dynamic<Message>{
+	enum Flags{
+		WaitResponseFlagE = (1<<0),
+		SynchronousFlagE = (1<<1),
+	};
 	
 	Message(uint8 _state = 0):stt(_state){}
 	Message(Message const &_rmsg): msguid(_rmsg.msguid), stt(_rmsg.stt){}
@@ -37,16 +42,31 @@ struct Message: Dynamic<Message>{
 		return stt == 2;
 	}
 	
+	template <class S>
+	void serialize(S &_rs, frame::ipc::ConnectionContext &_rctx){
+		if(S::IsSerializer){
+			_rs.pushCross(_rctx.messageuid.index, "msguid_idx");
+			_rs.pushCross(_rctx.messageuid.unique, "msguid_idx");
+		}else{
+			_rs.pushCross(msguid.index, "msguid_idx");
+			_rs.pushCross(msguid.unique, "msguid_uid");
+		}
+	}
+	
 private:
 	friend class Service;
 	friend class TestEntryway;
+	friend class Connection;
+	
 	template <class S, class T>
 	static void serialize(S &_rs, T &_rt, const char *_name){
+		//here we do only pushes so we can have access to context
+		//using the above "serialize" function
 		_rs.push(_rt, _name);
-		_rs.pushCross(static_cast<Message&>(_rt).msguid.index, "msguid_idx");
-		_rs.pushCross(static_cast<Message&>(_rt).msguid.unique, "msguid_uid");
+		_rs.push(static_cast<Message&>(_rt), "message_base");
 		_rs.push(static_cast<Message&>(_rt).stt, "state");
 	}
+	
 	void nextState(){
 		++stt;
 		if(stt == 3) stt = 0;

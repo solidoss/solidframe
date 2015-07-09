@@ -10,6 +10,7 @@
 #include "ipcmessagewriter.hpp"
 #include "ipcutility.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
+#include "system/cassert.hpp"
 
 namespace solid{
 namespace frame{
@@ -199,6 +200,13 @@ char* MessageWriter::doFillPacket(
 		
 		if(not rmsgstub.serializer_ptr){
 			//switch to new message
+			
+			if(rmsgstub.message_ptr.empty()){
+				//we need to stop
+				_rerror.assign(-1, _rerror.category());//TODO:
+				break;
+			}
+			
 			msgswitch = PacketHeader::SwitchToNewMessageTypeE;
 			if(tmp_serializer){
 				rmsgstub.serializer_ptr = std::move(tmp_serializer);
@@ -206,10 +214,10 @@ char* MessageWriter::doFillPacket(
 				rmsgstub.serializer_ptr = std::move(SerializerPointerT(new Serializer(_ridmap)));
 			}
 			
-			//TODO: set serializer limits
-			//_rconfig.reset_serializer_limits_fnc(rmsgstub.serializer_ptr->limits(), _rctx);
+			_rconfig.reset_serializer_limits_fnc(_rctx, rmsgstub.serializer_ptr->limits());
 			
 			rmsgstub.serializer_ptr->push(rmsgstub.message_ptr, "message");
+			
 		}else if(rmsgstub.packet_count == 0){
 			//switch to old message
 			msgswitch = PacketHeader::PacketHeader::SwitchToOldMessageTypeE;
@@ -226,16 +234,48 @@ char* MessageWriter::doFillPacket(
 			pbufpos = SerializerT::storeValue(pbufpos, tmp);
 		}
 		
+		_rctx.messageuid.index  = msgidx;
+		_rctx.messageuid.unique = rmsgstub.unique;
+		
 		int rv = rmsgstub.serializer_ptr->run(pbufpos, _pbufend - pbufpos, _rctx);
 		
 		if(rv > 0){
 			pbufpos += rv;
 			
 			if(rmsgstub.serializer_ptr->empty()){
+				tmp_serializer = std::move(rmsgstub.serializer_ptr);
+				//done serializing the message:
+				write_q.pop();
+				if(not (rmsgstub.flags & Message::WaitResponseFlagE)){
+					//no wait response for the message - complete
+					ErrorConditionT	err;
+					completeMessage(_rctx.messageUid(), _ridmap, _rctx, err);
+				}
+			}else{
+				//message not done - packet should be full
+				cassert((_pbufend - pbufpos) < MinimumFreePacketDataSize);
 				
+				++rmsgstub.packet_count;
+				
+				if(not (rmsgstub.flags & Message::SynchronousFlagE)){
+					
+					if(rmsgstub.packet_count >= _rconfig.max_writer_message_continuous_packet_count){
+						rmsgstub.packet_count = 0;
+						write_q.pop();
+						write_q.push(msgidx);
+					}
+					
+				}else{
+					//synchronous message - send it continuously
+					if(rmsgstub.packet_count == 0){
+						rmsgstub.packet_count = 1;
+					}
+				}
 			}
+
 		}else{
 			_rerror = rmsgstub.serializer_ptr->error();
+			break;
 		}
 	}
 	
@@ -245,9 +285,48 @@ char* MessageWriter::doFillPacket(
 void MessageWriter::completeMessage(
 	MessageUid const &_rmsguid,
 	TypeIdMapT const &_ridmap,
-	ConnectionContext &_rctx
+	ConnectionContext &_rctx,
+	ErrorConditionT const & _rerror
 ){
-	
+	if(_rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique){
+		//we have the message
+		const size_t			msgidx = _rmsguid.index;
+		MessageStub				&rmsgstub = message_vec[msgidx];
+		
+		cassert(not rmsgstub.serializer_ptr);
+		cassert(not rmsgstub.message_ptr.empty());
+		
+		_ridmap[rmsgstub.message_type_idx].complete_fnc(_rctx, rmsgstub.message_ptr, _rerror);
+		
+		rmsgstub.clear();
+		
+		if(pending_message_q.size()){
+			rmsgstub.flags = pending_message_q.front().flags;
+			rmsgstub.message_type_idx = pending_message_q.front().message_type_idx;
+			rmsgstub.message_ptr = std::move(pending_message_q.front().message_ptr);
+			pending_message_q.pop();
+		}else{
+			cache_stk.push(msgidx);
+		}
+	}
+}
+//-----------------------------------------------------------------------------
+void MessageWriter::completeAllMessages(
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx,
+	ErrorConditionT const & _rerror
+){
+	for(auto it = message_vec.begin(); it != message_vec.end();){
+		if(it->message_ptr.empty()){
+			++it;
+		}else{
+			MessageUid	msguid(it - message_vec.begin(), it->unique);
+			completeMessage(msguid, _ridmap, _rctx, _rerror);
+		}
+	}
+	while(write_q.size()){
+		write_q.pop();
+	}
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

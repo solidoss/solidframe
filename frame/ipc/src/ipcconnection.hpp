@@ -86,6 +86,7 @@ public:
 	bool isServer()const;
 	bool shouldSendKeepalive()const;
 	bool isWaitingKeepAliveTimer()const;
+	bool isStopForced()const;
 	
 	HolderT& holder();
 	ConnectionPoolUid const& poolUid()const;
