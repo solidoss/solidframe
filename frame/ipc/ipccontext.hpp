@@ -84,10 +84,10 @@ struct ConnectionContext{
 	SocketDevice const & device()const;
 	
 	ulong messageFlags()const{
-		return messageflags;
+		return message_flags;
 	}
 	MessageUid const& messageUid()const{
-		return messageuid;
+		return message_uid;
 	}
 	//! Holder to be used to keep per connection data
 	HolderT& holder();
@@ -100,12 +100,15 @@ private:
 	Service				&rservice;
 	Connection			&rconnection;
 	
-	ulong				messageflags;
-	MessageUid			messageuid;
+	ulong				message_flags;
+	uint8				message_state;
+	MessageUid			message_uid;
+	
+	
 	
 	ConnectionContext(
 		Service &_rsrv, Connection &_rcon
-	):rservice(_rsrv), rconnection(_rcon){}
+	):rservice(_rsrv), rconnection(_rcon), message_flags(0), message_state(0){}
 	
 	ConnectionContext(ConnectionContext const&);
 	ConnectionContext& operator=(ConnectionContext const&);

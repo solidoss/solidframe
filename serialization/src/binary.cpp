@@ -87,6 +87,8 @@ private:
 				return "Reinit error";
 			case Base::ERR_NO_TYPE_MAP:
 				return "Serializer/Deserializer not initialized with a TypeIdMap";
+			case Base::ERR_DESERIALIZE_VALUE:
+				return "pushCrossValue/pushValue cannot be used in Deserializer";
 			default:
 				return "Unknown error";
 		}

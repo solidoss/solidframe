@@ -166,6 +166,7 @@ protected:
 		ERR_POINTER_UNKNOWN,
 		ERR_REINIT,
 		ERR_NO_TYPE_MAP,
+		ERR_DESERIALIZE_VALUE,
 	};
 	struct FncData;
 	typedef CbkReturnValueE (*FncT)(Base &, FncData &, void*);
@@ -187,28 +188,40 @@ protected:
 	struct ExtData{
 		char 	buf[MAX_ITERATOR_SIZE];
 		
+		const uint8& u8()const{return *reinterpret_cast<const uint8*>(buf);}
+		uint8& u8(){return *reinterpret_cast<uint8*>(buf);}
+		
 		const uint32& u32()const{return *reinterpret_cast<const uint32*>(buf);}
 		uint32& u32(){return *reinterpret_cast<uint32*>(buf);}
+		
 		const uint64& u64()const{return *reinterpret_cast<const uint64*>(buf);}
 		uint64& u64(){return *reinterpret_cast<uint64*>(buf);}
+		
 		const int32& i32()const{return *reinterpret_cast<const int32*>(buf);}
 		int32& i32(){return *reinterpret_cast<int32*>(buf);}
+		
 		int64& i64(){return *reinterpret_cast<int64*>(buf);}
 		const int64& i64()const{return *reinterpret_cast<const int64*>(buf);}
+		
 		int64& i64_1(){return *reinterpret_cast<int64*>(buf + sizeof(int64));}
 		const int64& i64_1()const{return *reinterpret_cast<const int64*>(buf + sizeof(int64));}
+		
 		uint64& u64_1(){return *reinterpret_cast<uint64*>(buf + sizeof(uint64));}
 		const uint64& u64_1()const{return *reinterpret_cast<const uint64*>(buf + sizeof(uint64));}
+		
 		void*& pv_2(){return *reinterpret_cast<void**>(buf + 2 * sizeof(int64));}
 		const void* const& pv_2()const{return *reinterpret_cast<void const * const*>(buf + 2 * sizeof(int64));}
+		
 		const void*const& p()const{
 			return *reinterpret_cast<const void*const*>(buf);
 		}
 		void*& p(){
 			return *reinterpret_cast<void**>(buf);
 		}
+		
 		ExtData(){}
 		
+		ExtData(uint8 _u8){u8() = _u8;}
 		ExtData(uint32 _u32){u32() = _u32;}
 		ExtData(int32 _i32){i32() = _i32;}
 		ExtData(uint64 _u64){u64() = _u64;}
@@ -804,6 +817,18 @@ public:
 		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint32>, &this->Base::estk.top().u32(), _name));
 		return *this;
 	}
+	SerializerT& pushCrossValue(const uint64 &_rv, const char *_name = Base::default_name){
+		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &this->Base::estk.top().u64(), _name));
+		return *this;
+	}
+	SerializerT& pushValue(const uint8 &_rv, const char *_name = Base::default_name){
+		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
+		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint16>, &this->Base::estk.top().u8(), _name));
+		return *this;
+	}
 private:
 	const TypeIdMapT	*ptypeidmap;
 };
@@ -989,6 +1014,18 @@ public:
 		this->Base::estk.push(Base::ExtData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
 		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &this->Base::estk.top().u32(), _name));
+		return *this;
+	}
+	SerializerT& pushCrossValue(const uint64 &_rv, const char *_name = Base::default_name){
+		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &this->Base::estk.top().u64(), _name));
+		return *this;
+	}
+	SerializerT& pushValue(const uint8 &_rv, const char *_name = Base::default_name){
+		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
+		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint16>, &this->Base::estk.top().u8(), _name));
 		return *this;
 	}
 private:
@@ -1641,6 +1678,18 @@ public:
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &_rv, _name));
 		return *this;
 	}
+	Deserializer& pushCrossValue(const uint32 &_rv, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, Base::ERR_DESERIALIZE_VALUE));
+		return *this;
+	}
+	DeserializerT& pushCrossValue(const uint64 &_rv, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, Base::ERR_DESERIALIZE_VALUE));
+		return *this;
+	}
+	DeserializerT& pushValue(const uint8 &_rv, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, Base::ERR_DESERIALIZE_VALUE));
+		return *this;
+	}
 	const TypeIdMapT* typeIdMap()const{
 		return ptypeidmap;
 	}
@@ -1825,6 +1874,19 @@ public:
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &_rv, _name));
 		return *this;
 	}
+	Deserializer& pushCrossValue(const uint32 &_rv, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, Base::ERR_DESERIALIZE_VALUE));
+		return *this;
+	}
+	DeserializerT& pushCrossValue(const uint64 &_rv, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, Base::ERR_DESERIALIZE_VALUE));
+		return *this;
+	}
+	DeserializerT& pushValue(const uint8 &_rv, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, Base::ERR_DESERIALIZE_VALUE));
+		return *this;
+	}
+	
 	const TypeIdMapT* typeIdMap()const{
 		return ptypeidmap;
 	}

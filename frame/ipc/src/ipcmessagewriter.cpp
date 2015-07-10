@@ -73,7 +73,7 @@ void MessageWriter::enqueue(
 		//fail to enqueue message - complete the message
 		ErrorConditionT error;
 		error.assign(-1, error.category());//TODO:
-		_rctx.messageflags = _flags;
+		_rctx.message_flags = _flags;
 		_ridmap[_msg_type_idx].complete_fnc(_rctx, _rmsgptr, error);
 		_rmsgptr.clear();
 	}
@@ -234,8 +234,10 @@ char* MessageWriter::doFillPacket(
 			pbufpos = SerializerT::storeValue(pbufpos, tmp);
 		}
 		
-		_rctx.messageuid.index  = msgidx;
-		_rctx.messageuid.unique = rmsgstub.unique;
+		_rctx.message_uid.index  = msgidx;
+		_rctx.message_uid.unique = rmsgstub.unique;
+		_rctx.message_state = rmsgstub.message_ptr->state() + 1;
+		
 		
 		int rv = rmsgstub.serializer_ptr->run(pbufpos, _pbufend - pbufpos, _rctx);
 		

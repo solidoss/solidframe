@@ -42,14 +42,24 @@ struct Message: Dynamic<Message>{
 		return stt == 2;
 	}
 	
+	uint8 state()const{
+		return stt;
+	}
+	
 	template <class S>
 	void serialize(S &_rs, frame::ipc::ConnectionContext &_rctx){
 		if(S::IsSerializer){
-			_rs.pushCross(_rctx.messageuid.index, "msguid_idx");
-			_rs.pushCross(_rctx.messageuid.unique, "msguid_idx");
+			//because a message can be sent to multiple destinations (usign DynamicPointer)
+			//on serialization we cannot use/modify the values stored by ipc::Message
+			//so, we'll use ones store in the context. Because the context is volatile
+			//we'll store as values.
+			_rs.pushCrossValue(_rctx.message_uid.index, "msguid_idx");
+			_rs.pushCrossValue(_rctx.message_uid.unique, "msguid_idx");
+			_rs.pushValue(_rctx.message_state, "state");
 		}else{
 			_rs.pushCross(msguid.index, "msguid_idx");
 			_rs.pushCross(msguid.unique, "msguid_uid");
+			_rs.push(stt, "state");
 		}
 	}
 	
@@ -64,11 +74,9 @@ private:
 		//using the above "serialize" function
 		_rs.push(_rt, _name);
 		_rs.push(static_cast<Message&>(_rt), "message_base");
-		_rs.push(static_cast<Message&>(_rt).stt, "state");
 	}
 	
-	void nextState(){
-		++stt;
+	void adjustState(){
 		if(stt == 3) stt = 0;
 	}
 private:
