@@ -14,6 +14,18 @@
 
 namespace solid{
 
+bool compute_value_with_crc(uint64 &_to, uint64 _from);
+bool check_value_with_crc(uint64 &_to, uint64 _v);
+
+bool compute_value_with_crc(uint32 &_to, uint32 _from);
+bool check_value_with_crc(uint32 &_to, uint32 _v);
+
+bool compute_value_with_crc(uint16 &_to, uint16 _from);
+bool check_value_with_crc(uint16 &_to, uint16 _v);
+
+bool compute_value_with_crc(uint8 &_to, uint8 _from);
+bool check_value_with_crc(uint8 &_to, uint8 _v);
+
 //=============================================================================
 template <typename T>
 struct CRCValue;

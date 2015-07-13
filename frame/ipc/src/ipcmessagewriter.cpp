@@ -216,8 +216,13 @@ char* MessageWriter::doFillPacket(
 			
 			_rconfig.reset_serializer_limits_fnc(_rctx, rmsgstub.serializer_ptr->limits());
 			
-			rmsgstub.serializer_ptr->push(rmsgstub.message_ptr, "message");
+			rmsgstub.serializer_ptr->push(rmsgstub.message_ptr, rmsgstub.message_type_idx, "message");
 			
+			uint32		msgtypeid;
+			bool 		rv = compute_value_with_crc(msgtypeid, rmsgstub.message_type_idx);
+			cassert(rv);
+			(void)rv;
+			rmsgstub.serializer_ptr->pushCrossValue(msgtypeid, "message_type_id");
 		}else if(rmsgstub.packet_count == 0){
 			//switch to old message
 			msgswitch = PacketHeader::PacketHeader::SwitchToOldMessageTypeE;

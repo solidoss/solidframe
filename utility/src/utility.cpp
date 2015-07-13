@@ -113,6 +113,33 @@ inline uint64 compute_crc_value(uint64 _pos){
 	}
 }
 
+bool compute_value_with_crc(uint64 &_to, uint64 _from){
+	return true;
+}
+bool check_value_with_crc(uint64 &_to, uint64 _v){
+	return true;
+}
+
+bool compute_value_with_crc(uint32 &_to, uint32 _from){
+	return true;
+}
+bool check_value_with_crc(uint32 &_to, uint32 _v){
+	return true;
+}
+
+bool compute_value_with_crc(uint16 &_to, uint16 _from){
+	return true;
+}
+bool check_value_with_crc(uint16 &_to, uint16 _v){
+	return true;
+}
+
+bool compute_value_with_crc(uint8 &_to, uint8 _from){
+	return true;
+}
+bool check_value_with_crc(uint8 &_to, uint8 _v){
+	return true;
+}
 
 /*static*/ CRCValue<uint8> CRCValue<uint8>::check_and_create(uint8 _v){
 	CRCValue<uint8> crcv(_v, true);

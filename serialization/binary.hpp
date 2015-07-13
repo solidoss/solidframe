@@ -922,6 +922,19 @@ public:
 		return *this;
 	}
 	
+	template <typename T>
+	SerializerT& push(DynamicPointer<T> &_rptr, size_t _type_id, const char *_name = Base::default_name){
+		if(ptypeidmap){
+			err = ptypeidmap->store(*this, _rptr.get(), _type_id, _name);
+			if(err){
+				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_POINTER_UNKNOWN));
+			}
+		}else{
+			SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_NO_TYPE_MAP));
+		}
+		return *this;
+	}
+	
 	//! Schedules a stl style container for serialization
 	template <typename T>
 	SerializerT& pushContainer(T &_t, const char *_name = Base::default_name){
