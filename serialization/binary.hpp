@@ -308,7 +308,8 @@ protected:
 				rs.err = make_error(ERR_CONTAINER_LIMIT);
 				return Failure;
 			}
-			if(c->size() > CRCValue<uint64>::maximum()){
+			uint64	crcsz;
+			if(not compute_value_with_crc(crcsz, c->size())){
 				rs.err = make_error(ERR_CONTAINER_MAX_LIMIT);
 				return Failure;
 			}
@@ -316,8 +317,8 @@ protected:
 			typename T::iterator *pit(new(rs.estk.top().buf) typename T::iterator(c->begin()));
 			//typename T::const_iterator &pit = *reinterpret_cast<typename T::const_iterator*>(estk.top().buf);
 			*pit = c->begin();
-			const CRCValue<uint64>	crcsz(c->size());
-			rs.estk.push(ExtData((uint64)crcsz));
+			
+			rs.estk.push(ExtData(crcsz));
 			_rfd.f = &SerializerBase::storeContainerContinue<T, Ser>;
 			rs.fstk.push(FncData(&Base::popExtStack, nullptr));
 			idbgx(Debug::ser_bin, " sz = "<<rs.estk.top().u64());
@@ -360,13 +361,14 @@ protected:
 		T			*c = reinterpret_cast<T*>(_rfd.p);
 		const char	*n = _rfd.n;
 		if(c && rs.estk.top().u64() != static_cast<uint64>(-1)){
+			uint64 crcsz;
 			if(rs.estk.top().u64() > rs.lmts.containerlimit){
 				rs.err = make_error(ERR_ARRAY_LIMIT);
 				return Failure;
-			}else if(rs.estk.top().u64() <= CRCValue<uint64>::maximum()){
+			}else if(compute_value_with_crc(crcsz, rs.estk.top().u64())){
 				_rfd.f = &SerializerBase::storeArrayContinue<T, Ser>;
-				const CRCValue<uint64>	crcsz(rs.estk.top().u64());
-				rs.estk.push(ExtData((uint64)crcsz));
+				
+				rs.estk.push(ExtData(crcsz));
 				rs.fstk.push(FncData(&Base::popExtStack, nullptr));
 				idbgx(Debug::ser_bin, "store array size "<<rs.estk.top().u64());
 				rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().u64(), n));
@@ -1153,9 +1155,9 @@ protected:
 			const uint64	i = rd.estk.top().u64();
 			idbgx(Debug::ser_bin, " sz = "<<i);
 			if(i != static_cast<uint64>(-1)){
-				const CRCValue<uint64> crcsz(CRCValue<uint64>::check_and_create(i));
-				if(crcsz.ok()){
-					rd.estk.top().u64() = crcsz.value();
+				uint64 crcsz;
+				if(check_value_with_crc(crcsz, i)){
+					rd.estk.top().u64() = crcsz;
 				}else{
 					rd.err = make_error(ERR_CONTAINER_MAX_LIMIT);
 					return Failure;
@@ -1221,9 +1223,9 @@ protected:
 			const uint64	&rsz(rd.estk.top().u64());
 			idbgx(Debug::ser_bin, "size "<<rsz);
 			if(rsz != static_cast<uint64>(-1)){
-				const CRCValue<uint64> crcsz(CRCValue<uint64>::check_and_create(rsz));
-				if(crcsz.ok()){
-					rd.estk.top().u64() = crcsz.value();
+				uint64	crcsz;
+				if(check_value_with_crc(crcsz, rsz)){
+					rd.estk.top().u64() = crcsz;
 				}else{
 					rd.err = make_error(ERR_ARRAY_MAX_LIMIT);
 					return Failure;

@@ -435,13 +435,14 @@ CbkReturnValueE SerializerBase::store<std::string>(Base &_rb, FncData &_rfd, voi
 		rs.err = make_error(ERR_STRING_LIMIT);
 		return Failure;
 	}
-	if(c->size() > CRCValue<uint64>::maximum()){
+	
+	uint64		crcsz;
+	
+	if(not compute_value_with_crc(crcsz, c->size())){
 		rs.err = make_error(ERR_STRING_MAX_LIMIT);
 		return Failure;
 	}
-	const CRCValue<uint64> crcsz((uint64)c->size());
-	
-	rs.estk.push(ExtData((uint64)crcsz));
+	rs.estk.push(ExtData(crcsz));
 	
 	rs.replace(FncData(&SerializerBase::storeBinary<0>, (void*)c->data(), _rfd.n, c->size()));
 	rs.fstk.push(FncData(&Base::popExtStack, nullptr, _rfd.n));
@@ -502,8 +503,8 @@ CbkReturnValueE SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_p
 		toread = static_cast<int32>(_rfd.s);
 	}
 	
-	if(toread > CRCValue<uint16>::maximum()){
-		toread = CRCValue<uint16>::maximum();
+	if(toread > max_value_without_crc_16()){
+		toread = max_value_without_crc_16();
 	}
 	
 	if(toread == 0){
@@ -532,12 +533,14 @@ CbkReturnValueE SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_p
 		
 		toread = rv;
 		
-		const CRCValue<uint16> crcsz((uint16)toread);
+		uint16 crcsz;
 		
-		storeValue(rs.cpb, (uint16)crcsz);
+		compute_value_with_crc(crcsz, toread);
+		
+		storeValue(rs.cpb, crcsz);
 		idbgx(Debug::ser_bin, "store crcsz = "<<crcsz<<" sz = "<<toread);
 		
-		idbgx(Debug::ser_bin, "store value "<<(uint16)crcsz);
+		idbgx(Debug::ser_bin, "store value "<<crcsz);
 			  
 		rs.cpb += toread + 2;
 		rs.streamsz += toread;
@@ -568,7 +571,7 @@ CbkReturnValueE SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_p
 		rs.err = make_error(ERR_UTF8_LIMIT);
 		return Failure;
 	}
-	if((_rfd.s - 1) > CRCValue<uint32>::maximum()){
+	if((_rfd.s - 1) > max_value_without_crc_32()){
 		rs.err = make_error(ERR_UTF8_MAX_LIMIT);
 		return Failure;
 	}
@@ -1210,9 +1213,9 @@ CbkReturnValueE DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd
 	const uint64 len = rd.estk.top().u64();
 	
 	if(len != static_cast<uint64>(-1)){
-		const CRCValue<uint64> crcsz(CRCValue<uint64>::check_and_create(len));
-		if(crcsz.ok()){
-			rd.estk.top().u64() = crcsz.value();
+		uint64 crcsz;
+		if(check_value_with_crc(crcsz, len)){
+			rd.estk.top().u64() = crcsz;
 		}else{
 			rd.err = make_error(ERR_STRING_MAX_LIMIT);
 			return Failure;
@@ -1327,12 +1330,13 @@ CbkReturnValueE DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_
 		rd.streamerr = make_error(ERR_STREAM_SENDER);
 		return Success;
 	}else{
-		CRCValue<uint16> crcsz(CRCValue<uint16>::check_and_create(sz));
-		if(crcsz.ok()){
-			sz = crcsz.value();
+		//CRCValue<uint16> crcsz(CRCValue<uint16>::check_and_create(sz));
+		uint16 crcsz;
+		if(check_value_with_crc(crcsz, sz)){
+			sz = crcsz;
 		}else{
 			rd.streamerr = rd.err = make_error(ERR_STREAM_CHUNK_MAX_LIMIT);
-			idbgx(Debug::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
+			idbgx(Debug::ser_bin, "crcval = "<<crcsz<<" towrite = "<<towrite);
 			return Failure;
 		}
 	}
@@ -1412,12 +1416,13 @@ CbkReturnValueE DeserializerBase::loadDummyStream(Base &_rb, FncData &_rfd, void
 	}else if(sz == 0){
 		return Success;
 	}else{
-		CRCValue<uint16> crcsz(CRCValue<uint16>::check_and_create(sz));
-		if(crcsz.ok()){
-			sz = crcsz.value();
+		//CRCValue<uint16> crcsz(CRCValue<uint16>::check_and_create(sz));
+		uint16 crcsz;
+		if(check_value_with_crc(crcsz, sz)){
+			sz = crcsz;
 		}else{
 			rd.streamerr = rd.err = make_error(ERR_STREAM_CHUNK_MAX_LIMIT);
-			idbgx(Debug::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
+			idbgx(Debug::ser_bin, "crcval = "<<crcsz<<" towrite = "<<towrite);
 			return Failure;
 		}
 	}
@@ -1442,7 +1447,7 @@ CbkReturnValueE DeserializerBase::loadUtf8(Base &_rb, FncData &_rfd, void */*_pc
 		rd.err = make_error(ERR_UTF8_LIMIT);
 		return Failure;
 	}
-	if(totlen > CRCValue<uint32>::maximum()){
+	if(totlen > max_value_without_crc_32()){
 		rd.err = make_error(ERR_UTF8_MAX_LIMIT);
 		return Failure;
 	}

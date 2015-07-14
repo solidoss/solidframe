@@ -81,127 +81,72 @@ uint64 bit_count(const uint64 _v){
 		bit_count((uint32)(_v >> 32));
 }
 
-inline uint8 compute_crc_value(uint8 _pos){
-	if(_pos < (1 << 5)){
-		return bit_count(_pos) | (_pos << 3);
-	}else{
-		return 0xff;
-	}
-}
-
-inline uint16 compute_crc_value(uint16 _pos){
-	if(_pos < (1 << 12)){
-		return bit_count(_pos) | (_pos << 4);
-	}else{
-		return 0xffff;
-	}
-}
-
-inline uint32 compute_crc_value(uint32 _pos){
-	if(_pos < (1 << 27)){
-		return bit_count(_pos) | (_pos << 5);
-	}else{
-		return 0xffffffff;
-	}
-}
-
-inline uint64 compute_crc_value(uint64 _pos){
-	if(_pos < (1ULL << 58)){
-		return bit_count(_pos) | (_pos << 6);
-	}else{
-		return -1LL;
-	}
-}
-
 bool compute_value_with_crc(uint64 &_to, uint64 _from){
-	return true;
+	if(_from < (1ULL << 58)){
+		_to = bit_count(_from) | (_from << 6);
+		return true;
+	}else{
+		return false;
+	}
 }
 bool check_value_with_crc(uint64 &_to, uint64 _v){
-	return true;
+	_to = _v >> 6;
+	if(bit_count(_to) == (_v & ((1 << 6) - 1))){
+		return true;
+	}else{
+		return false;
+	}
 }
 
 bool compute_value_with_crc(uint32 &_to, uint32 _from){
-	return true;
+	if(_from < (1 << 27)){
+		_to = bit_count(_from) | (_from << 5);
+		return true;
+	}else{
+		return false;
+	}
 }
 bool check_value_with_crc(uint32 &_to, uint32 _v){
-	return true;
+	_to = _v >> 5;
+	if(bit_count(_to) == (_v & ((1 << 5) - 1))){
+		return true;
+	}else{
+		return false;
+	}
 }
 
 bool compute_value_with_crc(uint16 &_to, uint16 _from){
-	return true;
+	if(_from < (1 << 12)){
+		_to = bit_count(_from) | (_from << 4);
+		return true;
+	}else{
+		return false;
+	}
 }
 bool check_value_with_crc(uint16 &_to, uint16 _v){
-	return true;
+	_to = _v >> 4;
+	if(bit_count(_to) == (_v & ((1 << 4) - 1))){
+		return true;
+	}else{
+		return false;
+	}
 }
 
 bool compute_value_with_crc(uint8 &_to, uint8 _from){
-	return true;
+	if(_from < (1 << 5)){
+		_to = bit_count(_from) | (_from << 3);
+		return true;
+	}else{
+		return false;
+	}
 }
 bool check_value_with_crc(uint8 &_to, uint8 _v){
-	return true;
-}
-
-/*static*/ CRCValue<uint8> CRCValue<uint8>::check_and_create(uint8 _v){
-	CRCValue<uint8> crcv(_v, true);
-	if(crcv.crc() == bit_count(crcv.value())){
-		return crcv;
+	_to = _v >> 3;
+	if(bit_count(_to) == (_v & ((1 << 3) - 1))){
+		return true;
 	}else{
-		return CRCValue<uint8>(0xff, true);
+		return false;
 	}
 }
-/*static*/ bool CRCValue<uint8>::check(uint8 _v){
-	CRCValue<uint8> crcv(_v, true);
-	return crcv.crc() == bit_count(crcv.value());
-}
-CRCValue<uint8>::CRCValue(uint8 _v):v(compute_crc_value(_v)){
-}
 
-/*static*/ CRCValue<uint16> CRCValue<uint16>::check_and_create(uint16 _v){
-	CRCValue<uint16> crcv(_v, true);
-	if(crcv.crc() == bit_count(crcv.value())){
-		return crcv;
-	}else{
-		return CRCValue<uint16>(0xffff, true);
-	}
-}
-/*static*/ bool CRCValue<uint16>::check(uint16 _v){
-	CRCValue<uint16> crcv(_v, true);
-	return crcv.crc() == bit_count(crcv.value());
-}
-CRCValue<uint16>::CRCValue(uint16 _v):v(compute_crc_value(_v)){
-}
-
-
-/*static*/ CRCValue<uint32> CRCValue<uint32>::check_and_create(uint32 _v){
-	CRCValue<uint32> crcv(_v, true);
-	if(crcv.crc() == bit_count(crcv.value())){
-		return crcv;
-	}else{
-		return CRCValue<uint32>(0xffffffff, true);
-	}
-}
-/*static*/ bool CRCValue<uint32>::check(uint32 _v){
-	CRCValue<uint32> crcv(_v, true);
-	return crcv.crc() == bit_count(crcv.value());
-}
-
-CRCValue<uint32>::CRCValue(uint32 _v):v(compute_crc_value(_v)){
-}
-
-/*static*/ CRCValue<uint64> CRCValue<uint64>::check_and_create(uint64 _v){
-	CRCValue<uint64> crcv(_v, true);
-	if(crcv.crc() == bit_count(crcv.value())){
-		return crcv;
-	}else{
-		return CRCValue<uint64>(-1LL, true);
-	}
-}
-/*static*/ bool CRCValue<uint64>::check(uint64 _v){
-	CRCValue<uint64> crcv(_v, true);
-	return crcv.crc() == bit_count(crcv.value());
-}
-
-CRCValue<uint64>::CRCValue(uint64 _v):v(compute_crc_value(_v)){
-}
-	
 }//namespace solid

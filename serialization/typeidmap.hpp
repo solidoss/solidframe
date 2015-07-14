@@ -297,6 +297,16 @@ private:
 		return TypeIdMapBase::error_no_type();
 	}
 	
+	/*virtual*/ ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const{
+		if(_type_id < TypeIdMapBase::stubvec.size()){
+			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[_type_id];
+			rstub.storefnc(&_rs, _p, _name);
+			return ErrorConditionT();
+		}else{
+			return TypeIdMapBase::error_no_type();
+		}
+	}
+	
 	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
 		_rd.pushCross(_rv, _name);
 	}
