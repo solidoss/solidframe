@@ -21,6 +21,7 @@ namespace ipc{
 
 enum{
 	MinimumFreePacketDataSize = 16,
+	MaxPacketDataSize = 1024 * 64,
 };
 
 
@@ -48,51 +49,100 @@ struct PacketHeader{
 		SwitchToOldMessageTypeE,
 		ContinuedMessageTypeE,
 		
-		KeepAliveTypeE = 1,
+		KeepAliveTypeE,
 		
 	};
 	enum Flags{
-		CompressedFlagE = 1,
+		Size64KBFlagE = 1, // DO NOT CHANGE!!
+		CompressedFlagE = 2,
 	};
 	
 	PacketHeader(
 		const uint8 _type = 0,
 		const uint8 _flags = 0,
 		const uint16 _size = 0
-	): type(_type), flags(_flags), size(_size){}
+	){
+		reset(_type, _flags, _size);
+	}
+	
 	void reset(
 		const uint8 _type = 0,
 		const uint8 _flags = 0,
 		const uint16 _size = 0
 	){
-		type = _type;
-		flags = _flags;
-		size = _size;
+		type(_type);
+		flags(_flags);
+		size(_size);
+	}
+	
+	uint32 size()const{
+		uint32 sz = (m_flags & Size64KBFlagE);
+		return (sz << 16) | m_size;
 	}
 	
 	
+	uint8 type()const{
+		return m_type;
+	}
+	
+	uint8 flags()const{
+		return m_flags;
+	}
+	
+	void type(uint8 _type){
+		m_type = _type;
+	}
+	void flags(uint8 _flags){
+		m_flags = _flags & (0xff - Size64KBFlagE);
+	}
+	
+	void size(uint32 _sz){
+		m_size = _sz & 0xffff;
+		m_flags |= ((_sz & (1 << 16)) >> 16);
+	}
+	
     bool isCompressed()const{
-        return flags & CompressedFlagE;
+        return m_flags & CompressedFlagE;
     }
+    bool isOk()const{
+		bool rv = true;
+		switch(m_type){
+			case SwitchToNewMessageTypeE:
+			case SwitchToOldMessageTypeE:
+			case ContinuedMessageTypeE:
+			case KeepAliveTypeE:
+				break;
+			default:
+				rv = false;
+				break;
+		}
+		
+		if(size() > MaxPacketDataSize){
+			rv = false;
+		}
+		
+		return rv;
+	}
+    
     template <class S>
     char* store(char * _pc)const{
-		_pc = S::storeValue(_pc, type);
-		_pc = S::storeValue(_pc, flags);
-		_pc = S::storeValue(_pc, size);
+		_pc = S::storeValue(_pc, m_type);
+		_pc = S::storeValue(_pc, m_flags);
+		_pc = S::storeValue(_pc, m_size);
 		return _pc;
 	}
 	
 	template <class D>
     const char* load(const char *_pc){
-		_pc = D::loadValue(_pc, type);
-		_pc = D::loadValue(_pc, flags);
-		_pc = D::loadValue(_pc, size);
+		_pc = D::loadValue(_pc, m_type);
+		_pc = D::loadValue(_pc, m_flags);
+		_pc = D::loadValue(_pc, m_size);
 		return _pc;
 	}
-	
-	uint8	type;
-	uint8	flags;
-	uint16	size;
+private:
+	uint8	m_type;
+	uint8	m_flags;
+	uint16	m_size;
 };
 
 }//namespace ipc

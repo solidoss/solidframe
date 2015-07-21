@@ -20,6 +20,8 @@ namespace ipc{
 
 struct Configuration;
 
+struct PacketHeader;
+
 class MessageReader{
 public:
 	enum Events{
@@ -32,20 +34,37 @@ public:
 	
 	~MessageReader();
 	
-	uint16 read(
+	uint32 read(
 		const char *_pbuf,
-		uint16 _bufsz,
+		uint32 _bufsz,
 		CompleteFunctionT &_complete_fnc,
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
 	);
+	
 	void prepare(Configuration const &_rconfig);
 	void unprepare();
-
+private:
+	const char* doConsumePacket(
+		const char *_pbuf,
+		PacketHeader const &_packet_header,
+		CompleteFunctionT &_complete_fnc,
+		Configuration const &_rconfig,
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx,
+		ErrorConditionT &_rerror
+	);
 private:
 	
+	enum States{
+		HeaderReadStateE = 1,
+		DataReadStateE,
+	};
+	
+	States						state;
+	uint32						current_message_type_id;
 };
 
 }//namespace ipc

@@ -113,14 +113,14 @@ uint32 MessageWriter::write(
 			if(not packet_options.force_no_compress){
 				pbuftmp = _rconfig.inplace_compress_fnc(pbufdata, pbuftmp - pbufdata);
 				if(pbuftmp){
-					packet_header.flags |= PacketHeader::CompressedFlagE;
+					packet_header.flags( packet_header.flags() | PacketHeader::CompressedFlagE);
 				}
 			}
 			
-			cassert((pbuftmp - pbufpos + PacketHeader::SizeOfE) < static_cast<size_t>(0xffff));
+			cassert((pbuftmp - pbufpos) < static_cast<size_t>(0xffff));
 			
-			packet_header.type = packet_options.packet_type;
-			packet_header.size = pbuftmp - pbufpos + PacketHeader::SizeOfE;
+			packet_header.type(packet_options.packet_type);
+			packet_header.size(pbuftmp - pbufpos);
 			
 			pbufpos = packet_header.store<SerializerT>(pbufpos);
 			pbufpos = pbuftmp;
@@ -218,11 +218,11 @@ char* MessageWriter::doFillPacket(
 			
 			rmsgstub.serializer_ptr->push(rmsgstub.message_ptr, rmsgstub.message_type_idx, "message");
 			
-			uint32		msgtypeid;
-			bool 		rv = compute_value_with_crc(msgtypeid, rmsgstub.message_type_idx);
-			cassert(rv);
-			(void)rv;
-			rmsgstub.serializer_ptr->pushCrossValue(msgtypeid, "message_type_id");
+			bool 		rv = compute_value_with_crc(current_message_type_id, rmsgstub.message_type_idx);
+			cassert(rv);(void)rv;
+			//Not sending by value (pushCrossValue), in order to avoid a unnecessary 
+			//"ext" data allocation in serializer.
+			rmsgstub.serializer_ptr->pushCross(current_message_type_id, "message_type_id");
 		}else if(rmsgstub.packet_count == 0){
 			//switch to old message
 			msgswitch = PacketHeader::PacketHeader::SwitchToOldMessageTypeE;

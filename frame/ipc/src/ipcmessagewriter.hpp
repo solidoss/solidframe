@@ -57,6 +57,7 @@ public:
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
 	);
+	
 	void completeMessage(
 		MessageUid const &_rmsguid,
 		TypeIdMapT const &_ridmap,
@@ -139,6 +140,7 @@ private:
 	MessageVectorT				message_vec;
 	SizeTQueueT					write_q;
 	CacheStackT					cache_stk;
+	uint32						current_message_type_id;
 };
 
 
