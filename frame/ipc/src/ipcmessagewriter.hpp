@@ -91,7 +91,7 @@ private:
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
 			ulong _flags
-		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), flags(_flags){}
+		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), flags(_flags), packet_count(0){}
 		
 		MessageStub():message_type_idx(-1), flags(-1), unique(0), packet_count(0){}
 		

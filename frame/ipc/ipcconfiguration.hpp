@@ -49,7 +49,8 @@ typedef FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>			Connection
 typedef FUNCTION<void(ConnectionContext &)>									ConnectionStartFunctionT;
 typedef FUNCTION<char*(const uint16)>										AllocateBufferFunctionT;
 typedef FUNCTION<void(char*)>												FreeBufferFunctionT;
-typedef FUNCTION<char*(char*, size_t)>										CompressFunctionT;
+typedef FUNCTION<size_t(char*, size_t, ErrorConditionT &)>					CompressFunctionT;
+typedef FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT &)>		UncompressFunctionT;
 typedef FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>	ResetSerializerLimitsFunctionT;
 
 struct Configuration{
@@ -115,10 +116,11 @@ struct Configuration{
 	
 	ResetSerializerLimitsFunctionT		reset_serializer_limits_fnc;
 	
-	CompressFunctionT			inplace_compress_fnc;
+	CompressFunctionT					inplace_compress_fnc;
+	UncompressFunctionT					uncompress_fnc;
 	
-	std::string					listen_address_str;
-	std::string					default_listen_port_str;
+	std::string							listen_address_str;
+	std::string							default_listen_port_str;
 	
 	ErrorConditionT prepare();
 	

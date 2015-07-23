@@ -93,12 +93,16 @@ struct PacketHeader{
 		m_type = _type;
 	}
 	void flags(uint8 _flags){
-		m_flags = _flags & (0xff - Size64KBFlagE);
+		m_flags = _flags /*& (0xff - Size64KBFlagE)*/;
 	}
 	
 	void size(uint32 _sz){
 		m_size = _sz & 0xffff;
 		m_flags |= ((_sz & (1 << 16)) >> 16);
+	}
+	
+	bool isTypeKeepAlive()const{
+		return m_type == KeepAliveTypeE;
 	}
 	
     bool isCompressed()const{

@@ -1791,6 +1791,25 @@ public:
 		return *this;
 	}
 	
+	template <typename T>
+	Deserializer& push(DynamicPointer<T> &_rptr, const size_t _type_id, const char *_name = Base::default_name){
+		if(ptypeidmap){
+			void 		*p = nullptr;
+			std::string tmpstr;
+			
+			err = typeIdMap()->load<T>(*this, &p, _type_id, tmpstr, _name);
+			
+			_rptr = reinterpret_cast<T*>(p);
+		
+			if(err){
+				DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_POINTER_UNKNOWN));
+			}
+		}else{
+			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
+		}
+		return *this;
+	}
+	
 	template <class T, uint32 I>
 	Deserializer& pushReinit(
 		T *_pt, const uint64 &_rval = 0, const char *_name = Base::default_name

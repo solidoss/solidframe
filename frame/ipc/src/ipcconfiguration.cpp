@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "frame/ipc/ipcconfiguration.hpp"
+#include "system/cassert.hpp"
 
 namespace solid{
 namespace frame{
@@ -23,6 +24,18 @@ namespace{
 	}
 	
 	void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
+	
+	
+	size_t default_compress(char*, size_t, ErrorConditionT &){
+		return 0;
+	}
+	
+	size_t default_uncompress(char*, const char*, size_t, ErrorConditionT &_rerror){
+		//This should never be called
+		cassert(false);
+		_rerror.assign(-1, _rerror.category());//TODO:
+		return 0;
+	}
 	
 }//namespace
 
@@ -45,6 +58,9 @@ Configuration::Configuration(
 	free_send_buffer_fnc = default_free_buffer;
 	
 	reset_serializer_limits_fnc = empty_reset_serializer_limits;
+	
+	inplace_compress_fnc = default_compress;
+	uncompress_fnc = default_uncompress;
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Configuration::prepare(){

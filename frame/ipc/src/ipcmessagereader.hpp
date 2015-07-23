@@ -10,9 +10,11 @@
 #ifndef SOLID_FRAME_IPC_SRC_IPC_MESSAGE_READER_HPP
 #define SOLID_FRAME_IPC_SRC_IPC_MESSAGE_READER_HPP
 
+#include "utility/queue.hpp"
 #include "system/common.hpp"
 #include "system/error.hpp"
 #include "frame/ipc/ipcserialization.hpp"
+#include "system/specific.hpp"
 
 namespace solid{
 namespace frame{
@@ -21,6 +23,13 @@ namespace ipc{
 struct Configuration;
 
 struct PacketHeader;
+
+
+struct Deserializer: public DeserializerT, public SpecificObject{
+	Deserializer(TypeIdMapT const &_ridmap): DeserializerT(&_ridmap){}
+};
+
+typedef std::unique_ptr<Deserializer>		DeserializerPointerT;
 
 class MessageReader{
 public:
@@ -46,8 +55,10 @@ public:
 	
 	void prepare(Configuration const &_rconfig);
 	void unprepare();
+	template <class S, uint32 I>
+	serialization::binary::CbkReturnValueE serializationReinit(S &_rs, const uint64 &_rv, ConnectionContext &);
 private:
-	const char* doConsumePacket(
+	void doConsumePacket(
 		const char *_pbuf,
 		PacketHeader const &_packet_header,
 		CompleteFunctionT &_complete_fnc,
@@ -63,8 +74,30 @@ private:
 		DataReadStateE,
 	};
 	
-	States						state;
-	uint32						current_message_type_id;
+	struct MessageStub{
+		MessageStub(
+			MessagePointerT &_rmsgptr,
+			const size_t _msg_type_idx,
+			ulong _flags
+		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx){}
+		
+		MessageStub():message_type_idx(-1){}
+		
+		void clear(){
+			message_ptr.clear();
+			deserializer_ptr = nullptr;
+		}
+		
+		MessagePointerT 		message_ptr;
+		size_t					message_type_idx;
+		DeserializerPointerT	deserializer_ptr;
+	};
+	
+	typedef Queue<MessageStub>		MessageQueueT;
+	
+	States			state;
+	uint32			current_message_type_id;
+	MessageQueueT	message_q;
 };
 
 }//namespace ipc

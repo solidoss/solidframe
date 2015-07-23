@@ -108,12 +108,19 @@ uint32 MessageWriter::write(
 		char			*pbufdata = pbufpos + PacketHeader::SizeOfE;
 		char			*pbuftmp = doFillPacket(pbufdata, pbufend, packet_options, more, _rconfig, _ridmap, _rctx, _rerror);
 		
-		if(not _rerror){
+		if(pbuftmp != pbufdata){
 			
 			if(not packet_options.force_no_compress){
-				pbuftmp = _rconfig.inplace_compress_fnc(pbufdata, pbuftmp - pbufdata);
-				if(pbuftmp){
+				size_t compressed_size = _rconfig.inplace_compress_fnc(pbufdata, pbuftmp - pbufdata, _rerror);
+				if(compressed_size){
 					packet_header.flags( packet_header.flags() | PacketHeader::CompressedFlagE);
+					pbuftmp = pbufdata + compressed_size;
+				}else if(!_rerror){
+					//the buffer was not modified, we can send it uncompressed
+				}else{
+					//there was an error and the inplace buffer was changed - exit with error
+					more = false;
+					continue;
 				}
 			}
 			
@@ -204,6 +211,7 @@ char* MessageWriter::doFillPacket(
 			if(rmsgstub.message_ptr.empty()){
 				//we need to stop
 				_rerror.assign(-1, _rerror.category());//TODO:
+				pbufpos = nullptr;
 				break;
 			}
 			
@@ -282,6 +290,7 @@ char* MessageWriter::doFillPacket(
 
 		}else{
 			_rerror = rmsgstub.serializer_ptr->error();
+			pbufpos = nullptr;
 			break;
 		}
 	}
