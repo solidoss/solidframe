@@ -15,7 +15,17 @@
 namespace solid{
 namespace frame{
 namespace ipc{
-
+//-----------------------------------------------------------------------------
+enum WriterFlags{
+	SynchronousMessageInWriteQueueFlag		= 1,
+	AsynchronousMessageInPendingQueueFlag	= 2,
+};
+inline bool MessageWriter::isSynchronousInWriteQueue()const{
+	return (flags & SynchronousMessageInWriteQueueFlag) != 0;
+}
+inline bool MessageWriter::isAsynchronousInPendingQueue()const{
+	return (flags & AsynchronousMessageInPendingQueueFlag) != 0;
+}
 
 //-----------------------------------------------------------------------------
 MessageWriter::MessageWriter(){}
@@ -35,6 +45,9 @@ void MessageWriter::unprepare(){
 // max multiplexed message count
 // max waiting message count
 // function message_complete
+// enqueuing Synchronous Messages:
+// 		put on pending_message_q
+// 
 //
 void MessageWriter::enqueue(
 	MessagePointerT &_rmsgptr,
@@ -46,7 +59,17 @@ void MessageWriter::enqueue(
 ){
 	
 	if(
-		write_q.size() < _rconfig.max_writer_multiplex_message_count or _rmsgptr.empty()
+		_rmsgptr.empty() or //always deliver the terminate message
+		(
+			write_q.size() < _rconfig.max_writer_multiplex_message_count and
+			(message_vec.size() - cache_stk.size()) < _rconfig.max_writer_waiting_message_count and
+			(
+				Message::is_asynchronous(_flags) or
+				(
+					Message::is_synchronous(_flags) and not isSynchronousInWriteQueue()
+				)
+			)	
+		)
 	){
 		//put message in write_q
 		uint32		idx;
@@ -65,10 +88,19 @@ void MessageWriter::enqueue(
 		rmsgstub.message_type_idx = _msg_type_idx;
 		rmsgstub.message_ptr = std::move(_rmsgptr);
 		
+		if(Message::is_synchronous(_flags)){
+			this->flags |= SynchronousMessageInWriteQueueFlag;
+		}
+		
 		write_q.push(idx);
-	}else if(_rconfig.max_writer_pending_message_count == 0 or pending_message_q.size() < _rconfig.max_writer_pending_message_count){
+	}else if(
+		pending_message_q.size() < _rconfig.max_writer_pending_message_count
+	){
 		//put the message in pending queue
 		pending_message_q.push(PendingMessageStub(_rmsgptr, _msg_type_idx, _flags));
+		if(Message::is_asynchronous(_flags)){
+			this->flags |= AsynchronousMessageInPendingQueueFlag;
+		}
 	}else{
 		//fail to enqueue message - complete the message
 		ErrorConditionT error;
@@ -195,8 +227,8 @@ char* MessageWriter::doFillPacket(
 	ConnectionContext &_rctx,
 	ErrorConditionT & _rerror
 ){
-	char 		*pbufpos = _pbufbeg;
-	uint32		freesz = _pbufend - pbufpos;
+	char 					*pbufpos = _pbufbeg;
+	uint32					freesz = _pbufend - pbufpos;
 	
 	SerializerPointerT		tmp_serializer;
 	
@@ -261,33 +293,27 @@ char* MessageWriter::doFillPacket(
 				tmp_serializer = std::move(rmsgstub.serializer_ptr);
 				//done serializing the message:
 				write_q.pop();
-				if(not (rmsgstub.flags & Message::WaitResponseFlagE)){
+				if(not Message::is_waiting_response(rmsgstub.flags)){
 					//no wait response for the message - complete
 					ErrorConditionT	err;
-					completeMessage(_rctx.messageUid(), _ridmap, _rctx, err);
+					completeMessage(_rctx.messageUid(), _rconfig, _ridmap, _rctx, err);
 				}
+				if(Message::is_synchronous(rmsgstub.flags)){
+					this->flags &= ~(SynchronousMessageInWriteQueueFlag);
+				}
+				doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 			}else{
 				//message not done - packet should be full
 				cassert((_pbufend - pbufpos) < MinimumFreePacketDataSize);
 				
 				++rmsgstub.packet_count;
 				
-				if(not (rmsgstub.flags & Message::SynchronousFlagE)){
-					
-					if(rmsgstub.packet_count >= _rconfig.max_writer_message_continuous_packet_count){
-						rmsgstub.packet_count = 0;
-						write_q.pop();
-						write_q.push(msgidx);
-					}
-					
-				}else{
-					//synchronous message - send it continuously
-					if(rmsgstub.packet_count == 0){
-						rmsgstub.packet_count = 1;
-					}
+				if(rmsgstub.packet_count >= _rconfig.max_writer_message_continuous_packet_count){
+					rmsgstub.packet_count = 0;
+					write_q.pop();
+					write_q.push(msgidx);
 				}
 			}
-
 		}else{
 			_rerror = rmsgstub.serializer_ptr->error();
 			pbufpos = nullptr;
@@ -298,8 +324,68 @@ char* MessageWriter::doFillPacket(
 	return pbufpos;
 }
 //-----------------------------------------------------------------------------
+void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig){
+	if(
+		pending_message_q.empty() or cache_stk.empty()
+	) return;
+	
+	if(
+		(message_vec.size() - cache_stk.size()) == _rconfig.max_writer_waiting_message_count
+	) return;
+	
+	if(
+		Message::is_asynchronous(pending_message_q.front().flags) or
+		not isSynchronousInWriteQueue()
+	){
+		const size_t	idx = cache_stk.size();
+		MessageStub		&rmsgstub(message_vec[idx]);
+		cache_stk.pop();
+		
+		rmsgstub.flags = pending_message_q.front().flags;
+		rmsgstub.message_type_idx = pending_message_q.front().message_type_idx;
+		rmsgstub.message_ptr = std::move(pending_message_q.front().message_ptr);
+		pending_message_q.pop();
+		if(Message::is_synchronous(rmsgstub.flags)){
+			this->flags |= SynchronousMessageInWriteQueueFlag;
+		}
+		return;
+	}
+	//worst case - there is an Synchronous Message in the write queue
+	//also the first message in pending queue is Synchronous
+	//see if there are any asynchronous message to move to writequeue
+	if(isAsynchronousInPendingQueue()){
+		//we rotate the queue so that the currently Synchronous Message will still be at front
+		size_t qsz = pending_message_q.size();
+		while(qsz--){
+			PendingMessageStub	tmp(pending_message_q.front());
+			//TODO:
+		}
+	}
+#if 0	
+	if(
+		pending_message_q.size() and
+	){
+		size_t		idx;
+		if(cache_stk.size()){
+			idx = cache_stk.top();
+			cache_stk.pop();
+		}else{
+			idx = message_vec.size();
+			message_vec.push_back(MessageStub()); 
+		}
+		
+		MessageStub		&rmsgstub(message_vec[idx]);
+		
+		rmsgstub.flags = _flags;
+		rmsgstub.message_type_idx = _msg_type_idx;
+		rmsgstub.message_ptr = std::move(_rmsgptr);
+	}
+#endif
+}
+//-----------------------------------------------------------------------------
 void MessageWriter::completeMessage(
 	MessageUid const &_rmsguid,
+	ipc::Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
@@ -315,19 +401,13 @@ void MessageWriter::completeMessage(
 		_ridmap[rmsgstub.message_type_idx].complete_fnc(_rctx, rmsgstub.message_ptr, _rerror);
 		
 		rmsgstub.clear();
-		
-		if(pending_message_q.size()){
-			rmsgstub.flags = pending_message_q.front().flags;
-			rmsgstub.message_type_idx = pending_message_q.front().message_type_idx;
-			rmsgstub.message_ptr = std::move(pending_message_q.front().message_ptr);
-			pending_message_q.pop();
-		}else{
-			cache_stk.push(msgidx);
-		}
+		cache_stk.push(msgidx);
+		doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 	}
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::completeAllMessages(
+	ipc::Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
@@ -337,7 +417,7 @@ void MessageWriter::completeAllMessages(
 			++it;
 		}else{
 			MessageUid	msguid(it - message_vec.begin(), it->unique);
-			completeMessage(msguid, _ridmap, _rctx, _rerror);
+			completeMessage(msguid, _rconfig, _ridmap, _rctx, _rerror);
 		}
 	}
 	while(write_q.size()){

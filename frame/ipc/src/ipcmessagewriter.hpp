@@ -60,12 +60,14 @@ public:
 	
 	void completeMessage(
 		MessageUid const &_rmsguid,
+		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT const & _rerror
 	);
 	
 	void completeAllMessages(
+		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT const & _rerror
@@ -135,12 +137,17 @@ private:
 		ErrorConditionT & _rerror
 	);
 	
+	bool isSynchronousInWriteQueue()const;
+	bool isAsynchronousInPendingQueue()const;
+	
+	void doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig);
 private:
 	PendingMessageQueueT		pending_message_q;
 	MessageVectorT				message_vec;
 	SizeTQueueT					write_q;
 	CacheStackT					cache_stk;
 	uint32						current_message_type_id;
+	uint32						flags;
 };
 
 

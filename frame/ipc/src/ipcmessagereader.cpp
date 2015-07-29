@@ -153,6 +153,11 @@ void MessageReader::doConsumePacket(
 		switch(crt_msg_type){
 			case PacketHeader::SwitchToNewMessageTypeE:
 				if(message_q.front().message_ptr.get()){
+					if(message_q.size() == _rconfig.max_reader_multiplex_message_count){
+						cassert(false);
+						_rerror.assign(-1, _rerror.category());//TODO:
+						return;
+					}
 					//reschedule the current message for later
 					message_q.push(std::move(message_q.front()));
 				}
@@ -167,6 +172,11 @@ void MessageReader::doConsumePacket(
 				break;
 			case PacketHeader::SwitchToOldMessageTypeE:
 				if(message_q.front().message_ptr.get()){
+					if(message_q.size() == _rconfig.max_reader_multiplex_message_count){
+						cassert(false);
+						_rerror.assign(-1, _rerror.category());//TODO:
+						return;
+					}
 					message_q.push(std::move(message_q.front()));
 				}
 				message_q.pop();

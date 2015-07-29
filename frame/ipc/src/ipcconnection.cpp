@@ -514,9 +514,10 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 	//_rmsgptr is the received message
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
+	const Configuration &rconfig  = service(_rctx).configuration();
 	ErrorConditionT		error;
 	if(_rmsgptr->isBackOnSender()){
-		msgwriter.completeMessage(_rmsgptr->msguid, rtypemap, conctx, error);
+		msgwriter.completeMessage(_rmsgptr->msguid, rconfig, rtypemap, conctx, error);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -532,10 +533,11 @@ void Connection::doCompleteAllMessages(
 ){
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
+	const Configuration &rconfig  = service(_rctx).configuration();
 	//TODO:
 	if(isStopForced() or conpoolid.isInvalid()){
 		//really complete
-		msgwriter.completeAllMessages(rtypemap, conctx, _rerr);
+		msgwriter.completeAllMessages(rconfig, rtypemap, conctx, _rerr);
 	}else{
 		//connection lost - try reschedule whatever messages we can
 	}

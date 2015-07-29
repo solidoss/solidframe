@@ -27,6 +27,16 @@ struct Message: Dynamic<Message>{
 		SynchronousFlagE = (1<<1),
 	};
 	
+	static bool is_synchronous(const uint32 _flags){
+		return (_flags & SynchronousFlagE) != 0;
+	}
+	static bool is_asynchronous(const uint32 _flags){
+		return (_flags & SynchronousFlagE) == 0;
+	}
+	static bool is_waiting_response(const uint32 _flags){
+		return (_flags & WaitResponseFlagE) != 0;
+	}
+	
 	Message(uint8 _state = 0):stt(_state){}
 	Message(Message const &_rmsg): msguid(_rmsg.msguid), stt(_rmsg.stt){}
 	

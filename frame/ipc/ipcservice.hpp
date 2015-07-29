@@ -34,6 +34,33 @@ class Connection;
 //! Inter Process Communication service
 /*!
 	Allows exchanging ipc::Messages between processes.
+	Synchronous vs Asynchronous messages
+	A synchronous message is one sent with Message::SynchronousFlagE flag set:
+	sendMessage(..., Message::SynchronousFlagE)
+	Messages with Message::SynchronousFlagE flag unset are asynchronous.
+	
+	Synchronous messages
+		* are always sent one after another, so they reach destination
+			in the same order they were sent.
+		* if multiple connections through peers are posible, only one is used for
+			synchronous messages.
+	
+	Asynchronous messages
+		* Because the messages are multiplexed, although the messages start being
+			serialized on the socket stream in the same order sendMessage was called
+			they will reach destination in a different order deppending on the
+			message serialization size.
+			
+	
+	Example:
+		sendMessage("peer_name", m1_500MB, Message::SynchronousFlagE);
+		sendMessage("peer_name", m2_100MB, Message::SynchronousFlagE);
+		sendMessage("peer_name", m3_10MB, 0);
+		sendMessage("peer_name", m4_1MB, 0);
+		
+		The order they will reach the peer side is:
+		m4_1MB, m3_10MB, m1_500MB, m2_100MB
+	
 */
 class Service: public Dynamic<Service, frame::Service>{
 	typedef FUNCTION<std::pair<MessagePointerT, uint32>(ErrorConditionT const &)>		ActivateConnectionMessageFactoryFunctionT;

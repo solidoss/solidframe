@@ -94,7 +94,11 @@ struct Configuration{
 	
 	size_t								max_writer_multiplex_message_count;
 	size_t								max_writer_pending_message_count;
+	size_t								max_writer_waiting_message_count;
 	size_t								max_writer_message_continuous_packet_count;
+	
+	
+	size_t								max_reader_multiplex_message_count;
 	
 	uint32								inactivity_timeout_seconds;
 	uint32								keepalive_timeout_seconds;
