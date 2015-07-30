@@ -111,6 +111,20 @@ void MessageWriter::enqueue(
 	}
 }
 //-----------------------------------------------------------------------------
+bool MessageWriter::shouldTryFetchNewMessage(Configuration const &_rconfig)const{
+	return (
+		write_q.empty() or 
+		(
+			write_q.size() < _rconfig.max_writer_multiplex_message_count and
+			message_vec[write_q.front()].packet_count == 0
+		)
+	);
+}
+//-----------------------------------------------------------------------------
+bool MessageWriter::empty()const{
+	return write_q.empty();
+}
+//-----------------------------------------------------------------------------
 // Does:
 // prepare message
 // serialize messages on buffer
@@ -350,37 +364,52 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		}
 		return;
 	}
-	//worst case - there is an Synchronous Message in the write queue
-	//also the first message in pending queue is Synchronous
-	//see if there are any asynchronous message to move to writequeue
+	
 	if(isAsynchronousInPendingQueue()){
+		//worst case - there is an Synchronous Message in the write queue
+		//while the first message in pending queue is Synchronous
+		//we must see if there are any asynchronous message to move to writequeue
+		
+		//For that:
 		//we rotate the queue so that the currently Synchronous Message will still be at front
-		size_t qsz = pending_message_q.size();
+		size_t				qsz = pending_message_q.size();
+		PendingMessageStub	asyncmsgstub;
+		bool				has_another_asyncmsgstub = false;
 		while(qsz--){
 			PendingMessageStub	tmp(pending_message_q.front());
-			//TODO:
+			pending_message_q.pop();
+			if(Message::is_synchronous(tmp.flags)){
+				pending_message_q.push(tmp);
+			}else{
+				if(asyncmsgstub.message_ptr.get()){
+					has_another_asyncmsgstub = true;
+					pending_message_q.push(tmp);
+				}else{
+					asyncmsgstub.message_ptr = std::move(tmp.message_ptr);
+					asyncmsgstub.message_type_idx = tmp.message_type_idx;
+					asyncmsgstub.flags = tmp.flags;
+				}
+			}
 		}
-	}
-#if 0	
-	if(
-		pending_message_q.size() and
-	){
-		size_t		idx;
-		if(cache_stk.size()){
-			idx = cache_stk.top();
-			cache_stk.pop();
+		
+		if(has_another_asyncmsgstub){
+			this->flags |= AsynchronousMessageInPendingQueueFlag;
 		}else{
-			idx = message_vec.size();
-			message_vec.push_back(MessageStub()); 
+			this->flags &= ~AsynchronousMessageInPendingQueueFlag;
 		}
 		
-		MessageStub		&rmsgstub(message_vec[idx]);
+		if(asyncmsgstub.message_ptr.get()){
+			//we have an asynchronous message
+			const size_t	idx = cache_stk.size();
+			MessageStub		&rmsgstub(message_vec[idx]);
+			
+			cache_stk.pop();
 		
-		rmsgstub.flags = _flags;
-		rmsgstub.message_type_idx = _msg_type_idx;
-		rmsgstub.message_ptr = std::move(_rmsgptr);
+			rmsgstub.flags = asyncmsgstub.flags;
+			rmsgstub.message_type_idx = asyncmsgstub.message_type_idx;
+			rmsgstub.message_ptr = std::move(asyncmsgstub.message_ptr);
+		}
 	}
-#endif
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::completeMessage(

@@ -166,6 +166,8 @@ private:
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
 	void onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err);
 	
+	void tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, const bool _has_no_message_to_send);
+	
 	
 	void forwardResolveMessage(ConnectionPoolUid const &_rconpoolid, Event const&_revent);
 	

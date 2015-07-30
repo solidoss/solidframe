@@ -73,6 +73,10 @@ public:
 		ErrorConditionT const & _rerror
 	);
 	
+	bool shouldTryFetchNewMessage(Configuration const &_rconfig)const;
+	
+	bool empty()const;
+	
 	void prepare(Configuration const &_rconfig);
 	void unprepare();
 private:
@@ -83,8 +87,10 @@ private:
 			ulong _flags
 		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), flags(_flags){}
 		
+		PendingMessageStub():message_type_idx(-1), flags(0){}
+		
 		MessagePointerT message_ptr;
-		const size_t	message_type_idx;
+		size_t			message_type_idx;
 		ulong			flags;
 	};
 	

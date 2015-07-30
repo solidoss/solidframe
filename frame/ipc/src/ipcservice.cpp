@@ -78,7 +78,7 @@ struct ConnectionPoolStub{
 	
 	void clear(){
 		name.clear();
-		synch_conn_uid = ObjectUidT();
+		synchronous_connection_uid = ObjectUidT();
 		++uid;
 		pending_connection_count = 0;
 		active_connection_count = 0;
@@ -92,7 +92,7 @@ struct ConnectionPoolStub{
 	size_t			pending_connection_count;
 	size_t			active_connection_count;
 	std::string		name;
-	ObjectUidT 		synch_conn_uid;
+	ObjectUidT 		synchronous_connection_uid;
 	MessageQueueT	msgq;
 	ObjectUidQueueT	conn_waitingq;
 };
@@ -283,6 +283,7 @@ ErrorConditionT Service::doSendMessage(
 				idx = d.conpooldq.size();
 				d.conpooldq.push_back(ConnectionPoolStub());
 			}
+			
 			Locker<Mutex>					lock2(d.connectionPoolMutex(idx));
 			ConnectionPoolStub 				&rconpool(d.conpooldq[idx]);
 			
@@ -293,7 +294,7 @@ ErrorConditionT Service::doSendMessage(
 			ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 			
 			if(err){
-				edbgx(Debug::ipc, "starting Session object: "<<err.message());
+				edbgx(Debug::ipc, "starting Session: "<<err.message());
 				rconpool.clear();
 				d.conpoolcachestk.push(idx);
 				return err;
@@ -335,10 +336,41 @@ ErrorConditionT Service::doSendMessage(
 		return err;
 	}
 	
-	if(rconpool.conn_waitingq.size()){//there are connections waiting for something to send
-		ObjectUidT objuid = rconpool.conn_waitingq.front();
+	if(
+		Message::is_synchronous(_flags) and
+		rconpool.synchronous_connection_uid.isValid()
+	){
+		ErrorConditionT	tmperr = doSendMessage(
+			rconpool.synchronous_connection_uid,
+			_rmsgptr,
+			msg_type_idx,
+			ConnectionPoolUid(idx, rconpool.uid),
+			_pconpoolid_out, _flags
+		);
+		if(!tmperr){
+			return err;
+		}
+		edbgx(Debug::ipc, "synchronous connection is dead and pool's synchronous_connection_uid is valid");
+		cassert(false);
+		rconpool.synchronous_connection_uid = UniqueId::invalid();
+	}
+	
+	while(rconpool.conn_waitingq.size()){//there are connections waiting for something to send
+		ObjectUidT 		objuid = rconpool.conn_waitingq.front();
+		
 		rconpool.conn_waitingq.pop();
-		return doSendMessage(objuid, _rmsgptr, msg_type_idx, ConnectionPoolUid(idx, rconpool.uid), _pconpoolid_out, _flags);
+		
+		ErrorConditionT	tmperr = doSendMessage(
+			objuid, _rmsgptr, msg_type_idx, ConnectionPoolUid(idx, rconpool.uid), _pconpoolid_out, _flags
+		);
+		
+		if(!tmperr){
+			if(Message::is_synchronous(_flags)){
+				rconpool.synchronous_connection_uid = objuid;
+			}
+			return err;
+		}
+		wdbgx(Debug::ipc, "failed sending message to connection "<<objuid<<" error: "<<tmperr.message());
 	}
 	
 	//All connections are busy
@@ -371,6 +403,11 @@ ErrorConditionT Service::doSendMessage(
 	
 	return err;
 }
+//-----------------------------------------------------------------------------
+void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, const bool _has_no_message_to_send){
+	//TODO:
+}
+
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doSendMessage(
 	ObjectUidT const &_robjuid,

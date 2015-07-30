@@ -439,10 +439,26 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		
 		while(repeatcnt){
 			
+			if(
+				conpoolid.isValid() and
+				msgwriter.shouldTryFetchNewMessage(rconfig)
+			){
+				service(_rctx).tryFetchNewMessage(*this, _rctx, msgwriter.empty());
+			}
+			
+#if 0
+			if(msgwriter.empty()){
+				//nothing to do but wait
+				break;
+			}
+#endif
+
 			uint32 sz = msgwriter.write(sendbuf, sendbufcp, shouldSendKeepalive(), rconfig, rtypemap, conctx, error);
+			
 			flags &= (~FlagKeepaliveE);
+			
 			if(!error){
-				if(sock.sendAll(_rctx, sendbuf, sz, Connection::onSend)){
+				if(sz && sock.sendAll(_rctx, sendbuf, sz, Connection::onSend)){
 					if(_rctx.error()){
 						edbgx(Debug::ipc, id()<<" sending "<<_rctx.error().message());
 						doStop(_rctx, _rctx.error());
@@ -534,12 +550,13 @@ void Connection::doCompleteAllMessages(
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
-	//TODO:
+	
 	if(isStopForced() or conpoolid.isInvalid()){
 		//really complete
 		msgwriter.completeAllMessages(rconfig, rtypemap, conctx, _rerr);
 	}else{
 		//connection lost - try reschedule whatever messages we can
+		//TODO:
 	}
 }
 //-----------------------------------------------------------------------------
