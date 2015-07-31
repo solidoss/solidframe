@@ -250,6 +250,7 @@ private:
 		ConnectionPoolUid *_pconpoolid_out,
 		ulong _flags
 	);
+	size_t doPushNewConnectionPool();
 private:
 	struct	Data;
 	Data			&d;

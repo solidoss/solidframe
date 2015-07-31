@@ -113,6 +113,18 @@ struct Service::Data{
 		return pmtxarr[_idx % mtxsarrcp];
 	}
 	
+	void lockAllConnectionPoolMutexes(){
+		for(size_t i = 0; i < mtxsarrcp; ++i){
+			pmtxarr[i].lock();
+		}
+	}
+	
+	void unlockAllConnectionPoolMutexes(){
+		for(size_t i = 0; i < mtxsarrcp; ++i){
+			pmtxarr[i].unlock();
+		}
+	}
+	
 	Mutex					mtx;
 	Mutex					*pmtxarr;
 	size_t					mtxsarrcp;
@@ -193,6 +205,19 @@ ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 	}
 	
 	return ErrorConditionT();
+}
+//-----------------------------------------------------------------------------
+size_t Service::doPushNewConnectionPool(){
+	d.lockAllConnectionPoolMutexes();
+	for(size_t i = 0; i < d.mtxsarrcp; ++i){
+		size_t idx = d.conpooldq.size();
+		d.conpooldq.push_back(ConnectionPoolStub());
+		d.conpoolcachestk.push(d.mtxsarrcp - idx - 1);
+	}
+	d.unlockAllConnectionPoolMutexes();
+	size_t	idx = d.conpoolcachestk.top();
+	d.conpoolcachestk.pop();
+	return idx;
 }
 //-----------------------------------------------------------------------------
 struct PushMessageVisitorF{
@@ -280,8 +305,7 @@ ErrorConditionT Service::doSendMessage(
 				idx = d.conpoolcachestk.top();
 				d.conpoolcachestk.pop();
 			}else{
-				idx = d.conpooldq.size();
-				d.conpooldq.push_back(ConnectionPoolStub());
+				idx = doPushNewConnectionPool();
 			}
 			
 			Locker<Mutex>					lock2(d.connectionPoolMutex(idx));
@@ -405,7 +429,15 @@ ErrorConditionT Service::doSendMessage(
 }
 //-----------------------------------------------------------------------------
 void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, const bool _has_no_message_to_send){
+	Locker<Mutex>			lock2(d.connectionPoolMutex(_rcon.poolUid().index));
+	ConnectionPoolStub 		&rconpool(d.conpooldq[_rcon.poolUid().index]);
+	
+	cassert(rconpool.uid == _rcon.poolUid().unique);
+	if(rconpool.uid != _rcon.poolUid().unique) return;
+	
 	//TODO:
+	//if()
+	//rconpool.
 }
 
 //-----------------------------------------------------------------------------
@@ -489,8 +521,7 @@ ErrorConditionT Service::doActivateConnection(
 			poolid.index = d.conpoolcachestk.top();
 			d.conpoolcachestk.pop();
 		}else{
-			poolid.index = d.conpooldq.size();
-			d.conpooldq.push_back(ConnectionPoolStub());
+			poolid.index = doPushNewConnectionPool();
 		}
 		
 		SmartLocker<Mutex>				tmplock(d.connectionPoolMutex(poolid.index));
