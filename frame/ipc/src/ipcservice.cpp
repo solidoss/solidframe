@@ -66,6 +66,10 @@ struct MessageStub{
 		ulong _flags
 	): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), flags(_flags){}
 	
+	MessageStub(
+		MessageStub && _rrmsg
+	): msgptr(std::move(_rrmsg.msgptr)), msg_type_idx(_rrmsg.msg_type_idx), flags(_rrmsg.flags){}
+	
 	MessagePointerT msgptr;
 	const size_t	msg_type_idx;
 	ulong			flags;
@@ -428,16 +432,51 @@ ErrorConditionT Service::doSendMessage(
 	return err;
 }
 //-----------------------------------------------------------------------------
-void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, const bool _has_no_message_to_send){
+void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, const bool _connection_has_no_message_to_send){
 	Locker<Mutex>			lock2(d.connectionPoolMutex(_rcon.poolUid().index));
 	ConnectionPoolStub 		&rconpool(d.conpooldq[_rcon.poolUid().index]);
 	
 	cassert(rconpool.uid == _rcon.poolUid().unique);
 	if(rconpool.uid != _rcon.poolUid().unique) return;
 	
-	//TODO:
-	//if()
-	//rconpool.
+	if(rconpool.msgq.size()){
+		//we have something to send
+		if(
+			Message::is_asynchronous(rconpool.msgq.front().flags) or 
+			this->manager().id(_rcon) == rconpool.synchronous_connection_uid
+		){
+			_rcon.directPushMessage(_rctx, rconpool.msgq.front().msgptr, rconpool.msgq.front().msg_type_idx, rconpool.msgq.front().flags);
+			rconpool.msgq.pop();
+		}else if(rconpool.synchronous_connection_uid.isInvalid()){
+			_rcon.directPushMessage(_rctx, rconpool.msgq.front().msgptr, rconpool.msgq.front().msg_type_idx, rconpool.msgq.front().flags);
+			rconpool.synchronous_connection_uid = this->manager().id(_rcon);
+			rconpool.msgq.pop();
+		}else{
+			//worse case scenario - we must skip the current synchronous message
+			//and find an asynchronous one
+			size_t		qsz = rconpool.msgq.size();
+			bool		found = false;
+			
+			while(qsz--){
+				MessageStub msgstub(std::move(rconpool.msgq.front()));
+				rconpool.msgq.pop();
+				
+				if(not found and Message::is_asynchronous(msgstub.flags)){
+					_rcon.directPushMessage(_rctx, msgstub.msgptr, msgstub.msg_type_idx, msgstub.flags);
+					found = true;
+				}else{
+					rconpool.msgq.push(std::move(msgstub));
+				}
+			}
+			
+			if(not found and _connection_has_no_message_to_send){
+				rconpool.conn_waitingq.push(this->manager().id(_rcon));
+			}
+		}
+		
+	}else if(_connection_has_no_message_to_send){
+		rconpool.conn_waitingq.push(this->manager().id(_rcon));
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -622,7 +661,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 		if(_rcon.isActive()){
 			--rconpool.active_connection_count;
 			if(_robjuid.isValid()){
-				//pop the connection from 
+				//pop the connection from waitingq
 				size_t	sz = rconpool.conn_waitingq.size();
 				while(sz){
 					if(
@@ -648,18 +687,34 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 		}
 		
 		if(!rconpool.active_connection_count and !rconpool.pending_connection_count){
-			//move all pending messages to _rcon for completion
+			//_rcon is the last dying connection
+			//so, move all pending messages to _rcon for completion
 			while(rconpool.msgq.size()){
 				MessageStub &rms = rconpool.msgq.front();
 				_rcon.directPushMessage(_rctx, rms.msgptr, rms.msg_type_idx, rms.flags);
 				rconpool.msgq.pop();
 			}
+		}else{
+			_rcon.fetchUnsentMessages(*this);
 		}
 		
 		d.conpoolcachestk.push(_rcon.conpoolid.index);
 		
 		rconpool.clear();
 	}
+}
+//-----------------------------------------------------------------------------
+//use by the connection on stop to push unsent/ messages 
+//back to connection pool
+void Service::pushBackMessageToConnectionPool(
+	ConnectionPoolUid &_rconpoolid,
+	MessagePointerT &_rmsgptr,
+	const size_t _msg_type_idx,
+	ulong _flags
+){
+	ConnectionPoolStub	&rconpool(d.conpooldq[_rconpoolid.index]);
+	cassert(rconpool.uid == _rconpoolid.unique);
+	rconpool.msgq.push(MessageStub(_rmsgptr, _msg_type_idx, _flags));
 }
 //-----------------------------------------------------------------------------
 void Service::acceptIncomingConnection(SocketDevice &_rsd){

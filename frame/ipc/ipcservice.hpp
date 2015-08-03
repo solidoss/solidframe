@@ -251,6 +251,13 @@ private:
 		ulong _flags
 	);
 	size_t doPushNewConnectionPool();
+	
+	void pushBackMessageToConnectionPool(
+		ConnectionPoolUid &_rconpoolid,
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		ulong _flags
+	);
 private:
 	struct	Data;
 	Data			&d;

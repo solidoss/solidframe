@@ -130,6 +130,8 @@ private:
 	void doResetTimerRecv(frame::aio::ReactorContext &_rctx);
 	void doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT const &_rmsgptr);
 	void doCompleteKeepalive(frame::aio::ReactorContext &_rctx);
+	
+	void fetchUnsentMessages(Service &_rsvc);
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;
