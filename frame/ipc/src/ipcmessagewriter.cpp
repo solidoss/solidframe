@@ -72,7 +72,7 @@ void MessageWriter::enqueue(
 		)
 	){
 		//put message in write_q
-		uint32		idx;
+		uint32			idx;
 		
 		if(cache_stk.size()){
 			idx = cache_stk.top();
@@ -310,7 +310,7 @@ char* MessageWriter::doFillPacket(
 				if(not Message::is_waiting_response(rmsgstub.flags)){
 					//no wait response for the message - complete
 					ErrorConditionT	err;
-					completeMessage(_rctx.messageUid(), _rconfig, _ridmap, _rctx, err);
+					doCompleteMessage(_rctx.messageUid(), _rconfig, _ridmap, _rctx, err);
 				}
 				if(Message::is_synchronous(rmsgstub.flags)){
 					this->flags &= ~(SynchronousMessageInWriteQueueFlag);
@@ -419,6 +419,17 @@ void MessageWriter::completeMessage(
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
 ){
+	doCompleteMessage(_rmsguid, _rconfig, _ridmap, _rctx, _rerror);
+	doTryMoveMessageFromPendingToWriteQueue(_rconfig);
+}
+//-----------------------------------------------------------------------------
+void MessageWriter::doCompleteMessage(
+	MessageUid const &_rmsguid,
+	ipc::Configuration const &_rconfig,
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx,
+	ErrorConditionT const & _rerror
+){
 	if(_rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique){
 		//we have the message
 		const size_t			msgidx = _rmsguid.index;
@@ -431,7 +442,6 @@ void MessageWriter::completeMessage(
 		
 		rmsgstub.clear();
 		cache_stk.push(msgidx);
-		doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -441,16 +451,51 @@ void MessageWriter::completeAllMessages(
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
 ){
-	for(auto it = message_vec.begin(); it != message_vec.end();){
+	for(auto it = message_vec.begin(); it != message_vec.end(); ++it){
 		if(it->message_ptr.empty()){
-			++it;
 		}else{
 			MessageUid	msguid(it - message_vec.begin(), it->unique);
-			completeMessage(msguid, _rconfig, _ridmap, _rctx, _rerror);
+			doCompleteMessage(msguid, _rconfig, _ridmap, _rctx, _rerror);
 		}
 	}
+	
+	size_t msgidx = cache_stk.top();
+	doTryMoveMessageFromPendingToWriteQueue(_rconfig);
+	
+	while(message_vec[msgidx].message_ptr.get()){
+		MessageUid	msguid(msgidx, message_vec[msgidx].unique);
+		doCompleteMessage(msguid, _rconfig, _ridmap, _rctx, _rerror);
+		doTryMoveMessageFromPendingToWriteQueue(_rconfig);
+	}
+	
 	while(write_q.size()){
 		write_q.pop();
+	}
+	message_vec.clear();
+}
+//-----------------------------------------------------------------------------
+void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc){
+	for(auto it = message_vec.begin(); it != message_vec.end(); ++it){
+		if(it->message_ptr.empty()){
+		}else{
+			_rvisit_fnc(it->message_ptr, it->message_type_idx, flags, it->serializer_ptr.get() != nullptr);
+			if(it->message_ptr.empty()){
+				it->clear();
+				//TODO: the message should also be poped from the write_q
+				cache_stk.push(it - message_vec.begin());
+			}
+		}
+	}
+	
+	size_t qsz = pending_message_q.size();
+	
+	while(qsz--){
+		PendingMessageStub	&rms(pending_message_q.front());
+		_rvisit_fnc(rms.message_ptr, rms.message_type_idx, rms.flags, false/*not sent*/);
+		if(rms.message_ptr.empty()){
+			pending_message_q.push(PendingMessageStub(rms.message_ptr, rms.message_type_idx, rms.flags));
+		}
+		pending_message_q.pop();
 	}
 }
 //-----------------------------------------------------------------------------

@@ -13,6 +13,7 @@
 #include "system/common.hpp"
 #include "system/error.hpp"
 #include "system/specific.hpp"
+#include "system/function.hpp"
 
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
@@ -34,6 +35,12 @@ struct Serializer: public SerializerT, public SpecificObject{
 };
 
 typedef std::unique_ptr<Serializer>		SerializerPointerT;
+typedef FUNCTION<void(
+	MessagePointerT &/*_rmsgptr*/,
+	const size_t /*_msg_type_idx*/,
+	ulong /*_flags*/, const bool /*_sent*/)
+>										MessageWriterVisitFunctionT;
+
 
 class MessageWriter{
 public:
@@ -79,6 +86,8 @@ public:
 	
 	void prepare(Configuration const &_rconfig);
 	void unprepare();
+	
+	void visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc);
 private:
 	struct PendingMessageStub{
 		PendingMessageStub(
@@ -147,6 +156,13 @@ private:
 	bool isAsynchronousInPendingQueue()const;
 	
 	void doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig);
+	void doCompleteMessage(
+		MessageUid const &_rmsguid,
+		ipc::Configuration const &_rconfig,
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx,
+		ErrorConditionT const & _rerror
+	);
 private:
 	PendingMessageQueueT		pending_message_q;
 	MessageVectorT				message_vec;

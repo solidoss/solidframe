@@ -218,7 +218,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	postStop(_rctx);//there might be events pending which will be delivered, but after this call
 					//no event get posted
 	
-	service(_rctx).onConnectionClose(*this, _rctx, objuid);
+	service(_rctx).onConnectionClose(*this, _rctx, objuid);//must be called after postStop!!
 	
 	doCompleteAllMessages(_rctx, _rerr);
 	
@@ -558,11 +558,6 @@ void Connection::doCompleteAllMessages(
 		//connection lost - try reschedule whatever messages we can
 		//TODO:
 	}
-}
-//-----------------------------------------------------------------------------
-void Connection::fetchUnsentMessages(Service &_rsvc){
-	//TODO:
-	//msgwrite.
 }
 //-----------------------------------------------------------------------------
 //=============================================================================

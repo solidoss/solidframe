@@ -256,7 +256,8 @@ private:
 		ConnectionPoolUid &_rconpoolid,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
-		ulong _flags
+		const ulong _flags,
+		const bool _sent
 	);
 private:
 	struct	Data;

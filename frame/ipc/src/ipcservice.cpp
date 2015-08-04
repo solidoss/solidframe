@@ -660,6 +660,10 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 		
 		if(_rcon.isActive()){
 			--rconpool.active_connection_count;
+			
+			//we do not actually need to pop the connection from conn_waitingq
+			//doSendMessage send message will fail anyway
+#if 0
 			if(_robjuid.isValid()){
 				//pop the connection from waitingq
 				size_t	sz = rconpool.conn_waitingq.size();
@@ -678,12 +682,17 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 					--sz;
 				}
 			}
+#endif
 		}else{
 			--rconpool.pending_connection_count;
 			if(_robjuid.isInvalid()){
 				//called on Connection::doActivate, after Connection::postStop
 				--rconpool.active_connection_count;
 			}
+		}
+		
+		if(rconpool.synchronous_connection_uid == _robjuid){
+			rconpool.synchronous_connection_uid = ObjectUidT::invalid();
 		}
 		
 		if(!rconpool.active_connection_count and !rconpool.pending_connection_count){
@@ -695,7 +704,28 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 				rconpool.msgq.pop();
 			}
 		}else{
-			_rcon.fetchUnsentMessages(*this);
+			size_t		qsz = rconpool.msgq.size();
+			
+			_rcon.fetchUnsentMessages(
+				[this](
+					ConnectionPoolUid &_rconpoolid,
+					MessagePointerT &_rmsgptr,
+					const size_t _msg_type_idx,
+					const ulong _flags,
+					const bool _sent
+				){
+					this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgptr, _msg_type_idx, _flags, _sent);
+				}
+			);
+			if(rconpool.msgq.size() > qsz){
+				//move the newly pushed messages up-front of msgq.
+				//rotate msgq by qsz
+				while(qsz--){
+					MessageStub msgstub(std::move(rconpool.msgq.front()));
+					rconpool.msgq.pop();
+					rconpool.msgq.push(std::move(msgstub));
+				}
+			}
 		}
 		
 		d.conpoolcachestk.push(_rcon.conpoolid.index);
@@ -704,17 +734,19 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 	}
 }
 //-----------------------------------------------------------------------------
-//use by the connection on stop to push unsent/ messages 
-//back to connection pool
 void Service::pushBackMessageToConnectionPool(
 	ConnectionPoolUid &_rconpoolid,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
-	ulong _flags
+	const ulong _flags,
+	const bool _sent
 ){
 	ConnectionPoolStub	&rconpool(d.conpooldq[_rconpoolid.index]);
 	cassert(rconpool.uid == _rconpoolid.unique);
-	rconpool.msgq.push(MessageStub(_rmsgptr, _msg_type_idx, _flags));
+	
+	if(not _sent or Message::is_idempotent(_flags)){
+		rconpool.msgq.push(MessageStub(_rmsgptr, _msg_type_idx, _flags));
+	}
 }
 //-----------------------------------------------------------------------------
 void Service::acceptIncomingConnection(SocketDevice &_rsd){

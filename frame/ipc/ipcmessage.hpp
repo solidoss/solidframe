@@ -23,8 +23,9 @@ class Connection;
 
 struct Message: Dynamic<Message>{
 	enum Flags{
-		WaitResponseFlagE = (1<<0),
-		SynchronousFlagE = (1<<1),
+		WaitResponseFlagE	= (1<<0),
+		SynchronousFlagE	= (1<<1),
+		IdempotentFlagE		= (1<<2), 
 	};
 	
 	static bool is_synchronous(const uint32 _flags){
@@ -35,6 +36,10 @@ struct Message: Dynamic<Message>{
 	}
 	static bool is_waiting_response(const uint32 _flags){
 		return (_flags & WaitResponseFlagE) != 0;
+	}
+	
+	static bool is_idempotent(const uint32 _flags){
+		return (_flags & IdempotentFlagE) != 0;
 	}
 	
 	Message(uint8 _state = 0):stt(_state){}

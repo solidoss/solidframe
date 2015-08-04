@@ -131,7 +131,20 @@ private:
 	void doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT const &_rmsgptr);
 	void doCompleteKeepalive(frame::aio::ReactorContext &_rctx);
 	
-	void fetchUnsentMessages(Service &_rsvc);
+	template <class Fnc>
+	void fetchUnsentMessages(
+		Fnc const &_f
+	){
+		auto  visit_fnc = [this, &_f](
+			MessagePointerT &_rmsgptr,
+			const size_t _msg_type_idx,
+			const ulong _flags, const bool _sent
+		){
+			_f(this->conpoolid, _rmsgptr, _msg_type_idx, _flags, _sent);
+		};
+		MessageWriterVisitFunctionT	fnc(std::cref(visit_fnc));
+		msgwriter.visitAllMessages(fnc);
+	}
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;
