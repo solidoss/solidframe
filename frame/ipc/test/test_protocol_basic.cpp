@@ -31,18 +31,13 @@ InitStub initarray[] = {
 	{16384000, 0},
 };
 
+std::string						pattern;
 const size_t					initarraysize = sizeof(initarray)/sizeof(InitStub);
 
 size_t							crtwriteidx = 0;
 size_t							crtreadidx  = 0;
 size_t							writecount = 0;
 
-
-frame::ipc::AioSchedulerT		&ipcsched(*(static_cast<frame::ipc::AioSchedulerT*>(nullptr)));
-frame::ipc::Configuration		ipcconfig(ipcsched);
-frame::ipc::TypeIdMapT			ipctypemap;
-frame::ipc::MessageReader		ipcmsgreader;
-frame::ipc::MessageWriter		ipcmsgwriter;
 
 size_t real_size(size_t _sz){
 	//offset + (align - (offset mod align)) mod align
@@ -55,6 +50,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	
 	Message(uint32 _idx):idx(_idx){
 		idbg("CREATE ---------------- "<<(void*)this<<" idx = "<<idx);
+		init();
 		
 	}
 	Message(){
@@ -78,7 +74,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		uint64			*pu = reinterpret_cast<uint64*>(const_cast<char*>(str.data()));
 		
 		for(uint64 i = 0; i < count; ++i){
-			pu[i] = i;
+			pu[i] = pattern[i % pattern.size()];
 		}
 	}
 	bool check()const{
@@ -89,7 +85,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		const size_t	count = sz / sizeof(uint64);
 		const uint64	*pu = reinterpret_cast<const uint64*>(str.data());
 		for(uint64 i = 0; i < count; ++i){
-			if(pu[i] != i) return false;
+			if(pu[i] != pattern[i % pattern.size()]) return false;
 		}
 		return true;
 	}
@@ -122,14 +118,29 @@ void TestEntryway::initTypeMap(frame::ipc::TypeIdMapT &_rtm){
 		ts,
 		Message::serialize<SerializerT, ::Message>,
 		Message::serialize<DeserializerT, ::Message>,
-		serialization::basic_factory<Message>
+		serialization::basic_factory<::Message>
 	);
+	_rtm.registerCast<::Message, frame::ipc::Message>();
 }
 
 }/*namespace ipc*/}/*namespace frame*/}/*namespace solid*/
 
+struct Context{
+	Context():ipcconfig(nullptr), ipctypemap(nullptr), ipcmsgreader(nullptr), ipcmsgwriter(nullptr){}
+	
+	frame::ipc::Configuration		*ipcconfig;
+	frame::ipc::TypeIdMapT			*ipctypemap;
+	frame::ipc::MessageReader		*ipcmsgreader;
+	frame::ipc::MessageWriter		*ipcmsgwriter;
+}								ctx;
 
 frame::ipc::ConnectionContext	&ipcconctx(frame::ipc::TestEntryway::createContext());
+
+frame::ipc::MessageWriter& messageWriter(frame::ipc::MessageWriter *_pmsgw = nullptr){
+	static frame::ipc::MessageWriter *pmsgw(_pmsgw);
+	return *pmsgw;
+}
+
 
 void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr){
 	cassert(static_cast<Message&>(*_rmsgptr).check());
@@ -137,13 +148,13 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 	idbg(crtreadidx);
 	if(crtwriteidx < writecount){
 		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
-		ipcmsgwriter.enqueue(msgptr, ipctypemap.index(msgptr.get()), initarray[crtwriteidx % initarraysize].flags, ipcconfig, ipctypemap, ipcconctx);
+		ctx.ipcmsgwriter->enqueue(msgptr, ctx.ipctypemap->index(msgptr.get()), initarray[crtwriteidx % initarraysize].flags, *ctx.ipcconfig, *ctx.ipctypemap, ipcconctx);
 		++crtwriteidx;
 	}
 }
 
 void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr){
-	cassert(_rerr);
+	cassert(!_rerr);
 	idbg(static_cast<Message*>(_rmsgptr.get())->idx);
 }
  
@@ -156,15 +167,32 @@ int test_protocol_basic(int argc, char **argv){
 	Debug::the().initStdErr(false, nullptr);
 #endif
 	
+	for(int i = 0; i < 127; ++i){
+		if(isprint(i) and !isblank(i)){
+			pattern += static_cast<char>(i);
+		}
+	}
 	
 	const uint16					bufcp(1024*4);
 	char							buf[bufcp];
 	
+	frame::ipc::AioSchedulerT		&ipcsched(*(static_cast<frame::ipc::AioSchedulerT*>(nullptr)));
+	frame::ipc::Configuration		ipcconfig(ipcsched);
+	frame::ipc::TypeIdMapT			ipctypemap;
+	frame::ipc::MessageReader		ipcmsgreader;
+	frame::ipc::MessageWriter		ipcmsgwriter;
+	
 	ErrorConditionT					error;
+	
+	
+	ctx.ipcconfig		= &ipcconfig;
+	ctx.ipctypemap		= &ipctypemap;
+	ctx.ipcmsgreader	= &ipcmsgreader;
+	ctx.ipcmsgwriter	= &ipcmsgwriter;
 	
 	frame::ipc::TestEntryway::initTypeMap(ipctypemap);
 	
-	const size_t					start_count = 4;
+	const size_t					start_count = 1;
 	
 	writecount = start_count;//
 	
@@ -174,7 +202,7 @@ int test_protocol_basic(int argc, char **argv){
 	}
 	
 	
-	auto				complete_lambda(
+	auto	complete_lambda(
 		[](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT const& _rmsgptr){
 			switch(_event){
 				case frame::ipc::MessageReader::MessageCompleteE:
@@ -187,8 +215,10 @@ int test_protocol_basic(int argc, char **argv){
 		}
 	);
 	
+	ipcmsgreader.prepare(ipcconfig);
+	
 	while(!error){
-		uint16 bufsz = ipcmsgwriter.write(buf, bufcp, false, ipcconfig, ipctypemap, ipcconctx, error);
+		uint32 bufsz = ipcmsgwriter.write(buf, bufcp, false, ipcconfig, ipctypemap, ipcconctx, error);
 		if(!error){
 			frame::ipc::MessageReader::CompleteFunctionT	completefnc(std::cref(complete_lambda));
 			

@@ -718,7 +718,7 @@ template <>
 DeserializerBase::~DeserializerBase(){
 }
 void DeserializerBase::clear(){
-	idbgx(Debug::ser_bin, "clear_deser");
+	idbgx(Debug::ser_bin, "clear deserializer");
 	run(nullptr, 0, nullptr);
 }
 

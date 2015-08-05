@@ -170,10 +170,10 @@ uint32 MessageWriter::write(
 				}
 			}
 			
-			cassert((pbuftmp - pbufpos) < static_cast<size_t>(0xffff));
+			cassert((pbuftmp - pbufdata) < static_cast<size_t>(0xffff));
 			
 			packet_header.type(packet_options.packet_type);
-			packet_header.size(pbuftmp - pbufpos);
+			packet_header.size(pbuftmp - pbufdata);
 			
 			pbufpos = packet_header.store<SerializerT>(pbufpos);
 			pbufpos = pbuftmp;

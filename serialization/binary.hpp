@@ -828,7 +828,7 @@ public:
 	SerializerT& pushValue(const uint8 &_rv, const char *_name = Base::default_name){
 		this->Base::estk.push(Base::ExtData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint16>, &this->Base::estk.top().u8(), _name));
+		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint8>, &this->Base::estk.top().u8(), _name));
 		return *this;
 	}
 private:
@@ -1028,7 +1028,7 @@ public:
 	SerializerT& pushCrossValue(const uint32 &_rv, const char *_name = Base::default_name){
 		this->Base::estk.push(Base::ExtData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &this->Base::estk.top().u32(), _name));
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint32>, &this->Base::estk.top().u32(), _name));
 		return *this;
 	}
 	SerializerT& pushCrossValue(const uint64 &_rv, const char *_name = Base::default_name){
@@ -1040,7 +1040,7 @@ public:
 	SerializerT& pushValue(const uint8 &_rv, const char *_name = Base::default_name){
 		this->Base::estk.push(Base::ExtData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint16>, &this->Base::estk.top().u8(), _name));
+		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint8>, &this->Base::estk.top().u8(), _name));
 		return *this;
 	}
 private:

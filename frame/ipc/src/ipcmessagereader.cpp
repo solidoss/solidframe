@@ -20,7 +20,7 @@ namespace frame{
 namespace ipc{
 
 //-----------------------------------------------------------------------------
-MessageReader::MessageReader(){
+MessageReader::MessageReader():state(HeaderReadStateE){
 	
 }
 //-----------------------------------------------------------------------------
