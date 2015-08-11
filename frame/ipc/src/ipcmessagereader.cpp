@@ -91,7 +91,9 @@ uint32 MessageReader::read(
 			_rerror
 		);
 		
-		if(_rerror){
+		if(!_rerror){
+			pbufpos += packet_header.size();
+		}else{
 			break;
 		}
 		state = HeaderReadStateE;

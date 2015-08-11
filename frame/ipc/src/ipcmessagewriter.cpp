@@ -302,6 +302,7 @@ char* MessageWriter::doFillPacket(
 		
 		if(rv > 0){
 			pbufpos += rv;
+			freesz -= rv;
 			
 			if(rmsgstub.serializer_ptr->empty()){
 				tmp_serializer = std::move(rmsgstub.serializer_ptr);

@@ -14,7 +14,7 @@ struct InitStub{
 };
 
 InitStub initarray[] = {
-	{1000, 0},
+	{100000, 0},
 	{2000, 0},
 	{4000, 0},
 	{8000, 0},
@@ -79,6 +79,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	}
 	bool check()const{
 		const size_t	sz = real_size(initarray[idx % initarraysize].size);
+		idbg("str.size = "<<str.size()<<" should be equal to "<<sz);
 		if(sz != str.size()){
 			return false;
 		}
@@ -217,12 +218,15 @@ int test_protocol_basic(int argc, char **argv){
 	
 	ipcmsgreader.prepare(ipcconfig);
 	
-	while(!error){
+	bool is_running = true;
+	
+	while(is_running and !error){
 		uint32 bufsz = ipcmsgwriter.write(buf, bufcp, false, ipcconfig, ipctypemap, ipcconctx, error);
-		if(!error){
+		if(!error and bufsz){
 			frame::ipc::MessageReader::CompleteFunctionT	completefnc(std::cref(complete_lambda));
-			
 			ipcmsgreader.read(buf, bufsz, completefnc, ipcconfig, ipctypemap, ipcconctx, error);
+		}else{
+			is_running = false;
 		}
 	}
 	
