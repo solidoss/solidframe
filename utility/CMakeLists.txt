@@ -5,6 +5,7 @@ set(Sources
 	src/utility.cpp
 	src/dynamictype.cpp
 	src/memoryfile.cpp
+	src/ioformat.cpp
 )
 
 set(Headers
@@ -23,6 +24,7 @@ set(Headers
 	dynamictype.hpp
 	dynamicpointer.hpp
 	memoryfile.hpp
+	ioformat.hpp
 )
 
 set(Inlines

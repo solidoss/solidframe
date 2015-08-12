@@ -71,10 +71,11 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		const size_t	sz = real_size(initarray[idx % initarraysize].size);
 		str.resize(sz);
 		const size_t	count = sz / sizeof(uint64);
-		uint64			*pu = reinterpret_cast<uint64*>(const_cast<char*>(str.data()));
-		
+		uint64			*pu  = reinterpret_cast<uint64*>(const_cast<char*>(str.data()));
+		const uint64	*pup = reinterpret_cast<const uint64*>(pattern.data());
+		const size_t	pattern_size = pattern.size() / sizeof(uint64);
 		for(uint64 i = 0; i < count; ++i){
-			pu[i] = pattern[i % pattern.size()];
+			pu[i] = pup[i % pattern_size];//pattern[i % pattern.size()];
 		}
 	}
 	bool check()const{
@@ -85,8 +86,11 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		}
 		const size_t	count = sz / sizeof(uint64);
 		const uint64	*pu = reinterpret_cast<const uint64*>(str.data());
+		const uint64	*pup = reinterpret_cast<const uint64*>(pattern.data());
+		const size_t	pattern_size = pattern.size() / sizeof(uint64);
+		
 		for(uint64 i = 0; i < count; ++i){
-			if(pu[i] != pattern[i % pattern.size()]) return false;
+			if(pu[i] != pup[i % pattern_size]) return false;
 		}
 		return true;
 	}
@@ -174,6 +178,14 @@ int test_protocol_basic(int argc, char **argv){
 		}
 	}
 	
+	size_t	sz = real_size(pattern.size());
+	
+	if(sz > pattern.size()){
+		pattern.resize(sz - sizeof(uint64));
+	}else if(sz < pattern.size()){
+		pattern.resize(sz);
+	}
+	
 	const uint16					bufcp(1024*4);
 	char							buf[bufcp];
 	
@@ -193,9 +205,9 @@ int test_protocol_basic(int argc, char **argv){
 	
 	frame::ipc::TestEntryway::initTypeMap(ipctypemap);
 	
-	const size_t					start_count = 1;
+	const size_t					start_count = 10;
 	
-	writecount = start_count;//
+	writecount = 100;//start_count;//
 	
 	for(; crtwriteidx < start_count; ++crtwriteidx){
 		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));

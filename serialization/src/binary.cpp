@@ -11,6 +11,7 @@
 #include "serialization/binarybasic.hpp"
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
+#include "utility/ioformat.hpp"
 #include "system/cstring.hpp"
 #include <cstring>
 
@@ -1254,7 +1255,7 @@ CbkReturnValueE DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, voi
 		rd.estk.top().u64() = ul;
 		return Wait;
 	}
-	idbgx(Debug::ser_bin, ""<<*ps);
+	idbgx(Debug::ser_bin, ""<<trim_str(*ps, 64, 64));
 	rd.estk.pop();
 	return Success;
 }
