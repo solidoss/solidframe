@@ -25,6 +25,8 @@ namespace{
 	
 	void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
 	
+	void empty_connection_stop(ConnectionContext &, ErrorConditionT const&){}
+	
 	
 	size_t default_compress(char*, size_t, ErrorConditionT &){
 		return 0;
@@ -61,6 +63,8 @@ Configuration::Configuration(
 	free_send_buffer_fnc = default_free_buffer;
 	
 	reset_serializer_limits_fnc = empty_reset_serializer_limits;
+	
+	connection_stop_fnc = empty_connection_stop;
 	
 	inplace_compress_fnc = default_compress;
 	uncompress_fnc = default_uncompress;

@@ -1,12 +1,10 @@
-#include "frame/ipc/ipcconfiguration.hpp"
-#include "frame/ipc/ipcserialization.hpp"
+#include "test_protocol_common.hpp"
 
-#include "frame/ipc/src/ipcmessagereader.hpp"
-#include "frame/ipc/src/ipcmessagewriter.hpp"
 
 using namespace solid;
 
 
+namespace{
 
 struct InitStub{
 	size_t		size;
@@ -100,36 +98,6 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr);
 void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr);
 
-
-namespace solid{namespace frame{namespace ipc{
-
-class TestEntryway{
-public:
-	static ConnectionContext& createContext(){
-		Connection	&rcon = *static_cast<Connection*>(nullptr);
-		Service		&rsvc = *static_cast<Service*>(nullptr);
-		static ConnectionContext conctx(rsvc, rcon);
-		return conctx;
-	}
-	static void initTypeMap(frame::ipc::TypeIdMapT &_rtm);
-};
-
-void TestEntryway::initTypeMap(frame::ipc::TypeIdMapT &_rtm){
-	TypeStub ts;
-	ts.complete_fnc = MessageCompleteFunctionT(::complete_message);
-	ts.receive_fnc = MessageReceiveFunctionT(::receive_message);
-	
-	_rtm.registerType<::Message>(
-		ts,
-		Message::serialize<SerializerT, ::Message>,
-		Message::serialize<DeserializerT, ::Message>,
-		serialization::basic_factory<::Message>
-	);
-	_rtm.registerCast<::Message, frame::ipc::Message>();
-}
-
-}/*namespace ipc*/}/*namespace frame*/}/*namespace solid*/
-
 struct Context{
 	Context():ipcconfig(nullptr), ipctypemap(nullptr), ipcmsgreader(nullptr), ipcmsgwriter(nullptr){}
 	
@@ -162,6 +130,8 @@ void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessageP
 	cassert(!_rerr);
 	idbg(static_cast<Message*>(_rmsgptr.get())->idx);
 }
+
+}//namespace
  
 int test_protocol_basic(int argc, char **argv){
 	
@@ -203,7 +173,7 @@ int test_protocol_basic(int argc, char **argv){
 	ctx.ipcmsgreader	= &ipcmsgreader;
 	ctx.ipcmsgwriter	= &ipcmsgwriter;
 	
-	frame::ipc::TestEntryway::initTypeMap(ipctypemap);
+	frame::ipc::TestEntryway::initTypeMap<::Message>(ipctypemap, complete_message, receive_message);
 	
 	const size_t					start_count = 10;
 	

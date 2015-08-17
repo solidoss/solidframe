@@ -1,13 +1,14 @@
 
-set( TestSuite
+set( IpcProtocolTestSuite
 	test_protocol_basic.cpp
+	test_protocol_synchronous.cpp
 )
 
-create_test_sourcelist( IpcTests test_ipc.cpp ${TestSuite})
+create_test_sourcelist( IpcProtocolTests test_ipc_protocol.cpp ${IpcProtocolTestSuite})
 
-add_executable(test_ipc ${IpcTests})
+add_executable(test_ipc_protocol ${IpcProtocolTests})
 
-target_link_libraries(test_ipc
+target_link_libraries(test_ipc_protocol
 	solid_frame_ipc
 	solid_frame_aio
 	solid_frame
@@ -17,6 +18,32 @@ target_link_libraries(test_ipc
 	${SYS_BASIC_LIBS}
 )
 
-add_test( TestProtocol test_ipc
+add_test( TestProtocol test_ipc_protocol
 	test_protocol_basic
+	test_protocol_synchronous
+)
+
+
+set( IpcClientServerTestSuite
+	test_clientserver_basic_single.cpp
+	test_clientserver_basic_multi.cpp
+)
+
+create_test_sourcelist( IpcClientServerTests test_ipc_clientserver.cpp ${IpcClientServerTestSuite})
+
+add_executable(test_ipc_clientserver ${IpcClientServerTests})
+
+target_link_libraries(test_ipc_clientserver
+	solid_frame_ipc
+	solid_frame_aio
+	solid_frame
+	solid_serialization
+	solid_utility
+	solid_system
+	${SYS_BASIC_LIBS}
+)
+
+add_test( TestClientServer test_ipc_clientserver
+	test_clientserver_basic_single
+	test_clientserver_basic_multi
 )

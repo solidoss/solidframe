@@ -207,7 +207,9 @@ private:
 	template <class T, class FactoryFnc>
 	size_t registerType(FactoryFnc _facf, size_t _idx = 0){
 		TypeStub ts;
-		return tm.registerType<T>(_facf, ts, _idx);
+		size_t rv = tm.registerType<T>(_facf, ts, _idx);
+		registerCast<T, ipc::Message>();
+		return rv;
 	}
 	
 	template <class T, class FactoryFnc, class ReceiveFnc/*, class PrepareFnc*/, class CompleteFnc>
@@ -216,7 +218,9 @@ private:
 		ts.complete_fnc = MessageCompleteFunctionT(CompleteProxy<CompleteFnc, T>(_cmpltf));
 		//ts.prepare_fnc = MessagePrepareFunctionT(PrepareProxy<PrepareFnc, T>(_prepf));
 		ts.receive_fnc = MessageReceiveFunctionT(ReceiveProxy<ReceiveFnc, T>(_rcvf));
-		return tm.registerType<T>(ts, Message::serialize<SerializerT, T>, Message::serialize<DeserializerT, T>, _facf, _idx);
+		size_t rv = tm.registerType<T>(ts, Message::serialize<SerializerT, T>, Message::serialize<DeserializerT, T>, _facf, _idx);
+		registerCast<T, ipc::Message>();
+		return rv;
 	}
 	
 	template <class Derived, class Base>

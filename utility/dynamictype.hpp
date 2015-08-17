@@ -192,7 +192,7 @@ public:
 		return T::callback(_rdm);
 	}
 	static X* cast(DynamicBase *_pdb){
-		if(isTypeDynamic(_pdb->dynamicTypeId())){
+		if(_pdb and isTypeDynamic(_pdb->dynamicTypeId())){
 			return static_cast<X*>(_pdb);
 		}
 		return nullptr;

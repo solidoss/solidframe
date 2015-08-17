@@ -308,13 +308,15 @@ char* MessageWriter::doFillPacket(
 				tmp_serializer = std::move(rmsgstub.serializer_ptr);
 				//done serializing the message:
 				write_q.pop();
+				
+				if(Message::is_synchronous(rmsgstub.flags)){
+					this->flags &= ~(SynchronousMessageInWriteQueueFlag);
+				}
+				
 				if(not Message::is_waiting_response(rmsgstub.flags)){
 					//no wait response for the message - complete
 					ErrorConditionT	err;
 					doCompleteMessage(_rctx.messageUid(), _rconfig, _ridmap, _rctx, err);
-				}
-				if(Message::is_synchronous(rmsgstub.flags)){
-					this->flags &= ~(SynchronousMessageInWriteQueueFlag);
 				}
 				doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 			}else{
@@ -352,7 +354,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		Message::is_asynchronous(pending_message_q.front().flags) or
 		not isSynchronousInWriteQueue()
 	){
-		const size_t	idx = cache_stk.size();
+		const size_t	idx = cache_stk.top();
 		MessageStub		&rmsgstub(message_vec[idx]);
 		cache_stk.pop();
 		
@@ -363,6 +365,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		if(Message::is_synchronous(rmsgstub.flags)){
 			this->flags |= SynchronousMessageInWriteQueueFlag;
 		}
+		write_q.push(idx);
 		return;
 	}
 	
@@ -373,12 +376,16 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		
 		//For that:
 		//we rotate the queue so that the currently Synchronous Message will still be at front
+		
 		size_t				qsz = pending_message_q.size();
 		PendingMessageStub	asyncmsgstub;
 		bool				has_another_asyncmsgstub = false;
+		
 		while(qsz--){
 			PendingMessageStub	tmp(pending_message_q.front());
+			
 			pending_message_q.pop();
+			
 			if(Message::is_synchronous(tmp.flags)){
 				pending_message_q.push(tmp);
 			}else{
@@ -401,7 +408,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		
 		if(asyncmsgstub.message_ptr.get()){
 			//we have an asynchronous message
-			const size_t	idx = cache_stk.size();
+			const size_t	idx = cache_stk.top();
 			MessageStub		&rmsgstub(message_vec[idx]);
 			
 			cache_stk.pop();
@@ -409,6 +416,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 			rmsgstub.flags = asyncmsgstub.flags;
 			rmsgstub.message_type_idx = asyncmsgstub.message_type_idx;
 			rmsgstub.message_ptr = std::move(asyncmsgstub.message_ptr);
+			write_q.push(idx);
 		}
 	}
 }
@@ -460,13 +468,18 @@ void MessageWriter::completeAllMessages(
 		}
 	}
 	
-	size_t msgidx = cache_stk.top();
-	doTryMoveMessageFromPendingToWriteQueue(_rconfig);
+	if(cache_stk.size()){
 	
-	while(message_vec[msgidx].message_ptr.get()){
-		MessageUid	msguid(msgidx, message_vec[msgidx].unique);
-		doCompleteMessage(msguid, _rconfig, _ridmap, _rctx, _rerror);
+		size_t msgidx = cache_stk.top();
 		doTryMoveMessageFromPendingToWriteQueue(_rconfig);
+		
+		while(message_vec[msgidx].message_ptr.get()){
+			MessageUid	msguid(msgidx, message_vec[msgidx].unique);
+			doCompleteMessage(msguid, _rconfig, _ridmap, _rctx, _rerror);
+			doTryMoveMessageFromPendingToWriteQueue(_rconfig);
+		}
+	}else{
+		cassert(write_q.empty());
 	}
 	
 	while(write_q.size()){

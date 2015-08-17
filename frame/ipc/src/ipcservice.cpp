@@ -642,12 +642,13 @@ ErrorConditionT Service::doActivateConnection(
 }
 //-----------------------------------------------------------------------------
 void Service::activateConnectionComplete(Connection &_rcon){
-	cassert(_rcon.conpoolid.isValid());
+	if(_rcon.conpoolid.isValid()){
 	
-	Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
-	ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
-	
-	--rconpool.pending_connection_count;
+		Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
+		ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
+		
+		--rconpool.pending_connection_count;
+	}
 }
 //-----------------------------------------------------------------------------
 void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectUidT const &_robjuid){
@@ -657,6 +658,8 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 		ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
 		
 		cassert(rconpool.uid == _rcon.conpoolid.unique);
+		
+		idbgx(Debug::ipc, ""<<_robjuid);
 		
 		if(_rcon.isActive()){
 			--rconpool.active_connection_count;
@@ -703,6 +706,10 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 				_rcon.directPushMessage(_rctx, rms.msgptr, rms.msg_type_idx, rms.flags);
 				rconpool.msgq.pop();
 			}
+			
+			d.conpoolcachestk.push(_rcon.conpoolid.index);
+		
+			rconpool.clear();
 		}else{
 			size_t		qsz = rconpool.msgq.size();
 			
@@ -717,6 +724,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 					this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgptr, _msg_type_idx, _flags, _sent);
 				}
 			);
+			
 			if(rconpool.msgq.size() > qsz){
 				//move the newly pushed messages up-front of msgq.
 				//rotate msgq by qsz
@@ -727,10 +735,6 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 				}
 			}
 		}
-		
-		d.conpoolcachestk.push(_rcon.conpoolid.index);
-		
-		rconpool.clear();
 	}
 }
 //-----------------------------------------------------------------------------
