@@ -61,6 +61,7 @@ size_t							writecount = 0;
 bool							running = true;
 Mutex							mtx;
 Condition						cnd;
+frame::ipc::Service				*pipcclient = nullptr;
 
 
 size_t real_size(size_t _sz){
@@ -132,9 +133,21 @@ void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointe
 void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
 	idbg("");
 	cassert(_rmsgptr->check());
-	Locker<Mutex> lock(mtx);
-	running = false;
-	cnd.signal();
+	
+	
+	++crtreadidx;
+	idbg(crtreadidx);
+	if(crtwriteidx < writecount){
+		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
+		pipcclient->sendMessage("localhost:6666", msgptr, initarray[crtwriteidx % initarraysize].flags);
+		++crtwriteidx;
+	}
+	
+	if(crtreadidx == crtwriteidx){
+		Locker<Mutex> lock(mtx);
+		running = false;
+		cnd.signal();
+	}
 }
 
 void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
@@ -252,13 +265,15 @@ int test_clientserver_basic_single(int argc, char **argv){
 			}
 		}
 		
+		pipcclient  = &ipcclient;
+		
 		const size_t					start_count = 1;
 		
-		writecount = 1;//start_count;//
+		writecount = 2;//start_count;//
 		
 		for(; crtwriteidx < start_count; ++crtwriteidx){
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
-			ipcclient.sendMessage("localhost:6666", msgptr);
+			ipcclient.sendMessage("localhost:6666", msgptr, initarray[crtwriteidx % initarraysize].flags);
 		}
 		
 		Locker<Mutex>	lock(mtx);

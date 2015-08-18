@@ -65,7 +65,7 @@ public:
 	bool waitFor(ReactorContext &_rctx, TimeSpec const& _tm, F _f){
 		TimeSpec t = _rctx.time();
 		t += _tm;
-		return waitUntil(_rctx, _tm, _f);
+		return waitUntil(_rctx, t, _f);
 	}
 	
 	//Returns true when the operation completed. Check _rctx.error() for success or fail

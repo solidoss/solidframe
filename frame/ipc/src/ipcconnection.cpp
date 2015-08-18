@@ -133,7 +133,7 @@ bool Connection::pushMessage(
 	const size_t _msg_type_idx,
 	ulong _flags
 ){
-	idbgx(Debug::ipc, this->id()<<" crtpushvecidx = "<<crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
+	idbgx(Debug::ipc, this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
 	sendmsgvec[crtpushvecidx].push_back(PendingSendMessageStub(_rmsgptr, _msg_type_idx, _flags));
 	return sendmsgvec[crtpushvecidx].size() == 1;
@@ -198,6 +198,8 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	}else{
 		service(_rctx).onOutgoingConnectionStart(conctx);
 	}
+	
+	idbgx(Debug::ipc, this<<" post send");
 	//start sending messages.
 	this->post(
 		_rctx,
@@ -281,11 +283,17 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 			
 			PendingSendMessageVectorT 		&rsendmsgvec = sendmsgvec[vecidx];
 			
+			bool was_empty_msgwriter = msgwriter.empty();
+			
 			for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
 				msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->flags, rconfig, rtypemap, conctx);
 			}
-			
 			rsendmsgvec.clear();
+			
+			if(was_empty_msgwriter and not msgwriter.empty()){
+				idbgx(Debug::ipc, this<<" post send");
+				this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
+			}
 		}
 	}
 }
@@ -366,6 +374,8 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	const TypeIdMapT	&rtypemap = rthis.service(_rctx).typeMap();
 	const Configuration &rconfig  = rthis.service(_rctx).configuration();
 	
+	idbgx(Debug::ipc, &rthis<<"");
+	
 	unsigned			repeatcnt = 4;
 	char				*pbuf;
 	size_t				bufsz;
@@ -426,6 +436,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 }
 //-----------------------------------------------------------------------------
 void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_something/* = false*/){
+	idbgx(Debug::ipc, this<<"");
 	if(!sock.hasPendingSend()){
 		ConnectionContext	conctx(service(_rctx), *this);
 		unsigned 			repeatcnt = 4;
@@ -482,6 +493,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		}
 		
 		if(repeatcnt == 0){
+			idbgx(Debug::ipc, this<<" post send");
 			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 		}
 		
@@ -491,6 +503,9 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 /*static*/ void Connection::onTimerInactivity(frame::aio::ReactorContext &_rctx){
 	Connection		&rthis = static_cast<Connection&>(_rctx.object());
 	ErrorConditionT	err;
+	
+	idbgx(Debug::ipc, &rthis<<"");
+	
 	err.assign(-1, err.category());//TODO:
  	rthis.doStop(_rctx, err);
 }
@@ -500,6 +515,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 	cassert(not rthis.isServer());
 	rthis.flags |= FlagKeepaliveE;
 	rthis.flags &= (~FlagWaitKeepAliveTimerE);
+	idbgx(Debug::ipc, &rthis<<" post send");
 	rthis.post(_rctx, [&rthis](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){rthis.doSend(_rctx);});
 	
 }
@@ -540,6 +556,7 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
 	if(isServer()){
 		flags |= FlagKeepaliveE;
+		idbgx(Debug::ipc, this<<" post send");
 		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 	}
 }

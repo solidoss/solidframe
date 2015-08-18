@@ -478,6 +478,7 @@ void MessageWriter::completeAllMessages(
 			doCompleteMessage(msguid, _rconfig, _ridmap, _rctx, _rerror);
 			doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 		}
+		
 	}else{
 		cassert(write_q.empty());
 	}

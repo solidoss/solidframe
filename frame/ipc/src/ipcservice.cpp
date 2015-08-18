@@ -35,6 +35,7 @@
 #include "system/atomic.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
+#include "utility/string.hpp"
 
 #include "ipcutility.hpp"
 #include "ipcconnection.hpp"
@@ -56,7 +57,9 @@ namespace solid{
 namespace frame{
 namespace ipc{
 //=============================================================================
-typedef CPP11_NS::unordered_map<const char*, size_t>	NameMapT;
+typedef CPP11_NS::unordered_map<
+	const char*, size_t, CStringHash, CStringEqual
+>														NameMapT;
 typedef Queue<ObjectUidT>								ObjectUidQueueT;
 
 struct MessageStub{
