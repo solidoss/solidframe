@@ -1,5 +1,5 @@
 #include "test_protocol_common.hpp"
-
+#include "system/exception.hpp"
 
 using namespace solid;
 
@@ -12,21 +12,20 @@ struct InitStub{
 };
 
 InitStub initarray[] = {
-	{100000, 0},
-	{2000, 0},
-	{4000, 0},
-	{8000, 0},
-	{16000, 0},
-	{32000, 0},
-	{64000, 0},
-	{128000, 0},
-	{256000, 0},
-	{512000, 0},
-	{1024000, 0},
-	{2048000, 0},
-	{4096000, 0},
-	{8192000, 0},
 	{16384000, 0},
+	{8192000, 0},
+	{4096000, 0},
+	{2048000, 0},
+	{1024000, 0},
+	{512000, 0},
+	{256000, 0},
+	{128000, 0},
+	{64000, 0},
+	{32000, 0},
+	{16000, 0},
+	{8000, 0},
+	{4000, 0},
+	{2000, 0},
 };
 
 std::string						pattern;
@@ -116,7 +115,11 @@ frame::ipc::MessageWriter& messageWriter(frame::ipc::MessageWriter *_pmsgw = nul
 
 
 void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr){
-	cassert(static_cast<Message&>(*_rmsgptr).check());
+	
+	if(not static_cast<Message&>(*_rmsgptr).check()){
+		THROW_EXCEPTION("Message check failed.");
+	}
+	
 	++crtreadidx;
 	idbg(crtreadidx);
 	if(crtwriteidx < writecount){
@@ -127,7 +130,9 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 }
 
 void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr){
-	cassert(!_rerr);
+	if(_rerr){
+		THROW_EXCEPTION("Message complete with error");
+	}
 	idbg(static_cast<Message*>(_rmsgptr.get())->idx);
 }
 

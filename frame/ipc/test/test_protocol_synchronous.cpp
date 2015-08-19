@@ -1,4 +1,5 @@
 #include "test_protocol_common.hpp"
+#include "system/exception.hpp"
 
 using namespace solid;
 
@@ -116,9 +117,19 @@ frame::ipc::MessageWriter& messageWriter(frame::ipc::MessageWriter *_pmsgw = nul
 
 
 void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr){
-	cassert(static_cast<Message&>(*_rmsgptr).check());
+	
+	if(not static_cast<Message&>(*_rmsgptr).check()){
+		THROW_EXCEPTION("Message check failed.");
+	}
+	
+	if(static_cast<Message&>(*_rmsgptr).idx != crtreadidx){
+		THROW_EXCEPTION("Message index invalid - SynchronousFlagE failed.");
+	}
+	
 	++crtreadidx;
+	
 	idbg(crtreadidx);
+		
 	if(crtwriteidx < writecount){
 		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
 		ctx.ipcmsgwriter->enqueue(msgptr, ctx.ipctypemap->index(msgptr.get()), initarray[crtwriteidx % initarraysize].flags, *ctx.ipcconfig, *ctx.ipctypemap, ipcconctx);
@@ -127,7 +138,9 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 }
 
 void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr){
-	cassert(!_rerr);
+	if(_rerr){
+		THROW_EXCEPTION("Message complete with error");
+	}
 	idbg(static_cast<Message*>(_rmsgptr.get())->idx);
 }
 

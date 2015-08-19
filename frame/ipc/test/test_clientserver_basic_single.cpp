@@ -18,6 +18,7 @@
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
+#include "system/exception.hpp"
 
 #include "system/debug.hpp"
 
@@ -132,7 +133,9 @@ void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointe
 
 void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
 	idbg("");
-	cassert(_rmsgptr->check());
+	if(not _rmsgptr->check()){
+		THROW_EXCEPTION("Message check failed.");
+	}
 	
 	
 	++crtreadidx;
@@ -279,7 +282,14 @@ int test_clientserver_basic_single(int argc, char **argv){
 		Locker<Mutex>	lock(mtx);
 		
 		while(running){
-			cnd.wait(lock);
+			//cnd.wait(lock);
+			TimeSpec	abstime = TimeSpec::createRealTime();
+			abstime += (10 * 1000);//ten seconds
+			bool b = cnd.wait(lock, abstime);
+			if(!b){
+				//timeout expired
+				THROW_EXCEPTION("Process is tacking too long.");
+			}
 		}
 		
 		m.stop();
