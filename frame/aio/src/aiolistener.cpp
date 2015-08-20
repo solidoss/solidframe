@@ -38,6 +38,7 @@ namespace aio{
 				tmpf(_rctx, sd);
 			}break;
 		case ReactorEventError:
+		case ReactorEventHangup:
 			if(!FUNCTION_EMPTY(rthis.f)){
 				SocketDevice	sd;
 				FunctionT		tmpf(std::move(rthis.f));

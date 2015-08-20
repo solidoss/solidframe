@@ -142,6 +142,30 @@ struct MessageHandler{
 	}
 };
 
+
+void connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+}
+
+void incoming_connection_start(frame::ipc::ConnectionContext &_rctx){
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	if(_rctx.service().configuration().isServerOnly()){
+		_rctx.service().activateConnection(_rctx.connectionId());
+	}else{
+		//wait to receive InitMessage, so we know on which connection pool, the incomming connection should be part of
+	}
+}
+
+void outgoing_connection_start(frame::ipc::ConnectionContext &_rctx){
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	if(_rctx.service().configuration().isClientOnly()){
+		_rctx.service().activateConnection(_rctx.connectionId());
+	}else{
+		//peer2peer mode: send InitMessage
+		frame::ipc::MessagePointerT msgptr(new InitMessage(app_params.baseport));
+		_rctx.service().sendMessage(_rctx.connectionId(), msgptr);
+	}
+}
 //------------------------------------------------------------------
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
@@ -229,22 +253,10 @@ int main(int argc, char *argv[]){
 			cfg.listen_address_str = "0.0.0.0:"; cfg.listen_address_str += app_params.baseport;
 			cfg.default_listen_port_str = app_params.baseport;
 			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, app_params.baseport.c_str());
-			cfg.incoming_connection_start_fnc = [](frame::ipc::ConnectionContext &_rctx){
-				if(_rctx.service().configuration().isServerOnly()){
-					_rctx.service().activateConnection(_rctx.connectionId());
-				}else{
-					//wait to receive InitMessage, so we know on which connection pool, the incomming connection should be part of
-				}
-			};
-			cfg.outgoing_connection_start_fnc = [](frame::ipc::ConnectionContext &_rctx){
-				if(_rctx.service().configuration().isClientOnly()){
-					_rctx.service().activateConnection(_rctx.connectionId());
-				}else{
-					//peer2peer mode: send InitMessage
-					frame::ipc::MessagePointerT msgptr(new InitMessage(app_params.baseport));
-					_rctx.service().sendMessage(_rctx.connectionId(), msgptr);
-				}
-			};
+			
+			cfg.connection_stop_fnc = connection_stop;
+			cfg.incoming_connection_start_fnc = incoming_connection_start;
+			cfg.outgoing_connection_start_fnc = outgoing_connection_start;
 			
 			err = ipcsvc.reconfigure(cfg);
 			

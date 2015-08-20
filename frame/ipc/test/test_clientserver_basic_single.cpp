@@ -123,16 +123,35 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	
 };
 
+void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+}
+
+void client_connection_start(frame::ipc::ConnectionContext &_rctx){
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	_rctx.service().activateConnection(_rctx.connectionId());
+}
+
+void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+}
+
+void server_connection_start(frame::ipc::ConnectionContext &_rctx){
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	_rctx.service().activateConnection(_rctx.connectionId());
+}
+
+
 void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg("");
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
 }
 
 void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg("");
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
 }
 
 void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg("");
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
 	}
@@ -154,7 +173,7 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 }
 
 void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg("");
+	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
 }
 
 
@@ -222,14 +241,12 @@ int test_clientserver_basic_single(int argc, char **argv){
 			);
 			
 			
+			cfg.connection_stop_fnc = client_connection_stop;
+			cfg.outgoing_connection_start_fnc = client_connection_start;
 			
 			cfg.max_per_pool_connection_count = 1;
 			
 			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "6666");
-			
-			cfg.outgoing_connection_start_fnc = [](frame::ipc::ConnectionContext &_rctx){
-				_rctx.service().activateConnection(_rctx.connectionId());
-			};
 			
 			err = ipcclient.reconfigure(cfg);
 			
@@ -252,12 +269,12 @@ int test_clientserver_basic_single(int argc, char **argv){
 				}
 			);
 			
+			
+			cfg.connection_stop_fnc = server_connection_stop;
+			cfg.incoming_connection_start_fnc = server_connection_start;
+			
 			cfg.listen_address_str = "0.0.0.0:6666";
 			cfg.default_listen_port_str = "6666";
-			
-			cfg.incoming_connection_start_fnc = [](frame::ipc::ConnectionContext &_rctx){
-				_rctx.service().activateConnection(_rctx.connectionId());
-			};
 			
 			err = ipcserver.reconfigure(cfg);
 			
