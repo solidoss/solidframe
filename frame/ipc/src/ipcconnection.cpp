@@ -98,10 +98,10 @@ struct ActivateMessage: Dynamic<ActivateMessage>{
 	return EventCategory::createActivate();
 }
 //-----------------------------------------------------------------------------
-inline void Connection::doOptimizeRecvBuffer(){
+inline void Connection::doOptimizeRecvBuffer(const bool _force){
 	const size_t cnssz = receivebufoff - consumebufoff;
-	if(cnssz <= consumebufoff){
-		idbgx(Debug::proto_bin, "memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
+	if(cnssz <= consumebufoff or _force){
+		idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
 		memcpy(recvbuf, recvbuf + consumebufoff, cnssz);
 		consumebufoff = 0;
 		receivebufoff = cnssz;
@@ -111,17 +111,19 @@ inline void Connection::doOptimizeRecvBuffer(){
 Connection::Connection(
 	SocketDevice &_rsd
 ):	sock(this->proxy(), std::move(_rsd)), timer(this->proxy()),
-	crtpushvecidx(0), flags(0)
+	crtpushvecidx(0), flags(0), receivebufoff(0), consumebufoff(0),
+	recvbuf(nullptr), sendbuf(nullptr)
 {
-	idbgx(Debug::ipc, this);
+	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
 	ConnectionPoolUid const &_rconpoolid
 ):	conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),
-	crtpushvecidx(0), flags(0)
+	crtpushvecidx(0), flags(0), receivebufoff(0), consumebufoff(0),
+	recvbuf(nullptr), sendbuf(nullptr)
 {
-	idbgx(Debug::ipc, this);
+	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
 //-----------------------------------------------------------------------------
 Connection::~Connection(){
@@ -133,7 +135,7 @@ bool Connection::pushMessage(
 	const size_t _msg_type_idx,
 	ulong _flags
 ){
-	idbgx(Debug::ipc, this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
+	idbgx(Debug::ipc, this<<' '<<this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
 	sendmsgvec[crtpushvecidx].push_back(PendingSendMessageStub(_rmsgptr, _msg_type_idx, _flags));
 	return sendmsgvec[crtpushvecidx].size() == 1;
@@ -191,7 +193,9 @@ void Connection::doUnprepare(frame::aio::ReactorContext &_rctx){
 void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming){
 	ConnectionContext 	conctx(service(_rctx), *this);
 	Configuration const &config = service(_rctx).configuration();
+	
 	doPrepare(_rctx);
+	
 	if(_is_incomming){
 		flags |= FlagServerE;
 		service(_rctx).onIncomingConnectionStart(conctx);
@@ -232,12 +236,13 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(frame::EventCategory::isStart(_revent)){
-		idbgx(Debug::ipc, this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
+		idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
+		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
 		if(sock.device().ok()){
 			doStart(_rctx, true);
 		}
 	}else if(frame::EventCategory::isKill(_revent)){
-		idbgx(Debug::ipc, this->id()<<" Session postStop");
+		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session postStop");
 		postStop(_rctx);
 		flags |= FlagStopForcedE;
 		ErrorConditionT err;
@@ -246,7 +251,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	}else if(_revent.msgptr.get()){
 		ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
 		if(presolvemsg){
-			idbgx(Debug::ipc, this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size()<<" crtidx = "<<presolvemsg->crtidx);
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size()<<" crtidx = "<<presolvemsg->crtidx);
 			if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
 				//initiate connect:
 				if(sock.connect(_rctx, presolvemsg->currentAddress(), Connection::onConnect)){
@@ -267,7 +272,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		{
 			Locker<Mutex>	lock(service(_rctx).mutex(*this));
 			
-			idbgx(Debug::ipc, this->id()<<" Session message");
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" Session message");
 			
 			if(sendmsgvec[crtpushvecidx].size()){
 				vecidx = crtpushvecidx;
@@ -374,8 +379,6 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	const TypeIdMapT	&rtypemap = rthis.service(_rctx).typeMap();
 	const Configuration &rconfig  = rthis.service(_rctx).configuration();
 	
-	idbgx(Debug::ipc, &rthis<<"");
-	
 	unsigned			repeatcnt = 4;
 	char				*pbuf;
 	size_t				bufsz;
@@ -398,6 +401,8 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	rthis.doResetTimerRecv(_rctx);
 	
 	do{
+		idbgx(Debug::ipc, &rthis<<" received size "<<_sz);
+		
 		if(!_rctx.error()){
 			recv_something = true;
 			rthis.receivebufoff += _sz;
@@ -408,20 +413,27 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 			
 			rthis.consumebufoff += rthis.msgreader.read(pbuf, bufsz, completefnc, rconfig, rtypemap, conctx, error);
 			
+			idbgx(Debug::ipc, &rthis<<" consumed size "<<rthis.consumebufoff<<" of "<<bufsz);
+			
 			if(error){
-				edbgx(Debug::ipc, rthis.id()<<" parsing "<<error.message());
+				edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" parsing "<<error.message());
 				rthis.doStop(_rctx, error);
+				recv_something = false;//prevent calling doResetTimerRecv after doStop
 				break;
+			}else if(rthis.consumebufoff < bufsz){
+				rthis.doOptimizeRecvBuffer(true);
 			}
 		}else{
-			edbgx(Debug::ipc, rthis.id()<<" receiving "<<_rctx.error().message());
+			edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" receiving "<<_rctx.error().message());
 			rthis.doStop(_rctx, _rctx.error());
+			recv_something = false;//prevent calling doResetTimerRecv after doStop
 			break;
 		}
 		--repeatcnt;
 		rthis.doOptimizeRecvBuffer();
 		pbuf = rthis.recvbuf + rthis.receivebufoff;
 		bufsz =  recvbufcp - rthis.receivebufoff;
+		idbgx(Debug::ipc, &rthis<<" buffer size "<<bufsz);
 	}while(repeatcnt && rthis.sock.recvSome(_rctx, pbuf, bufsz, Connection::onRecv, _sz));
 	
 	if(recv_something){
@@ -452,6 +464,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 			
 			if(
 				conpoolid.isValid() and
+				isActive() and
 				msgwriter.shouldTryFetchNewMessage(rconfig)
 			){
 				service(_rctx).tryFetchNewMessage(*this, _rctx, msgwriter.empty());
@@ -471,7 +484,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 			if(!error){
 				if(sz && sock.sendAll(_rctx, sendbuf, sz, Connection::onSend)){
 					if(_rctx.error()){
-						edbgx(Debug::ipc, id()<<" sending "<<_rctx.error().message());
+						edbgx(Debug::ipc, this<<' '<<id()<<" sending "<<_rctx.error().message());
 						doStop(_rctx, _rctx.error());
 					}else{
 						sent_something = true;
@@ -480,7 +493,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 					break;
 				}
 			}else{
-				edbgx(Debug::ipc, id()<<" storring "<<error.message());
+				edbgx(Debug::ipc, this<<' '<<id()<<" storring "<<error.message());
 				flags |= FlagStopForcedE;//TODO: maybe you should not set this all the time
 				doStop(_rctx, error);
 				break;
@@ -526,7 +539,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		rthis.doResetTimerSend(_rctx);
 		rthis.doSend(_rctx);
 	}else{
-		edbgx(Debug::ipc, rthis.id()<<" sending "<<_rctx.error().message());
+		edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" sending "<<_rctx.error().message());
 		rthis.doStop(_rctx, _rctx.error());
 	}
 }
@@ -534,10 +547,10 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	if(!_rctx.error()){
-		idbgx(Debug::ipc, rthis.id());
+		idbgx(Debug::ipc, &rthis<<' '<<rthis.id());
 		rthis.doStart(_rctx, false);
 	}else{
-		edbgx(Debug::ipc, rthis.id()<<" connecting "<<_rctx.error().message());
+		edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" connecting "<<_rctx.error().message());
 		rthis.doStop(_rctx, _rctx.error());
 	}
 }
@@ -549,6 +562,7 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 	const Configuration &rconfig  = service(_rctx).configuration();
 	ErrorConditionT		error;
 	if(_rmsgptr->isBackOnSender()){
+		idbgx(Debug::ipc, this<<' '<<"Completing back on sender message: "<<_rmsgptr->msguid);
 		msgwriter.completeMessage(_rmsgptr->msguid, rconfig, rtypemap, conctx, error);
 	}
 }

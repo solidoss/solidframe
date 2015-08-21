@@ -58,6 +58,8 @@ const size_t					initarraysize = sizeof(initarray)/sizeof(InitStub);
 
 size_t							crtwriteidx = 0;
 size_t							crtreadidx  = 0;
+size_t							crtbackidx  = 0;
+size_t							crtackidx  = 0;
 size_t							writecount = 0;
 bool							running = true;
 Mutex							mtx;
@@ -124,56 +126,80 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 };
 
 void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	idbg(_rctx.connectionId());
 }
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	idbg(_rctx.connectionId());
 	_rctx.service().activateConnection(_rctx.connectionId());
 }
 
 void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	idbg(_rctx.connectionId());
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	idbg(_rctx.connectionId());
 	_rctx.service().activateConnection(_rctx.connectionId());
 }
 
 
 void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
-}
-
-void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
-}
-
-void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	idbg(_rctx.connectionId());
+	
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
 	}
 	
 	
-	++crtreadidx;
-	idbg(crtreadidx);
-	if(crtwriteidx < writecount){
-		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
-		pipcclient->sendMessage("localhost:6666", msgptr, initarray[crtwriteidx % initarraysize].flags);
-		++crtwriteidx;
+	
+	if(!_rmsgptr->isBackOnSender()){
+		THROW_EXCEPTION("Message not back on sender!.");
 	}
 	
-	if(crtreadidx == crtwriteidx){
+	++crtbackidx;
+	
+	if(crtbackidx == crtwriteidx){
 		Locker<Mutex> lock(mtx);
 		running = false;
 		cnd.signal();
 	}
 }
 
+void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
+	idbg(_rctx.connectionId());
+	if(!_rerr){
+		++crtackidx;
+	}
+}
+
+void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
+	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->idOnSender());
+	if(not _rmsgptr->check()){
+		THROW_EXCEPTION("Message check failed.");
+	}
+	
+	if(!_rmsgptr->isOnPeer()){
+		THROW_EXCEPTION("Message not on peer!.");
+	}
+	
+	//send message back
+	_rctx.service().sendMessage(_rctx.connectionId(), _rmsgptr);
+	
+	++crtreadidx;
+	idbg(crtreadidx);
+	if(crtwriteidx < writecount){
+		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
+		pipcclient->sendMessage(
+			"localhost:6666", msgptr,
+			initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
+		);
+		++crtwriteidx;
+	}
+}
+
 void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']');
+	idbg(_rctx.connectionId());
 }
 
 
@@ -287,13 +313,16 @@ int test_clientserver_basic_single(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
-		const size_t					start_count = 1;
+		const size_t					start_count = 4;
 		
-		writecount = 2;//start_count;//
+		writecount = initarraysize;//start_count;//
 		
 		for(; crtwriteidx < start_count; ++crtwriteidx){
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
-			ipcclient.sendMessage("localhost:6666", msgptr, initarray[crtwriteidx % initarraysize].flags);
+			ipcclient.sendMessage(
+				"localhost:6666", msgptr,
+				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
+			);
 		}
 		
 		Locker<Mutex>	lock(mtx);
@@ -302,11 +331,16 @@ int test_clientserver_basic_single(int argc, char **argv){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
 			abstime += (10 * 1000);//ten seconds
+			//cnd.wait(lock);
 			bool b = cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
 				THROW_EXCEPTION("Process is tacking too long.");
 			}
+		}
+		
+		if(crtwriteidx != crtackidx){
+			THROW_EXCEPTION("Not all messages were completed");
 		}
 		
 		m.stop();

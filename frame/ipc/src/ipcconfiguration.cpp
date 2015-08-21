@@ -56,8 +56,8 @@ Configuration::Configuration(
 	
 	max_reader_multiplex_message_count = max_writer_multiplex_message_count;
 	
-	inactivity_timeout_seconds = 10;
-	keepalive_timeout_seconds = 5;
+	inactivity_timeout_seconds = 120;
+	keepalive_timeout_seconds = 60;
 	
 	allocate_recv_buffer_fnc = default_allocate_buffer;
 	allocate_send_buffer_fnc = default_allocate_buffer;

@@ -33,6 +33,7 @@ public:
 	}
 	
 	size_t push(TimeSpec const& _rt, ValueT const &_rv){
+		cassert(_rv != (ValueT)-1);
 		const size_t rv = tv.size();
 		tv.push_back(TimePairT(_rt, _rv));
 		if(_rt < mint){

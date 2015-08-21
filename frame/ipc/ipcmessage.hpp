@@ -61,6 +61,10 @@ struct Message: Dynamic<Message>{
 		return stt;
 	}
 	
+	MessageUid const& idOnSender()const{
+		return msguid;
+	}
+	
 	template <class S>
 	void serialize(S &_rs, frame::ipc::ConnectionContext &_rctx){
 		if(S::IsSerializer){

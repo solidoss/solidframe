@@ -15,6 +15,8 @@
 #include "utility/dynamicpointer.hpp"
 #include "utility/holder.hpp"
 
+#include <ostream>
+
 #include "frame/common.hpp"
 
 namespace solid{
@@ -35,7 +37,6 @@ struct ConnectionPoolUid: UniqueId{
 	):UniqueId(_idx, _uid){}
 	
 };
-
 
 struct ConnectionUid{
 	
@@ -60,6 +61,9 @@ struct ConnectionUid{
 	ObjectUidT			connectionid;
 };
 
+
+std::ostream& operator<<(std::ostream &_ros, ConnectionUid const &_con_id);
+
 struct MessageUid{
 	MessageUid(
 		const uint32 _idx = -1,
@@ -68,6 +72,8 @@ struct MessageUid{
 	uint32	index;
 	uint32	unique;
 };
+
+std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid);
 
 class Service;
 class Connection;

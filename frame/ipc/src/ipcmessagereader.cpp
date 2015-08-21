@@ -71,6 +71,7 @@ uint32 MessageReader::read(
 		
 		if(not packet_header.isOk()){
 			_rerror.assign(-1, _rerror.category());//TODO:
+			cassert(false);
 			break;
 		}
 		
@@ -94,6 +95,7 @@ uint32 MessageReader::read(
 		if(!_rerror){
 			pbufpos += packet_header.size();
 		}else{
+			cassert(false);
 			break;
 		}
 		state = HeaderReadStateE;

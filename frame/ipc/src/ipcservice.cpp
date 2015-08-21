@@ -269,7 +269,7 @@ struct OnRelsolveF{
 	):rm(_rm), objuid(_robjuid), event(_revent){}
 	
 	void operator()(AddressVectorT &_raddrvec){
-		idbgx(Debug::ipc, "OnRelsolveF(addrvec of size "<<_raddrvec.size()<<")");
+		idbgx(Debug::ipc, "OnResolveF(addrvec of size "<<_raddrvec.size()<<")");
 		event.msgptr = new ResolveMessage(_raddrvec);
 		rm.notify(objuid, event);
 	}
@@ -404,6 +404,7 @@ ErrorConditionT Service::doSendMessage(
 		wdbgx(Debug::ipc, "failed sending message to connection "<<objuid<<" error: "<<tmperr.message());
 	}
 	
+	idbgx(Debug::ipc, "all connections are busy. active connections "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
 	//All connections are busy
 	//Check if we should create a new connection
 	
@@ -837,6 +838,17 @@ void ResolverF::operator()(const std::string&_name, ResolveCompleteFunctionT& _c
 	fnc.cbk = std::move(_cbk);
 	
 	rresolver.requestResolve(fnc, hst_name, svc_name, 0, -1, SocketInfo::Stream);
+}
+//=============================================================================
+
+std::ostream& operator<<(std::ostream &_ros, ConnectionUid const &_con_id){
+	_ros<<'{'<<_con_id.connectionid<<"}{"<<_con_id.poolid<<'}';
+	return _ros;
+}
+//-----------------------------------------------------------------------------
+std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid){
+	_ros<<'{'<<_msguid.index<<','<<_msguid.unique<<'}';
+	return _ros;
 }
 //=============================================================================
 }//namespace ipc

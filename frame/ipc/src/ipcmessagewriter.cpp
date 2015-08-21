@@ -9,8 +9,11 @@
 //
 #include "ipcmessagewriter.hpp"
 #include "ipcutility.hpp"
+
 #include "frame/ipc/ipcconfiguration.hpp"
+
 #include "system/cassert.hpp"
+#include "system/debug.hpp"
 
 namespace solid{
 namespace frame{
@@ -293,8 +296,12 @@ char* MessageWriter::doFillPacket(
 			pbufpos = SerializerT::storeValue(pbufpos, tmp);
 		}
 		
-		_rctx.message_uid.index  = msgidx;
-		_rctx.message_uid.unique = rmsgstub.unique;
+		if(not rmsgstub.message_ptr->isOnPeer()){
+			_rctx.message_uid.index  = msgidx;
+			_rctx.message_uid.unique = rmsgstub.unique;
+		}else{
+			_rctx.message_uid = rmsgstub.message_ptr->idOnSender();
+		}
 		_rctx.message_state = rmsgstub.message_ptr->state() + 1;
 		
 		
@@ -305,6 +312,8 @@ char* MessageWriter::doFillPacket(
 			freesz -= rv;
 			
 			if(rmsgstub.serializer_ptr->empty()){
+				MessageUid		msguid(msgidx, rmsgstub.unique);
+				idbgx(Debug::ipc, "done serializing message "<<msguid<<". Message id sent to client "<<_rctx.message_uid);
 				tmp_serializer = std::move(rmsgstub.serializer_ptr);
 				//done serializing the message:
 				write_q.pop();
@@ -316,7 +325,7 @@ char* MessageWriter::doFillPacket(
 				if(not Message::is_waiting_response(rmsgstub.flags)){
 					//no wait response for the message - complete
 					ErrorConditionT	err;
-					doCompleteMessage(_rctx.messageUid(), _rconfig, _ridmap, _rctx, err);
+					doCompleteMessage(msguid, _rconfig, _ridmap, _rctx, err);
 				}
 				doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 			}else{
@@ -439,6 +448,7 @@ void MessageWriter::doCompleteMessage(
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
 ){
+	idbgx(Debug::ipc, _rmsguid);
 	if(_rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique){
 		//we have the message
 		const size_t			msgidx = _rmsguid.index;
@@ -460,6 +470,7 @@ void MessageWriter::completeAllMessages(
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
 ){
+	idbgx(Debug::ipc, "");
 	for(auto it = message_vec.begin(); it != message_vec.end(); ++it){
 		if(it->message_ptr.empty()){
 		}else{
