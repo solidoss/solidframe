@@ -515,6 +515,13 @@ ErrorConditionT Service::scheduleConnectionClose(
 	return doSendMessage(_rconnection_uid.connectionid, msgptr, -1, fakeuid, nullptr, 0);
 }
 //-----------------------------------------------------------------------------
+// Three situations in doActivateConnection is called:
+// 1. for a new server connection - in a client-server scenario
+// 2. for a new server connection - in a peer2peer scenario - given a valid _recipient_name
+// 3. for a new client connection - in any scenario - given a valid _rconnection_uid.poolid
+//
+// 
+
 ErrorConditionT Service::doActivateConnection(
 	ConnectionUid const &_rconnection_uid,
 	const char *_recipient_name,
@@ -525,7 +532,7 @@ ErrorConditionT Service::doActivateConnection(
 	Event									evt;
 	std::pair<MessagePointerT, uint32>		msgpair;
 	
-	if(_recipient_name == nullptr){
+	if(_recipient_name == nullptr and not _rconnection_uid.poolid.isValid()){//situation 1
 		evt = Connection::activateEvent();
 		if(manager().notify(_rconnection_uid.connectionid, evt)){
 		}else{
@@ -535,7 +542,7 @@ ErrorConditionT Service::doActivateConnection(
 		return err;
 	}
 	
-	if(_rconnection_uid.poolid.isValid()){
+	if(_recipient_name != nullptr and _rconnection_uid.poolid.isValid()){
 		edbgx(Debug::ipc, "only accepted connections allowed");
 		err.assign(-1, err.category());//TODO: only accepted connections allowed
 		return err;
@@ -543,38 +550,42 @@ ErrorConditionT Service::doActivateConnection(
 	
 	ConnectionPoolUid			poolid;
 	Locker<Mutex>				lock(d.mtx);
-	NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
-	
 	SmartLocker<Mutex>			lock2;
-	
-	if(it != d.namemap.end()){//connection pool exists
-		poolid.index = it->second;
-		SmartLocker<Mutex>		tmplock(d.connectionPoolMutex(poolid.index));
+	if(_rconnection_uid.poolid.isValid()){
+		poolid = _rconnection_uid.poolid;//situation 3
+	}else{
+		//situation 2
+		NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
 		
-		lock2 = std::move(tmplock);
-	}else{//connection pool does not exist
+		if(it != d.namemap.end()){//connection pool exists
+			poolid.index = it->second;
+			SmartLocker<Mutex>		tmplock(d.connectionPoolMutex(poolid.index));
+			
+			lock2 = std::move(tmplock);
+		}else{//connection pool does not exist
+			
+			if(d.config.isServerOnly()){
+				edbgx(Debug::ipc, "request for name resolve for a server only configuration");
+				err.assign(-1, err.category());//TODO: server only
+				return err;
+			}
+			
+			if(d.conpoolcachestk.size()){
+				poolid.index = d.conpoolcachestk.top();
+				d.conpoolcachestk.pop();
+			}else{
+				poolid.index = doPushNewConnectionPool();
+			}
+			
+			SmartLocker<Mutex>				tmplock(d.connectionPoolMutex(poolid.index));
+			ConnectionPoolStub 				&rconpool(d.conpooldq[poolid.index]);
+			
+			rconpool.name = _recipient_name;
 		
-		if(d.config.isServerOnly()){
-			edbgx(Debug::ipc, "request for name resolve for a server only configuration");
-			err.assign(-1, err.category());//TODO: server only
-			return err;
+			d.namemap[rconpool.name.c_str()] = poolid.index;
+			
+			lock2 = std::move(tmplock);
 		}
-		
-		if(d.conpoolcachestk.size()){
-			poolid.index = d.conpoolcachestk.top();
-			d.conpoolcachestk.pop();
-		}else{
-			poolid.index = doPushNewConnectionPool();
-		}
-		
-		SmartLocker<Mutex>				tmplock(d.connectionPoolMutex(poolid.index));
-		ConnectionPoolStub 				&rconpool(d.conpooldq[poolid.index]);
-		
-		rconpool.name = _recipient_name;
-	
-		d.namemap[rconpool.name.c_str()] = poolid.index;
-		
-		lock2 = std::move(tmplock);
 	}
 	
 	evt = Connection::activateEvent(poolid);
