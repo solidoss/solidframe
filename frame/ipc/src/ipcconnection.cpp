@@ -30,6 +30,7 @@ namespace{
 struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 	enum EventId{
 		ActivateE,
+		ResolveE,
 		InvalidE
 	};
 	
@@ -45,6 +46,9 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 		return id(_re) == ActivateE;
 	}
 	
+	static bool isResolve(Event const&_re){
+		return id(_re) == ResolveE;
+	}
 	
 	static Event create(EventId _evid){
 		return the().doCreate(static_cast<size_t>(_evid));
@@ -52,6 +56,10 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 	
 	static Event createActivate(){
 		return create(ActivateE);
+	}
+	
+	static Event createResolve(){
+		return create(ResolveE);
 	}
 	
 	static EventCategory const& the(){
@@ -65,6 +73,8 @@ private:
 		switch(eventId(_re)){
 			case ActivateE:
 				pstr = "frame::ipc::ActivateE";break;
+			case ResolveE:
+				pstr = "frame::ipc::ResolveE";break;
 			default:
 				_ros<<"frame::ipc::Unkonwn::"<<eventId(_re);
 				return;
@@ -97,6 +107,11 @@ struct ActivateMessage: Dynamic<ActivateMessage>{
 /*static*/ Event Connection::activateEvent(){
 	return EventCategory::createActivate();
 }
+
+/*static*/ Event Connection::resolveEvent(){
+	return EventCategory::createResolve();
+}
+
 //-----------------------------------------------------------------------------
 inline void Connection::doOptimizeRecvBuffer(const bool _force){
 	const size_t cnssz = receivebufoff - consumebufoff;
@@ -248,7 +263,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		ErrorConditionT err;
 		err.assign(-1, err.category());//TODO:
 		doStop(_rctx, err);
-	}else if(_revent.msgptr.get()){
+	}else if(EventCategory::isResolve(_revent)){
 		ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
 		if(presolvemsg){
 			idbgx(Debug::ipc, this<<' '<<this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size()<<" crtidx = "<<presolvemsg->crtidx);
@@ -309,7 +324,13 @@ void Connection::doActivate(
 ){
 	ActivateMessage *pactivatemsg = ActivateMessage::cast(_revent.msgptr.get());
 	
-	cassert(pactivatemsg == nullptr and _revent.msgptr.get() == nullptr);
+	idbgx(Debug::ipc, this<<" "<<pactivatemsg);
+	
+	//if(pactivatemsg == nullptr and _revent.msgptr.get() != nullptr){
+	//	cassert(false);
+	//}
+	
+	cassert(!(pactivatemsg == nullptr and _revent.msgptr.get() != nullptr));
 	
 	if(pactivatemsg){
 		this->conpoolid = pactivatemsg->poolid;
@@ -320,6 +341,7 @@ void Connection::doActivate(
 	
 	if(not isStopping()){
 		service(_rctx).activateConnectionComplete(*this);
+		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 	}else{
 		ObjectUidT			objuid;
 		ErrorConditionT 	err;

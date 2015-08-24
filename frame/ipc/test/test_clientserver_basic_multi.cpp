@@ -313,7 +313,7 @@ int test_clientserver_basic_multi(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
-		const size_t					start_count = 4;
+		const size_t					start_count = 5;
 		
 		writecount = initarraysize;//start_count;//
 		

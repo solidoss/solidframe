@@ -57,6 +57,7 @@ public:
 	
 	static Event activateEvent(ConnectionPoolUid const& _rconpoolid);
 	static Event activateEvent();
+	static Event resolveEvent();
 	
 	//Called when connection is accepted
 	Connection(

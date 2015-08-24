@@ -261,6 +261,7 @@ char* MessageWriter::doFillPacket(
 				//we need to stop
 				_rerror.assign(-1, _rerror.category());//TODO:
 				pbufpos = nullptr;
+				write_q.pop();
 				break;
 			}
 			
