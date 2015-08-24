@@ -123,7 +123,8 @@ private:
 		frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr
 	);
 	
-	void doOptimizeRecvBuffer(const bool _force = false);
+	void doOptimizeRecvBuffer();
+	void doOptimizeRecvBufferForced();
 	void doPrepare(frame::aio::ReactorContext &_rctx);
 	void doUnprepare(frame::aio::ReactorContext &_rctx);
 	void doResetTimerStart(frame::aio::ReactorContext &_rctx);

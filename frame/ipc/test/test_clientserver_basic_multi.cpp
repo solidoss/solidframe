@@ -79,6 +79,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	Message(uint32 _idx):idx(_idx){
 		idbg("CREATE ---------------- "<<(void*)this<<" idx = "<<idx);
 		init();
+		check();
 		
 	}
 	Message(){
@@ -118,7 +119,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		const size_t	pattern_size = pattern.size() / sizeof(uint64);
 		
 		for(uint64 i = 0; i < count; ++i){
-			if(pu[i] != pup[i % pattern_size]) return false;
+			if(pu[i] != pup[i % pattern_size]) throw false;
 		}
 		return true;
 	}

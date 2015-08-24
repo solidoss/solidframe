@@ -113,14 +113,21 @@ struct ActivateMessage: Dynamic<ActivateMessage>{
 }
 
 //-----------------------------------------------------------------------------
-inline void Connection::doOptimizeRecvBuffer(const bool _force){
+inline void Connection::doOptimizeRecvBuffer(){
 	const size_t cnssz = receivebufoff - consumebufoff;
-	if(cnssz <= consumebufoff or _force){
+	if(cnssz <= consumebufoff){
 		idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
 		memcpy(recvbuf, recvbuf + consumebufoff, cnssz);
 		consumebufoff = 0;
 		receivebufoff = cnssz;
 	}
+}
+inline void Connection::doOptimizeRecvBufferForced(){
+	const size_t cnssz = receivebufoff - consumebufoff;
+	idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
+	memmove(recvbuf, recvbuf + consumebufoff, cnssz);
+	consumebufoff = 0;
+	receivebufoff = cnssz;
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
@@ -443,7 +450,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 				recv_something = false;//prevent calling doResetTimerRecv after doStop
 				break;
 			}else if(rthis.consumebufoff < bufsz){
-				rthis.doOptimizeRecvBuffer(true);
+				rthis.doOptimizeRecvBufferForced();
 			}
 		}else{
 			edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" receiving "<<_rctx.error().message());
