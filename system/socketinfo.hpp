@@ -28,9 +28,10 @@ static ErrorCodeT last_socket_error();
 
 struct SocketInfo{
 	enum Family{
-		Local = AF_UNIX,
-		Inet4 = AF_INET,
-		Inet6 = AF_INET6
+		Local		= AF_UNIX,
+		Inet4		= AF_INET,
+		Inet6 		= AF_INET6,
+		AnyFamily	= AF_UNSPEC,
 	};
 	enum Type{
 		Stream = SOCK_STREAM,

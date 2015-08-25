@@ -159,13 +159,15 @@ void Configuration::protocolCallback(F _f){
 
 
 struct ResolverF{
-	aio::Resolver	&rresolver;
-	std::string		default_service;
+	aio::Resolver		&rresolver;
+	std::string			default_service;
+	SocketInfo::Family	family;
 	
 	ResolverF(
 		aio::Resolver &_rresolver,
-		const char *_default_service
-	):	rresolver(_rresolver), default_service(_default_service){}
+		const char *_default_service,
+		SocketInfo::Family	_family = SocketInfo::AnyFamily
+	):	rresolver(_rresolver), default_service(_default_service), family(_family){}
 	
 	void operator()(const std::string&, ResolveCompleteFunctionT&);
 };

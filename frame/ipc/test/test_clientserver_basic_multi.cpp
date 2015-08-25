@@ -79,7 +79,6 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	Message(uint32 _idx):idx(_idx){
 		idbg("CREATE ---------------- "<<(void*)this<<" idx = "<<idx);
 		init();
-		check();
 		
 	}
 	Message(){
@@ -273,7 +272,7 @@ int test_clientserver_basic_multi(int argc, char **argv){
 			
 			cfg.max_per_pool_connection_count = 4;
 			
-			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "6666");
+			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "6666"/*, SocketInfo::Inet4*/);
 			
 			err = ipcclient.reconfigure(cfg);
 			
@@ -314,7 +313,7 @@ int test_clientserver_basic_multi(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
-		const size_t					start_count = 5;
+		const size_t		start_count = 5;
 		
 		writecount = initarraysize;//start_count;//
 		

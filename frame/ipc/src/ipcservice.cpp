@@ -872,7 +872,7 @@ void ResolverF::operator()(const std::string&_name, ResolveCompleteFunctionT& _c
 	
 	fnc.cbk = std::move(_cbk);
 	
-	rresolver.requestResolve(fnc, hst_name, svc_name, 0, -1, SocketInfo::Stream);
+	rresolver.requestResolve(fnc, hst_name, svc_name, 0, this->family, SocketInfo::Stream);
 }
 //=============================================================================
 
