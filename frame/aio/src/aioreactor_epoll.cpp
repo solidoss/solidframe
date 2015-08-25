@@ -733,7 +733,6 @@ bool Reactor::remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx){
 }
 
 void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_robj){
-	vdbgx(Debug::aio, "");
 	size_t idx;
 	if(d.chposcache.size()){
 		idx = d.chposcache.top();
@@ -747,6 +746,7 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 	rcs.pch =  &_rch;
 	//rcs.waitreq = ReactorWaitNone;
 	_rch.idxreactor = idx;
+	vdbgx(Debug::aio, "idx "<<idx<<" chdq.size = "<<d.chdq.size()<<" this "<<this);
 	{
 		TimeSpec		dummytime;
 		ReactorContext	ctx(*this, dummytime);

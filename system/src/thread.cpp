@@ -401,10 +401,8 @@ Thread& Thread::current(){
 	Thread * pth = reinterpret_cast<Thread*>(TlsGetValue(threadData().crtthread_key));
 	return pth ? *pth : *associate_to_current_thread();
 #else
-	//Thread * pth = reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
-	//return pth ? *pth : *associateToCurrent();
-	static Thread *pth = associateToCurrent();
-	return *pth;
+	Thread * pth = reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
+	return pth ? *pth : *associateToCurrent();
 #endif
 }
 //-------------------------------------------------------------------------
