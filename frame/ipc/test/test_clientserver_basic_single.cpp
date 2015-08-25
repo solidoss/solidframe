@@ -22,6 +22,8 @@
 
 #include "system/debug.hpp"
 
+#include <iostream>
+
 using namespace std;
 using namespace solid;
 
@@ -65,6 +67,7 @@ bool							running = true;
 Mutex							mtx;
 Condition						cnd;
 frame::ipc::Service				*pipcclient = nullptr;
+uint64							transfered_size = 0;
 
 
 size_t real_size(size_t _sz){
@@ -151,6 +154,7 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 		THROW_EXCEPTION("Message check failed.");
 	}
 	
+	transfered_size += _rmsgptr->str.size();
 	
 	
 	if(!_rmsgptr->isBackOnSender()){
@@ -229,7 +233,8 @@ int test_clientserver_basic_single(int argc, char **argv){
 	
 	
 	{
-		AioSchedulerT			sch;
+		AioSchedulerT			sch_client;
+		AioSchedulerT			sch_server;
 			
 			
 		frame::Manager			m;
@@ -239,10 +244,17 @@ int test_clientserver_basic_single(int argc, char **argv){
 		
 		frame::aio::Resolver	resolver;
 		
-		err = sch.start(1);
+		err = sch_client.start(1);
 		
 		if(err){
-			edbg("starting aio scheduler: "<<err.message());
+			edbg("starting aio client scheduler: "<<err.message());
+			return 1;
+		}
+		
+		err = sch_server.start(1);
+		
+		if(err){
+			edbg("starting aio server scheduler: "<<err.message());
 			return 1;
 		}
 		
@@ -255,7 +267,7 @@ int test_clientserver_basic_single(int argc, char **argv){
 		
 		
 		{//ipc client initialization
-			frame::ipc::Configuration	cfg(sch);
+			frame::ipc::Configuration	cfg(sch_client);
 			
 			cfg.protocolCallback(
 				[&ipcclient](frame::ipc::ServiceProxy& _rsp){
@@ -284,7 +296,7 @@ int test_clientserver_basic_single(int argc, char **argv){
 		}
 		
 		{//ipc server initialization
-			frame::ipc::Configuration	cfg(sch);
+			frame::ipc::Configuration	cfg(sch_server);
 			
 			cfg.protocolCallback(
 				[&ipcserver](frame::ipc::ServiceProxy& _rsp){
@@ -313,9 +325,9 @@ int test_clientserver_basic_single(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
-		const size_t					start_count = 4;
+		const size_t					start_count = 10;
 		
-		writecount = initarraysize;//start_count;//
+		writecount = 10*initarraysize;//start_count;//
 		
 		for(; crtwriteidx < start_count; ++crtwriteidx){
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
@@ -347,6 +359,7 @@ int test_clientserver_basic_single(int argc, char **argv){
 	}
 	
 	Thread::waitAll();
+	std::cout<<"Transfered size = "<<(transfered_size * 2)/1024<<"KB"<<endl;
 	
 	return 0;
 }
