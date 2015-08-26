@@ -116,7 +116,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		if(sz != str.size()){
 			return false;
 		}
-		return true;
+		//return true;
 		const size_t	count = sz / sizeof(uint64);
 		const uint64	*pu = reinterpret_cast<const uint64*>(str.data());
 		const uint64	*pup = reinterpret_cast<const uint64*>(pattern.data());
