@@ -58,16 +58,17 @@ InitStub initarray[] = {
 std::string						pattern;
 const size_t					initarraysize = sizeof(initarray)/sizeof(InitStub);
 
-size_t							crtwriteidx = 0;
-size_t							crtreadidx  = 0;
-size_t							crtbackidx  = 0;
-size_t							crtackidx  = 0;
-size_t							writecount = 0;
+std::atomic<size_t>				crtwriteidx(0);
+std::atomic<size_t>				crtreadidx(0);
+std::atomic<size_t>				crtbackidx(0);
+std::atomic<size_t>				crtackidx(0);
+std::atomic<size_t>				writecount(0);
 bool							running = true;
 Mutex							mtx;
 Condition						cnd;
 frame::ipc::Service				*pipcclient = nullptr;
-uint64							transfered_size = 0;
+std::atomic<uint64>				transfered_size(0);
+std::atomic<size_t>				transfered_count(0);
 
 
 size_t real_size(size_t _sz){
@@ -115,6 +116,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		if(sz != str.size()){
 			return false;
 		}
+		return true;
 		const size_t	count = sz / sizeof(uint64);
 		const uint64	*pu = reinterpret_cast<const uint64*>(str.data());
 		const uint64	*pup = reinterpret_cast<const uint64*>(pattern.data());
@@ -155,7 +157,7 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	}
 	
 	transfered_size += _rmsgptr->str.size();
-	
+	++transfered_count;
 	
 	if(!_rmsgptr->isBackOnSender()){
 		THROW_EXCEPTION("Message not back on sender!.");
@@ -163,7 +165,7 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	
 	++crtbackidx;
 	
-	if(crtbackidx == crtwriteidx){
+	if(crtbackidx == writecount){
 		Locker<Mutex> lock(mtx);
 		running = false;
 		cnd.signal();
@@ -194,11 +196,11 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	idbg(crtreadidx);
 	if(crtwriteidx < writecount){
 		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
+		++crtwriteidx;
 		pipcclient->sendMessage(
 			"localhost:6666", msgptr,
 			initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
 		);
-		++crtwriteidx;
 	}
 }
 
@@ -213,7 +215,7 @@ int test_clientserver_basic_single(int argc, char **argv){
 	Thread::init();
 #ifdef UDEBUG
 	Debug::the().levelMask("view");
-	Debug::the().moduleMask("all");
+	Debug::the().moduleMask("frame_ipc");
 	Debug::the().initStdErr(false, nullptr);
 #endif
 	
@@ -344,10 +346,11 @@ int test_clientserver_basic_single(int argc, char **argv){
 			TimeSpec	abstime = TimeSpec::createRealTime();
 			abstime += (10 * 1000);//ten seconds
 			//cnd.wait(lock);
+			//break;
 			bool b = cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
-				THROW_EXCEPTION("Process is tacking too long.");
+				THROW_EXCEPTION("Process is taking too long.");
 			}
 		}
 		
@@ -360,6 +363,7 @@ int test_clientserver_basic_single(int argc, char **argv){
 	
 	Thread::waitAll();
 	std::cout<<"Transfered size = "<<(transfered_size * 2)/1024<<"KB"<<endl;
+	std::cout<<"Transfered count = "<<transfered_count<<endl;
 	
 	return 0;
 }

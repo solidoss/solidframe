@@ -687,12 +687,16 @@ void Service::activateConnectionComplete(Connection &_rcon){
 }
 //-----------------------------------------------------------------------------
 void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectUidT const &_robjuid){
+	idbgx(Debug::ipc, &_rcon<<" "<<_robjuid);
 	if(_rcon.conpoolid.isValid()){
+		ConnectionPoolUid	conpoolid = _rcon.conpoolid;
 		Locker<Mutex>		lock(d.mtx);
 		Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
 		ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
 		
-		cassert(rconpool.uid == _rcon.conpoolid.unique);
+		_rcon.conpoolid = ConnectionPoolUid();
+		
+		cassert(rconpool.uid == conpoolid.unique);
 		
 		idbgx(Debug::ipc, ""<<_robjuid);
 		
@@ -729,7 +733,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 				//called on Connection::doActivate, after Connection::postStop
 				--rconpool.active_connection_count;
 			}
-			idbgx(Debug::ipc, _rcon.conpoolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
+			idbgx(Debug::ipc, conpoolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
 		}
 		
 		if(rconpool.synchronous_connection_uid == _robjuid){
@@ -745,7 +749,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 				rconpool.msgq.pop();
 			}
 			
-			d.conpoolcachestk.push(_rcon.conpoolid.index);
+			d.conpoolcachestk.push(conpoolid.index);
 		
 			rconpool.clear();
 		}else{

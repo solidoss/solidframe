@@ -316,10 +316,8 @@ public:
 				}else{
 					send_fnc = SendAllFunctor<F>(_f);
 				}
-			}else{
-				return false;
 			}
-			
+			return false;
 		}else{
 			//TODO: set proper error
 			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
@@ -481,14 +479,14 @@ private:
 			send_buf_sz += rv;
 			send_buf += rv;
 		}else if(rv == 0){
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, ErrorConditionT(-2, _rctx.error().category()));
 			send_buf_sz = send_buf_cp = 0;
 		}else if(rv < 0){
 			if(can_retry){
 				return false;
 			}else{
 				send_buf_sz = send_buf_cp = 0;
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, ErrorConditionT(err.value(), err.category()));
 				systemError(_rctx, err);
 			}
 		}

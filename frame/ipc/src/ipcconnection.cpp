@@ -240,20 +240,22 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 }
 //-----------------------------------------------------------------------------
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
-	ConnectionContext	conctx(service(_rctx), *this);
-	ObjectUidT			objuid(uid(_rctx));
-	
-	postStop(_rctx);//there might be events pending which will be delivered, but after this call
-					//no event get posted
-	
-	service(_rctx).onConnectionClose(*this, _rctx, objuid);//must be called after postStop!!
-	
-	doCompleteAllMessages(_rctx, _rerr);
-	
-	service(_rctx).onConnectionStop(conctx, _rerr);
-	flags |= FlagStoppingE;
-	
-	doUnprepare(_rctx);
+	if(not isStopping()){
+		ConnectionContext	conctx(service(_rctx), *this);
+		ObjectUidT			objuid(uid(_rctx));
+		
+		postStop(_rctx);//there might be events pending which will be delivered, but after this call
+						//no event get posted
+		
+		service(_rctx).onConnectionClose(*this, _rctx, objuid);//must be called after postStop!!
+		
+		doCompleteAllMessages(_rctx, _rerr);
+		
+		service(_rctx).onConnectionStop(conctx, _rerr);
+		flags |= FlagStoppingE;
+		
+		doUnprepare(_rctx);
+	}
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
@@ -265,7 +267,6 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		}
 	}else if(frame::EventCategory::isKill(_revent)){
 		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session postStop");
-		postStop(_rctx);
 		flags |= FlagStopForcedE;
 		ErrorConditionT err;
 		err.assign(-1, err.category());//TODO:
@@ -513,8 +514,10 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 			if(!error){
 				if(sz && sock.sendAll(_rctx, sendbuf, sz, Connection::onSend)){
 					if(_rctx.error()){
-						edbgx(Debug::ipc, this<<' '<<id()<<" sending "<<_rctx.error().message());
+						edbgx(Debug::ipc, this<<' '<<id()<<" sending "<<sz<<": "<<_rctx.error().message());
 						doStop(_rctx, _rctx.error());
+						sent_something = false;//prevent calling doResetTimerSend after doStop
+						break;
 					}else{
 						sent_something = true;
 					}
@@ -525,6 +528,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				edbgx(Debug::ipc, this<<' '<<id()<<" storring "<<error.message());
 				flags |= FlagStopForcedE;//TODO: maybe you should not set this all the time
 				doStop(_rctx, error);
+				sent_something = false;//prevent calling doResetTimerSend after doStop
 				break;
 			}
 			--repeatcnt;

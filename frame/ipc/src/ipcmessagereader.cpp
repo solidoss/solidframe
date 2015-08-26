@@ -176,11 +176,6 @@ void MessageReader::doConsumePacket(
 				break;
 			case PacketHeader::SwitchToOldMessageTypeE:
 				if(message_q.front().message_ptr.get()){
-					if(message_q.size() == _rconfig.max_reader_multiplex_message_count){
-						cassert(false);
-						_rerror.assign(-1, _rerror.category());//TODO:
-						return;
-					}
 					message_q.push(std::move(message_q.front()));
 				}
 				message_q.pop();
