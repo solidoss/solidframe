@@ -63,7 +63,6 @@ std::atomic<size_t>				crtreadidx(0);
 std::atomic<size_t>				crtbackidx(0);
 std::atomic<size_t>				crtackidx(0);
 std::atomic<size_t>				writecount(0);
-
 bool							running = true;
 Mutex							mtx;
 Condition						cnd;
@@ -124,7 +123,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		const size_t	pattern_size = pattern.size() / sizeof(uint64);
 		
 		for(uint64 i = 0; i < count; ++i){
-			if(pu[i] != pup[i % pattern_size]) return false;
+			if(pu[i] != pup[i % pattern_size]) throw false;
 		}
 		return true;
 	}
@@ -157,6 +156,7 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 		THROW_EXCEPTION("Message check failed.");
 	}
 	
+	//cout<< _rmsgptr->str.size()<<'\n';
 	transfered_size += _rmsgptr->str.size();
 	++transfered_count;
 	
@@ -212,11 +212,13 @@ void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointe
 
 }//namespace
 
-int test_clientserver_basic_single(int argc, char **argv){
+int test_peer2peer_basic_multi(int argc, char **argv){
+	
 	Thread::init();
+	
 #ifdef UDEBUG
 	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc");
+	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);
 #endif
 	
@@ -287,7 +289,7 @@ int test_clientserver_basic_single(int argc, char **argv){
 			
 			cfg.max_per_pool_connection_count = 1;
 			
-			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "6666");
+			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "6666"/*, SocketInfo::Inet4*/);
 			
 			err = ipcclient.reconfigure(cfg);
 			
@@ -315,6 +317,7 @@ int test_clientserver_basic_single(int argc, char **argv){
 			cfg.incoming_connection_start_fnc = server_connection_start;
 			
 			cfg.listen_address_str = "0.0.0.0:6666";
+			cfg.default_listen_port_str = "6666";
 			
 			err = ipcserver.reconfigure(cfg);
 			
@@ -327,12 +330,13 @@ int test_clientserver_basic_single(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
-		const size_t					start_count = 10;
+		const size_t		start_count = 10;
 		
-		writecount = 10*initarraysize;//start_count;//
+		writecount = initarraysize * 10;//start_count;//
 		
-		for(; crtwriteidx < start_count; ++crtwriteidx){
+		for(; crtwriteidx < start_count;){
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
+			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost:6666", msgptr,
 				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
@@ -344,10 +348,9 @@ int test_clientserver_basic_single(int argc, char **argv){
 		while(running){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
-			abstime += (60 * 1000);//ten seconds
-			//cnd.wait(lock);
-			//break;
-			bool b = cnd.wait(lock, abstime);
+			abstime += (10 * 1000);//ten seconds
+			cnd.wait(lock);
+			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
 				THROW_EXCEPTION("Process is taking too long.");
@@ -362,6 +365,7 @@ int test_clientserver_basic_single(int argc, char **argv){
 	}
 	
 	Thread::waitAll();
+	
 	std::cout<<"Transfered size = "<<(transfered_size * 2)/1024<<"KB"<<endl;
 	std::cout<<"Transfered count = "<<transfered_count<<endl;
 	

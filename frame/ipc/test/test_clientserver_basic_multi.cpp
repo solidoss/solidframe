@@ -315,7 +315,6 @@ int test_clientserver_basic_multi(int argc, char **argv){
 			cfg.incoming_connection_start_fnc = server_connection_start;
 			
 			cfg.listen_address_str = "0.0.0.0:6666";
-			cfg.default_listen_port_str = "6666";
 			
 			err = ipcserver.reconfigure(cfg);
 			
@@ -346,7 +345,7 @@ int test_clientserver_basic_multi(int argc, char **argv){
 		while(running){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
-			abstime += (10 * 1000);//ten seconds
+			abstime += (60 * 1000);//ten seconds
 			cnd.wait(lock);
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){

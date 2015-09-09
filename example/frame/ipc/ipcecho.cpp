@@ -406,7 +406,31 @@ void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPoi
 	
 	idbg("Received init from: "<<tmposs.str());
 	
-	frame::ipc::MessagePointerT msgptr(new InitMessage(app_params.baseport));
+	
+	if(_rmsg->port.empty()){
+		idbg("The peer did not accept the connection");
+	}else if(_rmsg->port == "-"){
+		idbg("The peer accepted the connection - we activate it too");
+		_rctx.service().activateConnection(_rctx.connectionId());
+	}else{
+		idbg("Init on a incoming connection - try activate it");
+		ErrorConditionT				err = _rctx.service().activateConnection(
+			_rctx.connectionId(), tmposs.str().c_str(),
+			[](ErrorConditionT const &_rerr){
+				if(not _rerr){
+					return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage("-"), 0);
+				}else{
+					return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage(), 0);
+				}
+			},
+			localaddr < remoteaddr
+		);
+		
+		if(err){
+			edbg("Activating connection: "<<err.message());
+		}
+	}
+	
 	ErrorConditionT				err = _rctx.service().activateConnection(
 		_rctx.connectionId(), tmposs.str().c_str(),
 		[](ErrorConditionT const &_rerr){
