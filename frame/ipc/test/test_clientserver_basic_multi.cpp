@@ -345,7 +345,7 @@ int test_clientserver_basic_multi(int argc, char **argv){
 		while(running){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
-			abstime += (60 * 1000);//ten seconds
+			abstime += (120 * 1000);//ten seconds
 			cnd.wait(lock);
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){

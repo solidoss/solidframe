@@ -38,7 +38,7 @@ struct InitStub{
 };
 
 InitStub initarray[] = {
-	{100000, 0},
+//	{100000, 0},
 	{2000, 0},
 	{4000, 0},
 	{8000, 0},
@@ -159,7 +159,6 @@ void peer1_outgoing_connection_start(frame::ipc::ConnectionContext &_rctx){
 
 void peer1_incoming_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
 }
 
 void peer2_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
@@ -168,13 +167,12 @@ void peer2_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT
 
 void peer2_outgoing_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
+	frame::ipc::MessagePointerT msgptr(new InitMessage("7777"));
+	_rctx.service().sendMessage(_rctx.connectionId(), msgptr);
 }
 
 void peer2_incoming_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.connectionId());
-	frame::ipc::MessagePointerT msgptr(new InitMessage("7777"));
-	_rctx.service().sendMessage(_rctx.connectionId(), msgptr);
 }
 
 void peer1_receive_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<InitMessage> &_rmsgptr){
@@ -195,7 +193,8 @@ void peer1_receive_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Ini
 			remoteaddr,
 			ReverseResolveInfo::NumericHost
 		);
-		tmposs<<hoststr<<':'<<_rmsgptr->port;
+		//tmposs<<hoststr<<':'<<_rmsgptr->port;
+		tmposs<<"localhost"<<':'<<_rmsgptr->port;
 	}
 	
 	
@@ -207,7 +206,8 @@ void peer1_receive_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Ini
 		idbg("The peer accepted the connection - we activate it too");
 		_rctx.service().activateConnection(_rctx.connectionId());
 	}else{
-		idbg("Init on a incoming connection - try activate it");
+		remoteaddr.port(atoi(_rmsgptr->port.c_str()));
+		idbg("Init on an incoming connection - try activate it "<<(localaddr < remoteaddr)<<" "<<localaddr<<" "<<remoteaddr);
 		ErrorConditionT				err = _rctx.service().activateConnection(
 			_rctx.connectionId(), tmposs.str().c_str(),
 			[](ErrorConditionT const &_rerr){
@@ -238,8 +238,8 @@ void peer1_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 	
 	if(_rmsgptr->isBackOnSender()){
 		++p1_crtbackidx;
-	
-		if(p1_crtbackidx == p1_writecount and p2_crtackidx == p2_writecount){
+		idbg(p1_crtbackidx<<" "<<p1_writecount<<" "<<p2_crtbackidx<<" "<<p2_writecount);
+		if(p1_crtbackidx == p1_writecount and p2_crtbackidx == p2_writecount){
 			Locker<Mutex> lock(mtx);
 			running = false;
 			cnd.signal();
@@ -248,7 +248,7 @@ void peer1_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 		_rctx.service().sendMessage(_rctx.connectionId(), _rmsgptr);
 	
 		++p2_crtreadidx;
-		idbg(p2_crtreadidx);
+		idbg(p2_crtreadidx<<" "<<p2_writecount);
 		if(p2_crtwriteidx < p2_writecount){
 			frame::ipc::MessagePointerT	msgptr(new Message(p2_crtwriteidx));
 			++p2_crtwriteidx;
@@ -290,7 +290,8 @@ void peer2_receive_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Ini
 			remoteaddr,
 			ReverseResolveInfo::NumericHost
 		);
-		tmposs<<hoststr<<':'<<_rmsgptr->port;
+		//tmposs<<hoststr<<':'<<_rmsgptr->port;
+		tmposs<<"localhost"<<':'<<_rmsgptr->port;
 	}
 	
 	
@@ -302,7 +303,8 @@ void peer2_receive_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Ini
 		idbg("The peer accepted the connection - we activate it too");
 		_rctx.service().activateConnection(_rctx.connectionId());
 	}else{
-		idbg("Init on a incoming connection - try activate it");
+		remoteaddr.port(atoi(_rmsgptr->port.c_str()));
+		idbg("Init on an incoming connection - try activate it "<<(localaddr < remoteaddr)<<" "<<localaddr<<" "<<remoteaddr);
 		ErrorConditionT				err = _rctx.service().activateConnection(
 			_rctx.connectionId(), tmposs.str().c_str(),
 			[](ErrorConditionT const &_rerr){
@@ -334,8 +336,9 @@ void peer2_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 	
 	if(_rmsgptr->isBackOnSender()){
 		++p2_crtbackidx;
-	
-		if(p1_crtbackidx == p1_writecount and p2_crtackidx == p2_writecount){
+		
+		idbg(p1_crtbackidx<<" "<<p1_writecount<<" "<<p2_crtbackidx<<" "<<p2_writecount);
+		if(p1_crtbackidx == p1_writecount and p2_crtbackidx == p2_writecount){
 			Locker<Mutex> lock(mtx);
 			running = false;
 			cnd.signal();
@@ -344,7 +347,7 @@ void peer2_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 		_rctx.service().sendMessage(_rctx.connectionId(), _rmsgptr);
 	
 		++p1_crtreadidx;
-		idbg(p1_crtreadidx);
+		idbg(p1_crtreadidx<<" "<<p1_writecount);
 		if(p1_crtwriteidx < p1_writecount){
 			frame::ipc::MessagePointerT	msgptr(new Message(p1_crtwriteidx));
 			++p1_crtwriteidx;
@@ -363,7 +366,7 @@ void peer2_complete_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<In
 void peer2_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
 	idbg(_rctx.connectionId());
 	if(!_rerr){
-		++p1_crtackidx;
+		++p2_crtackidx;
 	}
 }
 
@@ -376,7 +379,7 @@ int test_peer2peer_basic_single(int argc, char **argv){
 	
 #ifdef UDEBUG
 	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc");
+	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);
 #endif
 	
@@ -454,7 +457,7 @@ int test_peer2peer_basic_single(int argc, char **argv){
 			
 			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "7777");
 			
-			cfg.listen_address_str = "0.0.0.0:7777";
+			cfg.listen_address_str = "0.0.0.0:6666";
 			
 			err = ipcpeer1.reconfigure(cfg);
 			
@@ -528,8 +531,8 @@ int test_peer2peer_basic_single(int argc, char **argv){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
 			abstime += (60 * 1000);//ten seconds
-			//cnd.wait(lock);
-			//break;
+			cnd.wait(lock);
+			break;
 			bool b = cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired

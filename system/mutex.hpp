@@ -109,7 +109,9 @@ template <class M>
 struct SmartLocker{
 	typedef SmartLocker<M> ThisT;
 	
-	SmartLocker(M &_rm): pm(&_rm){}
+	SmartLocker(M &_rm): pm(&_rm){
+		pm->lock();
+	}
 	
 	SmartLocker():pm(nullptr){}
 	

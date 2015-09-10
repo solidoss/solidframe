@@ -216,7 +216,7 @@ int test_clientserver_basic_single(int argc, char **argv){
 	Thread::init();
 #ifdef UDEBUG
 	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc");
+	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);
 #endif
 	

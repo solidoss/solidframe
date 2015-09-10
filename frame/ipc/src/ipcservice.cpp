@@ -344,13 +344,13 @@ ErrorConditionT Service::doSendMessage(
 			
 			return err;
 		}
+	}else if(not _rconuid_in.isInvalidConnection()){
+		return doSendMessage(_rconuid_in.connectionid, _rmsgptr, msg_type_idx, _rconuid_in.poolid, _pconpoolid_out, _flags);
 	}else if(_rconuid_in.poolid.index < d.conpooldq.size()/* && _rconuid_in.ssnuid == d.conpooldq[_rconuid_in.ssnidx].uid*/){
 		//we cannot check the uid right now because we need a lock on the session's mutex
 		check_uid = true;
 		idx = _rconuid_in.poolid.index;
 		uid = _rconuid_in.poolid.unique;
-	}else if(_rconuid_in.isInvalidPool() && !_rconuid_in.isInvalidConnection()/* && d.config.isServerOnly()*/){
-		return doSendMessage(_rconuid_in.connectionid, _rmsgptr, msg_type_idx, _rconuid_in.poolid, _pconpoolid_out, _flags);
 	}else{
 		edbgx(Debug::ipc, "session does not exist");
 		err.assign(-1, err.category());//TODO: session does not exist
@@ -558,9 +558,12 @@ ErrorConditionT Service::doActivateConnection(
 		//situation 2
 		NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
 		
-		if(it != d.namemap.end()){//connection pool exists
+		if(it != d.namemap.end()){//connection pool exist
 			poolid.index = it->second;
 			SmartLocker<Mutex>		tmplock(d.connectionPoolMutex(poolid.index));
+			ConnectionPoolStub 		&rconpool(d.conpooldq[poolid.index]);
+			
+			poolid.unique = rconpool.uid;
 			
 			lock2 = std::move(tmplock);
 		}else{//connection pool does not exist
@@ -582,6 +585,7 @@ ErrorConditionT Service::doActivateConnection(
 			ConnectionPoolStub 				&rconpool(d.conpooldq[poolid.index]);
 			
 			rconpool.name = _recipient_name;
+			poolid.unique = rconpool.uid;
 		
 			d.namemap[rconpool.name.c_str()] = poolid.index;
 			
@@ -600,8 +604,14 @@ ErrorConditionT Service::doActivateConnection(
 	if(
 		(wouldbe_active_connection_count < d.config.max_per_pool_connection_count) or
 		(
-			(wouldbe_active_connection_count == d.config.max_per_pool_connection_count) and
-			rconpool.pending_connection_count and not _may_quit
+			(
+				wouldbe_active_connection_count == d.config.max_per_pool_connection_count
+			) and not rconpool.pending_connection_count
+		) or
+		(
+			(
+				wouldbe_active_connection_count == d.config.max_per_pool_connection_count
+			) and rconpool.pending_connection_count and not _may_quit
 		)
 	){
 		std::pair<MessagePointerT, uint32>			msgpair;
