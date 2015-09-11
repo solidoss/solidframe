@@ -254,17 +254,19 @@ char* MessageWriter::doFillPacket(
 		MessageStub				&rmsgstub = message_vec[msgidx];
 		PacketHeader::Types		msgswitch;// = PacketHeader::ContinuedMessageTypeE;
 		
-		if(not rmsgstub.serializer_ptr){
-			//switch to new message
-			
-			if(rmsgstub.message_ptr.empty()){
-				//we need to stop
+		if(rmsgstub.message_ptr.empty()){
+			//we need to stop
+			if(pbufpos == _pbufbeg){
 				_rerror.assign(-1, _rerror.category());//TODO:
 				pbufpos = nullptr;
 				write_q.pop();
-				break;
 			}
-			
+			_rmore = false;
+			break;
+		}
+		
+		if(not rmsgstub.serializer_ptr){
+			//switch to new message
 			msgswitch = PacketHeader::SwitchToNewMessageTypeE;
 			if(tmp_serializer){
 				rmsgstub.serializer_ptr = std::move(tmp_serializer);

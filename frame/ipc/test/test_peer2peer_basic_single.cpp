@@ -227,7 +227,7 @@ void peer1_receive_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Ini
 }
 
 void peer1_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->idOnSender());
 	
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
@@ -238,7 +238,7 @@ void peer1_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 	
 	if(_rmsgptr->isBackOnSender()){
 		++p1_crtbackidx;
-		idbg(p1_crtbackidx<<" "<<p1_writecount<<" "<<p2_crtbackidx<<" "<<p2_writecount);
+		idbg("back-on-sender: "<<p1_crtbackidx<<" "<<p1_writecount<<" "<<p2_crtbackidx<<" "<<p2_writecount);
 		if(p1_crtbackidx == p1_writecount and p2_crtbackidx == p2_writecount){
 			Locker<Mutex> lock(mtx);
 			running = false;
@@ -248,8 +248,9 @@ void peer1_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 		_rctx.service().sendMessage(_rctx.connectionId(), _rmsgptr);
 	
 		++p2_crtreadidx;
-		idbg(p2_crtreadidx<<" "<<p2_writecount);
-		if(p2_crtwriteidx < p2_writecount){
+		idbg("on-peer: "<<p2_crtreadidx<<" "<<p2_writecount);
+		//if(p2_crtwriteidx < p2_writecount){
+		if(false){
 			frame::ipc::MessagePointerT	msgptr(new Message(p2_crtwriteidx));
 			++p2_crtwriteidx;
 			pipcpeer2->sendMessage(
@@ -258,6 +259,7 @@ void peer1_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 			);
 		}
 	}
+	
 }
 
 void peer1_complete_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<InitMessage> &_rmsgptr, ErrorConditionT const &_rerr){
@@ -266,7 +268,7 @@ void peer1_complete_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<In
 
 void peer1_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
 	idbg(_rctx.connectionId());
-	if(!_rerr){
+	if(!_rerr and _rmsgptr->isOnSender()){
 		++p1_crtackidx;
 	}
 }
@@ -337,7 +339,7 @@ void peer2_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 	if(_rmsgptr->isBackOnSender()){
 		++p2_crtbackidx;
 		
-		idbg(p1_crtbackidx<<" "<<p1_writecount<<" "<<p2_crtbackidx<<" "<<p2_writecount);
+		idbg("back-on-sender: "<<p1_crtbackidx<<" "<<p1_writecount<<" "<<p2_crtbackidx<<" "<<p2_writecount);
 		if(p1_crtbackidx == p1_writecount and p2_crtbackidx == p2_writecount){
 			Locker<Mutex> lock(mtx);
 			running = false;
@@ -347,7 +349,7 @@ void peer2_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 		_rctx.service().sendMessage(_rctx.connectionId(), _rmsgptr);
 	
 		++p1_crtreadidx;
-		idbg(p1_crtreadidx<<" "<<p1_writecount);
+		idbg("on-peer: "<<p1_crtreadidx<<" "<<p1_writecount);
 		if(p1_crtwriteidx < p1_writecount){
 			frame::ipc::MessagePointerT	msgptr(new Message(p1_crtwriteidx));
 			++p1_crtwriteidx;
@@ -365,7 +367,7 @@ void peer2_complete_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<In
 
 void peer2_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
 	idbg(_rctx.connectionId());
-	if(!_rerr){
+	if(!_rerr and _rmsgptr->isOnSender()){
 		++p2_crtackidx;
 	}
 }
@@ -379,7 +381,7 @@ int test_peer2peer_basic_single(int argc, char **argv){
 	
 #ifdef UDEBUG
 	Debug::the().levelMask("view");
-	Debug::the().moduleMask("all");
+	Debug::the().moduleMask("any frame_ipc");
 	Debug::the().initStdErr(false, nullptr);
 #endif
 	
@@ -513,7 +515,7 @@ int test_peer2peer_basic_single(int argc, char **argv){
 		p1_writecount = start_count;//10*initarraysize;//
 		p2_writecount = start_count;//10*initarraysize;//
 		
-		for(; p1_crtwriteidx < start_count; ++p1_crtwriteidx, ++p1_crtwriteidx){
+		for(; p1_crtwriteidx < start_count; ++p1_crtwriteidx, ++p2_crtwriteidx){
 			frame::ipc::MessagePointerT	msgptr(new Message(p1_crtwriteidx));
 			ipcpeer1.sendMessage(
 				"localhost:7777", msgptr,
@@ -531,8 +533,8 @@ int test_peer2peer_basic_single(int argc, char **argv){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
 			abstime += (60 * 1000);//ten seconds
-			cnd.wait(lock);
-			break;
+// 			cnd.wait(lock);
+// 			break;
 			bool b = cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
