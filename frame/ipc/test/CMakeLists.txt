@@ -26,8 +26,7 @@ add_test( TestProtocol test_ipc_protocol
 #==============================================================================
 
 set( IpcClientServerTestSuite
-	test_clientserver_basic_single.cpp
-	test_clientserver_basic_multi.cpp
+	test_clientserver_basic.cpp
 )
 
 create_test_sourcelist( IpcClientServerTests test_ipc_clientserver.cpp ${IpcClientServerTestSuite})
@@ -45,15 +44,13 @@ target_link_libraries(test_ipc_clientserver
 )
 
 add_test( TestClientServer test_ipc_clientserver
-	test_clientserver_basic_single
-	test_clientserver_basic_multi
+	test_clientserver_basic
 )
 
 #==============================================================================
 
 set( IpcPeer2PeerTestSuite
-	test_peer2peer_basic_single.cpp
-	test_peer2peer_basic_multi.cpp
+	test_peer2peer_basic.cpp
 )
 
 create_test_sourcelist( IpcPeer2PeerTests test_ipc_peer2peer.cpp ${IpcPeer2PeerTestSuite})
@@ -71,8 +68,7 @@ target_link_libraries(test_ipc_peer2peer
 )
 
 add_test( TestPeer2Peer test_ipc_peer2peer
-	test_peer2peer_basic_single
-	test_peer2peer_basic_multi
+	test_peer2peer_basic
 )
 
 #==============================================================================

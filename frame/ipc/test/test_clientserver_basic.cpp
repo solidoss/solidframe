@@ -63,6 +63,9 @@ std::atomic<size_t>				crtreadidx(0);
 std::atomic<size_t>				crtbackidx(0);
 std::atomic<size_t>				crtackidx(0);
 std::atomic<size_t>				writecount(0);
+
+size_t							connection_count(0);
+
 bool							running = true;
 Mutex							mtx;
 Condition						cnd;
@@ -123,7 +126,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		const size_t	pattern_size = pattern.size() / sizeof(uint64);
 		
 		for(uint64 i = 0; i < count; ++i){
-			if(pu[i] != pup[i % pattern_size]) throw false;
+			if(pu[i] != pup[i % pattern_size]) return false;
 		}
 		return true;
 	}
@@ -132,6 +135,9 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 
 void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
 	idbg(_rctx.connectionId());
+	if(!running){
+		++connection_count;
+	}
 }
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
@@ -212,15 +218,19 @@ void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointe
 
 }//namespace
 
-int test_peer2peer_basic_multi(int argc, char **argv){
-	
+int test_clientserver_basic(int argc, char **argv){
 	Thread::init();
-	
 #ifdef UDEBUG
 	Debug::the().levelMask("view");
 	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);
 #endif
+	
+	size_t max_per_pool_connection_count = 1;
+	
+	if(argc > 1){
+		max_per_pool_connection_count = atoi(argv[1]);
+	}
 	
 	for(int i = 0; i < 127; ++i){
 		if(isprint(i) and !isblank(i)){
@@ -287,7 +297,7 @@ int test_peer2peer_basic_multi(int argc, char **argv){
 			cfg.connection_stop_fnc = client_connection_stop;
 			cfg.outgoing_connection_start_fnc = client_connection_start;
 			
-			cfg.max_per_pool_connection_count = 1;
+			cfg.max_per_pool_connection_count = max_per_pool_connection_count;
 			
 			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "6666"/*, SocketInfo::Inet4*/);
 			
@@ -317,7 +327,6 @@ int test_peer2peer_basic_multi(int argc, char **argv){
 			cfg.incoming_connection_start_fnc = server_connection_start;
 			
 			cfg.listen_address_str = "0.0.0.0:6666";
-			cfg.default_listen_port_str = "6666";
 			
 			err = ipcserver.reconfigure(cfg);
 			
@@ -348,7 +357,7 @@ int test_peer2peer_basic_multi(int argc, char **argv){
 		while(running){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
-			abstime += (10 * 1000);//ten seconds
+			abstime += (120 * 1000);//ten seconds
 			cnd.wait(lock);
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){
@@ -368,6 +377,7 @@ int test_peer2peer_basic_multi(int argc, char **argv){
 	
 	std::cout<<"Transfered size = "<<(transfered_size * 2)/1024<<"KB"<<endl;
 	std::cout<<"Transfered count = "<<transfered_count<<endl;
+	std::cout<<"Connection count = "<<connection_count<<endl;
 	
 	return 0;
 }

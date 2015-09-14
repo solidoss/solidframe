@@ -38,7 +38,7 @@ struct InitStub{
 };
 
 InitStub initarray[] = {
-//	{100000, 0},
+	{100000, 0},
 	{2000, 0},
 	{4000, 0},
 	{8000, 0},
@@ -63,6 +63,9 @@ std::atomic<size_t>				p1_crtreadidx(0),	p2_crtreadidx(0);
 std::atomic<size_t>				p1_crtbackidx(0),	p2_crtbackidx(0);
 std::atomic<size_t>				p1_crtackidx(0),	p2_crtackidx(0);
 std::atomic<size_t>				p1_writecount(0),	p2_writecount(0);
+
+size_t							p1_connection_count(0);
+size_t							p2_connection_count(0);
 
 bool							running = true;
 Mutex							mtx;
@@ -148,6 +151,9 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 
 void peer1_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
 	idbg(_rctx.connectionId());
+	if(!running){
+		++p1_connection_count;
+	}
 }
 
 void peer1_outgoing_connection_start(frame::ipc::ConnectionContext &_rctx){
@@ -163,6 +169,9 @@ void peer1_incoming_connection_start(frame::ipc::ConnectionContext &_rctx){
 
 void peer2_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
 	idbg(_rctx.connectionId());
+	if(!running){
+		++p2_connection_count;
+	}
 }
 
 void peer2_outgoing_connection_start(frame::ipc::ConnectionContext &_rctx){
@@ -249,8 +258,7 @@ void peer1_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<
 	
 		++p2_crtreadidx;
 		idbg("on-peer: "<<p2_crtreadidx<<" "<<p2_writecount);
-		//if(p2_crtwriteidx < p2_writecount){
-		if(false){
+		if(p2_crtwriteidx < p2_writecount){
 			frame::ipc::MessagePointerT	msgptr(new Message(p2_crtwriteidx));
 			++p2_crtwriteidx;
 			pipcpeer2->sendMessage(
@@ -375,7 +383,7 @@ void peer2_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 
 }//namespace
 
-int test_peer2peer_basic_single(int argc, char **argv){
+int test_peer2peer_basic(int argc, char **argv){
 	
 	Thread::init();
 	
@@ -384,6 +392,12 @@ int test_peer2peer_basic_single(int argc, char **argv){
 	Debug::the().moduleMask("any frame_ipc");
 	Debug::the().initStdErr(false, nullptr);
 #endif
+	
+	size_t		max_per_pool_connection_count = 1;
+	
+	if(argc > 1){
+		max_per_pool_connection_count = atoi(argv[1]);
+	}
 	
 	for(int i = 0; i < 127; ++i){
 		if(isprint(i) and !isblank(i)){
@@ -455,7 +469,7 @@ int test_peer2peer_basic_single(int argc, char **argv){
 			cfg.outgoing_connection_start_fnc = peer1_outgoing_connection_start;
 			cfg.incoming_connection_start_fnc = peer1_incoming_connection_start;
 			
-			cfg.max_per_pool_connection_count = 1;
+			cfg.max_per_pool_connection_count = max_per_pool_connection_count;
 			
 			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "7777");
 			
@@ -492,7 +506,7 @@ int test_peer2peer_basic_single(int argc, char **argv){
 			cfg.incoming_connection_start_fnc = peer2_incoming_connection_start;
 			
 			
-			cfg.max_per_pool_connection_count = 1;
+			cfg.max_per_pool_connection_count = max_per_pool_connection_count;
 			
 			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "6666");
 			
@@ -512,8 +526,8 @@ int test_peer2peer_basic_single(int argc, char **argv){
 		
 		const size_t					start_count = 1;
 		
-		p1_writecount = start_count;//10*initarraysize;//
-		p2_writecount = start_count;//10*initarraysize;//
+		p1_writecount = 5*initarraysize;//start_count;//
+		p2_writecount = 5*initarraysize;//start_count;//
 		
 		for(; p1_crtwriteidx < start_count; ++p1_crtwriteidx, ++p2_crtwriteidx){
 			frame::ipc::MessagePointerT	msgptr(new Message(p1_crtwriteidx));
@@ -532,9 +546,9 @@ int test_peer2peer_basic_single(int argc, char **argv){
 		while(running){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
-			abstime += (60 * 1000);//ten seconds
-// 			cnd.wait(lock);
-// 			break;
+			abstime += (100 * 1000);//ten seconds
+			//cnd.wait(lock);
+ 			//break;
 			bool b = cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
@@ -556,6 +570,7 @@ int test_peer2peer_basic_single(int argc, char **argv){
 	Thread::waitAll();
 	std::cout<<"Transfered size = "<<(transfered_size)/1024<<"KB"<<endl;
 	std::cout<<"Transfered count = "<<transfered_count<<endl;
+	std::cout<<"Connection count p1 = "<<p1_connection_count<<" p2 = "<<p2_connection_count<<endl;
 	
 	return 0;
 }
