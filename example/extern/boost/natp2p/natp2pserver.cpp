@@ -3,11 +3,20 @@
 #include <sstream>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
+
 using boost::asio::ip::udp;
 using namespace std;
 
 enum { max_length = 1024 };
 
+typedef boost::unique_lock<boost::mutex> Locker;
+
+boost::mutex                mtx;
+
+#define LOG(x) {\
+	Locker lock(mtx);\
+	std::cout<<x<<std::endl;\
+}
 
 struct NatP2PServer{
 	NatP2PServer(
@@ -66,8 +75,11 @@ void NatP2PServer::run(){
 void NatP2PServer::parseRequest(const char *_data, unsigned _len){
 	string 			str(_data, _len);
 	istringstream	iss;
-	cout<<"parseRequest[";
-	cout.write(_data, _len)<<']'<<endl;
+	{
+		Locker lock(mtx);
+		cout<<"parseRequest[";
+		cout.write(_data, _len)<<']'<<endl;
+	}
 	iss.str(str);
 	char			cmd;
 	iss>>cmd;
@@ -81,13 +93,13 @@ void NatP2PServer::parseRequest(const char *_data, unsigned _len){
 			connectCommand(iss);
 			break;
 		default:
-			cout<<"skip command: "<<cmd<<" from "<<sender_endpoint<<endl;
+			LOG("skip command: "<<cmd<<" from "<<sender_endpoint);
 			break;
 	}
 }
 
 void NatP2PServer::initCommand(istringstream &_iss){
-	cout<<"initCommand"<<endl;
+	LOG("initCommand");
 	ostringstream oss;
 	oss<<'i'<<' '<<sender_endpoint.address()<<' '<<sender_endpoint.port()<<endl;
 	send(sender_endpoint, oss);
@@ -100,7 +112,7 @@ void NatP2PServer::connectCommand(istringstream &_iss){
 	
 	_iss>>nat_addr>>nat_port>>fwl_addr>>fwl_port;
 	
-	cout<<"connectCommand("<<nat_addr<<':'<<nat_port<<'-'<<fwl_addr<<':'<<fwl_port<<')'<<endl;
+	LOG("connectCommand("<<nat_addr<<':'<<nat_port<<'-'<<fwl_addr<<':'<<fwl_port<<')');
 	udp::endpoint endpoint;
 	endpoint.address(boost::asio::ip::address::from_string(nat_addr.c_str()));
 	endpoint.port(nat_port);
