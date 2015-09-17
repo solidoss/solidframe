@@ -27,6 +27,53 @@ struct ReactorContext;
 
 namespace ipc{
 
+//https://functionalcpp.wordpress.com/2013/08/05/function-traits/
+#if 0
+template<class F>
+struct function_traits;
+ 
+// function pointer
+template<class R, class... Args>
+struct function_traits<R(*)(Args...)> : public function_traits<R(Args...)>
+{};
+ 
+template<class R, class... Args>
+struct function_traits<R(Args...)>
+{
+    using return_type = R;
+ 
+    static constexpr std::size_t arity = sizeof...(Args);
+ 
+    template <std::size_t N>
+    struct argument
+    {
+        static_assert(N < arity, "error: invalid parameter index.");
+        using type = typename std::tuple_element<N,std::tuple<Args...>>::type;
+    };
+};
+#endif
+
+
+template <class M>
+struct response_traits;
+
+template <class M>
+struct response_traits<void(*)(ConnectionContext&, DynamicPointer<M> &, ErrorConditionT const&)>{
+	typedef M message_type;
+};
+
+template <class M>
+struct response_traits<void(ConnectionContext&, DynamicPointer<M> &, ErrorConditionT const&)>{
+	typedef M message_type;
+};
+
+template <class C, class M>
+struct response_traits<void(C::*)(ConnectionContext&, DynamicPointer<M> &, ErrorConditionT const&)>{
+	typedef M message_type;
+};
+
+
+
 struct Message;
 class Configuration;
 class Connection;
@@ -63,7 +110,20 @@ class Connection;
 	
 */
 class Service: public Dynamic<Service, frame::Service>{
-	typedef FUNCTION<std::pair<MessagePointerT, uint32>(ErrorConditionT const &)>		ActivateConnectionMessageFactoryFunctionT;
+	typedef FUNCTION<std::pair<MessagePointerT, uint32>(ErrorConditionT const &)>			ActivateConnectionMessageFactoryFunctionT;
+	typedef FUNCTION<void(ConnectionContext&, MessagePointerT &, ErrorConditionT const &)>	ResponseHandlerFunctionT;
+	
+	template <class F, class M>
+	struct ResponseHandler{
+		F		f;
+		
+		ResponseHandler(F _f):f(_f){}
+		
+		void operator()(ConnectionContext&, MessagePointerT &, ErrorConditionT const &){
+			//TODO
+		}
+	};
+	
 public:
 	typedef Dynamic<Service, frame::Service> BaseT;
 	
@@ -120,6 +180,22 @@ public:
 		MessagePointerT		msgptr(_rmsgptr);
 		ConnectionUid		conuid(_rsession_uid);
 		return doSendMessage(nullptr, conuid, msgptr, nullptr, _flags);
+	}
+	
+	template <class T, class Fnc>
+	ErrorConditionT sendRequest(
+		const char *_recipient_name,
+		DynamicPointer<T> const &_rmsgptr,
+		Fnc _fnc,
+		ulong _flags = 0
+	){
+		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
+		
+		MessagePointerT		msgptr(_rmsgptr);
+		ConnectionUid		conuid;
+		ResponseHandlerT	response_handler(_fnc);
+		
+		return doSendMessage(_recipient_name, conuid, msgptr, nullptr, _flags);
 	}
 	
 	ErrorConditionT scheduleConnectionClose(

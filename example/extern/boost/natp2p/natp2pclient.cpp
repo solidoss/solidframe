@@ -16,7 +16,7 @@ boost::mutex                mtx;
 
 #define LOG(x) {\
 	Locker lock(mtx);\
-	std::cout<<x<<std::endl;\
+	std::cout<<"["<<__LINE__<<"] "<<x<<std::endl;\
 }
 
 struct NatP2PClient{
