@@ -141,9 +141,14 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 	
 	++crtreadidx;
 	idbg(crtreadidx);
+	frame::ipc::ResponseHandlerFunctionT	response_fnc;
 	if(crtwriteidx < writecount){
 		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
-		ctx.ipcmsgwriter->enqueue(msgptr, ctx.ipctypemap->index(msgptr.get()), initarray[crtwriteidx % initarraysize].flags, *ctx.ipcconfig, *ctx.ipctypemap, ipcconctx);
+		ctx.ipcmsgwriter->enqueue(
+			msgptr, ctx.ipctypemap->index(msgptr.get()),
+			response_fnc,
+			initarray[crtwriteidx % initarraysize].flags, *ctx.ipcconfig, *ctx.ipctypemap, ipcconctx
+		);
 		++crtwriteidx;
 	}
 }
@@ -204,8 +209,10 @@ int test_protocol_basic(int argc, char **argv){
 	writecount = 10*initarraysize;//start_count;//
 	
 	for(; crtwriteidx < start_count; ++crtwriteidx){
-		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
-		ipcmsgwriter.enqueue(msgptr, ipctypemap.index(msgptr.get()), initarray[crtwriteidx % initarraysize].flags, ipcconfig, ipctypemap, ipcconctx);
+		frame::ipc::MessagePointerT				msgptr(new Message(crtwriteidx));
+		frame::ipc::ResponseHandlerFunctionT	response_fnc;
+		
+		ipcmsgwriter.enqueue(msgptr, ipctypemap.index(msgptr.get()), response_fnc, initarray[crtwriteidx % initarraysize].flags, ipcconfig, ipctypemap, ipcconctx);
 	}
 	
 	

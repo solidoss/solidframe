@@ -245,9 +245,9 @@ void server_complete_response(frame::ipc::ConnectionContext &_rctx, DynamicPoint
 	idbg(_rctx.connectionId());
 }
 
-// void on_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
-// 	idbg(_rctx.connectionId());
-// }
+void on_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
+	idbg(_rctx.connectionId());
+}
 
 struct ResponseHandler{
 	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
@@ -396,10 +396,10 @@ int test_clientserver_sendrequest(int argc, char **argv){
 			ipcclient.sendRequest(
 				"localhost:6666", msgptr,
 				//on_receive_response
-				ResponseHandler()
-				/*[](frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr)->void{
+				//ResponseHandler()
+				[](frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr)->void{
 					idbg(_rctx.connectionId());
-				}*/,
+				},
 				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
 			);
 		}

@@ -155,23 +155,25 @@ Connection::~Connection(){
 bool Connection::pushMessage(
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
+	ResponseHandlerFunctionT &_rresponse_fnc,
 	ulong _flags
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
-	sendmsgvec[crtpushvecidx].push_back(PendingSendMessageStub(_rmsgptr, _msg_type_idx, _flags));
+	sendmsgvec[crtpushvecidx].push_back(PendingSendMessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
 	return sendmsgvec[crtpushvecidx].size() == 1;
 }
 void Connection::directPushMessage(
 	frame::aio::ReactorContext &_rctx,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
+	ResponseHandlerFunctionT &_rresponse_fnc,
 	ulong _flags
 ){
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
-	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _flags, rconfig, rtypemap, conctx);
+	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, rconfig, rtypemap, conctx);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isActive()const{
@@ -314,7 +316,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 			bool was_empty_msgwriter = msgwriter.empty();
 			
 			for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
-				msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->flags, rconfig, rtypemap, conctx);
+				msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->response_fnc, it->flags, rconfig, rtypemap, conctx);
 			}
 			rsendmsgvec.clear();
 			

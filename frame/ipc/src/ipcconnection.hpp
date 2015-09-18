@@ -72,6 +72,7 @@ public:
 	bool pushMessage(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags
 	);
 	
@@ -79,6 +80,7 @@ public:
 		frame::aio::ReactorContext &_rctx,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags
 	);
 	
@@ -140,9 +142,10 @@ private:
 		auto  visit_fnc = [this, &_f](
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
+			ResponseHandlerFunctionT &_rresponse_fnc,
 			const ulong _flags, const bool _sent
 		){
-			_f(this->conpoolid, _rmsgptr, _msg_type_idx, _flags, _sent);
+			_f(this->conpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, _sent);
 		};
 		MessageWriterVisitFunctionT	fnc(std::cref(visit_fnc));
 		msgwriter.visitAllMessages(fnc);
@@ -155,12 +158,14 @@ private:
 		PendingSendMessageStub(
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
+			ResponseHandlerFunctionT &_rresponse_fnc,
 			ulong _flags
-		): msgptr(_rmsgptr), msg_type_idx(_msg_type_idx), flags(_flags){}
+		): msgptr(_rmsgptr), msg_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)), flags(_flags){}
 		
-		MessagePointerT		msgptr;
-		const size_t		msg_type_idx;
-		ulong				flags;
+		MessagePointerT				msgptr;
+		const size_t				msg_type_idx;
+		ResponseHandlerFunctionT	response_fnc;
+		ulong						flags;
 	};
 
 	typedef std::vector<PendingSendMessageStub>			PendingSendMessageVectorT;

@@ -38,6 +38,7 @@ typedef std::unique_ptr<Serializer>		SerializerPointerT;
 typedef FUNCTION<void(
 	MessagePointerT &/*_rmsgptr*/,
 	const size_t /*_msg_type_idx*/,
+	ResponseHandlerFunctionT &,
 	ulong /*_flags*/, const bool /*_sent*/)
 >										MessageWriterVisitFunctionT;
 
@@ -50,6 +51,7 @@ public:
 	void enqueue(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags,
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
@@ -93,22 +95,26 @@ private:
 		PendingMessageStub(
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
+			ResponseHandlerFunctionT &_rresponse_fnc,
 			ulong _flags
-		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), flags(_flags){}
+		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)), flags(_flags){}
 		
 		PendingMessageStub():message_type_idx(-1), flags(0){}
 		
-		MessagePointerT message_ptr;
-		size_t			message_type_idx;
-		ulong			flags;
+		MessagePointerT 			message_ptr;
+		size_t						message_type_idx;
+		ResponseHandlerFunctionT 	response_fnc;
+		ulong						flags;
 	};
 	
 	struct MessageStub{
 		MessageStub(
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
+			ResponseHandlerFunctionT &_rresponse_fnc,
 			ulong _flags
-		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), flags(_flags), packet_count(0){}
+		):	message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx),
+			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0){}
 		
 		MessageStub():message_type_idx(-1), flags(-1), unique(0), packet_count(0){}
 		
@@ -118,14 +124,16 @@ private:
 			++unique;
 			packet_count = 0;
 			serializer_ptr = nullptr;
+			FUNCTION_CLEAR(response_fnc);
 		}
 		
-		MessagePointerT 		message_ptr;
-		size_t					message_type_idx;
-		ulong					flags;
-		uint32					unique;
-		size_t					packet_count;
-		SerializerPointerT		serializer_ptr;
+		MessagePointerT 			message_ptr;
+		size_t						message_type_idx;
+		ResponseHandlerFunctionT	response_fnc;
+		ulong						flags;
+		uint32						unique;
+		size_t						packet_count;
+		SerializerPointerT			serializer_ptr;
 	};
 	
 	typedef Queue<PendingMessageStub>							PendingMessageQueueT;

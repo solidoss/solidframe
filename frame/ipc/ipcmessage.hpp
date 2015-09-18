@@ -10,7 +10,9 @@
 #ifndef SOLID_FRAME_IPC_IPCMESSAGE_HPP
 #define SOLID_FRAME_IPC_IPCMESSAGE_HPP
 
+#include "system/function.hpp"
 #include "system/common.hpp"
+
 #include "frame/ipc/ipccontext.hpp"
 #include "utility/dynamictype.hpp"
 
@@ -103,7 +105,8 @@ private:
 	uint8		stt;
 };
 
-typedef DynamicPointer<Message>		MessagePointerT;
+typedef DynamicPointer<Message>															MessagePointerT;
+typedef FUNCTION<void(ConnectionContext&, MessagePointerT &, ErrorConditionT const &)>	ResponseHandlerFunctionT;
 
 
 }//namespace ipc

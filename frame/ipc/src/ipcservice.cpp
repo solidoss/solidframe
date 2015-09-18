@@ -66,16 +66,18 @@ struct MessageStub{
 	MessageStub(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags
-	): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), flags(_flags){}
+	): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)), flags(_flags){}
 	
 	MessageStub(
 		MessageStub && _rrmsg
-	): msgptr(std::move(_rrmsg.msgptr)), msg_type_idx(_rrmsg.msg_type_idx), flags(_rrmsg.flags){}
+	): msgptr(std::move(_rrmsg.msgptr)), msg_type_idx(_rrmsg.msg_type_idx), response_fnc(std::move(_rrmsg.response_fnc)), flags(_rrmsg.flags){}
 	
-	MessagePointerT msgptr;
-	const size_t	msg_type_idx;
-	ulong			flags;
+	MessagePointerT 			msgptr;
+	const size_t				msg_type_idx;
+	ResponseHandlerFunctionT 	response_fnc;
+	ulong						flags;
 };
 
 typedef Queue<MessageStub>								MessageQueueT;
@@ -231,16 +233,17 @@ struct PushMessageVisitorF{
 	PushMessageVisitorF(
 		MessagePointerT	&_rmsgptr,
 		const size_t	_msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong			_flags,
 		Event const &	_revt
-	):rmsgptr(_rmsgptr), flags(_flags), raise_event(_revt), msg_type_idx(_msg_type_idx){}
+	):rmsgptr(_rmsgptr), flags(_flags), raise_event(_revt), msg_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)){}
 	
 	
 	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
 		Connection *pcon = Connection::cast(&_robj);
 		
 		if(pcon){
-			if(pcon->pushMessage(rmsgptr, msg_type_idx, flags)){
+			if(pcon->pushMessage(rmsgptr, msg_type_idx, response_fnc, flags)){
 				_rreact.raise(_robj.runId(), raise_event);
 			}
 			return true;
@@ -249,10 +252,11 @@ struct PushMessageVisitorF{
 		}
 	}
 	
-	MessagePointerT		&rmsgptr;
-	ulong				flags;
-	Event				raise_event;
-	const size_t		msg_type_idx;
+	MessagePointerT				&rmsgptr;
+	ulong						flags;
+	Event						raise_event;
+	const size_t				msg_type_idx;
+	ResponseHandlerFunctionT	response_fnc;
 };
 
 
@@ -279,6 +283,7 @@ ErrorConditionT Service::doSendMessage(
 	const char *_recipient_name,
 	const ConnectionUid	&_rconuid_in,
 	MessagePointerT &_rmsgptr,
+	ResponseHandlerFunctionT &_rresponse_fnc,
 	ConnectionPoolUid *_pconpoolid_out,
 	ulong _flags
 ){
@@ -339,13 +344,13 @@ ErrorConditionT Service::doSendMessage(
 			
 			d.config.name_resolve_fnc(rconpool.name, cbk);
 			
-			rconpool.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _flags));
+			rconpool.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags));
 			++rconpool.pending_connection_count;
 			
 			return err;
 		}
 	}else if(not _rconuid_in.isInvalidConnection()){
-		return doSendMessage(_rconuid_in.connectionid, _rmsgptr, msg_type_idx, _rconuid_in.poolid, _pconpoolid_out, _flags);
+		return doSendMessage(_rconuid_in.connectionid, _rmsgptr, msg_type_idx, _rresponse_fnc, _rconuid_in.poolid, _pconpoolid_out, _flags);
 	}else if(_rconuid_in.poolid.index < d.conpooldq.size()/* && _rconuid_in.ssnuid == d.conpooldq[_rconuid_in.ssnidx].uid*/){
 		//we cannot check the uid right now because we need a lock on the session's mutex
 		check_uid = true;
@@ -375,6 +380,7 @@ ErrorConditionT Service::doSendMessage(
 			rconpool.synchronous_connection_uid,
 			_rmsgptr,
 			msg_type_idx,
+			_rresponse_fnc,
 			ConnectionPoolUid(idx, rconpool.uid),
 			_pconpoolid_out, _flags
 		);
@@ -392,7 +398,7 @@ ErrorConditionT Service::doSendMessage(
 		rconpool.conn_waitingq.pop();
 		
 		ErrorConditionT	tmperr = doSendMessage(
-			objuid, _rmsgptr, msg_type_idx, ConnectionPoolUid(idx, rconpool.uid), _pconpoolid_out, _flags
+			objuid, _rmsgptr, msg_type_idx, _rresponse_fnc, ConnectionPoolUid(idx, rconpool.uid), _pconpoolid_out, _flags
 		);
 		
 		if(!tmperr){
@@ -431,7 +437,7 @@ ErrorConditionT Service::doSendMessage(
 		}
 	}
 	
-	rconpool.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _flags));
+	rconpool.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags));
 	
 	return err;
 }
@@ -449,10 +455,12 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 			Message::is_asynchronous(rconpool.msgq.front().flags) or 
 			this->manager().id(_rcon) == rconpool.synchronous_connection_uid
 		){
-			_rcon.directPushMessage(_rctx, rconpool.msgq.front().msgptr, rconpool.msgq.front().msg_type_idx, rconpool.msgq.front().flags);
+			MessageStub	&rmsgstrub = rconpool.msgq.front();
+			_rcon.directPushMessage(_rctx, rmsgstrub.msgptr, rmsgstrub.msg_type_idx, rmsgstrub.response_fnc, rmsgstrub.flags);
 			rconpool.msgq.pop();
 		}else if(rconpool.synchronous_connection_uid.isInvalid()){
-			_rcon.directPushMessage(_rctx, rconpool.msgq.front().msgptr, rconpool.msgq.front().msg_type_idx, rconpool.msgq.front().flags);
+			MessageStub	&rmsgstrub = rconpool.msgq.front();
+			_rcon.directPushMessage(_rctx, rmsgstrub.msgptr, rmsgstrub.msg_type_idx, rmsgstrub.response_fnc, rmsgstrub.flags);
 			rconpool.synchronous_connection_uid = this->manager().id(_rcon);
 			rconpool.msgq.pop();
 		}else{
@@ -466,7 +474,7 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 				rconpool.msgq.pop();
 				
 				if(not found and Message::is_asynchronous(msgstub.flags)){
-					_rcon.directPushMessage(_rctx, msgstub.msgptr, msgstub.msg_type_idx, msgstub.flags);
+					_rcon.directPushMessage(_rctx, msgstub.msgptr, msgstub.msg_type_idx, msgstub.response_fnc, msgstub.flags);
 					found = true;
 				}else{
 					rconpool.msgq.push(std::move(msgstub));
@@ -488,12 +496,13 @@ ErrorConditionT Service::doSendMessage(
 	ObjectUidT const &_robjuid,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
+	ResponseHandlerFunctionT &_rresponse_fnc,
 	ConnectionPoolUid const &_rconpooluid,
 	ConnectionPoolUid *_pconpoolid_out,
 	ulong _flags
 ){
 	solid::ErrorConditionT	err;
-	PushMessageVisitorF		fnc(_rmsgptr, _msg_type_idx, _flags, EventCategory::createRaise());
+	PushMessageVisitorF		fnc(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, EventCategory::createRaise());
 	bool					rv = manager().visit(_robjuid, fnc);
 	if(rv){
 		//message successfully delivered
@@ -510,9 +519,10 @@ ErrorConditionT Service::doSendMessage(
 ErrorConditionT Service::scheduleConnectionClose(
 	ConnectionUid const &_rconnection_uid
 ){
-	ConnectionPoolUid	fakeuid;
-	MessagePointerT		msgptr;
-	return doSendMessage(_rconnection_uid.connectionid, msgptr, -1, fakeuid, nullptr, 0);
+	ConnectionPoolUid			fakeuid;
+	MessagePointerT				msgptr;
+	ResponseHandlerFunctionT	response_handler;
+	return doSendMessage(_rconnection_uid.connectionid, msgptr, -1, response_handler, fakeuid, nullptr, 0);
 }
 //-----------------------------------------------------------------------------
 // Three situations in doActivateConnection is called:
@@ -595,11 +605,12 @@ ErrorConditionT Service::doActivateConnection(
 	
 	activate_event = Connection::activateEvent(poolid);
 	
-	ConnectionPoolStub		&rconpool(d.conpooldq[poolid.index]);
-		
+	ConnectionPoolStub			&rconpool(d.conpooldq[poolid.index]);
+	const size_t				wouldbe_active_connection_count = rconpool.active_connection_count + 1;
+	ResponseHandlerFunctionT	response_handler;
+	
 	poolid.unique = rconpool.uid;
 	
-	const size_t			wouldbe_active_connection_count = rconpool.active_connection_count + 1;
 	
 	if(
 		(wouldbe_active_connection_count < d.config.max_per_pool_connection_count) or
@@ -628,7 +639,7 @@ ErrorConditionT Service::doActivateConnection(
 			
 			if(msg_type_idx != 0){
 				//first send the Init message
-				err = doSendMessage(_rconnection_uid.connectionid, msgpair.first, msg_type_idx, poolid, nullptr, msgpair.second);
+				err = doSendMessage(_rconnection_uid.connectionid, msgpair.first, msg_type_idx, response_handler, poolid, nullptr, msgpair.second);
 				if(err){
 					success = false;
 				}else{
@@ -643,7 +654,7 @@ ErrorConditionT Service::doActivateConnection(
 			success = manager().notify(_rconnection_uid.connectionid, activate_event);
 		}else{
 			//close connection
-			doSendMessage(_rconnection_uid.connectionid, msgpair.first, -1, poolid, nullptr, msgpair.second);
+			doSendMessage(_rconnection_uid.connectionid, msgpair.first, -1, response_handler, poolid, nullptr, msgpair.second);
 			success = false;
 		}
 		
@@ -668,7 +679,7 @@ ErrorConditionT Service::doActivateConnection(
 			const size_t		msg_type_idx = tm.index(msgpair.first.get());
 			
 			if(msg_type_idx != 0){
-				doSendMessage(_rconnection_uid.connectionid, msgpair.first, msg_type_idx, poolid, nullptr, msgpair.second);
+				doSendMessage(_rconnection_uid.connectionid, msgpair.first, msg_type_idx, response_handler, poolid, nullptr, msgpair.second);
 			}else{
 				err.assign(-1, err.category());//TODO: Unknown message type
 			}
@@ -677,7 +688,7 @@ ErrorConditionT Service::doActivateConnection(
 		msgpair.first.clear();
 		msgpair.second = 0;
 		//close connection
-		doSendMessage(_rconnection_uid.connectionid, msgpair.first, -1, poolid, nullptr, msgpair.second);
+		doSendMessage(_rconnection_uid.connectionid, msgpair.first, -1, response_handler, poolid, nullptr, msgpair.second);
 		cassert(rconpool.active_connection_count or rconpool.pending_connection_count);
 	}
 	
@@ -755,7 +766,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 			//so, move all pending messages to _rcon for completion
 			while(rconpool.msgq.size()){
 				MessageStub &rms = rconpool.msgq.front();
-				_rcon.directPushMessage(_rctx, rms.msgptr, rms.msg_type_idx, rms.flags);
+				_rcon.directPushMessage(_rctx, rms.msgptr, rms.msg_type_idx, rms.response_fnc, rms.flags);
 				rconpool.msgq.pop();
 			}
 			
@@ -770,10 +781,11 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 					ConnectionPoolUid &_rconpoolid,
 					MessagePointerT &_rmsgptr,
 					const size_t _msg_type_idx,
+					ResponseHandlerFunctionT &_rresponse_fnc,
 					const ulong _flags,
 					const bool _sent
 				){
-					this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgptr, _msg_type_idx, _flags, _sent);
+					this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, _sent);
 				}
 			);
 			
@@ -794,6 +806,7 @@ void Service::pushBackMessageToConnectionPool(
 	ConnectionPoolUid &_rconpoolid,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
+	ResponseHandlerFunctionT &_rresponse_fnc,
 	const ulong _flags,
 	const bool _sent
 ){
@@ -801,7 +814,7 @@ void Service::pushBackMessageToConnectionPool(
 	cassert(rconpool.uid == _rconpoolid.unique);
 	
 	if(not _sent or Message::is_idempotent(_flags)){
-		rconpool.msgq.push(MessageStub(_rmsgptr, _msg_type_idx, _flags));
+		rconpool.msgq.push(MessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
 	}
 }
 //-----------------------------------------------------------------------------

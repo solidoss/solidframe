@@ -55,6 +55,7 @@ void MessageWriter::unprepare(){
 void MessageWriter::enqueue(
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
+	ResponseHandlerFunctionT &_rresponse_fnc,
 	ulong _flags,
 	Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
@@ -90,6 +91,7 @@ void MessageWriter::enqueue(
 		rmsgstub.flags = _flags;
 		rmsgstub.message_type_idx = _msg_type_idx;
 		rmsgstub.message_ptr = std::move(_rmsgptr);
+		rmsgstub.response_fnc = std::move(_rresponse_fnc);
 		
 		if(Message::is_synchronous(_flags)){
 			this->flags |= SynchronousMessageInWriteQueueFlag;
@@ -100,7 +102,7 @@ void MessageWriter::enqueue(
 		pending_message_q.size() < _rconfig.max_writer_pending_message_count
 	){
 		//put the message in pending queue
-		pending_message_q.push(PendingMessageStub(_rmsgptr, _msg_type_idx, _flags));
+		pending_message_q.push(PendingMessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
 		if(Message::is_asynchronous(_flags)){
 			this->flags |= AsynchronousMessageInPendingQueueFlag;
 		}
@@ -373,6 +375,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		rmsgstub.flags = pending_message_q.front().flags;
 		rmsgstub.message_type_idx = pending_message_q.front().message_type_idx;
 		rmsgstub.message_ptr = std::move(pending_message_q.front().message_ptr);
+		rmsgstub.response_fnc = std::move(pending_message_q.front().response_fnc);
 		pending_message_q.pop();
 		if(Message::is_synchronous(rmsgstub.flags)){
 			this->flags |= SynchronousMessageInWriteQueueFlag;
@@ -407,6 +410,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 				}else{
 					asyncmsgstub.message_ptr = std::move(tmp.message_ptr);
 					asyncmsgstub.message_type_idx = tmp.message_type_idx;
+					asyncmsgstub.response_fnc = std::move(tmp.response_fnc);
 					asyncmsgstub.flags = tmp.flags;
 				}
 			}
@@ -428,6 +432,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 			rmsgstub.flags = asyncmsgstub.flags;
 			rmsgstub.message_type_idx = asyncmsgstub.message_type_idx;
 			rmsgstub.message_ptr = std::move(asyncmsgstub.message_ptr);
+			rmsgstub.response_fnc = std::move(asyncmsgstub.response_fnc);
 			write_q.push(idx);
 		}
 	}
@@ -507,7 +512,7 @@ void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_
 	for(auto it = message_vec.begin(); it != message_vec.end(); ++it){
 		if(it->message_ptr.empty()){
 		}else{
-			_rvisit_fnc(it->message_ptr, it->message_type_idx, flags, it->serializer_ptr.get() != nullptr);
+			_rvisit_fnc(it->message_ptr, it->message_type_idx, it->response_fnc, it->flags, it->serializer_ptr.get() != nullptr);
 			if(it->message_ptr.empty()){
 				it->clear();
 				//TODO: the message should also be poped from the write_q
@@ -520,9 +525,9 @@ void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_
 	
 	while(qsz--){
 		PendingMessageStub	&rms(pending_message_q.front());
-		_rvisit_fnc(rms.message_ptr, rms.message_type_idx, rms.flags, false/*not sent*/);
+		_rvisit_fnc(rms.message_ptr, rms.message_type_idx, rms.response_fnc, rms.flags, false/*not sent*/);
 		if(rms.message_ptr.empty()){
-			pending_message_q.push(PendingMessageStub(rms.message_ptr, rms.message_type_idx, rms.flags));
+			pending_message_q.push(PendingMessageStub(rms.message_ptr, rms.message_type_idx, rms.response_fnc, rms.flags));
 		}
 		pending_message_q.pop();
 	}
