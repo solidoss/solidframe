@@ -182,30 +182,26 @@ void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 
 void client_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr){
 	idbg(_rctx.connectionId());
-// 	if(not _rmsgptr->check()){
-// 		THROW_EXCEPTION("Message check failed.");
-// 	}
-// 	
-// 	//cout<< _rmsgptr->str.size()<<'\n';
-// 	transfered_size += _rmsgptr->str.size();
-// 	++transfered_count;
-// 	
-// 	if(!_rmsgptr->isBackOnSender()){
-// 		THROW_EXCEPTION("Message not back on sender!.");
-// 	}
-// 	
-// 	++crtbackidx;
-// 	
-// 	if(crtbackidx == writecount){
-// 		Locker<Mutex> lock(mtx);
-// 		running = false;
-// 		cnd.signal();
-// 	}
+	THROW_EXCEPTION("Received request on client.");
 }
 
 void client_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr){
 	idbg(_rctx.connectionId());
-	running = false;
+	
+	transfered_size += _rmsgptr->str.size();
+	++transfered_count;
+	
+	if(!_rmsgptr->isBackOnSender()){
+		THROW_EXCEPTION("Message not back on sender!.");
+	}
+	
+	//++crtbackidx; //NOTE: incremented on per-response callback
+	
+	if(crtbackidx == writecount){
+		Locker<Mutex> lock(mtx);
+		running = false;
+		cnd.signal();
+	}
 }
 
 
@@ -216,6 +212,19 @@ void client_complete_request(frame::ipc::ConnectionContext &_rctx, DynamicPointe
 void client_complete_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
 	idbg(_rctx.connectionId());
 }
+
+
+void on_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
+	idbg(_rctx.connectionId());
+	++crtbackidx;
+	++crtackidx;
+}
+
+struct ResponseHandler{
+	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
+		on_receive_response(_rctx, _rmsgptr, _rerr);
+	}
+};
 
 
 void server_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr){
@@ -231,29 +240,37 @@ void server_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	//send message back
 	frame::ipc::MessagePointerT	msgptr(new Response(*_rmsgptr));
 	_rctx.service().sendMessage(_rctx.connectionId(), msgptr);
+	
+	++crtreadidx;
+	idbg(crtreadidx);
+	if(crtwriteidx < writecount){
+		frame::ipc::MessagePointerT	msgptr(new Request(crtwriteidx));
+		++crtwriteidx;
+		pipcclient->sendRequest(
+				"localhost:6666", msgptr,
+				//on_receive_response
+				ResponseHandler()
+				/*[](frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr)->void{
+					on_receive_response(_rctx, _rmsgptr, _rerr);
+				}*/,
+				initarray[crtwriteidx % initarraysize].flags
+			);
+	}
 }
 
 void server_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr){
 	idbg(_rctx.connectionId());
+	THROW_EXCEPTION("Received response on server.");
 }
 
 void server_complete_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr, ErrorConditionT const &_rerr){
 	idbg(_rctx.connectionId());
+	THROW_EXCEPTION("Complete request on server.");
 }
 
 void server_complete_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
 	idbg(_rctx.connectionId());
 }
-
-void on_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
-}
-
-struct ResponseHandler{
-	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
-		idbg(_rctx.connectionId());
-	}
-};
 
 }//namespace
 
@@ -386,21 +403,21 @@ int test_clientserver_sendrequest(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
-		const size_t		start_count = 1;
+		const size_t		start_count = initarraysize/2;
 		
-		writecount = 1;
+		writecount = initarraysize;
 		
 		for(; crtwriteidx < start_count;){
 			frame::ipc::MessagePointerT	msgptr(new Request(crtwriteidx));
 			++crtwriteidx;
 			ipcclient.sendRequest(
 				"localhost:6666", msgptr,
-				//on_receive_response
+				
 				//ResponseHandler()
 				[](frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr)->void{
-					idbg(_rctx.connectionId());
+					on_receive_response(_rctx, _rmsgptr, _rerr);
 				},
-				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
+				initarray[crtwriteidx % initarraysize].flags
 			);
 		}
 		

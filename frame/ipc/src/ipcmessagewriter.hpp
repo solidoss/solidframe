@@ -68,6 +68,7 @@ public:
 	);
 	
 	void completeMessage(
+		MessagePointerT &_rmsgptr,
 		MessageUid const &_rmsguid,
 		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
@@ -165,6 +166,7 @@ private:
 	
 	void doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig);
 	void doCompleteMessage(
+		MessagePointerT &_rmsgptr,
 		MessageUid const &_rmsguid,
 		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,

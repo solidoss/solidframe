@@ -329,8 +329,10 @@ char* MessageWriter::doFillPacket(
 				
 				if(not Message::is_waiting_response(rmsgstub.flags)){
 					//no wait response for the message - complete
-					ErrorConditionT	err;
-					doCompleteMessage(msguid, _rconfig, _ridmap, _rctx, err);
+					ErrorConditionT		err;
+					MessagePointerT 	msgptr;
+					
+					doCompleteMessage(msgptr, msguid, _rconfig, _ridmap, _rctx, err);
 				}
 				doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 			}else{
@@ -439,17 +441,19 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::completeMessage(
+	MessagePointerT &_rmsgptr,
 	MessageUid const &_rmsguid,
 	ipc::Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
 ){
-	doCompleteMessage(_rmsguid, _rconfig, _ridmap, _rctx, _rerror);
+	doCompleteMessage(_rmsgptr, _rmsguid, _rconfig, _ridmap, _rctx, _rerror);
 	doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doCompleteMessage(
+	MessagePointerT &_rmsgptr,
 	MessageUid const &_rmsguid,
 	ipc::Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
@@ -464,6 +468,10 @@ void MessageWriter::doCompleteMessage(
 		
 		cassert(not rmsgstub.serializer_ptr);
 		cassert(not rmsgstub.message_ptr.empty());
+		
+		if(not FUNCTION_EMPTY(rmsgstub.response_fnc)){
+			rmsgstub.response_fnc(_rctx, _rmsgptr, _rerror);
+		}
 		
 		_ridmap[rmsgstub.message_type_idx].complete_fnc(_rctx, rmsgstub.message_ptr, _rerror);
 		
@@ -482,8 +490,10 @@ void MessageWriter::completeAllMessages(
 	for(auto it = message_vec.begin(); it != message_vec.end(); ++it){
 		if(it->message_ptr.empty()){
 		}else{
-			MessageUid	msguid(it - message_vec.begin(), it->unique);
-			doCompleteMessage(msguid, _rconfig, _ridmap, _rctx, _rerror);
+			MessagePointerT 	msgptr;
+			MessageUid			msguid(it - message_vec.begin(), it->unique);
+			
+			doCompleteMessage(msgptr, msguid, _rconfig, _ridmap, _rctx, _rerror);
 		}
 	}
 	
@@ -493,8 +503,10 @@ void MessageWriter::completeAllMessages(
 		doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 		
 		while(message_vec[msgidx].message_ptr.get()){
-			MessageUid	msguid(msgidx, message_vec[msgidx].unique);
-			doCompleteMessage(msguid, _rconfig, _ridmap, _rctx, _rerror);
+			MessagePointerT 	msgptr;
+			MessageUid			msguid(msgidx, message_vec[msgidx].unique);
+			
+			doCompleteMessage(msgptr, msguid, _rconfig, _ridmap, _rctx, _rerror);
 			doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 		}
 		

@@ -177,17 +177,15 @@ class Service: public Dynamic<Service, frame::Service>{
 		ResponseHandler(F _f):f(_f){}
 		
 		void operator()(ConnectionContext &_rctx, MessagePointerT &_rmsgptr, ErrorConditionT const &_err){
-			M  *presponse = dynamic_cast<M*>(_rmsgptr.get());
-			if(presponse){
-				DynamicPointer<M>	msgptr(presponse);
-				f(_rctx, msgptr, _err);
+			M  					*presponse = dynamic_cast<M*>(_rmsgptr.get());
+			DynamicPointer<M>	msgptr(presponse);
+			ErrorConditionT		error(_err);
+			if(presponse or error){
 			}else{
-				DynamicPointer<M>	msgptr;
-				ErrorConditionT		error;
 				//TODO:
 				error.assign(-1, error.category());
-				f(_rctx, msgptr, error);
 			}
+			f(_rctx, msgptr, error);
 		}
 	};
 	
@@ -268,7 +266,7 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, nullptr, _flags);
+		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
@@ -286,7 +284,7 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rconpool_uid, _flags);
+		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rconpool_uid, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
@@ -302,7 +300,7 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(nullptr, _rconnection_uid, msgptr, response_handler, nullptr, _flags);
+		return doSendMessage(nullptr, _rconnection_uid, msgptr, response_handler, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
@@ -319,7 +317,7 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, _flags);
+		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	ErrorConditionT scheduleConnectionClose(

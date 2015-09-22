@@ -132,7 +132,7 @@ private:
 	void doResetTimerStart(frame::aio::ReactorContext &_rctx);
 	void doResetTimerSend(frame::aio::ReactorContext &_rctx);
 	void doResetTimerRecv(frame::aio::ReactorContext &_rctx);
-	void doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT const &_rmsgptr);
+	void doCompleteMessage(solid::frame::aio::ReactorContext& _rctx, solid::frame::ipc::MessagePointerT /*const*/& _rmsgptr);
 	void doCompleteKeepalive(frame::aio::ReactorContext &_rctx);
 	
 	template <class Fnc>

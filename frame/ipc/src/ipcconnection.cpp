@@ -418,7 +418,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	bool				recv_something = false;
 	
 	auto				complete_lambda(
-		[&rthis, &_rctx](const MessageReader::Events _event, MessagePointerT const& _rmsgptr){
+		[&rthis, &_rctx](const MessageReader::Events _event, MessagePointerT /*const*/& _rmsgptr){
 			switch(_event){
 				case MessageReader::MessageCompleteE:
 					rthis.doCompleteMessage(_rctx, _rmsgptr);
@@ -590,7 +590,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT const &_rmsgptr){
+void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT /*const*/ &_rmsgptr){
 	//_rmsgptr is the received message
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
@@ -598,7 +598,7 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 	ErrorConditionT		error;
 	if(_rmsgptr->isBackOnSender()){
 		idbgx(Debug::ipc, this<<' '<<"Completing back on sender message: "<<_rmsgptr->msguid);
-		msgwriter.completeMessage(_rmsgptr->msguid, rconfig, rtypemap, conctx, error);
+		msgwriter.completeMessage(_rmsgptr, _rmsgptr->msguid, rconfig, rtypemap, conctx, error);
 	}
 }
 //-----------------------------------------------------------------------------
