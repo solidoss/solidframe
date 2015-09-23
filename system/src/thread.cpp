@@ -24,7 +24,7 @@
 
 #if defined(ON_FREEBSD)
 #include <pmc.h>
-#elif defined(ON_MACOS)
+#elif defined(ON_DARWIN)
 #elif defined(ON_WINDOWS)
 #else
 #include <sys/sysinfo.h>
@@ -43,7 +43,7 @@
 #include <pthread.h>
 #endif
 
-#if defined(ON_MACOS)
+#if defined(ON_DARWIN)
 #include <mach/mach_time.h>
 #endif
 
@@ -224,7 +224,7 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 	return *this;
 }
 
-#elif	defined(ON_MACOS)
+#elif	defined(ON_DARWIN)
 
 struct TimeStartData{
 	TimeStartData(){
@@ -309,7 +309,7 @@ bool Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
 }
 //-------------------------------------------------------------------------
 int Mutex::timedLock(const TimeSpec &_rts){
-#if defined (ON_MACOS)
+#if defined (ON_DARWIN)
     return -1;
 #else
 	return pthread_mutex_timedlock(&mut,&_rts);
@@ -447,7 +447,7 @@ void Thread::dummySpecificDestroy(void*){
 /*static*/ size_t Thread::processorCount(){
 #if		defined(ON_SOLARIS)
 	return 1;
-#elif	defined(ON_FREEBSD) || defined(ON_MACOS)
+#elif	defined(ON_FREEBSD) || defined(ON_DARWIN)
 	int count;
     size_t size=sizeof(count);
     return 1;//sysctlbyname("hw.ncpu",&count,&size,NULL,0)?0:count;

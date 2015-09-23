@@ -1,7 +1,6 @@
 
-message("Testing enabled: testname = ${UTEST_NAME} testsite = ${UTEST_SITE}")
-
 if(UTEST_NAME AND UTEST_SITE)
+	message("Testing enabled: testname = ${UTEST_NAME} testsite = ${UTEST_SITE}")
 	
 	message("CDash dropping activated")
 	set(CTEST_PROJECT_NAME "${UTEST_NAME}")

@@ -203,8 +203,8 @@ fi
 if [ "$DOCUMENTATION" = "full" ]; then
 	echo "Building full documentation ..."
 	rm -rf documentation/html/
-	rm -rf documentation/latex/
-	doxygen
+	rm -rf  documentation/latex/
+	doxygen documentation/Doxyfile
 	tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
 	echo "Done building full documentation"
 	exit
@@ -213,7 +213,7 @@ fi
 if [ "$DOCUMENTATION" = "fast" ]; then
 	echo "Building documentation..."
 	rm -rf documentation/html/
-	doxygen Doxyfile.fast
+	doxygen documentation/Doxyfile.fast
 	tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
 	echo "Done building documentation"
 	exit
@@ -233,24 +233,26 @@ fi
 
 
 echo "Configure an out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME and params $PARAM"
-if [ ! -d application ]; then
-	mkdir application
-fi
-cd application
-make_cmake_list *
-cd ../
-
-if [ ! -d library ]; then
-	mkdir library
-fi
-cd library
-make_cmake_list *
-cd ../
+# if [ ! -d application ]; then
+# 	mkdir application
+# fi
+# cd application
+# make_cmake_list *
+# cd ../
+# 
+# if [ ! -d library ]; then
+# 	mkdir library
+# fi
+# cd library
+# make_cmake_list *
+# cd ../
 
 SRC_PATH="`pwd`"
 
 if [ "$FOLDER_PATH" = "" ]; then
-	mkdir build
+	if [ ! -d build ]; then
+		mkdir build
+	fi
 	mkdir "build/$FOLDER_NAME"
 	cd "build/$FOLDER_NAME"
 else
@@ -266,19 +268,19 @@ for param in "$@"; do
 done
 echo
 
-echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
+echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
 
 if [ "$GENERATOR" = "" ]; then
 	echo "Using cmake's default generator:"
 	echo ""
 	
-	exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
+	exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
 	echo "Done!"
 else
 	echo "Using cmake's $GENERATOR"
 	echo ""
 	
-	exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
+	exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
 fi
 
 exit

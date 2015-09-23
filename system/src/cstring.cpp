@@ -78,7 +78,7 @@ const char * char_to_cstring(unsigned _c){
 }
 
 /*static*/ size_t cstring::nlen(const char *s, size_t maxlen){
-#ifdef ON_MACOS
+#ifdef ON_DARWIN
     return strlen(s);
 #else
 	return strnlen(s, maxlen);

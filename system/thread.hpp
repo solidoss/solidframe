@@ -15,7 +15,7 @@
 #include <pthread.h>
 #endif
 
-#if defined(ON_SOLARIS) || defined(ON_MACOS)
+#if defined(ON_SOLARIS) || defined(ON_DARWIN)
 #include <sched.h>
 #endif
 
@@ -143,7 +143,7 @@ private:
 
 #ifndef ON_WINDOWS
 inline void Thread::yield(){
-#if	defined(ON_SOLARIS) || defined(ON_MACOS)
+#if	defined(ON_SOLARIS) || defined(ON_DARWIN)
 	sched_yield();
 #else
 	pthread_yield();

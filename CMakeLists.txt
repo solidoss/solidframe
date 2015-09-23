@@ -33,9 +33,9 @@ set(VERSION_PATCH "${GIT_VERSION}")
 #-----------------------------------------------------------------
 # Extra user definitions
 #-----------------------------------------------------------------
-message("UDEFS set as " ${UDEFS})
-message("UEXTERN set as " ${UEXTERN})
-message("UEXTERN_ABS set as " ${UEXTERN_ABS})
+#message("UDEFS set as " ${UDEFS})
+#message("UEXTERN set as " ${UEXTERN})
+#message("UEXTERN_ABS set as " ${UEXTERN_ABS})
 
 
 set(EXTRA_DEFINITIONS "${UDEFS}" CACHE STRING "Extra compiler definitions")
@@ -110,12 +110,12 @@ set(SYS_RELEASE_LINKER_FLAGS "")
 set(SYS_BASIC_LIBS "")
 set(SYS_DYNAMIC_LOAD_LIB "")
 message("")
-message("cmake's system: ${CMAKE_SYSTEM}")
+message("CMake's system: ${CMAKE_SYSTEM}")
 message("")
 
 set(ON_FOUND FALSE)
 set(ON_FREEBSD FALSE)
-set(ON_MACOS FALSE)
+set(ON_DARWIN FALSE)
 set(ON_LINUX FALSE)
 set(ON_POSIX FALSE)
 set(ON_SOLARIS FALSE)
@@ -157,15 +157,15 @@ if(CMAKE_SYSTEM MATCHES "FreeBSD*")
 endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
 
 if(CMAKE_SYSTEM MATCHES "Darwin*")
-	message("Detected system ON_MACOS")
+	message("Detected system ON_DARWIN")
 	set(ON_FOUND TRUE)
-	set(ON_MACOS TRUE)
+	set(ON_DARWIN TRUE)
 	set(ON_POSIX TRUE)
-	set(SYS_DEBUG_FLAGS "-DON_MACOS -DON_POSIX -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-	set(SYS_MAINTAIN_FLAGS "-DON_MACOS -DON_POSIX -Wall -Wabi -O3 -g3")
-	set(SYS_OPTIMIZED_FLAGS "-DON_MACOS -DON_POSIX -O3 -g3")
-	set(SYS_NOLOG_FLAGS "-DON_MACOS -DON_POSIX -g3")
-	set(SYS_RELEASE_FLAGS "-DON_MACOS -DON_POSIX -O3")
+	set(SYS_DEBUG_FLAGS "-DON_DARWIN -DON_POSIX -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
+	set(SYS_MAINTAIN_FLAGS "-DON_DARWIN -DON_POSIX -Wall -Wabi -O3 -g3")
+	set(SYS_OPTIMIZED_FLAGS "-DON_DARWIN -DON_POSIX -O3 -g3")
+	set(SYS_NOLOG_FLAGS "-DON_DARWIN -DON_POSIX -g3")
+	set(SYS_RELEASE_FLAGS "-DON_DARWIN -DON_POSIX -O3")
 
 	set(SYS_DEBUG_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
 	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once -framework ApplicationServices -framework CoreFoundation")
@@ -231,7 +231,7 @@ endif(NOT ON_FOUND)
 # config.h support
 #-----------------------------------------------------------------
 include(cmake/check.config.cmake)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 if(HAS_CPP11FLAG AND HAS_CPP11)
 	set(SYS_DEBUG_FLAGS "${SYS_DEBUG_FLAGS} -std=c++0x")
@@ -373,12 +373,9 @@ add_subdirectory (utility)
 add_subdirectory (serialization)
 add_subdirectory (audit)
 add_subdirectory (test)
-add_subdirectory (library)
-add_subdirectory (application)
 add_subdirectory (consensus)
 add_subdirectory (frame)
 add_subdirectory (example)
+
 #-----------------------------------------------------------------
 
-
-add_subdirectory(retired/example/utility)
