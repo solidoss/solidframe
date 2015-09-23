@@ -66,10 +66,10 @@ message("EXTERN_PATH set as " ${EXTERN_PATH})
 # Find libraries
 #-----------------------------------------------------------------
 
-include(find_boost.cmake)
-include(find_openssl.cmake)
-include(find_leveldb.cmake)
-include(find_snappy.cmake)
+include(cmake/find_boost.cmake)
+include(cmake/find_openssl.cmake)
+include(cmake/find_leveldb.cmake)
+include(cmake/find_snappy.cmake)
 
 
 #-----------------------------------------------------------------
@@ -230,7 +230,7 @@ endif(NOT ON_FOUND)
 #-----------------------------------------------------------------
 # config.h support
 #-----------------------------------------------------------------
-include(check.config.cmake)
+include(cmake/check.config.cmake)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 if(HAS_CPP11FLAG AND HAS_CPP11)
