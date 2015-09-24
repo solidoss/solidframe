@@ -77,7 +77,6 @@ FOLDER_PATH=
 HELP="no"
 PARAM=
 EXTERN_PATH=
-EXTERN_ABS_PATH=
 ENABLE_TESTING=
 TEST_NAME=
 TEST_SITE=
@@ -135,12 +134,12 @@ do
 #		fi
 #		;;
 	-e|--extern-path)
-		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
-			EXTERN_ABS_PATH=""
-		else
+		#if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
+		#	EXTERN_PATH=""
+		#else
 			shift;
-			EXTERN_ABS_PATH=$1
-		fi
+			EXTERN_PATH=$1
+		#fi
 		;;
 	-c|--create-lists)
 		CREATE_LISTS="yes"
@@ -199,6 +198,16 @@ if [ "$CREATE_LISTS" = "yes" ]; then
 	exit
 fi
 
+if [ ! -d $EXTERN_PATH ]; then
+	echo "Invalid prerequisites path: $EXTERN_PATH"
+	exit
+fi
+
+cd $EXTERN_PATH
+EXTERN_PATH=`pwd`
+cd -
+
+echo "Using extern prerequisites from: $EXTERN_PATH"
 
 if [ "$DOCUMENTATION" = "full" ]; then
 	echo "Building full documentation ..."
@@ -274,13 +283,13 @@ if [ "$GENERATOR" = "" ]; then
 	echo "Using cmake's default generator:"
 	echo ""
 	
-	exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
+	exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
 	echo "Done!"
 else
 	echo "Using cmake's $GENERATOR"
 	echo ""
 	
-	exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
+	exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
 fi
 
 exit

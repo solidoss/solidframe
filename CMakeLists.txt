@@ -33,34 +33,18 @@ set(VERSION_PATCH "${GIT_VERSION}")
 #-----------------------------------------------------------------
 # Extra user definitions
 #-----------------------------------------------------------------
-#message("UDEFS set as " ${UDEFS})
-#message("UEXTERN set as " ${UEXTERN})
-#message("UEXTERN_ABS set as " ${UEXTERN_ABS})
-
-
 set(EXTRA_DEFINITIONS "${UDEFS}" CACHE STRING "Extra compiler definitions")
-
-
 add_definitions(${EXTRA_DEFINITIONS})
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
 # Prepare the extern path
 #-----------------------------------------------------------------
-string(LENGTH "${UEXTERN_ABS}" ExtAbsLen)
-set(EXTERN_PATH)
-if(ExtAbsLen GREATER 0)
-	set(EXTERN_PATH "${UEXTERN_ABS}/" CACHE STRING "Extern dependencies path")
-else(ExtAbsLen GREATER 0)
-	string(LENGTH "${UEXTERN}" ExtLen)
-	if(ExtLen GREATER 0)
-		set(EXTERN_PATH "${SolidFrame_SOURCE_DIR}/extern/${UEXTERN}/" CACHE STRING "Extern dependencies path")
-	else(ExtLen GREATER 0)
-		set(EXTERN_PATH "${SolidFrame_SOURCE_DIR}/extern/" CACHE STRING "Extern dependencies path")
-	endif(ExtLen GREATER 0)
-endif(ExtAbsLen GREATER 0)
+string(LENGTH "${UEXTERN}" ExtLen)
 
-message("EXTERN_PATH set as " ${EXTERN_PATH})
+set(EXTERN_PATH "${UEXTERN}/" CACHE STRING "Extern prerequisites path")
+
+message("Using prerequisites from: \"${EXTERN_PATH}\"")
 
 #-----------------------------------------------------------------
 # Find libraries
