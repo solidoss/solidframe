@@ -97,7 +97,7 @@ int main(int argc, char *argv[]){
 	
 	testmodule = solid::Debug::the().registerModule("test");
 	
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 	string dbgout;
 	Debug::the().levelMask("view");

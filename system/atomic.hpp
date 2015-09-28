@@ -12,13 +12,13 @@
 
 #include "config.h"
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #define ATOMIC_NS std
 #else
 #define ATOMIC_NS boost
 #endif
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #include <atomic>
 #else
 #include "boost/atomic.hpp"

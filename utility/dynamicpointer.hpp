@@ -46,7 +46,7 @@ public:
 		}
 	}
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 	template <class B>
 	DynamicPointer(DynamicPointer<B> &&_rcp):pdyn(static_cast<T*>(_rcp.release())){
 	}
@@ -80,7 +80,7 @@ public:
 		return *this;
 	}
 
-#ifdef HAS_CPP11	
+#ifdef SOLID_USE_CPP11	
 	template <class O>
 	ThisT& operator=(DynamicPointer<O> &&_rcp){
 		DynamicT *p(_rcp.release());

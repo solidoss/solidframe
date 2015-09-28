@@ -112,14 +112,14 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    cout<<"Built on SolidFrame version "<<SF_MAJOR<<'.'<<SF_MINOR<<'.'<<SF_PATCH<<endl;
+    cout<<"Built on SolidFrame version "<<SOLID_VERSION_MAJOR<<'.'<<SOLID_VERSION_MINOR<<'.'<<SOLID_VERSION_PATCH<<endl;
 
     //this must be called from the main thread
     //so that the main thread can also have specific data
     //like any other threads from solidground::system::thread
     Thread::init();
 
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
     {
         string dbgout;
         Debug::the().levelMask(p.dbg_levels.c_str());
@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
     stime = (unsigned int) ltime/2;
     srand(stime);
 
-    idbg("Built on SolidFrame version "<<SF_MAJOR<<'.'<<SF_MINOR<<'.'<<SF_PATCH);
+    idbg("Built on SolidFrame version "<<SOLID_VERSION_MAJOR<<'.'<<SOLID_VERSION_MINOR<<'.'<<SOLID_VERSION_PATCH);
 
     idbg("sizeof ulong = "<<sizeof(long));
 #ifdef _LP64

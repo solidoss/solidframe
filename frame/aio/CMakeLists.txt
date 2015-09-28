@@ -1,12 +1,12 @@
 
-if(${HAS_EPOLL})
+if(${SOLID_USE_EPOLL})
 	set(reactor_source src/aioreactor_epoll.cpp)
-endif(${HAS_EPOLL})
+endif(${SOLID_USE_EPOLL})
 
 
-if(${HAS_KQUEUE})
+if(${SOLID_USE_KQUEUE})
 	set(reactor_source src/aioreactor_kqueue.cpp)
-endif(${HAS_KQUEUE})
+endif(${SOLID_USE_KQUEUE})
 
 
 set(Sources

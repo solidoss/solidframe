@@ -12,13 +12,13 @@
 
 #include "config.h"
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #define FUNCTION_NS std
 #else
 #define FUNCTION_NS boost
 #endif
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #include <functional>
 #else
 #include "boost/function.hpp"

@@ -21,7 +21,7 @@ namespace frame{
 namespace ipc{
 
 //---------------------------------------------------------
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "ipcpacket.ipp"
 #endif
 //---------------------------------------------------------

@@ -31,7 +31,7 @@
 #include "ipcsession.hpp"
 #include "ipcpacket.hpp"
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 
 #include <unordered_map>
 
@@ -45,7 +45,7 @@ namespace frame{
 namespace ipc{
 
 
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 namespace{
 struct StatisticData{
 	StatisticData(){
@@ -205,7 +205,7 @@ struct Talker::Data{
 		const SocketAddressStub6*,
 		int
 	>											BaseAddr6;
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 	typedef std::unordered_map<
 		const SocketAddressInet4*,
 		uint32,
@@ -288,7 +288,7 @@ public:
 	BaseAddr4MapT			baseaddr4map;
 	TimerQueueT				timerq;
 	SendQueueT				sendq;
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 	StatisticData			statistics;
 #endif
 };
@@ -456,7 +456,7 @@ bool Talker::doPreprocessReceivedPackets(TalkerStub &_rstub){
 bool Talker::doProcessReceivedPackets(TalkerStub &_rstub){
 	//ConnectionUid	conuid(d.tkridx);
 	TalkerStub		&ts = _rstub;
-#ifdef USTATISTICS	
+#ifdef SOLID_HAS_STATISTICS	
 	if(d.receivedpktvec.size() == 0){
 		COLLECT_DATA_0(d.statistics.receivedPackets0);
 	}else if(d.receivedpktvec.size() == 1){
@@ -1033,7 +1033,7 @@ std::ostream& operator<<(std::ostream& _ros, const AcceptData &_rd){
 	return _rd.print(_ros);
 }
 //======================================================================
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 
 namespace{
 

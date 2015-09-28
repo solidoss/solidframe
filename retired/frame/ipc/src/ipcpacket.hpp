@@ -145,7 +145,7 @@ private:
 	mutable char	*pb;
 };
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "ipcpacket.ipp"
 #endif
 

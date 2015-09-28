@@ -6,7 +6,7 @@
 #include <deque>
 #include "system/debug.hpp"
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #define UniquePtrD std::unique_ptr
 #else
 #include "boost/shared_ptr.hpp"

@@ -14,7 +14,7 @@
 #include <vector>
 #include <string>
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #include <time.h>
 #endif
 
@@ -108,7 +108,7 @@ LogRecorder* LogBasicConnector::createRecorder(const LogClientData &_rcl){
 	char	buf[128];
 	time_t	t = time(NULL);
 	tm		*ploctm;
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	ploctm = localtime(&t);
 #else
 	tm		loctm;

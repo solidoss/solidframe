@@ -11,7 +11,7 @@
 #define SYSTEM_SHAREDBACKEND_HPP
 
 #include "system/common.hpp"
-#ifdef HAS_GNU_ATOMIC
+#ifdef SOLID_USE_GNU_ATOMIC
 #include <ext/atomicity.h>
 #endif
 
@@ -34,7 +34,7 @@ public:
 	static SharedStub& emptyStub();
 	
 	static SharedStub* create(void *_pv, SharedStub::DelFncT _cbk);
-#ifdef HAS_GNU_ATOMIC
+#ifdef SOLID_USE_GNU_ATOMIC
 	inline static void use(SharedStub &_rss){
 		//__sync_add_and_fetch(&_rss.use, 1);
 		__gnu_cxx:: __atomic_add_dispatch(&_rss.use, 1);

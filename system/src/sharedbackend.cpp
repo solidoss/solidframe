@@ -10,7 +10,7 @@
 #include "system/sharedbackend.hpp"
 #include "system/mutex.hpp"
 #include "system/mutualstore.hpp"
-#ifdef HAS_GNU_ATOMIC
+#ifdef SOLID_USE_GNU_ATOMIC
 #include <ext/concurrence.h>
 #endif
 #include <deque>
@@ -26,7 +26,7 @@ struct SharedBackend::Data{
 	typedef MutualStore<Mutex>		MutexStoreT;
 	Data(){
 		stubvec.push_back(SharedStub(0));
-#ifndef HAS_GNU_ATOMIC
+#ifndef SOLID_USE_GNU_ATOMIC
 		mtxstore.safeAt(0);
 #endif
 	}
@@ -34,7 +34,7 @@ struct SharedBackend::Data{
 	StubVectorT		stubvec;
 	//UlongStackT		freestk;
 	UlongQueueT		freeque;
-#ifndef HAS_GNU_ATOMIC
+#ifndef SOLID_USE_GNU_ATOMIC
 	MutexStoreT		mtxstore;
 #endif
 };
@@ -55,7 +55,7 @@ SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
 	if(th.d.freeque.size()){
 		const ulong		pos = th.d.freeque.front();
 		th.d.freeque.pop();
-#ifndef HAS_GNU_ATOMIC
+#ifndef SOLID_USE_GNU_ATOMIC
 		Mutex			&rmtx = th.d.mtxstore.at(pos);
 		Locker<Mutex>	lock(rmtx);
 #endif
@@ -66,7 +66,7 @@ SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
 		pss = &rss;
 	}else{
 		const ulong		pos = th.d.stubvec.size();
-#ifndef HAS_GNU_ATOMIC
+#ifndef SOLID_USE_GNU_ATOMIC
 		Mutex			&rmtx = th.d.mtxstore.safeAt(pos);
 		Locker<Mutex>	lock(rmtx);
 #endif
@@ -79,7 +79,7 @@ SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
 	}
 	return pss;
 }
-#ifndef HAS_GNU_ATOMIC
+#ifndef SOLID_USE_GNU_ATOMIC
 void SharedBackend::use(SharedStub &_rss){
 	Mutex &rmtx = the().d.mtxstore.at(_rss.idx);
 	Locker<Mutex> lock(rmtx);

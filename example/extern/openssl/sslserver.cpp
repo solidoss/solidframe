@@ -113,7 +113,7 @@ int main(int argc, char* argv[]){
 		cout<<"Usage:\n./sslserver addr port"<<endl;
 		return 0;
 	}
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	string s;
 	Debug::the().levelMask("iew");
 	Debug::the().moduleMask();

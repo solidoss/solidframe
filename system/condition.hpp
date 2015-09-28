@@ -47,7 +47,7 @@ private:
 
 }//namespace solid
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "system/mutex.hpp"
 namespace solid{
 #include "system/condition.ipp"

@@ -213,7 +213,7 @@ void Logger::outLiteral(const char *_pb, unsigned _bl){
 	}
 }
 //----------------------------------------------------------
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "protocol/text/parameter.ipp"
 #endif
 

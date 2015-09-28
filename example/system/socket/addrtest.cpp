@@ -7,7 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 #include <poll.h>
 #include <unistd.h>
 #include <unistd.h>
@@ -45,7 +45,7 @@ void listLocalInterfaces();
 void testLiterals();
 
 int main(int argc, char *argv[]){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	WSADATA	wsaData;
     int		err;
 	WORD	wVersionRequested;
@@ -250,7 +250,7 @@ void listLocalInterfaces(){
 #endif
 
 void listLocalInterfaces(){
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 	struct ifaddrs* ifap;
 	if(::getifaddrs(&ifap)){
 		cout<<"getifaddrs did not work"<<endl;

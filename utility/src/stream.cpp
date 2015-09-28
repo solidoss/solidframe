@@ -40,7 +40,7 @@ OutputStream::~OutputStream(){
 InputOutputStream::~InputOutputStream(){
 }
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "utility/stream.ipp"
 #include "utility/istream.ipp"
 #include "utility/ostream.ipp"

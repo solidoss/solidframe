@@ -40,7 +40,7 @@ struct MyWorkPoolController: WorkPoolControllerBase{
 
 int main(int argc, char *argv[]){
 	Thread::init();
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 	string dbgout;
 	Debug::the().levelMask("iew");

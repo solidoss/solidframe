@@ -9,7 +9,7 @@
 //
 #ifndef SYSTEM_DEVICE_HPP
 #define SYSTEM_DEVICE_HPP
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #include <WinSock2.h>
 #include <Ws2tcpip.h>
 #include <Windows.h>
@@ -26,13 +26,13 @@ namespace solid{
 //! A wrapper for what on POSIX is a descriptor
 class Device{
 public:
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	typedef HANDLE DescriptorT;
 #else
 	typedef int DescriptorT;
 #endif
 	static const DescriptorT invalidDescriptor(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 		return INVALID_HANDLE_VALUE;
 #else
 		return -1;

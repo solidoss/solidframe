@@ -7,7 +7,7 @@
 #include "system/directory.hpp"
 #include "system/debug.hpp"
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #include <Windows.h>
 #else
 #include <unistd.h>
@@ -16,7 +16,7 @@
 using namespace std;
 using namespace solid;
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 typedef HANDLE DescriptorT;
 static const HANDLE invalid_descriptor = INVALID_HANDLE_VALUE;;
 void close_descriptor(HANDLE _d){
@@ -89,7 +89,7 @@ DescriptorT pairfd[2];
 
 int main(int _argc, char *argv[]){
 	Thread::init();
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	WSADATA	wsaData;
     int		err;
 	WORD	wVersionRequested;
@@ -105,7 +105,7 @@ int main(int _argc, char *argv[]){
     }
 #endif
 	create_pipe(pairfd);
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask();
 	Debug::the().moduleMask();
 	Debug::the().initStdErr();

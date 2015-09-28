@@ -14,7 +14,7 @@
 namespace solid{
 
 ErrorCodeT last_system_error(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	const DWORD err = GetLastError();
 	return ErrorCodeT(err, ERROR_NS::system_category());
 #else

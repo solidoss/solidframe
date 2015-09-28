@@ -1,7 +1,7 @@
 #include <boost/thread/once.hpp>
 #include <boost/thread/thread.hpp>
 #include <iostream>
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #include <Windows.h>
 #endif
 using namespace std;
@@ -10,7 +10,7 @@ struct Singleton{
 	static void once_cbk();
 	static	Singleton& instance();
 	Singleton():val(0){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 		Sleep(1000*10);
 #else
 		sleep(10);

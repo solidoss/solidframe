@@ -77,7 +77,7 @@ function printHelp()
 	Write-Host "1) create simple make release build:"
 	Write-Host "	.\configure.ps1 -f rls -b release -e d:/work/sg_extern"
 	Write-Host "2) create a release build but give the parameters as cmake parameters"
-	Write-Host "	.\configure.ps1 -f rel -b release -cmake_param `"-DUDEFS:STRING=`'-DUDEBUG -DUASSERT`'`",`"-DUEXTERN_ABS:STRING=`'D:/work/als_extern/release`'`""
+	Write-Host "	.\configure.ps1 -f rel -b release -cmake_param `"-DUDEFS:STRING=`'-DSOLID_HAS_DEBUG -DSOLID_HAS_ASSERT`'`",`"-DUEXTERN_ABS:STRING=`'D:/work/als_extern/release`'`""
 	Write-Host
 	Write-Host "3) create a visual studio 2008 solution:"
 	Write-Host "    .\configure.ps1 -f vs9 -b debug -e `"D:\work\sg_extern`" -g `"Visual Studio 9 2008`""

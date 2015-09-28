@@ -276,7 +276,7 @@ void server_complete_response(frame::ipc::ConnectionContext &_rctx, DynamicPoint
 
 int test_clientserver_sendrequest(int argc, char **argv){
 	Thread::init();
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
 	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);

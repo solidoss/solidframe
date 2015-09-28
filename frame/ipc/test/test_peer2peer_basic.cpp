@@ -387,7 +387,7 @@ int test_peer2peer_basic(int argc, char **argv){
 	
 	Thread::init();
 	
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
 	Debug::the().moduleMask("any frame_ipc");
 	Debug::the().initStdErr(false, nullptr);

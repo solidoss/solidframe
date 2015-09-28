@@ -13,7 +13,7 @@
 #include "system/exception.hpp"
 
 #ifndef UPIPESIGNAL
-	#ifdef HAS_EVENTFD_H
+	#ifdef SOLID_USE_EVENTFD
 		#include <sys/eventfd.h>
 	#else 
 		#define UPIPESIGNAL

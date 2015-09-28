@@ -43,7 +43,7 @@ struct Parameter{
 };
 
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "protocol/text/parameter.ipp"
 #endif
 

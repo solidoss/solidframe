@@ -7,7 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #define inline
 #endif
 
@@ -51,7 +51,7 @@ inline ResolveIterator::ResolveIterator(addrinfo *_pa):paddr(_pa){
 //-----------------------------------------------------------------------
 //			ResolveData
 //-----------------------------------------------------------------------
-#if (defined(HAS_CPP11) || defined(UBOOSTSHAREDPTR)) && !defined(USHAREDBACKEND)
+#if (defined(SOLID_USE_CPP11) || defined(UBOOSTSHAREDPTR)) && !defined(USHAREDBACKEND)
 inline ResolveData::ResolveData(){}
 inline ResolveData::ResolveData(addrinfo *_pai):aiptr(_pai, &delete_addrinfo){
 }
@@ -144,7 +144,7 @@ inline SocketAddressStub::SocketAddressStub(const SocketAddressInet4 &_rsa):addr
 inline SocketAddressStub::SocketAddressStub(const SocketAddressInet6 &_rsa):addr(_rsa.sockAddr()), sz(_rsa.size()){
 	
 }
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 inline SocketAddressStub::SocketAddressStub(const SocketAddressLocal &_rsa):addr(_rsa.sockAddr()), sz(_rsa.size()){
 	
 }
@@ -177,7 +177,7 @@ inline SocketAddressStub& SocketAddressStub::operator=(const SocketAddressInet6 
 	sz = _rsa.size();
 	return *this;
 }
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 inline SocketAddressStub& SocketAddressStub::operator=(const SocketAddressLocal &_rsa){
 	addr = _rsa.sockAddr();
 	sz = _rsa.size();
@@ -367,7 +367,7 @@ inline bool SocketAddress::operator==(const SocketAddress &_raddr)const{
 }
 
 inline void SocketAddress::address(const char*_str){
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 	d.addr.sa_family = 0;
 	d.inaddr4.sin_addr.s_addr = 0;
 	sz = 0;
@@ -605,7 +605,7 @@ inline bool SocketAddressInet::operator==(const SocketAddressInet &_raddr)const{
 }
 
 inline void SocketAddressInet::address(const char*_str){
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 	d.addr.sa_family = 0;
 	d.inaddr4.sin_addr.s_addr = 0;
 	sz = 0;
@@ -771,7 +771,7 @@ inline bool SocketAddressInet4::operator==(const SocketAddressInet4 &_raddr)cons
 }
 
 inline void SocketAddressInet4::address(const char*_str){
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 	d.addr.sa_family = AF_INET;
 	d.inaddr4.sin_addr.s_addr = 0;
 	int rv = inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
@@ -916,7 +916,7 @@ inline bool SocketAddressInet6::operator==(const SocketAddressInet6 &_raddr)cons
 }
 
 inline void SocketAddressInet6::address(const char*_str){
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 	d.addr.sa_family = AF_INET6;
 	memset(d.inaddr6.sin6_addr.s6_addr, 0, sizeof(d.inaddr6.sin6_addr.s6_addr));
 	int rv = inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
@@ -996,7 +996,7 @@ inline size_t in_addr_hash(const in6_addr &_inaddr){
 //-----------------------------------------------------------------------
 //			SocketAddressLocal
 //-----------------------------------------------------------------------
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 inline SocketAddressLocal::SocketAddressLocal(){
 	
 }
@@ -1063,7 +1063,7 @@ inline sockaddr* SocketAddressLocal::sockAddr(){
 }
 #endif
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #undef inline
 #endif
 

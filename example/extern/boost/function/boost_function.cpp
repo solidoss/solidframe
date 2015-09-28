@@ -9,7 +9,7 @@
 #define FNCNS boost
 #endif
 
-#undef UDEBUG
+#undef SOLID_HAS_DEBUG
 #include "system/debug.hpp"
 #include <cstdio>
 

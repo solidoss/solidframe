@@ -92,7 +92,7 @@ int main(int argc, char *argv[]){
 	signal(SIGINT,term_handler); /* Die on SIGTERM */
 	/*solid::*/Thread::init();
 	p.prepare();
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 	string dbgout;
 	Debug::the().levelMask(p.dbg_levels.c_str());

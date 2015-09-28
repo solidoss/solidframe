@@ -64,20 +64,41 @@ string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
 
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
 	set(CMAKE_VERBOSE_MAKEFILE ON)
+	set(SOLID_HAS_DEBUG TRUE)
+	set(SOLID_HAS_STATISTICS TRUE)
+	set(SOLID_HAS_ASSERT TRUE)
 endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "debug")
 	set(CMAKE_VERBOSE_MAKEFILE ON)
+	set(SOLID_HAS_DEBUG TRUE)
+	set(SOLID_HAS_NO_INLINES TRUE)
+	set(SOLID_HAS_STATISTICS TRUE)
+	set(SOLID_HAS_ASSERT TRUE)
 endif(CMAKE_BUILD_TYPE STREQUAL "debug")
 
-set(SF_VERSION_FLAGS "-DSF_MAJOR=${VERSION_MAJOR} -DSF_MINOR=${VERSION_MINOR} -DSF_PATCH=${VERSION_PATCH}")
 
-set(SF_DEBUG_FLAGS "-DUDEBUG -DUASSERT -DNINLINES -DUSTATISTICS")
-set(SF_MAINTAIN_FLAGS "-DUDEBUG -DUASSERT -DUSTATISTICS")
-set(SF_OPTIMIZED_FLAGS "")
-set(SF_NOLOG_FLAGS "-DUASSERT -DNINLINES")
-set(SF_RELEASE_FLAGS "")
+if(CMAKE_BUILD_TYPE STREQUAL "nolog")
+	set(CMAKE_VERBOSE_MAKEFILE ON)
+	set(SOLID_HAS_NO_INLINES TRUE)
+	set(SOLID_HAS_ASSERT TRUE)
+endif(CMAKE_BUILD_TYPE STREQUAL "nolog")
+
+
+# set(SF_VERSION_FLAGS "-DSOLID_VERSION_MAJOR=${VERSION_MAJOR} -DSOLID_VERSION_MINOR=${VERSION_MINOR} -DSOLID_VERSION_PATCH=${VERSION_PATCH}")
+
+set(SOLID_VERSION_MAJOR ${VERSION_MAJOR})
+set(SOLID_VERSION_MINOR ${VERSION_MINOR})
+set(SOLID_VERSION_PATCH ${VERSION_PATCH})
+
+
+
+# set(SF_DEBUG_FLAGS "-DSOLID_HAS_DEBUG -DSOLID_HAS_ASSERT -DSOLID_HAS_NO_INLINES -DSOLID_HAS_STATISTICS")
+# set(SF_MAINTAIN_FLAGS "-DSOLID_HAS_DEBUG -DSOLID_HAS_ASSERT -DSOLID_HAS_STATISTICS")
+# set(SF_OPTIMIZED_FLAGS "")
+# set(SF_NOLOG_FLAGS "-DSOLID_HAS_ASSERT -DSOLID_HAS_NO_INLINES")
+# set(SF_RELEASE_FLAGS "")
 
 set(SYS_DEBUG_FLAGS "")
 set(SYS_MAINTAIN_FLAGS "")
@@ -98,23 +119,23 @@ message("CMake's system: ${CMAKE_SYSTEM}")
 message("")
 
 set(ON_FOUND FALSE)
-set(ON_FREEBSD FALSE)
-set(ON_DARWIN FALSE)
-set(ON_LINUX FALSE)
-set(ON_POSIX FALSE)
-set(ON_SOLARIS FALSE)
-set(ON_WINDOWS FALSE)
+set(SOLID_ON_FREEBSD FALSE)
+set(SOLID_ON_DARWIN FALSE)
+set(SOLID_ON_LINUX FALSE)
+set(SOLID_ON_POSIX FALSE)
+set(SOLID_ON_SOLARIS FALSE)
+set(SOLID_ON_WINDOWS FALSE)
 
 if(CMAKE_SYSTEM MATCHES "SunOS*")
 	message("Detected system ON_SOLARIS")
 	set(ON_FOUND TRUE)
-	set(ON_SOLARIS TRUE)
-	set(ON_POSIX TRUE)
-	set(SYS_DEBUG_FLAGS "-DON_SOLARIS -DON_POSIX -features=extensions -library=stlport4 -mt -g") 
-	set(SYS_MAINTAIN_FLAGS "-DON_SOLARIS -DON_POSIX -features=extensions -library=stlport4 -mt")
-	set(SYS_OPTIMIZED_FLAGS "-DON_SOLARIS -DON_POSIX -features=extensions -library=stlport4 -mt")
-	set(SYS_NOLOG_FLAGS "-DON_SOLARIS -DON_POSIX -features=extensions -library=stlport4 -mt")
-	set(SYS_RELEASE_FLAGS "-DON_SOLARIS -DON_POSIX -features=extensions -library=stlport4 -mt")
+	set(SOLID_ON_SOLARIS TRUE)
+	set(SOLID_ON_POSIX TRUE)
+	set(SYS_DEBUG_FLAGS "-features=extensions -library=stlport4 -mt -g") 
+	set(SYS_MAINTAIN_FLAGS "-features=extensions -library=stlport4 -mt")
+	set(SYS_OPTIMIZED_FLAGS "-features=extensions -library=stlport4 -mt")
+	set(SYS_NOLOG_FLAGS "-features=extensions -library=stlport4 -mt")
+	set(SYS_RELEASE_FLAGS "-features=extensions -library=stlport4 -mt")
 	
 	set(SYS_BASIC_LIBS pthread socket nsl)	
 
@@ -123,13 +144,13 @@ endif(CMAKE_SYSTEM MATCHES "SunOS*")
 if(CMAKE_SYSTEM MATCHES "FreeBSD*")
 	message("Detected system ON_FREEBSD")
 	set(ON_FOUND TRUE)
-	set(ON_FREEBSD TRUE)
-	set(ON_POSIX TRUE)
-	set(SYS_DEBUG_FLAGS "-DON_FREEBSD -DON_POSIX -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-	set(SYS_MAINTAIN_FLAGS "-DON_FREEBSD -DON_POSIX -Wall -Wabi -O3 -g3")
-	set(SYS_OPTIMIZED_FLAGS "-DON_FREEBSD -DON_POSIX -O3 -g3")
-	set(SYS_NOLOG_FLAGS "-DON_FREEBSD -DON_POSIX -g3")
-	set(SYS_RELEASE_FLAGS "-DON_FREEBSD -DON_POSIX -O3")
+	set(SOLID_ON_FREEBSD TRUE)
+	set(SOLID_ON_POSIX TRUE)
+	set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
+	set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
+	set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
+	set(SYS_NOLOG_FLAGS "-g3")
+	set(SYS_RELEASE_FLAGS "-O3")
 
 	set(SYS_DEBUG_LINKER_FLAGS "")
 	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
@@ -143,13 +164,13 @@ endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
 if(CMAKE_SYSTEM MATCHES "Darwin*")
 	message("Detected system ON_DARWIN")
 	set(ON_FOUND TRUE)
-	set(ON_DARWIN TRUE)
-	set(ON_POSIX TRUE)
-	set(SYS_DEBUG_FLAGS "-DON_DARWIN -DON_POSIX -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-	set(SYS_MAINTAIN_FLAGS "-DON_DARWIN -DON_POSIX -Wall -Wabi -O3 -g3")
-	set(SYS_OPTIMIZED_FLAGS "-DON_DARWIN -DON_POSIX -O3 -g3")
-	set(SYS_NOLOG_FLAGS "-DON_DARWIN -DON_POSIX -g3")
-	set(SYS_RELEASE_FLAGS "-DON_DARWIN -DON_POSIX -O3")
+	set(SOLID_ON_DARWIN TRUE)
+	set(SOLID_SOLID_ON_POSIX TRUE)
+	set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
+	set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
+	set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
+	set(SYS_NOLOG_FLAGS "-g3")
+	set(SYS_RELEASE_FLAGS "-O3")
 
 	set(SYS_DEBUG_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
 	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once -framework ApplicationServices -framework CoreFoundation")
@@ -163,15 +184,15 @@ endif(CMAKE_SYSTEM MATCHES "Darwin*")
 if(CMAKE_SYSTEM MATCHES "Linux*")
 	message("Detected system ON_LINUX")
 	set(ON_FOUND TRUE)
-	set(ON_LINUX TRUE)
-	set(ON_POSIX TRUE)
+	set(SOLID_ON_LINUX TRUE)
+	set(SOLID_SOLID_ON_POSIX TRUE)
 	
 	
-	set(SYS_DEBUG_FLAGS "-DON_LINUX -DON_POSIX -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
-	set(SYS_MAINTAIN_FLAGS "-DON_LINUX -DON_POSIX -Wall -Wabi -O3 -g3")
-	set(SYS_OPTIMIZED_FLAGS "-DON_LINUX -DON_POSIX -O3 -g3")
-	set(SYS_NOLOG_FLAGS "-DON_LINUX -DON_POSIX -g3")
-	set(SYS_RELEASE_FLAGS "-DON_LINUX -DON_POSIX -O3")
+	set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
+	set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
+	set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
+	set(SYS_NOLOG_FLAGS "-g3")
+	set(SYS_RELEASE_FLAGS "-O3")
 
 	set(SYS_DEBUG_LINKER_FLAGS "")# -D_GLIBCXX_DEBUG
 	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
@@ -186,12 +207,12 @@ endif(CMAKE_SYSTEM MATCHES "Linux*")
 if(CMAKE_SYSTEM MATCHES "Windows*")
 	message("Detected system ON_WINDOWS")
 	set(ON_FOUND TRUE)
-	set(ON_WINDOWS TRUE)
-	set(SYS_DEBUG_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Zi /Od")
-	set(SYS_MAINTAIN_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600  /Zi /Od")
-	set(SYS_OPTIMIZED_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Ox  /Zi")
-	set(SYS_NOLOG_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Zi /Od")
-	set(SYS_RELEASE_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Ox")
+	set(SOLID_ON_WINDOWS TRUE)
+	set(SYS_DEBUG_FLAGS "-DSOLID_ON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Zi /Od")
+	set(SYS_MAINTAIN_FLAGS "-DSOLID_ON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600  /Zi /Od")
+	set(SYS_OPTIMIZED_FLAGS "-DSOLID_ON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Ox  /Zi")
+	set(SYS_NOLOG_FLAGS "-DSOLID_ON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Zi /Od")
+	set(SYS_RELEASE_FLAGS "-DSOLID_ON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Ox")
 
 	set(SYS_DEBUG_LINKER_FLAGS "")
 	set(SYS_MAINTAIN_LINKER_FLAGS "")
@@ -217,24 +238,24 @@ endif(NOT ON_FOUND)
 include(cmake/check.config.cmake)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
-if(HAS_CPP11FLAG AND HAS_CPP11)
-	set(SYS_DEBUG_FLAGS "${SYS_DEBUG_FLAGS} -std=c++0x")
-	set(SYS_MAINTAIN_FLAGS "${SYS_MAINTAIN_FLAGS} -std=c++0x")
-	set(SYS_OPTIMIZED_FLAGS "${SYS_OPTIMIZED_FLAGS} -std=c++0x")
-	set(SYS_NOLOG_FLAGS "${SYS_NOLOG_FLAGS} -std=c++0x")
-	set(SYS_RELEASE_FLAGS "${SYS_RELEASE_FLAGS} -std=c++0x")
-endif(HAS_CPP11FLAG AND HAS_CPP11)
+if(SOLID_USE_CPP11FLAG AND SOLID_USE_CPP11)
+	set(SYS_DEBUG_FLAGS "${SYS_DEBUG_FLAGS} -std=c++11")
+	set(SYS_MAINTAIN_FLAGS "${SYS_MAINTAIN_FLAGS} -std=c++11")
+	set(SYS_OPTIMIZED_FLAGS "${SYS_OPTIMIZED_FLAGS} -std=c++11")
+	set(SYS_NOLOG_FLAGS "${SYS_NOLOG_FLAGS} -std=c++11")
+	set(SYS_RELEASE_FLAGS "${SYS_RELEASE_FLAGS} -std=c++11")
+endif(SOLID_USE_CPP11FLAG AND SOLID_USE_CPP11)
 
-if(NOT HAS_CPP11)
+if(NOT SOLID_USE_CPP11)
 	set(SYS_BASIC_LIBS ${SYS_BASIC_LIBS} ${BOOST_SYSTEM_LIB})
-endif(NOT HAS_CPP11)
+endif(NOT SOLID_USE_CPP11)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
 # Debug build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_DEBUG 
-	"${SYS_DEBUG_FLAGS} ${SF_DEBUG_FLAGS} ${SF_VERSION_FLAGS}"
+	"${SYS_DEBUG_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during debug builds."
 	FORCE
 )
@@ -244,7 +265,7 @@ set(CMAKE_CXX_FLAGS_DEBUG
 # Maintain build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_MAINTAIN 
-	"${SYS_MAINTAIN_FLAGS} ${SF_MAINTAIN_FLAGS} ${SF_VERSION_FLAGS}"
+	"${SYS_MAINTAIN_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during maintain builds."
 	FORCE
 )
@@ -264,7 +285,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
 # Optimized build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_OPTIMIZED 
-	"${SYS_OPTIMIZED_FLAGS} ${SF_OPTIMIZED_FLAGS} ${SF_VERSION_FLAGS}"
+	"${SYS_OPTIMIZED_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during optimized builds."
 	FORCE
 )
@@ -274,7 +295,7 @@ set(CMAKE_CXX_FLAGS_OPTIMIZED
 # Release build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_RELEASE
-	"${SYS_RELEASE_FLAGS} ${SF_RELEASE_FLAGS} ${SF_VERSION_FLAGS}"
+	"${SYS_RELEASE_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during release builds."
 	FORCE
 )
@@ -284,7 +305,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
 # Nolog build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_NOLOG 
-	"${SYS_NOLOG_FLAGS} ${SF_NOLOG_FLAGS} ${SF_VERSION_FLAGS}"
+	"${SYS_NOLOG_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during nolog builds."
     FORCE
 )

@@ -53,7 +53,7 @@ int main(int argc, char *argv[]){
 	}
 	signal(SIGPIPE, SIG_IGN);
 	Thread::init();
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 	string s = "dbg/";
 	s+= argv[0]+2;

@@ -20,7 +20,7 @@ struct SocketOutputStream: OutputStream{
 };
 
 int main(int argc, char *argv[]){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	WSADATA	wsaData;
     int		err;
 	WORD	wVersionRequested;
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
     }
 #endif
 
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask();
 	Debug::the().moduleMask();
 	Debug::the().initStdErr();

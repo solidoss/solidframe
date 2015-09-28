@@ -13,7 +13,7 @@
 #include <deque>
 #include <map>
 #include <list>
-//#undef UDEBUG
+//#undef SOLID_HAS_DEBUG
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "serialization/binary.hpp"
@@ -28,7 +28,7 @@ void test_basic_serialization();
 
 int main(int argc, char *argv[]){
 	Thread::init();
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask();
 	Debug::the().moduleMask();
 	Debug::the().initStdErr(false);

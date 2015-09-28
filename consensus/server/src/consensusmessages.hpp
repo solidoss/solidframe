@@ -18,7 +18,7 @@
 #include "consensus/consensusrequestid.hpp"
 #include "consensusmessage.hpp"
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #include <array>
 #else
 #include <vector>

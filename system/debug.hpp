@@ -10,8 +10,9 @@
 #ifndef SYSTEM_DEBUG_HPP
 #define SYSTEM_DEBUG_HPP
 
+#include "system/common.hpp"
 
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 
 #define COLLECT_DATA_0(om)\
 	om()\
@@ -37,7 +38,7 @@
 #include "system/common.hpp"
 
 
-/*#ifdef ON_WINDOWS
+/*#ifdef SOLID_ON_WINDOWS
 
 #ifdef DO_EXPORT_DLL
 #define EXPORT_DLL __declspec(dllexport)
@@ -171,7 +172,7 @@ struct DebugTraceTest{
 }//namespace solid
 
 #ifndef CRT_FUNCTION_NAME
-	#ifdef ON_WINDOWS
+	#ifdef SOLID_ON_WINDOWS
 		#define CRT_FUNCTION_NAME __func__
 	#else
 		#define CRT_FUNCTION_NAME __FUNCTION__
@@ -179,7 +180,7 @@ struct DebugTraceTest{
 #endif
 
 
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 
 #define idbg(x)\
 	if(solid::Debug::the().isSet(solid::Debug::Info, solid::Debug::any)){\
@@ -216,7 +217,7 @@ struct DebugTraceTest{
 	if(solid::Debug::the().isSet(solid::Debug::Verbose, a)){\
 	solid::Debug::the().print('V', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 
-#ifdef UTRACE
+#ifdef SOLID_HAS_DEBUG_TRACE
 #define tdbgi(a,x)\
 	solid::DebugTraceTest __dbgtrace__(a,  __FILE__, CRT_FUNCTION_NAME, __LINE__);\
 	if(solid::Debug::the().isSet(solid::Debug::Trace, a)){\

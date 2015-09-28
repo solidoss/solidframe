@@ -17,7 +17,7 @@
 #include "utility/dynamictype.hpp"
 #include <vector>
 #include "frame/schedulerbase.hpp"
-#ifdef HAS_STDATOMIC
+#ifdef SOLID_USE_STDATOMIC
 #include <atomic>
 #else
 #include "boost/atomic.hpp"

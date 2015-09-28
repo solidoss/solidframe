@@ -52,7 +52,7 @@ protected:
 class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObject>{
 	typedef solid::DynamicMapper<void, Connection>	DynamicMapperT;
 public:
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	typedef std::vector<Connection*> ConnectionsVectorT;
 	static ConnectionsVectorT& connections(); 
 #endif

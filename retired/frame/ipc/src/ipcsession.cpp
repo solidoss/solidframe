@@ -72,7 +72,7 @@ struct ConnectDataMessage: Message{
 };
 }//namespace
 
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 namespace {
 struct StatisticData{
 	StatisticData(){
@@ -406,7 +406,7 @@ public:
 	UInt32QueueT			sendmsgidxq;
 	Packet					updatespacket;
 	TimeSpec				rcvtimepos;
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 	StatisticData			statistics;
 #endif
 };
@@ -558,7 +558,7 @@ Session::Data::Data(
 	}
 	sendmsgvec.reserve(_rsvc.configuration().session.maxsendmessagequeuesize);
 	idbgx(Debug::ipc, "Sizeof(Session::Data) = "<<sizeof(*this));
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 	idbgx(Debug::ipc, "Sizeof(StatisticData) = "<<sizeof(this->statistics));
 #endif
 }
@@ -2402,7 +2402,7 @@ AsyncE Session::doTrySendUpdates(TalkerStub &_rstub){
 		pkt.optimize(256);
 		
 		COLLECT_DATA_1(d.statistics.sendOnlyUpdatesSize, pkt.updateCount());
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 		if(pkt.updateCount() == 1){
 			COLLECT_DATA_0(d.statistics.sendOnlyUpdatesSize1);
 		}
@@ -2511,7 +2511,7 @@ AsyncE Session::doExecuteConnected(TalkerStub &_rstub){
 	vdbgx(Debug::ipc, ""<<d.sendpacketfreeposstk.size());
 	Controller 	&rctrl = _rstub.service().controller();
 
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 	if(d.sendpacketfreeposstk.size() == 0){
 		COLLECT_DATA_0(d.statistics.sendStackSize0);
 	}else if(d.sendpacketfreeposstk.size() == 1){
@@ -2831,7 +2831,7 @@ bool Session::pushReceivedErrorPacket(
 }
 //======================================================================
 namespace{
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 /*static*/ StaticData const& StaticData::the(){
 	static const StaticData sd;
 	return sd;
@@ -2880,7 +2880,7 @@ uint32 StaticData::retransmitTimeout(const size_t _pos)const{
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 namespace{
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 const uint32 specificId(){
 	static const uint32 id(Thread::specificId());
 	return id;
@@ -2919,7 +2919,7 @@ Context::~Context(){
 	return Context::the().msgctx;
 }
 //======================================================================
-#ifdef USTATISTICS
+#ifdef SOLID_HAS_STATISTICS
 namespace {
 StatisticData::~StatisticData(){
 	rdbgx(Debug::ipc, "Statistics:\r\n"<<*this);

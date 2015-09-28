@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #define inline
 #endif
 
@@ -21,13 +21,13 @@ inline void *MemoryCache::allocate(const size_t _sz){
 		
 		CacheStub		&cs(cachevec[idx]);
 		void* const		pv = cs.pop(cp, cfg);
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 		vdbgx(dbgid, "Allocated "<<pv<<" of capacity "<<cp<<" using cachestub "<<idx);
 #endif
 		return pv;
 	}else{
 		void*			pv = new char[_sz];
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 		vdbgx(dbgid, "Allocated "<<pv<<" using default allocator");
 #endif
 		return pv;
@@ -40,11 +40,11 @@ inline void MemoryCache::free(void *_pv, const size_t _sz){
 		const size_t	cp = indexToCapacity(idx);
 		CacheStub		&cs(cachevec[idx]);
 		cs.push(_pv, cp, cfg);
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 		vdbgx(dbgid, "Freed "<<_pv<<" of capacity "<<cp<<" using cachestub "<<idx);
 #endif
 	}else{
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 		vdbgx(dbgid, "Freed "<<_pv<<" using default allocator");
 #endif
 		delete []static_cast<char*>(_pv);
@@ -52,7 +52,7 @@ inline void MemoryCache::free(void *_pv, const size_t _sz){
 }
 
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #undef inline
 #endif
 

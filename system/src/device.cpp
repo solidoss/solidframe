@@ -7,7 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #include <WinSock2.h>
 #include <Windows.h>
 #else
@@ -48,7 +48,7 @@ Device::~Device(){
 
 int Device::read(char	*_pb, size_t _bl){
 	cassert(ok());
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	DWORD cnt;
 	if(ReadFile(desc, _pb, _bl, &cnt, NULL)){
 		return cnt;
@@ -62,7 +62,7 @@ int Device::read(char	*_pb, size_t _bl){
 
 int Device::write(const char* _pb, size_t _bl){
 	cassert(ok());
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	DWORD cnt;
 	/*OVERLAPPED ovp;
 	ovp.Offset = 0;
@@ -79,7 +79,7 @@ int Device::write(const char* _pb, size_t _bl){
 }
 
 bool Device::cancel(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return CancelIoEx(Device::descriptor(), NULL) != 0;
 #else
 	return true;
@@ -88,7 +88,7 @@ bool Device::cancel(){
 
 void Device::close(){
 	if(ok()){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 		CloseHandle(desc);
 #else
 		cverify(!::close(desc));
@@ -99,7 +99,7 @@ void Device::close(){
 
 void Device::flush(){
 	cassert(ok());
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	cverify(FlushFileBuffers(desc));
 #else
 	cverify(!fsync(desc));
@@ -108,7 +108,7 @@ void Device::flush(){
 
 //-- SeekableDevice	----------------------------------------
 int SeekableDevice::read(char *_pb, size_t _bl, int64 _off){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	int64 off(seek(0, SeekCur));
 	seek(_off);
 	int rv = Device::read(_pb, _bl);
@@ -120,7 +120,7 @@ int SeekableDevice::read(char *_pb, size_t _bl, int64 _off){
 }
 
 int SeekableDevice::write(const char *_pb, size_t _bl, int64 _off){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	int64 off(seek(0, SeekCur));
 	seek(_off);
 	int rv = Device::write(_pb, _bl);
@@ -131,14 +131,14 @@ int SeekableDevice::write(const char *_pb, size_t _bl, int64 _off){
 #endif
 }
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 const DWORD seekmap[3]={FILE_BEGIN, FILE_CURRENT, FILE_END};
 #else
 const int seekmap[3]={SEEK_SET,SEEK_CUR,SEEK_END};
 #endif
 
 int64 SeekableDevice::seek(int64 _pos, SeekRef _ref){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	LARGE_INTEGER li;
 
 	li.QuadPart = _pos;
@@ -156,7 +156,7 @@ int64 SeekableDevice::seek(int64 _pos, SeekRef _ref){
 }
 
 bool SeekableDevice::truncate(int64 _len){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	seek(_len);
 	return SetEndOfFile(descriptor());
 #else
@@ -169,7 +169,7 @@ bool SeekableDevice::truncate(int64 _len){
 FileDevice::FileDevice(){
 }
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 HANDLE do_open(WCHAR *_pwc, const char *_fname, const size_t _sz, const size_t _wcp, int _how){
 	WCHAR *pwctmp(NULL);
 	//first convert _fname to _pwc
@@ -228,7 +228,7 @@ HANDLE do_open(WCHAR *_pwc, const char *_fname, const size_t _sz, const size_t _
 #endif
 
 bool FileDevice::open(const char* _fname, int _how){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	//_fname is utf-8, so we need to convert it to WCHAR
 	const size_t sz(strlen(_fname));
 	const size_t szex = sz + 1;
@@ -262,7 +262,7 @@ bool FileDevice::create(const char* _fname, int _how){
 }
 
 int64 FileDevice::size()const{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	LARGE_INTEGER li;
 
 	li.QuadPart = 0;
@@ -278,14 +278,14 @@ int64 FileDevice::size()const{
 #endif
 }
 bool FileDevice::canRetryOpen()const{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return false;
 #else
 	return (errno == EMFILE) || (errno == ENOMEM);
 #endif
 }
 /*static*/ int64 FileDevice::size(const char *_fname){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	FileDevice fd;
 	if(fd.open(_fname, RO)){
 		return -1;
@@ -298,7 +298,7 @@ bool FileDevice::canRetryOpen()const{
 #endif
 }
 //-- Directory -------------------------------------
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 int do_create_directory(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 	WCHAR *pwctmp(NULL);
 	//first convert _fname to _pwc
@@ -333,7 +333,7 @@ int do_create_directory(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp)
 }
 #endif
 /*static*/ bool Directory::create(const char *_fname){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	const size_t sz(strlen(_fname));
 	const size_t szex = sz + 1;
 	if(szex < 256){
@@ -355,7 +355,7 @@ int do_create_directory(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp)
 #endif
 }
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 	WCHAR *pwctmp(NULL);
 	//first convert _fname to _pwc
@@ -392,7 +392,7 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 
 
 /*static*/ bool Directory::eraseFile(const char *_fname){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	const size_t sz(strlen(_fname));
 	const size_t szex = sz + 1;
 	if(szex < 256){
@@ -414,7 +414,7 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 #endif
 }
 /*static*/ bool Directory::renameFile(const char *_to, const char *_from){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	const size_t szto(strlen(_to));
 	const size_t szfr(strlen(_from));
 	WCHAR pwcto[4096];
@@ -483,8 +483,8 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 #endif
 }
 
-#ifndef UDEBUG
-#ifdef ON_WINDOWS
+#ifndef SOLID_HAS_DEBUG
+#ifdef SOLID_ON_WINDOWS
 struct wsa_cleaner{
 	~wsa_cleaner(){
 		WSACleanup();
@@ -495,7 +495,7 @@ struct wsa_cleaner{
 
 //---- SocketDevice ---------------------------------
 /*static*/ ErrorCodeT last_socket_error(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	const DWORD err = WSAGetLastError();
 	return ErrorCodeT(err, ERROR_NS::system_category());
 #else
@@ -503,8 +503,8 @@ struct wsa_cleaner{
 #endif
 }
 SocketDevice::SocketDevice(SocketDevice &&_sd):Device(std::move(_sd)){
-#ifndef UDEBUG
-#ifdef ON_WINDOWS
+#ifndef SOLID_HAS_DEBUG
+#ifdef SOLID_ON_WINDOWS
 	static const wsa_cleaner wsaclean;
 #endif
 #endif
@@ -519,28 +519,28 @@ SocketDevice::~SocketDevice(){
 	close();
 }
 void SocketDevice::shutdownRead(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	if(ok()) shutdown(descriptor(), SD_RECEIVE);
 #else
 	if(ok()) shutdown(descriptor(), SHUT_RD);
 #endif
 }
 void SocketDevice::shutdownWrite(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	if(ok()) shutdown(descriptor(), SD_SEND);
 #else
 	if(ok()) shutdown(descriptor(), SHUT_WR);
 #endif
 }
 void SocketDevice::shutdownReadWrite(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	if(ok()) shutdown(descriptor(), SD_BOTH);
 #else
 	if(ok()) shutdown(descriptor(), SHUT_RDWR);
 #endif
 }
 void SocketDevice::close(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	shutdownReadWrite();
 	if(ok()){
 		closesocket(descriptor());
@@ -553,7 +553,7 @@ void SocketDevice::close(){
 }
 
 ErrorCodeT SocketDevice::create(const ResolveIterator &_rri){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	//SOCKET s = socket(_rai.family(), _rai.type(), _rai.protocol());
 	SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
@@ -568,7 +568,7 @@ ErrorCodeT SocketDevice::create(
 	SocketInfo::Type _type,
 	int _proto
 ){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	//SOCKET s = socket(_family, _type, _proto);
 	SOCKET s = WSASocket(_family, _type, _proto, NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
@@ -579,7 +579,7 @@ ErrorCodeT SocketDevice::create(
 }
 
 ErrorCodeT SocketDevice::connect(const SocketAddressStub &_rsas, bool &_rcan_wait){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	_rcan_wait = (WSAGetLastError() == WSAEWOULDBLOCK);
 #else
@@ -590,7 +590,7 @@ ErrorCodeT SocketDevice::connect(const SocketAddressStub &_rsas, bool &_rcan_wai
 }
 
 ErrorCodeT SocketDevice::connect(const SocketAddressStub &_rsas){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #else
 	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
@@ -599,7 +599,7 @@ ErrorCodeT SocketDevice::connect(const SocketAddressStub &_rsas){
 }
 
 // int SocketDevice::connect(const ResolveIterator &_rai){
-// #ifdef ON_WINDOWS
+// #ifdef SOLID_ON_WINDOWS
 // 	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
 // 	if (rv < 0) { // sau rv == -1 ...
 // 		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
@@ -620,7 +620,7 @@ ErrorCodeT SocketDevice::connect(const SocketAddressStub &_rsas){
 // #endif
 // }
 ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub &_rsas, size_t _listencnt){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
@@ -656,7 +656,7 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub &_rsas, size_t _l
 }
 
 ErrorCodeT SocketDevice::accept(SocketDevice &_dev, bool &_rcan_retry){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	SocketAddress sa;
 	const SOCKET rv = ::accept(descriptor(), sa, &sa.sz);
 	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
@@ -672,7 +672,7 @@ ErrorCodeT SocketDevice::accept(SocketDevice &_dev, bool &_rcan_retry){
 }
 
 ErrorCodeT SocketDevice::accept(SocketDevice &_dev){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	SocketAddress sa;
 	SOCKET rv = ::accept(descriptor(), sa, &sa.sz);
 	_dev.Device::descriptor((HANDLE)rv);
@@ -688,7 +688,7 @@ ErrorCodeT SocketDevice::accept(SocketDevice &_dev){
 
 ErrorCodeT SocketDevice::bind(const SocketAddressStub &_rsa){
 	specific_error_clear();
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	/*int rv = */::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
 	return last_socket_error();
 #else
@@ -698,7 +698,7 @@ ErrorCodeT SocketDevice::bind(const SocketAddressStub &_rsa){
 }
 
 ErrorCodeT SocketDevice::makeBlocking(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	u_long mode = 0;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	if (rv != NO_ERROR){
@@ -719,7 +719,7 @@ ErrorCodeT SocketDevice::makeBlocking(){
 
 ErrorCodeT SocketDevice::makeBlocking(size_t _msec){
 	specific_error_clear();
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	u_long mode = 0;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	if (rv != NO_ERROR){
@@ -763,7 +763,7 @@ ErrorCodeT SocketDevice::makeBlocking(size_t _msec){
 
 ErrorCodeT SocketDevice::makeNonBlocking(){
 	specific_error_clear();
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	u_long mode = 1;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	
@@ -786,7 +786,7 @@ ErrorCodeT SocketDevice::makeNonBlocking(){
 
  ErrorCodeT SocketDevice::isBlocking(bool &_rrv)const{
 	specific_error_clear();
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 
@@ -801,7 +801,7 @@ ErrorCodeT SocketDevice::makeNonBlocking(){
 }
 
 int SocketDevice::send(const char* _pb, size_t _ul, bool &_rcan_retry, ErrorCodeT &_rerr, unsigned){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return -1;
 #else
 	int rv = ::send(descriptor(), _pb, _ul, 0);
@@ -811,7 +811,7 @@ int SocketDevice::send(const char* _pb, size_t _ul, bool &_rcan_retry, ErrorCode
 #endif
 }
 int SocketDevice::recv(char *_pb, size_t _ul, bool &_rcan_retry, ErrorCodeT &_rerr, unsigned){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return -1;
 #else
 	int rv = ::recv(descriptor(), _pb, _ul, 0);
@@ -821,7 +821,7 @@ int SocketDevice::recv(char *_pb, size_t _ul, bool &_rcan_retry, ErrorCodeT &_re
 #endif
 }
 int SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub &_sap, bool &_rcan_retry, ErrorCodeT &_rerr){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return -1;
 #else
 	int rv = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
@@ -831,7 +831,7 @@ int SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub &_sa
 #endif
 }
 int SocketDevice::recv(char *_pb, size_t _ul, SocketAddress &_rsa, bool &_rcan_retry, ErrorCodeT &_rerr){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return -1;
 #else
 	_rsa.clear();
@@ -844,7 +844,7 @@ int SocketDevice::recv(char *_pb, size_t _ul, SocketAddress &_rsa, bool &_rcan_r
 }
 
 ErrorCodeT SocketDevice::remoteAddress(SocketAddress &_rsa)const{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	_rsa.clear();
@@ -858,7 +858,7 @@ ErrorCodeT SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 }
 
 ErrorCodeT SocketDevice::localAddress(SocketAddress &_rsa)const{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	_rsa.clear();
@@ -872,7 +872,7 @@ ErrorCodeT SocketDevice::localAddress(SocketAddress &_rsa)const{
 }
 
 ErrorCodeT SocketDevice::type(int &_rrv)const{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int			val = 0;
@@ -888,7 +888,7 @@ ErrorCodeT SocketDevice::type(int &_rrv)const{
 }
 
 // SocketDevice::RetValE SocketDevice::isListening(ERROR_NS::error_code &_rerr)const{
-// #ifdef ON_WINDOWS
+// #ifdef SOLID_ON_WINDOWS
 // 	return Error;
 // #else
 // 	int val = 0;
@@ -907,7 +907,7 @@ ErrorCodeT SocketDevice::type(int &_rrv)const{
 // }
 
 ErrorCodeT SocketDevice::enableNoDelay(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int flag = 1;
@@ -920,7 +920,7 @@ ErrorCodeT SocketDevice::enableNoDelay(){
 }
 
 ErrorCodeT SocketDevice::disableNoDelay(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int flag = 0;
@@ -942,7 +942,7 @@ ErrorCodeT SocketDevice::disableLinger(){
 }
 
 ErrorCodeT SocketDevice::hasNoDelay(bool &_rrv)const{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int			flag = 0;
@@ -957,9 +957,9 @@ ErrorCodeT SocketDevice::hasNoDelay(bool &_rrv)const{
 }
 	
 ErrorCodeT SocketDevice::enableCork(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
-#elif defined(ON_LINUX)
+#elif defined(SOLID_ON_LINUX)
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv == 0){
@@ -972,9 +972,9 @@ ErrorCodeT SocketDevice::enableCork(){
 }
 
 ErrorCodeT SocketDevice::disableCork(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
-#elif defined(ON_LINUX)
+#elif defined(SOLID_ON_LINUX)
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv == 0){
@@ -987,9 +987,9 @@ ErrorCodeT SocketDevice::disableCork(){
 }
 
 ErrorCodeT SocketDevice::hasCork(bool &_rrv)const{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
-#elif defined(ON_LINUX)
+#elif defined(SOLID_ON_LINUX)
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
 	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
@@ -1004,7 +1004,7 @@ ErrorCodeT SocketDevice::hasCork(bool &_rrv)const{
 }
 
 ErrorCodeT SocketDevice::sendBufferSize(int &_rsz){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	if(_rsz >= 0){
@@ -1029,7 +1029,7 @@ ErrorCodeT SocketDevice::sendBufferSize(int &_rsz){
 }
 
 ErrorCodeT SocketDevice::recvBufferSize(int &_rsz){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	if(_rsz >= 0){
@@ -1052,7 +1052,7 @@ ErrorCodeT SocketDevice::recvBufferSize(int &_rsz){
 }
 
 ErrorCodeT SocketDevice::sendBufferSize(int &_rsz)const{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int 		sockbufsz(0);
@@ -1068,7 +1068,7 @@ ErrorCodeT SocketDevice::sendBufferSize(int &_rsz)const{
 }
 
 ErrorCodeT SocketDevice::recvBufferSize(int &_rsz)const{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int 		sockbufsz(0);

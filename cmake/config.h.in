@@ -1,10 +1,28 @@
-#cmakedefine HAS_PTHREAD_H
-#cmakedefine HAS_EVENTFD_H
-#cmakedefine HAS_CPP11
-#cmakedefine HAS_EPOLL
-#cmakedefine HAS_KQUEUE
-#cmakedefine HAS_SAFE_STATIC
-#cmakedefine HAS_GNU_ATOMIC
+#ifndef SOLID_SYSTEM_CONFIG_H
+#define SOLID_SYSTEM_CONFIG_H
+
+#cmakedefine SOLID_USE_PTHREAD
+#cmakedefine SOLID_USE_EVENTFD
+#cmakedefine SOLID_USE_CPP11
+#cmakedefine SOLID_USE_EPOLL
+#cmakedefine SOLID_USE_KQUEUE
+#cmakedefine SOLID_USE_SAFE_STATIC
+#cmakedefine SOLID_USE_GNU_ATOMIC
+
+#cmakedefine SOLID_ON_WINDOWS
+#cmakedefine SOLID_ON_LINUX
+#cmakedefine SOLID_ON_FREEBSD
+#cmakedefine SOLID_ON_DARWIN
+#cmakedefine SOLID_ON_POSIX
+
+#cmakedefine SOLID_HAS_DEBUG
+#cmakedefine SOLID_HAS_NO_INLINES
+#cmakedefine SOLID_HAS_ASSERT
+#cmakedefine SOLID_HAS_STATISTICS
+
+#define SOLID_VERSION_MAJOR @VERSION_MAJOR@
+#define SOLID_VERSION_MINOR @VERSION_MINOR@
+#define SOLID_VERSION_PATCH "@VERSION_PATCH@"
 
 #ifdef _LP64
 #define UWORDSIZE 64
@@ -12,3 +30,5 @@
 #define UWORDSIZE 32
 #endif
 
+
+#endif

@@ -22,16 +22,16 @@
 
 #include "mutexpool.hpp"
 
-#if defined(ON_FREEBSD)
+#if defined(SOLID_ON_FREEBSD)
 #include <pmc.h>
-#elif defined(ON_DARWIN)
-#elif defined(ON_WINDOWS)
+#elif defined(SOLID_ON_DARWIN)
+#elif defined(SOLID_ON_WINDOWS)
 #else
 #include <sys/sysinfo.h>
 #endif
 
 
-#if defined(ON_WINDOWS)
+#if defined(SOLID_ON_WINDOWS)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -43,7 +43,7 @@
 #include <pthread.h>
 #endif
 
-#if defined(ON_DARWIN)
+#if defined(SOLID_ON_DARWIN)
 #include <mach/mach_time.h>
 #endif
 
@@ -59,7 +59,7 @@ struct Cleaner{
 };
 
 /*static*/ const char* src_file_name(char const *_fname){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
 #else
 	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system/src")));
@@ -71,10 +71,10 @@ void throw_exception(const char* const _pt, const char * const _file, const int 
 	throw Exception<const char*>(_pt, _file, _line, _func);
 }
 
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 static const pthread_once_t	oncek = PTHREAD_ONCE_INIT;
 #else
-#endif//ON_WINDOWS
+#endif//SOLID_ON_WINDOWS
 
 struct ThreadData{
 	enum {
@@ -84,7 +84,7 @@ struct ThreadData{
 	//ThreadData();
 	//ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
 	uint32    						thcnt;
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 	pthread_key_t					crtthread_key;
 	pthread_once_t					once_key;
 #else
@@ -94,7 +94,7 @@ struct ThreadData{
 	Mutex							gmut;
 	FastMutexPool<MutexPoolSize>	mutexpool;
 	ThreadData():thcnt(0)
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 		,crtthread_key(0)
 		,once_key(oncek){
 	}
@@ -105,7 +105,7 @@ struct ThreadData{
 #endif
 };
 
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 static ThreadData& threadData(){
 	static ThreadData td;
 	return td;
@@ -130,7 +130,7 @@ Cleaner             			cleaner;
 //static unsigned 				crtspecid = 0;
 //*************************************************************************
 /*static*/ const TimeSpec TimeSpec::maximum(0xffffffff, 0xffffffff);
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "system/timespec.ipp"
 #endif
 
@@ -143,7 +143,7 @@ Cleaner             			cleaner;
 	return ct.currentMonotonic();
 }
 
-#if		defined(ON_WINDOWS)
+#if		defined(SOLID_ON_WINDOWS)
 
 struct TimeStartData{
 #ifdef NWINDOWSQPC
@@ -224,7 +224,7 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 	return *this;
 }
 
-#elif	defined(ON_DARWIN)
+#elif	defined(SOLID_ON_DARWIN)
 
 struct TimeStartData{
 	TimeStartData(){
@@ -284,15 +284,15 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 #elif	defined(UBOOSTMUTEX)
 #else
 //*************************************************************************
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "system/mutex.ipp"
 #endif
 //*************************************************************************
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "system/condition.ipp"
 #endif
 //*************************************************************************
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "system/synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------
@@ -309,7 +309,7 @@ bool Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
 }
 //-------------------------------------------------------------------------
 int Mutex::timedLock(const TimeSpec &_rts){
-#if defined (ON_DARWIN)
+#if defined (SOLID_ON_DARWIN)
     return -1;
 #else
 	return pthread_mutex_timedlock(&mut,&_rts);
@@ -331,7 +331,7 @@ int Mutex::reinit(Type _type){
 //*************************************************************************
 namespace{
 struct DummyThread: Thread{
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	DummyThread(HANDLE _th = NULL):Thread(true, _th){}
 #else
 	DummyThread(pthread_t _th = 0):Thread(true, _th){}
@@ -341,7 +341,7 @@ struct DummyThread: Thread{
 
 }//namespace
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #else
 void Thread::free_thread(void *_pth){
 	delete static_cast<Thread*>(_pth);
@@ -349,7 +349,7 @@ void Thread::free_thread(void *_pth){
 #endif
 
 /*static*/ void Thread::init(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	TlsSetValue(threadData().crtthread_key, NULL);
 #else
 	cverify(!pthread_key_create(&threadData().crtthread_key, &Thread::free_thread));
@@ -357,7 +357,7 @@ void Thread::free_thread(void *_pth){
 }
 //-------------------------------------------------------------------------
 void Thread::cleanup(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	TlsFree(threadData().crtthread_key);
 #else
 	pthread_key_delete(threadData().crtthread_key);
@@ -365,7 +365,7 @@ void Thread::cleanup(){
 }
 //-------------------------------------------------------------------------
 void Thread::sleep(ulong _msec){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	Sleep(_msec);
 #else
 	usleep(_msec*1000);
@@ -387,7 +387,7 @@ inline void Thread::exit(){
 }
 //-------------------------------------------------------------------------
 Thread* Thread::associateToCurrent(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	Thread *pth = new DummyThread(GetCurrentThread());
 #else
 	Thread *pth = new DummyThread(pthread_self());
@@ -397,7 +397,7 @@ Thread* Thread::associateToCurrent(){
 }
 //-------------------------------------------------------------------------
 Thread& Thread::current(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	Thread * pth = reinterpret_cast<Thread*>(TlsGetValue(threadData().crtthread_key));
 	return pth ? *pth : *associate_to_current_thread();
 #else
@@ -407,14 +407,14 @@ Thread& Thread::current(){
 }
 //-------------------------------------------------------------------------
 long Thread::processId(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return _getpid();
 #else
 	return getpid();
 #endif
 }
 //-------------------------------------------------------------------------
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 Thread::Thread(bool _detached, void* _th):th(_th), dtchd(_detached), pthrstub(NULL){
 }
 #else
@@ -431,7 +431,7 @@ Thread::~Thread(){
 	}
 }
 //-------------------------------------------------------------------------
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 long Thread::currentId(){
 	return (long)GetCurrentThreadId();
 }
@@ -445,13 +445,13 @@ void Thread::dummySpecificDestroy(void*){
 }
 //-------------------------------------------------------------------------
 /*static*/ size_t Thread::processorCount(){
-#if		defined(ON_SOLARIS)
+#if		defined(SOLID_ON_SOLARIS)
 	return 1;
-#elif	defined(ON_FREEBSD) || defined(ON_DARWIN)
+#elif	defined(SOLID_ON_FREEBSD) || defined(SOLID_ON_DARWIN)
 	int count;
     size_t size=sizeof(count);
     return 1;//sysctlbyname("hw.ncpu",&count,&size,NULL,0)?0:count;
-#elif	defined(ON_WINDOWS)
+#elif	defined(SOLID_ON_WINDOWS)
 	SYSTEM_INFO info={{0}};
     GetSystemInfo(&info);
     return info.dwNumberOfProcessors;
@@ -462,7 +462,7 @@ void Thread::dummySpecificDestroy(void*){
 //-------------------------------------------------------------------------
 bool Thread::join(){
 	specific_error_clear();
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	if(detached()) return false;
 	WaitForSingleObject(th, INFINITE);
 	return true;
@@ -484,7 +484,7 @@ bool Thread::detached() const{
 }
 //-------------------------------------------------------------------------
 bool Thread::detach(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	Locker<Mutex> lock(mutex());
 	if(detached()) return true;
 	dtchd = true;
@@ -503,7 +503,7 @@ bool Thread::detach(){
 //-------------------------------------------------------------------------
 typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 size_t Thread::specificId(){
 	static AtomicSizeT sid((size_t)ThreadData::FirstSpecificId);
 	return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
@@ -551,7 +551,7 @@ Mutex& Thread::gmutex(){
 }
 //-------------------------------------------------------------------------
 void Thread::current(Thread *_ptb){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	TlsSetValue(threadData().crtthread_key, _ptb);
 #else
 	pthread_setspecific(threadData().crtthread_key, _ptb);
@@ -575,7 +575,7 @@ struct Thread::ThreadStub{
 };
 bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 	specific_error_clear();
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	if(_wait){
 		Locker<Mutex>	lock(mutex());
 		Condition		cnd;
@@ -728,7 +728,7 @@ void Thread::waitAll(){
     while(td.thcnt != 0) td.gcon.wait(lock);
 }
 //-------------------------------------------------------------------------
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 unsigned long Thread::th_run(void *pv){
 	vdbgx(Debug::system, "thrun enter "<<pv);
 	Thread	*pth(reinterpret_cast<Thread*>(pv));

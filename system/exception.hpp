@@ -149,7 +149,7 @@ void throw_exception(const char* const _pt, const T& _rt, const char *const _fil
 
 
 #ifndef CRT_FUNCTION_NAME
-	#ifdef ON_WINDOWS
+	#ifdef SOLID_ON_WINDOWS
 		#define CRT_FUNCTION_NAME __func__
 	#else
 		#define CRT_FUNCTION_NAME __FUNCTION__

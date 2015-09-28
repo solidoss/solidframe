@@ -117,7 +117,7 @@ private:
 	Data	&d;
 };
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "frame/manager.ipp"
 #endif
 

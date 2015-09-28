@@ -50,7 +50,7 @@ static const char* levelName(unsigned _lvl){
 	char	buf[128];
 	time_t	sec = _rrec.head.sec;
 	tm		*ploctm;
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	ploctm = localtime(&sec);
 #else
 	tm		loctm;

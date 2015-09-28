@@ -24,7 +24,7 @@ struct SingleTest{
 	int value;
 };
 
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 /*static*/ SingleTest& SingleTest::instance(){
 	static SingleTest st;
 	return st;
@@ -153,8 +153,8 @@ void Runner::run(){
 }
 
 int main(int argc, char *argv[]){
-	cout<<"Built on SolidFrame version "<<SF_MAJOR<<'.'<<SF_MINOR<<'.'<<SF_PATCH<<endl;
-#ifdef UDEBUG
+	cout<<"Built on SolidFrame version "<<SOLID_VERSION_MAJOR<<'.'<<SOLID_VERSION_MINOR<<'.'<<SOLID_VERSION_PATCH<<endl;
+#ifdef SOLID_HAS_DEBUG
 	{
 	//initDebug(s.c_str());
 		Debug::the().initStdErr();

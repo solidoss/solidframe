@@ -10,7 +10,8 @@
 #ifndef SYSTEM_CASSERT_HPP
 #define SYSTEM_CASSERT_HPP
 
-#ifdef UASSERT
+#include "system/common.hpp"
+#ifdef SOLID_HAS_ASSERT
 #include <cassert>
 #define cassert(a) assert((a))
 #define cverify(a) assert((a))

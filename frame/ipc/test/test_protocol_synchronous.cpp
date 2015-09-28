@@ -153,7 +153,7 @@ void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessageP
 int test_protocol_synchronous(int argc, char **argv){
 	
 	Thread::init();
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
 	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);

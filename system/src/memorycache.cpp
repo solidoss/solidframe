@@ -11,14 +11,14 @@
 #include "system/memorycache.hpp"
 #include "system/memory.hpp"
 #include "system/cassert.hpp"
-//#undef UDEBUG
+//#undef SOLID_HAS_DEBUG
 #include "system/debug.hpp"
 #include <vector>
 #include <boost/type_traits.hpp>
 #include <memory>
 
 
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 namespace{
 	size_t dbgid = solid::Debug::the().registerModule("memory_cache");
 }
@@ -115,7 +115,7 @@ struct Page{
 CacheStub::CacheStub(
 	Configuration const &_rcfg
 ):	pfrontpage(NULL), pbackpage(NULL), emptypagecnt(0), pagecnt(0), keeppagecnt(_rcfg.emptypagecnt)
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	, itemcnt(0)
 #endif
 	{}
@@ -152,7 +152,7 @@ inline size_t CacheStub::allocate(const size_t _cp, Configuration const &_rcfg){
 		}
 		++pagecnt;
 		++emptypagecnt;
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 		itemcnt += cnt;
 		vdbgx(dbgid, "itemcnt = "<<itemcnt);
 #endif
@@ -167,7 +167,7 @@ void* CacheStub::pop(const size_t _cp, Configuration const &_rcfg){
 		if(!cnt){
 			return NULL;
 		}
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 		itemcnt += cnt;
 #endif
 	}
@@ -191,14 +191,14 @@ void* CacheStub::pop(const size_t _cp, Configuration const &_rcfg){
 		ptmp->pprev = NULL;
 		pbackpage = ptmp;
 	}
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	--itemcnt;
 #endif
 	return pv;
 }
 	
 void CacheStub::push(void *_pv, size_t _cp, Configuration const &_rcfg){
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	++itemcnt;
 #endif
 	Page *ppage = Page::computePage(_pv, _rcfg);
@@ -319,7 +319,7 @@ size_t MemoryCache::reserve(const size_t _sz, const size_t _cnt, const bool _laz
 	return totcnt;
 }
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "system/memorycache.ipp"
 #endif
 

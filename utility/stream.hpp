@@ -44,7 +44,7 @@ protected:
 	StreamFlags	flags;
 };
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "utility/stream.ipp"
 #endif
 

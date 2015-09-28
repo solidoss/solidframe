@@ -30,7 +30,7 @@ struct Service::Data{
 };
 
 
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 
 struct InitServiceOnce{
 	InitServiceOnce(Manager &_rm);

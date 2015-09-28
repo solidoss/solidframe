@@ -19,7 +19,7 @@
 
 #include <vector>
 
-#ifdef HAS_GNU_ATOMIC
+#ifdef SOLID_USE_GNU_ATOMIC
 #include <ext/atomicity.h>
 #endif
 
@@ -36,7 +36,7 @@ namespace{
 
 typedef MutualStore<Mutex>	MutexStoreT;
 
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 MutexStoreT &mutexStore(){
 	static MutexStoreT		mtxstore(3, 2, 2);
 	return mtxstore;

@@ -8,12 +8,12 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #define inline
 #include "system/synchronization.hpp"
 #endif
 
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 inline Semaphore::Semaphore(int _cnt){
 	sem_init(&sem,0,_cnt);
 }
@@ -37,7 +37,7 @@ inline bool Semaphore::tryWait(){
 }
 
 #else
-//ON_WINDOWS
+//SOLID_ON_WINDOWS
 inline Semaphore::Semaphore(int _cnt){
 }
 inline Semaphore::~Semaphore(){
@@ -55,6 +55,6 @@ inline int Semaphore::tryWait(){
 }
 #endif
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #undef inline
 #endif

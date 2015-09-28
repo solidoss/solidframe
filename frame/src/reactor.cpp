@@ -587,7 +587,7 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 
 
 namespace{
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 static const size_t specificPosition(){
 	static const size_t	thrspecpos = Thread::specificId();
 	return thrspecpos;

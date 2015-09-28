@@ -182,7 +182,7 @@ int main(int argc, char *argv[]){
 	
 	/*solid::*/Thread::init();
 	
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 	string dbgout;
 	Debug::the().levelMask(params.dbg_levels.c_str());

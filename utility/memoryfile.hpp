@@ -34,7 +34,7 @@ public:
 	};
 	template <uint Sz = 4096>
 	struct BasicAllocator: Allocator{
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 		static BasicAllocator<Sz>& instance(){
 			static BasicAllocator<Sz> ba;
 			return ba;

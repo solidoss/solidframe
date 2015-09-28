@@ -217,7 +217,7 @@ void FourthHandler::run(){
 }
 
 int main(){
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
 	Debug::the().moduleMask("any");
 	Debug::the().initStdErr(false);

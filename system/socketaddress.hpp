@@ -10,7 +10,7 @@
 #ifndef SYSTEM_SOCKETADDRESS_HPP
 #define SYSTEM_SOCKETADDRESS_HPP
 
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 #include <sys/un.h>
 #include <arpa/inet.h>
 #endif
@@ -21,7 +21,7 @@
 #include "system/socketinfo.hpp"
 #include "system/binary.hpp"
 
-#if defined(HAS_CPP11) && !defined(USHAREDBACKEND)
+#if defined(SOLID_USE_CPP11) && !defined(USHAREDBACKEND)
 #include <memory>
 #elif defined(UBOOSTSHAREDPTR) && !defined(USHAREDBACKEND)
 #include "boost/shared_ptr.hpp"
@@ -29,7 +29,7 @@
 #include "system/sharedbackend.hpp"
 #endif
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #endif
@@ -64,7 +64,7 @@ private:
 //==================================================================
 struct DirectResoveInfo{
 	enum FlagsE{
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 		CannonName = AI_CANONNAME,
 		All	= AI_ALL,
 		AddrConfig = AI_ADDRCONFIG,
@@ -104,7 +104,7 @@ struct ResolveData{
 	ResolveData& operator=(const ResolveData &_rrd);
 private:
 	static void delete_addrinfo(void *_pv);
-#if defined(HAS_CPP11) && !defined(USHAREDBACKEND)
+#if defined(SOLID_USE_CPP11) && !defined(USHAREDBACKEND)
 	typedef std::shared_ptr<addrinfo>	AddrInfoSharedPtrT;
 	AddrInfoSharedPtrT		aiptr;
 #elif defined(UBOOSTSHAREDPTR) && !defined(USHAREDBACKEND)
@@ -137,7 +137,7 @@ ResolveData synchronous_resolve(
 struct SocketAddressStub;
 struct ReverseResolveInfo{
 	enum FlagsE{
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 		NameRequest = NI_NAMEREQD,
 		Datagram = NI_DGRAM,
 		NoFQDN = NI_NOFQDN,
@@ -160,7 +160,7 @@ struct SocketAddressInet;
 struct SocketAddressInet4;
 struct SocketAddressInet6;
 struct SocketAddressLocal;
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 typedef int socklen_t;
 #endif
 //! A pair of a sockaddr pointer and a size
@@ -215,7 +215,7 @@ private:
 		sockaddr		addr;
 		sockaddr_in 	inaddr4;
 		sockaddr_in6 	inaddr6;
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 		sockaddr_un		localaddr;
 #endif
 	};
@@ -461,7 +461,7 @@ std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet& _rsa);
 std::ostream& operator<<(std::ostream& _ros, const SocketAddress& _rsa);
 
 //==================================================================
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 struct SocketAddressLocal{
 private:
 	union AddrUnion{
@@ -503,7 +503,7 @@ private:
 };
 #endif
 //==================================================================
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "system/socketaddress.ipp"
 #endif
 //==================================================================

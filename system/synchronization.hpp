@@ -12,7 +12,7 @@
 
 #include "system/cassert.hpp"
 
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 #include <semaphore.h>
 #endif
 
@@ -29,11 +29,11 @@ public:
 	Semaphore & operator++();
 	bool tryWait();
 private:
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 	sem_t sem;
 #endif
 };
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "system/synchronization.ipp"
 #endif
 

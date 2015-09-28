@@ -6,7 +6,7 @@ using namespace std;
 using namespace solid;
 
 int main(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	WSADATA	wsaData;
     int		err;
 	WORD	wVersionRequested;

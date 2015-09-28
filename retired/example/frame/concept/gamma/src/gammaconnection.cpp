@@ -53,7 +53,7 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 }
 
 namespace{
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 static const unsigned specificPosition(){
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;

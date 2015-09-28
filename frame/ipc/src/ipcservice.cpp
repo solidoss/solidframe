@@ -45,7 +45,7 @@
 #include <vector>
 #include <deque>
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #define CPP11_NS std
 #include <unordered_map>
 #else

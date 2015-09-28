@@ -10,12 +10,12 @@
 #ifndef SYSTEM_THREAD_HPP
 #define SYSTEM_THREAD_HPP
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #else
 #include <pthread.h>
 #endif
 
-#if defined(ON_SOLARIS) || defined(ON_DARWIN)
+#if defined(SOLID_ON_SOLARIS) || defined(SOLID_ON_DARWIN)
 #include <sched.h>
 #endif
 
@@ -114,7 +114,7 @@ private:
 	
 	static void current(Thread *_ptb);
 	Thread(const Thread&){}
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	static unsigned long th_run(void*);
 #else
 	static void* th_run(void*);
@@ -128,7 +128,7 @@ private:
 	typedef std::pair<void*, SpecificFncT>	SpecPairT;
 	typedef std::vector<SpecPairT>			SpecVecT;
 	struct ThreadStub;
-#if		defined(ON_WINDOWS)
+#if		defined(SOLID_ON_WINDOWS)
 	void*			th;
 #else
 	pthread_t       th;
@@ -141,9 +141,9 @@ private:
 	Specific		spec;
 };
 
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 inline void Thread::yield(){
-#if	defined(ON_SOLARIS) || defined(ON_DARWIN)
+#if	defined(SOLID_ON_SOLARIS) || defined(SOLID_ON_DARWIN)
 	sched_yield();
 #else
 	pthread_yield();

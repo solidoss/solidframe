@@ -44,7 +44,7 @@ void MyThread::run(){
 
 int main(int argc, char *argv[]){
 	Thread::init();
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	WSADATA	wsaData;
     int		err;
 	WORD	wVersionRequested;
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]){
     }
 #endif
 
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 	string dbgout;
 	Debug::the().levelMask("view");

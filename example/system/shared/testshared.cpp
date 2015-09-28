@@ -212,7 +212,7 @@ int main(int argc, char *argv[]){
 		
 		return 0;
 	}
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	std::string s;
 	Debug::the().levelMask("view");
 	Debug::the().moduleMask("any system");

@@ -10,7 +10,7 @@
 #ifndef SYSTEM_SOCKET_INFO_HPP
 #define SYSTEM_SOCKET_INFO_HPP
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #include <WinSock2.h>
 #include <Ws2tcpip.h>
 #include <Windows.h>

@@ -19,7 +19,7 @@ namespace solid{
 namespace serialization{
 namespace binary{
 
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 /*static*/ Limits const& Limits::the(){
 	static const Limits l;
 	return l;

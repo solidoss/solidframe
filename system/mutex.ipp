@@ -7,13 +7,13 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #define inline
 #include "system/cassert.hpp"
 #endif
 
 inline Mutex::Mutex(){
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	pthread_mutexattr_t att;
 	pthread_mutexattr_init(&att);
 	pthread_mutexattr_settype(&att, (int)ERRORCHECK);
@@ -37,8 +37,8 @@ inline Mutex::~Mutex(){
 }
 
 inline void Mutex::lock(){
-#ifdef UDEBUG
-#ifdef NINLINES
+#ifdef SOLID_HAS_DEBUG
+#ifdef SOLID_HAS_NO_INLINES
 	int rv = pthread_mutex_lock(&mut);
 	if(rv){
 		edbgx(Debug::system, "pthread_mutex_lock: "<<strerror(errno));
@@ -52,8 +52,8 @@ inline void Mutex::lock(){
 #endif
 }
 inline void Mutex::unlock(){
-#ifdef UDEBUG
-#ifdef NINLINES
+#ifdef SOLID_HAS_DEBUG
+#ifdef SOLID_HAS_NO_INLINES
 	int rv = pthread_mutex_unlock(&mut);
 	if(rv){
 		edbgx(Debug::system, "pthread_mutex_unlock: "<<strerror(errno));
@@ -102,7 +102,7 @@ inline bool Mutex::tryLock(){
 }
 #endif
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #undef inline
 #endif
 

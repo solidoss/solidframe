@@ -20,7 +20,7 @@
 
 #include "utility/timerqueue.hpp"
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #include <unordered_map>
 #else
 #include <map>
@@ -53,7 +53,7 @@ typedef std::vector<uint32>									Uint32VectorT;
 typedef Stack<std::pair<uint16, uint16> >					Uint16PairVectorT;
 typedef TimerQueue<TimerValue>								TimerQueueT;
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 	typedef std::unordered_map<
 		uint32,
 		uint16

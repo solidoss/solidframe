@@ -136,7 +136,7 @@ private:
 	}d;
 };
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "aiosocket.ipp"
 #endif
 

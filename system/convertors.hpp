@@ -11,7 +11,7 @@
 #define SYSTEM_CONVERTORS_HPP
 
 #include "common.hpp"
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #include <WinSock2.h>
 #else
 #include <arpa/inet.h>

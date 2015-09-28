@@ -26,9 +26,9 @@ private:
 	const char 	*fncname;
 };
 
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 template <class T>
 void objectCheck(bool _add, const char *_fncname){
 	static EmptyChecker ec(_fncname);

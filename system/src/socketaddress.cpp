@@ -19,7 +19,7 @@
 
 namespace solid{
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "system/socketaddress.ipp"
 #endif
 

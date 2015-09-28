@@ -9,7 +9,7 @@
 //
 #include "system/cstring.hpp"
 #include <cstring>
-#ifndef ON_WINDOWS
+#ifndef SOLID_ON_WINDOWS
 #include <strings.h>
 #endif
 
@@ -62,7 +62,7 @@ const char * char_to_cstring(unsigned _c){
 }
 
 /*static*/ int cstring::casecmp(const char* _s1, const char *_s2){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
         return _stricmp(_s1,_s2);
 #else
         return ::strcasecmp(_s1,_s2);
@@ -70,7 +70,7 @@ const char * char_to_cstring(unsigned _c){
 }
 
 /*static*/ int cstring::ncasecmp(const char* _s1, const char *_s2, uint _len){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
         return _strnicmp(_s1,_s2, _len);
 #else
         return strncasecmp(_s1,_s2, _len);
@@ -78,7 +78,7 @@ const char * char_to_cstring(unsigned _c){
 }
 
 /*static*/ size_t cstring::nlen(const char *s, size_t maxlen){
-#ifdef ON_DARWIN
+#ifdef SOLID_ON_DARWIN
     return strlen(s);
 #else
 	return strnlen(s, maxlen);

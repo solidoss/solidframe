@@ -7,7 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #define inline
 #else
 #include "system/mutex.hpp"
@@ -30,6 +30,6 @@ inline void Condition::broadcast(){
 inline void Condition::wait(Locker<Mutex> &_lock){
 	cverify(!pthread_cond_wait(&cond, &_lock.m.mut));
 }
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #undef inline
 #endif

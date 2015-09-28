@@ -15,7 +15,7 @@
 #include <sys/time.h>
 
 #ifndef UPIPESIGNAL
-/*	#ifdef HAS_EVENTFD_H
+/*	#ifdef SOLID_USE_EVENTFD_H
 		#include <sys/eventfd.h>
 	#else */
 #define UPIPESIGNAL

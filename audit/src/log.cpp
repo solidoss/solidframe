@@ -21,7 +21,7 @@
 #include "system/debug.hpp"
 #include "system/cstring.hpp"
 
-#ifdef ON_SOLARIS
+#ifdef SOLID_ON_SOLARIS
 #include <strings.h>
 #endif
 
@@ -29,7 +29,7 @@ using namespace std;
 
 namespace solid{
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 const unsigned fileoff =  (strlen(__FILE__) - strlen(strstr(__FILE__, "audit\\src")));
 #else
 const unsigned fileoff =  (strlen(__FILE__) - strlen(strstr(__FILE__, "audit/src")));
@@ -277,7 +277,7 @@ void Log::Data::sendInfo(){
 	}
 }
 //=====================================================================
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 /*static*/ Log& Log::the(){
 	static Log l;
 	return l;

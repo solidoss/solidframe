@@ -20,7 +20,7 @@ namespace frame{
 namespace ipc{
 
 //*******	AddrPtrCmp		******************************************************************
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 
 typedef std::pair<const SocketAddressInet4&, uint16>	BaseAddress4T;
 typedef std::pair<const SocketAddressInet6&, uint16>	BaseAddress6T;

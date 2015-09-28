@@ -19,7 +19,7 @@ namespace solid{
 //! A wrapper for berkeley sockets
 class SocketDevice: public Device{
 public:
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	typedef SOCKET DescriptorT;
 #else
 	typedef int DescriptorT;
@@ -98,7 +98,7 @@ public:
 	ErrorCodeT remoteAddress(SocketAddress &_rsa)const;
 	//! Gets the local address for a socket
 	ErrorCodeT localAddress(SocketAddress &_rsa)const;
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	static const DescriptorT invalidDescriptor(){
 		return INVALID_SOCKET;
 	}

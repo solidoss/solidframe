@@ -174,11 +174,13 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
 	
+	cout<<"Built on SolidFrame version "<<SOLID_VERSION_MAJOR<<'.'<<SOLID_VERSION_MINOR<<'.'<<SOLID_VERSION_PATCH<<endl;
+	
 	if(parseArguments(app_params, argc, argv)) return 0;
 	
 	Thread::init();
 	
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 	string dbgout;
 	Debug::the().levelMask(app_params.dbg_levels.c_str());

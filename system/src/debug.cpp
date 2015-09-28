@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #define DO_EXPORT_DLL 1
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #include <process.h>
 #else
 #include <sys/types.h>
@@ -34,7 +34,7 @@
 #include "system/cstring.hpp"
 #include "system/filedevice.hpp"
 
-#ifdef ON_SOLARIS
+#ifdef SOLID_ON_SOLARIS
 #include <strings.h>
 #endif
 
@@ -237,7 +237,7 @@ struct Debug::Data{
 		modvec.reserve(DEBUG_BITSET_SIZE);
 	}
 	~Data(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 		WSACleanup();
 #endif
 	}
@@ -271,7 +271,7 @@ struct Debug::Data{
 //-----------------------------------------------------------------
 void splitPrefix(string &_path, string &_name, const char *_prefix);
 
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 /*static*/ Debug& Debug::the(){
 	static Debug d;
 	return d;
@@ -708,7 +708,7 @@ std::ostream& Debug::print(
 	TimeSpec	ts_now(TimeSpec::createRealTime());
 	time_t		t_now = ts_now.seconds();
 	tm			*ploctm;
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	ploctm = localtime(&t_now);
 #else
 	tm			loctm;
@@ -728,7 +728,7 @@ std::ostream& Debug::print(
 		d.modvec[_module].name.c_str()//,
 		//Thread::currentId()
 	);
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"]["<<Thread::currentId()<<']'<<' ';
 #else
 	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
@@ -760,7 +760,7 @@ std::ostream& Debug::printTraceIn(
 	TimeSpec	ts_now(TimeSpec::createRealTime());
 	time_t		t_now = ts_now.seconds();
 	tm			*ploctm;
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	ploctm = localtime(&t_now);
 #else
 	tm			loctm;
@@ -783,7 +783,7 @@ std::ostream& Debug::printTraceIn(
 	(*d.pos)<<buf;
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
 #else
 	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
@@ -806,7 +806,7 @@ std::ostream& Debug::printTraceOut(
 	TimeSpec	ts_now(TimeSpec::createRealTime());
 	time_t		t_now = ts_now.seconds();
 	tm			*ploctm;
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	ploctm = localtime(&t_now);
 #else
 	tm			loctm;
@@ -829,7 +829,7 @@ std::ostream& Debug::printTraceOut(
 	(*d.pos)<<buf;
 	--d.trace_debth;
 	d.pos->write(tabs, d.trace_debth);
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
 #else
 	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';

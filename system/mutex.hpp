@@ -146,7 +146,7 @@ struct SharedLocker{
 };
 
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "system/mutex.ipp"
 #endif
 

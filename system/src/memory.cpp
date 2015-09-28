@@ -22,7 +22,7 @@ size_t memory_page_size(){
 
 
 void * memory_allocate_aligned(size_t _align, size_t _size){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 	return NULL;
 #else
 	void *pv = NULL;
@@ -31,7 +31,7 @@ void * memory_allocate_aligned(size_t _align, size_t _size){
 #endif
 }
 void   memory_free_aligned(void *_pv){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #else
 	free(_pv);
 #endif
@@ -49,7 +49,7 @@ size_t memory_size(){
  * Returns the size of physical memory (RAM) in bytes.
  */
 size_t getMemoryPageSize(){
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 #else
 	return (size_t)sysconf( _SC_PAGESIZE );
 #endif

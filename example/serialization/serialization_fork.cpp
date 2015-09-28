@@ -97,7 +97,7 @@ int main(int argc, char *argv[]){
 	rv = fork();
 	if(rv){//the parent
 		Thread::init();
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 		std::string dbgout;
 		Debug::the().levelMask("view");
 		Debug::the().moduleMask("ser_bin any");
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]){
 		parentRun(sps[0], argv[1]);
 	}else{//the child
 		Thread::init();
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 		std::string dbgout;
 		Debug::the().levelMask("view");
 		Debug::the().moduleMask("ser_bin any");

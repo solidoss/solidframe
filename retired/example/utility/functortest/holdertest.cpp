@@ -59,7 +59,7 @@ struct Test:BasicBuffer{
 };
 
 int main(){
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 	string s;
 	Debug::the().levelMask();

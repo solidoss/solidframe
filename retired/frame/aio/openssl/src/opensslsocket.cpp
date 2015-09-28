@@ -20,7 +20,7 @@ namespace frame{
 namespace aio{
 namespace openssl{
 
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 
 struct Initor{
 	Initor();

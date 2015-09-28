@@ -24,7 +24,7 @@ std::ostream& operator<<(std::ostream &_ros, const Tuple<int, TwoInts, const cha
 	return _ros;
 }
 int main(){
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	Debug::the().initStdErr();
 #endif
 	try{

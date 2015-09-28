@@ -10,7 +10,7 @@
 
 #include "frame/file/filestore.hpp"
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 
 #define HASH_NS std
 #include <functional>

@@ -13,7 +13,7 @@
 #include <time.h>
 #include "convertors.hpp"
 
-#ifdef ON_WINDOWS
+#ifdef SOLID_ON_WINDOWS
 struct timespec{
 	time_t	tv_sec;
 	long	tv_nsec;
@@ -63,7 +63,7 @@ struct TimeSpec: public timespec{
 TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2);
 TimeSpec operator+(const TimeSpec &_ts1, unsigned _msec);
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "system/timespec.ipp"
 #endif
 

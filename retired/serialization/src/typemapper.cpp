@@ -14,7 +14,7 @@
 #include "system/exception.hpp"
 #include "utility/algorithm.hpp"
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #include <unordered_map>
 #else
 #include <map>
@@ -57,7 +57,7 @@ struct TypeMapperBase::Data{
 		}
 	};
 	typedef std::deque<FunctionStub>	FunctionVectorT;
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 	typedef std::unordered_map<const char *, size_t, PointerHash, PointerCmpEqual>		FunctionStubMapT;
 #else
 	typedef std::map<const char*, size_t, PointerCmpLess>								FunctionStubMapT;

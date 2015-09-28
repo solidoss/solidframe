@@ -65,7 +65,7 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 	dm.insert<FetchSlaveMessage, Connection>();
 }
 
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 /*static*/ Connection::ConnectionsVectorT& Connection::connections(){
 	static ConnectionsVectorT cv;
 	return cv;
@@ -79,7 +79,7 @@ Connection::Connection(
 	pcmd(NULL), ai(_rai), reqid(1){
 	aiit = ai.begin();
 	state(Connect);
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	connections().push_back(this);
 #endif
 }
@@ -90,7 +90,7 @@ Connection::Connection(
 	pcmd(NULL), reqid(1){
 
 	state(Init);
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	connections().push_back(this);
 #endif
 
@@ -112,7 +112,7 @@ NOTE:
 Connection::~Connection(){
 	idbg("destroy connection id "<<this->id()<<" pcmd "<<pcmd);
 	delete pcmd; pcmd = NULL;
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	for(
 		ConnectionsVectorT::iterator it(connections().begin());
 		it != connections().end();

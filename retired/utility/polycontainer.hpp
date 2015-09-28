@@ -17,7 +17,7 @@ namespace solid{
 class MultiContainer{	
 	typedef void (*FncT) (void*);
 public:
-#ifdef HAS_SAFE_STATIC
+#ifdef SOLID_USE_SAFE_STATIC
 	template <typename T>
 	T* get(T *_p = NULL){
 		static unsigned id(stackid(&MultiContainer::cleaner<T>));

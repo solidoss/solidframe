@@ -18,7 +18,7 @@
 #include <cstring>
 
 
-#ifdef HAS_EPOLL
+#ifdef SOLID_USE_EPOLL
 
 #include <sys/epoll.h>
 
@@ -29,7 +29,7 @@ enum{
 
 #endif
 
-#ifdef HAS_KQUEUE
+#ifdef SOLID_USE_KQUEUE
 
 #include <sys/event.h>
 #include <sys/time.h>
@@ -47,7 +47,7 @@ namespace solid{
 namespace frame{
 namespace aio{
 
-#ifdef NINLINES
+#ifdef SOLID_HAS_NO_INLINES
 #include "aiosocket.ipp"
 #endif
 

@@ -1,7 +1,7 @@
 add_executable (example_concept src/concept.cpp)
 
 #NOTE:
-#set_target_properties(test PROPERTIES COMPILE_FLAGS "-DUDEBUG")
+#set_target_properties(test PROPERTIES COMPILE_FLAGS "-DSOLID_HAS_DEBUG")
 
 target_link_libraries (example_concept
 	example_concept_alpha

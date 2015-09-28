@@ -92,7 +92,7 @@ int calla(){
 }
 
 int main(int argc, char *argv[]){
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 		Debug::the().initStdErr();
 		Debug::the().levelMask("iwe");

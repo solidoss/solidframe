@@ -62,7 +62,7 @@ struct CacheStub{
 	size_t	emptypagecnt;
 	size_t	pagecnt;
 	size_t	keeppagecnt;
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	size_t	itemcnt;
 #endif
 };
@@ -117,7 +117,7 @@ inline size_t MemoryCache::sizeToIndex(const size_t _sz)const{
 }
 
 //==================================================================
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "system/memorycache.ipp"
 #endif
 //==================================================================

@@ -13,12 +13,12 @@
 #include <cstdlib>
 #include "config.h"
 
-#ifndef HAS_SAFE_STATIC
+#ifndef SOLID_USE_SAFE_STATIC
 #include <boost/thread/once.hpp>
 #endif
 
-#ifdef ON_WINDOWS
-//#ifdef HAS_CPP11
+#ifdef SOLID_ON_WINDOWS
+//#ifdef SOLID_USE_CPP11
 //	#define USTLMUTEX
 //#else
 	#define UBOOSTMUTEX
@@ -61,7 +61,7 @@ typedef signed long 		int64;
 
 #else
 
-#if defined(ON_WINDOWS)
+#if defined(SOLID_ON_WINDOWS)
 typedef __int64				int64;
 typedef unsigned __int64	uint64;
 #else

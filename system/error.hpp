@@ -12,13 +12,13 @@
 
 #include "config.h"
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #define ERROR_NS std
 #else
 #define ERROR_NS boost::system
 #endif
 
-#ifdef HAS_CPP11
+#ifdef SOLID_USE_CPP11
 #include <system_error>
 #else
 #include "boost/system/error_code.hpp"

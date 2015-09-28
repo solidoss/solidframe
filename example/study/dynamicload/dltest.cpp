@@ -7,7 +7,7 @@ using namespace std;
 using namespace solid;
 
 int main(){
-#ifdef UDEBUG
+#ifdef SOLID_HAS_DEBUG
 	{
 	string s;
 	Debug::the().levelMask("iew");

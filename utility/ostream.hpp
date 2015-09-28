@@ -38,7 +38,7 @@ struct OutputStreamIterator{
 	int64		off;
 };
 
-#ifndef NINLINES
+#ifndef SOLID_HAS_NO_INLINES
 #include "utility/ostream.ipp"
 #endif
 
