@@ -597,8 +597,8 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 	const Configuration &rconfig  = service(_rctx).configuration();
 	ErrorConditionT		error;
 	if(_rmsgptr->isBackOnSender()){
-		idbgx(Debug::ipc, this<<' '<<"Completing back on sender message: "<<_rmsgptr->msguid);
-		msgwriter.completeMessage(_rmsgptr, _rmsgptr->msguid, rconfig, rtypemap, conctx, error);
+		idbgx(Debug::ipc, this<<' '<<"Completing back on sender message: "<<_rmsgptr->requid);
+		msgwriter.completeMessage(_rmsgptr, _rmsgptr->requid, rconfig, rtypemap, conctx, error);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -632,8 +632,8 @@ SocketDevice const & ConnectionContext::device()const{
 	return rconnection.device();
 }
 //-----------------------------------------------------------------------------
-HolderT& ConnectionContext::holder(){
-	return rconnection.holder();
+boost::any& ConnectionContext::any(){
+	return rconnection.any();
 }
 //-----------------------------------------------------------------------------
 ConnectionUid	ConnectionContext::connectionId()const{

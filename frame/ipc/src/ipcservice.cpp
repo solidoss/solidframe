@@ -908,7 +908,7 @@ std::ostream& operator<<(std::ostream &_ros, ConnectionUid const &_con_id){
 	return _ros;
 }
 //-----------------------------------------------------------------------------
-std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid){
+std::ostream& operator<<(std::ostream &_ros, RequestUid const &_msguid){
 	_ros<<'{'<<_msguid.index<<','<<_msguid.unique<<'}';
 	return _ros;
 }

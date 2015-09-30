@@ -187,7 +187,7 @@ void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointe
 }
 
 void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->idOnSender());
+	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->requestId());
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
 	}

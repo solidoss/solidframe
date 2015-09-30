@@ -236,7 +236,7 @@ void peer1_receive_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Ini
 }
 
 void peer1_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->idOnSender());
+	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->requestId());
 	
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
@@ -334,7 +334,7 @@ void peer2_receive_init(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Ini
 }
 
 void peer2_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->idOnSender());
+	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->requestId());
 	
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");

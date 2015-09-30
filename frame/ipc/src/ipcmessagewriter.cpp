@@ -302,10 +302,10 @@ char* MessageWriter::doFillPacket(
 		}
 		
 		if(not rmsgstub.message_ptr->isOnPeer()){
-			_rctx.message_uid.index  = msgidx;
-			_rctx.message_uid.unique = rmsgstub.unique;
+			_rctx.request_uid.index  = msgidx;
+			_rctx.request_uid.unique = rmsgstub.unique;
 		}else{
-			_rctx.message_uid = rmsgstub.message_ptr->idOnSender();
+			_rctx.request_uid = rmsgstub.message_ptr->requestId();
 		}
 		_rctx.message_state = rmsgstub.message_ptr->state() + 1;
 		
@@ -317,8 +317,8 @@ char* MessageWriter::doFillPacket(
 			freesz -= rv;
 			
 			if(rmsgstub.serializer_ptr->empty()){
-				MessageUid		msguid(msgidx, rmsgstub.unique);
-				idbgx(Debug::ipc, "done serializing message "<<msguid<<". Message id sent to client "<<_rctx.message_uid);
+				RequestUid		requid(msgidx, rmsgstub.unique);
+				idbgx(Debug::ipc, "done serializing message "<<requid<<". Message id sent to client "<<_rctx.request_uid);
 				tmp_serializer = std::move(rmsgstub.serializer_ptr);
 				//done serializing the message:
 				write_q.pop();
@@ -332,7 +332,7 @@ char* MessageWriter::doFillPacket(
 					ErrorConditionT		err;
 					MessagePointerT 	msgptr;
 					
-					doCompleteMessage(msgptr, msguid, _rconfig, _ridmap, _rctx, err);
+					doCompleteMessage(msgptr, requid, _rconfig, _ridmap, _rctx, err);
 				}
 				doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 			}else{
@@ -442,28 +442,28 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 //-----------------------------------------------------------------------------
 void MessageWriter::completeMessage(
 	MessagePointerT &_rmsgptr,
-	MessageUid const &_rmsguid,
+	RequestUid const &_rrequid,
 	ipc::Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
 ){
-	doCompleteMessage(_rmsgptr, _rmsguid, _rconfig, _ridmap, _rctx, _rerror);
+	doCompleteMessage(_rmsgptr, _rrequid, _rconfig, _ridmap, _rctx, _rerror);
 	doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doCompleteMessage(
 	MessagePointerT &_rmsgptr,
-	MessageUid const &_rmsguid,
+	RequestUid const &_rrequid,
 	ipc::Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
 ){
-	idbgx(Debug::ipc, _rmsguid);
-	if(_rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique){
+	idbgx(Debug::ipc, _rrequid);
+	if(_rrequid.index < message_vec.size() and _rrequid.unique == message_vec[_rrequid.index].unique){
 		//we have the message
-		const size_t			msgidx = _rmsguid.index;
+		const size_t			msgidx = _rrequid.index;
 		MessageStub				&rmsgstub = message_vec[msgidx];
 		
 		cassert(not rmsgstub.serializer_ptr);
@@ -491,9 +491,9 @@ void MessageWriter::completeAllMessages(
 		if(it->message_ptr.empty()){
 		}else{
 			MessagePointerT 	msgptr;
-			MessageUid			msguid(it - message_vec.begin(), it->unique);
+			RequestUid			requid(it - message_vec.begin(), it->unique);
 			
-			doCompleteMessage(msgptr, msguid, _rconfig, _ridmap, _rctx, _rerror);
+			doCompleteMessage(msgptr, requid, _rconfig, _ridmap, _rctx, _rerror);
 		}
 	}
 	
@@ -504,9 +504,9 @@ void MessageWriter::completeAllMessages(
 		
 		while(message_vec[msgidx].message_ptr.get()){
 			MessagePointerT 	msgptr;
-			MessageUid			msguid(msgidx, message_vec[msgidx].unique);
+			RequestUid			requid(msgidx, message_vec[msgidx].unique);
 			
-			doCompleteMessage(msgptr, msguid, _rconfig, _ridmap, _rctx, _rerror);
+			doCompleteMessage(msgptr, requid, _rconfig, _ridmap, _rctx, _rerror);
 			doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 		}
 		

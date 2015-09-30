@@ -45,7 +45,7 @@ struct Message: Dynamic<Message>{
 	}
 	
 	Message(uint8 _state = 0):stt(_state){}
-	Message(Message const &_rmsg): msguid(_rmsg.msguid), stt(_rmsg.stt){}
+	Message(Message const &_rmsg): requid(_rmsg.requid), stt(_rmsg.stt){}
 	
 	virtual ~Message();
 	
@@ -63,8 +63,8 @@ struct Message: Dynamic<Message>{
 		return stt;
 	}
 	
-	MessageUid const& idOnSender()const{
-		return msguid;
+	RequestUid const& requestId()const{
+		return requid;
 	}
 	
 	template <class S>
@@ -74,12 +74,12 @@ struct Message: Dynamic<Message>{
 			//on serialization we cannot use/modify the values stored by ipc::Message
 			//so, we'll use ones store in the context. Because the context is volatile
 			//we'll store as values.
-			_rs.pushCrossValue(_rctx.message_uid.index, "msguid_idx");
-			_rs.pushCrossValue(_rctx.message_uid.unique, "msguid_idx");
+			_rs.pushCrossValue(_rctx.request_uid.index, "requid_idx");
+			_rs.pushCrossValue(_rctx.request_uid.unique, "requid_idx");
 			_rs.pushValue(_rctx.message_state, "state");
 		}else{
-			_rs.pushCross(msguid.index, "msguid_idx");
-			_rs.pushCross(msguid.unique, "msguid_uid");
+			_rs.pushCross(requid.index, "requid_idx");
+			_rs.pushCross(requid.unique, "requid_uid");
 			_rs.push(stt, "state");
 		}
 	}
@@ -101,7 +101,7 @@ private:
 		if(stt == 3) stt = 0;
 	}
 private:
-	MessageUid	msguid;
+	RequestUid	requid;
 	uint8		stt;
 };
 

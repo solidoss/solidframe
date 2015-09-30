@@ -13,7 +13,7 @@
 #include "system/socketaddress.hpp"
 
 #include "utility/dynamicpointer.hpp"
-#include "utility/holder.hpp"
+#include "boost/any.hpp"
 
 #include <ostream>
 
@@ -64,8 +64,8 @@ struct ConnectionUid{
 
 std::ostream& operator<<(std::ostream &_ros, ConnectionUid const &_con_id);
 
-struct MessageUid{
-	MessageUid(
+struct RequestUid{
+	RequestUid(
 		const uint32 _idx = -1,
 		const uint32 _uid = -1
 	):index(_idx), unique(_uid){}
@@ -73,12 +73,10 @@ struct MessageUid{
 	uint32	unique;
 };
 
-std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid);
+std::ostream& operator<<(std::ostream &_ros, RequestUid const &_msguid);
 
 class Service;
 class Connection;
-
-typedef Holder<>		HolderT;
 
 struct ConnectionContext{
 	Service& service()const{
@@ -92,11 +90,11 @@ struct ConnectionContext{
 	ulong messageFlags()const{
 		return message_flags;
 	}
-	MessageUid const& messageUid()const{
-		return message_uid;
+	RequestUid const& requestUid()const{
+		return request_uid;
 	}
-	//! Holder to be used to keep per connection data
-	HolderT& holder();
+	//! Keep any connection data
+	boost::any& any();
 private:
 	friend class Connection;
 	friend class MessageWriter;
@@ -108,7 +106,7 @@ private:
 	
 	ulong				message_flags;
 	uint8				message_state;
-	MessageUid			message_uid;
+	RequestUid			request_uid;
 	
 	
 	

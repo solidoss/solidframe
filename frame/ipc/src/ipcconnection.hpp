@@ -91,7 +91,8 @@ public:
 	bool isWaitingKeepAliveTimer()const;
 	bool isStopForced()const;
 	
-	HolderT& holder();
+	boost::any& any();
+	
 	ConnectionPoolUid const& poolUid()const;
 private:
 	friend struct ConnectionContext;
@@ -187,11 +188,11 @@ private:
 	MessageReader				msgreader;
 	MessageWriter				msgwriter;
 	
-	HolderT						hldr;
+	boost::any					any_data;
 };
 
-inline HolderT& Connection::holder(){
-	return hldr;
+inline boost::any& Connection::any(){
+	return any_data;
 }
 
 inline ConnectionPoolUid const& Connection::poolUid()const{
