@@ -18,13 +18,14 @@ namespace frame{
 namespace ipc{
 
 enum Flags{
-	FlagInactiveE = 0,
-	FlagActiveE = 1,
-	FlagStoppingE = 2,
-	FlagServerE = 4,
-	FlagKeepaliveE = 8,
-	FlagWaitKeepAliveTimerE = 16,
-	FlagStopForcedE = 32,
+	FlagInactiveE					= 0,
+	FlagActiveE						= 1,
+	FlagStoppingE					= 2,
+	FlagServerE						= 4,
+	FlagKeepaliveE					= 8,
+	FlagWaitKeepAliveTimerE			= 16,
+	FlagStopForcedE					= 32,
+	FlagHasActivityE				= 64,
 };
 namespace{
 struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
@@ -368,6 +369,8 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
 		if(config.inactivity_timeout_seconds){
+			receive_keepalive_count = 0;
+			flags &= (~FlagHasActivityE);
 			timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
 		}
 	}else{//client
@@ -382,7 +385,7 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
 		if(config.inactivity_timeout_seconds){
-			timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
+			flags |= FlagHasActivityE;
 		}
 	}else{//client
 		if(config.keepalive_timeout_seconds and isWaitingKeepAliveTimer()){
@@ -395,7 +398,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
 		if(config.inactivity_timeout_seconds){
-			timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
+			flags |= FlagHasActivityE;
 		}
 	}else{//client
 		if(config.keepalive_timeout_seconds and not isWaitingKeepAliveTimer()){
@@ -403,6 +406,36 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 			timer.waitFor(_rctx, TimeSpec(config.keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
+}
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onTimerInactivity(frame::aio::ReactorContext &_rctx){
+	Connection			&rthis = static_cast<Connection&>(_rctx.object());
+	
+	idbgx(Debug::ipc, &rthis<<" "<<(int)rthis.flags<<" "<<rthis.receive_keepalive_count);
+	
+	if(rthis.flags & FlagHasActivityE){
+		
+		rthis.flags &= (~FlagHasActivityE);
+		rthis.receive_keepalive_count = 0;
+		
+		Configuration const &config = rthis.service(_rctx).configuration();
+		
+		rthis.timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
+	}else{
+		ErrorConditionT	err;
+		err.assign(-1, err.category());//TODO: inactivity
+		rthis.doStop(_rctx, err);
+	}
+}
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onTimerKeepalive(frame::aio::ReactorContext &_rctx){
+	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	cassert(not rthis.isServer());
+	rthis.flags |= FlagKeepaliveE;
+	rthis.flags &= (~FlagWaitKeepAliveTimerE);
+	idbgx(Debug::ipc, &rthis<<" post send");
+	rthis.post(_rctx, [&rthis](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){rthis.doSend(_rctx);});
+	
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
@@ -548,26 +581,6 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 	}
 }
 //-----------------------------------------------------------------------------
-/*static*/ void Connection::onTimerInactivity(frame::aio::ReactorContext &_rctx){
-	Connection		&rthis = static_cast<Connection&>(_rctx.object());
-	ErrorConditionT	err;
-	
-	idbgx(Debug::ipc, &rthis<<"");
-	
-	err.assign(-1, err.category());//TODO:
- 	rthis.doStop(_rctx, err);
-}
-//-----------------------------------------------------------------------------
-/*static*/ void Connection::onTimerKeepalive(frame::aio::ReactorContext &_rctx){
-	Connection	&rthis = static_cast<Connection&>(_rctx.object());
-	cassert(not rthis.isServer());
-	rthis.flags |= FlagKeepaliveE;
-	rthis.flags &= (~FlagWaitKeepAliveTimerE);
-	idbgx(Debug::ipc, &rthis<<" post send");
-	rthis.post(_rctx, [&rthis](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){rthis.doSend(_rctx);});
-	
-}
-//-----------------------------------------------------------------------------
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	if(!_rctx.error()){
@@ -604,9 +617,26 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 //-----------------------------------------------------------------------------
 void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
 	if(isServer()){
-		flags |= FlagKeepaliveE;
-		idbgx(Debug::ipc, this<<" post send");
-		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
+		Configuration const &config = service(_rctx).configuration();
+		
+		++receive_keepalive_count;
+		
+		if(receive_keepalive_count < config.inactivity_keepalive_count){
+			flags |= FlagKeepaliveE;
+			idbgx(Debug::ipc, this<<" post send");
+			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
+		}else{
+			idbgx(Debug::ipc, this<<" post stop because of too many keep alive messages");
+			receive_keepalive_count = 0;//prevent other posting
+			this->post(
+				_rctx,
+				[this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){
+					ErrorConditionT	err;
+					err.assign(-1, err.category());//TODO: too many keep alive messages
+					this->doStop(_rctx, err);
+				}
+			);
+		}
 	}
 }
 //-----------------------------------------------------------------------------

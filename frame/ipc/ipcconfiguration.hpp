@@ -103,6 +103,9 @@ struct Configuration{
 	uint32								inactivity_timeout_seconds;
 	uint32								keepalive_timeout_seconds;
 	
+	uint32								inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
+																	//messages during inactivity_timeout_seconds interval
+	
 	uint32								recv_buffer_capacity;
 	uint32								send_buffer_capacity;
 	

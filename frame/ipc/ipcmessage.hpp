@@ -27,7 +27,8 @@ struct Message: Dynamic<Message>{
 	enum Flags{
 		WaitResponseFlagE	= (1<<0),
 		SynchronousFlagE	= (1<<1),
-		IdempotentFlagE		= (1<<2), 
+		IdempotentFlagE		= (1<<2),
+		OneShotSendFlagE	= (1<<3),
 	};
 	
 	static bool is_synchronous(const uint32 _flags){

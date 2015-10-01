@@ -181,6 +181,7 @@ private:
 	
 	uint32						receivebufoff;
 	uint32						consumebufoff;
+	uint32						receive_keepalive_count;
 	
 	char						*recvbuf;
 	char						*sendbuf;
