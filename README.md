@@ -1,6 +1,6 @@
 # SolidFrame
 
-C++ framework for building scalable, distributed, client-server applications.
+Cross-platform C++ framework for scalable, asynchronous, distributed client-server applications.
 
 ## License
 
@@ -50,6 +50,5 @@ Enabled for two scenarios:
 ### TO DO:
 
 * Add SSL support
-* Fire and forget - send messages when the server comes online.
-* Distributed chat example.
+* Distributed chat example using frame/ipc
 * SOCKS5 support.
