@@ -74,3 +74,29 @@ add_test( TestPeer2Peer test_ipc_peer2peer
 )
 
 #==============================================================================
+
+set( IpcKeepAliveTestSuite
+	test_keepalive_fail.cpp
+	test_keepalive_success.cpp
+)
+
+create_test_sourcelist( IpcKeepAliveTests test_ipc_keepalive.cpp ${IpcKeepAliveTestSuite})
+
+add_executable(test_ipc_keepalive ${IpcKeepAliveTests})
+
+target_link_libraries(test_ipc_keepalive
+	solid_frame_ipc
+	solid_frame_aio
+	solid_frame
+	solid_serialization
+	solid_utility
+	solid_system
+	${SYS_BASIC_LIBS}
+)
+
+add_test( TestKeepAlive test_ipc_keepalive
+	test_keepalive_fail
+	test_keepalive_success
+)
+
+#==============================================================================

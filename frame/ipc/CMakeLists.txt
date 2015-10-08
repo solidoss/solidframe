@@ -1,5 +1,6 @@
 
 set(Sources
+	src/ipcerror.cpp
 	src/ipcservice.cpp
 	src/ipclistener.cpp
 	src/ipcconnection.cpp
@@ -12,6 +13,7 @@ set(Headers
 	ipccontext.hpp
 	ipcservice.hpp
 	ipcmessage.hpp
+	ipcerror.hpp
 	ipcconfiguration.hpp
 	ipcserialization.hpp
 	src/ipclistener.hpp

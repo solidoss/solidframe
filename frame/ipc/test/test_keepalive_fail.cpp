@@ -13,6 +13,7 @@
 
 #include "frame/ipc/ipcservice.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
+#include "frame/ipc/ipcerror.hpp"
 
 
 #include "system/thread.hpp"
@@ -73,6 +74,12 @@ frame::ipc::Service				*pipcclient = nullptr;
 std::atomic<uint64>				transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 
+int								test_scenario = 0;
+
+/*
+ * test_scenario == 0: test for error_too_many_keepalive_packets_received
+ * test_scenario == 1: test for error_inactivity_timeout
+*/
 
 size_t real_size(size_t _sz){
 	//offset + (align - (offset mod align)) mod align
@@ -145,8 +152,24 @@ void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	_rctx.service().activateConnection(_rctx.connectionId());
 }
 
-void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.connectionId());
+void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const& _error){
+	idbg(_rctx.connectionId()<<" error = "<<_error.message());
+	
+	if(test_scenario == 0){
+		if(_error == frame::ipc::error_too_many_keepalive_packets_received){
+			Locker<Mutex> lock(mtx);
+			running = false;
+			cnd.signal();
+		}
+	}else if(test_scenario == 1){
+		if(_error == frame::ipc::error_inactivity_timeout){
+			Locker<Mutex> lock(mtx);
+			running = false;
+			cnd.signal();
+		}
+	}else{
+		THROW_EXCEPTION("Invalid test scenario.");
+	}
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
@@ -172,11 +195,11 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	
 	++crtbackidx;
 	
-	if(crtbackidx == writecount){
-		Locker<Mutex> lock(mtx);
-		running = false;
-		cnd.signal();
-	}
+// 	if(crtbackidx == writecount){
+// 		Locker<Mutex> lock(mtx);
+// 		running = false;
+// 		cnd.signal();
+// 	}
 }
 
 void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
@@ -218,7 +241,7 @@ void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointe
 
 }//namespace
 
-int test_clientserver_basic(int argc, char **argv){
+int test_keepalive_fail(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
@@ -226,10 +249,13 @@ int test_clientserver_basic(int argc, char **argv){
 	Debug::the().initStdErr(false, nullptr);
 #endif
 	
-	size_t max_per_pool_connection_count = 1;
+	size_t	max_per_pool_connection_count = 1;
 	
 	if(argc > 1){
-		max_per_pool_connection_count = atoi(argv[1]);
+		test_scenario = atoi(argv[1]);
+		if(test_scenario > 1){
+			THROW_EXCEPTION("Invalid test scenario.");
+		}
 	}
 	
 	for(int i = 0; i < 127; ++i){
@@ -293,6 +319,11 @@ int test_clientserver_basic(int argc, char **argv){
 				}
 			);
 			
+			if(test_scenario == 0){
+				cfg.keepalive_timeout_seconds = 10;
+			}else if(test_scenario == 1){
+				cfg.keepalive_timeout_seconds = 100;
+			}
 			
 			cfg.connection_stop_fnc = client_connection_stop;
 			cfg.outgoing_connection_start_fnc = client_connection_start;
@@ -326,6 +357,14 @@ int test_clientserver_basic(int argc, char **argv){
 			cfg.connection_stop_fnc = server_connection_stop;
 			cfg.incoming_connection_start_fnc = server_connection_start;
 			
+			if(test_scenario == 0){
+				cfg.inactivity_timeout_seconds = 60;
+				cfg.inactivity_keepalive_count = 4;
+			}else if(test_scenario == 1){
+				cfg.inactivity_timeout_seconds = 20;
+				cfg.inactivity_keepalive_count = 4;
+			}
+			
 			cfg.listen_address_str = "0.0.0.0:6666";
 			
 			err = ipcserver.reconfigure(cfg);
@@ -339,11 +378,9 @@ int test_clientserver_basic(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
-		const size_t		start_count = 10;
+		writecount = 1;
 		
-		writecount = initarraysize * 10;//start_count;//
-		
-		for(; crtwriteidx < start_count;){
+		{
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
 			++crtwriteidx;
 			ipcclient.sendMessage(
@@ -357,7 +394,7 @@ int test_clientserver_basic(int argc, char **argv){
 		while(running){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
-			abstime += (120 * 1000);//ten seconds
+			abstime += (120 * 1000);
 			cnd.wait(lock);
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){

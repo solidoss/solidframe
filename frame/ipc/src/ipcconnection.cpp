@@ -9,6 +9,7 @@
 //
 #include "frame/manager.hpp"
 #include "ipcconnection.hpp"
+#include "frame/ipc/ipcerror.hpp"
 #include "frame/ipc/ipcservice.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
 #include "frame/aio/openssl/aiosecuresocket.hpp"
@@ -271,9 +272,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	}else if(frame::EventCategory::isKill(_revent)){
 		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session postStop");
 		flags |= FlagStopForcedE;
-		ErrorConditionT err;
-		err.assign(-1, err.category());//TODO:
-		doStop(_rctx, err);
+		doStop(_rctx, error_connection_killed);
 	}else if(EventCategory::isResolve(_revent)){
 		ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
 		if(presolvemsg){
@@ -286,9 +285,8 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 				
 				service(_rctx).forwardResolveMessage(conpoolid, _revent);
 			}else{
-				ErrorConditionT err;
-				err.assign(-1, err.category());//TODO:
-				doStop(_rctx, err);
+				cassert(true);
+				doStop(_rctx, error_library_logic);
 			}
 		}
 	}else if(EventCategory::isActivate(_revent)){
@@ -422,9 +420,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		
 		rthis.timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
 	}else{
-		ErrorConditionT	err;
-		err.assign(-1, err.category());//TODO: inactivity
-		rthis.doStop(_rctx, err);
+		rthis.doStop(_rctx, error_inactivity_timeout);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -631,9 +627,7 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
 			this->post(
 				_rctx,
 				[this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){
-					ErrorConditionT	err;
-					err.assign(-1, err.category());//TODO: too many keep alive messages
-					this->doStop(_rctx, err);
+					this->doStop(_rctx, error_too_many_keepalive_packets_received);
 				}
 			);
 		}
