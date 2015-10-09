@@ -18,10 +18,10 @@ Enabled for two scenarios:
 
 ### Basic protocol functionality
 
-*Description*
+**Description**
 * Serialize messages at one end and deserialize at the other
 
-*Test*
+**Test**
 * test_protocol_basic
 	* directly use ipcmessagewriter and ipcmessagereader to serialize and deserialize messages
 * test_protocol_synchronous
@@ -29,14 +29,14 @@ Enabled for two scenarios:
 
 ### Basic IPC functionality
 
-*Description*
+**Description**
 
 * Client-Server
 * Peer2Peer
 * Send messages and wait for response
 * Connection pool
 
-*Test*
+**Test**
 
 * test_clientserver_basic
 	* multiple messages are sent from client to server
@@ -57,12 +57,12 @@ Enabled for two scenarios:
 
 ### Prevent DOS made possible by sending lots of KeepAlive packets
 
-*Description*
+**Description**
 
 * set timer for non-active connections
 * count the number of received keep alive packets per interval
 
-*Test*
+**Test**
 
 * test_keepalive_fail
 	* client sends one message to server
@@ -81,7 +81,7 @@ Enabled for two scenarios:
 
 ### Support for One-Shot-Delivery and Message Canceling
 
-*Description*
+**Description**
 
 * Normal behavior: ipc::service will continuously try to send a message until:
 	* Normal message: fully or partially sent
@@ -93,7 +93,7 @@ Enabled for two scenarios:
 * Pending send message can be canceled - not all messages can be canceled (i.e. no cancel for messages that are currently being sent)
 * Messages will be canceled only when they return to pool.
 
-*Test*
+**Test**
 
 * test_clientserver_delayed
 	* start client and send message
