@@ -28,8 +28,12 @@ C++11 enabled compilers on:
 * Buffer oriented, asynchronous ready, binary serialization/marshaling engine - for binary protocols like the one used by IPC library.
 * Shared object store with asynchronous read/write access.
 * Shared file store with asynchronous read/write access.
-* Implementation of Fast-Multi-Paxos consensus algorithm (!! Needs to be refactored to use the latest IPC library !!).
 * Sample applications
+
+## Pending
+
+* Distributed chat example using frame/ipc
+* Fast-Multi-Paxos using frame/ipc
 
 ## See also
 * [IPC library](frame/ipc/README.md)
