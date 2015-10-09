@@ -112,17 +112,3 @@ Test
 ### Support for SSL
 
 ### Support for SOCKS5
-
-
-
-* Add support for canceling pending send Messages
-* Add support for "One Shot Delivery"
-	* Add OneShot(/Send/Delivery)Flag
-	* Normally, ipc service will keep on trying to send a message that:
-		* Either is Idempotent and no response was received
-		* Or it was not (partially) sent at all
-	* OneShot Messages will fail after the first try
-	* The Service will wait for the peer side to become available then send the messages.
-* Add support for SSL
-* Distributed chat example using frame/ipc
-* SOCKS5 support.
