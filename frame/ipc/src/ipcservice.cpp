@@ -285,6 +285,7 @@ ErrorConditionT Service::doSendMessage(
 	MessagePointerT &_rmsgptr,
 	ResponseHandlerFunctionT &_rresponse_fnc,
 	ConnectionPoolUid *_pconpoolid_out,
+	MessageUid *_pmsguid_out,
 	ulong _flags
 ){
 	solid::ErrorConditionT		err;
@@ -295,7 +296,7 @@ ErrorConditionT Service::doSendMessage(
 	const size_t				msg_type_idx = tm.index(_rmsgptr.get());
 	
 	if(msg_type_idx == 0){
-		edbgx(Debug::ipc, "type not registered");
+		edbgx(Debug::ipc, this<<" type not registered");
 		err.assign(-1, err.category());//TODO:type not registered
 		return err;
 	}
@@ -308,7 +309,7 @@ ErrorConditionT Service::doSendMessage(
 		}else{
 			
 			if(d.config.isServerOnly()){
-				edbgx(Debug::ipc, "request for name resolve for a server only configuration");
+				edbgx(Debug::ipc, this<<" request for name resolve for a server only configuration");
 				err.assign(-1, err.category());//TODO: server only
 				return err;
 			}
@@ -330,7 +331,7 @@ ErrorConditionT Service::doSendMessage(
 			ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 			
 			if(err){
-				edbgx(Debug::ipc, "starting Session: "<<err.message());
+				edbgx(Debug::ipc, this<<" Starting Session: "<<err.message());
 				rconpool.clear();
 				d.conpoolcachestk.push(idx);
 				return err;
@@ -338,7 +339,7 @@ ErrorConditionT Service::doSendMessage(
 			
 			d.namemap[rconpool.name.c_str()] = idx;
 			
-			idbgx(Debug::ipc, this<<' '<<"Success starting Connection Pool object: "<<conuid.index<<','<<conuid.unique);
+			idbgx(Debug::ipc, this<<" Success starting Connection Pool object: "<<conuid.index<<','<<conuid.unique);
 			//resolve the name
 			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, Connection::resolveEvent()));
 			
@@ -357,7 +358,7 @@ ErrorConditionT Service::doSendMessage(
 		idx = _rconuid_in.poolid.index;
 		uid = _rconuid_in.poolid.unique;
 	}else{
-		edbgx(Debug::ipc, this<<' '<<"session does not exist");
+		edbgx(Debug::ipc, this<<" session does not exist");
 		err.assign(-1, err.category());//TODO: session does not exist
 		return err;
 	}
@@ -367,7 +368,7 @@ ErrorConditionT Service::doSendMessage(
 	
 	if(check_uid && rconpool.uid != uid){
 		//failed uid check
-		edbgx(Debug::ipc, this<<' '<<"session does not exist");
+		edbgx(Debug::ipc, this<<" session does not exist");
 		err.assign(-1, err.category());//TODO: session does not exist
 		return err;
 	}

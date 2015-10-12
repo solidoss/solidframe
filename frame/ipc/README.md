@@ -108,6 +108,12 @@ Enabled for two scenarios:
 	* start client and send one shot message
 	* expect message canceled in certain, short amount of time
 
+### Support for packet compression
+
+**Test**
+
+* test_clientserver_basic
+	* add support for compression using Google Snappy (http://google.github.io/snappy/)
 
 ### Support for SSL
 

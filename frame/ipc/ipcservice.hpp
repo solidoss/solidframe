@@ -28,69 +28,6 @@ struct ReactorContext;
 
 namespace ipc{
 
-//https://functionalcpp.wordpress.com/2013/08/05/function-traits/
-#if 0
-template<class F>
-struct function_traits;
- 
-// function pointer
-template<class R, class... Args>
-struct function_traits<R(*)(Args...)> : public function_traits<R(Args...)>
-{};
- 
-template<class R, class... Args>
-struct function_traits<R(Args...)>
-{
-    using return_type = R;
- 
-    static constexpr std::size_t arity = sizeof...(Args);
- 
-    template <std::size_t N>
-    struct argument
-    {
-        static_assert(N < arity, "error: invalid parameter index.");
-        using type = typename std::tuple_element<N,std::tuple<Args...>>::type;
-    };
-};
-
-// member function pointer
-template<class C, class R, class... Args>
-struct function_traits<R(C::*)(Args...)> : public function_traits<R(C&,Args...)>
-{};
- 
-
-// const member function pointer
-template<class C, class R, class... Args>
-struct function_traits<R(C::*)(Args...) const> : public function_traits<R(C&,Args...)>
-{};
- 
-// member object pointer
-template<class C, class R>
-struct function_traits<R(C::*)> : public function_traits<R(C&)>
-{};
-
-// functor
-template<class F>
-struct function_traits
-{
-    private:
-        using call_type = function_traits<decltype(&F::type::operator())>;
-    public:
-        using return_type = typename call_type::return_type;
- 
-        static constexpr std::size_t arity = call_type::arity - 1;
- 
-        template <std::size_t N>
-        struct argument
-        {
-            static_assert(N < arity, "error: invalid parameter index.");
-            using type = typename call_type::template argument<N+1>::type;
-        };
-};
-
-#endif
-
-
 template <class M>
 struct response_traits;
 
@@ -212,7 +149,7 @@ public:
 		MessagePointerT				msgptr(_rmsgptr);
 		ConnectionUid				conuid;
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, nullptr, _flags);
+		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, nullptr, nullptr, _flags);
 	}
 	
 	template <class T>
@@ -225,7 +162,21 @@ public:
 		MessagePointerT				msgptr(_rmsgptr);
 		ConnectionUid				conuid;
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rconpool_uid, _flags);
+		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rconpool_uid, nullptr, _flags);
+	}
+	
+	template <class T>
+	ErrorConditionT sendMessage(
+		const char *_recipient_name,
+		DynamicPointer<T> const &_rmsgptr,
+		ConnectionPoolUid &_rconpool_uid,
+		MessageUid &_rmsguid,
+		ulong _flags = 0
+	){
+		MessagePointerT				msgptr(_rmsgptr);
+		ConnectionUid				conuid;
+		ResponseHandlerFunctionT	response_handler;
+		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rconpool_uid, &_rmsguid, _flags);
 	}
 	
 	template <class T>
@@ -236,7 +187,7 @@ public:
 	){
 		MessagePointerT				msgptr(_rmsgptr);
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(nullptr, _rconnection_uid, msgptr, response_handler, nullptr, _flags);
+		return doSendMessage(nullptr, _rconnection_uid, msgptr, response_handler, nullptr, nullptr, _flags);
 	}
 	
 	template <class T>
@@ -249,7 +200,7 @@ public:
 		ConnectionUid				conuid(_rsession_uid);
 		ResponseHandlerFunctionT	response_handler;
 		
-		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, _flags);
+		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, nullptr, _flags);
 	}
 	
 	template <class T, class Fnc>
@@ -266,7 +217,7 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, nullptr, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
@@ -284,7 +235,26 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rconpool_uid, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rconpool_uid, nullptr, _flags | Message::WaitResponseFlagE);
+	}
+	
+	template <class T, class Fnc>
+	ErrorConditionT sendRequest(
+		const char *_recipient_name,
+		DynamicPointer<T> const &_rmsgptr,
+		Fnc _fnc,
+		ConnectionPoolUid &_rconpool_uid,
+		MessageUid &_rmsguid,
+		ulong _flags = 0
+	){
+		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
+		
+		MessagePointerT				msgptr(_rmsgptr);
+		ConnectionUid				conuid;
+		ResponseHandlerT			fnc(_fnc);
+		ResponseHandlerFunctionT	response_handler(fnc);
+		
+		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rconpool_uid, &_rmsguid, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
@@ -300,7 +270,7 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(nullptr, _rconnection_uid, msgptr, response_handler, nullptr, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(nullptr, _rconnection_uid, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
@@ -317,12 +287,14 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	ErrorConditionT scheduleConnectionClose(
 		ConnectionUid const &_rconnection_uid
 	);
+	
+	ErrorConditionT cancelMessage(ConnectionPoolUid const &_rsession_uid, MessageUid const &_rmsguid);
 	
 	ErrorConditionT activateConnection(
 		ConnectionUid const &_rconnection_uid
@@ -442,6 +414,7 @@ private:
 		MessagePointerT &_rmsgptr,
 		ResponseHandlerFunctionT &_rresponse_fnc,
 		ConnectionPoolUid *_pconpoolid_out,
+		MessageUid *_pmsguid_out,
 		ulong _flags
 	);
 	

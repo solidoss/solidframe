@@ -65,15 +65,33 @@ struct ConnectionUid{
 std::ostream& operator<<(std::ostream &_ros, ConnectionUid const &_con_id);
 
 struct RequestUid{
+	uint32	index;
+	uint32	unique;
+	
 	RequestUid(
 		const uint32 _idx = -1,
 		const uint32 _uid = -1
 	):index(_idx), unique(_uid){}
-	uint32	index;
-	uint32	unique;
 };
 
 std::ostream& operator<<(std::ostream &_ros, RequestUid const &_msguid);
+
+struct MessageUid{
+	size_t		index;
+	uint32		unique;
+	
+	MessageUid(
+		const size_t _idx = -1,
+		const uint32 _uid = 0
+	):index(_idx), unique(_uid){}
+	
+	bool isInvalid()const{
+		return index == static_cast<size_t>(-1);
+	}
+	bool isValid()const{
+		return !isInvalid();
+	}
+};
 
 class Service;
 class Connection;
