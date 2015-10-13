@@ -25,10 +25,13 @@ class Connection;
 
 struct Message: Dynamic<Message>{
 	enum Flags{
-		WaitResponseFlagE	= (1<<0),
-		SynchronousFlagE	= (1<<1),
-		IdempotentFlagE		= (1<<2),
-		OneShotSendFlagE	= (1<<3),
+		FirstFlagIndexE  	= 0, //for rezerved flags
+		WaitResponseFlagE	= (1<<(FirstFlagIndexE +  0)),
+		SynchronousFlagE	= (1<<(FirstFlagIndexE +  1)),
+		IdempotentFlagE		= (1<<(FirstFlagIndexE +  2)),
+		OneShotSendFlagE	= (1<<(FirstFlagIndexE +  3)),
+		StartedSendFlagE	= (1<<(FirstFlagIndexE +  4)),
+		DoneSendFlagE		= (1<<(FirstFlagIndexE +  5)),
 	};
 	
 	static bool is_synchronous(const uint32 _flags){
@@ -43,6 +46,14 @@ struct Message: Dynamic<Message>{
 	
 	static bool is_idempotent(const uint32 _flags){
 		return (_flags & IdempotentFlagE) != 0;
+	}
+	
+	static bool is_started_send(const uint32 _flags){
+		return (_flags & StartedSendFlagE) != 0;
+	}
+	
+	static bool is_done_send(const uint32 _flags){
+		return (_flags & DoneSendFlagE) != 0;
 	}
 	
 	Message(uint8 _state = 0):stt(_state){}

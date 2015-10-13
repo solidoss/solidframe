@@ -144,9 +144,9 @@ private:
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
 			ResponseHandlerFunctionT &_rresponse_fnc,
-			const ulong _flags, const bool _sent
+			const ulong _flags
 		){
-			_f(this->conpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, _sent);
+			_f(this->conpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
 		};
 		MessageWriterVisitFunctionT	fnc(std::cref(visit_fnc));
 		msgwriter.visitAllMessages(fnc);

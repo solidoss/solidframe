@@ -39,8 +39,8 @@ typedef FUNCTION<void(
 	MessagePointerT &/*_rmsgptr*/,
 	const size_t /*_msg_type_idx*/,
 	ResponseHandlerFunctionT &,
-	ulong /*_flags*/, const bool /*_sent*/)
->										MessageWriterVisitFunctionT;
+	ulong /*_flags*/
+)>										MessageWriterVisitFunctionT;
 
 
 class MessageWriter{
@@ -115,15 +115,17 @@ private:
 			ResponseHandlerFunctionT &_rresponse_fnc,
 			ulong _flags
 		):	message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx),
-			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0){}
+			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0), order_q_next(-1), order_q_prev(-1){}
 		
-		MessageStub():message_type_idx(-1), flags(-1), unique(0), packet_count(0){}
+		MessageStub():message_type_idx(-1), flags(-1), unique(0), packet_count(0), order_q_next(-1), order_q_prev(-1){}
 		
 		void clear(){
 			message_ptr.clear();
 			flags = 0;
 			++unique;
 			packet_count = 0;
+			order_q_next = -1;
+			order_q_prev = -1;
 			serializer_ptr = nullptr;
 			FUNCTION_CLEAR(response_fnc);
 		}
@@ -134,6 +136,8 @@ private:
 		ulong						flags;
 		uint32						unique;
 		size_t						packet_count;
+		size_t						order_q_next;
+		size_t						order_q_prev;
 		SerializerPointerT			serializer_ptr;
 	};
 	
@@ -173,6 +177,9 @@ private:
 		ConnectionContext &_rctx,
 		ErrorConditionT const & _rerror
 	);
+	
+	void doPushToOrderQueue(const size_t _idx);
+	void doPopFromOrderQueue(const size_t _idx);
 private:
 	PendingMessageQueueT		pending_message_q;
 	MessageVectorT				message_vec;
@@ -180,6 +187,8 @@ private:
 	CacheStackT					cache_stk;
 	uint32						current_message_type_id;
 	uint32						flags;
+	size_t						message_order_q_front;
+	size_t						message_order_q_back;
 };
 
 

@@ -434,8 +434,7 @@ private:
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		const ulong _flags,
-		const bool _sent
+		ulong _flags
 	);
 private:
 	struct	Data;

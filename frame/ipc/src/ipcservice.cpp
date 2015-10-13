@@ -709,7 +709,9 @@ void Service::activateConnectionComplete(Connection &_rcon){
 }
 //-----------------------------------------------------------------------------
 void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectUidT const &_robjuid){
+	
 	idbgx(Debug::ipc, this<<' '<<&_rcon<<" "<<_robjuid);
+	
 	if(_rcon.conpoolid.isValid()){
 		ConnectionPoolUid	conpoolid = _rcon.conpoolid;
 		Locker<Mutex>		lock(d.mtx);
@@ -783,10 +785,9 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 					MessagePointerT &_rmsgptr,
 					const size_t _msg_type_idx,
 					ResponseHandlerFunctionT &_rresponse_fnc,
-					const ulong _flags,
-					const bool _sent
+					const ulong _flags
 				){
-					this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, _sent);
+					this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
 				}
 			);
 			
@@ -808,13 +809,14 @@ void Service::pushBackMessageToConnectionPool(
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
 	ResponseHandlerFunctionT &_rresponse_fnc,
-	const ulong _flags,
-	const bool _sent
+	ulong _flags
 ){
 	ConnectionPoolStub	&rconpool(d.conpooldq[_rconpoolid.index]);
+	
 	cassert(rconpool.uid == _rconpoolid.unique);
 	
-	if(not _sent or Message::is_idempotent(_flags)){
+	if(Message::is_idempotent(_flags) or (/*not Message::is_started_send(_flags) and*/ not Message::is_done_send(_flags))){
+		_flags &= ~(Message::DoneSendFlagE | Message::StartedSendFlagE);
 		rconpool.msgq.push(MessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
 	}
 }
