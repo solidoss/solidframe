@@ -418,7 +418,7 @@ private:
 		ulong _flags
 	);
 	
-	ErrorConditionT doSendMessage(
+	ErrorConditionT doNotifyConnectionPushMessage(
 		ObjectUidT const &_robjuid,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
@@ -427,6 +427,12 @@ private:
 		ConnectionPoolUid *_pconpoolid_out,
 		ulong _flags
 	);
+	
+	ErrorConditionT doNotifyConnectionActivate(
+		ObjectUidT const &_robjuid,
+		ConnectionPoolUid const &_rconpooluid
+	);
+	
 	size_t doPushNewConnectionPool();
 	
 	void pushBackMessageToConnectionPool(

@@ -127,6 +127,10 @@ struct Event{
 		pcategory = &EventCategory::the();
 	}
 	
+	bool empty()const{
+		return id == static_cast<size_t>(-1);
+	}
+	
 	std::ostream & print(std::ostream &_ros)const{
 		pcategory->print(_ros, *this);
 		return _ros;

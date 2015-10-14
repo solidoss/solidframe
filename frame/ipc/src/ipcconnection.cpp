@@ -19,21 +19,27 @@ namespace frame{
 namespace ipc{
 
 enum Flags{
-	FlagInactiveE					= 0,
 	FlagActiveE						= 1,
-	FlagStoppingE					= 2,
+	
 	FlagServerE						= 4,
 	FlagKeepaliveE					= 8,
 	FlagWaitKeepAliveTimerE			= 16,
 	FlagStopForcedE					= 32,
 	FlagHasActivityE				= 64,
 };
+
+enum AtomicFlags{
+	AtomicFlagActiveE				= 1,
+	AtomicFlagStoppingE				= 2,
+};
+
 namespace{
 struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 	enum EventId{
 		ActivateE,
 		ResolveE,
-		InvalidE
+		PushE,
+		InvalidE,
 	};
 	
 	static EventId id(Event const&_re){
@@ -52,6 +58,10 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 		return id(_re) == ResolveE;
 	}
 	
+	static bool isPush(Event const&_re){
+		return id(_re) == PushE;
+	}
+	
 	static Event create(EventId _evid){
 		return the().doCreate(static_cast<size_t>(_evid));
 	}
@@ -62,6 +72,10 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 	
 	static Event createResolve(){
 		return create(ResolveE);
+	}
+	
+	static Event createPush(){
+		return create(PushE);
 	}
 	
 	static EventCategory const& the(){
@@ -77,6 +91,8 @@ private:
 				pstr = "frame::ipc::ActivateE";break;
 			case ResolveE:
 				pstr = "frame::ipc::ResolveE";break;
+			case PushE:
+				pstr = "frame::ipc::PushE";break;
 			default:
 				_ros<<"frame::ipc::Unkonwn::"<<eventId(_re);
 				return;
@@ -94,21 +110,6 @@ inline ObjectUidT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	return service(_rctx).manager().id(*this);
 }
 //-----------------------------------------------------------------------------
-
-struct ActivateMessage: Dynamic<ActivateMessage>{
-	ConnectionPoolUid	poolid;
-	ActivateMessage(){}
-	ActivateMessage(ConnectionPoolUid const& _rconpoolid):poolid(_rconpoolid){}
-};
-
-/*static*/ Event Connection::activateEvent(ConnectionPoolUid const& _rconpoolid){
-	Event ev = activateEvent();
-	ev.msgptr = new ActivateMessage(_rconpoolid);
-	return ev;
-}
-/*static*/ Event Connection::activateEvent(){
-	return EventCategory::createActivate();
-}
 
 /*static*/ Event Connection::resolveEvent(){
 	return EventCategory::createResolve();
@@ -158,13 +159,42 @@ bool Connection::pushMessage(
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
 	ResponseHandlerFunctionT &_rresponse_fnc,
-	ulong _flags
+	ulong _flags,
+	Event &_revent
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
-	sendmsgvec[crtpushvecidx].push_back(PendingSendMessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
-	return sendmsgvec[crtpushvecidx].size() == 1;
+	if(not isAtomicStopping()){
+		sendmsgvec[crtpushvecidx].push_back(PendingSendMessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
+		if(sendmsgvec[crtpushvecidx].size() == 1){
+			_revent = EventCategory::createPush();
+		}
+		return true;
+	}else{
+		return false;
+	}
+	
 }
+//-----------------------------------------------------------------------------
+bool Connection::prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_revent){
+	if(not isAtomicStopping()){
+		if(_rconpoolid.isValid()){
+			if(conpoolid.isInvalid()){
+				conpoolid = _rconpoolid;//conpoolid should be used only if isActive
+			}else{
+				cassert(conpoolid == _rconpoolid);
+			}
+		}
+		
+		atomic_flags |= AtomicFlagActiveE;
+		
+		_revent = EventCategory::createActivate();
+		return true;
+	}else{
+		return false;
+	}
+}
+//-----------------------------------------------------------------------------
 void Connection::directPushMessage(
 	frame::aio::ReactorContext &_rctx,
 	MessagePointerT &_rmsgptr,
@@ -182,8 +212,12 @@ bool Connection::isActive()const{
 	return flags & FlagActiveE;
 }
 //-----------------------------------------------------------------------------
-bool Connection::isStopping()const{
-	return flags & FlagStoppingE;
+bool Connection::isAtomicActive()const{
+	return atomic_flags & AtomicFlagActiveE;
+}
+//-----------------------------------------------------------------------------
+bool Connection::isAtomicStopping()const{
+	return atomic_flags & AtomicFlagStoppingE;
 }
 //-----------------------------------------------------------------------------
 bool Connection::isServer()const{
@@ -248,6 +282,8 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		ConnectionContext	conctx(service(_rctx), *this);
 		ObjectUidT			objuid(uid(_rctx));
 		
+		atomic_flags |= AtomicFlagStoppingE;
+		
 		postStop(_rctx);//there might be events pending which will be delivered, but after this call
 						//no event get posted
 		
@@ -256,7 +292,6 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		doCompleteAllMessages(_rctx, _rerr);
 		
 		service(_rctx).onConnectionStop(conctx, _rerr);
-		flags |= FlagStoppingE;
 		
 		doUnprepare(_rctx);
 	}
@@ -274,76 +309,19 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		flags |= FlagStopForcedE;
 		doStop(_rctx, error_connection_killed);
 	}else if(EventCategory::isResolve(_revent)){
-		ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
-		if(presolvemsg){
-			idbgx(Debug::ipc, this<<' '<<this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size()<<" crtidx = "<<presolvemsg->crtidx);
-			if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
-				//initiate connect:
-				if(sock.connect(_rctx, presolvemsg->currentAddress(), Connection::onConnect)){
-					onConnect(_rctx);
-				}
-				
-				service(_rctx).forwardResolveMessage(conpoolid, _revent);
-			}else{
-				cassert(true);
-				doStop(_rctx, error_library_logic);
-			}
-		}
+		doHandleEventResolve(_rctx, _revent);
 	}else if(EventCategory::isActivate(_revent)){
-		doActivate(_rctx, _revent);
-	}else{
-		size_t		vecidx = -1;
-		{
-			Locker<Mutex>	lock(service(_rctx).mutex(*this));
-			
-			idbgx(Debug::ipc, this<<' '<<this->id()<<" Session message");
-			
-			if(sendmsgvec[crtpushvecidx].size()){
-				vecidx = crtpushvecidx;
-				crtpushvecidx += 1;
-				crtpushvecidx %= 2;
-			}
-		}
-		
-		if(vecidx < 2){
-			ConnectionContext				conctx(service(_rctx), *this);
-			const TypeIdMapT				&rtypemap = service(_rctx).typeMap();
-			const Configuration 			&rconfig  = service(_rctx).configuration();
-			
-			PendingSendMessageVectorT 		&rsendmsgvec = sendmsgvec[vecidx];
-			
-			bool was_empty_msgwriter = msgwriter.empty();
-			
-			for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
-				msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->response_fnc, it->flags, rconfig, rtypemap, conctx);
-			}
-			rsendmsgvec.clear();
-			
-			if(was_empty_msgwriter and not msgwriter.empty()){
-				idbgx(Debug::ipc, this<<" post send");
-				this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
-			}
-		}
+		doHandleEventActivate(_rctx, _revent);
+	}else if(EventCategory::isPush(_revent)){
+		doHandleEventPush(_rctx, _revent);
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doActivate(
+void Connection::doHandleEventActivate(
 	frame::aio::ReactorContext &_rctx,
 	frame::Event const &_revent
 ){
-	ActivateMessage *pactivatemsg = ActivateMessage::cast(_revent.msgptr.get());
-	
-	idbgx(Debug::ipc, this<<" "<<pactivatemsg);
-	
-	//if(pactivatemsg == nullptr and _revent.msgptr.get() != nullptr){
-	//	cassert(false);
-	//}
-	
-	cassert(!(pactivatemsg == nullptr and _revent.msgptr.get() != nullptr));
-	
-	if(pactivatemsg){
-		this->conpoolid = pactivatemsg->poolid;
-	}
+	idbgx(Debug::ipc, this);
 	
 	cassert(!isActive());
 	flags |= FlagActiveE;
@@ -360,6 +338,65 @@ void Connection::doActivate(
 		err.assign(-1, err.category());//TODO:
 		
 		doCompleteAllMessages(_rctx, err);
+	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventPush(
+	frame::aio::ReactorContext &_rctx,
+	frame::Event const &_revent
+){
+	size_t		vecidx = -1;
+	{
+		Locker<Mutex>	lock(service(_rctx).mutex(*this));
+		
+		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session message");
+		
+		if(sendmsgvec[crtpushvecidx].size()){
+			vecidx = crtpushvecidx;
+			crtpushvecidx += 1;
+			crtpushvecidx %= 2;
+		}
+	}
+	
+	if(vecidx < 2){
+		ConnectionContext				conctx(service(_rctx), *this);
+		const TypeIdMapT				&rtypemap = service(_rctx).typeMap();
+		const Configuration 			&rconfig  = service(_rctx).configuration();
+		
+		PendingSendMessageVectorT 		&rsendmsgvec = sendmsgvec[vecidx];
+		
+		bool was_empty_msgwriter = msgwriter.empty();
+		
+		for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
+			msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->response_fnc, it->flags, rconfig, rtypemap, conctx);
+		}
+		rsendmsgvec.clear();
+		
+		if(was_empty_msgwriter and not msgwriter.empty()){
+			idbgx(Debug::ipc, this<<" post send");
+			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
+		}
+	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventResolve(
+	frame::aio::ReactorContext &_rctx,
+	frame::Event const &_revent
+){
+	ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
+	if(presolvemsg){
+		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size()<<" crtidx = "<<presolvemsg->crtidx);
+		if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
+			//initiate connect:
+			if(sock.connect(_rctx, presolvemsg->currentAddress(), Connection::onConnect)){
+				onConnect(_rctx);
+			}
+			
+			service(_rctx).forwardResolveMessage(conpoolid, _revent);
+		}else{
+			cassert(true);
+			doStop(_rctx, error_library_logic);
+		}
 	}
 }
 //-----------------------------------------------------------------------------

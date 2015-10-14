@@ -55,8 +55,6 @@ struct ResolveMessage: Dynamic<ResolveMessage>{
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
 	
-	static Event activateEvent(ConnectionPoolUid const& _rconpoolid);
-	static Event activateEvent();
 	static Event resolveEvent();
 	
 	//Called when connection is accepted
@@ -73,7 +71,8 @@ public:
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong _flags
+		ulong _flags,
+		Event &_revent
 	);
 	
 	void directPushMessage(
@@ -84,8 +83,16 @@ public:
 		ulong _flags
 	);
 	
+	bool prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_revent);
+	
+	//The connection is aware that it is activated
 	bool isActive()const;
-	bool isStopping()const;
+	
+	//The service marked connection as active, but the connection might not be aware that it is active
+	bool isAtomicActive()const;
+	
+	bool isAtomicStopping()const;
+	
 	bool isServer()const;
 	bool shouldSendKeepalive()const;
 	bool isWaitingKeepAliveTimer()const;
@@ -135,6 +142,10 @@ private:
 	void doResetTimerRecv(frame::aio::ReactorContext &_rctx);
 	void doCompleteMessage(solid::frame::aio::ReactorContext& _rctx, solid::frame::ipc::MessagePointerT /*const*/& _rmsgptr);
 	void doCompleteKeepalive(frame::aio::ReactorContext &_rctx);
+
+	void doHandleEventActivate(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	void doHandleEventPush(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	void doHandleEventResolve(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	
 	template <class Fnc>
 	void fetchUnsentMessages(
@@ -154,6 +165,7 @@ private:
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	typedef frame::aio::Timer							TimerT;
+	typedef std::atomic<uint8>							AtomicUInt8T;
 	
 	struct PendingSendMessageStub{
 		PendingSendMessageStub(
@@ -178,6 +190,7 @@ private:
 	
 	uint8						crtpushvecidx;
 	uint8						flags;
+	AtomicUInt8T				atomic_flags;
 	
 	uint32						receivebufoff;
 	uint32						consumebufoff;

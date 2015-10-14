@@ -229,24 +229,28 @@ size_t Service::doPushNewConnectionPool(){
 	return idx;
 }
 //-----------------------------------------------------------------------------
-struct PushMessageVisitorF{
-	PushMessageVisitorF(
+struct PushMessageConnectionVisitorF{
+	PushMessageConnectionVisitorF(
 		MessagePointerT	&_rmsgptr,
 		const size_t	_msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong			_flags,
-		Event const &	_revt
-	):rmsgptr(_rmsgptr), flags(_flags), raise_event(_revt), msg_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)){}
+		ulong			_flags
+	):rmsgptr(_rmsgptr), flags(_flags), msg_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)){}
 	
 	
 	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
 		Connection *pcon = Connection::cast(&_robj);
 		
 		if(pcon){
-			if(pcon->pushMessage(rmsgptr, msg_type_idx, response_fnc, flags)){
-				_rreact.raise(_robj.runId(), raise_event);
+			Event		raise_event;
+			const bool	retval = pcon->pushMessage(rmsgptr, msg_type_idx, response_fnc, flags, raise_event);
+			
+			if(retval){
+				if(!raise_event.empty()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
 			}
-			return true;
+			return retval;
 		}else{
 			return false;
 		}
@@ -254,11 +258,36 @@ struct PushMessageVisitorF{
 	
 	MessagePointerT				&rmsgptr;
 	ulong						flags;
-	Event						raise_event;
 	const size_t				msg_type_idx;
 	ResponseHandlerFunctionT	response_fnc;
 };
 
+
+struct ActivateConnectionVisitorF{
+	ActivateConnectionVisitorF(
+		ConnectionPoolUid const &_rconpoolid
+	):conpoolid(_rconpoolid){}
+	
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			Event		raise_event;
+			const bool	retval = pcon->prepareActivate(conpoolid, raise_event);
+			
+			if(retval){
+				if(!raise_event.empty()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
+			}
+			return retval;
+		}else{
+			return false;
+		}
+	}
+	
+	ConnectionPoolUid conpoolid;
+};
 
 
 struct OnRelsolveF{
@@ -351,7 +380,7 @@ ErrorConditionT Service::doSendMessage(
 			return err;
 		}
 	}else if(not _rconuid_in.isInvalidConnection()){
-		return doSendMessage(_rconuid_in.connectionid, _rmsgptr, msg_type_idx, _rresponse_fnc, _rconuid_in.poolid, _pconpoolid_out, _flags);
+		return doNotifyConnectionPushMessage(_rconuid_in.connectionid, _rmsgptr, msg_type_idx, _rresponse_fnc, _rconuid_in.poolid, _pconpoolid_out, _flags);
 	}else if(_rconuid_in.poolid.index < d.conpooldq.size()/* && _rconuid_in.ssnuid == d.conpooldq[_rconuid_in.ssnidx].uid*/){
 		//we cannot check the uid right now because we need a lock on the session's mutex
 		check_uid = true;
@@ -377,7 +406,7 @@ ErrorConditionT Service::doSendMessage(
 		Message::is_synchronous(_flags) and
 		rconpool.synchronous_connection_uid.isValid()
 	){
-		ErrorConditionT	tmperr = doSendMessage(
+		ErrorConditionT	tmperr = doNotifyConnectionPushMessage(
 			rconpool.synchronous_connection_uid,
 			_rmsgptr,
 			msg_type_idx,
@@ -388,7 +417,7 @@ ErrorConditionT Service::doSendMessage(
 		if(!tmperr){
 			return err;
 		}
-		edbgx(Debug::ipc, this<<' '<<"synchronous connection is dead and pool's synchronous_connection_uid is valid");
+		edbgx(Debug::ipc, this<<" synchronous connection is dead and pool's synchronous_connection_uid is valid");
 		cassert(false);
 		rconpool.synchronous_connection_uid = UniqueId::invalid();
 	}
@@ -398,7 +427,7 @@ ErrorConditionT Service::doSendMessage(
 		
 		rconpool.conn_waitingq.pop();
 		
-		ErrorConditionT	tmperr = doSendMessage(
+		ErrorConditionT	tmperr = doNotifyConnectionPushMessage(
 			objuid, _rmsgptr, msg_type_idx, _rresponse_fnc, ConnectionPoolUid(idx, rconpool.uid), _pconpoolid_out, _flags
 		);
 		
@@ -408,10 +437,10 @@ ErrorConditionT Service::doSendMessage(
 			}
 			return err;
 		}
-		wdbgx(Debug::ipc, this<<' '<<"failed sending message to connection "<<objuid<<" error: "<<tmperr.message());
+		wdbgx(Debug::ipc, this<<" failed sending message to connection "<<objuid<<" error: "<<tmperr.message());
 	}
 	
-	idbgx(Debug::ipc, this<<' '<<"all connections are busy. active connections "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
+	idbgx(Debug::ipc, this<<" all connections are busy. active connections "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
 	//All connections are busy
 	//Check if we should create a new connection
 	
@@ -493,7 +522,7 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 }
 
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::doSendMessage(
+ErrorConditionT Service::doNotifyConnectionPushMessage(
 	ObjectUidT const &_robjuid,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
@@ -502,14 +531,30 @@ ErrorConditionT Service::doSendMessage(
 	ConnectionPoolUid *_pconpoolid_out,
 	ulong _flags
 ){
-	solid::ErrorConditionT	err;
-	PushMessageVisitorF		fnc(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, EventCategory::createRaise());
-	bool					rv = manager().visit(_robjuid, fnc);
+	solid::ErrorConditionT			err;
+	PushMessageConnectionVisitorF	fnc(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+	bool							rv = manager().visit(_robjuid, fnc);
 	if(rv){
 		//message successfully delivered
 		if(_pconpoolid_out){
 			*_pconpoolid_out = _rconpooluid;
 		}
+	}else{
+		//connection does not exist
+		err.assign(-1, err.category());//TODO
+	}
+	return err;
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::doNotifyConnectionActivate(
+	ObjectUidT const &_robjuid,
+	ConnectionPoolUid const &_rconpooluid
+){
+	solid::ErrorConditionT		err;
+	ActivateConnectionVisitorF	fnc(_rconpooluid);
+	bool						rv = manager().visit(_robjuid, fnc);
+	if(rv){
+		//message successfully delivered
 	}else{
 		//connection does not exist
 		err.assign(-1, err.category());//TODO
@@ -523,7 +568,7 @@ ErrorConditionT Service::scheduleConnectionClose(
 	ConnectionPoolUid			fakeuid;
 	MessagePointerT				msgptr;
 	ResponseHandlerFunctionT	response_handler;
-	return doSendMessage(_rconnection_uid.connectionid, msgptr, -1, response_handler, fakeuid, nullptr, 0);
+	return doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgptr, -1, response_handler, fakeuid, nullptr, 0);
 }
 //-----------------------------------------------------------------------------
 // Three situations in doActivateConnection is called:
@@ -540,26 +585,20 @@ ErrorConditionT Service::doActivateConnection(
 	const bool _may_quit
 ){
 	solid::ErrorConditionT					err;
-	Event									activate_event;
 	std::pair<MessagePointerT, uint32>		msgpair;
+	ConnectionPoolUid						poolid;
 	
 	if(_recipient_name == nullptr and not _rconnection_uid.poolid.isValid()){//situation 1
-		activate_event = Connection::activateEvent();
-		if(manager().notify(_rconnection_uid.connectionid, activate_event)){
-		}else{
-			edbgx(Debug::ipc, this<<' '<<"connection does not exist");
-			err.assign(-1, err.category());//TODO: server only
-		}
+		err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid);
 		return err;
 	}
 	
 	if(_recipient_name != nullptr and _rconnection_uid.poolid.isValid()){
-		edbgx(Debug::ipc, this<<' '<<"only accepted connections allowed");
+		edbgx(Debug::ipc, this<<" only accepted connections allowed");
 		err.assign(-1, err.category());//TODO: only accepted connections allowed
 		return err;
 	}
 	
-	ConnectionPoolUid			poolid;
 	Locker<Mutex>				lock(d.mtx);
 	SmartLocker<Mutex>			lock2;
 	
@@ -580,7 +619,7 @@ ErrorConditionT Service::doActivateConnection(
 		}else{//connection pool does not exist
 			
 			if(d.config.isServerOnly()){
-				edbgx(Debug::ipc, this<<' '<<"request for name resolve for a server only configuration");
+				edbgx(Debug::ipc, this<<" request for name resolve for a server only configuration");
 				err.assign(-1, err.category());//TODO: server only
 				return err;
 			}
@@ -603,8 +642,6 @@ ErrorConditionT Service::doActivateConnection(
 			lock2 = std::move(tmplock);
 		}
 	}
-	
-	activate_event = Connection::activateEvent(poolid);
 	
 	ConnectionPoolStub			&rconpool(d.conpooldq[poolid.index]);
 	const size_t				wouldbe_active_connection_count = rconpool.active_connection_count + 1;
@@ -629,7 +666,7 @@ ErrorConditionT Service::doActivateConnection(
 		std::pair<MessagePointerT, uint32>			msgpair;
 		bool										success = false;
 		
-		idbgx(Debug::ipc, this<<' '<<"Connection count limit not reached on connection-pool: "<<poolid);
+		idbgx(Debug::ipc, this<<" connection count limit not reached on connection-pool: "<<poolid);
 		
 		if(not FUNCTION_EMPTY(_rmsgfactory)){
 			msgpair = _rmsgfactory(err);
@@ -640,22 +677,24 @@ ErrorConditionT Service::doActivateConnection(
 			
 			if(msg_type_idx != 0){
 				//first send the Init message
-				err = doSendMessage(_rconnection_uid.connectionid, msgpair.first, msg_type_idx, response_handler, poolid, nullptr, msgpair.second);
+				err = doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgpair.first, msg_type_idx, response_handler, poolid, nullptr, msgpair.second);
 				if(err){
 					success = false;
 				}else{
 					//then send the activate event
-					success = manager().notify(_rconnection_uid.connectionid, activate_event);
+					err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid);
+					success = !err;
 				}
 			}else{
 				err.assign(-1, err.category());//TODO: Unknown message type
 				success = false;
 			}
 		}else if(FUNCTION_EMPTY(_rmsgfactory)){
-			success = manager().notify(_rconnection_uid.connectionid, activate_event);
+			err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid);
+			success = !err;
 		}else{
 			//close connection
-			doSendMessage(_rconnection_uid.connectionid, msgpair.first, -1, response_handler, poolid, nullptr, msgpair.second);
+			doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgpair.first, -1, response_handler, poolid, nullptr, msgpair.second);
 			success = false;
 		}
 		
@@ -665,7 +704,7 @@ ErrorConditionT Service::doActivateConnection(
 			idbgx(Debug::ipc, this<<' '<<poolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
 		}
 	}else{
-		idbgx(Debug::ipc, this<<' '<<"Connection count limit reached on connection-pool: "<<poolid);
+		idbgx(Debug::ipc, this<<" connection count limit reached on connection-pool: "<<poolid);
 		
 		err.assign(-1, err.category());//TODO: Connection count limit
 		
@@ -680,7 +719,7 @@ ErrorConditionT Service::doActivateConnection(
 			const size_t		msg_type_idx = tm.index(msgpair.first.get());
 			
 			if(msg_type_idx != 0){
-				doSendMessage(_rconnection_uid.connectionid, msgpair.first, msg_type_idx, response_handler, poolid, nullptr, msgpair.second);
+				doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgpair.first, msg_type_idx, response_handler, poolid, nullptr, msgpair.second);
 			}else{
 				err.assign(-1, err.category());//TODO: Unknown message type
 			}
@@ -689,7 +728,7 @@ ErrorConditionT Service::doActivateConnection(
 		msgpair.first.clear();
 		msgpair.second = 0;
 		//close connection
-		doSendMessage(_rconnection_uid.connectionid, msgpair.first, -1, response_handler, poolid, nullptr, msgpair.second);
+		doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgpair.first, -1, response_handler, poolid, nullptr, msgpair.second);
 		cassert(rconpool.active_connection_count or rconpool.pending_connection_count);
 	}
 	
@@ -722,13 +761,13 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 		
 		cassert(rconpool.uid == conpoolid.unique);
 		
-		idbgx(Debug::ipc, this<<' '<<""<<_robjuid);
+		idbgx(Debug::ipc, this<<' '<<_robjuid);
 		
-		if(_rcon.isActive()){
+		if(_rcon.isAtomicActive()){//we do not care if the connection is aware if it is active
 			--rconpool.active_connection_count;
 			
 			//we do not actually need to pop the connection from conn_waitingq
-			//doSendMessage send message will fail anyway
+			//doPushMessageToConnection will fail anyway
 #if 0
 			if(_robjuid.isValid()){
 				//pop the connection from waitingq
@@ -826,7 +865,7 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 	solid::ErrorConditionT			err;
 	ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
 	
-	idbgx(Debug::ipc, this<<' '<<"receive connection ["<<conuid<<"] err = "<<err.message());
+	idbgx(Debug::ipc, this<<" receive connection ["<<conuid<<"] err = "<<err.message());
 }
 //-----------------------------------------------------------------------------
 void Service::onIncomingConnectionStart(ConnectionContext &_rconctx){
@@ -873,7 +912,7 @@ struct ResolveF{
 		if(!_rerr){
 			for(auto it = _rrd.begin(); it != _rrd.end(); ++it){
 				addrvec.push_back(SocketAddressStub(it));
-				idbgx(Debug::ipc, "Add resolved address: "<<addrvec.back());
+				idbgx(Debug::ipc, "add resolved address: "<<addrvec.back());
 			}
 		}
 		cbk(addrvec);
