@@ -114,6 +114,8 @@ private:
 	static void onTimerInactivity(frame::aio::ReactorContext &_rctx);
 	static void onTimerKeepalive(frame::aio::ReactorContext &_rctx);
 	
+	void onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
+	
 	void doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming);
 	
 	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);

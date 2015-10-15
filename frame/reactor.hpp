@@ -13,6 +13,7 @@
 #include "utility/dynamicpointer.hpp"
 #include "frame/common.hpp"
 #include "frame/reactorbase.hpp"
+#include "frame/reactorcontext.hpp"
 
 
 namespace solid{
@@ -33,6 +34,27 @@ typedef DynamicPointer<Object>	ObjectPointerT;
 	
 */
 class Reactor: public frame::ReactorBase{
+	typedef FUNCTION<void(ReactorContext&, Event const &)>		EventFunctionT;
+	template <class Function>
+	struct StopObjectF{
+		Function	function;
+		bool		repost;
+		
+		explicit StopObjectF(Function &_function):function(std::move(_function)), repost(true){}
+		
+		//explicit StopObjectF(StopObjectF<Function> &&_rfnc):function(std::move(_rfnc.function)), repost(_rfnc.repost){}
+		
+		void operator()(ReactorContext& _rctx, Event const &_revent){
+			if(repost){//skip one round - to guarantee that all remaining posts were delivered
+				repost = false;
+				EventFunctionT	eventfnc(*this);
+				_rctx.reactor().doPost(_rctx, eventfnc, _revent);
+			}else{
+				function(_rctx, _revent);
+				_rctx.reactor().doStopObject(_rctx);
+			}
+		}
+	};
 public:
 	typedef ObjectPointerT		TaskT;
 	typedef Object				ObjectT;
@@ -40,9 +62,26 @@ public:
 	Reactor(SchedulerBase &_rsched, const size_t _schedidx);
 	~Reactor();
 	
-	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev);
-	void post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch);
+	template <typename Function>
+	void post(ReactorContext &_rctx, Function _fnc, Event const &_rev){
+		EventFunctionT	eventfnc(_fnc);
+		doPost(_rctx, eventfnc, _rev);
+	}
+	
+	template <typename Function>
+	void post(ReactorContext &_rctx, Function _fnc, Event const &_rev, CompletionHandler const &_rch){
+		EventFunctionT	eventfnc(_fnc);
+		doPost(_rctx, eventfnc, _rev, _rch);
+	}
+	
 	void postObjectStop(ReactorContext &_rctx);
+	
+	template <typename Function>
+	void postObjectStop(ReactorContext &_rctx, Function _f, Event const &_rev){
+		StopObjectF<Function>	stopfnc(_f);
+		EventFunctionT			eventfnc(stopfnc);
+		doPost(_rctx, eventfnc, _rev);
+	}
 	
 	bool addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx);
 	bool remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx);
@@ -69,6 +108,7 @@ private:
 	friend class CompletionHandler;
 	friend struct ChangeTimerIndexCallback;
 	friend struct TimerCallback;
+	friend struct ExecStub;
 	
 	static Reactor* safeSpecific();
 	static Reactor& specific();
@@ -81,6 +121,11 @@ private:
 	void doStoreSpecific();
 	void doClearSpecific();
 	void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
+	
+	void doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev);
+	void doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch);
+	
+	void doStopObject(ReactorContext &_rctx);
 	
 	void onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _chidx);
 	static void call_object_on_event(ReactorContext &_rctx, Event const &_rev);

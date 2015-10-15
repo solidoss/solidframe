@@ -13,7 +13,8 @@
 #include "frame/objectbase.hpp"
 #include "frame/common.hpp"
 #include "frame/forwardcompletion.hpp"
-
+#include "frame/reactor.hpp"
+#include "frame/reactorcontext.hpp"
 
 namespace solid{
 namespace frame{
@@ -55,16 +56,26 @@ protected:
 	
 	bool isRunning()const;
 	
-	void postStop(ReactorContext &_rctx);
+	void postStop(ReactorContext &_rctx){
+		if(doPrepareStop(_rctx)){
+			_rctx.reactor().postObjectStop(_rctx);
+		}
+	}
+	
+	template <class F>
+	void postStop(ReactorContext &_rctx, F _f, Event const &_revent = Event()){
+		if(doPrepareStop(_rctx)){
+			_rctx.reactor().postObjectStop(_rctx, _f, _revent);
+		}
+	}
 	
 	template <class F>
 	void post(ReactorContext &_rctx, F _f, Event const &_revent = Event()){
-		EventFunctionT	evfn(_f);
-		doPost(_rctx, evfn, _revent);
+		_rctx.reactor().post(_rctx, _f, _revent);
 	}
 private:
 	virtual void onEvent(ReactorContext &_rctx, Event const &_revent);
-	void doPost(ReactorContext &_rctx, EventFunctionT &_revfn, Event const &_revent);
+	bool doPrepareStop(ReactorContext &_rctx);
 };
 
 }//namespace frame

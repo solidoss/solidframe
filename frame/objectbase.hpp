@@ -56,7 +56,7 @@ protected:
 	
 	bool notify(const size_t _smask);
 	
-	void disableVisits(Manager &_rm);
+	bool disableVisits(Manager &_rm);
 private:
 	void id(const IndexT &_fullid);
 	

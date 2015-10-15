@@ -75,23 +75,23 @@ public:
 
 struct NewTaskStub{
 	NewTaskStub(
-		UidT const&_ruid, TaskT const&_robjptr, Service &_rsvc, Event const &_revt
-	):uid(_ruid), objptr(_robjptr), rsvc(_rsvc), evt(_revt){}
+		UidT const&_ruid, TaskT const&_robjptr, Service &_rsvc, Event const &_revent
+	):uid(_ruid), objptr(_robjptr), rsvc(_rsvc), event(_revent){}
 	
 	//NewTaskStub(){}
 	UidT		uid;
 	TaskT		objptr;
 	Service		&rsvc;
-	Event		evt;
+	Event		event;
 };
 
 struct RaiseEventStub{
 	RaiseEventStub(
-		UidT const&_ruid, Event const &_revt
-	):uid(_ruid), evt(_revt){}
+		UidT const&_ruid, Event const &_revent
+	):uid(_ruid), event(_revent){}
 	
 	UidT		uid;
-	Event		evt;
+	Event		event;
 };
 
 struct CompletionHandlerStub{
@@ -124,22 +124,22 @@ enum{
 struct ExecStub{
 	template <class F>
 	ExecStub(
-		UidT const &_ruid, F _f, Event const &_revt = Event()
-	):objuid(_ruid), exefnc(_f), evt(_revt){}
+		UidT const &_ruid, F _f, Event const &_revent = Event()
+	):objuid(_ruid), exefnc(_f), event(_revent){}
 	
 	template <class F>
 	ExecStub(
-		UidT const &_ruid, F _f, UidT const &_rchnuid, Event const &_revt = Event()
-	):objuid(_ruid), chnuid(_rchnuid), exefnc(_f), evt(_revt){}
+		UidT const &_ruid, F _f, UidT const &_rchnuid, Event const &_revent = Event()
+	):objuid(_ruid), chnuid(_rchnuid), exefnc(_f), event(_revent){}
 	
 	ExecStub(
-		UidT const &_ruid, Event const &_revt = Event()
-	):objuid(_ruid), evt(_revt){}
+		UidT const &_ruid, Event const &_revent = Event()
+	):objuid(_ruid), event(_revent){}
 	
-	UidT			objuid;
-	UidT			chnuid;
-	EventFunctionT	exefnc;
-	Event			evt;
+	UidT						objuid;
+	UidT						chnuid;
+	Reactor::EventFunctionT		exefnc;
+	Event						event;
 };
 
 typedef std::vector<NewTaskStub>			NewTaskVectorT;
@@ -243,14 +243,14 @@ bool Reactor::start(){
 	return true;
 }
 
-/*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _revt){
-	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event = "<<_revt);
+/*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _revent){
+	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event = "<<_revent);
 	bool 	rv = true;
 	size_t	raisevecsz = 0;
 	{
 		Locker<Mutex>	lock(d.mtx);
 		
-		d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, _revt));
+		d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, _revent));
 		raisevecsz = d.raisevec[d.crtraisevecidx].size();
 		d.crtraisevecsz = raisevecsz;
 		if(raisevecsz == 1){
@@ -267,7 +267,7 @@ bool Reactor::start(){
 }
 
 //Called from outside reactor's thread
-bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revt){
+bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
 	vdbgx(Debug::aio, (void*)this);
 	bool 	rv = true;
 	size_t	pushvecsz = 0;
@@ -275,9 +275,9 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revt){
 		Locker<Mutex>	lock(d.mtx);
 		const UidT		uid = this->popUid(*_robj);
 		
-		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event = "<<_revt);
+		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event = "<<_revent);
 			
-		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revt));
+		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revent));
 		pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();
 		d.crtpushvecsz = pushvecsz;
 		if(pushvecsz == 1){
@@ -332,13 +332,13 @@ CompletionHandler *Reactor::completionHandler(ReactorContext const &_rctx)const{
 	return d.chdq[_rctx.chnidx].pch;
 }
 
-void Reactor::post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev){
+void Reactor::doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev){
 	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
 	d.exeq.back().exefnc = std::move(_revfn);
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
 
-void Reactor::post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch){
+void Reactor::doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch){
 	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
 	d.exeq.back().exefnc = std::move(_revfn);
 	d.exeq.back().chnuid = UidT(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
@@ -353,16 +353,7 @@ void Reactor::post(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &
 
 /*static*/ void Reactor::stop_object(ReactorContext &_rctx, Event const &){
 	Reactor			&rthis = _rctx.reactor();
-	ObjectStub		&ros = rthis.d.objdq[_rctx.objidx];
-	
-	
-	rthis.stopObject(*ros.objptr, ros.psvc->manager());
-	
-	ros.objptr.clear();
-	ros.psvc = nullptr;
- 	++ros.unique;
-	--rthis.d.objcnt;
-	rthis.d.freeuidvec.push_back(UidT(_rctx.objidx, ros.unique));
+	rthis.doStopObject(_rctx);
 }
 
 /*NOTE:
@@ -373,6 +364,18 @@ void Reactor::postObjectStop(ReactorContext &_rctx){
 	d.exeq.push(ExecStub(_rctx.objectUid()));
 	d.exeq.back().exefnc = &stop_object_repost;
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
+}
+
+void Reactor::doStopObject(ReactorContext &_rctx){
+	ObjectStub		&ros = this->d.objdq[_rctx.objidx];
+	
+	this->stopObject(*ros.objptr, ros.psvc->manager());
+	
+	ros.objptr.clear();
+	ros.psvc = nullptr;
+ 	++ros.unique;
+	--this->d.objcnt;
+	this->d.freeuidvec.push_back(UidT(_rctx.objidx, ros.unique));
 }
 
 struct ChangeTimerIndexCallback{
@@ -423,7 +426,7 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 			ctx.clearError();
 			ctx.chnidx = rexe.chnuid.index;
 			ctx.objidx = rexe.objuid.index;
-			rexe.exefnc(ctx, rexe.evt);
+			rexe.exefnc(ctx, rexe.event);
 		}
 		d.exeq.pop();
 	}
@@ -497,22 +500,22 @@ void Reactor::doCompleteEvents(TimeSpec  const &_rcrttime){
 			
 			ros.objptr->registerCompletionHandlers();
 			
-			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), rnewobj.evt));
+			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), rnewobj.event));
 		}
 		crtpushvec.clear();
 	}
 	
 	if(crtraisevec.size()){	
 		for(auto it = crtraisevec.begin(); it != crtraisevec.end(); ++it){
-			RaiseEventStub	&revt = *it;
-			d.exeq.push(ExecStub(revt.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), revt.evt));
+			RaiseEventStub	&revent = *it;
+			d.exeq.push(ExecStub(revent.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), revent.event));
 		}
 		crtraisevec.clear();
 	}
 }
 
-/*static*/ void Reactor::call_object_on_event(ReactorContext &_rctx, Event const &_revt){
-	_rctx.object().onEvent(_rctx, _revt);
+/*static*/ void Reactor::call_object_on_event(ReactorContext &_rctx, Event const &_revent){
+	_rctx.object().onEvent(_rctx, _revent);
 }
 
 bool Reactor::addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx){

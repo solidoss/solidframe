@@ -517,12 +517,10 @@ public:
 	}
 private:
 	void doPostRecvSome(ReactorContext &_rctx){
-		EventFunctionT	evfn(&on_posted_recv);
-		reactor(_rctx).post(_rctx, evfn, Event(), *this);
+		reactor(_rctx).post(_rctx, on_posted_recv, Event(), *this);
 	}
 	void doPostSendAll(ReactorContext &_rctx){
-		EventFunctionT	evfn(&on_posted_send);
-		reactor(_rctx).post(_rctx, evfn, Event(), *this);
+		reactor(_rctx).post(_rctx, on_posted_send, Event(), *this);
 	}
 	
 	void doRecv(ReactorContext &_rctx){

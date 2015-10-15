@@ -146,12 +146,6 @@ enum ReactorWaitRequestsE{
 	ReactorWaitError
 };
 
-
-class ReactorContext;
-struct Event;
-
-typedef FUNCTION<void(ReactorContext&, Event const &)>		EventFunctionT;
-
 }//namespace frame
 }//namespace solid
 

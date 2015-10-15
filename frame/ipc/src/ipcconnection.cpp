@@ -277,23 +277,32 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	doResetTimerStart(_rctx);
 }
 //-----------------------------------------------------------------------------
+void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
+	ObjectUidT			objuid(uid(_rctx));
+	ConnectionContext	conctx(service(_rctx), *this);
+	
+	service(_rctx).onConnectionClose(*this, _rctx, objuid);//must be called after postStop!!
+	
+	doCompleteAllMessages(_rctx, _rerr);
+	
+	service(_rctx).onConnectionStop(conctx, _rerr);
+	
+	doUnprepare(_rctx);
+}
+//-----------------------------------------------------------------------------
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
-	if(not isStopping()){
-		ConnectionContext	conctx(service(_rctx), *this);
-		ObjectUidT			objuid(uid(_rctx));
+	if(not isAtomicStopping()){
+		ErrorConditionT		error(_rerr);
 		
 		atomic_flags |= AtomicFlagStoppingE;
 		
-		postStop(_rctx);//there might be events pending which will be delivered, but after this call
-						//no event get posted
-		
-		service(_rctx).onConnectionClose(*this, _rctx, objuid);//must be called after postStop!!
-		
-		doCompleteAllMessages(_rctx, _rerr);
-		
-		service(_rctx).onConnectionStop(conctx, _rerr);
-		
-		doUnprepare(_rctx);
+		postStop(_rctx, 
+			[error](frame::aio::ReactorContext &_rctx, frame::Event const &/*_revent*/){
+				Connection	&rthis = static_cast<Connection&>(_rctx.object());
+				rthis.onStopped(_rctx, error);
+			}
+		);//there might be events pending which will be delivered, but after this call
+						  //no event get posted
 	}
 }
 //-----------------------------------------------------------------------------
@@ -326,7 +335,7 @@ void Connection::doHandleEventActivate(
 	cassert(!isActive());
 	flags |= FlagActiveE;
 	
-	if(not isStopping()){
+	if(not isAtomicStopping()){
 		service(_rctx).activateConnectionComplete(*this);
 		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 	}else{

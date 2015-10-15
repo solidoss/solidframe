@@ -29,24 +29,6 @@ Object::Object(){}
 	
 }
 
-void Object::postStop(ReactorContext &_rctx){
-	
-	this->disableVisits(_rctx.service().manager());
-	
-	{
-		CompletionHandler *pch = this->pnext;
-		
-		while(pch != nullptr){
-			pch->pprev = nullptr;//unregister
-			pch->deactivate();
-			
-			pch = pch->pnext;
-		}
-		this->pnext = nullptr;
-	}
-	_rctx.reactor().postObjectStop(_rctx);
-}
-
 bool Object::isRunning()const{
 	return runId().isValid();
 }
@@ -70,8 +52,20 @@ void Object::registerCompletionHandlers(){
 	}
 }
 
-void Object::doPost(ReactorContext &_rctx, EventFunctionT &_revfn, Event const &_revent){
-	_rctx.reactor().post(_rctx, _revfn, _revent);
+bool Object::doPrepareStop(ReactorContext &_rctx){
+	if(this->disableVisits(_rctx.service().manager())){
+		CompletionHandler *pch = this->pnext;
+		
+		while(pch != nullptr){
+			pch->pprev = nullptr;//unregister
+			pch->deactivate();
+			
+			pch = pch->pnext;
+		}
+		this->pnext = nullptr;
+		return true;
+	}
+	return false;
 }
 
 }//namespace aio

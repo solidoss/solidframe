@@ -603,7 +603,8 @@ void Manager::unregisterObject(ObjectBase &_robj){
 	}
 }
 
-void Manager::disableObjectVisits(ObjectBase &_robj){
+bool Manager::disableObjectVisits(ObjectBase &_robj){
+	bool retval = false;
 	if(_robj.isRegistered()){
 		const size_t	objstoreidx = d.aquireReadObjectStore();
 		ObjectChunk		&robjchk(*d.chunk(objstoreidx, _robj.id()));
@@ -612,8 +613,10 @@ void Manager::disableObjectVisits(ObjectBase &_robj){
 		d.releaseReadObjectStore(objstoreidx);
 		
 		ObjectStub 		&ros = robjchk.object(_robj.id() % d.objchkcnt);
+		retval  = (ros.preactor != nullptr);
 		ros.preactor = nullptr;
 	}
+	return retval;
 }
 
 bool Manager::notify(ObjectUidT const &_ruid, Event const &_revt, const size_t _sigmsk/* = 0*/){

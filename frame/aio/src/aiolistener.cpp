@@ -67,8 +67,7 @@ namespace aio{
 }
 
 void Listener::doPostAccept(ReactorContext &_rctx){
-	EventFunctionT	evfn(&Listener::on_posted_accept);
-	reactor(_rctx).post(_rctx, evfn, Event(), *this);
+	reactor(_rctx).post(_rctx, Listener::on_posted_accept, Event(), *this);
 }
 
 
