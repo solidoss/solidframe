@@ -363,7 +363,7 @@ char* MessageWriter::doFillPacket(
 			break;
 		}
 	}
-	idbgx(Debug::ipc, "write_q_size"<<write_q.size());
+	idbgx(Debug::ipc, "write_q_size "<<write_q.size());
 	return pbufpos;
 }
 //-----------------------------------------------------------------------------

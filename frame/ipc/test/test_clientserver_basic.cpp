@@ -126,7 +126,10 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		const size_t	pattern_size = pattern.size() / sizeof(uint64);
 		
 		for(uint64 i = 0; i < count; ++i){
-			if(pu[i] != pup[i % pattern_size]) return false;
+			if(pu[i] != pup[i % pattern_size]){
+				THROW_EXCEPTION("Message check failed.");
+				return false;
+			}
 		}
 		return true;
 	}
@@ -341,7 +344,7 @@ int test_clientserver_basic(int argc, char **argv){
 		
 		const size_t		start_count = 10;
 		
-		writecount = initarraysize * 10;//start_count;//
+		writecount = initarraysize * 30;//start_count;//
 		
 		for(; crtwriteidx < start_count;){
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));

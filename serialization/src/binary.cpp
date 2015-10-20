@@ -1204,13 +1204,15 @@ CbkReturnValueE DeserializerBase::load<std::string>(Base &_rb, FncData &_rfd, vo
 	if(!rd.cpb) return Success;
 	rd.estk.push(ExtData((uint64)0));
 	rd.replace(FncData(&DeserializerBase::loadBinaryString, _rfd.p, _rfd.n));
-	rd.fstk.push(FncData(&DeserializerBase::loadBinaryStringCheck, nullptr, _rfd.n));
+	rd.fstk.push(FncData(&DeserializerBase::loadBinaryStringCheck, _rfd.p, _rfd.n));
 	rd.fstk.push(FncData(&DeserializerBase::loadCross<uint64>, &rd.estk.top().u64()));
 	return Continue;
 }
 CbkReturnValueE DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
+	
 	if(!rd.cpb) return Success;
+	
 	const uint64 len = rd.estk.top().u64();
 	
 	if(len != static_cast<uint64>(-1)){
@@ -1222,6 +1224,7 @@ CbkReturnValueE DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd
 			return Failure;
 		}
 	}
+	
 	uint64 ul = rd.estk.top().u64();
 	
 	if(ul >= rd.lmts.stringlimit){
@@ -1229,11 +1232,20 @@ CbkReturnValueE DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd
 		rd.err = make_error(ERR_STRING_LIMIT);
 		return Failure;
 	}
+	
+	std::string		*ps = reinterpret_cast<std::string*>(_rfd.p);
+	
+	//ps->reserve(ul);
+	//ps->resize(ul, '_');
+	//ps->resize(0);
+	
 	return Success;
 }
 CbkReturnValueE DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
+	
 	idbgx(Debug::ser_bin, "");
+	
 	if(!rd.cpb){
 		rd.estk.pop();
 		return Success;
@@ -1249,6 +1261,7 @@ CbkReturnValueE DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, voi
 	std::string		*ps = reinterpret_cast<std::string*>(_rfd.p);
 	
 	ps->append(rd.cpb, len);
+	
 	rd.cpb += len;
 	ul -= len;
 	if(ul){
