@@ -136,7 +136,7 @@ inline void Connection::doOptimizeRecvBufferForced(){
 Connection::Connection(
 	SocketDevice &_rsd
 ):	sock(this->proxy(), std::move(_rsd)), timer(this->proxy()),
-	crtpushvecidx(0), flags(0), receivebufoff(0), consumebufoff(0),
+	crtpushvecidx(0), flags(0), atomic_flags(0), receivebufoff(0), consumebufoff(0),
 	recvbuf(nullptr), sendbuf(nullptr)
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
@@ -145,7 +145,7 @@ Connection::Connection(
 Connection::Connection(
 	ConnectionPoolUid const &_rconpoolid
 ):	conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),
-	crtpushvecidx(0), flags(0), receivebufoff(0), consumebufoff(0),
+	crtpushvecidx(0), flags(0), atomic_flags(0), receivebufoff(0), consumebufoff(0),
 	recvbuf(nullptr), sendbuf(nullptr)
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
@@ -619,7 +619,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 			idbgx(Debug::ipc, this<<" post send");
 			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 		}
-		
+		idbgx(Debug::ipc, this<<" done-doSend "<<this->sendmsgvec[0].size()<<" "<<this->sendmsgvec[1].size());
 	}
 }
 //-----------------------------------------------------------------------------

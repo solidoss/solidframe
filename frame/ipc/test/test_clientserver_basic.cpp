@@ -82,17 +82,21 @@ size_t real_size(size_t _sz){
 struct Message: Dynamic<Message, frame::ipc::Message>{
 	uint32							idx;
     std::string						str;
+	bool							serialized;
 	
-	Message(uint32 _idx):idx(_idx){
+	Message(uint32 _idx):idx(_idx), serialized(false){
 		idbg("CREATE ---------------- "<<(void*)this<<" idx = "<<idx);
 		init();
 		
 	}
-	Message(){
+	Message(): serialized(false){
 		idbg("CREATE ---------------- "<<(void*)this);
 	}
 	~Message(){
 		idbg("DELETE ---------------- "<<(void*)this);
+		if(not serialized and not this->isBackOnSender()){
+			THROW_EXCEPTION("Message not serialized.");
+		}
 	}
 
 	template <class S>
@@ -100,6 +104,9 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		_s.push(str, "str");
 		_s.push(idx, "idx");
 		
+		if(S::IsSerializer){
+			serialized = true;
+		}
 	}
 	
 	void init(){
@@ -113,6 +120,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 			pu[i] = pup[i % pattern_size];//pattern[i % pattern.size()];
 		}
 	}
+	
 	bool check()const{
 		const size_t	sz = real_size(initarray[idx % initarraysize].size);
 		idbg("str.size = "<<str.size()<<" should be equal to "<<sz);
@@ -200,7 +208,14 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	}
 	
 	//send message back
-	_rctx.service().sendMessage(_rctx.connectionId(), _rmsgptr);
+	if(_rctx.connectionId().isInvalidConnection()){
+		THROW_EXCEPTION("Connection id should not be invalid!");
+	}
+	ErrorConditionT err = _rctx.service().sendMessage(_rctx.connectionId(), std::move(_rmsgptr));
+	
+	if(err){
+		THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+	}
 	
 	++crtreadidx;
 	idbg(crtreadidx);

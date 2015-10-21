@@ -444,7 +444,7 @@ ErrorConditionT Service::doSendMessage(
 	//All connections are busy
 	//Check if we should create a new connection
 	
-	if((rconpool.active_connection_count + rconpool.pending_connection_count + 1) < d.config.max_per_pool_connection_count){
+	if((rconpool.active_connection_count + rconpool.pending_connection_count + 1) <= d.config.max_per_pool_connection_count){
 		DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolUid(idx, rconpool.uid)));
 			
 		ObjectUidT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
@@ -479,6 +479,7 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 	cassert(rconpool.uid == _rcon.poolUid().unique);
 	if(rconpool.uid != _rcon.poolUid().unique) return;
 	
+	idbgx(Debug::ipc, this<<' '<<&_rcon<<" msg_q_size "<<rconpool.msgq.size());
 	if(rconpool.msgq.size()){
 		//we have something to send
 		if(
