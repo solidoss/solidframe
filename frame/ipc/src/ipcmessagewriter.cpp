@@ -270,8 +270,10 @@ char* MessageWriter::doFillPacket(
 		}
 		
 		if(not rmsgstub.serializer_ptr){
+			
 			//switch to new message
 			msgswitch = PacketHeader::SwitchToNewMessageTypeE;
+			
 			if(tmp_serializer){
 				rmsgstub.serializer_ptr = std::move(tmp_serializer);
 			}else{
@@ -289,12 +291,18 @@ char* MessageWriter::doFillPacket(
 			//Not sending by value (pushCrossValue), in order to avoid a unnecessary 
 			//"ext" data allocation in serializer.
 			rmsgstub.serializer_ptr->pushCross(current_message_type_id, "message_type_id");
+			
 		}else if(rmsgstub.packet_count == 0){
+			
 			//switch to old message
 			msgswitch = PacketHeader::PacketHeader::SwitchToOldMessageTypeE;
+		
+			
 		}else{
+			
 			//continued message
 			msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;
+		
 		}
 		
 		if(pbufpos == _pbufbeg){
@@ -492,9 +500,10 @@ void MessageWriter::doCompleteMessage(
 		
 		_ridmap[rmsgstub.message_type_idx].complete_fnc(_rctx, rmsgstub.message_ptr, _rerror);
 		
+		doPopFromOrderQueue(msgidx);
+		
 		rmsgstub.clear();
 		
-		doPopFromOrderQueue(msgidx);
 		cache_stk.push(msgidx);
 	}
 }
