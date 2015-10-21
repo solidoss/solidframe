@@ -221,7 +221,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager		m;
-		frame::Service		svc(m, frame::Event(EventStopE));
+		frame::Service		svc(m);
 		
 		if(sch.start(1)){
 			running = false;
@@ -239,7 +239,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectUidT			objuid;
 				
-				objuid = sch.startObject(objptr, svc, frame::Event(EventStartE), err);
+				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 				idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
 			}else{
 				cout<<"Error creating listener socket"<<endl;
@@ -315,10 +315,10 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 //-----------------------------------------------------------------------------
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg("event = "<<_revent.id);
-	if(_revent.id == EventStartE){
+	idbg("event = "<<_revent);
+	if(frame::EventCategory::isStart(_revent)){
 		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
-	}else if(_revent.id == EventStopE){
+	}else if(frame::EventCategory::isKill(_revent)){
 		postStop(_rctx);
 	}
 }
@@ -337,7 +337,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(std::move(_rsd)));
 			solid::ErrorConditionT				err;
 			
-			rsch.startObject(objptr, rsvc, frame::Event(EventStartE), err);
+			rsch.startObject(objptr, rsvc, frame::EventCategory::createStart(), err);
 		}else{
 			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
 			//timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -358,7 +358,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //		Connection
 //-----------------------------------------------------------------------------
 
-struct ResolveMessage: Dynamic<ResolveMessage, frame::Message>{
+struct ResolveMessage: Dynamic<ResolveMessage>{
 	ResolveData		rd;
 	
 	ResolveMessage(ResolveData &_rd):rd(_rd){}
@@ -372,14 +372,14 @@ struct ResolvFunc{
 	ResolvFunc(frame::Manager &_rm, frame::ObjectUidT const& _robjuid): rm(_rm), objuid(_robjuid){}
 	
 	void operator()(ResolveData &_rrd, ERROR_NS::error_code const &_rerr){
-		frame::Event		ev(EventResolveE);
+		frame::Event		ev(frame::EventCategory::createMessage());
 		ev.msgptr = frame::MessagePointerT(new ResolveMessage(_rrd));
 		idbg(this<<" send resolv_message");
 		rm.notify(objuid, ev);
 	}
 };
 
-struct MoveMessage: Dynamic<MoveMessage, frame::Message>{
+struct MoveMessage: Dynamic<MoveMessage>{
 	SocketDevice		sd;
 	uint8				sz;
 	char 				buf[12];
@@ -395,8 +395,8 @@ struct MoveMessage: Dynamic<MoveMessage, frame::Message>{
 };
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	edbg(this<<" "<<_revent.id);
-	if(_revent.id == EventStartE){
+	edbg(this<<" "<<_revent);
+	if(frame::EventCategory::isStart(_revent)){
 		//sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
 		if(params.destination_addr_str.size()){
 			//we must resolve the address then connect
@@ -412,36 +412,36 @@ struct MoveMessage: Dynamic<MoveMessage, frame::Message>{
 			sock1.postSendAll(_rctx, buf1, strlen(buf1), Connection::onSendId);
 			sock1.postRecvSome(_rctx, buf2, 12, [this](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, 0, _sz);});
 		}
-	}else if(_revent.id == EventStopE){
+	}else if(frame::EventCategory::isKill(_revent)){
 		edbg(this<<" postStop");
 		//sock.shutdown(_rctx);
 		postStop(_rctx);
-	}else if(_revent.id == EventMoveE){
-		MoveMessage *pmsg = MoveMessage::cast(_revent.msgptr.get());
-		cassert(pmsg != nullptr);
-		sock2.reset(_rctx, std::move(pmsg->sd));
-		if(pmsg->sz){
-			memcpy(buf2, pmsg->buf, pmsg->sz);
-			sock1.postSendAll(_rctx, buf2, pmsg->sz, Connection::onSendSock1);
-		}else{
-			sock2.postRecvSome(_rctx, buf2, BufferCapacity, Connection::onRecvSock2);
+	}else if(frame::EventCategory::isMessage(_revent)){
+		MoveMessage *pmovemsg = MoveMessage::cast(_revent.msgptr.get());
+		if(pmovemsg){
+			sock2.reset(_rctx, std::move(pmovemsg->sd));
+			if(pmovemsg->sz){
+				memcpy(buf2, pmovemsg->buf, pmovemsg->sz);
+				sock1.postSendAll(_rctx, buf2, pmovemsg->sz, Connection::onSendSock1);
+			}else{
+				sock2.postRecvSome(_rctx, buf2, BufferCapacity, Connection::onRecvSock2);
+			}
+			if(buf1[0]){
+				sock2.postSendAll(_rctx, buf1 + 1, buf1[0], Connection::onSendSock2);
+			}else{
+				sock1.postRecvSome(_rctx, buf1, BufferCapacity, Connection::onRecvSock1);
+			}
 		}
-		if(buf1[0]){
-			sock2.postSendAll(_rctx, buf1 + 1, buf1[0], Connection::onSendSock2);
-		}else{
-			sock1.postRecvSome(_rctx, buf1, BufferCapacity, Connection::onRecvSock1);
-		}
-	}else if(_revent.id == EventResolveE){
-		ResolveMessage *pmsg = ResolveMessage::cast(_revent.msgptr.get());
-		cassert(pmsg != nullptr);
-		
-		if(pmsg->rd.empty()){
-			edbg(this<<" postStop");
-			//sock.shutdown(_rctx);
-			postStop(_rctx);
-		}else{
-			if(sock2.connect(_rctx, pmsg->rd.begin(), std::bind(&Connection::onConnect, this, _1))){
-				onConnect(_rctx);
+		ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
+		if(presolvemsg){
+			if(presolvemsg->rd.empty()){
+				edbg(this<<" postStop");
+				//sock.shutdown(_rctx);
+				postStop(_rctx);
+			}else{
+				if(sock2.connect(_rctx, presolvemsg->rd.begin(), std::bind(&Connection::onConnect, this, _1))){
+					onConnect(_rctx);
+				}
 			}
 		}
 	}
@@ -581,7 +581,7 @@ void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t
 		}else{
 			//move to a peer connection
 			frame::ObjectUidT	objid = connection_uid(idx);
-			frame::Event		ev(EventMoveE);
+			frame::Event		ev(frame::EventCategory::createMessage());
 			SocketDevice		sd(sock1.reset(_rctx));
 			ev.msgptr = frame::MessagePointerT(new MoveMessage(std::move(sd), buf2 + i, _sz - i));
 			idbg(this<<" send move_message with size = "<<(_sz - i));

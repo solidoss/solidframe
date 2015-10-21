@@ -20,7 +20,7 @@ namespace frame{
 namespace ipc{
 
 //-----------------------------------------------------------------------------
-MessageReader::MessageReader():state(HeaderReadStateE){
+MessageReader::MessageReader():state(HeaderReadStateE), current_message_type_id(-1){
 	
 }
 //-----------------------------------------------------------------------------
@@ -106,12 +106,12 @@ uint32 MessageReader::read(
 }
 //-----------------------------------------------------------------------------
 template </*class S, uint32 I*/>
-serialization::binary::CbkReturnValueE 
+serialization::binary::ReturnValues 
 MessageReader::serializationReinit<DeserializerT, 0>(DeserializerT &_rd, const uint64 &_rv, ConnectionContext &){
 	bool 	rv = check_value_with_crc(current_message_type_id, current_message_type_id);
 	
 	if(!rv){
-		return serialization::binary::Failure;
+		return serialization::binary::FailureE;
 	}
 	message_q.front().message_type_idx = current_message_type_id;
 	
@@ -120,7 +120,7 @@ MessageReader::serializationReinit<DeserializerT, 0>(DeserializerT &_rd, const u
 	_rd.push(message_q.front().message_ptr, current_message_type_id, "message");
 	
 	
-	return serialization::binary::Continue;
+	return serialization::binary::ContinueE;
 }
 //-----------------------------------------------------------------------------
 void MessageReader::doConsumePacket(

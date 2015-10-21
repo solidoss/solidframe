@@ -56,7 +56,7 @@ public:
 	void prepare(Configuration const &_rconfig);
 	void unprepare();
 	template <class S, uint32 I>
-	serialization::binary::CbkReturnValueE serializationReinit(S &_rs, const uint64 &_rv, ConnectionContext &);
+	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv, ConnectionContext &);
 private:
 	void doConsumePacket(
 		const char *_pbuf,

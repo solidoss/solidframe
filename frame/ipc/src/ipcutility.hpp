@@ -44,6 +44,7 @@ struct PacketHeader{
 	enum {
         SizeOfE = 4,
     };
+	
 	enum Types{
 		SwitchToNewMessageTypeE = 1,
 		SwitchToOldMessageTypeE,
@@ -52,6 +53,7 @@ struct PacketHeader{
 		KeepAliveTypeE,
 		
 	};
+	
 	enum Flags{
 		Size64KBFlagE = 1, // DO NOT CHANGE!!
 		CompressedFlagE = 2,

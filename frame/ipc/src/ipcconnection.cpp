@@ -137,6 +137,7 @@ Connection::Connection(
 	SocketDevice &_rsd
 ):	sock(this->proxy(), std::move(_rsd)), timer(this->proxy()),
 	crtpushvecidx(0), flags(0), atomic_flags(0), receivebufoff(0), consumebufoff(0),
+	receive_keepalive_count(0),
 	recvbuf(nullptr), sendbuf(nullptr)
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
@@ -146,6 +147,7 @@ Connection::Connection(
 	ConnectionPoolUid const &_rconpoolid
 ):	conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),
 	crtpushvecidx(0), flags(0), atomic_flags(0), receivebufoff(0), consumebufoff(0),
+	receive_keepalive_count(0),
 	recvbuf(nullptr), sendbuf(nullptr)
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
