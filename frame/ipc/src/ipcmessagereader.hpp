@@ -81,6 +81,11 @@ private:
 			ulong _flags
 		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx){}
 		
+		MessageStub(
+			MessageStub &&_rmsgptr
+		):	message_ptr(std::move(_rmsgptr.message_ptr)), message_type_idx(_rmsgptr.message_type_idx),
+			deserializer_ptr(std::move(_rmsgptr.deserializer_ptr)){}
+		
 		MessageStub():message_type_idx(-1){}
 		
 		void clear(){
