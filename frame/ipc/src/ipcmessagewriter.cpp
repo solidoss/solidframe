@@ -286,7 +286,7 @@ char* MessageWriter::doFillPacket(
 			
 			bool 		rv = compute_value_with_crc(current_message_type_id, rmsgstub.message_type_idx);
 			cassert(rv);(void)rv;
-			//Not sending by value (pushCrossValue), in order to avoid a unnecessary 
+			//Not sending by value (pushCrossValue), in order to avoid an unnecessary 
 			//"ext" data allocation in serializer.
 			rmsgstub.serializer_ptr->pushCross(current_message_type_id, "message_type_id");
 		}else if(rmsgstub.packet_count == 0){
