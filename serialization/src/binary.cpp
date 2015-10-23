@@ -1239,6 +1239,12 @@ ReturnValues DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd, v
 
 	return SuccessE;
 }
+
+
+void dummy_string_check(std::string const &_rstr, const char* _pb, size_t _len){}
+
+StringCheckFncT	pcheckfnc = &dummy_string_check;
+
 ReturnValues DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	
@@ -1258,6 +1264,8 @@ ReturnValues DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void *
 	
 	std::string		*ps = reinterpret_cast<std::string*>(_rfd.p);
 	
+	pcheckfnc(*ps, rd.cpb, len);
+	
 	ps->append(rd.cpb, len);
 	
 	rd.cpb += len;
@@ -1270,6 +1278,7 @@ ReturnValues DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void *
 	rd.estk.pop();
 	return SuccessE;
 }
+
 ReturnValues DeserializerBase::loadStreamCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rb));
 	

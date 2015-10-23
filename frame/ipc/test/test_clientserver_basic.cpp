@@ -236,6 +236,22 @@ void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointe
 
 }//namespace
 
+char pattern_check[256];
+
+void string_check(std::string const &_rstr, const char* _pb, size_t _len){
+	if(_rstr.size() > 1024 and _len){
+		
+		cassert(pattern_check[_rstr.back()] == _pb[0]);
+	}
+}
+
+
+namespace solid{namespace serialization {namespace binary{
+
+extern StringCheckFncT pcheckfnc;
+
+}}}
+
 int test_clientserver_basic(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
@@ -243,6 +259,8 @@ int test_clientserver_basic(int argc, char **argv){
 	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);
 #endif
+	
+	solid::serialization::binary::pcheckfnc = &string_check;
 	
 	size_t max_per_pool_connection_count = 1;
 	
@@ -264,6 +282,9 @@ int test_clientserver_basic(int argc, char **argv){
 		pattern.resize(sz);
 	}
 	
+	for(auto it = pattern.cbegin(); it != pattern.cend(); ++it){
+		pattern_check[*it] = pattern[((it - pattern.cbegin()) + 1) % pattern.size()];
+	}
 	
 	{
 		AioSchedulerT			sch_client;
@@ -311,6 +332,8 @@ int test_clientserver_basic(int argc, char **argv){
 				}
 			);
 			
+			//cfg.recv_buffer_capacity = 1024;
+			//cfg.send_buffer_capacity = 1024;
 			
 			cfg.connection_stop_fnc = client_connection_stop;
 			cfg.outgoing_connection_start_fnc = client_connection_start;
@@ -340,6 +363,8 @@ int test_clientserver_basic(int argc, char **argv){
 				}
 			);
 			
+			//cfg.recv_buffer_capacity = 1024;
+			//cfg.send_buffer_capacity = 1024;
 			
 			cfg.connection_stop_fnc = server_connection_stop;
 			cfg.incoming_connection_start_fnc = server_connection_start;

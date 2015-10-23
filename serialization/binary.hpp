@@ -40,6 +40,8 @@ BASIC_DECL(int64);
 BASIC_DECL(uint64);
 BASIC_DECL(std::string);
 
+typedef void(*StringCheckFncT)(std::string const &/*_rstr*/, const char* /*_pb*/, size_t /*_len*/);
+
 //! Nonintrusive string serialization/deserialization specification
 // template <class S>
 // S& operator&(std::string &_t, S &_s){
