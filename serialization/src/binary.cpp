@@ -183,16 +183,15 @@ int SerializerBase::run(char *_pb, unsigned _bl, void *_pctx){
 
 template <>
 ReturnValues SerializerBase::storeBinary<0>(Base &_rb, FncData &_rfd, void */*_pctx*/){
-	idbgx(Debug::ser_bin, ""<<_rfd.s);
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return SuccessE;
 	uint32 len = rs.be - rs.cpb;
 	if(len > _rfd.s) len = static_cast<uint32>(_rfd.s);
+	idbgx(Debug::ser_bin, _rfd.s<<' '<<len<<' '<<trim_str((const char*)_rfd.p, len, 4, 4));
 	memcpy(rs.cpb, _rfd.p, len);
 	rs.cpb += len;
 	_rfd.p = (char*)_rfd.p + len;
 	_rfd.s -= len;
-	idbgx(Debug::ser_bin, ""<<len);
 	if(_rfd.s) return WaitE;
 	return SuccessE;
 }
@@ -1248,8 +1247,6 @@ StringCheckFncT	pcheckfnc = &dummy_string_check;
 ReturnValues DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	
-	idbgx(Debug::ser_bin, "");
-	
 	if(!rd.cpb){
 		rd.estk.pop();
 		return SuccessE;
@@ -1266,15 +1263,17 @@ ReturnValues DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void *
 	
 	pcheckfnc(*ps, rd.cpb, len);
 	
-	ps->append(rd.cpb, len);
+	idbgx(Debug::ser_bin, (ps->capacity() - ps->size())<<' '<<len<<' '<<trim_str(rd.cpb, len, 4, 4));
 	
+	ps->append(rd.cpb, len);
+
 	rd.cpb += len;
 	ul -= len;
 	if(ul){
 		rd.estk.top().u64() = ul;
 		return WaitE;
 	}
-	idbgx(Debug::ser_bin, ""<<trim_str(*ps, 64, 64));
+	idbgx(Debug::ser_bin, trim_str(*ps, 64, 64));
 	rd.estk.pop();
 	return SuccessE;
 }

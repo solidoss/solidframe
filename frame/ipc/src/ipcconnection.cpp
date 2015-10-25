@@ -119,7 +119,7 @@ inline ObjectUidT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 inline void Connection::doOptimizeRecvBuffer(){
 	const size_t cnssz = receivebufoff - consumebufoff;
 	if(cnssz <= consumebufoff){
-		idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
+		//idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
 		memcpy(recvbuf, recvbuf + consumebufoff, cnssz);
 		consumebufoff = 0;
 		receivebufoff = cnssz;
@@ -127,7 +127,7 @@ inline void Connection::doOptimizeRecvBuffer(){
 }
 inline void Connection::doOptimizeRecvBufferForced(){
 	const size_t cnssz = receivebufoff - consumebufoff;
-	idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
+	//idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
 	memmove(recvbuf, recvbuf + consumebufoff, cnssz);
 	consumebufoff = 0;
 	receivebufoff = cnssz;
@@ -542,7 +542,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		rthis.doOptimizeRecvBuffer();
 		pbuf = rthis.recvbuf + rthis.receivebufoff;
 		bufsz =  recvbufcp - rthis.receivebufoff;
-		idbgx(Debug::ipc, &rthis<<" buffer size "<<bufsz);
+		//idbgx(Debug::ipc, &rthis<<" buffer size "<<bufsz);
 	}while(repeatcnt && rthis.sock.recvSome(_rctx, pbuf, bufsz, Connection::onRecv, _sz));
 	
 	if(recv_something){
@@ -618,10 +618,10 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		}
 		
 		if(repeatcnt == 0){
-			idbgx(Debug::ipc, this<<" post send");
+			//idbgx(Debug::ipc, this<<" post send");
 			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 		}
-		idbgx(Debug::ipc, this<<" done-doSend "<<this->sendmsgvec[0].size()<<" "<<this->sendmsgvec[1].size());
+		//idbgx(Debug::ipc, this<<" done-doSend "<<this->sendmsgvec[0].size()<<" "<<this->sendmsgvec[1].size());
 	}
 }
 //-----------------------------------------------------------------------------

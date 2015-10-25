@@ -341,6 +341,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
 			
 		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revent));
 		pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();
+		cassert(pushvecsz < 200);
 		d.crtpushvecsz = pushvecsz;
 	}
 	
@@ -374,7 +375,7 @@ void Reactor::run(){
 		waitmsec = d.computeWaitTimeMilliseconds(crttime);
 		
 		crtload = d.objcnt + d.devcnt + d.exeq.size();
-		
+		idbgx(Debug::aio, "epoll_wait msec = "<<waitmsec);
 		selcnt = epoll_wait(d.epollfd, d.eventvec.data(), d.eventvec.size(), waitmsec);
 		crttime.currentMonotonic();
 		if(selcnt > 0){
@@ -383,6 +384,8 @@ void Reactor::run(){
 		}else if(selcnt < 0 && errno != EINTR){
 			edbgx(Debug::aio, "epoll_wait errno  = "<<last_system_error().message());
 			running = false;	
+		}else{
+			idbgx(Debug::aio, "epoll_wait done");
 		}
 		
 		crttime.currentMonotonic();
@@ -517,6 +520,9 @@ void Reactor::doStopObject(ReactorContext &_rctx){
 
 void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 	ReactorContext	ctx(*this, _rcrttime);
+	
+	idbgx(Debug::aio, "selcnt = "<<_sz);
+	
 	for(int i = 0; i < _sz; ++i){
 		epoll_event				&rev = d.eventvec[i];
 		CompletionHandlerStub	&rch = d.chdq[rev.data.u64];
@@ -571,6 +577,7 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 	size_t			sz = d.exeq.size();
 	
 	while(sz--){
+		idbgx(Debug::aio, sz);
 		ExecStub				&rexe(d.exeq.front());
 		ObjectStub				&ros(d.objdq[rexe.objuid.index]);
 		CompletionHandlerStub	&rcs(d.chdq[rexe.chnuid.index]);
@@ -619,7 +626,7 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 		ReactorContext		ctx(_rctx);
 		
 		d.objcnt += crtpushvec.size();
-		
+		vdbgx(Debug::aio, d.exeq.size());
 		for(auto it = crtpushvec.begin(); it != crtpushvec.end(); ++it){
 			NewTaskStub		&rnewobj(*it);
 			if(rnewobj.uid.index >= d.objdq.size()){
@@ -638,12 +645,15 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 			
 			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), rnewobj.event));
 		}
+		vdbgx(Debug::aio, d.exeq.size());
 		crtpushvec.clear();
 		
 		for(auto it = crtraisevec.begin(); it != crtraisevec.end(); ++it){
 			RaiseEventStub	&revent = *it;
 			d.exeq.push(ExecStub(revent.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), revent.event));
 		}
+		vdbgx(Debug::aio, d.exeq.size());
+		
 		crtraisevec.clear();
 	}
 }

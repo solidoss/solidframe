@@ -73,7 +73,7 @@ class Stream: public CompletionHandler{
 	
 	static void on_posted_send_all(ReactorContext &_rctx, Event const&){
 		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-		
+		idbgx(Debug::aio, "");
 		rthis.doSend(_rctx);
 	}
 	
@@ -313,10 +313,9 @@ public:
 			if(doTrySend(_rctx)){
 				if(send_buf_sz == send_buf_cp){
 					return true;
-				}else{
-					send_fnc = SendAllFunctor<F>(_f);
 				}
 			}
+			send_fnc = SendAllFunctor<F>(_f);
 			return false;
 		}else{
 			//TODO: set proper error
@@ -435,6 +434,7 @@ private:
 	
 	void doRecv(ReactorContext &_rctx){
 		if(!FUNCTION_EMPTY(recv_fnc)){
+			idbgx(Debug::aio, "");
 			errorClear(_rctx);
 			recv_fnc(*this, _rctx);
 		}
@@ -446,10 +446,15 @@ private:
 			send_fnc(*this, _rctx);
 		}
 	}
+	
+	
 	bool doTryRecv(ReactorContext &_rctx){
 		bool		can_retry;
 		ErrorCodeT	err;
 		int			rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
+		
+		idbgx(Debug::aio, "recv ("<<(recv_buf_cp - recv_buf_sz)<<") = "<<rv);
+		
 		if(rv > 0){
 			recv_buf_sz += rv;
 			recv_buf += rv;
@@ -472,6 +477,8 @@ private:
 		bool		can_retry;
 		ErrorCodeT	err;
 		int			rv = s.send(send_buf, send_buf_cp - send_buf_sz, can_retry, err);
+		
+		idbgx(Debug::aio, "send ("<<(send_buf_cp - send_buf_sz)<<") = "<<rv);
 		
 		if(rv > 0){
 			send_buf_sz += rv;

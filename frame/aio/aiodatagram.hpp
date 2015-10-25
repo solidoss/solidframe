@@ -495,7 +495,7 @@ public:
 				errorClear(_rctx);
 			}else if(rv >= 0){
 				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
-			}else if(rv == -1){
+			}else if(rv < 0){
 				if(can_retry){
 					send_buf = _buf;
 					send_buf_cp = _bufcp;

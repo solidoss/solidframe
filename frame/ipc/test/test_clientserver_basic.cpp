@@ -117,7 +117,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		const uint64	*pup = reinterpret_cast<const uint64*>(pattern.data());
 		const size_t	pattern_size = pattern.size() / sizeof(uint64);
 		for(uint64 i = 0; i < count; ++i){
-			pu[i] = pup[i % pattern_size];//pattern[i % pattern.size()];
+			pu[i] = pup[(idx + i) % pattern_size];//pattern[i % pattern.size()];
 		}
 	}
 	
@@ -134,7 +134,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		const size_t	pattern_size = pattern.size() / sizeof(uint64);
 		
 		for(uint64 i = 0; i < count; ++i){
-			if(pu[i] != pup[i % pattern_size]){
+			if(pu[i] != pup[(i + idx) % pattern_size]){
 				THROW_EXCEPTION("Message check failed.");
 				return false;
 			}
@@ -267,10 +267,12 @@ int test_clientserver_basic(int argc, char **argv){
 	if(argc > 1){
 		max_per_pool_connection_count = atoi(argv[1]);
 	}
-	
-	for(int i = 0; i < 127; ++i){
-		if(isprint(i) and !isblank(i)){
-			pattern += static_cast<char>(i);
+	for(int j = 0; j < 1; ++j){
+		for(int i = 0; i < 127; ++i){
+			int c = (i + j) % 127;
+			if(isprint(c) and !isblank(c)){
+				pattern += static_cast<char>(c);
+			}
 		}
 	}
 	

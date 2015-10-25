@@ -13,7 +13,7 @@
 #include "frame/ipc/ipcconfiguration.hpp"
 #include "ipcutility.hpp"
 #include "frame/ipc/ipcserialization.hpp"
-
+#include "system/debug.hpp"
 
 namespace solid{
 namespace frame{
@@ -156,12 +156,14 @@ void MessageReader::doConsumePacket(
 	while(pbufpos < pbufend){
 		switch(crt_msg_type){
 			case PacketHeader::SwitchToNewMessageTypeE:
+				//idbgx(Debug::ipc, "SwitchToNewMessageTypeE "<<message_q.size());
 				if(message_q.front().message_ptr.get()){
 					if(message_q.size() == _rconfig.max_reader_multiplex_message_count){
 						cassert(false);
 						_rerror.assign(-1, _rerror.category());//TODO:
 						return;
 					}
+					message_q.front().packet_count = 0;
 					//reschedule the current message for later
 					message_q.push(std::move(message_q.front()));
 				}
@@ -175,13 +177,17 @@ void MessageReader::doConsumePacket(
 				
 				break;
 			case PacketHeader::SwitchToOldMessageTypeE:
+				//idbgx(Debug::ipc, "SwitchToOldMessageTypeE "<<message_q.size());
 				if(message_q.front().message_ptr.get()){
 					message_q.push(std::move(message_q.front()));
+					message_q.front().packet_count = 0;
 				}
 				message_q.pop();
 				break;
 			case PacketHeader::ContinuedMessageTypeE:
+				//idbgx(Debug::ipc, "ContinuedMessageTypeE "<<message_q.size());
 				cassert(message_q.size() and message_q.front().deserializer_ptr.get() and message_q.front().message_ptr.get());
+				++message_q.front().packet_count;
 				break;
 			default:
 				cassert(false);

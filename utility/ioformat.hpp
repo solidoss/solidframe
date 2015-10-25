@@ -35,6 +35,11 @@ inline TrimString trim_str(std::string const &_rstr, size_t _beglen, size_t _end
 	return TrimString(_rstr.c_str(), _rstr.size(), _beglen, _endlen);
 }
 
+inline TrimString trim_str(const char *_pcstr, size_t _strlen, size_t _beglen, size_t _endlen){
+	return TrimString(_pcstr, _strlen, _beglen, _endlen);
+}
+
+
 std::ostream& operator<<(std::ostream &_ros, TrimString const &);
 
 
