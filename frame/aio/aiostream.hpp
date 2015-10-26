@@ -203,21 +203,33 @@ class Stream: public CompletionHandler{
 public:
 	explicit Stream(
 		ObjectProxy const &_robj, SocketDevice &&_rsd
-	):CompletionHandler(_robj, on_init_completion), s(std::move(_rsd)), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false), send_buf_sz(0), send_buf_cp(0), send_is_posted(false){}
+	):	CompletionHandler(_robj, on_init_completion), s(std::move(_rsd)),
+		recv_buf(nullptr), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false),
+		send_buf(nullptr), send_buf_sz(0), send_buf_cp(0), send_is_posted(false)
+	{}
 	
 	template <class Ctx>
 	Stream(
 		ObjectProxy const &_robj, SocketDevice &&_rsd, Ctx &_rctx
-	):CompletionHandler(_robj, on_init_completion), s(_rctx, std::move(_rsd)), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false), send_buf_sz(0), send_buf_cp(0), send_is_posted(false){}
+	):	CompletionHandler(_robj, on_init_completion), s(_rctx, std::move(_rsd)),
+		recv_buf(nullptr), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false),
+		send_buf(nullptr), send_buf_sz(0), send_buf_cp(0), send_is_posted(false)
+	{}
 	
 	Stream(
 		ObjectProxy const &_robj
-	):CompletionHandler(_robj, on_dummy_completion), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false), send_buf_sz(0), send_buf_cp(0), send_is_posted(false){}
+	):	CompletionHandler(_robj, on_dummy_completion),
+		recv_buf(nullptr), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false),
+		send_buf(nullptr), send_buf_sz(0), send_buf_cp(0), send_is_posted(false)
+	{}
 	
 	template <class Ctx>
 	explicit Stream(
 		ObjectProxy const &_robj, Ctx &_rctx
-	):CompletionHandler(_robj, on_dummy_completion), s(_rctx), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false), send_buf_sz(0), send_buf_cp(0), send_is_posted(false){}
+	):	CompletionHandler(_robj, on_dummy_completion), s(_rctx),
+		recv_buf(nullptr), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false),
+		send_buf(nullptr), send_buf_sz(0), send_buf_cp(0), send_is_posted(false)
+	{}
 	
 	~Stream(){
 		//MUST call here and not in the ~CompletionHandler

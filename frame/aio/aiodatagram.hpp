@@ -68,12 +68,13 @@ class Datagram: public CompletionHandler{
 	//-----------
 	static void on_posted_recv(ReactorContext &_rctx, Event const&){
 		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
+		rthis.recv_is_posted = false;
 		rthis.doRecv(_rctx);
 	}
 	
 	static void on_posted_send(ReactorContext &_rctx, Event const&){
 		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-		
+		rthis.send_is_posted = false;
 		rthis.doSend(_rctx);
 	}
 	static void on_dummy(ThisT &_rthis, ReactorContext &_rctx){
@@ -228,11 +229,17 @@ class Datagram: public CompletionHandler{
 public:
 	Datagram(
 		ObjectProxy const &_robj, SocketDevice &&_rsd
-	):CompletionHandler(_robj, on_init_completion), s(std::move(_rsd)){}
+	):	CompletionHandler(_robj, on_init_completion), s(std::move(_rsd)),
+		recv_buf(nullptr), recv_buf_cp(0), recv_is_posted(false),
+		send_buf(nullptr), send_buf_cp(0), send_is_posted(false)
+	{}
 	
 	Datagram(
 		ObjectProxy const &_robj
-	):CompletionHandler(_robj, on_dummy_completion){}
+	):	CompletionHandler(_robj, on_dummy_completion),
+		recv_buf(nullptr), recv_buf_cp(0), recv_is_posted(false),
+		send_buf(nullptr), send_buf_cp(0), send_is_posted(false)
+	{}
 	
 	
 	~Datagram(){
@@ -524,14 +531,14 @@ private:
 	}
 	
 	void doRecv(ReactorContext &_rctx){
-		if(!FUNCTION_EMPTY(recv_fnc)){
+		if(!recv_is_posted and !FUNCTION_EMPTY(recv_fnc)){
 			errorClear(_rctx);
 			recv_fnc(*this, _rctx);
 		}
 	}
 	
 	void doSend(ReactorContext &_rctx){
-		if(!FUNCTION_EMPTY(send_fnc)){
+		if(!send_is_posted and !FUNCTION_EMPTY(send_fnc)){
 			errorClear(_rctx);
 			send_fnc(*this, _rctx);
 		}
@@ -573,16 +580,18 @@ private:
 	typedef FUNCTION<void(ThisT&, ReactorContext&)>		RecvFunctionT;
 	typedef FUNCTION<void(ThisT&, ReactorContext&)>		SendFunctionT;
 	
-	Sock			s;
+	Sock				s;
 	
 	char 				*recv_buf;
 	size_t				recv_buf_cp;
 	RecvFunctionT		recv_fnc;
+	bool				recv_is_posted;
 	
 	const char			*send_buf;
 	size_t				send_buf_cp;
 	SendFunctionT		send_fnc;
 	SocketAddress		send_addr;
+	bool				send_is_posted;
 };
 
 }//namespace aio
