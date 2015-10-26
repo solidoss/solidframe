@@ -298,6 +298,7 @@ public:
 			recv_fnc = RecvFromFunctor<F>(_f);
 			recv_buf = _buf;
 			recv_buf_cp = _bufcp;
+			recv_is_posted = true;
 			doPostRecvSome(_rctx);
 			errorClear(_rctx);
 			return false;
@@ -318,6 +319,7 @@ public:
 			recv_fnc = RecvFunctor<F>(_f);
 			recv_buf = _buf;
 			recv_buf_cp = _bufcp;
+			recv_is_posted = true;
 			doPostRecvSome(_rctx);
 			errorClear(_rctx);
 			return false;
@@ -417,6 +419,7 @@ public:
 			send_buf = _buf;
 			send_buf_cp = _bufcp;
 			send_addr = _addrstub;
+			send_is_posted = true;
 			doPostSendAll(_rctx);
 			errorClear(_rctx);
 			return false;
@@ -438,6 +441,7 @@ public:
 			send_fnc = SendFunctor<F>(_f);
 			send_buf = _buf;
 			send_buf_cp = _bufcp;
+			send_is_posted = true;
 			doPostSendAll(_rctx);
 			errorClear(_rctx);
 			return false;
