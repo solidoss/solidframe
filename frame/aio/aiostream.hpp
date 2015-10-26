@@ -68,12 +68,15 @@ class Stream: public CompletionHandler{
 	//-------------
 	static void on_posted_recv_some(ReactorContext &_rctx, Event const&){
 		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
+		idbgx(Debug::aio, "");
+		rthis.recv_is_posted = false;
 		rthis.doRecv(_rctx);
 	}
 	
 	static void on_posted_send_all(ReactorContext &_rctx, Event const&){
 		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
 		idbgx(Debug::aio, "");
+		rthis.send_is_posted = false;
 		rthis.doSend(_rctx);
 	}
 	
@@ -200,21 +203,21 @@ class Stream: public CompletionHandler{
 public:
 	explicit Stream(
 		ObjectProxy const &_robj, SocketDevice &&_rsd
-	):CompletionHandler(_robj, on_init_completion), s(std::move(_rsd)){}
+	):CompletionHandler(_robj, on_init_completion), s(std::move(_rsd)), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false), send_buf_sz(0), send_buf_cp(0), send_is_posted(false){}
 	
 	template <class Ctx>
 	Stream(
 		ObjectProxy const &_robj, SocketDevice &&_rsd, Ctx &_rctx
-	):CompletionHandler(_robj, on_init_completion), s(_rctx, std::move(_rsd)){}
+	):CompletionHandler(_robj, on_init_completion), s(_rctx, std::move(_rsd)), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false), send_buf_sz(0), send_buf_cp(0), send_is_posted(false){}
 	
 	Stream(
 		ObjectProxy const &_robj
-	):CompletionHandler(_robj, on_dummy_completion){}
+	):CompletionHandler(_robj, on_dummy_completion), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false), send_buf_sz(0), send_buf_cp(0), send_is_posted(false){}
 	
 	template <class Ctx>
 	explicit Stream(
 		ObjectProxy const &_robj, Ctx &_rctx
-	):CompletionHandler(_robj, on_dummy_completion), s(_rctx){}
+	):CompletionHandler(_robj, on_dummy_completion), s(_rctx), recv_buf_sz(0), recv_buf_cp(0), recv_is_posted(false), send_buf_sz(0), send_buf_cp(0), send_is_posted(false){}
 	
 	~Stream(){
 		//MUST call here and not in the ~CompletionHandler
@@ -252,6 +255,7 @@ public:
 			recv_buf = _buf;
 			recv_buf_cp = _bufcp;
 			recv_buf_sz = 0;
+			recv_is_posted = true;
 			doPostRecvSome(_rctx);
 			errorClear(_rctx);
 			return false;
@@ -292,6 +296,7 @@ public:
 			send_buf = _buf;
 			send_buf_cp = _bufcp;
 			send_buf_sz = 0;
+			send_is_posted = true;
 			doPostSendAll(_rctx);
 			errorClear(_rctx);
 			return false;
@@ -433,7 +438,7 @@ private:
 	
 	
 	void doRecv(ReactorContext &_rctx){
-		if(!FUNCTION_EMPTY(recv_fnc)){
+		if(!recv_is_posted and !FUNCTION_EMPTY(recv_fnc)){
 			idbgx(Debug::aio, "");
 			errorClear(_rctx);
 			recv_fnc(*this, _rctx);
@@ -441,12 +446,11 @@ private:
 	}
 	
 	void doSend(ReactorContext &_rctx){
-		if(!FUNCTION_EMPTY(send_fnc)){
+		if(!send_is_posted && !FUNCTION_EMPTY(send_fnc)){
 			errorClear(_rctx);
 			send_fnc(*this, _rctx);
 		}
 	}
-	
 	
 	bool doTryRecv(ReactorContext &_rctx){
 		bool		can_retry;
@@ -542,11 +546,13 @@ private:
 	size_t			recv_buf_sz;
 	size_t			recv_buf_cp;
 	RecvFunctionT	recv_fnc;
+	bool			recv_is_posted;
 	
 	const char		*send_buf;
 	size_t			send_buf_sz;
 	size_t			send_buf_cp;
 	SendFunctionT	send_fnc;
+	bool			send_is_posted;
 };
 
 }//namespace aio

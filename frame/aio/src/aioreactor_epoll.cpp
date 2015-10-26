@@ -341,7 +341,6 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
 			
 		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revent));
 		pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();
-		cassert(pushvecsz < 200);
 		d.crtpushvecsz = pushvecsz;
 	}
 	
@@ -472,12 +471,14 @@ CompletionHandler *Reactor::completionHandler(ReactorContext const &_rctx)const{
 }
 
 void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event const &_rev){
+	idbgx(Debug::aio, "exeq "<<d.exeq.size());
 	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
 	d.exeq.back().exefnc = std::move(_revfn);
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
 
 void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch){
+	idbgx(Debug::aio, "exeq "<<d.exeq.size()<<' '<<&_rch);
 	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
 	d.exeq.back().exefnc = std::move(_revfn);
 	d.exeq.back().chnuid = UidT(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
@@ -577,7 +578,9 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 	size_t			sz = d.exeq.size();
 	
 	while(sz--){
-		idbgx(Debug::aio, sz);
+
+		idbgx(Debug::aio, sz<<" qsz = "<<d.exeq.size());
+
 		ExecStub				&rexe(d.exeq.front());
 		ObjectStub				&ros(d.objdq[rexe.objuid.index]);
 		CompletionHandlerStub	&rcs(d.chdq[rexe.chnuid.index]);
