@@ -68,14 +68,14 @@ class Stream: public CompletionHandler{
 	//-------------
 	static void on_posted_recv_some(ReactorContext &_rctx, Event const&){
 		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-		idbgx(Debug::aio, "");
+		vdbgx(Debug::aio, "");
 		rthis.recv_is_posted = false;
 		rthis.doRecv(_rctx);
 	}
 	
 	static void on_posted_send_all(ReactorContext &_rctx, Event const&){
 		ThisT	&rthis = static_cast<ThisT&>(*completion_handler(_rctx));
-		idbgx(Debug::aio, "");
+		vdbgx(Debug::aio, "");
 		rthis.send_is_posted = false;
 		rthis.doSend(_rctx);
 	}
@@ -451,7 +451,7 @@ private:
 	
 	void doRecv(ReactorContext &_rctx){
 		if(!recv_is_posted and !FUNCTION_EMPTY(recv_fnc)){
-			idbgx(Debug::aio, "");
+			vdbgx(Debug::aio, "");
 			errorClear(_rctx);
 			recv_fnc(*this, _rctx);
 		}
@@ -469,7 +469,7 @@ private:
 		ErrorCodeT	err;
 		int			rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
 		
-		idbgx(Debug::aio, "recv ("<<(recv_buf_cp - recv_buf_sz)<<") = "<<rv);
+		vdbgx(Debug::aio, "recv ("<<(recv_buf_cp - recv_buf_sz)<<") = "<<rv);
 		
 		if(rv > 0){
 			recv_buf_sz += rv;
@@ -494,7 +494,7 @@ private:
 		ErrorCodeT	err;
 		int			rv = s.send(send_buf, send_buf_cp - send_buf_sz, can_retry, err);
 		
-		idbgx(Debug::aio, "send ("<<(send_buf_cp - send_buf_sz)<<") = "<<rv);
+		vdbgx(Debug::aio, "send ("<<(send_buf_cp - send_buf_sz)<<") = "<<rv);
 		
 		if(rv > 0){
 			send_buf_sz += rv;
@@ -515,7 +515,7 @@ private:
 	}
 	
 	void doError(ReactorContext &_rctx){
-		edbg("");
+		vdbg("");
 		//TODO: set propper error
 		error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		

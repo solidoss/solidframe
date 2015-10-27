@@ -330,7 +330,7 @@ char* MessageWriter::doFillPacket(
 			
 			if(rmsgstub.serializer_ptr->empty()){
 				RequestUid		requid(msgidx, rmsgstub.unique);
-				idbgx(Debug::ipc, "done serializing message "<<requid<<". Message id sent to client "<<_rctx.request_uid);
+				vdbgx(Debug::ipc, "done serializing message "<<requid<<". Message id sent to client "<<_rctx.request_uid);
 				tmp_serializer = std::move(rmsgstub.serializer_ptr);
 				//done serializing the message:
 				write_q.pop();
@@ -371,7 +371,7 @@ char* MessageWriter::doFillPacket(
 			break;
 		}
 	}
-	idbgx(Debug::ipc, "write_q_size "<<write_q.size()<<" pending_q_size "<<pending_message_q.size());
+	vdbgx(Debug::ipc, "write_q_size "<<write_q.size()<<" pending_q_size "<<pending_message_q.size());
 	return pbufpos;
 }
 //-----------------------------------------------------------------------------
@@ -483,7 +483,7 @@ void MessageWriter::doCompleteMessage(
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
 ){
-	idbgx(Debug::ipc, _rrequid);
+	vdbgx(Debug::ipc, _rrequid);
 	if(_rrequid.index < message_vec.size() and _rrequid.unique == message_vec[_rrequid.index].unique){
 		//we have the message
 		const size_t			msgidx = _rrequid.index;
@@ -514,7 +514,7 @@ void MessageWriter::completeAllMessages(
 	ConnectionContext &_rctx,
 	ErrorConditionT const & _rerror
 ){
-	idbgx(Debug::ipc, "");
+	vdbgx(Debug::ipc, "");
 	
 	for(auto it = message_vec.begin(); it != message_vec.end(); ++it){
 		if(it->message_ptr.empty()){

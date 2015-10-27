@@ -550,7 +550,6 @@ private:
 	
 	
 	void doError(ReactorContext &_rctx){
-		edbg("");
 		//TODO: set propper error
 		error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 		

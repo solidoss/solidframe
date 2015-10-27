@@ -363,7 +363,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
 
 */
 void Reactor::run(){
-	vdbgx(Debug::aio, "<enter>");
+	idbgx(Debug::aio, "<enter>");
 	int			selcnt;
 	bool		running = true;
 	TimeSpec	crttime;
@@ -374,7 +374,7 @@ void Reactor::run(){
 		waitmsec = d.computeWaitTimeMilliseconds(crttime);
 		
 		crtload = d.objcnt + d.devcnt + d.exeq.size();
-		idbgx(Debug::aio, "epoll_wait msec = "<<waitmsec);
+		vdbgx(Debug::aio, "epoll_wait msec = "<<waitmsec);
 		selcnt = epoll_wait(d.epollfd, d.eventvec.data(), d.eventvec.size(), waitmsec);
 		crttime.currentMonotonic();
 		if(selcnt > 0){
@@ -384,7 +384,7 @@ void Reactor::run(){
 			edbgx(Debug::aio, "epoll_wait errno  = "<<last_system_error().message());
 			running = false;	
 		}else{
-			idbgx(Debug::aio, "epoll_wait done");
+			vdbgx(Debug::aio, "epoll_wait done");
 		}
 		
 		crttime.currentMonotonic();
@@ -398,7 +398,7 @@ void Reactor::run(){
 	}
 	d.eventobj.stop();
 	doClearSpecific();
-	vdbgx(Debug::aio, "<exit>");
+	idbgx(Debug::aio, "<exit>");
 }
 
 inline ReactorEventsE systemEventsToReactorEvents(const uint32 _events){
@@ -471,14 +471,14 @@ CompletionHandler *Reactor::completionHandler(ReactorContext const &_rctx)const{
 }
 
 void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event const &_rev){
-	idbgx(Debug::aio, "exeq "<<d.exeq.size());
+	vdbgx(Debug::aio, "exeq "<<d.exeq.size());
 	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
 	d.exeq.back().exefnc = std::move(_revfn);
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
 
 void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch){
-	idbgx(Debug::aio, "exeq "<<d.exeq.size()<<' '<<&_rch);
+	vdbgx(Debug::aio, "exeq "<<d.exeq.size()<<' '<<&_rch);
 	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
 	d.exeq.back().exefnc = std::move(_revfn);
 	d.exeq.back().chnuid = UidT(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
@@ -522,7 +522,7 @@ void Reactor::doStopObject(ReactorContext &_rctx){
 void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 	ReactorContext	ctx(*this, _rcrttime);
 	
-	idbgx(Debug::aio, "selcnt = "<<_sz);
+	vdbgx(Debug::aio, "selcnt = "<<_sz);
 	
 	for(int i = 0; i < _sz; ++i){
 		epoll_event				&rev = d.eventvec[i];
@@ -579,7 +579,7 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 	
 	while(sz--){
 
-		idbgx(Debug::aio, sz<<" qsz = "<<d.exeq.size());
+		vdbgx(Debug::aio, sz<<" qsz = "<<d.exeq.size());
 
 		ExecStub				&rexe(d.exeq.front());
 		ObjectStub				&ros(d.objdq[rexe.objuid.index]);
@@ -676,7 +676,7 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 }
 
 bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req){
-	vdbgx(Debug::aio, "");
+	idbgx(Debug::aio, _rsd.descriptor());
 	//CompletionHandlerStub &rcs = d.chdq[_rch.idxreactor];
 	epoll_event ev;
 	
@@ -691,8 +691,9 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 }
 
 bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req){
-	epoll_event ev;
+	idbgx(Debug::aio, _rsd.descriptor());
 	
+	epoll_event ev;
 	ev.data.u64 = _rch.idxreactor;
 	ev.events = reactorRequestsToSystemEvents(_req);
 	
@@ -710,6 +711,8 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 }
 
 bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
+	idbgx(Debug::aio, _rsd.descriptor());
+	
 	epoll_event ev;
 	
 	if(!_rsd.ok()){
@@ -749,7 +752,8 @@ bool Reactor::remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx){
 }
 
 void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_robj){
-	size_t idx;
+	size_t					idx;
+	
 	if(d.chposcache.size()){
 		idx = d.chposcache.top();
 		d.chposcache.pop();
@@ -757,12 +761,16 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 		idx = d.chdq.size();
 		d.chdq.push_back(CompletionHandlerStub());
 	}
-	CompletionHandlerStub &rcs = d.chdq[idx];
+	
+	CompletionHandlerStub	&rcs = d.chdq[idx];
+	
 	rcs.objidx = _robj.ObjectBase::runId().index;
 	rcs.pch =  &_rch;
-	//rcs.waitreq = ReactorWaitNone;
+	
 	_rch.idxreactor = idx;
-	vdbgx(Debug::aio, "idx "<<idx<<" chdq.size = "<<d.chdq.size()<<" this "<<this);
+	
+	idbgx(Debug::aio, "idx "<<idx<<" chdq.size = "<<d.chdq.size()<<" this "<<this);
+	
 	{
 		TimeSpec		dummytime;
 		ReactorContext	ctx(*this, dummytime);
@@ -776,8 +784,10 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 }
 
 void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
-	vdbgx(Debug::aio, "");
+	idbgx(Debug::aio, "");
+	
 	CompletionHandlerStub &rcs = d.chdq[_rch.idxreactor];
+	
 	{
 		TimeSpec		dummytime;
 		ReactorContext	ctx(*this, dummytime);
