@@ -90,8 +90,10 @@ Enabled for two scenarios:
 		* or, if expecting response, until receiving the response
 * Normal behavior: in other words: it will wait for the peer side to become available then send the messages
 * For Messages with OneShotSendFlag, ipc::service will try to call complete asap - will imediately fail if no connection to server
-* Pending send message can be canceled - not all messages can be canceled (i.e. no cancel for messages that are currently being sent)
-* Messages will be canceled only when they return to pool.
+* Canceling a message means that:
+	* no "complete" callback will be called on the message
+	* if the message is in a cancelable state (is not currently being sent or is not already sent and waiting for a response) the message is dropped from the send queue.
+
 
 **Test**
 

@@ -21,12 +21,15 @@ namespace openssl{
 class Socket;
 class Context{
 public:
-	typedef ERROR_NS::error_code ErrorCodeT;
-	
 	static Context create(const SSL_METHOD* = NULL);
-	Context(Context && _rctx);
-	Context& operator=(Context && _rctx);
+	
+	
 	Context();
+	
+	Context(Context && _rctx);
+	
+	Context& operator=(Context && _rctx);
+	
 	~Context();
 	
 	bool ok()const;
@@ -40,6 +43,7 @@ public:
 	ErrorCodeT loadCertificateFile(const char *_path);
 	//!Use it on server side to load the certificates
 	ErrorCodeT loadPrivateKeyFile(const char *_path);
+	
 private:
 	Context(Context const&);
 	Context& operator=(Context const&);

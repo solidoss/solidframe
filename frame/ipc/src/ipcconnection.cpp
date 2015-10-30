@@ -310,7 +310,6 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
 	if(frame::EventCategory::isStart(_revent)){
-		idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
 		if(sock.device().ok()){
 			doStart(_rctx, true);
