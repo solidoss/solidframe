@@ -65,7 +65,7 @@ namespace{
 class Connection;
 
 struct ConnectionContext{
-	ConnectionContext(Connection &_rcon):rcon(_rcon), sndmsgidx(-1),rcvmsgidx(-1){}
+	ConnectionContext(Connection &_rcon):rcon(_rcon), sndmsgidx(InvalidIndex()),rcvmsgidx(InvalidIndex()){}
 	void sendMessageIndex(const uint32 _msgidx){
 		sndmsgidx = _msgidx;
 	}
@@ -95,11 +95,11 @@ struct Handle;
 class Connection: public frame::aio::SingleObject{
 	typedef DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
 	struct MessageStub{
-		MessageStub():flags(0), idx(-1){}
+		MessageStub():flags(0), idx(InvalidIndex()){}
 		MessageStub(
 			MessageDynamicPointerT	&_rmsgptr,
 			const uint32 _flags = 0,
-			const size_t _idx = -1
+			const size_t _idx = InvalidIndex()
 		):msgptr(_rmsgptr), flags(_flags), idx(_idx){}
 		
 		MessageDynamicPointerT	msgptr;

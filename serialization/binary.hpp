@@ -73,7 +73,7 @@ enum ReturnValues{
 
 struct Limits{
 	static Limits const& the();
-	Limits():stringlimit(-1), containerlimit(-1), streamlimit(-1){}//unlimited by default
+	Limits():stringlimit(InvalidSize()), containerlimit(InvalidSize()), streamlimit(InvalidSize()){}//unlimited by default
 	size_t stringlimit;
 	size_t containerlimit;
 	uint64 streamlimit;
@@ -178,7 +178,7 @@ protected:
 			FncT _f,
 			const void *_p,
 			const char *_n = nullptr,
-			uint64 _s = -1
+			uint64 _s = InvalidSize()
 		): f(_f), p(const_cast<void*>(_p)), n(_n), s(_s){}
 		
 		FncT		f;	//!< Pointer to function
@@ -1156,7 +1156,7 @@ protected:
 		{
 			const uint64	i = rd.estk.top().u64();
 			idbgx(Debug::ser_bin, " sz = "<<i);
-			if(i != static_cast<uint64>(-1)){
+			if(i != InvalidIndex()){
 				uint64 crcsz;
 				if(check_value_with_crc(crcsz, i)){
 					rd.estk.top().u64() = crcsz;
@@ -1170,7 +1170,7 @@ protected:
 		vdbgx(Debug::ser_bin, "i = "<<i);
 		
 		if(
-			i != static_cast<uint64>(-1) && 
+			i != InvalidIndex() && 
 			i > rd.lmts.containerlimit
 		){
 			idbgx(Debug::ser_bin, "error");
@@ -1178,7 +1178,7 @@ protected:
 			return FailureE;
 		}
 		
-		if(i == static_cast<uint64>(-1)){
+		if(i == InvalidIndex()){
 			cassert(!_rfd.s);
 			T **c = reinterpret_cast<T**>(_rfd.p);
 			*c = nullptr;
@@ -1224,7 +1224,7 @@ protected:
 		{
 			const uint64	&rsz(rd.estk.top().u64());
 			idbgx(Debug::ser_bin, "size "<<rsz);
-			if(rsz != static_cast<uint64>(-1)){
+			if(rsz != InvalidSize()){
 				uint64	crcsz;
 				if(check_value_with_crc(crcsz, rsz)){
 					rd.estk.top().u64() = crcsz;
@@ -1237,13 +1237,13 @@ protected:
 		const uint64	&rsz(rd.estk.top().u64());
 		size_t			&rextsz(*reinterpret_cast<size_t*>(rd.estk.top().pv_2()));
 		idbgx(Debug::ser_bin, "size "<<rsz);
-		if(rsz != static_cast<uint64>(-1) && rsz > rd.lmts.containerlimit){
+		if(rsz != InvalidSize() && rsz > rd.lmts.containerlimit){
 			idbgx(Debug::ser_bin, "error");
 			rd.err = make_error(ERR_ARRAY_LIMIT);
 			return FailureE;
 		}
 		
-		if(rsz == static_cast<uint64>(-1)){
+		if(rsz == InvalidSize()){
 			cassert(!_rfd.s);
 			T **c = reinterpret_cast<T**>(_rfd.p);
 			*c = nullptr;

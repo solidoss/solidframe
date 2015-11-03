@@ -18,8 +18,8 @@ typedef std::vector<size_t>					SizeVectorT;
 
 struct ObjectStub{
 	ObjectStub(
-	):	idx(-1), thridx(-1), value(0), flags(0), flag1cnt(0),
-		flag2cnt(0),flag3cnt(0), flag4cnt(0), minvecsz(-1), maxvecsz(0), eventcnt(0), raisecnt(0)
+	):	idx(InvalidIndex()), thridx(InvalidIndex()), value(0), flags(0), flag1cnt(0),
+		flag2cnt(0),flag3cnt(0), flag4cnt(0), minvecsz(InvalidSize()), maxvecsz(0), eventcnt(0), raisecnt(0)
 	{
 // 		thridx = -1;
 // 		flags = 0;
@@ -167,7 +167,7 @@ bool SharedObjectManager::notify(size_t _idx, uint32 _flags){
 	ObjectStub		&robj = d.objvec[_idx];
 	const size_t	flags = robj.flags.fetch_or(_flags);
 	const size_t 	thridx = robj.thridx;
-	if(!(flags & RaiseFlag) && thridx != static_cast<const size_t>(-1)){
+	if(!(flags & RaiseFlag) && thridx != InvalidIndex()){
 		d.wp.push(JobT(thridx, NULL));
 	}
 	return true;
@@ -180,7 +180,7 @@ bool SharedObjectManager::notify(size_t _idx, uint32 _flags, size_t _v){
 	const size_t	flags = robj.flags.fetch_or(_flags);
 	robj.valvec.push_back(_v);
 	const size_t 	thridx = robj.thridx;
-	if(!(flags & RaiseFlag) && thridx != static_cast<const size_t>(-1)){
+	if(!(flags & RaiseFlag) && thridx != InvalidIndex()){
 		d.wp.push(JobT(thridx, NULL));
 	}
 	return true;
@@ -195,7 +195,7 @@ bool SharedObjectManager::notifyAll(uint32 _flags){
 		Locker<Mutex>	lock2(d.mtxstore.at(robj.idx));
 		const size_t	flags = robj.flags.fetch_or(_flags);
 		const size_t 	thridx = robj.thridx;
-		if(!(flags & RaiseFlag) && thridx != static_cast<const size_t>(-1)){
+		if(!(flags & RaiseFlag) && thridx != InvalidIndex()){
 			d.wp.push(JobT(thridx, NULL));
 		}
 	}
@@ -211,7 +211,7 @@ bool SharedObjectManager::notifyAll(uint32 _flags, size_t _v){
 		const size_t	flags = robj.flags.fetch_or(_flags);
 		robj.valvec.push_back(_v);
 		const size_t 	thridx = robj.thridx;
-		if(!(flags & RaiseFlag) && thridx != static_cast<const size_t>(-1)){
+		if(!(flags & RaiseFlag) && thridx != InvalidIndex()){
 			d.wp.push(JobT(thridx, NULL));
 		}
 	}
@@ -255,11 +255,11 @@ void SharedObjectManager::executeObject(ObjectStub &_robj){
 
 void SharedObjectManager::stop(std::ostream &_ros){
 	d.wp.stop(true);
-	size_t		minvecsz(-1);
+	size_t		minvecsz(InvalidSize());
 	size_t		maxvecsz(0);
-	size_t		mineventcnt(-1);
+	size_t		mineventcnt(InvalidSize());
 	size_t		maxeventcnt(0);
-	size_t		minraisecnt(-1);
+	size_t		minraisecnt(InvalidSize());
 	size_t		maxraisecnt(0);
 	uint64		eventcnt(0);
 	uint64		raisecnt(0);

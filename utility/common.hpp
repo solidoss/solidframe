@@ -146,6 +146,63 @@ inline uint64 bit_revert(const uint64 _v){
 	return r;
 }
 
+struct InvalidIndex{
+	template <typename SizeT>
+	operator SizeT ()const{
+		return static_cast<SizeT>(-1);
+	}
+};
+
+struct InvalidSize{
+	template <typename SizeT>
+	operator SizeT ()const{
+		return static_cast<SizeT>(-1);
+	}
+};
+
+
+template <typename SizeT>
+bool operator==(SizeT const&_index, InvalidIndex const&_invalid){
+	return _index == static_cast<SizeT>(_invalid);
+}
+
+template <typename SizeT>
+bool operator!=(SizeT const&_index, InvalidIndex const&_invalid){
+	return _index != static_cast<SizeT>(_invalid);
+}
+
+template <typename SizeT>
+bool operator==(SizeT const&_index, InvalidSize const&_invalid){
+	return _index == static_cast<SizeT>(_invalid);
+}
+
+template <typename SizeT>
+bool operator!=(SizeT const&_index, InvalidSize const&_invalid){
+	return _index != static_cast<SizeT>(_invalid);
+}
+
+
+template <typename SizeT>
+inline bool is_invalid_index(SizeT const& _index){
+	return _index == InvalidIndex();
+}
+
+template <typename SizeT>
+inline bool is_valid_index(SizeT const& _index){
+	return _index != InvalidIndex();
+}
+
+template <typename SizeT>
+inline bool is_invalid_size(SizeT const& _index){
+	return _index == InvalidSize();
+}
+
+template <typename SizeT>
+inline bool is_valid_size(SizeT const& _index){
+	return _index != InvalidSize();
+}
+
+
 }//namespace solid
 
 #endif

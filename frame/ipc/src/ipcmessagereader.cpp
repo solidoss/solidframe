@@ -20,7 +20,7 @@ namespace frame{
 namespace ipc{
 
 //-----------------------------------------------------------------------------
-MessageReader::MessageReader():state(HeaderReadStateE), current_message_type_id(-1){
+MessageReader::MessageReader():state(HeaderReadStateE), current_message_type_id(InvalidIndex()){
 	
 }
 //-----------------------------------------------------------------------------
@@ -209,7 +209,7 @@ void MessageReader::doConsumePacket(
 				//receive the message
 				_ridmap[message_q.front().message_type_idx].receive_fnc(_rctx, message_q.front().message_ptr);
 				message_q.front().message_ptr.clear();
-				message_q.front().message_type_idx = -1;
+				message_q.front().message_type_idx = InvalidIndex();
 			}
 		}else{
 			_rerror = message_q.front().deserializer_ptr->error();

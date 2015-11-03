@@ -45,12 +45,12 @@ struct UniqueId{
 	}
 	
 	UniqueId(
-		IndexT const& _idx = INVALID_INDEX,
-		UniqueT _unq = static_cast<UniqueT>(-1)
+		IndexT const& _idx = InvalidIndex(),
+		UniqueT _unq = InvalidIndex()
 	): index(_idx), unique(_unq){}
 	
 	bool isInvalid()const{
-		return index == INVALID_INDEX;
+		return index == InvalidIndex();
 	}
 	bool isValid()const{
 		return !isInvalid();

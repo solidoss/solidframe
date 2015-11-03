@@ -97,7 +97,7 @@ struct RaiseEventStub{
 struct CompletionHandlerStub{
 	CompletionHandlerStub(
 		CompletionHandler *_pch = nullptr,
-		const size_t _objidx = -1
+		const size_t _objidx = InvalidIndex()
 	):pch(_pch), objidx(_objidx), unique(0){}
 	
 	CompletionHandler		*pch;
@@ -495,7 +495,7 @@ void Reactor::doCompleteEvents(TimeSpec  const &_rcrttime){
 			ros.psvc = &rnewobj.rsvc;
 			
 			ctx.clearError();
-			ctx.chnidx =  -1;
+			ctx.chnidx =  InvalidIndex();
 			ctx.objidx = rnewobj.uid.index;
 			
 			ros.objptr->registerCompletionHandlers();
@@ -519,7 +519,7 @@ void Reactor::doCompleteEvents(TimeSpec  const &_rcrttime){
 }
 
 bool Reactor::addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx){
-	if(_rstoreidx != static_cast<size_t>(-1)){
+	if(_rstoreidx != InvalidIndex()){
 		size_t idx = d.timestore.change(_rstoreidx, _rt);
 		cassert(idx == _rch.idxreactor);
 	}else{
@@ -535,7 +535,7 @@ void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, cons
 }
 
 bool Reactor::remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx){
-	if(_rstoreidx != static_cast<size_t>(-1)){
+	if(_rstoreidx != InvalidIndex()){
 		d.timestore.pop(_rstoreidx, ChangeTimerIndexCallback(*this));
 	}
 	return true;

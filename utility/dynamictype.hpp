@@ -15,6 +15,7 @@
 #include "system/common.hpp"
 #include "system/cassert.hpp"
 
+#include "utility/common.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/atomic.hpp"
 
@@ -352,7 +353,7 @@ public:
 			pdp = &v[_idx];
 		}
 		const size_t		idx = (*pdp)->callback(rm);
-		if(idx != static_cast<size_t>(-1)){
+		if(idx != InvalidIndex()){
 			typename Map::FncT pf = static_cast<typename Map::FncT>(rm.callback(idx));
 			return (*pf)(*pdp, &_robj, &_rctx);
 		}else{
@@ -369,7 +370,7 @@ public:
 			pdp = &v[_idx];
 		}
 		const size_t		idx = (*pdp)->callback(rm);
-		if(idx != static_cast<size_t>(-1)){
+		if(idx != InvalidIndex()){
 			typename Map::FncT pf = static_cast<typename Map::FncT>(rm.callback(idx));
 			return (*pf)(*pdp, &_robj, NULL);
 		}else{

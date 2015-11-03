@@ -1345,7 +1345,7 @@ void Worker::run(){
 		}
 		//load -= (tskqsz - tskq.size());
 		crtpopcnt = waitTasks(!tskq.empty());
-		if(crtpopcnt && crtpopcnt != static_cast<size_t>(-1)){
+		if(crtpopcnt && crtpopcnt != InvalidIndex()){
 			if(crtpopcnt > maxtsks){
 				maxtsks = crtpopcnt;
 			}
@@ -1361,7 +1361,7 @@ void Worker::run(){
 		}
 		ctx.ct.currentMonotonic();
 		load = tskq.size();
-	}while(tskq.size() || crtpopcnt != static_cast<size_t>(-1));
+	}while(tskq.size() || crtpopcnt != InvalidIndex());
 	
 	vdbg("Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt);
 	cout<<"Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt<<endl;

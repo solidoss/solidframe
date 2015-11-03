@@ -38,3 +38,5 @@ add_library (solid_utility
 	${Sources} ${Headers} ${Inlines}
 )
 
+
+add_subdirectory(test)

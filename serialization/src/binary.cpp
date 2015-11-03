@@ -1214,7 +1214,7 @@ ReturnValues DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd, v
 	
 	const uint64 len = rd.estk.top().u64();
 	
-	if(len != static_cast<uint64>(-1)){
+	if(len != InvalidSize()){
 		uint64 crcsz;
 		if(check_value_with_crc(crcsz, len)){
 			rd.estk.top().u64() = crcsz;
@@ -1305,7 +1305,7 @@ ReturnValues DeserializerBase::loadStreamBegin(Base &_rb, FncData &_rfd, void */
 		return ContinueE;
 	}
 	
-	if(_rfd.s != -1ULL){
+	if(_rfd.s != InvalidSize()){
 		std::ostream	&ros = *reinterpret_cast<std::ostream*>(_rfd.p);
 		ros.seekp(_rfd.s);
 		if(
@@ -1386,7 +1386,7 @@ ReturnValues DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_pct
 	
 	rd.cpb += sz;
 	
-	if(_rfd.s != -1ULL){
+	if(_rfd.s != InvalidSize()){
 		_rfd.s -= towrite;
 		idbgx(Debug::ser_bin, "_rfd.s = "<<_rfd.s);
 		if(_rfd.s == 0){

@@ -9,7 +9,7 @@
 //
 #ifndef AUDIT_LOGCLIENTDATA_HPP
 #define AUDIT_LOGCLIENTDATA_HPP
-
+#include "utility/common.hpp"
 #include "audit/log/logdata.hpp"
 #include <string>
 #include <vector>
@@ -19,7 +19,7 @@ namespace audit{
 //! Log data identifing a client for log server
 struct LogClientData{
 	typedef std::vector<std::string> NameVectorT;
-	LogClientData():idx(-1), uid(-1){}
+	LogClientData():idx(InvalidIndex()), uid(-1){}
 	uint32			idx;
 	uint32			uid;
 	LogHead			head;

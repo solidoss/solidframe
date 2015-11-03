@@ -154,7 +154,7 @@ struct CreateTempCommandBase{
 protected:
 	CreateTempCommandBase(
 		uint64 _sz, size_t _openflags
-	):openflags(_openflags), size(_sz), storageid(-1){}
+	):openflags(_openflags), size(_sz), storageid(InvalidIndex()){}
 	
 	void openTemp(Utf8Controller &_rstore, FilePointerT &_rptr, ERROR_NS::error_code &_rerr);
 };

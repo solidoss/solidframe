@@ -31,7 +31,7 @@ namespace frame{
 
 Service::Service(
 	Manager &_rm
-):rm(_rm), idx(-1){
+):rm(_rm), idx(static_cast<size_t>(InvalidIndex())){
 	_rm.registerService(*this);
 }
 

@@ -85,18 +85,8 @@ public:
 	
 	bool prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_revent);
 	
-	//The connection is aware that it is activated
-	bool isActive()const;
-	
 	//The service marked connection as active, but the connection might not be aware that it is active
 	bool isAtomicActive()const;
-	
-	bool isAtomicStopping()const;
-	
-	bool isServer()const;
-	bool shouldSendKeepalive()const;
-	bool isWaitingKeepAliveTimer()const;
-	bool isStopForced()const;
 	
 	boost::any& any();
 	
@@ -113,6 +103,19 @@ private:
 	static void onConnect(frame::aio::ReactorContext &_rctx);
 	static void onTimerInactivity(frame::aio::ReactorContext &_rctx);
 	static void onTimerKeepalive(frame::aio::ReactorContext &_rctx);
+	
+	
+	bool shouldSendKeepalive()const;
+	bool isWaitingKeepAliveTimer()const;
+	bool isStopForced()const;
+	
+	//The connection is aware that it is activated
+	bool isActive()const;
+	
+	bool isAtomicStopping()const;
+	
+	bool isServer()const;
+	
 	
 	void onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 	

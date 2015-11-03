@@ -11,6 +11,7 @@
 #define UTILITY_MEMORY_FILE_HPP
 
 #include "system/common.hpp"
+#include "utility/common.hpp"
 #include "utility/binaryseeker.hpp"
 #include <deque>
 
@@ -69,7 +70,7 @@ public:
 
 public:
 	//! Constructor with the file capacity and the allocator
-	MemoryFile(uint64 _cp = -1, Allocator &_ral = BasicAllocator<>::instance());
+	MemoryFile(uint64 _cp = InvalidSize(), Allocator &_ral = BasicAllocator<>::instance());
 	//! Destructor
 	~MemoryFile();
 	//! Read data from file from offset

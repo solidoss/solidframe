@@ -81,7 +81,7 @@ private:
 			ulong _flags
 		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), packet_count(0){}
 		
-		MessageStub():message_type_idx(-1), packet_count(0){}
+		MessageStub():message_type_idx(InvalidIndex()), packet_count(0){}
 		
 		void clear(){
 			message_ptr.clear();

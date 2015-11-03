@@ -75,7 +75,7 @@ inline IndexT ObjectBase::id()	const {
 }
 
 inline bool ObjectBase::isRegistered()const{
-	return fullid != static_cast<IndexT>(-1);
+	return fullid.load() != InvalidIndex();
 }
 
 inline void ObjectBase::id(IndexT const &_fullid){

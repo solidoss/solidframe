@@ -197,9 +197,9 @@ void serialize(S &_s, IntegerVector &_iv, Context &_rctx){
 struct Array: Base{
 	Array(){
 		pta = NULL;
-		ptasz = -1;
+		ptasz = InvalidSize();
 		pta1 = (TestA*)1;
-		pta1sz = -1;
+		pta1sz = InvalidSize();
 	}
 	Array(bool){
 		sasz = 3;

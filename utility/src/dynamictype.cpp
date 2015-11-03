@@ -16,6 +16,7 @@
 #include "system/mutualstore.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
+#include "utility/common.hpp"
 
 #include <vector>
 
@@ -134,7 +135,7 @@ size_t DynamicBase::release(){
 	return false;
 }
 /*virtual*/ size_t DynamicBase::callback(const DynamicMapperBase &_rdm)const{
-	return -1;
+	return InvalidIndex();
 }
 
 //--------------------------------------------------------------------

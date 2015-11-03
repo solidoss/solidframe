@@ -128,7 +128,7 @@ struct Event{
 	}
 	
 	bool empty()const{
-		return id == static_cast<size_t>(-1);
+		return id == InvalidIndex();
 	}
 	
 	std::ostream & print(std::ostream &_ros)const{

@@ -159,13 +159,13 @@ struct TempConfigurationImpl{
 	struct Storage{
 		Storage(
 		):	level(0), capacity(0), minsize(0), maxsize(0), waitcount(0),
-		waitsizefirst(0), waitidxfirst(-1), usedsize(0), currentid(0),
+		waitsizefirst(0), waitidxfirst(InvalidIndex()), usedsize(0), currentid(0),
 		enqued(false), removemode(RemoveAfterCreateE){}
 		Storage(
 			TempConfiguration::Storage const &_cfg
 		):	path(_cfg.path), level(_cfg.level), capacity(_cfg.capacity),
 			minsize(_cfg.minsize), maxsize(_cfg.maxsize), waitcount(0),
-			waitsizefirst(0), waitidxfirst(-1), usedsize(0), currentid(0), enqued(false),
+			waitsizefirst(0), waitidxfirst(InvalidIndex()), usedsize(0), currentid(0), enqued(false),
 			removemode(_cfg.removemode)
 		{
 			if(maxsize > capacity || maxsize == 0){
@@ -247,7 +247,7 @@ struct Utf8Controller::Data{
 
 //---------------------------------------------------------------------------
 void Utf8Controller::Data::prepareFile(){
-	minglobalprefixsz = -1;
+	minglobalprefixsz = InvalidIndex();
 	maxglobalprefixsz = 0;
 	for(
 		Utf8ConfigurationImpl::StorageVectorT::const_iterator it = filecfg.storagevec.begin();
@@ -295,7 +295,7 @@ size_t Utf8Controller::Data::findFileStorage(std::string const&_path){
 			++r.second;
 		}
 	}
-	return -1;
+	return InvalidIndex();
 }
 
 //---------------------------------------------------------------------------
@@ -326,7 +326,7 @@ bool Utf8Controller::prepareIndex(
 	
 	_rcmd.outpath.storeidx = storeidx;
 	
-	if(storeidx == static_cast<size_t>(-1)){
+	if(storeidx == InvalidIndex()){
 		_rerr.assign(1, _rerr.category());
 		return true;
 	}

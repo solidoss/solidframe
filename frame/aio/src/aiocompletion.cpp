@@ -27,7 +27,7 @@ namespace aio{
 CompletionHandler::CompletionHandler(
 	ObjectProxy const &_rop,
 	CallbackT _pcall/* = &on_init_completion*/
-):pprev(nullptr), idxreactor(-1), call(_pcall)
+):pprev(nullptr), idxreactor(InvalidIndex()), call(_pcall)
 {
 	if(_rop.object().registerCompletionHandler(*this)){
 		this->activate(_rop.object());
@@ -36,7 +36,7 @@ CompletionHandler::CompletionHandler(
 
 CompletionHandler::CompletionHandler(
 	CallbackT _pcall/* = &on_init_completion*/
-):pprev(nullptr), idxreactor(-1), call(_pcall){
+):pprev(nullptr), idxreactor(InvalidIndex()), call(_pcall){
 	
 }
 
@@ -92,7 +92,7 @@ void CompletionHandler::deactivate(){
 	if(isActive() && (preactor = Reactor::safeSpecific())){
 		//the object has entered the reactor
 		preactor->unregisterCompletionHandler(*this);
-		idxreactor = -1;
+		idxreactor = InvalidIndex();
 	}
 	if(isActive()){
 		THROW_EXCEPTION("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");

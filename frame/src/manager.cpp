@@ -58,15 +58,15 @@ struct ObjectStub{
 };
 
 struct ObjectChunk{
-	ObjectChunk(Mutex &_rmtx):rmtx(_rmtx), svcidx(-1), nextchk(-1), objcnt(0){}
+	ObjectChunk(Mutex &_rmtx):rmtx(_rmtx), svcidx(InvalidIndex()), nextchk(InvalidIndex()), objcnt(0){}
 	Mutex		&rmtx;
 	size_t		svcidx;
 	size_t		nextchk;
 	size_t		objcnt;
 	
 	void clear(){
-		svcidx = -1;
-		nextchk = -1;
+		svcidx = InvalidIndex();
+		nextchk = InvalidIndex();
 		objcnt = 0;
 	}
 	
@@ -100,16 +100,16 @@ enum State{
 struct ServiceStub{
 	ServiceStub(
 		Mutex &_rmtx
-	):	psvc(nullptr), rmtx(_rmtx), firstchk(-1),
-		lastchk(-1), state(StateRunningE),
-		crtobjidx(-1), endobjidx(-1), objcnt(0){}
+	):	psvc(nullptr), rmtx(_rmtx), firstchk(InvalidIndex()),
+		lastchk(InvalidIndex()), state(StateRunningE),
+		crtobjidx(InvalidIndex()), endobjidx(InvalidIndex()), objcnt(0){}
 	
 	void reset(Service *_psvc = nullptr){
 		psvc = _psvc;
-		firstchk = -1;
-		lastchk = -1;
-		crtobjidx = -1;
-		endobjidx = -1;
+		firstchk = InvalidIndex();
+		lastchk = InvalidIndex();
+		crtobjidx = InvalidIndex();
+		endobjidx = InvalidIndex();
 		objcnt = 0;
 		state = StateRunningE;
 		while(objcache.size())objcache.pop();
@@ -359,7 +359,7 @@ bool Manager::registerService(
 	}
 	
 	size_t	crtsvcstoreidx = d.crtsvcstoreidx;
-	size_t	svcidx = -1;
+	size_t	svcidx = InvalidIndex();
 	
 	if(d.svccache.size()){
 		
@@ -402,7 +402,7 @@ bool Manager::registerService(
 void Manager::unregisterService(Service &_rsvc){
 	const size_t	svcidx = _rsvc.idx;
 	
-	if(svcidx == static_cast<size_t>(-1)){
+	if(svcidx == InvalidIndex()){
 		return;
 	}
 	
@@ -428,11 +428,11 @@ void Manager::doUnregisterService(ServiceStub &_rss){
 	
 	d.svccache.push(_rss.psvc->idx);
 	
-	_rss.psvc->idx = -1;
+	_rss.psvc->idx.store(InvalidIndex());
 	
 	size_t			chkidx = _rss.firstchk;
 	
-	while(chkidx != static_cast<size_t>(-1)){
+	while(chkidx != InvalidIndex()){
 		ObjectChunk *pchk = d.objstore[objvecidx].vec[chkidx];
 		chkidx = pchk->nextchk;
 		pchk->clear();
@@ -457,11 +457,11 @@ ObjectUidT Manager::registerObject(
 	
 	const size_t	svcidx = _rsvc.idx;
 	
-	if(svcidx == static_cast<size_t>(-1)){
+	if(svcidx == InvalidIndex()){
 		return retval;
 	}
 	
-	size_t			objidx = -1;
+	size_t			objidx = InvalidIndex();
 	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 	ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
 	Locker<Mutex>	lock(rss.rmtx);
@@ -485,7 +485,7 @@ ObjectUidT Manager::registerObject(
 	}else{
 		
 		Locker<Mutex>	lock2(d.mtx);
-		size_t			chkidx = -1;
+		size_t			chkidx = InvalidIndex();
 		if(d.chkcache.size()){
 			chkidx = d.chkcache.top();
 			d.chkcache.pop();
@@ -515,7 +515,7 @@ ObjectUidT Manager::registerObject(
 			d.maxobjcnt = rss.endobjidx;
 		}
 		
-		if(rss.firstchk == static_cast<size_t>(-1)){
+		if(rss.firstchk == InvalidIndex()){
 			rss.firstchk = rss.lastchk = chkidx;
 		}else{
 			
@@ -537,7 +537,7 @@ ObjectUidT Manager::registerObject(
 		
 		d.releaseReadObjectStore(objstoreidx);
 		
-		if(robjchk.svcidx == static_cast<size_t>(-1)){
+		if(robjchk.svcidx == InvalidIndex()){
 			robjchk.svcidx = _rsvc.idx;
 		}
 		
@@ -555,7 +555,7 @@ ObjectUidT Manager::registerObject(
 			++robjchk.objcnt;
 			++rss.objcnt;
 		}else{
-			_robj.id(-1);
+			_robj.id(InvalidIndex());
 			//the object was not scheduled
 			rss.objcache.push(objidx);
 		}
@@ -565,8 +565,8 @@ ObjectUidT Manager::registerObject(
 
 
 void Manager::unregisterObject(ObjectBase &_robj){
-	size_t		svcidx = -1;
-	size_t		objidx = -1;
+	size_t		svcidx = InvalidIndex();
+	size_t		objidx = InvalidIndex();
 	{
 		const size_t	objstoreidx = d.aquireReadObjectStore();
 		ObjectChunk		&robjchk(*d.chunk(objstoreidx, _robj.id()));
@@ -582,14 +582,14 @@ void Manager::unregisterObject(ObjectBase &_robj){
 		ros.preactor = nullptr;
 		++ros.unique;
 		
-		_robj.id(-1);
+		_robj.id(InvalidIndex());
 		
 		--robjchk.objcnt;
 		svcidx = robjchk.svcidx;
 	}
 	{
-		cassert(objidx != static_cast<size_t>(-1));
-		cassert(svcidx != static_cast<size_t>(-1));
+		cassert(objidx != InvalidIndex());
+		cassert(svcidx != InvalidIndex());
 		
 		const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 		ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
@@ -684,7 +684,7 @@ Mutex& Manager::mutex(const ObjectBase &_robj)const{
 
 ObjectUidT  Manager::id(const ObjectBase &_robj)const{
 	const IndexT		objidx = _robj.id();
-	if(objidx != static_cast<IndexT>(-1)){
+	if(objidx != InvalidIndex()){
 		const size_t		objstoreidx = d.aquireReadObjectStore();
 		ObjectStub const 	&ros(d.object(objstoreidx, objidx));
 		d.releaseReadObjectStore(objstoreidx);
@@ -713,7 +713,7 @@ bool Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctionT 
 		return false;
 	}
 	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-	size_t			chkidx = -1;
+	size_t			chkidx = InvalidIndex();
 	{
 		const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 		{
@@ -734,7 +734,7 @@ bool Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitF
 	bool	retval = false;
 	
 	
-	while(crtchkidx != static_cast<size_t>(-1)){
+	while(crtchkidx != InvalidIndex()){
 		
 		const size_t	objstoreidx = d.aquireReadObjectStore();//can lock d.mtx
 		
@@ -761,7 +761,7 @@ bool Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitF
 
 Service& Manager::service(const ObjectBase &_robj)const{
 	Service		*psvc = nullptr;	
-	size_t		svcidx = -1;
+	size_t		svcidx = InvalidIndex();
 	{
 		const size_t		objstoreidx = d.aquireReadObjectStore();
 		ObjectChunk			&rchk(*d.chunk(objstoreidx, _robj.id()));

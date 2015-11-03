@@ -32,8 +32,8 @@ namespace ipc{
 */
 struct ConnectionPoolUid: UniqueId{
 	ConnectionPoolUid(
-		const size_t _idx = -1,
-		const uint32 _uid = -1
+		const size_t _idx = InvalidIndex(),
+		const uint32 _uid = InvalidIndex()
 	):UniqueId(_idx, _uid){}
 	
 };
@@ -69,8 +69,8 @@ struct RequestUid{
 	uint32	unique;
 	
 	RequestUid(
-		const uint32 _idx = -1,
-		const uint32 _uid = -1
+		const uint32 _idx = InvalidIndex(),
+		const uint32 _uid = InvalidIndex()
 	):index(_idx), unique(_uid){}
 };
 
@@ -81,12 +81,12 @@ struct MessageUid{
 	uint32		unique;
 	
 	MessageUid(
-		const size_t _idx = -1,
+		const size_t _idx = InvalidIndex(),
 		const uint32 _uid = 0
 	):index(_idx), unique(_uid){}
 	
 	bool isInvalid()const{
-		return index == static_cast<size_t>(-1);
+		return index == InvalidIndex();
 	}
 	bool isValid()const{
 		return !isInvalid();

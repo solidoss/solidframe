@@ -72,13 +72,13 @@ bool Object::doPrepareStop(ReactorContext &_rctx){
 //---------------------------------------------------------------------
 
 ObjectBase::ObjectBase():
-	fullid(-1), smask(0){
+	fullid(static_cast<IndexT>(InvalidIndex())), smask(0){
 }
 
 void ObjectBase::unregister(Manager &_rm){
 	if(isRegistered()){
 		_rm.unregisterObject(*this);
-		fullid = -1;
+		fullid.store(InvalidIndex());
 	}
 }
 

@@ -355,7 +355,7 @@ void Connection::doHandleEventPush(
 	frame::aio::ReactorContext &_rctx,
 	frame::Event const &_revent
 ){
-	size_t		vecidx = -1;
+	size_t		vecidx = InvalidIndex();
 	{
 		Locker<Mutex>	lock(service(_rctx).mutex(*this));
 		

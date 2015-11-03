@@ -40,7 +40,7 @@ public:
 	~CompletionHandler();
 	
 	bool isActive()const{
-		return  idxreactor != static_cast<size_t>(-1);
+		return  idxreactor != InvalidIndex();
 	}
 	bool isRegistered()const{
 		return pprev != nullptr;

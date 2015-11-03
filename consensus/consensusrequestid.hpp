@@ -29,7 +29,7 @@ namespace consensus{
  * 
  */
 struct RequestId{
-	RequestId():requid(-1){}
+	RequestId():requid(InvalidIndex()){}
 	RequestId(const uint32 _requid, frame::ObjectUidT const &_objuid):requid(_requid), senderuid(_objuid){}
 	
 	template <class S>

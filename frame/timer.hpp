@@ -51,7 +51,7 @@ class Timer: public CompletionHandler{
 public:
 	Timer(
 		ObjectProxy const &_robj
-	):CompletionHandler(_robj, Timer::on_init_completion), storeidx(-1)
+	):CompletionHandler(_robj, Timer::on_init_completion), storeidx(InvalidIndex())
 	{
 	}
 	
@@ -89,13 +89,13 @@ private:
 	friend class Reactor;
 	void doExec(ReactorContext &_rctx){
 		FunctionT	tmpf(std::move(f));
-		storeidx = -1;
+		storeidx = InvalidIndex();
 		tmpf(_rctx);
 	}
 	void doClear(ReactorContext &_rctx){
 		FUNCTION_CLEAR(f);
 		remTimer(_rctx, storeidx);
-		storeidx = -1;
+		storeidx = InvalidIndex();
 	}
 private:
 	typedef FUNCTION<void(ReactorContext&)>		FunctionT;

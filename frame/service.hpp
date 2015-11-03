@@ -71,8 +71,7 @@ inline Manager& Service::manager(){
 	return rm;
 }
 inline bool Service::isRegistered()const{
-	//return idx != static_cast<size_t>(-1);
-	return idx.load(/*ATOMIC_NS::memory_order_seq_cst*/) != static_cast<size_t>(-1);
+	return idx.load(/*ATOMIC_NS::memory_order_seq_cst*/) != InvalidIndex();
 }
 
 }//namespace frame

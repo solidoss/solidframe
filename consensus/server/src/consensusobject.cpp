@@ -92,7 +92,7 @@ struct RequestStub{
 	RequestStub(
 		DynamicPointer<consensus::WriteRequestMessage> &_rmsgptr
 	):
-		msgptr(_rmsgptr), evs(0), flags(0), proposeid(-1), acceptid(-1), timerid(0),
+		msgptr(_rmsgptr), evs(0), flags(0), proposeid(InvalidIndex()), acceptid(InvalidIndex()), timerid(0),
 		recvpropconf(0), recvpropdecl(0), st(InitState){}
 	
 	bool hasRequest()const{
@@ -102,8 +102,8 @@ struct RequestStub{
 		evs = 0;
 		flags = 0;
 		st = InitState;
-		proposeid = -1;
-		acceptid = -1;
+		proposeid = InvalidIndex();
+		acceptid = InvalidIndex();
 		recvpropconf = 0;
 	}
 	void state(uint8 _st);
@@ -360,7 +360,7 @@ NOTE:
 Object::Data::Data(DynamicPointer<Configuration> &_rcfgptr):
 	cfgptr(_rcfgptr),
 	proposeid(0), srvidx(INVALID_INDEX), acceptid(0), proposedacceptid(0), confirmedacceptid(0),
-	continuousacceptedproposes(0), pendingacceptwaitidx(-1),
+	continuousacceptedproposes(0), pendingacceptwaitidx(InvalidIndex()),
 	coordinatorid(-2), distancefromcoordinator(-1), acceptpendingcnt(0), isnotjuststarted(false)
 {
 	if(cfgptr->crtidx){

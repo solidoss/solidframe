@@ -42,7 +42,7 @@ class Service;
 //------------------------------------------------------------------------------------
 
 struct ConnectionContext{
-	ConnectionContext(Connection &_rcon):rcon(_rcon), sndmsgidx(-1),rcvmsgidx(-1){}
+	ConnectionContext(Connection &_rcon):rcon(_rcon), sndmsgidx(InvalidIndex()),rcvmsgidx(InvalidIndex()){}
 	void sendMessageIndex(const uint32 _msgidx){
 		sndmsgidx = _msgidx;
 	}

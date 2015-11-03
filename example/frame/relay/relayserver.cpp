@@ -567,12 +567,12 @@ void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t
 	}
 	
 	if(found_eol){
-		uint32 idx = -1;
+		uint32 idx = InvalidIndex();
 		if(strlen(buf2) >= 1){
 			sscanf(buf2, "%ul", &idx);
 			idbg(this<<" received idx = "<<idx);
 		}
-		if(idx == crtid || idx == static_cast<uint32>(-1)){
+		if(idx == crtid || idx == InvalidIndex()){
 			//wait for a peer connection
 			buf1[0] = _sz - i;
 			buf1[1] = i;

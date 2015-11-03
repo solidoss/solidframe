@@ -31,7 +31,7 @@ inline bool MessageWriter::isAsynchronousInPendingQueue()const{
 }
 
 //-----------------------------------------------------------------------------
-MessageWriter::MessageWriter():current_message_type_id(-1), flags(0), message_order_q_front(-1), message_order_q_back(-1){}
+MessageWriter::MessageWriter():current_message_type_id(InvalidIndex()), flags(0), message_order_q_front(InvalidIndex()), message_order_q_back(InvalidIndex()){}
 //-----------------------------------------------------------------------------
 MessageWriter::~MessageWriter(){}
 //-----------------------------------------------------------------------------
@@ -553,7 +553,7 @@ void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_
 	{//iterate through non completed messages
 		size_t 			message_order_q_current = message_order_q_front;
 		
-		while(message_order_q_current != static_cast<size_t>(-1)){
+		while(message_order_q_current != InvalidIndex()){
 			const size_t	msgidx = message_order_q_current;
 			MessageStub		&rmsgstub = message_vec[msgidx];
 			
@@ -601,10 +601,10 @@ void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_
 void MessageWriter::doPushToOrderQueue(const size_t _idx){
 	MessageStub		&rmsgstub = message_vec[_idx];
 	
-	rmsgstub.order_q_next = -1;
+	rmsgstub.order_q_next = InvalidIndex();
 	rmsgstub.order_q_prev = message_order_q_back;
 	
-	if(message_order_q_back != static_cast<size_t>(-1)){
+	if(message_order_q_back != InvalidIndex()){
 		message_vec[message_order_q_back].order_q_next = _idx;
 		message_order_q_back = _idx;
 	}else{
@@ -616,22 +616,22 @@ void MessageWriter::doPushToOrderQueue(const size_t _idx){
 void MessageWriter::doPopFromOrderQueue(const size_t _idx){
 	MessageStub		&rmsgstub = message_vec[_idx];
 	
-	if(rmsgstub.order_q_prev != static_cast<size_t>(-1)){
+	if(rmsgstub.order_q_prev != InvalidIndex()){
 		message_vec[rmsgstub.order_q_prev].order_q_next = rmsgstub.order_q_next;
 	}else{
 		//first message in the q
 		message_order_q_front = rmsgstub.order_q_next;
 	}
 	
-	if(rmsgstub.order_q_next != static_cast<size_t>(-1)){
+	if(rmsgstub.order_q_next != InvalidIndex()){
 		message_vec[rmsgstub.order_q_next].order_q_prev = rmsgstub.order_q_prev;
 	}else{
 		//last message in the q
 		message_order_q_back = rmsgstub.order_q_prev;
 	}
 	
-	rmsgstub.order_q_next = -1;
-	rmsgstub.order_q_prev = -1;
+	rmsgstub.order_q_next = InvalidIndex();
+	rmsgstub.order_q_prev = InvalidIndex();
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

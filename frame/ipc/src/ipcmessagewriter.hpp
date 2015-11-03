@@ -100,7 +100,7 @@ private:
 			ulong _flags
 		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)), flags(_flags){}
 		
-		PendingMessageStub():message_type_idx(-1), flags(0){}
+		PendingMessageStub():message_type_idx(InvalidIndex()), flags(0){}
 		
 		MessagePointerT 			message_ptr;
 		size_t						message_type_idx;
@@ -115,17 +115,17 @@ private:
 			ResponseHandlerFunctionT &_rresponse_fnc,
 			ulong _flags
 		):	message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx),
-			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0), order_q_next(-1), order_q_prev(-1){}
+			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0), order_q_next(InvalidIndex()), order_q_prev(InvalidIndex()){}
 		
-		MessageStub():message_type_idx(-1), flags(-1), unique(0), packet_count(0), order_q_next(-1), order_q_prev(-1){}
+		MessageStub():message_type_idx(InvalidIndex()), flags(-1), unique(0), packet_count(0), order_q_next(InvalidIndex()), order_q_prev(InvalidIndex()){}
 		
 		void clear(){
 			message_ptr.clear();
 			flags = 0;
 			++unique;
 			packet_count = 0;
-			order_q_next = -1;
-			order_q_prev = -1;
+			order_q_next = InvalidIndex();
+			order_q_prev = InvalidIndex();
 			serializer_ptr = nullptr;
 			FUNCTION_CLEAR(response_fnc);
 		}
