@@ -40,10 +40,10 @@ struct ConnectionPoolUid: UniqueId{
 
 struct ConnectionUid{
 	
-	ConnectionUid(
-		const ConnectionPoolUid &_rpoolid = ConnectionPoolUid(),
-		const ObjectUidT &_rconid = ObjectUidT()
-	):poolid(_rpoolid), connectionid(_rconid){}
+	ConnectionUid(){}
+	
+	ConnectionUid(const ConnectionUid &_rconuid): poolid(_rconuid.poolid), connectionid(_rconuid.connectionid){}
+	
 	
 	bool isInvalid()const{
 		return isInvalidConnection() || isInvalidPool();
@@ -56,6 +56,22 @@ struct ConnectionUid{
 	bool isInvalidPool()const{
 		return poolid.isInvalid();
 	}
+	ConnectionPoolUid const& poolId()const{
+		return poolid;
+	}
+	ObjectUidT const& connectionId()const{
+		return connectionid;
+	}
+	
+private:
+	friend class Service;
+	friend class Connection;
+	friend class ConnectionContext;
+	
+	ConnectionUid(
+		const ConnectionPoolUid &_rpoolid,
+		const ObjectUidT &_rconid
+	):poolid(_rpoolid), connectionid(_rconid){}
 	
 	ConnectionPoolUid	poolid;
 	ObjectUidT			connectionid;
@@ -77,21 +93,32 @@ struct RequestUid{
 std::ostream& operator<<(std::ostream &_ros, RequestUid const &_msguid);
 
 struct MessageUid{
-	size_t		index;
-	uint32		unique;
-	
-	MessageUid(
-		const size_t _idx = InvalidIndex(),
-		const uint32 _uid = 0
-	):index(_idx), unique(_uid){}
+	MessageUid(): index(InvalidIndex()), unique(0){}
+	MessageUid(MessageUid const &_rmsguid): index(_rmsguid.index), unique(_rmsguid.unique){}
 	
 	bool isInvalid()const{
 		return index == InvalidIndex();
 	}
+	
 	bool isValid()const{
 		return !isInvalid();
 	}
+private:
+	friend class Service;
+	friend class Connection;
+	friend std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid);
+	size_t		index;
+	uint32		unique;
+
+	MessageUid(
+		const size_t _idx,
+		const uint32 _uid
+	):index(_idx), unique(_uid){}
+	
 };
+
+
+std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid);
 
 class Service;
 class Connection;

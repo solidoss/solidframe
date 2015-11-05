@@ -243,7 +243,7 @@ struct PushMessageConnectionVisitorF{
 		
 		if(pcon){
 			Event		raise_event;
-			const bool	retval = pcon->pushMessage(rmsgptr, msg_type_idx, response_fnc, flags, raise_event);
+			const bool	retval = pcon->pushMessage(rmsgptr, msg_type_idx, response_fnc, flags, nullptr, raise_event);
 			
 			if(retval){
 				if(!raise_event.empty()){
@@ -487,11 +487,11 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 			this->manager().id(_rcon) == rconpool.synchronous_connection_uid
 		){
 			MessageStub	&rmsgstrub = rconpool.msgq.front();
-			_rcon.directPushMessage(_rctx, rmsgstrub.msgptr, rmsgstrub.msg_type_idx, rmsgstrub.response_fnc, rmsgstrub.flags);
+			_rcon.directPushMessage(_rctx, rmsgstrub.msgptr, rmsgstrub.msg_type_idx, rmsgstrub.response_fnc, rmsgstrub.flags, nullptr);
 			rconpool.msgq.pop();
 		}else if(rconpool.synchronous_connection_uid.isInvalid()){
 			MessageStub	&rmsgstrub = rconpool.msgq.front();
-			_rcon.directPushMessage(_rctx, rmsgstrub.msgptr, rmsgstrub.msg_type_idx, rmsgstrub.response_fnc, rmsgstrub.flags);
+			_rcon.directPushMessage(_rctx, rmsgstrub.msgptr, rmsgstrub.msg_type_idx, rmsgstrub.response_fnc, rmsgstrub.flags, nullptr);
 			rconpool.synchronous_connection_uid = this->manager().id(_rcon);
 			rconpool.msgq.pop();
 		}else{
@@ -505,7 +505,7 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 				rconpool.msgq.pop();
 				
 				if(not found and Message::is_asynchronous(msgstub.flags)){
-					_rcon.directPushMessage(_rctx, msgstub.msgptr, msgstub.msg_type_idx, msgstub.response_fnc, msgstub.flags);
+					_rcon.directPushMessage(_rctx, msgstub.msgptr, msgstub.msg_type_idx, msgstub.response_fnc, msgstub.flags, nullptr);
 					found = true;
 				}else{
 					rconpool.msgq.push(std::move(msgstub));
@@ -809,7 +809,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 			//so, move all pending messages to _rcon for completion
 			while(rconpool.msgq.size()){
 				MessageStub &rms = rconpool.msgq.front();
-				_rcon.directPushMessage(_rctx, rms.msgptr, rms.msg_type_idx, rms.response_fnc, rms.flags);
+				_rcon.directPushMessage(_rctx, rms.msgptr, rms.msg_type_idx, rms.response_fnc, rms.flags, nullptr);
 				rconpool.msgq.pop();
 			}
 			
@@ -947,11 +947,16 @@ void ResolverF::operator()(const std::string&_name, ResolveCompleteFunctionT& _c
 //=============================================================================
 
 std::ostream& operator<<(std::ostream &_ros, ConnectionUid const &_con_id){
-	_ros<<'{'<<_con_id.connectionid<<"}{"<<_con_id.poolid<<'}';
+	_ros<<'{'<<_con_id.connectionId()<<"}{"<<_con_id.poolId()<<'}';
 	return _ros;
 }
 //-----------------------------------------------------------------------------
 std::ostream& operator<<(std::ostream &_ros, RequestUid const &_msguid){
+	_ros<<'{'<<_msguid.index<<','<<_msguid.unique<<'}';
+	return _ros;
+}
+//-----------------------------------------------------------------------------
+std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid){
 	_ros<<'{'<<_msguid.index<<','<<_msguid.unique<<'}';
 	return _ros;
 }

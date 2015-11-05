@@ -31,7 +31,9 @@ inline bool MessageWriter::isAsynchronousInPendingQueue()const{
 }
 
 //-----------------------------------------------------------------------------
-MessageWriter::MessageWriter():current_message_type_id(InvalidIndex()), flags(0), message_order_q_front(InvalidIndex()), message_order_q_back(InvalidIndex()){}
+MessageWriter::MessageWriter():current_message_type_id(InvalidIndex()), flags(0){
+	innerListClearAll();
+}
 //-----------------------------------------------------------------------------
 MessageWriter::~MessageWriter(){}
 //-----------------------------------------------------------------------------
@@ -41,6 +43,10 @@ void MessageWriter::prepare(Configuration const &_rconfig){
 //-----------------------------------------------------------------------------
 void MessageWriter::unprepare(){
 	
+}
+//-----------------------------------------------------------------------------
+MessageUid MessageWriter::safeNewMessageUid(){
+	return MessageUid();
 }
 //-----------------------------------------------------------------------------
 // Needs:
@@ -57,6 +63,7 @@ void MessageWriter::enqueue(
 	const size_t _msg_type_idx,
 	ResponseHandlerFunctionT &_rresponse_fnc,
 	ulong _flags,
+	MessageUid const &_rmsguid,
 	Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx
@@ -65,8 +72,8 @@ void MessageWriter::enqueue(
 	if(
 		_rmsgptr.empty() or //always deliver the terminate message
 		(
-			write_q.size() < _rconfig.max_writer_multiplex_message_count and
-			(message_vec.size() - cache_stk.size()) < _rconfig.max_writer_waiting_message_count and
+			inner_list[InnerListSending].size < _rconfig.max_writer_multiplex_message_count and
+			(message_vec.size() - inner_list[InnerListCache].size) < _rconfig.max_writer_waiting_message_count and
 			(
 				Message::is_asynchronous(_flags) or
 				(
@@ -78,9 +85,12 @@ void MessageWriter::enqueue(
 		//put message in write_q
 		uint32			idx;
 		
-		if(cache_stk.size()){
-			idx = cache_stk.top();
-			cache_stk.pop();
+		
+		
+		
+		if(inner_list[InnerListCache].size){
+			idx = inner_list[InnerListCache].front;
+			innerListPopFront<InnerListCache, InnerLinkStatus>();
 		}else{
 			idx = message_vec.size();
 			message_vec.push_back(MessageStub()); 
@@ -98,13 +108,14 @@ void MessageWriter::enqueue(
 			this->flags |= SynchronousMessageInWriteQueueFlag;
 		}
 		
-		doPushToOrderQueue(idx);
-		write_q.push(idx);
+		innerListPushBack<InnerListOrder, InnerLinkOrder>(idx);
+		innerListPushBack<InnerListSending, InnerLinkStatus>(idx);
 	}else if(
-		pending_message_q.size() < _rconfig.max_writer_pending_message_count
+		inner_list[InnerListPending].size < _rconfig.max_writer_pending_message_count
 	){
 		//put the message in pending queue
-		pending_message_q.push(PendingMessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
+		//TODO
+		//pending_message_q.push(PendingMessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
 		if(Message::is_asynchronous(_flags)){
 			this->flags |= AsynchronousMessageInPendingQueueFlag;
 		}
@@ -120,16 +131,16 @@ void MessageWriter::enqueue(
 //-----------------------------------------------------------------------------
 bool MessageWriter::shouldTryFetchNewMessage(Configuration const &_rconfig)const{
 	return (
-		write_q.empty() or 
+		inner_list[InnerListSending].empty() or 
 		(
-			write_q.size() < _rconfig.max_writer_multiplex_message_count and
-			message_vec[write_q.front()].packet_count == 0
+			inner_list[InnerListSending].size < _rconfig.max_writer_multiplex_message_count and
+			message_vec[inner_list[InnerListSending].front].packet_count == 0
 		)
 	);
 }
 //-----------------------------------------------------------------------------
 bool MessageWriter::empty()const{
-	return write_q.empty();
+	return inner_list[InnerListSending].empty();
 }
 //-----------------------------------------------------------------------------
 // Does:
@@ -253,8 +264,8 @@ char* MessageWriter::doFillPacket(
 	
 	SerializerPointerT		tmp_serializer;
 	
-	while(write_q.size() and freesz >= MinimumFreePacketDataSize){
-		const size_t			msgidx = write_q.front();
+	while(inner_list[InnerListSending].size and freesz >= MinimumFreePacketDataSize){
+		const size_t			msgidx = inner_list[InnerListSending].front;
 		MessageStub				&rmsgstub = message_vec[msgidx];
 		PacketHeader::Types		msgswitch;// = PacketHeader::ContinuedMessageTypeE;
 		
@@ -263,7 +274,7 @@ char* MessageWriter::doFillPacket(
 			if(pbufpos == _pbufbeg){
 				_rerror.assign(-1, _rerror.category());//TODO:
 				pbufpos = nullptr;
-				write_q.pop();
+				innerListPopFront<InnerListSending, InnerLinkStatus>();
 			}
 			_rmore = false;
 			break;
@@ -333,7 +344,8 @@ char* MessageWriter::doFillPacket(
 				vdbgx(Debug::ipc, "done serializing message "<<requid<<". Message id sent to client "<<_rctx.request_uid);
 				tmp_serializer = std::move(rmsgstub.serializer_ptr);
 				//done serializing the message:
-				write_q.pop();
+				
+				innerListPopFront<InnerListSending, InnerLinkStatus>();
 				
 				if(Message::is_synchronous(rmsgstub.flags)){
 					this->flags &= ~(SynchronousMessageInWriteQueueFlag);
@@ -361,8 +373,8 @@ char* MessageWriter::doFillPacket(
 				
 				if(rmsgstub.packet_count >= _rconfig.max_writer_message_continuous_packet_count){
 					rmsgstub.packet_count = 0;
-					write_q.pop();
-					write_q.push(msgidx);
+					innerListPopFront<InnerListSending, InnerLinkStatus>();
+					innerListPushBack<InnerListSending, InnerLinkStatus>(msgidx);
 				}
 			}
 		}else{
@@ -371,39 +383,36 @@ char* MessageWriter::doFillPacket(
 			break;
 		}
 	}
-	vdbgx(Debug::ipc, "write_q_size "<<write_q.size()<<" pending_q_size "<<pending_message_q.size());
+	vdbgx(Debug::ipc, "write_q_size "<<inner_list[InnerListSending].size<<" pending_q_size "<<inner_list[InnerListPending].size);
 	return pbufpos;
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig){
 	if(
-		pending_message_q.empty() or cache_stk.empty()
+		inner_list[InnerListPending].empty() or inner_list[InnerListCache].empty()
 	) return;
 	
 	if(
-		(message_vec.size() - cache_stk.size()) == _rconfig.max_writer_waiting_message_count
+		(message_vec.size() - inner_list[InnerListCache].size) == _rconfig.max_writer_waiting_message_count
 	) return;
 	
 	if(
-		Message::is_asynchronous(pending_message_q.front().flags) or
+		//Message::is_asynchronous(pending_message_q.front().flags) or
+		Message::is_asynchronous(message_vec[inner_list[InnerListPending].front].flags) or
 		not isSynchronousInWriteQueue()
 	){
-		const size_t	idx = cache_stk.top();
-		MessageStub		&rmsgstub(message_vec[idx]);
-		cache_stk.pop();
+		const size_t	msgidx = inner_list[InnerListPending].front;
 		
-		rmsgstub.flags = pending_message_q.front().flags;
-		rmsgstub.message_type_idx = pending_message_q.front().message_type_idx;
-		rmsgstub.message_ptr = std::move(pending_message_q.front().message_ptr);
-		rmsgstub.response_fnc = std::move(pending_message_q.front().response_fnc);
+		innerListPopFront<InnerListPending, InnerLinkStatus>();
+		innerListPushBack<InnerListSending, InnerLinkStatus>(msgidx);
 		
-		pending_message_q.pop();
+		MessageStub		&rmsgstub(message_vec[msgidx]);
+
 		if(Message::is_synchronous(rmsgstub.flags)){
 			this->flags |= SynchronousMessageInWriteQueueFlag;
 		}
 		
-		doPushToOrderQueue(idx);
-		write_q.push(idx);
+		innerListPushBack<InnerListOrder, InnerLinkOrder>(msgidx);
 		return;
 	}
 	
@@ -415,26 +424,25 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		//For that:
 		//we rotate the queue so that the currently Synchronous Message will still be at front
 		
-		size_t				qsz = pending_message_q.size();
-		PendingMessageStub	asyncmsgstub;
+		size_t				qsz = inner_list[InnerListPending].size;//pending_message_q.size();
+		size_t				async_msg_idx = InvalidIndex();
 		bool				has_another_asyncmsgstub = false;
 		
 		while(qsz--){
-			PendingMessageStub	tmp(pending_message_q.front());
+			size_t			msgidx = inner_list[InnerListPending].front;
 			
-			pending_message_q.pop();
+			MessageStub		&rmsgstub(message_vec[msgidx]);
 			
-			if(Message::is_synchronous(tmp.flags)){
-				pending_message_q.push(tmp);
+			innerListPopFront<InnerListPending, InnerLinkStatus>();
+			
+			if(Message::is_synchronous(rmsgstub.flags)){
+				innerListPushBack<InnerListPending, InnerLinkStatus>(msgidx);
 			}else{
-				if(asyncmsgstub.message_ptr.get()){
+				if(async_msg_idx != InvalidIndex()){
 					has_another_asyncmsgstub = true;
-					pending_message_q.push(tmp);
+					innerListPushBack<InnerListPending, InnerLinkStatus>(msgidx);
 				}else{
-					asyncmsgstub.message_ptr = std::move(tmp.message_ptr);
-					asyncmsgstub.message_type_idx = tmp.message_type_idx;
-					asyncmsgstub.response_fnc = std::move(tmp.response_fnc);
-					asyncmsgstub.flags = tmp.flags;
+					async_msg_idx = msgidx;
 				}
 			}
 		}
@@ -445,20 +453,10 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 			this->flags &= ~AsynchronousMessageInPendingQueueFlag;
 		}
 		
-		if(asyncmsgstub.message_ptr.get()){
+		if(async_msg_idx != InvalidIndex()){
 			//we have an asynchronous message
-			const size_t	idx = cache_stk.top();
-			MessageStub		&rmsgstub(message_vec[idx]);
-			
-			cache_stk.pop();
-		
-			rmsgstub.flags = asyncmsgstub.flags;
-			rmsgstub.message_type_idx = asyncmsgstub.message_type_idx;
-			rmsgstub.message_ptr = std::move(asyncmsgstub.message_ptr);
-			rmsgstub.response_fnc = std::move(asyncmsgstub.response_fnc);
-			
-			doPushToOrderQueue(idx);
-			write_q.push(idx);
+			innerListPushBack<InnerListSending, InnerLinkStatus>(async_msg_idx);
+			innerListPushBack<InnerListOrder, InnerLinkOrder>(async_msg_idx);
 		}
 	}
 }
@@ -500,11 +498,11 @@ void MessageWriter::doCompleteMessage(
 		
 		_ridmap[rmsgstub.message_type_idx].complete_fnc(_rctx, rmsgstub.message_ptr, _rerror);
 		
-		doPopFromOrderQueue(msgidx);
+		innerListErase<InnerListOrder, InnerLinkOrder>(msgidx);
 		
 		rmsgstub.clear();
 		
-		cache_stk.push(msgidx);
+		innerListPushBack<InnerListSending, InnerLinkStatus>(msgidx);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -516,122 +514,51 @@ void MessageWriter::completeAllMessages(
 ){
 	vdbgx(Debug::ipc, "");
 	
-	for(auto it = message_vec.begin(); it != message_vec.end(); ++it){
-		if(it->message_ptr.empty()){
+	while(inner_list[InnerListOrder].size){
+		const size_t	msgidx = inner_list[InnerListOrder].front;
+		MessageStub		&rmsgstub = message_vec[msgidx];
+		if(not rmsgstub.message_ptr.empty()){
+			MessagePointerT 	msgptr;
+			RequestUid			requid(msgidx, rmsgstub.unique);
+			
+			doCompleteMessage(msgptr, requid, _rconfig, _ridmap, _rctx, _rerror);
 		}else{
-			MessagePointerT 	msgptr;
-			RequestUid			requid(it - message_vec.begin(), it->unique);
-			
-			doCompleteMessage(msgptr, requid, _rconfig, _ridmap, _rctx, _rerror);
-		}
-	}
-	
-	if(cache_stk.size()){
-	
-		size_t msgidx = cache_stk.top();
-		doTryMoveMessageFromPendingToWriteQueue(_rconfig);
-		
-		while(message_vec[msgidx].message_ptr.get()){
-			MessagePointerT 	msgptr;
-			RequestUid			requid(msgidx, message_vec[msgidx].unique);
-			
-			doCompleteMessage(msgptr, requid, _rconfig, _ridmap, _rctx, _rerror);
-			doTryMoveMessageFromPendingToWriteQueue(_rconfig);
+			innerListPopFront<InnerListOrder, InnerLinkOrder>();
 		}
 		
-	}else{
-		cassert(write_q.empty());
 	}
 	
-	while(write_q.size()){
-		write_q.pop();
-	}
 	message_vec.clear();
+	
+	innerListClearAll();
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc){
 	{//iterate through non completed messages
-		size_t 			message_order_q_current = message_order_q_front;
+		size_t 			msgidx = inner_list[InnerListOrder].front;
 		
-		while(message_order_q_current != InvalidIndex()){
-			const size_t	msgidx = message_order_q_current;
+		while(msgidx != InvalidIndex()){
 			MessageStub		&rmsgstub = message_vec[msgidx];
 			
 			if(rmsgstub.message_ptr.empty()){
-				THROW_EXCEPTION_EX("invalid message - something got wrong with the nested queue for message: ", msgidx);
+				THROW_EXCEPTION_EX("invalid message - something went wrong with the nested queue for message: ", msgidx);
 			}
 			
 			_rvisit_fnc(rmsgstub.message_ptr, rmsgstub.message_type_idx, rmsgstub.response_fnc, rmsgstub.flags);
 			
-			message_order_q_current = rmsgstub.order_q_next;
-			
 			if(rmsgstub.message_ptr.empty()){
+				if(Message::is_being_sent(rmsgstub.flags)){
+					//the message is in the sending queue - pop it
+					innerListErase<InnerListSending, InnerLinkStatus>(msgidx);
+				}
+				
 				rmsgstub.clear();
-				cache_stk.push(msgidx);
+				innerListPushBack<InnerListCache, InnerLinkStatus>(msgidx);
 			}
+			
+			msgidx = rmsgstub.inner_link[InnerLinkOrder].prev;
 		}
 	}
-	
-	{//pop all messages retrieved above from the write_q
-		size_t qsz = write_q.size();
-		
-		while(qsz--){
-			MessageStub		&rmsgstub = message_vec[write_q.front()];
-			if(not rmsgstub.message_ptr.empty()){
-				write_q.push(write_q.front());
-			}
-			write_q.pop();
-		}
-	}
-	
-	{
-		size_t qsz = pending_message_q.size();
-		
-		while(qsz--){
-			PendingMessageStub	&rms(pending_message_q.front());
-			_rvisit_fnc(rms.message_ptr, rms.message_type_idx, rms.response_fnc, rms.flags);
-			if(rms.message_ptr.empty()){
-				pending_message_q.push(PendingMessageStub(rms.message_ptr, rms.message_type_idx, rms.response_fnc, rms.flags));
-			}
-			pending_message_q.pop();
-		}
-	}
-}
-//-----------------------------------------------------------------------------
-void MessageWriter::doPushToOrderQueue(const size_t _idx){
-	MessageStub		&rmsgstub = message_vec[_idx];
-	
-	rmsgstub.order_q_next = InvalidIndex();
-	rmsgstub.order_q_prev = message_order_q_back;
-	
-	if(message_order_q_back != InvalidIndex()){
-		message_vec[message_order_q_back].order_q_next = _idx;
-		message_order_q_back = _idx;
-	}else{
-		message_order_q_back = _idx;
-		message_order_q_front = _idx;
-	}
-}
-//-----------------------------------------------------------------------------
-void MessageWriter::doPopFromOrderQueue(const size_t _idx){
-	MessageStub		&rmsgstub = message_vec[_idx];
-	
-	if(rmsgstub.order_q_prev != InvalidIndex()){
-		message_vec[rmsgstub.order_q_prev].order_q_next = rmsgstub.order_q_next;
-	}else{
-		//first message in the q
-		message_order_q_front = rmsgstub.order_q_next;
-	}
-	
-	if(rmsgstub.order_q_next != InvalidIndex()){
-		message_vec[rmsgstub.order_q_next].order_q_prev = rmsgstub.order_q_prev;
-	}else{
-		//last message in the q
-		message_order_q_back = rmsgstub.order_q_prev;
-	}
-	
-	rmsgstub.order_q_next = InvalidIndex();
-	rmsgstub.order_q_prev = InvalidIndex();
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

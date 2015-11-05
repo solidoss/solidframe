@@ -135,7 +135,9 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 		frame::ipc::ResponseHandlerFunctionT	response_fnc;
 		ctx.ipcmsgwriter->enqueue(
 			msgptr, ctx.ipctypemap->index(msgptr.get()), response_fnc,
-			initarray[crtwriteidx % initarraysize].flags, *ctx.ipcconfig, *ctx.ipctypemap, ipcconctx
+			initarray[crtwriteidx % initarraysize].flags,
+			ctx.ipcmsgwriter->safeNewMessageUid(),
+			*ctx.ipcconfig, *ctx.ipctypemap, ipcconctx
 		);
 		++crtwriteidx;
 	}
@@ -202,7 +204,9 @@ int test_protocol_synchronous(int argc, char **argv){
 		ipcmsgwriter.enqueue(
 			msgptr, ipctypemap.index(msgptr.get()),
 			response_fnc,
-			initarray[crtwriteidx % initarraysize].flags, ipcconfig, ipctypemap, ipcconctx
+			initarray[crtwriteidx % initarraysize].flags,
+			ipcmsgwriter.safeNewMessageUid(),
+			ipcconfig, ipctypemap, ipcconctx
 		);
 	}
 	

@@ -72,6 +72,12 @@ public:
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags,
+		MessageUid *_pmsguid,
+		Event &_revent
+	);
+	
+	bool pushCancelMessage(
+		MessageUid const &_rmsguid,
 		Event &_revent
 	);
 	
@@ -80,7 +86,8 @@ public:
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong _flags
+		ulong _flags,
+		MessageUid *_pmsguid
 	);
 	
 	bool prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_revent);
@@ -177,13 +184,26 @@ private:
 			MessagePointerT &_rmsgptr,
 			const size_t _msg_type_idx,
 			ResponseHandlerFunctionT &_rresponse_fnc,
-			ulong _flags
-		): msgptr(_rmsgptr), msg_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)), flags(_flags){}
+			ulong _flags,
+			MessageUid const &_rmsguid
+		):	msgptr(_rmsgptr), msg_type_idx(_msg_type_idx),
+			response_fnc(std::move(_rresponse_fnc)), flags(_flags),
+			msguid(_rmsguid)
+			{}
+		
+		PendingSendMessageStub(
+			ulong _flags,
+			MessageUid const &_rmsguid
+		):	msg_type_idx(InvalidIndex()),
+			flags(_flags),
+			msguid(_rmsguid)
+			{}
 		
 		MessagePointerT				msgptr;
 		const size_t				msg_type_idx;
 		ResponseHandlerFunctionT	response_fnc;
 		ulong						flags;
+		MessageUid					msguid;
 	};
 
 	typedef std::vector<PendingSendMessageStub>			PendingSendMessageVectorT;

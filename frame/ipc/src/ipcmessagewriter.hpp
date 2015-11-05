@@ -48,11 +48,15 @@ public:
 	MessageWriter();
 	~MessageWriter();
 	
+	//must be used under lock, i.e. under Connection's lock
+	MessageUid safeNewMessageUid();
+	
 	void enqueue(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags,
+		MessageUid const &_rmsguid,
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx
@@ -92,20 +96,57 @@ public:
 	
 	void visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc);
 private:
-	struct PendingMessageStub{
-		PendingMessageStub(
-			MessagePointerT &_rmsgptr,
-			const size_t _msg_type_idx,
-			ResponseHandlerFunctionT &_rresponse_fnc,
-			ulong _flags
-		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)), flags(_flags){}
+	
+	struct InnerLink{
+		InnerLink(
+			const size_t _next = InvalidIndex(),
+			const size_t _prev = InvalidIndex()
+		):next(_next), prev(_prev){}
 		
-		PendingMessageStub():message_type_idx(InvalidIndex()), flags(0){}
+		void clear(){
+			next = InvalidIndex();
+			prev = InvalidIndex();
+		}
 		
-		MessagePointerT 			message_ptr;
-		size_t						message_type_idx;
-		ResponseHandlerFunctionT 	response_fnc;
-		ulong						flags;
+		size_t next;
+		size_t prev;
+	};
+	
+	struct InnerList{
+		InnerList(
+			const size_t _front = InvalidIndex(),
+			const size_t _back = InvalidIndex()
+		):front(_front), back(_back), size(0){}
+		
+		bool empty()const{
+			return front == InvalidIndex();
+		}
+		
+		void clear(){
+			front = InvalidIndex();
+			back = InvalidIndex();
+			size = 0;
+		}
+		
+		size_t	front;
+		size_t	back;
+		size_t	size;
+	};
+	
+	enum{
+		InnerListOrder = 0,
+		InnerListPending,
+		InnerListSending,
+		InnerListCache,
+		
+		InnerListCount //do not change
+	};
+	
+	enum{
+		InnerLinkOrder = 0,
+		InnerLinkStatus,
+		
+		InnerLinkCount
 	};
 	
 	struct MessageStub{
@@ -115,17 +156,19 @@ private:
 			ResponseHandlerFunctionT &_rresponse_fnc,
 			ulong _flags
 		):	message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx),
-			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0), order_q_next(InvalidIndex()), order_q_prev(InvalidIndex()){}
+			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0){}
 		
-		MessageStub():message_type_idx(InvalidIndex()), flags(-1), unique(0), packet_count(0), order_q_next(InvalidIndex()), order_q_prev(InvalidIndex()){}
+		MessageStub():message_type_idx(InvalidIndex()), flags(-1), unique(0), packet_count(0){}
 		
 		void clear(){
 			message_ptr.clear();
 			flags = 0;
 			++unique;
 			packet_count = 0;
-			order_q_next = InvalidIndex();
-			order_q_prev = InvalidIndex();
+			
+			inner_link[InnerLinkOrder].clear();
+			//inner_link[InnerLinkStatus].clear();//must not be cleared
+			
 			serializer_ptr = nullptr;
 			FUNCTION_CLEAR(response_fnc);
 		}
@@ -136,12 +179,11 @@ private:
 		ulong						flags;
 		uint32						unique;
 		size_t						packet_count;
-		size_t						order_q_next;
-		size_t						order_q_prev;
 		SerializerPointerT			serializer_ptr;
+		InnerLink					inner_link[InnerLinkCount];
 	};
 	
-	typedef Queue<PendingMessageStub>							PendingMessageQueueT;
+//	typedef Queue<PendingMessageStub>							PendingMessageQueueT;
 	typedef std::vector<MessageStub>							MessageVectorT;
 	
 	struct PacketOptions{
@@ -151,7 +193,6 @@ private:
 		bool 					force_no_compress;
 	};
 	
-	typedef Queue<size_t>										SizeTQueueT;
 	typedef Stack<size_t>										CacheStackT;
 	
 	char* doFillPacket(
@@ -178,17 +219,66 @@ private:
 		ErrorConditionT const & _rerror
 	);
 	
-	void doPushToOrderQueue(const size_t _idx);
-	void doPopFromOrderQueue(const size_t _idx);
+	template <size_t List>
+	bool innerListEmpty()const{
+		return inner_list[List].empty();
+	}
+	
+	template <size_t List, size_t Link>
+	void innerListPushBack(const size_t _message_vec_index){
+		MessageStub		&rmsgstub = message_vec[_message_vec_index];
+	
+		rmsgstub.inner_link[Link] = InnerLink(InvalidIndex(), inner_list[List].back);
+		
+		if(inner_list[List].back != InvalidIndex()){
+			message_vec[inner_list[List].back].inner_link[Link].next = _message_vec_index;
+			inner_list[List].back = _message_vec_index;
+		}else{
+			inner_list[List] = InnerList(_message_vec_index, _message_vec_index);
+		}
+		++inner_list[List].size;
+	}
+	
+	template <size_t List, size_t Link>
+	void innerListErase(const size_t _message_vec_index){
+		MessageStub		&rmsgstub = message_vec[_message_vec_index];
+	
+		if(rmsgstub.inner_link[Link].prev != InvalidIndex()){
+			message_vec[rmsgstub.inner_link[Link].prev].inner_link[Link].next = rmsgstub.inner_link[Link].next;
+		}else{
+			//first message in the q
+			inner_list[List].front = rmsgstub.inner_link[Link].next;
+		}
+		
+		if(rmsgstub.inner_link[Link].next != InvalidIndex()){
+			message_vec[rmsgstub.inner_link[Link].next].inner_link[Link].prev = rmsgstub.inner_link[Link].prev;
+		}else{
+			//last message in the q
+			inner_list[List].front = rmsgstub.inner_link[Link].prev;
+		}
+		--inner_list[List].size;
+		rmsgstub.inner_link[Link].clear();
+	}
+	
+	template <size_t List, size_t Link>
+	void innerListPopFront(){
+		if(inner_list[List].front != InvalidIndex()){
+			innerListErase<List, Link>(inner_list[List].front);
+		}
+	}
+	
+	void innerListClearAll(){
+		inner_list[InnerListOrder].clear();
+		inner_list[InnerListPending].clear();
+		inner_list[InnerListSending].clear();
+		inner_list[InnerListCache].clear();
+	}
+	
 private:
-	PendingMessageQueueT		pending_message_q;
 	MessageVectorT				message_vec;
-	SizeTQueueT					write_q;
-	CacheStackT					cache_stk;
 	uint32						current_message_type_id;
 	uint32						flags;
-	size_t						message_order_q_front;
-	size_t						message_order_q_back;
+	InnerList					inner_list[InnerListCount];
 };
 
 

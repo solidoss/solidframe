@@ -162,12 +162,26 @@ bool Connection::pushMessage(
 	const size_t _msg_type_idx,
 	ResponseHandlerFunctionT &_rresponse_fnc,
 	ulong _flags,
+	MessageUid *_pmsguid,
 	Event &_revent
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
 	if(not isAtomicStopping()){
-		sendmsgvec[crtpushvecidx].push_back(PendingSendMessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
+		
+		MessageUid	msguid = msgwriter.safeNewMessageUid();
+		
+		sendmsgvec[crtpushvecidx].push_back(
+			PendingSendMessageStub(
+				_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags,
+				msguid
+			)
+		);
+		
+		if(_pmsguid){
+			*_pmsguid = msguid;
+		}
+		
 		if(sendmsgvec[crtpushvecidx].size() == 1){
 			_revent = EventCategory::createPush();
 		}
@@ -176,6 +190,54 @@ bool Connection::pushMessage(
 		return false;
 	}
 	
+}
+//-----------------------------------------------------------------------------
+void Connection::directPushMessage(
+	frame::aio::ReactorContext &_rctx,
+	MessagePointerT &_rmsgptr,
+	const size_t _msg_type_idx,
+	ResponseHandlerFunctionT &_rresponse_fnc,
+	ulong _flags,
+	MessageUid *_pmsguid
+){
+	ConnectionContext	conctx(service(_rctx), *this);
+	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
+	const Configuration &rconfig  = service(_rctx).configuration();
+	MessageUid			msguid;
+	
+	{
+		Locker<Mutex>		lock(service(_rctx).mutex(*this));
+		msguid = msgwriter.safeNewMessageUid();
+	}
+	
+	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, msguid, rconfig, rtypemap, conctx);
+	
+	if(_pmsguid){
+		*_pmsguid = msguid;
+	}
+}
+//-----------------------------------------------------------------------------
+bool Connection::pushCancelMessage(
+	MessageUid const &_rmsguid,
+	Event &_revent
+){
+	idbgx(Debug::ipc, this<<' '<<this->id()<<' '<<_rmsguid);
+	//Under lock
+	if(not isAtomicStopping()){
+		sendmsgvec[crtpushvecidx].push_back(
+			PendingSendMessageStub(
+				Message::CancelFlagE,
+				_rmsguid
+			)
+		);
+		
+		if(sendmsgvec[crtpushvecidx].size() == 1){
+			_revent = EventCategory::createPush();
+		}
+		return true;
+	}else{
+		return false;
+	}
 }
 //-----------------------------------------------------------------------------
 bool Connection::prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_revent){
@@ -195,19 +257,6 @@ bool Connection::prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_r
 	}else{
 		return false;
 	}
-}
-//-----------------------------------------------------------------------------
-void Connection::directPushMessage(
-	frame::aio::ReactorContext &_rctx,
-	MessagePointerT &_rmsgptr,
-	const size_t _msg_type_idx,
-	ResponseHandlerFunctionT &_rresponse_fnc,
-	ulong _flags
-){
-	ConnectionContext	conctx(service(_rctx), *this);
-	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
-	const Configuration &rconfig  = service(_rctx).configuration();
-	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, rconfig, rtypemap, conctx);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isActive()const{
@@ -378,7 +427,7 @@ void Connection::doHandleEventPush(
 		bool was_empty_msgwriter = msgwriter.empty();
 		
 		for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
-			msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->response_fnc, it->flags, rconfig, rtypemap, conctx);
+			msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->response_fnc, it->flags, it->msguid, rconfig, rtypemap, conctx);
 		}
 		rsendmsgvec.clear();
 		
