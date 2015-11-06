@@ -10,13 +10,12 @@
 #ifndef SOLID_FRAME_IPC_SRC_IPC_MESSAGE_WRITER_HPP
 #define SOLID_FRAME_IPC_SRC_IPC_MESSAGE_WRITER_HPP
 
+#include <vector>
+
 #include "system/common.hpp"
 #include "system/error.hpp"
 #include "system/specific.hpp"
 #include "system/function.hpp"
-
-#include "utility/queue.hpp"
-#include "utility/stack.hpp"
 
 #include "ipcutility.hpp"
 #include "frame/ipc/ipcserialization.hpp"
@@ -50,6 +49,10 @@ public:
 	
 	//must be used under lock, i.e. under Connection's lock
 	MessageUid safeNewMessageUid();
+	
+	bool isNonSafeCacheEmpty()const;
+	
+	void safeMoveCacheToSafety();
 	
 	void enqueue(
 		MessagePointerT &_rmsgptr,
@@ -185,6 +188,7 @@ private:
 	
 //	typedef Queue<PendingMessageStub>							PendingMessageQueueT;
 	typedef std::vector<MessageStub>							MessageVectorT;
+	typedef std::vector<MessageUid>								MessageUidVectorT;
 	
 	struct PacketOptions{
 		PacketOptions(): packet_type(PacketHeader::SwitchToNewMessageTypeE), force_no_compress(false){}
@@ -276,11 +280,17 @@ private:
 	
 private:
 	MessageVectorT				message_vec;
+	MessageUidVectorT			message_uid_cache_vec;
+	std::atomic<size_t>			message_idx_cache;
 	uint32						current_message_type_id;
 	uint32						flags;
 	InnerList					inner_list[InnerListCount];
 };
 
+
+inline bool MessageWriter::isNonSafeCacheEmpty()const{
+	return inner_list[InnerListCache].empty();
+}
 
 }//namespace ipc
 }//namespace frame

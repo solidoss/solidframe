@@ -429,6 +429,7 @@ void Connection::doHandleEventPush(
 		for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
 			msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->response_fnc, it->flags, it->msguid, rconfig, rtypemap, conctx);
 		}
+		
 		rsendmsgvec.clear();
 		
 		if(was_empty_msgwriter and not msgwriter.empty()){

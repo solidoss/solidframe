@@ -106,6 +106,8 @@ struct MessageUid{
 private:
 	friend class Service;
 	friend class Connection;
+	friend class MessageWriter;
+	
 	friend std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid);
 	size_t		index;
 	uint32		unique;

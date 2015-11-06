@@ -46,7 +46,15 @@ void MessageWriter::unprepare(){
 }
 //-----------------------------------------------------------------------------
 MessageUid MessageWriter::safeNewMessageUid(){
-	return MessageUid();
+	MessageUid msguid;
+	if(message_uid_cache_vec.size()){
+		msguid = message_uid_cache_vec.back();
+		message_uid_cache_vec.pop_back();
+	}else{
+		msguid.unique = 0;
+		msguid.index = message_idx_cache.fetch_add(1);
+	}
+	return msguid;
 }
 //-----------------------------------------------------------------------------
 // Needs:
@@ -84,9 +92,6 @@ void MessageWriter::enqueue(
 	){
 		//put message in write_q
 		uint32			idx;
-		
-		
-		
 		
 		if(inner_list[InnerListCache].size){
 			idx = inner_list[InnerListCache].front;
@@ -411,8 +416,6 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		if(Message::is_synchronous(rmsgstub.flags)){
 			this->flags |= SynchronousMessageInWriteQueueFlag;
 		}
-		
-		innerListPushBack<InnerListOrder, InnerLinkOrder>(msgidx);
 		return;
 	}
 	
@@ -456,7 +459,6 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		if(async_msg_idx != InvalidIndex()){
 			//we have an asynchronous message
 			innerListPushBack<InnerListSending, InnerLinkStatus>(async_msg_idx);
-			innerListPushBack<InnerListOrder, InnerLinkOrder>(async_msg_idx);
 		}
 	}
 }
@@ -502,7 +504,7 @@ void MessageWriter::doCompleteMessage(
 		
 		rmsgstub.clear();
 		
-		innerListPushBack<InnerListSending, InnerLinkStatus>(msgidx);
+		innerListPushBack<InnerListCache, InnerLinkStatus>(msgidx);
 	}
 }
 //-----------------------------------------------------------------------------
