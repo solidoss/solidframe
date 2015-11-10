@@ -563,13 +563,20 @@ ErrorConditionT Service::doNotifyConnectionActivate(
 	return err;
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::scheduleConnectionClose(
+bool Service::delayedConnectionClose(
 	ConnectionUid const &_rconnection_uid
 ){
 	ConnectionPoolUid			fakeuid;
 	MessagePointerT				msgptr;
 	ResponseHandlerFunctionT	response_handler;
-	return doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgptr, -1, response_handler, fakeuid, nullptr, 0);
+	return not doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgptr, 0, response_handler, fakeuid, nullptr, 0);
+}
+//-----------------------------------------------------------------------------
+bool Service::forcedConnectionClose(
+	ConnectionUid const &_rconnection_uid
+){
+	
+	return manager().notify(_rconnection_uid.connectionid, EventCategory::createKill());
 }
 //-----------------------------------------------------------------------------
 // Three situations in doActivateConnection is called:

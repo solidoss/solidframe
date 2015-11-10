@@ -149,7 +149,7 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 			response_fnc,
 			initarray[crtwriteidx % initarraysize].flags,
 			ctx.ipcmsgwriter->safeNewMessageUid(),
-			*ctx.ipcconfig, *ctx.ipctypemap, ipcconctx
+			*ctx.ipcconfig/*, *ctx.ipctypemap, ipcconctx*/
 		);
 		++crtwriteidx;
 	}
@@ -214,7 +214,10 @@ int test_protocol_basic(int argc, char **argv){
 		frame::ipc::MessagePointerT				msgptr(new Message(crtwriteidx));
 		frame::ipc::ResponseHandlerFunctionT	response_fnc;
 		
-		ipcmsgwriter.enqueue(msgptr, ipctypemap.index(msgptr.get()), response_fnc, initarray[crtwriteidx % initarraysize].flags, ipcmsgwriter.safeNewMessageUid(), ipcconfig, ipctypemap, ipcconctx);
+		ipcmsgwriter.enqueue(
+			msgptr, ipctypemap.index(msgptr.get()), response_fnc,
+			initarray[crtwriteidx % initarraysize].flags, ipcmsgwriter.safeNewMessageUid(), ipcconfig/*, ipctypemap, ipcconctx*/
+		);
 	}
 	
 	

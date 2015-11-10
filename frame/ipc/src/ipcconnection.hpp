@@ -56,6 +56,7 @@ class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
 	
 	static Event resolveEvent();
+	static Event stopEvent();
 	
 	//Called when connection is accepted
 	Connection(
@@ -192,12 +193,16 @@ private:
 			{}
 		
 		PendingSendMessageStub(
-			ulong _flags,
 			MessageUid const &_rmsguid
 		):	msg_type_idx(InvalidIndex()),
-			flags(_flags),
+			flags(0),
 			msguid(_rmsguid)
 			{}
+		
+		PendingSendMessageStub(
+			
+		):	msg_type_idx(InvalidIndex()){}
+		
 		
 		MessagePointerT				msgptr;
 		const size_t				msg_type_idx;
@@ -209,7 +214,7 @@ private:
 	typedef std::vector<PendingSendMessageStub>			PendingSendMessageVectorT;
 	
 	ConnectionPoolUid			conpoolid;
-	PendingSendMessageVectorT	sendmsgvec[2];
+	PendingSendMessageVectorT	sendmsgvec;
 	StreamSocketT				sock;
 	TimerT						timer;
 	

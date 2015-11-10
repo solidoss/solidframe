@@ -34,13 +34,13 @@ struct Serializer: public SerializerT, public SpecificObject{
 };
 
 typedef std::unique_ptr<Serializer>		SerializerPointerT;
+
 typedef FUNCTION<void(
 	MessagePointerT &/*_rmsgptr*/,
 	const size_t /*_msg_type_idx*/,
 	ResponseHandlerFunctionT &,
 	ulong /*_flags*/
 )>										MessageWriterVisitFunctionT;
-
 
 class MessageWriter{
 public:
@@ -60,9 +60,7 @@ public:
 		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags,
 		MessageUid const &_rmsguid,
-		Configuration const &_rconfig,
-		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx
+		Configuration const &_rconfig
 	);
 	
 	uint32 write(
@@ -76,7 +74,7 @@ public:
 	
 	void completeMessage(
 		MessagePointerT &_rmsgptr,
-		RequestUid const &_rrequid,
+		MessageUid const &_rmsguid,
 		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
@@ -98,6 +96,14 @@ public:
 	void unprepare();
 	
 	void visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc);
+	
+	bool hasUnsafeCache()const;
+	
+	void completeAllCanceledMessages(
+		Configuration const &_rconfig,
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx
+	);
 private:
 	
 	struct InnerLink{
@@ -152,6 +158,13 @@ private:
 		InnerLinkCount
 	};
 	
+	enum InnerStatus{
+		InnerStatusInvalid,
+		InnerStatusPending = 1,
+		InnerStatusSending,
+		InnerStatusCache,
+	};
+	
 	struct MessageStub{
 		MessageStub(
 			MessagePointerT &_rmsgptr,
@@ -159,9 +172,12 @@ private:
 			ResponseHandlerFunctionT &_rresponse_fnc,
 			ulong _flags
 		):	message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx),
-			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0){}
+			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0),
+			inner_status(InnerStatusInvalid){}
 		
-		MessageStub():message_type_idx(InvalidIndex()), flags(-1), unique(0), packet_count(0){}
+		MessageStub(
+		):	message_type_idx(InvalidIndex()), flags(-1), unique(0), packet_count(0),
+			inner_status(InnerStatusInvalid){}
 		
 		void clear(){
 			message_ptr.clear();
@@ -172,8 +188,11 @@ private:
 			inner_link[InnerLinkOrder].clear();
 			//inner_link[InnerLinkStatus].clear();//must not be cleared
 			
+			inner_status = InnerStatusInvalid;
+			
 			serializer_ptr = nullptr;
 			FUNCTION_CLEAR(response_fnc);
+			
 		}
 		
 		MessagePointerT 			message_ptr;
@@ -184,6 +203,7 @@ private:
 		size_t						packet_count;
 		SerializerPointerT			serializer_ptr;
 		InnerLink					inner_link[InnerLinkCount];
+		InnerStatus					inner_status;
 	};
 	
 //	typedef Queue<PendingMessageStub>							PendingMessageQueueT;
@@ -210,13 +230,13 @@ private:
 		ErrorConditionT & _rerror
 	);
 	
-	bool isSynchronousInWriteQueue()const;
+	bool isSynchronousInSendingQueue()const;
 	bool isAsynchronousInPendingQueue()const;
 	
 	void doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig);
 	void doCompleteMessage(
 		MessagePointerT &_rmsgptr,
-		RequestUid const &_rrequid,
+		MessageUid const &_rmsguid,
 		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,

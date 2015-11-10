@@ -171,7 +171,7 @@ bool Connection::pushMessage(
 		
 		MessageUid	msguid = msgwriter.safeNewMessageUid();
 		
-		sendmsgvec[crtpushvecidx].push_back(
+		sendmsgvec.push_back(
 			PendingSendMessageStub(
 				_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags,
 				msguid
@@ -182,7 +182,7 @@ bool Connection::pushMessage(
 			*_pmsguid = msguid;
 		}
 		
-		if(sendmsgvec[crtpushvecidx].size() == 1){
+		if(sendmsgvec.size() == 1){
 			_revent = EventCategory::createPush();
 		}
 		return true;
@@ -200,8 +200,8 @@ void Connection::directPushMessage(
 	ulong _flags,
 	MessageUid *_pmsguid
 ){
-	ConnectionContext	conctx(service(_rctx), *this);
-	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
+	//ConnectionContext	conctx(service(_rctx), *this);
+	//const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
 	MessageUid			msguid;
 	
@@ -210,7 +210,7 @@ void Connection::directPushMessage(
 		msguid = msgwriter.safeNewMessageUid();
 	}
 	
-	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, msguid, rconfig, rtypemap, conctx);
+	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, msguid, rconfig);
 	
 	if(_pmsguid){
 		*_pmsguid = msguid;
@@ -224,14 +224,13 @@ bool Connection::pushCancelMessage(
 	idbgx(Debug::ipc, this<<' '<<this->id()<<' '<<_rmsguid);
 	//Under lock
 	if(not isAtomicStopping()){
-		sendmsgvec[crtpushvecidx].push_back(
+		sendmsgvec.push_back(
 			PendingSendMessageStub(
-				Message::CancelFlagE,
 				_rmsguid
 			)
 		);
 		
-		if(sendmsgvec[crtpushvecidx].size() == 1){
+		if(sendmsgvec.size() == 1){
 			_revent = EventCategory::createPush();
 		}
 		return true;
@@ -358,7 +357,9 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	if(frame::EventCategory::isStart(_revent)){
+	if(EventCategory::isPush(_revent)){
+		doHandleEventPush(_rctx, _revent);
+	}else if(frame::EventCategory::isStart(_revent)){
 		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
 		if(sock.device().ok()){
 			doStart(_rctx, true);
@@ -371,8 +372,6 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		doHandleEventResolve(_rctx, _revent);
 	}else if(EventCategory::isActivate(_revent)){
 		doHandleEventActivate(_rctx, _revent);
-	}else if(EventCategory::isPush(_revent)){
-		doHandleEventPush(_rctx, _revent);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -404,38 +403,33 @@ void Connection::doHandleEventPush(
 	frame::aio::ReactorContext &_rctx,
 	frame::Event const &_revent
 ){
-	size_t		vecidx = InvalidIndex();
+	
+	ConnectionContext			conctx(service(_rctx), *this);
+	const TypeIdMapT			&rtypemap = service(_rctx).typeMap();
+	const Configuration 		&rconfig  = service(_rctx).configuration();
+	bool						was_empty_msgwriter = msgwriter.empty();
 	{
 		Locker<Mutex>	lock(service(_rctx).mutex(*this));
 		
-		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session message");
-		
-		if(sendmsgvec[crtpushvecidx].size()){
-			vecidx = crtpushvecidx;
-			crtpushvecidx += 1;
-			crtpushvecidx %= 2;
+		for(auto it = sendmsgvec.begin(); it != sendmsgvec.end(); ++it){
+			msgwriter.enqueue(
+				it->msgptr, it->msg_type_idx, it->response_fnc,
+				it->flags, it->msguid, rconfig
+			);
 		}
+		sendmsgvec.clear();
 	}
 	
-	if(vecidx < 2){
-		ConnectionContext				conctx(service(_rctx), *this);
-		const TypeIdMapT				&rtypemap = service(_rctx).typeMap();
-		const Configuration 			&rconfig  = service(_rctx).configuration();
-		
-		PendingSendMessageVectorT 		&rsendmsgvec = sendmsgvec[vecidx];
-		
-		bool was_empty_msgwriter = msgwriter.empty();
-		
-		for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
-			msgwriter.enqueue(it->msgptr, it->msg_type_idx, it->response_fnc, it->flags, it->msguid, rconfig, rtypemap, conctx);
-		}
-		
-		rsendmsgvec.clear();
-		
-		if(was_empty_msgwriter and not msgwriter.empty()){
-			idbgx(Debug::ipc, this<<" post send");
-			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
-		}
+	msgwriter.completeAllCanceledMessages(rconfig, rtypemap, conctx);
+	
+	if(msgwriter.hasUnsafeCache()){
+		Locker<Mutex>	lock(service(_rctx).mutex(*this));
+		msgwriter.safeMoveCacheToSafety();
+	}
+	
+	if(was_empty_msgwriter and not msgwriter.empty()){
+		idbgx(Debug::ipc, this<<" post send");
+		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 	}
 }
 //-----------------------------------------------------------------------------

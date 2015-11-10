@@ -365,7 +365,11 @@ public:
 	
 	//----------------------
 	
-	ErrorConditionT scheduleConnectionClose(
+	bool forcedConnectionClose(
+		ConnectionUid const &_rconnection_uid
+	);
+	
+	bool delayedConnectionClose(
 		ConnectionUid const &_rconnection_uid
 	);
 	

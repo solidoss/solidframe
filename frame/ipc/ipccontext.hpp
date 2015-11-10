@@ -96,6 +96,8 @@ struct MessageUid{
 	MessageUid(): index(InvalidIndex()), unique(0){}
 	MessageUid(MessageUid const &_rmsguid): index(_rmsguid.index), unique(_rmsguid.unique){}
 	
+	MessageUid(RequestUid const &_rrequid): index(_rrequid.index), unique(_rrequid.unique){}
+	
 	bool isInvalid()const{
 		return index == InvalidIndex();
 	}
