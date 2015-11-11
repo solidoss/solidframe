@@ -90,14 +90,76 @@ bool MessageWriter::hasUnsafeCache()const{
 // 
 //
 void MessageWriter::enqueue(
-	MessagePointerT &_rmsgptr,
-	const size_t _msg_type_idx,
-	ResponseHandlerFunctionT &_rresponse_fnc,
-	ulong _flags,
+	MessageBundle &_rmsgbundle,
 	MessageUid const &_rmsguid,
-	Configuration const &_rconfig
+	Configuration const &_rconfig,
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx
 ){
+	cassert(not _rmsgbundle.msgptr.empty());
+	cassert(_rmsguid.isValid());
 	
+	if(
+		inner_list[InnerListSending].size < _rconfig.max_writer_multiplex_message_count and
+		(
+			Message::is_asynchronous(_rmsgbundle.flags) or
+			(
+				Message::is_synchronous(_rmsgbundle.flags) and not isSynchronousInSendingQueue()
+			)
+		)
+	){
+		//the message can be put in the sending queue
+		
+		
+		const size_t	idx = _rmsguid.index;
+		
+		if(idx >= message_vec.size()){
+			message_vec.resize(idx + 1);
+		}
+		
+		MessageStub		&rmsgstub(message_vec[idx]);
+		
+		rmsgstub.msgbundle = std::move(_rmsgbundle);
+		
+		innerListPushBack<InnerListOrder, InnerLinkOrder>(idx);
+		
+		innerListPushBack<InnerListSending, InnerLinkStatus>(idx);
+		
+		rmsgstub.inner_status = InnerStatusSending;
+		
+		if(Message::is_synchronous(rmsgstub.msgbundle.flags)){
+			this->flags |= SynchronousMessageInSendingQueueFlag;
+		}
+	}else if(
+		inner_list[InnerListPending].size < _rconfig.max_writer_pending_message_count
+	){
+		const size_t	idx = _rmsguid.index;
+		
+		if(idx >= message_vec.size()){
+			message_vec.resize(idx + 1);
+		}
+		
+		MessageStub		&rmsgstub(message_vec[idx]);
+		
+		rmsgstub.msgbundle = std::move(_rmsgbundle);
+		
+		innerListPushBack<InnerListOrder, InnerLinkOrder>(idx);
+		
+		//the message can be put in the pending queue
+		innerListPushBack<InnerListPending, InnerLinkStatus>(idx);
+		
+		rmsgstub.inner_status = InnerStatusPending;
+		
+		if(Message::is_asynchronous(rmsgstub.msgbundle.flags)){
+			this->flags |= AsynchronousMessageInPendingQueueFlag;
+		}
+	}else{
+		//the message needs to be rejected - completed with error
+		innerListPushBack<InnerListCache, InnerLinkStatus>(idx);
+		rmsgstub.inner_status = InnerStatusCache;
+	}
+	
+#if 0
 	if(_rmsgptr.empty() and _msg_type_idx == InvalidIndex()){
 		//cancel message request
 		//idetify the message
@@ -170,8 +232,23 @@ void MessageWriter::enqueue(
 			rmsgstub.inner_status = InnerStatusCache;
 		}
 	}
+#endif
 }
 //-----------------------------------------------------------------------------
+void MessageWriter::enqueueClose(){
+	
+}
+//-----------------------------------------------------------------------------
+void MessageWriter::cancel(
+	MessageUid const &_rmsguid,
+	Configuration const &_rconfig,
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx
+){
+	
+}
+//-----------------------------------------------------------------------------
+#if 0
 void MessageWriter::completeAllCanceledMessages(
 	Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
@@ -200,6 +277,7 @@ void MessageWriter::completeAllCanceledMessages(
 		--sz;
 	}
 }
+#endif
 //-----------------------------------------------------------------------------
 bool MessageWriter::shouldTryFetchNewMessage(Configuration const &_rconfig)const{
 	return (

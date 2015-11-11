@@ -151,6 +151,39 @@ private:
 	uint16	m_size;
 };
 
+struct MessageBundle{
+	size_t						msg_type_idx;
+	ulong						flags;
+	
+	MessagePointerT				msgptr;
+	ResponseHandlerFunctionT	response_fnc;
+	
+	MessageBundle():msg_type_idx(InvalidIndex()), flags(0){}
+	
+	MessageBundle(
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		ulong _flags,
+		ResponseHandlerFunctionT &_response_fnc
+	):	msg_type_idx(_msg_type_idx), flags(_flags), msgptr(std::move(_rmsgptr)),
+		response_fnc(std::move(_response_fnc)){}
+	
+	MessageBundle(
+		MessageBundle && _rmsgbundle
+	):	msg_type_idx(_rmsgbundle.msg_type_idx), flags(_rmsgbundle.flags),
+		msgptr(std::move(_rmsgbundle.msgptr)), response_fnc(std::move(_rmsgbundle.response_fnc))
+	{
+		
+	}
+	
+	void clear(){
+		msg_type_idx = InvalidIndex();
+		flags = 0;
+		msgptr.clear();
+		FUNCTION_CLEAR(response_fnc);
+	}
+};
+
 }//namespace ipc
 }//namespace frame
 }//namespace solid

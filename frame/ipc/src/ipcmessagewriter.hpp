@@ -55,13 +55,21 @@ public:
 	void safeMoveCacheToSafety();
 	
 	void enqueue(
-		MessagePointerT &_rmsgptr,
-		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong _flags,
+		MessageBundle &_rmsgbundle,
 		MessageUid const &_rmsguid,
-		Configuration const &_rconfig
+		Configuration const &_rconfig,
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx
 	);
+	
+	void cancel(
+		MessageUid const &_rmsguid,
+		Configuration const &_rconfig,
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx
+	);
+	
+	void enqueueClose();
 	
 	uint32 write(
 		char *_pbuf,
@@ -81,13 +89,6 @@ public:
 		ErrorConditionT const & _rerror
 	);
 	
-	void completeAllMessages(
-		ipc::Configuration const &_rconfig,
-		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx,
-		ErrorConditionT const & _rerror
-	);
-	
 	bool shouldTryFetchNewMessage(Configuration const &_rconfig)const;
 	
 	bool empty()const;
@@ -99,10 +100,11 @@ public:
 	
 	bool hasUnsafeCache()const;
 	
-	void completeAllCanceledMessages(
-		Configuration const &_rconfig,
+	void completeAllMessages(
+		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx
+		ConnectionContext &_rctx,
+		ErrorConditionT const & _rerror
 	);
 private:
 	
@@ -167,21 +169,16 @@ private:
 	
 	struct MessageStub{
 		MessageStub(
-			MessagePointerT &_rmsgptr,
-			const size_t _msg_type_idx,
-			ResponseHandlerFunctionT &_rresponse_fnc,
-			ulong _flags
-		):	message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx),
-			response_fnc(std::move(_rresponse_fnc)), flags(_flags), packet_count(0),
+			MessageBundle &_rmsgbundle
+		):	msgbundle(std::move(_rmsgbundle)), packet_count(0),
 			inner_status(InnerStatusInvalid){}
 		
 		MessageStub(
-		):	message_type_idx(InvalidIndex()), flags(-1), unique(0), packet_count(0),
+		):	unique(0), packet_count(0),
 			inner_status(InnerStatusInvalid){}
 		
 		void clear(){
-			message_ptr.clear();
-			flags = 0;
+			msgbundle.clear();
 			++unique;
 			packet_count = 0;
 			
@@ -191,14 +188,9 @@ private:
 			inner_status = InnerStatusInvalid;
 			
 			serializer_ptr = nullptr;
-			FUNCTION_CLEAR(response_fnc);
-			
 		}
 		
-		MessagePointerT 			message_ptr;
-		size_t						message_type_idx;
-		ResponseHandlerFunctionT	response_fnc;
-		ulong						flags;
+		MessageBundle				msgbundle;
 		uint32						unique;
 		size_t						packet_count;
 		SerializerPointerT			serializer_ptr;

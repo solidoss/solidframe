@@ -508,6 +508,10 @@ private:
 		ulong _flags
 	);
 	
+	bool doNotifyConnectionDelayedClose(
+		ObjectUidT const &_robjuid
+	);
+	
 	ErrorConditionT doNotifyConnectionActivate(
 		ObjectUidT const &_robjuid,
 		ConnectionPoolUid const &_rconpooluid

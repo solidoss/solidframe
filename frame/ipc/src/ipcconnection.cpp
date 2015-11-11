@@ -31,6 +31,7 @@ enum Flags{
 enum AtomicFlags{
 	AtomicFlagActiveE				= 1,
 	AtomicFlagStoppingE				= 2,
+	AtomicFlagDelayedClosingE		= 4,
 };
 
 namespace{
@@ -39,6 +40,7 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 		ActivateE,
 		ResolveE,
 		PushE,
+		DelayedCloseE,
 		InvalidE,
 	};
 	
@@ -62,6 +64,10 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 		return id(_re) == PushE;
 	}
 	
+	static bool isDelayedClose(Event const&_re){
+		return id(_re) == DelayedCloseE;
+	}
+	
 	static Event create(EventId _evid){
 		return the().doCreate(static_cast<size_t>(_evid));
 	}
@@ -76,6 +82,10 @@ struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
 	
 	static Event createPush(){
 		return create(PushE);
+	}
+	
+	static Event createDelayedClose(){
+		return create(DelayedCloseE);
 	}
 	
 	static EventCategory const& the(){
@@ -167,13 +177,13 @@ bool Connection::pushMessage(
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
-	if(not isAtomicStopping()){
+	if(not isAtomicStopping() and not isAtomicDelayedClosing()){
 		
 		MessageUid	msguid = msgwriter.safeNewMessageUid();
-		
-		sendmsgvec.push_back(
+
+		sendmsgvec[crtpushvecidx].push_back(
 			PendingSendMessageStub(
-				_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags,
+				MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc),
 				msguid
 			)
 		);
@@ -182,26 +192,21 @@ bool Connection::pushMessage(
 			*_pmsguid = msguid;
 		}
 		
-		if(sendmsgvec.size() == 1){
+		if(sendmsgvec[crtpushvecidx].size() == 1){
 			_revent = EventCategory::createPush();
 		}
 		return true;
-	}else{
-		return false;
 	}
-	
+	return false;
 }
 //-----------------------------------------------------------------------------
 void Connection::directPushMessage(
 	frame::aio::ReactorContext &_rctx,
-	MessagePointerT &_rmsgptr,
-	const size_t _msg_type_idx,
-	ResponseHandlerFunctionT &_rresponse_fnc,
-	ulong _flags,
+	MessageBundle &_rmsgbundle,
 	MessageUid *_pmsguid
 ){
-	//ConnectionContext	conctx(service(_rctx), *this);
-	//const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
+	ConnectionContext	conctx(service(_rctx), *this);
+	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
 	MessageUid			msguid;
 	
@@ -210,7 +215,7 @@ void Connection::directPushMessage(
 		msguid = msgwriter.safeNewMessageUid();
 	}
 	
-	msgwriter.enqueue(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, msguid, rconfig);
+	msgwriter.enqueue(_rmsgbundle, msguid, rconfig, rtypemap, conctx);
 	
 	if(_pmsguid){
 		*_pmsguid = msguid;
@@ -224,19 +229,31 @@ bool Connection::pushCancelMessage(
 	idbgx(Debug::ipc, this<<' '<<this->id()<<' '<<_rmsguid);
 	//Under lock
 	if(not isAtomicStopping()){
-		sendmsgvec.push_back(
+		sendmsgvec[crtpushvecidx].push_back(
 			PendingSendMessageStub(
 				_rmsguid
 			)
 		);
 		
-		if(sendmsgvec.size() == 1){
+		if(sendmsgvec[crtpushvecidx].size() == 1){
 			_revent = EventCategory::createPush();
 		}
 		return true;
-	}else{
-		return false;
 	}
+	return false;
+}
+//-----------------------------------------------------------------------------
+bool Connection::pushDelayedClose(
+	Event &_revent
+){
+	idbgx(Debug::ipc, this<<' '<<this->id());
+	//Under lock
+	if(not isAtomicStopping() and not isAtomicDelayedClosing()){
+		atomic_flags |= AtomicFlagDelayedClosingE;
+		_revent = EventCategory::createDelayedClose();
+		return true;
+	}
+	return false;
 }
 //-----------------------------------------------------------------------------
 bool Connection::prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_revent){
@@ -268,6 +285,10 @@ bool Connection::isAtomicActive()const{
 //-----------------------------------------------------------------------------
 bool Connection::isAtomicStopping()const{
 	return atomic_flags & AtomicFlagStoppingE;
+}
+//-----------------------------------------------------------------------------
+bool Connection::isAtomicDelayedClosing()const{
+	return atomic_flags & AtomicFlagDelayedClosingE;
 }
 //-----------------------------------------------------------------------------
 bool Connection::isServer()const{
@@ -372,6 +393,8 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		doHandleEventResolve(_rctx, _revent);
 	}else if(EventCategory::isActivate(_revent)){
 		doHandleEventActivate(_rctx, _revent);
+	}else if(EventCategory::isDelayedClose(_revent)){
+		doHandleEventDelayedClose(_rctx, _revent);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -403,30 +426,39 @@ void Connection::doHandleEventPush(
 	frame::aio::ReactorContext &_rctx,
 	frame::Event const &_revent
 ){
+	size_t		vecidx = InvalidIndex();
+	
+	{
+		Locker<Mutex>	lock(service(_rctx).mutex(*this));
+		
+		vecidx = crtpushvecidx;
+		crtpushvecidx += 1;
+		crtpushvecidx %= 2;
+	}
 	
 	ConnectionContext			conctx(service(_rctx), *this);
 	const TypeIdMapT			&rtypemap = service(_rctx).typeMap();
 	const Configuration 		&rconfig  = service(_rctx).configuration();
 	bool						was_empty_msgwriter = msgwriter.empty();
-	{
-		Locker<Mutex>	lock(service(_rctx).mutex(*this));
-		
-		for(auto it = sendmsgvec.begin(); it != sendmsgvec.end(); ++it){
+	PendingSendMessageVectorT 	&rsendmsgvec = sendmsgvec[vecidx];
+	
+	
+	for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
+		if(not it->msgbundle.msgptr.empty()){
 			msgwriter.enqueue(
-				it->msgptr, it->msg_type_idx, it->response_fnc,
-				it->flags, it->msguid, rconfig
+				it->msgbundle, it->msguid, rconfig, rtypemap, conctx
 			);
+		}else{
+			msgwriter.cancel(it->msguid, rconfig, rtypemap, conctx);
 		}
-		sendmsgvec.clear();
 	}
 	
-	msgwriter.completeAllCanceledMessages(rconfig, rtypemap, conctx);
+	rsendmsgvec.clear();
 	
 	if(msgwriter.hasUnsafeCache()){
 		Locker<Mutex>	lock(service(_rctx).mutex(*this));
 		msgwriter.safeMoveCacheToSafety();
 	}
-	
 	if(was_empty_msgwriter and not msgwriter.empty()){
 		idbgx(Debug::ipc, this<<" post send");
 		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
@@ -451,6 +483,18 @@ void Connection::doHandleEventResolve(
 			cassert(true);
 			doStop(_rctx, error_library_logic);
 		}
+	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, frame::Event const &/*_revent*/){
+	cassert(isAtomicDelayedClosing());
+	bool	was_empty_msgwriter = msgwriter.empty();
+	
+	msgwriter.enqueueClose();
+	
+	if(was_empty_msgwriter and not msgwriter.empty()){
+		idbgx(Debug::ipc, this<<" post send");
+		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 	}
 }
 //-----------------------------------------------------------------------------
@@ -590,6 +634,10 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 	if(recv_something){
 		rthis.doResetTimerRecv(_rctx);
+		if(msgwriter.hasUnsafeCache()){
+			Locker<Mutex>	lock(service(_rctx).mutex(*this));
+			msgwriter.safeMoveCacheToSafety();
+		}
 	}
 	
 	if(repeatcnt == 0){
@@ -658,6 +706,10 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		
 		if(sent_something){
 			doResetTimerSend(_rctx);
+			if(msgwriter.hasUnsafeCache()){
+				Locker<Mutex>	lock(service(_rctx).mutex(*this));
+				msgwriter.safeMoveCacheToSafety();
+			}
 		}
 		
 		if(repeatcnt == 0){

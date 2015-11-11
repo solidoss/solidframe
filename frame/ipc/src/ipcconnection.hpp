@@ -68,6 +68,9 @@ public:
 	);
 	~Connection();
 	
+	//We cannot use MessageBundle, because we do not
+	//want to store MessagePointerT and _rresponse_fnc
+	//in a temporary MessageBundle
 	bool pushMessage(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
@@ -82,12 +85,13 @@ public:
 		Event &_revent
 	);
 	
+	bool pushDelayedClose(
+		Event &_revent
+	);
+	
 	void directPushMessage(
 		frame::aio::ReactorContext &_rctx,
-		MessagePointerT &_rmsgptr,
-		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong _flags,
+		MessageBundle &_rmsgbundle,
 		MessageUid *_pmsguid
 	);
 	
@@ -121,6 +125,7 @@ private:
 	bool isActive()const;
 	
 	bool isAtomicStopping()const;
+	bool isAtomicDelayedClosing()const;
 	
 	bool isServer()const;
 	
@@ -159,6 +164,7 @@ private:
 	void doHandleEventActivate(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	void doHandleEventPush(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	void doHandleEventResolve(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	void doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	
 	template <class Fnc>
 	void fetchUnsentMessages(
@@ -182,39 +188,29 @@ private:
 	
 	struct PendingSendMessageStub{
 		PendingSendMessageStub(
-			MessagePointerT &_rmsgptr,
-			const size_t _msg_type_idx,
-			ResponseHandlerFunctionT &_rresponse_fnc,
-			ulong _flags,
+			MessageBundle &&_rmsgbundle,
 			MessageUid const &_rmsguid
-		):	msgptr(_rmsgptr), msg_type_idx(_msg_type_idx),
-			response_fnc(std::move(_rresponse_fnc)), flags(_flags),
+		):	msgbundle(std::move(_rmsgbundle)),
 			msguid(_rmsguid)
 			{}
 		
 		PendingSendMessageStub(
 			MessageUid const &_rmsguid
-		):	msg_type_idx(InvalidIndex()),
-			flags(0),
-			msguid(_rmsguid)
+		):	msguid(_rmsguid)
 			{}
 		
 		PendingSendMessageStub(
-			
-		):	msg_type_idx(InvalidIndex()){}
+		){}
 		
 		
-		MessagePointerT				msgptr;
-		const size_t				msg_type_idx;
-		ResponseHandlerFunctionT	response_fnc;
-		ulong						flags;
+		MessageBundle				msgbundle;
 		MessageUid					msguid;
 	};
 
 	typedef std::vector<PendingSendMessageStub>			PendingSendMessageVectorT;
 	
 	ConnectionPoolUid			conpoolid;
-	PendingSendMessageVectorT	sendmsgvec;
+	PendingSendMessageVectorT	sendmsgvec[2];
 	StreamSocketT				sock;
 	TimerT						timer;
 	

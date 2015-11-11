@@ -231,11 +231,14 @@ size_t Service::doPushNewConnectionPool(){
 //-----------------------------------------------------------------------------
 struct PushMessageConnectionVisitorF{
 	PushMessageConnectionVisitorF(
-		MessagePointerT	&_rmsgptr,
-		const size_t	_msg_type_idx,
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong			_flags
-	):rmsgptr(_rmsgptr), flags(_flags), msg_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)){}
+		ulong _flags,
+		MessageUid  *_pmsguid = nullptr
+	):	rmsgptr(_rmsgptr), msg_type_idx(_msg_type_idx),
+		rresponse_fnc(_rresponse_fnc), flags(_flags),
+		pmsguid(_pmsguid){}
 	
 	
 	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
@@ -243,7 +246,7 @@ struct PushMessageConnectionVisitorF{
 		
 		if(pcon){
 			Event		raise_event;
-			const bool	retval = pcon->pushMessage(rmsgptr, msg_type_idx, response_fnc, flags, nullptr, raise_event);
+			const bool	retval = pcon->pushMessage(rmsgptr, msg_type_idx, rresponse_fnc, flags, pmsguid, raise_event);
 			
 			if(retval){
 				if(!raise_event.empty()){
@@ -256,10 +259,11 @@ struct PushMessageConnectionVisitorF{
 		}
 	}
 	
-	MessagePointerT				&rmsgptr;
-	ulong						flags;
-	const size_t				msg_type_idx;
-	ResponseHandlerFunctionT	response_fnc;
+	MessagePointerT 			&rmsgptr;
+	const size_t 				msg_type_idx;
+	ResponseHandlerFunctionT	&rresponse_fnc;
+	ulong 						flags;
+	MessageUid 					*pmsguid;
 };
 
 
@@ -486,12 +490,14 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 			Message::is_asynchronous(rconpool.msgq.front().flags) or 
 			this->manager().id(_rcon) == rconpool.synchronous_connection_uid
 		){
-			MessageStub	&rmsgstrub = rconpool.msgq.front();
-			_rcon.directPushMessage(_rctx, rmsgstrub.msgptr, rmsgstrub.msg_type_idx, rmsgstrub.response_fnc, rmsgstrub.flags, nullptr);
+			MessageStub		&rmsgstub = rconpool.msgq.front();
+			MessageBundle	msgbundle(rmsgstub.msgptr, rmsgstub.msg_type_idx, rmsgstub.flags, rmsgstub.response_fnc);
+			_rcon.directPushMessage(_rctx, msgbundle, nullptr);
 			rconpool.msgq.pop();
 		}else if(rconpool.synchronous_connection_uid.isInvalid()){
-			MessageStub	&rmsgstrub = rconpool.msgq.front();
-			_rcon.directPushMessage(_rctx, rmsgstrub.msgptr, rmsgstrub.msg_type_idx, rmsgstrub.response_fnc, rmsgstrub.flags, nullptr);
+			MessageStub	&rmsgstub = rconpool.msgq.front();
+			MessageBundle	msgbundle(rmsgstub.msgptr, rmsgstub.msg_type_idx, rmsgstub.flags, rmsgstub.response_fnc);
+			_rcon.directPushMessage(_rctx, msgbundle, nullptr);
 			rconpool.synchronous_connection_uid = this->manager().id(_rcon);
 			rconpool.msgq.pop();
 		}else{
@@ -501,11 +507,13 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 			bool		found = false;
 			
 			while(qsz--){
-				MessageStub msgstub(std::move(rconpool.msgq.front()));
+				MessageStub		msgstub(std::move(rconpool.msgq.front()));
+				
 				rconpool.msgq.pop();
 				
 				if(not found and Message::is_asynchronous(msgstub.flags)){
-					_rcon.directPushMessage(_rctx, msgstub.msgptr, msgstub.msg_type_idx, msgstub.response_fnc, msgstub.flags, nullptr);
+					MessageBundle	msgbundle(msgstub.msgptr, msgstub.msg_type_idx, msgstub.flags, msgstub.response_fnc);
+					_rcon.directPushMessage(_rctx, msgbundle, nullptr);
 					found = true;
 				}else{
 					rconpool.msgq.push(std::move(msgstub));
@@ -563,13 +571,39 @@ ErrorConditionT Service::doNotifyConnectionActivate(
 	return err;
 }
 //-----------------------------------------------------------------------------
+struct DelayedCloseConnectionVisitorF{
+	DelayedCloseConnectionVisitorF(
+	){}
+	
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			Event		raise_event;
+			const bool	retval = pcon->pushDelayedClose(raise_event);
+			
+			if(retval){
+				if(!raise_event.empty()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
+			}
+			return retval;
+		}else{
+			return false;
+		}
+	}
+};
+bool Service::doNotifyConnectionDelayedClose(
+	ObjectUidT const &_robjuid
+){
+	DelayedCloseConnectionVisitorF		fnc;
+	return manager().visit(_robjuid, fnc);
+}
+//-----------------------------------------------------------------------------
 bool Service::delayedConnectionClose(
 	ConnectionUid const &_rconnection_uid
 ){
-	ConnectionPoolUid			fakeuid;
-	MessagePointerT				msgptr;
-	ResponseHandlerFunctionT	response_handler;
-	return not doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgptr, 0, response_handler, fakeuid, nullptr, 0);
+	return doNotifyConnectionDelayedClose(_rconnection_uid.connectionid);
 }
 //-----------------------------------------------------------------------------
 bool Service::forcedConnectionClose(
@@ -702,7 +736,7 @@ ErrorConditionT Service::doActivateConnection(
 			success = !err;
 		}else{
 			//close connection
-			doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgpair.first, -1, response_handler, poolid, nullptr, msgpair.second);
+			doNotifyConnectionDelayedClose(_rconnection_uid.connectionid);
 			success = false;
 		}
 		
@@ -736,7 +770,7 @@ ErrorConditionT Service::doActivateConnection(
 		msgpair.first.clear();
 		msgpair.second = 0;
 		//close connection
-		doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgpair.first, -1, response_handler, poolid, nullptr, msgpair.second);
+		doNotifyConnectionDelayedClose(_rconnection_uid.connectionid);
 		cassert(rconpool.active_connection_count or rconpool.pending_connection_count);
 	}
 	
@@ -815,8 +849,9 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 			//_rcon is the last dying connection
 			//so, move all pending messages to _rcon for completion
 			while(rconpool.msgq.size()){
-				MessageStub &rms = rconpool.msgq.front();
-				_rcon.directPushMessage(_rctx, rms.msgptr, rms.msg_type_idx, rms.response_fnc, rms.flags, nullptr);
+				MessageStub 	&rmsgstub = rconpool.msgq.front();
+				MessageBundle	msgbundle(rmsgstub.msgptr, rmsgstub.msg_type_idx, rmsgstub.flags, rmsgstub.response_fnc);
+				_rcon.directPushMessage(_rctx, msgbundle, nullptr);
 				rconpool.msgq.pop();
 			}
 			
