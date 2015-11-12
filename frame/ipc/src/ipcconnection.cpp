@@ -168,35 +168,51 @@ Connection::~Connection(){
 }
 //-----------------------------------------------------------------------------
 bool Connection::pushMessage(
+	Service &_rservice,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
 	ResponseHandlerFunctionT &_rresponse_fnc,
 	ulong _flags,
 	MessageUid *_pmsguid,
-	Event &_revent
+	Event &_revent,
+	ErrorConditionT &_rerror
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
-	if(not isAtomicStopping() and not isAtomicDelayedClosing()){
-		
-		MessageUid	msguid = msgwriter.safeNewMessageUid();
-
-		sendmsgvec[crtpushvecidx].push_back(
-			PendingSendMessageStub(
-				MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc),
-				msguid
-			)
-		);
-		
-		if(_pmsguid){
-			*_pmsguid = msguid;
+	if(not isAtomicStopping()){
+		if(not isAtomicDelayedClosing()){
+			MessageUid	msguid = msgwriter.safeNewMessageUid(_rservice.configuration());
+			
+			if(msguid.isValid()){
+				
+				sendmsgvec[crtpushvecidx].push_back(
+					PendingSendMessageStub(
+						MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc),
+						msguid
+					)
+				);
+				
+				if(_pmsguid){
+					*_pmsguid = msguid;
+				}
+				
+				if(sendmsgvec[crtpushvecidx].size() == 1){
+					_revent = EventCategory::createPush();
+				}
+				return true;
+			}else{
+				//TODO: TooManyMessages
+				_rerror.assign(-1, _rerror.category());
+			}
+		}else{
+			//TODO: ConnectionIsDelayedClosing
+			_rerror.assign(-1, _rerror.category());
 		}
-		
-		if(sendmsgvec[crtpushvecidx].size() == 1){
-			_revent = EventCategory::createPush();
-		}
-		return true;
+	}else{
+		//TODO: ConnectionIsStopping
+		_rerror.assign(-1, _rerror.category());
 	}
+	
 	return false;
 }
 //-----------------------------------------------------------------------------
@@ -223,12 +239,15 @@ void Connection::directPushMessage(
 }
 //-----------------------------------------------------------------------------
 bool Connection::pushCancelMessage(
+	Service &_rservice,
 	MessageUid const &_rmsguid,
-	Event &_revent
+	Event &_revent,
+	ErrorConditionT &_rerror
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<' '<<_rmsguid);
 	//Under lock
 	if(not isAtomicStopping()){
+		
 		sendmsgvec[crtpushvecidx].push_back(
 			PendingSendMessageStub(
 				_rmsguid
@@ -239,24 +258,40 @@ bool Connection::pushCancelMessage(
 			_revent = EventCategory::createPush();
 		}
 		return true;
+	}else{
+		//TODO: ConnectionIsStopping
+		_rerror.assign(-1, _rerror.category());
 	}
 	return false;
 }
 //-----------------------------------------------------------------------------
 bool Connection::pushDelayedClose(
-	Event &_revent
+	Service &_rservice,
+	Event &_revent,
+	ErrorConditionT &_rerror
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id());
 	//Under lock
-	if(not isAtomicStopping() and not isAtomicDelayedClosing()){
-		atomic_flags |= AtomicFlagDelayedClosingE;
-		_revent = EventCategory::createDelayedClose();
-		return true;
+	if(not isAtomicStopping()){
+		if(not isAtomicDelayedClosing()){
+			atomic_flags |= AtomicFlagDelayedClosingE;
+			_revent = EventCategory::createDelayedClose();
+			return true;
+		}else{
+			//TODO: ConnectionIsDelayedClosing
+			_rerror.assign(-1, _rerror.category());
+		}
+	}else{
+		//TODO: ConnectionIsStopping
+		_rerror.assign(-1, _rerror.category());
 	}
 	return false;
 }
 //-----------------------------------------------------------------------------
-bool Connection::prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_revent){
+bool Connection::prepareActivate(
+	Service &_rservice,
+	ConnectionPoolUid const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
+){
 	if(not isAtomicStopping()){
 		if(_rconpoolid.isValid()){
 			if(conpoolid.isInvalid()){
@@ -271,6 +306,8 @@ bool Connection::prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_r
 		_revent = EventCategory::createActivate();
 		return true;
 	}else{
+		//TODO: ConnectionIsStopping
+		_rerror.assign(-1, _rerror.category());
 		return false;
 	}
 }
@@ -634,9 +671,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 	if(recv_something){
 		rthis.doResetTimerRecv(_rctx);
-		if(msgwriter.hasUnsafeCache()){
-			Locker<Mutex>	lock(service(_rctx).mutex(*this));
-			msgwriter.safeMoveCacheToSafety();
+		if(rthis.msgwriter.hasUnsafeCache()){
+			Locker<Mutex>	lock(rthis.service(_rctx).mutex(rthis));
+			rthis.msgwriter.safeMoveCacheToSafety();
 		}
 	}
 	

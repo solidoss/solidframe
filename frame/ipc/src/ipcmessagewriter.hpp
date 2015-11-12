@@ -48,7 +48,7 @@ public:
 	~MessageWriter();
 	
 	//must be used under lock, i.e. under Connection's lock
-	MessageUid safeNewMessageUid();
+	MessageUid safeNewMessageUid(Configuration const &_rconfig);
 	
 	bool isNonSafeCacheEmpty()const;
 	
@@ -164,6 +164,7 @@ private:
 		InnerStatusInvalid,
 		InnerStatusPending = 1,
 		InnerStatusSending,
+		InnerStatusWaiting,
 		InnerStatusCache,
 	};
 	

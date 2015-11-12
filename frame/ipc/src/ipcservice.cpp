@@ -230,67 +230,81 @@ size_t Service::doPushNewConnectionPool(){
 }
 //-----------------------------------------------------------------------------
 struct PushMessageConnectionVisitorF{
-	PushMessageConnectionVisitorF(
-		MessagePointerT &_rmsgptr,
-		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong _flags,
-		MessageUid  *_pmsguid = nullptr
-	):	rmsgptr(_rmsgptr), msg_type_idx(_msg_type_idx),
-		rresponse_fnc(_rresponse_fnc), flags(_flags),
-		pmsguid(_pmsguid){}
-	
-	
-	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
-		Connection *pcon = Connection::cast(&_robj);
-		
-		if(pcon){
-			Event		raise_event;
-			const bool	retval = pcon->pushMessage(rmsgptr, msg_type_idx, rresponse_fnc, flags, pmsguid, raise_event);
-			
-			if(retval){
-				if(!raise_event.empty()){
-					_rreact.raise(_robj.runId(), raise_event);
-				}
-			}
-			return retval;
-		}else{
-			return false;
-		}
-	}
-	
+	Service						&rservice;
 	MessagePointerT 			&rmsgptr;
 	const size_t 				msg_type_idx;
 	ResponseHandlerFunctionT	&rresponse_fnc;
 	ulong 						flags;
 	MessageUid 					*pmsguid;
-};
-
-
-struct ActivateConnectionVisitorF{
-	ActivateConnectionVisitorF(
-		ConnectionPoolUid const &_rconpoolid
-	):conpoolid(_rconpoolid){}
+	ErrorConditionT				&rerror;
+	
+	PushMessageConnectionVisitorF(
+		Service &_rservice,
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
+		ulong _flags,
+		ErrorConditionT &_rerror,
+		MessageUid  *_pmsguid = nullptr
+	):	rservice(_rservice),
+		rmsgptr(_rmsgptr), msg_type_idx(_msg_type_idx),
+		rresponse_fnc(_rresponse_fnc), flags(_flags),
+		pmsguid(_pmsguid), rerror(_rerror){}
+	
 	
 	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
 		Connection *pcon = Connection::cast(&_robj);
 		
 		if(pcon){
 			Event		raise_event;
-			const bool	retval = pcon->prepareActivate(conpoolid, raise_event);
+			const bool	success = pcon->pushMessage(rservice, rmsgptr, msg_type_idx, rresponse_fnc, flags, pmsguid, raise_event, rerror);
 			
-			if(retval){
+			if(success){
 				if(!raise_event.empty()){
 					_rreact.raise(_robj.runId(), raise_event);
 				}
 			}
-			return retval;
+			return success;
 		}else{
+			//TODO: ObjectNotAnIpcConnection
+			rerror.assign(-1, rerror.category());
 			return false;
 		}
 	}
+};
+
+
+struct ActivateConnectionVisitorF{
+	Service				&rservice;
+	ConnectionPoolUid	conpoolid;
+	ErrorConditionT		&rerror;
 	
-	ConnectionPoolUid conpoolid;
+	ActivateConnectionVisitorF(
+		Service &_rservice,
+		ConnectionPoolUid const &_rconpoolid,
+		ErrorConditionT &_rerror
+	):	rservice(_rservice),
+		conpoolid(_rconpoolid), rerror(_rerror){}
+	
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			Event		raise_event;
+			const bool	success = pcon->prepareActivate(rservice, conpoolid, raise_event, rerror);
+			
+			if(success){
+				if(!raise_event.empty()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
+			}
+			return success;
+		}else{
+			//TODO: ObjectNotAnIpcConnection
+			rerror.assign(-1, rerror.category());
+			return false;
+		}
+	}
 };
 
 
@@ -541,15 +555,16 @@ ErrorConditionT Service::doNotifyConnectionPushMessage(
 	ulong _flags
 ){
 	solid::ErrorConditionT			err;
-	PushMessageConnectionVisitorF	fnc(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
-	bool							rv = manager().visit(_robjuid, fnc);
-	if(rv){
+	PushMessageConnectionVisitorF	fnc(*this, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, err);
+	bool							success = manager().visit(_robjuid, fnc);
+	if(success){
+		cassert(not err);
 		//message successfully delivered
 		if(_pconpoolid_out){
 			*_pconpoolid_out = _rconpooluid;
 		}
-	}else{
-		//connection does not exist
+	}else if(not err){
+		//TODO: connection does not exist
 		err.assign(-1, err.category());//TODO
 	}
 	return err;
@@ -560,57 +575,77 @@ ErrorConditionT Service::doNotifyConnectionActivate(
 	ConnectionPoolUid const &_rconpooluid
 ){
 	solid::ErrorConditionT		err;
-	ActivateConnectionVisitorF	fnc(_rconpooluid);
+	ActivateConnectionVisitorF	fnc(*this, _rconpooluid, err);
 	bool						rv = manager().visit(_robjuid, fnc);
 	if(rv){
 		//message successfully delivered
-	}else{
-		//connection does not exist
+	}else if(not err){
+		//TODO: connection does not exist
 		err.assign(-1, err.category());//TODO
 	}
 	return err;
 }
 //-----------------------------------------------------------------------------
 struct DelayedCloseConnectionVisitorF{
+	Service 			&rservice;
+	ErrorConditionT		&rerror;
+	
 	DelayedCloseConnectionVisitorF(
-	){}
+		Service &_rservice,
+		ErrorConditionT &_rerror
+	):	rservice(_rservice), rerror(_rerror){}
 	
 	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
 		Connection *pcon = Connection::cast(&_robj);
 		
 		if(pcon){
 			Event		raise_event;
-			const bool	retval = pcon->pushDelayedClose(raise_event);
+			const bool	success = pcon->pushDelayedClose(rservice, raise_event, rerror);
 			
-			if(retval){
+			if(success){
 				if(!raise_event.empty()){
 					_rreact.raise(_robj.runId(), raise_event);
 				}
 			}
-			return retval;
+			return success;
 		}else{
+			//TODO: ObjectNotAnIpcConnection
+			rerror.assign(-1, rerror.category());
 			return false;
 		}
 	}
 };
-bool Service::doNotifyConnectionDelayedClose(
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::doNotifyConnectionDelayedClose(
 	ObjectUidT const &_robjuid
 ){
-	DelayedCloseConnectionVisitorF		fnc;
-	return manager().visit(_robjuid, fnc);
+	ErrorConditionT						error;
+	DelayedCloseConnectionVisitorF		fnc(*this, error);
+	const bool 							success = manager().visit(_robjuid, fnc);
+	
+	if(!success and not error){
+		//TODO: connection does not exist
+		error.assign(-1, error.category());//TODO
+	}
+	return error;
 }
 //-----------------------------------------------------------------------------
-bool Service::delayedConnectionClose(
+ErrorConditionT Service::delayedConnectionClose(
 	ConnectionUid const &_rconnection_uid
 ){
 	return doNotifyConnectionDelayedClose(_rconnection_uid.connectionid);
 }
 //-----------------------------------------------------------------------------
-bool Service::forcedConnectionClose(
+ErrorConditionT Service::forcedConnectionClose(
 	ConnectionUid const &_rconnection_uid
 ){
-	
-	return manager().notify(_rconnection_uid.connectionid, EventCategory::createKill());
+	ErrorConditionT	error;
+	const bool		success = manager().notify(_rconnection_uid.connectionid, EventCategory::createKill());
+	if(not success){
+		//TODO: connection does not exist
+		error.assign(-1, error.category());//TODO
+	}
+	return error;
 }
 //-----------------------------------------------------------------------------
 // Three situations in doActivateConnection is called:
@@ -762,8 +797,6 @@ ErrorConditionT Service::doActivateConnection(
 			
 			if(msg_type_idx != 0){
 				doNotifyConnectionPushMessage(_rconnection_uid.connectionid, msgpair.first, msg_type_idx, response_handler, poolid, nullptr, msgpair.second);
-			}else{
-				err.assign(-1, err.category());//TODO: Unknown message type
 			}
 		}
 		

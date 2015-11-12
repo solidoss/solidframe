@@ -93,8 +93,7 @@ struct Configuration{
 	size_t								session_mutex_count;
 	
 	size_t								max_writer_multiplex_message_count;
-	size_t								max_writer_pending_message_count;
-	size_t								max_writer_waiting_message_count;
+	size_t								max_writer_message_count;
 	size_t								max_writer_message_continuous_packet_count;
 	
 	

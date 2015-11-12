@@ -72,21 +72,27 @@ public:
 	//want to store MessagePointerT and _rresponse_fnc
 	//in a temporary MessageBundle
 	bool pushMessage(
+		Service &_rservice,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags,
 		MessageUid *_pmsguid,
-		Event &_revent
+		Event &_revent,
+		ErrorConditionT &_rerror
 	);
 	
 	bool pushCancelMessage(
+		Service &_rservice,
 		MessageUid const &_rmsguid,
-		Event &_revent
+		Event &_revent,
+		ErrorConditionT &_rerror
 	);
 	
 	bool pushDelayedClose(
-		Event &_revent
+		Service &_rservice,
+		Event &_revent,
+		ErrorConditionT &_rerror
 	);
 	
 	void directPushMessage(
@@ -95,7 +101,10 @@ public:
 		MessageUid *_pmsguid
 	);
 	
-	bool prepareActivate(ConnectionPoolUid const &_rconpoolid, Event &_revent);
+	bool prepareActivate(
+		Service &_rservice,
+		ConnectionPoolUid const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
+	);
 	
 	//The service marked connection as active, but the connection might not be aware that it is active
 	bool isAtomicActive()const;

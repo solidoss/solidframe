@@ -365,11 +365,11 @@ public:
 	
 	//----------------------
 	
-	bool forcedConnectionClose(
+	ErrorConditionT forcedConnectionClose(
 		ConnectionUid const &_rconnection_uid
 	);
 	
-	bool delayedConnectionClose(
+	ErrorConditionT delayedConnectionClose(
 		ConnectionUid const &_rconnection_uid
 	);
 	
@@ -508,7 +508,7 @@ private:
 		ulong _flags
 	);
 	
-	bool doNotifyConnectionDelayedClose(
+	ErrorConditionT doNotifyConnectionDelayedClose(
 		ObjectUidT const &_robjuid
 	);
 	

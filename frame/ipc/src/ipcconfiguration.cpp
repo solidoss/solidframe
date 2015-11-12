@@ -52,7 +52,7 @@ Configuration::Configuration(
 	max_writer_pending_message_count = InvalidSize();
 	max_writer_multiplex_message_count = 16;
 	max_writer_message_continuous_packet_count = 4;
-	max_writer_waiting_message_count = InvalidSize();
+	max_writer_message_count = InvalidSize();
 	
 	max_reader_multiplex_message_count = max_writer_multiplex_message_count;
 	
