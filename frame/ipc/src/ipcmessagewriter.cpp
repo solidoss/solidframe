@@ -64,7 +64,7 @@ void MessageWriter::safeMoveCacheToSafety(){
 		MessageStub		&rmsgstub(message_vec[msgidx]);
 		
 		cassert(rmsgstub.inner_status == InnerStatusCache);
-		cassert(rmsgstub.message_ptr.empty());
+		cassert(rmsgstub.msgbundle.msgptr.empty());
 		
 		rmsgstub.inner_status = InnerStatusInvalid;
 		

@@ -228,7 +228,7 @@ void Connection::directPushMessage(
 	
 	{
 		Locker<Mutex>		lock(service(_rctx).mutex(*this));
-		msguid = msgwriter.safeNewMessageUid();
+		msguid = msgwriter.safeNewMessageUid(rconfig);
 	}
 	
 	msgwriter.enqueue(_rmsgbundle, msguid, rconfig, rtypemap, conctx);
@@ -481,7 +481,7 @@ void Connection::doHandleEventPush(
 	
 	
 	for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
-		if(not it->msgbundle.msgptr.empty()){
+		if(not it->msgbundle.message_ptr.empty()){
 			msgwriter.enqueue(
 				it->msgbundle, it->msguid, rconfig, rtypemap, conctx
 			);

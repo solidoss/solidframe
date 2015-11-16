@@ -49,7 +49,6 @@ Configuration::Configuration(
 	send_buffer_capacity = 4096;
 	
 	
-	max_writer_pending_message_count = InvalidSize();
 	max_writer_multiplex_message_count = 16;
 	max_writer_message_continuous_packet_count = 4;
 	max_writer_message_count = InvalidSize();

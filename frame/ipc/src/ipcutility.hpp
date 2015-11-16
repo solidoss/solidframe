@@ -78,41 +78,41 @@ struct PacketHeader{
 	}
 	
 	uint32 size()const{
-		uint32 sz = (m_flags & Size64KBFlagE);
-		return (sz << 16) | m_size;
+		uint32 sz = (flags_ & Size64KBFlagE);
+		return (sz << 16) | size_;
 	}
 	
 	
 	uint8 type()const{
-		return m_type;
+		return type_;
 	}
 	
 	uint8 flags()const{
-		return m_flags;
+		return flags_;
 	}
 	
 	void type(uint8 _type){
-		m_type = _type;
+		type_ = _type;
 	}
 	void flags(uint8 _flags){
-		m_flags = _flags /*& (0xff - Size64KBFlagE)*/;
+		flags_ = _flags /*& (0xff - Size64KBFlagE)*/;
 	}
 	
 	void size(uint32 _sz){
-		m_size = _sz & 0xffff;
-		m_flags |= ((_sz & (1 << 16)) >> 16);
+		size_ = _sz & 0xffff;
+		flags_ |= ((_sz & (1 << 16)) >> 16);
 	}
 	
 	bool isTypeKeepAlive()const{
-		return m_type == KeepAliveTypeE;
+		return type_ == KeepAliveTypeE;
 	}
 	
     bool isCompressed()const{
-        return m_flags & CompressedFlagE;
+        return flags_ & CompressedFlagE;
     }
     bool isOk()const{
 		bool rv = true;
-		switch(m_type){
+		switch(type_){
 			case SwitchToNewMessageTypeE:
 			case SwitchToOldMessageTypeE:
 			case ContinuedMessageTypeE:
@@ -132,54 +132,62 @@ struct PacketHeader{
     
     template <class S>
     char* store(char * _pc)const{
-		_pc = S::storeValue(_pc, m_type);
-		_pc = S::storeValue(_pc, m_flags);
-		_pc = S::storeValue(_pc, m_size);
+		_pc = S::storeValue(_pc, type_);
+		_pc = S::storeValue(_pc, flags_);
+		_pc = S::storeValue(_pc, size_);
 		return _pc;
 	}
 	
 	template <class D>
     const char* load(const char *_pc){
-		_pc = D::loadValue(_pc, m_type);
-		_pc = D::loadValue(_pc, m_flags);
-		_pc = D::loadValue(_pc, m_size);
+		_pc = D::loadValue(_pc, type_);
+		_pc = D::loadValue(_pc, flags_);
+		_pc = D::loadValue(_pc, size_);
 		return _pc;
 	}
 private:
-	uint8	m_type;
-	uint8	m_flags;
-	uint16	m_size;
+	uint8	type_;
+	uint8	flags_;
+	uint16	size_;
 };
 
 struct MessageBundle{
-	size_t						msg_type_idx;
-	ulong						flags;
+	size_t						message_type_id;
+	ulong						message_flags;
 	
-	MessagePointerT				msgptr;
+	MessagePointerT				message_ptr;
 	ResponseHandlerFunctionT	response_fnc;
 	
-	MessageBundle():msg_type_idx(InvalidIndex()), flags(0){}
+	MessageBundle():message_type_id(InvalidIndex()), message_flags(0){}
 	
 	MessageBundle(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ulong _flags,
 		ResponseHandlerFunctionT &_response_fnc
-	):	msg_type_idx(_msg_type_idx), flags(_flags), msgptr(std::move(_rmsgptr)),
+	):	message_type_id(_msg_type_idx), message_flags(_flags), message_ptr(std::move(_rmsgptr)),
 		response_fnc(std::move(_response_fnc)){}
 	
 	MessageBundle(
 		MessageBundle && _rmsgbundle
-	):	msg_type_idx(_rmsgbundle.msg_type_idx), flags(_rmsgbundle.flags),
-		msgptr(std::move(_rmsgbundle.msgptr)), response_fnc(std::move(_rmsgbundle.response_fnc))
+	):	message_type_id(_rmsgbundle.message_type_id), message_flags(_rmsgbundle.message_flags),
+		message_ptr(std::move(_rmsgbundle.message_ptr)), response_fnc(std::move(_rmsgbundle.response_fnc))
 	{
 		
 	}
 	
+	MessageBundle& operator=(MessageBundle && _rmsgbundle){
+		message_type_id = _rmsgbundle.message_type_id;
+		message_flags = _rmsgbundle.message_flags;
+		message_ptr = std::move(_rmsgbundle.message_ptr);
+		response_fnc = std::move(_rmsgbundle.response_fnc);
+		return *this;
+	}
+	
 	void clear(){
-		msg_type_idx = InvalidIndex();
-		flags = 0;
-		msgptr.clear();
+		message_type_id = InvalidIndex();
+		message_flags = 0;
+		message_ptr.clear();
 		FUNCTION_CLEAR(response_fnc);
 	}
 };
