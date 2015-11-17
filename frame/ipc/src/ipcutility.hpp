@@ -49,6 +49,8 @@ struct PacketHeader{
 		SwitchToNewMessageTypeE = 1,
 		SwitchToOldMessageTypeE,
 		ContinuedMessageTypeE,
+		SwitchToOldCanceledMessageTypeE,
+		ContinuedCanceledMessageTypeE,
 		
 		KeepAliveTypeE,
 		

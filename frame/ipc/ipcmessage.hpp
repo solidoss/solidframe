@@ -32,6 +32,7 @@ struct Message: Dynamic<Message>{
 		OneShotSendFlagE	= (1<<(FirstFlagIndexE +  3)),
 		StartedSendFlagE	= (1<<(FirstFlagIndexE +  4)),
 		DoneSendFlagE		= (1<<(FirstFlagIndexE +  5)),
+		CanceledFlagE		= (1<<(FirstFlagIndexE +  6)),
 	};
 	
 	static bool is_synchronous(const uint32 _flags){
@@ -54,6 +55,10 @@ struct Message: Dynamic<Message>{
 	
 	static bool is_done_send(const uint32 _flags){
 		return (_flags & DoneSendFlagE) != 0;
+	}
+	
+	static bool is_canceled(const uint32 _flags){
+		return (_flags & CanceledFlagE) != 0;
 	}
 	
 	Message(uint8 _state = 0):stt(_state){}

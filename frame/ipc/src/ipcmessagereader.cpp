@@ -154,6 +154,9 @@ void MessageReader::doConsumePacket(
 	//DeserializerPointerT	tmp_deserializer;
 	
 	while(pbufpos < pbufend){
+		
+		bool canceled_message = false;
+		
 		switch(crt_msg_type){
 			case PacketHeader::SwitchToNewMessageTypeE:
 				vdbgx(Debug::ipc, "SwitchToNewMessageTypeE "<<message_q.size());
@@ -189,31 +192,50 @@ void MessageReader::doConsumePacket(
 				cassert(message_q.size() and message_q.front().deserializer_ptr.get() and message_q.front().message_ptr.get());
 				++message_q.front().packet_count;
 				break;
+			case PacketHeader::SwitchToOldCanceledMessageTypeE:
+				vdbgx(Debug::ipc, "SwitchToOldCanceledMessageTypeE "<<message_q.size());
+				if(message_q.front().message_ptr.get()){
+					message_q.push(std::move(message_q.front()));
+					message_q.front().packet_count = 0;
+				}
+				message_q.pop();
+				canceled_message = true;
+				message_q.pop();
+				break;
+			case PacketHeader::ContinuedCanceledMessageTypeE:
+				vdbgx(Debug::ipc, "ContinuedCanceledMessageTypeE "<<message_q.size());
+				cassert(message_q.size() and message_q.front().deserializer_ptr.get() and message_q.front().message_ptr.get());
+				message_q.pop();
+				canceled_message = true;
+				break;
 			default:
 				cassert(false);
 				_rerror.assign(-1, _rerror.category());//TODO:
 				return;
 		}
 		
-		int rv = message_q.front().deserializer_ptr->run(pbufpos, pbufend - pbufpos, _rctx);
+		if(not canceled_message){
 		
-		if(rv > 0){
-			pbufpos += rv;
-			if(message_q.front().deserializer_ptr->empty()){
-				//done with the message
-				message_q.front().deserializer_ptr->clear();
-				
-				//complete the message waiting for this response
-				_complete_fnc(MessageCompleteE, message_q.front().message_ptr);
-				
-				//receive the message
-				_ridmap[message_q.front().message_type_idx].receive_fnc(_rctx, message_q.front().message_ptr);
-				message_q.front().message_ptr.clear();
-				message_q.front().message_type_idx = InvalidIndex();
+			int rv = message_q.front().deserializer_ptr->run(pbufpos, pbufend - pbufpos, _rctx);
+			
+			if(rv > 0){
+				pbufpos += rv;
+				if(message_q.front().deserializer_ptr->empty()){
+					//done with the message
+					message_q.front().deserializer_ptr->clear();
+					
+					//complete the message waiting for this response
+					_complete_fnc(MessageCompleteE, message_q.front().message_ptr);
+					
+					//receive the message
+					_ridmap[message_q.front().message_type_idx].receive_fnc(_rctx, message_q.front().message_ptr);
+					message_q.front().message_ptr.clear();
+					message_q.front().message_type_idx = InvalidIndex();
+				}
+			}else{
+				_rerror = message_q.front().deserializer_ptr->error();
+				break;
 			}
-		}else{
-			_rerror = message_q.front().deserializer_ptr->error();
-			break;
 		}
 		
 		if(pbufpos < pbufend){

@@ -93,12 +93,14 @@ public:
 	
 	bool empty()const;
 	
+	size_t freeSeatsCount(Configuration const &_rconfig)const;
+	
 	void prepare(Configuration const &_rconfig);
 	void unprepare();
 	
 	void visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc);
 	
-	bool hasUnsafeCache()const;
+	bool unsafeCacheEmpty()const;
 	
 	void completeAllMessages(
 		ipc::Configuration const &_rconfig,

@@ -64,7 +64,7 @@ void MessageWriter::safeMoveCacheToSafety(){
 		MessageStub		&rmsgstub(message_vec[msgidx]);
 		
 		cassert(rmsgstub.inner_status == InnerStatusCache);
-		cassert(rmsgstub.msgbundle.msgptr.empty());
+		cassert(rmsgstub.msgbundle.message_ptr.empty());
 		
 		rmsgstub.inner_status = InnerStatusInvalid;
 		
@@ -76,7 +76,7 @@ void MessageWriter::safeMoveCacheToSafety(){
 	inner_list[InnerListCache].clear();
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::hasUnsafeCache()const{
+bool MessageWriter::unsafeCacheEmpty()const{
 	return not inner_list[InnerListCache].empty();
 }
 //-----------------------------------------------------------------------------
@@ -96,7 +96,7 @@ void MessageWriter::enqueue(
 	TypeIdMapT const &/*_ridmap*/,
 	ConnectionContext &/*_rctx*/
 ){
-	cassert(not _rmsgbundle.msgptr.empty());
+	cassert(not _rmsgbundle.message_ptr.empty());
 	cassert(_rmsguid.isValid());
 	
 	const size_t	idx = _rmsguid.index;
@@ -114,9 +114,9 @@ void MessageWriter::enqueue(
 	if(
 		inner_list[InnerListSending].size < _rconfig.max_writer_multiplex_message_count and
 		(
-			Message::is_asynchronous(_rmsgbundle.flags) or
+			Message::is_asynchronous(_rmsgbundle.message_flags) or
 			(
-				Message::is_synchronous(_rmsgbundle.flags) and not isSynchronousInSendingQueue()
+				Message::is_synchronous(_rmsgbundle.message_flags) and not isSynchronousInSendingQueue()
 			)
 		)
 	){
@@ -126,7 +126,7 @@ void MessageWriter::enqueue(
 		
 		rmsgstub.inner_status = InnerStatusSending;
 		
-		if(Message::is_synchronous(rmsgstub.msgbundle.flags)){
+		if(Message::is_synchronous(rmsgstub.msgbundle.message_flags)){
 			this->flags |= SynchronousMessageInSendingQueueFlag;
 		}
 	}else{
@@ -136,7 +136,7 @@ void MessageWriter::enqueue(
 		
 		rmsgstub.inner_status = InnerStatusPending;
 		
-		if(Message::is_asynchronous(rmsgstub.msgbundle.flags)){
+		if(Message::is_asynchronous(rmsgstub.msgbundle.message_flags)){
 			this->flags |= AsynchronousMessageInPendingQueueFlag;
 		}
 	}
@@ -155,28 +155,54 @@ void MessageWriter::cancel(
 	if(
 		_rmsguid.index < message_vec.size() and
 		message_vec[_rmsguid.index].unique == _rmsguid.unique and
-		not message_vec[_rmsguid.index].msgbundle.msgptr.empty()
+		not message_vec[_rmsguid.index].msgbundle.message_ptr.empty()
 	){
-		const size_t	idx = _rmsguid.index;
-		MessageStub		&rmsgstub(message_vec[idx]);
+		const size_t		msgidx = _rmsguid.index;
+		MessageStub			&rmsgstub(message_vec[msgidx]);
+		ErrorConditionT		error;
+		
 		cassert(rmsgstub.inner_status != InnerStatusCache and rmsgstub.inner_status != InnerStatusInvalid);
 		
-		_rctx.message_flags = rmsgstub.msgbundle.flags;
+		rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
 		
-		ErrorConditionT		error;
+		_rctx.message_flags = rmsgstub.msgbundle.message_flags;
+		
 		error.assign(-1, error.category());//TODO: canceled
 		
 		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.response_fnc)){
-			rmsgstub.msgbundle.response_fnc(_rctx, rmsgstub.msgbundle.msgptr, error);
+			MessagePointerT		msgptr;//the empty response message
+			
+			rmsgstub.msgbundle.response_fnc(_rctx, msgptr, error);
+			FUNCTION_CLEAR(rmsgstub.msgbundle.response_fnc);
 		}
 		
-		_ridmap[rmsgstub.message_type_idx].complete_fnc(_rctx, rmsgstub.message_ptr, _rerror);
+		_ridmap[rmsgstub.msgbundle.message_type_id].complete_fnc(_rctx, rmsgstub.msgbundle.message_ptr, error);
 		
-		innerListErase<InnerListOrder, InnerLinkOrder>(msgidx);
-		
-		if(rmsgstub.inner_status == InnerStatusPending)
-			//complete the message
-		
+		if(rmsgstub.inner_status == InnerStatusPending){
+			//message not already sending - erase it from the lists and clear the stub
+			innerListErase<InnerListOrder, InnerLinkOrder>(msgidx);
+			innerListErase<InnerListPending, InnerLinkStatus>(msgidx);
+			rmsgstub.clear();
+			innerListPushBack<InnerListCache, InnerLinkStatus>(msgidx);
+			
+		}else if(rmsgstub.inner_status == InnerStatusSending and not rmsgstub.serializer_ptr){
+			//message not already sending - erase it from the lists and clear the stub
+			innerListErase<InnerListOrder, InnerLinkOrder>(msgidx);
+			innerListErase<InnerListSending, InnerLinkStatus>(msgidx);
+			rmsgstub.clear();
+			innerListPushBack<InnerListCache, InnerLinkStatus>(msgidx);
+		}else if(rmsgstub.inner_status == InnerStatusSending){
+			//message is currently being sent
+			//we cannot erase it from the lists
+			//we need to clear the clear both the message_ptr and the serializer_ptr
+			rmsgstub.msgbundle.message_ptr.clear();
+			rmsgstub.serializer_ptr->clear();
+		}else if(rmsgstub.inner_status == InnerStatusWaiting){
+			//message already sent - erase it from the lists and clear the stub
+			innerListErase<InnerListOrder, InnerLinkOrder>(msgidx);
+			rmsgstub.clear();
+			innerListPushBack<InnerListCache, InnerLinkStatus>(msgidx);
+		}
 	}
 }
 //-----------------------------------------------------------------------------
@@ -211,18 +237,24 @@ void MessageWriter::completeAllCanceledMessages(
 }
 #endif
 //-----------------------------------------------------------------------------
+size_t MessageWriter::freeSeatsCount(Configuration const &_rconfig)const{
+	return _rconfig.max_writer_message_count - inner_list[InnerListSending].size - inner_list[InnerListPending].size;
+}
+//-----------------------------------------------------------------------------
 bool MessageWriter::shouldTryFetchNewMessage(Configuration const &_rconfig)const{
 	return (
-		inner_list[InnerListSending].empty() or 
-		(
-			inner_list[InnerListSending].size < _rconfig.max_writer_multiplex_message_count and
-			message_vec[inner_list[InnerListSending].front].packet_count == 0
+		freeSeatsCount(_rconfig) and (
+			inner_list[InnerListSending].empty() or 
+			(
+				inner_list[InnerListSending].size < _rconfig.max_writer_multiplex_message_count and
+				message_vec[inner_list[InnerListSending].front].packet_count == 0
+			)
 		)
 	);
 }
 //-----------------------------------------------------------------------------
 bool MessageWriter::empty()const{
-	return inner_list[InnerListSending].empty();
+	return inner_list[InnerListSending].empty() and inner_list[InnerListPending].empty();
 }
 //-----------------------------------------------------------------------------
 // Does:
@@ -351,7 +383,7 @@ char* MessageWriter::doFillPacket(
 		MessageStub				&rmsgstub = message_vec[msgidx];
 		PacketHeader::Types		msgswitch;// = PacketHeader::ContinuedMessageTypeE;
 		
-		if(rmsgstub.message_ptr.empty()){
+		if(rmsgstub.msgbundle.message_ptr.empty()){
 			//we need to stop
 			if(pbufpos == _pbufbeg){
 				_rerror.assign(-1, _rerror.category());//TODO:
@@ -373,30 +405,36 @@ char* MessageWriter::doFillPacket(
 				rmsgstub.serializer_ptr = std::move(SerializerPointerT(new Serializer(_ridmap)));
 			}
 			
-			rmsgstub.flags |= Message::StartedSendFlagE;
+			rmsgstub.msgbundle.message_flags |= Message::StartedSendFlagE;
 			
 			_rconfig.reset_serializer_limits_fnc(_rctx, rmsgstub.serializer_ptr->limits());
 			
-			rmsgstub.serializer_ptr->push(rmsgstub.message_ptr, rmsgstub.message_type_idx, "message");
+			rmsgstub.serializer_ptr->push(rmsgstub.msgbundle.message_ptr, rmsgstub.msgbundle.message_type_id, "message");
 			
-			bool 		rv = compute_value_with_crc(current_message_type_id, rmsgstub.message_type_idx);
+			bool 		rv = compute_value_with_crc(current_message_type_id, rmsgstub.msgbundle.message_type_id);
 			cassert(rv);(void)rv;
 			//Not sending by value (pushCrossValue), in order to avoid an unnecessary 
 			//"ext" data allocation in serializer.
 			rmsgstub.serializer_ptr->pushCross(current_message_type_id, "message_type_id");
 			
+		}else if(Message::is_canceled(rmsgstub.msgbundle.message_flags)){
+			if(rmsgstub.packet_count == 0){
+				msgswitch = PacketHeader::SwitchToOldCanceledMessageTypeE;
+			}else{
+				msgswitch = PacketHeader::ContinuedCanceledMessageTypeE;
+			}
 		}else if(rmsgstub.packet_count == 0){
 			
 			//switch to old message
 			msgswitch = PacketHeader::PacketHeader::SwitchToOldMessageTypeE;
 		
-			
 		}else{
 			
 			//continued message
 			msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;
 		
 		}
+		
 		
 		if(pbufpos == _pbufbeg){
 			//first message in the packet
@@ -406,13 +444,22 @@ char* MessageWriter::doFillPacket(
 			pbufpos = SerializerT::storeValue(pbufpos, tmp);
 		}
 		
-		if(not rmsgstub.message_ptr->isOnPeer()){
+		if(Message::is_canceled(rmsgstub.msgbundle.message_flags)){
+			//message already completed - just drop it from lists
+			innerListErase<InnerListOrder, InnerLinkOrder>(msgidx);
+			innerListErase<InnerListSending, InnerLinkStatus>(msgidx);
+			rmsgstub.clear();
+			innerListPushBack<InnerListCache, InnerLinkStatus>(msgidx);
+			continue;
+		}
+		
+		if(not rmsgstub.msgbundle.message_ptr->isOnPeer()){
 			_rctx.request_uid.index  = msgidx;
 			_rctx.request_uid.unique = rmsgstub.unique;
 		}else{
-			_rctx.request_uid = rmsgstub.message_ptr->requestId();
+			_rctx.request_uid = rmsgstub.msgbundle.message_ptr->requestId();
 		}
-		_rctx.message_state = rmsgstub.message_ptr->state() + 1;
+		_rctx.message_state = rmsgstub.msgbundle.message_ptr->state() + 1;
 		
 		
 		int rv = rmsgstub.serializer_ptr->run(pbufpos, _pbufend - pbufpos, _rctx);
@@ -429,16 +476,16 @@ char* MessageWriter::doFillPacket(
 				
 				innerListPopFront<InnerListSending, InnerLinkStatus>();
 				
-				if(Message::is_synchronous(rmsgstub.flags)){
+				if(Message::is_synchronous(rmsgstub.msgbundle.message_flags)){
 					this->flags &= ~(SynchronousMessageInSendingQueueFlag);
 				}
 				
-				rmsgstub.flags &= (~Message::StartedSendFlagE);
-				rmsgstub.flags |= Message::DoneSendFlagE;
+				rmsgstub.msgbundle.message_flags &= (~Message::StartedSendFlagE);
+				rmsgstub.msgbundle.message_flags |= Message::DoneSendFlagE;
 				
 				rmsgstub.serializer_ptr = nullptr;//free some memory
 				
-				if(not Message::is_waiting_response(rmsgstub.flags)){
+				if(not Message::is_waiting_response(rmsgstub.msgbundle.message_flags)){
 					//no wait response for the message - complete
 					ErrorConditionT		err;
 					MessagePointerT 	msgptr;
@@ -471,16 +518,12 @@ char* MessageWriter::doFillPacket(
 //-----------------------------------------------------------------------------
 void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig){
 	if(
-		inner_list[InnerListPending].empty() or inner_list[InnerListCache].empty()
-	) return;
-	
-	if(
-		(message_vec.size() - inner_list[InnerListCache].size) == _rconfig.max_writer_waiting_message_count
+		inner_list[InnerListPending].empty()
 	) return;
 	
 	if(
 		//Message::is_asynchronous(pending_message_q.front().flags) or
-		Message::is_asynchronous(message_vec[inner_list[InnerListPending].front].flags) or
+		Message::is_asynchronous(message_vec[inner_list[InnerListPending].front].msgbundle.message_flags) or
 		not isSynchronousInSendingQueue()
 	){
 		const size_t	msgidx = inner_list[InnerListPending].front;
@@ -490,7 +533,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 		
 		MessageStub		&rmsgstub(message_vec[msgidx]);
 
-		if(Message::is_synchronous(rmsgstub.flags)){
+		if(Message::is_synchronous(rmsgstub.msgbundle.message_flags)){
 			this->flags |= SynchronousMessageInSendingQueueFlag;
 		}
 		return;
@@ -515,7 +558,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 			
 			innerListPopFront<InnerListPending, InnerLinkStatus>();
 			
-			if(Message::is_synchronous(rmsgstub.flags)){
+			if(Message::is_synchronous(rmsgstub.msgbundle.message_flags)){
 				innerListPushBack<InnerListPending, InnerLinkStatus>(msgidx);
 			}else{
 				if(async_msg_idx != InvalidIndex()){
@@ -567,15 +610,15 @@ void MessageWriter::doCompleteMessage(
 		MessageStub				&rmsgstub = message_vec[msgidx];
 		
 		cassert(not rmsgstub.serializer_ptr);
-		cassert(not rmsgstub.message_ptr.empty());
+		cassert(not rmsgstub.msgbundle.message_ptr.empty());
 		
-		_rctx.message_flags = rmsgstub.flags;
+		_rctx.message_flags = rmsgstub.msgbundle.message_flags;
 		
-		if(not FUNCTION_EMPTY(rmsgstub.response_fnc)){
-			rmsgstub.response_fnc(_rctx, _rmsgptr, _rerror);
+		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.response_fnc)){
+			rmsgstub.msgbundle.response_fnc(_rctx, _rmsgptr, _rerror);
 		}
 		
-		_ridmap[rmsgstub.message_type_idx].complete_fnc(_rctx, rmsgstub.message_ptr, _rerror);
+		_ridmap[rmsgstub.msgbundle.message_type_id].complete_fnc(_rctx, rmsgstub.msgbundle.message_ptr, _rerror);
 		
 		innerListErase<InnerListOrder, InnerLinkOrder>(msgidx);
 		
@@ -596,7 +639,7 @@ void MessageWriter::completeAllMessages(
 	while(inner_list[InnerListOrder].size){
 		const size_t	msgidx = inner_list[InnerListOrder].front;
 		MessageStub		&rmsgstub = message_vec[msgidx];
-		if(not rmsgstub.message_ptr.empty()){
+		if(not rmsgstub.msgbundle.message_ptr.empty()){
 			MessagePointerT 	msgptr;
 			RequestUid			requid(msgidx, rmsgstub.unique);
 			
@@ -619,13 +662,18 @@ void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_
 		while(msgidx != InvalidIndex()){
 			MessageStub		&rmsgstub = message_vec[msgidx];
 			
-			if(rmsgstub.message_ptr.empty()){
+			if(rmsgstub.msgbundle.message_ptr.empty()){
 				THROW_EXCEPTION_EX("invalid message - something went wrong with the nested queue for message: ", msgidx);
 			}
 			
-			_rvisit_fnc(rmsgstub.message_ptr, rmsgstub.message_type_idx, rmsgstub.response_fnc, rmsgstub.flags);
+			_rvisit_fnc(
+				rmsgstub.msgbundle.message_ptr,
+				rmsgstub.msgbundle.message_type_id,
+				rmsgstub.msgbundle.response_fnc,
+				rmsgstub.msgbundle.message_flags
+			);
 			
-			if(rmsgstub.message_ptr.empty()){
+			if(rmsgstub.msgbundle.message_ptr.empty()){
 				if(rmsgstub.inner_status == InnerStatusPending){
 					innerListErase<InnerListPending, InnerLinkStatus>(msgidx);
 				}else if(rmsgstub.inner_status == InnerStatusSending){

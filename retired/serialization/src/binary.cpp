@@ -113,6 +113,7 @@ CbkReturnValueE Base::popEStack(Base &_rb, FncData &, void */*_pctx*/){
 	return serialization::binary::store(_pd, _val);
 }
 SerializerBase::~SerializerBase(){
+	clear();
 }
 void SerializerBase::clear(){
 	run(NULL, 0, NULL);
@@ -694,6 +695,7 @@ template <>
 	return serialization::binary::load(_ps, _val);
 }
 DeserializerBase::~DeserializerBase(){
+	clear();
 }
 void DeserializerBase::clear(){
 	idbgx(Debug::ser_bin, "clear_deser");
