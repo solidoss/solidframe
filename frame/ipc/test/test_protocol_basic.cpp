@@ -225,6 +225,7 @@ int test_protocol_basic(int argc, char **argv){
 		ipcmsgwriter.enqueue(
 			msgbundle, ipcmsgwriter.safeNewMessageUid(ipcconfig), ipcconfig, ipctypemap, ipcconctx
 		);
+		idbg(frame::ipc::MessageWriterPrintPairT(ipcmsgwriter, frame::ipc::MessageWriter::PrintInnerListsE));
 	}
 	
 	

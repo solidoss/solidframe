@@ -139,6 +139,7 @@ void MessageWriter::enqueue(
 			this->flags |= AsynchronousMessageInPendingQueueFlag;
 		}
 	}
+	vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::enqueueClose(MessageUid const &_rmsguid){
@@ -163,6 +164,7 @@ void MessageWriter::enqueueClose(MessageUid const &_rmsguid){
 		
 		rmsgstub.inner_status = InnerStatusSending;
 	}
+	vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::cancel(
@@ -223,6 +225,7 @@ void MessageWriter::cancel(
 			innerListPushBack<InnerListCache, InnerLinkStatus>(msgidx);
 		}
 	}
+	vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 }
 //-----------------------------------------------------------------------------
 #if 0
@@ -488,15 +491,19 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 		
 		_rmsgstub.serializer_ptr = nullptr;//free some memory
 		
+		vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+		
 		if(not Message::is_waiting_response(_rmsgstub.msgbundle.message_flags)){
 			//no wait response for the message - complete
 			ErrorConditionT		err;
 			MessagePointerT 	msgptr;
 			
 			doCompleteMessage(msgptr, requid, _rconfig, _ridmap, _rctx, err);
+			vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 		}
 		
 		doTryMoveMessageFromPendingToWriteQueue(_rconfig);
+		vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 	}else{
 		//message not done - packet should be full
 		++_rmsgstub.packet_count;
@@ -505,6 +512,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 			_rmsgstub.packet_count = 0;
 			innerListPopFront<InnerListSending, InnerLinkStatus>();
 			innerListPushBack<InnerListSending, InnerLinkStatus>(_msgidx);
+			vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 		}
 	}
 }
@@ -752,6 +760,33 @@ void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_
 			msgidx = rmsgstub.inner_link[InnerLinkOrder].prev;
 		}
 	}
+}
+//-----------------------------------------------------------------------------
+void MessageWriter::print(std::ostream &_ros, const PrintWhat _what)const{
+	if(_what == PrintInnerListsE){
+		_ros<<"InnerLists: ";
+		auto print_fnc = [&_ros](const size_t _idx){_ros<<_idx<<' ';};
+		_ros<<"OrderList: ";
+		innerListForEach<InnerListOrder, InnerLinkOrder>(print_fnc);
+		_ros<<'\t';
+		
+		_ros<<"PendingList: ";
+		innerListForEach<InnerListPending, InnerLinkStatus>(print_fnc);
+		_ros<<'\t';
+		
+		_ros<<"SendingList: ";
+		innerListForEach<InnerListSending, InnerLinkStatus>(print_fnc);
+		_ros<<'\t';
+		
+		_ros<<"CacheList: ";
+		innerListForEach<InnerListCache, InnerLinkStatus>(print_fnc);
+		_ros<<'\t';
+	}
+}
+//-----------------------------------------------------------------------------
+std::ostream& operator<<(std::ostream &_ros, std::pair<MessageWriter const&, MessageWriter::PrintWhat> const &_msgwriterpair){
+	_msgwriterpair.first.print(_ros, _msgwriterpair.second);
+	return _ros;
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

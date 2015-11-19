@@ -44,6 +44,10 @@ typedef FUNCTION<void(
 
 class MessageWriter{
 public:
+	enum PrintWhat{
+		PrintInnerListsE,
+	};
+	
 	MessageWriter();
 	~MessageWriter();
 	
@@ -108,6 +112,7 @@ public:
 		ConnectionContext &_rctx,
 		ErrorConditionT const & _rerror
 	);
+	void print(std::ostream &_ros, const PrintWhat _what)const;
 private:
 	
 	struct InnerLink{
@@ -307,6 +312,25 @@ private:
 		inner_list[InnerListCache].clear();
 	}
 	
+	template <size_t List, size_t Link, class F>
+	void innerListForEach(F _f){
+		size_t it  = inner_list[List].back;
+		
+		while(it != InvalidIndex()){
+			_f(it);
+			it = message_vec[it].inner_link[Link].next;
+		}
+	}
+	template <size_t List, size_t Link, class F>
+	void innerListForEach(F _f)const{
+		size_t it  = inner_list[List].back;
+		
+		while(it != InvalidIndex()){
+			_f(it);
+			it = message_vec[it].inner_link[Link].next;
+		}
+	}
+	
 private:
 	MessageVectorT				message_vec;
 	MessageUidVectorT			message_uid_cache_vec;
@@ -316,6 +340,9 @@ private:
 	InnerList					inner_list[InnerListCount];
 };
 
+typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat>	MessageWriterPrintPairT;
+
+std::ostream& operator<<(std::ostream &_ros, MessageWriterPrintPairT const &_msgwriter);
 
 inline bool MessageWriter::isNonSafeCacheEmpty()const{
 	return inner_list[InnerListCache].empty();
