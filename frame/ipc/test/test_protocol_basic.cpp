@@ -123,6 +123,8 @@ struct Context{
 	frame::ipc::TypeIdMapT			*ipctypemap;
 	frame::ipc::MessageReader		*ipcmsgreader;
 	frame::ipc::MessageWriter		*ipcmsgwriter;
+
+	
 }								ctx;
 
 frame::ipc::ConnectionContext	&ipcconctx(frame::ipc::TestEntryway::createContext());
@@ -143,13 +145,16 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 	idbg(crtreadidx);
 	frame::ipc::ResponseHandlerFunctionT	response_fnc;
 	if(crtwriteidx < writecount){
-		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
+		frame::ipc::MessageBundle	msgbundle;
+		
+		msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
+		msgbundle.message_ptr = std::move(frame::ipc::MessagePointerT(new Message(crtwriteidx)));
+		msgbundle.response_fnc = std::move(response_fnc);
+		
 		ctx.ipcmsgwriter->enqueue(
-			msgptr, ctx.ipctypemap->index(msgptr.get()),
-			response_fnc,
-			initarray[crtwriteidx % initarraysize].flags,
-			ctx.ipcmsgwriter->safeNewMessageUid(),
-			*ctx.ipcconfig/*, *ctx.ipctypemap, ipcconctx*/
+			msgbundle,
+			ctx.ipcmsgwriter->safeNewMessageUid(*ctx.ipcconfig),
+			*ctx.ipcconfig, *ctx.ipctypemap, ipcconctx
 		);
 		++crtwriteidx;
 	}
@@ -211,12 +216,14 @@ int test_protocol_basic(int argc, char **argv){
 	writecount = 10*initarraysize;//start_count;//
 	
 	for(; crtwriteidx < start_count; ++crtwriteidx){
-		frame::ipc::MessagePointerT				msgptr(new Message(crtwriteidx));
-		frame::ipc::ResponseHandlerFunctionT	response_fnc;
+		frame::ipc::MessageBundle	msgbundle;
+		
+		msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
+		msgbundle.message_ptr = std::move(frame::ipc::MessagePointerT(new Message(crtwriteidx)));
+		//msgbundle.response_fnc = std::move(response_fnc);
 		
 		ipcmsgwriter.enqueue(
-			msgptr, ipctypemap.index(msgptr.get()), response_fnc,
-			initarray[crtwriteidx % initarraysize].flags, ipcmsgwriter.safeNewMessageUid(), ipcconfig/*, ipctypemap, ipcconctx*/
+			msgbundle, ipcmsgwriter.safeNewMessageUid(ipcconfig), ipcconfig, ipctypemap, ipcconctx
 		);
 	}
 	

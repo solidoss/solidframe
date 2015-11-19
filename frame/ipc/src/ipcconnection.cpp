@@ -167,6 +167,12 @@ Connection::~Connection(){
 	idbgx(Debug::ipc, this);
 }
 //-----------------------------------------------------------------------------
+// NOTE
+// Use two sendmsgvecs for locking granularity.
+// We do not relay only on the service's connection pool queue, because
+// of server-side connections which do not/cannot have an associated connection pool.
+// In this case - server-side - the messages must pass directly to the connection.
+//
 bool Connection::pushMessage(
 	Service &_rservice,
 	MessagePointerT &_rmsgptr,
@@ -525,9 +531,18 @@ void Connection::doHandleEventResolve(
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, frame::Event const &/*_revent*/){
 	cassert(isAtomicDelayedClosing());
-	bool	was_empty_msgwriter = msgwriter.empty();
+	bool				was_empty_msgwriter = msgwriter.empty();
+	MessageUid			msguid;
+	Configuration const &rconfig = service(_rctx).configuration();
 	
-	msgwriter.enqueueClose();
+	{
+		Locker<Mutex>		lock(service(_rctx).mutex(*this));
+		msguid = msgwriter.safeNewMessageUid(rconfig);
+	}
+	
+	msgwriter.enqueueClose(msguid);
+	
+	cassert(not msgwriter.empty());
 	
 	if(was_empty_msgwriter and not msgwriter.empty()){
 		idbgx(Debug::ipc, this<<" post send");

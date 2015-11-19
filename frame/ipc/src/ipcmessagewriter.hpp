@@ -69,7 +69,7 @@ public:
 		ConnectionContext &_rctx
 	);
 	
-	void enqueueClose();
+	void enqueueClose(MessageUid const &_rmsguid);
 	
 	uint32 write(
 		char *_pbuf,
@@ -167,7 +167,6 @@ private:
 		InnerStatusPending = 1,
 		InnerStatusSending,
 		InnerStatusWaiting,
-		InnerStatusCache,
 	};
 	
 	struct MessageStub{
@@ -236,6 +235,21 @@ private:
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT const & _rerror
+	);
+	
+	PacketHeader::Types doPrepareMessageForSending(
+		MessageStub &_rmsgstub, ipc::Configuration const &_rconfig,
+		TypeIdMapT const & _ridmap,
+		ConnectionContext &_rctx,
+		SerializerPointerT &_rtmp_serializer
+	);
+	
+	void doTryCompleteMessageAfterSerialization(
+		const size_t _msgidx,
+		MessageStub &_rmsgstub, ipc::Configuration const &_rconfig,
+		TypeIdMapT const & _ridmap,
+		ConnectionContext &_rctx,
+		SerializerPointerT &_rtmp_serializer
 	);
 	
 	template <size_t List>
