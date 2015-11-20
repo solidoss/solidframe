@@ -18,6 +18,7 @@
 #include "system/function.hpp"
 
 #include "ipcutility.hpp"
+#include "utility/innerlist.hpp"
 #include "frame/ipc/ipcserialization.hpp"
 
 
@@ -104,8 +105,6 @@ public:
 	
 	void visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc);
 	
-	bool unsafeCacheEmpty()const;
-	
 	void completeAllMessages(
 		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
@@ -114,51 +113,6 @@ public:
 	);
 	void print(std::ostream &_ros, const PrintWhat _what)const;
 private:
-	
-	struct InnerLink{
-		InnerLink(
-			const size_t _next = InvalidIndex(),
-			const size_t _prev = InvalidIndex()
-		):next(_next), prev(_prev){}
-		
-		void clear(){
-			next = InvalidIndex();
-			prev = InvalidIndex();
-		}
-		
-		size_t next;
-		size_t prev;
-	};
-	
-	struct InnerList{
-		InnerList(
-			const size_t _front = InvalidIndex(),
-			const size_t _back = InvalidIndex()
-		):front(_front), back(_back), size(0){}
-		
-		bool empty()const{
-			return front == InvalidIndex();
-		}
-		
-		void clear(){
-			front = InvalidIndex();
-			back = InvalidIndex();
-			size = 0;
-		}
-		
-		size_t	front;
-		size_t	back;
-		size_t	size;
-	};
-	
-	enum{
-		InnerListOrder = 0,
-		InnerListPending,
-		InnerListSending,
-		InnerListCache,
-		
-		InnerListCount //do not change
-	};
 	
 	enum{
 		InnerLinkOrder = 0,
@@ -174,7 +128,7 @@ private:
 		InnerStatusWaiting,
 	};
 	
-	struct MessageStub{
+	struct MessageStub: InnerNode<InnerLinkCount>{
 		MessageStub(
 			MessageBundle &_rmsgbundle
 		):	msgbundle(std::move(_rmsgbundle)), packet_count(0),
@@ -189,9 +143,6 @@ private:
 			++unique;
 			packet_count = 0;
 			
-			inner_link[InnerLinkOrder].clear();
-			//inner_link[InnerLinkStatus].clear();//must not be cleared
-			
 			inner_status = InnerStatusInvalid;
 			
 			serializer_ptr = nullptr;
@@ -205,9 +156,10 @@ private:
 		InnerStatus					inner_status;
 	};
 	
-//	typedef Queue<PendingMessageStub>							PendingMessageQueueT;
 	typedef std::vector<MessageStub>							MessageVectorT;
 	typedef std::vector<MessageUid>								MessageUidVectorT;
+	typedef InnerList<MessageVectorT, InnerLinkOrder>			MessageOrderInnerListT;
+	typedef InnerList<MessageVectorT, InnerLinkStatus>			MessageStatusInnerListT;
 	
 	struct PacketOptions{
 		PacketOptions(): packet_type(PacketHeader::SwitchToNewMessageTypeE), force_no_compress(false){}
@@ -256,88 +208,16 @@ private:
 		ConnectionContext &_rctx,
 		SerializerPointerT &_rtmp_serializer
 	);
-	
-	template <size_t List>
-	bool innerListEmpty()const{
-		return inner_list[List].empty();
-	}
-	
-	template <size_t List, size_t Link>
-	void innerListPushBack(const size_t _message_vec_index){
-		MessageStub		&rmsgstub = message_vec[_message_vec_index];
-	
-		rmsgstub.inner_link[Link] = InnerLink(InvalidIndex(), inner_list[List].back);
-		
-		if(inner_list[List].back != InvalidIndex()){
-			message_vec[inner_list[List].back].inner_link[Link].next = _message_vec_index;
-			inner_list[List].back = _message_vec_index;
-		}else{
-			inner_list[List] = InnerList(_message_vec_index, _message_vec_index);
-		}
-		++inner_list[List].size;
-	}
-	
-	template <size_t List, size_t Link>
-	void innerListErase(const size_t _message_vec_index){
-		MessageStub		&rmsgstub = message_vec[_message_vec_index];
-	
-		if(rmsgstub.inner_link[Link].prev != InvalidIndex()){
-			message_vec[rmsgstub.inner_link[Link].prev].inner_link[Link].next = rmsgstub.inner_link[Link].next;
-		}else{
-			//first message in the q
-			inner_list[List].front = rmsgstub.inner_link[Link].next;
-		}
-		
-		if(rmsgstub.inner_link[Link].next != InvalidIndex()){
-			message_vec[rmsgstub.inner_link[Link].next].inner_link[Link].prev = rmsgstub.inner_link[Link].prev;
-		}else{
-			//last message in the q
-			inner_list[List].front = rmsgstub.inner_link[Link].prev;
-		}
-		--inner_list[List].size;
-		rmsgstub.inner_link[Link].clear();
-	}
-	
-	template <size_t List, size_t Link>
-	void innerListPopFront(){
-		if(inner_list[List].front != InvalidIndex()){
-			innerListErase<List, Link>(inner_list[List].front);
-		}
-	}
-	
-	void innerListClearAll(){
-		inner_list[InnerListOrder].clear();
-		inner_list[InnerListPending].clear();
-		inner_list[InnerListSending].clear();
-		inner_list[InnerListCache].clear();
-	}
-	
-	template <size_t List, size_t Link, class F>
-	void innerListForEach(F _f){
-		size_t it  = inner_list[List].back;
-		
-		while(it != InvalidIndex()){
-			_f(it);
-			it = message_vec[it].inner_link[Link].next;
-		}
-	}
-	template <size_t List, size_t Link, class F>
-	void innerListForEach(F _f)const{
-		size_t it  = inner_list[List].back;
-		
-		while(it != InvalidIndex()){
-			_f(it);
-			it = message_vec[it].inner_link[Link].next;
-		}
-	}
-	
 private:
 	MessageVectorT				message_vec;
 	MessageUidVectorT			message_uid_cache_vec;
 	std::atomic<size_t>			message_idx_cache;
 	uint32						current_message_type_id;
 	uint32						flags;
-	InnerList					inner_list[InnerListCount];
+	MessageOrderInnerListT		order_inner_list;
+	MessageStatusInnerListT		pending_inner_list;
+	MessageStatusInnerListT		sending_inner_list;
+	MessageStatusInnerListT		cached_inner_list;
 };
 
 typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat>	MessageWriterPrintPairT;
@@ -345,7 +225,7 @@ typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat>	MessageWriterP
 std::ostream& operator<<(std::ostream &_ros, MessageWriterPrintPairT const &_msgwriter);
 
 inline bool MessageWriter::isNonSafeCacheEmpty()const{
-	return inner_list[InnerListCache].empty();
+	return cached_inner_list.empty();
 }
 
 }//namespace ipc

@@ -25,6 +25,7 @@ set(Headers
 	dynamicpointer.hpp
 	memoryfile.hpp
 	ioformat.hpp
+	innerlist.hpp
 )
 
 set(Inlines
