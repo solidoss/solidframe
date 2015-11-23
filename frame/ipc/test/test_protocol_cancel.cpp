@@ -12,21 +12,23 @@ struct InitStub{
 };
 
 InitStub initarray[] = {
-	{100000, frame::ipc::Message::SynchronousFlagE},
-	{16384000, frame::ipc::Message::SynchronousFlagE},
-	{8192000, frame::ipc::Message::SynchronousFlagE},
-	{4096000, frame::ipc::Message::SynchronousFlagE},
-	{2048000, frame::ipc::Message::SynchronousFlagE},
-	{1024000, frame::ipc::Message::SynchronousFlagE},
+	{100000, 0},
+	{16384000, 0},
+	{8192000, 0},
+	{4096000, 0},
+	{2048000, 0},
+	{1024000, 0},
 	{512000, frame::ipc::Message::SynchronousFlagE},
-	{256000, frame::ipc::Message::SynchronousFlagE},
-	{128000, frame::ipc::Message::SynchronousFlagE},
-	{64000, frame::ipc::Message::SynchronousFlagE},
-	{32000, frame::ipc::Message::SynchronousFlagE},
-	{16000, frame::ipc::Message::SynchronousFlagE},
-	{8000, frame::ipc::Message::SynchronousFlagE},
-	{4000, frame::ipc::Message::SynchronousFlagE},
-	{2000, frame::ipc::Message::SynchronousFlagE},
+	{256000, 0},
+	{128000, 0},
+	{64000, 0},
+	{32000, 0},
+	{16000, 0},
+	{8000, 0},
+	{4000, 0},
+	{2000, 0
+		
+	},
 };
 
 std::string						pattern;
@@ -156,7 +158,7 @@ void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessageP
 
 }//namespace
  
-int test_protocol_synchronous(int argc, char **argv){
+int test_protocol_cancel(int argc, char **argv){
 	
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG

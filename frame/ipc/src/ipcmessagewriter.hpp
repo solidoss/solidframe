@@ -54,6 +54,7 @@ public:
 	
 	//must be used under lock, i.e. under Connection's lock
 	MessageUid safeNewMessageUid(Configuration const &_rconfig);
+	MessageUid safeForcedNewMessageUid();
 	
 	bool isNonSafeCacheEmpty()const;
 	
@@ -183,6 +184,7 @@ private:
 	
 	bool isSynchronousInSendingQueue()const;
 	bool isAsynchronousInPendingQueue()const;
+	bool isDelayedCloseInPendingQueue()const;
 	
 	void doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig);
 	void doCompleteMessage(

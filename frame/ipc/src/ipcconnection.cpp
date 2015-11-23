@@ -533,11 +533,11 @@ void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, fr
 	cassert(isAtomicDelayedClosing());
 	bool				was_empty_msgwriter = msgwriter.empty();
 	MessageUid			msguid;
-	Configuration const &rconfig = service(_rctx).configuration();
+	//Configuration const &rconfig = service(_rctx).configuration();
 	
 	{
 		Locker<Mutex>		lock(service(_rctx).mutex(*this));
-		msguid = msgwriter.safeNewMessageUid(rconfig);
+		msguid = msgwriter.safeForcedNewMessageUid();//enqueueing close cannot fail
 	}
 	
 	msgwriter.enqueueClose(msguid);

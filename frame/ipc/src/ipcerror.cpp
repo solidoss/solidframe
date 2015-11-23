@@ -20,7 +20,9 @@ enum {
 	ErrorInactivityTimeoutE = 1,
 	ErrorTooManyKAPacketsReceivedE,
 	ErrorConnectionKilledE,
-	ErrorLibraryLogicE
+	ErrorLibraryLogicE,
+	ErrorConnectionDelayedClosedE,
+	ErrorDelayedClosePendingE,
 };
 class ErrorCategory: public ErrorCategoryT
 {     
@@ -54,6 +56,12 @@ std::string ErrorCategory::message(int _ev) const{
 		case ErrorLibraryLogicE:
 			oss<<"Library logic error";
 			break;
+		case ErrorConnectionDelayedClosedE:
+			oss<<"Connection delayed closed";
+			break;
+		case ErrorDelayedClosePendingE:
+			oss<<"Delayed Close is pending";
+			break;
 		default:
 			oss<<"Unknown";
 			break;
@@ -68,6 +76,8 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_too_many_keepalive_packets_received(ErrorTooManyKAPacketsReceivedE, category);
 /*extern*/ const ErrorConditionT error_connection_killed(ErrorConnectionKilledE, category);
 /*extern*/ const ErrorConditionT error_library_logic(ErrorLibraryLogicE, category);
+/*extern*/ const ErrorConditionT error_connection_delayed_closed(ErrorConnectionDelayedClosedE, category);
+/*extern*/ const ErrorConditionT error_delayed_closed_pending(ErrorDelayedClosePendingE, category);
 
 }//namespace ipc
 }//namespace frame

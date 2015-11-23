@@ -11,6 +11,7 @@
 #include "ipcutility.hpp"
 
 #include "frame/ipc/ipcconfiguration.hpp"
+#include "frame/ipc/ipcerror.hpp"
 
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
@@ -20,14 +21,19 @@ namespace frame{
 namespace ipc{
 //-----------------------------------------------------------------------------
 enum WriterFlags{
-	SynchronousMessageInSendingQueueFlag		= 1,
+	SynchronousMessageInSendingQueueFlag	= 1,
 	AsynchronousMessageInPendingQueueFlag	= 2,
+	DelayedCloseInPendingQueueFlag			= 4,
 };
 inline bool MessageWriter::isSynchronousInSendingQueue()const{
 	return (flags & SynchronousMessageInSendingQueueFlag) != 0;
 }
 inline bool MessageWriter::isAsynchronousInPendingQueue()const{
 	return (flags & AsynchronousMessageInPendingQueueFlag) != 0;
+}
+
+inline bool MessageWriter::isDelayedCloseInPendingQueue()const{
+	return (flags & DelayedCloseInPendingQueueFlag) != 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -53,6 +59,18 @@ MessageUid MessageWriter::safeNewMessageUid(Configuration const &_rconfig){
 		msguid = message_uid_cache_vec.back();
 		message_uid_cache_vec.pop_back();
 	}else if(message_idx_cache < _rconfig.max_writer_message_count){
+		msguid.unique = 0;
+		msguid.index = message_idx_cache.fetch_add(1);
+	}
+	return msguid;
+}
+//-----------------------------------------------------------------------------
+MessageUid MessageWriter::safeForcedNewMessageUid(){
+	MessageUid msguid;
+	if(message_uid_cache_vec.size()){
+		msguid = message_uid_cache_vec.back();
+		message_uid_cache_vec.pop_back();
+	}else{
 		msguid.unique = 0;
 		msguid.index = message_idx_cache.fetch_add(1);
 	}
@@ -85,13 +103,32 @@ void MessageWriter::enqueue(
 	MessageBundle &_rmsgbundle,
 	MessageUid const &_rmsguid,
 	Configuration const &_rconfig,
-	TypeIdMapT const &/*_ridmap*/,
-	ConnectionContext &/*_rctx*/
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx
 ){
 	cassert(not _rmsgbundle.message_ptr.empty());
 	cassert(_rmsguid.isValid());
 	
 	const size_t	idx = _rmsguid.index;
+	
+	if(isDelayedCloseInPendingQueue()){
+		//message cannot be enqued because a close is enqueued
+		ErrorConditionT		error = error_delayed_closed_pending;
+		
+		_rctx.message_flags = _rmsgbundle.message_flags;
+		
+		if(not FUNCTION_EMPTY(_rmsgbundle.response_fnc)){
+			MessagePointerT		msgptr;//the empty response message
+			
+			_rmsgbundle.response_fnc(_rctx, msgptr, error);
+			FUNCTION_CLEAR(_rmsgbundle.response_fnc);
+		}
+		
+		_ridmap[_rmsgbundle.message_type_id].complete_fnc(_rctx, _rmsgbundle.message_ptr, error);
+		
+		cached_inner_list.pushBack(idx);
+		return;
+	}
 		
 	if(idx >= message_vec.size()){
 		message_vec.resize(idx + 1);
@@ -137,7 +174,15 @@ void MessageWriter::enqueue(
 //-----------------------------------------------------------------------------
 void MessageWriter::enqueueClose(MessageUid const &_rmsguid){
 	const size_t	idx = _rmsguid.index;
-		
+	
+	if(isDelayedCloseInPendingQueue()){
+		//close cannot be enqued because one is already 
+		cached_inner_list.pushBack(idx);
+		return;
+	}
+	
+	flags |= DelayedCloseInPendingQueueFlag;
+	
 	if(idx >= message_vec.size()){
 		message_vec.resize(idx + 1);
 	}
@@ -402,7 +447,7 @@ char* MessageWriter::doFillPacket(
 		if(rmsgstub.msgbundle.message_ptr.empty()){
 			//we need to stop
 			if(pbufpos == _pbufbeg){
-				_rerror.assign(-1, _rerror.category());//TODO:
+				_rerror = error_connection_delayed_closed;
 				pbufpos = nullptr;
 				sending_inner_list.popFront();
 			}

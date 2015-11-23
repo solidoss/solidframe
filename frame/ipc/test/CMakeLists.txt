@@ -2,6 +2,8 @@
 set( IpcProtocolTestSuite
 	test_protocol_basic.cpp
 	test_protocol_synchronous.cpp
+	test_protocol_cancel.cpp
+	test_protocol_close.cpp
 )
 
 create_test_sourcelist( IpcProtocolTests test_ipc_protocol.cpp ${IpcProtocolTestSuite})
@@ -21,6 +23,8 @@ target_link_libraries(test_ipc_protocol
 add_test( TestProtocol test_ipc_protocol
 	test_protocol_basic
 	test_protocol_synchronous
+	test_protocol_cancel
+	test_protocol_close
 )
 
 #==============================================================================

@@ -1,5 +1,6 @@
 #include "test_protocol_common.hpp"
 #include "system/exception.hpp"
+#include "frame/ipc/ipcerror.hpp"
 
 using namespace solid;
 
@@ -12,21 +13,23 @@ struct InitStub{
 };
 
 InitStub initarray[] = {
-	{100000, frame::ipc::Message::SynchronousFlagE},
-	{16384000, frame::ipc::Message::SynchronousFlagE},
-	{8192000, frame::ipc::Message::SynchronousFlagE},
-	{4096000, frame::ipc::Message::SynchronousFlagE},
-	{2048000, frame::ipc::Message::SynchronousFlagE},
-	{1024000, frame::ipc::Message::SynchronousFlagE},
+	{100000, 0},
+	{16384000, 0},
+	{8192000, 0},
+	{4096000, 0},
+	{2048000, 0},
+	{1024000, 0},
 	{512000, frame::ipc::Message::SynchronousFlagE},
-	{256000, frame::ipc::Message::SynchronousFlagE},
-	{128000, frame::ipc::Message::SynchronousFlagE},
-	{64000, frame::ipc::Message::SynchronousFlagE},
-	{32000, frame::ipc::Message::SynchronousFlagE},
-	{16000, frame::ipc::Message::SynchronousFlagE},
-	{8000, frame::ipc::Message::SynchronousFlagE},
-	{4000, frame::ipc::Message::SynchronousFlagE},
-	{2000, frame::ipc::Message::SynchronousFlagE},
+	{256000, 0},
+	{128000, 0},
+	{64000, 0},
+	{32000, 0},
+	{16000, 0},
+	{8000, 0},
+	{4000, 0},
+	{2000, 0
+		
+	},
 };
 
 std::string						pattern;
@@ -117,14 +120,13 @@ frame::ipc::MessageWriter& messageWriter(frame::ipc::MessageWriter *_pmsgw = nul
 
 
 void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr){
-	
 	if(not static_cast<Message&>(*_rmsgptr).check()){
 		THROW_EXCEPTION("Message check failed.");
 	}
 	
-	if(static_cast<Message&>(*_rmsgptr).idx != crtreadidx){
-		THROW_EXCEPTION("Message index invalid - SynchronousFlagE failed.");
-	}
+// 	if(static_cast<Message&>(*_rmsgptr).idx != crtreadidx){
+// 		THROW_EXCEPTION("Message index invalid - SynchronousFlagE failed.");
+// 	}
 	
 	++crtreadidx;
 	
@@ -148,15 +150,15 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 }
 
 void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr){
-	if(_rerr){
+	if(_rerr and _rerr != frame::ipc::error_delayed_closed_pending){
 		THROW_EXCEPTION("Message complete with error");
 	}
-	idbg(static_cast<Message*>(_rmsgptr.get())->idx);
+	idbg(static_cast<Message*>(_rmsgptr.get())->idx<<" error "<<_rerr.message());
 }
 
 }//namespace
  
-int test_protocol_synchronous(int argc, char **argv){
+int test_protocol_close(int argc, char **argv){
 	
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
@@ -217,6 +219,8 @@ int test_protocol_synchronous(int argc, char **argv){
 		);
 	}
 	
+	ipcmsgwriter.enqueueClose(ipcmsgwriter.safeForcedNewMessageUid());
+	
 	
 	auto	complete_lambda(
 		[](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT const& _rmsgptr){
@@ -247,6 +251,7 @@ int test_protocol_synchronous(int argc, char **argv){
 			idbg("read");
 		}else{
 			idbg("done write");
+			cassert(error == frame::ipc::error_connection_delayed_closed);
 			is_running = false;
 		}
 	}

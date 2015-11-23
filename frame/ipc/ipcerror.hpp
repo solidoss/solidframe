@@ -19,7 +19,10 @@ namespace ipc{
 extern const ErrorConditionT error_inactivity_timeout;
 extern const ErrorConditionT error_too_many_keepalive_packets_received;
 extern const ErrorConditionT error_connection_killed;
+extern const ErrorConditionT error_connection_delayed_closed;
+extern const ErrorConditionT error_delayed_closed_pending;
 extern const ErrorConditionT error_library_logic;
+
 
 }//namespace ipc
 }//namespace frame

@@ -150,6 +150,7 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 		msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
 		msgbundle.message_ptr = std::move(frame::ipc::MessagePointerT(new Message(crtwriteidx)));
 		msgbundle.response_fnc = std::move(response_fnc);
+		msgbundle.message_type_id = ctx.ipctypemap->index(msgbundle.message_ptr.get());
 		
 		ctx.ipcmsgwriter->enqueue(
 			msgbundle,
@@ -220,7 +221,9 @@ int test_protocol_basic(int argc, char **argv){
 		
 		msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
 		msgbundle.message_ptr = std::move(frame::ipc::MessagePointerT(new Message(crtwriteidx)));
+		msgbundle.message_type_id = ctx.ipctypemap->index(msgbundle.message_ptr.get());
 		//msgbundle.response_fnc = std::move(response_fnc);
+		
 		
 		ipcmsgwriter.enqueue(
 			msgbundle, ipcmsgwriter.safeNewMessageUid(ipcconfig), ipcconfig, ipctypemap, ipcconctx
@@ -248,6 +251,9 @@ int test_protocol_basic(int argc, char **argv){
 	
 	while(is_running and !error){
 		uint32 bufsz = ipcmsgwriter.write(buf, bufcp, false, ipcconfig, ipctypemap, ipcconctx, error);
+		if(not ipcmsgwriter.isNonSafeCacheEmpty()){
+			ipcmsgwriter.safeMoveCacheToSafety();
+		}
 		if(!error and bufsz){
 			frame::ipc::MessageReader::CompleteFunctionT	completefnc(std::cref(complete_lambda));
 			ipcmsgreader.read(buf, bufsz, completefnc, ipcconfig, ipctypemap, ipcconctx, error);
