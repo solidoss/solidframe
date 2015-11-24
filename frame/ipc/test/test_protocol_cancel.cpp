@@ -1,5 +1,6 @@
 #include "test_protocol_common.hpp"
 #include "system/exception.hpp"
+#include "frame/ipc/ipcerror.hpp"
 
 using namespace solid;
 
@@ -8,28 +9,29 @@ namespace{
 
 struct InitStub{
 	size_t		size;
+	bool		cancel;
 	ulong		flags;
 };
 
 InitStub initarray[] = {
-	{100000, 0},
-	{16384000, 0},
-	{8192000, 0},
-	{4096000, 0},
-	{2048000, 0},
-	{1024000, 0},
-	{512000, frame::ipc::Message::SynchronousFlagE},
-	{256000, 0},
-	{128000, 0},
-	{64000, 0},
-	{32000, 0},
-	{16000, 0},
-	{8000, 0},
-	{4000, 0},
-	{2000, 0
-		
-	},
+	{100000,	false,	0},//first message must not be canceled
+	{16384000,	false,	0},//not caceled
+	{8192000,	true,	frame::ipc::Message::SynchronousFlagE},
+	{4096000,	true,	0},
+	{2048000,	false,	0},//not caceled
+	{1024000,	true,	0},
+	{512000,	false,	frame::ipc::Message::SynchronousFlagE},//not canceled
+	{256000,	true,	0},
+	{128000,	true,	0},
+	{64000,		true,	0},
+	{32000,		false,	0},//not canceled
+	{16000,		true,	0},
+	{8000,		true,	0},
+	{4000,		true,	0},
+	{2000,		true,	0},
 };
+
+typedef std::vector<frame::ipc::MessageUid>		MessageUidVectorT;
 
 std::string						pattern;
 const size_t					initarraysize = sizeof(initarray)/sizeof(InitStub);
@@ -37,6 +39,8 @@ const size_t					initarraysize = sizeof(initarray)/sizeof(InitStub);
 size_t							crtwriteidx = 0;
 size_t							crtreadidx  = 0;
 size_t							writecount = 0;
+
+MessageUidVectorT				message_uid_vec;
 
 
 size_t real_size(size_t _sz){
@@ -97,6 +101,9 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	
 };
 
+
+typedef DynamicPointer<Message>	MessagePointerT;
+
 void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr);
 void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr);
 
@@ -123,37 +130,29 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 	if(not static_cast<Message&>(*_rmsgptr).check()){
 		THROW_EXCEPTION("Message check failed.");
 	}
-	
-	if(static_cast<Message&>(*_rmsgptr).idx != crtreadidx){
-		THROW_EXCEPTION("Message index invalid - SynchronousFlagE failed.");
-	}
+	size_t idx = static_cast<Message&>(*_rmsgptr).idx;
+	cassert(not initarray[idx % initarraysize].cancel);
 	
 	++crtreadidx;
 	
-	idbg(crtreadidx);
-		
-	if(crtwriteidx < writecount){
-		frame::ipc::MessageBundle	msgbundle;
-		
-		msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
-		msgbundle.message_ptr = std::move(frame::ipc::MessagePointerT(new Message(crtwriteidx)));
-		msgbundle.message_type_id = ctx.ipctypemap->index(msgbundle.message_ptr.get());
-		//msgbundle.response_fnc = std::move(response_fnc);
-		
-		ctx.ipcmsgwriter->enqueue(
-			msgbundle,
-			ctx.ipcmsgwriter->safeNewMessageUid(*ctx.ipcconfig),
-			*ctx.ipcconfig, *ctx.ipctypemap, ipcconctx
-		);
-		++crtwriteidx;
+	if(crtreadidx == 1){
+		idbg(crtreadidx<<" canceling all messages");
+		for(auto msguid:message_uid_vec){
+			idbg("Cancel message: "<<msguid);
+			ctx.ipcmsgwriter->cancel(msguid, *ctx.ipcconfig, *ctx.ipctypemap, ipcconctx);
+		}
+	}else{
+		idbg(crtreadidx);
 	}
 }
 
 void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr){
-	if(_rerr){
+	if(_rerr and _rerr != frame::ipc::error_message_canceled){
 		THROW_EXCEPTION("Message complete with error");
 	}
-	idbg(static_cast<Message*>(_rmsgptr.get())->idx);
+	size_t idx = static_cast<Message&>(*_rmsgptr).idx;
+	cassert((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_message_canceled));
+	idbg(static_cast<Message&>(*_rmsgptr).str.size()<<' '<<_rerr.message());
 }
 
 }//namespace
@@ -198,25 +197,34 @@ int test_protocol_cancel(int argc, char **argv){
 	ctx.ipcmsgreader	= &ipcmsgreader;
 	ctx.ipcmsgwriter	= &ipcmsgwriter;
 	
+	ipcconfig.max_writer_multiplex_message_count = 6;
+	
 	frame::ipc::TestEntryway::initTypeMap<::Message>(ipctypemap, complete_message, receive_message);
 	
-	const size_t					start_count = 10;
+	const size_t					start_count = 16;
 	
 	writecount = 16;//start_count;//
 	
 	for(; crtwriteidx < start_count; ++crtwriteidx){
 		frame::ipc::MessageBundle	msgbundle;
 		
+		
 		msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
 		msgbundle.message_ptr = std::move(frame::ipc::MessagePointerT(new Message(crtwriteidx)));
 		msgbundle.message_type_id = ctx.ipctypemap->index(msgbundle.message_ptr.get());
 		//msgbundle.response_fnc = std::move(response_fnc);
 		
+		message_uid_vec.push_back(ipcmsgwriter.safeNewMessageUid(ipcconfig));
+		
 		ipcmsgwriter.enqueue(
 			msgbundle,
-			ipcmsgwriter.safeNewMessageUid(ipcconfig),
+			message_uid_vec.back(),
 			ipcconfig, ipctypemap, ipcconctx
 		);
+		if(not initarray[crtwriteidx % initarraysize].cancel){
+			idbg("do not cancel "<<message_uid_vec.back());
+			message_uid_vec.pop_back(); //we do not cancel this one
+		}
 	}
 	
 	

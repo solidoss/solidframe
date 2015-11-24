@@ -23,6 +23,7 @@ enum {
 	ErrorLibraryLogicE,
 	ErrorConnectionDelayedClosedE,
 	ErrorDelayedClosePendingE,
+	ErrorMessageCanceledE,
 };
 class ErrorCategory: public ErrorCategoryT
 {     
@@ -62,6 +63,9 @@ std::string ErrorCategory::message(int _ev) const{
 		case ErrorDelayedClosePendingE:
 			oss<<"Delayed Close is pending";
 			break;
+		case ErrorMessageCanceledE:
+			oss<<"Message canceled";
+			break;
 		default:
 			oss<<"Unknown";
 			break;
@@ -78,6 +82,7 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_library_logic(ErrorLibraryLogicE, category);
 /*extern*/ const ErrorConditionT error_connection_delayed_closed(ErrorConnectionDelayedClosedE, category);
 /*extern*/ const ErrorConditionT error_delayed_closed_pending(ErrorDelayedClosePendingE, category);
+/*extern*/ const ErrorConditionT error_message_canceled(ErrorMessageCanceledE, category);
 
 }//namespace ipc
 }//namespace frame

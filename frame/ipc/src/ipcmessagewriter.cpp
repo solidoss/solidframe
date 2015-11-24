@@ -218,7 +218,7 @@ void MessageWriter::cancel(
 	){
 		const size_t		msgidx = _rmsguid.index;
 		MessageStub			&rmsgstub(message_vec[msgidx]);
-		ErrorConditionT		error;
+		ErrorConditionT		error = error_message_canceled;
 		
 		cassert(rmsgstub.inner_status != InnerStatusInvalid);
 		
@@ -226,7 +226,6 @@ void MessageWriter::cancel(
 		
 		_rctx.message_flags = rmsgstub.msgbundle.message_flags;
 		
-		error.assign(-1, error.category());//TODO: canceled
 		
 		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.response_fnc)){
 			MessagePointerT		msgptr;//the empty response message
@@ -438,13 +437,13 @@ char* MessageWriter::doFillPacket(
 	uint32					freesz = _pbufend - pbufpos;
 	
 	SerializerPointerT		tmp_serializer;
-	
+	size_t					packet_message_count = 0;
 	while(sending_inner_list.size() and freesz >= MinimumFreePacketDataSize){
 		const size_t			msgidx = sending_inner_list.frontIndex();
 		MessageStub				&rmsgstub = message_vec[msgidx];
 		PacketHeader::Types		msgswitch;// = PacketHeader::ContinuedMessageTypeE;
 		
-		if(rmsgstub.msgbundle.message_ptr.empty()){
+		if(rmsgstub.isStop()){
 			//we need to stop
 			if(pbufpos == _pbufbeg){
 				_rerror = error_connection_delayed_closed;
@@ -457,15 +456,16 @@ char* MessageWriter::doFillPacket(
 		
 		msgswitch = doPrepareMessageForSending(rmsgstub, _rconfig, _ridmap, _rctx, tmp_serializer);
 		
-		if(pbufpos == _pbufbeg){
+		if(packet_message_count == 0){
 			//first message in the packet
 			_rpacket_options.packet_type = msgswitch;
 		}else{
 			uint8	tmp = static_cast<uint8>(msgswitch);
 			pbufpos = SerializerT::storeValue(pbufpos, tmp);
 		}
+		++packet_message_count;
 		
-		if(Message::is_canceled(rmsgstub.msgbundle.message_flags)){
+		if(rmsgstub.isCanceled()){
 			//message already completed - just drop it from lists
 			order_inner_list.erase(msgidx);
 			sending_inner_list.erase(msgidx);
@@ -588,7 +588,7 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 		//"ext" data allocation in serializer.
 		_rmsgstub.serializer_ptr->pushCross(current_message_type_id, "message_type_id");
 		
-	}else if(Message::is_canceled(_rmsgstub.msgbundle.message_flags)){
+	}else if(_rmsgstub.isCanceled()){
 		
 		if(_rmsgstub.packet_count == 0){
 			msgswitch = PacketHeader::SwitchToOldCanceledMessageTypeE;

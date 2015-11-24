@@ -84,14 +84,15 @@ private:
 		MessageStub():message_type_idx(InvalidIndex()), packet_count(0){}
 		
 		void clear(){
-			message_ptr.clear();
 			deserializer_ptr = nullptr;
+			message_ptr.clear();
+			message_type_idx = InvalidIndex();
 		}
 		
 		MessagePointerT 		message_ptr;
 		size_t					message_type_idx;
 		DeserializerPointerT	deserializer_ptr;
-		size_t				packet_count;
+		size_t					packet_count;
 	};
 	
 	typedef Queue<MessageStub>		MessageQueueT;

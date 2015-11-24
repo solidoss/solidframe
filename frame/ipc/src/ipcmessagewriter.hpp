@@ -149,6 +149,14 @@ private:
 			serializer_ptr = nullptr;
 		}
 		
+		bool isStop()const noexcept {
+			return msgbundle.message_ptr.empty() and not Message::is_canceled(msgbundle.message_flags);
+		}
+		
+		bool isCanceled()const noexcept {
+			return Message::is_canceled(msgbundle.message_flags);
+		}
+		
 		MessageBundle				msgbundle;
 		uint32						unique;
 		size_t						packet_count;

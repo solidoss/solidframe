@@ -200,12 +200,13 @@ void MessageReader::doConsumePacket(
 				}
 				message_q.pop();
 				canceled_message = true;
-				message_q.pop();
+				message_q.front().clear();
 				break;
 			case PacketHeader::ContinuedCanceledMessageTypeE:
 				vdbgx(Debug::ipc, "ContinuedCanceledMessageTypeE "<<message_q.size());
 				cassert(message_q.size() and message_q.front().deserializer_ptr.get() and message_q.front().message_ptr.get());
-				message_q.pop();
+				message_q.front().clear();
+				
 				canceled_message = true;
 				break;
 			default:

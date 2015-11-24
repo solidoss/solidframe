@@ -118,6 +118,8 @@ struct PacketHeader{
 			case SwitchToNewMessageTypeE:
 			case SwitchToOldMessageTypeE:
 			case ContinuedMessageTypeE:
+			case SwitchToOldCanceledMessageTypeE:
+			case ContinuedCanceledMessageTypeE:
 			case KeepAliveTypeE:
 				break;
 			default:
