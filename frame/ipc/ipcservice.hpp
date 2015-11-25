@@ -391,8 +391,9 @@ public:
 		return doActivateConnection(_rconnection_uid, _recipient_name, msgfactory, _may_quit);
 	}
 	
-	void cancelMessage(ConnectionPoolUid const &_rpool_uid, MessageUid const &_rmsguid);
-	void cancelMessage(ConnectionUid const &_rconnection_uid, MessageUid const &_rmsguid);
+	ErrorConditionT cancelMessage(ConnectionPoolUid const &_rpool_uid, MessageUid const &_rmsguid);
+	
+	ErrorConditionT cancelMessage(ConnectionUid const &_rconnection_uid, MessageUid const &_rmsguid);
 	
 private:
 	friend struct ServiceProxy;
@@ -505,6 +506,7 @@ private:
 		ResponseHandlerFunctionT &_rresponse_fnc,
 		ConnectionPoolUid const &_rconpooluid,
 		ConnectionPoolUid *_pconpoolid_out,
+		MessageUid *_pmsguid_out,
 		ulong _flags
 	);
 	

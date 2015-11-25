@@ -24,6 +24,7 @@ enum {
 	ErrorConnectionDelayedClosedE,
 	ErrorDelayedClosePendingE,
 	ErrorMessageCanceledE,
+	ErrorConnectionInexistentE,
 };
 class ErrorCategory: public ErrorCategoryT
 {     
@@ -66,6 +67,9 @@ std::string ErrorCategory::message(int _ev) const{
 		case ErrorMessageCanceledE:
 			oss<<"Message canceled";
 			break;
+		case ErrorConnectionInexistentE:
+			oss<<"Connection does not exist";
+			break;
 		default:
 			oss<<"Unknown";
 			break;
@@ -83,7 +87,7 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_connection_delayed_closed(ErrorConnectionDelayedClosedE, category);
 /*extern*/ const ErrorConditionT error_delayed_closed_pending(ErrorDelayedClosePendingE, category);
 /*extern*/ const ErrorConditionT error_message_canceled(ErrorMessageCanceledE, category);
-
+/*extern*/ const ErrorConditionT error_connection_inexistent(ErrorConnectionInexistentE, category);
 }//namespace ipc
 }//namespace frame
 }//namespace solid
