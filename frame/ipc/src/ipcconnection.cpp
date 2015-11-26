@@ -498,7 +498,7 @@ void Connection::doHandleEventPush(
 	
 	rsendmsgvec.clear();
 	
-	if(msgwriter.isNonSafeCacheEmpty()){
+	if(not msgwriter.isNonSafeCacheEmpty()){
 		Locker<Mutex>	lock(service(_rctx).mutex(*this));
 		msgwriter.safeMoveCacheToSafety();
 	}
@@ -686,7 +686,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 	if(recv_something){
 		rthis.doResetTimerRecv(_rctx);
-		if(rthis.msgwriter.isNonSafeCacheEmpty()){
+		if(not rthis.msgwriter.isNonSafeCacheEmpty()){
 			Locker<Mutex>	lock(rthis.service(_rctx).mutex(rthis));
 			rthis.msgwriter.safeMoveCacheToSafety();
 		}
@@ -758,7 +758,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		
 		if(sent_something){
 			doResetTimerSend(_rctx);
-			if(msgwriter.isNonSafeCacheEmpty()){
+			if(not msgwriter.isNonSafeCacheEmpty()){
 				Locker<Mutex>	lock(service(_rctx).mutex(*this));
 				msgwriter.safeMoveCacheToSafety();
 			}

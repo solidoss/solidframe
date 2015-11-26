@@ -44,6 +44,8 @@ struct InitStub{
 	ulong		flags;
 };
 
+//NOTE: if making more messages non-cancelable, please consider to change the value of expected_transfered_count
+
 InitStub initarray[] = {
 	{100000,	false,	0},//first message must not be canceled
 	{16384000,	false,	0},//not caceled
@@ -53,14 +55,16 @@ InitStub initarray[] = {
 	{1024000,	true,	0},
 	{512000,	false,	frame::ipc::Message::SynchronousFlagE},//not canceled
 	{256000,	true,	0},
-	{128000,	true,	0},
-	{64000,		true,	0},
+	{1280000,	true,	0},
+	{6400000,	true,	0},
 	{32000,		false,	0},//not canceled
-	{16000,		true,	0},
-	{8000,		true,	0},
-	{4000,		true,	0},
-	{2000,		true,	0},
+	{1600000,	true,	0},
+	{8000000,	true,	0},
+	{4000000,	true,	0},
+	{200000,	true,	0},
 };
+
+const size_t					expected_transfered_count = 5;
 
 typedef std::vector<frame::ipc::MessageUid>		MessageUidVectorT;
 
@@ -200,7 +204,7 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	
 	++crtbackidx;
 	
-	if(crtbackidx == 5){
+	if(crtbackidx == expected_transfered_count){
 		Locker<Mutex> lock(mtx);
 		running = false;
 		cnd.signal();
@@ -233,9 +237,9 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	server_connection_uid = _rctx.connectionId();
 	
 	// Step 2
-	writecount = 16;//start_count;//
+	writecount = initarraysize;//start_count;//
 	
-	for(; crtwriteidx < writecount; ++crtwriteidx){
+	for(crtwriteidx = 0; crtwriteidx < writecount; ++crtwriteidx){
 		frame::ipc::MessageUid msguid;
 		
 		ErrorConditionT err = _rctx.service().sendMessage(
@@ -416,7 +420,6 @@ int test_clientserver_cancel(int argc, char **argv){
 		{
 			//Step 1.
 			frame::ipc::MessagePointerT	msgptr(new Message(0));
-			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost:6666", msgptr,
 				initarray[0].flags
@@ -437,7 +440,7 @@ int test_clientserver_cancel(int argc, char **argv){
 			}
 		}
 		
-		if(crtbackidx != 5){
+		if(crtbackidx != expected_transfered_count){
 			THROW_EXCEPTION("Not all messages were completed");
 		}
 		
