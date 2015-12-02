@@ -42,7 +42,13 @@ struct ConnectionUid{
 	
 	ConnectionUid(){}
 	
-	ConnectionUid(const ConnectionUid &_rconuid): poolid(_rconuid.poolid), connectionid(_rconuid.connectionid){}
+	ConnectionUid(
+		const ConnectionUid &_rconuid
+	): poolid(_rconuid.poolid), connectionid(_rconuid.connectionid){}
+	
+	explicit ConnectionUid(
+		const ObjectUidT &_rconid
+	):connectionid(_rconid){}
 	
 	
 	bool isInvalid()const{
@@ -53,12 +59,22 @@ struct ConnectionUid{
 		return connectionid.isInvalid();
 	}
 	
+	bool isValidConnection()const{
+		return connectionid.isValid();
+	}
+	
 	bool isInvalidPool()const{
 		return poolid.isInvalid();
 	}
+	
+	bool isValidPool()const{
+		return poolid.isValid();
+	}
+	
 	ConnectionPoolUid const& poolId()const{
 		return poolid;
 	}
+	
 	ObjectUidT const& connectionId()const{
 		return connectionid;
 	}

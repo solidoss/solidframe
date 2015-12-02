@@ -63,28 +63,44 @@ typedef CPP11_NS::unordered_map<
 >														NameMapT;
 typedef Queue<ObjectUidT>								ObjectUidQueueT;
 
-struct MessageStub{
+enum{
+		InnerLinkOrder = 0,
+		InnerLinkCount
+	};
+
+struct MessageStub: InnerNode<InnerLinkCount>{
 	MessageStub(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags
-	): msgptr(std::move(_rmsgptr)), msg_type_idx(_msg_type_idx), response_fnc(std::move(_rresponse_fnc)), flags(_flags){}
+	): msgbundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc){}
 	
 	MessageStub(
-		MessageStub && _rrmsg
-	): msgptr(std::move(_rrmsg.msgptr)), msg_type_idx(_rrmsg.msg_type_idx), response_fnc(std::move(_rrmsg.response_fnc)), flags(_rrmsg.flags){}
+		MessageStub & _rmsg
+	): msgbundle(_rmsg.msgbundle){}
 	
-	MessagePointerT 			msgptr;
-	const size_t				msg_type_idx;
-	ResponseHandlerFunctionT 	response_fnc;
-	ulong						flags;
+	MessageStub	msgbundle;
 };
 
-typedef Queue<MessageStub>								MessageQueueT;
+typedef std::vector<MessageStub>						MessageVectorT;
+typedef InnerList<MessageVectorT, InnerLinkOrder>		MessageOrderInnerListT;
+typedef InnerList<MessageVectorT, InnerLinkOrder>		MessageCacheInnerListT;
 
 struct ConnectionPoolStub{
-	ConnectionPoolStub():uid(0), pending_connection_count(0), active_connection_count(0){}
+	uint32					uid;
+	size_t					pending_connection_count;
+	size_t					active_connection_count;
+	std::string				name;
+	ObjectUidT 				synchronous_connection_uid;
+	MessageVectorT			msgvec;
+	MessageOrderInnerListT	msgorder_inner_list;
+	MessageOrderInnerListT	msgcache_inner_list;
+	ObjectUidQueueT			conn_waitingq;
+	
+	ConnectionPoolStub(
+	):	uid(0), pending_connection_count(0), active_connection_count(0),
+		msgorder_inner_list(msgvec), msgcache_inner_list(msgvec){}
 	
 	void clear(){
 		name.clear();
@@ -92,19 +108,47 @@ struct ConnectionPoolStub{
 		++uid;
 		pending_connection_count = 0;
 		active_connection_count = 0;
-		cassert(msgq.empty());
 		while(conn_waitingq.size()){
 			conn_waitingq.pop();
 		}
+		cassert(msgorder_inner_list.empty());
+		msgcache_inner_list.clear();
+		msgvec.clear();
 	}
 	
-	uint32			uid;
-	size_t			pending_connection_count;
-	size_t			active_connection_count;
-	std::string		name;
-	ObjectUidT 		synchronous_connection_uid;
-	MessageQueueT	msgq;
-	ObjectUidQueueT	conn_waitingq;
+	size_t pushMessage(
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
+		ulong _flags
+	){
+		size_t	idx;
+		if(msgcache_inner_list.size()){
+			idx = msgcache_inner_list.frontIndex();
+			msgcache_inner_list.popFront();
+		}else{
+			idx = msgvec.size();
+			msgvec.push_back(MessageStub{});
+		}
+		
+		MessageStub	&rmsgstub{msgvec[idx]};
+		rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc);
+		return idx;
+	}
+	
+	void pushBackMessage(
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
+		ulong _flags
+	){
+		msgorder_inner_list.pushBack(pushMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
+	}
+	
+	void popFrontMessage(){
+		msgcache_inner_list.pushBack(msgorder_inner_list.frontIndex());
+		msgorder_inner_list.popFront();
+	}
 };
 
 typedef std::deque<ConnectionPoolStub>					ConnectionPoolDequeT;
@@ -425,7 +469,7 @@ ErrorConditionT Service::doSendMessage(
 			
 			d.config.name_resolve_fnc(rconpool.name, cbk);
 			
-			rconpool.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags));
+			rconpool.pushBackMessage(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags);
 			++rconpool.pending_connection_count;
 			
 			return err;
@@ -536,7 +580,7 @@ ErrorConditionT Service::doSendMessage(
 		}
 	}
 	
-	rconpool.msgq.push(MessageStub(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags));
+	rconpool.pushBackMessage(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags);
 	
 	return err;
 }
@@ -549,39 +593,39 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 	if(rconpool.uid != _rcon.poolUid().unique) return;
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon<<" msg_q_size "<<rconpool.msgq.size());
-	if(rconpool.msgq.size()){
+	if(rconpool.msgorder_inner_list.size()){
 		//we have something to send
 		if(
-			Message::is_asynchronous(rconpool.msgq.front().flags) or 
+			Message::is_asynchronous(rconpool.msgorder_inner_list.front().msgbundle.message_flags) or 
 			this->manager().id(_rcon) == rconpool.synchronous_connection_uid
 		){
-			MessageStub		&rmsgstub = rconpool.msgq.front();
-			MessageBundle	msgbundle(rmsgstub.msgptr, rmsgstub.msg_type_idx, rmsgstub.flags, rmsgstub.response_fnc);
-			_rcon.directPushMessage(_rctx, msgbundle, nullptr);
-			rconpool.msgq.pop();
+			MessageStub		&rmsgstub = rconpool.msgorder_inner_list.front();
+			_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, nullptr);
+			rconpool.popFrontMessage();
 		}else if(rconpool.synchronous_connection_uid.isInvalid()){
-			MessageStub	&rmsgstub = rconpool.msgq.front();
-			MessageBundle	msgbundle(rmsgstub.msgptr, rmsgstub.msg_type_idx, rmsgstub.flags, rmsgstub.response_fnc);
-			_rcon.directPushMessage(_rctx, msgbundle, nullptr);
+			MessageStub		&rmsgstub = rconpool.msgorder_inner_list.front();
+			_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, nullptr);
 			rconpool.synchronous_connection_uid = this->manager().id(_rcon);
-			rconpool.msgq.pop();
+			rconpool.popFrontMessage();
 		}else{
 			//worse case scenario - we must skip the current synchronous message
 			//and find an asynchronous one
-			size_t		qsz = rconpool.msgq.size();
+			size_t		qsz = rconpool.msgorder_inner_list.size();
 			bool		found = false;
 			
 			while(qsz--){
-				MessageStub		msgstub(std::move(rconpool.msgq.front()));
+				MessageStub		&msgstub(rconpool.msgorder_inner_list.front());
 				
-				rconpool.msgq.pop();
+				//rconpool.msgq.pop();
+				const size_t	crtidx = rconpool.msgorder_inner_list.frontIndex();
 				
-				if(not found and Message::is_asynchronous(msgstub.flags)){
-					MessageBundle	msgbundle(msgstub.msgptr, msgstub.msg_type_idx, msgstub.flags, msgstub.response_fnc);
-					_rcon.directPushMessage(_rctx, msgbundle, nullptr);
+				if(not found and Message::is_asynchronous(msgstub.msgbundle.message_flags)){
+					
+					_rcon.directPushMessage(_rctx, msgstub.msgbundle, nullptr);
 					found = true;
+					
 				}else{
-					rconpool.msgq.push(std::move(msgstub));
+					rconpool.msgorder_inner_list.pushBack(crtidx);
 				}
 			}
 			
@@ -696,21 +740,22 @@ ErrorConditionT Service::forcedConnectionClose(
 	return error;
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::cancelMessage(ConnectionPoolUid const &_rpool_uid, MessageUid const &_rmsguid){
-	ErrorConditionT		error;
-	error.assign(-1, error.category());
-	return error;
-}
-//-----------------------------------------------------------------------------
 ErrorConditionT Service::cancelMessage(ConnectionUid const &_rconnection_uid, MessageUid const &_rmsguid){
-	ErrorConditionT						error;
-	CancelMessageConnectionVistiorF		fnc(*this, error, _rmsguid);
+	ErrorConditionT		error;
 	
-	bool								success = manager().visit(_rconnection_uid.connectionId(), fnc);
-	if(success){
-		cassert(not error);
-	}else if(not error){
-		error = error_connection_inexistent;
+	if(_rconnection_uid.isValidPool()){
+		
+	}else if(_rconnection_uid.isValidConnection()){
+		CancelMessageConnectionVistiorF		fnc(*this, error, _rmsguid);
+		
+		bool								success = manager().visit(_rconnection_uid.connectionId(), fnc);
+		if(success){
+			cassert(not error);
+		}else if(not error){
+			error = error_connection_inexistent;
+		}
+	}else{
+		error.assign(-1, error.category());//invalid connectionuid
 	}
 	return error;
 }

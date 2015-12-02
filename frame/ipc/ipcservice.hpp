@@ -391,8 +391,6 @@ public:
 		return doActivateConnection(_rconnection_uid, _recipient_name, msgfactory, _may_quit);
 	}
 	
-	ErrorConditionT cancelMessage(ConnectionPoolUid const &_rpool_uid, MessageUid const &_rmsguid);
-	
 	ErrorConditionT cancelMessage(ConnectionUid const &_rconnection_uid, MessageUid const &_rmsguid);
 	
 private:

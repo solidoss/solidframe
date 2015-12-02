@@ -161,7 +161,6 @@ private:
 		uint32						unique;
 		size_t						packet_count;
 		SerializerPointerT			serializer_ptr;
-		InnerLink					inner_link[InnerLinkCount];
 		InnerStatus					inner_status;
 	};
 	

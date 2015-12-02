@@ -88,7 +88,7 @@ Enabled for two scenarios:
 	* Idempotent messages:
 		* when fully sent
 		* or, if expecting response, until receiving the response
-* Normal behavior: in other words: it will wait for the peer side to become available then send the messages
+* Will wait for the peer side to become available then send the messages
 * For Messages with OneShotSendFlag, ipc::service will try to call complete asap - will imediately fail if no connection to server
 * Canceling a message means that:
 	* no "complete" callback will be called on the message
