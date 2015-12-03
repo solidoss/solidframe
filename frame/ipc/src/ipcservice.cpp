@@ -77,10 +77,12 @@ struct MessageStub: InnerNode<InnerLinkCount>{
 	): msgbundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc){}
 	
 	MessageStub(
-		MessageStub & _rmsg
-	): msgbundle(_rmsg.msgbundle){}
+		MessageStub && _rmsg
+	): msgbundle(std::move(_rmsg.msgbundle)){}
 	
-	MessageStub	msgbundle;
+	MessageStub(){}
+	
+	MessageBundle	msgbundle;
 };
 
 typedef std::vector<MessageStub>						MessageVectorT;
@@ -592,7 +594,7 @@ void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, 
 	cassert(rconpool.uid == _rcon.poolUid().unique);
 	if(rconpool.uid != _rcon.poolUid().unique) return;
 	
-	idbgx(Debug::ipc, this<<' '<<&_rcon<<" msg_q_size "<<rconpool.msgq.size());
+	idbgx(Debug::ipc, this<<' '<<&_rcon<<" msg_q_size "<<rconpool.msgorder_inner_list.size());
 	if(rconpool.msgorder_inner_list.size()){
 		//we have something to send
 		if(
@@ -1011,18 +1013,19 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 		if(!rconpool.active_connection_count and !rconpool.pending_connection_count){
 			//_rcon is the last dying connection
 			//so, move all pending messages to _rcon for completion
-			while(rconpool.msgq.size()){
-				MessageStub 	&rmsgstub = rconpool.msgq.front();
-				MessageBundle	msgbundle(rmsgstub.msgptr, rmsgstub.msg_type_idx, rmsgstub.flags, rmsgstub.response_fnc);
-				_rcon.directPushMessage(_rctx, msgbundle, nullptr);
-				rconpool.msgq.pop();
+			while(rconpool.msgorder_inner_list.size()){
+				MessageStub 	&rmsgstub = rconpool.msgorder_inner_list.front();
+				
+				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, nullptr);
+				
+				rconpool.popFrontMessage();
 			}
 			
 			d.conpoolcachestk.push(conpoolid.index);
 		
 			rconpool.clear();
 		}else{
-			size_t		qsz = rconpool.msgq.size();
+			size_t		qsz = rconpool.msgorder_inner_list.size();
 			
 			_rcon.fetchUnsentMessages(
 				[this](
@@ -1036,13 +1039,14 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 				}
 			);
 			
-			if(rconpool.msgq.size() > qsz){
-				//move the newly pushed messages up-front of msgq.
-				//rotate msgq by qsz
+			if(rconpool.msgorder_inner_list.size() > qsz){
+				//move the newly pushed messages up-front of msgorder_inner_list.
+				//rotate msgorder_inner_list by qsz
 				while(qsz--){
-					MessageStub msgstub(std::move(rconpool.msgq.front()));
-					rconpool.msgq.pop();
-					rconpool.msgq.push(std::move(msgstub));
+					const size_t	idx{rconpool.msgorder_inner_list.frontIndex()};
+					
+					rconpool.msgorder_inner_list.popFront();
+					rconpool.msgorder_inner_list.pushBack(idx);
 				}
 			}
 		}
@@ -1062,7 +1066,7 @@ void Service::pushBackMessageToConnectionPool(
 	
 	if(Message::is_idempotent(_flags) or (/*not Message::is_started_send(_flags) and*/ not Message::is_done_send(_flags))){
 		_flags &= ~(Message::DoneSendFlagE | Message::StartedSendFlagE);
-		rconpool.msgq.push(MessageStub(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags));
+		rconpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
 	}
 }
 //-----------------------------------------------------------------------------
