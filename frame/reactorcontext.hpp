@@ -46,7 +46,7 @@ struct ReactorContext{
 	Object& object()const;
 	Service& service()const;
 	
-	UidT objectUid()const;
+	UniqueId objectUid()const;
 	
 	void clearError(){
 		err.clear();

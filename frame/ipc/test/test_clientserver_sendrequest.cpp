@@ -159,34 +159,34 @@ struct Response: Dynamic<Response, frame::ipc::Message>{
 };
 
 void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	if(!running){
 		++connection_count;
 	}
 }
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
+	idbg(_rctx.recipientId());
+	_rctx.service().activateConnection(_rctx.recipientId());
 }
 
 void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
+	idbg(_rctx.recipientId());
+	_rctx.service().activateConnection(_rctx.recipientId());
 }
 
 
 void client_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	THROW_EXCEPTION("Received request on client.");
 }
 
 void client_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	
 	transfered_size += _rmsgptr->str.size();
 	++transfered_count;
@@ -206,16 +206,16 @@ void client_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointe
 
 
 void client_complete_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 void client_complete_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 
 void on_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	++crtbackidx;
 	++crtackidx;
 }
@@ -228,7 +228,7 @@ struct ResponseHandler{
 
 
 void server_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr){
-	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->requestId());
+	idbg(_rctx.recipientId()<<" message id on sender "<<_rmsgptr->requestId());
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
 	}
@@ -239,7 +239,7 @@ void server_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	
 	//send message back
 	frame::ipc::MessagePointerT	msgptr(new Response(*_rmsgptr));
-	_rctx.service().sendMessage(_rctx.connectionId(), msgptr);
+	_rctx.service().sendMessage(_rctx.recipientId(), msgptr);
 	
 	++crtreadidx;
 	idbg(crtreadidx);
@@ -259,17 +259,17 @@ void server_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 }
 
 void server_receive_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	THROW_EXCEPTION("Received response on server.");
 }
 
 void server_complete_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	THROW_EXCEPTION("Complete request on server.");
 }
 
 void server_complete_response(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 }//namespace

@@ -97,7 +97,7 @@ public:
 	
 	bool start();
 	
-	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _revt);
+	/*virtual*/ bool raise(UniqueId const& _robjuid, Event const& _revt);
 	/*virtual*/ void stop();
 	
 	void registerCompletionHandler(CompletionHandler &_rch, Object const &_robj);
@@ -109,7 +109,7 @@ public:
 	Service& service(ReactorContext const &_rctx)const;
 	
 	Object& object(ReactorContext const &_rctx)const;
-	UidT objectUid(ReactorContext const &_rctx)const;
+	UniqueId objectUid(ReactorContext const &_rctx)const;
 	
 	CompletionHandler *completionHandler(ReactorContext const &_rctx)const;
 private:

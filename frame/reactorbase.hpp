@@ -26,7 +26,7 @@ class SchedulerBase;
  */
 class ReactorBase{
 public:
-	virtual bool raise(UidT const& _robjuid, Event const& _re) = 0;
+	virtual bool raise(UniqueId const& _robjuid, Event const& _re) = 0;
 	virtual void stop() = 0;
 	
 	bool prepareThread(const bool _success);
@@ -41,8 +41,8 @@ protected:
 	
 	void stopObject(ObjectBase &_robj, Manager &_rm);
 	SchedulerBase& scheduler();
-	UidT popUid(ObjectBase &_robj);
-	void pushUid(UidT const &_ruid);
+	UniqueId popUid(ObjectBase &_robj);
+	void pushUid(UniqueId const &_ruid);
 	
 	AtomicSizeT		crtload;
 	
@@ -51,7 +51,7 @@ private:
 	friend	class SchedulerBase;
 	size_t idInScheduler()const;
 private:
-	typedef Stack<UidT>		UidStackT;
+	typedef Stack<UniqueId>		UidStackT;
 	
 	SchedulerBase	&rsch;
 	size_t			schidx;
@@ -75,7 +75,7 @@ inline size_t ReactorBase::load()const{
 	return crtload;
 }
 
-inline void ReactorBase::pushUid(UidT const &_ruid){
+inline void ReactorBase::pushUid(UniqueId const &_ruid){
 	uidstk.push(_ruid);
 }
 

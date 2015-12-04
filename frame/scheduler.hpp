@@ -80,7 +80,7 @@ public:
 	}
 	
 	
-	ObjectUidT	startObject(
+	ObjectIdT	startObject(
 		ObjectPointerT &_robjptr, Service &_rsvc,
 		Event const &_revt, ErrorConditionT &_rerr
 	){

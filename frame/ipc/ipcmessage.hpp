@@ -80,7 +80,7 @@ struct Message: Dynamic<Message>{
 		return stt;
 	}
 	
-	RequestUid const& requestId()const{
+	RequestId const& requestId()const{
 		return requid;
 	}
 	
@@ -91,8 +91,8 @@ struct Message: Dynamic<Message>{
 			//on serialization we cannot use/modify the values stored by ipc::Message
 			//so, we'll use ones store in the context. Because the context is volatile
 			//we'll store as values.
-			_rs.pushCrossValue(_rctx.request_uid.index, "requid_idx");
-			_rs.pushCrossValue(_rctx.request_uid.unique, "requid_idx");
+			_rs.pushCrossValue(_rctx.request_id.index, "requid_idx");
+			_rs.pushCrossValue(_rctx.request_id.unique, "requid_idx");
 			_rs.pushValue(_rctx.message_state, "state");
 		}else{
 			_rs.pushCross(requid.index, "requid_idx");
@@ -118,7 +118,7 @@ private:
 		if(stt == 3) stt = 0;
 	}
 private:
-	RequestUid	requid;
+	RequestId	requid;
 	uint8		stt;
 };
 

@@ -130,11 +130,11 @@ public:
 
 struct NewTaskStub{
 	NewTaskStub(
-		UidT const&_ruid, TaskT const&_robjptr, Service &_rsvc, Event const &_revent
+		UniqueId const&_ruid, TaskT const&_robjptr, Service &_rsvc, Event const &_revent
 	):uid(_ruid), objptr(_robjptr), rsvc(_rsvc), event(_revent){}
 	
 	//NewTaskStub(){}
-	UidT		uid;
+	UniqueId		uid;
 	TaskT		objptr;
 	Service		&rsvc;
 	Event		event;
@@ -142,10 +142,10 @@ struct NewTaskStub{
 
 struct RaiseEventStub{
 	RaiseEventStub(
-		UidT const&_ruid, Event const &_revent
+		UniqueId const&_ruid, Event const &_revent
 	):uid(_ruid), event(_revent){}
 	
-	UidT		uid;
+	UniqueId		uid;
 	Event		event;
 };
 
@@ -179,20 +179,20 @@ enum{
 struct ExecStub{
 	template <class F>
 	ExecStub(
-		UidT const &_ruid, F _f, Event const &_revent = Event()
+		UniqueId const &_ruid, F _f, Event const &_revent = Event()
 	):objuid(_ruid), exefnc(_f), event(_revent){}
 	
 	template <class F>
 	ExecStub(
-		UidT const &_ruid, F _f, UidT const &_rchnuid, Event const &_revent = Event()
+		UniqueId const &_ruid, F _f, UniqueId const &_rchnuid, Event const &_revent = Event()
 	):objuid(_ruid), chnuid(_rchnuid), exefnc(_f), event(_revent){}
 	
 	ExecStub(
-		UidT const &_ruid, Event const &_revent = Event()
+		UniqueId const &_ruid, Event const &_revent = Event()
 	):objuid(_ruid), event(_revent){}
 	
-	UidT					objuid;
-	UidT					chnuid;
+	UniqueId					objuid;
+	UniqueId					chnuid;
 	Reactor::EventFunctionT	exefnc;
 	Event					event;
 };
@@ -201,7 +201,7 @@ typedef std::vector<NewTaskStub>			NewTaskVectorT;
 typedef std::vector<RaiseEventStub>			RaiseEventVectorT;
 typedef std::vector<epoll_event>			EpollEventVectorT;
 typedef std::deque<CompletionHandlerStub>	CompletionHandlerDequeT;
-typedef std::vector<UidT>					UidVectorT;
+typedef std::vector<UniqueId>					UidVectorT;
 typedef std::deque<ObjectStub>				ObjectDequeT;
 typedef Queue<ExecStub>						ExecQueueT;
 typedef Stack<size_t>						SizeStackT;
@@ -238,9 +238,9 @@ struct Reactor::Data{
 		}
 	}
 	
-	UidT dummyCompletionHandlerUid()const{
+	UniqueId dummyCompletionHandlerUid()const{
 		const size_t idx = eventobj.dummyhandler.idxreactor;
-		return UidT(idx, chdq[idx].unique);
+		return UniqueId(idx, chdq[idx].unique);
 	}
 	
 	int							epollfd;
@@ -305,7 +305,7 @@ bool Reactor::start(){
 	return true;
 }
 
-/*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _revent){
+/*virtual*/ bool Reactor::raise(UniqueId const& _robjuid, Event const& _revent){
 	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event = "<<_revent);
 	bool 	rv = true;
 	size_t	raisevecsz = 0;
@@ -335,7 +335,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
 	size_t	pushvecsz = 0;
 	{
 		Locker<Mutex>	lock(d.mtx);
-		const UidT		uid = this->popUid(*_robj);
+		const UniqueId		uid = this->popUid(*_robj);
 		
 		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event = "<<_revent);
 			
@@ -454,8 +454,8 @@ inline uint32 reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests
 }
 
 
-UidT Reactor::objectUid(ReactorContext const &_rctx)const{
-	return UidT(_rctx.objidx, d.objdq[_rctx.objidx].unique);
+UniqueId Reactor::objectUid(ReactorContext const &_rctx)const{
+	return UniqueId(_rctx.objidx, d.objdq[_rctx.objidx].unique);
 }
 
 Service& Reactor::service(ReactorContext const &_rctx)const{
@@ -481,7 +481,7 @@ void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Ev
 	vdbgx(Debug::aio, "exeq "<<d.exeq.size()<<' '<<&_rch);
 	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
 	d.exeq.back().exefnc = std::move(_revfn);
-	d.exeq.back().chnuid = UidT(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
+	d.exeq.back().chnuid = UniqueId(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
 }
 
 /*static*/ void Reactor::stop_object(ReactorContext &_rctx, Event const &){
@@ -516,7 +516,7 @@ void Reactor::doStopObject(ReactorContext &_rctx){
 	ros.psvc = nullptr;
  	++ros.unique;
 	--this->d.objcnt;
-	this->d.freeuidvec.push_back(UidT(_rctx.objidx, ros.unique));
+	this->d.freeuidvec.push_back(UniqueId(_rctx.objidx, ros.unique));
 }
 
 void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
@@ -855,7 +855,7 @@ Service& ReactorContext::service()const{
 	return reactor().service(*this);
 }
 
-UidT ReactorContext::objectUid()const{
+UniqueId ReactorContext::objectUid()const{
 	return reactor().objectUid(*this);
 }
 

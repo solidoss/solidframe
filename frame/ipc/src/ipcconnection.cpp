@@ -116,7 +116,7 @@ inline Service& Connection::service(frame::aio::ReactorContext &_rctx)const{
 	return static_cast<Service&>(_rctx.service());
 }
 //-----------------------------------------------------------------------------
-inline ObjectUidT Connection::uid(frame::aio::ReactorContext &_rctx)const{
+inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	return service(_rctx).manager().id(*this);
 }
 //-----------------------------------------------------------------------------
@@ -154,7 +154,7 @@ Connection::Connection(
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
-	ConnectionPoolUid const &_rconpoolid
+	ConnectionPoolId const &_rconpoolid
 ):	conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),
 	crtpushvecidx(0), flags(0), atomic_flags(0), receivebufoff(0), consumebufoff(0),
 	receive_keepalive_count(0),
@@ -179,7 +179,7 @@ bool Connection::pushMessage(
 	const size_t _msg_type_idx,
 	ResponseHandlerFunctionT &_rresponse_fnc,
 	ulong _flags,
-	MessageUid *_pmsguid,
+	MessageId *_pmsguid,
 	Event &_revent,
 	ErrorConditionT &_rerror
 ){
@@ -187,7 +187,7 @@ bool Connection::pushMessage(
 	//Under lock
 	if(not isAtomicStopping()){
 		if(not isAtomicDelayedClosing()){
-			MessageUid	msguid = msgwriter.safeNewMessageUid(_rservice.configuration());
+			MessageId	msguid = msgwriter.safeNewMessageId(_rservice.configuration());
 			
 			if(msguid.isValid()){
 				
@@ -225,16 +225,16 @@ bool Connection::pushMessage(
 void Connection::directPushMessage(
 	frame::aio::ReactorContext &_rctx,
 	MessageBundle &_rmsgbundle,
-	MessageUid *_pmsguid
+	MessageId *_pmsguid
 ){
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
-	MessageUid			msguid;
+	MessageId			msguid;
 	
 	{
 		Locker<Mutex>		lock(service(_rctx).mutex(*this));
-		msguid = msgwriter.safeNewMessageUid(rconfig);
+		msguid = msgwriter.safeNewMessageId(rconfig);
 	}
 	
 	msgwriter.enqueue(_rmsgbundle, msguid, rconfig, rtypemap, conctx);
@@ -246,7 +246,7 @@ void Connection::directPushMessage(
 //-----------------------------------------------------------------------------
 bool Connection::pushCancelMessage(
 	Service &_rservice,
-	MessageUid const &_rmsguid,
+	MessageId const &_rmsguid,
 	Event &_revent,
 	ErrorConditionT &_rerror
 ){
@@ -296,7 +296,7 @@ bool Connection::pushDelayedClose(
 //-----------------------------------------------------------------------------
 bool Connection::prepareActivate(
 	Service &_rservice,
-	ConnectionPoolUid const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
+	ConnectionPoolId const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
 ){
 	if(not isAtomicStopping()){
 		if(_rconpoolid.isValid()){
@@ -392,7 +392,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 }
 //-----------------------------------------------------------------------------
 void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
-	ObjectUidT			objuid(uid(_rctx));
+	ObjectIdT			objuid(uid(_rctx));
 	ConnectionContext	conctx(service(_rctx), *this);
 	
 	service(_rctx).onConnectionClose(*this, _rctx, objuid);//must be called after postStop!!
@@ -454,7 +454,7 @@ void Connection::doHandleEventActivate(
 		service(_rctx).activateConnectionComplete(*this);
 		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 	}else{
-		ObjectUidT			objuid;
+		ObjectIdT			objuid;
 		ErrorConditionT 	err;
 	
 		service(_rctx).onConnectionClose(*this, _rctx, objuid);
@@ -532,12 +532,12 @@ void Connection::doHandleEventResolve(
 void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, frame::Event const &/*_revent*/){
 	cassert(isAtomicDelayedClosing());
 	bool				was_empty_msgwriter = msgwriter.empty();
-	MessageUid			msguid;
+	MessageId			msguid;
 	//Configuration const &rconfig = service(_rctx).configuration();
 	
 	{
 		Locker<Mutex>		lock(service(_rctx).mutex(*this));
-		msguid = msgwriter.safeForcedNewMessageUid();//enqueueing close cannot fail
+		msguid = msgwriter.safeForcedNewMessageId();//enqueueing close cannot fail
 	}
 	
 	msgwriter.enqueueClose(msguid);
@@ -855,8 +855,8 @@ boost::any& ConnectionContext::any(){
 	return rconnection.any();
 }
 //-----------------------------------------------------------------------------
-ConnectionUid	ConnectionContext::connectionId()const{
-	return ConnectionUid(rconnection.poolUid(), rservice.manager().id(rconnection));
+RecipientId	ConnectionContext::recipientId()const{
+	return RecipientId(rconnection.poolId(), rservice.manager().id(rconnection));
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

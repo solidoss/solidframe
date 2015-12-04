@@ -30,24 +30,24 @@ namespace ipc{
 	<b>Usage:</b><br>
 	
 */
-struct ConnectionPoolUid: UniqueId{
-	ConnectionPoolUid(
+struct ConnectionPoolId: UniqueId{
+	ConnectionPoolId(
 		const size_t _idx = InvalidIndex(),
 		const uint32 _uid = InvalidIndex()
 	):UniqueId(_idx, _uid){}
 	
 };
 
-struct ConnectionUid{
+struct RecipientId{
 	
-	ConnectionUid(){}
+	RecipientId(){}
 	
-	ConnectionUid(
-		const ConnectionUid &_rconuid
-	): poolid(_rconuid.poolid), connectionid(_rconuid.connectionid){}
+	RecipientId(
+		const RecipientId &_rid
+	): poolid(_rid.poolid), connectionid(_rid.connectionid){}
 	
-	explicit ConnectionUid(
-		const ObjectUidT &_rconid
+	explicit RecipientId(
+		const ObjectIdT &_rconid
 	):connectionid(_rconid){}
 	
 	
@@ -71,11 +71,11 @@ struct ConnectionUid{
 		return poolid.isValid();
 	}
 	
-	ConnectionPoolUid const& poolId()const{
+	ConnectionPoolId const& poolId()const{
 		return poolid;
 	}
 	
-	ObjectUidT const& connectionId()const{
+	ObjectIdT const& connectionId()const{
 		return connectionid;
 	}
 	
@@ -84,35 +84,35 @@ private:
 	friend class Connection;
 	friend class ConnectionContext;
 	
-	ConnectionUid(
-		const ConnectionPoolUid &_rpoolid,
-		const ObjectUidT &_rconid
+	RecipientId(
+		const ConnectionPoolId &_rpoolid,
+		const ObjectIdT &_rconid
 	):poolid(_rpoolid), connectionid(_rconid){}
 	
-	ConnectionPoolUid	poolid;
-	ObjectUidT			connectionid;
+	ConnectionPoolId	poolid;
+	ObjectIdT			connectionid;
 };
 
 
-std::ostream& operator<<(std::ostream &_ros, ConnectionUid const &_con_id);
+std::ostream& operator<<(std::ostream &_ros, RecipientId const &_rec_id);
 
-struct RequestUid{
+struct RequestId{
 	uint32	index;
 	uint32	unique;
 	
-	RequestUid(
+	RequestId(
 		const uint32 _idx = InvalidIndex(),
 		const uint32 _uid = InvalidIndex()
 	):index(_idx), unique(_uid){}
 };
 
-std::ostream& operator<<(std::ostream &_ros, RequestUid const &_msguid);
+std::ostream& operator<<(std::ostream &_ros, RequestId const &_msguid);
 
-struct MessageUid{
-	MessageUid(): index(InvalidIndex()), unique(0){}
-	MessageUid(MessageUid const &_rmsguid): index(_rmsguid.index), unique(_rmsguid.unique){}
+struct MessageId{
+	MessageId(): index(InvalidIndex()), unique(0){}
+	MessageId(MessageId const &_rmsguid): index(_rmsguid.index), unique(_rmsguid.unique){}
 	
-	MessageUid(RequestUid const &_rrequid): index(_rrequid.index), unique(_rrequid.unique){}
+	MessageId(RequestId const &_rrequid): index(_rrequid.index), unique(_rrequid.unique){}
 	
 	bool isInvalid()const{
 		return index == InvalidIndex();
@@ -126,11 +126,11 @@ private:
 	friend class Connection;
 	friend class MessageWriter;
 	
-	friend std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid);
+	friend std::ostream& operator<<(std::ostream &_ros, MessageId const &_msguid);
 	size_t		index;
 	uint32		unique;
 
-	MessageUid(
+	MessageId(
 		const size_t _idx,
 		const uint32 _uid
 	):index(_idx), unique(_uid){}
@@ -138,7 +138,7 @@ private:
 };
 
 
-std::ostream& operator<<(std::ostream &_ros, MessageUid const &_msguid);
+std::ostream& operator<<(std::ostream &_ros, MessageId const &_msguid);
 
 class Service;
 class Connection;
@@ -148,15 +148,15 @@ struct ConnectionContext{
 		return rservice;
 	}
 	
-	ConnectionUid	connectionId()const;
+	RecipientId	recipientId()const;
 	
 	SocketDevice const & device()const;
 	
 	ulong messageFlags()const{
 		return message_flags;
 	}
-	RequestUid const& requestUid()const{
-		return request_uid;
+	RequestId const& requestId()const{
+		return request_id;
 	}
 	//! Keep any connection data
 	boost::any& any();
@@ -171,7 +171,7 @@ private:
 	
 	ulong				message_flags;
 	uint8				message_state;
-	RequestUid			request_uid;
+	RequestId			request_id;
 	
 	
 	

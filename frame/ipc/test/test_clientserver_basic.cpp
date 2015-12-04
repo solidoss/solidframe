@@ -145,29 +145,29 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 };
 
 void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	if(!running){
 		++connection_count;
 	}
 }
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
+	idbg(_rctx.recipientId());
+	_rctx.service().activateConnection(_rctx.recipientId());
 }
 
 void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
+	idbg(_rctx.recipientId());
+	_rctx.service().activateConnection(_rctx.recipientId());
 }
 
 
 void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
@@ -191,14 +191,14 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 }
 
 void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	if(!_rerr){
 		++crtackidx;
 	}
 }
 
 void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->requestId());
+	idbg(_rctx.recipientId()<<" message id on sender "<<_rmsgptr->requestId());
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
 	}
@@ -208,10 +208,10 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	}
 	
 	//send message back
-	if(_rctx.connectionId().isInvalidConnection()){
+	if(_rctx.recipientId().isInvalidConnection()){
 		THROW_EXCEPTION("Connection id should not be invalid!");
 	}
-	ErrorConditionT err = _rctx.service().sendMessage(_rctx.connectionId(), std::move(_rmsgptr));
+	ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rmsgptr));
 	
 	if(err){
 		THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
@@ -230,7 +230,7 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 }
 
 void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 

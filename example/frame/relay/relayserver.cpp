@@ -33,7 +33,7 @@ typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
 typedef ATOMIC_NS::atomic<uint32>				AtomicUint32T;
 typedef std::unordered_map<
 		uint32,
-		solid::frame::ObjectUidT
+		solid::frame::ObjectIdT
 	>											UniqueMapT;
 enum Events{
 	EventStartE = 0,
@@ -92,12 +92,12 @@ frame::aio::Resolver& async_resolver(){
 	return r;
 }
 
-void connection_register(uint32 _id, frame::ObjectUidT const &_ruid){
+void connection_register(uint32 _id, frame::ObjectIdT const &_ruid){
 	umap[_id] = _ruid;
 }
 
-frame::ObjectUidT connection_uid(uint32 _id){
-	frame::ObjectUidT rv;
+frame::ObjectIdT connection_uid(uint32 _id){
+	frame::ObjectIdT rv;
 	auto it = umap.find(_id);
 	if(it != umap.end()){
 		rv = it->second;
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]){
 			if(sd.ok()){
 				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, std::move(sd)));
 				solid::ErrorConditionT				err;
-				solid::frame::ObjectUidT			objuid;
+				solid::frame::ObjectIdT			objuid;
 				
 				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 				idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
@@ -367,9 +367,9 @@ struct ResolveMessage: Dynamic<ResolveMessage>{
 
 struct ResolvFunc{
 	frame::Manager		&rm;
-	frame::ObjectUidT	objuid;
+	frame::ObjectIdT	objuid;
 	
-	ResolvFunc(frame::Manager &_rm, frame::ObjectUidT const& _robjuid): rm(_rm), objuid(_robjuid){}
+	ResolvFunc(frame::Manager &_rm, frame::ObjectIdT const& _robjuid): rm(_rm), objuid(_robjuid){}
 	
 	void operator()(ResolveData &_rrd, ERROR_NS::error_code const &_rerr){
 		frame::Event		ev(frame::EventCategory::createMessage());
@@ -580,7 +580,7 @@ void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t
 			connection_register(crtid, _rctx.service().manager().id(*this));
 		}else{
 			//move to a peer connection
-			frame::ObjectUidT	objid = connection_uid(idx);
+			frame::ObjectIdT	objid = connection_uid(idx);
 			frame::Event		ev(frame::EventCategory::createMessage());
 			SocketDevice		sd(sock1.reset(_rctx));
 			ev.msgptr = frame::MessagePointerT(new MoveMessage(std::move(sd), buf2 + i, _sz - i));

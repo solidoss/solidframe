@@ -142,7 +142,7 @@ void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePo
 		
 		ctx.ipcmsgwriter->enqueue(
 			msgbundle,
-			ctx.ipcmsgwriter->safeNewMessageUid(*ctx.ipcconfig),
+			ctx.ipcmsgwriter->safeNewMessageId(*ctx.ipcconfig),
 			*ctx.ipcconfig, *ctx.ipctypemap, ipcconctx
 		);
 		++crtwriteidx;
@@ -214,12 +214,12 @@ int test_protocol_close(int argc, char **argv){
 		
 		ipcmsgwriter.enqueue(
 			msgbundle,
-			ipcmsgwriter.safeNewMessageUid(ipcconfig),
+			ipcmsgwriter.safeNewMessageId(ipcconfig),
 			ipcconfig, ipctypemap, ipcconctx
 		);
 	}
 	
-	ipcmsgwriter.enqueueClose(ipcmsgwriter.safeForcedNewMessageUid());
+	ipcmsgwriter.enqueueClose(ipcmsgwriter.safeForcedNewMessageId());
 	
 	
 	auto	complete_lambda(

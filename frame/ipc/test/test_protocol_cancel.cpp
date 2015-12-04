@@ -31,7 +31,7 @@ InitStub initarray[] = {
 	{2000,		true,	0},
 };
 
-typedef std::vector<frame::ipc::MessageUid>		MessageUidVectorT;
+typedef std::vector<frame::ipc::MessageId>		MessageIdVectorT;
 
 std::string						pattern;
 const size_t					initarraysize = sizeof(initarray)/sizeof(InitStub);
@@ -40,7 +40,7 @@ size_t							crtwriteidx = 0;
 size_t							crtreadidx  = 0;
 size_t							writecount = 0;
 
-MessageUidVectorT				message_uid_vec;
+MessageIdVectorT				message_uid_vec;
 
 
 size_t real_size(size_t _sz){
@@ -214,7 +214,7 @@ int test_protocol_cancel(int argc, char **argv){
 		msgbundle.message_type_id = ctx.ipctypemap->index(msgbundle.message_ptr.get());
 		//msgbundle.response_fnc = std::move(response_fnc);
 		
-		message_uid_vec.push_back(ipcmsgwriter.safeNewMessageUid(ipcconfig));
+		message_uid_vec.push_back(ipcmsgwriter.safeNewMessageId(ipcconfig));
 		
 		ipcmsgwriter.enqueue(
 			msgbundle,

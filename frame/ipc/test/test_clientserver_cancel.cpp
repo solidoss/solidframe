@@ -66,7 +66,7 @@ InitStub initarray[] = {
 
 const size_t					expected_transfered_count = 5;
 
-typedef std::vector<frame::ipc::MessageUid>		MessageUidVectorT;
+typedef std::vector<frame::ipc::MessageId>		MessageIdVectorT;
 
 std::string						pattern;
 const size_t					initarraysize = sizeof(initarray)/sizeof(InitStub);
@@ -86,9 +86,9 @@ frame::ipc::Service				*pipcclient = nullptr;
 frame::ipc::Service				*pipcserver = nullptr;
 std::atomic<uint64>				transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
-frame::ipc::ConnectionUid		server_connection_uid;
+frame::ipc::RecipientId			server_connection_uid;
 
-MessageUidVectorT				message_uid_vec;
+MessageIdVectorT				message_uid_vec;
 
 
 size_t real_size(size_t _sz){
@@ -159,29 +159,29 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 };
 
 void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	if(!running){
 		++connection_count;
 	}
 }
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
+	idbg(_rctx.recipientId());
+	_rctx.service().activateConnection(_rctx.recipientId());
 }
 
 void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
+	idbg(_rctx.recipientId());
+	_rctx.service().activateConnection(_rctx.recipientId());
 }
 
 
 void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
@@ -212,14 +212,14 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 }
 
 void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	if(!_rerr){
 		++crtackidx;
 	}
 }
 
 void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->requestId());
+	idbg(_rctx.recipientId()<<" message id on sender "<<_rmsgptr->requestId());
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
 	}
@@ -228,19 +228,19 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 		THROW_EXCEPTION("Message not on peer!.");
 	}
 	
-	if(_rctx.connectionId().isInvalidConnection()){
+	if(_rctx.recipientId().isInvalidConnection()){
 		THROW_EXCEPTION("Connection id should not be invalid!");
 	}
 	
 	cassert(server_connection_uid.isInvalidConnection());
 	
-	server_connection_uid = _rctx.connectionId();
+	server_connection_uid = _rctx.recipientId();
 	
 	// Step 2
 	writecount = initarraysize;//start_count;//
 	
 	for(crtwriteidx = 0; crtwriteidx < writecount; ++crtwriteidx){
-		frame::ipc::MessageUid msguid;
+		frame::ipc::MessageId msguid;
 		
 		ErrorConditionT err = _rctx.service().sendMessage(
 			server_connection_uid, frame::ipc::MessagePointerT(new Message(crtwriteidx)),
@@ -260,7 +260,7 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 }
 
 void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 char pattern_check[256];

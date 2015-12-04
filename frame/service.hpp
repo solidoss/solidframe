@@ -60,7 +60,7 @@ private:
 	friend class Manager;
 	friend class SchedulerBase;
 	
-	ObjectUidT registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr);
+	ObjectIdT registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr);
 private:
 	
 	Manager 					&rm;

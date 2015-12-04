@@ -148,91 +148,91 @@ public:
 		ulong _flags = 0
 	){
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid;
+		RecipientId					recipient_id;
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, nullptr, nullptr, _flags);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, nullptr, nullptr, _flags);
 	}
 	
 	template <class T>
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
-		ConnectionPoolUid &_rpool_uid,
+		ConnectionPoolId &_rpool_id,
 		ulong _flags = 0
 	){
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid;
+		RecipientId					recipient_id;
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rpool_uid, nullptr, _flags);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rpool_id, nullptr, _flags);
 	}
 	
 	template <class T>
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
-		ConnectionPoolUid &_rpool_uid,
-		MessageUid &_rmsguid,
+		ConnectionPoolId &_rpool_id,
+		MessageId &_rmsg_id,
 		ulong _flags = 0
 	){
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid;
+		RecipientId					recipient_id;
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rpool_uid, &_rmsguid, _flags);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rpool_id, &_rmsg_id, _flags);
 	}
 	
 	// send message using connection uid  -------------------------------------
 	
 	template <class T>
 	ErrorConditionT sendMessage(
-		ConnectionUid const &_rconnection_uid,
+		RecipientId const &_rrecipient_id,
 		DynamicPointer<T> const &_rmsgptr,
 		ulong _flags = 0
 	){
 		MessagePointerT				msgptr(_rmsgptr);
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(nullptr, _rconnection_uid, msgptr, response_handler, nullptr, nullptr, _flags);
+		return doSendMessage(nullptr, _rrecipient_id, msgptr, response_handler, nullptr, nullptr, _flags);
 	}
 	
 	template <class T>
 	ErrorConditionT sendMessage(
-		ConnectionUid const &_rconnection_uid,
+		RecipientId const &_rrecipient_id,
 		DynamicPointer<T> const &_rmsgptr,
-		MessageUid &_rmsguid,
+		MessageId &_rmsg_id,
 		ulong _flags = 0
 	){
 		MessagePointerT				msgptr(_rmsgptr);
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(nullptr, _rconnection_uid, msgptr, response_handler, nullptr, &_rmsguid, _flags);
+		return doSendMessage(nullptr, _rrecipient_id, msgptr, response_handler, nullptr, &_rmsg_id, _flags);
 	}
 	
 	// send message using pool uid --------------------------------------------
 	
 	template <class T>
 	ErrorConditionT sendMessage(
-		ConnectionPoolUid const &_rpool_uid,
+		ConnectionPoolId const &_rpool_id,
 		DynamicPointer<T> const &_rmsgptr,
 		ulong _flags = 0
 	){
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid(_rpool_uid);
+		RecipientId					recipient_id(_rpool_id);
 		ResponseHandlerFunctionT	response_handler;
 		
-		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, nullptr, _flags);
+		return doSendMessage(nullptr, recipient_id, msgptr, response_handler, nullptr, nullptr, _flags);
 	}
 	
 	
 	template <class T>
 	ErrorConditionT sendMessage(
-		ConnectionPoolUid const &_rpool_uid,
+		ConnectionPoolId const &_rpool_id,
 		DynamicPointer<T> const &_rmsgptr,
-		MessageUid &_rmsguid,
+		MessageId &_rmsguid,
 		ulong _flags = 0
 	){
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid(_rpool_uid);
+		RecipientId					recipient_id(_rpool_id);
 		ResponseHandlerFunctionT	response_handler;
 		
-		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, &_rmsguid, _flags);
+		return doSendMessage(nullptr, recipient_id, msgptr, response_handler, nullptr, &_rmsguid, _flags);
 	}
 	
 	// send request using recipient name --------------------------------------
@@ -247,11 +247,11 @@ public:
 		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
 		
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid;
+		RecipientId					recipient_id;
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
@@ -259,17 +259,17 @@ public:
 		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _fnc,
-		ConnectionPoolUid &_rpool_uid,
+		ConnectionPoolId &_rpool_id,
 		ulong _flags = 0
 	){
 		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
 		
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid;
+		RecipientId					recipient_id;
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rpool_uid, nullptr, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rpool_id, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
@@ -277,25 +277,25 @@ public:
 		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _fnc,
-		ConnectionPoolUid &_rpool_uid,
-		MessageUid &_rmsguid,
+		ConnectionPoolId &_rpool_id,
+		MessageId &_rmsguid,
 		ulong _flags = 0
 	){
 		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
 		
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid;
+		RecipientId					recipient_id;
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(_recipient_name, conuid, msgptr, response_handler, &_rpool_uid, &_rmsguid, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rpool_id, &_rmsguid, _flags | Message::WaitResponseFlagE);
 	}
 	
 	// send request using connection uid --------------------------------------
 	
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
-		ConnectionUid const &_rpool_uid,
+		RecipientId const &_rrecipient_id,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _fnc,
 		ulong _flags = 0
@@ -306,15 +306,15 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(nullptr, _rpool_uid, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(nullptr, _rrecipient_id, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
-		ConnectionUid const &_rpool_uid,
+		RecipientId const &_rrecipient_id,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _fnc,
-		MessageUid &_rmsguid,
+		MessageId &_rmsguid,
 		ulong _flags = 0
 	){
 		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
@@ -323,14 +323,14 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(nullptr, _rpool_uid, msgptr, response_handler, nullptr, &_rmsguid, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(nullptr, _rrecipient_id, msgptr, response_handler, nullptr, &_rmsguid, _flags | Message::WaitResponseFlagE);
 	}
 	
 	// send request using pool uid --------------------------------------------
 	
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
-		ConnectionPoolUid const &_rpool_uid,
+		ConnectionPoolId const &_rpool_id,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _fnc,
 		ulong _flags = 0
@@ -338,43 +338,43 @@ public:
 		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
 		
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid(_rpool_uid);
+		RecipientId					recipient_id(_rpool_id);
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(nullptr, recipient_id, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
-		ConnectionPoolUid const &_rpool_uid,
+		ConnectionPoolId const &_rpool_id,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _fnc,
-		MessageUid &_rmsguid,
+		MessageId &_rmsg_id,
 		ulong _flags = 0
 	){
 		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
 		
 		MessagePointerT				msgptr(_rmsgptr);
-		ConnectionUid				conuid(_rpool_uid);
+		RecipientId					recipient_id(_rpool_id);
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(nullptr, conuid, msgptr, response_handler, nullptr, &_rmsguid, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(nullptr, recipient_id, msgptr, response_handler, nullptr, &_rmsg_id, _flags | Message::WaitResponseFlagE);
 	}
 	
 	//----------------------
 	
 	ErrorConditionT forcedConnectionClose(
-		ConnectionUid const &_rconnection_uid
+		RecipientId const &_rconnection_uid
 	);
 	
 	ErrorConditionT delayedConnectionClose(
-		ConnectionUid const &_rconnection_uid
+		RecipientId const &_rconnection_uid
 	);
 	
 	ErrorConditionT activateConnection(
-		ConnectionUid const &_rconnection_uid
+		RecipientId const &_rconnection_uid
 	){
 		ActivateConnectionMessageFactoryFunctionT	msgfactory;
 		return doActivateConnection(_rconnection_uid, nullptr, msgfactory, false);
@@ -382,7 +382,7 @@ public:
 	
 	template <class MF>
 	ErrorConditionT activateConnection(
-		ConnectionUid const &_rconnection_uid,
+		RecipientId const &_rconnection_uid,
 		const char *_recipient_name,
 		MF _msgfactory,
 		const bool _may_quit
@@ -391,7 +391,7 @@ public:
 		return doActivateConnection(_rconnection_uid, _recipient_name, msgfactory, _may_quit);
 	}
 	
-	ErrorConditionT cancelMessage(ConnectionUid const &_rconnection_uid, MessageUid const &_rmsguid);
+	ErrorConditionT cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsg_id);
 	
 private:
 	friend struct ServiceProxy;
@@ -401,7 +401,7 @@ private:
 	void acceptIncomingConnection(SocketDevice &_rsd);
 	
 	ErrorConditionT doActivateConnection(
-		ConnectionUid const &_rconnection_uid,
+		RecipientId const &_rrecipient_id,
 		const char *_recipient_name,
 		ActivateConnectionMessageFactoryFunctionT const &_rmsgfactory,
 		const bool _may_quit
@@ -409,7 +409,7 @@ private:
 	
 	void activateConnectionComplete(Connection &_rcon);
 	
-	void onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectUidT const &_robjuid);
+	void onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid);
 	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
@@ -418,7 +418,7 @@ private:
 	void tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, const bool _has_no_message_to_send);
 	
 	
-	void forwardResolveMessage(ConnectionPoolUid const &_rconpoolid, Event const&_revent);
+	void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event const&_revent);
 	
 	template <class F, class M>
 	struct ReceiveProxy{
@@ -488,39 +488,39 @@ private:
 	}
 	
 	ErrorConditionT doSendMessage(
-		const char *_session_name,
-		const ConnectionUid	&_rconuid_in,
+		const char *_recipient_name,
+		const RecipientId	&_rrecipient_id_in,
 		MessagePointerT &_rmsgptr,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ConnectionPoolUid *_pconpoolid_out,
-		MessageUid *_pmsguid_out,
+		ConnectionPoolId *_ppool_id_out,
+		MessageId *_pmsg_id_out,
 		ulong _flags
 	);
 	
 	ErrorConditionT doNotifyConnectionPushMessage(
-		ObjectUidT const &_robjuid,
+		ObjectIdT const &_robjuid,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ConnectionPoolUid const &_rconpooluid,
-		ConnectionPoolUid *_pconpoolid_out,
-		MessageUid *_pmsguid_out,
+		ConnectionPoolId const &_rpool_id,
+		ConnectionPoolId *_ppool_id_out,
+		MessageId *_pmsg_id_out,
 		ulong _flags
 	);
 	
 	ErrorConditionT doNotifyConnectionDelayedClose(
-		ObjectUidT const &_robjuid
+		ObjectIdT const &_robjuid
 	);
 	
 	ErrorConditionT doNotifyConnectionActivate(
-		ObjectUidT const &_robjuid,
-		ConnectionPoolUid const &_rconpooluid
+		ObjectIdT const &_robjuid,
+		ConnectionPoolId const &_rconpooluid
 	);
 	
 	size_t doPushNewConnectionPool();
 	
 	void pushBackMessageToConnectionPool(
-		ConnectionPoolUid &_rconpoolid,
+		ConnectionPoolId &_rconpoolid,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,

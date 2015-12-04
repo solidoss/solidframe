@@ -62,8 +62,8 @@ struct UniqueId{
 	
 };
 
-typedef UniqueId		UidT;
-typedef UidT			ObjectUidT;
+//typedef UniqueId		UniqueId;
+typedef UniqueId		ObjectIdT;
 
 std::ostream& operator<<(std::ostream &_ros, UniqueId const& _uid);
 

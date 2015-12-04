@@ -225,7 +225,7 @@ int main(int argc, char *argv[]){
 			if(sd.ok()){
 				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, std::move(sd)));
 				solid::ErrorConditionT				err;
-				solid::frame::ObjectUidT			objuid;
+				solid::frame::ObjectIdT			objuid;
 				
 				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 				idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
@@ -239,7 +239,7 @@ int main(int argc, char *argv[]){
 				
 				DynamicPointer<frame::aio::Object>	objptr(new ClientConnection(rd));
 				solid::ErrorConditionT				err;
-				solid::frame::ObjectUidT			objuid;
+				solid::frame::ObjectIdT			objuid;
 				
 				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 				
@@ -257,7 +257,7 @@ int main(int argc, char *argv[]){
 				DynamicPointer<frame::aio::Object>	objptr(new Talker(std::move(sd)));
 				
 				solid::ErrorConditionT				err;
-				solid::frame::ObjectUidT			objuid;
+				solid::frame::ObjectIdT			objuid;
 				
 				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 				

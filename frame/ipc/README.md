@@ -110,6 +110,24 @@ Enabled for two scenarios:
 	* start client and send one shot message
 	* expect message canceled in certain, short amount of time
 
+### Support for multi-protocol
+
+**Description**
+
+* Extend ipc::Service to:
+	* Aupport a vector of TypeIdMapT
+	* Add setConnectionProtocol(ObjectUid const&, size_t protocol_id)
+	* Default connection protocol is 0 (zero)
+	* All connection init messages must be known by protocol 0
+	* On init message, the server ipc::Service must change the connection protocol
+		on message_received callback by calling setConnectionProtocol
+
+**Test**
+* test_clientserver_multiproto_basic
+	* start a server ipc configure it with 3 protocols (0 for init, 1 and 2 for different clients)
+	* start 2 different clients configured with different protocols
+	* proceed on both protcols as in test_clientserver_basic.
+
 ### Support for packet compression
 
 **Test**

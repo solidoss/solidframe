@@ -35,7 +35,7 @@ public:
 	//! Virtual destructor
 	virtual ~ObjectBase();
 	
-	UidT const& runId()const;
+	UniqueId const& runId()const;
 	
 	bool isAcceptingEvents()const;
 	
@@ -60,13 +60,13 @@ protected:
 private:
 	void id(const IndexT &_fullid);
 	
-	void runId(UidT const& _runid);
+	void runId(UniqueId const& _runid);
 	void prepareSpecific();
 	
 	void stop(Manager &_rm);
 private:
 	ATOMIC_NS::atomic<IndexT>	fullid;
-	UidT						runid;
+	UniqueId					runid;
 	ATOMIC_NS::atomic<size_t>	smask;
 };
 
@@ -82,11 +82,11 @@ inline void ObjectBase::id(IndexT const &_fullid){
 	fullid = _fullid;
 }
 
-inline UidT const& ObjectBase::runId()const{
+inline UniqueId const& ObjectBase::runId()const{
 	return runid;
 }
 
-inline void ObjectBase::runId(UidT const& _runid){
+inline void ObjectBase::runId(UniqueId const& _runid){
 	runid = _runid;
 }
 

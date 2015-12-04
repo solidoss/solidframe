@@ -53,8 +53,8 @@ void MessageWriter::unprepare(){
 	
 }
 //-----------------------------------------------------------------------------
-MessageUid MessageWriter::safeNewMessageUid(Configuration const &_rconfig){
-	MessageUid msguid;
+MessageId MessageWriter::safeNewMessageId(Configuration const &_rconfig){
+	MessageId msguid;
 	if(message_uid_cache_vec.size()){
 		msguid = message_uid_cache_vec.back();
 		message_uid_cache_vec.pop_back();
@@ -65,8 +65,8 @@ MessageUid MessageWriter::safeNewMessageUid(Configuration const &_rconfig){
 	return msguid;
 }
 //-----------------------------------------------------------------------------
-MessageUid MessageWriter::safeForcedNewMessageUid(){
-	MessageUid msguid;
+MessageId MessageWriter::safeForcedNewMessageId(){
+	MessageId msguid;
 	if(message_uid_cache_vec.size()){
 		msguid = message_uid_cache_vec.back();
 		message_uid_cache_vec.pop_back();
@@ -84,7 +84,7 @@ void MessageWriter::safeMoveCacheToSafety(){
 		
 		rmsgstub.inner_status = InnerStatusInvalid;
 		
-		message_uid_cache_vec.push_back(MessageUid(msgidx, rmsgstub.unique));
+		message_uid_cache_vec.push_back(MessageId(msgidx, rmsgstub.unique));
 		
 		cached_inner_list.popFront();
 	}
@@ -101,7 +101,7 @@ void MessageWriter::safeMoveCacheToSafety(){
 //
 void MessageWriter::enqueue(
 	MessageBundle &_rmsgbundle,
-	MessageUid const &_rmsguid,
+	MessageId const &_rmsguid,
 	Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx
@@ -172,7 +172,7 @@ void MessageWriter::enqueue(
 	vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 }
 //-----------------------------------------------------------------------------
-void MessageWriter::enqueueClose(MessageUid const &_rmsguid){
+void MessageWriter::enqueueClose(MessageId const &_rmsguid){
 	const size_t	idx = _rmsguid.index;
 	
 	if(isDelayedCloseInPendingQueue()){
@@ -206,7 +206,7 @@ void MessageWriter::enqueueClose(MessageUid const &_rmsguid){
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::cancel(
-	MessageUid const &_rmsguid,
+	MessageId const &_rmsguid,
 	Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx
@@ -281,7 +281,7 @@ void MessageWriter::completeAllCanceledMessages(
 	
 	while(sz){
 		MessageStub		&rmsgstub(message_vec[msgidx]);
-		MessageUid		msguid(msgidx, rmsgstub.unique);
+		MessageId		msguid(msgidx, rmsgstub.unique);
 		
 		cassert(rmsgstub.inner_status == InnerStatusCache);
 		
@@ -475,10 +475,10 @@ char* MessageWriter::doFillPacket(
 		}
 		
 		if(not rmsgstub.msgbundle.message_ptr->isOnPeer()){
-			_rctx.request_uid.index  = msgidx;
-			_rctx.request_uid.unique = rmsgstub.unique;
+			_rctx.request_id.index  = msgidx;
+			_rctx.request_id.unique = rmsgstub.unique;
 		}else{
-			_rctx.request_uid = rmsgstub.msgbundle.message_ptr->requestId();
+			_rctx.request_id = rmsgstub.msgbundle.message_ptr->requestId();
 		}
 		_rctx.message_state = rmsgstub.msgbundle.message_ptr->state() + 1;
 		
@@ -512,8 +512,8 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 	SerializerPointerT &_rtmp_serializer
 ){
 	if(_rmsgstub.serializer_ptr->empty()){
-		RequestUid		requid(_msgidx, _rmsgstub.unique);
-		vdbgx(Debug::ipc, "done serializing message "<<requid<<". Message id sent to client "<<_rctx.request_uid);
+		RequestId		requid(_msgidx, _rmsgstub.unique);
+		vdbgx(Debug::ipc, "done serializing message "<<requid<<". Message id sent to client "<<_rctx.request_id);
 		_rtmp_serializer = std::move(_rmsgstub.serializer_ptr);
 		//done serializing the message:
 		
@@ -694,7 +694,7 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 //-----------------------------------------------------------------------------
 void MessageWriter::completeMessage(
 	MessagePointerT &_rmsgptr,
-	MessageUid const &_rmsguid,
+	MessageId const &_rmsguid,
 	ipc::Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,
@@ -706,7 +706,7 @@ void MessageWriter::completeMessage(
 //-----------------------------------------------------------------------------
 void MessageWriter::doCompleteMessage(
 	MessagePointerT &_rmsgptr,
-	MessageUid const &_rmsguid,
+	MessageId const &_rmsguid,
 	ipc::Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,
@@ -751,7 +751,7 @@ void MessageWriter::completeAllMessages(
 		
 		if(not rmsgstub.msgbundle.message_ptr.empty()){
 			MessagePointerT 	msgptr;
-			RequestUid			requid(msgidx, rmsgstub.unique);
+			RequestId			requid(msgidx, rmsgstub.unique);
 			
 			doCompleteMessage(msgptr, requid, _rconfig, _ridmap, _rctx, _rerror);
 		}else{

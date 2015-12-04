@@ -252,7 +252,7 @@ int main(int argc, char *argv[]){
 			}
 			
 			solid::ErrorConditionT				err;
-			solid::frame::ObjectUidT			objuid;
+			solid::frame::ObjectIdT			objuid;
 			
 			{
 				SchedulerT::ObjectPointerT		objptr(filestoreptr);
@@ -270,7 +270,7 @@ int main(int argc, char *argv[]){
 				if(sd.ok()){
 					DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, aiosched, sd));
 					solid::ErrorConditionT				err;
-					solid::frame::ObjectUidT			objuid;
+					solid::frame::ObjectIdT			objuid;
 					
 					objuid = aiosched.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 					idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
@@ -394,7 +394,7 @@ Connection::DynamicRegister::DynamicRegister(Connection::DynamicMapperT& _rdm){
 /*static*/ Connection::DynamicMapperT		Connection::dm;
 /*static*/ Connection::DynamicRegister		Connection::dr(Connection::dm);
 
-static frame::UidT							tempuid;
+static frame::UniqueId						tempuid;
 
 
 Connection::Connection(SocketDevice &_rsd):
@@ -520,11 +520,11 @@ void Connection::doRun(frame::aio::ReactorContext &_rctx){
 }
 struct OpenCbk{
 	frame::Manager 		&rm;
-	frame::ObjectUidT	uid;
+	frame::ObjectIdT	uid;
 	
 	OpenCbk(
 		frame::Manager &_rm,
-		const frame::ObjectUidT &_robjuid
+		const frame::ObjectIdT &_robjuid
 	):rm(_rm), uid(_robjuid){}
 	
 	void operator()(

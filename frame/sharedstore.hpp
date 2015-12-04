@@ -29,7 +29,7 @@ namespace shared{
 
 struct PointerBase;
 
-typedef std::vector<UidT>					UidVectorT;
+typedef std::vector<UniqueId>					UidVectorT;
 
 
 
@@ -70,9 +70,9 @@ protected:
 	
 	struct ExecWaitStub{
 		ExecWaitStub():pt(NULL), pw(NULL){}
-		ExecWaitStub(UidT const & _uid, void *_pt, void *_pw):uid(_uid), pt(_pt), pw(_pw){}
+		ExecWaitStub(UniqueId const & _uid, void *_pt, void *_pw):uid(_uid), pt(_pt), pw(_pw){}
 		
-		UidT	uid;
+		UniqueId	uid;
 		void	*pt;
 		void	*pw;
 	};
@@ -89,7 +89,7 @@ protected:
 	
 	size_t doAllocateIndex();
 	void* doTryAllocateWait();
-	void pointerId(PointerBase &_rpb, UidT const & _ruid);
+	void pointerId(PointerBase &_rpb, UniqueId const & _ruid);
 	void doExecuteCache();
 	void doCacheObjectIndex(const size_t _idx);
 	size_t atomicMaxCount()const;
@@ -100,12 +100,12 @@ protected:
 	SizeVectorT& indexVector()const;
 	ExecWaitVectorT& executeWaitVector()const;
 	Accessor accessor();
-	void notifyObject(UidT const & _ruid);
+	void notifyObject(UniqueId const & _ruid);
 	void raise();
 private:
 	friend struct PointerBase;
-	void erasePointer(UidT const & _ruid, const bool _isalive);
-	virtual bool doDecrementObjectUseCount(UidT const &_uid, const bool _isalive) = 0;
+	void erasePointer(UniqueId const & _ruid, const bool _isalive);
+	virtual bool doDecrementObjectUseCount(UniqueId const &_uid, const bool _isalive) = 0;
 	virtual bool doExecute() = 0;
 	virtual void doResizeObjectVector(const size_t _newsz) = 0;
 	virtual void doExecuteOnSignal(ulong _sm) = 0;
@@ -116,7 +116,7 @@ private:
 };
 
 struct PointerBase{
-	const UidT& id()const{
+	const UniqueId& id()const{
 		return uid;
 	}
 	bool empty()const{
@@ -132,17 +132,17 @@ struct PointerBase{
 	}
 protected:
 	PointerBase(StoreBase *_psb = NULL):psb(_psb){}
-	PointerBase(StoreBase *_psb, UidT const &_uid):uid(_uid), psb(_psb){}
+	PointerBase(StoreBase *_psb, UniqueId const &_uid):uid(_uid), psb(_psb){}
 	PointerBase(PointerBase const &_rpb):uid(_rpb.uid), psb(_rpb.psb){}
 	
 	void doClear(const bool _isalive);
-	void doReset(StoreBase *_psb, UidT const &_uid)const{
+	void doReset(StoreBase *_psb, UniqueId const &_uid)const{
 		uid = _uid;
 		psb = _psb;
 	}
 private:
 	friend class StoreBase;
-	mutable UidT		uid;
+	mutable UniqueId		uid;
 	mutable StoreBase	*psb;
 };
 
@@ -157,7 +157,7 @@ struct Pointer: PointerBase{
 	explicit Pointer(
 		T *_pt,
 		StoreBase *_psb  = NULL,
-		UidT const &_uid = UidT()
+		UniqueId const &_uid = UniqueId()
 	): PointerBase(_psb, _uid), pt(_pt){}
 	
 	Pointer(PointerT const &_rptr):PointerBase(_rptr), pt(_rptr.release()){}
@@ -172,7 +172,7 @@ struct Pointer: PointerBase{
 		return *this;
 	}
 	
-	void reset(T *_pt, StoreBase *_psb, UidT const &_uid){
+	void reset(T *_pt, StoreBase *_psb, UniqueId const &_uid){
 		clear();
 		pt = _pt;
 		
@@ -190,7 +190,7 @@ struct Pointer: PointerBase{
 	T* release()const{
 		T *p = pt;
 		pt = NULL;
-		doReset(NULL, UidT());
+		doReset(NULL, UniqueId());
 		return p;
 	}
 	void clear(){
@@ -295,7 +295,7 @@ public:
 	}
 	
 	//Try get an alive pointer for an intem
-	PointerT	alive(UidT const & _ruid, ERROR_NS::error_code &_rerr){
+	PointerT	alive(UniqueId const & _ruid, ERROR_NS::error_code &_rerr){
 		PointerT		ptr;
 		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
@@ -309,7 +309,7 @@ public:
 	}
 	
 	//Try get an unique pointer for an item
-	PointerT	unique(UidT const & _ruid, ERROR_NS::error_code &_rerr){
+	PointerT	unique(UniqueId const & _ruid, ERROR_NS::error_code &_rerr){
 		PointerT		ptr;
 		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
@@ -323,7 +323,7 @@ public:
 	}
 	
 	//Try get a shared pointer for an item
-	PointerT	shared(UidT const & _ruid, ERROR_NS::error_code &_rerr){
+	PointerT	shared(UniqueId const & _ruid, ERROR_NS::error_code &_rerr){
 		PointerT		ptr;
 		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
@@ -394,7 +394,7 @@ public:
 
 	//! Return true if the _f was called within the current thread
 	template <typename F>
-	bool requestShared(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool requestShared(F _f, UniqueId const & _ruid, const size_t _flags = 0){
 		PointerT				ptr;
 		ERROR_NS::error_code	err;
 		const size_t			idx = _ruid.index;
@@ -420,7 +420,7 @@ public:
 	}
 	//! Return true if the _f was called within the current thread
 	template <typename F>
-	bool requestUnique(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool requestUnique(F _f, UniqueId const & _ruid, const size_t _flags = 0){
 		PointerT				ptr;
 		ERROR_NS::error_code	err;
 		const size_t			idx = _ruid.index;
@@ -447,7 +447,7 @@ public:
 	//! Return true if the _f was called within the current thread
 	//_f will be called uniquely when object's alive count is zero
 	template <typename F>
-	bool requestReinit(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool requestReinit(F _f, UniqueId const & _ruid, const size_t _flags = 0){
 		PointerT				ptr;
 		ERROR_NS::error_code	err;
 		const size_t			idx = _ruid.index;
@@ -516,14 +516,14 @@ private:
 		Stub		&rs = stubvec[_idx];
 		++rs.alivecnt;
 		rs.state = StoreBase::UniqueLockStateE;
-		return PointerT(NULL, this, UidT(_idx, rs.uid));
+		return PointerT(NULL, this, UniqueId(_idx, rs.uid));
 	}
 	
 	PointerT doTryGetShared(const size_t _idx){
 		Stub		&rs = stubvec[_idx];
 		if(rs.state == StoreBase::SharedLockStateE && rs.pwaitfirst == NULL){
 			++rs.usecnt;
-			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
+			return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
 		}
 		return PointerT();
 	}
@@ -534,7 +534,7 @@ private:
 			cassert(rs.pwaitfirst == NULL);
 			++rs.usecnt;
 			rs.state = StoreBase::UniqueLockStateE;
-			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
+			return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
 		}
 		return PointerT();
 	}
@@ -543,7 +543,7 @@ private:
 		if(rs.usecnt == 0 && rs.alivecnt == 0 && rs.pwaitfirst == NULL){
 			++rs.usecnt;
 			rs.state = StoreBase::UniqueLockStateE;
-			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
+			return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
 		}
 		return PointerT();
 	}
@@ -577,7 +577,7 @@ private:
 		}
 	}
 	
-	/*virtual*/ bool doDecrementObjectUseCount(UidT const &_uid, const bool _isalive){
+	/*virtual*/ bool doDecrementObjectUseCount(UniqueId const &_uid, const bool _isalive){
 		//the coresponding mutex is already locked
 		Stub &rs = stubvec[_uid.index];
 		if(rs.uid == _uid.unique){
@@ -701,7 +701,7 @@ private:
 					return;
 			}
 			++rs.usecnt;
-			rexewaitvec.push_back(StoreBase::ExecWaitStub(UidT(_idx, rs.uid), &rs.obj, pwait));
+			rexewaitvec.push_back(StoreBase::ExecWaitStub(UniqueId(_idx, rs.uid), &rs.obj, pwait));
 			if(pwait != rs.pwaitlast){
 				rs.pwaitfirst = pwait->pnext;
 			}else{
@@ -716,7 +716,7 @@ private:
 };
 
 
-inline void StoreBase::pointerId(PointerBase &_rpb, UidT const & _ruid){
+inline void StoreBase::pointerId(PointerBase &_rpb, UniqueId const & _ruid){
 	_rpb.uid = _ruid;
 }
 inline StoreBase::Accessor StoreBase::accessor(){

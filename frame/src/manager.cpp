@@ -446,14 +446,14 @@ void Manager::doUnregisterService(ServiceStub &_rss){
 	}
 }
 
-ObjectUidT Manager::registerObject(
+ObjectIdT Manager::registerObject(
 	const Service &_rsvc,
 	ObjectBase &_robj,
 	ReactorBase &_rr,
 	ScheduleFunctionT &_rfct,
 	ErrorConditionT &_rerr
 ){
-	ObjectUidT		retval;
+	ObjectIdT		retval;
 	
 	const size_t	svcidx = _rsvc.idx;
 	
@@ -619,7 +619,7 @@ bool Manager::disableObjectVisits(ObjectBase &_robj){
 	return retval;
 }
 
-bool Manager::notify(ObjectUidT const &_ruid, Event const &_revt, const size_t _sigmsk/* = 0*/){
+bool Manager::notify(ObjectIdT const &_ruid, Event const &_revt, const size_t _sigmsk/* = 0*/){
 	
 	ObjectVisitFunctionT	f(
 		[_revt, _sigmsk](ObjectBase &_robj, ReactorBase &_rreact){
@@ -639,7 +639,7 @@ bool Manager::notifyAll(const Service &_rsvc, Event const & _revt, const size_t 
 	return doForEachServiceObject(_rsvc, f);
 }
 
-bool Manager::doVisit(ObjectUidT const &_ruid, ObjectVisitFunctionT &_rfct){
+bool Manager::doVisit(ObjectIdT const &_ruid, ObjectVisitFunctionT &_rfct){
 	bool	retval = false;
 	if(_ruid.index < d.maxobjcnt){
 		const size_t		objstoreidx = d.aquireReadObjectStore();
@@ -682,7 +682,7 @@ Mutex& Manager::mutex(const ObjectBase &_robj)const{
 	return *pmtx;
 }
 
-ObjectUidT  Manager::id(const ObjectBase &_robj)const{
+ObjectIdT  Manager::id(const ObjectBase &_robj)const{
 	const IndexT		objidx = _robj.id();
 	if(objidx != InvalidIndex()){
 		const size_t		objstoreidx = d.aquireReadObjectStore();
@@ -690,9 +690,9 @@ ObjectUidT  Manager::id(const ObjectBase &_robj)const{
 		d.releaseReadObjectStore(objstoreidx);
 		
 		cassert(ros.pobject == &_robj);
-		return ObjectUidT(objidx, ros.unique);
+		return ObjectIdT(objidx, ros.unique);
 	}else{
-		return ObjectUidT();
+		return ObjectIdT();
 	}
 }
 

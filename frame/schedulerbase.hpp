@@ -46,7 +46,7 @@ protected:
 
 	void doStop(const bool _wait = true);
 	
-	ObjectUidT doStartObject(ObjectBase &_robj, Service &_rsvc, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr);
+	ObjectIdT doStartObject(ObjectBase &_robj, Service &_rsvc, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr);
 	
 protected:
 	SchedulerBase();

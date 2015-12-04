@@ -64,7 +64,7 @@ public:
 	);
 	//Called when connection is 
 	Connection(
-		ConnectionPoolUid const &_rconpoolid
+		ConnectionPoolId const &_rconpoolid
 	);
 	~Connection();
 	
@@ -77,14 +77,14 @@ public:
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags,
-		MessageUid *_pmsguid,
+		MessageId *_pmsguid,
 		Event &_revent,
 		ErrorConditionT &_rerror
 	);
 	
 	bool pushCancelMessage(
 		Service &_rservice,
-		MessageUid const &_rmsguid,
+		MessageId const &_rmsguid,
 		Event &_revent,
 		ErrorConditionT &_rerror
 	);
@@ -98,12 +98,12 @@ public:
 	void directPushMessage(
 		frame::aio::ReactorContext &_rctx,
 		MessageBundle &_rmsgbundle,
-		MessageUid *_pmsguid
+		MessageId *_pmsguid
 	);
 	
 	bool prepareActivate(
 		Service &_rservice,
-		ConnectionPoolUid const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
+		ConnectionPoolId const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
 	);
 	
 	//The service marked connection as active, but the connection might not be aware that it is active
@@ -111,13 +111,13 @@ public:
 	
 	boost::any& any();
 	
-	ConnectionPoolUid const& poolUid()const;
+	ConnectionPoolId const& poolId()const;
 private:
 	friend struct ConnectionContext;
 	friend class Service;
 	
 	Service& service(frame::aio::ReactorContext &_rctx)const;
-	ObjectUidT uid(frame::aio::ReactorContext &_rctx)const;
+	ObjectIdT uid(frame::aio::ReactorContext &_rctx)const;
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
@@ -198,13 +198,13 @@ private:
 	struct PendingSendMessageStub{
 		PendingSendMessageStub(
 			MessageBundle &&_rmsgbundle,
-			MessageUid const &_rmsguid
+			MessageId const &_rmsguid
 		):	msgbundle(std::move(_rmsgbundle)),
 			msguid(_rmsguid)
 			{}
 		
 		PendingSendMessageStub(
-			MessageUid const &_rmsguid
+			MessageId const &_rmsguid
 		):	msguid(_rmsguid)
 			{}
 		
@@ -213,12 +213,12 @@ private:
 		
 		
 		MessageBundle				msgbundle;
-		MessageUid					msguid;
+		MessageId					msguid;
 	};
 
 	typedef std::vector<PendingSendMessageStub>			PendingSendMessageVectorT;
 	
-	ConnectionPoolUid			conpoolid;
+	ConnectionPoolId			conpoolid;
 	PendingSendMessageVectorT	sendmsgvec[2];
 	StreamSocketT				sock;
 	TimerT						timer;
@@ -244,7 +244,7 @@ inline boost::any& Connection::any(){
 	return any_data;
 }
 
-inline ConnectionPoolUid const& Connection::poolUid()const{
+inline ConnectionPoolId const& Connection::poolId()const{
 	return conpoolid;
 }
 

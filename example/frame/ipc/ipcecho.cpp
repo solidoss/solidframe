@@ -144,28 +144,28 @@ struct MessageHandler{
 
 
 void connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 void incoming_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	if(_rctx.service().configuration().isServerOnly()){
-		_rctx.service().activateConnection(_rctx.connectionId());
+		_rctx.service().activateConnection(_rctx.recipientId());
 	}else{
 		//wait to receive InitMessage, so we know on which connection pool, the incomming connection should be part of
 	}
 }
 
 void outgoing_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	if(_rctx.service().configuration().isClientOnly()){
-		idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']'<<" client only");
-		_rctx.service().activateConnection(_rctx.connectionId());
+		idbg('['<<_rctx.recipientId().connectionId()<<"]["<<_rctx.recipientId().poolId()<<']'<<" client only");
+		_rctx.service().activateConnection(_rctx.recipientId());
 	}else{
-		idbg('['<<_rctx.connectionId().connectionid<<"]["<<_rctx.connectionId().poolid<<']'<<" peer2peer");
+		idbg('['<<_rctx.recipientId().connectionId()<<"]["<<_rctx.recipientId().poolId()<<']'<<" peer2peer");
 		//peer2peer mode: send InitMessage
 		frame::ipc::MessagePointerT msgptr(new InitMessage(app_params.baseport));
-		_rctx.service().sendMessage(_rctx.connectionId(), msgptr);
+		_rctx.service().sendMessage(_rctx.recipientId(), msgptr);
 	}
 }
 //------------------------------------------------------------------
@@ -359,9 +359,9 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
 
 //Called on message receive
 void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg){
-	idbg(_rctx.connectionId()<<" Message received: is_on_sender: "<<_rmsg->isOnSender()<<", is_on_peer: "<<_rmsg->isOnPeer()<<", is_back_on_sender: "<<_rmsg->isBackOnSender());
+	idbg(_rctx.recipientId()<<" Message received: is_on_sender: "<<_rmsg->isOnSender()<<", is_on_peer: "<<_rmsg->isOnPeer()<<", is_back_on_sender: "<<_rmsg->isBackOnSender());
 	if(_rmsg->isOnPeer()){
-		rsvc.sendMessage(_rctx.connectionId(), _rmsg);
+		rsvc.sendMessage(_rctx.recipientId(), _rmsg);
 	}else if(_rmsg->isBackOnSender()){
 		cout<<_rmsg->str<<endl;
 	}
@@ -373,9 +373,9 @@ void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPoi
 
 void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorConditionT const &_rerr){
 	if(!_rerr){
-		idbg(_rctx.connectionId()<<" Message successfully sent");
+		idbg(_rctx.recipientId()<<" Message successfully sent");
 	}else{
-		idbg(_rctx.connectionId()<<" Message not confirmed: "<<_rerr.message());
+		idbg(_rctx.recipientId()<<" Message not confirmed: "<<_rerr.message());
 	}
 }
 
@@ -413,11 +413,11 @@ void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPoi
 		idbg("The peer did not accept the connection");
 	}else if(_rmsg->port == "-"){
 		idbg("The peer accepted the connection - we activate it too");
-		_rctx.service().activateConnection(_rctx.connectionId());
+		_rctx.service().activateConnection(_rctx.recipientId());
 	}else{
 		idbg("Init on a incoming connection - try activate it");
 		ErrorConditionT				err = _rctx.service().activateConnection(
-			_rctx.connectionId(), tmposs.str().c_str(),
+			_rctx.recipientId(), tmposs.str().c_str(),
 			[](ErrorConditionT const &_rerr){
 				if(not _rerr){
 					return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage("-"), 0);
@@ -434,7 +434,7 @@ void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPoi
 	}
 	
 	ErrorConditionT				err = _rctx.service().activateConnection(
-		_rctx.connectionId(), tmposs.str().c_str(),
+		_rctx.recipientId(), tmposs.str().c_str(),
 		[](ErrorConditionT const &_rerr){
 			if(not _rerr){
 				return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage(app_params.baseport), 0);

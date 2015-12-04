@@ -62,7 +62,7 @@ Mutex& Service::mutex()const{
 }
 
 
-ObjectUidT Service::registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr){
+ObjectIdT Service::registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr){
 	return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
 }
 

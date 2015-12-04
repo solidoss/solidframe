@@ -53,8 +53,8 @@ public:
 	~MessageWriter();
 	
 	//must be used under lock, i.e. under Connection's lock
-	MessageUid safeNewMessageUid(Configuration const &_rconfig);
-	MessageUid safeForcedNewMessageUid();
+	MessageId safeNewMessageId(Configuration const &_rconfig);
+	MessageId safeForcedNewMessageId();
 	
 	bool isNonSafeCacheEmpty()const;
 	
@@ -62,20 +62,20 @@ public:
 	
 	void enqueue(
 		MessageBundle &_rmsgbundle,
-		MessageUid const &_rmsguid,
+		MessageId const &_rmsguid,
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx
 	);
 	
 	void cancel(
-		MessageUid const &_rmsguid,
+		MessageId const &_rmsguid,
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx
 	);
 	
-	void enqueueClose(MessageUid const &_rmsguid);
+	void enqueueClose(MessageId const &_rmsguid);
 	
 	uint32 write(
 		char *_pbuf,
@@ -88,7 +88,7 @@ public:
 	
 	void completeMessage(
 		MessagePointerT &_rmsgptr,
-		MessageUid const &_rmsguid,
+		MessageId const &_rmsguid,
 		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
@@ -165,7 +165,7 @@ private:
 	};
 	
 	typedef std::vector<MessageStub>							MessageVectorT;
-	typedef std::vector<MessageUid>								MessageUidVectorT;
+	typedef std::vector<MessageId>								MessageIdVectorT;
 	typedef InnerList<MessageVectorT, InnerLinkOrder>			MessageOrderInnerListT;
 	typedef InnerList<MessageVectorT, InnerLinkStatus>			MessageStatusInnerListT;
 	
@@ -196,7 +196,7 @@ private:
 	void doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig);
 	void doCompleteMessage(
 		MessagePointerT &_rmsgptr,
-		MessageUid const &_rmsguid,
+		MessageId const &_rmsguid,
 		ipc::Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
@@ -219,7 +219,7 @@ private:
 	);
 private:
 	MessageVectorT				message_vec;
-	MessageUidVectorT			message_uid_cache_vec;
+	MessageIdVectorT			message_uid_cache_vec;
 	std::atomic<size_t>			message_idx_cache;
 	uint32						current_message_type_id;
 	uint32						flags;

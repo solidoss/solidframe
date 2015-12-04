@@ -29,7 +29,7 @@ enum{
 void PointerBase::doClear(const bool _isalive){
 	if(psb){
 		psb->erasePointer(id(), _isalive);
-		uid = UidT::invalid();
+		uid = UniqueId::invalid();
 		psb = NULL;
 	}
 }
@@ -39,7 +39,7 @@ void PointerBase::doClear(const bool _isalive){
 //---------------------------------------------------------------
 typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 typedef MutualStore<Mutex>					MutexMutualStoreT;
-typedef Queue<UidT>							UidQueueT;
+typedef Queue<UniqueId>							UidQueueT;
 typedef Stack<size_t>						SizeStackT;
 typedef Stack<void*>						VoidPtrStackT;
 
@@ -151,7 +151,7 @@ size_t StoreBase::doAllocateIndex(){
 	}
 	return rv;
 }
-void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
+void StoreBase::erasePointer(UniqueId const & _ruid, const bool _isalive){
 	if(_ruid.index < d.objmaxcnt.load()){
 		bool	do_notify = true;
 		{
@@ -162,7 +162,7 @@ void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
 	}
 }
 
-void StoreBase::notifyObject(UidT const & _ruid){
+void StoreBase::notifyObject(UniqueId const & _ruid){
 	bool	do_raise = false;
 	{
 		Locker<Mutex>	lock(mutex());

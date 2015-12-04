@@ -61,7 +61,7 @@ typedef std::deque<Utf8PathStub>	PathDequeT;
 
 struct TempWaitStub{
 	TempWaitStub(
-		UidT const &_uid = UidT(),
+		UniqueId const &_uid = UniqueId(),
 		File *_pfile = NULL,
 		uint64 _size = 0,
 		size_t _value = 0
@@ -74,7 +74,7 @@ struct TempWaitStub{
 		return pfile == NULL;
 	}
 	
-	UidT		objuid;
+	UniqueId		objuid;
 	File		*pfile;
 	uint64		size;
 	size_t		value;
@@ -388,7 +388,7 @@ bool Utf8Controller::preparePointer(
 	FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
 ){
 	//We're under Store's mutex lock
-	UidT	uid = _rptr.id();
+	UniqueId	uid = _rptr.id();
 	File	*pf = _rptr.release();
 
 	d.pfilltempwaitvec->push_back(TempWaitStub(uid, pf, _rcmd.size, _rcmd.openflags));

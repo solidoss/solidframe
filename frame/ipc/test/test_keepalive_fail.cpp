@@ -141,19 +141,19 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 };
 
 void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	if(!running){
 		++connection_count;
 	}
 }
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
+	idbg(_rctx.recipientId());
+	_rctx.service().activateConnection(_rctx.recipientId());
 }
 
 void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const& _error){
-	idbg(_rctx.connectionId()<<" error = "<<_error.message());
+	idbg(_rctx.recipientId()<<" error = "<<_error.message());
 	
 	if(test_scenario == 0){
 		if(_error == frame::ipc::error_too_many_keepalive_packets_received){
@@ -173,13 +173,13 @@ void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
-	idbg(_rctx.connectionId());
-	_rctx.service().activateConnection(_rctx.connectionId());
+	idbg(_rctx.recipientId());
+	_rctx.service().activateConnection(_rctx.recipientId());
 }
 
 
 void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
@@ -203,14 +203,14 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 }
 
 void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 	if(!_rerr){
 		++crtackidx;
 	}
 }
 
 void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.connectionId()<<" message id on sender "<<_rmsgptr->requestId());
+	idbg(_rctx.recipientId()<<" message id on sender "<<_rmsgptr->requestId());
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
 	}
@@ -220,7 +220,7 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	}
 	
 	//send message back
-	_rctx.service().sendMessage(_rctx.connectionId(), _rmsgptr);
+	_rctx.service().sendMessage(_rctx.recipientId(), _rmsgptr);
 	
 	++crtreadidx;
 	idbg(crtreadidx);
@@ -235,7 +235,7 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 }
 
 void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.connectionId());
+	idbg(_rctx.recipientId());
 }
 
 

@@ -44,19 +44,19 @@ public:
 
 	void stop();
 	
-	bool notify(ObjectUidT const &_ruid, Event const &_e, const size_t _sigmsk = 0);
+	bool notify(ObjectIdT const &_ruid, Event const &_e, const size_t _sigmsk = 0);
 
 	bool notifyAll(Event const &_e, const size_t _sigmsk = 0);
 	
 	
 	template <class F>
-	bool visit(ObjectUidT const &_ruid, F _f){
+	bool visit(ObjectIdT const &_ruid, F _f){
 		ObjectVisitFunctionT fct(_f);
 		return doVisit(_ruid, fct);
 	}
 	
 	
-	ObjectUidT  id(const ObjectBase &_robj)const;
+	ObjectIdT  id(const ObjectBase &_robj)const;
 	
 	Service& service(const ObjectBase &_robj)const;
 protected:
@@ -81,12 +81,12 @@ private:
 	void unregisterObject(ObjectBase &_robj);
 	bool disableObjectVisits(ObjectBase &_robj);
 	
-	ObjectUidT  unsafeId(const ObjectBase &_robj)const;
+	ObjectIdT  unsafeId(const ObjectBase &_robj)const;
 	
 	Mutex& mutex(const Service &_rsvc)const;
 	Mutex& mutex(const ObjectBase &_robj)const;
 	
-	ObjectUidT registerObject(
+	ObjectIdT registerObject(
 		const Service &_rsvc,
 		ObjectBase &_robj,
 		ReactorBase &_rr,
@@ -110,7 +110,7 @@ private:
 	
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctionT &_rfct);
 	bool doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctionT &_rfct);
-	bool doVisit(ObjectUidT const &_ruid, ObjectVisitFunctionT &_fctor);
+	bool doVisit(ObjectIdT const &_ruid, ObjectVisitFunctionT &_fctor);
 	void doUnregisterService(ServiceStub &_rss);
 private:
 	struct Data;
