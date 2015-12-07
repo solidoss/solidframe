@@ -64,25 +64,50 @@ typedef CPP11_NS::unordered_map<
 typedef Queue<ObjectIdT>								ObjectIdQueueT;
 
 enum{
-		InnerLinkOrder = 0,
-		InnerLinkCount
-	};
+	InnerLinkOrder = 0,
+	InnerLinkCount
+};
 
 struct MessageStub: InnerNode<InnerLinkCount>{
+	
+	enum{
+		CancelableFlag = 1
+	};
+	
 	MessageStub(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong _flags
-	): msgbundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc){}
+		ulong _msgflags
+	):	msgbundle(_rmsgptr, _msg_type_idx, _msgflags, _rresponse_fnc),
+		unique(0), flags(0){}
 	
 	MessageStub(
 		MessageStub && _rmsg
-	): msgbundle(std::move(_rmsg.msgbundle)){}
+	):	msgbundle(std::move(_rmsg.msgbundle)),
+		unique(_rmsg.unique), flags(_rmsg.flags){}
 	
-	MessageStub(){}
+	MessageStub():unique(0), flags(0){}
+	
+	bool isCancelable()const{
+		return (flags & CancelableFlag) != 0;
+	}
+	
+	void makeCancelable(){
+		flags |= CancelableFlag;
+	}
+	
+	void clear(){
+		msgbundle.clear();
+		msgid = MessageId();
+		++unique;
+		flags = 0;
+	}
 	
 	MessageBundle	msgbundle;
+	MessageId		msgid;
+	uint32			unique;
+	uint			flags;
 };
 
 typedef std::vector<MessageStub>						MessageVectorT;
