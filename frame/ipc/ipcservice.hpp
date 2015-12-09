@@ -497,6 +497,16 @@ private:
 		ulong _flags
 	);
 	
+	ErrorConditionT doSendMessageToNewPool(
+		const char *_recipient_name,
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
+		ConnectionPoolId *_ppool_id_out,
+		MessageId *_pmsguid_out,
+		ulong _flags
+	);
+	
 	ErrorConditionT doNotifyConnectionPushMessage(
 		ObjectIdT const &_robjuid,
 		MessagePointerT &_rmsgptr,
