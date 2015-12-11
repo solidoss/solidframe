@@ -129,6 +129,17 @@ struct ConnectionPoolStub{
 	):	uid(0), pending_connection_count(0), active_connection_count(0),
 		msgorder_inner_list(msgvec), msgcache_inner_list(msgvec){}
 	
+	
+	ConnectionPoolStub(
+		ConnectionPoolStub && _rconpool
+	):	uid(_rconpool.uid), pending_connection_count(_rconpool.pending_connection_count),
+		active_connection_count(_rconpool.active_connection_count), name(std::move(_rconpool.name)),
+		synchronous_connection_uid(_rconpool.synchronous_connection_uid),
+		msgvec(std::move(_rconpool.msgvec)),
+		msgorder_inner_list(msgvec, _rconpool.msgorder_inner_list),
+		msgcache_inner_list(msgvec, _rconpool.msgcache_inner_list),
+		conn_waitingq(std::move(_rconpool.conn_waitingq)){}
+	
 	void clear(){
 		name.clear();
 		synchronous_connection_uid = ObjectIdT();

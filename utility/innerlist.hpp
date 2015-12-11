@@ -69,6 +69,13 @@ public:
 	
 	InnerList(Vec &_rvec): rvec_(_rvec), size_(0), back_(InvalidIndex()), front_(InvalidIndex()){}
 	
+	InnerList(InnerList<Vec, Link> &) = delete;
+	InnerList(InnerList<Vec, Link> &&) = delete;
+	InnerList(
+		Vec &_rvec,
+		InnerList<Vec, Link> &_rinnerlist
+	):rvec_(_rvec), size_(_rinnerlist.size_), back_(_rinnerlist.back_), front_(_rinnerlist.front_){}
+	
 	void pushBack(const size_t _index){
 		InnerLink &rcrt_link = link(_index);
 		
