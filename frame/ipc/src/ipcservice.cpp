@@ -129,7 +129,6 @@ struct ConnectionPoolStub{
 	):	uid(0), pending_connection_count(0), active_connection_count(0),
 		msgorder_inner_list(msgvec), msgcache_inner_list(msgvec){}
 	
-	
 	ConnectionPoolStub(
 		ConnectionPoolStub && _rconpool
 	):	uid(_rconpool.uid), pending_connection_count(_rconpool.pending_connection_count),
@@ -338,6 +337,15 @@ struct PushMessageConnectionVisitorF{
 		rresponse_fnc(_rresponse_fnc), flags(_flags),
 		pmsguid(_pmsguid), rerror(_rerror){}
 	
+	PushMessageConnectionVisitorF(
+		Service &_rservice,
+		MessageBundle &_rmsgbundle,
+		ErrorConditionT &_rerror,
+		MessageId  *_pmsguid = nullptr
+	):	rservice(_rservice),
+		rmsgptr(_rmsgbundle.message_ptr), msg_type_idx(_rmsgbundle.message_type_id),
+		rresponse_fnc(_rmsgbundle.response_fnc), flags(_rmsgbundle.message_flags),
+		pmsguid(_pmsguid), rerror(_rerror){}
 	
 	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
 		Connection *pcon = Connection::cast(&_robj);
@@ -540,14 +548,13 @@ ErrorConditionT Service::doSendMessage(
 	}
 	
 	if(_rrecipient_id_in.isValidConnection()){
+		cassert(_ppool_id_out == nullptr);
 		//directly send the message to a connection object
 		return doNotifyConnectionPushMessage(
 			_rrecipient_id_in.connectionid,
 			_rmsgptr,
 			msg_type_idx,
 			_rresponse_fnc,
-			ConnectionPoolId(),
-			_ppool_id_out,
 			_pmsguid_out,
 			_flags
 		);
@@ -591,6 +598,10 @@ ErrorConditionT Service::doSendMessage(
 		return error;
 	}
 	
+	//At this point we can fetch the message from user's pointer
+	//because from now on we can call complete on the message
+	const size_t			msgidx = rconpool.pushBackMessage(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags);
+	
 	if(
 		Message::is_synchronous(_flags) and
 		rconpool.synchronous_connection_uid.isValid()
@@ -598,19 +609,16 @@ ErrorConditionT Service::doSendMessage(
 		//try send synchronous message to the one connection handling synchronous messages
 		ErrorConditionT	temp_error = doNotifyConnectionPushMessage(
 			rconpool.synchronous_connection_uid,
-			_rmsgptr,
-			msg_type_idx,
-			_rresponse_fnc,
-			ConnectionPoolId(pool_idx, rconpool.uid),
+			msgidx,
+			pool_idx,
 			_ppool_id_out,
-			_pmsguid_out,
-			_flags
+			_pmsguid_out
 		);
 		if(!temp_error){
-			return error;
+			return error;//success
 		}
 		edbgx(Debug::ipc, this<<" synchronous connection is dead and pool's synchronous_connection_uid is valid");
-		cassert(false);
+		//cassert(false);
 		rconpool.synchronous_connection_uid = UniqueId::invalid();
 	}
 	
@@ -622,20 +630,17 @@ ErrorConditionT Service::doSendMessage(
 		
 		ErrorConditionT	temp_error = doNotifyConnectionPushMessage(
 			objuid,
-			_rmsgptr,
-			msg_type_idx,
-			_rresponse_fnc,
-			ConnectionPoolId(pool_idx, rconpool.uid),
-			_ppool_id_out,
-			nullptr,//TODO: revisit
-			_flags
+			msgidx,
+ 			pool_idx,
+ 			_ppool_id_out,
+			_pmsguid_out
 		);
 		
 		if(!temp_error){
 			if(Message::is_synchronous(_flags)){
 				rconpool.synchronous_connection_uid = objuid;
 			}
-			return error;
+			return error;//success
 		}
 		wdbgx(Debug::ipc, this<<" failed sending message to connection "<<objuid<<" error: "<<temp_error.message());
 	}
@@ -660,8 +665,6 @@ ErrorConditionT Service::doSendMessage(
 			cassert(rconpool.pending_connection_count + rconpool.active_connection_count);
 		}
 	}
-	
-	rconpool.pushBackMessage(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags);
 	
 	return error;
 }
@@ -727,8 +730,6 @@ ErrorConditionT Service::doNotifyConnectionPushMessage(
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
 	ResponseHandlerFunctionT &_rresponse_fnc,
-	ConnectionPoolId const &_rconpooluid,
-	ConnectionPoolId *_pconpoolid_out,
 	MessageId *_pmsgid_out,
 	ulong _flags
 ){
@@ -738,9 +739,29 @@ ErrorConditionT Service::doNotifyConnectionPushMessage(
 	if(success){
 		cassert(not error);
 		//message successfully delivered
-		if(_pconpoolid_out){
-			*_pconpoolid_out = _rconpooluid;
-		}
+	}else if(not error){
+		error = error_connection_inexistent;
+	}
+	return error;
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::doNotifyConnectionPushMessage(
+	ObjectIdT const &_robjuid,
+	const size_t _msg_idx,
+	const size_t _pool_idx,
+	ConnectionPoolId *_ppool_id_out,
+	MessageId *_pmsgid_out
+){
+	solid::ErrorConditionT			error;
+	ConnectionPoolStub 				&rconpool(d.conpooldq[_pool_idx]);
+	MessageStub						&rmsgstub(rconpool.msgvec[_msg_idx]);
+	
+	
+	PushMessageConnectionVisitorF	fnc(*this, rmsgstub.msgbundle, error, _pmsgid_out);
+	bool							success = manager().visit(_robjuid, fnc);
+	if(success){
+		cassert(not error);
+		//message successfully delivered
 	}else if(not error){
 		error = error_connection_inexistent;
 	}
@@ -953,8 +974,8 @@ ErrorConditionT Service::doActivateConnection(
 					msgpair.first,
 					msg_type_idx,
 					response_handler,
-					poolid,
-					nullptr,
+// 					poolid,
+// 					nullptr,//TODO: revisit
 					nullptr, //TODO: revisit
 					msgpair.second
 				);
@@ -1004,8 +1025,8 @@ ErrorConditionT Service::doActivateConnection(
 					msgpair.first,
 					msg_type_idx,
 					response_handler,
-					poolid,
-					nullptr,
+// 					poolid,
+// 					nullptr, //TODO:revisit
 					nullptr,//TODO: revisit
 					msgpair.second
 				);

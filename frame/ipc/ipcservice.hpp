@@ -512,10 +512,16 @@ private:
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ConnectionPoolId const &_rpool_id,
-		ConnectionPoolId *_ppool_id_out,
 		MessageId *_pmsg_id_out,
 		ulong _flags
+	);
+	
+	ErrorConditionT doNotifyConnectionPushMessage(
+		ObjectIdT const &_robjuid,
+		const size_t _msg_idx,
+		const size_t _pool_idx,
+		ConnectionPoolId *_ppool_id_out,
+		MessageId *_pmsgid_out
 	);
 	
 	ErrorConditionT doNotifyConnectionDelayedClose(
