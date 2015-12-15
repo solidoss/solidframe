@@ -79,7 +79,8 @@ public:
 		ulong _flags,
 		MessageId *_pmsguid,
 		Event &_revent,
-		ErrorConditionT &_rerror
+		ErrorConditionT &_rerror,
+		const size_t _pool_msg_idx
 	);
 	
 	bool pushCancelMessage(
@@ -98,7 +99,8 @@ public:
 	void directPushMessage(
 		frame::aio::ReactorContext &_rctx,
 		MessageBundle &_rmsgbundle,
-		MessageId *_pmsguid
+		MessageId *_pmsguid,
+		const size_t _pool_msg_idx
 	);
 	
 	bool prepareActivate(

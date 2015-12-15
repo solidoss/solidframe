@@ -520,8 +520,7 @@ private:
 		ObjectIdT const &_robjuid,
 		const size_t _msg_idx,
 		const size_t _pool_idx,
-		ConnectionPoolId *_ppool_id_out,
-		MessageId *_pmsgid_out
+		ConnectionPoolId *_ppool_id_out
 	);
 	
 	ErrorConditionT doNotifyConnectionDelayedClose(
