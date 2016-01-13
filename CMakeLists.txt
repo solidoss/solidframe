@@ -348,7 +348,7 @@ set(CMAKE_BUILD_TYPE
 # Global include directories
 #-----------------------------------------------------------------
 include_directories(
-	${SolidFrame_SOURCE_DIR}
+	${SolidFrame_SOURCE_DIR}/libraries
 	${CMAKE_CURRENT_BINARY_DIR}
 	${EXTERN_PATH}/include/
 )
@@ -365,19 +365,14 @@ link_directories(
 #-----------------------------------------------------------------
 # Testing support (CTest & CDash)
 #-----------------------------------------------------------------
-INCLUDE(CTest)
 ENABLE_TESTING()
+INCLUDE(CTest)
 
 #-----------------------------------------------------------------
 # Project subdirectories
 #-----------------------------------------------------------------
-add_subdirectory (system)
-add_subdirectory (utility)
-add_subdirectory (serialization)
-add_subdirectory (audit)
-#add_subdirectory (consensus)
-add_subdirectory (frame)
-add_subdirectory (example)
+add_subdirectory (libraries)
+add_subdirectory (examples)
 
 #-----------------------------------------------------------------
 
