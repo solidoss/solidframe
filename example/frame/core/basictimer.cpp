@@ -23,12 +23,12 @@ namespace {
 	Mutex		mtx;
 }
 
-enum Events{
-	EventStartE = 0,
-	EventRunE,
-	EventStopE,
-	EventSendE,
-};
+// enum Events{
+// 	EventStartE = 0,
+// 	EventRunE,
+// 	EventStopE,
+// 	EventSendE,
+// };
 
 typedef frame::Scheduler<frame::Reactor>	SchedulerT;
 
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]){
 		SchedulerT			s;
 		
 		frame::Manager		m;
-		frame::Service		svc(m, frame::Event(EventStopE));
+		frame::Service		svc(m);
 		
 		if(!s.start(1)){
 			const size_t	cnt = argc == 2 ? atoi(argv[1]) : 1;
@@ -75,9 +75,9 @@ int main(int argc, char *argv[]){
 			for(size_t i = 0; i < cnt; ++i){
 				DynamicPointer<frame::Object>	objptr(new BasicObject(10));
 				solid::ErrorConditionT			err;
-				solid::frame::ObjectUidT		objuid;
+				solid::frame::ObjectIdT			objuid;
 				
-				objuid = s.startObject(objptr, svc, frame::Event(EventStartE), err);
+				objuid = s.startObject(objptr, svc, frame::EventCategory::createStart(), err);
 				idbg("Started BasicObject: "<<objuid.index<<','<<objuid.unique);
 			}
 			
@@ -98,11 +98,11 @@ int main(int argc, char *argv[]){
 }
 
 /*virtual*/ void BasicObject::onEvent(frame::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg("event = "<<_revent.id);
-	if(_revent.id == EventStartE){
+	idbg("event = "<<_revent);
+	if(frame::EventCategory::isStart(_revent)){
 		t1.waitUntil(_rctx, _rctx.time() + 5 * 1000, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);});
 		t2.waitUntil(_rctx, _rctx.time() + 10 * 1000, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 1);});
-	}else if(_revent.id == EventStopE){
+	}else if(frame::EventCategory::isStop(_revent)){
 		postStop(_rctx);
 	}
 }

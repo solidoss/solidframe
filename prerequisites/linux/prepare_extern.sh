@@ -13,7 +13,7 @@ printUsage()
 	echo
 }
 
-BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.59.0/boost_1_59_0.tar.bz2"
+BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2"
 OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.2d.tar.gz"
 LEVELDB_ADDR="https://leveldb.googlecode.com/files/leveldb-1.15.0.tar.gz"
 SNAPPY_ADDR="http://snappy.googlecode.com/files/snappy-1.0.5.tar.gz"

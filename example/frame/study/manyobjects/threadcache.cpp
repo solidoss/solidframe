@@ -54,7 +54,7 @@ void RunThread::run(){
 }
 
 void RunThread::runSpecific(){
-	Specific::prepareThread();
+	//Specific::prepareThread();
 	vector<SpecificData<6>* >		d1vec;
 	vector<SpecificData<12>* >		d2vec;
 	vector<SpecificData<24>* >		d3vec;

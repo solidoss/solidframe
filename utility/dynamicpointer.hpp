@@ -107,7 +107,7 @@ public:
 		return *this;
 	}
 
-	ThisT& operator=(DynamicT *_pdyn){
+	ThisT& reset(DynamicT *_pdyn){
 		if(_pdyn == pdyn){
 			return *this;
 		}

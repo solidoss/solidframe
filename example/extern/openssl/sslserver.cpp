@@ -12,6 +12,12 @@
 using namespace std;
 using namespace solid;
 
+enum{
+	AsyncError = -1,
+	AsyncSuccess = 0,
+	AsyncWait,
+};
+
 struct Handle{
 	enum{
 		BufferCapacity = 1024,
@@ -19,7 +25,7 @@ struct Handle{
 		Banner,
 		DoIO
 	};
-	Handle(const SocketDevice &_sd):eevents(0), events(0), sd(_sd), ssl(NULL){
+	Handle(SocketDevice &_sd):eevents(0), events(0), sd(std::move(_sd)), ssl(NULL){
 		wait_read_on_write = false;
 		wait_read_on_read = false;
 		wait_write_on_write = false;
@@ -307,9 +313,10 @@ int executeConnection(uint32 _pos){
 	return retval;
 }
 int executeListener(){
-	Handle &h(handles[0]);
-	SocketDevice sd;
-	while(h.sd.acceptNonBlocking(sd) == solid::AsyncSuccess){
+	Handle			&h(handles[0]);
+	SocketDevice	sd;
+	bool 			can_retry = false;
+	while(!h.sd.accept(sd, can_retry)){
 		epoll_event ev;
 		ev.data.u32 = handles.size();
 		sd.makeNonBlocking();

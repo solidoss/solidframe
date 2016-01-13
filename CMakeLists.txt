@@ -350,8 +350,6 @@ set(CMAKE_BUILD_TYPE
 include_directories(
 	${SolidFrame_SOURCE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
-	${SolidFrame_SOURCE_DIR}/library
-	${SolidFrame_SOURCE_DIR}/application
 	${EXTERN_PATH}/include/
 )
 #-----------------------------------------------------------------
@@ -377,8 +375,7 @@ add_subdirectory (system)
 add_subdirectory (utility)
 add_subdirectory (serialization)
 add_subdirectory (audit)
-add_subdirectory (test)
-add_subdirectory (consensus)
+#add_subdirectory (consensus)
 add_subdirectory (frame)
 add_subdirectory (example)
 

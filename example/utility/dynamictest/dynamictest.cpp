@@ -5,7 +5,7 @@
 using namespace std;
 using namespace solid;
 
-struct AObject: Dynamic<AObject, DynamicShared<> >{
+struct AObject: Dynamic<AObject>{
 	AObject(int _v):v(_v){}
 	int v;
 };
@@ -224,12 +224,12 @@ int main(){
 #endif
 	
 	{
-		DynamicSharedPointer<AObject> 	dsap(new AObject(1));
-		DynamicSharedPointer<>			dsbp;
+		DynamicPointer<AObject> 	dsap(new AObject(1));
+		DynamicPointer<>			dsbp;
 		dsbp = dsap;
 		{
-			DynamicPointer<AObject>			dap(dsap);
-			DynamicSharedPointer<>			dsaap(dap);
+			DynamicPointer<AObject>		dap(dsap);
+			DynamicPointer<>			dsaap(dap);
 			idbg("ptr = "<<(void*)dap.get()<<" ptr = "<<(void*)dsaap.get());
 		}
 		idbg("ptr = "<<(void*)dsap.get()<<" ptr = "<<(void*)dsbp.get());

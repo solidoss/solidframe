@@ -109,7 +109,7 @@ public:
 #endif
 	void close();
 	//! Get the socket type
-	ErrorCodeT type(int &_rerr)const;
+	ErrorCodeT type(int &_rrv)const;
 	//! Return true if the socket is listening
 	//bool isListening()const;
 private:

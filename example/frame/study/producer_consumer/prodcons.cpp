@@ -10,6 +10,7 @@
 #include "system/condition.hpp"
 #include "system/timespec.hpp"
 #include "findmin.hpp"
+#include "utility/common.hpp"
 
 #include <boost/lockfree/queue.hpp>
 

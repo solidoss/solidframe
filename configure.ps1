@@ -134,21 +134,21 @@ $current_folder = (Get-Location -PSProvider FileSystem).ProviderPath
 
 Write-Host "Current folder $current_folder"
 
-cd application
-if(test-path "CMakeLists.txt")
-{
-rm CMakeLists.txt -force
-}
-make_cmake_list
-cd ../
+#cd application
+#if(test-path "CMakeLists.txt")
+#{
+#rm CMakeLists.txt -force
+#}
+#make_cmake_list
+#cd ../
 
-cd library
-if(test-path "CMakeLists.txt")
-{
-rm CMakeLists.txt -force
-}
-make_cmake_list
-cd ../
+#cd library
+#if(test-path "CMakeLists.txt")
+#{
+#rm CMakeLists.txt -force
+#}
+#make_cmake_list
+#cd ../
 
 if(!($folder_name))
 {

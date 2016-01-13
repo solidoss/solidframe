@@ -18,7 +18,7 @@ typedef std::vector<size_t>					SizeVectorT;
 
 struct ObjectStub{
 	ObjectStub(
-	):	idx(InvalidIndex()), thridx(InvalidIndex()), value(0), flags(0), flag1cnt(0),
+	):	idx(InvalidIndex()), thridx(static_cast<size_t>(InvalidIndex())), value(0), flags(0), flag1cnt(0),
 		flag2cnt(0),flag3cnt(0), flag4cnt(0), minvecsz(InvalidSize()), maxvecsz(0), eventcnt(0), raisecnt(0)
 	{
 // 		thridx = -1;
@@ -255,11 +255,11 @@ void SharedObjectManager::executeObject(ObjectStub &_robj){
 
 void SharedObjectManager::stop(std::ostream &_ros){
 	d.wp.stop(true);
-	size_t		minvecsz(InvalidSize());
+	size_t		minvecsz{InvalidSize()};
 	size_t		maxvecsz(0);
-	size_t		mineventcnt(InvalidSize());
+	size_t		mineventcnt{InvalidSize()};
 	size_t		maxeventcnt(0);
-	size_t		minraisecnt(InvalidSize());
+	size_t		minraisecnt{InvalidSize()};
 	size_t		maxraisecnt(0);
 	uint64		eventcnt(0);
 	uint64		raisecnt(0);

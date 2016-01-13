@@ -14,7 +14,7 @@ using namespace solid;
 struct ObjectStub;
 struct Context;
 
-class Object: public Dynamic<Object, DynamicShared<> >{
+class Object: public Dynamic<Object>{
 protected:
 	Object(){}
 	virtual ~Object(){}

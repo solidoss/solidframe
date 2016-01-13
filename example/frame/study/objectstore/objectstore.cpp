@@ -50,7 +50,7 @@ public:
 	}
 	
 	void stop(bool _wait = true);
-	
+	UniqueIdT registerObject(ObjectBase *_pobj);
 private:
 };
 

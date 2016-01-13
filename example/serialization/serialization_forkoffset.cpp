@@ -43,7 +43,7 @@ struct Test{
 	}
 	
 	template <class S, uint32 I>
-	serialization::binary::CbkReturnValueE serializationReinit(S &_rs, const uint64 &_rv){
+	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv){
 		idbg("_rv = "<<_rv);
 		if(_rv == 0){
 			if(S::IsSerializer){
@@ -74,10 +74,10 @@ struct Test{
 			}	
 		}else{
 			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamError().message());
-			return serialization::binary::Success;
+			return serialization::binary::SuccessE;
 		}
 		
-		return serialization::binary::Continue;
+		return serialization::binary::ContinueE;
 	}
 	
 	void print();

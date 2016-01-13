@@ -180,23 +180,23 @@ if [ "$HELP" = "yes" ]; then
 	exit
 fi
 
-if [ "$CREATE_LISTS" = "yes" ]; then
-	if [ ! -d application ]; then
-		mkdir application
-	fi
-	cd application
-	make_cmake_list *
-	cd ../
-	
-	if [ ! -d library ]; then
-		mkdir library
-	fi
-	cd library
-	make_cmake_list *
-	cd ../
-
-	exit
-fi
+#if [ "$CREATE_LISTS" = "yes" ]; then
+#	if [ ! -d application ]; then
+#		mkdir application
+# 	fi
+# 	cd application
+# 	make_cmake_list *
+# 	cd ../
+# 	
+# 	if [ ! -d library ]; then
+# 		mkdir library
+# 	fi
+# 	cd library
+# 	make_cmake_list *
+# 	cd ../
+# 
+# 	exit
+# fi
 
 if [ ! -d $EXTERN_PATH ]; then
 	echo "Invalid prerequisites path: $EXTERN_PATH"
