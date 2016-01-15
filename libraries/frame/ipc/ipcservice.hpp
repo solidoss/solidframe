@@ -63,12 +63,6 @@ public:
 	using message_type = typename call_type::message_type;
 };
 
-template <class M>
-void print_message(){
-	idbg(__PRETTY_FUNCTION__);
-}
-
-
 struct Message;
 class Configuration;
 class Connection;
