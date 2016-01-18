@@ -2,6 +2,7 @@
 set( UtilityTestSuite
 	test_invalid_index.cpp
 	test_innerlist.cpp
+	test_any.cpp
 )
 
 create_test_sourcelist( UtilityTests test_utility.cpp ${UtilityTestSuite})
@@ -20,5 +21,9 @@ add_test( TestUtility test_utility
 
 add_test( TestUtility test_utility
 	test_innerlist
+)
+
+add_test( TestUtility test_utility
+	test_any
 )
 #==============================================================================
