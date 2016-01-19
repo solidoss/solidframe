@@ -25,7 +25,7 @@ struct AnyValueBase{
 	virtual const void* get()const = 0;
 	virtual void* get() = 0;
 	virtual AnyValueBase* copyTo(void *_pd, const size_t _sz) const = 0;
-	virtual AnyValueBase* moveTo(void *_pd, const size_t _sz) = 0;
+	virtual AnyValueBase* moveTo(void *_pd, const size_t _sz, const bool _uses_data) = 0;
 };
 
 
@@ -51,9 +51,11 @@ struct AnyValue: AnyValueBase{
 		}
 	}
 	
-	AnyValueBase* moveTo(void *_pd, const size_t _sz)override{
+	AnyValueBase* moveTo(void *_pd, const size_t _sz, const bool _uses_data)override{
 		if(sizeof(AnyValue<T>) <= _sz){
 			return new(_pd) AnyValue<T>{std::move(value_)};
+		}else if(not _uses_data){//the pointer was allocated
+			return this;
 		}else{
 			return new AnyValue<T>{std::move(value_)};
 		}
@@ -69,8 +71,11 @@ class AnyBase{
 protected:
 	AnyBase():pvalue_(nullptr){}
 	
-	void doMoveFrom(AnyBase &_ranybase, void *_pv, const size_t _sz){
-		pvalue_ = _ranybase.pvalue_->moveTo(_pv, _sz);
+	void doMoveFrom(AnyBase &_ranybase, void *_pv, const size_t _sz, const bool _uses_data){
+		pvalue_ = _ranybase.pvalue_->moveTo(_pv, _sz, _uses_data);
+		if(pvalue_ == _ranybase.pvalue_){
+			_ranybase.pvalue_ = nullptr;
+		}
 	}
 	
 	void doCopyFrom(const AnyBase &_ranybase, void *_pv, const size_t _sz){
@@ -88,17 +93,19 @@ class Any: protected AnyBase{
 public:
 	using ThisT = Any<DataSize>;
 	
+	
 	Any(){}
 	
 	
 	template <size_t DS>
 	explicit Any(const Any<DS> &_rany){
-		
+		doCopyFrom(_rany, data_, DataSize);
 	}
 	
 	template <size_t DS>
 	explicit Any(Any<DS> &&_rany){
-		
+		doMoveFrom(_rany, data_, DataSize, _rany.usesData());
+		_rany.clear();
 	}
 	
 	Any(const ThisT &_rany){
@@ -106,17 +113,18 @@ public:
 	}
 	
 	Any(ThisT &&_rany){
-		doMoveFrom(std::move(_rany), data_, DataSize);
+		doMoveFrom(_rany, data_, DataSize, _rany.usesData());
 		_rany.clear();
 	}
 	
+	
 	template <typename T>
-	explicit Any(const T &_rt){
+	explicit Any(const T &_rt, bool _dummy){
 		reset(_rt);
 	}
 	
 	template <typename T>
-	explicit Any(T &&_rt){
+	explicit Any(T &&_rt, bool _dummy){
 		reset(std::move(_rt));
 	}
 	
@@ -176,7 +184,7 @@ public:
 	ThisT& operator=(Any<DS> &&_rany){
 		if(static_cast<const void*>(this) != static_cast<const void*>(&_rany)){
 			clear();
-			doMoveFrom(_rany, data_, DataSize);
+			doMoveFrom(_rany, data_, DataSize, _rany.usesData());
 			_rany.clear();
 		}
 		return *this;
@@ -203,13 +211,24 @@ public:
 		}
 	}
 	
-	
-private:
 	bool usesData()const{
 		return reinterpret_cast<const void*>(pvalue_) == reinterpret_cast<const void*>(data_);
 	}
+	
+private:
 	char				data_[DataSize];
 };
+
+
+template <size_t DS, typename T>
+Any<DS> any_create(const T &_rt){
+	return Any<DS>(_rt, true);
+}
+
+template <size_t DS, typename T>
+Any<DS> any_create(T &&_rt){
+	return Any<DS>(_rt, true);
+}
 
 
 }//namespace solid
