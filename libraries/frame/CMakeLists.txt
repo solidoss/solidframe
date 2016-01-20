@@ -7,7 +7,6 @@ set(Sources
 	src/reactor.cpp
 	src/completion.cpp
 	src/sharedstore.cpp
-	src/event.cpp
 )
 
 set(Headers

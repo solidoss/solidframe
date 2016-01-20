@@ -7,6 +7,7 @@ set(Sources
 	src/memoryfile.cpp
 	src/ioformat.cpp
 	src/any.cpp
+	src/event.cpp
 )
 
 set(Headers
@@ -28,6 +29,7 @@ set(Headers
 	ioformat.hpp
 	innerlist.hpp
 	any.hpp
+	event.hpp
 )
 
 set(Inlines

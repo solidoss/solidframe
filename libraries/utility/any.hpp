@@ -68,18 +68,25 @@ struct AnyValue: AnyValueBase{
 
 
 class AnyBase{
+public:
+	static constexpr size_t min_data_size = sizeof(impl::AnyValue<void*>);
 protected:
+	
 	AnyBase():pvalue_(nullptr){}
 	
 	void doMoveFrom(AnyBase &_ranybase, void *_pv, const size_t _sz, const bool _uses_data){
-		pvalue_ = _ranybase.pvalue_->moveTo(_pv, _sz, _uses_data);
-		if(pvalue_ == _ranybase.pvalue_){
-			_ranybase.pvalue_ = nullptr;
+		if(_ranybase.pvalue_){
+			pvalue_ = _ranybase.pvalue_->moveTo(_pv, _sz, _uses_data);
+			if(pvalue_ == _ranybase.pvalue_){
+				_ranybase.pvalue_ = nullptr;
+			}
 		}
 	}
 	
 	void doCopyFrom(const AnyBase &_ranybase, void *_pv, const size_t _sz){
-		pvalue_ = _ranybase.pvalue_->copyTo(_pv, _sz);
+		if(_ranybase.pvalue_){
+			pvalue_ = _ranybase.pvalue_->copyTo(_pv, _sz);
+		}
 	}
 	
 	impl::AnyValueBase	*pvalue_;
@@ -170,6 +177,22 @@ public:
 		pvalue_ = nullptr;
 	}
 	
+	ThisT& operator=(const ThisT &_rany){
+		if(static_cast<const void*>(this) != static_cast<const void*>(&_rany)){
+			clear();
+			doCopyFrom(_rany, data_, DataSize);
+		}
+		return *this;
+	}
+	
+	ThisT& operator=(ThisT &&_rany){
+		if(static_cast<const void*>(this) != static_cast<const void*>(&_rany)){
+			clear();
+			doMoveFrom(_rany, data_, DataSize, _rany.usesData());
+			_rany.clear();
+		}
+		return *this;
+	}
 	
 	template <size_t DS>
 	ThisT& operator=(const Any<DS> &_rany){
