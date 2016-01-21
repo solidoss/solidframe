@@ -11,7 +11,6 @@
 #define SOLID_FRAME_SERVICE_HPP
 
 #include "frame/common.hpp"
-#include "frame/event.hpp"
 #include "frame/manager.hpp"
 #include "system/mutex.hpp"
 #include "utility/dynamictype.hpp"
@@ -24,6 +23,7 @@
 #endif
 
 namespace solid{
+struct Event;
 namespace frame{
 
 class	ObjectBase;

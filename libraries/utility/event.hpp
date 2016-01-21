@@ -55,6 +55,12 @@ struct Event{
 		return any_;
 	}
 	
+	bool operator==(const Event &_revt)const;
+	
+	void clear();
+	
+	bool isDefault()const;
+	
 private:
 	friend class EventCategoryBase;
 	friend class EventHandlerBase;

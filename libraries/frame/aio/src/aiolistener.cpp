@@ -8,6 +8,8 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
+#include "utility/event.hpp"
+
 #include "frame/aio/aiolistener.hpp"
 #include "frame/aio/aiocommon.hpp"
 #include "frame/aio/aioreactor.hpp"
@@ -52,7 +54,7 @@ namespace aio{
 	}
 }
 
-/*static*/ void Listener::on_posted_accept(ReactorContext &_rctx, Event const&){
+/*static*/ void Listener::on_posted_accept(ReactorContext &_rctx, Event &&){
 	Listener		*pthis = static_cast<Listener*>(completion_handler(_rctx));
 	Listener		&rthis = *pthis;
 	SocketDevice	sd;

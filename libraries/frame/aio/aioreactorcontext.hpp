@@ -15,7 +15,6 @@
 #include "system/socketdevice.hpp"
 #include "system/timespec.hpp"
 
-#include "frame/event.hpp"
 #include "frame/aio/aiocommon.hpp"
 
 namespace solid{

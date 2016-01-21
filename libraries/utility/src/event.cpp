@@ -60,6 +60,20 @@ Event& Event::operator=(Event&& _uevt){
 	return *this;
 }
 
+bool Event::operator==(const Event &_revt)const{
+	return (pcategory_ == _revt.pcategory_) and (id_ == _revt.id_);
+}
+
+bool Event::isDefault()const{
+	return pcategory_ == &generic_event_category and id_ == static_cast<size_t>(GenericEvents::Default);
+}
+
+void Event::clear(){
+	pcategory_ = &generic_event_category;
+	id_ = static_cast<size_t>(GenericEvents::Default);
+	any_.clear();
+}
+
 std::ostream& Event::print(std::ostream &_ros)const{
 	return _ros<<pcategory_->name()<<':'<<':'<<pcategory_->name(*this);
 }

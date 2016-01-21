@@ -32,7 +32,7 @@ struct AnyValueBase{
 template <class T>
 struct AnyValue: AnyValueBase{
 	explicit AnyValue(const T &_rt):value_(_rt){}
-	explicit AnyValue(T &&_rt):value_(_rt){}
+	explicit AnyValue(T &&_rt):value_(std::move(_rt)){}
 	
 	
 	const void* get()const override{

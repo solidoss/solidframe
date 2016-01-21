@@ -17,6 +17,7 @@
 #include "system/socketdevice.hpp"
 
 namespace solid{
+struct Event;
 namespace frame{
 namespace aio{
 namespace openssl{
@@ -39,7 +40,8 @@ public:
 	}
 private:
 	Service& service(frame::aio::ReactorContext &_rctx);
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
+	
 	void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
 	
 	

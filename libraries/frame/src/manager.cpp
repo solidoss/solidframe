@@ -25,8 +25,8 @@
 #include "frame/manager.hpp"
 #include "frame/reactorbase.hpp"
 #include "frame/service.hpp"
-#include "frame/event.hpp"
 
+#include "utility/event.hpp"
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
 
@@ -295,15 +295,24 @@ Manager::Data::~Data(){
 
 /*static*/ inline bool Manager::notify_object(
 	ObjectBase &_robj, ReactorBase &_rreact,
-	Event const &_revt, const size_t _sigmsk
+	Event &&_uevt, const size_t _sigmsk
 ){
-	Event tmpevt(_revt);
-	
 	if(!_sigmsk || _robj.notify(_sigmsk)){
-		return _rreact.raise(_robj.runId(), tmpevt);
+		return _rreact.raise(_robj.runId(), std::move(_uevt));
 	}
 	return false;
 }
+
+/*static*/ inline bool Manager::notify_object(
+	ObjectBase &_robj, ReactorBase &_rreact,
+	Event const &_revt, const size_t _sigmsk
+){
+	if(!_sigmsk || _robj.notify(_sigmsk)){
+		return _rreact.raise(_robj.runId(), _revt);
+	}
+	return false;
+}
+
 
 Manager::Manager(
 	const size_t _svcmtxcnt/* = 0*/,
@@ -619,11 +628,11 @@ bool Manager::disableObjectVisits(ObjectBase &_robj){
 	return retval;
 }
 
-bool Manager::notify(ObjectIdT const &_ruid, Event const &_revt, const size_t _sigmsk/* = 0*/){
+bool Manager::notify(ObjectIdT const &_ruid, Event &&_uevt, const size_t _sigmsk/* = 0*/){
 	
 	ObjectVisitFunctionT	f(
-		[_revt, _sigmsk](ObjectBase &_robj, ReactorBase &_rreact){
-			return notify_object(_robj, _rreact, _revt, _sigmsk);
+		[&_uevt, _sigmsk](ObjectBase &_robj, ReactorBase &_rreact){
+			return notify_object(_robj, _rreact, std::move(_uevt), _sigmsk);
 		}
 	);
 	
@@ -821,10 +830,12 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 	if(rss.state == StateRunningE){
 		ObjectVisitFunctionT	fctor(
 			[](ObjectBase &_robj, ReactorBase &_rreact){
-				return notify_object(_robj, _rreact, EventCategory::create(EventCategory::KillE), 0);
+				return notify_object(_robj, _rreact, generic_event_category.event(GenericEvents::Kill), 0);
 			}
 		);
+		
 		const bool				any = doForEachServiceObject(rss.firstchk, fctor);
+		
 		if(!any){
 			rss.state = StateStoppedE;
 			return;
@@ -870,7 +881,7 @@ void Manager::stop(){
 		if(rss.psvc && rss.state == StateRunningE){
 			ObjectVisitFunctionT	fctor(
 				[](ObjectBase &_robj, ReactorBase &_rreact){
-					return notify_object(_robj, _rreact, EventCategory::create(EventCategory::KillE), 0);
+					return notify_object(_robj, _rreact, generic_event_category.event(GenericEvents::Kill), 0);
 				}
 			);
 			const bool				any = doForEachServiceObject(rss.firstchk, fctor);

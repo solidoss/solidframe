@@ -15,7 +15,6 @@
 #include "system/socketdevice.hpp"
 #include "system/timespec.hpp"
 
-#include "frame/event.hpp"
 #include "frame/aio/aiocommon.hpp"
 
 namespace solid{
@@ -90,7 +89,7 @@ private:
 	size_t						objidx;
 	ReactorEventsE				reactevn;
 	ERROR_NS::error_code		syserr;
-	ErrorConditionT	err;
+	ErrorConditionT				err;
 };
 
 }//namespace frame

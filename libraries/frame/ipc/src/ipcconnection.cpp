@@ -7,6 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include "utility/event.hpp"
 #include "frame/manager.hpp"
 #include "ipcconnection.hpp"
 #include "frame/ipc/ipcerror.hpp"
@@ -18,98 +19,52 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
-enum Flags{
-	FlagActiveE						= 1,
-	
-	FlagServerE						= 4,
-	FlagKeepaliveE					= 8,
-	FlagWaitKeepAliveTimerE			= 16,
-	FlagStopForcedE					= 32,
-	FlagHasActivityE				= 64,
-};
-
-enum AtomicFlags{
-	AtomicFlagActiveE				= 1,
-	AtomicFlagStoppingE				= 2,
-	AtomicFlagDelayedClosingE		= 4,
-};
-
 namespace{
-struct EventCategory: public Dynamic<EventCategory, EventCategoryBase>{
-	enum EventId{
-		ActivateE,
-		ResolveE,
-		PushE,
-		DelayedCloseE,
-		InvalidE,
-	};
-	
-	static EventId id(Event const&_re){
-		if(the().check(_re)){
-			return static_cast<EventId>(the().eventId(_re));
-		}else{
-			return InvalidE;
-	}
-	}
-	
-	static bool isActivate(Event const&_re){
-		return id(_re) == ActivateE;
-	}
-	
-	static bool isResolve(Event const&_re){
-		return id(_re) == ResolveE;
-	}
-	
-	static bool isPush(Event const&_re){
-		return id(_re) == PushE;
-	}
-	
-	static bool isDelayedClose(Event const&_re){
-		return id(_re) == DelayedCloseE;
-	}
-	
-	static Event create(EventId _evid){
-		return the().doCreate(static_cast<size_t>(_evid));
-	}
-	
-	static Event createActivate(){
-		return create(ActivateE);
-	}
-	
-	static Event createResolve(){
-		return create(ResolveE);
-	}
-	
-	static Event createPush(){
-		return create(PushE);
-	}
-	
-	static Event createDelayedClose(){
-		return create(DelayedCloseE);
-	}
-	
-	static EventCategory const& the(){
-		static const EventCategory evc;
-		return evc;
-	}
+enum class Flags:size_t{
+	Active						= 1,
+	Server						= 4,
+	Keepalive					= 8,
+	WaitKeepAliveTimer			= 16,
+	StopForced					= 32,
+	HasActivity 				= 64,
+};
 
-private:
-	/*virtual*/ void print(std::ostream &_ros, Event const &_re)const{
-		const char *pstr;
-		switch(eventId(_re)){
-			case ActivateE:
-				pstr = "frame::ipc::ActivateE";break;
-			case ResolveE:
-				pstr = "frame::ipc::ResolveE";break;
-			case PushE:
-				pstr = "frame::ipc::PushE";break;
+enum class AtomicFlags{
+	Active				= 1,
+	Stopping			= 2,
+	DelayedClosing		= 4,
+};
+
+
+enum class ConnectionEvents{
+	Activate,
+	Resolve,
+	Push,
+	DelayedClose,
+	Invalid,
+};
+
+const EventCategory<ConnectionEvents>	connection_event_category{
+	"solid::frame::ipc::connection_event_category",
+	[](const ConnectionEvents _evt){
+		switch(_evt){
+			case ConnectionEvents::Activate:
+				return "activate";
+			case ConnectionEvents::Resolve:
+				return "resolve";
+			case ConnectionEvents::Push:
+				return "push";
+			case ConnectionEvents::DelayedClose:
+				return "delayed_close";
+			case ConnectionEvents::Invalid:
+				return "invalid";
 			default:
-				_ros<<"frame::ipc::Unkonwn::"<<eventId(_re);
-				return;
+				return "unknown";
 		}
-		_ros<<pstr;
 	}
 };
+
+
 }//namespace
 //-----------------------------------------------------------------------------
 inline Service& Connection::service(frame::aio::ReactorContext &_rctx)const{
@@ -122,7 +77,7 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 //-----------------------------------------------------------------------------
 
 /*static*/ Event Connection::resolveEvent(){
-	return EventCategory::createResolve();
+	return connection_event_category.event(ConnectionEvents::Resolve);
 }
 
 //-----------------------------------------------------------------------------
@@ -204,7 +159,7 @@ bool Connection::pushMessage(
 				}
 				
 				if(sendmsgvec[crtpushvecidx].size() == 1){
-					_revent = EventCategory::createPush();
+					_revent = connection_event_category.event(ConnectionEvents::Push);
 				}
 				return true;
 			}else{
@@ -263,7 +218,7 @@ bool Connection::pushCancelMessage(
 		);
 		
 		if(sendmsgvec[crtpushvecidx].size() == 1){
-			_revent = EventCategory::createPush();
+			_revent = connection_event_category.event(ConnectionEvents::Push);
 		}
 		return true;
 	}else{
@@ -282,8 +237,8 @@ bool Connection::pushDelayedClose(
 	//Under lock
 	if(not isAtomicStopping()){
 		if(not isAtomicDelayedClosing()){
-			atomic_flags |= AtomicFlagDelayedClosingE;
-			_revent = EventCategory::createDelayedClose();
+			atomic_flags |= static_cast<size_t>(AtomicFlags::DelayedClosing);
+			_revent = connection_event_category.event(ConnectionEvents::DelayedClose);
 			return true;
 		}else{
 			//TODO: ConnectionIsDelayedClosing
@@ -309,9 +264,9 @@ bool Connection::prepareActivate(
 			}
 		}
 		
-		atomic_flags |= AtomicFlagActiveE;
+		atomic_flags |= static_cast<size_t>(AtomicFlags::Active);
 		
-		_revent = EventCategory::createActivate();
+		_revent = connection_event_category.event(ConnectionEvents::Activate);
 		return true;
 	}else{
 		//TODO: ConnectionIsStopping
@@ -321,35 +276,35 @@ bool Connection::prepareActivate(
 }
 //-----------------------------------------------------------------------------
 bool Connection::isActive()const{
-	return flags & FlagActiveE;
+	return flags & static_cast<size_t>(Flags::Active);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isAtomicActive()const{
-	return atomic_flags & AtomicFlagActiveE;
+	return atomic_flags & static_cast<size_t>(AtomicFlags::Active);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isAtomicStopping()const{
-	return atomic_flags & AtomicFlagStoppingE;
+	return atomic_flags & static_cast<size_t>(AtomicFlags::Stopping);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isAtomicDelayedClosing()const{
-	return atomic_flags & AtomicFlagDelayedClosingE;
+	return atomic_flags & static_cast<size_t>(AtomicFlags::DelayedClosing);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isServer()const{
-	return flags & FlagServerE;
+	return flags & static_cast<size_t>(Flags::Server);
 }
 //-----------------------------------------------------------------------------
 bool Connection::shouldSendKeepalive()const{
-	return flags & FlagKeepaliveE;
+	return flags & static_cast<size_t>(Flags::Keepalive);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isWaitingKeepAliveTimer()const{
-	return flags & FlagWaitKeepAliveTimerE;
+	return flags & static_cast<size_t>(Flags::WaitKeepAliveTimer);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isStopForced()const{
-	return flags & FlagStopForcedE;
+	return flags & static_cast<size_t>(Flags::StopForced);
 }
 //-----------------------------------------------------------------------------
 void Connection::doPrepare(frame::aio::ReactorContext &_rctx){
@@ -373,7 +328,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	doPrepare(_rctx);
 	
 	if(_is_incomming){
-		flags |= FlagServerE;
+		flags |= static_cast<size_t>(Flags::Server);
 		service(_rctx).onIncomingConnectionStart(conctx);
 	}else{
 		service(_rctx).onOutgoingConnectionStart(conctx);
@@ -383,7 +338,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	//start sending messages.
 	this->post(
 		_rctx,
-		[this](frame::aio::ReactorContext &_rctx, frame::Event const &/*_revent*/){
+		[this](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
 			doSend(_rctx);
 		}
 	);
@@ -410,10 +365,10 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	if(not isAtomicStopping()){
 		ErrorConditionT		error(_rerr);
 		
-		atomic_flags |= AtomicFlagStoppingE;
+		atomic_flags |= static_cast<size_t>(AtomicFlags::Stopping);
 		
 		postStop(_rctx, 
-			[error](frame::aio::ReactorContext &_rctx, frame::Event const &/*_revent*/){
+			[error](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
 				rthis.onStopped(_rctx, error);
 			}
@@ -422,7 +377,8 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	}
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent){
+#if 0
 	if(EventCategory::isPush(_revent)){
 		doHandleEventPush(_rctx, _revent);
 	}else if(frame::EventCategory::isStart(_revent)){
@@ -441,20 +397,21 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	}else if(EventCategory::isDelayedClose(_revent)){
 		doHandleEventDelayedClose(_rctx, _revent);
 	}
+#endif
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventActivate(
 	frame::aio::ReactorContext &_rctx,
-	frame::Event const &_revent
+	Event &_revent
 ){
 	idbgx(Debug::ipc, this);
 	
 	cassert(!isActive());
-	flags |= FlagActiveE;
+	flags |= static_cast<size_t>(Flags::Active);
 	
 	if(not isAtomicStopping()){
 		service(_rctx).activateConnectionComplete(*this);
-		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
+		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){this->doSend(_rctx);});
 	}else{
 		ObjectIdT			objuid;
 		ErrorConditionT 	err;
@@ -469,7 +426,7 @@ void Connection::doHandleEventActivate(
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventPush(
 	frame::aio::ReactorContext &_rctx,
-	frame::Event const &_revent
+	Event &_revent
 ){
 	size_t		vecidx = InvalidIndex();
 	
@@ -512,8 +469,9 @@ void Connection::doHandleEventPush(
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventResolve(
 	frame::aio::ReactorContext &_rctx,
-	frame::Event const &_revent
+	Event &_revent
 ){
+/*
 	ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
 	if(presolvemsg){
 		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size()<<" crtidx = "<<presolvemsg->crtidx);
@@ -529,9 +487,10 @@ void Connection::doHandleEventResolve(
 			doStop(_rctx, error_library_logic);
 		}
 	}
+*/
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, frame::Event const &/*_revent*/){
+void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Event &/*_revent*/){
 	cassert(isAtomicDelayedClosing());
 	bool				was_empty_msgwriter = msgwriter.empty();
 	MessageId			msguid;
@@ -557,12 +516,12 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 	if(isServer()){
 		if(config.inactivity_timeout_seconds){
 			receive_keepalive_count = 0;
-			flags &= (~FlagHasActivityE);
+			flags &= (~static_cast<size_t>(Flags::HasActivity));
 			timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
 		}
 	}else{//client
 		if(config.keepalive_timeout_seconds){
-			flags |= FlagWaitKeepAliveTimerE;
+			flags |= static_cast<size_t>(Flags::WaitKeepAliveTimer);
 			timer.waitFor(_rctx, TimeSpec(config.keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
@@ -572,7 +531,7 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
 		if(config.inactivity_timeout_seconds){
-			flags |= FlagHasActivityE;
+			flags |= static_cast<size_t>(Flags::HasActivity);
 		}
 	}else{//client
 		if(config.keepalive_timeout_seconds and isWaitingKeepAliveTimer()){
@@ -585,11 +544,11 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
 		if(config.inactivity_timeout_seconds){
-			flags |= FlagHasActivityE;
+			flags |= static_cast<size_t>(Flags::HasActivity);
 		}
 	}else{//client
 		if(config.keepalive_timeout_seconds and not isWaitingKeepAliveTimer()){
-			flags |= FlagWaitKeepAliveTimerE;
+			flags |= static_cast<size_t>(Flags::WaitKeepAliveTimer);
 			timer.waitFor(_rctx, TimeSpec(config.keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
@@ -600,9 +559,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 	idbgx(Debug::ipc, &rthis<<" "<<(int)rthis.flags<<" "<<rthis.receive_keepalive_count);
 	
-	if(rthis.flags & FlagHasActivityE){
+	if(rthis.flags & static_cast<size_t>(Flags::HasActivity)){
 		
-		rthis.flags &= (~FlagHasActivityE);
+		rthis.flags &= (~static_cast<size_t>(Flags::HasActivity));
 		rthis.receive_keepalive_count = 0;
 		
 		Configuration const &config = rthis.service(_rctx).configuration();
@@ -616,8 +575,8 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 /*static*/ void Connection::onTimerKeepalive(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	cassert(not rthis.isServer());
-	rthis.flags |= FlagKeepaliveE;
-	rthis.flags &= (~FlagWaitKeepAliveTimerE);
+	rthis.flags |= static_cast<size_t>(Flags::Keepalive);
+	rthis.flags &= (~static_cast<size_t>(Flags::WaitKeepAliveTimer));
 	idbgx(Debug::ipc, &rthis<<" post send");
 	rthis.post(_rctx, [&rthis](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){rthis.doSend(_rctx);});
 	
@@ -733,7 +692,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 
 			uint32 sz = msgwriter.write(sendbuf, sendbufcp, shouldSendKeepalive(), rconfig, rtypemap, conctx, error);
 			
-			flags &= (~FlagKeepaliveE);
+			flags &= (~static_cast<size_t>(Flags::Keepalive));
 			
 			if(!error){
 				if(sz && sock.sendAll(_rctx, sendbuf, sz, Connection::onSend)){
@@ -750,7 +709,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				}
 			}else{
 				edbgx(Debug::ipc, this<<' '<<id()<<" storring "<<error.message());
-				flags |= FlagStopForcedE;//TODO: maybe you should not set this all the time
+				flags |= static_cast<size_t>(Flags::StopForced);//TODO: maybe you should not set this all the time
 				doStop(_rctx, error);
 				sent_something = false;//prevent calling doResetTimerSend after doStop
 				break;
@@ -815,7 +774,7 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
 		++receive_keepalive_count;
 		
 		if(receive_keepalive_count < config.inactivity_keepalive_count){
-			flags |= FlagKeepaliveE;
+			flags |= static_cast<size_t>(Flags::Keepalive);
 			idbgx(Debug::ipc, this<<" post send");
 			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 		}else{

@@ -11,7 +11,6 @@
 #define SOLID_FRAME_MANAGER_HPP
 
 #include "frame/common.hpp"
-#include "frame/event.hpp"
 #include "system/mutex.hpp"
 #include "system/error.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -21,6 +20,9 @@
 //#include "utility/functor.hpp"
 
 namespace solid{
+
+struct Event;
+
 namespace frame{
 
 class	Manager;
@@ -44,9 +46,9 @@ public:
 
 	void stop();
 	
-	bool notify(ObjectIdT const &_ruid, Event const &_e, const size_t _sigmsk = 0);
-
-	bool notifyAll(Event const &_e, const size_t _sigmsk = 0);
+	bool notify(ObjectIdT const &_ruid, Event &&_uevt, const size_t _sigmsk = 0);
+	
+	bool notifyAll(Event const &_revt, const size_t _sigmsk = 0);
 	
 	
 	template <class F>
@@ -73,6 +75,11 @@ private:
 	static bool notify_object(
 		ObjectBase &_robj, ReactorBase &_rreact,
 		Event const &_revt, const size_t _sigmsk
+	);
+	
+	static bool notify_object(
+		ObjectBase &_robj, ReactorBase &_rreact,
+		Event &&_uevt, const size_t _sigmsk
 	);
 	
 	bool registerService(Service &_rsvc);

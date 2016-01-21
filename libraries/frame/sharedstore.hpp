@@ -109,7 +109,8 @@ private:
 	virtual bool doExecute() = 0;
 	virtual void doResizeObjectVector(const size_t _newsz) = 0;
 	virtual void doExecuteOnSignal(ulong _sm) = 0;
-	/*virtual*/void onEvent(frame::ReactorContext &_rctx, frame::Event const &_revent);
+	
+	/*virtual*/void onEvent(frame::ReactorContext &_rctx, Event &&_revent) override;
 private:
 	struct Data;
 	Data &d;

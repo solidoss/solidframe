@@ -13,6 +13,7 @@
 #include "system/socketdevice.hpp"
 
 #include "utility/queue.hpp"
+#include "utility/event.hpp"
 
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
@@ -40,7 +41,7 @@ namespace ipc{
 class Service;
 
 
-struct ResolveMessage: Dynamic<ResolveMessage>{
+struct ResolveMessage{
 	AddressVectorT	addrvec;
 	size_t			crtidx;
 	
@@ -120,7 +121,9 @@ private:
 	
 	Service& service(frame::aio::ReactorContext &_rctx)const;
 	ObjectIdT uid(frame::aio::ReactorContext &_rctx)const;
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	
+	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent) override;
+	
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	static void onConnect(frame::aio::ReactorContext &_rctx);
@@ -155,7 +158,7 @@ private:
 	
 	void doActivate(
 		frame::aio::ReactorContext &_rctx,
-		frame::Event const &_revent
+		Event &_revent
 	);
 	
 	void doCompleteAllMessages(
@@ -172,10 +175,10 @@ private:
 	void doCompleteMessage(solid::frame::aio::ReactorContext& _rctx, solid::frame::ipc::MessagePointerT /*const*/& _rmsgptr);
 	void doCompleteKeepalive(frame::aio::ReactorContext &_rctx);
 
-	void doHandleEventActivate(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
-	void doHandleEventPush(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
-	void doHandleEventResolve(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
-	void doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	void doHandleEventActivate(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventPush(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventResolve(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Event &_revent);
 	
 	template <class Fnc>
 	void fetchUnsentMessages(

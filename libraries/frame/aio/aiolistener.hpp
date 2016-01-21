@@ -17,6 +17,7 @@
 #include "aioreactorcontext.hpp"
 
 namespace solid{
+struct Event;
 namespace frame{
 namespace aio{
 
@@ -26,7 +27,7 @@ struct	ReactorContext;
 class Listener: public CompletionHandler{
 	static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx);
 	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx);
-	static void on_posted_accept(ReactorContext &_rctx, Event const&);
+	static void on_posted_accept(ReactorContext &_rctx, Event &&);
 	static void on_dummy(ReactorContext&, SocketDevice&);
 public:
 	Listener(

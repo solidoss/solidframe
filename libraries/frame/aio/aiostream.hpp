@@ -255,6 +255,7 @@ public:
 		}
 		SocketDevice sd(s.reset(std::move(_rnewdev)));
 		if(s.device().ok()){
+			completionCallback(&on_completion);
 			addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
 		}
 		return sd;

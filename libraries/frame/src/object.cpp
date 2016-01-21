@@ -24,7 +24,7 @@ namespace frame{
 
 Object::Object(){}
 
-/*virtual*/ void Object::onEvent(ReactorContext &_rctx, Event const &_revent){
+/*virtual*/ void Object::onEvent(ReactorContext &_rctx, Event &&_uevent){
 	
 }
 

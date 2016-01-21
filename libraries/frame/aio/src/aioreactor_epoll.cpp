@@ -28,11 +28,11 @@
 
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
+#include "utility/event.hpp"
 
 #include "frame/object.hpp"
 #include "frame/service.hpp"
 #include "frame/common.hpp"
-#include "frame/event.hpp"
 #include "frame/timestore.hpp"
 
 #include "frame/aio/aioreactor.hpp"
@@ -130,11 +130,17 @@ public:
 
 struct NewTaskStub{
 	NewTaskStub(
-		UniqueId const&_ruid, TaskT const&_robjptr, Service &_rsvc, Event const &_revent
-	):uid(_ruid), objptr(_robjptr), rsvc(_rsvc), event(_revent){}
+		UniqueId const&_ruid, TaskT const&_robjptr, Service &_rsvc, Event &&_revent
+	):uid(_ruid), objptr(_robjptr), rsvc(_rsvc), event(std::move(_revent)){}
 	
-	//NewTaskStub(){}
-	UniqueId		uid;
+	NewTaskStub(const NewTaskStub&) = delete;
+	
+	NewTaskStub(
+		NewTaskStub && _unts
+	):uid(_unts.uid), objptr(std::move(_unts.objptr)), rsvc(_unts.rsvc), event(std::move(_unts.event)){}
+	
+	
+	UniqueId	uid;
 	TaskT		objptr;
 	Service		&rsvc;
 	Event		event;
@@ -142,10 +148,19 @@ struct NewTaskStub{
 
 struct RaiseEventStub{
 	RaiseEventStub(
+		UniqueId const&_ruid, Event &&_revent
+	):uid(_ruid), event(std::move(_revent)){}
+	
+	RaiseEventStub(
 		UniqueId const&_ruid, Event const &_revent
 	):uid(_ruid), event(_revent){}
 	
-	UniqueId		uid;
+	RaiseEventStub(const RaiseEventStub&) = delete;
+	RaiseEventStub(
+		RaiseEventStub &&_uevs
+	):uid(_uevs.uid), event(std::move(_uevs.event)){}
+	
+	UniqueId	uid;
 	Event		event;
 };
 
@@ -179,29 +194,35 @@ enum{
 struct ExecStub{
 	template <class F>
 	ExecStub(
-		UniqueId const &_ruid, F _f, Event const &_revent = Event()
-	):objuid(_ruid), exefnc(_f), event(_revent){}
+		UniqueId const &_ruid, F _f, Event &&_uevent = Event()
+	):objuid(_ruid), exefnc(_f), event(std::move(_uevent)){}
 	
 	template <class F>
 	ExecStub(
-		UniqueId const &_ruid, F _f, UniqueId const &_rchnuid, Event const &_revent = Event()
-	):objuid(_ruid), chnuid(_rchnuid), exefnc(_f), event(_revent){}
+		UniqueId const &_ruid, F _f, UniqueId const &_rchnuid, Event &&_uevent = Event()
+	):objuid(_ruid), chnuid(_rchnuid), exefnc(_f), event(std::move(_uevent)){}
 	
 	ExecStub(
-		UniqueId const &_ruid, Event const &_revent = Event()
-	):objuid(_ruid), event(_revent){}
+		UniqueId const &_ruid, Event &&_uevent = Event()
+	):objuid(_ruid), event(std::move(_uevent)){}
+	
+	ExecStub(const ExecStub&) = delete;
+	
+	ExecStub(
+		ExecStub &&_res
+	):objuid(_res.objuid), chnuid(_res.chnuid), exefnc(std::move(_res.exefnc)), event(std::move(_res.event)){}
 	
 	UniqueId					objuid;
 	UniqueId					chnuid;
-	Reactor::EventFunctionT	exefnc;
-	Event					event;
+	Reactor::EventFunctionT		exefnc;
+	Event						event;
 };
 
 typedef std::vector<NewTaskStub>			NewTaskVectorT;
 typedef std::vector<RaiseEventStub>			RaiseEventVectorT;
 typedef std::vector<epoll_event>			EpollEventVectorT;
 typedef std::deque<CompletionHandlerStub>	CompletionHandlerDequeT;
-typedef std::vector<UniqueId>					UidVectorT;
+typedef std::vector<UniqueId>				UidVectorT;
 typedef std::deque<ObjectStub>				ObjectDequeT;
 typedef Queue<ExecStub>						ExecQueueT;
 typedef Stack<size_t>						SizeStackT;
@@ -305,7 +326,24 @@ bool Reactor::start(){
 	return true;
 }
 
-/*virtual*/ bool Reactor::raise(UniqueId const& _robjuid, Event const& _revent){
+/*virtual*/ bool Reactor::raise(UniqueId const& _robjuid, Event && _uevent){
+	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event = "<<_uevent);
+	bool 	rv = true;
+	size_t	raisevecsz = 0;
+	{
+		Locker<Mutex>	lock(d.mtx);
+		
+		d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, std::move(_uevent)));
+		raisevecsz = d.raisevec[d.crtraisevecidx].size();
+		d.crtraisevecsz = raisevecsz;
+	}
+	if(raisevecsz == 1){
+		d.eventobj.eventhandler.write();
+	}
+	return rv;
+}
+
+/*virtual*/ bool Reactor::raise(UniqueId const& _robjuid, const Event & _revent){
 	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event = "<<_revent);
 	bool 	rv = true;
 	size_t	raisevecsz = 0;
@@ -322,6 +360,7 @@ bool Reactor::start(){
 	return rv;
 }
 
+
 /*virtual*/ void Reactor::stop(){
 	vdbgx(Debug::aio, "");
 	d.running = false;
@@ -329,17 +368,17 @@ bool Reactor::start(){
 }
 
 //Called from outside reactor's thread
-bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
+bool Reactor::push(TaskT &_robj, Service &_rsvc, Event &&_uevent){
 	vdbgx(Debug::aio, (void*)this);
 	bool 	rv = true;
 	size_t	pushvecsz = 0;
 	{
-		Locker<Mutex>	lock(d.mtx);
+		Locker<Mutex>		lock(d.mtx);
 		const UniqueId		uid = this->popUid(*_robj);
 		
-		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event = "<<_revent);
+		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event = "<<_uevent);
 			
-		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revent));
+		d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, std::move(_uevent)));
 		pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();
 		d.crtpushvecsz = pushvecsz;
 	}
@@ -470,26 +509,26 @@ CompletionHandler *Reactor::completionHandler(ReactorContext const &_rctx)const{
 	return d.chdq[_rctx.chnidx].pch;
 }
 
-void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event const &_rev){
+void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event &&_uev){
 	vdbgx(Debug::aio, "exeq "<<d.exeq.size());
-	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
+	d.exeq.push(ExecStub(_rctx.objectUid(), std::move(_uev)));
 	d.exeq.back().exefnc = std::move(_revfn);
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
 
-void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch){
+void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event &&_uev, CompletionHandler const &_rch){
 	vdbgx(Debug::aio, "exeq "<<d.exeq.size()<<' '<<&_rch);
-	d.exeq.push(ExecStub(_rctx.objectUid(), _rev));
+	d.exeq.push(ExecStub(_rctx.objectUid(), std::move(_uev)));
 	d.exeq.back().exefnc = std::move(_revfn);
 	d.exeq.back().chnuid = UniqueId(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
 }
 
-/*static*/ void Reactor::stop_object(ReactorContext &_rctx, Event const &){
+/*static*/ void Reactor::stop_object(ReactorContext &_rctx, Event &&){
 	Reactor			&rthis = _rctx.reactor();
 	rthis.doStopObject(_rctx);
 }
 
-/*static*/ void Reactor::stop_object_repost(ReactorContext &_rctx, Event const &_revent){
+/*static*/ void Reactor::stop_object_repost(ReactorContext &_rctx, Event &&){
 	Reactor			&rthis = _rctx.reactor();
 	
 	rthis.d.exeq.push(ExecStub(_rctx.objectUid()));
@@ -589,7 +628,7 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 			ctx.clearError();
 			ctx.chnidx = rexe.chnuid.index;
 			ctx.objidx = rexe.objuid.index;
-			rexe.exefnc(ctx, rexe.event);
+			rexe.exefnc(ctx, std::move(rexe.event));
 		}
 		d.exeq.pop();
 	}
@@ -646,14 +685,14 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 			
 			ros.objptr->registerCompletionHandlers();
 			
-			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), rnewobj.event));
+			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), std::move(rnewobj.event)));
 		}
 		vdbgx(Debug::aio, d.exeq.size());
 		crtpushvec.clear();
 		
 		for(auto it = crtraisevec.begin(); it != crtraisevec.end(); ++it){
 			RaiseEventStub	&revent = *it;
-			d.exeq.push(ExecStub(revent.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), revent.event));
+			d.exeq.push(ExecStub(revent.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), std::move(revent.event)));
 		}
 		vdbgx(Debug::aio, d.exeq.size());
 		
@@ -661,10 +700,10 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 	}
 }
 
-/*static*/ void Reactor::call_object_on_event(ReactorContext &_rctx, Event const &_revent){
-	_rctx.object().onEvent(_rctx, _revent);
+/*static*/ void Reactor::call_object_on_event(ReactorContext &_rctx, Event &&_uevent){
+	_rctx.object().onEvent(_rctx, std::move(_uevent));
 }
-/*static*/ void Reactor::increase_event_vector_size(ReactorContext &_rctx, Event const &/*_rev*/){
+/*static*/ void Reactor::increase_event_vector_size(ReactorContext &_rctx, Event &&/*_rev*/){
 	Reactor &rthis = _rctx.reactor();
 	
 	idbgx(Debug::aio, ""<<rthis.d.devcnt<<" >= "<<rthis.d.eventvec.size());

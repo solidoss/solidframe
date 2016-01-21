@@ -14,9 +14,6 @@
 
 namespace solid{
 namespace frame{
-
-struct Event;
-
 namespace aio{
 
 enum ReactorEventsE{

@@ -10,6 +10,8 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 
+#include "utility/event.hpp"
+
 #include <iostream>
 
 
@@ -36,7 +38,7 @@ class BasicObject: public Dynamic<BasicObject, frame::Object>{
 public:
 	BasicObject(size_t _repeat = 10):repeat(_repeat), t1(proxy()), t2(proxy()){}
 private:
-	/*virtual*/ void onEvent(frame::ReactorContext &_rctx, frame::Event const &_revent);
+	void onEvent(frame::ReactorContext &_rctx, Event &&_revent) override;
 	void onTimer(frame::ReactorContext &_rctx, size_t _idx);
 private:
 	size_t			repeat;
@@ -77,7 +79,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT			err;
 				solid::frame::ObjectIdT			objuid;
 				
-				objuid = s.startObject(objptr, svc, frame::EventCategory::createStart(), err);
+				objuid = s.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
 				idbg("Started BasicObject: "<<objuid.index<<','<<objuid.unique);
 			}
 			
@@ -97,12 +99,12 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 
-/*virtual*/ void BasicObject::onEvent(frame::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg("event = "<<_revent);
-	if(frame::EventCategory::isStart(_revent)){
+/*virtual*/ void BasicObject::onEvent(frame::ReactorContext &_rctx, Event &&_uevent){
+	idbg("event = "<<_uevent);
+	if(_uevent == generic_event_category.event(GenericEvents::Start)){
 		t1.waitUntil(_rctx, _rctx.time() + 5 * 1000, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);});
 		t2.waitUntil(_rctx, _rctx.time() + 10 * 1000, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 1);});
-	}else if(frame::EventCategory::isStop(_revent)){
+	}else if(_uevent == generic_event_category.event(GenericEvents::Start)){
 		postStop(_rctx);
 	}
 }

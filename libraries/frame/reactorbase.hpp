@@ -14,6 +14,7 @@
 #include "frame/objectbase.hpp"
 
 namespace solid{
+struct Event;
 namespace frame{
 
 class Manager;
@@ -27,6 +28,7 @@ class SchedulerBase;
 class ReactorBase{
 public:
 	virtual bool raise(UniqueId const& _robjuid, Event const& _re) = 0;
+	virtual bool raise(UniqueId const& _robjuid, Event && _ue) = 0;
 	virtual void stop() = 0;
 	
 	bool prepareThread(const bool _success);

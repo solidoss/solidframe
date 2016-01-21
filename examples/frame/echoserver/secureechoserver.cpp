@@ -26,6 +26,7 @@ $ openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.
 #include "system/socketdevice.hpp"
 #include "system/debug.hpp"
 
+#include "utility/event.hpp"
 
 #include "boost/program_options.hpp"
 
@@ -92,7 +93,7 @@ public:
 	~Listener(){
 	}
 private:
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
 	void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
 	
 	
@@ -121,7 +122,7 @@ public:
 	Connection(SocketDevice &&_rsd, SecureContextT &_rctx):sock(this->proxy(), std::move(_rsd), _rctx), recvcnt(0), sendcnt(0){}
 	~Connection(){}
 protected:
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	void onTimer(frame::aio::ReactorContext &_rctx);
@@ -142,7 +143,7 @@ protected:
 class ClientConnection: public Dynamic<Connection, Connection>{
 	ResolveData		rd;
 private:
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
 	void onConnect(frame::aio::ReactorContext &_rctx);
 public:
 	ClientConnection(ResolveData const & _rd): rd(_rd){}
@@ -220,7 +221,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectIdT			objuid;
 				
-				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
+				objuid = sch.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
 				idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
 			}else{
 				cout<<"Error creating listener socket"<<endl;
@@ -234,7 +235,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectIdT			objuid;
 				
-				objuid = sch.startObject(objptr, svc, frame::EventCategory::createStart(), err);
+				objuid = sch.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
 				
 				idbg("Started Client Connection object: "<<objuid.index<<','<<objuid.unique);
 				
@@ -295,12 +296,12 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 //		Listener
 //-----------------------------------------------------------------------------
 
-/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	idbg("event = "<<_revent);
-	if(frame::EventCategory::isStart(_revent)){
+	if(generic_event_category.event(GenericEvents::Start) == _revent){
 		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
 		//sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-	}else if(frame::EventCategory::isKill(_revent)){
+	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
 		postStop(_rctx);
 	}
 }
@@ -322,7 +323,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(std::move(_rsd), secure_ctx));
 			solid::ErrorConditionT				err;
 			
-			rsch.startObject(objptr, rsvc, frame::EventCategory::createStart(), err);
+			rsch.startObject(objptr, rsvc, generic_event_category.event(GenericEvents::Start), err);
 			
 #else
 			cout<<"Accepted connection: "<<_rsd.descriptor()<<endl;
@@ -358,9 +359,9 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //		Connection
 //-----------------------------------------------------------------------------
 #ifdef USE_CONNECTION
-/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	edbg(this<<" "<<_revent);
-	if(frame::EventCategory::isStart(_revent)){
+	if(generic_event_category.event(GenericEvents::Start) == _revent){
 		//sock.secureRenegotiate(_rctx);
 		if(sock.secureAccept(_rctx, Connection::onSecureAccept)){
 			if(_rctx.error()){
@@ -371,7 +372,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			}
 		}
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
-	}else if(frame::EventCategory::isKill(_revent)){
+	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
 		edbg(this<<" postStop");
 		sock.shutdown(_rctx);
 		postStop(_rctx);
@@ -444,9 +445,9 @@ void Connection::onTimer(frame::aio::ReactorContext &_rctx){
 
 //-----------------------------------------------------------------------------
 
-/*virtual*/ void ClientConnection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+/*virtual*/ void ClientConnection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	edbg(this<<" "<<_revent);
-	if(frame::EventCategory::isStart(_revent)){
+	if(generic_event_category.event(GenericEvents::Start) == _revent){
 		
 		string				hoststr;
 		string				servstr;
@@ -464,7 +465,7 @@ void Connection::onTimer(frame::aio::ReactorContext &_rctx){
 			onConnect(_rctx);
 		}
 		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
-	}else if(frame::EventCategory::isKill(_revent)){
+	}else if(generic_event_category.event(GenericEvents::Start) == _revent){
 		edbg(this<<" postStop");
 		postStop(_rctx);
 	}

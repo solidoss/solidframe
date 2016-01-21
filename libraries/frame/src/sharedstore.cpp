@@ -14,6 +14,7 @@
 #include "system/atomic.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
+#include "utility/event.hpp"
 #include "frame/reactorcontext.hpp"
 #include "frame/service.hpp"
 
@@ -172,43 +173,38 @@ void StoreBase::notifyObject(UniqueId const & _ruid){
 		}
 	}
 	if(do_raise){
-		manager().notify(manager().id(*this), EventCategory::create(EventCategory::RaiseE));
+		manager().notify(manager().id(*this), generic_event_category.event(GenericEvents::Raise));
 	}
 }
 
 void StoreBase::raise(){
-	manager().notify(manager().id(*this), EventCategory::create(EventCategory::RaiseE));
+	manager().notify(manager().id(*this), generic_event_category.event(GenericEvents::Raise));
 }
 
-/*virtual*/void StoreBase::onEvent(frame::ReactorContext &_rctx, frame::Event const &_revent){
-	vdbgx(Debug::frame, "");
-	
-	if(EventCategory::cast(&_revent.category())){
-		EventCategory::EventId id = EventCategory::id(_revent);
-	
-		if(id == EventCategory::RaiseE){
-			{
-				Locker<Mutex>	lock(mutex());
-				ulong sm = grabSignalMask();
-				if(sm & S_RAISE){
-					if(d.pfillerasevec->size()){
-						solid::exchange(d.pconserasevec, d.pfillerasevec);
-					}
-					doExecuteOnSignal(sm);
+
+/*virtual*/void StoreBase::onEvent(frame::ReactorContext &_rctx, Event &&_revent){
+	if(_revent == generic_event_category.event(GenericEvents::Raise)){
+		{
+			Locker<Mutex>	lock(mutex());
+			ulong sm = grabSignalMask();
+			if(sm & S_RAISE){
+				if(d.pfillerasevec->size()){
+					solid::exchange(d.pconserasevec, d.pfillerasevec);
 				}
+				doExecuteOnSignal(sm);
 			}
-			vdbgx(Debug::frame, "");
-			if(this->doExecute()){
-				this->post(
-					_rctx,
-					[this](frame::ReactorContext &_rctx, frame::Event const &_revent){onEvent(_rctx, _revent);},
-					EventCategory::create(EventCategory::RaiseE)
-				);
-			}
-			d.pconserasevec->clear();
-		}else if(id == EventCategory::KillE){
-			this->postStop(_rctx);
 		}
+		vdbgx(Debug::frame, "");
+		if(this->doExecute()){
+			this->post(
+				_rctx,
+				[this](frame::ReactorContext &_rctx, Event &&_revent){onEvent(_rctx, std::move(_revent));},
+				generic_event_category.event(GenericEvents::Raise)
+			);
+		}
+		d.pconserasevec->clear();
+	}else if(_revent == generic_event_category.event(GenericEvents::Kill)){
+		this->postStop(_rctx);
 	}
 }
 

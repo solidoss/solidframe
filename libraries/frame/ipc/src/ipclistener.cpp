@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
+#include "utility/event.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
 #include "ipclistener.hpp"
 #include "frame/ipc/ipcservice.hpp"
@@ -20,14 +21,17 @@ inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
 	return static_cast<Service&>(_rctx.service());
 }
 
-/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg("event = "<<_revent);
-	if(EventCategory::isStart(_revent) || EventCategory::isTimer(_revent)){
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent){
+	idbg("event = "<<_uevent);
+	if(
+		_uevent == generic_event_category.event(GenericEvents::Start) or
+		_uevent == generic_event_category.event(GenericEvents::Timer)
+	){
 		sock.postAccept(
 			_rctx,
 			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
 		);
-	}else if(EventCategory::isKill(_revent)){
+	}else if(_uevent == generic_event_category.event(GenericEvents::Kill)){
 		postStop(_rctx);
 	}
 }
@@ -42,7 +46,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 		}else{
 			timer.waitFor(
 				_rctx, TimeSpec(10),
-				[this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, EventCategory::createTimer());}
+				[this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, generic_event_category.event(GenericEvents::Timer));}
 			);
 			break;
 		}

@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "frame/common.hpp"
-#include "frame/event.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/atomic.hpp"

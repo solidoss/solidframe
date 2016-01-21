@@ -21,6 +21,7 @@ namespace solid{
 
 struct TimeSpec;
 struct Device;
+struct Event;
 
 namespace frame{
 
@@ -40,7 +41,7 @@ typedef DynamicPointer<Object>	ObjectPointerT;
 	
 */
 class Reactor: public frame::ReactorBase{
-	typedef FUNCTION<void(ReactorContext&, Event const &)>		EventFunctionT;
+	typedef FUNCTION<void(ReactorContext&, Event &&)>		EventFunctionT;
 	
 	template <class Function>
 	struct StopObjectF{
@@ -49,13 +50,13 @@ class Reactor: public frame::ReactorBase{
 		
 		explicit StopObjectF(Function &_function):function(std::move(_function)), repost(true){}
 		
-		void operator()(ReactorContext& _rctx, Event const &_revent){
+		void operator()(ReactorContext& _rctx, Event &&_uevent){
 			if(repost){//skip one round - to guarantee that all remaining posts were delivered
 				repost = false;
 				EventFunctionT	eventfnc(*this);
-				_rctx.reactor().doPost(_rctx, eventfnc, _revent);
+				_rctx.reactor().doPost(_rctx, eventfnc, std::move(_uevent));
 			}else{
-				function(_rctx, _revent);
+				function(_rctx, std::move(_uevent));
 				_rctx.reactor().doStopObject(_rctx);
 			}
 		}
@@ -68,24 +69,24 @@ public:
 	~Reactor();
 	
 	template <typename Function>
-	void post(ReactorContext &_rctx, Function _fnc, Event const &_rev){
+	void post(ReactorContext &_rctx, Function _fnc, Event &&_uev){
 		EventFunctionT	eventfnc(_fnc);
-		doPost(_rctx, eventfnc, _rev);
+		doPost(_rctx, eventfnc, std::move(_uev));
 	}
 	
 	template <typename Function>
-	void post(ReactorContext &_rctx, Function _fnc, Event const &_rev, CompletionHandler const &_rch){
+	void post(ReactorContext &_rctx, Function _fnc, Event &&_uev, CompletionHandler const &_rch){
 		EventFunctionT	eventfnc(_fnc);
-		doPost(_rctx, eventfnc, _rev, _rch);
+		doPost(_rctx, eventfnc, std::move(_uev), _rch);
 	}
 	
 	void postObjectStop(ReactorContext &_rctx);
 	
 	template <typename Function>
-	void postObjectStop(ReactorContext &_rctx, Function _f, Event const &_rev){
+	void postObjectStop(ReactorContext &_rctx, Function _f, Event &&_uev){
 		StopObjectF<Function>	stopfnc(_f);
 		EventFunctionT			eventfnc(stopfnc);
-		doPost(_rctx, eventfnc, _rev);
+		doPost(_rctx, eventfnc, std::move(_uev));
 	}
 	
 	bool waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
@@ -97,14 +98,15 @@ public:
 	
 	bool start();
 	
-	/*virtual*/ bool raise(UniqueId const& _robjuid, Event const& _revt);
-	/*virtual*/ void stop();
+	bool raise(UniqueId const& _robjuid, Event const& _revt) override;
+	bool raise(UniqueId const& _robjuid, Event && _uevt) override;
+	void stop()override;
 	
 	void registerCompletionHandler(CompletionHandler &_rch, Object const &_robj);
 	void unregisterCompletionHandler(CompletionHandler &_rch);
 	
 	void run();
-	bool push(TaskT &_robj, Service &_rsvc, Event const &_revt);
+	bool push(TaskT &_robj, Service &_rsvc, Event &&_revt);
 	
 	Service& service(ReactorContext const &_rctx)const;
 	
@@ -131,16 +133,16 @@ private:
 	void doClearSpecific();
 	void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);
 	
-	void doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev);
-	void doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event const &_rev, CompletionHandler const &_rch);
+	void doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event &&_uev);
+	void doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event &&_uev, CompletionHandler const &_rch);
 	
 	void doStopObject(ReactorContext &_rctx);
 	
 	void onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _chidx);
-	static void call_object_on_event(ReactorContext &_rctx, Event const &_rev);
-	static void increase_event_vector_size(ReactorContext &_rctx, Event const &_rev);
-	static void stop_object(ReactorContext &_rctx, Event const &_revent);
-	static void stop_object_repost(ReactorContext &_rctx, Event const &_revent);
+	static void call_object_on_event(ReactorContext &_rctx, Event &&_uev);
+	static void increase_event_vector_size(ReactorContext &_rctx, Event &&_uev);
+	static void stop_object(ReactorContext &_rctx, Event &&_uevent);
+	static void stop_object_repost(ReactorContext &_rctx, Event &&_uevent);
 private://data
 	struct Data;
 	Data	&d;

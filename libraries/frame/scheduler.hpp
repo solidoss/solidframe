@@ -50,12 +50,12 @@ private:
 	struct ScheduleCommand{
 		ObjectPointerT	&robjptr;
 		Service			&rsvc;
-		Event const 	&revt;
+		Event 			&&revt;
 		
-		ScheduleCommand(ObjectPointerT &_robjptr, Service &_rsvc, Event const &_revt):robjptr(_robjptr), rsvc(_rsvc), revt(_revt){}
+		ScheduleCommand(ObjectPointerT &_robjptr, Service &_rsvc, Event &&_revt):robjptr(_robjptr), rsvc(_rsvc), revt(std::move(_revt)){}
 		
 		bool operator()(ReactorBase &_rreactor){
-			return static_cast<ReactorT&>(_rreactor).push(robjptr, rsvc, revt);
+			return static_cast<ReactorT&>(_rreactor).push(robjptr, rsvc, std::move(revt));
 		}
 	};
 public:
@@ -82,9 +82,9 @@ public:
 	
 	ObjectIdT	startObject(
 		ObjectPointerT &_robjptr, Service &_rsvc,
-		Event const &_revt, ErrorConditionT &_rerr
+		Event &&_revt, ErrorConditionT &_rerr
 	){
-		ScheduleCommand		cmd(_robjptr, _rsvc, _revt);
+		ScheduleCommand		cmd(_robjptr, _rsvc, std::move(_revt));
 		ScheduleFunctionT	fct([&cmd](ReactorBase &_rreactor){return cmd(_rreactor);});
 		
 		return doStartObject(*_robjptr, _rsvc, fct, _rerr);

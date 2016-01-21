@@ -287,7 +287,7 @@ ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 		if(sd.ok()){
 			DynamicPointer<aio::Object>		objptr(new Listener(sd));
 			
-			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
+			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), err);
 			
 			if(err){
 				return err;
@@ -366,7 +366,7 @@ struct PushMessageConnectionVisitorF{
 			);
 			
 			if(success){
-				if(!raise_event.empty()){
+				if(!raise_event.isDefault()){
 					_rreact.raise(_robj.runId(), raise_event);
 				}
 			}
@@ -399,7 +399,7 @@ struct CancelMessageConnectionVistiorF{
 			const bool	success = pcon->pushCancelMessage(rservice, msguid, raise_event, rerror);
 			
 			if(success){
-				if(!raise_event.empty()){
+				if(!raise_event.isDefault()){
 					_rreact.raise(_robj.runId(), raise_event);
 				}
 			}
@@ -432,7 +432,7 @@ struct ActivateConnectionVisitorF{
 			const bool	success = pcon->prepareActivate(rservice, conpoolid, raise_event, rerror);
 			
 			if(success){
-				if(!raise_event.empty()){
+				if(!raise_event.isDefault()){
 					_rreact.raise(_robj.runId(), raise_event);
 				}
 			}
@@ -459,8 +459,8 @@ struct OnRelsolveF{
 	
 	void operator()(AddressVectorT &_raddrvec){
 		idbgx(Debug::ipc, "OnResolveF(addrvec of size "<<_raddrvec.size()<<")");
-		event.msgptr = new ResolveMessage(_raddrvec);
-		rm.notify(objuid, event);
+		event.any().reset(ResolveMessage(_raddrvec));
+		rm.notify(objuid, std::move(event));
 	}
 };
 
@@ -491,7 +491,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	
 	DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(pool_idx, rconpool.uid)));
 	
-	ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), error);
+	ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
 	
 	if(error){
 		edbgx(Debug::ipc, this<<" Starting Session: "<<error.message());
@@ -671,7 +671,7 @@ ErrorConditionT Service::doSendMessage(
 	if((rconpool.active_connection_count + rconpool.pending_connection_count + 1) <= d.config.max_per_pool_connection_count){
 		DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(pool_idx, rconpool.uid)));
 			
-		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), error);
+		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
 		
 		if(!error){
 			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, Connection::resolveEvent()));
@@ -858,7 +858,7 @@ struct DelayedCloseConnectionVisitorF{
 			const bool	success = pcon->pushDelayedClose(rservice, raise_event, rerror);
 			
 			if(success){
-				if(!raise_event.empty()){
+				if(!raise_event.isDefault()){
 					_rreact.raise(_robj.runId(), raise_event);
 				}
 			}
@@ -894,7 +894,7 @@ ErrorConditionT Service::forcedConnectionClose(
 	RecipientId const &_rconnection_uid
 ){
 	ErrorConditionT	error;
-	const bool		success = manager().notify(_rconnection_uid.connectionid, EventCategory::createKill());
+	const bool		success = manager().notify(_rconnection_uid.connectionid, generic_event_category.event(GenericEvents::Kill));
 	if(not success){
 		error = error_connection_inexistent;
 	}
@@ -1232,7 +1232,7 @@ void Service::pushBackMessageToConnectionPool(
 void Service::acceptIncomingConnection(SocketDevice &_rsd){
 	DynamicPointer<aio::Object>		objptr(new Connection(_rsd));
 	solid::ErrorConditionT			err;
-	ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, EventCategory::createStart(), err);
+	ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), err);
 	
 	idbgx(Debug::ipc, this<<" receive connection ["<<conuid<<"] err = "<<err.message());
 }
@@ -1250,6 +1250,7 @@ void Service::onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT cons
 }
 //-----------------------------------------------------------------------------
 void Service::forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event const&_revent){
+/*
 	ResolveMessage 	*presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
 	ErrorConditionT	err;
 	++presolvemsg->crtidx;
@@ -1265,6 +1266,7 @@ void Service::forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event c
 			idbgx(Debug::ipc, this<<' '<<_rconpoolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
 		}
 	}
+*/
 }
 //=============================================================================
 //-----------------------------------------------------------------------------

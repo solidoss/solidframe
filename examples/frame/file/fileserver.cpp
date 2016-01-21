@@ -14,6 +14,7 @@
 #include "frame/file/filestream.hpp"
 
 #include "utility/dynamictype.hpp"
+#include "utility/event.hpp"
 
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
@@ -95,7 +96,7 @@ public:
 	~Listener(){
 	}
 private:
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
 	void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
 	
 	typedef frame::aio::Listener		ListenerSocketT;
@@ -123,15 +124,14 @@ public:
 	Connection(SocketDevice &_rsd);
 	~Connection();
 	
-	void dynamicHandle(solid::DynamicPointer<> &_dp);
-	void dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr);
 private:
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent);
+	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	const char * findEnd(const char *_p);
 	void doExecuteCommand(frame::aio::ReactorContext &_rctx);
 	void doRun(frame::aio::ReactorContext &_rctx);
+	void handle(FilePointerMessage &_rmsgptr);
 private:
 	enum {BufferCapacity = 1024};
 	enum {
@@ -146,8 +146,6 @@ private:
 		CloseFileError,
 	};
 	
-	static DynamicMapperT		dm;
-	static DynamicRegister		dr;
 	StreamSocketT				sock;
 	int							state;
 	char						bbeg[BufferCapacity];
@@ -158,7 +156,6 @@ private:
 	std::string					path;
 	IOFileStreamT				iofs;
 	const char 					*crtpat;
-	DynamicPointerVectorT		dv;
 };
 
 //------------------------------------------------------------------
@@ -256,7 +253,7 @@ int main(int argc, char *argv[]){
 			
 			{
 				SchedulerT::ObjectPointerT		objptr(filestoreptr);
-				objuid = sched.startObject(objptr, svc, frame::EventCategory::createStart(), err);
+				objuid = sched.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
 			}
 			
 			{
@@ -272,7 +269,7 @@ int main(int argc, char *argv[]){
 					solid::ErrorConditionT				err;
 					solid::frame::ObjectIdT			objuid;
 					
-					objuid = aiosched.startObject(objptr, svc, frame::EventCategory::createStart(), err);
+					objuid = aiosched.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
 					idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
 				}else{
 					cout<<"Error creating listener socket"<<endl;
@@ -341,11 +338,11 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 //------------------------------------------------------------------
 //------------------------------------------------------------------
-/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	idbg("event = "<<_revent);
-	if(frame::EventCategory::isStart(_revent)){
+	if(generic_event_category.event(GenericEvents::Start) == _revent){
 		sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-	}else if(frame::EventCategory::isKill(_revent)){
+	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
 		postStop(_rctx);
 	}
 }
@@ -359,7 +356,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			solid::ErrorConditionT				err;
 			
-			rsch.startObject(objptr, rsvc, frame::EventCategory::createStart(), err);
+			rsch.startObject(objptr, rsvc, generic_event_category.event(GenericEvents::Start), err);
 		}else{
 			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
 			//timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -380,19 +377,13 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //------------------------------------------------------------------
 static const char * patt = "\n.\r\n";
 
-struct FilePointerMessage: solid::Dynamic<FilePointerMessage>{
+struct FilePointerMessage{
 	FilePointerMessage(){}
 	FilePointerMessage(frame::file::FilePointerT _ptr):ptr(_ptr){}
 	
 	frame::file::FilePointerT	ptr;
 };
 
-Connection::DynamicRegister::DynamicRegister(Connection::DynamicMapperT& _rdm){
-	_rdm.insert<FilePointerMessage, Connection>();
-}
-
-/*static*/ Connection::DynamicMapperT		Connection::dm;
-/*static*/ Connection::DynamicRegister		Connection::dr(Connection::dm);
 
 static frame::UniqueId						tempuid;
 
@@ -425,23 +416,21 @@ const char * Connection::findEnd(const char *_p){
 	return p - (crtpat - patt);
 }
 
-/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, frame::Event const &_revent){
-	idbg("");
-	if(frame::EventCategory::isStart(_revent)){
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
+	idbg(""<<_revent);
+	if(generic_event_category.event(GenericEvents::Start) == _revent){
 		idbg("Start");
 		sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
 		state = ReadCommand;
-	}else if(frame::EventCategory::isKill(_revent)){
+	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
 		idbg("Stop");
 		this->postStop(_rctx);
-	}else if(frame::EventCategory::isMessage(_revent)){
+	}else if(generic_event_category.event(GenericEvents::Message) == _revent){
 		idbg("Message");
-		DynamicHandler<DynamicMapperT>  dh(dm);
-		dv.push_back(DynamicPointer<>(_revent.msgptr));
-		dh.init(dv.begin(), dv.end());
-        dv.clear();
-		dh.handle(*this, 0);
-		doRun(_rctx);
+		FilePointerMessage *pfileptrmsg = _revent.any().cast<FilePointerMessage>();
+		if(pfileptrmsg){
+			this->handle(*pfileptrmsg);
+		}
 	}
 }
 
@@ -533,8 +522,10 @@ struct OpenCbk{
 		ERROR_NS::error_code err
 	){
 		idbg("");
-		DynamicPointer<>	msgptr(new FilePointerMessage(_rptr));
-		rm.notify(uid, frame::EventCategory::createMessage().assign(0, msgptr));
+		Event ev = generic_event_category.event(GenericEvents::Message);
+		ev.any().reset(FilePointerMessage(_rptr));
+		
+		rm.notify(uid, std::move(ev));
 	}
 };
 
@@ -624,15 +615,10 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext &_rctx){
 	}
 }
 
-void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){
+void Connection::handle(FilePointerMessage &_rmsgptr){
 	idbg("");
-	cassert(false);
-	state = CloseFileError;
-}
-void Connection::dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr){
-	idbg("");
-	if(!_rmsgptr->ptr.empty()){
-		iofs.device(_rmsgptr->ptr);
+	if(!_rmsgptr.ptr.empty()){
+		iofs.device(_rmsgptr.ptr);
 		if(state == WaitRead){
 			state = RunRead;
 		}else if(state == WaitWrite){
