@@ -412,7 +412,7 @@ private:
 	void tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, const bool _has_no_message_to_send);
 	
 	
-	void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event const&_revent);
+	void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent);
 	
 	template <class F, class M>
 	struct ReceiveProxy{

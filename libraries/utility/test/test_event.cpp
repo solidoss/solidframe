@@ -86,7 +86,7 @@ private:
 
 
 void Object::handleEvent(Event &&_revt){
-	static EventHandler<void, Object&> event_handler = {
+	static const EventHandler<void, Object&> event_handler = {
 		[](Event &_revt, Object &_robj){cout<<"handle_invalid_event on "<<&_robj<<" for "<<_revt<<endl;},
 		{
 			{

@@ -64,8 +64,9 @@ const EventCategory<ConnectionEvents>	connection_event_category{
 	}
 };
 
-
 }//namespace
+
+
 //-----------------------------------------------------------------------------
 inline Service& Connection::service(frame::aio::ReactorContext &_rctx)const{
 	return static_cast<Service&>(_rctx.service());
@@ -90,6 +91,7 @@ inline void Connection::doOptimizeRecvBuffer(){
 		receivebufoff = cnssz;
 	}
 }
+//-----------------------------------------------------------------------------
 inline void Connection::doOptimizeRecvBufferForced(){
 	const size_t cnssz = receivebufoff - consumebufoff;
 	//idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
@@ -378,26 +380,72 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent){
-#if 0
-	if(EventCategory::isPush(_revent)){
-		doHandleEventPush(_rctx, _revent);
-	}else if(frame::EventCategory::isStart(_revent)){
-		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
-		if(sock.device().ok()){
-			doStart(_rctx, true);
+	static const EventHandler<
+		void,
+		Connection&,
+		frame::aio::ReactorContext &
+	> event_handler = {
+		[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){idbgx(Debug::ipc, &_rcon<<" Unhandled event "<<_revt);},
+		{
+			{
+				connection_event_category.event(ConnectionEvents::Push),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventPush(_rctx, _revt);
+				}
+			},
+			{
+				generic_event_category.event(GenericEvents::Start),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventStart(_rctx, _revt);
+				}
+			},
+			{
+				generic_event_category.event(GenericEvents::Kill),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventKill(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::Resolve),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventResolve(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::Activate),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventActivate(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::DelayedClose),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventDelayedClose(_rctx, _revt);
+				}
+			},
 		}
-	}else if(frame::EventCategory::isKill(_revent)){
-		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session postStop");
-		flags |= FlagStopForcedE;
-		doStop(_rctx, error_connection_killed);
-	}else if(EventCategory::isResolve(_revent)){
-		doHandleEventResolve(_rctx, _revent);
-	}else if(EventCategory::isActivate(_revent)){
-		doHandleEventActivate(_rctx, _revent);
-	}else if(EventCategory::isDelayedClose(_revent)){
-		doHandleEventDelayedClose(_rctx, _revent);
+	};
+	
+	event_handler.handle(_uevent, *this, _rctx);
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventStart(
+	frame::aio::ReactorContext &_rctx,
+	Event &_revent
+){
+	idbgx(Debug::ipc, this<<' '<<this->id()<<" Session start: "<<sock.device().ok() ? " connected " : "not connected");
+	if(sock.device().ok()){
+		doStart(_rctx, true);
 	}
-#endif
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventKill(
+	frame::aio::ReactorContext &_rctx,
+	Event &_revent
+){
+	idbgx(Debug::ipc, this<<' '<<this->id()<<" Session postStop");
+	flags |= static_cast<size_t>(Flags::StopForced);
+	doStop(_rctx, error_connection_killed);
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventActivate(
@@ -471,11 +519,14 @@ void Connection::doHandleEventResolve(
 	frame::aio::ReactorContext &_rctx,
 	Event &_revent
 ){
-/*
-	ResolveMessage *presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
+
+	ResolveMessage *presolvemsg = _revent.any().cast<ResolveMessage>();
 	if(presolvemsg){
 		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size()<<" crtidx = "<<presolvemsg->crtidx);
 		if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
+			std::string addr;
+			
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" Connect to "<<presolvemsg->currentAddress());
 			//initiate connect:
 			if(sock.connect(_rctx, presolvemsg->currentAddress(), Connection::onConnect)){
 				onConnect(_rctx);
@@ -486,8 +537,9 @@ void Connection::doHandleEventResolve(
 			cassert(true);
 			doStop(_rctx, error_library_logic);
 		}
+	}else{
+		cassert(false);
 	}
-*/
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Event &/*_revent*/){

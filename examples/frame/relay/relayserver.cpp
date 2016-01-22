@@ -396,12 +396,12 @@ struct MoveMessage{
 		memcpy(buf, _umm.buf, sz);
 	}
 	
-	//TODO this shoud not be present
-	MoveMessage(
-		const MoveMessage &_rmm
-	){
-		cassert(false);
-	}
+// 	//TODO this shoud not be present
+// 	MoveMessage(
+// 		const MoveMessage &_rmm
+// 	){
+// 		cassert(false);
+// 	}
 };
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){

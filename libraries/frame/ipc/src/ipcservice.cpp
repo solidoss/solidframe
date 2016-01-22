@@ -1249,9 +1249,9 @@ void Service::onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT cons
 	configuration().connection_stop_fnc(_rconctx, _err);
 }
 //-----------------------------------------------------------------------------
-void Service::forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event const&_revent){
-/*
-	ResolveMessage 	*presolvemsg = ResolveMessage::cast(_revent.msgptr.get());
+void Service::forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent){
+
+	ResolveMessage 	*presolvemsg = _revent.any().cast<ResolveMessage>();
 	ErrorConditionT	err;
 	++presolvemsg->crtidx;
 	if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
@@ -1259,14 +1259,13 @@ void Service::forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event c
 		
 		Locker<Mutex>					lock(d.connectionPoolMutex(_rconpoolid.index));
 		ConnectionPoolStub				&rconpool(d.conpooldq[_rconpoolid.index]);
-		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, _revent, err);
+		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, std::move(_revent), err);
 		idbgx(Debug::ipc, this<<' '<<conuid<<" "<<err.message());
 		if(!err){
 			++rconpool.pending_connection_count;
 			idbgx(Debug::ipc, this<<' '<<_rconpoolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
 		}
 	}
-*/
 }
 //=============================================================================
 //-----------------------------------------------------------------------------

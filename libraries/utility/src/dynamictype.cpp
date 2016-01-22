@@ -134,46 +134,5 @@ size_t DynamicBase::release(){
 /*virtual*/ bool DynamicBase::isTypeDynamic(const size_t _id){
 	return false;
 }
-/*virtual*/ size_t DynamicBase::callback(const DynamicMapperBase &_rdm)const{
-	return InvalidIndex();
-}
-
-//--------------------------------------------------------------------
-//		DynamicMapperBase
-//--------------------------------------------------------------------
-struct DynamicMapperBase::Data{
-	typedef std::vector<GenericFncT>	FncVectorT;
-	
-	FncVectorT	fncvec;
-	Mutex		mtx;
-};
-
-bool DynamicMapperBase::check(const size_t _tid)const{
-	Locker<Mutex>	lock(d.mtx);
-	if(_tid < d.fncvec.size()){
-		return d.fncvec[_tid] != NULL;
-	}else{
-		return false;
-	}
-}
-DynamicMapperBase::DynamicMapperBase():d(*(new Data)){}
-DynamicMapperBase::~DynamicMapperBase(){
-	delete &d;
-}
-DynamicMapperBase::GenericFncT DynamicMapperBase::callback(const size_t _tid)const{
-	Locker<Mutex>	lock(d.mtx);
-	if(_tid < d.fncvec.size()){
-		return d.fncvec[_tid];
-	}else{
-		return NULL;
-	}
-}
-void DynamicMapperBase::callback(const size_t _tid, GenericFncT _pf){
-	Locker<Mutex>	lock(d.mtx);
-	if(d.fncvec.size() <= _tid){
-		d.fncvec.resize(_tid + 1);
-	}
-	d.fncvec[_tid] = _pf;
-}
 
 }//namespace solid

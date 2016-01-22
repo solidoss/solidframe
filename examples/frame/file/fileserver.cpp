@@ -112,14 +112,10 @@ private:
 struct FilePointerMessage;
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
-	typedef solid::DynamicMapper<void, Connection>	DynamicMapperT;
 	typedef std::vector<solid::DynamicPointer<> >	DynamicPointerVectorT;
 	typedef frame::file::FileIOStream< 1024  >		IOFileStreamT;
 	typedef frame::aio::Stream<frame::aio::Socket>	StreamSocketT;
 	
-	struct DynamicRegister{
-		DynamicRegister(DynamicMapperT &_rdm);
-	};
 public:
 	Connection(SocketDevice &_rsd);
 	~Connection();

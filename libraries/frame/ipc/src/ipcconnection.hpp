@@ -50,6 +50,13 @@ struct ResolveMessage{
 	}
 	
 	ResolveMessage(AddressVectorT &_raddrvec):addrvec(std::move(_raddrvec)), crtidx(0){}
+	
+	ResolveMessage(const ResolveMessage&) = delete;
+	
+	ResolveMessage(ResolveMessage &&_urm):addrvec(std::move(_urm.addrvec)), crtidx(_urm.crtidx){
+		_urm.crtidx = 0;
+	}
+	
 };
 
 
@@ -175,6 +182,8 @@ private:
 	void doCompleteMessage(solid::frame::aio::ReactorContext& _rctx, solid::frame::ipc::MessagePointerT /*const*/& _rmsgptr);
 	void doCompleteKeepalive(frame::aio::ReactorContext &_rctx);
 
+	void doHandleEventKill(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventStart(frame::aio::ReactorContext &_rctx, Event &_revent);
 	void doHandleEventActivate(frame::aio::ReactorContext &_rctx, Event &_revent);
 	void doHandleEventPush(frame::aio::ReactorContext &_rctx, Event &_revent);
 	void doHandleEventResolve(frame::aio::ReactorContext &_rctx, Event &_revent);

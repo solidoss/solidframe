@@ -14,23 +14,34 @@
 #include <typeinfo>
 #include <typeindex>
 #include <utility>
+#include <type_traits>
+#include "system/exception.hpp"
 
 
 namespace solid{
 
 namespace impl{
-
+//-----------------------------------------------------------------------------
+//		AnyValueBase
+//-----------------------------------------------------------------------------
 struct AnyValueBase{
 	virtual ~AnyValueBase();
 	virtual const void* get()const = 0;
 	virtual void* get() = 0;
 	virtual AnyValueBase* copyTo(void *_pd, const size_t _sz) const = 0;
 	virtual AnyValueBase* moveTo(void *_pd, const size_t _sz, const bool _uses_data) = 0;
+	
+	AnyValueBase& operator=(const AnyValueBase&) = delete;
 };
 
+//-----------------------------------------------------------------------------
+//		AnyValue<T>
+//-----------------------------------------------------------------------------
+template <class T, bool CopyConstructible = std::is_copy_constructible<T>::value>
+struct AnyValue;
 
 template <class T>
-struct AnyValue: AnyValueBase{
+struct AnyValue<T, true>: AnyValueBase{
 	explicit AnyValue(const T &_rt):value_(_rt){}
 	explicit AnyValue(T &&_rt):value_(std::move(_rt)){}
 	
@@ -64,9 +75,45 @@ struct AnyValue: AnyValueBase{
 	T	value_;
 };
 
+template <class T>
+struct AnyValue<T, false>: AnyValueBase{
+	//explicit AnyValue(const T &_rt){}
+	
+	explicit AnyValue(T &&_rt):value_(std::move(_rt)){}
+	
+	
+	const void* get()const override{
+		return &value_;
+	}
+	
+	void* get()override{
+		return &value_;
+	}
+	
+	AnyValueBase* copyTo(void *_pd, const size_t _sz) const override{
+		THROW_EXCEPTION("Copy on Non Copyable");
+		return nullptr;
+	}
+	
+	AnyValueBase* moveTo(void *_pd, const size_t _sz, const bool _uses_data)override{
+		if(sizeof(AnyValue<T>) <= _sz){
+			return new(_pd) AnyValue<T>{std::move(value_)};
+		}else if(not _uses_data){//the pointer was allocated
+			return this;
+		}else{
+			return new AnyValue<T>{std::move(value_)};
+		}
+	}
+	
+	T	value_;
+};
+
+
 }//namespace impl
 
-
+//-----------------------------------------------------------------------------
+//		AnyBase
+//-----------------------------------------------------------------------------
 class AnyBase{
 public:
 	static constexpr size_t min_data_size = sizeof(impl::AnyValue<void*>);
@@ -91,6 +138,11 @@ protected:
 	
 	impl::AnyValueBase	*pvalue_;
 };
+
+
+//-----------------------------------------------------------------------------
+//		Any<Size>
+//-----------------------------------------------------------------------------
 
 template <size_t DataSize = 0>
 class Any;
@@ -242,17 +294,21 @@ private:
 	char				data_[DataSize];
 };
 
+//-----------------------------------------------------------------------------
 
 template <size_t DS, typename T>
 Any<DS> any_create(const T &_rt){
 	return Any<DS>(_rt, true);
 }
 
+//-----------------------------------------------------------------------------
+
 template <size_t DS, typename T>
 Any<DS> any_create(T &&_rt){
 	return Any<DS>(_rt, true);
 }
 
+//-----------------------------------------------------------------------------
 
 }//namespace solid
 
