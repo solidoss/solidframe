@@ -83,51 +83,10 @@ template <class X, class T = DynamicBase>
 struct Dynamic: T{
 	typedef Dynamic<X,T>	BaseT;
 	
-	Dynamic(){}
-	//! One parameter constructor to forward to base
-	template<class G1>
-	explicit Dynamic(G1 &_g1):T(_g1){}
-	
-	template<class G1>
-	explicit Dynamic(const G1 &_g1):T(_g1){}
-	
-	//! Two parameters constructor to forward to base
-	template<class G1, class G2>
-	explicit Dynamic(G1 &_g1, G2 &_g2):T(_g1, _g2){}
-	
-	template<class G1, class G2>
-	explicit Dynamic(const G1 &_g1, const G2 &_g2):T(_g1, _g2){}
-	
-	//! Three parameters constructor to forward to base
-	template<class G1, class G2, class G3>
-	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3):T(_g1, _g2, _g3){}
-	
-	template<class G1, class G2, class G3>
-	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3):T(_g1, _g2, _g3){}
-	
-	template<class G1, class G2, class G3, class G4>
-	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4):T(_g1, _g2, _g3, _g4){}
-	
-	template<class G1, class G2, class G3, class G4>
-	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4):T(_g1, _g2, _g3, _g4){}
-	
-	template<class G1, class G2, class G3, class G4, class G5>
-	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4, G5 &_g5):T(_g1, _g2, _g3, _g4, _g5){}
-	
-	template<class G1, class G2, class G3, class G4, class G5>
-	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5):T(_g1, _g2, _g3, _g4, _g5){}
-	
-	template<class G1, class G2, class G3, class G4, class G5, class G6>
-	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5, const G6 &_g6):T(_g1, _g2, _g3, _g4, _g5, _g6){}
-	
-	template<class G1, class G2, class G3, class G4, class G5, class G6, class G7>
-	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4, G5 &_g5, G6 &_g6, G7 &_g7):T(_g1, _g2, _g3, _g4, _g5, _g6, _g7){}
-	
-	template<class G1, class G2, class G3, class G4, class G5, class G6>
-	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4, G5 &_g5, G6 &_g6):T(_g1, _g2, _g3, _g4, _g5, _g6){}
-	
-	template<class G1, class G2, class G3, class G4, class G5, class G6, class G7>
-	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5, const G6 &_g6, const G7 &_g7):T(_g1, _g2, _g3, _g4, _g5, _g6, _g7){}
+	template <typename ...Args>
+	explicit Dynamic(Args&&..._args):T(std::forward<Args>(_args)...){
+		
+	}
 	
 	//!The static type id
 #ifdef SOLID_USE_SAFE_STATIC

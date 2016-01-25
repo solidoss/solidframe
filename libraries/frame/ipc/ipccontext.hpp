@@ -134,7 +134,6 @@ private:
 		const size_t _idx,
 		const uint32 _uid
 	):index(_idx), unique(_uid){}
-	
 };
 
 

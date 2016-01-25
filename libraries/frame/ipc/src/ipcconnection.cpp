@@ -139,7 +139,7 @@ bool Connection::pushMessage(
 	MessageId *_pmsguid,
 	Event &_revent,
 	ErrorConditionT &_rerror,
-	const size_t _pool_msg_idx
+	const MessageId &_rpool_msg_id
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
@@ -184,7 +184,7 @@ void Connection::directPushMessage(
 	frame::aio::ReactorContext &_rctx,
 	MessageBundle &_rmsgbundle,
 	MessageId *_pmsguid,
-	const size_t _pool_msg_idx
+	const MessageId &_rpool_msg_id
 ){
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();

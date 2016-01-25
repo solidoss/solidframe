@@ -42,6 +42,7 @@ struct InnerNode{
 	enum{
 		InnerNodeSize = Size,
 	};
+	
 private:
 	template <size_t Sz>
 	friend InnerLink& inner_link_accessor(InnerNode<Sz> &_node, const size_t _index);
@@ -173,7 +174,9 @@ public:
 	size_t previousIndex(const size_t _index)const{
 		return link(_index).prev;
 	}
-	
+	bool check()const{
+		return not ((back_ == InvalidIndex() or front_ == InvalidIndex()) and back_ == front_);
+	}
 private:
 	InnerLink& link(const size_t _index){
 		//typedef Vec::value_type		NodeT;

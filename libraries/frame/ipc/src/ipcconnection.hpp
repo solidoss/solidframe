@@ -88,7 +88,7 @@ public:
 		MessageId *_pmsguid,
 		Event &_revent,
 		ErrorConditionT &_rerror,
-		const size_t _pool_msg_idx
+		const MessageId &_rpool_msg_id
 	);
 	
 	bool pushCancelMessage(
@@ -108,7 +108,7 @@ public:
 		frame::aio::ReactorContext &_rctx,
 		MessageBundle &_rmsgbundle,
 		MessageId *_pmsguid,
-		const size_t _pool_msg_idx
+		const MessageId &_rpool_msg_id
 	);
 	
 	bool prepareActivate(
