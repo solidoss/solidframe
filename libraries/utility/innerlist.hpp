@@ -124,8 +124,10 @@ public:
 		rcrt_link.clear();
 	}
 	
-	void popFront(){
+	size_t popFront(){
+		size_t old_front = front_;
 		erase(front_);
+		return old_front;
 	}
 
 	size_t size()const{
@@ -175,7 +177,12 @@ public:
 		return link(_index).prev;
 	}
 	bool check()const{
-		return not ((back_ == InvalidIndex() or front_ == InvalidIndex()) and back_ == front_);
+		
+		if(back_ == InvalidIndex() or front_ == InvalidIndex()){
+			return back_ == front_;
+		}
+		
+		return true;
 	}
 private:
 	InnerLink& link(const size_t _index){

@@ -84,7 +84,8 @@ struct MessageStub: InnerNode<InnerLinkCount>{
 	
 	MessageStub(
 		MessageStub && _rmsg
-	):	msgbundle(std::move(_rmsg.msgbundle)),
+	):	InnerNode<InnerLinkCount>(std::move(_rmsg)),
+		msgbundle(std::move(_rmsg.msgbundle)),
 		unique(_rmsg.unique), flags(_rmsg.flags){}
 	
 	MessageStub():unique(0), flags(0){}
@@ -176,11 +177,15 @@ struct ConnectionPoolStub{
 		size_t		idx;
 		
 		if(msgcache_inner_list.size()){
+			idbgx(Debug::ipc, "");
 			idx = msgcache_inner_list.frontIndex();
 			msgcache_inner_list.popFront();
 		}else{
+			idbgx(Debug::ipc, "");
 			idx = msgvec.size();
+			idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
 			msgvec.push_back(MessageStub{});
+			idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
 		}
 		
 		MessageStub	&rmsgstub{msgvec[idx]};
@@ -204,8 +209,8 @@ struct ConnectionPoolStub{
 	
 	void popFrontMessage(){
 		idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
-		msgcache_inner_list.pushBack(msgorder_inner_list.frontIndex());
-		msgorder_inner_list.popFront();
+		msgcache_inner_list.pushBack(msgorder_inner_list.popFront());
+		
 		cassert(msgorder_inner_list.check());
 	}
 	
