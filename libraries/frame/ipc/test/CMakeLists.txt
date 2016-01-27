@@ -32,7 +32,8 @@ add_test( TestProtocol test_ipc_protocol
 set( IpcClientServerTestSuite
 	test_clientserver_basic.cpp
 	test_clientserver_sendrequest.cpp
-	test_clientserver_cancel.cpp
+	test_clientserver_cancel_server.cpp
+	test_clientserver_cancel_client.cpp
 )
 
 create_test_sourcelist( IpcClientServerTests test_ipc_clientserver.cpp ${IpcClientServerTestSuite})
@@ -52,7 +53,8 @@ target_link_libraries(test_ipc_clientserver
 add_test( TestClientServer test_ipc_clientserver
 	test_clientserver_basic
 	test_clientserver_sendrequest
-	test_clientserver_cancel
+	test_clientserver_cancel_server
+	test_clientserver_cancel_client
 )
 
 #==============================================================================

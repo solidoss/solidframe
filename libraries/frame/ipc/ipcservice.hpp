@@ -151,27 +151,27 @@ public:
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
-		ConnectionPoolId &_rpool_id,
+		RecipientId &_rrecipient_id,
 		ulong _flags = 0
 	){
 		MessagePointerT				msgptr(_rmsgptr);
 		RecipientId					recipient_id;
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rpool_id, nullptr, _flags);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rrecipient_id, nullptr, _flags);
 	}
 	
 	template <class T>
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
-		ConnectionPoolId &_rpool_id,
+		RecipientId &_rrecipient_id,
 		MessageId &_rmsg_id,
 		ulong _flags = 0
 	){
 		MessagePointerT				msgptr(_rmsgptr);
 		RecipientId					recipient_id;
 		ResponseHandlerFunctionT	response_handler;
-		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rpool_id, &_rmsg_id, _flags);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rrecipient_id, &_rmsg_id, _flags);
 	}
 	
 	// send message using connection uid  -------------------------------------
@@ -200,7 +200,7 @@ public:
 	}
 	
 	// send message using pool uid --------------------------------------------
-	
+#if 0
 	template <class T>
 	ErrorConditionT sendMessage(
 		ConnectionPoolId const &_rpool_id,
@@ -228,7 +228,7 @@ public:
 		
 		return doSendMessage(nullptr, recipient_id, msgptr, response_handler, nullptr, &_rmsguid, _flags);
 	}
-	
+#endif
 	// send request using recipient name --------------------------------------
 	
 	template <class T, class Fnc>
@@ -253,7 +253,7 @@ public:
 		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _fnc,
-		ConnectionPoolId &_rpool_id,
+		RecipientId &_rrecipient_id,
 		ulong _flags = 0
 	){
 		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
@@ -263,7 +263,7 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rpool_id, nullptr, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rrecipient_id, nullptr, _flags | Message::WaitResponseFlagE);
 	}
 	
 	template <class T, class Fnc>
@@ -271,7 +271,7 @@ public:
 		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _fnc,
-		ConnectionPoolId &_rpool_id,
+		RecipientId &_rrecipient_id,
 		MessageId &_rmsguid,
 		ulong _flags = 0
 	){
@@ -282,7 +282,7 @@ public:
 		ResponseHandlerT			fnc(_fnc);
 		ResponseHandlerFunctionT	response_handler(fnc);
 		
-		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rpool_id, &_rmsguid, _flags | Message::WaitResponseFlagE);
+		return doSendMessage(_recipient_name, recipient_id, msgptr, response_handler, &_rrecipient_id, &_rmsguid, _flags | Message::WaitResponseFlagE);
 	}
 	
 	// send request using connection uid --------------------------------------
@@ -321,7 +321,7 @@ public:
 	}
 	
 	// send request using pool uid --------------------------------------------
-	
+#if 0
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
 		ConnectionPoolId const &_rpool_id,
@@ -356,7 +356,7 @@ public:
 		
 		return doSendMessage(nullptr, recipient_id, msgptr, response_handler, nullptr, &_rmsg_id, _flags | Message::WaitResponseFlagE);
 	}
-	
+#endif
 	//----------------------
 	
 	ErrorConditionT forcedConnectionClose(
@@ -486,7 +486,7 @@ private:
 		const RecipientId	&_rrecipient_id_in,
 		MessagePointerT &_rmsgptr,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ConnectionPoolId *_ppool_id_out,
+		RecipientId *_precipient_id_out,
 		MessageId *_pmsg_id_out,
 		ulong _flags
 	);
@@ -496,7 +496,7 @@ private:
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
-		ConnectionPoolId *_ppool_id_out,
+		RecipientId *_precipient_id_out,
 		MessageId *_pmsguid_out,
 		ulong _flags
 	);
@@ -514,7 +514,7 @@ private:
 		ObjectIdT const &_robjuid,
 		const size_t _msg_idx,
 		const size_t _pool_idx,
-		ConnectionPoolId *_ppool_id_out
+		RecipientId *_precipient_id_out
 	);
 	
 	ErrorConditionT doNotifyConnectionDelayedClose(

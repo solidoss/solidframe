@@ -86,7 +86,7 @@ frame::ipc::Service				*pipcclient = nullptr;
 frame::ipc::Service				*pipcserver = nullptr;
 std::atomic<uint64>				transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
-frame::ipc::RecipientId			server_connection_uid;
+frame::ipc::RecipientId			recipient_id;
 
 MessageIdVectorT				message_uid_vec;
 
@@ -186,36 +186,11 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	if(not _rmsgptr->check()){
 		THROW_EXCEPTION("Message check failed.");
 	}
-	
-	size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-	cassert(not initarray[idx % initarraysize].cancel);
-	
-	//cout<< _rmsgptr->str.size()<<'\n';
-	transfered_size += _rmsgptr->str.size();
-	++transfered_count;
-	
-	if(!crtbackidx){
-		idbg("canceling all messages");
-		for(auto msguid:message_uid_vec){
-			idbg("Cancel message: "<<msguid);
-			pipcserver->cancelMessage(server_connection_uid, msguid);
-		}
-	}
-	
-	++crtbackidx;
-	
-	if(crtbackidx == expected_transfered_count){
-		Locker<Mutex> lock(mtx);
-		running = false;
-		cnd.signal();
-	}
+	cassert(false);
 }
 
 void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.recipientId());
-	if(!_rerr){
-		++crtackidx;
-	}
+	idbg(_rctx.recipientId()<<" error = "<<_rerr.message());
 }
 
 void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
@@ -232,30 +207,26 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 		THROW_EXCEPTION("Connection id should not be invalid!");
 	}
 	
-	cassert(server_connection_uid.isInvalidConnection());
+	size_t idx = static_cast<Message&>(*_rmsgptr).idx;
+	cassert(not initarray[idx % initarraysize].cancel);
 	
-	server_connection_uid = _rctx.recipientId();
+	transfered_size += _rmsgptr->str.size();
+	++transfered_count;
 	
-	// Step 2
-	writecount = initarraysize;//start_count;//
-	
-	for(crtwriteidx = 0; crtwriteidx < writecount; ++crtwriteidx){
-		frame::ipc::MessageId msguid;
-		
-		ErrorConditionT err = _rctx.service().sendMessage(
-			server_connection_uid, frame::ipc::MessagePointerT(new Message(crtwriteidx)),
-			msguid
-		);
-		
-		if(err){
-			THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+	if(!crtreadidx){
+		idbg("canceling all messages");
+		for(auto msguid:message_uid_vec){
+			idbg("Cancel message: "<<msguid);
+			pipcclient->cancelMessage(recipient_id, msguid);
 		}
-		
-		
-		if(initarray[crtwriteidx % initarraysize].cancel){
-			message_uid_vec.push_back(msguid); //we cancel this one
-			idbg("schedule for cancel message: "<<message_uid_vec.back());
-		}
+	}
+	
+	++crtreadidx;
+	
+	if(crtreadidx == expected_transfered_count){
+		Locker<Mutex> lock(mtx);
+		running = false;
+		cnd.signal();
 	}
 }
 
@@ -281,7 +252,7 @@ extern StringCheckFncT pcheckfnc;
 
 }}}
 
-int test_clientserver_cancel(int argc, char **argv){
+int test_clientserver_cancel_client(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
@@ -418,12 +389,30 @@ int test_clientserver_cancel(int argc, char **argv){
 		pipcserver = &ipcserver;
 		
 		{
-			//Step 1.
-			frame::ipc::MessagePointerT	msgptr(new Message(0));
-			ipcclient.sendMessage(
-				"localhost:6666", msgptr,
-				initarray[0].flags
-			);
+			writecount = initarraysize;//start_count;//
+			
+			for(crtwriteidx = 0; crtwriteidx < writecount; ++crtwriteidx){
+				frame::ipc::MessageId msguid;
+				
+				ErrorConditionT err = ipcclient.sendMessage(
+					"localhost:6666", frame::ipc::MessagePointerT(new Message(crtwriteidx)),
+					recipient_id,
+					msguid
+				);
+				
+				if(err){
+					THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+				}
+				
+				if(recipient_id.isInvalidPool()){
+					THROW_EXCEPTION("Connection pool should not be invalid!");
+				}
+				
+				if(initarray[crtwriteidx % initarraysize].cancel){
+					message_uid_vec.push_back(msguid); //we cancel this one
+					idbg("schedule cancel message: "<<message_uid_vec.back());
+				}
+			}
 		}
 		
 		Locker<Mutex>	lock(mtx);
