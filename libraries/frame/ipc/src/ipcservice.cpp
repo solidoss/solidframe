@@ -139,9 +139,14 @@ struct ConnectionPoolStub{
 	MessageOrderInnerListT	msgcache_inner_list;
 	ObjectIdQueueT			conn_waitingq;
 	
+	ObjectIdT				msg_cancel_connection_id;
+	bool					msg_cancel_connection_stopping;
+	bool					is_stopping;
+	
 	ConnectionPoolStub(
 	):	uid(0), pending_connection_count(0), active_connection_count(0),
-		msgorder_inner_list(msgvec), msgcache_inner_list(msgvec){}
+		msgorder_inner_list(msgvec), msgcache_inner_list(msgvec),
+		msg_cancel_connection_stopping(false), is_stopping(false){}
 	
 	ConnectionPoolStub(
 		ConnectionPoolStub && _rconpool
@@ -151,7 +156,10 @@ struct ConnectionPoolStub{
 		msgvec(std::move(_rconpool.msgvec)),
 		msgorder_inner_list(msgvec, _rconpool.msgorder_inner_list),
 		msgcache_inner_list(msgvec, _rconpool.msgcache_inner_list),
-		conn_waitingq(std::move(_rconpool.conn_waitingq)){}
+		conn_waitingq(std::move(_rconpool.conn_waitingq)),
+		msg_cancel_connection_id(_rconpool.msg_cancel_connection_id),
+		msg_cancel_connection_stopping(_rconpool.msg_cancel_connection_stopping),
+		is_stopping(_rconpool.is_stopping){}
 	
 	void clear(){
 		name.clear();
@@ -231,6 +239,24 @@ struct ConnectionPoolStub{
 		msgorder_inner_list.erase(_msg_idx);
 		msgcache_inner_list.pushBack(_msg_idx);
 		cassert(msgorder_inner_list.check());
+	}
+	
+	bool isMessageCancelConnectionStopping()const{
+		return msg_cancel_connection_stopping;
+	}
+	
+	void setMessageCancelConnectionStopping(){
+		msg_cancel_connection_stopping = true;
+	}
+	void resetMessageCancelConnectionStopping(){
+		msg_cancel_connection_stopping = false;
+	}
+	
+	bool isStopping()const{
+		return is_stopping;
+	}
+	void setStopping(){
+		is_stopping = true;
 	}
 };
 
@@ -646,6 +672,12 @@ ErrorConditionT Service::doSendMessage(
 		return error;
 	}
 	
+	if(rconpool.isStopping()){
+		//failed uid check
+		edbgx(Debug::ipc, this<<" connection pool is stopping");
+		error.assign(-1, error.category());//TODO: connection pool is stopping
+		return error;
+	}
 	
 	if(_precipient_id_out){
 		_precipient_id_out->poolid = ConnectionPoolId(pool_idx, rconpool.uid);
@@ -729,14 +761,25 @@ ErrorConditionT Service::doSendMessage(
 	return error;
 }
 //-----------------------------------------------------------------------------
-void Service::tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, const bool _connection_has_no_message_to_send){
+void Service::tryFetchNewMessage(
+	Connection &_rcon,
+	aio::ReactorContext &_rctx,
+	ObjectIdT const &_robjuid,
+	const bool _connection_has_no_message_to_send
+){
 	Locker<Mutex>			lock2(d.connectionPoolMutex(_rcon.poolId().index));
 	ConnectionPoolStub 		&rconpool(d.conpooldq[_rcon.poolId().index]);
 	
 	cassert(rconpool.uid == _rcon.poolId().unique);
 	if(rconpool.uid != _rcon.poolId().unique) return;
 	
-	idbgx(Debug::ipc, this<<' '<<&_rcon<<" msg_q_size "<<rconpool.msgorder_inner_list.size());
+	if(rconpool.isMessageCancelConnectionStopping() and rconpool.msg_cancel_connection_id != _robjuid){
+		idbgx(Debug::ipc, this<<' '<<&_rcon<<" switch message canceling connection from "<<rconpool.msg_cancel_connection_id<<" to "<<_robjuid);
+		rconpool.msg_cancel_connection_id = _robjuid;
+		rconpool.resetMessageCancelConnectionStopping();
+	}
+	
+	idbgx(Debug::ipc, this<<' '<<&_rcon<<" messages in pool: "<<rconpool.msgorder_inner_list.size());
 	
 	if(rconpool.msgorder_inner_list.size()){
 		
@@ -973,6 +1016,21 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rconnection_uid, Mess
 		
 		if(_rmsguid.index < rconpool.msgvec.size() and rconpool.msgvec[_rmsguid.index].unique == _rmsguid.unique){
 			MessageStub	&rmsgstub = rconpool.msgvec[_rmsguid.index];
+			if(rmsgstub.msgid.isValid()){
+				//message handled by a connection
+			}else if(rmsgstub.msgbundle.message_ptr.get()){
+				//message waiting to be handled by a connection
+				//NOTE
+				//There are 2 situations:
+				//* a connection will soon try to handle the message
+				//* no connection will handle the message any time soon (connections are either connecting/authenticating/busy)
+				//
+				// - any existing connection can handle the canceled message at any time
+			}else{
+				THROW_EXCEPTION("Logic error: lost message");
+				error.assign(-1, error.category());//message does not exist
+			}
+			
 			if(rmsgstub.msgbundle.message_ptr.get()){
 				cassert(rmsgstub.msgid.isInvalid());
 				//message not handled yet by a connection
@@ -1199,11 +1257,12 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon<<" "<<_robjuid);
 	
-	if(_rcon.conpoolid.isValid()){
+	if(_rcon.poolId().isValid()){
 		ConnectionPoolId	conpoolid = _rcon.conpoolid;
 		Locker<Mutex>		lock(d.mtx);
 		Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
-		ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
+		const size_t 		conpoolindex = _rcon.conpoolid.index;
+		ConnectionPoolStub	&rconpool(d.conpooldq[conpoolindex]);
 		
 		_rcon.conpoolid = ConnectionPoolId();
 		
@@ -1251,7 +1310,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 			rconpool.synchronous_connection_uid = ObjectIdT::invalid();
 		}
 		
-		if(!rconpool.active_connection_count and !rconpool.pending_connection_count){
+		if(not rconpool.active_connection_count and not rconpool.pending_connection_count){
 			//_rcon is the last dying connection
 			//so, move all pending messages to _rcon for completion
 			while(rconpool.msgorder_inner_list.size()){
@@ -1268,33 +1327,40 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 		
 			rconpool.clear();
 		}else{
-			size_t		qsz = rconpool.msgorder_inner_list.size();
-			
-			_rcon.fetchUnsentMessages(
-				[this](
-					ConnectionPoolId &_rconpoolid,
-					MessagePointerT &_rmsgptr,
-					const size_t _msg_type_idx,
-					ResponseHandlerFunctionT &_rresponse_fnc,
-					const ulong _flags
-				){
-					this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
-				}
-			);
-			
-			if(rconpool.msgorder_inner_list.size() > qsz){
-				//move the newly pushed messages up-front of msgorder_inner_list.
-				//rotate msgorder_inner_list by qsz
-				while(qsz--){
-					const size_t	idx{rconpool.msgorder_inner_list.frontIndex()};
-					
-					rconpool.msgorder_inner_list.popFront();
-					rconpool.msgorder_inner_list.pushBack(idx);
-				}
-				idbgx(Debug::ipc, "msgorder_inner_list "<<rconpool.msgorder_inner_list);
-				cassert(rconpool.msgorder_inner_list.check());
-			}
+			doFetchUnsentMessagesFromConnection(_rcon, _rctx, conpoolindex);
 		}
+	}
+}
+//-----------------------------------------------------------------------------
+void Service::doFetchUnsentMessagesFromConnection(
+	Connection &_rcon, aio::ReactorContext &_rctx, const size_t _conpoolindex
+){
+	ConnectionPoolStub	&rconpool(d.conpooldq[_conpoolindex]);
+	size_t				qsz = rconpool.msgorder_inner_list.size();
+			
+	_rcon.fetchUnsentMessages(
+		[this](
+			ConnectionPoolId &_rconpoolid,
+			MessagePointerT &_rmsgptr,
+			const size_t _msg_type_idx,
+			ResponseHandlerFunctionT &_rresponse_fnc,
+			const ulong _flags
+		){
+			this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+		}
+	);
+	
+	if(rconpool.msgorder_inner_list.size() > qsz){
+		//move the newly pushed messages up-front of msgorder_inner_list.
+		//rotate msgorder_inner_list by qsz
+		while(qsz--){
+			const size_t	idx{rconpool.msgorder_inner_list.frontIndex()};
+			
+			rconpool.msgorder_inner_list.popFront();
+			rconpool.msgorder_inner_list.pushBack(idx);
+		}
+		idbgx(Debug::ipc, "msgorder_inner_list "<<rconpool.msgorder_inner_list);
+		cassert(rconpool.msgorder_inner_list.check());
 	}
 }
 //-----------------------------------------------------------------------------
@@ -1335,18 +1401,56 @@ void Service::onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT cons
 	configuration().connection_stop_fnc(_rconctx, _err);
 }
 //-----------------------------------------------------------------------------
+ulong Service::onConnectionWantStop(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid){
+	if(_rcon.poolId().isValid()){
+		Locker<Mutex>			lock2(d.connectionPoolMutex(_rcon.poolId().index));
+		const size_t 			conpoolindex = _rcon.poolId().index;
+		ConnectionPoolStub 		&rconpool(d.conpooldq[conpoolindex]);
+		
+		cassert(rconpool.uid == _rcon.poolId().unique);
+		if(rconpool.uid != _rcon.poolId().unique) return 0;
+		
+		if(rconpool.msg_cancel_connection_id == _robjuid){
+			cassert(configuration().msg_cancel_connection_wait_seconds != 0);
+			
+			rconpool.setMessageCancelConnectionStopping();
+			
+			//TODO: maybe we can use rconpool.conn_waitingq to 
+			//replace the msg_cancel_connection_id with another connectionid
+			
+			if((rconpool.active_connection_count + rconpool.pending_connection_count) != 1){
+				//only call doFetchUnsentMessagesFromConnection 
+				//for connections that will not stop right away
+				
+				doFetchUnsentMessagesFromConnection(_rcon, _rctx, conpoolindex);
+				
+				//the connection is used for message canceling
+				return configuration().msg_cancel_connection_wait_seconds;
+			}else{
+				//this is the last connection
+				rconpool.setStopping();
+			}
+		}
+	}
+	return 0;
+}
+//-----------------------------------------------------------------------------
 void Service::forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent){
 
 	ResolveMessage 	*presolvemsg = _revent.any().cast<ResolveMessage>();
 	ErrorConditionT	err;
+	
 	++presolvemsg->crtidx;
+	
 	if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
 		DynamicPointer<aio::Object>		objptr(new Connection(_rconpoolid));
 		
 		Locker<Mutex>					lock(d.connectionPoolMutex(_rconpoolid.index));
 		ConnectionPoolStub				&rconpool(d.conpooldq[_rconpoolid.index]);
 		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, std::move(_revent), err);
+		
 		idbgx(Debug::ipc, this<<' '<<conuid<<" "<<err.message());
+		
 		if(!err){
 			++rconpool.pending_connection_count;
 			idbgx(Debug::ipc, this<<' '<<_rconpoolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);

@@ -136,6 +136,7 @@ private:
 	static void onConnect(frame::aio::ReactorContext &_rctx);
 	static void onTimerInactivity(frame::aio::ReactorContext &_rctx);
 	static void onTimerKeepalive(frame::aio::ReactorContext &_rctx);
+	static void onTimerWaitStopping(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 	
 	
 	bool shouldSendKeepalive()const;

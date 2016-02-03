@@ -108,6 +108,8 @@ struct Configuration{
 	uint32								recv_buffer_capacity;
 	uint32								send_buffer_capacity;
 	
+	ulong								msg_cancel_connection_wait_seconds;
+	
 	MessageRegisterFunctionT			message_register_fnc;
 	AsyncResolveFunctionT				name_resolve_fnc;
 	ConnectionStartFunctionT			incoming_connection_start_fnc;

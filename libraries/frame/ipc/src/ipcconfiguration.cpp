@@ -72,6 +72,8 @@ Configuration::Configuration(
 	
 	inplace_compress_fnc = default_compress;
 	uncompress_fnc = default_uncompress;
+	
+	msg_cancel_connection_wait_seconds = 1;
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Configuration::prepare(){

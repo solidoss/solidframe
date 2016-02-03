@@ -109,6 +109,8 @@ Enabled for two scenarios:
 * test_clientserver_oneshot
 	* start client and send one shot message
 	* expect message canceled in certain, short amount of time
+* test_clientserver_cancel_connection_switch(TODO)
+	* test that message cancel connection switch works
 
 ### Support for multi-protocol
 

@@ -404,12 +404,18 @@ private:
 	void activateConnectionComplete(Connection &_rcon);
 	
 	void onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid);
+	ulong onConnectionWantStop(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid);
 	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
 	void onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err);
 	
-	void tryFetchNewMessage(Connection &_rcon, aio::ReactorContext &_rctx, const bool _has_no_message_to_send);
+	void tryFetchNewMessage(
+		Connection &_rcon,
+		aio::ReactorContext &_rctx,
+		ObjectIdT const &_robjuid,
+		const bool _has_no_message_to_send
+	);
 	
 	
 	void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent);
@@ -524,6 +530,10 @@ private:
 	ErrorConditionT doNotifyConnectionActivate(
 		ObjectIdT const &_robjuid,
 		ConnectionPoolId const &_rconpooluid
+	);
+	
+	void doFetchUnsentMessagesFromConnection(
+		Connection &_rcon, aio::ReactorContext &_rctx, const size_t _conpoolindex
 	);
 	
 	size_t doPushNewConnectionPool();

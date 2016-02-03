@@ -363,19 +363,63 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 	doUnprepare(_rctx);
 }
 //-----------------------------------------------------------------------------
-void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
-	if(not isAtomicStopping()){
-		ErrorConditionT		error(_rerr);
-		
-		atomic_flags |= static_cast<size_t>(AtomicFlags::Stopping);
-		
-		postStop(_rctx, 
+/*static*/ void Connection::onTimerWaitStopping(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
+	Connection			&rthis = static_cast<Connection&>(_rctx.object());
+	ObjectIdT			objuid(rthis.uid(_rctx));
+	ErrorConditionT		error(_rerr);
+	ulong				seconds_to_wait = rthis.service(_rctx).onConnectionWantStop(rthis, _rctx, objuid);
+	
+	if(!seconds_to_wait){
+		//can stop rightaway
+		rthis.postStop(_rctx, 
 			[error](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
 				rthis.onStopped(_rctx, error);
 			}
-		);//there might be events pending which will be delivered, but after this call
-						  //no event get posted
+		);	//there might be events pending which will be delivered, but after this call
+			//no event get posted
+	}else{
+		//wait for seconds_to_wait and then retry
+		rthis.timer.waitFor(_rctx,
+			TimeSpec(seconds_to_wait),
+			[error](frame::aio::ReactorContext &_rctx){
+				onTimerWaitStopping(_rctx, error);
+			}
+		);
+	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
+	if(not isAtomicStopping()){
+		
+		atomic_flags |= static_cast<size_t>(AtomicFlags::Stopping);
+		
+		ErrorConditionT		error(_rerr);
+		ObjectIdT			objuid(uid(_rctx));
+		const ulong			seconds_to_wait = service(_rctx).onConnectionWantStop(*this, _rctx, objuid);
+		
+		//onConnectionWantStop may fetch some of the
+		//pending messages so call doCompleteAllMessages after calling onConnectionWantStop
+		doCompleteAllMessages(_rctx, _rerr);
+		
+		if(!seconds_to_wait){
+			//can stop rightaway
+			postStop(_rctx, 
+				[error](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
+					Connection	&rthis = static_cast<Connection&>(_rctx.object());
+					rthis.onStopped(_rctx, error);
+				}
+			);	//there might be events pending which will be delivered, but after this call
+				//no event get posted
+		}else{
+			//wait for seconds_to_wait and then retry
+			timer.waitFor(_rctx,
+				TimeSpec(seconds_to_wait),
+				[error](frame::aio::ReactorContext &_rctx){
+					onTimerWaitStopping(_rctx, error);
+				}
+			);
+		}
 	}
 }
 //-----------------------------------------------------------------------------
@@ -732,7 +776,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				isActive() and
 				msgwriter.shouldTryFetchNewMessage(rconfig)
 			){
-				service(_rctx).tryFetchNewMessage(*this, _rctx, msgwriter.empty());
+				service(_rctx).tryFetchNewMessage(*this, _rctx, uid(_rctx), msgwriter.empty());
 			}
 			
 #if 0
