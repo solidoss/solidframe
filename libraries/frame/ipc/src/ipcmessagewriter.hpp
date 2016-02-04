@@ -37,10 +37,8 @@ struct Serializer: public SerializerT, public SpecificObject{
 typedef std::unique_ptr<Serializer>		SerializerPointerT;
 
 typedef FUNCTION<void(
-	MessagePointerT &/*_rmsgptr*/,
-	const size_t /*_msg_type_idx*/,
-	ResponseHandlerFunctionT &,
-	ulong /*_flags*/
+	MessageBundle &/*_rmsgbundle*/,
+	MessageId const &/*_rmsgid*/
 )>										MessageWriterVisitFunctionT;
 
 class MessageWriter{
@@ -69,6 +67,14 @@ public:
 	);
 	
 	void cancel(
+		MessageId const &_rmsguid,
+		Configuration const &_rconfig,
+		TypeIdMapT const &_ridmap,
+		ConnectionContext &_rctx
+	);
+	
+	void cancel(
+		MessageBundle &_rmsgbundle,
 		MessageId const &_rmsguid,
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
@@ -139,6 +145,13 @@ private:
 		):	unique(0), packet_count(0),
 			inner_status(InnerStatusInvalid){}
 		
+		MessageStub(
+			MessageStub &&_rmsgstub
+		):	InnerNode<InnerLinkCount>(std::move(_rmsgstub)),
+			msgbundle(std::move(_rmsgstub.msgbundle)), unique(_rmsgstub.unique),
+			packet_count(_rmsgstub.packet_count), serializer_ptr(std::move(_rmsgstub.serializer_ptr)),
+			inner_status(_rmsgstub.inner_status), msg_id(_rmsgstub.msg_id){}
+		
 		void clear(){
 			msgbundle.clear();
 			++unique;
@@ -162,6 +175,7 @@ private:
 		size_t						packet_count;
 		SerializerPointerT			serializer_ptr;
 		InnerStatus					inner_status;
+		MessageId					msg_id;
 	};
 	
 	typedef std::vector<MessageStub>							MessageVectorT;

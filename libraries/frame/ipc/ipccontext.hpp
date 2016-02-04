@@ -13,7 +13,7 @@
 #include "system/socketaddress.hpp"
 
 #include "utility/dynamicpointer.hpp"
-#include "boost/any.hpp"
+#include "utility/any.hpp"
 
 #include <ostream>
 
@@ -154,11 +154,19 @@ struct ConnectionContext{
 	ulong messageFlags()const{
 		return message_flags;
 	}
+	
+	MessageId const& localMessageId()const{
+		return message_id;
+	}
+	
+	//! Keep any connection data
+	Any<>& any();
+private:
+	//not used for now
 	RequestId const& requestId()const{
 		return request_id;
 	}
-	//! Keep any connection data
-	boost::any& any();
+
 private:
 	friend class Connection;
 	friend class MessageWriter;
@@ -171,6 +179,7 @@ private:
 	ulong				message_flags;
 	uint8				message_state;
 	RequestId			request_id;
+	MessageId			message_id;
 	
 	
 	

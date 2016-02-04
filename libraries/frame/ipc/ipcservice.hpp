@@ -66,6 +66,7 @@ public:
 struct Message;
 class Configuration;
 class Connection;
+struct MessageBundle;
 
 //! Inter Process Communication service
 /*!
@@ -540,10 +541,8 @@ private:
 	
 	void pushBackMessageToConnectionPool(
 		ConnectionPoolId &_rconpoolid,
-		MessagePointerT &_rmsgptr,
-		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong _flags
+		MessageBundle &_rmsgbundle,
+		MessageId const &_rmsgid
 	);
 private:
 	struct	Data;

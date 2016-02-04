@@ -86,6 +86,7 @@ struct MessageStub: InnerNode<InnerLinkCount>{
 		MessageStub && _rmsg
 	):	InnerNode<InnerLinkCount>(std::move(_rmsg)),
 		msgbundle(std::move(_rmsg.msgbundle)),
+		msgid(_rmsg.msgid), objid(_rmsg.objid),
 		unique(_rmsg.unique), flags(_rmsg.flags){}
 	
 	MessageStub():unique(0), flags(0){}
@@ -101,12 +102,14 @@ struct MessageStub: InnerNode<InnerLinkCount>{
 	void clear(){
 		msgbundle.clear();
 		msgid = MessageId();
+		objid = ObjectIdT();
 		++unique;
 		flags = 0;
 	}
 	
 	MessageBundle	msgbundle;
 	MessageId		msgid;
+	ObjectIdT		objid;
 	uint32			unique;
 	uint			flags;
 };
@@ -442,6 +445,50 @@ struct PushMessageConnectionVisitorF{
 	}
 };
 
+struct PushCanceledMessageConnectionVisitorF{
+	Service						&rservice;
+	MessagePointerT 			&rmsgptr;
+	const size_t 				msg_type_idx;
+	ResponseHandlerFunctionT	&rresponse_fnc;
+	ulong 						flags;
+	ErrorConditionT				&rerror;
+	MessageId					pool_msg_id;
+	
+	PushCanceledMessageConnectionVisitorF(
+		Service &_rservice,
+		MessageBundle &_rmsgbundle,
+		ErrorConditionT &_rerror,
+		const MessageId &_rpool_msg_id = MessageId()
+	):	rservice(_rservice),
+		rmsgptr(_rmsgbundle.message_ptr), msg_type_idx(_rmsgbundle.message_type_id),
+		rresponse_fnc(_rmsgbundle.response_fnc), flags(_rmsgbundle.message_flags),
+		rerror(_rerror), pool_msg_id(_rpool_msg_id){}
+	
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			Event		raise_event;
+			const bool	success = pcon->pushCanceledMessage(
+				rservice, rmsgptr, msg_type_idx, rresponse_fnc,
+				flags, raise_event, rerror, pool_msg_id
+			);
+			
+			if(success){
+				if(!raise_event.isDefault()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
+			}
+			return success;
+		}else{
+			//TODO: ObjectNotAnIpcConnection
+			rerror.assign(-1, rerror.category());
+			return false;
+		}
+	}
+};
+
+
 struct CancelMessageConnectionVistiorF{
 	Service						&rservice;
 	ErrorConditionT				&rerror;
@@ -459,7 +506,7 @@ struct CancelMessageConnectionVistiorF{
 		
 		if(pcon){
 			Event		raise_event;
-			const bool	success = pcon->pushCancelMessage(rservice, msguid, raise_event, rerror);
+			const bool	success = pcon->pushMessageCancel(rservice, msguid, raise_event, rerror);
 			
 			if(success){
 				if(!raise_event.isDefault()){
@@ -562,6 +609,8 @@ ErrorConditionT Service::doSendMessageToNewPool(
 		d.conpoolcachestk.push(pool_idx);
 		return error;
 	}
+	
+	rconpool.msg_cancel_connection_id = conuid;
 	
 	d.namemap[rconpool.name.c_str()] = pool_idx;
 	
@@ -694,6 +743,7 @@ ErrorConditionT Service::doSendMessage(
 		rmsgstub.makeCancelable();
 		
 		*_pmsguid_out = MessageId(msgidx, rmsgstub.unique);
+		idbgx(Debug::ipc, this<<" set message id to "<<*_pmsguid_out);
 	}
 	
 	if(
@@ -799,30 +849,31 @@ void Service::tryFetchNewMessage(
 			if(rmsgstub.isCancelable()){
 				pmsgid = &rmsgstub.msgid;
 				pool_msg_id = MessageId(msg_idx, rmsgstub.unique);
-			}
-			_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
-			
-			if(not rmsgstub.isCancelable()){
-				rconpool.cacheFrontMessage();
-			}else{
+				rmsgstub.objid = _robjuid;
+				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
 				rconpool.popFrontMessage();
+			}else{
+				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
+				rconpool.cacheFrontMessage();
 			}
-			
 		}else if(rconpool.synchronous_connection_uid.isInvalid()){
 			
 			if(rmsgstub.isCancelable()){
 				pmsgid = &rmsgstub.msgid;
 				pool_msg_id = MessageId(msg_idx, rmsgstub.unique);
-			}
+				rmsgstub.objid = _robjuid;
+				
+				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
 			
-			_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
-			
-			rconpool.synchronous_connection_uid = this->manager().id(_rcon);
-			if(not rmsgstub.isCancelable()){
-				rconpool.cacheFrontMessage();
-				cassert(rconpool.msgorder_inner_list.check());
-			}else{
+				rconpool.synchronous_connection_uid = this->manager().id(_rcon);
 				rconpool.popFrontMessage();
+			}else{
+				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
+			
+				rconpool.synchronous_connection_uid = this->manager().id(_rcon);
+				rconpool.cacheFrontMessage();
+				rmsgstub.clear();
+				cassert(rconpool.msgorder_inner_list.check());
 			}
 		}else{
 			
@@ -840,15 +891,17 @@ void Service::tryFetchNewMessage(
 				
 				if(not found and Message::is_asynchronous(crt_msgstub.msgbundle.message_flags)){
 					
+					found = true;
+					
 					if(crt_msgstub.isCancelable()){
 						pmsgid = &crt_msgstub.msgid;
 						pool_msg_id = MessageId(crt_msg_idx, rmsgstub.unique);
-					}
-					
-					_rcon.directPushMessage(_rctx, crt_msgstub.msgbundle, pmsgid, pool_msg_id);
-					found = true;
-					
-					if(not crt_msgstub.isCancelable()){
+						crt_msgstub.objid = _robjuid;
+						
+						_rcon.directPushMessage(_rctx, crt_msgstub.msgbundle, pmsgid, pool_msg_id);
+						crt_msgstub.clear();
+					}else{
+						_rcon.directPushMessage(_rctx, crt_msgstub.msgbundle, pmsgid, pool_msg_id);
 						rconpool.msgcache_inner_list.pushBack(crt_msg_idx);
 					}
 					
@@ -918,9 +971,13 @@ ErrorConditionT Service::doNotifyConnectionPushMessage(
 		cassert(not error);
 		//message successfully delivered
 		if(not rmsgstub.isCancelable()){
+			idbgx(Debug::ipc, this<<" ");
 			//not a cacelable message, free up the position in msgvec
 			rconpool.eraseAndCacheMessage(_msg_idx);
+			rmsgstub.clear();
 		}else{
+			idbgx(Debug::ipc, this<<" ");
+			rmsgstub.objid = _robjuid;
 			rconpool.eraseMessage(_msg_idx);
 		}
 	}else if(not error){
@@ -1009,36 +1066,45 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rconnection_uid, Mess
 	
 	if(_rconnection_uid.isValidPool()){
 		//cancel a message from within a connection pool
-		const size_t			pool_idx = _rconnection_uid.connectionId().index;
+		const size_t			pool_idx = _rconnection_uid.poolId().index;
 		Locker<Mutex>			lock(d.mtx);
 		Locker<Mutex>			lock2(d.connectionPoolMutex(pool_idx));
 		ConnectionPoolStub 		&rconpool(d.conpooldq[pool_idx]);
 		
 		if(_rmsguid.index < rconpool.msgvec.size() and rconpool.msgvec[_rmsguid.index].unique == _rmsguid.unique){
 			MessageStub	&rmsgstub = rconpool.msgvec[_rmsguid.index];
+			
+			rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
+			
 			if(rmsgstub.msgid.isValid()){
 				//message handled by a connection
+				CancelMessageConnectionVistiorF		fnc(*this, error, rmsgstub.msgid);
+		
+				bool								success = manager().visit(rmsgstub.objid, fnc);
+				
+				if(success){
+					cassert(not error);
+				}else if(not error){
+					THROW_EXCEPTION("Logic error: lost message");
+					error = error_connection_inexistent;
+				}
 			}else if(rmsgstub.msgbundle.message_ptr.get()){
 				//message waiting to be handled by a connection
-				//NOTE
-				//There are 2 situations:
-				//* a connection will soon try to handle the message
-				//* no connection will handle the message any time soon (connections are either connecting/authenticating/busy)
-				//
-				// - any existing connection can handle the canceled message at any time
+				//send it to msg_cancel_connection_id
+				solid::ErrorConditionT					error;
+				PushCanceledMessageConnectionVisitorF	fnc(*this, rmsgstub.msgbundle, error, _rmsguid);
+				bool									success = manager().visit(rconpool.msg_cancel_connection_id, fnc);
+				
+				if(success){
+					cassert(not error);
+					//message successfully delivered
+				}else if(not error){
+					//we do nothing - the message will be fetched 
+					//by a connection
+				}
 			}else{
 				THROW_EXCEPTION("Logic error: lost message");
 				error.assign(-1, error.category());//message does not exist
-			}
-			
-			if(rmsgstub.msgbundle.message_ptr.get()){
-				cassert(rmsgstub.msgid.isInvalid());
-				//message not handled yet by a connection
-				
-			}else if(rmsgstub.msgid.isValid()){
-				//message handled by a connection
-			}else{
-				cassert(false);
 			}
 			
 		}else{
@@ -1341,12 +1407,10 @@ void Service::doFetchUnsentMessagesFromConnection(
 	_rcon.fetchUnsentMessages(
 		[this](
 			ConnectionPoolId &_rconpoolid,
-			MessagePointerT &_rmsgptr,
-			const size_t _msg_type_idx,
-			ResponseHandlerFunctionT &_rresponse_fnc,
-			const ulong _flags
+			MessageBundle &_rmsgbundle,
+			MessageId const &_rmsgid
 		){
-			this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+			this->pushBackMessageToConnectionPool(_rconpoolid, _rmsgbundle, _rmsgid);
 		}
 	);
 	
@@ -1366,18 +1430,25 @@ void Service::doFetchUnsentMessagesFromConnection(
 //-----------------------------------------------------------------------------
 void Service::pushBackMessageToConnectionPool(
 	ConnectionPoolId &_rconpoolid,
-	MessagePointerT &_rmsgptr,
-	const size_t _msg_type_idx,
-	ResponseHandlerFunctionT &_rresponse_fnc,
-	ulong _flags
+	MessageBundle &_rmsgbundle,
+	MessageId const &_rmsgid
 ){
 	ConnectionPoolStub	&rconpool(d.conpooldq[_rconpoolid.index]);
 	
 	cassert(rconpool.uid == _rconpoolid.unique);
 	
-	if(Message::is_idempotent(_flags) or (/*not Message::is_started_send(_flags) and*/ not Message::is_done_send(_flags))){
-		_flags &= ~(Message::DoneSendFlagE | Message::StartedSendFlagE);
-		rconpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+	if(
+		Message::is_idempotent(_rmsgbundle.message_flags) or 
+		(/*not Message::is_started_send(_flags) and*/ not Message::is_done_send(_rmsgbundle.message_flags))
+	){
+		_rmsgbundle.message_flags &= ~(Message::DoneSendFlagE | Message::StartedSendFlagE);
+		
+		rconpool.pushBackMessage(
+			_rmsgbundle.message_ptr,
+			_rmsgbundle.message_type_id,
+			_rmsgbundle.response_fnc,
+			_rmsgbundle.message_flags
+		);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -1418,7 +1489,7 @@ ulong Service::onConnectionWantStop(Connection &_rcon, aio::ReactorContext &_rct
 			//TODO: maybe we can use rconpool.conn_waitingq to 
 			//replace the msg_cancel_connection_id with another connectionid
 			
-			if((rconpool.active_connection_count + rconpool.pending_connection_count) != 1){
+			if(!(rconpool.active_connection_count == 1 and rconpool.pending_connection_count == 1)){
 				//only call doFetchUnsentMessagesFromConnection 
 				//for connections that will not stop right away
 				

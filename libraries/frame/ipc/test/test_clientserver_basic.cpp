@@ -222,10 +222,13 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	if(crtwriteidx < writecount){
 		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
 		++crtwriteidx;
-		pipcclient->sendMessage(
+		err = pipcclient->sendMessage(
 			"localhost:6666", msgptr,
 			initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
 		);
+		if(err){
+			THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+		}
 	}
 }
 
@@ -258,6 +261,7 @@ int test_clientserver_basic(int argc, char **argv){
 	Debug::the().levelMask("view");
 	Debug::the().moduleMask("frame_ipc:view frame_aio:iew any:view");
 	Debug::the().initStdErr(false, nullptr);
+	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
 	
 	solid::serialization::binary::pcheckfnc = &string_check;
@@ -266,6 +270,12 @@ int test_clientserver_basic(int argc, char **argv){
 	
 	if(argc > 1){
 		max_per_pool_connection_count = atoi(argv[1]);
+		if(max_per_pool_connection_count == 0){
+			max_per_pool_connection_count = 1;
+		}
+		if(max_per_pool_connection_count > 100){
+			max_per_pool_connection_count = 100;
+		}
 	}
 	for(int j = 0; j < 1; ++j){
 		for(int i = 0; i < 127; ++i){

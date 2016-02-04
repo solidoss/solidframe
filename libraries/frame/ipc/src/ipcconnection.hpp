@@ -14,6 +14,7 @@
 
 #include "utility/queue.hpp"
 #include "utility/event.hpp"
+#include "utility/any.hpp"
 
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
@@ -91,7 +92,18 @@ public:
 		const MessageId &_rpool_msg_id
 	);
 	
-	bool pushCancelMessage(
+	bool pushCanceledMessage(
+		Service &_rservice,
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
+		ulong _flags,
+		Event &_revent,
+		ErrorConditionT &_rerror,
+		const MessageId &_rpool_msg_id
+	);
+	
+	bool pushMessageCancel(
 		Service &_rservice,
 		MessageId const &_rmsguid,
 		Event &_revent,
@@ -119,7 +131,7 @@ public:
 	//The service marked connection as active, but the connection might not be aware that it is active
 	bool isAtomicActive()const;
 	
-	boost::any& any();
+	Any<>& any();
 	
 	ConnectionPoolId const& poolId()const;
 private:
@@ -194,15 +206,14 @@ private:
 	void fetchUnsentMessages(
 		Fnc const &_f
 	){
-		auto  visit_fnc = [this, &_f](
-			MessagePointerT &_rmsgptr,
-			const size_t _msg_type_idx,
-			ResponseHandlerFunctionT &_rresponse_fnc,
-			const ulong _flags
+		auto  							visit_fnc = [this, &_f](
+			MessageBundle &_rmsgbundle,
+			MessageId const &_rmsgid
 		){
-			_f(this->conpoolid, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+			_f(this->conpoolid, _rmsgbundle, _rmsgid);
 		};
-		MessageWriterVisitFunctionT	fnc(std::cref(visit_fnc));
+		MessageWriterVisitFunctionT		fnc(std::cref(visit_fnc));
+		
 		msgwriter.visitAllMessages(fnc);
 	}
 private:
@@ -252,10 +263,10 @@ private:
 	MessageReader				msgreader;
 	MessageWriter				msgwriter;
 	
-	boost::any					any_data;
+	Any<>						any_data;
 };
 
-inline boost::any& Connection::any(){
+inline Any<>& Connection::any(){
 	return any_data;
 }
 

@@ -397,6 +397,12 @@ int test_peer2peer_basic(int argc, char **argv){
 	
 	if(argc > 1){
 		max_per_pool_connection_count = atoi(argv[1]);
+		if(max_per_pool_connection_count == 0){
+			max_per_pool_connection_count = 1;
+		}
+		if(max_per_pool_connection_count > 100){
+			max_per_pool_connection_count = 100;
+		}
 	}
 	
 	for(int i = 0; i < 127; ++i){

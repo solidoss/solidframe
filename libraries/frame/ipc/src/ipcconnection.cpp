@@ -180,6 +180,31 @@ bool Connection::pushMessage(
 	return false;
 }
 //-----------------------------------------------------------------------------
+bool Connection::pushCanceledMessage(
+	Service &_rservice,
+	MessagePointerT &_rmsgptr,
+	const size_t _msg_type_idx,
+	ResponseHandlerFunctionT &_rresponse_fnc,
+	ulong _flags,
+	Event &_revent,
+	ErrorConditionT &_rerror,
+	const MessageId &_rpool_msg_id
+){
+	cassert(Message::is_canceled(_flags));
+	//under lock
+	sendmsgvec[crtpushvecidx].push_back(
+		PendingSendMessageStub(
+			MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc),
+			_rpool_msg_id
+		)
+	);
+	
+	if(sendmsgvec[crtpushvecidx].size() == 1){
+		_revent = connection_event_category.event(ConnectionEvents::Push);
+	}
+	return true;
+}
+//-----------------------------------------------------------------------------
 void Connection::directPushMessage(
 	frame::aio::ReactorContext &_rctx,
 	MessageBundle &_rmsgbundle,
@@ -190,20 +215,24 @@ void Connection::directPushMessage(
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
 	MessageId			msguid;
-	
-	{
-		Locker<Mutex>		lock(service(_rctx).mutex(*this));
-		msguid = msgwriter.safeNewMessageId(rconfig);
-	}
-	
-	msgwriter.enqueue(_rmsgbundle, msguid, rconfig, rtypemap, conctx);
-	
-	if(_pmsguid){
-		*_pmsguid = msguid;
+	if(not Message::is_canceled(_rmsgbundle.message_flags)){
+		{
+			Locker<Mutex>		lock(service(_rctx).mutex(*this));
+			msguid = msgwriter.safeNewMessageId(rconfig);
+		}
+		
+		msgwriter.enqueue(_rmsgbundle, msguid, rconfig, rtypemap, conctx);
+		
+		if(_pmsguid){
+			*_pmsguid = msguid;
+		}
+	}else{
+		//canceled message
+		msgwriter.cancel(_rmsgbundle, _rpool_msg_id, rconfig, rtypemap, conctx);
 	}
 }
 //-----------------------------------------------------------------------------
-bool Connection::pushCancelMessage(
+bool Connection::pushMessageCancel(
 	Service &_rservice,
 	MessageId const &_rmsguid,
 	Event &_revent,
@@ -236,6 +265,7 @@ bool Connection::pushDelayedClose(
 	ErrorConditionT &_rerror
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id());
+				
 	//Under lock
 	if(not isAtomicStopping()){
 		if(not isAtomicDelayedClosing()){
@@ -539,9 +569,15 @@ void Connection::doHandleEventPush(
 	
 	for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
 		if(not it->msgbundle.message_ptr.empty()){
-			msgwriter.enqueue(
-				it->msgbundle, it->msguid, rconfig, rtypemap, conctx
-			);
+			if(not Message::is_canceled(it->msgbundle.message_flags)){
+				msgwriter.enqueue(
+					it->msgbundle, it->msguid, rconfig, rtypemap, conctx
+				);
+			}else{
+				msgwriter.cancel(
+					it->msgbundle, it->msguid, rconfig, rtypemap, conctx
+				);
+			}
 		}else{
 			msgwriter.cancel(it->msguid, rconfig, rtypemap, conctx);
 		}
@@ -908,7 +944,7 @@ SocketDevice const & ConnectionContext::device()const{
 	return rconnection.device();
 }
 //-----------------------------------------------------------------------------
-boost::any& ConnectionContext::any(){
+Any<>& ConnectionContext::any(){
 	return rconnection.any();
 }
 //-----------------------------------------------------------------------------

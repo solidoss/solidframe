@@ -110,12 +110,17 @@ void MessageWriter::enqueue(
 	cassert(_rmsguid.isValid());
 	
 	const size_t	idx = _rmsguid.index;
-	
+#if 0
+	//do not complete message even if there is a delayed close 
+	//message should be completed later or taken over by other connection
+	//
 	if(isDelayedCloseInPendingQueue()){
 		//message cannot be enqued because a close is enqueued
 		ErrorConditionT		error = error_delayed_closed_pending;
 		
 		_rctx.message_flags = _rmsgbundle.message_flags;
+		_rctx.request_id = RequestId();
+		//_rctx.message_id = rmsgstub.msg_id.isValid() ? rmsgstub.msg_id : _rmsguid;
 		
 		if(not FUNCTION_EMPTY(_rmsgbundle.response_fnc)){
 			MessagePointerT		msgptr;//the empty response message
@@ -129,7 +134,7 @@ void MessageWriter::enqueue(
 		cached_inner_list.pushBack(idx);
 		return;
 	}
-		
+#endif
 	if(idx >= message_vec.size()){
 		message_vec.resize(idx + 1);
 	}
@@ -225,6 +230,8 @@ void MessageWriter::cancel(
 		rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
 		
 		_rctx.message_flags = rmsgstub.msgbundle.message_flags;
+		_rctx.request_id = RequestId();
+		_rctx.message_id = rmsgstub.msg_id.isValid() ? rmsgstub.msg_id : _rmsguid;
 		
 		
 		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.response_fnc)){
@@ -265,6 +272,32 @@ void MessageWriter::cancel(
 	}
 	vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 }
+//-----------------------------------------------------------------------------
+void MessageWriter::cancel(
+	MessageBundle &_rmsgbundle,
+	MessageId const &_rmsguid,
+	Configuration const &_rconfig,
+	TypeIdMapT const &_ridmap,
+	ConnectionContext &_rctx
+){
+	ErrorConditionT		error = error_message_canceled;
+	cassert(Message::is_canceled(_rmsgbundle.message_flags));
+	
+	_rctx.message_flags = _rmsgbundle.message_flags;
+	_rctx.message_id = _rmsguid;
+	_rctx.request_id = RequestId();
+	
+	if(not FUNCTION_EMPTY(_rmsgbundle.response_fnc)){
+		MessagePointerT		msgptr;//the empty response message
+		
+		_rmsgbundle.response_fnc(_rctx, msgptr, error);
+		FUNCTION_CLEAR(_rmsgbundle.response_fnc);
+	}
+		
+	_ridmap[_rmsgbundle.message_type_id].complete_fnc(_rctx, _rmsgbundle.message_ptr, error);
+	_rmsgbundle.clear();
+}
+
 //-----------------------------------------------------------------------------
 #if 0
 void MessageWriter::completeAllCanceledMessages(
@@ -475,11 +508,13 @@ char* MessageWriter::doFillPacket(
 		}
 		
 		if(not rmsgstub.msgbundle.message_ptr->isOnPeer()){
+			//on sender
 			_rctx.request_id.index  = msgidx;
 			_rctx.request_id.unique = rmsgstub.unique;
 		}else{
 			_rctx.request_id = rmsgstub.msgbundle.message_ptr->requestId();
 		}
+		
 		_rctx.message_state = rmsgstub.msgbundle.message_ptr->state() + 1;
 		
 		
@@ -722,6 +757,10 @@ void MessageWriter::doCompleteMessage(
 		cassert(not rmsgstub.msgbundle.message_ptr.empty());
 		
 		_rctx.message_flags = rmsgstub.msgbundle.message_flags;
+		_rctx.request_id = RequestId();
+		_rctx.message_id = rmsgstub.msg_id.isValid() ? rmsgstub.msg_id : _rmsguid;
+		
+		//TODO: release the messageid in the pool
 		
 		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.response_fnc)){
 			rmsgstub.msgbundle.response_fnc(_rctx, _rmsgptr, _rerror);
@@ -782,10 +821,8 @@ void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_
 			}
 			
 			_rvisit_fnc(
-				rmsgstub.msgbundle.message_ptr,
-				rmsgstub.msgbundle.message_type_id,
-				rmsgstub.msgbundle.response_fnc,
-				rmsgstub.msgbundle.message_flags
+				rmsgstub.msgbundle,
+				rmsgstub.msg_id
 			);
 			
 			if(rmsgstub.msgbundle.message_ptr.empty()){
