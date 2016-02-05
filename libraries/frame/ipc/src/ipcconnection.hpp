@@ -131,6 +131,8 @@ public:
 	//The service marked connection as active, but the connection might not be aware that it is active
 	bool isAtomicActive()const;
 	
+	bool isServer()const;
+	
 	Any<>& any();
 	
 	ConnectionPoolId const& poolId()const;
@@ -160,8 +162,6 @@ private:
 	
 	bool isAtomicStopping()const;
 	bool isAtomicDelayedClosing()const;
-	
-	bool isServer()const;
 	
 	
 	void onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);

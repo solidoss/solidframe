@@ -287,6 +287,7 @@ bool Connection::prepareActivate(
 	Service &_rservice,
 	ConnectionPoolId const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
 ){
+	//Under lock
 	if(not isAtomicStopping()){
 		if(_rconpoolid.isValid()){
 			if(conpoolid.isInvalid()){
@@ -421,8 +422,13 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 //-----------------------------------------------------------------------------
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
 	if(not isAtomicStopping()){
+		{
+			Locker<Mutex>	lock(service(_rctx).mutex(*this));
+			atomic_flags |= static_cast<size_t>(AtomicFlags::Stopping);
+		}
 		
-		atomic_flags |= static_cast<size_t>(AtomicFlags::Stopping);
+		//after this poin we know for sure that
+		//either the connection was already active or will never be active
 		
 		ErrorConditionT		error(_rerr);
 		ObjectIdT			objuid(uid(_rctx));
@@ -527,22 +533,11 @@ void Connection::doHandleEventActivate(
 	Event &_revent
 ){
 	idbgx(Debug::ipc, this);
-	
-	cassert(!isActive());
-	flags |= static_cast<size_t>(Flags::Active);
-	
+
 	if(not isAtomicStopping()){
+		flags |= static_cast<size_t>(Flags::Active);
 		service(_rctx).activateConnectionComplete(*this);
 		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){this->doSend(_rctx);});
-	}else{
-		ObjectIdT			objuid;
-		ErrorConditionT 	err;
-	
-		service(_rctx).onConnectionClose(*this, _rctx, objuid);
-		
-		err.assign(-1, err.category());//TODO:
-		
-		doCompleteAllMessages(_rctx, err);
 	}
 }
 //-----------------------------------------------------------------------------

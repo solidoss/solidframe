@@ -38,7 +38,8 @@ inline bool MessageWriter::isDelayedCloseInPendingQueue()const{
 
 //-----------------------------------------------------------------------------
 MessageWriter::MessageWriter(
-):	current_message_type_id(InvalidIndex()), flags(0),
+):	message_idx_cache(0),
+	current_message_type_id(InvalidIndex()), flags(0),
 	order_inner_list(message_vec), pending_inner_list(message_vec),
 	sending_inner_list(message_vec), cached_inner_list(message_vec){
 }
@@ -260,7 +261,7 @@ void MessageWriter::cancel(
 		}else if(rmsgstub.inner_status == InnerStatusSending){
 			//message is currently being sent
 			//we cannot erase it from the lists
-			//we need to clear the clear both the message_ptr and the serializer_ptr
+			//we need to clear both the message_ptr and the serializer_ptr
 			rmsgstub.msgbundle.message_ptr.clear();
 			rmsgstub.serializer_ptr->clear();
 		}else if(rmsgstub.inner_status == InnerStatusWaiting){

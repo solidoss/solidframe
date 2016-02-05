@@ -74,11 +74,27 @@ Configuration::Configuration(
 	uncompress_fnc = default_uncompress;
 	
 	msg_cancel_connection_wait_seconds = 1;
+	
+	max_per_pool_connection_count = 2;
+	max_per_pool_pending_connection_count = 0;
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Configuration::prepare(){
-	
+ErrorConditionT Configuration::check() const {
+	//TODO:
 	return ErrorConditionT();
+}
+//-----------------------------------------------------------------------------
+void Configuration::prepare(){
+	if(max_per_pool_connection_count == 0){
+		max_per_pool_connection_count = 1;
+	}
+	if(max_per_pool_pending_connection_count == 0){
+		max_per_pool_pending_connection_count = 8 * max_per_pool_connection_count;
+	}
+	
+	if(msg_cancel_connection_wait_seconds == 0){
+		msg_cancel_connection_wait_seconds = 2;
+	}
 }
 //-----------------------------------------------------------------------------
 char* Configuration::allocateRecvBuffer()const{

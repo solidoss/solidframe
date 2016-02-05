@@ -131,7 +131,7 @@ public:
 	//! Destructor
 	~Service();
 
-	ErrorConditionT reconfigure(Configuration const& _rcfg);
+	ErrorConditionT reconfigure(Configuration const & _rcfg);
 	
 	Configuration const & configuration()const;
 	
@@ -530,7 +530,8 @@ private:
 	
 	ErrorConditionT doNotifyConnectionActivate(
 		ObjectIdT const &_robjuid,
-		ConnectionPoolId const &_rconpooluid
+		ConnectionPoolId const &_rconpooluid,
+		bool & _raccepted_connection_out
 	);
 	
 	void doFetchUnsentMessagesFromConnection(
@@ -563,6 +564,10 @@ private:
 	friend class Service;
 	friend class Configuration;
 	ServiceProxy(Service &_rservice):rservice(_rservice){}
+	
+	ServiceProxy(ServiceProxy const &) = delete;
+	ServiceProxy& operator=(ServiceProxy const &) = delete;
+	
 	Service &rservice;
 };
 

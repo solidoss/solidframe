@@ -135,6 +135,7 @@ struct ConnectionPoolStub{
 	uint32					uid;
 	size_t					pending_connection_count;
 	size_t					active_connection_count;
+	size_t					pending_resolve_count;
 	std::string				name;
 	ObjectIdT 				synchronous_connection_uid;
 	MessageVectorT			msgvec;
@@ -148,13 +149,16 @@ struct ConnectionPoolStub{
 	
 	ConnectionPoolStub(
 	):	uid(0), pending_connection_count(0), active_connection_count(0),
+		pending_resolve_count(0),
 		msgorder_inner_list(msgvec), msgcache_inner_list(msgvec),
 		msg_cancel_connection_stopping(false), is_stopping(false){}
 	
 	ConnectionPoolStub(
 		ConnectionPoolStub && _rconpool
 	):	uid(_rconpool.uid), pending_connection_count(_rconpool.pending_connection_count),
-		active_connection_count(_rconpool.active_connection_count), name(std::move(_rconpool.name)),
+		active_connection_count(_rconpool.active_connection_count),
+		pending_resolve_count(_rconpool.pending_resolve_count),
+		name(std::move(_rconpool.name)),
 		synchronous_connection_uid(_rconpool.synchronous_connection_uid),
 		msgvec(std::move(_rconpool.msgvec)),
 		msgorder_inner_list(msgvec, _rconpool.msgorder_inner_list),
@@ -268,7 +272,7 @@ typedef Stack<size_t>									SizeStackT;
 
 
 struct Service::Data{
-	Data():pmtxarr(nullptr), mtxsarrcp(0){}
+	Data(Service &_rsvc): pmtxarr(nullptr), mtxsarrcp(0), config(ServiceProxy(_rsvc)){}
 	
 	~Data(){
 		delete []pmtxarr;
@@ -303,7 +307,7 @@ struct Service::Data{
 
 Service::Service(
 	frame::Manager &_rm
-):BaseT(_rm), d(*(new Data)){}
+):BaseT(_rm), d(*(new Data(*this))){}
 	
 //! Destructor
 Service::~Service(){
@@ -322,9 +326,13 @@ ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 	
 	ServiceProxy	sp(*this);
 	
+	err = _rcfg.check();
+	
+	if(err) return err;
+	
 	_rcfg.message_register_fnc(sp);
 	
-	d.config = _rcfg;
+	d.config.reset(_rcfg);
 	
 	if(d.config.listen_address_str.size()){
 		std::string		tmp;
@@ -445,6 +453,8 @@ struct PushMessageConnectionVisitorF{
 	}
 };
 
+//-----------------------------------------------------------------------------
+
 struct PushCanceledMessageConnectionVisitorF{
 	Service						&rservice;
 	MessagePointerT 			&rmsgptr;
@@ -488,6 +498,7 @@ struct PushCanceledMessageConnectionVisitorF{
 	}
 };
 
+//-----------------------------------------------------------------------------
 
 struct CancelMessageConnectionVistiorF{
 	Service						&rservice;
@@ -522,17 +533,22 @@ struct CancelMessageConnectionVistiorF{
 	}
 };
 
+//-----------------------------------------------------------------------------
+
 struct ActivateConnectionVisitorF{
 	Service				&rservice;
 	ConnectionPoolId	conpoolid;
 	ErrorConditionT		&rerror;
+	bool 				&raccepted_connection_out;
 	
 	ActivateConnectionVisitorF(
 		Service &_rservice,
 		ConnectionPoolId const &_rconpoolid,
-		ErrorConditionT &_rerror
+		ErrorConditionT &_rerror,
+		bool &_raccepted_connection_out
 	):	rservice(_rservice),
-		conpoolid(_rconpoolid), rerror(_rerror){}
+		conpoolid(_rconpoolid), rerror(_rerror),
+		raccepted_connection_out(_raccepted_connection_out){}
 	
 	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
 		Connection *pcon = Connection::cast(&_robj);
@@ -542,6 +558,7 @@ struct ActivateConnectionVisitorF{
 			const bool	success = pcon->prepareActivate(rservice, conpoolid, raise_event, rerror);
 			
 			if(success){
+				raccepted_connection_out = pcon->isServer();
 				if(!raise_event.isDefault()){
 					_rreact.raise(_robj.runId(), raise_event);
 				}
@@ -555,6 +572,7 @@ struct ActivateConnectionVisitorF{
 	}
 };
 
+//-----------------------------------------------------------------------------
 
 struct OnRelsolveF{
 	Manager		&rm;
@@ -574,6 +592,7 @@ struct OnRelsolveF{
 	}
 };
 
+//-----------------------------------------------------------------------------
 
 ErrorConditionT Service::doSendMessageToNewPool(
 	const char *_recipient_name,
@@ -624,6 +643,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	const size_t  msgidx = rconpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
 		
 	++rconpool.pending_connection_count;
+	++rconpool.pending_resolve_count;
 	
 	if(_precipient_id_out){
 		_precipient_id_out->poolid = ConnectionPoolId(pool_idx, rconpool.uid);
@@ -638,7 +658,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	
 	return error;
 }
-
+//-----------------------------------------------------------------------------
 //NOTE:
 //The last connection before dying MUST:
 //	1. Lock service.d.mtx
@@ -792,7 +812,10 @@ ErrorConditionT Service::doSendMessage(
 	//All connections are busy
 	//Check if we should create a new connection
 	
-	if((rconpool.active_connection_count + rconpool.pending_connection_count + 1) <= d.config.max_per_pool_connection_count){
+	if(
+		rconpool.active_connection_count < d.config.max_per_pool_connection_count and
+		rconpool.pending_resolve_count < d.config.max_per_pool_connection_count
+	){
 		DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(pool_idx, rconpool.uid)));
 			
 		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
@@ -802,6 +825,7 @@ ErrorConditionT Service::doSendMessage(
 			
 			d.config.name_resolve_fnc(rconpool.name, cbk);
 			++rconpool.pending_connection_count;
+			++rconpool.pending_resolve_count;
 		}else{
 			//there must be at least one connection to handle the message:
 			cassert(rconpool.pending_connection_count + rconpool.active_connection_count);
@@ -988,10 +1012,11 @@ ErrorConditionT Service::doNotifyConnectionPushMessage(
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doNotifyConnectionActivate(
 	ObjectIdT const &_robjuid,
-	ConnectionPoolId const &_rconpooluid
+	ConnectionPoolId const &_rconpooluid,
+	bool & _raccepted_connection_out
 ){
 	solid::ErrorConditionT		error;
-	ActivateConnectionVisitorF	fnc(*this, _rconpooluid, error);
+	ActivateConnectionVisitorF	fnc(*this, _rconpooluid, error, _raccepted_connection_out);
 	bool						rv = manager().visit(_robjuid, fnc);
 	if(rv){
 		//message successfully delivered
@@ -1145,7 +1170,8 @@ ErrorConditionT Service::doActivateConnection(
 	ConnectionPoolId						poolid;
 	
 	if(_recipient_name == nullptr and not _rconnection_uid.poolid.isValid()){//situation 1
-		err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid);
+		bool accepted_connection = false;
+		err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid, accepted_connection);
 		return err;
 	}
 	
@@ -1207,7 +1233,9 @@ ErrorConditionT Service::doActivateConnection(
 	
 	
 	if(
-		(wouldbe_active_connection_count < d.config.max_per_pool_connection_count) or
+		(
+			wouldbe_active_connection_count < d.config.max_per_pool_connection_count
+		) or
 		(
 			(
 				wouldbe_active_connection_count == d.config.max_per_pool_connection_count
@@ -1221,6 +1249,7 @@ ErrorConditionT Service::doActivateConnection(
 	){
 		std::pair<MessagePointerT, uint32>			msgpair;
 		bool										success = false;
+		bool										accepted_connection = false;
 		
 		idbgx(Debug::ipc, this<<" connection count limit not reached on connection-pool: "<<poolid);
 		
@@ -1247,7 +1276,7 @@ ErrorConditionT Service::doActivateConnection(
 					success = false;
 				}else{
 					//then send the activate event
-					err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid);
+					err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid, accepted_connection);
 					success = !err;
 				}
 			}else{
@@ -1255,17 +1284,20 @@ ErrorConditionT Service::doActivateConnection(
 				success = false;
 			}
 		}else if(FUNCTION_EMPTY(_rmsgfactory)){
-			err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid);
+			err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid, accepted_connection);
 			success = !err;
 		}else{
 			//close connection
 			doNotifyConnectionDelayedClose(_rconnection_uid.connectionid);
 			success = false;
+			err.assign(-1, err.category());//TODO: 
 		}
 		
 		if(success){
 			++rconpool.active_connection_count;
-			++rconpool.pending_connection_count;//activateConnectionComplete will decrement it
+			if(not accepted_connection){
+				--rconpool.pending_connection_count;
+			}
 			idbgx(Debug::ipc, this<<' '<<poolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
 		}
 	}else{
@@ -1313,8 +1345,6 @@ void Service::activateConnectionComplete(Connection &_rcon){
 		Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));
 		ConnectionPoolStub	&rconpool(d.conpooldq[_rcon.conpoolid.index]);
 		
-		--rconpool.pending_connection_count;
-		
 		idbgx(Debug::ipc, this<<' '<<_rcon.conpoolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
 	}
 }
@@ -1336,9 +1366,9 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 		
 		idbgx(Debug::ipc, this<<' '<<_robjuid);
 		
-		if(_rcon.isAtomicActive()){//we do not care if the connection is aware if it is active
+		if(_rcon.isAtomicActive()){
 			--rconpool.active_connection_count;
-			
+			idbgx(Debug::ipc, this<<' '<<conpoolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
 			//we do not actually need to pop the connection from conn_waitingq
 			//doPushMessageToConnection will fail anyway
 #if 0
@@ -1362,13 +1392,9 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 			}
 #endif
 		}else{
+			cassert(not _rcon.isServer());
 			--rconpool.pending_connection_count;
-			
-			
-			if(_robjuid.isInvalid()){
-				//called on Connection::doActivate, after Connection::postStop
-				--rconpool.active_connection_count;
-			}
+
 			idbgx(Debug::ipc, this<<' '<<conpoolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
 		}
 		
@@ -1376,7 +1402,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 			rconpool.synchronous_connection_uid = ObjectIdT::invalid();
 		}
 		
-		if(not rconpool.active_connection_count and not rconpool.pending_connection_count){
+		if((rconpool.active_connection_count + rconpool.pending_connection_count) == 0){
 			//_rcon is the last dying connection
 			//so, move all pending messages to _rcon for completion
 			while(rconpool.msgorder_inner_list.size()){
@@ -1489,7 +1515,7 @@ ulong Service::onConnectionWantStop(Connection &_rcon, aio::ReactorContext &_rct
 			//TODO: maybe we can use rconpool.conn_waitingq to 
 			//replace the msg_cancel_connection_id with another connectionid
 			
-			if(!(rconpool.active_connection_count == 1 and rconpool.pending_connection_count == 1)){
+			if((rconpool.active_connection_count + rconpool.pending_connection_count) != 1){
 				//only call doFetchUnsentMessagesFromConnection 
 				//for connections that will not stop right away
 				
@@ -1518,14 +1544,21 @@ void Service::forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &
 		
 		Locker<Mutex>					lock(d.connectionPoolMutex(_rconpoolid.index));
 		ConnectionPoolStub				&rconpool(d.conpooldq[_rconpoolid.index]);
-		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, std::move(_revent), err);
 		
-		idbgx(Debug::ipc, this<<' '<<conuid<<" "<<err.message());
+		ObjectIdT	conuid = d.config.scheduler().startObject(objptr, *this, std::move(_revent), err);
 		
 		if(!err){
 			++rconpool.pending_connection_count;
-			idbgx(Debug::ipc, this<<' '<<_rconpoolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
+			++rconpool.pending_resolve_count;
+			
+			idbgx(Debug::ipc, this<<' '<<_rconpoolid<<" new connection "<<conuid<<" - active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
+		}else{
+			idbgx(Debug::ipc, this<<' '<<conuid<<" "<<err.message());
 		}
+	}else{
+		Locker<Mutex>					lock(d.connectionPoolMutex(_rconpoolid.index));
+		ConnectionPoolStub				&rconpool(d.conpooldq[_rconpoolid.index]);
+		--rconpool.pending_resolve_count;
 	}
 }
 //=============================================================================

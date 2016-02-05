@@ -54,10 +54,22 @@ typedef FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT &)>		Uncompr
 typedef FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>	ResetSerializerLimitsFunctionT;
 
 struct Configuration{
-	
+private:
+	Configuration& operator=(const Configuration&) = default;
+	Configuration& operator=(Configuration&&) = delete;
+public:
 	Configuration(
 		AioSchedulerT &_rsch
 	);
+	
+	//Only Service can call this constructor
+	Configuration(ServiceProxy const&):psch(nullptr){}
+	
+	Configuration& reset(Configuration const &_rcfg){
+		*this = _rcfg;
+		prepare();
+		return *this;
+	}
 	
 	template <class F>
 	void protocolCallback(F _f);
@@ -90,6 +102,7 @@ struct Configuration{
 	
 	AioSchedulerT						*psch;
 	size_t								max_per_pool_connection_count;
+	size_t								max_per_pool_pending_connection_count;//default 4 x max_per_pool_connection_count
 	size_t								session_mutex_count;
 	
 	size_t								max_writer_multiplex_message_count;
@@ -130,7 +143,9 @@ struct Configuration{
 	std::string							listen_address_str;
 	std::string							default_listen_port_str;
 	
-	ErrorConditionT prepare();
+	ErrorConditionT check() const;
+	
+	void prepare();
 	
 private:
 	enum WriterFunctions{
@@ -151,7 +166,7 @@ private:
 	
 	WriterFunctions		writerfunctionidx;
 private:
-	friend class Service;
+	//friend class Service;
 	friend class MessageWriter;
 	Configuration():psch(nullptr){}
 };
