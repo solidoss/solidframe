@@ -121,6 +121,10 @@ struct MessageId{
 	bool isValid()const{
 		return !isInvalid();
 	}
+	void clear(){
+		index = InvalidIndex();
+		unique = 0;
+	}
 private:
 	friend class Service;
 	friend class Connection;

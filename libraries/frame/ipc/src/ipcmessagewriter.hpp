@@ -41,6 +41,11 @@ typedef FUNCTION<void(
 	MessageId const &/*_rmsgid*/
 )>										MessageWriterVisitFunctionT;
 
+
+typedef FUNCTION<void(
+	MessageId const &/*_rmsgid*/
+)>										MessageWriterCompletingVisitFunctionT;
+
 class MessageWriter{
 public:
 	enum PrintWhat{
@@ -101,7 +106,7 @@ public:
 		ErrorConditionT const & _rerror
 	);
 	
-	bool shouldTryFetchNewMessage(Configuration const &_rconfig)const;
+	bool hasFreeSeats(Configuration const &_rconfig)const;
 	
 	bool empty()const;
 	
@@ -119,6 +124,11 @@ public:
 		ErrorConditionT const & _rerror
 	);
 	void print(std::ostream &_ros, const PrintWhat _what)const;
+	
+	bool hasCompletingMessages()const;
+	
+	void visitCompletingMessages(MessageWriterCompletingVisitFunctionT const &_rvisit_fnc);
+	
 private:
 	
 	enum{
@@ -128,22 +138,23 @@ private:
 		InnerLinkCount
 	};
 	
-	enum InnerStatus{
-		InnerStatusInvalid,
-		InnerStatusPending = 1,
-		InnerStatusSending,
-		InnerStatusWaiting,
+	enum struct InnerStatus{
+		Invalid,
+		Pending = 1,
+		Sending,
+		Waiting,
+		Completing
 	};
 	
 	struct MessageStub: InnerNode<InnerLinkCount>{
 		MessageStub(
 			MessageBundle &_rmsgbundle
 		):	msgbundle(std::move(_rmsgbundle)), packet_count(0),
-			inner_status(InnerStatusInvalid){}
+			inner_status(InnerStatus::Invalid){}
 		
 		MessageStub(
 		):	unique(0), packet_count(0),
-			inner_status(InnerStatusInvalid){}
+			inner_status(InnerStatus::Invalid){}
 		
 		MessageStub(
 			MessageStub &&_rmsgstub
@@ -152,18 +163,40 @@ private:
 			packet_count(_rmsgstub.packet_count), serializer_ptr(std::move(_rmsgstub.serializer_ptr)),
 			inner_status(_rmsgstub.inner_status), msg_id(_rmsgstub.msg_id){}
 		
-		void clear(){
+		void clearToInvalid(){
 			msgbundle.clear();
 			++unique;
 			packet_count = 0;
 			
-			inner_status = InnerStatusInvalid;
+			inner_status = InnerStatus::Invalid;
 			
 			serializer_ptr = nullptr;
+			
+			msg_id.clear();
+		}
+		
+		void clearToCompleting(){
+			msgbundle.clear();
+			++unique;
+			packet_count = 0;
+			
+			inner_status = InnerStatus::Completing;
+			
+			serializer_ptr = nullptr;
+			
+			//no msg_id.clear() - wait after visitCompletingMessages
 		}
 		
 		bool isStop()const noexcept {
 			return msgbundle.message_ptr.empty() and not Message::is_canceled(msgbundle.message_flags);
+		}
+		
+		bool isCompletingStatus()const noexcept{
+			return inner_status == InnerStatus::Completing;
+		}
+		
+		bool isInvalidStatus()const noexcept{
+			return inner_status == InnerStatus::Invalid;
 		}
 		
 		bool isCanceled()const noexcept {
@@ -231,6 +264,8 @@ private:
 		ConnectionContext &_rctx,
 		SerializerPointerT &_rtmp_serializer
 	);
+	
+	void doUnprepareMessageStub(const size_t _msgidx);
 private:
 	MessageVectorT				message_vec;
 	MessageIdVectorT			message_uid_cache_vec;

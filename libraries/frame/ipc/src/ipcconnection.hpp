@@ -154,6 +154,8 @@ private:
 	
 	
 	bool shouldSendKeepalive()const;
+	bool shouldTryFetchNewMessageFromPool()const;
+	
 	bool isWaitingKeepAliveTimer()const;
 	bool isStopForced()const;
 	
@@ -163,6 +165,7 @@ private:
 	bool isAtomicStopping()const;
 	bool isAtomicDelayedClosing()const;
 	
+	bool hasCompletingMessages()const;
 	
 	void onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 	
@@ -206,7 +209,7 @@ private:
 	void fetchUnsentMessages(
 		Fnc const &_f
 	){
-		auto  							visit_fnc = [this, &_f](
+		auto 							visit_fnc = [this, &_f](
 			MessageBundle &_rmsgbundle,
 			MessageId const &_rmsgid
 		){
@@ -215,6 +218,15 @@ private:
 		MessageWriterVisitFunctionT		fnc(std::cref(visit_fnc));
 		
 		msgwriter.visitAllMessages(fnc);
+	}
+	
+	template <class Fnc>
+	void visitCompletingMessages(
+		Fnc const &_f
+	){
+		MessageWriterCompletingVisitFunctionT	fnc(std::cref(_f));
+		
+		msgwriter.visitCompletingMessages(fnc);
 	}
 private:
 	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
@@ -272,6 +284,10 @@ inline Any<>& Connection::any(){
 
 inline ConnectionPoolId const& Connection::poolId()const{
 	return conpoolid;
+}
+
+inline bool Connection::hasCompletingMessages()const{
+	return msgwriter.hasCompletingMessages();
 }
 
 }//namespace ipc

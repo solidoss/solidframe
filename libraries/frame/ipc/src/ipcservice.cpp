@@ -248,6 +248,15 @@ struct ConnectionPoolStub{
 		cassert(msgorder_inner_list.check());
 	}
 	
+	void cacheMessageId(const size_t _msg_idx, const size_t _msg_uid){
+		cassert(_msg_idx < msgvec.size());
+		cassert(msgvec[_msg_idx].unique == _msg_uid);
+		if(_msg_idx < msgvec.size() and msgvec[_msg_idx].unique == _msg_uid){
+			msgvec[_msg_idx].clear();
+			msgcache_inner_list.pushBack(_msg_idx);
+		}
+	}
+	
 	bool isMessageCancelConnectionStopping()const{
 		return msg_cancel_connection_stopping;
 	}
@@ -851,6 +860,14 @@ void Service::tryFetchNewMessage(
 		idbgx(Debug::ipc, this<<' '<<&_rcon<<" switch message canceling connection from "<<rconpool.msg_cancel_connection_id<<" to "<<_robjuid);
 		rconpool.msg_cancel_connection_id = _robjuid;
 		rconpool.resetMessageCancelConnectionStopping();
+	}
+	
+	if(_rcon.hasCompletingMessages()){
+		//free-up positions of the completed messages
+		auto free_up_fnc = [&rconpool](MessageId const &_rmsgid){
+			rconpool.cacheMessageId(_rmsgid.index, _rmsgid.unique);
+		};
+		_rcon.visitCompletingMessages(free_up_fnc);
 	}
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon<<" messages in pool: "<<rconpool.msgorder_inner_list.size());

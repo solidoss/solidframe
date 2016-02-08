@@ -93,6 +93,22 @@ public:
 		++size_;
 	}
 	
+	void pushFront(const size_t _index){
+		InnerLink &rcrt_link = link(_index);
+		
+		rcrt_link = InnerLink(front_, InvalidIndex());
+		
+		if(front_ != InvalidIndex()){
+			link(front_).next = _index;
+			front_ = _index;
+		}else{
+			back_ = _index;
+			front_ = _index;
+		}
+		
+		++size_;
+	}
+	
 	ValueT& front(){
 		return rvec_[front_];
 	}
@@ -103,6 +119,18 @@ public:
 	
 	size_t frontIndex()const{
 		return front_;
+	}
+	
+	ValueT& back(){
+		return rvec_[back_];
+	}
+	
+	ValueT const & back()const{
+		return rvec_[back_];
+	}
+	
+	size_t backIndex()const{
+		return back_;
 	}
 	
 	void erase(const size_t _index){
@@ -128,6 +156,12 @@ public:
 		size_t old_front = front_;
 		erase(front_);
 		return old_front;
+	}
+	
+	size_t popBack(){
+		size_t old_back = back_;
+		erase(back_);
+		return old_back;
 	}
 
 	size_t size()const{

@@ -27,6 +27,7 @@ enum class Flags:size_t{
 	WaitKeepAliveTimer			= 16,
 	StopForced					= 32,
 	HasActivity 				= 64,
+	TryFetchNewMessageFromPool	= 128
 };
 
 enum class AtomicFlags{
@@ -330,6 +331,10 @@ bool Connection::isServer()const{
 //-----------------------------------------------------------------------------
 bool Connection::shouldSendKeepalive()const{
 	return flags & static_cast<size_t>(Flags::Keepalive);
+}
+//-----------------------------------------------------------------------------
+bool Connection::shouldTryFetchNewMessageFromPool()const{
+	return flags & static_cast<size_t>(Flags::TryFetchNewMessageFromPool);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isWaitingKeepAliveTimer()const{
@@ -805,7 +810,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 			if(
 				conpoolid.isValid() and
 				isActive() and
-				msgwriter.shouldTryFetchNewMessage(rconfig)
+				msgwriter.hasFreeSeats(rconfig)
 			){
 				service(_rctx).tryFetchNewMessage(*this, _rctx, uid(_rctx), msgwriter.empty());
 			}
