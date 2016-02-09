@@ -774,7 +774,8 @@ ErrorConditionT Service::doSendMessage(
 		*_pmsguid_out = MessageId(msgidx, rmsgstub.unique);
 		idbgx(Debug::ipc, this<<" set message id to "<<*_pmsguid_out);
 	}
-	
+
+#if 0
 	if(
 		Message::is_synchronous(_flags) and
 		rconpool.synchronous_connection_uid.isValid()
@@ -840,11 +841,70 @@ ErrorConditionT Service::doSendMessage(
 			cassert(rconpool.pending_connection_count + rconpool.active_connection_count);
 		}
 	}
+#endif
 	
+	// If there is a registered connection for handling synchronous messages, send 
+	// the synchronous message to it.
+	
+	if(
+		Message::is_synchronous(_flags) and
+		rconpool.synchronous_connection_uid.isValid()
+	){
+		//try send synchronous message to the single connection handling synchronous messages
+		ErrorConditionT	temp_error = doNotifyConnectionPushMessage(
+			rconpool.synchronous_connection_uid,
+			msgidx,
+			pool_idx,
+			_precipient_id_out
+		);
+		if(!temp_error){
+			return error;//success
+		}
+		edbgx(Debug::ipc, this<<" synchronous connection is dead and pool's synchronous_connection_uid is valid");
+		//cassert(false);
+		rconpool.synchronous_connection_uid = UniqueId::invalid();
+	}
+	
+	// the message is either asynchronous or there is no connection handling 
+	// synchronous messages - see if there is a connection waiting
+	bool	success = false;
+	while(rconpool.conn_waitingq.size() and not success){
+		ObjectIdT 		objuid = rconpool.conn_waitingq.front();
+		
+		rconpool.conn_waitingq.pop();
+		
+		success = manager().notify(objuid, Connection::checkPoolEvent());
+	}
+	
+	if(not success){
+		// no waiting connection available - try create a new connection
+		idbgx(Debug::ipc, this<<" all connections are busy. active connections "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
+		if(
+			rconpool.active_connection_count < d.config.max_per_pool_connection_count and
+			rconpool.pending_resolve_count < d.config.max_per_pool_connection_count
+		){
+			DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(pool_idx, rconpool.uid)));
+				
+			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
+			
+			if(!error){
+				ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, Connection::resolveEvent()));
+				
+				d.config.name_resolve_fnc(rconpool.name, cbk);
+				++rconpool.pending_connection_count;
+				++rconpool.pending_resolve_count;
+			}else{
+				//there must be at least one connection to handle the message:
+				cassert(rconpool.pending_connection_count + rconpool.active_connection_count);
+			}
+		}
+	}
+	// leave the connection in the queue for further tryFetchNewMessage to
+	// handle it
 	return error;
 }
 //-----------------------------------------------------------------------------
-void Service::tryFetchNewMessage(
+void Service::checkPoolForNewMessages(
 	Connection &_rcon,
 	aio::ReactorContext &_rctx,
 	ObjectIdT const &_robjuid,
@@ -852,6 +912,8 @@ void Service::tryFetchNewMessage(
 ){
 	Locker<Mutex>			lock2(d.connectionPoolMutex(_rcon.poolId().index));
 	ConnectionPoolStub 		&rconpool(d.conpooldq[_rcon.poolId().index]);
+	
+	bool					connection_can_accept_more_message = true;
 	
 	cassert(rconpool.uid == _rcon.poolId().unique);
 	if(rconpool.uid != _rcon.poolId().unique) return;
@@ -959,9 +1021,17 @@ void Service::tryFetchNewMessage(
 		
 		}
 		
-	}else if(_connection_has_no_message_to_send){
+	}
+	
+	if(not _rcon.isInPoolWaitingQueue() and (_connection_has_no_message_to_send or connection_can_accept_more_message)){
+		rconpool.conn_waitingq.push(_robjuid);
+		_rcon.setInPoolWaitingQueue();
+	}
+	
+	if(_connection_has_no_message_to_send){
 		rconpool.conn_waitingq.push(this->manager().id(_rcon));
 	}
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -1425,7 +1495,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 			while(rconpool.msgorder_inner_list.size()){
 				MessageStub 	&rmsgstub = rconpool.msgorder_inner_list.front();
 				MessageId		pool_msg_id(rconpool.msgorder_inner_list.frontIndex(), rmsgstub.unique);
-				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, nullptr, pool_msg_id);
+				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, nullptr, pool_msg_id, /*_force =*/ true);
 				
 				rconpool.cacheFrontMessage();
 			}

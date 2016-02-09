@@ -42,6 +42,7 @@ enum class ConnectionEvents{
 	Resolve,
 	Push,
 	DelayedClose,
+	CheckPool,
 	Invalid,
 };
 
@@ -57,6 +58,8 @@ const EventCategory<ConnectionEvents>	connection_event_category{
 				return "push";
 			case ConnectionEvents::DelayedClose:
 				return "delayed_close";
+			case ConnectionEvents::CheckPool:
+				return "check_pool";
 			case ConnectionEvents::Invalid:
 				return "invalid";
 			default:
@@ -81,7 +84,10 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 /*static*/ Event Connection::resolveEvent(){
 	return connection_event_category.event(ConnectionEvents::Resolve);
 }
-
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::checkPoolEvent(){
+	return connection_event_category.event(ConnectionEvents::CheckPool);
+}
 //-----------------------------------------------------------------------------
 inline void Connection::doOptimizeRecvBuffer(){
 	const size_t cnssz = receivebufoff - consumebufoff;
@@ -146,7 +152,14 @@ bool Connection::pushMessage(
 	//Under lock
 	if(not isAtomicStopping()){
 		if(not isAtomicDelayedClosing()){
-			MessageId	msguid = msgwriter.safeNewMessageId(_rservice.configuration());
+			MessageId	msguid;
+			
+			if(Message::is_asynchronous(_flags)){
+				msguid = msgwriter.safeNewMessageId(_rservice.configuration());
+			}else{
+				//synchronous message are always taken
+				msguid = msgwriter.safeForcedNewMessageId();
+			}
 			
 			if(msguid.isValid()){
 				
@@ -206,31 +219,46 @@ bool Connection::pushCanceledMessage(
 	return true;
 }
 //-----------------------------------------------------------------------------
-void Connection::directPushMessage(
+bool Connection::directPushMessage(
 	frame::aio::ReactorContext &_rctx,
 	MessageBundle &_rmsgbundle,
 	MessageId *_pmsguid,
-	const MessageId &_rpool_msg_id
+	const MessageId &_rpool_msg_id,
+	bool &_can_accept_more_messages,
+	const bool _force/* = false*/
 ){
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
 	MessageId			msguid;
+	bool				ret_val = true;
+	
 	if(not Message::is_canceled(_rmsgbundle.message_flags)){
 		{
 			Locker<Mutex>		lock(service(_rctx).mutex(*this));
-			msguid = msgwriter.safeNewMessageId(rconfig);
+			
+			if(not _force and Message::is_asynchronous(_rmsgbundle.message_flags)){
+				msguid = msgwriter.safeNewMessageId(rconfig);
+			}else{
+				msguid = msgwriter.safeForcedNewMessageId();
+			}
 		}
 		
-		msgwriter.enqueue(_rmsgbundle, msguid, rconfig, rtypemap, conctx);
-		
-		if(_pmsguid){
-			*_pmsguid = msguid;
+		if(msguid.isValid()){
+			msgwriter.enqueue(_rmsgbundle, msguid, rconfig, rtypemap, conctx);
+			
+			if(_pmsguid){
+				*_pmsguid = msguid;
+			}
+		}else{
+			ret_val = false;
 		}
 	}else{
 		//canceled message
 		msgwriter.cancel(_rmsgbundle, _rpool_msg_id, rconfig, rtypemap, conctx);
 	}
+	
+	return ret_val;
 }
 //-----------------------------------------------------------------------------
 bool Connection::pushMessageCancel(
@@ -812,7 +840,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				isActive() and
 				msgwriter.hasFreeSeats(rconfig)
 			){
-				service(_rctx).tryFetchNewMessage(*this, _rctx, uid(_rctx), msgwriter.empty());
+				service(_rctx).checkPoolForNewMessages(*this, _rctx, uid(_rctx), msgwriter.empty());
 			}
 			
 #if 0

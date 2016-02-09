@@ -65,7 +65,8 @@ class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
 	
 	static Event resolveEvent();
-	static Event stopEvent();
+	//static Event stopEvent();
+	static Event checkPoolEvent();
 	
 	//Called when connection is accepted
 	Connection(
@@ -116,11 +117,13 @@ public:
 		ErrorConditionT &_rerror
 	);
 	
-	void directPushMessage(
+	bool directPushMessage(
 		frame::aio::ReactorContext &_rctx,
 		MessageBundle &_rmsgbundle,
 		MessageId *_pmsguid,
-		const MessageId &_rpool_msg_id
+		const MessageId &_rpool_msg_id,
+		bool &_can_accept_more_messages,
+		const bool _force = false
 	);
 	
 	bool prepareActivate(
@@ -130,6 +133,10 @@ public:
 	
 	//The service marked connection as active, but the connection might not be aware that it is active
 	bool isAtomicActive()const;
+	
+	bool isInPoolWaitingQueue() const;
+	
+	void setInPoolWaitingQueue();
 	
 	bool isServer()const;
 	

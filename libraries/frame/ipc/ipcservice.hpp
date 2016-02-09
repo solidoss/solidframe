@@ -411,7 +411,7 @@ private:
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
 	void onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err);
 	
-	void tryFetchNewMessage(
+	void checkPoolForNewMessages(
 		Connection &_rcon,
 		aio::ReactorContext &_rctx,
 		ObjectIdT const &_robjuid,
