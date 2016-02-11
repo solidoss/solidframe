@@ -185,13 +185,19 @@ struct ConnectionPoolStub{
 		++unique;
 		pending_connection_count = 0;
 		active_connection_count = 0;
+		pending_resolve_count = 0;
 		while(conn_waitingq.size()){
 			conn_waitingq.pop();
 		}
 		cassert(msgorder_inner_list.empty());
+		cassert(msgasync_inner_list.empty());
 		msgcache_inner_list.clear();
+		msgorder_inner_list.clear();
+		msgasync_inner_list.clear();
 		msgvec.clear();
 		msgvec.shrink_to_fit();
+		msg_cancel_connection_stopping = false;
+		is_stopping = false;
 		cassert(msgorder_inner_list.check());
 	}
 	
@@ -226,11 +232,15 @@ struct ConnectionPoolStub{
 		const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
 		msgorder_inner_list.pushBack(msgid);
 		idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
+		if(Message::is_asynchronous(_flags)){
+			msgasync_inner_list.pushBack(msgid);
+			idbgx(Debug::ipc, "msgasync_inner_list "<<msgasync_inner_list);
+		}
 		cassert(msgorder_inner_list.check());
 		return msgid;
 	}
 	
-	void eraseAndCacheMessage(const size_t _msg_idx){
+	void clearAndCacheMessage(const size_t _msg_idx){
 		MessageStub	&rmsgstub{msgvec[_msg_idx]};
 		rmsgstub.clear();
 		msgcache_inner_list.pushBack(_msg_idx);
@@ -255,7 +265,7 @@ struct ConnectionPoolStub{
 		msgorder_inner_list.erase(_msg_idx);
 		cassert(msgorder_inner_list.check());
 	}
-	void eraseAndCacheOrderedMessage(const size_t _msg_idx){
+	void clearPopAndCacheMessage(const size_t _msg_idx){
 		idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
 		MessageStub	&rmsgstub{msgvec[_msg_idx]};
 		
@@ -488,7 +498,7 @@ ErrorConditionT Service::doSendMessage(
 	if(_rrecipient_id_in.isValidConnection()){
 		cassert(_precipient_id_out == nullptr);
 		//directly send the message to a connection object
-		return doNotifyConnectionPushMessage(
+		return doNotifyConnectionNewMessage(
 			_rrecipient_id_in,
 			_rmsgptr,
 			msg_type_idx,
@@ -648,7 +658,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	
 	rconpool.name = _recipient_name;
 	
-	DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(pool_idx, rconpool.uid)));
+	DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(pool_idx, rconpool.unique)));
 	
 	ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
 	
@@ -844,17 +854,40 @@ ErrorConditionT Service::doNotifyConnectionNewMessage(
 	ConnectionPoolStub			&rconpool = d.conpooldq[pool_idx];
 	solid::ErrorConditionT		error;
 	
-	MessageId 					msgid = rconpool.insertMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+	const bool					is_server_side_pool = rconpool.name.empty();//unnamed pool has a single connection
+	
+	MessageId 					msgid;
+	
+	bool						success = false;
+	
+	if(is_server_side_pool){
+		//push the message into rconpool.msgorder_inner_list
+		//
+		msgid = rconpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+		success = manager().notify(
+			_rrecipient_id_in.connectionId(),
+			Connection::newMessageEvent()
+		);
+	}else{
+		msgid = rconpool.insertMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+		success = manager().notify(
+			_rrecipient_id_in.connectionId(),
+			Connection::newMessageEvent(msgid)
+		);
+	}
 	
 	const bool					success = manager().notify(
 		_rrecipient_id_in.connectionId(),
-		Connection::newMessageEvent(msgid)
+		is_server_side_pool ? Connection::newMessageEvent() : Connection::newMessageEvent(msgid)
 	);
 	
 	if(success){
 		if(_pmsgid_out){
 			*_pmsgid_out = msgid;
 		}
+	}else if(is_server_side_pool){
+		rconpool.clearPopAndCacheMessage(msgid.index);
+		error = error_connection_inexistent;//TODO: more explicit error
 	}else{
 		rconpool.clearAndCacheMessage(msgid.index);
 		error = error_connection_inexistent;//TODO: more explicit error
@@ -1302,6 +1335,7 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 		Locker<Mutex>				lock2(d.connectionPoolMutex(poolid.index));
 		ConnectionPoolStub 			&rconpool(d.conpooldq[poolid.index]);
 		poolid.unique = rconpool.unique;
+		rconpool.pending_connection_count = 1;
 	}
 	
 	DynamicPointer<aio::Object>		objptr(new Connection(_rsd, poolid));
