@@ -65,11 +65,8 @@ typedef Queue<ObjectIdT>								ObjectIdQueueT;
 
 enum{
 	InnerLinkOrder = 0,
-	InnerLinkAsync,
 	InnerLinkCount
 };
-
-//-----------------------------------------------------------------------------
 
 struct MessageStub: InnerNode<InnerLinkCount>{
 	
@@ -117,14 +114,10 @@ struct MessageStub: InnerNode<InnerLinkCount>{
 	uint			flags;
 };
 
-//-----------------------------------------------------------------------------
+typedef std::vector<MessageStub>						MessageVectorT;
+typedef InnerList<MessageVectorT, InnerLinkOrder>		MessageOrderInnerListT;
+typedef InnerList<MessageVectorT, InnerLinkOrder>		MessageCacheInnerListT;
 
-using MessageVectorT = std::vector<MessageStub>;
-using MessageOrderInnerListT = InnerList<MessageVectorT, InnerLinkOrder>;
-using MessageCacheInnerListT = InnerList<MessageVectorT, InnerLinkOrder>;
-using MessageAsyncInnerListT = InnerList<MessageVectorT, InnerLinkAsync>;
-
-//-----------------------------------------------------------------------------
 
 std::ostream& operator<<(std::ostream &_ros, const MessageOrderInnerListT &_rlst){
 	size_t cnt = 0;
@@ -138,20 +131,16 @@ std::ostream& operator<<(std::ostream &_ros, const MessageOrderInnerListT &_rlst
 	return _ros;
 }
 
-//-----------------------------------------------------------------------------
-
 struct ConnectionPoolStub{
-	uint32					unique;
+	uint32					uid;
 	size_t					pending_connection_count;
 	size_t					active_connection_count;
 	size_t					pending_resolve_count;
 	std::string				name;
-	ObjectIdT 				synchronous_connection_id;
+	ObjectIdT 				synchronous_connection_uid;
 	MessageVectorT			msgvec;
 	MessageOrderInnerListT	msgorder_inner_list;
-	MessageCacheInnerListT	msgcache_inner_list;
-	MessageAsyncInnerListT	msgasync_inner_list;
-	
+	MessageOrderInnerListT	msgcache_inner_list;
 	ObjectIdQueueT			conn_waitingq;
 	
 	ObjectIdT				msg_cancel_connection_id;
@@ -159,14 +148,14 @@ struct ConnectionPoolStub{
 	bool					is_stopping;
 	
 	ConnectionPoolStub(
-	):	unique(0), pending_connection_count(0), active_connection_count(0),
+	):	uid(0), pending_connection_count(0), active_connection_count(0),
 		pending_resolve_count(0),
-		msgorder_inner_list(msgvec), msgcache_inner_list(msgvec), msgasync_inner_list(msgvec),
+		msgorder_inner_list(msgvec), msgcache_inner_list(msgvec),
 		msg_cancel_connection_stopping(false), is_stopping(false){}
 	
 	ConnectionPoolStub(
 		ConnectionPoolStub && _rconpool
-	):	unique(_rconpool.unique), pending_connection_count(_rconpool.pending_connection_count),
+	):	uid(_rconpool.uid), pending_connection_count(_rconpool.pending_connection_count),
 		active_connection_count(_rconpool.active_connection_count),
 		pending_resolve_count(_rconpool.pending_resolve_count),
 		name(std::move(_rconpool.name)),
@@ -182,7 +171,7 @@ struct ConnectionPoolStub{
 	void clear(){
 		name.clear();
 		synchronous_connection_uid = ObjectIdT();
-		++unique;
+		++uid;
 		pending_connection_count = 0;
 		active_connection_count = 0;
 		while(conn_waitingq.size()){
@@ -191,11 +180,10 @@ struct ConnectionPoolStub{
 		cassert(msgorder_inner_list.empty());
 		msgcache_inner_list.clear();
 		msgvec.clear();
-		msgvec.shrink_to_fit();
 		cassert(msgorder_inner_list.check());
 	}
 	
-	MessageId insertMessage(
+	size_t pushMessage(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
@@ -204,36 +192,34 @@ struct ConnectionPoolStub{
 		size_t		idx;
 		
 		if(msgcache_inner_list.size()){
+			idbgx(Debug::ipc, "");
 			idx = msgcache_inner_list.frontIndex();
 			msgcache_inner_list.popFront();
 		}else{
+			idbgx(Debug::ipc, "");
 			idx = msgvec.size();
+			idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
 			msgvec.push_back(MessageStub{});
+			idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
 		}
 		
 		MessageStub	&rmsgstub{msgvec[idx]};
 		
 		rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc);
-		return MessageId(idx, rmsgstub.unique);
+		return idx;
 	}
 	
-	MessageId pushBackMessage(
+	size_t pushBackMessage(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
 		ulong _flags
 	){
-		const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
-		msgorder_inner_list.pushBack(msgid);
+		const size_t idx = pushMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+		msgorder_inner_list.pushBack(idx);
 		idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
 		cassert(msgorder_inner_list.check());
-		return msgid;
-	}
-	
-	void eraseAndCacheMessage(const size_t _msg_idx){
-		MessageStub	&rmsgstub{msgvec[_msg_idx]};
-		rmsgstub.clear();
-		msgcache_inner_list.pushBack(_msg_idx);
+		return idx;
 	}
 	
 	void cacheFrontMessage(){
@@ -255,19 +241,10 @@ struct ConnectionPoolStub{
 		msgorder_inner_list.erase(_msg_idx);
 		cassert(msgorder_inner_list.check());
 	}
-	void eraseAndCacheOrderedMessage(const size_t _msg_idx){
+	void eraseAndCacheMessage(const size_t _msg_idx){
 		idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
-		MessageStub	&rmsgstub{msgvec[_msg_idx]};
-		
 		msgorder_inner_list.erase(_msg_idx);
-		
-		if(Message::is_asynchronous(rmsgstub.msgbundle.message_flags)){
-			msgasync_inner_list.erase(_msg_idx);
-		}
-		
 		msgcache_inner_list.pushBack(_msg_idx);
-		
-		rmsgstub.clear();
 		cassert(msgorder_inner_list.check());
 	}
 	
@@ -299,12 +276,9 @@ struct ConnectionPoolStub{
 	}
 };
 
-//-----------------------------------------------------------------------------
-
 typedef std::deque<ConnectionPoolStub>					ConnectionPoolDequeT;
 typedef Stack<size_t>									SizeStackT;
 
-//-----------------------------------------------------------------------------
 
 struct Service::Data{
 	Data(Service &_rsvc): pmtxarr(nullptr), mtxsarrcp(0), config(ServiceProxy(_rsvc)){}
@@ -428,6 +402,184 @@ size_t Service::doPushNewConnectionPool(){
 	d.conpoolcachestk.pop();
 	return idx;
 }
+//-----------------------------------------------------------------------------
+struct PushMessageConnectionVisitorF{
+	Service						&rservice;
+	MessagePointerT 			&rmsgptr;
+	const size_t 				msg_type_idx;
+	ResponseHandlerFunctionT	&rresponse_fnc;
+	ulong 						flags;
+	MessageId 					*pmsguid;
+	ErrorConditionT				&rerror;
+	MessageId					pool_msg_id;
+	
+	PushMessageConnectionVisitorF(
+		Service &_rservice,
+		MessagePointerT &_rmsgptr,
+		const size_t _msg_type_idx,
+		ResponseHandlerFunctionT &_rresponse_fnc,
+		ulong _flags,
+		ErrorConditionT &_rerror,
+		MessageId  *_pmsguid = nullptr,
+		const MessageId &_rpool_msg_id = MessageId()
+	):	rservice(_rservice),
+		rmsgptr(_rmsgptr), msg_type_idx(_msg_type_idx),
+		rresponse_fnc(_rresponse_fnc), flags(_flags),
+		pmsguid(_pmsguid), rerror(_rerror), pool_msg_id(_rpool_msg_id){}
+	
+	PushMessageConnectionVisitorF(
+		Service &_rservice,
+		MessageBundle &_rmsgbundle,
+		ErrorConditionT &_rerror,
+		MessageId  *_pmsguid = nullptr,
+		const MessageId &_rpool_msg_id = MessageId()
+	):	rservice(_rservice),
+		rmsgptr(_rmsgbundle.message_ptr), msg_type_idx(_rmsgbundle.message_type_id),
+		rresponse_fnc(_rmsgbundle.response_fnc), flags(_rmsgbundle.message_flags),
+		pmsguid(_pmsguid), rerror(_rerror), pool_msg_id(_rpool_msg_id){}
+	
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			Event		raise_event;
+			const bool	success = pcon->pushMessage(
+				rservice, rmsgptr, msg_type_idx, rresponse_fnc,
+				flags, pmsguid, raise_event, rerror, pool_msg_id
+			);
+			
+			if(success){
+				if(!raise_event.isDefault()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
+			}
+			return success;
+		}else{
+			//TODO: ObjectNotAnIpcConnection
+			rerror.assign(-1, rerror.category());
+			return false;
+		}
+	}
+};
+
+//-----------------------------------------------------------------------------
+
+struct PushCanceledMessageConnectionVisitorF{
+	Service						&rservice;
+	MessagePointerT 			&rmsgptr;
+	const size_t 				msg_type_idx;
+	ResponseHandlerFunctionT	&rresponse_fnc;
+	ulong 						flags;
+	ErrorConditionT				&rerror;
+	MessageId					pool_msg_id;
+	
+	PushCanceledMessageConnectionVisitorF(
+		Service &_rservice,
+		MessageBundle &_rmsgbundle,
+		ErrorConditionT &_rerror,
+		const MessageId &_rpool_msg_id = MessageId()
+	):	rservice(_rservice),
+		rmsgptr(_rmsgbundle.message_ptr), msg_type_idx(_rmsgbundle.message_type_id),
+		rresponse_fnc(_rmsgbundle.response_fnc), flags(_rmsgbundle.message_flags),
+		rerror(_rerror), pool_msg_id(_rpool_msg_id){}
+	
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			Event		raise_event;
+			const bool	success = pcon->pushCanceledMessage(
+				rservice, rmsgptr, msg_type_idx, rresponse_fnc,
+				flags, raise_event, rerror, pool_msg_id
+			);
+			
+			if(success){
+				if(!raise_event.isDefault()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
+			}
+			return success;
+		}else{
+			//TODO: ObjectNotAnIpcConnection
+			rerror.assign(-1, rerror.category());
+			return false;
+		}
+	}
+};
+
+//-----------------------------------------------------------------------------
+
+struct CancelMessageConnectionVistiorF{
+	Service						&rservice;
+	ErrorConditionT				&rerror;
+	MessageId 					msguid;
+	
+	CancelMessageConnectionVistiorF(
+		Service &_rservice,
+		ErrorConditionT &_rerror,
+		MessageId const & _rmsguid
+	):rservice(_rservice), rerror(_rerror), msguid(_rmsguid){}
+	
+	
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			Event		raise_event;
+			const bool	success = pcon->pushMessageCancel(rservice, msguid, raise_event, rerror);
+			
+			if(success){
+				if(!raise_event.isDefault()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
+			}
+			return success;
+		}else{
+			//TODO: ObjectNotAnIpcConnection
+			rerror.assign(-1, rerror.category());
+			return false;
+		}
+	}
+};
+
+//-----------------------------------------------------------------------------
+
+struct ActivateConnectionVisitorF{
+	Service				&rservice;
+	ConnectionPoolId	conpoolid;
+	ErrorConditionT		&rerror;
+	bool 				&raccepted_connection_out;
+	
+	ActivateConnectionVisitorF(
+		Service &_rservice,
+		ConnectionPoolId const &_rconpoolid,
+		ErrorConditionT &_rerror,
+		bool &_raccepted_connection_out
+	):	rservice(_rservice),
+		conpoolid(_rconpoolid), rerror(_rerror),
+		raccepted_connection_out(_raccepted_connection_out){}
+	
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			Event		raise_event;
+			const bool	success = pcon->prepareActivate(rservice, conpoolid, raise_event, rerror);
+			
+			if(success){
+				raccepted_connection_out = pcon->isServer();
+				if(!raise_event.isDefault()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
+			}
+			return success;
+		}else{
+			//TODO: ObjectNotAnIpcConnection
+			rerror.assign(-1, rerror.category());
+			return false;
+		}
+	}
+};
 
 //-----------------------------------------------------------------------------
 
@@ -451,179 +603,6 @@ struct OnRelsolveF{
 
 //-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
-//NOTE:
-//The last connection before dying MUST:
-//	1. Lock service.d.mtx
-//	2. Lock SessionStub.mtx
-//	3. Fetch all remaining messages in the SessionStub.msgq
-//	4. Destroy the SessionStub and unregister it from namemap
-//	5. call complete function for every fetched message
-//	6. Die
-
-ErrorConditionT Service::doSendMessage(
-	const char *_recipient_name,
-	const RecipientId	&_rrecipient_id_in,
-	MessagePointerT &_rmsgptr,
-	ResponseHandlerFunctionT &_rresponse_fnc,
-	RecipientId *_precipient_id_out,
-	MessageId *_pmsguid_out,
-	ulong _flags
-){
-	solid::ErrorConditionT		error;
-	size_t						pool_idx;
-	uint32						unique;
-	bool						check_uid = false;
-	const size_t				msg_type_idx = tm.index(_rmsgptr.get());
-	
-	
-	if(msg_type_idx == 0){
-		edbgx(Debug::ipc, this<<" message type not registered");
-		error.assign(-1, error.category());//TODO:type not registered
-		return error;
-	}
-	
-	Locker<Mutex>				lock(d.mtx);
-	
-	if(_rrecipient_id_in.isValidConnection()){
-		cassert(_precipient_id_out == nullptr);
-		//directly send the message to a connection object
-		return doNotifyConnectionPushMessage(
-			_rrecipient_id_in,
-			_rmsgptr,
-			msg_type_idx,
-			_rresponse_fnc,
-			_pmsguid_out,
-			_flags
-		);
-	}else if(_recipient_name){
-		NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
-		
-		if(it != d.namemap.end()){
-			pool_idx = it->second;
-		}else{
-			if(d.config.isServerOnly()){
-				edbgx(Debug::ipc, this<<" request for name resolve for a server only configuration");
-				error.assign(-1, error.category());//TODO: server only
-				return error;
-			}
-			
-			return this->doSendMessageToNewPool(
-				_recipient_name, _rmsgptr, msg_type_idx,
-				_rresponse_fnc, _precipient_id_out, _pmsguid_out, _flags
-			);
-		}
-	}else if(
-		_rrecipient_id_in.poolid.index < d.conpooldq.size()
-	){
-		//we cannot check the uid right now because we need a lock on the session's mutex
-		check_uid = true;
-		pool_idx = _rrecipient_id_in.poolid.index;
-		unique = _rrecipient_id_in.poolid.unique;
-	}else{
-		edbgx(Debug::ipc, this<<" recipient does not exist");
-		error.assign(-1, error.category());//TODO: session does not exist
-		return error;
-	}
-	
-	Locker<Mutex>			lock2(d.connectionPoolMutex(pool_idx));
-	ConnectionPoolStub 		&rconpool(d.conpooldq[pool_idx]);
-	
-	if(check_uid && rconpool.unique != unique){
-		//failed uid check
-		edbgx(Debug::ipc, this<<" connection pool does not exist");
-		error.assign(-1, error.category());//TODO: connection pool does not exist
-		return error;
-	}
-	
-	if(rconpool.isStopping()){
-		//failed uid check
-		edbgx(Debug::ipc, this<<" connection pool is stopping");
-		error.assign(-1, error.category());//TODO: connection pool is stopping
-		return error;
-	}
-	
-	if(_precipient_id_out){
-		_precipient_id_out->poolid = ConnectionPoolId(pool_idx, rconpool.unique);
-	}
-	
-	//At this point we can fetch the message from user's pointer
-	//because from now on we can call complete on the message
-	const MessageId msgid = rconpool.pushBackMessage(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags);
-	
-	if(_pmsguid_out){
-		
-		MessageStub			&rmsgstub(rconpool.msgvec[msgidx]);
-		
-		rmsgstub.makeCancelable();
-		
-		*_pmsguid_out = msgid;
-		idbgx(Debug::ipc, this<<" set message id to "<<*_pmsguid_out);
-	}
-	
-	bool success = false;
-	
-	if(
-		Message::is_synchronous(_flags) and
-		rconpool.synchronous_connection_id.isValid()
-	){
-		success = manager().notify(
-			rconpool.synchronous_connection_id,
-			Connection::newMessageEvent()
-		);
-		if(not success){
-			wdbgx(Debug::ipc, this<<" failed sending message to synch connection "<<rconpool.synchronous_connection_id);
-			rconpool.synchronous_connection_id = ObjectIdT();
-		}
-	}
-
-	while(not success and rconpool.conn_waitingq.size()){
-		//a connection is waiting for something to send
-		ObjectIdT 		objuid = rconpool.conn_waitingq.front();
-		
-		rconpool.conn_waitingq.pop();
-		
-		
-		const bool		success = manager().notify(
-			objuid,
-			Connection::newMessageEvent()
-		);
-		
-	}
-	
-	if(
-		not success and
-		rconpool.active_connection_count < d.config.max_per_pool_connection_count and
-		rconpool.pending_resolve_count < d.config.max_per_pool_connection_count
-	){
-		
-		idbgx(Debug::ipc, this<<" can create new connection in pool "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
-		
-		DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(pool_idx, rconpool.uid)));
-			
-		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
-		
-		if(!error){
-			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, Connection::resolveEvent()));
-			
-			d.config.name_resolve_fnc(rconpool.name, cbk);
-			++rconpool.pending_connection_count;
-			++rconpool.pending_resolve_count;
-		}else{
-			//there must be at least one connection to handle the message:
-			cassert(rconpool.pending_connection_count + rconpool.active_connection_count);
-		}
-	}
-	
-	if(not success){
-		wdbgx(Debug::ipc, this<<" no connection notified about the new message");
-	}
-	
-	return error;
-}
-
-//-----------------------------------------------------------------------------
-
 ErrorConditionT Service::doSendMessageToNewPool(
 	const char *_recipient_name,
 	MessagePointerT &_rmsgptr,
@@ -640,7 +619,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 		pool_idx = d.conpoolcachestk.top();
 		d.conpoolcachestk.pop();
 	}else{
-		pool_idx = this->doPushNewConnectionPool();
+		pool_idx = doPushNewConnectionPool();
 	}
 	
 	Locker<Mutex>					lock2(d.connectionPoolMutex(pool_idx));
@@ -670,7 +649,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	
 	d.config.name_resolve_fnc(rconpool.name, cbk);
 	
-	MessageId msgid = rconpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+	const size_t  msgidx = rconpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
 		
 	++rconpool.pending_connection_count;
 	++rconpool.pending_resolve_count;
@@ -680,12 +659,250 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	}
 	
 	if(_pmsguid_out){
-		MessageStub	&rmsgstub = rconpool.msgvec[msgid.index];
+		MessageStub	&rmsgstub = rconpool.msgvec[msgidx];
 		
-		*_pmsguid_out = MessageId(msgid.index, rmsgstub.unique);
+		*_pmsguid_out = MessageId(msgidx, rmsgstub.unique);
 		rmsgstub.makeCancelable();
 	}
 	
+	return error;
+}
+//-----------------------------------------------------------------------------
+//NOTE:
+//The last connection before dying MUST:
+//	1. Lock service.d.mtx
+//	2. Lock SessionStub.mtx
+//	3. Fetch all remaining messages in the SessionStub.msgq
+//	4. Destroy the SessionStub and unregister it from namemap
+//	5. call complete function for every fetched message
+//	6. Die
+
+ErrorConditionT Service::doSendMessage(
+	const char *_recipient_name,
+	const RecipientId	&_rrecipient_id_in,
+	MessagePointerT &_rmsgptr,
+	ResponseHandlerFunctionT &_rresponse_fnc,
+	RecipientId *_precipient_id_out,
+	MessageId *_pmsguid_out,
+	ulong _flags
+){
+	solid::ErrorConditionT		error;
+	size_t						pool_idx;
+	uint32						uid;
+	bool						check_uid = false;
+	const size_t				msg_type_idx = tm.index(_rmsgptr.get());
+	
+	
+	if(msg_type_idx == 0){
+		edbgx(Debug::ipc, this<<" message type not registered");
+		error.assign(-1, error.category());//TODO:type not registered
+		return error;
+	}
+	
+	Locker<Mutex>				lock(d.mtx);
+	
+	if(_rrecipient_id_in.isValidConnection()){
+		cassert(_precipient_id_out == nullptr);
+		//directly send the message to a connection object
+		return doNotifyConnectionPushMessage(
+			_rrecipient_id_in.connectionid,
+			_rmsgptr,
+			msg_type_idx,
+			_rresponse_fnc,
+			_pmsguid_out,
+			_flags
+		);
+	}else if(_recipient_name){
+		NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
+		
+		if(it != d.namemap.end()){
+			pool_idx = it->second;
+		}else{
+			if(d.config.isServerOnly()){
+				edbgx(Debug::ipc, this<<" request for name resolve for a server only configuration");
+				error.assign(-1, error.category());//TODO: server only
+				return error;
+			}
+			
+			return doSendMessageToNewPool(
+				_recipient_name, _rmsgptr, msg_type_idx,
+				_rresponse_fnc, _precipient_id_out, _pmsguid_out, _flags
+			);
+		}
+	}else if(
+		_rrecipient_id_in.poolid.index < d.conpooldq.size()
+	){
+		//we cannot check the uid right now because we need a lock on the session's mutex
+		check_uid = true;
+		pool_idx = _rrecipient_id_in.poolid.index;
+		uid = _rrecipient_id_in.poolid.unique;
+	}else{
+		edbgx(Debug::ipc, this<<" session does not exist");
+		error.assign(-1, error.category());//TODO: session does not exist
+		return error;
+	}
+	
+	Locker<Mutex>			lock2(d.connectionPoolMutex(pool_idx));
+	ConnectionPoolStub 		&rconpool(d.conpooldq[pool_idx]);
+	
+	if(check_uid && rconpool.uid != uid){
+		//failed uid check
+		edbgx(Debug::ipc, this<<" connection pool does not exist");
+		error.assign(-1, error.category());//TODO: connection pool does not exist
+		return error;
+	}
+	
+	if(rconpool.isStopping()){
+		//failed uid check
+		edbgx(Debug::ipc, this<<" connection pool is stopping");
+		error.assign(-1, error.category());//TODO: connection pool is stopping
+		return error;
+	}
+	
+	if(_precipient_id_out){
+		_precipient_id_out->poolid = ConnectionPoolId(pool_idx, rconpool.uid);
+	}
+	
+	//At this point we can fetch the message from user's pointer
+	//because from now on we can call complete on the message
+	const size_t			msgidx = rconpool.pushBackMessage(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags);
+	
+	if(_pmsguid_out){
+		
+		MessageStub			&rmsgstub(rconpool.msgvec[msgidx]);
+		
+		rmsgstub.makeCancelable();
+		
+		*_pmsguid_out = MessageId(msgidx, rmsgstub.unique);
+		idbgx(Debug::ipc, this<<" set message id to "<<*_pmsguid_out);
+	}
+
+#if 0
+	if(
+		Message::is_synchronous(_flags) and
+		rconpool.synchronous_connection_uid.isValid()
+	){
+		//try send synchronous message to the single connection handling synchronous messages
+		ErrorConditionT	temp_error = doNotifyConnectionPushMessage(
+			rconpool.synchronous_connection_uid,
+			msgidx,
+			pool_idx,
+			_precipient_id_out
+		);
+		if(!temp_error){
+			return error;//success
+		}
+		edbgx(Debug::ipc, this<<" synchronous connection is dead and pool's synchronous_connection_uid is valid");
+		//cassert(false);
+		rconpool.synchronous_connection_uid = UniqueId::invalid();
+	}
+	
+	while(rconpool.conn_waitingq.size()){
+		//a connection is waiting for something to send
+		ObjectIdT 		objuid = rconpool.conn_waitingq.front();
+		
+		rconpool.conn_waitingq.pop();
+		
+		ErrorConditionT	temp_error = doNotifyConnectionPushMessage(
+			objuid,
+			msgidx,
+ 			pool_idx,
+ 			_precipient_id_out
+		);
+		
+		if(!temp_error){
+			if(Message::is_synchronous(_flags)){
+				rconpool.synchronous_connection_uid = objuid;
+			}
+			return error;//success
+		}
+		wdbgx(Debug::ipc, this<<" failed sending message to connection "<<objuid<<" error: "<<temp_error.message());
+	}
+	
+	idbgx(Debug::ipc, this<<" all connections are busy. active connections "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
+	
+	//All connections are busy
+	//Check if we should create a new connection
+	
+	if(
+		rconpool.active_connection_count < d.config.max_per_pool_connection_count and
+		rconpool.pending_resolve_count < d.config.max_per_pool_connection_count
+	){
+		DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(pool_idx, rconpool.uid)));
+			
+		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
+		
+		if(!error){
+			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, Connection::resolveEvent()));
+			
+			d.config.name_resolve_fnc(rconpool.name, cbk);
+			++rconpool.pending_connection_count;
+			++rconpool.pending_resolve_count;
+		}else{
+			//there must be at least one connection to handle the message:
+			cassert(rconpool.pending_connection_count + rconpool.active_connection_count);
+		}
+	}
+#endif
+	
+	// If there is a registered connection for handling synchronous messages, send 
+	// the synchronous message to it.
+	
+	if(
+		Message::is_synchronous(_flags) and
+		rconpool.synchronous_connection_uid.isValid()
+	){
+		//try send synchronous message to the single connection handling synchronous messages
+		ErrorConditionT	temp_error = doNotifyConnectionPushMessage(
+			rconpool.synchronous_connection_uid,
+			msgidx,
+			pool_idx,
+			_precipient_id_out
+		);
+		if(!temp_error){
+			return error;//success
+		}
+		edbgx(Debug::ipc, this<<" synchronous connection is dead and pool's synchronous_connection_uid is valid");
+		//cassert(false);
+		rconpool.synchronous_connection_uid = UniqueId::invalid();
+	}
+	
+	// the message is either asynchronous or there is no connection handling 
+	// synchronous messages - see if there is a connection waiting
+	bool	success = false;
+	while(rconpool.conn_waitingq.size() and not success){
+		ObjectIdT 		objuid = rconpool.conn_waitingq.front();
+		
+		rconpool.conn_waitingq.pop();
+		
+		success = manager().notify(objuid, Connection::checkPoolEvent());
+	}
+	
+	if(not success){
+		// no waiting connection available - try create a new connection
+		idbgx(Debug::ipc, this<<" all connections are busy. active connections "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
+		if(
+			rconpool.active_connection_count < d.config.max_per_pool_connection_count and
+			rconpool.pending_resolve_count < d.config.max_per_pool_connection_count
+		){
+			DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(pool_idx, rconpool.uid)));
+				
+			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
+			
+			if(!error){
+				ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, Connection::resolveEvent()));
+				
+				d.config.name_resolve_fnc(rconpool.name, cbk);
+				++rconpool.pending_connection_count;
+				++rconpool.pending_resolve_count;
+			}else{
+				//there must be at least one connection to handle the message:
+				cassert(rconpool.pending_connection_count + rconpool.active_connection_count);
+			}
+		}
+	}
+	// leave the connection in the queue for further tryFetchNewMessage to
+	// handle it
 	return error;
 }
 //-----------------------------------------------------------------------------
@@ -820,48 +1037,113 @@ void Service::checkPoolForNewMessages(
 }
 
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::doNotifyConnectionNewMessage(
-	const RecipientId	&_rrecipient_id_in,
+ErrorConditionT Service::doNotifyConnectionPushMessage(
+	ObjectIdT const &_robjuid,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
 	ResponseHandlerFunctionT &_rresponse_fnc,
 	MessageId *_pmsgid_out,
 	ulong _flags
 ){
-	//d.mtx must be locked
-	
-	if(_rrecipient_id_in.isValidPool()){
-		return error_connection_inexistent;//TODO: more explicit error
-	}
-	
-	const size_t	pool_idx = _rrecipient_id_in.poolId().index;
-	
-	if(pool_idx >= d.conpooldq.size() or d.conpooldq[pool_idx].unique != _rrecipient_id_in.poolId().unique){
-		return error_connection_inexistent;//TODO: more explicit error
-	}
-	
-	Locker<Mutex>				lock2(d.connectionPoolMutex(pool_idx));
-	ConnectionPoolStub			&rconpool = d.conpooldq[pool_idx];
-	solid::ErrorConditionT		error;
-	
-	MessageId 					msgid = rconpool.insertMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
-	
-	const bool					success = manager().notify(
-		_rrecipient_id_in.connectionId(),
-		Connection::newMessageEvent(msgid)
-	);
+	solid::ErrorConditionT			error;
+	PushMessageConnectionVisitorF	fnc(*this, _rmsgptr, _msg_type_idx, _rresponse_fnc, _flags, error, _pmsgid_out);
+	bool							success = manager().visit(_robjuid, fnc);
 	
 	if(success){
-		if(_pmsgid_out){
-			*_pmsgid_out = msgid;
-		}
-	}else{
-		rconpool.clearAndCacheMessage(msgid.index);
-		error = error_connection_inexistent;//TODO: more explicit error
+		cassert(not error);
+		//message successfully delivered
+	}else if(not error){
+		error = error_connection_inexistent;
 	}
-	
 	return error;
 }
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::doNotifyConnectionPushMessage(
+	ObjectIdT const &_robjuid,
+	const size_t _msg_idx,
+	const size_t _pool_idx,
+	RecipientId *_precipient_id_out
+){
+	solid::ErrorConditionT			error;
+	ConnectionPoolStub 				&rconpool(d.conpooldq[_pool_idx]);
+	MessageStub						&rmsgstub(rconpool.msgvec[_msg_idx]);
+	
+	MessageId 						*pmsgid = nullptr;
+	MessageId						pool_msg_id;
+	
+	if(rmsgstub.isCancelable()){
+		pmsgid = &rmsgstub.msgid;
+		pool_msg_id = MessageId(_msg_idx, rmsgstub.unique);
+	}
+	
+	PushMessageConnectionVisitorF	fnc(*this, rmsgstub.msgbundle, error, pmsgid, pool_msg_id);
+	bool							success = manager().visit(_robjuid, fnc);
+	
+	
+	if(success){
+		cassert(not error);
+		//message successfully delivered
+		if(not rmsgstub.isCancelable()){
+			idbgx(Debug::ipc, this<<" ");
+			//not a cacelable message, free up the position in msgvec
+			rconpool.eraseAndCacheMessage(_msg_idx);
+			rmsgstub.clear();
+		}else{
+			idbgx(Debug::ipc, this<<" ");
+			rmsgstub.objid = _robjuid;
+			rconpool.eraseMessage(_msg_idx);
+		}
+	}else if(not error){
+		error = error_connection_inexistent;
+	}
+	return error;
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::doNotifyConnectionActivate(
+	ObjectIdT const &_robjuid,
+	ConnectionPoolId const &_rconpooluid,
+	bool & _raccepted_connection_out
+){
+	solid::ErrorConditionT		error;
+	ActivateConnectionVisitorF	fnc(*this, _rconpooluid, error, _raccepted_connection_out);
+	bool						rv = manager().visit(_robjuid, fnc);
+	if(rv){
+		//message successfully delivered
+	}else if(not error){
+		error = error_connection_inexistent;
+	}
+	return error;
+}
+//-----------------------------------------------------------------------------
+struct DelayedCloseConnectionVisitorF{
+	Service 			&rservice;
+	ErrorConditionT		&rerror;
+	
+	DelayedCloseConnectionVisitorF(
+		Service &_rservice,
+		ErrorConditionT &_rerror
+	):	rservice(_rservice), rerror(_rerror){}
+	
+	bool operator()(ObjectBase &_robj, ReactorBase &_rreact){
+		Connection *pcon = Connection::cast(&_robj);
+		
+		if(pcon){
+			Event		raise_event;
+			const bool	success = pcon->pushDelayedClose(rservice, raise_event, rerror);
+			
+			if(success){
+				if(!raise_event.isDefault()){
+					_rreact.raise(_robj.runId(), raise_event);
+				}
+			}
+			return success;
+		}else{
+			//TODO: ObjectNotAnIpcConnection
+			rerror.assign(-1, rerror.category());
+			return false;
+		}
+	}
+};
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doNotifyConnectionDelayedClose(
 	ObjectIdT const &_robjuid
@@ -1017,7 +1299,7 @@ ErrorConditionT Service::doActivateConnection(
 				poolid.index = d.conpoolcachestk.top();
 				d.conpoolcachestk.pop();
 			}else{
-				poolid.index = this->doPushNewConnectionPool();
+				poolid.index = doPushNewConnectionPool();
 			}
 			
 			SmartLocker<Mutex>				tmplock(d.connectionPoolMutex(poolid.index));
@@ -1286,42 +1568,11 @@ void Service::pushBackMessageToConnectionPool(
 }
 //-----------------------------------------------------------------------------
 void Service::acceptIncomingConnection(SocketDevice &_rsd){
-	ConnectionPoolId	poolid;
-	
-	{
-		//allocate a new pool
-		Locker<Mutex>				lock(d.mtx);
-		
-		if(d.conpoolcachestk.size()){
-			poolid.index = d.conpoolcachestk.top();
-			d.conpoolcachestk.pop();
-		}else{
-			poolid.index = this->doPushNewConnectionPool();
-		}
-		
-		Locker<Mutex>				lock2(d.connectionPoolMutex(poolid.index));
-		ConnectionPoolStub 			&rconpool(d.conpooldq[poolid.index]);
-		poolid.unique = rconpool.unique;
-	}
-	
-	DynamicPointer<aio::Object>		objptr(new Connection(_rsd, poolid));
+	DynamicPointer<aio::Object>		objptr(new Connection(_rsd));
 	solid::ErrorConditionT			err;
-	ObjectIdT						conuid = d.config.scheduler().startObject(
-		objptr, *this, generic_event_category.event(GenericEvents::Start), err
-	);
+	ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), err);
 	
 	idbgx(Debug::ipc, this<<" receive connection ["<<conuid<<"] err = "<<err.message());
-	
-	if(err){
-		cassert(conuid.isInvalid());
-		Locker<Mutex>				lock(d.mtx);
-		Locker<Mutex>				lock2(d.connectionPoolMutex(poolid.index));
-		ConnectionPoolStub 			&rconpool(d.conpooldq[poolid.index]);
-		rconpool.clear();
-		d.conpoolcachestk.push(poolid.index);
-	}else{
-		cassert(conuid.isValid());
-	}
 }
 //-----------------------------------------------------------------------------
 void Service::onIncomingConnectionStart(ConnectionContext &_rconctx){

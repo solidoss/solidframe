@@ -70,7 +70,7 @@ public:
 	
 	//Called when connection is accepted
 	Connection(
-		SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
+		SocketDevice &_rsd
 	);
 	//Called when connection is 
 	Connection(

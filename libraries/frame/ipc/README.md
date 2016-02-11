@@ -94,6 +94,44 @@ Enabled for two scenarios:
 	* no "complete" callback will be called on the message
 	* if the message is in a cancelable state (is not currently being sent or is not already sent and waiting for a response) the message is dropped from the send queue.
 
+Because the code got very complicated because of the support for message canceling, a refactoring is needed.
+
+#### Current state
+
+For server only
+* Messages enter directly in Connection's receiving vector (there are 2 for locking eficiency) - one lock on Connection's mutex
+* On the Connection's thread, {lock Connection's mutex, switch the receiving vector} move message from receiving vector to writer
+* If writer's writing queue is full, put message in waiting queue.
+* The writer also needs a synchronized queue of cached positions on writer
+
+so, we have for queues:
+* 3 queues for messages
+* 1 unsynchronized queue for writer cached positions
+* 1 synchronized queue for writer cached positions
+
+and for locks:
+* 2 at push - for for Service and one for Connection
+* 1 on Connection's thread on switching receiving vectors
+* 1 for synchronizing writer caches
+
+
+#### Wanted state
+
+Now we want to use unnamed connection pools for server-side messages.
+
+Queues
+
+* Messages are allways pushed on the pool's message queue - 2 locks one for Service and one for connection pool.
+* Connection's are either notified with NewMessageEvent or SpecificNewMessageEvent containing the MessageId
+* Writer will only have one, writing queue.
+* Connection will have a queue of MessageIds, for SpecificNewMessageEvents that could not be directly delivered to writer.
+
+Locking
+
+* 2 locks on pushing message
+* 1 lock for sending the event to connection
+* 1 lock for receiving the event on connection
+* ... TODO ...
 
 **Test**
 
