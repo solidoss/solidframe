@@ -1319,42 +1319,40 @@ void Service::pushBackMessageToConnectionPool(
 }
 //-----------------------------------------------------------------------------
 void Service::acceptIncomingConnection(SocketDevice &_rsd){
-	ConnectionPoolId	poolid;
+	size_t	pool_idx;
 	
-	{
-		//allocate a new pool
-		Locker<Mutex>				lock(d.mtx);
-		
-		if(d.conpoolcachestk.size()){
-			poolid.index = d.conpoolcachestk.top();
-			d.conpoolcachestk.pop();
-		}else{
-			poolid.index = this->doPushNewConnectionPool();
-		}
-		
-		Locker<Mutex>				lock2(d.connectionPoolMutex(poolid.index));
-		ConnectionPoolStub 			&rconpool(d.conpooldq[poolid.index]);
-		poolid.unique = rconpool.unique;
-		rconpool.pending_connection_count = 1;
+	Locker<Mutex>				lock(d.mtx);
+	
+	if(d.conpoolcachestk.size()){
+		pool_idx = d.conpoolcachestk.top();
+		d.conpoolcachestk.pop();
+	}else{
+		pool_idx = this->doPushNewConnectionPool();
 	}
 	
-	DynamicPointer<aio::Object>		objptr(new Connection(_rsd, poolid));
-	solid::ErrorConditionT			err;
-	ObjectIdT						conuid = d.config.scheduler().startObject(
-		objptr, *this, generic_event_category.event(GenericEvents::Start), err
-	);
-	
-	idbgx(Debug::ipc, this<<" receive connection ["<<conuid<<"] err = "<<err.message());
-	
-	if(err){
-		cassert(conuid.isInvalid());
-		Locker<Mutex>				lock(d.mtx);
-		Locker<Mutex>				lock2(d.connectionPoolMutex(poolid.index));
-		ConnectionPoolStub 			&rconpool(d.conpooldq[poolid.index]);
-		rconpool.clear();
-		d.conpoolcachestk.push(poolid.index);
-	}else{
-		cassert(conuid.isValid());
+	{
+		Locker<Mutex>					lock2(d.connectionPoolMutex(pool_idx));
+		
+		ConnectionPoolStub 				&rconpool(d.conpooldq[pool_idx]);
+		
+		DynamicPointer<aio::Object>		objptr(new Connection(_rsd, ConnectionPoolId(pool_idx, rconpool.unique)));
+		solid::ErrorConditionT			err;
+		
+		ObjectIdT						con_id = d.config.scheduler().startObject(
+			objptr, *this, generic_event_category.event(GenericEvents::Start), err
+		);
+		
+		idbgx(Debug::ipc, this<<" receive connection ["<<con_id<<"] err = "<<err.message());
+		
+		if(err){
+			cassert(con_id.isInvalid());
+			rconpool.clear();
+			d.conpoolcachestk.push(pool_idx);
+		}else{
+			cassert(con_id.isValid());
+			++rconpool.pending_connection_count;
+			rconpool.synchronous_connection_id = con_id;
+		}
 	}
 }
 //-----------------------------------------------------------------------------
