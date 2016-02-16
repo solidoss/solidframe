@@ -22,18 +22,14 @@ Service::sendMessage("recipient_name")
 
 ## Peer-to-peer
 
-Alternative via client server:
-PeerA					|				PeerB
------------------------ |-----------------------
-client_poolA			|				server connections,
-						|				one for every connection
-						|				in client_poolA
-						|
-server connections,		|				client_poolB
-one for every connection|
-in client_poolB			|
+### Alternative via client server
 
-Pros:
+PeerA | PeerB
+--------------- | -------------
+client_poolA    | server connections, one for every connection in client_poolA
+server connections, one for every connection in client_poolB | client_poolB
+
+_Pros_:
 * Simpler implementation 
 * No handshake is needed so, connections are activated faster - especially for 
 a peer2peer scenario where the SSL handshake should suffice (i.e. no other authentication should be needed).
@@ -41,22 +37,22 @@ a peer2peer scenario where the SSL handshake should suffice (i.e. no other authe
 PeerB does not need that much data from PeerA. One can limit the connection pool on PeerA to 4 connections,
 while on PeerB set the limit to only a single connection.
 
-Cons:
+_Cons_:
 * Double the number of connections
 
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+### The initial idea
 
 We can half the number of connections if we put all server connections in client_poolA and client_poolB respectively.
 This way sendMessage("PeerB") on peerA and sendMessage("PeerA") on peerB will use the same connections.
 
 We need a per connection message sent from the peer creating the connection, containing the name that peer.
 
-Pros:
+_Pros_:
 * More efficient use of a connection pool
 * **TODO**: find a better reason
 
-Cons:
+_Cons_:
 * Handshake is needed, at least one request-response is needed to activate a connection and move it on the right pool.
 * A peer needs to know its own name.
 * It is hard to impose a limit on connection count on a pool. The 2 peer sides must agree which connection to be dropped
