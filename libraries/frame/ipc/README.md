@@ -2,9 +2,67 @@
 
 A process-to-process communication (message exchange) engine via plain/secured TCP.
 
-Enabled for two scenarios:
-* client-server
-* peer-to-peer
+Enabled for three scenarios:
+* Server
+* Client
+* Peer-to-peer
+
+## Server
+
+Single connection per unnamed pool. Pool only used as message queue.
+```C++
+Service::sendMessage(recipient_id);
+```
+## Client
+
+Multiple connections per a named pool (the name of the pool is the recipient name).
+```C++
+Service::sendMessage("recipient_name")
+```
+
+## Peer-to-peer
+
+Alternative via client server:
+PeerA					|				PeerB
+----------------------- |-----------------------
+client_poolA			|				server connections,
+						|				one for every connection
+						|				in client_poolA
+						|
+server connections,		|				client_poolB
+one for every connection|
+in client_poolB			|
+
+Pros:
+* Simpler implementation 
+* No handshake is needed so, connections are activated faster - especially for 
+a peer2peer scenario where the SSL handshake should suffice (i.e. no other authentication should be needed).
+* Different per pool client connections per peer. E.g. suppose PeerA needs lots of data from PeerB, but
+PeerB does not need that much data from PeerA. One can limit the connection pool on PeerA to 4 connections,
+while on PeerB set the limit to only a single connection.
+
+Cons:
+* Double the number of connections
+
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We can half the number of connections if we put all server connections in client_poolA and client_poolB respectively.
+This way sendMessage("PeerB") on peerA and sendMessage("PeerA") on peerB will use the same connections.
+
+We need a per connection message sent from the peer creating the connection, containing the name that peer.
+
+Pros:
+* More efficient use of a connection pool
+* **TODO**: find a better reason
+
+Cons:
+* Handshake is needed, at least one request-response is needed to activate a connection and move it on the right pool.
+* A peer needs to know its own name.
+* It is hard to impose a limit on connection count on a pool. The 2 peer sides must agree which connection to be dropped
+on two simultaneous connections established from both sides.
+* Prone to errors, a peer knows itself by a name, while the other peer knows it by other name.
+
 
 ## Characteristics
 

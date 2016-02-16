@@ -102,7 +102,7 @@ public:
 	
 	AioSchedulerT						*psch;
 	size_t								max_per_pool_connection_count;
-	size_t								max_per_pool_pending_connection_count;//default 4 x max_per_pool_connection_count
+	size_t								min_per_pool_dormant_connection_count;
 	size_t								session_mutex_count;
 	
 	size_t								max_writer_multiplex_message_count;

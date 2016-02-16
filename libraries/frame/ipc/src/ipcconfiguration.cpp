@@ -75,8 +75,8 @@ Configuration::Configuration(
 	
 	msg_cancel_connection_wait_seconds = 1;
 	
-	max_per_pool_connection_count = 2;
-	max_per_pool_pending_connection_count = 0;
+	max_per_pool_connection_count = 1;
+	min_per_pool_dormant_connection_count = 1;
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Configuration::check() const {
@@ -87,9 +87,6 @@ ErrorConditionT Configuration::check() const {
 void Configuration::prepare(){
 	if(max_per_pool_connection_count == 0){
 		max_per_pool_connection_count = 1;
-	}
-	if(max_per_pool_pending_connection_count == 0){
-		max_per_pool_pending_connection_count = 8 * max_per_pool_connection_count;
 	}
 	
 	if(msg_cancel_connection_wait_seconds == 0){
