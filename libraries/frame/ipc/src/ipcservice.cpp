@@ -999,187 +999,26 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rconnection_uid, Mess
 //
 // 
 
-ErrorConditionT Service::doActivateConnection(
-	RecipientId const &_rconnection_uid,
-	const char *_recipient_name,
-	ActivateConnectionMessageFactoryFunctionT const &_rmsgfactory,
-	const bool _may_quit
+ErrorConditionT Service::doPostConnectionActivate(
+	RecipientId const &_rrecipient_id,
+	ActivateConnectionMessageFactoryFunctionT &&_rmsgfactory
 ){
-	solid::ErrorConditionT					err;
-	std::pair<MessagePointerT, uint32>		msgpair;
-	ConnectionPoolId						poolid;
+	solid::ErrorConditionT					error;
 	
-	if(_recipient_name == nullptr and not _rconnection_uid.poolid.isValid()){//situation 1
-		bool accepted_connection = false;
-		err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid, accepted_connection);
-		return err;
+	bool 									success = manager().notify(
+		_rrecipient_id.connectionId(),
+		Connection::activateEvent(std::move(_rmsgfactory))
+	);
+	
+	if(not success){
+		wdbgx(Debug::ipc, this<<" failed sending activate event to "<<_rrecipient_id.connectionId());
+		error = error_connection_inexistent;
 	}
 	
-	if(_recipient_name != nullptr and _rconnection_uid.poolid.isValid()){
-		edbgx(Debug::ipc, this<<" only accepted connections allowed");
-		err.assign(-1, err.category());//TODO: only accepted connections allowed
-		return err;
-	}
-	
-	Locker<Mutex>				lock(d.mtx);
-	SmartLocker<Mutex>			lock2;
-	
-	if(_rconnection_uid.poolid.isValid()){
-		poolid = _rconnection_uid.poolid;//situation 3
-	}else{
-		//situation 2
-		NameMapT::const_iterator	it = d.namemap.find(_recipient_name);
-		
-		if(it != d.namemap.end()){//connection pool exist
-			poolid.index = it->second;
-			SmartLocker<Mutex>		tmplock(d.connectionPoolMutex(poolid.index));
-			ConnectionPoolStub 		&rconpool(d.conpooldq[poolid.index]);
-			
-			poolid.unique = rconpool.uid;
-			
-			lock2 = std::move(tmplock);
-		}else{//connection pool does not exist
-			
-			if(d.config.isServerOnly()){
-				edbgx(Debug::ipc, this<<" request for name resolve for a server only configuration");
-				err.assign(-1, err.category());//TODO: server only
-				return err;
-			}
-			
-			if(d.conpoolcachestk.size()){
-				poolid.index = d.conpoolcachestk.top();
-				d.conpoolcachestk.pop();
-			}else{
-				poolid.index = this->doPushNewConnectionPool();
-			}
-			
-			SmartLocker<Mutex>				tmplock(d.connectionPoolMutex(poolid.index));
-			ConnectionPoolStub 				&rconpool(d.conpooldq[poolid.index]);
-			
-			rconpool.name = _recipient_name;
-			poolid.unique = rconpool.uid;
-		
-			d.namemap[rconpool.name.c_str()] = poolid.index;
-			
-			lock2 = std::move(tmplock);
-		}
-	}
-	
-	ConnectionPoolStub			&rconpool(d.conpooldq[poolid.index]);
-	const size_t				wouldbe_active_connection_count = rconpool.active_connection_count + 1;
-	ResponseHandlerFunctionT	response_handler;
-	
-	poolid.unique = rconpool.uid;
-	
-	
-	if(
-		(
-			wouldbe_active_connection_count < d.config.max_per_pool_connection_count
-		) or
-		(
-			(
-				wouldbe_active_connection_count == d.config.max_per_pool_connection_count
-			) and not rconpool.pending_connection_count
-		) or
-		(
-			(
-				wouldbe_active_connection_count == d.config.max_per_pool_connection_count
-			) and rconpool.pending_connection_count and not _may_quit
-		)
-	){
-		std::pair<MessagePointerT, uint32>			msgpair;
-		bool										success = false;
-		bool										accepted_connection = false;
-		
-		idbgx(Debug::ipc, this<<" connection count limit not reached on connection-pool: "<<poolid);
-		
-		if(not FUNCTION_EMPTY(_rmsgfactory)){
-			msgpair = _rmsgfactory(err);
-		}
-		
-		if(not msgpair.first.empty()){
-			const size_t		msg_type_idx = tm.index(msgpair.first.get());
-			
-			if(msg_type_idx != 0){
-				//first send the Init message
-				err = doNotifyConnectionPushMessage(
-					_rconnection_uid.connectionid,
-					msgpair.first,
-					msg_type_idx,
-					response_handler,
-// 					poolid,
-// 					nullptr,//TODO: revisit
-					nullptr, //TODO: revisit
-					msgpair.second
-				);
-				if(err){
-					success = false;
-				}else{
-					//then send the activate event
-					err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid, accepted_connection);
-					success = !err;
-				}
-			}else{
-				err.assign(-1, err.category());//TODO: Unknown message type
-				success = false;
-			}
-		}else if(FUNCTION_EMPTY(_rmsgfactory)){
-			err = doNotifyConnectionActivate(_rconnection_uid.connectionid, poolid, accepted_connection);
-			success = !err;
-		}else{
-			//close connection
-			doNotifyConnectionDelayedClose(_rconnection_uid.connectionid);
-			success = false;
-			err.assign(-1, err.category());//TODO: 
-		}
-		
-		if(success){
-			++rconpool.active_connection_count;
-			if(not accepted_connection){
-				--rconpool.pending_connection_count;
-			}
-			idbgx(Debug::ipc, this<<' '<<poolid<<" active_connection_count "<<rconpool.active_connection_count<<" pending_connection_count "<<rconpool.pending_connection_count);
-		}
-	}else{
-		idbgx(Debug::ipc, this<<" connection count limit reached on connection-pool: "<<poolid);
-		
-		err.assign(-1, err.category());//TODO: Connection count limit
-		
-		std::pair<MessagePointerT, uint32>			msgpair;
-		
-		
-		if(not FUNCTION_EMPTY(_rmsgfactory)){
-			msgpair = _rmsgfactory(err);
-		}
-		
-		if(not msgpair.first.empty()){
-			const size_t		msg_type_idx = tm.index(msgpair.first.get());
-			
-			if(msg_type_idx != 0){
-				doNotifyConnectionPushMessage(
-					_rconnection_uid.connectionid,
-					msgpair.first,
-					msg_type_idx,
-					response_handler,
-// 					poolid,
-// 					nullptr, //TODO:revisit
-					nullptr,//TODO: revisit
-					msgpair.second
-				);
-			}
-		}
-		
-		msgpair.first.clear();
-		msgpair.second = 0;
-		//close connection
-		doNotifyConnectionDelayedClose(_rconnection_uid.connectionid);
-		cassert(rconpool.active_connection_count or rconpool.pending_connection_count);
-	}
-	
-	return err;
+	return error;
 }
 //-----------------------------------------------------------------------------
-void Service::activateConnectionComplete(Connection &_rcon){
+void Service::activateConnection(Connection &_rcon){
 	if(_rcon.conpoolid.isValid()){
 	
 		Locker<Mutex>		lock2(d.connectionPoolMutex(_rcon.conpoolid.index));

@@ -195,6 +195,7 @@ private:
 	ConnectionContext& operator=(ConnectionContext const&);
 };
 
+
 }//namespace ipc
 }//namespace frame
 }//namespace solid

@@ -100,7 +100,6 @@ struct MessageBundle;
 	
 */
 class Service: public Dynamic<Service, frame::Service>{
-	typedef FUNCTION<std::pair<MessagePointerT, uint32>(ErrorConditionT const &)>			ActivateConnectionMessageFactoryFunctionT;
 	
 	template <class F, class M>
 	struct ResponseHandler{
@@ -368,22 +367,20 @@ public:
 		RecipientId const &_rconnection_uid
 	);
 	
-	ErrorConditionT activateConnection(
+	ErrorConditionT postConnectionActivate(
 		RecipientId const &_rconnection_uid
 	){
 		ActivateConnectionMessageFactoryFunctionT	msgfactory;
-		return doActivateConnection(_rconnection_uid, nullptr, msgfactory, false);
+		return doPostConnectionActivate(_rconnection_uid, msgfactory);
 	}
 	
 	template <class MF>
-	ErrorConditionT activateConnection(
+	ErrorConditionT postConnectionActivate(
 		RecipientId const &_rconnection_uid,
-		const char *_recipient_name,
-		MF _msgfactory,
-		const bool _may_quit
+		MF _msgfactory
 	){
 		ActivateConnectionMessageFactoryFunctionT	msgfactory(_msgfactory);
-		return doActivateConnection(_rconnection_uid, _recipient_name, msgfactory, _may_quit);
+		return doPostConnectionActivate(_rconnection_uid, msgfactory);
 	}
 	
 	ErrorConditionT cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsg_id);
@@ -395,11 +392,9 @@ private:
 	
 	void acceptIncomingConnection(SocketDevice &_rsd);
 	
-	ErrorConditionT doActivateConnection(
+	ErrorConditionT doPostConnectionActivate(
 		RecipientId const &_rrecipient_id,
-		const char *_recipient_name,
-		ActivateConnectionMessageFactoryFunctionT const &_rmsgfactory,
-		const bool _may_quit
+		ActivateConnectionMessageFactoryFunctionT &&_rmsgfactory
 	);
 	
 	void activateConnectionComplete(Connection &_rcon);

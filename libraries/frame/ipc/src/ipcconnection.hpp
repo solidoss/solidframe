@@ -65,8 +65,10 @@ class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
 	
 	static Event resolveEvent();
-	//static Event stopEvent();
 	static Event checkPoolEvent();
+	static Event newMessageEvent();
+	static Event newMessageEvent(const MessageId &);
+	static Event activateEvent(ActivateConnectionMessageFactoryFunctionT &&);
 	
 	//Called when connection is accepted
 	Connection(

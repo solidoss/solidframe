@@ -124,7 +124,7 @@ private:
 
 typedef DynamicPointer<Message>															MessagePointerT;
 typedef FUNCTION<void(ConnectionContext&, MessagePointerT &, ErrorConditionT const &)>	ResponseHandlerFunctionT;
-
+typedef FUNCTION<MessagePointerT(ErrorConditionT const &)>								ActivateConnectionMessageFactoryFunctionT;
 
 }//namespace ipc
 }//namespace frame
