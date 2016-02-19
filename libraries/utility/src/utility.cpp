@@ -43,7 +43,7 @@ const uint8 reverted_chars[] = {
 	0x5F,0xDF,0x3F,0xBF,0x7F,0xFF
 };
 
-uint8 bit_count(const uint8 _v){
+size_t bit_count(const uint8 _v){
 	static const uint8 cnts[] = {
 		0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 
 		1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
@@ -65,88 +65,20 @@ uint8 bit_count(const uint8 _v){
 	return cnts[_v];
 }
 
-uint16 bit_count(const uint16 _v){
+size_t bit_count(const uint16 _v){
 	return bit_count((uint8)(_v & 0xff)) + bit_count((uint8)(_v >> 8));
 }
 
-uint32 bit_count(const uint32 _v){
+size_t bit_count(const uint32 _v){
 	return bit_count((uint8)(_v & 0xff)) +
 		bit_count((uint8)((_v >> 8) & 0xff)) +
 		bit_count((uint8)((_v >> 16) & 0xff)) +
 		bit_count((uint8)((_v >> 24) & 0xff));
 }
 
-uint64 bit_count(const uint64 _v){
+size_t bit_count(const uint64 _v){
 	return bit_count((uint32)(_v & 0xffffffff)) +
 		bit_count((uint32)(_v >> 32));
-}
-
-bool compute_value_with_crc(uint64 &_to, uint64 _from){
-	if(_from < (1ULL << 58)){
-		_to = bit_count(_from) | (_from << 6);
-		return true;
-	}else{
-		return false;
-	}
-}
-bool check_value_with_crc(uint64 &_to, uint64 _v){
-	_to = _v >> 6;
-	if(bit_count(_to) == (_v & ((1 << 6) - 1))){
-		return true;
-	}else{
-		return false;
-	}
-}
-
-bool compute_value_with_crc(uint32 &_to, uint32 _from){
-	if(_from < (1 << 27)){
-		_to = bit_count(_from) | (_from << 5);
-		return true;
-	}else{
-		return false;
-	}
-}
-bool check_value_with_crc(uint32 &_to, uint32 _v){
-	_to = _v >> 5;
-	if(bit_count(_to) == (_v & ((1 << 5) - 1))){
-		return true;
-	}else{
-		return false;
-	}
-}
-
-bool compute_value_with_crc(uint16 &_to, uint16 _from){
-	if(_from < (1 << 12)){
-		_to = bit_count(_from) | (_from << 4);
-		return true;
-	}else{
-		return false;
-	}
-}
-bool check_value_with_crc(uint16 &_to, uint16 _v){
-	_to = _v >> 4;
-	if(bit_count(_to) == (_v & ((1 << 4) - 1))){
-		return true;
-	}else{
-		return false;
-	}
-}
-
-bool compute_value_with_crc(uint8 &_to, uint8 _from){
-	if(_from < (1 << 5)){
-		_to = bit_count(_from) | (_from << 3);
-		return true;
-	}else{
-		return false;
-	}
-}
-bool check_value_with_crc(uint8 &_to, uint8 _v){
-	_to = _v >> 3;
-	if(bit_count(_to) == (_v & ((1 << 3) - 1))){
-		return true;
-	}else{
-		return false;
-	}
 }
 
 }//namespace solid

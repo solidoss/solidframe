@@ -91,19 +91,58 @@ inline T circular_distance(const T &_v, const T &_piv, const T& _max){
 	}
 }
 
-inline size_t padding_size(const size_t _sz, const size_t _pad){
-	return ((_sz / _pad) + 1) * _pad;
+inline size_t padded_size(const size_t _sz, const size_t _pad){
+	const size_t pad = (_pad - (_sz % _pad)) % _pad;
+	return _sz + pad;
 }
 
-inline size_t fast_padding_size(const size_t _sz, const size_t _bitpad){
-	return ((_sz >> _bitpad) + 1) << _bitpad;
+inline size_t fast_padded_size(const size_t _sz, const size_t _bitpad){
+	//return padded_size(_sz, 1<<_bitpad);
+	const size_t padv = 1<<_bitpad;
+	const size_t padmsk = padv - 1;
+	const size_t pad = (padv - (_sz & padmsk)) & padmsk;
+	return _sz + pad;
 }
 
-uint8 bit_count(const uint8 _v);
-uint16 bit_count(const uint16 _v);
-uint32 bit_count(const uint32 _v);
-uint64 bit_count(const uint64 _v);
+size_t bit_count(const uint8 _v);
+size_t bit_count(const uint16 _v);
+size_t bit_count(const uint32 _v);
+size_t bit_count(const uint64 _v);
 
+
+inline size_t leading_zero_count(uint64 x){
+	x = x | (x >> 1);
+	x = x | (x >> 2);
+	x = x | (x >> 4);
+	x = x | (x >> 8);
+	x = x | (x >>16);
+	x = x | (x >>32);
+	return bit_count(~x);
+}
+
+inline size_t leading_zero_count(uint32 x){
+	x = x | (x >> 1);
+	x = x | (x >> 2);
+	x = x | (x >> 4);
+	x = x | (x >> 8);
+	x = x | (x >>16);
+	return bit_count(~x);
+}
+
+inline size_t leading_zero_count(uint16 x){
+	x = x | (x >> 1);
+	x = x | (x >> 2);
+	x = x | (x >> 4);
+	x = x | (x >> 8);
+	return bit_count(static_cast<uint16>(~x));
+}
+
+inline size_t leading_zero_count(uint8 x){
+	x = x | (x >> 1);
+	x = x | (x >> 2);
+	x = x | (x >> 4);
+	return bit_count(static_cast<uint8>(~x));
+}
 
 inline void pack(uint32 &_v, const uint16 _v1, const uint16 _v2){
 	_v = _v2;

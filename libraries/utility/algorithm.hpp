@@ -14,32 +14,103 @@
 
 namespace solid{
 
-bool compute_value_with_crc(uint64 &_to, uint64 _from);
-bool check_value_with_crc(uint64 &_to, uint64 _v);
+//
+
+inline bool compute_value_with_crc(uint64 &_to, uint64 _from){
+	if(_from < (1ULL << 58)){
+		_to = bit_count(_from) | (_from << 6);
+		return true;
+	}else{
+		return false;
+	}
+}
+
+inline bool check_value_with_crc(uint64 &_to, uint64 _v){
+	_to = _v >> 6;
+	if(bit_count(_to) == (_v & ((1 << 6) - 1))){
+		return true;
+	}else{
+		return false;
+	}
+}
+
 inline uint64 max_value_without_crc_64(){
 	return (1ULL << 58) - 1ULL;
 }
 
-bool compute_value_with_crc(uint32 &_to, uint32 _from);
-bool check_value_with_crc(uint32 &_to, uint32 _v);
+//
+
+inline bool compute_value_with_crc(uint32 &_to, uint32 _from){
+	if(_from < (1 << 27)){
+		_to = bit_count(_from) | (_from << 5);
+		return true;
+	}else{
+		return false;
+	}
+}
+
+inline bool check_value_with_crc(uint32 &_to, uint32 _v){
+	_to = _v >> 5;
+	if(bit_count(_to) == (_v & ((1 << 5) - 1))){
+		return true;
+	}else{
+		return false;
+	}
+}
+
 inline uint32 max_value_without_crc_32(){
 	return (1UL << 27) - 1UL;
 }
 
-bool compute_value_with_crc(uint16 &_to, uint16 _from);
-bool check_value_with_crc(uint16 &_to, uint16 _v);
+//
+
+inline bool compute_value_with_crc(uint16 &_to, uint16 _from){
+	if(_from < (1 << 12)){
+		_to = bit_count(_from) | (_from << 4);
+		return true;
+	}else{
+		return false;
+	}
+}
+
+inline bool check_value_with_crc(uint16 &_to, uint16 _v){
+	_to = _v >> 4;
+	if(bit_count(_to) == (_v & ((1 << 4) - 1))){
+		return true;
+	}else{
+		return false;
+	}
+}
+
 inline uint16 max_value_without_crc_16(){
 	return ((1 << 12) - 1);
 }
 
-bool compute_value_with_crc(uint8 &_to, uint8 _from);
-bool check_value_with_crc(uint8 &_to, uint8 _v);
+//
+
+inline bool compute_value_with_crc(uint8 &_to, uint8 _from){
+	if(_from < (1 << 5)){
+		_to = bit_count(_from) | (_from << 3);
+		return true;
+	}else{
+		return false;
+	}
+}
+
+inline bool check_value_with_crc(uint8 &_to, uint8 _v){
+	_to = _v >> 3;
+	if(bit_count(_to) == (_v & ((1 << 3) - 1))){
+		return true;
+	}else{
+		return false;
+	}
+}
+
 inline uint8 max_value_without_crc_8(){
 	return ((1 << 5) - 1);
 }
-
 //=============================================================================
-
+#if 0
 template <class It, class Cmp>
 size_t find_cmp(It _it, Cmp const &, SizeToType<1> _s){
 	return 0;
@@ -64,7 +135,7 @@ size_t find_cmp(It _it, Cmp const &_rcmp, SizeToType<S> s){
 	}
 	return off2;
 }
-
+#endif
 //=============================================================================
 
 }//namespace solid

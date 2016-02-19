@@ -210,6 +210,19 @@ Locking
 
 **Description**
 
+We want to be able to easily specify on Client side a subset of Messages supported on Server.
+
+_Altenatives_
+* Currently some support exists through specifying the position for every Message added to TypeIdMap
+	* CON: not feasible / hard to configure
+* message_type_id = protocol_index + type_index;
+	* CON: message type index transmited on socket is bigger.
+	* PRO: multi-protocol support on the same connection on both client and server side
+* Set protocol_index on connection
+	* CON: handshake - on server, the connection must be configured by a message sent from the client
+
+
+
 * Extend ipc::Service to:
 	* Aupport a vector of TypeIdMapT
 	* Add setConnectionProtocol(ObjectUid const&, size_t protocol_id)

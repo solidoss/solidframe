@@ -37,6 +37,7 @@ protected:
 	typedef void(*CastFunctionT)(void*, void*);
 	
 	typedef std::pair<std::type_index, size_t>						CastIdT;
+	
 	struct CastHash{
 		size_t operator()(CastIdT const &_id)const{
 			return _id.first.hash_code() ^ _id.second;
@@ -54,9 +55,9 @@ protected:
 	static ErrorConditionT error_no_cast();
 	static ErrorConditionT error_no_type();
 	
-	typedef std::vector<Stub>							StubVectorT;
+	typedef std::vector<Stub>										StubVectorT;
 	
-	typedef std::unordered_map<std::type_index, uint32>	TypeIndexMapT;
+	typedef std::unordered_map<std::type_index, uint32>				TypeIndexMapT;
 	
 	template <class F>
 	struct FactoryStub{
@@ -257,12 +258,12 @@ public:
 	
 	
 	template <class T, class FactoryF>
-	size_t registerType(FactoryF _ff, size_t _idx = 0){
+	size_t registerType(FactoryF _ff, const size_t _idx = 0){
 		return TypeIdMapBase::doRegisterType<T>(TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>, _ff, _idx);
 	}
 	
 	template <class T, class StoreF, class LoadF, class FactoryF>
-	size_t registerType(StoreF _sf, LoadF _lf, FactoryF _ff, size_t _idx = 0){
+	size_t registerType(StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _idx = 0){
 		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
 		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
 		return TypeIdMapBase::doRegisterType<T>(sf, lf, _ff, _idx);
@@ -361,7 +362,7 @@ public:
 	}
 	
 	template <class T, class FactoryF>
-	size_t registerType(Data const &_rd, FactoryF _ff, size_t _idx = 0){
+	size_t registerType(Data const &_rd, FactoryF _ff, const size_t _idx = 0){
 		const size_t rv = TypeIdMapBase::doRegisterType<T>(TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>, _ff, _idx);
 		if(datavec.size() <= rv){
 			datavec.resize(rv + 1);
@@ -371,7 +372,7 @@ public:
 	}
 	
 	template <class T, class StoreF, class LoadF, class FactoryF>
-	size_t registerType(Data const &_rd, StoreF _sf, LoadF _lf, FactoryF _ff, size_t _idx = 0){
+	size_t registerType(Data const &_rd, StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _idx = 0){
 		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
 		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
 		
@@ -427,6 +428,7 @@ public:
 	Data& operator[](const size_t _idx){
 		return datavec[_idx];
 	}
+	
 	Data const& operator[](const size_t _idx)const{
 		return datavec[_idx];
 	}
