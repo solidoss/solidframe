@@ -1,5 +1,6 @@
 
 set(Sources
+	src/binarybasic.cpp
 	src/binary.cpp
 	src/typeidmap.cpp
 )
@@ -15,3 +16,5 @@ set(Inlines
 add_library(solid_serialization
 	${Sources} ${Headers} ${Inlines}
 )
+
+add_subdirectory(test)

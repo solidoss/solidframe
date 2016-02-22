@@ -109,6 +109,59 @@ inline bool check_value_with_crc(uint8 &_to, uint8 _v){
 inline uint8 max_value_without_crc_8(){
 	return ((1 << 5) - 1);
 }
+
+inline size_t max_bit_count(uint8 _v){
+	return 8 - leading_zero_count(_v);
+}
+
+inline size_t max_padded_bit_cout(uint8 _v){
+	return fast_padded_size(max_bit_count(_v), 3);
+}
+
+inline size_t max_padded_byte_cout(uint8 _v){
+	return max_padded_bit_cout(_v) >> 3;
+}
+
+//---
+inline size_t max_bit_count(uint16 _v){
+	return 16 - leading_zero_count(_v);
+}
+
+inline size_t max_padded_bit_cout(uint16 _v){
+	return fast_padded_size(max_bit_count(_v), 3);
+}
+
+inline size_t max_padded_byte_cout(uint16 _v){
+	return max_padded_bit_cout(_v) >> 3;
+}
+
+//---
+inline size_t max_bit_count(uint32 _v){
+	return 32 - leading_zero_count(_v);
+}
+
+inline size_t max_padded_bit_cout(uint32 _v){
+	return fast_padded_size(max_bit_count(_v), 3);
+}
+
+inline size_t max_padded_byte_cout(uint32 _v){
+	return max_padded_bit_cout(_v) >> 3;
+}
+
+//---
+inline size_t max_bit_count(uint64 _v){
+	return 64 - leading_zero_count(_v);
+}
+
+inline size_t max_padded_bit_cout(uint64 _v){
+	return fast_padded_size(max_bit_count(_v), 3);
+}
+
+inline size_t max_padded_byte_cout(uint64 _v){
+	return max_padded_bit_cout(_v) >> 3;
+}
+//---
+
 //=============================================================================
 #if 0
 template <class It, class Cmp>

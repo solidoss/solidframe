@@ -582,24 +582,24 @@ ReturnValues SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx
 /*static*/ ReturnValues SerializerBase::storeCrossContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
 	if(!rs.cpb) return SuccessE;
-	uint32		&vsz = *reinterpret_cast<uint32*>(&_rfd.p);
-	uint8		*pd = reinterpret_cast<uint8*>(rs.cpb);
-	while(rs.cpb != rs.be && vsz){
-		*pd = (_rfd.s & 0xff);
-		idbgx(Debug::ser_bin, "s = "<<_rfd.s<<" vsz = "<<vsz<<" *pd = "<<(int)*pd);
-		++pd;
-		++rs.cpb;
-		if(vsz == 1){
-			_rfd.s >>= 4;
-		}else{
-			_rfd.s >>= 8;
-		}
-		--vsz;
+	
+	const size_t	len = rs.be - rs.cpb;
+	size_t			towrite = rs.tmpstr.size() - _rfd.s;
+	
+	if(towrite > len){
+		towrite = len;
 	}
-	if(vsz == 0){
+	
+	memcpy(rs.cpb, rs.tmpstr.data() + _rfd.s, towrite);
+	
+	rs.cpb += towrite;
+	
+	_rfd.s += towrite;
+	
+	if(_rfd.s == rs.tmpstr.size()){
+		rs.tmpstr.clear();
 		return SuccessE;
 	}
-	_rfd.p = reinterpret_cast<void*>(vsz);
 	return WaitE;
 }
 
@@ -610,18 +610,18 @@ template <>
 	if(!rs.cpb) return SuccessE;
 	
 	const uint8		&v = *reinterpret_cast<const uint8*>(_rfd.p);
-	const unsigned	len = rs.be - rs.cpb;
-	const unsigned	vsz = crossSize(v);
+	const size_t	len = rs.be - rs.cpb;
+	const size_t	vsz = crossSize(v);
 	
 	if(len >= vsz){
-		rs.cpb = binary::storeCross(rs.cpb, v);
+		rs.cpb = binary::crossStore(rs.cpb, v);
 		return SuccessE;
-	}else if(len >= 1){
-		uint8	*pd = reinterpret_cast<uint8*>(rs.cpb);
-		*pd = ((v & 0xf) << 4) | (vsz - 1);
-		_rfd.p = reinterpret_cast<void*>(vsz - 1);
-		++rs.cpb;
-		_rfd.s = v >> 4;
+	}else{
+		rs.tmpstr.resize(vsz);
+		binary::crossStore(const_cast<char*>(rs.tmpstr.data()), v);
+		memcpy(rs.cpb, rs.tmpstr.data(), len);
+		rs.cpb += len;
+		_rfd.s = len;
 		_rfd.f = storeCrossContinue;
 	}
 	return WaitE;
@@ -633,20 +633,19 @@ template <>
 	if(!rs.cpb) return SuccessE;
 	
 	const uint16	&v = *reinterpret_cast<const uint16*>(_rfd.p);
-	const unsigned	len = rs.be - rs.cpb;
-	const unsigned	vsz = crossSize(v);
+	const size_t	len = rs.be - rs.cpb;
+	const size_t	vsz = crossSize(v);
 	
 	if(len >= vsz){
-		rs.cpb = binary::storeCross(rs.cpb, v);
+		rs.cpb = binary::crossStore(rs.cpb, v);
 		return SuccessE;
-	}else if(len >= 1){
-		uint8	*pd = reinterpret_cast<uint8*>(rs.cpb);
-		*pd = ((v & 0xf) << 4) | (vsz - 1);
-		_rfd.p = reinterpret_cast<void*>(vsz - 1);
-		++rs.cpb;
-		_rfd.s = v >> 4;
+	}else{
+		rs.tmpstr.resize(vsz);
+		binary::crossStore(const_cast<char*>(rs.tmpstr.data()), v);
+		memcpy(rs.cpb, rs.tmpstr.data(), len);
+		rs.cpb += len;
+		_rfd.s = len;
 		_rfd.f = storeCrossContinue;
-		return ContinueE;
 	}
 	return WaitE;
 }
@@ -657,20 +656,19 @@ template <>
 	if(!rs.cpb) return SuccessE;
 	
 	const uint32	&v = *reinterpret_cast<const uint32*>(_rfd.p);
-	const unsigned	len = rs.be - rs.cpb;
-	const unsigned	vsz = crossSize(v);
+	const size_t	len = rs.be - rs.cpb;
+	const size_t	vsz = crossSize(v);
 	
 	if(len >= vsz){
-		rs.cpb = binary::storeCross(rs.cpb, v);
+		rs.cpb = binary::crossStore(rs.cpb, v);
 		return SuccessE;
-	}else if(len >= 1){
-		uint8	*pd = reinterpret_cast<uint8*>(rs.cpb);
-		*pd = ((v & 0xf) << 4) | (vsz - 1);
-		_rfd.p = reinterpret_cast<void*>(vsz - 1);
-		++rs.cpb;
-		_rfd.s = v >> 4;
+	}else{
+		rs.tmpstr.resize(vsz);
+		binary::crossStore(const_cast<char*>(rs.tmpstr.data()), v);
+		memcpy(rs.cpb, rs.tmpstr.data(), len);
+		rs.cpb += len;
+		_rfd.s = len;
 		_rfd.f = storeCrossContinue;
-		return ContinueE;
 	}
 	return WaitE;
 }
@@ -685,17 +683,15 @@ template <>
 	const unsigned	vsz = crossSize(v);
 	
 	if(len >= vsz){
-		rs.cpb = binary::storeCross(rs.cpb, v);
+		rs.cpb = binary::crossStore(rs.cpb, v);
 		return SuccessE;
-	}else if(len >= 1){
-		uint8	*pd = reinterpret_cast<uint8*>(rs.cpb);
-		++rs.cpb;
-		*pd = ((v & 0xf) << 4) | (vsz - 1);
-		_rfd.p = reinterpret_cast<void*>(vsz - 1);
-		
-		_rfd.s = v >> 4;
+	}else{
+		rs.tmpstr.resize(vsz);
+		binary::crossStore(const_cast<char*>(rs.tmpstr.data()), v);
+		memcpy(rs.cpb, rs.tmpstr.data(), len);
+		rs.cpb += len;
+		_rfd.s = len;
 		_rfd.f = storeCrossContinue;
-		return ContinueE;
 	}
 	return WaitE;
 }
@@ -1512,13 +1508,15 @@ template <>
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return SuccessE;
-	const unsigned	len = rd.be - rd.cpb;
+	
+	const size_t	len = rd.be - rd.cpb;
 	if(!len) return WaitE;
-	const unsigned	vsz = crossSize(rd.cpb);
+	
+	const size_t	vsz = crossSize(rd.cpb);
 	uint8			&v = *reinterpret_cast<uint8*>(_rfd.p);
 	
 	if(vsz < len){
-		rd.cpb = binary::loadCross(rd.cpb, v);
+		rd.cpb = binary::crossLoad(rd.cpb, v);
 		return SuccessE;
 	}
 	const uint8		*ps = reinterpret_cast<const uint8*>(rd.cpb);
@@ -1544,7 +1542,7 @@ template <>
 	uint16			&v = *reinterpret_cast<uint16*>(_rfd.p);
 	
 	if(vsz < len){
-		rd.cpb = binary::loadCross(rd.cpb, v);
+		rd.cpb = binary::crossLoad(rd.cpb, v);
 		return SuccessE;
 	}
 	const uint8		*ps = reinterpret_cast<const uint8*>(rd.cpb);
@@ -1570,7 +1568,7 @@ template <>
 	uint32			&v = *reinterpret_cast<uint32*>(_rfd.p);
 	
 	if(vsz < len){
-		rd.cpb = binary::loadCross(rd.cpb, v);
+		rd.cpb = binary::crossLoad(rd.cpb, v);
 		return SuccessE;
 	}
 	const uint8		*ps = reinterpret_cast<const uint8*>(rd.cpb);
@@ -1596,7 +1594,7 @@ template <>
 	uint64			&v = *reinterpret_cast<uint64*>(_rfd.p);
 	
 	if(vsz < len){
-		rd.cpb = binary::loadCross(rd.cpb, v);
+		rd.cpb = binary::crossLoad(rd.cpb, v);
 		idbgx(Debug::ser_bin, ""<<(rd.be - rd.cpb)<<" vsz = "<<vsz<<" len = "<<len);
 		return SuccessE;
 	}
