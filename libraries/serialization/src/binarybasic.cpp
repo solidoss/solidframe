@@ -22,7 +22,6 @@ char* crossStore(char *_pd, uint8 _v){
 	if(ok){
 		++pd;
 		if(sz){
-			cassert(sz == 1);
 			*pd = _v;
 		}
 		return _pd + sz + 1;
@@ -48,7 +47,6 @@ char* crossStore(char *_pd, uint16 _v){
 				*(pd + 1) = (_v & 0xff);
 				break;
 			default:
-				cassert(false);
 				return nullptr;
 		}
 		
@@ -91,7 +89,6 @@ char* crossStore(char *_pd, uint32 _v){
 				*(pd + 3) = (_v & 0xff);
 				break;
 			default:
-				cassert(false);
 				return nullptr;
 		}
 		
@@ -190,7 +187,6 @@ char* crossStore(char *_pd, uint64 _v){
 				*(pd + 7) = (_v & 0xff);
 				break;
 			default:
-				cassert(false);
 				return nullptr;
 		}
 		
@@ -216,7 +212,6 @@ const char* crossLoad(const char *_ps, uint8 &_val){
 				_val = *ps;
 				break;
 			default:
-				cassert(false);
 				return nullptr;
 		}
 
@@ -245,7 +240,6 @@ const char* crossLoad(const char *_ps, uint16 &_val){
 				_val |= static_cast<uint16>(*(ps + 1)) << 8;
 				break;
 			default:
-				cassert(false);
 				return nullptr;
 		}
 		return _ps + static_cast<size_t>(v) + 1;
@@ -284,7 +278,6 @@ const char* crossLoad(const char *_ps, uint32 &_val){
 				_val |= static_cast<uint32>(*(ps + 3)) << 24;
 				break;
 			default:
-				cassert(false);
 				return nullptr;
 		}
 		return _ps + static_cast<size_t>(v) + 1;
@@ -357,7 +350,6 @@ const char* crossLoad(const char *_ps, uint64 &_val){
 				_val |= static_cast<uint64>(*(ps + 7)) << 56;
 				break;
 			default:
-				cassert(false);
 				return nullptr;
 		}
 		return _ps + static_cast<size_t>(v) + 1;

@@ -10,7 +10,6 @@
 #ifndef SOLID_SERIALIZATION_TYPEIDMAP_HPP
 #define SOLID_SERIALIZATION_TYPEIDMAP_HPP
 
-#include "utility/common.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/function.hpp"
 #include "system/exception.hpp"
@@ -49,12 +48,6 @@ protected:
 			return _id.first.hash_code() ^ _id.second;
 		}
 	};
-	
-	struct ProtocolStub{
-		ProtocolStub():current_message_index(0){}
-		
-		size_t		current_message_index;
-	};
 
 	typedef std::unordered_map<CastIdT, CastFunctionT, CastHash>	CastMapT;
 	
@@ -62,7 +55,6 @@ protected:
 		FactoryFunctionT	factoryfnc;
 		LoadFunctionT		loadfnc;
 		StoreFunctionT		storefnc;
-		uint64				id;
 	};
 	
 	static ErrorConditionT error_no_cast();
@@ -70,9 +62,7 @@ protected:
 	
 	typedef std::vector<Stub>										StubVectorT;
 	
-	typedef std::unordered_map<std::type_index, size_t>				TypeIndexMapT;
-	typedef std::unordered_map<uint64, size_t>						MessageTypeIdMapT;
-	typedef std::unordered_map<size_t, ProtocolStub>				ProtocolMapT;
+	typedef std::unordered_map<std::type_index, uint32>				TypeIndexMapT;
 	
 	template <class F>
 	struct FactoryStub{
@@ -132,41 +122,26 @@ protected:
 		rpb = static_cast<Base*>(pd);
 	}
 protected:
-	TypeIdMapBase(){
+	TypeIdMapBase():crtidx(1){
 		stubvec.push_back(Stub());
 	}
 	
-	
-	bool findMessageIndex(const uint64 &_rid, size_t &_rindex) const ;
-	
-	size_t doAllocateNewIndex(const size_t _protocol_id, uint64 &_rid);
-	bool doFindMessageIndex(const size_t _protocol_id,  size_t _idx, uint64 &_rid) const ;
-	
 	template <class T, class StoreF, class LoadF, class FactoryF>
-	size_t doRegisterType(StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _protocol_id,  size_t _idx){
-		uint64	id;
+	size_t doRegisterType(StoreF _sf, LoadF _lf, FactoryF _ff, size_t _idx){
 		
 		if(_idx == 0){
-			_idx = doAllocateNewIndex(_protocol_id, id);
-		}else if(doFindMessageIndex(_protocol_id, _idx, id)){
-			return InvalidIndex();
+			_idx = crtidx;
+			++crtidx;
 		}
-		
-		size_t		vecidx = stubvec.size();
-		
-		typemap[std::type_index(typeid(T))] = vecidx;
-		msgidmap[id] = vecidx;
-		
-		stubvec.push_back(Stub());
+		if(_idx >= stubvec.size()){
+			stubvec.resize(_idx + 1);
+		}
 		stubvec[_idx].factoryfnc = _ff;
 		stubvec[_idx].loadfnc = _lf;
 		stubvec[_idx].storefnc = _sf;
-		stubvec[_idx].id = id;
-		
-		
+		typemap[std::type_index(typeid(T))] = _idx;
 		doRegisterCast<T, T>();
-		
-		return vecidx;
+		return _idx;
 	}
 	
 	template <class Derived, class Base>
@@ -204,11 +179,10 @@ protected:
 	}
 	
 protected:
-	TypeIndexMapT		typemap;
-	CastMapT			castmap;
-	StubVectorT			stubvec;
-	MessageTypeIdMapT	msgidmap;
-	ProtocolMapT		protomap;
+	TypeIndexMapT	typemap;
+	CastMapT		castmap;
+	StubVectorT		stubvec;
+	size_t			crtidx;
 };
 
 
@@ -226,19 +200,19 @@ public:
 		}
 	}
 	
-// 	template <class T>
-// 	ErrorConditionT store(Ser &_rs, T* _pt, const size_t _type_id, const char *_name) const {
-// 		if(_pt == nullptr){
-// 			return storeNullPointer(_rs, _name);
-// 		}else{
-// 			return storePointer(_rs, _pt, _type_id, _name);
-// 		}
-// 	}
+	template <class T>
+	ErrorConditionT store(Ser &_rs, T* _pt, const size_t _type_id, const char *_name) const {
+		if(_pt == nullptr){
+			return storeNullPointer(_rs, _name);
+		}else{
+			return storePointer(_rs, _pt, _type_id, _name);
+		}
+	}
 	
 private:
 	virtual ErrorConditionT storeNullPointer(Ser &_rs, const char *_name) const = 0;
 	virtual ErrorConditionT storePointer(Ser &_rs, void *_p, std::type_index const&, const char *_name) const = 0;
-	//virtual ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const = 0;
+	virtual ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const = 0;
 
 	TypeIdMapSer(TypeIdMapSer&&);
 	TypeIdMapSer& operator=(TypeIdMapSer&&);
@@ -289,18 +263,15 @@ public:
 	
 	
 	template <class T, class FactoryF>
-	size_t registerType(FactoryF _ff, const size_t _protocol_id, const size_t _idx = 0){
-		return TypeIdMapBase::doRegisterType<T>(
-			TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>,
-			_ff, _protocol_id, _idx
-		);
+	size_t registerType(FactoryF _ff, const size_t _idx = 0){
+		return TypeIdMapBase::doRegisterType<T>(TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>, _ff, _idx);
 	}
 	
 	template <class T, class StoreF, class LoadF, class FactoryF>
-	size_t registerType(StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _protocol_id, const size_t _idx = 0){
+	size_t registerType(StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _idx = 0){
 		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
 		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
-		return TypeIdMapBase::doRegisterType<T>(sf, lf, _ff, _protocol_id, _idx);
+		return TypeIdMapBase::doRegisterType<T>(sf, lf, _ff, _idx);
 	}
 	
 	template <class Derived, class Base>
@@ -326,13 +297,13 @@ private:
 		if(it != TypeIdMapBase::typemap.end()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[it->second];
 			rstub.storefnc(&_rs, _p, _name);
-			_rs.pushCross(rstub.id, _name); 
+			_rs.pushCrossValue(it->second, _name); 
 			return ErrorConditionT();
 		}
 		return TypeIdMapBase::error_no_type();
 	}
 	
-	/*virtual*/ /*ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const{
+	/*virtual*/ ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const{
 		if(_type_id < TypeIdMapBase::stubvec.size()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[_type_id];
 			rstub.storefnc(&_rs, _p, _name);
@@ -340,7 +311,7 @@ private:
 		}else{
 			return TypeIdMapBase::error_no_type();
 		}
-	}*/
+	}
 	
 	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
 		_rd.pushCross(_rv, _name);
@@ -354,16 +325,11 @@ private:
 		std::type_index const& _rtidx,		//type_index of the destination pointer
 		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
 	) const {
-		size_t									stubindex;
-		
-		if(!TypeIdMapBase::findMessageIndex(_riv, stubindex)){
-			return TypeIdMapBase::error_no_cast();
-		}
-		
-		TypeIdMapBase::CastMapT::const_iterator	it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, stubindex));
+		const size_t							typeindex = static_cast<size_t>(_riv);
+		TypeIdMapBase::CastMapT::const_iterator	it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, typeindex));
 		
 		if(it != TypeIdMapBase::castmap.end()){
-			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[stubindex];
+			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[typeindex];
 			void 						*realptr = rstub.factoryfnc();
 			
 			(*it->second)(realptr, _rptr);//store the pointer
@@ -377,8 +343,7 @@ private:
 		TypeIdMapBase::typemap.clear();
 		TypeIdMapBase::castmap.clear();
 		TypeIdMapBase::stubvec.clear();
-		TypeIdMapBase::msgidmap.clear();
-		TypeIdMapBase::protomap.clear();
+		TypeIdMapBase::crtidx = 1;
 	}
 private:
 	TypeIdMap(TypeIdMap const &);
@@ -402,33 +367,25 @@ public:
 	}
 	
 	template <class T, class FactoryF>
-	size_t registerType(Data const &_rd, FactoryF _ff, const size_t _protocol_id = 0, const size_t _idx = 0){
-		
-		const size_t rv = TypeIdMapBase::doRegisterType<T>(
-			TypeIdMapBase::store_pointer<T, Ser>,
-			TypeIdMapBase::load_pointer<T, Des>,
-			_ff, _protocol_id, _idx
-		);
-		
-		if(rv == InvalidIndex()){
-			return rv;
+	size_t registerType(Data const &_rd, FactoryF _ff, const size_t _idx = 0){
+		const size_t rv = TypeIdMapBase::doRegisterType<T>(TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>, _ff, _idx);
+		if(datavec.size() <= rv){
+			datavec.resize(rv + 1);
 		}
-		
-		datavec.push_back(_rd);
+		datavec[rv] = _rd;
 		return rv;
 	}
 	
 	template <class T, class StoreF, class LoadF, class FactoryF>
-	size_t registerType(Data const &_rd, StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _protocol_id = 0, const size_t _idx = 0){
+	size_t registerType(Data const &_rd, StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _idx = 0){
 		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
 		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
 		
-		const size_t rv = TypeIdMapBase::doRegisterType<T>(sf, lf, _ff, _protocol_id, _idx);
+		const size_t rv = TypeIdMapBase::doRegisterType<T>(sf, lf, _ff, _idx);
 		
-		if(rv == InvalidIndex()){
-			return rv;
+		if(datavec.size() <= rv){
+			datavec.resize(rv + 1);
 		}
-		
 		datavec[rv] = _rd;
 		return rv;
 	}
@@ -493,14 +450,14 @@ private:
 		if(it != TypeIdMapBase::typemap.end()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[it->second];
 			rstub.storefnc(&_rs, _p, _name);
-			_rs.pushCross(rstub.id, _name); 
+			_rs.pushCrossValue(it->second, _name); 
 			return ErrorConditionT();
 		}else{
 			return TypeIdMapBase::error_no_type();
 		}
 	}
 	
-	/*virtual*/ /*ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const{
+	/*virtual*/ ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const{
 		if(_type_id < TypeIdMapBase::stubvec.size()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[_type_id];
 			rstub.storefnc(&_rs, _p, _name);
@@ -508,7 +465,7 @@ private:
 		}else{
 			return TypeIdMapBase::error_no_type();
 		}
-	}*/
+	}
 	
 	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
 		_rd.pushCross(_rv, _name);
@@ -522,16 +479,11 @@ private:
 		std::type_index const& _rtidx,		//type_index of the destination pointer
 		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
 	) const {
-		size_t									stubindex;
-		
-		if(!TypeIdMapBase::findMessageIndex(_riv, stubindex)){
-			return TypeIdMapBase::error_no_cast();
-		}
-		
-		TypeIdMapBase::CastMapT::const_iterator	it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, stubindex));
+		const size_t							typeindex = static_cast<size_t>(_riv);
+		TypeIdMapBase::CastMapT::const_iterator	it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, typeindex));
 		
 		if(it != TypeIdMapBase::castmap.end()){
-			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[stubindex];
+			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[typeindex];
 			void 						*realptr = rstub.factoryfnc();
 			
 			(*it->second)(realptr, _rptr);//store the pointer
@@ -546,9 +498,7 @@ private:
 		TypeIdMapBase::typemap.clear();
 		TypeIdMapBase::castmap.clear();
 		TypeIdMapBase::stubvec.clear();
-		TypeIdMapBase::msgidmap.clear();
-		TypeIdMapBase::protomap.clear();
-		
+		TypeIdMapBase::crtidx = 1;
 		datavec.clear();
 	}
 	

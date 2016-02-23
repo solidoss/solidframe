@@ -16,6 +16,8 @@
 //#undef SOLID_HAS_DEBUG
 #include "system/thread.hpp"
 #include "system/debug.hpp"
+#include "system/cassert.hpp"
+
 #include "serialization/binary.hpp"
 #include "serialization/binarybasic.hpp"
 #include "system/socketaddress.hpp"
@@ -148,16 +150,16 @@ void test_basic(uint8 _v){
 	using namespace serialization::binary;
 	char	buf[32];
 	cout<<"store: "<<(int)_v<<" size = "<<crossSize(_v)<<endl;
-	storeCross(buf, _v);
+	crossStore(buf, _v);
 	//
-	uint16	v08;
+	uint8	v08;
 	uint16	v16;
 	uint32	v32;
 	uint64	v64;
-	loadCross(buf, v08);
-	loadCross(buf, v16);
-	loadCross(buf, v32);
-	loadCross(buf, v64);
+	crossLoad(buf, v08);
+	crossLoad(buf, v16);
+	crossLoad(buf, v32);
+	crossLoad(buf, v64);
 	cout<<"load: "<<(int)v08<<' '<<v16<<' '<<v32<<' '<<v64<<endl;
 }
 
@@ -165,16 +167,16 @@ void test_basic(uint16 _v){
 	using namespace serialization::binary;
 	char	buf[32];
 	cout<<"store: "<<_v<<" size = "<<crossSize(_v)<<endl;
-	storeCross(buf, _v);
+	crossStore(buf, _v);
 	//
 	uint8	v08;
 	uint16	v16;
 	uint32	v32;
 	uint64	v64;
-	loadCross(buf, v08);
-	loadCross(buf, v16);
-	loadCross(buf, v32);
-	loadCross(buf, v64);
+	crossLoad(buf, v08);
+	crossLoad(buf, v16);
+	crossLoad(buf, v32);
+	crossLoad(buf, v64);
 	cout<<"load: "<<(int)v08<<' '<<v16<<' '<<v32<<' '<<v64<<endl;
 }
 
@@ -182,16 +184,16 @@ void test_basic(uint32 _v){
 	using namespace serialization::binary;
 	char	buf[32];
 	cout<<"store: "<<_v<<" size = "<<crossSize(_v)<<endl;
-	storeCross(buf, _v);
+	crossStore(buf, _v);
 	//
 	uint8	v08;
 	uint16	v16;
 	uint32	v32;
 	uint64	v64;
-	loadCross(buf, v08);
-	loadCross(buf, v16);
-	loadCross(buf, v32);
-	loadCross(buf, v64);
+	crossLoad(buf, v08);
+	crossLoad(buf, v16);
+	crossLoad(buf, v32);
+	crossLoad(buf, v64);
 	cout<<"load: "<<(int)v08<<' '<<v16<<' '<<v32<<' '<<v64<<endl;
 }
 
@@ -199,16 +201,16 @@ void test_basic(uint64 _v){
 	using namespace serialization::binary;
 	char	buf[32];
 	cout<<"store: "<<_v<<" size = "<<crossSize(_v)<<endl;
-	storeCross(buf, _v);
+	crossStore(buf, _v);
 	//
 	uint8	v08;
 	uint16	v16;
 	uint32	v32;
 	uint64	v64;
-	loadCross(buf, v08);
-	loadCross(buf, v16);
-	loadCross(buf, v32);
-	loadCross(buf, v64);
+	crossLoad(buf, v08);
+	crossLoad(buf, v16);
+	crossLoad(buf, v32);
+	crossLoad(buf, v64);
 	cout<<"load: "<<(unsigned)v08<<' '<<v16<<' '<<v32<<' '<<v64<<endl;
 }
 

@@ -1,6 +1,7 @@
 #==============================================================================
 set( SerializationTestSuite
 	test_binarybasic.cpp
+	test_typeidjoin.cpp
 )
 
 create_test_sourcelist( SerializationTests test_serialization.cpp ${SerializationTestSuite})
@@ -16,6 +17,7 @@ target_link_libraries(test_serialization
 
 add_test( TestSerialization test_serialization
 	test_binarybasic
+	test_typeidjoin
 )
 
 #==============================================================================

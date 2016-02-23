@@ -169,6 +169,7 @@ protected:
 		ERR_REINIT,
 		ERR_NO_TYPE_MAP,
 		ERR_DESERIALIZE_VALUE,
+		ERR_CROSS_VALUE_SMALL
 	};
 	struct FncData;
 	typedef ReturnValues (*FncT)(Base &, FncData &, void*);
@@ -1105,14 +1106,17 @@ protected:
 	static ReturnValues loadCrossDone(Base& _rd, FncData &_rfd, void */*_pctx*/){
 		DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
 		
-		if(!rd.cpb){
-			rd.estk.pop();
-			return SuccessE;
-		}
+		if(!rd.cpb)	return SuccessE;
+		
 		T	&v = *reinterpret_cast<T*>(_rfd.p);
-		v = static_cast<T>(rd.estk.top().u64());
-		rd.estk.pop();
-		return SuccessE;
+		
+		const char *p =  binary::crossLoad(rd.tmpstr.data(), v);
+		if(p){
+			return SuccessE;
+		}else{
+			rd.err = make_error(ERR_CROSS_VALUE_SMALL);
+			return FailureE;
+		}
 	}
 	
 	static ReturnValues loadCrossContinue(Base& _rd, FncData &_rfd, void */*_pctx*/);
