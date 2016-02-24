@@ -91,12 +91,20 @@ protected:
 		rs.push(rt, _name);
 	}
 	
+	
+	static void store_nullptr(void *_pser, void *_pt, const char *_name){
+	}
+	
 	template <class T, class Des>
 	static void load_pointer(void *_pser, void *_pt, const char *_name){
 		Des &rs = *(reinterpret_cast<Des*>(_pser));
 		T	&rt = *(reinterpret_cast<T*>(_pt));
 		
 		rs.push(rt, _name);
+	}
+	
+	
+	static void load_nullptr(void *_pser, void *_pt, const char *_name){
 	}
 	
 	template <class F, class T, class Ser>
@@ -131,9 +139,23 @@ protected:
 		Base 	*&rpb = *reinterpret_cast<Base**>(_pbase);
 		rpb = static_cast<Base*>(pd);
 	}
+	
+	template <class T>
+	static void cast_void_pointer(void *_pderived, void* _pbase){
+		T 	*&rpb = *reinterpret_cast<T**>(_pbase);
+		rpb = reinterpret_cast<T*>(_pderived);
+	}
+	
 protected:
 	TypeIdMapBase(){
+		//register nullptr
 		stubvec.push_back(Stub());
+		stubvec.back().factoryfnc = [](){return nullptr;};
+		stubvec.back().loadfnc = load_nullptr;
+		stubvec.back().storefnc = store_nullptr;
+		stubvec.back().id = 0;
+		
+		msgidmap[0] = 0;
 	}
 	
 	
@@ -158,13 +180,14 @@ protected:
 		msgidmap[id] = vecidx;
 		
 		stubvec.push_back(Stub());
-		stubvec[_idx].factoryfnc = _ff;
-		stubvec[_idx].loadfnc = _lf;
-		stubvec[_idx].storefnc = _sf;
-		stubvec[_idx].id = id;
+		stubvec.back().factoryfnc = _ff;
+		stubvec.back().loadfnc = _lf;
+		stubvec.back().storefnc = _sf;
+		stubvec.back().id = id;
 		
 		
 		doRegisterCast<T, T>();
+		doRegisterCast<T>();
 		
 		return vecidx;
 	}
@@ -196,6 +219,20 @@ protected:
 		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(Derived)));
 		if(it != TypeIdMapBase::typemap.end()){
 			castmap[CastIdT(std::type_index(typeid(Base)), it->second)] = &cast_pointer<Base, Derived>;
+			castmap[CastIdT(std::type_index(typeid(Derived)), 0)] = &cast_void_pointer<Derived>;
+			castmap[CastIdT(std::type_index(typeid(Base)), 0)] = &cast_void_pointer<Base>;
+			return true;
+		}else{
+			THROW_EXCEPTION("Derived type not registered");
+			return false;
+		}
+	}
+	
+	template <class Derived>
+	bool doRegisterCast(){
+		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(Derived)));
+		if(it != TypeIdMapBase::typemap.end()){
+			castmap[CastIdT(std::type_index(typeid(Derived)), 0)] = &cast_void_pointer<Derived>;
 			return true;
 		}else{
 			THROW_EXCEPTION("Derived type not registered");
@@ -354,6 +391,7 @@ private:
 		std::type_index const& _rtidx,		//type_index of the destination pointer
 		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
 	) const {
+		
 		size_t									stubindex;
 		
 		if(!TypeIdMapBase::findMessageIndex(_riv, stubindex)){
@@ -429,7 +467,7 @@ public:
 			return rv;
 		}
 		
-		datavec[rv] = _rd;
+		datavec.push_back(_rd);
 		return rv;
 	}
 	
