@@ -263,19 +263,19 @@ public:
 		}
 	}
 	
-// 	template <class T>
-// 	ErrorConditionT store(Ser &_rs, T* _pt, const size_t _type_id, const char *_name) const {
-// 		if(_pt == nullptr){
-// 			return storeNullPointer(_rs, _name);
-// 		}else{
-// 			return storePointer(_rs, _pt, _type_id, _name);
-// 		}
-// 	}
+	template <class T>
+	ErrorConditionT store(Ser &_rs, T* _pt, const size_t _type_id, const char *_name) const {
+		if(_pt == nullptr){
+			return storeNullPointer(_rs, _name);
+		}else{
+			return storePointer(_rs, _pt, _type_id, _name);
+		}
+	}
 	
 private:
 	virtual ErrorConditionT storeNullPointer(Ser &_rs, const char *_name) const = 0;
 	virtual ErrorConditionT storePointer(Ser &_rs, void *_p, std::type_index const&, const char *_name) const = 0;
-	//virtual ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const = 0;
+	virtual ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const = 0;
 
 	TypeIdMapSer(TypeIdMapSer&&);
 	TypeIdMapSer& operator=(TypeIdMapSer&&);
@@ -369,15 +369,16 @@ private:
 		return TypeIdMapBase::error_no_type();
 	}
 	
-	/*virtual*/ /*ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const{
+	/*virtual*/ ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const{
 		if(_type_id < TypeIdMapBase::stubvec.size()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[_type_id];
 			rstub.storefnc(&_rs, _p, _name);
+			_rs.pushCross(rstub.id, _name); 
 			return ErrorConditionT();
 		}else{
 			return TypeIdMapBase::error_no_type();
 		}
-	}*/
+	}
 	
 	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
 		_rd.pushCross(_rv, _name);
@@ -531,22 +532,23 @@ private:
 		if(it != TypeIdMapBase::typemap.end()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[it->second];
 			rstub.storefnc(&_rs, _p, _name);
-			_rs.pushCross(rstub.id, _name); 
+			_rs.pushCross(rstub.id, _name);
 			return ErrorConditionT();
 		}else{
 			return TypeIdMapBase::error_no_type();
 		}
 	}
 	
-	/*virtual*/ /*ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const{
+	/*virtual*/ ErrorConditionT storePointer(Ser &_rs, void *_p, const size_t _type_id, const char *_name) const{
 		if(_type_id < TypeIdMapBase::stubvec.size()){
 			TypeIdMapBase::Stub const & rstub = TypeIdMapBase::stubvec[_type_id];
 			rstub.storefnc(&_rs, _p, _name);
+			_rs.pushCross(rstub.id, _name);
 			return ErrorConditionT();
 		}else{
 			return TypeIdMapBase::error_no_type();
 		}
-	}*/
+	}
 	
 	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
 		_rd.pushCross(_rv, _name);

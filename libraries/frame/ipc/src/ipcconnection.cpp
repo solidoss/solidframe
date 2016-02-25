@@ -108,7 +108,7 @@ inline void Connection::doOptimizeRecvBufferForced(){
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
-	SocketDevice &_rsd
+	SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
 ):	sock(this->proxy(), std::move(_rsd)), timer(this->proxy()),
 	crtpushvecidx(0), flags(0), atomic_flags(0), receivebufoff(0), consumebufoff(0),
 	receive_keepalive_count(0),
@@ -223,9 +223,7 @@ bool Connection::directPushMessage(
 	frame::aio::ReactorContext &_rctx,
 	MessageBundle &_rmsgbundle,
 	MessageId *_pmsguid,
-	const MessageId &_rpool_msg_id,
-	bool &_can_accept_more_messages,
-	const bool _force/* = false*/
+	const MessageId &_rpool_msg_id
 ){
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
@@ -237,7 +235,7 @@ bool Connection::directPushMessage(
 		{
 			Locker<Mutex>		lock(service(_rctx).mutex(*this));
 			
-			if(not _force and Message::is_asynchronous(_rmsgbundle.message_flags)){
+			if(Message::is_asynchronous(_rmsgbundle.message_flags)){
 				msguid = msgwriter.safeNewMessageId(rconfig);
 			}else{
 				msguid = msgwriter.safeForcedNewMessageId();

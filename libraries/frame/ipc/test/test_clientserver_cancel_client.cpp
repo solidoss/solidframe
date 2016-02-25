@@ -167,7 +167,7 @@ void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	_rctx.service().activateConnection(_rctx.recipientId());
+	_rctx.service().postConnectionActivate(_rctx.recipientId());
 }
 
 void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
@@ -176,7 +176,7 @@ void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	_rctx.service().activateConnection(_rctx.recipientId());
+	_rctx.service().postConnectionActivate(_rctx.recipientId());
 }
 
 

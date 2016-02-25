@@ -622,13 +622,6 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 		
 		_rmsgstub.serializer_ptr->push(_rmsgstub.msgbundle.message_ptr, _rmsgstub.msgbundle.message_type_id, "message");
 		
-		bool 		rv = compute_value_with_crc(current_message_type_id, _rmsgstub.msgbundle.message_type_id);
-		cassert(rv);(void)rv;
-		
-		//Not sending by value (pushCrossValue), in order to avoid an unnecessary 
-		//"ext" data allocation in serializer.
-		_rmsgstub.serializer_ptr->pushCross(current_message_type_id, "message_type_id");
-		
 	}else if(_rmsgstub.isCanceled()){
 		
 		if(_rmsgstub.packet_count == 0){

@@ -163,7 +163,7 @@ inline size_t max_padded_byte_cout(uint64 _v){
 //---
 
 //=============================================================================
-#if 0
+#if 1
 template <class It, class Cmp>
 size_t find_cmp(It _it, Cmp const &, SizeToType<1> _s){
 	return 0;

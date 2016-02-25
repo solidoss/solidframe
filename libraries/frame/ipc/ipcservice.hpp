@@ -360,27 +360,27 @@ public:
 	//----------------------
 	
 	ErrorConditionT forcedConnectionClose(
-		RecipientId const &_rconnection_uid
+		RecipientId const &_rrecipient_id
 	);
 	
 	ErrorConditionT delayedConnectionClose(
-		RecipientId const &_rconnection_uid
+		RecipientId const &_rrecipient_id
 	);
 	
 	ErrorConditionT postConnectionActivate(
-		RecipientId const &_rconnection_uid
+		RecipientId const &_rrecipient_id
 	){
 		ActivateConnectionMessageFactoryFunctionT	msgfactory;
-		return doPostConnectionActivate(_rconnection_uid, msgfactory);
+		return doPostConnectionActivate(_rrecipient_id, std::move(msgfactory));
 	}
 	
 	template <class MF>
 	ErrorConditionT postConnectionActivate(
-		RecipientId const &_rconnection_uid,
+		RecipientId const &_rrecipient_id,
 		MF _msgfactory
 	){
 		ActivateConnectionMessageFactoryFunctionT	msgfactory(_msgfactory);
-		return doPostConnectionActivate(_rconnection_uid, msgfactory);
+		return doPostConnectionActivate(_rrecipient_id, std::move(msgfactory));
 	}
 	
 	ErrorConditionT cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsg_id);
@@ -450,20 +450,32 @@ private:
 	};
 	
 	template <class T, class FactoryFnc>
-	size_t registerType(FactoryFnc _facf, size_t _idx = 0){
+	size_t registerType(
+		FactoryFnc _facf,
+		const size_t _protocol_id,
+		const size_t _idx = 0
+	){
 		TypeStub ts;
-		size_t rv = tm.registerType<T>(_facf, ts, _idx);
+		size_t rv = tm.registerType<T>(_facf, ts, _protocol_id, _idx);
 		registerCast<T, ipc::Message>();
 		return rv;
 	}
 	
 	template <class T, class FactoryFnc, class ReceiveFnc/*, class PrepareFnc*/, class CompleteFnc>
-	size_t registerType(FactoryFnc _facf, ReceiveFnc _rcvf/*, PrepareFnc _prepf*/, CompleteFnc _cmpltf, size_t _idx = 0){
+	size_t registerType(
+		FactoryFnc _facf, ReceiveFnc _rcvf/*, PrepareFnc _prepf*/,
+		CompleteFnc _cmpltf,
+		const size_t _protocol_id,
+		const size_t _idx = 0
+	){
 		TypeStub ts;
 		ts.complete_fnc = MessageCompleteFunctionT(CompleteProxy<CompleteFnc, T>(_cmpltf));
 		//ts.prepare_fnc = MessagePrepareFunctionT(PrepareProxy<PrepareFnc, T>(_prepf));
 		ts.receive_fnc = MessageReceiveFunctionT(ReceiveProxy<ReceiveFnc, T>(_rcvf));
-		size_t rv = tm.registerType<T>(ts, Message::serialize<SerializerT, T>, Message::serialize<DeserializerT, T>, _facf, _idx);
+		size_t rv = tm.registerType<T>(
+			ts, Message::serialize<SerializerT, T>, Message::serialize<DeserializerT, T>, _facf,
+			_protocol_id, _idx
+		);
 		registerCast<T, ipc::Message>();
 		return rv;
 	}
@@ -504,7 +516,7 @@ private:
 	);
 	
 	ErrorConditionT doNotifyConnectionPushMessage(
-		ObjectIdT const &_robjuid,
+		const RecipientId	&_rrecipient_id_in,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ResponseHandlerFunctionT &_rresponse_fnc,
@@ -512,22 +524,6 @@ private:
 		ulong _flags
 	);
 	
-	ErrorConditionT doNotifyConnectionPushMessage(
-		ObjectIdT const &_robjuid,
-		const size_t _msg_idx,
-		const size_t _pool_idx,
-		RecipientId *_precipient_id_out
-	);
-	
-	ErrorConditionT doNotifyConnectionDelayedClose(
-		ObjectIdT const &_robjuid
-	);
-	
-	ErrorConditionT doNotifyConnectionActivate(
-		ObjectIdT const &_robjuid,
-		ConnectionPoolId const &_rconpooluid,
-		bool & _raccepted_connection_out
-	);
 	
 	void doFetchUnsentMessagesFromConnection(
 		Connection &_rcon, aio::ReactorContext &_rctx, const size_t _conpoolindex
@@ -548,12 +544,20 @@ private:
 
 struct ServiceProxy{
 	template <class T, class FactoryFnc, class ReceiveFnc/*, class PrepareFnc*/, class CompleteFnc>
-	size_t registerType(FactoryFnc _facf, ReceiveFnc _rcvf/*, PrepareFnc _prepf*/, CompleteFnc _cmpltf, size_t _idx = 0){
-		return rservice.registerType<T>(_facf, _rcvf/*, _prepf*/, _cmpltf, _idx);
+	size_t registerType(
+		FactoryFnc _facf, ReceiveFnc _rcvf/*, PrepareFnc _prepf*/,
+		CompleteFnc _cmpltf,
+		const size_t _protocol_id = 0,
+		const size_t _idx = 0
+	){
+		return rservice.registerType<T>(_facf, _rcvf/*, _prepf*/, _cmpltf, _protocol_id, _idx);
 	}
 	template <class T, class FactoryFnc>
-	size_t registerType(FactoryFnc _facf, size_t _idx = 0){
-		return rservice.registerType<T>(_facf, _idx);
+	size_t registerType(FactoryFnc _facf,
+		const size_t _protocol_id = 0,
+		const size_t _idx = 0
+	){
+		return rservice.registerType<T>(_facf, _protocol_id, _idx);
 	}
 private:
 	friend class Service;

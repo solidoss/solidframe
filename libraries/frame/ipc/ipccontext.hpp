@@ -129,6 +129,7 @@ private:
 	friend class Service;
 	friend class Connection;
 	friend class MessageWriter;
+	friend struct ConnectionPoolStub;
 	
 	friend std::ostream& operator<<(std::ostream &_ros, MessageId const &_msguid);
 	size_t		index;

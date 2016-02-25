@@ -123,9 +123,7 @@ public:
 		frame::aio::ReactorContext &_rctx,
 		MessageBundle &_rmsgbundle,
 		MessageId *_pmsguid,
-		const MessageId &_rpool_msg_id,
-		bool &_can_accept_more_messages,
-		const bool _force = false
+		const MessageId &_rpool_msg_id
 	);
 	
 	bool prepareActivate(
