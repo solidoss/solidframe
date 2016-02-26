@@ -119,11 +119,11 @@ public:
 		ErrorConditionT &_rerror
 	);
 	
-	bool directPushMessage(
+	bool tryPushMessage(
 		frame::aio::ReactorContext &_rctx,
 		MessageBundle &_rmsgbundle,
-		MessageId *_pmsguid,
-		const MessageId &_rpool_msg_id
+		MessageId *_pmsguid = nullptr,
+		const MessageId &_rpool_msg_id = MessageId()
 	);
 	
 	bool prepareActivate(
@@ -137,6 +137,8 @@ public:
 	bool isInPoolWaitingQueue() const;
 	
 	void setInPoolWaitingQueue();
+	
+	void setShouldWaitPool(const bool _v);
 	
 	bool isServer()const;
 	

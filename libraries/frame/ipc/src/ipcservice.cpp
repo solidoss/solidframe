@@ -490,7 +490,7 @@ ErrorConditionT Service::doSendMessage(
 	MessagePointerT &_rmsgptr,
 	ResponseHandlerFunctionT &_rresponse_fnc,
 	RecipientId *_precipient_id_out,
-	MessageId *_pmsguid_out,
+	MessageId *_pmsgid_out,
 	ulong _flags
 ){
 	solid::ErrorConditionT		error;
@@ -516,7 +516,7 @@ ErrorConditionT Service::doSendMessage(
 			_rmsgptr,
 			msg_type_idx,
 			_rresponse_fnc,
-			_pmsguid_out,
+			_pmsgid_out,
 			_flags
 		);
 	}else if(_recipient_name){
@@ -533,7 +533,7 @@ ErrorConditionT Service::doSendMessage(
 			
 			return this->doSendMessageToNewPool(
 				_recipient_name, _rmsgptr, msg_type_idx,
-				_rresponse_fnc, _precipient_id_out, _pmsguid_out, _flags
+				_rresponse_fnc, _precipient_id_out, _pmsgid_out, _flags
 			);
 		}
 	}else if(
@@ -573,14 +573,14 @@ ErrorConditionT Service::doSendMessage(
 	//because from now on we can call complete on the message
 	const MessageId msgid = rconpool.pushBackMessage(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags);
 	
-	if(_pmsguid_out){
+	if(_pmsgid_out){
 		
 		MessageStub			&rmsgstub(rconpool.msgvec[msgid.index]);
 		
 		rmsgstub.makeCancelable();
 		
-		*_pmsguid_out = msgid;
-		idbgx(Debug::ipc, this<<" set message id to "<<*_pmsguid_out);
+		*_pmsgid_out = msgid;
+		idbgx(Debug::ipc, this<<" set message id to "<<*_pmsgid_out);
 	}
 	
 	bool success = false;
@@ -606,7 +606,7 @@ ErrorConditionT Service::doSendMessage(
 		rconpool.conn_waitingq.pop();
 		
 		
-		const bool		success = manager().notify(
+		success = manager().notify(
 			objuid,
 			Connection::newMessageEvent()
 		);
@@ -651,7 +651,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	const size_t _msg_type_idx,
 	ResponseHandlerFunctionT &_rresponse_fnc,
 	RecipientId *_precipient_id_out,
-	MessageId *_pmsguid_out,
+	MessageId *_pmsgid_out,
 	ulong _flags
 ){
 	solid::ErrorConditionT		error;
@@ -700,26 +700,25 @@ ErrorConditionT Service::doSendMessageToNewPool(
 		_precipient_id_out->poolid = ConnectionPoolId(pool_idx, rconpool.unique);
 	}
 	
-	if(_pmsguid_out){
+	if(_pmsgid_out){
 		MessageStub	&rmsgstub = rconpool.msgvec[msgid.index];
 		
-		*_pmsguid_out = MessageId(msgid.index, rmsgstub.unique);
+		*_pmsgid_out = MessageId(msgid.index, rmsgstub.unique);
 		rmsgstub.makeCancelable();
 	}
 	
 	return error;
 }
+
 //-----------------------------------------------------------------------------
+
 void Service::checkPoolForNewMessages(
 	Connection &_rcon,
 	aio::ReactorContext &_rctx,
-	ObjectIdT const &_robjuid,
-	const bool _connection_has_no_message_to_send
+	ObjectIdT const &_robjuid
 ){
 	Locker<Mutex>			lock2(d.connectionPoolMutex(_rcon.poolId().index));
 	ConnectionPoolStub 		&rconpool(d.conpooldq[_rcon.poolId().index]);
-	
-	bool					connection_can_accept_more_message = true;
 	
 	cassert(rconpool.unique == _rcon.poolId().unique);
 	if(rconpool.unique != _rcon.poolId().unique) return;
@@ -740,104 +739,87 @@ void Service::checkPoolForNewMessages(
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon<<" messages in pool: "<<rconpool.msgorder_inner_list.size());
 	
-	if(rconpool.msgorder_inner_list.size()){
-		
-		const size_t	msg_idx = rconpool.msgorder_inner_list.frontIndex();
-		MessageStub		&rmsgstub = rconpool.msgvec[msg_idx];
-		
-		
-		MessageId 		*pmsgid = nullptr;
-		MessageId		pool_msg_id;
+	const bool 				connection_can_handle_synchronous_messages{
+		_robjuid == rconpool.synchronous_connection_id or
+		rconpool.synchronous_connection_id.isInvalid()
+	};
 	
-		//we have something to send
-		if(
-			Message::is_asynchronous(rmsgstub.msgbundle.message_flags) or 
-			this->manager().id(_rcon) == rconpool.synchronous_connection_id
-		){
-			
-			if(rmsgstub.isCancelable()){
-				pmsgid = &rmsgstub.msgid;
-				pool_msg_id = MessageId(msg_idx, rmsgstub.unique);
-				rmsgstub.objid = _robjuid;
-				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
-				rconpool.popFrontMessage();
-			}else{
-				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
-				rconpool.cacheFrontMessage();
-			}
-		}else if(rconpool.synchronous_connection_id.isInvalid()){
-			
-			if(rmsgstub.isCancelable()){
-				pmsgid = &rmsgstub.msgid;
-				pool_msg_id = MessageId(msg_idx, rmsgstub.unique);
-				rmsgstub.objid = _robjuid;
+	bool					connection_can_handle_more_messages = true;
+	bool					pushed_synchronous_message = false;
+	auto 					handle_message = [
+		this, &rconpool, &_robjuid, &_rcon, &_rctx,
+		&pushed_synchronous_message
+	](const size_t msg_idx){
+		
+		MessageStub		&rmsgstub = rconpool.msgvec[msg_idx];
+		const bool		message_is_synchronous = Message::is_asynchronous(rmsgstub.msgbundle.message_flags);
+		
+		if(rmsgstub.isCancelable()){
+			MessageId 		*pmsgid = &rmsgstub.msgid;
+			MessageId		pool_msg_id = MessageId(msg_idx, rmsgstub.unique);
+			rmsgstub.objid = _robjuid;
+			if(_rcon.tryPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id)){
+				rconpool.msgorder_inner_list.erase(msg_idx);
 				
-				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
-			
-				rconpool.synchronous_connection_id = this->manager().id(_rcon);
-				rconpool.popFrontMessage();
+				if(message_is_synchronous){
+					pushed_synchronous_message = true;
+				}else{
+					rconpool.msgasync_inner_list.erase(msg_idx);
+				}
 			}else{
-				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id);
-			
-				rconpool.synchronous_connection_id = this->manager().id(_rcon);
-				rconpool.cacheFrontMessage();
-				rmsgstub.clear();
-				cassert(rconpool.msgorder_inner_list.check());
+				return false;
 			}
 		}else{
-			
-			//worse case scenario - we must skip the current synchronous message
-			//and find an asynchronous one
-			size_t		qsz = rconpool.msgorder_inner_list.size();
-			bool		found = false;
-			
-			while(qsz--){
-
-				const size_t	crt_msg_idx = rconpool.msgorder_inner_list.frontIndex();
-				MessageStub		&crt_msgstub(rconpool.msgvec[crt_msg_idx]);
+			if(_rcon.tryPushMessage(_rctx, rmsgstub.msgbundle)){
+				rconpool.msgorder_inner_list.erase(msg_idx);
 				
-				rconpool.msgorder_inner_list.popFront();
-				
-				if(not found and Message::is_asynchronous(crt_msgstub.msgbundle.message_flags)){
-					
-					found = true;
-					
-					if(crt_msgstub.isCancelable()){
-						pmsgid = &crt_msgstub.msgid;
-						pool_msg_id = MessageId(crt_msg_idx, rmsgstub.unique);
-						crt_msgstub.objid = _robjuid;
-						
-						_rcon.directPushMessage(_rctx, crt_msgstub.msgbundle, pmsgid, pool_msg_id);
-						crt_msgstub.clear();
-					}else{
-						_rcon.directPushMessage(_rctx, crt_msgstub.msgbundle, pmsgid, pool_msg_id);
-						rconpool.msgcache_inner_list.pushBack(crt_msg_idx);
-					}
-					
+				if(message_is_synchronous){
+					pushed_synchronous_message = true;
 				}else{
-					rconpool.msgorder_inner_list.pushBack(crt_msg_idx);
-					cassert(rconpool.msgorder_inner_list.check());
+					rconpool.msgasync_inner_list.erase(msg_idx);
 				}
+				
+				rconpool.msgcache_inner_list.pushBack(msg_idx);
+				rmsgstub.clear();
+			}else{
+				return false;
 			}
-			idbgx(Debug::ipc, "msgorder_inner_list "<<rconpool.msgorder_inner_list);
-			
-			if(not found and _connection_has_no_message_to_send){
-				rconpool.conn_waitingq.push(this->manager().id(_rcon));
-			}
-		
 		}
-		
+		return true;
+	};
+	
+	bool					is_queue_not_empty = true;
+	
+	if(connection_can_handle_synchronous_messages){
+		//use the order inner queue
+		is_queue_not_empty = rconpool.msgorder_inner_list.size() != 0;
+		if(is_queue_not_empty and connection_can_handle_more_messages){
+			connection_can_handle_more_messages = handle_message(rconpool.msgorder_inner_list.frontIndex());
+		}
+	}else{
+		//use the async inner queue
+		is_queue_not_empty = rconpool.msgasync_inner_list.size() != 0;
+		if(is_queue_not_empty and connection_can_handle_more_messages){
+			connection_can_handle_more_messages = handle_message(rconpool.msgasync_inner_list.frontIndex());
+		}
 	}
 	
-	if(not _rcon.isInPoolWaitingQueue() and (_connection_has_no_message_to_send or connection_can_accept_more_message)){
+	if(pushed_synchronous_message and rconpool.synchronous_connection_id.isInvalid()){
+		rconpool.synchronous_connection_id = _robjuid;
+	}
+	
+	//connection WILL not check for new message if it is full
+	//connection WILL check for new messages when become not full
+	//connection may not check for new messages if (/*isInPoolWaitingQueue and */shouldWaitPool())
+	
+	const bool	is_queue_empty = not is_queue_not_empty;
+	
+	if(connection_can_handle_more_messages and not _rcon.isInPoolWaitingQueue() and is_queue_empty){
 		rconpool.conn_waitingq.push(_robjuid);
 		_rcon.setInPoolWaitingQueue();
 	}
 	
-	if(_connection_has_no_message_to_send){
-		rconpool.conn_waitingq.push(this->manager().id(_rcon));
-	}
-	
+	_rcon.setShouldWaitPool(is_queue_empty and _rcon.isInPoolWaitingQueue());
 }
 
 //-----------------------------------------------------------------------------
@@ -855,24 +837,26 @@ ErrorConditionT Service::doNotifyConnectionPushMessage(
 		return error_connection_inexistent;//TODO: more explicit error
 	}
 	
-	const size_t	pool_idx = _rrecipient_id_in.poolId().index;
+	const size_t					pool_idx = _rrecipient_id_in.poolId().index;
 	
 	if(pool_idx >= d.conpooldq.size() or d.conpooldq[pool_idx].unique != _rrecipient_id_in.poolId().unique){
 		return error_connection_inexistent;//TODO: more explicit error
 	}
 	
-	Locker<Mutex>				lock2(d.connectionPoolMutex(pool_idx));
-	ConnectionPoolStub			&rconpool = d.conpooldq[pool_idx];
-	solid::ErrorConditionT		error;
 	
-	const bool					is_server_side_pool = rconpool.name.empty();//unnamed pool has a single connection
 	
-	MessageId 					msgid;
 	
-	bool						success = false;
+	Locker<Mutex>					lock2(d.connectionPoolMutex(pool_idx));
+	ConnectionPoolStub				&rconpool = d.conpooldq[pool_idx];
+	solid::ErrorConditionT			error;
+	const bool						is_server_side_pool = rconpool.name.empty();//unnamed pool has a single connection
+	
+	MessageId 						msgid;
+	
+	bool							success = false;
 	
 	if(is_server_side_pool){
-		//push the message into rconpool.msgorder_inner_list
+		//for a server pool we want to enque messages in the pool
 		//
 		msgid = rconpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
 		success = manager().notify(
@@ -887,14 +871,11 @@ ErrorConditionT Service::doNotifyConnectionPushMessage(
 		);
 	}
 	
-	success = manager().notify(
-		_rrecipient_id_in.connectionId(),
-		is_server_side_pool ? Connection::newMessageEvent() : Connection::newMessageEvent(msgid)
-	);
-	
 	if(success){
 		if(_pmsgid_out){
 			*_pmsgid_out = msgid;
+			MessageStub	&rmsgstub = rconpool.msgvec[msgid.index];
+			rmsgstub.makeCancelable();
 		}
 	}else if(is_server_side_pool){
 		rconpool.clearPopAndCacheMessage(msgid.index);
@@ -1084,7 +1065,7 @@ void Service::onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, O
 			while(rconpool.msgorder_inner_list.size()){
 				MessageStub 	&rmsgstub = rconpool.msgorder_inner_list.front();
 				MessageId		pool_msg_id(rconpool.msgorder_inner_list.frontIndex(), rmsgstub.unique);
-				_rcon.directPushMessage(_rctx, rmsgstub.msgbundle, nullptr, pool_msg_id);
+				_rcon.tryPushMessage(_rctx, rmsgstub.msgbundle, nullptr, pool_msg_id);
 				
 				rconpool.cacheFrontMessage();
 			}

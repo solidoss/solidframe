@@ -219,7 +219,7 @@ bool Connection::pushCanceledMessage(
 	return true;
 }
 //-----------------------------------------------------------------------------
-bool Connection::directPushMessage(
+bool Connection::tryPushMessage(
 	frame::aio::ReactorContext &_rctx,
 	MessageBundle &_rmsgbundle,
 	MessageId *_pmsguid,
@@ -838,7 +838,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				isActive() and
 				msgwriter.hasFreeSeats(rconfig)
 			){
-				service(_rctx).checkPoolForNewMessages(*this, _rctx, uid(_rctx), msgwriter.empty());
+				service(_rctx).checkPoolForNewMessages(*this, _rctx, uid(_rctx));
 			}
 			
 #if 0

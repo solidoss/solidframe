@@ -409,8 +409,7 @@ private:
 	void checkPoolForNewMessages(
 		Connection &_rcon,
 		aio::ReactorContext &_rctx,
-		ObjectIdT const &_robjuid,
-		const bool _has_no_message_to_send
+		ObjectIdT const &_robjuid
 	);
 	
 	

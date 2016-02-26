@@ -101,8 +101,9 @@ public:
 	void freeSendBuffer(char *_pb)const;
 	
 	AioSchedulerT						*psch;
-	size_t								max_per_pool_connection_count;
-	size_t								min_per_pool_dormant_connection_count;
+	size_t								pool_max_connection_count;
+	size_t								pool_min_dormant_connection_count;
+	size_t								pool_max_message_queue_size;//TODO:implement this limitation
 	size_t								session_mutex_count;
 	
 	size_t								max_writer_multiplex_message_count;
