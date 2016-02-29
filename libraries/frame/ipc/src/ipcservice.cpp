@@ -598,24 +598,15 @@ ErrorConditionT Service::doSendMessage(
 			rconpool.synchronous_connection_id = ObjectIdT();
 		}
 	}
-
-	while(not success and rconpool.conn_waitingq.size()){
-		//a connection is waiting for something to send
-		ObjectIdT 		objuid = rconpool.conn_waitingq.front();
-		
-		rconpool.conn_waitingq.pop();
-		
-		
-		success = manager().notify(
-			objuid,
-			Connection::newMessageEvent()
-		);
+	
+	if(not success){
+		success = doTryNotifyPoolWaitingConnection(pool_idx);
 	}
 	
 	if(
 		not success and
-		rconpool.active_connection_count < d.config.max_per_pool_connection_count and
-		rconpool.pending_resolve_count < d.config.max_per_pool_connection_count
+		rconpool.active_connection_count < d.config.pool_max_connection_count and
+		rconpool.pending_resolve_count < d.config.pool_max_connection_count
 	){
 		
 		idbgx(Debug::ipc, this<<" try create new connection in pool "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
@@ -744,7 +735,7 @@ void Service::checkPoolForNewMessages(
 		rconpool.synchronous_connection_id.isInvalid()
 	};
 	
-	bool					connection_can_handle_more_messages = true;
+	bool					connection_may_handle_more_messages = true;
 	bool					pushed_synchronous_message = false;
 	auto 					handle_message = [
 		this, &rconpool, &_robjuid, &_rcon, &_rctx,
@@ -788,19 +779,19 @@ void Service::checkPoolForNewMessages(
 		return true;
 	};
 	
-	bool					is_queue_not_empty = true;
+	bool					is_message_queue_empty = true;
 	
 	if(connection_can_handle_synchronous_messages){
 		//use the order inner queue
-		is_queue_not_empty = rconpool.msgorder_inner_list.size() != 0;
-		if(is_queue_not_empty and connection_can_handle_more_messages){
-			connection_can_handle_more_messages = handle_message(rconpool.msgorder_inner_list.frontIndex());
+		is_message_queue_empty = rconpool.msgorder_inner_list.size() == 0;
+		if(not is_message_queue_empty and connection_may_handle_more_messages){
+			connection_may_handle_more_messages = handle_message(rconpool.msgorder_inner_list.frontIndex());
 		}
 	}else{
 		//use the async inner queue
-		is_queue_not_empty = rconpool.msgasync_inner_list.size() != 0;
-		if(is_queue_not_empty and connection_can_handle_more_messages){
-			connection_can_handle_more_messages = handle_message(rconpool.msgasync_inner_list.frontIndex());
+		is_message_queue_empty = rconpool.msgasync_inner_list.size() == 0;
+		if(not is_message_queue_empty and connection_may_handle_more_messages){
+			connection_may_handle_more_messages = handle_message(rconpool.msgasync_inner_list.frontIndex());
 		}
 	}
 	
@@ -810,18 +801,40 @@ void Service::checkPoolForNewMessages(
 	
 	//connection WILL not check for new message if it is full
 	//connection WILL check for new messages when become not full
-	//connection may not check for new messages if (/*isInPoolWaitingQueue and */shouldWaitPool())
+	//connection may not check for new messages if (isInPoolWaitingQueue)
 	
-	const bool	is_queue_empty = not is_queue_not_empty;
-	
-	if(connection_can_handle_more_messages and not _rcon.isInPoolWaitingQueue() and is_queue_empty){
+	if(connection_may_handle_more_messages and not _rcon.isInPoolWaitingQueue() and is_message_queue_empty){
 		rconpool.conn_waitingq.push(_robjuid);
 		_rcon.setInPoolWaitingQueue();
 	}
 	
-	_rcon.setShouldWaitPool(is_queue_empty and _rcon.isInPoolWaitingQueue());
+	if(
+		not connection_may_handle_more_messages and 
+		not is_message_queue_empty
+	){
+		doTryNotifyPoolWaitingConnection(_rcon.poolId().index);
+	}
 }
-
+//-----------------------------------------------------------------------------
+bool Service::doTryNotifyPoolWaitingConnection(const size_t _conpoolindex){
+	ConnectionPoolStub 	&rconpool(d.conpooldq[_conpoolindex]);
+	bool 				success = false;
+	
+	//we were not able to handle the message, try notify another connection
+	while(not success and rconpool.conn_waitingq.size()){
+		//a connection is waiting for something to send
+		ObjectIdT 		objuid = rconpool.conn_waitingq.front();
+		
+		rconpool.conn_waitingq.pop();
+		
+		
+		success = manager().notify(
+			objuid,
+			Connection::newMessageEvent()
+		);
+	}
+	return success;
+}
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doNotifyConnectionPushMessage(
 	const RecipientId	&_rrecipient_id_in,

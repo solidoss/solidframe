@@ -138,8 +138,6 @@ public:
 	
 	void setInPoolWaitingQueue();
 	
-	void setShouldWaitPool(const bool _v);
-	
 	bool isServer()const;
 	
 	Any<>& any();

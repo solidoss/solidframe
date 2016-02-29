@@ -535,6 +535,8 @@ private:
 		MessageBundle &_rmsgbundle,
 		MessageId const &_rmsgid
 	);
+	
+	bool doTryNotifyPoolWaitingConnection(const size_t _conpoolindex);
 private:
 	struct	Data;
 	Data			&d;
