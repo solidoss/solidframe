@@ -120,6 +120,13 @@ class Service: public Dynamic<Service, frame::Service>{
 		}
 	};
 	
+	enum struct PoolStatus{
+		Open,
+		Closing,
+		FastClosing,
+		Unknown
+	};
+	
 public:
 	typedef Dynamic<Service, frame::Service> BaseT;
 	
@@ -358,29 +365,46 @@ public:
 	}
 #endif
 	//----------------------
+	template <typename F>
+	ErrorConditionT forceCloseConnectionPool(
+		RecipientId const &_rrecipient_id,
+		F _f
+	){
+		auto fnc = [_f](ConnectionContext &_rctx, MessagePointerT &/*_rmsgptr*/, ErrorConditionT const &/*_err*/){
+			_f(_rctx);
+		};
+		
+		ResponseHandlerFunctionT	response_handler(fnc);
+		return doForceCloseConnectionPool(_rrecipient_id, response_handler);
+	}
 	
-	ErrorConditionT forcedConnectionClose(
-		RecipientId const &_rrecipient_id
-	);
+	template <typename F>
+	ErrorConditionT delayCloseConnectionPool(
+		RecipientId const &_rrecipient_id,
+		F _f
+	){
+		auto fnc = [_f](ConnectionContext &_rctx, MessagePointerT &/*_rmsgptr*/, ErrorConditionT const &/*_err*/){
+			_f(_rctx);
+		};
+		
+		ResponseHandlerFunctionT	response_handler(fnc);
+		return doDelayCloseConnectionPool(_rrecipient_id, response_handler);
+	}
 	
-	ErrorConditionT delayedConnectionClose(
-		RecipientId const &_rrecipient_id
-	);
-	
-	ErrorConditionT postConnectionActivate(
+	ErrorConditionT postActivateConnection(
 		RecipientId const &_rrecipient_id
 	){
 		ActivateConnectionMessageFactoryFunctionT	msgfactory;
-		return doPostConnectionActivate(_rrecipient_id, std::move(msgfactory));
+		return doPostActivateConnection(_rrecipient_id, std::move(msgfactory));
 	}
 	
 	template <class MF>
-	ErrorConditionT postConnectionActivate(
+	ErrorConditionT postActivateConnection(
 		RecipientId const &_rrecipient_id,
 		MF _msgfactory
 	){
 		ActivateConnectionMessageFactoryFunctionT	msgfactory(_msgfactory);
-		return doPostConnectionActivate(_rrecipient_id, std::move(msgfactory));
+		return doPostActivateConnection(_rrecipient_id, std::move(msgfactory));
 	}
 	
 	ErrorConditionT cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsg_id);
@@ -392,7 +416,7 @@ private:
 	
 	void acceptIncomingConnection(SocketDevice &_rsd);
 	
-	ErrorConditionT doPostConnectionActivate(
+	ErrorConditionT doPostActivateConnection(
 		RecipientId const &_rrecipient_id,
 		ActivateConnectionMessageFactoryFunctionT &&_rmsgfactory
 	);
@@ -409,7 +433,8 @@ private:
 	void checkPoolForNewMessages(
 		Connection &_rcon,
 		aio::ReactorContext &_rctx,
-		ObjectIdT const &_robjuid
+		ObjectIdT const &_robjuid,
+		PoolStatus &_rpool_status
 	);
 	
 	
@@ -537,6 +562,16 @@ private:
 	);
 	
 	bool doTryNotifyPoolWaitingConnection(const size_t _conpoolindex);
+	
+	ErrorConditionT doForceCloseConnectionPool(
+		RecipientId const &_rrecipient_id, 
+		ResponseHandlerFunctionT &_rresponse_fnc
+	);
+	
+	ErrorConditionT doDelayCloseConnectionPool(
+		RecipientId const &_rrecipient_id, 
+		ResponseHandlerFunctionT &_rresponse_fnc
+	);
 private:
 	struct	Data;
 	Data			&d;

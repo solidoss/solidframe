@@ -89,6 +89,26 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	return connection_event_category.event(ConnectionEvents::CheckPool);
 }
 //-----------------------------------------------------------------------------
+/*static*/ Event Connection::newMessageEvent(){
+	return Event();
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::newMessageEvent(const MessageId &){
+	return Event();
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::cancelLocalMessageEvent(const MessageId &){
+	return Event();
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::cancelPoolMessageEvent(const MessageId &){
+	return Event();
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::activateEvent(ActivateConnectionMessageFactoryFunctionT &&){
+	return Event();
+}
+//-----------------------------------------------------------------------------
 inline void Connection::doOptimizeRecvBuffer(){
 	const size_t cnssz = receivebufoff - consumebufoff;
 	if(cnssz <= consumebufoff){

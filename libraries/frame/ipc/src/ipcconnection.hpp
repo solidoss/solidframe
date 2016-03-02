@@ -68,6 +68,8 @@ public:
 	static Event checkPoolEvent();
 	static Event newMessageEvent();
 	static Event newMessageEvent(const MessageId &);
+	static Event cancelLocalMessageEvent(const MessageId &);
+	static Event cancelPoolMessageEvent(const MessageId &);
 	static Event activateEvent(ActivateConnectionMessageFactoryFunctionT &&);
 	
 	//Called when connection is accepted
