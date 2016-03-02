@@ -424,19 +424,31 @@ private:
 	void activateConnectionComplete(Connection &_rcon);
 	
 	void onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid);
-	ulong onConnectionWantStop(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid);
+	ulong onConnectionWantClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid);
 	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
 	void onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err);
 	
-	void checkPoolForNewMessages(
+	void pollPoolForUpdates(
 		Connection &_rcon,
 		aio::ReactorContext &_rctx,
 		ObjectIdT const &_robjuid,
 		PoolStatus &_rpool_status
 	);
 	
+	void fetchMessage(Connection &_rcon, MessageId const &_rmsg_id);
+	
+	void fetchCanceledMessage(Connection const &_rcon, MessageId const &_rmsg_id, MessageBundle &_rmsg_bundle);
+	
+	bool doTryPushMessageToConnection(
+		Connection &_rcon,
+		aio::ReactorContext &_rctx,
+		ObjectIdT const &_robjuid,
+		const size_t _pool_idx,
+		const size_t msg_idx,
+		bool &_rpushed_synchronous_message
+	);
 	
 	void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent);
 	
