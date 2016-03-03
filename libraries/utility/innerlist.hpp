@@ -210,6 +210,7 @@ public:
 	size_t previousIndex(const size_t _index)const{
 		return link(_index).prev;
 	}
+	
 	bool check()const{
 		
 		if(back_ == InvalidIndex() or front_ == InvalidIndex()){
@@ -217,6 +218,10 @@ public:
 		}
 		
 		return true;
+	}
+	
+	bool isLinked(const size_t _index)const{
+		return link(_index).prev != InvalidIndex() or link(_index).next != InvalidIndex();
 	}
 private:
 	InnerLink& link(const size_t _index){

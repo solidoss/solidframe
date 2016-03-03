@@ -718,7 +718,6 @@ ErrorConditionT Service::doSendMessageToNewPool(
 //-----------------------------------------------------------------------------
 bool Service::doTryPushMessageToConnection(
 	Connection &_rcon,
-	aio::ReactorContext &_rctx,
 	ObjectIdT const &_robjuid,
 	const size_t _pool_idx,
 	const size_t msg_idx,
@@ -729,10 +728,8 @@ bool Service::doTryPushMessageToConnection(
 	const bool			message_is_synchronous = Message::is_asynchronous(rmsgstub.msgbundle.message_flags);
 	
 	if(rmsgstub.isCancelable()){
-		MessageId 		*pmsgid = &rmsgstub.msgid;
-		MessageId		pool_msg_id = MessageId(msg_idx, rmsgstub.unique);
 		rmsgstub.objid = _robjuid;
-		if(_rcon.tryPushMessage(_rctx, rmsgstub.msgbundle, pmsgid, pool_msg_id)){
+		if(_rcon.tryPushMessage(rmsgstub.msgbundle, rmsgstub.msgid, MessageId(msg_idx, rmsgstub.unique))){
 			rconpool.msgorder_inner_list.erase(msg_idx);
 			
 			if(message_is_synchronous){
@@ -744,7 +741,7 @@ bool Service::doTryPushMessageToConnection(
 			return false;
 		}
 	}else{
-		if(_rcon.tryPushMessage(_rctx, rmsgstub.msgbundle)){
+		if(_rcon.tryPushMessage(rmsgstub.msgbundle)){
 			rconpool.msgorder_inner_list.erase(msg_idx);
 			
 			if(message_is_synchronous){
@@ -764,7 +761,6 @@ bool Service::doTryPushMessageToConnection(
 //-----------------------------------------------------------------------------
 void Service::pollPoolForUpdates(
 	Connection &_rcon,
-	aio::ReactorContext &_rctx,
 	ObjectIdT const &_robjuid,
 	PoolStatus &_rpool_status
 ){
@@ -814,7 +810,6 @@ void Service::pollPoolForUpdates(
 		if(not is_message_queue_empty and connection_may_handle_more_messages){
 			connection_may_handle_more_messages = doTryPushMessageToConnection(
 				_rcon,
-				_rctx,
 				_robjuid,
 				pool_idx,
 				rconpool.msgorder_inner_list.frontIndex(),
@@ -827,7 +822,6 @@ void Service::pollPoolForUpdates(
 		if(not is_message_queue_empty and connection_may_handle_more_messages){
 			connection_may_handle_more_messages = connection_may_handle_more_messages = doTryPushMessageToConnection(
 				_rcon,
-				_rctx,
 				_robjuid,
 				pool_idx,
 				rconpool.msgasync_inner_list.frontIndex(),
@@ -1025,20 +1019,45 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 	
 	if(_rmsguid.index < rconpool.msgvec.size() and rconpool.msgvec[_rmsguid.index].unique == _rmsguid.unique){
 		MessageStub	&rmsgstub = rconpool.msgvec[_rmsguid.index];
+		bool 		success = false;
 		
-		if(rmsgstub.objid.isValid()){//message handled by a connection
-			rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
-			manager().notify(
-				rmsgstub.objid,
-				Connection::cancelLocalMessageEvent(rmsgstub.msgid)
-			);
-		}else if(not rmsgstub.msgbundle.message_ptr.empty()){
-			rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
+		if(Message::is_canceled(rmsgstub.msgbundle.message_flags)){
+			error.assign(-1, error.category());//message already canceled
+		}else{
 			
-			manager().notify(
-				rmsgstub.objid,
-				Connection::cancelPoolMessageEvent(_rmsguid)
-			);
+			if(rmsgstub.objid.isValid()){//message handled by a connection
+				
+				cassert(rmsgstub.msgbundle.message_ptr.empty());
+				
+				rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
+				
+				success = manager().notify(
+					rmsgstub.objid,
+					Connection::cancelLocalMessageEvent(rmsgstub.msgid)
+				);
+				
+				if(not success){
+					rmsgstub.msgid = MessageId();
+					rmsgstub.objid = ObjectIdT();
+					THROW_EXCEPTION("Lost message");
+					error.assign(-1, error.category());//message lost
+				}
+			}
+			
+			if(not rmsgstub.msgbundle.message_ptr.empty()){
+				rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
+				
+				success = manager().notify(
+					rconpool.msg_cancel_connection_id,
+					Connection::cancelPoolMessageEvent(_rmsguid)
+				);
+				
+				if(success){
+					
+				}else{
+					THROW_EXCEPTION("Message Cancel connection not available");
+				}
+			}
 		}
 	}else{
 		error.assign(-1, error.category());//message does not exist

@@ -432,7 +432,6 @@ private:
 	
 	void pollPoolForUpdates(
 		Connection &_rcon,
-		aio::ReactorContext &_rctx,
 		ObjectIdT const &_robjuid,
 		PoolStatus &_rpool_status
 	);

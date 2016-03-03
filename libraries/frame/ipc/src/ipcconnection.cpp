@@ -240,11 +240,11 @@ bool Connection::pushCanceledMessage(
 }
 //-----------------------------------------------------------------------------
 bool Connection::tryPushMessage(
-	frame::aio::ReactorContext &_rctx,
 	MessageBundle &_rmsgbundle,
-	MessageId *_pmsguid,
+	MessageId &_rmsguid,
 	const MessageId &_rpool_msg_id
 ){
+#if 0
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
@@ -277,6 +277,8 @@ bool Connection::tryPushMessage(
 	}
 	
 	return ret_val;
+#endif
+	return false;
 }
 //-----------------------------------------------------------------------------
 bool Connection::pushMessageCancel(

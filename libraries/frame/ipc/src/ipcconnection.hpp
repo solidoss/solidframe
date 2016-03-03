@@ -122,10 +122,13 @@ public:
 	);
 	
 	bool tryPushMessage(
-		frame::aio::ReactorContext &_rctx,
 		MessageBundle &_rmsgbundle,
-		MessageId *_pmsguid = nullptr,
-		const MessageId &_rpool_msg_id = MessageId()
+		MessageId &_rmsguid,
+		const MessageId &_rpool_msg_id
+	);
+	
+	bool tryPushMessage(
+		MessageBundle &_rmsgbundle
 	);
 	
 	bool prepareActivate(
