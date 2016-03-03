@@ -1053,7 +1053,10 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 				);
 				
 				if(success){
-					
+					//erase the message from any list
+					if(rconpool.msgorder_inner_list.isLinked(_rmsguid.index)){
+						
+					}
 				}else{
 					THROW_EXCEPTION("Message Cancel connection not available");
 				}
