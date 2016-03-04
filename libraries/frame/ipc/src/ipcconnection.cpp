@@ -451,7 +451,7 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 	Connection			&rthis = static_cast<Connection&>(_rctx.object());
 	ObjectIdT			objuid(rthis.uid(_rctx));
 	ErrorConditionT		error(_rerr);
-	ulong				seconds_to_wait = rthis.service(_rctx).onConnectionWantClose(rthis, _rctx, objuid);
+	ulong				seconds_to_wait = 0;//rthis.service(_rctx).onConnectionWantClose(rthis, _rctx, objuid);
 	
 	if(!seconds_to_wait){
 		//can stop rightaway
@@ -485,7 +485,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		
 		ErrorConditionT		error(_rerr);
 		ObjectIdT			objuid(uid(_rctx));
-		const ulong			seconds_to_wait = service(_rctx).onConnectionWantClose(*this, _rctx, objuid);
+		const ulong			seconds_to_wait =0;// = service(_rctx).onConnectionWantClose(*this, _rctx, objuid);
 		
 		//onConnectionWantStop may fetch some of the
 		//pending messages so call doCompleteAllMessages after calling onConnectionWantStop
@@ -860,7 +860,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				msgwriter.hasFreeSeats(rconfig)
 			){
 				Service::PoolStatus pool_status;
-				service(_rctx).pollPoolForUpdates(*this, _rctx, uid(_rctx), pool_status);
+				service(_rctx).pollPoolForUpdates(*this, uid(_rctx), pool_status);
 				if(pool_status == Service::PoolStatus::FastClosing){
 					flags |= static_cast<size_t>(Flags::StopForced);//TODO: maybe you should not set this all the time
 					doStop(_rctx, error);

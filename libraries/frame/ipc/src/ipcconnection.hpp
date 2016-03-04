@@ -120,13 +120,14 @@ public:
 		Event &_revent,
 		ErrorConditionT &_rerror
 	);
-	
+	//NOTE: will always accept null message
 	bool tryPushMessage(
 		MessageBundle &_rmsgbundle,
 		MessageId &_rmsguid,
 		const MessageId &_rpool_msg_id
 	);
 	
+	//NOTE: will always accept null message
 	bool tryPushMessage(
 		MessageBundle &_rmsgbundle
 	);

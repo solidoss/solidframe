@@ -424,7 +424,11 @@ private:
 	void activateConnectionComplete(Connection &_rcon);
 	
 	void onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid);
-	ulong onConnectionWantClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid);
+	bool onConnectionWantClose(
+		Connection &_rcon, ObjectIdT const &_robjuid,
+		ulong &_rseconds_to_wait,
+		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+	);
 	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
@@ -436,13 +440,12 @@ private:
 		PoolStatus &_rpool_status
 	);
 	
-	void fetchMessage(Connection &_rcon, MessageId const &_rmsg_id);
+	bool fetchMessage(Connection &_rcon, ObjectIdT const &_robjuid, MessageId const &_rmsg_id);
 	
-	void fetchCanceledMessage(Connection const &_rcon, MessageId const &_rmsg_id, MessageBundle &_rmsg_bundle);
+	bool fetchCanceledMessage(Connection const &_rcon, MessageId const &_rmsg_id, MessageBundle &_rmsg_bundle);
 	
 	bool doTryPushMessageToConnection(
 		Connection &_rcon,
-		aio::ReactorContext &_rctx,
 		ObjectIdT const &_robjuid,
 		const size_t _pool_idx,
 		const size_t msg_idx,

@@ -300,7 +300,7 @@ Manager::Data::~Data(){
 	if(!_sigmsk || _robj.notify(_sigmsk)){
 		return _rreact.raise(_robj.runId(), std::move(_uevt));
 	}
-	return false;
+	return true;
 }
 
 /*static*/ inline bool Manager::notify_object(
@@ -310,9 +310,8 @@ Manager::Data::~Data(){
 	if(!_sigmsk || _robj.notify(_sigmsk)){
 		return _rreact.raise(_robj.runId(), _revt);
 	}
-	return false;
+	return true;
 }
-
 
 Manager::Manager(
 	const size_t _svcmtxcnt/* = 0*/,
@@ -629,22 +628,19 @@ bool Manager::disableObjectVisits(ObjectBase &_robj){
 }
 
 bool Manager::notify(ObjectIdT const &_ruid, Event &&_uevt, const size_t _sigmsk/* = 0*/){
-	
-	ObjectVisitFunctionT	f(
-		[&_uevt, _sigmsk](ObjectBase &_robj, ReactorBase &_rreact){
-			return notify_object(_robj, _rreact, std::move(_uevt), _sigmsk);
-		}
-	);
+	auto					do_notify_fnc = [&_uevt, _sigmsk](ObjectBase &_robj, ReactorBase &_rreact){
+		return notify_object(_robj, _rreact, std::move(_uevt), _sigmsk);
+	};
+	ObjectVisitFunctionT	f(std::cref(do_notify_fnc));
 	
 	return doVisit(_ruid, f);
 }
 
 bool Manager::notifyAll(const Service &_rsvc, Event const & _revt, const size_t _sigmsk){
-	ObjectVisitFunctionT	f(
-		[_revt, _sigmsk](ObjectBase &_robj, ReactorBase &_rreact){
-			return notify_object(_robj, _rreact, _revt, _sigmsk);
-		}
-	);
+	auto					do_notify_fnc = [_revt, _sigmsk](ObjectBase &_robj, ReactorBase &_rreact){
+		return notify_object(_robj, _rreact, _revt, _sigmsk);
+	};
+	ObjectVisitFunctionT	f(std::cref(do_notify_fnc));
 	return doForEachServiceObject(_rsvc, f);
 }
 
