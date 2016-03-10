@@ -27,15 +27,10 @@ enum class Flags:size_t{
 	WaitKeepAliveTimer			= 16,
 	StopForced					= 32,
 	HasActivity 				= 64,
-	TryFetchNewMessageFromPool	= 128
+	TryFetchNewMessageFromPool	= 128,
+	Stopping					= 256,
+	DelayedClosing				= 512
 };
-
-enum class AtomicFlags{
-	Active				= 1,
-	Stopping			= 2,
-	DelayedClosing		= 4,
-};
-
 
 enum class ConnectionEvents{
 	Activate,
@@ -170,8 +165,8 @@ bool Connection::pushMessage(
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
 	//Under lock
-	if(not isAtomicStopping()){
-		if(not isAtomicDelayedClosing()){
+	if(not isStopping()){
+		if(not isDelayedClosing()){
 			MessageId	msguid;
 			
 			if(Message::is_asynchronous(_flags)){
@@ -289,7 +284,7 @@ bool Connection::pushMessageCancel(
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<' '<<_rmsguid);
 	//Under lock
-	if(not isAtomicStopping()){
+	if(not isStopping()){
 		
 		sendmsgvec[crtpushvecidx].push_back(
 			PendingSendMessageStub(
@@ -316,9 +311,9 @@ bool Connection::pushDelayedClose(
 	idbgx(Debug::ipc, this<<' '<<this->id());
 				
 	//Under lock
-	if(not isAtomicStopping()){
-		if(not isAtomicDelayedClosing()){
-			atomic_flags |= static_cast<size_t>(AtomicFlags::DelayedClosing);
+	if(not isStopping()){
+		if(not isDelayedClosing()){
+			flags |= static_cast<size_t>(Flags::DelayedClosing);
 			_revent = connection_event_category.event(ConnectionEvents::DelayedClose);
 			return true;
 		}else{
@@ -337,7 +332,7 @@ bool Connection::prepareActivate(
 	ConnectionPoolId const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
 ){
 	//Under lock
-	if(not isAtomicStopping()){
+	if(not isStopping()){
 		if(_rconpoolid.isValid()){
 			if(conpoolid.isInvalid()){
 				conpoolid = _rconpoolid;//conpoolid should be used only if isActive
@@ -346,7 +341,7 @@ bool Connection::prepareActivate(
 			}
 		}
 		
-		atomic_flags |= static_cast<size_t>(AtomicFlags::Active);
+		flags |= static_cast<size_t>(Flags::Active);
 		
 		_revent = connection_event_category.event(ConnectionEvents::Activate);
 		return true;
@@ -361,16 +356,12 @@ bool Connection::isActive()const{
 	return flags & static_cast<size_t>(Flags::Active);
 }
 //-----------------------------------------------------------------------------
-bool Connection::isAtomicActive()const{
-	return atomic_flags & static_cast<size_t>(AtomicFlags::Active);
+bool Connection::isStopping()const{
+	return flags & static_cast<size_t>(Flags::Stopping);
 }
 //-----------------------------------------------------------------------------
-bool Connection::isAtomicStopping()const{
-	return atomic_flags & static_cast<size_t>(AtomicFlags::Stopping);
-}
-//-----------------------------------------------------------------------------
-bool Connection::isAtomicDelayedClosing()const{
-	return atomic_flags & static_cast<size_t>(AtomicFlags::DelayedClosing);
+bool Connection::isDelayedClosing()const{
+	return flags & static_cast<size_t>(Flags::DelayedClosing);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isServer()const{
@@ -474,18 +465,12 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 }
 //-----------------------------------------------------------------------------
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
-	if(not isAtomicStopping()){
-		{
-			Locker<Mutex>	lock(service(_rctx).mutex(*this));
-			atomic_flags |= static_cast<size_t>(AtomicFlags::Stopping);
-		}
-		
-		//after this poin we know for sure that
-		//either the connection was already active or will never be active
+	if(not isStopping()){
+		flags |= static_cast<size_t>(Flags::Stopping);
 		
 		ErrorConditionT		error(_rerr);
 		ObjectIdT			objuid(uid(_rctx));
-		const ulong			seconds_to_wait =0;// = service(_rctx).onConnectionWantClose(*this, _rctx, objuid);
+		const ulong			seconds_to_wait = 0;// = service(_rctx).onConnectionWantClose(*this, _rctx, objuid);
 		
 		//onConnectionWantStop may fetch some of the
 		//pending messages so call doCompleteAllMessages after calling onConnectionWantStop
@@ -587,7 +572,7 @@ void Connection::doHandleEventActivate(
 ){
 	idbgx(Debug::ipc, this);
 
-	if(not isAtomicStopping()){
+	if(not isStopping()){
 		flags |= static_cast<size_t>(Flags::Active);
 		service(_rctx).activateConnectionComplete(*this);
 		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){this->doSend(_rctx);});

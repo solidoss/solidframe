@@ -137,8 +137,6 @@ public:
 		ConnectionPoolId const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
 	);
 	
-	//The service marked connection as active, but the connection might not be aware that it is active
-	bool isAtomicActive()const;
 	
 	bool isInPoolWaitingQueue() const;
 	
@@ -175,8 +173,8 @@ private:
 	//The connection is aware that it is activated
 	bool isActive()const;
 	
-	bool isAtomicStopping()const;
-	bool isAtomicDelayedClosing()const;
+	bool isStopping()const;
+	bool isDelayedClosing()const;
 	
 	bool hasCompletingMessages()const;
 	
@@ -274,9 +272,8 @@ private:
 	StreamSocketT				sock;
 	TimerT						timer;
 	
+	uint16						flags;
 	uint8						crtpushvecidx;
-	uint8						flags;
-	AtomicUInt8T				atomic_flags;
 	
 	uint32						receivebufoff;
 	uint32						consumebufoff;

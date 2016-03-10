@@ -423,8 +423,9 @@ private:
 	
 	void activateConnectionComplete(Connection &_rcon);
 	
-	void onConnectionClose(Connection &_rcon, aio::ReactorContext &_rctx, ObjectIdT const &_robjuid);
-	bool onConnectionWantClose(
+	void connectionStop(Connection const &_rcon);
+	
+	bool connectionInitiateStopping(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
@@ -443,6 +444,9 @@ private:
 	bool fetchMessage(Connection &_rcon, ObjectIdT const &_robjuid, MessageId const &_rmsg_id);
 	
 	bool fetchCanceledMessage(Connection const &_rcon, MessageId const &_rmsg_id, MessageBundle &_rmsg_bundle);
+	
+	//if the pool is stopping, message will be returned any way for completing
+	void rejectQueuedMessage(Connection const &_rcon, MessageBundle &_rmsg_bundle);
 	
 	bool doTryPushMessageToConnection(
 		Connection &_rcon,
@@ -563,13 +567,13 @@ private:
 	);
 	
 	
-	void doFetchUnsentMessagesFromConnection(
-		Connection &_rcon, aio::ReactorContext &_rctx, const size_t _conpoolindex
+	void doFetchResendableMessagesFromConnection(
+		Connection &_rcon
 	);
 	
 	size_t doPushNewConnectionPool();
 	
-	void pushBackMessageToConnectionPool(
+	void pushFrontMessageToConnectionPool(
 		ConnectionPoolId &_rconpoolid,
 		MessageBundle &_rmsgbundle,
 		MessageId const &_rmsgid
