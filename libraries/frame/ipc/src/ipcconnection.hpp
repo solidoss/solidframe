@@ -182,7 +182,7 @@ private:
 	
 	void doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming);
 	
-	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
+	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr, const bool _forced);
 	
 	void doSend(frame::aio::ReactorContext &_rctx, const bool _sent_something = false);
 	

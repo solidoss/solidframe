@@ -1190,7 +1190,7 @@ void Service::rejectQueuedMessage(Connection const &_rcon){
 //		call connectionContinueStopping after a while
 //		call 
 bool Service::connectionInitiateStopping(
-	Connection &_rcon, ObjectIdT const &_robjuid,
+	Connection &_rcon, ObjectIdT const &_robjuid, const bool _forced_close,
 	ulong &_rseconds_to_wait/*,
 	MessageId &_rmsg_id, MessageBundle &_rmsg_bundle*/
 ){
@@ -1221,51 +1221,47 @@ bool Service::connectionInitiateStopping(
 		rconpool.synchronous_connection_id = ObjectIdT::invalid();
 	}
 	
-	if(rconpool.isFastClosing() or rconpool.isServerSide()){
+	if(
+		rconpool.isFastClosing() or rconpool.isServerSide() or
+		(is_last_connection and _forced_close)
+	){
+		
+		rconpool.setClosing();
+		rconpool.setFastClosing();
+		
+		if(not rconpool.msgorder_inner_list.empty()){
+			_rseconds_to_wait = 0;
+			return false;// connection must call connectionContinueStopping asap
+		}
+		
+		if(rconpool.msg_cancel_connection_id == _robjuid){
+			cassert(configuration().msg_cancel_connection_wait_seconds != 0);
+			
+			rconpool.setMessageCancelConnectionStopping();
+			_rseconds_to_wait = configuration().msg_cancel_connection_wait_seconds;
+			return false;// connection must call connectionContinueStopping after _rseconds_to_wait
+		}
+		return true;//connection can call connectionStop
+		
+	}else if(is_last_connection){
+		
+		//last connection in a client pool
 		
 	}else{
+		
 		doFetchResendableMessagesFromConnection(_rcon);
-	}
-	
-	
-	if(not rconpool.msgorder_inner_list.empty()){
-		_rseconds_to_wait = 0;
-		return false;// connection must call connectionContinueStopping asap
-	}
-	
-	if(rconpool.msg_cancel_connection_id == _robjuid){
-		cassert(configuration().msg_cancel_connection_wait_seconds != 0);
 		
-		rconpool.setMessageCancelConnectionStopping();
-		_rseconds_to_wait = configuration().msg_cancel_connection_wait_seconds;
-		return false;
-	}
-	
-	return rconpool.msgorder_inner_list.empty();
-	
-#if 0
-	
-	
-	if(rconpool.msg_cancel_connection_id == _robjuid){
-		cassert(configuration().msg_cancel_connection_wait_seconds != 0);
-		
-		rconpool.setMessageCancelConnectionStopping();
-		
-		if((rconpool.active_connection_count + rconpool.pending_connection_count) != 1){
-			//only call doFetchUnsentMessagesFromConnection 
-			//for connections that will not stop right away
+		if(rconpool.msg_cancel_connection_id == _robjuid){
+			cassert(configuration().msg_cancel_connection_wait_seconds != 0);
 			
-			doFetchUnsentMessagesFromConnection(_rcon, _rctx, conpoolindex);
-			
-			//the connection is used for message canceling
-			return configuration().msg_cancel_connection_wait_seconds;
-		}else{
-			//this is the last connection
-			rconpool.setClosing();
+			rconpool.setMessageCancelConnectionStopping();
+			_rseconds_to_wait = configuration().msg_cancel_connection_wait_seconds;
+			return false;
 		}
+		
+		return true;//connection can call connectionStop
+		
 	}
-	return 0;
-#endif
 }
 //-----------------------------------------------------------------------------
 void Service::connectionStop(Connection const &_rcon){

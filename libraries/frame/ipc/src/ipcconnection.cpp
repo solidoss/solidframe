@@ -464,7 +464,7 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
+void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr, const bool _forced){
 	if(not isStopping()){
 		flags |= static_cast<size_t>(Flags::Stopping);
 		
