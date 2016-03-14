@@ -157,7 +157,8 @@ struct ConnectionPoolStub{
 		ClosingFlag = 1,
 		FastClosingFlag = 2,
 		MessageCancelConnectionStoppingFlag = 4,
-		
+		CleanOneShotMessagesFlag = 8,
+		RestartFlag = 16
 	};
 	uint32					unique;
 	uint16					pending_connection_count;
@@ -363,6 +364,34 @@ struct ConnectionPoolStub{
 		return name.empty();
 	}
 	
+	bool isCleaningOneShotMessages()const{
+		return flags & CleanOneShotMessagesFlag;
+	}
+	
+	void setCleaningOneShotMessages(){
+		flags |= CleanOneShotMessagesFlag;
+	}
+	
+	
+	bool isRestarting()const{
+		return flags & RestartFlag;
+	}
+	
+	void setRestarting(){
+		flags |= RestartFlag;
+	}
+	
+	bool hasNoMessage()const{
+		if(msgorder_inner_list.empty()){
+			return true;
+		}else{
+			return msgorder_inner_list.front().msgbundle.message_ptr.empty();
+		}
+	}
+	
+	bool hasAnyMessage()const{
+		return not hasNoMessage();
+	}
 };
 
 //-----------------------------------------------------------------------------
@@ -1222,7 +1251,17 @@ bool Service::connectionInitiateStopping(
 	}
 	
 	if(
-		rconpool.isFastClosing() or rconpool.isServerSide() or
+		rconpool.isServerSide()
+	){
+		rconpool.setClosing();
+		rconpool.setFastClosing();
+		
+		_rseconds_to_wait = 0;
+		
+		return rconpool.msgorder_inner_list.empty();
+
+	}else if(
+		rconpool.isFastClosing() or
 		(is_last_connection and _forced_close)
 	){
 		
@@ -1246,6 +1285,21 @@ bool Service::connectionInitiateStopping(
 	}else if(is_last_connection){
 		
 		//last connection in a client pool
+		_rseconds_to_wait = 0;
+		
+		if(rconpool.hasAnyMessage()){
+			//must complete all OneShotSendFlagE messages
+			MessagePointerT				msg_ptr;
+			ResponseHandlerFunctionT	response_fnc;
+			
+			
+			rconpool.setCleaningOneShotMessages();
+			rconpool.pushBackMessage(msg_ptr, -1, response_fnc, 0);//a sentinel
+			
+			return false;
+		}else{
+			return true;//connection can call connectionStop
+		}
 		
 	}else{
 		
@@ -1260,8 +1314,81 @@ bool Service::connectionInitiateStopping(
 		}
 		
 		return true;//connection can call connectionStop
-		
 	}
+}
+//-----------------------------------------------------------------------------
+bool Service::connectionContinueStopping(
+	Connection &_rcon, ObjectIdT const &_robjuid, const bool _forced_close,
+	ulong &_rseconds_to_wait,
+	MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+){
+	const size_t 			conpoolindex = _rcon.poolId().index;
+	Locker<Mutex>			lock2(d.connectionPoolMutex(conpoolindex));
+	ConnectionPoolStub 		&rconpool(d.conpooldq[conpoolindex]);
+	
+	cassert(rconpool.unique == _rcon.poolId().unique);
+	if(rconpool.unique != _rcon.poolId().unique) return false;
+	
+	if(rconpool.isFastClosing()){
+		if(rconpool.hasAnyMessage()){
+			const size_t msgidx = rconpool.msgorder_inner_list.frontIndex();
+			{
+				MessageStub &rmsgstub = rconpool.msgorder_inner_list.front();
+				_rmsg_bundle = std::move(rmsgstub.msgbundle);
+				_rmsg_id = MessageId(msgidx, rmsgstub.unique);
+			}
+			_rseconds_to_wait = 0;
+			rconpool.clearPopAndCacheMessage(msgidx);
+			return false;
+		}else{
+			return true;
+		}
+	}else if(rconpool.isCleaningOneShotMessages()){
+		//cassert(rconpool.hasAnyMessage());
+		const size_t msgidx = rconpool.msgorder_inner_list.frontIndex();
+		_rseconds_to_wait = 0;
+		
+		MessageStub &rmsgstub = rconpool.msgorder_inner_list.front();
+		
+		if(
+			Message::is_one_shot(rmsgstub.msgbundle.message_flags) or
+			Message::is_canceled(rmsgstub.msgbundle.message_flags)
+		){
+			_rmsg_bundle = std::move(rmsgstub.msgbundle);
+			_rmsg_id = MessageId(msgidx, rmsgstub.unique);
+		}else if(rmsgstub.msgbundle.message_ptr.empty()){
+			rconpool.clearPopAndCacheMessage(msgidx);//delete the sentinel
+			rconpool.resetCleaningOneShotMessages();
+			
+			if(rconpool.isClosing()){//there is another sentinel
+				rconpool.msgorder_inner_list.erase(msgidx);
+				rconpool.msgorder_inner_list.pushBack(msgidx);
+			}
+			
+			if(rconpool.hasAnyMessage()){
+				rconpool.setRestarting();
+			}else{
+				//close the pool
+				//NOTE: we must not break message_send continuity for recipient name.
+				return true;
+			}
+		}else{
+			rconpool.msgorder_inner_list.erase(msgidx);
+			rconpool.msgorder_inner_list.pushBack(msgidx);
+		}
+		return false;
+	}else if(rconpool.isRestarting()){
+		//TODO: start new connection
+		_rseconds_to_wait = configuration().poolRestartWaitSeconds();
+		rconpool.setRestartingWait();
+	}else if(rconpool.isRestartingWait()){
+	}else if(rconpool.msg_cancel_connection_id == _robjuid){
+		rconpool.setMessageCancelConnectionStopping();
+		_rseconds_to_wait = configuration().msg_cancel_connection_wait_seconds;
+		return false;
+	}
+	
+	return true;
 }
 //-----------------------------------------------------------------------------
 void Service::connectionStop(Connection const &_rcon){

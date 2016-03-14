@@ -61,6 +61,10 @@ struct Message: Dynamic<Message>{
 		return (_flags & CanceledFlagE) != 0;
 	}
 	
+	static bool is_one_shot(const uint32 _flags){
+		return (_flags & OneShotSendFlagE) != 0;
+	}
+	
 	Message(uint8 _state = 0):stt(_state){}
 	Message(Message const &_rmsg): requid(_rmsg.requid), stt(_rmsg.stt){}
 	
