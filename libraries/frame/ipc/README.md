@@ -60,6 +60,19 @@ on two simultaneous connections established from both sides.
 * Prone to errors, a peer knows itself by a name, while the other peer knows it by other name.
 
 
+## Algorithm for creating pool connections
+
+_Requirements_:
+* Be able to limit the number of pending connections
+* Scale up the number of connections based on the number of messages on queue
+* Rescale up after a network failure
+
+Scenarios
+1. A name resolve returns 100 IPs - we do not want to create 100 connections
+
+
+
+
 ## Characteristics
 
 * C++ only (no IDLs)

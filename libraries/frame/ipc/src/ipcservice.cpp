@@ -547,15 +547,6 @@ struct OnRelsolveF{
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
-//NOTE:
-//The last connection before dying MUST:
-//	1. Lock service.d.mtx
-//	2. Lock SessionStub.mtx
-//	3. Fetch all remaining messages in the SessionStub.msgq
-//	4. Destroy the SessionStub and unregister it from namemap
-//	5. call complete function for every fetched message
-//	6. Die
-
 ErrorConditionT Service::doSendMessage(
 	const char *_recipient_name,
 	const RecipientId	&_rrecipient_id_in,
@@ -691,6 +682,7 @@ ErrorConditionT Service::doSendMessage(
 			ResolveCompleteFunctionT		cbk(OnRelsolveF(manager(), conuid, Connection::resolveEvent()));
 			
 			d.config.name_resolve_fnc(rconpool.name, cbk);
+			
 			++rconpool.pending_connection_count;
 			++rconpool.pending_resolve_count;
 		}else{
@@ -1211,13 +1203,11 @@ void Service::rejectQueuedMessage(Connection const &_rcon){
 //		onStopped
 //		
 //	Problems:
-//		connection may be notified about new messages between doStop, and onStopped.
+//		connection may be notified about new messages after calling connectionInitiateStopping
+//		and we can do nothing about it, i.e. events may have already been sent - events about new
+//		messages for connection, and the connection will need the pool to retrieve em.
 
-// called once by connection on doStop
-// based on return values the connection must:
-//		call connectionContinueStopping imediately
-//		call connectionContinueStopping after a while
-//		call 
+
 bool Service::connectionInitiateStopping(
 	Connection &_rcon, ObjectIdT const &_robjuid, const bool _forced_close,
 	ulong &_rseconds_to_wait/*,
