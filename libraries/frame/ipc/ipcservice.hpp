@@ -425,7 +425,7 @@ private:
 	
 	void connectionStop(Connection const &_rcon);
 	
-	bool connectionInitiateStopping(
+	bool connectionStopping(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
