@@ -64,13 +64,14 @@ struct ResolveMessage{
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
 	
-	static Event resolveEvent();
-	static Event checkPoolEvent();
-	static Event newMessageEvent();
-	static Event newMessageEvent(const MessageId &);
-	static Event cancelLocalMessageEvent(const MessageId &);
-	static Event cancelPoolMessageEvent(const MessageId &);
-	static Event activateEvent(ActivateConnectionMessageFactoryFunctionT &&);
+	static Event eventResolve();
+	static Event eventCheckPool();
+	static Event eventNewMessage();
+	static Event eventNewMessage(const MessageId &);
+	static Event eventCancelLocalMessage(const MessageId &);
+	static Event eventCancelPoolMessage(const MessageId &);
+	static Event eventActivate(ActivateConnectionMessageFactoryFunctionT &&);
+	static Event eventStopping();
 	
 	//Called when connection is accepted
 	Connection(
@@ -217,7 +218,7 @@ private:
 	void doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Event &_revent);
 	
 	template <class Fnc>
-	void fetchUnsentMessages(
+	void forEveryMessagesNewerToOlder(
 		Fnc const &_f
 	){
 		auto 							visit_fnc = [this, &_f](
@@ -273,7 +274,6 @@ private:
 	TimerT						timer;
 	
 	uint16						flags;
-	uint8						crtpushvecidx;
 	
 	uint32						receivebufoff;
 	uint32						consumebufoff;

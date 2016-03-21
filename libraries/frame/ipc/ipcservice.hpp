@@ -431,6 +431,42 @@ private:
 		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
 	);
 	
+	bool doConnectionStoppingNotMain(
+		Connection &_rcon, ObjectIdT const &_robjuid,
+		ulong &_rseconds_to_wait,
+		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+	);
+	
+	bool doConnectionStoppingNotLast(
+		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
+		ulong &_rseconds_to_wait,
+		MessageId &/*_rmsg_id*/, MessageBundle &/*_rmsg_bundle*/
+	);
+	
+	bool doConnectionStoppingOneShot(
+		Connection &_rcon, ObjectIdT const &_robjuid,
+		ulong &_rseconds_to_wait,
+		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+	);
+	
+	bool doConnectionStoppingCleanAll(
+		Connection &_rcon, ObjectIdT const &_robjuid,
+		ulong &_rseconds_to_wait,
+		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+	);
+	
+	bool doConnectionStoppingPrepareCleanOneShot(
+		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
+		ulong &/*_rseconds_to_wait*/,
+		MessageId &/*_rmsg_id*/, MessageBundle &/*_rmsg_bundle*/
+	);
+	
+	bool doConnectionStoppingPrepareCleanAll(
+		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
+		ulong &/*_rseconds_to_wait*/,
+		MessageId &/*_rmsg_id*/, MessageBundle &/*_rmsg_bundle*/
+	);
+	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
 	void onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err);
@@ -444,9 +480,6 @@ private:
 	bool fetchMessage(Connection &_rcon, ObjectIdT const &_robjuid, MessageId const &_rmsg_id);
 	
 	bool fetchCanceledMessage(Connection const &_rcon, MessageId const &_rmsg_id, MessageBundle &_rmsg_bundle);
-	
-	//if the pool is stopping, message will be returned any way for completing
-	void rejectQueuedMessage(Connection const &_rcon, MessageBundle &_rmsg_bundle);
 	
 	bool doTryPushMessageToConnection(
 		Connection &_rcon,
@@ -566,6 +599,7 @@ private:
 		ulong _flags
 	);
 	
+	bool doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorConditionT &_rerror);
 	
 	void doFetchResendableMessagesFromConnection(
 		Connection &_rcon

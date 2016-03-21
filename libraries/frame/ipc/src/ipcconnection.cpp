@@ -76,31 +76,31 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 }
 //-----------------------------------------------------------------------------
 
-/*static*/ Event Connection::resolveEvent(){
+/*static*/ Event Connection::eventResolve(){
 	return connection_event_category.event(ConnectionEvents::Resolve);
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::checkPoolEvent(){
+/*static*/ Event Connection::eventCheckPool(){
 	return connection_event_category.event(ConnectionEvents::CheckPool);
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::newMessageEvent(){
+/*static*/ Event Connection::eventNewMessage(){
 	return Event();
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::newMessageEvent(const MessageId &){
+/*static*/ Event Connection::eventNewMessage(const MessageId &){
 	return Event();
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::cancelLocalMessageEvent(const MessageId &){
+/*static*/ Event Connection::eventCancelLocalMessage(const MessageId &){
 	return Event();
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::cancelPoolMessageEvent(const MessageId &){
+/*static*/ Event Connection::eventCancelPoolMessage(const MessageId &){
 	return Event();
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::activateEvent(ActivateConnectionMessageFactoryFunctionT &&){
+/*static*/ Event Connection::eventActivate(ActivateConnectionMessageFactoryFunctionT &&){
 	return Event();
 }
 //-----------------------------------------------------------------------------
@@ -125,7 +125,7 @@ inline void Connection::doOptimizeRecvBufferForced(){
 Connection::Connection(
 	SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
 ):	sock(this->proxy(), std::move(_rsd)), timer(this->proxy()),
-	crtpushvecidx(0), flags(0), atomic_flags(0), receivebufoff(0), consumebufoff(0),
+	flags(0), receivebufoff(0), consumebufoff(0),
 	receive_keepalive_count(0),
 	recvbuf(nullptr), sendbuf(nullptr)
 {
@@ -135,7 +135,7 @@ Connection::Connection(
 Connection::Connection(
 	ConnectionPoolId const &_rconpoolid
 ):	conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),
-	crtpushvecidx(0), flags(0), atomic_flags(0), receivebufoff(0), consumebufoff(0),
+	flags(0), receivebufoff(0), consumebufoff(0),
 	receive_keepalive_count(0),
 	recvbuf(nullptr), sendbuf(nullptr)
 {
@@ -429,11 +429,11 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 	ObjectIdT			objuid(uid(_rctx));
 	ConnectionContext	conctx(service(_rctx), *this);
 	
-	service(_rctx).onConnectionClose(*this, _rctx, objuid);//must be called after postStop!!
+	//TODO: service(_rctx).connectionClose(*this, _rctx, objuid);//must be called after postStop!!
 	
 	doCompleteAllMessages(_rctx, _rerr);
 	
-	service(_rctx).onConnectionStop(conctx, _rerr);
+	//TODO: service(_rctx).onConnectionStop(conctx, _rerr);
 	
 	doUnprepare(_rctx);
 }
