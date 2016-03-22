@@ -1201,9 +1201,12 @@ bool Service::fetchCanceledMessage(Connection const &_rcon, MessageId const &_rm
 }
 //-----------------------------------------------------------------------------
 bool Service::connectionStopping(
-	Connection &_rcon, ObjectIdT const &_robjuid,
+	Connection &_rcon,
+	ObjectIdT const &_robjuid,
 	ulong &_rseconds_to_wait,
-	MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+	MessageId &_rmsg_id,
+	MessageBundle &_rmsg_bundle,
+	Event &_revent_context
 ){
 	const size_t 			pool_index = _rcon.poolId().index;
 	Locker<Mutex>			lock2(d.connectionPoolMutex(pool_index));
@@ -1235,7 +1238,9 @@ bool Service::connectionStopping(
 bool Service::doConnectionStoppingNotMain(
 	Connection &_rcon, ObjectIdT const &_robjuid,
 	ulong &_rseconds_to_wait,
-	MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+	MessageId &_rmsg_id,
+	MessageBundle &_rmsg_bundle,
+	Event &_revent_context
 ){
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rconpool(d.conpooldq[pool_index]);
@@ -1267,7 +1272,9 @@ bool Service::doConnectionStoppingNotMain(
 bool Service::doConnectionStoppingNotLast(
 	Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 	ulong &_rseconds_to_wait,
-	MessageId &/*_rmsg_id*/, MessageBundle &/*_rmsg_bundle*/
+	MessageId &/*_rmsg_id*/,
+	MessageBundle &/*_rmsg_bundle*/,
+	Event &/*_revent_context*/
 ){
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rconpool(d.conpooldq[pool_index]);
@@ -1286,20 +1293,40 @@ bool Service::doConnectionStoppingNotLast(
 bool Service::doConnectionStoppingCleanOneShot(
 	Connection &_rcon, ObjectIdT const &_robjuid,
 	ulong &_rseconds_to_wait,
-	MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+	MessageId &_rmsg_id,
+	MessageBundle &_rmsg_bundle,
+	Event &_revent_context
 ){
-	return false;
+	const size_t 			pool_index = _rcon.poolId().index;
+	ConnectionPoolStub 		&rconpool(d.conpooldq[pool_index]);
+	
+	if(rconpool.hasAnyMessage()){
+		size_t		*pmsgidx = _revent_context.any().cast<size_t>();
+		
+		{
+			MessageStub &rmsgstub = rconpool.msgorder_inner_list.front();
+			_rmsg_bundle = std::move(rmsgstub.msgbundle);
+			_rmsg_id = MessageId(msgidx, rmsgstub.unique);
+		}
+		rconpool.clearPopAndCacheMessage(msgidx);
+		return false;
+	}else{
+		rconpool.resetCleaningAllMessages();
+		return true;//TODO: maybe we can return false
+	}
 }
 //-----------------------------------------------------------------------------
 bool Service::doConnectionStoppingCleanAll(
 	Connection &_rcon, ObjectIdT const &_robjuid,
 	ulong &_rseconds_to_wait,
-	MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+	MessageId &_rmsg_id,
+	MessageBundle &_rmsg_bundle,
+	Event &_revent_context
 ){
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rconpool(d.conpooldq[pool_index]);
 	
-	if(rconpool.msgcache_inner_list.size()){
+	if(rconpool.hasAnyMessage()){
 		const size_t msgidx = rconpool.msgorder_inner_list.frontIndex();
 		{
 			MessageStub &rmsgstub = rconpool.msgorder_inner_list.front();
@@ -1317,7 +1344,9 @@ bool Service::doConnectionStoppingCleanAll(
 bool Service::doConnectionStoppingPrepareCleanOneShot(
 	Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 	ulong &/*_rseconds_to_wait*/,
-	MessageId &/*_rmsg_id*/, MessageBundle &/*_rmsg_bundle*/
+	MessageId &/*_rmsg_id*/,
+	MessageBundle &/*_rmsg_bundle*/,
+	Event &_revent_context
 ){
 	//the last connection
 	const size_t 			pool_index = _rcon.poolId().index;
@@ -1326,11 +1355,9 @@ bool Service::doConnectionStoppingPrepareCleanOneShot(
 	doFetchResendableMessagesFromConnection(_rcon);
 	
 	if(rconpool.hasAnyMessage()){
-		MessagePointerT				msg_ptr;
-		ResponseHandlerFunctionT	response_fnc;
-		
-		rconpool.pushBackMessage(msg_ptr, -1, response_fnc, 0);//a sentinel
 		rconpool.setCleaningOneShotMessages();
+		
+		_revent_context.any().reset(rconpool.msgorder_inner_list.frontIndex());
 		
 		return false;
 	}else{
@@ -1341,7 +1368,9 @@ bool Service::doConnectionStoppingPrepareCleanOneShot(
 bool Service::doConnectionStoppingPrepareCleanAll(
 	Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 	ulong &/*_rseconds_to_wait*/,
-	MessageId &/*_rmsg_id*/, MessageBundle &/*_rmsg_bundle*/
+	MessageId &/*_rmsg_id*/,
+	MessageBundle &/*_rmsg_bundle*/,
+	Event &_revent_context
 ){
 	//the last connection - fast closing or server side
 	const size_t 			pool_index = _rcon.poolId().index;

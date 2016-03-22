@@ -428,43 +428,57 @@ private:
 	bool connectionStopping(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
-		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+		MessageId &_rmsg_id,
+		MessageBundle &_rmsg_bundle,
+		Event &_revent_context
 	);
 	
 	bool doConnectionStoppingNotMain(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
-		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+		MessageId &_rmsg_id,
+		MessageBundle &_rmsg_bundle,
+		Event &_revent_context
 	);
 	
 	bool doConnectionStoppingNotLast(
 		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 		ulong &_rseconds_to_wait,
-		MessageId &/*_rmsg_id*/, MessageBundle &/*_rmsg_bundle*/
+		MessageId &/*_rmsg_id*/,
+		MessageBundle &/*_rmsg_bundle*/,
+		Event &_revent_context
 	);
 	
 	bool doConnectionStoppingOneShot(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
-		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+		MessageId &_rmsg_id,
+		MessageBundle &_rmsg_bundle,
+		Event &_revent_context
 	);
 	
 	bool doConnectionStoppingCleanAll(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
-		MessageId &_rmsg_id, MessageBundle &_rmsg_bundle
+		MessageId &_rmsg_id,
+		MessageBundle &_rmsg_bundle,
+		Event &_revent_context
 	);
 	
 	bool doConnectionStoppingPrepareCleanOneShot(
 		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 		ulong &/*_rseconds_to_wait*/,
-		MessageId &/*_rmsg_id*/, MessageBundle &/*_rmsg_bundle*/
+		MessageId &/*_rmsg_id*/,
+		MessageBundle &/*_rmsg_bundle*/,
+		Event &_revent_context
 	);
 	
 	bool doConnectionStoppingPrepareCleanAll(
 		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 		ulong &/*_rseconds_to_wait*/,
-		MessageId &/*_rmsg_id*/, MessageBundle &/*_rmsg_bundle*/
+		MessageId &/*_rmsg_id*/,
+		MessageBundle &/*_rmsg_bundle*/,
+		Event &_revent_context
 	);
 	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);
