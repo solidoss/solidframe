@@ -1438,7 +1438,6 @@ bool Service::doConnectionRestarting(
 			_rseconds_to_wait = configuration().reconnectTimeoutSeconds();
 			return false;
 		}
-		
 	}
 	return true;
 }
