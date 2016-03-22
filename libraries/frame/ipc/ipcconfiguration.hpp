@@ -113,6 +113,8 @@ public:
 	
 	size_t								max_reader_multiplex_message_count;
 	
+	size_t								reconnect_timeout_seconds;
+	
 	uint32								inactivity_timeout_seconds;
 	uint32								keepalive_timeout_seconds;
 	
@@ -147,6 +149,8 @@ public:
 	ErrorConditionT check() const;
 	
 	void prepare();
+	
+	size_t reconnectTimeoutSeconds()const;
 	
 private:
 	enum WriterFunctions{

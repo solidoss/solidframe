@@ -57,6 +57,7 @@ Configuration::Configuration(
 	
 	inactivity_timeout_seconds = 60 * 10;//ten minutes
 	keepalive_timeout_seconds = 60 * 5;//five minutes
+	reconnect_timeout_seconds = 10;
 	
 	inactivity_keepalive_count = 2;
 	
@@ -77,6 +78,10 @@ Configuration::Configuration(
 	
 	pool_max_connection_count = 1;
 	pool_min_dormant_connection_count = 1;
+}
+//-----------------------------------------------------------------------------
+size_t Configuration::reconnectTimeoutSeconds()const{
+	return reconnect_timeout_seconds;//TODO: add entropy
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Configuration::check() const {

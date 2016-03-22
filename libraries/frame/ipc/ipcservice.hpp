@@ -327,43 +327,6 @@ public:
 		return doSendMessage(nullptr, _rrecipient_id, msgptr, response_handler, nullptr, &_rmsguid, _flags | Message::WaitResponseFlagE);
 	}
 	
-	// send request using pool uid --------------------------------------------
-#if 0
-	template <class T, class Fnc>
-	ErrorConditionT sendRequest(
-		ConnectionPoolId const &_rpool_id,
-		DynamicPointer<T> const &_rmsgptr,
-		Fnc _fnc,
-		ulong _flags = 0
-	){
-		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
-		
-		MessagePointerT				msgptr(_rmsgptr);
-		RecipientId					recipient_id(_rpool_id);
-		ResponseHandlerT			fnc(_fnc);
-		ResponseHandlerFunctionT	response_handler(fnc);
-		
-		return doSendMessage(nullptr, recipient_id, msgptr, response_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
-	}
-	
-	template <class T, class Fnc>
-	ErrorConditionT sendRequest(
-		ConnectionPoolId const &_rpool_id,
-		DynamicPointer<T> const &_rmsgptr,
-		Fnc _fnc,
-		MessageId &_rmsg_id,
-		ulong _flags = 0
-	){
-		typedef ResponseHandler<Fnc, typename response_traits<decltype(_fnc)>::message_type>		ResponseHandlerT;
-		
-		MessagePointerT				msgptr(_rmsgptr);
-		RecipientId					recipient_id(_rpool_id);
-		ResponseHandlerT			fnc(_fnc);
-		ResponseHandlerFunctionT	response_handler(fnc);
-		
-		return doSendMessage(nullptr, recipient_id, msgptr, response_handler, nullptr, &_rmsg_id, _flags | Message::WaitResponseFlagE);
-	}
-#endif
 	//----------------------
 	template <typename F>
 	ErrorConditionT forceCloseConnectionPool(
@@ -474,6 +437,14 @@ private:
 	);
 	
 	bool doConnectionStoppingPrepareCleanAll(
+		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
+		ulong &/*_rseconds_to_wait*/,
+		MessageId &/*_rmsg_id*/,
+		MessageBundle &/*_rmsg_bundle*/,
+		Event &_revent_context
+	);
+	
+	bool doConnectionRestarting(
 		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 		ulong &/*_rseconds_to_wait*/,
 		MessageId &/*_rmsg_id*/,

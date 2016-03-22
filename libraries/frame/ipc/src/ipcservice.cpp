@@ -429,6 +429,10 @@ struct ConnectionPoolStub{
 		flags |= RestartFlag;
 	}
 	
+	void resetRestarting(){
+		flags &= ~RestartFlag;
+	}
+	
 	bool hasNoMessage()const{
 		if(msgorder_inner_list.empty()){
 			return true;
@@ -687,6 +691,9 @@ ErrorConditionT Service::doSendMessage(
 	if(_precipient_id_out){
 		_precipient_id_out->poolid = ConnectionPoolId(pool_idx, rconpool.unique);
 	}
+	
+	//TODO: if rconpool.isCleaningOneShotMessages and the message is one shot, 
+	//reject it
 	
 	//At this point we can fetch the message from user's pointer
 	//because from now on we can call complete on the message
@@ -1228,6 +1235,8 @@ bool Service::connectionStopping(
 		return doConnectionStoppingCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle);
 	}else if(rconpool.isCleaningAllMessages()){
 		return doConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle);
+	}else if(rconpool.isRestarting()){
+		return doConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle);
 	}else if(not rconpool.isFastClosing() and not rconpool.isServerSide()){
 		return doConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle);
 	}else{
@@ -1300,19 +1309,29 @@ bool Service::doConnectionStoppingCleanOneShot(
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rconpool(d.conpooldq[pool_index]);
 	
-	if(rconpool.hasAnyMessage()){
-		size_t		*pmsgidx = _revent_context.any().cast<size_t>();
+	size_t					*pmsgidx = _revent_context.any().cast<size_t>();
+	cassert(pmsgidx);
+	const size_t			crtmsgidx = *pmsgidx;
+	
+	if(crtmsgidx != InvalidIndex()){
+	
+		MessageStub		&rmsgstub = rconpool.msgvec[crtmsgidx];
 		
-		{
-			MessageStub &rmsgstub = rconpool.msgorder_inner_list.front();
+		*pmsgidx = rconpool.msgorder_inner_list.previousIndex(*pmsgidx);
+		
+		cassert(rconpool.msgorder_inner_list.isLinked(crtmsgidx));
+		
+		if(rmsgstub.msgbundle.message_ptr.get() and Message::is_one_shot(rmsgstub.msgbundle.message_flags)){
 			_rmsg_bundle = std::move(rmsgstub.msgbundle);
-			_rmsg_id = MessageId(msgidx, rmsgstub.unique);
+			_rmsg_id = MessageId(crtmsgidx, rmsgstub.unique);
+			rconpool.clearPopAndCacheMessage(crtmsgidx);
 		}
-		rconpool.clearPopAndCacheMessage(msgidx);
 		return false;
 	}else{
-		rconpool.resetCleaningAllMessages();
-		return true;//TODO: maybe we can return false
+		rconpool.resetCleaningOneShotMessages();
+		rconpool.setRestarting();
+		_rseconds_to_wait = configuration().reconnectTimeoutSeconds();
+		return false;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -1380,6 +1399,50 @@ bool Service::doConnectionStoppingPrepareCleanAll(
 	return false;
 }
 //-----------------------------------------------------------------------------
+bool Service::doConnectionRestarting(
+	Connection &_rcon, ObjectIdT const &_robjuid,
+	ulong &_rseconds_to_wait,
+	MessageId &/*_rmsg_id*/,
+	MessageBundle &/*_rmsg_bundle*/,
+	Event &_revent_context
+){
+	const size_t 			pool_index = _rcon.poolId().index;
+	ConnectionPoolStub 		&rconpool(d.conpooldq[pool_index]);
+	
+	if(_rcon.isActive()){
+		--rconpool.active_connection_count;
+	}else{
+		cassert(not _rcon.isServer());
+		--rconpool.pending_connection_count;
+	}
+	
+	++rconpool.stopping_connection_count;
+	rconpool.main_connection_id = ObjectIdT();
+	
+	
+	if(rconpool.hasAnyMessage()){
+		ErrorConditionT		error;
+		const bool			success = rconpool.doTryCreateNewConnectionForPool(pool_index, error);
+		
+		if(not success){
+			if(_rcon.isActive()){
+				++rconpool.active_connection_count;
+			}else{
+				cassert(not _rcon.isServer());
+				++rconpool.pending_connection_count;
+			}
+			
+			--rconpool.stopping_connection_count;
+			rconpool.main_connection_id = _robjuid;
+			
+			_rseconds_to_wait = configuration().reconnectTimeoutSeconds();
+			return false;
+		}
+		
+	}
+	return true;
+}
+//-----------------------------------------------------------------------------
 void Service::connectionStop(Connection const &_rcon){
 	idbgx(Debug::ipc, this<<' '<<&_rcon<<" "<<_robjuid);
 	const size_t 			pool_index = _rcon.poolId().index;
@@ -1391,6 +1454,7 @@ void Service::connectionStop(Connection const &_rcon){
 	if(rconpool.unique != _rcon.poolId().unique) return;
 	
 	--rconpool.stopping_connection_count;
+	rconpool.resetRestarting();
 	
 	if(rconpool.hasNoConnection()){
 		
