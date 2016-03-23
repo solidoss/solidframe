@@ -44,20 +44,21 @@ class Service;
 
 struct ResolveMessage{
 	AddressVectorT	addrvec;
-	size_t			crtidx;
 	
-	SocketAddressInet const & currentAddress()const{
-		return addrvec[crtidx];
+	bool empty()const{
+		return addrvec.empty();
 	}
 	
-	ResolveMessage(AddressVectorT &_raddrvec):addrvec(std::move(_raddrvec)), crtidx(0){}
+	SocketAddressInet const & currentAddress()const{
+		return addrvec.back();
+	}
+	
+	ResolveMessage(AddressVectorT &&_raddrvec):addrvec(std::move(_raddrvec)){}
 	
 	ResolveMessage(const ResolveMessage&) = delete;
 	
-	ResolveMessage(ResolveMessage &&_urm):addrvec(std::move(_urm.addrvec)), crtidx(_urm.crtidx){
-		_urm.crtidx = 0;
-	}
-	
+	ResolveMessage(ResolveMessage &&_urm):addrvec(std::move(_urm.addrvec)){
+	}	
 };
 
 
@@ -83,44 +84,6 @@ public:
 	);
 	~Connection();
 	
-	//We cannot use MessageBundle, because we do not
-	//want to store MessagePointerT and _rresponse_fnc
-	//in a temporary MessageBundle
-	bool pushMessage(
-		Service &_rservice,
-		MessagePointerT &_rmsgptr,
-		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong _flags,
-		MessageId *_pmsguid,
-		Event &_revent,
-		ErrorConditionT &_rerror,
-		const MessageId &_rpool_msg_id
-	);
-	
-	bool pushCanceledMessage(
-		Service &_rservice,
-		MessagePointerT &_rmsgptr,
-		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
-		ulong _flags,
-		Event &_revent,
-		ErrorConditionT &_rerror,
-		const MessageId &_rpool_msg_id
-	);
-	
-	bool pushMessageCancel(
-		Service &_rservice,
-		MessageId const &_rmsguid,
-		Event &_revent,
-		ErrorConditionT &_rerror
-	);
-	
-	bool pushDelayedClose(
-		Service &_rservice,
-		Event &_revent,
-		ErrorConditionT &_rerror
-	);
 	//NOTE: will always accept null message
 	bool tryPushMessage(
 		MessageBundle &_rmsgbundle,
@@ -183,7 +146,7 @@ private:
 	
 	void doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming);
 	
-	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr, const bool _forced);
+	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 	
 	void doSend(frame::aio::ReactorContext &_rctx, const bool _sent_something = false);
 	

@@ -146,94 +146,6 @@ Connection::~Connection(){
 	idbgx(Debug::ipc, this);
 }
 //-----------------------------------------------------------------------------
-// NOTE
-// Use two sendmsgvecs for locking granularity.
-// We do not relay only on the service's connection pool queue, because
-// of server-side connections which do not/cannot have an associated connection pool.
-// In this case - server-side - the messages must pass directly to the connection.
-//
-bool Connection::pushMessage(
-	Service &_rservice,
-	MessagePointerT &_rmsgptr,
-	const size_t _msg_type_idx,
-	ResponseHandlerFunctionT &_rresponse_fnc,
-	ulong _flags,
-	MessageId *_pmsguid,
-	Event &_revent,
-	ErrorConditionT &_rerror,
-	const MessageId &_rpool_msg_id
-){
-	idbgx(Debug::ipc, this<<' '<<this->id()<<" crtpushvecidx = "<<(int)crtpushvecidx<<" msg_type_idx = "<<_msg_type_idx<<" flags = "<<_flags<<" msgptr = "<<_rmsgptr.get());
-	//Under lock
-	if(not isStopping()){
-		if(not isDelayedClosing()){
-			MessageId	msguid;
-			
-			if(Message::is_asynchronous(_flags)){
-				msguid = msgwriter.safeNewMessageId(_rservice.configuration());
-			}else{
-				//synchronous message are always taken
-				msguid = msgwriter.safeForcedNewMessageId();
-			}
-			
-			if(msguid.isValid()){
-				
-				sendmsgvec[crtpushvecidx].push_back(
-					PendingSendMessageStub(
-						MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc),
-						msguid
-					)
-				);
-				
-				if(_pmsguid){
-					*_pmsguid = msguid;
-				}
-				
-				if(sendmsgvec[crtpushvecidx].size() == 1){
-					_revent = connection_event_category.event(ConnectionEvents::Push);
-				}
-				return true;
-			}else{
-				//TODO: TooManyMessages
-				_rerror.assign(-1, _rerror.category());
-			}
-		}else{
-			//TODO: ConnectionIsDelayedClosing
-			_rerror.assign(-1, _rerror.category());
-		}
-	}else{
-		//TODO: ConnectionIsStopping
-		_rerror.assign(-1, _rerror.category());
-	}
-	
-	return false;
-}
-//-----------------------------------------------------------------------------
-bool Connection::pushCanceledMessage(
-	Service &_rservice,
-	MessagePointerT &_rmsgptr,
-	const size_t _msg_type_idx,
-	ResponseHandlerFunctionT &_rresponse_fnc,
-	ulong _flags,
-	Event &_revent,
-	ErrorConditionT &_rerror,
-	const MessageId &_rpool_msg_id
-){
-	cassert(Message::is_canceled(_flags));
-	//under lock
-	sendmsgvec[crtpushvecidx].push_back(
-		PendingSendMessageStub(
-			MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc),
-			_rpool_msg_id
-		)
-	);
-	
-	if(sendmsgvec[crtpushvecidx].size() == 1){
-		_revent = connection_event_category.event(ConnectionEvents::Push);
-	}
-	return true;
-}
-//-----------------------------------------------------------------------------
 bool Connection::tryPushMessage(
 	MessageBundle &_rmsgbundle,
 	MessageId &_rmsguid,
@@ -275,57 +187,7 @@ bool Connection::tryPushMessage(
 #endif
 	return false;
 }
-//-----------------------------------------------------------------------------
-bool Connection::pushMessageCancel(
-	Service &_rservice,
-	MessageId const &_rmsguid,
-	Event &_revent,
-	ErrorConditionT &_rerror
-){
-	idbgx(Debug::ipc, this<<' '<<this->id()<<' '<<_rmsguid);
-	//Under lock
-	if(not isStopping()){
-		
-		sendmsgvec[crtpushvecidx].push_back(
-			PendingSendMessageStub(
-				_rmsguid
-			)
-		);
-		
-		if(sendmsgvec[crtpushvecidx].size() == 1){
-			_revent = connection_event_category.event(ConnectionEvents::Push);
-		}
-		return true;
-	}else{
-		//TODO: ConnectionIsStopping
-		_rerror.assign(-1, _rerror.category());
-	}
-	return false;
-}
-//-----------------------------------------------------------------------------
-bool Connection::pushDelayedClose(
-	Service &_rservice,
-	Event &_revent,
-	ErrorConditionT &_rerror
-){
-	idbgx(Debug::ipc, this<<' '<<this->id());
-				
-	//Under lock
-	if(not isStopping()){
-		if(not isDelayedClosing()){
-			flags |= static_cast<size_t>(Flags::DelayedClosing);
-			_revent = connection_event_category.event(ConnectionEvents::DelayedClose);
-			return true;
-		}else{
-			//TODO: ConnectionIsDelayedClosing
-			_rerror.assign(-1, _rerror.category());
-		}
-	}else{
-		//TODO: ConnectionIsStopping
-		_rerror.assign(-1, _rerror.category());
-	}
-	return false;
-}
+
 //-----------------------------------------------------------------------------
 bool Connection::prepareActivate(
 	Service &_rservice,
@@ -464,7 +326,7 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr, const bool _forced){
+void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
 	if(not isStopping()){
 		flags |= static_cast<size_t>(Flags::Stopping);
 		
@@ -583,49 +445,7 @@ void Connection::doHandleEventPush(
 	frame::aio::ReactorContext &_rctx,
 	Event &_revent
 ){
-	size_t		vecidx = InvalidIndex();
 	
-	{
-		Locker<Mutex>	lock(service(_rctx).mutex(*this));
-		
-		vecidx = crtpushvecidx;
-		crtpushvecidx += 1;
-		crtpushvecidx %= 2;
-	}
-	
-	ConnectionContext			conctx(service(_rctx), *this);
-	const TypeIdMapT			&rtypemap = service(_rctx).typeMap();
-	const Configuration 		&rconfig  = service(_rctx).configuration();
-	bool						was_empty_msgwriter = msgwriter.empty();
-	PendingSendMessageVectorT 	&rsendmsgvec = sendmsgvec[vecidx];
-	
-	
-	for(auto it = rsendmsgvec.begin(); it != rsendmsgvec.end(); ++it){
-		if(not it->msgbundle.message_ptr.empty()){
-			if(not Message::is_canceled(it->msgbundle.message_flags)){
-				msgwriter.enqueue(
-					it->msgbundle, it->msguid, rconfig, rtypemap, conctx
-				);
-			}else{
-				msgwriter.cancel(
-					it->msgbundle, it->msguid, rconfig, rtypemap, conctx
-				);
-			}
-		}else{
-			msgwriter.cancel(it->msguid, rconfig, rtypemap, conctx);
-		}
-	}
-	
-	rsendmsgvec.clear();
-	
-	if(not msgwriter.isNonSafeCacheEmpty()){
-		Locker<Mutex>	lock(service(_rctx).mutex(*this));
-		msgwriter.safeMoveCacheToSafety();
-	}
-	if(was_empty_msgwriter and not msgwriter.empty()){
-		idbgx(Debug::ipc, this<<" post send");
-		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
-	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventResolve(
@@ -635,11 +455,10 @@ void Connection::doHandleEventResolve(
 
 	ResolveMessage *presolvemsg = _revent.any().cast<ResolveMessage>();
 	if(presolvemsg){
-		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size()<<" crtidx = "<<presolvemsg->crtidx);
-		if(presolvemsg->crtidx < presolvemsg->addrvec.size()){
-			std::string addr;
-			
+		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size());
+		if(not presolvemsg->empty()){
 			idbgx(Debug::ipc, this<<' '<<this->id()<<" Connect to "<<presolvemsg->currentAddress());
+			
 			//initiate connect:
 			if(sock.connect(_rctx, presolvemsg->currentAddress(), Connection::onConnect)){
 				onConnect(_rctx);
@@ -656,7 +475,6 @@ void Connection::doHandleEventResolve(
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Event &/*_revent*/){
-	cassert(isAtomicDelayedClosing());
 	bool				was_empty_msgwriter = msgwriter.empty();
 	MessageId			msguid;
 	//Configuration const &rconfig = service(_rctx).configuration();

@@ -412,7 +412,7 @@ private:
 		Event &_revent_context
 	);
 	
-	bool doConnectionStoppingOneShot(
+	bool doConnectionStoppingCleanOneShot(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id,
@@ -475,6 +475,12 @@ private:
 	);
 	
 	void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent);
+	
+	void doPushFrontMessageToPool(
+		ConnectionPoolId &_rconpoolid,
+		MessageBundle &_rmsgbundle,
+		MessageId const &_rmsgid
+	);
 	
 	template <class F, class M>
 	struct ReceiveProxy{

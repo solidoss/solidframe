@@ -76,8 +76,8 @@ Configuration::Configuration(
 	
 	msg_cancel_connection_wait_seconds = 1;
 	
-	pool_max_connection_count = 1;
-	pool_min_dormant_connection_count = 1;
+	pool_max_active_connection_count = 1;
+	pool_max_pending_connection_count = 1;
 }
 //-----------------------------------------------------------------------------
 size_t Configuration::reconnectTimeoutSeconds()const{
@@ -90,10 +90,12 @@ ErrorConditionT Configuration::check() const {
 }
 //-----------------------------------------------------------------------------
 void Configuration::prepare(){
-	if(pool_max_connection_count == 0){
-		pool_max_connection_count = 1;
+	if(pool_max_active_connection_count == 0){
+		pool_max_active_connection_count = 1;
 	}
-	
+	if(pool_max_pending_connection_count == 0){
+		pool_max_pending_connection_count = 1;
+	}
 	if(msg_cancel_connection_wait_seconds == 0){
 		msg_cancel_connection_wait_seconds = 2;
 	}

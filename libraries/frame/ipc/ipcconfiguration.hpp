@@ -43,7 +43,7 @@ typedef frame::Scheduler<frame::aio::Reactor> 								AioSchedulerT;
 typedef std::vector<SocketAddressInet>										AddressVectorT;
 	
 typedef FUNCTION<void(ServiceProxy &)>										MessageRegisterFunctionT;
-typedef FUNCTION<void(AddressVectorT &)>									ResolveCompleteFunctionT;
+typedef FUNCTION<void(AddressVectorT &&)>									ResolveCompleteFunctionT;
 typedef FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>		AsyncResolveFunctionT;
 typedef FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>			ConnectionStopFunctionT;
 typedef FUNCTION<void(ConnectionContext &)>									ConnectionStartFunctionT;
@@ -101,8 +101,8 @@ public:
 	void freeSendBuffer(char *_pb)const;
 	
 	AioSchedulerT						*psch;
-	size_t								pool_max_connection_count;
-	size_t								pool_min_dormant_connection_count;
+	size_t								pool_max_active_connection_count;
+	size_t								pool_max_pending_connection_count;
 	size_t								pool_max_message_queue_size;//TODO:implement this limitation
 	size_t								session_mutex_count;
 	
