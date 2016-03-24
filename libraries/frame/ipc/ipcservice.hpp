@@ -459,7 +459,7 @@ private:
 	
 	bool fetchCanceledMessage(Connection const &_rcon, MessageId const &_rmsg_id, MessageBundle &_rmsg_bundle);
 	
-	void doTryPushMessageToConnection(
+	bool doTryPushMessageToConnection(
 		Connection &_rcon,
 		ObjectIdT const &_robjuid,
 		const size_t _pool_idx,

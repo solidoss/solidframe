@@ -908,7 +908,10 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	return error;
 }
 //-----------------------------------------------------------------------------
-void Service::doTryPushMessageToConnection(
+//tryPushMessage will accept a message when:
+// there is space in the sending queue and
+//	either the message is not waiting for response or there is space in the waiting response message queue
+bool Service::doTryPushMessageToConnection(
 	Connection &_rcon,
 	ObjectIdT const &_robjuid,
 	const size_t _pool_idx,
@@ -951,6 +954,7 @@ void Service::doTryPushMessageToConnection(
 			rmsgstub.clear();
 		}
 	}
+	return false;//TODO:
 }
 //-----------------------------------------------------------------------------
 void Service::pollPoolForUpdates(
@@ -990,14 +994,13 @@ void Service::pollPoolForUpdates(
 	
 	idbgx(Debug::ipc, this<<' '<<&_rconnection<<" messages in pool: "<<rconpool.msgorder_inner_list.size());
 	
-	const bool 				connection_can_handle_synchronous_messages{
-		_robjuid == rconpool.main_connection_id
-	};
+	const bool 				connection_can_handle_synchronous_messages{	_robjuid == rconpool.main_connection_id	};
+	bool					connection_can_handle_more_messages = true;
 	
 	if(connection_can_handle_synchronous_messages){
 		//use the order inner queue
-		if(rconpool.msgorder_inner_list.size()){
-			doTryPushMessageToConnection(
+		while(rconpool.msgorder_inner_list.size() and connection_can_handle_more_messages){
+			connection_can_handle_more_messages = doTryPushMessageToConnection(
 				_rconnection,
 				_robjuid,
 				pool_idx,
@@ -1006,8 +1009,8 @@ void Service::pollPoolForUpdates(
 		}
 	}else{
 		//use the async inner queue
-		if(rconpool.msgasync_inner_list.size()){
-			doTryPushMessageToConnection(
+		while(rconpool.msgasync_inner_list.size() and connection_can_handle_more_messages){
+			connection_can_handle_more_messages = doTryPushMessageToConnection(
 				_rconnection,
 				_robjuid,
 				pool_idx,
