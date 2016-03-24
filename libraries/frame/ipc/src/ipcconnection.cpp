@@ -663,7 +663,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				msgwriter.hasFreeSeats(rconfig)
 			){
 				Service::PoolStatus pool_status;
-				service(_rctx).pollPoolForUpdates(*this, uid(_rctx), pool_status);
+				service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId(), pool_status);
 				if(pool_status == Service::PoolStatus::FastClosing){
 					flags |= static_cast<size_t>(Flags::StopForced);//TODO: maybe you should not set this all the time
 					doStop(_rctx, error);

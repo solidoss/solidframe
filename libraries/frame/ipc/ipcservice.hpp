@@ -120,13 +120,6 @@ class Service: public Dynamic<Service, frame::Service>{
 		}
 	};
 	
-	enum struct PoolStatus{
-		Open,
-		Closing,
-		FastClosing,
-		Unknown
-	};
-	
 public:
 	typedef Dynamic<Service, frame::Service> BaseT;
 	
@@ -396,7 +389,7 @@ private:
 		Event &_revent_context
 	);
 	
-	bool doConnectionStoppingNotMain(
+	bool doNonMainConnectionStopping(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id,
@@ -404,7 +397,7 @@ private:
 		Event &_revent_context
 	);
 	
-	bool doConnectionStoppingNotLast(
+	bool doMainConnectionStoppingNotLast(
 		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 		ulong &_rseconds_to_wait,
 		MessageId &/*_rmsg_id*/,
@@ -412,7 +405,7 @@ private:
 		Event &_revent_context
 	);
 	
-	bool doConnectionStoppingCleanOneShot(
+	bool doMainConnectionStoppingCleanOneShot(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id,
@@ -420,7 +413,7 @@ private:
 		Event &_revent_context
 	);
 	
-	bool doConnectionStoppingCleanAll(
+	bool doMainConnectionStoppingCleanAll(
 		Connection &_rcon, ObjectIdT const &_robjuid,
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id,
@@ -428,15 +421,7 @@ private:
 		Event &_revent_context
 	);
 	
-	bool doConnectionStoppingPrepareCleanOneShot(
-		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
-		ulong &/*_rseconds_to_wait*/,
-		MessageId &/*_rmsg_id*/,
-		MessageBundle &/*_rmsg_bundle*/,
-		Event &_revent_context
-	);
-	
-	bool doConnectionStoppingPrepareCleanAll(
+	bool doMainConnectionStoppingPrepareCleanOneShot(
 		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 		ulong &/*_rseconds_to_wait*/,
 		MessageId &/*_rmsg_id*/,
@@ -444,7 +429,15 @@ private:
 		Event &_revent_context
 	);
 	
-	bool doConnectionRestarting(
+	bool doMainConnectionStoppingPrepareCleanAll(
+		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
+		ulong &/*_rseconds_to_wait*/,
+		MessageId &/*_rmsg_id*/,
+		MessageBundle &/*_rmsg_bundle*/,
+		Event &_revent_context
+	);
+	
+	bool doMainConnectionRestarting(
 		Connection &_rcon, ObjectIdT const &/*_robjuid*/,
 		ulong &/*_rseconds_to_wait*/,
 		MessageId &/*_rmsg_id*/,
@@ -456,22 +449,21 @@ private:
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
 	void onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err);
 	
-	void pollPoolForUpdates(
+	bool pollPoolForUpdates(
 		Connection &_rcon,
 		ObjectIdT const &_robjuid,
-		PoolStatus &_rpool_status
+		MessageId const &_rmsgid
 	);
 	
 	bool fetchMessage(Connection &_rcon, ObjectIdT const &_robjuid, MessageId const &_rmsg_id);
 	
 	bool fetchCanceledMessage(Connection const &_rcon, MessageId const &_rmsg_id, MessageBundle &_rmsg_bundle);
 	
-	bool doTryPushMessageToConnection(
+	void doTryPushMessageToConnection(
 		Connection &_rcon,
 		ObjectIdT const &_robjuid,
 		const size_t _pool_idx,
-		const size_t msg_idx,
-		bool &_rpushed_synchronous_message
+		const size_t msg_idx
 	);
 	
 	void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent);
@@ -581,7 +573,7 @@ private:
 		ulong _flags
 	);
 	
-	ErrorConditionT doNotifyConnectionPushMessage(
+	ErrorConditionT doSendMessageToConnection(
 		const RecipientId	&_rrecipient_id_in,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
