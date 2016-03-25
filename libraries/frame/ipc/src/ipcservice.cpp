@@ -921,18 +921,15 @@ bool Service::doTryPushMessageToConnection(
 	MessageStub			&rmsgstub = rconpool.msgvec[_msg_idx];
 	const bool			message_is_synchronous = Message::is_asynchronous(rmsgstub.msgbundle.message_flags);
 	const bool			message_is_null = rmsgstub.msgbundle.message_ptr.empty();
-	
+	bool				success = false;
 	cassert(Message::is_canceled(rmsgstub.msgbundle.message_flags));
 	
 	
 	if(rmsgstub.isCancelable()){
 		
 		rmsgstub.objid = _robjuid;
-		
-		if(
-			_rcon.tryPushMessage(rmsgstub.msgbundle, rmsgstub.msgid, MessageId(_msg_idx, rmsgstub.unique))
-			and not message_is_null
-		){
+		success = _rcon.tryPushMessage(rmsgstub.msgbundle, rmsgstub.msgid, MessageId(_msg_idx, rmsgstub.unique));
+		if(success	and not message_is_null){
 			rconpool.msgorder_inner_list.erase(_msg_idx);
 			
 			if(not message_is_synchronous){
@@ -941,8 +938,8 @@ bool Service::doTryPushMessageToConnection(
 		}
 		
 	}else{
-		
-		if(_rcon.tryPushMessage(rmsgstub.msgbundle) and not message_is_null){
+		success = _rcon.tryPushMessage(rmsgstub.msgbundle);
+		if(success and not message_is_null){
 			
 			rconpool.msgorder_inner_list.erase(_msg_idx);
 			
@@ -954,10 +951,10 @@ bool Service::doTryPushMessageToConnection(
 			rmsgstub.clear();
 		}
 	}
-	return false;//TODO:
+	return success;
 }
 //-----------------------------------------------------------------------------
-void Service::pollPoolForUpdates(
+bool Service::pollPoolForUpdates(
 	Connection &_rconnection,
 	ObjectIdT const &_robjuid,
 	MessageId const &_rcompleted_msgid
@@ -967,7 +964,7 @@ void Service::pollPoolForUpdates(
 	ConnectionPoolStub 		&rconpool(d.conpooldq[pool_idx]);
 	
 	cassert(rconpool.unique == _rconnection.poolId().unique);
-	if(rconpool.unique != _rconnection.poolId().unique) return;
+	if(rconpool.unique != _rconnection.poolId().unique) return false;
 	
 	if(rconpool.isMainConnectionStopping() and rconpool.main_connection_id != _robjuid){
 		idbgx(Debug::ipc, this<<' '<<&_rconnection<<" switch message main connection from "<<rconpool.main_connection_id<<" to "<<_robjuid);
@@ -985,19 +982,16 @@ void Service::pollPoolForUpdates(
 		return false;
 	}
 	
-	if(
-		_rconnection.isFull() or 
-		(_rconnection.isInPoolWaitingQueue() and not _rconnection.isEmpty())
-	){
-		return true;
-	}
-	
 	idbgx(Debug::ipc, this<<' '<<&_rconnection<<" messages in pool: "<<rconpool.msgorder_inner_list.size());
 	
 	const bool 				connection_can_handle_synchronous_messages{	_robjuid == rconpool.main_connection_id	};
-	bool					connection_can_handle_more_messages = true;
+	
+	//We need to push as many messages as we can to the connection
+	//in order to handle eficiently the situation with multiple small messages.
 	
 	if(connection_can_handle_synchronous_messages){
+		bool	connection_can_handle_more_messages = not _rconnection.isFull(configuration());
+		
 		//use the order inner queue
 		while(rconpool.msgorder_inner_list.size() and connection_can_handle_more_messages){
 			connection_can_handle_more_messages = doTryPushMessageToConnection(
@@ -1008,6 +1002,8 @@ void Service::pollPoolForUpdates(
 			);
 		}
 	}else{
+		bool	connection_can_handle_more_messages = not _rconnection.isFull(configuration());
+		
 		//use the async inner queue
 		while(rconpool.msgasync_inner_list.size() and connection_can_handle_more_messages){
 			connection_can_handle_more_messages = doTryPushMessageToConnection(
@@ -1023,7 +1019,7 @@ void Service::pollPoolForUpdates(
 	//connection WILL check for new messages when become not full
 	//connection MAY NOT check for new messages if (isInPoolWaitingQueue)
 	
-	if(not _rconnection.isFull() and not _rconnection.isInPoolWaitingQueue()){
+	if(not _rconnection.isFull(configuration()) and not _rconnection.isInPoolWaitingQueue()){
 		rconpool.conn_waitingq.push(_robjuid);
 		_rconnection.setInPoolWaitingQueue();
 	}

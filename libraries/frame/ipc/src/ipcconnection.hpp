@@ -96,6 +96,8 @@ public:
 		MessageBundle &_rmsgbundle
 	);
 	
+	bool isFull(Configuration const& _rconfiguration)const;
+	
 	bool prepareActivate(
 		Service &_rservice,
 		ConnectionPoolId const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror

@@ -347,7 +347,7 @@ public:
 		return doDelayCloseConnectionPool(_rrecipient_id, response_handler);
 	}
 	
-	ErrorConditionT postActivateConnection(
+	ErrorConditionT notifyConnectionActivate(
 		RecipientId const &_rrecipient_id
 	){
 		ActivateConnectionMessageFactoryFunctionT	msgfactory;
@@ -355,13 +355,15 @@ public:
 	}
 	
 	template <class MF>
-	ErrorConditionT postActivateConnection(
+	ErrorConditionT notifyConnectionActivate(
 		RecipientId const &_rrecipient_id,
 		MF _msgfactory
 	){
 		ActivateConnectionMessageFactoryFunctionT	msgfactory(_msgfactory);
 		return doPostActivateConnection(_rrecipient_id, std::move(msgfactory));
 	}
+	
+	ErrorConditionT notifyConnectionSecure();
 	
 	ErrorConditionT cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsg_id);
 	

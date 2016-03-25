@@ -49,11 +49,12 @@ Configuration::Configuration(
 	send_buffer_capacity = 4096;
 	
 	
-	max_writer_multiplex_message_count = 16;
-	max_writer_message_continuous_packet_count = 4;
-	max_writer_message_count = InvalidSize();
+	max_writer_message_count_multiplex = 64;
 	
-	max_reader_multiplex_message_count = max_writer_multiplex_message_count;
+	max_writer_message_continuous_packet_count = 4;
+	max_writer_message_count_response_wait = 128;
+	
+	max_reader_message_count_multiplex = max_writer_message_count_multiplex;
 	
 	inactivity_timeout_seconds = 60 * 10;//ten minutes
 	keepalive_timeout_seconds = 60 * 5;//five minutes

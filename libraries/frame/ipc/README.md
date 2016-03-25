@@ -186,13 +186,13 @@ and for locks:
 
 #### Wanted state
 
-Now we want to use unnamed connection pools for server-side messages.
+We want to use unnamed connection pools for server-side messages.
 
 Queues
 
 * Messages are allways pushed on the pool's message queue - 2 locks one for Service and one for connection pool.
 * Connection's are either notified with NewMessageEvent or SpecificNewMessageEvent containing the MessageId
-* Writer will only have one, writing queue.
+* Writer will only have a writing queue and a response waiting queue.
 * Connection will have a queue of MessageIds, for SpecificNewMessageEvents that could not be directly delivered to writer.
 
 Locking
@@ -245,7 +245,7 @@ _Altenatives_
 		on message_received callback by calling setConnectionProtocol
 
 **Test**
-* test_clientserver_multiproto_basic
+* test_clientserver_multiprotocol_basic
 	* start a server ipc configure it with 3 protocols (0 for init, 1 and 2 for different clients)
 	* start 2 different clients configured with different protocols
 	* proceed on both protcols as in test_clientserver_basic.
@@ -259,4 +259,40 @@ _Altenatives_
 
 ### Support for SSL
 
+We want to be able to use Secure TCP connections as transport layer.
+
 ### Support for SOCKS5
+
+We want to add support for implementations of SOCKS5 and similar protocols.
+
+There are two options:
+	* Built-in support for SOCKS5
+	* Generic support for protocols similar to SOCKS5
+
+For implementing SOCKS5 support we need:
+	* Resolve function should return the IPs of the SOCKS5 servers
+	* Connections should be able to receive and send raw data before startTLS and before Activate.
+
+Different connection scenarios:
+	* secureConnection -> authentication handshake.. -> activateConnection
+	* ...plain initialization handshake... -> (startTLS command?!) secureConnection -> authentication handshake... -> activateConnection
+	* ...raw handshake... -> secureConnection -> authentication handshake.. -> activateConnection
+	* ...raw handshake... -> ...plain initialization handshake... -> (startTLS command?!) secureConnection -> authentication handshake... -> activateConnection
+
+Connection states/flags:
+	* RawState:			sending and receiving raw data
+	* InnactiveState:	send only direct connection messages, receive any message
+	* SecureFlag:		when set, connection start ssl handshake then on success same as InnactiveState
+	* ActiveState:		send any kind of message
+
+SecureFlag can be set while on InnactiveState or ActiveState but not on RawState.
+SecureFlag also cannot be set for connections with no SSL support.
+
+A call to notifyConnectionSecure for the above invalid situations, will close connection with specific error.
+
+Configuration should contain the state the connections will start with and wether the SecureFlag is set from the start or not.
+
+The Raw Data Send Receive Support
+
+TODO:...
+

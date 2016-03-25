@@ -146,6 +146,10 @@ Connection::~Connection(){
 	idbgx(Debug::ipc, this);
 }
 //-----------------------------------------------------------------------------
+bool Connection::isFull(Configuration const& _rconfiguration)const{
+	return true;
+}
+//-----------------------------------------------------------------------------
 bool Connection::tryPushMessage(
 	MessageBundle &_rmsgbundle,
 	MessageId &_rmsguid,
@@ -662,10 +666,9 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				isActive() and
 				msgwriter.hasFreeSeats(rconfig)
 			){
-				Service::PoolStatus pool_status;
-				service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId(), pool_status);
-				if(pool_status == Service::PoolStatus::FastClosing){
+				if(not service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId())){
 					flags |= static_cast<size_t>(Flags::StopForced);//TODO: maybe you should not set this all the time
+					error.assign(-1, error.category());//TODO: Forced stop
 					doStop(_rctx, error);
 					sent_something = false;//prevent calling doResetTimerSend after doStop
 					break;

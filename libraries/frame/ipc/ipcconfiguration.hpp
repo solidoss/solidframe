@@ -106,12 +106,12 @@ public:
 	size_t								pool_max_message_queue_size;//TODO:implement this limitation
 	size_t								session_mutex_count;
 	
-	size_t								max_writer_multiplex_message_count;
-	size_t								max_writer_message_count;
+	size_t								max_writer_message_count_multiplex;
+	size_t								max_writer_message_count_response_wait;
 	size_t								max_writer_message_continuous_packet_count;
 	
 	
-	size_t								max_reader_multiplex_message_count;
+	size_t								max_reader_message_count_multiplex;
 	
 	size_t								reconnect_timeout_seconds;
 	
