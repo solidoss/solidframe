@@ -161,7 +161,7 @@ void MessageReader::doConsumePacket(
 			case PacketHeader::SwitchToNewMessageTypeE:
 				vdbgx(Debug::ipc, "SwitchToNewMessageTypeE "<<message_q.size());
 				if(message_q.front().message_ptr.get()){
-					if(message_q.size() == _rconfig.max_reader_message_count_multiplex){
+					if(message_q.size() == _rconfig.reader_max_message_count_multiplex){
 						cassert(false);
 						_rerror.assign(-1, _rerror.category());//TODO:
 						return;

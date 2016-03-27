@@ -71,15 +71,21 @@ public:
 	static Event eventNewMessage(const MessageId &);
 	static Event eventCancelLocalMessage(const MessageId &);
 	static Event eventCancelPoolMessage(const MessageId &);
-	static Event eventActivate(ActivateConnectionMessageFactoryFunctionT &&);
 	static Event eventStopping();
+	static Event eventEnterActive(ConnectionEnterActiveCompleteFunctionT &&);
+	static Event eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT &&);
+	static Event eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT &&);
+	static Event eventSendRaw(ConnectionSendRawDataCompleteFunctionT &&, std::string &&);
+	static Event eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT &&);
 	
 	//Called when connection is accepted
 	Connection(
+		Configuration const& _rconfiguration,
 		SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
 	);
 	//Called when connection is 
 	Connection(
+		Configuration const& _rconfiguration,
 		ConnectionPoolId const &_rconpoolid
 	);
 	~Connection();

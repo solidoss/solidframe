@@ -43,30 +43,33 @@ namespace{
 
 Configuration::Configuration(
 	AioSchedulerT &_rsch
-): psch(&_rsch), session_mutex_count(16)
+): pscheduler(&_rsch), pools_mutex_count(16)
 {
-	recv_buffer_capacity = 4096;
-	send_buffer_capacity = 4096;
+	connection_recv_buffer_capacity = 4096;
+	connection_send_buffer_capacity = 4096;
 	
 	
-	max_writer_message_count_multiplex = 64;
+	writer_max_message_count_multiplex = 64;
 	
-	max_writer_message_continuous_packet_count = 4;
-	max_writer_message_count_response_wait = 128;
+	writer_max_message_continuous_packet_count = 4;
+	writer_max_message_count_response_wait = 128;
 	
-	max_reader_message_count_multiplex = max_writer_message_count_multiplex;
+	reader_max_message_count_multiplex = writer_max_message_count_multiplex;
 	
-	inactivity_timeout_seconds = 60 * 10;//ten minutes
-	keepalive_timeout_seconds = 60 * 5;//five minutes
-	reconnect_timeout_seconds = 10;
+	connection_inactivity_timeout_seconds = 60 * 10;//ten minutes
+	connection_keepalive_timeout_seconds = 60 * 5;//five minutes
+	connection_reconnect_timeout_seconds = 10;
 	
-	inactivity_keepalive_count = 2;
+	connection_inactivity_keepalive_count = 2;
 	
-	allocate_recv_buffer_fnc = default_allocate_buffer;
-	allocate_send_buffer_fnc = default_allocate_buffer;
+	connection_start_state = ConnectionState::Passive;
+	connection_start_secure = true;
 	
-	free_recv_buffer_fnc = default_free_buffer;
-	free_send_buffer_fnc = default_free_buffer;
+	recv_buffer_allocate_fnc = default_allocate_buffer;
+	send_buffer_allocate_fnc = default_allocate_buffer;
+	
+	recv_buffer_free_fnc = default_free_buffer;
+	send_buffer_free_fnc = default_free_buffer;
 	
 	reset_serializer_limits_fnc = empty_reset_serializer_limits;
 	
@@ -75,14 +78,13 @@ Configuration::Configuration(
 	inplace_compress_fnc = default_compress;
 	uncompress_fnc = default_uncompress;
 	
-	msg_cancel_connection_wait_seconds = 1;
 	
 	pool_max_active_connection_count = 1;
 	pool_max_pending_connection_count = 1;
 }
 //-----------------------------------------------------------------------------
-size_t Configuration::reconnectTimeoutSeconds()const{
-	return reconnect_timeout_seconds;//TODO: add entropy
+size_t Configuration::connectionReconnectTimeoutSeconds()const{
+	return connection_reconnect_timeout_seconds;//TODO: add entropy
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Configuration::check() const {
@@ -97,25 +99,22 @@ void Configuration::prepare(){
 	if(pool_max_pending_connection_count == 0){
 		pool_max_pending_connection_count = 1;
 	}
-	if(msg_cancel_connection_wait_seconds == 0){
-		msg_cancel_connection_wait_seconds = 2;
-	}
 }
 //-----------------------------------------------------------------------------
 char* Configuration::allocateRecvBuffer()const{
-	return allocate_recv_buffer_fnc(recv_buffer_capacity);
+	return recv_buffer_allocate_fnc(connection_recv_buffer_capacity);
 }
 //-----------------------------------------------------------------------------
 void Configuration::freeRecvBuffer(char *_pb)const{
-	free_recv_buffer_fnc(_pb);
+	recv_buffer_free_fnc(_pb);
 }
 //-----------------------------------------------------------------------------
 char* Configuration::allocateSendBuffer()const{
-	return allocate_send_buffer_fnc(send_buffer_capacity);
+	return send_buffer_allocate_fnc(connection_send_buffer_capacity);
 }
 //-----------------------------------------------------------------------------
 void Configuration::freeSendBuffer(char *_pb)const{
-	free_send_buffer_fnc(_pb);
+	send_buffer_free_fnc(_pb);
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

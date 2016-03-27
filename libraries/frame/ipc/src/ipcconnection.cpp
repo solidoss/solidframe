@@ -20,6 +20,7 @@ namespace frame{
 namespace ipc{
 
 namespace{
+
 enum class Flags:size_t{
 	Active						= 1,
 	Server						= 4,
@@ -29,7 +30,9 @@ enum class Flags:size_t{
 	HasActivity 				= 64,
 	TryFetchNewMessageFromPool	= 128,
 	Stopping					= 256,
-	DelayedClosing				= 512
+	DelayedClosing				= 512,
+	Secure						= 1024,
+	Raw							= 2048,
 };
 
 enum class ConnectionEvents{
@@ -100,7 +103,23 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	return Event();
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventActivate(ActivateConnectionMessageFactoryFunctionT &&){
+/*static*/ Event Connection::eventEnterActive(ConnectionEnterActiveCompleteFunctionT &&){
+	return Event();
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT &&){
+	return Event();
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT &&){
+	return Event();
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::eventSendRaw(ConnectionSendRawDataCompleteFunctionT &&, std::string &&){
+	return Event();
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT &&){
 	return Event();
 }
 //-----------------------------------------------------------------------------
@@ -123,6 +142,7 @@ inline void Connection::doOptimizeRecvBufferForced(){
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
+	Configuration const& _rconfiguration,
 	SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
 ):	sock(this->proxy(), std::move(_rsd)), timer(this->proxy()),
 	flags(0), receivebufoff(0), consumebufoff(0),
@@ -133,6 +153,7 @@ Connection::Connection(
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
+	Configuration const& _rconfiguration,
 	ConnectionPoolId const &_rconpoolid
 ):	conpoolid(_rconpoolid), sock(this->proxy()), timer(this->proxy()),
 	flags(0), receivebufoff(0), consumebufoff(0),
@@ -287,7 +308,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	);
 	
 	//start receiving messages
-	sock.postRecvSome(_rctx, recvbuf, config.recv_buffer_capacity, Connection::onRecv);
+	sock.postRecvSome(_rctx, recvbuf, config.connection_recv_buffer_capacity, Connection::onRecv);
 	doResetTimerStart(_rctx);
 }
 //-----------------------------------------------------------------------------
@@ -501,15 +522,15 @@ void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Ev
 void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
-		if(config.inactivity_timeout_seconds){
+		if(config.connection_inactivity_timeout_seconds){
 			receive_keepalive_count = 0;
 			flags &= (~static_cast<size_t>(Flags::HasActivity));
-			timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
+			timer.waitFor(_rctx, TimeSpec(config.connection_inactivity_timeout_seconds), onTimerInactivity);
 		}
 	}else{//client
-		if(config.keepalive_timeout_seconds){
+		if(config.connection_keepalive_timeout_seconds){
 			flags |= static_cast<size_t>(Flags::WaitKeepAliveTimer);
-			timer.waitFor(_rctx, TimeSpec(config.keepalive_timeout_seconds), onTimerKeepalive);
+			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
 }
@@ -517,12 +538,12 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
-		if(config.inactivity_timeout_seconds){
+		if(config.connection_inactivity_timeout_seconds){
 			flags |= static_cast<size_t>(Flags::HasActivity);
 		}
 	}else{//client
-		if(config.keepalive_timeout_seconds and isWaitingKeepAliveTimer()){
-			timer.waitFor(_rctx, TimeSpec(config.keepalive_timeout_seconds), onTimerKeepalive);
+		if(config.connection_keepalive_timeout_seconds and isWaitingKeepAliveTimer()){
+			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
 }
@@ -530,13 +551,13 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
 void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
-		if(config.inactivity_timeout_seconds){
+		if(config.connection_inactivity_timeout_seconds){
 			flags |= static_cast<size_t>(Flags::HasActivity);
 		}
 	}else{//client
-		if(config.keepalive_timeout_seconds and not isWaitingKeepAliveTimer()){
+		if(config.connection_keepalive_timeout_seconds and not isWaitingKeepAliveTimer()){
 			flags |= static_cast<size_t>(Flags::WaitKeepAliveTimer);
-			timer.waitFor(_rctx, TimeSpec(config.keepalive_timeout_seconds), onTimerKeepalive);
+			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
 }
@@ -553,7 +574,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		
 		Configuration const &config = rthis.service(_rctx).configuration();
 		
-		rthis.timer.waitFor(_rctx, TimeSpec(config.inactivity_timeout_seconds), onTimerInactivity);
+		rthis.timer.waitFor(_rctx, TimeSpec(config.connection_inactivity_timeout_seconds), onTimerInactivity);
 	}else{
 		rthis.doStop(_rctx, error_inactivity_timeout);
 	}
@@ -578,7 +599,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	unsigned			repeatcnt = 4;
 	char				*pbuf;
 	size_t				bufsz;
-	const uint32		recvbufcp = rthis.service(_rctx).configuration().recv_buffer_capacity;
+	const uint32		recvbufcp = rthis.service(_rctx).configuration().connection_recv_buffer_capacity;
 	bool				recv_something = false;
 	
 	auto				complete_lambda(
@@ -653,7 +674,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		ConnectionContext	conctx(service(_rctx), *this);
 		unsigned 			repeatcnt = 4;
 		ErrorConditionT		error;
-		const uint32		sendbufcp = service(_rctx).configuration().send_buffer_capacity;
+		const uint32		sendbufcp = service(_rctx).configuration().connection_send_buffer_capacity;
 		const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 		const Configuration &rconfig  = service(_rctx).configuration();
 		bool				sent_something = _sent_something;
@@ -765,7 +786,7 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
 		
 		++receive_keepalive_count;
 		
-		if(receive_keepalive_count < config.inactivity_keepalive_count){
+		if(receive_keepalive_count < config.connection_inactivity_keepalive_count){
 			flags |= static_cast<size_t>(Flags::Keepalive);
 			idbgx(Debug::ipc, this<<" post send");
 			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});

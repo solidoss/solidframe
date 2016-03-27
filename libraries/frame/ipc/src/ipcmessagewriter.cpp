@@ -59,7 +59,7 @@ MessageId MessageWriter::safeNewMessageId(Configuration const &_rconfig){
 	if(message_uid_cache_vec.size()){
 		msguid = message_uid_cache_vec.back();
 		message_uid_cache_vec.pop_back();
-	}else if(message_idx_cache < _rconfig.max_writer_message_count_response_wait){
+	}else if(message_idx_cache < _rconfig.writer_max_message_count_response_wait){
 		msguid.unique = 0;
 		msguid.index = message_idx_cache.fetch_add(1);
 	}
@@ -145,7 +145,7 @@ void MessageWriter::enqueue(
 	order_inner_list.pushBack(idx);
 	
 	if(
-		sending_inner_list.size() < _rconfig.max_writer_message_count_multiplex and
+		sending_inner_list.size() < _rconfig.writer_max_message_count_multiplex and
 		(
 			Message::is_asynchronous(_rmsgbundle.message_flags) or
 			(
@@ -338,7 +338,7 @@ void MessageWriter::completeAllCanceledMessages(
 #endif
 //-----------------------------------------------------------------------------
 size_t MessageWriter::freeSeatsCount(Configuration const &_rconfig)const{
-	return _rconfig.max_writer_message_count_response_wait - sending_inner_list.size() - pending_inner_list.size();
+	return _rconfig.writer_max_message_count_response_wait - sending_inner_list.size() - pending_inner_list.size();
 }
 //-----------------------------------------------------------------------------
 bool MessageWriter::hasFreeSeats(Configuration const &_rconfig)const{
@@ -346,7 +346,7 @@ bool MessageWriter::hasFreeSeats(Configuration const &_rconfig)const{
 		freeSeatsCount(_rconfig) and (
 			sending_inner_list.empty() or 
 			(
-				sending_inner_list.size() < _rconfig.max_writer_message_count_multiplex and
+				sending_inner_list.size() < _rconfig.writer_max_message_count_multiplex and
 				sending_inner_list.front().packet_count == 0
 			)
 		)
@@ -588,7 +588,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 		//message not done - packet should be full
 		++_rmsgstub.packet_count;
 		
-		if(_rmsgstub.packet_count >= _rconfig.max_writer_message_continuous_packet_count){
+		if(_rmsgstub.packet_count >= _rconfig.writer_max_message_continuous_packet_count){
 			_rmsgstub.packet_count = 0;
 			sending_inner_list.popFront();
 			sending_inner_list.pushBack(_msgidx);

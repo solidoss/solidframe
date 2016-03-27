@@ -17,6 +17,7 @@
 #include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcserialization.hpp"
+#include "frame/ipc/ipcconfiguration.hpp"
 #include "system/debug.hpp"
 
 namespace solid{
@@ -67,6 +68,7 @@ struct Message;
 class Configuration;
 class Connection;
 struct MessageBundle;
+
 
 //! Inter Process Communication service
 /*!
@@ -347,37 +349,83 @@ public:
 		return doDelayCloseConnectionPool(_rrecipient_id, response_handler);
 	}
 	
-	ErrorConditionT notifyConnectionActivate(
-		RecipientId const &_rrecipient_id
-	){
-		ActivateConnectionMessageFactoryFunctionT	msgfactory;
-		return doPostActivateConnection(_rrecipient_id, std::move(msgfactory));
-	}
 	
-	template <class MF>
-	ErrorConditionT notifyConnectionActivate(
+	template <class CompleteFnc>
+	ErrorConditionT connectionNotifyEnterActiveState(
 		RecipientId const &_rrecipient_id,
-		MF _msgfactory
+		CompleteFnc _complete_fnc
 	){
-		ActivateConnectionMessageFactoryFunctionT	msgfactory(_msgfactory);
-		return doPostActivateConnection(_rrecipient_id, std::move(msgfactory));
+		ConnectionEnterActiveCompleteFunctionT	complete_fnc(_complete_fnc);
+		return doConnectionNotifyEnterActiveState(_rrecipient_id, std::move(complete_fnc));
 	}
 	
-	ErrorConditionT notifyConnectionSecure();
+	template <class CompleteFnc>
+	ErrorConditionT connectionNotifyStartSecureHandshake(
+		RecipientId const &_rrecipient_id,
+		CompleteFnc _complete_fnc
+	){
+		ConnectionSecureHandhakeCompleteFunctionT	complete_fnc(_complete_fnc);
+		return doConnectionNotifyStartSecureHandshake(_rrecipient_id, std::move(complete_fnc));
+	}
+	
+	template <class CompleteFnc>
+	ErrorConditionT connectionNotifyEnterPassiveState(
+		RecipientId const &_rrecipient_id,
+		CompleteFnc _complete_fnc
+	){
+		ConnectionEnterPassiveCompleteFunctionT	complete_fnc(_complete_fnc);
+		return doConnectionNotifyEnterPassiveState(_rrecipient_id, std::move(complete_fnc));
+	}
+	
+	template <class CompleteFnc>
+	ErrorConditionT connectionNotifySendRawData(
+		RecipientId const &_rrecipient_id,
+		CompleteFnc _complete_fnc,
+		std::string &&_rdata
+	){
+		ConnectionSendRawDataCompleteFunctionT	complete_fnc(_complete_fnc);
+		return doConnectionNotifySendRawData(_rrecipient_id, std::move(complete_fnc), std::move(_rdata));
+	}
+	
+	template <class CompleteFnc>
+	ErrorConditionT connectionNotifyRecvRawData(
+		RecipientId const &_rrecipient_id,
+		CompleteFnc _complete_fnc
+	){
+		ConnectionRecvRawDataCompleteFunctionT	complete_fnc(_complete_fnc);
+		return doConnectionNotifyRecvRawData(_rrecipient_id, std::move(complete_fnc));
+	}
 	
 	ErrorConditionT cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsg_id);
+private:
+	ErrorConditionT doConnectionNotifyEnterActiveState(
+		RecipientId const &_rrecipient_id,
+		ConnectionEnterActiveCompleteFunctionT &&_ucomplete_fnc
+	);
+	ErrorConditionT doConnectionNotifyStartSecureHandshake(
+		RecipientId const &_rrecipient_id,
+		ConnectionSecureHandhakeCompleteFunctionT &&_ucomplete_fnc
+	);
 	
+	ErrorConditionT doConnectionNotifyEnterPassiveState(
+		RecipientId const &_rrecipient_id,
+		ConnectionEnterPassiveCompleteFunctionT &&_ucomplete_fnc
+	);
+	ErrorConditionT doConnectionNotifySendRawData(
+		RecipientId const &_rrecipient_id,
+		ConnectionSendRawDataCompleteFunctionT &&_ucomplete_fnc,
+		std::string &&_rdata
+	);
+	ErrorConditionT doConnectionNotifyRecvRawData(
+		RecipientId const &_rrecipient_id,
+		ConnectionRecvRawDataCompleteFunctionT &&_ucomplete_fnc
+	);
 private:
 	friend struct ServiceProxy;
 	friend class Listener;
 	friend class Connection;
 	
 	void acceptIncomingConnection(SocketDevice &_rsd);
-	
-	ErrorConditionT doPostActivateConnection(
-		RecipientId const &_rrecipient_id,
-		ActivateConnectionMessageFactoryFunctionT &&_rmsgfactory
-	);
 	
 	void activateConnectionComplete(Connection &_rcon);
 	

@@ -554,22 +554,22 @@ ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 	
 	d.config.reset(_rcfg);
 	
-	if(configuration().listen_address_str.size()){
+	if(configuration().listener_address_str.size()){
 		std::string		tmp;
 		const char 		*hst_name;
 		const char		*svc_name;
 		
-		size_t off = d.config.listen_address_str.rfind(':');
+		size_t off = d.config.listener_address_str.rfind(':');
 		if(off != std::string::npos){
-			tmp = d.config.listen_address_str.substr(0, off);
+			tmp = d.config.listener_address_str.substr(0, off);
 			hst_name = tmp.c_str();
-			svc_name = d.config.listen_address_str.c_str() + off + 1;
+			svc_name = d.config.listener_address_str.c_str() + off + 1;
 			if(!svc_name[0]){
-				svc_name = d.config.default_listen_port_str.c_str();
+				svc_name = d.config.listener_default_port_str.c_str();
 			}
 		}else{
-			hst_name = d.config.listen_address_str.c_str();
-			svc_name = d.config.default_listen_port_str.c_str();
+			hst_name = d.config.listener_address_str.c_str();
+			svc_name = d.config.listener_default_port_str.c_str();
 		}
 		
 		ResolveData		rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
@@ -592,10 +592,10 @@ ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 		}
 	}
 	
-	if(d.config.session_mutex_count > d.mtxsarrcp){
+	if(d.config.pools_mutex_count > d.mtxsarrcp){
 		delete []d.pmtxarr;
-		d.pmtxarr = new Mutex[d.config.session_mutex_count];
-		d.mtxsarrcp = d.config.session_mutex_count;
+		d.pmtxarr = new Mutex[d.config.pools_mutex_count];
+		d.mtxsarrcp = d.config.pools_mutex_count;
 	}
 	
 	this->start();
@@ -1187,18 +1187,91 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 	
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::doPostActivateConnection(
+ErrorConditionT Service::doConnectionNotifyEnterActiveState(
 	RecipientId const &_rrecipient_id,
-	ActivateConnectionMessageFactoryFunctionT &&_rmsgfactory
+	ConnectionEnterActiveCompleteFunctionT &&_ucomplete_fnc
 ){
-	solid::ErrorConditionT	error;
-	bool 					success = manager().notify(
+	ErrorConditionT		error;
+	bool 				success = manager().notify(
 		_rrecipient_id.connectionId(),
-		Connection::eventActivate(std::move(_rmsgfactory))
+		Connection::eventEnterActive(std::move(_ucomplete_fnc))
 	);
 	
 	if(not success){
-		wdbgx(Debug::ipc, this<<" failed sending activate event to "<<_rrecipient_id.connectionId());
+		wdbgx(Debug::ipc, this<<" failed notify enter active event to "<<_rrecipient_id.connectionId());
+		error = error_connection_inexistent;
+	}
+	
+	return error;
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::doConnectionNotifyStartSecureHandshake(
+	RecipientId const &_rrecipient_id,
+	ConnectionSecureHandhakeCompleteFunctionT &&_ucomplete_fnc
+){
+	ErrorConditionT		error;
+	bool 				success = manager().notify(
+		_rrecipient_id.connectionId(),
+		Connection::eventStartSecure(std::move(_ucomplete_fnc))
+	);
+	
+	if(not success){
+		wdbgx(Debug::ipc, this<<" failed notify start secure event to "<<_rrecipient_id.connectionId());
+		error = error_connection_inexistent;
+	}
+	
+	return error;
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::doConnectionNotifyEnterPassiveState(
+	RecipientId const &_rrecipient_id,
+	ConnectionEnterPassiveCompleteFunctionT &&_ucomplete_fnc
+){
+	ErrorConditionT		error;
+	bool 				success = manager().notify(
+		_rrecipient_id.connectionId(),
+		Connection::eventEnterPassive(std::move(_ucomplete_fnc))
+	);
+	
+	if(not success){
+		wdbgx(Debug::ipc, this<<" failed notify enter passive event to "<<_rrecipient_id.connectionId());
+		error = error_connection_inexistent;
+	}
+	
+	return error;
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::doConnectionNotifySendRawData(
+	RecipientId const &_rrecipient_id,
+	ConnectionSendRawDataCompleteFunctionT &&_ucomplete_fnc,
+	std::string &&_rdata
+){
+	ErrorConditionT		error;
+	bool 				success = manager().notify(
+		_rrecipient_id.connectionId(),
+		Connection::eventSendRaw(std::move(_ucomplete_fnc), std::move(_rdata))
+	);
+	
+	if(not success){
+		wdbgx(Debug::ipc, this<<" failed notify send raw event to "<<_rrecipient_id.connectionId());
+		error = error_connection_inexistent;
+	}
+	
+	return error;
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::doConnectionNotifyRecvRawData(
+	RecipientId const &_rrecipient_id,
+	ConnectionRecvRawDataCompleteFunctionT &&_ucomplete_fnc
+){
+	ErrorConditionT		error;
+	bool 				success = manager().notify(
+		_rrecipient_id.connectionId(),
+		Connection::eventRecvRaw(std::move(_ucomplete_fnc))
+	);
+	
+	if(not success){
+		wdbgx(Debug::ipc, this<<" failed notify recv raw event to "<<_rrecipient_id.connectionId());
 		error = error_connection_inexistent;
 	}
 	
@@ -1364,7 +1437,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 	}else{
 		rconpool.resetCleaningOneShotMessages();
 		rconpool.setRestarting();
-		_rseconds_to_wait = configuration().reconnectTimeoutSeconds();
+		_rseconds_to_wait = configuration().connectionReconnectTimeoutSeconds();
 		return false;
 	}
 }
@@ -1475,7 +1548,7 @@ bool Service::doMainConnectionRestarting(
 			--rconpool.stopping_connection_count;
 			rconpool.main_connection_id = _robjuid;
 			
-			_rseconds_to_wait = configuration().reconnectTimeoutSeconds();
+			_rseconds_to_wait = configuration().connectionReconnectTimeoutSeconds();
 			return false;
 		}
 	}
@@ -1522,7 +1595,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
 		
 		idbgx(Debug::ipc, this<<" try create new connection in pool "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
 		
-		DynamicPointer<aio::Object>		objptr(new Connection(ConnectionPoolId(_pool_index, rconpool.unique)));
+		DynamicPointer<aio::Object>		objptr(new Connection(configuration(), ConnectionPoolId(_pool_index, rconpool.unique)));
 		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), _rerror);
 		
 		if(!_rerror){
@@ -1566,7 +1639,7 @@ void Service::forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &
 		
 		if(rconpool.pending_connection_count < configuration().pool_max_pending_connection_count){
 		
-			DynamicPointer<aio::Object>		objptr(new Connection(_rconpoolid));
+			DynamicPointer<aio::Object>		objptr(new Connection(configuration(), _rconpoolid));
 			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, std::move(_revent), error);
 			
 			if(!error){
@@ -1652,7 +1725,7 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 		
 		ConnectionPoolStub 				&rconpool(d.conpooldq[pool_idx]);
 		
-		DynamicPointer<aio::Object>		objptr(new Connection(_rsd, ConnectionPoolId(pool_idx, rconpool.unique)));
+		DynamicPointer<aio::Object>		objptr(new Connection(configuration(), _rsd, ConnectionPoolId(pool_idx, rconpool.unique)));
 		solid::ErrorConditionT			error;
 		
 		ObjectIdT						con_id = d.config.scheduler().startObject(
@@ -1674,11 +1747,11 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 }
 //-----------------------------------------------------------------------------
 void Service::onIncomingConnectionStart(ConnectionContext &_rconctx){
-	configuration().incoming_connection_start_fnc(_rconctx);
+	configuration().connection_incoming_start_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------
 void Service::onOutgoingConnectionStart(ConnectionContext &_rconctx){
-	configuration().outgoing_connection_start_fnc(_rconctx);
+	configuration().connection_outgoing_start_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------
 void Service::onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_rerror){

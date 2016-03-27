@@ -13,6 +13,7 @@
 #include <vector>
 #include "system/function.hpp"
 #include "system/socketaddress.hpp"
+#include "frame/ipc/ipcmessage.hpp"
 #include "frame/aio/aioreactor.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
 #include "frame/scheduler.hpp"
@@ -53,6 +54,19 @@ typedef FUNCTION<size_t(char*, size_t, ErrorConditionT &)>					CompressFunctionT
 typedef FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT &)>		UncompressFunctionT;
 typedef FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>	ResetSerializerLimitsFunctionT;
 
+using ResponseHandlerFunctionT = FUNCTION<void(ConnectionContext&, MessagePointerT &, ErrorConditionT const&)>;
+using ConnectionEnterActiveCompleteFunctionT = FUNCTION<MessagePointerT(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionEnterPassiveCompleteFunctionT = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionSecureHandhakeCompleteFunctionT = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionSendRawDataCompleteFunctionT = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionRecvRawDataCompleteFunctionT = FUNCTION<bool(ConnectionContext&, const char*, size_t, ErrorConditionT const&)>;
+
+enum struct ConnectionState{
+	Raw,
+	Passive,
+	Active
+};
+
 struct Configuration{
 private:
 	Configuration& operator=(const Configuration&) = default;
@@ -63,7 +77,7 @@ public:
 	);
 	
 	//Only Service can call this constructor
-	Configuration(ServiceProxy const&):psch(nullptr){}
+	Configuration(ServiceProxy const&):pscheduler(nullptr){}
 	
 	Configuration& reset(Configuration const &_rcfg){
 		*this = _rcfg;
@@ -75,11 +89,11 @@ public:
 	void protocolCallback(F _f);
 	
 	AioSchedulerT & scheduler(){
-		return *psch;
+		return *pscheduler;
 	}
 	
 	bool isServer()const{
-		return listen_address_str.size() != 0;
+		return listener_address_str.size() != 0;
 	}
 	
 	bool isClient()const{
@@ -100,57 +114,61 @@ public:
 	char* allocateSendBuffer()const;
 	void freeSendBuffer(char *_pb)const;
 	
-	AioSchedulerT						*psch;
+	size_t connectionReconnectTimeoutSeconds()const;
+	
+	AioSchedulerT						*pscheduler;
+	
 	size_t								pool_max_active_connection_count;
 	size_t								pool_max_pending_connection_count;
-	size_t								pool_max_message_queue_size;//TODO:implement this limitation
-	size_t								session_mutex_count;
+	size_t								pool_max_message_queue_size;
 	
-	size_t								max_writer_message_count_multiplex;
-	size_t								max_writer_message_count_response_wait;
-	size_t								max_writer_message_continuous_packet_count;
+	size_t								pools_mutex_count;
+	
+	size_t								writer_max_message_count_multiplex;
+	size_t								writer_max_message_count_response_wait;
+	size_t								writer_max_message_continuous_packet_count;
 	
 	
-	size_t								max_reader_message_count_multiplex;
+	size_t								reader_max_message_count_multiplex;
 	
-	size_t								reconnect_timeout_seconds;
+	size_t								connection_reconnect_timeout_seconds;
+	uint32								connection_inactivity_timeout_seconds;
+	uint32								connection_keepalive_timeout_seconds;
+	ConnectionState						connection_start_state;
+	bool								connection_start_secure;
 	
-	uint32								inactivity_timeout_seconds;
-	uint32								keepalive_timeout_seconds;
-	
-	uint32								inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
+	uint32								connection_inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
 																	//messages during inactivity_timeout_seconds interval
 	
-	uint32								recv_buffer_capacity;
-	uint32								send_buffer_capacity;
-	
-	ulong								msg_cancel_connection_wait_seconds;
+	uint32								connection_recv_buffer_capacity;
+	uint32								connection_send_buffer_capacity;
 	
 	MessageRegisterFunctionT			message_register_fnc;
 	AsyncResolveFunctionT				name_resolve_fnc;
-	ConnectionStartFunctionT			incoming_connection_start_fnc;
-	ConnectionStartFunctionT			outgoing_connection_start_fnc;
+	
+	ConnectionStartFunctionT			connection_incoming_start_fnc;
+	ConnectionStartFunctionT			connection_outgoing_start_fnc;
 	ConnectionStopFunctionT				connection_stop_fnc;
 	
-	AllocateBufferFunctionT				allocate_recv_buffer_fnc;
-	AllocateBufferFunctionT				allocate_send_buffer_fnc;
+	AllocateBufferFunctionT				recv_buffer_allocate_fnc;
+	AllocateBufferFunctionT				send_buffer_allocate_fnc;
 	
-	FreeBufferFunctionT					free_recv_buffer_fnc;
-	FreeBufferFunctionT					free_send_buffer_fnc;
+	FreeBufferFunctionT					recv_buffer_free_fnc;
+	FreeBufferFunctionT					send_buffer_free_fnc;
 	
 	ResetSerializerLimitsFunctionT		reset_serializer_limits_fnc;
 	
 	CompressFunctionT					inplace_compress_fnc;
 	UncompressFunctionT					uncompress_fnc;
 	
-	std::string							listen_address_str;
-	std::string							default_listen_port_str;
+	std::string							listener_address_str;
+	std::string							listener_default_port_str;
 	
 	ErrorConditionT check() const;
 	
 	void prepare();
 	
-	size_t reconnectTimeoutSeconds()const;
+	size_t connetionReconnectTimeoutSeconds()const;
 	
 private:
 	enum WriterFunctions{
@@ -173,7 +191,7 @@ private:
 private:
 	//friend class Service;
 	friend class MessageWriter;
-	Configuration():psch(nullptr){}
+	Configuration():pscheduler(nullptr){}
 };
 
 template <class F>
