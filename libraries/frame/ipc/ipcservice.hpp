@@ -132,7 +132,7 @@ public:
 	//! Destructor
 	~Service();
 
-	ErrorConditionT reconfigure(Configuration const & _rcfg);
+	ErrorConditionT reconfigure(Configuration && _ucfg);
 	
 	Configuration const & configuration()const;
 	
@@ -657,6 +657,7 @@ private:
 		RecipientId const &_rrecipient_id, 
 		ResponseHandlerFunctionT &_rresponse_fnc
 	);
+	
 private:
 	struct	Data;
 	Data			&d;

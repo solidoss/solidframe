@@ -526,7 +526,7 @@ Configuration const & Service::configuration()const{
 	return d.config;
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
+ErrorConditionT Service::reconfigure(Configuration && _ucfg){
 	Locker<Mutex>	lock(d.mtx);
 	
 	this->stop(true);
@@ -546,13 +546,13 @@ ErrorConditionT Service::reconfigure(Configuration const& _rcfg){
 	
 	ServiceProxy	sp(*this);
 	
-	error = _rcfg.check();
+	error = _ucfg.check();
 	
 	if(error) return error;
 	
-	_rcfg.message_register_fnc(sp);
+	_ucfg.message_register_fnc(sp);
 	
-	d.config.reset(_rcfg);
+	d.config.reset(std::move(_ucfg));
 	
 	if(configuration().listener_address_str.size()){
 		std::string		tmp;
@@ -1595,7 +1595,14 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
 		
 		idbgx(Debug::ipc, this<<" try create new connection in pool "<<rconpool.active_connection_count<<" pending connections "<< rconpool.pending_connection_count);
 		
-		DynamicPointer<aio::Object>		objptr(new Connection(configuration(), ConnectionPoolId(_pool_index, rconpool.unique)));
+		DynamicPointer<aio::Object>		objptr;
+		
+		if(configuration().hasSecureContext()){
+			objptr.reset(new SecureConnection(configuration(), ConnectionPoolId(_pool_index, rconpool.unique)));
+		}else{
+			objptr.reset(new PlainConnection(configuration(), ConnectionPoolId(_pool_index, rconpool.unique)));
+		}
+		
 		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), _rerror);
 		
 		if(!_rerror){
@@ -1639,7 +1646,14 @@ void Service::forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &
 		
 		if(rconpool.pending_connection_count < configuration().pool_max_pending_connection_count){
 		
-			DynamicPointer<aio::Object>		objptr(new Connection(configuration(), _rconpoolid));
+			DynamicPointer<aio::Object>		objptr;
+			
+			if(configuration().hasSecureContext()){
+				objptr.reset(new SecureConnection(configuration(), _rconpoolid));
+			}else{
+				objptr.reset(new PlainConnection(configuration(), _rconpoolid));
+			}
+			
 			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, std::move(_revent), error);
 			
 			if(!error){
@@ -1725,7 +1739,14 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 		
 		ConnectionPoolStub 				&rconpool(d.conpooldq[pool_idx]);
 		
-		DynamicPointer<aio::Object>		objptr(new Connection(configuration(), _rsd, ConnectionPoolId(pool_idx, rconpool.unique)));
+		DynamicPointer<aio::Object>		objptr;//(new Connection(configuration(), _rsd, ConnectionPoolId(pool_idx, rconpool.unique)));
+		
+		if(configuration().hasSecureContext()){
+			objptr.reset(new SecureConnection(configuration(), _rsd, ConnectionPoolId(pool_idx, rconpool.unique)));
+		}else{
+			objptr.reset(new PlainConnection(configuration(), _rsd, ConnectionPoolId(pool_idx, rconpool.unique)));
+		}
+		
 		solid::ErrorConditionT			error;
 		
 		ObjectIdT						con_id = d.config.scheduler().startObject(

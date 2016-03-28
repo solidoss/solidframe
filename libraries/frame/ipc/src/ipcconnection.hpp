@@ -22,6 +22,8 @@
 #include "frame/aio/aiosocket.hpp"
 #include "frame/aio/aiotimer.hpp"
 
+#include "frame/aio/openssl/aiosecuresocket.hpp"
+
 #include "frame/ipc/ipcconfiguration.hpp"
 
 #include "ipcmessagereader.hpp"
@@ -78,17 +80,13 @@ public:
 	static Event eventSendRaw(ConnectionSendRawDataCompleteFunctionT &&, std::string &&);
 	static Event eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT &&);
 	
-	//Called when connection is accepted
-	Connection(
-		Configuration const& _rconfiguration,
-		SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
-	);
 	//Called when connection is 
 	Connection(
 		Configuration const& _rconfiguration,
 		ConnectionPoolId const &_rconpoolid
 	);
-	~Connection();
+	
+	virtual ~Connection();
 	
 	//NOTE: will always accept null message
 	bool tryPushMessage(
@@ -119,7 +117,14 @@ public:
 	Any<>& any();
 	
 	ConnectionPoolId const& poolId()const;
-private:
+	
+	virtual bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) = 0;
+	virtual bool hasValidSocket()const = 0;
+	virtual bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) = 0;
+	virtual bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) = 0;
+	virtual bool hasPendingSend()const = 0;
+	virtual bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) = 0;
+protected:
 	friend struct ConnectionContext;
 	friend class Service;
 	
@@ -158,9 +163,9 @@ private:
 	
 	void doSend(frame::aio::ReactorContext &_rctx, const bool _sent_something = false);
 	
-	SocketDevice const & device()const{
-		return sock.device();
-	}
+// 	SocketDevice const & device()const{
+// 		return sock.device();
+// 	}
 	
 	void doActivate(
 		frame::aio::ReactorContext &_rctx,
@@ -211,8 +216,7 @@ private:
 		
 		msgwriter.visitCompletingMessages(fnc);
 	}
-private:
-	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
+protected:
 	typedef frame::aio::Timer							TimerT;
 	typedef std::atomic<uint8>							AtomicUInt8T;
 	
@@ -241,7 +245,7 @@ private:
 	
 	ConnectionPoolId			conpoolid;
 	PendingSendMessageVectorT	sendmsgvec[2];
-	StreamSocketT				sock;
+	
 	TimerT						timer;
 	
 	uint16						flags;
@@ -270,6 +274,63 @@ inline ConnectionPoolId const& Connection::poolId()const{
 inline bool Connection::hasCompletingMessages()const{
 	return msgwriter.hasCompletingMessages();
 }
+
+//-----------------------------------------------------------------------------
+//		PlainConnection
+//-----------------------------------------------------------------------------
+
+struct PlainConnection: Connection{
+public:
+	PlainConnection(
+		Configuration const& _rconfiguration,
+		SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
+	);
+	//Called when connection is 
+	PlainConnection(
+		Configuration const& _rconfiguration,
+		ConnectionPoolId const &_rconpoolid
+	);
+	
+private:
+	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) override;
+	/*virtual*/ bool hasValidSocket()const override;
+	/*virtual*/ bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) override;
+	/*virtual*/ bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) override;
+	/*virtual*/ bool hasPendingSend()const override;
+	/*virtual*/ bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) override;
+private:
+	using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
+	
+	StreamSocketT				sock;
+};
+
+//-----------------------------------------------------------------------------
+//		SecureConnection
+//-----------------------------------------------------------------------------
+
+struct SecureConnection: Connection{
+public:
+	SecureConnection(
+		Configuration const& _rconfiguration,
+		SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
+	);
+	SecureConnection(
+		Configuration const& _rconfiguration,
+		ConnectionPoolId const &_rconpoolid
+	);
+private:
+	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) override;
+	/*virtual*/ bool hasValidSocket()const override;
+	/*virtual*/ bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) override;
+	/*virtual*/ bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) override;
+	/*virtual*/ bool hasPendingSend()const override;
+	/*virtual*/ bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) override;
+private:
+	using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
+	
+	StreamSocketT				sock;
+};
+
 
 }//namespace ipc
 }//namespace frame

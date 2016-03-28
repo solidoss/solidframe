@@ -43,7 +43,7 @@ namespace{
 
 Configuration::Configuration(
 	AioSchedulerT &_rsch
-): pscheduler(&_rsch), pools_mutex_count(16)
+): pools_mutex_count(16), pscheduler(&_rsch)
 {
 	connection_recv_buffer_capacity = 4096;
 	connection_send_buffer_capacity = 4096;
@@ -93,6 +93,7 @@ ErrorConditionT Configuration::check() const {
 }
 //-----------------------------------------------------------------------------
 void Configuration::prepare(){
+	
 	if(pool_max_active_connection_count == 0){
 		pool_max_active_connection_count = 1;
 	}

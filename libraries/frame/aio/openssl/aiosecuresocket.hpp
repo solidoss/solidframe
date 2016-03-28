@@ -25,13 +25,13 @@ class Context;
 class	Socket{
 public:
 	
-	Socket(Context &_rctx, SocketDevice &&_rsd);
+	Socket(const Context &_rctx, SocketDevice &&_rsd);
 	
-	Socket(Context &_rctx);
+	Socket(const Context &_rctx);
 	
 	~Socket();
 	
-	SocketDevice reset(Context &_rctx, SocketDevice &&_rsd, ErrorCodeT &_rerr);
+	SocketDevice reset(const Context &_rctx, SocketDevice &&_rsd, ErrorCodeT &_rerr);
 	
 	void shutdown();
 	

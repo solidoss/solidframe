@@ -23,16 +23,20 @@ class Context{
 public:
 	static Context create(const SSL_METHOD* = NULL);
 	
-	
 	Context();
 	
+	
+	Context(Context const&) = delete;
+	
 	Context(Context && _rctx);
+	
+	Context& operator=(Context const&) = delete;
 	
 	Context& operator=(Context && _rctx);
 	
 	~Context();
 	
-	bool ok()const;
+	bool isValid()const;
 	
 	//!Use it on client side to load the certificates
 	ErrorCodeT loadFile(const char *_path);
@@ -44,9 +48,6 @@ public:
 	//!Use it on server side to load the certificates
 	ErrorCodeT loadPrivateKeyFile(const char *_path);
 	
-private:
-	Context(Context const&);
-	Context& operator=(Context const&);
 private:
 	friend class Socket;
 	SSL_CTX	*pctx;

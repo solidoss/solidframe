@@ -83,7 +83,7 @@ struct Starter{
 	return rv;
 }
 
-bool Context::ok()const{
+bool Context::isValid()const{
 	return pctx != NULL;
 }
 
@@ -92,7 +92,7 @@ Context::Context(Context && _rctx){
 	_rctx.pctx = NULL;
 }
 Context& Context::operator=(Context && _rctx){
-	if(ok()){
+	if(isValid()){
 		SSL_CTX_free(pctx);
 		pctx = NULL;
 	}
@@ -104,7 +104,7 @@ Context::Context():pctx(NULL){
 	
 }
 Context::~Context(){
-	if(ok()){
+	if(isValid()){
 		SSL_CTX_free(pctx);
 		pctx = NULL;
 	}
@@ -146,7 +146,7 @@ ErrorCodeT Context::loadPrivateKeyFile(const char *_path){
 
 
 Socket::Socket(
-	Context &_rctx, SocketDevice &&_rsd
+	const Context &_rctx, SocketDevice &&_rsd
 ):sd(std::move(_rsd)), want_read_on_recv(false), want_read_on_send(false), want_write_on_recv(false), want_write_on_send(false){
 	pssl = SSL_new(_rctx.pctx);
 	::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
@@ -157,7 +157,7 @@ Socket::Socket(
 	}
 }
 	
-Socket::Socket(Context &_rctx): want_read_on_recv(false), want_read_on_send(false), want_write_on_recv(false), want_write_on_send(false){
+Socket::Socket(const Context &_rctx): want_read_on_recv(false), want_read_on_send(false), want_write_on_recv(false), want_write_on_send(false){
 	pssl = SSL_new(_rctx.pctx);
 	::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
 	::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
@@ -167,7 +167,7 @@ Socket::~Socket(){
 	SSL_free(pssl);
 }
 
-SocketDevice Socket::reset(Context &_rctx, SocketDevice &&_rsd, ErrorCodeT &_rerr){
+SocketDevice Socket::reset(const Context &_rctx, SocketDevice &&_rsd, ErrorCodeT &_rerr){
 	SocketDevice tmpsd = std::move(sd);
 	sd = std::move(_rsd);
 	if(sd.ok()){

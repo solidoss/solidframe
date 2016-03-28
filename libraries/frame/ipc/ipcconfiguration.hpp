@@ -15,6 +15,7 @@
 #include "system/socketaddress.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 #include "frame/aio/aioreactor.hpp"
+#include "frame/aio/openssl/aiosecurecontext.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
 #include "frame/scheduler.hpp"
 
@@ -37,29 +38,32 @@ namespace ipc{
 struct	ServiceProxy;
 class	Service;
 class	MessageWriter;
-struct ConnectionContext;
+struct	ConnectionContext;
 
-typedef frame::Scheduler<frame::aio::Reactor> 								AioSchedulerT;
+using AddressVectorT								= std::vector<SocketAddressInet>;
 
-typedef std::vector<SocketAddressInet>										AddressVectorT;
-	
-typedef FUNCTION<void(ServiceProxy &)>										MessageRegisterFunctionT;
-typedef FUNCTION<void(AddressVectorT &&)>									ResolveCompleteFunctionT;
-typedef FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>		AsyncResolveFunctionT;
-typedef FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>			ConnectionStopFunctionT;
-typedef FUNCTION<void(ConnectionContext &)>									ConnectionStartFunctionT;
-typedef FUNCTION<char*(const uint16)>										AllocateBufferFunctionT;
-typedef FUNCTION<void(char*)>												FreeBufferFunctionT;
-typedef FUNCTION<size_t(char*, size_t, ErrorConditionT &)>					CompressFunctionT;
-typedef FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT &)>		UncompressFunctionT;
-typedef FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>	ResetSerializerLimitsFunctionT;
+using MessageRegisterFunctionT						= FUNCTION<void(ServiceProxy &)>;
+using ResolveCompleteFunctionT						= FUNCTION<void(AddressVectorT &&)>;
+using AsyncResolveFunctionT							= FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
+using ConnectionStopFunctionT						= FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>;
+using ConnectionStartFunctionT						= FUNCTION<void(ConnectionContext &)>;
+using AllocateBufferFunctionT						= FUNCTION<char*(const uint16)>;
+using FreeBufferFunctionT							= FUNCTION<void(char*)>;
+using CompressFunctionT								= FUNCTION<size_t(char*, size_t, ErrorConditionT &)>;
+using UncompressFunctionT							= FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT &)>;
+using ResetSerializerLimitsFunctionT				= FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
 
-using ResponseHandlerFunctionT = FUNCTION<void(ConnectionContext&, MessagePointerT &, ErrorConditionT const&)>;
-using ConnectionEnterActiveCompleteFunctionT = FUNCTION<MessagePointerT(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionEnterPassiveCompleteFunctionT = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionSecureHandhakeCompleteFunctionT = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionSendRawDataCompleteFunctionT = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionRecvRawDataCompleteFunctionT = FUNCTION<bool(ConnectionContext&, const char*, size_t, ErrorConditionT const&)>;
+using SecureContextT								= frame::aio::openssl::Context;
+
+using AioSchedulerT									= frame::Scheduler<frame::aio::Reactor>;
+
+using ResponseHandlerFunctionT						= FUNCTION<void(ConnectionContext&, MessagePointerT &, ErrorConditionT const&)>;
+
+using ConnectionEnterActiveCompleteFunctionT		= FUNCTION<MessagePointerT(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionEnterPassiveCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionSecureHandhakeCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionSendRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionRecvRawDataCompleteFunctionT		= FUNCTION<bool(ConnectionContext&, const char*, size_t, ErrorConditionT const&)>;
 
 enum struct ConnectionState{
 	Raw,
@@ -69,8 +73,8 @@ enum struct ConnectionState{
 
 struct Configuration{
 private:
-	Configuration& operator=(const Configuration&) = default;
-	Configuration& operator=(Configuration&&) = delete;
+	Configuration& operator=(const Configuration&) = delete;
+	Configuration& operator=(Configuration&&) = default;
 public:
 	Configuration(
 		AioSchedulerT &_rsch
@@ -79,8 +83,8 @@ public:
 	//Only Service can call this constructor
 	Configuration(ServiceProxy const&):pscheduler(nullptr){}
 	
-	Configuration& reset(Configuration const &_rcfg){
-		*this = _rcfg;
+	Configuration& reset(Configuration &&_ucfg){
+		*this = std::move(_ucfg);
 		prepare();
 		return *this;
 	}
@@ -108,6 +112,10 @@ public:
 		return !isServer() && isClient();
 	}
 	
+	bool hasSecureContext()const{
+		return secure_context.isValid();
+	}
+	
 	char* allocateRecvBuffer()const;
 	void freeRecvBuffer(char *_pb)const;
 	
@@ -116,7 +124,10 @@ public:
 	
 	size_t connectionReconnectTimeoutSeconds()const;
 	
-	AioSchedulerT						*pscheduler;
+	ErrorConditionT check() const;
+	
+
+	size_t connetionReconnectTimeoutSeconds()const;
 	
 	size_t								pool_max_active_connection_count;
 	size_t								pool_max_pending_connection_count;
@@ -138,7 +149,7 @@ public:
 	bool								connection_start_secure;
 	
 	uint32								connection_inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
-																	//messages during inactivity_timeout_seconds interval
+																				//messages during inactivity_timeout_seconds interval
 	
 	uint32								connection_recv_buffer_capacity;
 	uint32								connection_send_buffer_capacity;
@@ -164,12 +175,9 @@ public:
 	std::string							listener_address_str;
 	std::string							listener_default_port_str;
 	
-	ErrorConditionT check() const;
-	
+	SecureContextT						secure_context;
+private:
 	void prepare();
-	
-	size_t connetionReconnectTimeoutSeconds()const;
-	
 private:
 	enum WriterFunctions{
 		WriterNoCompressE = 0,
@@ -187,7 +195,8 @@ private:
 		WriterCompress96kE,
 	};
 	
-	WriterFunctions		writerfunctionidx;
+	WriterFunctions						writerfunctionidx;
+	AioSchedulerT						*pscheduler;
 private:
 	//friend class Service;
 	friend class MessageWriter;
