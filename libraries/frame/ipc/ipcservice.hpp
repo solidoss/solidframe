@@ -519,7 +519,7 @@ private:
 	void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent);
 	
 	void doPushFrontMessageToPool(
-		ConnectionPoolId &_rconpoolid,
+		const ConnectionPoolId &_rpool_id,
 		MessageBundle &_rmsgbundle,
 		MessageId const &_rmsgid
 	);

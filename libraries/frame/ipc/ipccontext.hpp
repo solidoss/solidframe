@@ -154,6 +154,8 @@ struct ConnectionContext{
 	
 	RecipientId	recipientId()const;
 	
+	const char* recipientName()const;
+	
 	SocketDevice const & device()const;
 	
 	ulong messageFlags()const{

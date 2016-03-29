@@ -83,7 +83,8 @@ public:
 	//Called when connection is 
 	Connection(
 		Configuration const& _rconfiguration,
-		ConnectionPoolId const &_rconpoolid
+		ConnectionPoolId const &_rpool_id,
+		const char * _pool_name = nullptr
 	);
 	
 	virtual ~Connection();
@@ -102,12 +103,6 @@ public:
 	
 	bool isFull(Configuration const& _rconfiguration)const;
 	
-	bool prepareActivate(
-		Service &_rservice,
-		ConnectionPoolId const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
-	);
-	
-	
 	bool isInPoolWaitingQueue() const;
 	
 	void setInPoolWaitingQueue();
@@ -117,12 +112,13 @@ public:
 	Any<>& any();
 	
 	ConnectionPoolId const& poolId()const;
+	const char* poolName()const;
 	
 	virtual bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) = 0;
-	virtual bool hasValidSocket()const = 0;
+	virtual bool hasValidSocket() const = 0;
 	virtual bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) = 0;
 	virtual bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) = 0;
-	virtual bool hasPendingSend()const = 0;
+	virtual bool hasPendingSend() const = 0;
 	virtual bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) = 0;
 protected:
 	friend struct ConnectionContext;
@@ -201,7 +197,7 @@ protected:
 			MessageBundle &_rmsgbundle,
 			MessageId const &_rmsgid
 		){
-			_f(this->conpoolid, _rmsgbundle, _rmsgid);
+			_f(this->poolId(), _rmsgbundle, _rmsgid);
 		};
 		MessageWriterVisitFunctionT		fnc(std::cref(visit_fnc));
 		
@@ -243,8 +239,9 @@ protected:
 
 	typedef std::vector<PendingSendMessageStub>			PendingSendMessageVectorT;
 	
-	ConnectionPoolId			conpoolid;
-	PendingSendMessageVectorT	sendmsgvec[2];
+	ConnectionPoolId			pool_id;
+	const char					*pool_name;
+	
 	
 	TimerT						timer;
 	
@@ -268,7 +265,11 @@ inline Any<>& Connection::any(){
 }
 
 inline ConnectionPoolId const& Connection::poolId()const{
-	return conpoolid;
+	return pool_id;
+}
+
+inline const char* Connection::poolName()const{
+	return pool_name;
 }
 
 inline bool Connection::hasCompletingMessages()const{
@@ -283,20 +284,23 @@ struct PlainConnection: Connection{
 public:
 	PlainConnection(
 		Configuration const& _rconfiguration,
-		SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
+		SocketDevice &_rsd,
+		ConnectionPoolId const &_rpool_id,
+		const char * _pool_name = nullptr
 	);
 	//Called when connection is 
 	PlainConnection(
 		Configuration const& _rconfiguration,
-		ConnectionPoolId const &_rconpoolid
+		ConnectionPoolId const &_rpool_id,
+		const char * _pool_name = nullptr
 	);
 	
 private:
 	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) override;
-	/*virtual*/ bool hasValidSocket()const override;
+	/*virtual*/ bool hasValidSocket() const override;
 	/*virtual*/ bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) override;
 	/*virtual*/ bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) override;
-	/*virtual*/ bool hasPendingSend()const override;
+	/*virtual*/ bool hasPendingSend() const override;
 	/*virtual*/ bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) override;
 private:
 	using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
@@ -312,24 +316,52 @@ struct SecureConnection: Connection{
 public:
 	SecureConnection(
 		Configuration const& _rconfiguration,
-		SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
+		SocketDevice &_rsd,
+		ConnectionPoolId const &_rpool_id,
+		const char * _pool_name = nullptr
 	);
 	SecureConnection(
 		Configuration const& _rconfiguration,
-		ConnectionPoolId const &_rconpoolid
+		ConnectionPoolId const &_rpool_id,
+		const char * _pool_name = nullptr
 	);
 private:
 	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) override;
-	/*virtual*/ bool hasValidSocket()const override;
+	/*virtual*/ bool hasValidSocket() const override;
 	/*virtual*/ bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) override;
 	/*virtual*/ bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) override;
-	/*virtual*/ bool hasPendingSend()const override;
+	/*virtual*/ bool hasPendingSend() const override;
 	/*virtual*/ bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) override;
 private:
 	using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 	
 	StreamSocketT				sock;
 };
+
+Connection * new_connection(
+	Configuration const& _rconfiguration,
+	SocketDevice &_rsd,
+	ConnectionPoolId const &_rpool_id,
+	const char * _pool_name = nullptr
+){
+	if(_rconfiguration.hasSecureContext()){
+		return new SecureConnection(_rconfiguration, _rsd, _rpool_id, _pool_name);
+	}else{
+		return new PlainConnection(_rconfiguration, _rsd, _rpool_id, _pool_name);
+	}
+}
+
+Connection * new_connection(
+	Configuration const& _rconfiguration,
+	ConnectionPoolId const &_rpool_id,
+	const char * _pool_name = nullptr
+){
+	if(_rconfiguration.hasSecureContext()){
+		return new SecureConnection(_rconfiguration, _rpool_id, _pool_name);
+	}else{
+		return new PlainConnection(_rconfiguration, _rpool_id, _pool_name);
+	}
+}
 
 
 }//namespace ipc

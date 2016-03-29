@@ -54,30 +54,6 @@ void MessageWriter::unprepare(){
 	
 }
 //-----------------------------------------------------------------------------
-MessageId MessageWriter::safeNewMessageId(Configuration const &_rconfig){
-	MessageId msguid;
-	if(message_uid_cache_vec.size()){
-		msguid = message_uid_cache_vec.back();
-		message_uid_cache_vec.pop_back();
-	}else if(message_idx_cache < _rconfig.writer_max_message_count_response_wait){
-		msguid.unique = 0;
-		msguid.index = message_idx_cache.fetch_add(1);
-	}
-	return msguid;
-}
-//-----------------------------------------------------------------------------
-MessageId MessageWriter::safeForcedNewMessageId(){
-	MessageId msguid;
-	if(message_uid_cache_vec.size()){
-		msguid = message_uid_cache_vec.back();
-		message_uid_cache_vec.pop_back();
-	}else{
-		msguid.unique = 0;
-		msguid.index = message_idx_cache.fetch_add(1);
-	}
-	return msguid;
-}
-//-----------------------------------------------------------------------------
 void MessageWriter::safeMoveCacheToSafety(){
 	while(cached_inner_list.size() and cached_inner_list.front().isInvalidStatus()){
 		const size_t 	msgidx = cached_inner_list.frontIndex();

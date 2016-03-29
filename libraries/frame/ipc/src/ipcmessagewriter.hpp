@@ -55,10 +55,6 @@ public:
 	MessageWriter();
 	~MessageWriter();
 	
-	//must be used under lock, i.e. under Connection's lock
-	MessageId safeNewMessageId(Configuration const &_rconfig);
-	MessageId safeForcedNewMessageId();
-	
 	bool isNonSafeCacheEmpty()const;
 	
 	void safeMoveCacheToSafety();

@@ -143,8 +143,9 @@ inline void Connection::doOptimizeRecvBufferForced(){
 //-----------------------------------------------------------------------------
 Connection::Connection(
 	Configuration const& _rconfiguration,
-	ConnectionPoolId const &_rconpoolid
-):	conpoolid(_rconpoolid), timer(this->proxy()),
+	ConnectionPoolId const &_rpool_id,
+	const char *_pool_name/* = nullptr*/
+):	pool_id(_rpool_id), pool_name(_pool_name), timer(this->proxy()),
 	flags(0), receivebufoff(0), consumebufoff(0),
 	receive_keepalive_count(0),
 	recvbuf(nullptr), sendbuf(nullptr)
@@ -201,31 +202,7 @@ bool Connection::tryPushMessage(
 	return false;
 }
 
-//-----------------------------------------------------------------------------
-bool Connection::prepareActivate(
-	Service &_rservice,
-	ConnectionPoolId const &_rconpoolid, Event &_revent, ErrorConditionT &_rerror
-){
-	//Under lock
-	if(not isStopping()){
-		if(_rconpoolid.isValid()){
-			if(conpoolid.isInvalid()){
-				conpoolid = _rconpoolid;//conpoolid should be used only if isActive
-			}else{
-				cassert(conpoolid == _rconpoolid);
-			}
-		}
-		
-		flags |= static_cast<size_t>(Flags::Active);
-		
-		_revent = connection_event_category.event(ConnectionEvents::Activate);
-		return true;
-	}else{
-		//TODO: ConnectionIsStopping
-		_rerror.assign(-1, _rerror.category());
-		return false;
-	}
-}
+
 //-----------------------------------------------------------------------------
 bool Connection::isActive()const{
 	return flags & static_cast<size_t>(Flags::Active);
@@ -480,7 +457,7 @@ void Connection::doHandleEventResolve(
 				onConnect(_rctx);
 			}
 			
-			service(_rctx).forwardResolveMessage(conpoolid, _revent);
+			service(_rctx).forwardResolveMessage(poolId(), _revent);
 		}else{
 			cassert(true);
 			doStop(_rctx, error_library_logic);
@@ -495,10 +472,10 @@ void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Ev
 	MessageId			msguid;
 	//Configuration const &rconfig = service(_rctx).configuration();
 	
-	{
-		Locker<Mutex>		lock(service(_rctx).mutex(*this));
-		msguid = msgwriter.safeForcedNewMessageId();//enqueueing close cannot fail
-	}
+// 	{
+// 		Locker<Mutex>		lock(service(_rctx).mutex(*this));
+// 		msguid = msgwriter.safeForcedNewMessageId();//enqueueing close cannot fail
+// 	}
 	
 	msgwriter.enqueueClose(msguid);
 	
@@ -802,7 +779,7 @@ void Connection::doCompleteAllMessages(
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
 	
-	if(isStopForced() or conpoolid.isInvalid()){
+	if(isStopForced() or poolId().isInvalid()){
 		//really complete
 		msgwriter.completeAllMessages(rconfig, rtypemap, conctx, _rerr);
 	}else{
@@ -816,16 +793,18 @@ void Connection::doCompleteAllMessages(
 //-----------------------------------------------------------------------------
 PlainConnection::PlainConnection(
 	Configuration const& _rconfiguration,
-	SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
-): Connection(_rconfiguration, _rconpoolid), sock(this->proxy(), std::move(_rsd))
+	SocketDevice &_rsd, ConnectionPoolId const &_rpool_id,
+	const char *_pool_name/* = nullptr*/
+): Connection(_rconfiguration, _rpool_id, _pool_name), sock(this->proxy(), std::move(_rsd))
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
 
 PlainConnection::PlainConnection(
 	Configuration const& _rconfiguration,
-	ConnectionPoolId const &_rconpoolid
-): Connection(_rconfiguration, _rconpoolid), sock(this->proxy())
+	ConnectionPoolId const &_rpool_id,
+	const char *_pool_name/* = nullptr*/
+): Connection(_rconfiguration, _rpool_id, _pool_name), sock(this->proxy())
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
@@ -856,16 +835,19 @@ PlainConnection::PlainConnection(
 
 SecureConnection::SecureConnection(
 	Configuration const& _rconfiguration,
-	SocketDevice &_rsd, ConnectionPoolId const &_rconpoolid
-): Connection(_rconfiguration, _rconpoolid), sock(this->proxy(), std::move(_rsd), _rconfiguration.secure_context)
+	SocketDevice &_rsd,
+	ConnectionPoolId const &_rpool_id,
+	const char *_pool_name/* = nullptr*/
+): Connection(_rconfiguration, _rpool_id, _pool_name), sock(this->proxy(), std::move(_rsd), _rconfiguration.secure_context)
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
 
 SecureConnection::SecureConnection(
 	Configuration const& _rconfiguration,
-	ConnectionPoolId const &_rconpoolid
-): Connection(_rconfiguration, _rconpoolid), sock(this->proxy(), _rconfiguration.secure_context)
+	ConnectionPoolId const &_rpool_id,
+	const char *_pool_name/* = nullptr*/
+): Connection(_rconfiguration, _rpool_id, _pool_name), sock(this->proxy(), _rconfiguration.secure_context)
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
@@ -897,6 +879,10 @@ Any<>& ConnectionContext::any(){
 //-----------------------------------------------------------------------------
 RecipientId	ConnectionContext::recipientId()const{
 	return RecipientId(rconnection.poolId(), rservice.manager().id(rconnection));
+}
+//-----------------------------------------------------------------------------
+const char* ConnectionContext::recipientName()const{
+	return rconnection.poolName();
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc
