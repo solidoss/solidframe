@@ -127,6 +127,7 @@ inline void Connection::doOptimizeRecvBuffer(){
 	const size_t cnssz = receivebufoff - consumebufoff;
 	if(cnssz <= consumebufoff){
 		//idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
+		
 		memcpy(recvbuf, recvbuf + consumebufoff, cnssz);
 		consumebufoff = 0;
 		receivebufoff = cnssz;
@@ -135,7 +136,9 @@ inline void Connection::doOptimizeRecvBuffer(){
 //-----------------------------------------------------------------------------
 inline void Connection::doOptimizeRecvBufferForced(){
 	const size_t cnssz = receivebufoff - consumebufoff;
+	
 	//idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
+	
 	memmove(recvbuf, recvbuf + consumebufoff, cnssz);
 	consumebufoff = 0;
 	receivebufoff = cnssz;
@@ -273,7 +276,6 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	);
 	
 	//start receiving messages
-	//sock.postRecvSome(_rctx, recvbuf, config.connection_recv_buffer_capacity, Connection::onRecv);
 	this->postRecvSome(_rctx, recvbuf, config.connection_recv_buffer_capacity);
 	doResetTimerStart(_rctx);
 }
@@ -781,7 +783,7 @@ void Connection::doCompleteAllMessages(
 	
 	if(isStopForced() or poolId().isInvalid()){
 		//really complete
-		msgwriter.completeAllMessages(rconfig, rtypemap, conctx, _rerr);
+		//msgwriter.completeAllMessages(rconfig, rtypemap, conctx, _rerr);
 	}else{
 		//connection lost - try reschedule whatever messages we can
 		//TODO:
@@ -799,7 +801,7 @@ PlainConnection::PlainConnection(
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
-
+//-----------------------------------------------------------------------------
 PlainConnection::PlainConnection(
 	Configuration const& _rconfiguration,
 	ConnectionPoolId const &_rpool_id,
@@ -808,23 +810,27 @@ PlainConnection::PlainConnection(
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
-
+//-----------------------------------------------------------------------------
 /*virtual*/ bool PlainConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp){
 	return sock.postRecvSome(_rctx, _pbuf, _bufcp, Connection::onRecv);
 }
-
+//-----------------------------------------------------------------------------
 /*virtual*/ bool PlainConnection::hasValidSocket()const{
 	return sock.device().ok();
 }
+//-----------------------------------------------------------------------------
 /*virtual*/ bool PlainConnection::connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr){
 	return sock.connect(_rctx, _raddr, Connection::onConnect);
 }
+//-----------------------------------------------------------------------------
 /*virtual*/ bool PlainConnection::recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz){
 	return sock.recvSome(_rctx, _buf, _bufcp, Connection::onRecv, _sz);
 }
+//-----------------------------------------------------------------------------
 /*virtual*/ bool PlainConnection::hasPendingSend()const{
 	return sock.hasPendingSend();
 }
+//-----------------------------------------------------------------------------
 /*virtual*/ bool PlainConnection::sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp){
 	return sock.sendAll(_rctx, _buf, _bufcp, Connection::onSend);
 }
@@ -832,7 +838,6 @@ PlainConnection::PlainConnection(
 //-----------------------------------------------------------------------------
 //		SecureConnection
 //-----------------------------------------------------------------------------
-
 SecureConnection::SecureConnection(
 	Configuration const& _rconfiguration,
 	SocketDevice &_rsd,
@@ -842,7 +847,7 @@ SecureConnection::SecureConnection(
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
-
+//-----------------------------------------------------------------------------
 SecureConnection::SecureConnection(
 	Configuration const& _rconfiguration,
 	ConnectionPoolId const &_rpool_id,
@@ -851,27 +856,33 @@ SecureConnection::SecureConnection(
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
-
+//-----------------------------------------------------------------------------
 /*virtual*/ bool SecureConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp){
 	return sock.postRecvSome(_rctx, _pbuf, _bufcp, Connection::onRecv);
 }
+//-----------------------------------------------------------------------------
 /*virtual*/ bool SecureConnection::hasValidSocket()const{
 	return sock.device().ok();
 }
+//-----------------------------------------------------------------------------
 /*virtual*/ bool SecureConnection::connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr){
 	return sock.connect(_rctx, _raddr, Connection::onConnect);
 }
+//-----------------------------------------------------------------------------
 /*virtual*/ bool SecureConnection::recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz){
 	return sock.recvSome(_rctx, _buf, _bufcp, Connection::onRecv, _sz);
 }
+//-----------------------------------------------------------------------------
 /*virtual*/ bool SecureConnection::hasPendingSend()const{
 	return sock.hasPendingSend();
 }
+//-----------------------------------------------------------------------------
 /*virtual*/ bool SecureConnection::sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp){
 	return sock.sendAll(_rctx, _buf, _bufcp, Connection::onSend);
 }
+
 //-----------------------------------------------------------------------------
-//=============================================================================
+//	ConnectionContext
 //-----------------------------------------------------------------------------
 Any<>& ConnectionContext::any(){
 	return rconnection.any();

@@ -749,6 +749,7 @@ void MessageWriter::doCompleteMessage(
 	}
 }
 //-----------------------------------------------------------------------------
+#if 0
 void MessageWriter::completeAllMessages(
 	ipc::Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
@@ -781,6 +782,7 @@ void MessageWriter::completeAllMessages(
 	
 	
 }
+#endif
 //-----------------------------------------------------------------------------
 void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc){
 	{//iterate through non completed messages
@@ -813,19 +815,6 @@ void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_
 			
 			msgidx = order_inner_list.previousIndex(msgidx);
 		}
-	}
-}
-//-----------------------------------------------------------------------------
-bool MessageWriter::hasCompletingMessages()const{
-	return cached_inner_list.size() and cached_inner_list.back().isCompletingStatus();
-}
-//-----------------------------------------------------------------------------
-void MessageWriter::visitCompletingMessages(MessageWriterCompletingVisitFunctionT const &_rvisit_fnc){
-	while(cached_inner_list.size() and cached_inner_list.back().isCompletingStatus()){
-		_rvisit_fnc(cached_inner_list.back().msg_id);
-		cached_inner_list.back().msg_id.clear();
-		cached_inner_list.back().inner_status = InnerStatus::Invalid;
-		cached_inner_list.pushFront(cached_inner_list.popBack());
 	}
 }
 //-----------------------------------------------------------------------------

@@ -204,40 +204,11 @@ protected:
 		msgwriter.visitAllMessages(fnc);
 	}
 	
-	template <class Fnc>
-	void visitCompletingMessages(
-		Fnc const &_f
-	){
-		MessageWriterCompletingVisitFunctionT	fnc(std::cref(_f));
-		
-		msgwriter.visitCompletingMessages(fnc);
-	}
-protected:
-	typedef frame::aio::Timer							TimerT;
-	typedef std::atomic<uint8>							AtomicUInt8T;
 	
-	struct PendingSendMessageStub{
-		PendingSendMessageStub(
-			MessageBundle &&_rmsgbundle,
-			MessageId const &_rmsguid
-		):	msgbundle(std::move(_rmsgbundle)),
-			msguid(_rmsguid)
-			{}
-		
-		PendingSendMessageStub(
-			MessageId const &_rmsguid
-		):	msguid(_rmsguid)
-			{}
-		
-		PendingSendMessageStub(
-		){}
-		
-		
-		MessageBundle				msgbundle;
-		MessageId					msguid;
-	};
+protected:
+	typedef frame::aio::Timer				TimerT;
 
-	typedef std::vector<PendingSendMessageStub>			PendingSendMessageVectorT;
+	typedef std::vector<MessageId>			MessageIdMessageVectorT;
 	
 	ConnectionPoolId			pool_id;
 	const char					*pool_name;
@@ -253,6 +224,8 @@ protected:
 	
 	char						*recvbuf;
 	char						*sendbuf;
+	
+	MessageIdMessageVectorT		direct_waiting_message_vec;
 	
 	MessageReader				msgreader;
 	MessageWriter				msgwriter;
@@ -272,9 +245,6 @@ inline const char* Connection::poolName()const{
 	return pool_name;
 }
 
-inline bool Connection::hasCompletingMessages()const{
-	return msgwriter.hasCompletingMessages();
-}
 
 //-----------------------------------------------------------------------------
 //		PlainConnection

@@ -1783,7 +1783,7 @@ struct ResolveF{
 	}
 };
 
-void ResolverF::operator()(const std::string&_name, ResolveCompleteFunctionT& _cbk){
+void InternetResolverF::operator()(const std::string&_name, ResolveCompleteFunctionT& _cbk){
 	std::string		tmp;
 	const char 		*hst_name;
 	const char		*svc_name;

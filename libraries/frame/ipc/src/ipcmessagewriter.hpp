@@ -42,10 +42,6 @@ typedef FUNCTION<void(
 )>										MessageWriterVisitFunctionT;
 
 
-typedef FUNCTION<void(
-	MessageId const &/*_rmsgid*/
-)>										MessageWriterCompletingVisitFunctionT;
-
 class MessageWriter{
 public:
 	enum PrintWhat{
@@ -113,17 +109,13 @@ public:
 	
 	void visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc);
 	
-	void completeAllMessages(
-		ipc::Configuration const &_rconfig,
-		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx,
-		ErrorConditionT const & _rerror
-	);
+// 	void completeAllMessages(
+// 		ipc::Configuration const &_rconfig,
+// 		TypeIdMapT const &_ridmap,
+// 		ConnectionContext &_rctx,
+// 		ErrorConditionT const & _rerror
+// 	);
 	void print(std::ostream &_ros, const PrintWhat _what)const;
-	
-	bool hasCompletingMessages()const;
-	
-	void visitCompletingMessages(MessageWriterCompletingVisitFunctionT const &_rvisit_fnc);
 	
 private:
 	

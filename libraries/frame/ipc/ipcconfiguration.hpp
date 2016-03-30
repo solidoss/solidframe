@@ -209,12 +209,12 @@ void Configuration::protocolCallback(F _f){
 }
 
 
-struct ResolverF{
+struct InternetResolverF{
 	aio::Resolver		&rresolver;
 	std::string			default_service;
 	SocketInfo::Family	family;
 	
-	ResolverF(
+	InternetResolverF(
 		aio::Resolver &_rresolver,
 		const char *_default_service,
 		SocketInfo::Family	_family = SocketInfo::AnyFamily
