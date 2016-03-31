@@ -69,6 +69,24 @@ enum struct ConnectionState{
 	Active
 };
 
+struct ReaderConfiguration{
+	ReaderConfiguration();
+	
+	size_t					max_message_count_multiplex;
+	UncompressFunctionT		decompress_fnc;
+};
+
+struct WriterConfiguration{
+	WriterConfiguration();
+	
+	size_t							max_message_count_multiplex;
+	size_t							max_message_count_response_wait;
+	size_t							max_message_continuous_packet_count;
+	
+	CompressFunctionT				inplace_compress_fnc;
+	ResetSerializerLimitsFunctionT	reset_serializer_limits_fnc;
+};
+
 struct Configuration{
 private:
 	Configuration& operator=(const Configuration&) = delete;
@@ -114,10 +132,10 @@ public:
 		return secure_context.isValid();
 	}
 	
-	char* allocateRecvBuffer()const;
+	char* allocateRecvBuffer(uint8 &_rbuffer_capacity_kb)const;
 	void freeRecvBuffer(char *_pb)const;
 	
-	char* allocateSendBuffer()const;
+	char* allocateSendBuffer(uint8 &_rbuffer_capacity_kb)const;
 	void freeSendBuffer(char *_pb)const;
 	
 	size_t connectionReconnectTimeoutSeconds()const;
@@ -133,12 +151,11 @@ public:
 	
 	size_t								pools_mutex_count;
 	
-	size_t								writer_max_message_count_multiplex;
-	size_t								writer_max_message_count_response_wait;
-	size_t								writer_max_message_continuous_packet_count;
+	ReaderConfiguration					reader;
+	WriterConfiguration					writer;
 	
 	
-	size_t								reader_max_message_count_multiplex;
+	
 	
 	size_t								connection_reconnect_timeout_seconds;
 	uint32								connection_inactivity_timeout_seconds;
@@ -149,8 +166,11 @@ public:
 	uint32								connection_inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
 																				//messages during inactivity_timeout_seconds interval
 	
-	uint32								connection_recv_buffer_capacity;
-	uint32								connection_send_buffer_capacity;
+	uint8								connection_recv_buffer_start_capacity_kb;
+	uint8								connection_recv_buffer_max_capacity_kb;
+	
+	uint8								connection_send_buffer_start_capacity_kb;
+	uint8								connection_send_buffer_max_capacity_kb;
 	
 	MessageRegisterFunctionT			message_register_fnc;
 	AsyncResolveFunctionT				name_resolve_fnc;
@@ -159,16 +179,11 @@ public:
 	ConnectionStartFunctionT			connection_outgoing_start_fnc;
 	ConnectionStopFunctionT				connection_stop_fnc;
 	
-	AllocateBufferFunctionT				recv_buffer_allocate_fnc;
-	AllocateBufferFunctionT				send_buffer_allocate_fnc;
+	AllocateBufferFunctionT				connection_recv_buffer_allocate_fnc;
+	AllocateBufferFunctionT				connection_send_buffer_allocate_fnc;
 	
-	FreeBufferFunctionT					recv_buffer_free_fnc;
-	FreeBufferFunctionT					send_buffer_free_fnc;
-	
-	ResetSerializerLimitsFunctionT		reset_serializer_limits_fnc;
-	
-	CompressFunctionT					inplace_compress_fnc;
-	UncompressFunctionT					uncompress_fnc;
+	FreeBufferFunctionT					connection_recv_buffer_free_fnc;
+	FreeBufferFunctionT					connection_send_buffer_free_fnc;
 	
 	std::string							listener_address_str;
 	std::string							listener_default_port_str;

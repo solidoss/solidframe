@@ -46,7 +46,7 @@ MessageWriter::MessageWriter(
 //-----------------------------------------------------------------------------
 MessageWriter::~MessageWriter(){}
 //-----------------------------------------------------------------------------
-void MessageWriter::prepare(Configuration const &_rconfig){
+void MessageWriter::prepare(WriterConfiguration const &_rconfig){
 	
 }
 //-----------------------------------------------------------------------------
@@ -121,7 +121,7 @@ void MessageWriter::enqueue(
 	order_inner_list.pushBack(idx);
 	
 	if(
-		sending_inner_list.size() < _rconfig.writer_max_message_count_multiplex and
+		sending_inner_list.size() < _rconfig.writer.max_message_count_multiplex and
 		(
 			Message::is_asynchronous(_rmsgbundle.message_flags) or
 			(
@@ -220,14 +220,16 @@ void MessageWriter::cancel(
 		_rctx.message_id = rmsgstub.msg_id.isValid() ? rmsgstub.msg_id : _rmsguid;
 		
 		
-		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.response_fnc)){
+		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.complete_fnc)){
 			MessagePointerT		msgptr;//the empty response message
 			
-			rmsgstub.msgbundle.response_fnc(_rctx, msgptr, error);
-			FUNCTION_CLEAR(rmsgstub.msgbundle.response_fnc);
+			//TODO:
+			//rmsgstub.msgbundle.complete_fnc(_rctx, msgptr, error);
+			FUNCTION_CLEAR(rmsgstub.msgbundle.complete_fnc);
 		}
 		
-		_ridmap[rmsgstub.msgbundle.message_type_id].complete_fnc(_rctx, rmsgstub.msgbundle.message_ptr, error);
+		//TODO:
+		//_ridmap[rmsgstub.msgbundle.message_type_id].complete_fnc(_rctx, rmsgstub.msgbundle.message_ptr, error);
 		
 		if(rmsgstub.inner_status == InnerStatus::Pending){
 			//message not already sending - erase it from the lists and clear the stub
@@ -270,14 +272,15 @@ void MessageWriter::cancel(
 	_rctx.message_id = _rmsguid;
 	_rctx.request_id = RequestId();
 	
-	if(not FUNCTION_EMPTY(_rmsgbundle.response_fnc)){
+	if(not FUNCTION_EMPTY(_rmsgbundle.complete_fnc)){
 		MessagePointerT		msgptr;//the empty response message
 		
-		_rmsgbundle.response_fnc(_rctx, msgptr, error);
-		FUNCTION_CLEAR(_rmsgbundle.response_fnc);
+		//TODO:
+		//_rmsgbundle.complete_fnc(_rctx, msgptr, error);
+		FUNCTION_CLEAR(_rmsgbundle.complete_fnc);
 	}
-		
-	_ridmap[_rmsgbundle.message_type_id].complete_fnc(_rctx, _rmsgbundle.message_ptr, error);
+	//TODO:
+	//_ridmap[_rmsgbundle.message_type_id].complete_fnc(_rctx, _rmsgbundle.message_ptr, error);
 	_rmsgbundle.clear();
 }
 
@@ -314,7 +317,7 @@ void MessageWriter::completeAllCanceledMessages(
 #endif
 //-----------------------------------------------------------------------------
 size_t MessageWriter::freeSeatsCount(Configuration const &_rconfig)const{
-	return _rconfig.writer_max_message_count_response_wait - sending_inner_list.size() - pending_inner_list.size();
+	return _rconfig.writer.max_message_count_response_wait - sending_inner_list.size() - pending_inner_list.size();
 }
 //-----------------------------------------------------------------------------
 bool MessageWriter::hasFreeSeats(Configuration const &_rconfig)const{
@@ -322,7 +325,7 @@ bool MessageWriter::hasFreeSeats(Configuration const &_rconfig)const{
 		freeSeatsCount(_rconfig) and (
 			sending_inner_list.empty() or 
 			(
-				sending_inner_list.size() < _rconfig.writer_max_message_count_multiplex and
+				sending_inner_list.size() < _rconfig.writer.max_message_count_multiplex and
 				sending_inner_list.front().packet_count == 0
 			)
 		)
@@ -365,7 +368,7 @@ uint32 MessageWriter::write(
 		if(pbuftmp != pbufdata){
 			
 			if(not packet_options.force_no_compress){
-				size_t compressed_size = _rconfig.inplace_compress_fnc(pbufdata, pbuftmp - pbufdata, _rerror);
+				size_t compressed_size = _rconfig.writer.inplace_compress_fnc(pbufdata, pbuftmp - pbufdata, _rerror);
 				if(compressed_size){
 					packet_header.flags( packet_header.flags() | PacketHeader::CompressedFlagE);
 					pbuftmp = pbufdata + compressed_size;
@@ -564,7 +567,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 		//message not done - packet should be full
 		++_rmsgstub.packet_count;
 		
-		if(_rmsgstub.packet_count >= _rconfig.writer_max_message_continuous_packet_count){
+		if(_rmsgstub.packet_count >= _rconfig.writer.max_message_continuous_packet_count){
 			_rmsgstub.packet_count = 0;
 			sending_inner_list.popFront();
 			sending_inner_list.pushBack(_msgidx);
@@ -594,7 +597,7 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 		
 		_rmsgstub.msgbundle.message_flags |= Message::StartedSendFlagE;
 		
-		_rconfig.reset_serializer_limits_fnc(_rctx, _rmsgstub.serializer_ptr->limits());
+		_rconfig.writer.reset_serializer_limits_fnc(_rctx, _rmsgstub.serializer_ptr->limits());
 		
 		_rmsgstub.serializer_ptr->push(_rmsgstub.msgbundle.message_ptr, _rmsgstub.msgbundle.message_type_id, "message");
 		
@@ -737,11 +740,12 @@ void MessageWriter::doCompleteMessage(
 		
 		//TODO: release the messageid in the pool
 		
-		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.response_fnc)){
-			rmsgstub.msgbundle.response_fnc(_rctx, _rmsgptr, _rerror);
+		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.complete_fnc)){
+			//TODO:
+			//rmsgstub.msgbundle.complete_fnc(_rctx, _rmsgptr, _rerror);
 		}
-		
-		_ridmap[rmsgstub.msgbundle.message_type_id].complete_fnc(_rctx, rmsgstub.msgbundle.message_ptr, _rerror);
+		//TODO:
+		//_ridmap[rmsgstub.msgbundle.message_type_id].complete_fnc(_rctx, rmsgstub.msgbundle.message_ptr, _rerror);
 		
 		order_inner_list.erase(msgidx);
 		

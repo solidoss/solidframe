@@ -81,9 +81,9 @@ struct MessageStub: InnerNode<InnerLinkCount>{
 	MessageStub(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
+		MessageCompleteFunctionT &_rcomplete_fnc,
 		ulong _msgflags
-	):	msgbundle(_rmsgptr, _msg_type_idx, _msgflags, _rresponse_fnc),
+	):	msgbundle(_rmsgptr, _msg_type_idx, _msgflags, _rcomplete_fnc),
 		unique(0), flags(0){}
 	
 	MessageStub(
@@ -227,7 +227,7 @@ struct ConnectionPoolStub{
 	MessageId insertMessage(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
+		MessageCompleteFunctionT &_rcomplete_fnc,
 		ulong _flags
 	){
 		size_t		idx;
@@ -242,17 +242,17 @@ struct ConnectionPoolStub{
 		
 		MessageStub	&rmsgstub{msgvec[idx]};
 		
-		rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc);
+		rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc);
 		return MessageId(idx, rmsgstub.unique);
 	}
 	
 	MessageId pushBackMessage(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
+		MessageCompleteFunctionT &_rcomplete_fnc,
 		ulong _flags
 	){
-		const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+		const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags);
 		msgorder_inner_list.pushBack(msgid.index);
 		idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
 		if(Message::is_asynchronous(_flags)){
@@ -266,10 +266,10 @@ struct ConnectionPoolStub{
 	MessageId pushFrontMessage(
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
+		MessageCompleteFunctionT &_rcomplete_fnc,
 		ulong _flags
 	){
-		const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+		const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags);
 		msgorder_inner_list.pushFront(msgid.index);
 		idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
 		if(Message::is_asynchronous(_flags)){
@@ -284,14 +284,14 @@ struct ConnectionPoolStub{
 		MessageId const &_rmsgid,
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
-		ResponseHandlerFunctionT &_rresponse_fnc,
+		MessageCompleteFunctionT &_rcomplete_fnc,
 		ulong _flags
 	){
 		MessageStub	&rmsgstub{msgvec[_rmsgid.index]};
 		
 		cassert(rmsgstub.msgbundle.message_ptr.empty() and rmsgstub.unique == _rmsgid.unique);
 		
-		rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rresponse_fnc);
+		rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc);
 		
 		msgorder_inner_list.pushFront(_rmsgid.index);
 		
@@ -694,7 +694,7 @@ ErrorConditionT Service::doSendMessage(
 			
 			return this->doSendMessageToNewPool(
 				_recipient_name, _rmsgptr, msg_type_idx,
-				_rresponse_fnc, _precipient_id_out, _pmsgid_out, _flags
+				_rcomplete_fnc, _precipient_id_out, _pmsgid_out, _flags
 			);
 		}
 	}else if(
@@ -1189,12 +1189,13 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doConnectionNotifyEnterActiveState(
 	RecipientId const &_rrecipient_id,
-	ConnectionEnterActiveCompleteFunctionT &&_ucomplete_fnc
+	ConnectionEnterActiveCompleteFunctionT &&_ucomplete_fnc,
+	const size_t _send_buffer_capacity
 ){
 	ErrorConditionT		error;
 	bool 				success = manager().notify(
 		_rrecipient_id.connectionId(),
-		Connection::eventEnterActive(std::move(_ucomplete_fnc))
+		Connection::eventEnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity)
 	);
 	
 	if(not success){
@@ -1695,7 +1696,7 @@ void Service::doPushFrontMessageToPool(
 			rpool.pushFrontMessage(
 				_rmsgbundle.message_ptr,
 				_rmsgbundle.message_type_id,
-				_rmsgbundle.response_fnc,
+				_rmsgbundle.complete_fnc,
 				_rmsgbundle.message_flags
 			);
 		}else{
@@ -1703,7 +1704,7 @@ void Service::doPushFrontMessageToPool(
 				_rmsgid,
 				_rmsgbundle.message_ptr,
 				_rmsgbundle.message_type_id,
-				_rmsgbundle.response_fnc,
+				_rmsgbundle.complete_fnc,
 				_rmsgbundle.message_flags
 			);
 		}

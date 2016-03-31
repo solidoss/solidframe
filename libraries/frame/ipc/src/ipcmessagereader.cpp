@@ -28,7 +28,7 @@ MessageReader::~MessageReader(){
 	
 }
 //-----------------------------------------------------------------------------
-void MessageReader::prepare(Configuration const &_rconfig){
+void MessageReader::prepare(ReaderConfiguration const &_rconfig){
 	message_q.push(MessageStub());//start with an empty message
 }
 //-----------------------------------------------------------------------------
@@ -40,7 +40,7 @@ uint32 MessageReader::read(
 	const char *_pbuf,
 	uint32 _bufsz,
 	CompleteFunctionT &_complete_fnc,
-	Configuration const &_rconfig,
+	ReaderConfiguration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,
 	ErrorConditionT &_rerror
@@ -127,7 +127,7 @@ void MessageReader::doConsumePacket(
 	const char *_pbuf,
 	PacketHeader const &_packet_header,
 	CompleteFunctionT &_complete_fnc,
-	Configuration const &_rconfig,
+	ReaderConfiguration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx,
 	ErrorConditionT &_rerror
@@ -140,7 +140,7 @@ void MessageReader::doConsumePacket(
 	char				tmpbuf[MaxPacketDataSize];
 	
 	if(_packet_header.isCompressed()){
-		size_t uncompressed_size = _rconfig.uncompress_fnc(tmpbuf, pbufpos, pbufend - pbufpos, _rerror);
+		size_t uncompressed_size = _rconfig.decompress_fnc(tmpbuf, pbufpos, pbufend - pbufpos, _rerror);
 		
 		if(!_rerror){
 			pbufpos = tmpbuf;
@@ -161,7 +161,7 @@ void MessageReader::doConsumePacket(
 			case PacketHeader::SwitchToNewMessageTypeE:
 				vdbgx(Debug::ipc, "SwitchToNewMessageTypeE "<<message_q.size());
 				if(message_q.front().message_ptr.get()){
-					if(message_q.size() == _rconfig.reader_max_message_count_multiplex){
+					if(message_q.size() == _rconfig.max_message_count_multiplex){
 						cassert(false);
 						_rerror.assign(-1, _rerror.category());//TODO:
 						return;
@@ -225,11 +225,14 @@ void MessageReader::doConsumePacket(
 					//done with the message
 					message_q.front().deserializer_ptr->clear();
 					
+					//TODO:
 					//complete the message waiting for this response
-					_complete_fnc(MessageCompleteE, message_q.front().message_ptr);
+					//_complete_fnc(MessageCompleteE, message_q.front().message_ptr);
 					
+					//TODO:
 					//receive the message
-					_ridmap[message_q.front().message_type_idx].receive_fnc(_rctx, message_q.front().message_ptr);
+					//_ridmap[message_q.front().message_type_idx].receive_fnc(_rctx, message_q.front().message_ptr);
+					
 					message_q.front().message_ptr.clear();
 					message_q.front().message_type_idx = InvalidIndex();
 				}

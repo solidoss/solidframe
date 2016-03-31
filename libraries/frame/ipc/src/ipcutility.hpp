@@ -168,9 +168,9 @@ struct MessageBundle{
 		MessagePointerT &_rmsgptr,
 		const size_t _msg_type_idx,
 		ulong _flags,
-		ResponseHandlerFunctionT &_response_fnc
+		MessageCompleteFunctionT &_complete_fnc
 	):	message_type_id(_msg_type_idx), message_flags(_flags), message_ptr(std::move(_rmsgptr)),
-		complete_fnc(std::move(_response_fnc)){}
+		complete_fnc(std::move(_complete_fnc)){}
 	
 	MessageBundle(
 		MessageBundle && _rmsgbundle

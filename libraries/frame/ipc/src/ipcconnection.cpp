@@ -103,7 +103,7 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	return Event();
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventEnterActive(ConnectionEnterActiveCompleteFunctionT &&){
+/*static*/ Event Connection::eventEnterActive(ConnectionEnterActiveCompleteFunctionT &&, const size_t _send_buffer_capacity){
 	return Event();
 }
 //-----------------------------------------------------------------------------
@@ -124,34 +124,35 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 }
 //-----------------------------------------------------------------------------
 inline void Connection::doOptimizeRecvBuffer(){
-	const size_t cnssz = receivebufoff - consumebufoff;
-	if(cnssz <= consumebufoff){
+	const size_t cnssz = recv_buf_off - cons_buf_off;
+	if(cnssz <= cons_buf_off){
 		//idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
 		
-		memcpy(recvbuf, recvbuf + consumebufoff, cnssz);
-		consumebufoff = 0;
-		receivebufoff = cnssz;
+		memcpy(recv_buf, recv_buf + cons_buf_off, cnssz);
+		cons_buf_off = 0;
+		recv_buf_off = cnssz;
 	}
 }
 //-----------------------------------------------------------------------------
 inline void Connection::doOptimizeRecvBufferForced(){
-	const size_t cnssz = receivebufoff - consumebufoff;
+	const size_t cnssz = recv_buf_off - cons_buf_off;
 	
 	//idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
 	
-	memmove(recvbuf, recvbuf + consumebufoff, cnssz);
-	consumebufoff = 0;
-	receivebufoff = cnssz;
+	memmove(recv_buf, recv_buf + cons_buf_off, cnssz);
+	cons_buf_off = 0;
+	recv_buf_off = cnssz;
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
 	Configuration const& _rconfiguration,
 	ConnectionPoolId const &_rpool_id,
-	const char *_pool_name/* = nullptr*/
-):	pool_id(_rpool_id), pool_name(_pool_name), timer(this->proxy()),
-	flags(0), receivebufoff(0), consumebufoff(0),
-	receive_keepalive_count(0),
-	recvbuf(nullptr), sendbuf(nullptr)
+	const std::string &_rpool_name
+):	pool_id(_rpool_id), rpool_name(_rpool_name), timer(this->proxy()),
+	flags(0), recv_buf_off(0), cons_buf_off(0),
+	recv_keepalive_count(0),
+	recv_buf(nullptr), send_buf(nullptr),
+	recv_buf_cp_kb(0), send_buf_cp_kb(0)
 {
 }
 //-----------------------------------------------------------------------------
@@ -240,17 +241,17 @@ bool Connection::isStopForced()const{
 }
 //-----------------------------------------------------------------------------
 void Connection::doPrepare(frame::aio::ReactorContext &_rctx){
-	recvbuf = service(_rctx).configuration().allocateRecvBuffer();
-	sendbuf = service(_rctx).configuration().allocateSendBuffer();
-	msgreader.prepare(service(_rctx).configuration());
-	msgwriter.prepare(service(_rctx).configuration());
+	recv_buf = service(_rctx).configuration().allocateRecvBuffer(recv_buf_cp_kb);
+	send_buf = service(_rctx).configuration().allocateSendBuffer(send_buf_cp_kb);
+	msg_reader.prepare(service(_rctx).configuration().reader);
+	msg_writer.prepare(service(_rctx).configuration().writer);
 }
 //-----------------------------------------------------------------------------
 void Connection::doUnprepare(frame::aio::ReactorContext &_rctx){
-	service(_rctx).configuration().freeRecvBuffer(recvbuf);
-	service(_rctx).configuration().freeSendBuffer(sendbuf);
-	msgreader.unprepare();
-	msgwriter.unprepare();
+	service(_rctx).configuration().freeRecvBuffer(recv_buf);
+	service(_rctx).configuration().freeSendBuffer(send_buf);
+	msg_reader.unprepare();
+	msg_writer.unprepare();
 }
 //-----------------------------------------------------------------------------
 void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming){
@@ -276,7 +277,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	);
 	
 	//start receiving messages
-	this->postRecvSome(_rctx, recvbuf, config.connection_recv_buffer_capacity);
+	this->postRecvSome(_rctx, recv_buf, recvBufferCapacity());
 	doResetTimerStart(_rctx);
 }
 //-----------------------------------------------------------------------------
@@ -470,7 +471,7 @@ void Connection::doHandleEventResolve(
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Event &/*_revent*/){
-	bool				was_empty_msgwriter = msgwriter.empty();
+	bool				was_empty_msgwriter = msg_writer.empty();
 	MessageId			msguid;
 	//Configuration const &rconfig = service(_rctx).configuration();
 	
@@ -479,11 +480,11 @@ void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Ev
 // 		msguid = msgwriter.safeForcedNewMessageId();//enqueueing close cannot fail
 // 	}
 	
-	msgwriter.enqueueClose(msguid);
+	msg_writer.enqueueClose(msguid);
 	
-	cassert(not msgwriter.empty());
+	cassert(not msg_writer.empty());
 	
-	if(was_empty_msgwriter and not msgwriter.empty()){
+	if(was_empty_msgwriter and not msg_writer.empty()){
 		idbgx(Debug::ipc, this<<" post send");
 		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 	}
@@ -493,7 +494,7 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 	Configuration const &config = service(_rctx).configuration();
 	if(isServer()){
 		if(config.connection_inactivity_timeout_seconds){
-			receive_keepalive_count = 0;
+			recv_keepalive_count = 0;
 			flags &= (~static_cast<size_t>(Flags::HasActivity));
 			timer.waitFor(_rctx, TimeSpec(config.connection_inactivity_timeout_seconds), onTimerInactivity);
 		}
@@ -535,12 +536,12 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 /*static*/ void Connection::onTimerInactivity(frame::aio::ReactorContext &_rctx){
 	Connection			&rthis = static_cast<Connection&>(_rctx.object());
 	
-	idbgx(Debug::ipc, &rthis<<" "<<(int)rthis.flags<<" "<<rthis.receive_keepalive_count);
+	idbgx(Debug::ipc, &rthis<<" "<<(int)rthis.flags<<" "<<rthis.recv_keepalive_count);
 	
 	if(rthis.flags & static_cast<size_t>(Flags::HasActivity)){
 		
 		rthis.flags &= (~static_cast<size_t>(Flags::HasActivity));
-		rthis.receive_keepalive_count = 0;
+		rthis.recv_keepalive_count = 0;
 		
 		Configuration const &config = rthis.service(_rctx).configuration();
 		
@@ -569,7 +570,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	unsigned			repeatcnt = 4;
 	char				*pbuf;
 	size_t				bufsz;
-	const uint32		recvbufcp = rthis.service(_rctx).configuration().connection_recv_buffer_capacity;
+	const uint32		recvbufcp = rthis.recvBufferCapacity();
 	bool				recv_something = false;
 	
 	auto				complete_lambda(
@@ -592,22 +593,22 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		
 		if(!_rctx.error()){
 			recv_something = true;
-			rthis.receivebufoff += _sz;
-			pbuf = rthis.recvbuf + rthis.consumebufoff;
-			bufsz = rthis.receivebufoff - rthis.consumebufoff;
+			rthis.recv_buf_off += _sz;
+			pbuf = rthis.recv_buf + rthis.cons_buf_off;
+			bufsz = rthis.recv_buf_off - rthis.cons_buf_off;
 			ErrorConditionT						error;
 			MessageReader::CompleteFunctionT	completefnc(std::cref(complete_lambda));
 			
-			rthis.consumebufoff += rthis.msgreader.read(pbuf, bufsz, completefnc, rconfig, rtypemap, conctx, error);
+			rthis.cons_buf_off += rthis.msg_reader.read(pbuf, bufsz, completefnc, rconfig.reader, rtypemap, conctx, error);
 			
-			idbgx(Debug::ipc, &rthis<<" consumed size "<<rthis.consumebufoff<<" of "<<bufsz);
+			idbgx(Debug::ipc, &rthis<<" consumed size "<<rthis.cons_buf_off<<" of "<<bufsz);
 			
 			if(error){
 				edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" parsing "<<error.message());
 				rthis.doStop(_rctx, error);
 				recv_something = false;//prevent calling doResetTimerRecv after doStop
 				break;
-			}else if(rthis.consumebufoff < bufsz){
+			}else if(rthis.cons_buf_off < bufsz){
 				rthis.doOptimizeRecvBufferForced();
 			}
 		}else{
@@ -618,16 +619,16 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		}
 		--repeatcnt;
 		rthis.doOptimizeRecvBuffer();
-		pbuf = rthis.recvbuf + rthis.receivebufoff;
-		bufsz =  recvbufcp - rthis.receivebufoff;
+		pbuf = rthis.recv_buf + rthis.recv_buf_off;
+		bufsz =  recvbufcp - rthis.recv_buf_off;
 		//idbgx(Debug::ipc, &rthis<<" buffer size "<<bufsz);
 	}while(repeatcnt && rthis.recvSome(_rctx, pbuf, bufsz, _sz));
 	
 	if(recv_something){
 		rthis.doResetTimerRecv(_rctx);
-		if(not rthis.msgwriter.isNonSafeCacheEmpty()){
+		if(not rthis.msg_writer.isNonSafeCacheEmpty()){
 			Locker<Mutex>	lock(rthis.service(_rctx).mutex(rthis));
-			rthis.msgwriter.safeMoveCacheToSafety();
+			rthis.msg_writer.safeMoveCacheToSafety();
 		}
 	}
 	
@@ -645,7 +646,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		ConnectionContext	conctx(service(_rctx), *this);
 		unsigned 			repeatcnt = 4;
 		ErrorConditionT		error;
-		const uint32		sendbufcp = service(_rctx).configuration().connection_send_buffer_capacity;
+		const uint32		sendbufcp = sendBufferCapacity();
 		const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 		const Configuration &rconfig  = service(_rctx).configuration();
 		bool				sent_something = _sent_something;
@@ -656,7 +657,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 			
 			if(
 				isActive() and
-				msgwriter.hasFreeSeats(rconfig)
+				msg_writer.hasFreeSeats(rconfig)
 			){
 				if(not service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId())){
 					flags |= static_cast<size_t>(Flags::StopForced);//TODO: maybe you should not set this all the time
@@ -674,12 +675,12 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 			}
 #endif
 
-			uint32 sz = msgwriter.write(sendbuf, sendbufcp, shouldSendKeepalive(), rconfig, rtypemap, conctx, error);
+			uint32 sz = msg_writer.write(send_buf, sendbufcp, shouldSendKeepalive(), rconfig, rtypemap, conctx, error);
 			
 			flags &= (~static_cast<size_t>(Flags::Keepalive));
 			
 			if(!error){
-				if(sz && this->sendAll(_rctx, sendbuf, sz)){
+				if(sz && this->sendAll(_rctx, send_buf, sz)){
 					if(_rctx.error()){
 						edbgx(Debug::ipc, this<<' '<<id()<<" sending "<<sz<<": "<<_rctx.error().message());
 						doStop(_rctx, _rctx.error());
@@ -703,9 +704,9 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		
 		if(sent_something){
 			doResetTimerSend(_rctx);
-			if(not msgwriter.isNonSafeCacheEmpty()){
+			if(not msg_writer.isNonSafeCacheEmpty()){
 				Locker<Mutex>	lock(service(_rctx).mutex(*this));
-				msgwriter.safeMoveCacheToSafety();
+				msg_writer.safeMoveCacheToSafety();
 			}
 		}
 		
@@ -747,7 +748,7 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 	ErrorConditionT		error;
 	if(_rmsgptr->isBackOnSender()){
 		idbgx(Debug::ipc, this<<' '<<"Completing back on sender message: "<<_rmsgptr->requid);
-		msgwriter.completeMessage(_rmsgptr, _rmsgptr->requid, rconfig, rtypemap, conctx, error);
+		msg_writer.completeMessage(_rmsgptr, _rmsgptr->requid, rconfig, rtypemap, conctx, error);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -755,15 +756,15 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
 	if(isServer()){
 		Configuration const &config = service(_rctx).configuration();
 		
-		++receive_keepalive_count;
+		++recv_keepalive_count;
 		
-		if(receive_keepalive_count < config.connection_inactivity_keepalive_count){
+		if(recv_keepalive_count < config.connection_inactivity_keepalive_count){
 			flags |= static_cast<size_t>(Flags::Keepalive);
 			idbgx(Debug::ipc, this<<" post send");
 			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
 		}else{
 			idbgx(Debug::ipc, this<<" post stop because of too many keep alive messages");
-			receive_keepalive_count = 0;//prevent other posting
+			recv_keepalive_count = 0;//prevent other posting
 			this->post(
 				_rctx,
 				[this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){

@@ -74,7 +74,7 @@ public:
 	static Event eventCancelLocalMessage(const MessageId &);
 	static Event eventCancelPoolMessage(const MessageId &);
 	static Event eventStopping();
-	static Event eventEnterActive(ConnectionEnterActiveCompleteFunctionT &&);
+	static Event eventEnterActive(ConnectionEnterActiveCompleteFunctionT &&, const size_t _send_buffer_capacity);
 	static Event eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT &&);
 	static Event eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT &&);
 	static Event eventSendRaw(ConnectionSendRawDataCompleteFunctionT &&, std::string &&);
@@ -201,10 +201,16 @@ protected:
 		};
 		MessageWriterVisitFunctionT		fnc(std::cref(visit_fnc));
 		
-		msgwriter.visitAllMessages(fnc);
+		msg_writer.visitAllMessages(fnc);
 	}
 	
-	
+private:
+	uint32 recvBufferCapacity()const{
+		return recv_buf_cp_kb * 1024;
+	}
+	uint32 sendBufferCapacity()const{
+		return send_buf_cp_kb * 1024;
+	}
 protected:
 	typedef frame::aio::Timer				TimerT;
 
@@ -218,17 +224,21 @@ protected:
 	
 	uint16						flags;
 	
-	uint32						receivebufoff;
-	uint32						consumebufoff;
-	uint32						receive_keepalive_count;
+	uint32						recv_buf_off;
+	uint32						cons_buf_off;
 	
-	char						*recvbuf;
-	char						*sendbuf;
+	uint32						recv_keepalive_count;
+	
+	char						*recv_buf;
+	char						*send_buf;
+	
+	uint8						recv_buf_cp_kb;//kilobytes
+	uint8						send_buf_cp_kb;//kilobytes
 	
 	MessageIdMessageVectorT		direct_waiting_message_vec;
 	
-	MessageReader				msgreader;
-	MessageWriter				msgwriter;
+	MessageReader				msg_reader;
+	MessageWriter				msg_writer;
 	
 	Any<>						any_data;
 };

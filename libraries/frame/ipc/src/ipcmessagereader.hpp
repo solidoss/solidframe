@@ -20,7 +20,7 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
-struct Configuration;
+struct ReaderConfiguration;
 
 struct PacketHeader;
 
@@ -47,13 +47,13 @@ public:
 		const char *_pbuf,
 		uint32 _bufsz,
 		CompleteFunctionT &_complete_fnc,
-		Configuration const &_rconfig,
+		ReaderConfiguration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
 	);
 	
-	void prepare(Configuration const &_rconfig);
+	void prepare(ReaderConfiguration const &_rconfig);
 	void unprepare();
 	template <class S, uint32 I>
 	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv, ConnectionContext &);
@@ -62,7 +62,7 @@ private:
 		const char *_pbuf,
 		PacketHeader const &_packet_header,
 		CompleteFunctionT &_complete_fnc,
-		Configuration const &_rconfig,
+		ReaderConfiguration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror

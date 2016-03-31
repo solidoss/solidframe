@@ -9,6 +9,7 @@
 //
 #include "frame/ipc/ipcconfiguration.hpp"
 #include "system/cassert.hpp"
+#include "system/memory.hpp"
 
 namespace solid{
 namespace frame{
@@ -32,7 +33,7 @@ namespace{
 		return 0;
 	}
 	
-	size_t default_uncompress(char*, const char*, size_t, ErrorConditionT &_rerror){
+	size_t default_decompress(char*, const char*, size_t, ErrorConditionT &_rerror){
 		//This should never be called
 		cassert(false);
 		_rerror.assign(-1, _rerror.category());//TODO:
@@ -41,20 +42,33 @@ namespace{
 	
 }//namespace
 
+
+ReaderConfiguration::ReaderConfiguration(){
+	max_message_count_multiplex = 64;
+	
+	decompress_fnc = default_decompress;
+}
+
+WriterConfiguration::WriterConfiguration(){
+	max_message_count_multiplex = 64;
+	
+	max_message_continuous_packet_count = 4;
+	max_message_count_response_wait = 128;
+	
+	inplace_compress_fnc = default_compress;
+	reset_serializer_limits_fnc = empty_reset_serializer_limits;
+}
+
+
 Configuration::Configuration(
 	AioSchedulerT &_rsch
 ): pools_mutex_count(16), pscheduler(&_rsch)
 {
-	connection_recv_buffer_capacity = 4096;
-	connection_send_buffer_capacity = 4096;
+	connection_recv_buffer_start_capacity_kb = memory_page_size()/1024;
+	connection_send_buffer_start_capacity_kb = memory_page_size()/1024;
 	
+	connection_recv_buffer_max_capacity_kb = connection_send_buffer_max_capacity_kb = 64;
 	
-	writer_max_message_count_multiplex = 64;
-	
-	writer_max_message_continuous_packet_count = 4;
-	writer_max_message_count_response_wait = 128;
-	
-	reader_max_message_count_multiplex = writer_max_message_count_multiplex;
 	
 	connection_inactivity_timeout_seconds = 60 * 10;//ten minutes
 	connection_keepalive_timeout_seconds = 60 * 5;//five minutes
@@ -65,19 +79,13 @@ Configuration::Configuration(
 	connection_start_state = ConnectionState::Passive;
 	connection_start_secure = true;
 	
-	recv_buffer_allocate_fnc = default_allocate_buffer;
-	send_buffer_allocate_fnc = default_allocate_buffer;
+	connection_recv_buffer_allocate_fnc = default_allocate_buffer;
+	connection_send_buffer_allocate_fnc = default_allocate_buffer;
 	
-	recv_buffer_free_fnc = default_free_buffer;
-	send_buffer_free_fnc = default_free_buffer;
-	
-	reset_serializer_limits_fnc = empty_reset_serializer_limits;
+	connection_recv_buffer_free_fnc = default_free_buffer;
+	connection_send_buffer_free_fnc = default_free_buffer;
 	
 	connection_stop_fnc = empty_connection_stop;
-	
-	inplace_compress_fnc = default_compress;
-	uncompress_fnc = default_uncompress;
-	
 	
 	pool_max_active_connection_count = 1;
 	pool_max_pending_connection_count = 1;
@@ -100,22 +108,48 @@ void Configuration::prepare(){
 	if(pool_max_pending_connection_count == 0){
 		pool_max_pending_connection_count = 1;
 	}
+	
+	if(connection_recv_buffer_max_capacity_kb > 64){
+		connection_recv_buffer_max_capacity_kb = 64;
+	}
+	
+	if(connection_send_buffer_max_capacity_kb > 64){
+		connection_send_buffer_max_capacity_kb = 64;
+	}
+	
+	if(connection_recv_buffer_start_capacity_kb > connection_recv_buffer_max_capacity_kb){
+		connection_recv_buffer_start_capacity_kb = connection_recv_buffer_max_capacity_kb;
+	}
+	
+	if(connection_send_buffer_start_capacity_kb > connection_send_buffer_max_capacity_kb){
+		connection_send_buffer_start_capacity_kb = connection_send_buffer_max_capacity_kb;
+	}
 }
 //-----------------------------------------------------------------------------
-char* Configuration::allocateRecvBuffer()const{
-	return recv_buffer_allocate_fnc(connection_recv_buffer_capacity);
+char* Configuration::allocateRecvBuffer(uint8 &_rbuffer_capacity_kb)const{
+	if(_rbuffer_capacity_kb == 0){
+		_rbuffer_capacity_kb = connection_recv_buffer_start_capacity_kb;
+	}else if(_rbuffer_capacity_kb > connection_recv_buffer_max_capacity_kb){
+		_rbuffer_capacity_kb = connection_recv_buffer_max_capacity_kb;
+	}
+	return connection_recv_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
 void Configuration::freeRecvBuffer(char *_pb)const{
-	recv_buffer_free_fnc(_pb);
+	connection_recv_buffer_free_fnc(_pb);
 }
 //-----------------------------------------------------------------------------
-char* Configuration::allocateSendBuffer()const{
-	return send_buffer_allocate_fnc(connection_send_buffer_capacity);
+char* Configuration::allocateSendBuffer(uint8 &_rbuffer_capacity_kb)const{
+	if(_rbuffer_capacity_kb == 0){
+		_rbuffer_capacity_kb = connection_send_buffer_start_capacity_kb;
+	}else if(_rbuffer_capacity_kb > connection_send_buffer_max_capacity_kb){
+		_rbuffer_capacity_kb = connection_send_buffer_max_capacity_kb;
+	}
+	return connection_send_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
 void Configuration::freeSendBuffer(char *_pb)const{
-	send_buffer_free_fnc(_pb);
+	connection_send_buffer_free_fnc(_pb);
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc
