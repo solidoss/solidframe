@@ -154,7 +154,7 @@ struct ConnectionContext{
 	
 	RecipientId	recipientId()const;
 	
-	const char* recipientName()const;
+	const std::string& recipientName()const;
 	
 	SocketDevice const & device()const;
 	

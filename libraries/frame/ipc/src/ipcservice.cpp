@@ -643,7 +643,7 @@ ErrorConditionT Service::doSendMessage(
 	const char *_recipient_name,
 	const RecipientId	&_rrecipient_id_in,
 	MessagePointerT &_rmsgptr,
-	ResponseHandlerFunctionT &_rresponse_fnc,
+	MessageCompleteFunctionT &_rcomplete_fnc,
 	RecipientId *_precipient_id_out,
 	MessageId *_pmsgid_out,
 	ulong _flags
@@ -676,7 +676,7 @@ ErrorConditionT Service::doSendMessage(
 			_rrecipient_id_in,
 			_rmsgptr,
 			msg_type_idx,
-			_rresponse_fnc,
+			_rcomplete_fnc,
 			_pmsgid_out,
 			_flags
 		);
@@ -738,7 +738,7 @@ ErrorConditionT Service::doSendMessage(
 	
 	//At this point we can fetch the message from user's pointer
 	//because from now on we can call complete on the message
-	const MessageId msgid = rpool.pushBackMessage(_rmsgptr, msg_type_idx, _rresponse_fnc, _flags);
+	const MessageId msgid = rpool.pushBackMessage(_rmsgptr, msg_type_idx, _rcomplete_fnc, _flags);
 	
 	if(_pmsgid_out){
 		
@@ -799,7 +799,7 @@ ErrorConditionT Service::doSendMessageToConnection(
 	const RecipientId	&_rrecipient_id_in,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
-	ResponseHandlerFunctionT &_rresponse_fnc,
+	MessageCompleteFunctionT &_rcomplete_fnc,
 	MessageId *_pmsgid_out,
 	ulong _flags
 ){
@@ -827,13 +827,13 @@ ErrorConditionT Service::doSendMessageToConnection(
 	if(is_server_side_pool){
 		//for a server pool we want to enque messages in the pool
 		//
-		msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags | Message::OneShotSendFlagE);
+		msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | Message::OneShotSendFlagE);
 		success = manager().notify(
 			_rrecipient_id_in.connectionId(),
 			Connection::eventNewMessage()
 		);
 	}else{
-		msgid = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags | Message::OneShotSendFlagE);
+		msgid = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | Message::OneShotSendFlagE);
 		success = manager().notify(
 			_rrecipient_id_in.connectionId(),
 			Connection::eventNewMessage(msgid)
@@ -863,7 +863,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	const char *_recipient_name,
 	MessagePointerT &_rmsgptr,
 	const size_t _msg_type_idx,
-	ResponseHandlerFunctionT &_rresponse_fnc,
+	MessageCompleteFunctionT &_rcomplete_fnc,
 	RecipientId *_precipient_id_out,
 	MessageId *_pmsgid_out,
 	ulong _flags
@@ -892,7 +892,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	
 	d.namemap[rpool.name.c_str()] = pool_idx;
 	
-	MessageId msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rresponse_fnc, _flags);
+	MessageId msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags);
 	
 	if(_precipient_id_out){
 		_precipient_id_out->poolid = ConnectionPoolId(pool_idx, rpool.unique);
@@ -1049,7 +1049,7 @@ bool Service::doTryNotifyPoolWaitingConnection(const size_t _pool_index){
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doDelayCloseConnectionPool(
 	RecipientId const &_rrecipient_id, 
-	ResponseHandlerFunctionT &_rresponse_fnc
+	MessageCompleteFunctionT &_rcomplete_fnc
 ){
 	ErrorConditionT			error;
 	const size_t			pool_idx = _rrecipient_id.poolId().index;
@@ -1065,7 +1065,7 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
 	
 	MessagePointerT		empty_msg_ptr;
 	
-	const MessageId		msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rresponse_fnc, 0);
+	const MessageId		msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0);
 	(void)msgid;
 	
 	//notify all waiting connections about the new message
@@ -1085,7 +1085,7 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doForceCloseConnectionPool(
 	RecipientId const &_rrecipient_id, 
-	ResponseHandlerFunctionT &_rresponse_fnc
+	MessageCompleteFunctionT &_rcomplete_fnc
 ){
 	ErrorConditionT			error;
 	const size_t			pool_idx = _rrecipient_id.poolId().index;
@@ -1102,7 +1102,7 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 	
 	MessagePointerT		empty_msg_ptr;
 	
-	const MessageId		msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rresponse_fnc, 0);
+	const MessageId		msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0);
 	(void)msgid;
 	//no reason to cancel all messages - they'll be handled on connection stop.
 	//notify all waiting connections about the new message
@@ -1595,7 +1595,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
 		
 		idbgx(Debug::ipc, this<<" try create new connection in pool "<<rpool.active_connection_count<<" pending connections "<< rpool.pending_connection_count);
 		
-		DynamicPointer<aio::Object>		objptr(new_connection(configuration(), ConnectionPoolId(_pool_index, rpool.unique), rpool.name.c_str()));
+		DynamicPointer<aio::Object>		objptr(new_connection(configuration(), ConnectionPoolId(_pool_index, rpool.unique), rpool.name));
 		
 		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), _rerror);
 		
@@ -1640,7 +1640,7 @@ void Service::forwardResolveMessage(ConnectionPoolId const &_rpoolid, Event &_re
 		
 		if(rpool.pending_connection_count < configuration().pool_max_pending_connection_count){
 		
-			DynamicPointer<aio::Object>		objptr(new_connection(configuration(), _rpoolid, rpool.name.c_str()));
+			DynamicPointer<aio::Object>		objptr(new_connection(configuration(), _rpoolid, rpool.name));
 			
 			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, std::move(_revent), error);
 			
@@ -1727,7 +1727,7 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 		
 		ConnectionPoolStub 				&rpool(d.pooldq[pool_idx]);
 		
-		DynamicPointer<aio::Object>		objptr(new_connection(configuration(), _rsd, ConnectionPoolId(pool_idx, rpool.unique), rpool.name.c_str()));
+		DynamicPointer<aio::Object>		objptr(new_connection(configuration(), _rsd, ConnectionPoolId(pool_idx, rpool.unique), rpool.name));
 		
 		solid::ErrorConditionT			error;
 		

@@ -160,7 +160,7 @@ struct MessageBundle{
 	ulong						message_flags;
 	
 	MessagePointerT				message_ptr;
-	ResponseHandlerFunctionT	response_fnc;
+	MessageCompleteFunctionT	complete_fnc;
 	
 	MessageBundle():message_type_id(InvalidIndex()), message_flags(0){}
 	
@@ -170,12 +170,12 @@ struct MessageBundle{
 		ulong _flags,
 		ResponseHandlerFunctionT &_response_fnc
 	):	message_type_id(_msg_type_idx), message_flags(_flags), message_ptr(std::move(_rmsgptr)),
-		response_fnc(std::move(_response_fnc)){}
+		complete_fnc(std::move(_response_fnc)){}
 	
 	MessageBundle(
 		MessageBundle && _rmsgbundle
 	):	message_type_id(_rmsgbundle.message_type_id), message_flags(_rmsgbundle.message_flags),
-		message_ptr(std::move(_rmsgbundle.message_ptr)), response_fnc(std::move(_rmsgbundle.response_fnc))
+		message_ptr(std::move(_rmsgbundle.message_ptr)), complete_fnc(std::move(_rmsgbundle.complete_fnc))
 	{
 		
 	}
@@ -184,7 +184,7 @@ struct MessageBundle{
 		message_type_id = _rmsgbundle.message_type_id;
 		message_flags = _rmsgbundle.message_flags;
 		message_ptr = std::move(_rmsgbundle.message_ptr);
-		response_fnc = std::move(_rmsgbundle.response_fnc);
+		complete_fnc = std::move(_rmsgbundle.complete_fnc);
 		return *this;
 	}
 	
@@ -192,7 +192,7 @@ struct MessageBundle{
 		message_type_id = InvalidIndex();
 		message_flags = 0;
 		message_ptr.clear();
-		FUNCTION_CLEAR(response_fnc);
+		FUNCTION_CLEAR(complete_fnc);
 	}
 };
 

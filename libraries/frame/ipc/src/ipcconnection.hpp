@@ -84,7 +84,7 @@ public:
 	Connection(
 		Configuration const& _rconfiguration,
 		ConnectionPoolId const &_rpool_id,
-		const char * _pool_name = nullptr
+		std::string const & _rpool_name
 	);
 	
 	virtual ~Connection();
@@ -112,7 +112,7 @@ public:
 	Any<>& any();
 	
 	ConnectionPoolId const& poolId()const;
-	const char* poolName()const;
+	const std::string& poolName()const;
 	
 	virtual bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) = 0;
 	virtual bool hasValidSocket() const = 0;
@@ -211,7 +211,7 @@ protected:
 	typedef std::vector<MessageId>			MessageIdMessageVectorT;
 	
 	ConnectionPoolId			pool_id;
-	const char					*pool_name;
+	const std::string			&rpool_name;
 	
 	
 	TimerT						timer;
@@ -241,8 +241,8 @@ inline ConnectionPoolId const& Connection::poolId()const{
 	return pool_id;
 }
 
-inline const char* Connection::poolName()const{
-	return pool_name;
+inline const std::string& Connection::poolName()const{
+	return rpool_name;
 }
 
 
@@ -256,13 +256,13 @@ public:
 		Configuration const& _rconfiguration,
 		SocketDevice &_rsd,
 		ConnectionPoolId const &_rpool_id,
-		const char * _pool_name = nullptr
+		std::string const & _rpool_name
 	);
 	//Called when connection is 
 	PlainConnection(
 		Configuration const& _rconfiguration,
 		ConnectionPoolId const &_rpool_id,
-		const char * _pool_name = nullptr
+		std::string const & _rpool_name
 	);
 	
 private:
@@ -288,12 +288,12 @@ public:
 		Configuration const& _rconfiguration,
 		SocketDevice &_rsd,
 		ConnectionPoolId const &_rpool_id,
-		const char * _pool_name = nullptr
+		std::string const & _rpool_name
 	);
 	SecureConnection(
 		Configuration const& _rconfiguration,
 		ConnectionPoolId const &_rpool_id,
-		const char * _pool_name = nullptr
+		std::string const & _rpool_name
 	);
 private:
 	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) override;
@@ -312,24 +312,24 @@ Connection * new_connection(
 	Configuration const& _rconfiguration,
 	SocketDevice &_rsd,
 	ConnectionPoolId const &_rpool_id,
-	const char * _pool_name = nullptr
+	std::string const & _rpool_name
 ){
 	if(_rconfiguration.hasSecureContext()){
-		return new SecureConnection(_rconfiguration, _rsd, _rpool_id, _pool_name);
+		return new SecureConnection(_rconfiguration, _rsd, _rpool_id, _rpool_name);
 	}else{
-		return new PlainConnection(_rconfiguration, _rsd, _rpool_id, _pool_name);
+		return new PlainConnection(_rconfiguration, _rsd, _rpool_id, _rpool_name);
 	}
 }
 
 Connection * new_connection(
 	Configuration const& _rconfiguration,
 	ConnectionPoolId const &_rpool_id,
-	const char * _pool_name = nullptr
+	std::string const & _rpool_name
 ){
 	if(_rconfiguration.hasSecureContext()){
-		return new SecureConnection(_rconfiguration, _rpool_id, _pool_name);
+		return new SecureConnection(_rconfiguration, _rpool_id, _rpool_name);
 	}else{
-		return new PlainConnection(_rconfiguration, _rpool_id, _pool_name);
+		return new PlainConnection(_rconfiguration, _rpool_id, _rpool_name);
 	}
 }
 

@@ -57,8 +57,6 @@ using SecureContextT								= frame::aio::openssl::Context;
 
 using AioSchedulerT									= frame::Scheduler<frame::aio::Reactor>;
 
-using ResponseHandlerFunctionT						= FUNCTION<void(ConnectionContext&, MessagePointerT &, ErrorConditionT const&)>;
-
 using ConnectionEnterActiveCompleteFunctionT		= FUNCTION<MessagePointerT(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionEnterPassiveCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionSecureHandhakeCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;

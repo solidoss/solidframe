@@ -20,29 +20,19 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
-
-enum MessageFlags{
-	MessageRequestFlagE		= 1,
-	MessageResponseFlagE	= 2,
-	MessageSynchronousFlagE = 4,
-};
-
-
 struct ConnectionContext;
 
-typedef FUNCTION<void(ConnectionContext &, MessagePointerT &)>							MessageReceiveFunctionT;
-typedef FUNCTION<void(ConnectionContext &, MessagePointerT &, ErrorConditionT const &)>	MessageCompleteFunctionT;
-typedef FUNCTION<void(ConnectionContext &, Message const &)>							MessagePrepareFunctionT;
+using MessageCompleteFunctionT	= FUNCTION<void(
+	ConnectionContext &, MessagePointerT &, MessagePointerT &, ErrorConditionT const &
+)>;
 
 struct TypeStub{
-	MessagePrepareFunctionT		prepare_fnc;
-	MessageReceiveFunctionT		receive_fnc;
 	MessageCompleteFunctionT	complete_fnc;
 };
 
-typedef serialization::binary::Serializer<ConnectionContext>							SerializerT;
-typedef serialization::binary::Deserializer<ConnectionContext>							DeserializerT;
-typedef serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>					TypeIdMapT;
+using SerializerT				= serialization::binary::Serializer<ConnectionContext>;
+using DeserializerT 			= serialization::binary::Deserializer<ConnectionContext>;
+using TypeIdMapT				= serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>;
 
 }//namespace ipc
 }//namespace frame

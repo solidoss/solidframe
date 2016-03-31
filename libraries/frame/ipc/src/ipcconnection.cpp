@@ -796,8 +796,8 @@ void Connection::doCompleteAllMessages(
 PlainConnection::PlainConnection(
 	Configuration const& _rconfiguration,
 	SocketDevice &_rsd, ConnectionPoolId const &_rpool_id,
-	const char *_pool_name/* = nullptr*/
-): Connection(_rconfiguration, _rpool_id, _pool_name), sock(this->proxy(), std::move(_rsd))
+	std::string const & _rpool_name
+): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy(), std::move(_rsd))
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
@@ -805,8 +805,8 @@ PlainConnection::PlainConnection(
 PlainConnection::PlainConnection(
 	Configuration const& _rconfiguration,
 	ConnectionPoolId const &_rpool_id,
-	const char *_pool_name/* = nullptr*/
-): Connection(_rconfiguration, _rpool_id, _pool_name), sock(this->proxy())
+	std::string const & _rpool_name
+): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy())
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
@@ -842,8 +842,8 @@ SecureConnection::SecureConnection(
 	Configuration const& _rconfiguration,
 	SocketDevice &_rsd,
 	ConnectionPoolId const &_rpool_id,
-	const char *_pool_name/* = nullptr*/
-): Connection(_rconfiguration, _rpool_id, _pool_name), sock(this->proxy(), std::move(_rsd), _rconfiguration.secure_context)
+	std::string const & _rpool_name
+): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy(), std::move(_rsd), _rconfiguration.secure_context)
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
@@ -851,8 +851,8 @@ SecureConnection::SecureConnection(
 SecureConnection::SecureConnection(
 	Configuration const& _rconfiguration,
 	ConnectionPoolId const &_rpool_id,
-	const char *_pool_name/* = nullptr*/
-): Connection(_rconfiguration, _rpool_id, _pool_name), sock(this->proxy(), _rconfiguration.secure_context)
+	std::string const & _rpool_name
+): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy(), _rconfiguration.secure_context)
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
@@ -892,7 +892,7 @@ RecipientId	ConnectionContext::recipientId()const{
 	return RecipientId(rconnection.poolId(), rservice.manager().id(rconnection));
 }
 //-----------------------------------------------------------------------------
-const char* ConnectionContext::recipientName()const{
+const std::string& ConnectionContext::recipientName()const{
 	return rconnection.poolName();
 }
 //-----------------------------------------------------------------------------
