@@ -68,7 +68,6 @@ class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
 	
 	static Event eventResolve();
-	static Event eventCheckPool();
 	static Event eventNewMessage();
 	static Event eventNewMessage(const MessageId &);
 	static Event eventCancelLocalMessage(const MessageId &);
@@ -184,10 +183,16 @@ protected:
 
 	void doHandleEventKill(frame::aio::ReactorContext &_rctx, Event &_revent);
 	void doHandleEventStart(frame::aio::ReactorContext &_rctx, Event &_revent);
-	void doHandleEventActivate(frame::aio::ReactorContext &_rctx, Event &_revent);
-	void doHandleEventPush(frame::aio::ReactorContext &_rctx, Event &_revent);
 	void doHandleEventResolve(frame::aio::ReactorContext &_rctx, Event &_revent);
-	void doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventNewPoolMessage(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventNewConnMessage(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventCancelConnMessage(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventCancelPoolMessage(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventEnterPassive(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
+	void doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
 	
 	template <class Fnc>
 	void forEveryMessagesNewerToOlder(

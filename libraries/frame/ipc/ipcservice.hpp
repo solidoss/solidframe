@@ -369,7 +369,7 @@ private:
 	
 	void acceptIncomingConnection(SocketDevice &_rsd);
 	
-	void activateConnectionComplete(Connection &_rcon);
+	ErrorConditionT activateConnection(Connection &_rcon);
 	
 	void connectionStop(Connection const &_rcon);
 	

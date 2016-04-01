@@ -36,11 +36,16 @@ enum class Flags:size_t{
 };
 
 enum class ConnectionEvents{
-	Activate,
 	Resolve,
-	Push,
-	DelayedClose,
-	CheckPool,
+	NewPoolMessage,
+	NewConnMessage,
+	CancelConnMessage,
+	CancelPoolMessage,
+	EnterActive,
+	EnterPassive,
+	StartSecure,
+	SendRaw,
+	RecvRaw,
 	Invalid,
 };
 
@@ -48,18 +53,28 @@ const EventCategory<ConnectionEvents>	connection_event_category{
 	"solid::frame::ipc::connection_event_category",
 	[](const ConnectionEvents _evt){
 		switch(_evt){
-			case ConnectionEvents::Activate:
-				return "activate";
 			case ConnectionEvents::Resolve:
-				return "resolve";
-			case ConnectionEvents::Push:
-				return "push";
-			case ConnectionEvents::DelayedClose:
-				return "delayed_close";
-			case ConnectionEvents::CheckPool:
-				return "check_pool";
+				return "Resolve";
+			case ConnectionEvents::NewPoolMessage:
+				return "NewPoolMessage";
+			case ConnectionEvents::NewConnMessage:
+				return "NewConnMessage";
+			case ConnectionEvents::CancelConnMessage:
+				return "CancelConnMessage";
+			case ConnectionEvents::CancelPoolMessage:
+				return "CancelPoolMessage";
+			case ConnectionEvents::EnterActive:
+				return "EnterActive";
+			case ConnectionEvents::EnterPassive:
+				return "EnterPassive";
+			case ConnectionEvents::StartSecure:
+				return "StartSecure";
+			case ConnectionEvents::SendRaw:
+				return "SendRaw";
+			case ConnectionEvents::RecvRaw:
+				return "RecvRaw";
 			case ConnectionEvents::Invalid:
-				return "invalid";
+				return "Invalid";
 			default:
 				return "unknown";
 		}
@@ -83,44 +98,95 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	return connection_event_category.event(ConnectionEvents::Resolve);
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventCheckPool(){
-	return connection_event_category.event(ConnectionEvents::CheckPool);
-}
-//-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventNewMessage(){
-	return Event();
+	return connection_event_category.event(ConnectionEvents::NewPoolMessage);
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventNewMessage(const MessageId &){
-	return Event();
+/*static*/ Event Connection::eventNewMessage(const MessageId &_rmsgid){
+	Event event = connection_event_category.event(ConnectionEvents::NewConnMessage);
+	event.any().reset(_rmsgid);
+	return event;
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventCancelLocalMessage(const MessageId &){
-	return Event();
+/*static*/ Event Connection::eventCancelLocalMessage(const MessageId &_rmsgid){
+	Event event = connection_event_category.event(ConnectionEvents::CancelConnMessage);
+	event.any().reset(_rmsgid);
+	return event;
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventCancelPoolMessage(const MessageId &){
-	return Event();
+/*static*/ Event Connection::eventCancelPoolMessage(const MessageId &_rmsgid){
+	Event event = connection_event_category.event(ConnectionEvents::CancelPoolMessage);
+	event.any().reset(_rmsgid);
+	return event;
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventEnterActive(ConnectionEnterActiveCompleteFunctionT &&, const size_t _send_buffer_capacity){
-	return Event();
+struct EnterActive{
+	EnterActive(
+		ConnectionEnterActiveCompleteFunctionT &&_ucomplete_fnc,
+		const size_t _send_buffer_capacity
+	):complete_fnc(std::move(_ucomplete_fnc)), send_buffer_capacity(_send_buffer_capacity){}
+	
+	ConnectionEnterActiveCompleteFunctionT	complete_fnc;
+	const size_t							send_buffer_capacity;
+};
+/*static*/ Event Connection::eventEnterActive(ConnectionEnterActiveCompleteFunctionT &&_ucomplete_fnc, const size_t _send_buffer_capacity){
+	Event event = connection_event_category.event(ConnectionEvents::EnterActive);
+	event.any().reset(EnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity));
+	return event;
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT &&){
-	return Event();
+struct EnterPassive{
+	EnterPassive(
+		ConnectionEnterPassiveCompleteFunctionT &&_ucomplete_fnc
+	):complete_fnc(std::move(_ucomplete_fnc)){}
+	
+	ConnectionEnterPassiveCompleteFunctionT	complete_fnc;
+};
+/*static*/ Event Connection::eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT &&_ucomplete_fnc){
+	Event event = connection_event_category.event(ConnectionEvents::EnterPassive);
+	event.any().reset(EnterPassive(std::move(_ucomplete_fnc)));
+	return event;
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT &&){
-	return Event();
+struct StartSecure{
+	StartSecure(
+		ConnectionSecureHandhakeCompleteFunctionT &&_ucomplete_fnc
+	):complete_fnc(std::move(_ucomplete_fnc)){}
+	
+	ConnectionSecureHandhakeCompleteFunctionT	complete_fnc;
+};
+/*static*/ Event Connection::eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT &&_ucomplete_fnc){
+	Event event = connection_event_category.event(ConnectionEvents::StartSecure);
+	event.any().reset(StartSecure(std::move(_ucomplete_fnc)));
+	return event;
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventSendRaw(ConnectionSendRawDataCompleteFunctionT &&, std::string &&){
-	return Event();
+struct SendRaw{
+	SendRaw(
+		ConnectionSendRawDataCompleteFunctionT &&_ucomplete_fnc,
+		std::string &&_udata
+	):complete_fnc(std::move(_ucomplete_fnc)), data(std::move(_udata)){}
+	
+	ConnectionSendRawDataCompleteFunctionT	complete_fnc;
+	std::string								data;
+};
+/*static*/ Event Connection::eventSendRaw(ConnectionSendRawDataCompleteFunctionT &&_ucomplete_fnc, std::string &&_udata){
+	Event event = connection_event_category.event(ConnectionEvents::SendRaw);
+	event.any().reset(SendRaw(std::move(_ucomplete_fnc), std::move(_udata)));
+	return event;
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT &&){
-	return Event();
+struct RecvRaw{
+	RecvRaw(
+		ConnectionRecvRawDataCompleteFunctionT &&_ucomplete_fnc
+	):complete_fnc(std::move(_ucomplete_fnc)){}
+	
+	ConnectionRecvRawDataCompleteFunctionT	complete_fnc;
+};
+/*static*/ Event Connection::eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT &&_ucomplete_fnc){
+	Event event = connection_event_category.event(ConnectionEvents::RecvRaw);
+	event.any().reset(RecvRaw(std::move(_ucomplete_fnc)));
+	return event;
 }
 //-----------------------------------------------------------------------------
 inline void Connection::doOptimizeRecvBuffer(){
@@ -361,12 +427,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	> event_handler = {
 		[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){idbgx(Debug::ipc, &_rcon<<" Unhandled event "<<_revt);},
 		{
-			{
-				connection_event_category.event(ConnectionEvents::Push),
-				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
-					_rcon.doHandleEventPush(_rctx, _revt);
-				}
-			},
+			
 			{
 				generic_event_category.event(GenericEvents::Start),
 				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
@@ -386,15 +447,57 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 				}
 			},
 			{
-				connection_event_category.event(ConnectionEvents::Activate),
+				connection_event_category.event(ConnectionEvents::NewPoolMessage),
 				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
-					_rcon.doHandleEventActivate(_rctx, _revt);
+					_rcon.doHandleEventNewPoolMessage(_rctx, _revt);
 				}
 			},
 			{
-				connection_event_category.event(ConnectionEvents::DelayedClose),
+				connection_event_category.event(ConnectionEvents::NewConnMessage),
 				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
-					_rcon.doHandleEventDelayedClose(_rctx, _revt);
+					_rcon.doHandleEventNewConnMessage(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::CancelConnMessage),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventCancelConnMessage(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::CancelPoolMessage),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventCancelPoolMessage(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::EnterActive),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventEnterActive(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::EnterPassive),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventEnterPassive(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::StartSecure),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventStartSecure(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::SendRaw),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventSendRaw(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::RecvRaw),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventRecvRaw(_rctx, _revt);
 				}
 			},
 		}
@@ -421,26 +524,6 @@ void Connection::doHandleEventKill(
 	idbgx(Debug::ipc, this<<' '<<this->id()<<" Session postStop");
 	flags |= static_cast<size_t>(Flags::StopForced);
 	doStop(_rctx, error_connection_killed);
-}
-//-----------------------------------------------------------------------------
-void Connection::doHandleEventActivate(
-	frame::aio::ReactorContext &_rctx,
-	Event &_revent
-){
-	idbgx(Debug::ipc, this);
-
-	if(not isStopping()){
-		flags |= static_cast<size_t>(Flags::Active);
-		service(_rctx).activateConnectionComplete(*this);
-		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){this->doSend(_rctx);});
-	}
-}
-//-----------------------------------------------------------------------------
-void Connection::doHandleEventPush(
-	frame::aio::ReactorContext &_rctx,
-	Event &_revent
-){
-	
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventResolve(
@@ -470,24 +553,66 @@ void Connection::doHandleEventResolve(
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventDelayedClose(frame::aio::ReactorContext &_rctx, Event &/*_revent*/){
-	bool				was_empty_msgwriter = msg_writer.empty();
-	MessageId			msguid;
-	//Configuration const &rconfig = service(_rctx).configuration();
+void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
-// 	{
-// 		Locker<Mutex>		lock(service(_rctx).mutex(*this));
-// 		msguid = msgwriter.safeForcedNewMessageId();//enqueueing close cannot fail
-// 	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
-	msg_writer.enqueueClose(msguid);
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
-	cassert(not msg_writer.empty());
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
-	if(was_empty_msgwriter and not msg_writer.empty()){
-		idbgx(Debug::ipc, this<<" post send");
-		this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Event &_revent){
+	idbgx(Debug::ipc, this);
+	
+	ConnectionContext	conctx(service(_rctx), *this);
+	
+	if(not isStopping()){
+		ErrorConditionT		error = service(_rctx).activateConnection(*this);
+		
+		if(not error){
+			flags |= static_cast<size_t>(Flags::Active);
+			MessagePointerT msg_ptr = _revent.any().cast<EnterActive>()->complete_fnc(conctx, error);
+			if(not msg_ptr.empty()){
+				//TODO: push message to writer
+			}
+			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){this->doSend(_rctx);});
+		}else{
+			MessagePointerT msg_ptr = _revent.any().cast<EnterActive>()->complete_fnc(conctx, error);
+			if(msg_ptr.empty()){
+				doStop(_rctx, error);
+			}else{
+				//TODO: push message to writer
+				//then push nullptr message - delayed closing
+			}
+		}
+	}else{
+		MessagePointerT msg_ptr = _revent.any().cast<EnterActive>()->complete_fnc(conctx, error_connection_stopping);
+		//ignore the message
 	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext &_rctx, Event &_revent){
+	
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Event &_revent){
+	
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &_revent){
+	
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &_revent){
+	
 }
 //-----------------------------------------------------------------------------
 void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){

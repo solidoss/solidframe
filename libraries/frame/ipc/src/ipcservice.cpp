@@ -1711,6 +1711,11 @@ void Service::doPushFrontMessageToPool(
 	}
 }
 //-----------------------------------------------------------------------------
+ErrorConditionT Service::activateConnection(Connection &_rcon){
+	//TODO:
+	return ErrorConditionT();
+}
+//-----------------------------------------------------------------------------
 void Service::acceptIncomingConnection(SocketDevice &_rsd){
 	size_t	pool_idx;
 	

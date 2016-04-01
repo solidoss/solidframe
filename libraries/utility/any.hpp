@@ -273,7 +273,6 @@ public:
 		}else{
 			pvalue_ = new impl::AnyValue<T>{_rt};
 		}
-		return *this;
 	}
 	
 	template <typename T>

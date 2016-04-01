@@ -25,6 +25,8 @@ enum {
 	ErrorDelayedClosePendingE,
 	ErrorMessageCanceledE,
 	ErrorConnectionInexistentE,
+	ErrorConnectionEnterActiveE,
+	ErrorConnectionStoppingE
 };
 class ErrorCategory: public ErrorCategoryT
 {     
@@ -70,6 +72,12 @@ std::string ErrorCategory::message(int _ev) const{
 		case ErrorConnectionInexistentE:
 			oss<<"Connection does not exist";
 			break;
+		case ErrorConnectionEnterActiveE:
+			oss<<"Connection cannot enter active state - too many active connections";
+			break;
+		case ErrorConnectionStoppingE:
+			oss<<"Connection is stopping";
+			break;
 		default:
 			oss<<"Unknown";
 			break;
@@ -88,6 +96,8 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_delayed_closed_pending(ErrorDelayedClosePendingE, category);
 /*extern*/ const ErrorConditionT error_message_canceled(ErrorMessageCanceledE, category);
 /*extern*/ const ErrorConditionT error_connection_inexistent(ErrorConnectionInexistentE, category);
+/*extern*/ const ErrorConditionT error_connection_enter_active(ErrorConnectionEnterActiveE, category);
+/*extern*/ const ErrorConditionT error_connection_stopping(ErrorConnectionStoppingE, category);
 }//namespace ipc
 }//namespace frame
 }//namespace solid
