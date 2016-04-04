@@ -54,17 +54,6 @@ void MessageWriter::unprepare(){
 	
 }
 //-----------------------------------------------------------------------------
-void MessageWriter::safeMoveCacheToSafety(){
-	while(cached_inner_list.size() and cached_inner_list.front().isInvalidStatus()){
-		const size_t 	msgidx = cached_inner_list.frontIndex();
-		MessageStub		&rmsgstub = cached_inner_list.front();
-		
-		message_uid_cache_vec.push_back(MessageId(msgidx, rmsgstub.unique));
-		
-		cached_inner_list.popFront();
-	}
-}
-//-----------------------------------------------------------------------------
 // Needs:
 // max prequeue size
 // max multiplexed message count
@@ -74,18 +63,18 @@ void MessageWriter::safeMoveCacheToSafety(){
 // 		put on pending_message_q
 // 
 //
-void MessageWriter::enqueue(
+bool MessageWriter::enqueue(
+	WriterConfiguration const &_rconfig,
 	MessageBundle &_rmsgbundle,
-	MessageId const &_rmsguid,
-	Configuration const &_rconfig,
-	TypeIdMapT const &_ridmap,
-	ConnectionContext &_rctx
+	MessageId const &_rpool_msg_id,
+	MessageId &_rconn_msg_id
 ){
+#if 0
 	cassert(not _rmsgbundle.message_ptr.empty());
 	cassert(_rmsguid.isValid());
 	
 	const size_t	idx = _rmsguid.index;
-#if 0
+
 	//do not complete message even if there is a delayed close 
 	//message should be completed later or taken over by other connection
 	//
@@ -109,7 +98,6 @@ void MessageWriter::enqueue(
 		cached_inner_list.pushBack(idx);
 		return;
 	}
-#endif
 	if(idx >= message_vec.size()){
 		message_vec.resize(idx + 1);
 	}
@@ -150,6 +138,8 @@ void MessageWriter::enqueue(
 		}
 	}
 	vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+#endif
+	return false;
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::enqueueClose(MessageId const &_rmsguid){

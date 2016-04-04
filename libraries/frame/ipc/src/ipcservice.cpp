@@ -908,7 +908,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 	return error;
 }
 //-----------------------------------------------------------------------------
-//tryPushMessage will accept a message when:
+// doTryPushMessageToConnection will accept a message when:
 // there is space in the sending queue and
 //	either the message is not waiting for response or there is space in the waiting response message queue
 bool Service::doTryPushMessageToConnection(
@@ -928,7 +928,9 @@ bool Service::doTryPushMessageToConnection(
 	if(rmsgstub.isCancelable()){
 		
 		rmsgstub.objid = _robjuid;
-		success = _rcon.tryPushMessage(rmsgstub.msgbundle, rmsgstub.msgid, MessageId(_msg_idx, rmsgstub.unique));
+		
+		success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId(_msg_idx, rmsgstub.unique));
+		
 		if(success	and not message_is_null){
 			rpool.msgorder_inner_list.erase(_msg_idx);
 			
@@ -938,7 +940,60 @@ bool Service::doTryPushMessageToConnection(
 		}
 		
 	}else{
-		success = _rcon.tryPushMessage(rmsgstub.msgbundle);
+		
+		success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId());
+		
+		if(success and not message_is_null){
+			
+			rpool.msgorder_inner_list.erase(_msg_idx);
+			
+			if(not message_is_synchronous){
+				rpool.msgasync_inner_list.erase(_msg_idx);
+			}
+			
+			rpool.msgcache_inner_list.pushBack(_msg_idx);
+			rmsgstub.clear();
+		}
+	}
+	return success;
+}
+//-----------------------------------------------------------------------------
+// doTryPushMessageToConnection will accept a message when:
+// there is space in the sending queue and
+//	either the message is not waiting for response or there is space in the waiting response message queue
+bool Service::doTryPushMessageToConnection(
+	Connection &_rcon,
+	ObjectIdT const &_robjuid,
+	const size_t _pool_idx,
+	const MessageId & _rmsg_id
+){
+	ConnectionPoolStub 	&rpool(d.pooldq[_pool_idx]);
+	
+	MessageStub			&rmsgstub = rpool.msgvec[_msg_idx];
+	const bool			message_is_synchronous = Message::is_asynchronous(rmsgstub.msgbundle.message_flags);
+	const bool			message_is_null = rmsgstub.msgbundle.message_ptr.empty();
+	bool				success = false;
+	cassert(Message::is_canceled(rmsgstub.msgbundle.message_flags));
+	
+	
+	if(rmsgstub.isCancelable()){
+		
+		rmsgstub.objid = _robjuid;
+		
+		success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId(_msg_idx, rmsgstub.unique));
+		
+		if(success	and not message_is_null){
+			rpool.msgorder_inner_list.erase(_msg_idx);
+			
+			if(not message_is_synchronous){
+				rpool.msgasync_inner_list.erase(_msg_idx);
+			}
+		}
+		
+	}else{
+		
+		success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId());
+		
 		if(success and not message_is_null){
 			
 			rpool.msgorder_inner_list.erase(_msg_idx);
@@ -982,15 +1037,25 @@ bool Service::pollPoolForUpdates(
 		return false;
 	}
 	
-	idbgx(Debug::ipc, this<<' '<<&_rconnection<<" messages in pool: "<<rpool.msgorder_inner_list.size());
 	
-	const bool 				connection_can_handle_synchronous_messages{	_robjuid == rpool.main_connection_id	};
+	
+	idbgx(Debug::ipc, this<<' '<<&_rconnection<<" messages in pool: "<<rpool.msgorder_inner_list.size());
+	bool					connection_can_handle_more_messages = not _rconnection.isFull(configuration());
+	const bool 				connection_can_handle_synchronous_messages{_robjuid == rpool.main_connection_id};
+	
+	
+	if(_rconnection.pendingMessageVector().size()){
+		//connection has pending messages
+		for(auto rmsgid: _rconnection.pendingMessageVector()){
+			
+		}
+	}
 	
 	//We need to push as many messages as we can to the connection
 	//in order to handle eficiently the situation with multiple small messages.
 	
 	if(connection_can_handle_synchronous_messages){
-		bool	connection_can_handle_more_messages = not _rconnection.isFull(configuration());
+		
 		
 		//use the order inner queue
 		while(rpool.msgorder_inner_list.size() and connection_can_handle_more_messages){
@@ -1002,8 +1067,6 @@ bool Service::pollPoolForUpdates(
 			);
 		}
 	}else{
-		bool	connection_can_handle_more_messages = not _rconnection.isFull(configuration());
-		
 		//use the async inner queue
 		while(rpool.msgasync_inner_list.size() and connection_can_handle_more_messages){
 			connection_can_handle_more_messages = doTryPushMessageToConnection(
@@ -1025,6 +1088,10 @@ bool Service::pollPoolForUpdates(
 	}
 
 	return true;
+}
+//-----------------------------------------------------------------------------
+void Service::rejectNewPoolMessage(Connection const &_rcon){
+	//TODO: try wake another connection in pool
 }
 //-----------------------------------------------------------------------------
 bool Service::doTryNotifyPoolWaitingConnection(const size_t _pool_index){
@@ -1147,7 +1214,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 				
 				success = manager().notify(
 					rmsgstub.objid,
-					Connection::eventCancelLocalMessage(rmsgstub.msgid)
+					Connection::eventCancelConnMessage(rmsgstub.msgid)
 				);
 				
 				if(not success){

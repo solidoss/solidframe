@@ -26,13 +26,14 @@ enum class Flags:size_t{
 	Server						= 4,
 	Keepalive					= 8,
 	WaitKeepAliveTimer			= 16,
-	StopForced					= 32,
+	StopPeer					= 32,
 	HasActivity 				= 64,
-	TryFetchNewMessageFromPool	= 128,
+	PollPool					= 128,
 	Stopping					= 256,
-	DelayedClosing				= 512,
+	DelayedStopping				= 512,
 	Secure						= 1024,
 	Raw							= 2048,
+	InPoolWaitQueue				= 4096,
 };
 
 enum class ConnectionEvents{
@@ -108,7 +109,7 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	return event;
 }
 //-----------------------------------------------------------------------------
-/*static*/ Event Connection::eventCancelLocalMessage(const MessageId &_rmsgid){
+/*static*/ Event Connection::eventCancelConnMessage(const MessageId &_rmsgid){
 	Event event = connection_event_category.event(ConnectionEvents::CancelConnMessage);
 	event.any().reset(_rmsgid);
 	return event;
@@ -220,6 +221,7 @@ Connection::Connection(
 	recv_buf(nullptr), send_buf(nullptr),
 	recv_buf_cp_kb(0), send_buf_cp_kb(0)
 {
+	//TODO: use _rconfiguration.connection_start_state and _rconfiguration.connection_start_secure
 }
 //-----------------------------------------------------------------------------
 Connection::~Connection(){
@@ -230,49 +232,23 @@ bool Connection::isFull(Configuration const& _rconfiguration)const{
 	return true;
 }
 //-----------------------------------------------------------------------------
+bool Connection::isInPoolWaitingQueue() const{
+	return flags & static_cast<size_t>(Flags::InPoolWaitQueue);
+}
+//-----------------------------------------------------------------------------
+void Connection::setInPoolWaitingQueue(){
+	flags |= static_cast<size_t>(Flags::InPoolWaitQueue);
+}
+//-----------------------------------------------------------------------------
+// - called under pool's lock
 bool Connection::tryPushMessage(
+	Configuration const& _rconfiguration,
 	MessageBundle &_rmsgbundle,
-	MessageId &_rmsguid,
+	MessageId &_rconn_msg_id,
 	const MessageId &_rpool_msg_id
 ){
-#if 0
-	ConnectionContext	conctx(service(_rctx), *this);
-	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
-	const Configuration &rconfig  = service(_rctx).configuration();
-	MessageId			msguid;
-	bool				ret_val = true;
-	
-	if(not Message::is_canceled(_rmsgbundle.message_flags)){
-		{
-			Locker<Mutex>		lock(service(_rctx).mutex(*this));
-			
-			if(Message::is_asynchronous(_rmsgbundle.message_flags)){
-				msguid = msgwriter.safeNewMessageId(rconfig);
-			}else{
-				msguid = msgwriter.safeForcedNewMessageId();
-			}
-		}
-		
-		if(msguid.isValid()){
-			msgwriter.enqueue(_rmsgbundle, msguid, rconfig, rtypemap, conctx);
-			
-			if(_pmsguid){
-				*_pmsguid = msguid;
-			}
-		}else{
-			ret_val = false;
-		}
-	}else{
-		//canceled message
-		msgwriter.cancel(_rmsgbundle, _rpool_msg_id, rconfig, rtypemap, conctx);
-	}
-	
-	return ret_val;
-#endif
-	return false;
+	return msg_writer.enqueue(_rconfiguration.writer, _rmsgbundle, _rpool_msg_id, _rconn_msg_id);
 }
-
-
 //-----------------------------------------------------------------------------
 bool Connection::isActive()const{
 	return flags & static_cast<size_t>(Flags::Active);
@@ -282,8 +258,8 @@ bool Connection::isStopping()const{
 	return flags & static_cast<size_t>(Flags::Stopping);
 }
 //-----------------------------------------------------------------------------
-bool Connection::isDelayedClosing()const{
-	return flags & static_cast<size_t>(Flags::DelayedClosing);
+bool Connection::isDelayedStopping()const{
+	return flags & static_cast<size_t>(Flags::DelayedStopping);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isServer()const{
@@ -294,16 +270,16 @@ bool Connection::shouldSendKeepalive()const{
 	return flags & static_cast<size_t>(Flags::Keepalive);
 }
 //-----------------------------------------------------------------------------
-bool Connection::shouldTryFetchNewMessageFromPool()const{
-	return flags & static_cast<size_t>(Flags::TryFetchNewMessageFromPool);
+bool Connection::shouldPollPool()const{
+	return flags & static_cast<size_t>(Flags::PollPool);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isWaitingKeepAliveTimer()const{
 	return flags & static_cast<size_t>(Flags::WaitKeepAliveTimer);
 }
 //-----------------------------------------------------------------------------
-bool Connection::isStopForced()const{
-	return flags & static_cast<size_t>(Flags::StopForced);
+bool Connection::isStopPeer()const{
+	return flags & static_cast<size_t>(Flags::StopPeer);
 }
 //-----------------------------------------------------------------------------
 void Connection::doPrepare(frame::aio::ReactorContext &_rctx){
@@ -522,7 +498,6 @@ void Connection::doHandleEventKill(
 	Event &_revent
 ){
 	idbgx(Debug::ipc, this<<' '<<this->id()<<" Session postStop");
-	flags |= static_cast<size_t>(Flags::StopForced);
 	doStop(_rctx, error_connection_killed);
 }
 //-----------------------------------------------------------------------------
@@ -532,6 +507,7 @@ void Connection::doHandleEventResolve(
 ){
 
 	ResolveMessage *presolvemsg = _revent.any().cast<ResolveMessage>();
+	
 	if(presolvemsg){
 		idbgx(Debug::ipc, this<<' '<<this->id()<<" Session receive resolve event message of size: "<<presolvemsg->addrvec.size());
 		if(not presolvemsg->empty()){
@@ -553,12 +529,29 @@ void Connection::doHandleEventResolve(
 	}
 }
 //-----------------------------------------------------------------------------
+bool Connection::willAcceptNewMessage(frame::aio::ReactorContext &_rctx)const{
+	return not isStopping()/* and waiting_message_vec.empty() and msg_writer.willAcceptNewMessage(service(_rctx).configuration().writer)*/;
+}
+//-----------------------------------------------------------------------------
 void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
-	
+	flags &= ~static_cast<size_t>(Flags::InPoolWaitQueue);//reset flag
+
+	if(willAcceptNewMessage(service(_rctx).configuration().writer)){
+		flags |= static_cast<size_t>(Flags::PollPool);
+		doSend(_rctx);
+	}else{
+		service(_rctx).rejectNewPoolMessage(*this);
+	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
-	
+	MessageId	*pmsgid = _revent.any().cast<MessageId>();
+	cassert(pmsgid);
+	if(pmsgid){
+		waiting_message_vec.push_back(*pmsgid);
+		flags |= static_cast<size_t>(Flags::PollPool);
+		doSend(_rctx);
+	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
@@ -738,6 +731,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 			}
 		}else{
 			edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" receiving "<<_rctx.error().message());
+			rthis.flags |= static_cast<size_t>(Flags::StopPeer);
 			rthis.doStop(_rctx, _rctx.error());
 			recv_something = false;//prevent calling doResetTimerRecv after doStop
 			break;
@@ -751,10 +745,11 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 	if(recv_something){
 		rthis.doResetTimerRecv(_rctx);
-		if(not rthis.msg_writer.isNonSafeCacheEmpty()){
-			Locker<Mutex>	lock(rthis.service(_rctx).mutex(rthis));
-			rthis.msg_writer.safeMoveCacheToSafety();
-		}
+		//TODO:
+		//if(not rthis.msg_writer.isNonSafeCacheEmpty()){
+		//	Locker<Mutex>	lock(rthis.service(_rctx).mutex(rthis));
+		//	rthis.msg_writer.safeMoveCacheToSafety();
+		//}
 	}
 	
 	if(repeatcnt == 0){
@@ -765,7 +760,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_something/* = false*/){
+void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	idbgx(Debug::ipc, this<<"");
 	if(not this->hasPendingSend()){
 		ConnectionContext	conctx(service(_rctx), *this);
@@ -774,9 +769,9 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		const uint32		sendbufcp = sendBufferCapacity();
 		const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 		const Configuration &rconfig  = service(_rctx).configuration();
-		bool				sent_something = _sent_something;
+		bool				sent_something = false;
 		
-		doResetTimerSend(_rctx);
+		//doResetTimerSend(_rctx);
 		
 		while(repeatcnt){
 			
@@ -785,7 +780,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				msg_writer.hasFreeSeats(rconfig)
 			){
 				if(not service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId())){
-					flags |= static_cast<size_t>(Flags::StopForced);//TODO: maybe you should not set this all the time
+					flags |= static_cast<size_t>(Flags::StopPeer);
 					error.assign(-1, error.category());//TODO: Forced stop
 					doStop(_rctx, error);
 					sent_something = false;//prevent calling doResetTimerSend after doStop
@@ -808,6 +803,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				if(sz && this->sendAll(_rctx, send_buf, sz)){
 					if(_rctx.error()){
 						edbgx(Debug::ipc, this<<' '<<id()<<" sending "<<sz<<": "<<_rctx.error().message());
+						flags |= static_cast<size_t>(Flags::StopPeer);
 						doStop(_rctx, _rctx.error());
 						sent_something = false;//prevent calling doResetTimerSend after doStop
 						break;
@@ -819,7 +815,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 				}
 			}else{
 				edbgx(Debug::ipc, this<<' '<<id()<<" storring "<<error.message());
-				flags |= static_cast<size_t>(Flags::StopForced);//TODO: maybe you should not set this all the time
+				//flags |= static_cast<size_t>(Flags::StopForced);//TODO: maybe you should not set this all the time
 				doStop(_rctx, error);
 				sent_something = false;//prevent calling doResetTimerSend after doStop
 				break;
@@ -829,10 +825,11 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx, const bool _sent_some
 		
 		if(sent_something){
 			doResetTimerSend(_rctx);
-			if(not msg_writer.isNonSafeCacheEmpty()){
-				Locker<Mutex>	lock(service(_rctx).mutex(*this));
-				msg_writer.safeMoveCacheToSafety();
-			}
+			//TODO:
+			//if(not msg_writer.isNonSafeCacheEmpty()){
+			//	Locker<Mutex>	lock(service(_rctx).mutex(*this));
+			//	msg_writer.safeMoveCacheToSafety();
+			//}
 		}
 		
 		if(repeatcnt == 0){
@@ -907,7 +904,7 @@ void Connection::doCompleteAllMessages(
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	const Configuration &rconfig  = service(_rctx).configuration();
 	
-	if(isStopForced() or poolId().isInvalid()){
+	if(/*isStopForced() or */poolId().isInvalid()){
 		//really complete
 		//msgwriter.completeAllMessages(rconfig, rtypemap, conctx, _rerr);
 	}else{

@@ -51,16 +51,11 @@ public:
 	MessageWriter();
 	~MessageWriter();
 	
-	bool isNonSafeCacheEmpty()const;
-	
-	void safeMoveCacheToSafety();
-	
-	void enqueue(
+	bool enqueue(
+		WriterConfiguration const &_rconfig,
 		MessageBundle &_rmsgbundle,
-		MessageId const &_rmsguid,
-		Configuration const &_rconfig,
-		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx
+		MessageId const &_rpool_msg_id,
+		MessageId &_rconn_msg_id
 	);
 	
 	void cancel(
@@ -269,10 +264,6 @@ private:
 typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat>	MessageWriterPrintPairT;
 
 std::ostream& operator<<(std::ostream &_ros, MessageWriterPrintPairT const &_msgwriter);
-
-inline bool MessageWriter::isNonSafeCacheEmpty()const{
-	return cached_inner_list.empty();
-}
 
 }//namespace ipc
 }//namespace frame

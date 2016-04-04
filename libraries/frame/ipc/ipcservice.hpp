@@ -447,6 +447,8 @@ private:
 		MessageId const &_rmsgid
 	);
 	
+	void rejectNewPoolMessage(Connection const &_rcon);
+	
 	bool fetchMessage(Connection &_rcon, ObjectIdT const &_robjuid, MessageId const &_rmsg_id);
 	
 	bool fetchCanceledMessage(Connection const &_rcon, MessageId const &_rmsg_id, MessageBundle &_rmsg_bundle);

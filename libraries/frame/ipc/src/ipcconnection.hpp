@@ -64,13 +64,15 @@ struct ResolveMessage{
 };
 
 
+using MessageIdVectorT = std::vector<MessageId>;
+
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
 	
 	static Event eventResolve();
 	static Event eventNewMessage();
 	static Event eventNewMessage(const MessageId &);
-	static Event eventCancelLocalMessage(const MessageId &);
+	static Event eventCancelConnMessage(const MessageId &);
 	static Event eventCancelPoolMessage(const MessageId &);
 	static Event eventStopping();
 	static Event eventEnterActive(ConnectionEnterActiveCompleteFunctionT &&, const size_t _send_buffer_capacity);
@@ -90,14 +92,10 @@ public:
 	
 	//NOTE: will always accept null message
 	bool tryPushMessage(
+		Configuration const& _rconfiguration,
 		MessageBundle &_rmsgbundle,
-		MessageId &_rmsguid,
+		MessageId &_rconn_msg_id,
 		const MessageId &_rpool_msg_id
-	);
-	
-	//NOTE: will always accept null message
-	bool tryPushMessage(
-		MessageBundle &_rmsgbundle
 	);
 	
 	bool isFull(Configuration const& _rconfiguration)const;
@@ -137,16 +135,18 @@ protected:
 	
 	
 	bool shouldSendKeepalive()const;
-	bool shouldTryFetchNewMessageFromPool()const;
+	bool shouldPollPool()const;
+	
+	bool willAcceptNewMessage(frame::aio::ReactorContext &_rctx)const;
 	
 	bool isWaitingKeepAliveTimer()const;
-	bool isStopForced()const;
+	bool isStopPeer()const;
 	
 	//The connection is aware that it is activated
 	bool isActive()const;
 	
 	bool isStopping()const;
-	bool isDelayedClosing()const;
+	bool isDelayedStopping()const;
 	
 	bool hasCompletingMessages()const;
 	
@@ -156,7 +156,7 @@ protected:
 	
 	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 	
-	void doSend(frame::aio::ReactorContext &_rctx, const bool _sent_something = false);
+	void doSend(frame::aio::ReactorContext &_rctx);
 	
 // 	SocketDevice const & device()const{
 // 		return sock.device();
@@ -209,6 +209,10 @@ protected:
 		msg_writer.visitAllMessages(fnc);
 	}
 	
+	MessageIdVectorT const& pendingMessageVector()const{
+		return pending_message_vec;
+	}
+	
 private:
 	uint32 recvBufferCapacity()const{
 		return recv_buf_cp_kb * 1024;
@@ -218,8 +222,6 @@ private:
 	}
 protected:
 	typedef frame::aio::Timer				TimerT;
-
-	typedef std::vector<MessageId>			MessageIdMessageVectorT;
 	
 	ConnectionPoolId			pool_id;
 	const std::string			&rpool_name;
@@ -240,7 +242,7 @@ protected:
 	uint8						recv_buf_cp_kb;//kilobytes
 	uint8						send_buf_cp_kb;//kilobytes
 	
-	MessageIdMessageVectorT		direct_waiting_message_vec;
+	MessageIdVectorT			pending_message_vec;
 	
 	MessageReader				msg_reader;
 	MessageWriter				msg_writer;
