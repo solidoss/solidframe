@@ -195,7 +195,11 @@ private:
 	void doResetTimerStart(frame::aio::ReactorContext &_rctx);
 	void doResetTimerSend(frame::aio::ReactorContext &_rctx);
 	void doResetTimerRecv(frame::aio::ReactorContext &_rctx);
-	void doCompleteMessage(solid::frame::aio::ReactorContext& _rctx, solid::frame::ipc::MessagePointerT /*const*/& _rmsgptr);
+	
+	void doCompleteMessage(solid::frame::aio::ReactorContext& _rctx, MessagePointerT /*const*/& _rmsgptr);
+	
+	void doCompleteMessage(solid::frame::aio::ReactorContext& _rctx, MessageId const &_rmsgid, MessageBundle &_rmsg_local);
+	
 	void doCompleteKeepalive(frame::aio::ReactorContext &_rctx);
 
 	void doHandleEventKill(frame::aio::ReactorContext &_rctx, Event &_revent);

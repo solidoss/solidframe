@@ -555,7 +555,11 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext &_rctx, 
 			flags |= static_cast<size_t>(Flags::PollPool);
 			doSend(_rctx);
 		}else{
-			//TODO: take the message and complete it
+			MessageBundle	msg_bundle;
+			
+			if(service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)){
+				doCompleteMessage(_rctx, *pmsgid, msg_bundle);
+			}
 		}
 	}
 }
@@ -868,7 +872,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT /*const*/ &_rmsgptr){
+void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT &_rmsgptr){
 	//_rmsgptr is the received message
 	ConnectionContext	conctx(service(_rctx), *this);
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
@@ -878,6 +882,12 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 		idbgx(Debug::ipc, this<<' '<<"Completing back on sender message: "<<_rmsgptr->requid);
 		msg_writer.completeMessage(_rmsgptr, _rmsgptr->requid, rconfig, rtypemap, conctx, error);
 	}
+}
+//-----------------------------------------------------------------------------
+void Connection::doCompleteMessage(
+	solid::frame::aio::ReactorContext& _rctx, MessageId const &_rmsgid, MessageBundle &_rmsg_local
+){
+	//TODO:
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
