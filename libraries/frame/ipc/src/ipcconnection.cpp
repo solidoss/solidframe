@@ -558,7 +558,7 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext &_rctx, 
 			MessageBundle	msg_bundle;
 			
 			if(service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)){
-				doCompleteMessage(_rctx, *pmsgid, msg_bundle);
+				doCompleteMessage(_rctx, *pmsgid, msg_bundle, );
 			}
 		}
 	}
@@ -569,7 +569,15 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext &_rct
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
-	
+	MessageId	*pmsgid = _revent.any().cast<MessageId>();
+	cassert(pmsgid);
+	if(pmsgid){
+		MessageBundle	msg_bundle;
+				
+		if(service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)){
+			doCompleteMessage(_rctx, *pmsgid, msg_bundle);
+		}
+	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Event &_revent){
@@ -885,7 +893,10 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteMessage(
-	solid::frame::aio::ReactorContext& _rctx, MessageId const &_rmsgid, MessageBundle &_rmsg_local
+	solid::frame::aio::ReactorContext& _rctx,
+	MessageId const &_rmsgid,
+	MessageBundle &_rmsg_local,
+	ErrorConditionT const &_rerr
 ){
 	//TODO:
 }
