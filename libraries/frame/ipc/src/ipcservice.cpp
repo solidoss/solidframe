@@ -919,7 +919,7 @@ bool Service::doTryPushMessageToConnection(
 ){
 	ConnectionPoolStub 	&rpool(d.pooldq[_pool_idx]);
 	MessageStub			&rmsgstub = rpool.msgvec[_msg_idx];
-	const bool			message_is_synchronous = Message::is_asynchronous(rmsgstub.msgbundle.message_flags);
+	const bool			message_is_asynchronous = Message::is_asynchronous(rmsgstub.msgbundle.message_flags);
 	const bool			message_is_null = rmsgstub.msgbundle.message_ptr.empty();
 	bool				success = false;
 	cassert(Message::is_canceled(rmsgstub.msgbundle.message_flags));
@@ -934,7 +934,7 @@ bool Service::doTryPushMessageToConnection(
 		if(success	and not message_is_null){
 			rpool.msgorder_inner_list.erase(_msg_idx);
 			
-			if(not message_is_synchronous){
+			if(message_is_asynchronous){
 				rpool.msgasync_inner_list.erase(_msg_idx);
 			}
 		}
@@ -947,7 +947,7 @@ bool Service::doTryPushMessageToConnection(
 			
 			rpool.msgorder_inner_list.erase(_msg_idx);
 			
-			if(not message_is_synchronous){
+			if(message_is_asynchronous){
 				rpool.msgasync_inner_list.erase(_msg_idx);
 			}
 			
@@ -969,10 +969,9 @@ bool Service::doTryPushMessageToConnection(
 ){
 	ConnectionPoolStub 	&rpool(d.pooldq[_pool_idx]);
 	
-	MessageStub			&rmsgstub = rpool.msgvec[_msg_idx];
-	const bool			message_is_synchronous = Message::is_asynchronous(rmsgstub.msgbundle.message_flags);
-	const bool			message_is_null = rmsgstub.msgbundle.message_ptr.empty();
+	MessageStub			&rmsgstub = rpool.msgvec[_rmsg_id.index];
 	bool				success = false;
+	
 	cassert(Message::is_canceled(rmsgstub.msgbundle.message_flags));
 	
 	
@@ -980,29 +979,14 @@ bool Service::doTryPushMessageToConnection(
 		
 		rmsgstub.objid = _robjuid;
 		
-		success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId(_msg_idx, rmsgstub.unique));
-		
-		if(success	and not message_is_null){
-			rpool.msgorder_inner_list.erase(_msg_idx);
-			
-			if(not message_is_synchronous){
-				rpool.msgasync_inner_list.erase(_msg_idx);
-			}
-		}
+		success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, _rmsg_id);
 		
 	}else{
 		
 		success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId());
 		
-		if(success and not message_is_null){
-			
-			rpool.msgorder_inner_list.erase(_msg_idx);
-			
-			if(not message_is_synchronous){
-				rpool.msgasync_inner_list.erase(_msg_idx);
-			}
-			
-			rpool.msgcache_inner_list.pushBack(_msg_idx);
+		if(success){
+			rpool.msgcache_inner_list.pushBack(_rmsg_id.index);
 			rmsgstub.clear();
 		}
 	}
@@ -1037,17 +1021,31 @@ bool Service::pollPoolForUpdates(
 		return false;
 	}
 	
-	
-	
 	idbgx(Debug::ipc, this<<' '<<&_rconnection<<" messages in pool: "<<rpool.msgorder_inner_list.size());
-	bool					connection_can_handle_more_messages = not _rconnection.isFull(configuration());
+	
+	bool					connection_may_handle_more_messages = not _rconnection.isFull(configuration());
 	const bool 				connection_can_handle_synchronous_messages{_robjuid == rpool.main_connection_id};
 	
 	
 	if(_rconnection.pendingMessageVector().size()){
 		//connection has pending messages
+		//fetch as many as we can
+		size_t		count = 0;
+		
 		for(auto rmsgid: _rconnection.pendingMessageVector()){
-			
+			if(rmsgid.index < rpool.msgvec.size() and rmsgid.unique == rpool.msgvec[rmsgid.index].unique){
+				connection_may_handle_more_messages = doTryPushMessageToConnection(_rconnection, _robjuid, pool_idx, rmsgid);
+				if(connection_may_handle_more_messages){
+				}else{
+					break;
+				}
+			}else{
+				cassert(false);
+			}
+			++count;
+		}
+		if(count){
+			_rconnection.pendingMessageVectorEraseFirst(count);
 		}
 	}
 	
@@ -1055,21 +1053,21 @@ bool Service::pollPoolForUpdates(
 	//in order to handle eficiently the situation with multiple small messages.
 	
 	if(connection_can_handle_synchronous_messages){
-		
-		
 		//use the order inner queue
-		while(rpool.msgorder_inner_list.size() and connection_can_handle_more_messages){
-			connection_can_handle_more_messages = doTryPushMessageToConnection(
+		while(rpool.msgorder_inner_list.size() and connection_may_handle_more_messages){
+			connection_may_handle_more_messages = doTryPushMessageToConnection(
 				_rconnection,
 				_robjuid,
 				pool_idx,
 				rpool.msgorder_inner_list.frontIndex()
 			);
 		}
+		
 	}else{
+		
 		//use the async inner queue
-		while(rpool.msgasync_inner_list.size() and connection_can_handle_more_messages){
-			connection_can_handle_more_messages = doTryPushMessageToConnection(
+		while(rpool.msgasync_inner_list.size() and connection_may_handle_more_messages){
+			connection_may_handle_more_messages = doTryPushMessageToConnection(
 				_rconnection,
 				_robjuid,
 				pool_idx,

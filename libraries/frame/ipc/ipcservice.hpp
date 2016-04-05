@@ -460,6 +460,13 @@ private:
 		const size_t msg_idx
 	);
 	
+	bool doTryPushMessageToConnection(
+		Connection &_rcon,
+		ObjectIdT const &_robjuid,
+		const size_t _pool_idx,
+		const MessageId & _rmsg_id
+	);
+	
 	void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent);
 	
 	void doPushFrontMessageToPool(

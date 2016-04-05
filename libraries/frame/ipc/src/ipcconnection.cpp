@@ -298,7 +298,7 @@ void Connection::doUnprepare(frame::aio::ReactorContext &_rctx){
 //-----------------------------------------------------------------------------
 void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming){
 	ConnectionContext 	conctx(service(_rctx), *this);
-	Configuration const &config = service(_rctx).configuration();
+	//Configuration const &config = service(_rctx).configuration();
 	
 	doPrepare(_rctx);
 	
@@ -536,7 +536,7 @@ bool Connection::willAcceptNewMessage(frame::aio::ReactorContext &_rctx)const{
 void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
 	flags &= ~static_cast<size_t>(Flags::InPoolWaitQueue);//reset flag
 
-	if(willAcceptNewMessage(service(_rctx).configuration().writer)){
+	if(willAcceptNewMessage(_rctx)){
 		flags |= static_cast<size_t>(Flags::PollPool);
 		doSend(_rctx);
 	}else{
@@ -548,9 +548,15 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext &_rctx, 
 	MessageId	*pmsgid = _revent.any().cast<MessageId>();
 	cassert(pmsgid);
 	if(pmsgid){
-		waiting_message_vec.push_back(*pmsgid);
-		flags |= static_cast<size_t>(Flags::PollPool);
-		doSend(_rctx);
+		
+		if(this->isStopping()){
+			pending_message_vec.push_back(*pmsgid);
+		
+			flags |= static_cast<size_t>(Flags::PollPool);
+			doSend(_rctx);
+		}else{
+			//TODO: take the message and complete it
+		}
 	}
 }
 //-----------------------------------------------------------------------------

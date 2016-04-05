@@ -111,13 +111,37 @@ public:
 	ConnectionPoolId const& poolId()const;
 	const std::string& poolName()const;
 	
-	virtual bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) = 0;
-	virtual bool hasValidSocket() const = 0;
-	virtual bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) = 0;
-	virtual bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) = 0;
-	virtual bool hasPendingSend() const = 0;
-	virtual bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) = 0;
+	MessageIdVectorT const& pendingMessageVector()const{
+		return pending_message_vec;
+	}
+	
+	void pendingMessageVectorEraseFirst(const size_t _count){
+		pending_message_vec.erase(pending_message_vec.begin(), pending_message_vec.begin() + _count);
+	}
+	
+	template <class Fnc>
+	void forEveryMessagesNewerToOlder(
+		Fnc const &_f
+	){
+		auto 							visit_fnc = [this, &_f](
+			MessageBundle &_rmsgbundle,
+			MessageId const &_rmsgid
+		){
+			_f(this->poolId(), _rmsgbundle, _rmsgid);
+		};
+		MessageWriterVisitFunctionT		fnc(std::cref(visit_fnc));
+		
+		msg_writer.visitAllMessages(fnc);
+	}
 protected:
+	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
+	static void onSend(frame::aio::ReactorContext &_rctx);
+	static void onConnect(frame::aio::ReactorContext &_rctx);
+	static void onTimerInactivity(frame::aio::ReactorContext &_rctx);
+	static void onTimerKeepalive(frame::aio::ReactorContext &_rctx);
+	static void onTimerWaitStopping(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
+
+private:
 	friend struct ConnectionContext;
 	friend class Service;
 	
@@ -125,13 +149,6 @@ protected:
 	ObjectIdT uid(frame::aio::ReactorContext &_rctx)const;
 	
 	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent) override;
-	
-	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
-	static void onSend(frame::aio::ReactorContext &_rctx);
-	static void onConnect(frame::aio::ReactorContext &_rctx);
-	static void onTimerInactivity(frame::aio::ReactorContext &_rctx);
-	static void onTimerKeepalive(frame::aio::ReactorContext &_rctx);
-	static void onTimerWaitStopping(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 	
 	
 	bool shouldSendKeepalive()const;
@@ -194,26 +211,15 @@ protected:
 	void doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
 	void doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
 	
-	template <class Fnc>
-	void forEveryMessagesNewerToOlder(
-		Fnc const &_f
-	){
-		auto 							visit_fnc = [this, &_f](
-			MessageBundle &_rmsgbundle,
-			MessageId const &_rmsgid
-		){
-			_f(this->poolId(), _rmsgbundle, _rmsgid);
-		};
-		MessageWriterVisitFunctionT		fnc(std::cref(visit_fnc));
-		
-		msg_writer.visitAllMessages(fnc);
-	}
-	
-	MessageIdVectorT const& pendingMessageVector()const{
-		return pending_message_vec;
-	}
-	
 private:
+	
+	virtual bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) = 0;
+	virtual bool hasValidSocket() const = 0;
+	virtual bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) = 0;
+	virtual bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) = 0;
+	virtual bool hasPendingSend() const = 0;
+	virtual bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) = 0;
+	
 	uint32 recvBufferCapacity()const{
 		return recv_buf_cp_kb * 1024;
 	}
