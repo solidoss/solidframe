@@ -133,6 +133,9 @@ public:
 		
 		msg_writer.visitAllMessages(fnc);
 	}
+	
+	static void onSendAllRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
+	
 protected:
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
@@ -160,7 +163,8 @@ private:
 	bool isStopPeer()const;
 	
 	//The connection is aware that it is activated
-	bool isActive()const;
+	bool isActiveState()const;
+	bool isRawState()const;
 	
 	bool isStopping()const;
 	bool isDelayedStopping()const;
@@ -224,7 +228,7 @@ private:
 	void doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
 	
 private:
-	
+	virtual bool postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent) = 0;
 	virtual bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) = 0;
 	virtual bool hasValidSocket() const = 0;
 	virtual bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) = 0;
@@ -301,6 +305,7 @@ public:
 	);
 	
 private:
+	/*virtual*/ bool postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent) override;
 	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) override;
 	/*virtual*/ bool hasValidSocket() const override;
 	/*virtual*/ bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) override;
@@ -331,6 +336,7 @@ public:
 		std::string const & _rpool_name
 	);
 private:
+	/*virtual*/ bool postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent) override;
 	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) override;
 	/*virtual*/ bool hasValidSocket() const override;
 	/*virtual*/ bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) override;

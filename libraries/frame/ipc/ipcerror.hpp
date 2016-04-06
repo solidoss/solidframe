@@ -23,9 +23,11 @@ extern const ErrorConditionT error_connection_delayed_closed;
 extern const ErrorConditionT error_connection_inexistent;
 extern const ErrorConditionT error_connection_enter_active;
 extern const ErrorConditionT error_connection_stopping;
+extern const ErrorConditionT error_connection_invalid_state;
 extern const ErrorConditionT error_delayed_closed_pending;
 extern const ErrorConditionT error_library_logic;
 extern const ErrorConditionT error_message_canceled;
+
 
 
 }//namespace ipc

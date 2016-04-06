@@ -166,10 +166,11 @@ struct SendRaw{
 	SendRaw(
 		ConnectionSendRawDataCompleteFunctionT &&_ucomplete_fnc,
 		std::string &&_udata
-	):complete_fnc(std::move(_ucomplete_fnc)), data(std::move(_udata)){}
+	):complete_fnc(std::move(_ucomplete_fnc)), data(std::move(_udata)), offset(0){}
 	
 	ConnectionSendRawDataCompleteFunctionT	complete_fnc;
 	std::string								data;
+	size_t									offset;
 };
 /*static*/ Event Connection::eventSendRaw(ConnectionSendRawDataCompleteFunctionT &&_ucomplete_fnc, std::string &&_udata){
 	Event event = connection_event_category.event(ConnectionEvents::SendRaw);
@@ -250,8 +251,12 @@ bool Connection::tryPushMessage(
 	return msg_writer.enqueue(_rconfiguration.writer, _rmsgbundle, _rpool_msg_id, _rconn_msg_id);
 }
 //-----------------------------------------------------------------------------
-bool Connection::isActive()const{
+bool Connection::isActiveState()const{
 	return flags & static_cast<size_t>(Flags::Active);
+}
+//-----------------------------------------------------------------------------
+bool Connection::isRawState()const{
+	return flags & static_cast<size_t>(Flags::Raw);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isStopping()const{
@@ -549,16 +554,17 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext &_rctx, 
 	cassert(pmsgid);
 	if(pmsgid){
 		
-		if(this->isStopping()){
+		if(not this->isStopping()){
 			pending_message_vec.push_back(*pmsgid);
-		
-			flags |= static_cast<size_t>(Flags::PollPool);
-			doSend(_rctx);
+			if(not this->isRawState()){
+				flags |= static_cast<size_t>(Flags::PollPool);
+				doSend(_rctx);
+			}
 		}else{
 			MessageBundle	msg_bundle;
 			
 			if(service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)){
-				doCompleteMessage(_rctx, *pmsgid, msg_bundle, );
+				doCompleteMessage(_rctx, *pmsgid, msg_bundle, error_connection_stopping);
 			}
 		}
 	}
@@ -575,12 +581,13 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext &_rct
 		MessageBundle	msg_bundle;
 				
 		if(service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)){
-			doCompleteMessage(_rctx, *pmsgid, msg_bundle);
+			doCompleteMessage(_rctx, *pmsgid, msg_bundle, error_message_canceled);
 		}
 	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Event &_revent){
+	
 	idbgx(Debug::ipc, this);
 	
 	ConnectionContext	conctx(service(_rctx), *this);
@@ -612,14 +619,60 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Eve
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
+	EnterPassive		*pdata = _revent.any().cast<EnterPassive>();
+	ConnectionContext	conctx(service(_rctx), *this);
+	
+	cassert(pdata);
+	
+	if(this->isRawState()){
+		flags &= ~static_cast<size_t>(Flags::Raw);
+		
+		if(pdata){
+			pdata->complete_fnc(conctx, ErrorConditionT());
+		}
+		
+		if(pending_message_vec.size()){
+			flags |= static_cast<size_t>(Flags::PollPool);
+			doSend(_rctx);
+		}
+	}else if(pdata){
+		pdata->complete_fnc(conctx, error_connection_invalid_state);
+	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Event &_revent){
-	
+	//TODO:
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
+	SendRaw				*pdata = _revent.any().cast<SendRaw>();
+	ConnectionContext	conctx(service(_rctx), *this);
+	
+	cassert(pdata);
+	
+	if(this->isRawState() and pdata){
+		
+		size_t	tocopy = this->sendBufferCapacity();
+		
+		if(tocopy > pdata->data.size()){
+			tocopy = pdata->data.size();
+		}
+		
+		memcpy(send_buf, pdata->data.data(), tocopy);
+		
+		if(tocopy){
+			pdata->offset = tocopy;
+			if(not this->postSendAll(_rctx, send_buf, tocopy, _revent)){
+				pdata->complete_fnc(conctx, _rctx.error());
+			}
+		}else{
+			pdata->complete_fnc(conctx, ErrorConditionT());
+		}
+		
+	}else if(pdata){
+		pdata->complete_fnc(conctx, error_connection_invalid_state);
+	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &_revent){
@@ -688,7 +741,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onTimerKeepalive(frame::aio::ReactorContext &_rctx){
+	
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	
 	cassert(not rthis.isServer());
 	rthis.flags |= static_cast<size_t>(Flags::Keepalive);
 	rthis.flags &= (~static_cast<size_t>(Flags::WaitKeepAliveTimer));
@@ -697,7 +752,43 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 }
 //-----------------------------------------------------------------------------
+/*static*/ void Connection::onSendAllRaw(frame::aio::ReactorContext &_rctx, Event &_revent){
+	
+	Connection			&rthis = static_cast<Connection&>(_rctx.object());
+	SendRaw				*pdata = _revent.any().cast<SendRaw>();
+	ConnectionContext	conctx(rthis.service(_rctx), rthis);
+	
+	cassert(pdata);
+	
+	if(pdata){
+		
+		if(not _rctx.error()){
+		
+			size_t	tocopy = pdata->data.size() - pdata->offset;
+			
+			if(tocopy > rthis.sendBufferCapacity()){
+				tocopy = rthis.sendBufferCapacity();
+			}
+			
+			memcpy(rthis.send_buf, pdata->data.data() + pdata->offset, tocopy);
+			
+			if(tocopy){
+				pdata->offset += tocopy;
+				if(not rthis.postSendAll(_rctx, rthis.send_buf, tocopy, _revent)){
+					pdata->complete_fnc(conctx, _rctx.error());
+				}
+			}else{
+				pdata->complete_fnc(conctx, ErrorConditionT());
+			}
+			
+		}else{
+			pdata->complete_fnc(conctx, _rctx.error());
+		}
+	}
+}
+//-----------------------------------------------------------------------------
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
+	
 	Connection			&rthis = static_cast<Connection&>(_rctx.object());
 	ConnectionContext	conctx(rthis.service(_rctx), rthis);
 	const TypeIdMapT	&rtypemap = rthis.service(_rctx).typeMap();
@@ -794,7 +885,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		while(repeatcnt){
 			
 			if(
-				isActive() and
+				isActiveState() and
 				msg_writer.hasFreeSeats(rconfig)
 			){
 				if(not service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId())){
@@ -961,6 +1052,24 @@ PlainConnection::PlainConnection(
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
 }
 //-----------------------------------------------------------------------------
+/*virtual*/ bool PlainConnection::postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent){
+	struct Closure{
+		Event event;
+		
+		Closure(Event const &_revent):event(_revent){
+		}
+		
+		void operator()(frame::aio::ReactorContext &_rctx){
+			Connection::onSendAllRaw(_rctx, event);
+		}
+		
+	} lambda(_revent);
+	
+	//TODO: find solution for costly event copy
+	
+	return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
+}
+//-----------------------------------------------------------------------------
 /*virtual*/ bool PlainConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp){
 	return sock.postRecvSome(_rctx, _pbuf, _bufcp, Connection::onRecv);
 }
@@ -1005,6 +1114,24 @@ SecureConnection::SecureConnection(
 ): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy(), _rconfiguration.secure_context)
 {
 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ bool SecureConnection::postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent){
+	struct Closure{
+		Event event;
+		
+		Closure(Event const &_revent):event(_revent){
+		}
+		
+		void operator()(frame::aio::ReactorContext &_rctx){
+			Connection::onSendAllRaw(_rctx, event);
+		}
+		
+	} lambda(_revent);
+	
+	//TODO: find solution for costly event copy
+	
+	return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool SecureConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp){

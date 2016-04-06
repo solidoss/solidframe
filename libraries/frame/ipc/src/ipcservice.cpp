@@ -1425,7 +1425,7 @@ bool Service::doNonMainConnectionStopping(
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
-	if(_rcon.isActive()){
+	if(_rcon.isActiveState()){
 		--rpool.active_connection_count;
 	}else{
 		cassert(not _rcon.isServer());
@@ -1588,7 +1588,7 @@ bool Service::doMainConnectionRestarting(
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
-	if(_rcon.isActive()){
+	if(_rcon.isActiveState()){
 		--rpool.active_connection_count;
 	}else{
 		cassert(not _rcon.isServer());
@@ -1604,7 +1604,7 @@ bool Service::doMainConnectionRestarting(
 		const bool			success = doTryCreateNewConnectionForPool(pool_index, error);
 		
 		if(not success){
-			if(_rcon.isActive()){
+			if(_rcon.isActiveState()){
 				++rpool.active_connection_count;
 			}else{
 				cassert(not _rcon.isServer());

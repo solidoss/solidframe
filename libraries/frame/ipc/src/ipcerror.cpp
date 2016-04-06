@@ -26,7 +26,8 @@ enum {
 	ErrorMessageCanceledE,
 	ErrorConnectionInexistentE,
 	ErrorConnectionEnterActiveE,
-	ErrorConnectionStoppingE
+	ErrorConnectionStoppingE,
+	ErrorConnectionInvalidStateE,
 };
 class ErrorCategory: public ErrorCategoryT
 {     
@@ -77,6 +78,9 @@ std::string ErrorCategory::message(int _ev) const{
 			break;
 		case ErrorConnectionStoppingE:
 			oss<<"Connection is stopping";
+			break;
+		case ErrorConnectionInvalidStateE:
+			oss<<"Connection is a state invalid for opperation";
 			break;
 		default:
 			oss<<"Unknown";
