@@ -677,6 +677,39 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
+	RecvRaw				*pdata = _revent.any().cast<RecvRaw>();
+	ConnectionContext	conctx(service(_rctx), *this);
+	size_t				used_size = 0;
+	
+	cassert(pdata);
+	
+	if(this->isRawState() and pdata){
+		if(recv_buf_off == cons_buf_off){
+			if(not this->postRecvSome(_rctx, recv_buf, this->recvBufferCapacity(), _revent)){
+				
+				pdata->complete_fnc(conctx, nullptr, used_size, _rctx.error());
+			}
+		}else{
+			used_size = recv_buf_off - cons_buf_off;
+			
+			pdata->complete_fnc(conctx, recv_buf + cons_buf_off, used_size, _rctx.error());
+			
+			if(used_size > (recv_buf_off - cons_buf_off)){
+				used_size = (recv_buf_off - cons_buf_off);
+			}
+			
+			cons_buf_off += used_size;
+			
+			if(cons_buf_off == recv_buf_off){
+				cons_buf_off = recv_buf_off = 0;
+			}else{
+				cassert(cons_buf_off < recv_buf_off);
+			}
+		}
+	}else if(pdata){
+		
+		pdata->complete_fnc(conctx, nullptr, used_size, error_connection_invalid_state);
+	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
@@ -783,6 +816,31 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 			
 		}else{
 			pdata->complete_fnc(conctx, _rctx.error());
+		}
+	}
+}
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onRecvSomeRaw(frame::aio::ReactorContext &_rctx, const size_t _sz, Event &_revent){
+	
+	Connection			&rthis = static_cast<Connection&>(_rctx.object());
+	RecvRaw				*pdata = _revent.any().cast<RecvRaw>();
+	ConnectionContext	conctx(rthis.service(_rctx), rthis);
+	
+	cassert(pdata);
+	
+	if(pdata){
+		
+		size_t		used_size = _sz;
+		
+		pdata->complete_fnc(conctx, rthis.recv_buf, used_size, _rctx.error());
+		
+		if(used_size > _sz){
+			used_size = _sz;
+		}
+		
+		if(used_size < _sz){
+			rthis.recv_buf_off = _sz;
+			rthis.cons_buf_off = used_size;
 		}
 	}
 }
@@ -1070,6 +1128,24 @@ PlainConnection::PlainConnection(
 	return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
 }
 //-----------------------------------------------------------------------------
+/*virtual*/ bool PlainConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp, Event &_revent){
+	struct Closure{
+		Event event;
+		
+		Closure(Event const &_revent):event(_revent){
+		}
+		
+		void operator()(frame::aio::ReactorContext &_rctx, size_t _sz){
+			Connection::onRecvSomeRaw(_rctx, _sz, event);
+		}
+		
+	} lambda(_revent);
+	
+	//TODO: find solution for costly event copy
+	
+	return sock.postRecvSome(_rctx, _pbuf, _bufcp, lambda);
+}
+//-----------------------------------------------------------------------------
 /*virtual*/ bool PlainConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp){
 	return sock.postRecvSome(_rctx, _pbuf, _bufcp, Connection::onRecv);
 }
@@ -1132,6 +1208,24 @@ SecureConnection::SecureConnection(
 	//TODO: find solution for costly event copy
 	
 	return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ bool SecureConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp, Event &_revent){
+	struct Closure{
+		Event event;
+		
+		Closure(Event const &_revent):event(_revent){
+		}
+		
+		void operator()(frame::aio::ReactorContext &_rctx, size_t _sz){
+			Connection::onRecvSomeRaw(_rctx, _sz, event);
+		}
+		
+	} lambda(_revent);
+	
+	//TODO: find solution for costly event copy
+	
+	return sock.postRecvSome(_rctx, _pbuf, _bufcp, lambda);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool SecureConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp){

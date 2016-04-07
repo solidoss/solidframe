@@ -325,14 +325,14 @@ public:
 	);
 	
 	template <class CompleteFnc>
-	ErrorConditionT connectionNotifySendRawData(
+	ErrorConditionT connectionNotifySendAllRawData(
 		RecipientId const &_rrecipient_id,
 		CompleteFnc _complete_fnc,
 		std::string &&_rdata
 	);
 	
 	template <class CompleteFnc>
-	ErrorConditionT connectionNotifyRecvRawData(
+	ErrorConditionT connectionNotifyRecvSomeRawData(
 		RecipientId const &_rrecipient_id,
 		CompleteFnc _complete_fnc
 	);
@@ -956,7 +956,7 @@ ErrorConditionT Service::connectionNotifyEnterPassiveState(
 }
 //-----------------------------------------------------------------------------
 template <class CompleteFnc>
-ErrorConditionT Service::connectionNotifySendRawData(
+ErrorConditionT Service::connectionNotifySendAllRawData(
 	RecipientId const &_rrecipient_id,
 	CompleteFnc _complete_fnc,
 	std::string &&_rdata
@@ -966,7 +966,7 @@ ErrorConditionT Service::connectionNotifySendRawData(
 }
 //-----------------------------------------------------------------------------
 template <class CompleteFnc>
-ErrorConditionT Service::connectionNotifyRecvRawData(
+ErrorConditionT Service::connectionNotifyRecvSomeRawData(
 	RecipientId const &_rrecipient_id,
 	CompleteFnc _complete_fnc
 ){

@@ -135,7 +135,7 @@ public:
 	}
 	
 	static void onSendAllRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
-	
+	static void onRecvSomeRaw(frame::aio::ReactorContext &_rctx, const size_t _sz, Event &_revent);
 protected:
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
@@ -230,6 +230,7 @@ private:
 private:
 	virtual bool postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent) = 0;
 	virtual bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) = 0;
+	virtual bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp, Event &_revent) = 0;
 	virtual bool hasValidSocket() const = 0;
 	virtual bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) = 0;
 	virtual bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) = 0;
@@ -306,6 +307,7 @@ public:
 	
 private:
 	/*virtual*/ bool postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent) override;
+	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp, Event &_revent) override;
 	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) override;
 	/*virtual*/ bool hasValidSocket() const override;
 	/*virtual*/ bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) override;
@@ -337,6 +339,7 @@ public:
 	);
 private:
 	/*virtual*/ bool postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent) override;
+	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp, Event &_revent) override;
 	/*virtual*/ bool postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp) override;
 	/*virtual*/ bool hasValidSocket() const override;
 	/*virtual*/ bool connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr) override;

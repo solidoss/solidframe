@@ -61,7 +61,7 @@ using ConnectionEnterActiveCompleteFunctionT		= FUNCTION<MessagePointerT(Connect
 using ConnectionEnterPassiveCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionSecureHandhakeCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionSendRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionRecvRawDataCompleteFunctionT		= FUNCTION<bool(ConnectionContext&, const char*, size_t, ErrorConditionT const&)>;
+using ConnectionRecvRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
 
 enum struct ConnectionState{
 	Raw,
