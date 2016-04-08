@@ -202,6 +202,10 @@ struct ConnectionPoolStub{
 		flags(_rpool.flags),
 		connect_addr_vec(std::move(_rpool.connect_addr_vec)){}
 	
+	~ConnectionPoolStub(){
+		cassert(msgcache_inner_list.size() == msgvec.size());
+	}
+	
 	void clear(){
 		name.clear();
 		main_connection_id = ObjectIdT();
@@ -1185,7 +1189,8 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 	return error;
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsguid){
+ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsg_id){
+	
 	ErrorConditionT			error;
 	const size_t			pool_idx = _rrecipient_id.poolId().index;
 	//Locker<Mutex>			lock(d.mtx);
@@ -1196,8 +1201,8 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 		return error_connection_inexistent;
 	}
 	
-	if(_rmsguid.index < rpool.msgvec.size() and rpool.msgvec[_rmsguid.index].unique == _rmsguid.unique){
-		MessageStub	&rmsgstub = rpool.msgvec[_rmsguid.index];
+	if(_rmsg_id.index < rpool.msgvec.size() and rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique){
+		MessageStub	&rmsgstub = rpool.msgvec[_rmsg_id.index];
 		bool 		success = false;
 		
 		if(Message::is_canceled(rmsgstub.msgbundle.message_flags)){
@@ -1215,7 +1220,10 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 					Connection::eventCancelConnMessage(rmsgstub.msgid)
 				);
 				
-				if(not success){
+				if(success){
+					rmsgstub.clear();
+					rpool.msgcache_inner_list.pushBack(_rmsg_id.index);
+				}else{
 					rmsgstub.msgid = MessageId();
 					rmsgstub.objid = ObjectIdT();
 					THROW_EXCEPTION("Lost message");
@@ -1228,16 +1236,16 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 				
 				success = manager().notify(
 					rpool.main_connection_id,
-					Connection::eventCancelPoolMessage(_rmsguid)
+					Connection::eventCancelPoolMessage(_rmsg_id)
 				);
 				
 				if(success){
 					//erase/unlink the message from any list 
-					if(rpool.msgorder_inner_list.isLinked(_rmsguid.index)){
-						rpool.msgorder_inner_list.erase(_rmsguid.index);
+					if(rpool.msgorder_inner_list.isLinked(_rmsg_id.index)){
+						rpool.msgorder_inner_list.erase(_rmsg_id.index);
 						if(Message::is_asynchronous(rmsgstub.msgbundle.message_flags)){
-							cassert(rpool.msgasync_inner_list.isLinked(_rmsguid.index));
-							rpool.msgasync_inner_list.erase(_rmsguid.index);
+							cassert(rpool.msgasync_inner_list.isLinked(_rmsg_id.index));
+							rpool.msgasync_inner_list.erase(_rmsg_id.index);
 						}
 					}
 				}else{
@@ -1885,13 +1893,13 @@ std::ostream& operator<<(std::ostream &_ros, RecipientId const &_con_id){
 	return _ros;
 }
 //-----------------------------------------------------------------------------
-std::ostream& operator<<(std::ostream &_ros, RequestId const &_msguid){
-	_ros<<'{'<<_msguid.index<<','<<_msguid.unique<<'}';
+std::ostream& operator<<(std::ostream &_ros, RequestId const &_msg_id){
+	_ros<<'{'<<_msg_id.index<<','<<_msg_id.unique<<'}';
 	return _ros;
 }
 //-----------------------------------------------------------------------------
-std::ostream& operator<<(std::ostream &_ros, MessageId const &_msguid){
-	_ros<<'{'<<_msguid.index<<','<<_msguid.unique<<'}';
+std::ostream& operator<<(std::ostream &_ros, MessageId const &_msg_id){
+	_ros<<'{'<<_msg_id.index<<','<<_msg_id.unique<<'}';
 	return _ros;
 }
 //=============================================================================

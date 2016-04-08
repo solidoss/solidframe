@@ -58,19 +58,10 @@ public:
 		MessageId &_rconn_msg_id
 	);
 	
-	void cancel(
+	bool cancel(
 		MessageId const &_rmsguid,
-		Configuration const &_rconfig,
-		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx
-	);
-	
-	void cancel(
 		MessageBundle &_rmsgbundle,
-		MessageId const &_rmsguid,
-		Configuration const &_rconfig,
-		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx
+		MessageId &_rconn_msg_id
 	);
 	
 	void enqueueClose(MessageId const &_rmsguid);
@@ -82,15 +73,6 @@ public:
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
-	);
-	
-	void completeMessage(
-		MessagePointerT &_rmsgptr,
-		MessageId const &_rmsguid,
-		ipc::Configuration const &_rconfig,
-		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx,
-		ErrorConditionT const & _rerror
 	);
 	
 	bool hasFreeSeats(Configuration const &_rconfig)const;

@@ -77,7 +77,7 @@ uint32 MessageReader::read(
 		
 		if(packet_header.isTypeKeepAlive()){
 			MessagePointerT dummy_message_ptr;
-			_complete_fnc(KeepaliveCompleteE, dummy_message_ptr);
+			_complete_fnc(KeepaliveCompleteE, dummy_message_ptr, InvalidIndex());
 			continue;
 		}
 		
@@ -225,13 +225,9 @@ void MessageReader::doConsumePacket(
 					//done with the message
 					message_q.front().deserializer_ptr->clear();
 					
-					//TODO:
 					//complete the message waiting for this response
-					//_complete_fnc(MessageCompleteE, message_q.front().message_ptr);
+					_complete_fnc(MessageCompleteE, message_q.front().message_ptr, message_q.front().message_type_idx);
 					
-					//TODO:
-					//receive the message
-					//_ridmap[message_q.front().message_type_idx].receive_fnc(_rctx, message_q.front().message_ptr);
 					
 					message_q.front().message_ptr.clear();
 					message_q.front().message_type_idx = InvalidIndex();

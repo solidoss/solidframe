@@ -186,125 +186,13 @@ void MessageWriter::doUnprepareMessageStub(const size_t _msgidx){
 	}
 }
 //-----------------------------------------------------------------------------
-void MessageWriter::cancel(
+bool MessageWriter::cancel(
 	MessageId const &_rmsguid,
-	Configuration const &_rconfig,
-	TypeIdMapT const &_ridmap,
-	ConnectionContext &_rctx
-){
-	if(
-		_rmsguid.index < message_vec.size() and
-		message_vec[_rmsguid.index].unique == _rmsguid.unique and
-		not message_vec[_rmsguid.index].msgbundle.message_ptr.empty()
-	){
-		const size_t		msgidx = _rmsguid.index;
-		MessageStub			&rmsgstub(message_vec[msgidx]);
-		ErrorConditionT		error = error_message_canceled;
-		
-		cassert(rmsgstub.inner_status != InnerStatus::Invalid);
-		
-		rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
-		
-		_rctx.message_flags = rmsgstub.msgbundle.message_flags;
-		_rctx.request_id = RequestId();
-		_rctx.message_id = rmsgstub.msg_id.isValid() ? rmsgstub.msg_id : _rmsguid;
-		
-		
-		if(not FUNCTION_EMPTY(rmsgstub.msgbundle.complete_fnc)){
-			MessagePointerT		msgptr;//the empty response message
-			
-			//TODO:
-			//rmsgstub.msgbundle.complete_fnc(_rctx, msgptr, error);
-			FUNCTION_CLEAR(rmsgstub.msgbundle.complete_fnc);
-		}
-		
-		//TODO:
-		//_ridmap[rmsgstub.msgbundle.message_type_id].complete_fnc(_rctx, rmsgstub.msgbundle.message_ptr, error);
-		
-		if(rmsgstub.inner_status == InnerStatus::Pending){
-			//message not already sending - erase it from the lists and clear the stub
-			order_inner_list.erase(msgidx);
-			pending_inner_list.erase(msgidx);
-			doUnprepareMessageStub(msgidx);
-			
-		}else if(rmsgstub.inner_status == InnerStatus::Sending and not rmsgstub.serializer_ptr){
-			//message not already sending - erase it from the lists and clear the stub
-			order_inner_list.erase(msgidx);
-			sending_inner_list.erase(msgidx);
-			doUnprepareMessageStub(msgidx);
-			
-		}else if(rmsgstub.inner_status == InnerStatus::Sending){
-			//message is currently being sent
-			//we cannot erase it from the lists
-			//we need to clear both the message_ptr and the serializer_ptr
-			rmsgstub.msgbundle.message_ptr.clear();
-			rmsgstub.serializer_ptr->clear();
-		}else if(rmsgstub.inner_status == InnerStatus::Waiting){
-			//message already sent - erase it from the lists and clear the stub
-			order_inner_list.erase(msgidx);
-			doUnprepareMessageStub(msgidx);
-		}
-	}
-	vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
-}
-//-----------------------------------------------------------------------------
-void MessageWriter::cancel(
 	MessageBundle &_rmsgbundle,
-	MessageId const &_rmsguid,
-	Configuration const &_rconfig,
-	TypeIdMapT const &_ridmap,
-	ConnectionContext &_rctx
+	MessageId &_rconn_msg_id
 ){
-	ErrorConditionT		error = error_message_canceled;
-	cassert(Message::is_canceled(_rmsgbundle.message_flags));
-	
-	_rctx.message_flags = _rmsgbundle.message_flags;
-	_rctx.message_id = _rmsguid;
-	_rctx.request_id = RequestId();
-	
-	if(not FUNCTION_EMPTY(_rmsgbundle.complete_fnc)){
-		MessagePointerT		msgptr;//the empty response message
-		
-		//TODO:
-		//_rmsgbundle.complete_fnc(_rctx, msgptr, error);
-		FUNCTION_CLEAR(_rmsgbundle.complete_fnc);
-	}
-	//TODO:
-	//_ridmap[_rmsgbundle.message_type_id].complete_fnc(_rctx, _rmsgbundle.message_ptr, error);
-	_rmsgbundle.clear();
+	return false;
 }
-
-//-----------------------------------------------------------------------------
-#if 0
-void MessageWriter::completeAllCanceledMessages(
-	Configuration const &_rconfig,
-	TypeIdMapT const &_ridmap,
-	ConnectionContext &_rctx
-){
-	size_t 				msgidx = inner_list[InnerListCache].front;
-	size_t				sz = inner_list[InnerListCache].size;
-	ErrorConditionT		error;
-	
-	//TODO:
-	error.assign(-1, error.category());
-	
-	while(sz){
-		MessageStub		&rmsgstub(message_vec[msgidx]);
-		MessageId		msguid(msgidx, rmsgstub.unique);
-		
-		cassert(rmsgstub.inner_status == InnerStatus::Cache);
-		
-		msgidx = rmsgstub.inner_link[InnerLinkStatus].prev;
-		
-		if(not rmsgstub.message_ptr.empty()){
-			MessagePointerT		msgptr;
-			doCompleteMessage(msgptr, msguid, _rconfig, _ridmap, _rctx, error);
-		}
-		
-		--sz;
-	}
-}
-#endif
 //-----------------------------------------------------------------------------
 size_t MessageWriter::freeSeatsCount(Configuration const &_rconfig)const{
 	return _rconfig.writer.max_message_count_response_wait - sending_inner_list.size() - pending_inner_list.size();
@@ -693,18 +581,6 @@ void MessageWriter::doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration c
 			rmsgstub.inner_status = InnerStatus::Sending;
 		}
 	}
-}
-//-----------------------------------------------------------------------------
-void MessageWriter::completeMessage(
-	MessagePointerT &_rmsgptr,
-	MessageId const &_rmsguid,
-	ipc::Configuration const &_rconfig,
-	TypeIdMapT const &_ridmap,
-	ConnectionContext &_rctx,
-	ErrorConditionT const & _rerror
-){
-	doCompleteMessage(_rmsgptr, _rmsguid, _rconfig, _ridmap, _rctx, _rerror);
-	doTryMoveMessageFromPendingToWriteQueue(_rconfig);
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doCompleteMessage(

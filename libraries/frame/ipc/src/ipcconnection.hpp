@@ -201,13 +201,12 @@ private:
 	void doResetTimerRecv(frame::aio::ReactorContext &_rctx);
 	
 	void doCompleteMessage(
-		solid::frame::aio::ReactorContext& _rctx,
-		MessagePointerT & _rmsgptr
+		frame::aio::ReactorContext &_rctx, MessagePointerT &_rresponse_ptr, const size_t _response_type_id
 	);
 	
 	void doCompleteMessage(
 		solid::frame::aio::ReactorContext& _rctx,
-		MessageId const &_rmsgid,
+		MessageId const &_rpool_msg_id,
 		MessageBundle &_rmsg_local,
 		ErrorConditionT const &_rerr
 	);

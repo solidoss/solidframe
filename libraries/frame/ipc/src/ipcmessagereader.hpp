@@ -37,7 +37,7 @@ public:
 		MessageCompleteE,
 		KeepaliveCompleteE,
 	};
-	typedef FUNCTION<void(const Events, MessagePointerT /*const*/&)>	CompleteFunctionT;
+	typedef FUNCTION<void(const Events, MessagePointerT /*const*/&, const size_t)>	CompleteFunctionT;
 	
 	MessageReader();
 	
