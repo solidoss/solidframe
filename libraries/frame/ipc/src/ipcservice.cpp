@@ -1428,7 +1428,7 @@ bool Service::doNonMainConnectionStopping(
 	ulong &_rseconds_to_wait,
 	MessageId &_rmsg_id,
 	MessageBundle &_rmsg_bundle,
-	Event &_revent_context
+	Event &/*_revent_context*/
 ){
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
@@ -1521,7 +1521,7 @@ bool Service::doMainConnectionStoppingCleanAll(
 	ulong &_rseconds_to_wait,
 	MessageId &_rmsg_id,
 	MessageBundle &_rmsg_bundle,
-	Event &_revent_context
+	Event &/*_revent_context*/
 ){
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
@@ -1572,7 +1572,7 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
 	ulong &/*_rseconds_to_wait*/,
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
-	Event &_revent_context
+	Event &/*_revent_context*/
 ){
 	//the last connection - fast closing or server side
 	const size_t 			pool_index = _rcon.poolId().index;
@@ -1591,7 +1591,7 @@ bool Service::doMainConnectionRestarting(
 	ulong &_rseconds_to_wait,
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
-	Event &_revent_context
+	Event &/*_revent_context*/
 ){
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);

@@ -64,6 +64,11 @@ public:
 		MessageId &_rconn_msg_id
 	);
 	
+	bool cancelOldest(
+		MessageBundle &_rmsgbundle,
+		MessageId &_rconn_msg_id
+	);
+	
 	void enqueueClose(MessageId const &_rmsguid);
 	
 	uint32 write(

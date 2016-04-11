@@ -194,6 +194,13 @@ bool MessageWriter::cancel(
 	return false;
 }
 //-----------------------------------------------------------------------------
+bool MessageWriter::cancelOldest(
+	MessageBundle &_rmsgbundle,
+	MessageId &_rconn_msg_id
+){
+	return false;
+}
+//-----------------------------------------------------------------------------
 size_t MessageWriter::freeSeatsCount(Configuration const &_rconfig)const{
 	return _rconfig.writer.max_message_count_response_wait - sending_inner_list.size() - pending_inner_list.size();
 }

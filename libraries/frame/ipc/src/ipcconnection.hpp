@@ -188,10 +188,6 @@ private:
 		Event &_revent
 	);
 	
-	void doCompleteAllMessages(
-		frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr
-	);
-	
 	void doOptimizeRecvBuffer();
 	void doOptimizeRecvBufferForced();
 	void doPrepare(frame::aio::ReactorContext &_rctx);
@@ -225,6 +221,21 @@ private:
 	void doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Event &_revent);
 	void doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
 	void doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
+	
+	void doContinueStopping(
+		frame::aio::ReactorContext &_rctx,
+		ErrorConditionT const &_rerr,
+		const Event &_revent
+	);
+	
+	void doCompleteAllMessages(
+		frame::aio::ReactorContext &_rctx,
+		size_t _offset,
+		const bool _can_stop,
+		const ulong _seconds_to_wait,
+		ErrorConditionT const &_rerr,
+		Event &_revent
+	);
 	
 private:
 	virtual bool postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent) = 0;
