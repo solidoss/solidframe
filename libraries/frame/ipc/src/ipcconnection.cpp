@@ -47,6 +47,7 @@ enum class ConnectionEvents{
 	StartSecure,
 	SendRaw,
 	RecvRaw,
+	Stopping,
 	Invalid,
 };
 
@@ -74,6 +75,8 @@ const EventCategory<ConnectionEvents>	connection_event_category{
 				return "SendRaw";
 			case ConnectionEvents::RecvRaw:
 				return "RecvRaw";
+			case ConnectionEvents::Stopping:
+				return "Stopping";
 			case ConnectionEvents::Invalid:
 				return "Invalid";
 			default:
@@ -119,6 +122,10 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext &_rctx)const{
 	Event event = connection_event_category.event(ConnectionEvents::CancelPoolMessage);
 	event.any().reset(_rmsgid);
 	return event;
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::eventStopping(){
+	return connection_event_category.event(ConnectionEvents::Stopping);
 }
 //-----------------------------------------------------------------------------
 struct EnterActive{
@@ -275,7 +282,8 @@ bool Connection::shouldSendKeepalive()const{
 	return flags & static_cast<size_t>(Flags::Keepalive);
 }
 //-----------------------------------------------------------------------------
-bool Connection::shouldPollPool()const{
+inline bool Connection::shouldPollPool()const{
+	//TODO:
 	return flags & static_cast<size_t>(Flags::PollPool);
 }
 //-----------------------------------------------------------------------------
@@ -549,33 +557,6 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 	doUnprepare(_rctx);
 }
 //-----------------------------------------------------------------------------
-/*static*/ void Connection::onTimerWaitStopping(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
-	
-	Connection			&rthis = static_cast<Connection&>(_rctx.object());
-	ObjectIdT			objuid(rthis.uid(_rctx));
-	ErrorConditionT		error(_rerr);
-	ulong				seconds_to_wait = 0;//rthis.service(_rctx).onConnectionWantClose(rthis, _rctx, objuid);
-	
-	if(!seconds_to_wait){
-		//can stop rightaway
-		rthis.postStop(_rctx, 
-			[error](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
-				Connection	&rthis = static_cast<Connection&>(_rctx.object());
-				rthis.onStopped(_rctx, error);
-			}
-		);	//there might be events pending which will be delivered, but after this call
-			//no event get posted
-	}else{
-		//wait for seconds_to_wait and then retry
-		rthis.timer.waitFor(_rctx,
-			TimeSpec(seconds_to_wait),
-			[error](frame::aio::ReactorContext &_rctx){
-				onTimerWaitStopping(_rctx, error);
-			}
-		);
-	}
-}
-//-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent){
 	
 	static const EventHandler<
@@ -656,6 +637,15 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 				connection_event_category.event(ConnectionEvents::RecvRaw),
 				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
 					_rcon.doHandleEventRecvRaw(_rctx, _revt);
+				}
+			},
+			{
+				connection_event_category.event(ConnectionEvents::Stopping),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					//NOTE: we're trying this way to preserve the
+					//error condition (for which the connection is stopping)
+					//held by the timer callback
+					_rcon.timer.cancel(_rctx);
 				}
 			},
 		}
@@ -790,7 +780,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Eve
 	
 	if(not isStopping()){
 
-		ErrorConditionT		error = service(_rctx).activateConnection(*this);
+		ErrorConditionT		error = service(_rctx).activateConnection(*this, uid(_rctx));
 		
 		if(not error){
 			flags |= static_cast<size_t>(Flags::Active);
@@ -1120,7 +1110,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 			ErrorConditionT						error;
 			MessageReader::CompleteFunctionT	completefnc(std::cref(complete_lambda));
 			
-			rthis.cons_buf_off += rthis.msg_reader.read(pbuf, bufsz, completefnc, rconfig.reader, rtypemap, conctx, error);
+			rthis.cons_buf_off += rthis.msg_reader.read(
+				pbuf, bufsz, completefnc, rconfig.reader, rtypemap, conctx, error
+			);
 			
 			idbgx(Debug::ipc, &rthis<<" consumed size "<<rthis.cons_buf_off<<" of "<<bufsz);
 			
@@ -1168,17 +1160,21 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		const Configuration &rconfig  = service(_rctx).configuration();
 		bool				sent_something = false;
 		
+		auto				complete_lambda(
+			[this, &_rctx](MessageBundle &_rmsg_bundle, MessageId const &_rpool_msg_id){
+				this->doCompleteMessage(_rctx, _rpool_msg_id, _rmsg_bundle, ErrorConditionT());
+				return service(_rctx).pollPoolForUpdates(*this, uid(_rctx), _rpool_msg_id);
+			}
+		);
+		
 		//doResetTimerSend(_rctx);
 		
 		while(repeatcnt){
 			
 			if(
-				isActiveState() and
-				msg_writer.hasFreeSeats(rconfig)
+				shouldPollPool()
 			){
-				if(not service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId())){
-					flags |= static_cast<size_t>(Flags::StopPeer);
-					error.assign(-1, error.category());//TODO: Forced stop
+				if((error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId()))){
 					doStop(_rctx, error);
 					sent_something = false;//prevent calling doResetTimerSend after doStop
 					break;
@@ -1191,8 +1187,11 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 				break;
 			}
 #endif
+			MessageWriter::CompleteFunctionT	completefnc(std::cref(complete_lambda));
 
-			uint32 sz = msg_writer.write(send_buf, sendbufcp, shouldSendKeepalive(), rconfig, rtypemap, conctx, error);
+			uint32								sz = msg_writer.write(
+				send_buf, sendbufcp, shouldSendKeepalive(), completefnc, rconfig, rtypemap, conctx, error
+			);
 			
 			flags &= (~static_cast<size_t>(Flags::Keepalive));
 			
@@ -1222,11 +1221,6 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		
 		if(sent_something){
 			doResetTimerSend(_rctx);
-			//TODO:
-			//if(not msg_writer.isNonSafeCacheEmpty()){
-			//	Locker<Mutex>	lock(service(_rctx).mutex(*this));
-			//	msg_writer.safeMoveCacheToSafety();
-			//}
 		}
 		
 		if(repeatcnt == 0){

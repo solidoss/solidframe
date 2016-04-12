@@ -129,7 +129,7 @@ public:
 		){
 			_f(this->poolId(), _rmsgbundle, _rmsgid);
 		};
-		MessageWriterVisitFunctionT		fnc(std::cref(visit_fnc));
+		MessageWriter::VisitFunctionT		fnc(std::cref(visit_fnc));
 		
 		msg_writer.visitAllMessages(fnc);
 	}
@@ -142,7 +142,6 @@ protected:
 	static void onConnect(frame::aio::ReactorContext &_rctx);
 	static void onTimerInactivity(frame::aio::ReactorContext &_rctx);
 	static void onTimerKeepalive(frame::aio::ReactorContext &_rctx);
-	static void onTimerWaitStopping(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
 
 private:
 	friend struct ConnectionContext;

@@ -84,7 +84,15 @@ public:
 		//	return true;
 		//}
 	}
+	
+	void silentCancel(ReactorContext &_rctx){
+		doClear(_rctx);
+	}
 	void cancel(ReactorContext &_rctx){
+		if(FUNCTION_EMPTY(f)){
+			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			doExec(_rctx);
+		}
 		doClear(_rctx);
 	}
 private:

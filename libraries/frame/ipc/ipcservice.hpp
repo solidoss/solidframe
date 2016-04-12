@@ -369,7 +369,7 @@ private:
 	
 	void acceptIncomingConnection(SocketDevice &_rsd);
 	
-	ErrorConditionT activateConnection(Connection &_rcon);
+	ErrorConditionT activateConnection(Connection &_rcon, ObjectIdT const &_robjuid);
 	
 	void connectionStop(Connection const &_rcon);
 	
@@ -441,7 +441,7 @@ private:
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
 	void onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err);
 	
-	bool pollPoolForUpdates(
+	ErrorConditionT pollPoolForUpdates(
 		Connection &_rcon,
 		ObjectIdT const &_robjuid,
 		MessageId const &_rmsgid

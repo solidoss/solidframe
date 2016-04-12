@@ -36,14 +36,19 @@ struct Serializer: public SerializerT, public SpecificObject{
 
 typedef std::unique_ptr<Serializer>		SerializerPointerT;
 
-typedef FUNCTION<void(
-	MessageBundle &/*_rmsgbundle*/,
-	MessageId const &/*_rmsgid*/
-)>										MessageWriterVisitFunctionT;
-
-
 class MessageWriter{
 public:
+	
+	using VisitFunctionT = FUNCTION<void(
+		MessageBundle &/*_rmsgbundle*/,
+		MessageId const &/*_rmsgid*/
+	)>;
+	
+	using CompleteFunctionT = FUNCTION<ErrorConditionT(
+		MessageBundle &/*_rmsgbundle*/,
+		MessageId const &/*_rmsgid*/
+	)>;
+	
 	enum PrintWhat{
 		PrintInnerListsE,
 	};
@@ -74,6 +79,7 @@ public:
 	uint32 write(
 		char *_pbuf,
 		uint32 _bufsz, const bool _keep_alive, 
+		CompleteFunctionT &_complete_fnc,
 		Configuration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
@@ -89,7 +95,7 @@ public:
 	void prepare(WriterConfiguration const &_rconfig);
 	void unprepare();
 	
-	void visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc);
+	void visitAllMessages(VisitFunctionT const &_rvisit_fnc);
 	
 // 	void completeAllMessages(
 // 		ipc::Configuration const &_rconfig,

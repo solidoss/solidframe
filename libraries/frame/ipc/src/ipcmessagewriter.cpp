@@ -233,6 +233,7 @@ bool MessageWriter::empty()const{
 
 uint32 MessageWriter::write(
 	char *_pbuf, uint32 _bufsz, const bool _keep_alive,
+	CompleteFunctionT &_complete_fnc,
 	Configuration const &_rconfig,
 	TypeIdMapT const &_ridmap,
 	ConnectionContext &_rctx, ErrorConditionT &_rerror
@@ -661,7 +662,7 @@ void MessageWriter::completeAllMessages(
 }
 #endif
 //-----------------------------------------------------------------------------
-void MessageWriter::visitAllMessages(MessageWriterVisitFunctionT const &_rvisit_fnc){
+void MessageWriter::visitAllMessages(VisitFunctionT const &_rvisit_fnc){
 	{//iterate through non completed messages
 		size_t 			msgidx = order_inner_list.frontIndex();
 		
