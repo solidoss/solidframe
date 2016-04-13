@@ -62,6 +62,7 @@ using ConnectionEnterPassiveCompleteFunctionT		= FUNCTION<void(ConnectionContext
 using ConnectionSecureHandhakeCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionSendRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionRecvRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
+using ConnectionOnEventFunctionT					= FUNCTION<void(ConnectionContext&, Event&)>;
 
 enum struct ConnectionState{
 	Raw,
@@ -132,6 +133,10 @@ public:
 		return secure_context.isValid();
 	}
 	
+	int listenerPort()const{
+		return listener_port;
+	}
+	
 	char* allocateRecvBuffer(uint8 &_rbuffer_capacity_kb)const;
 	void freeRecvBuffer(char *_pb)const;
 	
@@ -178,6 +183,7 @@ public:
 	ConnectionStartFunctionT			connection_incoming_start_fnc;
 	ConnectionStartFunctionT			connection_outgoing_start_fnc;
 	ConnectionStopFunctionT				connection_stop_fnc;
+	ConnectionOnEventFunctionT			connection_on_event_fnc;
 	
 	AllocateBufferFunctionT				connection_recv_buffer_allocate_fnc;
 	AllocateBufferFunctionT				connection_send_buffer_allocate_fnc;
@@ -186,7 +192,7 @@ public:
 	FreeBufferFunctionT					connection_send_buffer_free_fnc;
 	
 	std::string							listener_address_str;
-	std::string							listener_default_port_str;
+	std::string							listener_service_str;
 	
 	SecureContextT						secure_context;
 private:
@@ -211,9 +217,11 @@ private:
 	WriterFunctions						writerfunctionidx;
 	AioSchedulerT						*pscheduler;
 private:
-	//friend class Service;
-	friend class MessageWriter;
+	friend class Service;
+	//friend class MessageWriter;
 	Configuration():pscheduler(nullptr){}
+	
+	int									listener_port;
 };
 
 template <class F>

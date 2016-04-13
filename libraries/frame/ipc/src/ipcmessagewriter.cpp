@@ -142,39 +142,6 @@ bool MessageWriter::enqueue(
 	return false;
 }
 //-----------------------------------------------------------------------------
-void MessageWriter::enqueueClose(MessageId const &_rmsguid){
-	const size_t	idx = _rmsguid.index;
-	
-	if(isDelayedCloseInPendingQueue()){
-		//close cannot be enqued because one is already 
-		cached_inner_list.pushBack(idx);
-		return;
-	}
-	
-	flags |= DelayedCloseInPendingQueueFlag;
-	
-	if(idx >= message_vec.size()){
-		message_vec.resize(idx + 1);
-	}
-	
-	MessageStub		&rmsgstub(message_vec[idx]);
-	
-	order_inner_list.pushBack(idx);
-	
-	if(
-		sending_inner_list.size()
-	){
-		pending_inner_list.pushBack(idx);
-		
-		rmsgstub.inner_status = InnerStatus::Pending;
-	}else{
-		sending_inner_list.pushBack(idx);
-		
-		rmsgstub.inner_status = InnerStatus::Sending;
-	}
-	vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
-}
-//-----------------------------------------------------------------------------
 void MessageWriter::doUnprepareMessageStub(const size_t _msgidx){
 	MessageStub			&rmsgstub(message_vec[_msgidx]);
 	if(rmsgstub.msg_id.isInvalid()){
@@ -199,22 +166,6 @@ bool MessageWriter::cancelOldest(
 	MessageId &_rconn_msg_id
 ){
 	return false;
-}
-//-----------------------------------------------------------------------------
-size_t MessageWriter::freeSeatsCount(Configuration const &_rconfig)const{
-	return _rconfig.writer.max_message_count_response_wait - sending_inner_list.size() - pending_inner_list.size();
-}
-//-----------------------------------------------------------------------------
-bool MessageWriter::hasFreeSeats(Configuration const &_rconfig)const{
-	return (
-		freeSeatsCount(_rconfig) and (
-			sending_inner_list.empty() or 
-			(
-				sending_inner_list.size() < _rconfig.writer.max_message_count_multiplex and
-				sending_inner_list.front().packet_count == 0
-			)
-		)
-	);
 }
 //-----------------------------------------------------------------------------
 bool MessageWriter::empty()const{
@@ -626,41 +577,6 @@ void MessageWriter::doCompleteMessage(
 		doUnprepareMessageStub(msgidx);
 	}
 }
-//-----------------------------------------------------------------------------
-#if 0
-void MessageWriter::completeAllMessages(
-	ipc::Configuration const &_rconfig,
-	TypeIdMapT const &_ridmap,
-	ConnectionContext &_rctx,
-	ErrorConditionT const & _rerror
-){
-	vdbgx(Debug::ipc, "");
-	
-	while(order_inner_list.size()){
-		const size_t	msgidx = order_inner_list.frontIndex();
-		MessageStub		&rmsgstub = message_vec[msgidx];
-		
-		if(not rmsgstub.msgbundle.message_ptr.empty()){
-			MessagePointerT 	msgptr;
-			RequestId			requid(msgidx, rmsgstub.unique);
-			
-			doCompleteMessage(msgptr, requid, _rconfig, _ridmap, _rctx, _rerror);
-		}else{
-			order_inner_list.popFront();
-		}
-		
-	}
-	
-	message_vec.clear();
-	
-	order_inner_list.fastClear();
-	pending_inner_list.fastClear();
-	sending_inner_list.fastClear();
-	cached_inner_list.fastClear();
-	
-	
-}
-#endif
 //-----------------------------------------------------------------------------
 void MessageWriter::visitAllMessages(VisitFunctionT const &_rvisit_fnc){
 	{//iterate through non completed messages

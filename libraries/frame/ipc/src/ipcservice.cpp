@@ -571,11 +571,11 @@ ErrorConditionT Service::reconfigure(Configuration && _ucfg){
 			hst_name = tmp.c_str();
 			svc_name = d.config.listener_address_str.c_str() + off + 1;
 			if(!svc_name[0]){
-				svc_name = d.config.listener_default_port_str.c_str();
+				svc_name = d.config.listener_service_str.c_str();
 			}
 		}else{
 			hst_name = d.config.listener_address_str.c_str();
-			svc_name = d.config.listener_default_port_str.c_str();
+			svc_name = d.config.listener_service_str.c_str();
 		}
 		
 		ResolveData		rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
@@ -583,8 +583,15 @@ ErrorConditionT Service::reconfigure(Configuration && _ucfg){
 			
 		sd.create(rd.begin());
 		sd.prepareAccept(rd.begin(), 2000);
-			
+		
 		if(sd.ok()){
+			
+			SocketAddress					local_address;
+			
+			sd.localAddress(local_address);
+			
+			d.config.listener_port = local_address.port();
+			
 			DynamicPointer<aio::Object>		objptr(new Listener(sd));
 			
 			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);

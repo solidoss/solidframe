@@ -28,6 +28,7 @@ namespace{
 	
 	void empty_connection_stop(ConnectionContext &, ErrorConditionT const&){}
 	
+	void empty_connection_on_event(ConnectionContext &, Event &){}
 	
 	size_t default_compress(char*, size_t, ErrorConditionT &){
 		return 0;
@@ -87,8 +88,12 @@ Configuration::Configuration(
 	
 	connection_stop_fnc = empty_connection_stop;
 	
+	connection_on_event_fnc = empty_connection_on_event;
+	
 	pool_max_active_connection_count = 1;
 	pool_max_pending_connection_count = 1;
+	
+	listener_port = -1;
 }
 //-----------------------------------------------------------------------------
 size_t Configuration::connectionReconnectTimeoutSeconds()const{

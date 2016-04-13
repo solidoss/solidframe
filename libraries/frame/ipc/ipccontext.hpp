@@ -152,6 +152,8 @@ struct ConnectionContext{
 		return rservice;
 	}
 	
+	ObjectIdT connectionId()const;
+	
 	RecipientId	recipientId()const;
 	
 	const std::string& recipientName()const;

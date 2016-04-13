@@ -74,8 +74,6 @@ public:
 		MessageId &_rconn_msg_id
 	);
 	
-	void enqueueClose(MessageId const &_rmsguid);
-	
 	uint32 write(
 		char *_pbuf,
 		uint32 _bufsz, const bool _keep_alive, 
@@ -86,25 +84,14 @@ public:
 		ErrorConditionT &_rerror
 	);
 	
-	bool hasFreeSeats(Configuration const &_rconfig)const;
-	
 	bool empty()const;
-	
-	size_t freeSeatsCount(Configuration const &_rconfig)const;
 	
 	void prepare(WriterConfiguration const &_rconfig);
 	void unprepare();
 	
 	void visitAllMessages(VisitFunctionT const &_rvisit_fnc);
 	
-// 	void completeAllMessages(
-// 		ipc::Configuration const &_rconfig,
-// 		TypeIdMapT const &_ridmap,
-// 		ConnectionContext &_rctx,
-// 		ErrorConditionT const & _rerror
-// 	);
 	void print(std::ostream &_ros, const PrintWhat _what)const;
-	
 private:
 	
 	enum{
@@ -188,7 +175,6 @@ private:
 	};
 	
 	typedef std::vector<MessageStub>							MessageVectorT;
-	typedef std::vector<MessageId>								MessageIdVectorT;
 	typedef InnerList<MessageVectorT, InnerLinkOrder>			MessageOrderInnerListT;
 	typedef InnerList<MessageVectorT, InnerLinkStatus>			MessageStatusInnerListT;
 	
@@ -244,7 +230,6 @@ private:
 	void doUnprepareMessageStub(const size_t _msgidx);
 private:
 	MessageVectorT				message_vec;
-	MessageIdVectorT			message_uid_cache_vec;
 	std::atomic<size_t>			message_idx_cache;
 	uint32						current_message_type_id;
 	uint32						flags;

@@ -283,8 +283,7 @@ bool Connection::shouldSendKeepalive()const{
 }
 //-----------------------------------------------------------------------------
 inline bool Connection::shouldPollPool()const{
-	//TODO:
-	return flags & static_cast<size_t>(Flags::PollPool);
+	return (flags & static_cast<size_t>(Flags::PollPool));
 }
 //-----------------------------------------------------------------------------
 bool Connection::isWaitingKeepAliveTimer()const{
@@ -564,7 +563,11 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 		Connection&,
 		frame::aio::ReactorContext &
 	> event_handler = {
-		[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){idbgx(Debug::ipc, &_rcon<<" Unhandled event "<<_revt);},
+		[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+			Connection			&rthis = static_cast<Connection&>(_rctx.object());
+			ConnectionContext	conctx(rthis.service(_rctx), rthis);
+			rthis.service(_rctx).configuration().connection_on_event_fnc(conctx, _revt);
+		},
 		{
 			
 			{
@@ -1150,7 +1153,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 }
 //-----------------------------------------------------------------------------
 void Connection::doSend(frame::aio::ReactorContext &_rctx){
+	
 	idbgx(Debug::ipc, this<<"");
+	
 	if(not this->hasPendingSend()){
 		ConnectionContext	conctx(service(_rctx), *this);
 		unsigned 			repeatcnt = 4;
@@ -1174,6 +1179,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 			if(
 				shouldPollPool()
 			){
+				flags &= ~static_cast<size_t>(Flags::PollPool);//reset flag
 				if((error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId()))){
 					doStop(_rctx, error);
 					sent_something = false;//prevent calling doResetTimerSend after doStop
@@ -1500,6 +1506,10 @@ Any<>& ConnectionContext::any(){
 //-----------------------------------------------------------------------------
 RecipientId	ConnectionContext::recipientId()const{
 	return RecipientId(rconnection.poolId(), rservice.manager().id(rconnection));
+}
+//-----------------------------------------------------------------------------
+ObjectIdT ConnectionContext::connectionId()const{
+	return rservice.manager().id(rconnection);
 }
 //-----------------------------------------------------------------------------
 const std::string& ConnectionContext::recipientName()const{
