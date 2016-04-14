@@ -1196,7 +1196,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 			MessageWriter::CompleteFunctionT	completefnc(std::cref(complete_lambda));
 
 			uint32								sz = msg_writer.write(
-				send_buf, sendbufcp, shouldSendKeepalive(), completefnc, rconfig, rtypemap, conctx, error
+				send_buf, sendbufcp, shouldSendKeepalive(), completefnc, rconfig.writer, rtypemap, conctx, error
 			);
 			
 			flags &= (~static_cast<size_t>(Flags::Keepalive));

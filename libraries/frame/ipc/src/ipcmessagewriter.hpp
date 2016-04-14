@@ -66,19 +66,19 @@ public:
 	bool cancel(
 		MessageId const &_rmsguid,
 		MessageBundle &_rmsgbundle,
-		MessageId &_rconn_msg_id
+		MessageId &_rpool_msg_id
 	);
 	
 	bool cancelOldest(
 		MessageBundle &_rmsgbundle,
-		MessageId &_rconn_msg_id
+		MessageId &_rpool_msg_id
 	);
 	
 	uint32 write(
 		char *_pbuf,
 		uint32 _bufsz, const bool _keep_alive, 
 		CompleteFunctionT &_complete_fnc,
-		Configuration const &_rconfig,
+		WriterConfiguration const &_rconfig,
 		TypeIdMapT const &_ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
@@ -89,15 +89,14 @@ public:
 	void prepare(WriterConfiguration const &_rconfig);
 	void unprepare();
 	
-	void visitAllMessages(VisitFunctionT const &_rvisit_fnc);
+	void forEveryMessagesNewerToOlder(VisitFunctionT const &_rvisit_fnc);
 	
 	void print(std::ostream &_ros, const PrintWhat _what)const;
 private:
 	
 	enum{
-		InnerLinkOrder = 0,
-		InnerLinkStatus,
-		
+		InnerLinkStatus = 0,
+		InnerLinkOrder,
 		InnerLinkCount
 	};
 	
@@ -112,54 +111,30 @@ private:
 	struct MessageStub: InnerNode<InnerLinkCount>{
 		MessageStub(
 			MessageBundle &_rmsgbundle
-		):	msgbundle(std::move(_rmsgbundle)), packet_count(0),
-			inner_status(InnerStatus::Invalid){}
+		):	msgbundle(std::move(_rmsgbundle)), packet_count(0){}
 		
 		MessageStub(
-		):	unique(0), packet_count(0),
-			inner_status(InnerStatus::Invalid){}
+		):	unique(0), packet_count(0){}
 		
 		MessageStub(
 			MessageStub &&_rmsgstub
 		):	InnerNode<InnerLinkCount>(std::move(_rmsgstub)),
 			msgbundle(std::move(_rmsgstub.msgbundle)), unique(_rmsgstub.unique),
 			packet_count(_rmsgstub.packet_count), serializer_ptr(std::move(_rmsgstub.serializer_ptr)),
-			inner_status(_rmsgstub.inner_status), msg_id(_rmsgstub.msg_id){}
+			pool_msg_id(_rmsgstub.pool_msg_id){}
 		
-		void clearToInvalid(){
+		void clear(){
 			msgbundle.clear();
 			++unique;
 			packet_count = 0;
 			
-			inner_status = InnerStatus::Invalid;
-			
 			serializer_ptr = nullptr;
 			
-			msg_id.clear();
-		}
-		
-		void clearToCompleting(){
-			msgbundle.clear();
-			++unique;
-			packet_count = 0;
-			
-			inner_status = InnerStatus::Completing;
-			
-			serializer_ptr = nullptr;
-			
-			//no msg_id.clear() - wait after visitCompletingMessages
+			pool_msg_id.clear();
 		}
 		
 		bool isStop()const noexcept {
 			return msgbundle.message_ptr.empty() and not Message::is_canceled(msgbundle.message_flags);
-		}
-		
-		bool isCompletingStatus()const noexcept{
-			return inner_status == InnerStatus::Completing;
-		}
-		
-		bool isInvalidStatus()const noexcept{
-			return inner_status == InnerStatus::Invalid;
 		}
 		
 		bool isCanceled()const noexcept {
@@ -170,13 +145,12 @@ private:
 		uint32						unique;
 		size_t						packet_count;
 		SerializerPointerT			serializer_ptr;
-		InnerStatus					inner_status;
-		MessageId					msg_id;
+		MessageId					pool_msg_id;
 	};
 	
-	typedef std::vector<MessageStub>							MessageVectorT;
-	typedef InnerList<MessageVectorT, InnerLinkOrder>			MessageOrderInnerListT;
-	typedef InnerList<MessageVectorT, InnerLinkStatus>			MessageStatusInnerListT;
+	using MessageVectorT 			= std::vector<MessageStub>;
+	using MessageOrderInnerListT	= InnerList<MessageVectorT, InnerLinkOrder>;
+	using MessageStatusInnerListT	= InnerList<MessageVectorT, InnerLinkStatus>;
 	
 	struct PacketOptions{
 		PacketOptions(): packet_type(PacketHeader::SwitchToNewMessageTypeE), force_no_compress(false){}
@@ -185,17 +159,22 @@ private:
 		bool 					force_no_compress;
 	};
 	
-	typedef Stack<size_t>										CacheStackT;
-	
 	char* doFillPacket(
 		char* _pbufbeg,
 		char* _pbufend,
 		PacketOptions &_rpacket_options,
 		bool &_rmore,
-		ipc::Configuration const &_rconfig,
+		CompleteFunctionT &_complete_fnc,
+		WriterConfiguration const &_rconfig,
 		TypeIdMapT const & _ridmap,
 		ConnectionContext &_rctx,
 		ErrorConditionT & _rerror
+	);
+	
+	bool doCancel(
+		const size_t _msgidx,
+		MessageBundle &_rmsgbundle,
+		MessageId &_rpool_msg_id
 	);
 	
 	bool isSynchronousInSendingQueue()const;
@@ -203,17 +182,10 @@ private:
 	bool isDelayedCloseInPendingQueue()const;
 	
 	void doTryMoveMessageFromPendingToWriteQueue(ipc::Configuration const &_rconfig);
-	void doCompleteMessage(
-		MessagePointerT &_rmsgptr,
-		MessageId const &_rmsguid,
-		ipc::Configuration const &_rconfig,
-		TypeIdMapT const &_ridmap,
-		ConnectionContext &_rctx,
-		ErrorConditionT const & _rerror
-	);
 	
 	PacketHeader::Types doPrepareMessageForSending(
-		MessageStub &_rmsgstub, ipc::Configuration const &_rconfig,
+		const size_t _msgidx,
+		WriterConfiguration const &_rconfig,
 		TypeIdMapT const & _ridmap,
 		ConnectionContext &_rctx,
 		SerializerPointerT &_rtmp_serializer
@@ -221,22 +193,22 @@ private:
 	
 	void doTryCompleteMessageAfterSerialization(
 		const size_t _msgidx,
-		MessageStub &_rmsgstub, ipc::Configuration const &_rconfig,
+		CompleteFunctionT &_complete_fnc,
+		WriterConfiguration const &_rconfig,
 		TypeIdMapT const & _ridmap,
 		ConnectionContext &_rctx,
-		SerializerPointerT &_rtmp_serializer
+		SerializerPointerT &_rtmp_serializer,
+		ErrorConditionT & _rerror
 	);
 	
 	void doUnprepareMessageStub(const size_t _msgidx);
 private:
 	MessageVectorT				message_vec;
-	std::atomic<size_t>			message_idx_cache;
 	uint32						current_message_type_id;
 	uint32						flags;
 	MessageOrderInnerListT		order_inner_list;
-	MessageStatusInnerListT		pending_inner_list;
-	MessageStatusInnerListT		sending_inner_list;
-	MessageStatusInnerListT		cached_inner_list;
+	MessageStatusInnerListT		write_inner_list;
+	MessageStatusInnerListT		cache_inner_list;
 };
 
 typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat>	MessageWriterPrintPairT;

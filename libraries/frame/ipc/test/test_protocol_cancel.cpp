@@ -104,55 +104,66 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 
 typedef DynamicPointer<Message>	MessagePointerT;
 
-void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr);
-void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr);
-
+void complete_message(
+	frame::ipc::ConnectionContext &_rctx,
+	frame::ipc::MessagePointerT &_rmessage_ptr,
+	frame::ipc::MessagePointerT &_rresponse_ptr,
+	ErrorConditionT const &_rerr
+);
 
 struct Context{
-	Context():ipcconfig(nullptr), ipctypemap(nullptr), ipcmsgreader(nullptr), ipcmsgwriter(nullptr){}
+	Context():ipcreaderconfig(nullptr), ipcwriterconfig(nullptr), ipctypemap(nullptr), ipcmsgreader(nullptr), ipcmsgwriter(nullptr){}
 	
-	frame::ipc::Configuration		*ipcconfig;
+	frame::ipc::ReaderConfiguration	*ipcreaderconfig;
+	frame::ipc::WriterConfiguration	*ipcwriterconfig;
 	frame::ipc::TypeIdMapT			*ipctypemap;
 	frame::ipc::MessageReader		*ipcmsgreader;
 	frame::ipc::MessageWriter		*ipcmsgwriter;
+
+	
 }								ctx;
 
 frame::ipc::ConnectionContext	&ipcconctx(frame::ipc::TestEntryway::createContext());
 
-frame::ipc::MessageWriter& messageWriter(frame::ipc::MessageWriter *_pmsgw = nullptr){
-	static frame::ipc::MessageWriter *pmsgw(_pmsgw);
-	return *pmsgw;
-}
 
-
-void receive_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr){
-	
-	if(not static_cast<Message&>(*_rmsgptr).check()){
-		THROW_EXCEPTION("Message check failed.");
-	}
-	size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-	cassert(not initarray[idx % initarraysize].cancel);
-	
-	++crtreadidx;
-	
-	if(crtreadidx == 1){
-		idbg(crtreadidx<<" canceling all messages");
-		for(auto msguid:message_uid_vec){
-			idbg("Cancel message: "<<msguid);
-			ctx.ipcmsgwriter->cancel(msguid, *ctx.ipcconfig, *ctx.ipctypemap, ipcconctx);
-		}
-	}else{
-		idbg(crtreadidx);
-	}
-}
-
-void complete_message(frame::ipc::ConnectionContext &_rctx, frame::ipc::MessagePointerT &_rmsgptr, ErrorConditionT const &_rerr){
+void complete_message(
+	frame::ipc::ConnectionContext &_rctx,
+	frame::ipc::MessagePointerT &_rmessage_ptr,
+	frame::ipc::MessagePointerT &_rresponse_ptr,
+	ErrorConditionT const &_rerr
+){
 	if(_rerr and _rerr != frame::ipc::error_message_canceled){
 		THROW_EXCEPTION("Message complete with error");
 	}
-	size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-	cassert((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_message_canceled));
-	idbg(static_cast<Message&>(*_rmsgptr).str.size()<<' '<<_rerr.message());
+	if(_rmessage_ptr.get()){
+		size_t idx = static_cast<Message&>(*_rmessage_ptr).idx;
+		cassert((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_message_canceled));
+		idbg(static_cast<Message&>(*_rmessage_ptr).str.size()<<' '<<_rerr.message());
+	}
+	if(_rresponse_ptr.get()){
+		if(not static_cast<Message&>(*_rresponse_ptr).check()){
+			THROW_EXCEPTION("Message check failed.");
+		}
+		size_t idx = static_cast<Message&>(*_rresponse_ptr).idx;
+		cassert(not initarray[idx % initarraysize].cancel);
+		
+		++crtreadidx;
+		
+		if(crtreadidx == 1){
+			idbg(crtreadidx<<" canceling all messages");
+			for(auto msguid:message_uid_vec){
+				
+				frame::ipc::MessageBundle	msgbundle;
+				frame::ipc::MessageId		pool_msg_id;
+				bool rv = ctx.ipcmsgwriter->cancel(msguid, msgbundle, pool_msg_id);
+				
+				idbg("Cancel message "<<msguid<<" retval = "<<rv<<" msgdatasz = "<<static_cast<Message&>(*msgbundle.message_ptr).str.size());
+				//TODO: add more checking
+			}
+		}else{
+			idbg(crtreadidx);
+		}
+	}
 }
 
 }//namespace
@@ -183,8 +194,8 @@ int test_protocol_cancel(int argc, char **argv){
 	const uint16					bufcp(1024*4);
 	char							buf[bufcp];
 	
-	frame::ipc::AioSchedulerT		&ipcsched(*(static_cast<frame::ipc::AioSchedulerT*>(nullptr)));
-	frame::ipc::Configuration		ipcconfig(ipcsched);
+	frame::ipc::WriterConfiguration	ipcwriterconfig;
+	frame::ipc::ReaderConfiguration	ipcreaderconfig;
 	frame::ipc::TypeIdMapT			ipctypemap;
 	frame::ipc::MessageReader		ipcmsgreader;
 	frame::ipc::MessageWriter		ipcmsgwriter;
@@ -192,14 +203,15 @@ int test_protocol_cancel(int argc, char **argv){
 	ErrorConditionT					error;
 	
 	
-	ctx.ipcconfig		= &ipcconfig;
-	ctx.ipctypemap		= &ipctypemap;
-	ctx.ipcmsgreader	= &ipcmsgreader;
-	ctx.ipcmsgwriter	= &ipcmsgwriter;
+	ctx.ipcreaderconfig		= &ipcreaderconfig;
+	ctx.ipcwriterconfig		= &ipcwriterconfig;
+	ctx.ipctypemap			= &ipctypemap;
+	ctx.ipcmsgreader		= &ipcmsgreader;
+	ctx.ipcmsgwriter		= &ipcmsgwriter;
 	
-	ipcconfig.max_writer_multiplex_message_count = 6;
+	ipcwriterconfig.max_message_count_multiplex = 6;
 	
-	frame::ipc::TestEntryway::initTypeMap<::Message>(ipctypemap, complete_message, receive_message);
+	frame::ipc::TestEntryway::initTypeMap<::Message>(ipctypemap, complete_message);
 	
 	const size_t					start_count = 16;
 	
@@ -207,20 +219,23 @@ int test_protocol_cancel(int argc, char **argv){
 	
 	for(; crtwriteidx < start_count; ++crtwriteidx){
 		frame::ipc::MessageBundle	msgbundle;
-		
+		frame::ipc::MessageId		writer_msg_id;
+		frame::ipc::MessageId		pool_msg_id;
 		
 		msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
 		msgbundle.message_ptr = std::move(frame::ipc::MessagePointerT(new Message(crtwriteidx)));
 		msgbundle.message_type_id = ctx.ipctypemap->index(msgbundle.message_ptr.get());
-		//msgbundle.response_fnc = std::move(response_fnc);
 		
-		message_uid_vec.push_back(ipcmsgwriter.safeNewMessageId(ipcconfig));
 		
-		ipcmsgwriter.enqueue(
-			msgbundle,
-			message_uid_vec.back(),
-			ipcconfig, ipctypemap, ipcconctx
+		bool rv = ipcmsgwriter.enqueue(
+			ipcwriterconfig, msgbundle, pool_msg_id, writer_msg_id
 		);
+
+		message_uid_vec.push_back(writer_msg_id);
+		
+		idbg("enqueue rv = "<<rv<<" writer_msg_id = "<<writer_msg_id);
+		idbg(frame::ipc::MessageWriterPrintPairT(ipcmsgwriter, frame::ipc::MessageWriter::PrintInnerListsE));
+		
 		if(not initarray[crtwriteidx % initarraysize].cancel){
 			idbg("do not cancel "<<message_uid_vec.back());
 			message_uid_vec.pop_back(); //we do not cancel this one
@@ -228,36 +243,45 @@ int test_protocol_cancel(int argc, char **argv){
 	}
 	
 	
-	auto	complete_lambda(
-		[](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT const& _rmsgptr){
-			switch(_event){
-				case frame::ipc::MessageReader::MessageCompleteE:
-					idbg("complete message");
-					break;
-				case frame::ipc::MessageReader::KeepaliveCompleteE:
-					idbg("complete keepalive");
-					break;
+	{
+		auto	reader_complete_lambda(
+			[](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT const& _rmsgptr, const size_t){
+				switch(_event){
+					case frame::ipc::MessageReader::MessageCompleteE:
+						idbg("complete message");
+						break;
+					case frame::ipc::MessageReader::KeepaliveCompleteE:
+						idbg("complete keepalive");
+						break;
+				}
 			}
-		}
-	);
-	
-	ipcmsgreader.prepare(ipcconfig);
-	
-	bool is_running = true;
-	
-	while(is_running and !error){
-		uint32 bufsz = ipcmsgwriter.write(buf, bufcp, false, ipcconfig, ipctypemap, ipcconctx, error);
-		idbg("write "<<bufsz);
-		if(not ipcmsgwriter.isNonSafeCacheEmpty()){
-			ipcmsgwriter.safeMoveCacheToSafety();
-		}
-		if(!error and bufsz){
-			frame::ipc::MessageReader::CompleteFunctionT	completefnc(std::cref(complete_lambda));
-			ipcmsgreader.read(buf, bufsz, completefnc, ipcconfig, ipctypemap, ipcconctx, error);
-			idbg("read");
-		}else{
-			idbg("done write");
-			is_running = false;
+		);
+		
+		auto	writer_complete_lambda(
+			[&ipctypemap](frame::ipc::MessageBundle &_rmsgbundle, frame::ipc::MessageId const &_rmsgid){
+				frame::ipc::MessagePointerT		response_ptr;
+				ErrorConditionT					error;
+				ipctypemap[_rmsgbundle.message_type_id].complete_fnc(ipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
+				return ErrorConditionT();
+			}
+		);
+		
+		frame::ipc::MessageReader::CompleteFunctionT	readercompletefnc(std::cref(reader_complete_lambda));
+		frame::ipc::MessageWriter::CompleteFunctionT	writercompletefnc(std::cref(writer_complete_lambda));
+		
+		ipcmsgreader.prepare(ipcreaderconfig);
+		
+		bool is_running = true;
+		
+		while(is_running and !error){
+			uint32 bufsz = ipcmsgwriter.write(buf, bufcp, false, writercompletefnc, ipcwriterconfig, ipctypemap, ipcconctx, error);
+			
+			if(!error and bufsz){
+				
+				ipcmsgreader.read(buf, bufsz, readercompletefnc, ipcreaderconfig, ipctypemap, ipcconctx, error);
+			}else{
+				is_running = false;
+			}
 		}
 	}
 	

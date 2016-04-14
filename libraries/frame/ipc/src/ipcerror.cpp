@@ -102,6 +102,8 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_connection_inexistent(ErrorConnectionInexistentE, category);
 /*extern*/ const ErrorConditionT error_connection_enter_active(ErrorConnectionEnterActiveE, category);
 /*extern*/ const ErrorConditionT error_connection_stopping(ErrorConnectionStoppingE, category);
+/*extern*/ const ErrorConditionT error_connection_invalid_state(ErrorConnectionInvalidStateE, category);
+
 }//namespace ipc
 }//namespace frame
 }//namespace solid

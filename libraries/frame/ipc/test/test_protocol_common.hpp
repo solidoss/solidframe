@@ -19,15 +19,13 @@ public:
 		return conctx;
 	}
 	
-	template <class Msg, class CompleteCbk, class ReceiveCbk>
+	template <class Msg, class CompleteCbk>
 	static void initTypeMap(
 		frame::ipc::TypeIdMapT &_rtm,
-		CompleteCbk _completecbk,
-		ReceiveCbk _receivecbk
+		CompleteCbk _completecbk
 	){
 		TypeStub ts;
 		ts.complete_fnc = MessageCompleteFunctionT(_completecbk);
-		ts.receive_fnc = MessageReceiveFunctionT(_receivecbk);
 		
 		_rtm.registerType<Msg>(
 			ts,

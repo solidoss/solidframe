@@ -131,7 +131,7 @@ public:
 		};
 		MessageWriter::VisitFunctionT		fnc(std::cref(visit_fnc));
 		
-		msg_writer.visitAllMessages(fnc);
+		msg_writer.forEveryMessagesNewerToOlder(fnc);
 	}
 	
 	static void onSendAllRaw(frame::aio::ReactorContext &_rctx, Event &_revent);
@@ -361,7 +361,7 @@ private:
 	StreamSocketT				sock;
 };
 
-Connection * new_connection(
+inline Connection * new_connection(
 	Configuration const& _rconfiguration,
 	SocketDevice &_rsd,
 	ConnectionPoolId const &_rpool_id,
@@ -374,7 +374,7 @@ Connection * new_connection(
 	}
 }
 
-Connection * new_connection(
+inline Connection * new_connection(
 	Configuration const& _rconfiguration,
 	ConnectionPoolId const &_rpool_id,
 	std::string const & _rpool_name
