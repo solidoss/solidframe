@@ -423,8 +423,10 @@ protected:
 			return SuccessE;
 		}
 
-		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val);
-		if(rv == FailureE){
+		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val, rs.err);
+		if(rs.err){
+			rv = FailureE;
+		}else if(rv == FailureE){
 			rs.err = make_error(ERR_REINIT);
 		}
 		return rv;
@@ -439,8 +441,10 @@ protected:
 			return SuccessE;
 		}
 		Ctx 			&rctx = *reinterpret_cast<Ctx*>(_pctx);
-		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val, rctx);
-		if(rv == FailureE){
+		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val, rctx, rs.err);
+		if(rs.err){
+			rv = FailureE;
+		}else if(rv == FailureE){
 			rs.err = make_error(ERR_REINIT);
 		}
 		return rv;
@@ -1303,8 +1307,10 @@ protected:
 			return SuccessE;
 		}
 		
-		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val);
-		if(rv == FailureE){
+		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val, rd.err);
+		if(rd.err){
+			rv = FailureE;
+		}else if(rv == FailureE){
 			rd.err = make_error(ERR_REINIT);
 		}
 		return rv;
@@ -1319,8 +1325,10 @@ protected:
 			return SuccessE;
 		}
 		Ctx 			&rctx = *reinterpret_cast<Ctx*>(_pctx);
-		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val, rctx);
-		if(rv == FailureE){
+		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val, rctx, rd.err);
+		if(rd.err){
+			rv = FailureE;
+		}else if(rv == FailureE){
 			rd.err = make_error(ERR_REINIT);
 		}
 		return rv;
@@ -1798,7 +1806,7 @@ public:
 	}
 	
 	template <typename T>
-	Deserializer& push(DynamicPointer<T> &_rptr, const size_t _type_id, const char *_name = Base::default_name){
+	Deserializer& push(DynamicPointer<T> &_rptr, const uint64 _type_id, const char *_name = Base::default_name){
 		if(ptypeidmap){
 			void 		*p = nullptr;
 			std::string tmpstr;

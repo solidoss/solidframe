@@ -223,9 +223,9 @@ int test_protocol_basic(int argc, char **argv){
 
 	frame::ipc::TestEntryway::initTypeMap<::Message>(ipctypemap, complete_message);
 	
-	const size_t					start_count = 10;
+	const size_t					start_count = 1;
 	
-	writecount = 10*initarraysize;//start_count;//
+	writecount = start_count;//10*initarraysize;//start_count;//
 	
 	for(; crtwriteidx < start_count; ++crtwriteidx){
 		frame::ipc::MessageBundle	msgbundle;
@@ -246,11 +246,14 @@ int test_protocol_basic(int argc, char **argv){
 	
 	{
 		auto	reader_complete_lambda(
-			[](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT const& _rmsgptr, const size_t){
+			[&ipctypemap](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT & _rresponse_ptr, const size_t _message_type_id){
 				switch(_event){
-					case frame::ipc::MessageReader::MessageCompleteE:
+					case frame::ipc::MessageReader::MessageCompleteE:{
 						idbg("complete message");
-						break;
+						frame::ipc::MessagePointerT		message_ptr;
+						ErrorConditionT					error;
+						ipctypemap[_message_type_id].complete_fnc(ipcconctx, message_ptr, _rresponse_ptr, error);
+					}break;
 					case frame::ipc::MessageReader::KeepaliveCompleteE:
 						idbg("complete keepalive");
 						break;

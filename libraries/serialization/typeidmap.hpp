@@ -145,7 +145,6 @@ protected:
 		T 	*&rpb = *reinterpret_cast<T**>(_pbase);
 		rpb = reinterpret_cast<T*>(_pderived);
 	}
-	
 protected:
 	TypeIdMapBase(){
 		//register nullptr
@@ -158,11 +157,10 @@ protected:
 		msgidmap[0] = 0;
 	}
 	
-	
-	bool findMessageIndex(const uint64 &_rid, size_t &_rindex) const ;
+	bool findTypeIndex(const uint64 &_rid, size_t &_rindex) const;
 	
 	size_t doAllocateNewIndex(const size_t _protocol_id, uint64 &_rid);
-	bool doFindMessageIndex(const size_t _protocol_id,  size_t _idx, uint64 &_rid) const ;
+	bool doFindTypeIndex(const size_t _protocol_id,  size_t _idx, uint64 &_rid) const ;
 	
 	template <class T, class StoreF, class LoadF, class FactoryF>
 	size_t doRegisterType(StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _protocol_id,  size_t _idx){
@@ -170,7 +168,7 @@ protected:
 		
 		if(_idx == 0){
 			_idx = doAllocateNewIndex(_protocol_id, id);
-		}else if(doFindMessageIndex(_protocol_id, _idx, id)){
+		}else if(doFindTypeIndex(_protocol_id, _idx, id)){
 			return InvalidIndex();
 		}
 		
@@ -297,6 +295,13 @@ public:
 		return loadPointer(_rd, _rptr, std::type_index(typeid(T)), _riv, _rsv, _name);
 	}
 	
+	ErrorConditionT findTypeIndex(const uint64 _type_id, size_t &_rstub_index)const{
+		if(!TypeIdMapBase::findTypeIndex(_type_id, _rstub_index)){
+			return TypeIdMapBase::error_no_cast();
+		}
+		return ErrorConditionT();
+	}
+	
 	virtual void loadTypeId(Des &_rd, uint64 &_rv, std::string &_rstr, const char* _name)const = 0;
 private:
 	
@@ -395,7 +400,7 @@ private:
 		
 		size_t									stubindex;
 		
-		if(!TypeIdMapBase::findMessageIndex(_riv, stubindex)){
+		if(!TypeIdMapBase::findTypeIndex(_riv, stubindex)){
 			return TypeIdMapBase::error_no_cast();
 		}
 		
@@ -564,7 +569,7 @@ private:
 	) const {
 		size_t									stubindex;
 		
-		if(!TypeIdMapBase::findMessageIndex(_riv, stubindex)){
+		if(!TypeIdMapBase::findTypeIndex(_riv, stubindex)){
 			return TypeIdMapBase::error_no_cast();
 		}
 		

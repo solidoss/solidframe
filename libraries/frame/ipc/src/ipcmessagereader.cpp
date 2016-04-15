@@ -105,24 +105,6 @@ uint32 MessageReader::read(
 	return pbufpos - _pbuf;
 }
 //-----------------------------------------------------------------------------
-template </*class S, uint32 I*/>
-serialization::binary::ReturnValues 
-MessageReader::serializationReinit<DeserializerT, 0>(DeserializerT &_rd, const uint64 &_rv, ConnectionContext &){
-	bool 	rv = check_value_with_crc(current_message_type_id, current_message_type_id);
-	
-	if(!rv){
-		return serialization::binary::FailureE;
-	}
-	message_q.front().message_type_idx = current_message_type_id;
-	
-	_rd.pop();
-	
-	_rd.push(message_q.front().message_ptr, current_message_type_id, "message");
-	
-	
-	return serialization::binary::ContinueE;
-}
-//-----------------------------------------------------------------------------
 void MessageReader::doConsumePacket(
 	const char *_pbuf,
 	PacketHeader const &_packet_header,
@@ -155,8 +137,7 @@ void MessageReader::doConsumePacket(
 	
 	while(pbufpos < pbufend){
 		
-		bool canceled_message = false;
-		
+		bool 			canceled_message = false;
 		switch(crt_msg_type){
 			case PacketHeader::SwitchToNewMessageTypeE:
 				vdbgx(Debug::ipc, "SwitchToNewMessageTypeE "<<message_q.size());
@@ -175,8 +156,7 @@ void MessageReader::doConsumePacket(
 					message_q.front().deserializer_ptr.reset(new Deserializer(_ridmap));
 				}
 				
-				message_q.front().deserializer_ptr->pushReinit<MessageReader, 0>(this, 1, "message_type_id_reinit");
-				message_q.front().deserializer_ptr->pushCross(current_message_type_id, "message_type_id");
+				message_q.front().deserializer_ptr->push(message_q.front().message_ptr, "message");
 				
 				break;
 			case PacketHeader::SwitchToOldMessageTypeE:
@@ -216,21 +196,27 @@ void MessageReader::doConsumePacket(
 		}
 		
 		if(not canceled_message){
+			MessageStub		&rmsgstub = message_q.front();
 		
-			int rv = message_q.front().deserializer_ptr->run(pbufpos, pbufend - pbufpos, _rctx);
+			int				rv = rmsgstub.deserializer_ptr->run(pbufpos, pbufend - pbufpos, _rctx);
 			
 			if(rv > 0){
+				
 				pbufpos += rv;
-				if(message_q.front().deserializer_ptr->empty()){
+				
+				if(rmsgstub.deserializer_ptr->empty()){
+					
 					//done with the message
-					message_q.front().deserializer_ptr->clear();
+					rmsgstub.deserializer_ptr->clear();
+					
+					const size_t	message_type_id = rmsgstub.message_ptr.get() ? _ridmap.index(rmsgstub.message_ptr.get()) : InvalidIndex();
 					
 					//complete the message waiting for this response
-					_complete_fnc(MessageCompleteE, message_q.front().message_ptr, message_q.front().message_type_idx);
+					_complete_fnc(MessageCompleteE, rmsgstub.message_ptr, message_type_id);
 					
 					
 					message_q.front().message_ptr.clear();
-					message_q.front().message_type_idx = InvalidIndex();
+					//message_q.front().message_type_idx = InvalidIndex();
 				}
 			}else{
 				_rerror = message_q.front().deserializer_ptr->error();

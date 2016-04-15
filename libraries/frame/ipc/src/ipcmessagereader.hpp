@@ -55,8 +55,6 @@ public:
 	
 	void prepare(ReaderConfiguration const &_rconfig);
 	void unprepare();
-	template <class S, uint32 I>
-	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv, ConnectionContext &);
 private:
 	void doConsumePacket(
 		const char *_pbuf,
@@ -77,20 +75,20 @@ private:
 	struct MessageStub{
 		MessageStub(
 			MessagePointerT &_rmsgptr,
-			const size_t _msg_type_idx,
+// 			const size_t _msg_type_idx,
 			ulong _flags
-		): message_ptr(std::move(_rmsgptr)), message_type_idx(_msg_type_idx), packet_count(0){}
+		): message_ptr(std::move(_rmsgptr)), /*message_type_idx(_msg_type_idx),*/ packet_count(0){}
 		
-		MessageStub():message_type_idx(InvalidIndex()), packet_count(0){}
+		MessageStub():/*message_type_idx(InvalidIndex()), */packet_count(0){}
 		
 		void clear(){
 			deserializer_ptr = nullptr;
 			message_ptr.clear();
-			message_type_idx = InvalidIndex();
+// 			message_type_idx = InvalidIndex();
 		}
 		
 		MessagePointerT 		message_ptr;
-		size_t					message_type_idx;
+		//size_t					message_type_idx;
 		DeserializerPointerT	deserializer_ptr;
 		size_t					packet_count;
 	};
@@ -98,7 +96,7 @@ private:
 	typedef Queue<MessageStub>		MessageQueueT;
 	
 	States			state;
-	uint32			current_message_type_id;
+	uint64			current_message_type_id;
 	MessageQueueT	message_q;
 };
 

@@ -74,7 +74,7 @@ void splitTypeId(const uint64 _type_id, uint32 &_rprotocol_id, uint64 &_rmessage
 	_rmessage_id = (_type_id >> ((proto_byte_count + 1) * 8));
 }
 
-bool TypeIdMapBase::findMessageIndex(const uint64 &_rid, size_t &_rindex) const {
+bool TypeIdMapBase::findTypeIndex(const uint64 &_rid, size_t &_rindex) const {
 	auto it = msgidmap.find(_rid);
 	if(it != msgidmap.end()){
 		_rindex = it->second;
@@ -104,14 +104,14 @@ size_t TypeIdMapBase::doAllocateNewIndex(const size_t _protocol_id, uint64 &_rid
 			rv = InvalidIndex();
 			break;
 		}
-	}while(findMessageIndex(_rid, rv));
+	}while(findTypeIndex(_rid, rv));
 	return rv;
 }
 
-bool TypeIdMapBase::doFindMessageIndex(const size_t _protocol_id,  size_t _idx, uint64 &_rid) const {
+bool TypeIdMapBase::doFindTypeIndex(const size_t _protocol_id,  size_t _idx, uint64 &_rid) const {
 	if(joinTypeId(_rid, static_cast<uint32>(_protocol_id), _idx)){
 		size_t index;
-		return findMessageIndex(_rid, index);
+		return findTypeIndex(_rid, index);
 	}
 	return false;
 }
