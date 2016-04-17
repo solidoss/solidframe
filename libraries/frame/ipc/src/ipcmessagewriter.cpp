@@ -20,25 +20,8 @@ namespace solid{
 namespace frame{
 namespace ipc{
 //-----------------------------------------------------------------------------
-enum WriterFlags{
-	SynchronousMessageInSendingQueueFlag	= 1,
-	AsynchronousMessageInPendingQueueFlag	= 2,
-	DelayedCloseInPendingQueueFlag			= 4,
-};
-inline bool MessageWriter::isSynchronousInSendingQueue()const{
-	return (flags & SynchronousMessageInSendingQueueFlag) != 0;
-}
-inline bool MessageWriter::isAsynchronousInPendingQueue()const{
-	return (flags & AsynchronousMessageInPendingQueueFlag) != 0;
-}
-
-inline bool MessageWriter::isDelayedCloseInPendingQueue()const{
-	return (flags & DelayedCloseInPendingQueueFlag) != 0;
-}
-
-//-----------------------------------------------------------------------------
 MessageWriter::MessageWriter(
-):	current_message_type_id(InvalidIndex()), flags(0),
+):	current_message_type_id(InvalidIndex()),
 	order_inner_list(message_vec),
 	write_inner_list(message_vec), cache_inner_list(message_vec){
 }
@@ -130,7 +113,7 @@ bool MessageWriter::doCancel(
 	MessageBundle &_rmsgbundle,
 	MessageId &_rpool_msg_id
 ){
-	MessageStub		&rmsgstub = order_inner_list.front();
+	MessageStub		&rmsgstub = message_vec[_msgidx];
 	
 	if(Message::is_canceled(rmsgstub.msgbundle.message_flags)){
 		return false;//already canceled
@@ -280,11 +263,13 @@ char* MessageWriter::doFillPacket(
 	ConnectionContext &_rctx,
 	ErrorConditionT & _rerror
 ){
+	
 	char 					*pbufpos = _pbufbeg;
 	uint32					freesz = _pbufend - pbufpos;
 	
 	SerializerPointerT		tmp_serializer;
 	size_t					packet_message_count = 0;
+	
 	while(write_inner_list.size() and freesz >= MinimumFreePacketDataSize){
 		
 		const size_t			msgidx = write_inner_list.frontIndex();
@@ -293,8 +278,14 @@ char* MessageWriter::doFillPacket(
 		PacketHeader::Types		msgswitch;// = PacketHeader::ContinuedMessageTypeE;
 		
 		if(rmsgstub.isStop()){
-			//we need to stop
-			if(pbufpos == _pbufbeg){
+			
+			if(write_inner_list.size() > 1){
+				//there are other messages - reschedule this message
+				write_inner_list.popFront();
+				write_inner_list.pushBack(msgidx);
+				continue;
+			}else if(pbufpos == _pbufbeg){
+				//we can stop
 				_rerror = error_connection_delayed_closed;
 				pbufpos = nullptr;
 				write_inner_list.popFront();
@@ -316,7 +307,7 @@ char* MessageWriter::doFillPacket(
 		++packet_message_count;
 		
 		if(rmsgstub.isCanceled()){
-			//message already completed - just drop it write list
+			//message already completed - just drop it from write list
 			write_inner_list.erase(msgidx);
 			doUnprepareMessageStub(msgidx);
 			continue;
@@ -402,7 +393,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 		}
 		
 		vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
-	}else{
+	}else if(Message::is_asynchronous(rmsgstub.msgbundle.message_flags)){
 		//message not done - packet should be full
 		++rmsgstub.packet_count;
 		
@@ -412,6 +403,9 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 			write_inner_list.pushBack(_msgidx);
 			vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 		}
+	}else{
+		//Synchronous message
+		rmsgstub.packet_count = 1;
 	}
 }
 //-----------------------------------------------------------------------------

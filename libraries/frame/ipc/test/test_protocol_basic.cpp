@@ -223,9 +223,9 @@ int test_protocol_basic(int argc, char **argv){
 
 	frame::ipc::TestEntryway::initTypeMap<::Message>(ipctypemap, complete_message);
 	
-	const size_t					start_count = 1;
+	const size_t					start_count = 10;
 	
-	writecount = start_count;//10*initarraysize;//start_count;//
+	writecount = 10 * initarraysize;//start_count;//
 	
 	for(; crtwriteidx < start_count; ++crtwriteidx){
 		frame::ipc::MessageBundle	msgbundle;

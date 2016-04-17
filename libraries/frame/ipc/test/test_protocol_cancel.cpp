@@ -137,15 +137,16 @@ void complete_message(
 	}
 	if(_rmessage_ptr.get()){
 		size_t idx = static_cast<Message&>(*_rmessage_ptr).idx;
-		cassert((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_message_canceled));
+		if(crtreadidx){
+			//not the first message
+			cassert((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_message_canceled));
+		}
 		idbg(static_cast<Message&>(*_rmessage_ptr).str.size()<<' '<<_rerr.message());
 	}
 	if(_rresponse_ptr.get()){
 		if(not static_cast<Message&>(*_rresponse_ptr).check()){
 			THROW_EXCEPTION("Message check failed.");
 		}
-		size_t idx = static_cast<Message&>(*_rresponse_ptr).idx;
-		cassert(not initarray[idx % initarraysize].cancel);
 		
 		++crtreadidx;
 		
@@ -155,13 +156,19 @@ void complete_message(
 				
 				frame::ipc::MessageBundle	msgbundle;
 				frame::ipc::MessageId		pool_msg_id;
+				
 				bool rv = ctx.ipcmsgwriter->cancel(msguid, msgbundle, pool_msg_id);
 				
-				idbg("Cancel message "<<msguid<<" retval = "<<rv<<" msgdatasz = "<<static_cast<Message&>(*msgbundle.message_ptr).str.size());
-				//TODO: add more checking
+				if(rv){
+					idbg("Cancel message "<<msguid<<" retval = "<<rv<<" msgdatasz = "<<static_cast<Message&>(*msgbundle.message_ptr).str.size());
+				}else{
+					//TODO: add more checking
+				}
 			}
 		}else{
 			idbg(crtreadidx);
+			size_t idx = static_cast<Message&>(*_rresponse_ptr).idx;
+			cassert(not initarray[idx % initarraysize].cancel);
 		}
 	}
 }
@@ -209,7 +216,7 @@ int test_protocol_cancel(int argc, char **argv){
 	ctx.ipcmsgreader		= &ipcmsgreader;
 	ctx.ipcmsgwriter		= &ipcmsgwriter;
 	
-	ipcwriterconfig.max_message_count_multiplex = 6;
+	ipcwriterconfig.max_message_count_multiplex = 16;
 	
 	frame::ipc::TestEntryway::initTypeMap<::Message>(ipctypemap, complete_message);
 	
@@ -234,6 +241,7 @@ int test_protocol_cancel(int argc, char **argv){
 		message_uid_vec.push_back(writer_msg_id);
 		
 		idbg("enqueue rv = "<<rv<<" writer_msg_id = "<<writer_msg_id);
+		cassert(rv);
 		idbg(frame::ipc::MessageWriterPrintPairT(ipcmsgwriter, frame::ipc::MessageWriter::PrintInnerListsE));
 		
 		if(not initarray[crtwriteidx % initarraysize].cancel){
@@ -245,11 +253,14 @@ int test_protocol_cancel(int argc, char **argv){
 	
 	{
 		auto	reader_complete_lambda(
-			[](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT const& _rmsgptr, const size_t){
+			[&ipctypemap](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT & _rresponse_ptr, const size_t _message_type_id){
 				switch(_event){
-					case frame::ipc::MessageReader::MessageCompleteE:
-						idbg("complete message");
-						break;
+					case frame::ipc::MessageReader::MessageCompleteE:{
+						idbg("reader complete message");
+						frame::ipc::MessagePointerT		message_ptr;
+						ErrorConditionT					error;
+						ipctypemap[_message_type_id].complete_fnc(ipcconctx, message_ptr, _rresponse_ptr, error);
+					}break;
 					case frame::ipc::MessageReader::KeepaliveCompleteE:
 						idbg("complete keepalive");
 						break;
@@ -259,6 +270,7 @@ int test_protocol_cancel(int argc, char **argv){
 		
 		auto	writer_complete_lambda(
 			[&ipctypemap](frame::ipc::MessageBundle &_rmsgbundle, frame::ipc::MessageId const &_rmsgid){
+				idbg("writer complete message");
 				frame::ipc::MessagePointerT		response_ptr;
 				ErrorConditionT					error;
 				ipctypemap[_rmsgbundle.message_type_id].complete_fnc(ipcconctx, _rmsgbundle.message_ptr, response_ptr, error);

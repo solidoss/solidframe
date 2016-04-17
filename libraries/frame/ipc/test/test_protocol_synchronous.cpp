@@ -132,11 +132,14 @@ void complete_message(
 	}
 	
 	if(_rresponse_ptr.get()){
-	
+		
+		size_t msgidx = static_cast<Message&>(*_rresponse_ptr).idx;
+		
 		if(not static_cast<Message&>(*_rresponse_ptr).check()){
 			THROW_EXCEPTION("Message check failed.");
 		}
-		if(static_cast<Message&>(*_rresponse_ptr).idx != crtreadidx){
+		
+		if(msgidx != crtreadidx){
 			THROW_EXCEPTION("Message index invalid - SynchronousFlagE failed.");
 		}
 		
@@ -227,6 +230,7 @@ int test_protocol_synchronous(int argc, char **argv){
 		bool rv = ipcmsgwriter.enqueue(
 			ipcwriterconfig, msgbundle, pool_msg_id, writer_msg_id
 		);
+		cassert(rv);
 		idbg("enqueue rv = "<<rv<<" writer_msg_id = "<<writer_msg_id);
 		idbg(frame::ipc::MessageWriterPrintPairT(ipcmsgwriter, frame::ipc::MessageWriter::PrintInnerListsE));
 	}
@@ -234,11 +238,14 @@ int test_protocol_synchronous(int argc, char **argv){
 	
 	{
 		auto	reader_complete_lambda(
-			[](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT const& _rmsgptr, const size_t){
+			[&ipctypemap](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT & _rresponse_ptr, const size_t _message_type_id){
 				switch(_event){
-					case frame::ipc::MessageReader::MessageCompleteE:
-						idbg("complete message");
-						break;
+					case frame::ipc::MessageReader::MessageCompleteE:{
+						idbg("reader complete message");
+						frame::ipc::MessagePointerT		message_ptr;
+						ErrorConditionT					error;
+						ipctypemap[_message_type_id].complete_fnc(ipcconctx, message_ptr, _rresponse_ptr, error);
+					}break;
 					case frame::ipc::MessageReader::KeepaliveCompleteE:
 						idbg("complete keepalive");
 						break;
@@ -248,6 +255,7 @@ int test_protocol_synchronous(int argc, char **argv){
 		
 		auto	writer_complete_lambda(
 			[&ipctypemap](frame::ipc::MessageBundle &_rmsgbundle, frame::ipc::MessageId const &_rmsgid){
+				idbg("writer complete message");
 				frame::ipc::MessagePointerT		response_ptr;
 				ErrorConditionT					error;
 				ipctypemap[_rmsgbundle.message_type_id].complete_fnc(ipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
