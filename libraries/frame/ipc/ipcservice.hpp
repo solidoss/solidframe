@@ -104,6 +104,8 @@ struct MessageBundle;
 		
 		The order they will reach the peer side is:
 		m4_1MB, m3_10MB, m1_500MB, m2_100MB
+		or
+		m3_10MB, m4_1MB, m1_500MB, m2_100MB
 	
 */
 class Service: public Dynamic<Service, frame::Service>{
@@ -486,14 +488,22 @@ private:
 		}
 	};
 	
-	template <class F, class M>
+	template <class F, class SM, class RM>
 	struct CompleteProxy{
 		F	f;
+		
 		CompleteProxy(F _f):f(_f){}
 		
-		void operator()(ConnectionContext &_rctx, MessagePointerT &_rmsgptr, ErrorConditionT const &_err){
-			DynamicPointer<M>	msgptr(std::move(_rmsgptr));
-			f(_rctx, msgptr, _err);
+		void operator()(
+			ConnectionContext &_rctx,
+			MessagePointerT &_rsend_msg_ptr,
+			MessagePointerT &_rrecv_msg_ptr,
+			ErrorConditionT const &_err
+		){
+			DynamicPointer<SM>	send_msg_ptr(std::move(_rsend_msg_ptr));
+			DynamicPointer<RM>	recv_msg_ptr(std::move(_rrecv_msg_ptr));
+			
+			f(_rctx, send_msg_ptr, recv_msg_ptr, _err);
 		}
 	};
 	
@@ -520,22 +530,23 @@ private:
 		return rv;
 	}
 	
-	template <class T, class FactoryFnc, class ReceiveFnc/*, class PrepareFnc*/, class CompleteFnc>
+	template <class SM, class RM, class FactoryFnc/*, class ReceiveFnc, class PrepareFnc*/, class CompleteFnc>
 	size_t registerType(
-		FactoryFnc _facf, ReceiveFnc _rcvf/*, PrepareFnc _prepf*/,
+		FactoryFnc _facf/*, ReceiveFnc _rcvf, PrepareFnc _prepf*/,
 		CompleteFnc _cmpltf,
 		const size_t _protocol_id,
 		const size_t _idx = 0
 	){
 		TypeStub ts;
-		ts.complete_fnc = MessageCompleteFunctionT(CompleteProxy<CompleteFnc, T>(_cmpltf));
+		ts.complete_fnc = MessageCompleteFunctionT(CompleteProxy<CompleteFnc, SM, RM>(_cmpltf));
 		//ts.prepare_fnc = MessagePrepareFunctionT(PrepareProxy<PrepareFnc, T>(_prepf));
-		ts.complete_fnc = MessageReceiveFunctionT(ReceiveProxy<ReceiveFnc, T>(_rcvf));
+		//ts.complete_fnc = MessageReceiveFunctionT(ReceiveProxy<ReceiveFnc, T>(_rcvf));
 		size_t rv = tm.registerType<T>(
 			ts, Message::serialize<SerializerT, T>, Message::serialize<DeserializerT, T>, _facf,
 			_protocol_id, _idx
 		);
-		registerCast<T, ipc::Message>();
+		registerCast<SM, ipc::Message>();
+		registerCast<RM, ipc::Message>();
 		return rv;
 	}
 	
@@ -978,15 +989,18 @@ ErrorConditionT Service::connectionNotifyRecvSomeRawData(
 // ServiceProxy
 //-----------------------------------------------------------------------------
 struct ServiceProxy{
-	template <class T, class FactoryFnc, class CompleteFnc>
+	
+	template <class SendMessage, class RecvMessage, class FactoryFnc, class CompleteFnc>
 	size_t registerType(
 		FactoryFnc _facf,
 		CompleteFnc _cmpltf,
 		const size_t _protocol_id = 0,
 		const size_t _idx = 0
 	){
-		return rservice.registerType<T>(_facf, _cmpltf, _protocol_id, _idx);
+		return rservice.registerType<SendMessage, RecvMessage>(_facf, _cmpltf, _protocol_id, _idx);
 	}
+	
+#if 0
 	template <class T, class FactoryFnc>
 	size_t registerType(FactoryFnc _facf,
 		const size_t _protocol_id = 0,
@@ -994,6 +1008,7 @@ struct ServiceProxy{
 	){
 		return rservice.registerType<T>(_facf, _protocol_id, _idx);
 	}
+#endif
 private:
 	friend class Service;
 	friend class Configuration;

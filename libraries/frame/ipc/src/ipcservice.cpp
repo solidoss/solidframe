@@ -1935,11 +1935,11 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 }
 //-----------------------------------------------------------------------------
 void Service::onIncomingConnectionStart(ConnectionContext &_rconctx){
-	configuration().connection_incoming_start_fnc(_rconctx);
+	configuration().connection_start_incoming_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------
 void Service::onOutgoingConnectionStart(ConnectionContext &_rconctx){
-	configuration().connection_outgoing_start_fnc(_rconctx);
+	configuration().connection_start_outgoing_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------
 void Service::onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_rerror){

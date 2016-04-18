@@ -1300,15 +1300,15 @@ void Connection::doCompleteMessage(
 	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 	//const Configuration &rconfig  = service(_rctx).configuration();
 	
-	MessagePointerT		dummy_response_ptr;
+	MessagePointerT		dummy_recv_msg_ptr;
 	
 	conctx.message_flags = _rmsg_bundle.message_flags;
 	conctx.message_id = _rpool_msg_id;
 	
 	if(not FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)){
-		_rmsg_bundle.complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_response_ptr, _rerror);
+		_rmsg_bundle.complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
 	}else{
-		rtypemap[_rmsg_bundle.message_type_id].complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_response_ptr, _rerror);
+		rtypemap[_rmsg_bundle.message_type_id].complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
 	}
 }
 //-----------------------------------------------------------------------------

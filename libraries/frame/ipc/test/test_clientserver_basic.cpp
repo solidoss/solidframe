@@ -153,7 +153,8 @@ void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	_rctx.service().postConnectionActivate(_rctx.recipientId());
+	//TODO:
+	//_rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId());
 }
 
 void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
@@ -162,80 +163,90 @@ void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	_rctx.service().postConnectionActivate(_rctx.recipientId());
+	//TODO:
+	//_rctx.service().postConnectionActivate(_rctx.recipientId());
 }
 
 
-void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
+void client_complete_message(
+	frame::ipc::ConnectionContext &_rctx,
+	DynamicPointer<Message> &_rsent_msg_ptr, DynamicPointer<Message> &_rrecv_msg_ptr,
+	ErrorConditionT const &_rerror
+){
 	idbg(_rctx.recipientId());
 	
-	if(not _rmsgptr->check()){
-		THROW_EXCEPTION("Message check failed.");
+	if(_rsent_msg_ptr.get()){
+		if(!_rerror){
+			++crtackidx;
+		}
 	}
-	
-	//cout<< _rmsgptr->str.size()<<'\n';
-	transfered_size += _rmsgptr->str.size();
-	++transfered_count;
-	
-	if(!_rmsgptr->isBackOnSender()){
-		THROW_EXCEPTION("Message not back on sender!.");
-	}
-	
-	++crtbackidx;
-	
-	if(crtbackidx == writecount){
-		Locker<Mutex> lock(mtx);
-		running = false;
-		cnd.signal();
-	}
-}
-
-void client_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.recipientId());
-	if(!_rerr){
-		++crtackidx;
-	}
-}
-
-void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
-	idbg(_rctx.recipientId()<<" message id on sender "<<_rmsgptr->requestId());
-	if(not _rmsgptr->check()){
-		THROW_EXCEPTION("Message check failed.");
-	}
-	
-	if(!_rmsgptr->isOnPeer()){
-		THROW_EXCEPTION("Message not on peer!.");
-	}
-	
-	//send message back
-	if(_rctx.recipientId().isInvalidConnection()){
-		THROW_EXCEPTION("Connection id should not be invalid!");
-	}
-	ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rmsgptr));
-	
-	if(err){
-		THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
-	}
-	
-	++crtreadidx;
-	idbg(crtreadidx);
-	if(crtwriteidx < writecount){
-		frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
-		++crtwriteidx;
-		err = pipcclient->sendMessage(
-			"localhost:6666", msgptr,
-			initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
-		);
-		if(err){
-			THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+	if(_rrecv_msg_ptr.get()){
+		if(not _rrecv_msg_ptr->check()){
+			THROW_EXCEPTION("Message check failed.");
+		}
+		
+		//cout<< _rmsgptr->str.size()<<'\n';
+		transfered_size += _rrecv_msg_ptr->str.size();
+		++transfered_count;
+		
+		if(!_rrecv_msg_ptr->isBackOnSender()){
+			THROW_EXCEPTION("Message not back on sender!.");
+		}
+		
+		++crtbackidx;
+		
+		if(crtbackidx == writecount){
+			Locker<Mutex> lock(mtx);
+			running = false;
+			cnd.signal();
 		}
 	}
 }
 
-void server_complete_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr, ErrorConditionT const &_rerr){
-	idbg(_rctx.recipientId());
+void server_complete_message(
+	frame::ipc::ConnectionContext &_rctx,
+	DynamicPointer<Message> &_rsent_msg_ptr, DynamicPointer<Message> &_rrecv_msg_ptr,
+	ErrorConditionT const &_rerror
+){
+	if(_rrecv_msg_ptr.get()){
+		idbg(_rctx.recipientId()<<" received message with id on sender "<<_rrecv_msg_ptr->requestId());
+		
+		if(not _rrecv_msg_ptr->check()){
+			THROW_EXCEPTION("Message check failed.");
+		}
+		
+		if(!_rrecv_msg_ptr->isOnPeer()){
+			THROW_EXCEPTION("Message not on peer!.");
+		}
+		
+		//send message back
+		if(_rctx.recipientId().isInvalidConnection()){
+			THROW_EXCEPTION("Connection id should not be invalid!");
+		}
+		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+		
+		if(err){
+			THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+		}
+		
+		++crtreadidx;
+		idbg(crtreadidx);
+		if(crtwriteidx < writecount){
+			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
+			++crtwriteidx;
+			err = pipcclient->sendMessage(
+				"localhost", msgptr,
+				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
+			);
+			if(err){
+				THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+			}
+		}
+	}
+	if(_rsent_msg_ptr.get()){
+		idbg(_rctx.recipientId()<<" done sent message "<<_rsent_msg_ptr.get());
+	}
 }
-
 
 }//namespace
 
@@ -277,6 +288,7 @@ int test_clientserver_basic(int argc, char **argv){
 			max_per_pool_connection_count = 100;
 		}
 	}
+	
 	for(int j = 0; j < 1; ++j){
 		for(int i = 0; i < 127; ++i){
 			int c = (i + j) % 127;
@@ -331,46 +343,16 @@ int test_clientserver_basic(int argc, char **argv){
 			return 1;
 		}
 		
-		
-		{//ipc client initialization
-			frame::ipc::Configuration	cfg(sch_client);
-			
-			cfg.protocolCallback(
-				[&ipcclient](frame::ipc::ServiceProxy& _rsp){
-					_rsp.registerType<Message>(
-						serialization::basic_factory<Message>,
-						client_receive_message, client_complete_message
-					);
-				}
-			);
-			
-			//cfg.recv_buffer_capacity = 1024;
-			//cfg.send_buffer_capacity = 1024;
-			
-			cfg.connection_stop_fnc = client_connection_stop;
-			cfg.outgoing_connection_start_fnc = client_connection_start;
-			
-			cfg.max_per_pool_connection_count = max_per_pool_connection_count;
-			
-			cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, "6666"/*, SocketInfo::Inet4*/);
-			
-			err = ipcclient.reconfigure(cfg);
-			
-			if(err){
-				edbg("starting client ipcservice: "<<err.message());
-				Thread::waitAll();
-				return 1;
-			}
-		}
+		std::string		server_port;
 		
 		{//ipc server initialization
 			frame::ipc::Configuration	cfg(sch_server);
 			
 			cfg.protocolCallback(
 				[&ipcserver](frame::ipc::ServiceProxy& _rsp){
-					_rsp.registerType<Message>(
+					_rsp.registerType<Message, Message>(
 						serialization::basic_factory<Message>,
-						server_receive_message, server_complete_message
+						server_complete_message
 					);
 				}
 			);
@@ -379,14 +361,52 @@ int test_clientserver_basic(int argc, char **argv){
 			//cfg.send_buffer_capacity = 1024;
 			
 			cfg.connection_stop_fnc = server_connection_stop;
-			cfg.incoming_connection_start_fnc = server_connection_start;
+			cfg.connection_start_incoming_fnc = server_connection_start;
 			
-			cfg.listen_address_str = "0.0.0.0:6666";
+			cfg.listener_address_str = "0.0.0.0:0";
 			
-			err = ipcserver.reconfigure(cfg);
+			err = ipcserver.reconfigure(std::move(cfg));
 			
 			if(err){
 				edbg("starting server ipcservice: "<<err.message());
+				Thread::waitAll();
+				return 1;
+			}
+			
+			{
+				std::ostringstream oss;
+				oss<<ipcserver.configuration().listenerPort();
+				server_port = oss.str();
+				idbg("server listens on port: "<<server_port);
+			}
+		}
+		
+		{//ipc client initialization
+			frame::ipc::Configuration	cfg(sch_client);
+			
+			cfg.protocolCallback(
+				[&ipcclient](frame::ipc::ServiceProxy& _rsp){
+					_rsp.registerType<Message, Message>(
+						serialization::basic_factory<Message>,
+						client_complete_message
+					);
+				}
+			);
+			
+			//cfg.recv_buffer_capacity = 1024;
+			//cfg.send_buffer_capacity = 1024;
+			
+			cfg.connection_stop_fnc = client_connection_stop;
+			cfg.connection_start_outgoing_fnc = client_connection_start;
+			
+			cfg.pool_max_active_connection_count = max_per_pool_connection_count;
+			
+			cfg.name_resolve_fnc = frame::ipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
+			
+			err = ipcclient.reconfigure(std::move(cfg));
+			
+			if(err){
+				edbg("starting client ipcservice: "<<err.message());
 				Thread::waitAll();
 				return 1;
 			}
@@ -394,15 +414,15 @@ int test_clientserver_basic(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
-		const size_t		start_count = 10;
+		const size_t		start_count = 1;//10;
 		
-		writecount = initarraysize * 30;//start_count;//
+		writecount = start_count;//initarraysize * 30;//
 		
 		for(; crtwriteidx < start_count;){
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
 			++crtwriteidx;
 			ipcclient.sendMessage(
-				"localhost:6666", msgptr,
+				"localhost", msgptr,
 				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
 			);
 		}

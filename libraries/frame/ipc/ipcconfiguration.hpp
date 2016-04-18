@@ -180,8 +180,8 @@ public:
 	MessageRegisterFunctionT			message_register_fnc;
 	AsyncResolveFunctionT				name_resolve_fnc;
 	
-	ConnectionStartFunctionT			connection_incoming_start_fnc;
-	ConnectionStartFunctionT			connection_outgoing_start_fnc;
+	ConnectionStartFunctionT			connection_start_incoming_fnc;
+	ConnectionStartFunctionT			connection_start_outgoing_fnc;
 	ConnectionStopFunctionT				connection_stop_fnc;
 	ConnectionOnEventFunctionT			connection_on_event_fnc;
 	
