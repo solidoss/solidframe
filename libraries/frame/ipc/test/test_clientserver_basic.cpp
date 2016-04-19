@@ -153,8 +153,11 @@ void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	//TODO:
-	//_rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId());
+	auto lambda =  [](frame::ipc::ConnectionContext&, ErrorConditionT const& _rerror){
+		idbg("enter active error: "<<_rerror.message());
+		return frame::ipc::MessagePointerT();
+	};
+	_rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
 }
 
 void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
@@ -163,8 +166,11 @@ void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	//TODO:
-	//_rctx.service().postConnectionActivate(_rctx.recipientId());
+	auto lambda =  [](frame::ipc::ConnectionContext&, ErrorConditionT const& _rerror){
+		idbg("enter active error: "<<_rerror.message());
+		return frame::ipc::MessagePointerT();
+	};
+	_rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
 }
 
 
@@ -350,7 +356,7 @@ int test_clientserver_basic(int argc, char **argv){
 			
 			cfg.protocolCallback(
 				[&ipcserver](frame::ipc::ServiceProxy& _rsp){
-					_rsp.registerType<Message, Message>(
+					_rsp.registerType<Message>(
 						serialization::basic_factory<Message>,
 						server_complete_message
 					);
@@ -386,7 +392,7 @@ int test_clientserver_basic(int argc, char **argv){
 			
 			cfg.protocolCallback(
 				[&ipcclient](frame::ipc::ServiceProxy& _rsp){
-					_rsp.registerType<Message, Message>(
+					_rsp.registerType<Message>(
 						serialization::basic_factory<Message>,
 						client_complete_message
 					);

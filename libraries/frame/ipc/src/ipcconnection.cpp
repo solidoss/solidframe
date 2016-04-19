@@ -237,7 +237,7 @@ Connection::~Connection(){
 }
 //-----------------------------------------------------------------------------
 bool Connection::isFull(Configuration const& _rconfiguration)const{
-	return true;
+	return msg_writer.full(_rconfiguration.writer);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isInPoolWaitingQueue() const{
@@ -776,7 +776,7 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext &_rct
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
-	idbgx(Debug::ipc, this);
+	//idbgx(Debug::ipc, this);
 	
 	ConnectionContext	conctx(service(_rctx), *this);
 	EnterActive			*pdata = _revent.any().cast<EnterActive>();
@@ -795,6 +795,11 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Eve
 				if(not msg_ptr.empty()){
 					//TODO: push message to writer
 				}
+			}
+			
+			if(not isServer()){
+				//poll pool only for clients
+				flags |= static_cast<size_t>(Flags::PollPool);
 			}
 			
 			this->post(
@@ -832,8 +837,6 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext &_rctx, Ev
 	
 	EnterPassive		*pdata = _revent.any().cast<EnterPassive>();
 	ConnectionContext	conctx(service(_rctx), *this);
-	
-	cassert(pdata);
 	
 	if(this->isRawState()){
 		flags &= ~static_cast<size_t>(Flags::Raw);
@@ -1238,7 +1241,9 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
+	
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	
 	if(!_rctx.error()){
 		rthis.doResetTimerSend(_rctx);
 		rthis.doSend(_rctx);
@@ -1249,7 +1254,9 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
+	
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	
 	if(!_rctx.error()){
 		idbgx(Debug::ipc, &rthis<<' '<<rthis.id());
 		rthis.doStart(_rctx, false);

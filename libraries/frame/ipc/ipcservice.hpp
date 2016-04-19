@@ -34,26 +34,26 @@ struct message_complete_traits;
 
 template <class Req, class Res>
 struct message_complete_traits<void(*)(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&)>{
-	typedef Req request_type;
-	typedef Res response_type;
+	typedef Req send_type;
+	typedef Res recv_type;
 };
 
 template <class Req, class Res>
 struct message_complete_traits<void(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&)>{
-	typedef Req request_type;
-	typedef Res response_type;
+	typedef Req send_type;
+	typedef Res recv_type;
 };
 
 template <class C, class Req, class Res>
 struct message_complete_traits<void(C::*)(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&)>{
-	typedef Req request_type;
-	typedef Res response_type;
+	typedef Req send_type;
+	typedef Res recv_type;
 };
 
 template <class C, class Req, class Res>
 struct message_complete_traits<void(C::*)(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&) const>{
-	typedef Req request_type;
-	typedef Res response_type;
+	typedef Req send_type;
+	typedef Res recv_type;
 };
 
 template <class C, class R>
@@ -65,8 +65,8 @@ struct message_complete_traits{
 private:
 	using call_type = message_complete_traits<decltype(&F::operator())>;
 public:
-	using request_type  = typename call_type::request_type;
-	using response_type = typename call_type::response_type;
+	using send_type = typename call_type::send_type;
+	using recv_type = typename call_type::recv_type;
 };
 
 struct Message;
@@ -245,7 +245,7 @@ public:
 		MessageId &_rmsguid,
 		ulong _flags = 0
 	);
-	// send message with complete using recipient name -------------------------------
+	// send message with complete using recipient name ------------------------
 	
 	template <class T, class Fnc>
 	ErrorConditionT sendMessage(
@@ -274,8 +274,7 @@ public:
 		ulong _flags = 0
 	);
 	
-	// send message with complete using connection uid --------------------------------------
-	
+	// send message with complete using connection uid ------------------------
 	template <class T, class Fnc>
 	ErrorConditionT sendMessage(
 		RecipientId const &_rrecipient_id,
@@ -293,7 +292,7 @@ public:
 		ulong _flags = 0
 	);
 	
-	//----------------------
+	//-------------------------------------------------------------------------
 	template <typename F>
 	ErrorConditionT forceCloseConnectionPool(
 		RecipientId const &_rrecipient_id,
@@ -530,23 +529,28 @@ private:
 		return rv;
 	}
 	
-	template <class SM, class RM, class FactoryFnc/*, class ReceiveFnc, class PrepareFnc*/, class CompleteFnc>
+	template <class Msg, class FactoryFnc/*, class ReceiveFnc, class PrepareFnc*/, class CompleteFnc>
 	size_t registerType(
-		FactoryFnc _facf/*, ReceiveFnc _rcvf, PrepareFnc _prepf*/,
-		CompleteFnc _cmpltf,
+		FactoryFnc _factory_fnc/*, ReceiveFnc _rcvf, PrepareFnc _prepf*/,
+		CompleteFnc _complete_fnc,
 		const size_t _protocol_id,
 		const size_t _idx = 0
 	){
 		TypeStub ts;
-		ts.complete_fnc = MessageCompleteFunctionT(CompleteProxy<CompleteFnc, SM, RM>(_cmpltf));
-		//ts.prepare_fnc = MessagePrepareFunctionT(PrepareProxy<PrepareFnc, T>(_prepf));
-		//ts.complete_fnc = MessageReceiveFunctionT(ReceiveProxy<ReceiveFnc, T>(_rcvf));
-		size_t rv = tm.registerType<T>(
-			ts, Message::serialize<SerializerT, T>, Message::serialize<DeserializerT, T>, _facf,
+		
+		using CompleteHandlerT = CompleteHandler<
+			CompleteFnc,
+			typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+			typename message_complete_traits<decltype(_complete_fnc)>::recv_type
+		>;
+		
+		ts.complete_fnc = MessageCompleteFunctionT(CompleteHandlerT(_complete_fnc));
+		
+		size_t rv = tm.registerType<Msg>(
+			ts, Message::serialize<SerializerT, Msg>, Message::serialize<DeserializerT, Msg>, _factory_fnc,
 			_protocol_id, _idx
 		);
-		registerCast<SM, ipc::Message>();
-		registerCast<RM, ipc::Message>();
+		registerCast<Msg, ipc::Message>();
 		return rv;
 	}
 	
@@ -626,7 +630,7 @@ private:
 	TypeIdMapT		tm;
 };
 
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
@@ -638,7 +642,7 @@ ErrorConditionT Service::sendMessage(
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
@@ -651,7 +655,7 @@ ErrorConditionT Service::sendMessage(
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
@@ -665,7 +669,6 @@ ErrorConditionT Service::sendMessage(
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsg_id, _flags);
 }
-//-----------------------------------------------------------------------------
 // send message using connection uid  -------------------------------------
 template <class T>
 ErrorConditionT Service::sendMessage(
@@ -677,7 +680,7 @@ ErrorConditionT Service::sendMessage(
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T>
 ErrorConditionT Service::sendMessage(
 	RecipientId const &_rrecipient_id,
@@ -689,8 +692,8 @@ ErrorConditionT Service::sendMessage(
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsg_id, _flags);
 }
-//-----------------------------------------------------------------------------
-// send request using recipient name ------------------------------------------
+//-------------------------------------------------------------------------
+// send request using recipient name --------------------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	const char *_recipient_name,
@@ -700,8 +703,8 @@ ErrorConditionT Service::sendRequest(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -711,7 +714,7 @@ ErrorConditionT Service::sendRequest(
 	
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	const char *_recipient_name,
@@ -722,8 +725,8 @@ ErrorConditionT Service::sendRequest(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -733,7 +736,7 @@ ErrorConditionT Service::sendRequest(
 	
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags | Message::WaitResponseFlagE);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	const char *_recipient_name,
@@ -745,8 +748,8 @@ ErrorConditionT Service::sendRequest(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -756,9 +759,8 @@ ErrorConditionT Service::sendRequest(
 	
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsguid, _flags | Message::WaitResponseFlagE);
 }
-
-//-----------------------------------------------------------------------------
-// send request using connection uid ------------------------------------------
+//-------------------------------------------------------------------------
+// send request using connection uid --------------------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	RecipientId const &_rrecipient_id,
@@ -768,8 +770,8 @@ ErrorConditionT Service::sendRequest(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -778,7 +780,7 @@ ErrorConditionT Service::sendRequest(
 	
 	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	RecipientId const &_rrecipient_id,
@@ -789,8 +791,8 @@ ErrorConditionT Service::sendRequest(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -799,9 +801,8 @@ ErrorConditionT Service::sendRequest(
 	
 	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags | Message::WaitResponseFlagE);
 }
-
-//-----------------------------------------------------------------------------
-// send message with complete using recipient name ----------------------------
+//-------------------------------------------------------------------------
+// send message with complete using recipient name ------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
@@ -811,8 +812,8 @@ ErrorConditionT Service::sendMessage(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -822,7 +823,7 @@ ErrorConditionT Service::sendMessage(
 	
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
@@ -833,8 +834,8 @@ ErrorConditionT Service::sendMessage(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -844,7 +845,7 @@ ErrorConditionT Service::sendMessage(
 	
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
@@ -856,8 +857,8 @@ ErrorConditionT Service::sendMessage(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -867,8 +868,8 @@ ErrorConditionT Service::sendMessage(
 	
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsguid, _flags);
 }
-//-----------------------------------------------------------------------------
-// send message with complete using connection uid ----------------------------
+//-------------------------------------------------------------------------
+// send message with complete using connection uid ------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	RecipientId const &_rrecipient_id,
@@ -878,8 +879,8 @@ ErrorConditionT Service::sendMessage(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -888,7 +889,7 @@ ErrorConditionT Service::sendMessage(
 	
 	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	RecipientId const &_rrecipient_id,
@@ -899,8 +900,8 @@ ErrorConditionT Service::sendMessage(
 ){
 	using CompleteHandlerT = CompleteHandler<
 		Fnc,
-		typename message_complete_traits<decltype(_complete_fnc)>::request_type,
-		typename message_complete_traits<decltype(_complete_fnc)>::response_type
+		typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
 	MessagePointerT				msgptr(_rmsgptr);
@@ -909,8 +910,7 @@ ErrorConditionT Service::sendMessage(
 	
 	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags);
 }
-
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <typename F>
 ErrorConditionT Service::forceCloseConnectionPool(
 	RecipientId const &_rrecipient_id,
@@ -923,7 +923,7 @@ ErrorConditionT Service::forceCloseConnectionPool(
 	MessageCompleteFunctionT	complete_handler(fnc);
 	return doForceCloseConnectionPool(_rrecipient_id, complete_handler);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <typename F>
 ErrorConditionT Service::delayCloseConnectionPool(
 	RecipientId const &_rrecipient_id,
@@ -936,8 +936,7 @@ ErrorConditionT Service::delayCloseConnectionPool(
 	MessageCompleteFunctionT	complete_handler(fnc);
 	return doDelayCloseConnectionPool(_rrecipient_id, complete_handler);
 }
-
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class CompleteFnc>
 ErrorConditionT Service::connectionNotifyEnterActiveState(
 	RecipientId const &_rrecipient_id,
@@ -947,7 +946,7 @@ ErrorConditionT Service::connectionNotifyEnterActiveState(
 	ConnectionEnterActiveCompleteFunctionT	complete_fnc(_complete_fnc);
 	return doConnectionNotifyEnterActiveState(_rrecipient_id, std::move(complete_fnc), _send_buffer_capacity);
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class CompleteFnc>
 ErrorConditionT Service::connectionNotifyStartSecureHandshake(
 	RecipientId const &_rrecipient_id,
@@ -956,7 +955,7 @@ ErrorConditionT Service::connectionNotifyStartSecureHandshake(
 	ConnectionSecureHandhakeCompleteFunctionT	complete_fnc(_complete_fnc);
 	return doConnectionNotifyStartSecureHandshake(_rrecipient_id, std::move(complete_fnc));
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class CompleteFnc>
 ErrorConditionT Service::connectionNotifyEnterPassiveState(
 	RecipientId const &_rrecipient_id,
@@ -965,7 +964,7 @@ ErrorConditionT Service::connectionNotifyEnterPassiveState(
 	ConnectionEnterPassiveCompleteFunctionT	complete_fnc(_complete_fnc);
 	return doConnectionNotifyEnterPassiveState(_rrecipient_id, std::move(complete_fnc));
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class CompleteFnc>
 ErrorConditionT Service::connectionNotifySendAllRawData(
 	RecipientId const &_rrecipient_id,
@@ -975,7 +974,7 @@ ErrorConditionT Service::connectionNotifySendAllRawData(
 	ConnectionSendRawDataCompleteFunctionT	complete_fnc(_complete_fnc);
 	return doConnectionNotifySendRawData(_rrecipient_id, std::move(complete_fnc), std::move(_rdata));
 }
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 template <class CompleteFnc>
 ErrorConditionT Service::connectionNotifyRecvSomeRawData(
 	RecipientId const &_rrecipient_id,
@@ -984,20 +983,19 @@ ErrorConditionT Service::connectionNotifyRecvSomeRawData(
 	ConnectionRecvRawDataCompleteFunctionT	complete_fnc(_complete_fnc);
 	return doConnectionNotifyRecvRawData(_rrecipient_id, std::move(complete_fnc));
 }
-
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 // ServiceProxy
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 struct ServiceProxy{
 	
-	template <class SendMessage, class RecvMessage, class FactoryFnc, class CompleteFnc>
+	template <class Msg, class FactoryFnc, class CompleteFnc>
 	size_t registerType(
 		FactoryFnc _facf,
 		CompleteFnc _cmpltf,
 		const size_t _protocol_id = 0,
 		const size_t _idx = 0
 	){
-		return rservice.registerType<SendMessage, RecvMessage>(_facf, _cmpltf, _protocol_id, _idx);
+		return rservice.registerType<Msg>(_facf, _cmpltf, _protocol_id, _idx);
 	}
 	
 #if 0

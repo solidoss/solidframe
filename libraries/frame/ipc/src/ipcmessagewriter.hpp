@@ -86,6 +86,8 @@ public:
 	
 	bool empty()const;
 	
+	bool full(WriterConfiguration const &_rconfig)const;
+	
 	void prepare(WriterConfiguration const &_rconfig);
 	void unprepare();
 	

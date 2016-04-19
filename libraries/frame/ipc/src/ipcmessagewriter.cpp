@@ -36,6 +36,10 @@ void MessageWriter::unprepare(){
 	
 }
 //-----------------------------------------------------------------------------
+bool MessageWriter::full(WriterConfiguration const &_rconfig)const{
+	return write_inner_list.size() >= _rconfig.max_message_count_multiplex;
+}
+//-----------------------------------------------------------------------------
 bool MessageWriter::enqueue(
 	WriterConfiguration const &_rconfig,
 	MessageBundle &_rmsgbundle,
@@ -54,9 +58,9 @@ bool MessageWriter::enqueue(
 		return false;
 	}
 	
-	//creal all disrupting flags
+	//clear all disrupting flags
 	_rmsgbundle.message_flags &= ~Message::StartedSendFlagE;
-	_rmsgbundle.message_flags &= ~Message::WaitResponseFlagE;
+	_rmsgbundle.message_flags &= ~Message::DoneSendFlagE;
 	
 	size_t		idx;
 	

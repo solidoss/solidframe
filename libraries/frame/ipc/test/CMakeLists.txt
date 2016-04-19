@@ -51,6 +51,8 @@ target_link_libraries(test_ipc_clientserver
 	solid_serialization
 	solid_utility
 	solid_system
+	${OPENSSL_LIBS}
+	${SYS_DYNAMIC_LOAD_LIB}
 	${SYS_BASIC_LIBS}
 )
 
