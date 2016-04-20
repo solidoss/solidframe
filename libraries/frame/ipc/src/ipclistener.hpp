@@ -33,11 +33,8 @@ class Listener: public Dynamic<Listener, frame::aio::Object>{
 public:
 	Listener(
 		SocketDevice &_rsd
-	):
-		sock(this->proxy(), std::move(_rsd)), timer(this->proxy())
-	{}
-	~Listener(){
-	}
+	);
+	~Listener();
 private:
 	Service& service(frame::aio::ReactorContext &_rctx);
 	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;

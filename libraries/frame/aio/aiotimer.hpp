@@ -89,11 +89,13 @@ public:
 		doClear(_rctx);
 	}
 	void cancel(ReactorContext &_rctx){
-		if(FUNCTION_EMPTY(f)){
+		if(not FUNCTION_EMPTY(f)){
+			remTimer(_rctx, storeidx);
 			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
 			doExec(_rctx);
+		}else{
+			doClear(_rctx);
 		}
-		doClear(_rctx);
 	}
 private:
 	friend class Reactor;

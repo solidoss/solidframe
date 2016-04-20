@@ -276,7 +276,7 @@ int test_clientserver_basic(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:view frame_aio:iew any:view");
+	Debug::the().moduleMask("frame_ipc:view any:view");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -420,9 +420,9 @@ int test_clientserver_basic(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
-		const size_t		start_count = 1;//10;
+		const size_t		start_count = 10;
 		
-		writecount = start_count;//initarraysize * 30;//
+		writecount = initarraysize * 10;//start_count;//
 		
 		for(; crtwriteidx < start_count;){
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));

@@ -229,6 +229,7 @@ Connection::Connection(
 	recv_buf(nullptr), send_buf(nullptr),
 	recv_buf_cp_kb(0), send_buf_cp_kb(0)
 {
+	idbgx(Debug::ipc, this);
 	//TODO: use _rconfiguration.connection_start_state and _rconfiguration.connection_start_secure
 }
 //-----------------------------------------------------------------------------
@@ -361,6 +362,9 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
 	
 	if(not isStopping()){
+		
+		idbgx(Debug::ipc, this<<' '<<this->id()<<"");
+		
 		flags |= static_cast<size_t>(Flags::Stopping);
 		
 		ErrorConditionT		error(_rerr);
@@ -385,6 +389,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		
 		
 		if(can_stop and has_no_message){
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" postStop");
 			//can stop rightaway
 			postStop(_rctx, 
 				[error](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
@@ -394,6 +399,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 			);	//there might be events pending which will be delivered, but after this call
 				//no event get posted
 		}else if(has_no_message){
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait "<<seconds_to_wait<<" seconds");
 			if(seconds_to_wait){
 				timer.waitFor(_rctx,
 					TimeSpec(seconds_to_wait),
@@ -412,6 +418,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 				);
 			}
 		}else{
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" post message cleanup");
 			size_t		offset = 0;
 			post(_rctx,
 				 [error, seconds_to_wait, can_stop, offset](frame::aio::ReactorContext &_rctx, Event &&_revent){
@@ -503,6 +510,8 @@ void Connection::doContinueStopping(
 	ErrorConditionT const &_rerr,
 	const Event &_revent
 ){
+	
+	idbgx(Debug::ipc, this<<' '<<this->id()<<"");
 	
 	ErrorConditionT		error(_rerr);
 	ObjectIdT			objuid(uid(_rctx));
@@ -645,6 +654,7 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 			{
 				connection_event_category.event(ConnectionEvents::Stopping),
 				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					idbgx(Debug::ipc, &_rcon<<' '<<_rcon.id()<<" cancel timer");
 					//NOTE: we're trying this way to preserve the
 					//error condition (for which the connection is stopping)
 					//held by the timer callback
@@ -675,7 +685,6 @@ void Connection::doHandleEventKill(
 	frame::aio::ReactorContext &_rctx,
 	Event &_revent
 ){
-	idbgx(Debug::ipc, this<<' '<<this->id()<<" Session postStop");
 	doStop(_rctx, error_connection_killed);
 }
 //-----------------------------------------------------------------------------

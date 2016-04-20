@@ -92,6 +92,7 @@ Configuration::Configuration(
 	
 	pool_max_active_connection_count = 1;
 	pool_max_pending_connection_count = 1;
+	pool_max_message_queue_size = 1024;
 	
 	listener_port = -1;
 }

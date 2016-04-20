@@ -1480,6 +1480,8 @@ bool Service::doNonMainConnectionStopping(
 	Event &/*_revent_context*/
 ){
 	
+	idbgx(Debug::ipc, this<<' '<<&_rcon);
+	
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
@@ -1516,6 +1518,8 @@ bool Service::doMainConnectionStoppingNotLast(
 	Event &/*_revent_context*/
 ){
 	
+	idbgx(Debug::ipc, this<<' '<<&_rcon);
+	
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
@@ -1538,6 +1542,9 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 	MessageBundle &_rmsg_bundle,
 	Event &_revent_context
 ){
+	
+	idbgx(Debug::ipc, this<<' '<<&_rcon);
+	
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
@@ -1585,6 +1592,8 @@ bool Service::doMainConnectionStoppingCleanAll(
 	Event &/*_revent_context*/
 ){
 	
+	idbgx(Debug::ipc, this<<' '<<&_rcon);
+	
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
@@ -1610,6 +1619,8 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 	MessageBundle &/*_rmsg_bundle*/,
 	Event &_revent_context
 ){
+	
+	idbgx(Debug::ipc, this<<' '<<&_rcon);
 	
 	//the last connection
 	const size_t 			pool_index = _rcon.poolId().index;
@@ -1638,6 +1649,8 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
 	Event &/*_revent_context*/
 ){
 	
+	idbgx(Debug::ipc, this<<' '<<&_rcon);
+	
 	//the last connection - fast closing or server side
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
@@ -1657,6 +1670,8 @@ bool Service::doMainConnectionRestarting(
 	MessageBundle &/*_rmsg_bundle*/,
 	Event &/*_revent_context*/
 ){
+	
+	idbgx(Debug::ipc, this<<' '<<&_rcon);
 	
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);

@@ -123,7 +123,7 @@ class Service: public Dynamic<Service, frame::Service>{
 			ErrorConditionT const &_err
 		){
 			Req					*prequest = dynamic_cast<Req*>(_rreq_msg_ptr.get());
-			DynamicPointer<Res>	req_msg_ptr(prequest);
+			DynamicPointer<Req>	req_msg_ptr(prequest);
 			
 			Res					*presponse = dynamic_cast<Res*>(_rres_msg_ptr.get());
 			DynamicPointer<Res>	res_msg_ptr(presponse);

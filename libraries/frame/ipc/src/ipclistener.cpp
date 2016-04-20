@@ -17,6 +17,17 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
+Listener::Listener(
+	SocketDevice &_rsd
+):
+	sock(this->proxy(), std::move(_rsd)), timer(this->proxy())
+{
+	idbgx(Debug::ipc, this);
+}
+Listener::~Listener(){
+	idbgx(Debug::ipc, this);
+}
+
 inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
 	return static_cast<Service&>(_rctx.service());
 }
