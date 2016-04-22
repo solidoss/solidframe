@@ -71,13 +71,11 @@ Scenarios
 1. A name resolve returns 100 IPs - we do not want to create 100 connections
 
 
-
-
 ## Characteristics
 
 * C++ only (no IDLs)
 * Per destination connection pool.
-* Buffer oriented message serialization engine. This means that the messages gets serialized (marshaled) one fixed sized buffer (e.g. 4KB) at a time which further enables sending messages that are bigger than the system memory (e.g. a message with an 100GB file).
+* Buffer oriented message serialization engine. This means that the messages gets serialized (marshaled) one fixed sized buffer (e.g. 4KB) at a time. This further enables sending messages that are bigger than the system memory (e.g. a message with a 100GB file).
 * Message multiplexing. Multiple messages from the send queue are sent in parallel on the same connection. This means for example that one can send multiple small messages while also sending one (or more) huge message(s) like the one above.
 * Support for buffer level compression. The library can compress (using a pluggable algorithm) a buffer before writing it on the socket.
 
@@ -101,7 +99,6 @@ Scenarios
 **Description**
 
 * Client-Server
-* Peer2Peer
 * Send messages and wait for response
 * Connection pool
 
@@ -146,7 +143,7 @@ Scenarios
 	* scenario 0: a message is send from client after an inactivity period and a response is expected from server
 
 
-## Pending Functionality
+## New Functionality
 
 ### Support for One-Shot-Delivery and Message Canceling
 
@@ -163,28 +160,6 @@ Scenarios
 	* no "complete" callback will be called on the message
 	* if the message is in a cancelable state (is not currently being sent or is not already sent and waiting for a response) the message is dropped from the send queue.
 
-Because the code got very complicated because of the support for message canceling, a refactoring is needed.
-
-#### Current state
-
-For server only
-* Messages enter directly in Connection's receiving vector (there are 2 for locking eficiency) - one lock on Connection's mutex
-* On the Connection's thread, {lock Connection's mutex, switch the receiving vector} move message from receiving vector to writer
-* If writer's writing queue is full, put message in waiting queue.
-* The writer also needs a synchronized queue of cached positions on writer
-
-so, we have for queues:
-* 3 queues for messages
-* 1 unsynchronized queue for writer cached positions
-* 1 synchronized queue for writer cached positions
-
-and for locks:
-* 2 at push - for for Service and one for Connection
-* 1 on Connection's thread on switching receiving vectors
-* 1 for synchronizing writer caches
-
-
-#### Wanted state
 
 We want to use unnamed connection pools for server-side messages.
 
