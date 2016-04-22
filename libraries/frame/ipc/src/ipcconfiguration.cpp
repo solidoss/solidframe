@@ -97,8 +97,27 @@ Configuration::Configuration(
 	listener_port = -1;
 }
 //-----------------------------------------------------------------------------
-size_t Configuration::connectionReconnectTimeoutSeconds()const{
-	return connection_reconnect_timeout_seconds;//TODO: add entropy
+size_t Configuration::connectionReconnectTimeoutSeconds(
+	const uint8 _retry_count,
+	const bool _failed_create_connection_object,
+	const bool _last_connection_was_connected,
+	const bool _last_connection_was_active,
+	const bool _last_connection_was_secured
+)const{
+	if(_failed_create_connection_object){
+		return connection_reconnect_timeout_seconds / 2;
+	}
+	if(_last_connection_was_active or _last_connection_was_connected){
+		return 0;//reconnect right away
+	}
+	size_t retry_count = _retry_count / 2;
+	size_t sleep_seconds = retry_count;
+	
+	if(sleep_seconds > connection_reconnect_timeout_seconds){
+		sleep_seconds = connection_reconnect_timeout_seconds;
+	}
+	
+	return sleep_seconds;//TODO: add entropy - improve algorithm
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Configuration::check() const {

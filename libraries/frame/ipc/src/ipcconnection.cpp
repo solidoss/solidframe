@@ -34,6 +34,7 @@ enum class Flags:size_t{
 	Secure						= 1024,
 	Raw							= 2048,
 	InPoolWaitQueue				= 4096,
+	Connected					= 8192,//once set - the flag should not be reset. Is used by pool for restarting
 };
 
 enum class ConnectionEvents{
@@ -256,7 +257,9 @@ bool Connection::tryPushMessage(
 	MessageId &_rconn_msg_id,
 	const MessageId &_rpool_msg_id
 ){
-	return msg_writer.enqueue(_rconfiguration.writer, _rmsgbundle, _rpool_msg_id, _rconn_msg_id);
+	const bool success = msg_writer.enqueue(_rconfiguration.writer, _rmsgbundle, _rpool_msg_id, _rconn_msg_id);
+	vdbgx(Debug::ipc, this<<" enqueue message "<<_rpool_msg_id<<" to connection "<<this<<" retval = "<<success);
+	return success;
 }
 //-----------------------------------------------------------------------------
 bool Connection::isActiveState()const{
@@ -277,6 +280,14 @@ bool Connection::isDelayedStopping()const{
 //-----------------------------------------------------------------------------
 bool Connection::isServer()const{
 	return flags & static_cast<size_t>(Flags::Server);
+}
+//-----------------------------------------------------------------------------
+bool Connection::isConnected()const{
+	return flags & static_cast<size_t>(Flags::Connected);
+}
+//-----------------------------------------------------------------------------
+bool Connection::isSecured()const{
+	return false;
 }
 //-----------------------------------------------------------------------------
 bool Connection::shouldSendKeepalive()const{
@@ -320,6 +331,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 		flags |= static_cast<size_t>(Flags::Server);
 		service(_rctx).onIncomingConnectionStart(conctx);
 	}else{
+		flags |= static_cast<size_t>(Flags::Connected);
 		service(_rctx).onOutgoingConnectionStart(conctx);
 	}
 	

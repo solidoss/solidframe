@@ -398,7 +398,7 @@ int test_keepalive_success(int argc, char **argv){
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
 			++crtwriteidx;
 			ipcclient.sendMessage(
-				"localhost:6666", msgptr,
+				"localhost", msgptr,
 				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
 			);
 		}

@@ -143,7 +143,13 @@ public:
 	char* allocateSendBuffer(uint8 &_rbuffer_capacity_kb)const;
 	void freeSendBuffer(char *_pb)const;
 	
-	size_t connectionReconnectTimeoutSeconds()const;
+	size_t connectionReconnectTimeoutSeconds(
+		const uint8 _retry_count,
+		const bool _failed_create_connection_object,
+		const bool _last_connection_was_connected,
+		const bool _last_connection_was_active,
+		const bool _last_connection_was_secured
+	)const;
 	
 	ErrorConditionT check() const;
 	

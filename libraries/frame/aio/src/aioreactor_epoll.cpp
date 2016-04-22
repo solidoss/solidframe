@@ -838,7 +838,7 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 		_rch.handleCompletion(ctx);
 	}
 	
-	
+	d.chposcache.push(_rch.idxreactor);
 	rcs.pch = &d.eventobj.dummyhandler;
 	rcs.objidx = 0;
 	++rcs.unique;

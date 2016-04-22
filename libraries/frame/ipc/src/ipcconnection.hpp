@@ -105,6 +105,8 @@ public:
 	void setInPoolWaitingQueue();
 	
 	bool isServer()const;
+	bool isConnected()const;
+	bool isSecured()const;
 	
 	Any<>& any();
 	
