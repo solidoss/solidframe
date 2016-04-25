@@ -43,7 +43,7 @@ struct Test{
 	}
 	
 	template <class S, uint32 I>
-	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv){
+	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv, ErrorConditionT &_rerr){
 		idbg("_rv = "<<_rv);
 		if(_rv == 0){
 			if(S::IsSerializer){

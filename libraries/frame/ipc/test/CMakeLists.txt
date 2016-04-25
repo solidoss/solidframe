@@ -56,8 +56,12 @@ target_link_libraries(test_ipc_clientserver
 	${SYS_BASIC_LIBS}
 )
 
+add_test(NAME TestClientServerBasic1		COMMAND  test_ipc_clientserver test_clientserver_basic 1)
+add_test(NAME TestClientServerBasic2		COMMAND  test_ipc_clientserver test_clientserver_basic 2)
+add_test(NAME TestClientServerBasic4		COMMAND  test_ipc_clientserver test_clientserver_basic 4)
+add_test(NAME TestClientServerBasic8		COMMAND  test_ipc_clientserver test_clientserver_basic 8)
+
 add_test( TestClientServer test_ipc_clientserver
-	test_clientserver_basic
 	test_clientserver_sendrequest
 	test_clientserver_cancel_server
 	test_clientserver_cancel_client
@@ -87,9 +91,8 @@ target_link_libraries(test_ipc_keepalive
 	${SYS_BASIC_LIBS}
 )
 
-add_test( TestKeepAlive test_ipc_keepalive
-	test_keepalive_fail
-	test_keepalive_success
-)
+add_test(NAME TestKeepAliveFail1		COMMAND  test_ipc_keepalive test_keepalive_fail "0")
+add_test(NAME TestKeepAliveFail2		COMMAND  test_ipc_keepalive test_keepalive_fail "1")
+add_test(NAME TestKeepAliveSuccess1		COMMAND  test_ipc_keepalive test_keepalive_success "0")
 
 #==============================================================================

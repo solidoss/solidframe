@@ -582,9 +582,11 @@ ErrorConditionT Service::reconfigure(Configuration && _ucfg){
 		
 		ResolveData		rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
 		SocketDevice	sd;
-			
-		sd.create(rd.begin());
-		sd.prepareAccept(rd.begin(), 2000);
+		
+		if(not rd.empty()){
+			sd.create(rd.begin());
+			sd.prepareAccept(rd.begin(), 2000);
+		}
 		
 		if(sd.ok()){
 			

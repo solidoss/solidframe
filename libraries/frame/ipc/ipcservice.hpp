@@ -252,7 +252,7 @@ public:
 		const char *_recipient_name,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _complete_fnc,
-		ulong _flags = 0
+		ulong _flags
 	);
 	
 	template <class T, class Fnc>

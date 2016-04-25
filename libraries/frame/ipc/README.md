@@ -80,9 +80,6 @@ Scenarios
 * Support for buffer level compression. The library can compress (using a pluggable algorithm) a buffer before writing it on the socket.
 
 
-
-## Implemented Functionality
-
 ### Basic protocol functionality
 
 **Description**
@@ -143,8 +140,6 @@ Scenarios
 	* scenario 0: a message is send from client after an inactivity period and a response is expected from server
 
 
-## New Functionality
-
 ### Support for One-Shot-Delivery and Message Canceling
 
 **Description**
@@ -161,14 +156,14 @@ Scenarios
 	* if the message is in a cancelable state (is not currently being sent or is not already sent and waiting for a response) the message is dropped from the send queue.
 
 
-We want to use unnamed connection pools for server-side messages.
+#### Unnamed connection pools for server-side messages.
 
 Queues
 
 * Messages are allways pushed on the pool's message queue - 2 locks one for Service and one for connection pool.
-* Connection's are either notified with NewMessageEvent or SpecificNewMessageEvent containing the MessageId
+* Connection's are either notified with NewPoolMessageEvent or NewConnectionMessageEvent containing the MessageId
 * Writer will only have a writing queue and a response waiting queue.
-* Connection will have a queue of MessageIds, for SpecificNewMessageEvents that could not be directly delivered to writer.
+* Connection will have a queue of MessageIds, for NewConnectionMessageEvents that could not be directly delivered to writer.
 
 Locking
 
@@ -200,28 +195,12 @@ Locking
 
 We want to be able to easily specify on Client side a subset of Messages supported on Server.
 
-_Altenatives_
-* Currently some support exists through specifying the position for every Message added to TypeIdMap
-	* CON: not feasible / hard to configure
-* message_type_id = protocol_index + type_index;
-	* CON: message type index transmited on socket is bigger.
-	* PRO: multi-protocol support on the same connection on both client and server side
-* Set protocol_index on connection
-	* CON: handshake - on server, the connection must be configured by a message sent from the client
-
-
-
-* Extend ipc::Service to:
-	* Aupport a vector of TypeIdMapT
-	* Add setConnectionProtocol(ObjectUid const&, size_t protocol_id)
-	* Default connection protocol is 0 (zero)
-	* All connection init messages must be known by protocol 0
-	* On init message, the server ipc::Service must change the connection protocol
-		on message_received callback by calling setConnectionProtocol
+message_type_id = protocol_index + type_index;
 
 **Test**
-* test_clientserver_multiprotocol_basic
-	* start a server ipc configure it with 3 protocols (0 for init, 1 and 2 for different clients)
+
+* test_multiprotocol
+	* start a server ipc configure it with 3 protocols (3 groups of messages)
 	* start 2 different clients configured with different protocols
 	* proceed on both protcols as in test_clientserver_basic.
 
@@ -236,15 +215,12 @@ _Altenatives_
 
 We want to be able to use Secure TCP connections as transport layer.
 
-### Support for SOCKS5
+### Support for SOCKS5 and alike
 
-We want to add support for implementations of SOCKS5 and similar protocols.
+Connections can be started in Raw mode, which means that sending and receiving data on the corresponding socket
+is controlled from the outside of connection through specific events.
 
-There are two options:
-	* Built-in support for SOCKS5
-	* Generic support for protocols similar to SOCKS5
-
-For implementing SOCKS5 support we need:
+Implementing SOCKS5 support also needs:
 	* Resolve function should return the IPs of the SOCKS5 servers
 	* Connections should be able to receive and send raw data before startTLS and before Activate.
 
@@ -265,9 +241,20 @@ SecureFlag also cannot be set for connections with no SSL support.
 
 A call to notifyConnectionSecure for the above invalid situations, will close connection with specific error.
 
-Configuration should contain the state the connections will start with and wether the SecureFlag is set from the start or not.
+**Test**
 
-The Raw Data Send Receive Support
-
-TODO:...
+* test_raw_proxy
+	* Implement a proxy/relay server.
+		* Expect connection with RelayHeader{string very_long_data; string destination; string port;}.
+		* Check header.very_long_data.
+		* Resolve destination and connect to it.
+		* Respond '0' if OK, '1' if fail.
+	* Implement a client as for clientserver_basic, but start connections in RawState and do not resove the destination but send within in RelayHeader.
+	* Implement a server as for clientserver_basic.
+	
+TODO:
+	* test_raw_proxy
+	* test_multiprotocol
+	* test_clientserver_
+	
 

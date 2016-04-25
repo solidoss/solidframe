@@ -77,7 +77,7 @@ public:
 		_s.template pushReinit<Container, 0>(this, 0, "reinit");
 	}
 	template <class S, uint32 I>
-	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv){
+	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv, ErrorConditionT &_rerr){
 		if(S::IsSerializer){
 			idbg("ser 1");
 			if(crtidx < tstvec.size()){

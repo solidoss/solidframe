@@ -22,19 +22,19 @@ namespace ipc{
 namespace{
 
 enum class Flags:size_t{
-	Active						= 1,
-	Server						= 4,
-	Keepalive					= 8,
-	WaitKeepAliveTimer			= 16,
-	StopPeer					= 32,
-	HasActivity 				= 64,
-	PollPool					= 128,
-	Stopping					= 256,
-	DelayedStopping				= 512,
-	Secure						= 1024,
-	Raw							= 2048,
-	InPoolWaitQueue				= 4096,
-	Connected					= 8192,//once set - the flag should not be reset. Is used by pool for restarting
+	Active						= 0x0001,
+	Server						= 0x0002,
+	Keepalive					= 0x0004,
+	WaitKeepAliveTimer			= 0x0008,
+	StopPeer					= 0x0010,
+	HasActivity 				= 0x0020,
+	PollPool					= 0x0040,
+	Stopping					= 0x0080,
+	DelayedStopping				= 0x0100,
+	Secure						= 0x0200,
+	Raw							= 0x0400,
+	InPoolWaitQueue				= 0x0800,
+	Connected					= 0x1000,//once set - the flag should not be reset. Is used by pool for restarting
 };
 
 enum class ConnectionEvents{

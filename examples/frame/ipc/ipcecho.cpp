@@ -80,19 +80,6 @@ namespace{
 	void on_receive(FirstMessage const &_rmsg);
 }
 
-struct InitMessage: Dynamic<InitMessage, frame::ipc::Message>{
-	std::string		port;
-	
-	InitMessage(std::string const &_port):port(_port){}
-	InitMessage(){}
-	
-	template <class S>
-	void serialize(S &_s, frame::ipc::ConnectionContext &_rctx){
-		_s.push(port, "port");
-	}
-};
-
-
 struct FirstMessage: Dynamic<FirstMessage, frame::ipc::Message>{
     std::string						str;
 	
@@ -117,29 +104,12 @@ struct MessageHandler{
 	frame::ipc::Service &rsvc;
 	MessageHandler(frame::ipc::Service &_rsvc): rsvc(_rsvc){}
 	
-	//Called on message receive
-	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg);
-	
-	//Called when message is confirmed that:
-	// * was successfully sent on peer-side - for requests, a message is considered successfully sent when the response was received
-	// * was not successfuly sent - i.e. the connection was closed before message ACK
-	
-	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorConditionT const &_rerr);
-	void operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg);
-	
-	
-	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<InitMessage> &_rmsg);
-	
-	//Called when message is confirmed that:
-	// * was successfully sent on peer-side - for requests, a message is considered successfully sent when the response was received
-	// * was not successfuly sent - i.e. the connection was closed before message ACK
-	
-	void operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<InitMessage> &_rmsg, ErrorConditionT const &_rerr){
-		
-	}
-	
-	void operator()(frame::ipc::ConnectionContext &_rctx, InitMessage const &_rmsg){
-	}
+	void operator()(
+		frame::ipc::ConnectionContext &_rctx,
+		DynamicPointer<FirstMessage> &_rsend_msg,
+		DynamicPointer<FirstMessage> &_rrecv_msg,
+		ErrorConditionT const &_rerr
+	);
 };
 
 
@@ -149,24 +119,10 @@ void connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const
 
 void incoming_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	if(_rctx.service().configuration().isServerOnly()){
-		_rctx.service().activateConnection(_rctx.recipientId());
-	}else{
-		//wait to receive InitMessage, so we know on which connection pool, the incomming connection should be part of
-	}
 }
 
 void outgoing_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	if(_rctx.service().configuration().isClientOnly()){
-		idbg('['<<_rctx.recipientId().connectionId()<<"]["<<_rctx.recipientId().poolId()<<']'<<" client only");
-		_rctx.service().activateConnection(_rctx.recipientId());
-	}else{
-		idbg('['<<_rctx.recipientId().connectionId()<<"]["<<_rctx.recipientId().poolId()<<']'<<" peer2peer");
-		//peer2peer mode: send InitMessage
-		frame::ipc::MessagePointerT msgptr(new InitMessage(app_params.baseport));
-		_rctx.service().sendMessage(_rctx.recipientId(), msgptr);
-	}
 }
 //------------------------------------------------------------------
 
@@ -243,29 +199,27 @@ int main(int argc, char *argv[]){
 			
 			cfg.protocolCallback(
 				[&ipcsvc](frame::ipc::ServiceProxy& _rsp){
-					_rsp.registerType<InitMessage>(
-						serialization::basic_factory<FirstMessage>,
-						MessageHandler(ipcsvc), MessageHandler(ipcsvc)
-					);
 					_rsp.registerType<FirstMessage>(
 						serialization::basic_factory<FirstMessage>,
-						MessageHandler(ipcsvc), MessageHandler(ipcsvc)
+						MessageHandler(ipcsvc)
 					);
 				}
 			);
 			if(app_params.baseport.size()){
-				cfg.listen_address_str = "0.0.0.0:"; cfg.listen_address_str += app_params.baseport;
-				cfg.default_listen_port_str = app_params.baseport;
+				cfg.listener_address_str = "0.0.0.0:";
+				cfg.listener_address_str += app_params.baseport;
+				cfg.listener_service_str = app_params.baseport;
 			}
 			
 			if(app_params.connectstringvec.size()){
-				cfg.name_resolve_fnc = frame::ipc::ResolverF(resolver, app_params.baseport.c_str());
+				cfg.name_resolve_fnc = frame::ipc::InternetResolverF(resolver, app_params.baseport.c_str());
 			}
 			cfg.connection_stop_fnc = connection_stop;
-			cfg.incoming_connection_start_fnc = incoming_connection_start;
-			cfg.outgoing_connection_start_fnc = outgoing_connection_start;
+			cfg.connection_start_incoming_fnc = incoming_connection_start;
+			cfg.connection_start_outgoing_fnc = outgoing_connection_start;
+			cfg.connection_start_state = frame::ipc::ConnectionState::Active;
 			
-			err = ipcsvc.reconfigure(cfg);
+			err = ipcsvc.reconfigure(std::move(cfg));
 			
 			if(err){
 				cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -331,124 +285,23 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
 //		FirstMessage
 //------------------------------------------------------
 
-// /*virtual*/ void FirstMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
-// 	idbg("EXECUTE ----------------  size = "<<str.size());
-// 	
-// 	if(ipcIsOnReceiver()){
-// 		//TODO:
-// 		//_rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, (uint32)0/*fdt::ipc::Service::SynchronousSendFlag*/);
-// 	}else{
-// 		on_receive(*this);
-// 	}
-// }
-// /*virtual*/ FirstMessage::UInt32PairT FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
-// // 	if(isOnSender()){
-// // 		return frame::ipc::WaitResponseFlag;
-// // 	}else{
-// // 		return 0;
-// // 	}
-// 	return UInt32PairT();
-// }
-// /*virtual*/ void FirstMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
-// 	if(!_err){
-//         idbg("SUCCESS ----------------");
-//     }else{
-//         idbg("ERROR ------------------");
-//     }
-// }
 
-//Called on message receive
-void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg){
-	idbg(_rctx.recipientId()<<" Message received: is_on_sender: "<<_rmsg->isOnSender()<<", is_on_peer: "<<_rmsg->isOnPeer()<<", is_back_on_sender: "<<_rmsg->isBackOnSender());
-	if(_rmsg->isOnPeer()){
-		rsvc.sendMessage(_rctx.recipientId(), _rmsg);
-	}else if(_rmsg->isBackOnSender()){
-		cout<<_rmsg->str<<endl;
-	}
-}
-	
-//Called when message is confirmed that:
-// * was successfully sent on peer-side - for requests, a message is considered successfully sent when the response was received
-// * was not successfuly sent - i.e. the connection was closed before message ACK
-
-void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<FirstMessage> &_rmsg, ErrorConditionT const &_rerr){
-	if(!_rerr){
-		idbg(_rctx.recipientId()<<" Message successfully sent");
-	}else{
-		idbg(_rctx.recipientId()<<" Message not confirmed: "<<_rerr.message());
-	}
-}
-
-void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, FirstMessage const &_rmsg){
-}
-
-
-void MessageHandler::operator()(frame::ipc::ConnectionContext &_rctx, DynamicPointer<InitMessage> &_rmsg){
-	
-	SocketAddress				localaddr;
-	SocketAddress				remoteaddr;
-	std::ostringstream			tmposs;
-	
-	_rctx.device().localAddress(localaddr);
-	_rctx.device().remoteAddress(remoteaddr);
-	
-	
-	{
-		std::string 				hoststr;
-		std::string 				servstr;
-		
-		synchronous_resolve(
-			hoststr, servstr,
-			remoteaddr,
-			ReverseResolveInfo::NumericHost
-		);
-		tmposs<<hoststr<<':'<<_rmsg->port;
-	}
-	
-	
-	idbg("Received init from: "<<tmposs.str());
-	
-	
-	if(_rmsg->port.empty()){
-		idbg("The peer did not accept the connection");
-	}else if(_rmsg->port == "-"){
-		idbg("The peer accepted the connection - we activate it too");
-		_rctx.service().activateConnection(_rctx.recipientId());
-	}else{
-		idbg("Init on a incoming connection - try activate it");
-		ErrorConditionT				err = _rctx.service().activateConnection(
-			_rctx.recipientId(), tmposs.str().c_str(),
-			[](ErrorConditionT const &_rerr){
-				if(not _rerr){
-					return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage("-"), 0);
-				}else{
-					return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage(), 0);
-				}
-			},
-			localaddr < remoteaddr
-		);
-		
-		if(err){
-			edbg("Activating connection: "<<err.message());
+void MessageHandler::operator()(
+	frame::ipc::ConnectionContext &_rctx,
+	DynamicPointer<FirstMessage> &_rsend_msg,
+	DynamicPointer<FirstMessage> &_rrecv_msg,
+	ErrorConditionT const &_rerr
+){
+	if(_rrecv_msg.get()){
+		idbg(_rctx.recipientId()<<" Message received: is_on_sender: "<<_rrecv_msg->isOnSender()<<", is_on_peer: "<<_rrecv_msg->isOnPeer()<<", is_back_on_sender: "<<_rrecv_msg->isBackOnSender());
+		if(_rrecv_msg->isOnPeer()){
+			rsvc.sendMessage(_rctx.recipientId(), _rrecv_msg);
+		}else if(_rrecv_msg->isBackOnSender()){
+			cout<<"Received from "<<_rctx.recipientName()<<": "<<_rrecv_msg->str<<endl;
 		}
 	}
-	
-	ErrorConditionT				err = _rctx.service().activateConnection(
-		_rctx.recipientId(), tmposs.str().c_str(),
-		[](ErrorConditionT const &_rerr){
-			if(not _rerr){
-				return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage(app_params.baseport), 0);
-			}else{
-				return std::pair<frame::ipc::MessagePointerT, uint32>(new InitMessage(), 0);
-			}
-		},
-		localaddr < remoteaddr
-	);
-	
-	if(err){
-		edbg("Activating connection: "<<err.message());
-	}
 }
+
 
 namespace{
 
