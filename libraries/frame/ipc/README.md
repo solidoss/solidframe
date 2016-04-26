@@ -2,74 +2,7 @@
 
 A process-to-process communication (message exchange) engine via plain/secured TCP.
 
-Enabled for three scenarios:
-* Server
-* Client
-* Peer-to-peer = Client + Server
-
-## Server
-
-Single connection per unnamed pool. Pool only used as message queue.
-```C++
-Service::sendMessage(recipient_id);
-```
-## Client
-
-Multiple connections per a named pool (the name of the pool is the recipient name).
-```C++
-Service::sendMessage("recipient_name")
-```
-
-## Peer-to-peer
-
-### Alternative via client server
-
-PeerA | PeerB
---------------- | -------------
-client_poolA    | server connections, one for every connection in client_poolA
-server connections, one for every connection in client_poolB | client_poolB
-
-_Pros_:
-* Simpler implementation 
-* No handshake is needed so, connections are activated faster - especially for 
-a peer2peer scenario where the SSL handshake should suffice (i.e. no other authentication should be needed).
-* Different per pool client connections per peer. E.g. suppose PeerA needs lots of data from PeerB, but
-PeerB does not need that much data from PeerA. One can limit the connection pool on PeerA to 4 connections,
-while on PeerB set the limit to only a single connection.
-
-_Cons_:
-* Double the number of connections
-
-
-### The initial idea
-
-We can half the number of connections if we put all server connections in client_poolA and client_poolB respectively.
-This way sendMessage("PeerB") on peerA and sendMessage("PeerA") on peerB will use the same connections.
-
-We need a per connection message sent from the peer creating the connection, containing the name that peer.
-
-_Pros_:
-* More efficient use of a connection pool
-* **TODO**: find better reasons
-
-_Cons_:
-* Handshake is needed, at least one request-response is needed to activate a connection and move it on the right pool.
-* A peer needs to know its own name.
-* It is hard to impose a limit on connection count on a pool. The 2 peer sides must agree which connection to be dropped
-on two simultaneous connections established from both sides.
-* Prone to errors, a peer knows itself by a name, while the other peer knows it by other name.
-
-
 ## Algorithm for creating pool connections
-
-_Requirements_:
-* Be able to limit the number of pending connections
-* Scale up the number of connections based on the number of messages on queue
-* Rescale up after a network failure
-
-Scenarios
-1. A name resolve returns 100 IPs - we do not want to create 100 connections
-
 
 ## Characteristics
 
@@ -78,6 +11,14 @@ Scenarios
 * Buffer oriented message serialization engine. This means that the messages gets serialized (marshaled) one fixed sized buffer (e.g. 4KB) at a time. This further enables sending messages that are bigger than the system memory (e.g. a message with a 100GB file).
 * Message multiplexing. Multiple messages from the send queue are sent in parallel on the same connection. This means for example that one can send multiple small messages while also sending one (or more) huge message(s) like the one above.
 * Support for buffer level compression. The library can compress (using a pluggable algorithm) a buffer before writing it on the socket.
+* Able to limit the number of pending connections - if a name resove returns 100 IP addresses, it does not create as many connections.
+* Scale up the number of connections based on the number of messages on queue and up to a configurable limit
+* Rescale up after a network failure
+* Messages can be any of:
+	* synchronous: all synchronous messages are sent one after another.
+	* one_shot: only tries once to send the message
+	* idempotent: will try resending the message until either successfully sent or, in case the message awaits a response, until a response was received. 
+* By default, the IPC engine will try resend a message if not started to be sent. If a message started to be sent and the connection close will be rescheduled for sending ONLY if it is idempotent otherwise will be completed with error.
 
 
 ### Basic protocol functionality
@@ -225,10 +166,10 @@ Implementing SOCKS5 support also needs:
 	* Connections should be able to receive and send raw data before startTLS and before Activate.
 
 Different connection scenarios:
-	* secureConnection -> authentication handshake.. -> activateConnection
-	* ...plain initialization handshake... -> (startTLS command?!) secureConnection -> authentication handshake... -> activateConnection
-	* ...raw handshake... -> secureConnection -> authentication handshake.. -> activateConnection
-	* ...raw handshake... -> ...plain initialization handshake... -> (startTLS command?!) secureConnection -> authentication handshake... -> activateConnection
+* secureConnection -> authentication handshake.. -> activateConnection
+* ...plain initialization handshake... -> (startTLS command?!) secureConnection -> authentication handshake... -> activateConnection
+* ...raw handshake... -> secureConnection -> authentication handshake.. -> activateConnection
+* ...raw handshake... -> ...plain initialization handshake... -> (startTLS command?!) secureConnection -> authentication handshake... -> activateConnection
 
 Connection states/flags:
 	* RawState:			sending and receiving raw data
@@ -253,8 +194,8 @@ A call to notifyConnectionSecure for the above invalid situations, will close co
 	* Implement a server as for clientserver_basic.
 	
 TODO:
-	* test_raw_proxy
-	* test_multiprotocol
-	* test_clientserver_
+* test_raw_proxy
+* test_multiprotocol
+* test_clientserver_
 	
 
