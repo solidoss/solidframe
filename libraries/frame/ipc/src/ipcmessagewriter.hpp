@@ -207,6 +207,7 @@ private:
 private:
 	MessageVectorT				message_vec;
 	uint32						current_message_type_id;
+	size_t						current_synchronous_message_idx;
 	MessageOrderInnerListT		order_inner_list;
 	MessageStatusInnerListT		write_inner_list;
 	MessageStatusInnerListT		cache_inner_list;

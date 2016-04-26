@@ -21,7 +21,7 @@ namespace frame{
 namespace ipc{
 //-----------------------------------------------------------------------------
 MessageWriter::MessageWriter(
-):	current_message_type_id(InvalidIndex()),
+):	current_message_type_id(InvalidIndex()), current_synchronous_message_idx(InvalidIndex()),
 	order_inner_list(message_vec),
 	write_inner_list(message_vec), cache_inner_list(message_vec){
 }
@@ -298,6 +298,16 @@ char* MessageWriter::doFillPacket(
 			break;
 		}
 		
+		if(
+			Message::is_synchronous(rmsgstub.msgbundle.message_flags)
+		){
+			if(current_synchronous_message_idx == InvalidIndex() or current_synchronous_message_idx == msgidx){
+				current_synchronous_message_idx = msgidx;
+			}else{
+				continue;
+			}
+		}
+		
 		msgswitch = doPrepareMessageForSending(msgidx, _rconfig, _ridmap, _rctx, tmp_serializer);
 		
 		if(packet_message_count == 0){
@@ -314,6 +324,9 @@ char* MessageWriter::doFillPacket(
 			//message already completed - just drop it from write list
 			write_inner_list.erase(msgidx);
 			doUnprepareMessageStub(msgidx);
+			if(current_synchronous_message_idx == msgidx){
+				current_synchronous_message_idx = InvalidIndex();
+			}
 			continue;
 		}
 		
@@ -374,6 +387,10 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 		
 		write_inner_list.popFront();
 		
+		if(current_synchronous_message_idx == _msgidx){
+			current_synchronous_message_idx = InvalidIndex();
+		}
+		
 		rmsgstub.msgbundle.message_flags &= (~Message::StartedSendFlagE);
 		rmsgstub.msgbundle.message_flags |= Message::DoneSendFlagE;
 		
@@ -397,7 +414,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 		}
 		
 		vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
-	}else if(Message::is_asynchronous(rmsgstub.msgbundle.message_flags)){
+	}else{
 		//message not done - packet should be full
 		++rmsgstub.packet_count;
 		
@@ -407,9 +424,6 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 			write_inner_list.pushBack(_msgidx);
 			vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 		}
-	}else{
-		//Synchronous message
-		rmsgstub.packet_count = 1;
 	}
 }
 //-----------------------------------------------------------------------------
