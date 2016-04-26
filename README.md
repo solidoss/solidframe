@@ -36,5 +36,5 @@ C++11 enabled compilers on:
 * Fast-Multi-Paxos using frame/ipc
 
 ## See also
-* [IPC library](frame/ipc/README.md)
+* [IPC library](libraries/frame/ipc/README.md)
 
