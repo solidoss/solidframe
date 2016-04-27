@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "ipcmessagereader.hpp"
+#include "frame/ipc/ipcerror.hpp"
 #include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
@@ -70,7 +71,7 @@ uint32 MessageReader::read(
 		}
 		
 		if(not packet_header.isOk()){
-			_rerror.assign(-1, _rerror.category());//TODO:
+			_rerror = error_reader_invalid_packet_header;
 			cassert(false);
 			break;
 		}
@@ -144,7 +145,7 @@ void MessageReader::doConsumePacket(
 				if(message_q.front().message_ptr.get()){
 					if(message_q.size() == _rconfig.max_message_count_multiplex){
 						cassert(false);
-						_rerror.assign(-1, _rerror.category());//TODO:
+						_rerror = error_reader_too_many_multiplex;
 						return;
 					}
 					message_q.front().packet_count = 0;
@@ -191,7 +192,7 @@ void MessageReader::doConsumePacket(
 				break;
 			default:
 				cassert(false);
-				_rerror.assign(-1, _rerror.category());//TODO:
+				_rerror = error_reader_invalid_message_switch;
 				return;
 		}
 		

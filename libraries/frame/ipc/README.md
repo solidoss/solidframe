@@ -127,8 +127,10 @@ Locking
 * test_clientserver_oneshot
 	* start client and send one shot message
 	* expect message canceled in certain, short amount of time
-* test_clientserver_cancel_connection_switch(TODO)
-	* test that message cancel connection switch works
+* test_clientserver_idempotent
+	* start client and send one long idempotent message
+	* restart the server
+	* expect the idempotent message be resent.
 
 ### Support for multi-protocol
 
@@ -184,6 +186,12 @@ A call to notifyConnectionSecure for the above invalid situations, will close co
 
 **Test**
 
+* test_raw_basic
+	* Both server and client connections start in RawState
+	* The client raw sends a big string using serialization or other mechanism
+	* The server raw receives the big string, sends it back then activates the connection
+	* When the client receives back the big string, activates the connection and send messages in the pool
+	* Expect: the big string is correctly transferred and the messages in the queue are sent correctly.
 * test_raw_proxy
 	* Implement a proxy/relay server.
 		* Expect connection with RelayHeader{string very_long_data; string destination; string port;}.
@@ -192,10 +200,21 @@ A call to notifyConnectionSecure for the above invalid situations, will close co
 		* Respond '0' if OK, '1' if fail.
 	* Implement a client as for clientserver_basic, but start connections in RawState and do not resove the destination but send within in RelayHeader.
 	* Implement a server as for clientserver_basic.
+
 	
 TODO:
+
+* test_raw_basic
 * test_raw_proxy
 * test_multiprotocol
-* test_clientserver_
-	
+* test_clientserver_delayed
+* test_clientserver_noserver
+* test_clientserver_oneshot
+* test_clientserver_idempotent
+* set all ErrorConditions across frame/aio and frame/ipc to valid errors (all the TODOs)
+* investigate how to support multiple versions of the serialization library.
+* add support multiple versions of the serialization library
+* add support in ipc::configuration for SOCKS5 (SFv2.x)
+* add support for OpenSSL (SFv2.x - needs extending OpenSSL support in frame/aio)
+
 

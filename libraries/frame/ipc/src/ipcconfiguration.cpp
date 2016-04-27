@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "frame/ipc/ipcconfiguration.hpp"
+#include "frame/ipc/ipcerror.hpp"
 #include "system/cassert.hpp"
 #include "system/memory.hpp"
 
@@ -37,7 +38,7 @@ namespace{
 	size_t default_decompress(char*, const char*, size_t, ErrorConditionT &_rerror){
 		//This should never be called
 		cassert(false);
-		_rerror.assign(-1, _rerror.category());//TODO:
+		_rerror = error_compression_unavailable;
 		return 0;
 	}
 	

@@ -14,6 +14,8 @@
 #include "system/exception.hpp"
 
 #include "frame/service.hpp"
+
+#include "frame/ipc/ipcerror.hpp"
 #include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcserialization.hpp"
@@ -131,11 +133,11 @@ class Service: public Dynamic<Service, frame::Service>{
 			ErrorConditionT		error(_err);
 
 			if(not error and req_msg_ptr.get() and not prequest){
-				error.assign(-1, error.category());//TODO: bad cast request
+				error = error_service_bad_cast_request;
 			}
 			
 			if(not error and res_msg_ptr.get() and not presponse){
-				error.assign(-1, error.category());//TODO: bad cast response
+				error = error_service_bad_cast_response;
 			}
 			
 			f(_rctx, req_msg_ptr, res_msg_ptr, error);

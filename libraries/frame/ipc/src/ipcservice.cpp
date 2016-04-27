@@ -31,7 +31,6 @@
 #include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
-#include "frame/ipc/ipcerror.hpp"
 
 #include "system/mutualstore.hpp"
 #include "system/atomic.hpp"
@@ -558,7 +557,7 @@ ErrorConditionT Service::reconfigure(Configuration && _ucfg){
 	d.config.reset(std::move(_ucfg));
 	
 	if(not this->start()){
-		error.assign(-1, error.category());
+		error = error_service_start;
 		return error;
 	}
 	
@@ -604,7 +603,7 @@ ErrorConditionT Service::reconfigure(Configuration && _ucfg){
 				return error;
 			}
 		}else{
-			error.assign(-1, error.category());
+			error = error_service_start_listener;
 			return error;
 		}
 	}
@@ -678,7 +677,7 @@ ErrorConditionT Service::doSendMessage(
 	
 	if(d.status != Status::Running){
 		edbgx(Debug::ipc, this<<" service stopping");
-		error.assign(-1, error.category());//TODO:service stopping
+		error = error_service_stopping;
 		return error;
 	}
 	
@@ -686,7 +685,7 @@ ErrorConditionT Service::doSendMessage(
 	
 	if(msg_type_idx == 0){
 		edbgx(Debug::ipc, this<<" message type not registered");
-		error.assign(-1, error.category());//TODO:type not registered
+		error = error_service_unknown_message_type;
 		return error;
 	}
 	
@@ -709,7 +708,7 @@ ErrorConditionT Service::doSendMessage(
 		}else{
 			if(configuration().isServerOnly()){
 				edbgx(Debug::ipc, this<<" request for name resolve for a server only configuration");
-				error.assign(-1, error.category());//TODO: server only
+				error = error_service_server_only;
 				return error;
 			}
 			
@@ -727,7 +726,7 @@ ErrorConditionT Service::doSendMessage(
 		unique = _rrecipient_id_in.poolid.unique;
 	}else{
 		edbgx(Debug::ipc, this<<" recipient does not exist");
-		error.assign(-1, error.category());//TODO: recipient does not exist
+		error = error_service_unknown_recipient;
 		return error;
 	}
 
@@ -737,19 +736,19 @@ ErrorConditionT Service::doSendMessage(
 	if(check_uid && rpool.unique != unique){
 		//failed uid check
 		edbgx(Debug::ipc, this<<" connection pool does not exist");
-		error.assign(-1, error.category());//TODO: connection pool does not exist
+		error = error_service_unknown_pool;
 		return error;
 	}
 	
 	if(rpool.isClosing()){
 		edbgx(Debug::ipc, this<<" connection pool is stopping");
-		error.assign(-1, error.category());//TODO: connection pool is stopping
+		error= error_service_pool_stopping;
 		return error;
 	}
 	
 	if(rpool.isFull(configuration().pool_max_message_queue_size)){
 		edbgx(Debug::ipc, this<<" connection pool is full");
-		error.assign(-1, error.category());//TODO: connection pool is full
+		error = error_service_pool_full;
 		return error;
 	}
 	
@@ -828,13 +827,14 @@ ErrorConditionT Service::doSendMessageToConnection(
 	
 	
 	if(not _rrecipient_id_in.isValidPool()){
-		return error_connection_inexistent;//TODO: more explicit error
+		cassert(false);
+		return error_service_unknown_connection;
 	}
 	
 	const size_t					pool_idx = _rrecipient_id_in.poolId().index;
 	
 	if(pool_idx >= d.pooldq.size() or d.pooldq[pool_idx].unique != _rrecipient_id_in.poolId().unique){
-		return error_connection_inexistent;//TODO: more explicit error
+		return error_service_unknown_connection;
 	}
 	
 	Locker<Mutex>					lock2(d.poolMutex(pool_idx));
@@ -870,10 +870,10 @@ ErrorConditionT Service::doSendMessageToConnection(
 		}
 	}else if(is_server_side_pool){
 		rpool.clearPopAndCacheMessage(msgid.index);
-		error = error_connection_inexistent;//TODO: more explicit error
+		error = error_service_unknown_connection;
 	}else{
 		rpool.clearAndCacheMessage(msgid.index);
-		error = error_connection_inexistent;//TODO: more explicit error
+		error = error_service_unknown_connection;
 	}
 	
 	return error;
@@ -1035,7 +1035,7 @@ ErrorConditionT Service::pollPoolForUpdates(
 	
 	cassert(rpool.unique == _rconnection.poolId().unique);
 	if(rpool.unique != _rconnection.poolId().unique){
-		error.assign(-1, error.category());//TODO: invalid pool
+		error = error_service_unknown_pool;
 		return error;
 	}
 	
@@ -1059,7 +1059,7 @@ ErrorConditionT Service::pollPoolForUpdates(
 	
 	if(rpool.isFastClosing()){
 		idbgx(Debug::ipc, this<<' '<<&_rconnection<<" pool is FastClosing");
-		error.assign(-1, error.category());//TODO: pool is closing
+		error = error_service_pool_stopping;
 		return error;
 	}
 	
@@ -1173,7 +1173,7 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
 	
 	if(rpool.unique != _rrecipient_id.poolId().unique){
-		return error_connection_inexistent;
+		return error_service_unknown_connection;
 	}
 	
 	rpool.setClosing();
@@ -1210,7 +1210,7 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
 	
 	if(rpool.unique != _rrecipient_id.poolId().unique){
-		return error_connection_inexistent;
+		return error_service_unknown_connection;
 	}
 	
 	rpool.setClosing();
@@ -1246,7 +1246,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
 	
 	if(rpool.unique != _rrecipient_id.poolId().unique){
-		return error_connection_inexistent;
+		return error_service_unknown_connection;
 	}
 	
 	if(_rmsg_id.index < rpool.msgvec.size() and rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique){
@@ -1254,7 +1254,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 		bool 		success = false;
 		
 		if(Message::is_canceled(rmsgstub.msgbundle.message_flags)){
-			error.assign(-1, error.category());//message already canceled
+			error = error_service_message_already_canceled;
 		}else{
 			
 			if(rmsgstub.objid.isValid()){//message handled by a connection
@@ -1277,7 +1277,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 					rmsgstub.msgid = MessageId();
 					rmsgstub.objid = ObjectIdT();
 					THROW_EXCEPTION("Lost message");
-					error.assign(-1, error.category());//message lost
+					error = error_service_message_lost;
 				}
 			}
 			
@@ -1308,7 +1308,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 			}
 		}
 	}else{
-		error.assign(-1, error.category());//message does not exist
+		error = error_service_unknown_message;
 	}
 	return error;
 	
@@ -1328,7 +1328,7 @@ ErrorConditionT Service::doConnectionNotifyEnterActiveState(
 	
 	if(not success){
 		wdbgx(Debug::ipc, this<<" failed notify enter active event to "<<_rrecipient_id.connectionId());
-		error = error_connection_inexistent;
+		error = error_service_unknown_connection;
 	}
 	
 	return error;
@@ -1347,7 +1347,7 @@ ErrorConditionT Service::doConnectionNotifyStartSecureHandshake(
 	
 	if(not success){
 		wdbgx(Debug::ipc, this<<" failed notify start secure event to "<<_rrecipient_id.connectionId());
-		error = error_connection_inexistent;
+		error = error_service_unknown_connection;
 	}
 	
 	return error;
@@ -1365,7 +1365,7 @@ ErrorConditionT Service::doConnectionNotifyEnterPassiveState(
 	
 	if(not success){
 		wdbgx(Debug::ipc, this<<" failed notify enter passive event to "<<_rrecipient_id.connectionId());
-		error = error_connection_inexistent;
+		error = error_service_unknown_connection;
 	}
 	
 	return error;
@@ -1385,7 +1385,7 @@ ErrorConditionT Service::doConnectionNotifySendRawData(
 	
 	if(not success){
 		wdbgx(Debug::ipc, this<<" failed notify send raw event to "<<_rrecipient_id.connectionId());
-		error = error_connection_inexistent;
+		error = error_service_unknown_connection;
 	}
 	
 	return error;
@@ -1404,7 +1404,7 @@ ErrorConditionT Service::doConnectionNotifyRecvRawData(
 	
 	if(not success){
 		wdbgx(Debug::ipc, this<<" failed notify recv raw event to "<<_rrecipient_id.connectionId());
-		error = error_connection_inexistent;
+		error = error_service_unknown_connection;
 	}
 	
 	return error;
@@ -1911,7 +1911,7 @@ ErrorConditionT Service::activateConnection(Connection &_rconnection, ObjectIdT 
 	
 	cassert(rpool.unique == _rconnection.poolId().unique);
 	if(rpool.unique != _rconnection.poolId().unique){
-		error.assign(-1, error.category());//TODO: no such pool
+		error = error_service_unknown_pool;
 		return error;
 	}
 	
@@ -1938,7 +1938,7 @@ ErrorConditionT Service::activateConnection(Connection &_rconnection, ObjectIdT 
 	if(
 		new_active_connection_count > configuration().pool_max_active_connection_count
 	){
-		error.assign(-2, error.category());//TODO: too many active connections
+		error = error_service_too_many_active_connections;
 		return error;
 	}
 	
