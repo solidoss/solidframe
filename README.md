@@ -31,9 +31,7 @@ C++11 enabled compilers on:
 * Sample applications
 
 ## Pending
-
-* Distributed chat example using frame/ipc
-* Fast-Multi-Paxos using frame/ipc
+* Finalizing the IPC library
 
 ## See also
 * [IPC library](libraries/frame/ipc/README.md)
