@@ -16,14 +16,14 @@ namespace frame{
 namespace ipc{
 
 namespace{
+
 enum {
-	ErrorInactivityTimeoutE = 1,
-	ErrorTooManyKAPacketsReceivedE,
+	ErrorConnectionInactivityTimeoutE = 1,
+	ErrorConnectionTooManyKAPacketsReceivedE,
 	ErrorConnectionKilledE,
-	ErrorLibraryLogicE,
+	ErrorConnectionLogicE,
 	ErrorConnectionDelayedClosedE,
-	ErrorDelayedClosePendingE,
-	ErrorMessageCanceledE,
+	ErrorConnectionMessageCanceledE,
 	ErrorConnectionEnterActiveE,
 	ErrorConnectionStoppingE,
 	ErrorConnectionInvalidStateE,
@@ -48,6 +48,7 @@ enum {
 	ErrorServiceMessageLostE,
 	ErrorServiceUnknownMessageE,
 };
+
 class ErrorCategory: public ErrorCategoryT
 {     
 public: 
@@ -64,29 +65,27 @@ std::string ErrorCategory::message(int _ev) const{
 	std::ostringstream oss;
 	
 	oss<<"("<<name()<<":"<<_ev<<"): ";
+	
 	switch(_ev){
 		case 0:
 			oss<<"Success";
 			break;
-		case ErrorInactivityTimeoutE:
-			oss<<"Timeout due to inactivity";
+		case ErrorConnectionInactivityTimeoutE:
+			oss<<"Connection: Timeout due to inactivity";
 			break;
-		case ErrorTooManyKAPacketsReceivedE:
-			oss<<"Received too many KeepAlive packets";
+		case ErrorConnectionTooManyKAPacketsReceivedE:
+			oss<<"Connection: Received too many KeepAlive packets";
 			break;
 		case ErrorConnectionKilledE:
-			oss<<"Connection forcefully killed";
+			oss<<"Connection: killed";
 			break;
-		case ErrorLibraryLogicE:
-			oss<<"Library logic error";
+		case ErrorConnectionLogicE:
+			oss<<"Connection: logic";
 			break;
 		case ErrorConnectionDelayedClosedE:
 			oss<<"Connection delayed closed";
 			break;
-		case ErrorDelayedClosePendingE:
-			oss<<"Delayed Close is pending";
-			break;
-		case ErrorMessageCanceledE:
+		case ErrorConnectionMessageCanceledE:
 			oss<<"Message canceled";
 			break;
 		case ErrorConnectionEnterActiveE:
@@ -167,13 +166,12 @@ std::string ErrorCategory::message(int _ev) const{
 
 }//namespace
 
-/*extern*/ const ErrorConditionT error_inactivity_timeout(ErrorInactivityTimeoutE, category);
-/*extern*/ const ErrorConditionT error_too_many_keepalive_packets_received(ErrorTooManyKAPacketsReceivedE, category);
+/*extern*/ const ErrorConditionT error_connection_inactivity_timeout(ErrorConnectionInactivityTimeoutE, category);
+/*extern*/ const ErrorConditionT error_connection_too_many_keepalive_packets_received(ErrorConnectionTooManyKAPacketsReceivedE, category);
 /*extern*/ const ErrorConditionT error_connection_killed(ErrorConnectionKilledE, category);
-/*extern*/ const ErrorConditionT error_library_logic(ErrorLibraryLogicE, category);
+/*extern*/ const ErrorConditionT error_connection_logic(ErrorConnectionLogicE, category);
 /*extern*/ const ErrorConditionT error_connection_delayed_closed(ErrorConnectionDelayedClosedE, category);
-/*extern*/ const ErrorConditionT error_delayed_closed_pending(ErrorDelayedClosePendingE, category);
-/*extern*/ const ErrorConditionT error_message_canceled(ErrorMessageCanceledE, category);
+/*extern*/ const ErrorConditionT error_connection_message_canceled(ErrorConnectionMessageCanceledE, category);
 /*extern*/ const ErrorConditionT error_connection_enter_active(ErrorConnectionEnterActiveE, category);
 /*extern*/ const ErrorConditionT error_connection_stopping(ErrorConnectionStoppingE, category);
 /*extern*/ const ErrorConditionT error_connection_invalid_state(ErrorConnectionInvalidStateE, category);

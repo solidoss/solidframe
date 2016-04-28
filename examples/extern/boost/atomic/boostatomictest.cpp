@@ -28,7 +28,7 @@ int main(int argc, char *argv[]){
 	aint.store(10);
 	
 	int v = aint.load();
-	
+	(void)v;
 	return 0;
 }
 

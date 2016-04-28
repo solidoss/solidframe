@@ -46,7 +46,7 @@ const uint32  pagesize = getpagesize();
 
 ///\cond 0
 typedef std::deque<FileDevice>				FileDeuqeT;
-typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeT;
+//typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeT;
 ///\endcond
 
 ///\cond 0

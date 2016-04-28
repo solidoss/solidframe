@@ -603,6 +603,17 @@ TempFile::TempFile(
 
 namespace{
 
+void split_id(const uint32 _id, size_t &_rfldrid, size_t &_rfileid){
+	_rfldrid = _id >> 16;
+	_rfileid = _id & 0xffffUL;
+}
+
+void split_id(const uint64 _id, size_t &_rfldrid, size_t &_rfileid){
+	_rfldrid = _id >> 32;
+	_rfileid = _id & 0xffffffffUL;
+}
+
+
 bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id){
 	_rpath.assign(_prefix);
 	if(_rpath.empty()) return false;
@@ -613,15 +624,15 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 	
 	char	fldrbuf[128];
 	char	filebuf[128];
+	size_t	fldrid;
+	size_t	fileid;
+	
+	split_id(_id, fldrid, fileid);
 	
 	if(sizeof(_id) == sizeof(uint64)){
-		size_t fldrid = _id >> 32;
-		size_t fileid = _id & 0xffffffffUL;
 		std::sprintf(fldrbuf, "%8.8X", fldrid);
 		std::sprintf(filebuf, "/%8.8x.tmp", fileid);
 	}else{
-		const size_t fldrid = _id >> 16;
-		const size_t fileid = _id & 0xffffUL;
 		std::sprintf(fldrbuf, "%4.4X", fldrid);
 		std::sprintf(filebuf, "/%4.4x.tmp", fileid);
 	}

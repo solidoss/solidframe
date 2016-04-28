@@ -12,22 +12,22 @@ using namespace std;
 
 #define TEST_ALLOC
 #ifdef TEST_ALLOC
-static void *(*old_malloc_hook)(size_t, const void *);
+//static void *(*old_malloc_hook)(size_t, const void *);
 
 static void *new_malloc_hook(size_t size, const void *caller) {
     void *mem;
 
-    __malloc_hook = old_malloc_hook;
+    //__malloc_hook = old_malloc_hook;
     mem = malloc(size);
     fprintf(stderr, "%p: malloc(%zu) = %p\n", caller, size, mem);
-    __malloc_hook = new_malloc_hook;
+    //__malloc_hook = new_malloc_hook;
 
     return mem;
 }
 
 static void init_my_hooks(void) {
-    old_malloc_hook = __malloc_hook;
-    __malloc_hook = new_malloc_hook;
+    //old_malloc_hook = __malloc_hook;
+    //__malloc_hook = new_malloc_hook;
 }
 
 void (*__MALLOC_HOOK_VOLATILE __malloc_initialize_hook)(void) = init_my_hooks;

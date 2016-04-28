@@ -132,14 +132,14 @@ void complete_message(
 	frame::ipc::MessagePointerT &_rresponse_ptr,
 	ErrorConditionT const &_rerr
 ){
-	if(_rerr and _rerr != frame::ipc::error_message_canceled){
+	if(_rerr and _rerr != frame::ipc::error_connection_message_canceled){
 		THROW_EXCEPTION("Message complete with error");
 	}
 	if(_rmessage_ptr.get()){
 		size_t idx = static_cast<Message&>(*_rmessage_ptr).idx;
 		if(crtreadidx){
 			//not the first message
-			cassert((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_message_canceled));
+			cassert((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_connection_message_canceled));
 		}
 		idbg(static_cast<Message&>(*_rmessage_ptr).str.size()<<' '<<_rerr.message());
 	}
@@ -179,7 +179,7 @@ int test_protocol_cancel(int argc, char **argv){
 	
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
+	Debug::the().levelMask("ew");
 	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);
 #endif

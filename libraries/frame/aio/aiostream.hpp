@@ -13,6 +13,7 @@
 #include "system/common.hpp"
 #include "system/socketdevice.hpp"
 #include "aiocompletion.hpp"
+#include "aioerror.hpp"
 #include "system/debug.hpp"
 
 namespace solid{
@@ -25,7 +26,6 @@ struct	ReactorContext;
 template <class Sock>
 class Stream: public CompletionHandler{
 	typedef Stream<Sock>			ThisT;
-	typedef ERROR_NS::error_code	ErrorCodeT;
 	
 	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
@@ -146,7 +146,7 @@ class Stream: public CompletionHandler{
 				return;
 			}else{
 				_rthis.systemError(_rctx, err);
-				_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				_rthis.error(_rctx, error_stream_system);
 			}
 			F	tmpf(f);
 			_rthis.doClearSend(_rctx);
@@ -169,7 +169,7 @@ class Stream: public CompletionHandler{
 				return;
 			}else{
 				_rthis.systemError(_rctx, err);
-				_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				_rthis.error(_rctx, error_stream_system);
 			}
 			F	tmpf(f);
 			_rthis.doClearRecv(_rctx);
@@ -192,7 +192,7 @@ class Stream: public CompletionHandler{
 				return;
 			}else{
 				_rthis.systemError(_rctx, err);
-				_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				_rthis.error(_rctx, error_stream_system);
 			}
 			F	tmpf(f);
 			_rthis.doClearSend(_rctx);
@@ -273,8 +273,7 @@ public:
 			errorClear(_rctx);
 			return false;
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 			return true;
 		}
 	}
@@ -295,8 +294,7 @@ public:
 			}
 			
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 		}
 		return true;
 	}
@@ -314,8 +312,7 @@ public:
 			errorClear(_rctx);
 			return false;
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 			cassert(false);
 			return true;
 		}
@@ -336,8 +333,7 @@ public:
 			send_fnc = SendAllFunctor<F>(_f);
 			return false;
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 		}
 		return true;
 	}
@@ -360,18 +356,15 @@ public:
 					return false;
 				}else{
 					systemError(_rctx, err);
-					//TODO: set proper error
-					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					error(_rctx, error_stream_system);
 				}
 			}else{
-				//TODO: set proper error
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_stream_system);
 				systemError(_rctx, err);
 			}
 			
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 		}
 		return true;
 	}
@@ -392,7 +385,7 @@ public:
 				return false;
 			}else{
 				systemError(_rctx, err);
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_stream_system);
 			}
 		}
 		return true;
@@ -410,7 +403,7 @@ public:
 				return false;
 			}else{
 				systemError(_rctx, err);
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_stream_system);
 			}
 		}
 		return true;
@@ -428,7 +421,7 @@ public:
 				return false;
 			}else{
 				systemError(_rctx, err);
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_stream_system);
 			}
 		}
 		return true;
@@ -438,7 +431,7 @@ public:
 		ErrorCodeT	err = s.renegotiate();
 		if(err){
 			systemError(_rctx, err);
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_stream_system);
 		}
 	}
 private:
@@ -476,14 +469,14 @@ private:
 			recv_buf_sz += rv;
 			recv_buf += rv;
 		}else if(rv == 0){
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_stream_shutdown);
 			recv_buf_sz = recv_buf_cp = 0;
 		}else if(rv < 0){
 			if(can_retry){
 				return false;
 			}else{
 				recv_buf_sz = recv_buf_cp = 0;
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_stream_system);
 				systemError(_rctx, err);
 			}
 		}
@@ -517,8 +510,7 @@ private:
 	
 	void doError(ReactorContext &_rctx){
 		vdbg("");
-		//TODO: set propper error
-		error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+		error(_rctx, error_stream_socket);
 		
 		if(!FUNCTION_EMPTY(send_fnc)){
 			send_buf_sz = send_buf_cp = 0;

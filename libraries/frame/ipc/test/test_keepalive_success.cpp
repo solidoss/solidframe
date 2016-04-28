@@ -77,8 +77,8 @@ std::atomic<size_t>				transfered_count(0);
 int								test_scenario = 0;
 
 /*
- * test_scenario == 0: test for error_too_many_keepalive_packets_received
- * test_scenario == 1: test for error_inactivity_timeout
+ * test_scenario == 0: test for error_connection_too_many_keepalive_packets_received
+ * test_scenario == 1: test for error_connection_inactivity_timeout
 */
 
 size_t real_size(size_t _sz){
@@ -244,7 +244,7 @@ void server_complete_message(
 int test_keepalive_success(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
+	Debug::the().levelMask("ew");
 	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);
 #endif

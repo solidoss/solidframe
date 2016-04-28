@@ -15,6 +15,7 @@ set(Sources
 	${reactor_source}
 	src/aiolistener.cpp
 	src/aioobject.cpp
+	src/aioerror.cpp
 )
 
 set(Headers

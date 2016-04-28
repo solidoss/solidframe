@@ -20,8 +20,6 @@ namespace aio{
 
 class	Socket{
 public:
-	typedef ERROR_NS::error_code	ErrorCodeT;
-	
 	Socket(SocketDevice &&_rsd):sd(std::move(_rsd)){
 		if(sd.ok()){
 			sd.makeNonBlocking();

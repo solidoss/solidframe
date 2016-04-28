@@ -151,7 +151,7 @@ int main(int argc, char *argv[]){
 	char	bufs[2][1024 + 128];
 	char	*wbuf[2];
 	int		readsz[2];
-	int		states[2];
+	//int		states[2];
 	readsz[0] = 0;
 	bool read_socket = true, read_stdin = false;
 	bool write_socket = false;

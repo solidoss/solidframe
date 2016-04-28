@@ -9,10 +9,15 @@
 //
 #include "frame/aio/openssl/aiosecuresocket.hpp"
 #include "frame/aio/openssl/aiosecurecontext.hpp"
+
+#include "frame/aio/aioerror.hpp"
+
 #include "system/mutex.hpp"
 #include "system/thread.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
+
+
 
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
@@ -114,14 +119,14 @@ Context::~Context(){
 ErrorCodeT Context::loadFile(const char *_path){
 	ErrorCodeT err;
 	if(SSL_CTX_load_verify_locations(pctx, _path, NULL)){
-		err.assign(-1, err.category());
+		err = error_secure_context;
 	}
 	return err;
 }
 ErrorCodeT Context::loadPath(const char *_path){
 	ErrorCodeT err;
 	if(SSL_CTX_load_verify_locations(pctx, NULL, _path)){
-		err.assign(-1, err.category());
+		err = error_secure_context;
 	}
 	return err;
 }
@@ -129,7 +134,7 @@ ErrorCodeT Context::loadPath(const char *_path){
 ErrorCodeT Context::loadCertificateFile(const char *_path){
 	ErrorCodeT err;
 	if(SSL_CTX_use_certificate_file(pctx, _path, SSL_FILETYPE_PEM)){
-		err.assign(-1, err.category());
+		err = error_secure_context;
 	}
 	return err;
 }
@@ -137,7 +142,7 @@ ErrorCodeT Context::loadCertificateFile(const char *_path){
 ErrorCodeT Context::loadPrivateKeyFile(const char *_path){
 	ErrorCodeT err;
 	if(SSL_CTX_use_PrivateKey_file(pctx, _path, SSL_FILETYPE_PEM)){
-		err.assign(-1, err.category());
+		err = error_secure_context;
 	}
 	return err;
 }
@@ -277,7 +282,7 @@ int Socket::recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr.assign(-1, _rerr.category());
+			_rerr = error_secure_recv;
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -309,7 +314,7 @@ int Socket::send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rer
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr.assign(-1, _rerr.category());
+			_rerr = error_secure_send;
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -338,7 +343,7 @@ bool Socket::secureAccept(bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr.assign(-1, _rerr.category());
+			_rerr = error_secure_accept;
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -367,7 +372,7 @@ bool Socket::secureConnect(bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr.assign(-1, _rerr.category());
+			_rerr = error_secure_connect;
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -396,7 +401,7 @@ bool Socket::secureShutdown(bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr.assign(-1, _rerr.category());
+			_rerr = error_secure_shutdown;
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr

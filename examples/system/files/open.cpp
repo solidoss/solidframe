@@ -22,7 +22,7 @@ using namespace solid;
 
 ///\cond 0
 typedef std::deque<FileDevice>	FileDeuqeT;
-typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeT;
+//typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeT;
 ///\endcond
 
 

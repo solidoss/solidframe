@@ -15,6 +15,7 @@
 
 #include "aiocompletion.hpp"
 #include "aioreactorcontext.hpp"
+#include "aioerror.hpp"
 
 namespace solid{
 struct Event;
@@ -56,8 +57,7 @@ public:
 			doPostAccept(_rctx);
 			return false;
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 			return true;
 		}
 	}
@@ -73,8 +73,7 @@ public:
 			f = _f;
 			return false;
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 			return true;
 		}
 	}

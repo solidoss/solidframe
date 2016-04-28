@@ -34,15 +34,15 @@ struct ReactorContext{
 	}
 	
 	const TimeSpec& time()const{
-		return rcrttm;
+		return rcurrent_time_;
 	}
 	
-	ERROR_NS::error_code const& systemError()const{
-		return syserr;
+	ErrorCodeT const& systemError()const{
+		return system_error_;
 	}
 	
 	ErrorConditionT const& error()const{
-		return err;
+		return error_;
 	}
 	
 	Object& object()const;
@@ -51,8 +51,8 @@ struct ReactorContext{
 	UniqueId objectUid()const;
 	
 	void clearError(){
-		err.clear();
-		syserr.clear();
+		error_.clear();
+		system_error_.clear();
 	}
 private:
 	friend class CompletionHandler;
@@ -60,39 +60,39 @@ private:
 	friend class Object;
 	
 	Reactor& reactor(){
-		return rreactor;
+		return rreactor_;
 	}
 	
 	Reactor const& reactor()const{
-		return rreactor;
+		return rreactor_;
 	}
 	ReactorEventsE reactorEvent()const{
-		return reactevn;
+		return reactor_event_;
 	}
 	CompletionHandler* completionHandler()const;
 	
 	
 	void error(ErrorConditionT const& _err){
-		err = _err;
+		error_ = _err;
 	}
 	
-	void systemError(ERROR_NS::error_code const& _err){
-		syserr = _err;
+	void systemError(ErrorCodeT const& _err){
+		system_error_ = _err;
 	}
 	
 	ReactorContext(
 		Reactor	&_rreactor,
-		const TimeSpec &_rcrttm
-	):	rreactor(_rreactor),
-		rcrttm(_rcrttm), chnidx(-1), objidx(-1), reactevn(ReactorEventNone){}
+		const TimeSpec &_rcurrent_time
+	):	rreactor_(_rreactor),
+		rcurrent_time_(_rcurrent_time), channel_index_(-1), object_index_(-1), reactor_event_(ReactorEventNone){}
 	
-	Reactor						&rreactor;
-	const TimeSpec				&rcrttm;
-	size_t						chnidx;
-	size_t						objidx;
-	ReactorEventsE				reactevn;
-	ERROR_NS::error_code		syserr;
-	ErrorConditionT	err;
+	Reactor						&rreactor_;
+	const TimeSpec				&rcurrent_time_;
+	size_t						channel_index_;
+	size_t						object_index_;
+	ReactorEventsE				reactor_event_;
+	ErrorCodeT					system_error_;
+	ErrorConditionT				error_;
 };
 
 }//namespace aio

@@ -720,8 +720,9 @@ void Connection::doHandleEventResolve(
 			
 			service(_rctx).forwardResolveMessage(poolId(), _revent);
 		}else{
-			cassert(true);
-			doStop(_rctx, error_library_logic);
+			edbgx(Debug::ipc, this<<' '<<this->id()<<" Empty resolve message");
+			cassert(false);
+			doStop(_rctx, error_connection_logic);
 		}
 	}else{
 		cassert(false);
@@ -776,7 +777,7 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext &_rct
 		MessageBundle	msg_bundle;
 		MessageId		pool_msg_id;
 		if(msg_writer.cancel(*pmsgid, msg_bundle, pool_msg_id)){
-			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_canceled);
+			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_connection_message_canceled);
 		}
 	}
 }
@@ -790,7 +791,7 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext &_rct
 		MessageBundle	msg_bundle;
 				
 		if(service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)){
-			doCompleteMessage(_rctx, *pmsgid, msg_bundle, error_message_canceled);
+			doCompleteMessage(_rctx, *pmsgid, msg_bundle, error_connection_message_canceled);
 		}
 	}
 }
@@ -1022,7 +1023,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		
 		rthis.timer.waitFor(_rctx, TimeSpec(config.connection_inactivity_timeout_seconds), onTimerInactivity);
 	}else{
-		rthis.doStop(_rctx, error_inactivity_timeout);
+		rthis.doStop(_rctx, error_connection_inactivity_timeout);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -1356,7 +1357,7 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
 			this->post(
 				_rctx,
 				[this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){
-					this->doStop(_rctx, error_too_many_keepalive_packets_received);
+					this->doStop(_rctx, error_connection_too_many_keepalive_packets_received);
 				}
 			);
 		}

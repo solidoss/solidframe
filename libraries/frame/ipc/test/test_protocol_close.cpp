@@ -126,9 +126,6 @@ void complete_message(
 	frame::ipc::MessagePointerT &_rresponse_ptr,
 	ErrorConditionT const &_rerr
 ){
-	if(_rerr and _rerr != frame::ipc::error_delayed_closed_pending){
-		THROW_EXCEPTION("Message complete with error");
-	}
 	if(_rmessage_ptr.get()){
 		idbg(static_cast<Message*>(_rmessage_ptr.get())->idx);
 	}
@@ -169,7 +166,7 @@ int test_protocol_close(int argc, char **argv){
 	
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
+	Debug::the().levelMask("ew");
 	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);
 #endif

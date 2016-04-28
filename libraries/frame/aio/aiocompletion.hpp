@@ -59,7 +59,7 @@ protected:
 	Reactor& reactor(ReactorContext &_rctx)const;
 	void error(ReactorContext &_rctx, ErrorConditionT const& _err)const;
 	void errorClear(ReactorContext &_rctx)const;
-	void systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const;
+	void systemError(ReactorContext &_rctx, ErrorCodeT const& _err)const;
 	void addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req);
 	void remDevice(ReactorContext &_rctx, Device const &_rsd);
 	void addTimer(ReactorContext &_rctx, TimeSpec const&_rt, size_t &_storedidx);

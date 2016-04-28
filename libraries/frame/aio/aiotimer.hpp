@@ -15,6 +15,7 @@
 
 #include "aiocompletion.hpp"
 #include "aioreactorcontext.hpp"
+#include "aioerror.hpp"
 
 namespace solid{
 namespace frame{
@@ -74,15 +75,9 @@ public:
 	//Returns false when operation is scheduled for completion. On completion _f(...) will be called.
 	template <typename F>
 	bool waitUntil(ReactorContext &_rctx, TimeSpec const& _tm, F _f){
-		//if(FUNCTION_EMPTY(f)){
-			f = _f;
-			this->addTimer(_rctx, _tm, storeidx);
-			return false;
-		//}else{
-			//TODO: set proper error
-		//	error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
-		//	return true;
-		//}
+		f = _f;
+		this->addTimer(_rctx, _tm, storeidx);
+		return false;
 	}
 	
 	void silentCancel(ReactorContext &_rctx){
@@ -91,7 +86,7 @@ public:
 	void cancel(ReactorContext &_rctx){
 		if(not FUNCTION_EMPTY(f)){
 			remTimer(_rctx, storeidx);
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_timer_cancel);
 			doExec(_rctx);
 		}else{
 			doClear(_rctx);

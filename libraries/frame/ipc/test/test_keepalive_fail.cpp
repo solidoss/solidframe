@@ -77,7 +77,7 @@ std::atomic<size_t>				transfered_count(0);
 int								test_scenario = 0;
 
 /*
- * test_scenario == 0: test for error_too_many_keepalive_packets_received
+ * test_scenario == 0: test for error_connection_too_many_keepalive_packets_received
  * test_scenario == 1: test for error_inactivity_timeout
 */
 
@@ -155,13 +155,13 @@ void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 	idbg(_rctx.recipientId()<<" error = "<<_error.message());
 	
 	if(test_scenario == 0){
-		if(_error == frame::ipc::error_too_many_keepalive_packets_received){
+		if(_error == frame::ipc::error_connection_too_many_keepalive_packets_received){
 			Locker<Mutex> lock(mtx);
 			running = false;
 			cnd.signal();
 		}
 	}else if(test_scenario == 1){
-		if(_error == frame::ipc::error_inactivity_timeout){
+		if(_error == frame::ipc::error_connection_inactivity_timeout){
 			Locker<Mutex> lock(mtx);
 			running = false;
 			cnd.signal();
@@ -259,7 +259,7 @@ void server_complete_message(
 int test_keepalive_fail(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
+	Debug::the().levelMask("ew");
 	Debug::the().moduleMask("all");
 	Debug::the().initStdErr(false, nullptr);
 #endif

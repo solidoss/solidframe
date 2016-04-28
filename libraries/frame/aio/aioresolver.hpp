@@ -13,7 +13,7 @@
 #include "utility/dynamictype.hpp"
 #include "system/function.hpp"
 #include "system/socketaddress.hpp"
-#include "system/error.hpp"
+#include "aioerror.hpp"
 #include <string>
 
 namespace solid{
@@ -21,8 +21,9 @@ namespace frame{
 namespace aio{
 
 struct ResolveBase: Dynamic<ResolveBase>{
-	ERROR_NS::error_code	err;
-	int 					flags;
+	
+	ErrorCodeT		error;
+	int 			flags;
 	
 	ResolveBase(int _flags):flags(_flags){}
 	
@@ -31,11 +32,12 @@ struct ResolveBase: Dynamic<ResolveBase>{
 };
 
 struct DirectResolve: ResolveBase{
-	std::string	host;
-	std::string	srvc;
-	int			family;
-	int			type;
-	int			proto;
+	
+	std::string		host;
+	std::string		srvc;
+	int				family;
+	int				type;
+	int				proto;
 	
 	DirectResolve(
 		const char *_host, 
@@ -50,7 +52,9 @@ struct DirectResolve: ResolveBase{
 };
 
 struct ReverseResolve: ResolveBase{
+	
 	SocketAddressInet	addr;
+	
 	ReverseResolve(
 		const SocketAddressStub &_rsa,
 		int _flags
@@ -61,7 +65,9 @@ struct ReverseResolve: ResolveBase{
 
 template <class Cbk>
 struct DirectResolveCbk: DirectResolve{
+	
 	Cbk		cbk;
+	
 	DirectResolveCbk(
 		Cbk	_cbk,
 		const char *_host, 
@@ -74,20 +80,23 @@ struct DirectResolveCbk: DirectResolve{
 	}
 	
 	/*virtual*/ void run(bool _fail){
+		
 		ResolveData rd;
+		
 		if(!_fail){
 			rd = this->doRun();
 		}else{
-			//TODO:
-			this->err.assign(-1, this->err.category());
+			this->error = error_resolver_direct;
 		}
-		cbk(rd, this->err);
+		cbk(rd, this->error);
 	}
 };
 
 template <class Cbk>
 struct ReverseResolveCbk: ReverseResolve{
+	
 	Cbk		cbk;
+	
 	ReverseResolveCbk(
 		Cbk	_cbk,
 		const SocketAddressStub &_rsa,
@@ -98,10 +107,9 @@ struct ReverseResolveCbk: ReverseResolve{
 		if(!_fail){
 			this->doRun(cbk.hostString(), cbk.serviceString());
 		}else{
-			//TODO:
-			this->err.assign(-1, this->err.category());
+			this->error = error_resolver_reverse;
 		}
-		cbk(this->err);
+		cbk(this->error);
 	}
 };
 
@@ -124,6 +132,7 @@ public:
 	){
 		doSchedule(new DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
 	}
+	
 	template <class Cbk>
 	void requestResolve(
 		Cbk _cbk,
@@ -132,6 +141,7 @@ public:
 	){
 		doSchedule(new ReverseResolveCbk<Cbk>(_rsa, _flags));
 	}
+	
 	void stop();
 private:
 	void doSchedule(ResolveBase *_pb);

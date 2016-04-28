@@ -295,8 +295,8 @@ extern StringCheckFncT pcheckfnc;
 int test_clientserver_cancel_server(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:view frame_aio:iew any:view");
+	Debug::the().levelMask("ew");
+	Debug::the().moduleMask("frame_ipc:ew frame_aio:ew any:ew");
 	Debug::the().initStdErr(false, nullptr);
 #endif
 	

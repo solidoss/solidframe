@@ -16,19 +16,20 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
-extern const ErrorConditionT error_inactivity_timeout;
-extern const ErrorConditionT error_too_many_keepalive_packets_received;
+extern const ErrorConditionT error_connection_inactivity_timeout;
+extern const ErrorConditionT error_connection_too_many_keepalive_packets_received;
 extern const ErrorConditionT error_connection_killed;
 extern const ErrorConditionT error_connection_delayed_closed;
 extern const ErrorConditionT error_connection_enter_active;
 extern const ErrorConditionT error_connection_stopping;
 extern const ErrorConditionT error_connection_invalid_state;
-extern const ErrorConditionT error_delayed_closed_pending;
-extern const ErrorConditionT error_library_logic;
-extern const ErrorConditionT error_message_canceled;
-extern const ErrorConditionT error_compression_unavailable;
+extern const ErrorConditionT error_connection_logic;
+extern const ErrorConditionT error_connection_message_canceled;
+
 extern const ErrorConditionT error_reader_invalid_packet_header;
 extern const ErrorConditionT error_reader_invalid_message_switch;
+extern const ErrorConditionT error_reader_too_many_multiplex;
+
 extern const ErrorConditionT error_service_stopping;
 extern const ErrorConditionT error_service_unknown_message_type;
 extern const ErrorConditionT error_service_server_only;
@@ -40,12 +41,14 @@ extern const ErrorConditionT error_service_unknown_connection;
 extern const ErrorConditionT error_service_too_many_active_connections;
 extern const ErrorConditionT error_service_bad_cast_request;
 extern const ErrorConditionT error_service_bad_cast_response;
-extern const ErrorConditionT error_reader_too_many_multiplex;
 extern const ErrorConditionT error_service_start;
 extern const ErrorConditionT error_service_start_listener;
 extern const ErrorConditionT error_service_message_already_canceled;
 extern const ErrorConditionT error_service_message_lost;
 extern const ErrorConditionT error_service_unknown_message;
+
+extern const ErrorConditionT error_compression_unavailable;
+
 
 }//namespace ipc
 }//namespace frame

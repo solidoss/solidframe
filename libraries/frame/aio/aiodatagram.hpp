@@ -12,7 +12,7 @@
 
 #include "system/common.hpp"
 #include "system/socketdevice.hpp"
-
+#include "aioerror.hpp"
 #include "aiocompletion.hpp"
 
 namespace solid{
@@ -25,7 +25,6 @@ struct	ReactorContex;
 template <class Sock>
 class Datagram: public CompletionHandler{
 	typedef Datagram<Sock>			ThisT;
-	typedef ERROR_NS::error_code	ErrorCodeT;
 	
 	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
@@ -98,12 +97,12 @@ class Datagram: public CompletionHandler{
 				if(rv > 0){
 					recv_sz = rv;
 				}else if(rv == 0){
-					_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					_rthis.error(_rctx, error_datagram_shutdown);
 				}else if(rv == -1){
 					if(can_retry){
 						return;
 					}else{
-						_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+						_rthis.error(_rctx, error_datagram_system);
 						_rthis.systemError(_rctx, err);
 					}
 				}
@@ -134,12 +133,12 @@ class Datagram: public CompletionHandler{
 				if(rv > 0){
 					recv_sz = rv;
 				}else if(rv == 0){
-					_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					_rthis.error(_rctx, error_datagram_shutdown);
 				}else if(rv == -1){
 					if(can_retry){
 						return;
 					}else{
-						_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+						_rthis.error(_rctx, error_datagram_system);
 						_rthis.systemError(_rctx, err);
 					}
 				}
@@ -166,12 +165,12 @@ class Datagram: public CompletionHandler{
 				
 				if(rv == _rthis.send_buf_cp){
 				}else if(rv >= 0){
-					_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					_rthis.error(_rctx, error_datagram_shutdown);
 				}else if(rv == -1){
 					if(can_retry){
 						return;
 					}else{
-						_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+						_rthis.error(_rctx, error_datagram_system);
 						_rthis.systemError(_rctx, err);
 					}
 				}
@@ -197,12 +196,12 @@ class Datagram: public CompletionHandler{
 				
 				if(rv == _rthis.send_buf_cp){
 				}else if(rv >= 0){
-					_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					_rthis.error(_rctx, error_datagram_shutdown);
 				}else if(rv == -1){
 					if(can_retry){
 						return;
 					}else{
-						_rthis.error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+						_rthis.error(_rctx, error_datagram_system);
 						_rthis.systemError(_rctx, err);
 					}
 				}
@@ -258,13 +257,15 @@ public:
 	template <typename F>
 	bool connect(ReactorContext &_rctx, SocketAddressStub const &_rsas, F _f){
 		if(FUNCTION_EMPTY(send_fnc)){
+			ErrorCodeT 	err;
+			
 			errorClear(_rctx);
-			if(s.create(_rsas)){
+			
+			if(s.create(_rsas, err)){
 				completionCallback(&on_completion);
 				addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
 				
 				bool		can_retry;
-				ErrorCodeT	err;
 				bool		rv = s.connect(_rsas, can_retry, err);
 				if(rv){
 					
@@ -272,18 +273,16 @@ public:
 					send_fnc = ConnectFunctor<F>(_f);
 					return false;
 				}else{
-					//TODO: set proper error
 					systemError(_rctx, err);
-					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					error(_rctx, error_datagram_system);
 				}
 			}else{
-				//TODO: set proper error
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_datagram_system);
+				systemError(_rctx, err);
 			}
 			
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 		}
 		return true;
 	}
@@ -303,8 +302,7 @@ public:
 			errorClear(_rctx);
 			return false;
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 			return true;
 		}
 	}
@@ -324,8 +322,7 @@ public:
 			errorClear(_rctx);
 			return false;
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 			return true;
 		}
 	}
@@ -347,7 +344,7 @@ public:
 				_sz = rv;
 				errorClear(_rctx);
 			}else if(rv >= 0){
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_datagram_shutdown);
 				_sz = 0;
 			}else if(rv == -1){
 				_sz = 0;
@@ -358,13 +355,12 @@ public:
 					errorClear(_rctx);
 					return false;
 				}else{
-					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					error(_rctx, error_datagram_system);
 					systemError(_rctx, err);
 				}
 			}
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 		}
 		return true;
 	}
@@ -385,7 +381,7 @@ public:
 				_sz = rv;
 				errorClear(_rctx);
 			}else if(rv >= 0){
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_datagram_shutdown);
 				_sz = 0;
 			}else if(rv == -1){
 				_sz = 0;
@@ -396,13 +392,12 @@ public:
 					errorClear(_rctx);
 					return false;
 				}else{
-					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					error(_rctx, error_datagram_system);
 					systemError(_rctx, err);
 				}
 			}
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 		}
 		return true;
 	}
@@ -424,8 +419,7 @@ public:
 			errorClear(_rctx);
 			return false;
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 			cassert(false);
 			return true;
 		}
@@ -446,8 +440,7 @@ public:
 			errorClear(_rctx);
 			return false;
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 			cassert(false);
 			return true;
 		}
@@ -468,7 +461,7 @@ public:
 			if(rv == _bufcp){
 				errorClear(_rctx);
 			}else if(rv >= 0){
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_datagram_shutdown);
 			}else if(rv == -1){
 				if(can_retry){
 					send_buf = _buf;
@@ -478,14 +471,12 @@ public:
 					errorClear(_rctx);
 					return false;
 				}else{
-					//TODO: set proper error
-					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					error(_rctx, error_datagram_system);
 					systemError(_rctx, err);
 				}
 			}
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 		}
 		return true;
 	}
@@ -505,7 +496,7 @@ public:
 			if(rv == _bufcp){
 				errorClear(_rctx);
 			}else if(rv >= 0){
-				error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+				error(_rctx, error_datagram_shutdown);
 			}else if(rv < 0){
 				if(can_retry){
 					send_buf = _buf;
@@ -514,14 +505,12 @@ public:
 					errorClear(_rctx);
 					return false;
 				}else{
-					//TODO: set proper error
-					error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+					error(_rctx, error_datagram_system);
 					systemError(_rctx, err);
 				}
 			}
 		}else{
-			//TODO: set proper error
-			error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+			error(_rctx, error_already);
 		}
 		return true;
 		
@@ -550,8 +539,8 @@ private:
 	
 	
 	void doError(ReactorContext &_rctx){
-		//TODO: set propper error
-		error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+		error(_rctx, error_datagram_socket);
+		//TODO: set proper system error based on socket error
 		
 		if(!FUNCTION_EMPTY(send_fnc)){
 			send_fnc(*this, _rctx);

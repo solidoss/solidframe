@@ -494,19 +494,19 @@ inline uint32 reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests
 
 
 UniqueId Reactor::objectUid(ReactorContext const &_rctx)const{
-	return UniqueId(_rctx.objidx, d.objdq[_rctx.objidx].unique);
+	return UniqueId(_rctx.object_index_, d.objdq[_rctx.object_index_].unique);
 }
 
 Service& Reactor::service(ReactorContext const &_rctx)const{
-	return *d.objdq[_rctx.objidx].psvc;
+	return *d.objdq[_rctx.object_index_].psvc;
 }
 	
 Object& Reactor::object(ReactorContext const &_rctx)const{
-	return *d.objdq[_rctx.objidx].objptr;
+	return *d.objdq[_rctx.object_index_].objptr;
 }
 
 CompletionHandler *Reactor::completionHandler(ReactorContext const &_rctx)const{
-	return d.chdq[_rctx.chnidx].pch;
+	return d.chdq[_rctx.channel_index_].pch;
 }
 
 void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event &&_uev){
@@ -547,7 +547,7 @@ void Reactor::postObjectStop(ReactorContext &_rctx){
 }
 
 void Reactor::doStopObject(ReactorContext &_rctx){
-	ObjectStub		&ros = this->d.objdq[_rctx.objidx];
+	ObjectStub		&ros = this->d.objdq[_rctx.object_index_];
 	
 	this->stopObject(*ros.objptr, ros.psvc->manager());
 	
@@ -555,7 +555,7 @@ void Reactor::doStopObject(ReactorContext &_rctx){
 	ros.psvc = nullptr;
  	++ros.unique;
 	--this->d.objcnt;
-	this->d.freeuidvec.push_back(UniqueId(_rctx.objidx, ros.unique));
+	this->d.freeuidvec.push_back(UniqueId(_rctx.object_index_, ros.unique));
 }
 
 void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
@@ -567,9 +567,9 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 		epoll_event				&rev = d.eventvec[i];
 		CompletionHandlerStub	&rch = d.chdq[rev.data.u64];
 		
-		ctx.reactevn = systemEventsToReactorEvents(rev.events);
-		ctx.chnidx =  rev.data.u64;
-		ctx.objidx = rch.objidx;
+		ctx.reactor_event_ = systemEventsToReactorEvents(rev.events);
+		ctx.channel_index_ =  rev.data.u64;
+		ctx.object_index_ = rch.objidx;
 		
 		rch.pch->handleCompletion(ctx);
 		ctx.clearError();
@@ -598,9 +598,9 @@ struct TimerCallback{
 void Reactor::onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _chidx){
 	CompletionHandlerStub	&rch = d.chdq[_chidx];
 		
-	_rctx.reactevn = ReactorEventTimer;
-	_rctx.chnidx =  _chidx;
-	_rctx.objidx = rch.objidx;
+	_rctx.reactor_event_ = ReactorEventTimer;
+	_rctx.channel_index_ =  _chidx;
+	_rctx.object_index_ = rch.objidx;
 	
 	rch.pch->handleCompletion(_rctx);
 	_rctx.clearError();
@@ -626,8 +626,8 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 		
 		if(ros.unique == rexe.objuid.unique && rcs.unique == rexe.chnuid.unique){
 			ctx.clearError();
-			ctx.chnidx = rexe.chnuid.index;
-			ctx.objidx = rexe.objuid.index;
+			ctx.channel_index_ = rexe.chnuid.index;
+			ctx.object_index_ = rexe.objuid.index;
 			rexe.exefnc(ctx, std::move(rexe.event));
 		}
 		d.exeq.pop();
@@ -680,8 +680,8 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 			ros.psvc = &rnewobj.rsvc;
 			
 			ctx.clearError();
-			ctx.chnidx =  InvalidIndex();
-			ctx.objidx = rnewobj.uid.index;
+			ctx.channel_index_ =  InvalidIndex();
+			ctx.object_index_ = rnewobj.uid.index;
 			
 			ros.objptr->registerCompletionHandlers();
 			
@@ -814,9 +814,9 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 		TimeSpec		dummytime;
 		ReactorContext	ctx(*this, dummytime);
 		
-		ctx.reactevn = ReactorEventInit;
-		ctx.objidx = rcs.objidx;
-		ctx.chnidx = idx;
+		ctx.reactor_event_ = ReactorEventInit;
+		ctx.object_index_ = rcs.objidx;
+		ctx.channel_index_ = idx;
 		
 		_rch.handleCompletion(ctx);
 	}
@@ -831,9 +831,9 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 		TimeSpec		dummytime;
 		ReactorContext	ctx(*this, dummytime);
 		
-		ctx.reactevn = ReactorEventClear;
-		ctx.objidx = rcs.objidx;
-		ctx.chnidx = _rch.idxreactor;
+		ctx.reactor_event_ = ReactorEventClear;
+		ctx.object_index_ = rcs.objidx;
+		ctx.channel_index_ = _rch.idxreactor;
 		
 		_rch.handleCompletion(ctx);
 	}

@@ -82,8 +82,7 @@ bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 		return false;
 	}else{
 		systemError(_rctx, err);
-		//TODO: set proper error
-		error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+		error(_rctx, error_listener_system);
 	}
 	return true;
 }
@@ -97,8 +96,7 @@ void Listener::doAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 		cassert(false);
 	}else{
 		systemError(_rctx, err);
-		//TODO: set proper error
-		error(_rctx, ErrorConditionT(-1, _rctx.error().category()));
+		error(_rctx, error_listener_system);
 	}
 }
 
