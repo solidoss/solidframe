@@ -149,6 +149,8 @@ class Any;
 
 template <size_t DataSize>
 class Any: protected AnyBase{
+	template <size_t DS>
+	friend class Any;
 public:
 	using ThisT = Any<DataSize>;
 	
