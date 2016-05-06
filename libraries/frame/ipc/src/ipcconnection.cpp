@@ -379,7 +379,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		
 		flags |= static_cast<size_t>(Flags::Stopping);
 		
-		ErrorConditionT		error(_rerr);
+		ErrorConditionT		error;
 		ObjectIdT			objuid(uid(_rctx));
 		ulong				seconds_to_wait = 0;
 		
@@ -388,13 +388,17 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		
 		Event				event;
 		
-		bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event);
+		bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, error);
 		
 		
 		if(not msg_bundle.message_ptr.empty()){
-			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, _rerr);
+			if(not error){
+				error = error_connection_message_fail_send;
+			}
+			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error);
 		}
 		
+		error = _rerr;
 		//at this point we need to start completing all connection's remaining messages
 		
 		bool				has_no_message = pending_message_vec.empty() and pending_message_vec.empty();
@@ -460,7 +464,7 @@ void Connection::doCompleteAllMessages(
 		MessageId		pool_msg_id;
 		
 		if(msg_writer.cancelOldest(msg_bundle, pool_msg_id)){
-			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, _rerr);
+			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_connection_message_fail_send);
 		}
 		
 		has_any_message = (not msg_writer.empty()) or (not pending_message_vec.empty());
@@ -470,7 +474,7 @@ void Connection::doCompleteAllMessages(
 		MessageBundle	msg_bundle;
 				
 		if(service(_rctx).fetchCanceledMessage(*this, pending_message_vec[_offset], msg_bundle)){
-			doCompleteMessage(_rctx, pending_message_vec[_offset], msg_bundle, _rerr);
+			doCompleteMessage(_rctx, pending_message_vec[_offset], msg_bundle, error_connection_message_fail_send);
 		}
 		++_offset;
 		if(_offset == pending_message_vec.size()){
@@ -525,7 +529,7 @@ void Connection::doContinueStopping(
 	
 	idbgx(Debug::ipc, this<<' '<<this->id()<<"");
 	
-	ErrorConditionT		error(_rerr);
+	ErrorConditionT		error;
 	ObjectIdT			objuid(uid(_rctx));
 	ulong				seconds_to_wait = 0;
 	
@@ -534,7 +538,14 @@ void Connection::doContinueStopping(
 	
 	Event				event(_revent);
 	
-	bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event);
+	bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, error);
+	
+	if(not msg_bundle.message_ptr.empty()){
+		if(not error){
+			error = error_connection_message_fail_send;
+		}
+		doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error);
+	}
 	
 	if(can_stop){
 		//can stop rightaway
@@ -1302,18 +1313,21 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 		MessageId		pool_msg_id;
 		
 		msg_writer.cancel(_rresponse_ptr->requid, msg_bundle, pool_msg_id);
-		
+		idbgx(Debug::ipc, this);
 		conctx.message_flags = msg_bundle.message_flags;
 		conctx.request_id = _rresponse_ptr->requid;
 		conctx.message_id = pool_msg_id;
 		
 		if(not FUNCTION_EMPTY(msg_bundle.complete_fnc)){
+			idbgx(Debug::ipc, this);
 			msg_bundle.complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
 		}else{
-			rtypemap[msg_bundle.message_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
+			idbgx(Debug::ipc, this<<" "<<_response_type_id);
+			rtypemap[_response_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
 		}
 		
 	}else{
+		idbgx(Debug::ipc, this<<" "<<_response_type_id);
 		rtypemap[_response_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
 	}
 }
@@ -1335,8 +1349,10 @@ void Connection::doCompleteMessage(
 	conctx.message_id = _rpool_msg_id;
 	
 	if(not FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)){
+		idbgx(Debug::ipc, this);
 		_rmsg_bundle.complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
 	}else{
+		idbgx(Debug::ipc, this<<" "<<_rmsg_bundle.message_type_id);
 		rtypemap[_rmsg_bundle.message_type_id].complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
 	}
 }

@@ -207,11 +207,11 @@ TODO:
 * test_raw_basic
 * test_raw_proxy
 * test_multiprotocol
-* test_clientserver_delayed
-* test_clientserver_noserver
-* test_clientserver_oneshot
+* (DONE) test_clientserver_delayed
+* (DONE) test_clientserver_noserver
+* (DONE) test_clientserver_oneshot
 * test_clientserver_idempotent
-* set all ErrorConditions across frame/aio and frame/ipc to valid errors (all the TODOs)
+* (DONE) set all ErrorConditions across frame/aio and frame/ipc to valid errors (all the TODOs)
 * investigate how to support multiple versions of the serialization library.
 * add support multiple versions of the serialization library
 * add support in ipc::configuration for SOCKS5 (SFv2.x)

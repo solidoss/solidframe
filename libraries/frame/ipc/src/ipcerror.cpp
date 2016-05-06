@@ -27,6 +27,7 @@ enum {
 	ErrorConnectionEnterActiveE,
 	ErrorConnectionStoppingE,
 	ErrorConnectionInvalidStateE,
+	ErrorConnectionMessageFailSendE,
 	ErrorCompressionUnavailableE,
 	ErrorReaderInvalidPacketHeaderE,
 	ErrorReaderInvalidMessageSwitchE,
@@ -96,6 +97,9 @@ std::string ErrorCategory::message(int _ev) const{
 			break;
 		case ErrorConnectionInvalidStateE:
 			oss<<"Connection is a state invalid for opperation";
+			break;
+		case ErrorConnectionMessageFailSendE:
+			oss<<"Message failed send";
 			break;
 		case ErrorCompressionUnavailableE:
 			oss<<"Compression support is unavailable";
@@ -196,7 +200,7 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_service_message_already_canceled(ErrorServiceMessageAlreadyCanceledE, category);
 /*extern*/ const ErrorConditionT error_service_message_lost(ErrorServiceMessageLostE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_message(ErrorServiceUnknownMessageE, category);
-
+/*extern*/ const ErrorConditionT error_connection_message_fail_send(ErrorConnectionMessageFailSendE, category);
 }//namespace ipc
 }//namespace frame
 }//namespace solid

@@ -1295,10 +1295,10 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 				if(success){
 					vdbgx(Debug::ipc, this<<" message "<<_rmsg_id<<" from pool "<<pool_idx<<" sent for canceling to "<<rpool.main_connection_id);
 					//erase/unlink the message from any list 
-					if(rpool.msgorder_inner_list.isLinked(_rmsg_id.index)){
+					if(rpool.msgorder_inner_list.contains(_rmsg_id.index)){
 						rpool.msgorder_inner_list.erase(_rmsg_id.index);
 						if(Message::is_asynchronous(rmsgstub.msgbundle.message_flags)){
-							cassert(rpool.msgasync_inner_list.isLinked(_rmsg_id.index));
+							cassert(rpool.msgasync_inner_list.contains(_rmsg_id.index));
 							rpool.msgasync_inner_list.erase(_rmsg_id.index);
 						}
 					}
@@ -1438,7 +1438,7 @@ bool Service::fetchCanceledMessage(Connection const &_rcon, MessageId const &_rm
 	){
 		MessageStub			&rmsgstub = rpool.msgvec[_rmsg_id.index];
 		cassert(Message::is_canceled(rmsgstub.msgbundle.message_flags));
-		cassert(not rpool.msgorder_inner_list.isLinked(_rmsg_id.index));
+		cassert(not rpool.msgorder_inner_list.contains(_rmsg_id.index));
 		_rmsg_bundle = std::move(rmsgstub.msgbundle);
 		rmsgstub.clear();
 		rpool.msgcache_inner_list.pushBack(_rmsg_id.index);
@@ -1453,7 +1453,8 @@ bool Service::connectionStopping(
 	ulong &_rseconds_to_wait,
 	MessageId &_rmsg_id,
 	MessageBundle &_rmsg_bundle,
-	Event &_revent_context
+	Event &_revent_context,
+	ErrorConditionT &_rerror
 ){
 	
 	const size_t 			pool_index = _rcon.poolId().index;
@@ -1469,19 +1470,19 @@ bool Service::connectionStopping(
 	idbgx(Debug::ipc, this<<' '<<pool_index<<" active_connection_count "<<rpool.active_connection_count<<" pending_connection_count "<<rpool.pending_connection_count);
 	
 	if(not rpool.isMainConnection(_robjuid)){
-		return doNonMainConnectionStopping(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context);
+		return doNonMainConnectionStopping(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else if(not rpool.isLastConnection()){
-		return doMainConnectionStoppingNotLast(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context);
+		return doMainConnectionStoppingNotLast(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else if(rpool.isCleaningOneShotMessages()){
-		return doMainConnectionStoppingCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context);
+		return doMainConnectionStoppingCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else if(rpool.isCleaningAllMessages()){
-		return doMainConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context);
+		return doMainConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else if(rpool.isRestarting()){
-		return doMainConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context);
+		return doMainConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else if(not rpool.isFastClosing() and not rpool.isServerSide() and d.status == Status::Running){
-		return doMainConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context);
+		return doMainConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else{
-		return doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context);
+		return doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -1490,7 +1491,8 @@ bool Service::doNonMainConnectionStopping(
 	ulong &_rseconds_to_wait,
 	MessageId &_rmsg_id,
 	MessageBundle &_rmsg_bundle,
-	Event &/*_revent_context*/
+	Event &/*_revent_context*/,
+	ErrorConditionT &_rerror
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1528,7 +1530,8 @@ bool Service::doMainConnectionStoppingNotLast(
 	ulong &_rseconds_to_wait,
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
-	Event &/*_revent_context*/
+	Event &/*_revent_context*/,
+	ErrorConditionT &_rerror
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1553,7 +1556,8 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 	ulong &_rseconds_to_wait,
 	MessageId &_rmsg_id,
 	MessageBundle &_rmsg_bundle,
-	Event &_revent_context
+	Event &_revent_context,
+	ErrorConditionT &_rerror
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1572,7 +1576,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 		*pmsgidx = rpool.msgorder_inner_list.previousIndex(crtmsgidx);
 		
 		if(rpool.msgorder_inner_list.size() != 1){
-			cassert(rpool.msgorder_inner_list.isLinked(crtmsgidx));
+			cassert(rpool.msgorder_inner_list.contains(crtmsgidx));
 		}else if(rpool.msgorder_inner_list.size() == 1){
 			cassert(rpool.msgorder_inner_list.frontIndex() == crtmsgidx);
 		}else{
@@ -1608,7 +1612,8 @@ bool Service::doMainConnectionStoppingCleanAll(
 	ulong &_rseconds_to_wait,
 	MessageId &_rmsg_id,
 	MessageBundle &_rmsg_bundle,
-	Event &/*_revent_context*/
+	Event &/*_revent_context*/,
+	ErrorConditionT &_rerror
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1636,7 +1641,8 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 	ulong &/*_rseconds_to_wait*/,
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
-	Event &_revent_context
+	Event &_revent_context,
+	ErrorConditionT &_rerror
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1665,7 +1671,8 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
 	ulong &/*_rseconds_to_wait*/,
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
-	Event &/*_revent_context*/
+	Event &/*_revent_context*/,
+	ErrorConditionT &_rerror
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1687,7 +1694,8 @@ bool Service::doMainConnectionRestarting(
 	ulong &_rseconds_to_wait,
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
-	Event &/*_revent_context*/
+	Event &/*_revent_context*/,
+	ErrorConditionT &_rerror
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);

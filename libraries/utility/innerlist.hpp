@@ -220,8 +220,8 @@ public:
 		return true;
 	}
 	
-	bool isLinked(const size_t _index)const{
-		return link(_index).prev != InvalidIndex() or link(_index).next != InvalidIndex();
+	bool contains(const size_t _index)const{
+		return link(_index).prev != InvalidIndex() or link(_index).next != InvalidIndex() or _index == front_;
 	}
 private:
 	InnerLink& link(const size_t _index){

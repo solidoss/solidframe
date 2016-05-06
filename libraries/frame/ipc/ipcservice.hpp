@@ -381,7 +381,8 @@ private:
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id,
 		MessageBundle &_rmsg_bundle,
-		Event &_revent_context
+		Event &_revent_context,
+		ErrorConditionT &_rerror
 	);
 	
 	bool doNonMainConnectionStopping(
@@ -389,7 +390,8 @@ private:
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id,
 		MessageBundle &_rmsg_bundle,
-		Event &_revent_context
+		Event &_revent_context,
+		ErrorConditionT &_rerror
 	);
 	
 	bool doMainConnectionStoppingNotLast(
@@ -397,7 +399,8 @@ private:
 		ulong &_rseconds_to_wait,
 		MessageId &/*_rmsg_id*/,
 		MessageBundle &/*_rmsg_bundle*/,
-		Event &_revent_context
+		Event &_revent_context,
+		ErrorConditionT &_rerror
 	);
 	
 	bool doMainConnectionStoppingCleanOneShot(
@@ -405,7 +408,8 @@ private:
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id,
 		MessageBundle &_rmsg_bundle,
-		Event &_revent_context
+		Event &_revent_context,
+		ErrorConditionT &_rerror
 	);
 	
 	bool doMainConnectionStoppingCleanAll(
@@ -413,7 +417,8 @@ private:
 		ulong &_rseconds_to_wait,
 		MessageId &_rmsg_id,
 		MessageBundle &_rmsg_bundle,
-		Event &_revent_context
+		Event &_revent_context,
+		ErrorConditionT &_rerror
 	);
 	
 	bool doMainConnectionStoppingPrepareCleanOneShot(
@@ -421,7 +426,8 @@ private:
 		ulong &/*_rseconds_to_wait*/,
 		MessageId &/*_rmsg_id*/,
 		MessageBundle &/*_rmsg_bundle*/,
-		Event &_revent_context
+		Event &_revent_context,
+		ErrorConditionT &_rerror
 	);
 	
 	bool doMainConnectionStoppingPrepareCleanAll(
@@ -429,7 +435,8 @@ private:
 		ulong &/*_rseconds_to_wait*/,
 		MessageId &/*_rmsg_id*/,
 		MessageBundle &/*_rmsg_bundle*/,
-		Event &_revent_context
+		Event &_revent_context,
+		ErrorConditionT &_rerror
 	);
 	
 	bool doMainConnectionRestarting(
@@ -437,7 +444,8 @@ private:
 		ulong &/*_rseconds_to_wait*/,
 		MessageId &/*_rmsg_id*/,
 		MessageBundle &/*_rmsg_bundle*/,
-		Event &_revent_context
+		Event &_revent_context,
+		ErrorConditionT &_rerror
 	);
 	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);

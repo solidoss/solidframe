@@ -37,6 +37,9 @@ set( IpcClientServerTestSuite
 	test_clientserver_sendrequest.cpp
 	test_clientserver_cancel_server.cpp
 	test_clientserver_cancel_client.cpp
+	test_clientserver_noserver.cpp
+	test_clientserver_oneshot.cpp
+	test_clientserver_delayed.cpp
 )
 
 create_test_sourcelist( IpcClientServerTests test_ipc_clientserver.cpp ${IpcClientServerTestSuite})
@@ -60,12 +63,13 @@ add_test(NAME TestClientServerBasic1		COMMAND  test_ipc_clientserver test_client
 add_test(NAME TestClientServerBasic2		COMMAND  test_ipc_clientserver test_clientserver_basic 2)
 add_test(NAME TestClientServerBasic4		COMMAND  test_ipc_clientserver test_clientserver_basic 4)
 add_test(NAME TestClientServerBasic8		COMMAND  test_ipc_clientserver test_clientserver_basic 8)
+add_test(NAME TestClientServerSendRequest	COMMAND  test_ipc_clientserver test_clientserver_sendrequest)
+add_test(NAME TestClientServerCancelServer	COMMAND  test_ipc_clientserver test_clientserver_cancel_server)
+add_test(NAME TestClientServerCancelClient	COMMAND  test_ipc_clientserver test_clientserver_cancel_client)
+add_test(NAME TestClientServerNoServer		COMMAND  test_ipc_clientserver test_clientserver_noserver)
+add_test(NAME TestClientServerOneShot		COMMAND  test_ipc_clientserver test_clientserver_oneshot)
+add_test(NAME TestClientServerDelayed		COMMAND  test_ipc_clientserver test_clientserver_delayed)
 
-add_test( TestClientServer test_ipc_clientserver
-	test_clientserver_sendrequest
-	test_clientserver_cancel_server
-	test_clientserver_cancel_client
-)
 
 #==============================================================================
 
