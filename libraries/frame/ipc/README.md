@@ -204,6 +204,7 @@ A call to notifyConnectionSecure for the above invalid situations, will close co
 	
 TODO:
 
+* "_rconfig.reset_serializer_limits_fnc(_rctx, rmsgstub.serializer_ptr->limits())" do the equivalent on ipcmessagereader
 * test_raw_basic
 * test_raw_proxy
 * test_multiprotocol

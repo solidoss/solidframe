@@ -1,9 +1,9 @@
 #==============================================================================
 set( IpcProtocolTestSuite
 	test_protocol_basic.cpp
-	test_protocol_synchronous.cpp
+ 	test_protocol_synchronous.cpp
 	test_protocol_cancel.cpp
-	test_protocol_close.cpp
+ 	test_protocol_close.cpp
 )
 
 create_test_sourcelist( IpcProtocolTests test_ipc_protocol.cpp ${IpcProtocolTestSuite})
@@ -23,12 +23,10 @@ target_link_libraries(test_ipc_protocol
 	${SYS_BASIC_LIBS}
 )
 
-add_test( TestProtocol test_ipc_protocol
-	test_protocol_basic
-	test_protocol_synchronous
-	test_protocol_cancel
-	test_protocol_close
-)
+add_test(NAME TestProtocolBasic		COMMAND  test_ipc_protocol test_protocol_basic)
+add_test(NAME TestProtocolCancel	COMMAND  test_ipc_protocol test_protocol_cancel)
+add_test(NAME TestProtocolClose		COMMAND  test_ipc_protocol test_protocol_close)
+#add_test(NAME TestProtocolSynch		COMMAND  test_ipc_protocol test_protocol_synchronous)
 
 #==============================================================================
 
@@ -40,12 +38,12 @@ set( IpcClientServerTestSuite
 	test_clientserver_noserver.cpp
 	test_clientserver_oneshot.cpp
 	test_clientserver_delayed.cpp
-)
-
+ )
+# 
 create_test_sourcelist( IpcClientServerTests test_ipc_clientserver.cpp ${IpcClientServerTestSuite})
-
+ 
 add_executable(test_ipc_clientserver ${IpcClientServerTests})
-
+ 
 target_link_libraries(test_ipc_clientserver
 	solid_frame_ipc
 	solid_frame_aio
@@ -58,7 +56,7 @@ target_link_libraries(test_ipc_clientserver
 	${SYS_DYNAMIC_LOAD_LIB}
 	${SYS_BASIC_LIBS}
 )
-
+ 
 add_test(NAME TestClientServerBasic1		COMMAND  test_ipc_clientserver test_clientserver_basic 1)
 add_test(NAME TestClientServerBasic2		COMMAND  test_ipc_clientserver test_clientserver_basic 2)
 add_test(NAME TestClientServerBasic4		COMMAND  test_ipc_clientserver test_clientserver_basic 4)

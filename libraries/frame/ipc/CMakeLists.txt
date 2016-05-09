@@ -7,6 +7,7 @@ set(Sources
 	src/ipcconfiguration.cpp
 	src/ipcmessagereader.cpp
 	src/ipcmessagewriter.cpp
+	src/ipcprotocol.cpp
 )
 
 set(Headers
@@ -15,7 +16,7 @@ set(Headers
 	ipcmessage.hpp
 	ipcerror.hpp
 	ipcconfiguration.hpp
-	ipcserialization.hpp
+	ipcprotocol.hpp
 	src/ipclistener.hpp
 	src/ipcconnection.hpp
 	src/ipcutility.hpp

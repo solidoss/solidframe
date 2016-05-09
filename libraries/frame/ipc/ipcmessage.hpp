@@ -105,10 +105,6 @@ struct Message: Dynamic<Message>{
 		}
 	}
 	
-private:
-	friend class Service;
-	friend class TestEntryway;
-	friend class Connection;
 	
 	template <class S, class T>
 	static void serialize(S &_rs, T &_rt, const char *_name){
@@ -117,6 +113,11 @@ private:
 		_rs.push(_rt, _name);
 		_rs.push(static_cast<Message&>(_rt), "message_base");
 	}
+	
+private:
+	friend class Service;
+	friend class TestEntryway;
+	friend class Connection;
 	
 	void adjustState(){
 		if(stt == 3) stt = 0;

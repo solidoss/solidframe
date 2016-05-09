@@ -163,7 +163,7 @@ uint32 MessageWriter::write(
 	char *_pbuf, uint32 _bufsz, const bool _keep_alive,
 	CompleteFunctionT &_complete_fnc,
 	WriterConfiguration const &_rconfig,
-	TypeIdMapT const &_ridmap,
+	Protocol const &_rproto,
 	ConnectionContext &_rctx, ErrorConditionT &_rerror
 ){
 	char		*pbufpos = _pbuf;
@@ -173,11 +173,11 @@ uint32 MessageWriter::write(
 	
 	bool		more = true;
 	
-	while(freesz >= (PacketHeader::SizeOfE + MinimumFreePacketDataSize) and more){
+	while(freesz >= (PacketHeader::SizeOfE + _rproto.minimumFreePacketDataSize()) and more){
 		PacketHeader	packet_header(PacketHeader::SwitchToNewMessageTypeE, 0, 0);
 		PacketOptions	packet_options;
 		char			*pbufdata = pbufpos + PacketHeader::SizeOfE;
-		char			*pbuftmp = doFillPacket(pbufdata, pbufend, packet_options, more, _complete_fnc, _rconfig, _ridmap, _rctx, _rerror);
+		char			*pbuftmp = doFillPacket(pbufdata, pbufend, packet_options, more, _complete_fnc, _rconfig, _rproto, _rctx, _rerror);
 		
 		if(pbuftmp != pbufdata){
 			
@@ -200,7 +200,7 @@ uint32 MessageWriter::write(
 			packet_header.type(packet_options.packet_type);
 			packet_header.size(pbuftmp - pbufdata);
 			
-			pbufpos = packet_header.store<SerializerT>(pbufpos);
+			pbufpos = packet_header.store(pbufpos, _rproto);
 			pbufpos = pbuftmp;
 			freesz  = pbufend - pbufpos;
 		}else{
@@ -211,7 +211,7 @@ uint32 MessageWriter::write(
 	if(not _rerror){
 		if(pbufpos == _pbuf and _keep_alive){
 			PacketHeader			packet_header(PacketHeader::KeepAliveTypeE, 0, 0);
-			pbufpos = packet_header.store<SerializerT>(pbufpos);
+			pbufpos = packet_header.store(pbufpos, _rproto);
 		}
 		return pbufpos - _pbuf;
 	}else{
@@ -263,7 +263,7 @@ char* MessageWriter::doFillPacket(
 	bool &_rmore,
 	CompleteFunctionT &_complete_fnc,
 	WriterConfiguration const &_rconfig,
-	TypeIdMapT const & _ridmap,
+	Protocol const &_rproto,
 	ConnectionContext &_rctx,
 	ErrorConditionT & _rerror
 ){
@@ -274,7 +274,7 @@ char* MessageWriter::doFillPacket(
 	SerializerPointerT		tmp_serializer;
 	size_t					packet_message_count = 0;
 	
-	while(write_inner_list.size() and freesz >= MinimumFreePacketDataSize){
+	while(write_inner_list.size() and freesz >= _rproto.minimumFreePacketDataSize()){
 		
 		const size_t			msgidx = write_inner_list.frontIndex();
 		
@@ -304,18 +304,20 @@ char* MessageWriter::doFillPacket(
 			if(current_synchronous_message_idx == InvalidIndex() or current_synchronous_message_idx == msgidx){
 				current_synchronous_message_idx = msgidx;
 			}else{
+				write_inner_list.popFront();
+				write_inner_list.pushBack(msgidx);
 				continue;
 			}
 		}
 		
-		msgswitch = doPrepareMessageForSending(msgidx, _rconfig, _ridmap, _rctx, tmp_serializer);
+		msgswitch = doPrepareMessageForSending(msgidx, _rconfig, _rproto, _rctx, tmp_serializer);
 		
 		if(packet_message_count == 0){
 			//first message in the packet
 			_rpacket_options.packet_type = msgswitch;
 		}else{
 			uint8	tmp = static_cast<uint8>(msgswitch);
-			pbufpos = SerializerT::storeValue(pbufpos, tmp);
+			pbufpos = _rproto.storeValue(pbufpos, tmp);
 		}
 		
 		++packet_message_count;
@@ -341,14 +343,14 @@ char* MessageWriter::doFillPacket(
 		_rctx.message_state = rmsgstub.msgbundle.message_ptr->state() + 1;
 		
 		
-		const int rv = rmsgstub.serializer_ptr->run(pbufpos, _pbufend - pbufpos, _rctx);
+		const int rv = rmsgstub.serializer_ptr->run(_rctx, pbufpos, _pbufend - pbufpos);
 		
 		if(rv > 0){
 			
 			pbufpos += rv;
 			freesz -= rv;
 			
-			doTryCompleteMessageAfterSerialization(msgidx, _complete_fnc, _rconfig, _ridmap, _rctx, tmp_serializer, _rerror);
+			doTryCompleteMessageAfterSerialization(msgidx, _complete_fnc, _rconfig, _rproto, _rctx, tmp_serializer, _rerror);
 			
 			if(_rerror){
 				pbufpos = nullptr;
@@ -371,7 +373,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 	const size_t _msgidx,
 	CompleteFunctionT &_complete_fnc,
 	WriterConfiguration const &_rconfig,
-	TypeIdMapT const & _ridmap,
+	Protocol const &_rproto,
 	ConnectionContext &_rctx,
 	SerializerPointerT &_rtmp_serializer,
 	ErrorConditionT & _rerror
@@ -430,7 +432,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 	const size_t _msgidx,
 	WriterConfiguration const &_rconfig,
-	TypeIdMapT const & _ridmap,
+	Protocol const &_rproto,
 	ConnectionContext &_rctx,
 	SerializerPointerT &_rtmp_serializer
 ){
@@ -446,14 +448,14 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 		if(_rtmp_serializer){
 			rmsgstub.serializer_ptr = std::move(_rtmp_serializer);
 		}else{
-			rmsgstub.serializer_ptr = std::move(SerializerPointerT(new Serializer(_ridmap)));
+			rmsgstub.serializer_ptr = _rproto.createSerializer();
 		}
+		
+		_rproto.reset(*rmsgstub.serializer_ptr);
 		
 		rmsgstub.msgbundle.message_flags |= Message::StartedSendFlagE;
 		
-		_rconfig.reset_serializer_limits_fnc(_rctx, rmsgstub.serializer_ptr->limits());
-		
-		rmsgstub.serializer_ptr->push(rmsgstub.msgbundle.message_ptr, rmsgstub.msgbundle.message_type_id, "message");
+		rmsgstub.serializer_ptr->push(rmsgstub.msgbundle.message_ptr, rmsgstub.msgbundle.message_type_id);
 		
 	}else if(rmsgstub.isCanceled()){
 		

@@ -13,8 +13,7 @@
 #include "utility/queue.hpp"
 #include "system/common.hpp"
 #include "system/error.hpp"
-#include "frame/ipc/ipcserialization.hpp"
-#include "system/specific.hpp"
+#include "frame/ipc/ipcprotocol.hpp"
 
 namespace solid{
 namespace frame{
@@ -23,13 +22,6 @@ namespace ipc{
 struct ReaderConfiguration;
 
 struct PacketHeader;
-
-
-struct Deserializer: public DeserializerT, public SpecificObject{
-	Deserializer(TypeIdMapT const &_ridmap): DeserializerT(&_ridmap){}
-};
-
-typedef std::unique_ptr<Deserializer>		DeserializerPointerT;
 
 class MessageReader{
 public:
@@ -48,7 +40,7 @@ public:
 		uint32 _bufsz,
 		CompleteFunctionT &_complete_fnc,
 		ReaderConfiguration const &_rconfig,
-		TypeIdMapT const &_ridmap,
+		Protocol const &_rproto,
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
 	);
@@ -61,7 +53,7 @@ private:
 		PacketHeader const &_packet_header,
 		CompleteFunctionT &_complete_fnc,
 		ReaderConfiguration const &_rconfig,
-		TypeIdMapT const &_ridmap,
+		Protocol const &_rproto,
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
 	);

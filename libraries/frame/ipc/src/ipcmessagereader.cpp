@@ -13,7 +13,6 @@
 #include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
 #include "ipcutility.hpp"
-#include "frame/ipc/ipcserialization.hpp"
 #include "system/debug.hpp"
 
 namespace solid{
@@ -42,7 +41,7 @@ uint32 MessageReader::read(
 	uint32 _bufsz,
 	CompleteFunctionT &_complete_fnc,
 	ReaderConfiguration const &_rconfig,
-	TypeIdMapT const &_ridmap,
+	Protocol const &_rproto,
 	ConnectionContext &_rctx,
 	ErrorConditionT &_rerror
 ){
@@ -62,7 +61,7 @@ uint32 MessageReader::read(
 		
 		if(state == DataReadStateE){
 			//try read the data
-			const char		*tmpbufpos = packet_header.load<DeserializerT>(pbufpos);
+			const char		*tmpbufpos = packet_header.load(pbufpos, _rproto);
 			if((pbufend - tmpbufpos) >= packet_header.size()){
 				pbufpos = tmpbufpos;
 			}else{
@@ -88,7 +87,7 @@ uint32 MessageReader::read(
 			packet_header,
 			_complete_fnc,
 			_rconfig,
-			_ridmap,
+			_rproto,
 			_rctx,
 			_rerror
 		);
@@ -111,7 +110,7 @@ void MessageReader::doConsumePacket(
 	PacketHeader const &_packet_header,
 	CompleteFunctionT &_complete_fnc,
 	ReaderConfiguration const &_rconfig,
-	TypeIdMapT const &_ridmap,
+	Protocol const &_rproto,
 	ConnectionContext &_rctx,
 	ErrorConditionT &_rerror
 ){
@@ -119,8 +118,8 @@ void MessageReader::doConsumePacket(
 	const char 			*pbufend = _pbuf + _packet_header.size();
 	
 	
-	//decompress
-	char				tmpbuf[MaxPacketDataSize];
+	//decompress = TODO: try not to use so much stack
+	char				tmpbuf[Protocol::MaxPacketDataSize];
 	
 	if(_packet_header.isCompressed()){
 		size_t uncompressed_size = _rconfig.decompress_fnc(tmpbuf, pbufpos, pbufend - pbufpos, _rerror);
@@ -154,10 +153,12 @@ void MessageReader::doConsumePacket(
 				}
 				
 				if(not message_q.front().deserializer_ptr.get()){
-					message_q.front().deserializer_ptr.reset(new Deserializer(_ridmap));
+					message_q.front().deserializer_ptr = _rproto.createDeserializer();
 				}
 				
-				message_q.front().deserializer_ptr->push(message_q.front().message_ptr, "message");
+				_rproto.reset(*message_q.front().deserializer_ptr);
+				
+				message_q.front().deserializer_ptr->push(message_q.front().message_ptr);
 				
 				break;
 			case PacketHeader::SwitchToOldMessageTypeE:
@@ -199,7 +200,7 @@ void MessageReader::doConsumePacket(
 		if(not canceled_message){
 			MessageStub		&rmsgstub = message_q.front();
 		
-			int				rv = rmsgstub.deserializer_ptr->run(pbufpos, pbufend - pbufpos, _rctx);
+			int				rv = rmsgstub.deserializer_ptr->run(_rctx, pbufpos, pbufend - pbufpos);
 			
 			if(rv > 0){
 				
@@ -210,7 +211,7 @@ void MessageReader::doConsumePacket(
 					//done with the message
 					rmsgstub.deserializer_ptr->clear();
 					
-					const size_t	message_type_id = rmsgstub.message_ptr.get() ? _ridmap.index(rmsgstub.message_ptr.get()) : InvalidIndex();
+					const size_t	message_type_id = rmsgstub.message_ptr.get() ? _rproto.typeIndex(rmsgstub.message_ptr.get()) : InvalidIndex();
 					
 					//complete the message waiting for this response
 					_complete_fnc(MessageCompleteE, rmsgstub.message_ptr, message_type_id);
@@ -227,7 +228,7 @@ void MessageReader::doConsumePacket(
 		
 		if(pbufpos < pbufend){
 			crt_msg_type = 0;
-			pbufpos = DeserializerT::loadValue(pbufpos, crt_msg_type);
+			pbufpos = _rproto.loadValue(pbufpos, crt_msg_type);
 		}
 	}//while
 }

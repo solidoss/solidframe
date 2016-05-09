@@ -13,6 +13,7 @@
 
 #include "frame/ipc/ipcservice.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
+#include "frame/ipc/ipcprotocol_serialization_v1.hpp"
 
 
 #include "system/thread.hpp"
@@ -322,15 +323,12 @@ int test_clientserver_delayed(int argc, char **argv){
 		std::string		server_port("8888");
 		
 		{//ipc client initialization
-			frame::ipc::Configuration	cfg(sch_client);
+			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
+			frame::ipc::Configuration				cfg(sch_client, proto);
 			
-			cfg.protocolCallback(
-				[&ipcclient](frame::ipc::ServiceProxy& _rsp){
-					_rsp.registerType<Message>(
-						serialization::basic_factory<Message>,
-						client_complete_message
-					);
-				}
+			proto->registerType<Message>(
+				serialization::basic_factory<Message>,
+				client_complete_message
 			);
 			
 			//cfg.recv_buffer_capacity = 1024;
@@ -381,15 +379,12 @@ int test_clientserver_delayed(int argc, char **argv){
 		Thread::sleep(10 * 1000);
 		
 		{//ipc server initialization
-			frame::ipc::Configuration	cfg(sch_server);
+			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
+			frame::ipc::Configuration				cfg(sch_server, proto);
 			
-			cfg.protocolCallback(
-				[&ipcserver](frame::ipc::ServiceProxy& _rsp){
-					_rsp.registerType<Message>(
-						serialization::basic_factory<Message>,
-						server_complete_message
-					);
-				}
+			proto->registerType<Message>(
+				serialization::basic_factory<Message>,
+				server_complete_message
 			);
 			
 			//cfg.recv_buffer_capacity = 1024;

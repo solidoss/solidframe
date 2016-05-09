@@ -18,7 +18,7 @@
 #include "frame/ipc/ipcerror.hpp"
 #include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcmessage.hpp"
-#include "frame/ipc/ipcserialization.hpp"
+#include "frame/ipc/ipcprotocol.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
 #include "system/debug.hpp"
 
@@ -30,46 +30,6 @@ struct ReactorContext;
 }//namespace aio
 
 namespace ipc{
-
-template <class Req>
-struct message_complete_traits;
-
-template <class Req, class Res>
-struct message_complete_traits<void(*)(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&)>{
-	typedef Req send_type;
-	typedef Res recv_type;
-};
-
-template <class Req, class Res>
-struct message_complete_traits<void(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&)>{
-	typedef Req send_type;
-	typedef Res recv_type;
-};
-
-template <class C, class Req, class Res>
-struct message_complete_traits<void(C::*)(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&)>{
-	typedef Req send_type;
-	typedef Res recv_type;
-};
-
-template <class C, class Req, class Res>
-struct message_complete_traits<void(C::*)(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&) const>{
-	typedef Req send_type;
-	typedef Res recv_type;
-};
-
-template <class C, class R>
-struct message_complete_traits<R(C::*)>: public message_complete_traits<R(C&)>{
-};
-
-template <class F>
-struct message_complete_traits{
-private:
-	using call_type = message_complete_traits<decltype(&F::operator())>;
-public:
-	using send_type = typename call_type::send_type;
-	using recv_type = typename call_type::recv_type;
-};
 
 struct Message;
 class Configuration;
@@ -111,38 +71,6 @@ struct MessageBundle;
 	
 */
 class Service: public Dynamic<Service, frame::Service>{
-	
-	template <class F, class Req, class Res>
-	struct CompleteHandler{
-		F		f;
-		
-		CompleteHandler(F _f):f(_f){}
-		
-		void operator()(
-			ConnectionContext &_rctx,
-			MessagePointerT &_rreq_msg_ptr,
-			MessagePointerT &_rres_msg_ptr,
-			ErrorConditionT const &_err
-		){
-			Req					*prequest = dynamic_cast<Req*>(_rreq_msg_ptr.get());
-			DynamicPointer<Req>	req_msg_ptr(prequest);
-			
-			Res					*presponse = dynamic_cast<Res*>(_rres_msg_ptr.get());
-			DynamicPointer<Res>	res_msg_ptr(presponse);
-			
-			ErrorConditionT		error(_err);
-
-			if(not error and req_msg_ptr.get() and not prequest){
-				error = error_service_bad_cast_request;
-			}
-			
-			if(not error and res_msg_ptr.get() and not presponse){
-				error = error_service_bad_cast_response;
-			}
-			
-			f(_rctx, req_msg_ptr, res_msg_ptr, error);
-		}
-	};
 	
 public:
 	typedef Dynamic<Service, frame::Service> BaseT;
@@ -486,99 +414,7 @@ private:
 		MessageId const &_rmsgid
 	);
 	
-	template <class F, class M>
-	struct ReceiveProxy{
-		F	f;
-		ReceiveProxy(F _f):f(_f){}
-		
-		void operator()(ConnectionContext &_rctx, MessagePointerT &_rmsgptr){
-			DynamicPointer<M>	msgptr(std::move(_rmsgptr));
-			f(_rctx, msgptr);
-		}
-	};
-	
-	template <class F, class SM, class RM>
-	struct CompleteProxy{
-		F	f;
-		
-		CompleteProxy(F _f):f(_f){}
-		
-		void operator()(
-			ConnectionContext &_rctx,
-			MessagePointerT &_rsend_msg_ptr,
-			MessagePointerT &_rrecv_msg_ptr,
-			ErrorConditionT const &_err
-		){
-			DynamicPointer<SM>	send_msg_ptr(std::move(_rsend_msg_ptr));
-			DynamicPointer<RM>	recv_msg_ptr(std::move(_rrecv_msg_ptr));
-			
-			f(_rctx, send_msg_ptr, recv_msg_ptr, _err);
-		}
-	};
-	
-	template <class F, class M>
-	struct PrepareProxy{
-		F	f;
-		PrepareProxy(F _f):f(_f){}
-		
-		void operator()(ConnectionContext &_rctx, Message const &_rmsg){
-			M const	&rmsg = static_cast<M const &>(_rmsg);
-			f(_rctx, rmsg);
-		}
-	};
-	
-	template <class T, class FactoryFnc>
-	size_t registerType(
-		FactoryFnc _facf,
-		const size_t _protocol_id,
-		const size_t _idx = 0
-	){
-		TypeStub ts;
-		size_t rv = tm.registerType<T>(_facf, ts, _protocol_id, _idx);
-		registerCast<T, ipc::Message>();
-		return rv;
-	}
-	
-	template <class Msg, class FactoryFnc/*, class ReceiveFnc, class PrepareFnc*/, class CompleteFnc>
-	size_t registerType(
-		FactoryFnc _factory_fnc/*, ReceiveFnc _rcvf, PrepareFnc _prepf*/,
-		CompleteFnc _complete_fnc,
-		const size_t _protocol_id,
-		const size_t _idx = 0
-	){
-		TypeStub ts;
-		
-		using CompleteHandlerT = CompleteHandler<
-			CompleteFnc,
-			typename message_complete_traits<decltype(_complete_fnc)>::send_type,
-			typename message_complete_traits<decltype(_complete_fnc)>::recv_type
-		>;
-		
-		ts.complete_fnc = MessageCompleteFunctionT(CompleteHandlerT(_complete_fnc));
-		
-		size_t rv = tm.registerType<Msg>(
-			ts, Message::serialize<SerializerT, Msg>, Message::serialize<DeserializerT, Msg>, _factory_fnc,
-			_protocol_id, _idx
-		);
-		registerCast<Msg, ipc::Message>();
-		return rv;
-	}
-	
-	template <class Derived, class Base>
-	bool registerCast(){
-		return tm.registerCast<Derived, Base>();
-	}
-	
-	template <class Derived, class Base>
-	bool registerDownCast(){
-		return tm.registerDownCast<Derived, Base>();
-	}
-	
-	
-	const TypeIdMapT& typeMap()const{
-		return tm;
-	}
-	
+
 	ErrorConditionT doSendMessage(
 		const char *_recipient_name,
 		const RecipientId	&_rrecipient_id_in,
@@ -636,8 +472,7 @@ private:
 	
 private:
 	struct	Data;
-	Data			&d;
-	TypeIdMapT		tm;
+	Data	&d;
 };
 
 //-------------------------------------------------------------------------
@@ -993,40 +828,7 @@ ErrorConditionT Service::connectionNotifyRecvSomeRawData(
 	ConnectionRecvRawDataCompleteFunctionT	complete_fnc(_complete_fnc);
 	return doConnectionNotifyRecvRawData(_rrecipient_id, std::move(complete_fnc));
 }
-//-------------------------------------------------------------------------
-// ServiceProxy
-//-------------------------------------------------------------------------
-struct ServiceProxy{
-	
-	template <class Msg, class FactoryFnc, class CompleteFnc>
-	size_t registerType(
-		FactoryFnc _facf,
-		CompleteFnc _cmpltf,
-		const size_t _protocol_id = 0,
-		const size_t _idx = 0
-	){
-		return rservice.registerType<Msg>(_facf, _cmpltf, _protocol_id, _idx);
-	}
-	
-#if 0
-	template <class T, class FactoryFnc>
-	size_t registerType(FactoryFnc _facf,
-		const size_t _protocol_id = 0,
-		const size_t _idx = 0
-	){
-		return rservice.registerType<T>(_facf, _protocol_id, _idx);
-	}
-#endif
-private:
-	friend class Service;
-	friend class Configuration;
-	ServiceProxy(Service &_rservice):rservice(_rservice){}
-	
-	ServiceProxy(ServiceProxy const &) = delete;
-	ServiceProxy& operator=(ServiceProxy const &) = delete;
-	
-	Service &rservice;
-};
+
 
 }//namespace ipc
 }//namespace frame

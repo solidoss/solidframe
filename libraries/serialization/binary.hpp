@@ -654,11 +654,14 @@ public:
 	typedef SerializerBase				BaseT;
 	typedef TypeIdMapSer<SerializerT>	TypeIdMapT;
 	
-	Serializer(const TypeIdMapT *_ptypeidmap = nullptr): ptypeidmap(_ptypeidmap){
+	Serializer(
+		const TypeIdMapT *_ptypeidmap = nullptr
+	): ptypeidmap(_ptypeidmap){
 	}
 	Serializer(
-		Limits const & _rdefaultlmts
-	):BaseT(_rdefaultlmts){
+		Limits const & _rdefaultlmts,
+		const TypeIdMapT *_ptypeidmap = nullptr
+	):BaseT(_rdefaultlmts), ptypeidmap(_ptypeidmap){
 	}
 	
 	int run(char *_pb, unsigned _bl){
@@ -850,12 +853,15 @@ public:
 	typedef SerializerBase				BaseT;
 	typedef TypeIdMapSer<SerializerT>	TypeIdMapT;
 	
-	Serializer(const TypeIdMapT *_ptypeidmap = nullptr): ptypeidmap(_ptypeidmap){
+	Serializer(
+		const TypeIdMapT *_ptypeidmap = nullptr
+	): ptypeidmap(_ptypeidmap){
 	}
 	
 	Serializer(
-		Limits const & _rdefaultlmts
-	):BaseT(_rdefaultlmts){
+		Limits const & _rdefaultlmts,
+		const TypeIdMapT *_ptypeidmap = nullptr
+	):BaseT(_rdefaultlmts), ptypeidmap(_ptypeidmap){
 	}
 	
 	int run(char *_pb, unsigned _bl, Ctx &_rctx){
@@ -1542,11 +1548,14 @@ public:
 	typedef DeserializerBase			BaseT;
 	typedef TypeIdMapDes<DeserializerT>	TypeIdMapT;
 	
-	Deserializer(const TypeIdMapT *_ptypeidmap = nullptr): ptypeidmap(_ptypeidmap){
+	Deserializer(
+		const TypeIdMapT *_ptypeidmap = nullptr
+	): ptypeidmap(_ptypeidmap){
 	}
 	Deserializer(
-		Limits const & _rdefaultlmts
-	):BaseT(_rdefaultlmts){
+		Limits const & _rdefaultlmts,
+		const TypeIdMapT *_ptypeidmap = nullptr
+	):BaseT(_rdefaultlmts), ptypeidmap(_ptypeidmap){
 	}
 	
 	int run(const char *_pb, unsigned _bl){
@@ -1737,11 +1746,14 @@ public:
 	typedef DeserializerBase			BaseT;
 	typedef TypeIdMapDes<DeserializerT>	TypeIdMapT;
 	
-	Deserializer(const TypeIdMapT *_ptypeidmap = nullptr):ptypeidmap(_ptypeidmap){
+	Deserializer(
+		const TypeIdMapT *_ptypeidmap = nullptr
+	):ptypeidmap(_ptypeidmap){
 	}
 	Deserializer(
-		Limits const & _rdefaultlmts
-	):BaseT(_rdefaultlmts){
+		Limits const & _rdefaultlmts,
+		const TypeIdMapT *_ptypeidmap = nullptr
+	):BaseT(_rdefaultlmts), ptypeidmap(_ptypeidmap){
 	}
 	
 	int run(const char *_pb, unsigned _bl, Ctx &_rctx){

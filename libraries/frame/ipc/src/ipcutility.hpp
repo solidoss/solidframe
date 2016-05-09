@@ -19,12 +19,6 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
-enum{
-	MinimumFreePacketDataSize = 16,
-	MaxPacketDataSize = 1024 * 64,
-};
-
-
 struct SocketAddressHash{
 	size_t operator()(const SocketAddressInet* const &_rsa)const{
 		return _rsa->hash();
@@ -112,41 +106,19 @@ struct PacketHeader{
     bool isCompressed()const{
         return flags_ & CompressedFlagE;
     }
-    bool isOk()const{
-		bool rv = true;
-		switch(type_){
-			case SwitchToNewMessageTypeE:
-			case SwitchToOldMessageTypeE:
-			case ContinuedMessageTypeE:
-			case SwitchToOldCanceledMessageTypeE:
-			case ContinuedCanceledMessageTypeE:
-			case KeepAliveTypeE:
-				break;
-			default:
-				rv = false;
-				break;
-		}
-		
-		if(size() > MaxPacketDataSize){
-			rv = false;
-		}
-		
-		return rv;
-	}
+    bool isOk()const;
     
-    template <class S>
-    char* store(char * _pc)const{
-		_pc = S::storeValue(_pc, type_);
-		_pc = S::storeValue(_pc, flags_);
-		_pc = S::storeValue(_pc, size_);
+    char* store(char * _pc, const Protocol &_rproto)const{
+		_pc = _rproto.storeValue(_pc, type_);
+		_pc = _rproto.storeValue(_pc, flags_);
+		_pc = _rproto.storeValue(_pc, size_);
 		return _pc;
 	}
 	
-	template <class D>
-    const char* load(const char *_pc){
-		_pc = D::loadValue(_pc, type_);
-		_pc = D::loadValue(_pc, flags_);
-		_pc = D::loadValue(_pc, size_);
+	const char* load(const char *_pc, const Protocol &_rproto){
+		_pc = _rproto.loadValue(_pc, type_);
+		_pc = _rproto.loadValue(_pc, flags_);
+		_pc = _rproto.loadValue(_pc, size_);
 		return _pc;
 	}
 private:

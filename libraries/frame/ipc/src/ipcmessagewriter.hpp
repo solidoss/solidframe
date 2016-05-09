@@ -14,12 +14,11 @@
 
 #include "system/common.hpp"
 #include "system/error.hpp"
-#include "system/specific.hpp"
 #include "system/function.hpp"
 
 #include "ipcutility.hpp"
 #include "utility/innerlist.hpp"
-#include "frame/ipc/ipcserialization.hpp"
+#include "frame/ipc/ipcprotocol.hpp"
 
 
 
@@ -27,14 +26,6 @@
 namespace solid{
 namespace frame{
 namespace ipc{
-
-struct Configuration;
-
-struct Serializer: public SerializerT, public SpecificObject{
-	Serializer(TypeIdMapT const &_ridmap): SerializerT(&_ridmap){}
-};
-
-typedef std::unique_ptr<Serializer>		SerializerPointerT;
 
 class MessageWriter{
 public:
@@ -79,7 +70,7 @@ public:
 		uint32 _bufsz, const bool _keep_alive, 
 		CompleteFunctionT &_complete_fnc,
 		WriterConfiguration const &_rconfig,
-		TypeIdMapT const &_ridmap,
+		Protocol const &_rproto,
 		ConnectionContext &_rctx,
 		ErrorConditionT &_rerror
 	);
@@ -168,7 +159,7 @@ private:
 		bool &_rmore,
 		CompleteFunctionT &_complete_fnc,
 		WriterConfiguration const &_rconfig,
-		TypeIdMapT const & _ridmap,
+		Protocol const &_rproto,
 		ConnectionContext &_rctx,
 		ErrorConditionT & _rerror
 	);
@@ -188,7 +179,7 @@ private:
 	PacketHeader::Types doPrepareMessageForSending(
 		const size_t _msgidx,
 		WriterConfiguration const &_rconfig,
-		TypeIdMapT const & _ridmap,
+		Protocol const &_rproto,
 		ConnectionContext &_rctx,
 		SerializerPointerT &_rtmp_serializer
 	);
@@ -197,7 +188,7 @@ private:
 		const size_t _msgidx,
 		CompleteFunctionT &_complete_fnc,
 		WriterConfiguration const &_rconfig,
-		TypeIdMapT const & _ridmap,
+		Protocol const &_rproto,
 		ConnectionContext &_rctx,
 		SerializerPointerT &_rtmp_serializer,
 		ErrorConditionT & _rerror

@@ -106,11 +106,11 @@ void complete_message(
 );
 
 struct Context{
-	Context():ipcreaderconfig(nullptr), ipcwriterconfig(nullptr), ipctypemap(nullptr), ipcmsgreader(nullptr), ipcmsgwriter(nullptr){}
+	Context():ipcreaderconfig(nullptr), ipcwriterconfig(nullptr), ipcprotocol(nullptr), ipcmsgreader(nullptr), ipcmsgwriter(nullptr){}
 	
 	frame::ipc::ReaderConfiguration	*ipcreaderconfig;
 	frame::ipc::WriterConfiguration	*ipcwriterconfig;
-	frame::ipc::TypeIdMapT			*ipctypemap;
+	frame::ipc::Protocol			*ipcprotocol;
 	frame::ipc::MessageReader		*ipcmsgreader;
 	frame::ipc::MessageWriter		*ipcmsgwriter;
 
@@ -147,7 +147,7 @@ void complete_message(
 			msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
 			msgbundle.message_ptr = std::move(frame::ipc::MessagePointerT(new Message(crtwriteidx)));
 			//msgbundle.complete_fnc = std::move(response_fnc);
-			msgbundle.message_type_id = ctx.ipctypemap->index(msgbundle.message_ptr.get());
+			msgbundle.message_type_id = ctx.ipcprotocol->typeIndex(msgbundle.message_ptr.get());
 			
 			bool rv = ctx.ipcmsgwriter->enqueue(
 				*ctx.ipcwriterconfig, msgbundle, pool_msg_id, writer_msg_id
@@ -185,25 +185,28 @@ int test_protocol_close(int argc, char **argv){
 		pattern.resize(sz);
 	}
 	
-	const uint16					bufcp(1024*4);
-	char							buf[bufcp];
+	const uint16							bufcp(1024*4);
+	char									buf[bufcp];
 	
-	frame::ipc::WriterConfiguration	ipcwriterconfig;
-	frame::ipc::ReaderConfiguration	ipcreaderconfig;
-	frame::ipc::TypeIdMapT			ipctypemap;
-	frame::ipc::MessageReader		ipcmsgreader;
-	frame::ipc::MessageWriter		ipcmsgwriter;
+	frame::ipc::WriterConfiguration			ipcwriterconfig;
+	frame::ipc::ReaderConfiguration			ipcreaderconfig;
+	frame::ipc::serialization_v1::Protocol	ipcprotocol;
+	frame::ipc::MessageReader				ipcmsgreader;
+	frame::ipc::MessageWriter				ipcmsgwriter;
 	
-	ErrorConditionT					error;
+	ErrorConditionT							error;
 	
 	
 	ctx.ipcreaderconfig		= &ipcreaderconfig;
 	ctx.ipcwriterconfig		= &ipcwriterconfig;
-	ctx.ipctypemap			= &ipctypemap;
+	ctx.ipcprotocol			= &ipcprotocol;
 	ctx.ipcmsgreader		= &ipcmsgreader;
 	ctx.ipcmsgwriter		= &ipcmsgwriter;
 	
-	frame::ipc::TestEntryway::initTypeMap<::Message>(ipctypemap, complete_message);
+	ipcprotocol.registerType<::Message>(
+		serialization::basic_factory<::Message>,
+		complete_message
+	);
 	
 	const size_t					start_count = 10;
 	
@@ -216,7 +219,7 @@ int test_protocol_close(int argc, char **argv){
 		
 		msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
 		msgbundle.message_ptr = std::move(frame::ipc::MessagePointerT(new Message(crtwriteidx)));
-		msgbundle.message_type_id = ctx.ipctypemap->index(msgbundle.message_ptr.get());
+		msgbundle.message_type_id = ctx.ipcprotocol->typeIndex(msgbundle.message_ptr.get());
 		
 		
 		bool rv = ipcmsgwriter.enqueue(
@@ -242,13 +245,13 @@ int test_protocol_close(int argc, char **argv){
 	
 	{
 		auto	reader_complete_lambda(
-			[&ipctypemap](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT & _rresponse_ptr, const size_t _message_type_id){
+			[&ipcprotocol](const frame::ipc::MessageReader::Events _event, frame::ipc::MessagePointerT & _rresponse_ptr, const size_t _message_type_id){
 				switch(_event){
 					case frame::ipc::MessageReader::MessageCompleteE:{
 						idbg("reader complete message");
 						frame::ipc::MessagePointerT		message_ptr;
 						ErrorConditionT					error;
-						ipctypemap[_message_type_id].complete_fnc(ipcconctx, message_ptr, _rresponse_ptr, error);
+						ipcprotocol[_message_type_id].complete_fnc(ipcconctx, message_ptr, _rresponse_ptr, error);
 					}break;
 					case frame::ipc::MessageReader::KeepaliveCompleteE:
 						idbg("complete keepalive");
@@ -258,11 +261,11 @@ int test_protocol_close(int argc, char **argv){
 		);
 		
 		auto	writer_complete_lambda(
-			[&ipctypemap](frame::ipc::MessageBundle &_rmsgbundle, frame::ipc::MessageId const &_rmsgid){
+			[&ipcprotocol](frame::ipc::MessageBundle &_rmsgbundle, frame::ipc::MessageId const &_rmsgid){
 				idbg("writer complete message");
 				frame::ipc::MessagePointerT		response_ptr;
 				ErrorConditionT					error;
-				ipctypemap[_rmsgbundle.message_type_id].complete_fnc(ipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
+				ipcprotocol[_rmsgbundle.message_type_id].complete_fnc(ipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
 				return ErrorConditionT();
 			}
 		);
@@ -275,11 +278,11 @@ int test_protocol_close(int argc, char **argv){
 		bool is_running = true;
 		
 		while(is_running and !error){
-			uint32 bufsz = ipcmsgwriter.write(buf, bufcp, false, writercompletefnc, ipcwriterconfig, ipctypemap, ipcconctx, error);
+			uint32 bufsz = ipcmsgwriter.write(buf, bufcp, false, writercompletefnc, ipcwriterconfig, ipcprotocol, ipcconctx, error);
 			
 			if(!error and bufsz){
 				
-				ipcmsgreader.read(buf, bufsz, readercompletefnc, ipcreaderconfig, ipctypemap, ipcconctx, error);
+				ipcmsgreader.read(buf, bufsz, readercompletefnc, ipcreaderconfig, ipcprotocol, ipcconctx, error);
 			}else{
 				idbg("done write");
 				cassert(error == frame::ipc::error_connection_delayed_closed);

@@ -484,7 +484,7 @@ using  AtomicStatusT = std::atomic<Status>;
 
 struct Service::Data{
 	
-	Data(Service &_rsvc): pmtxarr(nullptr), mtxsarrcp(0), config(ServiceProxy(_rsvc)), status(Status::Running){}
+	Data(Service &_rsvc): pmtxarr(nullptr), mtxsarrcp(0), config(), status(Status::Running){}
 	
 	~Data(){
 		delete []pmtxarr;
@@ -546,13 +546,10 @@ ErrorConditionT Service::reconfigure(Configuration && _ucfg){
 	
 	ErrorConditionT error;
 	
-	ServiceProxy	sp(*this);
 	
 	error = _ucfg.check();
 	
 	if(error) return error;
-	
-	_ucfg.message_register_fnc(sp);
 	
 	d.config.reset(std::move(_ucfg));
 	
@@ -681,7 +678,7 @@ ErrorConditionT Service::doSendMessage(
 		return error;
 	}
 	
-	const size_t				msg_type_idx = tm.index(_rmsgptr.get());
+	const size_t				msg_type_idx = configuration().protocol().typeIndex(_rmsgptr.get());
 	
 	if(msg_type_idx == 0){
 		edbgx(Debug::ipc, this<<" message type not registered");

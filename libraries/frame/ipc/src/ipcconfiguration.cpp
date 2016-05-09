@@ -25,7 +25,7 @@ namespace{
 		delete []_pbuf;
 	}
 	
-	void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
+	//void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
 	
 	void empty_connection_stop(ConnectionContext &, ErrorConditionT const&){}
 	
@@ -58,13 +58,14 @@ WriterConfiguration::WriterConfiguration(){
 	max_message_count_response_wait = 128;
 	
 	inplace_compress_fnc = default_compress;
-	reset_serializer_limits_fnc = empty_reset_serializer_limits;
+	//reset_serializer_limits_fnc = empty_reset_serializer_limits;
 }
 
 
 Configuration::Configuration(
-	AioSchedulerT &_rsch
-): pools_mutex_count(16), pscheduler(&_rsch)
+	AioSchedulerT &_rsch,
+	ipc::Protocol *_pproto
+): pools_mutex_count(16), protocol_ptr(_pproto), pscheduler(&_rsch)
 {
 	connection_recv_buffer_start_capacity_kb = memory_page_size()/1024;
 	connection_send_buffer_start_capacity_kb = memory_page_size()/1024;

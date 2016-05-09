@@ -18,14 +18,15 @@
 #include "frame/aio/openssl/aiosecurecontext.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
 #include "frame/scheduler.hpp"
+#include "frame/ipc/ipcprotocol.hpp"
 
 
 
 namespace solid{
 
-namespace serialization{ namespace binary{
-struct Limits;
-}/*namespace binary*/}/*namespace serialization*/
+// namespace serialization{ namespace binary{
+// struct Limits;
+// }/*namespace binary*/}/*namespace serialization*/
 
 namespace frame{
 
@@ -42,7 +43,6 @@ struct	ConnectionContext;
 
 using AddressVectorT								= std::vector<SocketAddressInet>;
 
-using MessageRegisterFunctionT						= FUNCTION<void(ServiceProxy &)>;
 using ResolveCompleteFunctionT						= FUNCTION<void(AddressVectorT &&)>;
 using AsyncResolveFunctionT							= FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
 using ConnectionStopFunctionT						= FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>;
@@ -51,7 +51,7 @@ using AllocateBufferFunctionT						= FUNCTION<char*(const uint16)>;
 using FreeBufferFunctionT							= FUNCTION<void(char*)>;
 using CompressFunctionT								= FUNCTION<size_t(char*, size_t, ErrorConditionT &)>;
 using UncompressFunctionT							= FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT &)>;
-using ResetSerializerLimitsFunctionT				= FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
+//using ResetSerializerLimitsFunctionT				= FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
 
 using SecureContextT								= frame::aio::openssl::Context;
 
@@ -85,7 +85,7 @@ struct WriterConfiguration{
 	size_t							max_message_continuous_packet_count;
 	
 	CompressFunctionT				inplace_compress_fnc;
-	ResetSerializerLimitsFunctionT	reset_serializer_limits_fnc;
+	//ResetSerializerLimitsFunctionT	reset_serializer_limits_fnc;
 };
 
 struct Configuration{
@@ -94,20 +94,15 @@ private:
 	Configuration& operator=(Configuration&&) = default;
 public:
 	Configuration(
-		AioSchedulerT &_rsch
+		AioSchedulerT &_rsch,
+		ipc::Protocol *_pproto = nullptr
 	);
-	
-	//Only Service can call this constructor
-	Configuration(ServiceProxy const&):pscheduler(nullptr){}
 	
 	Configuration& reset(Configuration &&_ucfg){
 		*this = std::move(_ucfg);
 		prepare();
 		return *this;
 	}
-	
-	template <class F>
-	void protocolCallback(F _f);
 	
 	AioSchedulerT & scheduler(){
 		return *pscheduler;
@@ -183,7 +178,6 @@ public:
 	uint8								connection_send_buffer_start_capacity_kb;
 	uint8								connection_send_buffer_max_capacity_kb;
 	
-	MessageRegisterFunctionT			message_register_fnc;
 	AsyncResolveFunctionT				name_resolve_fnc;
 	
 	ConnectionStartFunctionT			connection_start_incoming_fnc;
@@ -201,6 +195,15 @@ public:
 	std::string							listener_service_str;
 	
 	SecureContextT						secure_context;
+	ProtocolPointerT					protocol_ptr;
+	
+	Protocol& protocol(){
+		return *protocol_ptr;
+	}
+	
+	const Protocol& protocol()const{
+		return *protocol_ptr;
+	}
 private:
 	void prepare();
 private:
@@ -229,12 +232,6 @@ private:
 	
 	int									listener_port;
 };
-
-template <class F>
-void Configuration::protocolCallback(F _f){
-	message_register_fnc = _f;
-}
-
 
 struct InternetResolverF{
 	aio::Resolver		&rresolver;

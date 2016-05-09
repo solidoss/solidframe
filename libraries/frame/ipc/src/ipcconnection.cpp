@@ -1114,7 +1114,6 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 	Connection			&rthis = static_cast<Connection&>(_rctx.object());
 	ConnectionContext	conctx(rthis.service(_rctx), rthis);
-	const TypeIdMapT	&rtypemap = rthis.service(_rctx).typeMap();
 	const Configuration &rconfig  = rthis.service(_rctx).configuration();
 	
 	unsigned			repeatcnt = 4;
@@ -1150,7 +1149,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 			MessageReader::CompleteFunctionT	completefnc(std::cref(complete_lambda));
 			
 			rthis.cons_buf_off += rthis.msg_reader.read(
-				pbuf, bufsz, completefnc, rconfig.reader, rtypemap, conctx, error
+				pbuf, bufsz, completefnc, rconfig.reader, rconfig.protocol(), conctx, error
 			);
 			
 			idbgx(Debug::ipc, &rthis<<" consumed size "<<rthis.cons_buf_off<<" of "<<bufsz);
@@ -1197,7 +1196,6 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		unsigned 			repeatcnt = 4;
 		ErrorConditionT		error;
 		const uint32		sendbufcp = sendBufferCapacity();
-		const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
 		const Configuration &rconfig  = service(_rctx).configuration();
 		bool				sent_something = false;
 		
@@ -1232,7 +1230,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 			MessageWriter::CompleteFunctionT	completefnc(std::cref(complete_lambda));
 
 			uint32								sz = msg_writer.write(
-				send_buf, sendbufcp, shouldSendKeepalive(), completefnc, rconfig.writer, rtypemap, conctx, error
+				send_buf, sendbufcp, shouldSendKeepalive(), completefnc, rconfig.writer, rconfig.protocol(), conctx, error
 			);
 			
 			flags &= (~static_cast<size_t>(Flags::Keepalive));
@@ -1302,8 +1300,8 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePointerT &_rresponse_ptr, const size_t _response_type_id){
 	
 	ConnectionContext	conctx(service(_rctx), *this);
-	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
-	//const Configuration &rconfig  = service(_rctx).configuration();
+	const Configuration &rconfig  = service(_rctx).configuration();
+	const Protocol		&rproto = rconfig.protocol();
 	ErrorConditionT		error;
 	MessageBundle		msg_bundle;//request message
 	
@@ -1323,12 +1321,12 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 			msg_bundle.complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
 		}else{
 			idbgx(Debug::ipc, this<<" "<<_response_type_id);
-			rtypemap[_response_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
+			rproto[_response_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
 		}
 		
 	}else{
 		idbgx(Debug::ipc, this<<" "<<_response_type_id);
-		rtypemap[_response_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
+		rproto[_response_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -1340,7 +1338,8 @@ void Connection::doCompleteMessage(
 ){
 	
 	ConnectionContext	conctx(service(_rctx), *this);
-	const TypeIdMapT	&rtypemap = service(_rctx).typeMap();
+	const Configuration &rconfig  = service(_rctx).configuration();
+	const Protocol		&rproto = rconfig.protocol();
 	//const Configuration &rconfig  = service(_rctx).configuration();
 	
 	MessagePointerT		dummy_recv_msg_ptr;
@@ -1353,7 +1352,7 @@ void Connection::doCompleteMessage(
 		_rmsg_bundle.complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
 	}else{
 		idbgx(Debug::ipc, this<<" "<<_rmsg_bundle.message_type_id);
-		rtypemap[_rmsg_bundle.message_type_id].complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
+		rproto[_rmsg_bundle.message_type_id].complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
 	}
 }
 //-----------------------------------------------------------------------------
