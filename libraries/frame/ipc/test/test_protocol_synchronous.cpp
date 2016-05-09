@@ -174,8 +174,8 @@ int test_protocol_synchronous(int argc, char **argv){
 	
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
-	Debug::the().moduleMask("any:view");
+	Debug::the().levelMask("ew");
+	Debug::the().moduleMask("any:ew");
 	Debug::the().initStdErr(false, nullptr);
 #endif
 	

@@ -13,6 +13,7 @@
 
 #include "frame/ipc/ipcservice.hpp"
 #include "frame/ipc/ipcconfiguration.hpp"
+#include "frame/ipc/ipcprotocol_serialization_v1.hpp"
 
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
@@ -195,16 +196,15 @@ int main(int argc, char *argv[]){
 		
 		
 		{
-			frame::ipc::Configuration	cfg(sch);
+			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
+			frame::ipc::Configuration				cfg(sch, proto);
 			
-			cfg.protocolCallback(
-				[&ipcsvc](frame::ipc::ServiceProxy& _rsp){
-					_rsp.registerType<FirstMessage>(
-						serialization::basic_factory<FirstMessage>,
-						MessageHandler(ipcsvc)
-					);
-				}
+			proto->registerType<FirstMessage>(
+				serialization::basic_factory<FirstMessage>,
+				MessageHandler(ipcsvc)
 			);
+			
+			
 			if(app_params.baseport.size()){
 				cfg.listener_address_str = "0.0.0.0:";
 				cfg.listener_address_str += app_params.baseport;

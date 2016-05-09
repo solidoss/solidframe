@@ -24,10 +24,6 @@
 
 namespace solid{
 
-// namespace serialization{ namespace binary{
-// struct Limits;
-// }/*namespace binary*/}/*namespace serialization*/
-
 namespace frame{
 
 namespace aio{
@@ -36,7 +32,6 @@ class Resolver;
 
 namespace ipc{
 
-struct	ServiceProxy;
 class	Service;
 class	MessageWriter;
 struct	ConnectionContext;

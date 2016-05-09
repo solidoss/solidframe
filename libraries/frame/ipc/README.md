@@ -213,8 +213,8 @@ TODO:
 * (DONE) test_clientserver_oneshot
 * test_clientserver_idempotent
 * (DONE) set all ErrorConditions across frame/aio and frame/ipc to valid errors (all the TODOs)
-* investigate how to support multiple versions of the serialization library.
-* add support multiple versions of the serialization library
+* (DONE) investigate how to support multiple versions of the serialization library.
+* (DONE) add support multiple versions of the serialization library
 * add support in ipc::configuration for SOCKS5 (SFv2.x)
 * add support for OpenSSL (SFv2.x - needs extending OpenSSL support in frame/aio)
 

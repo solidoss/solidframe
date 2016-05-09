@@ -26,7 +26,7 @@ target_link_libraries(test_ipc_protocol
 add_test(NAME TestProtocolBasic		COMMAND  test_ipc_protocol test_protocol_basic)
 add_test(NAME TestProtocolCancel	COMMAND  test_ipc_protocol test_protocol_cancel)
 add_test(NAME TestProtocolClose		COMMAND  test_ipc_protocol test_protocol_close)
-#add_test(NAME TestProtocolSynch		COMMAND  test_ipc_protocol test_protocol_synchronous)
+add_test(NAME TestProtocolSynch		COMMAND  test_ipc_protocol test_protocol_synchronous)
 
 #==============================================================================
 

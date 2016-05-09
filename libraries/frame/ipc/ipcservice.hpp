@@ -294,7 +294,6 @@ private:
 		ConnectionRecvRawDataCompleteFunctionT &&_ucomplete_fnc
 	);
 private:
-	friend struct ServiceProxy;
 	friend class Listener;
 	friend class Connection;
 	
