@@ -175,6 +175,7 @@ void client_complete_message(
 	idbg(_rctx.recipientId());
 	
 	if(_rsent_msg_ptr.get()){
+		idbg("idx = "<<_rsent_msg_ptr->idx);
 		if(!_rerror){
 			++crtackidx;
 		}else{
@@ -183,6 +184,7 @@ void client_complete_message(
 		}
 	}
 	if(_rrecv_msg_ptr.get()){
+		idbg("idx = "<<_rrecv_msg_ptr->idx);
 		if(not _rrecv_msg_ptr->check()){
 			THROW_EXCEPTION("Message check failed.");
 		}
@@ -256,7 +258,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:view any:view frame_aio:view");
+	Debug::the().moduleMask("frame_ipc:view any:view");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -323,7 +325,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 			return 1;
 		}
 		
-		std::string		server_port;
+		std::string		server_port("39999");
 		
 		{//ipc server initialization
 			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
@@ -340,7 +342,8 @@ int test_clientserver_idempotent(int argc, char **argv){
 			cfg.connection_stop_fnc = server_connection_stop;
 			cfg.connection_start_incoming_fnc = server_connection_start;
 			
-			cfg.listener_address_str = "0.0.0.0:0";
+			cfg.listener_address_str = "0.0.0.0:";
+			cfg.listener_address_str += server_port;
 			
 			err = ipcserver.reconfigure(std::move(cfg));
 			
@@ -424,7 +427,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 			frame::ipc::MessagePointerT	msgptr(new Message(4));
 			ipcclient.sendMessage(
 				"localhost", msgptr,
-				 frame::ipc::Message::SynchronousFlagE
+				 frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::SynchronousFlagE
 			);
 		}
 		

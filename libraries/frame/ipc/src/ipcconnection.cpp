@@ -981,13 +981,17 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 		if(config.connection_inactivity_timeout_seconds){
 			recv_keepalive_count = 0;
 			flags &= (~static_cast<size_t>(Flags::HasActivity));
+			
 			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_inactivity_timeout_seconds<<" seconds");
+			
 			timer.waitFor(_rctx, TimeSpec(config.connection_inactivity_timeout_seconds), onTimerInactivity);
 		}
 	}else{//client
 		if(config.connection_keepalive_timeout_seconds){
 			flags |= static_cast<size_t>(Flags::WaitKeepAliveTimer);
+			
 			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
+			
 			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
@@ -1003,7 +1007,9 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
 		}
 	}else{//client
 		if(config.connection_keepalive_timeout_seconds and isWaitingKeepAliveTimer()){
+			
 			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
+			
 			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
@@ -1020,7 +1026,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	}else{//client
 		if(config.connection_keepalive_timeout_seconds and not isWaitingKeepAliveTimer()){
 			flags |= static_cast<size_t>(Flags::WaitKeepAliveTimer);
+			
 			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
+			
 			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
@@ -1037,7 +1045,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		rthis.recv_keepalive_count = 0;
 		
 		Configuration const &config = rthis.service(_rctx).configuration();
+		
 		idbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" wait for "<<config.connection_inactivity_timeout_seconds<<" seconds");
+		
 		rthis.timer.waitFor(_rctx, TimeSpec(config.connection_inactivity_timeout_seconds), onTimerInactivity);
 	}else{
 		rthis.doStop(_rctx, error_connection_inactivity_timeout);
@@ -1197,7 +1207,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	
 	idbgx(Debug::ipc, this<<"");
 	
-	if(not this->isStopping() and not this->hasPendingSend()){
+	if(not this->hasPendingSend() and not this->isStopping()){
 		ConnectionContext	conctx(service(_rctx), *this);
 		unsigned 			repeatcnt = 4;
 		ErrorConditionT		error;

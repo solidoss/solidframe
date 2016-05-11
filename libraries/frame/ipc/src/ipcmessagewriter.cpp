@@ -47,7 +47,6 @@ bool MessageWriter::enqueue(
 	MessageId &_rconn_msg_id
 ){
 	
-	vdbgx(Debug::ipc, "");
 	//see if we can accept the message
 	if(write_inner_list.size() >= _rconfig.max_message_count_multiplex){
 		return false;
@@ -78,8 +77,6 @@ bool MessageWriter::enqueue(
 	rmsgstub.msgbundle = std::move(_rmsgbundle);
 	rmsgstub.pool_msg_id = _rpool_msg_id;
 	
-	cassert(not rmsgstub.isStop());
-	
 	_rconn_msg_id = MessageId(idx, rmsgstub.unique);
 	
 	order_inner_list.pushBack(idx);
@@ -90,9 +87,8 @@ bool MessageWriter::enqueue(
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doUnprepareMessageStub(const size_t _msgidx){
-	vdbgx(Debug::ipc, "");
-	
 	MessageStub		&rmsgstub(message_vec[_msgidx]);
+	
 	rmsgstub.clear();
 	cache_inner_list.pushFront(_msgidx);
 }
@@ -102,8 +98,6 @@ bool MessageWriter::cancel(
 	MessageBundle &_rmsgbundle,
 	MessageId &_rpool_msg_id
 ){
-	vdbgx(Debug::ipc, "");
-	
 	if(_rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique){
 		return doCancel(_rmsguid.index, _rmsgbundle, _rpool_msg_id);
 	}
@@ -114,9 +108,7 @@ bool MessageWriter::cancel(
 bool MessageWriter::cancelOldest(
 	MessageBundle &_rmsgbundle,
 	MessageId &_rpool_msg_id
-){
-	vdbgx(Debug::ipc, "");
-	
+){	
 	if(order_inner_list.size()){
 		return doCancel(order_inner_list.frontIndex(), _rmsgbundle, _rpool_msg_id);
 	}
@@ -149,12 +141,10 @@ bool MessageWriter::doCancel(
 		rmsgstub.serializer_ptr->clear();
 	}else if(Message::is_waiting_response(rmsgstub.msgbundle.message_flags)){
 		//message is waiting response
-		vdbgx(Debug::ipc, "");
 		doUnprepareMessageStub(_msgidx);
 	}else{
 		//message is waiting to be sent
 		write_inner_list.erase(_msgidx);
-		vdbgx(Debug::ipc, "");
 		doUnprepareMessageStub(_msgidx);
 	}
 	
@@ -182,8 +172,6 @@ uint32 MessageWriter::write(
 	Protocol const &_rproto,
 	ConnectionContext &_rctx, ErrorConditionT &_rerror
 ){
-	
-	vdbgx(Debug::ipc, "");
 	
 	char		*pbufpos = _pbuf;
 	char		*pbufend = _pbuf + _bufsz;
@@ -286,7 +274,6 @@ char* MessageWriter::doFillPacket(
 	ConnectionContext &_rctx,
 	ErrorConditionT & _rerror
 ){
-	vdbgx(Debug::ipc, "");
 	
 	char 					*pbufpos = _pbufbeg;
 	uint32					freesz = _pbufend - pbufpos;
@@ -302,12 +289,12 @@ char* MessageWriter::doFillPacket(
 		PacketHeader::Types		msgswitch;// = PacketHeader::ContinuedMessageTypeE;
 		
 		if(rmsgstub.isStop()){
-			cassert(false);
+
 			if(write_inner_list.size() > 1){
+				
 				//there are other messages - reschedule this message
 				write_inner_list.popFront();
 				write_inner_list.pushBack(msgidx);
-				vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 				
 				continue;
 			}else if(pbufpos == _pbufbeg){
@@ -347,7 +334,6 @@ char* MessageWriter::doFillPacket(
 		if(rmsgstub.isCanceled()){
 			//message already completed - just drop it from write list
 			write_inner_list.erase(msgidx);
-			vdbgx(Debug::ipc, "");
 			doUnprepareMessageStub(msgidx);
 			if(current_synchronous_message_idx == msgidx){
 				current_synchronous_message_idx = InvalidIndex();
@@ -401,7 +387,6 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 	SerializerPointerT &_rtmp_serializer,
 	ErrorConditionT & _rerror
 ){
-	vdbgx(Debug::ipc, "");
 	
 	MessageStub &rmsgstub(message_vec[_msgidx]);
 	
@@ -430,7 +415,6 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 			MessageId		tmp_pool_msg_id(rmsgstub.pool_msg_id);
 			
 			order_inner_list.erase(_msgidx);
-			vdbgx(Debug::ipc, "");
 			doUnprepareMessageStub(_msgidx);
 			
 			_rerror = _complete_fnc(tmp_msg_bundle, tmp_pool_msg_id);
@@ -462,7 +446,6 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 	SerializerPointerT &_rtmp_serializer
 ){
 	
-	vdbgx(Debug::ipc, "");
 	PacketHeader::Types		msgswitch;// = PacketHeader::ContinuedMessageTypeE;
 	
 	MessageStub				&rmsgstub(message_vec[_msgidx]);
@@ -509,8 +492,6 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 //-----------------------------------------------------------------------------
 void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const &_rvisit_fnc){
 	
-	vdbgx(Debug::ipc, "");
-	
 	{//iterate through non completed messages
 		size_t 			msgidx = order_inner_list.frontIndex();
 		
@@ -540,7 +521,6 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const &_rvisit_f
 				msgidx = order_inner_list.previousIndex(oldidx);
 				
 				order_inner_list.erase(oldidx);
-				vdbgx(Debug::ipc, "");
 				doUnprepareMessageStub(oldidx);
 				
 			}else{
