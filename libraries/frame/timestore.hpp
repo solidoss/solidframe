@@ -55,6 +55,9 @@ public:
 	
 	ValueT change(const size_t _idx, TimeSpec const& _rt){
 		tv[_idx].first = _rt;
+		if(_rt < mint){
+			mint = _rt;
+		}
 		return tv[_idx].second;
 	}
 	

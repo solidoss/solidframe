@@ -326,6 +326,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	Configuration const &config = service(_rctx).configuration();
 	
 	doPrepare(_rctx);
+	prepareSocket(_rctx);
 	
 	if(_is_incomming){
 		flags |= static_cast<size_t>(Flags::Server);
@@ -557,6 +558,7 @@ void Connection::doContinueStopping(
 		);	//there might be events pending which will be delivered, but after this call
 			//no event get posted
 	}else if(seconds_to_wait){
+		idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<seconds_to_wait<<" seconds");
 		timer.waitFor(_rctx,
 			TimeSpec(seconds_to_wait),
 			[_rerr, _revent](frame::aio::ReactorContext &_rctx){
@@ -979,11 +981,13 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 		if(config.connection_inactivity_timeout_seconds){
 			recv_keepalive_count = 0;
 			flags &= (~static_cast<size_t>(Flags::HasActivity));
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_inactivity_timeout_seconds<<" seconds");
 			timer.waitFor(_rctx, TimeSpec(config.connection_inactivity_timeout_seconds), onTimerInactivity);
 		}
 	}else{//client
 		if(config.connection_keepalive_timeout_seconds){
 			flags |= static_cast<size_t>(Flags::WaitKeepAliveTimer);
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
 			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
@@ -999,6 +1003,7 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
 		}
 	}else{//client
 		if(config.connection_keepalive_timeout_seconds and isWaitingKeepAliveTimer()){
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
 			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
@@ -1015,6 +1020,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	}else{//client
 		if(config.connection_keepalive_timeout_seconds and not isWaitingKeepAliveTimer()){
 			flags |= static_cast<size_t>(Flags::WaitKeepAliveTimer);
+			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
 			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
 	}
@@ -1031,7 +1037,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		rthis.recv_keepalive_count = 0;
 		
 		Configuration const &config = rthis.service(_rctx).configuration();
-		
+		idbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" wait for "<<config.connection_inactivity_timeout_seconds<<" seconds");
 		rthis.timer.waitFor(_rctx, TimeSpec(config.connection_inactivity_timeout_seconds), onTimerInactivity);
 	}else{
 		rthis.doStop(_rctx, error_connection_inactivity_timeout);
@@ -1191,7 +1197,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	
 	idbgx(Debug::ipc, this<<"");
 	
-	if(not this->hasPendingSend()){
+	if(not this->isStopping() and not this->hasPendingSend()){
 		ConnectionContext	conctx(service(_rctx), *this);
 		unsigned 			repeatcnt = 4;
 		ErrorConditionT		error;
@@ -1458,7 +1464,12 @@ PlainConnection::PlainConnection(
 /*virtual*/ bool PlainConnection::sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp){
 	return sock.sendAll(_rctx, _buf, _bufcp, Connection::onSend);
 }
-
+//-----------------------------------------------------------------------------
+/*virtual*/ void PlainConnection::prepareSocket(frame::aio::ReactorContext &_rctx){
+	ErrorCodeT error = sock.device().enableNoSignal();
+	idbgx(Debug::ipc, this<<" enableNoSignal error: "<<error.message());
+	(void)error;
+}
 //-----------------------------------------------------------------------------
 //		SecureConnection
 //-----------------------------------------------------------------------------
@@ -1540,7 +1551,10 @@ SecureConnection::SecureConnection(
 /*virtual*/ bool SecureConnection::sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp){
 	return sock.sendAll(_rctx, _buf, _bufcp, Connection::onSend);
 }
-
+//-----------------------------------------------------------------------------
+/*virtual*/ void SecureConnection::prepareSocket(frame::aio::ReactorContext &_rctx){
+	sock.device().enableNoSignal();
+}
 //-----------------------------------------------------------------------------
 //	ConnectionContext
 //-----------------------------------------------------------------------------

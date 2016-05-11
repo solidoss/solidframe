@@ -38,6 +38,7 @@ set( IpcClientServerTestSuite
 	test_clientserver_noserver.cpp
 	test_clientserver_oneshot.cpp
 	test_clientserver_delayed.cpp
+	test_clientserver_idempotent.cpp
  )
 # 
 create_test_sourcelist( IpcClientServerTests test_ipc_clientserver.cpp ${IpcClientServerTestSuite})
@@ -67,6 +68,7 @@ add_test(NAME TestClientServerCancelClient	COMMAND  test_ipc_clientserver test_c
 add_test(NAME TestClientServerNoServer		COMMAND  test_ipc_clientserver test_clientserver_noserver)
 add_test(NAME TestClientServerOneShot		COMMAND  test_ipc_clientserver test_clientserver_oneshot)
 add_test(NAME TestClientServerDelayed		COMMAND  test_ipc_clientserver test_clientserver_delayed)
+add_test(NAME TestClientServerIdempontent	COMMAND  test_ipc_clientserver test_clientserver_idempotent)
 
 
 #==============================================================================

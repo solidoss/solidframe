@@ -932,6 +932,31 @@ ErrorCodeT SocketDevice::disableNoDelay(){
 #endif
 }
 
+ErrorCodeT SocketDevice::enableNoSignal(){
+#ifdef SOLID_ON_WINDOWS
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+#else
+	int flag = 1;
+	int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
+	if(rv == 0){
+		return ErrorCodeT();
+	}
+	return last_socket_error();
+#endif	
+}
+
+ErrorCodeT SocketDevice::disableNoSignal(){
+#ifdef SOLID_ON_WINDOWS
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+#else
+	int flag = 0;
+	int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
+	if(rv == 0){
+		return ErrorCodeT();
+	}
+	return last_socket_error();
+#endif
+}
 
 ErrorCodeT SocketDevice::enableLinger(){
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);

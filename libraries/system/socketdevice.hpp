@@ -70,6 +70,9 @@ public:
 	ErrorCodeT enableNoDelay();
 	ErrorCodeT disableNoDelay();
 	
+	ErrorCodeT enableNoSignal();
+	ErrorCodeT disableNoSignal();
+	
 	ErrorCodeT enableLinger();
 	ErrorCodeT disableLinger();
 	

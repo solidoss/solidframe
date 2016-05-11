@@ -247,6 +247,7 @@ private:
 	virtual bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) = 0;
 	virtual bool hasPendingSend() const = 0;
 	virtual bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) = 0;
+	virtual void prepareSocket(frame::aio::ReactorContext &_rctx) = 0;
 	
 	uint32 recvBufferCapacity()const{
 		return recv_buf_cp_kb * 1024;
@@ -325,6 +326,7 @@ private:
 	/*virtual*/ bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) override;
 	/*virtual*/ bool hasPendingSend() const override;
 	/*virtual*/ bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) override;
+	/*virtual*/ void prepareSocket(frame::aio::ReactorContext &_rctx) override;
 private:
 	using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
 	
@@ -357,6 +359,7 @@ private:
 	/*virtual*/ bool recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz) override;
 	/*virtual*/ bool hasPendingSend() const override;
 	/*virtual*/ bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) override;
+	/*virtual*/ void prepareSocket(frame::aio::ReactorContext &_rctx) override;
 private:
 	using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 	
