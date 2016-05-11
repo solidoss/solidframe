@@ -47,4 +47,4 @@ A process-to-process communication (message exchange) engine via plain/secured T
 
 
 ## See also
-* [IPC Test Suite](libraries/frame/ipc/test/README.md)
+* [IPC Test Suite](test/README.md)
