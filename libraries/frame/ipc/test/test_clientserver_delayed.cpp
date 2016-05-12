@@ -431,7 +431,7 @@ int test_clientserver_delayed(int argc, char **argv){
 		}
 		
 		m.stop();
-		std::printf("S\n");
+		//std::printf("S\n");
 	}
 	
 	Thread::waitAll();

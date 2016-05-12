@@ -575,7 +575,6 @@ ObjectIdT Manager::registerObject(
 void Manager::unregisterObject(ObjectBase &_robj){
 	size_t		svcidx = InvalidIndex();
 	size_t		objidx = InvalidIndex();
-	std::printf("-%x\n", &_robj);
 	{
 		const size_t	objstoreidx = d.aquireReadObjectStore();
 		ObjectChunk		&robjchk(*d.chunk(objstoreidx, _robj.id()));
@@ -595,10 +594,10 @@ void Manager::unregisterObject(ObjectBase &_robj){
 		
 		--robjchk.objcnt;
 		svcidx = robjchk.svcidx;
+		SOLID_ASSERT(svcidx != InvalidIndex());
 	}
 	{
 		SOLID_ASSERT(objidx != InvalidIndex());
-		SOLID_ASSERT(svcidx != InvalidIndex());
 		
 		const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 		ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
