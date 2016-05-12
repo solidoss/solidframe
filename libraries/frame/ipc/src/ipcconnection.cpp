@@ -402,7 +402,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		error = _rerr;
 		//at this point we need to start completing all connection's remaining messages
 		
-		bool				has_no_message = pending_message_vec.empty() and pending_message_vec.empty();
+		bool				has_no_message = pending_message_vec.empty() and msg_writer.empty();
 		
 		
 		if(can_stop and has_no_message){

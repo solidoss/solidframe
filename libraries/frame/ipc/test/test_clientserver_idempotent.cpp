@@ -174,13 +174,15 @@ void client_complete_message(
 ){
 	idbg(_rctx.recipientId());
 	
+	++crtackidx;
+	
 	if(_rsent_msg_ptr.get()){
 		idbg("idx = "<<_rsent_msg_ptr->idx);
 		if(!_rerror){
-			++crtackidx;
 		}else{
 			idbg("send message complete: "<<_rerror.message());
 			cassert(_rsent_msg_ptr->idx == 0);
+			cassert(_rerror == frame::ipc::error_connection_message_fail_send);
 		}
 	}
 	if(_rrecv_msg_ptr.get()){
@@ -257,8 +259,8 @@ int test_clientserver_idempotent(int argc, char **argv){
 	
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:view any:view");
+	Debug::the().levelMask("ew");
+	Debug::the().moduleMask("frame_ipc:ew any:ew");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -393,6 +395,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 		
 		{
 			frame::ipc::MessagePointerT	msgptr(new Message(0));
+			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msgptr,
 				 frame::ipc::Message::WaitResponseFlagE
@@ -401,6 +404,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 		
 		{
 			frame::ipc::MessagePointerT	msgptr(new Message(1));
+			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msgptr,
 				 frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::IdempotentFlagE
@@ -409,6 +413,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 		
 		{
 			frame::ipc::MessagePointerT	msgptr(new Message(2));
+			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msgptr,
 				 frame::ipc::Message::OneShotSendFlagE
@@ -417,14 +422,16 @@ int test_clientserver_idempotent(int argc, char **argv){
 		
 		{
 			frame::ipc::MessagePointerT	msgptr(new Message(3));
+			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msgptr,
-				 frame::ipc::Message::IdempotentFlagE | frame::ipc::Message::SynchronousFlagE
+				frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::IdempotentFlagE | frame::ipc::Message::SynchronousFlagE
 			);
 		}
 		
 		{
 			frame::ipc::MessagePointerT	msgptr(new Message(4));
+			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msgptr,
 				 frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::SynchronousFlagE
@@ -463,8 +470,8 @@ int test_clientserver_idempotent(int argc, char **argv){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
 			abstime += (30 * 1000);
-			cnd.wait(lock);
-			bool b = true;// cnd.wait(lock, abstime);
+			//cnd.wait(lock);
+			bool b = cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
 				THROW_EXCEPTION("Process is taking too long.");
