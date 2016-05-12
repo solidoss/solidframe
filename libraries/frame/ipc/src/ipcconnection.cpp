@@ -14,6 +14,7 @@
 #include "frame/ipc/ipcservice.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
 #include "frame/aio/openssl/aiosecuresocket.hpp"
+#include <cstdio>
 
 namespace solid{
 namespace frame{
@@ -236,6 +237,7 @@ Connection::Connection(
 //-----------------------------------------------------------------------------
 Connection::~Connection(){
 	idbgx(Debug::ipc, this);
+	std::printf("~%x\n", this);
 }
 //-----------------------------------------------------------------------------
 bool Connection::isFull(Configuration const& _rconfiguration)const{
@@ -710,6 +712,7 @@ void Connection::doHandleEventKill(
 	frame::aio::ReactorContext &_rctx,
 	Event &_revent
 ){
+	std::printf("K%x\n", this);
 	doStop(_rctx, error_connection_killed);
 }
 //-----------------------------------------------------------------------------

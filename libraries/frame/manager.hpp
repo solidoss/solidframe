@@ -48,7 +48,7 @@ public:
 	
 	bool notify(ObjectIdT const &_ruid, Event &&_uevt, const size_t _sigmsk = 0);
 	
-	bool notifyAll(Event const &_revt, const size_t _sigmsk = 0);
+	//bool notifyAll(Event const &_revt, const size_t _sigmsk = 0);
 	
 	
 	template <class F>
@@ -101,10 +101,10 @@ private:
 		ErrorConditionT &_rerr
 	);
 	
-	bool notifyAll(const Service &_rsvc, Event const & _revt, const size_t _sigmsk);
+	size_t notifyAll(const Service &_rsvc, Event const & _revt, const size_t _sigmsk);
 	
 	template <typename F>
-	bool forEachServiceObject(const Service &_rsvc, F _f){
+	size_t forEachServiceObject(const Service &_rsvc, F _f){
 		ObjectVisitFunctionT fct(_f);
 		return doForEachServiceObject(_rsvc, fct);
 	}
@@ -115,8 +115,8 @@ private:
 	bool startService(Service &_rsvc);
 	
 	
-	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctionT &_rfct);
-	bool doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctionT &_rfct);
+	size_t doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctionT &_rfct);
+	size_t doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctionT &_rfct);
 	bool doVisit(ObjectIdT const &_ruid, ObjectVisitFunctionT &_fctor);
 	void doUnregisterService(ServiceStub &_rss);
 private:
