@@ -21,7 +21,7 @@ Writer::~Writer(){
 void Writer::clear(){
 	tags.clear();
 	msgs.clear();
-	cassert(wpos == rpos);
+	SOLID_ASSERT(wpos == rpos);
 }
 
 bool isLiteralString(const char *_pb, unsigned _bl){

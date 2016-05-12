@@ -229,7 +229,7 @@ uint32 Connection::newRequestId(int _pos){
 		
 	}else{
 		BinarySeekerResultT rv = reqbs(ridv.begin(), ridv.end(), rq);
-		cassert(!rv.first);
+		SOLID_ASSERT(!rv.first);
 		ridv.insert(ridv.begin() + rv.second, std::pair<uint32, int>(rq, _pos));
 	}
 	return rq;
@@ -244,7 +244,7 @@ bool   Connection::isRequestIdExpected(uint32 _v, int &_rpos)const{
 void   Connection::deleteRequestId(uint32 _v){
 	if(_v == 0) return;
 	BinarySeekerResultT rv = reqbs(ridv.begin(), ridv.end(), _v);
-	cassert(!rv.first);
+	SOLID_ASSERT(!rv.first);
 	ridv.erase(ridv.begin() + rv.second);
 }
 	
@@ -300,7 +300,7 @@ int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 			return Close;
 		default:
 			edbg("unknown state "<<socketState(_sid));
-			cassert(false);
+			SOLID_ASSERT(false);
 			
 	}
 	return Wait;
@@ -380,7 +380,7 @@ int Connection::doSocketParse(const uint _sid, SocketData &_rsd, const bool _isi
 		case Reader::Yield:
 			return Success;
 		case Reader::Idle:
-			cassert(!_isidle);
+			SOLID_ASSERT(!_isidle);
 			socketState(_sid, SocketIdleParse);
 			return Success;
 	}
@@ -425,7 +425,7 @@ int Connection::doSocketExecute(const uint _sid, SocketData &_rsd, const int _st
 			return Failure;
 		default:
 			edbg("rc = "<<rc);
-			cassert(false);
+			SOLID_ASSERT(false);
 			return Failure;
 	}
 	return Success;

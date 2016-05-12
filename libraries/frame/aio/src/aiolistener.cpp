@@ -50,7 +50,7 @@ namespace aio{
 			rthis.doClear(_rctx);
 			break;
 		default:
-			cassert(false);
+			SOLID_ASSERT(false);
 	}
 }
 
@@ -93,7 +93,7 @@ void Listener::doAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 	
 	if(!err){
 	}else if(can_retry){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}else{
 		systemError(_rctx, err);
 		error(_rctx, error_listener_system);

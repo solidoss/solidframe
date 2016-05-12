@@ -42,7 +42,7 @@ inline void Mutex::lock(){
 	int rv = pthread_mutex_lock(&mut);
 	if(rv){
 		edbgx(Debug::system, "pthread_mutex_lock: "<<strerror(errno));
-		cassert(!rv);
+		SOLID_ASSERT(!rv);
 	}
 #else
 	pthread_mutex_lock(&mut);
@@ -58,7 +58,7 @@ inline void Mutex::unlock(){
 	if(rv){
 		edbgx(Debug::system, "pthread_mutex_unlock: "<<strerror(errno));
 	}
-	cassert(!rv);
+	SOLID_ASSERT(!rv);
 #else
 	pthread_mutex_unlock(&mut);
 #endif

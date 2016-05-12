@@ -115,9 +115,9 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
 		if(repeat--){
 			t2.cancel(_rctx);
 			t1.waitUntil(_rctx, _rctx.time() + 1000 * 5, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);}); 
-			cassert(!_rctx.error());
+			SOLID_ASSERT(!_rctx.error());
 			t2.waitUntil(_rctx, _rctx.time() + 1000 * 10, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 1);});
-			cassert(!_rctx.error());
+			SOLID_ASSERT(!_rctx.error());
 		}else{
 			t2.cancel(_rctx);
 			Locker<Mutex>	lock(mtx);
@@ -127,10 +127,10 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
 		}
 	}else if(_idx == 1){
 		cout<<"ERROR: second timer should never fire"<<endl;
-		cassert(false);
+		SOLID_ASSERT(false);
 	}else{
 		cout<<"ERROR: unknown timer index: "<<_idx<<endl;
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 }
 
@@ -140,9 +140,9 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
 			cout<<"EventInit("<<_rexectx.event().index<<") at "<<_rexectx.time()<<endl;
 			//t1 should fire first
 			t1.waitUntil(_rexectx, _rexectx.time() + 1000 * 5, frame::EventTimer, 1); 
-			cassert(!_rexectx.error());
+			SOLID_ASSERT(!_rexectx.error());
 			t2.waitUntil(_rexectx, _rexectx.time() + 1000 * 10, frame::EventTimer, 2);
-			cassert(!_rexectx.error());
+			SOLID_ASSERT(!_rexectx.error());
 			break;
 		case frame::EventTimer:
 			cout<<"EventTimer("<<_rexectx.event().index<<") at "<<_rexectx.time()<<endl;
@@ -150,9 +150,9 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
 				if(repeat--){
 					t2.cancel(_rexectx);
 					t1.waitUntil(_rexectx, _rexectx.time() + 1000 * 5, frame::EventTimer, 1); 
-					cassert(!_rexectx.error());
+					SOLID_ASSERT(!_rexectx.error());
 					t2.waitUntil(_rexectx, _rexectx.time() + 1000 * 10, frame::EventTimer, 2);
-					cassert(!_rexectx.error());
+					SOLID_ASSERT(!_rexectx.error());
 				}else{
 					t2.cancel(_rexectx);
 					Locker<Mutex>	lock(mtx);
@@ -161,10 +161,10 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
 				}
 			}else if(_rexectx.event().index == 2){
 				cout<<"ERROR: second timer should never fire"<<endl;
-				cassert(false);
+				SOLID_ASSERT(false);
 			}else{
 				cout<<"ERROR: unknown timer index"<<endl;
-				cassert(false);
+				SOLID_ASSERT(false);
 			}
 		case frame::EventDie:
 			_rexectx.die();

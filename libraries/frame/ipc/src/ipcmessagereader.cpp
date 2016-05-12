@@ -71,7 +71,7 @@ uint32 MessageReader::read(
 		
 		if(not packet_header.isOk()){
 			_rerror = error_reader_invalid_packet_header;
-			cassert(false);
+			SOLID_ASSERT(false);
 			break;
 		}
 		
@@ -95,7 +95,7 @@ uint32 MessageReader::read(
 		if(!_rerror){
 			pbufpos += packet_header.size();
 		}else{
-			cassert(false);
+			SOLID_ASSERT(false);
 			break;
 		}
 		state = HeaderReadStateE;
@@ -143,7 +143,7 @@ void MessageReader::doConsumePacket(
 				vdbgx(Debug::ipc, "SwitchToNewMessageTypeE "<<message_q.size());
 				if(message_q.front().message_ptr.get()){
 					if(message_q.size() == _rconfig.max_message_count_multiplex){
-						cassert(false);
+						SOLID_ASSERT(false);
 						_rerror = error_reader_too_many_multiplex;
 						return;
 					}
@@ -171,7 +171,7 @@ void MessageReader::doConsumePacket(
 				break;
 			case PacketHeader::ContinuedMessageTypeE:
 				vdbgx(Debug::ipc, "ContinuedMessageTypeE "<<message_q.size());
-				cassert(message_q.size() and message_q.front().deserializer_ptr.get() and message_q.front().message_ptr.get());
+				SOLID_ASSERT(message_q.size() and message_q.front().deserializer_ptr.get() and message_q.front().message_ptr.get());
 				++message_q.front().packet_count;
 				break;
 			case PacketHeader::SwitchToOldCanceledMessageTypeE:
@@ -186,13 +186,13 @@ void MessageReader::doConsumePacket(
 				break;
 			case PacketHeader::ContinuedCanceledMessageTypeE:
 				vdbgx(Debug::ipc, "ContinuedCanceledMessageTypeE "<<message_q.size());
-				cassert(message_q.size() and message_q.front().deserializer_ptr.get() and message_q.front().message_ptr.get());
+				SOLID_ASSERT(message_q.size() and message_q.front().deserializer_ptr.get() and message_q.front().message_ptr.get());
 				message_q.front().clear();
 				
 				canceled_message = true;
 				break;
 			default:
-				cassert(false);
+				SOLID_ASSERT(false);
 				_rerror = error_reader_invalid_message_switch;
 				return;
 		}

@@ -107,7 +107,7 @@ static const protocol::text::NameMatcher cmdm(cmds);
 	will instruct the reader how to parse itself.
 */
 Command* Connection::create(const String& _name, Reader &){
-	cassert(!pcmd);
+	SOLID_ASSERT(!pcmd);
 	idbg("create command "<<_name);
 	switch(cmds[cmdm.match(_name.c_str())].id){
 		case Cmd::LoginCmd:
@@ -339,7 +339,7 @@ int RemoteList::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 			*pp = protocol::text::Parameter(StrDef(" NO LIST: Not a directory@"));
 			return Writer::Success;
 	};
-	cassert(false);
+	SOLID_ASSERT(false);
 	return AsyncError;
 }
 
@@ -456,7 +456,7 @@ int Fetch::doSendFirstData(Writer &_rw){
 	idbg(""<<(void*)this<<" streamsz = "<<streamsz);
 	uint64 remainsz(litsz - streamsz);
 	if(remainsz){
-		cassert(streamsz == streamcp);
+		SOLID_ASSERT(streamsz == streamcp);
 		streamsz /= 2;
 		state = SendNextData;
 	}else{
@@ -469,7 +469,7 @@ int Fetch::doSendFirstData(Writer &_rw){
 
 int Fetch::doSendNextData(Writer &_rw){
 	idbg(""<<(void*)this);
-	cassert(!cachedmsg.empty());
+	SOLID_ASSERT(!cachedmsg.empty());
 	if(cachedmsg->streamsz != streamcp){
 		ios.seekg(cachedmsg->streampos);
 		streamsz = cachedmsg->streamsz;
@@ -507,7 +507,7 @@ int Fetch::doSendNextData(Writer &_rw){
 int Fetch::doSendLiteral(Writer &_rw, bool _local){
 	idbg("send literal "<<litsz<<" "<<streamsz);
 	//send local stream
-	cassert(!ios.device().empty());
+	SOLID_ASSERT(!ios.device().empty());
 	_rw<<"* DATA {"<<litsz<<"}\r\n";
 	litsz -= streamsz;
 	if(_local){
@@ -551,7 +551,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no remote stream@"));
 			return Writer::Success;
 	}
-	cassert(false);
+	SOLID_ASSERT(false);
 	return AsyncError;
 }
 
@@ -645,7 +645,7 @@ int Store::reinitReader(Reader &_rr, protocol::text::Parameter &_rp){
 			}
 			break;
 	}
-	cassert(false);
+	SOLID_ASSERT(false);
 	return Reader::Failure;
 }
 
@@ -691,7 +691,7 @@ void Idle::execute(Connection &_rc){
 }
 int Idle::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	if(_rp.b.i == 1){//prepare
-		cassert(typeq.size());
+		SOLID_ASSERT(typeq.size());
 		if(typeq.front() == PeerStringType){
 			_rw<<"* RECEIVED STRING ("<<(uint32)conidq.front().tkridx<<' '<<(uint32)conidq.front().sesidx<<' '<<(uint32)conidq.front().sesuid;
 			_rw<<") ("<<(uint32)fromq.front().first<<' '<<(uint32)fromq.front().second<<") ";
@@ -711,7 +711,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 			_rw.push(&Writer::flushAll);
 			_rw.push(&Writer::putAString, protocol::text::Parameter((void*)stringq.front().data(), stringq.front().size()));
 		}else{
-			cassert(false);
+			SOLID_ASSERT(false);
 		}
 		return Writer::Continue;
 	}else if(_rp.b.i == 2){
@@ -736,7 +736,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 			conidq.pop();
 			fileptrq.pop();
 		}else{
-			cassert(false);
+			SOLID_ASSERT(false);
 		}
 		if(typeq.size()){
 			_rp.b.i = 1;

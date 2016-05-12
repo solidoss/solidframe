@@ -147,7 +147,7 @@ void RequestStub::state(uint8 _st){
 			){
 				break;
 			}else{
-				THROW_EXCEPTION_EX("Invalid state for request ", (int)st);
+				SOLID_THROW_EX("Invalid state for request ", (int)st);
 				break;
 			}
 		//case AcceptPendingState:
@@ -393,7 +393,7 @@ bool Object::Data::insertRequestStub(DynamicPointer<WriteRequestMessage> &_rmsgp
 		if(rreq.flags & RequestStub::HaveRequestFlag){
 			edbg("conflict "<<_rmsgptr->consensusRequestId()<<" against existing "<<rreq.msgptr->consensusRequestId()<<" idx = "<<_ridx);
 		}
-		cassert(!(rreq.flags & RequestStub::HaveRequestFlag));
+		SOLID_ASSERT(!(rreq.flags & RequestStub::HaveRequestFlag));
 		rreq.msgptr = _rmsgptr;
 		reqmap[&rreq.msgptr->consensusRequestId()] = _ridx;
 		return false;
@@ -413,7 +413,7 @@ bool Object::Data::insertRequestStub(DynamicPointer<WriteRequestMessage> &_rmsgp
 }
 void Object::Data::eraseRequestStub(const size_t _idx){
 	RequestStub &rreq(requestStub(_idx));
-	//cassert(rreq.sig.get());
+	//SOLID_ASSERT(rreq.sig.get());
 	if(rreq.msgptr.get()){
 		reqmap.erase(&rreq.msgptr->consensusRequestId());
 	}
@@ -423,11 +423,11 @@ void Object::Data::eraseRequestStub(const size_t _idx){
 	freeposstk.push(_idx);
 }
 inline RequestStub& Object::Data::requestStub(const size_t _idx){
-	cassert(_idx < reqvec.size());
+	SOLID_ASSERT(_idx < reqvec.size());
 	return reqvec[_idx];
 }
 inline const RequestStub& Object::Data::requestStub(const size_t _idx)const{
-	cassert(_idx < reqvec.size());
+	SOLID_ASSERT(_idx < reqvec.size());
 	return reqvec[_idx];
 }
 inline bool Object::Data::isCoordinator()const{
@@ -641,7 +641,7 @@ void Object::doExecuteOperation(RunData &_rd, const uint8 _replicaidx, Operation
 			doExecuteAcceptDeclineOperation(_rd, _replicaidx, _rop);
 			break;
 		default:
-			THROW_EXCEPTION_EX("Unknown operation ", (int)_rop.operation);
+			SOLID_THROW_EX("Unknown operation ", (int)_rop.operation);
 	}
 	
 }
@@ -708,8 +708,8 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
 		wdbg("Invalid state "<<(int)preq->state()<<" for reqidx "<<reqidx);
 		return;
 	}
-	cassert(preq->flags & RequestStub::HaveAcceptFlag);
-	cassert(preq->flags & RequestStub::HaveProposeFlag);
+	SOLID_ASSERT(preq->flags & RequestStub::HaveAcceptFlag);
+	SOLID_ASSERT(preq->flags & RequestStub::HaveProposeFlag);
 	
 	const uint32 tmpaccid = overflow_safe_max(preq->acceptid, _rop.acceptid);
 	
@@ -1157,7 +1157,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 					++d.acceptpendingcnt;
 				}
 				if(d.acceptpendingcnt == 1){
-					cassert(d.pendingacceptwaitidx == -1);
+					SOLID_ASSERT(d.pendingacceptwaitidx == -1);
 					d.pendingacceptwaitidx = _reqidx;
 					TimeSpec ts(frame::Object::currentTime());
 					ts.add(2*60);//2 mins
@@ -1201,7 +1201,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			doEraseRequest(_rd, _reqidx);
 			break;
 		default:
-			THROW_EXCEPTION_EX("Unknown state ",rreq.state());
+			SOLID_THROW_EX("Unknown state ",rreq.state());
 	}
 }
 
@@ -1457,7 +1457,7 @@ void Object::doFlushOperations(RunData &_rd){
 		po->opsz = opcnt;
 		pos = po->op;
 	}else{
-		THROW_EXCEPTION_EX("invalid opcnt ",opcnt);
+		SOLID_THROW_EX("invalid opcnt ",opcnt);
 	}
 	if(pos){
 		for(size_t i(0); i < opcnt; ++i){
@@ -1607,8 +1607,8 @@ void Object::doScanPendingRequests(RunData &_rd){
 void Object::doAcceptRequest(RunData &_rd, const size_t _reqidx){
 	idbg(""<<_reqidx);
 	RequestStub &rreq(d.requestStub(_reqidx));
-	cassert(rreq.flags & RequestStub::HaveRequestFlag);
-	cassert(rreq.acceptid == d.acceptid + 1);
+	SOLID_ASSERT(rreq.flags & RequestStub::HaveRequestFlag);
+	SOLID_ASSERT(rreq.acceptid == d.acceptid + 1);
 	++d.acceptid;
 	
 	d.reqmap.erase(&rreq.msgptr->consensusRequestId());

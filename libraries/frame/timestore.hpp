@@ -33,7 +33,7 @@ public:
 	}
 	
 	size_t push(TimeSpec const& _rt, ValueT const &_rv){
-		cassert(_rv != InvalidIndex());
+		SOLID_ASSERT(_rv != InvalidIndex());
 		const size_t rv = tv.size();
 		tv.push_back(TimePairT(_rt, _rv));
 		if(_rt < mint){
@@ -46,7 +46,7 @@ public:
 	void pop(const size_t _idx, F const &_rf){
 		const size_t oldidx = tv.size() - 1;
 		tv[_idx] = tv.back();
-		cassert(!tv.empty());
+		SOLID_ASSERT(!tv.empty());
 		tv.pop_back();
 		if(_idx < tv.size()){
 			_rf(tv[_idx].second, _idx, oldidx);

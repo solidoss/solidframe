@@ -303,7 +303,7 @@ bool Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
 	}else if(rv == ETIMEDOUT){
 		return false;
 	}else{
-		cassert(false);
+		SOLID_ASSERT(false);
 		return false;
 	}
 }
@@ -352,7 +352,7 @@ void Thread::free_thread(void *_pth){
 #ifdef SOLID_ON_WINDOWS
 	TlsSetValue(threadData().crtthread_key, NULL);
 #else
-	cverify(!pthread_key_create(&threadData().crtthread_key, &Thread::free_thread));
+	SOLID_VERIFY(!pthread_key_create(&threadData().crtthread_key, &Thread::free_thread));
 #endif
 }
 //-------------------------------------------------------------------------
@@ -425,7 +425,7 @@ Thread::Thread(bool _detached, pthread_t _th):th(_th), dtchd(_detached), pthrstu
 Thread::~Thread(){
 	for(SpecVecT::iterator it(specvec.begin()); it != specvec.end(); ++it){
 		if(it->first){
-			cassert(it->second);
+			SOLID_ASSERT(it->second);
 			(*it->second)(it->first);
 		}
 	}

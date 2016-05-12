@@ -42,7 +42,7 @@ class Timer: public CompletionHandler{
 				rthis.f = &on_dummy;
 				break;
 			default:
-				cassert(false);
+				SOLID_ASSERT(false);
 		}
 	}
 	static void on_dummy(ReactorContext &_rctx){

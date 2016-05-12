@@ -278,7 +278,7 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 		return AsyncWait;
 	}
 	if(_msgptr->dynamicTypeId() != AuthMessage::staticTypeId()){
-		cassert(false);
+		SOLID_ASSERT(false);
 		return AsyncError;
 	}
 	AuthMessage &rmsg(static_cast<AuthMessage&>(*_msgptr));

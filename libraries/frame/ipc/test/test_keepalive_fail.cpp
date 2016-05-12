@@ -167,7 +167,7 @@ void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 			cnd.signal();
 		}
 	}else{
-		THROW_EXCEPTION("Invalid test scenario.");
+		SOLID_THROW("Invalid test scenario.");
 	}
 }
 
@@ -180,7 +180,7 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	idbg(_rctx.recipientId());
 	
 	if(not _rmsgptr->check()){
-		THROW_EXCEPTION("Message check failed.");
+		SOLID_THROW("Message check failed.");
 	}
 	
 	//cout<< _rmsgptr->str.size()<<'\n';
@@ -188,7 +188,7 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	++transfered_count;
 	
 	if(!_rmsgptr->isBackOnSender()){
-		THROW_EXCEPTION("Message not back on sender!.");
+		SOLID_THROW("Message not back on sender!.");
 	}
 	
 	++crtbackidx;
@@ -220,11 +220,11 @@ void client_complete_message(
 void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Message> &_rmsgptr){
 	idbg(_rctx.recipientId()<<" message id on sender "<<_rmsgptr->requestId());
 	if(not _rmsgptr->check()){
-		THROW_EXCEPTION("Message check failed.");
+		SOLID_THROW("Message check failed.");
 	}
 	
 	if(!_rmsgptr->isOnPeer()){
-		THROW_EXCEPTION("Message not on peer!.");
+		SOLID_THROW("Message not on peer!.");
 	}
 	
 	//send message back
@@ -269,7 +269,7 @@ int test_keepalive_fail(int argc, char **argv){
 	if(argc > 1){
 		test_scenario = atoi(argv[1]);
 		if(test_scenario > 1){
-			THROW_EXCEPTION("Invalid test scenario.");
+			SOLID_THROW("Invalid test scenario.");
 		}
 	}
 	
@@ -427,12 +427,12 @@ int test_keepalive_fail(int argc, char **argv){
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
-				THROW_EXCEPTION("Process is taking too long.");
+				SOLID_THROW("Process is taking too long.");
 			}
 		}
 		
 		if(crtwriteidx != crtackidx){
-			THROW_EXCEPTION("Not all messages were completed");
+			SOLID_THROW("Not all messages were completed");
 		}
 		
 		m.stop();

@@ -103,15 +103,15 @@ private:
 		return (T*)pn->data;
 	}
 	T *popNode(void *_p){
-		//ccassert(_p);
+		//cSOLID_ASSERT(_p);
 		Node *pn = ((Node*)(((char*)_p) - sizeof(Node*)));
 		Node *ppn = pn->prev; 
-		cassert(pn != ptn);
+		SOLID_ASSERT(pn != ptn);
 		pn->prev = ptn; ptn = pn;//cache the node
 		if(ppn){
 			return (T*)(ppn->data + (NodeSize * sizeof(T) - sizeof(T)));
 		}else{
-			cassert(!sz);
+			SOLID_ASSERT(!sz);
 			return NULL;
 		}
 	}

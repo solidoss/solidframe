@@ -40,7 +40,7 @@ struct InitStub{
 };
 
 InitStub initarray[] = {
-	{8192000, 0},
+	{88192000, 0},
 	{16384000, 0},
 	{2000, 0},
 	{16384000, 0},
@@ -88,7 +88,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	~Message(){
 		idbg("DELETE ---------------- "<<(void*)this<<" idx = "<<idx<<" str.size = "<<str.size());
 // 		if(not serialized and not this->isBackOnSender() and idx != 0){
-// 			THROW_EXCEPTION("Message not serialized.");
+// 			SOLID_THROW("Message not serialized.");
 // 		}
 	}
 
@@ -128,7 +128,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		
 		for(uint64 i = 0; i < count; ++i){
 			if(pu[i] != pup[(i + idx) % pattern_size]){
-				THROW_EXCEPTION("Message check failed.");
+				SOLID_THROW("Message check failed.");
 				return false;
 			}
 		}
@@ -181,25 +181,25 @@ void client_complete_message(
 		if(!_rerror){
 		}else{
 			idbg("send message complete: "<<_rerror.message());
-			cassert(_rsent_msg_ptr->idx == 0);
-			cassert(_rerror == frame::ipc::error_connection_message_fail_send);
+			SOLID_CHECK(_rsent_msg_ptr->idx == 0);
+			SOLID_CHECK(_rerror == frame::ipc::error_connection_message_fail_send);
 		}
 	}
 	if(_rrecv_msg_ptr.get()){
 		idbg("idx = "<<_rrecv_msg_ptr->idx);
 		if(not _rrecv_msg_ptr->check()){
-			THROW_EXCEPTION("Message check failed.");
+			SOLID_THROW("Message check failed.");
 		}
 		
-		cassert(not _rerror);
+		SOLID_CHECK(not _rerror);
 		
 		//cout<< _rmsgptr->str.size()<<'\n';
 		
 		if(!_rrecv_msg_ptr->isBackOnSender()){
-			THROW_EXCEPTION("Message not back on sender!.");
+			SOLID_THROW("Message not back on sender!.");
 		}
 		
-		cassert(_rrecv_msg_ptr->idx == 1 or _rrecv_msg_ptr->idx == 3 or _rrecv_msg_ptr->idx == 4);
+		SOLID_CHECK(_rrecv_msg_ptr->idx == 1 or _rrecv_msg_ptr->idx == 3 or _rrecv_msg_ptr->idx == 4);
 		
 		transfered_size += _rrecv_msg_ptr->str.size();
 		++transfered_count;
@@ -221,12 +221,14 @@ void server_complete_message(
 	if(_rrecv_msg_ptr.get()){
 		idbg(_rctx.recipientId()<<" received message with id on sender "<<_rrecv_msg_ptr->requestId());
 		
+		SOLID_CHECK(_rrecv_msg_ptr->idx != 0);
+		
 		if(not _rrecv_msg_ptr->check()){
-			THROW_EXCEPTION("Message check failed.");
+			SOLID_THROW("Message check failed.");
 		}
 		
 		if(!_rrecv_msg_ptr->isOnPeer()){
-			THROW_EXCEPTION("Message not on peer!.");
+			SOLID_THROW("Message not on peer!.");
 		}
 		
 		if(_rrecv_msg_ptr->idx == 2){
@@ -238,12 +240,12 @@ void server_complete_message(
 		
 		//send message back
 		if(_rctx.recipientId().isInvalidConnection()){
-			THROW_EXCEPTION("Connection id should not be invalid!");
+			SOLID_THROW("Connection id should not be invalid!");
 		}
 		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 		
 		if(err){
-			THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+			SOLID_THROW_EX("Connection id should not be invalid!", err.message());
 		}
 	}
 	if(_rsent_msg_ptr.get()){
@@ -449,7 +451,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 				bool b = cnd.wait(lock, abstime);
 				if(!b){
 					//timeout expired
-					THROW_EXCEPTION("Process is taking too long.");
+					SOLID_THROW("Process is taking too long.");
 				}
 			}
 		}
@@ -474,12 +476,12 @@ int test_clientserver_idempotent(int argc, char **argv){
 			bool b = cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
-				THROW_EXCEPTION("Process is taking too long.");
+				SOLID_THROW("Process is taking too long.");
 			}
 		}
 		
 		if(crtwriteidx != crtackidx){
-			THROW_EXCEPTION("Not all messages were completed");
+			SOLID_THROW("Not all messages were completed");
 		}
 		
 		m.stop();

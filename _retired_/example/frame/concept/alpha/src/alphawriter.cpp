@@ -27,7 +27,7 @@ Writer::~Writer(){
 void Writer::clear(){
 	tags.clear();
 	msgs.clear();
-	cassert(wpos == rpos);
+	SOLID_ASSERT(wpos == rpos);
 }
 
 bool isLiteralString(const char *_pb, unsigned _bl){
@@ -100,7 +100,7 @@ int Writer::write(char *_pb, uint32 _bl){
 // 		case OK: return Ok;
 // 		case NOK: return No;
 // 	}
-// 	cassert(false);
+// 	SOLID_ASSERT(false);
 // 	return Bad;
 	return Connection::the().socketSend(_pb, _bl);
 }

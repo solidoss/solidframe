@@ -668,7 +668,7 @@ void Talker::doDispatchReceivedPacket(
 		default:
 			COLLECT_DATA_0(d.statistics.receivedUnknown);
 			Packet::deallocate(pkt.release());
-			cassert(false);
+			SOLID_ASSERT(false);
 	}
 }
 //----------------------------------------------------------------------
@@ -724,7 +724,7 @@ AsyncE Talker::doSendPackets(TalkerStub &_rstub, const ulong _sig){
 	TalkerStub &ts = _rstub;
 	
 	if(_sig & frame::EventDoneSend){
-		cassert(d.sendq.size());
+		SOLID_ASSERT(d.sendq.size());
 		COLLECT_DATA_1(d.statistics.maxSendQueueSize, d.sendq.size());
 		Data::SendPacket	&rsp(d.sendq.front());
 		Data::SessionStub	&rss(d.sessionvec[rsp.sessionidx]);
@@ -808,7 +808,7 @@ void Talker::pushSession(Session *_pses, ConnectionUid &_rconid, bool _exists){
 			d.freesessionstack.pop();
 		}else{
 			vdbgx(Debug::ipc, "");
-			cassert(d.nextsessionidx < (uint16)0xffff);
+			SOLID_ASSERT(d.nextsessionidx < (uint16)0xffff);
 			_rconid.sesidx = d.nextsessionidx;
 			_rconid.sesuid = 0;
 			++d.nextsessionidx;//TODO: it must be reseted somewhere!!!
@@ -871,7 +871,7 @@ void Talker::doInsertNewSessions(TalkerStub &_rstub){
 void Talker::doDispatchMessages(){
 	//dispatch signals before disconnecting sessions
 	while(d.msgq.size()){
-		cassert(d.msgq.front().sessionidx < d.sessionvec.size());
+		SOLID_ASSERT(d.msgq.front().sessionidx < d.sessionvec.size());
 		Data::MessageData	&rsd(d.msgq.front());
 		Data::SessionStub	&rss(d.sessionvec[rsd.sessionidx]);
 		const uint32		flags(rsd.flags);
@@ -900,7 +900,7 @@ void Talker::doDispatchMessages(){
 //----------------------------------------------------------------------
 void Talker::doDispatchEvents(){
 	while(d.eventq.size()){
-		cassert(d.eventq.front().sessionidx < d.sessionvec.size());
+		SOLID_ASSERT(d.eventq.front().sessionidx < d.sessionvec.size());
 		Data::EventData		&red(d.eventq.front());
 		Data::SessionStub	&rss(d.sessionvec[red.sessionidx]);
 		
@@ -935,7 +935,7 @@ void Talker::disconnectSessions(TalkerStub &_rstub){
 	for(Data::UInt16VectorT::const_iterator it(d.closingsessionvec.begin()); it != d.closingsessionvec.end(); ++it){
 		Data::SessionStub &rss(d.sessionvec[*it]);
 		vdbgx(Debug::ipc, "disconnecting sessions "<<(void*)rss.psession);
-		cassert(rss.psession);
+		SOLID_ASSERT(rss.psession);
 		
 		Context::the().msgctx.connectionuid.sesidx = *it;
 		Context::the().msgctx.connectionuid.sesuid = rss.uid;

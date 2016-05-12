@@ -37,7 +37,7 @@ namespace{
 	
 	size_t default_decompress(char*, const char*, size_t, ErrorConditionT &_rerror){
 		//This should never be called
-		cassert(false);
+		SOLID_ASSERT(false);
 		_rerror = error_compression_unavailable;
 		return 0;
 	}

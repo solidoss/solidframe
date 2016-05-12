@@ -231,7 +231,7 @@ struct Session::Data{
 			uint32 _idx
 		):msgptr(_rmsgptr), tid(_rtid), pserializer(NULL), flags(_flags), idx(_idx), uid(0){}
 		~SendMessageData(){
-			//cassert(!pserializer);
+			//SOLID_ASSERT(!pserializer);
 		}
 		bool operator<(const SendMessageData &_owc)const{
 			if(msgptr.get()){
@@ -299,7 +299,7 @@ public:
 	}
 
 	void pushSerializer(BinSerializerT* _p){
-		cassert(_p->empty());
+		SOLID_ASSERT(_p->empty());
 		Specific::cache(_p);
 	}
 
@@ -310,7 +310,7 @@ public:
 	}
 
 	void pushDeserializer(BinDeserializerT* _p){
-		cassert(_p->empty());
+		SOLID_ASSERT(_p->empty());
 		Specific::cache(_p);
 	}
 	
@@ -504,37 +504,37 @@ struct Session::DataRelayed44: Session::Data{
 
 //---------------------------------------------------------------------
 inline Session::DataDirect4& Session::Data::direct4(){
-	cassert(this->type == Direct4);
+	SOLID_ASSERT(this->type == Direct4);
 	return static_cast<Session::DataDirect4&>(*this);
 }
 inline Session::DataDirect4 const& Session::Data::direct4()const{
-	cassert(this->type == Direct4);
+	SOLID_ASSERT(this->type == Direct4);
 	return static_cast<Session::DataDirect4 const&>(*this);
 }
 //---------------------------------------------------------------------
 inline Session::DataDummy& Session::Data::dummy(){
-	cassert(this->type == Dummy);
+	SOLID_ASSERT(this->type == Dummy);
 	return static_cast<Session::DataDummy&>(*this);
 }
 inline Session::DataDummy const& Session::Data::dummy()const{
-	cassert(this->type == Dummy);
+	SOLID_ASSERT(this->type == Dummy);
 	return static_cast<Session::DataDummy const&>(*this);
 }
 //---------------------------------------------------------------------
 inline Session::DataDirect6& Session::Data::direct6(){
-	cassert(this->type == Direct6);
+	SOLID_ASSERT(this->type == Direct6);
 	return static_cast<Session::DataDirect6&>(*this);
 }
 inline Session::DataDirect6 const& Session::Data::direct6()const{
-	cassert(this->type == Direct6);
+	SOLID_ASSERT(this->type == Direct6);
 	return static_cast<Session::DataDirect6 const&>(*this);
 }
 inline Session::DataRelayed44& Session::Data::relayed44(){
-	cassert(this->type == Relayed44);
+	SOLID_ASSERT(this->type == Relayed44);
 	return static_cast<Session::DataRelayed44&>(*this);
 }
 inline Session::DataRelayed44 const& Session::Data::relayed44()const{
-	cassert(this->type == Relayed44);
+	SOLID_ASSERT(this->type == Relayed44);
 	return static_cast<Session::DataRelayed44 const&>(*this);
 }
 //---------------------------------------------------------------------
@@ -603,7 +603,7 @@ Session::Data::~Data(){
 }
 //---------------------------------------------------------------------
 bool Session::Data::moveToNextOutOfOrderPacket(Packet &_rpkt){
-	cassert(MaxOutOfOrder == 4);
+	SOLID_ASSERT(MaxOutOfOrder == 4);
 	unsigned idx(0);
 	if(outoforderbufvec[0].empty()){
 		return false;
@@ -675,7 +675,7 @@ MessageUid Session::Data::pushSendWaitMessage(
 ){
 	_flags &= ~SentFlag;
 //	_flags &= ~WaitResponseFlag;
-	cassert(_rmsgptr.get());
+	SOLID_ASSERT(_rmsgptr.get());
 	
 	if(sendmsgfreeposstk.size()){
 		const uint32	idx(sendmsgfreeposstk.top());
@@ -683,11 +683,11 @@ MessageUid Session::Data::pushSendWaitMessage(
 		
 		sendmsgfreeposstk.pop();
 		
-		cassert(!rsmd.msgptr.get());
+		SOLID_ASSERT(!rsmd.msgptr.get());
 		rsmd.msgptr = _rmsgptr;
 		rsmd.tid = _rtid;
 		
-		cassert(!_rmsgptr.get());
+		SOLID_ASSERT(!_rmsgptr.get());
 		rsmd.flags = _flags;
 		rsmd.idx = _idx;
 		idbgx(Debug::ipc, "idx = "<<idx<<" flags = "<<_flags);
@@ -695,7 +695,7 @@ MessageUid Session::Data::pushSendWaitMessage(
 	}else{
 		idbgx(Debug::ipc, "idx = "<<sendmsgvec.size());
 		sendmsgvec.push_back(SendMessageData(_rmsgptr, _rtid, _flags, _idx));
-		cassert(!_rmsgptr.get());
+		SOLID_ASSERT(!_rmsgptr.get());
 		return MessageUid(sendmsgvec.size() - 1, 0);
 	}
 }
@@ -742,7 +742,7 @@ void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
 		if(rsmd.uid != _rmsguid.uid) return;
 		++rsmd.uid;
 		if(rsmd.msgptr.get()){
-			cassert(!rsmd.pserializer);
+			SOLID_ASSERT(!rsmd.pserializer);
 			//rsmd.msgptr->ipcOnComplete(Context::the().msgctx, 0);
 			ConnectionContext	&rmsgctx = Context::the().msgctx;
 			rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, 0);
@@ -756,7 +756,7 @@ void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
 void Session::Data::popSentWaitMessage(const uint32 _idx){
 	idbgx(Debug::ipc, ""<<_idx);
 	SendMessageData &rsmd(sendmsgvec[_idx]);
-	cassert(rsmd.msgptr.get());
+	SOLID_ASSERT(rsmd.msgptr.get());
 	if(rsmd.flags & DisconnectAfterSendFlag){
 		idbgx(Debug::ipc, "DisconnectAfterSendFlag - disconnecting");
 		++rsmd.uid;
@@ -921,7 +921,7 @@ uint32 Session::Data::registerPacket(Packet &_rpkt){
 	
 	sendpacketfreeposstk.pop();
 	
-	cassert(rspd.packet.empty());
+	SOLID_ASSERT(rspd.packet.empty());
 	
 	rspd.packet = _rpkt;
 	return idx;
@@ -962,7 +962,7 @@ void Session::Data::pushMessageToSendQueue(
 	const uint32 _flags,
 	const SerializationTypeIdT _tid
 ){
-	cassert(_rmsgptr.get());
+	SOLID_ASSERT(_rmsgptr.get());
 	const MessageUid	uid(pushSendWaitMessage(_rmsgptr, _tid, _flags, sendmsgid++));
 	SendMessageData 	&rsmd(sendmsgvec[uid.idx]);
 	
@@ -1003,7 +1003,7 @@ bool Session::Data::moveToNextSendMessage(){
 	sendmsgidxq.push(crtidx);
 
 	if(currentsendsyncid != static_cast<uint32>(-1) && crtidx != currentsendsyncid){
-		cassert(!(sendmsgvec[crtidx].flags & SynchronousSendFlag));
+		SOLID_ASSERT(!(sendmsgvec[crtidx].flags & SynchronousSendFlag));
 		crtidx = currentsendsyncid;
 	}
 	
@@ -1293,7 +1293,7 @@ Session::~Session(){
 			delete &d.relayed44();
 			break;
 		default:
-			THROW_EXCEPTION_EX("Unknown data type ", (int)d.type);
+			SOLID_THROW_EX("Unknown data type ", (int)d.type);
 	}
 	
 }
@@ -1382,16 +1382,16 @@ void Session::reconnect(Session *_pses){
 			d.direct4().addr.port(_pses->d.direct4().addr.port());
 			d.pairaddr = d.direct4().addr;
 		}else{
-			cassert(_pses->isRelayType());
+			SOLID_ASSERT(_pses->isRelayType());
 			d.relayed44().addr = _pses->d.relayed44().addr;
 			d.relayed44().relayaddr.port(_pses->d.relayed44().relayaddr.port());
 			d.relayed44().peerrelayid = _pses->d.relayed44().peerrelayid;
 		}
-		cassert(_pses->d.msgq.size());
+		SOLID_ASSERT(_pses->d.msgq.size());
 		if(d.state == Data::Accepting){
 			d.msgq.front().msgptr = _pses->d.msgq.front().msgptr;
 		}else if(d.state == Data::RelayAccepting){
-			cassert(d.msgq.size());
+			SOLID_ASSERT(d.msgq.size());
 			d.msgq.front().msgptr = _pses->d.msgq.front().msgptr;
 		}else{
 			d.msgq.push(_pses->d.msgq.front());
@@ -1507,7 +1507,7 @@ void Session::reconnect(Session *_pses){
 		if(it != d.sendpacketvec.begin()){
 			rspd.packet.clear();
 			rspd.msgidxvec.clear();
-			cassert(rspd.sending == 0);
+			SOLID_ASSERT(rspd.sending == 0);
 		}
 	}
 	
@@ -1644,7 +1644,7 @@ void Session::doCompleteConnect(TalkerStub &_rstub){
 				}
 				break;
 			default:
-				THROW_EXCEPTION_EX("Invalid return value for authenticate", authrv);
+				SOLID_THROW_EX("Invalid return value for authenticate", authrv);
 		}
 	}
 	
@@ -1673,7 +1673,7 @@ bool Session::executeTimeout(
 	}
 	
 	vdbgx(Debug::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rspd.packet.id());
-	cassert(!rspd.packet.empty());
+	SOLID_ASSERT(!rspd.packet.empty());
 	
 	rspd.packet.resend(rspd.packet.resend() + 1);
 	
@@ -1683,7 +1683,7 @@ bool Session::executeTimeout(
 		if(rspd.packet.type() == Packet::ConnectType){
 			if(rspd.packet.resend() > _rstub.service().configuration().session.connectretransmitcount){//too many resends for connect type
 				vdbgx(Debug::ipc, "preparing to disconnect process");
-				cassert(d.state != Data::Disconnecting);
+				SOLID_ASSERT(d.state != Data::Disconnecting);
 				d.state = Data::Disconnecting;
 				return true;//disconnecting
 			}
@@ -1794,8 +1794,8 @@ bool Session::pushSentPacket(
 		return false;
 	}
 	
-	cassert(rspd.sending);
-	cassert(rspd.packet.buffer() == _data);
+	SOLID_ASSERT(rspd.sending);
+	SOLID_ASSERT(rspd.packet.buffer() == _data);
 	rspd.sending = 0;
 	--d.sendpendingcount;
 	
@@ -1935,8 +1935,8 @@ void Session::doParsePacketDataType(
 			d.rcvdmsgq.pop();
 		}
 #endif
-		THROW_EXCEPTION("Deserialization error");
-		cassert(false);
+		SOLID_THROW("Deserialization error");
+		SOLID_ASSERT(false);
 	}
 	
 	++_bpos;
@@ -1949,7 +1949,7 @@ void Session::doParsePacketDataType(
 	switch(crcval.value()){
 		case Packet::ContinuedMessage:
 			vdbgx(Debug::ipc, "continuedmassage");
-			cassert(_blen == _firstblen);
+			SOLID_ASSERT(_blen == _firstblen);
 			if(!d.rcvdmsgq.front().msgptr.get()){
 				d.rcvdmsgq.pop();
 			}
@@ -1962,7 +1962,7 @@ void Session::doParsePacketDataType(
 				Data::RecvMessageData &rrmd(d.rcvdmsgq.front());
 				if(rrmd.msgptr.get()){//the previous signal didnt end, we reschedule
 					d.rcvdmsgq.push(rrmd);
-					cassert(rrmd.msgptr.empty());
+					SOLID_ASSERT(rrmd.msgptr.empty());
 				}
 				rrmd.pdeserializer = d.popDeserializer(_rstub.service().typeMapperBase());
 				rrmd.pdeserializer->push(rrmd.msgptr, "message");
@@ -1974,10 +1974,10 @@ void Session::doParsePacketDataType(
 			break;
 		case Packet::OldMessage:
 			vdbgx(Debug::ipc, "oldmessage");
-			cassert(d.rcvdmsgq.size() > 1);
+			SOLID_ASSERT(d.rcvdmsgq.size() > 1);
 			if(d.rcvdmsgq.front().msgptr.get()){
 				d.rcvdmsgq.push(d.rcvdmsgq.front());
-				cassert(d.rcvdmsgq.front().msgptr.empty());
+				SOLID_ASSERT(d.rcvdmsgq.front().msgptr.empty());
 			}
 			d.rcvdmsgq.pop();
 			break;
@@ -1989,8 +1989,8 @@ void Session::doParsePacketDataType(
 				d.rcvdmsgq.pop();
 			}
 #endif
-			THROW_EXCEPTION("Deserialization error");
-			cassert(false);
+			SOLID_THROW("Deserialization error");
+			SOLID_ASSERT(false);
 		}
 	}
 }
@@ -2031,8 +2031,8 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 		rv = rrsd.pdeserializer->run(bpos, blen, rctx.msgctx);
 		
 		if(rv < 0){
-			THROW_EXCEPTION_EX("Deserialization error", rrsd.pdeserializer->error());
-			cassert(false);
+			SOLID_THROW_EX("Deserialization error", rrsd.pdeserializer->error());
+			SOLID_ASSERT(false);
 			return;
 		}
 		
@@ -2051,7 +2051,7 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 			DynamicPointer<Message>		msgptr = rrsd.msgptr;
 			MessageUid 					msguid = msgptr->ipcIsBackOnSender() ? msgptr->ipcRequestMessageUid() : MessageUid();
 			
-			cassert(rrsd.msgptr.empty());
+			SOLID_ASSERT(rrsd.msgptr.empty());
 			
 			vdbgx(Debug::ipc, "received message with message waiting = "<<msguid.idx<<','<<msguid.uid);
 			
@@ -2095,7 +2095,7 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 						}
 						break;
 					default:{
-						THROW_EXCEPTION_EX("Invalid return value for authenticate ", authrv);
+						SOLID_THROW_EX("Invalid return value for authenticate ", authrv);
 					}
 				}
 			}
@@ -2172,7 +2172,7 @@ AsyncE Session::doExecuteConnecting(TalkerStub &_rstub){
 	const uint32			pktidx(d.registerPacket(pkt));
 	Data::SendPacketData	&rspd(d.sendpacketvec[pktidx]);
 	
-	cassert(pktidx == 1);
+	SOLID_ASSERT(pktidx == 1);
 	vdbgx(Debug::ipc, "send "<<rspd.packet);
 	
 	if(_rstub.pushSendPacket(pktidx, rspd.packet.buffer(), rspd.packet.bufferSize())){
@@ -2227,7 +2227,7 @@ AsyncE Session::doExecuteRelayConnecting(TalkerStub &_rstub){
 	const uint32			pktidx(d.registerPacket(pkt));
 	Data::SendPacketData	&rspd(d.sendpacketvec[pktidx]);
 	
-	cassert(pktidx == 1);
+	SOLID_ASSERT(pktidx == 1);
 	vdbgx(Debug::ipc, "send "<<rspd.packet<<" to "<<this->d.relayed44().addr);
 	
 	rspd.packet.relayPacketSizeStore();
@@ -2278,7 +2278,7 @@ AsyncE Session::doExecuteAccepting(TalkerStub &_rstub){
 	
 	const uint32			pktidx(d.registerPacket(pkt));
 	Data::SendPacketData	&rspd(d.sendpacketvec[pktidx]);
-	cassert(pktidx == 1);
+	SOLID_ASSERT(pktidx == 1);
 	
 	vdbgx(Debug::ipc, "send "<<rspd.packet);
 	if(_rstub.pushSendPacket(pktidx, rspd.packet.buffer(), rspd.packet.bufferSize())){
@@ -2343,7 +2343,7 @@ AsyncE Session::doExecuteRelayAccepting(TalkerStub &_rstub){
 	
 	const uint32			pktidx(d.registerPacket(pkt));
 	Data::SendPacketData	&rspd(d.sendpacketvec[pktidx]);
-	cassert(pktidx == 1);
+	SOLID_ASSERT(pktidx == 1);
 	
 	vdbgx(Debug::ipc, "send "<<rspd.packet);
 	
@@ -2644,12 +2644,12 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
 			vdbgx(Debug::ipc, "d.crtmsgbufcnt = "<<d.currentpacketmsgcount<<" serialized len = "<<rv);
 			
 			if(rv < 0){
-				THROW_EXCEPTION("Serialization error");
-				cassert(false);
+				SOLID_THROW("Serialization error");
+				SOLID_ASSERT(false);
 			}
 			if(rv > tofill){
-				THROW_EXCEPTION_EX("Serialization error: invalid return value", tofill);
-				cassert(false);
+				SOLID_THROW_EX("Serialization error: invalid return value", tofill);
+				SOLID_ASSERT(false);
 			}
 			
 			
@@ -2747,7 +2747,7 @@ void Session::dummySendError(
 	const SocketAddress &_rsa,
 	int _error
 ){
-	cassert(d.type == Data::Dummy);
+	SOLID_ASSERT(d.type == Data::Dummy);
 	d.dummy().errorq.push(DataDummy::ErrorStub(_error));
 	d.dummy().sendq.push(DataDummy::SendStub(DataDummy::ErrorSendType));
 	d.dummy().sendq.back().sa = _rsa;
@@ -2766,7 +2766,7 @@ bool Session::doDummyPushSentPacket(
 }
 //---------------------------------------------------------------------
 AsyncE Session::doExecuteDummy(TalkerStub &_rstub){
-	cassert(d.type == Data::Dummy);
+	SOLID_ASSERT(d.type == Data::Dummy);
 	DataDummy &rdd = d.dummy();
 	if(rdd.sendq.empty()) return AsyncWait;
 	
@@ -2822,7 +2822,7 @@ bool Session::pushReceivedErrorPacket(
 	if(parseErrorPacket(_rpkt, ed)){
 		idbgx(Debug::ipc, "Received error ("<<ed.error<<"): "<<Service::errorText(ed.error));
 	}else{
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	
 	d.state = Data::Disconnecting;

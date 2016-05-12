@@ -23,7 +23,7 @@ int main(int argc, char *argv[]){
 	IndexBitSetT	hvbs(hv), lvbs(lv);
 	
 	cout<<uvbs<<" -> "<<hvbs<<" - "<<lvbs<<endl;
-	cassert(hv == h && lv == l);
+	SOLID_ASSERT(hv == h && lv == l);
 	
 	h = 7;
 	l = (1ULL << (IndexBitCount - 3)) - 1;
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]){
 	hvbs = hv;
 	lvbs = lv;
 	cout<<uvbs<<" -> "<<hvbs<<" - "<<lvbs<<endl;
-	cassert(hv == h && lv == l);
+	SOLID_ASSERT(hv == h && lv == l);
 	
 	for(int i = 1; i <= 16; ++i){
 		IndexT maxhicnt = (1 << i) - 1;
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]){
 				uv = unite_index(h, l, i);
 				
 				split_index(hv, lv, i, uv);
-				cassert(hv == h && lv == l);
+				SOLID_ASSERT(hv == h && lv == l);
 			}
 		}
 	}

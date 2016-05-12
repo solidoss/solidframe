@@ -150,7 +150,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		
 		for(uint64 i = 0; i < count; ++i){
 			if(pu[i] != pup[(i + idx) % pattern_size]){
-				THROW_EXCEPTION("Message check failed.");
+				SOLID_THROW("Message check failed.");
 				return false;
 			}
 		}
@@ -183,9 +183,9 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	idbg(_rctx.recipientId());
 	
 	if(not _rmsgptr->check()){
-		THROW_EXCEPTION("Message check failed.");
+		SOLID_THROW("Message check failed.");
 	}
-	cassert(false);
+	SOLID_CHECK(false);
 }
 
 void client_complete_message(
@@ -204,19 +204,19 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	idbg(_rctx.recipientId()<<" message id on sender "<<_rmsgptr->requestId());
 	
 	if(not _rmsgptr->check()){
-		THROW_EXCEPTION("Message check failed.");
+		SOLID_THROW("Message check failed.");
 	}
 	
 	if(!_rmsgptr->isOnPeer()){
-		THROW_EXCEPTION("Message not on peer!.");
+		SOLID_THROW("Message not on peer!.");
 	}
 	
 	if(_rctx.recipientId().isInvalidConnection()){
-		THROW_EXCEPTION("Connection id should not be invalid!");
+		SOLID_THROW("Connection id should not be invalid!");
 	}
 	
 	size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-	cassert(not initarray[idx % initarraysize].cancel);
+	SOLID_CHECK(not initarray[idx % initarraysize].cancel);
 	
 	transfered_size += _rmsgptr->str.size();
 	++transfered_count;
@@ -255,7 +255,7 @@ char pattern_check[256];
 void string_check(std::string const &_rstr, const char* _pb, size_t _len){
 	if(_rstr.size() > 1024 and _len){
 		
-		cassert(pattern_check[_rstr.back()] == _pb[0]);
+		SOLID_CHECK(pattern_check[_rstr.back()] == _pb[0]);
 	}
 }
 
@@ -423,11 +423,11 @@ int test_clientserver_cancel_client(int argc, char **argv){
 				);
 				
 				if(err){
-					THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+					SOLID_THROW_EX("Connection id should not be invalid!", err.message());
 				}
 				
 				if(recipient_id.isInvalidPool()){
-					THROW_EXCEPTION("Connection pool should not be invalid!");
+					SOLID_THROW("Connection pool should not be invalid!");
 				}
 				
 				if(initarray[crtwriteidx % initarraysize].cancel){
@@ -447,12 +447,12 @@ int test_clientserver_cancel_client(int argc, char **argv){
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
-				THROW_EXCEPTION("Process is taking too long.");
+				SOLID_THROW("Process is taking too long.");
 			}
 		}
 		
 		//if(crtbackidx != expected_transfered_count){
-		//	THROW_EXCEPTION("Not all messages were completed");
+		//	SOLID_THROW("Not all messages were completed");
 		//}
 		
 		m.stop();

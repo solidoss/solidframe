@@ -96,7 +96,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	~Message(){
 		idbg("DELETE ---------------- "<<(void*)this);
 		if(not serialized and not this->isBackOnSender() and not idx == 1){
-			THROW_EXCEPTION("Message not serialized.");
+			SOLID_THROW("Message not serialized.");
 		}
 	}
 
@@ -136,7 +136,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		
 		for(uint64 i = 0; i < count; ++i){
 			if(pu[i] != pup[(i + idx) % pattern_size]){
-				THROW_EXCEPTION("Message check failed.");
+				SOLID_THROW("Message check failed.");
 				return false;
 			}
 		}
@@ -177,28 +177,28 @@ void client_complete_message(
 			++crtackidx;
 		}else{
 			//it should be the one shot message
-			cassert(_rerror == frame::ipc::error_connection_message_fail_send);
-			cassert(_rsent_msg_ptr->idx == 1);
-			cassert(_rrecv_msg_ptr.empty());
+			SOLID_CHECK(_rerror == frame::ipc::error_connection_message_fail_send);
+			SOLID_CHECK(_rsent_msg_ptr->idx == 1);
+			SOLID_CHECK(_rrecv_msg_ptr.empty());
 		}
 	}
 	if(_rrecv_msg_ptr.get()){
 		if(not _rrecv_msg_ptr->check()){
-			THROW_EXCEPTION("Message check failed.");
+			SOLID_THROW("Message check failed.");
 		}
 		
 		if(_rrecv_msg_ptr->idx == 2){
 			//only the third (idx == 2) message expects response
-			cassert(_rsent_msg_ptr.get());
-			cassert(_rsent_msg_ptr->idx == _rrecv_msg_ptr->idx);
+			SOLID_CHECK(_rsent_msg_ptr.get());
+			SOLID_CHECK(_rsent_msg_ptr->idx == _rrecv_msg_ptr->idx);
 		}
 		
 		if(_rrecv_msg_ptr->idx == 0){
 			//the first message does not expect response
-			cassert(_rsent_msg_ptr.empty());
+			SOLID_CHECK(_rsent_msg_ptr.empty());
 		}else{
 			if(!_rrecv_msg_ptr->isBackOnSender()){
-				THROW_EXCEPTION("Message not back on sender!.");
+				SOLID_THROW("Message not back on sender!.");
 			}
 		}
 		
@@ -225,21 +225,21 @@ void server_complete_message(
 		idbg(_rctx.recipientId()<<" received message with id on sender "<<_rrecv_msg_ptr->requestId());
 		
 		if(not _rrecv_msg_ptr->check()){
-			THROW_EXCEPTION("Message check failed.");
+			SOLID_THROW("Message check failed.");
 		}
 		
 		if(!_rrecv_msg_ptr->isOnPeer()){
-			THROW_EXCEPTION("Message not on peer!.");
+			SOLID_THROW("Message not on peer!.");
 		}
 		
 		//send message back
 		if(_rctx.recipientId().isInvalidConnection()){
-			THROW_EXCEPTION("Connection id should not be invalid!");
+			SOLID_THROW("Connection id should not be invalid!");
 		}
 		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 		
 		if(err){
-			THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+			SOLID_THROW_EX("Connection id should not be invalid!", err.message());
 		}
 	}
 	if(_rsent_msg_ptr.get()){
@@ -426,7 +426,7 @@ int test_clientserver_delayed(int argc, char **argv){
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
-				THROW_EXCEPTION("Process is taking too long.");
+				SOLID_THROW("Process is taking too long.");
 			}
 		}
 		

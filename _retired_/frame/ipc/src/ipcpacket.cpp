@@ -78,7 +78,7 @@ bool Packet::compress(Controller &_rctrl){
 	if(_rctrl.compressPacket(bctx, this->bufferSize(), tmppd, tmpdatasz)){
 		if(tmppd != pd){
 			if(bctx.reqbufid == (uint)-1){
-				THROW_EXCEPTION("Invalid buffer pointer returned");
+				SOLID_THROW("Invalid buffer pointer returned");
 			}
 			tmppd -= bctx.offset;
 			memcpy(tmppd, pb, headersize);
@@ -94,7 +94,7 @@ bool Packet::compress(Controller &_rctrl){
 	}else{
 		if(bctx.reqbufid != (uint)-1){
 			if(pd == tmppd){
-				THROW_EXCEPTION("Allocated buffer must be returned even on no compression");
+				SOLID_THROW("Allocated buffer must be returned even on no compression");
 			}
 			tmppd -= bctx.offset;
 			Specific::pushBuffer(tmppd, bctx.reqbufid);
@@ -122,7 +122,7 @@ bool Packet::decompress(Controller &_rctrl){
 	if(_rctrl.decompressPacket(bctx, tmppd, tmpdatasz)){
 		if(bctx.reqbufid != (uint)-1){
 			if(tmppd == pd){
-				THROW_EXCEPTION("Requested buffer not returned");
+				SOLID_THROW("Requested buffer not returned");
 			}
 			tmppd -= bctx.offset;
 			memcpy(tmppd, pb, headersize);
@@ -132,7 +132,7 @@ bool Packet::decompress(Controller &_rctrl){
 		}else{
 			//on-place decompression
 			if(tmppd != pd){
-				THROW_EXCEPTION("Invalid buffer pointer returned");
+				SOLID_THROW("Invalid buffer pointer returned");
 			}
 		}
 		this->flags(this->flags() & (~CompressedFlag));
@@ -142,7 +142,7 @@ bool Packet::decompress(Controller &_rctrl){
 		//decompression failed
 		if(bctx.reqbufid != (uint)-1){
 			if(pd == tmppd){
-				THROW_EXCEPTION("Allocated buffer must be returned even on failed compression");
+				SOLID_THROW("Allocated buffer must be returned even on failed compression");
 			}
 			tmppd -= bctx.offset;
 			Specific::pushBuffer(tmppd, bctx.reqbufid);

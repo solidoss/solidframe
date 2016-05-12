@@ -26,7 +26,7 @@ EmptyChecker::~EmptyChecker(){
 	if(v){
 		idbgx(Debug::utility, "object check failed for "<<v);
 	}
-	cassert(v == 0);
+	SOLID_ASSERT(v == 0);
 }
 
 }//namespace solid

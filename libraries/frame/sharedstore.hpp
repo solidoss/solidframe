@@ -381,7 +381,7 @@ public:
 				if(ptr.empty()){
 					doPushWait(idx, _f, StoreBase::ReinitWaitE);
 				}else if(!controller().preparePointer(acc, _f, ptr, _flags, err)){
-					cassert(ptr.empty());
+					SOLID_ASSERT(ptr.empty());
 					doPushWait(idx, _f, StoreBase::ReinitWaitE);
 				}
 			}
@@ -532,7 +532,7 @@ private:
 	PointerT doTryGetUnique(const size_t _idx){
 		Stub		&rs = stubvec[_idx];
 		if(rs.usecnt == 0){
-			cassert(rs.pwaitfirst == NULL);
+			SOLID_ASSERT(rs.pwaitfirst == NULL);
 			++rs.usecnt;
 			rs.state = StoreBase::UniqueLockStateE;
 			return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
@@ -552,7 +552,7 @@ private:
 		Stub		&rs = stubvec[_idx];
 		
 		if(rs.state == StoreBase::UniqueLockStateE){
-			cassert(rs.usecnt == 1);
+			SOLID_ASSERT(rs.usecnt == 1);
 			rs.state = StoreBase::SharedLockStateE;
 			return true;
 		}
@@ -698,7 +698,7 @@ private:
 					}
 					break;
 				default:
-					cassert(false);
+					SOLID_ASSERT(false);
 					return;
 			}
 			++rs.usecnt;

@@ -63,7 +63,7 @@ inline uint32 Packet::bufferSize()const{
 }
 
 inline void Packet::bufferSize(uint32 _sz){
-	cassert(_sz >= headerSize());
+	SOLID_ASSERT(_sz >= headerSize());
 	dl = ((int16)_sz) - headerSize();
 }
 
@@ -163,7 +163,7 @@ inline uint16 Packet::relayPacketSize()const{
 	return v;
 }
 inline void Packet::relayPacketSizeStore(){
-	cassert(isRelay());
+	SOLID_ASSERT(isRelay());
 	const uint16 v = this->bufferSize();
 	serialization::binary::store(pb + BaseSize + sizeof(uint32), v);
 }
@@ -188,7 +188,7 @@ inline uint32 Packet::update(const uint _pos)const{
 }
 
 inline void Packet::updatePush(uint32 _upd){
-	cassert(updateSize());
+	SOLID_ASSERT(updateSize());
 	uint8 *pu = reinterpret_cast<uint8*>(pb + BaseSize + relaySize());
 	serialization::binary::store(pb + BaseSize + relaySize() + updateSize() + ((*pu) * sizeof(uint32)), _upd);
 	++(*pu);

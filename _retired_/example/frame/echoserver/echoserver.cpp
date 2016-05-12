@@ -289,7 +289,7 @@ Listener::~Listener(){
 
 /*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
 	idbg("here");
-	cassert(this->socketOk());
+	SOLID_ASSERT(this->socketOk());
 	if(notified()){
 		solid::ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL){
@@ -311,7 +311,7 @@ Listener::~Listener(){
 			}
 		}
 		state = 0;
-		cassert(sd.ok());
+		SOLID_ASSERT(sd.ok());
 		if(ctxptr.get()){
 			DynamicPointer<Connection> conptr(new Connection(sd));
 			rm.registerObject(*conptr);
@@ -359,9 +359,9 @@ Connection::~Connection(){
 			return;
 		}
 		if(state == READ_TOUT){	
-			cassert(sevs & frame::EventDoneRecv);
+			SOLID_ASSERT(sevs & frame::EventDoneRecv);
 		}else if(state == WRITE_TOUT){	
-			cassert(sevs & frame::EventDoneSend);
+			SOLID_ASSERT(sevs & frame::EventDoneSend);
 		}
 		
 	}

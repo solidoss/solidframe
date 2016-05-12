@@ -151,7 +151,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		
 		for(uint64 i = 0; i < count; ++i){
 			if(pu[i] != pup[(i + idx) % pattern_size]){
-				THROW_EXCEPTION("Message check failed.");
+				SOLID_THROW("Message check failed.");
 				return false;
 			}
 		}
@@ -184,11 +184,11 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, DynamicPointer
 	idbg(_rctx.recipientId());
 	
 	if(not _rmsgptr->check()){
-		THROW_EXCEPTION("Message check failed.");
+		SOLID_THROW("Message check failed.");
 	}
 	
 	size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-	cassert(not initarray[idx % initarraysize].cancel);
+	SOLID_CHECK(not initarray[idx % initarraysize].cancel);
 	
 	//cout<< _rmsgptr->str.size()<<'\n';
 	transfered_size += _rmsgptr->str.size();
@@ -237,18 +237,18 @@ void server_complete_message(
 	if(_rrecv_msg_ptr.get()){
 		idbg(_rctx.recipientId()<<" message id on sender "<<_rrecv_msg_ptr->requestId());
 		if(not _rrecv_msg_ptr->check()){
-			THROW_EXCEPTION("Message check failed.");
+			SOLID_THROW("Message check failed.");
 		}
 		
 		if(!_rrecv_msg_ptr->isOnPeer()){
-			THROW_EXCEPTION("Message not on peer!.");
+			SOLID_THROW("Message not on peer!.");
 		}
 		
 		if(_rctx.recipientId().isInvalidConnection()){
-			THROW_EXCEPTION("Connection id should not be invalid!");
+			SOLID_THROW("Connection id should not be invalid!");
 		}
 		
-		cassert(recipient_id.isInvalidConnection());
+		SOLID_CHECK(recipient_id.isInvalidConnection());
 		
 		recipient_id = _rctx.recipientId();
 		
@@ -264,7 +264,7 @@ void server_complete_message(
 			);
 			
 			if(err){
-				THROW_EXCEPTION_EX("Connection id should not be invalid!", err.message());
+				SOLID_THROW_EX("Connection id should not be invalid!", err.message());
 			}
 			
 			
@@ -281,7 +281,7 @@ char pattern_check[256];
 void string_check(std::string const &_rstr, const char* _pb, size_t _len){
 	if(_rstr.size() > 1024 and _len){
 		
-		cassert(pattern_check[_rstr.back()] == _pb[0]);
+		SOLID_CHECK(pattern_check[_rstr.back()] == _pb[0]);
 	}
 }
 
@@ -455,12 +455,12 @@ int test_clientserver_cancel_server(int argc, char **argv){
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
-				THROW_EXCEPTION("Process is taking too long.");
+				SOLID_THROW("Process is taking too long.");
 			}
 		}
 		
 		if(crtbackidx != expected_transfered_count){
-			THROW_EXCEPTION("Not all messages were completed");
+			SOLID_THROW("Not all messages were completed");
 		}
 		
 		m.stop();

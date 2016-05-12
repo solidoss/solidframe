@@ -47,7 +47,7 @@ Device::~Device(){
 }
 
 int Device::read(char	*_pb, size_t _bl){
-	cassert(ok());
+	SOLID_ASSERT(ok());
 #ifdef SOLID_ON_WINDOWS
 	DWORD cnt;
 	if(ReadFile(desc, _pb, _bl, &cnt, NULL)){
@@ -61,7 +61,7 @@ int Device::read(char	*_pb, size_t _bl){
 }
 
 int Device::write(const char* _pb, size_t _bl){
-	cassert(ok());
+	SOLID_ASSERT(ok());
 #ifdef SOLID_ON_WINDOWS
 	DWORD cnt;
 	/*OVERLAPPED ovp;
@@ -91,18 +91,18 @@ void Device::close(){
 #ifdef SOLID_ON_WINDOWS
 		CloseHandle(desc);
 #else
-		cverify(!::close(desc));
+		SOLID_VERIFY(!::close(desc));
 #endif
 		desc = invalidDescriptor();
 	}
 }
 
 void Device::flush(){
-	cassert(ok());
+	SOLID_ASSERT(ok());
 #ifdef SOLID_ON_WINDOWS
-	cverify(FlushFileBuffers(desc));
+	SOLID_VERIFY(FlushFileBuffers(desc));
 #else
-	cverify(!fsync(desc));
+	SOLID_VERIFY(!fsync(desc));
 #endif
 }
 

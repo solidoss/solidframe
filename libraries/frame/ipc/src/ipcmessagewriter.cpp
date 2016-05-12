@@ -202,7 +202,7 @@ uint32 MessageWriter::write(
 				}
 			}
 			
-			cassert((pbuftmp - pbufdata) < static_cast<size_t>(0xffff));
+			SOLID_ASSERT((pbuftmp - pbufdata) < static_cast<size_t>(0xffff));
 			
 			packet_header.type(packet_options.packet_type);
 			packet_header.size(pbuftmp - pbufdata);
@@ -499,7 +499,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const &_rvisit_f
 			MessageStub		&rmsgstub = message_vec[msgidx];
 			
 			if(rmsgstub.msgbundle.message_ptr.empty()){
-				THROW_EXCEPTION_EX("invalid message - something went wrong with the nested queue for message: ", msgidx);
+				SOLID_THROW_EX("invalid message - something went wrong with the nested queue for message: ", msgidx);
 				continue;
 			}
 			

@@ -45,7 +45,7 @@ int NameMatcher::match(const char *_name)const{
 
 void NameMatcher::push(const char *_name){
 	pair<Data::StrMapT::iterator, bool> r(d.m.insert(Data::StrMapT::value_type(_name, d.m.size())));
-	cassert(r.second);
+	SOLID_ASSERT(r.second);
 }
 
 }//namespace text

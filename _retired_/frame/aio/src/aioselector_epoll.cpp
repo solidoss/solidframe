@@ -179,26 +179,26 @@ Selector::~Selector(){
 }
 bool Selector::init(ulong _cp){
 	idbgx(Debug::aio, "aio::Selector "<<(void*)this);
-	cassert(_cp);
+	SOLID_ASSERT(_cp);
 	d.objcp = _cp;
 	//d.sockcp = _cp;
 	
 	setCurrentTimeSpecific(d.ctimepos);
 	
 	//first create the epoll descriptor:
-	cassert(d.epollfd < 0);
+	SOLID_ASSERT(d.epollfd < 0);
 	d.epollfd = epoll_create(_cp);
 	if(d.epollfd < 0){
 		edbgx(Debug::aio, "epoll_create: "<<strerror(errno));
-		cassert(false);
+		SOLID_ASSERT(false);
 		return false;
 	}
 #ifdef UPIPESIGNAL
 	//next create the pipefds:
-	cassert(d.pipefds[0] < 0 && d.pipefds[1] < 0);
+	SOLID_ASSERT(d.pipefds[0] < 0 && d.pipefds[1] < 0);
 	if(pipe(d.pipefds)){
 		edbgx(Debug::aio, "pipe: "<<strerror(errno));
-		cassert(false);
+		SOLID_ASSERT(false);
 		return false;
 	}
 	
@@ -212,11 +212,11 @@ bool Selector::init(ulong _cp){
 	ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<strerror(errno));
-		cassert(false);
+		SOLID_ASSERT(false);
 		return false;
 	}
 #else
-	cassert(d.efd < 0);
+	SOLID_ASSERT(d.efd < 0);
 	d.efd = eventfd(0, EFD_NONBLOCK);
 	//register the pipes onto epoll
 	epoll_event ev;
@@ -224,7 +224,7 @@ bool Selector::init(ulong _cp){
 	ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.efd, &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<strerror(errno));
-		cassert(false);
+		SOLID_ASSERT(false);
 		return false;
 	}
 #endif
@@ -265,7 +265,7 @@ void Selector::raise(uint32 _pos){
 		d.sigq.push(_pos);
 	}
 	int rv = write(d.efd, &v, sizeof(v));
-	cassert(rv == sizeof(v));
+	SOLID_ASSERT(rv == sizeof(v));
 #endif
 }
 
@@ -286,7 +286,7 @@ bool Selector::push(JobT &_objptr){
 	if(full()){
 		//NOTE:we cannot increase selvec because, objects keep pointers to Stub structures from vector
 		//if we'd use deque instead, we'd have a performance penalty 
-		THROW_EXCEPTION("Selector full");
+		SOLID_THROW("Selector full");
 	}
 	uint stubpos = doAddNewStub();
 	Stub &stub = d.stubs[stubpos];
@@ -556,13 +556,13 @@ ulong Selector::doAllIo(){
 		d.stub(stubpos, sockpos, d.events[i]);
 		vdbgx(Debug::aio, "stubpos = "<<stubpos);
 		if(stubpos){
-			cassert(stubpos < d.stubs.size());
+			SOLID_ASSERT(stubpos < d.stubs.size());
 			Stub				&stub(d.stubs[stubpos]);
 			Object::SocketStub	&sockstub(stub.objptr->pstubs[sockpos]);
 			Socket				&sock(*sockstub.psock);
 			
-			cassert(sockpos < stub.objptr->stubcp);
-			cassert(stub.objptr->pstubs[sockpos].psock);
+			SOLID_ASSERT(sockpos < stub.objptr->stubcp);
+			SOLID_ASSERT(stub.objptr->pstubs[sockpos].psock);
 			
 			vdbgx(Debug::aio, "io events stubpos = "<<stubpos<<" events = "<<d.events[i].events);
 			evs = doIo(sock, d.events[i].events);
@@ -654,7 +654,7 @@ ulong Selector::doFullScan(){
 ulong Selector::doExecute(const ulong _pos){
 	Stub						&stub(d.stubs[_pos]);
 	
-	cassert(stub.state == Stub::InExecQueue);
+	SOLID_ASSERT(stub.state == Stub::InExecQueue);
 	stub.state = Stub::OutExecQueue;
 	
 	ulong						rv(0);
@@ -703,7 +703,7 @@ ulong Selector::doExecute(const ulong _pos){
 			stub.objptr.release();
 			rv = Data::EXIT_LOOP;
 		default:
-			cassert(false);
+			SOLID_ASSERT(false);
 	}
 	return rv;
 }
@@ -755,7 +755,7 @@ void Selector::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
 				}
 			}break;
 			default:
-				cassert(false);
+				SOLID_ASSERT(false);
 		}
 	}
 	if(mustwait){

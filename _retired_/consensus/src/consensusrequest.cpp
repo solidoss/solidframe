@@ -116,7 +116,7 @@ WriteRequestMessage::~WriteRequestMessage(){
 		id.sockaddr.port(_rctx.baseport);
 		this->consensusNotifyServerWithThis();
 	}else{
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 }
 
@@ -193,7 +193,7 @@ void ReadRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx
 		id.sockaddr.port(frame::ipc::ConnectionContext::the().baseport);
 		this->consensusNotifyServerWithThis();
 	}else{
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 }
 uint32 ReadRequestMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){

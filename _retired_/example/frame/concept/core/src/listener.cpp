@@ -31,7 +31,7 @@ Listener::Listener(
 
 /*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
 	idbg("here");
-	cassert(this->socketOk());
+	SOLID_ASSERT(this->socketOk());
 	if(notified()){
 		Locker<Mutex>	lock(Manager::specific().mutex(*this));
 		solid::ulong sm = this->grabSignalMask();
@@ -56,7 +56,7 @@ Listener::Listener(
 			}
 		}
 		state = 0;
-		cassert(sd.ok());
+		SOLID_ASSERT(sd.ok());
 		//TODO: one may do some filtering on sd based on sd.remoteAddress()
 		if(ctxptr.get()){
 			rsvc.insertConnection(sd, ctxptr.get(), true);

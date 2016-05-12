@@ -96,7 +96,7 @@ typedef WorkPool<FileDevice*, MyWorkPoolController, MyWorkerBase> MyWorkPoolT;
 // 	char *bf(new char[readsz + pagesize]) ;
 // 	char *buf(align(bf, pagesize));
 // 	//char buf[readsz];
-// 	//cassert(buf == bf);
+// 	//SOLID_ASSERT(buf == bf);
 // 	while(pop(_wk.wid(), pfile) != BAD){
 // 		idbg(_wk.wid()<<" is processing");
 // 		int64 sz = pfile->size();

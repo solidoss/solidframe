@@ -330,7 +330,7 @@ protected:
 		T 			*c = reinterpret_cast<T*>(_rfd.p);
 		const char	*n = _rfd.n;
 		if(c){
-			cassert(sizeof(typename T::iterator) <= sizeof(ExtData));
+			SOLID_ASSERT(sizeof(typename T::iterator) <= sizeof(ExtData));
 			if(c->size() > rs.lmts.containerlimit){
 				rs.err = ERR_CONTAINER_LIMIT;
 				return Failure;
@@ -1197,7 +1197,7 @@ protected:
 		}
 		
 		if(i == static_cast<uint64>(-1)){
-			cassert(!_rfd.s);
+			SOLID_ASSERT(!_rfd.s);
 			T **c = reinterpret_cast<T**>(_rfd.p);
 			*c = NULL;
 			rd.estk.pop();
@@ -1262,7 +1262,7 @@ protected:
 		}
 		
 		if(rsz == static_cast<uint64>(-1)){
-			cassert(!_rfd.s);
+			SOLID_ASSERT(!_rfd.s);
 			T **c = reinterpret_cast<T**>(_rfd.p);
 			*c = NULL;
 			rd.estk.pop();
@@ -1622,7 +1622,7 @@ public:
 	//! Schedules a std (style) container for deserialization
 	template <typename T>
 	Deserializer& pushContainer(T* &_t, const char *_name = NULL){
-		cassert(!_t);//the pointer must be null!!
+		SOLID_ASSERT(!_t);//the pointer must be null!!
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadContainer<T, DeserializerT>, (void*)&_t, _name, 0));
 		return *this;
 	}
@@ -1801,7 +1801,7 @@ public:
 	//! Schedules a std (style) container for deserialization
 	template <typename T>
 	Deserializer& pushContainer(T* &_t, const char *_name = NULL){
-		cassert(!_t);//the pointer must be null!!
+		SOLID_ASSERT(!_t);//the pointer must be null!!
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadContainer<T, DeserializerT>, (void*)&_t, _name, 0));
 		return *this;
 	}

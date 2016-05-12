@@ -444,7 +444,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
 	if(repeatcnt == 0){
 		bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
-		cassert(!rv);
+		SOLID_ASSERT(!rv);
 	}
 }
 
@@ -543,7 +543,7 @@ void Talker::onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, si
 	idbg(repeatcnt);
 	if(repeatcnt == 0){
 		bool rv = sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call
-		cassert(!rv);
+		SOLID_ASSERT(!rv);
 	}
 }
 

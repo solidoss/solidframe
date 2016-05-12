@@ -192,7 +192,7 @@ void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 
 void client_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr){
 	idbg(_rctx.recipientId());
-	THROW_EXCEPTION("Received request on client.");
+	SOLID_THROW("Received request on client.");
 }
 
 void client_complete_request(
@@ -202,7 +202,7 @@ void client_complete_request(
 	ErrorConditionT const &_rerr
 ){
 	idbg(_rctx.recipientId());
-	THROW_EXCEPTION("Should not be called");
+	SOLID_THROW("Should not be called");
 }
 
 void client_complete_response(
@@ -212,7 +212,7 @@ void client_complete_response(
 	ErrorConditionT const &_rerr
 ){
 	idbg(_rctx.recipientId());
-	THROW_EXCEPTION("Should not be called");
+	SOLID_THROW("Should not be called");
 }
 
 
@@ -225,11 +225,11 @@ void on_receive_response(
 	idbg(_rctx.recipientId());
 	
 	if(_rreqmsgptr.empty()){
-		THROW_EXCEPTION("Request should not be empty");
+		SOLID_THROW("Request should not be empty");
 	}
 	
 	if(_rresmsgptr.empty()){
-		THROW_EXCEPTION("Response should not be empty");
+		SOLID_THROW("Response should not be empty");
 	}
 	
 	++crtbackidx;
@@ -239,7 +239,7 @@ void on_receive_response(
 	++transfered_count;
 	
 	if(!_rresmsgptr->isBackOnSender()){
-		THROW_EXCEPTION("Message not back on sender!.");
+		SOLID_THROW("Message not back on sender!.");
 	}
 	
 	//++crtbackidx; //NOTE: incremented on per-response callback
@@ -270,28 +270,28 @@ void server_complete_request(
 	ErrorConditionT const &_rerr
 ){
 	if(_rerr){
-		THROW_EXCEPTION("Error");
+		SOLID_THROW("Error");
 		return;
 	}
 	
 	if(_rsendmsgptr.get()){
-		THROW_EXCEPTION("Server does not send Request");
+		SOLID_THROW("Server does not send Request");
 		return;
 	}
 	
 	if(_rrecvmsgptr.empty()){
-		THROW_EXCEPTION("Server should receive Request");
+		SOLID_THROW("Server should receive Request");
 		return;
 	}
 	
 	idbg(_rctx.recipientId()<<" message id on sender "<<_rrecvmsgptr->requestId());
 	
 	if(not _rrecvmsgptr->check()){
-		THROW_EXCEPTION("Message check failed.");
+		SOLID_THROW("Message check failed.");
 	}
 	
 	if(!_rrecvmsgptr->isOnPeer()){
-		THROW_EXCEPTION("Message not on peer!.");
+		SOLID_THROW("Message not on peer!.");
 	}
 	
 	//send message back
@@ -326,16 +326,16 @@ void server_complete_response(
 	idbg(_rctx.recipientId());
 	
 	if(_rerr){
-		THROW_EXCEPTION("Error");
+		SOLID_THROW("Error");
 		return;
 	}
 	
 	if(_rsendmsgptr.empty()){
-		THROW_EXCEPTION("Send message should not be empty");
+		SOLID_THROW("Send message should not be empty");
 	}
 	
 	if(_rrecvmsgptr.get()){
-		THROW_EXCEPTION("Recv message should be empty");
+		SOLID_THROW("Recv message should be empty");
 	}
 }
 
@@ -508,12 +508,12 @@ int test_clientserver_sendrequest(int argc, char **argv){
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
-				THROW_EXCEPTION("Process is taking too long.");
+				SOLID_THROW("Process is taking too long.");
 			}
 		}
 		
 		if(crtwriteidx != crtackidx){
-			THROW_EXCEPTION("Not all messages were completed");
+			SOLID_THROW("Not all messages were completed");
 		}
 		
 		m.stop();

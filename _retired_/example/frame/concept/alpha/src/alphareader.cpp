@@ -44,7 +44,7 @@ Reader::~Reader(){
 }
 void Reader::clear(){
 	resetState();
-	cassert(fs.empty());
+	SOLID_ASSERT(fs.empty());
 	tmp.clear();
 }
 /*static*/ int Reader::fetchAString(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
@@ -56,7 +56,7 @@ void Reader::clear(){
 		return Continue;
 	}
 	
-	cassert(rv == Success);
+	SOLID_ASSERT(rv == Success);
 	if(c == '{'){
 		rr.drop();
 		rr.fs.top().first = &Reader::copyTmpString;
@@ -137,7 +137,7 @@ void Reader::clear(){
 			rr.replace(&Reader::returnValue<true>, protocol::text::Parameter(Continue));
 			return Wait;
 	}
-	cassert(false);
+	SOLID_ASSERT(false);
 	return Failure;
 }
 
@@ -147,7 +147,7 @@ void Reader::clear(){
 	Reader &rr = static_cast<Reader&>(_rr);
 	//TODO: check for too big literals
 	if(_rp.b.i){
-		cassert(_rp.b.i == '+');
+		SOLID_ASSERT(_rp.b.i == '+');
 		rr.replace(&Reader::fetchLiteralString, protocol::text::Parameter(&rr.tmp, _rp.a.u32));
 	}else{
 		rr.rw<<"+ Expecting "<<_rp.a.u32<<" Chars\r\n";

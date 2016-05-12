@@ -90,7 +90,7 @@ void Writer::put(InputStream *_ps, uint64 sz){
 		if(sz < toread) toread = sz;
 		sz -= toread;
 		int rv = _ps->read(bbeg, toread);
-		cassert((solid::ulong)rv == toread);
+		SOLID_ASSERT((solid::ulong)rv == toread);
 		//wr += write(sd, bbeg, rv);
 		if(pssl){
 			wr = SSL_write(pssl,bbeg,rv);

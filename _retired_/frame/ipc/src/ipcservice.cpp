@@ -337,7 +337,7 @@ bool Service::reconfigure(const Configuration &_rcfg){
 		}
 		
 		//Locker<Mutex>	lock(serviceMutex());
-		cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
+		SOLID_ASSERT(!d.tkrvec.size());//only the first tkr must be inserted from outside
 		Talker			*ptkr(new Talker(sd, *this, 0));
 		ObjectUidT		objuid = this->unsafeRegisterObject(*ptkr);
 
@@ -367,14 +367,14 @@ bool Service::sendMessage(
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
 ){
-	cassert(_rconid.tkridx < d.tkrvec.size());
+	SOLID_ASSERT(_rconid.tkridx < d.tkrvec.size());
 	
 	Locker<Mutex>		lock(mutex());
 	const IndexT		fullid(d.tkrvec[_rconid.tkridx].uid.first);
 	Locker<Mutex>		lock2(this->mutex(fullid));
 	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
-	cassert(ptkr);
+	SOLID_ASSERT(ptkr);
 	
 	if(ptkr == NULL){
 		//TODO: set specific error NoConnectionError;
@@ -400,7 +400,7 @@ void Service::doSendEvent(
 	Locker<Mutex>		lock2(this->mutex(fullid));
 	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
-	cassert(ptkr);
+	SOLID_ASSERT(ptkr);
 	
 	if(ptkr->pushEvent(_rconid, _event, _flags)){
 		//the talker must be notified
@@ -416,7 +416,7 @@ bool Service::sendMessage(
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
 ){
-	cassert(_rconid.tkridx < d.tkrvec.size());
+	SOLID_ASSERT(_rconid.tkridx < d.tkrvec.size());
 	if(_rconid.tkridx >= d.tkrvec.size()){
 		//TODO: specific NoConnectionError;
 		return false;
@@ -427,7 +427,7 @@ bool Service::sendMessage(
 	Locker<Mutex>		lock2(this->mutex(fullid));
 	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
-	cassert(ptkr);
+	SOLID_ASSERT(ptkr);
 	if(ptkr == NULL){
 		//TODO: specific NoConnectionError;
 		return false;
@@ -522,8 +522,8 @@ bool Service::doSendMessageLocal(
 			Locker<Mutex>		lock2(this->mutex(fullid));
 			Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 			
-			cassert(conid.tkridx < d.tkrvec.size());
-			cassert(ptkr);
+			SOLID_ASSERT(conid.tkridx < d.tkrvec.size());
+			SOLID_ASSERT(ptkr);
 			
 			if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
 				//the talker must be notified
@@ -560,7 +560,7 @@ bool Service::doSendMessageLocal(
 			Session				*pses(new Session(*this, sa));
 			ConnectionUid		conid(tkridx);
 			
-			cassert(ptkr);
+			SOLID_ASSERT(ptkr);
 			
 			vdbgx(Debug::ipc, "");
 			ptkr->pushSession(pses, conid);
@@ -577,7 +577,7 @@ bool Service::doSendMessageLocal(
 			}
 		}
 	}else{//inet6
-		cassert(false);
+		SOLID_ASSERT(false);
 		//TODO: specific UnsupportedSocketFamilyError;
 		return false;
 	}
@@ -611,8 +611,8 @@ bool Service::doSendMessageRelay(
 			Locker<Mutex>		lock2(this->mutex(fullid));
 			Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 			
-			cassert(conid.tkridx < d.tkrvec.size());
-			cassert(ptkr);
+			SOLID_ASSERT(conid.tkridx < d.tkrvec.size());
+			SOLID_ASSERT(ptkr);
 			
 			if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
 				//the talker must be notified
@@ -650,7 +650,7 @@ bool Service::doSendMessageRelay(
 			
 			Locker<Mutex>		lock2(this->mutex(tkrfullid));
 			Talker				*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
-			cassert(ptkr);
+			SOLID_ASSERT(ptkr);
 			Session				*pses(new Session(*this, _netid_dest, sa, d.crtgwidx));
 			ConnectionUid		conid(tkridx);
 			
@@ -672,7 +672,7 @@ bool Service::doSendMessageRelay(
 			}
 		}
 	}else{//inet6
-		cassert(false);
+		SOLID_ASSERT(false);
 		//TODO: specific UnsupportedSocketFamilyError;
 		return false;
 	}
@@ -764,7 +764,7 @@ int Service::allocateTalkerForSession(bool _force){
 		int					rv(d.tkrcrt);
 		Data::TalkerStub	&rts(d.tkrvec[rv]);
 		++rts.cnt;
-		cassert(d.tkrq.empty());
+		SOLID_ASSERT(d.tkrq.empty());
 		++d.tkrcrt;
 		d.tkrcrt %= d.config.talker.maxcnt;
 		vdbgx(Debug::ipc, "forced allocate talker: "<<rv<<" sessions per talker "<<rts.cnt);
@@ -790,7 +790,7 @@ int Service::allocateNodeForSession(bool _force){
 		const int		rv(d.nodecrt);
 		Data::NodeStub	&rns(d.nodevec[rv]);
 		++rns.sesscnt;
-		cassert(d.sessnodeq.empty());
+		SOLID_ASSERT(d.sessnodeq.empty());
 		++d.nodecrt;
 		d.nodecrt %= d.config.node.maxcnt;
 		vdbgx(Debug::ipc, "forced allocate node: "<<rv<<" sessions per node "<<rns.sesscnt);
@@ -816,7 +816,7 @@ int Service::allocateNodeForSocket(bool _force){
 		const int		rv(d.nodecrt);
 		Data::NodeStub	&rns(d.nodevec[rv]);
 		++rns.sockcnt;
-		cassert(d.socknodeq.empty());
+		SOLID_ASSERT(d.socknodeq.empty());
 		++d.nodecrt;
 		d.nodecrt %= d.config.node.maxcnt;
 		vdbgx(Debug::ipc, "forced allocate node: "<<rv<<" socket per node "<<rns.sockcnt);
@@ -891,7 +891,7 @@ bool Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData 
 	Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 	ConnectionUid	conid(tkridx, 0xffff, 0xffff);
 	
-	cassert(ptkr);
+	SOLID_ASSERT(ptkr);
 	vdbgx(Debug::ipc, "");
 	
 	ptkr->pushSession(pses, conid);
@@ -959,7 +959,7 @@ bool Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData 
 	Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 	ConnectionUid	conid(tkridx, 0xffff, 0xffff);
 	
-	cassert(ptkr);
+	SOLID_ASSERT(ptkr);
 	
 	vdbgx(Debug::ipc, "");
 	
@@ -1020,7 +1020,7 @@ bool Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectDat
 		Locker<Mutex>	lock2(this->mutex(nodefullid));
 		Node			*pnode(static_cast<Node*>(this->object(nodefullid)));
 		
-		cassert(pnode);
+		SOLID_ASSERT(pnode);
 		
 		vdbgx(Debug::ipc, "");
 		
@@ -1087,7 +1087,7 @@ void Service::connectSession(const SocketAddressInet4 &_raddr){
 	Session			*pses(new Session(*this, _raddr));
 	ConnectionUid	conid(tkridx);
 	
-	cassert(ptkr);
+	SOLID_ASSERT(ptkr);
 	
 	vdbgx(Debug::ipc, "");
 	ptkr->pushSession(pses, conid);
@@ -1170,7 +1170,7 @@ void Service::insertConnection(
 	Locker<Mutex>	lock2(this->mutex(nodefullid));
 	Node			*pnode(static_cast<Node*>(this->object(nodefullid)));
 	
-	cassert(pnode);
+	SOLID_ASSERT(pnode);
 	
 	vdbgx(Debug::ipc, "");
 	
@@ -1242,11 +1242,11 @@ size_t	Service::address2NetIdVectorSize()const{
 	return d.gwaddr2netidvec.size();
 }
 Configuration::RelayAddress const&	Service::netId2AddressAt(const size_t _off)const{
-	cassert(_off < d.gwnetid2addrvec.size());
+	SOLID_ASSERT(_off < d.gwnetid2addrvec.size());
 	return *d.gwnetid2addrvec[_off];
 }
 Configuration::RelayAddress const&	Service::address2NetIdAt(const size_t _off)const{
-	cassert(_off < d.gwaddr2netidvec.size());
+	SOLID_ASSERT(_off < d.gwaddr2netidvec.size());
 	return *d.gwaddr2netidvec[_off];
 }
 //---------------------------------------------------------------------
@@ -1296,7 +1296,7 @@ char * Controller::allocateBuffer(PacketContext &_rpc, uint32 &_cp){
 	char		*newbuf(Packet::allocate());
 	_cp = Packet::Capacity - _rpc.offset;
 	if(_rpc.reqbufid != (uint)-1){
-		THROW_EXCEPTION("Requesting more than one buffer");
+		SOLID_THROW("Requesting more than one buffer");
 		return NULL;
 	}
 	_rpc.reqbufid = mid;

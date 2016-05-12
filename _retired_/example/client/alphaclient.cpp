@@ -516,7 +516,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 					}
 				case ReadLitFinalCR:
 					if(!*bpos){b = false; break;}
-					if(*bpos != '\r'){cassert(false); return -4;}
+					if(*bpos != '\r'){SOLID_ASSERT(false); return -4;}
 					++bpos;
 					state = ReadFinalLF;
 				case ReadLitFinalLF:

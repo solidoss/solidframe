@@ -547,14 +547,14 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const s
 			}
 		}
 		
-		cassert(it != d.tempwaitdq.end());
+		SOLID_ASSERT(it != d.tempwaitdq.end());
 		if(rstrg.waitsizefirst == 0){
 			rstrg.waitsizefirst = it->size;
 		}
 		if(!rstrg.canDeliver()){
 			break;
 		}
-		cassert(rstrg.waitsizefirst == it->size);
+		SOLID_ASSERT(rstrg.waitsizefirst == it->size);
 		--rstrg.waitcount;
 		rstrg.waitsizefirst = 0;
 		doPrepareOpenTemp(*it->pfile, it->size, _storeid);

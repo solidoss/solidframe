@@ -60,7 +60,7 @@ void FileBuf::device(FilePointerT &_rptr){
 	//idbgx(dbgid(), "");
 	if(hasBuf()){
 		if(hasPut()){
-			cassert(false);
+			SOLID_ASSERT(false);
 			if(!flushPut()){
 				return 0;
 			}
@@ -173,7 +173,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 	idbgx(dbgid(), "seekoff = "<<_off<<" way = "<<_way<<" mode = "<<_mode<<" off = "<<off);
 	if(hasBuf()){
 		if(hasPut()){
-			cassert(!hasGet());
+			SOLID_ASSERT(!hasGet());
 			if(!flushPut()){
 				return pos_type(-1);
 			}

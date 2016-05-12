@@ -62,7 +62,7 @@ static const protocol::text::NameMatcher cmdm(cmds);
 */
 Command* Connection::doCreateSlave(const String& _name, Reader &_rr){
 	SocketData	&rsd(socketData(_rr.socketId()));
-	cassert(!rsd.pcmd);
+	SOLID_ASSERT(!rsd.pcmd);
 	idbg("create command "<<_name);
 	switch(cmds[cmdm.match(_name.c_str())].id){
 		case Cmd::LoginCmd:
@@ -145,7 +145,7 @@ void Login::execute(const uint _sid){
 }
 
 void Login::contextData(ObjectUidT &_robjuid){
-	cassert(ctx.size());
+	SOLID_ASSERT(ctx.size());
 	if(sizeof(_robjuid.first) == 8){
 		unsigned long long v;
 		sscanf(ctx.c_str(), "%llX-%X", &v, &_robjuid.second);

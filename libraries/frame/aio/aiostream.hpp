@@ -61,7 +61,7 @@ class Stream: public CompletionHandler{
 				rthis.doClear(_rctx);
 				break;
 			default:
-				cassert(false);
+				SOLID_ASSERT(false);
 		}
 	}
 	
@@ -313,7 +313,7 @@ public:
 			return false;
 		}else{
 			error(_rctx, error_already);
-			cassert(false);
+			SOLID_ASSERT(false);
 			return true;
 		}
 	}

@@ -95,7 +95,7 @@ void CompletionHandler::deactivate(){
 		idxreactor = InvalidIndex();
 	}
 	if(isActive()){
-		THROW_EXCEPTION("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");
+		SOLID_THROW("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");
 		std::terminate();
 	}
 }
@@ -108,20 +108,20 @@ void CompletionHandler::deactivate(){
 }
 
 void CompletionHandler::addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req){
-	cassert(isActive());
+	SOLID_ASSERT(isActive());
 	_rctx.reactor().addDevice(_rctx, *this, _rsd, _req);
 }
 void CompletionHandler::remDevice(ReactorContext &_rctx, Device const &_rsd){
-	cassert(isActive());
+	SOLID_ASSERT(isActive());
 	_rctx.reactor().remDevice(*this, _rsd);
 }
 
 void CompletionHandler::addTimer(ReactorContext &_rctx, TimeSpec const &_rt, size_t &_storedidx){
-	cassert(isActive());
+	SOLID_ASSERT(isActive());
 	_rctx.reactor().addTimer(*this, _rt, _storedidx);
 }
 void CompletionHandler::remTimer(ReactorContext &_rctx, size_t const &_storedidx){
-	cassert(isActive());
+	SOLID_ASSERT(isActive());
 	_rctx.reactor().remTimer(*this, _storedidx);
 }
 

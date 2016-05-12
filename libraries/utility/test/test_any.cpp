@@ -44,11 +44,11 @@ std::string test_boost_any(const boost::any &_rany){
 void test_any_no_copy_copy(const Any<32> &_rany){
 	try{
 		Any<32>		tmp_any(_rany);
-		cassert(tmp_any.empty());
+		SOLID_ASSERT(tmp_any.empty());
 	}catch(std::exception& rex){
 		cout<<"Exception: "<<rex.what()<<endl;
 	}
-	cassert(not _rany.empty());
+	SOLID_ASSERT(not _rany.empty());
 	
 	Any<32>		tmp_any;
 	
@@ -58,19 +58,19 @@ void test_any_no_copy_copy(const Any<32> &_rany){
 		cout<<"Exception: "<<rex.what()<<endl;
 	}
 	
-	cassert(tmp_any.empty());
-	cassert(not _rany.empty());
+	SOLID_ASSERT(tmp_any.empty());
+	SOLID_ASSERT(not _rany.empty());
 }
 
 std::string test_any_no_copy_move(Any<32> &_rany){
 	Any<32>		tmp_any(std::move(_rany));
 	
-	cassert(_rany.empty());
-	cassert(!tmp_any.empty());
+	SOLID_ASSERT(_rany.empty());
+	SOLID_ASSERT(!tmp_any.empty());
 	
 	TestNoCopy	*p = tmp_any.cast<TestNoCopy>();
 	
-	cassert(p != nullptr);
+	SOLID_ASSERT(p != nullptr);
 	return p->str;
 }
 
@@ -94,44 +94,44 @@ int test_any(int argc, char *argv[]){
 	
 	cout<<"sizeof(any0) = "<<sizeof(any0)<<endl;
 	
-	cassert(not any32.empty());
-	cassert(any32.cast<string>() != nullptr);
-	cassert(any32.cast<int>() == nullptr);
+	SOLID_ASSERT(not any32.empty());
+	SOLID_ASSERT(any32.cast<string>() != nullptr);
+	SOLID_ASSERT(any32.cast<int>() == nullptr);
 	
 	cout<<"value = "<<*any32.cast<string>()<<endl;
 	
 	
 	any0 = std::move(any32);
 	
-	cassert(any32.empty());
-	cassert(not any0.empty());
+	SOLID_ASSERT(any32.empty());
+	SOLID_ASSERT(not any0.empty());
 	
-	cassert(any0.cast<string>() != nullptr);
-	cassert(any0.cast<int>() == nullptr);
+	SOLID_ASSERT(any0.cast<string>() != nullptr);
+	SOLID_ASSERT(any0.cast<int>() == nullptr);
 	
 	cout<<"value = "<<*any0.cast<string>()<<endl;
 	
 	any32 = any0;
 	
-	cassert(not any32.empty());
-	cassert(not any0.empty());
+	SOLID_ASSERT(not any32.empty());
+	SOLID_ASSERT(not any0.empty());
 	
 	Any<16>		any16_0(any32);
 	Any<16>		any16_1(any16_0);
 	
-	cassert(not any32.empty());
-	cassert(not any16_0.empty());
-	cassert(not any16_1.empty());
+	SOLID_ASSERT(not any32.empty());
+	SOLID_ASSERT(not any16_0.empty());
+	SOLID_ASSERT(not any16_1.empty());
 	
-	cassert(*any16_1.cast<string>() == *any32.cast<string>() && *any16_1.cast<string>() == *any16_0.cast<string>());
+	SOLID_ASSERT(*any16_1.cast<string>() == *any32.cast<string>() && *any16_1.cast<string>() == *any16_0.cast<string>());
 	
 	Any<16>		any16_2(std::move(any16_0));
 	
-	cassert(any16_0.empty());
-	cassert(not any16_2.empty());
+	SOLID_ASSERT(any16_0.empty());
+	SOLID_ASSERT(not any16_2.empty());
 	
 	
-	cassert(*any16_2.cast<string>() == *any32.cast<string>());
+	SOLID_ASSERT(*any16_2.cast<string>() == *any32.cast<string>());
 	
 	Any<32>		any_nc_0(any_create<32>(TestNoCopy("a string")));
 	

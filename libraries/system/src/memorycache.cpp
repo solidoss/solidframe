@@ -208,14 +208,14 @@ void CacheStub::push(void *_pv, size_t _cp, Configuration const &_rcfg){
 		if(ppage->pnext){
 			ppage->pnext->pprev = ppage->pprev;
 		}else{
-			cassert(pfrontpage == ppage);
+			SOLID_ASSERT(pfrontpage == ppage);
 			pfrontpage = ppage->pprev;
 		}
 		
 		if(ppage->pprev){
 			ppage->pprev->pnext = ppage->pnext;
 		}else{
-			cassert(pbackpage == ppage);
+			SOLID_ASSERT(pbackpage == ppage);
 			pbackpage = ppage->pnext;
 		}
 		--emptypagecnt;

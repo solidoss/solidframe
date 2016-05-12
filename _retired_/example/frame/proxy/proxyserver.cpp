@@ -186,7 +186,7 @@ int main(int argc, char *argv[]){
 		if(p.baseport > 0){
 			insertListener(m, aiosched);
 		}else{
-			cassert(p.connectvec.size() == 2);
+			SOLID_ASSERT(p.connectvec.size() == 2);
 			insertConnection(m, aiosched);
 		}
 		
@@ -300,7 +300,7 @@ Listener::~Listener(){
 
 /*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
 	idbg("here");
-	cassert(this->socketOk());
+	SOLID_ASSERT(this->socketOk());
 	if(notified()){
 		//Locker<Mutex>	lock(this->mutex());
 		solid::ulong sm = this->grabSignalMask();
@@ -323,7 +323,7 @@ Listener::~Listener(){
 			}
 		}
 		state = 0;
-		cassert(sd.ok());
+		SOLID_ASSERT(sd.ok());
 		sd.makeNonBlocking();
 		sd.enableNoDelay();
 		if(frame::is_invalid_uid(conid)){

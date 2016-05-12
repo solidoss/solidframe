@@ -153,7 +153,7 @@ private:
 		cnd.signal();
 	}
 	void onReceiveNoop(){
-		cassert(waitnoop);
+		SOLID_ASSERT(waitnoop);
 		waitnoop = false;
 	}
 	void onDoneIndex(uint32 _msgidx){

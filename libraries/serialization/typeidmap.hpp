@@ -196,7 +196,7 @@ protected:
 		if(it != TypeIdMapBase::typemap.end()){
 			return doRegisterDownCast<Derived>(it->second);
 		}else{
-			THROW_EXCEPTION("Base type not registered");
+			SOLID_THROW("Base type not registered");
 			return false;
 		}
 	}
@@ -207,7 +207,7 @@ protected:
 			typemap[std::type_index(typeid(Derived))] = _idx;
 			return true;
 		}else{
-			THROW_EXCEPTION_EX("Invalid type index ", _idx);
+			SOLID_THROW_EX("Invalid type index ", _idx);
 			return false;
 		}
 	}
@@ -221,7 +221,7 @@ protected:
 			castmap[CastIdT(std::type_index(typeid(Base)), 0)] = &cast_void_pointer<Base>;
 			return true;
 		}else{
-			THROW_EXCEPTION("Derived type not registered");
+			SOLID_THROW("Derived type not registered");
 			return false;
 		}
 	}
@@ -233,7 +233,7 @@ protected:
 			castmap[CastIdT(std::type_index(typeid(Derived)), 0)] = &cast_void_pointer<Derived>;
 			return true;
 		}else{
-			THROW_EXCEPTION("Derived type not registered");
+			SOLID_THROW("Derived type not registered");
 			return false;
 		}
 	}

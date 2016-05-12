@@ -200,7 +200,7 @@ public:
 		return jobq.empty();
 	}
 	void createWorker(){
-		cassert(!mtx.tryLock());
+		SOLID_ASSERT(!mtx.tryLock());
 		++wkrcnt;
 		if(ctrl.createWorker(*this, wkrcnt)){
 		}else{
@@ -281,7 +281,7 @@ private:
 		mtx.lock();
 		ctrl.unprepareWorker(_rw);
 		--wkrcnt;
-		cassert(wkrcnt >= 0);
+		SOLID_ASSERT(wkrcnt >= 0);
 		thrcnd.broadcast();
 		mtx.unlock();
 	}

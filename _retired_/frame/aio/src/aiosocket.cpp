@@ -99,8 +99,8 @@ bool Socket::create(const ResolveIterator& _rai){
 	return sd.create(_rai);
 }
 AsyncE Socket::connect(const SocketAddressStub& _rsas){
-	cassert(!isSendPending());
-	cassert(type == CHANNEL);
+	SOLID_ASSERT(!isSendPending());
+	SOLID_ASSERT(type == CHANNEL);
 	const solid::AsyncE rv = sd.connectNonBlocking(_rsas);
 	if(rv == solid::AsyncWait){
 		sndbuf = reinterpret_cast<char*>(1);
@@ -111,7 +111,7 @@ AsyncE Socket::connect(const SocketAddressStub& _rsas){
 }
 
 AsyncE Socket::accept(SocketDevice &_rsd){
-	cassert(type == ACCEPTOR);
+	SOLID_ASSERT(type == ACCEPTOR);
 	const solid::AsyncE rv = sd.acceptNonBlocking(_rsd);
 	if(rv == solid::AsyncWait){
 		d.pad->psd = &_rsd;
@@ -123,7 +123,7 @@ AsyncE Socket::accept(SocketDevice &_rsd){
 }
 
 AsyncE Socket::accept(Socket &_rs){
-	cassert(type == ACCEPTOR);
+	SOLID_ASSERT(type == ACCEPTOR);
 	const solid::AsyncE rv = sd.acceptNonBlocking(_rs.sd);
 	if(rv == solid::AsyncWait){
 		d.pad->psd = &_rs.sd;
@@ -135,8 +135,8 @@ AsyncE Socket::accept(Socket &_rs){
 }
 
 AsyncE Socket::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
-	cassert(!isSendPending());
-	cassert(type == CHANNEL);
+	SOLID_ASSERT(!isSendPending());
+	SOLID_ASSERT(type == CHANNEL);
 	if(!_bl) return AsyncSuccess;
 	int rv = sd.send(_pb, _bl);
 	if(rv == (int)_bl){
@@ -156,8 +156,8 @@ AsyncE Socket::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
 }
 
 AsyncE Socket::doRecvPlain(char *_pb, uint32 _bl, uint32 _flags){
-	cassert(!isRecvPending());
-	cassert(type == CHANNEL);
+	SOLID_ASSERT(!isRecvPending());
+	SOLID_ASSERT(type == CHANNEL);
 	if(!_bl) return AsyncSuccess;
 	int rv = sd.recv(_pb, _bl);
 	if(rv > 0){
@@ -203,7 +203,7 @@ bool Socket::remoteAddress(SocketAddress &_rsa)const{
 
 AsyncE Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	if(!_bl) return AsyncSuccess;
-	cassert(!isRecvPending());
+	SOLID_ASSERT(!isRecvPending());
 	int rv = sd.recv(_pb, _bl, d.psd->rcvaddr);
 	if(rv > 0){
 		rcvlen = rv;
@@ -222,7 +222,7 @@ AsyncE Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 }
 
 AsyncE Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){	
-	cassert(!isSendPending());
+	SOLID_ASSERT(!isSendPending());
 	int rv = sd.send(_pb, _bl, _sap);
 	if(rv == (ssize_t)_bl){
 		sndlen = 0;
@@ -307,7 +307,7 @@ ulong Socket::doSendPlain(){
 			ioreq &= ~FLAG_POLL_OUT;
 			return EventDoneSend;
 	}
-	cassert(false);
+	SOLID_ASSERT(false);
 	return EventDoneError;
 }
 
@@ -343,7 +343,7 @@ ulong Socket::doRecvPlain(){
 			}
 			return EventDoneError;
 	};
-	cassert(false);
+	SOLID_ASSERT(false);
 	return EventDoneError;
 }
 void  Socket::doClear(){
@@ -394,8 +394,8 @@ inline void Socket::doWantWrite(int _w){
 }
 
 AsyncE Socket::doSendSecure(const char* _pb, uint32 _bl, uint32 _flags){
-	cassert(!isSendPending());
-	cassert(type == CHANNEL);
+	SOLID_ASSERT(!isSendPending());
+	SOLID_ASSERT(type == CHANNEL);
 	if(!_bl) return AsyncSuccess;
 	int rv = pss->send(_pb, _bl);
 	if(rv == (int)_bl){
@@ -416,8 +416,8 @@ AsyncE Socket::doSendSecure(const char* _pb, uint32 _bl, uint32 _flags){
 }
 
 AsyncE Socket::doRecvSecure(char *_pb, uint32 _bl, uint32 _flags){
-	cassert(!isRecvPending());
-	cassert(type == CHANNEL);
+	SOLID_ASSERT(!isRecvPending());
+	SOLID_ASSERT(type == CHANNEL);
 	if(!_bl) return AsyncSuccess;
 	const int rv = pss->recv(_pb, _bl);
 	if(rv > 0){
@@ -535,7 +535,7 @@ ulong Socket::doSendSecure(){
 	if(want == SecureSocket::WANT_WRITE_ON_CONNECT){
 		return doSecureConnect();
 	}
-	cassert(false);
+	SOLID_ASSERT(false);
 	return EventDoneError;
 }
 
@@ -553,14 +553,14 @@ ulong Socket::doRecvSecure(){
 	if(want == SecureSocket::WANT_READ_ON_CONNECT){
 		return doSecureConnect();
 	}
-	cassert(false);
+	SOLID_ASSERT(false);
 	return EventDoneError;
 }
 
 AsyncE Socket::secureAccept(){
-	cassert(!isRecvPending());
-	cassert(isSecure());
-	cassert(type == CHANNEL);
+	SOLID_ASSERT(!isRecvPending());
+	SOLID_ASSERT(isSecure());
+	SOLID_ASSERT(type == CHANNEL);
 	const AsyncE rv = pss->secureAccept();
 	if(rv != AsyncWait) return rv;
 	rcvbuf = reinterpret_cast<char*>(1);
@@ -571,9 +571,9 @@ AsyncE Socket::secureAccept(){
 }
 
 AsyncE Socket::secureConnect(){
-	cassert(!isRecvPending());
-	cassert(isSecure());
-	cassert(type == CHANNEL);
+	SOLID_ASSERT(!isRecvPending());
+	SOLID_ASSERT(isSecure());
+	SOLID_ASSERT(type == CHANNEL);
 	const AsyncE rv = pss->secureConnect();
 	if(rv != AsyncWait) return rv;
 	

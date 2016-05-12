@@ -243,7 +243,7 @@ struct DebugTraceTest{
 #define check_call(a, v, c) \
 	if((c) != v){\
 		edbgx(a, "Error call ##c"<<strerror(errno))\
-		cassert(false);\
+		SOLID_ASSERT(false);\
 	}
 
 #else

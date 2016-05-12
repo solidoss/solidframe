@@ -133,7 +133,7 @@ void Writer::putChar(char _c1, char _c2, char _c3, char _c4){
 }
 
 void Writer::putSilentChar(char _c1){
-	cassert(wpos <= bh->pend);
+	SOLID_ASSERT(wpos <= bh->pend);
 	if(wpos != bh->pend){
 	}else resize(1);
 	
@@ -141,7 +141,7 @@ void Writer::putSilentChar(char _c1){
 }
 
 void Writer::putSilentChar(char _c1, char _c2){
-	cassert(wpos <= bh->pend);
+	SOLID_ASSERT(wpos <= bh->pend);
 	if(2 < (uint32)(bh->pend - wpos)){
 	}else resize(2);
 	
@@ -150,7 +150,7 @@ void Writer::putSilentChar(char _c1, char _c2){
 }
 
 void Writer::putSilentChar(char _c1, char _c2, char _c3){
-	cassert(wpos <= bh->pend);
+	SOLID_ASSERT(wpos <= bh->pend);
 	if(3 < (uint32)(bh->pend - wpos)){
 	}else resize(3);
 	
@@ -160,7 +160,7 @@ void Writer::putSilentChar(char _c1, char _c2, char _c3){
 }
 
 void Writer::putSilentChar(char _c1, char _c2, char _c3, char _c4){
-	cassert(wpos <= bh->pend);
+	SOLID_ASSERT(wpos <= bh->pend);
 	if(4 < (uint32)(bh->pend - wpos)){
 	}else resize(4);
 	
@@ -176,7 +176,7 @@ void Writer::putString(const char* _s, uint32 _sz){
 }
 
 void Writer::putSilentString(const char* _s, uint32 _sz){
-	cassert(wpos <= bh->pend);
+	SOLID_ASSERT(wpos <= bh->pend);
 	if(_sz < (uint32)(bh->pend - wpos)){
 	}else resize(_sz);
 	memcpy(wpos, _s, _sz);
@@ -326,7 +326,7 @@ bool read_stream_all(istream &_ris, char *_pb, size_t _sz){
 	uint64		&sz = *static_cast<uint64*>(_rp.b.p);
 	//if(ris.start() < 0) return Failure;
 	if(sz < FlushLength){
-		cassert((_rw.bh->pend - _rw.wpos) >= FlushLength);
+		SOLID_ASSERT((_rw.bh->pend - _rw.wpos) >= FlushLength);
 		if(!read_stream_all(ris, _rw.wpos, sz)){
 			return Failure;
 		}
@@ -446,7 +446,7 @@ void Writer::clear(){
 }
 
 int Writer::doManage(int _mo){
-	cassert(false);
+	SOLID_ASSERT(false);
 	return Success;
 }
 

@@ -54,7 +54,7 @@ size_t Object::doOnTimeoutRecv(const TimeSpec &_timepos){
 	
 	for(size_t *pit(itoutbeg); pit != pend;){
 		SocketStub &rss(pstubs[*pit]);
-		cassert(rss.psock);
+		SOLID_ASSERT(rss.psock);
 		
 		vdbgx(Debug::aio, "compare time for pos "<<*pit<<" tout "<<rss.itimepos.seconds()<<" with crttime "<<_timepos.seconds());
 		
@@ -85,7 +85,7 @@ size_t Object::doOnTimeoutSend(const TimeSpec &_timepos){
 	
 	for(size_t *pit(otoutbeg); pit != pend;){
 		SocketStub &rss(pstubs[*pit]);
-		cassert(rss.psock);
+		SOLID_ASSERT(rss.psock);
 		
 		vdbgx(Debug::aio, "compare time for pos "<<*pit<<" tout "<<rss.otimepos.seconds()<<" with crttime "<<_timepos.seconds());
 		
@@ -108,7 +108,7 @@ size_t Object::doOnTimeoutSend(const TimeSpec &_timepos){
 }
 	
 inline void Object::doPopTimeoutRecv(const size_t _pos){
-	cassert(itoutpos != itoutbeg);
+	SOLID_ASSERT(itoutpos != itoutbeg);
 	vdbgx(Debug::aio, "pop itimeout pos "<<_pos<<" tout "<<pstubs[_pos].itimepos.seconds());
 	const size_t tpos = pstubs[_pos].itoutpos;
 	--itoutpos;
@@ -118,7 +118,7 @@ inline void Object::doPopTimeoutRecv(const size_t _pos){
 }
 
 inline void Object::doPopTimeoutSend(const size_t _pos){
-	cassert(otoutpos != otoutbeg);
+	SOLID_ASSERT(otoutpos != otoutbeg);
 	vdbgx(Debug::aio, "pop otimeout pos "<<_pos<<" tout "<<pstubs[_pos].otimepos.seconds());
 	const size_t tpos = pstubs[_pos].otoutpos;
 	--otoutpos;
@@ -159,9 +159,9 @@ void Object::doPushTimeoutSend(const size_t _pos, const TimeSpec &_crttime, cons
 
 void Object::socketPushRequest(const size_t _pos, const uint8 _req){
 	//NOTE: only a single request at a time is allowed
-	//cassert(!pstubs[_pos].requesttype);
+	//SOLID_ASSERT(!pstubs[_pos].requesttype);
 	//you can have 2 io requests on the same time - one for recv and one for send
-	cassert(!pstubs[_pos].requesttype || (pstubs[_pos].requesttype == SocketStub::IORequest && _req == SocketStub::IORequest));
+	SOLID_ASSERT(!pstubs[_pos].requesttype || (pstubs[_pos].requesttype == SocketStub::IORequest && _req == SocketStub::IORequest));
 	if(pstubs[_pos].requesttype) return;
 	pstubs[_pos].requesttype = _req;
 	*reqpos = _pos;
@@ -224,7 +224,7 @@ SingleObject::~SingleObject(){
 }
 
 bool SingleObject::socketOk()const{
-	cassert(stub.psock);
+	SOLID_ASSERT(stub.psock);
 	return stub.psock->ok();
 }
 
@@ -237,7 +237,7 @@ AsyncE SingleObject::socketAccept(SocketDevice &_rsd){
 }
 
 AsyncE SingleObject::socketConnect(const SocketAddressStub& _rsas){
-	cassert(stub.psock);
+	SOLID_ASSERT(stub.psock);
 	const AsyncE rv = stub.psock->connect(_rsas);
 	if(rv == AsyncWait){
 		socketPushRequest(0, SocketStub::IORequest);
@@ -248,8 +248,8 @@ AsyncE SingleObject::socketConnect(const SocketAddressStub& _rsas){
 
 AsyncE SingleObject::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
-	//cassert(stub.request <= SocketStub::Response);
-	cassert(stub.psock);
+	//SOLID_ASSERT(stub.request <= SocketStub::Response);
+	SOLID_ASSERT(stub.psock);
 	const AsyncE rv = stub.psock->send(_pb, _bl);
 	if(rv == AsyncWait){
 		socketPushRequest(0, SocketStub::IORequest);
@@ -259,8 +259,8 @@ AsyncE SingleObject::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 
 AsyncE SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){
 	//ensure that we dont have double request
-	//cassert(stub.request <= SocketStub::Response);
-	cassert(stub.psock);
+	//SOLID_ASSERT(stub.request <= SocketStub::Response);
+	SOLID_ASSERT(stub.psock);
 	const AsyncE rv = stub.psock->sendTo(_pb, _bl, _sap);
 	if(rv == AsyncWait){
 		socketPushRequest(0, SocketStub::IORequest);
@@ -270,8 +270,8 @@ AsyncE SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SocketAddre
 
 AsyncE SingleObject::socketRecv(char *_pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
-	//cassert(stub.request <= SocketStub::Response);
-	cassert(stub.psock);
+	//SOLID_ASSERT(stub.request <= SocketStub::Response);
+	SOLID_ASSERT(stub.psock);
 	const AsyncE rv = stub.psock->recv(_pb, _bl);
 	if(rv == AsyncWait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
@@ -282,8 +282,8 @@ AsyncE SingleObject::socketRecv(char *_pb, uint32 _bl, uint32 _flags){
 
 AsyncE SingleObject::socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
-	//cassert(stub.request <= SocketStub::Response);
-	cassert(stub.psock);
+	//SOLID_ASSERT(stub.request <= SocketStub::Response);
+	SOLID_ASSERT(stub.psock);
 	const AsyncE rv = stub.psock->recvFrom(_pb, _bl);
 	if(rv == AsyncWait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
@@ -353,13 +353,13 @@ void SingleObject::socketGrab(SocketPointer &_rsp){
 }
 
 bool SingleObject::socketInsert(const SocketPointer &_rsp){
-	cassert(!stub.psock);
+	SOLID_ASSERT(!stub.psock);
 	stub.psock = this->getSocketPointer(_rsp);
 	return true;
 }
 
 bool SingleObject::socketInsert(const SocketDevice &_rsd, const bool _isacceptor){
-	cassert(!stub.psock);
+	SOLID_ASSERT(!stub.psock);
 	if(_rsd.ok()){
 		Socket::Type tp;
 		const std::pair<bool, int> socktp = _rsd.type();
@@ -384,7 +384,7 @@ bool SingleObject::socketInsert(const SocketDevice &_rsd, const bool _isacceptor
 
 void SingleObject::socketRequestRegister(){
 	//ensure that we dont have double request
-	cassert(!stub.requesttype);
+	SOLID_ASSERT(!stub.requesttype);
 	stub.requesttype = SocketStub::RegisterRequest;
 	*reqpos = 0;
 	++reqpos;
@@ -392,7 +392,7 @@ void SingleObject::socketRequestRegister(){
 
 void SingleObject::socketRequestUnregister(){
 	//ensure that we dont have double request
-	cassert(!stub.requesttype);
+	SOLID_ASSERT(!stub.requesttype);
 	stub.requesttype = SocketStub::UnregisterRequest;
 	*reqpos = 0;
 	++reqpos;
@@ -466,7 +466,7 @@ size_t MultiObject::signaledFront()const{
 }
 
 void MultiObject::signaledPop(){
-	cassert(signaledSize());
+	SOLID_ASSERT(signaledSize());
 	const size_t v = resbeg[respoppos];
 	//first we clear the events from current "front"
 	pstubs[v].chnevents = 0;
@@ -477,12 +477,12 @@ void MultiObject::signaledPop(){
 }
 
 bool MultiObject::socketOk(const size_t _pos)const{
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].psock->ok();
 }
 
 AsyncE MultiObject::socketAccept(const size_t _pos, SocketDevice &_rsd){
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	const AsyncE rv = pstubs[_pos].psock->accept(_rsd);
 	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
@@ -491,7 +491,7 @@ AsyncE MultiObject::socketAccept(const size_t _pos, SocketDevice &_rsd){
 }
 
 AsyncE MultiObject::socketConnect(const size_t _pos, const SocketAddressStub& _rsas){
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	const AsyncE rv = pstubs[_pos].psock->connect(_rsas);
 	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
@@ -509,7 +509,7 @@ AsyncE MultiObject::socketSend(
 	uint32 _bl,
 	uint32 _flags
 ){
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	const AsyncE rv = pstubs[_pos].psock->send(_pb, _bl, _flags);
 	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
@@ -524,7 +524,7 @@ AsyncE MultiObject::socketSendTo(
 	const SocketAddressStub &_sap,
 	uint32 _flags
 ){
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	const AsyncE rv = pstubs[_pos].psock->sendTo(_pb, _bl, _sap, _flags);
 	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
@@ -538,7 +538,7 @@ AsyncE MultiObject::socketRecv(
 	uint32 _bl,
 	uint32 _flags
 ){
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	const AsyncE rv = pstubs[_pos].psock->recv(_pb, _bl, _flags);
 	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
@@ -552,7 +552,7 @@ AsyncE MultiObject::socketRecvFrom(
 	uint32 _bl,
 	uint32 _flags
 ){
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	const AsyncE rv = pstubs[_pos].psock->recvFrom(_pb, _bl, _flags);
 	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
@@ -561,37 +561,37 @@ AsyncE MultiObject::socketRecvFrom(
 }
 
 uint32 MultiObject::socketRecvSize(const size_t _pos)const{	
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].psock->recvSize();
 }
 
 const uint64& MultiObject::socketSendCount(const size_t _pos)const{	
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].psock->sendCount();
 }
 
 const uint64& MultiObject::socketRecvCount(const size_t _pos)const{
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].psock->recvCount();
 }
 
 bool MultiObject::socketHasPendingSend(const size_t _pos)const{
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].psock->isSendPending();
 }
 
 bool MultiObject::socketHasPendingRecv(const size_t _pos)const{
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].psock->isRecvPending();
 }
 
 bool MultiObject::socketLocalAddress(const size_t _pos, SocketAddress &_rsa)const{
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].psock->localAddress(_rsa);
 }
 
 bool MultiObject::socketRemoteAddress(const size_t _pos, SocketAddress &_rsa)const{
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].psock->remoteAddress(_rsa);
 }
 
@@ -614,26 +614,26 @@ void MultiObject::socketTimeoutSend(
 }
 
 uint32 MultiObject::socketEvents(const size_t _pos)const{
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].chnevents;
 }
 
 void MultiObject::socketErase(const size_t _pos){
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	delete pstubs[_pos].psock;
 	pstubs[_pos].reset();
 	posstk.push(_pos);
 }
 
 void MultiObject::socketGrab(const size_t _pos, SocketPointer &_rsp){
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	this->setSocketPointer(_rsp, pstubs[_pos].psock);
 	pstubs[_pos].reset();
 	posstk.push(_pos);
 }
 
 size_t MultiObject::socketInsert(const SocketPointer &_rsp){
-	cassert(_rsp);
+	SOLID_ASSERT(_rsp);
 	const size_t pos = newStub();
 	pstubs[pos].psock = this->getSocketPointer(_rsp);
 	return pos;
@@ -665,28 +665,28 @@ size_t MultiObject::socketInsert(const SocketDevice &_rsd, const bool _isaccepto
 }
 
 void MultiObject::socketRequestRegister(const size_t _pos){
-	cassert(_pos < stubcp);
-	cassert(!pstubs[_pos].requesttype);
+	SOLID_ASSERT(_pos < stubcp);
+	SOLID_ASSERT(!pstubs[_pos].requesttype);
 	pstubs[_pos].requesttype = SocketStub::RegisterRequest;
 	*reqpos = _pos;
 	++reqpos;
 }
 
 void MultiObject::socketRequestUnregister(const size_t _pos){
-	cassert(_pos < stubcp);
-	cassert(!pstubs[_pos].requesttype);
+	SOLID_ASSERT(_pos < stubcp);
+	SOLID_ASSERT(!pstubs[_pos].requesttype);
 	pstubs[_pos].requesttype = SocketStub::UnregisterRequest;
 	*reqpos = _pos;
 	++reqpos;
 }
 
 int MultiObject::socketState(const size_t _pos)const{
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	return pstubs[_pos].state;
 }
 
 void MultiObject::socketState(const size_t _pos, int _st){
-	cassert(_pos < stubcp);
+	SOLID_ASSERT(_pos < stubcp);
 	pstubs[_pos].state = _st;
 }
 
@@ -700,7 +700,7 @@ inline size_t MultiObject::dataSize(const size_t _cp){
 }
 
 void MultiObject::reserve(const size_t _cp){
-	cassert(_cp > stubcp);
+	SOLID_ASSERT(_cp > stubcp);
 	//first we allocate the space
 	char* buf = new char[dataSize(_cp)];
 	

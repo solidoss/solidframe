@@ -287,7 +287,7 @@ int Socket::recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
 		default:
-			cassert(false);
+			SOLID_ASSERT(false);
 			break;
 	}
 	return -1;
@@ -319,7 +319,7 @@ int Socket::send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rer
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
 		default:
-			cassert(false);
+			SOLID_ASSERT(false);
 			break;
 	}
 	return -1;
@@ -348,7 +348,7 @@ bool Socket::secureAccept(bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
 		default:
-			cassert(false);
+			SOLID_ASSERT(false);
 			break;
 	}
 	return false;
@@ -377,7 +377,7 @@ bool Socket::secureConnect(bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
 		default:
-			cassert(false);
+			SOLID_ASSERT(false);
 			break;
 	}
 	return false;
@@ -406,7 +406,7 @@ bool Socket::secureShutdown(bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
 		default:
-			cassert(false);
+			SOLID_ASSERT(false);
 			break;
 	}
 	return false;

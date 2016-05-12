@@ -94,7 +94,7 @@ void CompletionHandler::deactivate(){
 		idxreactor = InvalidIndex();
 	}
 	if(isActive()){
-		THROW_EXCEPTION("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");
+		SOLID_THROW("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");
 		std::terminate();
 	}
 }

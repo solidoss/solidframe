@@ -82,7 +82,7 @@ LogBasicConnector::~LogBasicConnector(){
 }
 /*virtual*/ void LogBasicConnector::eraseClient(uint32 _idx, uint32 _uid){
 	if(_idx < d.rv.size()){
-		//cassert(d.rv[_idx]);
+		//SOLID_ASSERT(d.rv[_idx]);
 		delete d.rv[_idx];
 		d.rv[_idx] = NULL;
 	}

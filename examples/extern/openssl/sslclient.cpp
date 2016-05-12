@@ -200,7 +200,7 @@ int main(int argc, char *argv[]){
 				write_socket = false;
 				pfds[0].events = POLLIN;//dont wait for stdin
 			}else if(SSL_want(ssl) != SSL_NOTHING){
-				cassert(pfds[1].events);
+				SOLID_ASSERT(pfds[1].events);
 				write_socket = false;
 				if(SSL_want_read(ssl)){
 					pfds[1].events |= POLLIN;

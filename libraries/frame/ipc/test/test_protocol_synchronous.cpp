@@ -125,7 +125,7 @@ void complete_message(
 	ErrorConditionT const &_rerr
 ){
 	if(_rerr){
-		THROW_EXCEPTION("Message complete with error");
+		SOLID_THROW("Message complete with error");
 	}
 	if(_rmessage_ptr.get()){
 		idbg(static_cast<Message*>(_rmessage_ptr.get())->idx);
@@ -136,11 +136,11 @@ void complete_message(
 		size_t msgidx = static_cast<Message&>(*_rresponse_ptr).idx;
 		
 		if(not static_cast<Message&>(*_rresponse_ptr).check()){
-			THROW_EXCEPTION("Message check failed.");
+			SOLID_THROW("Message check failed.");
 		}
 		
 		if(msgidx != crtreadidx){
-			THROW_EXCEPTION("Message index invalid - SynchronousFlagE failed.");
+			SOLID_THROW("Message index invalid - SynchronousFlagE failed.");
 		}
 		
 		++crtreadidx;
@@ -233,7 +233,7 @@ int test_protocol_synchronous(int argc, char **argv){
 		bool rv = ipcmsgwriter.enqueue(
 			ipcwriterconfig, msgbundle, pool_msg_id, writer_msg_id
 		);
-		cassert(rv);
+		SOLID_CHECK(rv);
 		idbg("enqueue rv = "<<rv<<" writer_msg_id = "<<writer_msg_id);
 		idbg(frame::ipc::MessageWriterPrintPairT(ipcmsgwriter, frame::ipc::MessageWriter::PrintInnerListsE));
 	}

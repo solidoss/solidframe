@@ -325,7 +325,7 @@ Connection::~Connection(){
 					return;
 				default:
 					edbg("rc = "<<rc);
-					cassert(false);
+					SOLID_ASSERT(false);
 					return;
 			}
 			break;

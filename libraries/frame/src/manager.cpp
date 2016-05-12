@@ -184,7 +184,7 @@ struct Manager::Data{
 		Locker<Mutex>	lock(mtx);
 		idx = crtsvcstoreidx;
 		long v = svcstore[idx].usecnt.fetch_add(1);
-		cassert(v >= 0);
+		SOLID_ASSERT(v >= 0);
 		return idx;
 	}
 	
@@ -220,7 +220,7 @@ struct Manager::Data{
 		Locker<Mutex>	lock(mtx);
 		idx = crtobjstoreidx;
 		long v = objstore[idx].usecnt.fetch_add(1);
-		cassert(v >= 0);
+		SOLID_ASSERT(v >= 0);
 		return idx;
 	}
 
@@ -549,7 +549,7 @@ ObjectIdT Manager::registerObject(
 			robjchk.svcidx = _rsvc.idx;
 		}
 		
-		cassert(robjchk.svcidx == _rsvc.idx);
+		SOLID_ASSERT(robjchk.svcidx == _rsvc.idx);
 		
 		_robj.id(objidx);
 		
@@ -596,8 +596,8 @@ void Manager::unregisterObject(ObjectBase &_robj){
 		svcidx = robjchk.svcidx;
 	}
 	{
-		cassert(objidx != InvalidIndex());
-		cassert(svcidx != InvalidIndex());
+		SOLID_ASSERT(objidx != InvalidIndex());
+		SOLID_ASSERT(svcidx != InvalidIndex());
 		
 		const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 		ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
@@ -669,7 +669,7 @@ bool Manager::raise(const ObjectBase &_robj, Event const &_re){
 	ObjectStub const 	&ros(d.object(objstoreidx, _robj.id()));
 	d.releaseReadObjectStore(objstoreidx);
 	
-	cassert(ros.pobject == &_robj);
+	SOLID_ASSERT(ros.pobject == &_robj);
 	
 	return ros.preactor->raise(ros.pobject->runId(), _re);
 }
@@ -694,7 +694,7 @@ ObjectIdT  Manager::id(const ObjectBase &_robj)const{
 		ObjectStub const 	&ros(d.object(objstoreidx, objidx));
 		d.releaseReadObjectStore(objstoreidx);
 		
-		cassert(ros.pobject == &_robj);
+		SOLID_ASSERT(ros.pobject == &_robj);
 		return ObjectIdT(objidx, ros.unique);
 	}else{
 		return ObjectIdT();
@@ -776,7 +776,7 @@ Service& Manager::service(const ObjectBase &_robj)const{
 		{
 			Locker<Mutex>		lock(rchk.rmtx);
 			
-			cassert(rchk.object(_robj.id() % d.objchkcnt).pobject == &_robj);
+			SOLID_ASSERT(rchk.object(_robj.id() % d.objchkcnt).pobject == &_robj);
 			
 			svcidx = rchk.svcidx;
 		}

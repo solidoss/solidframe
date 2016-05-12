@@ -140,7 +140,7 @@ public:
 			msgvec.resize(_idx + 1);
 		}
 		MessageStub &rms = msgvec[_idx];
-		cassert(!rms.onsendq);
+		SOLID_ASSERT(!rms.onsendq);
 		rms.sndflgs = _flags;
 		rms.sndmsgptr = _rmsgptr;
 		rms.onsendq = true;
@@ -153,7 +153,7 @@ public:
 			msgvec.resize(_idx + 1);
 		}
 		MessageStub &rms = msgvec[_idx];
-		cassert(!rms.onsendq);
+		SOLID_ASSERT(!rms.onsendq);
 		rms.sndflgs = _flags;
 		rms.ctx = _rmsgctx;
 		rms.sndmsgptr = _rmsgptr;
@@ -163,30 +163,30 @@ public:
 	}
 	
 	DynamicPointer<Msg>& sendMessage(const size_t _idx){
-		cassert(_idx < msgvec.size());
+		SOLID_ASSERT(_idx < msgvec.size());
 		return msgvec[_idx].sndmsgptr;
 	}
 	DynamicPointer<Msg> const& sendMessage(const size_t _idx)const{
-		cassert(_idx < msgvec.size());
+		SOLID_ASSERT(_idx < msgvec.size());
 		return msgvec[_idx].sndmsgptr;
 	}
 	
 	DynamicPointer<Msg>& recvMessage(const size_t _idx){
-		cassert(_idx < msgvec.size());
+		SOLID_ASSERT(_idx < msgvec.size());
 		return msgvec[_idx].rcvmsgptr;
 	}
 	DynamicPointer<Msg> const& recvMessage(const size_t _idx)const{
-		cassert(_idx < msgvec.size());
+		SOLID_ASSERT(_idx < msgvec.size());
 		return msgvec[_idx].rcvmsgptr;
 	}
 	
 	MsgCtx& messageContext(const size_t _idx){
-		cassert(_idx < msgvec.size());
+		SOLID_ASSERT(_idx < msgvec.size());
 		return msgvec[_idx].ctx;
 	}
 	
 	const MsgCtx& messageContext(const size_t _idx)const{
-		cassert(_idx < msgvec.size());
+		SOLID_ASSERT(_idx < msgvec.size());
 		return msgvec[_idx].ctx;
 	}
 	bool isSendQueueEmpty()const{

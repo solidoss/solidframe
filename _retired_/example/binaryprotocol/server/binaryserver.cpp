@@ -293,7 +293,7 @@ Listener::~Listener(){
 	idbg("");
 }
 /*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
-	cassert(this->socketOk());
+	SOLID_ASSERT(this->socketOk());
 	if(notified()){
 		solid::ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL){
@@ -315,7 +315,7 @@ Listener::~Listener(){
 			}
 		}
 		state = 0;
-		cassert(sd.ok());
+		SOLID_ASSERT(sd.ok());
 		rsvc.insertConnection(sd);
 	}
 	_rexectx.reschedule();

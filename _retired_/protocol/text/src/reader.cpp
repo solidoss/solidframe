@@ -105,7 +105,7 @@ int Reader::run(){
 			case Failure:return Failure;
 			case Wait: return Wait;//wait data
 			case Error:
-				cassert(state != RecoverState);
+				SOLID_ASSERT(state != RecoverState);
 				state = RecoverState;
 				while(fs.size())fs.pop();
 				prepareErrorRecovery();
@@ -382,7 +382,7 @@ void Reader::prepareErrorRecovery(){
 }
 
 int Reader::doManage(int _mo){
-	cassert(false);
+	SOLID_ASSERT(false);
 	return Success;
 }
 

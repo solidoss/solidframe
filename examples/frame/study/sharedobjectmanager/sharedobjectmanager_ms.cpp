@@ -222,10 +222,10 @@ void SharedObjectManager::executeObject(ObjectStub &_robj){
 	size_t flags = _robj.flags.fetch_and(0);
 	if(flags & EventFlag){
 		Locker<Mutex>	lock(d.mutex(_robj));
-		flags |= _robj.flags.fetch_and(0);	//this is to prevent from the following cassert - 
+		flags |= _robj.flags.fetch_and(0);	//this is to prevent from the following SOLID_ASSERT - 
 											//between the first fetch_and and the lock, other thread can
 											//add new values in valvec.
-		cassert(_robj.valvec.size());
+		SOLID_ASSERT(_robj.valvec.size());
 		for(SizeVectorT::const_iterator it(_robj.valvec.begin()); it != _robj.valvec.end(); ++it){
 			_robj.value += *it;
 		}

@@ -293,7 +293,7 @@ protected:
 		//int rcode;
 		if(_rdsz < (ulong)(bh->pend - bh->pbeg)) return Failure;
 		const char *tbeg = rpos;
-		cassert(rpos <= wpos);
+		SOLID_ASSERT(rpos <= wpos);
 		while(rpos != wpos && !Filter::check(*rpos)) ++rpos;
 		int slen = rpos - tbeg;
 		if(slen < _keep){

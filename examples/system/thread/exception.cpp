@@ -28,7 +28,7 @@ int main(){
 	Debug::the().initStdErr();
 #endif
 	try{
-		THROW_EXCEPTION("simple exception ever");
+		SOLID_THROW("simple exception ever");
 		//create_exeption("best exception ever", __FILE__, __LINE__);
 		//throw Exception("best exception ever", __FILE__, __LINE__);
 	}catch(exception& e){
@@ -36,12 +36,12 @@ int main(){
 	}
 	
 	try{
-		THROW_EXCEPTION_EX("3-tuple exception", solid::make_tuple(2,TwoInts(9,10),static_cast<const char*>("a string")));
+		SOLID_THROW_EX("3-tuple exception", solid::make_tuple(2,TwoInts(9,10),static_cast<const char*>("a string")));
 	}catch(exception& e){
 		cout<<"caught exeption: "<<e.what()<<endl;
 	}
 	try{
-		THROW_EXCEPTION_EX("Last system error.", last_system_error());
+		SOLID_THROW_EX("Last system error.", last_system_error());
 	}catch(exception &e){
 		cout<<"caught exeption: "<<e.what()<<endl;
 	}

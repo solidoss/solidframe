@@ -133,7 +133,7 @@ void Steward::sendMessage(solid::DynamicPointer<solid::frame::Message> &_rmsgptr
 }
 
 void Steward::dynamicHandle(solid::DynamicPointer<> &_dp){
-	cassert(false);
+	SOLID_ASSERT(false);
 }
 
 void Steward::dynamicHandle(solid::DynamicPointer<RemoteListMessage> &_rmsgptr){

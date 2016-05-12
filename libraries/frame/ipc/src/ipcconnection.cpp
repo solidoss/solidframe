@@ -734,11 +734,11 @@ void Connection::doHandleEventResolve(
 			service(_rctx).forwardResolveMessage(poolId(), _revent);
 		}else{
 			edbgx(Debug::ipc, this<<' '<<this->id()<<" Empty resolve message");
-			cassert(false);
+			SOLID_ASSERT(false);
 			doStop(_rctx, error_connection_logic);
 		}
 	}else{
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -761,7 +761,7 @@ void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext &_rctx, 
 void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
 	MessageId	*pmsgid = _revent.any().cast<MessageId>();
-	cassert(pmsgid);
+	SOLID_ASSERT(pmsgid);
 	
 	if(pmsgid){
 		
@@ -784,7 +784,7 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext &_rctx, 
 void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
 	MessageId	*pmsgid = _revent.any().cast<MessageId>();
-	cassert(pmsgid);
+	SOLID_ASSERT(pmsgid);
 	
 	if(pmsgid){
 		MessageBundle	msg_bundle;
@@ -798,7 +798,7 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext &_rct
 void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext &_rctx, Event &_revent){
 	
 	MessageId	*pmsgid = _revent.any().cast<MessageId>();
-	cassert(pmsgid);
+	SOLID_ASSERT(pmsgid);
 	
 	if(pmsgid){
 		MessageBundle	msg_bundle;
@@ -910,7 +910,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &
 	SendRaw				*pdata = _revent.any().cast<SendRaw>();
 	ConnectionContext	conctx(service(_rctx), *this);
 	
-	cassert(pdata);
+	SOLID_ASSERT(pdata);
 	
 	if(this->isRawState() and pdata){
 		
@@ -942,7 +942,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &
 	ConnectionContext	conctx(service(_rctx), *this);
 	size_t				used_size = 0;
 	
-	cassert(pdata);
+	SOLID_ASSERT(pdata);
 	
 	if(this->isRawState() and pdata){
 		if(recv_buf_off == cons_buf_off){
@@ -964,7 +964,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &
 			if(cons_buf_off == recv_buf_off){
 				cons_buf_off = recv_buf_off = 0;
 			}else{
-				cassert(cons_buf_off < recv_buf_off);
+				SOLID_ASSERT(cons_buf_off < recv_buf_off);
 			}
 		}
 	}else if(pdata){
@@ -1058,7 +1058,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	
-	cassert(not rthis.isServer());
+	SOLID_ASSERT(not rthis.isServer());
 	rthis.flags |= static_cast<size_t>(Flags::Keepalive);
 	rthis.flags &= (~static_cast<size_t>(Flags::WaitKeepAliveTimer));
 	idbgx(Debug::ipc, &rthis<<" post send");
@@ -1072,7 +1072,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	SendRaw				*pdata = _revent.any().cast<SendRaw>();
 	ConnectionContext	conctx(rthis.service(_rctx), rthis);
 	
-	cassert(pdata);
+	SOLID_ASSERT(pdata);
 	
 	if(pdata){
 		
@@ -1107,7 +1107,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	RecvRaw				*pdata = _revent.any().cast<RecvRaw>();
 	ConnectionContext	conctx(rthis.service(_rctx), rthis);
 	
-	cassert(pdata);
+	SOLID_ASSERT(pdata);
 	
 	if(pdata){
 		
@@ -1198,7 +1198,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	
 	if(repeatcnt == 0){
 		bool rv = rthis.postRecvSome(_rctx, pbuf, bufsz);//fully asynchronous call
-		cassert(!rv);
+		SOLID_ASSERT(!rv);
 		(void)rv;
 	}
 }

@@ -133,19 +133,19 @@ void complete_message(
 	ErrorConditionT const &_rerr
 ){
 	if(_rerr and _rerr != frame::ipc::error_connection_message_canceled){
-		THROW_EXCEPTION("Message complete with error");
+		SOLID_THROW("Message complete with error");
 	}
 	if(_rmessage_ptr.get()){
 		size_t idx = static_cast<Message&>(*_rmessage_ptr).idx;
 		if(crtreadidx){
 			//not the first message
-			cassert((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_connection_message_canceled));
+			SOLID_CHECK((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_connection_message_canceled));
 		}
 		idbg(static_cast<Message&>(*_rmessage_ptr).str.size()<<' '<<_rerr.message());
 	}
 	if(_rresponse_ptr.get()){
 		if(not static_cast<Message&>(*_rresponse_ptr).check()){
-			THROW_EXCEPTION("Message check failed.");
+			SOLID_THROW("Message check failed.");
 		}
 		
 		++crtreadidx;
@@ -168,7 +168,7 @@ void complete_message(
 		}else{
 			idbg(crtreadidx);
 			size_t idx = static_cast<Message&>(*_rresponse_ptr).idx;
-			cassert(not initarray[idx % initarraysize].cancel);
+			SOLID_CHECK(not initarray[idx % initarraysize].cancel);
 		}
 	}
 }
@@ -244,7 +244,7 @@ int test_protocol_cancel(int argc, char **argv){
 		message_uid_vec.push_back(writer_msg_id);
 		
 		idbg("enqueue rv = "<<rv<<" writer_msg_id = "<<writer_msg_id);
-		cassert(rv);
+		SOLID_CHECK(rv);
 		idbg(frame::ipc::MessageWriterPrintPairT(ipcmsgwriter, frame::ipc::MessageWriter::PrintInnerListsE));
 		
 		if(not initarray[crtwriteidx % initarraysize].cancel){

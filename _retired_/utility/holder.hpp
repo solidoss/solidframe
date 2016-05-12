@@ -39,7 +39,7 @@ struct Holder{
 	template <class C>
 	Holder(const C& _c){
 		cstatic_assert(sizeof(C) <= Capacity);
-		cassert(&static_cast<const B&>(_c) == &_c);
+		SOLID_ASSERT(&static_cast<const B&>(_c) == &_c);
 		new(b) C(_c);
 	}
 	//! Destructor
@@ -55,7 +55,7 @@ struct Holder{
 	Holder& operator=(const C &_c){
 		get()->~B();
 		cstatic_assert(sizeof(C) <= Capacity);
-		cassert(&static_cast<const B&>(_c) == &_c);
+		SOLID_ASSERT(&static_cast<const B&>(_c) == &_c);
 		new(b) C(_c);
 		return *this;
 	}

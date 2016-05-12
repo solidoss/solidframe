@@ -153,7 +153,7 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint32 _pos, con
 			d.fncvec.resize(_pos + 1);
 		}
 		if(d.fncvec[_pos].pfs){
-			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
+			SOLID_THROW_EX("Overlapping identifiers", _pos);
 			return _pos;
 		}
 	}
@@ -161,7 +161,7 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint32 _pos, con
 	CRCValue<uint32>	crcval(_pos);
 	
 	if(!crcval.ok()){
-		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
+		SOLID_THROW_EX("Invalid CRCValue", _pos);
 	}
 	
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);
@@ -191,7 +191,7 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint16 _pos, con
 			d.fncvec.resize(_pos + 1);
 		}
 		if(d.fncvec[_pos].pfs){
-			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
+			SOLID_THROW_EX("Overlapping identifiers", _pos);
 			return _pos;
 		}
 	}
@@ -199,7 +199,7 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint16 _pos, con
 	CRCValue<uint16>	crcval(_pos);
 	
 	if(!crcval.ok()){
-		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
+		SOLID_THROW_EX("Invalid CRCValue", _pos);
 	}
 	
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);
@@ -229,7 +229,7 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint8  _pos, con
 			d.fncvec.resize(_pos + 1);
 		}
 		if(d.fncvec[_pos].pfs){
-			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
+			SOLID_THROW_EX("Overlapping identifiers", _pos);
 			return _pos;
 		}
 	}
@@ -237,7 +237,7 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint8  _pos, con
 	CRCValue<uint8>		crcval(_pos);
 	
 	if(!crcval.ok()){
-		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
+		SOLID_THROW_EX("Invalid CRCValue", _pos);
 	}
 	
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);

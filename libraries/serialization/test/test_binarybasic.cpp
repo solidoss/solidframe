@@ -28,22 +28,22 @@ bool test(const T &_v, const size_t _estimated_size){
 	char 		tmp[256] = {0};
 	size_t		sz = crossSize(_v);
 	if(sz != _estimated_size){
-		THROW_EXCEPTION("error");
+		SOLID_THROW("error");
 		return false;
 	}
 	char 		*p = crossStore(tmp, _v);
 	if(p == nullptr){
-		THROW_EXCEPTION("error");
+		SOLID_THROW("error");
 		return false;
 	}
 	
 	if((p - tmp) != _estimated_size){
-		THROW_EXCEPTION("error");
+		SOLID_THROW("error");
 		return false;
 	}
 	
 	if(crossSize(tmp) != _estimated_size){
-		THROW_EXCEPTION("error");
+		SOLID_THROW("error");
 		return false;
 	}
 	
@@ -54,17 +54,17 @@ bool test(const T &_v, const size_t _estimated_size){
 	cp = crossLoad(tmp, v);
 	
 	if(cp == nullptr){
-		THROW_EXCEPTION("error");
+		SOLID_THROW("error");
 		return false;
 	}
 	
 	if((cp - tmp) != _estimated_size){
-		THROW_EXCEPTION("error");
+		SOLID_THROW("error");
 		return false;
 	}
 	
 	if(v != _v){
-		THROW_EXCEPTION("error");
+		SOLID_THROW("error");
 		return false;
 	}
 	return true;
@@ -88,69 +88,69 @@ int test_binarybasic(int argc, char *argv[]){
 	
 	
 	if(!test(static_cast<uint8>(0x00), 1)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	
 	if(!test(static_cast<uint8>(0x1), 2)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	
 	if(!test(static_cast<uint8>(0xff), 2)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	
 	if(!test(static_cast<uint16>(0), 1)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint16>(0xff), 2)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint16>(0xffff), 3)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	
 	if(!test(static_cast<uint32>(0), 1)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint32>(0xff), 2)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint32>(0xffff), 3)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint32>(0xffffff), 4)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint32>(0xffffffff), 5)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	
 	if(!test(static_cast<uint64>(0), 1)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint64>(0xff), 2)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint64>(0xffff), 3)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint64>(0xffffff), 4)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint64>(0xffffffff), 5)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint64>(0xffffffffffULL), 6)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint64>(0xffffffffffffULL), 7)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint64>(0xffffffffffffffULL), 8)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	if(!test(static_cast<uint64>(0xffffffffffffffffULL), 9)){
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	return 0;
 }

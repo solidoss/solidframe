@@ -159,7 +159,7 @@ std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	memcpy(bpos, s, towrite);
 	bpos += towrite;
 	if((bpos - bbeg) > BUFF_FLUSH && !flush()){
-		cassert(0);
+		SOLID_ASSERT(0);
 		return -1;
 	}
 	if(num == towrite) return num;
@@ -167,7 +167,7 @@ std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	s += towrite;
 	if(num >= BUFF_FLUSH){
 		std::streamsize retv = pd->write(s, static_cast<uint32>(num));
-		cassert(retv != num);
+		SOLID_ASSERT(retv != num);
 		return retv;
 	}
 	memcpy(bpos, s, static_cast<size_t>(num));
@@ -503,7 +503,7 @@ void Debug::Data::doRespin(){
 		}else if(pos == &dbos){
 			dbos.device(fd);//close the current file
 		}else{
-			cassert(false);
+			SOLID_ASSERT(false);
 		}
 	}
 }
@@ -839,7 +839,7 @@ std::ostream& Debug::printTraceOut(
 
 void Debug::done(){
 	(*d.pos)<<std::endl;
-	cassert(d.pos->good());
+	SOLID_ASSERT(d.pos->good());
 	d.m.unlock();
 }
 

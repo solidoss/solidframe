@@ -760,7 +760,7 @@ void Node::doInsertNewSessions(){
 					continue;
 				}
 				vdbgx(Debug::ipc, (void*)this<<" connect message not in the send queue - sesidx = "<<idx);
-				cassert(rss.sockidx != 0xffff);
+				SOLID_ASSERT(rss.sockidx != 0xffff);
 			}
 		}
 		SessionStub &rss = d.sessionvec[idx];
@@ -944,7 +944,7 @@ uint16 Node::doReceiveStreamPacket(const uint _sockidx){
 	uint32			psz = p.relayPacketSize();
 	if(psz <= bufsz){
 		p.bufferSize(psz);
-		cassert(p.isRelay());
+		SOLID_ASSERT(p.isRelay());
 		uint16	sesidx(0xffff);
 		uint16	sesuid(0xffff);
 		vdbgx(Debug::ipc, (void*)this<<" STREAM RECEIVED: "<<p);
@@ -1173,7 +1173,7 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 			doReceiveStreamData(_sockidx);
 		}
 		if(_evs & EventDoneSend){
-			cassert(rcs.sendq.size());
+			SOLID_ASSERT(rcs.sendq.size());
 			char *pbuf = const_cast<char*>(rcs.sendq.front().pbuf);
 			Specific::pushBuffer(pbuf, rcs.sendq.front().bufid);
 			rcs.sendq.pop();
@@ -1214,7 +1214,7 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 		socketPostEvents(_sockidx, EventReschedule);
 		doTrySendSocketBuffers(_sockidx);
 	}else{
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 	
 }

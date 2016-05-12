@@ -137,7 +137,7 @@ int64 MemoryFile::seek(int64 _pos, SeekRef _ref){
 
 int MemoryFile::truncate(int64 _len){
 	//TODO:
-	cassert(_len == 0);
+	SOLID_ASSERT(_len == 0);
 	sz = 0;
 	off = 0;
 	crtbuffidx = -1;

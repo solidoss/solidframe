@@ -159,7 +159,7 @@ int SerializerBase::run(char *_pb, unsigned _bl, void *_pctx){
 	}
 	resetLimits();
 	Done:
-	cassert(fstk.size() || fstk.empty() && estk.empty());
+	SOLID_ASSERT(fstk.size() || fstk.empty() && estk.empty());
 	return cpb - pb;
 }
 
@@ -771,7 +771,7 @@ int DeserializerBase::run(const char *_pb, unsigned _bl, void *_pctx){
 	}
 	resetLimits();
 	Done:
-	cassert(fstk.size() || fstk.empty() && estk.empty());
+	SOLID_ASSERT(fstk.size() || fstk.empty() && estk.empty());
 	return cpb - pb;
 }
 

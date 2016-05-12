@@ -185,7 +185,7 @@ int main(int argc, char* argv[]){
 		ev.events = EPOLLIN;//must be LevelTriggered
 		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, handles[0].sd.descriptor(), &ev)){
 			edbg("epoll_ctl: "<<strerror(errno));
-			cassert(false);
+			SOLID_ASSERT(false);
 			return AsyncError;
 		}
 	}
@@ -244,7 +244,7 @@ int executeConnection(uint32 _pos){
 				h.readbufs.push(0);
 				h.readbufs.push(1);
 			}else if(h.shouldWait()){
-				cassert(rv > 0);
+				SOLID_ASSERT(rv > 0);
 				h.setWaitWrite();
 				retval = AsyncWait;
 			}else return AsyncError;
@@ -328,7 +328,7 @@ int executeListener(){
 		ev.events = 0;
 		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, handles.back().sd.descriptor(), &ev)){
 			edbg("epoll_ctl: "<<strerror(errno));
-			cassert(false);
+			SOLID_ASSERT(false);
 			return AsyncError;
 		}
 	}

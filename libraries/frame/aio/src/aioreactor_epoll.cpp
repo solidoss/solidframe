@@ -466,7 +466,7 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32 _events){
 			retval = ReactorEventRecvHangup;break;
 			
 		default:
-			cassert(false);
+			SOLID_ASSERT(false);
 			break;
 	}
 	return retval;
@@ -487,7 +487,7 @@ inline uint32 reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests
 			evs = EPOLLET | EPOLLIN | EPOLLOUT;
 			break;
 		default:
-			cassert(false);
+			SOLID_ASSERT(false);
 	}
 	return evs;
 }
@@ -675,7 +675,7 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 				d.objdq.resize(rnewobj.uid.index + 1);
 			}
 			ObjectStub 		&ros = d.objdq[rnewobj.uid.index];
-			cassert(ros.unique == rnewobj.uid.unique);
+			SOLID_ASSERT(ros.unique == rnewobj.uid.unique);
 			ros.objptr = std::move(rnewobj.objptr);
 			ros.psvc = &rnewobj.rsvc;
 			
@@ -770,7 +770,7 @@ bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
 bool Reactor::addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx){
 	if(_rstoreidx != InvalidIndex()){
 		size_t idx = d.timestore.change(_rstoreidx, _rt);
-		cassert(idx == _rch.idxreactor);
+		SOLID_ASSERT(idx == _rch.idxreactor);
 	}else{
 		_rstoreidx = d.timestore.push(_rt, _rch.idxreactor);
 	}
@@ -779,7 +779,7 @@ bool Reactor::addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_
 
 void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx){
 	CompletionHandlerStub &rch = d.chdq[_chidx];
-	cassert(static_cast<Timer*>(rch.pch)->storeidx == _oldidx);
+	SOLID_ASSERT(static_cast<Timer*>(rch.pch)->storeidx == _oldidx);
 	static_cast<Timer*>(rch.pch)->storeidx = _newidx;
 }
 

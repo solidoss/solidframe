@@ -82,7 +82,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	~Message(){
 		idbg("DELETE ---------------- "<<(void*)this);
 		if(serialized){
-			THROW_EXCEPTION("Message serialized.");
+			SOLID_THROW("Message serialized.");
 		}
 	}
 
@@ -122,7 +122,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		
 		for(uint64 i = 0; i < count; ++i){
 			if(pu[i] != pup[(i + idx) % pattern_size]){
-				THROW_EXCEPTION("Message check failed.");
+				SOLID_THROW("Message check failed.");
 				return false;
 			}
 		}
@@ -149,10 +149,10 @@ void client_complete_message(
 ){
 	idbg(_rctx.recipientId());
 	
-	cassert(_rrecv_msg_ptr.empty());
-	cassert(_rsent_msg_ptr.get() != nullptr);
+	SOLID_CHECK(_rrecv_msg_ptr.empty());
+	SOLID_CHECK(_rsent_msg_ptr.get() != nullptr);
 	
-	cassert(_rerror == frame::ipc::error_connection_message_canceled);
+	SOLID_CHECK(_rerror == frame::ipc::error_connection_message_canceled);
 	
 	{
 		Locker<Mutex> lock(mtx);
@@ -269,14 +269,14 @@ int test_clientserver_noserver(int argc, char **argv){
 				recipient_id, message_id,
 				frame::ipc::Message::WaitResponseFlagE
 			);
-			cassert(not err);
+			SOLID_CHECK(not err);
 		}
 		
 		Thread::sleep(30 * 1000);
 		
 		err = ipcclient.cancelMessage(recipient_id, message_id);
 		
-		cassert(not err);
+		SOLID_CHECK(not err);
 		
 		Locker<Mutex>	lock(mtx);
 		
@@ -288,12 +288,12 @@ int test_clientserver_noserver(int argc, char **argv){
 			bool b = true;//cnd.wait(lock, abstime);
 			if(!b){
 				//timeout expired
-				THROW_EXCEPTION("Process is taking too long.");
+				SOLID_THROW("Process is taking too long.");
 			}
 		}
 		
 		if(crtwriteidx != crtackidx){
-			THROW_EXCEPTION("Not all messages were completed");
+			SOLID_THROW("Not all messages were completed");
 		}
 		
 		m.stop();

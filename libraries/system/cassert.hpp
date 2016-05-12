@@ -11,16 +11,21 @@
 #define SYSTEM_CASSERT_HPP
 
 #include "system/common.hpp"
+
+
 #ifdef SOLID_HAS_ASSERT
+
 #include <cassert>
-#define cassert(a) assert((a))
-#define cverify(a) assert((a))
+#define SOLID_ASSERT(a) assert((a))
+#define SOLID_VERIFY(a) assert((a))
+
 #else
 inline bool dummy(bool _b){
 	return _b;
 }
-#define cassert(a)
-#define cverify(a) dummy((a))
+#define SOLID_ASSERT(a)
+#define SOLID_VERIFY(a) dummy((a))
+
 #endif
 
 

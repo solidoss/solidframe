@@ -15,20 +15,20 @@
 
 
 inline Condition::Condition(){
-	cverify(!pthread_cond_init(&cond, NULL));
+	SOLID_VERIFY(!pthread_cond_init(&cond, NULL));
 }
 inline Condition::~Condition(){
-	cverify(!pthread_cond_destroy(&cond));
+	SOLID_VERIFY(!pthread_cond_destroy(&cond));
 }
 
 inline void Condition::signal(){
-	cverify(!pthread_cond_signal(&cond));
+	SOLID_VERIFY(!pthread_cond_signal(&cond));
 }
 inline void Condition::broadcast(){
-	cverify(!pthread_cond_broadcast(&cond));
+	SOLID_VERIFY(!pthread_cond_broadcast(&cond));
 }
 inline void Condition::wait(Locker<Mutex> &_lock){
-	cverify(!pthread_cond_wait(&cond, &_lock.m.mut));
+	SOLID_VERIFY(!pthread_cond_wait(&cond, &_lock.m.mut));
 }
 #ifdef SOLID_HAS_NO_INLINES
 #undef inline

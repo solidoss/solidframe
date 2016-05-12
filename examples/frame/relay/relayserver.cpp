@@ -386,7 +386,7 @@ struct MoveMessage{
 		char *_buf, uint8 _buflen
 	): sd(std::move(_rsd)), sz(_buflen)
 	{
-		cassert(_buflen < 12);
+		SOLID_ASSERT(_buflen < 12);
 		memcpy(buf, _buf, _buflen);
 	}
 	
@@ -400,7 +400,7 @@ struct MoveMessage{
 // 	MoveMessage(
 // 		const MoveMessage &_rmm
 // 	){
-// 		cassert(false);
+// 		SOLID_ASSERT(false);
 // 	}
 };
 
@@ -499,7 +499,7 @@ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
 	
 	if(repeatcnt == 0){
 		bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1);//fully asynchronous call
-		cassert(!rv);
+		SOLID_ASSERT(!rv);
 	}
 }
 
@@ -529,7 +529,7 @@ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
 	
 	if(repeatcnt == 0){
 		bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2);//fully asynchronous call
-		cassert(!rv);
+		SOLID_ASSERT(!rv);
 	}
 }
 

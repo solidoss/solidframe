@@ -142,7 +142,7 @@ void complete_message(
 	ErrorConditionT const &_rerr
 ){
 	if(_rerr){
-		THROW_EXCEPTION("Message complete with error");
+		SOLID_THROW("Message complete with error");
 	}
 	if(_rmessage_ptr.get()){
 		idbg(static_cast<Message*>(_rmessage_ptr.get())->idx);
@@ -151,7 +151,7 @@ void complete_message(
 	if(_rresponse_ptr.get()){
 	
 		if(not static_cast<Message&>(*_rresponse_ptr).check()){
-			THROW_EXCEPTION("Message check failed.");
+			SOLID_THROW("Message check failed.");
 		}
 		
 		++crtreadidx;

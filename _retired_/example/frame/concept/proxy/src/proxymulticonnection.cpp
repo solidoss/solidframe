@@ -27,7 +27,7 @@ MultiConnection::MultiConnection(
 	const char *_node,
 	const char *_srv
 ): b(false){
-	cassert(false);
+	SOLID_ASSERT(false);
 }
 MultiConnection::MultiConnection(const SocketDevice &_rsd):
 	BaseT(_rsd), b(false)
@@ -196,7 +196,7 @@ AsyncE MultiConnection::doReadAddress(){
 			state(REGISTER_CONNECTION);
 			return solid::AsyncSuccess;
 	}
-	cassert(false);
+	SOLID_ASSERT(false);
 	return solid::AsyncError;
 }
 AsyncE MultiConnection::doProxy(const TimeSpec &_tout){

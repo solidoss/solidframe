@@ -269,7 +269,7 @@ TimeSpec Service::sendTime(){
 void Service::onCreate(){
 	Locker<Mutex>	lock(mtx);
 	++actual_create_cnt;
-	cassert(actual_create_cnt <= expect_create_cnt);
+	SOLID_ASSERT(actual_create_cnt <= expect_create_cnt);
 	if(actual_create_cnt == expect_create_cnt){
 		cnd.signal();
 	}
@@ -277,7 +277,7 @@ void Service::onCreate(){
 void Service::onConnect(){
 	Locker<Mutex>	lock(mtx);
 	++actual_connect_cnt;
-	cassert(actual_connect_cnt <= expect_connect_cnt);
+	SOLID_ASSERT(actual_connect_cnt <= expect_connect_cnt);
 	if(actual_connect_cnt == expect_connect_cnt){
 		cnd.signal();
 	}
@@ -285,7 +285,7 @@ void Service::onConnect(){
 void Service::onReceive(){
 	Locker<Mutex>	lock(mtx);
 	++actual_receive_cnt;
-	cassert(actual_receive_cnt <= expect_receive_cnt);
+	SOLID_ASSERT(actual_receive_cnt <= expect_receive_cnt);
 	if(actual_receive_cnt == expect_receive_cnt){
 		cnd.signal();
 	}
@@ -293,7 +293,7 @@ void Service::onReceive(){
 void Service::onLogin(){
 	Locker<Mutex>	lock(mtx);
 	++actual_login_cnt;
-	cassert(actual_login_cnt <= expect_login_cnt);
+	SOLID_ASSERT(actual_login_cnt <= expect_login_cnt);
 	if(actual_login_cnt == expect_login_cnt){
 		cnd.signal();
 	}
@@ -527,7 +527,7 @@ void Connection::done(){
 }
 //---------------------------------------------------------------------------------
 void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){
-	cassert(false);
+	SOLID_ASSERT(false);
 }
 //---------------------------------------------------------------------------------
 void Connection::dynamicHandle(solid::DynamicPointer<SendJob> &_rmsgptr){
@@ -546,7 +546,7 @@ void Connection::dynamicHandle(solid::DynamicPointer<SendJob> &_rmsgptr){
 //---------------------------------------------------------------------------------
 void Connection::onReceiveNoop(){
 	idbg("");
-	cassert(waitnoop);
+	SOLID_ASSERT(waitnoop);
 	waitnoop = false;
 	nooptime = currentTime();
 	nooptime.add(30);
@@ -575,7 +575,7 @@ void Handle::afterSerialization(BinDeserializerT &_rs, BasicMessage *_pm, Connec
 void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx){
 	idbg("on text message");
 	bool b = MessageMatrix::the().check(*_pm);
-	cassert(b);
+	SOLID_ASSERT(b);
 	_rctx.rcon.onReceiveMessage();
 }
 void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){

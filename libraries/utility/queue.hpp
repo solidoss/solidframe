@@ -54,7 +54,7 @@ public:
 		Node *pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)): nullptr;
 		while(ptn){
 			Node *tn = ptn->next;
-			cassert(ptn != pn);
+			SOLID_ASSERT(ptn != pn);
 			delete ptn;
 			ptn = tn;
 		}
@@ -139,15 +139,15 @@ private:
 		}
 	}
 	T* popNode(void *_p){
-		//cassert(_p);
-		cassert(_p);
+		//SOLID_ASSERT(_p);
+		SOLID_ASSERT(_p);
 		Node *pn = (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*));
 		Node *ppn = pn->next;
 		pn->next = ptn; ptn = pn;//cache the node
 		if(ppn){
 			return (T*)(ppn->data);
 		}else{
-			cassert(!sz);
+			SOLID_ASSERT(!sz);
 			pb = nullptr;
 			//pf = nullptr;
 			return nullptr;

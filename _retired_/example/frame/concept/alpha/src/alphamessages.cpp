@@ -143,7 +143,7 @@ FetchSlaveMessage::FetchSlaveMessage(): fromv(0xffffffff, 0xffffffff), ios(/*0*/
 
 FetchSlaveMessage::~FetchSlaveMessage(){
 	idbg(""<<(void*)this);
-	cassert(serialized);
+	SOLID_ASSERT(serialized);
 	print();
 // 	if(fromv.first != 0xffffffff){
 // 		idbg("unsuccessfull sent");
@@ -177,7 +177,7 @@ void FetchSlaveMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx,
 		ipcResetState();
 		Manager::the().notify(msgptr, ObjectUidT(tov.first, tov.second));
 	}else{
-		cassert(false);
+		SOLID_ASSERT(false);
 	}
 }
 

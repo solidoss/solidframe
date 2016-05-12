@@ -46,7 +46,7 @@ Logger::Logger(uint32 _linesz):linesz(_linesz){
 Logger::~Logger(){
 }
 void Logger::inFlush(){
-	//cassert(ins.size());
+	//SOLID_ASSERT(ins.size());
 	doInFlush(ins.data(), ins.size());
 	ins.clear();
 }
@@ -102,7 +102,7 @@ void Logger::inLocate(const char *_pb, unsigned _bl){
 }
 //----------------------------------------------------------
 void Logger::outFlush(){
-	//cassert(outs.size());
+	//SOLID_ASSERT(outs.size());
 	doOutFlush(outs.data(), outs.size());
 	outs.clear();
 }

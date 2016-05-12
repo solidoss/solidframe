@@ -100,7 +100,7 @@ Mutex &shared_mutex(const void *_p){
 //---------------------------------------------------------------------
 
 void DynamicPointerBase::clear(DynamicBase *_pdyn){
-	cassert(_pdyn);
+	SOLID_ASSERT(_pdyn);
 	if(!_pdyn->release()) delete _pdyn;
 }
 

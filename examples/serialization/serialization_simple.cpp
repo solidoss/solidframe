@@ -268,7 +268,7 @@ void Array::print() const{
 namespace solid{namespace serialization{namespace binary{
 template <class S>
 void serialize(S &_s, Base &){
-	cassert(false);
+	SOLID_ASSERT(false);
 }
 
 template <class S>

@@ -133,7 +133,7 @@ void complete_message(
 	if(_rresponse_ptr.get()){
 	
 		if(not static_cast<Message&>(*_rresponse_ptr).check()){
-			THROW_EXCEPTION("Message check failed.");
+			SOLID_THROW("Message check failed.");
 		}
 		
 		++crtreadidx;
@@ -226,7 +226,7 @@ int test_protocol_close(int argc, char **argv){
 			ipcwriterconfig, msgbundle, pool_msg_id, writer_msg_id
 		);
 		
-		cassert(rv);
+		SOLID_CHECK(rv);
 		
 		idbg("enqueue rv = "<<rv<<" writer_msg_id = "<<writer_msg_id);
 		idbg(frame::ipc::MessageWriterPrintPairT(ipcmsgwriter, frame::ipc::MessageWriter::PrintInnerListsE));
@@ -285,7 +285,7 @@ int test_protocol_close(int argc, char **argv){
 				ipcmsgreader.read(buf, bufsz, readercompletefnc, ipcreaderconfig, ipcprotocol, ipcconctx, error);
 			}else{
 				idbg("done write");
-				cassert(error == frame::ipc::error_connection_delayed_closed);
+				SOLID_CHECK(error == frame::ipc::error_connection_delayed_closed);
 				is_running = false;
 			}
 		}

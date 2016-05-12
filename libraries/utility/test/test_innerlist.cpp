@@ -36,7 +36,7 @@ int test_innerlist(int argc, char *argv[]){
 	NodeVectorT			node_vec;
 	InnerOrderListT		order_list(node_vec);
 	
-	cassert(order_list.empty());
+	SOLID_ASSERT(order_list.empty());
 	
 	node_vec.push_back(Node("a"));
 	node_vec.push_back(Node("b"));
@@ -45,15 +45,15 @@ int test_innerlist(int argc, char *argv[]){
 	node_vec.push_back(Node("e"));
 	
 	order_list.pushBack(4);
-	cassert(order_list.size() == 1);
+	SOLID_ASSERT(order_list.size() == 1);
 	order_list.pushBack(3);
-	cassert(order_list.size() == 2);
+	SOLID_ASSERT(order_list.size() == 2);
 	order_list.pushBack(2);
-	cassert(order_list.size() == 3);
+	SOLID_ASSERT(order_list.size() == 3);
 	order_list.pushBack(1);
-	cassert(order_list.size() == 4);
+	SOLID_ASSERT(order_list.size() == 4);
 	order_list.pushBack(0);
-	cassert(order_list.size() == 5);
+	SOLID_ASSERT(order_list.size() == 5);
 	
 	cout<<"order_list("<<order_list.size()<<"): ";
 	
@@ -65,7 +65,7 @@ int test_innerlist(int argc, char *argv[]){
 	cout<<"front = "<<order_list.front().str<<endl;
 	
 	order_list.erase(3);
-	cassert(order_list.size() == 4);
+	SOLID_ASSERT(order_list.size() == 4);
 	
 	cout<<"after erase(3) order_list("<<order_list.size()<<"): ";
 	order_list.forEach(visit_fnc);
@@ -73,7 +73,7 @@ int test_innerlist(int argc, char *argv[]){
 	
 	
 	order_list.popFront();
-	cassert(order_list.size() == 3);
+	SOLID_ASSERT(order_list.size() == 3);
 	
 	
 	cout<<"after popFront order_list("<<order_list.size()<<"): ";
