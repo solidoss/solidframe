@@ -488,17 +488,9 @@ typedef Stack<size_t>									SizeStackT;
 
 //-----------------------------------------------------------------------------
 
-enum struct Status{
-	Running,
-	Stopping,
-	Stopped
-};
-
-using  AtomicStatusT = std::atomic<Status>;
-
 struct Service::Data{
 	
-	Data(Service &_rsvc): pmtxarr(nullptr), mtxsarrcp(0), config(), status(Status::Running){}
+	Data(Service &_rsvc): pmtxarr(nullptr), mtxsarrcp(0), config()/*, status(Status::Running)*/{}
 	
 	~Data(){
 		delete []pmtxarr;
@@ -523,13 +515,11 @@ struct Service::Data{
 	
 	Mutex					mtx;
 	Mutex					*pmtxarr;
-	Condition				cnd;
 	size_t					mtxsarrcp;
 	NameMapT				namemap;
 	ConnectionPoolDequeT	pooldq;
 	SizeStackT				conpoolcachestk;
 	Configuration			config;
-	AtomicStatusT			status;
 };
 //=============================================================================
 
@@ -546,14 +536,9 @@ Configuration const & Service::configuration()const{
 	return d.config;
 }
 //-----------------------------------------------------------------------------
-void Service::stop(){
-	doStop();
-}
-//-----------------------------------------------------------------------------
 ErrorConditionT Service::start(){
 	Locker<Mutex>	lock(d.mtx);
 	ErrorConditionT err =  doStart();
-	d.cnd.broadcast();
 	return err;
 }
 //-----------------------------------------------------------------------------
@@ -567,8 +552,6 @@ ErrorConditionT Service::doStart(){
 		error = error_service_start;
 		return error;
 	}
-	
-	d.status = Status::Running;
 	
 	if(configuration().listener_address_str.size()){
 		std::string		tmp;
@@ -626,45 +609,13 @@ ErrorConditionT Service::doStart(){
 	return error;
 }
 //-----------------------------------------------------------------------------
-void Service::doStop(){
-	
-	vdbgx(Debug::ipc, this);
-	
-	{
-		Locker<Mutex>	lock(d.mtx);
-		while(d.status == Status::Stopping){
-			d.cnd.wait(lock);
-		}
-		
-		d.status = Status::Stopping;
-	}
-	
-	BaseT::stop(true);//block until all objects are destroyed
-	{
-		Locker<Mutex>	lock(d.mtx);
-		d.status = Status::Stopped;
-		d.cnd.broadcast();
-	}
-}
-//-----------------------------------------------------------------------------
 ErrorConditionT Service::reconfigure(Configuration && _ucfg){
 	
 	vdbgx(Debug::ipc, this);
 	
-	{
-		Locker<Mutex>	lock(d.mtx);
-		while(d.status == Status::Stopping){
-			d.cnd.wait(lock);
-		}
-		
-		d.status = Status::Stopping;
-	}
-	
 	BaseT::stop(true);//block until all objects are destroyed
 	
 	Locker<Mutex>	lock(d.mtx);
-	
-	d.status = Status::Stopped;
 	
 	{
 		ErrorConditionT error;
@@ -740,7 +691,7 @@ ErrorConditionT Service::doSendMessage(
 	
 	Locker<Mutex>				lock(d.mtx);
 	
-	if(d.status != Status::Running){
+	if(not isRunning()){
 		edbgx(Debug::ipc, this<<" service stopping");
 		error = error_service_stopping;
 		return error;
@@ -1579,9 +1530,9 @@ bool Service::connectionStopping(
 		return doMainConnectionStoppingCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else if(rpool.isCleaningAllMessages()){
 		return doMainConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
-	}else if(rpool.isRestarting()){
+	}else if(rpool.isRestarting() and isRunning()){
 		return doMainConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
-	}else if(not rpool.isFastClosing() and not rpool.isServerSide() and d.status == Status::Running){
+	}else if(not rpool.isFastClosing() and not rpool.isServerSide() and isRunning()){
 		return doMainConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else{
 		return doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
@@ -1895,7 +1846,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
 		rpool.pending_connection_count == 0 and
 		rpool.hasAnyMessage() and
 		rpool.conn_waitingq.empty() and
-		d.status == Status::Running
+		isRunning()
 	){
 		
 		idbgx(Debug::ipc, this<<" try create new connection in pool "<<rpool.active_connection_count<<" pending connections "<< rpool.pending_connection_count);

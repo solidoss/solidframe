@@ -33,6 +33,55 @@
 namespace solid{
 namespace frame{
 
+namespace{
+
+enum {
+	ErrorServiceUnknownE = 1,
+	ErrorServiceNotRunningE,
+	ErrorObjectScheduleE
+};
+
+class ErrorCategory: public ErrorCategoryT
+{     
+public: 
+	const char* name() const noexcept{
+		return "frame::ipc";
+	}
+	std::string message(int _ev)const;
+};
+
+const ErrorCategory category;
+
+
+std::string ErrorCategory::message(int _ev) const{
+	std::ostringstream oss;
+	
+	oss<<"("<<name()<<":"<<_ev<<"): ";
+	
+	switch(_ev){
+		case 0:
+			oss<<"Success";
+			break;
+		case ErrorServiceUnknownE:
+			oss<<"Service not known";
+			break;
+		case ErrorServiceNotRunningE:
+			oss<<"Service not running";
+			break;
+		case ErrorObjectScheduleE:
+			oss<<"Object scheduling";
+			break;
+		default:
+			oss<<"Unknown";
+			break;
+	}
+	return oss.str();
+}
+const ErrorConditionT error_service_unknown(ErrorServiceUnknownE, category);
+const ErrorConditionT error_service_not_running(ErrorServiceNotRunningE, category);
+const ErrorConditionT error_object_schedule(ErrorObjectScheduleE, category);
+
+}//namespace
 
 std::ostream& operator<<(std::ostream &_ros, UniqueId const& _uid){
 	_ros<<_uid.index<<':'<<_uid.unique;
@@ -449,6 +498,7 @@ void Manager::doUnregisterService(ServiceStub &_rss){
 	
 	_rss.reset();
 	--d.svccnt;
+	
 	if(d.svccnt == 0 && d.state == StateStoppingE){
 		d.cnd.broadcast();
 	}
@@ -466,6 +516,7 @@ ObjectIdT Manager::registerObject(
 	const size_t	svcidx = _rsvc.idx;
 	
 	if(svcidx == InvalidIndex()){
+		_rerr = error_service_unknown;
 		return retval;
 	}
 	
@@ -477,6 +528,7 @@ ObjectIdT Manager::registerObject(
 	d.releaseReadServiceStore(svcstoreidx);
 	
 	if(rss.psvc != &_rsvc || rss.state != StateRunningE){
+		_rerr = error_service_not_running;
 		return retval;
 	}
 	
@@ -566,6 +618,8 @@ ObjectIdT Manager::registerObject(
 			_robj.id(InvalidIndex());
 			//the object was not scheduled
 			rss.objcache.push(objidx);
+			_rerr.assign(-3, _rerr.category());//TODO: proper error
+			_rerr = error_object_schedule;
 		}
 	}
 	return retval;
@@ -802,6 +856,7 @@ bool Manager::startService(Service &_rsvc){
 	Locker<Mutex>	lock(rss.rmtx);
 	
 	if(rss.state == StateStoppedE){
+		rss.psvc->setRunning();
 		rss.state = StateRunningE;
 		return true;
 	}
@@ -829,6 +884,8 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 				return notify_object(_robj, _rreact, generic_event_category.event(GenericEvents::Kill), 0);
 			}
 		);
+		
+		rss.psvc->resetRunning();
 		
 		const bool				cnt = doForEachServiceObject(rss.firstchk, fctor);
 		
@@ -880,6 +937,9 @@ void Manager::stop(){
 					return notify_object(_robj, _rreact, generic_event_category.event(GenericEvents::Kill), 0);
 				}
 			);
+			
+			rss.psvc->resetRunning();
+			
 			const size_t			cnt = doForEachServiceObject(rss.firstchk, fctor);
 			
 			rss.state = cnt != 0 ? StateStoppingE : StateStoppedE;
@@ -897,6 +957,8 @@ void Manager::stop(){
 				d.cnd.wait(lock);
 			}
 			rss.state = StateStoppedE;
+		}else{
+			SOLID_ASSERT(false);
 		}
 		doUnregisterService(rss);
 	}

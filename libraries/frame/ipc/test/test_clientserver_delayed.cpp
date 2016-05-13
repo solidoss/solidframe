@@ -252,8 +252,8 @@ void server_complete_message(
 int test_clientserver_delayed(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("ew");
-	Debug::the().moduleMask("frame_ipc:ew any:ew");
+	Debug::the().levelMask("view");
+	Debug::the().moduleMask("frame_ipc:view any:view");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif

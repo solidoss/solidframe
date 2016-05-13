@@ -54,17 +54,28 @@ public:
 	
 	Mutex& mutex(const ObjectBase &_robj)const;
 	
+	bool isRunning()const;
+	
 protected:
 	Mutex& mutex()const;
 private:
 	friend class Manager;
 	friend class SchedulerBase;
 	
+	void setRunning(){
+		running = true;
+	}
+	
+	void resetRunning(){
+		running = false;
+	}
+	
 	ObjectIdT registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr);
 private:
 	
 	Manager 					&rm;
 	ATOMIC_NS::atomic<size_t>	idx;
+	ATOMIC_NS::atomic<bool>		running;
 };
 
 inline Manager& Service::manager(){
@@ -73,7 +84,9 @@ inline Manager& Service::manager(){
 inline bool Service::isRegistered()const{
 	return idx.load(/*ATOMIC_NS::memory_order_seq_cst*/) != InvalidIndex();
 }
-
+inline bool Service::isRunning()const{
+	return running;
+}
 }//namespace frame
 }//namespace solid
 

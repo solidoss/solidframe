@@ -82,8 +82,6 @@ public:
 	//! Destructor
 	~Service();
 	
-	void stop();
-	
 	ErrorConditionT start();
 	
 	ErrorConditionT reconfigure(Configuration && _ucfg);
@@ -301,7 +299,8 @@ private:
 	friend class Listener;
 	friend class Connection;
 	
-	void doStop();
+	//void doStop();
+	
 	ErrorConditionT doStart();
 	
 	void acceptIncomingConnection(SocketDevice &_rsd);
