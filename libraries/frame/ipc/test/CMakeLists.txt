@@ -100,3 +100,35 @@ add_test(NAME TestKeepAliveFail2		COMMAND  test_ipc_keepalive test_keepalive_fai
 add_test(NAME TestKeepAliveSuccess1		COMMAND  test_ipc_keepalive test_keepalive_success "0")
 
 #==============================================================================
+
+set( IpcPoolTestSuite
+	test_pool_force_close.cpp
+	test_pool_delay_close.cpp
+)
+
+create_test_sourcelist( IpcPoolTests test_ipc_pool.cpp ${IpcPoolTestSuite})
+
+add_executable(test_ipc_pool ${IpcPoolTests})
+
+target_link_libraries(test_ipc_pool
+	solid_frame_ipc
+	solid_frame_aio
+	solid_frame_aio_openssl
+	solid_frame
+	solid_serialization
+	solid_utility
+	solid_system
+	${OPENSSL_LIBS}
+	${SYS_DYNAMIC_LOAD_LIB}
+	${SYS_BASIC_LIBS}
+)
+
+add_test(NAME TestPoolForceClose1		COMMAND  test_ipc_pool test_pool_force_close 1)
+#add_test(NAME TestPoolForceClose2		COMMAND  test_ipc_pool test_pool_force_close 2)
+#add_test(NAME TestPoolForceClose4		COMMAND  test_ipc_pool test_pool_force_close 4)
+
+add_test(NAME TestPoolDelayClose1		COMMAND  test_ipc_pool test_pool_delay_close 1)
+#add_test(NAME TestPoolDelayClose2		COMMAND  test_ipc_pool test_pool_delay_close 2)
+#add_test(NAME TestPoolDelayClose4		COMMAND  test_ipc_pool test_pool_delay_close 4)
+
+#==============================================================================

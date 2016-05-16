@@ -958,7 +958,7 @@ void Manager::stop(){
 			}
 			rss.state = StateStoppedE;
 		}else{
-			SOLID_ASSERT(false);
+			SOLID_ASSERT(rss.state == StateStoppedE);
 		}
 		doUnregisterService(rss);
 	}

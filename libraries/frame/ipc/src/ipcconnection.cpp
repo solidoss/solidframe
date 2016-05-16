@@ -393,7 +393,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, error);
 		
 		
-		if(not msg_bundle.message_ptr.empty()){
+		if(msg_bundle.message_ptr.get() or not FUNCTION_EMPTY(msg_bundle.complete_fnc)){
 			if(not error){
 				error = error_connection_message_fail_send;
 			}
@@ -542,7 +542,7 @@ void Connection::doContinueStopping(
 	
 	bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, error);
 	
-	if(not msg_bundle.message_ptr.empty()){
+	if(not msg_bundle.message_ptr.empty() or not FUNCTION_EMPTY(msg_bundle.complete_fnc)){
 		if(not error){
 			error = error_connection_message_fail_send;
 		}

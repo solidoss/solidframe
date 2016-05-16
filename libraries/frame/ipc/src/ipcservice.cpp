@@ -249,7 +249,7 @@ struct ConnectionPoolStub{
 		
 		rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc);
 		
-		SOLID_ASSERT(rmsgstub.msgbundle.message_ptr.get());
+		//SOLID_ASSERT(rmsgstub.msgbundle.message_ptr.get());
 		
 		return MessageId(idx, rmsgstub.unique);
 	}
@@ -1252,7 +1252,7 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 	
 	MessagePointerT		empty_msg_ptr;
 	
-	const MessageId		msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0);
+	const MessageId		msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, Message::SynchronousFlagE);
 	(void)msgid;
 	
 	//no reason to cancel all messages - they'll be handled on connection stop.
@@ -1674,7 +1674,7 @@ bool Service::doMainConnectionStoppingCleanAll(
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
-	if(rpool.hasAnyMessage()){
+	if(rpool.msgorder_inner_list.size()){
 		const size_t msgidx = rpool.msgorder_inner_list.frontIndex();
 		{
 			MessageStub &rmsgstub = rpool.msgorder_inner_list.front();
