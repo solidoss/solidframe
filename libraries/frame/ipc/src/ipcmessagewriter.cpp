@@ -59,6 +59,8 @@ bool MessageWriter::enqueue(
 		return false;
 	}
 	
+	SOLID_ASSERT(_rmsgbundle.message_ptr.get());
+	
 	//clear all disrupting flags
 	_rmsgbundle.message_flags &= ~Message::StartedSendFlagE;
 	_rmsgbundle.message_flags &= ~Message::DoneSendFlagE;
@@ -287,25 +289,6 @@ char* MessageWriter::doFillPacket(
 		
 		MessageStub				&rmsgstub = message_vec[msgidx];
 		PacketHeader::Types		msgswitch;// = PacketHeader::ContinuedMessageTypeE;
-		
-		if(rmsgstub.isStop()){
-
-			if(write_inner_list.size() > 1){
-				
-				//there are other messages - reschedule this message
-				write_inner_list.popFront();
-				write_inner_list.pushBack(msgidx);
-				
-				continue;
-			}else if(pbufpos == _pbufbeg and order_inner_list.empty()){
-				//we can stop
-				_rerror = error_connection_delayed_closed;
-				pbufpos = nullptr;
-				write_inner_list.popFront();
-			}
-			_rmore = false;
-			break;
-		}
 		
 		if(
 			Message::is_synchronous(rmsgstub.msgbundle.message_flags)
