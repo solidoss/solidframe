@@ -1050,7 +1050,7 @@ ErrorConditionT Service::pollPoolForUpdates(
 	MessageId const &_rcompleted_msgid
 ){
 	
-	vdbgx(Debug::ipc, this);
+	vdbgx(Debug::ipc, this<<" "<<&_rconnection);
 	
 	const size_t			pool_idx = _rconnection.poolId().index;
 	Locker<Mutex>			lock2(d.poolMutex(pool_idx));
@@ -1141,12 +1141,11 @@ ErrorConditionT Service::pollPoolForUpdates(
 			);
 		}
 	}
-	
-	//connection WILL not check for new message if it is full
-	//connection WILL check for new messages when become not full
-	//connection MAY NOT check for new messages if (isInPoolWaitingQueue)
-	
-	if(not _rconnection.isFull(configuration()) and not _rconnection.isInPoolWaitingQueue()){
+	//a connection will either be in conn_waitingq
+	//or it will call pollPoolForUpdates asap.
+	//this is because we need to be able to notify connection about
+	//pool force close imeditely
+	if(not _rconnection.isInPoolWaitingQueue()){
 		rpool.conn_waitingq.push(_robjuid);
 		_rconnection.setInPoolWaitingQueue();
 	}
@@ -1845,7 +1844,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
 		rpool.active_connection_count < configuration().pool_max_active_connection_count and
 		rpool.pending_connection_count == 0 and
 		rpool.hasAnyMessage() and
-		rpool.conn_waitingq.empty() and
+		rpool.conn_waitingq.size() < rpool.msgorder_inner_list.size() and
 		isRunning()
 	){
 		
@@ -1982,9 +1981,9 @@ ErrorConditionT Service::activateConnection(Connection &_rconnection, ObjectIdT 
 	
 	vdbgx(Debug::ipc, this);
 	
-	const size_t			pool_idx = _rconnection.poolId().index;
-	Locker<Mutex>			lock2(d.poolMutex(pool_idx));
-	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
+	const size_t			pool_index = _rconnection.poolId().index;
+	Locker<Mutex>			lock2(d.poolMutex(pool_index));
+	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	ErrorConditionT			error;
 	
 	SOLID_ASSERT(rpool.unique == _rconnection.poolId().unique);
@@ -2022,6 +2021,10 @@ ErrorConditionT Service::activateConnection(Connection &_rconnection, ObjectIdT 
 	
 	--rpool.pending_connection_count;
 	++rpool.active_connection_count;
+	{
+		ErrorConditionT		err;
+		doTryCreateNewConnectionForPool(pool_index, err);
+	}
 	
 	return error;
 }

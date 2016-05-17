@@ -1144,6 +1144,8 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 			switch(_event){
 				case MessageReader::MessageCompleteE:
 					rthis.doCompleteMessage(_rctx, _rmsg_ptr, _msg_type_id);
+					rthis.flags |= static_cast<size_t>(Flags::PollPool);//reset flag
+					rthis.post(_rctx, [&rthis](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){rthis.doSend(_rctx);});
 					break;
 				case MessageReader::KeepaliveCompleteE:
 					rthis.doCompleteKeepalive(_rctx);
@@ -1206,86 +1208,98 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 //-----------------------------------------------------------------------------
 void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	
-	idbgx(Debug::ipc, this<<"");
+	idbgx(Debug::ipc, this<<" isstopping = "<<this->isStopping());
 	
-	if(not this->hasPendingSend() and not this->isStopping()){
-		ConnectionContext	conctx(service(_rctx), *this);
-		unsigned 			repeatcnt = 4;
+	if(not this->isStopping()){
 		ErrorConditionT		error;
-		const uint32		sendbufcp = sendBufferCapacity();
-		const Configuration &rconfig  = service(_rctx).configuration();
-		bool				sent_something = false;
-		
-		auto				complete_lambda(
-			[this, &_rctx](MessageBundle &_rmsg_bundle, MessageId const &_rpool_msg_id){
-				this->doCompleteMessage(_rctx, _rpool_msg_id, _rmsg_bundle, ErrorConditionT());
-				return service(_rctx).pollPoolForUpdates(*this, uid(_rctx), _rpool_msg_id);
+		//we do a pollPoolForUpdates here because we want to be able to
+		//receive a force pool close, even though we are waiting for send.
+		if(
+			shouldPollPool()
+		){
+			flags &= ~static_cast<size_t>(Flags::PollPool);//reset flag
+			if((error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId()))){
+				doStop(_rctx, error);
+				return;
 			}
-		);
+		}
 		
-		//doResetTimerSend(_rctx);
-		
-		while(repeatcnt){
+		if(not this->hasPendingSend()){
+			ConnectionContext	conctx(service(_rctx), *this);
+			unsigned 			repeatcnt = 4;
 			
-			if(
-				shouldPollPool()
-			){
-				flags &= ~static_cast<size_t>(Flags::PollPool);//reset flag
-				if((error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId()))){
-					doStop(_rctx, error);
-					sent_something = false;//prevent calling doResetTimerSend after doStop
-					break;
+			const uint32		sendbufcp = sendBufferCapacity();
+			const Configuration &rconfig  = service(_rctx).configuration();
+			bool				sent_something = false;
+			
+			auto				complete_lambda(
+				[this, &_rctx](MessageBundle &_rmsg_bundle, MessageId const &_rpool_msg_id){
+					this->doCompleteMessage(_rctx, _rpool_msg_id, _rmsg_bundle, ErrorConditionT());
+					return service(_rctx).pollPoolForUpdates(*this, uid(_rctx), _rpool_msg_id);
 				}
-			}
-			
-#if 0
-			if(msgwriter.empty()){
-				//nothing to do but wait
-				break;
-			}
-#endif
-			MessageWriter::CompleteFunctionT	completefnc(std::cref(complete_lambda));
-
-			uint32								sz = msg_writer.write(
-				send_buf, sendbufcp, shouldSendKeepalive(), completefnc, rconfig.writer, rconfig.protocol(), conctx, error
 			);
 			
-			flags &= (~static_cast<size_t>(Flags::Keepalive));
+			//doResetTimerSend(_rctx);
 			
-			if(!error){
-				if(sz && this->sendAll(_rctx, send_buf, sz)){
-					if(_rctx.error()){
-						edbgx(Debug::ipc, this<<' '<<id()<<" sending "<<sz<<": "<<_rctx.error().message());
-						flags |= static_cast<size_t>(Flags::StopPeer);
-						doStop(_rctx, _rctx.error());
+			while(repeatcnt){
+				
+				if(
+					shouldPollPool()
+				){
+					flags &= ~static_cast<size_t>(Flags::PollPool);//reset flag
+					if((error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId()))){
+						doStop(_rctx, error);
 						sent_something = false;//prevent calling doResetTimerSend after doStop
 						break;
+					}
+				}
+				
+				MessageWriter::CompleteFunctionT	completefnc(std::cref(complete_lambda));
+
+				uint32								sz = msg_writer.write(
+					send_buf, sendbufcp, shouldSendKeepalive(), completefnc, rconfig.writer, rconfig.protocol(), conctx, error
+				);
+				
+				flags &= (~static_cast<size_t>(Flags::Keepalive));
+				
+				if(!error){
+					if(sz && this->sendAll(_rctx, send_buf, sz)){
+						if(_rctx.error()){
+							edbgx(Debug::ipc, this<<' '<<id()<<" sending "<<sz<<": "<<_rctx.error().message());
+							flags |= static_cast<size_t>(Flags::StopPeer);
+							doStop(_rctx, _rctx.error());
+							sent_something = false;//prevent calling doResetTimerSend after doStop
+							break;
+						}else{
+							sent_something = true;
+						}
 					}else{
-						sent_something = true;
+						break;
 					}
 				}else{
+					edbgx(Debug::ipc, this<<' '<<id()<<" storring "<<error.message());
+					
+					doStop(_rctx, error);
+					sent_something = false;//prevent calling doResetTimerSend after doStop
+					
 					break;
 				}
-			}else{
-				edbgx(Debug::ipc, this<<' '<<id()<<" storring "<<error.message());
-				//flags |= static_cast<size_t>(Flags::StopForced);//TODO: maybe you should not set this all the time
-				doStop(_rctx, error);
-				sent_something = false;//prevent calling doResetTimerSend after doStop
-				break;
+				--repeatcnt;
 			}
-			--repeatcnt;
-		}
+			
+			if(sent_something){
+				doResetTimerSend(_rctx);
+			}
+			
+			if(repeatcnt == 0){
+				//idbgx(Debug::ipc, this<<" post send");
+				this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
+			}
+			//idbgx(Debug::ipc, this<<" done-doSend "<<this->sendmsgvec[0].size()<<" "<<this->sendmsgvec[1].size());	
 		
-		if(sent_something){
-			doResetTimerSend(_rctx);
-		}
-		
-		if(repeatcnt == 0){
-			//idbgx(Debug::ipc, this<<" post send");
-			this->post(_rctx, [this](frame::aio::ReactorContext &_rctx, Event const &/*_revent*/){this->doSend(_rctx);});
-		}
-		//idbgx(Debug::ipc, this<<" done-doSend "<<this->sendmsgvec[0].size()<<" "<<this->sendmsgvec[1].size());
-	}
+		}//if(not this->hasPendingSend())
+	
+	}//if(not this->isStopping())
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
@@ -1583,6 +1597,10 @@ ObjectIdT ConnectionContext::connectionId()const{
 //-----------------------------------------------------------------------------
 const std::string& ConnectionContext::recipientName()const{
 	return rconnection.poolName();
+}
+//-----------------------------------------------------------------------------
+bool ConnectionContext::isConnectionActive()const{
+	return rconnection.isActiveState();
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

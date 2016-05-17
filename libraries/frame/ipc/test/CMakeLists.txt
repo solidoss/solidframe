@@ -124,8 +124,8 @@ target_link_libraries(test_ipc_pool
 )
 
 add_test(NAME TestPoolForceClose1		COMMAND  test_ipc_pool test_pool_force_close 1)
-#add_test(NAME TestPoolForceClose2		COMMAND  test_ipc_pool test_pool_force_close 2)
-#add_test(NAME TestPoolForceClose4		COMMAND  test_ipc_pool test_pool_force_close 4)
+add_test(NAME TestPoolForceClose2		COMMAND  test_ipc_pool test_pool_force_close 2)
+add_test(NAME TestPoolForceClose4		COMMAND  test_ipc_pool test_pool_force_close 4)
 
 add_test(NAME TestPoolDelayClose1		COMMAND  test_ipc_pool test_pool_delay_close 1)
 #add_test(NAME TestPoolDelayClose2		COMMAND  test_ipc_pool test_pool_delay_close 2)

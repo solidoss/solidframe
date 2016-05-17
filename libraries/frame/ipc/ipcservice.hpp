@@ -193,7 +193,7 @@ public:
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		RecipientId &_rrecipient_id,
-		ulong _flags = 0
+		ulong _flags
 	);
 	
 	template <class T, class Fnc>
@@ -203,7 +203,7 @@ public:
 		Fnc _complete_fnc,
 		RecipientId &_rrecipient_id,
 		MessageId &_rmsguid,
-		ulong _flags = 0
+		ulong _flags
 	);
 	
 	// send message with complete using connection uid ------------------------
@@ -212,7 +212,7 @@ public:
 		RecipientId const &_rrecipient_id,
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _complete_fnc,
-		ulong _flags = 0
+		ulong _flags
 	);
 	
 	template <class T, class Fnc>
@@ -221,7 +221,7 @@ public:
 		DynamicPointer<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		MessageId &_rmsguid,
-		ulong _flags = 0
+		ulong _flags
 	);
 	
 	//-------------------------------------------------------------------------

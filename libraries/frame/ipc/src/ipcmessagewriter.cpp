@@ -297,7 +297,7 @@ char* MessageWriter::doFillPacket(
 				write_inner_list.pushBack(msgidx);
 				
 				continue;
-			}else if(pbufpos == _pbufbeg){
+			}else if(pbufpos == _pbufbeg and order_inner_list.empty()){
 				//we can stop
 				_rerror = error_connection_delayed_closed;
 				pbufpos = nullptr;

@@ -44,6 +44,12 @@ InitStub initarray[] = {
 	{8048000, 0},
 	{8096000, 0},
 	{8192000, 0},
+	{16384000, 0},
+	{8192000, 0},
+	{8024000, 0},
+	{8048000, 0},
+	{8096000, 0},
+	{8192000, 0},
 	{16384000, 0}
 };
 
@@ -138,7 +144,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 
 void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
 	idbg(_rctx.recipientId());
-	if(!running){
+	if(_rctx.isConnectionActive()){
 		++connection_count;
 	}
 }
@@ -164,9 +170,6 @@ void client_complete_message(
 	idbg(_rctx.recipientId()<<" error: "<<_rerror.message());
 	
 	if(_rsent_msg_ptr.get()){
-		if(!_rerror){
-			idbg(_rctx.recipientId()<<" msgid = "<<_rsent_msg_ptr->idx);
-		}
 		SOLID_CHECK(_rerror);
 		++crtackidx;
 	}
@@ -185,11 +188,6 @@ void server_complete_message(
 	ErrorConditionT const &_rerror
 ){
 	SOLID_CHECK(false);
-	if(_rrecv_msg_ptr.get()){
-		SOLID_CHECK(_rrecv_msg_ptr->idx == 0);//should never be called
-	}else{
-		
-	}
 }
 
 }//namespace
@@ -197,8 +195,8 @@ void server_complete_message(
 int test_pool_force_close(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:view any:view");
+	Debug::the().levelMask("ew");
+	Debug::the().moduleMask("frame_ipc:ew any:ew");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -323,7 +321,7 @@ int test_pool_force_close(int argc, char **argv){
 			
 			cfg.name_resolve_fnc = frame::ipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
 			
-			cfg.writer.max_message_count_multiplex = 4;
+			cfg.writer.max_message_count_multiplex = 2;
 			
 			err = ipcclient.reconfigure(std::move(cfg));
 			
@@ -339,29 +337,34 @@ int test_pool_force_close(int argc, char **argv){
 		const size_t		start_count = initarraysize;
 		
 		writecount = start_count;//
-		
-		std::vector<frame::ipc::MessagePointerT>	msg_vec;
-		
-		for(size_t i = 0; i < start_count; ++i){
-			msg_vec.push_back(frame::ipc::MessagePointerT(new Message(i)));
-		}
 		{
-			std::vector<frame::ipc::MessagePointerT>::iterator it = msg_vec.begin();
+			std::vector<frame::ipc::MessagePointerT>	msg_vec;
 			
-			{
-				++crtwriteidx;
-				ipcclient.sendMessage(
-					"localhost", *it, recipinet_id, 0
-				);
+			for(size_t i = 0; i < start_count; ++i){
+				msg_vec.push_back(frame::ipc::MessagePointerT(new Message(i)));
 			}
-			for(; crtwriteidx < start_count;){
-				++crtwriteidx;
-				ipcclient.sendMessage(
-					"localhost", *it, 0
-				);
+			{
+				std::vector<frame::ipc::MessagePointerT>::iterator it = msg_vec.begin();
+				
+				{
+					++crtwriteidx;
+					ipcclient.sendMessage(
+						"localhost", *it, recipinet_id, 0
+					);
+				}
+				
+				++it;
+				
+				for(; crtwriteidx < start_count; ++it){
+					++crtwriteidx;
+					ipcclient.sendMessage(
+						"localhost", *it, 0
+					);
+				}
 			}
 		}
-		Thread::sleep(2);
+		Thread::sleep(80);
+		
 		pipcclient->forceCloseConnectionPool(
 			recipinet_id,
 			[](frame::ipc::ConnectionContext &_rctx){
