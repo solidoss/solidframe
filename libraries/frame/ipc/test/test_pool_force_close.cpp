@@ -45,12 +45,12 @@ InitStub initarray[] = {
 	{8096000, 0},
 	{8192000, 0},
 	{16384000, 0},
-	{8192000, 0},
+	{8192000, 0}/*,
 	{8024000, 0},
 	{8048000, 0},
 	{8096000, 0},
 	{8192000, 0},
-	{16384000, 0}
+	{16384000, 0}*/
 };
 
 std::string						pattern;
@@ -174,12 +174,6 @@ void client_complete_message(
 		++crtackidx;
 	}
 	SOLID_CHECK(_rrecv_msg_ptr.empty());
-	
-	if(crtackidx == writecount){
-		Locker<Mutex> lock(mtx);
-		running = false;
-		cnd.signal();
-	}
 }
 
 void server_complete_message(
@@ -195,8 +189,8 @@ void server_complete_message(
 int test_pool_force_close(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("ew");
-	Debug::the().moduleMask("frame_ipc:ew any:ew");
+	Debug::the().levelMask("view");
+	Debug::the().moduleMask("frame_ipc:iew any:view");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -363,12 +357,20 @@ int test_pool_force_close(int argc, char **argv){
 				}
 			}
 		}
-		Thread::sleep(80);
+		
+		Thread::sleep(20);
 		
 		pipcclient->forceCloseConnectionPool(
 			recipinet_id,
 			[](frame::ipc::ConnectionContext &_rctx){
 				idbg("------------------");
+				if(crtackidx == writecount){
+					Locker<Mutex> lock(mtx);
+					running = false;
+					cnd.signal();
+				}else{
+					SOLID_CHECK(false);
+				}
 			}
 		);
 		

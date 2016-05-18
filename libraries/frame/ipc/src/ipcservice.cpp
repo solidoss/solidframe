@@ -479,6 +479,10 @@ struct ConnectionPoolStub{
 	bool isFull(const size_t _max_message_queue_size)const{
 		return msgcache_inner_list.empty() and msgvec.size() >= _max_message_queue_size;
 	}
+	
+	bool shouldClose()const{
+		return isClosing() and hasNoMessage();
+	}
 };
 
 //-----------------------------------------------------------------------------
@@ -970,6 +974,9 @@ bool Service::doTryPushMessageToConnection(
 	bool				success = false;
 	SOLID_ASSERT(not Message::is_canceled(rmsgstub.msgbundle.message_flags));
 	
+	if(rmsgstub.msgbundle.message_ptr.empty()){
+		return false;
+	}
 	
 	if(rmsgstub.isCancelable()){
 		
@@ -1084,6 +1091,12 @@ ErrorConditionT Service::pollPoolForUpdates(
 	
 	if(rpool.isFastClosing()){
 		idbgx(Debug::ipc, this<<' '<<&_rconnection<<" pool is FastClosing");
+		error = error_service_pool_stopping;
+		return error;
+	}
+	
+	if(_rconnection.isWriterEmpty() and rpool.shouldClose()){
+		idbgx(Debug::ipc, this<<' '<<&_rconnection<<" pool is DelayClosing");
 		error = error_service_pool_stopping;
 		return error;
 	}
@@ -1209,6 +1222,10 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
 	
 	rpool.setClosing();
 	
+	if(rpool.name.size()){
+		d.namemap.erase(rpool.name.c_str());
+	}
+	
 	MessagePointerT		empty_msg_ptr;
 	
 	const MessageId		msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0);
@@ -1248,6 +1265,10 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 	
 	rpool.setClosing();
 	rpool.setFastClosing();
+	
+	if(rpool.name.size()){
+		d.namemap.erase(rpool.name.c_str());
+	}
 	
 	MessagePointerT		empty_msg_ptr;
 	
@@ -1639,6 +1660,10 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 			_rmsg_bundle = std::move(rmsgstub.msgbundle);
 			_rmsg_id = MessageId(crtmsgidx, rmsgstub.unique);
 			rpool.clearPopAndCacheMessage(crtmsgidx);
+		}else if(rmsgstub.msgbundle.message_ptr.empty() and rpool.msgorder_inner_list.size() == 1){
+			_rmsg_bundle = std::move(rmsgstub.msgbundle);
+			_rmsg_id = MessageId(crtmsgidx, rmsgstub.unique);
+			rpool.clearPopAndCacheMessage(crtmsgidx);
 		}
 		return false;
 	}else{
@@ -1707,7 +1732,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 	
 	rpool.resetMainConnectionActive();
 	
-	if(rpool.hasAnyMessage()){
+	if(rpool.msgorder_inner_list.size()){
 		rpool.setCleaningOneShotMessages();
 		
 		_revent_context.any().reset(rpool.msgorder_inner_list.frontIndex());
@@ -1829,6 +1854,10 @@ void Service::connectionStop(Connection const &_rcon){
 		
 		SOLID_ASSERT(rpool.msgorder_inner_list.empty());
 		d.conpoolcachestk.push(pool_index);
+		
+		if(rpool.name.size() and not rpool.isClosing()){//closign pools are already unregistered from namemap
+			d.namemap.erase(rpool.name.c_str());
+		}
 		
 		rpool.clear();
 	}

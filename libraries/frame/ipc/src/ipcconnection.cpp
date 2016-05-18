@@ -405,7 +405,6 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		
 		bool				has_no_message = pending_message_vec.empty() and msg_writer.empty();
 		
-		
 		if(can_stop and has_no_message){
 			idbgx(Debug::ipc, this<<' '<<this->id()<<" postStop");
 			//can stop rightaway
@@ -461,6 +460,7 @@ void Connection::doCompleteAllMessages(
 	bool	has_any_message = not msg_writer.empty();
 	
 	if(has_any_message){
+		idbgx(Debug::ipc, this);
 		//complete msg_writer messages
 		MessageBundle	msg_bundle;
 		MessageId		pool_msg_id;
@@ -472,6 +472,7 @@ void Connection::doCompleteAllMessages(
 		has_any_message = (not msg_writer.empty()) or (not pending_message_vec.empty());
 		
 	}else if(_offset < pending_message_vec.size()){
+		idbgx(Debug::ipc, this);
 		//complete pending messages
 		MessageBundle	msg_bundle;
 				
@@ -488,6 +489,7 @@ void Connection::doCompleteAllMessages(
 	}
 	
 	if(has_any_message){
+		idbgx(Debug::ipc, this);
 		post(_rctx,
 				[_rerr, _seconds_to_wait, _can_stop, _offset](frame::aio::ReactorContext &_rctx, Event &&_revent){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
@@ -496,6 +498,7 @@ void Connection::doCompleteAllMessages(
 			std::move(_revent)
 		);
 	}else if(_can_stop){
+		idbgx(Debug::ipc, this);
 		//can stop rightaway
 		postStop(_rctx, 
 			[_rerr](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
@@ -505,6 +508,7 @@ void Connection::doCompleteAllMessages(
 		);	//there might be events pending which will be delivered, but after this call
 			//no event get posted
 	}else if(_seconds_to_wait){
+		idbgx(Debug::ipc, this<<" secs to wait = "<<_seconds_to_wait);
 		timer.waitFor(_rctx,
 			TimeSpec(_seconds_to_wait),
 			[_rerr, _revent](frame::aio::ReactorContext &_rctx){
@@ -513,6 +517,7 @@ void Connection::doCompleteAllMessages(
 			}
 		);
 	}else{
+		idbgx(Debug::ipc, this);
 		post(_rctx,
 				[_rerr](frame::aio::ReactorContext &_rctx, Event &&_revent){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
@@ -1009,7 +1014,7 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
 	}else{//client
 		if(config.connection_keepalive_timeout_seconds and isWaitingKeepAliveTimer()){
 			
-			idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
+			vdbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
 			
 			timer.waitFor(_rctx, TimeSpec(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
 		}
@@ -1157,7 +1162,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	rthis.doResetTimerRecv(_rctx);
 	
 	do{
-		idbgx(Debug::ipc, &rthis<<" received size "<<_sz);
+		vdbgx(Debug::ipc, &rthis<<" received size "<<_sz);
 		
 		if(!_rctx.error()){
 			recv_something = true;
@@ -1171,7 +1176,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 				pbuf, bufsz, completefnc, rconfig.reader, rconfig.protocol(), conctx, error
 			);
 			
-			idbgx(Debug::ipc, &rthis<<" consumed size "<<rthis.cons_buf_off<<" of "<<bufsz);
+			vdbgx(Debug::ipc, &rthis<<" consumed size "<<rthis.cons_buf_off<<" of "<<bufsz);
 			
 			if(error){
 				edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" parsing "<<error.message());
@@ -1208,7 +1213,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 //-----------------------------------------------------------------------------
 void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	
-	idbgx(Debug::ipc, this<<" isstopping = "<<this->isStopping());
+	vdbgx(Debug::ipc, this<<" isstopping = "<<this->isStopping());
 	
 	if(not this->isStopping()){
 		ErrorConditionT		error;
@@ -1307,7 +1312,10 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	
 	if(!_rctx.error()){
-		rthis.doResetTimerSend(_rctx);
+		if(not rthis.isStopping()){
+			idbgx(Debug::ipc, &rthis);
+			rthis.doResetTimerSend(_rctx);
+		}
 		rthis.doSend(_rctx);
 	}else{
 		edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" sending "<<_rctx.error().message());

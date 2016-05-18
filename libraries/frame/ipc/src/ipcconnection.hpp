@@ -108,6 +108,8 @@ public:
 	bool isConnected()const;
 	bool isSecured()const;
 	
+	bool isWriterEmpty()const;
+	
 	Any<>& any();
 	
 	ConnectionPoolId const& poolId()const;
@@ -295,6 +297,10 @@ inline ConnectionPoolId const& Connection::poolId()const{
 
 inline const std::string& Connection::poolName()const{
 	return rpool_name;
+}
+
+inline bool Connection::isWriterEmpty()const{
+	return msg_writer.empty();
 }
 
 

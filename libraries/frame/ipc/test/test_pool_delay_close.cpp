@@ -188,11 +188,11 @@ void client_complete_message(
 		
 		++crtbackidx;
 		
-		if(crtbackidx == writecount){
-			Locker<Mutex> lock(mtx);
-			running = false;
-			cnd.signal();
-		}
+// 		if(crtbackidx == writecount){
+// 			Locker<Mutex> lock(mtx);
+// 			running = false;
+// 			cnd.signal();
+// 		}
 	}
 }
 
@@ -237,8 +237,8 @@ void server_complete_message(
 int test_pool_delay_close(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:view any:view");
+	Debug::the().levelMask("ew");
+	Debug::the().moduleMask("frame_ipc:ew any:ew");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -413,6 +413,13 @@ int test_pool_delay_close(int argc, char **argv){
 			recipinet_id,
 			[](frame::ipc::ConnectionContext &_rctx){
 				idbg("------------------");
+				if(crtackidx == writecount){
+					Locker<Mutex> lock(mtx);
+					running = false;
+					cnd.signal();
+				}else{
+					SOLID_CHECK(false);
+				}
 			}
 		);
 		
