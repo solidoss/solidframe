@@ -281,7 +281,7 @@ char pattern_check[256];
 void string_check(std::string const &_rstr, const char* _pb, size_t _len){
 	if(_rstr.size() > 1024 and _len){
 		
-		SOLID_CHECK(pattern_check[_rstr.back()] == _pb[0]);
+		SOLID_CHECK(pattern_check[static_cast<size_t>(_rstr.back())] == _pb[0]);
 	}
 }
 
@@ -328,7 +328,7 @@ int test_clientserver_cancel_server(int argc, char **argv){
 	}
 	
 	for(auto it = pattern.cbegin(); it != pattern.cend(); ++it){
-		pattern_check[*it] = pattern[((it - pattern.cbegin()) + 1) % pattern.size()];
+		pattern_check[static_cast<size_t>(*it)] = pattern[static_cast<size_t>(((it - pattern.cbegin()) + 1) % pattern.size())];
 	}
 	
 	{

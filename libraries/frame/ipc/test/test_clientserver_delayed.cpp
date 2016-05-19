@@ -95,7 +95,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	}
 	~Message(){
 		idbg("DELETE ---------------- "<<(void*)this);
-		if(not serialized and not this->isBackOnSender() and not idx == 1){
+		if(not serialized and not this->isBackOnSender() and not (idx == 1)){
 			SOLID_THROW("Message not serialized.");
 		}
 	}

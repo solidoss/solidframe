@@ -705,7 +705,7 @@ void Connection::doHandleEventStart(
 	
 	bool		has_valid_socket = this->hasValidSocket();
 	
-	idbgx(Debug::ipc, this<<' '<<this->id()<<" Session start: "<<has_valid_socket ? " connected " : "not connected");
+	idbgx(Debug::ipc, this<<' '<<this->id()<<" Session start: "<<(has_valid_socket ? " connected " : "not connected"));
 	
 	if(has_valid_socket){
 		doStart(_rctx, true);

@@ -63,7 +63,7 @@ bool InputStream::readAll(char *_pd, uint32 _dl, uint32){
 	 const int64	crtoff(seek(0, SeekCur));
 	 
 	 if(crtoff < 0) return -1;
-	 if(_offset != seek(_offset)) return -1;
+	 if(_offset != static_cast<uint64>(seek(_offset))) return -1;
 	 
 	 int rv = read(_pbuf, _blen, _flags);
 	 
@@ -76,7 +76,7 @@ int OutputStream::write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 
 	 const int64	crtoff(seek(0, SeekCur));
 	 
 	 if(crtoff < 0) return -1;
-	 if(_offset != seek(_offset)) return -1;
+	 if(_offset != static_cast<uint64>(seek(_offset))) return -1;
 	 
 	 int rv = write(_pbuf, _blen, _flags);
 	 

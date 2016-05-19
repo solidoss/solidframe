@@ -608,10 +608,10 @@ void split_id(const uint32 _id, size_t &_rfldrid, size_t &_rfileid){
 	_rfileid = _id & 0xffffUL;
 }
 
-void split_id(const uint64 _id, size_t &_rfldrid, size_t &_rfileid){
-	_rfldrid = _id >> 32;
-	_rfileid = _id & 0xffffffffUL;
-}
+// void split_id(const uint64 _id, size_t &_rfldrid, size_t &_rfileid){
+// 	_rfldrid = _id >> 32;
+// 	_rfileid = _id & 0xffffffffUL;
+// }
 
 
 bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id){
@@ -671,7 +671,7 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 }
 /*virtual*/ int TempFile::read(char *_pb, uint32 _bl, int64 _off){
 	const int64 endoff = _off + _bl;
-	if(endoff > tempsize){
+	if(endoff > static_cast<int64>(tempsize)){
 		if((endoff - tempsize) <= _bl){
 			_bl = static_cast<uint32>(endoff - tempsize);
 		}else{
@@ -682,7 +682,7 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 }
 /*virtual*/ int TempFile::write(const char *_pb, uint32 _bl, int64 _off){
 	const int64 endoff = _off + _bl;
-	if(endoff > tempsize){
+	if(endoff > static_cast<int64>(tempsize)){
 		if((endoff - tempsize) <= _bl){
 			_bl = static_cast<uint32>(endoff - tempsize);
 		}else{

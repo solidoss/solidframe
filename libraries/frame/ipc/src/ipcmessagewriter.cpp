@@ -204,7 +204,7 @@ uint32 MessageWriter::write(
 				}
 			}
 			
-			SOLID_ASSERT((pbuftmp - pbufdata) < static_cast<size_t>(0xffff));
+			SOLID_ASSERT(static_cast<size_t>(pbuftmp - pbufdata) < static_cast<size_t>(0xffff));
 			
 			packet_header.type(packet_options.packet_type);
 			packet_header.size(pbuftmp - pbufdata);

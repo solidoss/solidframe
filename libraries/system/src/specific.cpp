@@ -18,31 +18,30 @@
 #include "system/exception.hpp"
 
 namespace solid{
-
-
-#ifdef SOLID_USE_SAFE_STATIC
-static const unsigned specificPosition(){
-	static const unsigned	thrspecpos = Thread::specificId();
-	return thrspecpos;
+namespace{
+// #ifdef SOLID_USE_SAFE_STATIC
+// static const unsigned specificPosition(){
+// 	static const unsigned	thrspecpos = Thread::specificId();
+// 	return thrspecpos;
+// }
+// #else
+// const unsigned specificPositionStub(){
+// 	static const unsigned	thrspecpos = Thread::specificId();
+// 	return thrspecpos;
+// }
+// 
+// void once_cbk(){
+// 	specificPositionStub();
+// }
+// 
+// const unsigned specificPosition(){
+// 	static boost::once_flag once = BOOST_ONCE_INIT;
+// 	boost::call_once(&once_cbk, once);
+// 	return specificPositionStub();
+// }
+// 
+// #endif
 }
-#else
-const unsigned specificPositionStub(){
-	static const unsigned	thrspecpos = Thread::specificId();
-	return thrspecpos;
-}
-
-void once_cbk(){
-	specificPositionStub();
-}
-
-const unsigned specificPosition(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk, once);
-	return specificPositionStub();
-}
-
-#endif
-
 //----------------------------------------------------------------------------------------------------
 /*static*/ void Specific::destroy(void *_pv){
 	Specific *ps = reinterpret_cast<Specific*>(_pv);

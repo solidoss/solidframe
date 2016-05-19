@@ -190,10 +190,10 @@ void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 }
 
 
-void client_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr){
-	idbg(_rctx.recipientId());
-	SOLID_THROW("Received request on client.");
-}
+// void client_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr){
+// 	idbg(_rctx.recipientId());
+// 	SOLID_THROW("Received request on client.");
+// }
 
 void client_complete_request(
 	frame::ipc::ConnectionContext &_rctx,

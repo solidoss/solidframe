@@ -43,10 +43,10 @@ MutexStoreT &mutexStore(){
 	return mtxstore;
 }
 
-size_t specificId(){
-	static const size_t id(Thread::specificId());
-	return id;
-}
+// size_t specificId(){
+// 	static const size_t id(Thread::specificId());
+// 	return id;
+// }
 
 #else
 
@@ -55,19 +55,19 @@ MutexStoreT &mutexStoreStub(){
 	return mtxstore;
 }
 
-size_t specificIdStub(){
-	static const size_t id(Thread::specificId());
-	return id;
-}
+// size_t specificIdStub(){
+// 	static const size_t id(Thread::specificId());
+// 	return id;
+// }
 
 
 void once_cbk_store(){
 	mutexStoreStub();
 }
 
-void once_cbk_specific(){
-	specificIdStub();
-}
+// void once_cbk_specific(){
+// 	specificIdStub();
+// }
 
 MutexStoreT &mutexStore(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
@@ -75,11 +75,11 @@ MutexStoreT &mutexStore(){
 	return mutexStoreStub();
 }
 
-size_t specificId(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk_specific, once);
-	return specificIdStub();
-}
+// size_t specificId(){
+// 	static boost::once_flag once = BOOST_ONCE_INIT;
+// 	boost::call_once(&once_cbk_specific, once);
+// 	return specificIdStub();
+// }
 	
 
 #endif

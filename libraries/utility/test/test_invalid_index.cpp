@@ -17,7 +17,7 @@ int test_invalid_index(int argc, char *argv[]){
 	
 	uint64 sz64 = InvalidIndex();
 	
-	assert(sz64 == -1LL);
+	assert(sz64 == -1ULL);
 	
 	cout <<"sz64 = "<<sz64<<" "<<static_cast<uint64>(-1LL)<<endl;
 	

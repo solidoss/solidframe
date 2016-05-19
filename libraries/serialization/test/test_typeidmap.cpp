@@ -315,7 +315,7 @@ int test_typeidmap(int argc, char* argv[]){
 			
 			rv = des.run(alpha_data.data(), alpha_data.size());
 			
-			if(rv != alpha_data.size()){
+			if(rv != static_cast<int>(alpha_data.size())){
 				cout<<"ERROR: deserialization: "<<des.error().category().name()<<": "<<des.error().message()<<endl;
 				SOLID_THROW("Deserialization error - alpha");
 				return 0;
@@ -370,7 +370,7 @@ int test_typeidmap(int argc, char* argv[]){
 			
 			rv = des.run(beta_data.data(), beta_data.size());
 			
-			if(rv != beta_data.size()){
+			if(rv != static_cast<int>(beta_data.size())){
 				cout<<"ERROR: deserialization: "<<des.error().category().name()<<": "<<des.error().message()<<endl;
 				SOLID_THROW("Deserialization error - beta");
 				return 0;
@@ -419,7 +419,7 @@ int test_typeidmap(int argc, char* argv[]){
 			
 			rv = des.run(delta_data.data(), delta_data.size());
 			
-			if(rv != delta_data.size()){
+			if(rv != static_cast<int>(delta_data.size())){
 				cout<<"ERROR: deserialization: "<<des.error().category().name()<<": "<<des.error().message()<<endl;
 				SOLID_THROW("Deserialization error - delta");
 				return 0;

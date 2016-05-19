@@ -58,7 +58,6 @@ void serialize(S &_s, T &_t, Ctx &_ctx){
 }
 
 enum {
-	MAX_ITERATOR_SIZE		= sizeof(int64) + sizeof(int64) + sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
 	MIN_STREAM_BUFFER_SIZE	= 16	//if the free space for current buffer is less than this value
 									//storring a stream will end up returning Wait
 };
@@ -77,6 +76,241 @@ struct Limits{
 	size_t stringlimit;
 	size_t containerlimit;
 	uint64 streamlimit;
+};
+
+struct ExtendedData{
+	enum{
+		MAX_GENERIC_SIZE	=  128,
+	};
+	
+	typedef void (*DeleteFunctionT)(void*);
+	
+	union BasicValue{
+		uint8	uint8_value;
+		uint32	uint32_value;
+		uint64	uint64_value;
+		int64	int64_value;
+		int32	int32_value;
+		void*	void_value;
+	};
+	
+	union Value{
+		struct A{
+			BasicValue	values[3];
+		}	tuple;
+		
+		struct Generic{
+			char 				buffer[MAX_GENERIC_SIZE];
+			DeleteFunctionT		delete_fnc;
+			size_t				type_id;
+			void				*ptr;
+		}	generic;
+	}	value;
+	
+	const uint8& first_uint8_value()const{
+		return value.tuple.values[0].uint8_value;
+	}
+	
+	uint8& first_uint8_value(){
+		return value.tuple.values[0].uint8_value;
+	}
+	
+	const uint32& first_uint32_value()const{
+		return value.tuple.values[0].uint32_value;
+	}
+	
+	uint32& first_uint32_value(){
+		return value.tuple.values[0].uint32_value;
+	}
+	
+	const uint64& first_uint64_value()const{
+		return value.tuple.values[0].uint64_value;
+	}
+	
+	uint64& first_uint64_value(){
+		return value.tuple.values[0].uint64_value;
+	}
+	
+	const int32& first_int32_value()const{
+		return value.tuple.values[0].int32_value;
+	}
+	
+	int32& first_int32_value(){
+		return value.tuple.values[0].int32_value;
+	}
+	
+	const int64& first_int64_value()const{
+		return value.tuple.values[0].int64_value;
+	}
+	
+	int64& first_int64_value(){
+		return value.tuple.values[0].int64_value;
+	}
+	
+	const int64& second_int64_value()const{
+		return value.tuple.values[1].int64_value;
+	}
+	
+	int64& second_int64_value(){
+		return value.tuple.values[1].int64_value;
+	}
+	
+	const uint64& second_uint64_value()const{
+		return value.tuple.values[1].uint64_value;
+	}
+	
+	uint64& second_uint64_value(){
+		return value.tuple.values[1].uint64_value;
+	}
+	
+	
+	void* const & first_void_value()const{
+		return value.tuple.values[0].void_value;
+	}
+	
+	void*& first_void_value(){
+		return value.tuple.values[0].void_value;
+	}
+
+	void* const & third_void_value()const{
+		return value.tuple.values[2].void_value;
+	}
+	
+	void*& third_void_value(){
+		return value.tuple.values[2].void_value;
+	}
+
+	
+	ExtendedData(){
+		init();
+	}
+	
+	explicit ExtendedData(uint8 _u8){
+		init();
+		first_uint8_value() = _u8;
+	}
+	explicit ExtendedData(uint32 _u32){
+		init();
+		first_uint32_value() = _u32;
+	}
+	explicit ExtendedData(int32 _i32){
+		init();
+		first_int32_value() = _i32;
+	}
+	explicit ExtendedData(uint64 _u64){
+		init();
+		first_uint64_value() = _u64;
+	}
+	explicit ExtendedData(uint64 _u64, uint64 _u64_1){
+		init();
+		first_uint64_value() = _u64; second_uint64_value() = _u64_1;
+	}
+	explicit ExtendedData(void *_p){
+		init();
+		first_void_value() = _p;
+	}
+	explicit ExtendedData(int32 _i32, int64 _i64_1){
+		init();
+		first_int32_value() = _i32; second_int64_value() = _i64_1;
+	}
+	explicit ExtendedData(uint32 _u32, int64 _i64_1){
+		init();
+		first_uint32_value() = _u32; second_int64_value() = _i64_1;
+	}
+	explicit ExtendedData(int64 _i64){
+		init();
+		first_int64_value() = _i64;
+		
+	}
+	explicit ExtendedData(int64 _i64_0, int64 _i64_1){
+		init();
+		first_int64_value() = _i64_0; second_int64_value() = _i64_1;
+	}
+	explicit ExtendedData(uint64 _u64_0, uint64 _u64_1, void *_pv){
+		init();
+		first_uint64_value() = _u64_0;
+		second_uint64_value() = _u64_1;
+		third_void_value() = _pv;
+	}
+	
+	~ExtendedData(){
+		clear();
+	}
+	
+	template <class T>
+	static void deleter(void *_pv){
+		static_cast<T*>(_pv)->~T();
+	}
+	
+	template <class T>
+	T* generic(const T &_rt){
+		clear();
+		T *retval = nullptr;
+		if(sizeof(T) <= MAX_GENERIC_SIZE){
+			retval = new(value.generic.buffer) T(_rt);
+			value.generic.ptr = retval;
+			value.generic.delete_fnc = &deleter<T>;
+			value.generic.type_id = typeId<T>();
+		}
+		return retval;
+	}
+	
+	template <class T>
+	T* generic(T &&_ut){
+		clear();
+		T *retval = nullptr;
+		if(sizeof(T) <= MAX_GENERIC_SIZE){
+			retval = new(value.generic.buffer) T{std::move(_ut)};
+			value.generic.ptr = retval;
+			value.generic.delete_fnc = &deleter<T>;
+			value.generic.type_id = typeId<T>();
+		}
+		return retval;
+	}
+	template <class T>
+	T* genericCast(){
+		if(value.generic.type_id == typeId<T>()){
+			return static_cast<T*>(value.generic.ptr);
+		}else{
+			return nullptr;
+		}
+	}
+	
+	template <class T>
+	const T* genericCast()const{
+		if(value.generic.type_id == typeId<T>()){
+			return static_cast<T*>(value.generic.ptr);
+		}else{
+			return nullptr;
+		}
+	}
+	
+	void clear(){
+		if(value.generic.delete_fnc){
+			(*value.generic.delete_fnc)(value.generic.buffer);
+			value.generic.delete_fnc = nullptr;
+			value.generic.type_id = 0;
+			value.generic.ptr = nullptr;
+			value.generic.type_id = 0;
+		}
+	}
+	
+private:
+	void init(){
+		value.tuple.values[0].uint64_value = 0;
+		value.tuple.values[1].uint64_value = 0;
+		value.tuple.values[2].uint64_value = 0;
+		value.generic.delete_fnc = nullptr;
+		value.generic.type_id = 0;
+	}
+	
+	static size_t newTypeId();
+	
+	template <class T>
+	static size_t typeId(){
+		static const size_t id(newTypeId());
+		return id;
+	}
 };
 
 //===============================================================
@@ -187,59 +421,6 @@ protected:
 		const char	*n;	//!< Some name - of the item serialized
 		uint64		s;	//!< Some size
 	};
-	
-	struct ExtData{
-		char 	buf[MAX_ITERATOR_SIZE];
-		
-		const uint8& u8()const{return *reinterpret_cast<const uint8*>(buf);}
-		uint8& u8(){return *reinterpret_cast<uint8*>(buf);}
-		
-		const uint32& u32()const{return *reinterpret_cast<const uint32*>(buf);}
-		uint32& u32(){return *reinterpret_cast<uint32*>(buf);}
-		
-		const uint64& u64()const{return *reinterpret_cast<const uint64*>(buf);}
-		uint64& u64(){return *reinterpret_cast<uint64*>(buf);}
-		
-		const int32& i32()const{return *reinterpret_cast<const int32*>(buf);}
-		int32& i32(){return *reinterpret_cast<int32*>(buf);}
-		
-		int64& i64(){return *reinterpret_cast<int64*>(buf);}
-		const int64& i64()const{return *reinterpret_cast<const int64*>(buf);}
-		
-		int64& i64_1(){return *reinterpret_cast<int64*>(buf + sizeof(int64));}
-		const int64& i64_1()const{return *reinterpret_cast<const int64*>(buf + sizeof(int64));}
-		
-		uint64& u64_1(){return *reinterpret_cast<uint64*>(buf + sizeof(uint64));}
-		const uint64& u64_1()const{return *reinterpret_cast<const uint64*>(buf + sizeof(uint64));}
-		
-		void*& pv_2(){return *reinterpret_cast<void**>(buf + 2 * sizeof(int64));}
-		const void* const& pv_2()const{return *reinterpret_cast<void const * const*>(buf + 2 * sizeof(int64));}
-		
-		const void*const& p()const{
-			return *reinterpret_cast<const void*const*>(buf);
-		}
-		void*& p(){
-			return *reinterpret_cast<void**>(buf);
-		}
-		
-		ExtData(){}
-		
-		ExtData(uint8 _u8){u8() = _u8;}
-		ExtData(uint32 _u32){u32() = _u32;}
-		ExtData(int32 _i32){i32() = _i32;}
-		ExtData(uint64 _u64){u64() = _u64;}
-		ExtData(uint64 _u64, uint64 _u64_1){u64() = _u64; u64_1() = _u64_1;}
-		ExtData(void *_p){p() = _p;}
-		ExtData(int32 _i32, int64 _i64_1){i32() = _i32; i64_1() = _i64_1;}
-		ExtData(uint32 _u32, int64 _i64_1){u32() = _u32; i64_1() = _i64_1;}
-		ExtData(int64 _i64){i64() = _i64;}
-		ExtData(int64 _i64_0, int64 _i64_1){i64() = _i64_0; i64_1() = _i64_1;}
-		ExtData(uint64 _u64_0, uint64 _u64_1, void *_pv){
-			u64() = _u64_0;
-			u64_1() = _u64_1;
-			pv_2() = _pv;
-		}
-	};
 protected:
 	static ReturnValues setStringLimit(Base& _rd, FncData &_rfd, void */*_pctx*/);
 	static ReturnValues setStreamLimit(Base& _rd, FncData &_rfd, void */*_pctx*/);
@@ -258,7 +439,7 @@ protected:
 	static const char*		default_name;
 protected:
 	typedef Stack<FncData>	FncDataStackT;
-	typedef Stack<ExtData>	ExtDataStackT;
+	typedef Stack<ExtendedData>	ExtendedDataStackT;
 	const Limits			&rdefaultlmts;
 	Limits					lmts;
 	ErrorConditionT			err;
@@ -266,10 +447,11 @@ protected:
 	uint64					streamsz;
 	ulong					uls;
 	FncDataStackT			fstk;
-	ExtDataStackT			estk;
+	ExtendedDataStackT			estk;
 };
 
 //===============================================================
+
 template <class T>
 struct SerializerPushHelper;
 //! A reentrant binary serializer
@@ -306,7 +488,7 @@ protected:
 		T 			*c = reinterpret_cast<T*>(_rfd.p);
 		const char	*n = _rfd.n;
 		if(c){
-			SOLID_ASSERT(sizeof(typename T::iterator) <= sizeof(ExtData));
+			SOLID_ASSERT(sizeof(typename T::iterator) <= sizeof(ExtendedData));
 			if(c->size() > rs.lmts.containerlimit){
 				rs.err = make_error(ERR_CONTAINER_LIMIT);
 				return FailureE;
@@ -316,31 +498,37 @@ protected:
 				rs.err = make_error(ERR_CONTAINER_MAX_LIMIT);
 				return FailureE;
 			}
-			rs.estk.push(ExtData());
-			typename T::iterator *pit(new(rs.estk.top().buf) typename T::iterator(c->begin()));
+			rs.estk.push(ExtendedData());
+			//typename T::iterator *pit(new(rs.estk.top().buf) typename T::iterator(c->begin()));
 			//typename T::const_iterator &pit = *reinterpret_cast<typename T::const_iterator*>(estk.top().buf);
+			
+			typename T::iterator *pit = rs.estk.top().generic(c->begin());
+			
 			*pit = c->begin();
 			
-			rs.estk.push(ExtData(crcsz));
+			rs.estk.push(ExtendedData(crcsz));
 			_rfd.f = &SerializerBase::storeContainerContinue<T, Ser>;
 			rs.fstk.push(FncData(&Base::popExtStack, nullptr));
-			idbgx(Debug::ser_bin, " sz = "<<rs.estk.top().u64());
-			rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().u64(), n));
+			idbgx(Debug::ser_bin, " sz = "<<rs.estk.top().first_uint64_value());
+			rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().first_uint64_value(), n));
 		}else{
-			rs.estk.push(ExtData(static_cast<uint64>(-1)));
+			rs.estk.push(ExtendedData(static_cast<uint64>(-1)));
 			rs.fstk.pop();
 			rs.fstk.push(FncData(&Base::popExtStack, nullptr));
-			idbgx(Debug::ser_bin, " sz = "<<rs.estk.top().u64());
-			rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().u64(), n));
+			idbgx(Debug::ser_bin, " sz = "<<rs.estk.top().first_uint64_value());
+			rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().first_uint64_value(), n));
 		}
 		return ContinueE;
 	}
 	
 	template <typename T, class Ser>
 	static ReturnValues storeContainerContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
-		Ser		&rs(static_cast<Ser&>(_rs));
-		typename T::iterator &rit = *reinterpret_cast<typename T::iterator*>(rs.estk.top().buf);
-		T * c = reinterpret_cast<T*>(_rfd.p);
+		Ser						&rs(static_cast<Ser&>(_rs));
+		using 					IteratorT = typename T::iterator;
+		//typename T::iterator &rit = *reinterpret_cast<typename T::iterator*>(rs.estk.top().buf);
+		ExtendedData			&rextdata = rs.estk.top();
+		IteratorT				&rit = *(rextdata.genericCast<IteratorT>());
+		T 						*c = reinterpret_cast<T*>(_rfd.p);
 		if(rs.cpb && rit != c->end()){
 			rs.push(*rit, _rfd.n);
 			++rit;
@@ -363,28 +551,28 @@ protected:
 		
 		T			*c = reinterpret_cast<T*>(_rfd.p);
 		const char	*n = _rfd.n;
-		if(c && rs.estk.top().u64() != static_cast<uint64>(-1)){
+		if(c && rs.estk.top().first_uint64_value() != static_cast<uint64>(-1)){
 			uint64 crcsz;
-			if(rs.estk.top().u64() > rs.lmts.containerlimit){
+			if(rs.estk.top().first_uint64_value() > rs.lmts.containerlimit){
 				rs.err = make_error(ERR_ARRAY_LIMIT);
 				return FailureE;
-			}else if(compute_value_with_crc(crcsz, rs.estk.top().u64())){
+			}else if(compute_value_with_crc(crcsz, rs.estk.top().first_uint64_value())){
 				_rfd.f = &SerializerBase::storeArrayContinue<T, Ser>;
 				
-				rs.estk.push(ExtData(crcsz));
+				rs.estk.push(ExtendedData(crcsz));
 				rs.fstk.push(FncData(&Base::popExtStack, nullptr));
-				idbgx(Debug::ser_bin, "store array size "<<rs.estk.top().u64());
-				rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().u64(), n));
+				idbgx(Debug::ser_bin, "store array size "<<rs.estk.top().first_uint64_value());
+				rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().first_uint64_value(), n));
 			}else{
 				rs.err = make_error(ERR_ARRAY_MAX_LIMIT);
 				return FailureE;
 			}
 		}else{
-			rs.estk.top().u64() = -1;
+			rs.estk.top().first_uint64_value() = -1;
 			rs.fstk.pop();
 			rs.fstk.push(FncData(&Base::popExtStack, nullptr));
-			idbgx(Debug::ser_bin, "store array size "<<rs.estk.top().u64());
-			rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().u64(), n));
+			idbgx(Debug::ser_bin, "store array size "<<rs.estk.top().first_uint64_value());
+			rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64>, &rs.estk.top().first_uint64_value(), n));
 		}
 		return ContinueE;
 	}
@@ -393,8 +581,8 @@ protected:
 	static ReturnValues storeArrayContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
 		Ser				&rs(static_cast<Ser&>(_rs));
 		T 				*c = reinterpret_cast<T*>(_rfd.p);
-		const uint64	&rsz(rs.estk.top().u64());
-		int64 			&ri(rs.estk.top().i64_1());
+		const uint64	&rsz(rs.estk.top().first_uint64_value());
+		int64 			&ri(rs.estk.top().second_int64_value());
 		idbgx(Debug::ser_bin, "store generic array cont "<<_rfd.n<<" rsz = "<<rsz<<" ri = "<<ri);
 		
 		if(rs.cpb && ri < rsz){
@@ -755,7 +943,7 @@ public:
 	template <typename T>
 	SerializerT& pushArray(T *_p, const size_t &_rsz, const char *_name = Base::default_name){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeArray<T, SerializerT>, (void*)_p, _name));
-		SerializerBase::estk.push(SerializerBase::ExtData((uint64)_rsz, (uint64)0));
+		SerializerBase::estk.push(ExtendedData((uint64)_rsz, (uint64)0));
 		return *this;
 	}
 	template <typename T>
@@ -763,7 +951,7 @@ public:
 		T* &_rp, const size_t &_rsz, const char *_name = Base::default_name
 	){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeArray<T, SerializerT>, (void*)_rp, _name));
-		SerializerBase::estk.push(SerializerBase::ExtData((uint64)_rsz, (uint64)0));
+		SerializerBase::estk.push(ExtendedData((uint64)_rsz, (uint64)0));
 		return *this;
 	}
 	SerializerT& pushUtf8(
@@ -824,21 +1012,21 @@ public:
 		return *this;
 	}
 	SerializerT& pushCrossValue(const uint32 &_rv, const char *_name = Base::default_name){
-		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::estk.push(ExtendedData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint32>, &this->Base::estk.top().u32(), _name));
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint32>, &this->Base::estk.top().first_uint32_value(), _name));
 		return *this;
 	}
 	SerializerT& pushCrossValue(const uint64 &_rv, const char *_name = Base::default_name){
-		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::estk.push(ExtendedData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &this->Base::estk.top().u64(), _name));
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &this->Base::estk.top().first_uint64_value(), _name));
 		return *this;
 	}
 	SerializerT& pushValue(const uint8 &_rv, const char *_name = Base::default_name){
-		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::estk.push(ExtendedData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint8>, &this->Base::estk.top().u8(), _name));
+		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint8>, &this->Base::estk.top().first_uint8_value(), _name));
 		return *this;
 	}
 private:
@@ -969,7 +1157,7 @@ public:
 	template <typename T, typename ST>
 	SerializerT& pushArray(T *_p, const ST &_rsz, const char *_name = Base::default_name){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeArray<T, SerializerT>, (void*)_p, _name));
-		SerializerBase::estk.push(SerializerBase::ExtData((uint64)_rsz, (uint64)0));
+		SerializerBase::estk.push(ExtendedData((uint64)_rsz, (uint64)0));
 		return *this;
 	}
 	template <typename T, typename ST>
@@ -977,7 +1165,7 @@ public:
 		T* &_rp, const ST &_rsz, const char *_name = Base::default_name
 	){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeArray<T, SerializerT>, (void*)_rp, _name));
-		SerializerBase::estk.push(SerializerBase::ExtData((uint64)_rsz, (uint64)0));
+		SerializerBase::estk.push(ExtendedData((uint64)_rsz, (uint64)0));
 		return *this;
 	}
 	SerializerT& pushUtf8(
@@ -1039,21 +1227,21 @@ public:
 	}
 	
 	SerializerT& pushCrossValue(const uint32 &_rv, const char *_name = Base::default_name){
-		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::estk.push(ExtendedData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint32>, &this->Base::estk.top().u32(), _name));
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint32>, &this->Base::estk.top().first_uint32_value(), _name));
 		return *this;
 	}
 	SerializerT& pushCrossValue(const uint64 &_rv, const char *_name = Base::default_name){
-		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::estk.push(ExtendedData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &this->Base::estk.top().u64(), _name));
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &this->Base::estk.top().first_uint64_value(), _name));
 		return *this;
 	}
 	SerializerT& pushValue(const uint8 &_rv, const char *_name = Base::default_name){
-		this->Base::estk.push(Base::ExtData(_rv));
+		this->Base::estk.push(ExtendedData(_rv));
 		this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint8>, &this->Base::estk.top().u8(), _name));
+		this->Base::fstk.push(SerializerBase::FncData(&SerializerBase::store<uint8>, &this->Base::estk.top().first_uint8_value(), _name));
 		return *this;
 	}
 private:
@@ -1087,7 +1275,7 @@ protected:
 		
 		void *p;
 		
-		rd.err = rd.typeIdMap()->load<T>(rd, &p, rd.estk.top().u64(), rd.tmpstr, fd.n);
+		rd.err = rd.typeIdMap()->load<T>(rd, &p, rd.estk.top().first_uint64_value(), rd.tmpstr, fd.n);
 		
 		*reinterpret_cast<P>(fd.p) = reinterpret_cast<T*>(p);
 		
@@ -1107,7 +1295,7 @@ protected:
 		
 		_rfd.f = &loadPointer<T, Des, P>;
 		
-		rd.typeIdMap()->loadTypeId(rd, rd.estk.top().u64(), rd.tmpstr, _rfd.n);
+		rd.typeIdMap()->loadTypeId(rd, rd.estk.top().first_uint64_value(), rd.tmpstr, _rfd.n);
 		
 		return ContinueE;
 	}
@@ -1155,8 +1343,8 @@ protected:
 		DeserializerBase &rd = static_cast<DeserializerBase&>(_rb);
 		if(!rd.cpb) return SuccessE;
 		_rfd.f = &DeserializerBase::loadContainerBegin<T, Des>;
-		rd.estk.push(ExtData((uint64)0));
-		rd.fstk.push(FncData(&DeserializerBase::loadCross<uint64>, &rd.estk.top().u64()));
+		rd.estk.push(ExtendedData((uint64)0));
+		rd.fstk.push(FncData(&DeserializerBase::loadCross<uint64>, &rd.estk.top().first_uint64_value()));
 		return ContinueE;
 	}
 	template <typename T, class Des>
@@ -1168,19 +1356,19 @@ protected:
 			return SuccessE;
 		}
 		{
-			const uint64	i = rd.estk.top().u64();
+			const uint64	i = rd.estk.top().first_uint64_value();
 			idbgx(Debug::ser_bin, " sz = "<<i);
 			if(i != InvalidIndex()){
 				uint64 crcsz;
 				if(check_value_with_crc(crcsz, i)){
-					rd.estk.top().u64() = crcsz;
+					rd.estk.top().first_uint64_value() = crcsz;
 				}else{
 					rd.err = make_error(ERR_CONTAINER_MAX_LIMIT);
 					return FailureE;
 				}
 			}
 		}
-		const uint64 i(rd.estk.top().u64());
+		const uint64 i(rd.estk.top().first_uint64_value());
 		vdbgx(Debug::ser_bin, "i = "<<i);
 		
 		if(
@@ -1215,7 +1403,7 @@ protected:
 	template <typename T, class Des>
 	static ReturnValues loadContainerContinue(Base &_rb, FncData &_rfd, void */*_pctx*/){
 		Des			&rd(static_cast<Des&>(_rb));
-		uint64		&ri = rd.estk.top().u64();
+		uint64		&ri = rd.estk.top().first_uint64_value();
 		if(rd.cpb && ri){
 			T *c = reinterpret_cast<T*>(_rfd.p);
 			c->push_back(typename T::value_type());
@@ -1236,21 +1424,23 @@ protected:
 			return SuccessE;
 		}
 		{
-			const uint64	&rsz(rd.estk.top().u64());
+			const uint64	&rsz(rd.estk.top().first_uint64_value());
 			idbgx(Debug::ser_bin, "size "<<rsz);
 			if(rsz != InvalidSize()){
 				uint64	crcsz;
 				if(check_value_with_crc(crcsz, rsz)){
-					rd.estk.top().u64() = crcsz;
+					rd.estk.top().first_uint64_value() = crcsz;
 				}else{
 					rd.err = make_error(ERR_ARRAY_MAX_LIMIT);
 					return FailureE;
 				}
 			}
 		}
-		const uint64	&rsz(rd.estk.top().u64());
-		size_t			&rextsz(*reinterpret_cast<size_t*>(rd.estk.top().pv_2()));
+		const uint64	&rsz(rd.estk.top().first_uint64_value());
+		size_t			&rextsz(*reinterpret_cast<size_t*>(rd.estk.top().third_void_value()));
+		
 		idbgx(Debug::ser_bin, "size "<<rsz);
+		
 		if(rsz != InvalidSize() && rsz > rd.lmts.containerlimit){
 			idbgx(Debug::ser_bin, "error");
 			rd.err = make_error(ERR_ARRAY_LIMIT);
@@ -1277,8 +1467,8 @@ protected:
 	template <typename T, class Des>
 	static ReturnValues loadArrayContinue(Base &_rb, FncData &_rfd, void */*_pctx*/){
 		Des					&rd(static_cast<Des&>(_rb));
-		const uint64		&rsz = rd.estk.top().u64();
-		uint64				&ri = rd.estk.top().u64_1();
+		const uint64		&rsz = rd.estk.top().first_uint64_value();
+		uint64				&ri = rd.estk.top().second_uint64_value();
 		
 		idbgx(Debug::ser_bin, "load generic array continue "<<_rfd.n<<" idx = "<<ri<<" sz = "<<rsz);
 		
@@ -1597,7 +1787,7 @@ public:
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = Base::default_name){
 		if(ptypeidmap){
-			this->Base::estk.push(Base::ExtData((uint64)0));
+			this->Base::estk.push(ExtendedData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
 			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, T**>, reinterpret_cast<void*>(&_t), _name));
 		}else{
@@ -1609,7 +1799,7 @@ public:
 	template <typename T>
 	Deserializer& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
 		if(ptypeidmap){
-			this->Base::estk.push(Base::ExtData((uint64)0));
+			this->Base::estk.push(ExtendedData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
 			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, DynamicPointer<T>*>, reinterpret_cast<void*>(&_rptr), _name));
 		}else{
@@ -1646,15 +1836,15 @@ public:
 	template <typename T>
 	Deserializer& pushArray(T* _p, size_t &_rsz, const char *_name = Base::default_name){
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadArray<T, DeserializerT>, (void*)_p, _name));
-		this->Base::estk.push(Base::ExtData((uint64)0, (uint64)0, (void*)&_rsz));
-		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &this->Base::estk.top().u64()));
+		this->Base::estk.push(ExtendedData((uint64)0, (uint64)0, (void*)&_rsz));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &this->Base::estk.top().first_uint64_value()));
 		return *this;
 	}
 	template <typename T>
 	Deserializer& pushDynamicArray(T* &_p, size_t &_rsz, const char *_name = Base::default_name){
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadArray<T, DeserializerT>, (void*)&_p, _name, 0));
-		this->Base::estk.push(Base::ExtData((uint64)0, (uint64)0, (void*)&_rsz));
-		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &this->Base::estk.top().u64()));
+		this->Base::estk.push(ExtendedData((uint64)0, (uint64)0, (void*)&_rsz));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &this->Base::estk.top().first_uint64_value()));
 		return *this;
 	}
 	Deserializer& pushUtf8(
@@ -1796,7 +1986,7 @@ public:
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = Base::default_name){
 		if(ptypeidmap){
-			this->Base::estk.push(Base::ExtData((uint64)0));
+			this->Base::estk.push(ExtendedData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
 			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, T**>, reinterpret_cast<void*>(&_t), _name));
 		}else{
@@ -1808,7 +1998,7 @@ public:
 	template <typename T>
 	Deserializer& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
 		if(ptypeidmap){
-			this->Base::estk.push(Base::ExtData((uint64)0));
+			this->Base::estk.push(ExtendedData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
 			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, DynamicPointer<T>*>, reinterpret_cast<void*>(&_rptr), _name));
 		}else{
@@ -1864,15 +2054,15 @@ public:
 	template <typename T>
 	Deserializer& pushArray(T* _p, size_t &_rsz, const char *_name = Base::default_name){
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadArray<T, DeserializerT>, (void*)_p, _name));
-		this->Base::estk.push(Base::ExtData((uint64)0, (uint64)0, (void*)&_rsz));
-		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &this->Base::estk.top().u64()));
+		this->Base::estk.push(ExtendedData((uint64)0, (uint64)0, (void*)&_rsz));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &this->Base::estk.top().first_uint64_value()));
 		return *this;
 	}
 	template <typename T>
 	Deserializer& pushDynamicArray(T* &_p, size_t &_rsz, const char *_name = Base::default_name){
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadArray<T, DeserializerT>, (void*)&_p, _name, 0));
-		this->Base::estk.push(Base::ExtData((uint64)0, (uint64)0, (void*)&_rsz));
-		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &this->Base::estk.top().u64()));
+		this->Base::estk.push(ExtendedData((uint64)0, (uint64)0, (void*)&_rsz));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &this->Base::estk.top().first_uint64_value()));
 		return *this;
 	}
 	Deserializer& pushUtf8(

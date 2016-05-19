@@ -563,7 +563,7 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 	
 	vdbgx(Debug::aio, "selcnt = "<<_sz);
 	
-	for(int i = 0; i < _sz; ++i){
+	for(size_t i = 0; i < _sz; ++i){
 		epoll_event				&rev = d.eventvec[i];
 		CompletionHandlerStub	&rch = d.chdq[rev.data.u64];
 		

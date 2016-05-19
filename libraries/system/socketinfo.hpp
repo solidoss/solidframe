@@ -24,7 +24,7 @@
 
 namespace solid{
 
-static ErrorCodeT last_socket_error();
+//static ErrorCodeT last_socket_error();
 
 struct SocketInfo{
 	enum Family{

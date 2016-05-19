@@ -150,7 +150,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 		
 		size_t towrite = endp - pbase();
 		int rv = writeAll(pbase(), towrite);
-		if(rv == towrite){
+		if(static_cast<size_t>(rv) == towrite){
 			off += towrite;
 			resetPut();
 		}else{
@@ -282,7 +282,7 @@ bool FileBuf::flushPut(){
 		size_t towrite = pptr() - pbase();
 		idbgx(dbgid(), ""<<towrite<<" off = "<<off);
 		int rv = writeAll(buf, towrite);
-		if(rv == towrite){
+		if(static_cast<size_t>(rv) == towrite){
 			off += towrite;
 			resetBoth();
 		}else{
@@ -323,13 +323,13 @@ bool FileBuf::flushPut(){
 			if(!flushPut()){
 				return 0;
 			}
-			if(_n && _n <= bufcp/2){
+			if(_n && static_cast<size_t>(_n) <= bufcp/2){
 				memcpy(pptr(), _s, _n);
 				pbump(_n);
 			}else if(_n){
 				size_t towrite = _n;
 				int rv = writeAll(_s, towrite);
-				if(rv == towrite){
+				if(static_cast<size_t>(rv) == towrite){
 					off += rv;
 					resetPut();
 				}else{

@@ -37,7 +37,7 @@ bool test(const T &_v, const size_t _estimated_size){
 		return false;
 	}
 	
-	if((p - tmp) != _estimated_size){
+	if(static_cast<size_t>(p - tmp) != _estimated_size){
 		SOLID_THROW("error");
 		return false;
 	}
@@ -58,7 +58,7 @@ bool test(const T &_v, const size_t _estimated_size){
 		return false;
 	}
 	
-	if((cp - tmp) != _estimated_size){
+	if(static_cast<size_t>(cp - tmp) != _estimated_size){
 		SOLID_THROW("error");
 		return false;
 	}

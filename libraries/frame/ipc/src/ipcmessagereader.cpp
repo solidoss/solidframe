@@ -62,7 +62,7 @@ uint32 MessageReader::read(
 		if(state == DataReadStateE){
 			//try read the data
 			const char		*tmpbufpos = packet_header.load(pbufpos, _rproto);
-			if((pbufend - tmpbufpos) >= packet_header.size()){
+			if(static_cast<size_t>(pbufend - tmpbufpos) >= packet_header.size()){
 				pbufpos = tmpbufpos;
 			}else{
 				break;

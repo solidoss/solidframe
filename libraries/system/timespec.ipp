@@ -94,7 +94,7 @@ inline TimeSpec& TimeSpec::operator -= (const TimeSpec &_ts){
 }
 
 inline bool TimeSpec::isMax()const{
-	return tv_sec == 0xffffffff;
+	return tv_sec == static_cast<decltype(tv_sec)>(-1);
 }
 
 #ifdef SOLID_HAS_NO_INLINES

@@ -594,7 +594,7 @@ ErrorConditionT Service::doStart(){
 			DynamicPointer<aio::Object>		objptr(new Listener(sd));
 			
 			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
-			
+			(void)conuid;
 			if(error){
 				return error;
 			}
@@ -1489,8 +1489,7 @@ bool Service::fetchMessage(Connection &_rcon, ObjectIdT const &_robjuid, Message
 		_rmsg_id.index < rpool.msgvec.size() and
 		rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique
 	){
-		bool pushed_synchronous_message = false;
-		return (_rcon, _robjuid, pool_index, _rmsg_id.index, pushed_synchronous_message);
+		return doTryPushMessageToConnection(_rcon, _robjuid, pool_index, _rmsg_id.index);
 	}
 	return false;
 }

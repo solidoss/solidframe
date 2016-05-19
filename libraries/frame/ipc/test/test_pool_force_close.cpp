@@ -189,8 +189,8 @@ void server_complete_message(
 int test_pool_force_close(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:iew any:view");
+	Debug::the().levelMask("ew");
+	Debug::the().moduleMask("frame_ipc:ew any:ew");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -358,7 +358,7 @@ int test_pool_force_close(int argc, char **argv){
 			}
 		}
 		
-		Thread::sleep(20);
+		Thread::sleep(10);
 		
 		pipcclient->forceCloseConnectionPool(
 			recipinet_id,
