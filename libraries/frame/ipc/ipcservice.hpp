@@ -475,6 +475,8 @@ private:
 		MessageCompleteFunctionT &_rcomplete_fnc
 	);
 	
+	bool closeConnection(RecipientId const &_rrecipient_id);
+	
 private:
 	struct	Data;
 	Data	&d;

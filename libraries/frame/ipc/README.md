@@ -26,9 +26,10 @@ A process-to-process communication (message exchange) engine via plain/secured T
 * test_raw_basic
 * test_raw_proxy
 * test_multiprotocol
-* test_pool_force_close
-* test_pool_delay_close (see note 1 below)
-* add Service::closeConnection(RecipientId) (see note 2)
+* test_connection_close
+* (DONE) add Service::closeConnection(RecipientId) (see note 1)
+* (DONE) test_pool_force_close
+* (DONE) test_pool_delay_close
 * (DONE) test_clientserver_idempotent
 * (DONE) test_clientserver_delayed
 * (DONE) test_clientserver_noserver
@@ -43,10 +44,7 @@ A process-to-process communication (message exchange) engine via plain/secured T
 * add support for OpenSSL (needs extending OpenSSL support in frame/aio)
 
 ## NOTES
-1. In order for delay close pool to function properly, we need to
-	* Remove support for nullptr message sentinel in Writer - no more error_connection_delayed_closed in writer.
-	* The nullptr message sentinel in connection pool will only be fetched by the dying master connection
-2. closeConnection can be used for closing a connection after a certain message was sent.
+1. closeConnection can be used for closing a connection after a certain message was sent.
 
 ## See also
 * [IPC Test Suite](test/README.md)

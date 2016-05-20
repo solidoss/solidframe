@@ -358,7 +358,7 @@ int test_pool_force_close(int argc, char **argv){
 			}
 		}
 		
-		Thread::sleep(10);
+		Thread::sleep(4);
 		
 		pipcclient->forceCloseConnectionPool(
 			recipinet_id,

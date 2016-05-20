@@ -1517,6 +1517,16 @@ bool Service::fetchCanceledMessage(Connection const &_rcon, MessageId const &_rm
 	return false;
 }
 //-----------------------------------------------------------------------------
+bool Service::closeConnection(RecipientId const &_rrecipient_id){
+	
+	vdbgx(Debug::ipc, this);
+	
+	return manager().notify(
+		_rrecipient_id.connectionId(),
+		generic_event_category.event(GenericEvents::Kill)
+	);
+}
+//-----------------------------------------------------------------------------
 bool Service::connectionStopping(
 	Connection &_rcon,
 	ObjectIdT const &_robjuid,
