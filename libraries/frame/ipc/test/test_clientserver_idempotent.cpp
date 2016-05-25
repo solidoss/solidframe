@@ -42,7 +42,7 @@ struct InitStub{
 InitStub initarray[] = {
 	{88192000, 0},
 	{16384000, 0},
-	{2000, 0},
+	{26384000, 0},
 	{16384000, 0},
 	{8192000, 0}
 };
@@ -99,6 +99,15 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		
 		if(S::IsSerializer){
 			serialized = true;
+		}
+		
+		if(isOnPeer()){
+			Locker<Mutex> lock(mtx);
+			if(!start_sleep){
+				start_sleep = true;
+				cnd.signal();
+				return;
+			}
 		}
 	}
 	
@@ -181,7 +190,7 @@ void client_complete_message(
 		if(!_rerror){
 		}else{
 			idbg("send message complete: "<<_rerror.message());
-			SOLID_CHECK(_rsent_msg_ptr->idx == 0);
+			SOLID_CHECK(_rsent_msg_ptr->idx == 0 or _rsent_msg_ptr->idx == 2);
 			SOLID_CHECK(_rerror == frame::ipc::error_connection_message_fail_send);
 		}
 	}
@@ -229,13 +238,6 @@ void server_complete_message(
 		
 		if(!_rrecv_msg_ptr->isOnPeer()){
 			SOLID_THROW("Message not on peer!.");
-		}
-		
-		if(_rrecv_msg_ptr->idx == 2){
-			Locker<Mutex> lock(mtx);
-			start_sleep = true;
-			cnd.signal();
-			return;
 		}
 		
 		//send message back
@@ -395,47 +397,49 @@ int test_clientserver_idempotent(int argc, char **argv){
 		
 		pipcclient  = &ipcclient;
 		
+		std::vector<frame::ipc::MessagePointerT> msg_vec{
+			new Message(0),
+			new Message(1),
+			new Message(2),
+			new Message(3),
+			new Message(4),
+		};
 		{
-			frame::ipc::MessagePointerT	msgptr(new Message(0));
 			++crtwriteidx;
 			ipcclient.sendMessage(
-				"localhost", msgptr,
+				"localhost", msg_vec[0],
 				 frame::ipc::Message::WaitResponseFlagE
 			);
 		}
 		
 		{
-			frame::ipc::MessagePointerT	msgptr(new Message(1));
 			++crtwriteidx;
 			ipcclient.sendMessage(
-				"localhost", msgptr,
+				"localhost", msg_vec[1],
 				 frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::IdempotentFlagE
 			);
 		}
 		
 		{
-			frame::ipc::MessagePointerT	msgptr(new Message(2));
 			++crtwriteidx;
 			ipcclient.sendMessage(
-				"localhost", msgptr,
+				"localhost", msg_vec[2],
 				 frame::ipc::Message::OneShotSendFlagE
 			);
 		}
 		
 		{
-			frame::ipc::MessagePointerT	msgptr(new Message(3));
 			++crtwriteidx;
 			ipcclient.sendMessage(
-				"localhost", msgptr,
+				"localhost", msg_vec[3],
 				frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::IdempotentFlagE | frame::ipc::Message::SynchronousFlagE
 			);
 		}
 		
 		{
-			frame::ipc::MessagePointerT	msgptr(new Message(4));
 			++crtwriteidx;
 			ipcclient.sendMessage(
-				"localhost", msgptr,
+				"localhost", msg_vec[4],
 				 frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::SynchronousFlagE
 			);
 		}

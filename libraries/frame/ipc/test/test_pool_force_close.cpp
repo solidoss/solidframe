@@ -105,6 +105,21 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		if(S::IsSerializer){
 			serialized = true;
 		}
+		if(isOnPeer()){
+			pipcclient->forceCloseConnectionPool(
+				recipinet_id,
+				[](frame::ipc::ConnectionContext &_rctx){
+					idbg("------------------");
+					if(crtackidx == writecount){
+						Locker<Mutex> lock(mtx);
+						running = false;
+						cnd.signal();
+					}else{
+						SOLID_CHECK(false);
+					}
+				}
+			);
+		}
 	}
 	
 	void init(){
@@ -352,27 +367,11 @@ int test_pool_force_close(int argc, char **argv){
 				for(; crtwriteidx < start_count; ++it){
 					++crtwriteidx;
 					ipcclient.sendMessage(
-						"localhost", *it, 0
+						recipinet_id, *it, 0
 					);
 				}
 			}
 		}
-		
-		Thread::sleep(4);
-		
-		pipcclient->forceCloseConnectionPool(
-			recipinet_id,
-			[](frame::ipc::ConnectionContext &_rctx){
-				idbg("------------------");
-				if(crtackidx == writecount){
-					Locker<Mutex> lock(mtx);
-					running = false;
-					cnd.signal();
-				}else{
-					SOLID_CHECK(false);
-				}
-			}
-		);
 		
 		Locker<Mutex>	lock(mtx);
 		

@@ -401,7 +401,7 @@ int test_pool_delay_close(int argc, char **argv){
 				for(; crtwriteidx < start_count; ++it){
 					++crtwriteidx;
 					ipcclient.sendMessage(
-						"localhost", *it, frame::ipc::Message::WaitResponseFlagE
+						recipinet_id, *it, frame::ipc::Message::WaitResponseFlagE
 					);
 				}
 			}
