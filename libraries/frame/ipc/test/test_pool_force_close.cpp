@@ -106,19 +106,21 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 			serialized = true;
 		}
 		if(isOnPeer()){
-			pipcclient->forceCloseConnectionPool(
-				recipinet_id,
-				[](frame::ipc::ConnectionContext &_rctx){
-					idbg("------------------");
-					if(crtackidx == writecount){
+			++crtreadidx;
+			idbg(crtreadidx);
+			if(crtreadidx == 1){
+				
+				pipcclient->forceCloseConnectionPool(
+					recipinet_id,
+					[](frame::ipc::ConnectionContext &_rctx){
+						idbg("------------------");
 						Locker<Mutex> lock(mtx);
 						running = false;
 						cnd.signal();
-					}else{
-						SOLID_CHECK(false);
 					}
-				}
-			);
+				);
+			
+			}
 		}
 	}
 	

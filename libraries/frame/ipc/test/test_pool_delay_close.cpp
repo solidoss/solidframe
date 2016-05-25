@@ -98,6 +98,14 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 		if(S::IsSerializer){
 			serialized = true;
 		}
+		if(isOnPeer()){
+			++crtreadidx;
+			idbg(crtreadidx);
+			
+			if(crtreadidx == 2){
+				cnd.signal();
+			}
+		}
 	}
 	
 	void init(){
@@ -221,10 +229,6 @@ void server_complete_message(
 		if(err){
 			SOLID_THROW_EX("Connection id should not be invalid!", err.message());
 		}
-		
-		++crtreadidx;
-		
-		idbg(crtreadidx);
 		
 	}
 	if(_rsent_msg_ptr.get()){
@@ -407,31 +411,35 @@ int test_pool_delay_close(int argc, char **argv){
 			}
 		}
 		
-		Thread::sleep(80);
-		
-		pipcclient->delayCloseConnectionPool(
-			recipinet_id,
-			[](frame::ipc::ConnectionContext &_rctx){
-				idbg("------------------");
-				if(crtackidx == writecount){
+		{
+			{
+				Locker<Mutex>	lock(mtx);
+				
+				while(crtreadidx < 2){
+					cnd.wait(lock);
+				}
+			}
+			pipcclient->delayCloseConnectionPool(
+				recipinet_id,
+				[](frame::ipc::ConnectionContext &_rctx){
+					idbg("------------------");
 					Locker<Mutex> lock(mtx);
 					running = false;
 					cnd.signal();
-				}else{
-					SOLID_CHECK(false);
 				}
-			}
-		);
-		
-		{
-			frame::ipc::MessagePointerT	msgptr(new Message(0));
-			ErrorConditionT err = ipcclient.sendMessage(
-				recipinet_id, msgptr,
-				frame::ipc::Message::WaitResponseFlagE
 			);
-			idbg("send message error message: "<<err.message());
-			SOLID_CHECK(err)
+			
+			{
+				frame::ipc::MessagePointerT	msgptr(new Message(0));
+				ErrorConditionT err = pipcclient->sendMessage(
+					recipinet_id, msgptr,
+					frame::ipc::Message::WaitResponseFlagE
+				);
+				idbg("send message error message: "<<err.message());
+				SOLID_CHECK(err)
+			}
 		}
+		
 		Locker<Mutex>	lock(mtx);
 		
 		while(running){
