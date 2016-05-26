@@ -10,26 +10,33 @@ set(Sources
 )
 
 set(Headers
-	schedulerbase.hpp
 	common.hpp
+	completion.hpp
+	forwardcompletion.hpp
 	manager.hpp
+	objectbase.hpp
 	object.hpp
 	reactorbase.hpp
+	reactorcontext.hpp
 	reactor.hpp
+	schedulerbase.hpp
 	scheduler.hpp
 	service.hpp
-	timer.hpp
-	completion.hpp
 	sharedstore.hpp
+	timer.hpp
+	timestore.hpp
 )
 
 set(Inlines
+	manager.ipp
 )
 
 add_library (solid_frame
 	${Sources} ${Headers} ${Inlines}
 )
 
+install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame)
+install (TARGETS solid_frame DESTINATION lib)
 
 add_subdirectory(ipc)
 add_subdirectory(aio)

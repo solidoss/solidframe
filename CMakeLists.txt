@@ -231,6 +231,13 @@ if(NOT ON_FOUND)
 	return()
 endif(NOT ON_FOUND)
 
+#-----------------------------------------------------------------
+# install prefix
+#-----------------------------------------------------------------
+if(NOT (UINSTALL_PREFIX STREQUAL ""))
+	set(CMAKE_INSTALL_PREFIX "${UINSTALL_PREFIX}")
+	message("Using install prefix: ${CMAKE_INSTALL_PREFIX}")
+endif(NOT (UINSTALL_PREFIX STREQUAL ""))
 
 #-----------------------------------------------------------------
 # config.h support

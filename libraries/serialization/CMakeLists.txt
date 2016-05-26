@@ -8,6 +8,7 @@ set(Sources
 set(Headers
 	binary.hpp
 	binarybasic.hpp
+	typeidmap.hpp
 )
 
 set(Inlines
@@ -16,5 +17,8 @@ set(Inlines
 add_library(solid_serialization
 	${Sources} ${Headers} ${Inlines}
 )
+
+install (FILES ${Headers} ${Inlines} DESTINATION include/solid/serialization)
+install (TARGETS solid_serialization DESTINATION lib)
 
 add_subdirectory(test)

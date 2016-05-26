@@ -11,17 +11,13 @@ set(Sources
 )
 
 set(Headers
-	ipccontext.hpp
-	ipcservice.hpp
-	ipcmessage.hpp
-	ipcerror.hpp
 	ipcconfiguration.hpp
+	ipccontext.hpp
+	ipcerror.hpp
+	ipcmessage.hpp
 	ipcprotocol.hpp
-	src/ipclistener.hpp
-	src/ipcconnection.hpp
-	src/ipcutility.hpp
-	src/ipcmessagereader.hpp
-	src/ipcmessagewriter.hpp
+	ipcprotocol_serialization_v1.hpp
+	ipcservice.hpp
 )
 
 set(Inlines
@@ -31,5 +27,7 @@ add_library (solid_frame_ipc
 	${Sources} ${Headers} ${Inlines}
 )
 
+install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/ipc)
+install (TARGETS solid_frame_ipc DESTINATION lib)
 
 add_subdirectory(test)

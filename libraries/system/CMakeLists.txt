@@ -12,32 +12,46 @@ set(Sources
 )
 
 set(Headers
+	atomic.hpp
+	binary.hpp
 	cassert.hpp
-	condition.hpp
-	debug.hpp
-	directory.hpp
-	mutex.hpp
-	socketaddress.hpp
-	specific.hpp
-	thread.hpp
 	common.hpp
+	condition_boost.hpp
+	condition.hpp
+	condition_stl.hpp
 	convertors.hpp
-	device.hpp
-	filedevice.hpp
-	seekabledevice.hpp
-	socketdevice.hpp
-	synchronization.hpp
-	timespec.hpp
 	cstring.hpp
+	debug.hpp
+	device.hpp
+	directory.hpp
+	error.hpp
+	exception.hpp
+	filedevice.hpp
+	function.hpp
+	memorycache.hpp
+	memory.hpp
+	mutex_boost.hpp
+	mutex.hpp
+	mutex_stl.hpp
 	mutualstore.hpp
+	seekabledevice.hpp
 	sharedbackend.hpp
-	src/mutexpool.hpp
+	socketaddress.hpp
+	socketdevice.hpp
+	socketinfo.hpp
+	specific.hpp
+	synchronization.hpp
+	thread.hpp
+	timespec.hpp
+	tuple.hpp
 )
+
 set(Inlines
-	condition.ipp
-	mutex.ipp
-	socketaddress.ipp
-	synchronization.ipp
+	condition.ipp                                                                                                                                                          
+	memorycache.ipp                                                                                                                                                        
+	mutex.ipp                                                                                                                                                              
+	socketaddress.ipp                                                                                                                                                      
+	synchronization.ipp                                                                                                                                                    
 	timespec.ipp
 )
 
@@ -45,3 +59,5 @@ add_library (solid_system
 	${Sources} ${Headers} ${Inlines}
 )
 
+install (FILES ${Headers} ${Inlines} DESTINATION include/solid/system)
+install (TARGETS solid_system DESTINATION lib)
