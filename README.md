@@ -32,9 +32,9 @@ C++11 enabled compilers on:
 
 ## TODO v2.0
 
-* Finalizing the IPC library - what is planned for SFv2.0.
+* (PENDING) Finalizing the IPC library - what is planned for SFv2.0.
 * Cross-platform support: FreeBSD, Darwin/OSX, Windows (partial).
-* Add "make install" support.
+* (DONE) Add "make install" support.
 * Preparing for SFv2.0.
 * SolidFrame version 2.0.
 
