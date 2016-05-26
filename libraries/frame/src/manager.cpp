@@ -199,6 +199,33 @@ typedef ATOMIC_NS::atomic<State>	AtomicStateT;
 
 //---------------------------------------------------------
 struct Manager::Data{
+	
+	AtomicSizeT				crtsvcstoreidx;
+	ServiceDequeT			svcdq;
+	ServiceStoreStub		svcstore[2];
+	AtomicSizeT				crtsvcidx;
+	size_t					svccnt;
+	SizeStackT				svccache;
+	
+	Mutex					*pobjmtxarr;
+	size_t					objmtxcnt;
+	
+	Mutex					*psvcmtxarr;
+	size_t					svcmtxcnt;
+	
+	AtomicSizeT				crtobjstoreidx;
+	ObjectStoreStub			objstore[2];
+	size_t					objchkcnt;
+	//AtomicSizeT				objcnt;
+	AtomicSizeT				maxobjcnt;
+	
+	SizeStackT				chkcache;
+	
+	AtomicStateT			state;
+	
+	Mutex					mtx;
+	Condition				cnd;
+	
 	Data(
 		Manager &_rm
 	);
@@ -295,32 +322,6 @@ struct Manager::Data{
 		crtobjstoreidx = _idx;
 		return _idx;
 	}
-	
-	AtomicSizeT				crtsvcstoreidx;
-	ServiceDequeT			svcdq;
-	ServiceStoreStub		svcstore[2];
-	AtomicSizeT				crtsvcidx;
-	size_t					svccnt;
-	SizeStackT				svccache;
-	
-	Mutex					*pobjmtxarr;
-	size_t					objmtxcnt;
-	
-	Mutex					*psvcmtxarr;
-	size_t					svcmtxcnt;
-	
-	AtomicSizeT				crtobjstoreidx;
-	ObjectStoreStub			objstore[2];
-	size_t					objchkcnt;
-	//AtomicSizeT				objcnt;
-	AtomicSizeT				maxobjcnt;
-	
-	SizeStackT				chkcache;
-	
-	AtomicStateT			state;
-	
-	Mutex					mtx;
-	Condition				cnd;
 	
 };
 
@@ -472,7 +473,6 @@ void Manager::unregisterService(Service &_rsvc){
 		return;
 	}
 	
-	
 	d.releaseReadServiceStore(svcstoreidx);
 	
 	doUnregisterService(rss);
@@ -555,7 +555,6 @@ ObjectIdT Manager::registerObject(
 			
 			ObjectStoreStub	&rnewobjstore = d.objstore[newobjstoreidx];
 			
-			//rnewobjstore.vec = d.objstore[oldobjstoreidx].vec;
 			rnewobjstore.vec.insert(
 				rnewobjstore.vec.end(),
 				d.objstore[oldobjstoreidx].vec.begin() + rnewobjstore.vec.size(),
@@ -657,6 +656,8 @@ void Manager::unregisterObject(ObjectBase &_robj){
 		ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
 		Locker<Mutex>	lock(rss.rmtx);
 		
+		d.releaseReadServiceStore(svcstoreidx);
+		
 		rss.objcache.push(objidx);
 		--rss.objcnt;
 		if(rss.objcnt == 0 && rss.state == StateStoppingE){
@@ -721,6 +722,7 @@ bool Manager::raise(const ObjectBase &_robj, Event const &_re){
 	
 	const size_t		objstoreidx = d.aquireReadObjectStore();
 	ObjectStub const 	&ros(d.object(objstoreidx, _robj.id()));
+	
 	d.releaseReadObjectStore(objstoreidx);
 	
 	SOLID_ASSERT(ros.pobject == &_robj);
@@ -735,35 +737,39 @@ Mutex& Manager::mutex(const ObjectBase &_robj)const{
 		const size_t		objstoreidx = d.aquireReadObjectStore();
 		ObjectChunk			&rchk(*d.chunk(objstoreidx, _robj.id()));
 		
-		d.releaseReadObjectStore(objstoreidx);
 		pmtx = &rchk.rmtx;
+		d.releaseReadObjectStore(objstoreidx);
 	}
 	return *pmtx;
 }
 
 ObjectIdT  Manager::id(const ObjectBase &_robj)const{
 	const IndexT		objidx = _robj.id();
+	ObjectIdT			retval;
+	
 	if(objidx != InvalidIndex()){
 		const size_t		objstoreidx = d.aquireReadObjectStore();
 		ObjectStub const 	&ros(d.object(objstoreidx, objidx));
-		d.releaseReadObjectStore(objstoreidx);
 		
 		SOLID_ASSERT(ros.pobject == &_robj);
-		return ObjectIdT(objidx, ros.unique);
-	}else{
-		return ObjectIdT();
+		retval = ObjectIdT(objidx, ros.unique);
+		d.releaseReadObjectStore(objstoreidx);
 	}
+	return retval;
 }
 
 
 Mutex& Manager::mutex(const Service &_rsvc)const{
+	Mutex			*pmtx = nullptr ;
 	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 	ServiceStub		&rsvc = *d.svcstore[svcstoreidx].vec[svcidx];
 		
+	pmtx = &rsvc.rmtx;
+	
 	d.releaseReadServiceStore(svcstoreidx);
 		
-	return rsvc.rmtx;
+	return *pmtx;
 }
 
 
@@ -799,9 +805,10 @@ size_t Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisi
 		
 		ObjectChunk		&rchk = *d.objstore[objstoreidx].vec[crtchkidx];
 		
+		Locker<Mutex>	lock(rchk.rmtx);
+		
 		d.releaseReadObjectStore(objstoreidx);
 		
-		Locker<Mutex>	lock(rchk.rmtx);
 		ObjectStub		*poss = rchk.objects();
 
 		for(size_t i(0), cnt(0); i < d.objchkcnt && cnt < rchk.objcnt; ++i){
@@ -825,15 +832,12 @@ Service& Manager::service(const ObjectBase &_robj)const{
 		const size_t		objstoreidx = d.aquireReadObjectStore();
 		ObjectChunk			&rchk(*d.chunk(objstoreidx, _robj.id()));
 		
-		d.releaseReadObjectStore(objstoreidx);
+		Locker<Mutex>		lock(rchk.rmtx);
 		
-		{
-			Locker<Mutex>		lock(rchk.rmtx);
+		SOLID_ASSERT(rchk.object(_robj.id() % d.objchkcnt).pobject == &_robj);
 			
-			SOLID_ASSERT(rchk.object(_robj.id() % d.objchkcnt).pobject == &_robj);
-			
-			svcidx = rchk.svcidx;
-		}
+		svcidx = rchk.svcidx;
+		d.releaseReadObjectStore(objstoreidx);
 	}
 	{
 		const size_t	svcstoreidx = d.aquireReadServiceStore();
@@ -851,9 +855,9 @@ bool Manager::startService(Service &_rsvc){
 	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 	ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
 	
-	d.releaseReadServiceStore(svcstoreidx);
-	
 	Locker<Mutex>	lock(rss.rmtx);
+	
+	d.releaseReadServiceStore(svcstoreidx);
 	
 	if(rss.state == StateStoppedE){
 		rss.psvc->setRunning();
@@ -871,9 +875,9 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 	ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
 	
-	d.releaseReadServiceStore(svcstoreidx);
-	
 	Locker<Mutex>	lock(rss.rmtx);
+	
+	d.releaseReadServiceStore(svcstoreidx);
 	
 	if(rss.state == StateStoppedE){
 		return;
@@ -941,8 +945,8 @@ void Manager::stop(){
 			rss.psvc->resetRunning();
 			
 			const size_t			cnt = doForEachServiceObject(rss.firstchk, fctor);
-			
-			rss.state = cnt != 0 ? StateStoppingE : StateStoppedE;
+			(void)cnt;
+			rss.state = (rss.objcnt != 0) ? StateStoppingE : StateStoppedE;
 		}
 	}
 	
