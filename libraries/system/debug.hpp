@@ -183,39 +183,64 @@ struct DebugTraceTest{
 #ifdef SOLID_HAS_DEBUG
 
 #define idbg(x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Info, solid::Debug::any)){\
-	solid::Debug::the().print('I', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('I', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
+
 #define idbgx(a,x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Info, a)){\
-	solid::Debug::the().print('I', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('I', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
 
 #define edbg(x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Error, solid::Debug::any)){\
-	solid::Debug::the().print('E', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('E', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
+	
 #define edbgx(a,x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Error, a)){\
-	solid::Debug::the().print('E', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('E', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
 
 #define wdbg(x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Warn, solid::Debug::any)){\
-	solid::Debug::the().print('W', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('W', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
+
 #define wdbgx(a,x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Warn, a)){\
-	solid::Debug::the().print('W', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('W', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
 
 #define rdbg(x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Report, solid::Debug::any)){\
-	solid::Debug::the().print('R', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('R', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
+
 #define rdbgx(a,x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Report, a)){\
-	solid::Debug::the().print('R', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('R', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
 
 #define vdbg(x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Verbose, solid::Debug::any)){\
-	solid::Debug::the().print('V', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('V', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
+	
 #define vdbgx(a,x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Verbose, a)){\
-	solid::Debug::the().print('V', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
+	solid::Debug::the().print('V', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
+	}while(false);
 
 #ifdef SOLID_HAS_DEBUG_TRACE
 #define tdbgi(a,x)\
@@ -225,9 +250,12 @@ struct DebugTraceTest{
 	__dbgtrace__.v = 0;}
 
 #define tdbgo(a,x)\
+	do{\
 	if(solid::Debug::the().isSet(solid::Debug::Trace, a)){\
 	__dbgtrace__.v = 0;\
-	solid::Debug::the().printTraceOut('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().doneTraceOut();}else;
+	solid::Debug::the().printTraceOut('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().doneTraceOut();}\
+	}while(false);
+	
 
 #else
 #define tdbgi(a,x)
@@ -235,16 +263,18 @@ struct DebugTraceTest{
 #endif
 
 #define pdbg(f, ln, fnc, x)\
-	{solid::Debug::the().print('P', solid::Debug::any,  f, fnc, ln)<<x;solid::Debug::the().done();}
+	do{solid::Debug::the().print('P', solid::Debug::any,  f, fnc, ln)<<x;solid::Debug::the().done();}while(false);
 
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
 
 #define check_call(a, v, c) \
+	do{\
 	if((c) != v){\
 		edbgx(a, "Error call ##c"<<strerror(errno))\
 		SOLID_ASSERT(false);\
-	}
+	}\
+	}while(false);
 
 #else
 

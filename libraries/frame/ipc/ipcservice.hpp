@@ -271,6 +271,9 @@ public:
 	);
 	
 	ErrorConditionT cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsg_id);
+	
+	bool closeConnection(RecipientId const &_rrecipient_id);
+	
 private:
 	ErrorConditionT doConnectionNotifyEnterActiveState(
 		RecipientId const &_rrecipient_id,
@@ -474,8 +477,6 @@ private:
 		RecipientId const &_rrecipient_id, 
 		MessageCompleteFunctionT &_rcomplete_fnc
 	);
-	
-	bool closeConnection(RecipientId const &_rrecipient_id);
 	
 private:
 	struct	Data;

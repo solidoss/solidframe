@@ -972,6 +972,7 @@ bool Service::doTryPushMessageToConnection(
 	const bool			message_is_asynchronous = Message::is_asynchronous(rmsgstub.msgbundle.message_flags);
 	const bool			message_is_null = rmsgstub.msgbundle.message_ptr.empty();
 	bool				success = false;
+	
 	SOLID_ASSERT(not Message::is_canceled(rmsgstub.msgbundle.message_flags));
 	
 	if(rmsgstub.msgbundle.message_ptr.empty()){
@@ -1029,7 +1030,7 @@ bool Service::doTryPushMessageToConnection(
 	MessageStub			&rmsgstub = rpool.msgvec[_rmsg_id.index];
 	bool				success = false;
 	
-	SOLID_ASSERT(Message::is_canceled(rmsgstub.msgbundle.message_flags));
+	SOLID_ASSERT(not Message::is_canceled(rmsgstub.msgbundle.message_flags));
 	
 	
 	if(rmsgstub.isCancelable()){

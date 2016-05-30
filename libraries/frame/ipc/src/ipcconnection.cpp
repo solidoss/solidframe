@@ -1282,7 +1282,11 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 						break;
 					}
 				}else{
-					edbgx(Debug::ipc, this<<' '<<id()<<" storring "<<error.message());
+					edbgx(Debug::ipc, this<<' '<<id()<<" size to send "<<sz<<" error "<<error.message());
+					
+					if(sz){
+						this->sendAll(_rctx, send_buf, sz);
+					}
 					
 					doStop(_rctx, error);
 					sent_something = false;//prevent calling doResetTimerSend after doStop

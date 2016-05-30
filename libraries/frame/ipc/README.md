@@ -26,7 +26,7 @@ A process-to-process communication (message exchange) engine via plain/secured T
 * test_raw_basic
 * test_raw_proxy
 * test_multiprotocol
-* test_connection_close
+* (DONE) test_connection_close
 * (DONE) add Service::closeConnection(RecipientId) (see note 1)
 * (DONE) test_pool_force_close
 * (DONE) test_pool_delay_close

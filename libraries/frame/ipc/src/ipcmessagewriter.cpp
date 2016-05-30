@@ -191,15 +191,17 @@ uint32 MessageWriter::write(
 		if(pbuftmp != pbufdata){
 			
 			if(not packet_options.force_no_compress){
-				size_t compressed_size = _rconfig.inplace_compress_fnc(pbufdata, pbuftmp - pbufdata, _rerror);
+				ErrorConditionT		compress_error;
+				size_t				compressed_size = _rconfig.inplace_compress_fnc(pbufdata, pbuftmp - pbufdata, compress_error);
 				if(compressed_size){
 					packet_header.flags( packet_header.flags() | PacketHeader::CompressedFlagE);
 					pbuftmp = pbufdata + compressed_size;
-				}else if(!_rerror){
+				}else if(!compress_error){
 					//the buffer was not modified, we can send it uncompressed
 				}else{
 					//there was an error and the inplace buffer was changed - exit with error
 					more = false;
+					_rerror = compress_error;
 					continue;
 				}
 			}
@@ -222,10 +224,8 @@ uint32 MessageWriter::write(
 			PacketHeader			packet_header(PacketHeader::KeepAliveTypeE, 0, 0);
 			pbufpos = packet_header.store(pbufpos, _rproto);
 		}
-		return pbufpos - _pbuf;
-	}else{
-		return 0;
 	}
+	return pbufpos - _pbuf;
 }
 //-----------------------------------------------------------------------------
 //	|4B - PacketHeader|PacketHeader.size - PacketData|
@@ -345,7 +345,7 @@ char* MessageWriter::doFillPacket(
 			doTryCompleteMessageAfterSerialization(msgidx, _complete_fnc, _rconfig, _rproto, _rctx, tmp_serializer, _rerror);
 			
 			if(_rerror){
-				pbufpos = nullptr;
+				//pbufpos = nullptr;
 				break;
 			}
 			
