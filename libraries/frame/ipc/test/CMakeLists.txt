@@ -156,3 +156,36 @@ add_test(NAME TestPoolDelayClose2		COMMAND  test_ipc_pool test_pool_delay_close 
 add_test(NAME TestPoolDelayClose4		COMMAND  test_ipc_pool test_pool_delay_close 4)
 
 #==============================================================================
+
+add_subdirectory(test_multiprotocol_basic)
+
+set( IpcMultiProtocolTestSuite
+	test_multiprotocol_basic.cpp
+)
+
+create_test_sourcelist( IpcMultiProtocolTests test_ipc_multiprotocol.cpp ${IpcMultiProtocolTestSuite})
+
+add_executable(test_ipc_multiprotocol ${IpcMultiProtocolTests})
+
+target_link_libraries(test_ipc_multiprotocol
+	test_multiprotocol_alpha_client
+	test_multiprotocol_alpha_server
+	test_multiprotocol_beta_client
+	test_multiprotocol_beta_server
+	test_multiprotocol_gamma_client
+	test_multiprotocol_gamma_server
+	solid_frame_ipc
+	solid_frame_aio
+	solid_frame_aio_openssl
+	solid_frame
+	solid_serialization
+	solid_utility
+	solid_system
+	${OPENSSL_LIBS}
+	${SYS_DYNAMIC_LOAD_LIB}
+	${SYS_BASIC_LIBS}
+)
+
+add_test(NAME TestMultiProtocolBasic		COMMAND  test_ipc_multiprotocol test_multiprotocol_basic)
+
+#==============================================================================

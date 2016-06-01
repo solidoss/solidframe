@@ -8,6 +8,9 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
+#ifndef SOLID_FRAME_IPC_IPCPROTOCOL_SERIALIZATION_V1_HPP
+#define SOLID_FRAME_IPC_IPCPROTOCOL_SERIALIZATION_V1_HPP
+
 #include "frame/ipc/ipcprotocol.hpp"
 #include "serialization/binary.hpp"
 #include "serialization/binarybasic.hpp"
@@ -193,4 +196,4 @@ struct Protocol: public ipc::Protocol{
 }//namespace frame
 }//namespace solid
 
-
+#endif

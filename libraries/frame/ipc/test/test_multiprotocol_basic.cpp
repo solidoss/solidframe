@@ -23,6 +23,15 @@
 
 #include "system/debug.hpp"
 
+#include "test_multiprotocol_basic/alpha/server/alphaserver.hpp"
+#include "test_multiprotocol_basic/beta/server/betaserver.hpp"
+#include "test_multiprotocol_basic/gamma/server/gammaserver.hpp"
+
+
+#include "test_multiprotocol_basic/alpha/client/alphaclient.hpp"
+#include "test_multiprotocol_basic/beta/client/betaclient.hpp"
+#include "test_multiprotocol_basic/gamma/client/gammaclient.hpp"
+
 #include <iostream>
 
 using namespace std;
@@ -38,6 +47,9 @@ std::string						pattern;
 bool							running = true;
 Mutex							mtx;
 Condition						cnd;
+std::atomic<uint64>				transfered_size(0);
+std::atomic<size_t>				transfered_count(0);
+std::atomic<size_t>				connection_count(0);
 
 size_t real_size(size_t _sz){
 	//offset + (align - (offset mod align)) mod align
@@ -51,7 +63,7 @@ void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
 }
-
+/*
 void server_complete_message(
 	frame::ipc::ConnectionContext &_rctx,
 	DynamicPointer<Message> &_rsent_msg_ptr, DynamicPointer<Message> &_rrecv_msg_ptr,
@@ -64,7 +76,7 @@ void server_complete_message(
 		idbg(_rctx.recipientId()<<" done sent message "<<_rsent_msg_ptr.get());
 	}
 }
-
+*/
 }//namespace
 
 
@@ -145,10 +157,17 @@ int test_multiprotocol_basic(int argc, char **argv){
 			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
 			frame::ipc::Configuration				cfg(sch_server, proto);
 			
-			proto->registerType<Message>(
-				serialization::basic_factory<Message>,
-				server_complete_message
-			);
+// 			proto->registerType<Message>(
+// 				serialization::basic_factory<Message>,
+// 				server_complete_message
+// 			);
+			
+			gamma_server::register_messages(*proto);
+			beta_server::register_messages(*proto);
+			alpha_server::register_messages(*proto);
+			
+			
+			
 			
 			//cfg.recv_buffer_capacity = 1024;
 			//cfg.send_buffer_capacity = 1024;
@@ -176,7 +195,10 @@ int test_multiprotocol_basic(int argc, char **argv){
 			}
 		}
 		
-			
+		alpha_client::start();
+		beta_client::start();
+		gamma_client::start();
+		
 		Locker<Mutex>	lock(mtx);
 		
 		while(running){

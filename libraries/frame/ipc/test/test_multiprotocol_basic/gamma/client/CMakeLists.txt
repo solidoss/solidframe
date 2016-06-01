@@ -1,0 +1,1 @@
+add_library(test_multiprotocol_gamma_client gammaclient.hpp gammaclient.cpp)

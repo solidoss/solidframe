@@ -1,0 +1,1 @@
+add_library(test_multiprotocol_alpha_client alphaclient.hpp alphaclient.cpp)
