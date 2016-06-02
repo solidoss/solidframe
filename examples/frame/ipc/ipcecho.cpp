@@ -77,11 +77,11 @@ namespace{
 	//bool					run = true;
 	//uint32					wait_count = 0;
 	Params					app_params;
-	void broadcast_message(frame::ipc::Service &_rsvc, DynamicPointer<frame::ipc::Message> &_rmsgptr);
+	void broadcast_message(frame::ipc::Service &_rsvc, std::shared_ptr<frame::ipc::Message> &_rmsgptr);
 	void on_receive(FirstMessage const &_rmsg);
 }
 
-struct FirstMessage: Dynamic<FirstMessage, frame::ipc::Message>{
+struct FirstMessage: frame::ipc::Message{
     std::string						str;
 	
 	FirstMessage(std::string const &_str):str(_str){
@@ -107,8 +107,8 @@ struct MessageHandler{
 	
 	void operator()(
 		frame::ipc::ConnectionContext &_rctx,
-		DynamicPointer<FirstMessage> &_rsend_msg,
-		DynamicPointer<FirstMessage> &_rrecv_msg,
+		std::shared_ptr<FirstMessage> &_rsend_msg,
+		std::shared_ptr<FirstMessage> &_rrecv_msg,
 		ErrorConditionT const &_rerr
 	);
 };
@@ -200,7 +200,6 @@ int main(int argc, char *argv[]){
 			frame::ipc::Configuration				cfg(sch, proto);
 			
 			proto->registerType<FirstMessage>(
-				serialization::basic_factory<FirstMessage>,
 				MessageHandler(ipcsvc)
 			);
 			
@@ -234,7 +233,7 @@ int main(int argc, char *argv[]){
 				if(s.size() == 1 && (s[0] == 'q' || s[0] == 'Q')){
 					s.clear();
 				}else{
-					DynamicPointer<frame::ipc::Message> msgptr(new FirstMessage(s));
+					std::shared_ptr<frame::ipc::Message> msgptr(new FirstMessage(s));
 					broadcast_message(ipcsvc, msgptr);
 				}
 			}while(s.size());
@@ -288,11 +287,11 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
 
 void MessageHandler::operator()(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<FirstMessage> &_rsend_msg,
-	DynamicPointer<FirstMessage> &_rrecv_msg,
+	std::shared_ptr<FirstMessage> &_rsend_msg,
+	std::shared_ptr<FirstMessage> &_rrecv_msg,
 	ErrorConditionT const &_rerr
 ){
-	if(_rrecv_msg.get()){
+	if(_rrecv_msg){
 		idbg(_rctx.recipientId()<<" Message received: is_on_sender: "<<_rrecv_msg->isOnSender()<<", is_on_peer: "<<_rrecv_msg->isOnPeer()<<", is_back_on_sender: "<<_rrecv_msg->isBackOnSender());
 		if(_rrecv_msg->isOnPeer()){
 			rsvc.sendMessage(_rctx.recipientId(), _rrecv_msg);
@@ -305,7 +304,7 @@ void MessageHandler::operator()(
 
 namespace{
 
-void broadcast_message(frame::ipc::Service &_rsvc, DynamicPointer<frame::ipc::Message> &_rmsgptr){
+void broadcast_message(frame::ipc::Service &_rsvc, std::shared_ptr<frame::ipc::Message> &_rmsgptr){
 	for(Params::StringVectorT::const_iterator it(app_params.connectstringvec.begin()); it != app_params.connectstringvec.end(); ++it){
 		_rsvc.sendMessage(it->c_str(), _rmsgptr, frame::ipc::Message::WaitResponseFlagE);
 	}

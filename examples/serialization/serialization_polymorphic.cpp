@@ -1,5 +1,5 @@
 #include "serialization/binary.hpp"
-#include "utility/dynamictype.hpp"
+
 
 #include <iostream>
 #include <string>
@@ -7,7 +7,7 @@
 using namespace solid;
 using namespace std;
 
-struct Base: Dynamic<Base>{
+struct Base{
 	Base(size_t _val = 0): val(_val){}
 	size_t		val;
 	virtual void print()const = 0;
@@ -46,7 +46,7 @@ void serialize(S &_rs, T &_rt, const char *_name){
 	_rs.push(_rt, _name);
 }
 
-typedef DynamicPointer<Base>													BasePointerT;
+typedef std::shared_ptr<Base>													BasePointerT;
 
 int main(){
 	
@@ -54,8 +54,8 @@ int main(){
 	
 	TypeIdMapT	typemap;
 	
-	typemap.registerType<TestA>("testa", serialization::basic_factory<TestA>);
-	typemap.registerType<TestB>("testb", serialize<BinSerializerT, TestB>, serialize<BinDeserializerT, TestB>, serialization::basic_factory<TestB>);
+	typemap.registerType<TestA>("testa");
+	typemap.registerType<TestB>("testb", serialize<BinSerializerT, TestB>, serialize<BinDeserializerT, TestB>);
 	typemap.registerCast<TestA, Base>();
 	typemap.registerCast<TestB, Base>();
 	
@@ -68,7 +68,7 @@ int main(){
 		TestA				a;
 		
 		Base				*pa = &a;
-		BasePointerT		bptr = new TestB(2, 4);
+		BasePointerT		bptr(new TestB(2, 4));
 		
 		cout<<"Typename pa: "<<typeid(*pa).name()<<endl;
 		

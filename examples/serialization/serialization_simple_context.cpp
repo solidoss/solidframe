@@ -336,10 +336,10 @@ int main(int argc, char *argv[]){
 	TypeIdMapT		tm;
 	
 	
-	tm.registerType<String>(serialization::basic_factory<String>, STRING_TYPE_INDEX);
-	tm.registerType<UnsignedInteger>(serialization::basic_factory<UnsignedInteger>, UNSIGNED_TYPE_INDEX);
-	tm.registerType<IntegerVector>(serialization::basic_factory<IntegerVector>, INTEGER_VECTOR_TYPE_INDEX);
-	tm.registerType<Array>(serialization::basic_factory<Array>, ARRAY_TYPE_INDEX);
+	tm.registerType<String>(0, STRING_TYPE_INDEX);
+	tm.registerType<UnsignedInteger>(0, UNSIGNED_TYPE_INDEX);
+	tm.registerType<IntegerVector>(0, INTEGER_VECTOR_TYPE_INDEX);
+	tm.registerType<Array>(0, ARRAY_TYPE_INDEX);
 	
 	tm.registerCast<String, Base>();
 	tm.registerCast<UnsignedInteger, Base>();
@@ -426,7 +426,7 @@ int main(int argc, char *argv[]){
 			TestC					tc;
 			StrDeqT					sdq;
 			string					s;
-			DynamicPointer<Base>	b1;
+			std::shared_ptr<Base>	b1;
 			Base					*b2 = NULL;
 			Base					*b3 = NULL;
 			Base					*b4 = NULL;

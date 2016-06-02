@@ -585,7 +585,7 @@ protected:
 		int64 			&ri(rs.estk.top().second_int64_value());
 		idbgx(Debug::ser_bin, "store generic array cont "<<_rfd.n<<" rsz = "<<rsz<<" ri = "<<ri);
 		
-		if(rs.cpb && ri < rsz){
+		if(rs.cpb && static_cast<uint64>(ri) < rsz){
 			rs.push(c[ri], _rfd.n);
 			++ri;
 			return ContinueE;
