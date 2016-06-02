@@ -62,7 +62,7 @@ size_t real_size(size_t _sz){
 	return _sz + ((sizeof(uint64) - (_sz % sizeof(uint64))) % sizeof(uint64));
 }
 
-struct Message: Dynamic<Message, frame::ipc::Message>{
+struct Message: frame::ipc::Message{
 	uint32							idx;
     std::string						str;
 	bool							serialized;
@@ -127,7 +127,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 	
 };
 
-struct Logout: Dynamic<Logout, frame::ipc::Message>{
+struct Logout: frame::ipc::Message{
 	template <class S>
 	void serialize(S &_s, frame::ipc::ConnectionContext &_rctx){
 	}
@@ -173,7 +173,7 @@ void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 
 void client_complete_message(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Message> &_rsent_msg_ptr, DynamicPointer<Message> &_rrecv_msg_ptr,
+	std::shared_ptr<Message> &_rsent_msg_ptr, std::shared_ptr<Message> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
 	idbg(_rctx.recipientId());
@@ -209,7 +209,7 @@ void client_complete_message(
 
 void client_complete_logout(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Logout> &_rsent_msg_ptr, DynamicPointer<Logout> &_rrecv_msg_ptr,
+	std::shared_ptr<Logout> &_rsent_msg_ptr, std::shared_ptr<Logout> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
 	SOLID_CHECK(!_rerror);
@@ -219,7 +219,7 @@ void client_complete_logout(
 
 void server_complete_message(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Message> &_rsent_msg_ptr, DynamicPointer<Message> &_rrecv_msg_ptr,
+	std::shared_ptr<Message> &_rsent_msg_ptr, std::shared_ptr<Message> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
 	if(_rrecv_msg_ptr.get()){
@@ -251,7 +251,7 @@ void server_complete_message(
 
 void server_complete_logout(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Logout> &_rsent_msg_ptr, DynamicPointer<Logout> &_rrecv_msg_ptr,
+	std::shared_ptr<Logout> &_rsent_msg_ptr, std::shared_ptr<Logout> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
 	if(_rrecv_msg_ptr.get()){
@@ -357,12 +357,10 @@ int test_connection_close(int argc, char **argv){
 			frame::ipc::Configuration				cfg(sch_server, proto);
 			
 			proto->registerType<Message>(
-				serialization::basic_factory<Message>,
 				server_complete_message
 			);
 			
 			proto->registerType<Logout>(
-				serialization::basic_factory<Logout>,
 				server_complete_logout
 			);
 			
@@ -395,12 +393,10 @@ int test_connection_close(int argc, char **argv){
 			frame::ipc::Configuration				cfg(sch_client, proto);
 			
 			proto->registerType<Message>(
-				serialization::basic_factory<Message>,
 				client_complete_message
 			);
 			
 			proto->registerType<Logout>(
-				serialization::basic_factory<Logout>,
 				client_complete_logout
 			);
 			

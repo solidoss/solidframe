@@ -127,7 +127,7 @@ private:
 		}
 		
 		bool isStop()const noexcept {
-			return msgbundle.message_ptr.empty() and not Message::is_canceled(msgbundle.message_flags);
+			return not msgbundle.message_ptr and not Message::is_canceled(msgbundle.message_flags);
 		}
 		
 		bool isCanceled()const noexcept {

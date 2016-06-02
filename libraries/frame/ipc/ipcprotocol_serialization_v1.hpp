@@ -88,21 +88,31 @@ struct Protocol: public ipc::Protocol{
 		return ProtocolPointerT(this, [](ipc::Protocol*){});
 	}
 	
-	template <class T, class FactoryFnc>
+	template <class T>
 	size_t registerType(
-		FactoryFnc _facf,
-		const size_t _protocol_id,
+		const size_t _protocol_id = 0,
 		const size_t _idx = 0
 	){
 		TypeStub ts;
-		size_t rv = type_map.registerType<T>(_facf, ts, _protocol_id, _idx);
+		size_t rv = type_map.registerType<T>(ts, _protocol_id, _idx);
 		registerCast<T, ipc::Message>();
 		return rv;
 	}
 	
-	template <class Msg, class FactoryFnc, class CompleteFnc>
+	template <class T, class Allocator>
+	size_t registerTypeAlloc(
+		Allocator _allocator,
+		const size_t _protocol_id,
+		const size_t _idx = 0
+	){
+		TypeStub ts;
+		size_t rv = type_map.registerTypeAlloc<T>(_allocator, ts, _protocol_id, _idx);
+		registerCast<T, ipc::Message>();
+		return rv;
+	}
+	
+	template <class Msg, class CompleteFnc>
 	size_t registerType(
-		FactoryFnc _factory_fnc,
 		CompleteFnc _complete_fnc,
 		const size_t _protocol_id = 0,
 		const size_t _idx = 0
@@ -118,7 +128,32 @@ struct Protocol: public ipc::Protocol{
 		ts.complete_fnc = MessageCompleteFunctionT(CompleteHandlerT(_complete_fnc));
 		
 		size_t rv = type_map.registerType<Msg>(
-			ts, Message::serialize<SerializerT, Msg>, Message::serialize<DeserializerT, Msg>, _factory_fnc,
+			ts, Message::serialize<SerializerT, Msg>, Message::serialize<DeserializerT, Msg>,
+			_protocol_id, _idx
+		);
+		registerCast<Msg, ipc::Message>();
+		return rv;
+	}
+	
+	template <class Msg, class Allocator, class CompleteFnc>
+	size_t registerTypeAlloc(
+		Allocator _allocator,
+		CompleteFnc _complete_fnc,
+		const size_t _protocol_id = 0,
+		const size_t _idx = 0
+	){
+		TypeStub ts;
+		
+		using CompleteHandlerT = CompleteHandler<
+			CompleteFnc,
+			typename message_complete_traits<decltype(_complete_fnc)>::send_type,
+			typename message_complete_traits<decltype(_complete_fnc)>::recv_type
+		>;
+		
+		ts.complete_fnc = MessageCompleteFunctionT(CompleteHandlerT(_complete_fnc));
+		
+		size_t rv = type_map.registerTypeAlloc<Msg>(
+			ts, Message::serialize<SerializerT, Msg>, Message::serialize<DeserializerT, Msg>, _allocator,
 			_protocol_id, _idx
 		);
 		registerCast<Msg, ipc::Message>();

@@ -70,7 +70,7 @@ size_t real_size(size_t _sz){
 	return _sz + ((sizeof(uint64) - (_sz % sizeof(uint64))) % sizeof(uint64));
 }
 
-struct Message: Dynamic<Message, frame::ipc::Message>{
+struct Message: frame::ipc::Message{
 	uint32							idx;
     std::string						str;
 	bool							serialized;
@@ -165,7 +165,7 @@ void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 
 void client_complete_message(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Message> &_rsent_msg_ptr, DynamicPointer<Message> &_rrecv_msg_ptr,
+	std::shared_ptr<Message> &_rsent_msg_ptr, std::shared_ptr<Message> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
 	idbg(_rctx.recipientId()<<" error: "<<_rerror.message());
@@ -206,7 +206,7 @@ void client_complete_message(
 
 void server_complete_message(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Message> &_rsent_msg_ptr, DynamicPointer<Message> &_rrecv_msg_ptr,
+	std::shared_ptr<Message> &_rsent_msg_ptr, std::shared_ptr<Message> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
 	if(_rrecv_msg_ptr.get()){
@@ -316,7 +316,6 @@ int test_pool_delay_close(int argc, char **argv){
 			frame::ipc::Configuration				cfg(sch_server, proto);
 			
 			proto->registerType<Message>(
-				serialization::basic_factory<Message>,
 				server_complete_message
 			);
 			
@@ -352,7 +351,6 @@ int test_pool_delay_close(int argc, char **argv){
 			frame::ipc::Configuration				cfg(sch_client, proto);
 			
 			proto->registerType<Message>(
-				serialization::basic_factory<Message>,
 				client_complete_message
 			);
 			

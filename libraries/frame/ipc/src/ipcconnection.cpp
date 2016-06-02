@@ -547,7 +547,7 @@ void Connection::doContinueStopping(
 	
 	bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, error);
 	
-	if(not msg_bundle.message_ptr.empty() or not FUNCTION_EMPTY(msg_bundle.complete_fnc)){
+	if(msg_bundle.message_ptr or not FUNCTION_EMPTY(msg_bundle.complete_fnc)){
 		if(not error){
 			error = error_connection_message_fail_send;
 		}
@@ -833,7 +833,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Eve
 			
 				MessagePointerT msg_ptr = pdata->complete_fnc(conctx, error);
 			
-				if(not msg_ptr.empty()){
+				if(msg_ptr){
 					//TODO: push message to writer
 				}
 			}
@@ -861,7 +861,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext &_rctx, Eve
 				
 				MessagePointerT msg_ptr = pdata->complete_fnc(conctx, error);
 				
-				if(not msg_ptr.empty()){
+				if(msg_ptr){
 					//TODO: push message to writer
 					//then push nullptr message - delayed closing
 				}

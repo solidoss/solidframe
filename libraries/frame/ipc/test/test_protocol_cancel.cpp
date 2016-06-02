@@ -48,7 +48,7 @@ size_t real_size(size_t _sz){
 	return _sz + ((sizeof(uint64) - (_sz % sizeof(uint64))) % sizeof(uint64));
 }
 
-struct Message: Dynamic<Message, frame::ipc::Message>{
+struct Message: frame::ipc::Message{
 	uint32							idx;
     std::string						str;
 	
@@ -102,7 +102,7 @@ struct Message: Dynamic<Message, frame::ipc::Message>{
 };
 
 
-typedef DynamicPointer<Message>	MessagePointerT;
+using MessagePointerT = std::shared_ptr<Message>;
 
 void complete_message(
 	frame::ipc::ConnectionContext &_rctx,
@@ -219,7 +219,6 @@ int test_protocol_cancel(int argc, char **argv){
 	ipcwriterconfig.max_message_count_multiplex = 16;
 	
 	ipcprotocol.registerType<::Message>(
-		serialization::basic_factory<::Message>,
 		complete_message
 	);
 	

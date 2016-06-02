@@ -307,7 +307,7 @@ struct ConnectionPoolStub{
 	){
 		MessageStub	&rmsgstub{msgvec[_rmsgid.index]};
 		
-		SOLID_ASSERT(rmsgstub.msgbundle.message_ptr.empty() and rmsgstub.unique == _rmsgid.unique);
+		SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr and rmsgstub.unique == _rmsgid.unique);
 		
 		rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc);
 		
@@ -460,7 +460,7 @@ struct ConnectionPoolStub{
 		if(msgorder_inner_list.empty()){
 			return true;
 		}else{
-			return msgorder_inner_list.front().msgbundle.message_ptr.empty();
+			return not msgorder_inner_list.front().msgbundle.message_ptr;
 		}
 	}
 	
@@ -970,12 +970,12 @@ bool Service::doTryPushMessageToConnection(
 	ConnectionPoolStub 	&rpool(d.pooldq[_pool_idx]);
 	MessageStub			&rmsgstub = rpool.msgvec[_msg_idx];
 	const bool			message_is_asynchronous = Message::is_asynchronous(rmsgstub.msgbundle.message_flags);
-	const bool			message_is_null = rmsgstub.msgbundle.message_ptr.empty();
+	const bool			message_is_null = not rmsgstub.msgbundle.message_ptr;
 	bool				success = false;
 	
 	SOLID_ASSERT(not Message::is_canceled(rmsgstub.msgbundle.message_flags));
 	
-	if(rmsgstub.msgbundle.message_ptr.empty()){
+	if(not rmsgstub.msgbundle.message_ptr){
 		return false;
 	}
 	
@@ -1318,7 +1318,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 				
 				vdbgx(Debug::ipc, this<<" message "<<_rmsg_id<<" from pool "<<pool_idx<<" is handled by connection "<<rmsgstub.objid);
 				
-				SOLID_ASSERT(rmsgstub.msgbundle.message_ptr.empty());
+				SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr);
 				
 				rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
 				
@@ -1338,7 +1338,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 				}
 			}
 			
-			if(not rmsgstub.msgbundle.message_ptr.empty()){
+			if(rmsgstub.msgbundle.message_ptr){
 				
 				vdbgx(Debug::ipc, this<<" message "<<_rmsg_id<<" from pool "<<pool_idx<<" not handled by any connection");
 				
@@ -1670,7 +1670,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 			_rmsg_bundle = std::move(rmsgstub.msgbundle);
 			_rmsg_id = MessageId(crtmsgidx, rmsgstub.unique);
 			rpool.clearPopAndCacheMessage(crtmsgidx);
-		}else if(rmsgstub.msgbundle.message_ptr.empty() and rpool.msgorder_inner_list.size() == 1){
+		}else if(not rmsgstub.msgbundle.message_ptr and rpool.msgorder_inner_list.size() == 1){
 			_rmsg_bundle = std::move(rmsgstub.msgbundle);
 			_rmsg_id = MessageId(crtmsgidx, rmsgstub.unique);
 			rpool.clearPopAndCacheMessage(crtmsgidx);

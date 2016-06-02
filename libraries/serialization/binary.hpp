@@ -911,7 +911,7 @@ public:
 	}
 	
 	template <typename T>
-	SerializerT& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
+	SerializerT& push(std::shared_ptr<T> &_rptr, const char *_name = Base::default_name){
 		if(ptypeidmap){
 			err = ptypeidmap->store(*this, _rptr.get(), _name);
 			if(err){
@@ -1113,7 +1113,7 @@ public:
 	}
 	
 	template <typename T>
-	SerializerT& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
+	SerializerT& push(std::shared_ptr<T> &_rptr, const char *_name = Base::default_name){
 		if(ptypeidmap){
 			err = ptypeidmap->store(*this, _rptr.get(), _name);
 			if(err){
@@ -1126,7 +1126,7 @@ public:
 	}
 	
 	template <typename T>
-	SerializerT& push(DynamicPointer<T> &_rptr, size_t _type_id, const char *_name = Base::default_name){
+	SerializerT& push(std::shared_ptr<T> &_rptr, size_t _type_id, const char *_name = Base::default_name){
 		if(ptypeidmap){
 			err = ptypeidmap->store(*this, _rptr.get(), _type_id, _name);
 			if(err){
@@ -1264,8 +1264,8 @@ protected:
 // 		dp = pt;
 // 	}
 	
-	template <typename T, typename Des, typename P>
-	static ReturnValues loadPointer(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	template <typename T, typename Des>
+	static ReturnValues loadPlainPointer(Base& _rd, FncData &_rfd, void */*_pctx*/){
 		Des		&rd(static_cast<Des&>(_rd));
 		if(!rd.cpb){
 			return SuccessE;
@@ -1273,11 +1273,7 @@ protected:
 		FncData fd = _rfd;
 		rd.pop();
 		
-		void *p;
-		
-		rd.err = rd.typeIdMap()->load<T>(rd, &p, rd.estk.top().first_uint64_value(), rd.tmpstr, fd.n);
-		
-		*reinterpret_cast<P>(fd.p) = reinterpret_cast<T*>(p);
+		rd.err = rd.typeIdMap()->loadPlainPointer<T>(rd, fd.p, rd.estk.top().first_uint64_value(), rd.tmpstr, fd.n);
 		
 		if(!rd.err){
 			return ContinueE;
@@ -1286,19 +1282,56 @@ protected:
 		}
 	}
 	
-	template <typename T, typename Des, typename P>
-	static ReturnValues loadPointerPrepare(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	template <typename T, typename Des>
+	static ReturnValues loadPlainPointerPrepare(Base& _rd, FncData &_rfd, void */*_pctx*/){
 		Des		&rd(static_cast<Des&>(_rd));
 		if(!rd.cpb){
 			return SuccessE;
 		}
 		
-		_rfd.f = &loadPointer<T, Des, P>;
+		_rfd.f = &loadPlainPointer<T, Des>;
 		
 		rd.typeIdMap()->loadTypeId(rd, rd.estk.top().first_uint64_value(), rd.tmpstr, _rfd.n);
 		
 		return ContinueE;
 	}
+	
+	
+	template <typename T, typename Des>
+	static ReturnValues loadSharedPointer(Base& _rd, FncData &_rfd, void */*_pctx*/){
+		Des		&rd(static_cast<Des&>(_rd));
+		if(!rd.cpb){
+			return SuccessE;
+		}
+		FncData fd = _rfd;
+		rd.pop();
+		
+		rd.err = rd.typeIdMap()->loadSharedPointer<T>(rd, fd.p, rd.estk.top().first_uint64_value(), rd.tmpstr, fd.n);
+		
+		//TODO: SPTR
+		//*reinterpret_cast<P>(fd.p) = reinterpret_cast<T*>(p);
+		
+		if(!rd.err){
+			return ContinueE;
+		}else{
+			return FailureE;
+		}
+	}
+	
+	template <typename T, typename Des>
+	static ReturnValues loadSharedPointerPrepare(Base& _rd, FncData &_rfd, void */*_pctx*/){
+		Des		&rd(static_cast<Des&>(_rd));
+		if(!rd.cpb){
+			return SuccessE;
+		}
+		
+		_rfd.f = &loadSharedPointer<T, Des>;
+		
+		rd.typeIdMap()->loadTypeId(rd, rd.estk.top().first_uint64_value(), rd.tmpstr, _rfd.n);
+		
+		return ContinueE;
+	}
+	
 	
 	template <typename T>
 	static ReturnValues loadCrossDone(Base& _rd, FncData &_rfd, void */*_pctx*/){
@@ -1789,7 +1822,7 @@ public:
 		if(ptypeidmap){
 			this->Base::estk.push(ExtendedData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, T**>, reinterpret_cast<void*>(&_t), _name));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPlainPointerPrepare<T, DeserializerT>, reinterpret_cast<void*>(&_t), _name));
 		}else{
 			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
 		}
@@ -1797,11 +1830,11 @@ public:
 	}
 	
 	template <typename T>
-	Deserializer& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
+	Deserializer& push(std::shared_ptr<T> &_rptr, const char *_name = Base::default_name){
 		if(ptypeidmap){
 			this->Base::estk.push(ExtendedData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, DynamicPointer<T>*>, reinterpret_cast<void*>(&_rptr), _name));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadSharedPointerPrepare<T, DeserializerT>, reinterpret_cast<void*>(&_rptr), _name));
 		}else{
 			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
 		}
@@ -1988,7 +2021,7 @@ public:
 		if(ptypeidmap){
 			this->Base::estk.push(ExtendedData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, T**>, reinterpret_cast<void*>(&_t), _name));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPlainPointerPrepare<T, DeserializerT>, reinterpret_cast<void*>(&_t), _name));
 		}else{
 			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
 		}
@@ -1996,11 +2029,11 @@ public:
 	}
 	
 	template <typename T>
-	Deserializer& push(DynamicPointer<T> &_rptr, const char *_name = Base::default_name){
+	Deserializer& push(std::shared_ptr<T> &_rptr, const char *_name = Base::default_name){
 		if(ptypeidmap){
 			this->Base::estk.push(ExtendedData((uint64)0));
 			this->Base::fstk.push(FncData(&Base::popExtStack, nullptr));
-			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadPointerPrepare<T, DeserializerT, DynamicPointer<T>*>, reinterpret_cast<void*>(&_rptr), _name));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadSharedPointerPrepare<T, DeserializerT>, reinterpret_cast<void*>(&_rptr), _name));
 		}else{
 			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
 		}
@@ -2008,7 +2041,7 @@ public:
 	}
 	
 	template <typename T>
-	Deserializer& push(DynamicPointer<T> &_rptr, const uint64 _type_id, const char *_name = Base::default_name){
+	Deserializer& push(std::shared_ptr<T> &_rptr, const uint64 _type_id, const char *_name = Base::default_name){
 		if(ptypeidmap){
 			void 		*p = nullptr;
 			std::string tmpstr;

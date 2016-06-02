@@ -481,7 +481,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const &_rvisit_f
 		while(msgidx != InvalidIndex()){
 			MessageStub		&rmsgstub = message_vec[msgidx];
 			
-			if(rmsgstub.msgbundle.message_ptr.empty()){
+			if(not rmsgstub.msgbundle.message_ptr){
 				SOLID_THROW_EX("invalid message - something went wrong with the nested queue for message: ", msgidx);
 				continue;
 			}
@@ -493,7 +493,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const &_rvisit_f
 				rmsgstub.pool_msg_id
 			);
 			
-			if(rmsgstub.msgbundle.message_ptr.empty()){
+			if(not rmsgstub.msgbundle.message_ptr){
 				
 				if(message_in_write_queue){
 					write_inner_list.erase(msgidx);

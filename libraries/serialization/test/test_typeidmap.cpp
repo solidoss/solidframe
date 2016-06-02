@@ -1,6 +1,7 @@
 #include "serialization/binary.hpp"
 #include "utility/dynamictype.hpp"
 #include <sstream>
+#include "system/debug.hpp"
 
 #include <iostream>
 #include <string>
@@ -15,19 +16,31 @@ enum struct Protocols: size_t{
 	Delta
 };
 
-struct Base: Dynamic<Base>{
-	virtual ~Base(){}
+struct Base{
+	Base(){
+		idbg(""<<this);
+	}
+	virtual ~Base(){
+		idbg(""<<this);
+	}
 	virtual std::ostream& print(std::ostream &)const = 0;
 	virtual bool check(std::string *_pstr = nullptr)const = 0;
 };
-typedef DynamicPointer<Base>													BasePointerT;
+
+using BasePointerT = std::shared_ptr<Base>;
+
 //-----------------------------------------------------------------------------
 //Alpha
 
 namespace alpha{
 
 struct Base{
-	virtual ~Base(){}
+	Base(){
+		idbg(""<<this);
+	}
+	virtual ~Base(){
+		idbg(""<<this);
+	}
 	virtual std::ostream& print(std::ostream &)const = 0;
 	virtual bool check()const = 0;
 };
@@ -63,12 +76,12 @@ struct Test: Base{
 
 namespace beta{
 
-struct Base: Dynamic<Base, ::Base>{
+struct Base: ::Base{
 	size_t		value;
 	Base(const size_t _value = 0): value(_value){}
 };
 
-typedef DynamicPointer<Base>													BasePointerT;
+using BasePointerT = std::shared_ptr<Base>;
 
 template <size_t V>
 struct Test: Base{
@@ -155,6 +168,13 @@ typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>				DeltaTypeI
 
 
 int test_typeidmap(int argc, char* argv[]){
+	
+#ifdef SOLID_HAS_DEBUG
+	Debug::the().levelMask("ew");
+	Debug::the().moduleMask("all");
+	Debug::the().initStdErr(false, nullptr);
+#endif
+	
 	std::string alpha_data;
 	std::string beta_data;
 	std::string delta_data;
@@ -164,13 +184,11 @@ int test_typeidmap(int argc, char* argv[]){
 		//--------------------------------------------------
 		typemap.registerType<alpha::Test<1>>(
 			"alpha::test<1>",
-			serialization::basic_factory<alpha::Test<1>>,
 			static_cast<size_t>(Protocols::Alpha)
 		);
 		typemap.registerCast<alpha::Test<1>, alpha::Base>();
 		typemap.registerType<alpha::Test<2>>(
 			"alpha::test<2>",
-			serialization::basic_factory<alpha::Test<2>>,
 			static_cast<size_t>(Protocols::Alpha)
 		);
 		typemap.registerCast<alpha::Test<2>, alpha::Base>();
@@ -179,7 +197,6 @@ int test_typeidmap(int argc, char* argv[]){
 			"beta::test<3>",
 			beta::serialize<BinSerializerT, beta::Test<3>>,
 			beta::serialize<BinDeserializerT, beta::Test<3>>,
-			serialization::basic_factory<beta::Test<3>>,
 			static_cast<size_t>(Protocols::Beta)
 		);
 		typemap.registerCast<beta::Test<3>, ::Base>();
@@ -188,26 +205,23 @@ int test_typeidmap(int argc, char* argv[]){
 			"beta::test<4>",
 			beta::serialize<BinSerializerT, beta::Test<4>>,
 			beta::serialize<BinDeserializerT, beta::Test<4>>,
-			serialization::basic_factory<beta::Test<4>>,
 			static_cast<size_t>(Protocols::Beta)
 		);
 		typemap.registerCast<beta::Test<4>, ::Base>();
 		//--------------------------------------------------
 		typemap.registerType<delta::Test<5>>(
 			"delta::test<5>",
-			serialization::basic_factory<delta::Test<5>>,
 			static_cast<size_t>(Protocols::Delta)
 		);
 		typemap.registerCast<delta::Test<5>, delta::Base>();
 		
 		typemap.registerType<delta::Test<6>>(
 			"delta::test<6>",
-			serialization::basic_factory<delta::Test<6>>,
 			static_cast<size_t>(Protocols::Delta)
 		);
 		typemap.registerCast<delta::Test<6>, delta::Base>();
 		//--------------------------------------------------
-		{//fill alpha data:
+		if(1){//fill alpha data:
 			const size_t		bufcp = 64;
 			char 				buf[bufcp];
 			BinSerializerT		ser(&typemap);
@@ -244,7 +258,7 @@ int test_typeidmap(int argc, char* argv[]){
 			beta::Test<3>		a1("beta::Test<3>", 3);
 			
 			beta::Base			*pa1 = &a1;
-			BasePointerT		pa2 = new beta::Test<4>("beta::Test<4>", 4);
+			BasePointerT		pa2 = std::make_shared<beta::Test<4>>("beta::Test<4>", 4);//(new beta::Test<4>("beta::Test<4>", 4);
 			
 			ser.push(pa1, "a1").push(pa2, "a2");
 			
@@ -261,7 +275,7 @@ int test_typeidmap(int argc, char* argv[]){
 			}
 		}
 		
-		{//fill delta data:
+		if(1){//fill delta data:
 			const size_t		bufcp = 64;
 			char 				buf[bufcp];
 			BinSerializerT		ser(&typemap);
@@ -293,12 +307,10 @@ int test_typeidmap(int argc, char* argv[]){
 	if(1){//read alfa
 		AlphaTypeIdMapT	typemap;
 		typemap.registerType<alpha::Test<1>>(
-			serialization::basic_factory<alpha::Test<1>>,
 			static_cast<size_t>(Protocols::Alpha)
 		);
 		typemap.registerCast<alpha::Test<1>, alpha::Base>();
 		typemap.registerType<alpha::Test<2>>(
-			serialization::basic_factory<alpha::Test<2>>,
 			static_cast<size_t>(Protocols::Alpha)
 		);
 		typemap.registerCast<alpha::Test<2>, alpha::Base>();
@@ -345,7 +357,6 @@ int test_typeidmap(int argc, char* argv[]){
 			"beta::Test<3>",
 			beta::serialize<BinSerializerT, beta::Test<3>>,
 			beta::serialize<BinDeserializerT, beta::Test<3>>,
-			serialization::basic_factory<beta::Test<3>>,
 			static_cast<size_t>(Protocols::Beta)
 		);
 		typemap.registerCast<beta::Test<3>, ::Base>();
@@ -354,7 +365,6 @@ int test_typeidmap(int argc, char* argv[]){
 			"beta::Test<4>",
 			beta::serialize<BinSerializerT, beta::Test<4>>,
 			beta::serialize<BinDeserializerT, beta::Test<4>>,
-			serialization::basic_factory<beta::Test<4>>,
 			static_cast<size_t>(Protocols::Beta)
 		);
 		typemap.registerCast<beta::Test<4>, beta::Base>();
@@ -376,7 +386,7 @@ int test_typeidmap(int argc, char* argv[]){
 				return 0;
 			}
 			
-			if(pa1.empty() or pa2.empty()){
+			if(not pa1 or not pa2){
 				SOLID_THROW("Deserialization error - beta - empty");
 				return 0;
 			}
@@ -394,16 +404,14 @@ int test_typeidmap(int argc, char* argv[]){
 		}
 	}
 	
-	{//read delta
+	if(1){//read delta
 		DeltaTypeIdMapT	typemap;
 		typemap.registerType<delta::Test<5>>(
-			serialization::basic_factory<delta::Test<5>>,
 			static_cast<size_t>(Protocols::Delta)
 		);
 		typemap.registerCast<delta::Test<5>, delta::Base>();
 		
 		typemap.registerType<delta::Test<6>>(
-			serialization::basic_factory<delta::Test<6>>,
 			static_cast<size_t>(Protocols::Delta)
 		);
 		typemap.registerCast<delta::Test<6>, delta::Base>();

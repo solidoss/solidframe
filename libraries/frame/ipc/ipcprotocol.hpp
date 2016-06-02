@@ -15,6 +15,7 @@
 #include "frame/ipc/ipcerror.hpp"
 #include "system/function.hpp"
 
+#include <memory>
 
 namespace solid{
 namespace frame{
@@ -26,25 +27,25 @@ template <class Req>
 struct message_complete_traits;
 
 template <class Req, class Res>
-struct message_complete_traits<void(*)(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&)>{
+struct message_complete_traits<void(*)(ConnectionContext&, std::shared_ptr<Req> &, std::shared_ptr<Res>&, ErrorConditionT const&)>{
 	typedef Req send_type;
 	typedef Res recv_type;
 };
 
 template <class Req, class Res>
-struct message_complete_traits<void(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&)>{
+struct message_complete_traits<void(ConnectionContext&, std::shared_ptr<Req> &, std::shared_ptr<Res>&, ErrorConditionT const&)>{
 	typedef Req send_type;
 	typedef Res recv_type;
 };
 
 template <class C, class Req, class Res>
-struct message_complete_traits<void(C::*)(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&)>{
+struct message_complete_traits<void(C::*)(ConnectionContext&, std::shared_ptr<Req> &, std::shared_ptr<Res>&, ErrorConditionT const&)>{
 	typedef Req send_type;
 	typedef Res recv_type;
 };
 
 template <class C, class Req, class Res>
-struct message_complete_traits<void(C::*)(ConnectionContext&, DynamicPointer<Req> &, DynamicPointer<Res>&, ErrorConditionT const&) const>{
+struct message_complete_traits<void(C::*)(ConnectionContext&, std::shared_ptr<Req> &, std::shared_ptr<Res>&, ErrorConditionT const&) const>{
 	typedef Req send_type;
 	typedef Res recv_type;
 };
@@ -76,19 +77,19 @@ struct CompleteHandler{
 		MessagePointerT &_rres_msg_ptr,
 		ErrorConditionT const &_err
 	){
-		Req					*prequest = dynamic_cast<Req*>(_rreq_msg_ptr.get());
-		DynamicPointer<Req>	req_msg_ptr(prequest);
+		//Req					*prequest = dynamic_cast<Req*>(_rreq_msg_ptr.get());
+		std::shared_ptr<Req>	req_msg_ptr(std::dynamic_pointer_cast<Req>(_rreq_msg_ptr));
 		
-		Res					*presponse = dynamic_cast<Res*>(_rres_msg_ptr.get());
-		DynamicPointer<Res>	res_msg_ptr(presponse);
+		//Res					*presponse = dynamic_cast<Res*>(_rres_msg_ptr.get());
+		std::shared_ptr<Res>	res_msg_ptr(std::dynamic_pointer_cast<Res>(_rres_msg_ptr));
 		
 		ErrorConditionT		error(_err);
 
-		if(not error and req_msg_ptr.get() and not prequest){
+		if(not error and _rreq_msg_ptr and not req_msg_ptr){
 			error = error_service_bad_cast_request;
 		}
 		
-		if(not error and res_msg_ptr.get() and not presponse){
+		if(not error and _rres_msg_ptr and not res_msg_ptr){
 			error = error_service_bad_cast_response;
 		}
 		

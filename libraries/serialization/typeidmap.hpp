@@ -33,14 +33,24 @@ void splitTypeId(const uint64 _type_id, uint32 &_protocol_id, uint64 &_message_i
 
 class TypeIdMapBase{
 protected:
-	typedef FUNCTION<void*()>										FactoryFunctionT;
-	
 	//typedef void(*LoadFunctionT)(void*, void*, const char*);
 	//typedef void(*StoreFunctionT)(void*, void*, const char*);
 	typedef FUNCTION<void(void*, void*, const char*)>				LoadFunctionT;
 	typedef FUNCTION<void(void*, void*, const char*)>				StoreFunctionT;
 	
 	typedef void(*CastFunctionT)(void*, void*);
+	
+	struct CastStub{
+		CastStub(
+			CastFunctionT _plain_cast = nullptr,
+			CastFunctionT _shared_cast = nullptr
+		): plain_cast(_plain_cast), shared_cast(_shared_cast){}
+		
+		CastFunctionT	plain_cast;
+		CastFunctionT	shared_cast;
+	};
+	
+	typedef FUNCTION<void*(const CastFunctionT &, void *)>			FactoryFunctionT;
 	
 	typedef std::pair<std::type_index, size_t>						CastIdT;
 	
@@ -56,10 +66,11 @@ protected:
 		size_t		current_message_index;
 	};
 
-	typedef std::unordered_map<CastIdT, CastFunctionT, CastHash>	CastMapT;
+	typedef std::unordered_map<CastIdT, CastStub, CastHash>			CastMapT;
 	
 	struct Stub{
-		FactoryFunctionT	factoryfnc;
+		FactoryFunctionT	plain_factory;
+		FactoryFunctionT	shared_factory;
 		LoadFunctionT		loadfnc;
 		StoreFunctionT		storefnc;
 		uint64				id;
@@ -134,11 +145,55 @@ protected:
 	};
 	
 	template <class Base, class Derived>
-	static void cast_pointer(void *_pderived, void* _pbase){
+	static void cast_plain_pointer(void *_pderived, void* _pbase){
 		Derived *pd = reinterpret_cast<Derived*>(_pderived);
 		Base 	*&rpb = *reinterpret_cast<Base**>(_pbase);
 		rpb = static_cast<Base*>(pd);
 	}
+	
+	template <class Base, class Derived>
+	static void cast_shared_pointer(void *_pderived, void* _pbase){
+		using DerivedSharedPtrT = std::shared_ptr<Derived>;
+		using BaseSharedPtrT = std::shared_ptr<Base>;
+		
+		DerivedSharedPtrT	*pspder = reinterpret_cast<DerivedSharedPtrT*>(_pderived);
+		BaseSharedPtrT		*pspbas = reinterpret_cast<BaseSharedPtrT*>(_pbase);
+		
+		if(pspder){
+			*pspbas = std::move(std::static_pointer_cast<Base>(std::move(*pspder)));
+		}else{
+			pspbas->reset();
+		}
+	}
+	
+	template <class T>
+	static void* plain_factory(const CastFunctionT &_cast_fnc, void *_dest_ptr){
+		//TODO: try ... catch
+		T*		ptr = new T;
+		_cast_fnc(ptr, _dest_ptr);
+		return ptr;
+	}
+	
+	template <class T>
+	static void* shared_factory(const CastFunctionT &_cast_fnc, void *_dest_ptr){
+		//TODO: try ... catch
+		std::shared_ptr<T>		sp = std::make_shared<T>();
+		void					*ptr = sp.get();
+		_cast_fnc(&sp, _dest_ptr);
+		return ptr;
+	}
+	
+	template <class T, class Allocator>
+	struct SharedFactoryAlloc{
+		Allocator a;
+		SharedFactoryAlloc(Allocator _a):a(_a){}
+		void* operator()(const CastFunctionT &_cast_fnc, void *_dest_ptr){
+			std::shared_ptr<T>		sp = std::allocate_shared<T>(a);
+			void					*ptr = sp.get();
+			_cast_fnc(&sp, _dest_ptr);
+			return ptr;
+		}
+	};
 	
 	template <class T>
 	static void cast_void_pointer(void *_pderived, void* _pbase){
@@ -148,8 +203,13 @@ protected:
 protected:
 	TypeIdMapBase(){
 		//register nullptr
+		auto  factory = [](const CastFunctionT &_cast_fnc, void *_dest_ptr){
+			_cast_fnc(nullptr, _dest_ptr);
+			return nullptr;
+		};
 		stubvec.push_back(Stub());
-		stubvec.back().factoryfnc = [](){return nullptr;};
+		stubvec.back().plain_factory = factory;
+		stubvec.back().shared_factory = factory;
 		stubvec.back().loadfnc = load_nullptr;
 		stubvec.back().storefnc = store_nullptr;
 		stubvec.back().id = 0;
@@ -162,8 +222,8 @@ protected:
 	size_t doAllocateNewIndex(const size_t _protocol_id, uint64 &_rid);
 	bool doFindTypeIndex(const size_t _protocol_id,  size_t _idx, uint64 &_rid) const ;
 	
-	template <class T, class StoreF, class LoadF, class FactoryF>
-	size_t doRegisterType(StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _protocol_id,  size_t _idx){
+	template <class T, class StoreF, class LoadF>
+	size_t doRegisterType(StoreF _sf, LoadF _lf, const size_t _protocol_id,  size_t _idx){
 		uint64	id;
 		
 		if(_idx == 0){
@@ -178,7 +238,37 @@ protected:
 		msgidmap[id] = vecidx;
 		
 		stubvec.push_back(Stub());
-		stubvec.back().factoryfnc = _ff;
+		stubvec.back().plain_factory = plain_factory<T>;
+		stubvec.back().shared_factory = shared_factory<T>;
+		stubvec.back().loadfnc = _lf;
+		stubvec.back().storefnc = _sf;
+		stubvec.back().id = id;
+		
+		
+		doRegisterCast<T, T>();
+		doRegisterCast<T>();
+		
+		return vecidx;
+	}
+	
+	template <class T, class StoreF, class LoadF, class Allocator>
+	size_t doRegisterTypeAlloc(StoreF _sf, LoadF _lf, Allocator _allocator, const size_t _protocol_id,  size_t _idx){
+		uint64	id;
+		
+		if(_idx == 0){
+			_idx = doAllocateNewIndex(_protocol_id, id);
+		}else if(doFindTypeIndex(_protocol_id, _idx, id)){
+			return InvalidIndex();
+		}
+		
+		size_t		vecidx = stubvec.size();
+		
+		typemap[std::type_index(typeid(T))] = vecidx;
+		msgidmap[id] = vecidx;
+		
+		stubvec.push_back(Stub());
+		stubvec.back().plain_factory = plain_factory<T>;//TODO: use a PlainFactoryAlloc
+		stubvec.back().shared_factory = SharedFactoryAlloc<T, Allocator>(_allocator);
 		stubvec.back().loadfnc = _lf;
 		stubvec.back().storefnc = _sf;
 		stubvec.back().id = id;
@@ -216,7 +306,7 @@ protected:
 	bool doRegisterCast(){
 		TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(std::type_index(typeid(Derived)));
 		if(it != TypeIdMapBase::typemap.end()){
-			castmap[CastIdT(std::type_index(typeid(Base)), it->second)] = &cast_pointer<Base, Derived>;
+			castmap[CastIdT(std::type_index(typeid(Base)), it->second)] =  CastStub(cast_plain_pointer<Base, Derived>, cast_shared_pointer<Base, Derived>);
 			castmap[CastIdT(std::type_index(typeid(Derived)), 0)] = &cast_void_pointer<Derived>;
 			castmap[CastIdT(std::type_index(typeid(Base)), 0)] = &cast_void_pointer<Base>;
 			return true;
@@ -285,14 +375,25 @@ public:
 	TypeIdMapDes(){}
 	
 	template <class T>
-	ErrorConditionT load(
+	ErrorConditionT loadPlainPointer(
 		Des &_rd,
 		void* _rptr,				//store destination pointer, the real type must be static_cast-ed to this pointer
 		const uint64 &_riv,			//integer value that may store the typeid
 		std::string const &_rsv,	//string value that may store the typeid
 		const char *_name
 	) const {
-		return loadPointer(_rd, _rptr, std::type_index(typeid(T)), _riv, _rsv, _name);
+		return doLoadPlainPointer(_rd, _rptr, std::type_index(typeid(T)), _riv, _rsv, _name);
+	}
+	
+	template <class T>
+	ErrorConditionT loadSharedPointer(
+		Des &_rd,
+		void* _rptr,				//store destination pointer, the real type must be static_cast-ed to this pointer
+		const uint64 &_riv,			//integer value that may store the typeid
+		std::string const &_rsv,	//string value that may store the typeid
+		const char *_name
+	) const {
+		return doLoadSharedPointer(_rd, _rptr, std::type_index(typeid(T)), _riv, _rsv, _name);
 	}
 	
 	ErrorConditionT findTypeIndex(const uint64 _type_id, size_t &_rstub_index)const{
@@ -305,7 +406,13 @@ public:
 	virtual void loadTypeId(Des &_rd, uint64 &_rv, std::string &_rstr, const char* _name)const = 0;
 private:
 	
-	virtual ErrorConditionT loadPointer(
+	virtual ErrorConditionT doLoadPlainPointer(
+		Des &_rd, void* _rptr,
+		std::type_index const& _rtidx,		//type_index of the destination pointer
+		const uint64 &_riv, std::string const &_rsv, const char *_name
+	) const = 0;
+	
+	virtual ErrorConditionT doLoadSharedPointer(
 		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
 		const uint64 &_riv, std::string const &_rsv, const char *_name
@@ -329,20 +436,33 @@ public:
 		
 	}
 	
-	
-	template <class T, class FactoryF>
-	size_t registerType(FactoryF _ff, const size_t _protocol_id, const size_t _idx = 0){
+	template <class T>
+	size_t registerType(const size_t _protocol_id, const size_t _idx = 0){
 		return TypeIdMapBase::doRegisterType<T>(
-			TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>,
-			_ff, _protocol_id, _idx
+			TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>, _protocol_id, _idx
 		);
 	}
 	
-	template <class T, class StoreF, class LoadF, class FactoryF>
-	size_t registerType(StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _protocol_id, const size_t _idx = 0){
+	template <class T, class Allocator>
+	size_t registerTypeAlloc(Allocator _allocator, const size_t _protocol_id, const size_t _idx = 0){
+		return TypeIdMapBase::doRegisterTypeAlloc<T>(
+			TypeIdMapBase::store_pointer<T, Ser>, TypeIdMapBase::load_pointer<T, Des>,
+			_allocator, _protocol_id, _idx
+		);
+	}
+	
+	template <class T, class StoreF, class LoadF>
+	size_t registerType(StoreF _sf, LoadF _lf, const size_t _protocol_id, const size_t _idx = 0){
 		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
 		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
-		return TypeIdMapBase::doRegisterType<T>(sf, lf, _ff, _protocol_id, _idx);
+		return TypeIdMapBase::doRegisterType<T>(sf, lf, _protocol_id, _idx);
+	}
+	
+	template <class T, class StoreF, class LoadF, class Allocator>
+	size_t registerTypeAlloc(StoreF _sf, LoadF _lf, Allocator _allocator, const size_t _protocol_id, const size_t _idx = 0){
+		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
+		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
+		return TypeIdMapBase::doRegisterTypeAlloc<T>(sf, lf, _allocator, _protocol_id, _idx);
 	}
 	
 	template <class Derived, class Base>
@@ -390,9 +510,9 @@ private:
 	}
 	
 	
-	// Returns true, if the type identified by _riv exists
+	// Returns no error, if the type identified by _riv exists
 	// and a cast from that type to the type identified by _rtidx, exists
-	/*virtual*/ ErrorConditionT loadPointer(
+	/*virtual*/ ErrorConditionT doLoadPlainPointer(
 		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
 		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
@@ -408,15 +528,40 @@ private:
 		
 		if(it != TypeIdMapBase::castmap.end()){
 			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[stubindex];
-			void 						*realptr = rstub.factoryfnc();
-			
-			(*it->second)(realptr, _rptr);//store the pointer
+			void 						*realptr = rstub.plain_factory(it->second.plain_cast, _rptr);
 			
 			rstub.loadfnc(&_rd, realptr, _name);
 			return ErrorConditionT();
 		}
 		return TypeIdMapBase::error_no_cast();
 	}
+	
+	// Returns no error, if the type identified by _riv exists
+	// and a cast from that type to the type identified by _rtidx, exists
+	/*virtual*/ ErrorConditionT doLoadSharedPointer(
+		Des &_rd, void* _rptr,
+		std::type_index const& _rtidx,		//type_index of the destination pointer
+		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
+	) const {
+		
+		size_t									stubindex;
+		
+		if(!TypeIdMapBase::findTypeIndex(_riv, stubindex)){
+			return TypeIdMapBase::error_no_cast();
+		}
+		
+		TypeIdMapBase::CastMapT::const_iterator	it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, stubindex));
+		
+		if(it != TypeIdMapBase::castmap.end()){
+			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[stubindex];
+			void 						*realptr = rstub.shared_factory(it->second.shared_cast, _rptr);
+			
+			rstub.loadfnc(&_rd, realptr, _name);
+			return ErrorConditionT();
+		}
+		return TypeIdMapBase::error_no_cast();
+	}
+	
 	void clear(){
 		TypeIdMapBase::typemap.clear();
 		TypeIdMapBase::castmap.clear();
@@ -445,13 +590,13 @@ public:
 		
 	}
 	
-	template <class T, class FactoryF>
-	size_t registerType(Data const &_rd, FactoryF _ff, const size_t _protocol_id = 0, const size_t _idx = 0){
+	template <class T>
+	size_t registerType(Data const &_rd, const size_t _protocol_id = 0, const size_t _idx = 0){
 		
 		const size_t rv = TypeIdMapBase::doRegisterType<T>(
 			TypeIdMapBase::store_pointer<T, Ser>,
 			TypeIdMapBase::load_pointer<T, Des>,
-			_ff, _protocol_id, _idx
+			_protocol_id, _idx
 		);
 		
 		if(rv == InvalidIndex()){
@@ -462,12 +607,44 @@ public:
 		return rv;
 	}
 	
-	template <class T, class StoreF, class LoadF, class FactoryF>
-	size_t registerType(Data const &_rd, StoreF _sf, LoadF _lf, FactoryF _ff, const size_t _protocol_id = 0, const size_t _idx = 0){
+	template <class T, class Allocator>
+	size_t registerTypeAlloc(Data const &_rd, Allocator _allocator, const size_t _protocol_id = 0, const size_t _idx = 0){
+		
+		const size_t rv = TypeIdMapBase::doRegisterTypeAlloc<T>(
+			TypeIdMapBase::store_pointer<T, Ser>,
+			TypeIdMapBase::load_pointer<T, Des>,
+			_allocator, _protocol_id, _idx
+		);
+		
+		if(rv == InvalidIndex()){
+			return rv;
+		}
+		
+		datavec.push_back(_rd);
+		return rv;
+	}
+	
+	template <class T, class StoreF, class LoadF>
+	size_t registerType(Data const &_rd, StoreF _sf, LoadF _lf, const size_t _protocol_id = 0, const size_t _idx = 0){
 		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
 		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
 		
-		const size_t rv = TypeIdMapBase::doRegisterType<T>(sf, lf, _ff, _protocol_id, _idx);
+		const size_t rv = TypeIdMapBase::doRegisterType<T>(sf, lf, _protocol_id, _idx);
+		
+		if(rv == InvalidIndex()){
+			return rv;
+		}
+		
+		datavec.push_back(_rd);
+		return rv;
+	}
+	
+	template <class T, class StoreF, class LoadF, class Allocator>
+	size_t registerTypeAlloc(Data const &_rd, StoreF _sf, LoadF _lf, Allocator _allocator, const size_t _protocol_id = 0, const size_t _idx = 0){
+		TypeIdMapBase::StoreFunctor<StoreF, T, Ser>		sf(_sf);
+		TypeIdMapBase::LoadFunctor<LoadF, T, Des>		lf(_lf);
+		
+		const size_t rv = TypeIdMapBase::doRegisterTypeAlloc<T>(sf, lf, _allocator, _protocol_id, _idx);
 		
 		if(rv == InvalidIndex()){
 			return rv;
@@ -560,9 +737,9 @@ private:
 	}
 	
 	
-	// Returns true, if the type identified by _riv exists
+	// Returns no error, if the type identified by _riv exists
 	// and a cast from that type to the type identified by _rtidx, exists
-	/*virtual*/ ErrorConditionT loadPointer(
+	/*virtual*/ ErrorConditionT doLoadPlainPointer(
 		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
 		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
@@ -577,9 +754,32 @@ private:
 		
 		if(it != TypeIdMapBase::castmap.end()){
 			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[stubindex];
-			void 						*realptr = rstub.factoryfnc();
+			void 						*realptr = rstub.plain_factory(it->second.plain_cast, _rptr);
 			
-			(*it->second)(realptr, _rptr);//store the pointer
+			rstub.loadfnc(&_rd, realptr, _name);
+			return ErrorConditionT();
+		}
+		return TypeIdMapBase::error_no_cast();
+	}
+	
+	// Returns no error, if the type identified by _riv exists
+	// and a cast from that type to the type identified by _rtidx, exists
+	/*virtual*/ ErrorConditionT doLoadSharedPointer(
+		Des &_rd, void* _rptr,
+		std::type_index const& _rtidx,		//type_index of the destination pointer
+		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
+	) const {
+		size_t									stubindex;
+		
+		if(!TypeIdMapBase::findTypeIndex(_riv, stubindex)){
+			return TypeIdMapBase::error_no_cast();
+		}
+		
+		TypeIdMapBase::CastMapT::const_iterator	it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, stubindex));
+		
+		if(it != TypeIdMapBase::castmap.end()){
+			TypeIdMapBase::Stub	const	&rstub = TypeIdMapBase::stubvec[stubindex];
+			void 						*realptr = rstub.shared_factory(it->second.shared_cast, _rptr);
 			
 			rstub.loadfnc(&_rd, realptr, _name);
 			return ErrorConditionT();

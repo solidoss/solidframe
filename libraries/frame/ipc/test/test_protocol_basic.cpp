@@ -60,7 +60,7 @@ size_t real_size(size_t _sz){
 	return _sz + ((sizeof(uint64) - (_sz % sizeof(uint64))) % sizeof(uint64));
 }
 
-struct Message: Dynamic<Message, frame::ipc::Message>{
+struct Message: frame::ipc::Message{
 	uint32							idx;
     std::string						str;
 	
@@ -222,7 +222,6 @@ int test_protocol_basic(int argc, char **argv){
 	ctx.ipcmsgwriter		= &ipcmsgwriter;
 
 	ipcprotocol.registerType<::Message>(
-		serialization::basic_factory<::Message>,
 		complete_message
 	);
 	

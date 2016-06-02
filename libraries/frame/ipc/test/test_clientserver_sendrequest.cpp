@@ -81,7 +81,7 @@ size_t real_size(size_t _sz){
 	return _sz + ((sizeof(uint64) - (_sz % sizeof(uint64))) % sizeof(uint64));
 }
 
-struct Request: Dynamic<Request, frame::ipc::Message>{
+struct Request: frame::ipc::Message{
 	uint32							idx;
     std::string						str;
 	
@@ -137,11 +137,11 @@ struct Request: Dynamic<Request, frame::ipc::Message>{
 	
 };
 
-struct Response: Dynamic<Response, frame::ipc::Message>{
+struct Response: frame::ipc::Message{
 	uint32							idx;
 	std::string						str;
 	
-	Response(const Request &_rreq): BaseT(_rreq), idx(_rreq.idx), str(_rreq.str){
+	Response(const Request &_rreq): frame::ipc::Message(_rreq), idx(_rreq.idx), str(_rreq.str){
 		idbg("CREATE ---------------- "<<(void*)this);
 	}
 	
@@ -190,15 +190,15 @@ void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 }
 
 
-// void client_receive_request(frame::ipc::ConnectionContext &_rctx, DynamicPointer<Request> &_rmsgptr){
+// void client_receive_request(frame::ipc::ConnectionContext &_rctx, std::shared_ptr<Request> &_rmsgptr){
 // 	idbg(_rctx.recipientId());
 // 	SOLID_THROW("Received request on client.");
 // }
 
 void client_complete_request(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Request> &_rsendmsgptr,
-	DynamicPointer<Response> &_rrecvmsgptr,
+	std::shared_ptr<Request> &_rsendmsgptr,
+	std::shared_ptr<Response> &_rrecvmsgptr,
 	ErrorConditionT const &_rerr
 ){
 	idbg(_rctx.recipientId());
@@ -207,8 +207,8 @@ void client_complete_request(
 
 void client_complete_response(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Response> &_rsendmsgptr,
-	DynamicPointer<Response> &_rrecvmsgptr,
+	std::shared_ptr<Response> &_rsendmsgptr,
+	std::shared_ptr<Response> &_rrecvmsgptr,
 	ErrorConditionT const &_rerr
 ){
 	idbg(_rctx.recipientId());
@@ -218,17 +218,17 @@ void client_complete_response(
 
 void on_receive_response(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Request> &_rreqmsgptr,
-	DynamicPointer<Response> &_rresmsgptr,
+	std::shared_ptr<Request> &_rreqmsgptr,
+	std::shared_ptr<Response> &_rresmsgptr,
 	ErrorConditionT const &_rerr
 ){
 	idbg(_rctx.recipientId());
 	
-	if(_rreqmsgptr.empty()){
+	if(not _rreqmsgptr){
 		SOLID_THROW("Request should not be empty");
 	}
 	
-	if(_rresmsgptr.empty()){
+	if(not _rresmsgptr){
 		SOLID_THROW("Response should not be empty");
 	}
 	
@@ -254,8 +254,8 @@ void on_receive_response(
 struct ResponseHandler{
 	void operator()(
 		frame::ipc::ConnectionContext &_rctx,
-		DynamicPointer<Request> &_rreqmsgptr,
-		DynamicPointer<Response> &_rresmsgptr,
+		std::shared_ptr<Request> &_rreqmsgptr,
+		std::shared_ptr<Response> &_rresmsgptr,
 		ErrorConditionT const &_rerr
 	){
 		on_receive_response(_rctx, _rreqmsgptr, _rresmsgptr, _rerr);
@@ -265,8 +265,8 @@ struct ResponseHandler{
 
 void server_complete_request(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Request> &_rsendmsgptr,
-	DynamicPointer<Request> &_rrecvmsgptr,
+	std::shared_ptr<Request> &_rsendmsgptr,
+	std::shared_ptr<Request> &_rrecvmsgptr,
 	ErrorConditionT const &_rerr
 ){
 	if(_rerr){
@@ -279,7 +279,7 @@ void server_complete_request(
 		return;
 	}
 	
-	if(_rrecvmsgptr.empty()){
+	if(not _rrecvmsgptr){
 		SOLID_THROW("Server should receive Request");
 		return;
 	}
@@ -309,7 +309,7 @@ void server_complete_request(
 				"localhost", msgptr,
 				//on_receive_response
 				ResponseHandler()
-				/*[](frame::ipc::ConnectionContext &_rctx, DynamicPointer<Response> &_rmsgptr, ErrorConditionT const &_rerr)->void{
+				/*[](frame::ipc::ConnectionContext &_rctx, std::shared_ptr<Response> &_rmsgptr, ErrorConditionT const &_rerr)->void{
 					on_receive_response(_rctx, _rmsgptr, _rerr);
 				}*/,
 				initarray[crtwriteidx % initarraysize].flags
@@ -319,8 +319,8 @@ void server_complete_request(
 
 void server_complete_response(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Response> &_rsendmsgptr,
-	DynamicPointer<Response> &_rrecvmsgptr,
+	std::shared_ptr<Response> &_rsendmsgptr,
+	std::shared_ptr<Response> &_rrecvmsgptr,
 	ErrorConditionT const &_rerr
 ){
 	idbg(_rctx.recipientId());
@@ -330,11 +330,11 @@ void server_complete_response(
 		return;
 	}
 	
-	if(_rsendmsgptr.empty()){
+	if(not _rsendmsgptr){
 		SOLID_THROW("Send message should not be empty");
 	}
 	
-	if(_rrecvmsgptr.get()){
+	if(_rrecvmsgptr){
 		SOLID_THROW("Recv message should be empty");
 	}
 }
@@ -410,11 +410,9 @@ int test_clientserver_sendrequest(int argc, char **argv){
 			frame::ipc::Configuration				cfg(sch_server, proto);
 			
 			proto->registerType<Request>(
-				serialization::basic_factory<Request>,
 				server_complete_request
 			);
 			proto->registerType<Response>(
-				serialization::basic_factory<Response>,
 				server_complete_response
 			);
 			//cfg.recv_buffer_capacity = 1024;
@@ -446,11 +444,9 @@ int test_clientserver_sendrequest(int argc, char **argv){
 			frame::ipc::Configuration				cfg(sch_client, proto);
 			
 			proto->registerType<Request>(
-				serialization::basic_factory<Request>,
 				client_complete_request
 			);
 			proto->registerType<Response>(
-			serialization::basic_factory<Response>,
 				client_complete_response
 			);
 			
@@ -488,8 +484,8 @@ int test_clientserver_sendrequest(int argc, char **argv){
 				//ResponseHandler()
 				[](
 					frame::ipc::ConnectionContext &_rctx,
-					DynamicPointer<Request> &_rreqmsgptr,
-					DynamicPointer<Response> &_rresmsgptr,
+					std::shared_ptr<Request> &_rreqmsgptr,
+					std::shared_ptr<Response> &_rresmsgptr,
 					ErrorConditionT const &_rerr
 				)->void{
 					on_receive_response(_rctx, _rreqmsgptr, _rresmsgptr, _rerr);

@@ -163,7 +163,7 @@ struct MessageBundle{
 	void clear(){
 		message_type_id = InvalidIndex();
 		message_flags = 0;
-		message_ptr.clear();
+		message_ptr.reset();
 		FUNCTION_CLEAR(complete_fnc);
 	}
 };

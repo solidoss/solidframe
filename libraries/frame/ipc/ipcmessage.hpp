@@ -14,7 +14,8 @@
 #include "system/common.hpp"
 
 #include "frame/ipc/ipccontext.hpp"
-#include "utility/dynamictype.hpp"
+
+#include <memory>
 
 namespace solid{
 namespace frame{
@@ -23,7 +24,7 @@ namespace ipc{
 class Service;
 class Connection;
 
-struct Message: Dynamic<Message>{
+struct Message: std::enable_shared_from_this<Message>{
 	enum Flags{
 		FirstFlagIndexE  	= 0, //for rezerved flags
 		WaitResponseFlagE	= (1<<(FirstFlagIndexE +  0)),
@@ -127,7 +128,7 @@ private:
 	uint8		stt;
 };
 
-typedef DynamicPointer<Message>															MessagePointerT;
+using MessagePointerT = std::shared_ptr<Message>;
 
 }//namespace ipc
 }//namespace frame

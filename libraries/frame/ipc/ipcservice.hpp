@@ -92,14 +92,14 @@ public:
 	template <class T>
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		ulong _flags = 0
 	);
 	
 	template <class T>
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		RecipientId &_rrecipient_id,
 		ulong _flags = 0
 	);
@@ -107,7 +107,7 @@ public:
 	template <class T>
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		RecipientId &_rrecipient_id,
 		MessageId &_rmsg_id,
 		ulong _flags = 0
@@ -118,14 +118,14 @@ public:
 	template <class T>
 	ErrorConditionT sendMessage(
 		RecipientId const &_rrecipient_id,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		ulong _flags = 0
 	);
 	
 	template <class T>
 	ErrorConditionT sendMessage(
 		RecipientId const &_rrecipient_id,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		MessageId &_rmsg_id,
 		ulong _flags = 0
 	);
@@ -135,7 +135,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		ulong _flags = 0
 	);
@@ -143,7 +143,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		RecipientId &_rrecipient_id,
 		ulong _flags = 0
@@ -152,7 +152,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		RecipientId &_rrecipient_id,
 		MessageId &_rmsguid,
@@ -164,7 +164,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
 		RecipientId const &_rrecipient_id,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		ulong _flags = 0
 	);
@@ -172,7 +172,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendRequest(
 		RecipientId const &_rrecipient_id,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		MessageId &_rmsguid,
 		ulong _flags = 0
@@ -182,7 +182,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		ulong _flags
 	);
@@ -190,7 +190,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		RecipientId &_rrecipient_id,
 		ulong _flags
@@ -199,7 +199,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendMessage(
 		const char *_recipient_name,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		RecipientId &_rrecipient_id,
 		MessageId &_rmsguid,
@@ -210,7 +210,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendMessage(
 		RecipientId const &_rrecipient_id,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		ulong _flags
 	);
@@ -218,7 +218,7 @@ public:
 	template <class T, class Fnc>
 	ErrorConditionT sendMessage(
 		RecipientId const &_rrecipient_id,
-		DynamicPointer<T> const &_rmsgptr,
+		std::shared_ptr<T> const &_rmsgptr,
 		Fnc _complete_fnc,
 		MessageId &_rmsguid,
 		ulong _flags
@@ -487,10 +487,10 @@ private:
 template <class T>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	ulong _flags
 ){
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	RecipientId					recipient_id;
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
@@ -499,11 +499,11 @@ ErrorConditionT Service::sendMessage(
 template <class T>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	RecipientId &_rrecipient_id,
 	ulong _flags
 ){
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	RecipientId					recipient_id;
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags);
@@ -512,12 +512,12 @@ ErrorConditionT Service::sendMessage(
 template <class T>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	RecipientId &_rrecipient_id,
 	MessageId &_rmsg_id,
 	ulong _flags
 ){
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	RecipientId					recipient_id;
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsg_id, _flags);
@@ -526,10 +526,10 @@ ErrorConditionT Service::sendMessage(
 template <class T>
 ErrorConditionT Service::sendMessage(
 	RecipientId const &_rrecipient_id,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	ulong _flags
 ){
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
@@ -537,11 +537,11 @@ ErrorConditionT Service::sendMessage(
 template <class T>
 ErrorConditionT Service::sendMessage(
 	RecipientId const &_rrecipient_id,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	MessageId &_rmsg_id,
 	ulong _flags
 ){
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	MessageCompleteFunctionT	complete_handler;
 	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsg_id, _flags);
 }
@@ -550,7 +550,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	const char *_recipient_name,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	ulong _flags
 ){
@@ -560,7 +560,7 @@ ErrorConditionT Service::sendRequest(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	RecipientId					recipient_id;
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
@@ -571,7 +571,7 @@ ErrorConditionT Service::sendRequest(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	const char *_recipient_name,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	RecipientId &_rrecipient_id,
 	ulong _flags
@@ -582,7 +582,7 @@ ErrorConditionT Service::sendRequest(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	RecipientId					recipient_id;
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
@@ -593,7 +593,7 @@ ErrorConditionT Service::sendRequest(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	const char *_recipient_name,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	RecipientId &_rrecipient_id,
 	MessageId &_rmsguid,
@@ -605,7 +605,7 @@ ErrorConditionT Service::sendRequest(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	RecipientId					recipient_id;
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
@@ -617,7 +617,7 @@ ErrorConditionT Service::sendRequest(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	RecipientId const &_rrecipient_id,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	ulong _flags
 ){
@@ -627,7 +627,7 @@ ErrorConditionT Service::sendRequest(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
 	
@@ -637,7 +637,7 @@ ErrorConditionT Service::sendRequest(
 template <class T, class Fnc>
 ErrorConditionT Service::sendRequest(
 	RecipientId const &_rrecipient_id,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	MessageId &_rmsguid,
 	ulong _flags
@@ -648,7 +648,7 @@ ErrorConditionT Service::sendRequest(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
 	
@@ -659,7 +659,7 @@ ErrorConditionT Service::sendRequest(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	ulong _flags
 ){
@@ -669,7 +669,7 @@ ErrorConditionT Service::sendMessage(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	RecipientId					recipient_id;
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
@@ -680,7 +680,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	RecipientId &_rrecipient_id,
 	ulong _flags
@@ -691,7 +691,7 @@ ErrorConditionT Service::sendMessage(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	RecipientId					recipient_id;
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
@@ -702,7 +702,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	const char *_recipient_name,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	RecipientId &_rrecipient_id,
 	MessageId &_rmsguid,
@@ -714,7 +714,7 @@ ErrorConditionT Service::sendMessage(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	RecipientId					recipient_id;
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
@@ -726,7 +726,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	RecipientId const &_rrecipient_id,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	ulong _flags
 ){
@@ -736,7 +736,7 @@ ErrorConditionT Service::sendMessage(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
 	
@@ -746,7 +746,7 @@ ErrorConditionT Service::sendMessage(
 template <class T, class Fnc>
 ErrorConditionT Service::sendMessage(
 	RecipientId const &_rrecipient_id,
-	DynamicPointer<T> const &_rmsgptr,
+	std::shared_ptr<T> const &_rmsgptr,
 	Fnc _complete_fnc,
 	MessageId &_rmsguid,
 	ulong _flags
@@ -757,7 +757,7 @@ ErrorConditionT Service::sendMessage(
 		typename message_complete_traits<decltype(_complete_fnc)>::recv_type
 	>;
 	
-	MessagePointerT				msgptr(_rmsgptr);
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
 	

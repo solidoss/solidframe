@@ -66,7 +66,7 @@ void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 /*
 void server_complete_message(
 	frame::ipc::ConnectionContext &_rctx,
-	DynamicPointer<Message> &_rsent_msg_ptr, DynamicPointer<Message> &_rrecv_msg_ptr,
+	std::shared_ptr<Message> &_rsent_msg_ptr, std::shared_ptr<Message> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
 	if(_rrecv_msg_ptr.get()){
@@ -198,6 +198,8 @@ int test_multiprotocol_basic(int argc, char **argv){
 		alpha_client::start();
 		beta_client::start();
 		gamma_client::start();
+		
+		running = false;
 		
 		Locker<Mutex>	lock(mtx);
 		

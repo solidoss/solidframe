@@ -75,7 +75,7 @@ private:
 		
 		void clear(){
 			deserializer_ptr = nullptr;
-			message_ptr.clear();
+			message_ptr.reset();
 // 			message_type_idx = InvalidIndex();
 		}
 		
