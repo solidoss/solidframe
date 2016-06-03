@@ -348,6 +348,7 @@ int test_pool_force_close(int argc, char **argv){
 		writecount = start_count;//
 		{
 			std::vector<frame::ipc::MessagePointerT>	msg_vec;
+			ErrorConditionT								err;
 			
 			for(size_t i = 0; i < start_count; ++i){
 				msg_vec.push_back(frame::ipc::MessagePointerT(new Message(i)));
@@ -366,9 +367,13 @@ int test_pool_force_close(int argc, char **argv){
 				
 				for(; crtwriteidx < start_count; ++it){
 					++crtwriteidx;
-					ipcclient.sendMessage(
+					err = ipcclient.sendMessage(
 						recipinet_id, *it, 0
 					);
+					if(err){
+						edbg("Message not sent: "<<err.message());
+						++crtackidx;
+					}
 				}
 			}
 		}

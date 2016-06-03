@@ -224,7 +224,46 @@ struct Protocol: public ipc::Protocol{
 	}
 };
 
+template <class T>
+void proto_spec_setup_helper(Protocol &_rproto, const size_t _protocol_id){
+	T		t;
+	t(_rproto, 0, _protocol_id);
+}
 
+template <class T1, class T2, class ...Args>
+void proto_spec_setup_helper(Protocol &_rproto, const size_t _protocol_id){
+	T1	t;
+	t(_rproto, 0, _protocol_id);
+	proto_spec_setup_helper<T2, Args...>(_rproto, _protocol_id);
+}
+
+template <class Arg, class T>
+void proto_spec_setup_helper1(Protocol &_rproto, const size_t _protocol_id, Arg &&_uarg){
+	T	t(std::forward<Arg>(_uarg));
+	t(_rproto, 0, _protocol_id);
+}
+
+template <class Arg, class T1, class T2, class ...Args>
+void proto_spec_setup_helper1(Protocol &_rproto, const size_t _protocol_id, Arg &&_uarg){
+	T1	t(std::forward<Arg>(_uarg));
+	t(_rproto, 0, _protocol_id);
+	proto_spec_setup_helper1<Arg, T2, Args...>(_rproto, _protocol_id, std::forward<Arg>(_uarg));
+}
+
+template <class ...Args>
+struct ProtoSpec{
+	
+	template <template <typename> typename MessageSetup>
+	static void setup(Protocol &_rproto, const size_t _protocol_id){
+		proto_spec_setup_helper<MessageSetup<Args>...>(_rproto, _protocol_id);
+	}
+
+	template <template <typename> typename MessageSetup, class Arg>
+	static void setup(Protocol &_rproto, const size_t _protocol_id, Arg &&_uarg){
+		proto_spec_setup_helper1<Arg, MessageSetup<Args>...>(_rproto, _protocol_id, std::forward<Arg>(_uarg));
+	}
+
+};
 
 }//namespace serialization_v1
 }//namespace ipc

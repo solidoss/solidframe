@@ -4,6 +4,7 @@
 #include "system/common.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipccontext.hpp"
+#include "frame/ipc/ipcprotocol_serialization_v1.hpp"
 
 
 
@@ -43,6 +44,8 @@ struct ThirdMessage: solid::frame::ipc::Message{
 		_s.push(v, "v");
 	}	
 };
+
+using ProtoSpecT = solid::frame::ipc::serialization_v1::ProtoSpec<FirstMessage, SecondMessage, ThirdMessage>;
 
 }//namespace
 
