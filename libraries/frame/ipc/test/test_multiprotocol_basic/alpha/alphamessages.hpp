@@ -6,9 +6,6 @@
 #include "frame/ipc/ipccontext.hpp"
 #include "frame/ipc/ipcprotocol_serialization_v1.hpp"
 
-
-
-
 namespace alpha_protocol{
 
 struct FirstMessage: solid::frame::ipc::Message{

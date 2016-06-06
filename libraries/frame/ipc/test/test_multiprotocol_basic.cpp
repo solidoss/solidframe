@@ -44,9 +44,10 @@ typedef frame::aio::openssl::Context			SecureContextT;
 namespace{
 
 std::string						pattern;
-bool							running = true;
+size_t							running = true;
 Mutex							mtx;
 Condition						cnd;
+
 std::atomic<uint64>				transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 std::atomic<size_t>				connection_count(0);
@@ -63,20 +64,7 @@ void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
 }
-/*
-void server_complete_message(
-	frame::ipc::ConnectionContext &_rctx,
-	std::shared_ptr<Message> &_rsent_msg_ptr, std::shared_ptr<Message> &_rrecv_msg_ptr,
-	ErrorConditionT const &_rerror
-){
-	if(_rrecv_msg_ptr.get()){
-		idbg(_rctx.recipientId()<<" received message with id on sender "<<_rrecv_msg_ptr->requestId());
-	}
-	if(_rsent_msg_ptr.get()){
-		idbg(_rctx.recipientId()<<" done sent message "<<_rsent_msg_ptr.get());
-	}
-}
-*/
+
 }//namespace
 
 
@@ -157,20 +145,9 @@ int test_multiprotocol_basic(int argc, char **argv){
 			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
 			frame::ipc::Configuration				cfg(sch_server, proto);
 			
-// 			proto->registerType<Message>(
-// 				serialization::basic_factory<Message>,
-// 				server_complete_message
-// 			);
-			
 			gamma_server::register_messages(*proto);
 			beta_server::register_messages(*proto);
 			alpha_server::register_messages(*proto);
-			
-			
-			
-			
-			//cfg.recv_buffer_capacity = 1024;
-			//cfg.send_buffer_capacity = 1024;
 			
 			cfg.connection_stop_fnc = server_connection_stop;
 			cfg.connection_start_incoming_fnc = server_connection_start;
@@ -195,7 +172,7 @@ int test_multiprotocol_basic(int argc, char **argv){
 			}
 		}
 		
-		alpha_client::start();
+		alpha_client::start(/*server_port, sch_client, m*/);
 		beta_client::start();
 		gamma_client::start();
 		

@@ -1,6 +1,8 @@
 #include "../alphamessages.hpp"
 #include "alphaserver.hpp"
 #include "serialization/typeidmap.hpp"
+#include "system/debug.hpp"
+#include "frame/ipc/ipcservice.hpp"
 
 using namespace solid;
 using namespace std;
@@ -22,7 +24,18 @@ void complete_message<alpha_protocol::FirstMessage>(
 	std::shared_ptr<alpha_protocol::FirstMessage> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
-	
+	idbg("");
+	if(_rrecv_msg_ptr){
+		SOLID_CHECK(not _rsent_msg_ptr);
+		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+		
+		if(err){
+			SOLID_THROW_EX("Connection id should not be invalid!", err.message());
+		}
+	}
+	if(_rsent_msg_ptr){
+		SOLID_CHECK(not _rrecv_msg_ptr);
+	}
 }
 
 template <>
@@ -32,7 +45,18 @@ void complete_message<alpha_protocol::SecondMessage>(
 	std::shared_ptr<alpha_protocol::SecondMessage> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
-	
+	idbg("");
+	if(_rrecv_msg_ptr){
+		SOLID_CHECK(not _rsent_msg_ptr);
+		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+		
+		if(err){
+			SOLID_THROW_EX("Connection id should not be invalid!", err.message());
+		}
+	}
+	if(_rsent_msg_ptr){
+		SOLID_CHECK(not _rrecv_msg_ptr);
+	}
 }
 
 template <>
@@ -42,7 +66,18 @@ void complete_message<alpha_protocol::ThirdMessage>(
 	std::shared_ptr<alpha_protocol::ThirdMessage> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
-	
+	idbg("");
+	if(_rrecv_msg_ptr){
+		SOLID_CHECK(not _rsent_msg_ptr);
+		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+		
+		if(err){
+			SOLID_THROW_EX("Connection id should not be invalid!", err.message());
+		}
+	}
+	if(_rsent_msg_ptr){
+		SOLID_CHECK(not _rrecv_msg_ptr);
+	}
 }
 
 template <typename T>
@@ -73,4 +108,4 @@ void register_messages(frame::ipc::serialization_v1::Protocol &_rprotocol){
 // 	);
 }
 
-}
+}//namespace

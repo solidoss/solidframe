@@ -182,12 +182,12 @@ void client_complete_message(
 ){
 	idbg(_rctx.recipientId());
 	
-	if(_rsent_msg_ptr.get()){
+	if(_rsent_msg_ptr){
 		if(!_rerror){
 			++crtackidx;
 		}
 	}
-	if(_rrecv_msg_ptr.get()){
+	if(_rrecv_msg_ptr){
 		if(not _rrecv_msg_ptr->check()){
 			SOLID_THROW("Message check failed.");
 		}
@@ -215,7 +215,7 @@ void server_complete_message(
 	std::shared_ptr<Message> &_rsent_msg_ptr, std::shared_ptr<Message> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 ){
-	if(_rrecv_msg_ptr.get()){
+	if(_rrecv_msg_ptr){
 		idbg(_rctx.recipientId()<<" received message with id on sender "<<_rrecv_msg_ptr->requestId());
 		
 		if(not _rrecv_msg_ptr->check()){
@@ -250,7 +250,7 @@ void server_complete_message(
 			}
 		}
 	}
-	if(_rsent_msg_ptr.get()){
+	if(_rsent_msg_ptr){
 		idbg(_rctx.recipientId()<<" done sent message "<<_rsent_msg_ptr.get());
 	}
 }
