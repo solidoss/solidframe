@@ -931,40 +931,44 @@ void Manager::stop(){
 	
 	//broadcast to all objects to stop
 	for(auto it = rsvcstore.vec.begin(); it != rsvcstore.vec.end(); ++it){
-		ServiceStub		&rss = *(*it);
-		
-		Locker<Mutex>	lock(rss.rmtx);
-		
-		if(rss.psvc && rss.state == StateRunningE){
-			ObjectVisitFunctionT	fctor(
-				[](ObjectBase &_robj, ReactorBase &_rreact){
-					return notify_object(_robj, _rreact, generic_event_category.event(GenericEvents::Kill), 0);
-				}
-			);
+		if(*it){
+			ServiceStub		&rss = *(*it);
 			
-			rss.psvc->resetRunning();
+			Locker<Mutex>	lock(rss.rmtx);
 			
-			const size_t			cnt = doForEachServiceObject(rss.firstchk, fctor);
-			(void)cnt;
-			rss.state = (rss.objcnt != 0) ? StateStoppingE : StateStoppedE;
+			if(rss.psvc && rss.state == StateRunningE){
+				ObjectVisitFunctionT	fctor(
+					[](ObjectBase &_robj, ReactorBase &_rreact){
+						return notify_object(_robj, _rreact, generic_event_category.event(GenericEvents::Kill), 0);
+					}
+				);
+				
+				rss.psvc->resetRunning();
+				
+				const size_t			cnt = doForEachServiceObject(rss.firstchk, fctor);
+				(void)cnt;
+				rss.state = (rss.objcnt != 0) ? StateStoppingE : StateStoppedE;
+			}
 		}
 	}
 	
 	//wait for all services to stop
 	for(auto it = rsvcstore.vec.begin(); it != rsvcstore.vec.end(); ++it){
-		ServiceStub		&rss = *(*it);
-		
-		Locker<Mutex>	lock(rss.rmtx);
-		
-		if(rss.psvc && rss.state == StateStoppingE){
-			while(rss.objcnt){
-				d.cnd.wait(lock);
+		if(*it){
+			ServiceStub		&rss = *(*it);
+			
+			Locker<Mutex>	lock(rss.rmtx);
+			
+			if(rss.psvc && rss.state == StateStoppingE){
+				while(rss.objcnt){
+					d.cnd.wait(lock);
+				}
+				rss.state = StateStoppedE;
+			}else{
+				SOLID_ASSERT(rss.state == StateStoppedE);
 			}
-			rss.state = StateStoppedE;
-		}else{
-			SOLID_ASSERT(rss.state == StateStoppedE);
+			doUnregisterService(rss);
 		}
-		doUnregisterService(rss);
 	}
 	
 	d.releaseReadServiceStore(svcstoreidx);

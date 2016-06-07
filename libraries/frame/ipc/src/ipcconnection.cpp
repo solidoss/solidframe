@@ -1362,6 +1362,9 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 		if(not FUNCTION_EMPTY(msg_bundle.complete_fnc)){
 			idbgx(Debug::ipc, this);
 			msg_bundle.complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
+		}else if(msg_bundle.message_ptr){
+			idbgx(Debug::ipc, this<<" "<<msg_bundle.message_type_id);
+			rproto[msg_bundle.message_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
 		}else{
 			idbgx(Debug::ipc, this<<" "<<_response_type_id);
 			rproto[_response_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);

@@ -28,6 +28,7 @@ void complete_message<beta_protocol::FirstMessage>(
 	ErrorConditionT const &_rerror
 ){
 	idbg("");
+	SOLID_CHECK(not _rerror);
 	if(_rrecv_msg_ptr){
 		SOLID_CHECK(not _rsent_msg_ptr);
 		
@@ -53,6 +54,7 @@ void complete_message<beta_protocol::SecondMessage>(
 	ErrorConditionT const &_rerror
 ){
 	idbg("");
+	SOLID_CHECK(not _rerror);
 	if(_rrecv_msg_ptr){
 		SOLID_CHECK(not _rsent_msg_ptr);
 		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
@@ -74,6 +76,7 @@ void complete_message<beta_protocol::ThirdMessage>(
 	ErrorConditionT const &_rerror
 ){
 	idbg("");
+	SOLID_CHECK(not _rerror);
 	if(_rrecv_msg_ptr){
 		SOLID_CHECK(not _rsent_msg_ptr);
 		
@@ -100,7 +103,7 @@ struct MessageSetup{
 };
 
 void register_messages(solid::frame::ipc::serialization_v1::Protocol &_rprotocol){
-	beta_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol, 1);
+	beta_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol);
 }
 
 }

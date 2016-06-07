@@ -34,17 +34,17 @@
 
 #include <iostream>
 
+#include "test_multiprotocol_basic/clientcommon.hpp"
+
 using namespace std;
 using namespace solid;
 
-typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
 typedef frame::aio::openssl::Context			SecureContextT;
 
 
 namespace{
 
-std::string						pattern;
-size_t							running = true;
+std::atomic<size_t>				wait_count(0);
 Mutex							mtx;
 Condition						cnd;
 
@@ -52,10 +52,6 @@ std::atomic<uint64>				transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 std::atomic<size_t>				connection_count(0);
 
-size_t real_size(size_t _sz){
-	//offset + (align - (offset mod align)) mod align
-	return _sz + ((sizeof(uint64) - (_sz % sizeof(uint64))) % sizeof(uint64));
-}
 
 void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
 	idbg(_rctx.recipientId());
@@ -72,8 +68,8 @@ void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 int test_multiprotocol_basic(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:view any:view");
+	Debug::the().levelMask("ew");
+	Debug::the().moduleMask("frame_ipc:ew any:ew frame:ew");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -90,22 +86,7 @@ int test_multiprotocol_basic(int argc, char **argv){
 		}
 	}
 	
-	for(int j = 0; j < 1; ++j){
-		for(int i = 0; i < 127; ++i){
-			int c = (i + j) % 127;
-			if(isprint(c) and !isblank(c)){
-				pattern += static_cast<char>(c);
-			}
-		}
-	}
 	
-	size_t	sz = real_size(pattern.size());
-	
-	if(sz > pattern.size()){
-		pattern.resize(sz - sizeof(uint64));
-	}else if(sz < pattern.size()){
-		pattern.resize(sz);
-	}
 	{
 		AioSchedulerT			sch_client;
 		AioSchedulerT			sch_server;
@@ -172,15 +153,35 @@ int test_multiprotocol_basic(int argc, char **argv){
 			}
 		}
 		
-		alpha_client::start(/*server_port, sch_client, m*/);
-		beta_client::start();
-		gamma_client::start();
+		Context		ctx(sch_client, m, resolver, max_per_pool_connection_count, server_port, wait_count, mtx, cnd);
 		
-		running = false;
+		err = alpha_client::start(ctx);
+		
+		if(err){
+			edbg("starting alpha ipcservice: "<<err.message());
+			Thread::waitAll();
+			return 1;
+		}
+		
+		err = beta_client::start(ctx);
+		
+		if(err){
+			edbg("starting alpha ipcservice: "<<err.message());
+			Thread::waitAll();
+			return 1;
+		}
+		
+		err = gamma_client::start(ctx);
+		
+		if(err){
+			edbg("starting gamma ipcservice: "<<err.message());
+			Thread::waitAll();
+			return 1;
+		}
 		
 		Locker<Mutex>	lock(mtx);
 		
-		while(running){
+		while(wait_count){
 			//cnd.wait(lock);
 			TimeSpec	abstime = TimeSpec::createRealTime();
 			abstime += (120 * 1000);//ten seconds

@@ -25,6 +25,7 @@ void complete_message<alpha_protocol::FirstMessage>(
 	ErrorConditionT const &_rerror
 ){
 	idbg("");
+	SOLID_CHECK(not _rerror);
 	if(_rrecv_msg_ptr){
 		SOLID_CHECK(not _rsent_msg_ptr);
 		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
@@ -46,6 +47,7 @@ void complete_message<alpha_protocol::SecondMessage>(
 	ErrorConditionT const &_rerror
 ){
 	idbg("");
+	SOLID_CHECK(not _rerror);
 	if(_rrecv_msg_ptr){
 		SOLID_CHECK(not _rsent_msg_ptr);
 		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
@@ -67,6 +69,7 @@ void complete_message<alpha_protocol::ThirdMessage>(
 	ErrorConditionT const &_rerror
 ){
 	idbg("");
+	SOLID_CHECK(not _rerror);
 	if(_rrecv_msg_ptr){
 		SOLID_CHECK(not _rsent_msg_ptr);
 		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
@@ -94,7 +97,7 @@ struct MessageSetup{
 
 
 void register_messages(frame::ipc::serialization_v1::Protocol &_rprotocol){
-	alpha_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol, 0);
+	alpha_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol);
 	//alpha_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol, 0, std::string("ceva"));
 	
 // 	_rprotocol.registerType<alpha_protocol::FirstMessage>(

@@ -33,11 +33,14 @@ Service::Service(
 	Manager &_rm
 ):rm(_rm), idx(static_cast<size_t>(InvalidIndex())), running(false){
 	_rm.registerService(*this);
+	vdbgx(Debug::frame, ""<<this);
 }
 
 Service::~Service(){
+	vdbgx(Debug::frame, ""<<this);
 	stop(true);
 	rm.unregisterService(*this);
+	vdbgx(Debug::frame, ""<<this);
 }
 
 void Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){

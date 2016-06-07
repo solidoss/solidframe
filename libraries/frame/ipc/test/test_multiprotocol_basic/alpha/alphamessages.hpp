@@ -11,7 +11,10 @@ namespace alpha_protocol{
 struct FirstMessage: solid::frame::ipc::Message{
 	uint32_t			v;
 	std::string			str;
-
+	
+	FirstMessage(){}
+	FirstMessage(uint32_t _v, std::string &&_str):v(_v), str(std::move(_str)){}
+	
 	template <class S>
 	void serialize(S &_s, solid::frame::ipc::ConnectionContext &_rctx){
 		_s.push(str, "str");
@@ -22,6 +25,9 @@ struct FirstMessage: solid::frame::ipc::Message{
 struct SecondMessage: solid::frame::ipc::Message{
 	uint64_t			v;
 	std::string			str;
+	
+	SecondMessage(){}
+	SecondMessage(uint64_t _v, std::string &&_str):v(_v), str(std::move(_str)){}
 
 	template <class S>
 	void serialize(S &_s, solid::frame::ipc::ConnectionContext &_rctx){
@@ -35,6 +41,9 @@ struct ThirdMessage: solid::frame::ipc::Message{
 	uint16_t			v;
 	std::string			str;
 
+	ThirdMessage(){}
+	ThirdMessage(uint16_t _v, std::string &&_str):v(_v), str(std::move(_str)){}
+	
 	template <class S>
 	void serialize(S &_s, solid::frame::ipc::ConnectionContext &_rctx){
 		_s.push(str, "str");
@@ -42,7 +51,7 @@ struct ThirdMessage: solid::frame::ipc::Message{
 	}	
 };
 
-using ProtoSpecT = solid::frame::ipc::serialization_v1::ProtoSpec<FirstMessage, SecondMessage, ThirdMessage>;
+using ProtoSpecT = solid::frame::ipc::serialization_v1::ProtoSpec<0, FirstMessage, SecondMessage, ThirdMessage>;
 
 }//namespace
 

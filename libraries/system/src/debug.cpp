@@ -273,14 +273,14 @@ void splitPrefix(string &_path, string &_name, const char *_prefix);
 
 #ifdef SOLID_USE_SAFE_STATIC
 /*static*/ Debug& Debug::the(){
-	static Debug d;
-	return d;
+	static Debug *pd = new Debug;//TODO: don't leave it leaked
+	return *pd;
 }
 #else
 
 /*static*/ Debug& Debug::dbg_the(){
-	static Debug d;
-	return d;
+	static Debug *pd = new Debug;//TODO: don't leave it leaked
+	return *pd;
 }
 
 void Debug::once_cbk(){
