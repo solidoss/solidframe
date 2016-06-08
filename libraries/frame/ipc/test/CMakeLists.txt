@@ -189,3 +189,27 @@ target_link_libraries(test_ipc_multiprotocol
 add_test(NAME TestMultiProtocolBasic		COMMAND  test_ipc_multiprotocol test_multiprotocol_basic)
 
 #==============================================================================
+
+set( IpcRawTestSuite
+	test_raw_basic.cpp
+)
+
+create_test_sourcelist( IpcRawTests test_ipc_raw.cpp ${IpcRawTestSuite})
+
+add_executable(test_ipc_raw ${IpcRawTests})
+
+target_link_libraries(test_ipc_raw
+	solid_frame_ipc
+	solid_frame_aio
+	solid_frame_aio_openssl
+	solid_frame
+	solid_serialization
+	solid_utility
+	solid_system
+	${OPENSSL_LIBS}
+	${SYS_DYNAMIC_LOAD_LIB}
+	${SYS_BASIC_LIBS}
+)
+
+add_test(NAME TestRawBasic		COMMAND  test_ipc_raw test_raw_basic)
+#==============================================================================

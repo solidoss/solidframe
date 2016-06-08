@@ -35,6 +35,7 @@ C++11 enabled compilers on:
 * (PENDING) Finalizing the IPC library - what is planned for SFv2.0.
 * Cross-platform support: FreeBSD, Darwin/OSX, Windows (partial).
 * (DONE) Add "make install" support.
+* Documentation.
 * Preparing for SFv2.0.
 * SolidFrame version 2.0.
 

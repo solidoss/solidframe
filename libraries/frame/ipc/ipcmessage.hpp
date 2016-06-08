@@ -36,33 +36,33 @@ struct Message: std::enable_shared_from_this<Message>{
 		CanceledFlagE		= (1<<(FirstFlagIndexE +  6)),
 	};
 	
-	static bool is_synchronous(const uint32 _flags){
+	static bool is_synchronous(const ulong _flags){
 		return (_flags & SynchronousFlagE) != 0;
 	}
-	static bool is_asynchronous(const uint32 _flags){
+	static bool is_asynchronous(const ulong _flags){
 		return (_flags & SynchronousFlagE) == 0;
 	}
-	static bool is_waiting_response(const uint32 _flags){
+	static bool is_waiting_response(const ulong _flags){
 		return (_flags & WaitResponseFlagE) != 0;
 	}
 	
-	static bool is_idempotent(const uint32 _flags){
+	static bool is_idempotent(const ulong _flags){
 		return (_flags & IdempotentFlagE) != 0;
 	}
 	
-	static bool is_started_send(const uint32 _flags){
+	static bool is_started_send(const ulong _flags){
 		return (_flags & StartedSendFlagE) != 0;
 	}
 	
-	static bool is_done_send(const uint32 _flags){
+	static bool is_done_send(const ulong _flags){
 		return (_flags & DoneSendFlagE) != 0;
 	}
 	
-	static bool is_canceled(const uint32 _flags){
+	static bool is_canceled(const ulong _flags){
 		return (_flags & CanceledFlagE) != 0;
 	}
 	
-	static bool is_one_shot(const uint32 _flags){
+	static bool is_one_shot(const ulong _flags){
 		return (_flags & OneShotSendFlagE) != 0;
 	}
 	

@@ -127,8 +127,8 @@ message_type_id = protocol_index + type_index;
 
 * test_multiprotocol
 	* start a server ipc configure it with 3 protocols (3 groups of messages)
-	* start 2 different clients configured with different protocols
-	* proceed on both protcols as in test_clientserver_basic.
+	* start 3 different clients configured with different protocols
+	* clients exchange some messages with the server
 
 ### Support for packet compression
 

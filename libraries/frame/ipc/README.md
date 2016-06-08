@@ -2,15 +2,14 @@
 
 A process-to-process communication (message exchange) engine via plain/secured TCP.
 
-## Characteristics
+## Features
 
 * C++ only (no IDLs).
 * Per recipient connection pool.
 * Asynchronous. Uses SolidFrame's aio asynchronous communication library.
 * Buffer oriented message serialization engine: the messages get serialized (marshaled) one fixed sized buffer at a time. This further enables:
 	* Sending messages that are bigger than the system memory (e.g. a message with a 100GB file).
-	* Message multiplexing. Messages from the send queue are sent in parallel on the same connection. This means for example that one can send multiple small messages while also sending one (or more) huge message(s).
-* Support for buffer level compression. The library can compress (using a pluggable algorithm) a buffer before writing it on the socket. In future versions of the library the commpession will be adaptable.
+	* Message multiplexing. Messages from the send queue are sent in parallel on the same connection. This means for example that multiple small messages can be send while also sending one (or more) huge message(s).
 * Able to limit the number of pending connections - if a name resove returns 100 IP addresses, it does not create as many connections.
 * Scale up the number of connections based on the number of messages on send queue and up to a configurable limit.
 * Rescale up after a network failure.
@@ -20,6 +19,9 @@ A process-to-process communication (message exchange) engine via plain/secured T
 	* idempotent: will try resending the message until either successfully sent or, in case the message awaits a response, until a response was received. 
 * By default, the IPC engine will try resend a message if not yet started to be sent. If a message started to be sent and the connection close will be rescheduled for sending ONLY if it is idempotent otherwise will be completed with error.
 
+### Planned
+* Support for buffer level compression. The library can compress (using a pluggable algorithm) a buffer before writing it on the socket. In future versions of the library the commpession will be adaptable.
+* Support SSL/TLS for ecrypted transport (using OpenSSL)
 
 ## TODO v2.0:
 
@@ -40,8 +42,9 @@ A process-to-process communication (message exchange) engine via plain/secured T
 
 ## TODO v2.x
 
+* add support for compression - test and improve
+* add support for OpenSSL - needs extending OpenSSL support in frame/aio
 * add support in ipc::configuration for SOCKS5
-* add support for OpenSSL (needs extending OpenSSL support in frame/aio)
 
 ## NOTES
 1. closeConnection can be used for closing a connection after a certain message was sent.
