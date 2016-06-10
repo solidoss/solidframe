@@ -25,8 +25,8 @@ A process-to-process communication (message exchange) engine via plain/secured T
 
 ## TODO v2.0:
 
-* test_raw_basic
 * test_raw_proxy
+* (DONE) test_raw_basic
 * (DONE) test_multiprotocol
 * (DONE) test_connection_close
 * (DONE) add Service::closeConnection(RecipientId) (see note 1)

@@ -912,13 +912,14 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &_revent){
-	
 	SendRaw				*pdata = _revent.any().cast<SendRaw>();
 	ConnectionContext	conctx(service(_rctx), *this);
 	
 	SOLID_ASSERT(pdata);
 	
 	if(this->isRawState() and pdata){
+		
+		idbgx(Debug::ipc, this<<" datasize = "<<pdata->data.size());
 		
 		size_t	tocopy = this->sendBufferCapacity();
 		
@@ -930,7 +931,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &
 		
 		if(tocopy){
 			pdata->offset = tocopy;
-			if(not this->postSendAll(_rctx, send_buf, tocopy, _revent)){
+			if(this->postSendAll(_rctx, send_buf, tocopy, _revent)){
 				pdata->complete_fnc(conctx, _rctx.error());
 			}
 		}else{
@@ -950,9 +951,11 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext &_rctx, Event &
 	
 	SOLID_ASSERT(pdata);
 	
+	idbgx(Debug::ipc, this);
+	
 	if(this->isRawState() and pdata){
 		if(recv_buf_off == cons_buf_off){
-			if(not this->postRecvSome(_rctx, recv_buf, this->recvBufferCapacity(), _revent)){
+			if(this->postRecvSome(_rctx, recv_buf, this->recvBufferCapacity(), _revent)){
 				
 				pdata->complete_fnc(conctx, nullptr, used_size, _rctx.error());
 			}
@@ -1094,7 +1097,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 			
 			if(tocopy){
 				pdata->offset += tocopy;
-				if(not rthis.postSendAll(_rctx, rthis.send_buf, tocopy, _revent)){
+				if(rthis.postSendAll(_rctx, rthis.send_buf, tocopy, _revent)){
 					pdata->complete_fnc(conctx, _rctx.error());
 				}
 			}else{

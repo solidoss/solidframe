@@ -159,15 +159,54 @@ void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 	}
 }
 
+template <class F>
+struct RecvClosure{
+	std::string data;
+	F			finalize_fnc;
+	
+	RecvClosure(F && _finalize_fnc): finalize_fnc(std::move(_finalize_fnc)){}
+	
+	void operator()(frame::ipc::ConnectionContext& _rctx, const char *_pdata, size_t &_rsz, ErrorConditionT const& _rerror){
+		idbg("received raw data: sz = "<<_rsz<<" error = "<<_rerror.message());
+		SOLID_CHECK(not _rerror);
+		SOLID_CHECK(_rsz != 0);
+		
+		size_t towrite = raw_data.size() - data.size();
+		
+		if(towrite > _rsz){
+			towrite = _rsz;
+		}
+		
+		data.append(_pdata, towrite);
+		
+		_rsz = towrite;
+		
+		if(raw_data.size() == data.size()){
+			finalize_fnc(_rctx, _rerror, std::move(data));
+		}else{
+			//continue reading
+			_rctx.service().connectionNotifyRecvSomeRawData(_rctx.recipientId(), std::move(*this));
+		}
+	}
+};
+
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	std::string 	recv_data;
-	auto lambda =  [recv_data](frame::ipc::ConnectionContext&, ErrorConditionT const& _rerror){
+	
+	auto lambda =  [](frame::ipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror){
 		idbg("sent raw data: "<<_rerror.message());
 		SOLID_CHECK(not _rerror);
-		//sent the raw_data
-		//prepare receive the message back:
+		//sent the raw_data, prepare receive the message back:
 		
+		auto lambda =  [](frame::ipc::ConnectionContext&_rctx, ErrorConditionT const& _rerror, std::string &&_rdata){
+			idbg("received back raw data: "<<_rerror.message()<<" data.size = "<<_rdata.size());
+			SOLID_CHECK(not _rerror);
+			SOLID_CHECK(_rdata == raw_data);
+			//activate concetion
+			_rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId());
+		};
+		
+		_rctx.service().connectionNotifyRecvSomeRawData(_rctx.recipientId(), RecvClosure<decltype(lambda)>(std::move(lambda)));
 	};
 	_rctx.service().connectionNotifySendAllRawData(_rctx.recipientId(), lambda, std::string(raw_data));
 }
@@ -176,48 +215,26 @@ void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorCondition
 	idbg(_rctx.recipientId());
 }
 
-struct 
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
-	std::string 	recv_data;
-	auto lambda =  [recv_data](frame::ipc::ConnectionContext&, const char *_pdata, size_t &_rsz, ErrorConditionT const& _rerror){
-		idbg("received raw data: sz = "<<_rsz<<" error = "<<_rerror.message());
-		SOLID_CHECK(not _rerror);
-		SOLID_CHECK(_rsz != 0);
+	
+	auto lambda =  [](frame::ipc::ConnectionContext&_rctx, ErrorConditionT const& _rerror, std::string &&_rdata){
 		
-		size_t towrite = raw_data.size() - recv_data.size();
+		auto lambda =  [](frame::ipc::ConnectionContext&_rctx, ErrorConditionT const& _rerror){
+			idbg("sent raw data: "<<_rerror.message());
+			SOLID_CHECK(not _rerror);
+			//now that we've sent the raw string back, activate the connection
+			_rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId());
+		};
 		
-		if(towrite > _rsz){
-			towrite = _rsz;
-		}
+		idbg("received raw data: "<<_rerror.message()<<" data_size: "<<_rdata.size());
 		
-		recv_data.append(_pdata, towrite);
-		
-		_rsz = towrite;
-		
-		if(raw_data.size() == recv_data.size()){
-			//received the entire string, send it back
-			auto lambda =  [](frame::ipc::ConnectionContext&, ErrorConditionT const& _rerror){
-				idbg("sent raw data: "<<_rerror.message());
-				SOLID_CHECK(not _rerror);
-				//now that we've sent the raw string back, activate the connection
-				
-				auto lambda =  [](frame::ipc::ConnectionContext&, ErrorConditionT const& _rerror){
-					idbg("enter active error: "<<_rerror.message());
-					return frame::ipc::MessagePointerT();
-				};
-				_rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
-			};
-			_rctx.service().connectionNotifySendAllRawData(_rctx.recipientId(), lambda, recv_data);
-			
-		}else{
-			//continue reading
-			_rctx.service().connectionNotifyRecvSomeRawData(_rctx.recipientId(), *this);
-		}
+		_rctx.service().connectionNotifySendAllRawData(_rctx.recipientId(), lambda, std::move(_rdata));
 		
 	};
-	_rctx.service().connectionNotifyRecvSomeRawData(_rctx.recipientId(), lambda);
+	
+	_rctx.service().connectionNotifyRecvSomeRawData(_rctx.recipientId(), RecvClosure<decltype(lambda)>(std::move(lambda)));
 }
 
 
@@ -303,11 +320,11 @@ void server_complete_message(
 
 }//namespace
 
-int test_clientserver_basic(int argc, char **argv){
+int test_raw_basic(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("ew");
-	Debug::the().moduleMask("frame_ipc:ew any:ew");
+	Debug::the().levelMask("view");
+	Debug::the().moduleMask("frame_ipc:view any:view");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -444,7 +461,7 @@ int test_clientserver_basic(int argc, char **argv){
 		
 		const size_t		start_count = 10;
 		
-		writecount = initarraysize * 10;//start_count;//
+		writecount = 10;//initarraysize * 10;//start_count;//
 		
 		for(; crtwriteidx < start_count;){
 			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));

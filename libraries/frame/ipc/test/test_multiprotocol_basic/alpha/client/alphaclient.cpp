@@ -125,6 +125,8 @@ ErrorConditionT start(
 ){
 	ErrorConditionT	err;
 	
+	pctx = &_rctx;
+	
 	if(not ipcclient_ptr){//ipc client initialization
 		frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
 		frame::ipc::Configuration				cfg(_rctx.rsched, proto);
@@ -163,7 +165,7 @@ ErrorConditionT start(
 		);
 		if(err){return err;}
 	}
-	pctx = &_rctx;
+	
 	return err;
 }
 

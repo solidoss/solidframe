@@ -245,6 +245,11 @@ public:
 		const size_t _send_buffer_capacity = 0//0 means: leave as it is
 	);
 	
+	ErrorConditionT connectionNotifyEnterActiveState(
+		RecipientId const &_rrecipient_id,
+		const size_t _send_buffer_capacity = 0//0 means: leave as it is
+	);
+	
 	template <class CompleteFnc>
 	ErrorConditionT connectionNotifyStartSecureHandshake(
 		RecipientId const &_rrecipient_id,
@@ -255,6 +260,10 @@ public:
 	ErrorConditionT connectionNotifyEnterPassiveState(
 		RecipientId const &_rrecipient_id,
 		CompleteFnc _complete_fnc
+	);
+	
+	ErrorConditionT connectionNotifyEnterPassiveState(
+		RecipientId const &_rrecipient_id
 	);
 	
 	template <class CompleteFnc>
@@ -800,6 +809,14 @@ ErrorConditionT Service::connectionNotifyEnterActiveState(
 	return doConnectionNotifyEnterActiveState(_rrecipient_id, std::move(complete_fnc), _send_buffer_capacity);
 }
 //-------------------------------------------------------------------------
+inline ErrorConditionT Service::connectionNotifyEnterActiveState(
+	RecipientId const &_rrecipient_id,
+	const size_t _send_buffer_capacity//0 means: leave as it is
+){
+	ConnectionEnterActiveCompleteFunctionT	complete_fnc([](ConnectionContext&, ErrorConditionT const&){return MessagePointerT();});
+	return doConnectionNotifyEnterActiveState(_rrecipient_id, std::move(complete_fnc), _send_buffer_capacity);
+}
+//-------------------------------------------------------------------------
 template <class CompleteFnc>
 ErrorConditionT Service::connectionNotifyStartSecureHandshake(
 	RecipientId const &_rrecipient_id,
@@ -815,6 +832,13 @@ ErrorConditionT Service::connectionNotifyEnterPassiveState(
 	CompleteFnc _complete_fnc
 ){
 	ConnectionEnterPassiveCompleteFunctionT	complete_fnc(_complete_fnc);
+	return doConnectionNotifyEnterPassiveState(_rrecipient_id, std::move(complete_fnc));
+}
+//-------------------------------------------------------------------------
+inline ErrorConditionT Service::connectionNotifyEnterPassiveState(
+	RecipientId const &_rrecipient_id
+){
+	ConnectionEnterPassiveCompleteFunctionT	complete_fnc([](ConnectionContext&, ErrorConditionT const&){});
 	return doConnectionNotifyEnterPassiveState(_rrecipient_id, std::move(complete_fnc));
 }
 //-------------------------------------------------------------------------
