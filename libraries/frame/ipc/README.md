@@ -7,7 +7,7 @@ A process-to-process communication (message exchange) engine via plain/secured T
 * C++ only (no IDLs).
 * Per recipient connection pool.
 * Asynchronous. Uses SolidFrame's aio asynchronous communication library.
-* Buffer oriented message serialization engine: the messages get serialized (marshaled) one fixed sized buffer at a time. This further enables:
+* Buffer oriented message serialization engine: the messages is serialized (marshaled) one fixed sized buffer at a time. This further enables:
 	* Sending messages that are bigger than the system memory (e.g. a message with a 100GB file).
 	* Message multiplexing. Messages from the send queue are sent in parallel on the same connection. This means for example that multiple small messages can be send while also sending one (or more) huge message(s).
 * Able to limit the number of pending connections - if a name resove returns 100 IP addresses, it does not create as many connections.
