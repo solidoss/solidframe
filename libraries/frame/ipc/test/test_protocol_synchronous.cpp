@@ -12,21 +12,21 @@ struct InitStub{
 };
 
 InitStub initarray[] = {
-	{100000, frame::ipc::Message::SynchronousFlagE},
-	{16384000, frame::ipc::Message::SynchronousFlagE},
-	{8192000, frame::ipc::Message::SynchronousFlagE},
-	{4096000, frame::ipc::Message::SynchronousFlagE},
-	{2048000, frame::ipc::Message::SynchronousFlagE},
-	{1024000, frame::ipc::Message::SynchronousFlagE},
-	{512000, frame::ipc::Message::SynchronousFlagE},
-	{256000, frame::ipc::Message::SynchronousFlagE},
-	{128000, frame::ipc::Message::SynchronousFlagE},
-	{64000, frame::ipc::Message::SynchronousFlagE},
-	{32000, frame::ipc::Message::SynchronousFlagE},
-	{16000, frame::ipc::Message::SynchronousFlagE},
-	{8000, frame::ipc::Message::SynchronousFlagE},
-	{4000, frame::ipc::Message::SynchronousFlagE},
-	{2000, frame::ipc::Message::SynchronousFlagE},
+	{100000, 0|frame::ipc::MessageFlags::Synchronous},
+	{16384000, 0|frame::ipc::MessageFlags::Synchronous},
+	{8192000, 0|frame::ipc::MessageFlags::Synchronous},
+	{4096000, 0|frame::ipc::MessageFlags::Synchronous},
+	{2048000, 0|frame::ipc::MessageFlags::Synchronous},
+	{1024000, 0|frame::ipc::MessageFlags::Synchronous},
+	{512000, 0|frame::ipc::MessageFlags::Synchronous},
+	{256000, 0|frame::ipc::MessageFlags::Synchronous},
+	{128000, 0|frame::ipc::MessageFlags::Synchronous},
+	{64000, 0|frame::ipc::MessageFlags::Synchronous},
+	{32000, 0|frame::ipc::MessageFlags::Synchronous},
+	{16000, 0|frame::ipc::MessageFlags::Synchronous},
+	{8000, 0|frame::ipc::MessageFlags::Synchronous},
+	{4000, 0|frame::ipc::MessageFlags::Synchronous},
+	{2000, 0|frame::ipc::MessageFlags::Synchronous},
 };
 
 std::string						pattern;

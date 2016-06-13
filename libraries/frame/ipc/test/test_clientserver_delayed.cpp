@@ -361,7 +361,7 @@ int test_clientserver_delayed(int argc, char **argv){
 		{
 			frame::ipc::MessagePointerT	msgptr(new Message(1));
 			err = ipcclient.sendMessage(
-				"localhost", msgptr, frame::ipc::Message::OneShotSendFlagE
+				"localhost", msgptr, 0|frame::ipc::MessageFlags::OneShotSend
 			);
 			//++writecount;
 			//this message should not be sent
@@ -370,7 +370,7 @@ int test_clientserver_delayed(int argc, char **argv){
 		{
 			frame::ipc::MessagePointerT	msgptr(new Message(2));
 			err = ipcclient.sendMessage(
-				"localhost", msgptr, frame::ipc::Message::WaitResponseFlagE
+				"localhost", msgptr, 0|frame::ipc::MessageFlags::WaitResponse
 			);
 			++writecount;
 		}

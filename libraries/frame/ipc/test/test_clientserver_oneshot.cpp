@@ -266,7 +266,7 @@ int test_clientserver_oneshot(int argc, char **argv){
 			err = ipcclient.sendMessage(
 				"localhost", msgptr,
 				recipient_id, message_id,
-				frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::OneShotSendFlagE
+				frame::ipc::MessageFlags::WaitResponse | frame::ipc::MessageFlags::OneShotSend
 			);
 			SOLID_CHECK(not err);
 		}

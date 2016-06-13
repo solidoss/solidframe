@@ -16,6 +16,7 @@
 #include "frame/ipc/ipccontext.hpp"
 
 #include <memory>
+#include <type_traits>
 
 namespace solid{
 namespace frame{
@@ -24,46 +25,67 @@ namespace ipc{
 class Service;
 class Connection;
 
+enum struct MessageFlags: ulong{
+	FirstFlagIndex  = 0, //for rezerved flags
+	WaitResponse	= (1<<(FirstFlagIndex +  0)),
+	Synchronous		= (1<<(FirstFlagIndex +  1)),
+	Idempotent		= (1<<(FirstFlagIndex +  2)),
+	OneShotSend		= (1<<(FirstFlagIndex +  3)),
+	StartedSend		= (1<<(FirstFlagIndex +  4)),
+	DoneSend		= (1<<(FirstFlagIndex +  5)),
+	Canceled		= (1<<(FirstFlagIndex +  6)),
+};
+
+using MessageFlagsValueT = std::underlying_type<MessageFlags>::type;
+
+inline MessageFlagsValueT operator|(const MessageFlagsValueT _v, const MessageFlags _f){
+	return _v | static_cast<MessageFlagsValueT>(_f);
+}
+
+inline MessageFlagsValueT operator&(const MessageFlagsValueT _v, const MessageFlags _f){
+	return _v & static_cast<MessageFlagsValueT>(_f);
+}
+
+inline MessageFlagsValueT& operator|=(MessageFlagsValueT & _rv, const MessageFlags _f){
+	_rv |= static_cast<MessageFlagsValueT>(_f);
+	return _rv;
+}
+
+inline MessageFlagsValueT operator|(const MessageFlags _f1, const MessageFlags _f2){
+	return static_cast<MessageFlagsValueT>(_f1) | static_cast<MessageFlagsValueT>(_f2);
+}
+
+
 struct Message: std::enable_shared_from_this<Message>{
-	enum Flags{
-		FirstFlagIndexE  	= 0, //for rezerved flags
-		WaitResponseFlagE	= (1<<(FirstFlagIndexE +  0)),
-		SynchronousFlagE	= (1<<(FirstFlagIndexE +  1)),
-		IdempotentFlagE		= (1<<(FirstFlagIndexE +  2)),
-		OneShotSendFlagE	= (1<<(FirstFlagIndexE +  3)),
-		StartedSendFlagE	= (1<<(FirstFlagIndexE +  4)),
-		DoneSendFlagE		= (1<<(FirstFlagIndexE +  5)),
-		CanceledFlagE		= (1<<(FirstFlagIndexE +  6)),
-	};
-	
+		
 	static bool is_synchronous(const ulong _flags){
-		return (_flags & SynchronousFlagE) != 0;
+		return (_flags & MessageFlags::Synchronous) != 0;
 	}
 	static bool is_asynchronous(const ulong _flags){
-		return (_flags & SynchronousFlagE) == 0;
+		return (_flags & MessageFlags::Synchronous) == 0;
 	}
 	static bool is_waiting_response(const ulong _flags){
-		return (_flags & WaitResponseFlagE) != 0;
+		return (_flags & MessageFlags::WaitResponse) != 0;
 	}
 	
 	static bool is_idempotent(const ulong _flags){
-		return (_flags & IdempotentFlagE) != 0;
+		return (_flags & MessageFlags::Idempotent) != 0;
 	}
 	
 	static bool is_started_send(const ulong _flags){
-		return (_flags & StartedSendFlagE) != 0;
+		return (_flags & MessageFlags::StartedSend) != 0;
 	}
 	
 	static bool is_done_send(const ulong _flags){
-		return (_flags & DoneSendFlagE) != 0;
+		return (_flags & MessageFlags::DoneSend) != 0;
 	}
 	
 	static bool is_canceled(const ulong _flags){
-		return (_flags & CanceledFlagE) != 0;
+		return (_flags & MessageFlags::Canceled) != 0;
 	}
 	
 	static bool is_one_shot(const ulong _flags){
-		return (_flags & OneShotSendFlagE) != 0;
+		return (_flags & MessageFlags::OneShotSend) != 0;
 	}
 	
 	Message(uint8 _state = 0):stt(_state){}

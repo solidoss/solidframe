@@ -306,7 +306,7 @@ void server_complete_message(
 			++crtwriteidx;
 			err = pipcclient->sendMessage(
 				"localhost", msgptr,
-				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
+				initarray[crtwriteidx % initarraysize].flags | frame::ipc::MessageFlags::WaitResponse
 			);
 			if(err){
 				SOLID_THROW_EX("Connection id should not be invalid!", err.message());
@@ -323,8 +323,8 @@ void server_complete_message(
 int test_raw_basic(int argc, char **argv){
 	Thread::init();
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:view any:view");
+	Debug::the().levelMask("ew");
+	Debug::the().moduleMask("frame_ipc:ew any:ew");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -468,7 +468,7 @@ int test_raw_basic(int argc, char **argv){
 			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msgptr,
-				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
+				initarray[crtwriteidx % initarraysize].flags | frame::ipc::MessageFlags::WaitResponse
 			);
 		}
 		

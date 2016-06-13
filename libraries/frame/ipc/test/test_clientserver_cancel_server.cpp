@@ -51,11 +51,11 @@ struct InitStub{
 InitStub initarray[] = {
 	{100000,	false,	0},//first message must not be canceled
 	{16384000,	false,	0},//not caceled
-	{8192000,	true,	frame::ipc::Message::SynchronousFlagE},
+	{8192000,	true,	0|frame::ipc::MessageFlags::Synchronous},
 	{4096000,	true,	0},
 	{2048000,	false,	0},//not caceled
 	{1024000,	true,	0},
-	{512000,	false,	frame::ipc::Message::SynchronousFlagE},//not canceled
+	{512000,	false,	0|frame::ipc::MessageFlags::Synchronous},//not canceled
 	{256000,	true,	0},
 	{1280000,	true,	0},
 	{6400000,	true,	0},

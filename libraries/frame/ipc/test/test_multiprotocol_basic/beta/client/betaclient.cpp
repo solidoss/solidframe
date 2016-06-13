@@ -152,17 +152,17 @@ ErrorConditionT start(
 		
 		err = ipcclient_ptr->sendMessage(
 			"localhost", std::make_shared<beta_protocol::FirstMessage>(100000, make_string(100000)),
-			frame::ipc::Message::WaitResponseFlagE
+			0|frame::ipc::MessageFlags::WaitResponse
 		);
 		if(err){return err;}
 		err = ipcclient_ptr->sendMessage(
 			"localhost", std::make_shared<beta_protocol::SecondMessage>(200000, make_string(200000)),
-			frame::ipc::Message::WaitResponseFlagE
+			0|frame::ipc::MessageFlags::WaitResponse
 		);
 		if(err){return err;}
 		err = ipcclient_ptr->sendMessage(
 			"localhost", std::make_shared<beta_protocol::ThirdMessage>(30000, make_string(30000)),
-			frame::ipc::Message::WaitResponseFlagE
+			0|frame::ipc::MessageFlags::WaitResponse
 		);
 		if(err){return err;}
 	}

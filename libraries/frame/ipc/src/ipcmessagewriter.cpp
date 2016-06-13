@@ -62,8 +62,8 @@ bool MessageWriter::enqueue(
 	SOLID_ASSERT(_rmsgbundle.message_ptr.get());
 	
 	//clear all disrupting flags
-	_rmsgbundle.message_flags &= ~Message::StartedSendFlagE;
-	_rmsgbundle.message_flags &= ~Message::DoneSendFlagE;
+	_rmsgbundle.message_flags &= ~(0|MessageFlags::StartedSend);
+	_rmsgbundle.message_flags &= ~(0|MessageFlags::DoneSend);
 	
 	size_t		idx;
 	
@@ -131,7 +131,7 @@ bool MessageWriter::doCancel(
 		return false;//already canceled
 	}
 	
-	rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
+	rmsgstub.msgbundle.message_flags |= MessageFlags::Canceled;
 	
 	_rmsgbundle = std::move(rmsgstub.msgbundle);
 	_rpool_msg_id = rmsgstub.pool_msg_id;
@@ -385,8 +385,8 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 			current_synchronous_message_idx = InvalidIndex();
 		}
 		
-		rmsgstub.msgbundle.message_flags &= (~Message::StartedSendFlagE);
-		rmsgstub.msgbundle.message_flags |= Message::DoneSendFlagE;
+		rmsgstub.msgbundle.message_flags &= (~(0|MessageFlags::StartedSend));
+		rmsgstub.msgbundle.message_flags |= MessageFlags::DoneSend;
 		
 		rmsgstub.serializer_ptr = nullptr;//free some memory
 		
@@ -404,7 +404,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 			
 			vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 		}else{
-			rmsgstub.msgbundle.message_flags |= Message::WaitResponseFlagE;
+			rmsgstub.msgbundle.message_flags |= MessageFlags::WaitResponse;
 		}
 		
 		vdbgx(Debug::ipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
@@ -446,7 +446,7 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 		
 		_rproto.reset(*rmsgstub.serializer_ptr);
 		
-		rmsgstub.msgbundle.message_flags |= Message::StartedSendFlagE;
+		rmsgstub.msgbundle.message_flags |= MessageFlags::StartedSend;
 		
 		rmsgstub.serializer_ptr->push(rmsgstub.msgbundle.message_ptr, rmsgstub.msgbundle.message_type_id);
 		

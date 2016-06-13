@@ -406,7 +406,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msg_vec[0],
-				 frame::ipc::Message::WaitResponseFlagE
+				 0|frame::ipc::MessageFlags::WaitResponse
 			);
 		}
 		
@@ -414,7 +414,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msg_vec[1],
-				 frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::IdempotentFlagE
+				 frame::ipc::MessageFlags::WaitResponse | frame::ipc::MessageFlags::Idempotent
 			);
 		}
 		
@@ -422,7 +422,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msg_vec[2],
-				 frame::ipc::Message::OneShotSendFlagE
+				 0|frame::ipc::MessageFlags::OneShotSend
 			);
 		}
 		
@@ -430,7 +430,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msg_vec[3],
-				frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::IdempotentFlagE | frame::ipc::Message::SynchronousFlagE
+				frame::ipc::MessageFlags::WaitResponse | frame::ipc::MessageFlags::Idempotent | frame::ipc::MessageFlags::Synchronous
 			);
 		}
 		
@@ -438,7 +438,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msg_vec[4],
-				 frame::ipc::Message::WaitResponseFlagE | frame::ipc::Message::SynchronousFlagE
+				 frame::ipc::MessageFlags::WaitResponse | frame::ipc::MessageFlags::Synchronous
 			);
 		}
 		

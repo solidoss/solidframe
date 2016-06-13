@@ -41,9 +41,9 @@ struct MessageBundle;
 /*!
 	Allows exchanging ipc::Messages between processes.
 	Synchronous vs Asynchronous messages
-	A synchronous message is one sent with Message::SynchronousFlagE flag set:
-	sendMessage(..., Message::SynchronousFlagE)
-	Messages with Message::SynchronousFlagE flag unset are asynchronous.
+	A synchronous message is one sent with MessageFlags::Synchronous flag set:
+	sendMessage(..., MessageFlags::Synchronous)
+	Messages with MessageFlags::Synchronous flag unset are asynchronous.
 	
 	Synchronous messages
 		* are always sent one after another, so they reach destination
@@ -59,8 +59,8 @@ struct MessageBundle;
 			
 	
 	Example:
-		sendMessage("peer_name", m1_500MB, Message::SynchronousFlagE);
-		sendMessage("peer_name", m2_100MB, Message::SynchronousFlagE);
+		sendMessage("peer_name", m1_500MB, MessageFlags::Synchronous);
+		sendMessage("peer_name", m2_100MB, MessageFlags::Synchronous);
 		sendMessage("peer_name", m3_10MB, 0);
 		sendMessage("peer_name", m4_1MB, 0);
 		
@@ -574,7 +574,7 @@ ErrorConditionT Service::sendRequest(
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
 	
-	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
+	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlags::WaitResponse);
 }
 //-------------------------------------------------------------------------
 template <class T, class Fnc>
@@ -596,7 +596,7 @@ ErrorConditionT Service::sendRequest(
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
 	
-	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags | Message::WaitResponseFlagE);
+	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags | MessageFlags::WaitResponse);
 }
 //-------------------------------------------------------------------------
 template <class T, class Fnc>
@@ -619,7 +619,7 @@ ErrorConditionT Service::sendRequest(
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
 	
-	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsguid, _flags | Message::WaitResponseFlagE);
+	return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsguid, _flags | MessageFlags::WaitResponse);
 }
 //-------------------------------------------------------------------------
 // send request using connection uid --------------------------------------
@@ -640,7 +640,7 @@ ErrorConditionT Service::sendRequest(
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
 	
-	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | Message::WaitResponseFlagE);
+	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlags::WaitResponse);
 }
 //-------------------------------------------------------------------------
 template <class T, class Fnc>
@@ -661,7 +661,7 @@ ErrorConditionT Service::sendRequest(
 	CompleteHandlerT			fnc(_complete_fnc);
 	MessageCompleteFunctionT	complete_handler(fnc);
 	
-	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags | Message::WaitResponseFlagE);
+	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags | MessageFlags::WaitResponse);
 }
 //-------------------------------------------------------------------------
 // send message with complete using recipient name ------------------------

@@ -266,7 +266,7 @@ int test_clientserver_noserver(int argc, char **argv){
 			err = ipcclient.sendMessage(
 				"localhost", msgptr,
 				recipient_id, message_id,
-				frame::ipc::Message::WaitResponseFlagE
+				0|frame::ipc::MessageFlags::WaitResponse
 			);
 			SOLID_CHECK(not err);
 		}

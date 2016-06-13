@@ -306,7 +306,7 @@ namespace{
 
 void broadcast_message(frame::ipc::Service &_rsvc, std::shared_ptr<frame::ipc::Message> &_rmsgptr){
 	for(Params::StringVectorT::const_iterator it(app_params.connectstringvec.begin()); it != app_params.connectstringvec.end(); ++it){
-		_rsvc.sendMessage(it->c_str(), _rmsgptr, frame::ipc::Message::WaitResponseFlagE);
+		_rsvc.sendMessage(it->c_str(), _rmsgptr, 0|frame::ipc::MessageFlags::WaitResponse);
 	}
 }
 

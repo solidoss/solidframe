@@ -870,13 +870,13 @@ ErrorConditionT Service::doSendMessageToConnection(
 	if(is_server_side_pool){
 		//for a server pool we want to enque messages in the pool
 		//
-		msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | Message::OneShotSendFlagE);
+		msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlags::OneShotSend);
 		success = manager().notify(
 			_rrecipient_id_in.connectionId(),
 			Connection::eventNewMessage()
 		);
 	}else{
-		msgid = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | Message::OneShotSendFlagE);
+		msgid = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlags::OneShotSend);
 		success = manager().notify(
 			_rrecipient_id_in.connectionId(),
 			Connection::eventNewMessage(msgid)
@@ -1273,7 +1273,7 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 	
 	MessagePointerT		empty_msg_ptr;
 	
-	const MessageId		msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, Message::SynchronousFlagE);
+	const MessageId		msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0 | MessageFlags::Synchronous);
 	(void)msgid;
 	
 	//no reason to cancel all messages - they'll be handled on connection stop.
@@ -1320,7 +1320,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 				
 				SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr);
 				
-				rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
+				rmsgstub.msgbundle.message_flags |= MessageFlags::Canceled;
 				
 				success = manager().notify(
 					rmsgstub.objid,
@@ -1342,7 +1342,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 				
 				vdbgx(Debug::ipc, this<<" message "<<_rmsg_id<<" from pool "<<pool_idx<<" not handled by any connection");
 				
-				rmsgstub.msgbundle.message_flags |= Message::CanceledFlagE;
+				rmsgstub.msgbundle.message_flags |= MessageFlags::Canceled;
 				
 				success = manager().notify(
 					rpool.main_connection_id,
@@ -1995,7 +1995,7 @@ void Service::doPushFrontMessageToPool(
 		
 		vdbgx(Debug::ipc, this<<" "<<_rmsgbundle.message_ptr.get());
 		
-		_rmsgbundle.message_flags &= ~(Message::DoneSendFlagE | Message::StartedSendFlagE);
+		_rmsgbundle.message_flags &= ~(MessageFlags::DoneSend | MessageFlags::StartedSend);
 		
 		if(_rmsgid.isInvalid()){
 			rpool.pushFrontMessage(

@@ -192,6 +192,7 @@ add_test(NAME TestMultiProtocolBasic		COMMAND  test_ipc_multiprotocol test_multi
 
 set( IpcRawTestSuite
 	test_raw_basic.cpp
+	test_raw_proxy.cpp
 )
 
 create_test_sourcelist( IpcRawTests test_ipc_raw.cpp ${IpcRawTestSuite})
@@ -212,4 +213,6 @@ target_link_libraries(test_ipc_raw
 )
 
 add_test(NAME TestRawBasic		COMMAND  test_ipc_raw test_raw_basic)
+add_test(NAME TestRawProxy		COMMAND  test_ipc_raw test_raw_proxy)
+
 #==============================================================================

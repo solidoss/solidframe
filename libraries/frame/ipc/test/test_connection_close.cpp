@@ -199,7 +199,7 @@ void client_complete_message(
 			
 			pipcclient->sendMessage(
 				_rctx.recipientId(), msgptr,
-				frame::ipc::Message::WaitResponseFlagE
+				0|frame::ipc::MessageFlags::WaitResponse
 			);
 		}
 		
@@ -425,7 +425,7 @@ int test_connection_close(int argc, char **argv){
 			frame::ipc::MessagePointerT	msgptr(new Message(0));
 			ipcclient.sendMessage(
 				"localhost", msgptr,
-				initarray[0].flags | frame::ipc::Message::WaitResponseFlagE
+				initarray[0].flags | frame::ipc::MessageFlags::WaitResponse
 			);
 		}
 		

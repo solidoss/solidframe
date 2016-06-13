@@ -222,7 +222,7 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, std::shared_pt
 		++crtwriteidx;
 		pipcclient->sendMessage(
 			"localhost:6666", msgptr,
-			initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
+			initarray[crtwriteidx % initarraysize].flags | frame::ipc::MessageFlags::WaitResponse
 		);
 	}*/
 }
@@ -391,7 +391,7 @@ int test_keepalive_success(int argc, char **argv){
 			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msgptr,
-				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
+				initarray[crtwriteidx % initarraysize].flags | frame::ipc::MessageFlags::WaitResponse
 			);
 		}
 		idbg("before sleep");
@@ -404,7 +404,7 @@ int test_keepalive_success(int argc, char **argv){
 			++crtwriteidx;
 			ipcclient.sendMessage(
 				"localhost", msgptr,
-				initarray[crtwriteidx % initarraysize].flags | frame::ipc::Message::WaitResponseFlagE
+				initarray[crtwriteidx % initarraysize].flags | frame::ipc::MessageFlags::WaitResponse
 			);
 		}
 		

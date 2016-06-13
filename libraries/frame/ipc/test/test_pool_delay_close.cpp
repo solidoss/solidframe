@@ -394,7 +394,7 @@ int test_pool_delay_close(int argc, char **argv){
 				{
 					++crtwriteidx;
 					ipcclient.sendMessage(
-						"localhost", *it, recipinet_id, frame::ipc::Message::WaitResponseFlagE
+						"localhost", *it, recipinet_id, 0|frame::ipc::MessageFlags::WaitResponse
 					);
 				}
 				
@@ -403,7 +403,7 @@ int test_pool_delay_close(int argc, char **argv){
 				for(; crtwriteidx < start_count; ++it){
 					++crtwriteidx;
 					ipcclient.sendMessage(
-						recipinet_id, *it, frame::ipc::Message::WaitResponseFlagE
+						recipinet_id, *it, 0|frame::ipc::MessageFlags::WaitResponse
 					);
 				}
 			}
@@ -431,7 +431,7 @@ int test_pool_delay_close(int argc, char **argv){
 				frame::ipc::MessagePointerT	msgptr(new Message(0));
 				ErrorConditionT err = pipcclient->sendMessage(
 					recipinet_id, msgptr,
-					frame::ipc::Message::WaitResponseFlagE
+					0|frame::ipc::MessageFlags::WaitResponse
 				);
 				idbg("send message error message: "<<err.message());
 				SOLID_CHECK(err)
