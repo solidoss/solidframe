@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/usr/bin/env bash
 
 printUsage()
 {
@@ -91,7 +91,7 @@ buildBoost()
 	echo
 
 	cd "$BOOST_DIR"
-	sh bootstrap.sh
+	
 	
 	if [ $DEBUG ] ; then
 		VARIANT_BUILD="variant=debug"
@@ -101,11 +101,16 @@ buildBoost()
 	
 	
 	if		[ "$SYSTEM" = "FreeBSD" ] ; then
+		sh bootstrap.sh --with-toolset=clang
 		./b2 toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
 	elif	[ "$SYSTEM" = "Darwin" ] ; then
+		sh bootstrap.sh
 		./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+		echo
 	else
+		sh bootstrap.sh
 		./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+		echo
 	fi
 	
 	
