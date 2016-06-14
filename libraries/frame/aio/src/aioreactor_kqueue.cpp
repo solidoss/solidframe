@@ -8,6 +8,9 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
 
 #include <vector>
 #include <deque>
@@ -218,7 +221,7 @@ struct Reactor::Data{
 	TimeSpec computeWaitTimeMilliseconds(TimeSpec const & _rcrt)const{
 		
 		if(exeq.size()){
-			return TimeSpec;
+			return TimeSpec();
 		}else if(timestore.size()){
 			if(_rcrt < timestore.next()){
 				const TimeSpec	maxwait(1000 * 60 * 10); //ten minutes
@@ -232,7 +235,7 @@ struct Reactor::Data{
 					return delta;
 				}
 			}else{
-				return TimeSpec;
+				return TimeSpec();
 			}
 		}else{
 			return TimeSpec::maximum;
@@ -421,7 +424,7 @@ void Reactor::run(){
 		waittime = d.computeWaitTimeMilliseconds(crttime);
 		
 		crtload = d.objcnt + d.devcnt + d.exeq.size();
-		vdbgx(Debug::aio, "epoll_wait msec = "<<waittime);
+		vdbgx(Debug::aio, "epoll_wait msec = "<<waittime.seconds());
 		
 		//selcnt = epoll_wait(d.kqfd, d.eventvec.data(), d.eventvec.size(), waitmsec);
 		selcnt = kevent(d.kqfd, NULL, 0, d.eventvec.data(), d.eventvec.size(), &waittime);

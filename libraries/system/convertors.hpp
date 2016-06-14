@@ -34,14 +34,20 @@ struct UnsignedConvertor<int16_t>{
 };
 
 template <>
-struct UnsignedConvertor<int32_t>{
-	typedef uint32_t UnsignedType;
+struct UnsignedConvertor<int>{
+	typedef unsigned int UnsignedType;
 };
 
 template <>
-struct UnsignedConvertor<int64_t>{
-	typedef uint64_t UnsignedType;
+struct UnsignedConvertor<long>{
+	typedef ulong UnsignedType;
 };
+
+template <>
+struct UnsignedConvertor<long long>{
+	typedef unsigned long long UnsignedType;
+};
+
 
 template <>
 struct UnsignedConvertor<uint16_t>{
@@ -49,27 +55,20 @@ struct UnsignedConvertor<uint16_t>{
 };
 
 template <>
-struct UnsignedConvertor<uint32_t>{
-	typedef uint32_t UnsignedType;
+struct UnsignedConvertor<unsigned int>{
+	typedef unsigned int UnsignedType;
 };
 
 template <>
-struct UnsignedConvertor<uint64_t>{
-	typedef uint64_t UnsignedType;
-};
-
-//#if UWORDSIZE == 32
-template <>
-struct UnsignedConvertor<long>{
-	typedef ulong UnsignedType;
+struct UnsignedConvertor<unsigned long>{
+	typedef unsigned long UnsignedType;
 };
 
 template <>
-struct UnsignedConvertor<ulong>{
-	typedef ulong UnsignedType;
+struct UnsignedConvertor<unsigned long long>{
+	typedef unsigned long long UnsignedType;
 };
 
-//#endif
 
 #define BitsToMask(v) ((1 << (v)) - 1)
 #define BitsToCount(v) ((1 << (v)) & (~1))

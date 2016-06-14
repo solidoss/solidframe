@@ -41,7 +41,8 @@ enum {
 
 class ErrorCategory: public ErrorCategoryT
 {     
-public: 
+public:
+    ErrorCategory(){}
 	const char* name() const noexcept{
 		return "frame::aio";
 	}
