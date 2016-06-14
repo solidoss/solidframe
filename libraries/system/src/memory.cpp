@@ -114,7 +114,7 @@ size_t getMemorySize()
 #elif defined(HW_PHYSMEM64)
 	mib[1] = HW_PHYSMEM64;          /* NetBSD, OpenBSD. --------- */
 #endif
-	int64_t_t size = 0;               /* 64-bit */
+	int64_t size = 0;               /* 64-bit */
 	size_t len = sizeof( size );
 	if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
 		return (size_t)size;

@@ -29,6 +29,15 @@
 
 namespace solid{
 
+typedef unsigned char		uchar;
+typedef unsigned int		uint;
+
+typedef unsigned long       ulong;
+typedef unsigned short      ushort;
+
+typedef long long			longlong;
+typedef unsigned long long	ulonglong;
+
 enum SeekRef {
 	SeekBeg=0,
 	SeekCur=1,

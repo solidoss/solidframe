@@ -58,7 +58,7 @@ struct UnsignedConvertor<uint64_t>{
 	typedef uint64_t UnsignedType;
 };
 
-#if UWORDSIZE == 32
+//#if UWORDSIZE == 32
 template <>
 struct UnsignedConvertor<long>{
 	typedef ulong UnsignedType;
@@ -69,7 +69,7 @@ struct UnsignedConvertor<ulong>{
 	typedef ulong UnsignedType;
 };
 
-#endif
+//#endif
 
 #define BitsToMask(v) ((1 << (v)) - 1)
 #define BitsToCount(v) ((1 << (v)) & (~1))
