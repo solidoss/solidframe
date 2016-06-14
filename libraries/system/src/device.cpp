@@ -933,7 +933,7 @@ ErrorCodeT SocketDevice::disableNoDelay(){
 }
 
 ErrorCodeT SocketDevice::enableNoSignal(){
-#ifdef SOLID_ON_WINDOWS
+#if defined(SOLID_ON_WINDOWS) || defined(SOLID_ON_DARWIN)
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int flag = 1;
@@ -946,7 +946,7 @@ ErrorCodeT SocketDevice::enableNoSignal(){
 }
 
 ErrorCodeT SocketDevice::disableNoSignal(){
-#ifdef SOLID_ON_WINDOWS
+#if defined(SOLID_ON_WINDOWS) || defined(SOLID_ON_DARWIN)
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else
 	int flag = 0;

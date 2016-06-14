@@ -20,6 +20,7 @@ public:
 		NoTypeE = 1,
 		NoCastE,
 	};
+	ErrorCategory(){}
 private:
 	const char*   name() const noexcept (true){
 		return "solid::serialization::TypeIdMap Error";

@@ -10,6 +10,7 @@
 #ifndef SOLID_FRAME_OBJECT_HPP
 #define SOLID_FRAME_OBJECT_HPP
 
+#include "utility/event.hpp"
 #include "frame/objectbase.hpp"
 #include "frame/common.hpp"
 #include "frame/forwardcompletion.hpp"

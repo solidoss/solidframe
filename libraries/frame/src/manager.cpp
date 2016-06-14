@@ -43,10 +43,13 @@ enum {
 
 class ErrorCategory: public ErrorCategoryT
 {     
-public: 
+public:
+	ErrorCategory(){} 
+	
 	const char* name() const noexcept{
 		return "frame::ipc";
 	}
+	
 	std::string message(int _ev)const;
 };
 

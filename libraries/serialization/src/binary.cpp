@@ -51,6 +51,7 @@ void once_limits(){
 
 class ErrorCategory: public ErrorCategoryT{
 public:
+	ErrorCategory(){}
 private:
 	const char*   name() const noexcept (true){
 		return "solid::serialization::binary Error";

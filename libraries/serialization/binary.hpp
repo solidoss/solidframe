@@ -38,6 +38,7 @@ BASIC_DECL(int32);
 BASIC_DECL(uint32);
 BASIC_DECL(int64);
 BASIC_DECL(uint64);
+//BASIC_DECL(unsigned long long);
 BASIC_DECL(std::string);
 
 typedef void(*StringCheckFncT)(std::string const &/*_rstr*/, const char* /*_pb*/, size_t /*_len*/);
@@ -1273,7 +1274,7 @@ protected:
 		FncData fd = _rfd;
 		rd.pop();
 		
-		rd.err = rd.typeIdMap()->loadPlainPointer<T>(rd, fd.p, rd.estk.top().first_uint64_value(), rd.tmpstr, fd.n);
+		rd.err = rd.typeIdMap()->template loadPlainPointer<T>(rd, fd.p, rd.estk.top().first_uint64_value(), rd.tmpstr, fd.n);
 		
 		if(!rd.err){
 			return ContinueE;
@@ -1306,7 +1307,7 @@ protected:
 		FncData fd = _rfd;
 		rd.pop();
 		
-		rd.err = rd.typeIdMap()->loadSharedPointer<T>(rd, fd.p, rd.estk.top().first_uint64_value(), rd.tmpstr, fd.n);
+		rd.err = rd.typeIdMap()->template loadSharedPointer<T>(rd, fd.p, rd.estk.top().first_uint64_value(), rd.tmpstr, fd.n);
 		
 		//TODO: SPTR
 		//*reinterpret_cast<P>(fd.p) = reinterpret_cast<T*>(p);
@@ -2046,7 +2047,7 @@ public:
 			void 		*p = nullptr;
 			std::string tmpstr;
 			
-			err = typeIdMap()->load<T>(*this, &p, _type_id, tmpstr, _name);
+			err = typeIdMap()->template load<T>(*this, &p, _type_id, tmpstr, _name);
 			
 			_rptr = reinterpret_cast<T*>(p);
 		

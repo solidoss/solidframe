@@ -10,6 +10,8 @@
 #ifndef SOLID_FRAME_AIO_OBJECT_HPP
 #define SOLID_FRAME_AIO_OBJECT_HPP
 
+#include "utility/event.hpp"
+
 #include "frame/objectbase.hpp"
 #include "frame/aio/aiocommon.hpp"
 #include "frame/aio/aioforwardcompletion.hpp"

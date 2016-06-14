@@ -36,6 +36,8 @@ public:
 		RunningE,
 		ReactorE
 	};
+	
+	ErrorCategory(){}
 private:
 	const char*   name() const noexcept (true){
 		return "solid::frame::Scheduler Error";
