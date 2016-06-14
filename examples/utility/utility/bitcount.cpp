@@ -4,8 +4,8 @@
 using namespace std;
 using namespace solid;
 
-uint32 compute_bit_count(uint32 _v){
-	uint32 cnt(0);
+uint32_t compute_bit_count(uint32_t _v){
+	uint32_t cnt(0);
 	while(_v){
 		cnt += (_v & 1);
 		_v >>= 1;
@@ -13,7 +13,7 @@ uint32 compute_bit_count(uint32 _v){
 	return cnt;
 }
 int main(int argc, char *argv[]){
-	const uint32 vals[] = {
+	const uint32_t vals[] = {
 		1, 2, 3, 4, 5, 6, 7, 1001, 10001, 100001, 1000001, 10000001,
 		100000001, 1000000001, 0xf, 0xff, 0xfff, 0xffff, 0xfffff,
 		0xffffff, 0xfffffff, 0xffffffff, 0
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]){
 		}
 		cout<<'}'<<endl;
 	}
-	const uint32 *pval(vals);
+	const uint32_t *pval(vals);
 	do{
 		cout<<"bit count for "<<*pval<<" = "<<compute_bit_count(*pval)<<" = "<<bit_count(*pval)<<endl;
 	}while(*(++pval));

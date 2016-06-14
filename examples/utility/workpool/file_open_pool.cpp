@@ -42,7 +42,7 @@ static T align(T _v, const solid::ulong _by){
     }
 }
 
-const uint32  pagesize = getpagesize();
+const uint32_t  pagesize = getpagesize();
 
 ///\cond 0
 typedef std::deque<FileDevice>				FileDeuqeT;
@@ -74,7 +74,7 @@ public:
 		return true;
 	}
 	void execute(WorkPoolBase &_rwp, MyWorkerBase &_rw, FileDevice *_pfile){
-		int64 sz = _pfile->size();
+		int64_t sz = _pfile->size();
 		int toread;
 		int cnt = 0;
 		while(sz > 0){
@@ -99,7 +99,7 @@ typedef WorkPool<FileDevice*, MyWorkPoolController, MyWorkerBase> MyWorkPoolT;
 // 	//SOLID_ASSERT(buf == bf);
 // 	while(pop(_wk.wid(), pfile) != BAD){
 // 		idbg(_wk.wid()<<" is processing");
-// 		int64 sz = pfile->size();
+// 		int64_t sz = pfile->size();
 // 		int toread;
 // 		int cnt = 0;
 // 		while(sz > 0){
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]){
 	char *fname = name + strlen(argv[1]) + 1 + 8;
 	FileDeuqeT	fdq;
 	int cnt = 0;
-	uint64	totsz = 0;
+	uint64_t	totsz = 0;
 	for(int i = foldercnt; i; --i){
 		sprintf(fldname, "/%08u", i);
 		*fname = 0;

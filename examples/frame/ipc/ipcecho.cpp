@@ -55,15 +55,15 @@ struct Params{
 
 struct ServerStub{
     ServerStub():minmsec(0xffffffff), maxmsec(0), sz(0){}
-    uint64	minmsec;
-    uint64	maxmsec;
-	uint64	sz;
+    uint64_t	minmsec;
+    uint64_t	maxmsec;
+	uint64_t	sz;
 };
 
 
 struct MessageStub{
 	MessageStub():count(0){}
-	uint32 count;
+	uint32_t count;
 };
 
 typedef std::vector<ServerStub>     ServerVectorT;
@@ -75,7 +75,7 @@ namespace{
 	Mutex					mtx;
 	Condition				cnd;
 	//bool					run = true;
-	//uint32					wait_count = 0;
+	//uint32_t					wait_count = 0;
 	Params					app_params;
 	void broadcast_message(frame::ipc::Service &_rsvc, std::shared_ptr<frame::ipc::Message> &_rmsgptr);
 	void on_receive(FirstMessage const &_rmsg);

@@ -42,7 +42,7 @@ struct Test{
 	}
 	void print();
 private:
-	int32 		no;
+	int32_t 		no;
 	string		fn;
 	fstream		fs;
 };

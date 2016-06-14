@@ -35,15 +35,15 @@ struct TestA{
 	void serialize(S &_s){
 		_s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
-	int32 		a;
-	int16 		b;
-	uint32		c;
+	int32_t 		a;
+	int16_t 		b;
+	uint32_t		c;
 	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<endl;}
 };
 
 struct TestB{
 	TestB(int _a = 4):a(_a){}
-	int32			a;
+	int32_t			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
 	template <class S>
 	void serialize(S &_s){
@@ -53,7 +53,7 @@ struct TestB{
 
 struct TestC{
 	explicit TestC(unsigned _a = 5):a(_a){}
-	int32 	a;
+	int32_t 	a;
 	void print()const{cout<<"testc: a = "<<a<<endl;}
 };
 
@@ -70,7 +70,7 @@ struct TestD{
 			}
 		}
 	}
-	int32				a;
+	int32_t				a;
 	SocketAddressInet4	sa;
 	void print()const {
 		cout<<"testd: a  = "<<a<<endl;
@@ -150,11 +150,11 @@ struct UnsignedInteger: Integer{
 		cout<<"}"<<endl;
 	}
 private:
-	uint32 	u;
+	uint32_t 	u;
 };
 
 struct IntegerVector: Base{
-	typedef vector<uint32> 	IntVecT;
+	typedef vector<uint32_t> 	IntVecT;
 	IntegerVector():piv1(NULL), piv2(NULL) {
 	}
 	IntegerVector(bool):piv1(new IntVecT), piv2(NULL) {
@@ -277,13 +277,13 @@ void serialize(S &_s, TestC &_tb){
 }
 
 template <class S>
-void serialize(S &_s, pair<int32,int32> &_tb){
+void serialize(S &_s, pair<int32_t,int32_t> &_tb){
 	_s.push(_tb.first, "first").push(_tb.second, "second");
 }
 /*binary*/}/*serialization*/}/*solid*/}
 
 typedef std::deque<std::string> StrDeqT;
-typedef std::deque<std::pair<int32,int32> > PairIntDeqT;
+typedef std::deque<std::pair<int32_t,int32_t> > PairIntDeqT;
 
 void print(StrDeqT &_rsdq);
 ///\endcond
@@ -303,13 +303,13 @@ int main(int argc, char *argv[]){
 	Debug::the().moduleMask();
 	Debug::the().initStdErr(false);
 #endif
-	cout<<"sizeof(map<int , string>::iterator): "<<sizeof(map<int32 , string>::iterator)<<endl;
+	cout<<"sizeof(map<int , string>::iterator): "<<sizeof(map<int32_t , string>::iterator)<<endl;
 	cout<<"sizeof(list<string>::iterator): "<<sizeof(list<string>::iterator)<<endl;
 	cout<<"sizeof(deque<string>::iterator): "<<sizeof(deque<string>::iterator)<<endl;
-	cout<<"sizeof(uint64) = "<<sizeof(uint64)<<endl;
-	cout<<"sizeof(uint32) = "<<sizeof(uint32)<<endl;
-	cout<<"sizeof(uint16) = "<<sizeof(uint16)<<endl;
-	cout<<"sizeof(uint8) = "<<sizeof(uint8)<<endl;
+	cout<<"sizeof(uint64_t) = "<<sizeof(uint64_t)<<endl;
+	cout<<"sizeof(uint32_t) = "<<sizeof(uint32_t)<<endl;
+	cout<<"sizeof(uint16_t) = "<<sizeof(uint16_t)<<endl;
+	cout<<"sizeof(uint8_t) = "<<sizeof(uint8_t)<<endl;
 	const int blen = 16;
 	char bufs[1000][blen];
 	int rv = 3;
@@ -379,11 +379,11 @@ int main(int argc, char *argv[]){
 			ser.push(b1, /*tm, STRING_DEFAULT_TYPE_INDEX,*/ "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
 			
 			PairIntDeqT pidq;
-			pidq.push_back(pair<int32, int32>(1,2));
-			pidq.push_back(pair<int32, int32>(2,3));
-			pidq.push_back(pair<int32, int32>(3,4));
+			pidq.push_back(pair<int32_t, int32_t>(1,2));
+			pidq.push_back(pair<int32_t, int32_t>(2,3));
+			pidq.push_back(pair<int32_t, int32_t>(3,4));
 			ser.pushContainer(pidq, "pidq");
-			pair<int32,int32> ppi(1,2);
+			pair<int32_t,int32_t> ppi(1,2);
 			ser.push(ppi, "pi");
 			for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
 				cout<<"("<<it->first<<','<<it->second<<')';
@@ -429,7 +429,7 @@ int main(int argc, char *argv[]){
 			int cnt = 0;
 			PairIntDeqT pidq;
 			des.pushContainer(pidq, "pidq");
-			pair<int32,int32> ppi;
+			pair<int32_t,int32_t> ppi;
 			des.push(ppi, "pi");
 			while((rv = des.run(bufs[v], blen)) == blen){
 				cnt += rv;

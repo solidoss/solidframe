@@ -19,15 +19,15 @@ struct TestA: Base{
 	void serialize(S &_s){
 		_s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
-	int32 		a;
-	int16 		b;
-	uint32		c;
+	int32_t 		a;
+	int16_t 		b;
+	uint32_t		c;
 	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<" Base::value = "<<val<<endl;}
 };
 
 struct TestB: Base{
 	TestB(int _a = 4, size_t _val = 8):Base(_val), a(_a){}
-	int32			a;
+	int32_t			a;
 	void print()const {cout<<"testb: a = "<<a<<" Base::value = "<<val<<endl;}
 	template <class S>
 	void serialize(S &_s){

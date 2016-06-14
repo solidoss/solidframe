@@ -134,8 +134,8 @@ protected:
 	
 	char			buf[BufferCapacity];
 	StreamSocketT	sock;
-	uint64 			recvcnt;
-	uint64			sendcnt;
+	uint64_t 			recvcnt;
+	uint64_t			sendcnt;
 	size_t			sendcrt;
 	//TimerT			timer;
 };

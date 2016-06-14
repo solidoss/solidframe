@@ -80,9 +80,9 @@ struct Handle{
 			eevents = EPOLLOUT;
 		}
 	}
-	uint32					eevents;//expected events
-	uint32					sevents;//set events
-	uint32					events;//incomming events
+	uint32_t					eevents;//expected events
+	uint32_t					sevents;//set events
+	uint32_t					events;//incomming events
 	
 	bool					wait_read_on_write;
 	bool					wait_read_on_read;
@@ -105,11 +105,11 @@ struct Handle{
 typedef std::vector<Handle>	HandleVectorT;
 HandleVectorT		handles;
 int					epollfd;
-Queue<uint32> 		execq;
+Queue<uint32_t> 		execq;
 SSL_CTX				*ctx;
 
 
-int executeConnection(uint32 _pos);
+int executeConnection(uint32_t _pos);
 int executeListener();
 
 //a simple nonblocking echo server using sslbio
@@ -195,9 +195,9 @@ int main(int argc, char* argv[]){
 			handles[events[i].data.u32].events |= events[i].events;
 			execq.push(events[i].data.u32);
 		}
-		uint32 qsz = execq.size();
+		uint32_t qsz = execq.size();
 		while(qsz--){
-			uint32 pos = execq.front();execq.pop();
+			uint32_t pos = execq.front();execq.pop();
 			if(pos){
 				if(executeConnection(pos) == AsyncSuccess){
 					execq.push(pos);
@@ -217,7 +217,7 @@ int main(int argc, char* argv[]){
 const char			*echo_str = "Hello from echo server\r\n";
 const solid::uint	echo_len = strlen(echo_str);
 
-int executeConnection(uint32 _pos){
+int executeConnection(uint32_t _pos){
 	Handle &h(handles[_pos]);
 	int rv = 0;
 	int retval = AsyncWait;

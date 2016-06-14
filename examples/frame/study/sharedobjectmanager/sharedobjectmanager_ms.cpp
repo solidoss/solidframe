@@ -13,7 +13,7 @@ using namespace solid;
 using namespace std;
 
 typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
-typedef ATOMIC_NS::atomic<uint32>			AtomicUint32T;
+typedef ATOMIC_NS::atomic<uint32_t>			AtomicUint32_tT;
 typedef std::vector<size_t>					SizeVectorT;
 
 struct ObjectStub{
@@ -45,7 +45,7 @@ struct ObjectStub{
 	}
 	size_t			idx;
 	AtomicSizeT		thridx;
-	uint64			value;
+	uint64_t			value;
 	AtomicSizeT		flags;
 	SizeVectorT		valvec;
 	size_t			flag1cnt;
@@ -160,7 +160,7 @@ void SharedObjectManager::insert(size_t _v){
 	d.wp.push(JobT(-1, &robj));
 }
 
-bool SharedObjectManager::notify(size_t _idx, uint32 _flags){
+bool SharedObjectManager::notify(size_t _idx, uint32_t _flags){
 	_flags |= (RaiseFlag);
 	_idx %= d.crtidx;
 	Locker<Mutex>	lock2(d.mtxstore.at(_idx));
@@ -172,7 +172,7 @@ bool SharedObjectManager::notify(size_t _idx, uint32 _flags){
 	}
 	return true;
 }
-bool SharedObjectManager::notify(size_t _idx, uint32 _flags, size_t _v){
+bool SharedObjectManager::notify(size_t _idx, uint32_t _flags, size_t _v){
 	_flags |= (EventFlag | RaiseFlag);
 	_idx %= d.crtidx;
 	Locker<Mutex>	lock2(d.mtxstore.at(_idx));
@@ -186,7 +186,7 @@ bool SharedObjectManager::notify(size_t _idx, uint32 _flags, size_t _v){
 	return true;
 }
 
-bool SharedObjectManager::notifyAll(uint32 _flags){
+bool SharedObjectManager::notifyAll(uint32_t _flags){
 	_flags |= (RaiseFlag);
 	Locker<Mutex>	lock1(d.mtx);
 	const size_t	objcnt = d.crtidx;
@@ -201,7 +201,7 @@ bool SharedObjectManager::notifyAll(uint32 _flags){
 	}
 	return true;
 }
-bool SharedObjectManager::notifyAll(uint32 _flags, size_t _v){
+bool SharedObjectManager::notifyAll(uint32_t _flags, size_t _v){
 	_flags |= (EventFlag | RaiseFlag);
 	Locker<Mutex>	lock1(d.mtx);
 	const size_t	objcnt = d.crtidx;
@@ -261,8 +261,8 @@ void SharedObjectManager::stop(std::ostream &_ros){
 	size_t		maxeventcnt(0);
 	size_t		minraisecnt{InvalidSize()};
 	size_t		maxraisecnt(0);
-	uint64		eventcnt(0);
-	uint64		raisecnt(0);
+	uint64_t		eventcnt(0);
+	uint64_t		raisecnt(0);
 	for(ObjectVectorT::const_iterator it(d.objvec.begin()); it != d.objvec.end(); ++it){
 		if((it - d.objvec.begin()) == d.crtidx) break;
 		eventcnt += it->eventcnt;

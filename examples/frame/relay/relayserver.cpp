@@ -32,9 +32,9 @@ using namespace solid;
 using namespace std::placeholders;
 
 typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
-typedef ATOMIC_NS::atomic<uint32>				AtomicUint32T;
+typedef ATOMIC_NS::atomic<uint32_t>				AtomicUint32_tT;
 typedef std::unordered_map<
-		uint32,
+		uint32_t,
 		solid::frame::ObjectIdT
 	>											UniqueMapT;
 enum Events{
@@ -85,7 +85,7 @@ static void term_handler(int signum){
     }
 }
 
-AtomicUint32T		crt_id(0);
+AtomicUint32_tT		crt_id(0);
 
 UniqueMapT			umap;
 
@@ -94,11 +94,11 @@ frame::aio::Resolver& async_resolver(){
 	return r;
 }
 
-void connection_register(uint32 _id, frame::ObjectIdT const &_ruid){
+void connection_register(uint32_t _id, frame::ObjectIdT const &_ruid){
 	umap[_id] = _ruid;
 }
 
-frame::ObjectIdT connection_uid(uint32 _id){
+frame::ObjectIdT connection_uid(uint32_t _id){
 	frame::ObjectIdT rv;
 	auto it = umap.find(_id);
 	if(it != umap.end()){
@@ -108,7 +108,7 @@ frame::ObjectIdT connection_uid(uint32 _id){
 	return rv;
 }
 
-void connection_unregister(uint32 _id){
+void connection_unregister(uint32_t _id){
 	connection_uid(_id);
 }
 
@@ -166,11 +166,11 @@ protected:
 	char					buf2[BufferCapacity];
 	StreamSocketT			sock1;
 	StreamSocketT			sock2;
-	uint64 					recvcnt;
-	uint64					sendcnt;
+	uint64_t 					recvcnt;
+	uint64_t					sendcnt;
 	size_t					sendcrt;
 	//frame::MessagePointerT	resolv_msgptr;
-	uint32					crtid;
+	uint32_t					crtid;
 	//TimerT			timer;
 };
 
@@ -378,12 +378,12 @@ struct ResolvFunc{
 
 struct MoveMessage{
 	SocketDevice		sd;
-	uint8				sz;
+	uint8_t				sz;
 	char 				buf[12];
 	
 	MoveMessage(
 		SocketDevice &&_rsd, 
-		char *_buf, uint8 _buflen
+		char *_buf, uint8_t _buflen
 	): sd(std::move(_rsd)), sz(_buflen)
 	{
 		SOLID_ASSERT(_buflen < 12);
@@ -416,7 +416,7 @@ struct MoveMessage{
 				params.destination_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream
 			);
 		}else{
-			const uint32 id = crtid = crt_id++;
+			const uint32_t id = crtid = crt_id++;
 			
 			snprintf(buf1, BufferCapacity, "%lu\r\n", id);
 			sock1.postSendAll(_rctx, buf1, strlen(buf1), Connection::onSendId);
@@ -577,7 +577,7 @@ void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t
 	}
 	
 	if(found_eol){
-		uint32 idx = InvalidIndex();
+		uint32_t idx = InvalidIndex();
 		if(strlen(buf2) >= 1){
 			sscanf(buf2, "%ul", &idx);
 			idbg(this<<" received idx = "<<idx);

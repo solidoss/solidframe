@@ -13,7 +13,7 @@ int main(){
 	typedef std::deque<string>	StringVectorT;
 	StringVectorT sv;
 	char buf[32];
-	for(uint32 i = 0; i < 256; ++i){
+	for(uint32_t i = 0; i < 256; ++i){
 		//sv.push_back(string());
 		if(i == ' '){
 			sprintf(buf, "\"SPACE\"");
@@ -40,7 +40,7 @@ int main(){
 	const char spaces[]= "                                                                ";
 	for(StringVectorT::const_iterator it(sv.begin()); it != sv.end(); ++it){
 		if(!((it - sv.begin()) % 10)) cout<<endl;
-		uint32 spno = maxsz - it->size();
+		uint32_t spno = maxsz - it->size();
 		cout.write(spaces, spno);
 		cout<<*it<<',';
 	}

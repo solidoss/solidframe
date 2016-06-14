@@ -120,8 +120,8 @@ int main(int argc, char *argv[]){
 		
 		cout<<"sa4_0 host = "<<hoststr<<":"<<servstr<<endl;
 		
-		uint16 portx;
-		uint32 addr;
+		uint16_t portx;
+		uint32_t addr;
 		
 		sa4_0.toUInt(addr, portx);
 		
@@ -279,9 +279,9 @@ void listLocalInterfaces(){
 
 
 void testLiterals(){
-	uint64 uv64(-1);
-	uint32 uv32(-1);
-	int64  v64(-1);
+	uint64_t uv64(-1);
+	uint32_t uv32(-1);
+	int64_t  v64(-1);
 	cout<<"uv64 = "<<uv64<<endl;
 	cout<<"uv32 = "<<uv32<<endl;
 	cout<<"v64 = "<<v64<<endl;

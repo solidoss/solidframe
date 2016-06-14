@@ -27,7 +27,7 @@ typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-typedef std::pair<uint32, SocketAddressInet4>	PeerAddressPairT;
+typedef std::pair<uint32_t, SocketAddressInet4>	PeerAddressPairT;
 
 struct SocketAddressCmp{
 	bool operator()(
@@ -49,7 +49,7 @@ struct Params{
 	typedef std::vector<PeerAddressPairT>		PeerAddressVectorT;
 	typedef std::map<
 		const PeerAddressPairT*,
-		uint32,
+		uint32_t,
 		SocketAddressCmp
 	>											SocketAddressMapT;
 	string					dbg_levels;
@@ -64,33 +64,33 @@ struct Params{
 	StringVectorT			connectstringvec;
 	StringVectorT			gatewaystringvec;
 	
-	uint32					repeat_count;
-    uint32					message_count;
-    uint32					min_size;
-    uint32					max_size;
-	uint32					netid;
+	uint32_t					repeat_count;
+    uint32_t					message_count;
+    uint32_t					min_size;
+    uint32_t					max_size;
+	uint32_t					netid;
     
     
     PeerAddressVectorT		connectvec;
     SocketAddressMapT		connectmap;
 	
 	bool prepare(frame::ipc::Configuration &_rcfg, string &_err);
-    uint32 server(const PeerAddressPairT&)const;
+    uint32_t server(const PeerAddressPairT&)const;
 };
 
 //------------------------------------------------------------------
 
 struct ServerStub{
     ServerStub():minmsec(0xffffffff), maxmsec(0), sz(0){}
-    uint64	minmsec;
-    uint64	maxmsec;
-	uint64	sz;
+    uint64_t	minmsec;
+    uint64_t	maxmsec;
+	uint64_t	sz;
 };
 
 
 struct MessageStub{
 	MessageStub():count(0){}
-	uint32 count;
+	uint32_t count;
 };
 
 typedef std::vector<ServerStub>     ServerVectorT;
@@ -100,7 +100,7 @@ namespace{
 	Mutex					mtx;
 	Condition				cnd;
 	bool					run(true);
-	uint32					wait_count = 0;
+	uint32_t					wait_count = 0;
 	ServerVectorT			srvvec;
 	MessageVectorT			msgvec;
 	Params					p;
@@ -108,9 +108,9 @@ namespace{
 
 
 struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
-	uint32							idx;
-    uint32							sec;
-    uint32							nsec;
+	uint32_t							idx;
+    uint32_t							sec;
+    uint32_t							nsec;
 	int								state;
     std::string						str;
 	frame::ipc::MessageUid			msguid;
@@ -119,12 +119,12 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
 	FirstMessage();
 	~FirstMessage();
 	
-	uint32 size()const{
-		return sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32) + str.size();
+	uint32_t size()const{
+		return sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32_t) + str.size();
 	}
 	
 	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
-	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
+	/*virtual*/ uint32_t ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
 	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	template <class S>
@@ -244,7 +244,7 @@ int main(int argc, char *argv[]){
 		TimeSpec	begintime(TimeSpec::createRealTime()); 
 		
 		if(p.connectvec.size()){
-			for(uint32 i = 0; i < p.message_count; ++i){
+			for(uint32_t i = 0; i < p.message_count; ++i){
 				
 				DynamicSharedPointer<FirstMessage>	fmsgptr(create_message(i));
 
@@ -268,11 +268,11 @@ int main(int argc, char *argv[]){
 		if(srvvec.size()){
 			TimeSpec	endtime(TimeSpec::createRealTime());
 			endtime -= begintime;
-			uint64		duration = endtime.seconds() * 1000;
+			uint64_t		duration = endtime.seconds() * 1000;
 			
 			duration += endtime.nanoSeconds() / 1000000;
 			
-			uint64		speed = (srvvec.front().sz * 125) / (128 * duration);
+			uint64_t		speed = (srvvec.front().sz * 125) / (128 * duration);
 			
 			cout<<"Speed = "<<speed<<" KB/s"<<endl;
 		}
@@ -282,8 +282,8 @@ int main(int argc, char *argv[]){
 	Thread::waitAll();
 	
 	{
-        uint64    minmsec = 0xffffffff;
-        uint64    maxmsec = 0;
+        uint64_t    minmsec = 0xffffffff;
+        uint64_t    maxmsec = 0;
         
         for(ServerVectorT::const_iterator it(srvvec.begin()); it != srvvec.end(); ++it){
             const uint32_t idx = it - srvvec.begin();
@@ -297,7 +297,7 @@ int main(int argc, char *argv[]){
         }
         cout<<"mintime = "<<minmsec<<" maxtime = "<<maxmsec<<endl;
 		bool	doprint = false;
-		uint32	cnt(0);
+		uint32_t	cnt(0);
 		if(msgvec.size() <= 16){
 			doprint = true;
 		}else{
@@ -344,7 +344,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
             ("message-count", value<uint32_t>(&_par.message_count)->default_value(1000), "Message count")
             ("min-size", value<uint32_t>(&_par.min_size)->default_value(10), "Min message data size")
             ("max-size", value<uint32_t>(&_par.max_size)->default_value(500000), "Max message data size")
-			("netid,n", value<uint32>(&_par.netid), "Network identifier")
+			("netid,n", value<uint32_t>(&_par.netid), "Network identifier")
 		;
 		variables_map vm;
 		store(parse_command_line(argc, argv, desc), vm);
@@ -361,8 +361,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 //------------------------------------------------------
 bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
-	const uint16	default_gw_port = 4000;
-	const uint16	default_port = 2000;
+	const uint16_t	default_gw_port = 4000;
+	const uint16_t	default_port = 2000;
 	const int		default_netid = solid::frame::ipc::LocalNetworkId;
 	size_t			pos;
 	
@@ -429,7 +429,7 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
 	_rcfg.localnetid = netid;
 	return true;
 }
-uint32 Params::server(const PeerAddressPairT &_rsa)const{
+uint32_t Params::server(const PeerAddressPairT &_rsa)const{
 	SocketAddressMapT::const_iterator it = this->connectmap.find(&_rsa);
 	if(it != this->connectmap.end()){
 		return it->second;
@@ -464,7 +464,7 @@ FirstMessage::~FirstMessage(){
 		
 		idbg("Received message: "<<peersa.first<<":"<<peersa.second);
 		
-		_rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, (uint32)0/*fdt::ipc::Service::SynchronousSendFlag*/);
+		_rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, (uint32_t)0/*fdt::ipc::Service::SynchronousSendFlag*/);
 	}else{
 		TimeSpec			crttime(TimeSpec::createRealTime());
 		TimeSpec			tmptime(this->sec, this->nsec);
@@ -476,9 +476,9 @@ FirstMessage::~FirstMessage(){
 		
 		peersa.second.port(_rctx.baseport);
 		
-		const uint32		srvidx = p.server(peersa);
+		const uint32_t		srvidx = p.server(peersa);
 		ServerStub			&rss = srvvec[srvidx];
-		uint64				crtmsec = tmptime.seconds() * 1000;
+		uint64_t				crtmsec = tmptime.seconds() * 1000;
 		
 		rss.sz += this->size();
 		
@@ -508,7 +508,7 @@ FirstMessage::~FirstMessage(){
 		}
 	}
 }
-/*virtual*/ uint32 FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
+/*virtual*/ uint32_t FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 // 	if(isOnSender()){
 // 		return frame::ipc::WaitResponseFlag;
 // 	}else{

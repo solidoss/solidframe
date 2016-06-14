@@ -22,7 +22,7 @@ struct Data{
 	~Data(){
 		++descnt;
 	}
-	uint8 d[S];
+	uint8_t d[S];
 };
 
 template <size_t S>
@@ -33,7 +33,7 @@ struct SpecificData: SpecificObject{
 	~SpecificData(){
 		++descnt;
 	}
-	uint8 d[S];
+	uint8_t d[S];
 };
 
 

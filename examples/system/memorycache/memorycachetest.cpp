@@ -36,29 +36,29 @@ struct SpecificBase: SpecificObject, Base{
 	
 };
 
-template <uint16 Sz, class B>
+template <uint16_t Sz, class B>
 struct Test;
 
 template <class B>
 struct Test<4, B>: B{
-	uint32	v;
-	Test(uint32 _v = 0):v(_v){}
+	uint32_t	v;
+	Test(uint32_t _v = 0):v(_v){}
 };
 
 template <class B>
 struct Test<8, B>: B{
-	uint64	v;
-	Test(uint64 _v = 0):v(_v){}
+	uint64_t	v;
+	Test(uint64_t _v = 0):v(_v){}
 };
 
 template <class B>
 struct Test<12, B>: B{
-	uint64	v1;
-	uint32	v2;
-	Test(uint64 _v = 0):v1(_v),v2(_v){}
+	uint64_t	v1;
+	uint32_t	v2;
+	Test(uint64_t _v = 0):v1(_v),v2(_v){}
 };
 
-template <uint16 Sz, class B>
+template <uint16_t Sz, class B>
 struct Test: B{
 	char buf[Sz];
 };

@@ -35,15 +35,15 @@ struct TestA: Dynamic<TestA, Test>{
 	void serialize(S &_s){
 		_s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
-	int32 		a;
-	int16 		b;
-	uint32		c;
+	int32_t 		a;
+	int16_t 		b;
+	uint32_t		c;
 	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<endl;}
 };
 
 struct TestB: Dynamic<TestB, Test>{
 	TestB(int _a = 4):a(_a){}
-	int32			a;
+	int32_t			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
 	template <class S>
 	void serialize(S &_s){
@@ -76,8 +76,8 @@ public:
 	void serialize(S &_s){
 		_s.template pushReinit<Container, 0>(this, 0, "reinit");
 	}
-	template <class S, uint32 I>
-	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv, ErrorConditionT &_rerr){
+	template <class S, uint32_t I>
+	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64_t &_rv, ErrorConditionT &_rerr){
 		if(S::IsSerializer){
 			idbg("ser 1");
 			if(crtidx < tstvec.size()){
@@ -131,8 +131,8 @@ public:
 private:
 	TestVectorT tstvec;
 	size_t		crtidx;
-	uint8		crtsndmsg;
-	uint8		crtrcvmsg;
+	uint8_t		crtsndmsg;
+	uint8_t		crtrcvmsg;
 };
 
 typedef serialization::binary::Serializer<>							BinSerializerT;

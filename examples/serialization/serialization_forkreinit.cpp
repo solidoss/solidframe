@@ -34,8 +34,8 @@ struct Test{
 		_s.push(no, "Test::no").template pushReinit<Test, 0>(this, 0, "Test::reinit").push(fn,"Test::fn");
 	}
 	
-	template <class S, uint32 I>
-	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64 &_rv, ErrorConditionT &_rerr){
+	template <class S, uint32_t I>
+	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64_t &_rv, ErrorConditionT &_rerr){
 		idbg("_rv = "<<_rv);
 		if(_rv == 1){
 			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamError().message());
@@ -60,7 +60,7 @@ struct Test{
 	
 	void print();
 private:
-	int32 		no;
+	int32_t 		no;
 	string		fn;
 	fstream		fs;
 };

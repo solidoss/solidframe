@@ -25,11 +25,11 @@ public:
 	
 	void insert(size_t _v);
 	
-	bool notify(size_t _idx, solid::uint32 _flags);
-	bool notify(size_t _idx, solid::uint32 _flags, size_t _v);
+	bool notify(size_t _idx, uint32_t _flags);
+	bool notify(size_t _idx, uint32_t _flags, size_t _v);
 	
-	bool notifyAll(solid::uint32 _flags);
-	bool notifyAll(solid::uint32 _flags, size_t _v);
+	bool notifyAll(uint32_t _flags);
+	bool notifyAll(uint32_t _flags, size_t _v);
 	
 	void stop(std::ostream &_ros);
 private:

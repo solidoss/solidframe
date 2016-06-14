@@ -36,14 +36,14 @@ struct PositionHashPairLess{
 
 }
 
-typedef std::unordered_map<SocketAddressInet4*, uint32, SockAddrHash, SockAddrEqual>	SocketAddressUnorderedMapT;
+typedef std::unordered_map<SocketAddressInet4*, uint32_t, SockAddrHash, SockAddrEqual>	SocketAddressUnorderedMapT;
 
 void generate_addresses(
 	size_t _cnt,
-	uint8 _start[4],
-	uint16 _portstart,
-	uint16 _portstep,
-	uint16 _portcount,
+	uint8_t _start[4],
+	uint16_t _portstart,
+	uint16_t _portstep,
+	uint16_t _portcount,
 	SocketAddressVectorT &_outv
 );
 
@@ -63,7 +63,7 @@ void generate_addresses(
 // }
 
 int main(int argc, char *argv[]){
-	uint32 cnt = 3000;
+	uint32_t cnt = 3000;
 	if(argc > 1){
 		cnt = atoi(argv[1]);
 	}
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]){
 	SocketAddressUnorderedMapT	addr_map;
 	SocketAddressVectorT		addr_vec;
 	PositionHashVectorT			hash_vec;
-	uint8 startaddr[4] = {103, 102, 101, 100};
+	uint8_t startaddr[4] = {103, 102, 101, 100};
 	
 	generate_addresses(cnt, startaddr, 4000, 10, 3, addr_vec);
 	
@@ -82,12 +82,12 @@ int main(int argc, char *argv[]){
 	
 	std::sort(hash_vec.begin(), hash_vec.end(), PositionHashPairLess());
 	
-	uint32 collisionmax(0);
-	uint32 collisioncnt(0);
+	uint32_t collisionmax(0);
+	uint32_t collisioncnt(0);
 	
 	size_t crthash;
 	
-	uint32 crtcollisioncnt;
+	uint32_t crtcollisioncnt;
 	for(PositionHashVectorT::const_iterator it(hash_vec.begin()); it != hash_vec.end(); ++it){
 		if(it == hash_vec.begin()){
 			crthash = it->second;
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 
-void increment(uint8 *_vec){
+void increment(uint8_t *_vec){
 	++_vec[3];
 	if(_vec[3] == 0){
 		++_vec[2];
@@ -171,13 +171,13 @@ void increment(uint8 *_vec){
 
 void generate_addresses(
 	size_t _cnt,
-	uint8 _start[4],
-	uint16 _portstart,
-	uint16 _portstep,
-	uint16 _portcount,
+	uint8_t _start[4],
+	uint16_t _portstart,
+	uint16_t _portstep,
+	uint16_t _portcount,
 	SocketAddressVectorT &_outv
 ){
-	uint8	vec[4];
+	uint8_t	vec[4];
 	char	buf[128];
 	vec[0] = _start[0];
 	vec[1] = _start[1];
@@ -186,8 +186,8 @@ void generate_addresses(
 	ResolveData rd;
 	for(size_t i(0); i < _cnt; ++i){
 		sprintf(buf, "%d.%d.%d.%d", (int)vec[0], (int)vec[1], (int)vec[2], (int)vec[3]);
-		uint32 maxport(_portstart + _portcount * _portstep);
-		for(uint16 p(_portstart); p < maxport; p += _portstep){
+		uint32_t maxport(_portstart + _portcount * _portstep);
+		for(uint16_t p(_portstart); p < maxport; p += _portstep){
 			rd = synchronous_resolve(buf, p);
 			if(!rd.empty()){
 				_outv.push_back(SocketAddressInet4(rd.begin()));

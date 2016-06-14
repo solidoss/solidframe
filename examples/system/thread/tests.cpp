@@ -78,11 +78,11 @@ struct B: A{
 };
 
 struct C: A{
-	C(int64 _d):d(_d){}
+	C(int64_t _d):d(_d){}
 	virtual void print(){
 		idbg("h:"<<d);
 	}
-	int64	d;
+	int64_t	d;
 };
 ///\endcond
 

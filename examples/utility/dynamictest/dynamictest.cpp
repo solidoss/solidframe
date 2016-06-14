@@ -27,7 +27,7 @@ struct DObject: Dynamic<DObject, AObject>{
 };
 
 struct Context{
-	uint32 idx;
+	uint32_t idx;
 };
 
 class FirstHandler{

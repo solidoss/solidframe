@@ -14,7 +14,7 @@ using namespace solid;
 struct Stub{
 	Stub():uid(0){}
 	boost::uuids::uuid	uuid;
-	uint32				uid;
+	uint32_t				uid;
 	string				name;
 	vector<int>			idvec;
 };

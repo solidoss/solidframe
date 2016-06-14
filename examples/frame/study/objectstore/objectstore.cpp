@@ -7,7 +7,7 @@
 using namespace std;
 using namespace solid;
 
-typedef std::pair<size_t, uint32>	UniqueIdT;
+typedef std::pair<size_t, uint32_t>	UniqueIdT;
 
 
 class ObjectBase{
