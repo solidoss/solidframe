@@ -220,7 +220,7 @@ struct ExecStub{
 
 typedef std::vector<NewTaskStub>			NewTaskVectorT;
 typedef std::vector<RaiseEventStub>			RaiseEventVectorT;
-typedef std::vector<epoll_event>			EpollEventVectorT;
+typedef std::vector<epoll_event>			EventVectorT;
 typedef std::deque<CompletionHandlerStub>	CompletionHandlerDequeT;
 typedef std::vector<UniqueId>				UidVectorT;
 typedef std::deque<ObjectStub>				ObjectDequeT;
@@ -275,7 +275,7 @@ struct Reactor::Data{
 	TimeStoreT					timestore;
 	
 	Mutex						mtx;
-	EpollEventVectorT			eventvec;
+	EventVectorT				eventvec;
 	NewTaskVectorT				pushtskvec[2];
 	RaiseEventVectorT			raisevec[2];
 	EventObject					eventobj;
