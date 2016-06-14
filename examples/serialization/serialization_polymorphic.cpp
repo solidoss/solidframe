@@ -8,8 +8,8 @@ using namespace solid;
 using namespace std;
 
 struct Base{
-	Base(size_t _val = 0): val(_val){}
-	size_t		val;
+	Base(uint64_t _val = 0): val(_val){}
+	uint64_t		val;
 	virtual void print()const = 0;
 };
 

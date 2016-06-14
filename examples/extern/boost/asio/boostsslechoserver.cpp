@@ -2,8 +2,10 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+#ifdef SOLID_ON_LINUX
 #include <mcheck.h>
 #include <malloc.h>
+#endif
 
 #include <boost/asio/ssl.hpp>
 

@@ -134,9 +134,9 @@ buildOpenssl()
 
 	cd $DIR_NAME
 	if [ $DEBUG ] ; then
-		./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
 	else
-		./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
 	fi
 	make && make install_sw
 	cd ..

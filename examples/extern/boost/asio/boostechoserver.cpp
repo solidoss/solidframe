@@ -2,8 +2,11 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+
+#ifdef SOLID_ON_LINUX
 #include <mcheck.h>
 #include <malloc.h>
+#endif
 
 using boost::asio::ip::tcp;
 using namespace std;

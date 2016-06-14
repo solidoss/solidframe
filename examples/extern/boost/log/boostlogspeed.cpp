@@ -42,8 +42,8 @@ namespace {
 }
 
 void producer(){
-	std::vector<size_t> v1(size);
-	std::vector<size_t> v2(size);
+	std::vector<uint64_t> v1(size);
+	std::vector<uint64_t> v2(size);
 	for(int i = 0; i < loopcount; ++i){
 		
 		for(size_t j = 0; j < size; ++j){
