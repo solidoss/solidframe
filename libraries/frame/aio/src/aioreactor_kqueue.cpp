@@ -411,7 +411,7 @@ void Reactor::run(){
 		vdbgx(Debug::aio, "epoll_wait msec = "<<waittime.seconds());
 		
 		//selcnt = epoll_wait(d.kqfd, d.eventvec.data(), d.eventvec.size(), waitmsec);
-		selcnt = kevent(d.kqfd, NULL, 0, d.eventvec.data(), d.eventvec.size(), &waittime);
+		selcnt = kevent(d.kqfd, NULL, 0, d.eventvec.data(), d.eventvec.size(), waittime != TimeSpec::maximum ? &waittime : NULL);
 		
 		crttime.currentMonotonic();
 		

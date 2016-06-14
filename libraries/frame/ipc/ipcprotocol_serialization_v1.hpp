@@ -253,12 +253,12 @@ void proto_spec_setup_helper1(Protocol &_rproto, const size_t _protocol_id, Arg 
 template <size_t Idx, class ...Args>
 struct ProtoSpec{
 	
-	template <template <typename> typename MessageSetup>
+	template <template <typename> class MessageSetup>
 	static void setup(Protocol &_rproto){
 		proto_spec_setup_helper<MessageSetup<Args>...>(_rproto, Idx);
 	}
 
-	template <template <typename> typename MessageSetup, class Arg>
+	template <template <typename> class MessageSetup, class Arg>
 	static void setup(Protocol &_rproto, const size_t _protocol_id, Arg &&_uarg){
 		proto_spec_setup_helper1<Arg, MessageSetup<Args>...>(_rproto, Idx, std::forward<Arg>(_uarg));
 	}

@@ -94,7 +94,7 @@ private:
 };
 
 
-#define USE_CONNECTION
+//#define USE_CONNECTION
 
 
 #ifdef USE_CONNECTION
@@ -137,7 +137,7 @@ public:
 #endif
 
 
-#define USE_TALKER
+//#define USE_TALKER
 
 #include "frame/aio/aiodatagram.hpp"
 #include "frame/aio/aiosocket.hpp"
