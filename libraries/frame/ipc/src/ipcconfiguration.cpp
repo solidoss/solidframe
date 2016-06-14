@@ -17,7 +17,7 @@ namespace frame{
 namespace ipc{
 //-----------------------------------------------------------------------------
 namespace{
-	char * default_allocate_buffer(const uint16 _cp){
+	char * default_allocate_buffer(const uint16_t _cp){
 		char *rv = new char[_cp];
 		return rv;
 	}
@@ -100,7 +100,7 @@ Configuration::Configuration(
 }
 //-----------------------------------------------------------------------------
 size_t Configuration::connectionReconnectTimeoutSeconds(
-	const uint8 _retry_count,
+	const uint8_t _retry_count,
 	const bool _failed_create_connection_object,
 	const bool _last_connection_was_connected,
 	const bool _last_connection_was_active,
@@ -153,7 +153,7 @@ void Configuration::prepare(){
 	}
 }
 //-----------------------------------------------------------------------------
-char* Configuration::allocateRecvBuffer(uint8 &_rbuffer_capacity_kb)const{
+char* Configuration::allocateRecvBuffer(uint8_t &_rbuffer_capacity_kb)const{
 	if(_rbuffer_capacity_kb == 0){
 		_rbuffer_capacity_kb = connection_recv_buffer_start_capacity_kb;
 	}else if(_rbuffer_capacity_kb > connection_recv_buffer_max_capacity_kb){
@@ -166,7 +166,7 @@ void Configuration::freeRecvBuffer(char *_pb)const{
 	connection_recv_buffer_free_fnc(_pb);
 }
 //-----------------------------------------------------------------------------
-char* Configuration::allocateSendBuffer(uint8 &_rbuffer_capacity_kb)const{
+char* Configuration::allocateSendBuffer(uint8_t &_rbuffer_capacity_kb)const{
 	if(_rbuffer_capacity_kb == 0){
 		_rbuffer_capacity_kb = connection_send_buffer_start_capacity_kb;
 	}else if(_rbuffer_capacity_kb > connection_send_buffer_max_capacity_kb){

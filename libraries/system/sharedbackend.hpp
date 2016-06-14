@@ -24,7 +24,7 @@ struct SharedStub{
 	int					use;
 	void				*ptr;
 	const ulong			idx;
-	//uint32				uid
+	//uint32_t				uid
 	DelFncT				cbk;
 };
 

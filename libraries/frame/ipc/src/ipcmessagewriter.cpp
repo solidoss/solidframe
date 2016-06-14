@@ -167,8 +167,8 @@ bool MessageWriter::empty()const{
 // Needs:
 // 
 
-uint32 MessageWriter::write(
-	char *_pbuf, uint32 _bufsz, const bool _keep_alive,
+uint32_t MessageWriter::write(
+	char *_pbuf, uint32_t _bufsz, const bool _keep_alive,
 	CompleteFunctionT &_complete_fnc,
 	WriterConfiguration const &_rconfig,
 	Protocol const &_rproto,
@@ -178,7 +178,7 @@ uint32 MessageWriter::write(
 	char		*pbufpos = _pbuf;
 	char		*pbufend = _pbuf + _bufsz;
 	
-	uint32		freesz = pbufend - pbufpos;
+	uint32_t		freesz = pbufend - pbufpos;
 	
 	bool		more = true;
 	
@@ -278,7 +278,7 @@ char* MessageWriter::doFillPacket(
 ){
 	
 	char 					*pbufpos = _pbufbeg;
-	uint32					freesz = _pbufend - pbufpos;
+	uint32_t					freesz = _pbufend - pbufpos;
 	
 	SerializerPointerT		tmp_serializer;
 	size_t					packet_message_count = 0;
@@ -308,7 +308,7 @@ char* MessageWriter::doFillPacket(
 			//first message in the packet
 			_rpacket_options.packet_type = msgswitch;
 		}else{
-			uint8	tmp = static_cast<uint8>(msgswitch);
+			uint8_t	tmp = static_cast<uint8_t>(msgswitch);
 			pbufpos = _rproto.storeValue(pbufpos, tmp);
 		}
 		

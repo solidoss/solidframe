@@ -38,34 +38,34 @@ void exchange(T &a, T &b){
 }
 
 #if 0
-bool overflow_safe_great(const uint32 _u1, const uint32 _u2){
+bool overflow_safe_great(const uint32_t _u1, const uint32_t _u2){
 	if(_u1 > _u2){
-		return (_u1 - _u2) <= (uint32)(0xffffffff/2);
+		return (_u1 - _u2) <= (uint32_t)(0xffffffff/2);
 	}else{
-		return (_u2 - _u1) > (uint32)(0xffffffff/2);
+		return (_u2 - _u1) > (uint32_t)(0xffffffff/2);
 	}
 }
 #endif
 
-inline bool overflow_safe_less(const uint32 &_u1, const uint32 &_u2){
+inline bool overflow_safe_less(const uint32_t &_u1, const uint32_t &_u2){
 	if(_u1 < _u2){
-		return (_u2 - _u1) <= (uint32)(0xffffffff/2);
+		return (_u2 - _u1) <= (uint32_t)(0xffffffff/2);
 	}else{
-		return (_u1 - _u2) > (uint32)(0xffffffff/2);
+		return (_u1 - _u2) > (uint32_t)(0xffffffff/2);
 	}
 
 }
 
-inline bool overflow_safe_less(const uint64 &_u1, const uint64 &_u2){
+inline bool overflow_safe_less(const uint64_t &_u1, const uint64_t &_u2){
 	if(_u1 < _u2){
-		return (_u2 - _u1) <= ((uint64)-1)/2;
+		return (_u2 - _u1) <= ((uint64_t)-1)/2;
 	}else{
-		return (_u1 - _u2) > ((uint64)-1)/2;
+		return (_u1 - _u2) > ((uint64_t)-1)/2;
 	}
 
 }
 
-inline uint32 overflow_safe_max(const uint32 &_u1, const uint32 &_u2){
+inline uint32_t overflow_safe_max(const uint32_t &_u1, const uint32_t &_u2){
 	if(overflow_safe_less(_u1, _u2)){
 		return _u2;
 	}else{
@@ -73,7 +73,7 @@ inline uint32 overflow_safe_max(const uint32 &_u1, const uint32 &_u2){
 	}
 }
 
-inline uint64 overflow_safe_max(const uint64 &_u1, const uint64 &_u2){
+inline uint64_t overflow_safe_max(const uint64_t &_u1, const uint64_t &_u2){
 	if(overflow_safe_less(_u1, _u2)){
 		return _u2;
 	}else{
@@ -104,13 +104,13 @@ inline size_t fast_padded_size(const size_t _sz, const size_t _bitpad){
 	return _sz + pad;
 }
 
-size_t bit_count(const uint8 _v);
-size_t bit_count(const uint16 _v);
-size_t bit_count(const uint32 _v);
-size_t bit_count(const uint64 _v);
+size_t bit_count(const uint8_t _v);
+size_t bit_count(const uint16_t _v);
+size_t bit_count(const uint32_t _v);
+size_t bit_count(const uint64_t _v);
 
 
-inline size_t leading_zero_count(uint64 x){
+inline size_t leading_zero_count(uint64_t x){
 	x = x | (x >> 1);
 	x = x | (x >> 2);
 	x = x | (x >> 4);
@@ -120,7 +120,7 @@ inline size_t leading_zero_count(uint64 x){
 	return bit_count(~x);
 }
 
-inline size_t leading_zero_count(uint32 x){
+inline size_t leading_zero_count(uint32_t x){
 	x = x | (x >> 1);
 	x = x | (x >> 2);
 	x = x | (x >> 4);
@@ -129,59 +129,59 @@ inline size_t leading_zero_count(uint32 x){
 	return bit_count(~x);
 }
 
-inline size_t leading_zero_count(uint16 x){
+inline size_t leading_zero_count(uint16_t x){
 	x = x | (x >> 1);
 	x = x | (x >> 2);
 	x = x | (x >> 4);
 	x = x | (x >> 8);
-	return bit_count(static_cast<uint16>(~x));
+	return bit_count(static_cast<uint16_t>(~x));
 }
 
-inline size_t leading_zero_count(uint8 x){
+inline size_t leading_zero_count(uint8_t x){
 	x = x | (x >> 1);
 	x = x | (x >> 2);
 	x = x | (x >> 4);
-	return bit_count(static_cast<uint8>(~x));
+	return bit_count(static_cast<uint8_t>(~x));
 }
 
-inline void pack(uint32 &_v, const uint16 _v1, const uint16 _v2){
+inline void pack(uint32_t &_v, const uint16_t _v1, const uint16_t _v2){
 	_v = _v2;
 	_v <<= 16;
 	_v |= _v1;
 }
 
-inline uint32 pack(const uint16 _v1, const uint16 _v2){
-	uint32 v;
+inline uint32_t pack(const uint16_t _v1, const uint16_t _v2){
+	uint32_t v;
 	pack(v, _v1, _v2);
 	return v;
 }
 
 
-inline void unpack(uint16 &_v1, uint16 &_v2, const uint32 _v){
+inline void unpack(uint16_t &_v1, uint16_t &_v2, const uint32_t _v){
 	_v1 = _v & 0xffffUL;
 	_v2 = (_v >> 16) & 0xffffUL;
 }
 
-extern const uint8 reverted_chars[];
+extern const uint8_t reverted_chars[];
 
-inline uint32 bit_revert(const uint32 _v){
-	uint32 r = (((uint32)reverted_chars[_v   & 0xff]) << 24);
-	r |= (((uint32)reverted_chars[(_v >>  8) & 0xff]) << 16);
-	r |= (((uint32)reverted_chars[(_v >> 16) & 0xff]) << 8);
-	r |= (((uint32)reverted_chars[(_v >> 24) & 0xff]) << 0);
+inline uint32_t bit_revert(const uint32_t _v){
+	uint32_t r = (((uint32_t)reverted_chars[_v   & 0xff]) << 24);
+	r |= (((uint32_t)reverted_chars[(_v >>  8) & 0xff]) << 16);
+	r |= (((uint32_t)reverted_chars[(_v >> 16) & 0xff]) << 8);
+	r |= (((uint32_t)reverted_chars[(_v >> 24) & 0xff]) << 0);
 	return r;
 }
 
-inline uint64 bit_revert(const uint64 _v){
-	uint64 r = (((uint64)reverted_chars[_v   & 0xff]) << 56);
-	r |= (((uint64)reverted_chars[(_v >>  8) & 0xff]) << 48);
-	r |= (((uint64)reverted_chars[(_v >> 16) & 0xff]) << 40);
-	r |= (((uint64)reverted_chars[(_v >> 24) & 0xff]) << 32);
+inline uint64_t bit_revert(const uint64_t _v){
+	uint64_t r = (((uint64_t)reverted_chars[_v   & 0xff]) << 56);
+	r |= (((uint64_t)reverted_chars[(_v >>  8) & 0xff]) << 48);
+	r |= (((uint64_t)reverted_chars[(_v >> 16) & 0xff]) << 40);
+	r |= (((uint64_t)reverted_chars[(_v >> 24) & 0xff]) << 32);
 	
-	r |= (((uint64)reverted_chars[(_v >> 32) & 0xff]) << 24);
-	r |= (((uint64)reverted_chars[(_v >> 40) & 0xff]) << 16);
-	r |= (((uint64)reverted_chars[(_v >> 48) & 0xff]) << 8);
-	r |= (((uint64)reverted_chars[(_v >> 56) & 0xff]) << 0);
+	r |= (((uint64_t)reverted_chars[(_v >> 32) & 0xff]) << 24);
+	r |= (((uint64_t)reverted_chars[(_v >> 40) & 0xff]) << 16);
+	r |= (((uint64_t)reverted_chars[(_v >> 48) & 0xff]) << 8);
+	r |= (((uint64_t)reverted_chars[(_v >> 56) & 0xff]) << 0);
 	return r;
 }
 

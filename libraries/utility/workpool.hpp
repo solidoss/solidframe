@@ -21,7 +21,7 @@ namespace solid{
 
 //! Base class for every workpool workers
 struct WorkerBase: Thread{
-	uint32	wkrid;
+	uint32_t	wkrid;
 };
 
 //! Base class for workpool
@@ -231,7 +231,7 @@ private:
 	}
 	bool pop(WorkerT &_rw, JobVectorT &_rjobvec, size_t _maxcnt){
 		Locker<Mutex> lock(mtx);
-		uint32 insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
+		uint32_t insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
 		if(!insertcount){
 			return true;
 		}

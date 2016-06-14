@@ -15,11 +15,11 @@ int test_invalid_index(int argc, char *argv[]){
 	assert(sz == static_cast<size_t>(-1));
 	assert(sz == InvalidIndex());
 	
-	uint64 sz64 = InvalidIndex();
+	uint64_t sz64 = InvalidIndex();
 	
 	assert(sz64 == -1ULL);
 	
-	cout <<"sz64 = "<<sz64<<" "<<static_cast<uint64>(-1LL)<<endl;
+	cout <<"sz64 = "<<sz64<<" "<<static_cast<uint64_t>(-1LL)<<endl;
 	
 	
 	

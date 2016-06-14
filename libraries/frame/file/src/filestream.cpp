@@ -180,11 +180,11 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 			setp(NULL, NULL);
 			resetGet();
 		}
-		int64 newoff = 0;
+		int64_t newoff = 0;
 		if(_way == ios_base::beg){
 		}else if(_way == ios_base::end){
 			newoff = off + (pptr() - pbase());
-			int64 devsz = dev->size();
+			int64_t devsz = dev->size();
 			if(newoff <= devsz){
 				newoff = devsz;
 			}

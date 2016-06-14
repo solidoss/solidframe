@@ -27,7 +27,7 @@ public:
 	};
 	FileDevice();
 	//!returns the size of a file without opening it - using stat!
-	static int64 size(const char *_fname);
+	static int64_t size(const char *_fname);
 	//! Open a file using its name and open mode flags
 	bool open(const char* _fname, int _how);
 	//! Create a file using its name and open mode flags
@@ -37,7 +37,7 @@ public:
 		Use FileDevice::size(const char*) to find the size of a file
 		without opening it
 	*/
-	int64 size()const;
+	int64_t size()const;
 	//! Check if a failed open opperation may succeed on retry
 	/*!
 		It uses errno so, it should be used imediatly after the open call.

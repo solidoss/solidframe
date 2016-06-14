@@ -40,7 +40,6 @@ set(Headers
 	socketdevice.hpp
 	socketinfo.hpp
 	specific.hpp
-	synchronization.hpp
 	thread.hpp
 	timespec.hpp
 	tuple.hpp
@@ -50,8 +49,7 @@ set(Inlines
 	condition.ipp                                                                                                                                                          
 	memorycache.ipp                                                                                                                                                        
 	mutex.ipp                                                                                                                                                              
-	socketaddress.ipp                                                                                                                                                      
-	synchronization.ipp                                                                                                                                                    
+	socketaddress.ipp
 	timespec.ipp
 )
 

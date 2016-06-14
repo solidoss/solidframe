@@ -17,7 +17,6 @@
 #include "system/condition.hpp"
 #include "system/exception.hpp"
 #include "system/cassert.hpp"
-#include "system/synchronization.hpp"
 #include "system/atomic.hpp"
 
 #include "mutexpool.hpp"
@@ -83,7 +82,7 @@ struct ThreadData{
 	};
 	//ThreadData();
 	//ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
-	uint32    						thcnt;
+	uint32_t    						thcnt;
 #ifndef SOLID_ON_WINDOWS
 	pthread_key_t					crtthread_key;
 	pthread_once_t					once_key;
@@ -161,7 +160,7 @@ struct TimeStartData{
 	LARGE_INTEGER	start_msec;
 	LARGE_INTEGER	start_freq;
 #else
-	const uint64	start_msec;
+	const uint64_t	start_msec;
 #endif
 };
  
@@ -194,9 +193,9 @@ const TimeSpec& TimeSpec::currentRealTime(){
 	LARGE_INTEGER		ms;
 	
 	QueryPerformanceCounter(&ms);
-	const uint64 qpc = ms.QuadPart - tsd.start_msec.QuadPart;
-	const uint32 secs = static_cast<uint32>(qpc / tsd.start_freq.QuadPart);
-	const uint32 nsecs = static_cast<uint32>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
+	const uint64_t qpc = ms.QuadPart - tsd.start_msec.QuadPart;
+	const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
+	const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
 	this->seconds(tsd.start_time + secs);
 	this->nanoSeconds(nsecs);
 #endif
@@ -215,9 +214,9 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 	LARGE_INTEGER		ms;
 	
 	QueryPerformanceCounter(&ms);
-	const uint64 qpc = ms.QuadPart;
-	const uint32 secs = static_cast<uint32>(qpc / tsd.start_freq.QuadPart);
-	const uint32 nsecs = static_cast<uint32>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
+	const uint64_t qpc = ms.QuadPart;
+	const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
+	const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
 	this->seconds(secs);
 	this->nanoSeconds(nsecs);
 #endif
@@ -232,7 +231,7 @@ struct TimeStartData{
 		stns = mach_absolute_time();
 		stns -= (stns % 1000000000);
 	}
-	uint64	stns;
+	uint64_t	stns;
 	time_t	st;
 };
 struct HelperMatchTimeBase: mach_timebase_info_data_t{
@@ -245,9 +244,9 @@ struct HelperMatchTimeBase: mach_timebase_info_data_t{
 const TimeSpec& TimeSpec::currentRealTime(){
 	static TimeStartData		tsd;
 	static HelperMatchTimeBase	info;
-	uint64				difference = mach_absolute_time() - tsd.stns;
+	uint64_t				difference = mach_absolute_time() - tsd.stns;
 
-	uint64 elapsednano = difference * (info.numer / info.denom);
+	uint64_t elapsednano = difference * (info.numer / info.denom);
 
 	this->seconds(tsd.st + elapsednano / 1000000000);
 	this->nanoSeconds(elapsednano % 1000000000);
@@ -255,11 +254,11 @@ const TimeSpec& TimeSpec::currentRealTime(){
 }
 
 const TimeSpec& TimeSpec::currentMonotonic(){
-	static uint64			tsd(mach_absolute_time());
+	static uint64_t			tsd(mach_absolute_time());
 	static HelperMatchTimeBase	info;
-	uint64				difference = mach_absolute_time() - tsd;
+	uint64_t				difference = mach_absolute_time() - tsd;
 
-	uint64 elapsednano = difference * (info.numer / info.denom);
+	uint64_t elapsednano = difference * (info.numer / info.denom);
 
 	this->seconds(elapsednano / 1000000000);
 	this->nanoSeconds(elapsednano % 1000000000);
@@ -290,10 +289,6 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 //*************************************************************************
 #ifdef SOLID_HAS_NO_INLINES
 #include "system/condition.ipp"
-#endif
-//*************************************************************************
-#ifdef SOLID_HAS_NO_INLINES
-#include "system/synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------
 bool Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){

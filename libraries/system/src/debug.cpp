@@ -68,8 +68,8 @@ namespace solid{
 class DeviceOutBasicBuffer : public std::streambuf {
 public:
 	// constructor
-	DeviceOutBasicBuffer(uint64 &_rsz): pd(NULL), sz(_rsz){}
-	DeviceOutBasicBuffer(Device & _d, uint64 &_rsz) : pd(&_d), sz(_rsz){}
+	DeviceOutBasicBuffer(uint64_t &_rsz): pd(NULL), sz(_rsz){}
+	DeviceOutBasicBuffer(Device & _d, uint64_t &_rsz) : pd(&_d), sz(_rsz){}
 	void device(Device & _d){
 		pd = &_d;
 	}
@@ -93,11 +93,11 @@ protected:
 	virtual
 	std::streamsize xsputn(const char* s, std::streamsize num){
 		sz += num;
-		return pd->write(s, static_cast<uint32>(num));
+		return pd->write(s, static_cast<uint32_t>(num));
 	}
 private:
 	Device		*pd;
-	uint64		&sz;
+	uint64_t		&sz;
 };
 
 //-----------------------------------------------------------------
@@ -106,8 +106,8 @@ class DeviceOutBuffer : public std::streambuf {
 public:
 	enum {BUFF_CP = 2048, BUFF_FLUSH = 1024};
 	// constructor
-	DeviceOutBuffer(uint64 &_rsz):pd(NULL), sz(_rsz), bpos(bbeg){}
-	DeviceOutBuffer(Device & _d, uint64 &_rsz): pd(&_d), sz(_rsz), bpos(bbeg){}
+	DeviceOutBuffer(uint64_t &_rsz):pd(NULL), sz(_rsz), bpos(bbeg){}
+	DeviceOutBuffer(Device & _d, uint64_t &_rsz): pd(&_d), sz(_rsz), bpos(bbeg){}
 	void device(Device & _d){
 		pd = &_d;
 	}
@@ -133,7 +133,7 @@ private:
 	}
 private:
 	Device	*pd;
-	uint64	&sz;
+	uint64_t	&sz;
 	char 	bbeg[BUFF_CP];
 	char 	*bpos;
 };
@@ -166,7 +166,7 @@ std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	num -= towrite;
 	s += towrite;
 	if(num >= BUFF_FLUSH){
-		std::streamsize retv = pd->write(s, static_cast<uint32>(num));
+		std::streamsize retv = pd->write(s, static_cast<uint32_t>(num));
 		SOLID_ASSERT(retv != num);
 		return retv;
 	}
@@ -179,10 +179,10 @@ class DeviceBasicOutStream : public std::ostream {
 protected:
 	DeviceOutBasicBuffer buf;
 public:
-	DeviceBasicOutStream(Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
+	DeviceBasicOutStream(Device &_d, uint64_t &_rsz) : std::ostream(0), buf(_d, _rsz) {
 		rdbuf(&buf);
 	}
-	DeviceBasicOutStream(uint64 &_rsz):std::ostream(0), buf(_rsz){
+	DeviceBasicOutStream(uint64_t &_rsz):std::ostream(0), buf(_rsz){
 		rdbuf(&buf);
 	}
 	void device(Device &_d){
@@ -197,10 +197,10 @@ class DeviceOutStream : public std::ostream {
 protected:
 	DeviceOutBuffer buf;
 public:
-	DeviceOutStream(uint64 &_rsz):std::ostream(0), buf(_rsz){
+	DeviceOutStream(uint64_t &_rsz):std::ostream(0), buf(_rsz){
 		rdbuf(&buf);
 	}
-	DeviceOutStream(Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
+	DeviceOutStream(Device &_d, uint64_t &_rsz) : std::ostream(0), buf(_d, _rsz) {
 		rdbuf(&buf);
 	}
 	void device(Device &_d){
@@ -218,9 +218,9 @@ struct StrLess{
 	}
 };
 struct ModuleStub{
-	ModuleStub(const char *_name, uint32 _lvlmsk):name(_name), lvlmsk(_lvlmsk){}
+	ModuleStub(const char *_name, uint32_t _lvlmsk):name(_name), lvlmsk(_lvlmsk){}
 	string	name;
-	uint32	lvlmsk;
+	uint32_t	lvlmsk;
 };
 struct Debug::Data{
 	typedef std::bitset<DEBUG_BITSET_SIZE>			BitSetT;
@@ -243,21 +243,21 @@ struct Debug::Data{
 	}
 	void setModuleMask(const char*);
 	void setBit(const char *_pbeg, const char *_pend);
-	bool initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput);
+	bool initFile(uint32_t _respincnt, uint64_t _respinsz, string *_poutput);
 	void doRespin();
 	bool isActive()const{return lvlmsk != 0 && !bs.none();}
 	
-	unsigned registerModule(const char *_name, uint32 _lvlmsk);
+	unsigned registerModule(const char *_name, uint32_t _lvlmsk);
 	
 	Mutex					m;
 	BitSetT					bs;
 	unsigned				lvlmsk;
 	ModuleVectorT			modvec;
 	StringMapT				namemap;
-	uint64					sz;
-	uint64					respinsz;
-	uint32					respincnt;
-	uint32					respinpos;
+	uint64_t					sz;
+	uint64_t					respinsz;
+	uint32_t					respincnt;
+	uint32_t					respinpos;
 	DeviceOutStream			dos;
 	DeviceBasicOutStream	dbos;
 	FileDevice				fd;
@@ -305,9 +305,9 @@ Debug::~Debug(){
 }
 
 namespace{
-uint32 parseLevels(const char *_lvl){
+uint32_t parseLevels(const char *_lvl){
 	if(!_lvl) return 0;
-	uint32 r = 0;
+	uint32_t r = 0;
 	
 	while(*_lvl){
 		switch(*_lvl){
@@ -348,7 +348,7 @@ void Debug::Data::setBit(const char *_pbeg, const char *_pend){
 	std::string str;
 	str.assign(_pbeg, _pend - _pbeg);
 	std::string	name;
-	uint32		lvls = -1;
+	uint32_t		lvls = -1;
 	{
 		std::string	lvlstr;
 		
@@ -376,7 +376,7 @@ void Debug::Data::setBit(const char *_pbeg, const char *_pend){
 	}
 }
 
-unsigned Debug::Data::registerModule(const char *_name, uint32 _lvlmsk){
+unsigned Debug::Data::registerModule(const char *_name, uint32_t _lvlmsk){
 	std::string name = _name;
 	for(std::string::iterator it = name.begin(); it != name.end(); ++it){
 		*it = toupper(*it);
@@ -428,7 +428,7 @@ void Debug::Data::setModuleMask(const char *_opt){
 	}
 }
 
-void filePath(string &_out, uint32 _pos, const string &_path, const string &_name){
+void filePath(string &_out, uint32_t _pos, const string &_path, const string &_name){
 	_out = _path;
 	_out += _name;
 	
@@ -442,7 +442,7 @@ void filePath(string &_out, uint32 _pos, const string &_path, const string &_nam
 	_out += buf;
 }
 
-bool Debug::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput){
+bool Debug::Data::initFile(uint32_t _respincnt, uint64_t _respinsz, string *_poutput){
 	respincnt = _respincnt;
 	respinsz = _respinsz;
 	respinpos = 0;
@@ -464,7 +464,7 @@ void Debug::Data::doRespin(){
 		filePath(fname, 0, path, name);
 		Directory::eraseFile(fname.c_str());
 	}else{
-		uint32 lastpos = respincnt;
+		uint32_t lastpos = respincnt;
 		while(lastpos >= 1){
 			filePath(fname, lastpos, path, name);
 			if(FileDevice::size(fname.c_str()) >= 0){

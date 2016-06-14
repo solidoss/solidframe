@@ -36,9 +36,9 @@ void MessageReader::unprepare(){
 	
 }
 //-----------------------------------------------------------------------------
-uint32 MessageReader::read(
+uint32_t MessageReader::read(
 	const char *_pbuf,
-	uint32 _bufsz,
+	uint32_t _bufsz,
 	CompleteFunctionT &_complete_fnc,
 	ReaderConfiguration const &_rconfig,
 	Protocol const &_rproto,
@@ -132,7 +132,7 @@ void MessageReader::doConsumePacket(
 		}
 	}
 	
-	uint8					crt_msg_type = _packet_header.type();
+	uint8_t					crt_msg_type = _packet_header.type();
 	//DeserializerPointerT	tmp_deserializer;
 	
 	while(pbufpos < pbufend){

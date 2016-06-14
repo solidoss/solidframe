@@ -24,17 +24,17 @@ struct StreamFlags{
 		IEof  = 16,
 		OEof  = 32,
 	};
-	StreamFlags(uint32 _flags = 0);
-	uint32 flags;
+	StreamFlags(uint32_t _flags = 0);
+	uint32_t flags;
 };
 
 //! The base class for all streams
 class Stream{
 public:
 	virtual ~Stream();
-	virtual int64 seek(int64, SeekRef _ref = SeekBeg) = 0;
+	virtual int64_t seek(int64_t, SeekRef _ref = SeekBeg) = 0;
 	virtual int release();
-	virtual int64 size()const;
+	virtual int64_t size()const;
 	virtual void close();
 	bool ok()const;
 	bool eof()const;

@@ -79,7 +79,7 @@ private:
 	FilePointerT	dev;
 	char			*buf;
 	const size_t	bufcp;
-	int64			off;
+	int64_t			off;
 };
 
 

@@ -107,9 +107,9 @@ void Device::flush(){
 }
 
 //-- SeekableDevice	----------------------------------------
-int SeekableDevice::read(char *_pb, size_t _bl, int64 _off){
+int SeekableDevice::read(char *_pb, size_t _bl, int64_t _off){
 #ifdef SOLID_ON_WINDOWS
-	int64 off(seek(0, SeekCur));
+	int64_t off(seek(0, SeekCur));
 	seek(_off);
 	int rv = Device::read(_pb, _bl);
 	seek(off);
@@ -119,9 +119,9 @@ int SeekableDevice::read(char *_pb, size_t _bl, int64 _off){
 #endif
 }
 
-int SeekableDevice::write(const char *_pb, size_t _bl, int64 _off){
+int SeekableDevice::write(const char *_pb, size_t _bl, int64_t _off){
 #ifdef SOLID_ON_WINDOWS
-	int64 off(seek(0, SeekCur));
+	int64_t off(seek(0, SeekCur));
 	seek(_off);
 	int rv = Device::write(_pb, _bl);
 	seek(off);
@@ -137,7 +137,7 @@ const DWORD seekmap[3]={FILE_BEGIN, FILE_CURRENT, FILE_END};
 const int seekmap[3]={SEEK_SET,SEEK_CUR,SEEK_END};
 #endif
 
-int64 SeekableDevice::seek(int64 _pos, SeekRef _ref){
+int64_t SeekableDevice::seek(int64_t _pos, SeekRef _ref){
 #ifdef SOLID_ON_WINDOWS
 	LARGE_INTEGER li;
 
@@ -155,7 +155,7 @@ int64 SeekableDevice::seek(int64 _pos, SeekRef _ref){
 #endif
 }
 
-bool SeekableDevice::truncate(int64 _len){
+bool SeekableDevice::truncate(int64_t _len){
 #ifdef SOLID_ON_WINDOWS
 	seek(_len);
 	return SetEndOfFile(descriptor());
@@ -261,7 +261,7 @@ bool FileDevice::create(const char* _fname, int _how){
 	return this->open(_fname, _how | CreateE | TruncateE);
 }
 
-int64 FileDevice::size()const{
+int64_t FileDevice::size()const{
 #ifdef SOLID_ON_WINDOWS
 	LARGE_INTEGER li;
 
@@ -284,7 +284,7 @@ bool FileDevice::canRetryOpen()const{
 	return (errno == EMFILE) || (errno == ENOMEM);
 #endif
 }
-/*static*/ int64 FileDevice::size(const char *_fname){
+/*static*/ int64_t FileDevice::size(const char *_fname){
 #ifdef SOLID_ON_WINDOWS
 	FileDevice fd;
 	if(fd.open(_fname, RO)){

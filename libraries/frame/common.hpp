@@ -22,9 +22,9 @@ namespace solid{
 namespace frame{
 
 #ifdef UINDEX32
-typedef uint32 IndexT;
+typedef uint32_t IndexT;
 #elif defined(UINDEX64)
-typedef uint64 IndexT;
+typedef uint64_t IndexT;
 #else
 typedef size_t IndexT;
 #endif
@@ -88,25 +88,25 @@ template <typename T>
 void split_index(T &_hi, T &_lo, const int _hibitcnt, const T _v);
 
 template <>
-inline uint32 unite_index<uint32>(uint32 _hi, const uint32 &_lo, const int /*_hibitcnt*/){
+inline uint32_t unite_index<uint32_t>(uint32_t _hi, const uint32_t &_lo, const int /*_hibitcnt*/){
 	return bit_revert(_hi) | _lo;
 }
 
 template <>
-inline uint64 unite_index<uint64>(uint64 _hi, const uint64 &_lo, const int /*_hibitcnt*/){
+inline uint64_t unite_index<uint64_t>(uint64_t _hi, const uint64_t &_lo, const int /*_hibitcnt*/){
 	return bit_revert(_hi) | _lo;
 }
 
 template <>
-inline void split_index<uint32>(uint32 &_hi, uint32 &_lo, const int _hibitcnt, const uint32 _v){
-	const uint32 lomsk = bitsToMask(32 - _hibitcnt);//(1 << (32 - _hibitcnt)) - 1;
+inline void split_index<uint32_t>(uint32_t &_hi, uint32_t &_lo, const int _hibitcnt, const uint32_t _v){
+	const uint32_t lomsk = bitsToMask(32 - _hibitcnt);//(1 << (32 - _hibitcnt)) - 1;
 	_lo = _v & lomsk;
 	_hi = bit_revert(_v & (~lomsk));
 }
 
 template <>
-inline void split_index<uint64>(uint64 &_hi, uint64 &_lo, const int _hibitcnt, const uint64 _v){
-	const uint64 lomsk = bitsToMask(64 - _hibitcnt);//(1ULL << (64 - _hibitcnt)) - 1;
+inline void split_index<uint64_t>(uint64_t &_hi, uint64_t &_lo, const int _hibitcnt, const uint64_t _v){
+	const uint64_t lomsk = bitsToMask(64 - _hibitcnt);//(1ULL << (64 - _hibitcnt)) - 1;
 	_lo = _v & lomsk;
 	_hi = bit_revert(_v & (~lomsk));
 }

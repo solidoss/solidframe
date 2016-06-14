@@ -171,29 +171,29 @@ struct Protocol: public ipc::Protocol{
 	}
 	
 	
-	/*virtual*/ char* storeValue(char *_pd, uint8  _v) const override{
+	/*virtual*/ char* storeValue(char *_pd, uint8_t  _v) const override{
 		return serialization::binary::store(_pd, _v);
 	}
-	/*virtual*/ char* storeValue(char *_pd, uint16 _v) const override{
+	/*virtual*/ char* storeValue(char *_pd, uint16_t _v) const override{
 		return serialization::binary::store(_pd, _v);
 	}
-	/*virtual*/ char* storeValue(char *_pd, uint32 _v) const override{
+	/*virtual*/ char* storeValue(char *_pd, uint32_t _v) const override{
 		return serialization::binary::store(_pd, _v);
 	}
-	/*virtual*/ char* storeValue(char *_pd, uint64 _v) const override{
+	/*virtual*/ char* storeValue(char *_pd, uint64_t _v) const override{
 		return serialization::binary::store(_pd, _v);
 	}
 	
-	/*virtual*/ const char* loadValue(const char *_ps, uint8  &_v) const override{
+	/*virtual*/ const char* loadValue(const char *_ps, uint8_t  &_v) const override{
 		return serialization::binary::load(_ps, _v);
 	}
-	/*virtual*/ const char* loadValue(const char *_ps, uint16 &_v) const override{
+	/*virtual*/ const char* loadValue(const char *_ps, uint16_t &_v) const override{
 		return serialization::binary::load(_ps, _v);
 	}
-	/*virtual*/ const char* loadValue(const char *_ps, uint32 &_v) const override{
+	/*virtual*/ const char* loadValue(const char *_ps, uint32_t &_v) const override{
 		return serialization::binary::load(_ps, _v);
 	}
-	/*virtual*/ const char* loadValue(const char *_ps, uint64 &_v) const override{
+	/*virtual*/ const char* loadValue(const char *_ps, uint64_t &_v) const override{
 		return serialization::binary::load(_ps, _v);
 	}
 	

@@ -24,14 +24,14 @@ inline bool InputStream::ifail()const{
 	return ibad() || ((flags.flags & StreamFlags::IFail) != 0);
 }
 
-inline InputStreamIterator::InputStreamIterator(InputStream *_ps, int64 _off):ps(_ps),off(_off){
+inline InputStreamIterator::InputStreamIterator(InputStream *_ps, int64_t _off):ps(_ps),off(_off){
 }
 
-inline void InputStreamIterator::reinit(InputStream *_ps, int64 _off){
+inline void InputStreamIterator::reinit(InputStream *_ps, int64_t _off){
 	ps = _ps;
 	off = _off;
 }
-inline int64 InputStreamIterator::start(){
+inline int64_t InputStreamIterator::start(){
 	return ps->seek(off);
 }
 

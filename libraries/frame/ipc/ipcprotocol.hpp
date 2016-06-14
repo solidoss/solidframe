@@ -140,15 +140,15 @@ public:
 	
 	virtual ~Protocol();
 	
-	virtual char* storeValue(char *_pd, uint8  _v) const = 0;
-	virtual char* storeValue(char *_pd, uint16 _v) const = 0;
-	virtual char* storeValue(char *_pd, uint32 _v) const = 0;
-	virtual char* storeValue(char *_pd, uint64 _v) const = 0;
+	virtual char* storeValue(char *_pd, uint8_t  _v) const = 0;
+	virtual char* storeValue(char *_pd, uint16_t _v) const = 0;
+	virtual char* storeValue(char *_pd, uint32_t _v) const = 0;
+	virtual char* storeValue(char *_pd, uint64_t _v) const = 0;
 	
-	virtual const char* loadValue(const char *_ps, uint8  &_val) const = 0;
-	virtual const char* loadValue(const char *_ps, uint16 &_val) const = 0;
-	virtual const char* loadValue(const char *_ps, uint32 &_val) const = 0;
-	virtual const char* loadValue(const char *_ps, uint64 &_val) const = 0;
+	virtual const char* loadValue(const char *_ps, uint8_t  &_val) const = 0;
+	virtual const char* loadValue(const char *_ps, uint16_t &_val) const = 0;
+	virtual const char* loadValue(const char *_ps, uint32_t &_val) const = 0;
+	virtual const char* loadValue(const char *_ps, uint64_t &_val) const = 0;
 	
 	virtual size_t typeIndex(const Message *_pmsg) const = 0;
 	

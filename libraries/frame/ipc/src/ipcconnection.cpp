@@ -1144,7 +1144,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 	unsigned			repeatcnt = 4;
 	char				*pbuf;
 	size_t				bufsz;
-	const uint32		recvbufcp = rthis.recvBufferCapacity();
+	const uint32_t		recvbufcp = rthis.recvBufferCapacity();
 	bool				recv_something = false;
 	
 	auto				complete_lambda(
@@ -1236,7 +1236,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 			ConnectionContext	conctx(service(_rctx), *this);
 			unsigned 			repeatcnt = 4;
 			
-			const uint32		sendbufcp = sendBufferCapacity();
+			const uint32_t		sendbufcp = sendBufferCapacity();
 			const Configuration &rconfig  = service(_rctx).configuration();
 			bool				sent_something = false;
 			
@@ -1264,7 +1264,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 				
 				MessageWriter::CompleteFunctionT	completefnc(std::cref(complete_lambda));
 
-				uint32								sz = msg_writer.write(
+				uint32_t								sz = msg_writer.write(
 					send_buf, sendbufcp, shouldSendKeepalive(), completefnc, rconfig.writer, rconfig.protocol(), conctx, error
 				);
 				

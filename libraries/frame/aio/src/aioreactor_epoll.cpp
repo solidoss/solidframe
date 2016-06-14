@@ -67,7 +67,7 @@ struct EventHandler: CompletionHandler{
 	EventHandler(ObjectProxy const &_rop): CompletionHandler(_rop, &on_init){}
 	
 	void write(){
-		const uint64 v = 1;
+		const uint64_t v = 1;
 		dev.write(reinterpret_cast<const char*>(&v), sizeof(v));
 	}
 	
@@ -87,7 +87,7 @@ private:
 
 /*static*/ void EventHandler::on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 	EventHandler &rthis = static_cast<EventHandler&>(_rch);
-	uint64	v = -1;
+	uint64_t	v = -1;
 	int 	rv;
 	do{
 		rv = rthis.dev.read(reinterpret_cast<char*>(&v), sizeof(v));
@@ -240,8 +240,8 @@ struct Reactor::Data{
 			return 0;
 		}else if(timestore.size()){
 			if(_rcrt < timestore.next()){
-				const int64	maxwait = 1000 * 60 * 10; //ten minutes
-				int64 		diff = 0;
+				const int64_t	maxwait = 1000 * 60 * 10; //ten minutes
+				int64_t 		diff = 0;
 				TimeSpec	delta = timestore.next();
 				delta -= _rcrt;
 				diff = (delta.seconds() * 1000);
@@ -440,7 +440,7 @@ void Reactor::run(){
 	idbgx(Debug::aio, "<exit>");
 }
 
-inline ReactorEventsE systemEventsToReactorEvents(const uint32 _events){
+inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events){
 	ReactorEventsE	retval = ReactorEventNone;
 	switch(_events){
 		case EPOLLIN:
@@ -472,8 +472,8 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32 _events){
 	return retval;
 }
 
-inline uint32 reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests){
-	uint32 evs = 0;
+inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests){
+	uint32_t evs = 0;
 	switch(_requests){
 		case ReactorWaitNone:
 			break;

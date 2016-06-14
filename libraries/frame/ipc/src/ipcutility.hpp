@@ -56,45 +56,45 @@ struct PacketHeader{
 	};
 	
 	PacketHeader(
-		const uint8 _type = 0,
-		const uint8 _flags = 0,
-		const uint16 _size = 0
+		const uint8_t _type = 0,
+		const uint8_t _flags = 0,
+		const uint16_t _size = 0
 	){
 		reset(_type, _flags, _size);
 	}
 	
 	void reset(
-		const uint8 _type = 0,
-		const uint8 _flags = 0,
-		const uint16 _size = 0
+		const uint8_t _type = 0,
+		const uint8_t _flags = 0,
+		const uint16_t _size = 0
 	){
 		type(_type);
 		flags(_flags);
 		size(_size);
 	}
 	
-	uint32 size()const{
-		uint32 sz = (flags_ & Size64KBFlagE);
+	uint32_t size()const{
+		uint32_t sz = (flags_ & Size64KBFlagE);
 		return (sz << 16) | size_;
 	}
 	
 	
-	uint8 type()const{
+	uint8_t type()const{
 		return type_;
 	}
 	
-	uint8 flags()const{
+	uint8_t flags()const{
 		return flags_;
 	}
 	
-	void type(uint8 _type){
+	void type(uint8_t _type){
 		type_ = _type;
 	}
-	void flags(uint8 _flags){
+	void flags(uint8_t _flags){
 		flags_ = _flags /*& (0xff - Size64KBFlagE)*/;
 	}
 	
-	void size(uint32 _sz){
+	void size(uint32_t _sz){
 		size_ = _sz & 0xffff;
 		flags_ |= ((_sz & (1 << 16)) >> 16);
 	}
@@ -122,9 +122,9 @@ struct PacketHeader{
 		return _pc;
 	}
 private:
-	uint8	type_;
-	uint8	flags_;
-	uint16	size_;
+	uint8_t	type_;
+	uint8_t	flags_;
+	uint16_t	size_;
 };
 
 struct MessageBundle{

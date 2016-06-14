@@ -19,9 +19,9 @@ namespace solid{
 class InputStream: virtual public Stream{
 public:
 	virtual ~InputStream();
-	virtual int read(char *, uint32, uint32 _flags = 0) = 0;
-	virtual int read(uint64 _offset, char*, uint32, uint32 _flags = 0);
-	bool readAll(char *, uint32, uint32 _flags = 0);
+	virtual int read(char *, uint32_t, uint32_t _flags = 0) = 0;
+	virtual int read(uint64_t _offset, char*, uint32_t, uint32_t _flags = 0);
+	bool readAll(char *, uint32_t, uint32_t _flags = 0);
 	bool iok()const;
 	bool ieof()const;
 	bool ibad()const;
@@ -30,13 +30,13 @@ public:
 
 //! An InputStreamIterator - an offset within the stream: a pointer to an istream
 struct InputStreamIterator{
-	InputStreamIterator(InputStream *_ps = NULL, int64 _off = 0);
-	void reinit(InputStream *_ps = NULL, int64 _off = 0);
-	int64 start();
+	InputStreamIterator(InputStream *_ps = NULL, int64_t _off = 0);
+	void reinit(InputStream *_ps = NULL, int64_t _off = 0);
+	int64_t start();
 	InputStream* operator->() const{return ps;}
 	InputStream& operator*() {return *ps;}
 	InputStream		*ps;
-	int64		off;
+	int64_t		off;
 };
 
 #ifndef SOLID_HAS_NO_INLINES

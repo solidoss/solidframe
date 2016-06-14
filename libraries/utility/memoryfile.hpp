@@ -31,7 +31,7 @@ public:
 		virtual uint  bufferSize()const = 0;
 		virtual char* allocate() = 0;
 		virtual void release(char *) = 0;
-		virtual uint64 computeCapacity(uint64 _cp) = 0;
+		virtual uint64_t computeCapacity(uint64_t _cp) = 0;
 	};
 	template <uint Sz = 4096>
 	struct BasicAllocator: Allocator{
@@ -63,51 +63,51 @@ public:
 		/*virtual*/ void release(char *_p){
 			delete []_p;
 		}
-		/*virtual*/ uint64 computeCapacity(uint64 _cp){
+		/*virtual*/ uint64_t computeCapacity(uint64_t _cp){
 			return ((_cp / Sz) + 1) * Sz;
 		}
 	};
 
 public:
 	//! Constructor with the file capacity and the allocator
-	MemoryFile(uint64 _cp = InvalidSize(), Allocator &_ral = BasicAllocator<>::instance());
+	MemoryFile(uint64_t _cp = InvalidSize(), Allocator &_ral = BasicAllocator<>::instance());
 	//! Destructor
 	~MemoryFile();
 	//! Read data from file from offset
-	int read(char *_pb, uint32 _bl, int64 _off);
+	int read(char *_pb, uint32_t _bl, int64_t _off);
 	//! Write data to file at offset
-	int write(const char *_pb, uint32 _bl, int64 _off);
+	int write(const char *_pb, uint32_t _bl, int64_t _off);
 	//! Read data from file
-	int read(char *_pb, uint32 _bl);
+	int read(char *_pb, uint32_t _bl);
 	//! Write data to file
-	int write(const char *_pb, uint32 _bl);
+	int write(const char *_pb, uint32_t _bl);
 	//! Move the file cursor at position
-	int64 seek(int64 _pos, SeekRef _ref = SeekBeg);
+	int64_t seek(int64_t _pos, SeekRef _ref = SeekBeg);
 	//! Truncate the file
-	int truncate(int64 _len = 0);
+	int truncate(int64_t _len = 0);
 	//! Return the size of the file
-	int64 size()const;
-	int64 capacity()const;
+	int64_t size()const;
+	int64_t capacity()const;
 private:
-	BinarySeekerResultT doFindBuffer(uint32 _idx)const;
-	BinarySeekerResultT doLocateBuffer(uint32 _idx)const;
-	char *doGetBuffer(uint32 _idx)const;
-	char *doCreateBuffer(uint32 _idx, bool &_created);
+	BinarySeekerResultT doFindBuffer(uint32_t _idx)const;
+	BinarySeekerResultT doLocateBuffer(uint32_t _idx)const;
+	char *doGetBuffer(uint32_t _idx)const;
+	char *doCreateBuffer(uint32_t _idx, bool &_created);
 private:
 	struct Buffer{
-		Buffer(uint32 _idx = 0, char *_data = NULL):idx(_idx), data(_data){}
-		uint32	idx;
+		Buffer(uint32_t _idx = 0, char *_data = NULL):idx(_idx), data(_data){}
+		uint32_t	idx;
 		char	*data;
 	};
 	struct BuffCmp;
 	friend struct BuffCmp;
 	typedef std::deque<Buffer>	BufferVectorT;
 	
-	const uint64	cp;
-	uint64			sz;
-	uint64			off;
-	mutable uint32	crtbuffidx;
-	const uint32	bufsz;
+	const uint64_t	cp;
+	uint64_t			sz;
+	uint64_t			off;
+	mutable uint32_t	crtbuffidx;
+	const uint32_t	bufsz;
 	Allocator		&ra;
 	BufferVectorT	bv;
 };

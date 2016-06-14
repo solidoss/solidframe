@@ -25,13 +25,13 @@ inline bool OutputStream::ofail()const{
 	return obad() || ((flags.flags & StreamFlags::OFail) != 0);
 }
 
-inline OutputStreamIterator::OutputStreamIterator(OutputStream *_ps, int64 _off):ps(_ps),off(_off){
+inline OutputStreamIterator::OutputStreamIterator(OutputStream *_ps, int64_t _off):ps(_ps),off(_off){
 }
-inline void OutputStreamIterator::reinit(OutputStream *_ps, int64 _off){
+inline void OutputStreamIterator::reinit(OutputStream *_ps, int64_t _off){
 	ps = _ps;
 	off = _off;
 }
-inline int64 OutputStreamIterator::start(){
+inline int64_t OutputStreamIterator::start(){
 	return ps->seek(off);
 }
 

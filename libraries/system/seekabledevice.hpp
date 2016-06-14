@@ -20,13 +20,13 @@ public:
 	using Device::read;
 	using Device::write;
 	//! Read from a given position
-	int read(char *_pb, size_t _bl, int64 _off);
+	int read(char *_pb, size_t _bl, int64_t _off);
 	//! Write at a given position
-	int write(const char *_pb, size_t _bl, int64 _off);
+	int write(const char *_pb, size_t _bl, int64_t _off);
 	//! Move the cursor to a given position
-	int64 seek(int64 _pos, SeekRef _ref = SeekBeg);
+	int64_t seek(int64_t _pos, SeekRef _ref = SeekBeg);
 	//! Truncate to a certain length
-	bool truncate(int64 _len);
+	bool truncate(int64_t _len);
 protected:
 	SeekableDevice(DescriptorT _desc = invalidDescriptor()):Device(_desc){}
 };

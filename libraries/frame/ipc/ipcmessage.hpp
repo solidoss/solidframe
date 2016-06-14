@@ -88,7 +88,7 @@ struct Message: std::enable_shared_from_this<Message>{
 		return (_flags & MessageFlags::OneShotSend) != 0;
 	}
 	
-	Message(uint8 _state = 0):stt(_state){}
+	Message(uint8_t _state = 0):stt(_state){}
 	Message(Message const &_rmsg): requid(_rmsg.requid), stt(_rmsg.stt){}
 	
 	virtual ~Message();
@@ -103,7 +103,7 @@ struct Message: std::enable_shared_from_this<Message>{
 		return stt == 2;
 	}
 	
-	uint8 state()const{
+	uint8_t state()const{
 		return stt;
 	}
 	
@@ -147,7 +147,7 @@ private:
 	}
 private:
 	RequestId	requid;
-	uint8		stt;
+	uint8_t		stt;
 };
 
 using MessagePointerT = std::shared_ptr<Message>;

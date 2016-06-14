@@ -181,8 +181,8 @@ struct Reactor::Data{
 			return 0;
 		}else if(timestore.size()){
 			if(_rcrt < timestore.next()){
-				const int64	maxwait = 1000 * 60; //1 minute
-				int64 		diff = 0;
+				const int64_t	maxwait = 1000 * 60; //1 minute
+				int64_t 		diff = 0;
 				TimeSpec	delta = timestore.next();
 				delta -= _rcrt;
 				diff = (delta.seconds() * 1000);

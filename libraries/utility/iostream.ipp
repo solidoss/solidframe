@@ -11,13 +11,13 @@
 #define inline
 #endif
 
-inline InputOutputStreamIterator::InputOutputStreamIterator(InputOutputStream *_ps, int64 _off):ps(_ps),off(_off){
+inline InputOutputStreamIterator::InputOutputStreamIterator(InputOutputStream *_ps, int64_t _off):ps(_ps),off(_off){
 }
-inline void InputOutputStreamIterator::reinit(InputOutputStream *_ps, int64 _off){
+inline void InputOutputStreamIterator::reinit(InputOutputStream *_ps, int64_t _off){
 	ps = _ps;
 	off = _off;
 }
-inline int64 InputOutputStreamIterator::start(){
+inline int64_t InputOutputStreamIterator::start(){
 	return ps->seek(off);
 }
 

@@ -91,7 +91,7 @@ struct Page{
 			pn = reinterpret_cast<Node*>(pv);
 			pn->pnext = ptop;
 			ptop = pn;
-			uint8 *pu = static_cast<uint8*>(pv);
+			uint8_t *pu = static_cast<uint8_t*>(pv);
 			pv = pu + _cp;
 			sz -= _cp;
 			++cnt;
@@ -108,7 +108,7 @@ struct Page{
 	
 	Node	*ptop;
 	
-	uint16	usecount;
+	uint16_t	usecount;
 };
 
 

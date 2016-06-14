@@ -35,9 +35,9 @@ public:
 	
 	~MessageReader();
 	
-	uint32 read(
+	uint32_t read(
 		const char *_pbuf,
-		uint32 _bufsz,
+		uint32_t _bufsz,
 		CompleteFunctionT &_complete_fnc,
 		ReaderConfiguration const &_rconfig,
 		Protocol const &_rproto,
@@ -88,7 +88,7 @@ private:
 	typedef Queue<MessageStub>		MessageQueueT;
 	
 	States			state;
-	uint64			current_message_type_id;
+	uint64_t			current_message_type_id;
 	MessageQueueT	message_q;
 };
 

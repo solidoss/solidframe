@@ -48,7 +48,7 @@ std::atomic<size_t>				wait_count(0);
 Mutex							mtx;
 Condition						cnd;
 
-std::atomic<uint64>				transfered_size(0);
+std::atomic<uint64_t>				transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 std::atomic<size_t>				connection_count(0);
 

@@ -33,7 +33,7 @@ namespace ipc{
 struct ConnectionPoolId: UniqueId{
 	ConnectionPoolId(
 		const size_t _idx = InvalidIndex(),
-		const uint32 _uid = InvalidIndex()
+		const uint32_t _uid = InvalidIndex()
 	):UniqueId(_idx, _uid){}
 	
 };
@@ -97,12 +97,12 @@ private:
 std::ostream& operator<<(std::ostream &_ros, RecipientId const &_rec_id);
 
 struct RequestId{
-	uint32	index;
-	uint32	unique;
+	uint32_t	index;
+	uint32_t	unique;
 	
 	RequestId(
-		const uint32 _idx = InvalidIndex(),
-		const uint32 _uid = InvalidIndex()
+		const uint32_t _idx = InvalidIndex(),
+		const uint32_t _uid = InvalidIndex()
 	):index(_idx), unique(_uid){}
 };
 
@@ -133,11 +133,11 @@ private:
 	
 	friend std::ostream& operator<<(std::ostream &_ros, MessageId const &_msguid);
 	size_t		index;
-	uint32		unique;
+	uint32_t		unique;
 
 	MessageId(
 		const size_t _idx,
-		const uint32 _uid
+		const uint32_t _uid
 	):index(_idx), unique(_uid){}
 };
 
@@ -188,7 +188,7 @@ private:
 	Connection			&rconnection;
 	
 	ulong				message_flags;
-	uint8				message_state;
+	uint8_t				message_state;
 	RequestId			request_id;
 	MessageId			message_id;
 	

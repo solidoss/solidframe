@@ -57,14 +57,14 @@ size_t							writecount = 0;
 
 size_t real_size(size_t _sz){
 	//offset + (align - (offset mod align)) mod align
-	return _sz + ((sizeof(uint64) - (_sz % sizeof(uint64))) % sizeof(uint64));
+	return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
 struct Message: frame::ipc::Message{
-	uint32							idx;
+	uint32_t							idx;
     std::string						str;
 	
-	Message(uint32 _idx):idx(_idx){
+	Message(uint32_t _idx):idx(_idx){
 		idbg("CREATE ---------------- "<<(void*)this<<" idx = "<<idx);
 		init();
 		
@@ -86,11 +86,11 @@ struct Message: frame::ipc::Message{
 	void init(){
 		const size_t	sz = real_size(initarray[idx % initarraysize].size);
 		str.resize(sz);
-		const size_t	count = sz / sizeof(uint64);
-		uint64			*pu  = reinterpret_cast<uint64*>(const_cast<char*>(str.data()));
-		const uint64	*pup = reinterpret_cast<const uint64*>(pattern.data());
-		const size_t	pattern_size = pattern.size() / sizeof(uint64);
-		for(uint64 i = 0; i < count; ++i){
+		const size_t	count = sz / sizeof(uint64_t);
+		uint64_t			*pu  = reinterpret_cast<uint64_t*>(const_cast<char*>(str.data()));
+		const uint64_t	*pup = reinterpret_cast<const uint64_t*>(pattern.data());
+		const size_t	pattern_size = pattern.size() / sizeof(uint64_t);
+		for(uint64_t i = 0; i < count; ++i){
 			pu[i] = pup[i % pattern_size];//pattern[i % pattern.size()];
 		}
 	}
@@ -100,12 +100,12 @@ struct Message: frame::ipc::Message{
 		if(sz != str.size()){
 			return false;
 		}
-		const size_t	count = sz / sizeof(uint64);
-		const uint64	*pu = reinterpret_cast<const uint64*>(str.data());
-		const uint64	*pup = reinterpret_cast<const uint64*>(pattern.data());
-		const size_t	pattern_size = pattern.size() / sizeof(uint64);
+		const size_t	count = sz / sizeof(uint64_t);
+		const uint64_t	*pu = reinterpret_cast<const uint64_t*>(str.data());
+		const uint64_t	*pup = reinterpret_cast<const uint64_t*>(pattern.data());
+		const size_t	pattern_size = pattern.size() / sizeof(uint64_t);
 		
-		for(uint64 i = 0; i < count; ++i){
+		for(uint64_t i = 0; i < count; ++i){
 			if(pu[i] != pup[i % pattern_size]) return false;
 		}
 		return true;
@@ -198,12 +198,12 @@ int test_protocol_basic(int argc, char **argv){
 	size_t	sz = real_size(pattern.size());
 	
 	if(sz > pattern.size()){
-		pattern.resize(sz - sizeof(uint64));
+		pattern.resize(sz - sizeof(uint64_t));
 	}else if(sz < pattern.size()){
 		pattern.resize(sz);
 	}
 	
-	const uint16							bufcp(1024*4);
+	const uint16_t							bufcp(1024*4);
 	char									buf[bufcp];
 	
 	frame::ipc::WriterConfiguration			ipcwriterconfig;
@@ -280,7 +280,7 @@ int test_protocol_basic(int argc, char **argv){
 		bool is_running = true;
 		
 		while(is_running and !error){
-			uint32 bufsz = ipcmsgwriter.write(buf, bufcp, false, writercompletefnc, ipcwriterconfig, ipcprotocol, ipcconctx, error);
+			uint32_t bufsz = ipcmsgwriter.write(buf, bufcp, false, writercompletefnc, ipcwriterconfig, ipcprotocol, ipcconctx, error);
 			
 			if(!error and bufsz){
 				

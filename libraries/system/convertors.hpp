@@ -29,33 +29,33 @@ template <class T>
 struct UnsignedConvertor;
 
 template <>
-struct UnsignedConvertor<int16>{
-	typedef uint16 UnsignedType;
+struct UnsignedConvertor<int16_t>{
+	typedef uint16_t UnsignedType;
 };
 
 template <>
-struct UnsignedConvertor<int32>{
-	typedef uint32 UnsignedType;
+struct UnsignedConvertor<int32_t>{
+	typedef uint32_t UnsignedType;
 };
 
 template <>
-struct UnsignedConvertor<int64>{
-	typedef uint64 UnsignedType;
+struct UnsignedConvertor<int64_t>{
+	typedef uint64_t UnsignedType;
 };
 
 template <>
-struct UnsignedConvertor<uint16>{
-	typedef uint16 UnsignedType;
+struct UnsignedConvertor<uint16_t>{
+	typedef uint16_t UnsignedType;
 };
 
 template <>
-struct UnsignedConvertor<uint32>{
-	typedef uint32 UnsignedType;
+struct UnsignedConvertor<uint32_t>{
+	typedef uint32_t UnsignedType;
 };
 
 template <>
-struct UnsignedConvertor<uint64>{
-	typedef uint64 UnsignedType;
+struct UnsignedConvertor<uint64_t>{
+	typedef uint64_t UnsignedType;
 };
 
 #if UWORDSIZE == 32
@@ -74,18 +74,18 @@ struct UnsignedConvertor<ulong>{
 #define BitsToMask(v) ((1 << (v)) - 1)
 #define BitsToCount(v) ((1 << (v)) & (~1))
 
-inline uint32 bitsToMask32(unsigned v){
+inline uint32_t bitsToMask32(unsigned v){
 	return (1 << v) - 1;
 }
-inline uint32 bitsToCount32(unsigned v){
-	return (1 << v)  & (~static_cast<uint32>(1));
+inline uint32_t bitsToCount32(unsigned v){
+	return (1 << v)  & (~static_cast<uint32_t>(1));
 }
 
-inline uint64 bitsToMask64(unsigned v){
+inline uint64_t bitsToMask64(unsigned v){
 	return (1 << v) - 1;
 }
-inline uint64 bitsToCount64(unsigned v){
-	return (1 << v) & (~static_cast<uint64>(1));
+inline uint64_t bitsToCount64(unsigned v){
+	return (1 << v) & (~static_cast<uint64_t>(1));
 }
 
 inline size_t bitsToMask(unsigned v){
@@ -96,19 +96,19 @@ inline size_t bitsToCount(unsigned v){
 }
 
 
-inline uint32 toNetwork(uint32 _v){
+inline uint32_t toNetwork(uint32_t _v){
 	return htonl(_v);
 }
 
-inline uint32 toHost(uint32 _v){
+inline uint32_t toHost(uint32_t _v){
 	return ntohl(_v);
 }
 
-inline uint16 toNetwork(uint16 _v){
+inline uint16_t toNetwork(uint16_t _v){
 	return htons(_v);
 }
 
-inline uint16 toHost(uint16 _v){
+inline uint16_t toHost(uint16_t _v){
 	return ntohs(_v);
 }
 

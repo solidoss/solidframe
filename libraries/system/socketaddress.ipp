@@ -277,7 +277,7 @@ inline bool SocketAddress::isLocal()const{
 
 inline bool SocketAddress::isLoopback()const{
 	if(isInet4()){
-		return ((uint32)ntohl(address4().s_addr) & 0xFF000000) == 0x7F000000;
+		return ((uint32_t)ntohl(address4().s_addr) & 0xFF000000) == 0x7F000000;
 	}else if(isInet6()){
 		return ((address6().s6_addr[0] == 0) && (address6().s6_addr[1] == 0)
 				&& (address6().s6_addr[2] == 0) && (address6().s6_addr[3] == 0)
@@ -292,7 +292,7 @@ inline bool SocketAddress::isLoopback()const{
 }
 inline bool SocketAddress::isInvalid()const{
 	if(isInet4()){
-		return (uint32)ntohl(address4().s_addr) == 0;
+		return (uint32_t)ntohl(address4().s_addr) == 0;
 	}else if(isInet6()){
 		return ((address6().s6_addr[0] == 0) && (address6().s6_addr[1] == 0)
 				&& (address6().s6_addr[2] == 0) && (address6().s6_addr[3] == 0)
@@ -483,7 +483,7 @@ inline bool SocketAddressInet::isInet6()const{
 
 inline bool SocketAddressInet::isLoopback()const{
 	if(isInet4()){
-		return ((uint32)ntohl(address4().s_addr) & 0xFF000000) == 0x7F000000;
+		return ((uint32_t)ntohl(address4().s_addr) & 0xFF000000) == 0x7F000000;
 	}else if(isInet6()){
 		return ((address6().s6_addr[0] == 0) && (address6().s6_addr[1] == 0)
 				&& (address6().s6_addr[2] == 0) && (address6().s6_addr[3] == 0)
@@ -498,7 +498,7 @@ inline bool SocketAddressInet::isLoopback()const{
 }
 inline bool SocketAddressInet::isInvalid()const{
 	if(isInet4()){
-		return (uint32)ntohl(address4().s_addr) == 0;
+		return (uint32_t)ntohl(address4().s_addr) == 0;
 	}else if(isInet6()){
 		return ((address6().s6_addr[0] == 0) && (address6().s6_addr[1] == 0)
 				&& (address6().s6_addr[2] == 0) && (address6().s6_addr[3] == 0)
@@ -528,7 +528,7 @@ inline SocketAddressInet::operator const sockaddr*()const{
 	return sockAddr();
 }
 
-inline bool SocketAddressInet::toBinary(Binary4T &_bin, uint16 &_port)const{
+inline bool SocketAddressInet::toBinary(Binary4T &_bin, uint16_t &_port)const{
 	if(isInet4()){
 		memcpy(_bin.data, &address4().s_addr, 4);
 		_port = d.inaddr4.sin_port;
@@ -537,7 +537,7 @@ inline bool SocketAddressInet::toBinary(Binary4T &_bin, uint16 &_port)const{
 	return false;
 }
 
-inline bool SocketAddressInet::toBinary(Binary6T &_bin, uint16 &_port)const{
+inline bool SocketAddressInet::toBinary(Binary6T &_bin, uint16_t &_port)const{
 	if(isInet6()){
 		memcpy(_bin.data, &address6().s6_addr, 16);
 		_port = d.inaddr6.sin6_port;
@@ -546,14 +546,14 @@ inline bool SocketAddressInet::toBinary(Binary6T &_bin, uint16 &_port)const{
 	return false;
 }
 
-inline void SocketAddressInet::fromBinary(const Binary4T &_bin, uint16 _port){
+inline void SocketAddressInet::fromBinary(const Binary4T &_bin, uint16_t _port){
 	sockAddr()->sa_family = AF_INET;
 	sz = sizeof(d.inaddr4);
 	memcpy(&d.inaddr4.sin_addr.s_addr, _bin.data, 4);
 	d.inaddr4.sin_port = _port;
 }
 
-inline void SocketAddressInet::fromBinary(const Binary6T &_bin, uint16 _port){
+inline void SocketAddressInet::fromBinary(const Binary6T &_bin, uint16_t _port){
 	sockAddr()->sa_family = AF_INET6;
 	sz = sizeof(d.inaddr6);
 	memcpy(&d.inaddr6.sin6_addr.s6_addr, _bin.data, 16);
@@ -690,7 +690,7 @@ inline SocketAddressInet4::SocketAddressInet4(const char* _addr, int _port){
 	address(_addr);
 	port(_port);
 }
-inline SocketAddressInet4::SocketAddressInet4(uint32 _addr, int _port){
+inline SocketAddressInet4::SocketAddressInet4(uint32_t _addr, int _port){
 	clear();
 	fromUInt(_addr, _port);
 }
@@ -717,13 +717,13 @@ inline bool SocketAddressInet4::isInet4()const{
 
 inline bool SocketAddressInet4::isLoopback()const{
 	if(isInet4()){
-		return ((uint32)ntohl(address().s_addr) & 0xFF000000) == 0x7F000000;
+		return ((uint32_t)ntohl(address().s_addr) & 0xFF000000) == 0x7F000000;
 	}
 	return false;
 }
 inline bool SocketAddressInet4::isInvalid()const{
 	if(isInet4()){
-		return (uint32)ntohl(address().s_addr) == 0;
+		return (uint32_t)ntohl(address().s_addr) == 0;
 	}
 	return false;
 }
@@ -740,21 +740,21 @@ inline SocketAddressInet4::operator const sockaddr*()const{
 	return sockAddr();
 }
 
-inline void SocketAddressInet4::toBinary(BinaryT &_bin, uint16 &_port)const{
+inline void SocketAddressInet4::toBinary(BinaryT &_bin, uint16_t &_port)const{
 	memcpy(_bin.data, &address().s_addr, 4);
 	_port = d.inaddr4.sin_port;
 }
 	
-inline void SocketAddressInet4::toUInt(uint32 &_addr, uint16 &_port)const{
+inline void SocketAddressInet4::toUInt(uint32_t &_addr, uint16_t &_port)const{
 	_addr = ntohl(address().s_addr);
-	_port = static_cast<uint16>(port());
+	_port = static_cast<uint16_t>(port());
 }
 
-inline void SocketAddressInet4::fromBinary(const BinaryT &_bin, uint16 _port){
+inline void SocketAddressInet4::fromBinary(const BinaryT &_bin, uint16_t _port){
 	memcpy(&d.inaddr4.sin_addr.s_addr, _bin.data, 4);
 	d.inaddr4.sin_port = _port;
 }
-inline void SocketAddressInet4::fromUInt(uint32 _addr, uint16 _port){
+inline void SocketAddressInet4::fromUInt(uint32_t _addr, uint16_t _port){
 	d.inaddr4.sin_addr.s_addr = htonl(_addr);
 	port(_port);
 }
@@ -884,12 +884,12 @@ inline SocketAddressInet6::operator const sockaddr*()const{
 	return sockAddr();
 }
 
-inline void SocketAddressInet6::toBinary(BinaryT &_bin, uint16 &_port)const{
+inline void SocketAddressInet6::toBinary(BinaryT &_bin, uint16_t &_port)const{
 	memcpy(_bin.data, &address().s6_addr, 16);
 	_port = d.inaddr6.sin6_port;
 }
 	
-inline void SocketAddressInet6::fromBinary(const BinaryT &_bin, uint16 _port){
+inline void SocketAddressInet6::fromBinary(const BinaryT &_bin, uint16_t _port){
 	memcpy(&d.inaddr6.sin6_addr.s6_addr, _bin.data, 16);
 	d.inaddr6.sin6_port = _port;
 }

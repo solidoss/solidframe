@@ -113,7 +113,7 @@ struct MessageStub: InnerNode<InnerLinkCount>{
 	MessageBundle	msgbundle;
 	MessageId		msgid;
 	ObjectIdT		objid;
-	uint32			unique;
+	uint32_t			unique;
 	uint			flags;
 };
 
@@ -163,10 +163,10 @@ struct ConnectionPoolStub{
 		MainConnectionActiveFlag		= 64,
 	};
 	
-	uint32					unique;
-	uint16					pending_connection_count;
-	uint16					active_connection_count;
-	uint16					stopping_connection_count;
+	uint32_t					unique;
+	uint16_t					pending_connection_count;
+	uint16_t					active_connection_count;
+	uint16_t					stopping_connection_count;
 	std::string				name;//because c_str() pointer is given to connection - name should allways be std::moved
 	ObjectIdT 				main_connection_id;
 	MessageVectorT			msgvec;
@@ -176,8 +176,8 @@ struct ConnectionPoolStub{
 	
 	ObjectIdQueueT			conn_waitingq;
 		
-	uint8					flags;
-	uint8					retry_connect_count;
+	uint8_t					flags;
+	uint8_t					retry_connect_count;
 	AddressVectorT			connect_addr_vec;
 	
 	
@@ -690,7 +690,7 @@ ErrorConditionT Service::doSendMessage(
 	
 	solid::ErrorConditionT		error;
 	size_t						pool_idx;
-	uint32						unique;
+	uint32_t						unique;
 	bool						check_uid = false;
 	
 	Locker<Mutex>				lock(d.mtx);

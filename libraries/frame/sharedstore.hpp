@@ -497,10 +497,10 @@ private:
 		}
 		
 		T			obj;
-		uint32		uid;
+		uint32_t		uid;
 		size_t		alivecnt;
 		size_t		usecnt;
-		uint8		state;
+		uint8_t		state;
 		WaitStub	*pwaitfirst;
 		WaitStub	*pwaitlast;
 	};

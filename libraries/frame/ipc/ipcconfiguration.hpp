@@ -42,7 +42,7 @@ using ResolveCompleteFunctionT						= FUNCTION<void(AddressVectorT &&)>;
 using AsyncResolveFunctionT							= FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
 using ConnectionStopFunctionT						= FUNCTION<void(ConnectionContext &, ErrorConditionT const&)>;
 using ConnectionStartFunctionT						= FUNCTION<void(ConnectionContext &)>;
-using AllocateBufferFunctionT						= FUNCTION<char*(const uint16)>;
+using AllocateBufferFunctionT						= FUNCTION<char*(const uint16_t)>;
 using FreeBufferFunctionT							= FUNCTION<void(char*)>;
 using CompressFunctionT								= FUNCTION<size_t(char*, size_t, ErrorConditionT &)>;
 using UncompressFunctionT							= FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT &)>;
@@ -127,14 +127,14 @@ public:
 		return listener_port;
 	}
 	
-	char* allocateRecvBuffer(uint8 &_rbuffer_capacity_kb)const;
+	char* allocateRecvBuffer(uint8_t &_rbuffer_capacity_kb)const;
 	void freeRecvBuffer(char *_pb)const;
 	
-	char* allocateSendBuffer(uint8 &_rbuffer_capacity_kb)const;
+	char* allocateSendBuffer(uint8_t &_rbuffer_capacity_kb)const;
 	void freeSendBuffer(char *_pb)const;
 	
 	size_t connectionReconnectTimeoutSeconds(
-		const uint8 _retry_count,
+		const uint8_t _retry_count,
 		const bool _failed_create_connection_object,
 		const bool _last_connection_was_connected,
 		const bool _last_connection_was_active,
@@ -159,19 +159,19 @@ public:
 	
 	
 	size_t								connection_reconnect_timeout_seconds;
-	uint32								connection_inactivity_timeout_seconds;
-	uint32								connection_keepalive_timeout_seconds;
+	uint32_t								connection_inactivity_timeout_seconds;
+	uint32_t								connection_keepalive_timeout_seconds;
 	ConnectionState						connection_start_state;
 	bool								connection_start_secure;
 	
-	uint32								connection_inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
+	uint32_t								connection_inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
 																				//messages during inactivity_timeout_seconds interval
 	
-	uint8								connection_recv_buffer_start_capacity_kb;
-	uint8								connection_recv_buffer_max_capacity_kb;
+	uint8_t								connection_recv_buffer_start_capacity_kb;
+	uint8_t								connection_recv_buffer_max_capacity_kb;
 	
-	uint8								connection_send_buffer_start_capacity_kb;
-	uint8								connection_send_buffer_max_capacity_kb;
+	uint8_t								connection_send_buffer_start_capacity_kb;
+	uint8_t								connection_send_buffer_max_capacity_kb;
 	
 	AsyncResolveFunctionT				name_resolve_fnc;
 	

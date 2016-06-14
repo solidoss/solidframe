@@ -29,7 +29,7 @@ void Stream::close(){
 int Stream::release(){return -1;}
 //bool Stream::isOk()const{return true;}
 
-int64 Stream::size()const{return -1;}
+int64_t Stream::size()const{return -1;}
 
 InputStream::~InputStream(){
 }
@@ -47,7 +47,7 @@ InputOutputStream::~InputOutputStream(){
 #include "utility/iostream.ipp"
 #endif
 
-bool InputStream::readAll(char *_pd, uint32 _dl, uint32){
+bool InputStream::readAll(char *_pd, uint32_t _dl, uint32_t){
 	int rv;
 	char *pd = (char*)_pd;
 	while(_dl && (rv = this->read(pd, _dl)) != (int)_dl){
@@ -59,11 +59,11 @@ bool InputStream::readAll(char *_pd, uint32 _dl, uint32){
 	return true;
 }
 
- int InputStream::read(uint64 _offset, char* _pbuf, uint32 _blen, uint32 _flags){
-	 const int64	crtoff(seek(0, SeekCur));
+ int InputStream::read(uint64_t _offset, char* _pbuf, uint32_t _blen, uint32_t _flags){
+	 const int64_t	crtoff(seek(0, SeekCur));
 	 
 	 if(crtoff < 0) return -1;
-	 if(_offset != static_cast<uint64>(seek(_offset))) return -1;
+	 if(_offset != static_cast<uint64_t>(seek(_offset))) return -1;
 	 
 	 int rv = read(_pbuf, _blen, _flags);
 	 
@@ -72,11 +72,11 @@ bool InputStream::readAll(char *_pd, uint32 _dl, uint32){
  }
 
 
-int OutputStream::write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 _flags){
-	 const int64	crtoff(seek(0, SeekCur));
+int OutputStream::write(uint64_t _offset, const char *_pbuf, uint32_t _blen, uint32_t _flags){
+	 const int64_t	crtoff(seek(0, SeekCur));
 	 
 	 if(crtoff < 0) return -1;
-	 if(_offset != static_cast<uint64>(seek(_offset))) return -1;
+	 if(_offset != static_cast<uint64_t>(seek(_offset))) return -1;
 	 
 	 int rv = write(_pbuf, _blen, _flags);
 	 

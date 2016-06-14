@@ -14,8 +14,8 @@ using solid::serialization::binary::ExtendedData;
 
 
 int test_extdata(int argc, char *argv[]){
-	ExtendedData 	e1(static_cast<uint32>(10));
-	cout<<e1.first_uint32_value()<<endl;
+	ExtendedData 	e1(static_cast<uint32_t>(10));
+	cout<<e1.first_uint32_t_value()<<endl;
 	
 	e1.generic(std::string("ceva"));
 	

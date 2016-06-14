@@ -27,9 +27,9 @@ T* basic_factory(){
 }
 
 
-bool joinTypeId(uint64 &_rtype_id, const uint32 _protocol_id, const uint64 _message_id);
+bool joinTypeId(uint64_t &_rtype_id, const uint32_t _protocol_id, const uint64_t _message_id);
 
-void splitTypeId(const uint64 _type_id, uint32 &_protocol_id, uint64 &_message_id);
+void splitTypeId(const uint64_t _type_id, uint32_t &_protocol_id, uint64_t &_message_id);
 
 class TypeIdMapBase{
 protected:
@@ -73,7 +73,7 @@ protected:
 		FactoryFunctionT	shared_factory;
 		LoadFunctionT		loadfnc;
 		StoreFunctionT		storefnc;
-		uint64				id;
+		uint64_t				id;
 	};
 	
 	static ErrorConditionT error_no_cast();
@@ -82,7 +82,7 @@ protected:
 	typedef std::vector<Stub>										StubVectorT;
 	
 	typedef std::unordered_map<std::type_index, size_t>				TypeIndexMapT;
-	typedef std::unordered_map<uint64, size_t>						MessageTypeIdMapT;
+	typedef std::unordered_map<uint64_t, size_t>						MessageTypeIdMapT;
 	typedef std::unordered_map<size_t, ProtocolStub>				ProtocolMapT;
 	
 	template <class F>
@@ -217,14 +217,14 @@ protected:
 		msgidmap[0] = 0;
 	}
 	
-	bool findTypeIndex(const uint64 &_rid, size_t &_rindex) const;
+	bool findTypeIndex(const uint64_t &_rid, size_t &_rindex) const;
 	
-	size_t doAllocateNewIndex(const size_t _protocol_id, uint64 &_rid);
-	bool doFindTypeIndex(const size_t _protocol_id,  size_t _idx, uint64 &_rid) const ;
+	size_t doAllocateNewIndex(const size_t _protocol_id, uint64_t &_rid);
+	bool doFindTypeIndex(const size_t _protocol_id,  size_t _idx, uint64_t &_rid) const ;
 	
 	template <class T, class StoreF, class LoadF>
 	size_t doRegisterType(StoreF _sf, LoadF _lf, const size_t _protocol_id,  size_t _idx){
-		uint64	id;
+		uint64_t	id;
 		
 		if(_idx == 0){
 			_idx = doAllocateNewIndex(_protocol_id, id);
@@ -253,7 +253,7 @@ protected:
 	
 	template <class T, class StoreF, class LoadF, class Allocator>
 	size_t doRegisterTypeAlloc(StoreF _sf, LoadF _lf, Allocator _allocator, const size_t _protocol_id,  size_t _idx){
-		uint64	id;
+		uint64_t	id;
 		
 		if(_idx == 0){
 			_idx = doAllocateNewIndex(_protocol_id, id);
@@ -378,7 +378,7 @@ public:
 	ErrorConditionT loadPlainPointer(
 		Des &_rd,
 		void* _rptr,				//store destination pointer, the real type must be static_cast-ed to this pointer
-		const uint64 &_riv,			//integer value that may store the typeid
+		const uint64_t &_riv,			//integer value that may store the typeid
 		std::string const &_rsv,	//string value that may store the typeid
 		const char *_name
 	) const {
@@ -389,33 +389,33 @@ public:
 	ErrorConditionT loadSharedPointer(
 		Des &_rd,
 		void* _rptr,				//store destination pointer, the real type must be static_cast-ed to this pointer
-		const uint64 &_riv,			//integer value that may store the typeid
+		const uint64_t &_riv,			//integer value that may store the typeid
 		std::string const &_rsv,	//string value that may store the typeid
 		const char *_name
 	) const {
 		return doLoadSharedPointer(_rd, _rptr, std::type_index(typeid(T)), _riv, _rsv, _name);
 	}
 	
-	ErrorConditionT findTypeIndex(const uint64 _type_id, size_t &_rstub_index)const{
+	ErrorConditionT findTypeIndex(const uint64_t _type_id, size_t &_rstub_index)const{
 		if(!TypeIdMapBase::findTypeIndex(_type_id, _rstub_index)){
 			return TypeIdMapBase::error_no_cast();
 		}
 		return ErrorConditionT();
 	}
 	
-	virtual void loadTypeId(Des &_rd, uint64 &_rv, std::string &_rstr, const char* _name)const = 0;
+	virtual void loadTypeId(Des &_rd, uint64_t &_rv, std::string &_rstr, const char* _name)const = 0;
 private:
 	
 	virtual ErrorConditionT doLoadPlainPointer(
 		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
-		const uint64 &_riv, std::string const &_rsv, const char *_name
+		const uint64_t &_riv, std::string const &_rsv, const char *_name
 	) const = 0;
 	
 	virtual ErrorConditionT doLoadSharedPointer(
 		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
-		const uint64 &_riv, std::string const &_rsv, const char *_name
+		const uint64_t &_riv, std::string const &_rsv, const char *_name
 	) const = 0;
 	
 	TypeIdMapDes(TypeIdMapDes&&);
@@ -478,7 +478,7 @@ public:
 	
 private:
 	/*virtual*/ ErrorConditionT storeNullPointer(Ser &_rs, const char *_name) const {
-		static const uint32 nulltypeid = 0;
+		static const uint32_t nulltypeid = 0;
 		_rs.pushCross(nulltypeid, _name);
 		return ErrorConditionT();
 	}
@@ -505,7 +505,7 @@ private:
 		}
 	}
 	
-	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
+	/*virtual*/ void loadTypeId(Des &_rd, uint64_t &_rv, std::string &/*_rstr*/, const char *_name)const{
 		_rd.pushCross(_rv, _name);
 	}
 	
@@ -515,7 +515,7 @@ private:
 	/*virtual*/ ErrorConditionT doLoadPlainPointer(
 		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
-		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
+		const uint64_t &_riv, std::string const &/*_rsv*/, const char *_name
 	) const {
 		
 		size_t									stubindex;
@@ -541,7 +541,7 @@ private:
 	/*virtual*/ ErrorConditionT doLoadSharedPointer(
 		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
-		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
+		const uint64_t &_riv, std::string const &/*_rsv*/, const char *_name
 	) const {
 		
 		size_t									stubindex;
@@ -704,7 +704,7 @@ public:
 	
 private:
 	/*virtual*/ ErrorConditionT storeNullPointer(Ser &_rs, const char *_name) const {
-		static const uint32 nulltypeid = 0;
+		static const uint32_t nulltypeid = 0;
 		_rs.pushCross(nulltypeid, _name);
 		return ErrorConditionT();
 	}
@@ -732,7 +732,7 @@ private:
 		}
 	}
 	
-	/*virtual*/ void loadTypeId(Des &_rd, uint64 &_rv, std::string &/*_rstr*/, const char *_name)const{
+	/*virtual*/ void loadTypeId(Des &_rd, uint64_t &_rv, std::string &/*_rstr*/, const char *_name)const{
 		_rd.pushCross(_rv, _name);
 	}
 	
@@ -742,7 +742,7 @@ private:
 	/*virtual*/ ErrorConditionT doLoadPlainPointer(
 		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
-		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
+		const uint64_t &_riv, std::string const &/*_rsv*/, const char *_name
 	) const {
 		size_t									stubindex;
 		
@@ -767,7 +767,7 @@ private:
 	/*virtual*/ ErrorConditionT doLoadSharedPointer(
 		Des &_rd, void* _rptr,
 		std::type_index const& _rtidx,		//type_index of the destination pointer
-		const uint64 &_riv, std::string const &/*_rsv*/, const char *_name
+		const uint64_t &_riv, std::string const &/*_rsv*/, const char *_name
 	) const {
 		size_t									stubindex;
 		

@@ -302,10 +302,10 @@ public:
 	const sockaddr* sockAddr()const;
 	operator const sockaddr*()const;
 	
-	bool toBinary(Binary4T &_bin, uint16 &_port)const;
-	bool toBinary(Binary6T &_bin, uint16 &_port)const;
-	void fromBinary(const Binary4T &_bin, uint16 _port = 0);
-	void fromBinary(const Binary6T &_bin, uint16 _port = 0);
+	bool toBinary(Binary4T &_bin, uint16_t &_port)const;
+	bool toBinary(Binary6T &_bin, uint16_t &_port)const;
+	void fromBinary(const Binary4T &_bin, uint16_t _port = 0);
+	void fromBinary(const Binary6T &_bin, uint16_t _port = 0);
 	
 	bool operator<(const SocketAddressInet &_raddr)const;
 	bool operator==(const SocketAddressInet &_raddr)const;
@@ -342,7 +342,7 @@ public:
 	SocketAddressInet4();
 	SocketAddressInet4(const SocketAddressStub &);
 	SocketAddressInet4(const char* _addr, int _port = 0);
-	SocketAddressInet4(uint32 _addr, int _port);
+	SocketAddressInet4(uint32_t _addr, int _port);
 	SocketAddressInet4(const BinaryT &_addr, int _port = 0);
 	
 	//SocketAddressInet4& operator=(const ResolveIterator &);
@@ -360,12 +360,12 @@ public:
 	//operator sockaddr*(){return sockAddr();}
 	operator const sockaddr*()const;
 	
-	void toBinary(BinaryT &_bin, uint16 &_port)const;
+	void toBinary(BinaryT &_bin, uint16_t &_port)const;
 	
-	void toUInt(uint32 &_addr, uint16 &_port)const;
+	void toUInt(uint32_t &_addr, uint16_t &_port)const;
 	
-	void fromBinary(const BinaryT &_bin, uint16 _port = 0);
-	void fromUInt(uint32 _addr, uint16 _port = 0);
+	void fromBinary(const BinaryT &_bin, uint16_t _port = 0);
+	void fromUInt(uint32_t _addr, uint16_t _port = 0);
 	
 	
 	bool operator<(const SocketAddressInet4 &_raddr)const;
@@ -418,9 +418,9 @@ public:
 	const sockaddr* sockAddr()const;
 	operator const sockaddr*()const;
 	
-	void toBinary(BinaryT &_bin, uint16 &_port)const;
+	void toBinary(BinaryT &_bin, uint16_t &_port)const;
 	
-	void fromBinary(const BinaryT &_bin, uint16 _port = 0);
+	void fromBinary(const BinaryT &_bin, uint16_t _port = 0);
 	
 	bool operator<(const SocketAddressInet6 &_raddr)const;
 	bool operator==(const SocketAddressInet6 &_raddr)const;

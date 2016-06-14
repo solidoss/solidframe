@@ -42,8 +42,8 @@ namespace solid{
 namespace frame{
 namespace file{
 
-uint32 dbgid(){
-	static uint32 id = Debug::the().registerModule("frame_file");
+uint32_t dbgid(){
+	static uint32_t id = Debug::the().registerModule("frame_file");
 	return id;
 }
 
@@ -63,7 +63,7 @@ struct TempWaitStub{
 	TempWaitStub(
 		UniqueId const &_uid = UniqueId(),
 		File *_pfile = NULL,
-		uint64 _size = 0,
+		uint64_t _size = 0,
 		size_t _value = 0
 	):objuid(_uid), pfile(_pfile), size(_size), value(_value){}
 	
@@ -76,7 +76,7 @@ struct TempWaitStub{
 	
 	UniqueId		objuid;
 	File		*pfile;
-	uint64		size;
+	uint64_t		size;
 	size_t		value;
 };
 
@@ -172,24 +172,24 @@ struct TempConfigurationImpl{
 				maxsize = capacity;
 			}
 		}
-		bool canUse(const uint64 _sz, const size_t _flags)const{
+		bool canUse(const uint64_t _sz, const size_t _flags)const{
 			return _flags & level && _sz <= maxsize && _sz >= minsize;
 		}
-		bool shouldUse(const uint64 _sz)const{
+		bool shouldUse(const uint64_t _sz)const{
 			return waitcount == 0 && ((capacity - usedsize) >= _sz);
 		}
 		bool canDeliver()const{
 			return waitcount && ((capacity - usedsize) >= waitsizefirst) ;
 		}
 		std::string 	path;
-		uint32			level;
-		uint64			capacity;
-		uint64			minsize;
-		uint64			maxsize;
+		uint32_t			level;
+		uint64_t			capacity;
+		uint64_t			minsize;
+		uint64_t			maxsize;
 		size_t			waitcount;
-		uint64			waitsizefirst;
+		uint64_t			waitsizefirst;
 		size_t			waitidxfirst;
-		uint64			usedsize;
+		uint64_t			usedsize;
 		size_t			currentid;
 		SizeStackT		idcache;
 		bool			enqued;
@@ -489,7 +489,7 @@ bool Utf8Controller::clear(shared::StoreBase::Accessor &_rsbacc, File &_rf, cons
 	return !d.tempidxvec.empty();
 }
 
-void Utf8Controller::doPrepareOpenTemp(File &_rf, uint64 _sz, const size_t _storeid){
+void Utf8Controller::doPrepareOpenTemp(File &_rf, uint64_t _sz, const size_t _storeid){
 	
 	TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[_storeid]);
 	size_t							fileid;
@@ -594,7 +594,7 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const s
 TempFile::TempFile(
 	size_t _storageid,
 	size_t _id,
-	uint64 _size
+	uint64_t _size
 ):TempBase(_storageid, _id, _size){}
 
 /*virtual*/ TempFile::~TempFile(){
@@ -603,12 +603,12 @@ TempFile::TempFile(
 
 namespace{
 
-void split_id(const uint32 _id, size_t &_rfldrid, size_t &_rfileid){
+void split_id(const uint32_t _id, size_t &_rfldrid, size_t &_rfileid){
 	_rfldrid = _id >> 16;
 	_rfileid = _id & 0xffffUL;
 }
 
-// void split_id(const uint64 _id, size_t &_rfldrid, size_t &_rfileid){
+// void split_id(const uint64_t _id, size_t &_rfldrid, size_t &_rfileid){
 // 	_rfldrid = _id >> 32;
 // 	_rfileid = _id & 0xffffffffUL;
 // }
@@ -629,7 +629,7 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 	
 	split_id(_id, fldrid, fileid);
 	
-	if(sizeof(_id) == sizeof(uint64)){
+	if(sizeof(_id) == sizeof(uint64_t)){
 		std::sprintf(fldrbuf, "%8.8X", fldrid);
 		std::sprintf(filebuf, "/%8.8x.tmp", fileid);
 	}else{
@@ -669,22 +669,22 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 		Directory::eraseFile(path.c_str());
 	}
 }
-/*virtual*/ int TempFile::read(char *_pb, uint32 _bl, int64 _off){
-	const int64 endoff = _off + _bl;
-	if(endoff > static_cast<int64>(tempsize)){
+/*virtual*/ int TempFile::read(char *_pb, uint32_t _bl, int64_t _off){
+	const int64_t endoff = _off + _bl;
+	if(endoff > static_cast<int64_t>(tempsize)){
 		if((endoff - tempsize) <= _bl){
-			_bl = static_cast<uint32>(endoff - tempsize);
+			_bl = static_cast<uint32_t>(endoff - tempsize);
 		}else{
 			return -1;
 		}
 	}
 	return fd.read(_pb, _bl, _off);
 }
-/*virtual*/ int TempFile::write(const char *_pb, uint32 _bl, int64 _off){
-	const int64 endoff = _off + _bl;
-	if(endoff > static_cast<int64>(tempsize)){
+/*virtual*/ int TempFile::write(const char *_pb, uint32_t _bl, int64_t _off){
+	const int64_t endoff = _off + _bl;
+	if(endoff > static_cast<int64_t>(tempsize)){
 		if((endoff - tempsize) <= _bl){
-			_bl = static_cast<uint32>(endoff - tempsize);
+			_bl = static_cast<uint32_t>(endoff - tempsize);
 		}else{
 			errno = ENOSPC;
 			return -1;
@@ -692,11 +692,11 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 	}
 	return fd.write(_pb, _bl, _off);
 }
-/*virtual*/ int64 TempFile::size()const{
+/*virtual*/ int64_t TempFile::size()const{
 	return fd.size();
 }
 
-/*virtual*/ bool TempFile::truncate(int64 _len){
+/*virtual*/ bool TempFile::truncate(int64_t _len){
 	return fd.truncate(_len);
 }
 /*virtual*/ void TempFile::flush(){
@@ -709,7 +709,7 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 TempMemory::TempMemory(
 	size_t _storageid,
 	size_t _id,
-	uint64 _size
+	uint64_t _size
 ):TempBase(_storageid, _id, _size), mf(_size)
 {
 	shared_mutex_safe(this);
@@ -725,20 +725,20 @@ TempMemory::TempMemory(
 }
 /*virtual*/ void TempMemory::close(const char */*_path*/, bool /*_remove*/){
 }
-/*virtual*/ int TempMemory::read(char *_pb, uint32 _bl, int64 _off){
+/*virtual*/ int TempMemory::read(char *_pb, uint32_t _bl, int64_t _off){
 	Locker<Mutex> lock(shared_mutex(this));
 	return mf.read(_pb, _bl, _off);
 }
-/*virtual*/ int TempMemory::write(const char *_pb, uint32 _bl, int64 _off){
+/*virtual*/ int TempMemory::write(const char *_pb, uint32_t _bl, int64_t _off){
 	Locker<Mutex> lock(shared_mutex(this));
 	return mf.write(_pb, _bl, _off);
 }
-/*virtual*/ int64 TempMemory::size()const{
+/*virtual*/ int64_t TempMemory::size()const{
 	Locker<Mutex> lock(shared_mutex(this));
 	return mf.size();
 }
 
-/*virtual*/ bool TempMemory::truncate(int64 _len){
+/*virtual*/ bool TempMemory::truncate(int64_t _len){
 	Locker<Mutex> lock(shared_mutex(this));
 	return mf.truncate(_len) == 0;
 }

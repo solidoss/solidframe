@@ -11,6 +11,7 @@
 #define SYSTEM_COMMON_HPP
 
 #include <cstdlib>
+#include <cstdint>
 #include "config.h"
 
 #ifndef SOLID_USE_SAFE_STATIC
@@ -27,50 +28,6 @@
 #endif
 
 namespace solid{
-
-typedef unsigned char		uchar;
-typedef unsigned int		uint;
-
-typedef unsigned long       ulong;
-typedef unsigned short      ushort;
-
-typedef long long			longlong;
-typedef unsigned long long	ulonglong;
-
-typedef signed char			int8;
-typedef unsigned char		uint8;
-
-typedef signed short		int16;
-typedef unsigned short		uint16;
-
-typedef unsigned int		uint32;
-typedef signed int			int32;
-// #if defined(U_WIN) && !defined(U_GCC)
-
-#if UWORDSIZE == 64
-
-#if defined(U_WIN)
-typedef __int64				int64;
-typedef unsigned __int64	uint64;
-#else
-typedef unsigned long		uint64;
-typedef signed long 		int64;
-#endif
-
-#define MAX_ULONG			0xffffffffffffffffULL
-
-#else
-
-#if defined(SOLID_ON_WINDOWS)
-typedef __int64				int64;
-typedef unsigned __int64	uint64;
-#else
-typedef unsigned long long	uint64;
-typedef signed long long	int64;
-#endif
-
-#define MAX_ULONG			0xffffffffUL
-#endif
 
 enum SeekRef {
 	SeekBeg=0,
@@ -90,43 +47,43 @@ template <class T>
 struct UnsignedType;
 
 template <>
-struct UnsignedType<int8>{
-    typedef uint8 Type;
+struct UnsignedType<int8_t>{
+    typedef uint8_t Type;
 };
 
 template <>
-struct UnsignedType<int16>{
-    typedef uint16 Type;
+struct UnsignedType<int16_t>{
+    typedef uint16_t Type;
 };
 
 template <>
-struct UnsignedType<int32>{
-    typedef uint32 Type;
+struct UnsignedType<int32_t>{
+    typedef uint32_t Type;
 };
 
 template <>
-struct UnsignedType<int64>{
-    typedef uint64 Type;
+struct UnsignedType<int64_t>{
+    typedef uint64_t Type;
 };
 
 template <>
-struct UnsignedType<uint8>{
-    typedef uint8 Type;
+struct UnsignedType<uint8_t>{
+    typedef uint8_t Type;
 };
 
 template <>
-struct UnsignedType<uint16>{
-    typedef uint16 Type;
+struct UnsignedType<uint16_t>{
+    typedef uint16_t Type;
 };
 
 template <>
-struct UnsignedType<uint32>{
-    typedef uint32 Type;
+struct UnsignedType<uint32_t>{
+    typedef uint32_t Type;
 };
 
 template <>
-struct UnsignedType<uint64>{
-    typedef uint64 Type;
+struct UnsignedType<uint64_t>{
+    typedef uint64_t Type;
 };
 
 const char* src_file_name(char const *_fname);

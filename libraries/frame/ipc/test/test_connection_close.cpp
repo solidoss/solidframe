@@ -53,21 +53,21 @@ bool							client_received_message = false;
 Mutex							mtx;
 Condition						cnd;
 frame::ipc::Service				*pipcclient = nullptr;
-std::atomic<uint64>				transfered_size(0);
+std::atomic<uint64_t>				transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 
 
 size_t real_size(size_t _sz){
 	//offset + (align - (offset mod align)) mod align
-	return _sz + ((sizeof(uint64) - (_sz % sizeof(uint64))) % sizeof(uint64));
+	return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
 struct Message: frame::ipc::Message{
-	uint32							idx;
+	uint32_t							idx;
     std::string						str;
 	bool							serialized;
 	
-	Message(uint32 _idx):idx(_idx), serialized(false){
+	Message(uint32_t _idx):idx(_idx), serialized(false){
 		idbg("CREATE ---------------- "<<(void*)this<<" idx = "<<idx);
 		init();
 		
@@ -95,11 +95,11 @@ struct Message: frame::ipc::Message{
 	void init(){
 		const size_t	sz = real_size(initarray[idx % initarraysize].size);
 		str.resize(sz);
-		const size_t	count = sz / sizeof(uint64);
-		uint64			*pu  = reinterpret_cast<uint64*>(const_cast<char*>(str.data()));
-		const uint64	*pup = reinterpret_cast<const uint64*>(pattern.data());
-		const size_t	pattern_size = pattern.size() / sizeof(uint64);
-		for(uint64 i = 0; i < count; ++i){
+		const size_t	count = sz / sizeof(uint64_t);
+		uint64_t			*pu  = reinterpret_cast<uint64_t*>(const_cast<char*>(str.data()));
+		const uint64_t	*pup = reinterpret_cast<const uint64_t*>(pattern.data());
+		const size_t	pattern_size = pattern.size() / sizeof(uint64_t);
+		for(uint64_t i = 0; i < count; ++i){
 			pu[i] = pup[(idx + i) % pattern_size];//pattern[i % pattern.size()];
 		}
 	}
@@ -111,12 +111,12 @@ struct Message: frame::ipc::Message{
 			return false;
 		}
 		//return true;
-		const size_t	count = sz / sizeof(uint64);
-		const uint64	*pu = reinterpret_cast<const uint64*>(str.data());
-		const uint64	*pup = reinterpret_cast<const uint64*>(pattern.data());
-		const size_t	pattern_size = pattern.size() / sizeof(uint64);
+		const size_t	count = sz / sizeof(uint64_t);
+		const uint64_t	*pu = reinterpret_cast<const uint64_t*>(str.data());
+		const uint64_t	*pup = reinterpret_cast<const uint64_t*>(pattern.data());
+		const size_t	pattern_size = pattern.size() / sizeof(uint64_t);
 		
-		for(uint64 i = 0; i < count; ++i){
+		for(uint64_t i = 0; i < count; ++i){
 			if(pu[i] != pup[(i + idx) % pattern_size]){
 				SOLID_THROW("Message check failed.");
 				return false;
@@ -312,7 +312,7 @@ int test_connection_close(int argc, char **argv){
 	size_t	sz = real_size(pattern.size());
 	
 	if(sz > pattern.size()){
-		pattern.resize(sz - sizeof(uint64));
+		pattern.resize(sz - sizeof(uint64_t));
 	}else if(sz < pattern.size()){
 		pattern.resize(sz);
 	}

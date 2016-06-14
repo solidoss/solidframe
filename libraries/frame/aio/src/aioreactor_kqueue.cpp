@@ -86,11 +86,11 @@ struct Selector::Data{
 		READ_PIPE = 4,
 		MAX_EVENTS_COUNT = 1024 * 2,
 	};
-	typedef Stack<uint32>				Uint32StackT;
-	typedef Queue<uint32>				Uint32QueueT;
+	typedef Stack<uint32_t>				Uint32_tStackT;
+	typedef Queue<uint32_t>				Uint32_tQueueT;
 	typedef std::vector<Stub>			StubVectorT;
-	typedef std::pair<uint32, uint32>	Uint32PairT;
-	typedef std::vector<Uint32PairT>	Uint32PairVectorT;
+	typedef std::pair<uint32_t, uint32_t>	Uint32_tPairT;
+	typedef std::vector<Uint32_tPairT>	Uint32_tPairVectorT;
 	
 	ulong				objcp;
 	ulong				objsz;
@@ -100,30 +100,30 @@ struct Selector::Data{
 	int					kqfd;
 	struct kevent 		events[MAX_EVENTS_COUNT];
 	StubVectorT			stubs;
-	Uint32QueueT		execq;
-	Uint32StackT		freestubsstk;
+	Uint32_tQueueT		execq;
+	Uint32_tStackT		freestubsstk;
 #ifdef UPIPESIGNAL
 	int					pipefds[2];
 #else
 	int					efd;//eventfd
 	Mutex				m;
-	Uint32QueueT		sigq;//a signal queue
-	uint64				efdv;//the eventfd value
+	Uint32_tQueueT		sigq;//a signal queue
+	uint64_t				efdv;//the eventfd value
 #endif
 	TimeSpec			ntimepos;//next timepos == next timeout
 	TimeSpec			ctimepos;//current time pos
 	
 //reporting data:
 	uint				rep_fullscancount;
-	Uint32PairVectorT	sockids;
+	Uint32_tPairVectorT	sockids;
 	
 public://methods:
 	Data();
 	~Data();
 	TimeSpec* computeWaitTimeout(TimeSpec &_rts)const;
 	void addNewSocket();
-	void* eventPrepare(const uint32 _objpos, const uint32 _sockpos);
-	void stub(uint32 &_objpos, uint32 &_sockpos, const struct kevent &_ev);
+	void* eventPrepare(const uint32_t _objpos, const uint32_t _sockpos);
+	void stub(uint32_t &_objpos, uint32_t &_sockpos, const struct kevent &_ev);
 };
 //-------------------------------------------------------------
 Selector::Data::Data():
@@ -167,17 +167,17 @@ void Selector::Data::addNewSocket(){
 }
 
 template <short X>
-void *compact_to_void_pointer(const uint32 _u1, const uint32 _u2);
+void *compact_to_void_pointer(const uint32_t _u1, const uint32_t _u2);
 
 template <short X>
-void uncompact_to_void_pointer(uint32 &_ru1, uint32 &_ru2, const void* _pv);
+void uncompact_to_void_pointer(uint32_t &_ru1, uint32_t &_ru2, const void* _pv);
 
 
 template <>
-inline void *compact_to_void_pointer<4>(const uint32 _u1, const uint32 _u2){
-	uint32 val;
-	uint16 u1(_u1);
-	uint16 u2(_u2);
+inline void *compact_to_void_pointer<4>(const uint32_t _u1, const uint32_t _u2){
+	uint32_t val;
+	uint16_t u1(_u1);
+	uint16_t u2(_u2);
 	val = u1;
 	val <<= 16;
 	val |= u2;
@@ -185,8 +185,8 @@ inline void *compact_to_void_pointer<4>(const uint32 _u1, const uint32 _u2){
 }
 
 template <>
-inline void *compact_to_void_pointer<8>(const uint32 _u1, const uint32 _u2){
-	uint64 val;
+inline void *compact_to_void_pointer<8>(const uint32_t _u1, const uint32_t _u2){
+	uint64_t val;
 	val = _u1;
 	val <<= 32;
 	val |= _u2;
@@ -195,27 +195,27 @@ inline void *compact_to_void_pointer<8>(const uint32 _u1, const uint32 _u2){
 
 
 template <>
-inline void uncompact_to_void_pointer<4>(uint32 &_ru1, uint32 &_ru2, const void* _pv){
-	uint32 val(reinterpret_cast<const uint64>(_pv));
+inline void uncompact_to_void_pointer<4>(uint32_t &_ru1, uint32_t &_ru2, const void* _pv){
+	uint32_t val(reinterpret_cast<const uint64_t>(_pv));
 	_ru1 = val >> 16;
 	_ru2 = val & 0xffff;
 }
 
 template <>
-inline void uncompact_to_void_pointer<8>(uint32 &_ru1, uint32 &_ru2, const void* _pv){
-	uint64 val(reinterpret_cast<const uint64>(_pv));
+inline void uncompact_to_void_pointer<8>(uint32_t &_ru1, uint32_t &_ru2, const void* _pv){
+	uint64_t val(reinterpret_cast<const uint64_t>(_pv));
 	_ru1 = val >> 32;
 	_ru2 = val & 0xffffffff;
 }
 
 
 inline void* Selector::Data::eventPrepare(
-	const uint32 _objpos, const uint32 _sockpos
+	const uint32_t _objpos, const uint32_t _sockpos
 ){
 	
 	return compact_to_void_pointer<sizeof(void*)>(_objpos, _sockpos);
 }
-void Selector::Data::stub(uint32 &_objpos, uint32 &_sockpos, const struct kevent &_ev){
+void Selector::Data::stub(uint32_t &_objpos, uint32_t &_sockpos, const struct kevent &_ev){
 	uncompact_to_void_pointer<sizeof(void*)>(_objpos, _sockpos, _ev.udata);
 }
 //=============================================================
@@ -299,13 +299,13 @@ void Selector::prepare(){
 void Selector::unprepare(){
 }
 
-void Selector::raise(uint32 _pos){
+void Selector::raise(uint32_t _pos){
 #ifdef UPIPESIGNAL
 	idbgx(Debug::aio, "signal connection pipe: "<<_pos<<" this "<<(void*)this);
-	write(d.pipefds[1], &_pos, sizeof(uint32));
+	write(d.pipefds[1], &_pos, sizeof(uint32_t));
 #else
 	idbgx(Debug::aio, "signal connection evnt: "<<_pos<<" this "<<(void*)this);
-	uint64 v(1);
+	uint64_t v(1);
 	{
 		Locker<Mutex> lock(d.m);
 		d.sigq.push(_pos);
@@ -460,8 +460,8 @@ void Selector::run(){
 //-------------------------------------------------------------
 ulong Selector::doReadPipe(){
 #ifdef UPIPESIGNAL
-	enum {BUFSZ = 128, BUFLEN = BUFSZ * sizeof(uint32)};
-	uint32		buf[128];
+	enum {BUFSZ = 128, BUFLEN = BUFSZ * sizeof(uint32_t)};
+	uint32_t		buf[128];
 	ulong		rv(0);//no
 	long		rsz(0);
 	long		j(0);
@@ -507,7 +507,7 @@ ulong Selector::doReadPipe(){
 #else
 	//using eventfd
 	int		rv = 0;
-	uint64	v = 0;
+	uint64_t	v = 0;
 	bool mustempty = false;
 	Stub		*pstub(NULL);
 	
@@ -598,9 +598,9 @@ inline ulong Selector::doIo(Socket &_rsock, ulong _flags, ulong _filter){
 ulong Selector::doAllIo(){
 	ulong		flags = 0;
 	TimeSpec	crttout;
-	uint32		evs;
-	uint32		stubpos;
-	uint32		sockpos;
+	uint32_t		evs;
+	uint32_t		stubpos;
+	uint32_t		sockpos;
 	const ulong	selcnt = d.selcnt;
 	for(ulong i = 0; i < selcnt; ++i){
 		d.stub(stubpos, sockpos, d.events[i]);
@@ -782,7 +782,7 @@ void Selector::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
 	for(const size_t *pit(stub.objptr->reqbeg); pit != pend; ++pit){
 		Object::SocketStub &sockstub(stub.objptr->pstubs[*pit]);
 		//sockstub.chnevents = 0;
-		const uint8 reqtp = sockstub.requesttype;
+		const uint8_t reqtp = sockstub.requesttype;
 		sockstub.requesttype = 0;
 		switch(reqtp){
 			case Object::SocketStub::IORequest:{

@@ -25,20 +25,20 @@ namespace solid{
 			return id \< _cd.id;<br>
 		}<br>
 		
-		bool operator<(uint32 _id)const{<br>
+		bool operator<(uint32_t _id)const{<br>
 			return id \< _id;<br>
 		}<br>
 		
-		uint32	id;<br>
+		uint32_t	id;<br>
 		string	sdata;<br>
-		uint64	udata;<br>
+		uint64_t	udata;<br>
 	};<br>
 	
 	typedef std::vector\<ComplexData> CDVectorT;
 	
 	BinarySeeker<> bs;
 	
-	void find(const CDVectorT &_rv, uint32 _d){<br>
+	void find(const CDVectorT &_rv, uint32_t _d){<br>
 		int rv = bs(_rv.begin(), _rv.end(), _d);<br>
 	}
 	</code>
@@ -59,16 +59,16 @@ struct BasicComparator{
 	and with pointers. E.g.:<br>
 	<code>
 	struct ComplexData{<br>
-		uint32	id;<br>
+		uint32_t	id;<br>
 		string	sdata;<br>
-		uint64	udata;<br>
+		uint64_t	udata;<br>
 	};<br>
 	
 	struct ComplexDataComparator{<br>
 		bool operator()(const ComplexData &_cd1, const ComplexData &_cd2)const{<br>
 			return _cd1.id \< _cd2.id;<br>
 		}<br>
-		bool operator()(const ComplexData &_cd1, uint32 _id)const{<br>
+		bool operator()(const ComplexData &_cd1, uint32_t _id)const{<br>
 			return _cd1.id \< _id;<br>
 		}<br>
 	};
@@ -77,7 +77,7 @@ struct BasicComparator{
 	
 	BinarySeeker\<ComplexDataComparator\> bs;<br>
 	
-	void find(const CDVectorT &_rv, uint32 _d){<br>
+	void find(const CDVectorT &_rv, uint32_t _d){<br>
 		int rv = bs(_rv.begin(), _rv.end(), _d);<br>
 	}
 	</code>

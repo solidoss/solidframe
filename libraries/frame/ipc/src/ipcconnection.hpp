@@ -251,10 +251,10 @@ private:
 	virtual bool sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp) = 0;
 	virtual void prepareSocket(frame::aio::ReactorContext &_rctx) = 0;
 	
-	uint32 recvBufferCapacity()const{
+	uint32_t recvBufferCapacity()const{
 		return recv_buf_cp_kb * 1024;
 	}
-	uint32 sendBufferCapacity()const{
+	uint32_t sendBufferCapacity()const{
 		return send_buf_cp_kb * 1024;
 	}
 protected:
@@ -266,18 +266,18 @@ protected:
 	
 	TimerT						timer;
 	
-	uint16						flags;
+	uint16_t						flags;
 	
-	uint32						recv_buf_off;
-	uint32						cons_buf_off;
+	uint32_t						recv_buf_off;
+	uint32_t						cons_buf_off;
 	
-	uint32						recv_keepalive_count;
+	uint32_t						recv_keepalive_count;
 	
 	char						*recv_buf;
 	char						*send_buf;
 	
-	uint8						recv_buf_cp_kb;//kilobytes
-	uint8						send_buf_cp_kb;//kilobytes
+	uint8_t						recv_buf_cp_kb;//kilobytes
+	uint8_t						send_buf_cp_kb;//kilobytes
 	
 	MessageIdVectorT			pending_message_vec;
 	

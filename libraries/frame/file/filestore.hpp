@@ -21,7 +21,7 @@ class Manager;
 
 namespace file{
 
-uint32 dbgid();
+uint32_t dbgid();
 
 enum{
 	MemoryLevelFlag = 1,
@@ -43,10 +43,10 @@ struct TempConfiguration{
 		Storage():level(0), capacity(0), minsize(0), maxsize(0), removemode(RemoveAfterCreateE){}
 		
 		std::string 	path;
-		uint32			level;
-		uint64			capacity;
-		uint64			minsize;
-		uint64			maxsize;
+		uint32_t			level;
+		uint64_t			capacity;
+		uint64_t			minsize;
+		uint64_t			maxsize;
 		TempRemoveMode	removemode;
 	};
 	
@@ -71,35 +71,35 @@ struct File{
 	//We only offer offset based io because in case of shared use
 	//the file offset will be kept by streams
 	
-	int read(char *_pb, uint32 _bl, int64 _off){
+	int read(char *_pb, uint32_t _bl, int64_t _off){
 		if(!ptmp){
 			return fd.read(_pb, _bl, _off);
 		}else{
 			return ptmp->read(_pb, _bl, _off);
 		}
 	}
-	int write(const char *_pb, uint32 _bl, int64 _off){
+	int write(const char *_pb, uint32_t _bl, int64_t _off){
 		if(!ptmp){
 			return fd.write(_pb, _bl, _off);
 		}else{
 			return ptmp->write(_pb, _bl, _off);
 		}
 	}
-	int64 size()const{
+	int64_t size()const{
 		if(!ptmp){
 			return fd.size();
 		}else{
 			return ptmp->size();
 		}
 	}
-	bool truncate(int64 _len = 0){
+	bool truncate(int64_t _len = 0){
 		if(!ptmp){
 			return fd.truncate(_len);
 		}else{
 			return ptmp->truncate(_len);
 		}
 	}
-	int64 capacity()const{
+	int64_t capacity()const{
 		if(!ptmp){
 			return -1;
 		}else{
@@ -148,12 +148,12 @@ struct OpenCommand: Base{
 
 struct CreateTempCommandBase{
 	size_t			openflags;
-	uint64			size;
+	uint64_t			size;
 	size_t			storageid;
 	
 protected:
 	CreateTempCommandBase(
-		uint64 _sz, size_t _openflags
+		uint64_t _sz, size_t _openflags
 	):openflags(_openflags), size(_sz), storageid(InvalidIndex()){}
 	
 	void openTemp(Utf8Controller &_rstore, FilePointerT &_rptr, ERROR_NS::error_code &_rerr);
@@ -165,7 +165,7 @@ struct CreateTempCommand: CreateTempCommandBase{
 	Cmd				cmd;
 	
 	CreateTempCommand(
-		Cmd const &_cmd, uint64 _sz, size_t _createflags
+		Cmd const &_cmd, uint64_t _sz, size_t _createflags
 	):CreateTempCommandBase(_sz, _createflags), cmd(_cmd){}
 	
 	void operator()(S &_rstore, FilePointerT &_rptr, ERROR_NS::error_code err){
@@ -226,7 +226,7 @@ private:
 	friend struct Utf8OpenCommandBase;
 	void openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr);
 	void openTemp(CreateTempCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr);
-	void doPrepareOpenTemp(File &_rf, uint64 _sz, const size_t _storeid);
+	void doPrepareOpenTemp(File &_rf, uint64_t _sz, const size_t _storeid);
 	void doCloseTemp(TempBase &_rtemp);
 	void doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const size_t _storeid);
 private:
@@ -295,7 +295,7 @@ public:
 	
 	template <class Cmd>
 	bool requestCreateTemp(
-		Cmd const &_cmd, uint64 _sz, const size_t _createflags = AllLevelsFlag, const size_t _flags = 0
+		Cmd const &_cmd, uint64_t _sz, const size_t _createflags = AllLevelsFlag, const size_t _flags = 0
 	){
 		CreateTempCommand<ThisT, Cmd>	cmd(_cmd, _sz, _createflags);
 		return StoreT::requestReinit(cmd, _flags);

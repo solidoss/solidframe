@@ -11,7 +11,7 @@ using namespace solid;
 using namespace solid::serialization::binary;
 //---
 
-void print(uint32 _v){
+void print(uint32_t _v){
 	bitset<32>		bs(_v);
 	cout<<bs<<": max_bit_count = "<<max_bit_count(_v);
 	cout<<" max_padded_bit_cout = "<<max_padded_bit_cout(_v);
@@ -71,7 +71,7 @@ bool test(const T &_v, const size_t _estimated_size){
 }
 
 int test_binarybasic(int argc, char *argv[]){
-	cout<<"max uint8 value with crc: "<<(int)max_value_without_crc_8()<<endl;
+	cout<<"max uint8_t value with crc: "<<(int)max_value_without_crc_8()<<endl;
 	
 	print(0);
 	print(1);
@@ -87,69 +87,69 @@ int test_binarybasic(int argc, char *argv[]){
 	print(0xffffffff);
 	
 	
-	if(!test(static_cast<uint8>(0x00), 1)){
+	if(!test(static_cast<uint8_t>(0x00), 1)){
 		SOLID_ASSERT(false);
 	}
 	
-	if(!test(static_cast<uint8>(0x1), 2)){
+	if(!test(static_cast<uint8_t>(0x1), 2)){
 		SOLID_ASSERT(false);
 	}
 	
-	if(!test(static_cast<uint8>(0xff), 2)){
+	if(!test(static_cast<uint8_t>(0xff), 2)){
 		SOLID_ASSERT(false);
 	}
 	
-	if(!test(static_cast<uint16>(0), 1)){
+	if(!test(static_cast<uint16_t>(0), 1)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint16>(0xff), 2)){
+	if(!test(static_cast<uint16_t>(0xff), 2)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint16>(0xffff), 3)){
-		SOLID_ASSERT(false);
-	}
-	
-	if(!test(static_cast<uint32>(0), 1)){
-		SOLID_ASSERT(false);
-	}
-	if(!test(static_cast<uint32>(0xff), 2)){
-		SOLID_ASSERT(false);
-	}
-	if(!test(static_cast<uint32>(0xffff), 3)){
-		SOLID_ASSERT(false);
-	}
-	if(!test(static_cast<uint32>(0xffffff), 4)){
-		SOLID_ASSERT(false);
-	}
-	if(!test(static_cast<uint32>(0xffffffff), 5)){
+	if(!test(static_cast<uint16_t>(0xffff), 3)){
 		SOLID_ASSERT(false);
 	}
 	
-	if(!test(static_cast<uint64>(0), 1)){
+	if(!test(static_cast<uint32_t>(0), 1)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint64>(0xff), 2)){
+	if(!test(static_cast<uint32_t>(0xff), 2)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint64>(0xffff), 3)){
+	if(!test(static_cast<uint32_t>(0xffff), 3)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint64>(0xffffff), 4)){
+	if(!test(static_cast<uint32_t>(0xffffff), 4)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint64>(0xffffffff), 5)){
+	if(!test(static_cast<uint32_t>(0xffffffff), 5)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint64>(0xffffffffffULL), 6)){
+	
+	if(!test(static_cast<uint64_t>(0), 1)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint64>(0xffffffffffffULL), 7)){
+	if(!test(static_cast<uint64_t>(0xff), 2)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint64>(0xffffffffffffffULL), 8)){
+	if(!test(static_cast<uint64_t>(0xffff), 3)){
 		SOLID_ASSERT(false);
 	}
-	if(!test(static_cast<uint64>(0xffffffffffffffffULL), 9)){
+	if(!test(static_cast<uint64_t>(0xffffff), 4)){
+		SOLID_ASSERT(false);
+	}
+	if(!test(static_cast<uint64_t>(0xffffffff), 5)){
+		SOLID_ASSERT(false);
+	}
+	if(!test(static_cast<uint64_t>(0xffffffffffULL), 6)){
+		SOLID_ASSERT(false);
+	}
+	if(!test(static_cast<uint64_t>(0xffffffffffffULL), 7)){
+		SOLID_ASSERT(false);
+	}
+	if(!test(static_cast<uint64_t>(0xffffffffffffffULL), 8)){
+		SOLID_ASSERT(false);
+	}
+	if(!test(static_cast<uint64_t>(0xffffffffffffffffULL), 9)){
 		SOLID_ASSERT(false);
 	}
 	return 0;

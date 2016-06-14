@@ -20,12 +20,12 @@ namespace file{
 struct TempBase{
 	const size_t	tempstorageid;
 	const size_t	tempid;
-	const uint64	tempsize;
+	const uint64_t	tempsize;
 	
 	TempBase(
 		size_t _storageid,
 		size_t _id,
-		uint64 _size
+		uint64_t _size
 	):tempstorageid(_storageid), tempid(_id), tempsize(_size){}
 	
 	virtual ~TempBase();
@@ -39,10 +39,10 @@ struct TempBase{
 	
 	virtual void close(const char *_path, bool _remove) = 0;
 	
-	virtual int read(char *_pb, uint32 _bl, int64 _off) = 0;
-	virtual int write(const char *_pb, uint32 _bl, int64 _off) = 0;
-	virtual int64 size()const = 0;
-	virtual bool truncate(int64 _len = 0) = 0;
+	virtual int read(char *_pb, uint32_t _bl, int64_t _off) = 0;
+	virtual int write(const char *_pb, uint32_t _bl, int64_t _off) = 0;
+	virtual int64_t size()const = 0;
+	virtual bool truncate(int64_t _len = 0) = 0;
 	virtual void flush();
 };
 

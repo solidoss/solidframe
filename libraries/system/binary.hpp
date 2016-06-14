@@ -23,15 +23,15 @@ struct Binary{
 	size_t size()const{return Size;}
 	size_t capacity()const{return Capacity;}
 	
-	uint8& operator[](const size_t &_off){
+	uint8_t& operator[](const size_t &_off){
 		return data[_off];
 	}
 	
-	uint8 operator[](const size_t &_off)const{
+	uint8_t operator[](const size_t &_off)const{
 		return data[_off];
 	}
 	
-	uint8 data[Capacity];
+	uint8_t data[Capacity];
 };
 
 

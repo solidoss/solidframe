@@ -7,9 +7,9 @@ using namespace std;
 using namespace solid;
 using namespace solid::serialization;
 
-bool test(const uint32 _protocol_id, const uint64 _message_id, bool _should_fail_join = false){
+bool test(const uint32_t _protocol_id, const uint64_t _message_id, bool _should_fail_join = false){
 	
-	uint64  tid;
+	uint64_t  tid;
 	
 	if(!joinTypeId(tid, _protocol_id, _message_id) and !_should_fail_join){
 		SOLID_THROW("fail join");
@@ -20,8 +20,8 @@ bool test(const uint32 _protocol_id, const uint64 _message_id, bool _should_fail
 	
 	cout<<"crossSize("<<tid<<") = "<<binary::crossSize(tid)<<endl;
 	
-	uint32 pid;
-	uint64 mid;
+	uint32_t pid;
+	uint64_t mid;
 	
 	splitTypeId(tid, pid, mid);
 	

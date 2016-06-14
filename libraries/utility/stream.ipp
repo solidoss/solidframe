@@ -11,7 +11,7 @@
 #define inline
 #endif
 
-inline StreamFlags::StreamFlags(uint32 _flags):flags(_flags){}
+inline StreamFlags::StreamFlags(uint32_t _flags):flags(_flags){}
 
 inline bool Stream::ok()const{
 	return flags.flags == 0;

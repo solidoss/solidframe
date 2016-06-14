@@ -65,9 +65,9 @@ public:
 		MessageId &_rpool_msg_id
 	);
 	
-	uint32 write(
+	uint32_t write(
 		char *_pbuf,
-		uint32 _bufsz, const bool _keep_alive, 
+		uint32_t _bufsz, const bool _keep_alive, 
 		CompleteFunctionT &_complete_fnc,
 		WriterConfiguration const &_rconfig,
 		Protocol const &_rproto,
@@ -135,7 +135,7 @@ private:
 		}
 		
 		MessageBundle				msgbundle;
-		uint32						unique;
+		uint32_t						unique;
 		size_t						packet_count;
 		SerializerPointerT			serializer_ptr;
 		MessageId					pool_msg_id;
@@ -197,7 +197,7 @@ private:
 	void doUnprepareMessageStub(const size_t _msgidx);
 private:
 	MessageVectorT				message_vec;
-	uint32						current_message_type_id;
+	uint32_t						current_message_type_id;
 	size_t						current_synchronous_message_idx;
 	MessageOrderInnerListT		order_inner_list;
 	MessageStatusInnerListT		write_inner_list;

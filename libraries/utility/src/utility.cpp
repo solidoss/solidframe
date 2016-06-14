@@ -14,7 +14,7 @@
 
 namespace solid{
 
-const uint8 reverted_chars[] = {
+const uint8_t reverted_chars[] = {
 	0x00,0x80,0x40,0xC0,0x20,0xA0,0x60,0xE0,0x10,0x90,
 	0x50,0xD0,0x30,0xB0,0x70,0xF0,0x08,0x88,0x48,0xC8,
 	0x28,0xA8,0x68,0xE8,0x18,0x98,0x58,0xD8,0x38,0xB8,
@@ -43,8 +43,8 @@ const uint8 reverted_chars[] = {
 	0x5F,0xDF,0x3F,0xBF,0x7F,0xFF
 };
 
-size_t bit_count(const uint8 _v){
-	static const uint8 cnts[] = {
+size_t bit_count(const uint8_t _v){
+	static const uint8_t cnts[] = {
 		0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 
 		1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
 		1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
@@ -65,20 +65,20 @@ size_t bit_count(const uint8 _v){
 	return cnts[_v];
 }
 
-size_t bit_count(const uint16 _v){
-	return bit_count((uint8)(_v & 0xff)) + bit_count((uint8)(_v >> 8));
+size_t bit_count(const uint16_t _v){
+	return bit_count((uint8_t)(_v & 0xff)) + bit_count((uint8_t)(_v >> 8));
 }
 
-size_t bit_count(const uint32 _v){
-	return bit_count((uint8)(_v & 0xff)) +
-		bit_count((uint8)((_v >> 8) & 0xff)) +
-		bit_count((uint8)((_v >> 16) & 0xff)) +
-		bit_count((uint8)((_v >> 24) & 0xff));
+size_t bit_count(const uint32_t _v){
+	return bit_count((uint8_t)(_v & 0xff)) +
+		bit_count((uint8_t)((_v >> 8) & 0xff)) +
+		bit_count((uint8_t)((_v >> 16) & 0xff)) +
+		bit_count((uint8_t)((_v >> 24) & 0xff));
 }
 
-size_t bit_count(const uint64 _v){
-	return bit_count((uint32)(_v & 0xffffffff)) +
-		bit_count((uint32)(_v >> 32));
+size_t bit_count(const uint64_t _v){
+	return bit_count((uint32_t)(_v & 0xffffffff)) +
+		bit_count((uint32_t)(_v >> 32));
 }
 
 }//namespace solid
