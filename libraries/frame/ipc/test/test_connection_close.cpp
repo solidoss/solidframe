@@ -215,6 +215,7 @@ void client_complete_logout(
 ){
 	SOLID_CHECK(!_rerror);
 	SOLID_CHECK(_rsent_msg_ptr.get() and _rrecv_msg_ptr.get());
+	SOLID_CHECK(_rctx.service().closeConnection(_rctx.recipientId()));
 	client_received_logout = true;
 }
 
@@ -277,7 +278,7 @@ void server_complete_logout(
 	if(_rsent_msg_ptr.get()){
 		idbg("close connection");
 		//see NOTE (***) above
-		SOLID_CHECK(_rctx.service().closeConnection(_rctx.recipientId()));
+		//SOLID_CHECK(_rctx.service().closeConnection(_rctx.recipientId()));
 #if 0
 		_rctx.service().delayCloseConnectionPool(
 			_rctx.recipientId(),

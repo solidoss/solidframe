@@ -594,6 +594,7 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 	service(_rctx).onConnectionStop(conctx, _rerr);
 	
 	doUnprepare(_rctx);
+	(void)objuid;
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent){

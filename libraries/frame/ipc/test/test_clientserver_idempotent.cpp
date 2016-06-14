@@ -62,9 +62,9 @@ size_t							connection_count(0);
 bool							running = true;
 bool							start_sleep = false;
 mutex							mtx;
-condition_variable					cnd;
+condition_variable				cnd;
 frame::ipc::Service				*pipcclient = nullptr;
-std::atomic<uint64_t>				transfered_size(0);
+std::atomic<uint64_t>			transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 
 
@@ -231,7 +231,7 @@ void server_complete_message(
 	if(_rrecv_msg_ptr.get()){
 		idbg(_rctx.recipientId()<<" received message with id on sender "<<_rrecv_msg_ptr->requestId());
 		
-		SOLID_CHECK(_rrecv_msg_ptr->idx != 0);
+		//SOLID_CHECK(_rrecv_msg_ptr->idx != 0);
 		
 		if(not _rrecv_msg_ptr->check()){
 			SOLID_THROW("Message check failed.");
@@ -239,6 +239,10 @@ void server_complete_message(
 		
 		if(!_rrecv_msg_ptr->isOnPeer()){
 			SOLID_THROW("Message not on peer!.");
+		}
+		
+		if(_rrecv_msg_ptr->idx == 0){
+			return;//ignore the first message
 		}
 		
 		//send message back

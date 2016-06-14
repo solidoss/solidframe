@@ -33,7 +33,10 @@ C++11 enabled compilers on:
 ## TODO v2.0
 
 * (PENDING) Finalizing the IPC library - what is planned for SFv2.0.
-* Cross-platform support: FreeBSD, Darwin/OSX, Windows (partial).
+* Cross-platform support:
+	* (DONE) Linux
+	* (DONE) FreeBSD
+	* (WAIT) Darwin/OSX (currently no support thread_local, will be supported by XCode 8)
 * (DONE) Add "make install" support.
 * Documentation.
 * Preparing for SFv2.0.

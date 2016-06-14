@@ -599,6 +599,8 @@ void Reactor::run(){
 	d.eventobj.stop();
 	doClearSpecific();
 	idbgx(Debug::aio, "<exit>");
+	(void)waitmsec;
+	(void)waittime;
 }
 
 //-----------------------------------------------------------------------------

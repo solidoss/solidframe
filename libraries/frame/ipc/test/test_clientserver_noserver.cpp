@@ -225,7 +225,7 @@ int test_clientserver_noserver(int argc, char **argv){
 			return 1;
 		}
 		
-		std::string		server_port;
+		std::string		server_port("54321");
 		
 		{//ipc client initialization
 			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;

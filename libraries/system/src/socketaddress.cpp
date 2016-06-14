@@ -27,7 +27,9 @@ namespace solid{
 //			synchronous_resolve
 //-----------------------------------------------------------------------
 void ResolveData::delete_addrinfo(void *_pv){
-	freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
+	if(_pv){
+		freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
+	}
 }
 
 ResolveData synchronous_resolve(const char *_node, const char *_service){
