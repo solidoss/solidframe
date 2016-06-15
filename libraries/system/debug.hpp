@@ -271,7 +271,7 @@ struct DebugTraceTest{
 #define check_call(a, v, c) \
 	do{\
 	if((c) != v){\
-		edbgx(a, "Error call ##c"<<strerror(errno))\
+		edbgx(a, "Error while calling ##c: "<<last_system_error().message())\
 		SOLID_ASSERT(false);\
 	}\
 	}while(false);

@@ -17,6 +17,7 @@
 #include "system/error.hpp"
 #include <unordered_map>
 #include <typeindex>
+#include <memory>
 
 namespace solid{
 namespace serialization{
