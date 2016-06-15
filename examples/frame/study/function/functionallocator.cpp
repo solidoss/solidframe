@@ -3,8 +3,10 @@
 //#include "boost/function.hpp"
 #include "function.hpp"
 #include "boost/pool/pool_alloc.hpp"
+#ifdef SOLID_ON_LINUX
 #include <mcheck.h>
 #include <malloc.h>
+#endif
 
 #define FUNCTION_NS func
 
@@ -29,8 +31,9 @@ static void init_my_hooks(void) {
     //old_malloc_hook = __malloc_hook;
     //__malloc_hook = new_malloc_hook;
 }
-
+#ifdef SOLID_ON_LINUX
 void (*__MALLOC_HOOK_VOLATILE __malloc_initialize_hook)(void) = init_my_hooks;
+#endif
 
 void* operator new(size_t sz) throw (std::bad_alloc)
 {

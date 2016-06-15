@@ -2,8 +2,10 @@
 #include <functional>
 #include "system/socketdevice.hpp"
 #include "boost/function.hpp"
+#ifdef SOLID_ON_LINUX
 #include <mcheck.h>
 #include <malloc.h>
+#endif
 
 using namespace std;
 using namespace solid;
@@ -29,7 +31,11 @@ static void init_my_hooks(void) {
     //__malloc_hook = new_malloc_hook;
 }
 
+#ifdef SOLID_ON_LINUX
+
 void (*__MALLOC_HOOK_VOLATILE __malloc_initialize_hook)(void) = init_my_hooks;
+
+#endif
 
 void* operator new(size_t sz) throw (std::bad_alloc)
 {

@@ -67,17 +67,7 @@ struct EventHandler: CompletionHandler{
 	
 	EventHandler(ObjectProxy const &_rop): CompletionHandler(_rop, &on_init){}
 	
-	void write(Reactor &_rreactor){
-		Device		dummy_device;
-		struct		kevent ev;
-		
-		EV_SET (&ev, dummy_device.descriptor(), EVFILT_USER, 0, NOTE_TRIGGER, 0, 0 );
-		if(kevent (_rreactor.d.kqfd, &ev, 1, NULL, 0, NULL)){
-			edbgx(Debug::aio, "kevent: "<<last_system_error().message());
-			SOLID_ASSERT(false);
-			//return false;
-		}
-	}
+	void write(Reactor &_rreactor);
 	
 	bool init();
 };
@@ -278,6 +268,18 @@ struct Reactor::Data{
 	SizeStackT					chposcache;
 };
 
+
+void EventHandler::write(Reactor &_rreactor){
+	Device  dummy_device;
+	struct	kevent ev;
+
+ 	EV_SET(&ev, dummy_device.descriptor(), EVFILT_USER, 0, NOTE_TRIGGER, 0, 0 );
+	if(kevent (_rreactor.d.kqfd, &ev, 1, NULL, 0, NULL)){
+		edbgx(Debug::aio, "kevent: "<<last_system_error().message());
+		SOLID_ASSERT(false);
+	}
+}
+
 Reactor::Reactor(
 	SchedulerBase &_rsched,
 	const size_t _idx 
@@ -437,9 +439,18 @@ void Reactor::run(){
 	idbgx(Debug::aio, "<exit>");
 }
 
-inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events){
+inline ReactorEventsE systemEventsToReactorEvents(const unsigned short _flags, const short _filter){
 	ReactorEventsE	retval = ReactorEventNone;
-	//TODO:
+	if(_flags & (EV_EOF | EV_ERROR)){
+		return ReactorEventHangup;
+	}
+	if(_filter == EVFILT_READ){
+		return ReactorEventRecv;
+	}else if(_filter == EVFILT_WRITE){
+		return ReactorEventSend;
+	}else if(_filter == EVFILT_USER){
+		return ReactorEventRecv;
+	}
 	
 // 	switch(_events){
 // 		case EPOLLIN:
@@ -564,11 +575,11 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 	vdbgx(Debug::aio, "selcnt = "<<_sz);
 	
 	for(size_t i = 0; i < _sz; ++i){
-		epoll_event				&rev = d.eventvec[i];
-		CompletionHandlerStub	&rch = d.chdq[rev.data.u64];
+		struct kevent		&rev = d.eventvec[i];
+		CompletionHandlerStub	&rch = d.chdq[reinterpret_cast<size_t>(rev.udata)];
 		
-		ctx.reactor_event_ = systemEventsToReactorEvents(rev.events);
-		ctx.channel_index_ =  rev.data.u64;
+		ctx.reactor_event_ = systemEventsToReactorEvents(rev.flags, rev.filter);
+		ctx.channel_index_ =  reinterpret_cast<size_t>(rev.udata);
 		ctx.object_index_ = rch.objidx;
 		
 		rch.pch->handleCompletion(ctx);
@@ -737,7 +748,7 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 			break;
 		case ReactorWaitUser:{
 			struct kevent ev;
-			EV_SET( &ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, _rch.idxreactor);
+			EV_SET( &ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, reinterpret_cast<void*>(_rch.idxreactor));
 			if(kevent (d.kqfd, &ev, 1, NULL, 0, NULL)){
 				edbgx(Debug::aio, "kevent: "<<last_system_error().message());
 				SOLID_ASSERT(false);
@@ -757,8 +768,8 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 	
 	struct kevent ev[2];
 	
-	EV_SET (&ev[0], _rsd.descriptor(), EVFILT_READ,  read_flags, 0, 0, NULL);
-	EV_SET (&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, NULL);
+	EV_SET (&ev[0], _rsd.descriptor(), EVFILT_READ,  read_flags, 0, 0, reinterpret_cast<void*>(_rch.idxreactor));
+	EV_SET (&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, reinterpret_cast<void*>(_rch.idxreactor));
 	
 	if(kevent (d.kqfd, ev, 2, NULL, 0, NULL)){
 		edbgx(Debug::aio, "kevent: "<<last_system_error().message());
@@ -797,7 +808,7 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 			break;
 		case ReactorWaitUser:{
 			struct kevent ev;
-			EV_SET( &ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, _rch.idxreactor);
+			EV_SET( &ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, reinterpret_cast<void*>(_rch.idxreactor));
 			if(kevent (d.kqfd, &ev, 1, NULL, 0, NULL)){
 				edbgx(Debug::aio, "kevent: "<<last_system_error().message());
 				SOLID_ASSERT(false);

@@ -5,8 +5,10 @@
 #include "utility/dynamicpointer.hpp"
 #include "system/function.hpp"
 #include "system/atomic.hpp"
+#ifdef SOLID_ON_LINUX
 #include <mcheck.h>
 #include <malloc.h>
+#endif
 
 using namespace std;
 using namespace solid;
