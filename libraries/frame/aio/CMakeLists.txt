@@ -3,7 +3,7 @@
 set(Sources
 	src/aioresolver.cpp
 	src/aiocompletion.cpp
-	src/aioreactor_kqueue.cpp
+	src/aioreactor.cpp
 	src/aiolistener.cpp
 	src/aioobject.cpp
 	src/aioerror.cpp

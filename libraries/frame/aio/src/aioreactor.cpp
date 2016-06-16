@@ -120,6 +120,7 @@ private:
 
 /*static*/ void EventHandler::on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 	EventHandler	&rthis = static_cast<EventHandler&>(_rch);
+#if defined(SOLID_USE_EPOLL)
 	uint64_t		v = -1;
 	int 			rv;
 	
@@ -127,7 +128,7 @@ private:
 		rv = rthis.dev.read(reinterpret_cast<char*>(&v), sizeof(v));
 		idbgx(Debug::aio, "Read from event "<<rv<<" value = "<<v);
 	}while(rv == sizeof(v));
-	
+#endif
 	rthis.reactor(_rctx).doCompleteEvents(_rctx);
 }
 
@@ -436,7 +437,7 @@ bool Reactor::start(){
 
 #if defined(SOLID_USE_EPOLL)
 	d.reactor_fd = epoll_create(MinEventCapacity);
-#elif defined(SOLID_USE_EPOLL)
+#elif defined(SOLID_USE_KQUEUE)
 	d.reactor_fd = kqueue();
 #endif
 	
