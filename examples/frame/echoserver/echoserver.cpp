@@ -94,7 +94,7 @@ private:
 };
 
 
-//#define USE_CONNECTION
+#define USE_CONNECTION
 
 
 #ifdef USE_CONNECTION

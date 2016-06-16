@@ -64,6 +64,7 @@ protected:
 	void remDevice(ReactorContext &_rctx, Device const &_rsd);
 	void addTimer(ReactorContext &_rctx, TimeSpec const&_rt, size_t &_storedidx);
 	void remTimer(ReactorContext &_rctx, size_t const &_storedidx);
+	size_t indexWithinReactor() const;
 private:
 	friend class Reactor;
 	
@@ -80,6 +81,10 @@ private:
 
 inline void CompletionHandler::completionCallback(CallbackT _pcbk){
 	call = _pcbk;
+}
+
+inline size_t CompletionHandler::indexWithinReactor() const{
+	return idxreactor;
 }
 
 SocketDevice & dummy_socket_device();

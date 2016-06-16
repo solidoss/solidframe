@@ -52,6 +52,14 @@ namespace{
 void dummy_completion(CompletionHandler&, ReactorContext &){
 }
 
+inline void* indexToVoid(const size_t _idx){
+	return reinterpret_cast<void*>(_idx);
+}
+
+inline size_t voidToIndex(const void* _ptr){
+	return reinterpret_cast<size_t>(_ptr);
+}
+
 }//namespace
 
 
@@ -272,8 +280,11 @@ struct Reactor::Data{
 void EventHandler::write(Reactor &_rreactor){
 	Device  dummy_device;
 	struct	kevent ev;
-
- 	EV_SET(&ev, dummy_device.descriptor(), EVFILT_USER, 0, NOTE_TRIGGER, 0, 0 );
+	
+	vdbgx(Debug::aio, "trigger user event");
+ 	
+	EV_SET(&ev, dummy_device.descriptor(), EVFILT_USER, 0, NOTE_TRIGGER, 0, indexToVoid(this->indexWithinReactor()) );
+	
 	if(kevent (_rreactor.d.kqfd, &ev, 1, NULL, 0, NULL)){
 		edbgx(Debug::aio, "kevent: "<<last_system_error().message());
 		SOLID_ASSERT(false);
@@ -408,7 +419,7 @@ void Reactor::run(){
 		waittime = d.computeWaitTimeMilliseconds(crttime);
 		
 		crtload = d.objcnt + d.devcnt + d.exeq.size();
-		vdbgx(Debug::aio, "epoll_wait msec = "<<waittime.seconds());
+		vdbgx(Debug::aio, "kqueue msec = "<<waittime.seconds()<<':'<<waittime.nanoSeconds());
 		
 		//selcnt = epoll_wait(d.kqfd, d.eventvec.data(), d.eventvec.size(), waitmsec);
 		selcnt = kevent(d.kqfd, NULL, 0, d.eventvec.data(), d.eventvec.size(), waittime != TimeSpec::maximum ? &waittime : NULL);
@@ -575,13 +586,15 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 	vdbgx(Debug::aio, "selcnt = "<<_sz);
 	
 	for(size_t i = 0; i < _sz; ++i){
-		struct kevent		&rev = d.eventvec[i];
-		CompletionHandlerStub	&rch = d.chdq[reinterpret_cast<size_t>(rev.udata)];
+		struct kevent			&rev = d.eventvec[i];
+		CompletionHandlerStub	&rch = d.chdq[voidToIndex(rev.udata)];
 		
 		ctx.reactor_event_ = systemEventsToReactorEvents(rev.flags, rev.filter);
-		ctx.channel_index_ =  reinterpret_cast<size_t>(rev.udata);
+		ctx.channel_index_ = voidToIndex(rev.udata);
 		ctx.object_index_ = rch.objidx;
 		
+		vdbgx(Debug::aio, "event = "<<ctx.reactor_event_<<" chn_index = "<<ctx.channel_index_<<" obj_index = "<<ctx.object_index_);
+
 		rch.pch->handleCompletion(ctx);
 		ctx.clearError();
 	}
@@ -735,20 +748,20 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 			read_flags |= EV_DISABLE;
 			write_flags |= EV_DISABLE;
 		case ReactorWaitRead:
-			read_flags |= EV_ENABLE;
+			read_flags |= (EV_ENABLE | EV_CLEAR);
 			write_flags |= EV_DISABLE;
 			break;
 		case ReactorWaitWrite:
 			read_flags |= EV_DISABLE;
-			write_flags |= EV_ENABLE;
+			write_flags |= (EV_ENABLE | EV_CLEAR);
 			break;
 		case ReactorWaitReadOrWrite:
-			read_flags |= EV_ENABLE;
-			write_flags |= EV_ENABLE;
+			read_flags |= (EV_ENABLE | EV_CLEAR);
+			write_flags |= (EV_ENABLE | EV_CLEAR);
 			break;
 		case ReactorWaitUser:{
 			struct kevent ev;
-			EV_SET( &ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, reinterpret_cast<void*>(_rch.idxreactor));
+			EV_SET( &ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, indexToVoid(_rch.idxreactor));
 			if(kevent (d.kqfd, &ev, 1, NULL, 0, NULL)){
 				edbgx(Debug::aio, "kevent: "<<last_system_error().message());
 				SOLID_ASSERT(false);
@@ -768,8 +781,8 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 	
 	struct kevent ev[2];
 	
-	EV_SET (&ev[0], _rsd.descriptor(), EVFILT_READ,  read_flags, 0, 0, reinterpret_cast<void*>(_rch.idxreactor));
-	EV_SET (&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, reinterpret_cast<void*>(_rch.idxreactor));
+	EV_SET (&ev[0], _rsd.descriptor(), EVFILT_READ,  read_flags, 0, 0, indexToVoid(_rch.idxreactor));
+	EV_SET (&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, indexToVoid(_rch.idxreactor));
 	
 	if(kevent (d.kqfd, ev, 2, NULL, 0, NULL)){
 		edbgx(Debug::aio, "kevent: "<<last_system_error().message());
@@ -787,7 +800,7 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 }
 
 bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req){
-	idbgx(Debug::aio, _rsd.descriptor());
+	idbgx(Debug::aio, _rsd.descriptor()<<" req = "<<_req);
 	int read_flags = EV_ADD;
 	int write_flags = EV_ADD;
 	switch(_req){
@@ -808,7 +821,7 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 			break;
 		case ReactorWaitUser:{
 			struct kevent ev;
-			EV_SET( &ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, reinterpret_cast<void*>(_rch.idxreactor));
+			EV_SET( &ev, _rsd.descriptor(), EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, indexToVoid(_rch.idxreactor));
 			if(kevent (d.kqfd, &ev, 1, NULL, 0, NULL)){
 				edbgx(Debug::aio, "kevent: "<<last_system_error().message());
 				SOLID_ASSERT(false);
@@ -827,8 +840,8 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 	}
 	
 	struct kevent ev[2];
-	EV_SET (&ev[0], _rsd.descriptor(), EVFILT_READ,  read_flags, 0, 0, NULL);
-	EV_SET (&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, NULL);
+	EV_SET (&ev[0], _rsd.descriptor(), EVFILT_READ,  read_flags | EV_CLEAR, 0, 0, indexToVoid(_rch.idxreactor));
+	EV_SET (&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags | EV_CLEAR, 0, 0, indexToVoid(_rch.idxreactor));
 	if(kevent (d.kqfd, ev, 2, NULL, 0, NULL)){
 		edbgx(Debug::aio, "kevent: "<<last_system_error().message());
 		SOLID_ASSERT(false);
@@ -859,7 +872,7 @@ bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
 			--d.devcnt;
 		}
 	}else{
-		EV_SET( ev, _rsd.descriptor(), EVFILT_USER, EV_CLEAR, 0, 0, 0 );
+		EV_SET( ev, _rsd.descriptor(), EVFILT_USER, EV_DELETE, 0, 0, 0 );
 		if(kevent(d.kqfd, ev, 1, NULL, 0, NULL )){
 			edbgx(Debug::aio, "kevent: "<<last_system_error().message());
 			SOLID_ASSERT(false);
@@ -912,7 +925,7 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 	
 	_rch.idxreactor = idx;
 	
-	idbgx(Debug::aio, "idx "<<idx<<" chdq.size = "<<d.chdq.size()<<" this "<<this);
+	idbgx(Debug::aio, "idx "<<idx<<" chdq.size = "<<d.chdq.size()<<" this "<<this<<" obj_index = "<<rcs.objidx);
 	
 	{
 		TimeSpec		dummytime;
