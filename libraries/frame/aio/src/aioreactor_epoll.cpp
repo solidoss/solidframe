@@ -46,6 +46,8 @@ namespace solid{
 namespace frame{
 namespace aio{
 
+//=============================================================================
+
 namespace{
 
 void dummy_completion(CompletionHandler&, ReactorContext &){
@@ -53,12 +55,15 @@ void dummy_completion(CompletionHandler&, ReactorContext &){
 
 }//namespace
 
+//=============================================================================
 
 typedef ATOMIC_NS::atomic<bool>		AtomicBoolT;
 typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
 typedef Reactor::TaskT				TaskT;
 
-
+//=============================================================================
+//	EventHandler
+//=============================================================================
 
 struct EventHandler: CompletionHandler{
 	static void on_init(CompletionHandler&, ReactorContext &);
@@ -79,16 +84,22 @@ private:
 	Device		dev;
 };
 
+//-----------------------------------------------------------------------------
+
 /*static*/ void EventHandler::on_init(CompletionHandler& _rch, ReactorContext &_rctx){
 	EventHandler &rthis = static_cast<EventHandler&>(_rch);
+	
 	rthis.reactor(_rctx).addDevice(_rctx, rthis, rthis.dev, ReactorWaitRead);
 	rthis.completionCallback(&on_completion);
 }
 
+//-----------------------------------------------------------------------------
+
 /*static*/ void EventHandler::on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
-	EventHandler &rthis = static_cast<EventHandler&>(_rch);
-	uint64_t	v = -1;
-	int 	rv;
+	EventHandler	&rthis = static_cast<EventHandler&>(_rch);
+	uint64_t		v = -1;
+	int 			rv;
+	
 	do{
 		rv = rthis.dev.read(reinterpret_cast<char*>(&v), sizeof(v));
 		idbgx(Debug::aio, "Read from event "<<rv<<" value = "<<v);
@@ -97,14 +108,22 @@ private:
 	rthis.reactor(_rctx).doCompleteEvents(_rctx);
 }
 
+//-----------------------------------------------------------------------------
+
 bool EventHandler::init(){
+	
 	dev = Device(eventfd(0, EFD_NONBLOCK));
+	
 	if(!dev.ok()){
 		edbgx(Debug::aio, "eventfd: "<<last_system_error().message());
 		return false;
 	}
 	return true;
 }
+
+//=============================================================================
+//	EventObject
+//=============================================================================
 
 class EventObject: public Object{
 public:
@@ -128,6 +147,8 @@ public:
 	CompletionHandler		dummyhandler;
 };
 
+//=============================================================================
+
 struct NewTaskStub{
 	NewTaskStub(
 		UniqueId const&_ruid, TaskT const&_robjptr, Service &_rsvc, Event &&_revent
@@ -145,6 +166,8 @@ struct NewTaskStub{
 	Service		&rsvc;
 	Event		event;
 };
+
+//=============================================================================
 
 struct RaiseEventStub{
 	RaiseEventStub(
@@ -164,6 +187,8 @@ struct RaiseEventStub{
 	Event		event;
 };
 
+//=============================================================================
+
 struct CompletionHandlerStub{
 	CompletionHandlerStub(
 		CompletionHandler *_pch = nullptr,
@@ -175,6 +200,7 @@ struct CompletionHandlerStub{
 	UniqueT					unique;
 };
 
+//=============================================================================
 
 struct ObjectStub{
 	ObjectStub():unique(0), psvc(nullptr){}
@@ -184,12 +210,14 @@ struct ObjectStub{
 	TaskT		objptr;
 };
 
+//=============================================================================
 
 enum{
 	MinEventCapacity = 32,
 	MaxEventCapacity = 1024 * 64
 };
 
+//=============================================================================
 
 struct ExecStub{
 	template <class F>
@@ -218,6 +246,8 @@ struct ExecStub{
 	Event						event;
 };
 
+//=============================================================================
+
 typedef std::vector<NewTaskStub>			NewTaskVectorT;
 typedef std::vector<RaiseEventStub>			RaiseEventVectorT;
 typedef std::vector<epoll_event>			EventVectorT;
@@ -228,32 +258,43 @@ typedef Queue<ExecStub>						ExecQueueT;
 typedef Stack<size_t>						SizeStackT;
 typedef TimeStore<size_t>					TimeStoreT;
 
+//=============================================================================
+//	Reactor::Data
+//=============================================================================
 struct Reactor::Data{
 	Data(
 		
-	):	epollfd(-1), running(0), crtpushtskvecidx(0),
+	):	reactor_fd(-1), running(0), crtpushtskvecidx(0),
 		crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0), devcnt(0),
 		objcnt(0), timestore(MinEventCapacity){}
 	
 	int computeWaitTimeMilliseconds(TimeSpec const & _rcrt)const{
+		
 		if(exeq.size()){
 			return 0;
 		}else if(timestore.size()){
+			
 			if(_rcrt < timestore.next()){
+				
 				const int64_t	maxwait = 1000 * 60 * 10; //ten minutes
 				int64_t 		diff = 0;
-				TimeSpec	delta = timestore.next();
+				TimeSpec		delta = timestore.next();
+				
 				delta -= _rcrt;
 				diff = (delta.seconds() * 1000);
 				diff += (delta.nanoSeconds() / 1000000);
+				
 				if(diff > maxwait){
 					return maxwait;
 				}else{
 					return diff;
 				}
+			
 			}else{
 				return 0;
 			}
+		
+			
 		}else{
 			return -1;
 		}
@@ -264,7 +305,7 @@ struct Reactor::Data{
 		return UniqueId(idx, chdq[idx].unique);
 	}
 	
-	int							epollfd;
+	int							reactor_fd;
 	AtomicBoolT					running;
 	size_t						crtpushtskvecidx;
 	size_t						crtraisevecidx;
@@ -286,6 +327,12 @@ struct Reactor::Data{
 	SizeStackT					chposcache;
 };
 
+//=============================================================================
+//-----------------------------------------------------------------------------
+//	Reactor
+//-----------------------------------------------------------------------------
+
+
 Reactor::Reactor(
 	SchedulerBase &_rsched,
 	const size_t _idx 
@@ -293,16 +340,24 @@ Reactor::Reactor(
 	vdbgx(Debug::aio, "");
 }
 
+//-----------------------------------------------------------------------------
+
 Reactor::~Reactor(){
 	delete &d;
 	vdbgx(Debug::aio, "");
 }
 
+//-----------------------------------------------------------------------------
+
 bool Reactor::start(){
+
+	vdbgx(Debug::aio, "");	
+	
 	doStoreSpecific();
-	vdbgx(Debug::aio, "");
-	d.epollfd = epoll_create(MinEventCapacity);
-	if(d.epollfd < 0){
+
+	d.reactor_fd = epoll_create(MinEventCapacity);
+	
+	if(d.reactor_fd < 0){
 		edbgx(Debug::aio, "epoll_create: "<<last_system_error().message());
 		return false;
 	}
@@ -326,6 +381,8 @@ bool Reactor::start(){
 	return true;
 }
 
+//-----------------------------------------------------------------------------
+
 /*virtual*/ bool Reactor::raise(UniqueId const& _robjuid, Event && _uevent){
 	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event = "<<_uevent);
 	bool 	rv = true;
@@ -342,6 +399,8 @@ bool Reactor::start(){
 	}
 	return rv;
 }
+
+//-----------------------------------------------------------------------------
 
 /*virtual*/ bool Reactor::raise(UniqueId const& _robjuid, const Event & _revent){
 	vdbgx(Debug::aio,  (void*)this<<" uid = "<<_robjuid.index<<','<<_robjuid.unique<<" event = "<<_revent);
@@ -360,12 +419,15 @@ bool Reactor::start(){
 	return rv;
 }
 
+//-----------------------------------------------------------------------------
 
 /*virtual*/ void Reactor::stop(){
 	vdbgx(Debug::aio, "");
 	d.running = false;
 	d.eventobj.eventhandler.write();
 }
+
+//-----------------------------------------------------------------------------
 
 //Called from outside reactor's thread
 bool Reactor::push(TaskT &_robj, Service &_rsvc, Event &&_uevent){
@@ -388,6 +450,8 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event &&_uevent){
 	}
 	return rv;
 }
+
+//-----------------------------------------------------------------------------
 
 /*NOTE:
 	
@@ -414,8 +478,11 @@ void Reactor::run(){
 		
 		crtload = d.objcnt + d.devcnt + d.exeq.size();
 		vdbgx(Debug::aio, "epoll_wait msec = "<<waitmsec);
-		selcnt = epoll_wait(d.epollfd, d.eventvec.data(), d.eventvec.size(), waitmsec);
+		
+		selcnt = epoll_wait(d.reactor_fd, d.eventvec.data(), d.eventvec.size(), waitmsec);
+		
 		crttime.currentMonotonic();
+		
 		if(selcnt > 0){
 			crtload += selcnt;
 			doCompleteIo(crttime, selcnt);
@@ -439,6 +506,8 @@ void Reactor::run(){
 	doClearSpecific();
 	idbgx(Debug::aio, "<exit>");
 }
+
+//-----------------------------------------------------------------------------
 
 inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events){
 	ReactorEventsE	retval = ReactorEventNone;
@@ -472,6 +541,8 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events){
 	return retval;
 }
 
+//-----------------------------------------------------------------------------
+
 inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests){
 	uint32_t evs = 0;
 	switch(_requests){
@@ -492,22 +563,31 @@ inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _reques
 	return evs;
 }
 
+//-----------------------------------------------------------------------------
 
 UniqueId Reactor::objectUid(ReactorContext const &_rctx)const{
 	return UniqueId(_rctx.object_index_, d.objdq[_rctx.object_index_].unique);
 }
 
+//-----------------------------------------------------------------------------
+
 Service& Reactor::service(ReactorContext const &_rctx)const{
 	return *d.objdq[_rctx.object_index_].psvc;
 }
-	
+
+//-----------------------------------------------------------------------------
+
 Object& Reactor::object(ReactorContext const &_rctx)const{
 	return *d.objdq[_rctx.object_index_].objptr;
 }
 
+//-----------------------------------------------------------------------------
+
 CompletionHandler *Reactor::completionHandler(ReactorContext const &_rctx)const{
 	return d.chdq[_rctx.channel_index_].pch;
 }
+
+//-----------------------------------------------------------------------------
 
 void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event &&_uev){
 	vdbgx(Debug::aio, "exeq "<<d.exeq.size());
@@ -516,6 +596,8 @@ void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Ev
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
 
+//-----------------------------------------------------------------------------
+
 void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Event &&_uev, CompletionHandler const &_rch){
 	vdbgx(Debug::aio, "exeq "<<d.exeq.size()<<' '<<&_rch);
 	d.exeq.push(ExecStub(_rctx.objectUid(), std::move(_uev)));
@@ -523,10 +605,14 @@ void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Ev
 	d.exeq.back().chnuid = UniqueId(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
 }
 
+//-----------------------------------------------------------------------------
+
 /*static*/ void Reactor::stop_object(ReactorContext &_rctx, Event &&){
 	Reactor			&rthis = _rctx.reactor();
 	rthis.doStopObject(_rctx);
 }
+
+//-----------------------------------------------------------------------------
 
 /*static*/ void Reactor::stop_object_repost(ReactorContext &_rctx, Event &&){
 	Reactor			&rthis = _rctx.reactor();
@@ -535,6 +621,8 @@ void Reactor::doPost(ReactorContext &_rctx, Reactor::EventFunctionT  &_revfn, Ev
 	rthis.d.exeq.back().exefnc = &stop_object;
 	rthis.d.exeq.back().chnuid = rthis.d.dummyCompletionHandlerUid();
 }
+
+//-----------------------------------------------------------------------------
 
 /*NOTE:
 	We do not stop the object rightaway - we make sure that any
@@ -545,6 +633,8 @@ void Reactor::postObjectStop(ReactorContext &_rctx){
 	d.exeq.back().exefnc = &stop_object_repost;
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
+
+//-----------------------------------------------------------------------------
 
 void Reactor::doStopObject(ReactorContext &_rctx){
 	ObjectStub		&ros = this->d.objdq[_rctx.object_index_];
@@ -557,6 +647,8 @@ void Reactor::doStopObject(ReactorContext &_rctx){
 	--this->d.objcnt;
 	this->d.freeuidvec.push_back(UniqueId(_rctx.object_index_, ros.unique));
 }
+
+//-----------------------------------------------------------------------------
 
 void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 	ReactorContext	ctx(*this, _rcrttime);
@@ -575,6 +667,8 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 		ctx.clearError();
 	}
 }
+
+//-----------------------------------------------------------------------------
 
 struct ChangeTimerIndexCallback{
 	Reactor &r;
@@ -606,11 +700,15 @@ void Reactor::onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _c
 	_rctx.clearError();
 }
 
+//-----------------------------------------------------------------------------
+
 void Reactor::doCompleteTimer(TimeSpec  const &_rcrttime){
 	ReactorContext	ctx(*this, _rcrttime);
 	TimerCallback 	tcbk(*this, ctx);
 	d.timestore.pop(_rcrttime, tcbk, ChangeTimerIndexCallback(*this));
 }
+
+//-----------------------------------------------------------------------------
 
 void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 	ReactorContext	ctx(*this, _rcrttime);
@@ -634,10 +732,14 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 	}
 }
 
+//-----------------------------------------------------------------------------
+
 void Reactor::doCompleteEvents(TimeSpec  const &_rcrttime){
 	ReactorContext	ctx(*this, _rcrttime);
 	doCompleteEvents(ctx);
 }
+
+//-----------------------------------------------------------------------------
 
 void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 	vdbgx(Debug::aio, "");
@@ -668,8 +770,11 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 		ReactorContext		ctx(_rctx);
 		
 		d.objcnt += crtpushvec.size();
+		
 		vdbgx(Debug::aio, d.exeq.size());
+		
 		for(auto it = crtpushvec.begin(); it != crtpushvec.end(); ++it){
+			
 			NewTaskStub		&rnewobj(*it);
 			if(rnewobj.uid.index >= d.objdq.size()){
 				d.objdq.resize(rnewobj.uid.index + 1);
@@ -687,6 +792,7 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 			
 			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), std::move(rnewobj.event)));
 		}
+		
 		vdbgx(Debug::aio, d.exeq.size());
 		crtpushvec.clear();
 		
@@ -694,15 +800,21 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 			RaiseEventStub	&revent = *it;
 			d.exeq.push(ExecStub(revent.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), std::move(revent.event)));
 		}
+		
 		vdbgx(Debug::aio, d.exeq.size());
 		
 		crtraisevec.clear();
 	}
 }
 
+//-----------------------------------------------------------------------------
+
 /*static*/ void Reactor::call_object_on_event(ReactorContext &_rctx, Event &&_uevent){
 	_rctx.object().onEvent(_rctx, std::move(_uevent));
 }
+
+//-----------------------------------------------------------------------------
+
 /*static*/ void Reactor::increase_event_vector_size(ReactorContext &_rctx, Event &&/*_rev*/){
 	Reactor &rthis = _rctx.reactor();
 	
@@ -714,6 +826,8 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 	}
 }
 
+//-----------------------------------------------------------------------------
+
 bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req){
 	idbgx(Debug::aio, _rsd.descriptor());
 	//CompletionHandlerStub &rcs = d.chdq[_rch.idxreactor];
@@ -722,12 +836,14 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 	ev.data.u64 = _rch.idxreactor;
 	ev.events = reactorRequestsToSystemEvents(_req);
 	
-	if(epoll_ctl(d.epollfd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev)){
+	if(epoll_ctl(d.reactor_fd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
 		return false;
 	}
 	return true;
 }
+
+//-----------------------------------------------------------------------------
 
 bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req){
 	idbgx(Debug::aio, _rsd.descriptor());
@@ -736,7 +852,7 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 	ev.data.u64 = _rch.idxreactor;
 	ev.events = reactorRequestsToSystemEvents(_req);
 	
-	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)){
+	if(epoll_ctl(d.reactor_fd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
 		return false;
 	}else{
@@ -749,6 +865,8 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 	return true;
 }
 
+//-----------------------------------------------------------------------------
+
 bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
 	idbgx(Debug::aio, _rsd.descriptor());
 	
@@ -758,7 +876,7 @@ bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
 		return false;
 	}
 	
-	if(epoll_ctl(d.epollfd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev)){
+	if(epoll_ctl(d.reactor_fd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
 		return false;
 	}else{
@@ -766,6 +884,8 @@ bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
 	}
 	return true;
 }
+
+//-----------------------------------------------------------------------------
 
 bool Reactor::addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx){
 	if(_rstoreidx != InvalidIndex()){
@@ -777,11 +897,15 @@ bool Reactor::addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_
 	return true;
 }
 
+//-----------------------------------------------------------------------------
+
 void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx){
 	CompletionHandlerStub &rch = d.chdq[_chidx];
 	SOLID_ASSERT(static_cast<Timer*>(rch.pch)->storeidx == _oldidx);
 	static_cast<Timer*>(rch.pch)->storeidx = _newidx;
 }
+
+//-----------------------------------------------------------------------------
 
 bool Reactor::remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx){
 	if(_rstoreidx != InvalidIndex()){
@@ -789,6 +913,8 @@ bool Reactor::remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx){
 	}
 	return true;
 }
+
+//-----------------------------------------------------------------------------
 
 void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_robj){
 	size_t					idx;
@@ -822,6 +948,8 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 	}
 }
 
+//-----------------------------------------------------------------------------
+
 void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 	idbgx(Debug::aio, "");
 	
@@ -844,6 +972,8 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 	++rcs.unique;
 }
 
+
+//-----------------------------------------------------------------------------
 
 namespace{
 #ifdef SOLID_USE_SAFE_STATIC
@@ -877,33 +1007,46 @@ static const size_t specificPosition(){
 	vdbgx(Debug::aio, "");
 	return *safeSpecific();
 }
+
+//-----------------------------------------------------------------------------
+
 void Reactor::doStoreSpecific(){
 	Thread::specific(specificPosition(), this);
 }
+
+//-----------------------------------------------------------------------------
+
 void Reactor::doClearSpecific(){
 	Thread::specific(specificPosition(), nullptr);
 }
-//=============================================================================
+
+//-----------------------------------------------------------------------------
 //		ReactorContext
-//=============================================================================
+//-----------------------------------------------------------------------------
 
 Object& ReactorContext::object()const{
 	return reactor().object(*this);
 }
+
+//-----------------------------------------------------------------------------
+
 Service& ReactorContext::service()const{
 	return reactor().service(*this);
 }
+
+//-----------------------------------------------------------------------------
 
 UniqueId ReactorContext::objectUid()const{
 	return reactor().objectUid(*this);
 }
 
+//-----------------------------------------------------------------------------
+
 CompletionHandler*  ReactorContext::completionHandler()const{
 	return reactor().completionHandler(*this);
 }
 
-
-
+//-----------------------------------------------------------------------------
 }//namespace aio
 }//namespace frame
 }//namespace solid

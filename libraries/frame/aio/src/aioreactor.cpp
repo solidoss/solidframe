@@ -8,9 +8,21 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include <fcntl.h>
+
+#include "system/common.hpp"
+
+#if defined(SOLID_USE_EPOLL)
+
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+
+#elif defined(SOLID_USE_KQUEUE)
+
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
+
+#endif
 
 #include <vector>
 #include <deque>
@@ -18,7 +30,6 @@
 #include <cstring>
 #include <queue>
 
-#include "system/common.hpp"
 #include "system/exception.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
@@ -62,6 +73,7 @@ inline size_t voidToIndex(const void* _ptr){
 	return reinterpret_cast<size_t>(_ptr);
 }
 
+
 }//namespace
 
 //=============================================================================
@@ -80,18 +92,27 @@ struct EventHandler: CompletionHandler{
 	
 	EventHandler(ObjectProxy const &_rop): CompletionHandler(_rop, &on_init){}
 	
-	void write(Reactor &_rreactor);
+	void write();
 	
 	bool init();
+	
+	int descriptor()const{
+		return dev.descriptor();
+	}
+private:
+	Device		dev;
 };
 
 //-----------------------------------------------------------------------------
 
 /*static*/ void EventHandler::on_init(CompletionHandler& _rch, ReactorContext &_rctx){
-	EventHandler	&rthis = static_cast<EventHandler&>(_rch);
-	Device			dummy_device;
-	
+	EventHandler &rthis = static_cast<EventHandler&>(_rch);
+
+#if defined(SOLID_USE_EPOLL)
+	rthis.reactor(_rctx).addDevice(_rctx, rthis, rthis.dev, ReactorWaitRead);
+#elif defined(SOLID_USE_KQUEUE)
 	rthis.reactor(_rctx).addDevice(_rctx, rthis, dummy_device, ReactorWaitUser);
+#endif
 	rthis.completionCallback(&on_completion);
 }
 
@@ -99,12 +120,28 @@ struct EventHandler: CompletionHandler{
 
 /*static*/ void EventHandler::on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 	EventHandler	&rthis = static_cast<EventHandler&>(_rch);
+	uint64_t		v = -1;
+	int 			rv;
+	
+	do{
+		rv = rthis.dev.read(reinterpret_cast<char*>(&v), sizeof(v));
+		idbgx(Debug::aio, "Read from event "<<rv<<" value = "<<v);
+	}while(rv == sizeof(v));
+	
 	rthis.reactor(_rctx).doCompleteEvents(_rctx);
 }
 
 //-----------------------------------------------------------------------------
 
 bool EventHandler::init(){
+#if defined(SOLID_USE_EPOLL)
+	dev = Device(eventfd(0, EFD_NONBLOCK));
+	
+	if(!dev.ok()){
+		edbgx(Debug::aio, "eventfd: "<<last_system_error().message());
+		return false;
+	}
+#endif
 	return true;
 }
 
@@ -237,7 +274,17 @@ struct ExecStub{
 
 typedef std::vector<NewTaskStub>			NewTaskVectorT;
 typedef std::vector<RaiseEventStub>			RaiseEventVectorT;
+
+#if defined(SOLID_USE_EPOLL)
+
+typedef std::vector<epoll_event>			EventVectorT;
+
+#elif defined(SOLID_USE_KQUEUE)
+
 typedef std::vector<struct kevent>			EventVectorT;
+
+#endif
+
 typedef std::deque<CompletionHandlerStub>	CompletionHandlerDequeT;
 typedef std::vector<UniqueId>				UidVectorT;
 typedef std::deque<ObjectStub>				ObjectDequeT;
@@ -248,14 +295,45 @@ typedef TimeStore<size_t>					TimeStoreT;
 //=============================================================================
 //	Reactor::Data
 //=============================================================================
-
 struct Reactor::Data{
 	Data(
 		
 	):	reactor_fd(-1), running(0), crtpushtskvecidx(0),
 		crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0), devcnt(0),
 		objcnt(0), timestore(MinEventCapacity){}
-	
+#if defined(SOLID_USE_EPOLL)
+	int computeWaitTimeMilliseconds(TimeSpec const & _rcrt)const{
+		
+		if(exeq.size()){
+			return 0;
+		}else if(timestore.size()){
+			
+			if(_rcrt < timestore.next()){
+				
+				const int64_t	maxwait = 1000 * 60 * 10; //ten minutes
+				int64_t 		diff = 0;
+				TimeSpec		delta = timestore.next();
+				
+				delta -= _rcrt;
+				diff = (delta.seconds() * 1000);
+				diff += (delta.nanoSeconds() / 1000000);
+				
+				if(diff > maxwait){
+					return maxwait;
+				}else{
+					return diff;
+				}
+			
+			}else{
+				return 0;
+			}
+		
+			
+		}else{
+			return -1;
+		}
+	}
+#elif defined(SOLID_USE_KQUEUE
 	TimeSpec computeWaitTimeMilliseconds(TimeSpec const & _rcrt)const{
 		
 		if(exeq.size()){
@@ -282,7 +360,8 @@ struct Reactor::Data{
 			return TimeSpec::maximum;
 		}
 	}
-	
+#endif
+
 	UniqueId dummyCompletionHandlerUid()const{
 		const size_t idx = eventobj.dummyhandler.idxreactor;
 		return UniqueId(idx, chdq[idx].unique);
@@ -309,26 +388,29 @@ struct Reactor::Data{
 	ExecQueueT					exeq;
 	SizeStackT					chposcache;
 };
-
-//=============================================================================
 //-----------------------------------------------------------------------------
-void EventHandler::write(Reactor &_rreactor){
-	Device  dummy_device;
+void EventHandler::write(){
+#if defined(SOLID_USE_EPOLL)
+	const uint64_t v = 1;
+	dev.write(reinterpret_cast<const char*>(&v), sizeof(v));
+#elif defined(SOLID_USE_KQUEUE)
 	struct	kevent ev;
 	
 	vdbgx(Debug::aio, "trigger user event");
  	
-	EV_SET(&ev, dummy_device.descriptor(), EVFILT_USER, 0, NOTE_TRIGGER, 0, indexToVoid(this->indexWithinReactor()) );
+	EV_SET(&ev, dev.descriptor(), EVFILT_USER, 0, NOTE_TRIGGER, 0, indexToVoid(this->indexWithinReactor()) );
 	
 	if(kevent (_rreactor.d.reactor_fd, &ev, 1, NULL, 0, NULL)){
 		edbgx(Debug::aio, "kevent: "<<last_system_error().message());
 		SOLID_ASSERT(false);
 	}
+#endif
 }
-
+//=============================================================================
 //-----------------------------------------------------------------------------
 //	Reactor
 //-----------------------------------------------------------------------------
+
 
 Reactor::Reactor(
 	SchedulerBase &_rsched,
@@ -347,15 +429,19 @@ Reactor::~Reactor(){
 //-----------------------------------------------------------------------------
 
 bool Reactor::start(){
-	
-	vdbgx(Debug::aio, "");
+
+	vdbgx(Debug::aio, "");	
 	
 	doStoreSpecific();
-	
+
+#if defined(SOLID_USE_EPOLL)
+	d.reactor_fd = epoll_create(MinEventCapacity);
+#elif defined(SOLID_USE_EPOLL)
 	d.reactor_fd = kqueue();
+#endif
 	
 	if(d.reactor_fd < 0){
-		edbgx(Debug::aio, "kqueue: "<<last_system_error().message());
+		edbgx(Debug::aio, "reactor create: "<<last_system_error().message());
 		return false;
 	}
 	
@@ -392,7 +478,7 @@ bool Reactor::start(){
 		d.crtraisevecsz = raisevecsz;
 	}
 	if(raisevecsz == 1){
-		d.eventobj.eventhandler.write(*this);
+		d.eventobj.eventhandler.write();
 	}
 	return rv;
 }
@@ -411,7 +497,7 @@ bool Reactor::start(){
 		d.crtraisevecsz = raisevecsz;
 	}
 	if(raisevecsz == 1){
-		d.eventobj.eventhandler.write(*this);
+		d.eventobj.eventhandler.write();
 	}
 	return rv;
 }
@@ -421,8 +507,10 @@ bool Reactor::start(){
 /*virtual*/ void Reactor::stop(){
 	vdbgx(Debug::aio, "");
 	d.running = false;
-	d.eventobj.eventhandler.write(*this);
+	d.eventobj.eventhandler.write();
 }
+
+//-----------------------------------------------------------------------------
 
 //Called from outside reactor's thread
 bool Reactor::push(TaskT &_robj, Service &_rsvc, Event &&_uevent){
@@ -441,7 +529,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event &&_uevent){
 	}
 	
 	if(pushvecsz == 1){
-		d.eventobj.eventhandler.write(*this);
+		d.eventobj.eventhandler.write();
 	}
 	return rv;
 }
@@ -465,27 +553,36 @@ void Reactor::run(){
 	int			selcnt;
 	bool		running = true;
 	TimeSpec	crttime;
+	int			waitmsec;
 	TimeSpec	waittime;
 	
 	while(running){
 		crttime.currentMonotonic();
-		waittime = d.computeWaitTimeMilliseconds(crttime);
 		
 		crtload = d.objcnt + d.devcnt + d.exeq.size();
+#if defined(SOLID_USE_EPOLL)
+		waitmsec = d.computeWaitTimeMilliseconds(crttime);
+		
+		vdbgx(Debug::aio, "epoll_wait msec = "<<waitmsec);
+		
+		selcnt = epoll_wait(d.reactor_fd, d.eventvec.data(), d.eventvec.size(), waitmsec);
+#elif defined(SOLID_USE_KQUEUE)
+		waittime = d.computeWaitTimeMilliseconds(crttime);
+		
 		vdbgx(Debug::aio, "kqueue msec = "<<waittime.seconds()<<':'<<waittime.nanoSeconds());
 		
 		selcnt = kevent(d.reactor_fd, NULL, 0, d.eventvec.data(), d.eventvec.size(), waittime != TimeSpec::maximum ? &waittime : NULL);
-		
+#endif
 		crttime.currentMonotonic();
 		
 		if(selcnt > 0){
 			crtload += selcnt;
 			doCompleteIo(crttime, selcnt);
 		}else if(selcnt < 0 && errno != EINTR){
-			edbgx(Debug::aio, "kqueue errno  = "<<last_system_error().message());
+			edbgx(Debug::aio, "epoll_wait errno  = "<<last_system_error().message());
 			running = false;	
 		}else{
-			vdbgx(Debug::aio, "kqueue done");
+			vdbgx(Debug::aio, "epoll_wait done");
 		}
 		
 		crttime.currentMonotonic();
@@ -503,6 +600,41 @@ void Reactor::run(){
 }
 
 //-----------------------------------------------------------------------------
+#if defined(SOLID_USE_EPOLL)
+inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events){
+	ReactorEventsE	retval = ReactorEventNone;
+
+	switch(_events){
+		case EPOLLIN:
+			retval = ReactorEventRecv;break;
+		case EPOLLOUT:
+			retval = ReactorEventSend;break;
+		case EPOLLOUT | EPOLLIN:
+			retval = ReactorEventRecvSend;break;
+		case EPOLLPRI:
+			retval = ReactorEventOOB;break;
+		case EPOLLOUT | EPOLLPRI:
+			retval = ReactorEventOOBSend;break;
+		case EPOLLERR:
+			retval = ReactorEventError;break;
+		case EPOLLHUP:
+		case EPOLLHUP | EPOLLOUT:
+		case EPOLLHUP | EPOLLIN:
+		case EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT:
+		case EPOLLIN  | EPOLLOUT | EPOLLHUP:
+		case EPOLLERR | EPOLLOUT | EPOLLIN:
+			retval = ReactorEventHangup;break;
+		case EPOLLRDHUP:
+			retval = ReactorEventRecvHangup;break;
+			
+		default:
+			SOLID_ASSERT(false);
+			break;
+	}
+	return retval;
+}
+
+#elif defined(SOLID_USE_KQUEUE)
 
 inline ReactorEventsE systemEventsToReactorEvents(const unsigned short _flags, const short _filter){
 	ReactorEventsE	retval = ReactorEventNone;
@@ -519,7 +651,31 @@ inline ReactorEventsE systemEventsToReactorEvents(const unsigned short _flags, c
 
 	return retval;
 }
+#endif
 
+
+//-----------------------------------------------------------------------------
+#if defined(SOLID_USE_EPOLL)
+inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests){
+	uint32_t evs = 0;
+	switch(_requests){
+		case ReactorWaitNone:
+			break;
+		case ReactorWaitRead:
+			evs = EPOLLET | EPOLLIN;
+			break;
+		case ReactorWaitWrite:
+			evs = EPOLLET | EPOLLOUT;
+			break;
+		case ReactorWaitReadOrWrite:
+			evs = EPOLLET | EPOLLIN | EPOLLOUT;
+			break;
+		default:
+			SOLID_ASSERT(false);
+	}
+	return evs;
+}
+#endif
 //-----------------------------------------------------------------------------
 
 UniqueId Reactor::objectUid(ReactorContext const &_rctx)const{
@@ -613,15 +769,13 @@ void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
 	vdbgx(Debug::aio, "selcnt = "<<_sz);
 	
 	for(size_t i = 0; i < _sz; ++i){
-		struct kevent			&rev = d.eventvec[i];
-		CompletionHandlerStub	&rch = d.chdq[voidToIndex(rev.udata)];
+		epoll_event				&rev = d.eventvec[i];
+		CompletionHandlerStub	&rch = d.chdq[rev.data.u64];
 		
-		ctx.reactor_event_ = systemEventsToReactorEvents(rev.flags, rev.filter);
-		ctx.channel_index_ = voidToIndex(rev.udata);
+		ctx.reactor_event_ = systemEventsToReactorEvents(rev.events);
+		ctx.channel_index_ =  rev.data.u64;
 		ctx.object_index_ = rch.objidx;
 		
-		vdbgx(Debug::aio, "event = "<<ctx.reactor_event_<<" chn_index = "<<ctx.channel_index_<<" obj_index = "<<ctx.object_index_);
-
 		rch.pch->handleCompletion(ctx);
 		ctx.clearError();
 	}
@@ -729,17 +883,16 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 		ReactorContext		ctx(_rctx);
 		
 		d.objcnt += crtpushvec.size();
+		
 		vdbgx(Debug::aio, d.exeq.size());
+		
 		for(auto it = crtpushvec.begin(); it != crtpushvec.end(); ++it){
 			
 			NewTaskStub		&rnewobj(*it);
-			
 			if(rnewobj.uid.index >= d.objdq.size()){
 				d.objdq.resize(rnewobj.uid.index + 1);
 			}
-			
 			ObjectStub 		&ros = d.objdq[rnewobj.uid.index];
-			
 			SOLID_ASSERT(ros.unique == rnewobj.uid.unique);
 			ros.objptr = std::move(rnewobj.objptr);
 			ros.psvc = &rnewobj.rsvc;
@@ -752,6 +905,7 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 			
 			d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), std::move(rnewobj.event)));
 		}
+		
 		vdbgx(Debug::aio, d.exeq.size());
 		crtpushvec.clear();
 		
@@ -759,6 +913,7 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 			RaiseEventStub	&revent = *it;
 			d.exeq.push(ExecStub(revent.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), std::move(revent.event)));
 		}
+		
 		vdbgx(Debug::aio, d.exeq.size());
 		
 		crtraisevec.clear();
@@ -788,7 +943,17 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 
 bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req){
 	idbgx(Debug::aio, _rsd.descriptor());
-
+#if defined(SOLID_USE_EPOLL)
+	epoll_event ev;
+	
+	ev.data.u64 = _rch.idxreactor;
+	ev.events = reactorRequestsToSystemEvents(_req);
+	
+	if(epoll_ctl(d.reactor_fd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev)){
+		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
+		return false;
+	}
+#elif defined(SOLID_USE_KQUEUE)
 	int				read_flags = 0;
 	int				write_flags = 0;
 	struct kevent	ev[2];
@@ -845,16 +1010,30 @@ bool Reactor::waitDevice(ReactorContext &_rctx, CompletionHandler const &_rch, D
 			d.eventobj.post(_rctx, &Reactor::increase_event_vector_size);
 		}
 	}
-	
-	
+#endif
 	return true;
 }
 
 //-----------------------------------------------------------------------------
 
 bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req){
-	idbgx(Debug::aio, _rsd.descriptor()<<" req = "<<_req);
+	idbgx(Debug::aio, _rsd.descriptor());
+#if defined(SOLID_USE_EPOLL)
+	epoll_event ev;
+	ev.data.u64 = _rch.idxreactor;
+	ev.events = reactorRequestsToSystemEvents(_req);
 	
+	if(epoll_ctl(d.reactor_fd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)){
+		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
+		return false;
+	}else{
+		++d.devcnt;
+		if(d.devcnt == (d.eventvec.size() + 1)){
+			d.eventobj.post(_rctx, &Reactor::increase_event_vector_size);
+		}
+		
+	}
+#elif defined(SOLID_USE_KQUEUE)
 	int read_flags = EV_ADD;
 	int write_flags = EV_ADD;
 	
@@ -907,16 +1086,28 @@ bool Reactor::addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, De
 			d.eventobj.post(_rctx, &Reactor::increase_event_vector_size);
 		}
 	}
-
+#endif
 	return true;
 }
 
 //-----------------------------------------------------------------------------
 
 bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
-	
 	idbgx(Debug::aio, _rsd.descriptor());
+#if defined(SOLID_USE_EPOLL)
+	epoll_event ev;
 	
+	if(!_rsd.ok()){
+		return false;
+	}
+	
+	if(epoll_ctl(d.reactor_fd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev)){
+		edbgx(Debug::aio, "epoll_ctl: "<<last_system_error().message());
+		return false;
+	}else{
+		--d.devcnt;
+	}
+#elif defined(SOLID_USE_KQUEUE)
 	struct kevent ev[2];
 	
 	if(_rsd.ok()){
@@ -939,6 +1130,7 @@ bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
 			--d.devcnt;
 		}
 	}
+#endif
 	return true;
 }
 
@@ -991,7 +1183,7 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 	
 	_rch.idxreactor = idx;
 	
-	idbgx(Debug::aio, "idx "<<idx<<" chdq.size = "<<d.chdq.size()<<" this "<<this<<" obj_index = "<<rcs.objidx);
+	idbgx(Debug::aio, "idx "<<idx<<" chdq.size = "<<d.chdq.size()<<" this "<<this);
 	
 	{
 		TimeSpec		dummytime;
@@ -1104,9 +1296,7 @@ CompletionHandler*  ReactorContext::completionHandler()const{
 }
 
 //-----------------------------------------------------------------------------
-
 }//namespace aio
 }//namespace frame
 }//namespace solid
-
 
