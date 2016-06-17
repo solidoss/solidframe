@@ -5,8 +5,8 @@
 #include "frame/timer.hpp"
 #include "frame/service.hpp"
 
-#include "system/condition.hpp"
-#include "system/mutex.hpp"
+#include <mutex>
+#include <condition_variable>
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 
@@ -20,9 +20,9 @@ using namespace std;
 
 
 namespace {
-	Condition	cnd;
-	bool		running = true;
-	Mutex		mtx;
+	condition_variable	cnd;
+	bool				running = true;
+	mutex				mtx;
 }
 
 // enum Events{
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]){
 			}
 			
 			{
-				Locker<Mutex>	lock(mtx);
+				unique_lock<mutex>	lock(mtx);
 				while(running){
 					cnd.wait(lock);
 				}
@@ -95,7 +95,6 @@ int main(int argc, char *argv[]){
 		m.stop();
 		
 	}
-	Thread::waitAll();
 	return 0;
 }
 
@@ -120,9 +119,9 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
 			SOLID_ASSERT(!_rctx.error());
 		}else{
 			t2.cancel(_rctx);
-			Locker<Mutex>	lock(mtx);
+			unique_lock<mutex>	lock(mtx);
 			running = false;
-			cnd.signal();
+			cnd.notify_one();
 			postStop(_rctx);
 		}
 	}else if(_idx == 1){

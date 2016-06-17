@@ -13,14 +13,13 @@
 #include <algorithm>
 
 #include "system/debug.hpp"
-#include "system/mutex.hpp"
-#include "system/condition.hpp"
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "system/socketdevice.hpp"
-#include "system/specific.hpp"
 #include "system/exception.hpp"
 
 #include "utility/queue.hpp"
-#include "utility/binaryseeker.hpp"
 
 #include "frame/common.hpp"
 #include "frame/manager.hpp"
@@ -53,6 +52,8 @@
 #include "boost/unordered_map.hpp"
 #define CPP11_NS boost
 #endif
+
+using namespace std;
 
 namespace solid{
 namespace frame{
@@ -501,7 +502,7 @@ struct Service::Data{
 	}
 	
 	
-	Mutex & poolMutex(size_t _idx)const{
+	std::mutex& poolMutex(size_t _idx)const{
 		return pmtxarr[_idx % mtxsarrcp];
 	}
 	
@@ -517,8 +518,8 @@ struct Service::Data{
 		}
 	}
 	
-	Mutex					mtx;
-	Mutex					*pmtxarr;
+	std::mutex				mtx;
+	std::mutex				*pmtxarr;
 	size_t					mtxsarrcp;
 	NameMapT				namemap;
 	ConnectionPoolDequeT	pooldq;
@@ -541,7 +542,7 @@ Configuration const & Service::configuration()const{
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::start(){
-	Locker<Mutex>	lock(d.mtx);
+	std::unique_lock<std::mutex>	lock(d.mtx);
 	ErrorConditionT err =  doStart();
 	return err;
 }
@@ -606,7 +607,7 @@ ErrorConditionT Service::doStart(){
 	
 	if(d.config.pools_mutex_count > d.mtxsarrcp){
 		delete []d.pmtxarr;
-		d.pmtxarr = new Mutex[d.config.pools_mutex_count];
+		d.pmtxarr = new std::mutex[d.config.pools_mutex_count];
 		d.mtxsarrcp = d.config.pools_mutex_count;
 	}
 	
@@ -619,7 +620,7 @@ ErrorConditionT Service::reconfigure(Configuration && _ucfg){
 	
 	BaseT::stop(true);//block until all objects are destroyed
 	
-	Locker<Mutex>	lock(d.mtx);
+	unique_lock<std::mutex>	lock(d.mtx);
 	
 	{
 		ErrorConditionT error;
@@ -693,7 +694,7 @@ ErrorConditionT Service::doSendMessage(
 	uint32_t						unique;
 	bool						check_uid = false;
 	
-	Locker<Mutex>				lock(d.mtx);
+	unique_lock<std::mutex>				lock(d.mtx);
 	
 	if(not isRunning()){
 		edbgx(Debug::ipc, this<<" service stopping");
@@ -750,7 +751,7 @@ ErrorConditionT Service::doSendMessage(
 		return error;
 	}
 
-	Locker<Mutex>			lock2(d.poolMutex(pool_idx));
+	unique_lock<std::mutex>			lock2(d.poolMutex(pool_idx));
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
 	
 	if(check_uid && rpool.unique != unique){
@@ -858,7 +859,7 @@ ErrorConditionT Service::doSendMessageToConnection(
 		return error_service_unknown_connection;
 	}
 	
-	Locker<Mutex>					lock2(d.poolMutex(pool_idx));
+	unique_lock<std::mutex>					lock2(d.poolMutex(pool_idx));
 	ConnectionPoolStub				&rpool = d.pooldq[pool_idx];
 	solid::ErrorConditionT			error;
 	const bool						is_server_side_pool = rpool.isServerSide();//unnamed pool has a single connection
@@ -924,7 +925,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 		pool_idx = this->doPushNewConnectionPool();
 	}
 	
-	Locker<Mutex>					lock2(d.poolMutex(pool_idx));
+	unique_lock<std::mutex>					lock2(d.poolMutex(pool_idx));
 	ConnectionPoolStub 				&rpool(d.pooldq[pool_idx]);
 	
 	rpool.name = _recipient_name;
@@ -1061,7 +1062,7 @@ ErrorConditionT Service::pollPoolForUpdates(
 	vdbgx(Debug::ipc, this<<" "<<&_rconnection);
 	
 	const size_t			pool_idx = _rconnection.poolId().index;
-	Locker<Mutex>			lock2(d.poolMutex(pool_idx));
+	unique_lock<std::mutex>			lock2(d.poolMutex(pool_idx));
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
 	
 	ErrorConditionT			error;
@@ -1172,7 +1173,7 @@ void Service::rejectNewPoolMessage(Connection const &_rconnection){
 	vdbgx(Debug::ipc, this);
 	
 	const size_t			pool_idx = _rconnection.poolId().index;
-	Locker<Mutex>			lock2(d.poolMutex(pool_idx));
+	unique_lock<std::mutex>			lock2(d.poolMutex(pool_idx));
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
 	
 	SOLID_ASSERT(rpool.unique == _rconnection.poolId().unique);
@@ -1213,8 +1214,8 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
 	
 	ErrorConditionT			error;
 	const size_t			pool_idx = _rrecipient_id.poolId().index;
-	Locker<Mutex>			lock(d.mtx);
-	Locker<Mutex>			lock2(d.poolMutex(pool_idx));
+	unique_lock<std::mutex>			lock(d.mtx);
+	unique_lock<std::mutex>			lock2(d.poolMutex(pool_idx));
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
 	
 	if(rpool.unique != _rrecipient_id.poolId().unique){
@@ -1256,8 +1257,8 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 	
 	ErrorConditionT			error;
 	const size_t			pool_idx = _rrecipient_id.poolId().index;
-	Locker<Mutex>			lock(d.mtx);
-	Locker<Mutex>			lock2(d.poolMutex(pool_idx));
+	unique_lock<std::mutex>			lock(d.mtx);
+	unique_lock<std::mutex>			lock2(d.poolMutex(pool_idx));
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
 	
 	if(rpool.unique != _rrecipient_id.poolId().unique){
@@ -1298,8 +1299,8 @@ ErrorConditionT Service::cancelMessage(RecipientId const &_rrecipient_id, Messag
 	
 	ErrorConditionT			error;
 	const size_t			pool_idx = _rrecipient_id.poolId().index;
-	//Locker<Mutex>			lock(d.mtx);
-	Locker<Mutex>			lock2(d.poolMutex(pool_idx));
+	//unique_lock<std::mutex>			lock(d.mtx);
+	unique_lock<std::mutex>			lock2(d.poolMutex(pool_idx));
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_idx]);
 	
 	if(rpool.unique != _rrecipient_id.poolId().unique){
@@ -1482,7 +1483,7 @@ bool Service::fetchMessage(Connection &_rcon, ObjectIdT const &_robjuid, Message
 	
 	vdbgx(Debug::ipc, this);
 	
-	Locker<Mutex>			lock2(d.poolMutex(_rcon.poolId().index));
+	unique_lock<std::mutex>			lock2(d.poolMutex(_rcon.poolId().index));
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
@@ -1499,7 +1500,7 @@ bool Service::fetchCanceledMessage(Connection const &_rcon, MessageId const &_rm
 	
 	vdbgx(Debug::ipc, this);
 	
-	Locker<Mutex>			lock2(d.poolMutex(_rcon.poolId().index));
+	unique_lock<std::mutex>			lock2(d.poolMutex(_rcon.poolId().index));
 	const size_t 			pool_index = _rcon.poolId().index;
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
@@ -1541,7 +1542,7 @@ bool Service::connectionStopping(
 	vdbgx(Debug::ipc, this);
 	
 	const size_t 			pool_index = _rcon.poolId().index;
-	Locker<Mutex>			lock2(d.poolMutex(pool_index));
+	unique_lock<std::mutex>			lock2(d.poolMutex(pool_index));
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
 	_rseconds_to_wait = 0;
@@ -1850,8 +1851,8 @@ void Service::connectionStop(Connection const &_rcon){
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
 	
 	const size_t 			pool_index = _rcon.poolId().index;
-	Locker<Mutex>			lock(d.mtx);
-	Locker<Mutex>			lock2(d.poolMutex(pool_index));
+	unique_lock<std::mutex>			lock(d.mtx);
+	unique_lock<std::mutex>			lock2(d.poolMutex(pool_index));
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	
 	SOLID_ASSERT(rpool.unique == _rcon.poolId().unique);
@@ -1932,7 +1933,7 @@ void Service::forwardResolveMessage(ConnectionPoolId const &_rpoolid, Event &_re
 	ErrorConditionT	error;
 	
 	if(presolvemsg->addrvec.size()){
-		Locker<Mutex>					lock(d.poolMutex(_rpoolid.index));
+		unique_lock<std::mutex>					lock(d.poolMutex(_rpoolid.index));
 		ConnectionPoolStub				&rpool(d.pooldq[_rpoolid.index]);
 		
 		if(rpool.pending_connection_count < configuration().pool_max_pending_connection_count){
@@ -1954,7 +1955,7 @@ void Service::forwardResolveMessage(ConnectionPoolId const &_rpoolid, Event &_re
 			rpool.connect_addr_vec.pop_back();
 		}
 	}else{
-		Locker<Mutex>					lock(d.poolMutex(_rpoolid.index));
+		unique_lock<std::mutex>					lock(d.poolMutex(_rpoolid.index));
 		
 		doTryCreateNewConnectionForPool(_rpoolid.index, error);
 	}
@@ -2021,7 +2022,7 @@ ErrorConditionT Service::activateConnection(Connection &_rconnection, ObjectIdT 
 	vdbgx(Debug::ipc, this);
 	
 	const size_t			pool_index = _rconnection.poolId().index;
-	Locker<Mutex>			lock2(d.poolMutex(pool_index));
+	unique_lock<std::mutex>			lock2(d.poolMutex(pool_index));
 	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
 	ErrorConditionT			error;
 	
@@ -2073,7 +2074,7 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 	vdbgx(Debug::ipc, this);
 	
 	size_t				pool_idx;
-	Locker<Mutex>		lock(d.mtx);
+	unique_lock<std::mutex>		lock(d.mtx);
 	
 	if(d.conpoolcachestk.size()){
 		pool_idx = d.conpoolcachestk.top();
@@ -2083,7 +2084,7 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 	}
 	
 	{
-		Locker<Mutex>					lock2(d.poolMutex(pool_idx));
+		unique_lock<std::mutex>					lock2(d.poolMutex(pool_idx));
 		
 		ConnectionPoolStub 				&rpool(d.pooldq[pool_idx]);
 		

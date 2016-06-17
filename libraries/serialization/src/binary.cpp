@@ -9,8 +9,6 @@
 //
 #include "serialization/binary.hpp"
 #include "serialization/binarybasic.hpp"
-#include "utility/ostream.hpp"
-#include "utility/istream.hpp"
 #include "utility/ioformat.hpp"
 #include "system/cstring.hpp"
 #include "system/atomic.hpp"

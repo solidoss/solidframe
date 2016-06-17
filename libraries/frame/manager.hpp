@@ -10,8 +10,9 @@
 #ifndef SOLID_FRAME_MANAGER_HPP
 #define SOLID_FRAME_MANAGER_HPP
 
+#include <mutex>
+
 #include "frame/common.hpp"
-#include "system/mutex.hpp"
 #include "system/error.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/function.hpp"
@@ -90,8 +91,8 @@ private:
 	
 	ObjectIdT  unsafeId(const ObjectBase &_robj)const;
 	
-	Mutex& mutex(const Service &_rsvc)const;
-	Mutex& mutex(const ObjectBase &_robj)const;
+	std::mutex& mutex(const Service &_rsvc)const;
+	std::mutex& mutex(const ObjectBase &_robj)const;
 	
 	ObjectIdT registerObject(
 		const Service &_rsvc,

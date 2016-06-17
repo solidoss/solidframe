@@ -7,6 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include <mutex>
 #include "frame/sharedstore.hpp"
 #include "frame/manager.hpp"
 #include "system/cassert.hpp"
@@ -18,6 +19,7 @@
 #include "frame/reactorcontext.hpp"
 #include "frame/service.hpp"
 
+using namespace std;
 
 namespace solid{
 namespace frame{
@@ -39,8 +41,8 @@ void PointerBase::doClear(const bool _isalive){
 //		StoreBase
 //---------------------------------------------------------------
 typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
-typedef MutualStore<Mutex>					MutexMutualStoreT;
-typedef Queue<UniqueId>							UidQueueT;
+typedef MutualStore<mutex>					MutexMutualStoreT;
+typedef Queue<UniqueId>						UidQueueT;
 typedef Stack<size_t>						SizeStackT;
 typedef Stack<void*>						VoidPtrStackT;
 
@@ -64,7 +66,7 @@ struct StoreBase::Data{
 	SizeStackT			cacheobjidxstk;
 	ExecWaitVectorT		exewaitvec;
 	VoidPtrStackT		cachewaitstk;
-	Mutex				mtx;
+	std::mutex			mtx;
 };
 
 
@@ -85,10 +87,10 @@ Manager& StoreBase::manager(){
 	return d.rm;
 }
 
-Mutex &StoreBase::mutex(){
+mutex &StoreBase::mutex(){
 	return d.mtx;
 }
-Mutex &StoreBase::mutex(const size_t _idx){
+mutex &StoreBase::mutex(const size_t _idx){
 	return d.mtxstore.at(_idx);
 }
 
@@ -114,11 +116,11 @@ StoreBase::ExecWaitVectorT& StoreBase::executeWaitVector()const{
 
 namespace{
 
-	void visit_lock(Mutex &_rm){
+	void visit_lock(mutex &_rm){
 		_rm.lock();
 	}
 
-	void visit_unlock(Mutex &_rm){
+	void visit_unlock(mutex &_rm){
 		_rm.unlock();
 	}
 
@@ -156,7 +158,7 @@ void StoreBase::erasePointer(UniqueId const & _ruid, const bool _isalive){
 	if(_ruid.index < d.objmaxcnt.load()){
 		bool	do_notify = true;
 		{
-			Locker<Mutex>	lock(mutex(_ruid.index));
+			std::unique_lock<std::mutex>	lock(mutex(_ruid.index));
 			do_notify = doDecrementObjectUseCount(_ruid, _isalive);
 		}
 		notifyObject(_ruid);
@@ -166,7 +168,7 @@ void StoreBase::erasePointer(UniqueId const & _ruid, const bool _isalive){
 void StoreBase::notifyObject(UniqueId const & _ruid){
 	bool	do_raise = false;
 	{
-		Locker<Mutex>	lock(mutex());
+		std::unique_lock<std::mutex>	lock(mutex());
 		d.pfillerasevec->push_back(_ruid);
 		if(d.pfillerasevec->size() == 1){
 			do_raise = Object::notify(S_RAISE);
@@ -185,7 +187,7 @@ void StoreBase::raise(){
 /*virtual*/void StoreBase::onEvent(frame::ReactorContext &_rctx, Event &&_revent){
 	if(_revent == generic_event_category.event(GenericEvents::Raise)){
 		{
-			Locker<Mutex>	lock(mutex());
+			std::unique_lock<std::mutex>	lock(mutex());
 			ulong sm = grabSignalMask();
 			if(sm & S_RAISE){
 				if(d.pfillerasevec->size()){

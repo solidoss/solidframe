@@ -18,9 +18,9 @@
 #include "system/exception.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
-#include "system/mutex.hpp"
-#include "system/thread.hpp"
-#include "system/condition.hpp"
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 #include "system/device.hpp"
 #include "system/error.hpp"
 
@@ -37,6 +37,7 @@
 #include "frame/completion.hpp"
 #include "frame/reactorcontext.hpp"
 
+using namespace std;
 
 namespace solid{
 namespace frame{
@@ -216,8 +217,8 @@ struct Reactor::Data{
 	NewTaskVectorT				*pcrtpushtskvec;
 	RaiseEventVectorT			*pcrtraisevec;
 	
-	Mutex						mtx;
-	Condition					cnd;
+	mutex						mtx;
+	condition_variable			cnd;
 	NewTaskVectorT				pushtskvec[2];
 	
 	RaiseEventVectorT			raisevec[2];
@@ -262,13 +263,13 @@ bool Reactor::start(){
 	bool 	rv = true;
 	size_t	raisevecsz = 0;
 	{
-		Locker<Mutex>	lock(d.mtx);
+		unique_lock<mutex>	lock(d.mtx);
 		
 		d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, _revent));
 		raisevecsz = d.raisevec[d.crtraisevecidx].size();
 		d.crtraisevecsz = raisevecsz;
 		if(raisevecsz == 1){
-			d.cnd.signal();
+			d.cnd.notify_one();
 		}
 	}
 	return rv;
@@ -279,13 +280,13 @@ bool Reactor::start(){
 	bool 	rv = true;
 	size_t	raisevecsz = 0;
 	{
-		Locker<Mutex>	lock(d.mtx);
+		unique_lock<mutex>	lock(d.mtx);
 		
 		d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, std::move(_uevent)));
 		raisevecsz = d.raisevec[d.crtraisevecidx].size();
 		d.crtraisevecsz = raisevecsz;
 		if(raisevecsz == 1){
-			d.cnd.signal();
+			d.cnd.notify_one();
 		}
 	}
 	return rv;
@@ -293,9 +294,9 @@ bool Reactor::start(){
 
 /*virtual*/ void Reactor::stop(){
 	vdbgx(Debug::aio, "");
-	Locker<Mutex>	lock(d.mtx);
+	unique_lock<mutex>	lock(d.mtx);
 	d.must_stop = true;
-	d.cnd.signal();
+	d.cnd.notify_one();
 }
 
 //Called from outside reactor's thread
@@ -304,7 +305,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
 	bool 	rv = true;
 	size_t	pushvecsz = 0;
 	{
-		Locker<Mutex>	lock(d.mtx);
+		unique_lock<mutex>	lock(d.mtx);
 		const UniqueId		uid = this->popUid(*_robj);
 		
 		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event = "<<_revent);
@@ -313,7 +314,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
 		pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();
 		d.crtpushvecsz = pushvecsz;
 		if(pushvecsz == 1){
-			d.cnd.signal();
+			d.cnd.notify_one();
 		}
 	}
 	
@@ -467,13 +468,11 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 bool Reactor::doWaitEvent(TimeSpec const &_rcrttime){
 	bool			rv = false;
 	int				waitmsec = d.computeWaitTimeMilliseconds(_rcrttime);
-	Locker<Mutex>	lock(d.mtx);
+	unique_lock<mutex>	lock(d.mtx);
 	
 	if(d.crtpushvecsz == 0 && d.crtraisevecsz == 0 && !d.must_stop){
 		if(waitmsec > 0){
-			TimeSpec next_time = _rcrttime;
-			next_time += waitmsec;
-			d.cnd.wait(lock, next_time);
+			d.cnd.wait_for(lock, std::chrono::milliseconds(waitmsec));
 		}else if(waitmsec < 0){
 			d.cnd.wait(lock);
 		}
@@ -620,44 +619,24 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 	++rcs.unique;
 }
 
-
-namespace{
-#ifdef SOLID_USE_SAFE_STATIC
-static const size_t specificPosition(){
-	static const size_t	thrspecpos = Thread::specificId();
-	return thrspecpos;
-}
-#else
-const size_t specificIdStub(){
-	static const size_t id(Thread::specificId());
-	return id;
-}
-
-void once_stub(){
-	specificIdStub();
-}
-
-static const size_t specificPosition(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_stub, once);
-	return specificIdStub();
-}
-#endif
-}//namespace
+thread_local Reactor	*thread_local_reactor = nullptr;
 
 /*static*/ Reactor* Reactor::safeSpecific(){
-	return reinterpret_cast<Reactor*>(Thread::specific(specificPosition()));
+	return thread_local_reactor;
 }
 
 /*static*/ Reactor& Reactor::specific(){
 	vdbgx(Debug::aio, "");
 	return *safeSpecific();
 }
+
+
+
 void Reactor::doStoreSpecific(){
-	Thread::specific(specificPosition(), this);
+	thread_local_reactor = this;
 }
 void Reactor::doClearSpecific(){
-	Thread::specific(specificPosition(), nullptr);
+	thread_local_reactor = nullptr;
 }
 //=============================================================================
 //		ReactorContext

@@ -12,7 +12,7 @@
 
 #include "frame/common.hpp"
 #include "frame/manager.hpp"
-#include "system/mutex.hpp"
+#include <mutex>
 #include "utility/dynamictype.hpp"
 #include <vector>
 #include "frame/schedulerbase.hpp"
@@ -52,12 +52,12 @@ public:
 	
 	Manager& manager();
 	
-	Mutex& mutex(const ObjectBase &_robj)const;
+	std::mutex& mutex(const ObjectBase &_robj)const;
 	
 	bool isRunning()const;
 	
 protected:
-	Mutex& mutex()const;
+	std::mutex& mutex()const;
 private:
 	friend class Manager;
 	friend class SchedulerBase;

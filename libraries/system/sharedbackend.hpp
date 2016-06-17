@@ -11,20 +11,23 @@
 #define SYSTEM_SHAREDBACKEND_HPP
 
 #include "system/common.hpp"
-#ifdef SOLID_USE_GNU_ATOMIC
-#include <ext/atomicity.h>
-#endif
+#include "atomic.hpp"
 
 namespace solid{
 
 struct SharedStub{
 	typedef void (*DelFncT)(void*);
 	SharedStub(const ulong _idx):use(0), ptr(NULL), idx(_idx)/*, uid(0)*/, cbk(0){}
-	SharedStub(const ulong _idx, int _use):use(_use), ptr(NULL), idx(_idx)/*, uid(0)*/, cbk(0){}
-	int					use;
+	SharedStub(const ulong _idx, const int _use):use(_use), ptr(NULL), idx(_idx)/*, uid(0)*/, cbk(0){}
+	
+	SharedStub(SharedStub &&_rss):use(_rss.use.load()), ptr(_rss.ptr), idx(_rss.idx), cbk(_rss.cbk){
+		_rss.ptr = nullptr;
+		_rss.cbk = nullptr;
+	}
+	
+	std::atomic<int>	use;
 	void				*ptr;
 	const ulong			idx;
-	//uint32_t				uid
 	DelFncT				cbk;
 };
 
@@ -34,23 +37,15 @@ public:
 	static SharedStub& emptyStub();
 	
 	static SharedStub* create(void *_pv, SharedStub::DelFncT _cbk);
-#ifdef SOLID_USE_GNU_ATOMIC
 	inline static void use(SharedStub &_rss){
-		//__sync_add_and_fetch(&_rss.use, 1);
-		__gnu_cxx:: __atomic_add_dispatch(&_rss.use, 1);
+		++_rss.use;
 	}
 	
 	inline static void release(SharedStub &_rss){
-		//if(__sync_sub_and_fetch(&_rss.use, 1) == 0){
-		if(__gnu_cxx::__exchange_and_add_dispatch(&_rss.use, -1) == 1){
+		if(_rss.use.fetch_sub(1) == 1){
 			the().doRelease(_rss);
 		}
 	}
-#else
-	static void use(SharedStub &_rss);
-	
-	static void release(SharedStub &_rss);
-#endif
 	
 private:
 	void doRelease(SharedStub &_rss);

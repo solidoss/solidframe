@@ -14,7 +14,6 @@
 #include <map>
 #include <list>
 //#undef SOLID_HAS_DEBUG
-#include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "system/cassert.hpp"
 
@@ -29,7 +28,6 @@ using namespace solid;
 void test_basic_serialization();
 
 int main(int argc, char *argv[]){
-	Thread::init();
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask();
 	Debug::the().moduleMask();

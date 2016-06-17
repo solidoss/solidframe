@@ -28,7 +28,7 @@
 #include "system/directory.hpp"
 #include "system/debug.hpp"
 
-#include "utility/binaryseeker.hpp"
+#include "utility/algorithm.hpp"
 #include "utility/stack.hpp"
 #include "utility/sharedmutex.hpp"
 
@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <cstdio>
 
+using namespace std;
 
 namespace solid{
 namespace frame{
@@ -125,8 +126,6 @@ struct SizePairCompare {
 	}
 } szcmp;
 
-
-BinarySeeker<SizePairCompare>		sizeseeker;
 
 struct Utf8ConfigurationImpl{
 	struct Storage{
@@ -284,7 +283,7 @@ size_t Utf8Controller::Data::findFileStorage(std::string const&_path){
 	tmp.resize(maxglobalprefixsz, '\0');
 	HASH_NS::hash<std::string>		sh;
 	size_t							h = sh(tmp);
-	BinarySeekerResultT				r = sizeseeker.first(hashvec.begin(), hashvec.end(), h);
+	binary_search_result_t			r = solid::binary_search_first(hashvec.begin(), hashvec.end(), h, szcmp);
 	if(r.first){
 		while(hashvec[r.second].first == h){
 			const size_t							strgidx = hashvec[r.second].second;
@@ -719,27 +718,27 @@ TempMemory::TempMemory(
 }
 
 /*virtual*/ bool TempMemory::open(const char *_path, const size_t _openflags, bool /*_remove*/, ERROR_NS::error_code &_rerr){
-	Locker<Mutex> lock(shared_mutex(this));
+	unique_lock<mutex> lock(shared_mutex(this));
 	mf.truncate(0);
 	return true;
 }
 /*virtual*/ void TempMemory::close(const char */*_path*/, bool /*_remove*/){
 }
 /*virtual*/ int TempMemory::read(char *_pb, uint32_t _bl, int64_t _off){
-	Locker<Mutex> lock(shared_mutex(this));
+	unique_lock<mutex> lock(shared_mutex(this));
 	return mf.read(_pb, _bl, _off);
 }
 /*virtual*/ int TempMemory::write(const char *_pb, uint32_t _bl, int64_t _off){
-	Locker<Mutex> lock(shared_mutex(this));
+	unique_lock<mutex> lock(shared_mutex(this));
 	return mf.write(_pb, _bl, _off);
 }
 /*virtual*/ int64_t TempMemory::size()const{
-	Locker<Mutex> lock(shared_mutex(this));
+	unique_lock<mutex> lock(shared_mutex(this));
 	return mf.size();
 }
 
 /*virtual*/ bool TempMemory::truncate(int64_t _len){
-	Locker<Mutex> lock(shared_mutex(this));
+	unique_lock<mutex> lock(shared_mutex(this));
 	return mf.truncate(_len) == 0;
 }
 

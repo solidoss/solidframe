@@ -70,7 +70,8 @@ class MyWorkPoolController: public WorkPoolControllerBase{
 public:
 	bool createWorker(MyWorkPoolT &_rwp, ushort _wkrcnt){
 		//_rwp.createSingleWorker()->start();
-		_rwp.createSingleWorker()->start();
+		//TODO: std_thread
+		//_rwp.createSingleWorker()->start();
 		return true;
 	}
 	void execute(WorkPoolBase &_rwp, MyWorkerBase &_rw, FileDevice *_pfile){
@@ -125,7 +126,6 @@ typedef WorkPool<FileDevice*, MyWorkPoolController, MyWorkerBase> MyWorkPoolT;
 
 
 int main(int argc, char *argv[]){
-	Thread::init();
 	if(argc != 4){
 		cout<<"./file_open_pool /path/to/folder file-count folder-count"<<endl;
 		return 0;
@@ -165,7 +165,6 @@ int main(int argc, char *argv[]){
 		wp.push(&(*it));
 	}
 	wp.stop(true);
-	Thread::waitAll();
 	return 0;
 }
 

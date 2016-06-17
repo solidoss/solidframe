@@ -15,7 +15,7 @@
 #include "frame/object.hpp"
 #include "utility/dynamictype.hpp"
 #include "system/error.hpp"
-#include "system/mutex.hpp"
+#include <mutex>
 #include "system/function.hpp"
 #include <vector>
 #include <deque>
@@ -40,7 +40,7 @@ public:
 		StoreBase& store()const{
 			return rs;
 		}
-		Mutex& mutex(){
+		std::mutex& mutex(){
 			return rs.mutex();
 		}
 		UidVectorT& consumeEraseVector()const{
@@ -84,8 +84,8 @@ protected:
 		Manager &_rm
 	);
 	
-	Mutex &mutex();
-	Mutex &mutex(const size_t _idx);
+	std::mutex &mutex();
+	std::mutex &mutex(const size_t _idx);
 	
 	size_t doAllocateIndex();
 	void* doTryAllocateWait();
@@ -126,7 +126,7 @@ struct PointerBase{
 	StoreBase* store()const{
 		return psb;
 	}
-	Mutex* mutex()const{
+	std::mutex* mutex()const{
 		if(!empty()){
 			return &psb->mutex(uid.index);
 		}else return NULL;
@@ -143,7 +143,7 @@ protected:
 	}
 private:
 	friend class StoreBase;
-	mutable UniqueId		uid;
+	mutable UniqueId	uid;
 	mutable StoreBase	*psb;
 };
 
@@ -224,11 +224,11 @@ public:
 	):BaseT(_rm){}
 	
 	PointerT	insertAlive(T &_rt){
-		Locker<Mutex>	lock(this->mutex());
+		std::unique_lock<std::mutex>	lock(this->mutex());
 		const size_t	idx = this->doAllocateIndex();
 		PointerT		ptr;
 		{
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
 			rs.obj = _rt;
 			ptr = doTryGetAlive(idx);
@@ -237,11 +237,11 @@ public:
 	}
 	
 	PointerT	insertShared(T &_rt){
-		Locker<Mutex>	lock(this->mutex());
+		std::unique_lock<std::mutex>	lock(this->mutex());
 		const size_t	idx = this->doAllocateIndex();
 		PointerT		ptr;
 		{
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
 			rs.obj = _rt;
 			ptr = doTryGetShared(idx);
@@ -250,11 +250,11 @@ public:
 	}
 	
 	PointerT	insertUnique(T &_rt){
-		Locker<Mutex>	lock(this->mutex());
+		std::unique_lock<std::mutex>	lock(this->mutex());
 		const size_t	idx = this->doAllocateIndex();
 		PointerT		ptr;
 		{
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
 			rs.obj = _rt;
 			ptr = doTryGetUnique(idx);
@@ -263,33 +263,33 @@ public:
 	}
 	
 	PointerT	insertAlive(){
-		Locker<Mutex>	lock(this->mutex());
+		std::unique_lock<std::mutex>	lock(this->mutex());
 		const size_t	idx = this->doAllocateIndex();
 		PointerT		ptr;
 		{
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			ptr = doTryGetAlive(idx);
 		}
 		return ptr;
 	}
 	
 	PointerT	insertShared(){
-		Locker<Mutex>	lock(this->mutex());
+		std::unique_lock<std::mutex>	lock(this->mutex());
 		const size_t	idx = this->doAllocateIndex();
 		PointerT		ptr;
 		{
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			ptr = doTryGetShared(idx);
 		}
 		return ptr;
 	}
 	
 	PointerT	insertUnique(){
-		Locker<Mutex>	lock(this->mutex());
+		std::unique_lock<std::mutex>	lock(this->mutex());
 		const size_t	idx = this->doAllocateIndex();
 		PointerT		ptr;
 		{
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			ptr = doTryGetUnique(idx);
 		}
 		return ptr;
@@ -300,7 +300,7 @@ public:
 		PointerT		ptr;
 		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
 			if(rs.uid == _ruid.unique){
 				ptr = doTryGetAlive(idx);
@@ -314,7 +314,7 @@ public:
 		PointerT		ptr;
 		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
 			if(rs.uid == _ruid.unique){
 				ptr = doTryGetUnique(idx);
@@ -328,7 +328,7 @@ public:
 		PointerT		ptr;
 		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
 			if(rs.uid == _ruid.unique){
 				ptr = doTryGetShared(idx);
@@ -343,7 +343,7 @@ public:
 		if(!_rptr.empty()){
 			const size_t	idx = _rptr.id().index;
 			if(idx < this->atomicMaxCount()){
-				Locker<Mutex>	lock2(this->mutex(idx));
+				std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 				Stub			&rs = stubvec[idx];
 				if(rs.uid == _rptr.id().unique){
 					if(doSwitchUniqueToShared(idx)){
@@ -369,14 +369,14 @@ public:
 		ERROR_NS::error_code	err;
 		StoreBase::Accessor		acc = StoreBase::accessor();
 		{
-			Locker<Mutex>	lock(this->mutex());
+			std::unique_lock<std::mutex>	lock(this->mutex());
 			bool			found = controller().prepareIndex(acc, _f, idx, _flags, err);
 			if(!found && !err){
 				//an index was not found - need to allocate one
 				idx = this->doAllocateIndex();
 			}
 			if(!err){
-				Locker<Mutex>	lock(this->mutex(idx));
+				std::unique_lock<std::mutex>	lock(this->mutex(idx));
 				ptr = doTryGetReinit(idx);
 				if(ptr.empty()){
 					doPushWait(idx, _f, StoreBase::ReinitWaitE);
@@ -400,7 +400,7 @@ public:
 		ERROR_NS::error_code	err;
 		const size_t			idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
 			if(rs.uid == _ruid.unique){
 				ptr = doTryGetShared(idx);
@@ -426,7 +426,7 @@ public:
 		ERROR_NS::error_code	err;
 		const size_t			idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
 			if(rs.uid == _ruid.unique){
 				ptr = doTryGetUnique(idx);
@@ -453,7 +453,7 @@ public:
 		ERROR_NS::error_code	err;
 		const size_t			idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
-			Locker<Mutex>	lock2(this->mutex(idx));
+			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
 			if(rs.uid == _ruid.unique){
 				ptr = doTryGetReinit(idx);
@@ -609,10 +609,10 @@ private:
 		if(reraseuidvec.empty()){
 			return must_reschedule;
 		}
-		Mutex						*pmtx = &this->mutex(reraseuidvec.front().index);
+		std::mutex 					*pmtx = &this->mutex(reraseuidvec.front().index);
 		pmtx->lock();
 		for(StoreBase::UidVectorT::const_iterator it(reraseuidvec.begin()); it != reraseuidvec.end(); ++it){
-			Mutex *ptmpmtx = &this->mutex(it->index);
+			std::mutex *ptmpmtx = &this->mutex(it->index);
 			if(pmtx != ptmpmtx){
 				pmtx->unlock();
 				pmtx = ptmpmtx;
@@ -641,12 +641,12 @@ private:
 		}
 		
 		{
-			Locker<Mutex>	lock(this->mutex());
+			std::unique_lock<std::mutex>	lock(this->mutex());
 			if(rcacheidxvec.size()){
 				pmtx = &this->mutex(rcacheidxvec.front());
 				pmtx->lock();
 				for(StoreBase::SizeVectorT::const_iterator it(rcacheidxvec.begin()); it != rcacheidxvec.end(); ++it){
-					Mutex	*ptmpmtx = &this->mutex(*it);
+					std::mutex	*ptmpmtx = &this->mutex(*it);
 					if(pmtx != ptmpmtx){
 						pmtx->unlock();
 						pmtx = ptmpmtx;

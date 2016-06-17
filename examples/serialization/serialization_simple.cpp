@@ -14,7 +14,6 @@
 #include <map>
 #include <list>
 //#undef SOLID_HAS_DEBUG
-#include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "serialization/binary.hpp"
 #include "serialization/binarybasic.hpp"
@@ -297,7 +296,6 @@ enum{
 };
 
 int main(int argc, char *argv[]){
-	Thread::init();
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask();
 	Debug::the().moduleMask();

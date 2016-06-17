@@ -33,8 +33,8 @@
 #include "system/exception.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
-#include "system/mutex.hpp"
-#include "system/thread.hpp"
+#include <mutex>
+#include <thread>
 #include "system/device.hpp"
 #include "system/error.hpp"
 
@@ -53,6 +53,7 @@
 #include "frame/aio/aiocompletion.hpp"
 #include "frame/aio/aioreactorcontext.hpp"
 
+using namespace std;
 
 namespace solid{
 namespace frame{
@@ -378,7 +379,7 @@ struct Reactor::Data{
 	size_t						objcnt;
 	TimeStoreT					timestore;
 	
-	Mutex						mtx;
+	mutex						mtx;
 	EventVectorT				eventvec;
 	NewTaskVectorT				pushtskvec[2];
 	RaiseEventVectorT			raisevec[2];
@@ -472,7 +473,7 @@ bool Reactor::start(){
 	bool 	rv = true;
 	size_t	raisevecsz = 0;
 	{
-		Locker<Mutex>	lock(d.mtx);
+		unique_lock<std::mutex>	lock(d.mtx);
 		
 		d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, std::move(_uevent)));
 		raisevecsz = d.raisevec[d.crtraisevecidx].size();
@@ -491,7 +492,7 @@ bool Reactor::start(){
 	bool 	rv = true;
 	size_t	raisevecsz = 0;
 	{
-		Locker<Mutex>	lock(d.mtx);
+		unique_lock<std::mutex>	lock(d.mtx);
 		
 		d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, _revent));
 		raisevecsz = d.raisevec[d.crtraisevecidx].size();
@@ -519,7 +520,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event &&_uevent){
 	bool 	rv = true;
 	size_t	pushvecsz = 0;
 	{
-		Locker<Mutex>		lock(d.mtx);
+		unique_lock<std::mutex>		lock(d.mtx);
 		const UniqueId		uid = this->popUid(*_robj);
 		
 		vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event = "<<_uevent);
@@ -870,7 +871,7 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 		size_t		crtpushvecidx;
 		size_t 		crtraisevecidx;
 		{
-			Locker<Mutex>		lock(d.mtx);
+			unique_lock<std::mutex>		lock(d.mtx);
 			
 			crtpushvecidx = d.crtpushtskvecidx;
 			crtraisevecidx = d.crtraisevecidx;
@@ -1233,32 +1234,10 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 
 //-----------------------------------------------------------------------------
 
-namespace{
-#ifdef SOLID_USE_SAFE_STATIC
-static const size_t specificPosition(){
-	static const size_t	thrspecpos = Thread::specificId();
-	return thrspecpos;
-}
-#else
-const size_t specificIdStub(){
-	static const size_t id(Thread::specificId());
-	return id;
-}
-
-void once_stub(){
-	specificIdStub();
-}
-
-static const size_t specificPosition(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_stub, once);
-	return specificIdStub();
-}
-#endif
-}//namespace
+thread_local Reactor	*thread_local_reactor = nullptr;
 
 /*static*/ Reactor* Reactor::safeSpecific(){
-	return reinterpret_cast<Reactor*>(Thread::specific(specificPosition()));
+	return thread_local_reactor;
 }
 
 /*static*/ Reactor& Reactor::specific(){
@@ -1266,16 +1245,13 @@ static const size_t specificPosition(){
 	return *safeSpecific();
 }
 
-//-----------------------------------------------------------------------------
+
 
 void Reactor::doStoreSpecific(){
-	Thread::specific(specificPosition(), this);
+	thread_local_reactor = this;
 }
-
-//-----------------------------------------------------------------------------
-
 void Reactor::doClearSpecific(){
-	Thread::specific(specificPosition(), nullptr);
+	thread_local_reactor = nullptr;
 }
 
 //-----------------------------------------------------------------------------

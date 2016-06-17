@@ -10,9 +10,9 @@
 #include "frame/aio/aiosocket.hpp"
 #include "frame/aio/aioresolver.hpp"
 
-#include "system/thread.hpp"
-#include "system/mutex.hpp"
-#include "system/condition.hpp"
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
 #include "system/debug.hpp"
@@ -68,8 +68,8 @@ struct Params{
 
 Params params;
 
-Mutex					mtx;
-Condition				cnd;
+mutex					mtx;
+condition_variable		cnd;
 bool					running(true);
 
 static void term_handler(int signum){
@@ -77,9 +77,9 @@ static void term_handler(int signum){
 		case SIGINT:
 		case SIGTERM:{
 			if(running){
-				Locker<Mutex>  lock(mtx);
+				unique_lock<mutex>  lock(mtx);
 				running = false;
-				cnd.broadcast();
+				cnd.notify_all();
 			}
 		}
     }
@@ -183,8 +183,6 @@ int main(int argc, char *argv[]){
 	signal(SIGINT, term_handler); /* Die on SIGTERM */
 	//signal(SIGPIPE, SIG_IGN);
 	
-	/*solid::*/Thread::init();
-	
 #ifdef SOLID_HAS_DEBUG
 	{
 	string dbgout;
@@ -251,7 +249,7 @@ int main(int argc, char *argv[]){
 		}
 		
 		if(0){
-			Locker<Mutex>	lock(mtx);
+			unique_lock<mutex>	lock(mtx);
 			while(running){
 				cnd.wait(lock);
 			}
@@ -265,7 +263,7 @@ int main(int argc, char *argv[]){
 		async_resolver().stop();
 		m.stop();
 	}
-	Thread::waitAll();
+	
 	return 0;
 }
 

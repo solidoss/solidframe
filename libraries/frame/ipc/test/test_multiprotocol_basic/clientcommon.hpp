@@ -11,6 +11,8 @@
 #include "frame/aio/aioresolver.hpp"
 #include "system/error.hpp"
 #include <memory>
+#include <mutex>
+#include <condition_variable>
 
 
 typedef solid::frame::Scheduler<solid::frame::aio::Reactor>	AioSchedulerT;
@@ -22,15 +24,15 @@ struct Context{
 	size_t 						max_per_pool_connection_count;
 	const std::string 			&rserver_port;
 	std::atomic<size_t>			&rwait_count;
-	solid::Mutex				&rmtx;
-	solid::Condition			&rcnd;
+	std::mutex					&rmtx;
+	std::condition_variable		&rcnd;
 	
 	Context(
 		AioSchedulerT &_rsched, solid::frame::Manager &_rm, solid::frame::aio::Resolver &_rresolver,
 		size_t _max_per_pool_connection_count, const std::string &_rserver_port,
 		std::atomic<size_t> &_rwait_count,
-		solid::Mutex &_rmtx,
-		solid::Condition &_rcnd
+		std::mutex &_rmtx,
+		std::condition_variable &_rcnd
 	):rsched(_rsched), rm(_rm), rresolver(_rresolver), max_per_pool_connection_count(_max_per_pool_connection_count),
 	rserver_port(_rserver_port), rwait_count(_rwait_count), rmtx(_rmtx), rcnd(_rcnd) {}
 };

@@ -12,7 +12,7 @@
 
 #include "system/common.hpp"
 #include "utility/common.hpp"
-#include "utility/binaryseeker.hpp"
+#include "utility/algorithm.hpp"
 #include <deque>
 
 namespace solid{
@@ -89,8 +89,8 @@ public:
 	int64_t size()const;
 	int64_t capacity()const;
 private:
-	BinarySeekerResultT doFindBuffer(uint32_t _idx)const;
-	BinarySeekerResultT doLocateBuffer(uint32_t _idx)const;
+	binary_search_result_t doFindBuffer(uint32_t _idx)const;
+	binary_search_result_t doLocateBuffer(uint32_t _idx)const;
 	char *doGetBuffer(uint32_t _idx)const;
 	char *doCreateBuffer(uint32_t _idx, bool &_created);
 private:
@@ -103,13 +103,13 @@ private:
 	friend struct BuffCmp;
 	typedef std::deque<Buffer>	BufferVectorT;
 	
-	const uint64_t	cp;
+	const uint64_t		cp;
 	uint64_t			sz;
 	uint64_t			off;
 	mutable uint32_t	crtbuffidx;
-	const uint32_t	bufsz;
-	Allocator		&ra;
-	BufferVectorT	bv;
+	const uint32_t		bufsz;
+	Allocator			&ra;
+	BufferVectorT		bv;
 };
 
 

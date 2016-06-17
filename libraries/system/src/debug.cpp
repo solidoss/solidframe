@@ -27,12 +27,13 @@
 #include "system/socketdevice.hpp"
 #include "system/filedevice.hpp"
 #include "system/cassert.hpp"
-#include "system/thread.hpp"
-#include "system/mutex.hpp"
 #include "system/debug.hpp"
 #include "system/directory.hpp"
 #include "system/cstring.hpp"
 #include "system/filedevice.hpp"
+
+#include <mutex>
+#include <thread>
 
 #ifdef SOLID_ON_SOLARIS
 #include <strings.h>
@@ -97,7 +98,7 @@ protected:
 	}
 private:
 	Device		*pd;
-	uint64_t		&sz;
+	uint64_t	&sz;
 };
 
 //-----------------------------------------------------------------
@@ -132,10 +133,10 @@ private:
 		return true;
 	}
 private:
-	Device	*pd;
+	Device		*pd;
 	uint64_t	&sz;
-	char 	bbeg[BUFF_CP];
-	char 	*bpos;
+	char 		bbeg[BUFF_CP];
+	char 		*bpos;
 };
 
 //-----------------------------------------------------------------
@@ -219,7 +220,7 @@ struct StrLess{
 };
 struct ModuleStub{
 	ModuleStub(const char *_name, uint32_t _lvlmsk):name(_name), lvlmsk(_lvlmsk){}
-	string	name;
+	string		name;
 	uint32_t	lvlmsk;
 };
 struct Debug::Data{
@@ -249,15 +250,15 @@ struct Debug::Data{
 	
 	unsigned registerModule(const char *_name, uint32_t _lvlmsk);
 	
-	Mutex					m;
+	mutex					m;
 	BitSetT					bs;
 	unsigned				lvlmsk;
 	ModuleVectorT			modvec;
 	StringMapT				namemap;
-	uint64_t					sz;
-	uint64_t					respinsz;
-	uint32_t					respincnt;
-	uint32_t					respinpos;
+	uint64_t				sz;
+	uint64_t				respinsz;
+	uint32_t				respincnt;
+	uint32_t				respinpos;
 	DeviceOutStream			dos;
 	DeviceBasicOutStream	dbos;
 	FileDevice				fd;
@@ -513,7 +514,7 @@ void Debug::initStdErr(
 	bool _buffered,
 	std::string *_output
 ){
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 
 	d.dos.close();
 	d.dbos.close();
@@ -540,7 +541,7 @@ void Debug::initFile(
 	ulong _respinsize,
 	std::string *_output
 ){
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	d.respinsz = 0;
 
 	d.dos.close();
@@ -598,7 +599,7 @@ void Debug::initSocket(
 		d.sd.close();//make sure the socket is closed
 	}
 	
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	d.respinsz = 0;
 	
 	d.dos.close();
@@ -649,42 +650,42 @@ void Debug::levelMask(const char *_msk){
 	if(!_msk){
 		_msk = "iewrvt";
 	}
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	d.lvlmsk = parseLevels(_msk);
 }
 void Debug::moduleMask(const char *_msk){
 	if(!_msk){
 		_msk = "all";
 	}
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	d.setModuleMask(_msk);
 }
 
 void Debug::moduleNames(std::string &_ros){
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	for(Data::ModuleVectorT::const_iterator it(d.modvec.begin()); it != d.modvec.end(); ++it){
 		_ros += it->name;
 		_ros += ' ';
 	}
 }
 void Debug::setAllModuleBits(){
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	d.bs.set();
 }
 void Debug::resetAllModuleBits(){
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	d.bs.reset();
 }
 void Debug::setModuleBit(unsigned _v){
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	d.bs.set(_v);
 }
 void Debug::resetModuleBit(unsigned _v){
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	d.bs.reset(_v);
 }
 unsigned Debug::registerModule(const char *_name){
-	Locker<Mutex> lock(d.m);
+	unique_lock<mutex>	lock(d.m);
 	return d.registerModule(_name, -1);
 }
 
@@ -729,9 +730,9 @@ std::ostream& Debug::print(
 		//Thread::currentId()
 	);
 #ifdef SOLID_ON_WINDOWS
-	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"]["<<Thread::currentId()<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"]["<<std::this_thread::get_id()<<']'<<' ';
 #else
-	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"][0x"<<std::hex<<std::this_thread::get_id()<<std::dec<<']'<<' ';
 #endif
 }
 static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -784,9 +785,9 @@ std::ostream& Debug::printTraceIn(
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
 #ifdef SOLID_ON_WINDOWS
-	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<std::this_thread::get_id()<<']'<<' '<<_fnc<<'(';
 #else
-	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<std::this_thread::get_id()<<std::dec<<']'<<' '<<_fnc<<'(';
 #endif
 	return (*d.pos);
 }
@@ -830,9 +831,9 @@ std::ostream& Debug::printTraceOut(
 	--d.trace_debth;
 	d.pos->write(tabs, d.trace_debth);
 #ifdef SOLID_ON_WINDOWS
-	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<std::this_thread::get_id()<<']'<<' '<<'}'<<_fnc<<'(';
 #else
-	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<std::this_thread::get_id()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
 #endif
 	return (*d.pos);
 }

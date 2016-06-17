@@ -15,7 +15,6 @@
 #include <list>
 #include <fstream>
 #include <unistd.h>
-#include "system/thread.hpp"
 #include "serialization/binary.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -126,7 +125,6 @@ int main(int argc, char *argv[]){
 
 	rv = fork();
 	if(rv){//the parent
-		Thread::init();
 #ifdef SOLID_HAS_DEBUG
 		std::string dbgout;
 		Debug::the().levelMask("view");
@@ -136,7 +134,6 @@ int main(int argc, char *argv[]){
 #endif
 		parentRun(sps[0], argv[1]);
 	}else{//the child
-		Thread::init();
 #ifdef SOLID_HAS_DEBUG
 		std::string dbgout;
 		Debug::the().levelMask("view");

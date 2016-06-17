@@ -10,9 +10,10 @@
 #ifndef UTILITY_WORKPOOL_HPP
 #define UTILITY_WORKPOOL_HPP
 
-#include "system/thread.hpp"
-#include "system/mutex.hpp"
-#include "system/condition.hpp"
+#include <thread>
+#include <mutex>
+#include <vector>
+#include <condition_variable>
 
 #include "utility/common.hpp"
 #include "utility/queue.hpp"
@@ -20,7 +21,7 @@
 namespace solid{
 
 //! Base class for every workpool workers
-struct WorkerBase: Thread{
+struct WorkerBase/*: Thread*/{
 	uint32_t	wkrid;
 };
 
@@ -45,11 +46,12 @@ struct WorkPoolBase{
 	}
 protected:
 	WorkPoolBase():st(Stopped), wkrcnt(0) {}
+	
 	State						st;
 	int							wkrcnt;
-	Condition					thrcnd;
-	Condition					sigcnd;
-	Mutex						mtx;
+	std::condition_variable		thrcnd;
+	std::condition_variable		sigcnd;
+	std::mutex					mtx;
 };
 
 //! A controller structure for WorkPool
@@ -91,8 +93,10 @@ struct WorkPoolControllerBase{
  */
 template <class J, class C, class W = WorkerBase>
 class WorkPool: public WorkPoolBase{
+	
 	typedef std::vector<J>		JobVectorT;
 	typedef WorkPool<J, C, W>	ThisT;
+	
 	struct SingleWorker: W{
 		SingleWorker(ThisT &_rw):rw(_rw){}
 		void run(){
@@ -108,7 +112,9 @@ class WorkPool: public WorkPoolBase{
 		ThisT	&rw;
 	};
 	struct MultiWorker: W{
+		
 		MultiWorker(ThisT &_rw, size_t _maxcnt):rw(_rw), maxcnt(_maxcnt){}
+		
 		void run(){
 			if(!rw.enterWorker(*this)){
 				return;
@@ -149,27 +155,25 @@ public:
 	
 	//! Push a new job
 	void push(const JobT& _jb){
-		mtx.lock();
+		std::unique_lock<std::mutex>	lock(mtx);
 		jobq.push(_jb);
-		sigcnd.signal();
+		sigcnd.notify_one();
 		ctrl.onPush(*this);
-		mtx.unlock();
 	}
 	//! Push a table of jobs of size _cnt
 	template <class I>
 	void push(I _i, const I &_end){
-		mtx.lock();
+		std::unique_lock<std::mutex>	lock(mtx);
 		size_t cnt(_end - _i);
 		for(; _i != _end; ++_i){
 			jobq.push(*_i);
 		}
-		sigcnd.broadcast();
+		sigcnd.notify_all();
 		ctrl.onMultiPush(*this, cnt);
-		mtx.unlock();
 	}
 	//! Starts the workpool, creating _minwkrcnt
 	void start(ushort _minwkrcnt = 0){
-		Locker<Mutex> lock(mtx);
+		std::unique_lock<std::mutex>	lock(mtx);
 		if(state() == Running){
 			return;
 		}
@@ -190,7 +194,7 @@ public:
 		for actual stoping (wp[i].stop(true))
 	*/
 	void stop(bool _wait = true){
-		Locker<Mutex>	lock(mtx);
+		std::unique_lock<std::mutex>	lock(mtx);
 		doStop(lock, _wait);
 	}
 	size_t size()const{
@@ -200,12 +204,11 @@ public:
 		return jobq.empty();
 	}
 	void createWorker(){
-		SOLID_ASSERT(!mtx.tryLock());
 		++wkrcnt;
 		if(ctrl.createWorker(*this, wkrcnt)){
 		}else{
 			--wkrcnt;
-			thrcnd.broadcast();
+			thrcnd.notify_all();
 		}
 	}
 	WorkerT* createSingleWorker(){
@@ -218,10 +221,11 @@ public:
 private:
 	friend struct SingleWorker;
 	friend struct MultiWorker;
-	void doStop(Locker<Mutex> &_lock, bool _wait){
+	
+	void doStop(std::unique_lock<std::mutex> &_lock, bool _wait){
 		if(state() == Stopped) return;
 		state(Stopping);
-		sigcnd.broadcast();
+		sigcnd.notify_all();
 		ctrl.onStop();
 		if(!_wait) return;
 		while(wkrcnt){
@@ -229,8 +233,10 @@ private:
 		}
 		state(Stopped);
 	}
+	
 	bool pop(WorkerT &_rw, JobVectorT &_rjobvec, size_t _maxcnt){
-		Locker<Mutex> lock(mtx);
+		std::unique_lock<std::mutex>	lock(mtx);
+		
 		uint32_t insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
 		if(!insertcount){
 			return true;
@@ -247,9 +253,11 @@ private:
 	}
 	
 	bool pop(WorkerT &_rw, JobT &_rjob){
-		Locker<Mutex> lock(mtx);
+		
+		std::unique_lock<std::mutex>	lock(mtx);
+		
 		if(ctrl.onPopStart(*this, _rw, 1) == 0){
-			sigcnd.signal();
+			sigcnd.notify_one();
 			return false;
 		}
 		if(doWaitJob(lock)){
@@ -261,7 +269,7 @@ private:
 		return false;
 	}
 	
-	size_t doWaitJob(Locker<Mutex> &_lock){
+	size_t doWaitJob(std::unique_lock<std::mutex> &_lock){
 		while(jobq.empty() && isRunning()){
 			sigcnd.wait(_lock);
 		}
@@ -269,21 +277,20 @@ private:
 	}
 	
 	bool enterWorker(WorkerT &_rw){
-		Locker<Mutex> lock(mtx);
+		std::unique_lock<std::mutex>	lock(mtx);
 		if(!ctrl.prepareWorker(_rw)){
 			return false;
 		}
 		//++wkrcnt;
-		thrcnd.broadcast();
+		thrcnd.notify_all();
 		return true;
 	}
 	void exitWorker(WorkerT &_rw){
-		mtx.lock();
+		std::unique_lock<std::mutex>	lock(mtx);
 		ctrl.unprepareWorker(_rw);
 		--wkrcnt;
 		SOLID_ASSERT(wkrcnt >= 0);
-		thrcnd.broadcast();
-		mtx.unlock();
+		thrcnd.notify_all();
 	}
 	void execute(WorkerT &_rw, JobT &_rjob){
 		ctrl.execute(*this, _rw, _rjob);

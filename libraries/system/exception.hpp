@@ -16,7 +16,6 @@
 #include <sstream>
 #include "system/common.hpp"
 #include "system/debug.hpp"
-#include "system/tuple.hpp"
 #include "system/error.hpp"
 
 namespace solid{
@@ -140,7 +139,9 @@ struct Exception:std::exception{
 	mutable std::string	w;
 };
 
-void throw_exception(const char* const _pt, const char * const _file, const int _line, const char * const _func);
+inline void throw_exception(const char* const _pt, const char * const _file, const int _line, const char * const _func){
+	throw Exception<const char*>(_pt, _file, _line, _func);
+}
 
 template <typename T>
 void throw_exception(const char* const _pt, const T& _rt, const char *const _file, const int _line, const char * const _func){

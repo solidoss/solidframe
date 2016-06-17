@@ -15,7 +15,6 @@
 #include "serialization/binary.hpp"
 #include "serialization/binarybasic.hpp"
 #include "serialization/typeidmap.hpp"
-#include "system/specific.hpp"
 
 namespace solid{
 namespace frame{
@@ -27,7 +26,7 @@ using DeserializerT 			= serialization::binary::Deserializer<ConnectionContext>;
 using TypeIdMapT				= serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>;
 using LimitsT					= serialization::binary::Limits;
 	
-struct Serializer: public ipc::Serializer, public SpecificObject{
+struct Serializer: public ipc::Serializer{
 	SerializerT		ser;
 	
 	Serializer(const LimitsT &_rlimits, TypeIdMapT const &_ridmap): ser(_rlimits, &_ridmap){}
@@ -52,7 +51,7 @@ struct Serializer: public ipc::Serializer, public SpecificObject{
 };
 
 
-struct Deserializer: public ipc::Deserializer, public SpecificObject{
+struct Deserializer: public ipc::Deserializer{
 	DeserializerT	des;
 	
 	Deserializer(const LimitsT &_rlimits, TypeIdMapT const &_ridmap): des(_rlimits, &_ridmap){}

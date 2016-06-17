@@ -69,33 +69,7 @@ struct ErrorStub{
 typedef std::vector<ErrorStub>	ErrorVectorT;
 
 ERROR_NS::error_category const	&error_category_get();
-ErrorCodeT 			error_make(Errors _err);
-
-void specific_error_clear();
-void specific_error_push(
-	int _value,
-	ERROR_NS::error_category const	*_category,
-	unsigned _line = -1,
-	const char *_file = NULL
-);
-
-void specific_error_push(
-	ErrorCodeT const	&_rcode,
-	unsigned _line = -1,
-	const char *_file = NULL
-);
-
-ErrorCodeT specific_error_back();
-
-#define SPECIFIC_ERROR_PUSH1(c)	solid::specific_error_push((c), __LINE__, __FILE__) 
-#define SPECIFIC_ERROR_PUSH2(v, c)	solid::specific_error_push(static_cast<int>((v)), &(c), __LINE__, __FILE__) 
-
-#define SPECIFIC_ERROR_INIT1(c)	solid::specific_error_clear();solid::specific_error_push((c), __LINE__, __FILE__) 
-#define SPECIFIC_ERROR_INIT2(v, c)	solid::specific_error_clear();solid::specific_error_push(static_cast<int>((v)), (c), __LINE__, __FILE__) 
-
-ErrorVectorT const & specific_error_get();
-void specific_error_print(std::ostream &_ros, const bool _withcodeinfo = true);
-
+ErrorCodeT 	error_make(Errors _err);
 
 
 }//namespace solid

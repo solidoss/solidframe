@@ -8,10 +8,8 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "utility/memory.hpp"
-#include "system/thread.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
-#include "system/mutex.hpp"
 
 namespace solid{
 

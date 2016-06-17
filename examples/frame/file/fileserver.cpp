@@ -16,9 +16,9 @@
 #include "utility/dynamictype.hpp"
 #include "utility/event.hpp"
 
-#include "system/thread.hpp"
-#include "system/mutex.hpp"
-#include "system/condition.hpp"
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
 
@@ -61,17 +61,17 @@ struct Params{
 
 namespace{
 
-	Mutex					mtx;
-	Condition				cnd;
+	mutex					mtx;
+	condition_variable		cnd;
 	bool					run(true);
 	void term_handler(int signum){
 		switch(signum) {
 			case SIGINT:
 			case SIGTERM:{
 				if(run){
-					Locker<Mutex>  lock(mtx);
+					unique_lock<mutex>  lock(mtx);
 					run = false;
-					cnd.broadcast();
+					cnd.notify_all();
 				}
 			}
 		}
@@ -168,8 +168,6 @@ int main(int argc, char *argv[]){
 	if(parseArguments(p, argc, argv)) return 0;
 	
 	signal(SIGINT,term_handler); /* Die on SIGTERM */
-	
-	/*solid::*/Thread::init();
 	
 #ifdef SOLID_HAS_DEBUG
 	{
@@ -282,7 +280,7 @@ int main(int argc, char *argv[]){
 		cout<<"\t$ nc localhost 2000"<<endl;
 		
 		if(0){
-			Locker<Mutex>	lock(mtx);
+			unique_lock<mutex>	lock(mtx);
 			while(run){
 				cnd.wait(lock);
 			}
@@ -295,7 +293,6 @@ int main(int argc, char *argv[]){
 		sched.stop();
 		filestoreptr.clear();
 	}
-	/*solid::*/Thread::waitAll();
 	
 	return 0;
 }

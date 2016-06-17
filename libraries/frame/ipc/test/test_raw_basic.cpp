@@ -16,9 +16,9 @@
 #include "frame/ipc/ipcprotocol_serialization_v1.hpp"
 
 
-#include "system/thread.hpp"
-#include "system/mutex.hpp"
-#include "system/condition.hpp"
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 #include "system/exception.hpp"
 
 #include "system/debug.hpp"
@@ -68,8 +68,8 @@ std::atomic<size_t>				writecount(0);
 size_t							connection_count(0);
 
 bool							running = true;
-Mutex							mtx;
-Condition						cnd;
+mutex							mtx;
+condition_variable					cnd;
 frame::ipc::Service				*pipcclient = nullptr;
 std::atomic<uint64_t>				transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
@@ -266,9 +266,9 @@ void client_complete_message(
 		++crtbackidx;
 		
 		if(crtbackidx == writecount){
-			Locker<Mutex> lock(mtx);
+			unique_lock<mutex> lock(mtx);
 			running = false;
-			cnd.signal();
+			cnd.notify_one();
 		}
 	}
 }
@@ -321,7 +321,6 @@ void server_complete_message(
 }//namespace
 
 int test_raw_basic(int argc, char **argv){
-	Thread::init();
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("ew");
 	Debug::the().moduleMask("frame_ipc:ew any:ew");
@@ -416,7 +415,7 @@ int test_raw_basic(int argc, char **argv){
 			
 			if(err){
 				edbg("starting server ipcservice: "<<err.message());
-				Thread::waitAll();
+				//exiting
 				return 1;
 			}
 			
@@ -452,7 +451,7 @@ int test_raw_basic(int argc, char **argv){
 			
 			if(err){
 				edbg("starting client ipcservice: "<<err.message());
-				Thread::waitAll();
+				//exiting
 				return 1;
 			}
 		}
@@ -472,7 +471,7 @@ int test_raw_basic(int argc, char **argv){
 			);
 		}
 		
-		Locker<Mutex>	lock(mtx);
+		unique_lock<mutex>	lock(mtx);
 		
 		while(running){
 			//cnd.wait(lock);
@@ -493,7 +492,7 @@ int test_raw_basic(int argc, char **argv){
 		m.stop();
 	}
 	
-	Thread::waitAll();
+	//exiting
 	
 	std::cout<<"Transfered size = "<<(transfered_size * 2)/1024<<"KB"<<endl;
 	std::cout<<"Transfered count = "<<transfered_count<<endl;

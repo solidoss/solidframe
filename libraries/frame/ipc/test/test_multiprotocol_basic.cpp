@@ -16,9 +16,10 @@
 #include "frame/ipc/ipcprotocol_serialization_v1.hpp"
 
 
-#include "system/thread.hpp"
-#include "system/mutex.hpp"
-#include "system/condition.hpp"
+#include <mutex>
+#include <thread>
+#include <condition_variable>
+
 #include "system/exception.hpp"
 
 #include "system/debug.hpp"
@@ -45,8 +46,8 @@ typedef frame::aio::openssl::Context			SecureContextT;
 namespace{
 
 std::atomic<size_t>				wait_count(0);
-Mutex							mtx;
-Condition						cnd;
+mutex							mtx;
+condition_variable					cnd;
 
 std::atomic<uint64_t>				transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
@@ -66,7 +67,6 @@ void server_connection_start(frame::ipc::ConnectionContext &_rctx){
 
 
 int test_multiprotocol_basic(int argc, char **argv){
-	Thread::init();
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("ew");
 	Debug::the().moduleMask("frame_ipc:ew any:ew frame:ew");
@@ -141,7 +141,7 @@ int test_multiprotocol_basic(int argc, char **argv){
 			
 			if(err){
 				edbg("starting server ipcservice: "<<err.message());
-				Thread::waitAll();
+				//exiting
 				return 1;
 			}
 			
@@ -159,7 +159,7 @@ int test_multiprotocol_basic(int argc, char **argv){
 		
 		if(err){
 			edbg("starting alpha ipcservice: "<<err.message());
-			Thread::waitAll();
+			//exiting
 			return 1;
 		}
 		
@@ -167,7 +167,7 @@ int test_multiprotocol_basic(int argc, char **argv){
 		
 		if(err){
 			edbg("starting alpha ipcservice: "<<err.message());
-			Thread::waitAll();
+			//exiting
 			return 1;
 		}
 		
@@ -175,11 +175,11 @@ int test_multiprotocol_basic(int argc, char **argv){
 		
 		if(err){
 			edbg("starting gamma ipcservice: "<<err.message());
-			Thread::waitAll();
+			//exiting
 			return 1;
 		}
 		
-		Locker<Mutex>	lock(mtx);
+		unique_lock<mutex>	lock(mtx);
 		
 		while(wait_count){
 			//cnd.wait(lock);
@@ -196,7 +196,7 @@ int test_multiprotocol_basic(int argc, char **argv){
 		m.stop();
 	}
 	
-	Thread::waitAll();
+	//exiting
 	
 	std::cout<<"Transfered size = "<<(transfered_size * 2)/1024<<"KB"<<endl;
 	std::cout<<"Transfered count = "<<transfered_count<<endl;

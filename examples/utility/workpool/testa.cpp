@@ -10,6 +10,7 @@
 #include "utility/workpool.hpp"
 #include "system/debug.hpp"
 #include <iostream>
+#include <thread>
 
 using namespace std;
 using namespace solid;
@@ -21,25 +22,24 @@ typedef WorkPool<int, MyWorkPoolController>	MyWorkPool;
 struct MyWorkPoolController: WorkPoolControllerBase{
 	typedef std::vector<int>	IntVectorT;
 	bool createWorker(MyWorkPool &_rwp, ushort _wkrcnt){
-		//_rwp.createSingleWorker()->start();
-		_rwp.createMultiWorker(4)->start();
+		//TODO: std_thread
+		//_rwp.createMultiWorker(4)->start();
 		return true;
 	}
 	void execute(WorkPoolBase &_rwp, WorkerBase &, int _i){
 		idbg("i = "<<_i);
-		Thread::sleep(_i * 10);
+		std::this_thread::sleep_for(std::chrono::milliseconds(_i * 10));
 	}
 	void execute(WorkPoolBase &_rwp, WorkerBase &, IntVectorT &_rjobvec){
 		for(IntVectorT::const_iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
 			idbg("it = "<<*it);
-			Thread::sleep(*it * 10);
+			std::this_thread::sleep_for(std::chrono::milliseconds(*it * 10));
 		}
 	}
 };
 
 
 int main(int argc, char *argv[]){
-	Thread::init();
 #ifdef SOLID_HAS_DEBUG
 	{
 	string dbgout;
@@ -55,6 +55,5 @@ int main(int argc, char *argv[]){
 		mwp.push(i);
 	}
 	mwp.stop(true);
-	Thread::waitAll();
 	return 0;
 }

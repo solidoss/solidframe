@@ -15,8 +15,8 @@
 #include "frame/ipc/ipcconfiguration.hpp"
 #include "frame/ipc/ipcprotocol_serialization_v1.hpp"
 
-#include "system/mutex.hpp"
-#include "system/condition.hpp"
+#include <mutex>
+#include <condition_variable>
 #include "system/socketaddress.hpp"
 
 #include "boost/program_options.hpp"
@@ -72,8 +72,8 @@ typedef std::vector<MessageStub>    MessageVectorT;
 struct FirstMessage;
 
 namespace{
-	Mutex					mtx;
-	Condition				cnd;
+	mutex					mtx;
+	condition_variable		cnd;
 	//bool					run = true;
 	//uint32_t					wait_count = 0;
 	Params					app_params;
@@ -135,7 +135,6 @@ int main(int argc, char *argv[]){
 	
 	if(parseArguments(app_params, argc, argv)) return 0;
 	
-	Thread::init();
 	
 #ifdef SOLID_HAS_DEBUG
 	{
@@ -222,7 +221,6 @@ int main(int argc, char *argv[]){
 			
 			if(err){
 				cout<<"Error starting ipcservice: "<<err.message()<<endl;
-				Thread::waitAll();
 				return 1;
 			}
 		}
@@ -241,7 +239,6 @@ int main(int argc, char *argv[]){
 		m.stop();
 		vdbg("done stop");
 	}
-	Thread::waitAll();
 	return 0;
 }
 
@@ -311,7 +308,7 @@ void broadcast_message(frame::ipc::Service &_rsvc, std::shared_ptr<frame::ipc::M
 }
 
 void on_receive(FirstMessage const &_rmsg){
-	Locker<Mutex> lock(mtx);
+	unique_lock<mutex> lock(mtx);
 	cout<<"Received: "<<_rmsg.str<<endl;
 }
 

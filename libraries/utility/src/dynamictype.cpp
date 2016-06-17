@@ -8,10 +8,9 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#include "system/thread.hpp"
+#include <mutex>
 #include "system/debug.hpp"
 #include "system/cassert.hpp"
-#include "system/mutex.hpp"
 
 #include "system/mutualstore.hpp"
 #include "utility/dynamictype.hpp"
@@ -35,7 +34,7 @@ namespace solid{
 
 namespace{
 
-typedef MutualStore<Mutex>	MutexStoreT;
+typedef MutualStore<std::mutex>	MutexStoreT;
 
 #ifdef SOLID_USE_SAFE_STATIC
 MutexStoreT &mutexStore(){
@@ -84,14 +83,19 @@ MutexStoreT &mutexStore(){
 
 #endif
 
+std::mutex& global_mutex(){
+	static std::mutex mtx;
+	return mtx;
+}
+
 }//namespace
 
 
-Mutex &shared_mutex_safe(const void *_p){
-	Locker<Mutex> lock(Thread::gmutex());
+std::mutex &shared_mutex_safe(const void *_p){
+	std::unique_lock<std::mutex>	lock(global_mutex());
 	return mutexStore().safeAt(reinterpret_cast<size_t>(_p));
 }
-Mutex &shared_mutex(const void *_p){
+std::mutex &shared_mutex(const void *_p){
 	return mutexStore().at(reinterpret_cast<size_t>(_p));
 }
 

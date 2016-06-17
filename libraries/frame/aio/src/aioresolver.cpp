@@ -29,7 +29,8 @@ struct WorkPoolController: WorkPoolControllerBase{
 	
 	bool createWorker(WorkPoolT &_rwp, ushort _wkrcnt){
 		if(_wkrcnt <= maxthrcnt){
-			_rwp.createSingleWorker()->start();
+			//TODO:std_thread
+			//_rwp.createSingleWorker()->start();
 			return true;
 		}else{
 			return false;
@@ -55,7 +56,7 @@ struct Resolver::Data{
 Resolver::Resolver(size_t _thrcnt):d(*(new Data(_thrcnt))){
 	
 	if(_thrcnt == 0){
-		d.wp.controller().maxthrcnt = Thread::processorCount();
+		d.wp.controller().maxthrcnt = std::thread::hardware_concurrency();
 	}
 }
 

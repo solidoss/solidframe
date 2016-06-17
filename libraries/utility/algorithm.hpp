@@ -10,6 +10,7 @@
 #ifndef UTILITY_ALGORITHM_HPP
 #define UTILITY_ALGORITHM_HPP
 
+#include <utility>
 #include "utility/common.hpp"
 
 namespace solid{
@@ -190,6 +191,58 @@ size_t find_cmp(It _it, Cmp const &_rcmp, SizeToType<S> s){
 }
 #endif
 //=============================================================================
+
+struct binary_search_basic_comparator{
+	template <typename K1, typename K2>
+	int operator()(const K1 &_k1, const K2 &_k2)const{
+		if(_k1 < _k2) return -1;
+		if(_k2 < _k1) return 1;
+		return 0;
+	}
+};
+
+using binary_search_result_t =  std::pair<bool, size_t>;
+
+template<class It, class Key, class Compare = binary_search_basic_comparator>
+binary_search_result_t binary_search(It _from, It _to, const Key &_rk, const Compare &_rcmp = Compare()){
+	const It	beg(_from);
+	size_t		midpos;
+	while(_to > _from){
+		midpos = (_to - _from) >> 1;
+		int r = _rcmp(*(_from + midpos), _rk);
+		if(!r) return binary_search_result_t(true, _from - beg + midpos);
+		if(r < 0){
+			_from += (midpos + 1);
+		}else{
+			_to = _from + midpos;
+		}
+	}
+	return binary_search_result_t(false, _from - beg);
+}
+
+template<class It, class Key, class Compare = binary_search_basic_comparator>
+binary_search_result_t binary_search_first(It _from, It _to, const Key &_rk, const Compare &_rcmp = Compare()){
+	binary_search_result_t p = solid::binary_search(_from, _to, _rk, _rcmp);
+	
+	if(!p.first) return p;//not found
+	
+	while(p.second && !_rcmp(*(_from + p.second - 1), _rk)){
+		p =  solid::binary_search(_from, _from + p.second, _rk, _rcmp);
+	}
+	return p;
+}
+	
+template<class It, class Key, class Compare = binary_search_basic_comparator>
+binary_search_result_t binary_search_last(It _from, It _to, const Key &_rk, const Compare &_rcmp = Compare()){
+	binary_search_result_t p = solid::binary_search(_from, _to, _rk, _rcmp);
+	
+	if(!p.first) return p;//not found
+	
+	while(p.second != (_to - _from - 1) && !_rcmp(*(_from + p.second + 1), _rk)){
+		p =  solid::binary_search(_from + p.second + 1, _to, _rk, _rcmp);
+	}
+	return p;
+}
 
 }//namespace solid
 

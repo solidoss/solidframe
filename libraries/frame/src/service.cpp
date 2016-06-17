@@ -13,8 +13,7 @@
 #include <cstring>
 
 #include "system/debug.hpp"
-#include "system/mutex.hpp"
-#include "system/condition.hpp"
+#include <condition_variable>
 #include "system/exception.hpp"
 
 #include "system/mutualstore.hpp"
@@ -56,11 +55,11 @@ void Service::stop(const bool _wait){
 	rm.stopService(*this, _wait);
 }
 
-Mutex& Service::mutex(const ObjectBase &_robj)const{
+std::mutex& Service::mutex(const ObjectBase &_robj)const{
 	return rm.mutex(_robj);
 }
 
-Mutex& Service::mutex()const{
+std::mutex& Service::mutex()const{
 	return rm.mutex(*this);
 }
 

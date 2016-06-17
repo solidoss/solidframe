@@ -10,13 +10,12 @@
 #ifndef SOLID_FRAME_SCHEDULER_BASE_HPP
 #define SOLID_FRAME_SCHEDULER_BASE_HPP
 
+#include <thread>
 #include "frame/common.hpp"
 #include "system/error.hpp"
 #include "system/function.hpp"
 
 namespace solid{
-
-class Thread;
 
 namespace frame{
 
@@ -32,7 +31,7 @@ typedef FUNCTION<bool(ReactorBase&)>			ScheduleFunctionT;
 class SchedulerBase{
 public:
 protected:
-	typedef Thread* (*CreateWorkerF)(SchedulerBase &_rsch, const size_t);
+	typedef bool (*CreateWorkerF)(SchedulerBase &_rsch, const size_t, std::thread &_rthr);
 	
 	typedef FUNCTION<bool()>					ThreadEnterFunctionT;
 	typedef FUNCTION<void()>					ThreadExitFunctionT;

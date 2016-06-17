@@ -687,7 +687,6 @@ ErrorCodeT SocketDevice::accept(SocketDevice &_dev){
 
 
 ErrorCodeT SocketDevice::bind(const SocketAddressStub &_rsa){
-	specific_error_clear();
 #ifdef SOLID_ON_WINDOWS
 	/*int rv = */::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
 	return last_socket_error();
@@ -718,7 +717,6 @@ ErrorCodeT SocketDevice::makeBlocking(){
 
 
 ErrorCodeT SocketDevice::makeBlocking(size_t _msec){
-	specific_error_clear();
 #ifdef SOLID_ON_WINDOWS
 	u_long mode = 0;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
@@ -762,7 +760,6 @@ ErrorCodeT SocketDevice::makeBlocking(size_t _msec){
 }
 
 ErrorCodeT SocketDevice::makeNonBlocking(){
-	specific_error_clear();
 #ifdef SOLID_ON_WINDOWS
 	u_long mode = 1;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
@@ -785,7 +782,6 @@ ErrorCodeT SocketDevice::makeNonBlocking(){
 }
 
  ErrorCodeT SocketDevice::isBlocking(bool &_rrv)const{
-	specific_error_clear();
 #ifdef SOLID_ON_WINDOWS
 	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
 #else

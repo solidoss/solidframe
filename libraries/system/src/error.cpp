@@ -9,7 +9,6 @@
 //
 
 #include "system/error.hpp"
-#include "system/thread.hpp"
 
 namespace solid{
 
@@ -31,49 +30,5 @@ ErrorCodeT error_make(Errors _err){
 	return ErrorCodeT(static_cast<int>(_err), error_category_get());
 }
 
-void specific_error_clear(){
-	Thread::current().specificErrorClear();
-}
-
-void specific_error_push(
-	int _value,
-	ERROR_NS::error_category const	*_category,
-	unsigned _line,
-	const char *_file
-){
-	Thread::current().specificErrorPush(ErrorStub(_value, _category, _line, _file));
-}
-
-void specific_error_push(
-	ErrorCodeT const	&_code,
-	unsigned _line,
-	const char *_file
-){
-	Thread::current().specificErrorPush(ErrorStub(_code, _line, _file));
-}
-
-
-ErrorVectorT const & specific_error_get(){
-	return Thread::current().specificErrorGet();
-}
-ErrorCodeT specific_error_back(){
-	ErrorVectorT const & errvec = Thread::current().specificErrorGet();
-	if(errvec.empty()){
-		return ErrorCodeT(0, ERROR_NS::generic_category());
-	}else{
-		return errvec.back().errorCode();
-	}
-}
-void specific_error_print(std::ostream &_ros, const bool _withcodeinfo){
-	const ErrorVectorT &rerrvec = Thread::current().specificErrorGet();
-	for(ErrorVectorT::const_reverse_iterator it(rerrvec.rbegin()); it != rerrvec.rend(); ++it){
-		ErrorCodeT err = it->errorCode();
-		_ros<<err.category().name();
-		if(_withcodeinfo){
-			_ros<<'('<<it->file<<':'<<it->line<<')';
-		}
-		_ros<<':'<<' '<<err.message()<<';'<<' ';
-	}
-}
 
 }//namespace solid

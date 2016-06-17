@@ -12,8 +12,8 @@
 
 #include "frame/aio/aioerror.hpp"
 
-#include "system/mutex.hpp"
-#include "system/thread.hpp"
+#include <thread>
+#include <mutex>
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 
@@ -32,7 +32,7 @@ namespace openssl{
 
 
 struct Starter{
-	Mutex	*pmtxes;
+	std::mutex	*pmtxes;
 	
 	 static void ssl_locking_fnc(int mode, int n, const char* /*file*/, int /*line*/){
 		if (mode & CRYPTO_LOCK)
@@ -42,12 +42,13 @@ struct Starter{
 	}
 	
 	static unsigned long ssl_threadid_fnc()
-	{
-		return Thread::currentId();
+	{	
+		std::hash<std::thread::id> h;
+		return h(std::this_thread::get_id());
 	}
 	
 	Starter():pmtxes(nullptr){
-		pmtxes = new Mutex[::CRYPTO_num_locks()];
+		pmtxes = new std::mutex[::CRYPTO_num_locks()];
 		::SSL_library_init();
 		::SSL_load_error_strings();
 		::OpenSSL_add_all_algorithms();

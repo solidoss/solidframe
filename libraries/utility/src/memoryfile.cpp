@@ -11,7 +11,6 @@
 #include <cerrno>
 
 #include "utility/memoryfile.hpp"
-#include "utility/binaryseeker.hpp"
 #include "system/cassert.hpp"
 
 namespace solid{
@@ -147,47 +146,46 @@ int MemoryFile::truncate(int64_t _len){
 	bv.clear();
 	return -1;
 }
-inline BinarySeekerResultT MemoryFile::doFindBuffer(uint32_t _idx)const{
-	BinarySeeker<BuffCmp>	bs;
-	return bs(bv.begin(), bv.end(), _idx);
+inline binary_search_result_t MemoryFile::doFindBuffer(uint32_t _idx)const{
+	return binary_search(bv.begin(), bv.end(), _idx, BuffCmp());
 }
 inline char *MemoryFile::doGetBuffer(uint32_t _idx)const{
-	BinarySeekerResultT pos(doLocateBuffer(_idx));
+	binary_search_result_t pos(doLocateBuffer(_idx));
 	if(pos.first) return bv[pos.second].data;
-	return NULL;
+	return nullptr;
 }
 
 
 char *MemoryFile::doCreateBuffer(uint32_t _idx, bool &_created){
-	BinarySeekerResultT pos(doLocateBuffer(_idx));
+	binary_search_result_t pos(doLocateBuffer(_idx));
 	if(pos.first){//found buffer, return the data
 		return bv[pos.second].data;
 	}
 	//buffer not found
 	//see if we did not reach the capacity
-	if((bv.size() * bufsz + bufsz) > cp) return NULL;
+	if((bv.size() * bufsz + bufsz) > cp) return nullptr;
 	_created = true;
 	char * b = ra.allocate();
 	bv.insert(bv.begin() + pos.second, Buffer(_idx, b));
 	return b;
 }
 
-BinarySeekerResultT MemoryFile::doLocateBuffer(uint32_t _idx)const{
+binary_search_result_t MemoryFile::doLocateBuffer(uint32_t _idx)const{
 	if(bv.empty() || _idx > bv.back().idx){//append
 		crtbuffidx = bv.size();
-		return BinarySeekerResultT(false, bv.size());
+		return binary_search_result_t(false, bv.size());
 	}
 	//see if it's arround the current buffer:
 	if(crtbuffidx < bv.size()){
-		if(bv[crtbuffidx].idx == _idx) return BinarySeekerResultT(true, crtbuffidx);
+		if(bv[crtbuffidx].idx == _idx) return binary_search_result_t(true, crtbuffidx);
 		//see if its the next buffer:
 		int nextidx(crtbuffidx + 1);
 		if(static_cast<uint>(nextidx) < bv.size() && bv[nextidx].idx == _idx){
 			crtbuffidx = nextidx;
-			return BinarySeekerResultT(true, crtbuffidx);
+			return binary_search_result_t(true, crtbuffidx);
 		}
 	}
-	BinarySeekerResultT pos = doFindBuffer(_idx);
+	binary_search_result_t pos = doFindBuffer(_idx);
 	crtbuffidx = pos.second;
 	return pos;
 }

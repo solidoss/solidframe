@@ -1,6 +1,5 @@
 #include "../betamessages.hpp"
 #include "betaclient.hpp"
-#include <system/condition.hpp>
 
 using namespace std;
 using namespace solid;
@@ -34,10 +33,10 @@ void complete_message_first(
 	SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
 	SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
 	{
-		Locker<Mutex>	lock(pctx->rmtx);
+		unique_lock<mutex>	lock(pctx->rmtx);
 		--pctx->rwait_count;
 		if(pctx->rwait_count == 0){
-			pctx->rcnd.signal();
+			pctx->rcnd.notify_one();
 		}
 	}
 }
@@ -55,10 +54,10 @@ void complete_message_second(
 	SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
 	SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
 	{
-		Locker<Mutex>	lock(pctx->rmtx);
+		unique_lock<mutex>	lock(pctx->rmtx);
 		--pctx->rwait_count;
 		if(pctx->rwait_count == 0){
-			pctx->rcnd.signal();
+			pctx->rcnd.notify_one();
 		}
 	}
 }
@@ -76,10 +75,10 @@ void complete_message_third(
 	SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
 	SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
 	{
-		Locker<Mutex>	lock(pctx->rmtx);
+		unique_lock<mutex>	lock(pctx->rmtx);
 		--pctx->rwait_count;
 		if(pctx->rwait_count == 0){
-			pctx->rcnd.signal();
+			pctx->rcnd.notify_one();
 		}
 	}
 }

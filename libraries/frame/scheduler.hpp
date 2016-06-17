@@ -10,7 +10,6 @@
 #ifndef SOLID_FRAME_SCHEDULER_HPP
 #define SOLID_FRAME_SCHEDULER_HPP
 
-#include "system/thread.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "frame/manager.hpp"
 #include "frame/schedulerbase.hpp"
@@ -27,24 +26,30 @@ public:
 	typedef DynamicPointer<ObjectT>		ObjectPointerT;
 private:
 	typedef R		ReactorT;
-	struct Worker: Thread{
-		SchedulerBase	&rsched;
-		const size_t	idx;
-		
-		static Thread* create(SchedulerBase &_rsched, const size_t _idx){
-			return new Worker(_rsched, _idx);
-		}
-		
-		Worker(SchedulerBase &_rsched, const size_t _idx):rsched(_rsched), idx(_idx){}
-		
-		void run(){
-			ReactorT	reactor(rsched, idx);
+	
+	struct Worker{
+		static void run(SchedulerBase &_rsched, const size_t _idx){
+			ReactorT	reactor(_rsched, _idx);
+			
 			if(!reactor.prepareThread(reactor.start())){
 				return;
 			}
 			reactor.run();
 			reactor.unprepareThread();
 		}
+		
+		static bool create(SchedulerBase &_rsched, const size_t _idx, std::thread &_rthr){
+			bool rv = false;
+			try{
+				//TODO: std_thread
+				//_rthr = std::thread(Worker::run, _rsched, _idx);
+				rv = true;
+			}catch(...){
+				
+			}
+			return rv;
+		}
+		
 	};
 	
 	struct ScheduleCommand{
