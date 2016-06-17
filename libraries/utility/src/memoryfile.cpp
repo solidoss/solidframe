@@ -147,7 +147,7 @@ int MemoryFile::truncate(int64_t _len){
 	return -1;
 }
 inline binary_search_result_t MemoryFile::doFindBuffer(uint32_t _idx)const{
-	return binary_search(bv.begin(), bv.end(), _idx, BuffCmp());
+	return solid::binary_search(bv.begin(), bv.end(), _idx, BuffCmp());
 }
 inline char *MemoryFile::doGetBuffer(uint32_t _idx)const{
 	binary_search_result_t pos(doLocateBuffer(_idx));

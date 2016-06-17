@@ -77,7 +77,7 @@ struct Test: Base{
 namespace beta{
 
 struct Base: ::Base{
-	size_t		value;
+	uint64_t		value;
 	Base(const size_t _value = 0): value(_value){}
 };
 

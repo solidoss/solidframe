@@ -33,17 +33,17 @@ int main(){
 	//BinarySeeker<> bs;
 	const int *pd = v.data();
 	int rv(0);
-	cout<<"bs(10) = "<<v[rv]<<' '<<binary_search(pd, pd + v.size(), 10)<<endl;
-	cout<<"bs(12) = "<<binary_search(pd, pd + v.size(), 12)<<endl;
-	cout<<"bs(-1) = "<<binary_search(pd, pd + v.size(), -1)<<endl;
+	cout<<"bs(10) = "<<v[rv]<<' '<<solid::binary_search(pd, pd + v.size(), 10)<<endl;
+	cout<<"bs(12) = "<<solid::binary_search(pd, pd + v.size(), 12)<<endl;
+	cout<<"bs(-1) = "<<solid::binary_search(pd, pd + v.size(), -1)<<endl;
 	for(int i = 0; i < (v.size() + 2); ++i){
-		cout<<"bs("<<i<<") = "<<binary_search(pd, pd + v.size(), i)<<endl;
+		cout<<"bs("<<i<<") = "<<solid::binary_search(pd, pd + v.size(), i)<<endl;
 	}
-	cout<<"bs(10) = "<<binary_search(v.begin(), v.end(), 10)<<endl;
-	cout<<"bs(12) = "<<binary_search(v.begin(), v.end(), 12)<<endl;
-	cout<<"bs(-1) = "<<binary_search(v.begin(), v.end(), -1)<<endl;
+	cout<<"bs(10) = "<<solid::binary_search(v.begin(), v.end(), 10)<<endl;
+	cout<<"bs(12) = "<<solid::binary_search(v.begin(), v.end(), 12)<<endl;
+	cout<<"bs(-1) = "<<solid::binary_search(v.begin(), v.end(), -1)<<endl;
 	for(int i = 0; i < (v.size() + 2); ++i){
-		cout<<"bs("<<i<<") = "<<binary_search(v.begin(), v.end(), i)<<endl;
+		cout<<"bs("<<i<<") = "<<solid::binary_search(v.begin(), v.end(), i)<<endl;
 	}
 	return 0;
 }

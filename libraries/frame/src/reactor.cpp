@@ -619,18 +619,12 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 	++rcs.unique;
 }
 
+#ifndef SOLID_ON_DARWIN
 thread_local Reactor	*thread_local_reactor = nullptr;
 
 /*static*/ Reactor* Reactor::safeSpecific(){
 	return thread_local_reactor;
 }
-
-/*static*/ Reactor& Reactor::specific(){
-	vdbgx(Debug::aio, "");
-	return *safeSpecific();
-}
-
-
 
 void Reactor::doStoreSpecific(){
 	thread_local_reactor = this;
@@ -638,6 +632,24 @@ void Reactor::doStoreSpecific(){
 void Reactor::doClearSpecific(){
 	thread_local_reactor = nullptr;
 }
+#else
+
+/*static*/ Reactor* Reactor::safeSpecific(){
+	return nullptr;
+}
+
+void Reactor::doStoreSpecific(){
+}
+void Reactor::doClearSpecific(){
+}
+#endif
+
+/*static*/ Reactor& Reactor::specific(){
+	vdbgx(Debug::aio, "");
+	return *safeSpecific();
+}
+
+
 //=============================================================================
 //		ReactorContext
 //=============================================================================
