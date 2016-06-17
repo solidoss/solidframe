@@ -28,8 +28,8 @@ private:
 	typedef R		ReactorT;
 	
 	struct Worker{
-		static void run(SchedulerBase &_rsched, const size_t _idx){
-			ReactorT	reactor(_rsched, _idx);
+		static void run(SchedulerBase *_psched, const size_t _idx){
+			ReactorT	reactor(*_psched, _idx);
 			
 			if(!reactor.prepareThread(reactor.start())){
 				return;
@@ -41,8 +41,7 @@ private:
 		static bool create(SchedulerBase &_rsched, const size_t _idx, std::thread &_rthr){
 			bool rv = false;
 			try{
-				//TODO: std_thread
-				//_rthr = std::thread(Worker::run, _rsched, _idx);
+				_rthr = std::thread(Worker::run, &_rsched, _idx);
 				rv = true;
 			}catch(...){
 				

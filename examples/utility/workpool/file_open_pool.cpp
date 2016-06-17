@@ -68,10 +68,8 @@ typedef WorkPool<FileDevice*, MyWorkPoolController, MyWorkerBase> MyWorkPoolT;
 
 class MyWorkPoolController: public WorkPoolControllerBase{
 public:
-	bool createWorker(MyWorkPoolT &_rwp, ushort _wkrcnt){
-		//_rwp.createSingleWorker()->start();
-		//TODO: std_thread
-		//_rwp.createSingleWorker()->start();
+	bool createWorker(MyWorkPoolT &_rwp, ushort _wkrcnt, std::thread &_rthr){
+		_rwp.createSingleWorker(_rthr);
 		return true;
 	}
 	void execute(WorkPoolBase &_rwp, MyWorkerBase &_rw, FileDevice *_pfile){

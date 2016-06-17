@@ -21,7 +21,7 @@
 namespace solid{
 
 //! Base class for every workpool workers
-struct WorkerBase/*: Thread*/{
+struct WorkerBase{
 	uint32_t	wkrid;
 };
 
@@ -80,7 +80,7 @@ struct WorkPoolControllerBase{
 	}
 };
 
-//! A template workpool
+//! A generic workpool
 /*!
  * The template parameters are:<br>
  * J - the Job type to be processed by the workpool. I
@@ -94,8 +94,10 @@ struct WorkPoolControllerBase{
 template <class J, class C, class W = WorkerBase>
 class WorkPool: public WorkPoolBase{
 	
-	typedef std::vector<J>		JobVectorT;
-	typedef WorkPool<J, C, W>	ThisT;
+	typedef std::vector<J>				JobVectorT;
+	typedef WorkPool<J, C, W>			ThisT;
+	typedef std::vector<std::thread>	ThreadVectorT;
+	
 	
 	struct SingleWorker: W{
 		SingleWorker(ThisT &_rw):rw(_rw){}
@@ -130,6 +132,16 @@ class WorkPool: public WorkPoolBase{
 		ThisT	&rw;
 		size_t	maxcnt;
 	};
+	
+	static void single_worker_run(ThisT *_pthis){
+		SingleWorker wkr(*_pthis);
+		wkr.run();
+	}
+	
+	static void multi_worker_run(ThisT *_pthis, const size_t _cnt){
+		MultiWorker wkr(*_pthis, _cnt);
+		wkr.run();
+	}
 	
 public:
 	typedef ThisT	WorkPoolT;
@@ -171,6 +183,7 @@ public:
 		sigcnd.notify_all();
 		ctrl.onMultiPush(*this, cnt);
 	}
+	
 	//! Starts the workpool, creating _minwkrcnt
 	void start(ushort _minwkrcnt = 0){
 		std::unique_lock<std::mutex>	lock(mtx);
@@ -203,19 +216,39 @@ public:
 	bool empty()const{
 		return jobq.empty();
 	}
+	
 	void createWorker(){
 		++wkrcnt;
-		if(ctrl.createWorker(*this, wkrcnt)){
-		}else{
+		
+		static const std::thread	empty_thread;
+		
+		thread_vec.push_back(std::move(std::thread()));
+		
+		ctrl.createWorker(*this, wkrcnt, thread_vec.back());
+		
+		if(thread_vec.back().get_id() == empty_thread.get_id()){
 			--wkrcnt;
+			thread_vec.pop_back();
 			thrcnd.notify_all();
 		}
 	}
-	WorkerT* createSingleWorker(){
-		return new SingleWorker(*this);
+	
+	void createSingleWorker(std::thread &_rthr){
+		try{
+			_rthr = std::thread(single_worker_run, this);
+		}catch(...){
+			_rthr.join();
+			_rthr = std::thread();
+		}
 	}
-	WorkerT* createMultiWorker(size_t _maxcnt){
-		return new MultiWorker(*this, _maxcnt);
+	
+	void createMultiWorker(std::thread &_rthr, size_t _maxcnt){
+		try{
+			_rthr = std::thread(multi_worker_run, this, _maxcnt);
+		}catch(...){
+			_rthr.join();
+			_rthr = std::thread();
+		}
 	}
 	
 private:
@@ -230,6 +263,9 @@ private:
 		if(!_wait) return;
 		while(wkrcnt){
 			thrcnd.wait(_lock);
+		}
+		for(std::thread &thr: thread_vec){
+			thr.join();
 		}
 		state(Stopped);
 	}
@@ -301,7 +337,7 @@ private:
 private:
 	Queue<JobT>					jobq;
 	ControllerT					ctrl;
-	
+	ThreadVectorT				thread_vec;
 };
 
 }//namespace solid

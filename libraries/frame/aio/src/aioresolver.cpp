@@ -27,13 +27,9 @@ struct WorkPoolController: WorkPoolControllerBase{
 	size_t		maxthrcnt;
 	WorkPoolController(size_t _thrcnt):maxthrcnt(_thrcnt){}
 	
-	bool createWorker(WorkPoolT &_rwp, ushort _wkrcnt){
+	void createWorker(WorkPoolT &_rwp, ushort _wkrcnt, std::thread &_rthr){
 		if(_wkrcnt <= maxthrcnt){
-			//TODO:std_thread
-			//_rwp.createSingleWorker()->start();
-			return true;
-		}else{
-			return false;
+			_rwp.createSingleWorker(_rthr);
 		}
 	}
 	void execute(WorkPoolBase &_wp, WorkerBase &, ResolverPointerT & _ptr){

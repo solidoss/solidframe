@@ -98,7 +98,6 @@ struct ReactorStub{
 	
 	void clear(){
 		preactor = nullptr;
-		thr.join();
 	}
 	
 	thread			thr;

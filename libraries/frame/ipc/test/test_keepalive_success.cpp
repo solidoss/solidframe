@@ -396,7 +396,7 @@ int test_keepalive_success(int argc, char **argv){
 		}
 		idbg("before sleep");
 		
-		sleep(1000);
+		sleep(60);
 		
 		idbg("after sleep");
 		{

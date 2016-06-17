@@ -21,10 +21,9 @@ typedef WorkPool<int, MyWorkPoolController>	MyWorkPool;
 
 struct MyWorkPoolController: WorkPoolControllerBase{
 	typedef std::vector<int>	IntVectorT;
-	bool createWorker(MyWorkPool &_rwp, ushort _wkrcnt){
-		//TODO: std_thread
-		//_rwp.createMultiWorker(4)->start();
-		return true;
+	
+	void createWorker(MyWorkPool &_rwp, ushort _wkrcnt, std::thread &_rthr){
+		_rwp.createMultiWorker(_rthr, 4);
 	}
 	void execute(WorkPoolBase &_rwp, WorkerBase &, int _i){
 		idbg("i = "<<_i);
