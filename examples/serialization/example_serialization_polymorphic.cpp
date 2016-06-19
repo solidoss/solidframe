@@ -95,7 +95,7 @@ int main(){
 		
 		rv = des.run(data.data(), data.size());
 		
-		if(rv != data.size()){
+		if(rv != static_cast<int>(data.size())){
 			cout<<"ERROR: deserialization: "<<des.error().category().name()<<": "<<des.error().message()<<endl;
 			return 0;
 		}

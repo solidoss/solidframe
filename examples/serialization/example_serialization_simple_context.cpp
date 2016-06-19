@@ -249,19 +249,19 @@ struct Array: Base{
 
 void Array::print() const{
 	cout<<"Array{"<<endl;
-	cout<<"sasz = "<<(int)sasz<<endl;
-	for(int i(0); i < sasz; ++i){
+	cout<<"sasz = "<<static_cast<int>(sasz)<<endl;
+	for(int i(0); i < static_cast<int>(sasz); ++i){
 		cout<<"\""<<sa[i]<<"\" ";
 	}
 	cout<<endl;
 	cout<<"ptasz = "<<ptasz<<endl;
 	cout<<"pta = "<<(void*)pta<<"{"<<endl;
-	for(int i(0); i < ptasz; ++i){
+	for(int i(0); i < static_cast<int>(ptasz); ++i){
 		pta[i].print();
 	}
 	cout<<"}pta"<<endl;
 	cout<<"pta1 = "<<(void*)pta1<<"{"<<endl;
-	for(int i(0); i < pta1sz; ++i){
+	for(int i(0); i < static_cast<int>(pta1sz); ++i){
 		pta1[i].print();
 	}
 	cout<<"}pta1"<<endl;

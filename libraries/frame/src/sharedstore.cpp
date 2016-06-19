@@ -160,6 +160,7 @@ void StoreBase::erasePointer(UniqueId const & _ruid, const bool _isalive){
 		{
 			std::unique_lock<std::mutex>	lock(mutex(_ruid.index));
 			do_notify = doDecrementObjectUseCount(_ruid, _isalive);
+			(void)do_notify;
 		}
 		notifyObject(_ruid);
 	}

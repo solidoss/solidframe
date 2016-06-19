@@ -1,6 +1,4 @@
 add_subdirectory(system)
 add_subdirectory(utility)
 add_subdirectory(serialization)
-add_subdirectory(tools)
-add_subdirectory(memoryfile)
 add_subdirectory(frame)

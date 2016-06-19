@@ -620,7 +620,7 @@ private:
 			}
 			Stub	&rs = stubvec[it->index];
 			if(it->unique == rs.uid){
-				if((it - reraseuidvec.begin()) >= eraseuidvecsize){
+				if(static_cast<size_t>(it - reraseuidvec.begin()) >= eraseuidvecsize){
 					//its an uid added by executeBeforeErase
 					--rs.usecnt;
 				}

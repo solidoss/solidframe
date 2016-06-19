@@ -1,6 +1,6 @@
-add_executable (example_fileserver fileserver.cpp)
+add_executable (example_file_server example_file_server.cpp)
 
-target_link_libraries (example_fileserver
+target_link_libraries (example_file_server
 	solid_frame_aio
 	solid_frame_file
 	solid_frame
@@ -14,7 +14,7 @@ target_link_libraries (example_fileserver
 	${SYS_DYNAMIC_LOAD_LIB}
 )
 
-add_executable (example_filebuf filebuf.cpp)
+add_executable (example_filebuf example_filebuf.cpp)
 target_link_libraries (example_filebuf
 	solid_frame_file
 	solid_frame

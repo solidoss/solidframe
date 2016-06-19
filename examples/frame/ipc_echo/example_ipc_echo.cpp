@@ -78,7 +78,6 @@ namespace{
 	//uint32_t					wait_count = 0;
 	Params					app_params;
 	void broadcast_message(frame::ipc::Service &_rsvc, std::shared_ptr<frame::ipc::Message> &_rmsgptr);
-	void on_receive(FirstMessage const &_rmsg);
 }
 
 struct FirstMessage: frame::ipc::Message{
@@ -307,9 +306,5 @@ void broadcast_message(frame::ipc::Service &_rsvc, std::shared_ptr<frame::ipc::M
 	}
 }
 
-void on_receive(FirstMessage const &_rmsg){
-	unique_lock<mutex> lock(mtx);
-	cout<<"Received: "<<_rmsg.str<<endl;
-}
 
 }//namespace

@@ -416,7 +416,7 @@ struct MoveMessage{
 		}else{
 			const uint32_t id = crtid = crt_id++;
 			
-			snprintf(buf1, BufferCapacity, "%lu\r\n", id);
+			snprintf(buf1, BufferCapacity, "%lu\r\n", static_cast<unsigned long>(id));
 			sock1.postSendAll(_rctx, buf1, strlen(buf1), Connection::onSendId);
 			sock1.postRecvSome(_rctx, buf2, 12, [this](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, 0, _sz);});
 		}

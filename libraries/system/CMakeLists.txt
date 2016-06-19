@@ -3,7 +3,6 @@ set(Sources
 	src/device.cpp
 	src/socketaddress.cpp
 	src/cstring.cpp
-	src/sharedbackend.cpp
 	src/error.cpp
 	src/memory.cpp
 	src/system.cpp
@@ -26,7 +25,6 @@ set(Headers
 	memory.hpp
 	mutualstore.hpp
 	seekabledevice.hpp
-	sharedbackend.hpp
 	socketaddress.hpp
 	socketdevice.hpp
 	socketinfo.hpp

@@ -629,11 +629,11 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 	split_id(_id, fldrid, fileid);
 	
 	if(sizeof(_id) == sizeof(uint64_t)){
-		std::sprintf(fldrbuf, "%8.8X", fldrid);
-		std::sprintf(filebuf, "/%8.8x.tmp", fileid);
+		std::sprintf(fldrbuf, "%8.8X", static_cast<unsigned int>(fldrid));
+		std::sprintf(filebuf, "/%8.8x.tmp", static_cast<unsigned int>(fileid));
 	}else{
-		std::sprintf(fldrbuf, "%4.4X", fldrid);
-		std::sprintf(filebuf, "/%4.4x.tmp", fileid);
+		std::sprintf(fldrbuf, "%4.4X", static_cast<unsigned int>(fldrid));
+		std::sprintf(filebuf, "/%4.4x.tmp", static_cast<unsigned int>(fileid));
 	}
 	_rpath.append(fldrbuf);
 	Directory::create(_rpath.c_str());

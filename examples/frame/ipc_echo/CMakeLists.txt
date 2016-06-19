@@ -16,7 +16,7 @@
 # 	${SYS_DYNAMIC_LOAD_LIB}
 # )
 
-add_executable (example_ipc_echo ipcecho.cpp)
+add_executable (example_ipc_echo example_ipc_echo.cpp)
 
 target_link_libraries (example_ipc_echo
 	solid_frame_ipc

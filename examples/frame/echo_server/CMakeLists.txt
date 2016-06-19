@@ -1,8 +1,8 @@
-add_executable (example_echoserver echoserver.cpp)
+add_executable (example_echo_server example_echo_server.cpp)
 
 #set_source_files_properties(echoserver.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\"")
 
-target_link_libraries (example_echoserver
+target_link_libraries (example_echo_server
 	solid_frame
 	solid_frame_aio
 	solid_serialization
@@ -40,11 +40,11 @@ add_custom_target(example_secure_certs
 	${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem
 )
 
-add_executable (example_secure_echoserver secureechoserver.cpp)
+add_executable (example_secure_echo_server example_secure_echo_server.cpp)
 
 #set_source_files_properties(echoserver.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\"")
 
-target_link_libraries (example_secure_echoserver
+target_link_libraries (example_secure_echo_server
 	solid_frame
 	solid_frame_aio
 	solid_frame_aio_openssl

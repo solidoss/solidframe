@@ -42,7 +42,6 @@ using namespace solid;
 
 void listLocalInterfaces();
 
-void testLiterals();
 
 int main(int argc, char *argv[]){
 #ifdef SOLID_ON_WINDOWS
@@ -60,7 +59,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
 #endif
-	testLiterals();
+	
 	if(argc < 3){
 		cout<<"error too few arguments"<<endl;
 		return 0;
@@ -277,16 +276,3 @@ void listLocalInterfaces(){
 #endif
 }
 
-
-void testLiterals(){
-	uint64_t uv64(-1);
-	uint32_t uv32(-1);
-	int64_t  v64(-1);
-	cout<<"uv64 = "<<uv64<<endl;
-	cout<<"uv32 = "<<uv32<<endl;
-	cout<<"v64 = "<<v64<<endl;
-	cout<<"uv64 == -1 "<<(uv64 == -1)<<endl;
-	cout<<"uv32 == -1 "<<(uv32 == -1)<<endl;
-	cout<<"uv64 == -1 "<<(-1 == uv64)<<endl;
-	cout<<"uv32 == -1 "<<(-1 == uv32)<<endl;
-}
