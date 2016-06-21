@@ -22,38 +22,37 @@ C++11 enabled compilers on:
 
 ## Libraries
 
-* solid_system:
+* __solid_system__:
 	* Wrappers for socket/file devices, socket address, directory access
 	* Debug log engine
-* solid_utility:
-	* any - similar to boost::any
-	* event - Event class containing an ID an solid::Any object and a Category (similar to std::error_category)
-	* innerlist - bidirectional list mapped over a vector/deque
-	* stack - alternative to std::stack
-	* queue - alternative to std:queue
-	* workpool - generic thread pool
-* solid_serialization: binary serialization/marshalling
-* solid_frame:
-	* object: reactive object
-	* manager: store of services and notifies objects
-	* service: store and notifies objects
-	* reactor: active store of objects - allows objects to asynchronously react on events
-	* scheduler: a thread pool of reactors
-	* timer
-	* shared store: generic store of shared objects that need either multiple read or single write access
-* solid_frame_aio: asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
-	* object: reactive object with support for Asynchronous IO
-	* reactor: reactor with support for Asynchronous IO
-	* listener: asynchronous TCP listener/server socket
-	* stream: asynchronous TCP socket
-	* datagram: asynchronous UDP socket
-	* timer
-* solid_frame_aio_openssl
-	* SSL support via OpenSSL
-* solid_frame_file
-	* file store: a shared store for files
-* solid_frame_ipc: asynchronous Secure/Plain TCP inter-process communication engine ([IPC library](libraries/frame/ipc/README.md))
-	* ipcservice
+* __solid_utility__:
+	* _any_ - similar to boost::any
+	* _event_ - Event class containing an ID an solid::Any object and a Category (similar to std::error_category)
+	* _innerlist_ - bidirectional list mapped over a vector/deque
+	* _stack_ - alternative to std::stack
+	* _queue_ - alternative to std:queue
+	* _workpool_ - generic thread pool
+* __solid_serialization__: binary serialization/marshalling
+* __solid_frame__:
+	* _object_ - reactive object
+	* _manager_ - store of services and notifies objects
+	* _service_ - store and notifies objects
+	* _reactor_ - active store of objects - allows objects to asynchronously react on events
+	* _scheduler_ - a thread pool of reactors
+	* _timer_
+	* _shared store_ - generic store of shared objects that need either multiple read or single write access
+* __solid_frame_aio__: asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
+	* _object_ - reactive object with support for Asynchronous IO
+	* _reactor_ - reactor with support for Asynchronous IO
+	* _listener_ - asynchronous TCP listener/server socket
+	* _stream_ - asynchronous TCP socket
+	* _datagram_ - asynchronous UDP socket
+	* _timer_
+* __solid_frame_aio_openssl__: SSL support via OpenSSL
+* __solid_frame_file__
+	* _file store_ - a shared store for files
+* __solid_frame_ipc__: asynchronous Secure/Plain TCP inter-process communication engine ([IPC library](libraries/frame/ipc/README.md))
+	* _ipcservice_
 
 ## TODO v2.0
 
