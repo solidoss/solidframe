@@ -20,7 +20,7 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/exception.hpp"
-#include "system/atomic.hpp"
+#include <atomic>
 #include "system/memory.hpp"
 
 #include "frame/manager.hpp"
@@ -92,12 +92,12 @@ std::ostream& operator<<(std::ostream &_ros, UniqueId const& _uid){
 	return _ros;
 }
 
-typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
-typedef ATOMIC_NS::atomic<bool>				AtomicBoolT;
-typedef ATOMIC_NS::atomic<uint>				AtomicUintT;
-typedef ATOMIC_NS::atomic<long>				AtomicLongT;
-typedef ATOMIC_NS::atomic<ReactorBase*>		AtomicReactorBaseT;
-typedef ATOMIC_NS::atomic<IndexT>			AtomicIndexT;
+typedef std::atomic<size_t>			AtomicSizeT;
+typedef std::atomic<bool>				AtomicBoolT;
+typedef std::atomic<uint>				AtomicUintT;
+typedef std::atomic<long>				AtomicLongT;
+typedef std::atomic<ReactorBase*>		AtomicReactorBaseT;
+typedef std::atomic<IndexT>			AtomicIndexT;
 
 typedef Queue<size_t>						SizeQueueT;
 typedef Stack<size_t>						SizeStackT;
@@ -199,7 +199,7 @@ struct ObjectStoreStub{
 	ChunkDequeT			vec;
 };
 
-typedef ATOMIC_NS::atomic<State>	AtomicStateT;
+typedef std::atomic<State>	AtomicStateT;
 
 //---------------------------------------------------------
 struct Manager::Data{
@@ -765,7 +765,7 @@ ObjectIdT  Manager::id(const ObjectBase &_robj)const{
 
 std::mutex& Manager::mutex(const Service &_rsvc)const{
 	std::mutex		*pmtx = nullptr ;
-	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+	const size_t	svcidx = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
 	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 	ServiceStub		&rsvc = *d.svcstore[svcstoreidx].vec[svcidx];
 		
@@ -781,7 +781,7 @@ size_t Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunction
 	if(!_rsvc.isRegistered()){
 		return false;
 	}
-	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+	const size_t	svcidx = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
 	size_t			chkidx = InvalidIndex();
 	{
 		const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
@@ -855,7 +855,7 @@ bool Manager::startService(Service &_rsvc){
 	if(!_rsvc.isRegistered()){
 		return false;
 	}
-	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+	const size_t	svcidx = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
 	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 	ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
 	
@@ -875,7 +875,7 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 	if(!_rsvc.isRegistered()){
 		return;
 	}
-	const size_t	svcidx = _rsvc.idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+	const size_t	svcidx = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
 	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 	ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
 	

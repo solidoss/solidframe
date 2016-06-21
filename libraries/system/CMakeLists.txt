@@ -9,8 +9,6 @@ set(Sources
 )
 
 set(Headers
-	atomic.hpp
-	binary.hpp
 	cassert.hpp
 	common.hpp
 	convertors.hpp

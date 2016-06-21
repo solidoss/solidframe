@@ -74,15 +74,15 @@ private:
 private:
 	
 	Manager 					&rm;
-	ATOMIC_NS::atomic<size_t>	idx;
-	ATOMIC_NS::atomic<bool>		running;
+	std::atomic<size_t>	idx;
+	std::atomic<bool>		running;
 };
 
 inline Manager& Service::manager(){
 	return rm;
 }
 inline bool Service::isRegistered()const{
-	return idx.load(/*ATOMIC_NS::memory_order_seq_cst*/) != InvalidIndex();
+	return idx.load(/*std::memory_order_seq_cst*/) != InvalidIndex();
 }
 inline bool Service::isRunning()const{
 	return running;

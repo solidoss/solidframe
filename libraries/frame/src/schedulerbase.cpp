@@ -19,7 +19,7 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 #include "utility/algorithm.hpp"
-#include "system/atomic.hpp"
+#include <atomic>
 
 #include <memory>
 
@@ -82,7 +82,7 @@ inline ErrorConditionT error_reactor(){
 
 typedef Queue<UniqueId>					UidQueueT;
 typedef Stack<UniqueId>					UidStackT;
-typedef ATOMIC_NS::atomic<size_t>		AtomicSizeT;
+typedef std::atomic<size_t>		AtomicSizeT;
 
 struct ReactorStub{
 	ReactorStub(ReactorBase *_preactor = nullptr):preactor(_preactor){}
@@ -115,7 +115,7 @@ enum Statuses{
 	StatusStoppingWaitE
 };
 
-typedef ATOMIC_NS::atomic<Statuses>			AtomicStatuesT;
+typedef std::atomic<Statuses>			AtomicStatuesT;
 
 struct SchedulerBase::Data{
 	Data():crtreactoridx(0), reactorcnt(0), stopwaitcnt(0), status(StatusStoppedE), usecnt(0){

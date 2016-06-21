@@ -79,8 +79,8 @@ inline size_t voidToIndex(const void* _ptr){
 
 //=============================================================================
 
-typedef ATOMIC_NS::atomic<bool>		AtomicBoolT;
-typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
+typedef std::atomic<bool>		AtomicBoolT;
+typedef std::atomic<size_t>	AtomicSizeT;
 typedef Reactor::TaskT				TaskT;
 
 //=============================================================================

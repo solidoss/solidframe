@@ -23,7 +23,7 @@
 #include <ext/atomicity.h>
 #endif
 
-#include "system/atomic.hpp"
+#include <atomic>
 
 namespace solid{
 
@@ -116,23 +116,23 @@ void DynamicPointerBase::use(DynamicBase *_pdyn){
 //		DynamicBase
 //--------------------------------------------------------------------
 
-typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+typedef std::atomic<size_t>			AtomicSizeT;
 
 /*static*/ size_t DynamicBase::generateId(){
 	static AtomicSizeT u(ATOMIC_VAR_INIT(0));
-	return u.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
+	return u.fetch_add(1/*, std::memory_order_seq_cst*/);
 }
 
 
 DynamicBase::~DynamicBase(){}
 
 size_t DynamicBase::use(){
-	return usecount.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/) + 1;;
+	return usecount.fetch_add(1/*, std::memory_order_seq_cst*/) + 1;;
 }
 
 //! Used by DynamicPointer to know if the object must be deleted
 size_t DynamicBase::release(){
-	return usecount.fetch_sub(1/*, ATOMIC_NS::memory_order_seq_cst*/) - 1;
+	return usecount.fetch_sub(1/*, std::memory_order_seq_cst*/) - 1;
 }
 
 /*virtual*/ bool DynamicBase::isTypeDynamic(const size_t _id){

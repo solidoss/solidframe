@@ -35,7 +35,7 @@ public:
 	void unprepareThread();
 	size_t load()const;
 protected:
-	typedef ATOMIC_NS::atomic<size_t> AtomicSizeT;
+	typedef std::atomic<size_t> AtomicSizeT;
 	
 	ReactorBase(
 		SchedulerBase &_rsch, const size_t _schidx, const size_t _crtidx = 0

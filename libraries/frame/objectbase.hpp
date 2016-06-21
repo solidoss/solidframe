@@ -15,7 +15,7 @@
 #include "frame/common.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
-#include "system/atomic.hpp"
+#include <atomic>
 
 namespace solid{
 namespace frame{
@@ -64,9 +64,9 @@ private:
 	
 	void stop(Manager &_rm);
 private:
-	ATOMIC_NS::atomic<IndexT>	fullid;
+	std::atomic<IndexT>	fullid;
 	UniqueId					runid;
-	ATOMIC_NS::atomic<size_t>	smask;
+	std::atomic<size_t>	smask;
 };
 
 inline IndexT ObjectBase::id()	const {
@@ -90,11 +90,11 @@ inline void ObjectBase::runId(UniqueId const& _runid){
 }
 
 inline size_t ObjectBase::grabSignalMask(const size_t _leave/* = 0*/){
-	return smask.fetch_and(_leave/*, ATOMIC_NS::memory_order_seq_cst*/);
+	return smask.fetch_and(_leave/*, std::memory_order_seq_cst*/);
 }
 
 inline bool ObjectBase::notify(const size_t _smask){
-	const size_t osm = smask.fetch_or(_smask/*, ATOMIC_NS::memory_order_seq_cst*/);
+	const size_t osm = smask.fetch_or(_smask/*, std::memory_order_seq_cst*/);
 	return (_smask | osm) != osm;
 }
 

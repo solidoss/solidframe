@@ -50,8 +50,8 @@ void dummy_completion(CompletionHandler&, ReactorContext &){
 }//namespace
 
 
-typedef ATOMIC_NS::atomic<bool>		AtomicBoolT;
-typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
+typedef std::atomic<bool>		AtomicBoolT;
+typedef std::atomic<size_t>	AtomicSizeT;
 typedef Reactor::TaskT				TaskT;
 
 

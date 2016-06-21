@@ -32,7 +32,7 @@
 #include "frame/ipc/ipcconfiguration.hpp"
 
 #include "system/mutualstore.hpp"
-#include "system/atomic.hpp"
+#include <atomic>
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 #include "utility/string.hpp"

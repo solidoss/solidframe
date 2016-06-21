@@ -69,7 +69,7 @@ ObjectIdT Service::registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleF
 }
 
 // void Service::unsafeStop(Locker<Mutex> &_rlock, bool _wait){
-// 	const size_t	svcidx = idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+// 	const size_t	svcidx = idx.load(/*std::memory_order_seq_cst*/);
 // 	rm.doWaitStopService(svcidx, _rlock, true);
 // }
 

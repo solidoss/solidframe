@@ -12,7 +12,7 @@
 #include "frame/manager.hpp"
 #include "system/cassert.hpp"
 #include "system/mutualstore.hpp"
-#include "system/atomic.hpp"
+#include <atomic>
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 #include "utility/event.hpp"
@@ -40,7 +40,7 @@ void PointerBase::doClear(const bool _isalive){
 //---------------------------------------------------------------
 //		StoreBase
 //---------------------------------------------------------------
-typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+typedef std::atomic<size_t>			AtomicSizeT;
 typedef MutualStore<mutex>					MutexMutualStoreT;
 typedef Queue<UniqueId>						UidQueueT;
 typedef Stack<size_t>						SizeStackT;

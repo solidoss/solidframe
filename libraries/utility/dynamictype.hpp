@@ -17,7 +17,7 @@
 
 #include "utility/common.hpp"
 #include "utility/dynamicpointer.hpp"
-#include "system/atomic.hpp"
+#include <atomic>
 
 namespace solid{
 
@@ -57,7 +57,7 @@ protected:
 	 */
 	size_t release();
 private:
-	typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+	typedef std::atomic<size_t>			AtomicSizeT;
 	
 	AtomicSizeT		usecount;
 };

@@ -140,7 +140,7 @@ int main(int argc, char *argv[]){
 		
 		SOLID_ASSERT(sa4_0.address() < sa4_1.address());
 		
-		SocketAddressInet4::BinaryT	binaddr4;
+		SocketAddressInet4::DataArrayT	binaddr4;
 		sa4_0.toBinary(binaddr4, portx);
 		
 		SocketAddressInet4 sa4_2(binaddr4, portx);

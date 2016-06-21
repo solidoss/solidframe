@@ -11,7 +11,7 @@
 #define UTILITY_MEMORY_HPP
 
 #include "system/common.hpp"
-#include "system/atomic.hpp"
+#include <atomic>
 
 namespace solid{
 
@@ -21,7 +21,7 @@ struct EmptyChecker{
 	void add();
 	void sub();
 private:
-	typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+	typedef std::atomic<size_t>			AtomicSizeT;
 	AtomicSizeT	v;
 	const char 	*fncname;
 };

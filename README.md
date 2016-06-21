@@ -16,19 +16,44 @@ Boost Software License - Version 1.0 - August 17th, 2003
 C++11 enabled compilers on:
 
 * Linux - (tested on latest Fedora) - gcc
-* FreeBSD - (almost there) - llvm
-* Darwin/OSX - (almost there) - llvm
+* FreeBSD - (tested on FreeBSD/PcBSD 10.3) - llvm
+* Darwin/OSX - (waiting for XCode 8 with support for thread_local) - llvm
 * Windows - (partial) - latest VS
 
-## Content
+## Libraries
 
-* System library wrapping up threads, synchronization, thread specific, file access, socket address, debug logging engine etc
-* Asynchronous communication library for UDP and plain/secure (via OpenSSL library) TCP.
-* Asynchronous multiplexed IPC (Inter Process Communication) library over secure/plain TCP ([IPC library](libraries/frame/ipc/README.md)). 
-* Buffer oriented, asynchronous ready, binary serialization/marshalling engine - for binary protocols like the one used by IPC library.
-* Shared object store with asynchronous read/write access.
-* Shared file store with asynchronous read/write access.
-* Sample applications
+* solid_system:
+	* Wrappers for socket/file devices, socket address, directory access
+	* Debug log engine
+* solid_utility:
+	* any - similar to boost::any
+	* event - Event class containing an ID an solid::Any object and a Category (similar to std::error_category)
+	* innerlist - bidirectional list mapped over a vector/deque
+	* stack - alternative to std::stack
+	* queue - alternative to std:queue
+	* workpool - generic thread pool
+* solid_serialization: binary serialization/marshalling
+* solid_frame:
+	* object: reactive object
+	* manager: store of services and notifies objects
+	* service: store and notifies objects
+	* reactor: active store of objects - allows objects to asynchronously react on events
+	* scheduler: a thread pool of reactors
+	* timer
+	* shared store: generic store of shared objects that need either multiple read or single write access
+* solid_frame_aio: asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
+	* object: reactive object with support for Asynchronous IO
+	* reactor: reactor with support for Asynchronous IO
+	* listener: asynchronous TCP listener/server socket
+	* stream: asynchronous TCP socket
+	* datagram: asynchronous UDP socket
+	* timer
+* solid_frame_aio_openssl
+	* SSL support via OpenSSL
+* solid_frame_file
+	* file store: a shared store for files
+* solid_frame_ipc: asynchronous Secure/Plain TCP inter-process communication engine ([IPC library](libraries/frame/ipc/README.md))
+	* ipcservice
 
 ## TODO v2.0
 

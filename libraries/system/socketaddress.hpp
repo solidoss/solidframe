@@ -19,7 +19,6 @@
 
 #include "system/common.hpp"
 #include "system/socketinfo.hpp"
-#include "system/binary.hpp"
 
 #if defined(SOLID_USE_CPP11) && !defined(USHAREDBACKEND)
 #include <memory>
@@ -278,8 +277,8 @@ private:
 public:
 	enum {Capacity = sizeof(AddrUnion)};
 	
-	typedef Binary<4>	Binary4T;
-	typedef Binary<16>	Binary6T;
+	typedef std::array<uint8_t, 4>	DataArray4T;
+	typedef std::array<uint8_t, 16>	DataArray6T;
 	
 	SocketAddressInet();
 	SocketAddressInet(const SocketAddressStub &);
@@ -302,10 +301,10 @@ public:
 	const sockaddr* sockAddr()const;
 	operator const sockaddr*()const;
 	
-	bool toBinary(Binary4T &_bin, uint16_t &_port)const;
-	bool toBinary(Binary6T &_bin, uint16_t &_port)const;
-	void fromBinary(const Binary4T &_bin, uint16_t _port = 0);
-	void fromBinary(const Binary6T &_bin, uint16_t _port = 0);
+	bool toBinary(DataArray4T &_bin, uint16_t &_port)const;
+	bool toBinary(DataArray6T &_bin, uint16_t &_port)const;
+	void fromBinary(const DataArray4T &_bin, uint16_t _port = 0);
+	void fromBinary(const DataArray6T &_bin, uint16_t _port = 0);
 	
 	bool operator<(const SocketAddressInet &_raddr)const;
 	bool operator==(const SocketAddressInet &_raddr)const;
@@ -337,13 +336,13 @@ private:
 	};
 public:
 	enum {Capacity = sizeof(AddrUnion)};
-	typedef Binary<4>	BinaryT;
+	typedef std::array<uint8_t, 4>	DataArrayT;
 	
 	SocketAddressInet4();
 	SocketAddressInet4(const SocketAddressStub &);
 	SocketAddressInet4(const char* _addr, int _port = 0);
 	SocketAddressInet4(uint32_t _addr, int _port);
-	SocketAddressInet4(const BinaryT &_addr, int _port = 0);
+	SocketAddressInet4(const DataArrayT &_addr, int _port = 0);
 	
 	//SocketAddressInet4& operator=(const ResolveIterator &);
 	SocketAddressInet4& operator=(const SocketAddressStub &);
@@ -360,11 +359,11 @@ public:
 	//operator sockaddr*(){return sockAddr();}
 	operator const sockaddr*()const;
 	
-	void toBinary(BinaryT &_bin, uint16_t &_port)const;
+	void toBinary(DataArrayT &_bin, uint16_t &_port)const;
 	
 	void toUInt(uint32_t &_addr, uint16_t &_port)const;
 	
-	void fromBinary(const BinaryT &_bin, uint16_t _port = 0);
+	void fromBinary(const DataArrayT &_bin, uint16_t _port = 0);
 	void fromUInt(uint32_t _addr, uint16_t _port = 0);
 	
 	
@@ -396,12 +395,12 @@ private:
 	};
 public:
 	enum {Capacity = sizeof(AddrUnion)};
-	typedef Binary<16>	BinaryT;
+	typedef std::array<uint8_t, 16>	DataArrayT;
 	
 	SocketAddressInet6();
 	SocketAddressInet6(const SocketAddressStub &);
 	SocketAddressInet6(const char* _addr, int _port = 0);
-	SocketAddressInet6(const BinaryT &_addr, int _port = 0);
+	SocketAddressInet6(const DataArrayT &_addr, int _port = 0);
 	
 	SocketAddressInet6& operator=(const SocketAddressStub &);
 		
@@ -418,9 +417,9 @@ public:
 	const sockaddr* sockAddr()const;
 	operator const sockaddr*()const;
 	
-	void toBinary(BinaryT &_bin, uint16_t &_port)const;
+	void toBinary(DataArrayT &_bin, uint16_t &_port)const;
 	
-	void fromBinary(const BinaryT &_bin, uint16_t _port = 0);
+	void fromBinary(const DataArrayT &_bin, uint16_t _port = 0);
 	
 	bool operator<(const SocketAddressInet6 &_raddr)const;
 	bool operator==(const SocketAddressInet6 &_raddr)const;

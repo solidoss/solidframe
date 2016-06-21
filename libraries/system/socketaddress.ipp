@@ -528,35 +528,35 @@ inline SocketAddressInet::operator const sockaddr*()const{
 	return sockAddr();
 }
 
-inline bool SocketAddressInet::toBinary(Binary4T &_bin, uint16_t &_port)const{
+inline bool SocketAddressInet::toBinary(DataArray4T &_bin, uint16_t &_port)const{
 	if(isInet4()){
-		memcpy(_bin.data, &address4().s_addr, 4);
+		memcpy(_bin.data(), &address4().s_addr, 4);
 		_port = d.inaddr4.sin_port;
 		return true;
 	}
 	return false;
 }
 
-inline bool SocketAddressInet::toBinary(Binary6T &_bin, uint16_t &_port)const{
+inline bool SocketAddressInet::toBinary(DataArray6T &_bin, uint16_t &_port)const{
 	if(isInet6()){
-		memcpy(_bin.data, &address6().s6_addr, 16);
+		memcpy(_bin.data(), &address6().s6_addr, 16);
 		_port = d.inaddr6.sin6_port;
 		return true;
 	}
 	return false;
 }
 
-inline void SocketAddressInet::fromBinary(const Binary4T &_bin, uint16_t _port){
+inline void SocketAddressInet::fromBinary(const DataArray4T &_bin, uint16_t _port){
 	sockAddr()->sa_family = AF_INET;
 	sz = sizeof(d.inaddr4);
-	memcpy(&d.inaddr4.sin_addr.s_addr, _bin.data, 4);
+	memcpy(&d.inaddr4.sin_addr.s_addr, _bin.data(), 4);
 	d.inaddr4.sin_port = _port;
 }
 
-inline void SocketAddressInet::fromBinary(const Binary6T &_bin, uint16_t _port){
+inline void SocketAddressInet::fromBinary(const DataArray6T &_bin, uint16_t _port){
 	sockAddr()->sa_family = AF_INET6;
 	sz = sizeof(d.inaddr6);
-	memcpy(&d.inaddr6.sin6_addr.s6_addr, _bin.data, 16);
+	memcpy(&d.inaddr6.sin6_addr.s6_addr, _bin.data(), 16);
 	d.inaddr6.sin6_port = _port;
 }
 
@@ -588,6 +588,7 @@ inline bool SocketAddressInet::operator<(const SocketAddressInet &_raddr)const{
 	}
 	return d.inaddr4.sin_port < _raddr.d.inaddr4.sin_port;
 }
+
 inline bool SocketAddressInet::operator==(const SocketAddressInet &_raddr)const{
 	if(sockAddr()->sa_family == _raddr.sockAddr()->sa_family){
 		if(isInet6()){
@@ -694,7 +695,7 @@ inline SocketAddressInet4::SocketAddressInet4(uint32_t _addr, int _port){
 	clear();
 	fromUInt(_addr, _port);
 }
-inline SocketAddressInet4::SocketAddressInet4(const BinaryT &_addr, int _port){
+inline SocketAddressInet4::SocketAddressInet4(const DataArrayT &_addr, int _port){
 	clear();
 	fromBinary(_addr, _port);
 }
@@ -740,8 +741,8 @@ inline SocketAddressInet4::operator const sockaddr*()const{
 	return sockAddr();
 }
 
-inline void SocketAddressInet4::toBinary(BinaryT &_bin, uint16_t &_port)const{
-	memcpy(_bin.data, &address().s_addr, 4);
+inline void SocketAddressInet4::toBinary(DataArrayT &_bin, uint16_t &_port)const{
+	memcpy(_bin.data(), &address().s_addr, 4);
 	_port = d.inaddr4.sin_port;
 }
 	
@@ -750,8 +751,8 @@ inline void SocketAddressInet4::toUInt(uint32_t &_addr, uint16_t &_port)const{
 	_port = static_cast<uint16_t>(port());
 }
 
-inline void SocketAddressInet4::fromBinary(const BinaryT &_bin, uint16_t _port){
-	memcpy(&d.inaddr4.sin_addr.s_addr, _bin.data, 4);
+inline void SocketAddressInet4::fromBinary(const DataArrayT &_bin, uint16_t _port){
+	memcpy(&d.inaddr4.sin_addr.s_addr, _bin.data(), 4);
 	d.inaddr4.sin_port = _port;
 }
 inline void SocketAddressInet4::fromUInt(uint32_t _addr, uint16_t _port){
@@ -829,7 +830,7 @@ inline SocketAddressInet6::SocketAddressInet6(const char* _addr, int _port){
 	port(_port);
 }
 
-inline SocketAddressInet6::SocketAddressInet6(const BinaryT &_addr, int _port){
+inline SocketAddressInet6::SocketAddressInet6(const DataArrayT &_addr, int _port){
 	clear();
 	fromBinary(_addr, _port);
 }
@@ -884,13 +885,13 @@ inline SocketAddressInet6::operator const sockaddr*()const{
 	return sockAddr();
 }
 
-inline void SocketAddressInet6::toBinary(BinaryT &_bin, uint16_t &_port)const{
-	memcpy(_bin.data, &address().s6_addr, 16);
+inline void SocketAddressInet6::toBinary(DataArrayT &_bin, uint16_t &_port)const{
+	memcpy(_bin.data(), &address().s6_addr, 16);
 	_port = d.inaddr6.sin6_port;
 }
 	
-inline void SocketAddressInet6::fromBinary(const BinaryT &_bin, uint16_t _port){
-	memcpy(&d.inaddr6.sin6_addr.s6_addr, _bin.data, 16);
+inline void SocketAddressInet6::fromBinary(const DataArrayT &_bin, uint16_t _port){
+	memcpy(&d.inaddr6.sin6_addr.s6_addr, _bin.data(), 16);
 	d.inaddr6.sin6_port = _port;
 }
 

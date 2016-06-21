@@ -24,7 +24,7 @@
 
 #endif
 
-#include "system/atomic.hpp"
+#include <atomic>
 #include "system/directory.hpp"
 #include "system/debug.hpp"
 
@@ -51,7 +51,7 @@ uint32_t dbgid(){
 //---------------------------------------------------------------------------
 //		Utf8Controller::Data
 //---------------------------------------------------------------------------
-typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
+typedef std::atomic<size_t>	AtomicSizeT;
 typedef std::pair<size_t, size_t>	SizePairT;
 typedef std::vector<SizePairT>		SizePairVectorT;
 typedef std::vector<size_t>			SizeVectorT;

@@ -1,6 +1,6 @@
 #include <iostream>
 #include "system/common.hpp"
-#include <system/atomic.hpp>
+#include <atomic>
 
 #include "system/exception.hpp"
 #include <vector>

@@ -1,6 +1,5 @@
 set(Sources
 	src/list.cpp
-	src/memory.cpp
 	src/utility.cpp
 	src/dynamictype.cpp
 	src/memoryfile.cpp
@@ -20,10 +19,8 @@ set(Headers
 	ioformat.hpp
 	list.hpp
 	memoryfile.hpp
-	memory.hpp
 	queue.hpp
 	sharedmutex.hpp
-	specificallocator.hpp
 	stack.hpp
 	string.hpp
 	workpool.hpp

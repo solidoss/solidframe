@@ -32,7 +32,7 @@ using namespace solid;
 using namespace std::placeholders;
 
 typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
-typedef ATOMIC_NS::atomic<uint32_t>				AtomicUint32_tT;
+typedef std::atomic<uint32_t>				AtomicUint32_tT;
 typedef std::unordered_map<
 		uint32_t,
 		solid::frame::ObjectIdT

@@ -11,8 +11,8 @@
 #define SOLID_SERIALIZATION_BINARY_BASIC_HPP
 
 #include "utility/algorithm.hpp"
-#include "system/binary.hpp"
 #include <cstring>
+#include <array>
 
 namespace solid{
 namespace serialization{
@@ -56,8 +56,8 @@ inline char *store(char *_pd, const uint64_t _val){
 }
 
 template <size_t S>
-inline char *store(char *_pd, const Binary<S> _val){
-	memcpy(_pd, _val.data, S);
+inline char *store(char *_pd, const std::array<uint8_t, S> _val){
+	memcpy(_pd, _val.data(), S);
 	return _pd + S;
 }
 
@@ -98,7 +98,7 @@ inline const char* load(const char *_ps, uint64_t &_val){
 	return _ps;
 }
 template <size_t S>
-inline const char *load(const char *_ps, Binary<S> &_val){
+inline const char *load(const char *_ps, std::array<uint8_t, S> &_val){
 	memcpy(_val.data, _ps, S);
 	return _ps + S;
 }

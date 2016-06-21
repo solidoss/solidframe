@@ -11,7 +11,7 @@
 #include "serialization/binarybasic.hpp"
 #include "utility/ioformat.hpp"
 #include "system/cstring.hpp"
-#include "system/atomic.hpp"
+#include <atomic>
 #include <cstring>
 
 namespace solid{
