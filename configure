@@ -30,34 +30,34 @@ print_usage(){
 	echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr] [-c|--create-lists] [-]\n"
 	echo
 	echo -ne "Options:\n"
-	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
-	echo "[-f|--folder-name FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
-	echo "[-F|--folder-path FolderPath]: Specify the build folder path - unlike the build folder-name wich creates a folder under build, this flag allows creating a build folder anywhere"
 	echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
-	echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
-	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
-#	echo "[-e|--extern-path ExternPath]: relative path to extern libraries under solidframe/extern folder"
 	echo "[-e|--extern-path ExternAbsPath]: absolute path to extern libraries"
-	echo "[-t|--enable-testing]: Enable unit-testing using ctest"
-	echo "[--test-name name]: The name of ctest/cdash project"
-	echo "[--test-site addr]: The address for cdash drop site"
+	echo "[-f|--folder-name FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
+	echo "[--prefix] Install path prefix"
+	echo 
+	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
+	echo "[-F|--folder-path FolderPath]: Specify the build folder path - unlike the build folder-name wich creates a folder under build, this flag allows creating a build folder anywhere"
+	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
+	echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
 	echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
-	echo "[-c|--create-lists]: Implicit for any build option - create CMakeLists.txt files for <application> and <library> folders and exits the script. E.g use this before creating a KDevelop4 project."
 	echo
 	echo "Examples:"
+	echo
 	echo "1) create simple make release build:"
-	echo "	./configure -f rls -b release -e ~/work/sf_extern"
+	echo "$ ./configure -e ~/work/extern"
+	echo "$ cd build/release"
+	echo "$ make"
+	echo "$ sudo make install"
 	echo
-	echo "2) create kdevelop3 project:"
-	echo "	./configure -f kdv -b debug -e ~/work/sf_extern -g KDevelop3"
+	echo "2) create debug build:"
+	echo "$ ./configure -b debug -e ~/work/extern --prefix ~/work/extern"
+	echo "$ cd build/debug"
+	echo "$ make install"
 	echo
-	echo "3) create eclipse projects - one for source within source tree and one external for build (note that the build is external to source tree, as needed by eclipse):"
-	echo "	./configure -F ../sf_ecl -b debug -e ~/work/sf_extern -g \"Eclipse CDT4 - Unix Makefiles\" --cmake-param \"-DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE\""
-	echo
-	echo "4) create a simple make release build, directly specifying cmake parameters:"
-	echo "	./configure -f rel -b release -P -DUDEFS:STRING=\"-DUDEBUG -DUASSERT\" -P -DUEXTERN_ABS:STRING=\"/home/vpalade/projects/sf_extern\""
-	echo "The above command is equivalent to:"
-	echo "	./configure -f rel -b release -e ~/projects/sf_extern -p \"-DUDEBUG -DUASSERT\""
+	echo "3) create a maintain build locate in \"./build/mnt\" with instalation prefix:"
+	echo "$ ./configure -f mnt -e ~/work/extern -b maintain --prefix ~/work/install"
+	echo "$ cd build/mnt"
+	echo "$ make install"
 	echo
 	exit
 }
@@ -244,7 +244,6 @@ if [ "$FOLDER_NAME" = "" ]; then
 		FOLDER_NAME=$GENERATOR
 	fi
 fi
-
 
 echo "Configure an out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME and params $PARAM"
 # if [ ! -d application ]; then

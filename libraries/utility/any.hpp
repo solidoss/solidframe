@@ -270,27 +270,39 @@ public:
 	template <typename T>
 	void reset(const T &_rt){
 		clear();
-		if(sizeof(impl::AnyValue<T>) <= DataSize){
-			pvalue_ = new(data_) impl::AnyValue<T>{_rt};
-		}else{
-			pvalue_ = new impl::AnyValue<T>{_rt};
-		}
+		
+		pvalue_ = do_allocate(_rt, BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>());
 	}
 	
 	template <typename T>
 	void reset(T &&_rt){
 		clear();
-		if(sizeof(impl::AnyValue<T>) <= DataSize){
-			pvalue_ = new(data_) impl::AnyValue<T>(std::move(_rt));
-		}else{
-			pvalue_ = new impl::AnyValue<T>(std::move(_rt));
-		}
+		
+		pvalue_ = do_allocate(std::move(_rt), BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>());
 	}
 	
 	bool usesData()const{
 		return reinterpret_cast<const void*>(pvalue_) == reinterpret_cast<const void*>(data_);
-	}
-	
+    }
+private:
+    template <class T>
+    impl::AnyValueBase* do_allocate(T &&_rt,  BoolToType<true> /*_emplace_new*/){
+        return new(data_) impl::AnyValue<T>(std::move(_rt));
+    }
+    
+    template <class T>
+    impl::AnyValueBase* do_allocate(T &&_rt,  BoolToType<false> /*_plain_new*/){
+        return new impl::AnyValue<T>(std::move(_rt));
+    }
+    template <class T>
+    impl::AnyValueBase* do_allocate(const T &_rt,  BoolToType<true> /*_emplace_new*/){
+        return new(data_) impl::AnyValue<T>{_rt};
+    }
+    
+    template <class T>
+    impl::AnyValueBase* do_allocate(const T &_rt,  BoolToType<false> /*_plain_new*/){
+        return new impl::AnyValue<T>{_rt};
+    }
 private:
 	char				data_[DataSize];
 };

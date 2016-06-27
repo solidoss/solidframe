@@ -52,6 +52,12 @@ struct SizeToType{
 	enum {value = V};
 };
 
+template <bool V>
+struct BoolToType{
+	enum {value = V};
+};
+
+
 template <class T>
 struct UnsignedType;
 
