@@ -2,7 +2,9 @@
 
 printUsage()
 {
+	echo
 	echo "Usage:"
+	echo
 	echo "./prepare_extern.sh [--all] [--boost] [--openssl] [--force-download] [--debug] [-h|--help]"
 	echo
 	echo "Examples:"
