@@ -40,11 +40,11 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * __solid_serialization__: binary serialization/marshalling
 * __solid_frame__:
 	* _object_ - reactive object
-	* _manager_ - store of services and notifies objects
+	* _manager_ - store services and notifies objects within services
 	* _service_ - store and notifies objects
 	* _reactor_ - active store of objects - allows objects to asynchronously react on events
 	* _scheduler_ - a thread pool of reactors
-	* _timer_
+	* _timer_ - allows objects to schedule time based events
 	* _shared store_ - generic store of shared objects that need either multiple read or single write access
 * __solid_frame_aio__: asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
 	* _object_ - reactive object with support for Asynchronous IO
@@ -52,12 +52,12 @@ Boost Software License - Version 1.0 - August 17th, 2003
 	* _listener_ - asynchronous TCP listener/server socket
 	* _stream_ - asynchronous TCP socket
 	* _datagram_ - asynchronous UDP socket
-	* _timer_
+	* _timer_ - allows objects to schedule time based events
 * __solid_frame_aio_openssl__: SSL support via OpenSSL
 * __solid_frame_file__
 	* _file store_ - a shared store for files
 * __solid_frame_ipc__: asynchronous Secure/Plain TCP inter-process communication engine ([IPC library](libraries/frame/ipc/README.md))
-	* _ipcservice_
+	* _ipcservice_ - asynchronously sends and receives messages to/from multiple peers.
 
 ## Getting Started
 
