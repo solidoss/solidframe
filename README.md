@@ -6,19 +6,23 @@ Cross-platform C++ framework for scalable, asynchronous, distributed client-serv
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
-## Prerequisites
+## Resources
+ * [API Reference](solid/API.md)
+ * [Wiki](https://github.com/vipalade/solidframe/wiki)
+ * [Release Notes](RELEASES.md)
 
-* boost
-* OpenSSL
+## Prerequisites
+* C++11 enabled compiler
+* [CMake](https://cmake.org/) 
+* [boost](http://www.boost.org/)
+* [OpenSSL](https://www.openssl.org/)
 
 ## Supported platforms
-
-C++11 enabled compilers on:
 
 * Linux - (tested on latest Fedora) - gcc
 * FreeBSD - (tested on FreeBSD/PcBSD 10.3) - llvm
 * Darwin/OSX - (waiting for XCode 8 with support for thread_local) - llvm
-* Windows - (partial) - latest VS
+* Windows - (partial) - latest VisualStudio
 
 ## Libraries
 
