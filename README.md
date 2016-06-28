@@ -54,6 +54,24 @@ C++11 enabled compilers on:
 * __solid_frame_ipc__: asynchronous Secure/Plain TCP inter-process communication engine ([IPC library](libraries/frame/ipc/README.md))
 	* _ipcservice_
 
+## Getting Started
+
+### Linux/macOS/FreeBSD
+```bash
+$ git clone git@github.com:vipalade/solidframe.git
+$ mkdir extern
+$ cd extern
+$ ../solidframe/prerequisites/prepare_extern.sh
+# ... wait until the prerequisites are built
+$ cd ../solidframe
+$ ./configure -e /path/to/extern --prefix /path/to/extern
+$ cd build/release
+$ make install
+# ... when finished, the header files will be located in /path/to/extern/include/solid
+# and the libraries at /path/to/extern/lib/libsolid_*.a
+```
+
+
 ## TODO v2.0
 
 * (PENDING) Finalizing the IPC library - what is planned for SFv2.0.
@@ -73,5 +91,5 @@ C++11 enabled compilers on:
 * frame/ipc with OpenSSL
 
 ## See also
-* [IPC library](libraries/frame/ipc/README.md)
+* [IPC library](solid/frame/ipc/README.md)
 
