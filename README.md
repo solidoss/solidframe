@@ -58,19 +58,29 @@ C++11 enabled compilers on:
 
 ### Linux/macOS/FreeBSD
 ```bash
+$ mkdir ~/work
+$ cd ~/work
 $ git clone git@github.com:vipalade/solidframe.git
 $ mkdir extern
 $ cd extern
 $ ../solidframe/prerequisites/prepare_extern.sh
 # ... wait until the prerequisites are built
 $ cd ../solidframe
-$ ./configure -e /path/to/extern --prefix /path/to/extern
+$ ./configure -e ~/work/extern --prefix ~/work/extern
 $ cd build/release
 $ make install
-# ... when finished, the header files will be located in /path/to/extern/include/solid
-# and the libraries at /path/to/extern/lib/libsolid_*.a
+# ... when finished, the header files will be located in ~/work/extern/include/solid
+# and the libraries at ~/work/extern/lib/libsolid_*.a
 ```
+Now you can use SolidFrame libraries in your applications via: -I ~/work/extern/include and -L ~/work/extern/lib.
 
+For how can SolidFrame help you in your projects, please follow:
+ * [IPC library](solid/API.md)
+ * [Wiki](https://github.com/vipalade/solidframe/wiki)
+ 
+
+### Windows
+...TODO...
 
 ## TODO v2.0
 
