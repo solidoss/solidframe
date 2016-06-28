@@ -57,7 +57,17 @@ C++11 enabled compilers on:
 ## Getting Started
 
 ### Install
+
+Following are the steps one must do to fetch SolidFrame code, build and install it.
+
 #### Linux/macOS/FreeBSD
+
+System prerequisites:
+ * C++11 enabled compiler: gcc-c++ on Linux and clang on FreeBSD and macOS.
+ * [CMake](https://cmake.org/)
+
+Next are the concrete bash commands for installing SolidFrame:
+
 ```bash
 $ mkdir ~/work
 $ cd ~/work
@@ -76,7 +86,7 @@ $ make install
 #### Windows
 Windows is not yet supported.
 
-### Using
+### Use
 Use SolidFrame libraries in your applications via: -I ~/work/extern/include and -L ~/work/extern/lib.
 
 For how can SolidFrame help you in your projects, please follow:
