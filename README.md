@@ -56,7 +56,8 @@ C++11 enabled compilers on:
 
 ## Getting Started
 
-### Linux/macOS/FreeBSD
+### Install
+#### Linux/macOS/FreeBSD
 ```bash
 $ mkdir ~/work
 $ cd ~/work
@@ -72,15 +73,16 @@ $ make install
 # ... when finished, the header files will be located in ~/work/extern/include/solid
 # and the libraries at ~/work/extern/lib/libsolid_*.a
 ```
-Now you can use SolidFrame libraries in your applications via: -I ~/work/extern/include and -L ~/work/extern/lib.
+#### Windows
+Windows is not yet supported.
+
+### Using
+Use SolidFrame libraries in your applications via: -I ~/work/extern/include and -L ~/work/extern/lib.
 
 For how can SolidFrame help you in your projects, please follow:
- * [IPC library](solid/API.md)
+ * [API Reference](solid/API.md)
  * [Wiki](https://github.com/vipalade/solidframe/wiki)
  
-
-### Windows
-...TODO...
 
 ## TODO v2.0
 
