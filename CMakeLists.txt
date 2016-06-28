@@ -165,7 +165,7 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
 	message("Detected system ON_DARWIN")
 	set(ON_FOUND TRUE)
 	set(SOLID_ON_DARWIN TRUE)
-	set(SOLID_SOLID_ON_POSIX TRUE)
+	set(SOLID_ON_POSIX TRUE)
 	set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
 	set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
 	set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
@@ -185,7 +185,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
 	message("Detected system ON_LINUX")
 	set(ON_FOUND TRUE)
 	set(SOLID_ON_LINUX TRUE)
-	set(SOLID_SOLID_ON_POSIX TRUE)
+	set(SOLID_ON_POSIX TRUE)
 	
 	
 	set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
