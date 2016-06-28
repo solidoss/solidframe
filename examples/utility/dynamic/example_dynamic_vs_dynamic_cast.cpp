@@ -1,9 +1,9 @@
 #include <iostream>
-#include "system/debug.hpp"
-#include "system/cassert.hpp"
-#include "utility/dynamictype.hpp"
-#include "utility/dynamicpointer.hpp"
-#include "utility/queue.hpp"
+#include "solid/system/debug.hpp"
+#include "solid/system/cassert.hpp"
+#include "solid/utility/dynamictype.hpp"
+#include "solid/utility/dynamicpointer.hpp"
+#include "solid/utility/queue.hpp"
 #include <queue>
 #include <vector>
 

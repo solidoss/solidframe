@@ -243,7 +243,10 @@ endif(NOT (UINSTALL_PREFIX STREQUAL ""))
 # config.h support
 #-----------------------------------------------------------------
 include(cmake/check.config.cmake)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp)
+
+
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp DESTINATION include/solid)
 
 if(SOLID_USE_CPP11FLAG AND SOLID_USE_CPP11)
 	set(SYS_DEBUG_FLAGS "${SYS_DEBUG_FLAGS} -std=c++11")
@@ -355,7 +358,7 @@ set(CMAKE_BUILD_TYPE
 # Global include directories
 #-----------------------------------------------------------------
 include_directories(
-	${SolidFrame_SOURCE_DIR}/libraries
+	${SolidFrame_SOURCE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
 	${EXTERN_PATH}/include/
 )
@@ -378,7 +381,7 @@ INCLUDE(CTest)
 #-----------------------------------------------------------------
 # Project subdirectories
 #-----------------------------------------------------------------
-add_subdirectory (libraries)
+add_subdirectory (solid)
 add_subdirectory (examples)
 
 #-----------------------------------------------------------------

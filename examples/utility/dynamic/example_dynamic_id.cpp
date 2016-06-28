@@ -1,6 +1,6 @@
 #include <iostream>
-#include "system/debug.hpp"
-#include "utility/dynamictype.hpp"
+#include "solid/system/debug.hpp"
+#include "solid/utility/dynamictype.hpp"
 
 using namespace std;
 using namespace solid;

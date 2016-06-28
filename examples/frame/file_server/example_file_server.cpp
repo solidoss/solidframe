@@ -1,26 +1,26 @@
-#include "frame/manager.hpp"
-#include "frame/scheduler.hpp"
-#include "frame/reactor.hpp"
+#include "solid/frame/manager.hpp"
+#include "solid/frame/scheduler.hpp"
+#include "solid/frame/reactor.hpp"
 
-#include "frame/aio/aioreactor.hpp"
-#include "frame/aio/aioreactorcontext.hpp"
-#include "frame/aio/aioobject.hpp"
-#include "frame/aio/aiostream.hpp"
-#include "frame/aio/aiolistener.hpp"
-#include "frame/aio/aiosocket.hpp"
+#include "solid/frame/aio/aioreactor.hpp"
+#include "solid/frame/aio/aioreactorcontext.hpp"
+#include "solid/frame/aio/aioobject.hpp"
+#include "solid/frame/aio/aiostream.hpp"
+#include "solid/frame/aio/aiolistener.hpp"
+#include "solid/frame/aio/aiosocket.hpp"
 
-#include "frame/service.hpp"
+#include "solid/frame/service.hpp"
 
-#include "frame/file/filestream.hpp"
+#include "solid/frame/file/filestream.hpp"
 
-#include "utility/dynamictype.hpp"
-#include "utility/event.hpp"
+#include "solid/utility/dynamictype.hpp"
+#include "solid/utility/event.hpp"
 
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include "system/socketaddress.hpp"
-#include "system/socketdevice.hpp"
+#include "solid/system/socketaddress.hpp"
+#include "solid/system/socketdevice.hpp"
 
 #include "boost/program_options.hpp"
 

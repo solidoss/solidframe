@@ -14,10 +14,10 @@
 #include <map>
 #include <list>
 //#undef SOLID_HAS_DEBUG
-#include "system/debug.hpp"
-#include "serialization/binary.hpp"
-#include "serialization/binarybasic.hpp"
-#include "system/socketaddress.hpp"
+#include "solid/system/debug.hpp"
+#include "solid/serialization/binary.hpp"
+#include "solid/serialization/binarybasic.hpp"
+#include "solid/system/socketaddress.hpp"
 
 using namespace std;
 using namespace solid;

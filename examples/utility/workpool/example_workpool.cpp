@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#include "utility/workpool.hpp"
-#include "system/debug.hpp"
+#include "solid/utility/workpool.hpp"
+#include "solid/system/debug.hpp"
 #include <iostream>
 #include <thread>
 

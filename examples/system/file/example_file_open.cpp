@@ -9,10 +9,10 @@
 //
 #include <iostream>
 #include <fstream>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
+//#include <boost/system/operations.hpp>
+//#include <boost/system/exception.hpp>
 #include <boost/utility.hpp>
-#include "system/filedevice.hpp"
+#include "solid/system/filedevice.hpp"
 #include <deque>
 #include <cstring>
 #include <cerrno>

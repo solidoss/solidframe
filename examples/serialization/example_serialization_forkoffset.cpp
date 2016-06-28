@@ -15,7 +15,7 @@
 #include <list>
 #include <fstream>
 #include <unistd.h>
-#include "serialization/binary.hpp"
+#include "solid/serialization/binary.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <cerrno>

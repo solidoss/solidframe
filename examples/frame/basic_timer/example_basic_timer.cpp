@@ -1,16 +1,16 @@
-#include "frame/manager.hpp"
-#include "frame/scheduler.hpp"
-#include "frame/reactor.hpp"
-#include "frame/object.hpp"
-#include "frame/timer.hpp"
-#include "frame/service.hpp"
+#include "solid/frame/manager.hpp"
+#include "solid/frame/scheduler.hpp"
+#include "solid/frame/reactor.hpp"
+#include "solid/frame/object.hpp"
+#include "solid/frame/timer.hpp"
+#include "solid/frame/service.hpp"
 
 #include <mutex>
 #include <condition_variable>
-#include "system/cassert.hpp"
-#include "system/debug.hpp"
+#include "solid/system/cassert.hpp"
+#include "solid/system/debug.hpp"
 
-#include "utility/event.hpp"
+#include "solid/utility/event.hpp"
 
 #include <iostream>
 

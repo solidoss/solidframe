@@ -1,15 +1,15 @@
-#include "frame/manager.hpp"
-#include "frame/scheduler.hpp"
+#include "solid/frame/manager.hpp"
+#include "solid/frame/scheduler.hpp"
 
-#include "frame/aio/aioselector.hpp"
-#include "frame/aio/aioobject.hpp"
+#include "solid/frame/aio/aioselector.hpp"
+#include "solid/frame/aio/aioobject.hpp"
 
-#include "frame/ipc/ipcservice.hpp"
-#include "frame/ipc/ipcmessage.hpp"
+#include "solid/frame/ipc/ipcservice.hpp"
+#include "solid/frame/ipc/ipcmessage.hpp"
 
-#include "system/mutex.hpp"
-#include "system/condition.hpp"
-#include "system/socketaddress.hpp"
+#include "solid/system/mutex.hpp"
+#include "solid/system/condition.hpp"
+#include "solid/system/socketaddress.hpp"
 
 #include "boost/program_options.hpp"
 

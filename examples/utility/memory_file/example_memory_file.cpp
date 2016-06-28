@@ -1,7 +1,7 @@
-#include "system/debug.hpp"
-#include "system/common.hpp"
-#include "utility/memoryfile.hpp"
-#include "system/filedevice.hpp"
+#include "solid/system/debug.hpp"
+#include "solid/system/common.hpp"
+#include "solid/utility/memoryfile.hpp"
+#include "solid/system/filedevice.hpp"
 #include <cerrno>
 #include <cstring>
 #include <iostream>

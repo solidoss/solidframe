@@ -1,23 +1,23 @@
-#include "frame/manager.hpp"
-#include "frame/scheduler.hpp"
-#include "frame/service.hpp"
+#include "solid/frame/manager.hpp"
+#include "solid/frame/scheduler.hpp"
+#include "solid/frame/service.hpp"
 
-#include "frame/aio/aioreactor.hpp"
-#include "frame/aio/aioobject.hpp"
-#include "frame/aio/aiolistener.hpp"
-#include "frame/aio/aiotimer.hpp"
-#include "frame/aio/aioresolver.hpp"
+#include "solid/frame/aio/aioreactor.hpp"
+#include "solid/frame/aio/aioobject.hpp"
+#include "solid/frame/aio/aiolistener.hpp"
+#include "solid/frame/aio/aiotimer.hpp"
+#include "solid/frame/aio/aioresolver.hpp"
 
-#include "frame/aio/openssl/aiosecurecontext.hpp"
-#include "frame/aio/openssl/aiosecuresocket.hpp"
+#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
+#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
-#include "frame/ipc/ipcservice.hpp"
-#include "frame/ipc/ipcconfiguration.hpp"
-#include "frame/ipc/ipcprotocol_serialization_v1.hpp"
+#include "solid/frame/ipc/ipcservice.hpp"
+#include "solid/frame/ipc/ipcconfiguration.hpp"
+#include "solid/frame/ipc/ipcprotocol_serialization_v1.hpp"
 
 #include <mutex>
 #include <condition_variable>
-#include "system/socketaddress.hpp"
+#include "solid/system/socketaddress.hpp"
 
 #include "boost/program_options.hpp"
 

@@ -12,8 +12,8 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/utility.hpp>
-#include "utility/workpool.hpp"
-#include "system/filedevice.hpp"
+#include "solid/utility/workpool.hpp"
+#include "solid/system/filedevice.hpp"
 #include <deque>
 #include <cstring>
 #include <cerrno>

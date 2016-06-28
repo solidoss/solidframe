@@ -5,11 +5,11 @@
 #include <string>
 #include <cstring>
 #include <fstream>
-#include "system/debug.hpp"
-#include "system/filedevice.hpp"
-#include "system/cassert.hpp"
+#include "solid/system/debug.hpp"
+#include "solid/system/filedevice.hpp"
+#include "solid/system/cassert.hpp"
 
-#include "frame/file/filestream.hpp"
+#include "solid/frame/file/filestream.hpp"
 
 using namespace std;
 using namespace solid;

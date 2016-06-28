@@ -1,6 +1,6 @@
 #include <iostream>
 #include <bitset>
-#include "utility/common.hpp"
+#include "solid/utility/common.hpp"
 using namespace std;
 using namespace solid;
 

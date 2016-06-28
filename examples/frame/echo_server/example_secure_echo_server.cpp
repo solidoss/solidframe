@@ -7,26 +7,26 @@ $ openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.
 
 */
 
-#include "frame/manager.hpp"
-#include "frame/scheduler.hpp"
-#include "frame/service.hpp"
+#include "solid/frame/manager.hpp"
+#include "solid/frame/scheduler.hpp"
+#include "solid/frame/service.hpp"
 
-#include "frame/aio/aioreactor.hpp"
-#include "frame/aio/aioobject.hpp"
-#include "frame/aio/aiolistener.hpp"
-#include "frame/aio/aiotimer.hpp"
-#include "frame/aio/openssl/aiosecurecontext.hpp"
-#include "frame/aio/openssl/aiosecuresocket.hpp"
+#include "solid/frame/aio/aioreactor.hpp"
+#include "solid/frame/aio/aioobject.hpp"
+#include "solid/frame/aio/aiolistener.hpp"
+#include "solid/frame/aio/aiotimer.hpp"
+#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
+#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 
 #include <mutex>
 #include <thread>
 #include <condition_variable>
-#include "system/socketaddress.hpp"
-#include "system/socketdevice.hpp"
-#include "system/debug.hpp"
+#include "solid/system/socketaddress.hpp"
+#include "solid/system/socketdevice.hpp"
+#include "solid/system/debug.hpp"
 
-#include "utility/event.hpp"
+#include "solid/utility/event.hpp"
 
 #include "boost/program_options.hpp"
 
@@ -112,8 +112,8 @@ private:
 
 #ifdef USE_CONNECTION
 
-#include "frame/aio/aiostream.hpp"
-#include "frame/aio/aiosocket.hpp"
+#include "solid/frame/aio/aiostream.hpp"
+#include "solid/frame/aio/aiosocket.hpp"
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 protected:

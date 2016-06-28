@@ -23,10 +23,10 @@
 #include <arpa/inet.h>
 
 #endif
-#include "system/socketaddress.hpp"
-#include "system/socketdevice.hpp"
-#include "system/nanotime.hpp"
-#include "system/cassert.hpp"
+#include "solid/system/socketaddress.hpp"
+#include "solid/system/socketdevice.hpp"
+#include "solid/system/nanotime.hpp"
+#include "solid/system/cassert.hpp"
 #include <fcntl.h>
 #include <cerrno>
 #include <iostream>
