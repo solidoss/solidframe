@@ -2,25 +2,41 @@
 
 printUsage()
 {
+	echo
 	echo "Usage:"
-	echo "./prepare_extern.sh [-a|--all] [-w|--with LIB] [--force-down] [-d|--debug] [-z|--archive]"
-	echo "Where LIB can be: boost|openssl"
+	echo
+	echo "./prepare_extern.sh [--all] [--boost] [--openssl] [--force-download] [--debug] [-h|--help]"
+	echo
 	echo "Examples:"
-	echo "./prepare_extern.sh -a"
-	echo "./prepare_extern.sh -w boost"
-	echo "./prepare_extern.sh -w boost --force-down -d"
-	echo "./prepare_extern.sh -w boost -w openssl"
+	echo
+	echo "Build SolidFrame dependencies:"
+	echo "$ ./prepare_extern.sh"
+	echo
+	echo "Build all supported dependencies:"
+	echo "$ ./prepare_extern.sh --all"
+	echo
+	echo "Build only boost:"
+	echo "$ ./prepare_extern.sh --boost"
+	echo
+	echo "Build only boost with debug simbols and force download the archive:"
+	echo "$ ./prepare_extern.sh --boost --force-download -d"
+	echo
+	echo "Build boost and openssl:"
+	echo "$ ./prepare_extern.sh --boost --openssl"
 	echo
 }
 
-BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.57.0/boost_1_57_0.tar.bz2"
-OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1j.tar.gz"
+BOOST_ADDR="http://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.0.2h.tar.gz"
 
 downloadArchive()
 {
-	echo "Downloading: [$1]"
-	#wget $1
-	curl -O $1
+	local url="$1"
+	local arc="$(basename "${url}")"
+	echo "Downloading: [$arc] from [$url]"
+	#wget --no-check-certificate -O $arc $url
+	#wget -O $arc $url
+	curl -L -O $url
 }
 
 extractTarBz2()
@@ -150,16 +166,17 @@ buildOpenssl()
 
 
 EXT_DIR="`pwd`"
-echo "$EXT_DIR"
 
 BUILD_BOOST_MIN=
 BUILD_BOOST_FULL=
 BUILD_OPENSSL=
 
+BUILD_SOMETHING=
+
 ARCHIVE=
 DOWNLOAD=
 DEBUG=
-HELP="yes"
+HELP=
 
 
 while [ "$#" -gt 0 ]; do
@@ -167,47 +184,54 @@ while [ "$#" -gt 0 ]; do
 	UNKNOWN_ARG=no
 	HELP=
 	case "$1" in
-	-a|--all)
+	--all)
 		BUILD_BOOST_FULL="yes"
 		BUILD_OPENSSL="yes"
+		BUILD_SOMETHING="yes"
 		;;
-	-w|--with)
-		shift
-		#BUILD_LIBS=$BUILD_LIBS:"$1"
-		if [ "$1" = "boost" ] ; then
-			BUILD_BOOST_FULL="yes"
-		fi
-		if [ "$1" = "openssl" ] ; then
-			BUILD_OPENSSL="yes"
-		fi
+	--boost)
+		BUILD_BOOST_FULL="yes"
+		BUILD_SOMETHING="yes"
 		;;
-	-d|--debug)
-		shift
+	--openssl)
+		BUILD_OPENSSL="yes"
+		BUILD_SOMETHING="yes"
+		;;
+	--debug)
 		DEBUG="yes"
 		;;
-	-z|--archive)
-		shift
-		ARCHIVE="yes"
-		;;
-	--force-down)
+	--force-download)
 		DOWNLOAD="yes"
 		;;
 	-h|--help)
 		HELP="yes"
+		BUILD_SOMETHING="yes"
 		;;
 	*)
-		HELP="yes"
+		#HELP="yes"
 		;;
 	esac
 	shift
 done
 
-echo "Debug build = $DEBUG"
-echo "Force download = $DOWNLOAD"
+
+#echo "Debug build = $DEBUG"
+#echo "Force download = $DOWNLOAD"
 
 if [ "$HELP" = "yes" ]; then
 	printUsage
 	exit
+fi
+
+echo "Extern folder: $EXT_DIR"
+
+if [[ -z "${BUILD_SOMETHING}" ]]; then
+	BUILD_BOOST_FULL="yes"
+	BUILD_OPENSSL="yes"
+fi
+
+if [ $BUILD_OPENSSL ]; then
+	buildOpenssl
 fi
 
 if [ $BUILD_BOOST_FULL ]; then
@@ -216,10 +240,6 @@ else
 	if [ $BUILD_BOOST_MIN ]; then
 		buildBoost
 	fi
-fi
-
-if [ $BUILD_OPENSSL ]; then
-	buildOpenssl
 fi
 
 if [ -d lib64 ]; then
