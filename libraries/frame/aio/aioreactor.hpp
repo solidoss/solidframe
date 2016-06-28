@@ -10,7 +10,7 @@
 #ifndef SOLID_FRAME_AIO_REACTOR_HPP
 #define SOLID_FRAME_AIO_REACTOR_HPP
 
-#include "system/timespec.hpp"
+#include "system/nanotime.hpp"
 #include "frame/common.hpp"
 #include "frame/reactorbase.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -19,7 +19,7 @@
 
 namespace solid{
 
-struct TimeSpec;
+struct NanoTime;
 struct Device;
 struct Event;
 
@@ -93,7 +93,7 @@ public:
 	bool addDevice(ReactorContext &_rctx, CompletionHandler const &_rch, Device const &_rsd, const ReactorWaitRequestsE _req);
 	bool remDevice(CompletionHandler const &_rch, Device const &_rsd);
 	
-	bool addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx);
+	bool addTimer(CompletionHandler const &_rch, NanoTime const &_rt, size_t &_rstoreidx);
 	bool remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx);
 	
 	bool start();
@@ -124,11 +124,11 @@ private:
 	static Reactor* safeSpecific();
 	static Reactor& specific();
 	
-	void doCompleteIo(TimeSpec const &_rcrttime, const size_t _sz);
-	void doCompleteTimer(TimeSpec  const &_rcrttime);
-	void doCompleteExec(TimeSpec  const &_rcrttime);
+	void doCompleteIo(NanoTime const &_rcrttime, const size_t _sz);
+	void doCompleteTimer(NanoTime  const &_rcrttime);
+	void doCompleteExec(NanoTime  const &_rcrttime);
 	void doCompleteEvents(ReactorContext const &_rctx);
-	void doCompleteEvents(TimeSpec  const &_rcrttime);
+	void doCompleteEvents(NanoTime  const &_rcrttime);
 	void doStoreSpecific();
 	void doClearSpecific();
 	void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);

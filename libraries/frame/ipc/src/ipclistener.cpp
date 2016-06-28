@@ -56,7 +56,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			service(_rctx).acceptIncomingConnection(_rsd);
 		}else{
 			timer.waitFor(
-				_rctx, TimeSpec(10),
+				_rctx, NanoTime(10),
 				[this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, generic_event_category.event(GenericEvents::Timer));}
 			);
 			break;

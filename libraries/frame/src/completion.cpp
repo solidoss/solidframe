@@ -106,7 +106,7 @@ void CompletionHandler::deactivate(){
 /*static*/ void CompletionHandler::on_dummy_completion(CompletionHandler&, ReactorContext &){
 }
 
-void CompletionHandler::addTimer(ReactorContext &_rctx, TimeSpec const &_rt, size_t &_storedidx){
+void CompletionHandler::addTimer(ReactorContext &_rctx, NanoTime const &_rt, size_t &_storedidx){
 	_rctx.reactor().addTimer(*this, _rt, _storedidx);
 }
 void CompletionHandler::remTimer(ReactorContext &_rctx, size_t const &_storedidx){

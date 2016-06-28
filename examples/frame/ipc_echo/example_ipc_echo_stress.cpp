@@ -241,7 +241,7 @@ int main(int argc, char *argv[]){
 		srvvec.resize(p.connectvec.size());
 		msgvec.resize(p.message_count);
 		
-		TimeSpec	begintime(TimeSpec::createRealTime()); 
+		NanoTime	begintime(NanoTime::createRealTime()); 
 		
 		if(p.connectvec.size()){
 			for(uint32_t i = 0; i < p.message_count; ++i){
@@ -266,7 +266,7 @@ int main(int argc, char *argv[]){
 			}
 		}
 		if(srvvec.size()){
-			TimeSpec	endtime(TimeSpec::createRealTime());
+			NanoTime	endtime(NanoTime::createRealTime());
 			endtime -= begintime;
 			uint64_t		duration = endtime.seconds() * 1000;
 			
@@ -466,8 +466,8 @@ FirstMessage::~FirstMessage(){
 		
 		_rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, (uint32_t)0/*fdt::ipc::Service::SynchronousSendFlag*/);
 	}else{
-		TimeSpec			crttime(TimeSpec::createRealTime());
-		TimeSpec			tmptime(this->sec, this->nsec);
+		NanoTime			crttime(NanoTime::createRealTime());
+		NanoTime			tmptime(this->sec, this->nsec);
 		PeerAddressPairT	peersa(_rctx.netid, _rctx.pairaddr);
 		
 		idbg("Received message: "<<peersa.first<<":"<<peersa.second<<" waiting message: "<<(void*)_rctx.requestMessage(*this).get());
@@ -556,7 +556,7 @@ FirstMessage* create_message(uint32_t _idx, const bool _incremental){
         pmsg->str[i] = s[i % s.size()];
     }
     
-    TimeSpec    crttime(TimeSpec::createRealTime());
+    NanoTime    crttime(NanoTime::createRealTime());
     pmsg->sec = crttime.seconds();
     pmsg->nsec = crttime.nanoSeconds();
     

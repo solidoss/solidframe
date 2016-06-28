@@ -13,7 +13,7 @@
 #include "system/common.hpp"
 #include "system/error.hpp"
 #include "system/socketdevice.hpp"
-#include "system/timespec.hpp"
+#include "system/nanotime.hpp"
 
 #include "frame/aio/aiocommon.hpp"
 
@@ -33,7 +33,7 @@ struct ReactorContext{
 		
 	}
 	
-	const TimeSpec& time()const{
+	const NanoTime& time()const{
 		return rcurrent_time_;
 	}
 	
@@ -82,12 +82,12 @@ private:
 	
 	ReactorContext(
 		Reactor	&_rreactor,
-		const TimeSpec &_rcurrent_time
+		const NanoTime &_rcurrent_time
 	):	rreactor_(_rreactor),
 		rcurrent_time_(_rcurrent_time), channel_index_(-1), object_index_(-1), reactor_event_(ReactorEventNone){}
 	
 	Reactor						&rreactor_;
-	const TimeSpec				&rcurrent_time_;
+	const NanoTime				&rcurrent_time_;
 	size_t						channel_index_;
 	size_t						object_index_;
 	ReactorEventsE				reactor_event_;

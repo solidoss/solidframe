@@ -17,7 +17,7 @@
 #include "system/common.hpp"
 #include "system/exception.hpp"
 #include "system/debug.hpp"
-#include "system/timespec.hpp"
+#include "system/nanotime.hpp"
 #include <mutex>
 #include <thread>
 #include <condition_variable>
@@ -177,14 +177,14 @@ struct Reactor::Data{
 		pcrtraisevec = &raisevec[1];
 	}
 	
-	int computeWaitTimeMilliseconds(TimeSpec const & _rcrt)const{
+	int computeWaitTimeMilliseconds(NanoTime const & _rcrt)const{
 		if(exeq.size()){
 			return 0;
 		}else if(timestore.size()){
 			if(_rcrt < timestore.next()){
 				const int64_t	maxwait = 1000 * 60; //1 minute
 				int64_t 		diff = 0;
-				TimeSpec	delta = timestore.next();
+				NanoTime	delta = timestore.next();
 				delta -= _rcrt;
 				diff = (delta.seconds() * 1000);
 				diff += (delta.nanoSeconds() / 1000000);
@@ -325,7 +325,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
 void Reactor::run(){
 	vdbgx(Debug::aio, "<enter>");
 	bool		running = true;
-	TimeSpec	crttime;
+	NanoTime	crttime;
 	
 	while(running){
 		crttime.currentRealTime();
@@ -441,13 +441,13 @@ void Reactor::onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _c
 	_rctx.clearError();
 }
 
-void Reactor::doCompleteTimer(TimeSpec  const &_rcrttime){
+void Reactor::doCompleteTimer(NanoTime  const &_rcrttime){
 	ReactorContext	ctx(*this, _rcrttime);
 	TimerCallback 	tcbk(*this, ctx);
 	d.timestore.pop(_rcrttime, tcbk, ChangeTimerIndexCallback(*this));
 }
 
-void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
+void Reactor::doCompleteExec(NanoTime  const &_rcrttime){
 	ReactorContext	ctx(*this, _rcrttime);
 	size_t	sz = d.exeq.size();
 	while(sz--){
@@ -465,7 +465,7 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 	}
 }
 
-bool Reactor::doWaitEvent(TimeSpec const &_rcrttime){
+bool Reactor::doWaitEvent(NanoTime const &_rcrttime){
 	bool			rv = false;
 	int				waitmsec = d.computeWaitTimeMilliseconds(_rcrttime);
 	unique_lock<mutex>	lock(d.mtx);
@@ -504,7 +504,7 @@ bool Reactor::doWaitEvent(TimeSpec const &_rcrttime){
 	return rv;
 }
 
-void Reactor::doCompleteEvents(TimeSpec  const &_rcrttime){
+void Reactor::doCompleteEvents(NanoTime  const &_rcrttime){
 	vdbgx(Debug::aio, "");
 	
 	NewTaskVectorT		&crtpushvec = *d.pcrtpushtskvec;
@@ -549,7 +549,7 @@ void Reactor::doCompleteEvents(TimeSpec  const &_rcrttime){
 	_rctx.object().onEvent(_rctx, std::move(_uevent));
 }
 
-bool Reactor::addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx){
+bool Reactor::addTimer(CompletionHandler const &_rch, NanoTime const &_rt, size_t &_rstoreidx){
 	if(_rstoreidx != InvalidIndex()){
 		size_t idx = d.timestore.change(_rstoreidx, _rt);
 		SOLID_ASSERT(idx == _rch.idxreactor);
@@ -588,7 +588,7 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 	//rcs.waitreq = ReactorWaitNone;
 	_rch.idxreactor = idx;
 	{
-		TimeSpec		dummytime;
+		NanoTime		dummytime;
 		ReactorContext	ctx(*this, dummytime);
 		
 		ctx.reactevn = ReactorEventInit;
@@ -603,7 +603,7 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 	vdbgx(Debug::aio, "");
 	CompletionHandlerStub &rcs = d.chdq[_rch.idxreactor];
 	{
-		TimeSpec		dummytime;
+		NanoTime		dummytime;
 		ReactorContext	ctx(*this, dummytime);
 		
 		ctx.reactevn = ReactorEventClear;

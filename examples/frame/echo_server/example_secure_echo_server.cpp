@@ -327,7 +327,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 #endif
 		}else{
 			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-			//timer.waitFor(_rctx, TimeSpec(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+			//timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
 			break;
 		}
 		--repeatcnt;
@@ -368,7 +368,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 				postStop(_rctx);
 			}
 		}
-		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+		//timer.waitFor(_rctx, NanoTime(30), std::bind(&Connection::onTimer, this, _1));
 	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
 		edbg(this<<" postStop");
 		sock.shutdown(_rctx);
@@ -405,7 +405,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	}while(repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/, _sz));
 	
 	idbg(&rthis<<" "<<repeatcnt);
-	//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+	//timer.waitFor(_rctx, NanoTime(30), std::bind(&Connection::onTimer, this, _1));
 	if(repeatcnt == 0){
 		bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/);//fully asynchronous call
 		SOLID_ASSERT(!rv);
@@ -461,7 +461,7 @@ void Connection::onTimer(frame::aio::ReactorContext &_rctx){
 		if(sock.connect(_rctx, rd.begin(), std::bind(&ClientConnection::onConnect, this, _1))){
 			onConnect(_rctx);
 		}
-		//timer.waitFor(_rctx, TimeSpec(30), std::bind(&Connection::onTimer, this, _1));
+		//timer.waitFor(_rctx, NanoTime(30), std::bind(&Connection::onTimer, this, _1));
 	}else if(generic_event_category.event(GenericEvents::Start) == _revent){
 		edbg(this<<" postStop");
 		postStop(_rctx);

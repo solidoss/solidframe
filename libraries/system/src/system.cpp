@@ -9,7 +9,7 @@
 //
 
 #include "system/exception.hpp"
-#include "system/timespec.hpp"
+#include "system/nanotime.hpp"
 #include <cstring>
 
 
@@ -51,19 +51,20 @@ namespace solid{
 }
 
 //=============================================================================
-//	TimeSpec
+//	NanoTime
 //=============================================================================
-/*static*/ const TimeSpec TimeSpec::maximum(0xffffffff, 0xffffffff);
+/*static*/ const NanoTime NanoTime::maximum(-1, -1);
+
 #ifdef SOLID_HAS_NO_INLINES
-#include "system/timespec.ipp"
+#include "system/nanotime.ipp"
 #endif
 
-/*static*/ TimeSpec TimeSpec::createRealTime(){
-	TimeSpec ct;
+/*static*/ NanoTime NanoTime::createRealTime(){
+	NanoTime ct;
 	return ct.currentRealTime();
 }
-/*static*/ TimeSpec TimeSpec::createMonotonic(){
-	TimeSpec ct;
+/*static*/ NanoTime NanoTime::createMonotonic(){
+	NanoTime ct;
 	return ct.currentMonotonic();
 }
 
@@ -104,7 +105,7 @@ TimeStartData& TimeStartData::instance(){
 	return tsd_instance_stub();
 }
 
-const TimeSpec& TimeSpec::currentRealTime(){
+const NanoTime& NanoTime::currentRealTime(){
 #ifdef NWINDOWSQPC
 	const TimeStartData	&tsd = TimeStartData::instance();
 	const ULONGLONG	msecs = ::GetTickCount64() - tsd.start_msec;
@@ -127,7 +128,7 @@ const TimeSpec& TimeSpec::currentRealTime(){
 	return *this;
 }
 
-const TimeSpec& TimeSpec::currentMonotonic(){
+const NanoTime& NanoTime::currentMonotonic(){
 #ifdef NWINDOWSQPC
 	const ULONGLONG	msecs = ::GetTickCount64();
 	const ulong		secs = msecs / 1000;
@@ -166,7 +167,7 @@ struct HelperMatchTimeBase: mach_timebase_info_data_t{
 		::mach_timebase_info((mach_timebase_info_data_t*)this);
 	}
 };
-const TimeSpec& TimeSpec::currentRealTime(){
+const NanoTime& NanoTime::currentRealTime(){
 	static TimeStartData		tsd;
 	static HelperMatchTimeBase	info;
 	uint64_t				difference = mach_absolute_time() - tsd.stns;
@@ -178,7 +179,7 @@ const TimeSpec& TimeSpec::currentRealTime(){
 	return *this;
 }
 
-const TimeSpec& TimeSpec::currentMonotonic(){
+const NanoTime& NanoTime::currentMonotonic(){
 	static uint64_t			tsd(mach_absolute_time());
 	static HelperMatchTimeBase	info;
 	uint64_t				difference = mach_absolute_time() - tsd;
@@ -192,12 +193,12 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 
 #else
 
-const TimeSpec& TimeSpec::currentRealTime(){
+const NanoTime& NanoTime::currentRealTime(){
 	clock_gettime(CLOCK_REALTIME, this);
 	return *this;
 }
 
-const TimeSpec& TimeSpec::currentMonotonic(){
+const NanoTime& NanoTime::currentMonotonic(){
 	clock_gettime(CLOCK_MONOTONIC, this);
 	return *this;
 }

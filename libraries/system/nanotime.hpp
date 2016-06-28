@@ -1,4 +1,4 @@
-// system/timespec.hpp
+// system/nanotime.hpp
 //
 // Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SYSTEM_TIMESPEC_HPP
-#define SYSTEM_TIMESPEC_HPP
+#ifndef SYSTEM_NANO_TIME_HPP
+#define SYSTEM_NANO_TIME_HPP
 
 #include <time.h>
 #include "convertors.hpp"
@@ -26,20 +26,20 @@ namespace solid{
 /*!
 	Basicaly it is a pair of seconds and nanoseconds.
 */
-struct TimeSpec: public timespec{
+struct NanoTime: public timespec{
 	typedef UnsignedConvertor<time_t>::UnsignedType TimeT;
 	
-	static const TimeSpec maximum;
+	static const NanoTime maximum;
 	
-	static TimeSpec createRealTime();
-	static TimeSpec createMonotonic();
+	static NanoTime createRealTime();
+	static NanoTime createMonotonic();
 	
 	//! Current of the wall time
-	const TimeSpec& currentRealTime();
+	const NanoTime& currentRealTime();
 	//! Current time lapsed from a fixed moment - e.g. computer power-up
-	const TimeSpec& currentMonotonic();
+	const NanoTime& currentMonotonic();
 	
-	TimeSpec(const TimeT &_s = 0, long _ns = 0){set(_s, _ns);}
+	NanoTime(const TimeT &_s = 0, long _ns = 0){set(_s, _ns);}
 	TimeT	seconds()const{return tv_sec;}
 	bool isMax()const;
 	long nanoSeconds()const{return tv_nsec;}
@@ -48,23 +48,23 @@ struct TimeSpec: public timespec{
 	void set(const TimeT &_s, long _ns = 0);
 	void add(const TimeT &_s, long _ns = 0);
 	void sub(const TimeT &_s, long _ns = 0);
-	bool operator !=(const TimeSpec &_ts)const;
-	bool operator ==(const TimeSpec &_ts)const;
-	bool operator >=(const TimeSpec &_ts)const;
-	bool operator >(const TimeSpec &_ts)const;
-	bool operator <=(const TimeSpec &_ts)const;
-	bool operator <(const TimeSpec &_ts)const;
-	TimeSpec& operator += (const TimeSpec &_ts);
-	TimeSpec& operator -= (const TimeSpec &_ts);
+	bool operator !=(const NanoTime &_ts)const;
+	bool operator ==(const NanoTime &_ts)const;
+	bool operator >=(const NanoTime &_ts)const;
+	bool operator >(const NanoTime &_ts)const;
+	bool operator <=(const NanoTime &_ts)const;
+	bool operator <(const NanoTime &_ts)const;
+	NanoTime& operator += (const NanoTime &_ts);
+	NanoTime& operator -= (const NanoTime &_ts);
 	//operator bool () const{	return (tv_sec | tv_nsec) != 0;}
-	TimeSpec& operator += (unsigned _msec);
+	NanoTime& operator += (unsigned _msec);
 };
 
-TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2);
-TimeSpec operator+(const TimeSpec &_ts1, unsigned _msec);
+NanoTime operator-(const NanoTime &_ts1, const NanoTime &_ts2);
+NanoTime operator+(const NanoTime &_ts1, unsigned _msec);
 
 #ifndef SOLID_HAS_NO_INLINES
-#include "system/timespec.ipp"
+#include "system/nanotime.ipp"
 #endif
 
 }//namespace solid

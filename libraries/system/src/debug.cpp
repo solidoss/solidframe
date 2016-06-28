@@ -23,7 +23,7 @@
 #include <map>
 #endif
 
-#include "system/timespec.hpp"
+#include "system/nanotime.hpp"
 #include "system/socketdevice.hpp"
 #include "system/filedevice.hpp"
 #include "system/cassert.hpp"
@@ -706,7 +706,7 @@ std::ostream& Debug::print(
 		d.doRespin();
 	}
 	char		buf[128];
-	TimeSpec	ts_now(TimeSpec::createRealTime());
+	NanoTime	ts_now(NanoTime::createRealTime());
 	time_t		t_now = ts_now.seconds();
 	tm			*ploctm;
 #ifdef SOLID_ON_WINDOWS
@@ -758,7 +758,7 @@ std::ostream& Debug::printTraceIn(
 		d.doRespin();
 	}
 	char		buf[128];
-	TimeSpec	ts_now(TimeSpec::createRealTime());
+	NanoTime	ts_now(NanoTime::createRealTime());
 	time_t		t_now = ts_now.seconds();
 	tm			*ploctm;
 #ifdef SOLID_ON_WINDOWS
@@ -804,7 +804,7 @@ std::ostream& Debug::printTraceOut(
 		d.doRespin();
 	}
 	char		buf[128];
-	TimeSpec	ts_now(TimeSpec::createRealTime());
+	NanoTime	ts_now(NanoTime::createRealTime());
 	time_t		t_now = ts_now.seconds();
 	tm			*ploctm;
 #ifdef SOLID_ON_WINDOWS

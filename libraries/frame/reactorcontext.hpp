@@ -13,7 +13,7 @@
 #include "system/common.hpp"
 #include "system/error.hpp"
 #include "system/socketdevice.hpp"
-#include "system/timespec.hpp"
+#include "system/nanotime.hpp"
 
 #include "frame/aio/aiocommon.hpp"
 
@@ -30,7 +30,7 @@ struct ReactorContext{
 		
 	}
 	
-	const TimeSpec& time()const{
+	const NanoTime& time()const{
 		return rcrttm;
 	}
 	
@@ -79,12 +79,12 @@ private:
 	
 	ReactorContext(
 		Reactor	&_rreactor,
-		const TimeSpec &_rcrttm
+		const NanoTime &_rcrttm
 	):	rreactor(_rreactor),
 		rcrttm(_rcrttm), chnidx(-1), objidx(-1), reactevn(ReactorEventNone){}
 	
 	Reactor						&rreactor;
-	const TimeSpec				&rcrttm;
+	const NanoTime				&rcrttm;
 	size_t						chnidx;
 	size_t						objidx;
 	ReactorEventsE				reactevn;

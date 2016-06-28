@@ -419,7 +419,7 @@ int test_keepalive_fail(int argc, char **argv){
 		
 		while(running){
 			//cnd.wait(lock);
-			TimeSpec	abstime = TimeSpec::createRealTime();
+			NanoTime	abstime = NanoTime::createRealTime();
 			abstime += (120 * 1000);
 			cnd.wait(lock);
 			bool b = true;//cnd.wait(lock, abstime);

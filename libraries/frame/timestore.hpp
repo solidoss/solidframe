@@ -12,7 +12,7 @@
 #define SOLID_FRAME_TIME_STORE_HPP
 
 #include <vector>
-#include "system/timespec.hpp"
+#include "system/nanotime.hpp"
 
 namespace solid{
 namespace frame{
@@ -24,7 +24,7 @@ public:
 	
 	TimeStore(const size_t _cp = 0){
 		tv.reserve(_cp);
-		mint = TimeSpec::maximum;
+		mint = NanoTime::maximum;
 	}
 	~TimeStore(){}
 	
@@ -32,7 +32,7 @@ public:
 		return tv.size();
 	}
 	
-	size_t push(TimeSpec const& _rt, ValueT const &_rv){
+	size_t push(NanoTime const& _rt, ValueT const &_rv){
 		SOLID_ASSERT(_rv != InvalidIndex());
 		const size_t rv = tv.size();
 		tv.push_back(TimePairT(_rt, _rv));
@@ -53,7 +53,7 @@ public:
 		}
 	}
 	
-	ValueT change(const size_t _idx, TimeSpec const& _rt){
+	ValueT change(const size_t _idx, NanoTime const& _rt){
 		tv[_idx].first = _rt;
 		if(_rt < mint){
 			mint = _rt;
@@ -62,9 +62,9 @@ public:
 	}
 	
 	template <typename F1, typename F2>
-	void pop(TimeSpec const& _rt, F1 const &_rf1, F2 const &_rf2){
+	void pop(NanoTime const& _rt, F1 const &_rf1, F2 const &_rf2){
 		
-		TimeSpec crtmin = TimeSpec::maximum;
+		NanoTime crtmin = NanoTime::maximum;
 		for(size_t i = 0; i < tv.size();){
 			TimePairT const	&rtp = tv[i];
 			if(rtp.first > _rt){
@@ -87,14 +87,14 @@ public:
 		
 		mint = crtmin;
 	}
-	TimeSpec const & next()const{
+	NanoTime const & next()const{
 		return mint;
 	}
 private:
-	typedef std::pair<TimeSpec, ValueT>		TimePairT;
+	typedef std::pair<NanoTime, ValueT>		TimePairT;
 	typedef std::vector<TimePairT>			TimeVectorT;
 	TimeVectorT		tv;
-	TimeSpec		mint;
+	NanoTime		mint;
 };
 
 }//namespace frame

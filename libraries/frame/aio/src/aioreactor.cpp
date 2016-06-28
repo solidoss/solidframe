@@ -32,7 +32,7 @@
 
 #include "system/exception.hpp"
 #include "system/debug.hpp"
-#include "system/timespec.hpp"
+#include "system/nanotime.hpp"
 #include <mutex>
 #include <thread>
 #include "system/device.hpp"
@@ -304,7 +304,7 @@ struct Reactor::Data{
 		crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0), devcnt(0),
 		objcnt(0), timestore(MinEventCapacity){}
 #if defined(SOLID_USE_EPOLL)
-	int computeWaitTimeMilliseconds(TimeSpec const & _rcrt)const{
+	int computeWaitTimeMilliseconds(NanoTime const & _rcrt)const{
 		
 		if(exeq.size()){
 			return 0;
@@ -314,7 +314,7 @@ struct Reactor::Data{
 				
 				const int64_t	maxwait = 1000 * 60 * 10; //ten minutes
 				int64_t 		diff = 0;
-				TimeSpec		delta = timestore.next();
+				NanoTime		delta = timestore.next();
 				
 				delta -= _rcrt;
 				diff = (delta.seconds() * 1000);
@@ -336,15 +336,15 @@ struct Reactor::Data{
 		}
 	}
 #elif defined(SOLID_USE_KQUEUE)
-	TimeSpec computeWaitTimeMilliseconds(TimeSpec const & _rcrt)const{
+	NanoTime computeWaitTimeMilliseconds(NanoTime const & _rcrt)const{
 		
 		if(exeq.size()){
-			return TimeSpec();
+			return NanoTime();
 		}else if(timestore.size()){
 			
 			if(_rcrt < timestore.next()){
-				const TimeSpec	maxwait(1000 * 60 * 10); //ten minutes
-				TimeSpec		delta = timestore.next();
+				const NanoTime	maxwait(1000 * 60 * 10); //ten minutes
+				NanoTime		delta = timestore.next();
 				
 				delta -= _rcrt;
 				
@@ -356,10 +356,10 @@ struct Reactor::Data{
 			
 
 			}else{
-				return TimeSpec();
+				return NanoTime();
 			}
 		}else{
-			return TimeSpec::maximum;
+			return NanoTime::maximum;
 		}
 	}
 #endif
@@ -554,9 +554,9 @@ void Reactor::run(){
 	idbgx(Debug::aio, "<enter>");
 	int			selcnt;
 	bool		running = true;
-	TimeSpec	crttime;
+	NanoTime	crttime;
 	int			waitmsec;
-	TimeSpec	waittime;
+	NanoTime	waittime;
 	
 	while(running){
 		crttime.currentMonotonic();
@@ -573,7 +573,7 @@ void Reactor::run(){
 		
 		vdbgx(Debug::aio, "kqueue msec = "<<waittime.seconds()<<':'<<waittime.nanoSeconds());
 		
-		selcnt = kevent(d.reactor_fd, NULL, 0, d.eventvec.data(), d.eventvec.size(), waittime != TimeSpec::maximum ? &waittime : NULL);
+		selcnt = kevent(d.reactor_fd, NULL, 0, d.eventvec.data(), d.eventvec.size(), waittime != NanoTime::maximum ? &waittime : NULL);
 #endif
 		crttime.currentMonotonic();
 		
@@ -767,7 +767,7 @@ void Reactor::doStopObject(ReactorContext &_rctx){
 
 //-----------------------------------------------------------------------------
 
-void Reactor::doCompleteIo(TimeSpec  const &_rcrttime, const size_t _sz){
+void Reactor::doCompleteIo(NanoTime  const &_rcrttime, const size_t _sz){
 	ReactorContext	ctx(*this, _rcrttime);
 	
 	vdbgx(Debug::aio, "selcnt = "<<_sz);
@@ -827,7 +827,7 @@ void Reactor::onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _c
 
 //-----------------------------------------------------------------------------
 
-void Reactor::doCompleteTimer(TimeSpec  const &_rcrttime){
+void Reactor::doCompleteTimer(NanoTime  const &_rcrttime){
 	ReactorContext	ctx(*this, _rcrttime);
 	TimerCallback 	tcbk(*this, ctx);
 	d.timestore.pop(_rcrttime, tcbk, ChangeTimerIndexCallback(*this));
@@ -835,7 +835,7 @@ void Reactor::doCompleteTimer(TimeSpec  const &_rcrttime){
 
 //-----------------------------------------------------------------------------
 
-void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
+void Reactor::doCompleteExec(NanoTime  const &_rcrttime){
 	ReactorContext	ctx(*this, _rcrttime);
 	size_t			sz = d.exeq.size();
 	
@@ -859,7 +859,7 @@ void Reactor::doCompleteExec(TimeSpec  const &_rcrttime){
 
 //-----------------------------------------------------------------------------
 
-void Reactor::doCompleteEvents(TimeSpec  const &_rcrttime){
+void Reactor::doCompleteEvents(NanoTime  const &_rcrttime){
 	ReactorContext	ctx(*this, _rcrttime);
 	doCompleteEvents(ctx);
 }
@@ -1148,7 +1148,7 @@ bool Reactor::remDevice(CompletionHandler const &_rch, Device const &_rsd){
 
 //-----------------------------------------------------------------------------
 
-bool Reactor::addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx){
+bool Reactor::addTimer(CompletionHandler const &_rch, NanoTime const &_rt, size_t &_rstoreidx){
 	if(_rstoreidx != InvalidIndex()){
 		size_t idx = d.timestore.change(_rstoreidx, _rt);
 		SOLID_ASSERT(idx == _rch.idxreactor);
@@ -1198,7 +1198,7 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
 	idbgx(Debug::aio, "idx "<<idx<<" chdq.size = "<<d.chdq.size()<<" this "<<this);
 	
 	{
-		TimeSpec		dummytime;
+		NanoTime		dummytime;
 		ReactorContext	ctx(*this, dummytime);
 		
 		ctx.reactor_event_ = ReactorEventInit;
@@ -1217,7 +1217,7 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 	CompletionHandlerStub &rcs = d.chdq[_rch.idxreactor];
 	
 	{
-		TimeSpec		dummytime;
+		NanoTime		dummytime;
 		ReactorContext	ctx(*this, dummytime);
 		
 		ctx.reactor_event_ = ReactorEventClear;

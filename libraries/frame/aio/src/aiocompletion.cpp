@@ -116,7 +116,7 @@ void CompletionHandler::remDevice(ReactorContext &_rctx, Device const &_rsd){
 	_rctx.reactor().remDevice(*this, _rsd);
 }
 
-void CompletionHandler::addTimer(ReactorContext &_rctx, TimeSpec const &_rt, size_t &_storedidx){
+void CompletionHandler::addTimer(ReactorContext &_rctx, NanoTime const &_rt, size_t &_storedidx){
 	SOLID_ASSERT(isActive());
 	_rctx.reactor().addTimer(*this, _rt, _storedidx);
 }

@@ -183,7 +183,7 @@ int test_multiprotocol_basic(int argc, char **argv){
 		
 		while(wait_count){
 			//cnd.wait(lock);
-			TimeSpec	abstime = TimeSpec::createRealTime();
+			NanoTime	abstime = NanoTime::createRealTime();
 			abstime += (120 * 1000);//ten seconds
 			cnd.wait(lock);
 			bool b = true;//cnd.wait(lock, abstime);

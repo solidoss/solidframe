@@ -17,7 +17,7 @@
 
 
 namespace solid{
-class TimeSpec;
+class NanoTime;
 namespace frame{
 
 class Service;
@@ -83,7 +83,7 @@ public:
 		doPost(_rctx, eventfnc, std::move(_uev));
 	}
 	
-	bool addTimer(CompletionHandler const &_rch, TimeSpec const &_rt, size_t &_rstoreidx);
+	bool addTimer(CompletionHandler const &_rch, NanoTime const &_rt, size_t &_rstoreidx);
 	bool remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx);
 	
 	bool start();
@@ -114,11 +114,11 @@ private:
 	static Reactor* safeSpecific();
 	static Reactor& specific();
 	
-	bool doWaitEvent(TimeSpec const &_rcrttime);
+	bool doWaitEvent(NanoTime const &_rcrttime);
 	
-	void doCompleteTimer(TimeSpec  const &_rcrttime);
-	void doCompleteExec(TimeSpec  const &_rcrttime);
-	void doCompleteEvents(TimeSpec const &_rcrttime);
+	void doCompleteTimer(NanoTime  const &_rcrttime);
+	void doCompleteExec(NanoTime  const &_rcrttime);
+	void doCompleteEvents(NanoTime const &_rcrttime);
 	void doStoreSpecific();
 	void doClearSpecific();
 	void doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx);

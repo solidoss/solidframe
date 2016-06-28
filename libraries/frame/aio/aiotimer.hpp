@@ -65,8 +65,8 @@ public:
 	//Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
 	//Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
 	template <typename F>
-	bool waitFor(ReactorContext &_rctx, TimeSpec const& _tm, F _f){
-		TimeSpec t = _rctx.time();
+	bool waitFor(ReactorContext &_rctx, NanoTime const& _tm, F _f){
+		NanoTime t = _rctx.time();
 		t += _tm;
 		return waitUntil(_rctx, t, _f);
 	}
@@ -74,7 +74,7 @@ public:
 	//Returns true when the operation completed. Check _rctx.error() for success or fail
 	//Returns false when operation is scheduled for completion. On completion _f(...) will be called.
 	template <typename F>
-	bool waitUntil(ReactorContext &_rctx, TimeSpec const& _tm, F _f){
+	bool waitUntil(ReactorContext &_rctx, NanoTime const& _tm, F _f){
 		f = _f;
 		this->addTimer(_rctx, _tm, storeidx);
 		return false;

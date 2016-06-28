@@ -26,12 +26,12 @@ set(Headers
 	socketaddress.hpp
 	socketdevice.hpp
 	socketinfo.hpp
-	timespec.hpp
+	nanotime.hpp
 )
 
 set(Inlines
 	socketaddress.ipp
-	timespec.ipp
+	nanotime.ipp
 )
 
 add_library (solid_system 

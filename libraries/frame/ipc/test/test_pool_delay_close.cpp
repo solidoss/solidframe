@@ -442,7 +442,7 @@ int test_pool_delay_close(int argc, char **argv){
 		
 		while(running){
 			//cnd.wait(lock);
-			TimeSpec	abstime = TimeSpec::createRealTime();
+			NanoTime	abstime = NanoTime::createRealTime();
 			abstime += (120 * 1000);//ten seconds
 			cnd.wait(lock);
 			bool b = true;//cnd.wait(lock, abstime);

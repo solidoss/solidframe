@@ -25,7 +25,7 @@
 #endif
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
-#include "system/timespec.hpp"
+#include "system/nanotime.hpp"
 #include "system/cassert.hpp"
 #include <fcntl.h>
 #include <cerrno>
