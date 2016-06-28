@@ -31,6 +31,8 @@ OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.0.2h.tar.gz"
 LEVELDB_ADDR="https://leveldb.googlecode.com/files/leveldb-1.15.0.tar.gz"
 SNAPPY_ADDR="http://snappy.googlecode.com/files/snappy-1.0.5.tar.gz"
 
+SYSTEM=
+
 downloadArchive()
 {
 	local url="$1"
@@ -97,11 +99,16 @@ buildBoost()
 		VARIANT_BUILD="variant=release"
 	fi
 	
-	if [ $BUILD_BOOST_FULL ] ; then
+	
+	if		[ "$SYSTEM" = "FreeBSD" ] ; then
+		./b2 toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+	elif	[ "$SYSTEM" = "Darwin" ] ; then
 		./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
 	else
-		./b2 --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
+		./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
 	fi
+	
+	
 	echo
 	echo "Done BOOST!"
 	echo
@@ -149,15 +156,35 @@ buildOpenssl()
 	echo
 
 	cd $DIR_NAME
-	if [ $DEBUG ] ; then
-		./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
+	
+	if		[ "$SYSTEM" = "FreeBSD" ] ; then
+		if [ $DEBUG ] ; then
+			CC=cc ./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		else
+			CC=cc ./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		fi
+	elif	[ "$SYSTEM" = "Darwin" ] ; then
+		if [ $DEBUG ] ; then
+			./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
+		else
+			./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
+		fi
 	else
-		./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
+		if [ $DEBUG ] ; then
+			./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		else
+			./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		fi
 	fi
+	
 	make && make install_sw
+	
 	cd ..
+	
 	echo "Copy test certificates to ssl_ dir..."
+	
 	cp $DIR_NAME/demos/tunala/*.pem ssl_/certs/.
+	
 	echo
 	echo "Done $WHAT!"
 	echo
@@ -307,6 +334,10 @@ while [ "$#" -gt 0 ]; do
 	--force-download)
 		DOWNLOAD="yes"
 		;;
+	--system)
+		shift
+		SYSTEM="$1"
+		;;
 	-h|--help)
 		HELP="yes"
 		BUILD_SOMETHING="yes"
@@ -326,7 +357,13 @@ if [ "$HELP" = "yes" ]; then
 	exit
 fi
 
+if [[ -z "${SYSTEM}" ]]; then
+	SYSTEM=$(uname)
+fi
+
+
 echo "Extern folder: $EXT_DIR"
+echo "System: $SYSTEM"
 
 if [[ -z "${BUILD_SOMETHING}" ]]; then
 	BUILD_BOOST_FULL="yes"
@@ -344,6 +381,7 @@ else
 		buildBoost
 	fi
 fi
+
 
 if [ $BUILD_SNAPPY ]; then
 	buildSnappy
