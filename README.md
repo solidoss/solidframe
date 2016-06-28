@@ -10,6 +10,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
  * [API Reference](solid/API.md)
  * [Wiki](https://github.com/vipalade/solidframe/wiki)
  * [Release Notes](RELEASES.md)
+ * [IPC library](solid/frame/ipc/README.md)
 
 ## Prerequisites
 * C++11 enabled compiler
@@ -70,7 +71,7 @@ System prerequisites:
  * C++11 enabled compiler: gcc-c++ on Linux and clang on FreeBSD and macOS.
  * [CMake](https://cmake.org/)
 
-Next are the concrete bash commands for installing SolidFrame:
+Bash commands for installing SolidFrame:
 
 ```bash
 $ mkdir ~/work
@@ -116,6 +117,4 @@ For how can SolidFrame help you in your projects, please follow:
 * Improved OpenSSL support in frame/aio
 * frame/ipc with OpenSSL
 
-## See also
-* [IPC library](solid/frame/ipc/README.md)
 
