@@ -10,7 +10,7 @@
 #ifndef SOLID_SYSTEM_FUNCTION_HPP
 #define SOLID_SYSTEM_FUNCTION_HPP
 
-#include "config.h"
+#include "solid/solid_config.hpp"
 
 #ifdef SOLID_USE_CPP11
 #define FUNCTION_NS std
