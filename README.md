@@ -20,7 +20,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 ## Supported platforms
 
-* Linux - (tested on latest Fedora) - gcc
+* Linux - (tested on latest Fedora i686/x86_64 and Raspian on Raspberry Pi 2 armv7l) - gcc
 * FreeBSD - (tested on FreeBSD/PcBSD 10.3) - llvm
 * Darwin/OSX - (waiting for XCode 8 with support for thread_local) - llvm
 * Windows - (partial) - latest VisualStudio
