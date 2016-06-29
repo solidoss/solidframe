@@ -16,6 +16,7 @@
 #endif
 
 #include <ostream>
+#include <array>
 
 #include "solid/system/common.hpp"
 #include "solid/system/socketinfo.hpp"
