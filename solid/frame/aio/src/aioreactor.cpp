@@ -264,7 +264,10 @@ struct ExecStub{
 	
 	ExecStub(
 		ExecStub &&_res
-	):objuid(_res.objuid), chnuid(_res.chnuid), exefnc(std::move(_res.exefnc)), event(std::move(_res.event)){}
+	):objuid(std::move(_res.objuid)), chnuid(std::move(_res.chnuid)), exefnc(std::move(_res.exefnc)), event(std::move(_res.event)){
+		//objuid = std::move(_res.objuid);
+		//chnuid = std::move(_res.chnuid);
+	}
 	
 	UniqueId					objuid;
 	UniqueId					chnuid;
