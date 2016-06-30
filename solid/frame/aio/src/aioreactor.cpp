@@ -1236,7 +1236,6 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
 
 //-----------------------------------------------------------------------------
 
-#ifndef SOLID_ON_DARWIN
 thread_local Reactor	*thread_local_reactor = nullptr;
 
 /*static*/ Reactor* Reactor::safeSpecific(){
@@ -1249,17 +1248,6 @@ void Reactor::doStoreSpecific(){
 void Reactor::doClearSpecific(){
 	thread_local_reactor = nullptr;
 }
-#else
-
-/*static*/ Reactor* Reactor::safeSpecific(){
-	return nullptr;
-}
-
-void Reactor::doStoreSpecific(){
-}
-void Reactor::doClearSpecific(){
-}
-#endif
 
 /*static*/ Reactor& Reactor::specific(){
 	vdbgx(Debug::aio, "");
