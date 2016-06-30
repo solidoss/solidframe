@@ -76,9 +76,9 @@ int main(int argc, char *argv[]){
 	}
 	string s("sha1sum ");
 	s+= argv[1];
-	system(s.c_str());
+	(void)system(s.c_str());
 	s = "sha1sum ";
 	s += "test.dat";
-	system(s.c_str());
+	(void)system(s.c_str());
 	return 0;
 }

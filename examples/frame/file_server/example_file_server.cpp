@@ -214,7 +214,7 @@ int main(int argc, char *argv[]){
 				frame::file::Utf8Configuration	utf8cfg;
 				frame::file::TempConfiguration	tempcfg;
 				
-				system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver");
+				(void)system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver");
 				
 				const char *homedir = getenv("HOME");
 				
