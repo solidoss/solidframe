@@ -28,11 +28,21 @@ struct MemoryFile::BuffCmp{
 	}
 };
 
+/*static*/ int64_t MemoryFile::compute_capacity(int64_t _cp, Allocator &_ra){
+	if(_cp <= 0 or _cp == std::numeric_limits<int64_t>::max()){
+		return std::numeric_limits<int64_t>::max();
+	}
+	_cp = _ra.computeCapacity(_cp);
+	if(_cp <= 0 or _cp == std::numeric_limits<int64_t>::max()){
+		return std::numeric_limits<int64_t>::max();
+	}
+	return _cp;
+}
 
 MemoryFile::MemoryFile(
-	uint64_t _cp,
+	const int64_t _cp,
 	MemoryFile::Allocator &_ra
-):cp(_cp == InvalidSize() ? InvalidSize() : _ra.computeCapacity(_cp)),sz(0), off(0), crtbuffidx(-1), bufsz(_ra.bufferSize()), ra(_ra){
+):	cp(compute_capacity(_cp, _ra)), sz(0), off(0), crtbuffidx(-1), bufsz(_ra.bufferSize()), ra(_ra){
 }
 
 MemoryFile::~MemoryFile(){
@@ -62,8 +72,8 @@ int MemoryFile::read(char *_pb, uint32_t _bl, int64_t _off){
 	uint32_t		buffidx(static_cast<uint32_t>(_off / bufsz));
 	uint32_t		buffoff(_off % bufsz);
 	int 		rd(0);
-	if(_off >= static_cast<int64_t>(sz)) return -1;
-	if((_off + _bl) > static_cast<int64_t>(sz)){
+	if(_off >= sz) return -1;
+	if((_off + _bl) > sz){
 		_bl = static_cast<uint32_t>(sz - _off);
 	}
 	while(_bl){
@@ -113,14 +123,16 @@ int MemoryFile::write(const char *_pb, uint32_t _bl, int64_t _off){
 		return -1;
 	}
 	
-	if(static_cast<int64_t>(sz) < _off + wd) sz = _off + wd;
+	if(sz < (_off + wd)){
+		sz = _off + wd;
+	}
 	return wd;
 }
 
 int64_t MemoryFile::seek(int64_t _pos, SeekRef _ref){
 	switch(_ref){
 		case SeekBeg:
-			if(_pos >= static_cast<int64_t>(cp)) return -1;
+			if(_pos >= cp) return -1;
 			return off = _pos;
 		case SeekCur:
 			if(off + _pos > cp) return -1;

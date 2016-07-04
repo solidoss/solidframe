@@ -14,6 +14,7 @@
 #include "solid/utility/common.hpp"
 #include "solid/utility/algorithm.hpp"
 #include <deque>
+#include <limits>
 
 namespace solid{
 
@@ -70,7 +71,7 @@ public:
 
 public:
 	//! Constructor with the file capacity and the allocator
-	MemoryFile(uint64_t _cp = InvalidSize(), Allocator &_ral = BasicAllocator<>::instance());
+	MemoryFile(const int64_t _cp = 0, Allocator &_ral = BasicAllocator<>::instance());
 	//! Destructor
 	~MemoryFile();
 	//! Read data from file from offset
@@ -99,13 +100,16 @@ private:
 		uint32_t	idx;
 		char	*data;
 	};
+	
+	static int64_t compute_capacity(const int64_t _cp, Allocator &_ral);
+	
 	struct BuffCmp;
 	friend struct BuffCmp;
 	typedef std::deque<Buffer>	BufferVectorT;
 	
-	const uint64_t		cp;
-	uint64_t			sz;
-	uint64_t			off;
+	const int64_t		cp;
+	int64_t				sz;
+	int64_t				off;
 	mutable uint32_t	crtbuffidx;
 	const uint32_t		bufsz;
 	Allocator			&ra;
