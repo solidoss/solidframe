@@ -175,7 +175,7 @@ char *MemoryFile::doCreateBuffer(uint32_t _idx, bool &_created){
 	}
 	//buffer not found
 	//see if we did not reach the capacity
-	if((bv.size() * bufsz + bufsz) > cp) return nullptr;
+	if((static_cast<int64_t>(bv.size()) * bufsz + bufsz) > cp) return nullptr;
 	_created = true;
 	char * b = ra.allocate();
 	bv.insert(bv.begin() + pos.second, Buffer(_idx, b));
