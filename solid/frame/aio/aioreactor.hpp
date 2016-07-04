@@ -20,7 +20,7 @@
 namespace solid{
 
 struct NanoTime;
-struct Device;
+class Device;
 struct Event;
 
 namespace frame{
@@ -30,7 +30,7 @@ class Service;
 namespace aio{
 
 class Object;
-struct CompletionHandler;
+class CompletionHandler;
 struct ChangeTimerIndexCallback;
 struct TimerCallback;
 

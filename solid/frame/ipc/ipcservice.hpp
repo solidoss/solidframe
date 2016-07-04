@@ -32,7 +32,7 @@ struct ReactorContext;
 namespace ipc{
 
 struct Message;
-class Configuration;
+struct Configuration;
 class Connection;
 struct MessageBundle;
 

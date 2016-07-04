@@ -495,7 +495,7 @@ public:
 	void path(const char*_pth);
 	const char* path()const;
 private:
-	friend struct SocketDevice;
+	friend class SocketDevice;
 	operator sockaddr*();
 	sockaddr* sockAddr();
 	AddrUnion	d;

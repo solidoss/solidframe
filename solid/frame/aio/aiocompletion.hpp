@@ -16,9 +16,9 @@
 #include "solid/system/cassert.hpp"
 
 namespace solid{
-struct Device;
-struct SocketDevice;
-class NanoTime;
+class Device;
+class SocketDevice;
+struct NanoTime;
 namespace frame{
 namespace aio{
 

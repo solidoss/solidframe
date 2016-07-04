@@ -16,7 +16,7 @@
 #include "solid/system/cassert.hpp"
 
 namespace solid{
-class NanoTime;
+struct NanoTime;
 namespace frame{
 
 class Object;

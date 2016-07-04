@@ -74,9 +74,9 @@ inline ErrorConditionT error_running(){
 	return ErrorConditionT(ErrorCategory::RunningE, ec);
 }
 
-inline ErrorConditionT error_reactor(){
-	return ErrorConditionT(ErrorCategory::ReactorE, ec);
-}
+// inline ErrorConditionT error_reactor(){
+// 	return ErrorConditionT(ErrorCategory::ReactorE, ec);
+// }
 
 }//namespace
 

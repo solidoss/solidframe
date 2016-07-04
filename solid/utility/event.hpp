@@ -101,7 +101,7 @@ protected:
 		return _revt.id_;
 	}
 private:
-	friend class Event;
+	friend struct Event;
 	virtual const char* name(const Event &_revt)const = 0;
 private:
 	std::string name_;

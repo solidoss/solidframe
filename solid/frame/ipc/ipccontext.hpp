@@ -82,7 +82,7 @@ struct RecipientId{
 private:
 	friend class Service;
 	friend class Connection;
-	friend class ConnectionContext;
+	friend struct ConnectionContext;
 	
 	RecipientId(
 		const ConnectionPoolId &_rpoolid,

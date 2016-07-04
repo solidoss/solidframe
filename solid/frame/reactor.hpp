@@ -17,13 +17,13 @@
 
 
 namespace solid{
-class NanoTime;
+struct NanoTime;
 namespace frame{
 
 class Service;
 class Object;
 struct ReactorContext;
-struct CompletionHandler;
+class CompletionHandler;
 struct ChangeTimerIndexCallback;
 struct TimerCallback;
 
