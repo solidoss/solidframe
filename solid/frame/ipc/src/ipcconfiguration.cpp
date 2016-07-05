@@ -29,6 +29,8 @@ namespace{
 	
 	void empty_connection_stop(ConnectionContext &, ErrorConditionT const&){}
 	
+	void empty_connection_start(ConnectionContext &){}
+
 	void empty_connection_on_event(ConnectionContext &, Event &){}
 	
 	size_t default_compress(char*, size_t, ErrorConditionT &){
@@ -89,6 +91,9 @@ Configuration::Configuration(
 	connection_send_buffer_free_fnc = default_free_buffer;
 	
 	connection_stop_fnc = empty_connection_stop;
+	
+	connection_start_incoming_fnc = empty_connection_start;
+	connection_start_outgoing_fnc = empty_connection_start;
 	
 	connection_on_event_fnc = empty_connection_on_event;
 	

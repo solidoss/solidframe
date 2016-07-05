@@ -383,6 +383,7 @@ INCLUDE(CTest)
 #-----------------------------------------------------------------
 add_subdirectory (solid)
 add_subdirectory (examples)
+add_subdirectory (tutorials)
 
 #-----------------------------------------------------------------
 

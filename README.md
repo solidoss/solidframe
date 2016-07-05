@@ -67,9 +67,9 @@ Following are the steps for:
 * fetching the _SolidFrame_ code
 * building the prerequisites folder
 * building and installing _SolidFrame_
-* use _SolidFrame_ in your projects
+* using _SolidFrame_ in your projects
 
-Note that [boost framework](http://www.boost.org) is only used for building _SolidFrame_.
+Please note that [boost framework](http://www.boost.org) is only used for building _SolidFrame_.
 Normally, _SolidFrame_ libraries would not depend on boost.
 
 #### Linux/macOS/FreeBSD
