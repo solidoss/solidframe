@@ -25,7 +25,7 @@ struct Parameters{
 	string			port;
 };
 
-
+//-----------------------------------------------------------------------------
 namespace ipc_echo_client{
 
 template <class M>
