@@ -81,9 +81,9 @@ size_t real_size(size_t _sz){
 }
 
 struct Message: frame::ipc::Message{
-	uint32_t							idx;
-    std::string						str;
-	bool							serialized;
+	uint32_t		idx;
+    std::string		str;
+	bool			serialized;
 	
 	Message(uint32_t _idx):idx(_idx), serialized(false){
 		idbg("CREATE ---------------- "<<(void*)this<<" idx = "<<idx);

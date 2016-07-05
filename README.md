@@ -63,15 +63,22 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 ### Install
 
-Following are the steps one must do to fetch SolidFrame code, build and install it.
+Following are the steps for:
+* fetching the _SolidFrame_ code
+* building the prerequisites folder
+* building and installing _SolidFrame_
+* use _SolidFrame_ in your projects
+
+Note that [boost framework](http://www.boost.org) is only used for building _SolidFrame_.
+Normally, _SolidFrame_ libraries would not depend on boost.
 
 #### Linux/macOS/FreeBSD
 
 System prerequisites:
- * C++11 enabled compiler: gcc-c++ on Linux and clang on FreeBSD and macOS.
+ * C++11 enabled compiler: gcc-c++ on Linux and clang on FreeBSD and macOS (minimum: XCode 8/Clang 8).
  * [CMake](https://cmake.org/)
 
-Bash commands for installing SolidFrame:
+Bash commands for installing _SolidFrame_:
 
 ```bash
 $ mkdir ~/work
@@ -92,9 +99,9 @@ $ make install
 Windows is not yet supported.
 
 ### Use
-Use SolidFrame libraries in your applications via: -I ~/work/extern/include and -L ~/work/extern/lib.
+Use _SolidFrame_ libraries in your applications via: -I ~/work/extern/include and -L ~/work/extern/lib.
 
-For how can SolidFrame help you in your projects, please follow:
- * [API Reference](solid/API.md)
+For how can _SolidFrame_ help you in your projects, please follow:
  * [Wiki](https://github.com/vipalade/solidframe/wiki)
+ * [API Reference](solid/API.md)
  
