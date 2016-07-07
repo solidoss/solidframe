@@ -301,17 +301,6 @@ void server_complete_message(
 		
 		++crtreadidx;
 		idbg(crtreadidx);
-		if(crtwriteidx < writecount){
-			frame::ipc::MessagePointerT	msgptr(new Message(crtwriteidx));
-			++crtwriteidx;
-			err = pipcclient->sendMessage(
-				"localhost", msgptr,
-				initarray[crtwriteidx % initarraysize].flags | frame::ipc::MessageFlags::WaitResponse
-			);
-			if(err){
-				SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-			}
-		}
 	}
 	if(_rsent_msg_ptr){
 		idbg(_rctx.recipientId()<<" done sent message "<<_rsent_msg_ptr.get());
