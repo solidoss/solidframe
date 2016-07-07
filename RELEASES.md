@@ -2,7 +2,8 @@
 
 ## Version 2.0
 ### TODO
-* (PENDING) Fix utility memoryfile examples
+* (DONE) Fix utility memoryfile examples
+* (PENDING) Test serialization for all supported std containers
 * (PENDING) Finalizing the IPC library - what is planned for SFv2.0.
 * Cross-platform support:
 	* (DONE) Linux

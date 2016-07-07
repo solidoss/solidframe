@@ -14,7 +14,7 @@
 using namespace solid;
 using namespace std;
 
-typedef frame::Scheduler<frame::aio::Reactor>	AioSchedulerT;
+using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 
 //-----------------------------------------------------------------------------
 //		Parameters

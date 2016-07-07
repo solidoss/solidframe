@@ -7,12 +7,16 @@
 #include "solid/frame/ipc/ipcservice.hpp"
 #include "solid/frame/ipc/ipcconfiguration.hpp"
 
-#include "ipc_echo_messages.hpp"
-
+#include "ipc_request_messages.hpp"
+#include <string>
+#include <deque>
 #include <iostream>
+#include <regex>
 
 using namespace solid;
 using namespace std;
+
+namespace{
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 
@@ -25,10 +29,47 @@ struct Parameters{
 	string			listener_port;
 	string			listener_addr;
 };
-
 //-----------------------------------------------------------------------------
 
-namespace ipc_echo_server{
+struct Date{
+	uint8_t		day;
+	uint8_t		month;
+	uint16_t	year;
+};
+
+struct AccountData{
+	string		userid;
+	string		full_name;
+	string		email;
+	string		country;
+	string		city;
+	Date		birth_date;
+};
+
+
+using AccountDataDequeT = std::deque<AccountData>;
+
+AccountDataDequeT	account_dq = {
+	{"user1", "Super Man", "user1@email.com", "romania", "bucharest", {11, 1, 2001}},
+	{"user2", "Spider Man", "user2@email.com", "romania", "bucharest", {12, 2, 2002}},
+	{"user3", "Ant Man", "user3@email.com", "romania", "bucharest", {13, 3, 2003}},
+};
+
+ipc_request::UserData make_user_data(const AccountData &_rad){
+	ipc_request::UserData	ud;
+	ud.full_name = _rad.full_name;
+	ud.email = _rad.email;
+	ud.country = _rad.country;
+	ud.city = _rad.city;
+	ud.birth_date.day = _rad.birth_date.day;
+	ud.birth_date.month = _rad.birth_date.month;
+	ud.birth_date.year = _rad.birth_date.year;
+	return ud;
+}
+
+}//namespace
+
+namespace ipc_request_server{
 
 template <class M>
 void complete_message(
@@ -36,19 +77,46 @@ void complete_message(
 	std::shared_ptr<M> &_rsent_msg_ptr,
 	std::shared_ptr<M> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
+);
+	
+template <>
+void complete_message<ipc_request::Request>(
+	frame::ipc::ConnectionContext &_rctx,
+	std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
+	std::shared_ptr<ipc_request::Request> &_rrecv_msg_ptr,
+	ErrorConditionT const &_rerror
 ){
 	SOLID_CHECK(not _rerror);
+	SOLID_CHECK(_rrecv_msg_ptr);
+	SOLID_CHECK(not _rsent_msg_ptr);
 	
-	if(_rrecv_msg_ptr){
-		SOLID_CHECK(not _rsent_msg_ptr);
-		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+	auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
+	
+	
+	std::regex	userid_regex(_rrecv_msg_ptr->userid_regex);
+	
+	for(const auto &ad: account_dq){
+		if(std::regex_match(ad.userid, userid_regex)){
+			msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, std::move(make_user_data(ad)))));
+		}
+	}
+	
+	ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr));
 		
-		SOLID_CHECK(not err);
-	}
+	SOLID_CHECK(not err);
+}
+
+template <>
+void complete_message<ipc_request::Response>(
+	frame::ipc::ConnectionContext &_rctx,
+	std::shared_ptr<ipc_request::Response> &_rsent_msg_ptr,
+	std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
+	ErrorConditionT const &_rerror
+){
+	SOLID_CHECK(not _rerror);
+	SOLID_CHECK(not _rrecv_msg_ptr);
+	SOLID_CHECK(_rsent_msg_ptr);
 	
-	if(_rsent_msg_ptr){
-		SOLID_CHECK(not _rrecv_msg_ptr);
-	}
 }
 
 template <typename T>
@@ -94,7 +162,7 @@ int main(int argc, char *argv[]){
 			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
 			frame::ipc::Configuration				cfg(scheduler, proto);
 			
-			ipc_echo::ProtoSpecT::setup<ipc_echo_server::MessageSetup>(*proto);
+			ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
 			
 			cfg.listener_address_str = p.listener_addr;
 			cfg.listener_address_str += ':';
@@ -145,4 +213,5 @@ bool parseArguments(Parameters &_par, int argc, char *argv[]){
 	}
 	return true;
 }
+
 

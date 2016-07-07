@@ -80,104 +80,102 @@ struct Limits{
 
 struct ExtendedData{
 	enum{
-		MAX_GENERIC_SIZE	=  128,
+		MAX_GENERIC_SIZE	=  256,
 	};
 	
 	typedef void (*DeleteFunctionT)(void*);
 	
 	union BasicValue{
-		uint8_t	uint8_t_value;
+		uint8_t		uint8_t_value;
 		uint32_t	uint32_t_value;
 		uint64_t	uint64_t_value;
-		int64_t	int64_t_value;
-		int32_t	int32_t_value;
-		void*	void_value;
+		int64_t		int64_t_value;
+		int32_t		int32_t_value;
+		void*		void_value;
 	};
 	
-	union Value{
-		struct A{
-			BasicValue	values[3];
-		}	tuple;
-		
-		struct Generic{
-			char 				buffer[MAX_GENERIC_SIZE];
-			DeleteFunctionT		delete_fnc;
-			size_t				type_id;
-			void				*ptr;
-		}	generic;
-	}	value;
+	struct A{
+		BasicValue	values[3];
+	}	tuple_;
+	
+	struct Generic{
+		char 				buffer[MAX_GENERIC_SIZE];
+		DeleteFunctionT		delete_fnc;
+		size_t				type_id;
+		void				*ptr;
+	}	generic_;
 	
 	const uint8_t& first_uint8_t_value()const{
-		return value.tuple.values[0].uint8_t_value;
+		return tuple_.values[0].uint8_t_value;
 	}
 	
 	uint8_t& first_uint8_t_value(){
-		return value.tuple.values[0].uint8_t_value;
+		return tuple_.values[0].uint8_t_value;
 	}
 	
 	const uint32_t& first_uint32_t_value()const{
-		return value.tuple.values[0].uint32_t_value;
+		return tuple_.values[0].uint32_t_value;
 	}
 	
 	uint32_t& first_uint32_t_value(){
-		return value.tuple.values[0].uint32_t_value;
+		return tuple_.values[0].uint32_t_value;
 	}
 	
 	const uint64_t& first_uint64_t_value()const{
-		return value.tuple.values[0].uint64_t_value;
+		return tuple_.values[0].uint64_t_value;
 	}
 	
 	uint64_t& first_uint64_t_value(){
-		return value.tuple.values[0].uint64_t_value;
+		return tuple_.values[0].uint64_t_value;
 	}
 	
 	const int32_t& first_int32_t_value()const{
-		return value.tuple.values[0].int32_t_value;
+		return tuple_.values[0].int32_t_value;
 	}
 	
 	int32_t& first_int32_t_value(){
-		return value.tuple.values[0].int32_t_value;
+		return tuple_.values[0].int32_t_value;
 	}
 	
 	const int64_t& first_int64_t_value()const{
-		return value.tuple.values[0].int64_t_value;
+		return tuple_.values[0].int64_t_value;
 	}
 	
 	int64_t& first_int64_t_value(){
-		return value.tuple.values[0].int64_t_value;
+		return tuple_.values[0].int64_t_value;
 	}
 	
 	const int64_t& second_int64_t_value()const{
-		return value.tuple.values[1].int64_t_value;
+		return tuple_.values[1].int64_t_value;
 	}
 	
 	int64_t& second_int64_t_value(){
-		return value.tuple.values[1].int64_t_value;
+		return tuple_.values[1].int64_t_value;
 	}
 	
 	const uint64_t& second_uint64_t_value()const{
-		return value.tuple.values[1].uint64_t_value;
+		return tuple_.values[1].uint64_t_value;
 	}
 	
 	uint64_t& second_uint64_t_value(){
-		return value.tuple.values[1].uint64_t_value;
+		return tuple_.values[1].uint64_t_value;
 	}
 	
 	
 	void* const & first_void_value()const{
-		return value.tuple.values[0].void_value;
+		return tuple_.values[0].void_value;
 	}
 	
 	void*& first_void_value(){
-		return value.tuple.values[0].void_value;
+		return tuple_.values[0].void_value;
 	}
 
 	void* const & third_void_value()const{
-		return value.tuple.values[2].void_value;
+		return tuple_.values[2].void_value;
 	}
 	
 	void*& third_void_value(){
-		return value.tuple.values[2].void_value;
+		return tuple_.values[2].void_value;
 	}
 
 	
@@ -238,8 +236,13 @@ struct ExtendedData{
 	}
 	
 	template <class T>
-	static void deleter(void *_pv){
+	static void destroyer(void *_pv){
 		static_cast<T*>(_pv)->~T();
+	}
+	
+	template <class T>
+	static void deleter(void *_pv){
+		delete static_cast<T*>(_pv);
 	}
 	
 	template <class T>
@@ -247,10 +250,15 @@ struct ExtendedData{
 		clear();
 		T *retval = nullptr;
 		if(sizeof(T) <= MAX_GENERIC_SIZE){
-			retval = new(value.generic.buffer) T(_rt);
-			value.generic.ptr = retval;
-			value.generic.delete_fnc = &deleter<T>;
-			value.generic.type_id = typeId<T>();
+			retval = new(generic_.buffer) T(_rt);
+			generic_.ptr = retval;
+			generic_.delete_fnc = &destroyer<T>;
+			generic_.type_id = typeId<T>();
+		}else{
+			retval = new T(_rt);
+			generic_.ptr = retval;
+			generic_.delete_fnc = &deleter<T>;
+			generic_.type_id = typeId<T>();
 		}
 		return retval;
 	}
@@ -260,17 +268,23 @@ struct ExtendedData{
 		clear();
 		T *retval = nullptr;
 		if(sizeof(T) <= MAX_GENERIC_SIZE){
-			retval = new(value.generic.buffer) T{std::move(_ut)};
-			value.generic.ptr = retval;
-			value.generic.delete_fnc = &deleter<T>;
-			value.generic.type_id = typeId<T>();
+			retval = new(generic_.buffer) T{std::move(_ut)};
+			generic_.ptr = retval;
+			generic_.delete_fnc = &destroyer<T>;
+			generic_.type_id = typeId<T>();
+		}else{
+			retval = new T{std::move(_ut)};
+			generic_.ptr = retval;
+			generic_.delete_fnc = &deleter<T>;
+			generic_.type_id = typeId<T>();
 		}
 		return retval;
 	}
+	
 	template <class T>
 	T* genericCast(){
-		if(value.generic.type_id == typeId<T>()){
-			return static_cast<T*>(value.generic.ptr);
+		if(generic_.type_id == typeId<T>()){
+			return static_cast<T*>(generic_.ptr);
 		}else{
 			return nullptr;
 		}
@@ -278,30 +292,30 @@ struct ExtendedData{
 	
 	template <class T>
 	const T* genericCast()const{
-		if(value.generic.type_id == typeId<T>()){
-			return static_cast<T*>(value.generic.ptr);
+		if(generic_.type_id == typeId<T>()){
+			return static_cast<T*>(generic_.ptr);
 		}else{
 			return nullptr;
 		}
 	}
 	
 	void clear(){
-		if(value.generic.delete_fnc){
-			(*value.generic.delete_fnc)(value.generic.buffer);
-			value.generic.delete_fnc = nullptr;
-			value.generic.type_id = 0;
-			value.generic.ptr = nullptr;
-			value.generic.type_id = 0;
+		if(generic_.delete_fnc){
+			(*generic_.delete_fnc)(generic_.buffer);
+			generic_.delete_fnc = nullptr;
+			generic_.type_id = 0;
+			generic_.ptr = nullptr;
+			generic_.type_id = 0;
 		}
 	}
 	
 private:
 	void init(){
-		value.tuple.values[0].uint64_t_value = 0;
-		value.tuple.values[1].uint64_t_value = 0;
-		value.tuple.values[2].uint64_t_value = 0;
-		value.generic.delete_fnc = nullptr;
-		value.generic.type_id = 0;
+		tuple_.values[0].uint64_t_value = 0;
+		tuple_.values[1].uint64_t_value = 0;
+		tuple_.values[2].uint64_t_value = 0;
+		generic_.delete_fnc = nullptr;
+		generic_.type_id = 0;
 	}
 	
 	static size_t newTypeId();
@@ -484,9 +498,12 @@ protected:
 	static ReturnValues storeContainer(Base &_rs, FncData &_rfd, void *_pctx){
 		idbgx(Debug::ser_bin, "store generic container sizeof(iterator) = "<<sizeof(typename T::iterator)<<" "<<_rfd.n);
 		SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+		
 		if(!rs.cpb) return SuccessE;
+		
 		T 			*c = reinterpret_cast<T*>(_rfd.p);
 		const char	*n = _rfd.n;
+		
 		if(c){
 			SOLID_ASSERT(sizeof(typename T::iterator) <= sizeof(ExtendedData));
 			if(c->size() > rs.lmts.containerlimit){
@@ -529,6 +546,7 @@ protected:
 		ExtendedData			&rextdata = rs.estk.top();
 		IteratorT				&rit = *(rextdata.genericCast<IteratorT>());
 		T 						*c = reinterpret_cast<T*>(_rfd.p);
+		
 		if(rs.cpb && rit != c->end()){
 			rs.push(*rit, _rfd.n);
 			++rit;
@@ -910,6 +928,13 @@ public:
 		return *this;
 	}
 	
+	template <typename T1, typename T2>
+	SerializerT& push(std::pair<T1,T2> &_rpair, const char *_name = Base::default_name){
+		push(_rpair.second, "second");
+		push(_rpair.first, "first");
+		return *this;
+	}
+	
 	template <typename T>
 	SerializerT& push(std::shared_ptr<T> &_rptr, const char *_name = Base::default_name){
 		if(ptypeidmap){
@@ -1030,6 +1055,12 @@ public:
 		return *this;
 	}
 private:
+	
+	template <typename T>
+	SerializerT& push(const T &_t, const char *_name = Base::default_name){
+		return push(const_cast<T&>(_t), _name);
+	}
+	
 	const TypeIdMapT	*ptypeidmap;
 };
 //--------------------------------------------------------------
@@ -1138,12 +1169,20 @@ public:
 		return *this;
 	}
 	
+	template <typename T1, typename T2>
+	SerializerT& push(std::pair<T1,T2> &_rpair, const char *_name = Base::default_name){
+		push(_rpair.second, "second");
+		push(_rpair.first, "first");
+		return *this;
+	}
+	
 	//! Schedules a stl style container for serialization
 	template <typename T>
 	SerializerT& pushContainer(T &_t, const char *_name = Base::default_name){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeContainer<T, SerializerT>, (void*)&_t, _name));
 		return *this;
 	}
+	
 	//! Schedules a pointer to a stl style container for serialization
 	template <typename T>
 	SerializerT& pushContainer(T *_t, const char *_name = Base::default_name){
@@ -1245,6 +1284,12 @@ public:
 		return *this;
 	}
 private:
+	
+	template <typename T>
+	SerializerT& push(const T &_t, const char *_name = Base::default_name){
+		return push(const_cast<T&>(_t), _name);
+	}
+	
 	const TypeIdMapT	*ptypeidmap;
 };
 
@@ -1376,13 +1421,14 @@ protected:
 		DeserializerBase &rd = static_cast<DeserializerBase&>(_rb);
 		if(!rd.cpb) return SuccessE;
 		_rfd.f = &DeserializerBase::loadContainerBegin<T, Des>;
-		rd.estk.push(ExtendedData((uint64_t)0));
+		rd.estk.push(ExtendedData(static_cast<uint64_t>(0)));
 		rd.fstk.push(FncData(&DeserializerBase::loadCross<uint64_t>, &rd.estk.top().first_uint64_t_value()));
 		return ContinueE;
 	}
+	
 	template <typename T, class Des>
 	static ReturnValues loadContainerBegin(Base &_rb, FncData &_rfd, void */*_pctx*/){
-		DeserializerBase	&rd = static_cast<DeserializerBase&>(_rb);
+		Des		&rd(static_cast<Des&>(_rb));
 		
 		if(!rd.cpb){
 			rd.estk.pop();
@@ -1390,7 +1436,9 @@ protected:
 		}
 		{
 			const uint64_t	i = rd.estk.top().first_uint64_t_value();
+			
 			idbgx(Debug::ser_bin, " sz = "<<i);
+			
 			if(i != InvalidIndex()){
 				uint64_t crcsz;
 				if(check_value_with_crc(crcsz, i)){
@@ -1401,7 +1449,9 @@ protected:
 				}
 			}
 		}
+		
 		const uint64_t i(rd.estk.top().first_uint64_t_value());
+		
 		vdbgx(Debug::ser_bin, "i = "<<i);
 		
 		if(
@@ -1425,25 +1475,35 @@ protected:
 			*c = new T;
 			_rfd.p = *c;
 		}
+		
 		if(i){
 			_rfd.f = &DeserializerBase::loadContainerContinue<T, Des>;
 			_rfd.s = 0;//(uint32_t)i;
+			
+			typename T::value_type* pvt = rd.estk.top().generic(typename T::value_type());
+			rd.push(*pvt);
+			
 			return ContinueE;
 		}
 		rd.estk.pop();
 		return SuccessE;
 	}
+	
 	template <typename T, class Des>
 	static ReturnValues loadContainerContinue(Base &_rb, FncData &_rfd, void */*_pctx*/){
-		Des			&rd(static_cast<Des&>(_rb));
-		uint64_t		&ri = rd.estk.top().first_uint64_t_value();
+		Des						&rd(static_cast<Des&>(_rb));
+		uint64_t				&ri = rd.estk.top().first_uint64_t_value();
+		T 						*c = reinterpret_cast<T*>(_rfd.p);
+		typename T::value_type	*pvt = rd.estk.top().template genericCast<typename T::value_type>();
+		
+		--ri;
+		c->insert(c->end(), std::move(*pvt));
+		
 		if(rd.cpb && ri){
-			T *c = reinterpret_cast<T*>(_rfd.p);
-			c->push_back(typename T::value_type());
-			rd.push(c->back());
-			--ri;
-			return ContinueE;	
+			rd.push(*pvt);
+			return ContinueE;
 		}
+		
 		rd.estk.pop();
 		return SuccessE;
 	}
@@ -1497,6 +1557,7 @@ protected:
 		_rfd.f = &DeserializerBase::loadArrayContinue<T, Des>;
 		return ContinueE;
 	}
+	
 	template <typename T, class Des>
 	static ReturnValues loadArrayContinue(Base &_rb, FncData &_rfd, void */*_pctx*/){
 		Des					&rd(static_cast<Des&>(_rb));
@@ -1841,6 +1902,13 @@ public:
 		return *this;
 	}
 	
+	template <typename T1, typename T2>
+	Deserializer& push(std::pair<T1,T2> &_rpair, const char *_name = Base::default_name){
+		push(_rpair.second, "second");
+		push(_rpair.first, "first");
+		return *this;
+	}
+	
 	template <class T, uint32_t I>
 	Deserializer& pushReinit(
 		T *_pt, const uint64_t &_rval = 0, const char *_name = Base::default_name
@@ -1955,6 +2023,12 @@ public:
 		return ptypeidmap;
 	}
 private:
+	
+	template <typename T>
+	DeserializerT& push(const T &_t, const char *_name = Base::default_name){
+		return push(const_cast<T&>(_t), _name);
+	}
+	
 	const TypeIdMapT	*ptypeidmap;
 };
 
@@ -2056,6 +2130,13 @@ public:
 		}else{
 			DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadReturnError, nullptr, _name, DeserializerBase::ERR_NO_TYPE_MAP));
 		}
+		return *this;
+	}
+	
+	template <typename T1, typename T2>
+	Deserializer& push(std::pair<T1,T2> &_rpair, const char *_name = Base::default_name){
+		push(_rpair.second, "second");
+		push(_rpair.first, "first");
 		return *this;
 	}
 	
@@ -2174,6 +2255,11 @@ public:
 		return ptypeidmap;
 	}
 private:
+	template <typename T>
+	DeserializerT& push(const T &_t, const char *_name = Base::default_name){
+		return push(const_cast<T&>(_t), _name);
+	}
+	
 	const TypeIdMapT	*ptypeidmap;
 };
 
