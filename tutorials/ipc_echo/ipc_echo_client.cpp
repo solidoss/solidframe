@@ -125,7 +125,7 @@ int main(int argc, char *argv[]){
 				size_t		offset = line.find(' ');
 				if(offset != string::npos){
 					recipient = line.substr(0, offset);
-					ipcsvc.sendMessage(recipient.c_str(), make_shared<ipc_echo::Message>(line.substr(offset)), 0|frame::ipc::MessageFlags::WaitResponse);
+					ipcsvc.sendMessage(recipient.c_str(), make_shared<ipc_echo::Message>(line.substr(offset + 1)), 0|frame::ipc::MessageFlags::WaitResponse);
 				}else{
 					cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
 				}

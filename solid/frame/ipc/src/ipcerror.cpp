@@ -22,6 +22,7 @@ enum {
 	ErrorConnectionTooManyKAPacketsReceivedE,
 	ErrorConnectionKilledE,
 	ErrorConnectionLogicE,
+	ErrorConnectionResolveE,
 	ErrorConnectionDelayedClosedE,
 	ErrorConnectionMessageCanceledE,
 	ErrorConnectionEnterActiveE,
@@ -83,6 +84,9 @@ std::string ErrorCategory::message(int _ev) const{
 			break;
 		case ErrorConnectionLogicE:
 			oss<<"Connection: logic";
+			break;
+		case ErrorConnectionResolveE:
+			oss<<"Connection: resolve recipient name";
 			break;
 		case ErrorConnectionDelayedClosedE:
 			oss<<"Connection delayed closed";
@@ -175,6 +179,7 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_connection_too_many_keepalive_packets_received(ErrorConnectionTooManyKAPacketsReceivedE, category);
 /*extern*/ const ErrorConditionT error_connection_killed(ErrorConnectionKilledE, category);
 /*extern*/ const ErrorConditionT error_connection_logic(ErrorConnectionLogicE, category);
+/*extern*/ const ErrorConditionT error_connection_resolve(ErrorConnectionResolveE, category);
 /*extern*/ const ErrorConditionT error_connection_delayed_closed(ErrorConnectionDelayedClosedE, category);
 /*extern*/ const ErrorConditionT error_connection_message_canceled(ErrorConnectionMessageCanceledE, category);
 /*extern*/ const ErrorConditionT error_connection_enter_active(ErrorConnectionEnterActiveE, category);

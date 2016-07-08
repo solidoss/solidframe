@@ -433,7 +433,7 @@ protected:
 		FncT		f;	//!< Pointer to function
 		void		*p;	//!< Pointer to data
 		const char	*n;	//!< Some name - of the item serialized
-		uint64_t		s;	//!< Some size
+		uint64_t	s;	//!< Some size
 	};
 protected:
 	static ReturnValues setStringLimit(Base& _rd, FncData &_rfd, void */*_pctx*/);
@@ -620,16 +620,22 @@ protected:
 	//! Internal callback for storing a stream
 	static ReturnValues storeStream(Base &_rs, FncData &_rfd, void */*_pctx*/);
 	
-	template <class T, class Ser, uint32_t I>
-	static ReturnValues storeReinit(Base &_rs, FncData &_rfd, void */*_pctx*/){
+	template <class Ser>
+	static ReturnValues storeCall(Base &_rs, FncData &_rfd, void */*_pctx*/){
 		Ser				&rs(static_cast<Ser&>(_rs));
-		const uint32_t	val = _rfd.s;
+		//const uint32_t	val = _rfd.s;
 
 		if(!rs.cpb){
+			rs.estk.pop();
 			return SuccessE;
 		}
+		
+		typename Ser::CallT call = std::move(*rs.estk.top().template genericCast<typename Ser::CallT>());
+		
+		rs.estk.pop();
+		
+		ReturnValues rv = call(rs, _rfd.s, rs.err);
 
-		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val, rs.err);
 		if(rs.err){
 			rv = FailureE;
 		}else if(rv == FailureE){
@@ -638,21 +644,29 @@ protected:
 		return rv;
 	}
 	
-	template <class T, class Ser, uint32_t I, class Ctx>
-	static ReturnValues storeReinit(Base &_rs, FncData &_rfd, void *_pctx){
+	template <class Ser, class Ctx>
+	static ReturnValues storeCall(Base &_rs, FncData &_rfd, void *_pctx){
 		Ser				&rs(static_cast<Ser&>(_rs));
-		const uint32_t	val = _rfd.s;
+		//const uint32_t	val = _rfd.s;
 
 		if(!rs.cpb){
 			return SuccessE;
 		}
+		
 		Ctx 			&rctx = *reinterpret_cast<Ctx*>(_pctx);
-		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val, rctx, rs.err);
+		
+		typename Ser::CallT call = std::move(*rs.estk.top().template genericCast<typename Ser::CallT>());
+		
+		rs.estk.pop();
+		
+		ReturnValues rv = call(rs, rctx, _rfd.s, rs.err);
+		
 		if(rs.err){
 			rv = FailureE;
 		}else if(rv == FailureE){
 			rs.err = make_error(ERR_REINIT);
 		}
+		
 		return rv;
 	}
 	
@@ -855,10 +869,11 @@ class Serializer;
 template <>
 class Serializer<void>: public SerializerBase{
 public:
-	typedef void 						ContextT;
-	typedef Serializer<void>			SerializerT;
-	typedef SerializerBase				BaseT;
-	typedef TypeIdMapSer<SerializerT>	TypeIdMapT;
+	using ContextT		= void;
+	using SerializerT	= Serializer<ContextT>;
+	using BaseT			= SerializerBase;
+	using TypeIdMapT	= TypeIdMapSer<SerializerT>;
+	using CallT			= std::function<ReturnValues(SerializerT&, uint64_t, ErrorConditionT&)>;
 	
 	Serializer(
 		const TypeIdMapT *_ptypeidmap = nullptr
@@ -985,13 +1000,16 @@ public:
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeUtf8, const_cast<char*>(_str.c_str()), _name, _str.length() + 1));
 		return *this;
 	}
-	template <class T, uint32_t I>
-	SerializerT& pushReinit(
-		T *_pt, const uint64_t &_rval = 0, const char *_name = Base::default_name
-	){
-		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeReinit<T, SerializerT, I>, _pt, _name, _rval));
+	
+	template <class F>
+	SerializerT& pushCall(F _f, uint64_t _val, const char *_name = Base::default_name){
+		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeCall<SerializerT>, nullptr, _name, _val));
+		SerializerBase::estk.push(ExtendedData(0));
+		
+		SerializerBase::estk.top().generic(std::move(CallT(_f)));
 		return *this;
 	}
+	
 	SerializerT& pushStream(
 		std::istream *_ps, const char *_name = Base::default_name
 	){
@@ -1067,10 +1085,11 @@ private:
 template <class Ctx>
 class Serializer: public SerializerBase{
 public:
-	typedef Ctx 						ContextT;
-	typedef Serializer<Ctx>				SerializerT;
-	typedef SerializerBase				BaseT;
-	typedef TypeIdMapSer<SerializerT>	TypeIdMapT;
+	using ContextT		= Ctx;
+	using SerializerT	= Serializer<ContextT>;
+	using BaseT 		= SerializerBase;
+	using TypeIdMapT 	= TypeIdMapSer<SerializerT>;
+	using CallT 		= std::function<ReturnValues(SerializerT&, ContextT&, uint64_t, ErrorConditionT&)>;
 	
 	Serializer(
 		const TypeIdMapT *_ptypeidmap = nullptr
@@ -1213,13 +1232,17 @@ public:
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeUtf8, const_cast<char*>(_str.c_str()), _name, _str.length() + 1));
 		return *this;
 	}
-	template <class T, uint32_t I>
-	SerializerT& pushReinit(
-		T *_pt, const uint64_t &_rval = 0, const char *_name = Base::default_name
-	){
-		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeReinit<T, SerializerT, I, Ctx>, _pt, _name, _rval));
+	
+	
+	template <class F>
+	SerializerT& pushCall(F _f, uint64_t _val, const char *_name = Base::default_name){
+		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeCall<SerializerT, Ctx>, nullptr, _name, _val));
+		SerializerBase::estk.push(ExtendedData(0));
+		
+		SerializerBase::estk.top().generic(std::move(CallT(_f)));
 		return *this;
 	}
+	
 	SerializerT& pushStream(
 		std::istream *_ps, const char *_name = Base::default_name
 	){
@@ -1588,39 +1611,53 @@ protected:
 	*/
 	static ReturnValues loadDummyStream(Base &_rb, FncData &_rfd, void */*_pctx*/);
 	
-	template <class T, class Des, uint32_t I>
-	static ReturnValues loadReinit(Base &_rb, FncData &_rfd, void */*_pctx*/){
-		Des				&rd(static_cast<Des&>(_rb));
-		const uint32_t	val = _rfd.s;
-		
-		if(!rd.cpb){
+	template <class Des>
+	static ReturnValues loadCall(Base &_rs, FncData &_rfd, void */*_pctx*/){
+		Des				&rs(static_cast<Des&>(_rs));
+		//const uint32_t	val = _rfd.s;
+
+		if(!rs.cpb){
+			rs.estk.pop();
 			return SuccessE;
 		}
 		
-		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val, rd.err);
-		if(rd.err){
+		typename Des::CallT call = std::move(*rs.estk.top().template genericCast<typename Des::CallT>());
+		
+		rs.estk.pop();
+		
+		ReturnValues rv = call(rs, _rfd.s, rs.err);
+
+		if(rs.err){
 			rv = FailureE;
 		}else if(rv == FailureE){
-			rd.err = make_error(ERR_REINIT);
+			rs.err = make_error(ERR_REINIT);
 		}
 		return rv;
 	}
 	
-	template <class T, class Des, uint32_t I, class Ctx>
-	static ReturnValues loadReinit(Base &_rb, FncData &_rfd, void *_pctx){
-		Des				&rd(static_cast<Des&>(_rb));
+	template <class Des, class Ctx>
+	static ReturnValues loadCall(Base &_rs, FncData &_rfd, void *_pctx){
+		Des				&rs(static_cast<Des&>(_rs));
 		const uint32_t	val = _rfd.s;
-		
-		if(!rd.cpb){
+
+		if(!rs.cpb){
 			return SuccessE;
 		}
+		
 		Ctx 			&rctx = *reinterpret_cast<Ctx*>(_pctx);
-		ReturnValues rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val, rctx, rd.err);
-		if(rd.err){
+		
+		typename Des::CallT call = std::move(*rs.estk.top().template genericCast<typename Des::CallT>());
+		
+		rs.estk.pop();
+		
+		ReturnValues rv = call(rs, rctx, _rfd.s, rs.err);
+		
+		if(rs.err){
 			rv = FailureE;
 		}else if(rv == FailureE){
-			rd.err = make_error(ERR_REINIT);
+			rs.err = make_error(ERR_REINIT);
 		}
+		
 		return rv;
 	}
 	
@@ -1827,10 +1864,11 @@ class Deserializer;
 template <>
 class Deserializer<void>: public DeserializerBase{
 public:
-	typedef void 						ContextT;
-	typedef Deserializer<void>			DeserializerT;
-	typedef DeserializerBase			BaseT;
-	typedef TypeIdMapDes<DeserializerT>	TypeIdMapT;
+	using ContextT		= void;
+	using DeserializerT = Deserializer<ContextT>;
+	using BaseT 		= DeserializerBase;
+	using TypeIdMapT 	= TypeIdMapSer<DeserializerT>;
+	using CallT 		= std::function<ReturnValues(DeserializerT&, uint64_t, ErrorConditionT&)>;
 	
 	Deserializer(
 		const TypeIdMapT *_ptypeidmap = nullptr
@@ -1909,13 +1947,15 @@ public:
 		return *this;
 	}
 	
-	template <class T, uint32_t I>
-	Deserializer& pushReinit(
-		T *_pt, const uint64_t &_rval = 0, const char *_name = Base::default_name
-	){
-		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadReinit<T, DeserializerT, I>, _pt, _name, _rval));
+	template <class F>
+	DeserializerT& pushCall(F _f, uint64_t _val, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::template loadCall<DeserializerT>, nullptr, _name, _val));
+		DeserializerBase::estk.push(ExtendedData(0));
+		
+		DeserializerBase::estk.top().generic(std::move(CallT(_f)));
 		return *this;
 	}
+	
 	//! Schedules a std (style) container for deserialization
 	template <typename T>
 	Deserializer& pushContainer(T &_t, const char *_name = Base::default_name){
@@ -2038,10 +2078,11 @@ private:
 template <class Ctx>
 class Deserializer: public DeserializerBase{
 public:
-	typedef Ctx 						ContextT;
-	typedef Deserializer<Ctx>			DeserializerT;
-	typedef DeserializerBase			BaseT;
-	typedef TypeIdMapDes<DeserializerT>	TypeIdMapT;
+	using ContextT = Ctx;
+	using DeserializerT = Deserializer<ContextT>;
+	using BaseT = DeserializerBase;
+	using TypeIdMapT = TypeIdMapSer<DeserializerT>;
+	using CallT = std::function<ReturnValues(DeserializerT&, ContextT&, uint64_t, ErrorConditionT&)>;
 	
 	Deserializer(
 		const TypeIdMapT *_ptypeidmap = nullptr
@@ -2140,11 +2181,12 @@ public:
 		return *this;
 	}
 	
-	template <class T, uint32_t I>
-	Deserializer& pushReinit(
-		T *_pt, const uint64_t &_rval = 0, const char *_name = Base::default_name
-	){
-		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadReinit<T, DeserializerT, I, ContextT>, _pt, _name, _rval));
+	template <class F>
+	DeserializerT& pushCall(F _f, uint64_t _val, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::template loadCall<DeserializerT, Ctx>, nullptr, _name, _val));
+		DeserializerBase::estk.push(ExtendedData(0));
+		
+		DeserializerBase::estk.top().generic(std::move(CallT(_f)));
 		return *this;
 	}
 	//! Schedules a std (style) container for deserialization

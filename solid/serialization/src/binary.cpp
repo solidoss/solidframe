@@ -501,14 +501,14 @@ ReturnValues SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx
 	idbgx(Debug::ser_bin, "");
 	if(!rs.cpb) return SuccessE;
 	
-	int32_t		toread = rs.be - rs.cpb;
+	uint64_t		toread = rs.be - rs.cpb;
 	
 	if(toread < MIN_STREAM_BUFFER_SIZE) return WaitE;
 	
 	toread -= 2;//the buffsize
 	
-	if(toread > static_cast<int32_t>(_rfd.s)){
-		toread = static_cast<int32_t>(_rfd.s);
+	if(toread > _rfd.s){
+		toread = _rfd.s;
 	}
 	
 	if(toread > max_value_without_crc_16()){
@@ -519,14 +519,16 @@ ReturnValues SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx
 		rs.cpb = storeValue(rs.cpb, (uint16_t)0);
 		return SuccessE;
 	}
+	
 	std::istream	&ris = *reinterpret_cast<std::istream*>(_rfd.p);
 	ris.read(rs.cpb + 2, toread);
 	
 	int rv;
-	if(ris.eof() || ris.fail()){
-		rv = -1;
-	}else{
+	
+	if(ris){
 		rv = ris.gcount();
+	}else{
+		rv = 0;
 	}
 	
 	idbgx(Debug::ser_bin, "toread = "<<toread<<" rv = "<<rv);
@@ -1264,7 +1266,7 @@ ReturnValues DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void *
 	}
 	
 	std::string		*ps = reinterpret_cast<std::string*>(_rfd.p);
-	
+	ps->clear();
 	pcheckfnc(*ps, rd.cpb, len);
 	
 	idbgx(Debug::ser_bin, (ps->capacity() - ps->size())<<' '<<len<<' '<<trim_str(rd.cpb, len, 4, 4));
@@ -1332,7 +1334,7 @@ ReturnValues DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_pct
 	
 	if(!rd.cpb) return SuccessE;
 	
-	int32_t				towrite = rd.be - rd.cpb;
+	uint64_t				towrite = rd.be - rd.cpb;
 	
 	if(towrite < 2){
 		return WaitE;
@@ -1340,8 +1342,8 @@ ReturnValues DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_pct
 	towrite -= 2;
 	
 	
-	if(towrite > static_cast<int32_t>(_rfd.s)){
-		towrite = static_cast<int32_t>(_rfd.s);
+	if(towrite > _rfd.s){
+		towrite = _rfd.s;
 	}
 	
 	uint16_t				sz(0);

@@ -29,37 +29,51 @@ using namespace solid;
 struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
-	void serialize(S &_s){
-		_s.push(no, "Test::no").template pushReinit<Test, 0>(this, 0, "Test::reinit").push(fn,"Test::fn");
-	}
-	
-	template <class S, uint32_t I>
-	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64_t &_rv, ErrorConditionT &_rerr){
+	serialization::binary::ReturnValues serializationReinit(S &_rs, uint64_t _rv, ErrorConditionT &_rerr){
 		idbg("_rv = "<<_rv);
 		if(_rv == 1){
 			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamError().message());
 			return serialization::binary::SuccessE;
 		}
 		if(S::IsSerializer){
+			idbg("open file: "<<fn);
 			fs.open(fn.c_str());
+			if(fs){
+				idbg("success open");
+			}else{
+				idbg("fail open");
+			}
 			_rs.pop();
-			_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+			_rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 1, "Test::reinit");
 			istream *ps = &fs;
 			_rs.pushStream(ps, "Test::istream");
 		}else{
 			fn += ".xxx";
-			fs.open(fn.c_str());
+			idbg("open file: "<<fn);
+			fs.open(fn.c_str(), fstream::out | fstream::binary);
+			if(fs){
+				idbg("success open");
+			}else{
+				idbg("fail open");
+			}
+			
 			_rs.pop();
-			_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+			_rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 1, "Test::reinit");
 			ostream *ps = &fs;
 			_rs.pushStream(ps, "Test::ostream");
 		}
 		return serialization::binary::ContinueE;
 	}
 	
+	template <class S>
+	void serialize(S &_s){
+		_s.push(no, "Test::no").template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 0, "Test::call").push(fn,"Test::fn");
+	}
+	
+	
 	void print();
 private:
-	int32_t 		no;
+	int32_t 	no;
 	string		fn;
 	fstream		fs;
 };

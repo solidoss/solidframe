@@ -50,9 +50,12 @@ struct AccountData{
 using AccountDataDequeT = std::deque<AccountData>;
 
 AccountDataDequeT	account_dq = {
-	{"user1", "Super Man", "user1@email.com", "romania", "bucharest", {11, 1, 2001}},
-	{"user2", "Spider Man", "user2@email.com", "romania", "bucharest", {12, 2, 2002}},
-	{"user3", "Ant Man", "user3@email.com", "romania", "bucharest", {13, 3, 2003}},
+	{"user1", "Super Man", "user1@email.com", "RO", "bucharest", {11, 1, 2001}},
+	{"user2", "Spider Man", "user2@email.com", "RO", "bucharest", {12, 2, 2002}},
+	{"user3", "Ant Man", "user3@email.com", "RO", "bucharest", {13, 3, 2003}},
+	{"iron_man", "Iron Man", "gigel1@email.com", "UK", "london", {11,4,2004}},
+	{"dragon_man", "Dragon Man", "gigel2@email.com", "FR", "paris", {12,5,2005}},
+	{"frog_man", "Frog Man", "gigel3@email.com", "PL", "warsaw", {13,6,2006}},
 };
 
 ipc_request::UserData make_user_data(const AccountData &_rad){
@@ -116,7 +119,6 @@ void complete_message<ipc_request::Response>(
 	SOLID_CHECK(not _rerror);
 	SOLID_CHECK(not _rrecv_msg_ptr);
 	SOLID_CHECK(_rsent_msg_ptr);
-	
 }
 
 template <typename T>

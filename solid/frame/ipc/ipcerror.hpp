@@ -24,6 +24,7 @@ extern const ErrorConditionT error_connection_enter_active;
 extern const ErrorConditionT error_connection_stopping;
 extern const ErrorConditionT error_connection_invalid_state;
 extern const ErrorConditionT error_connection_logic;
+extern const ErrorConditionT error_connection_resolve;
 extern const ErrorConditionT error_connection_message_canceled;
 extern const ErrorConditionT error_connection_message_fail_send;
 
