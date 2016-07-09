@@ -521,11 +521,11 @@ ReturnValues SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx
 	}
 	
 	std::istream	&ris = *reinterpret_cast<std::istream*>(_rfd.p);
-	ris.read(rs.cpb + 2, toread);
 	
 	int rv;
 	
 	if(ris){
+		ris.read(rs.cpb + 2, toread);
 		rv = ris.gcount();
 	}else{
 		rv = 0;
