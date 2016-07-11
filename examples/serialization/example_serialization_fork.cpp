@@ -41,7 +41,7 @@ struct Test{
 	}
 	void print();
 private:
-	int32_t 		no;
+	int32_t 	no;
 	string		fn;
 	fstream		fs;
 };
@@ -55,7 +55,7 @@ Test::Test(const char *_fn):fn(_fn?_fn:""){
 			idbg("failed open read");
 		}
 	}else{
-		fs.open("output.out");
+		fs.open("output.out", fstream::out | fstream::binary);
 		if(!fs.is_open()){
 			idbg("failed open write");
 		}

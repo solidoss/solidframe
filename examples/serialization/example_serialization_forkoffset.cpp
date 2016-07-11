@@ -38,52 +38,46 @@ struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
 	void serialize(S &_s){
-		_s.push(no, "Test::no").template pushReinit<Test, 0>(this, 0, "Test::reinit").push(fn,"Test::fn");
+		_s.push(no, "Test::no").template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 0, "Test::call").push(fn,"Test::fn");
 	}
 	
-	template <class S, uint32_t I>
-	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64_t &_rv, ErrorConditionT &_rerr){
+	template <class S>
+	void serializationReinit(S &_rs, const uint64_t &_rv, ErrorConditionT &_rerr){
 		idbg("_rv = "<<_rv);
 		if(_rv == 0){
 			if(S::IsSerializer){
 				fs.open(fn.c_str());
-				_rs.pop();
 				offset = stream_size(fs)/2;
-				_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+				_rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 1, "Test::reinit");
 				_rs.push(offset, "offset");
 			}else{
-				_rs.pop();
-				_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+				_rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 1, "Test::reinit");
 				_rs.push(offset, "offset");
 			}
 		}else if(_rv == 1){
 			if(S::IsSerializer){
-				_rs.pop();
-				_rs.template pushReinit<Test, 0>(this, 2, "Test::reinit");
+				_rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 2, "Test::reinit");
 				idbg("put stream from "<<offset<<" len = "<<stream_size(fs)/2);
 				istream *ps = &fs;
 				_rs.pushStream(ps, offset, stream_size(fs)/2, "Test::istream");
 			}else{
 				fn += ".xxx";
-				fs.open(fn.c_str());
-				_rs.pop();
-				_rs.template pushReinit<Test, 0>(this, 2, "Test::reinit");
+				fs.open(fn.c_str(), fstream::out | fstream::binary);
+				_rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 2, "Test::reinit");
 				ostream *ps = &fs;
 				_rs.pushStream(ps, 0, 1000, "Test::ostream");
 			}	
 		}else{
 			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamError().message());
-			return serialization::binary::SuccessE;
 		}
 		
-		return serialization::binary::ContinueE;
 	}
 	
 	void print();
 private:
-	int32_t 		no;
+	int32_t 	no;
 	string		fn;
-	uint64_t		offset;
+	uint64_t	offset;
 	fstream		fs;
 };
 ///\endcond

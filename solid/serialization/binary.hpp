@@ -634,14 +634,14 @@ protected:
 		
 		rs.estk.pop();
 		
-		ReturnValues rv = call(rs, _rfd.s, rs.err);
+		call(rs, _rfd.s, rs.err);
 
 		if(rs.err){
-			rv = FailureE;
-		}else if(rv == FailureE){
-			rs.err = make_error(ERR_REINIT);
+			_rfd.f = storeReturnError;
+		}else{
+			_rfd.f = storeReturnSuccess;
 		}
-		return rv;
+		return ContinueE;
 	}
 	
 	template <class Ser, class Ctx>
@@ -659,15 +659,14 @@ protected:
 		
 		rs.estk.pop();
 		
-		ReturnValues rv = call(rs, rctx, _rfd.s, rs.err);
+		call(rs, rctx, _rfd.s, rs.err);
 		
 		if(rs.err){
-			rv = FailureE;
-		}else if(rv == FailureE){
-			rs.err = make_error(ERR_REINIT);
+			_rfd.f = storeReturnError;
+		}else{
+			_rfd.f = storeReturnSuccess;
 		}
-		
-		return rv;
+		return ContinueE;
 	}
 	
 	static ReturnValues storeReturnError(Base &_rs, FncData &_rfd, void */*_pctx*/){
@@ -676,6 +675,9 @@ protected:
 			rs.err = make_error(static_cast<Errors>(_rfd.s));
 		}
 		return FailureE;
+	}
+	static ReturnValues storeReturnSuccess(Base &_rs, FncData &_rfd, void */*_pctx*/){
+		return SuccessE;
 	}
 	
 	void doPushStringLimit();
@@ -873,7 +875,7 @@ public:
 	using SerializerT	= Serializer<ContextT>;
 	using BaseT			= SerializerBase;
 	using TypeIdMapT	= TypeIdMapSer<SerializerT>;
-	using CallT			= std::function<ReturnValues(SerializerT&, uint64_t, ErrorConditionT&)>;
+	using CallT			= std::function<void(SerializerT&, uint64_t, ErrorConditionT&)>;
 	
 	Serializer(
 		const TypeIdMapT *_ptypeidmap = nullptr
@@ -911,6 +913,12 @@ public:
 	}
 	SerializerT& pushContainerLimit(size_t _v){
 		SerializerBase::doPushContainerLimit(_v);
+		return *this;
+	}
+	
+	template <size_t V>
+	SerializerT & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
+		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBinary<0>, _rarray.data(), _name, V));
 		return *this;
 	}
 	
@@ -1089,7 +1097,7 @@ public:
 	using SerializerT	= Serializer<ContextT>;
 	using BaseT 		= SerializerBase;
 	using TypeIdMapT 	= TypeIdMapSer<SerializerT>;
-	using CallT 		= std::function<ReturnValues(SerializerT&, ContextT&, uint64_t, ErrorConditionT&)>;
+	using CallT 		= std::function<void(SerializerT&, ContextT&, uint64_t, ErrorConditionT&)>;
 	
 	Serializer(
 		const TypeIdMapT *_ptypeidmap = nullptr
@@ -1129,6 +1137,12 @@ public:
 	}
 	SerializerT& pushContainerLimit(size_t _v){
 		SerializerBase::doPushContainerLimit(_v);
+		return *this;
+	}
+	
+	template <size_t V>
+	SerializerT & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
+		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBinary<0>, _rarray.data(), _name, V));
 		return *this;
 	}
 	
@@ -1585,7 +1599,12 @@ protected:
 	static ReturnValues loadArrayContinue(Base &_rb, FncData &_rfd, void */*_pctx*/){
 		Des					&rd(static_cast<Des&>(_rb));
 		const uint64_t		&rsz = rd.estk.top().first_uint64_t_value();
-		uint64_t				&ri = rd.estk.top().second_uint64_t_value();
+		uint64_t			&ri = rd.estk.top().second_uint64_t_value();
+		
+		if(!rd.cpb){
+			rd.estk.pop();
+			return SuccessE;
+		}
 		
 		idbgx(Debug::ser_bin, "load generic array continue "<<_rfd.n<<" idx = "<<ri<<" sz = "<<rsz);
 		
@@ -1625,14 +1644,14 @@ protected:
 		
 		rs.estk.pop();
 		
-		ReturnValues rv = call(rs, _rfd.s, rs.err);
+		call(rs, _rfd.s, rs.err);
 
 		if(rs.err){
-			rv = FailureE;
-		}else if(rv == FailureE){
-			rs.err = make_error(ERR_REINIT);
+			_rfd.f = loadReturnError;
+		}else{
+			_rfd.f = loadReturnSuccess;
 		}
-		return rv;
+		return ContinueE;
 	}
 	
 	template <class Des, class Ctx>
@@ -1650,15 +1669,14 @@ protected:
 		
 		rs.estk.pop();
 		
-		ReturnValues rv = call(rs, rctx, _rfd.s, rs.err);
+		call(rs, rctx, _rfd.s, rs.err);
 		
 		if(rs.err){
-			rv = FailureE;
-		}else if(rv == FailureE){
-			rs.err = make_error(ERR_REINIT);
+			_rfd.f = loadReturnError;
+		}else{
+			_rfd.f = loadReturnSuccess;
 		}
-		
-		return rv;
+		return ContinueE;
 	}
 	
 	static ReturnValues loadReturnError(Base &_rs, FncData &_rfd, void */*_pctx*/){
@@ -1667,6 +1685,10 @@ protected:
 			rs.err = make_error(static_cast<Errors>(_rfd.s));
 		}
 		return FailureE;
+	}
+	
+	static ReturnValues loadReturnSuccess(Base &_rs, FncData &_rfd, void */*_pctx*/){
+		return SuccessE;
 	}
 	
 	void doPushStringLimit();
@@ -1837,6 +1859,7 @@ struct DeserializerPushHelper<int64_t>{
 template <>
 struct DeserializerPushHelper<std::string>{
 	void operator()(DeserializerBase &_rs, std::string &_rv, const char *_name, bool _b = false){
+		_rv.clear();
 		_rs.fstk.push(DeserializerBase::FncData(&DeserializerBase::load<std::string>, &_rv, _name));
 	}
 };
@@ -1867,8 +1890,8 @@ public:
 	using ContextT		= void;
 	using DeserializerT = Deserializer<ContextT>;
 	using BaseT 		= DeserializerBase;
-	using TypeIdMapT 	= TypeIdMapSer<DeserializerT>;
-	using CallT 		= std::function<ReturnValues(DeserializerT&, uint64_t, ErrorConditionT&)>;
+	using TypeIdMapT 	= TypeIdMapDes<DeserializerT>;
+	using CallT 		= std::function<void(DeserializerT&, uint64_t, ErrorConditionT&)>;
 	
 	Deserializer(
 		const TypeIdMapT *_ptypeidmap = nullptr
@@ -1906,6 +1929,12 @@ public:
 	}
 	Deserializer& pushContainerLimit(size_t _v){
 		this->doPushContainerLimit(_v);
+		return *this;
+	}
+	
+	template <size_t V>
+	Deserializer & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBinary<0>, _rarray.data(), _name, V));
 		return *this;
 	}
 	
@@ -2078,11 +2107,11 @@ private:
 template <class Ctx>
 class Deserializer: public DeserializerBase{
 public:
-	using ContextT = Ctx;
+	using ContextT 		= Ctx;
 	using DeserializerT = Deserializer<ContextT>;
-	using BaseT = DeserializerBase;
-	using TypeIdMapT = TypeIdMapSer<DeserializerT>;
-	using CallT = std::function<ReturnValues(DeserializerT&, ContextT&, uint64_t, ErrorConditionT&)>;
+	using BaseT 		= DeserializerBase;
+	using TypeIdMapT 	= TypeIdMapDes<DeserializerT>;
+	using CallT 		= std::function<void(DeserializerT&, ContextT&, uint64_t, ErrorConditionT&)>;
 	
 	Deserializer(
 		const TypeIdMapT *_ptypeidmap = nullptr
@@ -2121,6 +2150,12 @@ public:
 	}
 	Deserializer& pushContainerLimit(size_t _v){
 		this->doPushContainerLimit(_v);
+		return *this;
+	}
+	
+	template <size_t V>
+	Deserializer & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBinary<0>, _rarray.data(), _name, V));
 		return *this;
 	}
 	

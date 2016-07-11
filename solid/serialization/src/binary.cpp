@@ -1266,7 +1266,7 @@ ReturnValues DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void *
 	}
 	
 	std::string		*ps = reinterpret_cast<std::string*>(_rfd.p);
-	ps->clear();
+	
 	pcheckfnc(*ps, rd.cpb, len);
 	
 	idbgx(Debug::ser_bin, (ps->capacity() - ps->size())<<' '<<len<<' '<<trim_str(rd.cpb, len, 4, 4));
@@ -1505,9 +1505,9 @@ ReturnValues DeserializerBase::loadUtf8(Base &_rb, FncData &_rfd, void */*_pctx*
 	memcpy(const_cast<char*>(rd.tmpstr.data()) + _rfd.s, rd.cpb, toread);
 	
 	rd.cpb += toread;
-	_rfd.s -= toread;
+	_rfd.s += toread;
 	
-	if(_rfd.s){
+	if(_rfd.s < rd.tmpstr.size()){
 		return WaitE;
 	}
 	return SuccessE;
@@ -1636,7 +1636,7 @@ template <>
 	if(!len) return WaitE;
 	
 	const unsigned	vsz = crossSize(rd.cpb);
-	uint64_t			&v = *reinterpret_cast<uint64_t*>(_rfd.p);
+	uint64_t		&v = *reinterpret_cast<uint64_t*>(_rfd.p);
 	
 	if(vsz <= len){
 		const char *p =  binary::crossLoad(rd.cpb, v);

@@ -73,10 +73,11 @@ public:
 	}
 	template <class S>
 	void serialize(S &_s){
-		_s.template pushReinit<Container, 0>(this, 0, "reinit");
+		_s.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 0, "Test::call");
 	}
-	template <class S, uint32_t I>
-	serialization::binary::ReturnValues serializationReinit(S &_rs, const uint64_t &_rv, ErrorConditionT &_rerr){
+	
+	template <class S>
+	void serializationReinit(S &_rs, const uint64_t &_rv, ErrorConditionT &_rerr){
 		if(S::IsSerializer){
 			idbg("ser 1");
 			if(crtidx < tstvec.size()){
@@ -93,25 +94,24 @@ public:
 					_rs.push(crtsndmsg, "typeid");
 				}
 				
-				return serialization::binary::ContinueE;
+				return;
 			}else if(crtidx == tstvec.size()){
 				idbg("ser 3");
 				++crtidx;
 				crtsndmsg = 0xff;
 				_rs.push(crtsndmsg, "typeid");
-				return serialization::binary::ContinueE;
+				return;
 			}else{
 				idbg("ser 4");
-				return serialization::binary::SuccessE;
+				return;
 			}
 		}else{
-			if(I == 0){
+			if(_rv == 0){
 				idbg("des 1");
-				_rs.template pushReinit<Container, 1>(this, 0, "reinit");
+				_rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 1, "Test::call");
 				_rs.push(crtrcvmsg, "typeid");
 			}else{
 				idbg("des 2");
-				_rs.pop();
 				if(crtrcvmsg == TestA::staticTypeId()){
 					TestA *pmsg = new TestA;
 					tstvec.push_back(pmsg);
@@ -121,10 +121,10 @@ public:
 					tstvec.push_back(pmsg);
 					_rs.push(*pmsg, "message");
 				}else{
-					return serialization::binary::SuccessE;
+					return;
 				}
 			}
-			return serialization::binary::ContinueE;
+			return;
 		}
 	}
 private:

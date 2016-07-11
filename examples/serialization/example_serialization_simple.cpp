@@ -57,28 +57,34 @@ struct TestC{
 };
 
 struct TestD{
+	int32_t							a;
+	SocketAddressInet4::DataArrayT	addr;
+	uint16_t						port;
+	
 	TestD(
-		const char *_paddr = NULL,
+		const char *_paddr = nullptr,
 		solid::uint _port = 0,
 		int _a = 4
 	):a(_a){
 		if(_paddr){
 			ResolveData rd = synchronous_resolve(_paddr, _port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 			if(!rd.empty()){
-				sa = rd.begin();
+				SocketAddressInet4 sa(rd.begin());
+				sa.toBinary(addr, port);
 			}
 		}
 	}
-	int32_t				a;
-	SocketAddressInet4	sa;
+	
 	void print()const {
 		cout<<"testd: a  = "<<a<<endl;
 		string				hoststr;
 		string				portstr;
+		SocketAddressInet4	sock_addr(addr, port);
+		
 		synchronous_resolve(
 			hoststr,
 			portstr,
-			sa,
+			sock_addr,
 			ReverseResolveInfo::Numeric
 		);
 		cout<<"testd: sa = "<<hoststr<<':'<<portstr<<endl;
@@ -87,9 +93,8 @@ struct TestD{
 	template <class S>
 	void serialize(S &_s){
 		_s.push(a, "b::a");
-		const SocketAddressInet4 &rsa = sa;
-		const sockaddr *psa = rsa;
-		_s.pushBinary((void*)psa, SocketAddressInet4::Capacity, "sockaddr");
+		_s.push(addr, "addr");
+		_s.push(port, "port");
 	}
 };
 
@@ -154,9 +159,9 @@ private:
 
 struct IntegerVector: Base{
 	typedef vector<uint32_t> 	IntVecT;
-	IntegerVector():piv1(NULL), piv2(NULL) {
+	IntegerVector():piv1(nullptr), piv2(nullptr) {
 	}
-	IntegerVector(bool):piv1(new IntVecT), piv2(NULL) {
+	IntegerVector(bool):piv1(new IntVecT), piv2(nullptr) {
 		piv1->push_back(1);
 		piv1->push_back(2);
 	}
@@ -186,7 +191,7 @@ void serialize(S &_s, IntegerVector &_iv){
 
 struct Array: Base{
 	Array(){
-		pta = NULL;
+		pta = nullptr;
 		ptasz = 0;
 		pta1 = (TestA*)1;
 		pta1sz = 0;
@@ -196,7 +201,7 @@ struct Array: Base{
 		sa[0] = "first";
 		sa[1] = "second";
 		sa[2] = "third";
-		pta1 = NULL;
+		pta1 = nullptr;
 		pta1sz = 0;
 		pta = new TestA[10];
 		ptasz = 10;
@@ -220,7 +225,7 @@ struct Array: Base{
 		_s.pushArray(sa, sasz, "sa");
 		//_s.pushDynamicArray(pta, ptasz, "pta");
 		//_s.pushDynamicArray(pta1, pta1sz, "pta1");
-		_s.pushArray(td, tdsz, "td");
+		//_s.pushArray(td, tdsz, "td");
 	}
 	void print()const;
 	
@@ -330,7 +335,7 @@ int main(int argc, char *argv[]){
 	tm.registerCast<IntegerVector, Base>();
 	tm.registerCast<Array, Base>();
 	
-	//const char* str = NULL;
+	//const char* str = nullptr;
 	for(int i = 0; i < 1; ++i){
 		{	
 			idbg("");
@@ -370,19 +375,22 @@ int main(int argc, char *argv[]){
 			b3->print();
 			b4->print();
 			
-			ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
+			//ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
 			idbg("");
-			ser.push(s, "string").pushContainer(sdq, "names");
+			//ser.push(s, "string").pushContainer(sdq, "names");
 			idbg("");
-			ser.push(b1, /*tm, STRING_DEFAULT_TYPE_INDEX,*/ "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+			//ser.push(b1, "basestring");
+			ser.push(b2, "baseui");
+			ser.push(b3, "baseiv");
+			//ser.push(b4, "basea");
 			
 			PairIntDeqT pidq;
 			pidq.push_back(pair<int32_t, int32_t>(1,2));
 			pidq.push_back(pair<int32_t, int32_t>(2,3));
 			pidq.push_back(pair<int32_t, int32_t>(3,4));
-			ser.pushContainer(pidq, "pidq");
+			//ser.pushContainer(pidq, "pidq");
 			pair<int32_t,int32_t> ppi(1,2);
-			ser.push(ppi, "pi");
+			//ser.push(ppi, "pi");
 			for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
 				cout<<"("<<it->first<<','<<it->second<<')';
 			}
@@ -409,26 +417,28 @@ int main(int argc, char *argv[]){
 			TestC				tc;
 			StrDeqT				sdq;
 			string				s;
-			Base				*b1 = NULL;
-			Base				*b2 = NULL;
-			Base				*b3 = NULL;
-			Base				*b4 = NULL;
+			Base				*b1 = nullptr;
+			Base				*b2 = nullptr;
+			Base				*b3 = nullptr;
+			Base				*b4 = nullptr;
 			
-			des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
+			//des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
 			idbg("");
-			des.push(s, "string").pushContainer(sdq, "names");
+			//des.push(s, "string").pushContainer(sdq, "names");
 			idbg("");
 			des.pushStringLimit();
-			des.push(b1, "basestring");
+			//des.push(b1, "basestring");
 			des.pushStringLimit(100);
-			des.push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+			des.push(b2, "baseui");
+			des.push(b3, "baseiv");
+			//des.push(b4, "basea");
 			idbg("");
 			int v = 0;
 			int cnt = 0;
 			PairIntDeqT pidq;
-			des.pushContainer(pidq, "pidq");
+			//des.pushContainer(pidq, "pidq");
 			pair<int32_t,int32_t> ppi;
-			des.push(ppi, "pi");
+			//des.push(ppi, "pi");
 			while((rv = des.run(bufs[v], blen)) == blen){
 				cnt += rv;
 				++v;
@@ -446,7 +456,7 @@ int main(int argc, char *argv[]){
 			print(sdq);
 			if(b1)b1->print();
 			if(b2)b2->print();
-			b3->print();
+			if(b3)b3->print();
 			if(b4)b4->print();
 			for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
 				cout<<"("<<it->first<<','<<it->second<<')';

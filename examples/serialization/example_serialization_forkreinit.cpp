@@ -29,11 +29,11 @@ using namespace solid;
 struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
-	serialization::binary::ReturnValues serializationReinit(S &_rs, uint64_t _rv, ErrorConditionT &_rerr){
+	void serializationReinit(S &_rs, uint64_t _rv, ErrorConditionT &_rerr){
 		idbg("_rv = "<<_rv);
 		if(_rv == 1){
 			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamError().message());
-			return serialization::binary::SuccessE;
+			return;
 		}
 		if(S::IsSerializer){
 			idbg("open file: "<<fn);
@@ -43,7 +43,6 @@ struct Test{
 			}else{
 				idbg("fail open");
 			}
-			_rs.pop();
 			_rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 1, "Test::reinit");
 			istream *ps = &fs;
 			_rs.pushStream(ps, "Test::istream");
@@ -57,12 +56,10 @@ struct Test{
 				idbg("fail open");
 			}
 			
-			_rs.pop();
 			_rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 1, "Test::reinit");
 			ostream *ps = &fs;
 			_rs.pushStream(ps, "Test::ostream");
 		}
-		return serialization::binary::ContinueE;
 	}
 	
 	template <class S>

@@ -63,6 +63,10 @@ struct TestC{
 };
 
 struct TestD{
+	int32_t							a;
+	SocketAddressInet4::DataArrayT	addr;
+	uint16_t						port;
+	
 	TestD(
 		const char *_paddr = NULL,
 		solid::uint _port = 0,
@@ -71,20 +75,22 @@ struct TestD{
 		if(_paddr){
 			ResolveData rd = synchronous_resolve(_paddr, _port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 			if(!rd.empty()){
-				sa = rd.begin();
+				SocketAddressInet4 sa(rd.begin());
+				sa.toBinary(addr, port);
 			}
 		}
 	}
-	int32_t				a;
-	SocketAddressInet4	sa;
+	
 	void print()const {
 		cout<<"testd: a  = "<<a<<endl;
 		string				hoststr;
 		string				portstr;
+		SocketAddressInet4	sock_addr(addr, port);
+		
 		synchronous_resolve(
 			hoststr,
 			portstr,
-			sa,
+			sock_addr,
 			ReverseResolveInfo::Numeric
 		);
 		cout<<"testd: sa = "<<hoststr<<':'<<portstr<<endl;
@@ -93,9 +99,8 @@ struct TestD{
 	template <class S>
 	void serialize(S &_s, Context &){
 		_s.push(a, "b::a");
-		const SocketAddressInet4 &rsa = sa;
-		const sockaddr *psa = rsa;
-		_s.pushBinary((void*)psa, SocketAddressInet4::Capacity, "sockaddr");
+		_s.push(addr, "addr");
+		_s.push(port, "port");
 	}
 };
 
@@ -195,17 +200,19 @@ void serialize(S &_s, IntegerVector &_iv, Context &_rctx){
 
 struct Array: Base{
 	Array(){
-		pta = NULL;
-		ptasz = InvalidSize();
+		sasz = 0;
+		pta = nullptr;
+		ptasz = 0;
 		pta1 = (TestA*)1;
-		pta1sz = InvalidSize();
+		pta1sz = 0;
+		tdsz = 0;
 	}
 	Array(bool){
 		sasz = 3;
 		sa[0] = "first";
 		sa[1] = "second";
 		sa[2] = "third";
-		pta1 = NULL;
+		pta1 = nullptr;
 		pta1sz = 0;
 		pta = new TestA[10];
 		ptasz = 10;
@@ -260,6 +267,7 @@ void Array::print() const{
 		pta[i].print();
 	}
 	cout<<"}pta"<<endl;
+	cout<<"pta1sz = "<<pta1sz<<endl;
 	cout<<"pta1 = "<<(void*)pta1<<"{"<<endl;
 	for(int i(0); i < static_cast<int>(pta1sz); ++i){
 		pta1[i].print();
@@ -310,7 +318,7 @@ enum{
 
 int main(int argc, char *argv[]){
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask();
+	Debug::the().levelMask("");
 	Debug::the().moduleMask();
 	Debug::the().initStdErr(false);
 #endif
@@ -343,6 +351,8 @@ int main(int argc, char *argv[]){
 	tm.registerCast<UnsignedInteger, Base>();
 	tm.registerCast<IntegerVector, Base>();
 	tm.registerCast<Array, Base>();
+	
+	
 	//const char* str = NULL;
 	for(int i = 0; i < 1; ++i){
 		{	
@@ -388,7 +398,8 @@ int main(int argc, char *argv[]){
 			idbg("");
 			ser.push(s, "string").pushContainer(sdq, "names");
 			idbg("");
-			ser.push(b1, /*tm, STRING_DEFAULT_TYPE_INDEX,*/ "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+			ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
+			ser.push(b4, "basea");
 			
 			PairIntDeqT pidq;
 			pidq.push_back(pair<int32_t, int32_t>(1,2));
@@ -425,9 +436,9 @@ int main(int argc, char *argv[]){
 			StrDeqT					sdq;
 			string					s;
 			std::shared_ptr<Base>	b1;
-			Base					*b2 = NULL;
-			Base					*b3 = NULL;
-			Base					*b4 = NULL;
+			Base					*b2 = nullptr;
+			Base					*b3 = nullptr;
+			Base					*b4 = nullptr;
 			
 			des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
 			idbg("");
@@ -436,7 +447,8 @@ int main(int argc, char *argv[]){
 			des.pushStringLimit();
 			des.push(b1, "basestring");
 			des.pushStringLimit(100);
-			des.push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+			des.push(b2, "baseui").push(b3, "baseiv");
+			des.push(b4, "basea");
 			idbg("");
 			int v = 0;
 			int cnt = 0;
