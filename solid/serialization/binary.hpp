@@ -1657,8 +1657,7 @@ protected:
 	template <class Des, class Ctx>
 	static ReturnValues loadCall(Base &_rs, FncData &_rfd, void *_pctx){
 		Des				&rs(static_cast<Des&>(_rs));
-		const uint32_t	val = _rfd.s;
-
+		
 		if(!rs.cpb){
 			return SuccessE;
 		}

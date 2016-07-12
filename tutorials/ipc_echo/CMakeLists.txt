@@ -9,9 +9,6 @@ target_link_libraries (tutorial_ipc_echo_server
 	solid_utility
 	solid_system
 	${OPENSSL_LIBS}
-	${BOOST_PROGRAM_OPTIONS_LIB}
-	${BOOST_SYSTEM_LIB}
-	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )
@@ -26,9 +23,6 @@ target_link_libraries (tutorial_ipc_echo_client
 	solid_serialization
 	solid_utility
 	solid_system
-	${OPENSSL_LIBS}
-	${BOOST_PROGRAM_OPTIONS_LIB}
-	${BOOST_SYSTEM_LIB}
 	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}

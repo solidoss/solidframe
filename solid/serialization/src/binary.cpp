@@ -1542,7 +1542,7 @@ template <>
 		//memcpy(const_cast<char*>(tmpstr.data()), rd.cpb, len);
 		
 		_rfd.f = loadCrossContinue;
-		_rfd.s = vsz - 1;
+		_rfd.s = 1;
 		rd.fstk.push(_rfd);
 		
 		_rfd.f = loadCrossDone<uint8_t>;
@@ -1579,7 +1579,7 @@ template <>
 		rd.cpb += len;
 		
 		_rfd.f = loadCrossContinue;
-		_rfd.s = vsz - len;
+		_rfd.s = len;
 		rd.fstk.push(_rfd);
 		
 		_rfd.f = loadCrossDone<uint16_t>;
@@ -1599,7 +1599,7 @@ template <>
 	if(!len) return WaitE;
 	
 	const unsigned	vsz = crossSize(rd.cpb);
-	uint32_t			&v = *reinterpret_cast<uint32_t*>(_rfd.p);
+	uint32_t		&v = *reinterpret_cast<uint32_t*>(_rfd.p);
 	
 	if(vsz <= len){
 		const char *p =  binary::crossLoad(rd.cpb, v);
@@ -1616,7 +1616,7 @@ template <>
 		rd.cpb += len;
 		
 		_rfd.f = loadCrossContinue;
-		_rfd.s = vsz - len;
+		_rfd.s = len;
 		rd.fstk.push(_rfd);
 		
 		_rfd.f = loadCrossDone<uint32_t>;
@@ -1653,7 +1653,7 @@ template <>
 		rd.cpb += len;
 		
 		_rfd.f = loadCrossContinue;
-		_rfd.s = vsz - len;
+		_rfd.s = len;
 		rd.fstk.push(_rfd);
 		
 		_rfd.f = loadCrossDone<uint64_t>;

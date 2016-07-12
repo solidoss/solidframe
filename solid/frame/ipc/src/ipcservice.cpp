@@ -1563,7 +1563,7 @@ bool Service::connectionStopping(
 		return doMainConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else if(rpool.isRestarting() and isRunning()){
 		return doMainConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
-	}else if(not rpool.isFastClosing() and not rpool.isServerSide() and isRunning()){
+	}else if(not rpool.isFastClosing() and not rpool.isServerSide() and isRunning() and _rerror != error_connection_resolve){
 		return doMainConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
 	}else{
 		return doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);

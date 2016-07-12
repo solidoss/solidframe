@@ -223,9 +223,9 @@ struct Array: Base{
 	template <class S>
 	void serialize(S &_s){
 		_s.pushArray(sa, sasz, "sa");
-		//_s.pushDynamicArray(pta, ptasz, "pta");
-		//_s.pushDynamicArray(pta1, pta1sz, "pta1");
-		//_s.pushArray(td, tdsz, "td");
+		_s.pushDynamicArray(pta, ptasz, "pta");
+		_s.pushDynamicArray(pta1, pta1sz, "pta1");
+		_s.pushArray(td, tdsz, "td");
 	}
 	void print()const;
 	
@@ -375,22 +375,22 @@ int main(int argc, char *argv[]){
 			b3->print();
 			b4->print();
 			
-			//ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
+			ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
 			idbg("");
-			//ser.push(s, "string").pushContainer(sdq, "names");
+			ser.push(s, "string").pushContainer(sdq, "names");
 			idbg("");
-			//ser.push(b1, "basestring");
+			ser.push(b1, "basestring");
 			ser.push(b2, "baseui");
 			ser.push(b3, "baseiv");
-			//ser.push(b4, "basea");
+			ser.push(b4, "basea");
 			
 			PairIntDeqT pidq;
 			pidq.push_back(pair<int32_t, int32_t>(1,2));
 			pidq.push_back(pair<int32_t, int32_t>(2,3));
 			pidq.push_back(pair<int32_t, int32_t>(3,4));
-			//ser.pushContainer(pidq, "pidq");
+			ser.pushContainer(pidq, "pidq");
 			pair<int32_t,int32_t> ppi(1,2);
-			//ser.push(ppi, "pi");
+			ser.push(ppi, "pi");
 			for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
 				cout<<"("<<it->first<<','<<it->second<<')';
 			}
@@ -422,23 +422,23 @@ int main(int argc, char *argv[]){
 			Base				*b3 = nullptr;
 			Base				*b4 = nullptr;
 			
-			//des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
+			des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
 			idbg("");
-			//des.push(s, "string").pushContainer(sdq, "names");
+			des.push(s, "string").pushContainer(sdq, "names");
 			idbg("");
 			des.pushStringLimit();
-			//des.push(b1, "basestring");
+			des.push(b1, "basestring");
 			des.pushStringLimit(100);
 			des.push(b2, "baseui");
 			des.push(b3, "baseiv");
-			//des.push(b4, "basea");
+			des.push(b4, "basea");
 			idbg("");
 			int v = 0;
 			int cnt = 0;
 			PairIntDeqT pidq;
-			//des.pushContainer(pidq, "pidq");
+			des.pushContainer(pidq, "pidq");
 			pair<int32_t,int32_t> ppi;
-			//des.push(ppi, "pi");
+			des.push(ppi, "pi");
 			while((rv = des.run(bufs[v], blen)) == blen){
 				cnt += rv;
 				++v;

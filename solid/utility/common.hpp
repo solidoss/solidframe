@@ -10,6 +10,7 @@
 #ifndef UTILITY_COMMON_HPP
 #define UTILITY_COMMON_HPP
 
+#include <limits>
 #include "solid/system/common.hpp"
 
 namespace solid{
@@ -188,14 +189,14 @@ inline uint64_t bit_revert(const uint64_t _v){
 struct InvalidIndex{
 	template <typename SizeT>
 	operator SizeT ()const{
-		return static_cast<SizeT>(-1);
+		return std::numeric_limits<SizeT>::max();
 	}
 };
 
 struct InvalidSize{
 	template <typename SizeT>
 	operator SizeT ()const{
-		return static_cast<SizeT>(-1);
+		return std::numeric_limits<SizeT>::max();
 	}
 };
 

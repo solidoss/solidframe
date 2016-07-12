@@ -32,7 +32,7 @@ A process-to-process communication (message exchange) engine via plain/secured T
 
 ## TODO v2.0:
 
-* connection should fail if recipient name is not resolved - should not retry send messages
+* (DONE) connection should fail if recipient name is not resolved - should not retry send messages
 * (DONE) test_raw_basic
 * (DONE) test_multiprotocol
 * (DONE) test_connection_close
@@ -49,6 +49,7 @@ A process-to-process communication (message exchange) engine via plain/secured T
 
 ## TODO v2.x
 
+* test_unresolved_recipient
 * test_raw_proxy
 * add support for compression - test and improve
 * add support for OpenSSL - needs extending OpenSSL support in frame/aio

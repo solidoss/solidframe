@@ -3,8 +3,7 @@
 ## Version 2.0
 ### TODO
 * (DONE) Fix utility memoryfile examples
-* (PENDING) pushCall instead of pushReinit
-* (PENDING) Test serialization for all supported std containers
+* (DONE) pushCall instead of pushReinit
 * (PENDING) Finalizing the IPC library - what is planned for SFv2.0.
 * Cross-platform support:
 	* (DONE) Linux
@@ -17,6 +16,7 @@
 
 ## Version 2.x
 ### TODO
+* Test serialization for all supported std containers
 * frame/ipc with SOCKS5
 * Improved OpenSSL support in frame/aio
 * frame/ipc with OpenSSL

@@ -9,7 +9,7 @@ target_link_libraries (tutorial_ipc_file_server
 	solid_utility
 	solid_system
 	${OPENSSL_LIBS}
-	${BOOST_PROGRAM_OPTIONS_LIB}
+	${BOOST_FILESYSTEM_LIB}
 	${BOOST_SYSTEM_LIB}
 	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
@@ -26,9 +26,6 @@ target_link_libraries (tutorial_ipc_file_client
 	solid_serialization
 	solid_utility
 	solid_system
-	${OPENSSL_LIBS}
-	${BOOST_PROGRAM_OPTIONS_LIB}
-	${BOOST_SYSTEM_LIB}
 	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}

@@ -381,7 +381,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		
 		flags |= static_cast<size_t>(Flags::Stopping);
 		
-		ErrorConditionT		error;
+		ErrorConditionT		error(_rerr);
 		ObjectIdT			objuid(uid(_rctx));
 		ulong				seconds_to_wait = 0;
 		
@@ -400,7 +400,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error);
 		}
 		
-		error = _rerr;
+		//error = _rerr;
 		//at this point we need to start completing all connection's remaining messages
 		
 		bool				has_no_message = pending_message_vec.empty() and msg_writer.empty();
@@ -536,7 +536,7 @@ void Connection::doContinueStopping(
 	
 	idbgx(Debug::ipc, this<<' '<<this->id()<<"");
 	
-	ErrorConditionT		error;
+	ErrorConditionT		error(_rerr);
 	ObjectIdT			objuid(uid(_rctx));
 	ulong				seconds_to_wait = 0;
 	
