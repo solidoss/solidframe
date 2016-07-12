@@ -120,7 +120,9 @@ int main(int argc, char *argv[]){
 		cout<<"quit"<<endl;
 		cout<<"q"<<endl;
 		cout<<"localhost l /home"<<endl;
-		cout<<"localhost L /home/user"<<endl;
+		cout<<"localhost L /home/remote_user"<<endl;
+		cout<<"localhost C /home/remote_user/remote_file ./local_file"<<endl;
+		cout<<"localhost c /home/remote_user/remote_file /home/local_user/local_file"<<endl;
 		
 		while(true){
 			string	line;
