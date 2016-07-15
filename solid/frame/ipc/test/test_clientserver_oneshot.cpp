@@ -56,9 +56,9 @@ size_t							connection_count(0);
 
 bool							running = true;
 mutex							mtx;
-condition_variable					cnd;
+condition_variable				cnd;
 frame::ipc::Service				*pipcclient = nullptr;
-std::atomic<uint64_t>				transfered_size(0);
+std::atomic<uint64_t>			transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 
 
@@ -153,7 +153,7 @@ void client_complete_message(
 	SOLID_CHECK(not _rrecv_msg_ptr);
 	SOLID_CHECK(_rsent_msg_ptr);
 	
-	SOLID_CHECK(_rerror == frame::ipc::error_connection_message_fail_send);
+	SOLID_CHECK(_rerror == frame::aio::error_stream_socket);
 	
 	{
 		unique_lock<mutex> lock(mtx);
