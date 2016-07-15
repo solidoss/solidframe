@@ -348,7 +348,7 @@ while [ "$#" -gt 0 ]; do
 		BUILD_SOMETHING="yes"
 		;;
 	*)
-		#HELP="yes"
+		HELP="yes"
 		;;
 	esac
 	shift
