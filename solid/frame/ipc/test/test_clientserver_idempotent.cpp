@@ -190,9 +190,9 @@ void client_complete_message(
 		idbg("idx = "<<_rsent_msg_ptr->idx);
 		if(!_rerror){
 		}else{
-			idbg("send message complete: "<<_rerror.message());
+			wdbg("send message complete: "<<_rerror.message());
 			SOLID_CHECK(_rsent_msg_ptr->idx == 0 or _rsent_msg_ptr->idx == 2);
-			SOLID_CHECK(_rerror == frame::ipc::error_connection_message_fail_send);
+			SOLID_ASSERT(_rerror == std::system_category().default_error_condition(EPIPE));
 		}
 	}
 	if(_rrecv_msg_ptr.get()){

@@ -246,7 +246,7 @@ struct ConnectionPoolStub{
 			msgvec.push_back(MessageStub{});
 		}
 		
-		MessageStub	&rmsgstub{msgvec[idx]};
+		MessageStub	&rmsgstub(msgvec[idx]);
 		
 		rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc);
 		
@@ -306,7 +306,7 @@ struct ConnectionPoolStub{
 		MessageCompleteFunctionT &_rcomplete_fnc,
 		ulong _flags
 	){
-		MessageStub	&rmsgstub{msgvec[_rmsgid.index]};
+		MessageStub	&rmsgstub(msgvec[_rmsgid.index]);
 		
 		SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr and rmsgstub.unique == _rmsgid.unique);
 		
@@ -327,7 +327,7 @@ struct ConnectionPoolStub{
 	
 	
 	void clearAndCacheMessage(const size_t _msg_idx){
-		MessageStub	&rmsgstub{msgvec[_msg_idx]};
+		MessageStub	&rmsgstub(msgvec[_msg_idx]);
 		rmsgstub.clear();
 		msgcache_inner_list.pushBack(_msg_idx);
 	}
@@ -353,7 +353,7 @@ struct ConnectionPoolStub{
 	}
 	void clearPopAndCacheMessage(const size_t _msg_idx){
 		idbgx(Debug::ipc, "msgorder_inner_list "<<msgorder_inner_list);
-		MessageStub	&rmsgstub{msgvec[_msg_idx]};
+		MessageStub	&rmsgstub(msgvec[_msg_idx]);
 		
 		msgorder_inner_list.erase(_msg_idx);
 		

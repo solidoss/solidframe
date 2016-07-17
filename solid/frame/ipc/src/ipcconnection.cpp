@@ -377,7 +377,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 	
 	if(not isStopping()){
 		
-		idbgx(Debug::ipc, this<<' '<<this->id()<<"");
+		edbgx(Debug::ipc, this<<' '<<this->id()<<""<<_rerr.message());
 		
 		flags |= static_cast<size_t>(Flags::Stopping);
 		
@@ -466,7 +466,7 @@ void Connection::doCompleteAllMessages(
 		MessageId		pool_msg_id;
 		
 		if(msg_writer.cancelOldest(msg_bundle, pool_msg_id)){
-			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_connection_message_fail_send);
+			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, _rerr);
 		}
 		
 		has_any_message = (not msg_writer.empty()) or (not pending_message_vec.empty());
@@ -477,7 +477,7 @@ void Connection::doCompleteAllMessages(
 		MessageBundle	msg_bundle;
 				
 		if(service(_rctx).fetchCanceledMessage(*this, pending_message_vec[_offset], msg_bundle)){
-			doCompleteMessage(_rctx, pending_message_vec[_offset], msg_bundle, error_connection_message_fail_send);
+			doCompleteMessage(_rctx, pending_message_vec[_offset], msg_bundle, _rerr);
 		}
 		++_offset;
 		if(_offset == pending_message_vec.size()){
@@ -490,8 +490,9 @@ void Connection::doCompleteAllMessages(
 	
 	if(has_any_message){
 		idbgx(Debug::ipc, this);
-		post(_rctx,
-				[_rerr, _seconds_to_wait, _can_stop, _offset](frame::aio::ReactorContext &_rctx, Event &&_revent){
+		post(
+			_rctx,
+			[_rerr, _seconds_to_wait, _can_stop, _offset](frame::aio::ReactorContext &_rctx, Event &&_revent){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
 				rthis.doCompleteAllMessages(_rctx, _offset, _can_stop, _seconds_to_wait, _rerr, _revent);
 			},
