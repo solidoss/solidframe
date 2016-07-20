@@ -172,6 +172,10 @@ struct ConnectionContext{
 	
 	//! Keep any connection data
 	Any<>& any();
+	
+	const ErrorConditionT& error() const;
+	const ErrorCodeT& systemError()const;
+	
 private:
 	//not used for now
 	RequestId const& requestId()const{

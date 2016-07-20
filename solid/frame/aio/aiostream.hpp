@@ -145,8 +145,8 @@ class Stream: public CompletionHandler{
 			}else if(can_retry){
 				return;
 			}else{
-				_rthis.systemError(_rctx, err);
 				_rthis.error(_rctx, error_stream_system);
+				_rthis.systemError(_rctx, err);
 			}
 			F	tmpf(f);
 			_rthis.doClearSend(_rctx);
@@ -168,8 +168,8 @@ class Stream: public CompletionHandler{
 			}else if(can_retry){
 				return;
 			}else{
-				_rthis.systemError(_rctx, err);
 				_rthis.error(_rctx, error_stream_system);
+				_rthis.systemError(_rctx, err);
 			}
 			F	tmpf(f);
 			_rthis.doClearRecv(_rctx);
@@ -191,8 +191,8 @@ class Stream: public CompletionHandler{
 			}else if(can_retry){
 				return;
 			}else{
-				_rthis.systemError(_rctx, err);
 				_rthis.error(_rctx, error_stream_system);
+				_rthis.systemError(_rctx, err);
 			}
 			F	tmpf(f);
 			_rthis.doClearSend(_rctx);
@@ -355,8 +355,8 @@ public:
 					send_fnc = ConnectFunctor<F>(_f);
 					return false;
 				}else{
-					systemError(_rctx, err);
 					error(_rctx, error_stream_system);
+					systemError(_rctx, err);
 				}
 			}else{
 				error(_rctx, error_stream_system);
@@ -384,8 +384,8 @@ public:
 				send_fnc = SecureConnectFunctor<F>(_f);
 				return false;
 			}else{
-				systemError(_rctx, err);
 				error(_rctx, error_stream_system);
+				systemError(_rctx, err);
 			}
 		}
 		return true;
@@ -402,8 +402,8 @@ public:
 				recv_fnc = SecureAcceptFunctor<F>(_f);
 				return false;
 			}else{
-				systemError(_rctx, err);
 				error(_rctx, error_stream_system);
+				systemError(_rctx, err);
 			}
 		}
 		return true;
@@ -420,8 +420,8 @@ public:
 				send_fnc = SecureShutdownFunctor<F>(_f);
 				return false;
 			}else{
-				systemError(_rctx, err);
 				error(_rctx, error_stream_system);
+				systemError(_rctx, err);
 			}
 		}
 		return true;
@@ -430,8 +430,8 @@ public:
 	void secureRenegotiate(ReactorContext &_rctx){
 		ErrorCodeT	err = s.renegotiate();
 		if(err){
-			systemError(_rctx, err);
 			error(_rctx, error_stream_system);
+			systemError(_rctx, err);
 		}
 	}
 private:
@@ -494,14 +494,14 @@ private:
 			send_buf_sz += rv;
 			send_buf += rv;
 		}else if(rv == 0){
-			error(_rctx, ErrorConditionT(-2, _rctx.error().category()));
+			error(_rctx, error_stream_shutdown);
 			send_buf_sz = send_buf_cp = 0;
 		}else if(rv < 0){
 			if(can_retry){
 				return false;
 			}else{
 				send_buf_sz = send_buf_cp = 0;
-				error(_rctx, ErrorConditionT(err.value(), err.category()));
+				error(_rctx, error_stream_system);
 				systemError(_rctx, err);
 			}
 		}

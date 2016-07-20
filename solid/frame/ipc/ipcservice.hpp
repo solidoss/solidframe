@@ -395,7 +395,7 @@ private:
 	
 	void onIncomingConnectionStart(ConnectionContext &_rconctx);
 	void onOutgoingConnectionStart(ConnectionContext &_rconctx);
-	void onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_err);
+	void onConnectionStop(ConnectionContext &_rconctx);
 	
 	ErrorConditionT pollPoolForUpdates(
 		Connection &_rcon,

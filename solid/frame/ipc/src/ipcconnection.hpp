@@ -98,6 +98,9 @@ public:
 		const MessageId &_rpool_msg_id
 	);
 	
+	const ErrorConditionT& error()const;
+	const ErrorCodeR& systemError()const;
+	
 	bool isFull(Configuration const& _rconfiguration)const;
 	
 	bool isInPoolWaitingQueue() const;
@@ -174,11 +177,11 @@ private:
 	
 	bool hasCompletingMessages()const;
 	
-	void onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
+	void onStopped(frame::aio::ReactorContext &_rctx);
 	
 	void doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming);
 	
-	void doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr);
+	void doStop(frame::aio::ReactorContext &_rctx, const ErrorConditionT &_rerr, const ErrorCodeT &_rsyserr = ErrorCodeT());
 	
 	void doSend(frame::aio::ReactorContext &_rctx);
 	
@@ -227,7 +230,6 @@ private:
 	
 	void doContinueStopping(
 		frame::aio::ReactorContext &_rctx,
-		ErrorConditionT const &_rerr,
 		const Event &_revent
 	);
 	
@@ -266,12 +268,12 @@ protected:
 	
 	TimerT						timer;
 	
-	uint16_t						flags;
+	uint16_t					flags;
 	
-	uint32_t						recv_buf_off;
-	uint32_t						cons_buf_off;
+	uint32_t					recv_buf_off;
+	uint32_t					cons_buf_off;
 	
-	uint32_t						recv_keepalive_count;
+	uint32_t					recv_keepalive_count;
 	
 	char						*recv_buf;
 	char						*send_buf;
@@ -283,6 +285,9 @@ protected:
 	
 	MessageReader				msg_reader;
 	MessageWriter				msg_writer;
+	
+	ErrorConditionT				err;
+	ErrorCodeT					syserr;
 	
 	Any<>						any_data;
 };
@@ -303,6 +308,12 @@ inline bool Connection::isWriterEmpty()const{
 	return msg_writer.empty();
 }
 
+inline const ErrorConditionT& Connection::error()const{
+	return err;
+}
+inline const ErrorCodeT& Connection::systemError()const{
+	return syserr;
+}
 
 //-----------------------------------------------------------------------------
 //		PlainConnection

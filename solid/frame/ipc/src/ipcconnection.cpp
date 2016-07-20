@@ -373,15 +373,18 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	}
 }
 //-----------------------------------------------------------------------------
-void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
+void Connection::doStop(frame::aio::ReactorContext &_rctx, const ErrorConditionT &_rerr, const ErrorCodeT &_rsyserr){
 	
 	if(not isStopping()){
 		
-		edbgx(Debug::ipc, this<<' '<<this->id()<<""<<_rerr.message());
+		err = _rerr;
+		syserr = _rsyserr;
+		
+		edbgx(Debug::ipc, this<<' '<<this->id()<<" ["<<err.message()<<"]["<<syserr.message()<<"]");
 		
 		flags |= static_cast<size_t>(Flags::Stopping);
 		
-		ErrorConditionT		error(_rerr);
+		ErrorConditionT		tmp_error(error());
 		ObjectIdT			objuid(uid(_rctx));
 		ulong				seconds_to_wait = 0;
 		
@@ -390,17 +393,13 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 		
 		Event				event;
 		
-		bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, error);
+		bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 		
 		
 		if(msg_bundle.message_ptr.get() or not FUNCTION_EMPTY(msg_bundle.complete_fnc)){
-			if(not error){
-				error = error_connection_message_fail_send;
-			}
-			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error);
+			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
 		}
 		
-		//error = _rerr;
 		//at this point we need to start completing all connection's remaining messages
 		
 		bool				has_no_message = pending_message_vec.empty() and msg_writer.empty();
@@ -409,9 +408,9 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 			idbgx(Debug::ipc, this<<' '<<this->id()<<" postStop");
 			//can stop rightaway
 			postStop(_rctx, 
-				[error](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
+				[](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
 					Connection	&rthis = static_cast<Connection&>(_rctx.object());
-					rthis.onStopped(_rctx, error);
+					rthis.onStopped(_rctx);
 				}
 			);	//there might be events pending which will be delivered, but after this call
 				//no event get posted
@@ -420,16 +419,16 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 			if(seconds_to_wait){
 				timer.waitFor(_rctx,
 					NanoTime(seconds_to_wait),
-					[error, event](frame::aio::ReactorContext &_rctx){
+					[event](frame::aio::ReactorContext &_rctx){
 						Connection	&rthis = static_cast<Connection&>(_rctx.object());
-						rthis.doContinueStopping(_rctx, error, event);
+						rthis.doContinueStopping(_rctx, event);
 					}
 				);
 			}else{
 				post(_rctx,
-					[error](frame::aio::ReactorContext &_rctx, Event &&_revent){
+					[](frame::aio::ReactorContext &_rctx, Event &&_revent){
 						Connection	&rthis = static_cast<Connection&>(_rctx.object());
-						rthis.doContinueStopping(_rctx, error, _revent);
+						rthis.doContinueStopping(_rctx, _revent);
 					},
 					std::move(event)
 				);
@@ -438,9 +437,9 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, ErrorConditionT const
 			idbgx(Debug::ipc, this<<' '<<this->id()<<" post message cleanup");
 			size_t		offset = 0;
 			post(_rctx,
-				 [error, seconds_to_wait, can_stop, offset](frame::aio::ReactorContext &_rctx, Event &&_revent){
+				 [seconds_to_wait, can_stop, offset](frame::aio::ReactorContext &_rctx, Event &&_revent){
 					Connection	&rthis = static_cast<Connection&>(_rctx.object());
-					rthis.doCompleteAllMessages(_rctx, offset, can_stop, seconds_to_wait, error, _revent);
+					rthis.doCompleteAllMessages(_rctx, offset, can_stop, seconds_to_wait, error_message_connection, _revent);
 				},
 				std::move(event)
 			);
@@ -504,7 +503,7 @@ void Connection::doCompleteAllMessages(
 		postStop(_rctx, 
 			[_rerr](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
-				rthis.onStopped(_rctx, _rerr);
+				rthis.onStopped(_rctx);
 			}
 		);	//there might be events pending which will be delivered, but after this call
 			//no event get posted
@@ -514,7 +513,7 @@ void Connection::doCompleteAllMessages(
 			NanoTime(_seconds_to_wait),
 			[_rerr, _revent](frame::aio::ReactorContext &_rctx){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
-				rthis.doContinueStopping(_rctx, _rerr, _revent);
+				rthis.doContinueStopping(_rctx, _revent);
 			}
 		);
 	}else{
@@ -522,7 +521,7 @@ void Connection::doCompleteAllMessages(
 		post(_rctx,
 				[_rerr](frame::aio::ReactorContext &_rctx, Event &&_revent){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
-				rthis.doContinueStopping(_rctx, _rerr, _revent);
+				rthis.doContinueStopping(_rctx, _revent);
 			},
 			std::move(_revent)
 		);
@@ -531,13 +530,12 @@ void Connection::doCompleteAllMessages(
 //-----------------------------------------------------------------------------
 void Connection::doContinueStopping(
 	frame::aio::ReactorContext &_rctx,
-	ErrorConditionT const &_rerr,
 	const Event &_revent
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<this->id()<<"");
 	
-	ErrorConditionT		error(_rerr);
+	ErrorConditionT		tmp_error(error());
 	ObjectIdT			objuid(uid(_rctx));
 	ulong				seconds_to_wait = 0;
 	
@@ -560,7 +558,7 @@ void Connection::doContinueStopping(
 		postStop(_rctx, 
 			[_rerr](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
-				rthis.onStopped(_rctx, _rerr);
+				rthis.onStopped(_rctx);
 			}
 		);	//there might be events pending which will be delivered, but after this call
 			//no event get posted
@@ -568,7 +566,7 @@ void Connection::doContinueStopping(
 		idbgx(Debug::ipc, this<<' '<<this->id()<<" wait for "<<seconds_to_wait<<" seconds");
 		timer.waitFor(_rctx,
 			NanoTime(seconds_to_wait),
-			[_rerr, _revent](frame::aio::ReactorContext &_rctx){
+			[_revent](frame::aio::ReactorContext &_rctx){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
 				rthis.doContinueStopping(_rctx, _rerr, _revent);
 			}
@@ -585,14 +583,14 @@ void Connection::doContinueStopping(
 	
 }
 //-----------------------------------------------------------------------------
-void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT const &_rerr){
+void Connection::onStopped(frame::aio::ReactorContext &_rctx){
 	
 	ObjectIdT			objuid(uid(_rctx));
 	ConnectionContext	conctx(service(_rctx), *this);
 	
 	service(_rctx).connectionStop(*this);
 	
-	service(_rctx).onConnectionStop(conctx, _rerr);
+	service(_rctx).onConnectionStop(conctx);
 	
 	doUnprepare(_rctx);
 	(void)objuid;
@@ -702,7 +700,7 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx, ErrorConditionT co
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventStart(
 	frame::aio::ReactorContext &_rctx,
-	Event &_revent
+	Event &/*_revent*/
 ){
 	
 	bool		has_valid_socket = this->hasValidSocket();
@@ -716,7 +714,7 @@ void Connection::doHandleEventStart(
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventKill(
 	frame::aio::ReactorContext &_rctx,
-	Event &_revent
+	Event &/*_revent*/
 ){
 	doStop(_rctx, error_connection_killed);
 }
@@ -1193,7 +1191,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 		}else{
 			edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" receiving "<<_rctx.error().message());
 			rthis.flags |= static_cast<size_t>(Flags::StopPeer);
-			rthis.doStop(_rctx, _rctx.error());
+			rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
 			recv_something = false;//prevent calling doResetTimerRecv after doStop
 			break;
 		}
@@ -1276,7 +1274,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 						if(_rctx.error()){
 							edbgx(Debug::ipc, this<<' '<<id()<<" sending "<<sz<<": "<<_rctx.error().message());
 							flags |= static_cast<size_t>(Flags::StopPeer);
-							doStop(_rctx, _rctx.error());
+							doStop(_rctx, _rctx.error(), _rctx.systemError());
 							sent_something = false;//prevent calling doResetTimerSend after doStop
 							break;
 						}else{
@@ -1327,7 +1325,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		rthis.doSend(_rctx);
 	}else{
 		edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" sending "<<_rctx.error().message());
-		rthis.doStop(_rctx, _rctx.error());
+		rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
 	}
 }
 //-----------------------------------------------------------------------------
@@ -1340,7 +1338,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		rthis.doStart(_rctx, false);
 	}else{
 		edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" connecting "<<_rctx.error().message());
-		rthis.doStop(_rctx, _rctx.error());
+		rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
 	}
 }
 //-----------------------------------------------------------------------------
@@ -1620,6 +1618,14 @@ const std::string& ConnectionContext::recipientName()const{
 //-----------------------------------------------------------------------------
 bool ConnectionContext::isConnectionActive()const{
 	return rconnection.isActiveState();
+}
+//-----------------------------------------------------------------------------
+const ErrorConditionT& ConnectionContext::error()const{
+	return rconnection.error();
+}
+//-----------------------------------------------------------------------------
+const ErrorCodeT& ConnectionContext::systemError()const{
+	return rconnection.systemError();
 }
 //-----------------------------------------------------------------------------
 }//namespace ipc

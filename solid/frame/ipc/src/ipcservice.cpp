@@ -1576,7 +1576,7 @@ bool Service::doNonMainConnectionStopping(
 	MessageId &_rmsg_id,
 	MessageBundle &_rmsg_bundle,
 	Event &/*_revent_context*/,
-	ErrorConditionT &_rerror
+	ErrorConditionT &/*_rerror*/
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1615,7 +1615,7 @@ bool Service::doMainConnectionStoppingNotLast(
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
 	Event &/*_revent_context*/,
-	ErrorConditionT &_rerror
+	ErrorConditionT &/*_rerror*/
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1641,7 +1641,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 	MessageId &_rmsg_id,
 	MessageBundle &_rmsg_bundle,
 	Event &_revent_context,
-	ErrorConditionT &_rerror
+	ErrorConditionT &/*_rerror*/
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1701,7 +1701,7 @@ bool Service::doMainConnectionStoppingCleanAll(
 	MessageId &_rmsg_id,
 	MessageBundle &_rmsg_bundle,
 	Event &/*_revent_context*/,
-	ErrorConditionT &_rerror
+	ErrorConditionT &/*_rerror*/
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1730,7 +1730,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
 	Event &_revent_context,
-	ErrorConditionT &_rerror
+	ErrorConditionT &/*_rerror*/
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1760,7 +1760,7 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
 	Event &/*_revent_context*/,
-	ErrorConditionT &_rerror
+	ErrorConditionT &/*_rerror*/
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1783,7 +1783,7 @@ bool Service::doMainConnectionRestarting(
 	MessageId &/*_rmsg_id*/,
 	MessageBundle &/*_rmsg_bundle*/,
 	Event &/*_revent_context*/,
-	ErrorConditionT &_rerror
+	ErrorConditionT &/*_rerror*/
 ){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
@@ -1850,10 +1850,10 @@ void Service::connectionStop(Connection const &_rcon){
 	
 	idbgx(Debug::ipc, this<<' '<<&_rcon);
 	
-	const size_t 			pool_index = _rcon.poolId().index;
-	unique_lock<std::mutex>			lock(d.mtx);
-	unique_lock<std::mutex>			lock2(d.poolMutex(pool_index));
-	ConnectionPoolStub 		&rpool(d.pooldq[pool_index]);
+	const size_t 				pool_index = _rcon.poolId().index;
+	unique_lock<std::mutex>		lock(d.mtx);
+	unique_lock<std::mutex>		lock2(d.poolMutex(pool_index));
+	ConnectionPoolStub 			&rpool(d.pooldq[pool_index]);
 	
 	SOLID_ASSERT(rpool.unique == _rcon.poolId().unique);
 	if(rpool.unique != _rcon.poolId().unique) return;
@@ -2120,9 +2120,9 @@ void Service::onOutgoingConnectionStart(ConnectionContext &_rconctx){
 	configuration().connection_start_outgoing_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------
-void Service::onConnectionStop(ConnectionContext &_rconctx, ErrorConditionT const &_rerror){
+void Service::onConnectionStop(ConnectionContext &_rconctx){
 	vdbgx(Debug::ipc, this);
-	configuration().connection_stop_fnc(_rconctx, _rerror);
+	configuration().connection_stop_fnc(_rconctx);
 }
 //=============================================================================
 //-----------------------------------------------------------------------------
