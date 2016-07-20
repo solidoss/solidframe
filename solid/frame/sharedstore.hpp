@@ -69,7 +69,7 @@ protected:
 	};
 	
 	struct ExecWaitStub{
-		ExecWaitStub():pt(NULL), pw(NULL){}
+		ExecWaitStub():pt(nullptr), pw(nullptr){}
 		ExecWaitStub(UniqueId const & _uid, void *_pt, void *_pw):uid(_uid), pt(_pt), pw(_pw){}
 		
 		UniqueId	uid;
@@ -129,10 +129,10 @@ struct PointerBase{
 	std::mutex* mutex()const{
 		if(!empty()){
 			return &psb->mutex(uid.index);
-		}else return NULL;
+		}else return nullptr;
 	}
 protected:
-	PointerBase(StoreBase *_psb = NULL):psb(_psb){}
+	PointerBase(StoreBase *_psb = nullptr):psb(_psb){}
 	PointerBase(StoreBase *_psb, UniqueId const &_uid):uid(_uid), psb(_psb){}
 	PointerBase(PointerBase const &_rpb):uid(_rpb.uid), psb(_rpb.psb){}
 	
@@ -154,10 +154,10 @@ struct Pointer: PointerBase{
 	
 	typedef Pointer<T>		PointerT;
 	
-	Pointer(StoreBase *_psb = NULL):PointerBase(_psb), pt(NULL){}
+	Pointer(StoreBase *_psb = nullptr):PointerBase(_psb), pt(nullptr){}
 	explicit Pointer(
 		T *_pt,
-		StoreBase *_psb  = NULL,
+		StoreBase *_psb  = nullptr,
 		UniqueId const &_uid = UniqueId()
 	): PointerBase(_psb, _uid), pt(_pt){}
 	
@@ -179,7 +179,7 @@ struct Pointer: PointerBase{
 		
 	}
 	bool alive()const{
-		return pt == NULL;
+		return pt == nullptr;
 	}
 	
 	T& operator*()const			{return *pt;}
@@ -190,14 +190,14 @@ struct Pointer: PointerBase{
 	
 	T* release()const{
 		T *p = pt;
-		pt = NULL;
-		doReset(NULL, UniqueId());
+		pt = nullptr;
+		doReset(nullptr, UniqueId());
 		return p;
 	}
 	void clear(){
 		if(!empty()){
 			doClear(alive());
-			pt = NULL;
+			pt = nullptr;
 		}
 	}
 private:
@@ -296,7 +296,7 @@ public:
 	}
 	
 	//Try get an alive pointer for an intem
-	PointerT	alive(UniqueId const & _ruid, ERROR_NS::error_code &_rerr){
+	PointerT	alive(UniqueId const & _ruid, ErrorCodeT &_rerr){
 		PointerT		ptr;
 		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
@@ -310,7 +310,7 @@ public:
 	}
 	
 	//Try get an unique pointer for an item
-	PointerT	unique(UniqueId const & _ruid, ERROR_NS::error_code &_rerr){
+	PointerT	unique(UniqueId const & _ruid, ErrorCodeT &_rerr){
 		PointerT		ptr;
 		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
@@ -324,7 +324,7 @@ public:
 	}
 	
 	//Try get a shared pointer for an item
-	PointerT	shared(UniqueId const & _ruid, ERROR_NS::error_code &_rerr){
+	PointerT	shared(UniqueId const & _ruid, ErrorCodeT &_rerr){
 		PointerT		ptr;
 		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
@@ -366,7 +366,7 @@ public:
 	bool requestReinit(F &_f, size_t _flags = 0){
 		PointerT				ptr(this);
 		size_t					idx = -1;
-		ERROR_NS::error_code	err;
+		ErrorCodeT				err;
 		StoreBase::Accessor		acc = StoreBase::accessor();
 		{
 			std::unique_lock<std::mutex>	lock(this->mutex());
@@ -397,7 +397,7 @@ public:
 	template <typename F>
 	bool requestShared(F _f, UniqueId const & _ruid, const size_t _flags = 0){
 		PointerT				ptr;
-		ERROR_NS::error_code	err;
+		ErrorCodeT				err;
 		const size_t			idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
 			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
@@ -423,7 +423,7 @@ public:
 	template <typename F>
 	bool requestUnique(F _f, UniqueId const & _ruid, const size_t _flags = 0){
 		PointerT				ptr;
-		ERROR_NS::error_code	err;
+		ErrorCodeT				err;
 		const size_t			idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
 			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
@@ -450,7 +450,7 @@ public:
 	template <typename F>
 	bool requestReinit(F _f, UniqueId const & _ruid, const size_t _flags = 0){
 		PointerT				ptr;
-		ERROR_NS::error_code	err;
+		ErrorCodeT				err;
 		const size_t			idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
 			std::unique_lock<std::mutex>	lock2(this->mutex(idx));
@@ -477,23 +477,24 @@ public:
 		return *static_cast<ControllerT*>(this);
 	}
 private:
-	typedef FUNCTION<void(ControllerT&, PointerT&, ERROR_NS::error_code const&)>	FunctionT;
+	typedef FUNCTION<void(ControllerT&, PointerT&,ErrorCodeT const&)>	FunctionT;
+	
 	struct WaitStub{
-		WaitStub():kind(StoreBase::ReinitWaitE), pnext(NULL){}
+		WaitStub():kind(StoreBase::ReinitWaitE), pnext(nullptr){}
 		StoreBase::WaitKind		kind;
 		WaitStub 				*pnext;
 		FunctionT				fnc;
 	};
 	struct Stub{
 		Stub(
-		):uid(0), alivecnt(0), usecnt(0), state(StoreBase::UnlockedStateE), pwaitfirst(NULL), pwaitlast(NULL){}
+		):uid(0), alivecnt(0), usecnt(0), state(StoreBase::UnlockedStateE), pwaitfirst(nullptr), pwaitlast(nullptr){}
 		
 		void clear(){
 			++uid;
 			state = StoreBase::UnlockedStateE;
 		}
 		bool canClear()const{
-			return usecnt == 0 && alivecnt == 0 && pwaitfirst == NULL;
+			return usecnt == 0 && alivecnt == 0 && pwaitfirst == nullptr;
 		}
 		
 		T			obj;
@@ -517,12 +518,12 @@ private:
 		Stub		&rs = stubvec[_idx];
 		++rs.alivecnt;
 		rs.state = StoreBase::UniqueLockStateE;
-		return PointerT(NULL, this, UniqueId(_idx, rs.uid));
+		return PointerT(nullptr, this, UniqueId(_idx, rs.uid));
 	}
 	
 	PointerT doTryGetShared(const size_t _idx){
 		Stub		&rs = stubvec[_idx];
-		if(rs.state == StoreBase::SharedLockStateE && rs.pwaitfirst == NULL){
+		if(rs.state == StoreBase::SharedLockStateE && rs.pwaitfirst == nullptr){
 			++rs.usecnt;
 			return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
 		}
@@ -532,7 +533,7 @@ private:
 	PointerT doTryGetUnique(const size_t _idx){
 		Stub		&rs = stubvec[_idx];
 		if(rs.usecnt == 0){
-			SOLID_ASSERT(rs.pwaitfirst == NULL);
+			SOLID_ASSERT(rs.pwaitfirst == nullptr);
 			++rs.usecnt;
 			rs.state = StoreBase::UniqueLockStateE;
 			return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
@@ -541,7 +542,7 @@ private:
 	}
 	PointerT doTryGetReinit(const size_t _idx){
 		Stub		&rs = stubvec[_idx];
-		if(rs.usecnt == 0 && rs.alivecnt == 0 && rs.pwaitfirst == NULL){
+		if(rs.usecnt == 0 && rs.alivecnt == 0 && rs.pwaitfirst == nullptr){
 			++rs.usecnt;
 			rs.state = StoreBase::UniqueLockStateE;
 			return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
@@ -562,15 +563,15 @@ private:
 	void doPushWait(const size_t _idx, F &_f, const StoreBase::WaitKind _k){
 		Stub		&rs = stubvec[_idx];
 		WaitStub	*pwait = reinterpret_cast<WaitStub*>(this->doTryAllocateWait());
-		if(pwait == NULL){
+		if(pwait == nullptr){
 			waitdq.push_back(WaitStub());
 			pwait = &waitdq.back();
 		}
 		pwait->kind = _k;
 		pwait->fnc = _f;
-		pwait->pnext = NULL;
+		pwait->pnext = nullptr;
 		
-		if(rs.pwaitlast == NULL){
+		if(rs.pwaitlast == nullptr){
 			rs.pwaitfirst = rs.pwaitlast = pwait;
 		}else{
 			rs.pwaitlast->pnext = pwait;
@@ -636,7 +637,7 @@ private:
 		for(StoreBase::ExecWaitVectorT::const_iterator it(rexewaitvec.begin()); it != rexewaitvec.end(); ++it){
 			PointerT				ptr(reinterpret_cast<T*>(it->pt), this, it->uid);
 			WaitStub				&rw = *reinterpret_cast<WaitStub*>(it->pw);
-			ERROR_NS::error_code	err;
+			ErrorCodeT				err;
 			rw.fnc(this->controller(), ptr, err);
 		}
 		
@@ -706,7 +707,7 @@ private:
 			if(pwait != rs.pwaitlast){
 				rs.pwaitfirst = pwait->pnext;
 			}else{
-				rs.pwaitlast = rs.pwaitfirst = NULL;
+				rs.pwaitlast = rs.pwaitfirst = nullptr;
 			}
 			pwait = pwait->pnext;
 		}

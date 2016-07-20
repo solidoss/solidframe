@@ -45,15 +45,15 @@ enum Errors{
 struct ErrorStub{
 	ErrorStub(
 		int _value = -1,
-		ERROR_NS::error_category const	*_category = NULL,
+		ErrorCategoryT const	*_category = nullptr,
 		unsigned _line = -1,
-		const char *_file = NULL
+		const char *_file = nullptr
 	):	value(_value), category(_category), line(_line), file(_file){}
 	
 	ErrorStub(
 		ErrorCodeT const	&_code,
 		unsigned _line = -1,
-		const char *_file = NULL
+		const char *_file = nullptr
 	):	value(_code.value()), category(&_code.category()), line(_line), file(_file){}
 	
 	ErrorCodeT errorCode()const{
@@ -61,14 +61,14 @@ struct ErrorStub{
 	}
 		
 	int								value;
-	ERROR_NS::error_category const	*category;
+	ErrorCategoryT const			*category;
 	unsigned						line;
 	const char						*file;
 };
 
 typedef std::vector<ErrorStub>	ErrorVectorT;
 
-ERROR_NS::error_category const	&error_category_get();
+ErrorCategoryT const	&error_category_get();
 ErrorCodeT 	error_make(Errors _err);
 
 

@@ -34,7 +34,7 @@ struct ReactorContext{
 		return rcrttm;
 	}
 	
-	ERROR_NS::error_code const& systemError()const{
+	ErrorCodeT const& systemError()const{
 		return syserr;
 	}
 	
@@ -73,7 +73,7 @@ private:
 		err = _err;
 	}
 	
-	void systemError(ERROR_NS::error_code const& _err){
+	void systemError(ErrorCodeT const& _err){
 		syserr = _err;
 	}
 	
@@ -88,7 +88,7 @@ private:
 	size_t						chnidx;
 	size_t						objidx;
 	ReactorEventsE				reactevn;
-	ERROR_NS::error_code		syserr;
+	ErrorCodeT					syserr;
 	ErrorConditionT				err;
 };
 

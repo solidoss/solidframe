@@ -64,10 +64,10 @@ struct Exception<const char*>:std::exception{
 };
 
 template <>
-struct Exception<ERROR_NS::error_code>:std::exception{
+struct Exception<ErrorCodeT>:std::exception{
 	explicit Exception(
 		const char *_pt,
-		ERROR_NS::error_code const & _rt,
+		ErrorCodeT const & _rt,
 		const char *_file,
 		const int _line,
 		const char *_func
@@ -75,12 +75,12 @@ struct Exception<ERROR_NS::error_code>:std::exception{
 		pdbg(file, line, function, "EXCEPTION: "<<pt<<' '<<t<<" - "<<t.message());
 	}
 	Exception(
-		const Exception<ERROR_NS::error_code> &_rex
+		const Exception<ErrorCodeT> &_rex
 	)throw(): pt(_rex.pt), t(_rex.t), file(_rex.file), line(_rex.line),function(_rex.function){
 	}
 	
 	~Exception()throw(){}
-	Exception & operator=(Exception<ERROR_NS::error_code> const & _rex)throw(){
+	Exception & operator=(Exception<ErrorCodeT> const & _rex)throw(){
 		pt= _rex.pt;
 		t = _rex.t;
 		file = _rex.file;
@@ -97,7 +97,7 @@ struct Exception<ERROR_NS::error_code>:std::exception{
 	}
 	
 	const char				*pt;
-	ERROR_NS::error_code	t;
+	ErrorCodeT				t;
 	const char				*file;
 	int						line;
 	const char				*function;

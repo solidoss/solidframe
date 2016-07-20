@@ -72,10 +72,10 @@ namespace solid{
 
 struct TimeStartData{
 #ifdef NWINDOWSQPC
-	TimeStartData():start_time(time(NULL)), start_msec(::GetTickCount64()){
+	TimeStartData():start_time(time(nullptr)), start_msec(::GetTickCount64()){
 	}
 #else
-	TimeStartData():start_time(time(NULL)){
+	TimeStartData():start_time(time(nullptr)){
 		QueryPerformanceCounter(&start_msec);
 		QueryPerformanceFrequency(&start_freq);
 	}
@@ -153,7 +153,7 @@ const NanoTime& NanoTime::currentMonotonic(){
 
 struct TimeStartData{
 	TimeStartData(){
-		st = time(NULL);
+		st = time(nullptr);
 		stns = mach_absolute_time();
 		stns -= (stns % 1000000000);
 	}

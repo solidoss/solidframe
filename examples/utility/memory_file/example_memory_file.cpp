@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
 	int stime;
 	long ltime;
 
-	ltime = static_cast<long>(time(NULL)); /* get current calendar time */
+	ltime = static_cast<long>(time(nullptr)); /* get current calendar time */
 	stime = (unsigned int) ltime/2;
 	srand(stime);
 	

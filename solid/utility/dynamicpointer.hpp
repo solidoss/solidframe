@@ -124,7 +124,7 @@ public:
 	void clear(){
 		if(pdyn){
 			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
-			pdyn = NULL;
+			pdyn = nullptr;
 		}
 	}
 	

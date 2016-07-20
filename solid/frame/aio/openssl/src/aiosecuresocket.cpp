@@ -78,10 +78,10 @@ struct Starter{
 
 //=============================================================================
 
-/*static*/ Context Context::create(const SSL_METHOD* _pm/*= NULL*/){
+/*static*/ Context Context::create(const SSL_METHOD* _pm/*= nullptr*/){
 	Starter::the();
 	Context	rv;
-	if(_pm == NULL){
+	if(_pm == nullptr){
 		rv.pctx = ::SSL_CTX_new(::SSLv23_method());
 	}else{
 		rv.pctx = ::SSL_CTX_new(_pm);
@@ -90,43 +90,43 @@ struct Starter{
 }
 
 bool Context::isValid()const{
-	return pctx != NULL;
+	return pctx != nullptr;
 }
 
 Context::Context(Context && _rctx){
 	pctx = _rctx.pctx;
-	_rctx.pctx = NULL;
+	_rctx.pctx = nullptr;
 }
 Context& Context::operator=(Context && _rctx){
 	if(isValid()){
 		SSL_CTX_free(pctx);
-		pctx = NULL;
+		pctx = nullptr;
 	}
 	pctx = _rctx.pctx;
-	_rctx.pctx = NULL;
+	_rctx.pctx = nullptr;
 	return *this;
 }
-Context::Context():pctx(NULL){
+Context::Context():pctx(nullptr){
 	
 }
 Context::~Context(){
 	if(isValid()){
 		SSL_CTX_free(pctx);
-		pctx = NULL;
+		pctx = nullptr;
 	}
 }
 
 
 ErrorCodeT Context::loadFile(const char *_path){
 	ErrorCodeT err;
-	if(SSL_CTX_load_verify_locations(pctx, _path, NULL)){
+	if(SSL_CTX_load_verify_locations(pctx, _path, nullptr)){
 		err = error_secure_context;
 	}
 	return err;
 }
 ErrorCodeT Context::loadPath(const char *_path){
 	ErrorCodeT err;
-	if(SSL_CTX_load_verify_locations(pctx, NULL, _path)){
+	if(SSL_CTX_load_verify_locations(pctx, nullptr, _path)){
 		err = error_secure_context;
 	}
 	return err;

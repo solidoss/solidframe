@@ -170,7 +170,7 @@ typedef int socklen_t;
 	structure with SocketAddress and ResolveIterator
 */
 struct SocketAddressStub{
-	SocketAddressStub(sockaddr *_pa = NULL, size_t _sz = 0);
+	SocketAddressStub(sockaddr *_pa = nullptr, size_t _sz = 0);
 	
 	SocketAddressStub(const ResolveIterator &_it);
 	SocketAddressStub(const SocketAddress &_rsa);

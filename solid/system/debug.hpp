@@ -84,7 +84,7 @@ struct /*EXPORT_DLL*/ Debug{
 
 	void initStdErr(
 		bool _buffered = true,
-		std::string *_output = NULL
+		std::string *_output = nullptr
 	);
 
 	void initFile(
@@ -92,17 +92,17 @@ struct /*EXPORT_DLL*/ Debug{
 		bool _buffered = true,
 		ulong _respincnt = 2,
 		ulong _respinsize = 1024 * 1024 * 1024,
-		std::string *_output = NULL
+		std::string *_output = nullptr
 	);
 	void initSocket(
 		const char * _addr,
 		const char * _port,
 		bool _buffered = true,
-		std::string *_output = NULL
+		std::string *_output = nullptr
 	);
 
-	void levelMask(const char *_msk = NULL);
-	void moduleMask(const char *_msk = NULL);
+	void levelMask(const char *_msk = nullptr);
+	void moduleMask(const char *_msk = nullptr);
 	
 	void moduleNames(std::string &_ros);
 	void setAllModuleBits();

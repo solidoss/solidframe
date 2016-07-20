@@ -22,7 +22,7 @@ struct Link{
 
 class ListBase{
 protected:
-	ListBase():sz(0),ptop(NULL){
+	ListBase():sz(0),ptop(nullptr){
 		lend.pprev = lend.pnext = &lend;
 	}
 	bool isEmpty()const {return !sz;}
@@ -42,7 +42,7 @@ protected:
 	Link* doInsert(Link* _at);
 	void  doClear();
 	
-	bool cacheEmpty()const{ return ptop == NULL;}
+	bool cacheEmpty()const{ return ptop == nullptr;}
 
 	Link* theBack(){
 		return lend.pprev;
@@ -69,7 +69,7 @@ template <class T>
 struct ListIterator{
 	typedef typename T::value_type	value_type;
 	ListIterator(const ListIterator &_li):pl(_li.pl){}
-	ListIterator(Link *_pl = NULL):pl(_pl){}
+	ListIterator(Link *_pl = nullptr):pl(_pl){}
 	ListIterator& operator=(const ListIterator &_rit){
 		pl = _rit.pl;
 		return *this;
@@ -103,7 +103,7 @@ struct ListConstIterator{
 	typedef ListIterator<T>			iterator;
 	ListConstIterator(const ListConstIterator &_li):pl(_li.pl){}
 	ListConstIterator(const iterator &_li):pl(_li.pl){}
-	ListConstIterator(Link *_pl = NULL):pl(_pl){}
+	ListConstIterator(Link *_pl = nullptr):pl(_pl){}
 	ListConstIterator& operator=(const ListConstIterator &_rit){
 		pl = _rit.pl;
 		return *this;

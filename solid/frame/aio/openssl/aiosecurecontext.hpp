@@ -21,7 +21,7 @@ namespace openssl{
 class Socket;
 class Context{
 public:
-	static Context create(const SSL_METHOD* = NULL);
+	static Context create(const SSL_METHOD* = nullptr);
 	
 	Context();
 	

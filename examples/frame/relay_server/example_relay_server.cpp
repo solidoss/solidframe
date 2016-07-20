@@ -364,7 +364,7 @@ struct ResolvFunc{
 	
 	ResolvFunc(frame::Manager &_rm, frame::ObjectIdT const& _robjuid): rm(_rm), objuid(_robjuid){}
 	
-	void operator()(ResolveData &_rrd, ERROR_NS::error_code const &_rerr){
+	void operator()(ResolveData &_rrd, ErrorCodeT const &_rerr){
 		Event		ev(generic_event_category.event(GenericEvents::Message));
 		
 		ev.any().reset(std::move(_rrd));

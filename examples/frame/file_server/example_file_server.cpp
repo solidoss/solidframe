@@ -512,7 +512,7 @@ struct OpenCbk{
 	void operator()(
 		frame::file::Store<> &,
 		frame::file::FilePointerT &_rptr,
-		ERROR_NS::error_code err
+		ErrorCodeT const& /*_rerr*/
 	){
 		idbg("");
 		Event ev = generic_event_category.event(GenericEvents::Message);

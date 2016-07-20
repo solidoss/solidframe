@@ -30,7 +30,7 @@ class Stack{
 		NodeSize = BitsToCount(NBits)
 	};
 	struct Node{
-		Node(Node *_pprev = NULL): prev(_pprev){}
+		Node(Node *_pprev = nullptr): prev(_pprev){}
 		Node	*prev;
 		char	data[NodeSize * sizeof(T)];
 	};
@@ -38,7 +38,7 @@ public:
 	typedef T& 			reference;
 	typedef T const&	const_reference;
 public:
-	Stack():sz(0),p(NULL),ptn(NULL){}
+	Stack():sz(0),p(nullptr),ptn(nullptr){}
 	Stack(Stack &&_rs):sz(_rs.sz), p(_rs.p), ptn(_rs.ptn){
 		_rs.sz = 0;
 		_rs.p = nullptr;
@@ -91,7 +91,7 @@ public:
 	}
 private:
 	T *pushNode(void *_p){//_p points to 
-		Node *pn = _p ? (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*)): NULL;
+		Node *pn = _p ? (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*)): nullptr;
 		if(ptn){
 			Node *tn = pn;
 			pn = ptn;
@@ -112,7 +112,7 @@ private:
 			return (T*)(ppn->data + (NodeSize * sizeof(T) - sizeof(T)));
 		}else{
 			SOLID_ASSERT(!sz);
-			return NULL;
+			return nullptr;
 		}
 	}
 private:

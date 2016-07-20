@@ -62,7 +62,7 @@ public:
 		objmat(new MutualObjectT*[mutrowscnt])
 	{
 		for(uint i = 0; i < mutrowscnt; ++i){
-			objmat[i] = _preload ? new MutualObjectT[mutcolscnt] : NULL;
+			objmat[i] = _preload ? new MutualObjectT[mutcolscnt] : nullptr;
 		}
 	}
 	

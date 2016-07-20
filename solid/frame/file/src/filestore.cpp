@@ -63,22 +63,22 @@ typedef std::deque<Utf8PathStub>	PathDequeT;
 struct TempWaitStub{
 	TempWaitStub(
 		UniqueId const &_uid = UniqueId(),
-		File *_pfile = NULL,
+		File *_pfile = nullptr,
 		uint64_t _size = 0,
 		size_t _value = 0
 	):objuid(_uid), pfile(_pfile), size(_size), value(_value){}
 	
 	void clear(){
-		pfile = NULL;
+		pfile = nullptr;
 	}
 	bool empty()const{
-		return pfile == NULL;
+		return pfile == nullptr;
 	}
 	
 	UniqueId		objuid;
-	File		*pfile;
+	File			*pfile;
 	uint64_t		size;
-	size_t		value;
+	size_t			value;
 };
 
 typedef std::deque<TempWaitStub>	TempWaitDequeT;
@@ -316,7 +316,7 @@ Utf8Controller::~Utf8Controller(){
 
 bool Utf8Controller::prepareIndex(
 	shared::StoreBase::Accessor &/*_rsbacc*/, Utf8OpenCommandBase &_rcmd,
-	size_t &_ridx, size_t &_rflags, ERROR_NS::error_code &_rerr
+	size_t &_ridx, size_t &_rflags, ErrorCodeT &_rerr
 ){
 	//find _rcmd.inpath file and set _rcmd.outpath
 	//if found set _ridx and return true
@@ -343,7 +343,7 @@ bool Utf8Controller::prepareIndex(
 
 bool Utf8Controller::preparePointer(
 	shared::StoreBase::Accessor &/*_rsbacc*/, Utf8OpenCommandBase &_rcmd,
-	FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
+	FilePointerT &_rptr, size_t &_rflags, ErrorCodeT &_rerr
 ){
 	//just do map[_rcmd.outpath] = _rptr.uid().first
 	Utf8PathStub	*ppath;
@@ -361,7 +361,7 @@ bool Utf8Controller::preparePointer(
 	return true;//we don't store _runiptr for later use
 }
 
-void Utf8Controller::openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
+void Utf8Controller::openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, ErrorCodeT &_rerr){
 	Utf8ConfigurationImpl::Storage const	&rstrg = d.filecfg.storagevec[_rcmd.outpath.storeidx];
 	std::string								path;
 	
@@ -376,7 +376,7 @@ void Utf8Controller::openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, E
 
 bool Utf8Controller::prepareIndex(
 	shared::StoreBase::Accessor &_rsbacc, CreateTempCommandBase &_rcmd,
-	size_t &_ridx, size_t &_rflags, ERROR_NS::error_code &_rerr
+	size_t &_ridx, size_t &_rflags, ErrorCodeT &_rerr
 ){
 	//nothing to do
 	return false;//no stored index
@@ -384,7 +384,7 @@ bool Utf8Controller::prepareIndex(
 
 bool Utf8Controller::preparePointer(
 	shared::StoreBase::Accessor &_rsbacc, CreateTempCommandBase &_rcmd,
-	FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
+	FilePointerT &_rptr, size_t &_rflags, ErrorCodeT &_rerr
 ){
 	//We're under Store's mutex lock
 	UniqueId	uid = _rptr.id();
@@ -511,7 +511,7 @@ void Utf8Controller::doPrepareOpenTemp(File &_rf, uint64_t _sz, const size_t _st
 	
 }
 
-void Utf8Controller::openTemp(CreateTempCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
+void Utf8Controller::openTemp(CreateTempCommandBase &_rcmd, FilePointerT &_rptr, ErrorCodeT &_rerr){
 	if(_rptr->isTemp()){
 		TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[_rptr->temp()->tempstorageid]);
 		_rptr->temp()->open(rstrg.path.c_str(), _rcmd.openflags, rstrg.removemode == RemoveAfterCreateE, _rerr);
@@ -563,12 +563,12 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const s
 		const size_t	objidx = it->objuid.index;
 		
 		if(waitit == d.tempwaitdq.begin()){
-			while(waitit != d.tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == NULL)){
+			while(waitit != d.tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == nullptr)){
 				waitit = d.tempwaitdq.erase(waitit);
 			}
 		}else{
-			while(waitit != d.tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == NULL)){
-				waitit->pfile = NULL;
+			while(waitit != d.tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == nullptr)){
+				waitit->pfile = nullptr;
 				++waitit;
 			}
 		}
@@ -643,7 +643,7 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 
 }//namespace
 
-/*virtual*/ bool TempFile::open(const char *_path, const size_t _openflags, bool _remove, ERROR_NS::error_code &_rerr){
+/*virtual*/ bool TempFile::open(const char *_path, const size_t _openflags, bool _remove, ErrorCodeT &_rerr){
 	
 	std::string path;
 	
@@ -717,7 +717,7 @@ TempMemory::TempMemory(
 /*virtual*/ TempMemory::~TempMemory(){
 }
 
-/*virtual*/ bool TempMemory::open(const char *_path, const size_t _openflags, bool /*_remove*/, ERROR_NS::error_code &_rerr){
+/*virtual*/ bool TempMemory::open(const char *_path, const size_t _openflags, bool /*_remove*/, ErrorCodeT &_rerr){
 	unique_lock<mutex> lock(shared_mutex(this));
 	mf.truncate(0);
 	return true;

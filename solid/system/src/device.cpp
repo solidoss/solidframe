@@ -50,7 +50,7 @@ int Device::read(char	*_pb, size_t _bl){
 	SOLID_ASSERT(ok());
 #ifdef SOLID_ON_WINDOWS
 	DWORD cnt;
-	if(ReadFile(desc, _pb, _bl, &cnt, NULL)){
+	if(ReadFile(desc, _pb, _bl, &cnt, nullptr)){
 		return cnt;
 	}else{
 		return -1;
@@ -67,8 +67,8 @@ int Device::write(const char* _pb, size_t _bl){
 	/*OVERLAPPED ovp;
 	ovp.Offset = 0;
 	ovp.OffsetHigh = 0;
-	ovp.hEvent = NULL;*/
-	if(WriteFile(desc, const_cast<char*>(_pb), _bl, &cnt, NULL)){
+	ovp.hEvent = nullptr;*/
+	if(WriteFile(desc, const_cast<char*>(_pb), _bl, &cnt, nullptr)){
 		return cnt;
 	}else{
 		return -1;
@@ -80,7 +80,7 @@ int Device::write(const char* _pb, size_t _bl){
 
 bool Device::cancel(){
 #ifdef SOLID_ON_WINDOWS
-	return CancelIoEx(Device::descriptor(), NULL) != 0;
+	return CancelIoEx(Device::descriptor(), nullptr) != 0;
 #else
 	return true;
 #endif
@@ -171,7 +171,7 @@ FileDevice::FileDevice(){
 
 #ifdef SOLID_ON_WINDOWS
 HANDLE do_open(WCHAR *_pwc, const char *_fname, const size_t _sz, const size_t _wcp, int _how){
-	WCHAR *pwctmp(NULL);
+	WCHAR *pwctmp(nullptr);
 	//first convert _fname to _pwc
 	int rv = MultiByteToWideChar(CP_UTF8, 0, _fname, _sz, _pwc, _wcp);
 	if(rv == 0){
@@ -219,7 +219,7 @@ HANDLE do_open(WCHAR *_pwc, const char *_fname, const size_t _sz, const size_t _
 		}
 	}
 
-	HANDLE h = CreateFileW(pwctmp, acc, FILE_SHARE_READ, NULL, creat, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE h = CreateFileW(pwctmp, acc, FILE_SHARE_READ, nullptr, creat, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(_pwc != pwctmp){
 		delete []pwctmp;
 	}
@@ -300,7 +300,7 @@ bool FileDevice::canRetryOpen()const{
 //-- Directory -------------------------------------
 #ifdef SOLID_ON_WINDOWS
 int do_create_directory(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
-	WCHAR *pwctmp(NULL);
+	WCHAR *pwctmp(nullptr);
 	//first convert _fname to _pwc
 	int rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, _wcp);
 	if(rv == 0){
@@ -322,7 +322,7 @@ int do_create_directory(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp)
 		_pwc[rv] = 0;
 		pwctmp = _pwc;
 	}
-	BOOL brv = CreateDirectoryW(pwctmp, NULL);
+	BOOL brv = CreateDirectoryW(pwctmp, nullptr);
 	if(_pwc != pwctmp){
 		delete []pwctmp;
 	}
@@ -357,7 +357,7 @@ int do_create_directory(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp)
 
 #ifdef SOLID_ON_WINDOWS
 int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
-	WCHAR *pwctmp(NULL);
+	WCHAR *pwctmp(nullptr);
 	//first convert _fname to _pwc
 	int rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, _wcp);
 	if(rv == 0){
@@ -419,8 +419,8 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 	const size_t szfr(strlen(_from));
 	WCHAR pwcto[4096];
 	WCHAR pwcfr[4096];
-	WCHAR *pwctmpto(NULL);
-	WCHAR *pwctmpfr(NULL);
+	WCHAR *pwctmpto(nullptr);
+	WCHAR *pwctmpfr(nullptr);
 	
 	//first convert _to to _pwc
 	int rv = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, 4096);
@@ -497,7 +497,7 @@ struct wsa_cleaner{
 /*static*/ ErrorCodeT last_socket_error(){
 #ifdef SOLID_ON_WINDOWS
 	const DWORD err = WSAGetLastError();
-	return ErrorCodeT(err, ERROR_NS::system_category());
+	return ErrorCodeT(err, std::system_category());
 #else
 	return solid::last_system_error();
 #endif
@@ -555,7 +555,7 @@ void SocketDevice::close(){
 ErrorCodeT SocketDevice::create(const ResolveIterator &_rri){
 #ifdef SOLID_ON_WINDOWS
 	//SOCKET s = socket(_rai.family(), _rai.type(), _rai.protocol());
-	SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), NULL, 0, 0);
+	SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), nullptr, 0, 0);
 	Device::descriptor((HANDLE)s);
 #else
 	Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));	
@@ -570,7 +570,7 @@ ErrorCodeT SocketDevice::create(
 ){
 #ifdef SOLID_ON_WINDOWS
 	//SOCKET s = socket(_family, _type, _proto);
-	SOCKET s = WSASocket(_family, _type, _proto, NULL, 0, 0);
+	SOCKET s = WSASocket(_family, _type, _proto, nullptr, 0, 0);
 	Device::descriptor((HANDLE)s);
 #else
 	Device::descriptor(socket(_family, _type, _proto));
@@ -883,7 +883,7 @@ ErrorCodeT SocketDevice::type(int &_rrv)const{
 #endif
 }
 
-// SocketDevice::RetValE SocketDevice::isListening(ERROR_NS::error_code &_rerr)const{
+// SocketDevice::RetValE SocketDevice::isListening(ErrorCodeT &_rerr)const{
 // #ifdef SOLID_ON_WINDOWS
 // 	return Error;
 // #else

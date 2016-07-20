@@ -39,7 +39,7 @@ DWORD th_run(void *_pv){
 	return 0;
 }
 void create_thread(){
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&th_run, NULL, 0, NULL);
+	CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)&th_run, nullptr, 0, nullptr);
 }
 
 void ssleep(){
@@ -70,7 +70,7 @@ void init(){
 // 	pthread_mutexattr_t att;
 // 	pthread_mutexattr_init(&att);
 // 	pthread_mutexattr_settype(&att, (int)ERRORCHECK);
-	pthread_mutex_init(&mut,NULL);
+	pthread_mutex_init(&mut,nullptr);
 	//pthread_mutexattr_destroy(&att);
 }
 
@@ -96,12 +96,12 @@ void* th_run(void *pv){
 	if(v == 0){
 		exit(-2);
 	}
-	return NULL;
+	return nullptr;
 }
 
 void create_thread(){
 	pthread_t th;
-	pthread_create(&th,NULL,&th_run,NULL);
+	pthread_create(&th,nullptr,&th_run,nullptr);
 }
 #endif
 

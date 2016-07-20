@@ -68,7 +68,7 @@ struct TestD{
 	uint16_t						port;
 	
 	TestD(
-		const char *_paddr = NULL,
+		const char *_paddr = nullptr,
 		solid::uint _port = 0,
 		int _a = 4
 	):a(_a){
@@ -167,9 +167,9 @@ private:
 
 struct IntegerVector: Base{
 	typedef vector<uint32_t> 	IntVecT;
-	IntegerVector():piv1(NULL), piv2(NULL) {
+	IntegerVector():piv1(nullptr), piv2(nullptr) {
 	}
-	IntegerVector(bool):piv1(new IntVecT), piv2(NULL) {
+	IntegerVector(bool):piv1(new IntVecT), piv2(nullptr) {
 		piv1->push_back(1);
 		piv1->push_back(2);
 	}
@@ -353,7 +353,7 @@ int main(int argc, char *argv[]){
 	tm.registerCast<Array, Base>();
 	
 	
-	//const char* str = NULL;
+	//const char* str = nullptr;
 	for(int i = 0; i < 1; ++i){
 		{	
 			idbg("");

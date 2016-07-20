@@ -26,7 +26,7 @@ using namespace std;
 using namespace solid;
 ///\cond 0
 struct Test{
-	Test(const char *_fn = NULL);
+	Test(const char *_fn = nullptr);
 	template <class S>
 	void serialize(S &_s){
 		_s.push(no, "Test::no");

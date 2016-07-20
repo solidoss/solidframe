@@ -58,11 +58,11 @@ struct TempConfiguration{
 struct Utf8Controller;
 
 struct File{
-	File():ptmp(NULL){}
+	File():ptmp(nullptr){}
 	void clear(){
 		fd.close();
 		delete ptmp;
-		ptmp = NULL;
+		ptmp = nullptr;
 	}
 	bool open(const char *_path, const size_t _openflags){
 		return fd.open(_path, _openflags);
@@ -116,7 +116,7 @@ struct File{
 		}
 	}
 	bool isTemp()const{
-		return ptmp != NULL;
+		return ptmp != nullptr;
 	}
 	TempBase* temp()const{
 		return ptmp;
@@ -138,11 +138,11 @@ struct OpenCommand: Base{
 	):Base(_path, _openflags), cmd(_cmd){}
 	
 
-	void operator()(S &_rstore, FilePointerT &_rptr, ERROR_NS::error_code err){
-		if(!err){
-			Base::openFile(_rstore, _rptr, err);
+	void operator()(S &_rstore, FilePointerT &_rptr, ErrorCodeT _err){
+		if(!_err){
+			Base::openFile(_rstore, _rptr, _err);
 		}
-		cmd(_rstore, _rptr, err);
+		cmd(_rstore, _rptr, _err);
 	}
 };
 
@@ -156,7 +156,7 @@ protected:
 		uint64_t _sz, size_t _openflags
 	):openflags(_openflags), size(_sz), storageid(InvalidIndex()){}
 	
-	void openTemp(Utf8Controller &_rstore, FilePointerT &_rptr, ERROR_NS::error_code &_rerr);
+	void openTemp(Utf8Controller &_rstore, FilePointerT &_rptr, ErrorCodeT &_rerr);
 };
 
 
@@ -168,9 +168,9 @@ struct CreateTempCommand: CreateTempCommandBase{
 		Cmd const &_cmd, uint64_t _sz, size_t _createflags
 	):CreateTempCommandBase(_sz, _createflags), cmd(_cmd){}
 	
-	void operator()(S &_rstore, FilePointerT &_rptr, ERROR_NS::error_code err){
-		CreateTempCommandBase::openTemp(_rstore, _rptr, err);
-		cmd(_rstore, _rptr, err);
+	void operator()(S &_rstore, FilePointerT &_rptr, ErrorCodeT _err){
+		CreateTempCommandBase::openTemp(_rstore, _rptr, _err);
+		cmd(_rstore, _rptr, _err);
 	}
 };
 
@@ -204,28 +204,28 @@ struct Utf8Controller{
 	
 	bool prepareIndex(
 		shared::StoreBase::Accessor &_rsbacc, Utf8OpenCommandBase &_rcmd,
-		size_t &_ridx, size_t &_rflags, ERROR_NS::error_code &_rerr
+		size_t &_ridx, size_t &_rflags, ErrorCodeT &_rerr
 	);
 	
 	bool preparePointer(
 		shared::StoreBase::Accessor &_rsbacc, Utf8OpenCommandBase &_rcmd,
-		FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
+		FilePointerT &_rptr, size_t &_rflags, ErrorCodeT &_rerr
 	);
 	
 	bool prepareIndex(
 		shared::StoreBase::Accessor &_rsbacc, CreateTempCommandBase &_rcmd,
-		size_t &_ridx, size_t &_rflags, ERROR_NS::error_code &_rerr
+		size_t &_ridx, size_t &_rflags, ErrorCodeT &_rerr
 	);
 	bool preparePointer(
 		shared::StoreBase::Accessor &_rsbacc, CreateTempCommandBase &_rcmd,
-		FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
+		FilePointerT &_rptr, size_t &_rflags, ErrorCodeT &_rerr
 	);
 	
 private:
 	friend struct CreateTempCommandBase;
 	friend struct Utf8OpenCommandBase;
-	void openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr);
-	void openTemp(CreateTempCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr);
+	void openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, ErrorCodeT &_rerr);
+	void openTemp(CreateTempCommandBase &_rcmd, FilePointerT &_rptr, ErrorCodeT &_rerr);
 	void doPrepareOpenTemp(File &_rf, uint64_t _sz, const size_t _storeid);
 	void doCloseTemp(TempBase &_rtemp);
 	void doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const size_t _storeid);
@@ -251,7 +251,7 @@ struct Utf8OpenCommandBase{
 		std::string const 	&_inpath, size_t _openflags
 	):inpath(_inpath), openflags(_openflags){}
 	
-	void openFile(Utf8Controller &_rstore, FilePointerT &_rptr, ERROR_NS::error_code &_rerr);
+	void openFile(Utf8Controller &_rstore, FilePointerT &_rptr, ErrorCodeT &_rerr);
 };
 
 template <class Base = Utf8Controller>
@@ -302,11 +302,11 @@ public:
 	}
 };
 
-inline void Utf8OpenCommandBase::openFile(Utf8Controller &_rstore, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
+inline void Utf8OpenCommandBase::openFile(Utf8Controller &_rstore, FilePointerT &_rptr, ErrorCodeT &_rerr){
 	_rstore.openFile(*this, _rptr, _rerr);
 }
 
-inline void CreateTempCommandBase::openTemp(Utf8Controller &_rstore, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
+inline void CreateTempCommandBase::openTemp(Utf8Controller &_rstore, FilePointerT &_rptr, ErrorCodeT &_rerr){
 	_rstore.openTemp(*this, _rptr, _rerr);
 }
 

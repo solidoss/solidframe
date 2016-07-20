@@ -66,7 +66,7 @@ void CompletionHandler::errorClear(ReactorContext &_rctx)const{
 	_rctx.clearError();
 }
 
-void CompletionHandler::systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const{
+void CompletionHandler::systemError(ReactorContext &_rctx, ErrorCodeT const& _err)const{
 	_rctx.systemError(_err);
 }
 

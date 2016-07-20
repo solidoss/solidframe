@@ -33,7 +33,7 @@ void PointerBase::doClear(const bool _isalive){
 	if(psb){
 		psb->erasePointer(id(), _isalive);
 		uid = UniqueId::invalid();
-		psb = NULL;
+		psb = nullptr;
 	}
 }
 
@@ -231,7 +231,7 @@ void* StoreBase::doTryAllocateWait(){
 		d.cachewaitstk.pop();
 		return rv;
 	}
-	return NULL;
+	return nullptr;
 }
 
 }//namespace shared

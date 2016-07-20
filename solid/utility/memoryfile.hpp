@@ -96,7 +96,7 @@ private:
 	char *doCreateBuffer(uint32_t _idx, bool &_created);
 private:
 	struct Buffer{
-		Buffer(uint32_t _idx = 0, char *_data = NULL):idx(_idx), data(_data){}
+		Buffer(uint32_t _idx = 0, char *_data = nullptr):idx(_idx), data(_data){}
 		uint32_t	idx;
 		char	*data;
 	};

@@ -56,7 +56,7 @@ protected:
 	Reactor& reactor(ReactorContext &_rctx)const;
 	void error(ReactorContext &_rctx, ErrorConditionT const& _err)const;
 	void errorClear(ReactorContext &_rctx)const;
-	void systemError(ReactorContext &_rctx, ERROR_NS::error_code const& _err)const;
+	void systemError(ReactorContext &_rctx, ErrorCodeT const& _err)const;
 	void addTimer(ReactorContext &_rctx, NanoTime const&_rt, size_t &_storedidx);
 	void remTimer(ReactorContext &_rctx, size_t const &_storedidx);
 private:

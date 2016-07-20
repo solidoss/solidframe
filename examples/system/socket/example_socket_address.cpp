@@ -64,9 +64,9 @@ int main(int argc, char *argv[]){
 		cout<<"error too few arguments"<<endl;
 		return 0;
 	}
-	const char *node = NULL;
+	const char *node = nullptr;
 	if(strlen(argv[1])) node = argv[1];
-	const char *srv = NULL;
+	const char *srv = nullptr;
 	if(strlen(argv[2])) srv = argv[2];
 	int flags = 0;
 	int family = SocketInfo::Inet4;

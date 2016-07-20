@@ -30,7 +30,7 @@ struct TempFile: TempBase{
 private:	
 	/*virtual*/ ~TempFile();
 	
-	/*virtual*/ bool open(const char *_path, const size_t _openflags, bool _remove, ERROR_NS::error_code &_rerr);
+	/*virtual*/ bool open(const char *_path, const size_t _openflags, bool _remove, ErrorCodeT &_rerr);
 	/*virtual*/ void close(const char *_path, bool _remove);
 	/*virtual*/ int read(char *_pb, uint32_t _bl, int64_t _off);
 	/*virtual*/ int write(const char *_pb, uint32_t _bl, int64_t _off);
@@ -51,7 +51,7 @@ struct TempMemory: TempBase{
 private:	
 	/*virtual*/ ~TempMemory();
 	
-	/*virtual*/ bool open(const char *_path, const size_t _openflags, bool _remove, ERROR_NS::error_code &_rerr);
+	/*virtual*/ bool open(const char *_path, const size_t _openflags, bool _remove, ErrorCodeT &_rerr);
 	/*virtual*/ void close(const char *_path, bool _remove);
 	/*virtual*/ int read(char *_pb, uint32_t _bl, int64_t _off);
 	/*virtual*/ int write(const char *_pb, uint32_t _bl, int64_t _off);

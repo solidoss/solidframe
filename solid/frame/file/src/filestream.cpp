@@ -22,7 +22,7 @@ FileBuf::FileBuf(
 	char* _buf, size_t _bufcp
 ):dev(_rptr), buf(_buf), bufcp(_bufcp), off(0){
 	if(_bufcp){
-		setp(NULL, NULL);
+		setp(nullptr, nullptr);
 		resetGet();
 	}
 }
@@ -30,7 +30,7 @@ FileBuf::FileBuf(
 	char* _buf, size_t _bufcp
 ): buf(_buf), bufcp(_bufcp), off(0){
 	if(_bufcp){
-		setp(NULL, NULL);
+		setp(nullptr, nullptr);
 		resetGet();
 	}
 }
@@ -129,7 +129,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 /*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c){
 	idbgx(dbgid(), ""<<_c<<" off = "<<off);
 	if(hasBuf()){
-		if(pptr() == NULL){
+		if(pptr() == nullptr){
 			if(hasGet()){
 				off += (gptr() - buf);
 				resetGet();
@@ -154,7 +154,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 			off += towrite;
 			resetPut();
 		}else{
-			setp(NULL, NULL);
+			setp(nullptr, nullptr);
 		}
 	}else{
 		const char	c = _c;
@@ -177,7 +177,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 			if(!flushPut()){
 				return pos_type(-1);
 			}
-			setp(NULL, NULL);
+			setp(nullptr, nullptr);
 			resetGet();
 		}
 		int64_t newoff = 0;
@@ -202,7 +202,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 			newoff = off + newbufoff;
 		}else{
 			off = newoff;
-			setp(NULL, NULL);
+			setp(nullptr, nullptr);
 			resetGet();
 		}
 		return newoff;
@@ -246,7 +246,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 			if(!flushPut()){
 				return 0;
 			}
-			setp(NULL, NULL);
+			setp(nullptr, nullptr);
 			resetGet();
 		}
 		
@@ -286,7 +286,7 @@ bool FileBuf::flushPut(){
 			off += towrite;
 			resetBoth();
 		}else{
-			setp(NULL, NULL);
+			setp(nullptr, nullptr);
 			return false;
 		}
 	}
@@ -299,7 +299,7 @@ bool FileBuf::flushPut(){
 		//NOTE: it should work with the following line too
 		//return streambuf::xsputn(_s, _n);
 		
-		if(pptr() == NULL){
+		if(pptr() == nullptr){
 			if(hasGet()){
 				off += (gptr() - buf);
 				resetGet();

@@ -36,8 +36,8 @@ ResolveData synchronous_resolve(const char *_node, const char *_service){
 	if(!_node && !_service){
 		return ResolveData();
 	}
-	addrinfo *paddr = NULL;
-	getaddrinfo(_node, _service, NULL, &paddr);
+	addrinfo *paddr = nullptr;
+	getaddrinfo(_node, _service, nullptr, &paddr);
 	return ResolveData(paddr);
 }
 ResolveData synchronous_resolve(
@@ -60,10 +60,10 @@ ResolveData synchronous_resolve(
 	h.ai_socktype = _type;
 	h.ai_protocol = _proto;
 	h.ai_addrlen = 0;
-	h.ai_addr = NULL;
-	h.ai_canonname = NULL;
-	h.ai_next = NULL;
-	addrinfo *paddr = NULL;
+	h.ai_addr = nullptr;
+	h.ai_canonname = nullptr;
+	h.ai_next = nullptr;
+	addrinfo *paddr = nullptr;
 	getaddrinfo(_node, _service, &h, &paddr);
 	return ResolveData(paddr);
 }

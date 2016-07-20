@@ -24,10 +24,10 @@ class FileBuf: public std::streambuf{
 public:
 	FileBuf(
 		FilePointerT &_rptr,
-		char* _buf = NULL, size_t _bufcp = 0
+		char* _buf = nullptr, size_t _bufcp = 0
 	);
 	FileBuf(
-		char* _buf = NULL, size_t _bufcp = 0
+		char* _buf = nullptr, size_t _bufcp = 0
 	);
 	~FileBuf();
 	FilePointerT& device();
@@ -55,7 +55,7 @@ private:
 		return bufcp != 0;
 	}
 	bool hasPut()const{
-		return pptr() != NULL;
+		return pptr() != nullptr;
 	}
 	bool hasGet()const{
 		return gptr() != egptr();
@@ -91,16 +91,16 @@ class FileIStream<0>: public std::istream{
 public:
 	explicit FileIStream(
 		FilePointerT &_rdev, const size_t _bufcp = 0
-	):	std::istream(NULL),
-		pb(_bufcp ? new char[_bufcp] : NULL),
+	):	std::istream(nullptr),
+		pb(_bufcp ? new char[_bufcp] : nullptr),
 		buf(_rdev, pb, _bufcp){
 		rdbuf(&buf);
 	}
 	
 	FileIStream(
 		const size_t _bufcp = 0
-	):	std::istream(NULL),
-		pb(_bufcp ? new char[_bufcp] : NULL),
+	):	std::istream(nullptr),
+		pb(_bufcp ? new char[_bufcp] : nullptr),
 		buf(pb, _bufcp)
 	{
 		rdbuf(&buf);
@@ -127,10 +127,10 @@ private:
 template <size_t BufCp>
 class FileIStream: public std::istream{
 public:
-	explicit FileIStream(FilePointerT &_rdev):std::istream(NULL), buf(_rdev, b, BufCp){
+	explicit FileIStream(FilePointerT &_rdev):std::istream(nullptr), buf(_rdev, b, BufCp){
 		rdbuf(&buf);
 	}
-	FileIStream():std::istream(NULL), buf(b, BufCp){
+	FileIStream():std::istream(nullptr), buf(b, BufCp){
 		rdbuf(&buf);
 	}
 	FilePointerT& device(){
@@ -158,14 +158,14 @@ public:
 	explicit FileOStream(
 		FilePointerT &_rdev,
 		const size_t _bufcp = 0
-	):	std::ostream(), pb(_bufcp ? new char[_bufcp] : NULL),
+	):	std::ostream(), pb(_bufcp ? new char[_bufcp] : nullptr),
 		buf(_rdev, pb, _bufcp)
 	{
 		rdbuf(&buf);
 	}
 	FileOStream(
 		const size_t _bufcp = 0
-	):	std::ostream(), pb(_bufcp ? new char[_bufcp] : NULL),
+	):	std::ostream(), pb(_bufcp ? new char[_bufcp] : nullptr),
 		buf(pb, _bufcp)
 	{
 		rdbuf(&buf);
@@ -223,14 +223,14 @@ public:
 	explicit FileIOStream(
 		FilePointerT &_rdev,
 		const size_t _bufcp = 0
-	):	std::iostream(NULL), pb(_bufcp ? new char[_bufcp] : NULL),
+	):	std::iostream(nullptr), pb(_bufcp ? new char[_bufcp] : nullptr),
 		buf(_rdev, pb, _bufcp)
 	{
 		rdbuf(&buf);
 	}
 	FileIOStream(
 		const size_t _bufcp = 0
-	):	std::iostream(NULL), pb(_bufcp ? new char[_bufcp] : NULL),
+	):	std::iostream(nullptr), pb(_bufcp ? new char[_bufcp] : nullptr),
 		buf(pb, _bufcp)
 	{
 		rdbuf(&buf);
@@ -257,10 +257,10 @@ private:
 template <size_t BufCp>
 class FileIOStream: public std::iostream{
 public:
-	explicit FileIOStream(FilePointerT &_rdev):std::iostream(NULL), buf(_rdev, b, BufCp){
+	explicit FileIOStream(FilePointerT &_rdev):std::iostream(nullptr), buf(_rdev, b, BufCp){
 		rdbuf(&buf);
 	}
-	FileIOStream():std::iostream(NULL), buf(b, BufCp){
+	FileIOStream():std::iostream(nullptr), buf(b, BufCp){
 		rdbuf(&buf);
 	}
 	FilePointerT& device(){

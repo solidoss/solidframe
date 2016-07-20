@@ -69,13 +69,13 @@ namespace solid{
 class DeviceOutBasicBuffer : public std::streambuf {
 public:
 	// constructor
-	DeviceOutBasicBuffer(uint64_t &_rsz): pd(NULL), sz(_rsz){}
+	DeviceOutBasicBuffer(uint64_t &_rsz): pd(nullptr), sz(_rsz){}
 	DeviceOutBasicBuffer(Device & _d, uint64_t &_rsz) : pd(&_d), sz(_rsz){}
 	void device(Device & _d){
 		pd = &_d;
 	}
 	void close(){
-		pd = NULL;
+		pd = nullptr;
 	}
 protected:
 	// write one character
@@ -107,15 +107,15 @@ class DeviceOutBuffer : public std::streambuf {
 public:
 	enum {BUFF_CP = 2048, BUFF_FLUSH = 1024};
 	// constructor
-	DeviceOutBuffer(uint64_t &_rsz):pd(NULL), sz(_rsz), bpos(bbeg){}
+	DeviceOutBuffer(uint64_t &_rsz):pd(nullptr), sz(_rsz), bpos(bbeg){}
 	DeviceOutBuffer(Device & _d, uint64_t &_rsz): pd(&_d), sz(_rsz), bpos(bbeg){}
 	void device(Device & _d){
 		pd = &_d;
 	}
 	void close(){
-		if(pd == NULL || !pd->ok()) return;
+		if(pd == nullptr || !pd->ok()) return;
 		flush();
-		pd = NULL;
+		pd = nullptr;
 	}
 protected:
 	// write one character

@@ -34,7 +34,7 @@ struct TempBase{
 		const char *_path,
 		const size_t _openflags,
 		bool _remove,
-		ERROR_NS::error_code &_rerr
+		ErrorCodeT &_rerr
 	) = 0;
 	
 	virtual void close(const char *_path, bool _remove) = 0;

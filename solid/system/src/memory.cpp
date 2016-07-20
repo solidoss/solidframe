@@ -23,11 +23,11 @@ size_t memory_page_size(){
 
 void * memory_allocate_aligned(size_t _align, size_t _size){
 #ifdef SOLID_ON_WINDOWS
-	return NULL;
+	return nullptr;
 #else
-	void *pv = NULL;
+	void *pv = nullptr;
 	int rv = posix_memalign(&pv, _align, _size);
-	return !rv ? pv : NULL;
+	return !rv ? pv : nullptr;
 #endif
 }
 void   memory_free_aligned(void *_pv){
@@ -116,7 +116,7 @@ size_t getMemorySize()
 #endif
 	int64_t size = 0;               /* 64-bit */
 	size_t len = sizeof( size );
-	if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
+	if ( sysctl( mib, 2, &size, &len, nullptr, 0 ) == 0 )
 		return (size_t)size;
 	return 0L;			/* Failed? */
 
@@ -145,7 +145,7 @@ size_t getMemorySize()
 #endif
 	unsigned int size = 0;		/* 32-bit */
 	size_t len = sizeof( size );
-	if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
+	if ( sysctl( mib, 2, &size, &len, nullptr, 0 ) == 0 )
 		return (size_t)size;
 	return 0L;			/* Failed? */
 #endif /* sysctl and sysconf variants */
