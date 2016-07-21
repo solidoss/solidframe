@@ -28,7 +28,8 @@ enum {
 	ErrorConnectionEnterActiveE,
 	ErrorConnectionStoppingE,
 	ErrorConnectionInvalidStateE,
-	ErrorConnectionMessageFailSendE,
+	ErrorMessageCanceledE,
+	ErrorMessageConnectionE,
 	ErrorCompressionUnavailableE,
 	ErrorReaderInvalidPacketHeaderE,
 	ErrorReaderInvalidMessageSwitchE,
@@ -91,8 +92,11 @@ std::string ErrorCategory::message(int _ev) const{
 		case ErrorConnectionDelayedClosedE:
 			oss<<"Connection delayed closed";
 			break;
-		case ErrorConnectionMessageCanceledE:
+		case ErrorMessageCanceledE:
 			oss<<"Message canceled";
+			break;
+		case ErrorMessageConnectionE:
+			oss<<"Message connection";
 			break;
 		case ErrorConnectionEnterActiveE:
 			oss<<"Connection cannot enter active state - too many active connections";
@@ -102,9 +106,6 @@ std::string ErrorCategory::message(int _ev) const{
 			break;
 		case ErrorConnectionInvalidStateE:
 			oss<<"Connection is a state invalid for opperation";
-			break;
-		case ErrorConnectionMessageFailSendE:
-			oss<<"Message failed send";
 			break;
 		case ErrorCompressionUnavailableE:
 			oss<<"Compression support is unavailable";
@@ -181,10 +182,13 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_connection_logic(ErrorConnectionLogicE, category);
 /*extern*/ const ErrorConditionT error_connection_resolve(ErrorConnectionResolveE, category);
 /*extern*/ const ErrorConditionT error_connection_delayed_closed(ErrorConnectionDelayedClosedE, category);
-/*extern*/ const ErrorConditionT error_connection_message_canceled(ErrorConnectionMessageCanceledE, category);
 /*extern*/ const ErrorConditionT error_connection_enter_active(ErrorConnectionEnterActiveE, category);
 /*extern*/ const ErrorConditionT error_connection_stopping(ErrorConnectionStoppingE, category);
 /*extern*/ const ErrorConditionT error_connection_invalid_state(ErrorConnectionInvalidStateE, category);
+
+/*extern*/ const ErrorConditionT error_message_canceled(ErrorMessageCanceledE, category);
+/*extern*/ const ErrorConditionT error_message_connection(ErrorMessageConnectionE, category);
+
 /*extern*/ const ErrorConditionT error_compression_unavailable(ErrorCompressionUnavailableE, category);
 /*extern*/ const ErrorConditionT error_reader_invalid_packet_header(ErrorReaderInvalidPacketHeaderE, category);
 /*extern*/ const ErrorConditionT error_reader_invalid_message_switch(ErrorReaderInvalidMessageSwitchE, category);
@@ -206,7 +210,7 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_service_message_already_canceled(ErrorServiceMessageAlreadyCanceledE, category);
 /*extern*/ const ErrorConditionT error_service_message_lost(ErrorServiceMessageLostE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_message(ErrorServiceUnknownMessageE, category);
-/*extern*/ const ErrorConditionT error_connection_message_fail_send(ErrorConnectionMessageFailSendE, category);
+
 }//namespace ipc
 }//namespace frame
 }//namespace solid

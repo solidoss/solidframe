@@ -1382,7 +1382,7 @@ ReturnValues DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_pct
 	
 	ros.write(rd.cpb, towrite);
 	
-	int rv;
+	uint64_t rv;
 	
 	if(ros.fail() || ros.eof()){
 		rv = -1;

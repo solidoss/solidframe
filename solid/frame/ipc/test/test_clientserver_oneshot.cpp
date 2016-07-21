@@ -132,8 +132,8 @@ struct Message: frame::ipc::Message{
 	
 };
 
-void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void client_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 	if(!running){
 		++connection_count;
 	}
@@ -153,7 +153,7 @@ void client_complete_message(
 	SOLID_CHECK(not _rrecv_msg_ptr);
 	SOLID_CHECK(_rsent_msg_ptr);
 	
-	SOLID_CHECK(_rerror == frame::aio::error_stream_socket);
+	SOLID_CHECK(_rerror == frame::ipc::error_message_connection and _rctx.error() and _rctx.systemError());
 	
 	{
 		unique_lock<mutex> lock(mtx);

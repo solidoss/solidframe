@@ -113,8 +113,8 @@ struct MessageHandler{
 };
 
 
-void connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 }
 
 void incoming_connection_start(frame::ipc::ConnectionContext &_rctx){

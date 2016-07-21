@@ -132,14 +132,14 @@ void complete_message(
 	frame::ipc::MessagePointerT &_rresponse_ptr,
 	ErrorConditionT const &_rerr
 ){
-	if(_rerr and _rerr != frame::ipc::error_connection_message_canceled){
+	if(_rerr and _rerr != frame::ipc::error_message_canceled){
 		SOLID_THROW("Message complete with error");
 	}
 	if(_rmessage_ptr.get()){
 		size_t idx = static_cast<Message&>(*_rmessage_ptr).idx;
 		if(crtreadidx){
 			//not the first message
-			SOLID_CHECK((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_connection_message_canceled));
+			SOLID_CHECK((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::ipc::error_message_canceled));
 		}
 		idbg(static_cast<Message&>(*_rmessage_ptr).str.size()<<' '<<_rerr.message());
 	}

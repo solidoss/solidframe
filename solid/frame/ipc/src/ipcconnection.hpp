@@ -99,7 +99,7 @@ public:
 	);
 	
 	const ErrorConditionT& error()const;
-	const ErrorCodeR& systemError()const;
+	const ErrorCodeT& systemError()const;
 	
 	bool isFull(Configuration const& _rconfiguration)const;
 	

@@ -111,6 +111,9 @@ public:
 	}
 #endif
 	void close();
+	
+	ErrorCodeT lastError()const;
+	
 	//! Get the socket type
 	ErrorCodeT type(int &_rrv)const;
 	//! Return true if the socket is listening

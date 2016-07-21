@@ -141,8 +141,8 @@ struct Message: frame::ipc::Message{
 	
 };
 
-void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void client_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 	if(!running){
 		++connection_count;
 	}
@@ -152,17 +152,17 @@ void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
 }
 
-void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const& _error){
-	idbg(_rctx.recipientId()<<" error = "<<_error.message());
+void server_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 	
 	if(test_scenario == 0){
-		if(_error == frame::ipc::error_connection_too_many_keepalive_packets_received){
+		if(_rctx.error() == frame::ipc::error_connection_too_many_keepalive_packets_received){
 			unique_lock<mutex> lock(mtx);
 			running = false;
 			cnd.notify_one();
 		}
 	}else if(test_scenario == 1){
-		if(_error == frame::ipc::error_connection_inactivity_timeout){
+		if(_rctx.error() == frame::ipc::error_connection_inactivity_timeout){
 			unique_lock<mutex> lock(mtx);
 			running = false;
 			cnd.notify_one();

@@ -62,7 +62,7 @@ struct FileResponse: solid::frame::ipc::Message{
 	std::string			remote_path;
 	std::string			local_path;
 	std::fstream		fs;
-	uint64_t			remote_file_size;
+	int64_t				remote_file_size;
 	
 	FileResponse(){}
 	

@@ -161,8 +161,8 @@ struct Message: frame::ipc::Message{
 	
 };
 
-void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void client_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 	if(!running){
 		++connection_count;
 	}
@@ -172,8 +172,8 @@ void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
 }
 
-void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void server_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){

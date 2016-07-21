@@ -146,8 +146,8 @@ struct Message: frame::ipc::Message{
 	
 };
 
-void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void client_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 	if(!running){
 		++connection_count;
 	}
@@ -157,8 +157,8 @@ void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
 }
 
-void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void server_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
@@ -178,7 +178,7 @@ void client_complete_message(
 			++crtackidx;
 		}else{
 			//it should be the one shot message
-			SOLID_CHECK(_rerror == frame::aio::error_stream_socket);
+			SOLID_CHECK(_rerror == frame::ipc::error_message_connection and _rctx.error() and _rctx.systemError());
 			SOLID_CHECK(_rsent_msg_ptr->idx == 1);
 			SOLID_CHECK(not _rrecv_msg_ptr);
 		}

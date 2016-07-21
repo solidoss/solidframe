@@ -27,7 +27,7 @@ namespace{
 	
 	//void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
 	
-	void empty_connection_stop(ConnectionContext &, ErrorConditionT const&){}
+	void empty_connection_stop(ConnectionContext &){}
 	
 	void empty_connection_start(ConnectionContext &){}
 

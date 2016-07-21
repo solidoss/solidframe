@@ -11,8 +11,8 @@ IpcServicePointerT		ipcclient_ptr;
 
 Context					*pctx;
 
-void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void client_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 }
 
 void client_connection_start(frame::ipc::ConnectionContext &_rctx){

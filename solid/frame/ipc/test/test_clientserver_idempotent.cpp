@@ -147,8 +147,8 @@ struct Message: frame::ipc::Message{
 	
 };
 
-void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void client_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 	if(!running){
 		++connection_count;
 	}
@@ -163,8 +163,8 @@ void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	_rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
 }
 
-void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void server_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
@@ -192,7 +192,7 @@ void client_complete_message(
 		}else{
 			wdbg("send message complete: "<<_rerror.message());
 			SOLID_CHECK(_rsent_msg_ptr->idx == 0 or _rsent_msg_ptr->idx == 2);
-			SOLID_ASSERT(_rerror == std::system_category().default_error_condition(EPIPE));
+			SOLID_CHECK(_rerror == frame::ipc::error_message_connection and _rctx.error() and _rctx.systemError());
 		}
 	}
 	if(_rrecv_msg_ptr.get()){

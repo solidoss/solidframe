@@ -1103,6 +1103,18 @@ ErrorCodeT SocketDevice::recvBufferSize(int &_rsz)const{
 #endif
 }
 
+ErrorCodeT SocketDevice::lastError()const{
+#ifdef SOLID_ON_WINDOWS
+	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+#else
+	int 		err = 0;
+	socklen_t	errlen = sizeof(err);
+	getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, (void*)&err, &errlen);
+	
+	return ErrorCodeT(err, std::system_category());
+#endif
+}
+
 
 }//namespace solid
 

@@ -134,8 +134,8 @@ struct Logout: frame::ipc::Message{
 	}
 };
 
-void client_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void client_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 	if(_rctx.isConnectionActive()){
 		//NOTE: (***) in order for client_received_logout check to work, one shoud better
 		// use delayCloseConnectionPool instead of closeConnection
@@ -158,8 +158,8 @@ void client_connection_start(frame::ipc::ConnectionContext &_rctx){
 	_rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
 }
 
-void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void server_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error "<<_rctx.error().message());
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){

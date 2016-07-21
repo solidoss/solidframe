@@ -544,19 +544,16 @@ void Connection::doContinueStopping(
 	
 	Event				event(_revent);
 	
-	bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, error);
+	bool				can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 	
 	if(msg_bundle.message_ptr or not FUNCTION_EMPTY(msg_bundle.complete_fnc)){
-		if(not error){
-			error = error_connection_message_fail_send;
-		}
-		doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error);
+		doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
 	}
 	
 	if(can_stop){
 		//can stop rightaway
 		postStop(_rctx, 
-			[_rerr](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
+			[](frame::aio::ReactorContext &_rctx, Event &&/*_revent*/){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
 				rthis.onStopped(_rctx);
 			}
@@ -568,14 +565,14 @@ void Connection::doContinueStopping(
 			NanoTime(seconds_to_wait),
 			[_revent](frame::aio::ReactorContext &_rctx){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
-				rthis.doContinueStopping(_rctx, _rerr, _revent);
+				rthis.doContinueStopping(_rctx, _revent);
 			}
 		);
 	}else{
 		post(_rctx,
-			[_rerr](frame::aio::ReactorContext &_rctx, Event &&_revent){
+			[](frame::aio::ReactorContext &_rctx, Event &&_revent){
 				Connection	&rthis = static_cast<Connection&>(_rctx.object());
-				rthis.doContinueStopping(_rctx, _rerr, _revent);
+				rthis.doContinueStopping(_rctx, _revent);
 			},
 			std::move(event)
 		);
@@ -795,7 +792,7 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext &_rct
 		MessageBundle	msg_bundle;
 		MessageId		pool_msg_id;
 		if(msg_writer.cancel(*pmsgid, msg_bundle, pool_msg_id)){
-			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_connection_message_canceled);
+			doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_canceled);
 		}
 	}
 }
@@ -809,7 +806,7 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext &_rct
 		MessageBundle	msg_bundle;
 				
 		if(service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)){
-			doCompleteMessage(_rctx, *pmsgid, msg_bundle, error_connection_message_canceled);
+			doCompleteMessage(_rctx, *pmsgid, msg_bundle, error_message_canceled);
 		}
 	}
 }
@@ -1324,7 +1321,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		}
 		rthis.doSend(_rctx);
 	}else{
-		edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" sending "<<_rctx.error().message());
+		edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" sending ["<<_rctx.error().message()<<"]["<<_rctx.systemError().message()<<']');
 		rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
 	}
 }
@@ -1337,7 +1334,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 		idbgx(Debug::ipc, &rthis<<' '<<rthis.id());
 		rthis.doStart(_rctx, false);
 	}else{
-		edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" connecting "<<_rctx.error().message());
+		edbgx(Debug::ipc, &rthis<<' '<<rthis.id()<<" connecting ["<<_rctx.error().message()<<"]["<<_rctx.systemError().message()<<']');
 		rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
 	}
 }

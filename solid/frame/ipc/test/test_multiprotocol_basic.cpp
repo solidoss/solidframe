@@ -54,8 +54,8 @@ std::atomic<size_t>				transfered_count(0);
 std::atomic<size_t>				connection_count(0);
 
 
-void server_connection_stop(frame::ipc::ConnectionContext &_rctx, ErrorConditionT const&){
-	idbg(_rctx.recipientId());
+void server_connection_stop(frame::ipc::ConnectionContext &_rctx){
+	idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
 }
 
 void server_connection_start(frame::ipc::ConnectionContext &_rctx){
