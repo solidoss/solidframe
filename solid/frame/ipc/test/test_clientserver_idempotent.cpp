@@ -192,7 +192,14 @@ void client_complete_message(
 		}else{
 			wdbg("send message complete: "<<_rerror.message());
 			SOLID_CHECK(_rsent_msg_ptr->idx == 0 or _rsent_msg_ptr->idx == 2);
-			SOLID_CHECK(_rerror == frame::ipc::error_message_connection and _rctx.error() and _rctx.systemError());
+			SOLID_CHECK(
+				_rerror == frame::ipc::error_message_connection and
+				(
+					(_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError())
+					or
+					(_rctx.error() and _rctx.systemError())
+				)
+			);
 		}
 	}
 	if(_rrecv_msg_ptr.get()){
