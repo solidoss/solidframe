@@ -88,7 +88,7 @@ public:
 		AioSchedulerT &_rsched,
 		SocketDevice &&_rsd
 	):
-		rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), std::move(_rsd)), timercnt(0)
+		rsvc(_rsvc), rsch(_rsched), sock(this->proxy(), std::move(_rsd))
 	{}
 	~Listener(){
 	}
@@ -103,7 +103,6 @@ private:
 	frame::Service		&rsvc;
 	AioSchedulerT		&rsch;
 	ListenerSocketT		sock;
-	size_t				timercnt;
 };
 
 

@@ -138,7 +138,7 @@ public:
 #endif
 
 
-//#define USE_TALKER
+#define USE_TALKER
 
 #include "solid/frame/aio/aiodatagram.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]){
 			if(sd.ok()){
 				DynamicPointer<frame::aio::Object>	objptr(new Listener(svc, sch, std::move(sd)));
 				solid::ErrorConditionT				err;
-				solid::frame::ObjectIdT			objuid;
+				solid::frame::ObjectIdT				objuid;
 				
 				objuid = sch.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
 				idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
