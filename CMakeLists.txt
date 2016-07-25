@@ -85,20 +85,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "nolog")
 	set(SOLID_HAS_ASSERT TRUE)
 endif(CMAKE_BUILD_TYPE STREQUAL "nolog")
 
-
-# set(SF_VERSION_FLAGS "-DSOLID_VERSION_MAJOR=${VERSION_MAJOR} -DSOLID_VERSION_MINOR=${VERSION_MINOR} -DSOLID_VERSION_PATCH=${VERSION_PATCH}")
-
 set(SOLID_VERSION_MAJOR ${VERSION_MAJOR})
 set(SOLID_VERSION_MINOR ${VERSION_MINOR})
 set(SOLID_VERSION_PATCH ${VERSION_PATCH})
-
-
-
-# set(SF_DEBUG_FLAGS "-DSOLID_HAS_DEBUG -DSOLID_HAS_ASSERT -DSOLID_HAS_NO_INLINES -DSOLID_HAS_STATISTICS")
-# set(SF_MAINTAIN_FLAGS "-DSOLID_HAS_DEBUG -DSOLID_HAS_ASSERT -DSOLID_HAS_STATISTICS")
-# set(SF_OPTIMIZED_FLAGS "")
-# set(SF_NOLOG_FLAGS "-DSOLID_HAS_ASSERT -DSOLID_HAS_NO_INLINES")
-# set(SF_RELEASE_FLAGS "")
 
 set(SYS_DEBUG_FLAGS "")
 set(SYS_MAINTAIN_FLAGS "")
@@ -173,7 +162,7 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
 	set(SYS_RELEASE_FLAGS "-O3")
 
 	set(SYS_DEBUG_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
-	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once -framework ApplicationServices -framework CoreFoundation")
+	set(SYS_MAINTAIN_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
 	set(SYS_OPTIMIZED_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
 	set(SYS_NOLOG_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
 	set(SYS_RELEASE_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")

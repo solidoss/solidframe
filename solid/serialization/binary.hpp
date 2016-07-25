@@ -1014,7 +1014,7 @@ public:
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeCall<SerializerT>, nullptr, _name, _val));
 		SerializerBase::estk.push(ExtendedData(0));
 		
-		SerializerBase::estk.top().generic(std::move(CallT(_f)));
+		SerializerBase::estk.top().generic(CallT(_f));
 		return *this;
 	}
 	
@@ -1253,7 +1253,7 @@ public:
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeCall<SerializerT, Ctx>, nullptr, _name, _val));
 		SerializerBase::estk.push(ExtendedData(0));
 		
-		SerializerBase::estk.top().generic(std::move(CallT(_f)));
+		SerializerBase::estk.top().generic(CallT(_f));
 		return *this;
 	}
 	
@@ -1980,7 +1980,7 @@ public:
 		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::template loadCall<DeserializerT>, nullptr, _name, _val));
 		DeserializerBase::estk.push(ExtendedData(0));
 		
-		DeserializerBase::estk.top().generic(std::move(CallT(_f)));
+		DeserializerBase::estk.top().generic(CallT(_f));
 		return *this;
 	}
 	
@@ -2220,7 +2220,7 @@ public:
 		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::template loadCall<DeserializerT, Ctx>, nullptr, _name, _val));
 		DeserializerBase::estk.push(ExtendedData(0));
 		
-		DeserializerBase::estk.top().generic(std::move(CallT(_f)));
+		DeserializerBase::estk.top().generic(CallT(_f));
 		return *this;
 	}
 	//! Schedules a std (style) container for deserialization
