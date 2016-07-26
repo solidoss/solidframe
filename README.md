@@ -107,33 +107,33 @@ Windows is not yet supported.
 _SolidFrame_ is an experimental framework to be used for implementing cross-platform C++ network applications.
 
 The consisting libraries only depend on C++ STL with two exceptions:
-	* __solid_frame_aio_openssl__: which obviously depends on [OpenSSL](https://www.openssl.org/)
-	* __solid_frame_ipc__: which, by using solid_frame_aio_openssl implicitly depends on OpenSSL too.
+ * __solid_frame_aio_openssl__: which obviously depends on [OpenSSL](https://www.openssl.org/)
+ * __solid_frame_ipc__: which, by using solid_frame_aio_openssl implicitly depends on OpenSSL too.
 
 In order to keep the framework as dependency-free as possible some components that can be found in other libraries/frameworks were re-implemented here too, most of them being locate in either __solid_utility__ or __solid_system__ libraries.
 
 In the following paragraphs will present some key aspects of the framework:
-	* The asynchronous, active objects model
-	* The binary serialization library
-	* The IPC message passing library
+ * The asynchronous, active objects model
+ * The binary serialization library
+ * The IPC message passing library
 
 #### The asynchronous, active objects model
 
 When implementing network enabled asynchronous applications one ends up having multiple objects (connections, relay nodes, listeners etc) with certain needs:
-	* be able to react on IO events
-	* be able to react on timer events
-	* be able to react on custom events
+ * be able to react on IO events
+ * be able to react on timer events
+ * be able to react on custom events
 	
 Let us consider some examples:
 
 __A TCP Connection__
-	* handles IO events for its associated socket
-	* handles timer event for IO operations - e.g. most often we want to do something if a send operation is taking too long
-	* handles custom events - e.g. force_kill when we want a certain connection to forcefully stop.
+ * handles IO events for its associated socket
+ * handles timer event for IO operations - e.g. most often we want to do something if a send operation is taking too long
+ * handles custom events - e.g. force_kill when we want a certain connection to forcefully stop.
 	
 __A TCP Listener__
-	* handles IO events for its associated listener socket - new incoming connection
-	* handles custom events - e.g. stop listening, pause listening
+ * handles IO events for its associated listener socket - new incoming connection
+ * handles custom events - e.g. stop listening, pause listening
 
 Let us delve more into a hypothetical TCP connection in a server side scenario.
 One of the first actions on a newly accepted connection would be to authenticate the entity (the user) on which behalf the connection was established.
@@ -158,8 +158,8 @@ Here is some hypothetical code:
 ```
 
 Before deciding what we can use for /*something*/ lets consider the following constraints:
-	* the lambda expression might be executed on a different thread than the one handling the connection.
-	* when the asynchronous authentication completes and the lambda is called the connection might not exist - the client closed the connection before receiving the authentication response.
+ * the lambda expression might be executed on a different thread than the one handling the connection.
+ * when the asynchronous authentication completes and the lambda is called the connection might not exist - the client closed the connection before receiving the authentication response.
 
 Because of the second constraint, we cannot use a naked pointer to connection (/*something*/ = this), but we can use a std::shared_ptr<Connection>.
 The problem is that, then, the connection should have some synchronization mechanism in place (not very desirable in an asynchronous design).
@@ -167,10 +167,10 @@ The problem is that, then, the connection should have some synchronization mecha
 SolidFrame's solution for this is a temporally unique run-time id for objects. Every object derived from either solid::frame::Object or solid::frame::aio::Object has associated such a run-time unique ID which can be used to notify those objects with events.
 
 Closely related to either Objects are:
-	* _solid::frame::Manager_: Passive, synchronized container of registered objects. The Objects are stored grouped by services. It allows sending notification events to either all registered objects or to specific objects identified by their run-time unique ID.
-	* _solid::frame::Service_: Group of objects conceptually related. It allows sending notification events to all registered objects withing the service.
-	* _solid::frame::Reactor_: Active container of solid::frame::Objects. Delivers timer and notification events to registered objects.
-	* _solid::frame::aio::Reactor_: Active container of solid::frame::aio::Objects. Delivers IO, timer and notification events to registered objects.
+ * _solid::frame::Manager_: Passive, synchronized container of registered objects. The Objects are stored grouped by services. It allows sending notification events to either all registered objects or to specific objects identified by their run-time unique ID.
+ * _solid::frame::Service_: Group of objects conceptually related. It allows sending notification events to all registered objects withing the service.
+ * _solid::frame::Reactor_: Active container of solid::frame::Objects. Delivers timer and notification events to registered objects.
+ * _solid::frame::aio::Reactor_: Active container of solid::frame::aio::Objects. Delivers IO, timer and notification events to registered objects.
 	
 
 
