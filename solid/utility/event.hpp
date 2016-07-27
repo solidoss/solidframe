@@ -69,7 +69,21 @@ private:
 		const size_t _id,
 		const EventCategoryBase &_rcategory
 	):pcategory_(&_rcategory), id_(_id){}
-
+	
+	template <class T>
+	explicit Event(
+		const size_t _id,
+		const EventCategoryBase &_rcategory,
+		const T &_rany_value
+	):pcategory_(&_rcategory), id_(_id), any_(_rany_value, true){}
+	
+	template <class T>
+	explicit Event(
+		const size_t _id,
+		const EventCategoryBase &_rcategory,
+		T &&_uany_value
+	):pcategory_(&_rcategory), id_(_id), any_(std::move(_uany_value), true){}
+	
 private:
 	const EventCategoryBase	*pcategory_;
 	size_t					id_;
@@ -97,6 +111,18 @@ protected:
 	Event event(const size_t _idx)const{
 		return Event(_idx, *this);
 	}
+	
+	
+	template <typename T>
+	Event event(const size_t _idx, const T &_rany_value)const{
+		return Event(_idx, *this, _rany_value);
+	}
+	
+	template <typename T>
+	Event event(const size_t _idx, T &&_uany_value)const{
+		return Event(_idx, *this, std::move(_uany_value));
+	}
+	
 	size_t eventId(const Event &_revt)const{
 		return _revt.id_;
 	}
@@ -120,6 +146,16 @@ public:
 	
 	Event event(const EventIds _id)const{
 		return EventCategoryBase::event(static_cast<size_t>(_id));
+	}
+	
+	template <typename T>
+	Event event(const EventIds _id, const T &_rany_value)const{
+		return EventCategoryBase::event(static_cast<size_t>(_id), _rany_value);
+	}
+	
+	template <typename T>
+	Event event(const EventIds _id, T &&_uany_value)const{
+		return EventCategoryBase::event(static_cast<size_t>(_id), std::move(_uany_value));
 	}
 private:
 	virtual const char* name(const Event &_revt)const override{

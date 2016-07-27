@@ -141,7 +141,7 @@ The best way to design the authentication module is with a generic asynchronous 
 Here is some hypothetical code:
 
 ```C++
-	void test_protocol::Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
+	void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
 		authentication::Manager &rauth_man(_rctx.authenticationManager());
 		
 		rauth_man.asyncAuthenticate(
@@ -164,13 +164,127 @@ Before deciding what we can use for /*something*/ lets consider the following co
 Because of the second constraint, we cannot use a naked pointer to connection (/*something*/ = this), but we can use a std::shared_ptr<Connection>.
 The problem is that, then, the connection should have some synchronization mechanism in place (not very desirable in an asynchronous design).
 
-SolidFrame's solution for this is a temporally unique run-time id for objects. Every object derived from either solid::frame::Object or solid::frame::aio::Object has associated such a run-time unique ID which can be used to notify those objects with events.
+SolidFrame's solution for this is a temporally unique run-time ID for objects. Every object derived from either solid::frame::Object or solid::frame::aio::Object has associated such a unique ID which can be used to notify those objects with events.
 
 Closely related to either Objects are:
- * _solid::frame::Manager_: Passive, synchronized container of registered objects. The Objects are stored grouped by services. It allows sending notification events to either all registered objects or to specific objects identified by their run-time unique ID.
+ * _solid::frame::Manager_: Passive, synchronized container of registered objects. The Objects are stored grouped by services. It allows sending notification events to specific objects identified by their run-time unique ID.
  * _solid::frame::Service_: Group of objects conceptually related. It allows sending notification events to all registered objects withing the service.
  * _solid::frame::Reactor_: Active container of solid::frame::Objects. Delivers timer and notification events to registered objects.
  * _solid::frame::aio::Reactor_: Active container of solid::frame::aio::Objects. Delivers IO, timer and notification events to registered objects.
 	
+Let us look further to some sample code to clarify the use of the above classes:
+```C++
+	int main(int argc, char *argv[]){
+		using namespace solid;
+		using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 
+		frame::ObjectIdT	listeneruid;
+		
+		AioSchedulerT		scheduler;
+		frame::Manager		manager;
+		frame::Service		service(manager);
+		ErrorConditionT		error = scheduler.start(1/*a single thread*/);
+		
+		if(error){
+			cout<<"Error starting scheduler: "<<error.message()<<endl;
+			return 1;
+		}
+		
+		{
+			ResolveData		rd =  synchronous_resolve("0.0.0.0", listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+		
+			SocketDevice	sd;
+				
+			sd.create(rd.begin());
+			sd.prepareAccept(rd.begin(), 2000);
+				
+			if(sd.ok()){
+				DynamicPointer<frame::aio::Object>	objptr(new Listener(service, scheduler, std::move(sd)));
+					
+				listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+				
+				if(error){
+					SOLID_ASSERT(listeneruid.isInvalid());
+					cout<<"Error starting object: "<<error.message()<<endl;
+					return 1;
+				}
+				(void)objuid;
+			}else{
+				cout<<"Error creating listener socket"<<endl;
+				return 1;
+			}
+		}
+		
+		//...
+		//send listener a dummy event
+		if(
+			not manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
+		){
+			cout<<"Message not delivered"<<endl;
+		}
+		
+		
+		manager.stop();
+		return 0;
+	}
+```
+Basically the above code instantiate a TCP Listener, starts it and notify it with a Message event. For the Listener to function it needs a "manager", a "service" and a "scheduler". 
 
+The line:
+```C++
+	ErrorConditionT		error = scheduler.start(1/*a single thread*/);
+```
+tries to start the scheduler with a single thread and implicitly a single reactor.
+
+The following lines:
+```C++
+	ResolveData		rd =  synchronous_resolve("0.0.0.0", listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+	
+	SocketDevice	sd;
+		
+	sd.create(rd.begin());
+	sd.prepareAccept(rd.begin(), 2000);
+```
+create and configures a socket device/descriptor for listening for TCP connections.
+After this, if we have a valid socket device, we need to create and start a Listener object:
+
+```C++
+	if(sd.ok()){
+		DynamicPointer<frame::aio::Object>	objptr(new Listener(service, scheduler, std::move(sd)));
+			
+		listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+		
+		if(listeneruid.isInvalid()){
+			cout<<"Error starting object: "<<error.message()<<endl;
+			return 1;
+		}
+		(void)objuid;
+	}
+```
+
+As you can see above, the Listener constructor needs:
+ * service: every accepted connection will be registered onto given service.
+ * scheduler: every accepted connection will be scheduled onto given scheduler.
+ * sd: the socket device used for listening for new TCP connections.
+ 
+ The next line:
+ 
+ ```C++
+	listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+ ```
+ 
+ will try to atomically:
+ * register the Listener object onto service
+ * schedule the Listener object onto scheduler along with an initial event
+ 
+ Every object must override:
+ 
+ ```C++
+	virtual void Object::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
+ ```
+ 
+ to receive the events, so on the above code, once the Listener got started, Listener::onEvent will be called on the scheduler thread with the GenericEvents::Start event.
+ What will Listener do on onEvent will see later, let us now stay a little bit more on the scheduler.startObject line.
+ 
+ As we can see it returns a frame::ObjectIdT and an error. The error value is obvious so let us see what with the frame::ObjectIdT value.
+ Well, the returned value is the temporally unique run-time ID explained above.

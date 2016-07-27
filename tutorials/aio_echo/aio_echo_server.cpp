@@ -78,7 +78,7 @@ public:
 	Connection(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)), recvcnt(0), sendcnt(0){}
 	~Connection(){}
 private:
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
+	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSend(frame::aio::ReactorContext &_rctx);
 	void onTimer(frame::aio::ReactorContext &_rctx);
@@ -98,7 +98,7 @@ public:
 	Talker(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)){}
 	~Talker(){}
 private:
-	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
+	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
 	void onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz);
 	void onSend(frame::aio::ReactorContext &_rctx);
 private:

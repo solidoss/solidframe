@@ -583,9 +583,9 @@ ObjectIdT Manager::registerObject(
 		}else{
 			
 			//make the link with the last chunk
-			const size_t	objstoreidx = d.crtobjstoreidx;//d.mtx is locked so it is safe to fetch the value of 
+			const size_t					objstoreidx = d.crtobjstoreidx;//d.mtx is locked so it is safe to fetch the value of 
 
-			ObjectChunk 	&laschk(*d.objstore[objstoreidx].vec[rss.lastchk]);
+			ObjectChunk 					&laschk(*d.objstore[objstoreidx].vec[rss.lastchk]);
 
 			std::unique_lock<std::mutex>	lock3(laschk.rmtx);
 			
@@ -594,8 +594,8 @@ ObjectIdT Manager::registerObject(
 		rss.lastchk = chkidx;
 	}
 	{
-		const size_t	objstoreidx = d.aquireReadObjectStore();
-		ObjectChunk		&robjchk(*d.chunk(objstoreidx, objidx));
+		const size_t					objstoreidx = d.aquireReadObjectStore();
+		ObjectChunk						&robjchk(*d.chunk(objstoreidx, objidx));
 		std::unique_lock<std::mutex>	lock2(robjchk.rmtx);
 		
 		d.releaseReadObjectStore(objstoreidx);

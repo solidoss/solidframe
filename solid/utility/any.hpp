@@ -42,6 +42,7 @@ struct AnyValue;
 
 template <class T>
 struct AnyValue<T, true>: AnyValueBase{
+	
 	explicit AnyValue(const T &_rt):value_(_rt){}
 	explicit AnyValue(T &&_rt):value_(std::move(_rt)){}
 	
