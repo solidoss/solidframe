@@ -300,5 +300,5 @@ As you can see above, the Listener constructor needs:
   * One can easily forge a valid ObjectIdT and be able to send an event to a valid Object. This problem will be addressed by future versions of SolidFrame.
   * The object ObjectIdT addresses may not exist when manager.notify is called.
   * Once manager.notify returned true the event will be delivered to the Object.
-  * ```C++ generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On he receiving side, the any value can only be retrieved using event.any().cast<std::string>() which returns a pointer to std::string.
+  * ```generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On he receiving side, the any value can only be retrieved using event.any().cast<std::string>() which returns a pointer to std::string.
 
