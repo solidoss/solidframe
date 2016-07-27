@@ -141,20 +141,20 @@ The best way to design the authentication module is with a generic asynchronous 
 Here is some hypothetical code:
 
 ```C++
-	void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
-		authentication::Manager &rauth_man(_rctx.authenticationManager());
-		
-		rauth_man.asyncAuthenticate(
-			auth_credentials,
-			[/*something*/](std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
-				if(_error){
-					//use /*something*/ to notify "this" connection that the authentication failed
-				}else{
-					//use /*something*/ to notify "this" connection that the authentication succeed
-				}
+void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
+	authentication::Manager &rauth_man(_rctx.authenticationManager());
+	
+	rauth_man.asyncAuthenticate(
+		auth_credentials,
+		[/*something*/](std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
+			if(_error){
+				//use /*something*/ to notify "this" connection that the authentication failed
+			}else{
+				//use /*something*/ to notify "this" connection that the authentication succeed
 			}
-		);
-	}
+		}
+	);
+}
 ```
 
 Before deciding what we can use for /*something*/ lets consider the following constraints:
@@ -250,17 +250,17 @@ create and configures a socket device/descriptor for listening for TCP connectio
 After this, if we have a valid socket device, we need to create and start a Listener object:
 
 ```C++
-	if(sd.ok()){
-		DynamicPointer<frame::aio::Object>	objptr(new Listener(service, scheduler, std::move(sd)));
-			
-		listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+if(sd.ok()){
+	DynamicPointer<frame::aio::Object>	objptr(new Listener(service, scheduler, std::move(sd)));
 		
-		if(listeneruid.isInvalid()){
-			cout<<"Error starting object: "<<error.message()<<endl;
-			return 1;
-		}
-		(void)objuid;
+	listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+	
+	if(listeneruid.isInvalid()){
+		cout<<"Error starting object: "<<error.message()<<endl;
+		return 1;
 	}
+	(void)objuid;
+}
 ```
 
 As you can see above, the Listener constructor needs:
@@ -300,4 +300,5 @@ As you can see above, the Listener constructor needs:
   * One can easily forge a valid ObjectIdT and be able to send an event to a valid Object. This problem will be addressed by future versions of SolidFrame.
   * The object ObjectIdT addresses may not exist when manager.notify is called.
   * Once manager.notify returned true the event will be delivered to the Object.
+  * ```C++ generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On he receiving side, the any value can only be retrieved using event.any().cast<std::string>() which returns a pointer to std::string.
 
