@@ -171,6 +171,7 @@ Closely related to either Objects are:
  * _solid::frame::Service_: Group of objects conceptually related. It allows sending notification events to all registered objects withing the service.
  * _solid::frame::Reactor_: Active container of solid::frame::Objects. Delivers timer and notification events to registered objects.
  * _solid::frame::aio::Reactor_: Active container of solid::frame::aio::Objects. Delivers IO, timer and notification events to registered objects.
+ * _solid::frame::Scheduler<ReactorT>_: A thread pool of reactors.
 	
 Let us look further to some sample code to clarify the use of the above classes:
 ```C++
@@ -288,3 +289,15 @@ As you can see above, the Listener constructor needs:
  
  As we can see it returns a frame::ObjectIdT and an error. The error value is obvious so let us see what with the frame::ObjectIdT value.
  Well, the returned value is the temporally unique run-time ID explained above.
+ 
+ This "listeneruid" can be used at any time during the lifetime of "manager" to notify the Listener with a custom event, as we do with the following line:
+ 
+ ```C++
+	manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
+ ```
+ 
+*Notes*:
+  * One can easily forge a valid ObjectIdT and be able to send an event to a valid Object. This problem will be addressed by future versions of SolidFrame.
+  * The object ObjectIdT addresses may not exist when manager.notify is called.
+  * Once manager.notify returned true the event will be delivered to the Object.
+
