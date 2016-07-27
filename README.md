@@ -175,59 +175,59 @@ Closely related to either Objects are:
 	
 Let us look further to some sample code to clarify the use of the above classes:
 ```C++
-	int main(int argc, char *argv[]){
-		using namespace solid;
-		using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+int main(int argc, char *argv[]){
+	using namespace solid;
+	using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 
-		frame::ObjectIdT	listeneruid;
-		
-		AioSchedulerT		scheduler;
-		frame::Manager		manager;
-		frame::Service		service(manager);
-		ErrorConditionT		error = scheduler.start(1/*a single thread*/);
-		
-		if(error){
-			cout<<"Error starting scheduler: "<<error.message()<<endl;
-			return 1;
-		}
-		
-		{
-			ResolveData		rd =  synchronous_resolve("0.0.0.0", listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-		
-			SocketDevice	sd;
+	frame::ObjectIdT	listeneruid;
+	
+	AioSchedulerT		scheduler;
+	frame::Manager		manager;
+	frame::Service		service(manager);
+	ErrorConditionT		error = scheduler.start(1/*a single thread*/);
+	
+	if(error){
+		cout<<"Error starting scheduler: "<<error.message()<<endl;
+		return 1;
+	}
+	
+	{
+		ResolveData		rd =  synchronous_resolve("0.0.0.0", listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+	
+		SocketDevice	sd;
+			
+		sd.create(rd.begin());
+		sd.prepareAccept(rd.begin(), 2000);
+			
+		if(sd.ok()){
+			DynamicPointer<frame::aio::Object>	objptr(new Listener(service, scheduler, std::move(sd)));
 				
-			sd.create(rd.begin());
-			sd.prepareAccept(rd.begin(), 2000);
-				
-			if(sd.ok()){
-				DynamicPointer<frame::aio::Object>	objptr(new Listener(service, scheduler, std::move(sd)));
-					
-				listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
-				
-				if(error){
-					SOLID_ASSERT(listeneruid.isInvalid());
-					cout<<"Error starting object: "<<error.message()<<endl;
-					return 1;
-				}
-				(void)objuid;
-			}else{
-				cout<<"Error creating listener socket"<<endl;
+			listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+			
+			if(error){
+				SOLID_ASSERT(listeneruid.isInvalid());
+				cout<<"Error starting object: "<<error.message()<<endl;
 				return 1;
 			}
+			(void)objuid;
+		}else{
+			cout<<"Error creating listener socket"<<endl;
+			return 1;
 		}
-		
-		//...
-		//send listener a dummy event
-		if(
-			not manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
-		){
-			cout<<"Message not delivered"<<endl;
-		}
-		
-		
-		manager.stop();
-		return 0;
 	}
+	
+	//...
+	//send listener a dummy event
+	if(
+		not manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
+	){
+		cout<<"Message not delivered"<<endl;
+	}
+	
+	
+	manager.stop();
+	return 0;
+}
 ```
 Basically the above code instantiate a TCP Listener, starts it and notify it with a Message event. For the Listener to function it needs a "manager", a "service" and a "scheduler". 
 
