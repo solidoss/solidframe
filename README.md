@@ -142,9 +142,9 @@ Here is some hypothetical code:
 
 ```C++
 void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
-	authentication::Manager &rauth_man(_rctx.authenticationManager());
+	authentication::Service &rauth_service(_rctx.authenticationService());
 	
-	rauth_man.asyncAuthenticate(
+	rauth_service.asyncAuthenticate(
 		auth_credentials,
 		[/*something*/](std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
 			if(_error){
@@ -229,7 +229,7 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 ```
-Basically the above code instantiate a TCP Listener, starts it and notify it with a Message event. For the Listener to function it needs a "manager", a "service" and a "scheduler". 
+Basically the above code instantiates a TCP Listener, starts it and notifies it with a Message event. For the Listener to function it needs a "manager", a "service" and a "scheduler". 
 
 The line:
 ```C++
@@ -287,18 +287,139 @@ As you can see above, the Listener constructor needs:
  to receive the events, so on the above code, once the Listener got started, Listener::onEvent will be called on the scheduler thread with the GenericEvents::Start event.
  What will Listener do on onEvent will see later, let us now stay a little bit more on the scheduler.startObject line.
  
- As we can see it returns a frame::ObjectIdT and an error. The error value is obvious so let us see what with the frame::ObjectIdT value.
- Well, the returned value is the temporally unique run-time ID explained above.
+ As we can see it returns a frame::ObjectIdT and an error. The error value is obvious so let us see what with the frame::ObjectIdT value. The returned value is the temporally unique run-time ID explained above.
  
- This "listeneruid" can be used at any time during the lifetime of "manager" to notify the Listener with a custom event, as we do with the following line:
+ This "listeneruid" can be used at any time during the lifetime of "manager" to notify the Listener object with a custom event, as we do with the following line:
  
  ```C++
 	manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
  ```
  
-*Notes*:
+**Notes:**
   * One can easily forge a valid ObjectIdT and be able to send an event to a valid Object. This problem will be addressed by future versions of SolidFrame.
   * The object ObjectIdT addresses may not exist when manager.notify is called.
   * Once manager.notify returned true the event will be delivered to the Object.
-  * ```generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On he receiving side, the any value can only be retrieved using event.any().cast<std::string>() which returns a pointer to std::string.
+  * ```generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On the receiving side, the any value can only be retrieved using event.any().cast<std::string>() which returns a pointer to std::string.
+
+Now that you have had a birds eye view of Object:Manager:Service:Scheduler architecture, let us go back to  Connection::onReceiveAuthentication hypothetical code rewrite it with SolidFrame concepts:
+
+```C++
+void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
+	
+	//NOTE: frame::Manager must outlive authentication::Service
+	
+	authentication::Service &rauth_service(_rctx.authenticationService());
+	frame::Manager		&rmanager(_rctx.service().manager());
+	frame::ObjectIdT	connection_id = service(_rctx).manager().id(*this);
+	
+	rauth_service.asyncAuthenticate(
+		auth_credentials,
+		[connection_id, &rmanager](std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
+			rmanager.notify(connection_id, Connection::createAuthenticationResultEvent(_user_stub_ptr, _error));
+		}
+	);
+}
+```
+
+With the above implementation all that the lambda function does, is to forward the given parameters as a notification event to the object identified by connection_id. We do not care if the object exists.
+
+Now, you might be wondering what is needed on the connection side to create and to handle the authentication result event.
+
+For simple cases where we have few notification events we can use a generic event:
+```C++
+using AuthenticationResultT = std::pair<std::shared_ptr<UserStub>, std::error_condition>;
+/*static*/ Event Connection::createAuthenticationResultEvent(std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
+	return 	generic_event_category.event(GenericEvents::Message, AuthenticationResultT(_user_stub_ptr, _error));
+}
+```
+
+and do the dispatch using solid::Any<>::cast:
+
+```C++
+void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
+	if(_revent == generic_event_category.event(GenericEvents::Message)){
+		AuthenticationResultT *pauth_result = _revent.any().cast<AuthenticationResultT>();
+		if(pauth_result){
+			if(pauth_result->second){
+				//authentication failed
+			}else{
+				//authentication succeeded
+			}
+		}
+	}
+}
+```
+
+If the Connection must handle multiple notification events there is another way of implementing things with a little bit more code.
+
+First we need to create an EventCategory:
+
+```C++
+enum class ConnectionEvents{
+	//...
+	AuthenticationResponse,
+	//
+};
+const EventCategory<ConnectionEvents>	connection_event_category{
+	"project::protocol::connection_event_category",
+	[](const ConnectionEvents _e){
+		switch(_e){
+			//...
+			case ConnectionEvents::AuthenticationResponse: return "AuthenticationResponse";
+			//...
+			default: return "Unknown";
+		}
+	}
+};
+```
+
+then we need to use it in createAuthenticationResultEvent:
+
+```C++
+using AuthenticationResultT = std::pair<std::shared_ptr<UserStub>, std::error_condition>;
+/*static*/ Event Connection::createAuthenticationResultEvent(std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
+	return 	connection_event_category.event(ConnectionEvents::AuthenticationResponse, AuthenticationResultT(_user_stub_ptr, _error));
+}
+```
+
+last, we need to use an event handler in the Connection's onEvent method, like this:
+
+```C++
+void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
+	static const EventHandler<
+		void, 
+		Connection&,
+		frame::aio::ReactorContext&
+	>	event_handler = {
+		[](Event &_re, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+			//do nothing for unknown events
+		},
+		{
+			{
+				generic_event_category.event(GenericEvents::Start),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventStart(_rctx, _revt);
+				}
+			},
+			{
+				generic_event_category.event(GenericEvents::Kill),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventKill(_rctx, _revt);
+				}
+			},
+			//...
+			{
+				connection_event_category.event(ConnectionEvents::AuthenticationResponse),
+				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+					_rcon.doHandleEventAuthenticationResponse(_rctx, _revt);
+				}
+			},
+			//...
+		}
+	};
+	
+	//use the static event_handler to dispatch the event:
+	event_handler.handle(_revent, *this, _rctx);
+}
+```
 
