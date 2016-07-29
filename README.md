@@ -174,14 +174,14 @@ The majority of serializers/deserializers offers the following functionality:
  The __solid_serialization__ library takes another, let us call it "asynchronous" approach. In solid_serialization the marshaling is made in two overlapping steps:
   * Push data structures into serialization/deserialization engine. No serialization is done at this step. The data structure is split into sub-parts known by the serialization engine and scheduled for serialization.
   * Marshaling/Unmarshaling
-   * Marshaling: Given a fixed size buffer buffer (char*) do:
-    * call serializer.run to fill the buffer
-    * do something with the filled buffer - write it on socket, on file etc.
-    * loop until serialization finishes.
-   * Unmarshaling: Given a fixed size buffer (char*) do:
-    * fill the buffer with data from a file/socket etc.
-    * call deserializer.run with the given data
-    * loop until deserialization finishes
+    * Marshaling: Given a fixed size buffer buffer (char*) do:
+      * call serializer.run to fill the buffer
+      * do something with the filled buffer - write it on socket, on file etc.
+      * loop until serialization finishes.
+    * Unmarshaling: Given a fixed size buffer (char*) do:
+      * fill the buffer with data from a file/socket etc.
+      * call deserializer.run with the given data
+      * loop until deserialization finishes
 
 This approach allows serializing data that is bigger than the system memory - e.g. serializing a data structure containing a file stream (see [ipc file tutorial](tutorials/ipc_file) especially [messages definition](tutorials/ipc_file/ipc_file_messages.hpp)).
  
