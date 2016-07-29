@@ -17,6 +17,7 @@
 ## Version 2.x
 ### TODO
 * Test serialization for all supported std containers
+* Test serialization engine agaist ProtoBuf and FlatBuffers
 * frame/ipc with SOCKS5
 * Improved OpenSSL support in frame/aio
 * frame/ipc with OpenSSL

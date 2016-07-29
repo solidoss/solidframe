@@ -65,7 +65,7 @@ private:
 	void stop(Manager &_rm);
 private:
 	std::atomic<IndexT>	fullid;
-	UniqueId					runid;
+	UniqueId			runid;
 	std::atomic<size_t>	smask;
 };
 
