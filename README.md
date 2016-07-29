@@ -115,11 +115,12 @@ In the next paragraphs I will briefly present every library.
 ### solid_system
 
 The library consists of wrappers around system calls for:
- * _device.hpp_, _seekabledevice.hpp_, _filedevice.hpp_, _socketdevice.hpp_: devices (aka descriptors/handles) for: files, sockets etc.
- * _socketaddress.hpp_: socket addresses, synchronous socket address resolver
- * _nanotime.hpp_: high precision clock
- * _directory.hpp_: basic file-system directory operations
- * _debug.hpp_: debug log engine
+ 
+ * [__socketaddress.hpp__](solid/system/socketaddress.hpp): socket addresses, synchronous socket address resolver
+ * [__nanotime.hpp__](solid/system/nanotime.hpp): high precision clock
+ * [__debug.hpp__](solid/system/debug.hpp): debug log engine
+ * [_device.hpp_](solid/system/device.hpp), [_seekabledevice.hpp_](solid/system/seekabledevice.hpp), [_filedevice.hpp_](solid/system/filedevice.hpp), [_socketdevice.hpp_](solid/system/socketdevice.hpp): devices (aka descriptors/handles) for: files, sockets etc.
+ * [_directory.hpp_](solid/system/directory.hpp): basic file-system directory operations
 
 The most notable component is the debug log engine which allows sending log records to different locations:
   * file
@@ -149,22 +150,23 @@ In the above code we:
 ### solid_utility
 
 The library consists of tools needed by upper level libraries:
- * _algorithm.hpp_: Some inline algorithms
- * _any.hpp_: A variation on boost::any / experimental std::any with storage for emplacement new so it is faster when the majority of sizeof objects that get stored in any<> fall under a given value.
- * _common.hpp_: More bit-wise algorithms
- * _dynamictype.hpp_: Alternative support to dynamic_cast
- * _dynamicpointer.hpp_: Smart pointer of "dynamic" objects - objects with alternative support to dynamic_cast.
- * _event.hpp_: Definition of an Event object, a combination between something like std::error_code and an solid::Any<>.
- * _innerlist.hpp_: A container wrapper which allows implementing bidirectional lists over a std::vector/std::deque (extensively used by the solid_frame_ipc library).
- * _memoryfile.hpp_: A data store with file like interface.
- * _queue.hpp_: An alternative to std::queue
- * _stack.hpp_: An alternative to std::stack
- * _workpool.hpp_: Generic thread pool.
+ * [__any.hpp__](solid/utility/any.hpp): A variation on boost::any / experimental std::any with storage for emplacement new so it is faster when the majority of sizeof objects that get stored in any<> fall under a given value.
+ * [__event.hpp__](solid/utility/event.hpp): Definition of an Event object, a combination between something like std::error_code and an solid::Any<>.
+ * [__innerlist.hpp__](solid/utility/innerlist.hpp): A container wrapper which allows implementing bidirectional lists over a std::vector/std::deque (extensively used by the solid_frame_ipc library).
+ * [__memoryfile.hpp__](solid/utility/memoryfile.hpp): A data store with file like interface.
+ * [__workpool.hpp__](solid/utility/workpool.hpp): Generic thread pool.
+ * [_dynamictype.hpp_](solid/utility/dynamictype.hpp): Alternative support to dynamic_cast
+ * [_dynamicpointer.hpp_](solid/utility/dynamicpointer.hpp): Smart pointer of "dynamic" objects - objects with alternative support to dynamic_cast.
+ * [_queue.hpp_](solid/utility/queue.hpp): An alternative to std::queue
+ * [_stack.hpp_](solid/utility/stack.hpp): An alternative to std::stack
+ * [_algorithm.hpp_](solid/utility/algorithm.hpp): Some inline algorithms
+ * [_common.hpp_](solid/utility/common.hpp): Some bits related algorithms
+ 
  
 ### solid_serialization
- * _binary.hpp_: Binary "asynchronous" serializer/deserializer.
- * _binarybasic.hpp_: Some "synchronous" load/store functions for basic types.
- * _typeidmap.hpp_: Class for helping "asynchronous" serializer/deserializer support polymorphism: serialize pointers to base classes.
+ * [_binary.hpp_](solid/serialization/binary.hpp): Binary "asynchronous" serializer/deserializer.
+ * [_binarybasic.hpp_](solid/serialization/binarybasic.hpp): Some "synchronous" load/store functions for basic types.
+ * [_typeidmap.hpp_](solid/serialization/typeidmap.hpp): Class for helping "asynchronous" serializer/deserializer support polymorphism: serialize pointers to base classes.
  
 The majority of serializers/deserializers offers the following functionality:
  * Synchronously serialize a data structure to a stream (e.g. std::ostringstream)
@@ -189,50 +191,50 @@ This approach allows serializing data that is bigger than the system memory - e.
 
 The library offers the base support for an asynchronous active object model and implementation for objects with basic support for notification and timer events.
 
- * _manager.hpp_: A synchronous, passive store of ObjectBase grouped by services.
- * _object.hpp_: An active object with support for events: notification events and timer events.
- * _objectbase.hpp_: Base for all active Objects
- * _reactor.hpp_: An active store of Objects with support for notification events and timer events.
- * _reactorbase.hpp_: Base for all reactors
- * _reactorcontext.hpp_: A context class given as parameter to every callback called from the reactor.
- * _scheduler.hpp_: A generic pool of threads running reactors.
- * _schedulerbase.hpp_: Base for all schedulers.
- * _service.hpp_: A way of grouping related objects.
- * _sharedstore.hpp_: A store of shared object with synchronized non-conflicting read/read-write access.
- * _timer.hpp_: Used by Objects needing timer events.
- * _timestore.hpp_: Used by reactors for timer events support.
+ * [__manager.hpp__](solid/frame/manager.hpp): A synchronous, passive store of ObjectBase grouped by services.
+ * [__object.hpp__](solid/frame/object.hpp): An active object with support for events: notification events and timer events.
+ * [__reactor.hpp__](solid/frame/reactor.hpp): An active store of Objects with support for notification events and timer events.
+ * [__reactorcontext.hpp__](solid/frame/reactorcontext.hpp): A context class given as parameter to every callback called from the reactor.
+ * [__scheduler.hpp__](solid/frame/scheduler.hpp): A generic pool of threads running reactors.
+ * [__service.hpp__](solid/frame/service.hpp): A way of grouping related objects.
+ * [__timer.hpp__](solid/frame/timer.hpp): Used by Objects needing timer events.
+ * [__sharedstore.hpp__](solid/frame/sharedstore.hpp): A store of shared object with synchronized non-conflicting read/read-write access.
+ * [_reactorbase.hpp_](solid/frame/reactorbase.hpp): Base for all reactors
+ * [_timestore.hpp_](solid/frame/timestore.hpp): Used by reactors for timer events support.
+ * [_schedulerbase.hpp_](solid/frame/schedulerbase.hpp): Base for all schedulers.
+ * [_objectbase.hpp_](solid/frame/objectbase.hpp): Base for all active Objects
  
 [Here](solid/frame/README.md) you can find an overview of the asynchronous active object model employed by the solid_frame framework.
 
 ### solid_frame_aio
 
 The library extends solid_frame with active objects supporting IO, notification and timer events.
- * _aiodatagram.hpp_: Used by aio::Objects to support asynchronous UDP communication.
- * _aiostream.hpp_: Used by aio::Objects to support asynchronous TCP communication.
- * _aiotimer.hpp_: Used by aio::Objects needing timer events.
- * _aiolistener.hpp_: Used by aio::Objects listening for TCP connections.
- * _aioreactor.hpp_: An active store of aio::Objects with support for IO, notification and timer events.
- * _aiosocket.hpp_: Plain socket access used by Listener/Stream and Datagram
- * _aioresolver.hpp_: Asynchronous address resolver.
- * _aioreactorcontext.hpp_: A context class given as parameter to every callback called from the aio::Reactor.
+ * [__aiodatagram.hpp__](solid/frame/aio/aiodatagram.hpp): Used by aio::Objects to support asynchronous UDP communication.
+ * [__aiostream.hpp__](solid/frame/aio/aiostream.hpp): Used by aio::Objects to support asynchronous TCP communication.
+ * [__aiotimer.hpp__](solid/frame/aio/aiotimer.hpp): Used by aio::Objects needing timer events.
+ * [__aiolistener.hpp__](solid/frame/aio/aiolistener.hpp): Used by aio::Objects listening for TCP connections.
+ * [__aiosocket.hpp__](solid/frame/aio/aiosocket.hpp): Plain socket access used by Listener/Stream and Datagram
+ * [__aioresolver.hpp__](solid/frame/aio/aioresolver.hpp): Asynchronous address resolver.
+ * [__aioreactorcontext.hpp__](solid/frame/aio/aioreactorcontext.hpp): A context class given as parameter to every callback called from the aio::Reactor.
+ * [_aioreactor.hpp_](solid/frame/aio/aioreactor.hpp): An active store of aio::Objects with support for IO, notification and timer events.
  
 [Here](solid/frame/README.md) you can find an overview of the asynchronous active object model employed by the solid_frame framework.
 
 ### solid_frame_aio_openssl
 
 The library extends solid_frame_aio with support for Secure Sockets.
- * _aiosecuresocket.hpp_: Used by aio::Stream for SSL.
- * _aiosecurecontext.hpp_: OpenSSL context wrapper.
+ * [__aiosecuresocket.hpp__](solid/frame/aio/openssl/aiosecuresocket.hpp): Used by aio::Stream for SSL.
+ * [__aiosecurecontext.hpp__](solid/frame/aio/openssl/aiosecurecontext.hpp): OpenSSL context wrapper.
 
 
 ### solid_frame_ipc
 
 Inter Process Communication library via Plain/Secure TCP connections and a protocol based on solid_serialization.
 
- * _ipcservice.hpp_: Main interface of the library. Sends ipc::Messages to different recipients and receives ipc::Messages.
- * _ipcmessage.hpp_: Base class for all messages sent through ipc::Service.
- * _ipccontext.hpp_: A context class given to all callbacks called by the ipc library.
- * _ipcconfiguration.hpp_: Configuration data for ipc::Service.
+ * [__ipcservice.hpp__](solid/frame/ipc/ipcservice.hpp): Main interface of the library. Sends ipc::Messages to different recipients and receives ipc::Messages.
+ * [__ipcmessage.hpp__](solid/frame/ipc/ipcmessage.hpp): Base class for all messages sent through ipc::Service.
+ * [__ipccontext.hpp__](solid/frame/ipc/ipccontext.hpp): A context class given to all callbacks called by the ipc library.
+ * [__ipcconfiguration.hpp__](solid/frame/ipc/ipcconfiguration.hpp): Configuration data for ipc::Service.
 
 [Here](solid/frame/ipc/README.md) you can find more information.
 
@@ -240,6 +242,6 @@ Inter Process Communication library via Plain/Secure TCP connections and a proto
 
 The library offers a specialization of frame::ShareStore for files.
 
- * _filestore.hpp_: specialization of frame::SharedStore for files with support for temporary files.
- * _filestream.hpp_: std::stream support
- * _tempbase.hpp_: Base class for temporary files: either in memory or disk files.
+ * [__filestore.hpp__](solid/frame/file/filestore.hpp): specialization of frame::SharedStore for files with support for temporary files.
+ * [_filestream.hpp_](solid/frame/file/filestream.hpp): std::stream support
+ * [_tempbase.hpp_](solid/frame/file/tempbase.hpp): Base class for temporary files: either in memory or disk files.

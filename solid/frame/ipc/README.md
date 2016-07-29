@@ -1,4 +1,4 @@
-# SolidFrame IPC module
+# solid_frame_ipc
 
 A process-to-process communication (message exchange) engine via plain/secured TCP.
 

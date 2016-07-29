@@ -1,4 +1,8 @@
-## The asynchronous, active objects model
+# solid_frame
+
+## Overview
+
+### Introduction
 
 When implementing network enabled asynchronous applications one ends up having multiple objects (connections, relay nodes, listeners etc) with certain needs:
  * be able to react on IO events
@@ -45,7 +49,11 @@ Before deciding what we can use for /*something*/ lets consider the following co
 Because of the second constraint, we cannot use a naked pointer to connection (/*something*/ = this), but we can use a std::shared_ptr<Connection>.
 The problem is that, then, the connection should have some synchronization mechanism in place (not very desirable in an asynchronous design).
 
-SolidFrame's solution for this is a temporally unique run-time ID for objects. Every object derived from either solid::frame::Object or solid::frame::aio::Object has associated such a unique ID which can be used to notify those objects with events.
+SolidFrame's solution for the above problem is a temporally unique run-time ID for objects. Every object derived from either solid::frame::Object or solid::frame::aio::Object has associated such a unique ID which can be used to notify those objects with events.
+
+### The asynchronous, active objects model
+
+As explained above central to SolidFrame's architecture are the solid::frame::Object and solid::frame::aio::Object with their temporally unique run-time IDs.
 
 Closely related to either Objects are:
  * _solid::frame::Manager_: Passive, synchronized container of registered objects. The Objects are stored grouped by services. It allows sending notification events to specific objects identified by their run-time unique ID.
