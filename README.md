@@ -102,7 +102,7 @@ Windows is not yet supported.
 
 ## Overview
 
-_SolidFrame_ is an experimental framework to be used for implementing cross-platform C++ network applications.
+_SolidFrame_ is an experimental framework to be used for implementing cross-platform C++ network enabled applications or module.
 
 The consisting libraries only depend on C++ STL with two exceptions:
  * __solid_frame_aio_openssl__: which obviously depends on [OpenSSL](https://www.openssl.org/)
@@ -123,12 +123,12 @@ The library consists of wrappers around system calls for:
  * [_directory.hpp_](solid/system/directory.hpp): basic file-system directory operations
 
 The most notable component is the debug log engine which allows sending log records to different locations:
-  * file
-  * stderr
+  * file (with support for rotation)
+  * stderr/stdlog
   * socket endpoint
 
-The library defines some macros for easily specify log lines. The macros are only active (do something) when SolidFrame is compiled with SOLID_HAS_DEBUG (e.g. maintain and debug builds).
-The library has support for registering modules and for specifying enabled log levels. Here is an example:
+The debug engine defines some macros for easily specify log lines. The macros are only active (do something) when SolidFrame is compiled with SOLID_HAS_DEBUG (e.g. maintain and debug builds).
+Also, the debug engine has support for registering modules and for specifying enabled log levels. Here is an example:
 
 ```C++
 	Debug::the().levelMask("view");
@@ -142,7 +142,7 @@ The library has support for registering modules and for specifying enabled log l
 
 In the above code we:
  * Set the global levelMask to "view" (V = Verbose, I = Info, E = Error, W = Warning).
- * Only enable logging for "frame_ipc" and "any" (the generic module used with [view]dbg()). For "frame_ipc" restrict the level mask to {Info, Error, Warning} and for "any" restrict it to only {Error and Warning}.
+ * Enable logging for only two modules: "frame_ipc" and "any" (the generic module used with [v/i/e/w]dbg()). For "frame_ipc" restrict the level mask to {Info, Error, Warning} and for "any" restrict it to only {Error and Warning}.
  * Configure the debug log engine to send log records to stderr.
  * Send a log _error_ line for "any" module.
  * Send a log _info_ line for "frame_ipc" module.
@@ -155,8 +155,8 @@ The library consists of tools needed by upper level libraries:
  * [__innerlist.hpp__](solid/utility/innerlist.hpp): A container wrapper which allows implementing bidirectional lists over a std::vector/std::deque (extensively used by the solid_frame_ipc library).
  * [__memoryfile.hpp__](solid/utility/memoryfile.hpp): A data store with file like interface.
  * [__workpool.hpp__](solid/utility/workpool.hpp): Generic thread pool.
- * [_dynamictype.hpp_](solid/utility/dynamictype.hpp): Alternative support to dynamic_cast
- * [_dynamicpointer.hpp_](solid/utility/dynamicpointer.hpp): Smart pointer of "dynamic" objects - objects with alternative support to dynamic_cast.
+ * [_dynamictype.hpp_](solid/utility/dynamictype.hpp): Base for objects with alternative support to dynamic_cast
+ * [_dynamicpointer.hpp_](solid/utility/dynamicpointer.hpp): Smart pointer to "dynamic" objects - objects with alternative support to dynamic_cast.
  * [_queue.hpp_](solid/utility/queue.hpp): An alternative to std::queue
  * [_stack.hpp_](solid/utility/stack.hpp): An alternative to std::stack
  * [_algorithm.hpp_](solid/utility/algorithm.hpp): Some inline algorithms
@@ -172,8 +172,9 @@ The majority of serializers/deserializers offers the following functionality:
  * Synchronously serialize a data structure to a stream (e.g. std::ostringstream)
  * Synchronously deserialize a data structure from a stream (e.g. std::istringstream)
 
- This means that at a certain moment, one will have the data structure twice in memory: the initial one and the one from the stream.
- The __solid_serialization__ library takes another, let us call it "asynchronous" approach. In solid_serialization the marshaling is made in two overlapping steps:
+This means that at a certain moment, one will have the data structure twice in memory: the initial one and the one from the stream.
+
+The __solid_serialization__ library takes another, let us call it "asynchronous" approach. In solid_serialization the marshaling is made in two overlapping steps:
   * Push data structures into serialization/deserialization engine. No serialization is done at this step. The data structure is split into sub-parts known by the serialization engine and scheduled for serialization.
   * Marshaling/Unmarshaling
     * Marshaling: Given a fixed size buffer buffer (char*) do:

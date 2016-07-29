@@ -53,14 +53,14 @@ SolidFrame's solution for the above problem is a temporally unique run-time ID f
 
 ### The asynchronous, active objects model
 
-As explained above central to SolidFrame's architecture are the solid::frame::Object and solid::frame::aio::Object with their temporally unique run-time IDs.
+As explained above central to SolidFrame's architecture are the [__solid::frame::Object__](object.hpp) and [__solid::frame::aio::Object__](aio/aioobject.hpp) with their temporally unique run-time IDs.
 
 Closely related to either Objects are:
- * _solid::frame::Manager_: Passive, synchronized container of registered objects. The Objects are stored grouped by services. It allows sending notification events to specific objects identified by their run-time unique ID.
- * _solid::frame::Service_: Group of objects conceptually related. It allows sending notification events to all registered objects withing the service.
- * _solid::frame::Reactor_: Active container of solid::frame::Objects. Delivers timer and notification events to registered objects.
- * _solid::frame::aio::Reactor_: Active container of solid::frame::aio::Objects. Delivers IO, timer and notification events to registered objects.
- * _solid::frame::Scheduler<ReactorT>_: A thread pool of reactors.
+ * [_solid::frame::Manager_](manager.hpp): Passive, synchronized container of registered objects. The Objects are stored grouped by services. It allows sending notification events to specific objects identified by their run-time unique ID.
+ * [_solid::frame::Service_](service.hpp): Group of objects conceptually related. It allows sending notification events to all registered objects withing the service.
+ * [_solid::frame::Reactor_](reactor.hpp): Active container of solid::frame::Objects. Delivers timer and notification events to registered objects.
+ * [_solid::frame::aio::Reactor_](aio/reactor.hpp): Active container of solid::frame::aio::Objects. Delivers IO, timer and notification events to registered objects.
+ * [_solid::frame::Scheduler<ReactorT>_](scheduler.hpp): A thread pool of reactors.
 	
 Let us look further to some sample code to clarify the use of the above classes:
 ```C++
@@ -136,7 +136,7 @@ The following lines:
 	sd.prepareAccept(rd.begin(), 2000);
 ```
 create and configures a socket device/descriptor for listening for TCP connections.
-After this, if we have a valid socket device, we need to create and start a Listener object:
+After this, if we have a valid socket device, we can create and start a Listener object:
 
 ```C++
 if(sd.ok()){
@@ -157,28 +157,29 @@ As you can see above, the Listener constructor needs:
  * scheduler: every accepted connection will be scheduled onto given scheduler.
  * sd: the socket device used for listening for new TCP connections.
  
- The next line:
+The next line:
  
  ```C++
 	listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
  ```
  
- will try to atomically:
+will try to atomically:
+
  * register the Listener object onto service
  * schedule the Listener object onto scheduler along with an initial event
  
- Every object must override:
+Every object must override:
  
  ```C++
 	virtual void Object::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
  ```
  
- to receive the events, so on the above code, once the Listener got started, Listener::onEvent will be called on the scheduler thread with the GenericEvents::Start event.
- What will Listener do on onEvent will see later, let us now stay a little bit more on the scheduler.startObject line.
+to receive the events, so on the above code, once the Listener got started, Listener::onEvent will be called on the scheduler thread with the GenericEvents::Start event.
+What will Listener do on onEvent will see later. For now let us stay a little bit more on the scheduler.startObject line.
  
- As we can see it returns a frame::ObjectIdT and an error. The error value is obvious so let us see what with the frame::ObjectIdT value. The returned value is the temporally unique run-time ID explained above.
+As we can see it returns a frame::ObjectIdT and an error. While the error value is obvious, the returned ObjectIdT value is the temporally unique run-time ID explained above.
  
- This "listeneruid" can be used at any time during the lifetime of "manager" to notify the Listener object with a custom event, as we do with the following line:
+This way "listeneruid" can be used at any time during the lifetime of "manager" to notify the Listener object with a custom event, as we do with the following line:
  
  ```C++
 	manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
@@ -186,11 +187,11 @@ As you can see above, the Listener constructor needs:
  
 **Notes:**
   * One can easily forge a valid ObjectIdT and be able to send an event to a valid Object. This problem will be addressed by future versions of SolidFrame.
-  * The object ObjectIdT addresses may not exist when manager.notify is called.
-  * Once manager.notify returned true the event will be delivered to the Object.
-  * ```generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On the receiving side, the any value can only be retrieved using event.any().cast<std::string>() which returns a pointer to std::string.
+  * The object that ObjectIdT value addresses, may not exist when manager.notify(...) is called.
+  * Once manager.notify(...) returned true the event will be delivered to the Object.
+  * ```generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")``` constructs a generic Message event and instantiates the "any" value contained by the event with a std::string. On the receiving side, the any value can only be retrieved using event.any().cast\<std::string\>() which returns a pointer to std::string.
 
-Now that you have had a birds eye view of Object:Manager:Service:Scheduler architecture, let us go back to  Connection::onReceiveAuthentication hypothetical code rewrite it with SolidFrame concepts:
+Now that you have had a birds eye view of Object/Manager/Service/Scheduler architecture, let us go back to the Connection::onReceiveAuthentication hypothetical code, and rewrite it with SolidFrame concepts:
 
 ```C++
 void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
@@ -198,8 +199,8 @@ void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth
 	//NOTE: frame::Manager must outlive authentication::Service
 	
 	authentication::Service &rauth_service(_rctx.authenticationService());
-	frame::Manager		&rmanager(_rctx.service().manager());
-	frame::ObjectIdT	connection_id = service(_rctx).manager().id(*this);
+	frame::Manager			&rmanager(_rctx.service().manager());
+	frame::ObjectIdT		connection_id = service(_rctx).manager().id(*this);
 	
 	rauth_service.asyncAuthenticate(
 		auth_credentials,
