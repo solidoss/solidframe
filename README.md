@@ -234,6 +234,7 @@ Inter Process Communication library via Plain/Secure TCP connections and a proto
  * _ipccontext.hpp_: A context class given to all callbacks called by the ipc library.
  * _ipcconfiguration.hpp_: Configuration data for ipc::Service.
 
+[Here](solid/frame/ipc/README.md) you can find more information.
 
 ### solid_frame_file
 
