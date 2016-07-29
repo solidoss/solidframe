@@ -1,4 +1,4 @@
-#### The asynchronous, active objects model
+## The asynchronous, active objects model
 
 When implementing network enabled asynchronous applications one ends up having multiple objects (connections, relay nodes, listeners etc) with certain needs:
  * be able to react on IO events
