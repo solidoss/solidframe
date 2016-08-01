@@ -28,7 +28,6 @@ printUsage()
 
 BOOST_ADDR="http://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2"
 OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.0.2h.tar.gz"
-LEVELDB_ADDR="https://leveldb.googlecode.com/files/leveldb-1.15.0.tar.gz"
 SNAPPY_ADDR="http://snappy.googlecode.com/files/snappy-1.0.5.tar.gz"
 
 SYSTEM=
@@ -196,57 +195,6 @@ buildOpenssl()
 }
 
 
-buildLeveldb()
-{
-	WHAT="leveldb"
-	ADDR_NAME=$LEVELDB_ADDR
-	echo
-	echo "Building $WHAT..."
-	echo
-
-	OLD_DIR=`ls . | grep "$WHAT" | grep -v "tar"`
-	echo
-	echo "Cleanup previous builds..."
-	echo
-
-	rm -rf $OLD_DIR
-	rm -rf include/leveldb
-	rm -rf lib/libleveldb*
-	
-	echo
-	echo "Prepare the $WHAT archive..."
-	echo
-
-	ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
-	if [ -z "$ARCH_NAME" -o -n "$DOWNLOAD" ] ; then
-		mkdir old
-		mv $ARCH_NAME old/
-		echo "No $WHAT archive found or forced - try download: $ADDR_NAME"
-		downloadArchive $ADDR_NAME
-		ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
-	fi
-	
-	echo "Extracting $WHAT [$ARCH_NAME]..."
-	extractTarGz $ARCH_NAME
-
-	DIR_NAME=`ls . | grep "$WHAT" | grep -v "tar"`
-	echo
-	echo "Making $WHAT [$DIR_NAME]..."
-	echo
-
-	cd $DIR_NAME
-	export CXXFLAGS="-I$EXT_DIR/include -L$EXT_DIR/lib"
-	make
-	cp -r include/leveldb $EXT_DIR/include
-	cp *.a $EXT_DIR/lib
-	cd ..
-	
-	echo
-	echo "Done $WHAT!"
-	echo
-}
-
-
 function buildSnappy()
 {
     WHAT="snappy"
@@ -390,10 +338,6 @@ fi
 
 if [ $BUILD_SNAPPY ]; then
 	buildSnappy
-fi
-
-if [ $BUILD_LEVELDB ]; then
-	buildLeveldb
 fi
 
 if [ -d lib64 ]; then
