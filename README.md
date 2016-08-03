@@ -97,12 +97,26 @@ $ make install
 # ... when finished, the header files will be located in ~/work/extern/include/solid
 # and the libraries at ~/work/extern/lib/libsolid_*.a
 ```
+
+If debug build is needed, the configure line will be:
+
+```bash
+$ ./configure -b debug -e ~/work/extern --prefix ~/work/extern
+$ cd build/debug
+```
+
+For more information about ./configure script use:
+
+```bash
+$ ./configure --help
+```
+
 ### Windows
 Windows is not yet supported.
 
 ## Overview
 
-_SolidFrame_ is an experimental framework to be used for implementing cross-platform C++ network enabled applications or module.
+_SolidFrame_ is an experimental framework to be used for implementing cross-platform C++ network enabled applications or modules.
 
 The consisting libraries only depend on C++ STL with two exceptions:
  * __solid_frame_aio_openssl__: which obviously depends on [OpenSSL](https://www.openssl.org/)
@@ -110,7 +124,7 @@ The consisting libraries only depend on C++ STL with two exceptions:
 
 In order to keep the framework as dependency-free as possible some components that can be found in other libraries/frameworks were re-implemented here too, most of them being locate in either __solid_utility__ or __solid_system__ libraries.
 
-In the next paragraphs I will briefly present every library.
+The next paragraphs will briefly present every library.
 
 ### solid_system
 
@@ -135,17 +149,47 @@ Also, the debug engine has support for registering modules and for specifying en
 	Debug::the().moduleMask("frame_ipc:iew any:ew");
 	Debug::the().initStdErr();
 	//...
+	//a log line for module "any"
 	edbg("starting aio server scheduler: "<<err.message());
 	//...
+	//a log line for a predefined module "frame_ipc" aka Debug::ipc
 	idbgx(Debug::ipc, this<<" enqueue message "<<_rpool_msg_id<<" to connection "<<this<<" retval = "<<success);
 ```
 
 In the above code we:
  * Set the global levelMask to "view" (V = Verbose, I = Info, E = Error, W = Warning).
- * Enable logging for only two modules: "frame_ipc" and "any" (the generic module used with [v/i/e/w]dbg()). For "frame_ipc" restrict the level mask to {Info, Error, Warning} and for "any" restrict it to only {Error and Warning}.
+ * Enable logging for only two modules: "frame_ipc" and "any" (the generic module used by [v/i/e/w]dbg() macros). For "frame_ipc" restrict the level mask to {Info, Error, Warning} and for "any" restrict it to only {Error and Warning}.
  * Configure the debug log engine to send log records to stderr.
  * Send a log _error_ line for "any" module.
  * Send a log _info_ line for "frame_ipc" module.
+
+The Debug engine allows for registering new modules like this:
+
+```C++
+	static const auto my_module_id = Debug::the().registerModule("my_module");
+	//...
+	//enable the module 
+	Debug::the().moduleMask("frame_ipc:iew any:ew my_module:view");
+	//...
+	//log a INFO line for the module:
+	idbgx(my_module_id, "error starting engine: "<<error.mesage());
+```
+or like this:
+
+```C++
+	static unsigned my_module_id(){
+		static const auto id = Debug::the().registerModule("my_module");
+		return id;
+	}
+	
+	//...
+	//enable the module 
+	Debug::the().moduleMask("frame_ipc:iew any:ew my_module:view");
+	//...
+	//log a INFO line for the module:
+	idbgx(my_module_id(), "error starting engine: "<<error.mesage());
+```
+
  
 ### solid_utility
 
@@ -162,7 +206,126 @@ The library consists of tools needed by upper level libraries:
  * [_algorithm.hpp_](solid/utility/algorithm.hpp): Some inline algorithms
  * [_common.hpp_](solid/utility/common.hpp): Some bits related algorithms
  
- 
+Here are some sample code for some of the above tools:
+
+__Any__: [Sample code](solid/utility/test/test_any.cpp)
+
+```C++
+	using AnyT = solid::Any<>;
+	//...
+	AnyT	a;
+	
+	a = std::string("Some text");
+	
+	//...
+	std::string *pstr = a.cast<std::string>();
+	if(pstr){
+		cout<<*pstr<<endl;
+	}
+```
+Some code to show the difference from boost::any:
+
+```C++
+	using AnyT = solid::Any<128>;
+	
+	struct A{
+		uint64_t	a;
+		uint64_t	b;
+		double		c;
+	};
+	
+	struct B{
+		uint64_t	a;
+		uint64_t	b;
+		double		c;
+		char		buf[64];
+	};
+	
+	struct C{
+		uint64_t	a;
+		uint64_t	b;
+		double		c;
+		char		buf[128];
+	};
+	
+	AnyT	a;
+	//...
+	a = std::string("Some text");//as long as sizeof(std::string) <= 128 no allocation is made - Any uses placement new()
+	//...
+	a = A();//as long as sizeof(A) <= 128 no allocation is made - Any uses placement new()
+	//...
+	a = B();//as long as sizeof(B) <= 128 no allocation is made - Any uses placement new()
+	//...
+	a = C();//sizeof(C) > 128 so new allocation is made - Any uses new
+	
+```
+
+__Event__: [Sample code](solid/utility/test/test_event.cpp)
+
+Create a new event category:
+
+```C++
+enum struct AlphaEvents{
+	First,
+	Second,
+	Third,
+};
+using AlphaEventCategory = EventCategory<AlphaEvents>;
+const AlphaEventCategory	alpha_event_category{
+	"::alpha_event_category",
+	[](const AlphaEvents _evt){
+		switch(_evt){
+			case AlphaEvents::First:
+				return "first";
+			case AlphaEvents::Second:
+				return "second";
+			case AlphaEvents::Third:
+				return "third";
+			default:
+				return "unknown";
+		}
+	}
+};
+```
+
+Handle events:
+
+```C++
+void Object::handleEvent(Event &&_revt){
+	static const EventHandler<void, Object&> event_handler = {
+		[](Event &_revt, Object &_robj){cout<<"handle unknown event "<<_revt<< on "<<&_robj<<endl;},
+		{
+			{
+				alpha_event_category.event(AlphaEvents::First),
+				[](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
+			},
+			{
+				alpha_event_category.event(AlphaEvents::Second),
+				[](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
+			},
+			{
+				generic_event_category.event(GenericEvents::Message),
+				[](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<"("<<*_revt.any().cast<std::string>()<<") on "<<&_robj<<endl;}
+			}
+		}
+	};
+	
+	event_handler.handle(_revt, *this);
+}
+```
+
+Creating events:
+
+```C++
+	//...
+	rbase.handleEvent(alpha_event_category.event(AlphaEvents::Second));
+	rbase.handleEvent(generic_event_category.event(GenericEvents::Message, std::string("Some text")));
+	//...
+```
+
+__InnerList__: [Sample code](solid/utility/test/test_innerlist.cpp)
+__MemoryFile__: [Sample code](solid/utility/test/test_memory_file.cpp)
+
 ### solid_serialization
  * [_binary.hpp_](solid/serialization/binary.hpp): Binary "asynchronous" serializer/deserializer.
  * [_binarybasic.hpp_](solid/serialization/binarybasic.hpp): Some "synchronous" load/store functions for basic types.
@@ -187,7 +350,76 @@ The __solid_serialization__ library takes another, let us call it "asynchronous"
       * loop until deserialization finishes
 
 This approach allows serializing data that is bigger than the system memory - e.g. serializing a data structure containing a file stream (see [ipc file tutorial](tutorials/ipc_file) especially [messages definition](tutorials/ipc_file/ipc_file_messages.hpp)).
- 
+
+
+[Sample code](solid/serialization/test/test_typeidmap.cpp)
+
+A structure with serialization support:
+
+```C++
+	struct Test{
+		using KeyValueVectorT = std::vector<std::pair<std::string, std::string>>;
+		using MapT = std::map<std::string, uint64_t>;
+		
+		std::string			str;
+		KeyValueVectorT		kv_vec;
+		MapT				kv_map;
+		uint32_t			v32;
+		
+		template <class S>
+		void serialize(S &_s){
+			_s.push(str, "Test::str");
+			_s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");
+			_s.push(v32, "Test::v32");
+		}
+	};
+```
+
+Defining the serializer/deserializer/typeidmap:
+
+```C++
+using BinSerializerT = serialization::binary::Serializer<void>;
+using BinDeserializerT = serialization::binary::Deserializer<void>;
+using TypeIdMapT = serialization::TypeIdMap<BinSerializerT, BinDeserializerT>;
+```
+
+Prepare the typeidmap:
+
+```C++
+TypeIdMapT	typemap;
+typemap.registerType<Test>(0/*protocol ID*/);
+```
+
+Serialize and deserialize a Test structure:
+```C++
+	std::string		data;
+	{//serialize
+		BinSerializerT	ser(&typeidmap);
+		const int		bufcp = 64;
+		char 			buf[bufcp];
+		int				rv;
+		
+		std::shared_ptr<Test>	test_ptr = createAndFillTest();
+		
+		ser.push(test_ptr, "test_ptr");
+		
+		while((rv = ser.run(buf, bufcp)) == bufcp){
+			data.append(buf, rv);
+		}
+	}
+	{//deserialize
+		BinDeserializerT		des(&typeidmap);
+		
+		std::shared_ptr<Test>	test_ptr;
+		
+		des.push(test_ptr, "test_ptr");
+		
+		size_t					rv = des.run(data.data(), data.size());
+		SOLID_CHECK(rv == data.size());
+	}
+```
+
+
 ### solid_frame
 
 The library offers the base support for an asynchronous active object model and implementation for objects with basic support for notification and timer events.
