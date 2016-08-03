@@ -28,7 +28,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 ## Libraries
 
-* __solid_system__:
+* [__solid_system__](#solid_system):
 	* Wrappers for socket/file devices, socket address, directory access
 	* Debug log engine
 * __solid_utility__:
@@ -126,7 +126,7 @@ In order to keep the framework as dependency-free as possible some components th
 
 The next paragraphs will briefly present every library.
 
-### solid_system
+### <a id="solid_system"></a>solid_system
 
 The library consists of wrappers around system calls for:
  
