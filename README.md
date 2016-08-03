@@ -324,6 +324,7 @@ Creating events:
 ```
 
 __InnerList__: [Sample code](solid/utility/test/test_innerlist.cpp)
+
 __MemoryFile__: [Sample code](solid/utility/test/test_memory_file.cpp)
 
 ### solid_serialization
@@ -357,22 +358,22 @@ This approach allows serializing data that is bigger than the system memory - e.
 A structure with serialization support:
 
 ```C++
-	struct Test{
-		using KeyValueVectorT = std::vector<std::pair<std::string, std::string>>;
-		using MapT = std::map<std::string, uint64_t>;
-		
-		std::string			str;
-		KeyValueVectorT		kv_vec;
-		MapT				kv_map;
-		uint32_t			v32;
-		
-		template <class S>
-		void serialize(S &_s){
-			_s.push(str, "Test::str");
-			_s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");
-			_s.push(v32, "Test::v32");
-		}
-	};
+struct Test{
+	using KeyValueVectorT = std::vector<std::pair<std::string, std::string>>;
+	using MapT = std::map<std::string, uint64_t>;
+	
+	std::string			str;
+	KeyValueVectorT		kv_vec;
+	MapT				kv_map;
+	uint32_t			v32;
+	
+	template <class S>
+	void serialize(S &_s){
+		_s.push(str, "Test::str");
+		_s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");
+		_s.push(v32, "Test::v32");
+	}
+};
 ```
 
 Defining the serializer/deserializer/typeidmap:
