@@ -1,5 +1,4 @@
 #include "solid/serialization/binary.hpp"
-#include "solid/utility/dynamictype.hpp"
 #include <sstream>
 #include "solid/system/debug.hpp"
 
@@ -235,7 +234,7 @@ int test_typeidmap(int argc, char* argv[]){
 			
 			ser.push(pa1, "a1").push(pa2, "a2").push(pa3, "a3");
 			
-			while((rv = ser.run(buf, bufcp)) == bufcp){
+			while((rv = ser.run(buf, bufcp)) > 0){
 				alpha_data.append(buf, rv);
 			}
 			if(rv < 0){
@@ -262,7 +261,7 @@ int test_typeidmap(int argc, char* argv[]){
 			
 			ser.push(pa1, "a1").push(pa2, "a2");
 			
-			while((rv = ser.run(buf, bufcp)) == bufcp){
+			while((rv = ser.run(buf, bufcp)) > 0){
 				beta_data.append(buf, rv);
 			}
 			if(rv < 0){
@@ -288,7 +287,7 @@ int test_typeidmap(int argc, char* argv[]){
 			
 			ser.push(pa1, "a1").push(pa2, "a2");
 			
-			while((rv = ser.run(buf, bufcp)) == bufcp){
+			while((rv = ser.run(buf, bufcp)) > 0){
 				delta_data.append(buf, rv);
 			}
 			if(rv < 0){
@@ -370,8 +369,8 @@ int test_typeidmap(int argc, char* argv[]){
 		typemap.registerCast<beta::Test<4>, beta::Base>();
 		
 		{
-			BinDeserializerT	des(&typemap);
-			int					rv;
+			BinDeserializerT		des(&typemap);
+			int						rv;
 			
 			BasePointerT			pa1;
 			beta::BasePointerT		pa2;

@@ -353,7 +353,7 @@ The __solid_serialization__ library takes another, let us call it "asynchronous"
 This approach allows serializing data that is bigger than the system memory - e.g. serializing a data structure containing a file stream (see [ipc file tutorial](tutorials/ipc_file) especially [messages definition](tutorials/ipc_file/ipc_file_messages.hpp)).
 
 
-[Sample code](solid/serialization/test/test_typeidmap.cpp)
+[Sample code](solid/serialization/test/test_binary.cpp)
 
 A structure with serialization support:
 
@@ -379,9 +379,11 @@ struct Test{
 Defining the serializer/deserializer/typeidmap:
 
 ```C++
-using BinSerializerT = serialization::binary::Serializer<void>;
-using BinDeserializerT = serialization::binary::Deserializer<void>;
-using TypeIdMapT = serialization::TypeIdMap<BinSerializerT, BinDeserializerT>;
+#include "solid/serialization/binary.hpp"
+
+using SerializerT	= serialization::binary::Serializer<void>;
+using DeserializerT = serialization::binary::Deserializer<void>;
+using TypeIdMapT	= serialization::TypeIdMap<SerializerT, DeserializerT>;
 ```
 
 Prepare the typeidmap:
@@ -395,21 +397,22 @@ Serialize and deserialize a Test structure:
 ```C++
 	std::string		data;
 	{//serialize
-		BinSerializerT	ser(&typeidmap);
+		SerializerT		ser(&typeidmap);
 		const int		bufcp = 64;
 		char 			buf[bufcp];
 		int				rv;
 		
-		std::shared_ptr<Test>	test_ptr = createAndFillTest();
+		std::shared_ptr<Test>	test_ptr = Test::create();
+		test_ptr->init();
 		
 		ser.push(test_ptr, "test_ptr");
 		
-		while((rv = ser.run(buf, bufcp)) == bufcp){
+		while((rv = ser.run(buf, bufcp)) > 0){
 			data.append(buf, rv);
 		}
 	}
 	{//deserialize
-		BinDeserializerT		des(&typeidmap);
+		DeserializerT			des(&typeidmap);
 		
 		std::shared_ptr<Test>	test_ptr;
 		
