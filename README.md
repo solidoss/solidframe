@@ -371,7 +371,7 @@ struct Test{
 	void serialize(S &_s){
 		_s.push(str, "Test::str");
 		_s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");
-		_s.push(v32, "Test::v32");
+		_s.pushCross(v32, "Test::v32");
 	}
 };
 ```
