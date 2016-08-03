@@ -31,18 +31,18 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * [__solid_system__](#solid_system):
 	* Wrappers for socket/file devices, socket address, directory access
 	* Debug log engine
-* __solid_utility__:
+* [__solid_utility__](#solid_utility):
 	* _Any_ - similar to boost::any
 	* _Event_ - Event class containing an ID a solid::Any object and a Category (similar to std::error_category)
 	* _InnerList_ - bidirectional list mapped over a vector/deque
 	* _Stack_ - alternative to std::stack
 	* _Queue_ - alternative to std:queue
 	* _WorkPool_ - generic thread pool
-* __solid_serialization__: binary serialization/marshalling
+* [__solid_serialization__](#solid_serialization): binary serialization/marshalling
 	* _binary::Serializer_
 	* _binary::Deserializer_
 	* _TypeIdMap_
-* __solid_frame__:
+* [__solid_frame__](#solid_frame):
 	* _Object_ - reactive object
 	* _Manager_ - store services and notifies objects within services
 	* _Service_ - store and notifies objects
@@ -50,17 +50,17 @@ Boost Software License - Version 1.0 - August 17th, 2003
 	* _Scheduler_ - a thread pool of reactors
 	* _Timer_ - allows objects to schedule time based events
 	* _shared::Store_ - generic store of shared objects that need either multiple read or single write access
-* __solid_frame_aio__: asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
+* [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
 	* _Object_ - reactive object with support for Asynchronous IO
 	* _Reactor_ - reactor with support for Asynchronous IO
 	* _Listener_ - asynchronous TCP listener/server socket
 	* _Stream_ - asynchronous TCP socket
 	* _Datagram_ - asynchronous UDP socket
 	* _Timer_ - allows objects to schedule time based events
-* __solid_frame_aio_openssl__: SSL support via OpenSSL
-* __solid_frame_file__
+* [__solid_frame_aio_openssl__](#solid_frame_aio_openssl): SSL support via OpenSSL
+* [__solid_frame_file__](#solid_frame_file)
 	* _file::Store_ - a shared store for files
-* __solid_frame_ipc__: asynchronous Secure/Plain TCP inter-process communication engine ([IPC library](solid/frame/ipc/README.md))
+* [__solid_frame_ipc__](#solid_frame_ipc): asynchronous Secure/Plain TCP inter-process communication engine ([IPC library](solid/frame/ipc/README.md))
 	* _ipc::Service_ - asynchronously sends and receives messages to/from multiple peers.
 
 ## Installation
@@ -191,7 +191,7 @@ or like this:
 ```
 
  
-### solid_utility
+### <a id="solid_utility"></a>solid_utility
 
 The library consists of tools needed by upper level libraries:
  * [__any.hpp__](solid/utility/any.hpp): A variation on boost::any / experimental std::any with storage for emplacement new so it is faster when the majority of sizeof objects that get stored in any<> fall under a given value.
@@ -327,7 +327,7 @@ __InnerList__: [Sample code](solid/utility/test/test_innerlist.cpp)
 
 __MemoryFile__: [Sample code](solid/utility/test/test_memory_file.cpp)
 
-### solid_serialization
+### <a id="solid_serialization"></a>solid_serialization
  * [_binary.hpp_](solid/serialization/binary.hpp): Binary "asynchronous" serializer/deserializer.
  * [_binarybasic.hpp_](solid/serialization/binarybasic.hpp): Some "synchronous" load/store functions for basic types.
  * [_typeidmap.hpp_](solid/serialization/typeidmap.hpp): Class for helping "asynchronous" serializer/deserializer support polymorphism: serialize pointers to base classes.
@@ -421,7 +421,7 @@ Serialize and deserialize a Test structure:
 ```
 
 
-### solid_frame
+### <a id="solid_frame"></a>solid_frame
 
 The library offers the base support for an asynchronous active object model and implementation for objects with basic support for notification and timer events.
 
@@ -440,7 +440,7 @@ The library offers the base support for an asynchronous active object model and 
  
 [Here](solid/frame/README.md) you can find an overview of the asynchronous active object model employed by the solid_frame framework.
 
-### solid_frame_aio
+### <a id="solid_frame_aio"></a>solid_frame_aio
 
 The library extends solid_frame with active objects supporting IO, notification and timer events.
  * [__aiodatagram.hpp__](solid/frame/aio/aiodatagram.hpp): Used by aio::Objects to support asynchronous UDP communication.
@@ -454,14 +454,14 @@ The library extends solid_frame with active objects supporting IO, notification 
  
 [Here](solid/frame/README.md) you can find an overview of the asynchronous active object model employed by the solid_frame framework.
 
-### solid_frame_aio_openssl
+### <a id="solid_frame_aio_openssl"></a>solid_frame_aio_openssl
 
 The library extends solid_frame_aio with support for Secure Sockets.
  * [__aiosecuresocket.hpp__](solid/frame/aio/openssl/aiosecuresocket.hpp): Used by aio::Stream for SSL.
  * [__aiosecurecontext.hpp__](solid/frame/aio/openssl/aiosecurecontext.hpp): OpenSSL context wrapper.
 
 
-### solid_frame_ipc
+### <a id="solid_frame_ipc"></a>solid_frame_ipc
 
 Inter Process Communication library via Plain/Secure TCP connections and a protocol based on solid_serialization.
 
@@ -472,7 +472,7 @@ Inter Process Communication library via Plain/Secure TCP connections and a proto
 
 [Here](solid/frame/ipc/README.md) you can find more information.
 
-### solid_frame_file
+### <a id="solid_frame_file"></a>solid_frame_file
 
 The library offers a specialization of frame::ShareStore for files.
 
