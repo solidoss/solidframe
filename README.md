@@ -441,7 +441,9 @@ The library offers the base support for an asynchronous active object model and 
  * [_schedulerbase.hpp_](solid/frame/schedulerbase.hpp): Base for all schedulers.
  * [_objectbase.hpp_](solid/frame/objectbase.hpp): Base for all active Objects
  
-[Here](solid/frame/README.md) you can find an overview of the asynchronous active object model employed by the solid_frame framework.
+
+__Usefull links__
+ * [An overview of the asynchronous active object model](solid/frame/README.md)
 
 ### <a id="solid_frame_aio"></a>solid_frame_aio
 
@@ -455,7 +457,9 @@ The library extends solid_frame with active objects supporting IO, notification 
  * [__aioreactorcontext.hpp__](solid/frame/aio/aioreactorcontext.hpp): A context class given as parameter to every callback called from the aio::Reactor.
  * [_aioreactor.hpp_](solid/frame/aio/aioreactor.hpp): An active store of aio::Objects with support for IO, notification and timer events.
  
-[Here](solid/frame/README.md) you can find an overview of the asynchronous active object model employed by the solid_frame framework.
+__Usefull links__
+ * [An overview of the asynchronous active object model](solid/frame/README.md)
+ * [Tutorial: aio_echo](solid/tutorials/aio_echo/README.md)
 
 ### <a id="solid_frame_aio_openssl"></a>solid_frame_aio_openssl
 
@@ -473,7 +477,12 @@ Inter Process Communication library via Plain/Secure TCP connections and a proto
  * [__ipccontext.hpp__](solid/frame/ipc/ipccontext.hpp): A context class given to all callbacks called by the ipc library.
  * [__ipcconfiguration.hpp__](solid/frame/ipc/ipcconfiguration.hpp): Configuration data for ipc::Service.
 
-[Here](solid/frame/ipc/README.md) you can find more information.
+__Usefull links__
+ * [Informations about solid_frame_ipc](solid/frame/ipc/README.md)
+ * [An overview of the asynchronous active object model](solid/frame/README.md)
+ * [Tutorial: ipc_echo](solid/tutorials/ipc_echo/README.md)
+ * [Tutorial: ipc_file](solid/tutorials/ipc_file/README.md)
+ * [Tutorial: ipc_request](solid/tutorials/ipc_request/README.md)
 
 ### <a id="solid_frame_file"></a>solid_frame_file
 
