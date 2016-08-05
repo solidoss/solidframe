@@ -459,7 +459,7 @@ The library extends solid_frame with active objects supporting IO, notification 
  
 __Usefull links__
  * [An overview of the asynchronous active object model](solid/frame/README.md)
- * [Tutorial: aio_echo](solid/tutorials/aio_echo/README.md)
+ * [Tutorial: aio_echo](tutorials/aio_echo/README.md)
 
 ### <a id="solid_frame_aio_openssl"></a>solid_frame_aio_openssl
 
@@ -479,10 +479,9 @@ Inter Process Communication library via Plain/Secure TCP connections and a proto
 
 __Usefull links__
  * [Informations about solid_frame_ipc](solid/frame/ipc/README.md)
- * [An overview of the asynchronous active object model](solid/frame/README.md)
- * [Tutorial: ipc_echo](solid/tutorials/ipc_echo/README.md)
- * [Tutorial: ipc_file](solid/tutorials/ipc_file/README.md)
- * [Tutorial: ipc_request](solid/tutorials/ipc_request/README.md)
+ * [Tutorial: ipc_echo](tutorials/ipc_echo/README.md)
+ * [Tutorial: ipc_file](tutorials/ipc_file/README.md)
+ * [Tutorial: ipc_request](tutorials/ipc_request/README.md)
 
 ### <a id="solid_frame_file"></a>solid_frame_file
 
