@@ -444,7 +444,7 @@ int test_connection_close(int argc, char **argv){
 			}
 		}
 		
-		m.stop();
+		//m.stop();
 	}
 	
 	//exiting

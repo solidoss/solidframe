@@ -7,6 +7,5 @@ target_link_libraries (tutorial_aio_echo_server
 	solid_utility
 	solid_system
 	${SYS_BASIC_LIBS}
-	${SYS_DYNAMIC_LOAD_LIB}
 )
 

@@ -478,7 +478,7 @@ int test_raw_proxy(int argc, char **argv){
 			SOLID_THROW("Not all messages were completed");
 		}
 		
-		m.stop();
+		//m.stop();
 	}
 	
 	//exiting

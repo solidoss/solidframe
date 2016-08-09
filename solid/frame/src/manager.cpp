@@ -154,10 +154,10 @@ struct ServiceStub{
 	ServiceStub(
 		std::mutex &_rmtx
 	):	psvc(nullptr), rmtx(_rmtx), firstchk(InvalidIndex()),
-		lastchk(InvalidIndex()), state(StateRunningE),
+		lastchk(InvalidIndex()), state(StateStoppedE),
 		crtobjidx(InvalidIndex()), endobjidx(InvalidIndex()), objcnt(0){}
 	
-	void reset(Service *_psvc = nullptr){
+	void reset(Service *_psvc){
 		psvc = _psvc;
 		firstchk = InvalidIndex();
 		lastchk = InvalidIndex();
@@ -165,6 +165,17 @@ struct ServiceStub{
 		endobjidx = InvalidIndex();
 		objcnt = 0;
 		state = StateRunningE;
+		while(objcache.size())objcache.pop();
+	}
+	
+	void reset(){
+		psvc = nullptr;
+		firstchk = InvalidIndex();
+		lastchk = InvalidIndex();
+		crtobjidx = InvalidIndex();
+		endobjidx = InvalidIndex();
+		objcnt = 0;
+		state = StateStoppedE;
 		while(objcache.size())objcache.pop();
 	}
 	
@@ -968,10 +979,10 @@ void Manager::stop(){
 					d.cnd.wait(lock);
 				}
 				rss.state = StateStoppedE;
+				doUnregisterService(rss);
 			}else{
 				SOLID_ASSERT(rss.state == StateStoppedE);
 			}
-			doUnregisterService(rss);
 		}
 	}
 	

@@ -433,7 +433,7 @@ int test_keepalive_fail(int argc, char **argv){
 			SOLID_THROW("Not all messages were completed");
 		}
 		
-		m.stop();
+		//m.stop();
 	}
 	
 	//exiting

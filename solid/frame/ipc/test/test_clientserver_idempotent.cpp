@@ -490,7 +490,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 			SOLID_THROW("Not all messages were completed");
 		}
 		
-		m.stop();
+		//m.stop();
 	}
 	
 	//exiting

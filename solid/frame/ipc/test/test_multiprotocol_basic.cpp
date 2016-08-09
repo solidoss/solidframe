@@ -193,7 +193,7 @@ int test_multiprotocol_basic(int argc, char **argv){
 			}
 		}
 		
-		m.stop();
+		//m.stop();
 	}
 	
 	//exiting

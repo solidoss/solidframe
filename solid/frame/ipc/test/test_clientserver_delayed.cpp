@@ -435,7 +435,7 @@ int test_clientserver_delayed(int argc, char **argv){
 			}
 		}
 		
-		m.stop();
+		//m.stop();
 		//std::printf("S\n");
 	}
 	

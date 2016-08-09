@@ -63,7 +63,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * [__solid_frame_ipc__](#solid_frame_ipc): asynchronous Secure/Plain TCP inter-process communication engine ([IPC library](solid/frame/ipc/README.md))
 	* _ipc::Service_ - asynchronously sends and receives messages to/from multiple peers.
 
-## Installation
+## <a id="installation"></a>Installation
 
 Following are the steps for:
 * fetching the _SolidFrame_ code

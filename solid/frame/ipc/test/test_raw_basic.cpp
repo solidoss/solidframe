@@ -473,7 +473,7 @@ int test_raw_basic(int argc, char **argv){
 				SOLID_THROW("Process is taking too long.");
 			}
 		}
-		m.stop();
+		//m.stop();
 		if(crtwriteidx != crtackidx){
 			SOLID_ASSERT(false);
 			SOLID_THROW("Not all messages were completed");
