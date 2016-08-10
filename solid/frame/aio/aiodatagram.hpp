@@ -340,7 +340,7 @@ public:
 			bool		can_retry;
 			ErrorCodeT	err;
 			int			rv = s.recvFrom(_buf, _bufcp, _raddr, can_retry, err);
-			if(rv == _bufcp){
+			if(rv == static_cast<int>(_bufcp)){
 				_sz = rv;
 				errorClear(_rctx);
 			}else if(rv >= 0){
