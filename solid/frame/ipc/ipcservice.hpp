@@ -70,13 +70,13 @@ struct MessageBundle;
 		m3_10MB, m4_1MB, m1_500MB, m2_100MB
 	
 */
-class Service: public Dynamic<Service, frame::Service>{
+class Service: public frame::Service{
 	
 public:
-	typedef Dynamic<Service, frame::Service> BaseT;
+	typedef frame::Service BaseT;
 	
 	Service(
-		frame::Manager &_rm
+		frame::UseServiceShell _force_shell
 	);
 	
 	//! Destructor
@@ -491,6 +491,11 @@ private:
 	struct	Data;
 	Data	&d;
 };
+
+
+//-------------------------------------------------------------------------
+
+using ServiceT = frame::ServiceShell<Service>;
 
 //-------------------------------------------------------------------------
 template <class T>

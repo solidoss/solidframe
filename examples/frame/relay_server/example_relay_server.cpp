@@ -222,7 +222,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager		m;
-		frame::Service		svc(m);
+		frame::ServiceT		svc(m);
 		
 		if(sch.start(1)){
 			running = false;

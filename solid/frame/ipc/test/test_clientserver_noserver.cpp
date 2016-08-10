@@ -206,7 +206,7 @@ int test_clientserver_noserver(int argc, char **argv){
 			
 			
 		frame::Manager			m;
-		frame::ipc::Service		ipcclient(m);
+		frame::ipc::ServiceT	ipcclient(m);
 		ErrorConditionT			err;
 		
 		frame::aio::Resolver	resolver;

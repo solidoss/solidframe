@@ -315,6 +315,7 @@ void Connection::doPrepare(frame::aio::ReactorContext &_rctx){
 }
 //-----------------------------------------------------------------------------
 void Connection::doUnprepare(frame::aio::ReactorContext &_rctx){
+	vdbgx(Debug::ipc, this<<' '<<this->id());
 	service(_rctx).configuration().freeRecvBuffer(recv_buf);
 	service(_rctx).configuration().freeSendBuffer(send_buf);
 	msg_reader.unprepare();

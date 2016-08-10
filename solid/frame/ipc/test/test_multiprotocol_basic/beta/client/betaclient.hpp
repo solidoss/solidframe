@@ -9,6 +9,8 @@ solid::ErrorConditionT start(
 	Context &_rctx
 );
 
+void stop();
+
 }
 
 #endif

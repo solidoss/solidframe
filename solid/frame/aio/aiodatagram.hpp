@@ -194,7 +194,7 @@ class Datagram: public CompletionHandler{
 				ErrorCodeT		err;
 				int				rv = _rthis.s.sendTo(_rthis.send_buf, _rthis.send_buf_cp, _rthis.send_addr, can_retry, err);
 				
-				if(rv == _rthis.send_buf_cp){
+				if(rv == static_cast<int>(_rthis.send_buf_cp)){
 				}else if(rv >= 0){
 					_rthis.error(_rctx, error_datagram_shutdown);
 				}else if(rv == -1){
@@ -458,7 +458,7 @@ public:
 			ErrorCodeT	err;
 			int			rv = s.sendTo(_buf, _bufcp, _addrstub, can_retry, err);
 			
-			if(rv == _bufcp){
+			if(rv == static_cast<int>(_bufcp)){
 				errorClear(_rctx);
 			}else if(rv >= 0){
 				error(_rctx, error_datagram_shutdown);

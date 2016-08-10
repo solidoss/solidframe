@@ -169,6 +169,7 @@ struct ServiceStub{
 	}
 	
 	void reset(){
+		vdbgx(Debug::frame, ""<<psvc);
 		psvc = nullptr;
 		firstchk = InvalidIndex();
 		lastchk = InvalidIndex();
@@ -383,6 +384,8 @@ Manager::Manager(
 	const size_t _objmtxcnt/* = 0*/,
 	const size_t _objbucketsize/* = 0*/
 ):d(*(new Data(*this))){
+	vdbgx(Debug::frame, ""<<this);
+	
 	if(_objmtxcnt == 0){
 		d.objmtxcnt = memory_page_size() / sizeof(std::mutex);
 	}else{
@@ -410,8 +413,9 @@ Manager::Manager(
 }
 
 /*virtual*/ Manager::~Manager(){
-	
+	vdbgx(Debug::frame, ""<<this);
 	stop();
+	vdbgx(Debug::frame, ""<<this);
 	delete []d.pobjmtxarr;
 	delete []d.psvcmtxarr;
 	
@@ -675,6 +679,7 @@ void Manager::unregisterObject(ObjectBase &_robj){
 		
 		rss.objcache.push(objidx);
 		--rss.objcnt;
+		vdbgx(Debug::frame, ""<<this<<" serviceid = "<<svcidx<<" objcnt = "<<rss.objcnt);
 		if(rss.objcnt == 0 && rss.state == StateStoppingE){
 			d.cnd.notify_all();
 		}
@@ -811,7 +816,7 @@ size_t Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunction
 size_t Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitFunctionT &_rfct){
 	
 	size_t	crtchkidx = _chkidx;
-	size_t	retval = 0;
+	size_t	visited_count = 0;
 	
 	
 	while(crtchkidx != InvalidIndex()){
@@ -829,7 +834,7 @@ size_t Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisi
 		for(size_t i(0), cnt(0); i < d.objchkcnt && cnt < rchk.objcnt; ++i){
 			if(poss[i].pobject && poss[i].preactor){
 				_rfct(*poss[i].pobject, *poss[i].preactor);
-				++retval;
+				++visited_count;
 				++cnt;
 			}
 		}
@@ -837,7 +842,7 @@ size_t Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisi
 		crtchkidx = rchk.nextchk;
 	}
 	
-	return retval;
+	return visited_count;
 }
 
 Service& Manager::service(const ObjectBase &_robj)const{
@@ -886,15 +891,19 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 	if(!_rsvc.isRegistered()){
 		return;
 	}
+	
 	const size_t	svcidx = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
 	const size_t	svcstoreidx = d.aquireReadServiceStore();//can lock d.mtx
 	ServiceStub		&rss = *d.svcstore[svcstoreidx].vec[svcidx];
 	
 	std::unique_lock<std::mutex>	lock(rss.rmtx);
 	
+	vdbgx(Debug::frame, ""<<svcidx<<" objcnt = "<<rss.objcnt);
+	
 	d.releaseReadServiceStore(svcstoreidx);
 	
 	if(rss.state == StateStoppedE){
+		vdbgx(Debug::frame, ""<<svcidx);
 		return;
 	}
 	if(rss.state == StateRunningE){
@@ -906,19 +915,22 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 		
 		rss.psvc->resetRunning();
 		
-		const bool				cnt = doForEachServiceObject(rss.firstchk, fctor);
+		const bool	cnt = doForEachServiceObject(rss.firstchk, fctor);
 		
-		if(cnt == 0){
+		if(cnt == 0 and rss.objcnt == 0){
 			rss.state = StateStoppedE;
+			vdbgx(Debug::frame, "StateStoppedE on "<<svcidx);
 			return;
 		}
 		rss.state = StateStoppingE;
 	}
 	
 	if(rss.state == StateStoppingE && _wait){
+		vdbgx(Debug::frame, ""<<svcidx);
 		while(rss.objcnt){
 			d.cnd.wait(lock);
 		}
+		vdbgx(Debug::frame, "StateStoppedE on "<<svcidx);
 		rss.state = StateStoppedE;
 	}
 }
@@ -963,6 +975,7 @@ void Manager::stop(){
 				const size_t			cnt = doForEachServiceObject(rss.firstchk, fctor);
 				(void)cnt;
 				rss.state = (rss.objcnt != 0) ? StateStoppingE : StateStoppedE;
+				vdbgx(Debug::frame, "StateStoppedE on "<<(it -rsvcstore.vec.begin()));
 			}
 		}
 	}
@@ -975,13 +988,17 @@ void Manager::stop(){
 			std::unique_lock<std::mutex>	lock(rss.rmtx);
 			
 			if(rss.psvc && rss.state == StateStoppingE){
+				vdbgx(Debug::frame, "wait stop service: "<<(it - rsvcstore.vec.begin()));
 				while(rss.objcnt){
 					d.cnd.wait(lock);
 				}
 				rss.state = StateStoppedE;
+				vdbgx(Debug::frame, "StateStoppedE on "<<(it - rsvcstore.vec.begin()));
 				doUnregisterService(rss);
-			}else{
+			}else if(rss.psvc){
+				vdbgx(Debug::frame, "unregister already stopped service: "<<(it - rsvcstore.vec.begin())<<" "<<rss.psvc<<" "<<rss.state);
 				SOLID_ASSERT(rss.state == StateStoppedE);
+				doUnregisterService(rss);
 			}
 		}
 	}

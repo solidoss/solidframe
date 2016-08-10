@@ -207,7 +207,7 @@ int main(int argc, char *argv[]){
 		SchedulerT		sched;
 		
 		frame::Manager	m;
-		frame::Service	svc(m);
+		frame::ServiceT	svc(m);
 		
 		if(!sched.start(1) && !aiosched.start(1)){
 			{

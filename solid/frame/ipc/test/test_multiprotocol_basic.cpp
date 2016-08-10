@@ -93,8 +93,7 @@ int test_multiprotocol_basic(int argc, char **argv){
 			
 			
 		frame::Manager			m;
-		frame::ipc::Service		ipcserver(m);
-		frame::ipc::Service		ipcclient(m);
+		frame::ipc::ServiceT	ipcserver(m);
 		ErrorConditionT			err;
 		
 		frame::aio::Resolver	resolver;
@@ -192,8 +191,10 @@ int test_multiprotocol_basic(int argc, char **argv){
 				SOLID_THROW("Process is taking too long.");
 			}
 		}
-		
-		//m.stop();
+		//client service must not outlive manager!!
+		alpha_client::stop();
+		beta_client::stop();
+		gamma_client::stop();
 	}
 	
 	//exiting

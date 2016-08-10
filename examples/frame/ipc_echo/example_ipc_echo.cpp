@@ -173,7 +173,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager			m;
-		frame::ipc::Service		ipcsvc(m);
+		frame::ipc::ServiceT	ipcsvc(m);
 		ErrorConditionT			err;
 		
 		frame::aio::Resolver	resolver;

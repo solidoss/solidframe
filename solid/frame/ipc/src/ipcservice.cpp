@@ -529,11 +529,12 @@ struct Service::Data{
 //=============================================================================
 
 Service::Service(
-	frame::Manager &_rm
-):BaseT(_rm), d(*(new Data(*this))){}
+	UseServiceShell _force_shell
+):BaseT(_force_shell), d(*(new Data(*this))){}
 	
 //! Destructor
 Service::~Service(){
+	stop(true);
 	delete &d;
 }
 //-----------------------------------------------------------------------------

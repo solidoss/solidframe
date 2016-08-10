@@ -296,7 +296,7 @@ void server_complete_logout(
 int test_connection_close(int argc, char **argv){
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("ew");
-	Debug::the().moduleMask("frame_ipc:ew any:ew");
+	Debug::the().moduleMask("frame_ipc:ew any:ew frame:ew");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -324,11 +324,11 @@ int test_connection_close(int argc, char **argv){
 			
 			
 		frame::Manager			m;
-		frame::ipc::Service		ipcserver(m);
-		frame::ipc::Service		ipcclient(m);
-		ErrorConditionT			err;
 		
 		frame::aio::Resolver	resolver;
+		frame::ipc::ServiceT	ipcserver(m);
+		frame::ipc::ServiceT	ipcclient(m);
+		ErrorConditionT			err;
 		
 		err = sch_client.start(1);
 		
@@ -443,7 +443,7 @@ int test_connection_close(int argc, char **argv){
 				SOLID_THROW("Process is taking too long.");
 			}
 		}
-		
+		vdbg("stopping");
 		//m.stop();
 	}
 	

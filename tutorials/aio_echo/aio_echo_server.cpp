@@ -108,11 +108,11 @@ int main(int argc, char *argv[]){
 	
 	signal(SIGPIPE, SIG_IGN);
 	
-	AioSchedulerT		scheduler;
+	AioSchedulerT				scheduler;
 	
 	
 	frame::Manager		manager;
-	frame::Service		service(manager);
+	frame::ServiceT		service(manager);
 	
 	if(scheduler.start(1)){
 		cout<<"Error starting scheduler"<<endl;
@@ -179,7 +179,6 @@ int main(int argc, char *argv[]){
 	cout<<"Press any key and ENTER to terminate..."<<endl;
 	char c;
 	cin>>c;
-	//manager.stop();
 	return 0;
 }
 

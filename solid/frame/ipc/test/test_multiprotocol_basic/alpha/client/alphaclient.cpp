@@ -8,7 +8,7 @@ using namespace solid;
 
 namespace alpha_client {
 
-using IpcServicePointerT = shared_ptr<frame::ipc::Service>;
+using IpcServicePointerT = shared_ptr<frame::ipc::ServiceT>;
 IpcServicePointerT		ipcclient_ptr;
 
 Context					*pctx;
@@ -143,7 +143,7 @@ ErrorConditionT start(
 		
 		cfg.name_resolve_fnc = frame::ipc::InternetResolverF(_rctx.rresolver, _rctx.rserver_port.c_str()/*, SocketInfo::Inet4*/);
 		
-		ipcclient_ptr = std::make_shared<frame::ipc::Service>(_rctx.rm);
+		ipcclient_ptr = std::make_shared<frame::ipc::ServiceT>(_rctx.rm);
 		err = ipcclient_ptr->reconfigure(std::move(cfg));
 		
 		if(err){return err;}
@@ -170,5 +170,8 @@ ErrorConditionT start(
 	return err;
 }
 
+void stop(){
+	ipcclient_ptr.reset();
+}
 
 }//namespace

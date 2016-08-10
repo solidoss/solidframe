@@ -69,7 +69,7 @@ int main(int argc, char *argv[]){
 		SchedulerT			s;
 		
 		frame::Manager		m;
-		frame::Service		svc(m);
+		frame::ServiceT		svc(m);
 		
 		if(!s.start(1)){
 			const size_t	cnt = argc == 2 ? atoi(argv[1]) : 1;

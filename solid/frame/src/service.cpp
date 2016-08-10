@@ -29,9 +29,9 @@ namespace solid{
 namespace frame{
 
 Service::Service(
-	Manager &_rm
-):rm(_rm), idx(static_cast<size_t>(InvalidIndex())), running(false){
-	_rm.registerService(*this);
+	UseServiceShell _force_shell
+):rm(_force_shell.rmanager), idx(static_cast<size_t>(InvalidIndex())), running(false){
+	rm.registerService(*this);
 	vdbgx(Debug::frame, ""<<this);
 }
 

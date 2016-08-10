@@ -76,7 +76,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager			manager;
-		frame::ipc::Service		ipcsvc(manager);
+		frame::ipc::ServiceT	ipcsvc(manager);
 		
 		frame::aio::Resolver	resolver;
 		

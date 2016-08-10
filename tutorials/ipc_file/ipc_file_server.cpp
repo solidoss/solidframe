@@ -165,7 +165,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager			manager;
-		frame::ipc::Service		ipcsvc(manager);
+		frame::ipc::ServiceT	ipcsvc(manager);
 		ErrorConditionT			err;
 		
 		err = scheduler.start(1);
