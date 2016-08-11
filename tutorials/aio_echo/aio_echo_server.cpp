@@ -68,7 +68,7 @@ private:
 
 class Connection: public frame::aio::Object{
 public:
-	Connection(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)), recvcnt(0), sendcnt(0){}
+	Connection(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)){}
 private:
 	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
@@ -79,9 +79,6 @@ private:
 	
 	char			buf[BufferCapacity];
 	StreamSocketT	sock;
-	uint64_t 		recvcnt;
-	uint64_t		sendcnt;
-	size_t			sendcrt;
 };
 
 class Talker: public frame::aio::Object{
@@ -257,14 +254,11 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	do{
 		if(!_rctx.error()){
-			rthis.recvcnt += _sz;
-			rthis.sendcrt = _sz;
 			if(rthis.sock.sendAll(_rctx, rthis.buf, _sz, Connection::onSend)){
 				if(_rctx.error()){
 					rthis.postStop(_rctx);
 					break;
 				}
-				rthis.sendcnt += rthis.sendcrt;
 			}else{
 				break;
 			}
@@ -284,7 +278,6 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 /*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
 	Connection &rthis = static_cast<Connection&>(_rctx.object());
 	if(!_rctx.error()){
-		rthis.sendcnt += rthis.sendcrt;
 		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
 	}else{
 		rthis.postStop(_rctx);

@@ -39,6 +39,14 @@ $ mkdir -p solid_frame_tutorials/aio_echo
 
 this is where you will create a file aio_echo_server.cpp which will contain the source code for the servers.
 
+## Build
+
+The best way to build the tutorial is through a CMake project but as it is outside of this tutorial, we'll be using the plain ol' command line:
+
+```bash
+$ cd solid_frame_tutorials/aio_echo
+```
+
 ## The code
 
 First of all we need a function to convert the program arguments to a structure that we'll use later:
@@ -73,7 +81,7 @@ int main(int argc, char *argv[]){
 	signal(SIGPIPE, SIG_IGN);
 ```
 
-Next we will instantiate the SolidFrame Asynchronous environment objects:
+Next we will instantiate the SolidFrame Asynchronous environment:
  * The __scheduler__. The active container for solid::frame::aio::Objects. It provides IO events, timer events and custom events to Objects.
  * The __manager__. A passive container of solid::frame::Services.
  * The __service__. A passive container for solid::frame::ObjectBase.
@@ -101,7 +109,7 @@ Now let us go back to the code and instantiate the above objects and start the s
 	
 	
 	frame::Manager		manager;
-	frame::Service		service(manager);
+	frame::ServiceT		service(manager);
 	
 	if(scheduler.start(1/*a single thread*/)){
 		cout<<"Error starting scheduler"<<endl;
@@ -160,7 +168,7 @@ The startObject method parameters are:
  * _service_: reference to the service which will keep the object.
  * _event_: The first event to be delivered to the object if it gets scheduled onto scheduler.
  
-As you will see soon in the declaration of Listener class, every solid::frame::aio::Object must override the onEvent method to handle the notification events sent to the object:
+As you will soon see in the declaration of Listener class, every solid::frame::aio::Object must override the onEvent method to handle the notification events sent to the object:
 
 ```C++
 	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
@@ -206,12 +214,18 @@ We'll see the declarations for Listener and Talker below but for now lets finish
 	cout<<"Press any key and ENTER to terminate..."<<endl;
 	char c;
 	cin>>c;
-	manager.stop();
 	return 0;
 }
 ```
 
-Let see the declaration of the Listener:
+Before delving into the Listener and Talker code, lets see what happens after the user of the application enters a character and presses ENTER:
+
+The SolidFrame Asynchronous environment shuts down in the following order:
+ * the _service_: will stop accepting new objects, notify all existing objects with generic_event_category.event(GenericEvents::Kill) and wait until all objects die.
+ * the _manager_: because every _service_ has a reference to the _manager_, the _manager_ must outlive all services. Upon destruction, the _manager_ will ensure all services are stopped.
+ * the _scheduler_: because every _manager_ keep internally references to _shedulers_, _schedulers_ used by _objects_ stored within a _manager_ MUST outlive the _manager_. On destruction, the _scheduler_ will wait until all its threads terminate.
+
+Let us now see the declaration of the Listener:
 
 ```C++
 class Listener: public frame::aio::Object{
@@ -300,12 +314,12 @@ The above function tries to accept at most 4 connections that are immediately av
 
 Interesting is that on error we do not stop the Listener object but use a timer to wait for 10 seconds before we retry accepting new connections. This is because most certain, the reason why we cannot accept new connections is that a system limit on file descriptors has beer reached and we must wait until some descriptors get released.
 
-As you can see in the above code, we've introduced a new frame::aio::Object - the Connection - which has the following declaration:
+In the above code, we've introduced a new frame::aio::Object - the Connection - which has the following declaration:
 
 ```C++
 class Connection: public frame::aio::Object{
 public:
-	Connection(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)), recvcnt(0), sendcnt(0){}
+	Connection(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)){}
 private:
 	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
@@ -316,9 +330,149 @@ private:
 	
 	char			buf[BufferCapacity];
 	StreamSocketT	sock;
-	uint64_t 		recvcnt;
-	uint64_t		sendcnt;
-	size_t			sendcrt;
 };
 ```
 
+The Connection::onEvent implementation is somehow similar to the one from the Listener:
+
+```C++
+/*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
+	if(generic_event_category.event(GenericEvents::Start) == _revent){
+		sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
+	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+		sock.shutdown(_rctx);
+		postStop(_rctx);
+	}
+}
+```
+
+Next the code for Connection::onRecv and Connection::onSend is pretty straight forward:
+
+
+```C++
+/*static*/ void Connection::onRecv(frame::aio::ReactorContext &_rctx, size_t _sz){
+	unsigned	repeatcnt = 4;
+	Connection	&rthis = static_cast<Connection&>(_rctx.object());
+	do{
+		if(!_rctx.error()){
+			if(rthis.sock.sendAll(_rctx, rthis.buf, _sz, Connection::onSend)){
+				if(_rctx.error()){
+					rthis.postStop(_rctx);
+					break;
+				}
+			}else{
+				break;
+			}
+		}else{
+			rthis.postStop(_rctx);
+			break;
+		}
+		--repeatcnt;
+	}while(repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv, _sz));
+	
+	if(repeatcnt == 0){
+		bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
+		SOLID_ASSERT(!rv);
+	}
+}
+
+/*static*/ void Connection::onSend(frame::aio::ReactorContext &_rctx){
+	Connection &rthis = static_cast<Connection&>(_rctx.object());
+	if(!_rctx.error()){
+		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
+	}else{
+		rthis.postStop(_rctx);
+	}
+}
+```
+
+The interesting part on the above code is that we're using static completion callbacks - onRecv and onSend - which theoretically are faster with the downside that we're loosing type information and we have to use a not so nice static_cast.
+
+The Connection::onRecv method uses a loop similar to the one from Listener::onAccept: we try to consume as much data already available on the socket as possible (the internal read buffer for socket is 16KB/32KB or more and we do the reading with a 2KB buffer).
+
+Move on to the Talker frame::aio::Object;
+
+with its declaration:
+
+```C++
+class Talker: public frame::aio::Object{
+public:
+	Talker(SocketDevice &&_rsd):sock(this->proxy(), std::move(_rsd)){}
+private:
+	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
+	void onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz);
+	void onSend(frame::aio::ReactorContext &_rctx);
+private:
+	using DatagramSocketT = frame::aio::Datagram<frame::aio::Socket>;
+	
+	enum {BufferCapacity = 1024 * 2 };
+	
+	char			buf[BufferCapacity];
+	DatagramSocketT	sock;
+};
+```
+
+its onEvent method:
+
+```C++
+/*virtual*/ void Talker::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
+	if(generic_event_category.event(GenericEvents::Start) == _revent){
+		sock.postRecvFrom(
+			_rctx, buf, BufferCapacity,
+			[this](frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){onRecv(_rctx, _raddr, _sz);}
+		);//fully asynchronous call
+	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+		postStop(_rctx);
+	}
+}
+```
+
+and the onRecv and onSend completion callbacks:
+
+```C++
+void Talker::onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){
+	unsigned	repeatcnt = 4;
+	do{
+		if(!_rctx.error()){
+			if(sock.sendTo(_rctx, buf, _sz, _raddr, [this](frame::aio::ReactorContext &_rctx){onSend(_rctx);})){
+				if(_rctx.error()){
+					postStop(_rctx);
+					break;
+				}
+			}else{
+				break;
+			}
+		}else{
+			postStop(_rctx);
+			break;
+		}
+		--repeatcnt;
+	}while(
+		repeatcnt and
+		sock.recvFrom(
+			_rctx, buf, BufferCapacity,
+			[this](frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){onRecv(_rctx, _raddr, _sz);}, _raddr, _sz
+		)
+	);
+	
+	if(repeatcnt == 0){
+		sock.postRecvFrom(
+			_rctx, buf, BufferCapacity,
+			[this](frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){onRecv(_rctx, _raddr, _sz);}
+		);//fully asynchronous call
+	}
+}
+
+void Talker::onSend(frame::aio::ReactorContext &_rctx){
+	if(!_rctx.error()){
+		sock.postRecvFrom(
+			_rctx, buf, BufferCapacity,
+			[this](frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){onRecv(_rctx, _raddr, _sz);}
+		);//fully asynchronous call
+	}else{
+		postStop(_rctx);
+	}
+}
+```
+
+In the above code we've moved back to using lambdas for completion. Although the code seems a little bit more verbose than the static callbacks variant, it allows further simplifications such as directly putting the code from onSend within its calling lambda making the onSend unnecessary.
