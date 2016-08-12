@@ -50,7 +50,7 @@ $ c++ -o echo_server aio_echo_server.cpp -I ~/work/extern/include/ -L ~/work/ext
 
 ## The code
 
-First of all here is the include part and the declaration of the scheduler we will be using:
+Let us start with the include part and with the declaration of the scheduler we will be using:
 
 ```C++
 #include "solid/frame/manager.hpp"
