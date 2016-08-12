@@ -45,7 +45,7 @@ The best way to build the tutorial is through a CMake project but as it is outsi
 
 ```bash
 $ cd solid_frame_tutorials/aio_echo
-$ c++ -o echo_server aio_echo_server.cpp -I /home/vip/work/extern/include/ -L ~/work/extern/lib  -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ c++ -o echo_server aio_echo_server.cpp -I ~/work/extern/include/ -L ~/work/extern/lib  -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 
 ## The code
