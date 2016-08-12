@@ -10,15 +10,8 @@
 #include "solid/frame/aio/aiodatagram.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
 
-#include <mutex>
-#include <thread>
-#include <condition_variable>
-
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
-#include "solid/system/debug.hpp"
-
-#include "solid/utility/event.hpp"
 
 #include <signal.h>
 #include <iostream>
