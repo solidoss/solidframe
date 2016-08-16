@@ -88,10 +88,14 @@ private:
 	Configuration& operator=(const Configuration&) = delete;
 	Configuration& operator=(Configuration&&) = default;
 public:
+	template <class P>
 	Configuration(
 		AioSchedulerT &_rsch,
-		ipc::Protocol *_pproto = nullptr
-	);
+		std::shared_ptr<P> &_rprotcol_ptr
+	): pools_mutex_count(16), protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr)), pscheduler(&_rsch)
+	{
+		init();
+	}
 	
 	Configuration& reset(Configuration &&_ucfg){
 		*this = std::move(_ucfg);
@@ -200,6 +204,7 @@ public:
 		return *protocol_ptr;
 	}
 private:
+	void init();
 	void prepare();
 private:
 	enum WriterFunctions{

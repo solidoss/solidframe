@@ -63,12 +63,8 @@ WriterConfiguration::WriterConfiguration(){
 	//reset_serializer_limits_fnc = empty_reset_serializer_limits;
 }
 
-
-Configuration::Configuration(
-	AioSchedulerT &_rsch,
-	ipc::Protocol *_pproto
-): pools_mutex_count(16), protocol_ptr(_pproto), pscheduler(&_rsch)
-{
+//-----------------------------------------------------------------------------
+void Configuration::init(){
 	connection_recv_buffer_start_capacity_kb = memory_page_size()/1024;
 	connection_send_buffer_start_capacity_kb = memory_page_size()/1024;
 	

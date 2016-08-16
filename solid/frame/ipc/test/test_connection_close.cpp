@@ -354,8 +354,8 @@ int test_connection_close(int argc, char **argv){
 		std::string		server_port;
 		
 		{//ipc server initialization
-			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
-			frame::ipc::Configuration				cfg(sch_server, proto);
+			auto						proto = frame::ipc::serialization_v1::Protocol::create();
+			frame::ipc::Configuration	cfg(sch_server, proto);
 			
 			proto->registerType<Message>(
 				server_complete_message
@@ -390,8 +390,8 @@ int test_connection_close(int argc, char **argv){
 		}
 		
 		{//ipc client initialization
-			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
-			frame::ipc::Configuration				cfg(sch_client, proto);
+			auto 						proto = frame::ipc::serialization_v1::Protocol::create();
+			frame::ipc::Configuration	cfg(sch_client, proto);
 			
 			proto->registerType<Message>(
 				client_complete_message

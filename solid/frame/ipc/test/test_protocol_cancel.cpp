@@ -202,7 +202,7 @@ int test_protocol_cancel(int argc, char **argv){
 	
 	frame::ipc::WriterConfiguration			ipcwriterconfig;
 	frame::ipc::ReaderConfiguration			ipcreaderconfig;
-	frame::ipc::serialization_v1::Protocol	ipcprotocol;
+	auto									ipcprotocol = frame::ipc::serialization_v1::Protocol::create();
 	frame::ipc::MessageReader				ipcmsgreader;
 	frame::ipc::MessageWriter				ipcmsgwriter;
 	
@@ -211,13 +211,13 @@ int test_protocol_cancel(int argc, char **argv){
 	
 	ctx.ipcreaderconfig		= &ipcreaderconfig;
 	ctx.ipcwriterconfig		= &ipcwriterconfig;
-	ctx.ipcprotocol			= &ipcprotocol;
+	ctx.ipcprotocol			= ipcprotocol.get();
 	ctx.ipcmsgreader		= &ipcmsgreader;
 	ctx.ipcmsgwriter		= &ipcmsgwriter;
 	
 	ipcwriterconfig.max_message_count_multiplex = 16;
 	
-	ipcprotocol.registerType<::Message>(
+	ipcprotocol->registerType<::Message>(
 		complete_message
 	);
 	
@@ -260,7 +260,7 @@ int test_protocol_cancel(int argc, char **argv){
 						idbg("reader complete message");
 						frame::ipc::MessagePointerT		message_ptr;
 						ErrorConditionT					error;
-						ipcprotocol[_message_type_id].complete_fnc(ipcconctx, message_ptr, _rresponse_ptr, error);
+						(*ipcprotocol)[_message_type_id].complete_fnc(ipcconctx, message_ptr, _rresponse_ptr, error);
 					}break;
 					case frame::ipc::MessageReader::KeepaliveCompleteE:
 						idbg("complete keepalive");
@@ -274,7 +274,7 @@ int test_protocol_cancel(int argc, char **argv){
 				idbg("writer complete message");
 				frame::ipc::MessagePointerT		response_ptr;
 				ErrorConditionT					error;
-				ipcprotocol[_rmsgbundle.message_type_id].complete_fnc(ipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
+				(*ipcprotocol)[_rmsgbundle.message_type_id].complete_fnc(ipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
 				return ErrorConditionT();
 			}
 		);
@@ -287,11 +287,11 @@ int test_protocol_cancel(int argc, char **argv){
 		bool is_running = true;
 		
 		while(is_running and !error){
-			uint32_t bufsz = ipcmsgwriter.write(buf, bufcp, false, writercompletefnc, ipcwriterconfig, ipcprotocol, ipcconctx, error);
+			uint32_t bufsz = ipcmsgwriter.write(buf, bufcp, false, writercompletefnc, ipcwriterconfig, *ipcprotocol, ipcconctx, error);
 			
 			if(!error and bufsz){
 				
-				ipcmsgreader.read(buf, bufsz, readercompletefnc, ipcreaderconfig, ipcprotocol, ipcconctx, error);
+				ipcmsgreader.read(buf, bufsz, readercompletefnc, ipcreaderconfig, *ipcprotocol, ipcconctx, error);
 			}else{
 				is_running = false;
 			}

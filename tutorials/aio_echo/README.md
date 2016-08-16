@@ -94,7 +94,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 ```
 
-As you can see the Params structure only has two fields:
+As you can see the Params structure has only two fields:
  * the TCP listener port
  * and the UDP talker port.
 

@@ -74,8 +74,8 @@ ErrorConditionT start(
 	pctx = &_rctx;
 	
 	if(not ipcclient_ptr){//ipc client initialization
-		frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
-		frame::ipc::Configuration				cfg(_rctx.rsched, proto);
+		auto						proto = frame::ipc::serialization_v1::Protocol::create();
+		frame::ipc::Configuration	cfg(_rctx.rsched, proto);
 		
 		gamma_protocol::ProtoSpecT::setup<MessageSetup>(*proto);
 		

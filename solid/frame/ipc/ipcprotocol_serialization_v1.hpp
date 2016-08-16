@@ -75,16 +75,30 @@ struct Deserializer: public ipc::Deserializer{
 };
 
 
-struct Protocol: public ipc::Protocol{
+struct Protocol;
+using ProtocolPointerT = std::shared_ptr<Protocol>;
+
+
+struct Protocol: public ipc::Protocol, std::enable_shared_from_this<Protocol>{
 	TypeIdMapT		type_map;
 	
 	LimitsT			limits;
 	
-	Protocol(){}
-	Protocol(const LimitsT &_limits):limits(_limits){}
+	
+	static ProtocolPointerT create(){
+		struct EnableMakeSharedProtocol: Protocol {};
+		return std::make_shared<EnableMakeSharedProtocol>();
+	}
+	
+	static ProtocolPointerT create(const LimitsT &_limits){
+		struct EnableMakeSharedProtocol: Protocol {
+			EnableMakeSharedProtocol(const LimitsT &_limits): Protocol(_limits){}
+		};
+		return std::make_shared<EnableMakeSharedProtocol>(_limits);
+	}
 	
 	ProtocolPointerT pointerFromThis(){
-		return ProtocolPointerT(this, [](ipc::Protocol*){});
+		return shared_from_this();
 	}
 	
 	template <class T>
@@ -221,6 +235,9 @@ struct Protocol: public ipc::Protocol{
 	/*virtual*/ size_t minimumFreePacketDataSize() const override{
 		return 16;
 	}
+protected:
+	Protocol(){}
+	Protocol(const LimitsT &_limits):limits(_limits){}
 };
 
 template <class T>

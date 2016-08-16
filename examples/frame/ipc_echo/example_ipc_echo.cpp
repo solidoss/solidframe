@@ -194,8 +194,8 @@ int main(int argc, char *argv[]){
 		
 		
 		{
-			frame::ipc::serialization_v1::Protocol	*proto = new frame::ipc::serialization_v1::Protocol;
-			frame::ipc::Configuration				cfg(sch, proto);
+			auto						proto = frame::ipc::serialization_v1::Protocol::create();
+			frame::ipc::Configuration	cfg(sch, proto);
 			
 			proto->registerType<FirstMessage>(
 				MessageHandler(ipcsvc)
