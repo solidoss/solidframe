@@ -146,7 +146,7 @@ int main(int argc, char *argv[]){
 							}
 							SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
 							cout<<"Received "<<_rrecv_msg_ptr->user_data_map.size()<<" users:"<<endl;
-							for(auto user_data: _rrecv_msg_ptr->user_data_map){
+							for(const auto& user_data: _rrecv_msg_ptr->user_data_map){
 								cout<<'{'<<user_data.first<<"}: "<<user_data.second<<endl;
 							}
 						},

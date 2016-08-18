@@ -152,7 +152,7 @@ void complete_message(
 		
 		if(crtreadidx == 1){
 			idbg(crtreadidx<<" canceling all messages");
-			for(auto msguid:message_uid_vec){
+			for(const auto& msguid:message_uid_vec){
 				
 				frame::ipc::MessageBundle	msgbundle;
 				frame::ipc::MessageId		pool_msg_id;

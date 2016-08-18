@@ -197,7 +197,7 @@ void client_receive_message(frame::ipc::ConnectionContext &_rctx, std::shared_pt
 	
 	if(!crtbackidx){
 		idbg("canceling all messages");
-		for(auto msguid:message_uid_vec){
+		for(const auto& msguid:message_uid_vec){
 			idbg("Cancel message: "<<msguid);
 			pipcserver->cancelMessage(recipient_id, msguid);
 		}

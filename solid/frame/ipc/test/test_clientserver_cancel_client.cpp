@@ -225,7 +225,7 @@ void server_receive_message(frame::ipc::ConnectionContext &_rctx, std::shared_pt
 	if(!crtreadidx){
 		idbg("canceling all messages");
 		unique_lock<mutex> lock(mtx);
-		for(auto msguid:message_uid_vec){
+		for(auto& msguid:message_uid_vec){
 			idbg("Cancel message: "<<msguid);
 			pipcclient->cancelMessage(recipient_id, msguid);
 		}

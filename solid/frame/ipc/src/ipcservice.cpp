@@ -1117,7 +1117,7 @@ ErrorConditionT Service::pollPoolForUpdates(
 		//fetch as many as we can
 		size_t		count = 0;
 		
-		for(auto rmsgid: _rconnection.pendingMessageVector()){
+		for(const auto& rmsgid: _rconnection.pendingMessageVector()){
 			if(rmsgid.index < rpool.msgvec.size() and rmsgid.unique == rpool.msgvec[rmsgid.index].unique){
 				connection_may_handle_more_messages = doTryPushMessageToConnection(_rconnection, _robjuid, pool_idx, rmsgid);
 				if(connection_may_handle_more_messages){
