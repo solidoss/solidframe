@@ -30,4 +30,6 @@ add_library (solid_frame_ipc
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/ipc)
 install (TARGETS solid_frame_ipc DESTINATION lib)
 
-add_subdirectory(test)
+if(NOT ON_CROSS)
+	add_subdirectory(test)
+endif()

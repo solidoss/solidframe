@@ -212,12 +212,38 @@ if(CMAKE_SYSTEM MATCHES "Windows*")
 	set(SYS_BASIC_LIBS Ws2_32 ${BOOST_THREAD_LIB} ${BOOST_SYSTEM_LIB})
 endif(CMAKE_SYSTEM MATCHES "Windows*")
 
+
+if(CMAKE_SYSTEM MATCHES "Android*")
+	message("Detected system ON_ANDROID")
+	set(ON_FOUND TRUE)
+	set(ON_CROSS TRUE)
+	set(SOLID_ON_LINUX TRUE)
+	set(SOLID_ON_POSIX TRUE)
+	
+	
+	set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
+	set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
+	set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
+	set(SYS_NOLOG_FLAGS "-g3")
+	set(SYS_RELEASE_FLAGS "-O3")
+
+	set(SYS_DEBUG_LINKER_FLAGS "")# -D_GLIBCXX_DEBUG
+	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
+	set(SYS_OPTIMIZED_LINKER_FLAGS "")
+	set(SYS_NOLOG_LINKER_FLAGS "")
+	set(SYS_RELEASE_LINKER_FLAGS "-O3")
+	
+	set(SYS_BASIC_LIBS pthread rt)
+	set(SYS_DYNAMIC_LOAD_LIB dl)
+endif(CMAKE_SYSTEM MATCHES "Android*")
+
 message("")
 
 if(NOT ON_FOUND)
 	message("\r\n === Sorry unsupported system - please contact project owner ===\r\n")
-	exit()#only to raise an exception
 	return()
+else(NOT ON_FOUND)
+	
 endif(NOT ON_FOUND)
 
 #-----------------------------------------------------------------
@@ -231,7 +257,16 @@ endif(NOT (UINSTALL_PREFIX STREQUAL ""))
 #-----------------------------------------------------------------
 # config.h support
 #-----------------------------------------------------------------
-include(cmake/check.config.cmake)
+if(NOT ON_CROSS)
+	include(cmake/check.config.cmake)
+else()
+	set(SOLID_USE_EPOLL TRUE)
+	set(SOLID_USE_CPP11 TRUE)
+	set(SOLID_USE_EVENTFD TRUE)
+	set(SOLID_USE_CPP11FLAG TRUE)
+	set(SOLID_USE_SAFE_STATIC TRUE)
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp)
 
 
@@ -364,15 +399,19 @@ link_directories(
 #-----------------------------------------------------------------
 # Testing support (CTest & CDash)
 #-----------------------------------------------------------------
-ENABLE_TESTING()
-INCLUDE(CTest)
+if(NOT ON_CROSS)
+	ENABLE_TESTING()
+	INCLUDE(CTest)
+endif()
 
 #-----------------------------------------------------------------
 # Project subdirectories
 #-----------------------------------------------------------------
 add_subdirectory (solid)
-add_subdirectory (examples)
-add_subdirectory (tutorials)
+if(NOT ON_CROSS)
+	add_subdirectory (examples)
+	add_subdirectory (tutorials)
+endif()
 
 #-----------------------------------------------------------------
 

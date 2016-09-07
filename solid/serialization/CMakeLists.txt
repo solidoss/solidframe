@@ -21,4 +21,6 @@ add_library(solid_serialization
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/serialization)
 install (TARGETS solid_serialization DESTINATION lib)
 
-add_subdirectory(test)
+if(NOT ON_CROSS)
+	add_subdirectory(test)
+endif()
