@@ -10,6 +10,7 @@
 #include "solid/system/memory.hpp"
 #include <unistd.h>
 #include <cstdlib>
+#include <malloc.h>
 
 size_t getMemorySize();
 size_t getMemoryPageSize();
@@ -25,9 +26,7 @@ void * memory_allocate_aligned(size_t _align, size_t _size){
 #ifdef SOLID_ON_WINDOWS
 	return nullptr;
 #else
-	void *pv = nullptr;
-	int rv = posix_memalign(&pv, _align, _size);
-	return !rv ? pv : nullptr;
+	return memalign(_align, _size);
 #endif
 }
 void   memory_free_aligned(void *_pv){

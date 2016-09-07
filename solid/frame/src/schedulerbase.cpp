@@ -92,7 +92,7 @@ struct ReactorStub{
 	}
 	
 	bool isActive()const{
-		static const std::thread empty_thread;
+		static const std::thread empty_thread{};
 		return thr.get_id() != empty_thread.get_id();
 	}
 	

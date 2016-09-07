@@ -7,6 +7,9 @@ check_include_files(pthread.h SOLID_USE_PTHREAD)
 
 check_include_files(sys/eventfd.h SOLID_USE_EVENTFD)
 check_include_files(sys/epoll.h SOLID_USE_EPOLL)
+if(SOLID_USE_EPOLL)
+	set(SOLID_USE_EPOLLRDHUP TRUE)
+endif()
 #check_include_files("unordered_map" HAVE_UNORDERED_MAP)
 check_cxx_compiler_flag(-std=c++11 SOLID_USE_CPP11FLAG)
 

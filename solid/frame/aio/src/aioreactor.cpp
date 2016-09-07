@@ -631,9 +631,10 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events){
 		case EPOLLIN  | EPOLLOUT | EPOLLHUP:
 		case EPOLLERR | EPOLLOUT | EPOLLIN:
 			retval = ReactorEventHangup;break;
+#ifdef SOLID_USE_EPOLLRDHUP
 		case EPOLLRDHUP:
 			retval = ReactorEventRecvHangup;break;
-			
+#endif
 		default:
 			SOLID_ASSERT(false);
 			break;

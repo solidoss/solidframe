@@ -220,7 +220,7 @@ public:
 	void createWorker(){
 		++wkrcnt;
 		
-		static const std::thread	empty_thread;
+		static const std::thread	empty_thread{};
 		
 		thread_vec.push_back(std::move(std::thread()));
 		
