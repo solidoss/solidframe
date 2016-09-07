@@ -251,9 +251,7 @@ int main(int argc, char *argv[]){
 			//exit(0);
 		}
 		
-		
-		
-		m.stop();
+		//m.stop();
 	}
 	return 0;
 }
@@ -461,7 +459,7 @@ void Connection::onTimer(frame::aio::ReactorContext &_rctx){
 			onConnect(_rctx);
 		}
 		//timer.waitFor(_rctx, NanoTime(30), std::bind(&Connection::onTimer, this, _1));
-	}else if(generic_event_category.event(GenericEvents::Start) == _revent){
+	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
 		edbg(this<<" postStop");
 		postStop(_rctx);
 	}

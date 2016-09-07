@@ -280,9 +280,7 @@ int main(int argc, char *argv[]){
 			//exit(0);
 		}
 		
-		
-		
-		m.stop();
+		//m.stop();
 	}
 	return 0;
 }

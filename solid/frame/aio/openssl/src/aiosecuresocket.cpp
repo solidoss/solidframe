@@ -32,41 +32,14 @@ namespace openssl{
 
 
 struct Starter{
-	std::mutex	*pmtxes;
 	
-	 static void ssl_locking_fnc(int mode, int n, const char* /*file*/, int /*line*/){
-		if (mode & CRYPTO_LOCK)
-			the().pmtxes[n].lock();
-		else
-			the().pmtxes[n].unlock();
-	}
-	
-	static unsigned long ssl_threadid_fnc()
-	{	
-		std::hash<std::thread::id> h;
-		return h(std::this_thread::get_id());
-	}
-	
-	Starter():pmtxes(nullptr){
-		pmtxes = new std::mutex[::CRYPTO_num_locks()];
+	Starter(){
 		::SSL_library_init();
 		::SSL_load_error_strings();
 		::OpenSSL_add_all_algorithms();
-
-		::CRYPTO_set_locking_callback(&Starter::ssl_locking_fnc);
-		::CRYPTO_set_id_callback(&Starter::ssl_threadid_fnc);
 	}
 	~Starter(){
-		::CRYPTO_set_id_callback(0);
-		::CRYPTO_set_locking_callback(0);
-		::ERR_free_strings();
-		::ERR_remove_state(0);
-		::EVP_cleanup();
-		::CRYPTO_cleanup_all_ex_data();
 		::CONF_modules_unload(1);
-		
-		
-		delete []pmtxes;
 	}
 	
 	static Starter& the(){
@@ -82,7 +55,7 @@ struct Starter{
 	Starter::the();
 	Context	rv;
 	if(_pm == nullptr){
-		rv.pctx = ::SSL_CTX_new(::SSLv23_method());
+		rv.pctx = ::SSL_CTX_new(::TLS_method());
 	}else{
 		rv.pctx = ::SSL_CTX_new(_pm);
 	}

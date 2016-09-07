@@ -27,7 +27,7 @@ printUsage()
 }
 
 BOOST_ADDR="http://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2"
-OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.0.2h.tar.gz"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.0.tar.gz"
 SNAPPY_ADDR="http://snappy.googlecode.com/files/snappy-1.0.5.tar.gz"
 
 SYSTEM=
