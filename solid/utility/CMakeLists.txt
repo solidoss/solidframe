@@ -35,6 +35,7 @@ add_library (solid_utility
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)
 install (TARGETS solid_utility DESTINATION lib)
+
 if(NOT ON_CROSS)
 	add_subdirectory(test)
 endif()

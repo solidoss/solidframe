@@ -35,5 +35,7 @@ add_library (solid_frame_aio
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/aio)
 install (TARGETS solid_frame_aio DESTINATION lib)
 
-add_subdirectory(openssl)
+if(NOT ON_ANDROID)
+	add_subdirectory(openssl)
+endif()
 

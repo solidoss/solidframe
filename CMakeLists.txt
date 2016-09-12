@@ -217,6 +217,7 @@ if(CMAKE_SYSTEM MATCHES "Android*")
 	message("Detected system ON_ANDROID")
 	set(ON_FOUND TRUE)
 	set(ON_CROSS TRUE)
+	set(ON_ANDROID TRUE)
 	set(SOLID_ON_LINUX TRUE)
 	set(SOLID_ON_POSIX TRUE)
 	
@@ -251,6 +252,11 @@ endif(NOT ON_FOUND)
 #-----------------------------------------------------------------
 if(NOT (UINSTALL_PREFIX STREQUAL ""))
 	set(CMAKE_INSTALL_PREFIX "${UINSTALL_PREFIX}")
+	
+	if(ON_ANDROID)
+		set(CMAKE_INSTALL_PREFIX "${UINSTALL_PREFIX}/${ANDROID_ABI}")
+	endif()
+	
 	message("Using install prefix: ${CMAKE_INSTALL_PREFIX}")
 endif(NOT (UINSTALL_PREFIX STREQUAL ""))
 
@@ -259,7 +265,7 @@ endif(NOT (UINSTALL_PREFIX STREQUAL ""))
 #-----------------------------------------------------------------
 if(NOT ON_CROSS)
 	include(cmake/check.config.cmake)
-else()
+elseif(ON_ANDROID)
 	set(SOLID_USE_EPOLL TRUE)
 	set(SOLID_USE_CPP11 TRUE)
 	set(SOLID_USE_EVENTFD TRUE)
@@ -407,10 +413,30 @@ endif()
 #-----------------------------------------------------------------
 # Project subdirectories
 #-----------------------------------------------------------------
+
 add_subdirectory (solid)
+
 if(NOT ON_CROSS)
 	add_subdirectory (examples)
 	add_subdirectory (tutorials)
+endif()
+
+
+#-----------------------------------------------------------------
+# Force Android install libraries via a fake target library: solid_install
+#-----------------------------------------------------------------
+
+if(ON_ANDROID)
+	
+	add_library(solid_install cmake/dummy.cpp)
+	
+	add_dependencies(solid_install solid_system solid_utility solid_serialization solid_frame solid_frame_aio solid_frame_file)
+	
+	add_custom_command(
+		TARGET solid_install POST_BUILD
+		COMMAND "${CMAKE_COMMAND}" -P cmake_install.cmake
+		WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+	)
 endif()
 
 #-----------------------------------------------------------------

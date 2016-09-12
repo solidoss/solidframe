@@ -40,3 +40,7 @@ add_library (solid_system
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/system)
 install (TARGETS solid_system DESTINATION lib)
+
+if(NOT ON_CROSS)
+	#add_subdirectory(test)
+endif()
