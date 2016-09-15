@@ -119,7 +119,6 @@ private:
 };
 
 inline SocketStubPtrT create_connecting_socket_plain(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
-		
 	if(sizeof(PlainSocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
 		return SocketStubPtrT(new PlainSocketStub(_rproxy), SocketStub::delete_deleter);
 	}else{

@@ -35,7 +35,7 @@ class ObjectProxy;
 namespace ipc{
 
 enum struct ConnectionValues: size_t{
-	SocketEmplacementSize = 64
+	SocketEmplacementSize = 128
 };
 
 class	Service;

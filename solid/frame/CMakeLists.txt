@@ -40,7 +40,4 @@ install (TARGETS solid_frame DESTINATION lib)
 
 add_subdirectory(aio)
 add_subdirectory(file)
-
-if(NOT ON_ANDROID)
-	add_subdirectory(ipc)
-endif()
+add_subdirectory(ipc)
