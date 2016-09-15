@@ -13,7 +13,6 @@
 #include "solid/frame/ipc/ipcerror.hpp"
 #include "solid/frame/ipc/ipcservice.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
-#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 #include <cstdio>
 
 namespace solid{
