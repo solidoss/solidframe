@@ -430,7 +430,7 @@ if(ON_ANDROID)
 	
 	add_library(solid_install cmake/dummy.cpp)
 	
-	add_dependencies(solid_install solid_system solid_utility solid_serialization solid_frame solid_frame_aio solid_frame_file)
+	add_dependencies(solid_install solid_system solid_utility solid_serialization solid_frame solid_frame_aio solid_frame_file solid_frame_ipc)
 	
 	add_custom_command(
 		TARGET solid_install POST_BUILD

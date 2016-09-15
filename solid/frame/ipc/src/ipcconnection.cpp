@@ -229,7 +229,24 @@ Connection::Connection(
 	flags(0), recv_buf_off(0), cons_buf_off(0),
 	recv_keepalive_count(0),
 	recv_buf(nullptr), send_buf(nullptr),
-	recv_buf_cp_kb(0), send_buf_cp_kb(0)
+	recv_buf_cp_kb(0), send_buf_cp_kb(0),
+	sock_ptr(std::move(_rconfiguration.connection_create_connecting_socket_fnc(_rconfiguration, this->proxy(), this->socket_emplace_buf)))
+{
+	idbgx(Debug::ipc, this);
+	//TODO: use _rconfiguration.connection_start_state and _rconfiguration.connection_start_secure
+}
+//-----------------------------------------------------------------------------
+Connection::Connection(
+	Configuration const& _rconfiguration,
+	SocketDevice &_rsd,
+	ConnectionPoolId const &_rpool_id,
+	std::string const & _rpool_name
+):	pool_id(_rpool_id), rpool_name(_rpool_name), timer(this->proxy()),
+	flags(0), recv_buf_off(0), cons_buf_off(0),
+	recv_keepalive_count(0),
+	recv_buf(nullptr), send_buf(nullptr),
+	recv_buf_cp_kb(0), send_buf_cp_kb(0),
+	sock_ptr(std::move(_rconfiguration.connection_create_accepted_socket_fnc(_rconfiguration, this->proxy(), std::move(_rsd), this->socket_emplace_buf)))
 {
 	idbgx(Debug::ipc, this);
 	//TODO: use _rconfiguration.connection_start_state and _rconfiguration.connection_start_secure
@@ -1425,176 +1442,63 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
 	}
 }
 //-----------------------------------------------------------------------------
-//		PlainConnection
-//-----------------------------------------------------------------------------
-PlainConnection::PlainConnection(
-	Configuration const& _rconfiguration,
-	SocketDevice &_rsd, ConnectionPoolId const &_rpool_id,
-	std::string const & _rpool_name
-): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy(), std::move(_rsd))
-{
-	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
+/*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent){
+	return sock_ptr->postSendAll(_rctx, Connection::onSendAllRaw, _pbuf, _bufcp, _revent);
 }
 //-----------------------------------------------------------------------------
-PlainConnection::PlainConnection(
-	Configuration const& _rconfiguration,
-	ConnectionPoolId const &_rpool_id,
-	std::string const & _rpool_name
-): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy())
-{
-	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
+/*virtual*/ bool Connection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp, Event &_revent){
+	return sock_ptr->postRecvSome(_rctx, Connection::onRecvSomeRaw, _pbuf, _bufcp, _revent);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool PlainConnection::postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent){
-	struct Closure{
-		Event event;
-		
-		Closure(Event const &_revent):event(_revent){
-		}
-		
-		void operator()(frame::aio::ReactorContext &_rctx){
-			Connection::onSendAllRaw(_rctx, event);
-		}
-		
-	} lambda(_revent);
-	
-	//TODO: find solution for costly event copy
-	
-	return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
+/*virtual*/ bool Connection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp){
+	return sock_ptr->postRecvSome(_rctx, Connection::onRecv, _pbuf, _bufcp);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool PlainConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp, Event &_revent){
-	struct Closure{
-		Event event;
-		
-		Closure(Event const &_revent):event(_revent){
-		}
-		
-		void operator()(frame::aio::ReactorContext &_rctx, size_t _sz){
-			Connection::onRecvSomeRaw(_rctx, _sz, event);
-		}
-		
-	} lambda(_revent);
-	
-	//TODO: find solution for costly event copy
-	
-	return sock.postRecvSome(_rctx, _pbuf, _bufcp, lambda);
+/*virtual*/ bool Connection::hasValidSocket()const{
+	return sock_ptr->hasValidSocket();
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool PlainConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp){
-	return sock.postRecvSome(_rctx, _pbuf, _bufcp, Connection::onRecv);
+/*virtual*/ bool Connection::connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr){
+	return sock_ptr->connect(_rctx, Connection::onConnect, _raddr);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool PlainConnection::hasValidSocket()const{
-	return sock.device().ok();
+/*virtual*/ bool Connection::recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz){
+	return sock_ptr->recvSome(_rctx, Connection::onRecv, _buf, _bufcp, _sz);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool PlainConnection::connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr){
-	return sock.connect(_rctx, _raddr, Connection::onConnect);
+/*virtual*/ bool Connection::hasPendingSend()const{
+	return sock_ptr->hasPendingSend();
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool PlainConnection::recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz){
-	return sock.recvSome(_rctx, _buf, _bufcp, Connection::onRecv, _sz);
+/*virtual*/ bool Connection::sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp){
+	return sock_ptr->sendAll(_rctx, Connection::onSend, _buf, _bufcp);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool PlainConnection::hasPendingSend()const{
-	return sock.hasPendingSend();
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ bool PlainConnection::sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp){
-	return sock.sendAll(_rctx, _buf, _bufcp, Connection::onSend);
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ void PlainConnection::prepareSocket(frame::aio::ReactorContext &_rctx){
-	ErrorCodeT error = sock.device().enableNoSignal();
-	idbgx(Debug::ipc, this<<" enableNoSignal error: "<<error.message());
-	(void)error;
+/*virtual*/ void Connection::prepareSocket(frame::aio::ReactorContext &_rctx){
+	sock_ptr->prepareSocket(_rctx);
 }
 //-----------------------------------------------------------------------------
 //		SecureConnection
 //-----------------------------------------------------------------------------
-SecureConnection::SecureConnection(
-	Configuration const& _rconfiguration,
-	SocketDevice &_rsd,
-	ConnectionPoolId const &_rpool_id,
-	std::string const & _rpool_name
-): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy(), std::move(_rsd), _rconfiguration.secure_context)
-{
-	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
-}
+// SecureConnection::SecureConnection(
+// 	Configuration const& _rconfiguration,
+// 	SocketDevice &_rsd,
+// 	ConnectionPoolId const &_rpool_id,
+// 	std::string const & _rpool_name
+// ): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy(), std::move(_rsd), _rconfiguration.secure_context)
+// {
+// 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
+// }
 //-----------------------------------------------------------------------------
-SecureConnection::SecureConnection(
-	Configuration const& _rconfiguration,
-	ConnectionPoolId const &_rpool_id,
-	std::string const & _rpool_name
-): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy(), _rconfiguration.secure_context)
-{
-	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ bool SecureConnection::postSendAll(frame::aio::ReactorContext &_rctx, const char *_pbuf, size_t _bufcp, Event &_revent){
-	struct Closure{
-		Event event;
-		
-		Closure(Event const &_revent):event(_revent){
-		}
-		
-		void operator()(frame::aio::ReactorContext &_rctx){
-			Connection::onSendAllRaw(_rctx, event);
-		}
-		
-	} lambda(_revent);
-	
-	//TODO: find solution for costly event copy
-	
-	return sock.postSendAll(_rctx, _pbuf, _bufcp, lambda);
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ bool SecureConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp, Event &_revent){
-	struct Closure{
-		Event event;
-		
-		Closure(Event const &_revent):event(_revent){
-		}
-		
-		void operator()(frame::aio::ReactorContext &_rctx, size_t _sz){
-			Connection::onRecvSomeRaw(_rctx, _sz, event);
-		}
-		
-	} lambda(_revent);
-	
-	//TODO: find solution for costly event copy
-	
-	return sock.postRecvSome(_rctx, _pbuf, _bufcp, lambda);
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ bool SecureConnection::postRecvSome(frame::aio::ReactorContext &_rctx, char *_pbuf, size_t _bufcp){
-	return sock.postRecvSome(_rctx, _pbuf, _bufcp, Connection::onRecv);
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ bool SecureConnection::hasValidSocket()const{
-	return sock.device().ok();
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ bool SecureConnection::connect(frame::aio::ReactorContext &_rctx, const SocketAddressInet&_raddr){
-	return sock.connect(_rctx, _raddr, Connection::onConnect);
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ bool SecureConnection::recvSome(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp, size_t &_sz){
-	return sock.recvSome(_rctx, _buf, _bufcp, Connection::onRecv, _sz);
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ bool SecureConnection::hasPendingSend()const{
-	return sock.hasPendingSend();
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ bool SecureConnection::sendAll(frame::aio::ReactorContext &_rctx, char *_buf, size_t _bufcp){
-	return sock.sendAll(_rctx, _buf, _bufcp, Connection::onSend);
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ void SecureConnection::prepareSocket(frame::aio::ReactorContext &_rctx){
-	sock.device().enableNoSignal();
-}
+// SecureConnection::SecureConnection(
+// 	Configuration const& _rconfiguration,
+// 	ConnectionPoolId const &_rpool_id,
+// 	std::string const & _rpool_name
+// ): Connection(_rconfiguration, _rpool_id, _rpool_name), sock(this->proxy(), _rconfiguration.secure_context)
+// {
+// 	idbgx(Debug::ipc, this<<' '<<timer.isActive()<<' '<<sock.isActive());
+// }
+
 //-----------------------------------------------------------------------------
 //	ConnectionContext
 //-----------------------------------------------------------------------------

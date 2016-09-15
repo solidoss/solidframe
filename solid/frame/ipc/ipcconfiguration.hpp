@@ -15,10 +15,11 @@
 #include "solid/system/socketaddress.hpp"
 #include "solid/frame/ipc/ipcmessage.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
-#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/ipc/ipcprotocol.hpp"
+
+#include "solid/frame/ipc/ipcsocketstub.hpp"
 
 
 
@@ -28,13 +29,19 @@ namespace frame{
 
 namespace aio{
 class Resolver;
+class ObjectProxy;
 }
 
 namespace ipc{
 
+enum struct ConnectionValues: size_t{
+	SocketEmplacementSize = 64
+};
+
 class	Service;
 class	MessageWriter;
 struct	ConnectionContext;
+struct	Configuration;
 
 using AddressVectorT								= std::vector<SocketAddressInet>;
 
@@ -48,8 +55,6 @@ using CompressFunctionT								= FUNCTION<size_t(char*, size_t, ErrorConditionT 
 using UncompressFunctionT							= FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT &)>;
 //using ResetSerializerLimitsFunctionT				= FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
 
-using SecureContextT								= frame::aio::openssl::Context;
-
 using AioSchedulerT									= frame::Scheduler<frame::aio::Reactor>;
 
 using ConnectionEnterActiveCompleteFunctionT		= FUNCTION<MessagePointerT(ConnectionContext&, ErrorConditionT const&)>;
@@ -58,6 +63,8 @@ using ConnectionSecureHandhakeCompleteFunctionT		= FUNCTION<void(ConnectionConte
 using ConnectionSendRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionRecvRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
 using ConnectionOnEventFunctionT					= FUNCTION<void(ConnectionContext&, Event&)>;
+using ConnectionCreateConnectingSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, char *)>;
+using ConnectionCreateAcceptedSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, SocketDevice &&, char *)>;
 
 enum struct ConnectionState{
 	Raw,
@@ -124,7 +131,7 @@ public:
 	}
 	
 	bool hasSecureContext()const{
-		return secure_context.isValid();
+		return not secure_context_any.empty();
 	}
 	
 	int listenerPort()const{
@@ -150,51 +157,52 @@ public:
 
 	size_t connetionReconnectTimeoutSeconds()const;
 	
-	size_t								pool_max_active_connection_count;
-	size_t								pool_max_pending_connection_count;
-	size_t								pool_max_message_queue_size;
+	size_t											pool_max_active_connection_count;
+	size_t											pool_max_pending_connection_count;
+	size_t											pool_max_message_queue_size;
 	
-	size_t								pools_mutex_count;
+	size_t											pools_mutex_count;
 	
-	ReaderConfiguration					reader;
-	WriterConfiguration					writer;
-	
-	
+	ReaderConfiguration								reader;
+	WriterConfiguration								writer;
 	
 	
-	size_t								connection_reconnect_timeout_seconds;
-	uint32_t							connection_inactivity_timeout_seconds;
-	uint32_t							connection_keepalive_timeout_seconds;
-	ConnectionState						connection_start_state;
-	bool								connection_start_secure;
 	
-	uint32_t							connection_inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
+	ConnectionCreateConnectingSocketFunctionT		connection_create_connecting_socket_fnc;
+	ConnectionCreateAcceptedSocketFunctionT			connection_create_accepted_socket_fnc;
+	size_t											connection_reconnect_timeout_seconds;
+	uint32_t										connection_inactivity_timeout_seconds;
+	uint32_t										connection_keepalive_timeout_seconds;
+	ConnectionState									connection_start_state;
+	bool											connection_start_secure;
+	
+	uint32_t										connection_inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
 																				//messages during inactivity_timeout_seconds interval
 	
-	uint8_t								connection_recv_buffer_start_capacity_kb;
-	uint8_t								connection_recv_buffer_max_capacity_kb;
+	uint8_t											connection_recv_buffer_start_capacity_kb;
+	uint8_t											connection_recv_buffer_max_capacity_kb;
 	
-	uint8_t								connection_send_buffer_start_capacity_kb;
-	uint8_t								connection_send_buffer_max_capacity_kb;
+	uint8_t											connection_send_buffer_start_capacity_kb;
+	uint8_t											connection_send_buffer_max_capacity_kb;
 	
-	AsyncResolveFunctionT				name_resolve_fnc;
+	AsyncResolveFunctionT							name_resolve_fnc;
 	
-	ConnectionStartFunctionT			connection_start_incoming_fnc;
-	ConnectionStartFunctionT			connection_start_outgoing_fnc;
-	ConnectionStopFunctionT				connection_stop_fnc;
-	ConnectionOnEventFunctionT			connection_on_event_fnc;
+	ConnectionStartFunctionT						connection_start_incoming_fnc;
+	ConnectionStartFunctionT						connection_start_outgoing_fnc;
+	ConnectionStopFunctionT							connection_stop_fnc;
+	ConnectionOnEventFunctionT						connection_on_event_fnc;
 	
-	AllocateBufferFunctionT				connection_recv_buffer_allocate_fnc;
-	AllocateBufferFunctionT				connection_send_buffer_allocate_fnc;
+	AllocateBufferFunctionT							connection_recv_buffer_allocate_fnc;
+	AllocateBufferFunctionT							connection_send_buffer_allocate_fnc;
+
+	FreeBufferFunctionT								connection_recv_buffer_free_fnc;
+	FreeBufferFunctionT								connection_send_buffer_free_fnc;
 	
-	FreeBufferFunctionT					connection_recv_buffer_free_fnc;
-	FreeBufferFunctionT					connection_send_buffer_free_fnc;
+	std::string										listener_address_str;
+	std::string										listener_service_str;
 	
-	std::string							listener_address_str;
-	std::string							listener_service_str;
-	
-	SecureContextT						secure_context;
-	ProtocolPointerT					protocol_ptr;
+	Any<>											secure_context_any;
+	ProtocolPointerT								protocol_ptr;
 	
 	Protocol& protocol(){
 		return *protocol_ptr;

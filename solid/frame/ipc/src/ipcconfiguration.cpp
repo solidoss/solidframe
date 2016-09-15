@@ -9,6 +9,8 @@
 //
 #include "solid/frame/ipc/ipcconfiguration.hpp"
 #include "solid/frame/ipc/ipcerror.hpp"
+#include "solid/frame/ipc/ipcsocketstub_plain.hpp"
+
 #include "solid/system/cassert.hpp"
 #include "solid/system/memory.hpp"
 
@@ -42,6 +44,14 @@ namespace{
 		SOLID_ASSERT(false);
 		_rerror = error_compression_unavailable;
 		return 0;
+	}
+	
+	SocketStubPtrT default_create_connecting_socket(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
+		return create_connecting_socket_plain(_rcfg, _rproxy, _emplace_buf);
+	}
+	
+	SocketStubPtrT default_create_accepted_socket(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
+		return create_connecting_socket_plain(_rcfg,_rproxy, std::move(_usd), _emplace_buf);
 	}
 	
 }//namespace
@@ -92,6 +102,9 @@ void Configuration::init(){
 	connection_start_outgoing_fnc = empty_connection_start;
 	
 	connection_on_event_fnc = empty_connection_on_event;
+	
+	connection_create_connecting_socket_fnc = default_create_connecting_socket;
+	connection_create_accepted_socket_fnc = default_create_accepted_socket;
 	
 	pool_max_active_connection_count = 1;
 	pool_max_pending_connection_count = 1;

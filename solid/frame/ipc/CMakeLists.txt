@@ -18,6 +18,9 @@ set(Headers
 	ipcprotocol.hpp
 	ipcprotocol_serialization_v1.hpp
 	ipcservice.hpp
+	ipcsocketstub.hpp
+	ipcsocketstub_openssl.hpp
+	ipcsocketstub_plain.hpp
 )
 
 set(Inlines
