@@ -39,7 +39,9 @@ struct Starter{
 		::OpenSSL_add_all_algorithms();
 	}
 	~Starter(){
+#ifndef OPENSSL_IS_BORINGSSL
 		::CONF_modules_unload(1);
+#endif
 	}
 	
 	static Starter& the(){

@@ -136,6 +136,8 @@ buildOpenssl()
 	rm -rf include/openssl
 	rm -rf lib/libssl*
 	rm -rf lib64/libssl*
+	rm -rf lib/libcrypto*
+	rm -rf lib64/libcrypto*
 	rm -rf ssl_
 
 	echo
@@ -192,6 +194,50 @@ buildOpenssl()
 	echo
 	echo "Done $WHAT!"
 	echo
+}
+
+function buildBoringSSL
+{
+	echo
+	echo "Building BoringSSL..."
+	echo
+	
+	rm -rf include/openssl
+	rm -rf lib/libssl*
+	rm -rf lib64/libssl*
+	rm -rf lib/libcrypto*
+	rm -rf lib64/libcrypto*
+	rm -rf ssl_
+	
+	if [ ! -d $EXT_DIR/boringssl ]; then
+		git clone https://boringssl.googlesource.com/boringssl
+		cd boringssl
+	else
+		cd boringssl
+		git pull
+	fi
+	
+	rm -rf build
+	
+	mkdir build
+	cd build
+	
+	cmake -DCMAKE_INSTALL_PREFIX="$EXT_DIR" ..
+	
+	make
+	
+	if [ ! -d $EXT_DIR/include ]; then
+		mkdir -p "$EXT_DIR/include"
+	fi
+	
+	cp ssl/libssl.a "$EXT_DIR/lib"
+	cp crypto/libcrypto.a "$EXT_DIR/lib"
+	
+	cd ..
+	
+	cp -r include/openssl "$EXT_DIR/include"
+	
+	cd "$EXT_DIR"
 }
 
 
@@ -252,6 +298,7 @@ EXT_DIR="`pwd`"
 BUILD_BOOST_MIN=
 BUILD_BOOST_FULL=
 BUILD_OPENSSL=
+BUILD_BORINGSSL=
 BUILD_LEVELDB=
 BUILD_SNAPPY=
 
@@ -279,6 +326,10 @@ while [ "$#" -gt 0 ]; do
 		;;
 	--openssl)
 		BUILD_OPENSSL="yes"
+		BUILD_SOMETHING="yes"
+		;;
+	--boringssl)
+		BUILD_BORINGSSL="yes"
 		BUILD_SOMETHING="yes"
 		;;
 	--debug)
@@ -325,6 +376,10 @@ fi
 
 if [ $BUILD_OPENSSL ]; then
 	buildOpenssl
+fi
+
+if [ $BUILD_BORINGSSL ]; then
+	buildBoringSSL
 fi
 
 if [ $BUILD_BOOST_FULL ]; then
