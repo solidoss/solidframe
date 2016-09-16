@@ -16,6 +16,7 @@
 
 ## Version 2.x
 ### TODO
+* solid::any<>: use shared_ptr for objects that do not fit the emplace buffer
 * Test serialization for all supported std containers
 * Test serialization engine agaist ProtoBuf and FlatBuffers
 * frame/ipc with SOCKS5
