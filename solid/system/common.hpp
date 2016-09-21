@@ -59,6 +59,12 @@ struct BoolToType{
 
 
 template <class T>
+struct TypeToType{
+	using TypeT = T;
+};
+
+
+template <class T>
 struct UnsignedType;
 
 template <>

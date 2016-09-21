@@ -43,8 +43,8 @@ struct AnyValue;
 template <class T>
 struct AnyValue<T, true>: AnyValueBase{
 	
-	explicit AnyValue(const T &_rt):value_(_rt){}
-	explicit AnyValue(T &&_rt):value_(std::move(_rt)){}
+	template <class ...Args>
+	explicit AnyValue(Args&& ..._args):value_(std::forward<Args>(_args)...){}
 	
 	
 	const void* get()const override{
@@ -80,8 +80,10 @@ template <class T>
 struct AnyValue<T, false>: AnyValueBase{
 	//explicit AnyValue(const T &_rt){}
 	
-	explicit AnyValue(T &&_rt):value_(std::move(_rt)){}
+	//explicit AnyValue(T &&_rt):value_(std::move(_rt)){}
 	
+	template <class ...Args>
+	explicit AnyValue(Args&& ..._args):value_(std::forward<Args>(_args)...){}
 	
 	const void* get()const override{
 		return &value_;
@@ -272,54 +274,58 @@ public:
 	void reset(const T &_rt){
 		clear();
 		
-		pvalue_ = do_allocate(_rt, BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>());
+		pvalue_ = do_allocate<T>(BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>(), _rt);
 	}
 	
-	template <typename T>
-	void reset(T &&_rt){
+	template <class T>
+	void reset(T && _ut){
 		clear();
 		
-		pvalue_ = do_allocate(std::move(_rt), BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>());
+		pvalue_ = do_allocate<T>(BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>(), std::forward<T>(_ut));
 	}
 	
 	bool usesData()const{
 		return reinterpret_cast<const void*>(pvalue_) == reinterpret_cast<const void*>(data_);
     }
 private:
-    template <class T>
-    impl::AnyValueBase* do_allocate(T &&_rt,  BoolToType<true> /*_emplace_new*/){
-        return new(data_) impl::AnyValue<T>(std::move(_rt));
-    }
-    
-    template <class T>
-    impl::AnyValueBase* do_allocate(T &&_rt,  BoolToType<false> /*_plain_new*/){
-        return new impl::AnyValue<T>(std::move(_rt));
-    }
-    template <class T>
-    impl::AnyValueBase* do_allocate(const T &_rt,  BoolToType<true> /*_emplace_new*/){
-        return new(data_) impl::AnyValue<T>{_rt};
-    }
-    
-    template <class T>
-    impl::AnyValueBase* do_allocate(const T &_rt,  BoolToType<false> /*_plain_new*/){
-        return new impl::AnyValue<T>{_rt};
-    }
+	template <size_t DS, class T, class ...Args>
+	friend Any<DS> make_any(Args&& ..._args);
+	
+	template <class T, class ...Args>
+	void do_reinit(const TypeToType<T>&, Args&& ..._args){
+		clear();
+		pvalue_ = do_allocate<T>(BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>(), std::forward<Args>(_args)...);
+	}
+	
+	template <class T, class ...Args>
+	impl::AnyValueBase* do_allocate(BoolToType<true> /*_emplace_new*/, Args&& ..._args){
+		return new(data_) impl::AnyValue<T>(std::forward<Args>(_args)...);
+	}
+	
+	template <class T, class ...Args>
+	impl::AnyValueBase* do_allocate(BoolToType<false> /*_plain_new*/, Args&& ..._args){
+		return new impl::AnyValue<T>(std::forward<Args>(_args)...);
+	}
+//     template <class T>
+//     impl::AnyValueBase* do_allocate(const T &_rt,  BoolToType<true> /*_emplace_new*/){
+//         return new(data_) impl::AnyValue<T>{_rt};
+//     }
+//     
+//     template <class T>
+//     impl::AnyValueBase* do_allocate(const T &_rt,  BoolToType<false> /*_plain_new*/){
+//         return new impl::AnyValue<T>{_rt};
+//     }
 private:
 	char				data_[DataSize];
 };
 
 //-----------------------------------------------------------------------------
 
-template <size_t DS, typename T>
-Any<DS> any_create(const T &_rt){
-	return Any<DS>(_rt, true);
-}
-
-//-----------------------------------------------------------------------------
-
-template <size_t DS, typename T>
-Any<DS> any_create(T &&_rt){
-	return Any<DS>(_rt, true);
+template <size_t DS, class T, class ...Args>
+Any<DS> make_any(Args&& ..._args){
+	Any<DS>	a;
+	a.do_reinit(TypeToType<T>(), std::forward<Args>(_args)...);
+	return a;
 }
 
 //-----------------------------------------------------------------------------

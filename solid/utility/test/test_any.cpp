@@ -2,6 +2,7 @@
 #include "solid/system/cassert.hpp"
 #include <string>
 #include <iostream>
+#include <memory>
 #include "solid/system/exception.hpp"
 
 #include "boost/any.hpp"
@@ -44,35 +45,50 @@ std::string test_boost_any(const boost::any &_rany){
 void test_any_no_copy_copy(const Any<32> &_rany){
 	try{
 		Any<32>		tmp_any(_rany);
-		SOLID_ASSERT(tmp_any.empty());
+		SOLID_CHECK(tmp_any.empty());
 	}catch(std::exception& rex){
 		cout<<"Exception: "<<rex.what()<<endl;
 	}
-	SOLID_ASSERT(not _rany.empty());
+	SOLID_CHECK(not _rany.empty());
 	
 	Any<32>		tmp_any;
+	
+	bool		caught_exception = false;
 	
 	try{
 		tmp_any = _rany;
 	}catch(std::exception& rex){
 		cout<<"Exception: "<<rex.what()<<endl;
+		caught_exception = true;
 	}
 	
-	SOLID_ASSERT(tmp_any.empty());
-	SOLID_ASSERT(not _rany.empty());
+	SOLID_CHECK(tmp_any.empty());
+	SOLID_CHECK(not _rany.empty());
+	SOLID_CHECK(caught_exception);
 }
 
 std::string test_any_no_copy_move(Any<32> &_rany){
 	Any<32>		tmp_any(std::move(_rany));
 	
-	SOLID_ASSERT(_rany.empty());
-	SOLID_ASSERT(!tmp_any.empty());
+	SOLID_CHECK(_rany.empty());
+	SOLID_CHECK(!tmp_any.empty());
 	
 	TestNoCopy	*p = tmp_any.cast<TestNoCopy>();
 	
-	SOLID_ASSERT(p != nullptr);
+	SOLID_CHECK(p != nullptr);
 	return p->str;
 }
+
+
+struct Data{
+	Data():age(0){}
+	Data(const std::string &_name, const std::string &_address, uint16_t _age):name(_name), address(_address), age(_age){}
+	
+	std::string		name;
+	std::string		address;
+	uint16_t		age;
+};
+
 
 int test_any(int argc, char *argv[]){
 #ifdef TEST_BOOST_ANY
@@ -90,54 +106,81 @@ int test_any(int argc, char *argv[]){
 	
 #endif
 	Any<>		any0;
-	Any<32>		any32(any_create<32>(string("best string ever")));
+	Any<32>		any32(make_any<32, string>(string("best string ever")));
 	
 	cout<<"sizeof(any0) = "<<sizeof(any0)<<endl;
 	
-	SOLID_ASSERT(not any32.empty());
-	SOLID_ASSERT(any32.cast<string>() != nullptr);
-	SOLID_ASSERT(any32.cast<int>() == nullptr);
+	SOLID_CHECK(not any32.empty());
+	SOLID_CHECK(any32.cast<string>() != nullptr);
+	SOLID_CHECK(any32.cast<int>() == nullptr);
 	
 	cout<<"value = "<<*any32.cast<string>()<<endl;
 	
 	
 	any0 = std::move(any32);
 	
-	SOLID_ASSERT(any32.empty());
-	SOLID_ASSERT(not any0.empty());
+	SOLID_CHECK(any32.empty());
+	SOLID_CHECK(not any0.empty());
 	
-	SOLID_ASSERT(any0.cast<string>() != nullptr);
-	SOLID_ASSERT(any0.cast<int>() == nullptr);
+	SOLID_CHECK(any0.cast<string>() != nullptr);
+	SOLID_CHECK(any0.cast<int>() == nullptr);
 	
 	cout<<"value = "<<*any0.cast<string>()<<endl;
 	
 	any32 = any0;
 	
-	SOLID_ASSERT(not any32.empty());
-	SOLID_ASSERT(not any0.empty());
+	SOLID_CHECK(not any32.empty());
+	SOLID_CHECK(not any0.empty());
 	
 	Any<16>		any16_0(any32);
 	Any<16>		any16_1(any16_0);
 	
-	SOLID_ASSERT(not any32.empty());
-	SOLID_ASSERT(not any16_0.empty());
-	SOLID_ASSERT(not any16_1.empty());
+	SOLID_CHECK(not any32.empty());
+	SOLID_CHECK(not any16_0.empty());
+	SOLID_CHECK(not any16_1.empty());
 	
-	SOLID_ASSERT(*any16_1.cast<string>() == *any32.cast<string>() && *any16_1.cast<string>() == *any16_0.cast<string>());
+	SOLID_CHECK(*any16_1.cast<string>() == *any32.cast<string>() && *any16_1.cast<string>() == *any16_0.cast<string>());
 	
 	Any<16>		any16_2(std::move(any16_0));
 	
-	SOLID_ASSERT(any16_0.empty());
-	SOLID_ASSERT(not any16_2.empty());
+	SOLID_CHECK(any16_0.empty());
+	SOLID_CHECK(not any16_2.empty());
 	
 	
-	SOLID_ASSERT(*any16_2.cast<string>() == *any32.cast<string>());
+	SOLID_CHECK(*any16_2.cast<string>() == *any32.cast<string>());
 	
-	Any<32>		any_nc_0(any_create<32>(TestNoCopy("a string")));
+	Any<32>		any_nc_0(make_any<32, TestNoCopy>("a string"));
 	
 	test_any_no_copy_copy(any_nc_0);
 	
 	cout<<"test_any_no_copy_move: "<<test_any_no_copy_move(any_nc_0)<<endl;
+	
+	{
+		std::shared_ptr<Data> ptr = std::make_shared<Data>("gigel", "gigel@viscol.ro", 33);
+		
+		cout<<"ptr.get = "<<ptr.get()<<endl;
+		
+		Any<256>	any_ptr1 = make_any<256, std::shared_ptr<Data>>(ptr);
+		
+		cout<<"any_ptr1->get = "<<any_ptr1.cast<std::shared_ptr<Data>>()->get()<<endl;
+		
+		Any<256>	any_ptr2 = any_ptr1;
+		
+		cout<<"any_ptr1->get = "<<any_ptr1.cast<std::shared_ptr<Data>>()->get()<<endl;
+		cout<<"any_ptr2->get = "<<any_ptr2.cast<std::shared_ptr<Data>>()->get()<<endl;
+		
+		cout<<"ptr.get = "<<ptr.get()<<endl;
+		cout<<"ptr usecount = "<<ptr.use_count()<<endl;
+		SOLID_CHECK(ptr.use_count() == 3);
+		SOLID_CHECK(ptr.get() == any_ptr1.cast<std::shared_ptr<Data>>()->get() and any_ptr2.cast<std::shared_ptr<Data>>()->get() == ptr.get());
+		
+		Any<256>	any_ptr3 = make_any<256, std::shared_ptr<Data>>(std::move(ptr));
+		
+		SOLID_CHECK(any_ptr2.cast<std::shared_ptr<Data>>()->get() == any_ptr2.cast<std::shared_ptr<Data>>()->get());
+		SOLID_CHECK(any_ptr2.cast<std::shared_ptr<Data>>()->use_count() == 3);
+		SOLID_CHECK(ptr.use_count() == 0);
+		
+	}
 	
 	return 0;
 }
