@@ -74,7 +74,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager			manager;
-		frame::ipc::ServiceT	ipcsvc(manager);
+		frame::ipc::ServiceT	ipcservice(manager);
 		
 		frame::aio::Resolver	resolver;
 		
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]){
 			
 			cfg.connection_start_state = frame::ipc::ConnectionState::Active;
 			
-			err = ipcsvc.reconfigure(std::move(cfg));
+			err = ipcservice.reconfigure(std::move(cfg));
 			
 			if(err){
 				cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]){
 				size_t		offset = line.find(' ');
 				if(offset != string::npos){
 					recipient = line.substr(0, offset);
-					ipcsvc.sendMessage(recipient.c_str(), make_shared<ipc_echo::Message>(line.substr(offset + 1)), 0|frame::ipc::MessageFlags::WaitResponse);
+					ipcservice.sendMessage(recipient.c_str(), make_shared<ipc_echo::Message>(line.substr(offset + 1)), 0|frame::ipc::MessageFlags::WaitResponse);
 				}else{
 					cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
 				}
