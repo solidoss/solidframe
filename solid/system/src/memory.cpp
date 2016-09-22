@@ -10,7 +10,10 @@
 #include "solid/system/memory.hpp"
 #include <unistd.h>
 #include <cstdlib>
+
+#ifdef SOLID_ON_LINUX
 #include <malloc.h>
+#endif
 
 size_t getMemorySize();
 size_t getMemoryPageSize();
@@ -25,6 +28,14 @@ size_t memory_page_size(){
 void * memory_allocate_aligned(size_t _align, size_t _size){
 #ifdef SOLID_ON_WINDOWS
 	return nullptr;
+#elif  defined(SOLID_ON_DARWIN)
+	void *retval = 0;
+	int rv = posix_memalign(&retval, _align, _size);
+	if(rv == 0){
+		return retval;
+	}else{
+		return nullptr;
+	}
 #else
 	return memalign(_align, _size);
 #endif
