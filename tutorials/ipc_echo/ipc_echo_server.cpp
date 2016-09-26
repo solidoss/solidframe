@@ -119,8 +119,6 @@ int main(int argc, char *argv[]){
 		cout<<"Press any char and ENTER to stop: ";
 		char c;
 		cin>>c;
-		
-		manager.stop();
 	}
 	return 0;
 }

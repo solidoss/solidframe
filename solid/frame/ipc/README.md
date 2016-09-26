@@ -1,6 +1,6 @@
 # solid_frame_ipc
 
-A process-to-process communication (message exchange) engine via plain/secured TCP.
+A peer-to-peer communication (message exchange) engine via plain/secured TCP.
 
 ## Features
 
@@ -23,6 +23,17 @@ A process-to-process communication (message exchange) engine via plain/secured T
 	* __one_shot__: only tries once to send the message.
 	* __idempotent__: will try resending the message until either successfully sent or, in case the message awaits a response, until a response was received. 
 
+_solid_frame_ipc_ is a peer-to-peer communication library which provides a pure C++ way of implementing communication between two processes. It offers:
+ * asynchronous (Secure/Plain) TCP connection pools, using solid_frame_aio library.
+ * a serialization protocol based on solid_serialization library.
+
+Thus, solid_frame_ipc differs from other implementations by:
+ * not needing a message preprocessor for marshaling (as does: protobuf) - you specify how a message gets marshalled programatically using simple C++ code (something similar to boost-serialization).
+ * not needing a preprocessor for creating client server stubs (apache thrift) - you just instantiate a frame::ipc::ServiceT allong with its dependecies and configure it.
+
+The downside is that solid_frame_ipc will always be a C++ only library while the above alternatives (protobuf & thrift) can be used from multiple languages.
+
+On the other side you should be able to call native C++ code from other languages.
 
 ### Planned
 * Support for buffer/packet level compression.

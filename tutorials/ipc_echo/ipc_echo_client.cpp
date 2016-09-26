@@ -131,8 +131,6 @@ int main(int argc, char *argv[]){
 				}
 			}
 		}
-		
-		manager.stop();
 	}
 	return 0;
 }
