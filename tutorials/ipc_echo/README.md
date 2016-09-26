@@ -399,17 +399,17 @@ $ c++ -o ipc_echo_server ipc_echo_server.cpp -I~/work/extern/include/ -L~/work/e
 Now that we have two applications a client and a server let us test it in a little scenario with two servers and a client.
 
 **Console-1**:
-```bash
+```BASH
 $ ./ipc_echo_server 0.0.0.0:3333
 ```
 **Console-2**:
-```bash
+```BASH
 $ ./ipc_echo_client
 localhost:3333 Some text sent to the first server
 localhost:4444 Some text sent to the second server
 ```
 **Console-3**:
-```bash
+```BASH
 #wait for a while
 $ ./ipc_echo_server 0.0.0.0:4444
 ```
