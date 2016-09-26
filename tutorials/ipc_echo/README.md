@@ -393,6 +393,7 @@ The last code block for the server is one which keeps the server alive until use
 ```bash
 $ cd solid_frame_tutorials/ipc_echo
 $ c++ -o ipc_echo_server ipc_echo_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_ipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+```
 
 ## Test
 
