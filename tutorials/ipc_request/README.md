@@ -272,7 +272,7 @@ we're expecting.
 
 On the lambda, we display to standard out how many user records that matched the regular expression were returned and then display the records.
 
-### Build the code
+### Compile
 
 ```bash
 $ cd solid_frame_tutorials/ipc_request
@@ -459,7 +459,7 @@ Returning to our server, the last code block is one which keeps the server alive
 	cin>>c;
 ```
 
-### Build the code
+### Compile
 
 ```bash
 $ cd solid_frame_tutorials/ipc_request

@@ -39,7 +39,7 @@ $ mkdir -p solid_frame_tutorials/aio_echo
 
 this is where you will create a file aio_echo_server.cpp which will contain the source code for the servers.
 
-## Build
+## Compile
 
 The best way to build the tutorial is through a CMake project but as it is outside of this tutorial, we'll be using the plain ol' command line:
 

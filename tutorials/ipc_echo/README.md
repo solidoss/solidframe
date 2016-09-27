@@ -266,7 +266,7 @@ As you can see in the above line, the message we are sending is a request for wh
 The ipc::Sevice class contains mutiple methods for sending message. In the [IPC Request](../ipc_request) you will learn about for which you can specify the message completion callback function.
 
 
-### Build the code
+### Compile
 
 ```bash
 $ cd solid_frame_tutorials/ipc_echo
@@ -389,7 +389,7 @@ The last code block for the server is one which keeps the server alive until use
 	cin>>c;
 ```
 
-### Build the code
+### Compile
 
 ```bash
 $ cd solid_frame_tutorials/ipc_echo
