@@ -49,13 +49,13 @@ struct AccountData{
 
 using AccountDataDequeT = std::deque<AccountData>;
 
-AccountDataDequeT	account_dq = {
-	{"user1", "Super Man", "user1@email.com", "RO", "bucharest", {11, 1, 2001}},
-	{"user2", "Spider Man", "user2@email.com", "RO", "bucharest", {12, 2, 2002}},
-	{"user3", "Ant Man", "user3@email.com", "RO", "bucharest", {13, 3, 2003}},
-	{"iron_man", "Iron Man", "gigel1@email.com", "UK", "london", {11,4,2004}},
-	{"dragon_man", "Dragon Man", "gigel2@email.com", "FR", "paris", {12,5,2005}},
-	{"frog_man", "Frog Man", "gigel3@email.com", "PL", "warsaw", {13,6,2006}},
+const AccountDataDequeT	account_dq = {
+	{"user1", "Super Man", "user1@email.com", "US", "Washington", {11, 1, 2001}},
+	{"user2", "Spider Man", "user2@email.com", "RO", "Bucharest", {12, 2, 2002}},
+	{"user3", "Ant Man", "user3@email.com", "IE", "Dublin", {13, 3, 2003}},
+	{"iron_man", "Iron Man", "man.iron@email.com", "UK", "London", {11,4,2004}},
+	{"dragon_man", "Dragon Man", "man.dragon@email.com", "FR", "paris", {12,5,2005}},
+	{"frog_man", "Frog Man", "man.frog@email.com", "PL", "Warsaw", {13,6,2006}},
 };
 
 ipc_request::UserData make_user_data(const AccountData &_rad){
@@ -100,7 +100,7 @@ void complete_message<ipc_request::Request>(
 	
 	for(const auto &ad: account_dq){
 		if(std::regex_match(ad.userid, userid_regex)){
-			msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, std::move(make_user_data(ad)))));
+			msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad))));
 		}
 	}
 	
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager			manager;
-		frame::ipc::ServiceT	ipcsvc(manager);
+		frame::ipc::ServiceT	ipcservice(manager);
 		ErrorConditionT			err;
 		
 		err = scheduler.start(1);
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]){
 			
 			cfg.connection_start_state = frame::ipc::ConnectionState::Active;
 			
-			err = ipcsvc.reconfigure(std::move(cfg));
+			err = ipcservice.reconfigure(std::move(cfg));
 			
 			if(err){
 				cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -181,7 +181,7 @@ int main(int argc, char *argv[]){
 			}
 			{
 				std::ostringstream oss;
-				oss<<ipcsvc.configuration().listenerPort();
+				oss<<ipcservice.configuration().listenerPort();
 				cout<<"server listens on port: "<<oss.str()<<endl;
 			}
 		}
@@ -189,8 +189,6 @@ int main(int argc, char *argv[]){
 		cout<<"Press any char and ENTER to stop: ";
 		char c;
 		cin>>c;
-		
-		manager.stop();
 	}
 	return 0;
 }

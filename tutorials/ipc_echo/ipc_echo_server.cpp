@@ -80,7 +80,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager			manager;
-		frame::ipc::ServiceT	ipcsvc(manager);
+		frame::ipc::ServiceT	ipcservice(manager);
 		ErrorConditionT			err;
 		
 		err = scheduler.start(1);
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]){
 			
 			cfg.connection_start_state = frame::ipc::ConnectionState::Active;
 			
-			err = ipcsvc.reconfigure(std::move(cfg));
+			err = ipcservice.reconfigure(std::move(cfg));
 			
 			if(err){
 				cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]){
 			}
 			{
 				std::ostringstream oss;
-				oss<<ipcsvc.configuration().listenerPort();
+				oss<<ipcservice.configuration().listenerPort();
 				cout<<"server listens on port: "<<oss.str()<<endl;
 			}
 		}

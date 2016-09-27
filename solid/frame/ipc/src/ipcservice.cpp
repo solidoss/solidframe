@@ -164,10 +164,10 @@ struct ConnectionPoolStub{
 		MainConnectionActiveFlag		= 64,
 	};
 	
-	uint32_t					unique;
-	uint16_t					pending_connection_count;
-	uint16_t					active_connection_count;
-	uint16_t					stopping_connection_count;
+	uint32_t				unique;
+	uint16_t				pending_connection_count;
+	uint16_t				active_connection_count;
+	uint16_t				stopping_connection_count;
 	std::string				name;//because c_str() pointer is given to connection - name should allways be std::moved
 	ObjectIdT 				main_connection_id;
 	MessageVectorT			msgvec;
@@ -1720,6 +1720,14 @@ bool Service::doMainConnectionStoppingCleanAll(
 		rpool.clearPopAndCacheMessage(msgidx);
 		return false;
 	}else{
+		if(_rcon.isActiveState()){
+			--rpool.active_connection_count;
+		}else{
+			SOLID_ASSERT(not _rcon.isServer());
+			--rpool.pending_connection_count;
+		}
+		
+		++rpool.stopping_connection_count;
 		rpool.resetCleaningAllMessages();
 		return true;//TODO: maybe we can return false
 	}
@@ -1751,6 +1759,14 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 		
 		return false;
 	}else{
+		if(_rcon.isActiveState()){
+			--rpool.active_connection_count;
+		}else{
+			SOLID_ASSERT(not _rcon.isServer());
+			--rpool.pending_connection_count;
+		}
+		
+		++rpool.stopping_connection_count;
 		return true;//the connection can call connectionStop asap
 	}
 }

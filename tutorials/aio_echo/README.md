@@ -512,7 +512,7 @@ void Talker::onSend(frame::aio::ReactorContext &_rctx){
 In the above code we've moved back to using lambdas for completion. Although the code seems a little bit more verbose than the static callbacks variant, it allows further simplifications such as directly putting the code from __onSend__ within its calling lambda making the onSend method unnecessary.
 
 
-## The Conclusion
+## Conclusion
 
 In this tutorial you have learned about basic usage of the solid_frame and solid_frame_aio libraries. You have learned:
  * How to create a Listener object.

@@ -78,7 +78,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager			manager;
-		frame::ipc::ServiceT	ipcsvc(manager);
+		frame::ipc::ServiceT	ipcservice(manager);
 		
 		frame::aio::Resolver	resolver;
 		
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]){
 			
 			cfg.connection_start_state = frame::ipc::ConnectionState::Active;
 			
-			err = ipcsvc.reconfigure(std::move(cfg));
+			err = ipcservice.reconfigure(std::move(cfg));
 			
 			if(err){
 				cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -149,7 +149,7 @@ int main(int argc, char *argv[]){
 						case 'L':{
 							std::string		path;
 							iss>>path;
-							ipcsvc.sendMessage(
+							ipcservice.sendMessage(
 								recipient.c_str(), make_shared<ipc_file::ListRequest>(std::move(path)),
 								[](
 									frame::ipc::ConnectionContext &_rctx,
@@ -180,7 +180,7 @@ int main(int argc, char *argv[]){
 							
 							iss>>remote_path>>local_path;
 							
-							ipcsvc.sendMessage(
+							ipcservice.sendMessage(
 								recipient.c_str(), make_shared<ipc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
 								[](
 									frame::ipc::ConnectionContext &_rctx,

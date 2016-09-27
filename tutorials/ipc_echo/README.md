@@ -7,15 +7,15 @@ __Source files__
  * The server: [ipc_echo_server.cpp](ipc_echo_server.cpp)
  * The client: [ipc_echo_client.cpp](ipc_echo_client.cpp)
 
- Before continuing with this tutorial, you should:
+Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
  * read the [informations about solid_frame_ipc](../../ipc/README.md)
  
 ## Overview
 
-In this tutorial you will learn how to use solid_frame_ipc library for a simple client-server application pair.
-The protocol is very simple: a single message containing a string.
+In this tutorial you will learn how to use solid_frame_ipc library for a basic client-server application pair.
+The client and server will exchange a simple message consisting of a single string.
 
 **The client**:
  * for every command line input
@@ -106,6 +106,7 @@ So, the client will read from standard input line by line and:
 Let us now walk through the code.
 
 First off, initialize the ipc service and its prerequisites:
+
 ```C++
 		AioSchedulerT			scheduler;
 		
@@ -415,4 +416,4 @@ localhost:4444 Some text sent to the second server
 $ ./ipc_echo_server 0.0.0.0:4444
 ```
 
-On the client you will see that the text is immediately received back from :3333 server while the second text is received back only after the second server is started. This is because, normally, the ipc::Service will try re-sending the message until the recipient side becomes available. Use ipc::MessageFlags::OneShotSend to change the behavior and only try once to send the message and immediately fail if the server is offline.
+On the client you will see that the text is immediately received back from :3333 server while the second text is received back only after the second server is started. This is because, normally, the ipc::Service will try re-sending the message until the recipient side becomes available. Use **ipc::MessageFlags::OneShotSend** to change the behavior and only try once to send the message and immediately fail if the server is offline.

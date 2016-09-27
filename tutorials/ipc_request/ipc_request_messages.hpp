@@ -22,10 +22,6 @@ struct Request: solid::frame::ipc::Message{
 	}	
 };
 
-// struct Date{
-// 	
-// };
-
 struct Date{
 	uint8_t		day;
 	uint8_t		month;
@@ -38,7 +34,6 @@ struct Date{
 };
 
 struct UserData{
-	std::string		user_id;
 	std::string		full_name;
 	std::string		email;
 	std::string		country;
@@ -47,7 +42,6 @@ struct UserData{
 	
 	template <class S>
 	void serialize(S &_s, solid::frame::ipc::ConnectionContext &_rctx){
-		_s.push(user_id, "user_id");
 		_s.push(full_name, "full_name").push(email, "email");
 		_s.push(country, "country").push(city, "city").push(birth_date, "birth_date");
 	}

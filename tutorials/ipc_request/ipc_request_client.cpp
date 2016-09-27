@@ -47,6 +47,7 @@ struct MessageSetup{
 
 
 }//namespace
+
 namespace{
 	ostream& operator<<(ostream &_ros, const ipc_request::Date &_rd){
 		_ros<<_rd.year<<'.'<<(int)_rd.month<<'.'<<(int)_rd.day;
@@ -76,7 +77,7 @@ int main(int argc, char *argv[]){
 		
 		
 		frame::Manager			manager;
-		frame::ipc::ServiceT	ipcsvc(manager);
+		frame::ipc::ServiceT	ipcservice(manager);
 		
 		frame::aio::Resolver	resolver;
 		
@@ -106,7 +107,7 @@ int main(int argc, char *argv[]){
 			
 			cfg.connection_start_state = frame::ipc::ConnectionState::Active;
 			
-			err = ipcsvc.reconfigure(std::move(cfg));
+			err = ipcservice.reconfigure(std::move(cfg));
 			
 			if(err){
 				cout<<"Error starting ipcservice: "<<err.message()<<endl;
@@ -132,7 +133,7 @@ int main(int argc, char *argv[]){
 				size_t		offset = line.find(' ');
 				if(offset != string::npos){
 					recipient = line.substr(0, offset);
-					ipcsvc.sendMessage(
+					ipcservice.sendRequest(
 						recipient.c_str(), make_shared<ipc_request::Request>(line.substr(offset + 1)),
 						[](
 							frame::ipc::ConnectionContext &_rctx,
@@ -144,21 +145,22 @@ int main(int argc, char *argv[]){
 								cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
 								return;
 							}
+							
 							SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
+							
 							cout<<"Received "<<_rrecv_msg_ptr->user_data_map.size()<<" users:"<<endl;
+							
 							for(const auto& user_data: _rrecv_msg_ptr->user_data_map){
 								cout<<'{'<<user_data.first<<"}: "<<user_data.second<<endl;
 							}
 						},
-						0|frame::ipc::MessageFlags::WaitResponse
+						0
 					);
 				}else{
 					cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
 				}
 			}
 		}
-		
-		manager.stop();
 	}
 	return 0;
 }
