@@ -57,7 +57,7 @@ namespace solid{
 /*static*/ const unsigned Debug::ser_bin(Debug::the().registerModule("SER_BIN"));
 /*static*/ const unsigned Debug::utility(Debug::the().registerModule("UTILITY"));
 /*static*/ const unsigned Debug::frame(Debug::the().registerModule("FRAME"));
-/*static*/ const unsigned Debug::ipc(Debug::the().registerModule("FRAME_IPC"));
+/*static*/ const unsigned Debug::mpipc(Debug::the().registerModule("FRAME_MPIPC"));
 /*static*/ const unsigned Debug::tcp(Debug::the().registerModule("FRAME_TCP"));
 /*static*/ const unsigned Debug::udp(Debug::the().registerModule("FRAME_UDP"));
 /*static*/ const unsigned Debug::log(Debug::the().registerModule("LOG"));

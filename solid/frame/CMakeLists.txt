@@ -40,4 +40,4 @@ install (TARGETS solid_frame DESTINATION lib)
 
 add_subdirectory(aio)
 add_subdirectory(file)
-add_subdirectory(ipc)
+add_subdirectory(mpipc)

@@ -60,8 +60,8 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * [__solid_frame_aio_openssl__](#solid_frame_aio_openssl): SSL support via OpenSSL
 * [__solid_frame_file__](#solid_frame_file)
 	* _file::Store_ - a shared store for files
-* [__solid_frame_ipc__](#solid_frame_ipc): asynchronous Secure/Plain TCP inter-process communication engine ([IPC library](solid/frame/ipc/README.md))
-	* _ipc::Service_ - asynchronously sends and receives messages to/from multiple peers.
+* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing InterProcess Communication over Secure/Plain TCP ([MPIPC library](solid/frame/mpipc/README.md))
+	* _mpipc::Service_ - pass messages to/from multiple peers.
 
 ## <a id="installation"></a>Installation
 
@@ -468,20 +468,20 @@ The library extends solid_frame_aio with support for Secure Sockets.
  * [__aiosecurecontext.hpp__](solid/frame/aio/openssl/aiosecurecontext.hpp): OpenSSL context wrapper.
 
 
-### <a id="solid_frame_ipc"></a>solid_frame_ipc
+### <a id="solid_frame_mpipc"></a>solid_frame_mpipc
 
-Inter Process Communication library via Plain/Secure TCP connections and a protocol based on solid_serialization.
+Message Passing Inter Process Communication library - over Plain/Secure TCP connections and a protocol based on solid_serialization.
 
- * [__ipcservice.hpp__](solid/frame/ipc/ipcservice.hpp): Main interface of the library. Sends ipc::Messages to different recipients and receives ipc::Messages.
- * [__ipcmessage.hpp__](solid/frame/ipc/ipcmessage.hpp): Base class for all messages sent through ipc::Service.
- * [__ipccontext.hpp__](solid/frame/ipc/ipccontext.hpp): A context class given to all callbacks called by the ipc library.
- * [__ipcconfiguration.hpp__](solid/frame/ipc/ipcconfiguration.hpp): Configuration data for ipc::Service.
+ * [__mpipcservice.hpp__](solid/frame/mpipc/mpipcservice.hpp): Main interface of the library. Sends mpipc::Messages to different recipients and receives mpipc::Messages.
+ * [__mpipcmessage.hpp__](solid/frame/mpipc/mpipcmessage.hpp): Base class for all messages sent through mpipc::Service.
+ * [__mpipccontext.hpp__](solid/frame/mpipc/mpipccontext.hpp): A context class given to all callbacks called by the mpipc library.
+ * [__mpipcconfiguration.hpp__](solid/frame/mpipc/mpipcconfiguration.hpp): Configuration data for mpipc::Service.
 
 __Usefull links__
- * [Informations about solid_frame_ipc](solid/frame/ipc/README.md)
- * [Tutorial: ipc_echo](tutorials/ipc_echo/README.md)
- * [Tutorial: ipc_file](tutorials/ipc_file/README.md)
- * [Tutorial: ipc_request](tutorials/ipc_request/README.md)
+ * [Informations about solid_frame_mpipc](solid/frame/mpipc/README.md)
+ * [Tutorial: mpipc_echo](tutorials/mpipc_echo/README.md)
+ * [Tutorial: mpipc_file](tutorials/mpipc_file/README.md)
+ * [Tutorial: mpipc_request](tutorials/mpipc_request/README.md)
 
 ### <a id="solid_frame_file"></a>solid_frame_file
 
