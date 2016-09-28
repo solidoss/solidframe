@@ -45,7 +45,6 @@ struct MessageSetup{
 	}
 };
 
-
 }//namespace
 
 
@@ -147,9 +146,11 @@ int main(int argc, char *argv[]){
 					switch(choice){
 						case 'l':
 						case 'L':{
+							
 							std::string		path;
 							iss>>path;
-							ipcservice.sendMessage(
+							
+							ipcservice.sendRequest(
 								recipient.c_str(), make_shared<ipc_file::ListRequest>(std::move(path)),
 								[](
 									frame::mpipc::ConnectionContext &_rctx,
@@ -161,14 +162,17 @@ int main(int argc, char *argv[]){
 										cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
 										return;
 									}
+									
 									SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
-									cout<<"File List from "<<_rctx.recipientName()<<" with "<<_rrecv_msg_ptr->node_dq.size()<<" items: {"<<endl;
+									
+									cout<<"File List from "<<_rctx.recipientName()<<":"<<_rsent_msg_ptr->path<<" with "<<_rrecv_msg_ptr->node_dq.size()<<" items: {"<<endl;
+									
 									for(auto it: _rrecv_msg_ptr->node_dq){
 										cout<<(it.second ? 'D' : 'F')<<": "<<it.first<<endl;
 									}
 									cout<<"}"<<endl;
 								},
-								0|frame::mpipc::MessageFlags::WaitResponse
+								0
 							);
 							
 							break;
@@ -180,7 +184,7 @@ int main(int argc, char *argv[]){
 							
 							iss>>remote_path>>local_path;
 							
-							ipcservice.sendMessage(
+							ipcservice.sendRequest(
 								recipient.c_str(), make_shared<ipc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
 								[](
 									frame::mpipc::ConnectionContext &_rctx,
@@ -194,8 +198,10 @@ int main(int argc, char *argv[]){
 									}
 									
 									SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
+									SOLID_CHECK(_rsent_msg_ptr->local_path == _rrecv_msg_ptr->local_path);
+									SOLID_CHECK(_rsent_msg_ptr->remote_path == _rrecv_msg_ptr->remote_path);
 									
-									cout<<"Done copy from "<<_rctx.recipientName()<<":"<<_rrecv_msg_ptr->remote_path<<" to "<<_rrecv_msg_ptr->local_path<<": ";
+									cout<<"Done copy from "<<_rctx.recipientName()<<":"<<_rsent_msg_ptr->remote_path<<" to "<<_rsent_msg_ptr->local_path<<": ";
 									
 									if(_rrecv_msg_ptr->remote_file_size != InvalidSize() and _rrecv_msg_ptr->remote_file_size == stream_size(_rrecv_msg_ptr->fs)){
 										cout<<"Success("<<_rrecv_msg_ptr->remote_file_size<<")"<<endl;
@@ -205,7 +211,7 @@ int main(int argc, char *argv[]){
 										cout<<"Fail("<<stream_size(_rrecv_msg_ptr->fs)<<" instead of "<<_rrecv_msg_ptr->remote_file_size<<")"<<endl;
 									}
 								},
-								0|frame::mpipc::MessageFlags::WaitResponse
+								0
 							);
 							break;
 						}
@@ -219,8 +225,6 @@ int main(int argc, char *argv[]){
 				}
 			}
 		}
-		
-		manager.stop();
 	}
 	return 0;
 }

@@ -15,8 +15,8 @@ Before continuing with this tutorial, you should:
  
 ## Overview
 
-In this tutorial you will learn how to use solid_frame_ipc library for a simple client-server application pair.
-While in previous ipc tutorial the client and server exchanged a single message for the current tutorial we'll have two, slightly more complex messages to exchage:
+In this tutorial you will learn how to use solid_frame_mpipc library for a simple client-server application pair.
+While in previous mpipc tutorial the client and server exchanged a single message for the current tutorial we'll have two, slightly more complex messages to exchage:
  * a request from the client side
  * and a response from the server side
 
@@ -30,7 +30,7 @@ While in previous ipc tutorial the client and server exchanged a single message 
  * extract payload - the regular expression
  * creates a Request with the regular expression string and sends it to the server at recipient endpoint
 
-Notable for the client is the fact that for sending the request, we're using a variant of mpipc::Service::sendMessage with a Lambda parameter as the completion callback.
+Notable for the client is the fact that for sending the request, we're using a variant of mpipc::Service::sendRequest with a Lambda parameter as the completion callback.
 
 Remember that the message completion callback is called when:
  * A message failed to be sent.
@@ -72,7 +72,7 @@ struct Request: solid::frame::mpipc::Message{
 };
 ```
 
-The next piece of code is about the Response message, which, for the sake of exemplifying some of the serialization engien capabilities will make use of two other serializable data structures:
+The next piece of code is about the Response message, which, for the sake of exemplifying some of the serialization engine capabilities will make use of two other serializable data structures:
 
 ```C++
 struct Date{
@@ -138,7 +138,7 @@ So, the client will read from standard input line by line and:
 
 Let us now walk through the code.
 
-First off, initialize the ipc service and its prerequisites:
+First off, initialize the ipcservice and its prerequisites:
 
 ```C++
 		AioSchedulerT			scheduler;
@@ -275,14 +275,14 @@ On the lambda, we display to standard out how many user records that matched the
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/ipc_request
-$ c++ -o ipc_request_client ipc_request_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_ipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ cd solid_frame_tutorials/mpipc_request
+$ c++ -o mpipc_request_client mpipc_request_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 Now that we have a client application, we need a server to connect to. Let's move one on implementing the server.
 
 ## The server implementation
 
-We will skip the the initialization of the ipc service and its prerequisites as it is the same as on the client and we'll start with the ipcservice configuration:
+We will skip the the initialization of the ipcservice and its prerequisites as it is the same as on the client and we'll start with the ipcservice configuration:
 
 ```C++
 		{
@@ -381,7 +381,7 @@ struct MessageSetup{
 ```
 For the protocol implementation we're using two message completion callbacks - one for request and the other for response.
 
-The callback for response is called on the successfull delivery (i.e. successfully sent on socket - NOT necesarily received on client) and it only consist of some checking - no real code.
+The callback for response is called on the successful delivery (i.e. successfully sent on socket - NOT necessarily received on client) and it only consist of some checking - no real code.
 
 The request callback, on the other hand, is called when a request is received from a client and does:
  * create a Response message from the Request one
@@ -441,7 +441,7 @@ which translates to the following line of code from the request message completi
 ```C++
 	auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
 ```
-So, a response message MUST be constructed from the request one. This is because some data from the Request message is needed to be passed to the Respose. That data will be transparently serialized along with the response when sent back to the client and used on the client to identify the request message waiting for the response.
+So, a response message MUST be constructed from the request one. This is because some data from the Request message is needed to be passed to the Response. That data will be transparently serialized along with the response when sent back to the client and used on the client to identify the request message waiting for the response.
 
 As an idea, for a message that moves back and forth from client to server, because of mpipc::Message internal data, one can always know on which side a message is, by using the following methods from mpipc::Message:
 

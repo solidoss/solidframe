@@ -25,12 +25,11 @@ struct ListRequest: solid::frame::mpipc::Message{
 };
 
 struct ListResponse: solid::frame::mpipc::Message{
-	std::string										path;
 	std::deque<std::pair<std::string, uint8_t> >	node_dq;
 	
 	ListResponse(){}
 	
-	ListResponse(const ListRequest &_rmsg):solid::frame::mpipc::Message(_rmsg), path(_rmsg.path){}
+	ListResponse(const ListRequest &_rmsg):solid::frame::mpipc::Message(_rmsg){}
 	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){

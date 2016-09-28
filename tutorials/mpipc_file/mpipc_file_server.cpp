@@ -66,7 +66,7 @@ void complete_message<ipc_file::ListRequest>(
 	auto msgptr = std::make_shared<ipc_file::ListResponse>(*_rrecv_msg_ptr);
 	
 	
-	fs::path fs_path(msgptr->path.c_str()/*, fs::native*/);
+	fs::path fs_path(_rrecv_msg_ptr->path.c_str()/*, fs::native*/);
 	
 	if(fs::exists( fs_path ) and fs::is_directory(fs_path)){
 		fs::directory_iterator  it,end;

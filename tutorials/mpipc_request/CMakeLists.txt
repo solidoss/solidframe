@@ -8,7 +8,6 @@ target_link_libraries (tutorial_mpipc_request_server
 	solid_serialization
 	solid_utility
 	solid_system
-	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )
@@ -23,7 +22,6 @@ target_link_libraries (tutorial_mpipc_request_client
 	solid_serialization
 	solid_utility
 	solid_system
-	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )

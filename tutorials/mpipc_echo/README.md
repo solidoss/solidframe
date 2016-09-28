@@ -14,7 +14,7 @@ Before continuing with this tutorial, you should:
  
 ## Overview
 
-In this tutorial you will learn how to use solid_frame_ipc library for a basic client-server application pair.
+In this tutorial you will learn how to use solid_frame_mpipc library for a basic client-server application pair.
 The client and server will exchange a simple message consisting of a single string.
 
 **The client**:
