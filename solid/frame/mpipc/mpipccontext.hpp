@@ -18,6 +18,7 @@
 #include <ostream>
 
 #include "solid/frame/common.hpp"
+#include "solid/frame/mpipc/mpipcmessage.hpp"
 
 namespace solid{
 namespace frame{
@@ -100,6 +101,14 @@ struct RequestId{
 	uint32_t	index;
 	uint32_t	unique;
 	
+	bool isInvalid()const{
+		return index == InvalidIndex();
+	}
+	
+	bool isValid()const{
+		return !isInvalid();
+	}
+	
 	RequestId(
 		const uint32_t _idx = InvalidIndex(),
 		const uint32_t _uid = InvalidIndex()
@@ -169,6 +178,8 @@ struct ConnectionContext{
 	MessageId const& localMessageId()const{
 		return message_id;
 	}
+	
+	MessagePointerT request(Message const &_rmsg)const;
 	
 	//! Keep any connection data
 	Any<>& any();

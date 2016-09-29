@@ -138,9 +138,12 @@ void MessageReader::doConsumePacket(
 	while(pbufpos < pbufend){
 		
 		bool 			canceled_message = false;
+		
 		switch(crt_msg_type){
 			case PacketHeader::SwitchToNewMessageTypeE:
+				
 				vdbgx(Debug::mpipc, "SwitchToNewMessageTypeE "<<message_q.size());
+				
 				if(message_q.front().message_ptr){
 					if(message_q.size() == _rconfig.max_message_count_multiplex){
 						SOLID_ASSERT(false);
@@ -161,21 +164,30 @@ void MessageReader::doConsumePacket(
 				message_q.front().deserializer_ptr->push(message_q.front().message_ptr);
 				
 				break;
+			
 			case PacketHeader::SwitchToOldMessageTypeE:
+				
 				vdbgx(Debug::mpipc, "SwitchToOldMessageTypeE "<<message_q.size());
+				
 				if(message_q.front().message_ptr){
 					message_q.push(std::move(message_q.front()));
 					message_q.front().packet_count = 0;
 				}
 				message_q.pop();
 				break;
+			
 			case PacketHeader::ContinuedMessageTypeE:
+				
 				vdbgx(Debug::mpipc, "ContinuedMessageTypeE "<<message_q.size());
+				
 				SOLID_ASSERT(message_q.size() and message_q.front().deserializer_ptr and message_q.front().message_ptr);
 				++message_q.front().packet_count;
 				break;
+			
 			case PacketHeader::SwitchToOldCanceledMessageTypeE:
+				
 				vdbgx(Debug::mpipc, "SwitchToOldCanceledMessageTypeE "<<message_q.size());
+				
 				if(message_q.front().message_ptr){
 					message_q.push(std::move(message_q.front()));
 					message_q.front().packet_count = 0;
@@ -184,8 +196,11 @@ void MessageReader::doConsumePacket(
 				canceled_message = true;
 				message_q.front().clear();
 				break;
+			
 			case PacketHeader::ContinuedCanceledMessageTypeE:
+				
 				vdbgx(Debug::mpipc, "ContinuedCanceledMessageTypeE "<<message_q.size());
+				
 				SOLID_ASSERT(message_q.size() and message_q.front().deserializer_ptr and message_q.front().message_ptr);
 				message_q.front().clear();
 				

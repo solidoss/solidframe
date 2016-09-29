@@ -523,3 +523,5 @@ In this tutorial you have learned about basic usage of the solid_frame and solid
  * How to create and start aio::Objects
  * How to notify aio::Objects 
  
+## Next
+

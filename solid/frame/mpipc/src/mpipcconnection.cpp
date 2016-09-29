@@ -1370,7 +1370,9 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext &_rctx, MessagePoi
 		MessageId		pool_msg_id;
 		
 		msg_writer.cancel(_rresponse_ptr->requid, msg_bundle, pool_msg_id);
+		
 		idbgx(Debug::mpipc, this);
+		
 		conctx.message_flags = msg_bundle.message_flags;
 		conctx.request_id = _rresponse_ptr->requid;
 		conctx.message_id = pool_msg_id;
@@ -1503,6 +1505,10 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext &_rctx){
 //-----------------------------------------------------------------------------
 Any<>& ConnectionContext::any(){
 	return rconnection.any();
+}
+//-----------------------------------------------------------------------------
+MessagePointerT ConnectionContext::fetchRequest(Message const &_rmsg)const{
+	return rconnection.fetchRequest(_rmsg);
 }
 //-----------------------------------------------------------------------------
 RecipientId	ConnectionContext::recipientId()const{

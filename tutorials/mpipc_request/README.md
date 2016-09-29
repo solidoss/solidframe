@@ -35,7 +35,7 @@ Notable for the client is the fact that for sending the request, we're using a v
 Remember that the message completion callback is called when:
  * A message failed to be sent.
  * A message that is not waiting for a response, was sent.
- * A response was received for a message waiting for it.
+ * A response was received (for a message waiting for it).
 
 You will need three source files:
  * _mpipc_request_messages.hpp_: the protocol messages.

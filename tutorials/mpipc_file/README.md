@@ -7,7 +7,7 @@ __Source files__
  * The server: [mpipc_file_server.cpp](mpipc_file_server.cpp)
  * The client: [mpipc_file_client.cpp](mpipc_file_client.cpp)
 
- Before continuing with this tutorial, you should:
+Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
  * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
@@ -20,8 +20,8 @@ Using the pair of applications we're going to implement, you will be able to lis
 
 
 **The server**:
- * allows clients to fetch the list of filesystem nodes from a given path using boost_filesystem library;
- * allows clients to fetch files on the server given a path
+ * allows clients to fetch the list of filesystem nodes under a given path using boost_filesystem library;
+ * allows clients to fetch files on the server given their remote path.
 
 **The client**:
  * for every command line input
@@ -32,14 +32,14 @@ Using the pair of applications we're going to implement, you will be able to lis
    * creates a ListRequest message and sends it to recipient endpoint
  * for C command:
    * extract the remote path and the local path
-   * creates a FileRequest message and send it to recipient endpoing
+   * creates a FileRequest message and send it to recipient endpoint
 
 Notable for the client is the fact that for sending the requests, we're using a variant of mpipc::Service::sendRequest with a Lambda parameter as the completion callback.
 
 Remember that the message completion callback is called when:
  * A message failed to be sent.
  * A message that is not waiting for a response, was sent.
- * A response was received for a message waiting for it.
+ * A response was received (for a message waiting for it).
 
 You will need three source files:
  * _mpipc_file_messages.hpp_: the protocol messages.
@@ -167,10 +167,11 @@ struct FileResponse: solid::frame::mpipc::Message{
 };
 ```
 
-Lets delve a little onto the serialize method.
+Lets delve a little into the _serialize_ method.
 
-First, some background. The serialization engine from solid framework is asynchronous - this means that the serialization does not happen right-away but it is scheduled for later when input data or output space will be available. That is why, pushing items into serialization engine, schedules them in a stack (LastInFirstOut) like fashion. This is why the elements you push last will actually get serialized first.
-In some situation, as is the case with FileResponse, some serialization engine decisions/operations can happen after some certain fields were already serialized. In our case, on the deserialization (client) side, before starting to serialize the stream we need it opened for writing to a file.
+**First, some background**
+The serialization engine from solid framework is _lazy_ - this means that the serialization does not happen right-away but it is scheduled for later when input data or output space will be available. That is why, pushing items into serialization engine, schedules them in a stack (LastInFirstOut) like fashion. This is why the elements you push last will actually get serialized first.
+In some situation, as is the case with FileResponse, some serialization engine decisions/operations must happen after some certain fields were already serialized. In our case, on the deserialization (client) side, before starting to serialize the stream we need it opened for writing to a file.
 
 In the future versions of mpipc library we might be able to access the Request message from within the serialization method of the Response (via ConnectionContext) but now we need to return from the server with the local path (given on Request) and open the file stream for writing, after we've received the localpath string. For that we use the pushCall functionality of the serialization engine - which schedules a call to a lambda after the other message items (the remote_path and local_path and in case of deserializer, remote_file_size) were completed.
 
