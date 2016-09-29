@@ -179,7 +179,7 @@ struct ConnectionContext{
 		return message_id;
 	}
 	
-	MessagePointerT request(Message const &_rmsg)const;
+	MessagePointerT fetchRequest(Message const &_rmsg)const;
 	
 	//! Keep any connection data
 	Any<>& any();
