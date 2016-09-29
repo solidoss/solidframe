@@ -16,7 +16,7 @@ Before continuing with this tutorial, you should:
 ## Overview
 
 In this tutorial you will learn how to use solid_frame_mpipc library for a simple remote file access client-server application pair.
-Using the pair of applications we're going to implement, you will be able to list the remote filesystem nodes and copy files from remote host to localhost.
+Using the pair of applications we're going to implement, you will be able to list the remote file-system nodes and copy files from remote host to localhost.
 
 
 **The server**:
@@ -191,7 +191,7 @@ Else, if the engine is a Deserializer (on the receiving side - i.e. back on clie
  * If the remote_file_size field we've already parsed has a valid size, open a output stream for a file pointed by localPath (we're on the client and we get the localPath from the request)
  * schedules the stream for deserialization via pushStream. Note that the pushStream is called whether we've opened the file or not letting the serialization engine handle errors.
 
-FileResponse and FileRequest are also examples of how and when to access the Request Message that is waiting for the response from within the response's serialization method. This is an effective way to store data that is needed by the response during the deserialization. Another way would have beed to use Connection's "any" data (_rctx.any()) but it would have not been such a clean solution.
+FileResponse and FileRequest are also examples of how and when to access the Request Message that is waiting for the response from within the response's serialization method. This is an effective way to store data that is needed by the response during the deserialization. Another way would have been to use Connection's "any" data (_rctx.any()) but it would have not been such a clean solution.
 
 Another thing worth mentioning about the above messages is that every response message has a constructor needing a reference to the request message. This is because the mpipc library keeps some data onto the base mpipc::Message which must be passed from the request to the response (it needs the data to identify the request message waiting the currently received message).
 
