@@ -109,19 +109,16 @@ struct FileRequest: solid::frame::mpipc::Message{
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
 		_s.push(remote_path, "remote_path");
-		_s.push(local_path, "local_path");
-		
 	}	
 };
 ```
-which consists of two strings - the remote path and the local path.
+which consists of two strings - the remote path and the local path. The interesting thing is that only the _remote_path_ string gets serialized, the local_path is set only to be used by the FileResponse on deserialization to open/create the local file.
 
 Last is the FileResponse message with its little more complicated serialization method:
 
 ```C++
 struct FileResponse: solid::frame::mpipc::Message{
 	std::string			remote_path;
-	std::string			local_path;
 	std::fstream		fs;
 	int64_t				remote_file_size;
 	
@@ -130,7 +127,7 @@ struct FileResponse: solid::frame::mpipc::Message{
 	FileResponse(
 		const FileRequest &_rmsg
 	):	solid::frame::mpipc::Message(_rmsg), remote_path(_rmsg.remote_path),
-		local_path(_rmsg.local_path), remote_file_size(solid::InvalidSize()){}
+		remote_file_size(solid::InvalidSize()){}
 	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
@@ -151,8 +148,10 @@ struct FileResponse: solid::frame::mpipc::Message{
 					}
 					_rs.push(remote_file_size, "remote_file_size");
 				}else{
-					if(remote_file_size != solid::InvalidSize()){
-						fs.open(local_path.c_str(), std::fstream::out | std::fstream::binary);
+					std::string *plocal_path = localPath(_rctx);
+					
+					if(remote_file_size != solid::InvalidSize() and plocal_path){
+						fs.open(plocal_path->c_str(), std::fstream::out | std::fstream::binary);
 					}
 					_rs.pushStream(static_cast<std::ostream*>(&fs), "fs");
 				}
@@ -161,8 +160,14 @@ struct FileResponse: solid::frame::mpipc::Message{
 		if(not S::IsSerializer){
 			_s.push(remote_file_size, "remote_file_size");
 		}
-		_s.push(remote_path, "remote_path");
-		_s.push(local_path, "local_path");
+	}
+private:
+	std::string * localPath(solid::frame::mpipc::ConnectionContext &_rctx)const{
+		auto req_ptr = std::dynamic_pointer_cast<FileRequest>(_rctx.fetchRequest(*this));
+		if(req_ptr){
+			return &req_ptr->local_path;
+		}
+		return nullptr;
 	}
 };
 ```
@@ -170,10 +175,11 @@ struct FileResponse: solid::frame::mpipc::Message{
 Lets delve a little into the _serialize_ method.
 
 **First, some background**
-The serialization engine from solid framework is _lazy_ - this means that the serialization does not happen right-away but it is scheduled for later when input data or output space will be available. That is why, pushing items into serialization engine, schedules them in a stack (LastInFirstOut) like fashion. This is why the elements you push last will actually get serialized first.
-In some situation, as is the case with FileResponse, some serialization engine decisions/operations must happen after some certain fields were already serialized. In our case, on the deserialization (client) side, before starting to serialize the stream we need it opened for writing to a file.
 
-In the future versions of mpipc library we might be able to access the Request message from within the serialization method of the Response (via ConnectionContext) but now we need to return from the server with the local path (given on Request) and open the file stream for writing, after we've received the localpath string. For that we use the pushCall functionality of the serialization engine - which schedules a call to a lambda after the other message items (the remote_path and local_path and in case of deserializer, remote_file_size) were completed.
+The serialization engine from solid framework is _lazy_ - this means that the serialization does not happen right-away but it is scheduled for later when input data or output space will be available. That is why, pushing items into serialization engine, schedules them in a stack (LastInFirstOut) like fashion. This is why the elements you push last will actually get serialized first.
+In some situation, as is the case with FileResponse, some serialization engine decisions/operations must happen after some certain fields were already serialized. In our case, on the deserialization (client) side, before starting to serialize the stream we need it opened for writing to a file. For that we use the pushCall functionality of the serialization engine - which schedules a call to a lambda after the other message items (in case of deserializer, remote_file_size) were completed.
+
+In the above code, we use remote_file_size as a mean to notify the client side, the deserialization side of the message, that the remote file could not be opened and there is no reason to create the local file (the destination file on the client).
 
 In the lambda, if the engine is a serializer (on the sending side - i.e. the server):
  * open a filestream to the file pointed by remote_path (remember we're on the server)
@@ -182,12 +188,14 @@ In the lambda, if the engine is a serializer (on the sending side - i.e. the ser
  * schedules the remote_file_size for serialization (will get serialized before the stream)
 
 Else, if the engine is a Deserializer (on the receiving side - i.e. back on client):
- * If the remote_file_size field we've already parsed has a valid size, open a output stream for a file pointed by local_path (we're on the client)
- * schedules the stream for deserialization via pushStream. Note that the pushStream is called whether we've open the file or not letting the serialization engine handle errors.
+ * If the remote_file_size field we've already parsed has a valid size, open a output stream for a file pointed by localPath (we're on the client and we get the localPath from the request)
+ * schedules the stream for deserialization via pushStream. Note that the pushStream is called whether we've opened the file or not letting the serialization engine handle errors.
+
+FileResponse and FileRequest are also examples of how and when to access the Request Message that is waiting for the response from within the response's serialization method. This is an effective way to store data that is needed by the response during the deserialization. Another way would have beed to use Connection's "any" data (_rctx.any()) but it would have not been such a clean solution.
 
 Another thing worth mentioning about the above messages is that every response message has a constructor needing a reference to the request message. This is because the mpipc library keeps some data onto the base mpipc::Message which must be passed from the request to the response (it needs the data to identify the request message waiting the currently received message).
 
-The last thing is needed to finish with the protocol definition is to define the ProtoSpec type.
+One last thing is needed to finish with the protocol definition - define the ProtoSpec type:
 
 ```C++
 using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, ListRequest, ListResponse, FileRequest, FileResponse>;
@@ -578,3 +586,7 @@ $ ./mpipc_file_client
 localhost:3333 l /home/
 localhost:3333 c /home/user/file.txt ./file.txt
 ```
+## Next
+
+Well, this is the last tutorial for now.
+If solid_frame_mpipc library or solid_frame has captured you attention, start using it and give feedback.

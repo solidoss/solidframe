@@ -417,3 +417,10 @@ $ ./mpipc_echo_server 0.0.0.0:4444
 ```
 
 On the client you will see that the text is immediately received back from :3333 server while the second text is received back only after the second server is started. This is because, normally, the ipcservice will try re-sending the message until the recipient side becomes available. Use **mpipc::MessageFlags::OneShotSend** to change the behavior and only try once to send the message and immediately fail if the server is offline.
+
+## Next
+
+Now that you have some idea about the solid_frame_mpipc library and you are still interested of its capabilities you can further check the next tutorials:
+
+ * [MPIPC Request](../mpipc_request)
+ * [MPIPC File](../mpipc_file)

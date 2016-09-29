@@ -18,11 +18,12 @@
 #include <ostream>
 
 #include "solid/frame/common.hpp"
-#include "solid/frame/mpipc/mpipcmessage.hpp"
 
 namespace solid{
 namespace frame{
 namespace mpipc{
+
+struct Message;
 
 //! A structure to uniquely indetify an IPC connection pool
 /*!
@@ -179,7 +180,7 @@ struct ConnectionContext{
 		return message_id;
 	}
 	
-	MessagePointerT fetchRequest(Message const &_rmsg)const;
+	std::shared_ptr<Message> fetchRequest(Message const &_rmsg)const;
 	
 	//! Keep any connection data
 	Any<>& any();

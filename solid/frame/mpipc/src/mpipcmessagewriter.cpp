@@ -107,6 +107,14 @@ bool MessageWriter::cancel(
 	return false;
 }
 //-----------------------------------------------------------------------------
+MessagePointerT MessageWriter::fetchRequest(MessageId const &_rmsguid)const{
+	if(_rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique){
+		const MessageStub		&rmsgstub = message_vec[_rmsguid.index];
+		return MessagePointerT(rmsgstub.msgbundle.message_ptr);
+	}
+	return MessagePointerT();
+}
+//-----------------------------------------------------------------------------
 bool MessageWriter::cancelOldest(
 	MessageBundle &_rmsgbundle,
 	MessageId &_rpool_msg_id

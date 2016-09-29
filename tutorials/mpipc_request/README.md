@@ -487,3 +487,11 @@ $ ./mpipc_request_server 0.0.0.0:4444
 ```
 
 On the client you will see that the records list is immediately received back from :3333 server while the second response is received back only after the second server is started. This is because, normally, the ipcservice will try re-sending the message until the recipient side becomes available. Use **mpipc::MessageFlags::OneShotSend** to change the behavior and only try once to send the message and immediately fail if the server is offline.
+
+## Next
+
+If you are still insterested what solid_frame_mpipc library has to offer, check-out the next tutorial 
+ 
+ * [MPIPC File](../mpipc_file)
+ 
+in which you will learn how to implement a very basic remote file access protocol.

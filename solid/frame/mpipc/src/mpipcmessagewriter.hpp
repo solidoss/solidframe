@@ -60,6 +60,8 @@ public:
 		MessageId &_rpool_msg_id
 	);
 	
+	MessagePointerT fetchRequest(MessageId const &_rmsguid)const;
+	
 	bool cancelOldest(
 		MessageBundle &_rmsgbundle,
 		MessageId &_rpool_msg_id

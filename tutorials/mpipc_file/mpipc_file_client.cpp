@@ -198,8 +198,6 @@ int main(int argc, char *argv[]){
 									}
 									
 									SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
-									SOLID_CHECK(_rsent_msg_ptr->local_path == _rrecv_msg_ptr->local_path);
-									SOLID_CHECK(_rsent_msg_ptr->remote_path == _rrecv_msg_ptr->remote_path);
 									
 									cout<<"Done copy from "<<_rctx.recipientName()<<":"<<_rsent_msg_ptr->remote_path<<" to "<<_rsent_msg_ptr->local_path<<": ";
 									

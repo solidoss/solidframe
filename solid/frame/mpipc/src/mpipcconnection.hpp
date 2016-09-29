@@ -117,6 +117,8 @@ public:
 	
 	Any<>& any();
 	
+	MessagePointerT fetchRequest(Message const &_rmsg)const;
+	
 	ConnectionPoolId const& poolId()const;
 	const std::string& poolName()const;
 	
@@ -298,6 +300,10 @@ protected:
 
 inline Any<>& Connection::any(){
 	return any_data;
+}
+
+inline MessagePointerT Connection::fetchRequest(Message const &_rmsg)const{
+	return msg_writer.fetchRequest(_rmsg.requid);
 }
 
 inline ConnectionPoolId const& Connection::poolId()const{

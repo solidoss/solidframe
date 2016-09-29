@@ -525,3 +525,7 @@ In this tutorial you have learned about basic usage of the solid_frame and solid
  
 ## Next
 
+If you are interested on a higher level communication engine you can check out the tutorials about solid_frame_mpipc (Message Passing InterProcess Communication) library:
+ * [MPIPC Echo](../mpipc_echo)
+ * [MPIPC Request](../mpipc_request)
+ * [MPIPC File](../mpipc_file)

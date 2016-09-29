@@ -57,12 +57,13 @@ On the other side you should be able to call native C++ code from other language
 * (DONE) set all ErrorConditions across frame/aio and frame/mpipc to valid errors (all the TODOs)
 * (DONE) investigate how to support multiple versions of the serialization library.
 * (DONE) add support multiple versions of the serialization library
+* (DONE) allow for a response to access the request message from its serialization method.
+
 
 ## TODO v2.x
 
 * test_unresolved_recipient
 * test_raw_proxy
-* allow for a response to access the request message from its serialization method.
 * add support for compression - test and improve
 * add support for OpenSSL - needs extending OpenSSL support in frame/aio
 * add support in mpipc::configuration for SOCKS5

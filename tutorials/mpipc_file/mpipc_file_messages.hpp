@@ -52,14 +52,11 @@ struct FileRequest: solid::frame::mpipc::Message{
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
 		_s.push(remote_path, "remote_path");
-		_s.push(local_path, "local_path");
-		
 	}	
 };
 
 struct FileResponse: solid::frame::mpipc::Message{
 	std::string			remote_path;
-	std::string			local_path;
 	std::fstream		fs;
 	int64_t				remote_file_size;
 	
@@ -68,7 +65,7 @@ struct FileResponse: solid::frame::mpipc::Message{
 	FileResponse(
 		const FileRequest &_rmsg
 	):	solid::frame::mpipc::Message(_rmsg), remote_path(_rmsg.remote_path),
-		local_path(_rmsg.local_path), remote_file_size(solid::InvalidSize()){}
+		remote_file_size(solid::InvalidSize()){}
 	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
@@ -89,8 +86,10 @@ struct FileResponse: solid::frame::mpipc::Message{
 					}
 					_rs.push(remote_file_size, "remote_file_size");
 				}else{
-					if(remote_file_size != solid::InvalidSize()){
-						fs.open(local_path.c_str(), std::fstream::out | std::fstream::binary);
+					std::string *plocal_path = localPath(_rctx);
+					
+					if(remote_file_size != solid::InvalidSize() and plocal_path){
+						fs.open(plocal_path->c_str(), std::fstream::out | std::fstream::binary);
 					}
 					_rs.pushStream(static_cast<std::ostream*>(&fs), "fs");
 				}
@@ -99,8 +98,14 @@ struct FileResponse: solid::frame::mpipc::Message{
 		if(not S::IsSerializer){
 			_s.push(remote_file_size, "remote_file_size");
 		}
-		_s.push(remote_path, "remote_path");
-		_s.push(local_path, "local_path");
+	}
+private:
+	std::string * localPath(solid::frame::mpipc::ConnectionContext &_rctx)const{
+		auto req_ptr = std::dynamic_pointer_cast<FileRequest>(_rctx.fetchRequest(*this));
+		if(req_ptr){
+			return &req_ptr->local_path;
+		}
+		return nullptr;
 	}
 };
 
