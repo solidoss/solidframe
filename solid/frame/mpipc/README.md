@@ -22,7 +22,7 @@
 	* __idempotent__: will try re-sending the message until either successfully sent (i.e. completely left the sending side) or, in case the message awaits a response, until a response was received.
 
 **solid_frame_mpipc** is a peer-to-peer message passing communication library which provides a pure C++ way of implementing communication between two processes. It uses:
- * asynchronous (Secure/Plain) TCP connection pools through solid_frame_aio library.
+ * asynchronous TCP connection pools through solid_frame_aio library.
  * a serialization protocol based on solid_serialization library.
 
 Thus, solid_frame_mpipc differs from other implementations by:
