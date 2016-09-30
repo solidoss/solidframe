@@ -1,6 +1,6 @@
 # solid_frame_mpipc
 
-**Message Passing InterProcess Communication Engine over Secure/Plain TCP**
+**Message Passing InterProcess Communication Engine TCP**
 
 ## Features
 
@@ -19,7 +19,7 @@
 		* If, while sending the message, there is a network failure the library will complete it immediately and not try to resend it.
 	* __synchronous__: all synchronous messages are sent one after another.
 	* __one_shot__: only tries once to send the message.
-	* __idempotent__: will try re-sending the message until either successfully sent (i.e. completely left the sending side) or, in case the message awaits a response, until a response was received. 
+	* __idempotent__: will try re-sending the message until either successfully sent (i.e. completely left the sending side) or, in case the message awaits a response, until a response was received.
 
 **solid_frame_mpipc** is a peer-to-peer message passing communication library which provides a pure C++ way of implementing communication between two processes. It uses:
  * asynchronous (Secure/Plain) TCP connection pools through solid_frame_aio library.
@@ -37,7 +37,7 @@ On the other hand you should be able to call native C++ code from other language
 * Support for buffer/packet level compression.
 	* The library will compress/decompress using a pluggable algorithm.
 	* In future versions of the library the compression will be adaptable.
-* Support SSL/TLS for encrypted transport (using OpenSSL/BoringSSL via to be improved library: solid_frame_aio_openssl)
+* **Finalize support for Secure Communication** after solid_frame_aio_openssl library will be completed.
 
 ## TODO v2.0:
 
@@ -63,7 +63,7 @@ On the other hand you should be able to call native C++ code from other language
 * test_unresolved_recipient
 * test_raw_proxy
 * add support for compression - test and improve
-* add support for OpenSSL - needs extending OpenSSL support in frame/aio
+* add support for OpenSSL - needs extending OpenSSL support in solid_frame_aio_openssl
 * add support in mpipc::configuration for SOCKS5
 
 ## NOTES
