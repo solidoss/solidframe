@@ -1,45 +1,43 @@
 # solid_frame_mpipc
 
-Message Passing InterProcess Communication Engine over Secure/Plain TCP
+**Message Passing InterProcess Communication Engine over Secure/Plain TCP**
 
 ## Features
 
-* C++ only (no IDLs).
-* Per recipient connection pool.
-	* Scale up the number of connections based on the number of messages on send queue and up to a configurable limit.
-* Asynchronous.
-	* The interface is asynchronous.
-	* Uses solid::frame::aio, asynchronous communication library.
-* Buffer oriented message serialization engine: the messages is serialized (marshaled) one fixed size buffer at a time. This further enables:
-	* Sending messages that are bigger than the system memory (e.g. a message with a 100GB file).
-	* Message multiplexing. Messages from the send queue are sent in parallel on the same connection. This means for example that multiple small messages can be send while also sending one (or more) huge message(s).
-* Configurable limit for per-recipient pending number of connections.
+* C++ only (no IDLs) with easy to use **asynchronous API**.
+* A single class (solid::frame::mpipc::Service) for both client and server. An instance of solid::frame::mpipc::Service can act as a client as a server or as both.
+* Buffer oriented message serialization engine: messages are serialized (marshaled) one fixed size buffer at a time, further enabling:
+	* **No limit for message size** - one can send a 100GB file as a single message.
+	* **Message multiplexing** - messages from the send queue are sent in parallel on the same connection. This means for example that multiple small messages can be send while also sending one (or more) huge message(s).
+* For client side, use **connection pool per recipient**.
+	* By default the connection pool is limited to a single connection.
+	* For higher throughput one can increase this limit in mpipc::Service's configuration.
 * Rescale up after a network failure.
-* Messages can be any of:
+* Messages can be any of the following types:
 	* __basic__: normal behavior
 		* In case of network failures, the library will keep on trying to send the message until the message Started to be sent.
 		* If, while sending the message, there is a network failure the library will complete it immediately and not try to resend it.
 	* __synchronous__: all synchronous messages are sent one after another.
 	* __one_shot__: only tries once to send the message.
-	* __idempotent__: will try resending the message until either successfully sent or, in case the message awaits a response, until a response was received. 
+	* __idempotent__: will try re-sending the message until either successfully sent (i.e. completely left the sending side) or, in case the message awaits a response, until a response was received. 
 
-_solid_frame_mpipc_ is a peer-to-peer communication library which provides a pure C++ way of implementing communication between two processes. It offers:
- * asynchronous (Secure/Plain) TCP connection pools, using solid_frame_aio library.
+**solid_frame_mpipc** is a peer-to-peer message passing communication library which provides a pure C++ way of implementing communication between two processes. It uses:
+ * asynchronous (Secure/Plain) TCP connection pools through solid_frame_aio library.
  * a serialization protocol based on solid_serialization library.
 
 Thus, solid_frame_mpipc differs from other implementations by:
- * not needing a message preprocessor for marshaling (as does: protobuf) - you specify how a message gets marshalled programatically using simple C++ code (something similar to boost-serialization).
- * not needing a preprocessor for creating client server stubs (apache thrift) - you just instantiate a frame::mpipc::ServiceT allong with its dependecies and configure it.
+ * not needing a message pre-processor for marshaling (as does: Google protobuf) - you specify how a message gets marshaled using simple C++ code (something similar to boost-serialization).
+ * not needing a pre-processor for creating client server stubs (Apache thrift) - you just instantiate a frame::mpipc::ServiceT allong with its dependencies and configure it.
 
 The downside is that solid_frame_mpipc will always be a C++ only library while the above alternatives (protobuf & thrift) can be used from multiple languages.
 
-On the other side you should be able to call native C++ code from other languages.
+On the other hand you should be able to call native C++ code from other languages.
 
 ### Planned
 * Support for buffer/packet level compression.
 	* The library will compress/decompress using a pluggable algorithm.
 	* In future versions of the library the compression will be adaptable.
-* Support SSL/TLS for ecrypted transport (using OpenSSL)
+* Support SSL/TLS for encrypted transport (using OpenSSL/BoringSSL via to be improved library: solid_frame_aio_openssl)
 
 ## TODO v2.0:
 

@@ -15,18 +15,37 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 ## Prerequisites
 * C++11 enabled compiler
-* [CMake](https://cmake.org/) 
-* [boost](http://www.boost.org/)
-* [OpenSSL](https://www.openssl.org/)
+* [CMake](https://cmake.org/): for build system
+* [boost](http://www.boost.org/): for tests, examples and tutorials - not for libraries themselves.
+* [OpenSSL](https://www.openssl.org/)/[BorringSSL](https://boringssl.googlesource.com/boringssl/): needed by solid_frame_aio_openssl library.
 
 ## Supported platforms
 
-* Linux - (tested on latest Fedora i686/x86_64 and Raspian on Raspberry Pi 2 armv7l) - gcc
-* FreeBSD - (tested on FreeBSD/PcBSD 10.3) - llvm
-* Darwin/OSX - (waiting for XCode 8 with support for thread_local) - llvm
-* Windows - (partial) - latest VisualStudio
+* **Linux** - _gcc_ - (tested on latest Fedora i686/x86_64, Ubuntu LTS and Raspian on Raspberry Pi 2 armv7l)
+* **FreeBSD** - _llvm_ - (tested on FreeBSD/PcBSD 10.3)
+* **Darwin/OSX** - _llvm_ - (starting with XCode 8 which has support for thread_local)
+* **Android** - _llvm_ - (starting with Android Studio 2.2 RC2 - follow [EchoClient example](https://github.com/vipalade/study_android/tree/master/EchoClient))
+* Windows - MSVC - (partial)
 
 ## Libraries
+
+**Focused:**
+
+* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing Inter-Process Communication over Secure/Plain TCP ([MPIPC library](solid/frame/mpipc/README.md))
+	* _mpipc::Service_ - pass messages to/from multiple peers.
+* [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
+	* _Object_ - reactive object with support for Asynchronous IO
+	* _Reactor_ - reactor with support for Asynchronous IO
+	* _Listener_ - asynchronous TCP listener/server socket
+	* _Stream_ - asynchronous TCP socket
+	* _Datagram_ - asynchronous UDP socket
+	* _Timer_ - allows objects to schedule time based events
+* [__solid_serialization__](#solid_serialization): binary serialization/marshaling
+	* _binary::Serializer_
+	* _binary::Deserializer_
+	* _TypeIdMap_
+
+**All:**
 
 * [__solid_system__](#solid_system):
 	* Wrappers for socket/file devices, socket address, directory access
@@ -158,10 +177,10 @@ Also, the debug engine has support for registering modules and for specifying en
 
 In the above code we:
  * Set the global levelMask to "view" (V = Verbose, I = Info, E = Error, W = Warning).
- * Enable logging for only two modules: "frame_ipc" and "any" (the generic module used by [v/i/e/w]dbg() macros). For "frame_ipc" restrict the level mask to {Info, Error, Warning} and for "any" restrict it to only {Error and Warning}.
+ * Enable logging for only two modules: "frame_mpipc" and "any" (the generic module used by [v/i/e/w]dbg() macros). For "frame_mpipc" restrict the level mask to {Info, Error, Warning} and for "any" restrict it to only {Error and Warning}.
  * Configure the debug log engine to send log records to stderr.
  * Send a log _error_ line for "any" module.
- * Send a log _info_ line for "frame_ipc" module.
+ * Send a log _info_ line for "frame_mpipc" module.
 
 The Debug engine allows for registering new modules like this:
 
@@ -169,7 +188,7 @@ The Debug engine allows for registering new modules like this:
 	static const auto my_module_id = Debug::the().registerModule("my_module");
 	//...
 	//enable the module 
-	Debug::the().moduleMask("frame_ipc:iew any:ew my_module:view");
+	Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
 	//...
 	//log a INFO line for the module:
 	idbgx(my_module_id, "error starting engine: "<<error.mesage());
@@ -184,7 +203,7 @@ or like this:
 	
 	//...
 	//enable the module 
-	Debug::the().moduleMask("frame_ipc:iew any:ew my_module:view");
+	Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
 	//...
 	//log a INFO line for the module:
 	idbgx(my_module_id(), "error starting engine: "<<error.mesage());
@@ -478,7 +497,7 @@ Message Passing Inter Process Communication library - over Plain/Secure TCP conn
  * [__mpipcconfiguration.hpp__](solid/frame/mpipc/mpipcconfiguration.hpp): Configuration data for mpipc::Service.
 
 __Usefull links__
- * [Informations about solid_frame_mpipc](solid/frame/mpipc/README.md)
+ * [README](solid/frame/mpipc/README.md)
  * [Tutorial: mpipc_echo](tutorials/mpipc_echo/README.md)
  * [Tutorial: mpipc_file](tutorials/mpipc_file/README.md)
  * [Tutorial: mpipc_request](tutorials/mpipc_request/README.md)
