@@ -29,7 +29,7 @@ namespace frame{
 
 namespace aio{
 class Resolver;
-class ObjectProxy;
+struct ObjectProxy;
 }
 
 namespace mpipc{

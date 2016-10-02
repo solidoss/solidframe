@@ -147,7 +147,6 @@ private:
 	char						bbeg[BufferCapacity];
 	char 						*bpos;
 	char						*bend;
-	bool						b;
 	char						cmd;
 	std::string					path;
 	IOFileStreamT				iofs;
@@ -382,7 +381,7 @@ static frame::UniqueId						tempuid;
 
 
 Connection::Connection(SocketDevice &_rsd):
-	sock(this->proxy(), std::move(_rsd)), b(false), crtpat(patt)
+	sock(this->proxy(), std::move(_rsd)), crtpat(patt)
 {
 	state = ReadInit;
 	bend = bbeg;
