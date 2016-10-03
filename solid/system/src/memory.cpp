@@ -28,7 +28,7 @@ size_t memory_page_size(){
 void * memory_allocate_aligned(size_t _align, size_t _size){
 #ifdef SOLID_ON_WINDOWS
 	return nullptr;
-#elif  defined(SOLID_ON_DARWIN)
+#elif  defined(SOLID_ON_DARWIN) || defined(SOLID_ON_FREEBSD)
 	void *retval = 0;
 	int rv = posix_memalign(&retval, _align, _size);
 	if(rv == 0){

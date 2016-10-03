@@ -31,7 +31,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 **Focused:**
 
-* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing Inter-Process Communication over Secure/Plain TCP ([MPIPC library](solid/frame/mpipc/README.md))
+* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing Inter-Process Communication over TCP ([MPIPC library](solid/frame/mpipc/README.md))
 	* _mpipc::Service_ - pass messages to/from multiple peers.
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
 	* _Object_ - reactive object with support for Asynchronous IO
@@ -79,7 +79,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * [__solid_frame_aio_openssl__](#solid_frame_aio_openssl): SSL support via OpenSSL
 * [__solid_frame_file__](#solid_frame_file)
 	* _file::Store_ - a shared store for files
-* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing InterProcess Communication over Secure/Plain TCP ([MPIPC library](solid/frame/mpipc/README.md))
+* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing InterProcess Communication over TCP ([MPIPC library](solid/frame/mpipc/README.md))
 	* _mpipc::Service_ - pass messages to/from multiple peers.
 
 ## <a id="installation"></a>Installation
@@ -482,14 +482,14 @@ __Usefull links__
 
 ### <a id="solid_frame_aio_openssl"></a>solid_frame_aio_openssl
 
-The library extends solid_frame_aio with support for Secure Sockets.
+Work in progress: The library extends solid_frame_aio with support for Secure Sockets based on OpenSSL/BorringSSL libraries.
  * [__aiosecuresocket.hpp__](solid/frame/aio/openssl/aiosecuresocket.hpp): Used by aio::Stream for SSL.
  * [__aiosecurecontext.hpp__](solid/frame/aio/openssl/aiosecurecontext.hpp): OpenSSL context wrapper.
 
 
 ### <a id="solid_frame_mpipc"></a>solid_frame_mpipc
 
-Message Passing Inter Process Communication library - over Plain/Secure TCP connections and a protocol based on solid_serialization.
+Message Passing Inter Process Communication library - protocol based on solid_serialization over TCP.
 
  * [__mpipcservice.hpp__](solid/frame/mpipc/mpipcservice.hpp): Main interface of the library. Sends mpipc::Messages to different recipients and receives mpipc::Messages.
  * [__mpipcmessage.hpp__](solid/frame/mpipc/mpipcmessage.hpp): Base class for all messages sent through mpipc::Service.

@@ -13,7 +13,7 @@
 #include <vector>
 #include "solid/system/function.hpp"
 #include "solid/system/socketaddress.hpp"
-#include "solid/frame/ipc/ipcmessage.hpp"
+#include "solid/frame/mpipc/mpipcmessage.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/frame/scheduler.hpp"
@@ -29,7 +29,7 @@ namespace frame{
 
 namespace aio{
 class Resolver;
-class ObjectProxy;
+struct ObjectProxy;
 }
 
 namespace mpipc{
