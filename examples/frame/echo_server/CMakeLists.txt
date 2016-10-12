@@ -1,7 +1,5 @@
 add_executable (example_echo_server example_echo_server.cpp)
 
-#set_source_files_properties(echoserver.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\"")
-
 target_link_libraries (example_echo_server
 	solid_frame
 	solid_frame_aio
@@ -42,8 +40,6 @@ add_custom_target(example_secure_certs
 
 add_executable (example_secure_echo_server example_secure_echo_server.cpp)
 
-#set_source_files_properties(echoserver.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\"")
-
 target_link_libraries (example_secure_echo_server
 	solid_frame
 	solid_frame_aio
@@ -58,4 +54,19 @@ target_link_libraries (example_secure_echo_server
 	${SYS_DYNAMIC_LOAD_LIB}
 )
 
+add_executable (example_secure_echo_client example_secure_echo_client.cpp)
+
+target_link_libraries (example_secure_echo_client
+	solid_frame
+	solid_frame_aio
+	solid_frame_aio_openssl
+	solid_serialization
+	solid_utility
+	solid_system
+	${OPENSSL_LIBS}
+	${BOOST_PROGRAM_OPTIONS_LIB}
+	${BOOST_SYSTEM_LIB}
+	${SYS_BASIC_LIBS}
+	${SYS_DYNAMIC_LOAD_LIB}
+)
 

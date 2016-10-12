@@ -434,6 +434,20 @@ public:
 			systemError(_rctx, err);
 		}
 	}
+	
+	template <typename F>
+	void secureSetVerifyCallback(ReactorContext &_rctx, F _f){
+		//TODO: use SSL_set_verify
+	}
+	
+	void secureSetVerifyDepth(int _depth){
+		//TODO: use SSL_set_verify_depth
+	}
+	
+	void secureSetVerifyMode(/*.TODO..*/){
+		//TODO: use SSL_set_verify
+	}
+	
 private:
 	void doPostRecvSome(ReactorContext &_rctx){
 		reactor(_rctx).post(_rctx, on_posted_recv_some, Event(), *this);

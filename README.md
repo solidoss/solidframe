@@ -137,9 +137,8 @@ Windows is not yet supported.
 
 _SolidFrame_ is an experimental framework to be used for implementing cross-platform C++ network enabled applications or modules.
 
-The consisting libraries only depend on C++ STL with two exceptions:
- * __solid_frame_aio_openssl__: which obviously depends on [OpenSSL](https://www.openssl.org/)
- * __solid_frame_ipc__: which, by using solid_frame_aio_openssl implicitly depends on OpenSSL too.
+The consisting libraries only depend on C++ STL with one exception:
+ * __solid_frame_aio_openssl__: which depends on either [OpenSSL](https://www.openssl.org/) or [BorringSSL](https://boringssl.googlesource.com/boringssl/)
 
 In order to keep the framework as dependency-free as possible some components that can be found in other libraries/frameworks were re-implemented here too, most of them being locate in either __solid_utility__ or __solid_system__ libraries.
 

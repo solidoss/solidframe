@@ -263,7 +263,8 @@ The interesting line in the above block is
 Which schedules the message to be sent to a server identified by recipient address.
 As you can see in the above line, the message we are sending is a request for which we expect a response. The response will come on the catch-all message completion callback ipc_echo_client::complete_message that we've set up earlier.
 
-The mpipc::Sevice class contains mutiple methods for sending message. In the [MPIPC Request](../mpipc_request) you will learn about for which you can specify the message completion callback function.
+The mpipc::Sevice class contains mutiple methods for sending messages.
+In the [MPIPC Request](../mpipc_request) tutorial you will learn about other method for sending a message - called _sendRequest_ - which sends a message for which a response is expected. The completion callback given to _sendRequest_ will be called with the received response.
 
 
 ### Compile
