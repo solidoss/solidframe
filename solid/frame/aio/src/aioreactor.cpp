@@ -909,9 +909,19 @@ void Reactor::doCompleteEvents(ReactorContext const &_rctx){
 				d.objdq.resize(rnewobj.uid.index + 1);
 			}
 			ObjectStub 		&ros = d.objdq[rnewobj.uid.index];
+			
 			SOLID_ASSERT(ros.unique == rnewobj.uid.unique);
+			
+			{
+				//NOTE: we must lock the mutex of the object
+				//in order to ensure that object is fully registered onto the manager
+				
+				unique_lock<std::mutex>		lock(rnewobj.rsvc.mutex(*rnewobj.objptr));				
+			}
+		
 			ros.objptr = std::move(rnewobj.objptr);
 			ros.psvc = &rnewobj.rsvc;
+
 			
 			ctx.clearError();
 			ctx.channel_index_ =  InvalidIndex();

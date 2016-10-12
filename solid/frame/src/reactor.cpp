@@ -466,8 +466,8 @@ void Reactor::doCompleteExec(NanoTime  const &_rcrttime){
 }
 
 bool Reactor::doWaitEvent(NanoTime const &_rcrttime){
-	bool			rv = false;
-	int				waitmsec = d.computeWaitTimeMilliseconds(_rcrttime);
+	bool				rv = false;
+	int					waitmsec = d.computeWaitTimeMilliseconds(_rcrttime);
 	unique_lock<mutex>	lock(d.mtx);
 	
 	if(d.crtpushvecsz == 0 && d.crtraisevecsz == 0 && !d.must_stop){
@@ -517,11 +517,21 @@ void Reactor::doCompleteEvents(NanoTime  const &_rcrttime){
 		
 		for(auto it = crtpushvec.begin(); it != crtpushvec.end(); ++it){
 			NewTaskStub		&rnewobj(*it);
+			
 			if(rnewobj.uid.index >= d.objdq.size()){
 				d.objdq.resize(rnewobj.uid.index + 1);
 			}
+			
 			ObjectStub 		&ros = d.objdq[rnewobj.uid.index];
 			SOLID_ASSERT(ros.unique == rnewobj.uid.unique);
+			
+			{
+				//NOTE: we must lock the mutex of the object
+				//in order to ensure that object is fully registered onto the manager
+				
+				unique_lock<std::mutex>		lock(rnewobj.rsvc.mutex(*rnewobj.objptr));				
+			}
+			
 			ros.objptr = std::move(rnewobj.objptr);
 			ros.psvc = &rnewobj.rsvc;
 			

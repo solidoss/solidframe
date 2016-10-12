@@ -93,14 +93,14 @@ std::ostream& operator<<(std::ostream &_ros, UniqueId const& _uid){
 }
 
 typedef std::atomic<size_t>			AtomicSizeT;
-typedef std::atomic<bool>				AtomicBoolT;
-typedef std::atomic<uint>				AtomicUintT;
-typedef std::atomic<long>				AtomicLongT;
-typedef std::atomic<ReactorBase*>		AtomicReactorBaseT;
+typedef std::atomic<bool>			AtomicBoolT;
+typedef std::atomic<uint>			AtomicUintT;
+typedef std::atomic<long>			AtomicLongT;
+typedef std::atomic<ReactorBase*>	AtomicReactorBaseT;
 typedef std::atomic<IndexT>			AtomicIndexT;
 
-typedef Queue<size_t>						SizeQueueT;
-typedef Stack<size_t>						SizeStackT;
+typedef Queue<size_t>				SizeQueueT;
+typedef Stack<size_t>				SizeStackT;
 
 //---------------------------------------------------------
 //POD structure
@@ -625,7 +625,12 @@ ObjectIdT Manager::registerObject(
 		
 		if(_rfct(_rr)){
 			//the object is scheduled
+			//NOTE: a scheduler's reactor must ensure that the object is fully
+			//registered onto manager by locking the object's mutex before calling
+			//any the object's code
+			
 			ObjectStub &ros= robjchk.object(objidx % d.objchkcnt);
+			
 			ros.pobject = &_robj;
 			ros.preactor = &_rr;
 			retval.index = objidx;
@@ -770,8 +775,8 @@ ObjectIdT  Manager::id(const ObjectBase &_robj)const{
 	if(objidx != InvalidIndex()){
 		const size_t		objstoreidx = d.aquireReadObjectStore();
 		ObjectStub const 	&ros(d.object(objstoreidx, objidx));
-		
-		SOLID_ASSERT(ros.pobject == &_robj);
+		ObjectBase			*pobj = ros.pobject;
+		SOLID_ASSERT(pobj == &_robj);
 		retval = ObjectIdT(objidx, ros.unique);
 		d.releaseReadObjectStore(objstoreidx);
 	}
