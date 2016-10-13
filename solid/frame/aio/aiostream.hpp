@@ -25,7 +25,7 @@ struct	ReactorContext;
 
 template <class Sock>
 class Stream: public CompletionHandler{
-	typedef Stream<Sock>			ThisT;
+	using ThisT = Stream<Sock>;
 	
 	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
@@ -197,6 +197,17 @@ class Stream: public CompletionHandler{
 			F	tmpf(f);
 			_rthis.doClearSend(_rctx);
 			tmpf(_rctx);
+		}
+	};
+	
+	template <class F>
+	struct SecureVerifyFunctor{
+		F f;
+		
+ 		SecureVerifyFunctor(F &_rf):f(_rf){}
+		
+		bool operator()(void *_pctx, bool _preverified, typename Sock::VerifyContextT &_rverify_ctx){
+			return f(*static_cast<ReactorContext*>(_pctx), _preverified, _rverify_ctx);
 		}
 	};
 	
@@ -436,16 +447,29 @@ public:
 	}
 	
 	template <typename F>
-	void secureSetVerifyCallback(ReactorContext &_rctx, F _f){
-		//TODO: use SSL_set_verify
+	void secureSetVerifyCallback(ReactorContext &_rctx, typename Sock::VerifyMaskT _mode, F _f){
+		SecureVerifyFunctor<F>	fnc_wrap(_f);
+		ErrorCodeT	err = s.secureVerifyCallback(_mode, fnc_wrap);
+		if(err){
+			error(_rctx, error_stream_system);
+			systemError(_rctx, err);
+		}
 	}
 	
-	void secureSetVerifyDepth(int _depth){
-		//TODO: use SSL_set_verify_depth
+	void secureSetVerifyDepth(ReactorContext &_rctx, const int _depth){
+		ErrorCodeT	err = s.secureVerifyDepth(_depth);
+		if(err){
+			error(_rctx, error_stream_system);
+			systemError(_rctx, err);
+		}
 	}
 	
-	void secureSetVerifyMode(/*.TODO..*/){
-		//TODO: use SSL_set_verify
+	void secureSetVerifyMode(ReactorContext &_rctx, typename Sock::VerifyMaskT _mode){
+		ErrorCodeT	err = s.secureVerifyMode(_mode);
+		if(err){
+			error(_rctx, error_stream_system);
+			systemError(_rctx, err);
+		}
 	}
 	
 private:

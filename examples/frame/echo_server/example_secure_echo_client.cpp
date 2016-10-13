@@ -69,7 +69,7 @@ struct ConnectFunction;
 
 class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
-	Connection(SecureContextT &_secure_ctx):sock(this->proxy()/*, _secure_ctx*/), crt_send_idx(0){}
+	Connection(SecureContextT &_secure_ctx):sock(this->proxy(), _secure_ctx), crt_send_idx(0){}
 	~Connection(){}
 	
 	static void onConnect(frame::aio::ReactorContext &_rctx, ConnectFunction &_rconnect);
@@ -77,7 +77,8 @@ protected:
 	/*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
 	static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
 	static void onSent(frame::aio::ReactorContext &_rctx);
-	static void onSecureAccept(frame::aio::ReactorContext &_rctx);
+	static void onSecureConnect(frame::aio::ReactorContext &_rctx);
+	static bool onSecureVerify(frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx);
 	
 	unsigned crtFillIdx()const{
 		return (crt_send_idx + 1) % 2;
@@ -89,8 +90,8 @@ protected:
 		return crt_send_idx = (crt_send_idx + 1) % 2;
 	}
 protected:
-	//typedef frame::aio::Stream<frame::aio::openssl::Socket>		StreamSocketT;
-	typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
+	typedef frame::aio::Stream<frame::aio::openssl::Socket>		StreamSocketT;
+	//typedef frame::aio::Stream<frame::aio::Socket>		StreamSocketT;
 	
 	enum {BufferCapacity = 1024 * 2};
 	
@@ -325,11 +326,17 @@ struct ConnectFunction{
 	}
 }
 
-/*static*/ void Connection::onSecureAccept(frame::aio::ReactorContext &_rctx){
+/*static*/ void Connection::onSecureConnect(frame::aio::ReactorContext &_rctx){
 	Connection &rthis = static_cast<Connection&>(_rctx.object());
 	if(!_rctx.error()){
-		idbg(&rthis<<" postRecvSome");
+		idbg(&rthis<<"");
 		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
+		
+		rthis.crt_send_idx = 0;
+		
+		if(rthis.send_strs[0].size()){//we have something to send
+			rthis.sock.postSendAll(_rctx, rthis.send_strs[0].data(), rthis.send_strs[0].size(), onSent);
+		}
 	}else{
 		edbg(&rthis<<" postStop");
 		rthis.postStop(_rctx);
@@ -340,13 +347,11 @@ struct ConnectFunction{
 	Connection		&rthis = static_cast<Connection&>(_rctx.object());
 	
 	if(!_rctx.error()){
-		idbg(&rthis<<" SUCCESS");
-		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
-		
-		rthis.crt_send_idx = 0;
-		
-		if(rthis.send_strs[0].size()){//we have something to send
-			rthis.sock.postSendAll(_rctx, rthis.send_strs[0].data(), rthis.send_strs[0].size(), onSent);
+		idbg(&rthis<<" Connected");
+		rthis.sock.secureSetVerifyDepth(_rctx, 10);
+		rthis.sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
+		if(rthis.sock.secureConnect(_rctx, onSecureConnect)){
+			onSecureConnect(_rctx);
 		}
 	}else{
 		ResolveData 	*presolve_data = _rcf.event.any().cast<ResolveData>();
@@ -366,5 +371,8 @@ struct ConnectFunction{
 	}
 }
 
-
+/*static*/ bool Connection::onSecureVerify(frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx){
+	Connection		&rthis = static_cast<Connection&>(_rctx.object());
+	return _preverified;
+}
 

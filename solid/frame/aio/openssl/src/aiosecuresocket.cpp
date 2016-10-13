@@ -125,6 +125,14 @@ ErrorCodeT Context::loadPrivateKeyFile(const char *_path){
 
 //=============================================================================
 
+/*static*/ int Socket::thisSSLDataIndex(){
+	static int idx =  SSL_get_ex_new_index(0, (void*)"socket_data", nullptr, nullptr, nullptr);
+	return idx;
+}
+/*static*/ int Socket::contextPointerSSLDataIndex(){
+	static int idx =  SSL_get_ex_new_index(0, (void*)"context_data", nullptr, nullptr, nullptr);
+	return idx;
+}
 
 Socket::Socket(
 	const Context &_rctx, SocketDevice &&_rsd
@@ -396,6 +404,48 @@ int Socket::sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, 
 	return -1;
 }
 
+
+void Socket::storeContextPointer(void *_pctx){
+	if(pssl){
+		SSL_set_ex_data(pssl, contextPointerSSLDataIndex(), _pctx);
+	}
+}
+
+void Socket::clearContextPointer(){
+	if(pssl){
+		SSL_set_ex_data(pssl, contextPointerSSLDataIndex(), nullptr);
+	}
+}
+
+static int convertMask(const VerifyMaskT _verify_mask){
+	return 0;
+}
+
+ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask){
+	//TODO: use SSL_set_verify
+	
+	SSL_set_verify(pssl, convertMask(_verify_mask), on_verify);
+	
+	ErrorCodeT err;
+	return err;
+}
+
+/*static*/ int Socket::on_verify(int preverify_ok, X509_STORE_CTX *x509_ctx){
+	SSL 	*ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+	void	*pthis = SSL_get_ex_data(ssl, thisSSLDataIndex());
+}
+
+ErrorCodeT Socket::secureVerifyDepth(const int _depth){
+	//TODO: use SSL_set_verify_depth
+	ErrorCodeT err;
+	return err;
+}
+	
+ErrorCodeT Socket::secureVerifyMode(VerifyMaskT _verify_mask){
+	//TODO: use SSL_set_verify
+	ErrorCodeT err;
+	return err;
+}
 
 }//namespace openssl
 }//namespace aio

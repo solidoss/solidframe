@@ -12,18 +12,45 @@
 
 #include "solid/frame/aio/aiocommon.hpp"
 #include "solid/system/socketdevice.hpp"
+#include "solid/system/function.hpp"
 #include "openssl/ssl.h"
 #include <cerrno>
 
 namespace solid{
 namespace frame{
-namespace aio{
+namespace aio{	
+
+struct ReactorContext;
+
 namespace openssl{
 
 class Context;
 
+enum VerifyMode{
+	VerifyModeNone 				= 1,
+	VerifyModePeer				= 2,
+	VerifyModeFailIfNoPeerCert	= 4,
+	VerifyModeClientOnce		= 8,
+};
+
+using VerifyMaskT = int;
+
+struct VerifyContext{
+	using NativeContextT = X509_STORE_CTX;
+	
+	NativeContextT* nativeHandle()const{
+		return ssl_ctx;
+	}
+	
+private:
+	NativeContextT	*ssl_ctx;
+};
+
 class	Socket{
 public:
+	
+	using VerifyMaskT = openssl::VerifyMaskT;
+	using VerifyContextT = openssl::VerifyContext;
 	
 	Socket(const Context &_rctx, SocketDevice &&_rsd);
 	
@@ -60,14 +87,38 @@ public:
 	bool secureAccept(bool &_can_retry, ErrorCodeT &_rerr);
 	bool secureConnect(bool &_can_retry, ErrorCodeT &_rerr);
 	bool secureShutdown(bool &_can_retry, ErrorCodeT &_rerr);
-private:
-	SSL				*pssl;
-	SocketDevice	sd;
 	
-	bool			want_read_on_recv;
-	bool			want_read_on_send;
-	bool			want_write_on_recv;
-	bool			want_write_on_send;
+	template <typename Cbk>
+	ErrorCodeT secureVerifyCallback(VerifyMaskT _verify_mask, Cbk _cbk){
+		verify_cbk = _cbk;
+		return doPrepareVerifyCallback(_verify_mask);
+	}
+	
+	ErrorCodeT secureVerifyDepth(const int _depth);
+	
+	ErrorCodeT secureVerifyMode(VerifyMaskT _verify_mask);
+	
+	void storeContextPointer(void *_pctx);
+	void clearContextPointer();
+	
+private:
+	static int thisSSLDataIndex();
+	static int contextPointerSSLDataIndex();
+	
+	ErrorCodeT doPrepareVerifyCallback(VerifyMaskT _verify_mask);
+	
+	static int on_verify(int preverify_ok, X509_STORE_CTX *x509_ctx);
+private:
+	using VerifyFunctionT = FUNCTION<bool(void *, bool, VerifyContextT&)>;
+	
+	SSL					*pssl;
+	SocketDevice		sd;
+	
+	bool				want_read_on_recv;
+	bool				want_read_on_send;
+	bool				want_write_on_recv;
+	bool				want_write_on_send;
+	VerifyFunctionT		verify_cbk;
 };
 
 }//namespace openssl

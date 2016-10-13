@@ -20,6 +20,9 @@ namespace aio{
 
 class	Socket{
 public:
+	
+	using VerifyMaskT = int;
+	
 	Socket(SocketDevice &&_rsd):sd(std::move(_rsd)){
 		if(sd.ok()){
 			sd.makeNonBlocking();
