@@ -141,7 +141,7 @@ class Stream: public CompletionHandler{
 			_rthis.errorClear(_rctx);
 			bool		can_retry;
 			ErrorCodeT	err;
-			if(_rthis.s.secureConnect(can_retry, err)){
+			if(_rthis.s.secureConnect(&_rctx, can_retry, err)){
 			}else if(can_retry){
 				return;
 			}else{
@@ -164,7 +164,7 @@ class Stream: public CompletionHandler{
 			_rthis.errorClear(_rctx);
 			bool		can_retry;
 			ErrorCodeT	err;
-			if(_rthis.s.secureAccept(can_retry, err)){
+			if(_rthis.s.secureAccept(&_rctx, can_retry, err)){
 			}else if(can_retry){
 				return;
 			}else{
@@ -187,7 +187,7 @@ class Stream: public CompletionHandler{
 			_rthis.errorClear(_rctx);
 			bool		can_retry;
 			ErrorCodeT	err;
-			if(_rthis.s.secureShutdown(can_retry, err)){
+			if(_rthis.s.secureShutdown(&_rctx, can_retry, err)){
 			}else if(can_retry){
 				return;
 			}else{
@@ -380,7 +380,7 @@ public:
 		return true;
 	}
 	
-	void shutdown(ReactorContext &_rctx){
+	void shutdown(ReactorContext &/*_rctx*/){
 		s.shutdown();
 	}
 	
@@ -390,7 +390,7 @@ public:
 			errorClear(_rctx);
 			bool		can_retry;
 			ErrorCodeT	err;
-			if(s.secureConnect(can_retry, err)){
+			if(s.secureConnect(&_rctx, can_retry, err)){
 			}else if(can_retry){
 				send_fnc = SecureConnectFunctor<F>(_f);
 				return false;
@@ -408,7 +408,7 @@ public:
 			errorClear(_rctx);
 			bool		can_retry;
 			ErrorCodeT	err;
-			if(s.secureAccept(can_retry, err)){
+			if(s.secureAccept(&_rctx, can_retry, err)){
 			}else if(can_retry){
 				recv_fnc = SecureAcceptFunctor<F>(_f);
 				return false;
@@ -426,7 +426,7 @@ public:
 			errorClear(_rctx);
 			bool		can_retry;
 			ErrorCodeT	err;
-			if(s.secureShutdown(can_retry, err)){
+			if(s.secureShutdown(&_rctx, can_retry, err)){
 			}else if(can_retry){
 				send_fnc = SecureShutdownFunctor<F>(_f);
 				return false;
@@ -499,7 +499,8 @@ private:
 	bool doTryRecv(ReactorContext &_rctx){
 		bool		can_retry;
 		ErrorCodeT	err;
-		int			rv = s.recv(recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
+		
+		int			rv = s.recv(&_rctx, recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
 		
 		vdbgx(Debug::aio, "recv ("<<(recv_buf_cp - recv_buf_sz)<<") = "<<rv);
 		
@@ -524,7 +525,7 @@ private:
 	bool doTrySend(ReactorContext &_rctx){
 		bool		can_retry;
 		ErrorCodeT	err;
-		int			rv = s.send(send_buf, send_buf_cp - send_buf_sz, can_retry, err);
+		int			rv = s.send(&_rctx, send_buf, send_buf_cp - send_buf_sz, can_retry, err);
 		
 		vdbgx(Debug::aio, "send ("<<(send_buf_cp - send_buf_sz)<<") = "<<rv);
 		

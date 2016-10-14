@@ -15,15 +15,47 @@
 #include <thread>
 #include <mutex>
 #include "solid/system/cassert.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/debug.hpp"
+#include "solid/system/error.hpp"
 
-
+//#include <cstdio>
 
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/evp.h"
 #include "openssl/conf.h"
+
+namespace{
+class ErrorCategory: public solid::ErrorCategoryT
+{     
+public:
+	ErrorCategory(){} 
+	const char* name() const noexcept{
+		return "OpenSSL";
+	}
+	std::string message(int _ev)const;
+	
+	solid::ErrorCodeT makeError(int _err)const{
+		return solid::ErrorCodeT(_err, *this);
+	}
+};
+
+const ErrorCategory ssl_category;
+
+
+std::string ErrorCategory::message(int _ev) const{
+	std::ostringstream	oss;
+	char				buf[1024];
+	
+	ERR_error_string_n(_ev, buf, 1024);
+	
+	oss<<"("<<name()<<":"<<_ev<<"): "<<buf;
+	return oss.str();
+}
+
+}//namespace
 
 namespace solid{
 namespace frame{
@@ -34,8 +66,8 @@ namespace openssl{
 struct Starter{
 	
 	Starter(){
-		::SSL_library_init();
-		::SSL_load_error_strings();
+		::OPENSSL_init_ssl(0,NULL);
+		::OPENSSL_init_crypto(0, NULL);
 		::OpenSSL_add_all_algorithms();
 	}
 	~Starter(){
@@ -198,9 +230,7 @@ bool Socket::connect(SocketAddressStub const &_rsas, bool &_can_retry, ErrorCode
 
 ErrorCodeT Socket::renegotiate(){
 	int rv = ::SSL_renegotiate(pssl);
-	ErrorCodeT err;
-	err.assign(rv, err.category());
-	return err;
+	return ssl_category.makeError(::SSL_get_error(pssl, rv));
 }
 
 ReactorEventsE Socket::filterReactorEvents(
@@ -242,13 +272,22 @@ ReactorEventsE Socket::filterReactorEvents(
 		default:
 			break;
 	}
-	return ReactorEventNone;
+	return _evt;
 }
 
-int Socket::recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
+int Socket::recv(void *_pctx, char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 	want_read_on_recv = want_write_on_recv = false;
-	int rv = ::SSL_read(pssl, _pb, _bl);
-	switch(::SSL_get_error(pssl, rv)){
+	
+	storeThisPointer();
+	storeContextPointer(_pctx);
+	
+	const int rv = ::SSL_read(pssl, _pb, _bl);
+	const int err = ::SSL_get_error(pssl, rv);
+	
+	clearThisPointer();
+	clearContextPointer();
+	
+	switch(err){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
 			return rv;
@@ -266,7 +305,7 @@ int Socket::recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = error_secure_recv;
+			_rerr = ssl_category.makeError(err);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -277,10 +316,19 @@ int Socket::recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 	return -1;
 }
 
-int Socket::send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
+int Socket::send(void *_pctx, const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 	want_read_on_send = want_write_on_send = false;
-	int rv = ::SSL_write(pssl, _pb, _bl);
-	switch(::SSL_get_error(pssl, rv)){
+	
+	storeThisPointer();
+	storeContextPointer(_pctx);
+	
+	const int rv  = ::SSL_write(pssl, _pb, _bl);
+	const int err = ::SSL_get_error(pssl, rv);
+	
+	clearThisPointer();
+	clearContextPointer();
+	
+	switch(err){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
 			return rv;
@@ -298,7 +346,7 @@ int Socket::send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rer
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = error_secure_send;
+			_rerr = ssl_category.makeError(err);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -309,10 +357,19 @@ int Socket::send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rer
 	return -1;
 }
 
-bool Socket::secureAccept(bool &_can_retry, ErrorCodeT &_rerr){
+bool Socket::secureAccept(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 	want_read_on_recv = want_write_on_recv = false;
-	int rv = ::SSL_accept(pssl);
-	switch(::SSL_get_error(pssl, rv)){
+	
+	storeThisPointer();
+	storeContextPointer(_pctx);
+	
+	const int rv  = ::SSL_accept(pssl);
+	const int err = ::SSL_get_error(pssl, rv);
+	
+	clearThisPointer();
+	clearContextPointer();
+	
+	switch(err){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
 			return true;
@@ -327,7 +384,7 @@ bool Socket::secureAccept(bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = error_secure_accept;
+			_rerr = ssl_category.makeError(err);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -338,10 +395,21 @@ bool Socket::secureAccept(bool &_can_retry, ErrorCodeT &_rerr){
 	return false;
 }
 
-bool Socket::secureConnect(bool &_can_retry, ErrorCodeT &_rerr){
+bool Socket::secureConnect(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 	want_read_on_send = want_write_on_send = false;
-	int rv = ::SSL_connect(pssl);
-	switch(::SSL_get_error(pssl, rv)){
+	
+	storeThisPointer();
+	storeContextPointer(_pctx);
+	
+	const int rv  = ::SSL_connect(pssl);
+	const int err = ::SSL_get_error(pssl, rv);//ERR_print_errors_fp(stdout);
+	
+	clearThisPointer();
+	clearContextPointer();
+	
+	vdbgx(Debug::aio, "ssl_connect rv = "<<rv<<" ssl_error "<<err);
+	
+	switch(err){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
 			return true;
@@ -356,7 +424,7 @@ bool Socket::secureConnect(bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = error_secure_connect;
+			_rerr = ssl_category.makeError(err);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -367,10 +435,20 @@ bool Socket::secureConnect(bool &_can_retry, ErrorCodeT &_rerr){
 	return false;
 }
 
-bool Socket::secureShutdown(bool &_can_retry, ErrorCodeT &_rerr){
+bool Socket::secureShutdown(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 	want_read_on_send = want_write_on_send = false;
-	int rv = ::SSL_shutdown(pssl);
-	switch(::SSL_get_error(pssl, rv)){
+	
+	storeThisPointer();
+	storeContextPointer(_pctx);
+	
+	const int rv  = ::SSL_shutdown(pssl);
+	const int err = ::SSL_get_error(pssl, rv);
+	
+	
+	clearThisPointer();
+	clearContextPointer();
+	
+	switch(err){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
 			return true;
@@ -385,7 +463,7 @@ bool Socket::secureShutdown(bool &_can_retry, ErrorCodeT &_rerr){
 		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = error_secure_shutdown;
+			_rerr = ssl_category.makeError(err);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -417,13 +495,24 @@ void Socket::clearContextPointer(){
 	}
 }
 
+void Socket::storeThisPointer(){
+	SSL_set_ex_data(pssl, thisSSLDataIndex(), this);
+}
+
+void Socket::clearThisPointer(){
+	SSL_set_ex_data(pssl, thisSSLDataIndex(), nullptr);
+}
+
 static int convertMask(const VerifyMaskT _verify_mask){
-	return 0;
+	int rv = 0;
+	if(_verify_mask & VerifyModeNone) rv |= SSL_VERIFY_NONE;
+	if(_verify_mask & VerifyModePeer) rv |= SSL_VERIFY_PEER;
+	if(_verify_mask & VerifyModeFailIfNoPeerCert) rv |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+	if(_verify_mask & VerifyModeClientOnce) rv |= SSL_VERIFY_CLIENT_ONCE;
+	return rv;
 }
 
 ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask){
-	//TODO: use SSL_set_verify
-	
 	SSL_set_verify(pssl, convertMask(_verify_mask), on_verify);
 	
 	ErrorCodeT err;
@@ -431,18 +520,31 @@ ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask){
 }
 
 /*static*/ int Socket::on_verify(int preverify_ok, X509_STORE_CTX *x509_ctx){
-	SSL 	*ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-	void	*pthis = SSL_get_ex_data(ssl, thisSSLDataIndex());
+	SSL 	*ssl = static_cast<SSL*>(X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));
+	Socket	*pthis = static_cast<Socket*>(SSL_get_ex_data(ssl, thisSSLDataIndex()));
+	void	*pctx = SSL_get_ex_data(ssl, contextPointerSSLDataIndex());
+	
+	SOLID_CHECK(ssl);
+	SOLID_CHECK(pthis);
+	
+	if(not FUNCTION_EMPTY(pthis->verify_cbk)){
+		VerifyContext	vctx(x509_ctx);
+		
+		bool rv = pthis->verify_cbk(pctx, preverify_ok != 0, vctx);
+		return rv ? 1 : 0;
+	}else{
+		return preverify_ok;
+	}
 }
 
 ErrorCodeT Socket::secureVerifyDepth(const int _depth){
-	//TODO: use SSL_set_verify_depth
+	SSL_set_verify_depth(pssl, _depth);
 	ErrorCodeT err;
 	return err;
 }
 	
 ErrorCodeT Socket::secureVerifyMode(VerifyMaskT _verify_mask){
-	//TODO: use SSL_set_verify
+	SSL_set_verify(pssl, convertMask(_verify_mask), on_verify);
 	ErrorCodeT err;
 	return err;
 }

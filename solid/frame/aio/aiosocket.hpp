@@ -63,11 +63,11 @@ public:
 		return _evt;
 	}
 	
-	int recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
+	int recv(void */*_pctx*/, char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 		return sd.recv(_pb, _bl, _can_retry, _rerr);
 	}
 	
-	int send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
+	int send(void */*_pctx*/, const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
 		return sd.send(_pb, _bl, _can_retry, _rerr);
 	}
 	

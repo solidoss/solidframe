@@ -285,6 +285,9 @@ struct ConnectFunction{
 			ConnectFunction	cf;
 			cf.event = std::move(_revent);
 			cf.iterator = presolve_data->begin();
+			SocketAddressInet	inetaddr(cf.iterator);
+			
+			idbg("Connect to: "<<inetaddr);
 			
 			if(sock.connect(_rctx, cf.iterator, cf)){
 				onConnect(_rctx, cf);
@@ -305,7 +308,12 @@ struct ConnectFunction{
 	idbg(&rthis<<" "<<_sz);
 	cout.write(rthis.buf, _sz);
 	//cout<<endl;
-	rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
+	if(!_rctx.error()){
+		rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
+	}else{
+		edbg(&rthis<<" postStop");
+		rthis.postStop(_rctx);
+	}
 }
 
 /*static*/ void Connection::onSent(frame::aio::ReactorContext &_rctx){
@@ -338,13 +346,15 @@ struct ConnectFunction{
 			rthis.sock.postSendAll(_rctx, rthis.send_strs[0].data(), rthis.send_strs[0].size(), onSent);
 		}
 	}else{
-		edbg(&rthis<<" postStop");
+		edbg(&rthis<<" postStop because: "<<_rctx.systemError().message());
 		rthis.postStop(_rctx);
 	}
 }
 
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext &_rctx, ConnectFunction &_rcf){
 	Connection		&rthis = static_cast<Connection&>(_rctx.object());
+	
+	idbg(&rthis<<"");
 	
 	if(!_rctx.error()){
 		idbg(&rthis<<" Connected");
@@ -373,6 +383,7 @@ struct ConnectFunction{
 
 /*static*/ bool Connection::onSecureVerify(frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx){
 	Connection		&rthis = static_cast<Connection&>(_rctx.object());
+	idbg(&rthis<<" "<<_preverified);
 	return _preverified;
 }
 

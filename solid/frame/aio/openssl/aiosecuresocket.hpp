@@ -35,6 +35,8 @@ enum VerifyMode{
 
 using VerifyMaskT = int;
 
+class Socket;
+
 struct VerifyContext{
 	using NativeContextT = X509_STORE_CTX;
 	
@@ -42,7 +44,16 @@ struct VerifyContext{
 		return ssl_ctx;
 	}
 	
+	VerifyContext(const VerifyContext&) = delete;
+	VerifyContext(VerifyContext &&) = delete;
+	
+	VerifyContext& operator=(VerifyContext &&) = delete;
+	
 private:
+	friend class Socket;
+	VerifyContext(NativeContextT *_ssl_ctx):ssl_ctx(_ssl_ctx){}
+private:
+	
 	NativeContextT	*ssl_ctx;
 };
 
@@ -73,9 +84,9 @@ public:
 		const  ReactorEventsE _evt
 	) const;
 	
-	int recv(char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr);
+	int recv(void *_pctx, char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr);
 	
-	int send(const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr);
+	int send(void *_pctx, const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr);
 	
 	SocketDevice const& device()const;
 	SocketDevice& device();
@@ -84,9 +95,9 @@ public:
 	
 	int sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, bool &_can_retry, ErrorCodeT &_rerr);
 	
-	bool secureAccept(bool &_can_retry, ErrorCodeT &_rerr);
-	bool secureConnect(bool &_can_retry, ErrorCodeT &_rerr);
-	bool secureShutdown(bool &_can_retry, ErrorCodeT &_rerr);
+	bool secureAccept(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr);
+	bool secureConnect(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr);
+	bool secureShutdown(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr);
 	
 	template <typename Cbk>
 	ErrorCodeT secureVerifyCallback(VerifyMaskT _verify_mask, Cbk _cbk){
@@ -98,12 +109,15 @@ public:
 	
 	ErrorCodeT secureVerifyMode(VerifyMaskT _verify_mask);
 	
-	void storeContextPointer(void *_pctx);
-	void clearContextPointer();
-	
 private:
 	static int thisSSLDataIndex();
 	static int contextPointerSSLDataIndex();
+	
+	void storeThisPointer();
+	void clearThisPointer();
+	
+	void storeContextPointer(void *_pctx);
+	void clearContextPointer();
 	
 	ErrorCodeT doPrepareVerifyCallback(VerifyMaskT _verify_mask);
 	
