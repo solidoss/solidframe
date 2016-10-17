@@ -108,6 +108,24 @@ int main(int argc, char *argv[]){
 	Params p;
 	if(parseArguments(p, argc, argv)) return 0;
 	
+	SecureContextT				secure_ctx(SecureContextT::create());
+#if 0
+	{
+		ErrorCodeT err = secure_ctx.configure("/etc/pki/tls/openssl.cnf");
+		if(err){
+			cout<<"error configuring openssl: "<<err.message()<<endl;
+			return 0;
+		}
+	}
+#endif
+	{
+		ErrorCodeT err = secure_ctx.loadVerifyFile("/etc/pki/tls/certs/ca-bundle.crt");
+		if(err){
+			cout<<"error configuring openssl: "<<err.message()<<endl;
+			return 0;
+		}
+	}
+	
 	signal(SIGPIPE, SIG_IGN);
 	
 #ifdef SOLID_HAS_DEBUG
@@ -142,8 +160,6 @@ int main(int argc, char *argv[]){
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
-	//secure_ctx.loadCertificateFile("echo-server-cert.pem");
-	//secure_ctx.loadPrivateKeyFile("echo-server-key.pem");
 	
 	{
 		
@@ -152,7 +168,6 @@ int main(int argc, char *argv[]){
 		frame::Manager				manager;
 		frame::ServiceT				service(manager);
 		frame::ObjectIdT			objuid;
-		SecureContextT				secure_ctx(SecureContextT::create());
 		
 		frame::aio::Resolver		resolver;
 		ErrorConditionT				err;

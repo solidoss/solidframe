@@ -1,5 +1,6 @@
 add_subdirectory(basic_timer)
 add_subdirectory(echo_server)
+add_subdirectory(echo_client)
 add_subdirectory(mpipc_echo)
 add_subdirectory(file_server)
 add_subdirectory(relay_server)

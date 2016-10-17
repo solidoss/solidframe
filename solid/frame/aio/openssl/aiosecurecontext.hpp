@@ -21,6 +21,7 @@ namespace openssl{
 class Socket;
 class Context{
 public:
+	using NativeContextT = SSL_CTX*;
 	static Context create(const SSL_METHOD* = nullptr);
 	
 	Context();
@@ -38,15 +39,23 @@ public:
 	
 	bool isValid()const;
 	
+	bool empty()const;
+	
+	//ErrorCodeT configure(const char *_filename = nullptr, const char *_appname = nullptr);
+	
 	//!Use it on client side to load the certificates
-	ErrorCodeT loadFile(const char *_path);
+	ErrorCodeT loadVerifyFile(const char *_path);
 	//!Use it on client side to load the certificates
-	ErrorCodeT loadPath(const char *_path);
+	ErrorCodeT loadVerifyPath(const char *_path);
 	
 	//!Use it on server side to load the certificates
 	ErrorCodeT loadCertificateFile(const char *_path);
 	//!Use it on server side to load the certificates
 	ErrorCodeT loadPrivateKeyFile(const char *_path);
+	
+	NativeContextT nativeContext()const{
+		return pctx;
+	}
 	
 private:
 	friend class Socket;

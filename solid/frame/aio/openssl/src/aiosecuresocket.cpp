@@ -100,6 +100,10 @@ bool Context::isValid()const{
 	return pctx != nullptr;
 }
 
+bool Context::empty()const{
+	return pctx == nullptr;
+}
+
 Context::Context(Context && _rctx){
 	pctx = _rctx.pctx;
 	_rctx.pctx = nullptr;
@@ -123,34 +127,48 @@ Context::~Context(){
 	}
 }
 
+// ErrorCodeT Context::configure(const char *_filename, const char *_appname){
+// 	ErrorCodeT err;
+// 	::ERR_clear_error();
+// 	if(::CONF_modules_load_file(_filename, _appname, 0) <= 0){
+// 		err = ssl_category.makeError(::ERR_get_error());
+// 	}else if(SSL_CTX_config(pctx, "CA_default") == 0){
+// 		err = ssl_category.makeError(::ERR_get_error());
+// 	}
+// 	return err;
+// }
 
-ErrorCodeT Context::loadFile(const char *_path){
+ErrorCodeT Context::loadVerifyFile(const char *_path){
 	ErrorCodeT err;
+	::ERR_clear_error();
 	if(SSL_CTX_load_verify_locations(pctx, _path, nullptr)){
-		err = error_secure_context;
+		err = ssl_category.makeError(::ERR_get_error());
 	}
 	return err;
 }
-ErrorCodeT Context::loadPath(const char *_path){
+ErrorCodeT Context::loadVerifyPath(const char *_path){
 	ErrorCodeT err;
+	::ERR_clear_error();
 	if(SSL_CTX_load_verify_locations(pctx, nullptr, _path)){
-		err = error_secure_context;
+		err = ssl_category.makeError(::ERR_get_error());
 	}
 	return err;
 }
 
 ErrorCodeT Context::loadCertificateFile(const char *_path){
 	ErrorCodeT err;
+	::ERR_clear_error();
 	if(SSL_CTX_use_certificate_file(pctx, _path, SSL_FILETYPE_PEM)){
-		err = error_secure_context;
+		err = ssl_category.makeError(::ERR_get_error());
 	}
 	return err;
 }
 
 ErrorCodeT Context::loadPrivateKeyFile(const char *_path){
 	ErrorCodeT err;
+	::ERR_clear_error();
 	if(SSL_CTX_use_PrivateKey_file(pctx, _path, SSL_FILETYPE_PEM)){
-		err = error_secure_context;
+		err = ssl_category.makeError(::ERR_get_error());
 	}
 	return err;
 }
@@ -228,9 +246,12 @@ bool Socket::connect(SocketAddressStub const &_rsas, bool &_can_retry, ErrorCode
 	return !_rerr;
 }
 
-ErrorCodeT Socket::renegotiate(){
-	int rv = ::SSL_renegotiate(pssl);
-	return ssl_category.makeError(::SSL_get_error(pssl, rv));
+ErrorCodeT Socket::renegotiate(bool &_can_retry){
+	const int 				retval   = ::SSL_renegotiate(pssl);
+	//const int				err_cond = ::SSL_get_error(pssl, retval);
+	const unsigned long		err_code = ::ERR_get_error();
+	(void)retval;
+	return ssl_category.makeError(err_code);
 }
 
 ReactorEventsE Socket::filterReactorEvents(
@@ -281,16 +302,20 @@ int Socket::recv(void *_pctx, char *_pb, size_t _bl, bool &_can_retry, ErrorCode
 	storeThisPointer();
 	storeContextPointer(_pctx);
 	
-	const int rv = ::SSL_read(pssl, _pb, _bl);
-	const int err = ::SSL_get_error(pssl, rv);
+	::ERR_clear_error();
+	
+	const int				retval   = ::SSL_read(pssl, _pb, _bl);
+	const ErrorCodeT		err_sys  = last_socket_error();
+	const int				err_cond = ::SSL_get_error(pssl, retval);
+	const unsigned long		err_code = ::ERR_get_error();
 	
 	clearThisPointer();
 	clearContextPointer();
 	
-	switch(err){
+	switch(err_cond){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
-			return rv;
+			return retval;
 		case SSL_ERROR_ZERO_RETURN:
 			_can_retry = false;
 			return 0;
@@ -303,9 +328,12 @@ int Socket::recv(void *_pctx, char *_pb, size_t _bl, bool &_can_retry, ErrorCode
 			want_write_on_recv = true;
 			return -1;
 		case SSL_ERROR_SYSCALL:
+			_can_retry = false;
+			_rerr = err_sys;
+			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = ssl_category.makeError(err);
+			_rerr = ssl_category.makeError(err_code);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -322,16 +350,20 @@ int Socket::send(void *_pctx, const char *_pb, size_t _bl, bool &_can_retry, Err
 	storeThisPointer();
 	storeContextPointer(_pctx);
 	
-	const int rv  = ::SSL_write(pssl, _pb, _bl);
-	const int err = ::SSL_get_error(pssl, rv);
+	::ERR_clear_error();
+	
+	const int 				retval   = ::SSL_write(pssl, _pb, _bl);
+	const ErrorCodeT		err_sys  = last_socket_error();
+	const int				err_cond = ::SSL_get_error(pssl, retval);
+	const unsigned long		err_code = ::ERR_get_error();
 	
 	clearThisPointer();
 	clearContextPointer();
 	
-	switch(err){
+	switch(err_cond){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
-			return rv;
+			return retval;
 		case SSL_ERROR_ZERO_RETURN:
 			_can_retry = false;
 			return 0;
@@ -344,9 +376,12 @@ int Socket::send(void *_pctx, const char *_pb, size_t _bl, bool &_can_retry, Err
 			want_write_on_send = true;
 			return -1;
 		case SSL_ERROR_SYSCALL:
+			_can_retry = false;
+			_rerr = err_sys;
+			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = ssl_category.makeError(err);
+			_rerr = ssl_category.makeError(err_code);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -363,13 +398,17 @@ bool Socket::secureAccept(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 	storeThisPointer();
 	storeContextPointer(_pctx);
 	
-	const int rv  = ::SSL_accept(pssl);
-	const int err = ::SSL_get_error(pssl, rv);
+	::ERR_clear_error();
+	
+	const int 				retval	 = ::SSL_accept(pssl);
+	const ErrorCodeT		err_sys  = last_socket_error();
+	const int				err_cond = ::SSL_get_error(pssl, retval);
+	const unsigned long		err_code = ::ERR_get_error();
 	
 	clearThisPointer();
 	clearContextPointer();
 	
-	switch(err){
+	switch(err_cond){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
 			return true;
@@ -382,9 +421,12 @@ bool Socket::secureAccept(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 			want_write_on_recv = true;
 			return false;
 		case SSL_ERROR_SYSCALL:
+			_can_retry = false;
+			_rerr = err_sys;
+			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = ssl_category.makeError(err);
+			_rerr = ssl_category.makeError(err_code);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -401,15 +443,19 @@ bool Socket::secureConnect(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 	storeThisPointer();
 	storeContextPointer(_pctx);
 	
-	const int rv  = ::SSL_connect(pssl);
-	const int err = ::SSL_get_error(pssl, rv);//ERR_print_errors_fp(stdout);
+	::ERR_clear_error();
+	
+	const int 				retval   = ::SSL_connect(pssl);
+	const ErrorCodeT		err_sys  = last_socket_error();
+	const int				err_cond = ::SSL_get_error(pssl, retval);
+	const unsigned long		err_code = ::ERR_get_error();
 	
 	clearThisPointer();
 	clearContextPointer();
 	
-	vdbgx(Debug::aio, "ssl_connect rv = "<<rv<<" ssl_error "<<err);
+	vdbgx(Debug::aio, "ssl_connect rv = "<<retval<<" ssl_error "<<err_cond);
 	
-	switch(err){
+	switch(err_cond){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
 			return true;
@@ -422,9 +468,12 @@ bool Socket::secureConnect(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 			want_write_on_send = true;
 			return false;
 		case SSL_ERROR_SYSCALL:
+			_can_retry = false;
+			_rerr = err_sys;
+			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = ssl_category.makeError(err);
+			_rerr = ssl_category.makeError(err_code);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr
@@ -441,14 +490,18 @@ bool Socket::secureShutdown(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 	storeThisPointer();
 	storeContextPointer(_pctx);
 	
-	const int rv  = ::SSL_shutdown(pssl);
-	const int err = ::SSL_get_error(pssl, rv);
+	::ERR_clear_error();
+	
+	const int				retval   = ::SSL_shutdown(pssl);
+	const ErrorCodeT		err_sys  = last_socket_error();
+	const int				err_cond = ::SSL_get_error(pssl, retval);
+	const unsigned long		err_code = ::ERR_get_error();
 	
 	
 	clearThisPointer();
 	clearContextPointer();
 	
-	switch(err){
+	switch(err_cond){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
 			return true;
@@ -461,9 +514,12 @@ bool Socket::secureShutdown(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 			want_write_on_send = true;
 			return false;
 		case SSL_ERROR_SYSCALL:
+			_can_retry = false;
+			_rerr  = err_sys;
+			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
-			_rerr = ssl_category.makeError(err);
+			_rerr = ssl_category.makeError(err_code);
 			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
 			//for reschedule, we can return -1 but not set the _rerr

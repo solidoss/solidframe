@@ -494,7 +494,7 @@ struct wsa_cleaner{
 #endif
 
 //---- SocketDevice ---------------------------------
-/*static*/ ErrorCodeT last_socket_error(){
+ErrorCodeT last_socket_error(){
 #ifdef SOLID_ON_WINDOWS
 	const DWORD err = WSAGetLastError();
 	return ErrorCodeT(err, std::system_category());
@@ -502,6 +502,7 @@ struct wsa_cleaner{
 	return solid::last_system_error();
 #endif
 }
+
 SocketDevice::SocketDevice(SocketDevice &&_sd):Device(std::move(_sd)){
 #ifndef SOLID_HAS_DEBUG
 #ifdef SOLID_ON_WINDOWS
@@ -509,15 +510,19 @@ SocketDevice::SocketDevice(SocketDevice &&_sd):Device(std::move(_sd)){
 #endif
 #endif
 }
+
 SocketDevice::SocketDevice(){
 }
+
 SocketDevice& SocketDevice::operator=(SocketDevice &&_dev){
 	*static_cast<Device*>(this) = static_cast<Device&&>(_dev);
 	return *this;
 }
+
 SocketDevice::~SocketDevice(){
 	close();
 }
+
 void SocketDevice::shutdownRead(){
 #ifdef SOLID_ON_WINDOWS
 	if(ok()) shutdown(descriptor(), SD_RECEIVE);

@@ -78,7 +78,7 @@ public:
 	bool connect(SocketAddressStub const &_rsas, bool &_can_retry, ErrorCodeT &_rerr);
 	
 	
-	ErrorCodeT renegotiate();
+	ErrorCodeT renegotiate(bool &_can_retry);
 	
 	ReactorEventsE filterReactorEvents(
 		const  ReactorEventsE _evt
