@@ -66,8 +66,10 @@ namespace openssl{
 struct Starter{
 	
 	Starter(){
+#ifndef OPENSSL_IS_BORINGSSL
 		::OPENSSL_init_ssl(0,NULL);
 		::OPENSSL_init_crypto(0, NULL);
+#endif
 		::OpenSSL_add_all_algorithms();
 	}
 	~Starter(){
