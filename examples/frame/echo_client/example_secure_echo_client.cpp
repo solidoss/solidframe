@@ -154,8 +154,8 @@ int main(int argc, char *argv[]){
 #endif
 	
 	{
-		//ErrorCodeT err = secure_ctx.loadVerifyFile("/etc/pki/tls/certs/ca-bundle.crt");
-		ErrorCodeT err = secure_ctx.loadDefaultVerifyPaths();
+		ErrorCodeT err = secure_ctx.loadVerifyFile("/etc/pki/tls/certs/ca-bundle.crt");
+		//ErrorCodeT err = secure_ctx.loadDefaultVerifyPaths();
 		if(err){
 			cout<<"error configuring openssl: "<<err.message()<<endl;
 			return 0;
