@@ -118,14 +118,6 @@ int main(int argc, char *argv[]){
 		}
 	}
 #endif
-	{
-		ErrorCodeT err = secure_ctx.loadVerifyFile("/etc/pki/tls/certs/ca-bundle.crt");
-		if(err){
-			cout<<"error configuring openssl: "<<err.message()<<endl;
-			return 0;
-		}
-	}
-	
 	signal(SIGPIPE, SIG_IGN);
 	
 #ifdef SOLID_HAS_DEBUG
@@ -160,6 +152,16 @@ int main(int argc, char *argv[]){
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
+	
+	{
+		//ErrorCodeT err = secure_ctx.loadVerifyFile("/etc/pki/tls/certs/ca-bundle.crt");
+		ErrorCodeT err = secure_ctx.loadDefaultVerifyPaths();
+		if(err){
+			cout<<"error configuring openssl: "<<err.message()<<endl;
+			return 0;
+		}
+	}
+	
 	
 	{
 		
@@ -282,6 +284,8 @@ struct ConnectFunction{
 		
 		frame::Manager 		&manager = _rctx.service().manager();
 		frame::ObjectIdT	objuid = _rctx.service().manager().id(*this);
+		
+		sock.secureSetCheckHostName(_rctx, pconnect_stub->connect_addr);
 		
 		pconnect_stub->resolver.requestResolve(
 			[&manager, objuid](ResolveData &_rrd, ErrorCodeT const &/*_rerr*/){

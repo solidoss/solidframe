@@ -260,6 +260,11 @@ public:
 	SocketDevice const & device()const{
 		return s.device();
 	}
+	
+	Sock& socket(){
+		return s;
+	}
+	
 	SocketDevice reset(ReactorContext &_rctx, SocketDevice &&_rnewdev = std::move(dummy_socket_device())){
 		if(s.device().ok()){
 			remDevice(_rctx, s.device());
@@ -449,7 +454,7 @@ public:
 	template <typename F>
 	void secureSetVerifyCallback(ReactorContext &_rctx, typename Sock::VerifyMaskT _mode, F _f){
 		SecureVerifyFunctor<F>	fnc_wrap(_f);
-		ErrorCodeT	err = s.secureVerifyCallback(_mode, fnc_wrap);
+		ErrorCodeT	err = s.setVerifyCallback(_mode, fnc_wrap);
 		if(err){
 			error(_rctx, error_stream_system);
 			systemError(_rctx, err);
@@ -457,7 +462,7 @@ public:
 	}
 	
 	void secureSetVerifyDepth(ReactorContext &_rctx, const int _depth){
-		ErrorCodeT	err = s.secureVerifyDepth(_depth);
+		ErrorCodeT	err = s.setVerifyDepth(_depth);
 		if(err){
 			error(_rctx, error_stream_system);
 			systemError(_rctx, err);
@@ -465,7 +470,15 @@ public:
 	}
 	
 	void secureSetVerifyMode(ReactorContext &_rctx, typename Sock::VerifyMaskT _mode){
-		ErrorCodeT	err = s.secureVerifyMode(_mode);
+		ErrorCodeT	err = s.setVerifyMode(_mode);
+		if(err){
+			error(_rctx, error_stream_system);
+			systemError(_rctx, err);
+		}
+	}
+	
+	void secureSetCheckHostName(ReactorContext &_rctx, const std::string &_val){
+		ErrorCodeT	err = s.setCheckHostName(_val);
 		if(err){
 			error(_rctx, error_stream_system);
 			systemError(_rctx, err);

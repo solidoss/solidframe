@@ -28,10 +28,10 @@
 #include "openssl/conf.h"
 
 namespace{
-class ErrorCategory: public solid::ErrorCategoryT
+class OpenSSLErrorCategory: public solid::ErrorCategoryT
 {     
 public:
-	ErrorCategory(){} 
+	OpenSSLErrorCategory(){} 
 	const char* name() const noexcept{
 		return "OpenSSL";
 	}
@@ -42,10 +42,10 @@ public:
 	}
 };
 
-const ErrorCategory ssl_category;
+const OpenSSLErrorCategory ssl_category;
 
 
-std::string ErrorCategory::message(int _ev) const{
+std::string OpenSSLErrorCategory::message(int _ev) const{
 	std::ostringstream	oss;
 	char				buf[1024];
 	
@@ -54,6 +54,52 @@ std::string ErrorCategory::message(int _ev) const{
 	oss<<"("<<name()<<":"<<_ev<<"): "<<buf;
 	return oss.str();
 }
+
+enum struct WrapperError: int{
+	Call,
+	SetCheckHostName,
+	SetCheckEmail,
+	SetCheckIP,
+};
+
+class ErrorCategory: public solid::ErrorCategoryT
+{     
+public:
+	ErrorCategory(){} 
+	const char* name() const noexcept{
+		return "solid_frame_aio_openssl";
+	}
+	std::string message(int _ev)const;
+	
+	solid::ErrorCodeT makeError(WrapperError _err)const{
+		return solid::ErrorCodeT(static_cast<int>(_err), *this);
+	}
+};
+
+const ErrorCategory wrapper_category;
+
+
+std::string ErrorCategory::message(int _ev) const{
+	std::ostringstream	oss;
+	oss<<"("<<name()<<":"<<_ev<<"): ";
+	
+	switch(static_cast<WrapperError>(_ev)){
+		case WrapperError::Call:
+			oss<<"OpenSSL API call";break;
+		case WrapperError::SetCheckHostName:
+			oss<<"Setting HostName used for verification";break;
+		case WrapperError::SetCheckEmail:
+			oss<<"Setting Email used for verification";break;
+		case WrapperError::SetCheckIP:
+			oss<<"Setting IP used for verification";break;
+		default:
+			oss<<"Unknown error";
+			break;
+	}
+	
+	return oss.str();
+}
+
 
 }//namespace
 
@@ -137,6 +183,14 @@ Context::~Context(){
 // 	}
 // 	return err;
 // }
+
+ErrorCodeT Context::loadDefaultVerifyPaths(){
+	if(SSL_CTX_set_default_verify_paths(pctx)){
+		return ErrorCodeT();
+	}else{
+		return wrapper_category.makeError(WrapperError::Call);
+	}
+}
 
 ErrorCodeT Context::loadVerifyFile(const char *_path){
 	ErrorCodeT err;
@@ -571,8 +625,7 @@ static int convertMask(const VerifyMaskT _verify_mask){
 ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask){
 	SSL_set_verify(pssl, convertMask(_verify_mask), on_verify);
 	
-	ErrorCodeT err;
-	return err;
+	return ErrorCodeT();
 }
 
 /*static*/ int Socket::on_verify(int preverify_ok, X509_STORE_CTX *x509_ctx){
@@ -593,16 +646,43 @@ ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask){
 	}
 }
 
-ErrorCodeT Socket::secureVerifyDepth(const int _depth){
+ErrorCodeT Socket::setVerifyDepth(const int _depth){
 	SSL_set_verify_depth(pssl, _depth);
-	ErrorCodeT err;
-	return err;
+	X509_VERIFY_PARAM *param = SSL_get0_param(pssl);;
+	X509_VERIFY_PARAM_set_depth(param, _depth);
+	return ErrorCodeT();
 }
 	
-ErrorCodeT Socket::secureVerifyMode(VerifyMaskT _verify_mask){
+ErrorCodeT Socket::setVerifyMode(VerifyMaskT _verify_mask){
 	SSL_set_verify(pssl, convertMask(_verify_mask), on_verify);
-	ErrorCodeT err;
-	return err;
+	return ErrorCodeT();
+}
+
+ErrorCodeT Socket::setCheckHostName(const std::string &_hostname){
+	X509_VERIFY_PARAM *param = SSL_get0_param(pssl);;
+	if(X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), 0)){
+		return ErrorCodeT();
+	}else{
+		return wrapper_category.makeError(WrapperError::SetCheckHostName);
+	}
+}
+
+ErrorCodeT Socket::setCheckEmail(const std::string &_email){
+	X509_VERIFY_PARAM *param = SSL_get0_param(pssl);;
+	if(X509_VERIFY_PARAM_set1_email(param, _email.c_str(), 0)){
+		return ErrorCodeT();
+	}else{
+		return wrapper_category.makeError(WrapperError::SetCheckEmail);
+	}
+}
+
+ErrorCodeT Socket::setCheckIP(const std::string &_ip){
+	X509_VERIFY_PARAM *param = SSL_get0_param(pssl);;
+	if(X509_VERIFY_PARAM_set1_ip_asc(param, _ip.c_str())){
+		return ErrorCodeT();
+	}else{
+		return wrapper_category.makeError(WrapperError::SetCheckIP);
+	}
 }
 
 }//namespace openssl

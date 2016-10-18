@@ -43,6 +43,9 @@ public:
 	
 	//ErrorCodeT configure(const char *_filename = nullptr, const char *_appname = nullptr);
 	
+	
+	ErrorCodeT loadDefaultVerifyPaths();
+	
 	//!Use it on client side to load the certificates
 	ErrorCodeT loadVerifyFile(const char *_path);
 	//!Use it on client side to load the certificates

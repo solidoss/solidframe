@@ -60,6 +60,8 @@ private:
 class	Socket{
 public:
 	
+	
+	using NativeHandleT = SSL*;
 	using VerifyMaskT = openssl::VerifyMaskT;
 	using VerifyContextT = openssl::VerifyContext;
 	
@@ -91,6 +93,8 @@ public:
 	SocketDevice const& device()const;
 	SocketDevice& device();
 	
+	NativeHandleT nativeHandle()const;
+	
 	int recvFrom(char *_pb, size_t _bl, SocketAddress &_addr, bool &_can_retry, ErrorCodeT &_rerr);
 	
 	int sendTo(const char *_pb, size_t _bl, SocketAddressStub const &_rsas, bool &_can_retry, ErrorCodeT &_rerr);
@@ -100,14 +104,18 @@ public:
 	bool secureShutdown(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr);
 	
 	template <typename Cbk>
-	ErrorCodeT secureVerifyCallback(VerifyMaskT _verify_mask, Cbk _cbk){
+	ErrorCodeT setVerifyCallback(VerifyMaskT _verify_mask, Cbk _cbk){
 		verify_cbk = _cbk;
 		return doPrepareVerifyCallback(_verify_mask);
 	}
 	
-	ErrorCodeT secureVerifyDepth(const int _depth);
+	ErrorCodeT setVerifyDepth(const int _depth);
 	
-	ErrorCodeT secureVerifyMode(VerifyMaskT _verify_mask);
+	ErrorCodeT setVerifyMode(VerifyMaskT _verify_mask);
+	
+	ErrorCodeT setCheckHostName(const std::string &_hostname);
+	ErrorCodeT setCheckEmail(const std::string &_hostname);
+	ErrorCodeT setCheckIP(const std::string &_hostname);
 	
 private:
 	static int thisSSLDataIndex();
@@ -134,6 +142,10 @@ private:
 	bool				want_write_on_send;
 	VerifyFunctionT		verify_cbk;
 };
+
+inline Socket::NativeHandleT Socket::nativeHandle()const{
+	return pssl;
+}
 
 }//namespace openssl
 }//namespace aio
