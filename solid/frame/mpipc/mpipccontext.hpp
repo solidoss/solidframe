@@ -156,11 +156,14 @@ std::ostream& operator<<(std::ostream &_ros, MessageId const &_msguid);
 
 class Service;
 class Connection;
+struct Configuration;
 
 struct ConnectionContext{
 	Service& service()const{
 		return rservice;
 	}
+	
+	Configuration const & configuration()const;
 	
 	ObjectIdT connectionId()const;
 	

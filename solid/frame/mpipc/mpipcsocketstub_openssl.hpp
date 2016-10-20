@@ -26,6 +26,13 @@ namespace mpipc{
 	
 using SecureContextT	= frame::aio::openssl::Context;
 
+struct SecureConfiguration{
+	SecureConfiguration():context(SecureContextT::create()){}
+	
+	
+	SecureContextT		context;
+};
+
 class SecureSocketStub: public SocketStub{
 public:
 	SecureSocketStub(f
@@ -121,6 +128,13 @@ private:
 	) override final{
 		sock.device().enableNoSignal();
 	}
+	
+	StreamSocketT& socket(){
+		return sock;
+	}
+	StreamSocketT const& socket()const{
+		return sock;
+	}
 private:
 	using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 	
@@ -130,19 +144,33 @@ private:
 inline SocketStubPtrT create_connecting_socket_secure(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
 		
 	if(sizeof(PlainSocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
-		return SocketStubPtrT(new SecureSocketStub(_rproxy, _rcfg.secure_context_any.cast<SecureContextT>()), SocketStub::delete_deleter);
+		return SocketStubPtrT(new SecureSocketStub(_rproxy, _rcfg.secure_context_any.cast<SecureConfiguration>().context), SocketStub::delete_deleter);
 	}else{
-		return SocketStubPtrT(new SecureSocketStub(_rproxy, _rcfg.secure_context_any.cast<SecureContextT>()), SocketStub::emplace_deleter);
+		return SocketStubPtrT(new SecureSocketStub(_rproxy, _rcfg.secure_context_any.cast<SecureConfiguration>().context), SocketStub::emplace_deleter);
 	}
 }
 
-inline SocketStubPtrT create_connecting_socket_secure(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
+inline SocketStubPtrT create_accepted_socket_secure(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
 		
 	if(sizeof(PlainSocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
-		return SocketStubPtrT(new SecureSocketStub(_rproxy, std::move(_usd), _rcfg.secure_context_any.cast<SecureContextT>()), SocketStub::delete_deleter);
+		return SocketStubPtrT(new SecureSocketStub(_rproxy, std::move(_usd), _rcfg.secure_context_any.cast<SecureConfiguration>().context), SocketStub::delete_deleter);
 	}else{
-		return SocketStubPtrT(new SecureSocketStub(_rproxy, std::move(_usd), _rcfg.secure_context_any.cast<SecureContextT>()), SocketStub::emplace_deleter);
+		return SocketStubPtrT(new SecureSocketStub(_rproxy, std::move(_usd), _rcfg.secure_context_any.cast<SecureConfiguration>().context), SocketStub::emplace_deleter);
 	}
+}
+
+namespace impl{
+inline ErrorConditionT basic_start_secure_server(ConnectionContext& _rctx, SocketStubPtrT &_rsock_ptr){
+	
+}
+}//namespace impl
+
+inline void configure_openssl(Configuration &_rcfg){
+	_rcfg.secure_any = make_any<SecureConfiguration>();
+	_rcfg.connection_create_connecting_socket_fnc = create_connecting_socket_secure;
+	_rcfg.connection_create_accepted_socket_fnc = create_accepted_socket_secure;
+	_rcfg.connection_start_secure_server_fnc = 
+	_rcfg.connection_start_secure_client_fnc = 
 }
 
 }//namespace mpipc

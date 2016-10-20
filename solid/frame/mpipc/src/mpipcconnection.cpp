@@ -920,8 +920,24 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext &_rctx, Ev
 	doResetTimerStart(_rctx);	
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Event &_revent){
-	//TODO:
+void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Event &/*_revent*/){
+	
+	Configuration const &config = service(_rctx).configuration();
+	ConnectionContext	conctx(service(_rctx), *this);
+	
+	if(config.hasSecureConfiguration()){
+		ErrorConditionT error;
+		if(isServer()){
+			error = config.connection_start_secure_server_fnc(conctx, sock_ptr);
+		}else{
+			error = config.connection_start_secure_client_fnc(conctx, sock_ptr);
+		}
+		if(error){
+			doStop(_rctx, error_connection_no_secure_configuration);
+		}
+	}else{
+		doStop(_rctx, error_connection_no_secure_configuration);
+	}
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &_revent){
@@ -1533,6 +1549,10 @@ const ErrorConditionT& ConnectionContext::error()const{
 //-----------------------------------------------------------------------------
 const ErrorCodeT& ConnectionContext::systemError()const{
 	return rconnection.systemError();
+}
+//-----------------------------------------------------------------------------
+Configuration const & ConnectionContext::configuration()const{
+	return rservice.configuration();
 }
 //-----------------------------------------------------------------------------
 }//namespace mpipc

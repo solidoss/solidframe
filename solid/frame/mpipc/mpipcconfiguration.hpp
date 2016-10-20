@@ -65,6 +65,7 @@ using ConnectionRecvRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&
 using ConnectionOnEventFunctionT					= FUNCTION<void(ConnectionContext&, Event&)>;
 using ConnectionCreateConnectingSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, char *)>;
 using ConnectionCreateAcceptedSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, SocketDevice &&, char *)>;
+using ConnectionStartSecureFunctionT				= FUNCTION<ErrorConditionT(ConnectionContext&, SocketStubPtrT &)>;
 
 enum struct ConnectionState{
 	Raw,
@@ -130,8 +131,8 @@ public:
 		return !isServer() && isClient();
 	}
 	
-	bool hasSecureContext()const{
-		return not secure_context_any.empty();
+	bool hasSecureConfiguration()const{
+		return not secure_any.empty();
 	}
 	
 	int listenerPort()const{
@@ -191,6 +192,8 @@ public:
 	ConnectionStartFunctionT						connection_start_outgoing_fnc;
 	ConnectionStopFunctionT							connection_stop_fnc;
 	ConnectionOnEventFunctionT						connection_on_event_fnc;
+	ConnectionStartSecureFunctionT					connection_start_secure_server_fnc;
+	ConnectionStartSecureFunctionT					connection_start_secure_client_fnc;
 	
 	AllocateBufferFunctionT							connection_recv_buffer_allocate_fnc;
 	AllocateBufferFunctionT							connection_send_buffer_allocate_fnc;
@@ -201,7 +204,7 @@ public:
 	std::string										listener_address_str;
 	std::string										listener_service_str;
 	
-	Any<>											secure_context_any;
+	Any<>											secure_any;
 	ProtocolPointerT								protocol_ptr;
 	
 	Protocol& protocol(){

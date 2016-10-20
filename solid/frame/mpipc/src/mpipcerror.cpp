@@ -28,6 +28,7 @@ enum {
 	ErrorConnectionEnterActiveE,
 	ErrorConnectionStoppingE,
 	ErrorConnectionInvalidStateE,
+	ErrorConnectionNoSecureConfigurationE,
 	ErrorMessageCanceledE,
 	ErrorMessageConnectionE,
 	ErrorCompressionUnavailableE,
@@ -107,6 +108,9 @@ std::string ErrorCategory::message(int _ev) const{
 		case ErrorConnectionInvalidStateE:
 			oss<<"Connection is a state invalid for opperation";
 			break;
+		case ErrorConnectionNoSecureConfigurationE:
+			oss<<"Connection: no secure configuration";
+			break;
 		case ErrorCompressionUnavailableE:
 			oss<<"Compression support is unavailable";
 			break;
@@ -185,6 +189,7 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_connection_enter_active(ErrorConnectionEnterActiveE, category);
 /*extern*/ const ErrorConditionT error_connection_stopping(ErrorConnectionStoppingE, category);
 /*extern*/ const ErrorConditionT error_connection_invalid_state(ErrorConnectionInvalidStateE, category);
+/*extern*/ const ErrorConditionT error_connection_no_secure_configuration(ErrorConnectionNoSecureConfigurationE, category);
 
 /*extern*/ const ErrorConditionT error_message_canceled(ErrorMessageCanceledE, category);
 /*extern*/ const ErrorConditionT error_message_connection(ErrorMessageConnectionE, category);
@@ -210,6 +215,7 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_service_message_already_canceled(ErrorServiceMessageAlreadyCanceledE, category);
 /*extern*/ const ErrorConditionT error_service_message_lost(ErrorServiceMessageLostE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_message(ErrorServiceUnknownMessageE, category);
+
 
 }//namespace mpipc
 }//namespace frame
