@@ -229,6 +229,35 @@ ErrorCodeT Context::loadPrivateKeyFile(const char *_path){
 	return err;
 }
 
+ErrorCodeT Context::doSetPasswordCallback(){
+	SSL_CTX_set_default_passwd_cb(pctx, on_password_cb);
+	SSL_CTX_set_default_passwd_cb_userdata(pctx, this);
+	
+	return ErrorCodeT();
+}
+
+/*static*/ int Context::on_password_cb(char *buf, int size, int rwflag, void *u){
+	Context &rthis = *static_cast<Context*>(u);
+	
+	buf[0] = 0;
+	
+	if(not FUNCTION_EMPTY(rthis.pwdfnc)){
+		std::string	pwd = rthis.pwdfnc(size, rwflag == 1 ? PasswordPurpose::Write : PasswordPurpose::Read);
+		size_t		sz = strlen(pwd.c_str());
+		
+		if(sz < static_cast<size_t>(size)){
+			
+		}else{
+			sz = static_cast<size_t>(size - 1);
+		}
+		
+		memcpy(buf, pwd.c_str(), sz);
+		buf[sz] = 0;
+	}
+	
+	return strlen(buf);
+}
+
 //=============================================================================
 
 /*static*/ int Socket::thisSSLDataIndex(){

@@ -154,12 +154,13 @@ int main(int argc, char *argv[]){
 #endif
 	
 	{
-		ErrorCodeT err = secure_ctx.loadVerifyFile("/etc/pki/tls/certs/ca-bundle.crt");
-		//ErrorCodeT err = secure_ctx.loadDefaultVerifyPaths();
+		ErrorCodeT err = secure_ctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
 		if(err){
 			cout<<"error configuring openssl: "<<err.message()<<endl;
 			return 0;
 		}
+		secure_ctx.loadCertificateFile("echo-client-cert.pem");
+		secure_ctx.loadPrivateKeyFile("echo-client-key.pem");
 	}
 	
 	
@@ -285,7 +286,7 @@ struct ConnectFunction{
 		frame::Manager 		&manager = _rctx.service().manager();
 		frame::ObjectIdT	objuid = _rctx.service().manager().id(*this);
 		
-		sock.secureSetCheckHostName(_rctx, pconnect_stub->connect_addr);
+		sock.secureSetCheckHostName(_rctx, "echo-server"/*pconnect_stub->connect_addr*/);
 		
 		pconnect_stub->resolver.requestResolve(
 			[&manager, objuid](ResolveData &_rrd, ErrorCodeT const &/*_rerr*/){

@@ -12,11 +12,17 @@
 
 #include "openssl/ssl.h"
 #include "solid/system/error.hpp"
+#include "solid/system/function.hpp"
 
 namespace solid{
 namespace frame{
 namespace aio{
 namespace openssl{
+
+enum struct PasswordPurpose{
+	Read,
+	Write
+};
 
 class Socket;
 class Context{
@@ -56,13 +62,24 @@ public:
 	//!Use it on server side to load the certificates
 	ErrorCodeT loadPrivateKeyFile(const char *_path);
 	
+	template <typename F>
+	ErrorCodeT passwordCallback(F _f){
+		pwdfnc = _f;
+		return doSetPasswordCallback();
+	}
+	
 	NativeContextT nativeContext()const{
 		return pctx;
 	}
-	
 private:
+	static int on_password_cb(char *buf, int size, int rwflag, void *u);
+	ErrorCodeT doSetPasswordCallback();
+private:
+	using PasswordFunctionT = FUNCTION<std::string (std::size_t, PasswordPurpose)>;
+	
 	friend class Socket;
-	SSL_CTX	*pctx;
+	SSL_CTX				*pctx;
+	PasswordFunctionT	pwdfnc;
 };
 
 }//namespace openssl
