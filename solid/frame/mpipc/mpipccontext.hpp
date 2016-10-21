@@ -142,8 +142,9 @@ private:
 	friend struct ConnectionPoolStub;
 	
 	friend std::ostream& operator<<(std::ostream &_ros, MessageId const &_msguid);
+	
 	size_t		index;
-	uint32_t		unique;
+	uint32_t	unique;
 
 	MessageId(
 		const size_t _idx,

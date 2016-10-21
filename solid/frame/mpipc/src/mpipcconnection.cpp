@@ -356,7 +356,15 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	
 	switch(config.connection_start_state){
 		case ConnectionState::Raw:
-			flags |= static_cast<size_t>(Flags::Raw);
+			if(config.connection_start_secure){
+				this->post(
+					_rctx,
+					[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));},
+					connection_event_category.event(ConnectionEvents::StartSecure)
+				);
+			}else{
+				flags |= static_cast<size_t>(Flags::Raw);
+			}
 			break;
 		case ConnectionState::Active:
 			if(config.connection_start_secure){
@@ -365,11 +373,13 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 					[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));},
 					connection_event_category.event(ConnectionEvents::StartSecure)
 				);
+			}else{
+				this->post(
+					_rctx,
+					[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));},
+					connection_event_category.event(ConnectionEvents::EnterActive)
+				);
 			}
-			this->post(
-				_rctx,
-				[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));}, connection_event_category.event(ConnectionEvents::EnterActive)
-			);
 			break;
 		case ConnectionState::Passive:
 		default:
@@ -380,12 +390,13 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 					[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));},
 					connection_event_category.event(ConnectionEvents::StartSecure)
 				);
+			}else{
+				this->post(
+					_rctx,
+					[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));},
+					connection_event_category.event(ConnectionEvents::EnterPassive)
+				);
 			}
-			this->post(
-				_rctx,
-				[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));},
-				connection_event_category.event(ConnectionEvents::EnterPassive)
-			);
 			break;
 	}
 }
@@ -926,18 +937,126 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 	ConnectionContext	conctx(service(_rctx), *this);
 	
 	if(config.hasSecureConfiguration()){
-		ErrorConditionT error;
+		ErrorCodeT	error;
+		bool		done = false;
+		
+		
 		if(isServer()){
-			error = config.connection_start_secure_server_fnc(conctx, sock_ptr);
+			done = config.connection_start_secure_accept_fnc(conctx, _rctx, sock_ptr, onSecureAccept, error);
+			if(done and not error){
+				onSecureAccept(_rctx);
+			}
 		}else{
-			error = config.connection_start_secure_client_fnc(conctx, sock_ptr);
+			done = config.connection_start_secure_connect_fnc(conctx, _rctx, sock_ptr, onSecureConnect, error);
+			if(done and not error){
+				onSecureConnect(_rctx);
+			}
 		}
+		
 		if(error){
+			edbgx(Debug::mpipc, this<<" error = ["<<error.message()<<"]");
 			doStop(_rctx, error_connection_no_secure_configuration);
 		}
 	}else{
 		doStop(_rctx, error_connection_no_secure_configuration);
 	}
+}
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onSecureConnect(frame::aio::ReactorContext &_rctx){
+	Connection			&rthis = static_cast<Connection&>(_rctx.object());
+	ConnectionContext	conctx(rthis.service(_rctx), rthis);
+	Configuration const &config = rthis.service(_rctx).configuration();
+	
+	if(_rctx.error()){
+		edbgx(Debug::mpipc, &rthis<<" error = ["<<_rctx.error().message()<<"] = systemError = ["<<_rctx.systemError().message()<<"]");
+		rthis.doStop(_rctx, _rctx.error());
+		return;
+	}
+	
+	if(not FUNCTION_EMPTY(config.connection_on_secure_connect_fnc)){
+		config.connection_on_secure_connect_fnc(conctx);
+	}
+	
+	if(not config.connection_start_secure){
+		//we need the connection_on_secure_accept_fnc for advancing.
+		if(FUNCTION_EMPTY(config.connection_on_secure_connect_fnc)){
+			rthis.doStop(_rctx, error_connection_invalid_state);//TODO: add new error
+		}
+	}else{
+		//we continue the connection start process enterring the right state
+		switch(config.connection_start_state){
+			case ConnectionState::Raw:
+				break;
+			case ConnectionState::Active:
+				if(not rthis.isActiveState()){
+					rthis.post(
+						_rctx,
+						[&rthis](frame::aio::ReactorContext &_rctx, Event &&_revent){rthis.onEvent(_rctx, std::move(_revent));},
+						connection_event_category.event(ConnectionEvents::EnterActive)
+					);
+				}
+				break;
+			case ConnectionState::Passive:
+			default:
+				if(not rthis.isActiveState() and rthis.isRawState()){
+					rthis.post(
+						_rctx,
+						[&rthis](frame::aio::ReactorContext &_rctx, Event &&_revent){rthis.onEvent(_rctx, std::move(_revent));},
+						connection_event_category.event(ConnectionEvents::EnterPassive)
+					);
+				}
+				break;
+		}
+	}
+}
+//-----------------------------------------------------------------------------
+/*static*/ void Connection::onSecureAccept(frame::aio::ReactorContext &_rctx){
+	Connection			&rthis = static_cast<Connection&>(_rctx.object());
+	ConnectionContext	conctx(rthis.service(_rctx), rthis);
+	Configuration const &config = rthis.service(_rctx).configuration();
+	
+	if(_rctx.error()){
+		edbgx(Debug::mpipc, &rthis<<" error = ["<<_rctx.error().message()<<"] = systemError = ["<<_rctx.systemError().message()<<"]");
+		rthis.doStop(_rctx, _rctx.error());
+		return;
+	}
+	
+	if(not FUNCTION_EMPTY(config.connection_on_secure_accept_fnc)){
+		config.connection_on_secure_accept_fnc(conctx);
+	}
+	
+	if(not config.connection_start_secure){
+		//we need the connection_on_secure_accept_fnc for advancing.
+		if(FUNCTION_EMPTY(config.connection_on_secure_accept_fnc)){
+			rthis.doStop(_rctx, error_connection_invalid_state);//TODO: add new error
+		}
+	}else{
+		//we continue the connection start process enterring the right state
+		switch(config.connection_start_state){
+			case ConnectionState::Raw:
+				break;
+			case ConnectionState::Active:
+				if(not rthis.isActiveState()){
+					rthis.post(
+						_rctx,
+						[&rthis](frame::aio::ReactorContext &_rctx, Event &&_revent){rthis.onEvent(_rctx, std::move(_revent));},
+						connection_event_category.event(ConnectionEvents::EnterActive)
+					);
+				}
+				break;
+			case ConnectionState::Passive:
+			default:
+				if(not rthis.isActiveState() and rthis.isRawState()){
+					rthis.post(
+						_rctx,
+						[&rthis](frame::aio::ReactorContext &_rctx, Event &&_revent){rthis.onEvent(_rctx, std::move(_revent));},
+						connection_event_category.event(ConnectionEvents::EnterPassive)
+					);
+				}
+				break;
+		}
+	}
+	
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventSendRaw(frame::aio::ReactorContext &_rctx, Event &_revent){

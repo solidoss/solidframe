@@ -21,14 +21,15 @@
 namespace solid{
 namespace frame{
 namespace mpipc{
+namespace plain{
 
-class PlainSocketStub: public SocketStub{
+class SocketStub: public SocketStub{
 public:
-	PlainSocketStub(frame::aio::ObjectProxy const &_rproxy):sock(_rproxy){}
-	PlainSocketStub(frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd):sock(_rproxy, std::move(_usd)){}
+	SocketStub(frame::aio::ObjectProxy const &_rproxy):sock(_rproxy){}
+	SocketStub(frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd):sock(_rproxy, std::move(_usd)){}
 	
 private:
-	~PlainSocketStub(){
+	~SocketStub(){
 		
 	}
 	
@@ -118,23 +119,24 @@ private:
 	StreamSocketT				sock;
 };
 
-inline SocketStubPtrT create_connecting_socket_plain(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
-	if(sizeof(PlainSocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
-		return SocketStubPtrT(new PlainSocketStub(_rproxy), SocketStub::delete_deleter);
+inline SocketStubPtrT create_connecting_socket(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
+	if(sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
+		return SocketStubPtrT(new SocketStub(_rproxy), SocketStub::delete_deleter);
 	}else{
-		return SocketStubPtrT(new PlainSocketStub(_rproxy), SocketStub::emplace_deleter);
+		return SocketStubPtrT(new(_emplace_buf) SocketStub(_rproxy), SocketStub::emplace_deleter);
 	}
 }
 
-inline SocketStubPtrT create_connecting_socket_plain(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
+inline SocketStubPtrT create_connecting_socket(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
 		
-	if(sizeof(PlainSocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
-		return SocketStubPtrT(new PlainSocketStub(_rproxy, std::move(_usd)), SocketStub::delete_deleter);
+	if(sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
+		return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd)), SocketStub::delete_deleter);
 	}else{
-		return SocketStubPtrT(new PlainSocketStub(_rproxy, std::move(_usd)), SocketStub::emplace_deleter);
+		return SocketStubPtrT(new(_emplace_buf) SocketStub(_rproxy, std::move(_usd)), SocketStub::emplace_deleter);
 	}
 }
 
+}//namespace plain
 }//namespace mpipc
 }//namespace frame
 }//namespace solid

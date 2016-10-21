@@ -43,12 +43,17 @@ class	MessageWriter;
 struct	ConnectionContext;
 struct	Configuration;
 
+typedef void (*OnSecureConnectF)(frame::aio::ReactorContext &);
+typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext &);
+
 using AddressVectorT								= std::vector<SocketAddressInet>;
 
 using ResolveCompleteFunctionT						= FUNCTION<void(AddressVectorT &&)>;
 using AsyncResolveFunctionT							= FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
 using ConnectionStopFunctionT						= FUNCTION<void(ConnectionContext &)>;
 using ConnectionStartFunctionT						= FUNCTION<void(ConnectionContext &)>;
+using ConnectionSecureAcceptFunctionT				= FUNCTION<void(ConnectionContext &)>;
+using ConnectionSecureConnectFunctionT				= FUNCTION<void(ConnectionContext &)>;
 using AllocateBufferFunctionT						= FUNCTION<char*(const uint16_t)>;
 using FreeBufferFunctionT							= FUNCTION<void(char*)>;
 using CompressFunctionT								= FUNCTION<size_t(char*, size_t, ErrorConditionT &)>;
@@ -65,7 +70,9 @@ using ConnectionRecvRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&
 using ConnectionOnEventFunctionT					= FUNCTION<void(ConnectionContext&, Event&)>;
 using ConnectionCreateConnectingSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, char *)>;
 using ConnectionCreateAcceptedSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, SocketDevice &&, char *)>;
-using ConnectionStartSecureFunctionT				= FUNCTION<ErrorConditionT(ConnectionContext&, SocketStubPtrT &)>;
+
+using ConnectionStartSecureAcceptFunctionT			= FUNCTION<bool(ConnectionContext&, frame::aio::ReactorContext &, SocketStubPtrT &, OnSecureAcceptF, ErrorCodeT&)>;
+using ConnectionStartSecureConnectFunctionT			= FUNCTION<bool(ConnectionContext&, frame::aio::ReactorContext &, SocketStubPtrT &, OnSecureConnectF, ErrorCodeT&)>;
 
 enum struct ConnectionState{
 	Raw,
@@ -192,14 +199,16 @@ public:
 	ConnectionStartFunctionT						connection_start_outgoing_fnc;
 	ConnectionStopFunctionT							connection_stop_fnc;
 	ConnectionOnEventFunctionT						connection_on_event_fnc;
-	ConnectionStartSecureFunctionT					connection_start_secure_server_fnc;
-	ConnectionStartSecureFunctionT					connection_start_secure_client_fnc;
+	ConnectionStartSecureAcceptFunctionT			connection_start_secure_accept_fnc;
+	ConnectionStartSecureConnectFunctionT			connection_start_secure_connect_fnc;
 	
 	AllocateBufferFunctionT							connection_recv_buffer_allocate_fnc;
 	AllocateBufferFunctionT							connection_send_buffer_allocate_fnc;
 
 	FreeBufferFunctionT								connection_recv_buffer_free_fnc;
 	FreeBufferFunctionT								connection_send_buffer_free_fnc;
+	ConnectionSecureConnectFunctionT				connection_on_secure_connect_fnc;
+	ConnectionSecureAcceptFunctionT					connection_on_secure_accept_fnc;
 	
 	std::string										listener_address_str;
 	std::string										listener_service_str;

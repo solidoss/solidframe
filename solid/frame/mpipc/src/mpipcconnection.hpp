@@ -153,6 +153,8 @@ protected:
 	static void onConnect(frame::aio::ReactorContext &_rctx);
 	static void onTimerInactivity(frame::aio::ReactorContext &_rctx);
 	static void onTimerKeepalive(frame::aio::ReactorContext &_rctx);
+	static void onSecureConnect(frame::aio::ReactorContext &_rctx);
+	static void onSecureAccept(frame::aio::ReactorContext &_rctx);
 
 private:
 	friend struct ConnectionContext;

@@ -47,11 +47,11 @@ namespace{
 	}
 	
 	SocketStubPtrT default_create_connecting_socket(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
-		return create_connecting_socket_plain(_rcfg, _rproxy, _emplace_buf);
+		return plain::create_connecting_socket(_rcfg, _rproxy, _emplace_buf);
 	}
 	
 	SocketStubPtrT default_create_accepted_socket(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
-		return create_connecting_socket_plain(_rcfg,_rproxy, std::move(_usd), _emplace_buf);
+		return plain::create_accepted_socket(_rcfg,_rproxy, std::move(_usd), _emplace_buf);
 	}
 	
 }//namespace
