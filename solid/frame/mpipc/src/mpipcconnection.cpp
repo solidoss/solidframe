@@ -937,25 +937,30 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 	ConnectionContext	conctx(service(_rctx), *this);
 	
 	if(config.hasSecureConfiguration()){
-		ErrorCodeT	error;
-		bool		done = false;
+		ErrorConditionT	error;
+		bool			done = false;
 		
 		
 		if(isServer()){
-			done = config.connection_start_secure_accept_fnc(conctx, _rctx, sock_ptr, onSecureAccept, error);
+			done =  sock_ptr->secureAccept(_rctx, conctx, onSecureAccept, error);
 			if(done and not error){
 				onSecureAccept(_rctx);
 			}
 		}else{
-			done = config.connection_start_secure_connect_fnc(conctx, _rctx, sock_ptr, onSecureConnect, error);
+			done = sock_ptr->secureAccept(_rctx, conctx, onSecureConnect, error);
 			if(done and not error){
 				onSecureConnect(_rctx);
 			}
 		}
 		
+		if(_rctx.error()){
+			edbgx(Debug::mpipc, this<<" error = ["<<error.message()<<"]");
+			doStop(_rctx, _rctx.error());
+		}
+		
 		if(error){
 			edbgx(Debug::mpipc, this<<" error = ["<<error.message()<<"]");
-			doStop(_rctx, error_connection_no_secure_configuration);
+			doStop(_rctx, error);
 		}
 	}else{
 		doStop(_rctx, error_connection_no_secure_configuration);
@@ -978,12 +983,12 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 	}
 	
 	if(not config.connection_start_secure){
-		//we need the connection_on_secure_accept_fnc for advancing.
+		//we need the connection_on_secure_connect_fnc for advancing.
 		if(FUNCTION_EMPTY(config.connection_on_secure_connect_fnc)){
 			rthis.doStop(_rctx, error_connection_invalid_state);//TODO: add new error
 		}
 	}else{
-		//we continue the connection start process enterring the right state
+		//we continue the connection start process entering the right state
 		switch(config.connection_start_state){
 			case ConnectionState::Raw:
 				break;
@@ -1031,7 +1036,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 			rthis.doStop(_rctx, error_connection_invalid_state);//TODO: add new error
 		}
 	}else{
-		//we continue the connection start process enterring the right state
+		//we continue the connection start process entering the right state
 		switch(config.connection_start_state){
 			case ConnectionState::Raw:
 				break;
@@ -1674,6 +1679,19 @@ Configuration const & ConnectionContext::configuration()const{
 	return rservice.configuration();
 }
 //-----------------------------------------------------------------------------
+// SocketStub
+//-----------------------------------------------------------------------------
+/*virtual*/ bool SocketStub::secureAccept(frame::aio::ReactorContext &_rctx, ConnectionContext &/*_rconctx*/, OnSecureAcceptF /*_pf*/, ErrorConditionT &_rerror){
+	_rerror = error_connection_logic;
+	return true;
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ bool SocketStub::secureConnect(frame::aio::ReactorContext &_rctx, ConnectionContext &/*_rconctx*/, OnSecureConnectF /*_pf*/, ErrorConditionT &_rerror){
+	_rerror = error_connection_logic;
+	return true;
+}
+//-----------------------------------------------------------------------------
+
 }//namespace mpipc
 }//namespace frame
 }//namespace solid

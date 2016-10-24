@@ -14,6 +14,7 @@
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
 #include <mutex>
 #include <condition_variable>
@@ -195,6 +196,7 @@ int main(int argc, char *argv[]){
 		
 		{
 			auto						proto = frame::mpipc::serialization_v1::Protocol::create();
+			
 			frame::mpipc::Configuration	cfg(sch, proto);
 			
 			proto->registerType<FirstMessage>(
@@ -216,6 +218,19 @@ int main(int argc, char *argv[]){
 			cfg.connection_start_outgoing_fnc = outgoing_connection_start;
 			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
+			
+			//configure OpenSSL:
+			
+			frame::mpipc::openssl::setup_client(
+				cfg,
+				[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+					_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+					_rctx.loadCertificateFile("echo-client-cert.pem");
+					_rctx.loadPrivateKeyFile("echo-client-key.pem");
+					return ErrorCodeT();
+				}
+				
+			);
 			err = ipcsvc.reconfigure(std::move(cfg));
 			
 			if(err){

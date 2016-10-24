@@ -221,6 +221,11 @@ public:
 		return nullptr;
 	}
 	
+	template <typename T>
+	T* constCast()const{
+		return const_cast<T*>(cast<T>());
+	}
+	
 	bool empty()const{
 		return pvalue_ == nullptr;
 	}

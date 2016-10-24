@@ -71,9 +71,6 @@ using ConnectionOnEventFunctionT					= FUNCTION<void(ConnectionContext&, Event&)
 using ConnectionCreateConnectingSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, char *)>;
 using ConnectionCreateAcceptedSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, SocketDevice &&, char *)>;
 
-using ConnectionStartSecureAcceptFunctionT			= FUNCTION<bool(ConnectionContext&, frame::aio::ReactorContext &, SocketStubPtrT &, OnSecureAcceptF, ErrorCodeT&)>;
-using ConnectionStartSecureConnectFunctionT			= FUNCTION<bool(ConnectionContext&, frame::aio::ReactorContext &, SocketStubPtrT &, OnSecureConnectF, ErrorCodeT&)>;
-
 enum struct ConnectionState{
 	Raw,
 	Passive,
@@ -199,8 +196,6 @@ public:
 	ConnectionStartFunctionT						connection_start_outgoing_fnc;
 	ConnectionStopFunctionT							connection_stop_fnc;
 	ConnectionOnEventFunctionT						connection_on_event_fnc;
-	ConnectionStartSecureAcceptFunctionT			connection_start_secure_accept_fnc;
-	ConnectionStartSecureConnectFunctionT			connection_start_secure_connect_fnc;
 	
 	AllocateBufferFunctionT							connection_recv_buffer_allocate_fnc;
 	AllocateBufferFunctionT							connection_send_buffer_allocate_fnc;

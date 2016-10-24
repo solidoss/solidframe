@@ -211,23 +211,98 @@ ErrorCodeT Context::loadVerifyPath(const char *_path){
 	return err;
 }
 
-ErrorCodeT Context::loadCertificateFile(const char *_path){
+ErrorCodeT Context::loadCertificateFile(const char *_path, const FileFormat _fformat/* = FileFormat::Pem*/){
 	ErrorCodeT err;
 	::ERR_clear_error();
-	if(SSL_CTX_use_certificate_file(pctx, _path, SSL_FILETYPE_PEM)){
+	if(SSL_CTX_use_certificate_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1)){
 		err = ssl_category.makeError(::ERR_get_error());
 	}
 	return err;
 }
 
-ErrorCodeT Context::loadPrivateKeyFile(const char *_path){
+typedef void (*BIODeleter)(BIO*);
+typedef void (*X509Deleter)(X509*);
+typedef void (*EVP_PKEYDeleter)(EVP_PKEY*);
+
+void bio_deleter(BIO *_pbio){
+	if(_pbio) ::BIO_free(_pbio);
+}
+
+void x509_deleter(X509 *_px509){
+	if(_px509) ::X509_free(_px509);
+}
+
+void evp_pkey_deleter(EVP_PKEY *_pkey){
+	if(_pkey) ::EVP_PKEY_free(_pkey);
+}
+
+ErrorCodeT Context::loadCertificate(const unsigned char *_data, const size_t _data_size, const FileFormat _fformat/* = FileFormat::Pem*/){
 	ErrorCodeT err;
 	::ERR_clear_error();
-	if(SSL_CTX_use_PrivateKey_file(pctx, _path, SSL_FILETYPE_PEM)){
+	
+	if(_fformat == FileFormat::Asn1){
+		if(
+			::SSL_CTX_use_certificate_ASN1(
+				pctx,
+				static_cast<int>(_data_size),
+				_data
+			) == 1
+		){
+			return err;
+		}
+	}else if(_fformat == FileFormat::Pem){
+		std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, _data_size), bio_deleter);
+		if(bio_ptr){
+			std::unique_ptr<::X509, X509Deleter> cert_ptr(::PEM_read_bio_X509(bio_ptr.get(), 0, 0, 0), x509_deleter);
+			if (cert_ptr)
+			{
+				if (::SSL_CTX_use_certificate(pctx, cert_ptr.get()) == 1)
+				{
+					return err;
+				}
+			}
+		}
+	}else{
+		return wrapper_category.makeError(WrapperError::Call);
+	}
+	return ssl_category.makeError(::ERR_get_error());
+}
+
+ErrorCodeT Context::loadPrivateKeyFile(const char *_path, const FileFormat _fformat/* = FileFormat::Pem*/){
+	ErrorCodeT err;
+	::ERR_clear_error();
+	if(SSL_CTX_use_PrivateKey_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1)){
 		err = ssl_category.makeError(::ERR_get_error());
 	}
 	return err;
 }
+
+ErrorCodeT Context::loadPrivateKey(const unsigned char *_data, const size_t _data_size, const FileFormat _fformat/* = FileFormat::Pem*/){
+	ErrorCodeT err;
+	::ERR_clear_error();
+	
+	std::unique_ptr<::BIO, BIODeleter> 				bio_ptr(::BIO_new_mem_buf(_data, _data_size), bio_deleter);
+	std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>	key_ptr(nullptr, evp_pkey_deleter);
+	
+	if(_fformat == FileFormat::Asn1){
+		key_ptr = std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>(::d2i_PrivateKey_bio(bio_ptr.get(), 0), evp_pkey_deleter);
+	}else if(_fformat == FileFormat::Pem){
+		pem_password_cb* 	callback = ::SSL_CTX_get_default_passwd_cb(pctx);
+		void* 				cb_userdata = ::SSL_CTX_get_default_passwd_cb_userdata(pctx);
+		
+		key_ptr = std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>(
+			::PEM_read_bio_PrivateKey(
+				bio_ptr.get(), 0, callback,
+				cb_userdata
+			),
+			evp_pkey_deleter
+		);
+	}else{
+		return wrapper_category.makeError(WrapperError::Call);
+	}
+	return ssl_category.makeError(::ERR_get_error());
+}
+
 
 ErrorCodeT Context::doSetPasswordCallback(){
 	SSL_CTX_set_default_passwd_cb(pctx, on_password_cb);

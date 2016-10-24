@@ -24,6 +24,11 @@ enum struct PasswordPurpose{
 	Write
 };
 
+enum struct FileFormat{
+	Asn1,
+	Pem
+};
+
 class Socket;
 class Context{
 public:
@@ -57,10 +62,12 @@ public:
 	//!Use it on client side to load the certificates
 	ErrorCodeT loadVerifyPath(const char *_path);
 	
-	//!Use it on server side to load the certificates
-	ErrorCodeT loadCertificateFile(const char *_path);
-	//!Use it on server side to load the certificates
-	ErrorCodeT loadPrivateKeyFile(const char *_path);
+	//!Use it on client/server side to load the certificates
+	ErrorCodeT loadCertificateFile(const char *_path, const FileFormat _fformat = FileFormat::Pem);
+	ErrorCodeT loadCertificate(const unsigned char *_data, const size_t _data_size, const FileFormat _fformat = FileFormat::Pem);
+	//!Use it on client/server side to load the certificates
+	ErrorCodeT loadPrivateKeyFile(const char *_path, const FileFormat _fformat = FileFormat::Pem);
+	ErrorCodeT loadPrivateKey(const unsigned char *_data, const size_t _data_size, const FileFormat _fformat = FileFormat::Pem);
 	
 	template <typename F>
 	ErrorCodeT passwordCallback(F _f){

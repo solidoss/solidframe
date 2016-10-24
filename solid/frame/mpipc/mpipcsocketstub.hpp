@@ -17,6 +17,8 @@ namespace solid{
 namespace frame{
 namespace mpipc{
 
+struct ConnectionContext;
+
 class SocketStub{
 public:
 	typedef void (*OnSendAllRawF)(frame::aio::ReactorContext &, Event &);
@@ -24,6 +26,8 @@ public:
 	typedef void (*OnConnectF)(frame::aio::ReactorContext &);
 	typedef void (*OnRecvF)(frame::aio::ReactorContext &, size_t);
 	typedef void (*OnSendF)(frame::aio::ReactorContext &);
+	typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext &);
+	typedef void (*OnSecureConnectF)(frame::aio::ReactorContext &);
 	
 	static void emplace_deleter(SocketStub *_pss){
 		_pss->~SocketStub();
@@ -69,6 +73,9 @@ public:
 	virtual void prepareSocket(
 		frame::aio::ReactorContext &_rctx
 	) = 0;
+	
+	virtual bool secureAccept(frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureAcceptF _pf, ErrorConditionT &_rerror);
+	virtual bool secureConnect(frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureConnectF _pf, ErrorConditionT &_rerror);
 };
 
 typedef void(*SocketStubDeleteF)(SocketStub *);

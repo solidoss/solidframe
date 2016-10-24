@@ -13,6 +13,7 @@
 #include "solid/system/socketdevice.hpp"
 
 #include "solid/utility/event.hpp"
+#include "solid/utility/any.hpp"
 
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
@@ -34,10 +35,10 @@ struct Configuration{
 	ContextT		client_context;
 };
 
-class SocketStub: public SocketStub{
+class SocketStub: public mpipc::SocketStub{
+	using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 public:
-	SocketStub(f
-		rame::aio::ObjectProxy const &_rproxy, ContextT &_rsecure_ctx
+	SocketStub(frame::aio::ObjectProxy const &_rproxy, ContextT &_rsecure_ctx
 	):sock(_rproxy, _rsecure_ctx){}
 	
 	SocketStub(
@@ -45,7 +46,7 @@ public:
 	):sock(_rproxy, std::move(_usd), _rsecure_ctx){}
 	
 private:
-	~SecureSocketStub(){
+	~SocketStub(){
 		
 	}
 	
@@ -137,26 +138,25 @@ private:
 		return sock;
 	}
 private:
-	using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 	
 	StreamSocketT				sock;
 };
 
-inline SocketStubPtrT create_connecting_socket(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
+inline SocketStubPtrT create_connecting_socket(mpipc::Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
 		
-	if(sizeof(PlainSocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
-		return SocketStubPtrT(new SecureSocketStub(_rproxy, _rcfg.secure_context_any.cast<SecureConfiguration>().client_context), SocketStub::delete_deleter);
+	if(sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
+		return SocketStubPtrT(new SocketStub(_rproxy, _rcfg.secure_any.constCast<Configuration>()->client_context), SocketStub::delete_deleter);
 	}else{
-		return SocketStubPtrT(new(_emplace_buf) SecureSocketStub(_rproxy, _rcfg.secure_context_any.cast<SecureConfiguration>().client_context), SocketStub::emplace_deleter);
+		return SocketStubPtrT(new(_emplace_buf) SocketStub(_rproxy, _rcfg.secure_any.constCast<Configuration>()->client_context), SocketStub::emplace_deleter);
 	}
 }
 
-inline SocketStubPtrT create_accepted_socket(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
+inline SocketStubPtrT create_accepted_socket(mpipc::Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
 		
-	if(sizeof(PlainSocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
-		return SocketStubPtrT(new SecureSocketStub(_rproxy, std::move(_usd), _rcfg.secure_context_any.cast<SecureConfiguration>().server_context), SocketStub::delete_deleter);
+	if(sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
+		return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd), _rcfg.secure_any.constCast<Configuration>()->server_context), SocketStub::delete_deleter);
 	}else{
-		return SocketStubPtrT(new(_emplace_buf) SecureSocketStub(_rproxy, std::move(_usd), _rcfg.secure_context_any.cast<SecureConfiguration>().server_context), SocketStub::emplace_deleter);
+		return SocketStubPtrT(new(_emplace_buf) SocketStub(_rproxy, std::move(_usd), _rcfg.secure_any.constCast<Configuration>()->server_context), SocketStub::emplace_deleter);
 	}
 }
 
@@ -168,50 +168,72 @@ struct OnSecureVerifyFunctor{
 	bool	ignore_certificate_error;
 	
 	bool operator()(frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx){
-		
+
 	}
 	
 };
 
 
-inline bool basic_on_secure_verify(frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx){
+inline bool basic_secure_accept(ConnectionContext& _rconctx, frame::aio::ReactorContext &_rctx, SocketStubPtrT &_rsock_ptr, OnSecureAcceptF _pf, ErrorCodeT& _rerr){
+	SocketStub &rss = *static_cast<SocketStub*>(_rsock_ptr.get());
+	//rss.socket().secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, basic_on_secure_verify);
+}
+
+inline bool basic_secure_connect(ConnectionContext& _rconctx, frame::aio::ReactorContext &_rctx, SocketStubPtrT &_rsock_ptr, OnSecureConnectF _pf, ErrorCodeT& _rerr){
 	
 }
 
-inline bool basic_secure_accept(ConnectionContext& _rctx, frame::aio::ReactorContext &_rctx, SocketStubPtrT &_rsock_ptr, OnSecureAcceptF _pf, ErrorCodeT& _rerr){
-	SocketStub &rss = *static_cast<SocketStub*>(_rsock_ptr.get());
-	rss.socket().secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, basic_on_secure_verify);
-}
-
-inline bool basic_secure_connect(ConnectionContext& _rctx, frame::aio::ReactorContext &_rctx, SocketStubPtrT &_rsock_ptr, OnSecureConnectF _pf, ErrorCodeT& _rerr){
+inline void basic_client_secure_start(ConnectionContext& _rconctx, frame::aio::ReactorContext &_rctx, aio::openssl::Socket &_rsock, ErrorCodeT& _rerr){
 	
 }
 
 
 }//namespace impl
 
+
+inline bool basic_client_secure_verify(ConnectionContext &/*_rctx*/, bool _preverified, frame::aio::openssl::VerifyContext &/*_rverify_ctx*/){
+	return _preverified;
+}
+
+
+
+inline unsigned long basic_client_secure_start(ConnectionContext& _rconctx, aio::openssl::Socket &_rsock, ErrorCodeT& _rerr){
+	return aio::openssl::VerifyModePeer;
+}
+
 enum ClientSetupFlags{
 	ClientSetupIgnoreCertificateErrors = 1,
 	ClientSetupNoCheckServerName = 2
 };
 
-template <class ContextSetupFunction, class ConnectionStartSecureFunction>
-inline void setup_client_only(
+template <
+	class ContextSetupFunction,
+	class ConnectionStartSecureFunction,
+	class ConnectionOnSecureVerify
+>
+inline void setup_client(
 	mpipc::Configuration &_rcfg,
 	const ContextSetupFunction &_ctx_fnc,
-	ConnectionStartSecureFunction &&_start_fnc
+	const std::string &_srv_name,
+	ConnectionStartSecureFunction &&_start_fnc = basic_client_secure_start,
+	ConnectionOnSecureVerify &&_verify_fnc = basic_client_secure_verify
 ){
-	_rcfg.secure_any = make_any<Configuration>();
+	
+	if(_rcfg.secure_any.empty()){
+		_rcfg.secure_any = make_any<0, Configuration>();
+	}
+	
+	
 	Configuration &rsecure_cfg = *_rcfg.secure_any.cast<Configuration>();
 	
 	rsecure_cfg.client_context = ContextT::create();
 	
 	_ctx_fnc(rsecure_cfg.client_context);
 	
-	_rcfg.connection_create_connecting_socket_fnc = create_connecting_socket;
+	//_rcfg.connection_create_connecting_socket_fnc = create_connecting_socket;
 	//_rcfg.connection_create_accepted_socket_fnc = create_accepted_socket_secure;
 	//_rcfg.connection_start_secure_accept_fnc = 
-	_rcfg.connection_start_secure_connect_fnc = 
+	//_rcfg.connection_start_secure_connect_fnc = 
 }
 
 
