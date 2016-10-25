@@ -165,6 +165,10 @@ void Configuration::prepare(){
 	if(connection_send_buffer_start_capacity_kb > connection_send_buffer_max_capacity_kb){
 		connection_send_buffer_start_capacity_kb = connection_send_buffer_max_capacity_kb;
 	}
+	
+	if(not hasSecureConfiguration()){
+		connection_start_secure = false;
+	}
 }
 //-----------------------------------------------------------------------------
 char* Configuration::allocateRecvBuffer(uint8_t &_rbuffer_capacity_kb)const{

@@ -135,8 +135,12 @@ public:
 		return !isServer() && isClient();
 	}
 	
-	bool hasSecureConfiguration()const{
-		return not secure_any.empty();
+	bool hasServerSecureConfiguration()const{
+		return not server_secure_any.empty();
+	}
+	
+	bool hasClientSecureConfiguration()const{
+		return not client_secure_any.empty();
 	}
 	
 	int listenerPort()const{
@@ -208,7 +212,8 @@ public:
 	std::string										listener_address_str;
 	std::string										listener_service_str;
 	
-	Any<>											secure_any;
+	Any<>											server_secure_any;
+	Any<>											client_secure_any;
 	ProtocolPointerT								protocol_ptr;
 	
 	Protocol& protocol(){

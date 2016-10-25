@@ -249,6 +249,12 @@ int main(int argc, char *argv[]){
 				cout<<"Error starting ipcservice: "<<err.message()<<endl;
 				return 1;
 			}
+			
+			{
+				std::ostringstream oss;
+				oss<<ipcsvc.configuration().listenerPort();
+				idbg("server listens on port: "<<oss.str());
+			}
 		}
 		{
 			string	s;
@@ -280,7 +286,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug-port,P", value<string>(&_par.dbg_port)->default_value("9999"), "Debug server port (e.g. on linux use: nc -l 9999)")
 			("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
-			("listen-port,l", value<std::string>(&_par.baseport)->default_value("")->implicit_value("2000"), "IPC Listen port")
+			("listen-port,l", value<std::string>(&_par.baseport)->default_value("2000"), "IPC Listen port")
 			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: host:port")
 		;
 		variables_map vm;
@@ -327,6 +333,9 @@ void MessageHandler::operator()(
 namespace{
 
 void broadcast_message(frame::mpipc::Service &_rsvc, std::shared_ptr<frame::mpipc::Message> &_rmsgptr){
+	
+	vdbg("done stop===============================");
+	
 	for(Params::StringVectorT::const_iterator it(app_params.connectstringvec.begin()); it != app_params.connectstringvec.end(); ++it){
 		_rsvc.sendMessage(it->c_str(), _rmsgptr, 0|frame::mpipc::MessageFlags::WaitResponse);
 	}

@@ -1589,6 +1589,7 @@ bool Service::doNonMainConnectionStopping(
 		--rpool.active_connection_count;
 	}else{
 		SOLID_ASSERT(not _rcon.isServer());
+		SOLID_ASSERT(rpool.pending_connection_count >= 0);
 		--rpool.pending_connection_count;
 	}
 	
@@ -1723,7 +1724,7 @@ bool Service::doMainConnectionStoppingCleanAll(
 		if(_rcon.isActiveState()){
 			--rpool.active_connection_count;
 		}else{
-			SOLID_ASSERT(not _rcon.isServer());
+			SOLID_ASSERT(rpool.pending_connection_count >= 0);
 			--rpool.pending_connection_count;
 		}
 		
@@ -1762,7 +1763,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 		if(_rcon.isActiveState()){
 			--rpool.active_connection_count;
 		}else{
-			SOLID_ASSERT(not _rcon.isServer());
+			SOLID_ASSERT(rpool.pending_connection_count >= 0);
 			--rpool.pending_connection_count;
 		}
 		
@@ -1811,7 +1812,7 @@ bool Service::doMainConnectionRestarting(
 	if(_rcon.isActiveState()){
 		--rpool.active_connection_count;
 	}else{
-		SOLID_ASSERT(not _rcon.isServer());
+		SOLID_ASSERT(rpool.pending_connection_count >= 0);
 		--rpool.pending_connection_count;
 	}
 	
