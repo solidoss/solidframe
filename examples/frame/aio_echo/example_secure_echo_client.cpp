@@ -379,6 +379,7 @@ struct ConnectFunction{
 	if(!_rctx.error()){
 		idbg(&rthis<<" Connected");
 		rthis.sock.secureSetVerifyDepth(_rctx, 10);
+		rthis.sock.secureSetCheckHostName(_rctx, "echo-server");
 		rthis.sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
 		if(rthis.sock.secureConnect(_rctx, onSecureConnect)){
 			onSecureConnect(_rctx);

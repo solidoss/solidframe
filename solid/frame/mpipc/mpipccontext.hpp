@@ -21,6 +21,11 @@
 
 namespace solid{
 namespace frame{
+
+namespace aio{
+struct ReactorContext;
+}//namespace aio
+
 namespace mpipc{
 
 struct Message;
@@ -159,7 +164,29 @@ class Service;
 class Connection;
 struct Configuration;
 
+struct ConnectionProxy{
+	//ConnectionProxy(const ConnectionProxy&) = delete;
+	//ConnectionProxy(ConnectionProxy&&) = delete;
+	
+	ConnectionProxy& operator=(const ConnectionProxy&) = delete;
+	//ConnectionProxy& operator=(ConnectionProxy&&) = delete;
+	
+private:
+	friend class SocketStub;
+	ConnectionProxy(){}
+private:
+	friend struct ConnectionContext;
+	Service& service(frame::aio::ReactorContext &_rctx)const;
+	Connection& connection(frame::aio::ReactorContext &_rctx)const;
+};
+
+
 struct ConnectionContext{
+	ConnectionContext(
+		frame::aio::ReactorContext &_rctx,
+		const ConnectionProxy &_rccs
+	):rservice(_rccs.service(_rctx)), rconnection(_rccs.connection(_rctx)), message_flags(0), message_state(0){}
+	
 	Service& service()const{
 		return rservice;
 	}

@@ -220,7 +220,7 @@ int main(int argc, char *argv[]){
 			
 			
 			//configure OpenSSL:
-			
+#if 1
 			frame::mpipc::openssl::setup_client(
 				cfg,
 				[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
@@ -228,9 +228,21 @@ int main(int argc, char *argv[]){
 					_rctx.loadCertificateFile("echo-client-cert.pem");
 					_rctx.loadPrivateKeyFile("echo-client-key.pem");
 					return ErrorCodeT();
-				}
-				
+				},
+				frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
 			);
+			
+			frame::mpipc::openssl::setup_server(
+				cfg,
+				[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+					_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+					_rctx.loadCertificateFile("echo-server-cert.pem");
+					_rctx.loadPrivateKeyFile("echo-server-key.pem");
+					return ErrorCodeT();
+				},
+				frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}
+			);
+#endif			
 			err = ipcsvc.reconfigure(std::move(cfg));
 			
 			if(err){
@@ -250,7 +262,6 @@ int main(int argc, char *argv[]){
 				}
 			}while(s.size());
 		}
-		m.stop();
 		vdbg("done stop");
 	}
 	return 0;

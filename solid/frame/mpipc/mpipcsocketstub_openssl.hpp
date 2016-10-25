@@ -11,6 +11,7 @@
 #define SOLID_FRAME_MPIPC_MPIPC_SOCKET_STUB_OPENSSL_HPP
 
 #include "solid/system/socketdevice.hpp"
+#include "solid/system/function.hpp"
 
 #include "solid/utility/event.hpp"
 #include "solid/utility/any.hpp"
@@ -26,17 +27,28 @@ namespace frame{
 namespace mpipc{
 namespace openssl{
 	
-using ContextT	= frame::aio::openssl::Context;
+using ContextT		= frame::aio::openssl::Context;
+using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
+
+using ConnectionPrepareAcceptFunctionT					= FUNCTION<unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&)>;
+using ConnectionPrepareConnectFunctionT					= FUNCTION<unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&)>;
+using ConnectionAcceptVerifyFunctionT					= FUNCTION<bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&)>;
+using ConnectionConnectVerifyFunctionT					= FUNCTION<bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&)>;
 
 struct Configuration{
 	Configuration(){}
 	
-	ContextT		server_context;
-	ContextT		client_context;
+	
+	ContextT							server_context;
+	ContextT							client_context;
+	
+	ConnectionPrepareAcceptFunctionT	connection_prepare_secure_accept_fnc;
+	ConnectionPrepareConnectFunctionT	connection_prepare_secure_connect_fnc;
+	ConnectionAcceptVerifyFunctionT		connection_accept_verify_fnc;
+	ConnectionConnectVerifyFunctionT	connection_connect_verify_fnc;
 };
 
 class SocketStub: public mpipc::SocketStub{
-	using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 public:
 	SocketStub(frame::aio::ObjectProxy const &_rproxy, ContextT &_rsecure_ctx
 	):sock(_rproxy, _rsecure_ctx){}
@@ -131,12 +143,55 @@ private:
 		sock.device().enableNoSignal();
 	}
 	
+	bool secureAccept(
+		frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureAcceptF _pf, ErrorConditionT &_rerror
+	) override final{
+		Service 			&rservice = static_cast<Service&>(_rctx.service());
+		const Configuration	&rconfig  = *rservice.configuration().secure_any.cast<Configuration>();
+		
+		const unsigned long	verify_mode = rconfig.connection_prepare_secure_accept_fnc(_rctx, _rconctx, sock, _rerror);
+		
+		auto lambda = [this](frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx){
+			Service 			&rservice = static_cast<Service&>(_rctx.service());
+			const Configuration	&rconfig  = *rservice.configuration().secure_any.cast<Configuration>();
+			ConnectionContext	conctx(_rctx, connectionProxy());
+		
+			return rconfig.connection_accept_verify_fnc(_rctx, conctx, sock, _preverified, _rverify_ctx);
+		};
+		
+		sock.secureSetVerifyCallback(_rctx, verify_mode, lambda);
+		
+		return sock.secureAccept(_rctx, _pf);
+	}
+	
+	bool secureConnect(
+		frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureConnectF _pf, ErrorConditionT &_rerror
+	) override final{
+		Service 			&rservice = static_cast<Service&>(_rctx.service());
+		const Configuration	&rconfig  = *rservice.configuration().secure_any.cast<Configuration>();
+		
+		const unsigned long	verify_mode = rconfig.connection_prepare_secure_connect_fnc(_rctx, _rconctx, sock, _rerror);
+		
+		auto lambda = [this](frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx){
+			Service 			&rservice = static_cast<Service&>(_rctx.service());
+			const Configuration	&rconfig  = *rservice.configuration().secure_any.cast<Configuration>();
+			ConnectionContext	conctx(_rctx, connectionProxy());
+		
+			return rconfig.connection_connect_verify_fnc(_rctx, conctx, sock, _preverified, _rverify_ctx);
+		};
+		
+		sock.secureSetVerifyCallback(_rctx, verify_mode, lambda);
+		
+		return sock.secureAccept(_rctx, _pf);
+	}
+	
 	StreamSocketT& socket(){
 		return sock;
 	}
 	StreamSocketT const& socket()const{
 		return sock;
 	}
+
 private:
 	
 	StreamSocketT				sock;
@@ -162,44 +217,41 @@ inline SocketStubPtrT create_accepted_socket(mpipc::Configuration const &_rcfg, 
 
 namespace impl{
 
-template <typename F>
-struct OnSecureVerifyFunctor{
-	
-	bool	ignore_certificate_error;
-	
-	bool operator()(frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx){
-
-	}
-	
-};
-
-
-inline bool basic_secure_accept(ConnectionContext& _rconctx, frame::aio::ReactorContext &_rctx, SocketStubPtrT &_rsock_ptr, OnSecureAcceptF _pf, ErrorCodeT& _rerr){
-	SocketStub &rss = *static_cast<SocketStub*>(_rsock_ptr.get());
-	//rss.socket().secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, basic_on_secure_verify);
-}
-
-inline bool basic_secure_connect(ConnectionContext& _rconctx, frame::aio::ReactorContext &_rctx, SocketStubPtrT &_rsock_ptr, OnSecureConnectF _pf, ErrorCodeT& _rerr){
-	
-}
-
-inline void basic_client_secure_start(ConnectionContext& _rconctx, frame::aio::ReactorContext &_rctx, aio::openssl::Socket &_rsock, ErrorCodeT& _rerr){
-	
-}
-
 
 }//namespace impl
 
 
-inline bool basic_client_secure_verify(ConnectionContext &/*_rctx*/, bool _preverified, frame::aio::openssl::VerifyContext &/*_rverify_ctx*/){
+inline unsigned long basic_secure_start(
+	frame::aio::ReactorContext &_rctx, ConnectionContext& _rconctx, StreamSocketT &_rsock, ErrorConditionT& _rerr
+){
+	return aio::openssl::VerifyModePeer;
+}
+
+inline bool basic_secure_verify(
+	frame::aio::ReactorContext &_rctx, ConnectionContext &/*_rctx*/, StreamSocketT &, bool _preverified, frame::aio::openssl::VerifyContext &/*_rverify_ctx*/
+){
 	return _preverified;
 }
 
 
-
-inline unsigned long basic_client_secure_start(ConnectionContext& _rconctx, aio::openssl::Socket &_rsock, ErrorCodeT& _rerr){
-	return aio::openssl::VerifyModePeer;
-}
+struct NameCheckSecureStart{
+	std::string		name;
+	
+	NameCheckSecureStart(){}
+	
+	NameCheckSecureStart(const std::string &_name):name(_name){}
+	NameCheckSecureStart(std::string &&_name):name(std::move(_name)){}
+	
+	unsigned long operator()(frame::aio::ReactorContext &_rctx, ConnectionContext& _rconctx, StreamSocketT &_rsock, ErrorConditionT& _rerr)const{
+		if(name.empty()){
+			//use the name of the receiver
+			_rsock.secureSetCheckHostName(_rctx, name);
+		}else{
+			_rsock.secureSetCheckHostName(_rctx, _rconctx.recipientName());
+		}
+		return aio::openssl::VerifyModePeer;
+	}
+};
 
 enum ClientSetupFlags{
 	ClientSetupIgnoreCertificateErrors = 1,
@@ -208,15 +260,14 @@ enum ClientSetupFlags{
 
 template <
 	class ContextSetupFunction,
-	class ConnectionStartSecureFunction,
-	class ConnectionOnSecureVerify
+	class ConnectionStartSecureFunction = unsigned long(*)(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT& ),
+	class ConnectionOnSecureVerify = bool(*)(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT &, bool, frame::aio::openssl::VerifyContext&)
 >
 inline void setup_client(
 	mpipc::Configuration &_rcfg,
 	const ContextSetupFunction &_ctx_fnc,
-	const std::string &_srv_name,
-	ConnectionStartSecureFunction &&_start_fnc = basic_client_secure_start,
-	ConnectionOnSecureVerify &&_verify_fnc = basic_client_secure_verify
+	ConnectionStartSecureFunction _start_fnc = basic_secure_start,
+	ConnectionOnSecureVerify _verify_fnc = basic_secure_verify
 ){
 	
 	if(_rcfg.secure_any.empty()){
@@ -230,12 +281,37 @@ inline void setup_client(
 	
 	_ctx_fnc(rsecure_cfg.client_context);
 	
-	//_rcfg.connection_create_connecting_socket_fnc = create_connecting_socket;
-	//_rcfg.connection_create_accepted_socket_fnc = create_accepted_socket_secure;
-	//_rcfg.connection_start_secure_accept_fnc = 
-	//_rcfg.connection_start_secure_connect_fnc = 
+	rsecure_cfg.connection_prepare_secure_connect_fnc = _start_fnc;
+	rsecure_cfg.connection_connect_verify_fnc = _verify_fnc;
 }
 
+
+template <
+	class ContextSetupFunction,
+	class ConnectionStartSecureFunction = unsigned long(*)(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT& ),
+	class ConnectionOnSecureVerify = bool(*)(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT &, bool, frame::aio::openssl::VerifyContext&)
+>
+inline void setup_server(
+	mpipc::Configuration &_rcfg,
+	const ContextSetupFunction &_ctx_fnc,
+	ConnectionStartSecureFunction _start_fnc = basic_secure_start,
+	ConnectionOnSecureVerify _verify_fnc = basic_secure_verify
+){
+	
+	if(_rcfg.secure_any.empty()){
+		_rcfg.secure_any = make_any<0, Configuration>();
+	}
+	
+	
+	Configuration &rsecure_cfg = *_rcfg.secure_any.cast<Configuration>();
+	
+	rsecure_cfg.server_context = ContextT::create();
+	
+	_ctx_fnc(rsecure_cfg.server_context);
+	
+	rsecure_cfg.connection_prepare_secure_accept_fnc = _start_fnc;
+	rsecure_cfg.connection_accept_verify_fnc = _verify_fnc;
+}
 
 }//namespace openssl
 }//namespace mpipc

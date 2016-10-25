@@ -74,8 +74,14 @@ public:
 		frame::aio::ReactorContext &_rctx
 	) = 0;
 	
-	virtual bool secureAccept(frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureAcceptF _pf, ErrorConditionT &_rerror);
-	virtual bool secureConnect(frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureConnectF _pf, ErrorConditionT &_rerror);
+	virtual bool secureAccept(
+		frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureAcceptF _pf, ErrorConditionT &_rerror
+	);
+	virtual bool secureConnect(
+		frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureConnectF _pf, ErrorConditionT &_rerror
+	);
+protected:
+	static ConnectionProxy connectionProxy();
 };
 
 typedef void(*SocketStubDeleteF)(SocketStub *);

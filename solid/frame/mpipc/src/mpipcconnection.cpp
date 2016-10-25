@@ -943,12 +943,12 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 		
 		if(isServer()){
 			done =  sock_ptr->secureAccept(_rctx, conctx, onSecureAccept, error);
-			if(done and not error){
+			if(done and not error and not _rctx.error()){
 				onSecureAccept(_rctx);
 			}
 		}else{
-			done = sock_ptr->secureAccept(_rctx, conctx, onSecureConnect, error);
-			if(done and not error){
+			done = sock_ptr->secureConnect(_rctx, conctx, onSecureConnect, error);
+			if(done and not error and not _rctx.error()){
 				onSecureConnect(_rctx);
 			}
 		}
@@ -1681,17 +1681,30 @@ Configuration const & ConnectionContext::configuration()const{
 //-----------------------------------------------------------------------------
 // SocketStub
 //-----------------------------------------------------------------------------
-/*virtual*/ bool SocketStub::secureAccept(frame::aio::ReactorContext &_rctx, ConnectionContext &/*_rconctx*/, OnSecureAcceptF /*_pf*/, ErrorConditionT &_rerror){
+/*virtual*/ bool SocketStub::secureAccept(frame::aio::ReactorContext &/*_rctx*/, ConnectionContext &/*_rconctx*/, OnSecureAcceptF /*_pf*/, ErrorConditionT &_rerror){
 	_rerror = error_connection_logic;
 	return true;
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool SocketStub::secureConnect(frame::aio::ReactorContext &_rctx, ConnectionContext &/*_rconctx*/, OnSecureConnectF /*_pf*/, ErrorConditionT &_rerror){
+/*virtual*/ bool SocketStub::secureConnect(frame::aio::ReactorContext &/*_rctx*/, ConnectionContext &/*_rconctx*/, OnSecureConnectF /*_pf*/, ErrorConditionT &_rerror){
 	_rerror = error_connection_logic;
 	return true;
 }
 //-----------------------------------------------------------------------------
-
+ConnectionProxy SocketStub::connectionProxy(){
+	return ConnectionProxy{};
+}
+//-----------------------------------------------------------------------------
+// ConnectionProxy
+//-----------------------------------------------------------------------------
+Service& ConnectionProxy::service(frame::aio::ReactorContext &_rctx)const{
+	return static_cast<Service&>(_rctx.service());
+}
+//-----------------------------------------------------------------------------
+Connection& ConnectionProxy::connection(frame::aio::ReactorContext &_rctx)const{
+	return static_cast<Connection&>(_rctx.object());
+}
+//-----------------------------------------------------------------------------
 }//namespace mpipc
 }//namespace frame
 }//namespace solid

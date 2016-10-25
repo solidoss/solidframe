@@ -16,7 +16,49 @@
 # 	${SYS_DYNAMIC_LOAD_LIB}
 # )
 
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-ca-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem
+#	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/echo-server-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-ca-cert.pem
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-server-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-server-key.pem
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-server-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-server-cert.pem
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-client-key.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-client-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-key.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-client-key.pem
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-client-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../aio_echo/echo-client-cert.pem
+)
+
+add_custom_target(example_mpipc_echo_copy_certs
+	DEPENDS
+	${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem
+	${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem
+	${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem
+	${CMAKE_CURRENT_BINARY_DIR}/echo-client-key.pem
+	${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
+)
+
 add_executable (example_mpipc_echo example_mpipc_echo.cpp)
+add_dependencies(example_mpipc_echo example_mpipc_echo_copy_certs)
 
 target_link_libraries (example_mpipc_echo
 	solid_frame_mpipc
