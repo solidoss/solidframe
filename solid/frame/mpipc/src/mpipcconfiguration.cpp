@@ -46,12 +46,12 @@ namespace{
 		return 0;
 	}
 	
-	SocketStubPtrT default_create_connecting_socket(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
-		return plain::create_connecting_socket(_rcfg, _rproxy, _emplace_buf);
+	SocketStubPtrT default_create_client_socket(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
+		return plain::create_client_socket(_rcfg, _rproxy, _emplace_buf);
 	}
 	
-	SocketStubPtrT default_create_accepted_socket(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
-		return plain::create_accepted_socket(_rcfg,_rproxy, std::move(_usd), _emplace_buf);
+	SocketStubPtrT default_create_server_socket(Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
+		return plain::create_server_socket(_rcfg,_rproxy, std::move(_usd), _emplace_buf);
 	}
 	
 }//namespace
@@ -87,8 +87,11 @@ void Configuration::init(){
 	
 	connection_inactivity_keepalive_count = 2;
 	
-	connection_start_state = ConnectionState::Passive;
-	connection_start_secure = true;
+	server.connection_start_state = ConnectionState::Passive;
+	server.connection_start_secure = true;
+	
+	client.connection_start_state = ConnectionState::Passive;
+	client.connection_start_secure = true;
 	
 	connection_recv_buffer_allocate_fnc = default_allocate_buffer;
 	connection_send_buffer_allocate_fnc = default_allocate_buffer;
@@ -98,19 +101,18 @@ void Configuration::init(){
 	
 	connection_stop_fnc = empty_connection_stop;
 	
-	connection_start_incoming_fnc = empty_connection_start;
-	connection_start_outgoing_fnc = empty_connection_start;
+	server.connection_start_fnc = empty_connection_start;
+	client.connection_start_fnc = empty_connection_start;
 	
 	connection_on_event_fnc = empty_connection_on_event;
 	
-	connection_create_connecting_socket_fnc = default_create_connecting_socket;
-	connection_create_accepted_socket_fnc = default_create_accepted_socket;
+	client.connection_create_socket_fnc = default_create_client_socket;
+	server.connection_create_socket_fnc = default_create_server_socket;
 	
 	pool_max_active_connection_count = 1;
 	pool_max_pending_connection_count = 1;
 	pool_max_message_queue_size = 1024;
 	
-	listener_port = -1;
 }
 //-----------------------------------------------------------------------------
 size_t Configuration::connectionReconnectTimeoutSeconds(
@@ -166,8 +168,11 @@ void Configuration::prepare(){
 		connection_send_buffer_start_capacity_kb = connection_send_buffer_max_capacity_kb;
 	}
 	
-	if(not hasSecureConfiguration()){
-		connection_start_secure = false;
+	if(not server.hasSecureConfiguration()){
+		server.connection_start_secure = false;
+	}
+	if(not client.hasSecureConfiguration()){
+		client.connection_start_secure = false;
 	}
 }
 //-----------------------------------------------------------------------------

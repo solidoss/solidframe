@@ -239,13 +239,13 @@ int test_clientserver_noserver(int argc, char **argv){
 			//cfg.send_buffer_capacity = 1024;
 			
 			cfg.connection_stop_fnc = client_connection_stop;
-			cfg.connection_start_outgoing_fnc = client_connection_start;
+			cfg.client.connection_start_fnc = client_connection_start;
 			
 			cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
-			cfg.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
+			cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
 			
 			err = mpipcclient.reconfigure(std::move(cfg));
 			

@@ -30,23 +30,29 @@ namespace openssl{
 using ContextT		= frame::aio::openssl::Context;
 using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 
-using ConnectionPrepareAcceptFunctionT					= FUNCTION<unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&)>;
-using ConnectionPrepareConnectFunctionT					= FUNCTION<unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&)>;
-using ConnectionAcceptVerifyFunctionT					= FUNCTION<bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&)>;
-using ConnectionConnectVerifyFunctionT					= FUNCTION<bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&)>;
+using ConnectionPrepareServerFunctionT					= FUNCTION<unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&)>;
+using ConnectionPrepareClientFunctionT					= FUNCTION<unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&)>;
+using ConnectionServerVerifyFunctionT					= FUNCTION<bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&)>;
+using ConnectionClientVerifyFunctionT					= FUNCTION<bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&)>;
 
-struct Configuration{
-	Configuration(){}
+struct ClientConfiguration{
+	ClientConfiguration(){}
 	
+	ContextT							context;
 	
-	ContextT							server_context;
-	ContextT							client_context;
-	
-	ConnectionPrepareAcceptFunctionT	connection_prepare_secure_accept_fnc;
-	ConnectionPrepareConnectFunctionT	connection_prepare_secure_connect_fnc;
-	ConnectionAcceptVerifyFunctionT		connection_accept_verify_fnc;
-	ConnectionConnectVerifyFunctionT	connection_connect_verify_fnc;
+	ConnectionPrepareClientFunctionT	connection_prepare_secure_fnc;
+	ConnectionClientVerifyFunctionT		connection_verify_fnc;
 };
+
+struct ServerConfiguration{
+	ServerConfiguration(){}
+	
+	ContextT							context;
+	
+	ConnectionPrepareServerFunctionT	connection_prepare_secure_fnc;
+	ConnectionServerVerifyFunctionT		connection_verify_fnc;
+};
+
 
 class SocketStub: public mpipc::SocketStub{
 public:
@@ -146,17 +152,17 @@ private:
 	bool secureAccept(
 		frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureAcceptF _pf, ErrorConditionT &_rerror
 	) override final{
-		Service 			&rservice = static_cast<Service&>(_rctx.service());
-		const Configuration	&rconfig  = *rservice.configuration().secure_any.cast<Configuration>();
+		Service 					&rservice = static_cast<Service&>(_rctx.service());
+		const ServerConfiguration	&rconfig  = *rservice.configuration().server.secure_any.cast<ServerConfiguration>();
 		
-		const unsigned long	verify_mode = rconfig.connection_prepare_secure_accept_fnc(_rctx, _rconctx, sock, _rerror);
+		const unsigned long	verify_mode = rconfig.connection_prepare_secure_fnc(_rctx, _rconctx, sock, _rerror);
 		
 		auto lambda = [this](frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx){
-			Service 			&rservice = static_cast<Service&>(_rctx.service());
-			const Configuration	&rconfig  = *rservice.configuration().secure_any.cast<Configuration>();
+			Service 					&rservice = static_cast<Service&>(_rctx.service());
+			const ServerConfiguration	&rconfig  = *rservice.configuration().server.secure_any.cast<ServerConfiguration>();
 			ConnectionContext	conctx(_rctx, connectionProxy());
 		
-			return rconfig.connection_accept_verify_fnc(_rctx, conctx, sock, _preverified, _rverify_ctx);
+			return rconfig.connection_verify_fnc(_rctx, conctx, sock, _preverified, _rverify_ctx);
 		};
 		
 		sock.secureSetVerifyCallback(_rctx, verify_mode, lambda);
@@ -167,22 +173,22 @@ private:
 	bool secureConnect(
 		frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureConnectF _pf, ErrorConditionT &_rerror
 	) override final{
-		Service 			&rservice = static_cast<Service&>(_rctx.service());
-		const Configuration	&rconfig  = *rservice.configuration().secure_any.cast<Configuration>();
+		Service 					&rservice = static_cast<Service&>(_rctx.service());
+		const ClientConfiguration	&rconfig  = *rservice.configuration().client.secure_any.cast<ClientConfiguration>();
 		
-		const unsigned long	verify_mode = rconfig.connection_prepare_secure_connect_fnc(_rctx, _rconctx, sock, _rerror);
+		const unsigned long	verify_mode = rconfig.connection_prepare_secure_fnc(_rctx, _rconctx, sock, _rerror);
 		
 		auto lambda = [this](frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx){
-			Service 			&rservice = static_cast<Service&>(_rctx.service());
-			const Configuration	&rconfig  = *rservice.configuration().secure_any.cast<Configuration>();
+			Service 					&rservice = static_cast<Service&>(_rctx.service());
+			const ClientConfiguration	&rconfig  = *rservice.configuration().client.secure_any.cast<ClientConfiguration>();
 			ConnectionContext	conctx(_rctx, connectionProxy());
 		
-			return rconfig.connection_connect_verify_fnc(_rctx, conctx, sock, _preverified, _rverify_ctx);
+			return rconfig.connection_verify_fnc(_rctx, conctx, sock, _preverified, _rverify_ctx);
 		};
 		
 		sock.secureSetVerifyCallback(_rctx, verify_mode, lambda);
 		
-		return sock.secureAccept(_rctx, _pf);
+		return sock.secureConnect(_rctx, _pf);
 	}
 	
 	StreamSocketT& socket(){
@@ -197,21 +203,21 @@ private:
 	StreamSocketT				sock;
 };
 
-inline SocketStubPtrT create_connecting_socket(mpipc::Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
+inline SocketStubPtrT create_client_socket(mpipc::Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
 		
 	if(sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
-		return SocketStubPtrT(new SocketStub(_rproxy, _rcfg.secure_any.constCast<Configuration>()->client_context), SocketStub::delete_deleter);
+		return SocketStubPtrT(new SocketStub(_rproxy, _rcfg.client.secure_any.constCast<ClientConfiguration>()->context), SocketStub::delete_deleter);
 	}else{
-		return SocketStubPtrT(new(_emplace_buf) SocketStub(_rproxy, _rcfg.secure_any.constCast<Configuration>()->client_context), SocketStub::emplace_deleter);
+		return SocketStubPtrT(new(_emplace_buf) SocketStub(_rproxy, _rcfg.client.secure_any.constCast<ClientConfiguration>()->context), SocketStub::emplace_deleter);
 	}
 }
 
-inline SocketStubPtrT create_accepted_socket(mpipc::Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
+inline SocketStubPtrT create_server_socket(mpipc::Configuration const &_rcfg, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
 		
 	if(sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
-		return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd), _rcfg.secure_any.constCast<Configuration>()->server_context), SocketStub::delete_deleter);
+		return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd), _rcfg.server.secure_any.constCast<ServerConfiguration>()->context), SocketStub::delete_deleter);
 	}else{
-		return SocketStubPtrT(new(_emplace_buf) SocketStub(_rproxy, std::move(_usd), _rcfg.secure_any.constCast<Configuration>()->server_context), SocketStub::emplace_deleter);
+		return SocketStubPtrT(new(_emplace_buf) SocketStub(_rproxy, std::move(_usd), _rcfg.server.secure_any.constCast<ServerConfiguration>()->context), SocketStub::emplace_deleter);
 	}
 }
 
@@ -243,7 +249,7 @@ struct NameCheckSecureStart{
 	NameCheckSecureStart(std::string &&_name):name(std::move(_name)){}
 	
 	unsigned long operator()(frame::aio::ReactorContext &_rctx, ConnectionContext& _rconctx, StreamSocketT &_rsock, ErrorConditionT& _rerr)const{
-		if(name.empty()){
+		if(not name.empty()){
 			//use the name of the receiver
 			_rsock.secureSetCheckHostName(_rctx, name);
 		}else{
@@ -270,19 +276,20 @@ inline void setup_client(
 	ConnectionOnSecureVerify _verify_fnc = basic_secure_verify
 ){
 	
-	if(_rcfg.secure_any.empty()){
-		_rcfg.secure_any = make_any<0, Configuration>();
+	if(_rcfg.client.secure_any.empty()){
+		_rcfg.client.secure_any = make_any<0, ClientConfiguration>();
 	}
 	
+	_rcfg.client.connection_create_socket_fnc = create_client_socket;
 	
-	Configuration &rsecure_cfg = *_rcfg.secure_any.cast<Configuration>();
+	ClientConfiguration &rsecure_cfg = *_rcfg.client.secure_any.cast<ClientConfiguration>();
 	
-	rsecure_cfg.client_context = ContextT::create();
+	rsecure_cfg.context = ContextT::create();
 	
-	_ctx_fnc(rsecure_cfg.client_context);
+	_ctx_fnc(rsecure_cfg.context);
 	
-	rsecure_cfg.connection_prepare_secure_connect_fnc = _start_fnc;
-	rsecure_cfg.connection_connect_verify_fnc = _verify_fnc;
+	rsecure_cfg.connection_prepare_secure_fnc = _start_fnc;
+	rsecure_cfg.connection_verify_fnc = _verify_fnc;
 }
 
 
@@ -298,19 +305,20 @@ inline void setup_server(
 	ConnectionOnSecureVerify _verify_fnc = basic_secure_verify
 ){
 	
-	if(_rcfg.secure_any.empty()){
-		_rcfg.secure_any = make_any<0, Configuration>();
+	if(_rcfg.server.secure_any.empty()){
+		_rcfg.server.secure_any = make_any<0, ServerConfiguration>();
 	}
 	
+	_rcfg.server.connection_create_socket_fnc = create_server_socket;
 	
-	Configuration &rsecure_cfg = *_rcfg.secure_any.cast<Configuration>();
+	ServerConfiguration &rsecure_cfg = *_rcfg.server.secure_any.cast<ServerConfiguration>();
 	
-	rsecure_cfg.server_context = ContextT::create();
+	rsecure_cfg.context = ContextT::create();
 	
-	_ctx_fnc(rsecure_cfg.server_context);
+	_ctx_fnc(rsecure_cfg.context);
 	
-	rsecure_cfg.connection_prepare_secure_accept_fnc = _start_fnc;
-	rsecure_cfg.connection_accept_verify_fnc = _verify_fnc;
+	rsecure_cfg.connection_prepare_secure_fnc = _start_fnc;
+	rsecure_cfg.connection_verify_fnc = _verify_fnc;
 }
 
 }//namespace openssl

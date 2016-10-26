@@ -559,22 +559,22 @@ ErrorConditionT Service::doStart(){
 		return error;
 	}
 	
-	if(configuration().listener_address_str.size()){
+	if(configuration().server.listener_address_str.size()){
 		std::string		tmp;
 		const char 		*hst_name;
 		const char		*svc_name;
 		
-		size_t off = d.config.listener_address_str.rfind(':');
+		size_t off = d.config.server.listener_address_str.rfind(':');
 		if(off != std::string::npos){
-			tmp = d.config.listener_address_str.substr(0, off);
+			tmp = d.config.server.listener_address_str.substr(0, off);
 			hst_name = tmp.c_str();
-			svc_name = d.config.listener_address_str.c_str() + off + 1;
+			svc_name = d.config.server.listener_address_str.c_str() + off + 1;
 			if(!svc_name[0]){
-				svc_name = d.config.listener_service_str.c_str();
+				svc_name = d.config.server.listener_service_str.c_str();
 			}
 		}else{
-			hst_name = d.config.listener_address_str.c_str();
-			svc_name = d.config.listener_service_str.c_str();
+			hst_name = d.config.server.listener_address_str.c_str();
+			svc_name = d.config.server.listener_service_str.c_str();
 		}
 		
 		ResolveData		rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
@@ -591,7 +591,7 @@ ErrorConditionT Service::doStart(){
 			
 			sd.localAddress(local_address);
 			
-			d.config.listener_port = local_address.port();
+			d.config.server.listener_port = local_address.port();
 			
 			DynamicPointer<aio::Object>		objptr(new Listener(sd));
 			
@@ -1926,7 +1926,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
 		
 				ResolveCompleteFunctionT	cbk(OnRelsolveF(manager(), conuid, Connection::eventResolve()));
 				
-				configuration().name_resolve_fnc(rpool.name, cbk);
+				configuration().client.name_resolve_fnc(rpool.name, cbk);
 				
 			}else{
 				//use the rest of the already resolved addresses
@@ -2130,12 +2130,12 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 //-----------------------------------------------------------------------------
 void Service::onIncomingConnectionStart(ConnectionContext &_rconctx){
 	vdbgx(Debug::mpipc, this);
-	configuration().connection_start_incoming_fnc(_rconctx);
+	configuration().server.connection_start_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------
 void Service::onOutgoingConnectionStart(ConnectionContext &_rconctx){
 	vdbgx(Debug::mpipc, this);
-	configuration().connection_start_outgoing_fnc(_rconctx);
+	configuration().client.connection_start_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------
 void Service::onConnectionStop(ConnectionContext &_rconctx){

@@ -352,10 +352,10 @@ int test_clientserver_cancel_client(int argc, char **argv){
 			//cfg.send_buffer_capacity = 1024;
 			
 			cfg.connection_stop_fnc = server_connection_stop;
-			cfg.connection_start_incoming_fnc = server_connection_start;
+			cfg.server.connection_start_fnc = server_connection_start;
 			
-			cfg.listener_address_str = "0.0.0.0:0";
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.server.listener_address_str = "0.0.0.0:0";
+			cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
 			cfg.writer.max_message_count_multiplex = 6;
 			
@@ -369,7 +369,7 @@ int test_clientserver_cancel_client(int argc, char **argv){
 			
 			{
 				std::ostringstream oss;
-				oss<<mpipcserver.configuration().listenerPort();
+				oss<<mpipcserver.configuration().server.listenerPort();
 				server_port = oss.str();
 				idbg("server listens on port: "<<server_port);
 			}
@@ -386,15 +386,15 @@ int test_clientserver_cancel_client(int argc, char **argv){
 			//cfg.recv_buffer_capacity = 1024;
 			//cfg.send_buffer_capacity = 1024;
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 			cfg.connection_stop_fnc = client_connection_stop;
-			cfg.connection_start_outgoing_fnc = client_connection_start;
+			cfg.client.connection_start_fnc = client_connection_start;
 			
 			cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 			
 			cfg.writer.max_message_count_multiplex = 6;
 			
-			cfg.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
+			cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
 			
 			err = mpipcclient.reconfigure(std::move(cfg));
 			

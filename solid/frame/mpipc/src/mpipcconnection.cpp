@@ -229,7 +229,7 @@ Connection::Connection(
 	recv_keepalive_count(0),
 	recv_buf(nullptr), send_buf(nullptr),
 	recv_buf_cp_kb(0), send_buf_cp_kb(0),
-	sock_ptr(std::move(_rconfiguration.connection_create_connecting_socket_fnc(_rconfiguration, this->proxy(), this->socket_emplace_buf)))
+	sock_ptr(std::move(_rconfiguration.client.connection_create_socket_fnc(_rconfiguration, this->proxy(), this->socket_emplace_buf)))
 {
 	idbgx(Debug::mpipc, this);
 	//TODO: use _rconfiguration.connection_start_state and _rconfiguration.connection_start_secure
@@ -245,7 +245,7 @@ Connection::Connection(
 	recv_keepalive_count(0),
 	recv_buf(nullptr), send_buf(nullptr),
 	recv_buf_cp_kb(0), send_buf_cp_kb(0),
-	sock_ptr(std::move(_rconfiguration.connection_create_accepted_socket_fnc(_rconfiguration, this->proxy(), std::move(_rsd), this->socket_emplace_buf)))
+	sock_ptr(std::move(_rconfiguration.server.connection_create_socket_fnc(_rconfiguration, this->proxy(), std::move(_rsd), this->socket_emplace_buf)))
 {
 	idbgx(Debug::mpipc, this);
 	//TODO: use _rconfiguration.connection_start_state and _rconfiguration.connection_start_secure
@@ -354,9 +354,12 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 		service(_rctx).onOutgoingConnectionStart(conctx);
 	}
 	
-	switch(config.connection_start_state){
+	const ConnectionState start_state = _is_incomming ? config.server.connection_start_state : config.client.connection_start_state;
+	const bool			  start_secure = _is_incomming ? config.server.connection_start_secure : config.client.connection_start_secure;
+	
+	switch(start_state){
 		case ConnectionState::Raw:
-			if(config.connection_start_secure){
+			if(start_secure){
 				this->post(
 					_rctx,
 					[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));},
@@ -367,7 +370,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 			}
 			break;
 		case ConnectionState::Active:
-			if(config.connection_start_secure){
+			if(start_secure){
 				this->post(
 					_rctx,
 					[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));},
@@ -384,7 +387,7 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 		case ConnectionState::Passive:
 		default:
 			flags |= static_cast<size_t>(Flags::Raw);
-			if(config.connection_start_secure){
+			if(start_secure){
 				this->post(
 					_rctx,
 					[this](frame::aio::ReactorContext &_rctx, Event &&_revent){this->onEvent(_rctx, std::move(_revent));},
@@ -936,7 +939,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 	Configuration const &config = service(_rctx).configuration();
 	ConnectionContext	conctx(service(_rctx), *this);
 	
-	if(config.hasSecureConfiguration()){
+	if((isServer() and config.server.hasSecureConfiguration()) or ((not isServer()) and config.client.hasSecureConfiguration())){
 		ErrorConditionT	error;
 		bool			done = false;
 		
@@ -978,18 +981,18 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 		return;
 	}
 	
-	if(not FUNCTION_EMPTY(config.connection_on_secure_connect_fnc)){
-		config.connection_on_secure_connect_fnc(conctx);
+	if(not FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)){
+		config.client.connection_on_secure_handshake_fnc(conctx);
 	}
 	
-	if(not config.connection_start_secure){
+	if(not config.client.connection_start_secure){
 		//we need the connection_on_secure_connect_fnc for advancing.
-		if(FUNCTION_EMPTY(config.connection_on_secure_connect_fnc)){
+		if(FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)){
 			rthis.doStop(_rctx, error_connection_invalid_state);//TODO: add new error
 		}
 	}else{
 		//we continue the connection start process entering the right state
-		switch(config.connection_start_state){
+		switch(config.client.connection_start_state){
 			case ConnectionState::Raw:
 				break;
 			case ConnectionState::Active:
@@ -1026,18 +1029,18 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 		return;
 	}
 	
-	if(not FUNCTION_EMPTY(config.connection_on_secure_accept_fnc)){
-		config.connection_on_secure_accept_fnc(conctx);
+	if(not FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)){
+		config.server.connection_on_secure_handshake_fnc(conctx);
 	}
 	
-	if(not config.connection_start_secure){
+	if(not config.server.connection_start_secure){
 		//we need the connection_on_secure_accept_fnc for advancing.
-		if(FUNCTION_EMPTY(config.connection_on_secure_accept_fnc)){
+		if(FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)){
 			rthis.doStop(_rctx, error_connection_invalid_state);//TODO: add new error
 		}
 	}else{
 		//we continue the connection start process entering the right state
-		switch(config.connection_start_state){
+		switch(config.server.connection_start_state){
 			case ConnectionState::Raw:
 				break;
 			case ConnectionState::Active:
@@ -1665,6 +1668,10 @@ const std::string& ConnectionContext::recipientName()const{
 //-----------------------------------------------------------------------------
 bool ConnectionContext::isConnectionActive()const{
 	return rconnection.isActiveState();
+}
+//-----------------------------------------------------------------------------
+bool ConnectionContext::isConnectionServer()const{
+	return rconnection.isServer();
 }
 //-----------------------------------------------------------------------------
 const ErrorConditionT& ConnectionContext::error()const{

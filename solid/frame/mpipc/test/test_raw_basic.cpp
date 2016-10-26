@@ -394,11 +394,11 @@ int test_raw_basic(int argc, char **argv){
 			cfg.connection_recv_buffer_max_capacity_kb = 1;
 			cfg.connection_send_buffer_max_capacity_kb = 1;
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Raw;
+			cfg.server.connection_start_state = frame::mpipc::ConnectionState::Raw;
 			cfg.connection_stop_fnc = server_connection_stop;
-			cfg.connection_start_incoming_fnc = server_connection_start;
+			cfg.server.connection_start_fnc = server_connection_start;
 			
-			cfg.listener_address_str = "0.0.0.0:0";
+			cfg.server.listener_address_str = "0.0.0.0:0";
 			
 			err = mpipcserver.reconfigure(std::move(cfg));
 			
@@ -410,7 +410,7 @@ int test_raw_basic(int argc, char **argv){
 			
 			{
 				std::ostringstream oss;
-				oss<<mpipcserver.configuration().listenerPort();
+				oss<<mpipcserver.configuration().server.listenerPort();
 				server_port = oss.str();
 				idbg("server listens on port: "<<server_port);
 			}
@@ -427,14 +427,14 @@ int test_raw_basic(int argc, char **argv){
 			cfg.connection_recv_buffer_max_capacity_kb = 1;
 			cfg.connection_send_buffer_max_capacity_kb = 1;
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Raw;
+			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Raw;
 			
 			cfg.connection_stop_fnc = client_connection_stop;
-			cfg.connection_start_outgoing_fnc = client_connection_start;
+			cfg.client.connection_start_fnc = client_connection_start;
 			
 			cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 			
-			cfg.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
+			cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
 			
 			err = mpipcclient.reconfigure(std::move(cfg));
 			

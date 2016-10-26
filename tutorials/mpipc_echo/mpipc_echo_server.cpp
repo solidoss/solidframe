@@ -96,11 +96,11 @@ int main(int argc, char *argv[]){
 			
 			ipc_echo::ProtoSpecT::setup<ipc_echo_server::MessageSetup>(*proto);
 			
-			cfg.listener_address_str = p.listener_addr;
-			cfg.listener_address_str += ':';
-			cfg.listener_address_str += p.listener_port;
+			cfg.server.listener_address_str = p.listener_addr;
+			cfg.server.listener_address_str += ':';
+			cfg.server.listener_address_str += p.listener_port;
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
 			err = ipcservice.reconfigure(std::move(cfg));
 			
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]){
 			}
 			{
 				std::ostringstream oss;
-				oss<<ipcservice.configuration().listenerPort();
+				oss<<ipcservice.configuration().server.listenerPort();
 				cout<<"server listens on port: "<<oss.str()<<endl;
 			}
 		}

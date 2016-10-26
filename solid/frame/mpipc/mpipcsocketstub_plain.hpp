@@ -119,7 +119,7 @@ private:
 	StreamSocketT				sock;
 };
 
-inline SocketStubPtrT create_connecting_socket(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
+inline SocketStubPtrT create_client_socket(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, char *_emplace_buf){
 	if(sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
 		return SocketStubPtrT(new SocketStub(_rproxy), SocketStub::delete_deleter);
 	}else{
@@ -127,7 +127,7 @@ inline SocketStubPtrT create_connecting_socket(Configuration const &/*_rcfg*/, f
 	}
 }
 
-inline SocketStubPtrT create_accepted_socket(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
+inline SocketStubPtrT create_server_socket(Configuration const &/*_rcfg*/, frame::aio::ObjectProxy const &_rproxy, SocketDevice &&_usd, char *_emplace_buf){
 		
 	if(sizeof(SocketStub) > static_cast<size_t>(ConnectionValues::SocketEmplacementSize)){
 		return SocketStubPtrT(new SocketStub(_rproxy, std::move(_usd)), SocketStub::delete_deleter);

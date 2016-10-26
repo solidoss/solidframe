@@ -202,6 +202,7 @@ struct ConnectionContext{
 	SocketDevice const & device()const;
 	
 	bool isConnectionActive()const;
+	bool isConnectionServer()const;
 	
 	ulong messageFlags()const{
 		return message_flags;

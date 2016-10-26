@@ -49,11 +49,8 @@ typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext &);
 using AddressVectorT								= std::vector<SocketAddressInet>;
 
 using ResolveCompleteFunctionT						= FUNCTION<void(AddressVectorT &&)>;
-using AsyncResolveFunctionT							= FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
 using ConnectionStopFunctionT						= FUNCTION<void(ConnectionContext &)>;
 using ConnectionStartFunctionT						= FUNCTION<void(ConnectionContext &)>;
-using ConnectionSecureAcceptFunctionT				= FUNCTION<void(ConnectionContext &)>;
-using ConnectionSecureConnectFunctionT				= FUNCTION<void(ConnectionContext &)>;
 using AllocateBufferFunctionT						= FUNCTION<char*(const uint16_t)>;
 using FreeBufferFunctionT							= FUNCTION<void(char*)>;
 using CompressFunctionT								= FUNCTION<size_t(char*, size_t, ErrorConditionT &)>;
@@ -68,8 +65,7 @@ using ConnectionSecureHandhakeCompleteFunctionT		= FUNCTION<void(ConnectionConte
 using ConnectionSendRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionRecvRawDataCompleteFunctionT		= FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
 using ConnectionOnEventFunctionT					= FUNCTION<void(ConnectionContext&, Event&)>;
-using ConnectionCreateConnectingSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, char *)>;
-using ConnectionCreateAcceptedSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, SocketDevice &&, char *)>;
+
 
 enum struct ConnectionState{
 	Raw,
@@ -120,11 +116,11 @@ public:
 	}
 	
 	bool isServer()const{
-		return listener_address_str.size() != 0;
+		return server.listener_address_str.size() != 0;
 	}
 	
 	bool isClient()const{
-		return not FUNCTION_EMPTY(name_resolve_fnc);
+		return not FUNCTION_EMPTY(client.name_resolve_fnc);
 	}
 	
 	bool isServerOnly()const{
@@ -133,18 +129,6 @@ public:
 	
 	bool isClientOnly()const{
 		return !isServer() && isClient();
-	}
-	
-	bool hasServerSecureConfiguration()const{
-		return not server_secure_any.empty();
-	}
-	
-	bool hasClientSecureConfiguration()const{
-		return not client_secure_any.empty();
-	}
-	
-	int listenerPort()const{
-		return listener_port;
 	}
 	
 	char* allocateRecvBuffer(uint8_t &_rbuffer_capacity_kb)const;
@@ -175,18 +159,66 @@ public:
 	ReaderConfiguration								reader;
 	WriterConfiguration								writer;
 	
+	struct Server{
+		using ConnectionCreateSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, SocketDevice &&, char *)>;
+		using ConnectionSecureHandshakeFunctionT	= FUNCTION<void(ConnectionContext &)>;
+		
+		Server():listener_port(-1){}
+		
+		bool hasSecureConfiguration()const{
+			return not secure_any.empty();
+		}
+		
+		ConnectionCreateSocketFunctionT				connection_create_socket_fnc;
+		ConnectionState								connection_start_state;
+		bool										connection_start_secure;
+		ConnectionStartFunctionT					connection_start_fnc;
+		ConnectionSecureHandshakeFunctionT			connection_on_secure_handshake_fnc;
+		
+		Any<>										secure_any;
+		
+		std::string									listener_address_str;
+		std::string									listener_service_str;
+		
+		int listenerPort()const{
+			return listener_port;
+		}
+	private:
+		friend class Service;
+		int											listener_port;
+		
+	}												server;
+	
+	struct Client{
+		using ConnectionCreateSocketFunctionT		= FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, char *)>;
+		using AsyncResolveFunctionT					= FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
+		using ConnectionSecureHandshakeFunctionT	= FUNCTION<void(ConnectionContext &)>;
+		
+		bool hasSecureConfiguration()const{
+			return not secure_any.empty();
+		}
+	
+		
+		ConnectionCreateSocketFunctionT				connection_create_socket_fnc;
+		
+		ConnectionState								connection_start_state;
+		bool										connection_start_secure;
+		ConnectionStartFunctionT					connection_start_fnc;
+		
+		AsyncResolveFunctionT						name_resolve_fnc;
+		
+		ConnectionSecureHandshakeFunctionT			connection_on_secure_handshake_fnc;
+		Any<>										secure_any;
+		
+	}												client;
 	
 	
-	ConnectionCreateConnectingSocketFunctionT		connection_create_connecting_socket_fnc;
-	ConnectionCreateAcceptedSocketFunctionT			connection_create_accepted_socket_fnc;
 	size_t											connection_reconnect_timeout_seconds;
 	uint32_t										connection_inactivity_timeout_seconds;
 	uint32_t										connection_keepalive_timeout_seconds;
-	ConnectionState									connection_start_state;
-	bool											connection_start_secure;
 	
 	uint32_t										connection_inactivity_keepalive_count;	//server error if receives more than inactivity_keepalive_count keep alive 
-																				//messages during inactivity_timeout_seconds interval
+																							//messages during inactivity_timeout_seconds interval
 	
 	uint8_t											connection_recv_buffer_start_capacity_kb;
 	uint8_t											connection_recv_buffer_max_capacity_kb;
@@ -194,10 +226,7 @@ public:
 	uint8_t											connection_send_buffer_start_capacity_kb;
 	uint8_t											connection_send_buffer_max_capacity_kb;
 	
-	AsyncResolveFunctionT							name_resolve_fnc;
 	
-	ConnectionStartFunctionT						connection_start_incoming_fnc;
-	ConnectionStartFunctionT						connection_start_outgoing_fnc;
 	ConnectionStopFunctionT							connection_stop_fnc;
 	ConnectionOnEventFunctionT						connection_on_event_fnc;
 	
@@ -206,14 +235,7 @@ public:
 
 	FreeBufferFunctionT								connection_recv_buffer_free_fnc;
 	FreeBufferFunctionT								connection_send_buffer_free_fnc;
-	ConnectionSecureConnectFunctionT				connection_on_secure_connect_fnc;
-	ConnectionSecureAcceptFunctionT					connection_on_secure_accept_fnc;
 	
-	std::string										listener_address_str;
-	std::string										listener_service_str;
-	
-	Any<>											server_secure_any;
-	Any<>											client_secure_any;
 	ProtocolPointerT								protocol_ptr;
 	
 	Protocol& protocol(){
@@ -249,8 +271,6 @@ private:
 	friend class Service;
 	//friend class MessageWriter;
 	Configuration():pscheduler(nullptr){}
-	
-	int									listener_port;
 };
 
 struct InternetResolverF{

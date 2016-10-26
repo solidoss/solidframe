@@ -100,9 +100,9 @@ int main(int argc, char *argv[]){
 			
 			ipc_echo::ProtoSpecT::setup<ipc_echo_client::MessageSetup>(*proto);
 			
-			cfg.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
+			cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
 			err = ipcservice.reconfigure(std::move(cfg));
 			

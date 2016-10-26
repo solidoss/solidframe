@@ -48,6 +48,7 @@ struct Params{
 	std::string				baseport;
 	bool					log;
 	StringVectorT			connectstringvec;
+	bool					secure;
 	
 	bool prepare(frame::mpipc::Configuration &_rcfg, string &_err);
 };
@@ -205,43 +206,45 @@ int main(int argc, char *argv[]){
 			
 			
 			if(app_params.baseport.size()){
-				cfg.listener_address_str = "0.0.0.0:";
-				cfg.listener_address_str += app_params.baseport;
-				cfg.listener_service_str = app_params.baseport;
+				cfg.server.listener_address_str = "0.0.0.0:";
+				cfg.server.listener_address_str += app_params.baseport;
+				cfg.server.listener_service_str = app_params.baseport;
 			}
 			
 			if(app_params.connectstringvec.size()){
-				cfg.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, app_params.baseport.c_str());
+				cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, app_params.baseport.c_str());
 			}
 			cfg.connection_stop_fnc = connection_stop;
-			cfg.connection_start_incoming_fnc = incoming_connection_start;
-			cfg.connection_start_outgoing_fnc = outgoing_connection_start;
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
-			
-			
-			//configure OpenSSL:
+			cfg.server.connection_start_fnc = incoming_connection_start;
+			cfg.client.connection_start_fnc = outgoing_connection_start;
+			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 #if 1
-			frame::mpipc::openssl::setup_client(
-				cfg,
-				[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
-					_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-					_rctx.loadCertificateFile("echo-client-cert.pem");
-					_rctx.loadPrivateKeyFile("echo-client-key.pem");
-					return ErrorCodeT();
-				},
-				frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
-			);
-			
-			frame::mpipc::openssl::setup_server(
-				cfg,
-				[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
-					_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-					_rctx.loadCertificateFile("echo-server-cert.pem");
-					_rctx.loadPrivateKeyFile("echo-server-key.pem");
-					return ErrorCodeT();
-				},
-				frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}
-			);
+			if(app_params.secure){
+				//configure OpenSSL:
+				idbg("Configure SSL ---------------------------------------");
+				frame::mpipc::openssl::setup_client(
+					cfg,
+					[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+						_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+						_rctx.loadCertificateFile("echo-client-cert.pem");
+						_rctx.loadPrivateKeyFile("echo-client-key.pem");
+						return ErrorCodeT();
+					},
+					frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
+				);
+				
+				frame::mpipc::openssl::setup_server(
+					cfg,
+					[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+						_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+						_rctx.loadCertificateFile("echo-server-cert.pem");
+						_rctx.loadPrivateKeyFile("echo-server-key.pem");
+						return ErrorCodeT();
+					},
+					frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}
+				);
+			}
 #endif			
 			err = ipcsvc.reconfigure(std::move(cfg));
 			
@@ -252,7 +255,7 @@ int main(int argc, char *argv[]){
 			
 			{
 				std::ostringstream oss;
-				oss<<ipcsvc.configuration().listenerPort();
+				oss<<ipcsvc.configuration().server.listenerPort();
 				idbg("server listens on port: "<<oss.str());
 			}
 		}
@@ -288,6 +291,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("listen-port,l", value<std::string>(&_par.baseport)->default_value("2000"), "IPC Listen port")
 			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: host:port")
+			("secure,s", value<bool>(&_par.secure)->implicit_value(true)->default_value(false), "Use SSL to secure communication")
 		;
 		variables_map vm;
 		store(parse_command_line(argc, argv, desc), vm);
