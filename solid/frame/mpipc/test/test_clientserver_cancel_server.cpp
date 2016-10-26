@@ -21,6 +21,7 @@
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
 
 #include <mutex>
@@ -306,6 +307,14 @@ int test_clientserver_cancel_server(int argc, char **argv){
 	
 	size_t max_per_pool_connection_count = 1;
 	
+	bool	secure = false;
+	
+	if(argc > 1){
+		if(*argv[1] == 's' or *argv[1] == 'S'){
+			secure = true;
+		}
+	}
+	
 // 	if(argc > 1){
 // 		max_per_pool_connection_count = atoi(argv[1]);
 // 	}
@@ -385,6 +394,20 @@ int test_clientserver_cancel_server(int argc, char **argv){
 			
 			cfg.writer.max_message_count_multiplex = 6;
 			
+			if(secure){
+				idbg("Configure SSL server -------------------------------------");
+				frame::mpipc::openssl::setup_server(
+					cfg,
+					[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+						_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+						_rctx.loadCertificateFile("echo-server-cert.pem");
+						_rctx.loadPrivateKeyFile("echo-server-key.pem");
+						return ErrorCodeT();
+					},
+					frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}
+				);
+			}
+			
 			err = mpipcserver.reconfigure(std::move(cfg));
 			
 			if(err){
@@ -421,6 +444,20 @@ int test_clientserver_cancel_server(int argc, char **argv){
 			cfg.writer.max_message_count_multiplex = 6;
 			
 			cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
+			
+			if(secure){
+				idbg("Configure SSL client ------------------------------------");
+				frame::mpipc::openssl::setup_client(
+					cfg,
+					[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+						_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+						_rctx.loadCertificateFile("echo-client-cert.pem");
+						_rctx.loadPrivateKeyFile("echo-client-key.pem");
+						return ErrorCodeT();
+					},
+					frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
+				);
+			}
 			
 			err = mpipcclient.reconfigure(std::move(cfg));
 			

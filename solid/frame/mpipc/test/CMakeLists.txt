@@ -1,4 +1,46 @@
 #==============================================================================
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-ca-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem
+#	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/echo-server-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-ca-cert.pem
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-server-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-server-key.pem
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-server-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-server-cert.pem
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-client-key.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-client-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-key.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-client-key.pem
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-client-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/certs/echo-client-cert.pem
+)
+
+add_custom_target(mpipc_test_copy_certs
+	DEPENDS
+	${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem
+	${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem
+	${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem
+	${CMAKE_CURRENT_BINARY_DIR}/echo-client-key.pem
+	${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
+)
+
+#==============================================================================
 set( mpipcProtocolTestSuite
 	test_protocol_basic.cpp
  	test_protocol_synchronous.cpp
@@ -12,7 +54,6 @@ add_executable(test_mpipc_protocol ${mpipcProtocolTests})
 target_link_libraries(test_mpipc_protocol
 	solid_frame_mpipc
 	solid_frame_aio
-	solid_frame_aio_openssl
 	solid_frame
 	solid_serialization
 	solid_utility
@@ -42,7 +83,8 @@ set( mpipcClientServerTestSuite
 create_test_sourcelist( mpipcClientServerTests test_mpipc_clientserver.cpp ${mpipcClientServerTestSuite})
  
 add_executable(test_mpipc_clientserver ${mpipcClientServerTests})
- 
+add_dependencies(test_mpipc_clientserver mpipc_test_copy_certs)
+
 target_link_libraries(test_mpipc_clientserver
 	solid_frame_mpipc
 	solid_frame_aio
@@ -60,13 +102,26 @@ add_test(NAME TestClientServerBasic1		COMMAND  test_mpipc_clientserver test_clie
 add_test(NAME TestClientServerBasic2		COMMAND  test_mpipc_clientserver test_clientserver_basic 2)
 add_test(NAME TestClientServerBasic4		COMMAND  test_mpipc_clientserver test_clientserver_basic 4)
 add_test(NAME TestClientServerBasic8		COMMAND  test_mpipc_clientserver test_clientserver_basic 8)
+
+add_test(NAME TestClientServerBasic1S		COMMAND  test_mpipc_clientserver test_clientserver_basic 1 s)
+add_test(NAME TestClientServerBasic2S		COMMAND  test_mpipc_clientserver test_clientserver_basic 2 s)
+add_test(NAME TestClientServerBasic4S		COMMAND  test_mpipc_clientserver test_clientserver_basic 4 s)
+add_test(NAME TestClientServerBasic8S		COMMAND  test_mpipc_clientserver test_clientserver_basic 8 s)
+
 add_test(NAME TestClientServerSendRequest	COMMAND  test_mpipc_clientserver test_clientserver_sendrequest)
+add_test(NAME TestClientServerSendRequestS	COMMAND  test_mpipc_clientserver test_clientserver_sendrequest 1 s)
 add_test(NAME TestClientServerCancelServer	COMMAND  test_mpipc_clientserver test_clientserver_cancel_server)
+add_test(NAME TestClientServerCancelServerS	COMMAND  test_mpipc_clientserver test_clientserver_cancel_server s)
 add_test(NAME TestClientServerCancelClient	COMMAND  test_mpipc_clientserver test_clientserver_cancel_client)
+add_test(NAME TestClientServerCancelClientS	COMMAND  test_mpipc_clientserver test_clientserver_cancel_client s)
 add_test(NAME TestClientServerNoServer		COMMAND  test_mpipc_clientserver test_clientserver_noserver)
+add_test(NAME TestClientServerNoServerS		COMMAND  test_mpipc_clientserver test_clientserver_noserver 1 s)
 add_test(NAME TestClientServerOneShot		COMMAND  test_mpipc_clientserver test_clientserver_oneshot)
+add_test(NAME TestClientServerOneShotS		COMMAND  test_mpipc_clientserver test_clientserver_oneshot 1 s)
 add_test(NAME TestClientServerDelayed		COMMAND  test_mpipc_clientserver test_clientserver_delayed)
+add_test(NAME TestClientServerDelayedS		COMMAND  test_mpipc_clientserver test_clientserver_delayed 1 s)
 add_test(NAME TestClientServerIdempontent	COMMAND  test_mpipc_clientserver test_clientserver_idempotent)
+add_test(NAME TestClientServerIdempontentS	COMMAND  test_mpipc_clientserver test_clientserver_idempotent 1 s)
 
 
 #==============================================================================

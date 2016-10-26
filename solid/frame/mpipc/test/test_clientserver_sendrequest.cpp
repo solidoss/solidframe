@@ -15,6 +15,7 @@
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
 
 #include <mutex>
@@ -71,9 +72,9 @@ size_t							connection_count(0);
 
 bool							running = true;
 mutex							mtx;
-condition_variable					cnd;
-frame::mpipc::Service				*pmpipcclient = nullptr;
-std::atomic<uint64_t>				transfered_size(0);
+condition_variable				cnd;
+frame::mpipc::Service			*pmpipcclient = nullptr;
+std::atomic<uint64_t>			transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 
 
@@ -355,6 +356,14 @@ int test_clientserver_sendrequest(int argc, char **argv){
 		max_per_pool_connection_count = atoi(argv[1]);
 	}
 	
+	bool	secure = false;
+	
+	if(argc > 2){
+		if(*argv[2] == 's' or *argv[2] == 'S'){
+			secure = true;
+		}
+	}
+	
 	for(int i = 0; i < 127; ++i){
 		if(isprint(i) and !isblank(i)){
 			pattern += static_cast<char>(i);
@@ -423,6 +432,20 @@ int test_clientserver_sendrequest(int argc, char **argv){
 			
 			cfg.server.listener_address_str = "0.0.0.0:0";
 			
+			if(secure){
+				idbg("Configure SSL server -------------------------------------");
+				frame::mpipc::openssl::setup_server(
+					cfg,
+					[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+						_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+						_rctx.loadCertificateFile("echo-server-cert.pem");
+						_rctx.loadPrivateKeyFile("echo-server-key.pem");
+						return ErrorCodeT();
+					},
+					frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}
+				);
+			}
+			
 			err = mpipcserver.reconfigure(std::move(cfg));
 			
 			if(err){
@@ -459,6 +482,20 @@ int test_clientserver_sendrequest(int argc, char **argv){
 			cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 			
 			cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
+			
+			if(secure){
+				idbg("Configure SSL client ------------------------------------");
+				frame::mpipc::openssl::setup_client(
+					cfg,
+					[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+						_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+						_rctx.loadCertificateFile("echo-client-cert.pem");
+						_rctx.loadPrivateKeyFile("echo-client-key.pem");
+						return ErrorCodeT();
+					},
+					frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
+				);
+			}
 			
 			err = mpipcclient.reconfigure(std::move(cfg));
 			
