@@ -190,9 +190,9 @@ void client_complete_message(
 		idbg("idx = "<<_rsent_msg_ptr->idx);
 		if(!_rerror){
 		}else{
-			wdbg("send message complete: "<<_rerror.message());
+			wdbg("send message complete: <"<<_rerror.message()<<"> <"<<_rctx.error().message()<<"> <"<<_rctx.systemError().message()<<">");
 			SOLID_CHECK(_rsent_msg_ptr->idx == 0 or _rsent_msg_ptr->idx == 2);
-			SOLID_CHECK(
+			SOLID_ASSERT(
 				_rerror == frame::mpipc::error_message_connection and
 				(
 					(_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError())
@@ -274,8 +274,8 @@ int test_clientserver_idempotent(int argc, char **argv){
 	signal(SIGPIPE, SIG_IGN);
 	
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("ew");
-	Debug::the().moduleMask("frame_mpipc:ew any:ew");
+	Debug::the().levelMask("view");
+	Debug::the().moduleMask("all"/*"frame_mpipc:ew any:ew"*/);
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif

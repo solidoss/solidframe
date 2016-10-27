@@ -962,7 +962,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 		
 		if(_rctx.error()){
 			edbgx(Debug::mpipc, this<<" error = ["<<error.message()<<"]");
-			doStop(_rctx, _rctx.error());
+			doStop(_rctx, _rctx.error(), _rctx.systemError());
 		}
 		
 		if(error){
@@ -982,7 +982,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 	
 	if(_rctx.error()){
 		edbgx(Debug::mpipc, &rthis<<" error = ["<<_rctx.error().message()<<"] = systemError = ["<<_rctx.systemError().message()<<"]");
-		rthis.doStop(_rctx, _rctx.error());
+		rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
 		return;
 	}
 	
@@ -1035,7 +1035,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext &_rctx, Eve
 	
 	if(_rctx.error()){
 		edbgx(Debug::mpipc, &rthis<<" error = ["<<_rctx.error().message()<<"] = systemError = ["<<_rctx.systemError().message()<<"]");
-		rthis.doStop(_rctx, _rctx.error());
+		rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
 		return;
 	}
 	
