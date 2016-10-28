@@ -40,9 +40,7 @@ add_definitions(${EXTRA_DEFINITIONS})
 #-----------------------------------------------------------------
 # Prepare the extern path
 #-----------------------------------------------------------------
-string(LENGTH "${UEXTERN}" ExtLen)
-
-set(EXTERN_PATH "${UEXTERN}/" CACHE STRING "Extern prerequisites path")
+set(EXTERN_PATH "${UEXTERN}/" CACHE PATH "External prerequisites path")
 
 message("Using prerequisites from: \"${EXTERN_PATH}\"")
 
