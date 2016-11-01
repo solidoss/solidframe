@@ -62,6 +62,10 @@ struct UniqueId{
 	bool operator!=(UniqueId const &_ruid)const{
 		return _ruid.index != this->index or _ruid.unique != this->unique;
 	}
+	void clear(){
+		index = InvalidIndex();
+		unique = InvalidIndex();
+	}
 };
 
 //typedef UniqueId		UniqueId;

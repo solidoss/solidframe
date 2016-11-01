@@ -86,6 +86,11 @@ struct RecipientId{
 		return connectionid;
 	}
 	
+	void clear(){
+		poolid.clear();
+		connectionid.clear();
+	}
+	
 private:
 	friend class Service;
 	friend class Connection;
