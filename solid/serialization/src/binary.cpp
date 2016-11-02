@@ -18,27 +18,11 @@ namespace solid{
 namespace serialization{
 namespace binary{
 
-#ifdef SOLID_USE_SAFE_STATIC
-/*static*/ Limits const& Limits::the(){
-	static const Limits l;
-	return l;
-}
-#else
-Limits const& the_limits(){
+/*static*/ Limits const& Limits::unlimited_instance(){
 	static const Limits l;
 	return l;
 }
 
-void once_limits(){
-	the_limits();
-}
-
-/*static*/ Limits const& Limits::the(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_limits, once);
-	return the_limits();
-}
-#endif
 
 /*static*/ size_t ExtendedData::newTypeId(){
 	static std::atomic<size_t>	crtid(1);

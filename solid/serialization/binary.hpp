@@ -71,11 +71,18 @@ enum ReturnValues{
 };
 
 struct Limits{
-	static Limits const& the();
-	Limits():stringlimit(InvalidSize()), containerlimit(InvalidSize()), streamlimit(InvalidSize()){}//unlimited by default
-	size_t stringlimit;
-	size_t containerlimit;
-	uint64_t streamlimit;
+	static Limits const& unlimited_instance();
+	
+	Limits(
+		size_t _stringlimit = InvalidSize(),
+		size_t _containerlimit = InvalidSize(),
+		uint64_t _streamlimit = InvalidSize()
+	):stringlimit(_stringlimit), containerlimit(_containerlimit), streamlimit(_streamlimit){}//unlimited by default
+	
+	
+	size_t		stringlimit;
+	size_t		containerlimit;
+	uint64_t	streamlimit;
 };
 
 struct ExtendedData{
@@ -442,7 +449,7 @@ protected:
 	
 	static ErrorConditionT make_error(Errors _err);
 
-	Base():rdefaultlmts(Limits::the()), lmts(rdefaultlmts){}
+	Base():rdefaultlmts(Limits::unlimited_instance()), lmts(rdefaultlmts){}
 	
 	Base(Limits const &_rdefaultlmts):rdefaultlmts(_rdefaultlmts), lmts(rdefaultlmts){}
 	//! Replace the top callback from the stack
