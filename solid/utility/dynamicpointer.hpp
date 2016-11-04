@@ -10,6 +10,7 @@
 #ifndef UTILITY_DYNAMIC_POINTER_HPP
 #define UTILITY_DYNAMIC_POINTER_HPP
 
+#include <memory>
 #include "solid/system/common.hpp"
 
 namespace solid{
@@ -145,6 +146,11 @@ protected:
 private:
 	mutable DynamicT *pdyn;
 };
+
+template <class T, typename ...Args>
+DynamicPointer<T> make_dynamic(Args&&..._args){
+	return DynamicPointer<T>(new T{std::forward<Args>(_args)...});
+}
 
 }//namespace solid
 

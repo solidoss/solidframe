@@ -147,6 +147,10 @@ public:
 	/*virtual*/ void dynamicTypeIds(DynamicIdVectorT &_rv)const{
 		staticTypeIds(_rv);
 	}
+	
+	DynamicPointer<X> dynamicFromThis()const{
+		return DynamicPointer<X>(this);
+	}
 };
 
 
