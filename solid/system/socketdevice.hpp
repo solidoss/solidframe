@@ -54,7 +54,7 @@ public:
 	ErrorCodeT bind(const SocketAddressStub &_rsa);
 	//! Prepares the socket for accepting
 	ErrorCodeT prepareAccept(const SocketAddressStub &_rsas, size_t _listencnt = 10);
-	//! Accept an incomming connection
+	//! Accept an incoming connection
 	ErrorCodeT accept(SocketDevice &_dev, bool &_can_retry);
 	ErrorCodeT accept(SocketDevice &_dev);
 	//! Make a connection blocking

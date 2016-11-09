@@ -338,7 +338,7 @@ void Connection::doUnprepare(frame::aio::ReactorContext &_rctx){
 	msg_writer.unprepare();
 }
 //-----------------------------------------------------------------------------
-void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming){
+void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incoming){
 	
 	ConnectionContext 	conctx(service(_rctx), *this);
 	Configuration const &config = service(_rctx).configuration();
@@ -346,10 +346,10 @@ void Connection::doStart(frame::aio::ReactorContext &_rctx, const bool _is_incom
 	doPrepare(_rctx);
 	prepareSocket(_rctx);
 	
-	const ConnectionState start_state = _is_incomming ? config.server.connection_start_state : config.client.connection_start_state;
-	const bool			  start_secure = _is_incomming ? config.server.connection_start_secure : config.client.connection_start_secure;
+	const ConnectionState start_state = _is_incoming ? config.server.connection_start_state : config.client.connection_start_state;
+	const bool			  start_secure = _is_incoming ? config.server.connection_start_secure : config.client.connection_start_secure;
 	
-	if(_is_incomming){
+	if(_is_incoming){
 		flags |= static_cast<size_t>(Flags::Server);
 		if(not start_secure){
 			service(_rctx).onIncomingConnectionStart(conctx);

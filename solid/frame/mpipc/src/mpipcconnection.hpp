@@ -185,7 +185,7 @@ private:
 	
 	void onStopped(frame::aio::ReactorContext &_rctx);
 	
-	void doStart(frame::aio::ReactorContext &_rctx, const bool _is_incomming);
+	void doStart(frame::aio::ReactorContext &_rctx, const bool _is_incoming);
 	
 	void doStop(frame::aio::ReactorContext &_rctx, const ErrorConditionT &_rerr, const ErrorCodeT &_rsyserr = ErrorCodeT());
 	

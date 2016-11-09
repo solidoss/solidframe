@@ -561,7 +561,6 @@ private:
 	}
 	
 	void doError(ReactorContext &_rctx){
-		vdbg("");
 		error(_rctx, error_stream_socket);
 		systemError(_rctx, s.device().lastError());
 		
