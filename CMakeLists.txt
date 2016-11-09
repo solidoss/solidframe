@@ -41,6 +41,7 @@ add_definitions(${EXTRA_DEFINITIONS})
 # Prepare the extern path
 #-----------------------------------------------------------------
 set(EXTERN_PATH "${UEXTERN}/" CACHE PATH "External prerequisites path")
+set(INSTALL_PATH "${UINSTALL_PREFIX}/" CACHE PATH "External prerequisites path")
 
 message("Using prerequisites from: \"${EXTERN_PATH}\"")
 
@@ -248,15 +249,15 @@ endif(NOT ON_FOUND)
 #-----------------------------------------------------------------
 # install prefix
 #-----------------------------------------------------------------
-if(NOT (UINSTALL_PREFIX STREQUAL ""))
-	set(CMAKE_INSTALL_PREFIX "${UINSTALL_PREFIX}")
+if(NOT (INSTALL_PATH STREQUAL ""))
+	set(CMAKE_INSTALL_PREFIX "${INSTALL_PATH}")
 	
 	if(ON_ANDROID)
-		set(CMAKE_INSTALL_PREFIX "${UINSTALL_PREFIX}/${ANDROID_ABI}")
+		set(CMAKE_INSTALL_PREFIX "${INSTALL_PATH}/${ANDROID_ABI}")
 	endif()
 	
 	message("Using install prefix: ${CMAKE_INSTALL_PREFIX}")
-endif(NOT (UINSTALL_PREFIX STREQUAL ""))
+endif(NOT (INSTALL_PATH STREQUAL ""))
 
 if(ON_ANDROID)
 	set(EXTERN_PATH "${EXTERN_PATH}/${ANDROID_ABI}")
