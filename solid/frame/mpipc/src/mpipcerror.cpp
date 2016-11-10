@@ -36,7 +36,10 @@ enum {
 	ErrorReaderInvalidMessageSwitchE,
 	ErrorReaderTooManyMultiplexE,
 	ErrorServiceStoppingE,
-	ErrorServiceUnknownMessageTypeE,
+	ErrorServiceMessageUnknownTypeE,
+	ErrorServiceMessageFlagsE,
+	ErrorServiceMessageStateE,
+	ErrorServiceMessageNullE,
 	ErrorServiceServerOnlyE,
 	ErrorServiceUnknownRecipientE,
 	ErrorServiceUnknownPoolE,
@@ -126,8 +129,17 @@ std::string ErrorCategory::message(int _ev) const{
 		case ErrorServiceStoppingE:
 			oss<<"Service: stopping";
 			break;
-		case ErrorServiceUnknownMessageTypeE:
-			oss<<"Service: unknown message type";
+		case ErrorServiceMessageUnknownTypeE:
+			oss<<"Service: message unknown type";
+			break;
+		case ErrorServiceMessageFlagsE:
+			oss<<"Service: message flags";
+			break;
+		case ErrorServiceMessageStateE:
+			oss<<"Service: message state";
+			break;
+		case ErrorServiceMessageNullE:
+			oss<<"Service: message null";
 			break;
 		case ErrorServiceServerOnlyE:
 			oss<<"Service: server only";
@@ -198,8 +210,12 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_reader_invalid_packet_header(ErrorReaderInvalidPacketHeaderE, category);
 /*extern*/ const ErrorConditionT error_reader_invalid_message_switch(ErrorReaderInvalidMessageSwitchE, category);
 /*extern*/ const ErrorConditionT error_reader_too_many_multiplex(ErrorReaderTooManyMultiplexE, category);;
+
 /*extern*/ const ErrorConditionT error_service_stopping(ErrorServiceStoppingE, category);
-/*extern*/ const ErrorConditionT error_service_unknown_message_type(ErrorServiceUnknownMessageTypeE, category);
+/*extern*/ const ErrorConditionT error_service_message_unknown_type(ErrorServiceMessageUnknownTypeE, category);
+/*extern*/ const ErrorConditionT error_service_message_flags(ErrorServiceMessageFlagsE, category);
+/*extern*/ const ErrorConditionT error_service_message_state(ErrorServiceMessageStateE, category);
+/*extern*/ const ErrorConditionT error_service_message_null(ErrorServiceMessageNullE, category);
 /*extern*/ const ErrorConditionT error_service_server_only(ErrorServiceServerOnlyE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_recipient(ErrorServiceUnknownRecipientE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_pool(ErrorServiceUnknownPoolE, category);

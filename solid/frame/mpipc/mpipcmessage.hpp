@@ -34,6 +34,7 @@ enum struct MessageFlags: ulong{
 	StartedSend		= (1<<(FirstFlagIndex +  4)),
 	DoneSend		= (1<<(FirstFlagIndex +  5)),
 	Canceled		= (1<<(FirstFlagIndex +  6)),
+	Response		= (1<<(FirstFlagIndex +  7)),
 };
 
 using MessageFlagsValueT = std::underlying_type<MessageFlags>::type;
@@ -64,8 +65,13 @@ struct Message: std::enable_shared_from_this<Message>{
 	static bool is_asynchronous(const ulong _flags){
 		return (_flags & MessageFlags::Synchronous) == 0;
 	}
+	
 	static bool is_waiting_response(const ulong _flags){
 		return (_flags & MessageFlags::WaitResponse) != 0;
+	}
+	
+	static bool is_request(const ulong _flags){
+		return is_waiting_response(_flags);
 	}
 	
 	static bool is_idempotent(const ulong _flags){
@@ -88,6 +94,10 @@ struct Message: std::enable_shared_from_this<Message>{
 		return (_flags & MessageFlags::OneShotSend) != 0;
 	}
 	
+	static bool is_response(const ulong _flags){
+		return (_flags & MessageFlags::Response) != 0;
+	}
+	
 	Message(uint8_t _state = 0):stt(_state){}
 	Message(Message const &_rmsg): requid(_rmsg.requid), stt(_rmsg.stt){}
 	
@@ -105,6 +115,10 @@ struct Message: std::enable_shared_from_this<Message>{
 	
 	uint8_t state()const{
 		return stt;
+	}
+	
+	void clearState(){
+		stt = 0;
 	}
 	
 	RequestId const& requestId()const{

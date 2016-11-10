@@ -692,10 +692,10 @@ ErrorConditionT Service::doSendMessage(
 	
 	solid::ErrorConditionT		error;
 	size_t						pool_idx;
-	uint32_t						unique;
+	uint32_t					unique;
 	bool						check_uid = false;
 	
-	unique_lock<std::mutex>				lock(d.mtx);
+	unique_lock<std::mutex>		lock(d.mtx);
 	
 	if(not isRunning()){
 		edbgx(Debug::mpipc, this<<" service stopping");
@@ -703,11 +703,33 @@ ErrorConditionT Service::doSendMessage(
 		return error;
 	}
 	
+	if(!_rmsgptr){
+		error = error_service_message_null;
+		return error;
+	}
+	
+	if(Message::is_response(_flags)){
+		//message state should be isOnPeer
+		if(!_rmsgptr->isOnPeer()){
+			error = error_service_message_state;
+			return error;
+		}
+		if(Message::is_request(_flags)){
+			error = error_service_message_flags;
+			return error;
+		}
+	}else{
+		if(_rmsgptr->isOnPeer()){
+			error = error_service_message_state;
+			return error;
+		}
+	}
+	
 	const size_t				msg_type_idx = configuration().protocol().typeIndex(_rmsgptr.get());
 	
 	if(msg_type_idx == 0){
 		edbgx(Debug::mpipc, this<<" message type not registered");
-		error = error_service_unknown_message_type;
+		error = error_service_message_unknown_type;
 		return error;
 	}
 	

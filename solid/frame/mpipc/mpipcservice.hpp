@@ -159,6 +159,23 @@ public:
 		ulong _flags = 0
 	);
 	
+	// send message using connection uid  -------------------------------------
+	
+	template <class T>
+	ErrorConditionT sendResponse(
+		RecipientId const &_rrecipient_id,
+		std::shared_ptr<T> const &_rmsgptr,
+		ulong _flags = 0
+	);
+	
+	template <class T>
+	ErrorConditionT sendResponse(
+		RecipientId const &_rrecipient_id,
+		std::shared_ptr<T> const &_rmsgptr,
+		MessageId &_rmsg_id,
+		ulong _flags = 0
+	);
+	
 	// send request using connection uid --------------------------------------
 	
 	template <class T, class Fnc>
@@ -668,6 +685,36 @@ ErrorConditionT Service::sendRequest(
 	
 	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags | MessageFlags::WaitResponse);
 }
+
+//-------------------------------------------------------------------------
+// send response using recipient id ---------------------------------------
+
+
+template <class T>
+ErrorConditionT Service::sendResponse(
+	RecipientId const &_rrecipient_id,
+	std::shared_ptr<T> const &_rmsgptr,
+	ulong _flags
+){
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+	MessageCompleteFunctionT	complete_handler;
+	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlags::Response);
+}
+
+//-------------------------------------------------------------------------
+
+template <class T>
+ErrorConditionT Service::sendResponse(
+	RecipientId const &_rrecipient_id,
+	std::shared_ptr<T> const &_rmsgptr,
+	MessageId &_rmsg_id,
+	ulong _flags
+){
+	MessagePointerT				msgptr(std::static_pointer_cast<Message>(_rmsgptr));
+	MessageCompleteFunctionT	complete_handler;
+	return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsg_id, _flags | MessageFlags::Response);
+}
+
 //-------------------------------------------------------------------------
 // send message with complete using recipient name ------------------------
 template <class T, class Fnc>

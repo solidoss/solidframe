@@ -229,7 +229,7 @@ void server_receive_message(frame::mpipc::ConnectionContext &_rctx, std::shared_
 	}
 	
 	//send message back
-	_rctx.service().sendMessage(_rctx.recipientId(), _rmsgptr);
+	_rctx.service().sendResponse(_rctx.recipientId(), _rmsgptr);
 	
 	++crtreadidx;
 	idbg(crtreadidx);

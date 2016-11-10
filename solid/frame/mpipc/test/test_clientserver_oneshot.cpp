@@ -83,9 +83,7 @@ struct Message: frame::mpipc::Message{
 	}
 	~Message(){
 		idbg("DELETE ---------------- "<<(void*)this);
-		if(serialized){
-			SOLID_THROW("Message serialized.");
-		}
+		SOLID_ASSERT(not serialized);
 	}
 
 	template <class S>

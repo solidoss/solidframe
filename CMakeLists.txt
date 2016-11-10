@@ -40,10 +40,25 @@ add_definitions(${EXTRA_DEFINITIONS})
 #-----------------------------------------------------------------
 # Prepare the extern path
 #-----------------------------------------------------------------
+
+if(NOT UEXTERN OR UEXTERN STREQUAL "")
+	set(UEXTERN "${CMAKE_INSTALL_PREFIX}")
+	message("Default extern path: \"${UEXTERN}\"")
+endif()
+
 set(EXTERN_PATH "${UEXTERN}/" CACHE PATH "External prerequisites path")
+
+message("Extern path: \"${EXTERN_PATH}\"")
+
+if(NOT UINSTALL_PREFIX OR UINSTALL_PREFIX STREQUAL "")
+	set(UINSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+	message("Default install path: \"${UINSTALL_PREFIX}\"")
+endif()
+
+
 set(INSTALL_PATH "${UINSTALL_PREFIX}/" CACHE PATH "External prerequisites path")
 
-message("Using prerequisites from: \"${EXTERN_PATH}\"")
+message("Install path: \"${INSTALL_PATH}\"")
 
 #-----------------------------------------------------------------
 # Find libraries

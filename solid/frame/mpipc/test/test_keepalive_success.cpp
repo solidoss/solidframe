@@ -70,9 +70,9 @@ size_t							connection_count(0);
 
 bool							running = true;
 mutex							mtx;
-condition_variable					cnd;
-frame::mpipc::Service				*pmpipcclient = nullptr;
-std::atomic<uint64_t>				transfered_size(0);
+condition_variable				cnd;
+frame::mpipc::Service			*pmpipcclient = nullptr;
+std::atomic<uint64_t>			transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 
 int								test_scenario = 0;
@@ -214,7 +214,7 @@ void server_receive_message(frame::mpipc::ConnectionContext &_rctx, std::shared_
 	}
 	
 	//send message back
-	_rctx.service().sendMessage(_rctx.recipientId(), _rmsgptr);
+	_rctx.service().sendResponse(_rctx.recipientId(), _rmsgptr);
 /*	
 	++crtreadidx;
 	idbg(crtreadidx);

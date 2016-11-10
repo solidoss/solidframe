@@ -35,7 +35,10 @@ extern const ErrorConditionT error_reader_invalid_message_switch;
 extern const ErrorConditionT error_reader_too_many_multiplex;
 
 extern const ErrorConditionT error_service_stopping;
-extern const ErrorConditionT error_service_unknown_message_type;
+extern const ErrorConditionT error_service_message_unknown_type;
+extern const ErrorConditionT error_service_message_flags;
+extern const ErrorConditionT error_service_message_state;
+extern const ErrorConditionT error_service_message_null;
 extern const ErrorConditionT error_service_server_only;
 extern const ErrorConditionT error_service_unknown_recipient;
 extern const ErrorConditionT error_service_unknown_pool;

@@ -298,7 +298,7 @@ void server_complete_request(
 	
 	//send message back
 	frame::mpipc::MessagePointerT	msgptr(new Response(*_rrecvmsgptr));
-	_rctx.service().sendMessage(_rctx.recipientId(), msgptr);
+	_rctx.service().sendResponse(_rctx.recipientId(), msgptr);
 	
 	++crtreadidx;
 	

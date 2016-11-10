@@ -104,9 +104,7 @@ void complete_message<ipc_request::Request>(
 		}
 	}
 	
-	ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr));
-		
-	SOLID_CHECK(not err);
+	SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>

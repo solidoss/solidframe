@@ -256,7 +256,7 @@ void server_complete_message(
 		if(_rctx.recipientId().isInvalidConnection()){
 			SOLID_THROW("Connection id should not be invalid!");
 		}
-		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+		ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 		
 		if(err){
 			SOLID_THROW_EX("Connection id should not be invalid!", err.message());

@@ -326,7 +326,7 @@ void MessageHandler::operator()(
 	if(_rrecv_msg){
 		idbg(_rctx.recipientId()<<" Message received: is_on_sender: "<<_rrecv_msg->isOnSender()<<", is_on_peer: "<<_rrecv_msg->isOnPeer()<<", is_back_on_sender: "<<_rrecv_msg->isBackOnSender());
 		if(_rrecv_msg->isOnPeer()){
-			rsvc.sendMessage(_rctx.recipientId(), _rrecv_msg);
+			rsvc.sendResponse(_rctx.recipientId(), _rrecv_msg);
 		}else if(_rrecv_msg->isBackOnSender()){
 			cout<<"Received from "<<_rctx.recipientName()<<": "<<_rrecv_msg->str<<endl;
 		}
