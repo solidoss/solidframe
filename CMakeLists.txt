@@ -66,8 +66,22 @@ message("Install path: \"${INSTALL_PATH}\"")
 
 include(cmake/find_boost.cmake)
 include(cmake/find_openssl.cmake)
-include(cmake/find_leveldb.cmake)
 include(cmake/find_snappy.cmake)
+
+message("")
+if(${Boost_FOUND})
+	message("Boost found with version: ${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
+else()
+	message("Boost not found - some targets will not compile")
+endif()
+
+if(OPENSSL_FOUND)
+	message("OpenSSL found with version: ${OPENSSL_VERSION}")
+else()
+	message("OpenSSL not found - some targets will not compile")
+endif()
+
+message("")
 
 
 #-----------------------------------------------------------------
@@ -223,7 +237,7 @@ if(CMAKE_SYSTEM MATCHES "Windows*")
 	set(SYS_NOLOG_LINKER_FLAGS "")
 	set(SYS_RELEASE_LINKER_FLAGS "")
 
-	set(SYS_BASIC_LIBS Ws2_32 ${BOOST_THREAD_LIB} ${BOOST_SYSTEM_LIB})
+	set(SYS_BASIC_LIBS Ws2_32 ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 endif(CMAKE_SYSTEM MATCHES "Windows*")
 
 

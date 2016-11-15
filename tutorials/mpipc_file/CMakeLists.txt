@@ -1,3 +1,5 @@
+if(${Boost_FOUND})
+
 add_executable (tutorial_mpipc_file_server mpipc_file_server.cpp mpipc_file_messages.hpp)
 
 target_link_libraries (tutorial_mpipc_file_server
@@ -8,8 +10,8 @@ target_link_libraries (tutorial_mpipc_file_server
 	solid_serialization
 	solid_utility
 	solid_system
-	${BOOST_FILESYSTEM_LIB}
-	${BOOST_SYSTEM_LIB}
+	${Boost_FILESYSTEM_LIBRARY}
+	${Boost_SYSTEM_LIBRARY}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )
@@ -28,4 +30,4 @@ target_link_libraries (tutorial_mpipc_file_client
 	${SYS_DYNAMIC_LOAD_LIB}
 )
 
-
+endif()

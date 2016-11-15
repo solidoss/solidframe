@@ -57,24 +57,24 @@ add_custom_target(example_mpipc_echo_copy_certs
 	${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
 )
 
-add_executable (example_mpipc_echo example_mpipc_echo.cpp)
-add_dependencies(example_mpipc_echo example_mpipc_echo_copy_certs)
+if(${Boost_FOUND} AND OPENSSL_FOUND)
+	add_executable (example_mpipc_echo example_mpipc_echo.cpp)
+	add_dependencies(example_mpipc_echo example_mpipc_echo_copy_certs)
 
-target_link_libraries (example_mpipc_echo
-	solid_frame_mpipc
-	solid_frame_aio
-	solid_frame_aio_openssl
-	solid_frame
-	solid_serialization
-	solid_utility
-	solid_system
-	${OPENSSL_LIBS}
-	${BOOST_PROGRAM_OPTIONS_LIB}
-	${BOOST_SYSTEM_LIB}
-	${OPENSSL_LIBS}
-	${SYS_BASIC_LIBS}
-	${SYS_DYNAMIC_LOAD_LIB}
-)
-
+	target_link_libraries (example_mpipc_echo
+		solid_frame_mpipc
+		solid_frame_aio
+		solid_frame_aio_openssl
+		solid_frame
+		solid_serialization
+		solid_utility
+		solid_system
+		${OPENSSL_LIBRARIES}
+		${Boost_PROGRAM_OPTIONS_LIBRARY}
+		${Boost_SYSTEM_LIBRARY}
+		${SYS_BASIC_LIBS}
+		${SYS_DYNAMIC_LOAD_LIB}
+	)
+endif()
 
 

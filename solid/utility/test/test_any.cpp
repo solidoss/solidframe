@@ -5,12 +5,14 @@
 #include <memory>
 #include "solid/system/exception.hpp"
 
+//#define TEST_BOOST_ANY
+
+#ifdef TEST_BOOST_ANY
 #include "boost/any.hpp"
+#endif
 
 using namespace solid;
 using namespace std;
-
-//#define TEST_BOOST_ANY
 
 
 struct TestNoCopy{

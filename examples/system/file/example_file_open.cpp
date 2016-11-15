@@ -11,7 +11,7 @@
 #include <fstream>
 //#include <boost/system/operations.hpp>
 //#include <boost/system/exception.hpp>
-#include <boost/utility.hpp>
+//#include <boost/utility.hpp>
 #include "solid/system/filedevice.hpp"
 #include <deque>
 #include <cstring>
