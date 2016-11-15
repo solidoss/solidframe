@@ -161,12 +161,6 @@ void throw_exception(const char* const _pt, const T& _rt, const char *const _fil
 #define SOLID_THROW_EX(x, y)\
 	throw Exception<decltype(y)>(static_cast<const char*>(x), y, __FILE__, __LINE__, CRT_FUNCTION_NAME);
 
-//#define SOLID_THROW_EX(x, y)\
-//	throw_exception(static_cast<const char*>(x), y, __FILE__, __LINE__, CRT_FUNCTION_NAME);
-
-// #define SOLID_THROW(x)\
-// 	throw_exception(static_cast<const char*>((x)), __FILE__, __LINE__, CRT_FUNCTION_NAME);
-
 #define SOLID_THROW(x)\
 	throw Exception<const char*>(static_cast<const char*>((x)), __FILE__, __LINE__, CRT_FUNCTION_NAME);
 

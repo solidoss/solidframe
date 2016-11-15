@@ -295,17 +295,16 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BIN
 
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp DESTINATION include/solid)
 
-if(SOLID_USE_CPP11FLAG AND SOLID_USE_CPP11)
-	set(SYS_DEBUG_FLAGS "${SYS_DEBUG_FLAGS} -std=c++11")
-	set(SYS_MAINTAIN_FLAGS "${SYS_MAINTAIN_FLAGS} -std=c++11")
-	set(SYS_OPTIMIZED_FLAGS "${SYS_OPTIMIZED_FLAGS} -std=c++11")
-	set(SYS_NOLOG_FLAGS "${SYS_NOLOG_FLAGS} -std=c++11")
-	set(SYS_RELEASE_FLAGS "${SYS_RELEASE_FLAGS} -std=c++11")
-endif(SOLID_USE_CPP11FLAG AND SOLID_USE_CPP11)
+if (CMAKE_VERSION VERSION_LESS "3.1")
+    if(SOLID_USE_CPP11FLAG)
+		set (CMAKE_CXX_FLAGS "--std=c++11 ${CMAKE_CXX_FLAGS}")
+    else()
+		message(FATAL_ERROR "SolidFrame framework needs C++11 enabled compiler")
+    endif()
+else ()
+   set (CMAKE_CXX_STANDARD 11)
+endif ()
 
-if(NOT SOLID_USE_CPP11)
-	set(SYS_BASIC_LIBS ${SYS_BASIC_LIBS} ${BOOST_SYSTEM_LIB})
-endif(NOT SOLID_USE_CPP11)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
