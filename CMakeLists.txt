@@ -8,7 +8,7 @@ project (SolidFrame)
 #-----------------------------------------------------------------
 # Project version
 #-----------------------------------------------------------------
-file (READ "${CMAKE_SOURCE_DIR}/VERSION" VERSION)
+file (READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" VERSION)
 string (REPLACE "\n" "" VERSION ${VERSION})
 string (REPLACE "\r" "" VERSION ${VERSION})
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\1" VERSION_MAJOR ${VERSION})
@@ -59,30 +59,6 @@ endif()
 set(INSTALL_PATH "${UINSTALL_PREFIX}/" CACHE PATH "External prerequisites path")
 
 message("Install path: \"${INSTALL_PATH}\"")
-
-#-----------------------------------------------------------------
-# Find libraries
-#-----------------------------------------------------------------
-
-include(cmake/find_boost.cmake)
-include(cmake/find_openssl.cmake)
-include(cmake/find_snappy.cmake)
-
-message("")
-if(${Boost_FOUND})
-	message("Boost found with version: ${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
-else()
-	message("Boost not found - some targets will not compile")
-endif()
-
-if(OPENSSL_FOUND)
-	message("OpenSSL found with version: ${OPENSSL_VERSION}")
-else()
-	message("OpenSSL not found - some targets will not compile")
-endif()
-
-message("")
-
 
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
@@ -276,6 +252,33 @@ else(NOT ON_FOUND)
 endif(NOT ON_FOUND)
 
 #-----------------------------------------------------------------
+# Find external libraries
+#-----------------------------------------------------------------
+
+if(NOT ON_ANDROID)
+    include(cmake/find_boost.cmake)
+    include(cmake/find_openssl.cmake)
+    include(cmake/find_snappy.cmake)
+
+    message("")
+    if(${Boost_FOUND})
+        message("Boost found with version: ${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
+    else()
+        message("Boost not found - some targets will not compile")
+    endif()
+
+    if(OPENSSL_FOUND)
+        message("OpenSSL found with version: ${OPENSSL_VERSION}")
+    else()
+        message("OpenSSL not found - some targets will not compile")
+    endif()
+
+    message("")
+else()
+    set(OPENSSL_FOUND TRUE)
+endif()
+
+#-----------------------------------------------------------------
 # install prefix
 #-----------------------------------------------------------------
 if(NOT (INSTALL_PATH STREQUAL ""))
@@ -291,6 +294,7 @@ endif(NOT (INSTALL_PATH STREQUAL ""))
 if(ON_ANDROID)
 	set(EXTERN_PATH "${EXTERN_PATH}/${ANDROID_ABI}")
 endif()
+
 #-----------------------------------------------------------------
 # config.h support
 #-----------------------------------------------------------------
@@ -451,23 +455,4 @@ if(NOT ON_CROSS)
 	add_subdirectory (tutorials)
 endif()
 
-
-#-----------------------------------------------------------------
-# Force Android install libraries via a fake target library: solid_install
-#-----------------------------------------------------------------
-
-if(ON_ANDROID)
-	
-	add_library(solid_install cmake/dummy.cpp)
-	
-	add_dependencies(solid_install solid_system solid_utility solid_serialization solid_frame solid_frame_aio solid_frame_aio_openssl solid_frame_file solid_frame_mpipc)
-	
-	add_custom_command(
-		TARGET solid_install POST_BUILD
-		COMMAND "${CMAKE_COMMAND}" -P cmake_install.cmake
-		WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-	)
-endif()
-
-#-----------------------------------------------------------------
 

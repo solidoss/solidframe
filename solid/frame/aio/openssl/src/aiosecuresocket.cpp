@@ -287,9 +287,13 @@ ErrorCodeT Context::loadPrivateKey(const unsigned char *_data, const size_t _dat
 	if(_fformat == FileFormat::Asn1){
 		key_ptr = std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>(::d2i_PrivateKey_bio(bio_ptr.get(), 0), evp_pkey_deleter);
 	}else if(_fformat == FileFormat::Pem){
+#ifndef OPENSSL_IS_BORINGSSL
 		pem_password_cb* 	callback = ::SSL_CTX_get_default_passwd_cb(pctx);
 		void* 				cb_userdata = ::SSL_CTX_get_default_passwd_cb_userdata(pctx);
-		
+#else
+		pem_password_cb* 	callback = nullptr;
+		void* 				cb_userdata = nullptr;
+#endif
 		key_ptr = std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>(
 			::PEM_read_bio_PrivateKey(
 				bio_ptr.get(), 0, callback,
