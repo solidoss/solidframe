@@ -25,6 +25,9 @@
 #include <signal.h>
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <streambuf>
+#include <sstream>
 
 using namespace std;
 using namespace solid;
@@ -79,8 +82,9 @@ namespace{
 	//bool					run = true;
 	//uint32_t					wait_count = 0;
 	Params					app_params;
+	
 	void broadcast_message(frame::mpipc::Service &_rsvc, std::shared_ptr<frame::mpipc::Message> &_rmsgptr);
-}
+}//namespace
 
 struct FirstMessage: frame::mpipc::Message{
     std::string						str;
@@ -126,6 +130,9 @@ void incoming_connection_start(frame::mpipc::ConnectionContext &_rctx){
 void outgoing_connection_start(frame::mpipc::ConnectionContext &_rctx){
 	idbg(_rctx.recipientId());
 }
+
+std::string loadFile(const char *_path);
+
 //------------------------------------------------------------------
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
@@ -226,9 +233,12 @@ int main(int argc, char *argv[]){
 				frame::mpipc::openssl::setup_client(
 					cfg,
 					[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
-						_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-						_rctx.loadCertificateFile("echo-client-cert.pem");
-						_rctx.loadPrivateKeyFile("echo-client-key.pem");
+						//_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+						//_rctx.loadCertificateFile("echo-client-cert.pem");
+						//_rctx.loadPrivateKeyFile("echo-client-key.pem");
+						_rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
+						_rctx.loadCertificate(loadFile("echo-client-cert.pem"));
+						_rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
 						return ErrorCodeT();
 					},
 					frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
@@ -333,6 +343,12 @@ void MessageHandler::operator()(
 	}
 }
 
+std::string loadFile(const char *_path){
+	ifstream		ifs(_path);
+	ostringstream	oss;
+	oss<<ifs.rdbuf();
+	return oss.str();
+}
 
 namespace{
 
@@ -344,6 +360,5 @@ void broadcast_message(frame::mpipc::Service &_rsvc, std::shared_ptr<frame::mpip
 		_rsvc.sendMessage(it->c_str(), _rmsgptr, 0|frame::mpipc::MessageFlags::WaitResponse);
 	}
 }
-
 
 }//namespace

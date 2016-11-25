@@ -186,6 +186,53 @@ Context::~Context(){
 // 	return err;
 // }
 
+
+namespace{
+	
+typedef void (*BIODeleter)(BIO*);
+typedef void (*X509Deleter)(X509*);
+typedef void (*EVP_PKEYDeleter)(EVP_PKEY*);
+
+void bio_deleter(BIO *_pbio){
+	if(_pbio) ::BIO_free(_pbio);
+}
+
+void x509_deleter(X509 *_px509){
+	if(_px509) ::X509_free(_px509);
+}
+
+void evp_pkey_deleter(EVP_PKEY *_pkey){
+	if(_pkey) ::EVP_PKEY_free(_pkey);
+}
+	
+}//namespace
+
+ErrorCodeT Context::addVerifyAuthority(const unsigned char *_data, const size_t _data_size){
+	ErrorCodeT err;
+	::ERR_clear_error();
+
+	std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, _data_size), bio_deleter);
+	
+	if(bio_ptr){
+		
+		std::unique_ptr<::X509, X509Deleter> cert_ptr(::PEM_read_bio_X509(bio_ptr.get(), 0, 0, 0), x509_deleter);
+		
+		if(cert_ptr){
+			if(X509_STORE* store = ::SSL_CTX_get_cert_store(pctx)){
+				if (::X509_STORE_add_cert(store, cert_ptr.get()) == 1){
+					return err;
+				}
+			}
+		}
+	}
+	return ssl_category.makeError(::ERR_get_error());
+}
+
+
+ErrorCodeT Context::addVerifyAuthority(const std::string &_str){
+	return addVerifyAuthority(reinterpret_cast<const unsigned char*>(_str.data()), _str.size());
+}
+
 ErrorCodeT Context::loadDefaultVerifyPaths(){
 	if(SSL_CTX_set_default_verify_paths(pctx)){
 		return ErrorCodeT();
@@ -220,22 +267,6 @@ ErrorCodeT Context::loadCertificateFile(const char *_path, const FileFormat _ffo
 	return err;
 }
 
-typedef void (*BIODeleter)(BIO*);
-typedef void (*X509Deleter)(X509*);
-typedef void (*EVP_PKEYDeleter)(EVP_PKEY*);
-
-void bio_deleter(BIO *_pbio){
-	if(_pbio) ::BIO_free(_pbio);
-}
-
-void x509_deleter(X509 *_px509){
-	if(_px509) ::X509_free(_px509);
-}
-
-void evp_pkey_deleter(EVP_PKEY *_pkey){
-	if(_pkey) ::EVP_PKEY_free(_pkey);
-}
-
 ErrorCodeT Context::loadCertificate(const unsigned char *_data, const size_t _data_size, const FileFormat _fformat/* = FileFormat::Pem*/){
 	ErrorCodeT err;
 	::ERR_clear_error();
@@ -266,6 +297,10 @@ ErrorCodeT Context::loadCertificate(const unsigned char *_data, const size_t _da
 		return wrapper_category.makeError(WrapperError::Call);
 	}
 	return ssl_category.makeError(::ERR_get_error());
+}
+
+ErrorCodeT Context::loadCertificate(const std::string &_str, const FileFormat _fformat){
+	return loadCertificate(reinterpret_cast<const unsigned char*>(_str.data()), _str.size(), _fformat);
 }
 
 ErrorCodeT Context::loadPrivateKeyFile(const char *_path, const FileFormat _fformat/* = FileFormat::Pem*/){
@@ -307,6 +342,9 @@ ErrorCodeT Context::loadPrivateKey(const unsigned char *_data, const size_t _dat
 	return ssl_category.makeError(::ERR_get_error());
 }
 
+ErrorCodeT Context::loadPrivateKey(const std::string &_str, const FileFormat _fformat){
+	return loadPrivateKey(reinterpret_cast<const unsigned char*>(_str.data()), _str.size(), _fformat);
+}
 
 ErrorCodeT Context::doSetPasswordCallback(){
 	SSL_CTX_set_default_passwd_cb(pctx, on_password_cb);

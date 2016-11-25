@@ -55,6 +55,9 @@ public:
 	//ErrorCodeT configure(const char *_filename = nullptr, const char *_appname = nullptr);
 	
 	
+	ErrorCodeT addVerifyAuthority(const unsigned char *_data, const size_t _data_size);
+	ErrorCodeT addVerifyAuthority(const std::string &_str);
+	
 	ErrorCodeT loadDefaultVerifyPaths();
 	
 	//!Use it on client side to load the certificates
@@ -65,9 +68,11 @@ public:
 	//!Use it on client/server side to load the certificates
 	ErrorCodeT loadCertificateFile(const char *_path, const FileFormat _fformat = FileFormat::Pem);
 	ErrorCodeT loadCertificate(const unsigned char *_data, const size_t _data_size, const FileFormat _fformat = FileFormat::Pem);
+	ErrorCodeT loadCertificate(const std::string &_str, const FileFormat _fformat = FileFormat::Pem);
 	//!Use it on client/server side to load the certificates
 	ErrorCodeT loadPrivateKeyFile(const char *_path, const FileFormat _fformat = FileFormat::Pem);
 	ErrorCodeT loadPrivateKey(const unsigned char *_data, const size_t _data_size, const FileFormat _fformat = FileFormat::Pem);
+	ErrorCodeT loadPrivateKey(const std::string &_str, const FileFormat _fformat = FileFormat::Pem);
 	
 	template <typename F>
 	ErrorCodeT passwordCallback(F _f){
