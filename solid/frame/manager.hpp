@@ -47,6 +47,8 @@ public:
 
 	void stop();
 	
+	void start();
+	
 	bool notify(ObjectIdT const &_ruid, Event &&_uevt, const size_t _sigmsk = 0);
 	
 	//bool notifyAll(Event const &_revt, const size_t _sigmsk = 0);

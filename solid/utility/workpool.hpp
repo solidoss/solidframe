@@ -267,6 +267,7 @@ private:
 		for(std::thread &thr: thread_vec){
 			thr.join();
 		}
+		thread_vec.clear();
 		state(Stopped);
 	}
 	

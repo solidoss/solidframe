@@ -940,6 +940,28 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 	}
 }
 
+void Manager::start(){
+	{
+		std::unique_lock<std::mutex>	lock(d.mtx);
+		
+		while(d.state != StateRunningE){
+			if(d.state == StateStoppedE){
+				d.state = StateRunningE;
+				continue;
+			}
+			if(d.state == StateRunningE){
+				continue;
+			}else if(d.state == StateStoppingE){
+				while(d.state == StateStoppingE){
+					d.cnd.wait(lock);
+				}
+			}else{
+				continue;
+			}
+		}
+	}
+}
+
 void Manager::stop(){
 	{
 		std::unique_lock<std::mutex>	lock(d.mtx);
@@ -999,11 +1021,9 @@ void Manager::stop(){
 				}
 				rss.state = StateStoppedE;
 				vdbgx(Debug::frame, "StateStoppedE on "<<(it - rsvcstore.vec.begin()));
-				doUnregisterService(rss);
 			}else if(rss.psvc){
 				vdbgx(Debug::frame, "unregister already stopped service: "<<(it - rsvcstore.vec.begin())<<" "<<rss.psvc<<" "<<rss.state);
 				SOLID_ASSERT(rss.state == StateStoppedE);
-				doUnregisterService(rss);
 			}
 		}
 	}

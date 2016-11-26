@@ -136,6 +136,11 @@ std::string loadFile(const char *_path);
 //------------------------------------------------------------------
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
+bool restart(
+	frame::mpipc::ServiceT &_ipcsvc,
+	frame::aio::Resolver &_resolver,
+	AioSchedulerT &_sch
+);
 
 int main(int argc, char *argv[]){
 	
@@ -187,94 +192,20 @@ int main(int argc, char *argv[]){
 		
 		frame::aio::Resolver	resolver;
 		
-		err = sch.start(1);
-		
-		if(err){
-			cout<<"Error starting aio scheduler: "<<err.message()<<endl;
+		if(not restart(ipcsvc, resolver, sch)){
 			return 1;
 		}
 		
-		err = resolver.start(1);
-		
-		if(err){
-			cout<<"Error starting aio resolver: "<<err.message()<<endl;
-			return 1;
-		}
-		
-		
-		{
-			auto						proto = frame::mpipc::serialization_v1::Protocol::create();
-			
-			frame::mpipc::Configuration	cfg(sch, proto);
-			
-			proto->registerType<FirstMessage>(
-				MessageHandler(ipcsvc)
-			);
-			
-			
-			if(app_params.baseport.size()){
-				cfg.server.listener_address_str = "0.0.0.0:";
-				cfg.server.listener_address_str += app_params.baseport;
-				cfg.server.listener_service_str = app_params.baseport;
-			}
-			
-			if(app_params.connectstringvec.size()){
-				cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, app_params.baseport.c_str());
-			}
-			cfg.connection_stop_fnc = connection_stop;
-			cfg.server.connection_start_fnc = incoming_connection_start;
-			cfg.client.connection_start_fnc = outgoing_connection_start;
-			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
-			cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
-#if 1
-			if(app_params.secure){
-				//configure OpenSSL:
-				idbg("Configure SSL ---------------------------------------");
-				frame::mpipc::openssl::setup_client(
-					cfg,
-					[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
-						//_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-						//_rctx.loadCertificateFile("echo-client-cert.pem");
-						//_rctx.loadPrivateKeyFile("echo-client-key.pem");
-						_rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
-						_rctx.loadCertificate(loadFile("echo-client-cert.pem"));
-						_rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
-						return ErrorCodeT();
-					},
-					frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
-				);
-				
-				frame::mpipc::openssl::setup_server(
-					cfg,
-					[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
-						_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-						_rctx.loadCertificateFile("echo-server-cert.pem");
-						_rctx.loadPrivateKeyFile("echo-server-key.pem");
-						return ErrorCodeT();
-					},
-					frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}
-				);
-			}
-#endif			
-			err = ipcsvc.reconfigure(std::move(cfg));
-			
-			if(err){
-				cout<<"Error starting ipcservice: "<<err.message()<<endl;
-				return 1;
-			}
-			
-			{
-				std::ostringstream oss;
-				oss<<ipcsvc.configuration().server.listenerPort();
-				idbg("server listens on port: "<<oss.str());
-			}
-		}
 		{
 			string	s;
 			do{
 				getline(cin, s);
 				if(s.size() == 1 && (s[0] == 'q' || s[0] == 'Q')){
 					s.clear();
+				}else if(s.size() == 1 && (s[0] == 'r' || s[0] == 'R')){
+					if(not restart(ipcsvc, resolver, sch)){
+						return 1;
+					}
 				}else{
 					std::shared_ptr<frame::mpipc::Message> msgptr(new FirstMessage(s));
 					broadcast_message(ipcsvc, msgptr);
@@ -284,6 +215,104 @@ int main(int argc, char *argv[]){
 		vdbg("done stop");
 	}
 	return 0;
+}
+
+
+bool restart(
+	frame::mpipc::ServiceT &_ipcsvc,
+	frame::aio::Resolver &_resolver,
+	AioSchedulerT &_sch
+){
+	ErrorConditionT				err;
+	auto						proto = frame::mpipc::serialization_v1::Protocol::create();
+	
+	
+	frame::Manager				&rm = _ipcsvc.manager();
+	
+	rm.stop();
+	_resolver.stop();
+	_sch.stop();
+	
+	rm.start();
+	
+	err = _sch.start(1);
+		
+	if(err){
+		cout<<"Error starting aio scheduler: "<<err.message()<<endl;
+		return 1;
+	}
+	
+	err = _resolver.start(1);
+	
+	if(err){
+		cout<<"Error starting aio resolver: "<<err.message()<<endl;
+		return 1;
+	}
+	
+	frame::mpipc::Configuration	cfg(_sch, proto);
+	
+	proto->registerType<FirstMessage>(
+		MessageHandler(_ipcsvc)
+	);
+	
+	
+	if(app_params.baseport.size()){
+		cfg.server.listener_address_str = "0.0.0.0:";
+		cfg.server.listener_address_str += app_params.baseport;
+		cfg.server.listener_service_str = app_params.baseport;
+	}
+	
+	if(app_params.connectstringvec.size()){
+		cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(_resolver, app_params.baseport.c_str());
+	}
+	cfg.connection_stop_fnc = connection_stop;
+	cfg.server.connection_start_fnc = incoming_connection_start;
+	cfg.client.connection_start_fnc = outgoing_connection_start;
+	cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
+	cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
+#if 1
+	if(app_params.secure){
+		//configure OpenSSL:
+		idbg("Configure SSL ---------------------------------------");
+		frame::mpipc::openssl::setup_client(
+			cfg,
+			[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+				//_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+				//_rctx.loadCertificateFile("echo-client-cert.pem");
+				//_rctx.loadPrivateKeyFile("echo-client-key.pem");
+				_rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
+				_rctx.loadCertificate(loadFile("echo-client-cert.pem"));
+				_rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
+				return ErrorCodeT();
+			},
+			frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
+		);
+		
+		frame::mpipc::openssl::setup_server(
+			cfg,
+			[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+				_rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+				_rctx.loadCertificateFile("echo-server-cert.pem");
+				_rctx.loadPrivateKeyFile("echo-server-key.pem");
+				return ErrorCodeT();
+			},
+			frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}
+		);
+	}
+#endif			
+	err = _ipcsvc.reconfigure(std::move(cfg));
+	
+	if(err){
+		cout<<"Error starting ipcservice: "<<err.message()<<endl;
+		return false;
+	}
+	
+	{
+		std::ostringstream oss;
+		oss<<_ipcsvc.configuration().server.listenerPort();
+		idbg("server listens on port: "<<oss.str());
+	}
+	return true;
 }
 
 //------------------------------------------------------------------
