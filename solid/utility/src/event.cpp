@@ -30,6 +30,12 @@ namespace solid{
 				return "message";
 			case GenericEvents::Timer:
 				return "timer";
+			case GenericEvents::Pause:
+				return "pause";
+			case GenericEvents::Resume:
+				return "resume";
+			case GenericEvents::Update:
+				return "update";
 			case GenericEvents::Kill:
 				return "kill";
 			default:
