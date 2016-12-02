@@ -172,6 +172,9 @@ enum class GenericEvents{
 	Raise,
 	Message,
 	Timer,
+	Pause,
+	Resume,
+	Update,
 	Kill,
 };
 
