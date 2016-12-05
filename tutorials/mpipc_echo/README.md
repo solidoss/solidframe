@@ -146,9 +146,9 @@ Next we configure the ipcservice like this:
 			
 			ipc_echo::ProtoSpecT::setup<ipc_echo_client::MessageSetup>(*proto);
 			
-			cfg.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
+			cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
 			err = ipcservice.reconfigure(std::move(cfg));
 			
@@ -286,11 +286,11 @@ E.g. the initialization of the ipcservice and its prerequisites is the same as o
 			
 			ipc_echo::ProtoSpecT::setup<ipc_echo_server::MessageSetup>(*proto);
 			
-			cfg.listener_address_str = p.listener_addr;
-			cfg.listener_address_str += ':';
-			cfg.listener_address_str += p.listener_port;
+			cfg.server.listener_address_str = p.listener_addr;
+			cfg.server.listener_address_str += ':';
+			cfg.server.listener_address_str += p.listener_port;
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
 			err = ipcsvc.reconfigure(std::move(cfg));
 			
@@ -301,7 +301,7 @@ E.g. the initialization of the ipcservice and its prerequisites is the same as o
 			}
 			{
 				std::ostringstream oss;
-				oss<<ipcsvc.configuration().listenerPort();
+				oss<<ipcsvc.configuration().server.listenerPort();
 				cout<<"server listens on port: "<<oss.str()<<endl;
 			}
 		}
@@ -329,9 +329,7 @@ void complete_message(
 	
 	if(_rrecv_msg_ptr){
 		SOLID_CHECK(not _rsent_msg_ptr);
-		ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
-		
-		SOLID_CHECK(not err);
+		SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
 	}
 	
 	if(_rsent_msg_ptr){

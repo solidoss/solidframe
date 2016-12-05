@@ -239,9 +239,9 @@ Next, configure the ipcservice:
 			
 			ipc_file::ProtoSpecT::setup<ipc_file_client::MessageSetup>(*proto);
 			
-			cfg.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
+			cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
 			err = ipcservice.reconfigure(std::move(cfg));
 			
@@ -420,11 +420,11 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
 			
 			ipc_file::ProtoSpecT::setup<ipc_file_server::MessageSetup>(*proto);
 			
-			cfg.listener_address_str = p.listener_addr;
-			cfg.listener_address_str += ':';
-			cfg.listener_address_str += p.listener_port;
+			cfg.server.listener_address_str = p.listener_addr;
+			cfg.server.listener_address_str += ':';
+			cfg.server.listener_address_str += p.listener_port;
 			
-			cfg.connection_start_state = frame::mpipc::ConnectionState::Active;
+			cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
 			err = ipcservice.reconfigure(std::move(cfg));
 			
@@ -435,7 +435,7 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
 			}
 			{
 				std::ostringstream oss;
-				oss<<ipcservice.configuration().listenerPort();
+				oss<<ipcservice.configuration().server.listenerPort();
 				cout<<"server listens on port: "<<oss.str()<<endl;
 			}
 		}
@@ -490,9 +490,7 @@ void complete_message<ipc_file::ListRequest>(
 			++it;
 		}
 	}
-	ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr));
-		
-	SOLID_CHECK(not err);
+	SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -521,9 +519,7 @@ void complete_message<ipc_file::FileRequest>(
 	
 	auto msgptr = std::make_shared<ipc_file::FileResponse>(*_rrecv_msg_ptr);
 	
-	ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr));
-		
-	SOLID_CHECK(not err);
+	SOLID_CHECK_ERROR(_rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>

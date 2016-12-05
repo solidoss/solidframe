@@ -1,6 +1,6 @@
 # SolidFrame
 
-Cross-platform C++ framework for scalable, asynchronous, distributed client-server applications.
+Cross-platform C++ framework for scalable, asynchronous, distributed applications.
 
 ## License
 
@@ -24,7 +24,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * **Linux** - _gcc_ - (tested on latest Fedora i686/x86_64, Ubuntu LTS and Raspian on Raspberry Pi 2 armv7l)
 * **FreeBSD** - _llvm_ - (tested on FreeBSD/PcBSD 10.3)
 * **Darwin/macOS** - _llvm_ - (starting with XCode 8 which has support for thread_local)
-* **Android** - _llvm/gcc_ - (starting with Android Studio 2.2 - follow [EchoClient example](https://github.com/vipalade/study_android/tree/master/EchoClient)) or [Bubbles example](https://github.com/vipalade/bubbles)
+* **Android** - _llvm/gcc_ - (starting with Android Studio 2.2 - examples: [Bubbles](https://github.com/vipalade/bubbles), [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient))
 * Windows - MSVC - (partial)
 
 ## Libraries

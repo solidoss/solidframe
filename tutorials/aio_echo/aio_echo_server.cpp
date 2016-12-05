@@ -98,13 +98,13 @@ int main(int argc, char *argv[]){
 	
 	signal(SIGPIPE, SIG_IGN);
 	
-	AioSchedulerT				scheduler;
+	AioSchedulerT		scheduler;
 	
 	
 	frame::Manager		manager;
 	frame::ServiceT		service(manager);
 	
-	if(scheduler.start(1)){
+	if(scheduler.start(1/*a single thread*/)){
 		cout<<"Error starting scheduler"<<endl;
 		return 0;
 	}
