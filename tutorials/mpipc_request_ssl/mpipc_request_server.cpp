@@ -6,6 +6,7 @@
 
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
+#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
 #include "mpipc_request_messages.hpp"
 #include <string>
@@ -81,7 +82,74 @@ void complete_message(
 	std::shared_ptr<M> &_rrecv_msg_ptr,
 	ErrorConditionT const &_rerror
 );
+
+using namespace ipc_request;
+
+struct AccountDataKeyVisitor: RequestKeyVisitor{
+	const AccountData	&racc;
+	bool				retval;
 	
+	AccountDataKeyVisitor(const AccountData &_racc):racc(_racc), retval(false){}
+	
+	void visit(RequestKeyAnd& _k) override{
+		
+		if(_k.first){
+			_k.first->visit(*this);
+			if(!retval) return;
+		}
+		if(_k.second){
+			_k.second->visit(*this);
+			if(!retval) return;
+		}
+		retval = true;
+	}
+	
+	void visit(RequestKeyOr& _k) override{
+		if(_k.first){
+			_k.first->visit(*this);
+			if(retval) return;
+		}
+		if(_k.second){
+			_k.second->visit(*this);
+			if(retval) return;
+		}
+		retval = false;
+	}
+	
+	void visit(RequestKeyAndList& _k) override{
+		for(auto &k: _k.key_vec){
+			if(k){
+				k->visit(*this);
+				if(!retval) return;
+			}
+		}
+		retval = true;
+	}
+	void visit(RequestKeyOrList& _k) override{
+		for(auto &k: _k.key_vec){
+			if(k){
+				k->visit(*this);
+				if(retval) return;
+			}
+		}
+		retval = false;
+	}
+	
+	void visit(RequestKeyUserIdRegex& _k) override{
+		std::regex	userid_regex(_k.regex);//can be optimized by keeping it on the visitor
+		retval = std::regex_match(racc.userid, userid_regex);
+	}
+	void visit(RequestKeyEmailRegex& _k) override{
+		std::regex	userid_regex(_k.regex);//can be optimized by keeping it on the visitor
+		retval = std::regex_match(racc.email, userid_regex);
+	}
+	
+	void visit(RequestKeyYearLess& _k) override{
+		retval = racc.birth_date.year < _k.year;
+	}
+};
+
+
 template <>
 void complete_message<ipc_request::Request>(
 	frame::mpipc::ConnectionContext &_rctx,
@@ -93,19 +161,33 @@ void complete_message<ipc_request::Request>(
 	SOLID_CHECK(_rrecv_msg_ptr);
 	SOLID_CHECK(not _rsent_msg_ptr);
 	
+	cout<<"Received request: ";
+	if(_rrecv_msg_ptr->key){
+		_rrecv_msg_ptr->key->print(cout);
+	}
+	cout<<endl;
+	
+	
 	auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
 	
 	
-	std::regex	userid_regex(_rrecv_msg_ptr->userid_regex);
-	
+// 	std::regex	userid_regex(_rrecv_msg_ptr->userid_regex);
+// 	
 	for(const auto &ad: account_dq){
-		if(std::regex_match(ad.userid, userid_regex)){
+		AccountDataKeyVisitor v(ad);
+		
+		if(_rrecv_msg_ptr->key){
+			_rrecv_msg_ptr->key->visit(v);
+		}
+		
+		if(v.retval){
 			msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad))));
 		}
 	}
 	
 	SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
+
 
 template <>
 void complete_message<ipc_request::Response>(
@@ -118,6 +200,67 @@ void complete_message<ipc_request::Response>(
 	SOLID_CHECK(not _rrecv_msg_ptr);
 	SOLID_CHECK(_rsent_msg_ptr);
 }
+
+
+
+template <typename T>
+struct MessageSetup;
+
+template <>
+struct MessageSetup<RequestKeyAnd>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyAnd>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyAnd, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyOr>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyOr>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyOr, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyAndList>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyAndList>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyAndList, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyOrList>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyOrList>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyOrList, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyUserIdRegex>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyUserIdRegex>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyUserIdRegex, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyEmailRegex>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyEmailRegex>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyEmailRegex, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyYearLess>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyYearLess>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyYearLess, RequestKey>();
+	}
+};
 
 template <typename T>
 struct MessageSetup{
@@ -170,6 +313,17 @@ int main(int argc, char *argv[]){
 			
 			cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
+			frame::mpipc::openssl::setup_server(
+				cfg,
+				[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+					_rctx.loadVerifyFile("echo-ca-cert.pem");
+					_rctx.loadCertificateFile("echo-server-cert.pem");
+					_rctx.loadPrivateKeyFile("echo-server-key.pem");
+					return ErrorCodeT();
+				},
+				frame::mpipc::openssl::NameCheckSecureStart{"fasdfas"}
+			);
+			
 			err = ipcservice.reconfigure(std::move(cfg));
 			
 			if(err){
@@ -184,7 +338,7 @@ int main(int argc, char *argv[]){
 			}
 		}
 		
-		cout<<"Press any char and ENTER to stop: ";
+		cout<<"Press any char and ENTER to stop:"<<endl;
 		char c;
 		cin>>c;
 	}

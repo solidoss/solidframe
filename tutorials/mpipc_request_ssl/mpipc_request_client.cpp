@@ -6,8 +6,10 @@
 
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
+#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
 #include "mpipc_request_messages.hpp"
+#include <fstream>
 
 #include <iostream>
 
@@ -25,8 +27,17 @@ struct Parameters{
 	string			port;
 };
 
+std::string loadFile(const char *_path){
+	ifstream		ifs(_path);
+	ostringstream	oss;
+	oss<<ifs.rdbuf();
+	return oss.str();
+}
+
 //-----------------------------------------------------------------------------
 namespace ipc_request_client{
+
+using namespace ipc_request;
 
 template <class M>
 void complete_message(
@@ -37,6 +48,59 @@ void complete_message(
 ){
 	SOLID_CHECK(false);//this method should not be called
 }
+
+template <typename T>
+struct MessageSetup;
+
+template <>
+struct MessageSetup<RequestKeyAnd>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyAnd>(_protocol_idx);
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyOr>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyOr>(_protocol_idx);
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyAndList>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyAndList>(_protocol_idx);
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyOrList>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyOrList>(_protocol_idx);
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyUserIdRegex>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyUserIdRegex>(_protocol_idx);
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyEmailRegex>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyEmailRegex>(_protocol_idx);
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyYearLess>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyYearLess>(_protocol_idx);
+	}
+};
+
 
 template <typename T>
 struct MessageSetup{
@@ -107,6 +171,17 @@ int main(int argc, char *argv[]){
 			
 			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 			
+			frame::mpipc::openssl::setup_client(
+				cfg,
+				[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+					_rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
+					_rctx.loadCertificate(loadFile("echo-client-cert.pem"));
+					_rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
+					return ErrorCodeT();
+				},
+				frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
+			);
+			
 			err = ipcservice.reconfigure(std::move(cfg));
 			
 			if(err){
@@ -133,8 +208,28 @@ int main(int argc, char *argv[]){
 				size_t		offset = line.find(' ');
 				if(offset != string::npos){
 					recipient = line.substr(0, offset);
+					
+					
+					auto req_ptr = make_shared<ipc_request::Request>(
+						make_shared<ipc_request::RequestKeyAndList>(
+							make_shared<ipc_request::RequestKeyOr>(
+								make_shared<ipc_request::RequestKeyUserIdRegex>(line.substr(offset + 1)),
+								make_shared<ipc_request::RequestKeyEmailRegex>(line.substr(offset + 1))
+							),
+							make_shared<ipc_request::RequestKeyOr>(
+								make_shared<ipc_request::RequestKeyYearLess>(2000),
+								make_shared<ipc_request::RequestKeyYearLess>(2003)
+							)
+						)
+					);
+					
+					cout<<"Request key: ";
+					if(req_ptr->key) req_ptr->key->print(cout);
+					cout<<endl;
+					
 					ipcservice.sendRequest(
-						recipient.c_str(), make_shared<ipc_request::Request>(line.substr(offset + 1)),
+						recipient.c_str(), //make_shared<ipc_request::Request>(line.substr(offset + 1)),
+						req_ptr,
 						[](
 							frame::mpipc::ConnectionContext &_rctx,
 							std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,

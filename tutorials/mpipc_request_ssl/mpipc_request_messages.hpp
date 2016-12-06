@@ -5,14 +5,41 @@
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
 #include <vector>
+#include <ostream>
 #include <map>
 
 namespace ipc_request{
 
+struct RequestKeyVisitor;
 
 struct RequestKey{
 	virtual ~RequestKey(){}
+	
+	virtual void print(std::ostream &_ros) const = 0;
+	
+	virtual void visit(RequestKeyVisitor &) = 0;
 };
+
+struct RequestKeyAnd;
+struct RequestKeyOr;
+struct RequestKeyAndList;
+struct RequestKeyOrList;
+struct RequestKeyUserIdRegex;
+struct RequestKeyEmailRegex;
+struct RequestKeyYearLess;
+
+struct RequestKeyVisitor{
+	virtual ~RequestKeyVisitor(){}
+	
+	virtual void visit(RequestKeyAnd&) = 0;
+	virtual void visit(RequestKeyOr&) = 0;
+	virtual void visit(RequestKeyAndList&) = 0;
+	virtual void visit(RequestKeyOrList&) = 0;
+	virtual void visit(RequestKeyUserIdRegex&) = 0;
+	virtual void visit(RequestKeyEmailRegex&) = 0;
+	virtual void visit(RequestKeyYearLess&) = 0;
+};
+
 
 struct RequestKeyAnd: RequestKey{
 	std::shared_ptr<RequestKey>		first;
@@ -30,7 +57,18 @@ struct RequestKeyAnd: RequestKey{
 		
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-		_s.push(second, "second").push(first, "first").
+		_s.push(second, "second").push(first, "first");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<'{';
+		if(first) first->print(_ros);
+		_ros<<',';
+		if(second) second->print(_ros);
+		_ros<<'}';
+	}
+	void visit(RequestKeyVisitor &_v) override{
+		_v.visit(*this);
 	}
 };
 
@@ -38,6 +76,7 @@ struct RequestKeyOr: RequestKey{
 	std::shared_ptr<RequestKey>		first;
 	std::shared_ptr<RequestKey>		second;
 	
+	RequestKeyOr(){}
 	
 	template <class T1, class T2>
 	RequestKeyOr(
@@ -48,30 +87,79 @@ struct RequestKeyOr: RequestKey{
 	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-		_s.push(second, "second").push(first, "first").
+		_s.push(second, "second").push(first, "first");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<'(';
+		if(first) first->print(_ros);
+		_ros<<',';
+		if(second) second->print(_ros);
+		_ros<<')';
+	}
+	void visit(RequestKeyVisitor &_v) override{
+		_v.visit(*this);
 	}
 };
 
 struct RequestKeyAndList: RequestKey{
 	std::vector<std::shared_ptr<RequestKey>> key_vec;
 	
+	RequestKeyAndList(){}
+	
+	template <class ...Args>
+	RequestKeyAndList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
+	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
 		_s.pushContainer(key_vec, "key_vec");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<'{';
+		for(auto const &key: key_vec){
+			if(key) key->print(_ros);
+			_ros<<',';
+		}
+		_ros<<'}';
+	}
+	void visit(RequestKeyVisitor &_v) override{
+		_v.visit(*this);
 	}
 };
 
 struct RequestKeyOrList: RequestKey{
 	std::vector<std::shared_ptr<RequestKey>> key_vec;
 	
+	
+	RequestKeyOrList(){}
+	
+	template <class ...Args>
+	RequestKeyOrList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
+	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
 		_s.pushContainer(key_vec, "key_vec");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<'(';
+		for(auto const &key: key_vec){
+			if(key) key->print(_ros);
+			_ros<<',';
+		}
+		_ros<<')';
+	}
+	
+	void visit(RequestKeyVisitor &_v) override{
+		_v.visit(*this);
 	}
 };
 
 struct RequestKeyUserIdRegex: RequestKey{
 	std::string		regex;
+	
+	RequestKeyUserIdRegex(){}
 	
 	RequestKeyUserIdRegex(std::string && _ustr): regex(std::move(_ustr)){}
 	
@@ -79,16 +167,55 @@ struct RequestKeyUserIdRegex: RequestKey{
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
 		_s.push(regex, "regex");
 	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<"userid matches \""<<regex<<"\"";
+	}
+	
+	void visit(RequestKeyVisitor &_v) override{
+		_v.visit(*this);
+	}
 };
 
 struct RequestKeyEmailRegex: RequestKey{
 	std::string		regex;
+	
+	RequestKeyEmailRegex(){}
 	
 	RequestKeyEmailRegex(std::string && _ustr): regex(std::move(_ustr)){}
 	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
 		_s.push(regex, "regex");
+	}
+	
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<"email matches \""<<regex<<"\"";
+	}
+	
+	void visit(RequestKeyVisitor &_v) override{
+		_v.visit(*this);
+	}
+};
+
+
+struct RequestKeyYearLess: RequestKey{
+	uint16_t	year;
+	
+	RequestKeyYearLess(uint16_t _year = 0xffff):year(_year){}
+	
+	template <class S>
+	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+		_s.push(year, "year");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<"year < "<<year;
+	}
+	
+	void visit(RequestKeyVisitor &_v) override{
+		_v.visit(*this);
 	}
 };
 
@@ -99,11 +226,11 @@ struct Request: solid::frame::mpipc::Message{
 	
 	Request(){}
 	
-	Request(std::string && _ustr): userid_regex(std::move(_ustr)){}
+	Request(std::shared_ptr<RequestKey> && _key): key(std::move(_key)){}
 	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-		_s.push(userid_regex, "userid_regex");
+		_s.push(key, "key");
 	}	
 };
 
@@ -147,7 +274,18 @@ struct Response: solid::frame::mpipc::Message{
 	}
 };
 
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, Request, Response>;
+using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<
+	0,
+	Request,
+	Response,
+	RequestKeyAnd,
+	RequestKeyOr,
+	RequestKeyAndList,
+	RequestKeyOrList,
+	RequestKeyUserIdRegex,
+	RequestKeyEmailRegex,
+	RequestKeyYearLess
+>;
 
 }//namespace ipc_request
 

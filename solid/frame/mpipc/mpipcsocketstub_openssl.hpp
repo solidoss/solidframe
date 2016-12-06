@@ -250,7 +250,6 @@ struct NameCheckSecureStart{
 	
 	unsigned long operator()(frame::aio::ReactorContext &_rctx, ConnectionContext& _rconctx, StreamSocketT &_rsock, ErrorConditionT& _rerr)const{
 		if(not name.empty()){
-			//use the name of the receiver
 			_rsock.secureSetCheckHostName(_rctx, name);
 		}else{
 			_rsock.secureSetCheckHostName(_rctx, _rconctx.recipientName());

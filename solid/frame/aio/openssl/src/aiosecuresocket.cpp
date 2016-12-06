@@ -807,7 +807,9 @@ ErrorCodeT Socket::setVerifyMode(VerifyMaskT _verify_mask){
 }
 
 ErrorCodeT Socket::setCheckHostName(const std::string &_hostname){
-	X509_VERIFY_PARAM *param = SSL_get0_param(pssl);;
+	X509_VERIFY_PARAM *param = SSL_get0_param(pssl);
+	
+	//X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
 	if(X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), 0)){
 		return ErrorCodeT();
 	}else{

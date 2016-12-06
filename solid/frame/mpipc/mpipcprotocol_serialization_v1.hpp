@@ -108,7 +108,6 @@ struct Protocol: public mpipc::Protocol, std::enable_shared_from_this<Protocol>{
 	){
 		TypeStub ts;
 		size_t rv = type_map.registerType<T>(ts, _protocol_id, _idx);
-		registerCast<T, mpipc::Message>();
 		return rv;
 	}
 	
