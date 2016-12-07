@@ -321,7 +321,7 @@ int main(int argc, char *argv[]){
 					_rctx.loadPrivateKeyFile("echo-server-key.pem");
 					return ErrorCodeT();
 				},
-				frame::mpipc::openssl::NameCheckSecureStart{"fasdfas"}
+				frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}//does nothing - OpenSSL does not check for hostname on SSL_accept
 			);
 			
 			err = ipcservice.reconfigure(std::move(cfg));
