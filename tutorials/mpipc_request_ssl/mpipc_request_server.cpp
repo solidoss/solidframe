@@ -32,6 +32,10 @@ struct Parameters{
 };
 //-----------------------------------------------------------------------------
 
+
+//-----------------------------------------------------------------------------
+// Dummy database
+//-----------------------------------------------------------------------------
 struct Date{
 	uint8_t		day;
 	uint8_t		month;
@@ -54,7 +58,7 @@ const AccountDataDequeT	account_dq = {
 	{"user1", "Super Man", "user1@email.com", "US", "Washington", {11, 1, 2001}},
 	{"user2", "Spider Man", "user2@email.com", "RO", "Bucharest", {12, 2, 2002}},
 	{"user3", "Ant Man", "user3@email.com", "IE", "Dublin", {13, 3, 2003}},
-	{"iron_man", "Iron Man", "man.iron@email.com", "UK", "London", {11,4,2004}},
+	{"iron_man", "Iron Man", "man.iron@email.com", "UK", "London", {11,4,2002}},
 	{"dragon_man", "Dragon Man", "man.dragon@email.com", "FR", "paris", {12,5,2005}},
 	{"frog_man", "Frog Man", "man.frog@email.com", "PL", "Warsaw", {13,6,2006}},
 };
@@ -73,6 +77,9 @@ ipc_request::UserData make_user_data(const AccountData &_rad){
 
 }//namespace
 
+//-----------------------------------------------------------------------------
+// ipc_request_server - message handling namespace
+//-----------------------------------------------------------------------------
 namespace ipc_request_server{
 
 template <class M>
@@ -85,26 +92,71 @@ void complete_message(
 
 using namespace ipc_request;
 
-struct AccountDataKeyVisitor: RequestKeyVisitor{
-	const AccountData	&racc;
-	bool				retval;
-	
-	AccountDataKeyVisitor(const AccountData &_racc):racc(_racc), retval(false){}
+struct PrepareKeyVisitor: RequestKeyVisitor{
+	std::vector<std::regex>		regexvec;
 	
 	void visit(RequestKeyAnd& _k) override{
+		if(_k.first){_k.first->visit(*this);}
+		if(_k.second){_k.second->visit(*this);}
+	}
+	
+	void visit(RequestKeyOr& _k) override{
+		if(_k.first){_k.first->visit(*this);}
+		if(_k.second){_k.second->visit(*this);}
+	}
+	
+	void visit(RequestKeyAndList& _k) override{
+		for(auto &k: _k.key_vec){
+			if(k) k->visit(*this);
+		}
+	}
+	
+	void visit(RequestKeyOrList& _k) override{
+		for(auto &k: _k.key_vec){
+			if(k) k->visit(*this);
+		}
+	}
+	
+	void visit(RequestKeyUserIdRegex& _k) override{
+		_k.cache_idx = regexvec.size();
+		regexvec.emplace_back(_k.regex);
+	}
+	
+	void visit(RequestKeyEmailRegex& _k) override{
+		_k.cache_idx = regexvec.size();
+		regexvec.emplace_back(_k.regex);
+	}
+	
+	void visit(RequestKeyYearLess& /*_k*/) override{
+		
+	}
+};
+
+struct AccountDataKeyVisitor: RequestKeyVisitor{
+	const AccountData	&racc;
+	PrepareKeyVisitor	&rprep;
+	bool				retval;
+	
+	AccountDataKeyVisitor(const AccountData &_racc, PrepareKeyVisitor &_rprep):racc(_racc), rprep(_rprep), retval(false){}
+	
+	void visit(RequestKeyAnd& _k) override{
+		retval = false;
 		
 		if(_k.first){
 			_k.first->visit(*this);
 			if(!retval) return;
+		}else{
+			retval = false;
+			return;
 		}
 		if(_k.second){
 			_k.second->visit(*this);
 			if(!retval) return;
 		}
-		retval = true;
 	}
 	
 	void visit(RequestKeyOr& _k) override{
+		retval = false;
 		if(_k.first){
 			_k.first->visit(*this);
 			if(retval) return;
@@ -113,17 +165,16 @@ struct AccountDataKeyVisitor: RequestKeyVisitor{
 			_k.second->visit(*this);
 			if(retval) return;
 		}
-		retval = false;
 	}
 	
 	void visit(RequestKeyAndList& _k) override{
+		retval = false;
 		for(auto &k: _k.key_vec){
 			if(k){
 				k->visit(*this);
 				if(!retval) return;
 			}
 		}
-		retval = true;
 	}
 	void visit(RequestKeyOrList& _k) override{
 		for(auto &k: _k.key_vec){
@@ -136,12 +187,10 @@ struct AccountDataKeyVisitor: RequestKeyVisitor{
 	}
 	
 	void visit(RequestKeyUserIdRegex& _k) override{
-		std::regex	userid_regex(_k.regex);//can be optimized by keeping it on the visitor
-		retval = std::regex_match(racc.userid, userid_regex);
+		retval = std::regex_match(racc.userid, rprep.regexvec[_k.cache_idx]);
 	}
 	void visit(RequestKeyEmailRegex& _k) override{
-		std::regex	userid_regex(_k.regex);//can be optimized by keeping it on the visitor
-		retval = std::regex_match(racc.email, userid_regex);
+		retval = std::regex_match(racc.email, rprep.regexvec[_k.cache_idx]);
 	}
 	
 	void visit(RequestKeyYearLess& _k) override{
@@ -170,20 +219,22 @@ void complete_message<ipc_request::Request>(
 	
 	auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
 	
+	if(_rrecv_msg_ptr->key){
+		PrepareKeyVisitor	prep;
+		
+		_rrecv_msg_ptr->key->visit(prep);
 	
-// 	std::regex	userid_regex(_rrecv_msg_ptr->userid_regex);
-// 	
-	for(const auto &ad: account_dq){
-		AccountDataKeyVisitor v(ad);
-		
-		if(_rrecv_msg_ptr->key){
+		for(const auto &ad: account_dq){
+			AccountDataKeyVisitor v(ad, prep);
+			
+			
 			_rrecv_msg_ptr->key->visit(v);
+			
+			if(v.retval){
+				msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad))));
+			}
 		}
-		
-		if(v.retval){
-			msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad))));
-		}
-	}
+}
 	
 	SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }

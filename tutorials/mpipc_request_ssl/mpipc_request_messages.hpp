@@ -11,13 +11,18 @@
 namespace ipc_request{
 
 struct RequestKeyVisitor;
+struct RequestKeyConstVisitor;
 
 struct RequestKey{
+	RequestKey():cache_idx(solid::InvalidIndex{}){}
 	virtual ~RequestKey(){}
 	
 	virtual void print(std::ostream &_ros) const = 0;
 	
 	virtual void visit(RequestKeyVisitor &) = 0;
+	virtual void visit(RequestKeyConstVisitor &) const = 0;
+
+	size_t		cache_idx;//NOT serialized - used by the server to cache certain key data
 };
 
 struct RequestKeyAnd;
@@ -40,8 +45,30 @@ struct RequestKeyVisitor{
 	virtual void visit(RequestKeyYearLess&) = 0;
 };
 
+struct RequestKeyConstVisitor{
+	virtual ~RequestKeyConstVisitor(){}
+	
+	virtual void visit(const RequestKeyAnd&) = 0;
+	virtual void visit(const RequestKeyOr&) = 0;
+	virtual void visit(const RequestKeyAndList&) = 0;
+	virtual void visit(const RequestKeyOrList&) = 0;
+	virtual void visit(const RequestKeyUserIdRegex&) = 0;
+	virtual void visit(const RequestKeyEmailRegex&) = 0;
+	virtual void visit(const RequestKeyYearLess&) = 0;
+};
 
-struct RequestKeyAnd: RequestKey{
+template <class T>
+struct Visitable: RequestKey{
+	
+	void visit(RequestKeyVisitor &_v) override{
+		_v.visit(*static_cast<T*>(this));
+	}
+	void visit(RequestKeyConstVisitor &_v) const override{
+		_v.visit(*static_cast<const T*>(this));
+	}
+};
+
+struct RequestKeyAnd: Visitable<RequestKeyAnd>{
 	std::shared_ptr<RequestKey>		first;
 	std::shared_ptr<RequestKey>		second;
 	
@@ -61,18 +88,16 @@ struct RequestKeyAnd: RequestKey{
 	}
 	
 	void print(std::ostream &_ros) const override{
-		_ros<<'{';
+		_ros<<"and{";
 		if(first) first->print(_ros);
 		_ros<<',';
 		if(second) second->print(_ros);
 		_ros<<'}';
 	}
-	void visit(RequestKeyVisitor &_v) override{
-		_v.visit(*this);
-	}
+	
 };
 
-struct RequestKeyOr: RequestKey{
+struct RequestKeyOr: Visitable<RequestKeyOr>{
 	std::shared_ptr<RequestKey>		first;
 	std::shared_ptr<RequestKey>		second;
 	
@@ -91,18 +116,15 @@ struct RequestKeyOr: RequestKey{
 	}
 	
 	void print(std::ostream &_ros) const override{
-		_ros<<'(';
+		_ros<<"or(";
 		if(first) first->print(_ros);
 		_ros<<',';
 		if(second) second->print(_ros);
 		_ros<<')';
 	}
-	void visit(RequestKeyVisitor &_v) override{
-		_v.visit(*this);
-	}
 };
 
-struct RequestKeyAndList: RequestKey{
+struct RequestKeyAndList: Visitable<RequestKeyAndList>{
 	std::vector<std::shared_ptr<RequestKey>> key_vec;
 	
 	RequestKeyAndList(){}
@@ -116,19 +138,16 @@ struct RequestKeyAndList: RequestKey{
 	}
 	
 	void print(std::ostream &_ros) const override{
-		_ros<<'{';
+		_ros<<"AND{";
 		for(auto const &key: key_vec){
 			if(key) key->print(_ros);
 			_ros<<',';
 		}
 		_ros<<'}';
 	}
-	void visit(RequestKeyVisitor &_v) override{
-		_v.visit(*this);
-	}
 };
 
-struct RequestKeyOrList: RequestKey{
+struct RequestKeyOrList: Visitable<RequestKeyOrList>{
 	std::vector<std::shared_ptr<RequestKey>> key_vec;
 	
 	
@@ -143,20 +162,16 @@ struct RequestKeyOrList: RequestKey{
 	}
 	
 	void print(std::ostream &_ros) const override{
-		_ros<<'(';
+		_ros<<"OR(";
 		for(auto const &key: key_vec){
 			if(key) key->print(_ros);
 			_ros<<',';
 		}
 		_ros<<')';
 	}
-	
-	void visit(RequestKeyVisitor &_v) override{
-		_v.visit(*this);
-	}
 };
 
-struct RequestKeyUserIdRegex: RequestKey{
+struct RequestKeyUserIdRegex: Visitable<RequestKeyUserIdRegex>{
 	std::string		regex;
 	
 	RequestKeyUserIdRegex(){}
@@ -171,13 +186,9 @@ struct RequestKeyUserIdRegex: RequestKey{
 	void print(std::ostream &_ros) const override{
 		_ros<<"userid matches \""<<regex<<"\"";
 	}
-	
-	void visit(RequestKeyVisitor &_v) override{
-		_v.visit(*this);
-	}
 };
 
-struct RequestKeyEmailRegex: RequestKey{
+struct RequestKeyEmailRegex: Visitable<RequestKeyEmailRegex>{
 	std::string		regex;
 	
 	RequestKeyEmailRegex(){}
@@ -189,18 +200,13 @@ struct RequestKeyEmailRegex: RequestKey{
 		_s.push(regex, "regex");
 	}
 	
-	
 	void print(std::ostream &_ros) const override{
 		_ros<<"email matches \""<<regex<<"\"";
-	}
-	
-	void visit(RequestKeyVisitor &_v) override{
-		_v.visit(*this);
 	}
 };
 
 
-struct RequestKeyYearLess: RequestKey{
+struct RequestKeyYearLess: Visitable<RequestKeyYearLess>{
 	uint16_t	year;
 	
 	RequestKeyYearLess(uint16_t _year = 0xffff):year(_year){}
@@ -212,10 +218,6 @@ struct RequestKeyYearLess: RequestKey{
 	
 	void print(std::ostream &_ros) const override{
 		_ros<<"year < "<<year;
-	}
-	
-	void visit(RequestKeyVisitor &_v) override{
-		_v.visit(*this);
 	}
 };
 
