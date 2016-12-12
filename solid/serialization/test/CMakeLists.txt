@@ -6,6 +6,7 @@ set( SerializationTestSuite
 	test_typeidmap.cpp
 	test_extdata.cpp
 	test_polymorphic.cpp
+	test_container.cpp
 )
 
 create_test_sourcelist( SerializationTests test_serialization.cpp ${SerializationTestSuite})
@@ -25,5 +26,6 @@ add_test(NAME TestSerializationBinary		COMMAND  test_serialization test_binary)
 add_test(NAME TestSerializationTypeIdJoin	COMMAND  test_serialization test_typeidjoin)
 add_test(NAME TestSerializationTypeIdMap	COMMAND  test_serialization test_typeidmap)
 add_test(NAME TestSerializationPolymorphic	COMMAND  test_serialization test_polymorphic)
+add_test(NAME TestSerializationContainer	COMMAND  test_serialization test_container)
 
 #==============================================================================

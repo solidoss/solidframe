@@ -47,6 +47,8 @@ private:
 				return "Array limit";
 			case Base::ERR_ARRAY_MAX_LIMIT:
 				return "Array max limit";
+			case Base::ERR_BITSET_SIZE:
+				return "Destination bitset small";
 			case Base::ERR_CONTAINER_LIMIT:
 				return "Container limit";
 			case Base::ERR_CONTAINER_MAX_LIMIT:
@@ -352,6 +354,21 @@ ReturnValues SerializerBase::storeBinary<8>(Base &_rb, FncData &_rfd, void */*_p
 	return WaitE;
 }
 
+template <>
+ReturnValues SerializerBase::store<bool>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+	idbgx(Debug::ser_bin, ""<<_rfd.n);
+	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
+	
+	if(!rs.cpb) return SuccessE;
+	const unsigned len = rs.be - rs.cpb;
+	
+	if(len){
+		*rs.cpb = (*static_cast<const bool*>(_rfd.p) ? 1 : 0);
+		++rs.cpb;
+		return SuccessE;
+	}
+	return WaitE;
+}
 
 template <>
 ReturnValues SerializerBase::store<int8_t>(Base &_rb, FncData &_rfd, void */*_pctx*/){
@@ -1121,6 +1138,22 @@ ReturnValues DeserializerBase::loadBinary<8>(Base &_rb, FncData &_rfd, void */*_
 	return WaitE;
 }
 
+
+template <>
+ReturnValues DeserializerBase::load<bool>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
+	idbgx(Debug::ser_bin, "");
+	if(!rd.cpb) return SuccessE;
+	const unsigned	len = rd.be - rd.cpb;
+	bool			*pb = reinterpret_cast<bool*>(_rfd.p);
+	idbgx(Debug::ser_bin, ""<<len<<' '<<(void*)rd.cpb);
+	if(len >= 1){
+		*pb = ((*rd.cpb) == 1) ? true : false;
+		rd.cpb += 1;
+		return SuccessE;
+	}	
+	return WaitE;
+}
 
 template <>
 ReturnValues DeserializerBase::load<int8_t>(Base &_rb, FncData &_rfd, void */*_pctx*/){

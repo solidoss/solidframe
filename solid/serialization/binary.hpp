@@ -38,6 +38,7 @@ BASIC_DECL(int32_t);
 BASIC_DECL(uint32_t);
 BASIC_DECL(int64_t);
 BASIC_DECL(uint64_t);
+BASIC_DECL(bool);
 BASIC_DECL(std::string);
 
 typedef void(*StringCheckFncT)(std::string const &/*_rstr*/, const char* /*_pb*/, size_t /*_len*/);
@@ -408,6 +409,7 @@ protected:
 		ERR_NOERROR = 0,
 		ERR_ARRAY_LIMIT,
 		ERR_ARRAY_MAX_LIMIT,
+		ERR_BITSET_SIZE,
 		ERR_CONTAINER_LIMIT,
 		ERR_CONTAINER_MAX_LIMIT,
 		ERR_STREAM_LIMIT,
@@ -500,6 +502,70 @@ protected:
 	template <typename N>
 	static ReturnValues storeCross(Base &_rs, FncData &_rfd, void */*_pctx*/);
 	
+	
+	template <size_t V>
+	static ReturnValues storeBitset(Base &_rs, FncData &_rfd, void */*_pctx*/){
+		SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+		
+		if(!rs.cpb) return SuccessE;
+		
+		const std::bitset<V>	*pbs = reinterpret_cast<std::bitset<V>*>(_rfd.p);
+		const char				*n = _rfd.n;
+		
+		if(pbs){
+			if(pbs->size() > rs.lmts.containerlimit){
+				rs.err = make_error(ERR_CONTAINER_LIMIT);
+				return FailureE;
+			}
+			
+			uint64_t	crcsz;
+			
+			if(not compute_value_with_crc(crcsz, pbs->size())){
+				rs.err = make_error(ERR_CONTAINER_MAX_LIMIT);
+				return FailureE;
+			}
+			rs.estk.push(ExtendedData(crcsz));
+			_rfd.f = &SerializerBase::storeBitsetContinue<V>;
+			_rfd.s = 0;
+			rs.fstk.push(FncData(&Base::popExtStack, nullptr));
+			idbgx(Debug::ser_bin, " sz = "<<rs.estk.top().first_uint64_t_value());
+			rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64_t>, &rs.estk.top().first_uint64_t_value(), n));
+		}else{
+			rs.estk.push(ExtendedData(static_cast<uint64_t>(-1)));
+			rs.fstk.pop();
+			rs.fstk.push(FncData(&Base::popExtStack, nullptr));
+			idbgx(Debug::ser_bin, " sz = "<<rs.estk.top().first_uint64_t_value());
+			rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64_t>, &rs.estk.top().first_uint64_t_value(), n));
+		}
+		return ContinueE;
+	}
+	
+	template <size_t V>
+	static ReturnValues storeBitsetContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
+		SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+		
+		if(!rs.cpb) return SuccessE;
+		
+		const std::bitset<V>	*pbs = reinterpret_cast<std::bitset<V>*>(_rfd.p);
+		
+		while((rs.be - rs.cpb) and _rfd.s < pbs->size()){
+			uint8_t*	puc = reinterpret_cast<uint8_t*>(rs.cpb);
+			size_t		bitoff = _rfd.s % 8;
+			*puc |= (pbs->test(_rfd.s) ? (1 << bitoff) : 0);
+			if((bitoff + 1) == 8){
+				++rs.cpb;
+			}
+		}
+		
+		if(_rfd.s < pbs->size()){
+			return WaitE;
+		}
+		return SuccessE;
+	}
+	
+	static ReturnValues storeBitvec(Base &_rs, FncData &_rfd, void */*_pctx*/){
+		
+	}
 	
 	template <typename T, class Ser>
 	static ReturnValues storeContainer(Base &_rs, FncData &_rfd, void *_pctx){
@@ -737,6 +803,8 @@ ReturnValues SerializerBase::storeBinary<4>(Base &_rb, FncData &_rfd, void */*_p
 template <>
 ReturnValues SerializerBase::storeBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/);
 template <>
+ReturnValues SerializerBase::store<bool>(Base &_rb, FncData &_rfd, void */*_pctx*/);
+template <>
 ReturnValues SerializerBase::store<int8_t>(Base &_rb, FncData &_rfd, void */*_pctx*/);
 template <>
 ReturnValues SerializerBase::store<uint8_t>(Base &_rb, FncData &_rfd, void */*_pctx*/);
@@ -791,6 +859,13 @@ ReturnValues SerializerBase::store(Base &_rs, FncData &_rfd, void *_pctx){
 	serialize(rs, rt, rctx);
 	return ContinueE;
 }
+
+template <>
+struct SerializerPushHelper<bool>{
+	void operator()(SerializerBase &_rs, bool &_rv, const char *_name, bool _b = false){
+		_rs.fstk.push(SerializerBase::FncData(&SerializerBase::store<bool>, &_rv, _name));
+	}
+};
 
 
 template <>
@@ -926,6 +1001,17 @@ public:
 	template <size_t V>
 	SerializerT & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBinary<0>, _rarray.data(), _name, V));
+		return *this;
+	}
+	
+	template <size_t V>
+	SerializerT & push(std::bitset<V> &_rbitset, const char *_name = Base::default_name){
+		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBitset<V>, &_rbitset, _name, 0));
+		return *this;
+	}
+	
+	SerializerT & push(std::vector<bool> &_rbitvec, const char *_name = Base::default_name){
+		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBitvec, &_rbitvec, _name, 0));
 		return *this;
 	}
 	
@@ -1150,6 +1236,17 @@ public:
 	template <size_t V>
 	SerializerT & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBinary<0>, _rarray.data(), _name, V));
+		return *this;
+	}
+	
+	template <size_t V>
+	SerializerT & push(std::bitset<V> &_rbitset, const char *_name = Base::default_name){
+		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBitset<V>, &_rbitset, _name, 0));
+		return *this;
+	}
+	
+	SerializerT & push(std::vector<bool> &_rbitvec, const char *_name = Base::default_name){
+		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBitvec, &_rbitvec, _name, 0));
 		return *this;
 	}
 	
@@ -1442,6 +1539,76 @@ protected:
 	static ReturnValues loadCrossContinue(Base& _rd, FncData &_rfd, void */*_pctx*/);
 	template <typename T>
 	static ReturnValues loadCross(Base& _rd, FncData &_rfd, void */*_pctx*/);
+	
+	template <size_t V>
+	static ReturnValues loadBitset(Base& _rd, FncData &_rfd, void */*_pctx*/){
+		DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
+		if(!rd.cpb) return SuccessE;
+		_rfd.f = &DeserializerBase::loadBitsetBegin<V>;
+		rd.estk.push(ExtendedData(static_cast<uint64_t>(0)));
+		rd.fstk.push(FncData(&DeserializerBase::loadCross<uint64_t>, &rd.estk.top().first_uint64_t_value()));
+		return ContinueE;
+	}
+	
+	template <size_t V>
+	static ReturnValues loadBitsetBegin(Base& _rd, FncData &_rfd, void */*_pctx*/){
+		DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
+		if(!rd.cpb){
+			rd.estk.pop();
+			return SuccessE;
+		}
+		
+		uint64_t len = rd.estk.top().first_uint64_t_value();
+	
+		if(len != InvalidSize()){
+			uint64_t crcsz;
+			if(check_value_with_crc(crcsz, len)){
+				rd.estk.top().first_uint64_t_value() = crcsz;
+				len = crcsz;
+			}else{
+				rd.err = make_error(ERR_STRING_MAX_LIMIT);
+				return FailureE;
+			}
+		}
+		if(len >= rd.lmts.containerlimit){
+			idbgx(Debug::ser_bin, "error");
+			rd.err = make_error(ERR_CONTAINER_LIMIT);
+			return FailureE;
+		}
+		
+		if(len > V){
+			idbgx(Debug::ser_bin, "error");
+			rd.err = make_error(ERR_BITSET_SIZE);
+			return FailureE;
+		}
+		
+		
+		_rfd.f = &DeserializerBase::loadBitsetContinue<V>;
+		_rfd.s = 0;
+		return ContinueE;
+	}
+	
+	template <size_t V>
+	static ReturnValues loadBitsetContinue(Base& _rd, FncData &_rfd, void */*_pctx*/){
+		DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
+		
+		std::bitset<V>	*pbs = reinterpret_cast<std::bitset<V>*>(_rfd.p);
+		uint64_t& 		len = rd.estk.top().first_uint64_t_value();
+		
+/*TODO: delete:
+		uint8_t*	puc = reinterpret_cast<uint8_t*>(rs.cpb);
+			size_t		bitoff = _rfd.s % 8;
+			*puc |= (pbs->test(_rfd.s) ? (1 << bitoff) : 0);
+			if((bitoff + 1) == 8){
+				++rs.cpb;
+			}*/
+		
+		while((rd.be - rd.cpb) > 0 and _rfd.s < len){
+			const uint8_t*	puc = reinterpret_cast<uint8_t*>(rd.cpb);
+			size_t 			bitoff = _rfd.s % 8;
+		}
+		return ContinueE;
+	}
 	
 	template <typename T>
 	static ReturnValues load(Base& _rd, FncData &_rfd, void */*_pctx*/);
@@ -1749,6 +1916,8 @@ template <>
 ReturnValues DeserializerBase::loadBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/);
 
 template <>
+ReturnValues DeserializerBase::load<bool>(Base &_rb, FncData &_rfd, void */*_pctx*/);
+template <>
 ReturnValues DeserializerBase::load<int8_t>(Base &_rb, FncData &_rfd, void */*_pctx*/);
 template <>
 ReturnValues DeserializerBase::load<uint8_t>(Base &_rb, FncData &_rfd, void */*_pctx*/);
@@ -1804,6 +1973,12 @@ ReturnValues DeserializerBase::load(Base& _rd, FncData &_rfd, void *_pctx){
 	return ContinueE;
 }
 
+template <>
+struct DeserializerPushHelper<bool>{
+	void operator()(DeserializerBase &_rs, bool &_rv, const char *_name, bool _b = false){
+		_rs.fstk.push(DeserializerBase::FncData(&DeserializerBase::load<bool>, &_rv, _name));
+	}
+};
 
 template <>
 struct DeserializerPushHelper<int8_t>{
@@ -1941,6 +2116,17 @@ public:
 	template <size_t V>
 	Deserializer & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
 		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBinary<0>, _rarray.data(), _name, V));
+		return *this;
+	}
+	
+	template <size_t V>
+	Deserializer & push(std::bitset<V> &_rbitset, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBitset<V>, &_rbitset, _name, 0));
+		return *this;
+	}
+	
+	Deserializer & push(std::vector<bool> &_rbitvec, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBitvec, &_rbitvec, _name, 0));
 		return *this;
 	}
 	
@@ -2162,6 +2348,17 @@ public:
 	template <size_t V>
 	Deserializer & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
 		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBinary<0>, _rarray.data(), _name, V));
+		return *this;
+	}
+	
+	template <size_t V>
+	Deserializer & push(std::bitset<V> &_rbitset, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBitset<V>, &_rbitset, _name, 0));
+		return *this;
+	}
+	
+	Deserializer & push(std::vector<bool> &_rbitvec, const char *_name = Base::default_name){
+		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBitvec, &_rbitvec, _name, 0));
 		return *this;
 	}
 	

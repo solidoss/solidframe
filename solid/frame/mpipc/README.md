@@ -5,6 +5,7 @@
 ## Features
 
 * C++ only (no IDLs) with easy to use **asynchronous API**.
+* Pluggable SSL support via solid_frame_aio_openssl (which is a wrapper over OpenSSL1.1.0 or BoringSSL). The SSL plugin is header only, this way solid_frame_mpipc library does not depend on any SSL library.
 * A single class (solid::frame::mpipc::Service) for both client and server. An instance of solid::frame::mpipc::Service can act as a client as a server or as both.
 * Buffer oriented message serialization engine: messages are serialized (marshaled) one fixed size buffer at a time, further enabling:
 	* **No limit for message size** - one can send a 100GB file as a single message.
@@ -64,7 +65,7 @@ On the other hand you should be able to call native C++ code from other language
 * test_raw_proxy
 * add support for compression - test and improve
 * add support for OpenSSL - needs extending OpenSSL support in solid_frame_aio_openssl
-* add support in mpipc::configuration for SOCKS5
+* (????)add support in mpipc::configuration for SOCKS5
 
 ## NOTES
 1. closeConnection can be used for closing a connection after a certain message was sent.
