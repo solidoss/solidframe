@@ -4,7 +4,7 @@
 * (DONE) Improved OpenSSL/BoringSSL support in frame/aio
 * (DONE) frame/ipc with SSL
 * (DONE) Android support.
-* (PENDING) Serialization: support for bitset, vector<bool>, deque<bool>
+* (DONE) Serialization: support for bitset, vector<bool>
 * Serialization: test suported stl containers.
 * MPIPC: Basic compression support
 * Test serialization engine agaist ProtoBuf and FlatBuffers

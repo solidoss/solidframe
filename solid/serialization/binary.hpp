@@ -14,6 +14,7 @@
 #include <string>
 #include <istream>
 #include <ostream>
+#include <bitset>
 
 #include "solid/serialization/typeidmap.hpp"
 
@@ -542,30 +543,41 @@ protected:
 	
 	template <size_t V>
 	static ReturnValues storeBitsetContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
-		SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+		SerializerBase			&rs(static_cast<SerializerBase&>(_rs));
 		
 		if(!rs.cpb) return SuccessE;
 		
 		const std::bitset<V>	*pbs = reinterpret_cast<std::bitset<V>*>(_rfd.p);
+		size_t					bitoff = 0;
 		
 		while((rs.be - rs.cpb) and _rfd.s < pbs->size()){
 			uint8_t*	puc = reinterpret_cast<uint8_t*>(rs.cpb);
-			size_t		bitoff = _rfd.s % 8;
+			
+			if(bitoff == 0){
+				*puc = 0;
+			}
+			
 			*puc |= (pbs->test(_rfd.s) ? (1 << bitoff) : 0);
-			if((bitoff + 1) == 8){
+			++_rfd.s;
+			++bitoff;
+			if(bitoff == 8){
 				++rs.cpb;
+				bitoff = 0;
 			}
 		}
 		
 		if(_rfd.s < pbs->size()){
 			return WaitE;
+		}else if(bitoff){
+			++rs.cpb;
 		}
+		
 		return SuccessE;
 	}
 	
-	static ReturnValues storeBitvec(Base &_rs, FncData &_rfd, void */*_pctx*/){
-		
-	}
+	static ReturnValues storeBitvec(Base &_rs, FncData &_rfd, void */*_pctx*/);
+	
+	static ReturnValues storeBitvecContinue(Base &_rs, FncData &_rfd, void */*_pctx*/);
 	
 	template <typename T, class Ser>
 	static ReturnValues storeContainer(Base &_rs, FncData &_rfd, void *_pctx){
@@ -1174,7 +1186,7 @@ public:
 		return *this;
 	}
 private:
-	
+	friend class SerializerBase;
 	template <typename T>
 	SerializerT& push(const T &_t, const char *_name = Base::default_name){
 		return push(const_cast<T&>(_t), _name);
@@ -1425,7 +1437,7 @@ public:
 		return *this;
 	}
 private:
-	
+	friend class SerializerBase;
 	template <typename T>
 	SerializerT& push(const T &_t, const char *_name = Base::default_name){
 		return push(const_cast<T&>(_t), _name);
@@ -1592,23 +1604,44 @@ protected:
 	static ReturnValues loadBitsetContinue(Base& _rd, FncData &_rfd, void */*_pctx*/){
 		DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
 		
-		std::bitset<V>	*pbs = reinterpret_cast<std::bitset<V>*>(_rfd.p);
-		uint64_t& 		len = rd.estk.top().first_uint64_t_value();
+		if(!rd.cpb){
+			rd.estk.pop();
+			return SuccessE;
+		}
 		
-/*TODO: delete:
-		uint8_t*	puc = reinterpret_cast<uint8_t*>(rs.cpb);
-			size_t		bitoff = _rfd.s % 8;
-			*puc |= (pbs->test(_rfd.s) ? (1 << bitoff) : 0);
-			if((bitoff + 1) == 8){
-				++rs.cpb;
-			}*/
+		std::bitset<V>		*pbs = reinterpret_cast<std::bitset<V>*>(_rfd.p);
+		uint64_t& 			len = rd.estk.top().first_uint64_t_value();
+		size_t 				bitoff = 0;
 		
 		while((rd.be - rd.cpb) > 0 and _rfd.s < len){
-			const uint8_t*	puc = reinterpret_cast<uint8_t*>(rd.cpb);
-			size_t 			bitoff = _rfd.s % 8;
+			const uint8_t*	puc = reinterpret_cast<const uint8_t*>(rd.cpb);
+			
+			pbs->set(_rfd.s, (*puc & (1 << bitoff)) != 0);
+			
+			++_rfd.s;
+			++bitoff;
+			
+			if(bitoff == 8){
+				++rd.cpb;
+				bitoff = 0;
+			}
 		}
-		return ContinueE;
+		
+		if(_rfd.s < len){
+			return WaitE;
+		}else if(bitoff){
+			++rd.cpb;
+		}
+		
+		rd.estk.pop();
+		return SuccessE;
 	}
+	
+	
+	
+	static ReturnValues loadBitvec(Base& _rd, FncData &_rfd, void */*_pctx*/);
+	static ReturnValues loadBitvecBegin(Base& _rd, FncData &_rfd, void */*_pctx*/);
+	static ReturnValues loadBitvecContinue(Base& _rd, FncData &_rfd, void */*_pctx*/);
 	
 	template <typename T>
 	static ReturnValues load(Base& _rd, FncData &_rfd, void */*_pctx*/);

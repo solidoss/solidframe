@@ -174,6 +174,76 @@ int SerializerBase::run(char *_pb, unsigned _bl, void *_pctx){
 	return cpb - pb;
 }
 
+
+/*static*/ ReturnValues SerializerBase::storeBitvec(Base &_rs, FncData &_rfd, void */*_pctx*/){
+	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+	
+	if(!rs.cpb) return SuccessE;
+	
+	const std::vector<bool>	*pbs = reinterpret_cast<std::vector<bool>*>(_rfd.p);
+	const char				*n = _rfd.n;
+	
+	if(pbs){
+		if(pbs->size() > rs.lmts.containerlimit){
+			rs.err = make_error(ERR_CONTAINER_LIMIT);
+			return FailureE;
+		}
+		
+		uint64_t	crcsz;
+		
+		if(not compute_value_with_crc(crcsz, pbs->size())){
+			rs.err = make_error(ERR_CONTAINER_MAX_LIMIT);
+			return FailureE;
+		}
+		rs.estk.push(ExtendedData(crcsz));
+		_rfd.f = &SerializerBase::storeBitvecContinue;
+		_rfd.s = 0;
+		rs.fstk.push(FncData(&Base::popExtStack, nullptr));
+		idbgx(Debug::ser_bin, " sz = "<<rs.estk.top().first_uint64_t_value());
+		rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64_t>, &rs.estk.top().first_uint64_t_value(), n));
+	}else{
+		rs.estk.push(ExtendedData(static_cast<uint64_t>(-1)));
+		rs.fstk.pop();
+		rs.fstk.push(FncData(&Base::popExtStack, nullptr));
+		idbgx(Debug::ser_bin, " sz = "<<rs.estk.top().first_uint64_t_value());
+		rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64_t>, &rs.estk.top().first_uint64_t_value(), n));
+	}
+	return ContinueE;
+}
+	
+/*static*/ ReturnValues SerializerBase::storeBitvecContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
+	SerializerBase			&rs(static_cast<SerializerBase&>(_rs));
+	
+	if(!rs.cpb) return SuccessE;
+	
+	const std::vector<bool>	*pbs = reinterpret_cast<std::vector<bool>*>(_rfd.p);
+	size_t					bitoff = 0;
+	
+	while((rs.be - rs.cpb) and _rfd.s < pbs->size()){
+		uint8_t*	puc = reinterpret_cast<uint8_t*>(rs.cpb);
+		
+		if(bitoff == 0){
+			*puc = 0;
+		}
+		
+		*puc |= (((*pbs)[_rfd.s]) ? (1 << bitoff) : 0);
+		++_rfd.s;
+		++bitoff;
+		if(bitoff == 8){
+			++rs.cpb;
+			bitoff = 0;
+		}
+	}
+	
+	if(_rfd.s < pbs->size()){
+		return WaitE;
+	}else if(bitoff){
+		++rs.cpb;
+	}
+	
+	return SuccessE;
+}
+
 template <>
 ReturnValues SerializerBase::storeBinary<0>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
@@ -771,6 +841,86 @@ int DeserializerBase::run(const char *_pb, unsigned _bl, void *_pctx){
 	return cpb - pb;
 }
 
+
+/*static*/ ReturnValues DeserializerBase::loadBitvec(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
+	if(!rd.cpb) return SuccessE;
+	_rfd.f = &DeserializerBase::loadBitvecBegin;
+	rd.estk.push(ExtendedData(static_cast<uint64_t>(0)));
+	rd.fstk.push(FncData(&DeserializerBase::loadCross<uint64_t>, &rd.estk.top().first_uint64_t_value()));
+	return ContinueE;
+}
+
+/*static*/ ReturnValues DeserializerBase::loadBitvecBegin(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
+	if(!rd.cpb){
+		rd.estk.pop();
+		return SuccessE;
+	}
+	
+	uint64_t len = rd.estk.top().first_uint64_t_value();
+
+	if(len != InvalidSize()){
+		uint64_t crcsz;
+		if(check_value_with_crc(crcsz, len)){
+			rd.estk.top().first_uint64_t_value() = crcsz;
+			len = crcsz;
+		}else{
+			rd.err = make_error(ERR_STRING_MAX_LIMIT);
+			return FailureE;
+		}
+	}
+	if(len >= rd.lmts.containerlimit){
+		idbgx(Debug::ser_bin, "error");
+		rd.err = make_error(ERR_CONTAINER_LIMIT);
+		return FailureE;
+	}
+	
+	std::vector<bool>	*pbs = reinterpret_cast<std::vector<bool>*>(_rfd.p);
+	
+	pbs->resize(len, false);
+	
+	_rfd.f = &DeserializerBase::loadBitvecContinue;
+	_rfd.s = 0;
+	return ContinueE;
+}
+
+/*static*/ ReturnValues DeserializerBase::loadBitvecContinue(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
+	
+	if(!rd.cpb){
+		rd.estk.pop();
+		return SuccessE;
+	}
+	
+	std::vector<bool>	*pbs = reinterpret_cast<std::vector<bool>*>(_rfd.p);
+	uint64_t& 			len = rd.estk.top().first_uint64_t_value();
+	size_t 				bitoff = 0;
+	
+	while((rd.be - rd.cpb) > 0 and _rfd.s < len){
+		const uint8_t*	puc = reinterpret_cast<const uint8_t*>(rd.cpb);
+		
+		(*pbs)[_rfd.s] = ((*puc & (1 << bitoff)) != 0);
+		
+		++_rfd.s;
+		++bitoff;
+		
+		if(bitoff == 8){
+			++rd.cpb;
+			bitoff = 0;
+		}
+	}
+	
+	if(_rfd.s < len){
+		return WaitE;
+	}else if(bitoff){
+		++rd.cpb;
+	}
+	
+	rd.estk.pop();
+	return SuccessE;
+}
+
 template <>
 ReturnValues DeserializerBase::loadBinary<0>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
@@ -1276,7 +1426,7 @@ ReturnValues DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void *
 	}
 	
 	size_t			len = rd.be - rd.cpb;
-	uint64_t			ul = rd.estk.top().first_uint64_t_value();
+	uint64_t		ul = rd.estk.top().first_uint64_t_value();
 	
 	if(len > ul){
 		len = static_cast<size_t>(ul);
