@@ -28,12 +28,14 @@ set(Headers
 set(Inlines
 )
 
-add_library (solid_frame_aio
+add_library (solid_frame_aio STATIC
 	${Sources} ${Headers} ${Inlines}
 )
 
+target_link_libraries(solid_frame_aio solid_frame)
+
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/aio)
-install (TARGETS solid_frame_aio DESTINATION lib)
+install (TARGETS solid_frame_aio DESTINATION lib EXPORT SolidFrameConfig)
 
 add_subdirectory(openssl)
 

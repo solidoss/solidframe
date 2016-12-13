@@ -34,12 +34,12 @@ set(Inlines
 	nanotime.ipp
 )
 
-add_library (solid_system 
+add_library (solid_system STATIC
 	${Sources} ${Headers} ${Inlines}
 )
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/system)
-install (TARGETS solid_system DESTINATION lib)
+install (TARGETS solid_system DESTINATION lib EXPORT SolidFrameConfig)
 
 if(NOT ON_CROSS)
 	#add_subdirectory(test)

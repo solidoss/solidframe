@@ -312,6 +312,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BIN
 
 
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp DESTINATION include/solid)
+install (EXPORT SolidFrameConfig DESTINATION lib/cmake/SolidFrame)
 
 if (CMAKE_VERSION VERSION_LESS "3.1")
     if(SOLID_USE_CPP11FLAG)

@@ -29,12 +29,14 @@ set(Headers
 set(Inlines
 )
 
-add_library (solid_utility
+add_library (solid_utility STATIC
 	${Sources} ${Headers} ${Inlines}
 )
 
+target_link_libraries(solid_utility solid_system)
+
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)
-install (TARGETS solid_utility DESTINATION lib)
+install (TARGETS solid_utility DESTINATION lib EXPORT SolidFrameConfig)
 
 if(NOT ON_CROSS)
 	add_subdirectory(test)

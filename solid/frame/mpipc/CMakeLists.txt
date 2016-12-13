@@ -26,12 +26,14 @@ set(Headers
 set(Inlines
 )
 
-add_library (solid_frame_mpipc
+add_library (solid_frame_mpipc STATIC
 	${Sources} ${Headers} ${Inlines}
 )
 
+target_link_libraries(solid_frame_mpipc solid_frame_aio)
+
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/mpipc)
-install (TARGETS solid_frame_mpipc DESTINATION lib)
+install (TARGETS solid_frame_mpipc DESTINATION lib EXPORT SolidFrameConfig)
 
 if(NOT ON_CROSS)
 	add_subdirectory(test)

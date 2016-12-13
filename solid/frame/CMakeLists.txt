@@ -31,12 +31,14 @@ set(Inlines
 	manager.ipp
 )
 
-add_library (solid_frame
+add_library (solid_frame STATIC
 	${Sources} ${Headers} ${Inlines}
 )
 
+target_link_libraries(solid_frame solid_utility)
+
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame)
-install (TARGETS solid_frame DESTINATION lib)
+install (TARGETS solid_frame DESTINATION lib EXPORT SolidFrameConfig)
 
 add_subdirectory(aio)
 add_subdirectory(file)
