@@ -130,6 +130,39 @@ For more information about ./configure script use:
 $ ./configure --help
 ```
 
+#### Use SolidFrame in your projects
+
+__With CMake - the recommended way:__
+
+In CMakeLists.txt add something like:
+
+```CMake
+set(SolidFrame_DIR "${EXTERN_PATH}/lib/cmake/SolidFrame" CACHE PATH "SolidFrame CMake configuration dir")
+find_package(SolidFrame)
+```
+
+Where EXTERN_PATH points to where SolidFrame was installed (e.g. ~/work/extern).
+
+You can also directly use SolidFrame libraries from SolidFrame's build directory by specifying the SolidFrame_DIR when running cmake for your project:
+
+```bash
+$ cd my_project/build
+$ cmake -DEXTERN_PATH=~/work/extern -DSolidFrame_DIR=~/work/solidframe/build/release -DCMAKE_BUILD_TYPE=debug ..
+```
+
+__Without CMake:__
+
+You need to specify the location for SolidFrame includes:
+
+```make
+-I~/work/extern/include
+```
+and the location for SolidFrame libraries:
+
+```make
+-L~/work/extern/lib
+```
+
 ### Windows
 Windows is not yet supported.
 

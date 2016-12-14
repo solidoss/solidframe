@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
@@ -450,6 +450,8 @@ endif()
 #-----------------------------------------------------------------
 
 add_subdirectory (solid)
+
+export(EXPORT SolidFrameConfig FILE SolidFrameConfig.cmake)
 
 if(NOT ON_CROSS)
 	add_subdirectory (examples)

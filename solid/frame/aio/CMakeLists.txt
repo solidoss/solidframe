@@ -32,6 +32,13 @@ add_library (solid_frame_aio STATIC
 	${Sources} ${Headers} ${Inlines}
 )
 
+target_include_directories(solid_frame_aio PUBLIC
+    $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+    PRIVATE src
+)
+
+
 target_link_libraries(solid_frame_aio solid_frame)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/aio)

@@ -17,6 +17,11 @@ set(Inlines
 add_library(solid_serialization STATIC
 	${Sources} ${Headers} ${Inlines}
 )
+target_include_directories(solid_serialization PUBLIC
+    $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+    PRIVATE src
+)
 
 target_link_libraries(solid_serialization solid_utility solid_system)
 

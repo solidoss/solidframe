@@ -37,6 +37,12 @@ set(Inlines
 add_library (solid_system STATIC
 	${Sources} ${Headers} ${Inlines}
 )
+target_include_directories(solid_system PUBLIC
+    $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${SolidFrame_BINARY_DIR}>
+    $<INSTALL_INTERFACE:include>
+    PRIVATE src
+)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/system)
 install (TARGETS solid_system DESTINATION lib EXPORT SolidFrameConfig)

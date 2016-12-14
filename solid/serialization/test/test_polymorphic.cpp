@@ -193,7 +193,7 @@ int test_polymorphic(int argc, char* argv[]){
 		int rv = des.run(test_data.data(), test_data.size());
 		
 		
-		SOLID_CHECK(rv == test_data.size());
+		SOLID_CHECK(rv == static_cast<int>(test_data.size()));
 		
 		ostringstream oss;
 		

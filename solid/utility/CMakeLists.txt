@@ -32,7 +32,11 @@ set(Inlines
 add_library (solid_utility STATIC
 	${Sources} ${Headers} ${Inlines}
 )
-
+target_include_directories(solid_utility PUBLIC
+    $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+    PRIVATE src
+)
 target_link_libraries(solid_utility solid_system)
 
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)
