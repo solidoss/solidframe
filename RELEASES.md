@@ -1,15 +1,20 @@
 # SolidFrame Releases
 
-## Version 2.x
-* (DONE) Improved OpenSSL/BoringSSL support in frame/aio
-* (DONE) frame/ipc with SSL
-* (DONE) Android support.
-* (DONE) Serialization: support for bitset, vector<bool>, set
-* (DONE) Serialization: test suported stl containers.
-* BUILD: Support for CMake extern command - https://rix0r.nl/blog/2015/08/13/cmake-guide/
-* MPIPC: Basic compression support
-* Test serialization engine agaist ProtoBuf and FlatBuffers
-* frame/ipc with SOCKS5
+## Backlog
+
+* solid_frame_mpipc: SOCKS5
+* DOCUMENTAION: API
+* solid_serialization: test agaist ProtoBuf and FlatBuffers
+
+## Version 2.1
+* (DONE) solid_frame_aio_openssl: Improved OpenSSL/BoringSSL support
+* (DONE) solid_frame_mpipc: Pluggable (header only) support for SSL
+* (DONE) BUILD: Android support - https://github.com/vipalade/bubbles
+* (DONE) solid_serialization: Support for std::bitset, std::vector<bool> and std::set
+* (DONE) solid_serialization: Test suported stl containers.
+* (DONE) BUILD: Support for CMake extern command for find_package(SolidFrame)
+* solid_frame_mpipc: Basic compression support
+* TUTORIAL: mpipc_request_ssl
 
 
 ## Version 2.0

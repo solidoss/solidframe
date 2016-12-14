@@ -1,34 +1,18 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SolidFrame)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Project version
-#-----------------------------------------------------------------
-file (READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" VERSION)
-string (REPLACE "\n" "" VERSION ${VERSION})
-string (REPLACE "\r" "" VERSION ${VERSION})
-string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\1" VERSION_MAJOR ${VERSION})
-string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\2" VERSION_MINOR ${VERSION})
-string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\3" VERSION_PATCH ${VERSION})
-
+project (SolidFrame VERSION 2.1)
 
 exec_program(
     "git"
     ${CMAKE_CURRENT_SOURCE_DIR}
     ARGS "rev-parse HEAD"
-    OUTPUT_VARIABLE GIT_VERSION )
+    OUTPUT_VARIABLE GIT_VERSION ${VERSION} )
 
-#string( REGEX MATCH "-g.*$" VERSION_SHA1 ${GIT_VERSION} )
+set(PROJECT_VERSION_PATCH "${GIT_VERSION}")
 
-#string( REGEX REPLACE "[-g]" "" VERSION_SHA1 "${VERSION_SHA1}" )
-
-set(VERSION_PATCH "${GIT_VERSION}")
-
-#-----------------------------------------------------------------
+message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
 #-----------------------------------------------------------------
 # Extra user definitions
@@ -89,9 +73,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "nolog")
 	set(SOLID_HAS_ASSERT TRUE)
 endif(CMAKE_BUILD_TYPE STREQUAL "nolog")
 
-set(SOLID_VERSION_MAJOR ${VERSION_MAJOR})
-set(SOLID_VERSION_MINOR ${VERSION_MINOR})
-set(SOLID_VERSION_PATCH ${VERSION_PATCH})
+set(SOLID_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(SOLID_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(SOLID_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
 set(SYS_DEBUG_FLAGS "")
 set(SYS_MAINTAIN_FLAGS "")

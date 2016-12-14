@@ -132,7 +132,7 @@ $ ./configure --help
 
 #### Use SolidFrame in your projects
 
-__With CMake - the recommended way:__
+_With CMake - the recommended way:_
 
 In CMakeLists.txt add something like:
 
@@ -150,7 +150,7 @@ $ cd my_project/build
 $ cmake -DEXTERN_PATH=~/work/extern -DSolidFrame_DIR=~/work/solidframe/build/release -DCMAKE_BUILD_TYPE=debug ..
 ```
 
-__Without CMake:__
+_Without CMake:_
 
 You need to specify the location for SolidFrame includes:
 
