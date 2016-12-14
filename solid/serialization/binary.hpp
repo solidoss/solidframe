@@ -2148,18 +2148,18 @@ public:
 	
 	template <size_t V>
 	Deserializer & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
-		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBinary<0>, _rarray.data(), _name, V));
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadBinary<0>, _rarray.data(), _name, V));
 		return *this;
 	}
 	
 	template <size_t V>
 	Deserializer & push(std::bitset<V> &_rbitset, const char *_name = Base::default_name){
-		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBitset<V>, &_rbitset, _name, 0));
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadBitset<V>, &_rbitset, _name, 0));
 		return *this;
 	}
 	
 	Deserializer & push(std::vector<bool> &_rbitvec, const char *_name = Base::default_name){
-		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBitvec, &_rbitvec, _name, 0));
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadBitvec, &_rbitvec, _name, 0));
 		return *this;
 	}
 	
@@ -2380,18 +2380,18 @@ public:
 	
 	template <size_t V>
 	Deserializer & push(std::array<uint8_t, V> &_rarray, const char *_name = Base::default_name){
-		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBinary<0>, _rarray.data(), _name, V));
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadBinary<0>, _rarray.data(), _name, V));
 		return *this;
 	}
 	
 	template <size_t V>
 	Deserializer & push(std::bitset<V> &_rbitset, const char *_name = Base::default_name){
-		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBitset<V>, &_rbitset, _name, 0));
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadBitset<V>, &_rbitset, _name, 0));
 		return *this;
 	}
 	
 	Deserializer & push(std::vector<bool> &_rbitvec, const char *_name = Base::default_name){
-		DeserializerBase::fstk.push(SerializerBase::FncData(&DeserializerBase::loadBitvec, &_rbitvec, _name, 0));
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::loadBitvec, &_rbitvec, _name, 0));
 		return *this;
 	}
 	
