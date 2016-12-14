@@ -36,7 +36,6 @@ namespace{
 
 typedef MutualStore<std::mutex>	MutexStoreT;
 
-#ifdef SOLID_USE_SAFE_STATIC
 MutexStoreT &mutexStore(){
 	static MutexStoreT		mtxstore(3, 2, 2);
 	return mtxstore;
@@ -47,41 +46,6 @@ MutexStoreT &mutexStore(){
 // 	return id;
 // }
 
-#else
-
-MutexStoreT &mutexStoreStub(){
-	static MutexStoreT		mtxstore(3, 2, 2);
-	return mtxstore;
-}
-
-// size_t specificIdStub(){
-// 	static const size_t id(Thread::specificId());
-// 	return id;
-// }
-
-
-void once_cbk_store(){
-	mutexStoreStub();
-}
-
-// void once_cbk_specific(){
-// 	specificIdStub();
-// }
-
-MutexStoreT &mutexStore(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk_store, once);
-	return mutexStoreStub();
-}
-
-// size_t specificId(){
-// 	static boost::once_flag once = BOOST_ONCE_INIT;
-// 	boost::call_once(&once_cbk_specific, once);
-// 	return specificIdStub();
-// }
-	
-
-#endif
 
 std::mutex& global_mutex(){
 	static std::mutex mtx;

@@ -14,10 +14,6 @@
 #include <cstdint>
 #include "solid/solid_config.hpp"
 
-#ifndef SOLID_USE_SAFE_STATIC
-#include <boost/thread/once.hpp>
-#endif
-
 #ifdef SOLID_ON_WINDOWS
 //#ifdef SOLID_USE_CPP11
 //	#define USTLMUTEX

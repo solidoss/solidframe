@@ -289,7 +289,6 @@ elseif(ON_ANDROID)
 	set(SOLID_USE_CPP11 TRUE)
 	set(SOLID_USE_EVENTFD TRUE)
 	set(SOLID_USE_CPP11FLAG TRUE)
-	set(SOLID_USE_SAFE_STATIC TRUE)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp)

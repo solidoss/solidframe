@@ -272,31 +272,11 @@ struct Debug::Data{
 //-----------------------------------------------------------------
 void splitPrefix(string &_path, string &_name, const char *_prefix);
 
-#ifdef SOLID_USE_SAFE_STATIC
 /*static*/ Debug& Debug::the(){
 	static Debug *pd = new Debug;//TODO: don't leave it leaked
 	return *pd;
 }
-#else
 
-/*static*/ Debug& Debug::dbg_the(){
-	static Debug *pd = new Debug;//TODO: don't leave it leaked
-	return *pd;
-}
-
-void Debug::once_cbk(){
-	dbg_the();
-}
-
-/*static*/ Debug& Debug::the(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk, once);
-	return dbg_the();
-}
-
-
-#endif
-	
 Debug::~Debug(){
 	(*d.pos)<<flush;
 	d.dos.close();

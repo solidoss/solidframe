@@ -89,27 +89,10 @@ struct Dynamic: T{
 	}
 	
 	//!The static type id
-#ifdef SOLID_USE_SAFE_STATIC
 	static size_t staticTypeId(){
 		static const size_t id(DynamicBase::generateId());
 		return id;
 	}
-#else
-private:
-	static size_t staticTypeIdStub(){
-		static const size_t id(DynamicBase::generateId());
-		return id;
-	}
-	static void once_cbk(){
-		staticTypeIdStub();
-	}
-public:
-	static size_t staticTypeId(){
-		static boost::once_flag once = BOOST_ONCE_INIT;
-		boost::call_once(&once_cbk, once);
-		return staticTypeIdStub();
-	}
-#endif
 	//TODO: add:
 	//static bool isTypeExplicit(const DynamicBase*);
 	static bool isType(const size_t _id){
