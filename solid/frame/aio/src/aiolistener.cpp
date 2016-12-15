@@ -34,7 +34,8 @@ namespace aio{
 		case ReactorEventRecv:
 			if(!FUNCTION_EMPTY(rthis.f)){
 				SocketDevice	sd;
-				FunctionT		tmpf(std::move(rthis.f));
+				FunctionT		tmpf{std::move(rthis.f)};
+				SOLID_ASSERT(FUNCTION_EMPTY(rthis.f));
 				rthis.doAccept(_rctx, sd);
 				
 				tmpf(_rctx, sd);

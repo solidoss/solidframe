@@ -33,7 +33,7 @@ inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
 }
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent){
-	idbg("event = "<<_uevent);
+	idbgx(Debug::mpipc, "event = "<<_uevent);
 	if(
 		_uevent == generic_event_category.event(GenericEvents::Start) or
 		_uevent == generic_event_category.event(GenericEvents::Timer)
@@ -48,13 +48,14 @@ inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
 }
 
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
-	idbg("");
+	idbgx(Debug::mpipc, "");
 	unsigned	repeatcnt = 4;
 	
 	do{
 		if(!_rctx.error()){
 			service(_rctx).acceptIncomingConnection(_rsd);
 		}else{
+			idbgx(Debug::mpipc, "listen error"<<_rctx.error().message());
 			timer.waitFor(
 				_rctx, NanoTime(10),
 				[this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, generic_event_category.event(GenericEvents::Timer));}

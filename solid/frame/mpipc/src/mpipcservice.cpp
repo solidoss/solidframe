@@ -989,7 +989,7 @@ bool Service::doTryPushMessageToConnection(
 	const size_t _msg_idx
 ){
 	
-	vdbgx(Debug::mpipc, this);
+	vdbgx(Debug::mpipc, this<<" con = "<<&_rcon);
 	
 	ConnectionPoolStub 	&rpool(d.pooldq[_pool_idx]);
 	MessageStub			&rmsgstub = rpool.msgvec[_msg_idx];
@@ -1047,7 +1047,7 @@ bool Service::doTryPushMessageToConnection(
 	const MessageId & _rmsg_id
 ){
 	
-	vdbgx(Debug::mpipc, this);
+	vdbgx(Debug::mpipc, this<<" con = "<<&_rcon);
 	
 	ConnectionPoolStub 	&rpool(d.pooldq[_pool_idx]);
 	
