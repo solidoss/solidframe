@@ -63,7 +63,7 @@ bool							running = true;
 bool							start_sleep = false;
 mutex							mtx;
 condition_variable				cnd;
-frame::mpipc::Service				*pmpipcclient = nullptr;
+frame::mpipc::Service			*pmpipcclient = nullptr;
 std::atomic<uint64_t>			transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 
@@ -275,7 +275,7 @@ int test_clientserver_idempotent(int argc, char **argv){
 	
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
-	Debug::the().moduleMask("all"/*"frame_mpipc:ew any:ew"*/);
+	Debug::the().moduleMask("frame_mpipc:ew any:ew");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif

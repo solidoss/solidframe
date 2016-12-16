@@ -106,6 +106,7 @@ class Datagram: public CompletionHandler{
 					}else{
 						_rthis.error(_rctx, error_datagram_system);
 						_rthis.systemError(_rctx, err);
+						SOLID_ASSERT(err);
 					}
 				}
 			}
@@ -140,6 +141,7 @@ class Datagram: public CompletionHandler{
 					}else{
 						_rthis.error(_rctx, error_datagram_system);
 						_rthis.systemError(_rctx, err);
+						SOLID_ASSERT(err);
 					}
 				}
 			}
@@ -171,6 +173,7 @@ class Datagram: public CompletionHandler{
 					}else{
 						_rthis.error(_rctx, error_datagram_system);
 						_rthis.systemError(_rctx, err);
+						SOLID_ASSERT(err);
 					}
 				}
 			}
@@ -202,6 +205,7 @@ class Datagram: public CompletionHandler{
 					}else{
 						_rthis.error(_rctx, error_datagram_system);
 						_rthis.systemError(_rctx, err);
+						SOLID_ASSERT(err);
 					}
 				}
 			}
@@ -274,10 +278,12 @@ public:
 				}else{
 					systemError(_rctx, err);
 					error(_rctx, error_datagram_system);
+					SOLID_ASSERT(err);
 				}
 			}else{
 				error(_rctx, error_datagram_system);
 				systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 			
 		}else{
@@ -356,6 +362,7 @@ public:
 				}else{
 					error(_rctx, error_datagram_system);
 					systemError(_rctx, err);
+					SOLID_ASSERT(err);
 				}
 			}
 		}else{
@@ -393,6 +400,7 @@ public:
 				}else{
 					error(_rctx, error_datagram_system);
 					systemError(_rctx, err);
+					SOLID_ASSERT(err);
 				}
 			}
 		}else{
@@ -472,6 +480,7 @@ public:
 				}else{
 					error(_rctx, error_datagram_system);
 					systemError(_rctx, err);
+					SOLID_ASSERT(err);
 				}
 			}
 		}else{
@@ -506,6 +515,7 @@ public:
 				}else{
 					error(_rctx, error_datagram_system);
 					systemError(_rctx, err);
+					SOLID_ASSERT(err);
 				}
 			}
 		}else{

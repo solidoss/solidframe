@@ -149,6 +149,7 @@ class Stream: public CompletionHandler{
 			}else{
 				_rthis.error(_rctx, error_stream_system);
 				_rthis.systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 			F	tmp{std::move(f)};
 			_rthis.doClearSend(_rctx);
@@ -172,6 +173,7 @@ class Stream: public CompletionHandler{
 			}else{
 				_rthis.error(_rctx, error_stream_system);
 				_rthis.systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 			F	tmp{std::move(f)};
 			_rthis.doClearRecv(_rctx);
@@ -195,6 +197,7 @@ class Stream: public CompletionHandler{
 			}else{
 				_rthis.error(_rctx, error_stream_system);
 				_rthis.systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 			
 			F	tmp{std::move(f)};
@@ -376,10 +379,12 @@ public:
 				}else{
 					error(_rctx, error_stream_system);
 					systemError(_rctx, err);
+					SOLID_ASSERT(err);
 				}
 			}else{
 				error(_rctx, error_stream_system);
 				systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 			
 		}else{
@@ -405,6 +410,7 @@ public:
 			}else{
 				error(_rctx, error_stream_system);
 				systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 		}
 		return true;
@@ -423,6 +429,7 @@ public:
 			}else{
 				error(_rctx, error_stream_system);
 				systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 		}
 		return true;
@@ -441,6 +448,7 @@ public:
 			}else{
 				error(_rctx, error_stream_system);
 				systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 		}
 		return true;
@@ -451,6 +459,7 @@ public:
 		if(err){
 			error(_rctx, error_stream_system);
 			systemError(_rctx, err);
+			SOLID_ASSERT(err);
 		}
 	}
 	
@@ -461,6 +470,7 @@ public:
 		if(err){
 			error(_rctx, error_stream_system);
 			systemError(_rctx, err);
+			SOLID_ASSERT(err);
 		}
 	}
 	
@@ -469,6 +479,7 @@ public:
 		if(err){
 			error(_rctx, error_stream_system);
 			systemError(_rctx, err);
+			SOLID_ASSERT(err);
 		}
 	}
 	
@@ -477,6 +488,7 @@ public:
 		if(err){
 			error(_rctx, error_stream_system);
 			systemError(_rctx, err);
+			SOLID_ASSERT(err);
 		}
 	}
 	
@@ -485,6 +497,7 @@ public:
 		if(err){
 			error(_rctx, error_stream_system);
 			systemError(_rctx, err);
+			SOLID_ASSERT(err);
 		}
 	}
 	
@@ -533,6 +546,7 @@ private:
 				recv_buf_sz = recv_buf_cp = 0;
 				error(_rctx, error_stream_system);
 				systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 		}
 		return true;
@@ -558,6 +572,7 @@ private:
 				send_buf_sz = send_buf_cp = 0;
 				error(_rctx, error_stream_system);
 				systemError(_rctx, err);
+				SOLID_ASSERT(err);
 			}
 		}
 		return true;

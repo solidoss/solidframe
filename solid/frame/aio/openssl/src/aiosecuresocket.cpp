@@ -517,6 +517,7 @@ int Socket::recv(void *_pctx, char *_pb, size_t _bl, bool &_can_retry, ErrorCode
 	switch(err_cond){
 		case SSL_ERROR_NONE:
 			_can_retry = false;
+			SOLID_ASSERT(retval >= 0);
 			return retval;
 		case SSL_ERROR_ZERO_RETURN:
 			_can_retry = false;
@@ -531,7 +532,13 @@ int Socket::recv(void *_pctx, char *_pb, size_t _bl, bool &_can_retry, ErrorCode
 			return -1;
 		case SSL_ERROR_SYSCALL:
 			_can_retry = false;
-			_rerr = err_sys;
+			if(err_sys){
+				_rerr = err_sys;
+			}else{
+				//TODO: find out why this happens
+				_rerr = error_make(ERROR_SYSTEM);
+			}
+			SOLID_ASSERT(_rerr);
 			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
@@ -579,7 +586,12 @@ int Socket::send(void *_pctx, const char *_pb, size_t _bl, bool &_can_retry, Err
 			return -1;
 		case SSL_ERROR_SYSCALL:
 			_can_retry = false;
-			_rerr = err_sys;
+			if(err_sys){
+				_rerr = err_sys;
+			}else{
+				//TODO: find out why this happens
+				_rerr = error_make(ERROR_SYSTEM);
+			}
 			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
@@ -624,7 +636,12 @@ bool Socket::secureAccept(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 			return false;
 		case SSL_ERROR_SYSCALL:
 			_can_retry = false;
-			_rerr = err_sys;
+			if(err_sys){
+				_rerr = err_sys;
+			}else{
+				//TODO: find out why this happens
+				_rerr = error_make(ERROR_SYSTEM);
+			}
 			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
@@ -671,7 +688,12 @@ bool Socket::secureConnect(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 			return false;
 		case SSL_ERROR_SYSCALL:
 			_can_retry = false;
-			_rerr = err_sys;
+			if(err_sys){
+				_rerr = err_sys;
+			}else{
+				//TODO: find out why this happens
+				_rerr = error_make(ERROR_SYSTEM);
+			}
 			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
@@ -717,7 +739,12 @@ bool Socket::secureShutdown(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 			return false;
 		case SSL_ERROR_SYSCALL:
 			_can_retry = false;
-			_rerr  = err_sys;
+			if(err_sys){
+				_rerr = err_sys;
+			}else{
+				//TODO: find out why this happens
+				_rerr = error_make(ERROR_SYSTEM);
+			}
 			break;
 		case SSL_ERROR_SSL:
 			_can_retry = false;
