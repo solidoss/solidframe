@@ -26,6 +26,8 @@ struct	ReactorContext;
 template <class Sock>
 class Stream: public CompletionHandler{
 	using ThisT = Stream<Sock>;
+	using RecvFunctionT = FUNCTION<void(ThisT&, ReactorContext&)>;
+	using SendFunctionT = FUNCTION<void(ThisT&, ReactorContext&)>;
 	
 	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
@@ -93,10 +95,12 @@ class Stream: public CompletionHandler{
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			if(_rthis.doTryRecv(_rctx)){
-				F				tmpf(f);
 				const size_t	recv_sz = _rthis.recv_buf_sz;
-				_rthis.doClearRecv(_rctx);
-				tmpf(_rctx, recv_sz);
+				RecvFunctionT	tmp;
+				
+				_rthis.doClearRecv(tmp, _rctx);
+				
+				f(_rctx, recv_sz);
 			}
 		}
 	};
@@ -110,9 +114,11 @@ class Stream: public CompletionHandler{
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			if(_rthis.doTrySend(_rctx)){
 				if(_rthis.send_buf_sz == _rthis.send_buf_cp){
-					F	tmpf(f);
-					_rthis.doClearSend(_rctx);
-					tmpf(_rctx);
+					SendFunctionT	tmp;
+					
+					_rthis.doClearSend(tmp, _rctx);
+					
+					f(_rctx);
 				}
 			}
 		}
@@ -125,9 +131,9 @@ class Stream: public CompletionHandler{
 		ConnectFunctor(F &_rf):f(_rf){}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
-			F	tmpf(f);
-			_rthis.doClearSend(_rctx);
-			tmpf(_rctx);
+			SendFunctionT	tmp;
+			_rthis.doClearSend(tmp, _rctx);
+			f(_rctx);
 		}
 	};
 	
@@ -148,9 +154,9 @@ class Stream: public CompletionHandler{
 				_rthis.error(_rctx, error_stream_system);
 				_rthis.systemError(_rctx, err);
 			}
-			F	tmpf(f);
-			_rthis.doClearSend(_rctx);
-			tmpf(_rctx);
+			SendFunctionT	tmp;
+			_rthis.doClearSend(tmp, _rctx);
+			f(_rctx);
 		}
 	};
 	
@@ -171,9 +177,9 @@ class Stream: public CompletionHandler{
 				_rthis.error(_rctx, error_stream_system);
 				_rthis.systemError(_rctx, err);
 			}
-			F	tmpf(f);
-			_rthis.doClearRecv(_rctx);
-			tmpf(_rctx);
+			RecvFunctionT	tmp;
+			_rthis.doClearRecv(tmp, _rctx);
+			f(_rctx);
 		}
 	};
 	
@@ -194,9 +200,10 @@ class Stream: public CompletionHandler{
 				_rthis.error(_rctx, error_stream_system);
 				_rthis.systemError(_rctx, err);
 			}
-			F	tmpf(f);
-			_rthis.doClearSend(_rctx);
-			tmpf(_rctx);
+			
+			SendFunctionT	tmp;
+			_rthis.doClearSend(tmp, _rctx);
+			f(_rctx);
 		}
 	};
 	
@@ -574,28 +581,28 @@ private:
 		}
 	}
 	
-	void doClearRecv(ReactorContext &_rctx){
-		FUNCTION_CLEAR(recv_fnc);
+	void doClearRecv(RecvFunctionT &_rtmp, ReactorContext &_rctx){
+		std::swap(recv_fnc, _rtmp);
 		recv_buf = nullptr;
 		recv_buf_sz = recv_buf_cp = 0;
 	}
 	
-	void doClearSend(ReactorContext &_rctx){
-		FUNCTION_CLEAR(send_fnc);
+	void doClearSend(SendFunctionT &_rtmp, ReactorContext &_rctx){
+		std::swap(send_fnc, _rtmp);
 		send_buf = nullptr;
 		send_buf_sz = send_buf_cp = 0;
 	}
 	
 	void doClear(ReactorContext &_rctx){
-		doClearRecv(_rctx);
-		doClearSend(_rctx);
+		RecvFunctionT tmprf;
+		SendFunctionT tmpsf;
+		doClearRecv(tmprf, _rctx);
+		doClearSend(tmpsf, _rctx);
 		remDevice(_rctx, s.device());
 		recv_fnc = &on_dummy;//we prevent new send/recv calls
 		send_fnc = &on_dummy;
 	}
 private:
-	typedef FUNCTION<void(ThisT&, ReactorContext&)>		RecvFunctionT;
-	typedef FUNCTION<void(ThisT&, ReactorContext&)>		SendFunctionT;
 	
 	Sock			s;
 	

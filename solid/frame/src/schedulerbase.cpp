@@ -176,13 +176,15 @@ ErrorConditionT SchedulerBase::doStart(
 		
 		
 		if(not FUNCTION_EMPTY(_renf)){
-			d.threnfnc = std::move(_renf);
+			FUNCTION_CLEAR(d.threnfnc);
+			std::swap(d.threnfnc, _renf);
 		}else{
 			d.threnfnc = dummy_thread_enter;
 		}
 		
 		if(not FUNCTION_EMPTY(_rexf)){
-			d.threxfnc = std::move(_rexf);
+			FUNCTION_CLEAR(d.threxfnc);
+			std::swap(d.threxfnc, _rexf);
 		}else{
 			d.threxfnc = dummy_thread_exit;
 		}

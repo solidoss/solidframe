@@ -24,7 +24,9 @@ struct	ReactorContex;
 
 template <class Sock>
 class Datagram: public CompletionHandler{
-	typedef Datagram<Sock>			ThisT;
+	using ThisT = Datagram<Sock>;
+	using RecvFunctionT = FUNCTION<void(ThisT&, ReactorContext&)>;
+	using SendFunctionT = FUNCTION<void(ThisT&, ReactorContext&)>;
 	
 	static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
 		ThisT &rthis = static_cast<ThisT&>(_rch);
@@ -107,11 +109,11 @@ class Datagram: public CompletionHandler{
 					}
 				}
 			}
+			RecvFunctionT	tmp;
 			
-			F				tmpf(f);
+			_rthis.doClearRecv(tmp, _rctx);
 			
-			_rthis.doClearRecv(_rctx);
-			tmpf(_rctx, recv_sz);
+			f(_rctx, recv_sz);
 		}
 	};
 	
@@ -144,10 +146,10 @@ class Datagram: public CompletionHandler{
 				}
 			}
 			
-			F				tmpf(f);
+			RecvFunctionT	tmp;
 			
-			_rthis.doClearRecv(_rctx);
-			tmpf(_rctx, addr, recv_sz);
+			_rthis.doClearRecv(tmp, _rctx);
+			f(_rctx, addr, recv_sz);
 		}
 	};
 	
@@ -176,9 +178,10 @@ class Datagram: public CompletionHandler{
 				}
 			}
 			
-			F	tmpf(f);
-			_rthis.doClearSend(_rctx);
-			tmpf(_rctx);
+			SendFunctionT	tmp;
+			
+			_rthis.doClearSend(tmp, _rctx);
+			f(_rctx);
 		}
 	};
 	
@@ -207,9 +210,9 @@ class Datagram: public CompletionHandler{
 				}
 			}
 			
-			F	tmpf(f);
-			_rthis.doClearSend(_rctx);
-			tmpf(_rctx);
+			SendFunctionT	tmp;
+			_rthis.doClearSend(tmp, _rctx);
+			f(_rctx);
 		}
 	};
 	
@@ -220,9 +223,9 @@ class Datagram: public CompletionHandler{
 		ConnectFunctor(F &_rf):f(_rf){}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
-			F	tmpf(f);
-			_rthis.doClearSend(_rctx);
-			tmpf(_rctx);
+			SendFunctionT	tmp;
+			_rthis.doClearSend(tmp, _rctx);
+			f(_rctx);
 		}
 	};
 public:
@@ -550,28 +553,27 @@ private:
 		}
 	}
 	
-	void doClearRecv(ReactorContext &_rctx){
-		FUNCTION_CLEAR(recv_fnc);
+	void doClearRecv(RecvFunctionT &_rtmp, ReactorContext &_rctx){
+		std::swap(_rtmp, recv_fnc);
 		recv_buf = nullptr;
 		recv_buf_cp = 0;
 	}
 	
-	void doClearSend(ReactorContext &_rctx){
-		FUNCTION_CLEAR(send_fnc);
+	void doClearSend(SendFunctionT &_rtmp, ReactorContext &_rctx){
+		std::swap(_rtmp, send_fnc);
 		send_buf = nullptr;
 		recv_buf_cp = 0;
 	}
 	void doClear(ReactorContext &_rctx){
-		doClearRecv(_rctx);
-		doClearSend(_rctx);
+		SendFunctionT tmpsf;
+		RecvFunctionT tmprf;
+		doClearRecv(tmprf, _rctx);
+		doClearSend(tmpsf, _rctx);
 		remDevice(_rctx, s.device());
 		recv_fnc = &on_dummy;//we prevent new send/recv calls
 		send_fnc = &on_dummy;
 	}
 private:
-	typedef FUNCTION<void(ThisT&, ReactorContext&)>		RecvFunctionT;
-	typedef FUNCTION<void(ThisT&, ReactorContext&)>		SendFunctionT;
-	
 	Sock				s;
 	
 	char 				*recv_buf;

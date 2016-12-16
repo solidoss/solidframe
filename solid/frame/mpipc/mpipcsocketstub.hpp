@@ -41,6 +41,8 @@ public:
 		
 	}
 	
+	virtual SocketDevice const& device()const = 0;
+	
 	virtual bool postSendAll(
 		frame::aio::ReactorContext &_rctx, OnSendAllRawF _pf, const char *_pbuf, size_t _bufcp, Event &_revent
 	) = 0;

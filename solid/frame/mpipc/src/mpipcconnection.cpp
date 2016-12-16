@@ -133,7 +133,9 @@ struct EnterActive{
 	EnterActive(
 		ConnectionEnterActiveCompleteFunctionT &&_ucomplete_fnc,
 		const size_t _send_buffer_capacity
-	):complete_fnc(std::move(_ucomplete_fnc)), send_buffer_capacity(_send_buffer_capacity){}
+	):send_buffer_capacity(_send_buffer_capacity){
+		std::swap(_ucomplete_fnc, complete_fnc);
+	}
 	
 	ConnectionEnterActiveCompleteFunctionT	complete_fnc;
 	const size_t							send_buffer_capacity;
@@ -147,7 +149,9 @@ struct EnterActive{
 struct EnterPassive{
 	EnterPassive(
 		ConnectionEnterPassiveCompleteFunctionT &&_ucomplete_fnc
-	):complete_fnc(std::move(_ucomplete_fnc)){}
+	){
+		std::swap(complete_fnc, _ucomplete_fnc);
+	}
 	
 	ConnectionEnterPassiveCompleteFunctionT	complete_fnc;
 };
@@ -160,7 +164,9 @@ struct EnterPassive{
 struct StartSecure{
 	StartSecure(
 		ConnectionSecureHandhakeCompleteFunctionT &&_ucomplete_fnc
-	):complete_fnc(std::move(_ucomplete_fnc)){}
+	){
+		std::swap(complete_fnc, _ucomplete_fnc);
+	}
 	
 	ConnectionSecureHandhakeCompleteFunctionT	complete_fnc;
 };
@@ -174,7 +180,9 @@ struct SendRaw{
 	SendRaw(
 		ConnectionSendRawDataCompleteFunctionT &&_ucomplete_fnc,
 		std::string &&_udata
-	):complete_fnc(std::move(_ucomplete_fnc)), data(std::move(_udata)), offset(0){}
+	):data(std::move(_udata)), offset(0){
+		std::swap(complete_fnc, _ucomplete_fnc);
+	}
 	
 	ConnectionSendRawDataCompleteFunctionT	complete_fnc;
 	std::string								data;
@@ -189,7 +197,9 @@ struct SendRaw{
 struct RecvRaw{
 	RecvRaw(
 		ConnectionRecvRawDataCompleteFunctionT &&_ucomplete_fnc
-	):complete_fnc(std::move(_ucomplete_fnc)){}
+	){
+		std::swap(complete_fnc, _ucomplete_fnc);
+	}
 	
 	ConnectionRecvRawDataCompleteFunctionT	complete_fnc;
 };
@@ -232,7 +242,6 @@ Connection::Connection(
 	sock_ptr(std::move(_rconfiguration.client.connection_create_socket_fnc(_rconfiguration, this->proxy(), this->socket_emplace_buf)))
 {
 	idbgx(Debug::mpipc, this);
-	//TODO: use _rconfiguration.connection_start_state and _rconfiguration.connection_start_secure
 }
 //-----------------------------------------------------------------------------
 Connection::Connection(
@@ -247,8 +256,7 @@ Connection::Connection(
 	recv_buf_cp_kb(0), send_buf_cp_kb(0),
 	sock_ptr(std::move(_rconfiguration.server.connection_create_socket_fnc(_rconfiguration, this->proxy(), std::move(_rsd), this->socket_emplace_buf)))
 {
-	idbgx(Debug::mpipc, this);
-	//TODO: use _rconfiguration.connection_start_state and _rconfiguration.connection_start_secure
+	idbgx(Debug::mpipc, this<<" ("<<local_address(sock_ptr->device())<<") -> ("<<remote_address(sock_ptr->device())<<')');
 }
 //-----------------------------------------------------------------------------
 Connection::~Connection(){
@@ -1507,7 +1515,7 @@ void Connection::doSend(frame::aio::ReactorContext &_rctx){
 	Connection	&rthis = static_cast<Connection&>(_rctx.object());
 	
 	if(!_rctx.error()){
-		idbgx(Debug::mpipc, &rthis<<' '<<rthis.id());
+		idbgx(Debug::mpipc, &rthis<<' '<<rthis.id()<<" ("<<local_address(rthis.sock_ptr->device())<<") -> ("<<remote_address(rthis.sock_ptr->device())<<')');
 		rthis.doStart(_rctx, false);
 	}else{
 		edbgx(Debug::mpipc, &rthis<<' '<<rthis.id()<<" connecting ["<<_rctx.error().message()<<"]["<<_rctx.systemError().message()<<']');

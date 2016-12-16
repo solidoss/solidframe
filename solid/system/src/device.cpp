@@ -1120,6 +1120,19 @@ ErrorCodeT SocketDevice::lastError()const{
 #endif
 }
 
+std::ostream& operator<<(std::ostream &_ros, const LocalAddressPlot &_ra){
+	SocketAddress sa;
+	_ra.rsd.localAddress(sa);
+	_ros<<sa;
+	return _ros;
+}
+
+std::ostream& operator<<(std::ostream &_ros, const RemoteAddressPlot &_ra){
+	SocketAddress sa;
+	_ra.rsd.remoteAddress(sa);
+	_ros<<sa;
+	return _ros;
+}
 
 }//namespace solid
 

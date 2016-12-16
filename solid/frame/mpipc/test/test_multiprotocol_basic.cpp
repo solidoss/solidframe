@@ -47,9 +47,9 @@ namespace{
 
 std::atomic<size_t>				wait_count(0);
 mutex							mtx;
-condition_variable					cnd;
+condition_variable				cnd;
 
-std::atomic<uint64_t>				transfered_size(0);
+std::atomic<uint64_t>			transfered_size(0);
 std::atomic<size_t>				transfered_count(0);
 std::atomic<size_t>				connection_count(0);
 
@@ -68,8 +68,8 @@ void server_connection_start(frame::mpipc::ConnectionContext &_rctx){
 
 int test_multiprotocol_basic(int argc, char **argv){
 #ifdef SOLID_HAS_DEBUG
-	Debug::the().levelMask("ew");
-	Debug::the().moduleMask("frame_mpipc:ew any:ew frame:ew");
+	Debug::the().levelMask("view");
+	Debug::the().moduleMask("frame_mpipc:view any:view frame:view");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif

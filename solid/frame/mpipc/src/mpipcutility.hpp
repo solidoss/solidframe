@@ -141,22 +141,25 @@ struct MessageBundle{
 		const size_t _msg_type_idx,
 		ulong _flags,
 		MessageCompleteFunctionT &_complete_fnc
-	):	message_type_id(_msg_type_idx), message_flags(_flags), message_ptr(std::move(_rmsgptr)),
-		complete_fnc(std::move(_complete_fnc)){}
+	):	message_type_id(_msg_type_idx), message_flags(_flags), message_ptr(std::move(_rmsgptr))
+	{
+		std::swap(complete_fnc, _complete_fnc);
+	}
 	
 	MessageBundle(
 		MessageBundle && _rmsgbundle
 	):	message_type_id(_rmsgbundle.message_type_id), message_flags(_rmsgbundle.message_flags),
-		message_ptr(std::move(_rmsgbundle.message_ptr)), complete_fnc(std::move(_rmsgbundle.complete_fnc))
+		message_ptr(std::move(_rmsgbundle.message_ptr))
 	{
-		
+		std::swap(complete_fnc, _rmsgbundle.complete_fnc);
 	}
 	
 	MessageBundle& operator=(MessageBundle && _rmsgbundle){
 		message_type_id = _rmsgbundle.message_type_id;
 		message_flags = _rmsgbundle.message_flags;
 		message_ptr = std::move(_rmsgbundle.message_ptr);
-		complete_fnc = std::move(_rmsgbundle.complete_fnc);
+		FUNCTION_CLEAR(complete_fnc);
+		std::swap(complete_fnc, _rmsgbundle.complete_fnc);
 		return *this;
 	}
 	

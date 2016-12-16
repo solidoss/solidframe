@@ -34,7 +34,8 @@ namespace aio{
 		case ReactorEventRecv:
 			if(!FUNCTION_EMPTY(rthis.f)){
 				SocketDevice	sd;
-				FunctionT		tmpf{std::move(rthis.f)};
+				FunctionT		tmpf;
+				std::swap(tmpf, rthis.f);
 				SOLID_ASSERT(FUNCTION_EMPTY(rthis.f));
 				rthis.doAccept(_rctx, sd);
 				
@@ -44,7 +45,8 @@ namespace aio{
 		case ReactorEventHangup:
 			if(!FUNCTION_EMPTY(rthis.f)){
 				SocketDevice	sd;
-				FunctionT		tmpf(std::move(rthis.f));
+				FunctionT		tmpf;
+				std::swap(tmpf, rthis.f);
 				tmpf(_rctx, sd);
 			}break;
 		case ReactorEventClear:
@@ -59,8 +61,10 @@ namespace aio{
 	Listener		*pthis = static_cast<Listener*>(completion_handler(_rctx));
 	Listener		&rthis = *pthis;
 	SocketDevice	sd;
+	
 	if(!FUNCTION_EMPTY(rthis.f) && rthis.doTryAccept(_rctx, sd)){
-		FunctionT	tmpf(std::move(rthis.f));
+		FunctionT	tmpf;
+		std::swap(tmpf, rthis.f);
 		tmpf(_rctx, sd);
 	}
 }

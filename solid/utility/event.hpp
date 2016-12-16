@@ -255,7 +255,11 @@ public:
 			const std::type_index	category_type_index{typeid(*eventCategory(it.evt))};
 			SizeTPairT 				&categ_pair = category_map_[category_type_index];
 			
-			function_vec_[categ_pair.first + eventId(it.evt)] = std::move(it.fnc);
+			FunctionT	&f = function_vec_[categ_pair.first + eventId(it.evt)];
+			
+			FUNCTION_CLEAR(f);
+			
+			std::swap(f, it.fnc);
 		}
 	}
 	

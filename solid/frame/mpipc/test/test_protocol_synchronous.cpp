@@ -154,7 +154,6 @@ void complete_message(
 			
 			msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
 			msgbundle.message_ptr = std::move(frame::mpipc::MessagePointerT(new Message(crtwriteidx)));
-			//msgbundle.complete_fnc = std::move(response_fnc);
 			msgbundle.message_type_id = ctx.mpipcprotocol->typeIndex(msgbundle.message_ptr.get());
 			
 			bool rv = ctx.mpipcmsgwriter->enqueue(

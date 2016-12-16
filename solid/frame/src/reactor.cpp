@@ -149,7 +149,9 @@ struct ExecStub{
 	
 	ExecStub(
 		ExecStub &&_res
-	): objuid(_res.objuid), chnuid(_res.chnuid), exefnc(std::move(_res.exefnc)), event(std::move(_res.event)){}
+	): objuid(_res.objuid), chnuid(_res.chnuid), event(std::move(_res.event)){
+		std::swap(exefnc, _res.exefnc);
+	}
 	
 	UniqueId						objuid;
 	UniqueId						chnuid;
@@ -367,13 +369,15 @@ CompletionHandler *Reactor::completionHandler(ReactorContext const &_rctx)const{
 
 void Reactor::doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event &&_uev){
 	d.exeq.push(ExecStub(_rctx.objectUid(), std::move(_uev)));
-	d.exeq.back().exefnc = std::move(_revfn);
+	FUNCTION_CLEAR(d.exeq.back().exefnc);
+	std::swap(d.exeq.back().exefnc, _revfn);
 	d.exeq.back().chnuid = d.dummyCompletionHandlerUid();
 }
 
 void Reactor::doPost(ReactorContext &_rctx, EventFunctionT  &_revfn, Event &&_uev, CompletionHandler const &_rch){
 	d.exeq.push(ExecStub(_rctx.objectUid(), std::move(_uev)));
-	d.exeq.back().exefnc = std::move(_revfn);
+	FUNCTION_CLEAR(d.exeq.back().exefnc);
+	std::swap(d.exeq.back().exefnc, _revfn);
 	d.exeq.back().chnuid = UniqueId(_rch.idxreactor, d.chdq[_rch.idxreactor].unique);
 }
 

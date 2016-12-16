@@ -95,7 +95,8 @@ public:
 private:
 	friend class Reactor;
 	void doExec(ReactorContext &_rctx){
-		FunctionT	tmpf(std::move(f));
+		FunctionT	tmpf;
+		std::swap(tmpf, f);
 		storeidx = InvalidIndex();
 		tmpf(_rctx);
 	}

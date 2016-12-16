@@ -123,6 +123,28 @@ private:
 	SocketDevice& operator=(const SocketDevice& _dev);
 };
 
+struct LocalAddressPlot{
+	const SocketDevice &rsd;
+	LocalAddressPlot(const SocketDevice &_rsd):rsd(_rsd){}
+};
+
+inline LocalAddressPlot local_address(const SocketDevice &_rsd){
+	return LocalAddressPlot(_rsd);
+}
+
+struct RemoteAddressPlot{
+	const SocketDevice &rsd;
+	RemoteAddressPlot(const SocketDevice &_rsd):rsd(_rsd){}
+};
+
+inline RemoteAddressPlot remote_address(const SocketDevice &_rsd){
+	return RemoteAddressPlot(_rsd);
+}
+
+
+std::ostream& operator<<(std::ostream &_ros, const LocalAddressPlot &_ra);
+std::ostream& operator<<(std::ostream &_ros, const RemoteAddressPlot &_ra);
+
 }//namespace solid
 
 #endif

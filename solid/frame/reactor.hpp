@@ -40,9 +40,9 @@ class Reactor: public frame::ReactorBase{
 		Function	function;
 		bool		repost;
 		
-		explicit StopObjectF(Function &_function):function(std::move(_function)), repost(true){}
-		
-		//explicit StopObjectF(StopObjectF<Function> &&_rfnc):function(std::move(_rfnc.function)), repost(_rfnc.repost){}
+		explicit StopObjectF(Function &_function): repost(true){
+			std::swap(function, _function);
+		}
 		
 		void operator()(ReactorContext& _rctx, Event &&_revent){
 			if(repost){//skip one round - to guarantee that all remaining posts were delivered
