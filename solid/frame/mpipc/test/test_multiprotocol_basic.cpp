@@ -69,7 +69,7 @@ void server_connection_start(frame::mpipc::ConnectionContext &_rctx){
 int test_multiprotocol_basic(int argc, char **argv){
 #ifdef SOLID_HAS_DEBUG
 	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_mpipc:view any:view frame:view");
+	Debug::the().moduleMask("frame_mpipc:ew any:ew frame:ew");
 	Debug::the().initStdErr(false, nullptr);
 	//Debug::the().initFile("test_clientserver_basic", false);
 #endif

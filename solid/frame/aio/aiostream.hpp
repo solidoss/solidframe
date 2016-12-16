@@ -91,16 +91,14 @@ class Stream: public CompletionHandler{
 	struct RecvSomeFunctor{
 		F	f;
 		
-		RecvSomeFunctor(F &_rf):f(_rf){}
+		RecvSomeFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			if(_rthis.doTryRecv(_rctx)){
 				const size_t	recv_sz = _rthis.recv_buf_sz;
-				RecvFunctionT	tmp;
-				
-				_rthis.doClearRecv(tmp, _rctx);
-				
-				f(_rctx, recv_sz);
+				F				tmp{std::move(f)};
+				_rthis.doClearRecv(_rctx);
+				tmp(_rctx, recv_sz);
 			}
 		}
 	};
@@ -109,16 +107,14 @@ class Stream: public CompletionHandler{
 	struct SendAllFunctor{
 		F	f;
 		
-		SendAllFunctor(F &_rf):f(_rf){}
+		SendAllFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			if(_rthis.doTrySend(_rctx)){
 				if(_rthis.send_buf_sz == _rthis.send_buf_cp){
-					SendFunctionT	tmp;
-					
-					_rthis.doClearSend(tmp, _rctx);
-					
-					f(_rctx);
+					F	tmp{std::move(f)};
+					_rthis.doClearSend(_rctx);
+					tmp(_rctx);
 				}
 			}
 		}
@@ -128,12 +124,12 @@ class Stream: public CompletionHandler{
 	struct ConnectFunctor{
 		F	f;
 		
-		ConnectFunctor(F &_rf):f(_rf){}
+		ConnectFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
-			SendFunctionT	tmp;
-			_rthis.doClearSend(tmp, _rctx);
-			f(_rctx);
+			F	tmp{std::move(f)};
+			_rthis.doClearSend(_rctx);
+			tmp(_rctx);
 		}
 	};
 	
@@ -141,7 +137,7 @@ class Stream: public CompletionHandler{
 	struct SecureConnectFunctor{
 		F	f;
 		
-		SecureConnectFunctor(F &_rf):f(_rf){}
+		SecureConnectFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			_rthis.errorClear(_rctx);
@@ -154,9 +150,9 @@ class Stream: public CompletionHandler{
 				_rthis.error(_rctx, error_stream_system);
 				_rthis.systemError(_rctx, err);
 			}
-			SendFunctionT	tmp;
-			_rthis.doClearSend(tmp, _rctx);
-			f(_rctx);
+			F	tmp{std::move(f)};
+			_rthis.doClearSend(_rctx);
+			tmp(_rctx);
 		}
 	};
 	
@@ -164,7 +160,7 @@ class Stream: public CompletionHandler{
 	struct SecureAcceptFunctor{
 		F	f;
 		
-		SecureAcceptFunctor(F &_rf):f(_rf){}
+		SecureAcceptFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			_rthis.errorClear(_rctx);
@@ -177,9 +173,9 @@ class Stream: public CompletionHandler{
 				_rthis.error(_rctx, error_stream_system);
 				_rthis.systemError(_rctx, err);
 			}
-			RecvFunctionT	tmp;
-			_rthis.doClearRecv(tmp, _rctx);
-			f(_rctx);
+			F	tmp{std::move(f)};
+			_rthis.doClearRecv(_rctx);
+			tmp(_rctx);
 		}
 	};
 	
@@ -187,7 +183,7 @@ class Stream: public CompletionHandler{
 	struct SecureShutdownFunctor{
 		F	f;
 		
-		SecureShutdownFunctor(F &_rf):f(_rf){}
+		SecureShutdownFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			_rthis.errorClear(_rctx);
@@ -201,9 +197,9 @@ class Stream: public CompletionHandler{
 				_rthis.systemError(_rctx, err);
 			}
 			
-			SendFunctionT	tmp;
-			_rthis.doClearSend(tmp, _rctx);
-			f(_rctx);
+			F	tmp{std::move(f)};
+			_rthis.doClearSend(_rctx);
+			tmp(_rctx);
 		}
 	};
 	
@@ -211,7 +207,7 @@ class Stream: public CompletionHandler{
 	struct SecureVerifyFunctor{
 		F f;
 		
- 		SecureVerifyFunctor(F &_rf):f(_rf){}
+ 		SecureVerifyFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		bool operator()(void *_pctx, bool _preverified, typename Sock::VerifyContextT &_rverify_ctx){
 			return f(*static_cast<ReactorContext*>(_pctx), _preverified, _rverify_ctx);
@@ -581,23 +577,23 @@ private:
 		}
 	}
 	
-	void doClearRecv(RecvFunctionT &_rtmp, ReactorContext &_rctx){
-		std::swap(recv_fnc, _rtmp);
+	void doClearRecv(ReactorContext &_rctx){
+		FUNCTION_CLEAR(recv_fnc);
+		SOLID_ASSERT(FUNCTION_EMPTY(recv_fnc));
 		recv_buf = nullptr;
 		recv_buf_sz = recv_buf_cp = 0;
 	}
 	
-	void doClearSend(SendFunctionT &_rtmp, ReactorContext &_rctx){
-		std::swap(send_fnc, _rtmp);
+	void doClearSend(ReactorContext &_rctx){
+		FUNCTION_CLEAR(send_fnc);
+		SOLID_ASSERT(FUNCTION_EMPTY(send_fnc));
 		send_buf = nullptr;
 		send_buf_sz = send_buf_cp = 0;
 	}
 	
 	void doClear(ReactorContext &_rctx){
-		RecvFunctionT tmprf;
-		SendFunctionT tmpsf;
-		doClearRecv(tmprf, _rctx);
-		doClearSend(tmpsf, _rctx);
+		doClearRecv(_rctx);
+		doClearSend(_rctx);
 		remDevice(_rctx, s.device());
 		recv_fnc = &on_dummy;//we prevent new send/recv calls
 		send_fnc = &on_dummy;

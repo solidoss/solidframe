@@ -257,9 +257,7 @@ public:
 			
 			FunctionT	&f = function_vec_[categ_pair.first + eventId(it.evt)];
 			
-			FUNCTION_CLEAR(f);
-			
-			std::swap(f, it.fnc);
+			f = it.fnc;
 		}
 	}
 	

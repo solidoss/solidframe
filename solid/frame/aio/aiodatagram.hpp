@@ -86,7 +86,7 @@ class Datagram: public CompletionHandler{
 	struct RecvFunctor{
 		F	f;
 		
-		RecvFunctor(F &_rf):f(_rf){}
+		RecvFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			size_t	recv_sz = 0;
@@ -109,11 +109,9 @@ class Datagram: public CompletionHandler{
 					}
 				}
 			}
-			RecvFunctionT	tmp;
-			
-			_rthis.doClearRecv(tmp, _rctx);
-			
-			f(_rctx, recv_sz);
+			F	tmp{std::move(f)};
+			_rthis.doClearRecv(_rctx);
+			tmp(_rctx, recv_sz);
 		}
 	};
 	
@@ -121,7 +119,7 @@ class Datagram: public CompletionHandler{
 	struct RecvFromFunctor{
 		F	f;
 		
-		RecvFromFunctor(F &_rf):f(_rf){}
+		RecvFromFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			size_t			recv_sz = 0;
@@ -146,10 +144,9 @@ class Datagram: public CompletionHandler{
 				}
 			}
 			
-			RecvFunctionT	tmp;
-			
-			_rthis.doClearRecv(tmp, _rctx);
-			f(_rctx, addr, recv_sz);
+			F	tmp{std::move(f)};
+			_rthis.doClearRecv(_rctx);
+			tmp(_rctx, addr, recv_sz);
 		}
 	};
 	
@@ -157,7 +154,7 @@ class Datagram: public CompletionHandler{
 	struct SendFunctor{
 		F	f;
 		
-		SendFunctor(F &_rf):f(_rf){}
+		SendFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			if(!_rctx.error()){
@@ -178,10 +175,9 @@ class Datagram: public CompletionHandler{
 				}
 			}
 			
-			SendFunctionT	tmp;
-			
-			_rthis.doClearSend(tmp, _rctx);
-			f(_rctx);
+			F	tmp{std::move(f)};
+			_rthis.doClearSend(_rctx);
+			tmp(_rctx);
 		}
 	};
 	
@@ -189,7 +185,7 @@ class Datagram: public CompletionHandler{
 	struct SendToFunctor{
 		F	f;
 		
-		SendToFunctor(F &_rf):f(_rf){}
+		SendToFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
 			if(!_rctx.error()){
@@ -210,9 +206,9 @@ class Datagram: public CompletionHandler{
 				}
 			}
 			
-			SendFunctionT	tmp;
-			_rthis.doClearSend(tmp, _rctx);
-			f(_rctx);
+			F	tmp{std::move(f)};
+			_rthis.doClearSend(_rctx);
+			tmp(_rctx);
 		}
 	};
 	
@@ -220,12 +216,12 @@ class Datagram: public CompletionHandler{
 	struct ConnectFunctor{
 		F	f;
 		
-		ConnectFunctor(F &_rf):f(_rf){}
+		ConnectFunctor(F &_rf):f{std::move(_rf)}{}
 		
 		void operator()(ThisT &_rthis, ReactorContext &_rctx){
-			SendFunctionT	tmp;
-			_rthis.doClearSend(tmp, _rctx);
-			f(_rctx);
+			F	tmp{std::move(f)};
+			_rthis.doClearSend(_rctx);
+			tmp(_rctx);
 		}
 	};
 public:
@@ -553,22 +549,20 @@ private:
 		}
 	}
 	
-	void doClearRecv(RecvFunctionT &_rtmp, ReactorContext &_rctx){
-		std::swap(_rtmp, recv_fnc);
+	void doClearRecv(ReactorContext &_rctx){
+		FUNCTION_CLEAR(recv_fnc);
 		recv_buf = nullptr;
 		recv_buf_cp = 0;
 	}
 	
-	void doClearSend(SendFunctionT &_rtmp, ReactorContext &_rctx){
-		std::swap(_rtmp, send_fnc);
+	void doClearSend(ReactorContext &_rctx){
+		FUNCTION_CLEAR(send_fnc);
 		send_buf = nullptr;
 		recv_buf_cp = 0;
 	}
 	void doClear(ReactorContext &_rctx){
-		SendFunctionT tmpsf;
-		RecvFunctionT tmprf;
-		doClearRecv(tmprf, _rctx);
-		doClearSend(tmpsf, _rctx);
+		doClearRecv(_rctx);
+		doClearSend(_rctx);
 		remDevice(_rctx, s.device());
 		recv_fnc = &on_dummy;//we prevent new send/recv calls
 		send_fnc = &on_dummy;
