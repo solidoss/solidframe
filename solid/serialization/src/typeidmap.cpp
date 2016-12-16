@@ -23,7 +23,7 @@ public:
 	ErrorCategory(){}
 private:
 	const char*   name() const noexcept (true){
-		return "solid::serialization::TypeIdMap Error";
+		return "solid::serialization::TypeIdMap";
 	}
 	
     std::string    message(int _ev) const{

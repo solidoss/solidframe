@@ -67,7 +67,7 @@ class ErrorCategory: public solid::ErrorCategoryT
 public:
 	ErrorCategory(){} 
 	const char* name() const noexcept{
-		return "solid_frame_aio_openssl";
+		return "solid::frame::aio::openssl";
 	}
 	std::string message(int _ev)const;
 	
@@ -536,7 +536,7 @@ int Socket::recv(void *_pctx, char *_pb, size_t _bl, bool &_can_retry, ErrorCode
 				_rerr = err_sys;
 			}else{
 				//TODO: find out why this happens
-				_rerr = error_make(ERROR_SYSTEM);
+				_rerr = solid::error_system;
 			}
 			SOLID_ASSERT(_rerr);
 			break;
@@ -590,7 +590,7 @@ int Socket::send(void *_pctx, const char *_pb, size_t _bl, bool &_can_retry, Err
 				_rerr = err_sys;
 			}else{
 				//TODO: find out why this happens
-				_rerr = error_make(ERROR_SYSTEM);
+				_rerr = solid::error_system;
 			}
 			break;
 		case SSL_ERROR_SSL:
@@ -640,7 +640,7 @@ bool Socket::secureAccept(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 				_rerr = err_sys;
 			}else{
 				//TODO: find out why this happens
-				_rerr = error_make(ERROR_SYSTEM);
+				_rerr = solid::error_system;
 			}
 			break;
 		case SSL_ERROR_SSL:
@@ -692,7 +692,7 @@ bool Socket::secureConnect(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 				_rerr = err_sys;
 			}else{
 				//TODO: find out why this happens
-				_rerr = error_make(ERROR_SYSTEM);
+				_rerr = solid::error_system;
 			}
 			break;
 		case SSL_ERROR_SSL:
@@ -743,7 +743,7 @@ bool Socket::secureShutdown(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 				_rerr = err_sys;
 			}else{
 				//TODO: find out why this happens
-				_rerr = error_make(ERROR_SYSTEM);
+				_rerr = solid::error_system;
 			}
 			break;
 		case SSL_ERROR_SSL:

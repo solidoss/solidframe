@@ -9,6 +9,7 @@
 //
 
 #include "solid/system/error.hpp"
+#include <sstream>
 
 namespace solid{
 
@@ -21,14 +22,55 @@ ErrorCodeT last_system_error(){
 #endif
 }
 
-ErrorCategoryT const	&error_category_get(){
-	//TODO: implement an error_category
-	return std::generic_category();
+namespace{
+enum{
+	ErrorNotImplementedE = 1,
+	ErrorSystemE,
+	ErrorThreadStartedE
+};
+
+class ErrorCategory: public ErrorCategoryT
+{     
+public:
+    ErrorCategory(){}
+	const char* name() const noexcept{
+		return "solid";
+	}
+	std::string message(int _ev)const;
+};
+
+const ErrorCategory category;
+
+
+std::string ErrorCategory::message(int _ev) const{
+	std::ostringstream oss;
+	
+	oss<<"("<<name()<<":"<<_ev<<"): ";
+	
+	switch(_ev){
+		case 0:
+			oss<<"Success";
+			break;
+		case ErrorNotImplementedE:
+			oss<<"Functionality not implemented";
+			break;
+		case ErrorSystemE:
+			oss<<"System";
+			break;
+		case ErrorThreadStartedE:
+			oss<<"Thread started";
+			break;
+		default:
+			oss<<"Unknown";
+			break;
+	}
+	return oss.str();
 }
 
-ErrorCodeT error_make(Errors _err){
-	return ErrorCodeT(static_cast<int>(_err), error_category_get());
-}
+}//namespace
 
+/*extern*/ const ErrorCodeT		error_not_implemented(ErrorNotImplementedE, category);
+/*extern*/ const ErrorCodeT		error_system(ErrorSystemE, category);
+/*extern*/ const ErrorCodeT		error_thread_started(ErrorThreadStartedE, category);
 
 }//namespace solid

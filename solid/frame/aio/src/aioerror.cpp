@@ -44,7 +44,7 @@ class ErrorCategory: public ErrorCategoryT
 public:
     ErrorCategory(){}
 	const char* name() const noexcept{
-		return "frame::aio";
+		return "solid::frame::aio";
 	}
 	std::string message(int _ev)const;
 };

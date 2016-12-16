@@ -36,7 +36,7 @@ public:
 	ErrorCategory(){}
 private:
 	const char*   name() const noexcept (true){
-		return "solid::serialization::binary Error";
+		return "solid::serialization::binary";
 	}
 	
     std::string    message(int _ev) const{

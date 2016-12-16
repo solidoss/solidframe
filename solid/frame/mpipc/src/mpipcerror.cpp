@@ -61,7 +61,7 @@ class ErrorCategory: public ErrorCategoryT
 public:
 	ErrorCategory(){} 
 	const char* name() const noexcept{
-		return "frame::mpipc";
+		return "solid::frame::mpipc";
 	}
 	std::string message(int _ev)const;
 };

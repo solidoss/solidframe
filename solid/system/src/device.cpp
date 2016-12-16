@@ -788,7 +788,7 @@ ErrorCodeT SocketDevice::makeNonBlocking(){
 
  ErrorCodeT SocketDevice::isBlocking(bool &_rrv)const{
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 
 	const int flg = fcntl(descriptor(), F_GETFL);
@@ -846,7 +846,7 @@ int SocketDevice::recv(char *_pb, size_t _ul, SocketAddress &_rsa, bool &_rcan_r
 
 ErrorCodeT SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
@@ -860,7 +860,7 @@ ErrorCodeT SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 
 ErrorCodeT SocketDevice::localAddress(SocketAddress &_rsa)const{
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
@@ -874,7 +874,7 @@ ErrorCodeT SocketDevice::localAddress(SocketAddress &_rsa)const{
 
 ErrorCodeT SocketDevice::type(int &_rrv)const{
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	int			val = 0;
 	socklen_t	valsz = sizeof(int);
@@ -909,7 +909,7 @@ ErrorCodeT SocketDevice::type(int &_rrv)const{
 
 ErrorCodeT SocketDevice::enableNoDelay(){
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
@@ -922,7 +922,7 @@ ErrorCodeT SocketDevice::enableNoDelay(){
 
 ErrorCodeT SocketDevice::disableNoDelay(){
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
@@ -935,7 +935,7 @@ ErrorCodeT SocketDevice::disableNoDelay(){
 
 ErrorCodeT SocketDevice::enableNoSignal(){
 #if defined(SOLID_ON_WINDOWS) || defined(SOLID_ON_DARWIN)
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	int flag = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
@@ -948,7 +948,7 @@ ErrorCodeT SocketDevice::enableNoSignal(){
 
 ErrorCodeT SocketDevice::disableNoSignal(){
 #if defined(SOLID_ON_WINDOWS) || defined(SOLID_ON_DARWIN)
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	int flag = 0;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
@@ -960,16 +960,16 @@ ErrorCodeT SocketDevice::disableNoSignal(){
 }
 
 ErrorCodeT SocketDevice::enableLinger(){
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 }
 
 ErrorCodeT SocketDevice::disableLinger(){
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 }
 
 ErrorCodeT SocketDevice::hasNoDelay(bool &_rrv)const{
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
@@ -984,7 +984,7 @@ ErrorCodeT SocketDevice::hasNoDelay(bool &_rrv)const{
 	
 ErrorCodeT SocketDevice::enableCork(){
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #elif defined(SOLID_ON_LINUX)
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
@@ -993,13 +993,13 @@ ErrorCodeT SocketDevice::enableCork(){
 	}
 	return last_socket_error();
 #else
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #endif
 }
 
 ErrorCodeT SocketDevice::disableCork(){
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #elif defined(SOLID_ON_LINUX)
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
@@ -1008,13 +1008,13 @@ ErrorCodeT SocketDevice::disableCork(){
 	}
 	return last_socket_error();
 #else
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #endif
 }
 
 ErrorCodeT SocketDevice::hasCork(bool &_rrv)const{
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #elif defined(SOLID_ON_LINUX)
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
@@ -1025,13 +1025,13 @@ ErrorCodeT SocketDevice::hasCork(bool &_rrv)const{
 	}
 	return last_socket_error();
 #else
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #endif
 }
 
 ErrorCodeT SocketDevice::sendBufferSize(int &_rsz){
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	if(_rsz >= 0){
 		int sockbufsz(_rsz);
@@ -1056,7 +1056,7 @@ ErrorCodeT SocketDevice::sendBufferSize(int &_rsz){
 
 ErrorCodeT SocketDevice::recvBufferSize(int &_rsz){
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	if(_rsz >= 0){
 		int sockbufsz(_rsz);
@@ -1079,7 +1079,7 @@ ErrorCodeT SocketDevice::recvBufferSize(int &_rsz){
 
 ErrorCodeT SocketDevice::sendBufferSize(int &_rsz)const{
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	int 		sockbufsz(0);
 	socklen_t	sz(sizeof(sockbufsz));
@@ -1095,7 +1095,7 @@ ErrorCodeT SocketDevice::sendBufferSize(int &_rsz)const{
 
 ErrorCodeT SocketDevice::recvBufferSize(int &_rsz)const{
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	int 		sockbufsz(0);
 	socklen_t	sz(sizeof(sockbufsz));
@@ -1110,7 +1110,7 @@ ErrorCodeT SocketDevice::recvBufferSize(int &_rsz)const{
 
 ErrorCodeT SocketDevice::lastError()const{
 #ifdef SOLID_ON_WINDOWS
-	return solid::error_make(solid::ERROR_NOT_IMPLEMENTED);
+	return solid::error_not_implemented;
 #else
 	int 		err = 0;
 	socklen_t	errlen = sizeof(err);

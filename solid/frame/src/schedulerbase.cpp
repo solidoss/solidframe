@@ -42,7 +42,7 @@ public:
 	ErrorCategory(){}
 private:
 	const char*   name() const noexcept (true){
-		return "solid::frame::Scheduler Error";
+		return "solid::frame::Scheduler";
 	}
 	
     std::string    message(int _ev) const{

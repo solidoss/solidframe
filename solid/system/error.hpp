@@ -35,13 +35,6 @@ typedef ERROR_NS::error_category	ErrorCategoryT;
 
 ErrorCodeT last_system_error();
 
-enum Errors{
-	ERROR_NOERROR = 0,
-	ERROR_NOT_IMPLEMENTED,
-	ERROR_SYSTEM,
-	ERROR_THREAD_STARTED
-};
-
 struct ErrorStub{
 	ErrorStub(
 		int _value = -1,
@@ -68,8 +61,9 @@ struct ErrorStub{
 
 typedef std::vector<ErrorStub>	ErrorVectorT;
 
-ErrorCategoryT const	&error_category_get();
-ErrorCodeT 	error_make(Errors _err);
+extern const ErrorCodeT			error_not_implemented;
+extern const ErrorCodeT			error_system;
+extern const ErrorCodeT			error_thread_started;
 
 
 }//namespace solid

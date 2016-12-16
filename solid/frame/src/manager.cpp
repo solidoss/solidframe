@@ -48,7 +48,7 @@ public:
 	ErrorCategory(){} 
 	
 	const char* name() const noexcept{
-		return "frame::ipc";
+		return "solid::frame";
 	}
 	
 	std::string message(int _ev)const;
