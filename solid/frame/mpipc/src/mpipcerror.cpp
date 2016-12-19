@@ -32,6 +32,7 @@ enum {
 	ErrorMessageCanceledE,
 	ErrorMessageConnectionE,
 	ErrorCompressionUnavailableE,
+	ErrorCompressionEngineE,
 	ErrorReaderInvalidPacketHeaderE,
 	ErrorReaderInvalidMessageSwitchE,
 	ErrorReaderTooManyMultiplexE,
@@ -116,6 +117,9 @@ std::string ErrorCategory::message(int _ev) const{
 			break;
 		case ErrorCompressionUnavailableE:
 			oss<<"Compression support is unavailable";
+			break;
+		case ErrorCompressionEngineE:
+			oss<<"Compression engine error";
 			break;
 		case ErrorReaderInvalidPacketHeaderE:
 			oss<<"Reader: invalid packet header";
@@ -207,6 +211,8 @@ std::string ErrorCategory::message(int _ev) const{
 /*extern*/ const ErrorConditionT error_message_connection(ErrorMessageConnectionE, category);
 
 /*extern*/ const ErrorConditionT error_compression_unavailable(ErrorCompressionUnavailableE, category);
+/*extern*/ const ErrorConditionT error_compression_engine(ErrorCompressionEngineE, category);
+
 /*extern*/ const ErrorConditionT error_reader_invalid_packet_header(ErrorReaderInvalidPacketHeaderE, category);
 /*extern*/ const ErrorConditionT error_reader_invalid_message_switch(ErrorReaderInvalidMessageSwitchE, category);
 /*extern*/ const ErrorConditionT error_reader_too_many_multiplex(ErrorReaderTooManyMultiplexE, category);;

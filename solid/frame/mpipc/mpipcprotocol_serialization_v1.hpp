@@ -1,4 +1,4 @@
-// solid/frame/ipc/ipcprotocol_binary_serialization_v1.hpp
+// solid/frame/mpipc/mpipcprotocol_binary_serialization_v1.hpp
 //
 // Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com) 
 //

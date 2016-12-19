@@ -1,4 +1,4 @@
-// solid/frame/ipc/ipcservice.hpp
+// solid/frame/mpipc/mpipcservice.hpp
 //
 // Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
 //

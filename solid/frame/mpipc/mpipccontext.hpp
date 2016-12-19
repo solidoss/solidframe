@@ -1,4 +1,4 @@
-// solid/frame/ipc/ipccontext.hpp
+// solid/frame/mpipc/mpipccontext.hpp
 //
 // Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
 //

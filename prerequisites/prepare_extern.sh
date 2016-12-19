@@ -27,8 +27,8 @@ printUsage()
 }
 
 BOOST_ADDR="http://sourceforge.net/projects/boost/files/boost/1.62.0/boost_1_62_0.tar.bz2"
-OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.0b.tar.gz"
-SNAPPY_ADDR="http://snappy.googlecode.com/files/snappy-1.0.5.tar.gz"
+OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.0c.tar.gz"
+SNAPPY_ADDR="https://github.com/google/snappy/releases/download/1.1.3/snappy-1.1.3.tar.gz"
 
 SYSTEM=
 
@@ -262,7 +262,8 @@ function buildSnappy()
 	echo "Prepare the $WHAT archive..."
 	echo
 
-	ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
+	ARCH_NAME=`find . -maxdepth 1 -name "$WHAT-*.tar.gz" | grep -v "old/"`
+	
 	if [ -z "$ARCH_NAME" -o -n "$DOWNLOAD" ] ; then
 		mkdir old
 		mv $ARCH_NAME old/
@@ -282,9 +283,9 @@ function buildSnappy()
 	cd $DIR_NAME
 
 	if [ -n "$DEBUG" ] ; then
-		./configure --prefix="$EXT_DIR"
+		./configure --disable-shared --prefix="$EXT_DIR"
 	else
-		./configure --prefix="$EXT_DIR"
+		./configure --disable-shared --prefix="$EXT_DIR"
 	fi
 	make && make install
 	cd ..
@@ -318,6 +319,7 @@ while [ "$#" -gt 0 ]; do
 	--all)
 		BUILD_BOOST_FULL="yes"
 		BUILD_OPENSSL="yes"
+		BUILD_SNAPPY="yes"
 		BUILD_SOMETHING="yes"
 		;;
 	--boost)
@@ -330,6 +332,10 @@ while [ "$#" -gt 0 ]; do
 		;;
 	--boringssl)
 		BUILD_BORINGSSL="yes"
+		BUILD_SOMETHING="yes"
+		;;
+	--snappy)
+		BUILD_SNAPPY="yes"
 		BUILD_SOMETHING="yes"
 		;;
 	--debug)

@@ -1,4 +1,4 @@
-// solid/frame/ipc/ipcerror.hpp
+// solid/frame/mpipc/mpipcerror.hpp
 //
 // Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -55,6 +55,7 @@ extern const ErrorConditionT error_service_message_lost;
 extern const ErrorConditionT error_service_unknown_message;
 
 extern const ErrorConditionT error_compression_unavailable;
+extern const ErrorConditionT error_compression_engine;
 
 
 }//namespace mpipc

@@ -1,4 +1,4 @@
-// solid/frame/ipc/ipcsocketstub.hpp
+// solid/frame/mpipc/mpipcsocketstub.hpp
 //
 // Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com) 
 //

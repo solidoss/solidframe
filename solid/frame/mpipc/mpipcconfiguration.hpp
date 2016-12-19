@@ -1,4 +1,4 @@
-// solid/frame/ipc/ipcconfiguration.hpp
+// solid/frame/mpipc/mpipcconfiguration.hpp
 //
 // Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -249,23 +249,6 @@ private:
 	void init();
 	void prepare();
 private:
-	enum WriterFunctions{
-		WriterNoCompressE = 0,
-		WriterCompress01kE,
-		WriterCompress02kE,
-		WriterCompress04kE,
-		WriterCompress08kE,
-		WriterCompress12kE,
-		WriterCompress16kE,
-		WriterCompress20kE,
-		WriterCompress24kE,
-		WriterCompress32kE,
-		WriterCompress36kE,
-		WriterCompress64kE,
-		WriterCompress96kE,
-	};
-	
-	WriterFunctions						writerfunctionidx;
 	AioSchedulerT						*pscheduler;
 private:
 	friend class Service;
