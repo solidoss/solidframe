@@ -95,6 +95,7 @@ if(OPENSSL_FOUND)
 		solid_serialization
 		solid_utility
 		solid_system
+		snappy
 		${OPENSSL_LIBRARIES}
 		${SYS_DYNAMIC_LOAD_LIB}
 		${SYS_BASIC_LIBS}
@@ -109,6 +110,16 @@ if(OPENSSL_FOUND)
 	add_test(NAME TestClientServerBasic2S		COMMAND  test_mpipc_clientserver test_clientserver_basic 2 s)
 	add_test(NAME TestClientServerBasic4S		COMMAND  test_mpipc_clientserver test_clientserver_basic 4 s)
 	add_test(NAME TestClientServerBasic8S		COMMAND  test_mpipc_clientserver test_clientserver_basic 8 s)
+	
+	add_test(NAME TestClientServerBasic1C		COMMAND  test_mpipc_clientserver test_clientserver_basic 1 c)
+	add_test(NAME TestClientServerBasic2C		COMMAND  test_mpipc_clientserver test_clientserver_basic 2 c)
+	add_test(NAME TestClientServerBasic4C		COMMAND  test_mpipc_clientserver test_clientserver_basic 4 c)
+	add_test(NAME TestClientServerBasic8C		COMMAND  test_mpipc_clientserver test_clientserver_basic 8 c)
+	
+	add_test(NAME TestClientServerBasic1B		COMMAND  test_mpipc_clientserver test_clientserver_basic 1 b)
+	add_test(NAME TestClientServerBasic2B		COMMAND  test_mpipc_clientserver test_clientserver_basic 2 b)
+	add_test(NAME TestClientServerBasic4B		COMMAND  test_mpipc_clientserver test_clientserver_basic 4 b)
+	add_test(NAME TestClientServerBasic8B		COMMAND  test_mpipc_clientserver test_clientserver_basic 8 b)
 
 	add_test(NAME TestClientServerSendRequest	COMMAND  test_mpipc_clientserver test_clientserver_sendrequest)
 	add_test(NAME TestClientServerSendRequestS	COMMAND  test_mpipc_clientserver test_clientserver_sendrequest 1 s)

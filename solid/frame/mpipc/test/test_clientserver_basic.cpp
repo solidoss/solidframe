@@ -15,6 +15,7 @@
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
+#include "solid/frame/mpipc/mpipccompression_snappy.hpp"
 
 #include <mutex>
 #include <thread>
@@ -295,10 +296,18 @@ int test_clientserver_basic(int argc, char **argv){
 	}
 	
 	bool secure = false;
+	bool compress = false;
 	
 	if(argc > 2){
 		if(*argv[2] == 's' or *argv[2] == 'S'){
 			secure = true;
+		}
+		if(*argv[2] == 'c' or *argv[2] == 'C'){
+			compress = true;
+		}
+		if(*argv[2] == 'b' or *argv[2] == 'B'){
+			secure = true;
+			compress = true;
 		}
 	}
 	
@@ -388,6 +397,10 @@ int test_clientserver_basic(int argc, char **argv){
 				);
 			}
 			
+			if(compress){
+				frame::mpipc::snappy::setup(cfg);
+			}
+			
 			err = mpipcserver.reconfigure(std::move(cfg));
 			
 			if(err){
@@ -434,6 +447,10 @@ int test_clientserver_basic(int argc, char **argv){
 					},
 					frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
 				);
+			}
+			
+			if(compress){
+				frame::mpipc::snappy::setup(cfg);
 			}
 			
 			err = mpipcclient.reconfigure(std::move(cfg));

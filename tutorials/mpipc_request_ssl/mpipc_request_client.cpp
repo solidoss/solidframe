@@ -7,6 +7,7 @@
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
+#include "solid/frame/mpipc/mpipccompression_snappy.hpp"
 
 #include "mpipc_request_messages.hpp"
 #include <fstream>
@@ -181,6 +182,8 @@ int main(int argc, char *argv[]){
 				},
 				frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
 			);
+			
+			frame::mpipc::snappy::setup(cfg);
 			
 			err = ipcservice.reconfigure(std::move(cfg));
 			
