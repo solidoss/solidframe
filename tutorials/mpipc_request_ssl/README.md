@@ -1,6 +1,6 @@
-# solid::frame::mpipc request tutorial
+# solid::frame::mpipc SSL request tutorial
 
-Exemplifies the use of solid_frame_mpipc, solid_frame_aio and solid_frame libraries
+Exemplifies the use of solid_frame_mpipc, solid_frame_aio, solid_frame_aio_openssl and solid_frame libraries
 
 __Source files__
  * Message definitions: [mpipc_request_messages.hpp](mpipc_request_messages.hpp)
@@ -11,120 +11,292 @@ Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
  * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
- * follow the first ipc tutorial: [mpipc_echo](../mpipc_echo)
+ * follow the first mpipc tutorial: [mpipc_echo](../mpipc_echo)
+ * follow the mpipc request tutorial: [mpipc_request](../mpipc_request)
  
 ## Overview
 
-In this tutorial you will learn how to use solid_frame_mpipc library for a simple client-server application pair.
-While in previous mpipc tutorial the client and server exchanged a single message for the current tutorial we'll have two, slightly more complex messages to exchage:
- * a request from the client side
- * and a response from the server side
+In this tutorial we will extend the previous client-server applications:
+ * by adding add polymorphic keys to the request message
+ * by adding support for encrypting the communication via [OpenSSL](https://www.openssl.org/)
+ * by adding support for compressing the communication via [Snappy](https://google.github.io/snappy/)
 
-**The server**:
- * keeps a small, static, table (a std::deque of elements)
- * allows clients to fetch records from the table using regular expression.
-
-**The client**:
- * for every command line input
- * extract the recipient endpoint
- * extract payload - the regular expression
- * creates a Request with the regular expression string and sends it to the server at recipient endpoint
-
-Notable for the client is the fact that for sending the request, we're using a variant of mpipc::Service::sendRequest with a Lambda parameter as the completion callback.
-
-Remember that the message completion callback is called when:
- * A message failed to be sent.
- * A message that is not waiting for a response, was sent.
- * A response was received (for a message waiting for it).
-
-You will need three source files:
- * _mpipc_request_messages.hpp_: the protocol messages.
- * _mpipc_request_client.cpp_: the client implementation.
- * _mpipc_request_server.cpp_: the server implementation.
+We will further delve into the differences from the previous tutorial.
  
 ## Protocol definition
 
-As you've seen in the mpipc_echo tutorial, the protocol - i.e. the exchanged messages - is defined in a single header file.
-We'll be looking at the header file by splitting it into pieces:
-
-The first piece consists of includes and the definition for the Request message:
+As you recall, the Request from the previous tutorial only contained a string "userid_regex" used for filtering the server records.
+Now we will use a more powerfull command with support for polymorphic keys. Here is its declarations from mpipc_request_messages.hpp:
 
 ```C++
-#include "solid/frame/mpipc/mpipcmessage.hpp"
-#include "solid/frame/mpipc/mpipccontext.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
-#include <vector>
-#include <map>
-
-namespace ipc_request{
-
 struct Request: solid::frame::mpipc::Message{
-	std::string			userid_regex;
+	std::shared_ptr<RequestKey>	key;
 	
 	Request(){}
 	
-	Request(std::string && _ustr): userid_regex(std::move(_ustr)){}
+	Request(std::shared_ptr<RequestKey> && _key): key(std::move(_key)){}
 	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-		_s.push(userid_regex, "userid_regex");
+		_s.push(key, "key");
 	}	
 };
 ```
 
-The next piece of code is about the Response message, which, for the sake of exemplifying some of the serialization engine capabilities will make use of two other serializable data structures:
+So, now the Request will only hold a shared_ptr to a generic RequestKey, declared this way:
 
 ```C++
-struct Date{
-	uint8_t		day;
-	uint8_t		month;
+struct RequestKeyVisitor;
+struct RequestKeyConstVisitor;
+
+struct RequestKey{
+	RequestKey():cache_idx(solid::InvalidIndex{}){}
+	virtual ~RequestKey(){}
+	
+	virtual void print(std::ostream &_ros) const = 0;
+	
+	virtual void visit(RequestKeyVisitor &) = 0;
+	virtual void visit(RequestKeyConstVisitor &) const = 0;
+
+	size_t		cache_idx;//NOT serialized - used by the server to cache certain key data
+};
+```
+
+Lets further disect the RequestKey:
+ * print: virtual method for printing the contents of the key to a std::ostream
+ * visit: two virtual methods used for visiting the key with either a visitor which can modify the content of the key or one which cannot.
+ * cache_idx: a member variable which does not get serialized and is used for some optimizations on the server side as we will see below.
+ 
+Next lets have a look at the visitors:
+
+```C++
+struct RequestKeyAnd;
+struct RequestKeyOr;
+struct RequestKeyAndList;
+struct RequestKeyOrList;
+struct RequestKeyUserIdRegex;
+struct RequestKeyEmailRegex;
+struct RequestKeyYearLess;
+
+struct RequestKeyVisitor{
+	virtual ~RequestKeyVisitor(){}
+	
+	virtual void visit(RequestKeyAnd&) = 0;
+	virtual void visit(RequestKeyOr&) = 0;
+	virtual void visit(RequestKeyAndList&) = 0;
+	virtual void visit(RequestKeyOrList&) = 0;
+	virtual void visit(RequestKeyUserIdRegex&) = 0;
+	virtual void visit(RequestKeyEmailRegex&) = 0;
+	virtual void visit(RequestKeyYearLess&) = 0;
+};
+
+struct RequestKeyConstVisitor{
+	virtual ~RequestKeyConstVisitor(){}
+	
+	virtual void visit(const RequestKeyAnd&) = 0;
+	virtual void visit(const RequestKeyOr&) = 0;
+	virtual void visit(const RequestKeyAndList&) = 0;
+	virtual void visit(const RequestKeyOrList&) = 0;
+	virtual void visit(const RequestKeyUserIdRegex&) = 0;
+	virtual void visit(const RequestKeyEmailRegex&) = 0;
+	virtual void visit(const RequestKeyYearLess&) = 0;
+};
+```
+
+Both visitors define virtual visit methods for each and every RequestKey types. Both visitors will be used on the server side to browse the RequestKeys from a Request command.
+
+Before getting to declaring the RequestKeys themselves, we need a helper struct for key visiting:
+
+```C++
+template <class T>
+struct Visitable: RequestKey{
+	
+	void visit(RequestKeyVisitor &_v) override{
+		_v.visit(*static_cast<T*>(this));
+	}
+	void visit(RequestKeyConstVisitor &_v) const override{
+		_v.visit(*static_cast<const T*>(this));
+	}
+};
+```
+
+Here are all the RequestKey types:
+
+```C++
+struct RequestKeyAnd: Visitable<RequestKeyAnd>{
+	std::shared_ptr<RequestKey>		first;
+	std::shared_ptr<RequestKey>		second;
+	
+	
+	RequestKeyAnd(){}
+	
+	template <class T1, class T2>
+	RequestKeyAnd(
+		std::shared_ptr<T1> && _p1,
+		std::shared_ptr<T2> &&_p2
+	):	first(std::move(std::static_pointer_cast<RequestKey>(_p1))),
+		second(std::move(std::static_pointer_cast<RequestKey>(_p2))){}
+		
+	template <class S>
+	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+		_s.push(second, "second").push(first, "first");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<"and{";
+		if(first) first->print(_ros);
+		_ros<<',';
+		if(second) second->print(_ros);
+		_ros<<'}';
+	}
+	
+};
+
+struct RequestKeyOr: Visitable<RequestKeyOr>{
+	std::shared_ptr<RequestKey>		first;
+	std::shared_ptr<RequestKey>		second;
+	
+	RequestKeyOr(){}
+	
+	template <class T1, class T2>
+	RequestKeyOr(
+		std::shared_ptr<T1> && _p1,
+		std::shared_ptr<T2> &&_p2
+	):	first(std::move(std::static_pointer_cast<RequestKey>(_p1))),
+		second(std::move(std::static_pointer_cast<RequestKey>(_p2))){}
+	
+	template <class S>
+	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+		_s.push(second, "second").push(first, "first");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<"or(";
+		if(first) first->print(_ros);
+		_ros<<',';
+		if(second) second->print(_ros);
+		_ros<<')';
+	}
+};
+
+struct RequestKeyAndList: Visitable<RequestKeyAndList>{
+	std::vector<std::shared_ptr<RequestKey>> key_vec;
+	
+	RequestKeyAndList(){}
+	
+	template <class ...Args>
+	RequestKeyAndList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
+	
+	template <class S>
+	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+		_s.pushContainer(key_vec, "key_vec");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<"AND{";
+		for(auto const &key: key_vec){
+			if(key) key->print(_ros);
+			_ros<<',';
+		}
+		_ros<<'}';
+	}
+};
+
+struct RequestKeyOrList: Visitable<RequestKeyOrList>{
+	std::vector<std::shared_ptr<RequestKey>> key_vec;
+	
+	
+	RequestKeyOrList(){}
+	
+	template <class ...Args>
+	RequestKeyOrList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
+	
+	template <class S>
+	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+		_s.pushContainer(key_vec, "key_vec");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<"OR(";
+		for(auto const &key: key_vec){
+			if(key) key->print(_ros);
+			_ros<<',';
+		}
+		_ros<<')';
+	}
+};
+
+struct RequestKeyUserIdRegex: Visitable<RequestKeyUserIdRegex>{
+	std::string		regex;
+	
+	RequestKeyUserIdRegex(){}
+	
+	RequestKeyUserIdRegex(std::string && _ustr): regex(std::move(_ustr)){}
+	
+	template <class S>
+	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+		_s.push(regex, "regex");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<"userid matches \""<<regex<<"\"";
+	}
+};
+
+struct RequestKeyEmailRegex: Visitable<RequestKeyEmailRegex>{
+	std::string		regex;
+	
+	RequestKeyEmailRegex(){}
+	
+	RequestKeyEmailRegex(std::string && _ustr): regex(std::move(_ustr)){}
+	
+	template <class S>
+	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+		_s.push(regex, "regex");
+	}
+	
+	void print(std::ostream &_ros) const override{
+		_ros<<"email matches \""<<regex<<"\"";
+	}
+};
+
+
+struct RequestKeyYearLess: Visitable<RequestKeyYearLess>{
 	uint16_t	year;
 	
+	RequestKeyYearLess(uint16_t _year = 0xffff):year(_year){}
+	
 	template <class S>
 	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-		_s.push(day, "day").push(month, "month").push(year, "year");
+		_s.push(year, "year");
 	}
-};
-
-struct UserData{
-	std::string		full_name;
-	std::string		email;
-	std::string		country;
-	std::string		city;
-	Date			birth_date;
 	
-	template <class S>
-	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-		_s.push(full_name, "full_name").push(email, "email");
-		_s.push(country, "country").push(city, "city").push(birth_date, "birth_date");
-	}
-};
-
-struct Response: solid::frame::mpipc::Message{
-	using UserDataMapT = std::map<std::string, UserData>;
-	
-	UserDataMapT	user_data_map;
-	
-	Response(){}
-	
-	Response(const solid::frame::mpipc::Message &_rmsg):solid::frame::mpipc::Message(_rmsg){}
-	
-	template <class S>
-	void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-		_s.pushContainer(user_data_map, "user_data_map");
+	void print(std::ostream &_ros) const override{
+		_ros<<"year < "<<year;
 	}
 };
 ```
 
-On the above code, please note that we're using a std::map for storing the records in the response message which is strictly for exemplification purpose - normally a std::vector would have been a better option.
+Notable on the above declarations are the serialize methods which are just as for every other Message.
 
-The last block of code for the protocol definition is the declaration of ProtoSpecT:
-
+Next on the protocol header contains the declarations for the Response message which are the same as in previous tutorial.
+The last thing that differs is the protocol definition - which now will contain the RequestKeys too:
 ```C++
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, Request, Response>;
-
-}//namespace ipc_request
+using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<
+	0,
+	Request,
+	Response,
+	RequestKeyAnd,
+	RequestKeyOr,
+	RequestKeyAndList,
+	RequestKeyOrList,
+	RequestKeyUserIdRegex,
+	RequestKeyEmailRegex,
+	RequestKeyYearLess
+>;
 ```
+
+
 
 ## The client implementation
 

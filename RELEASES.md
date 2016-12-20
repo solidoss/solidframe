@@ -13,8 +13,8 @@
 * (DONE) solid_serialization: Support for std::bitset, std::vector<bool> and std::set
 * (DONE) solid_serialization: Test suported stl containers.
 * (DONE) BUILD: Support for CMake extern command for find_package(SolidFrame)
-* (DONE) solid_frame_mpipc: Basic compression support
-* TUTORIAL: mpipc_request_ssl
+* (DONE) solid_frame_mpipc: Basic, pluggable compression support using [Snappy](https://google.github.io/snappy/)
+* (PENDING) TUTORIAL: mpipc_request_ssl
 
 
 ## Version 2.0

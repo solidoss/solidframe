@@ -488,8 +488,11 @@ On the client you will see that the records list is immediately received back fr
 
 ## Next
 
-If you are still insterested what solid_frame_mpipc library has to offer, check-out the next tutorial 
+In the next tutorial:
  
- * [MPIPC File](../mpipc_file)
- 
-in which you will learn how to implement a very basic remote file access protocol.
+ * [MPIPC Request SSL](../mpipc_request_ssl)
+
+we will extend the current example by:
+ * adding SSL support for end-to-end encryption
+ * adding compression support for communication
+ * using a polymorphic request
