@@ -3,6 +3,7 @@
 ## Backlog
 
 * solid_frame_mpipc: SOCKS5
+* solid_frame_mpipc: test with thousands of connections
 * DOCUMENTAION: API
 * solid_serialization: test agaist ProtoBuf and FlatBuffers
 
@@ -14,7 +15,7 @@
 * (DONE) solid_serialization: Test suported stl containers.
 * (DONE) BUILD: Support for CMake extern command for find_package(SolidFrame)
 * (DONE) solid_frame_mpipc: Basic, pluggable compression support using [Snappy](https://google.github.io/snappy/)
-* (PENDING) TUTORIAL: mpipc_request_ssl
+* (DONE) TUTORIAL: mpipc_request_ssl
 
 
 ## Version 2.0

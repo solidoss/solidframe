@@ -254,8 +254,10 @@ And finally we have the command loop:
 						}
 					};
 					
+					auto req_ptr = make_shared<ipc_request::Request>(line.substr(offset + 1));
+					
 					ipcservice.sendRequest(
-						recipient.c_str(), make_shared<ipc_request::Request>(line.substr(offset + 1)),
+						recipient.c_str(), req_ptr,
 						lambda,
 						0
 					);

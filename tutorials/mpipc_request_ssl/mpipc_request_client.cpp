@@ -213,6 +213,27 @@ int main(int argc, char *argv[]){
 					recipient = line.substr(0, offset);
 					
 					
+					
+					auto  lambda = [](
+						frame::mpipc::ConnectionContext &_rctx,
+						std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
+						std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
+						ErrorConditionT const &_rerror
+					){
+						if(_rerror){
+							cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
+							return;
+						}
+						
+						SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
+						
+						cout<<"Received "<<_rrecv_msg_ptr->user_data_map.size()<<" users:"<<endl;
+						
+						for(const auto& user_data: _rrecv_msg_ptr->user_data_map){
+							cout<<'{'<<user_data.first<<"}: "<<user_data.second<<endl;
+						}
+					};
+					
 					auto req_ptr = make_shared<ipc_request::Request>(
 						make_shared<ipc_request::RequestKeyAndList>(
 							make_shared<ipc_request::RequestKeyOr>(
@@ -232,27 +253,7 @@ int main(int argc, char *argv[]){
 					
 					ipcservice.sendRequest(
 						recipient.c_str(), //make_shared<ipc_request::Request>(line.substr(offset + 1)),
-						req_ptr,
-						[](
-							frame::mpipc::ConnectionContext &_rctx,
-							std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
-							std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
-							ErrorConditionT const &_rerror
-						){
-							if(_rerror){
-								cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
-								return;
-							}
-							
-							SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
-							
-							cout<<"Received "<<_rrecv_msg_ptr->user_data_map.size()<<" users:"<<endl;
-							
-							for(const auto& user_data: _rrecv_msg_ptr->user_data_map){
-								cout<<'{'<<user_data.first<<"}: "<<user_data.second<<endl;
-							}
-						},
-						0
+						req_ptr, lambda, 0
 					);
 				}else{
 					cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;

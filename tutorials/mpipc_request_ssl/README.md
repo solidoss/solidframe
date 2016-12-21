@@ -12,21 +12,21 @@ Before continuing with this tutorial, you should:
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
  * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
  * follow the first mpipc tutorial: [mpipc_echo](../mpipc_echo)
- * follow the mpipc request tutorial: [mpipc_request](../mpipc_request)
+ * __follow the mpipc request tutorial__: [mpipc_request](../mpipc_request)
  
 ## Overview
 
-In this tutorial we will extend the previous client-server applications:
- * by adding add polymorphic keys to the request message
- * by adding support for encrypting the communication via [OpenSSL](https://www.openssl.org/)
- * by adding support for compressing the communication via [Snappy](https://google.github.io/snappy/)
+In this tutorial we will extend the previous client-server applications by adding:
+ * polymorphic keys to the request message
+ * support for encrypting the communication via [OpenSSL](https://www.openssl.org/)
+ * support for compressing the communication via [Snappy](https://google.github.io/snappy/)
 
 We will further delve into the differences from the previous tutorial.
  
 ## Protocol definition
 
 As you recall, the Request from the previous tutorial only contained a string "userid_regex" used for filtering the server records.
-Now we will use a more powerfull command with support for polymorphic keys. Here is its declarations from mpipc_request_messages.hpp:
+Now we will use a more powerful command message with support for polymorphic keys. Here is its declarations from mpipc_request_messages.hpp:
 
 ```C++
 struct Request: solid::frame::mpipc::Message{
@@ -62,12 +62,12 @@ struct RequestKey{
 };
 ```
 
-Lets further disect the RequestKey:
+Lets further dissect the RequestKey:
  * print: virtual method for printing the contents of the key to a std::ostream
  * visit: two virtual methods used for visiting the key with either a visitor which can modify the content of the key or one which cannot.
  * cache_idx: a member variable which does not get serialized and is used for some optimizations on the server side as we will see below.
  
-Next lets have a look at the visitors:
+Lets have a look at the generic visitors:
 
 ```C++
 struct RequestKeyAnd;
@@ -103,9 +103,10 @@ struct RequestKeyConstVisitor{
 };
 ```
 
-Both visitors define virtual visit methods for each and every RequestKey types. Both visitors will be used on the server side to browse the RequestKeys from a Request command.
+Both visitors define virtual visit methods for each and every RequestKey types.
+Also both visitors will be used on the server side to browse the Keys from a Request message.
 
-Before getting to declaring the RequestKeys themselves, we need a helper struct for key visiting:
+Before declaring the RequestKeys themselves, we need a helper template struct for key visiting:
 
 ```C++
 template <class T>
@@ -281,6 +282,7 @@ Notable on the above declarations are the serialize methods which are just as fo
 
 Next on the protocol header contains the declarations for the Response message which are the same as in previous tutorial.
 The last thing that differs is the protocol definition - which now will contain the RequestKeys too:
+
 ```C++
 using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<
 	0,
@@ -296,83 +298,65 @@ using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<
 >;
 ```
 
-
-
 ## The client implementation
 
-First of all the client we will be implementing will be able to talk to multiple servers. Every server will be identified by its endpoint: address_name:port.
-So, the client will read from standard input line by line and:
- * if the line is "q", "Q" or "quit" will exit
- * else
-   * extract the first word of the line as the server endpoint
-   * extract the reminder of the line as payload (the regular expression) and create a Message with it
-   * send the message to the server endpoint
+We will continue by presenting only the differences from the previous tutorial regarding the client side code.
 
-Let us now walk through the code.
-
-First off, initialize the ipcservice and its prerequisites:
+ipc_request_client::MessageSetup must be changed as follows:
 
 ```C++
-		AioSchedulerT			scheduler;
-		
-		
-		frame::Manager			manager;
-		frame::mpipc::ServiceT	ipcservice(manager);
-		
-		frame::aio::Resolver	resolver;
-		
-		ErrorConditionT			err;
-		
-		err = scheduler.start(1);
-		
-		if(err){
-			cout<<"Error starting aio scheduler: "<<err.message()<<endl;
-			return 1;
-		}
-		
-		err = resolver.start(1);
-		
-		if(err){
-			cout<<"Error starting aio resolver: "<<err.message()<<endl;
-			return 1;
-		}
-```
+template <typename T>
+struct MessageSetup;
 
-Next, configure the ipcservice:
-```C++
-		{
-			auto 						proto = frame::mpipc::serialization_v1::Protocol::create();
-			frame::mpipc::Configuration	cfg(scheduler, proto);
-			
-			ipc_request::ProtoSpecT::setup<ipc_request_client::MessageSetup>(*proto);
-			
-			cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
-			
-			cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
-			
-			err = ipcservice.reconfigure(std::move(cfg));
-			
-			if(err){
-				cout<<"Error starting ipcservice: "<<err.message()<<endl;
-				return 1;
-			}
-		}
-```
+template <>
+struct MessageSetup<RequestKeyAnd>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyAnd>(_protocol_idx);
+	}
+};
 
-The ipc_request_client::MessageSetup is defined like this:
+template <>
+struct MessageSetup<RequestKeyOr>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyOr>(_protocol_idx);
+	}
+};
 
-```C++
-namespace ipc_request_client{
+template <>
+struct MessageSetup<RequestKeyAndList>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyAndList>(_protocol_idx);
+	}
+};
 
-template <class M>
-void complete_message(
-	frame::mpipc::ConnectionContext &_rctx,
-	std::shared_ptr<M> &_rsent_msg_ptr,
-	std::shared_ptr<M> &_rrecv_msg_ptr,
-	ErrorConditionT const &_rerror
-){
-	SOLID_CHECK(false);//this method should not be called
-}
+template <>
+struct MessageSetup<RequestKeyOrList>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyOrList>(_protocol_idx);
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyUserIdRegex>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyUserIdRegex>(_protocol_idx);
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyEmailRegex>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyEmailRegex>(_protocol_idx);
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyYearLess>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyYearLess>(_protocol_idx);
+	}
+};
+
 
 template <typename T>
 struct MessageSetup{
@@ -381,129 +365,173 @@ struct MessageSetup{
 	}
 };
 
-
-}//namespace
 ```
 
-Note on the above code that the "catch all" message completion callback should not be called on the client.
-It must be specified in the ipcservice configuration, but in our current situation will not get to be used.
+The above code will register onto the serialization engine both the message types and the key types.
 
-And finally we have the command loop:
+Next let configure the mpipc::Service with OpenSSL support:
 
 ```C++
-		while(true){
-			string	line;
-			getline(cin, line);
-			
-			if(line == "q" or line == "Q" or line == "quit"){
-				break;
-			}
-			{
-				string		recipient;
-				size_t		offset = line.find(' ');
-				
-				if(offset != string::npos){
-					
-					recipient = line.substr(0, offset);
-					
-					auto  lambda = [](
-						frame::mpipc::ConnectionContext &_rctx,
-						std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
-						std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
-						ErrorConditionT const &_rerror
-					){
-						if(_rerror){
-							cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
-							return;
-						}
-						
-						SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
-						
-						cout<<"Received "<<_rrecv_msg_ptr->user_data_map.size()<<" users:"<<endl;
-						
-						for(const auto& user_data: _rrecv_msg_ptr->user_data_map){
-							cout<<'{'<<user_data.first<<"}: "<<user_data.second<<endl;
-						}
-					};
-					
-					ipcservice.sendRequest(
-						recipient.c_str(), make_shared<ipc_request::Request>(line.substr(offset + 1)),
-						lambda,
-						0
-					);
-				
-				}else{
-					cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
-				}
-			}
-		}
+			frame::mpipc::openssl::setup_client(
+				cfg,
+				[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+					_rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
+					_rctx.loadCertificate(loadFile("echo-client-cert.pem"));
+					_rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
+					return ErrorCodeT();
+				},
+				frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
+			);
 ```
-On the above code, the notable part is the one with _ipcservice.sendRequest_ call which uses a lambda to specify the
-completion callback for the response. Also note the message types used in the lambda definition - they are the concrete message types
-we're expecting.
 
-On the lambda, we display to standard out how many user records that matched the regular expression were returned and then display the records.
+Note that the _pem_ self-signed certificates files above must be on the same directory from where the application is run, otherwise an absolute path would be more appropriate.
+
+To add Snappy communication compress we just need the following line:
+
+```C++
+	frame::mpipc::snappy::setup(cfg);
+```
+
+Both code snippets above must be added just before:
+
+```C++
+	err = ipcservice.reconfigure(std::move(cfg));
+```
+
+The last code snippets for client side, constructs a somehow hard-coded Request as follows:
+
+```C++
+					auto req_ptr = make_shared<ipc_request::Request>(
+						make_shared<ipc_request::RequestKeyAndList>(
+							make_shared<ipc_request::RequestKeyOr>(
+								make_shared<ipc_request::RequestKeyUserIdRegex>(line.substr(offset + 1)),
+								make_shared<ipc_request::RequestKeyEmailRegex>(line.substr(offset + 1))
+							),
+							make_shared<ipc_request::RequestKeyOr>(
+								make_shared<ipc_request::RequestKeyYearLess>(2000),
+								make_shared<ipc_request::RequestKeyYearLess>(2003)
+							)
+						)
+					);
+					
+```
+
+and prints the its key tree to standard output:
+
+```C++
+					cout<<"Request key: ";
+					if(req_ptr->key) req_ptr->key->print(cout);
+					cout<<endl;
+```
+
+before sending the message command to the server.
+
 
 ### Compile
 
 ```bash
 $ cd solid_frame_tutorials/mpipc_request
-$ c++ -o mpipc_request_client mpipc_request_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ c++ -o mpipc_request_client mpipc_request_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame_aio_openssl -lsolid_frame -lsolid_utility -lsolid_system -lssl -lcrypto -lsnappy -lpthread
 ```
-Now that we have a client application, we need a server to connect to. Let's move one on implementing the server.
 
 ## The server implementation
 
-We will skip the the initialization of the ipcservice and its prerequisites as it is the same as on the client and we'll start with the ipcservice configuration:
+In this section we'll have a look at the differences on the server side application code.
+So the differences from the server implementation on the previous tutorial are related to:
+ * Request command
+   * the way that the serialization engine must be configured
+   * the way the command is handled - using RequestKeyVisitors
+ * mpipc::Service configuration
+   * with support for OpenSSL
+   * with support for communication compression via Snappy
+
+We'll start by configuring the serialization engine for the new Request.
+For that, we continue to have the same line for configuring the protocol:
 
 ```C++
-		{
-			auto 						proto = frame::mpipc::serialization_v1::Protocol::create();
-			frame::mpipc::Configuration	cfg(scheduler, proto);
-			
-			ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
-			
-			cfg.server.listener_address_str = p.listener_addr;
-			cfg.server.listener_address_str += ':';
-			cfg.server.listener_address_str += p.listener_port;
-			
-			cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
-			
-			err = ipcservice.reconfigure(std::move(cfg));
-			
-			if(err){
-				cout<<"Error starting ipcservice: "<<err.message()<<endl;
-				manager.stop();
-				return 1;
-			}
-			{
-				std::ostringstream oss;
-				oss<<ipcservice.configuration().server.listenerPort();
-				cout<<"server listens on port: "<<oss.str()<<endl;
-			}
-		}
+ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
 ```
 
-Notable is the protocol implementation:
+but now, ipc_request_server::MessageSetup is a little more complex:
 
 ```C++
-	ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
-```
+template <typename T>
+struct MessageSetup;
 
-which uses ipc_request_server::MessageSetup defined as follows:
-
-```C++
-namespace ipc_request_server{
-
-template <class M>
-void complete_message(
-	frame::mpipc::ConnectionContext &_rctx,
-	std::shared_ptr<M> &_rsent_msg_ptr,
-	std::shared_ptr<M> &_rrecv_msg_ptr,
-	ErrorConditionT const &_rerror
-);
-	
 template <>
+struct MessageSetup<RequestKeyAnd>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyAnd>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyAnd, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyOr>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyOr>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyOr, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyAndList>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyAndList>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyAndList, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyOrList>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyOrList>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyOrList, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyUserIdRegex>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyUserIdRegex>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyUserIdRegex, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyEmailRegex>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyEmailRegex>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyEmailRegex, RequestKey>();
+	}
+};
+
+template <>
+struct MessageSetup<RequestKeyYearLess>{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<RequestKeyYearLess>(_protocol_idx);
+		_rprotocol.registerCast<RequestKeyYearLess, RequestKey>();
+	}
+};
+
+template <typename T>
+struct MessageSetup{
+	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+		_rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+	}
+};
+```
+
+So, in the above code we specialize MessageSetup for every type in the ipc_request::ProtoSpecT, but:
+ * while command messages are registered as before with a complete_message callback
+ * the RequestKeys are registered using the basic version of registerType (without callback) and a call to registerCast from the concrete RequestKey class to the base Key class namely RequestKey.
+
+ The above registerCast is needed because the Request command and the RequestKeys only hold shared_ptrs to the base class (RequestKey).
+ 
+ The complete_message<Response> is same as in previous tutorial, but complete_message<Request> function has changed like this:
+ 
+ ```C++
+ template <>
 void complete_message<ipc_request::Request>(
 	frame::mpipc::ConnectionContext &_rctx,
 	std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
@@ -514,126 +542,204 @@ void complete_message<ipc_request::Request>(
 	SOLID_CHECK(_rrecv_msg_ptr);
 	SOLID_CHECK(not _rsent_msg_ptr);
 	
+	cout<<"Received request: ";
+	if(_rrecv_msg_ptr->key){
+		_rrecv_msg_ptr->key->print(cout);
+	}
+	cout<<endl;
+	
+	
 	auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
 	
+	if(_rrecv_msg_ptr->key){
+		PrepareKeyVisitor	prep;
+		
+		_rrecv_msg_ptr->key->visit(prep);
 	
-	std::regex	userid_regex(_rrecv_msg_ptr->userid_regex);
-	
-	for(const auto &ad: account_dq){
-		if(std::regex_match(ad.userid, userid_regex)){
-			msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, std::move(make_user_data(ad)))));
+		for(const auto &ad: account_dq){
+			AccountDataKeyVisitor v(ad, prep);
+			
+			
+			_rrecv_msg_ptr->key->visit(v);
+			
+			if(v.retval){
+				msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad))));
+			}
 		}
-	}
+}
 	
 	SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
+ ```
 
-template <>
-void complete_message<ipc_request::Response>(
-	frame::mpipc::ConnectionContext &_rctx,
-	std::shared_ptr<ipc_request::Response> &_rsent_msg_ptr,
-	std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
-	ErrorConditionT const &_rerror
-){
-	SOLID_CHECK(not _rerror);
-	SOLID_CHECK(not _rrecv_msg_ptr);
-	SOLID_CHECK(_rsent_msg_ptr);
-}
+In the above code we're using two RequestKey visitors:
+ * A non-const visitor - PrepareKeyVisitor - which builds a cache of std::regex-es for every key that needs regex matches and store the cache id in the RequestKey::cache_idx.
+ * A const visitor - AccountDataKeyVisitor - which is used for deciding whether a database record should be sent to the client or skipped.
+ 
+ Here is PrepareKeyVisitor implementation:
+ 
+ ```C++
+using namespace ipc_request;
 
-template <typename T>
-struct MessageSetup{
-	void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-		_rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+struct PrepareKeyVisitor: RequestKeyVisitor{
+	std::vector<std::regex>		regexvec;
+	
+	void visit(RequestKeyAnd& _k) override{
+		if(_k.first){_k.first->visit(*this);}
+		if(_k.second){_k.second->visit(*this);}
+	}
+	
+	void visit(RequestKeyOr& _k) override{
+		if(_k.first){_k.first->visit(*this);}
+		if(_k.second){_k.second->visit(*this);}
+	}
+	
+	void visit(RequestKeyAndList& _k) override{
+		for(auto &k: _k.key_vec){
+			if(k) k->visit(*this);
+		}
+	}
+	
+	void visit(RequestKeyOrList& _k) override{
+		for(auto &k: _k.key_vec){
+			if(k) k->visit(*this);
+		}
+	}
+	
+	void visit(RequestKeyUserIdRegex& _k) override{
+		_k.cache_idx = regexvec.size();
+		regexvec.emplace_back(_k.regex);
+	}
+	
+	void visit(RequestKeyEmailRegex& _k) override{
+		_k.cache_idx = regexvec.size();
+		regexvec.emplace_back(_k.regex);
+	}
+	
+	void visit(RequestKeyYearLess& /*_k*/) override{
+		
 	}
 };
-
-}//namespace ipc_request_server
 ```
-For the protocol implementation we're using two message completion callbacks - one for request and the other for response.
 
-The callback for response is called on the successful delivery (i.e. successfully sent on socket - NOT necessarily received on client) and it only consist of some checking - no real code.
-
-The request callback, on the other hand, is called when a request is received from a client and does:
- * create a Response message from the Request one
- * filters the accounts table using the regular expression received from the client, populating the response map with matched records.
- * send the Response message back to the client on the same connection the request was received.
+So, this visitor does:
+ * registers/caches the regex onto a vector and holds the cache position on the key's cache_idx member variable (for RequestKeyUserIdRegex and RequestKeyEmailRegex keys)
+ * forward the visit to all child Keys (RequestKeyAnd, RequestKeyOr, RequestKeyAndList and RequestKeyOrList)
+ * nothing for RequestKeyYearLess
  
-The accounts table, i.e. the accounts_dq is defined like this:
+Lets have a look at how AccountDataKeyVisitor is implemented:
 
 ```C++
-struct Date{
-	uint8_t		day;
-	uint8_t		month;
-	uint16_t	year;
+struct AccountDataKeyVisitor: RequestKeyConstVisitor{
+	const AccountData	&racc;
+	PrepareKeyVisitor	&rprep;
+	bool				retval;
+	
+	AccountDataKeyVisitor(const AccountData &_racc, PrepareKeyVisitor &_rprep):racc(_racc), rprep(_rprep), retval(false){}
+	
+	void visit(const RequestKeyAnd& _k) override{
+		retval = false;
+		
+		if(_k.first){
+			_k.first->visit(*this);
+			if(!retval) return;
+		}else{
+			retval = false;
+			return;
+		}
+		if(_k.second){
+			_k.second->visit(*this);
+			if(!retval) return;
+		}
+	}
+	
+	void visit(const RequestKeyOr& _k) override{
+		retval = false;
+		if(_k.first){
+			_k.first->visit(*this);
+			if(retval) return;
+		}
+		if(_k.second){
+			_k.second->visit(*this);
+			if(retval) return;
+		}
+	}
+	
+	void visit(const RequestKeyAndList& _k) override{
+		retval = false;
+		for(auto &k: _k.key_vec){
+			if(k){
+				k->visit(*this);
+				if(!retval) return;
+			}
+		}
+	}
+	void visit(const RequestKeyOrList& _k) override{
+		for(auto &k: _k.key_vec){
+			if(k){
+				k->visit(*this);
+				if(retval) return;
+			}
+		}
+		retval = false;
+	}
+	
+	void visit(const RequestKeyUserIdRegex& _k) override{
+		retval = std::regex_match(racc.userid, rprep.regexvec[_k.cache_idx]);
+	}
+	void visit(const RequestKeyEmailRegex& _k) override{
+		retval = std::regex_match(racc.email, rprep.regexvec[_k.cache_idx]);
+	}
+	
+	void visit(const RequestKeyYearLess& _k) override{
+		retval = racc.birth_date.year < _k.year;
+	}
 };
-
-struct AccountData{
-	string		userid;
-	string		full_name;
-	string		email;
-	string		country;
-	string		city;
-	Date		birth_date;
-};
-
-
-using AccountDataDequeT = std::deque<AccountData>;
-
-const AccountDataDequeT	account_dq = {
-	{"user1", "Super Man", "user1@email.com", "US", "Washington", {11, 1, 2001}},
-	{"user2", "Spider Man", "user2@email.com", "RO", "Bucharest", {12, 2, 2002}},
-	{"user3", "Ant Man", "user3@email.com", "IE", "Dublin", {13, 3, 2003}},
-	{"iron_man", "Iron Man", "man.iron@email.com", "UK", "London", {11,4,2004}},
-	{"dragon_man", "Dragon Man", "man.dragon@email.com", "FR", "paris", {12,5,2005}},
-	{"frog_man", "Frog Man", "man.frog@email.com", "PL", "Warsaw", {13,6,2006}},
-};
-```
-One last thing we need related to accounts table is a conversion function from the data structure we have on the table to the one from the Response message:
-
-```C++
-ipc_request::UserData make_user_data(const AccountData &_rad){
-	ipc_request::UserData	ud;
-	ud.full_name = _rad.full_name;
-	ud.email = _rad.email;
-	ud.country = _rad.country;
-	ud.city = _rad.city;
-	ud.birth_date.day = _rad.birth_date.day;
-	ud.birth_date.month = _rad.birth_date.month;
-	ud.birth_date.year = _rad.birth_date.year;
-	return ud;
-}
-```
-Before moving on, lets stop for a moment on a previous statement:
- * create a Response message from the Request one
-
-which translates to the following line of code from the request message completion callback:
-
-```C++
-	auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
-```
-So, a response message MUST be constructed from the request one. This is because some data from the Request message is needed to be passed to the Response. That data will be transparently serialized along with the response when sent back to the client and used on the client to identify the request message waiting for the response.
-
-As an idea, for a message that moves back and forth from client to server, because of mpipc::Message internal data, one can always know on which side a message is, by using the following methods from mpipc::Message:
-
-```C++
-	bool isOnSender()const
-	bool isOnPeer()const;
-	bool isBackOnSender()const;
 ```
 
-Returning to our server, the last code block is one which keeps the server alive until user input:
+So, this time we have a const visitor - we do not need to make changes on the keys.
+The AccountDataKeyVisitor has:
+ * a const reference to the current database record which must be validated
+ * a reference to the PrepareKeyVisitor for its regex cache
+ * a retval bool variable.
+ 
+I will not delve into the details for every visit function as I believe they are pretty straight forward, but I would like to point out that:
+ * for "OR" like RequestKeys we only visit child keys until a key accepts the database record
+ * for "AND" like RequestKeys we only visit child keys until a key rejects the database record
+
+ 
+Moving on with the changes on server code next is the code that enables SSL support:
 
 ```C++
-	cout<<"Press any char and ENTER to stop: ";
-	char c;
-	cin>>c;
+			frame::mpipc::openssl::setup_server(
+				cfg,
+				[](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+					_rctx.loadVerifyFile("echo-ca-cert.pem");
+					_rctx.loadCertificateFile("echo-server-cert.pem");
+					_rctx.loadPrivateKeyFile("echo-server-key.pem");
+					return ErrorCodeT();
+				},
+				frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}//does nothing - OpenSSL does not check for hostname on SSL_accept
+			);
+```
+
+along with the code that enables Snappy communication compression:
+
+```C++
+	frame::mpipc::snappy::setup(cfg);
+```
+
+Both the above snippets of code should be put just above the following line:
+
+```C++
+	err = ipcservice.reconfigure(std::move(cfg));
 ```
 
 ### Compile
 
 ```bash
 $ cd solid_frame_tutorials/mpipc_request
-$ c++ -o mpipc_request_server mpipc_request_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ c++ -o mpipc_request_server mpipc_request_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame_aio_openssl -lsolid_frame -lsolid_utility -lsolid_system -lssl -lcrypto -lsnappy -lpthread
 ```
 
 ## Test
@@ -660,7 +766,7 @@ On the client you will see that the records list is immediately received back fr
 
 ## Next
 
-If you are still insterested what solid_frame_mpipc library has to offer, check-out the next tutorial 
+If you are still interested what solid_frame_mpipc library has to offer, check-out the next tutorial 
  
  * [MPIPC File](../mpipc_file)
  

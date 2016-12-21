@@ -133,14 +133,14 @@ struct PrepareKeyVisitor: RequestKeyVisitor{
 	}
 };
 
-struct AccountDataKeyVisitor: RequestKeyVisitor{
+struct AccountDataKeyVisitor: RequestKeyConstVisitor{
 	const AccountData	&racc;
 	PrepareKeyVisitor	&rprep;
 	bool				retval;
 	
 	AccountDataKeyVisitor(const AccountData &_racc, PrepareKeyVisitor &_rprep):racc(_racc), rprep(_rprep), retval(false){}
 	
-	void visit(RequestKeyAnd& _k) override{
+	void visit(const RequestKeyAnd& _k) override{
 		retval = false;
 		
 		if(_k.first){
@@ -156,7 +156,7 @@ struct AccountDataKeyVisitor: RequestKeyVisitor{
 		}
 	}
 	
-	void visit(RequestKeyOr& _k) override{
+	void visit(const RequestKeyOr& _k) override{
 		retval = false;
 		if(_k.first){
 			_k.first->visit(*this);
@@ -168,7 +168,7 @@ struct AccountDataKeyVisitor: RequestKeyVisitor{
 		}
 	}
 	
-	void visit(RequestKeyAndList& _k) override{
+	void visit(const RequestKeyAndList& _k) override{
 		retval = false;
 		for(auto &k: _k.key_vec){
 			if(k){
@@ -177,7 +177,7 @@ struct AccountDataKeyVisitor: RequestKeyVisitor{
 			}
 		}
 	}
-	void visit(RequestKeyOrList& _k) override{
+	void visit(const RequestKeyOrList& _k) override{
 		for(auto &k: _k.key_vec){
 			if(k){
 				k->visit(*this);
@@ -187,14 +187,14 @@ struct AccountDataKeyVisitor: RequestKeyVisitor{
 		retval = false;
 	}
 	
-	void visit(RequestKeyUserIdRegex& _k) override{
+	void visit(const RequestKeyUserIdRegex& _k) override{
 		retval = std::regex_match(racc.userid, rprep.regexvec[_k.cache_idx]);
 	}
-	void visit(RequestKeyEmailRegex& _k) override{
+	void visit(const RequestKeyEmailRegex& _k) override{
 		retval = std::regex_match(racc.email, rprep.regexvec[_k.cache_idx]);
 	}
 	
-	void visit(RequestKeyYearLess& _k) override{
+	void visit(const RequestKeyYearLess& _k) override{
 		retval = racc.birth_date.year < _k.year;
 	}
 };
