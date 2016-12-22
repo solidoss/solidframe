@@ -1,31 +1,30 @@
-# solid_frame_mpipc
-
-**Message Passing InterProcess Communication Engine TCP**
+# solid_frame_mpipc: Message Passing InterProcess Communication Engine
 
 ## Features
 
  * C++ only (no IDLs) with easy to use **asynchronous API**.
- * Pluggable - i.e. header only - 
- * Pluggable - i.e. header only - SSL support via solid_frame_aio_openssl (which is a wrapper over OpenSSL1.1.0 or BoringSSL).
- * Pluggable - i.e. header only - compression support via [Snappy](https://google.github.io/snappy/)
- * A single class (solid::frame::mpipc::Service) for both client and server. An instance of solid::frame::mpipc::Service can act as a client as a server or as both.
- * Buffer oriented message serialization engine: messages are serialized (marshaled) one fixed size buffer at a time, further enabling:
+ * A single class (solid::frame::mpipc::Service) for both client and server. An instance of solid::frame::mpipc::Service can act as a client, as a server, or as both.
+ * Pluggable - i.e. header only - secure communication support via solid_frame_aio_openssl (wrapper over OpenSSL1.1.0/BoringSSL).
+ * Pluggable - i.e. header only - communication compression support via [Snappy](https://google.github.io/snappy/)
+ * Pluggable - i.e. header only - protocol based on solid_serialization - a buffer oriented message serialization engine. Thus, messages are serialized (marshaled) one fixed size buffer at a time, further enabling:
  	* **No limit for message size** - one can send a 100GB file as a single message.
-	* **Message multiplexing** - messages from the send queue are sent in parallel on the same connection. This means for example that multiple small messages can be send while also sending one (or more) huge message(s).
+	* **Message multiplexing** - messages from the send queue are sent in parallel on the same connection. This means for example that multiple small messages can be sent while also sending one (or more) bigger message(s).
  * For client side, use **connection pool per recipient**.
 	* By default the connection pool is limited to a single connection.
 	* For higher throughput one can increase this limit in mpipc::Service's configuration.
  * Rescale up after a network failure.
  * Messages can be any of the following types:
 	* __basic__: normal behavior
-		* In case of network failures, the library will keep on trying to send the message until the message Started to be sent.
+		* In case of network failures, the library will keep on trying to send the message until the message has Started to be sent.
 		* If, while sending the message, there is a network failure the library will complete it immediately and not try to resend it.
 	* __synchronous__: all synchronous messages are sent one after another.
 	* __one_shot__: only tries once to send the message.
-	* __idempotent__: will try re-sending the message until either successfully sent (i.e. completely left the sending side) or, in case the message awaits a response, until a response was received.
+	* __idempotent__: will try re-sending the message until either successfully sent (i.e. completely left the sending side) or, in case the message awaits a response, until the response was received.
+
+__NOTE__: The header only plugins ensure that solid_frame_mpipc itself does not depend on the libraries the plugins depend on.
 
 **solid_frame_mpipc** is a peer-to-peer message passing communication library which provides a pure C++ way of implementing communication between two processes. It uses:
- * asynchronous TCP connection pools through solid_frame_aio library.
+ * asynchronous secure/plain TCP connection pools through solid_frame_aio library.
  * a serialization protocol based on solid_serialization library.
 
 Thus, solid_frame_mpipc differs from other implementations by:
@@ -34,7 +33,12 @@ Thus, solid_frame_mpipc differs from other implementations by:
 
 The downside is that solid_frame_mpipc will always be a C++ only library while the above alternatives (protobuf & thrift) can be used from multiple languages.
 
-On the other hand you should be able to call native C++ code from other languages.
+On the other hand you should be able to call native C/C++ code from other languages.
+Here are two examples of Android applications using solid_frame_mpipc to communicate with a central server:
+ * [Bubbles](https://github.com/vipalade/bubbles)
+ * [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient))
+ 
+ Both examples implement the communication and application logic in a C++ library and use a JNI (Java Native Interface) _facade_ for interacting with Android Java user interface code.
 
 ## Backlog
 * solid_frame_mpipc: test_unresolved_recipient
@@ -64,8 +68,7 @@ On the other hand you should be able to call native C++ code from other language
 * (DONE) add support multiple versions of the serialization library
 * (DONE) allow for a response to access the request message from its serialization method.
 
-
-## NOTES
+### NOTES
 1. closeConnection can be used for closing a connection after a certain message was sent.
 
 ## See also

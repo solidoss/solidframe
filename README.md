@@ -526,7 +526,7 @@ Message Passing Inter Process Communication library:
  * Pluggable - i.e. header only - support for OpenSSL via solid_frame_aio_openssl.
  * Pluggable - i.e. header only - support for communication compression via Snappy.
 
-The header only pluggins ensures that solid_frame_mpipc itself does not depend on the libraries the plugins depend on.
+The header only plugins ensure that solid_frame_mpipc itself does not depend on the libraries the plugins depend on.
 
 
  * [__mpipcservice.hpp__](solid/frame/mpipc/mpipcservice.hpp): Main interface of the library. Sends mpipc::Messages to different recipients and receives mpipc::Messages.
