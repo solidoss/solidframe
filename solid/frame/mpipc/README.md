@@ -1,4 +1,4 @@
-# solid_frame_mpipc: Message Passing InterProcess Communication Engine
+# solid_frame_mpipc: Message Passing Inter-Process Communication Engine
 
 ## Features
 
@@ -35,10 +35,10 @@ The downside is that solid_frame_mpipc will always be a C++ only library while t
 
 On the other hand you should be able to call native C/C++ code from other languages.
 Here are two examples of Android applications using solid_frame_mpipc to communicate with a central server:
- * [Bubbles](https://github.com/vipalade/bubbles)
- * [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient))
+ * [Bubbles](https://github.com/vipalade/bubbles) - C++ Linux server + Qt Linux Client + Android client application all using solid_frame_mpipc with secure communication
+ * [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient) - C++ Linux server + Android client application all using solid_frame_mpipc with secure communication
  
- Both examples implement the communication and application logic in a C++ library and use a JNI (Java Native Interface) _facade_ for interacting with Android Java user interface code.
+Both examples implement the communication and application logic in a C++ library and use a JNI (Java Native Interface) _facade_ for interacting with Android Java user interface code.
 
 ## Backlog
 * solid_frame_mpipc: test_unresolved_recipient
