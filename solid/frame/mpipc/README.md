@@ -4,17 +4,19 @@
 
 ## Features
 
-* C++ only (no IDLs) with easy to use **asynchronous API**.
-* Pluggable SSL support via solid_frame_aio_openssl (which is a wrapper over OpenSSL1.1.0 or BoringSSL). The SSL plugin is header only, this way solid_frame_mpipc library does not depend on any SSL library.
-* A single class (solid::frame::mpipc::Service) for both client and server. An instance of solid::frame::mpipc::Service can act as a client as a server or as both.
-* Buffer oriented message serialization engine: messages are serialized (marshaled) one fixed size buffer at a time, further enabling:
-	* **No limit for message size** - one can send a 100GB file as a single message.
+ * C++ only (no IDLs) with easy to use **asynchronous API**.
+ * Pluggable - i.e. header only - 
+ * Pluggable - i.e. header only - SSL support via solid_frame_aio_openssl (which is a wrapper over OpenSSL1.1.0 or BoringSSL).
+ * Pluggable - i.e. header only - compression support via [Snappy](https://google.github.io/snappy/)
+ * A single class (solid::frame::mpipc::Service) for both client and server. An instance of solid::frame::mpipc::Service can act as a client as a server or as both.
+ * Buffer oriented message serialization engine: messages are serialized (marshaled) one fixed size buffer at a time, further enabling:
+ 	* **No limit for message size** - one can send a 100GB file as a single message.
 	* **Message multiplexing** - messages from the send queue are sent in parallel on the same connection. This means for example that multiple small messages can be send while also sending one (or more) huge message(s).
-* For client side, use **connection pool per recipient**.
+ * For client side, use **connection pool per recipient**.
 	* By default the connection pool is limited to a single connection.
 	* For higher throughput one can increase this limit in mpipc::Service's configuration.
-* Rescale up after a network failure.
-* Messages can be any of the following types:
+ * Rescale up after a network failure.
+ * Messages can be any of the following types:
 	* __basic__: normal behavior
 		* In case of network failures, the library will keep on trying to send the message until the message Started to be sent.
 		* If, while sending the message, there is a network failure the library will complete it immediately and not try to resend it.
@@ -34,14 +36,18 @@ The downside is that solid_frame_mpipc will always be a C++ only library while t
 
 On the other hand you should be able to call native C++ code from other languages.
 
-### Planned
-* Support for buffer/packet level compression.
-	* The library will compress/decompress using a pluggable algorithm.
-	* In future versions of the library the compression will be adaptable.
-* **Finalize support for Secure Communication** after solid_frame_aio_openssl library will be completed.
+## Backlog
+* solid_frame_mpipc: test_unresolved_recipient
+* solid_frame_mpipc: test_raw_proxy
+* solid_frame_mpipc: SOCKS5
+* solid_frame_mpipc: test with thousands of connections
+
+## TODO v2.1
+* (DONE) solid_frame_mpipc: Pluggable (header only) support for SSL
+* (DONE) solid_frame_mpipc: Pluggable (header only) basic compression support using [Snappy](https://google.github.io/snappy/)
+
 
 ## TODO v2.0:
-
 * (DONE) connection should fail if recipient name is not resolved - should not retry send messages
 * (DONE) test_raw_basic
 * (DONE) test_multiprotocol
@@ -58,14 +64,6 @@ On the other hand you should be able to call native C++ code from other language
 * (DONE) add support multiple versions of the serialization library
 * (DONE) allow for a response to access the request message from its serialization method.
 
-
-## TODO v2.x
-
-* test_unresolved_recipient
-* test_raw_proxy
-* add support for compression - test and improve
-* add support for OpenSSL - needs extending OpenSSL support in solid_frame_aio_openssl
-* (????)add support in mpipc::configuration for SOCKS5
 
 ## NOTES
 1. closeConnection can be used for closing a connection after a certain message was sent.

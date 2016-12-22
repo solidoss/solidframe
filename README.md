@@ -10,8 +10,8 @@ Boost Software License - Version 1.0 - August 17th, 2003
  * [Tutorials](tutorials/README.md)
  * [Release Notes](RELEASES.md)
  * [IPC library](solid/frame/ipc/README.md)
- * [API Reference](solid/API.md) - TODO
- * [Wiki](https://github.com/vipalade/solidframe/wiki) - TODO
+ * [API Reference](solid/API.md) - __TODO__
+ * [Wiki](https://github.com/vipalade/solidframe/wiki) - __TODO__
 
 ## Prerequisites
 * C++11 enabled compiler
@@ -31,7 +31,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 **Focused:**
 
-* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing Inter-Process Communication over TCP ([MPIPC library](solid/frame/mpipc/README.md))
+* [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing Inter-Process Communication over secure/plain TCP ([MPIPC library](solid/frame/mpipc/README.md))
 	* _mpipc::Service_ - pass messages to/from multiple peers.
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
 	* _Object_ - reactive object with support for Asynchronous IO
@@ -521,7 +521,13 @@ Work in progress: The library extends solid_frame_aio with support for Secure So
 
 ### <a id="solid_frame_mpipc"></a>solid_frame_mpipc
 
-Message Passing Inter Process Communication library - protocol based on solid_serialization over TCP.
+Message Passing Inter Process Communication library:
+ * Pluggable - i.e. header only - protocol based on solid_serialization.
+ * Pluggable - i.e. header only - support for OpenSSL via solid_frame_aio_openssl.
+ * Pluggable - i.e. header only - support for communication compression via Snappy.
+
+The header only pluggins ensures that solid_frame_mpipc itself does not depend on the libraries the plugins depend on.
+
 
  * [__mpipcservice.hpp__](solid/frame/mpipc/mpipcservice.hpp): Main interface of the library. Sends mpipc::Messages to different recipients and receives mpipc::Messages.
  * [__mpipcmessage.hpp__](solid/frame/mpipc/mpipcmessage.hpp): Base class for all messages sent through mpipc::Service.
