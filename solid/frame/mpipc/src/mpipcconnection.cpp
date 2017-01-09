@@ -651,13 +651,13 @@ void Connection::onStopped(frame::aio::ReactorContext &_rctx){
 		{
 			
 			{
-				generic_event_category.event(GenericEvents::Start),
+				make_event(GenericEvents::Start),
 				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
 					_rcon.doHandleEventStart(_rctx, _revt);
 				}
 			},
 			{
-				generic_event_category.event(GenericEvents::Kill),
+				make_event(GenericEvents::Kill),
 				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
 					_rcon.doHandleEventKill(_rctx, _revt);
 				}

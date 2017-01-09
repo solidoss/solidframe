@@ -35,14 +35,14 @@ inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent){
 	idbgx(Debug::mpipc, "event = "<<_uevent);
 	if(
-		_uevent == generic_event_category.event(GenericEvents::Start) or
-		_uevent == generic_event_category.event(GenericEvents::Timer)
+		_uevent == generic_event_start or
+		_uevent == generic_event_timer
 	){
 		sock.postAccept(
 			_rctx,
 			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
 		);
-	}else if(_uevent == generic_event_category.event(GenericEvents::Kill)){
+	}else if(_uevent == generic_event_kill){
 		postStop(_rctx);
 	}
 }
@@ -58,7 +58,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			idbgx(Debug::mpipc, "listen error"<<_rctx.error().message());
 			timer.waitFor(
 				_rctx, NanoTime(10),
-				[this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, generic_event_category.event(GenericEvents::Timer));}
+				[this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, make_event(GenericEvents::Timer));}
 			);
 			break;
 		}

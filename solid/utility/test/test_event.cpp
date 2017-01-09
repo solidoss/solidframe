@@ -110,7 +110,7 @@ void Object::handleEvent(Event &&_revt){
 				[](Event &_revt, Object &_robj){cout<<"handle_beta_third on "<<&_robj<<" for "<<_revt<<endl;}
 			},
 			{
-				generic_event_category.event(GenericEvents::Message),
+				make_event(GenericEvents::Message),
 				[](Event &_revt, Object &_robj){cout<<"handle_generic_message on "<<&_robj<<" for "<<_revt<<" any value = "<<*_revt.any().cast<std::string>()<<endl;}
 			}
 		}
@@ -131,7 +131,7 @@ int test_event(int argc, char *argv[]){
 	rbase.handleEvent(alpha_event_category.event(AlphaEvents::Second));
 	rbase.handleEvent(beta_event_category.event(BetaEvents::Third));
 	rbase.handleEvent(beta_event_category.event(BetaEvents::Second));
-	rbase.handleEvent(generic_event_category.event(GenericEvents::Message, std::string("Some text")));
+	rbase.handleEvent(make_event(GenericEvents::Message, std::string("Some text")));
 	
 	return 0;
 }

@@ -128,7 +128,7 @@ int main(int argc, char *argv[]){
 			solid::ErrorConditionT				error;
 			solid::frame::ObjectIdT				objuid;
 			
-			objuid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+			objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
 			(void)objuid;
 		}else{
 			cout<<"Error creating listener socket"<<endl;
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]){
 			solid::ErrorConditionT				error;
 			solid::frame::ObjectIdT				objuid;
 			
-			objuid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+			objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
 			
 			(void)objuid;
 			
@@ -192,9 +192,9 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 //-----------------------------------------------------------------------------
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
-	if(generic_event_category.event(GenericEvents::Start) == _revent){
+	if(generic_event_start == _revent){
 		sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+	}else if(generic_event_kill == _revent){
 		postStop(_rctx);
 	}
 }
@@ -207,7 +207,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(std::move(_rsd)));
 			solid::ErrorConditionT				err;
 			
-			rscheduler.startObject(objptr, rservice, generic_event_category.event(GenericEvents::Start), err);
+			rscheduler.startObject(objptr, rservice, make_event(GenericEvents::Start), err);
 		}else{
 			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
 			timer.waitFor(
@@ -234,9 +234,9 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //		Connection
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
-	if(generic_event_category.event(GenericEvents::Start) == _revent){
+	if(generic_event_start == _revent){
 		sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
-	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+	}else if(generic_event_kill == _revent){
 		sock.shutdown(_rctx);
 		postStop(_rctx);
 	}
@@ -282,12 +282,12 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 //-----------------------------------------------------------------------------
 
 /*virtual*/ void Talker::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
-	if(generic_event_category.event(GenericEvents::Start) == _revent){
+	if(generic_event_start == _revent){
 		sock.postRecvFrom(
 			_rctx, buf, BufferCapacity,
 			[this](frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){onRecv(_rctx, _raddr, _sz);}
 		);//fully asynchronous call
-	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+	}else if(generic_event_kill == _revent){
 		postStop(_rctx);
 	}
 }

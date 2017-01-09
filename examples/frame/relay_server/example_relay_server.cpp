@@ -240,7 +240,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectIdT			objuid;
 				
-				objuid = sch.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
+				objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
 				idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
 			}else{
 				cout<<"Error creating listener socket"<<endl;
@@ -316,9 +316,9 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	idbg("event = "<<_revent);
-	if(_revent == generic_event_category.event(GenericEvents::Start)){
+	if(_revent == generic_event_start){
 		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
-	}else if(_revent == generic_event_category.event(GenericEvents::Kill)){
+	}else if(_revent == generic_event_kill){
 		postStop(_rctx);
 	}
 }
@@ -337,7 +337,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(std::move(_rsd)));
 			solid::ErrorConditionT				err;
 			
-			rsch.startObject(objptr, rsvc, generic_event_category.event(GenericEvents::Start), err);
+			rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
 		}else{
 			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
 			//timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -365,7 +365,7 @@ struct ResolvFunc{
 	ResolvFunc(frame::Manager &_rm, frame::ObjectIdT const& _robjuid): rm(_rm), objuid(_robjuid){}
 	
 	void operator()(ResolveData &_rrd, ErrorCodeT const &_rerr){
-		Event		ev(generic_event_category.event(GenericEvents::Message));
+		Event		ev(make_event(GenericEvents::Message));
 		
 		ev.any().reset(std::move(_rrd));
 		
@@ -404,7 +404,7 @@ struct MoveMessage{
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	edbg(this<<" "<<_revent);
-	if(generic_event_category.event(GenericEvents::Start) == _revent){
+	if(generic_event_start == _revent){
 		//sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
 		if(params.destination_addr_str.size()){
 			//we must resolve the address then connect
@@ -420,11 +420,11 @@ struct MoveMessage{
 			sock1.postSendAll(_rctx, buf1, strlen(buf1), Connection::onSendId);
 			sock1.postRecvSome(_rctx, buf2, 12, [this](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, 0, _sz);});
 		}
-	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+	}else if(generic_event_kill == _revent){
 		edbg(this<<" postStop");
 		//sock.shutdown(_rctx);
 		postStop(_rctx);
-	}else if(generic_event_category.event(GenericEvents::Message) == _revent){
+	}else if(generic_event_message == _revent){
 		MoveMessage *pmovemsg = _revent.any().cast<MoveMessage>();
 		if(pmovemsg){
 			sock2.reset(_rctx, std::move(pmovemsg->sd));
@@ -589,7 +589,7 @@ void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t
 		}else{
 			//move to a peer connection
 			frame::ObjectIdT	objid = connection_uid(idx);
-			Event				ev(generic_event_category.event(GenericEvents::Message));
+			Event				ev(make_event(GenericEvents::Message));
 			SocketDevice		sd(sock1.reset(_rctx));
 			ev.any().reset(MoveMessage(std::move(sd), buf2 + i, _sz - i));
 			idbg(this<<" send move_message with size = "<<(_sz - i));

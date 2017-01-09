@@ -914,7 +914,7 @@ void Manager::stopService(Service &_rsvc, const bool _wait){
 	if(rss.state == StateRunningE){
 		ObjectVisitFunctionT	fctor(
 			[](ObjectBase &_robj, ReactorBase &_rreact){
-				return notify_object(_robj, _rreact, generic_event_category.event(GenericEvents::Kill), 0);
+				return notify_object(_robj, _rreact, make_event(GenericEvents::Kill), 0);
 			}
 		);
 		
@@ -993,7 +993,7 @@ void Manager::stop(){
 			if(rss.psvc && rss.state == StateRunningE){
 				ObjectVisitFunctionT	fctor(
 					[](ObjectBase &_robj, ReactorBase &_rreact){
-						return notify_object(_robj, _rreact, generic_event_category.event(GenericEvents::Kill), 0);
+						return notify_object(_robj, _rreact, make_event(GenericEvents::Kill), 0);
 					}
 				);
 				

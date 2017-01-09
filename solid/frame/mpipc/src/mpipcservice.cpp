@@ -595,7 +595,7 @@ ErrorConditionT Service::doStart(){
 			
 			DynamicPointer<aio::Object>		objptr(new Listener(sd));
 			
-			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), error);
+			ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, make_event(GenericEvents::Start), error);
 			(void)conuid;
 			if(error){
 				return error;
@@ -1548,7 +1548,7 @@ bool Service::closeConnection(RecipientId const &_rrecipient_id){
 	
 	return manager().notify(
 		_rrecipient_id.connectionId(),
-		generic_event_category.event(GenericEvents::Kill)
+		make_event(GenericEvents::Kill)
 	);
 }
 //-----------------------------------------------------------------------------
@@ -1932,7 +1932,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
 		
 		DynamicPointer<aio::Object>		objptr(new_connection(configuration(), ConnectionPoolId(_pool_index, rpool.unique), rpool.name));
 		
-		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, generic_event_category.event(GenericEvents::Start), _rerror);
+		ObjectIdT						conuid = d.config.scheduler().startObject(objptr, *this, make_event(GenericEvents::Start), _rerror);
 		
 		if(!_rerror){
 			
@@ -2133,7 +2133,7 @@ void Service::acceptIncomingConnection(SocketDevice &_rsd){
 		solid::ErrorConditionT			error;
 		
 		ObjectIdT						con_id = d.config.scheduler().startObject(
-			objptr, *this, generic_event_category.event(GenericEvents::Start), error
+			objptr, *this, make_event(GenericEvents::Start), error
 		);
 		
 		idbgx(Debug::mpipc, this<<" receive connection ["<<con_id<<"] error = "<<error.message());

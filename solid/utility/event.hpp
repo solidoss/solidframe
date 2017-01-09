@@ -180,6 +180,31 @@ enum class GenericEvents{
 
 extern const EventCategory<GenericEvents>	generic_event_category;
 
+inline Event make_event(const GenericEvents _id){
+	return generic_event_category.event(_id);
+}
+	
+template <typename T>
+inline Event make_event(const GenericEvents _id, const T &_rany_value){
+	return generic_event_category.event(_id, _rany_value);
+}
+
+template <typename T>
+inline Event make_event(const GenericEvents _id, T &&_uany_value){
+	return generic_event_category.event(_id, _uany_value);
+}
+
+extern const Event		generic_event_default;
+extern const Event		generic_event_start;
+extern const Event		generic_event_stop;
+extern const Event		generic_event_raise;
+extern const Event		generic_event_message;
+extern const Event		generic_event_timer;
+extern const Event		generic_event_pause;
+extern const Event		generic_event_resume;
+extern const Event		generic_event_update;
+extern const Event		generic_event_kill;
+
 //-----------------------------------------------------------------------------
 //		EventHandlerBase
 //-----------------------------------------------------------------------------

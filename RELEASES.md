@@ -2,6 +2,8 @@
 
 ## Backlog
 
+* solid_frame_consensus: implement Paxos or Raft algorithms over solid_frame_mpipc
+* solid_frame_compressed_store/solid_compressed_store: in memory object store with compression support
 * solid_frame_mpipc: SOCKS5
 * solid_frame_mpipc: test with thousands of connections
 * DOCUMENTAION: API

@@ -246,7 +246,7 @@ int main(int argc, char *argv[]){
 			
 			{
 				SchedulerT::ObjectPointerT		objptr(filestoreptr);
-				objuid = sched.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
+				objuid = sched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
 			}
 			
 			{
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]){
 					solid::ErrorConditionT				err;
 					solid::frame::ObjectIdT			objuid;
 					
-					objuid = aiosched.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
+					objuid = aiosched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
 					idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
 				}else{
 					cout<<"Error creating listener socket"<<endl;
@@ -332,9 +332,9 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 //------------------------------------------------------------------
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	idbg("event = "<<_revent);
-	if(generic_event_category.event(GenericEvents::Start) == _revent){
+	if(generic_event_start == _revent){
 		sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+	}else if(generic_event_kill == _revent){
 		postStop(_rctx);
 	}
 }
@@ -348,7 +348,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(_rsd));
 			solid::ErrorConditionT				err;
 			
-			rsch.startObject(objptr, rsvc, generic_event_category.event(GenericEvents::Start), err);
+			rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
 		}else{
 			//e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
 			//timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
@@ -410,14 +410,14 @@ const char * Connection::findEnd(const char *_p){
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	idbg(""<<_revent);
-	if(generic_event_category.event(GenericEvents::Start) == _revent){
+	if(generic_event_start == _revent){
 		idbg("Start");
 		sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
 		state = ReadCommand;
-	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+	}else if(generic_event_kill == _revent){
 		idbg("Stop");
 		this->postStop(_rctx);
-	}else if(generic_event_category.event(GenericEvents::Message) == _revent){
+	}else if(generic_event_message == _revent){
 		idbg("Message");
 		FilePointerMessage *pfileptrmsg = _revent.any().cast<FilePointerMessage>();
 		if(pfileptrmsg){
@@ -514,7 +514,7 @@ struct OpenCbk{
 		ErrorCodeT const& /*_rerr*/
 	){
 		idbg("");
-		Event ev = generic_event_category.event(GenericEvents::Message);
+		Event ev{generic_event_message};
 		ev.any().reset(FilePointerMessage(_rptr));
 		
 		rm.notify(uid, std::move(ev));

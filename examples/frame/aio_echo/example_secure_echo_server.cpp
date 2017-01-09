@@ -207,7 +207,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT				err;
 				solid::frame::ObjectIdT				objuid;
 				
-				objuid = sch.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
+				objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
 				idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
 			}else{
 				cout<<"Error creating listener socket"<<endl;
@@ -266,10 +266,10 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	idbg("event = "<<_revent);
-	if(generic_event_category.event(GenericEvents::Start) == _revent){
+	if(generic_event_start == _revent){
 		sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
 		//sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
-	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+	}else if(generic_event_kill == _revent){
 		postStop(_rctx);
 	}
 }
@@ -289,7 +289,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(std::move(_rsd), secure_ctx));
 			solid::ErrorConditionT				err;
 			
-			rsch.startObject(objptr, rsvc, generic_event_category.event(GenericEvents::Start), err);
+			rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
 			
 #else
 			cout<<"Accepted connection: "<<_rsd.descriptor()<<endl;
@@ -316,7 +316,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 #ifdef USE_CONNECTION
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	edbg(this<<" "<<_revent);
-	if(generic_event_category.event(GenericEvents::Start) == _revent){
+	if(generic_event_start == _revent){
 		sock.secureSetCheckHostName(_rctx, "echo-client");
 		sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
 		if(sock.secureAccept(_rctx, Connection::onSecureAccept)){
@@ -327,7 +327,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 				postStop(_rctx);
 			}
 		}
-	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+	}else if(generic_event_kill == _revent){
 		edbg(this<<" postStop");
 		sock.shutdown(_rctx);
 		postStop(_rctx);

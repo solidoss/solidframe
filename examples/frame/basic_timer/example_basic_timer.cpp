@@ -79,7 +79,7 @@ int main(int argc, char *argv[]){
 				solid::ErrorConditionT			err;
 				solid::frame::ObjectIdT			objuid;
 				
-				objuid = s.startObject(objptr, svc, generic_event_category.event(GenericEvents::Start), err);
+				objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
 				idbg("Started BasicObject: "<<objuid.index<<','<<objuid.unique);
 			}
 			
@@ -100,10 +100,10 @@ int main(int argc, char *argv[]){
 
 /*virtual*/ void BasicObject::onEvent(frame::ReactorContext &_rctx, Event &&_uevent){
 	idbg("event = "<<_uevent);
-	if(_uevent == generic_event_category.event(GenericEvents::Start)){
+	if(_uevent == generic_event_start){
 		t1.waitUntil(_rctx, _rctx.time() + 5 * 1000, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);});
 		t2.waitUntil(_rctx, _rctx.time() + 10 * 1000, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 1);});
-	}else if(_uevent == generic_event_category.event(GenericEvents::Start)){
+	}else if(_uevent == generic_event_kill){
 		postStop(_rctx);
 	}
 }

@@ -176,17 +176,17 @@ void StoreBase::notifyObject(UniqueId const & _ruid){
 		}
 	}
 	if(do_raise){
-		manager().notify(manager().id(*this), generic_event_category.event(GenericEvents::Raise));
+		manager().notify(manager().id(*this), make_event(GenericEvents::Raise));
 	}
 }
 
 void StoreBase::raise(){
-	manager().notify(manager().id(*this), generic_event_category.event(GenericEvents::Raise));
+	manager().notify(manager().id(*this), make_event(GenericEvents::Raise));
 }
 
 
 /*virtual*/void StoreBase::onEvent(frame::ReactorContext &_rctx, Event &&_revent){
-	if(_revent == generic_event_category.event(GenericEvents::Raise)){
+	if(_revent == generic_event_raise){
 		{
 			std::unique_lock<std::mutex>	lock(mutex());
 			ulong sm = grabSignalMask();
@@ -202,11 +202,11 @@ void StoreBase::raise(){
 			this->post(
 				_rctx,
 				[this](frame::ReactorContext &_rctx, Event &&_revent){onEvent(_rctx, std::move(_revent));},
-				generic_event_category.event(GenericEvents::Raise)
+				make_event(GenericEvents::Raise)
 			);
 		}
 		d.pconserasevec->clear();
-	}else if(_revent == generic_event_category.event(GenericEvents::Kill)){
+	}else if(_revent == generic_event_kill){
 		this->postStop(_rctx);
 	}
 }

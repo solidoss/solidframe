@@ -194,7 +194,7 @@ int main(int argc, char *argv[]){
 			DynamicPointer<frame::aio::Object>	objptr(new Connection(secure_ctx));
 			solid::ErrorConditionT				err;
 			
-			objuid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start, ConnectStub(resolver, p.connect_addr, p.connect_port)), err);
+			objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, p.connect_addr, p.connect_port)), err);
 			
 			idbg("Started Client Connection object: "<<objuid.index<<','<<objuid.unique);
 		}
@@ -209,7 +209,7 @@ int main(int argc, char *argv[]){
 				break;
 			}
 			line += "\r\n";
-			if(manager.notify(objuid, generic_event_category.event(GenericEvents::Message, std::move(line)))){
+			if(manager.notify(objuid, make_event(GenericEvents::Message, std::move(line)))){
 			}else break;
 		}
 		
@@ -265,7 +265,7 @@ struct ConnectFunction{
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
 	edbg(this<<" "<<_revent);
-	if(generic_event_category.event(GenericEvents::Message) == _revent){
+	if(generic_event_message == _revent){
 		std::string *pline = _revent.any().cast<std::string>();
 		
 		SOLID_CHECK(pline != nullptr);
@@ -277,7 +277,7 @@ struct ConnectFunction{
 			sock.postSendAll(_rctx, send_strs[crtSendIdx()].data(), send_strs[crtSendIdx()].size(), onSent);
 		}
 		
-	}else if(generic_event_category.event(GenericEvents::Start) == _revent){
+	}else if(generic_event_start == _revent){
 		ConnectStub *pconnect_stub = _revent.any().cast<ConnectStub>();
 		
 		SOLID_CHECK(pconnect_stub != nullptr);
@@ -291,12 +291,12 @@ struct ConnectFunction{
 		pconnect_stub->resolver.requestResolve(
 			[&manager, objuid](ResolveData &_rrd, ErrorCodeT const &/*_rerr*/){
 				idbg("send resolv_message");
-				manager.notify(objuid, generic_event_category.event(GenericEvents::Raise, std::move(_rrd)));
+				manager.notify(objuid, make_event(GenericEvents::Raise, std::move(_rrd)));
 			}, 
 			pconnect_stub->connect_addr.c_str(),
 			pconnect_stub->connect_port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream
 		);
-	}else if(generic_event_category.event(GenericEvents::Raise) == _revent){
+	}else if(generic_event_raise == _revent){
 		ResolveData *presolve_data = _revent.any().cast<ResolveData>();
 		
 		SOLID_CHECK(presolve_data != nullptr);
@@ -316,7 +316,7 @@ struct ConnectFunction{
 			edbg(this<<" postStop");
 			postStop(_rctx);
 		}
-	}else if(generic_event_category.event(GenericEvents::Kill) == _revent){
+	}else if(generic_event_kill == _revent){
 		edbg(this<<" postStop");
 		sock.shutdown(_rctx);
 		postStop(_rctx);
