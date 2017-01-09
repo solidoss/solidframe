@@ -18,7 +18,7 @@ public:
         _ros<<"B";
         return _ros;
     }
-    
+
     virtual void store(SizeTVectorT &_rv)const{
     }
 };
@@ -88,61 +88,61 @@ size_t dynamic_main(const size_t _loop_count, const size_t _queue_count){
     DynamicQueueT   dq;
     size_t cnt = 0;
     for(size_t j = 0; j < _loop_count; ++j){
-        
+
         for(size_t i = 0; i < _queue_count; ++i){
             dq.push(BDynamicPointerT(new A<1>));
             dq.push(BDynamicPointerT(new AA<1,2>));
             dq.push(BDynamicPointerT(new AAA<1,2,3>));
             dq.push(BDynamicPointerT(new AAAA<1,2,3,4>));
         }
-        
+
         SizeTVectorT    sv;
-        
+
         while(dq.size()){
             B &rb = *dq.front();
-            
+
             //rb.print(cout)<<" = ";
-            
+
             if(A<1>::cast(&rb)){
                 //cout<<"A<1>";
                 ++cnt;
             }
-            
+
             if(AA<1,2>::cast(&rb)){
                 //cout<<"AA<1,2>";
                 ++cnt;
             }
-            
+
             if(AAA<1,2,3>::cast(&rb)){
                 //cout<<"AAA<1,2,3>";
                 ++cnt;
             }
-            
+
             if(AAAA<1,2,3,4>::cast(&rb)){
                 //cout<<"AAAA<1,2,3,4>";
                 ++cnt;
             }
             //cout<<endl;
-            
+
             if(A<2>::cast(&rb)){
                 SOLID_ASSERT(false);
             }
-            
+
             if(AA<2, 2>::cast(&rb)){
                 SOLID_ASSERT(false);
             }
-            
+
             if(AAA<2, 2, 2>::cast(&rb)){
                 SOLID_ASSERT(false);
             }
-            
+
             if(AAAA<2, 2, 2, 2>::cast(&rb)){
                 SOLID_ASSERT(false);
             }
-            
+
             dq.pop();
         }
-        
+
     }//for j
     return cnt;
 }
@@ -152,36 +152,36 @@ size_t dcast_main(const size_t _loop_count, const size_t _queue_count){
     DynamicQueueT   dq;
     size_t cnt = 0;
     for(size_t j = 0; j < _loop_count; ++j){
-        
+
         for(size_t i = 0; i < _queue_count; ++i){
             dq.push(BDynamicPointerT(new A<1>));
             dq.push(BDynamicPointerT(new AA<1,2>));
             dq.push(BDynamicPointerT(new AAA<1,2,3>));
             dq.push(BDynamicPointerT(new AAAA<1,2,3,4>));
         }
-        
+
         SizeTVectorT    sv;
-        
+
         while(dq.size()){
             B &rb = *dq.front();
-            
+
             //rb.print(cout)<<" = ";
-            
+
             if(dynamic_cast<A<1>*>(&rb)){
                 //cout<<"A<1>";
                 ++cnt;
             }
-            
+
             if(dynamic_cast<AA<1,2>*>(&rb)){
                 //cout<<"AA<1,2>";
                 ++cnt;
             }
-            
+
             if(dynamic_cast<AAA<1,2,3>*>(&rb)){
                 //cout<<"AAA<1,2,3>";
                 ++cnt;
             }
-            
+
             if(dynamic_cast<AAAA<1,2,3,4>*>(&rb)){
                 //cout<<"AAAA<1,2,3,4>";
                 ++cnt;
@@ -191,35 +191,35 @@ size_t dcast_main(const size_t _loop_count, const size_t _queue_count){
             if(dynamic_cast<A<5>*>(&rb)){
                 SOLID_ASSERT(false);
             }
-            
+
             if(dynamic_cast<AA<5, 5>*>(&rb)){
                 SOLID_ASSERT(false);
             }
-            
+
             if(dynamic_cast<AAA<5, 5, 5>*>(&rb)){
                 SOLID_ASSERT(false);
             }
-            
+
             if(dynamic_cast<AAAA<5, 5, 5, 5>*>(&rb)){
                 SOLID_ASSERT(false);
             }
 #endif
             dq.pop();
         }
-        
+
     }//for j
     return cnt;
 }
 
 int main(int argc, char *argv[]){
     const char *choice_str = "0";
-    
+
     if(argc >= 2){
         choice_str = argv[1];
     }
-    
+
     int choice = atoi(choice_str);
-    
+
     switch(choice){
         case 0:
             cout<<"Dynamic_main: "<<dynamic_main(loop_count, queue_count)<<endl;break;

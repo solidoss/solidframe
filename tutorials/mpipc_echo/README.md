@@ -11,7 +11,7 @@ Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
  * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
- 
+
 ## Overview
 
 In this tutorial you will learn how to use solid_frame_mpipc library for a basic client-server application pair.
@@ -30,7 +30,7 @@ You will need three source files:
  * _mpipc_echo_messages.hpp_: the protocol message.
  * _mpipc_echo_client.cpp_: the client implementation.
  * _mpipc_echo_server.cpp_: the server implementation.
- 
+
 
 ## Protocol definition
 
@@ -49,15 +49,15 @@ namespace ipc_echo{
 
 struct Message: solid::frame::mpipc::Message{
     std::string         str;
-    
+
     Message(){}
-    
+
     Message(std::string && _ustr): str(std::move(_ustr)){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(str, "str");
-    }   
+    }
 };
 
 using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, Message>;
@@ -109,24 +109,24 @@ First off, initialize the mpipc service and its prerequisites:
 
 ```C++
         AioSchedulerT           scheduler;
-        
-        
+
+
         frame::Manager          manager;
         frame::mpipc::ServiceT  ipcservice(manager);
-        
+
         frame::aio::Resolver    resolver;
-        
+
         ErrorConditionT         err;
-        
+
         err = scheduler.start(1);
-        
+
         if(err){
             cout<<"Error starting aio scheduler: "<<err.message()<<endl;
             return 1;
         }
-        
+
         err = resolver.start(1);
-        
+
         if(err){
             cout<<"Error starting aio resolver: "<<err.message()<<endl;
             return 1;
@@ -143,15 +143,15 @@ Next we configure the ipcservice like this:
         {
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
-            
+
             ipc_echo::ProtoSpecT::setup<ipc_echo_client::MessageSetup>(*proto);
-            
+
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
-            
+
             cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
-            
+
             err = ipcservice.reconfigure(std::move(cfg));
-            
+
             if(err){
                 cout<<"Error starting ipcservice: "<<err.message()<<endl;
                 return 1;
@@ -183,9 +183,9 @@ void complete_message(
         cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
         return;
     }
-    
+
     SOLID_CHECK(_rrecv_msg_ptr and _rsent_msg_ptr);
-    
+
     cout<<"Received from "<<_rctx.recipientName()<<": "<<_rrecv_msg_ptr->str<<endl;
 }
 
@@ -207,7 +207,7 @@ A message completion callback is called when:
  * a response was received for a message waiting for it
 
 In our case, the message will wait for a response and the response will have the same type as the request.
- 
+
 In the "complete_message" function, we check for error and print to standard output the name of the destination server (_rctx.recipientName()) and the message payload we got back.
 
 Getting back to ipcservice configuration code, the next interesting line is
@@ -238,14 +238,14 @@ Now that we've completed configuring and starting the ipcservice, let see how th
         while(true){
             string  line;
             getline(cin, line);
-            
+
             if(line == "q" or line == "Q" or line == "quit"){
                 break;
             }
             {
                 string      recipient;
                 size_t      offset = line.find(' ');
-                
+
                 if(offset != string::npos){
                     recipient = line.substr(0, offset);
                     ipcservice.sendMessage(recipient.c_str(), make_shared<ipc_echo::Message>(line.substr(offset + 1)), 0|frame::mpipc::MessageFlags::WaitResponse);
@@ -255,7 +255,7 @@ Now that we've completed configuring and starting the ipcservice, let see how th
             }
         }
 ```
- 
+
 The interesting line in the above block is
 ```C++
     ipcservice.sendMessage(recipient.c_str(), make_shared<ipc_echo::Message>(line.substr(offset + 1)), 0|frame::mpipc::MessageFlags::WaitResponse);
@@ -283,17 +283,17 @@ E.g. the initialization of the ipcservice and its prerequisites is the same as o
         {
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
-            
+
             ipc_echo::ProtoSpecT::setup<ipc_echo_server::MessageSetup>(*proto);
-            
+
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
             cfg.server.listener_address_str += p.listener_port;
-            
+
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
-            
+
             err = ipcsvc.reconfigure(std::move(cfg));
-            
+
             if(err){
                 cout<<"Error starting ipcservice: "<<err.message()<<endl;
                 manager.stop();
@@ -326,12 +326,12 @@ void complete_message(
     ErrorConditionT const &_rerror
 ){
     SOLID_CHECK(not _rerror);
-    
+
     if(_rrecv_msg_ptr){
         SOLID_CHECK(not _rsent_msg_ptr);
         SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
     }
-    
+
     if(_rsent_msg_ptr){
         SOLID_CHECK(not _rrecv_msg_ptr);
     }

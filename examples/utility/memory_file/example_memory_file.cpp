@@ -33,7 +33,7 @@ int main(int argc, char *argv[]){
     ltime = static_cast<long>(time(nullptr)); /* get current calendar time */
     stime = (unsigned int) ltime/2;
     srand(stime);
-    
+
     MemoryFile mf;
     {
         //first we read a file in memory:
@@ -55,10 +55,10 @@ int main(int argc, char *argv[]){
         }while(rc == rv);
         cout<<"error "<<strerror(errno)<<endl;
     }
-    
+
     {
         //then we write it back to disk
-        
+
         FileDevice fd;
         if(!fd.open("test.dat", FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::TruncateE)){
             cout<<"unable to open file"<<endl;

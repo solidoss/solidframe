@@ -1,6 +1,6 @@
 // frame/aio/aiocommon.hpp
 //
-// Copyright (c) 2013, 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013, 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //

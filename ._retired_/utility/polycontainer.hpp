@@ -1,6 +1,6 @@
 // utility/polycontainer.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -14,7 +14,7 @@
 
 namespace solid{
 
-class MultiContainer{   
+class MultiContainer{
     typedef void (*FncT) (void*);
 public:
 #ifdef SOLID_USE_SAFE_STATIC
@@ -52,7 +52,7 @@ public:
         boost::call_once(&once_cbk<T>, once);
         return getStub<T>(_p);
     }
-        
+
 #endif
 private:
     static unsigned objectid(FncT _pf);

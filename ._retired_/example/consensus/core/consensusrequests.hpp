@@ -31,11 +31,11 @@ void mapSignals(solid::frame::ipc::Service &);
 struct StoreRequest: solid::Dynamic<StoreRequest, solid::consensus::WriteRequestMessage>{
     StoreRequest(const std::string&, solid::uint32 _pos);
     StoreRequest();
-    
+
     /*virtual*/ void consensusNotifyServerWithThis();
     /*virtual*/ void consensusNotifyClientWithThis();
     /*virtual*/ void consensusNotifyClientWithFail();
-    
+
     template <class S>
     S& serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
         static_cast<solid::consensus::WriteRequestMessage*>(this)->serialize<S>(_s, _rctx);
@@ -48,11 +48,11 @@ struct StoreRequest: solid::Dynamic<StoreRequest, solid::consensus::WriteRequest
 struct FetchRequest: solid::Dynamic<FetchRequest, solid::consensus::WriteRequestMessage>{
     FetchRequest(const std::string&);
     FetchRequest();
-    
+
     /*virtual*/ void consensusNotifyServerWithThis();
     /*virtual*/ void consensusNotifyClientWithThis();
     /*virtual*/ void consensusNotifyClientWithFail();
-    
+
     template <class S>
     S& serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
         return static_cast<solid::consensus::WriteRequestMessage*>(this)->serialize<S>(_s, _rctx);
@@ -62,11 +62,11 @@ struct FetchRequest: solid::Dynamic<FetchRequest, solid::consensus::WriteRequest
 struct EraseRequest: solid::Dynamic<EraseRequest, solid::consensus::WriteRequestMessage>{
     EraseRequest(const std::string&);
     EraseRequest();
-    
+
     /*virtual*/ void consensusNotifyServerWithThis();
     /*virtual*/ void consensusNotifyClientWithThis();
     /*virtual*/ void consensusNotifyClientWithFail();
-    
+
     template <class S>
     S& serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
         return static_cast<solid::consensus::WriteRequestMessage*>(this)->serialize<S>(_s, _rctx);

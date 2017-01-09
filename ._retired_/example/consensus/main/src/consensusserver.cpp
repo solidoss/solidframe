@@ -31,7 +31,7 @@ typedef DynamicPointer<consensus::server::Configuration>    ConfigurationPointer
 
 struct Params{
     Params():cfgptr(new ServerConfiguration){}
-    
+
     int                                 ipc_port;
     string                              dbg_levels;
     string                              dbg_modules;
@@ -47,12 +47,12 @@ struct Params{
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
-    
+
     Params p;
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     Thread::init();
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -91,33 +91,33 @@ int main(int argc, char *argv[]){
         idbg("Failed ServerParams::init: "<<p.cfgptr->errorString());
         return 0;
     }
-    
+
         //cout<<p.p;
         idbg(*p.cfgptr);
     }
     {
-        
+
         frame::Manager      m;
-        
+
         AioSchedulerT           aiosched(m);
         SchedulerT              objsched(m);
-        
+
         frame::ipc::Service     ipcsvc(m, new frame::ipc::BasicController(aiosched));
-        
+
         mapSignals(ipcsvc);
         ServerObject::dynamicRegister();
         ServerObject::registerMessages(ipcsvc);
-        
+
         m.registerService(ipcsvc);
-        
+
         {
             frame::ipc::Configuration   cfg;
             ResolveData                 rd = synchronous_resolve("0.0.0.0", p.ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
             //frame::aio::Error         err;
             bool                        err;
-            
+
             cfg.baseaddr = rd.begin();
-            
+
             err = ipcsvc.reconfigure(cfg);
             if(!err){
                 //TODO:
@@ -126,14 +126,14 @@ int main(int argc, char *argv[]){
                 return 0;
             }
         }
-        
+
         ConfigurationPointerT           cfgptr(p.cfgptr);
         DynamicPointer<ServerObject>    objptr(new ServerObject(ipcsvc, cfgptr));
-        
+
         objptr->serverIndex(consensus::Registrar::the().registerObject(m.registerObject(*objptr)));
-        
+
         objsched.schedule(objptr);
-        
+
         char c;
         cout<<"> "<<flush;
         cin>>c;

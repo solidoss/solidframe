@@ -7,7 +7,7 @@ typedef FUNCTION<int(std::string const&)>   FunctionT;
 
 void* operator new(size_t sz) throw (std::bad_alloc)
 {
-    
+
     void* mem = malloc(sz);
     if (mem){
         cerr << "allocating " << sz << " bytes "<<mem<<endl;
@@ -47,7 +47,7 @@ struct Functor{
     char            buf[8];
     std::string     str;
     Functor(){}
-    
+
     int operator()(std::string const &_str){
         str = _str;
         return _str.size();
@@ -55,24 +55,24 @@ struct Functor{
 };
 
 int main(int argc, char *argv[]){
-    
+
     Test            test("fool");
-    
+
     cout<<"Create function:"<<endl;
-    
+
     FunctionT       fnc;
-    
+
     cout<<"sizeof(fnc): "<<sizeof(fnc)<<endl;
-    
+
     cout<<"Init with lamda:"<<endl;
     fnc = [](std::string const &_str){test_str = _str; return static_cast<int>(_str.size());};
-    
+
     cout<<"Init with static:"<<endl;
     fnc = test_fnc;
-    
+
     cout<<"Init with test:"<<endl;
     test.setFnc(fnc);
-    
+
     cout<<"Init with functor (sizeof(Functor) = "<<sizeof(Functor)<<"):"<<endl;
     fnc = Functor();
     return 0;

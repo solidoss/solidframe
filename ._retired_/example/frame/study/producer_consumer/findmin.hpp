@@ -27,11 +27,11 @@ FindRetValT find_min_or_equal(It _it, NumberToType<2> _s){
 
 template <class It, size_t S>
 FindRetValT find_min_or_equal(It _it, NumberToType<S> s){
-    
+
     const FindRetValT   off1 = find_min_or_equal(_it, NumberToType<S/2>());
     FindRetValT         off2 = find_min_or_equal(_it + S/2, NumberToType<S - S/2>());
     off2.first += S/2;
-    
+
     if(*(_it + off1.first) < *(_it + off2.first)){
         return FindRetValT(off1.first, false);
     }else if(*(_it + off1.first) > *(_it + off2.first)){
@@ -68,11 +68,11 @@ FindRetValT find_min_or_equal_cmp(It _it, Cmp const & _rcmp, NumberToType<2> _s)
 
 template <class It, class Cmp, size_t S>
 FindRetValT find_min_or_equal_cmp(It _it, Cmp const &_rcmp, NumberToType<S> s){
-    
+
     const FindRetValT   off1 = find_min_or_equal_cmp(_it, _rcmp, NumberToType<S/2>());
     FindRetValT         off2 = find_min_or_equal_cmp(_it + S/2, _rcmp, NumberToType<S - S/2>());
     off2.first += S/2;
-    
+
     if(_rcmp(*(_it + off1.first), *(_it + off2.first))){
         return FindRetValT(off1.first, false);
     }else if(_rcmp(*(_it + off2.first), *(_it + off1.first))){
@@ -106,10 +106,10 @@ size_t find_min(It _it, NumberToType<2> _s){
 
 template <class It, size_t S>
 size_t find_min(It _it, NumberToType<S> s){
-    
+
     const size_t    off1 = find_min(_it, NumberToType<S/2>());
     const size_t    off2 = find_min(_it + S/2, NumberToType<S - S/2>()) + S/2;
-    
+
     if(*(_it + off1) < *(_it + off2)){
         return off1;
     }
@@ -133,10 +133,10 @@ size_t find_min_cmp(It _it, Cmp const &_rcmp, NumberToType<2> _s){
 
 template <class It, class Cmp, size_t S>
 size_t find_min_cmp(It _it, Cmp const &_rcmp, NumberToType<S> s){
-    
+
     const size_t    off1 = find_min_cmp(_it, _rcmp, NumberToType<S/2>());
     const size_t    off2 = find_min_cmp(_it + S/2, _rcmp, NumberToType<S - S/2>()) + S/2;
-    
+
     if(_rcmp(*(_it + off1), *(_it + off2))){
         return off1;
     }

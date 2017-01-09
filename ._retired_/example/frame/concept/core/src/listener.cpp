@@ -1,6 +1,6 @@
 // listener.cpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -35,14 +35,14 @@ Listener::Listener(
     if(notified()){
         Locker<Mutex>   lock(Manager::specific().mutex(*this));
         solid::ulong sm = this->grabSignalMask();
-        if(sm & frame::S_KILL){ 
+        if(sm & frame::S_KILL){
             _rexectx.close();
             return;
         }
     }
-    
+
     solid::uint cnt(10);
-    
+
     while(cnt--){
         if(state == 0){
             switch(this->socketAccept(sd)){

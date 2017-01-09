@@ -1,6 +1,6 @@
 // solid/frame/aio/aioobject.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -44,33 +44,33 @@ class Object: public Dynamic<Object, ObjectBase>, ForwardCompletionHandler{
 protected:
     friend class CompletionHandler;
     friend class Reactor;
-    
+
     //! Constructor
     Object();
-    
+
     ObjectProxy proxy(){
         return ObjectProxy(*this);
     }
-    
+
     bool registerCompletionHandler(CompletionHandler &_rch);
-    
+
     void registerCompletionHandlers();
-    
+
     bool isRunning()const;
-    
+
     void postStop(ReactorContext &_rctx){
         if(doPrepareStop(_rctx)){
             _rctx.reactor().postObjectStop(_rctx);
         }
     }
-    
+
     template <class F>
     void postStop(ReactorContext &_rctx, F _f, Event &&_uevent = Event()){
         if(doPrepareStop(_rctx)){
             _rctx.reactor().postObjectStop(_rctx, _f, std::move(_uevent));
         }
     }
-    
+
     template <class F>
     void post(ReactorContext &_rctx, F _f, Event &&_uevent = Event()){
         _rctx.reactor().post(_rctx, _f, std::move(_uevent));

@@ -166,24 +166,24 @@ private:
 };
 
 int main(int argc, char * argv[]){
-    
+
     if(argc != 3){
         cout<<"Usage:\n\t$ example_allocatetest 3 1000\n\t\tWhere 3 is the number of producers and 1000 is the number of iterations\n";
         return 0;
     }
-    
+
     uint64          prdcnt = atoi(argv[1]);
     uint64          rptcnt = atoi(argv[2]);
-    
+
     Consumer    *pcons = new Consumer(prdcnt * rptcnt);
     pcons->start();
-    
+
     for(int i = 0; i < prdcnt; ++i){
         Producer *prod = new Producer(*pcons, i, rptcnt);
         prod->start();
     }
-    
-    
+
+
     Thread::waitAll();
     return 0;
 }
@@ -236,7 +236,7 @@ void Consumer::run(){
                     sum += pmsg->v;
                     delete pmsg;
                 }break;
-                    
+
                 case BaseMessage::SecondType:{
                     SecondMessage *pmsg = static_cast<SecondMessage*>(pbmsg);
                     sum += pmsg->v;

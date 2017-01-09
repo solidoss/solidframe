@@ -1,6 +1,6 @@
 // utility/timerqueue.hpp
 //
-// Copyright (c) 2011, 2012, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2011, 2012, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -20,14 +20,14 @@ template <class V>
 class TimerQueue{
     typedef std::pair<TimeSpec, V>  TimeSpecValuePairT;
 public:
-    typedef V ValueT; 
-    
+    typedef V ValueT;
+
     TimerQueue(){}
-    
+
     void push(const TimeSpec &_rts, const ValueT &_rv){
         tq.push(TimeSpecValuePairT(_rts, _rv));
     }
-    
+
     const TimeSpec& frontTime()const{
         return tq.top().first;
     }
@@ -35,12 +35,12 @@ public:
         return tq.top().second;
     }
 
-    
+
     bool isHit(const TimeSpec &_rts)const{
         if(tq.empty()) return false;
         return _rts >=  frontTime();
     }
-    
+
 
     void pop(){
         tq.pop();
@@ -52,20 +52,20 @@ public:
         return tq.empty();
     }
 private:
-    
+
     struct TimerDataCmp{
         bool operator()(const TimeSpecValuePairT &_rtd1, const TimeSpecValuePairT &_rtd2)const{
             return _rtd1.first > _rtd2.first;
         }
     };
-    
+
     typedef std::priority_queue<
         TimeSpecValuePairT,
         std::vector<TimeSpecValuePairT>,
         TimerDataCmp
     >   TimerPriorityQueueT;
 
-private:    
+private:
     TimerQueue(const TimerQueue&);
     TimerQueue& operator=(const TimerQueue&);
 private:

@@ -1,6 +1,6 @@
 // service.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -38,7 +38,7 @@ class Service: public solid::frame::Service{
 public:
     Service(Manager &_rm);
     ~Service();
-    
+
     bool insertListener(
         const solid::ResolveData &_rai,
         bool _secure = false

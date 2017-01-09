@@ -1,6 +1,6 @@
 // alphaconnection.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -98,14 +98,14 @@ Connection::Connection(
 
 
 /*
-NOTE: 
+NOTE:
 * Releasing the connection here and not in a base class destructor because
-here we know the exact type of the object - so the service can do other things 
+here we know the exact type of the object - so the service can do other things
 based on the type.
-* Also it ensures a proper/safe visiting. Suppose the unregister would have taken 
+* Also it ensures a proper/safe visiting. Suppose the unregister would have taken
 place in a base destructor. If the visited object is a leaf, one may visit
 destroyed data.
-NOTE: 
+NOTE:
 * Visitable data must be destroyed after releasing the connection!!!
 */
 
@@ -161,7 +161,7 @@ Connection::~Connection(){
             _rexectx.close();
             return;
     }
-    
+
     if(notified()){//we've received a signal
         DynamicHandler<DynamicMapperT>  dh(dm);
         solid::ulong                            sm(0);
@@ -233,9 +233,9 @@ Connection::~Connection(){
             string              hoststr;
             string              portstr;
             SocketAddress       addr;
-            
-            
-            
+
+
+
             writer()<<"* Hello from alpha server ("<<myport<<' '<<' '<< objid<<' '<<objuid<<") [";
             socketLocalAddress(addr);
             synchronous_resolve(

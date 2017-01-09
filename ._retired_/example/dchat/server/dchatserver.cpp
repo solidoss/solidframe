@@ -90,7 +90,7 @@ struct InitMessage: Dynamic<InitMessage, BaseMessage>{
     }
     ~InitMessage(){
     }
-    
+
     /*virtual*/ void ipcOnReceive(
         frame::ipc::ConnectionContext const &_rctx,
         MessagePointerT &_rmsgptr,
@@ -98,7 +98,7 @@ struct InitMessage: Dynamic<InitMessage, BaseMessage>{
     );
     /*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
     /*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
-    
+
     template <class S>
     void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
         _s.pushContainer(nodevec, "nodevec").push(type, "type");
@@ -113,7 +113,7 @@ struct InitMessage: Dynamic<InitMessage, BaseMessage>{
 struct TextMessage: TextMessageBase, solid::Dynamic<TextMessage, BaseMessage>{
     TextMessage(const std::string &_txt):TextMessageBase(_txt){}
     TextMessage(){}
-    
+
     /*virtual*/ void ipcOnReceive(
         solid::frame::ipc::ConnectionContext const &_rctx,
         MessagePointerT &_rmsgptr,
@@ -121,12 +121,12 @@ struct TextMessage: TextMessageBase, solid::Dynamic<TextMessage, BaseMessage>{
     );
     /*virtual*/ solid::uint32 ipcOnPrepare(solid::frame::ipc::ConnectionContext const &_rctx);
     /*virtual*/ void ipcOnComplete(solid::frame::ipc::ConnectionContext const &_rctx, int _err);
-    
+
     template <class S>
     void serialize(S &_s, ConnectionContext &_rctx){
         TextMessageBase::serialize(_s, _rctx);
     }
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
         _s.push(text, "text").push(user, "user");
@@ -137,27 +137,27 @@ struct TextMessage: TextMessageBase, solid::Dynamic<TextMessage, BaseMessage>{
 
 struct Handle{
     void beforeSerialization(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){}
-    
+
     void beforeSerialization(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){}
     bool checkStore(void *, ConnectionContext &_rctx)const{
         return true;
     }
-    
+
     bool checkLoad(void *_pm, ConnectionContext  &_rctx)const{
         return false;//reject all incomming messages
     }
-    
+
     bool checkLoad(LoginRequest *_pm, ConnectionContext  &_rctx)const;
     bool checkLoad(TextMessage *_pm, ConnectionContext  &_rctx)const;
     bool checkLoad(NoopMessage *_pm, ConnectionContext  &_rctx)const;
-    
+
     void afterSerialization(BinSerializerT &_rs, void *_pm, ConnectionContext &_rctx){}
-    
-    
+
+
     void afterSerialization(BinDeserializerT &_rs, LoginRequest *_pm, ConnectionContext &_rctx);
     void afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx);
     void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
-    
+
 };
 
 //------------------------------------------------------------------------------------
@@ -168,7 +168,7 @@ namespace{
         BasicNodeType,
         InitNodeType,
         WaitNodeType
-            
+
     };
 
     bool split_endpoint_string(std::string &_endpoint, std::string &_addr, int &_port){
@@ -186,13 +186,13 @@ namespace{
     struct Params{
         //typedef std::vector<SocketAddressInet4>       AddressVectorT;
         typedef std::vector<std::string>            StringVectorT;
-        
+
         int             chat_port;
         string          chat_addr_str;
         string          ipc_endpoint_str;
         StringVectorT   connectstringvec;
-        
-        
+
+
         string          dbg_levels;
         string          dbg_modules;
         string          dbg_addr;
@@ -200,9 +200,9 @@ namespace{
         bool            dbg_console;
         bool            dbg_buffered;
         bool            log;
-        
+
         //AddressVectorT    connectvec;
-        
+
         bool prepare(frame::ipc::Configuration &_rcfg, Service &_rsvc, string &_err);
     };
 
@@ -216,7 +216,7 @@ namespace{
             case SIGINT:
             case SIGTERM:{
                 if(run){
-                    
+
                     Locker<Mutex>  lock(mtx);
                     run = false;
                     cnd.broadcast();
@@ -224,7 +224,7 @@ namespace{
             }
         }
     }
-    
+
 }//namespace
 
 //------------------------------------------------------------------------------------
@@ -254,7 +254,7 @@ public:
         nodevec.back().type = LocalNodeType;
     }
     ~Service(){}
-    
+
     void ipcService(frame::ipc::Service &_ripc){
         pipc = &_ripc;
     }
@@ -270,7 +270,7 @@ public:
     void onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx);
     void onReceiveMessage(DynamicPointer<TextMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx);
     void onNodeDisconnect(SocketAddressInet4 &_raddr);
-    
+
     void notifyNodes(DynamicPointer<frame::ipc::Message> &_rmsgptr, NotifyChoice _choice = NotifyAll);
 private:
     friend class Listener;
@@ -319,7 +319,7 @@ public:
         const uint32 _flags = 0,
         const uint32 _resdatasz = 0
     ):frame::ipc::BasicController(_rsched, _flags, _resdatasz), rchatsvc(_rsvc){}
-    
+
     IpcController(
         Service &_rsvc,
         AioSchedulerT &_rsched_t,
@@ -328,7 +328,7 @@ public:
         const uint32 _flags = 0,
         const uint32 _resdatasz = 0
     ):frame::ipc::BasicController(_rsched_t, _rsched_l, _rsched_n, _flags, _resdatasz), rchatsvc(_rsvc){}
-        
+
     Service& chatService()const{
         return rchatsvc;
     }
@@ -361,7 +361,7 @@ int main(int argc, char *argv[]){
     if(parseArguments(p, argc, argv)) return 0;
     signal(SIGINT,term_handler); /* Die on SIGTERM */
     /*solid::*/Thread::init();
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -394,36 +394,36 @@ int main(int argc, char *argv[]){
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-    
+
     {
         frame::Manager          m;
         AioSchedulerT           aiosched(m);
         AioSchedulerT           ipcaiosched(m);
-        
+
         UInt8TypeMapperT        tm;
-        
+
         tm.insertHandle<LoginRequest, Handle>();
         tm.insert<BasicMessage>();
         tm.insertHandle<TextMessage, Handle>();
         tm.insertHandle<NoopMessage, Handle>();
-        
+
         Service                 svc(m, aiosched, tm, p.ipc_endpoint_str.c_str());
-        
+
         frame::ipc::Service     ipcsvc(m, new IpcController(svc, ipcaiosched));
-        
+
         ipcsvc.registerMessageType<InitMessage>();
         ipcsvc.registerMessageType<TextMessage>();
-        
+
         svc.ipcService(ipcsvc);
-        
+
         m.registerService(svc);
         m.registerService(ipcsvc);
-        
+
         {
             frame::ipc::Configuration   cfg;
             //solid::Error              err;
             bool                        rv;
-            
+
             {
                 string errstr;
                 if(!p.prepare(cfg, svc, errstr)){
@@ -432,7 +432,7 @@ int main(int argc, char *argv[]){
                     return 0;
                 }
             }
-            
+
             rv = ipcsvc.reconfigure(cfg);
             if(!rv){
                 //TODO:
@@ -441,13 +441,13 @@ int main(int argc, char *argv[]){
                 return 0;
             }
         }
-        
+
         {
-            
+
             ResolveData     rd =  synchronous_resolve(p.chat_addr_str.c_str(), p.chat_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    
+
             SocketDevice    sd;
-    
+
             sd.create(rd.begin());
             sd.makeNonBlocking();
             sd.prepareAccept(rd.begin(), 100);
@@ -455,7 +455,7 @@ int main(int argc, char *argv[]){
                 cout<<"Error creating listener"<<endl;
                 return 0;
             }
-    
+
             frame::aio::openssl::Context *pctx = NULL;
 #if 0
             if(p.secure){
@@ -463,13 +463,13 @@ int main(int argc, char *argv[]){
             }
             if(pctx){
                 const char *pcertpath(OSSL_SOURCE_PATH"ssl_/certs/A-server.pem");
-                
+
                 pctx->loadCertificateFile(pcertpath);
                 pctx->loadPrivateKeyFile(pcertpath);
             }
 #endif
             ListenerPointerT lsnptr(new Listener(svc, sd, pctx));
-    
+
             m.registerObject(*lsnptr);
             aiosched.schedule(lsnptr);
         }
@@ -488,12 +488,12 @@ int main(int argc, char *argv[]){
             char c;
             cin>>c;
         }
-        
+
         m.stop();
-        
+
     }
     /*solid::*/Thread::waitAll();
-    
+
     return 0;
 }
 //--------------------------------------------------------------------------
@@ -532,15 +532,15 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 namespace{
 bool Params::prepare(frame::ipc::Configuration &_rcfg, Service &_rsvc, string &_err){
     const uint16    default_port = 3000;
-    
+
     std::string ipc_addr;
     int         ipc_port = default_port;
-    
+
     split_endpoint_string(ipc_endpoint_str, ipc_addr, ipc_port);
-    
+
     ResolveData     rd = synchronous_resolve(ipc_addr.c_str(), ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
     _rcfg.baseaddr = rd.begin();
-    
+
     for(StringVectorT::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
         _rsvc.addNode(*it, InitNodeType);
     }
@@ -610,7 +610,7 @@ class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObj
     >                                                           ProtocolEngineT;
 public:
 
-    
+
     Connection(
         const SocketDevice &_rsd,
         const serialization::TypeMapperBase &_rtm
@@ -631,7 +631,7 @@ public:
     }
     void onAuthenticate(const std::string &_user);
     void onFailAuthenticate();
-    
+
     Service& service(){
         //NOT nice, but fast
         return static_cast<Service&>(frame::Manager::specific().service(*this));
@@ -748,13 +748,13 @@ size_t Service::addNodeUnsafe(std::string &_rname, NodeTypes _type){
     std::string addr;
     int         port;
     split_endpoint_string(_rname, addr, port);
-    
+
     ResolveData         rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
     bool                found = false;
     SocketAddressInet4  a;
-    
+
     size_t              rv = 0;
-    
+
     a = rd.begin();
     for(NodeVectorT::iterator it(nodevec.begin()); it != nodevec.end(); ++it){
         if(it->addr == a){
@@ -762,7 +762,7 @@ size_t Service::addNodeUnsafe(std::string &_rname, NodeTypes _type){
             break;
         }
     }
-    
+
     if(!found){
         rv = nodevec.size();
         nodevec.push_back(NodeStub());
@@ -778,7 +778,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
     std::string addr;
     int         port;
     split_endpoint_string(_rname, addr, port);
-    
+
     ResolveData         rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
     Locker<SharedMutex> lock(shrmtx);
     bool                found = false;
@@ -790,7 +790,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
             break;
         }
     }
-    
+
     if(!found){
         nodevec.push_back(NodeStub());
         nodevec.back().name = _rname;
@@ -802,9 +802,9 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 //--------------------------------------------------------------------------
 /*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
     static Compressor       compressor(BufferControllerT::DataCapacity);
-    
+
     solid::ulong            sm = grabSignalMask();
-    
+
     if(sm){
         if(sm & frame::S_KILL){
             done();
@@ -823,7 +823,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
             msgvec.clear();
         }
     }
-    
+
     if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError)){
         done();
         _rexectx.close();
@@ -917,9 +917,9 @@ struct Notifier{
 
     const frame::IndexT             objid;
     TextMessageSharedPointerT       msgshrptr;
-    
+
     Notifier(const frame::IndexT &_rid, TextMessage *_pm):objid(_rid), msgshrptr(_pm){}
-        
+
     void operator()(frame::Object &_robj){
         frame::Manager &rm = frame::Manager::specific();
         if(_robj.id() != objid){
@@ -958,7 +958,7 @@ void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, Connect
     return 0;
 }
 /*virtual*/ void InitMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
-    
+
 }
 //------------------------------------------------------------------------------------
 /*virtual*/ void TextMessage::ipcOnReceive(
@@ -973,6 +973,6 @@ void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, Connect
     return 0;
 }
 /*virtual*/ void TextMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
-    
+
 }
 //------------------------------------------------------------------------------------

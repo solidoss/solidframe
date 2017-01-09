@@ -1,6 +1,6 @@
 // serialization_reinit.cpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -75,7 +75,7 @@ public:
     void serialize(S &_s){
         _s.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 0, "Test::call");
     }
-    
+
     template <class S>
     void serializationReinit(S &_rs, const uint64_t &_rv, ErrorConditionT &_rerr){
         if(S::IsSerializer){
@@ -93,7 +93,7 @@ public:
                     _rs.push(*static_cast<TestB*>(pmsg), "message");
                     _rs.push(crtsndmsg, "typeid");
                 }
-                
+
                 return;
             }else if(crtidx == tstvec.size()){
                 idbg("ser 3");
@@ -146,17 +146,17 @@ int main(int argc, char *argv[]){
     const int               blen = 16;
     char                    bufs[1000][blen];
     int                     rv;
-    
+
     {
         BinSerializerT  ser;
         int             v = 0, cnt = 0;
         Container       c;
-        
+
         c.push(new TestA);
         c.push(new TestB);
-        
+
         ser.push(c, "container");
-        
+
         while((rv = ser.run(bufs[v], blen)) == blen){
             cnt += rv;
             ++v;
@@ -175,22 +175,22 @@ int main(int argc, char *argv[]){
         int                 v = 0;
         int                 cnt = 0;
         Container           c;
-        
+
         des.push(c, "container");
-        
+
         while((rv = des.run(bufs[v], blen)) == blen){
             cnt += rv;
             ++v;
         }
-        
+
         if(rv < 0){
             cout<<"ERROR: deserialization "<<des.error().message()<<endl;
             return 0;
         }
-        
+
         cnt += rv;
         cout<<"Read size = "<<cnt<<endl;
-        
+
         c.print();
     }
     return 0;

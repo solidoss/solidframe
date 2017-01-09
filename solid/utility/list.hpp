@@ -1,6 +1,6 @@
 // solid/utility/list.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -41,7 +41,7 @@ protected:
     Link* doInsert(Link* _at, Link *_what);
     Link* doInsert(Link* _at);
     void  doClear();
-    
+
     bool cacheEmpty()const{ return ptop == nullptr;}
 
     Link* theBack(){
@@ -186,7 +186,7 @@ public:
         else
             return static_cast<Node*>(doPushBack())->create();
     }
-    
+
     void push_front(const T& _rt){
         if(this->cacheEmpty())
             doPushFront(new Node(_rt));

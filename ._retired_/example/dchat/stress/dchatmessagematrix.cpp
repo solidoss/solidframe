@@ -42,9 +42,9 @@ namespace{
     }
     void create_text(ostream &_ros, size_t _from, size_t _to, size_t _count, size_t _idx){
         static const string char_set = create_char_set();
-        
+
         if(!_count) return;
-        
+
         if(_from > _to){
             size_t tmp = _to;
             _to = _from;
@@ -57,7 +57,7 @@ namespace{
             _ros << char_set[i % char_set.size()];
         }
     }
-    
+
 }//namespace
 
 typedef solid::DynamicSharedPointer<TextMessage>                TextMessageSharedPointerT;
@@ -90,7 +90,7 @@ void MessageMatrix::createRow(
     Locker<SharedMutex> lock(d.shrmtx);
     d.tmmap[_row_idx] = UniquePtrD<TextMessageVectorT>(new TextMessageVectorT);
     TextMessageVectorT  &rvec = *d.tmmap[_row_idx];
-    
+
     for(size_t i = 0; i < _cnt; ++i){
         ostringstream oss;
         oss<<_row_idx<<' '<<i<<' ';

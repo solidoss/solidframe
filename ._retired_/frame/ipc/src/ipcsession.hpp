@@ -43,7 +43,7 @@ struct Context{
 
 class Session{
 public:
-    
+
     static void init();
     static bool parseAcceptPacket(
         const Packet &_rpkt,
@@ -59,7 +59,7 @@ public:
         const Packet &_rpkt,
         ErrorData &_rdata
     );
-    
+
     static bool fillAcceptPacket(
         Packet &_rpkt,
         const AcceptData &_raccdata
@@ -72,9 +72,9 @@ public:
         Packet &_rpkt,
         const ErrorData &_rdata
     );
-    
+
     static uint32 computeResendTime(const size_t _cnt);
-    
+
     Session(
         Service &_rsvc,
         const SocketAddressInet4 &_raddr
@@ -84,7 +84,7 @@ public:
         const SocketAddressInet4 &_raddr,
         const ConnectData &_rconndata
     );
-    
+
     Session(
         Service &_rsvc,
         const uint32 _netid,
@@ -98,7 +98,7 @@ public:
         const ConnectData &_rconndata,
         const uint32 _gwidx
     );
-    
+
     Session(
         Service &_rsvc,
         const SocketAddressInet6 &_raddr
@@ -108,25 +108,25 @@ public:
         const SocketAddressInet6 &_raddr,
         const ConnectData &_rconndata
     );
-    
+
     Session(Service &_rsvc);
-    
+
     ~Session();
-    
+
     bool isRelayType()const;
-    
+
     const BaseAddress4T peerBaseAddress4()const;
     const BaseAddress6T peerBaseAddress6()const;
-    
+
     const RelayAddress4T peerRelayAddress4()const;
     //const RelayAddress6T peerRelayAddress6()const;
-    
+
     //used by talker for sendto
     const SocketAddressStub& peerAddress()const;
-    
+
     const SocketAddressInet4& peerAddress4()const;
     const SocketAddressInet6& peerAddress6()const;
-    
+
     bool isConnected()const;
     bool isDisconnecting()const;
     bool isDisconnected()const;
@@ -134,55 +134,55 @@ public:
     bool isAccepting()const;
 
     void prepare(TalkerStub &_rstub);
-    void reconnect(Session *_pses); 
-    
+    void reconnect(Session *_pses);
+
     bool pushMessage(
         DynamicPointer<Message> &_rmsgptr,
         const SerializationTypeIdT &_rtid,
         uint32 _flags
     );
-    
+
     bool pushEvent(
         int32 _event,
         uint32 _flags
     );
-    
+
     bool preprocessReceivedPacket(
         Packet &_rpkt,
         TalkerStub &_rstub
     );
-    
+
     bool pushReceivedPacket(
         Packet &_rpkt,
         TalkerStub &_rstub
     );
-    
+
     bool pushReceivedErrorPacket(
         Packet &_rpkt,
         TalkerStub &_rstub
     );
-    
+
     void completeConnect(TalkerStub &_rstub, uint16 _port);
     void completeConnect(TalkerStub &_rstub, uint16 _port, uint32 _relayid);
-    
+
     bool executeTimeout(
         TalkerStub &_rstub,
         uint32 _id
     );
-    
+
     AsyncE execute(TalkerStub &_rstub);
-    
+
     bool pushSentPacket(
         TalkerStub &_rstub,
         uint32 _id,
         const char *_data,
         const uint16 _size
     );
-    
+
     void prepareContext(Context &_rctx);
-    
+
     void dummySendError(TalkerStub &_rstub, const SocketAddress &_rsa, int _error);
-    
+
     ConnectionContext::MessagePointerT* requestMessageSafe(const MessageUid &_rmsguid)const;
 private:
     bool doPushExpectedReceivedPacket(
@@ -199,7 +199,7 @@ private:
         const char *&_bpos, int &_blen, int _firstblen
     );
     void doParsePacket(TalkerStub &_rstub, const Packet &_rpkt);
-    
+
     AsyncE doExecuteRelayInit(TalkerStub &_rstub);
     AsyncE doExecuteConnecting(TalkerStub &_rstub);
     AsyncE doExecuteRelayConnecting(TalkerStub &_rstub);

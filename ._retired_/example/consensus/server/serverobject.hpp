@@ -17,7 +17,7 @@ struct Message;
 
 struct ServerConfiguration: solid::consensus::server::Configuration{
     typedef std::vector<std::string>    StringVectorT;
-    
+
     bool init(int _ipc_port);
     const std::string& errorString()const{
         return err;
@@ -36,15 +36,15 @@ class ServerObject: public solid::Dynamic<ServerObject, solid::consensus::server
 public:
     static void dynamicRegister();
     static void registerMessages(solid::frame::ipc::Service &_ripcsvc);
-    
+
     ServerObject(
         solid::frame::ipc::Service &_ripcsvc,
         solid::DynamicPointer<solid::consensus::server::Configuration> &_rcfgptr
     );
     ~ServerObject();
-    
+
     void dynamicHandle(solid::DynamicPointer<> &_dp, int);
-    
+
     void dynamicHandle(solid::DynamicPointer<StoreRequest> &_rsig, int);
     void dynamicHandle(solid::DynamicPointer<FetchRequest> &_rsig, int);
     void dynamicHandle(solid::DynamicPointer<EraseRequest> &_rsig, int);

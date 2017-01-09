@@ -50,7 +50,7 @@ void generate_addresses(
 // ostream& operator<<(ostream &_ros, const SocketAddressInet4 &_rsa){
 //  char                host[SocketInfo::HostStringCapacity];
 //  char                port[SocketInfo::ServiceStringCapacity];
-//  
+//
 //  _rsasynchronous_resolve(
 //      host,
 //      SocketInfo::HostStringCapacity,
@@ -72,21 +72,21 @@ int main(int argc, char *argv[]){
     SocketAddressVectorT        addr_vec;
     PositionHashVectorT         hash_vec;
     uint8_t startaddr[4] = {103, 102, 101, 100};
-    
+
     generate_addresses(cnt, startaddr, 4000, 10, 3, addr_vec);
-    
+
     for(size_t i(0); i < addr_vec.size(); ++i){
         size_t h(addr_vec[i].hash());
         hash_vec.push_back(PositionHashPairT(i, h));
     }
-    
+
     std::sort(hash_vec.begin(), hash_vec.end(), PositionHashPairLess());
-    
+
     uint32_t collisionmax(0);
     uint32_t collisioncnt(0);
-    
+
     size_t crthash;
-    
+
     uint32_t crtcollisioncnt;
     for(PositionHashVectorT::const_iterator it(hash_vec.begin()); it != hash_vec.end(); ++it){
         if(it == hash_vec.begin()){
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]){
             crthash = it->second;
         }
     }
-    
+
     if(crtcollisioncnt){
         cout<<']'<<endl;
         if(crtcollisioncnt > collisionmax){
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]){
     }
     cout<<"Max collision count: "<<collisionmax<<endl;
     cout<<"Collisions count:    "<<collisioncnt<<endl;
-    
+
     for(size_t i(0); i < addr_vec.size(); ++i){
         addr_map[&addr_vec[i]] = i;
     }

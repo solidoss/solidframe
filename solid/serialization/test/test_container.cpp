@@ -18,9 +18,9 @@ struct Test{
     using MapT = std::map<std::string, uint64_t>;
     using MapBoolT = std::map<std::string, bool>;
     using SetT = std::set<std::string>;
-        
+
     Test():b(false){}
-    
+
     bool                b;
     std::string         str;
     KeyValueVectorT     kv_vec;
@@ -41,8 +41,8 @@ struct Test{
     vector<bool>        bv100;
     vector<bool>        bv1000;
     SetT                ss;
-    
-    
+
+
     template <class S>
     void serialize(S &_s){
         _s.push(str, "Test::str");
@@ -63,10 +63,10 @@ struct Test{
         _s.push(bv1000, "bv1000");
         _s.pushContainer(ss, "ss");
     }
-    
+
     void init();
     void check()const;
-    
+
     static TestPointerT create(){
         return make_shared<Test>();
     }
@@ -75,47 +75,47 @@ struct Test{
 }//namespace
 
 int test_container(int argc, char* argv[]){
-    
+
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("view");
     Debug::the().moduleMask("all");
     Debug::the().initStdErr(false, nullptr);
 #endif
-    
+
     using SerializerT       = serialization::binary::Serializer<void>;
     using DeserializerT     = serialization::binary::Deserializer<void>;
     using TypeIdMapT        = serialization::TypeIdMap<SerializerT, DeserializerT>;
-    
+
     string      test_data;
     TypeIdMapT  typemap;
-    
+
     typemap.registerType<Test>(0/*protocol ID*/);
-    
+
     {//serialization
         SerializerT         ser(&typemap);
         const int           bufcp = 64;
         char                buf[bufcp];
         int                 rv;
-        
+
         shared_ptr<Test>    test = Test::create();
-        
+
         test->init();
-        
+
         ser.push(test, "test");
-        
+
         while((rv = ser.run(buf, bufcp)) > 0){
             test_data.append(buf, rv);
         }
     }
     {//deserialization
         DeserializerT   des(&typemap);
-        
+
         shared_ptr<Test>    test;
-        
+
         des.push(test, "test");
-        
+
         int rv = des.run(test_data.data(), test_data.size());
-        
+
         SOLID_CHECK(rv == static_cast<int>(test_data.size()));
         test->check();
     }
@@ -150,7 +150,7 @@ void Test::init(){
         kb_map[kv_array[i].first] = ((i % 2) == 0);
         ss.insert(kv_array[i].first);
     }
-    
+
     bs5.reset();
     bv5.resize(5, false);
     for(size_t i = 0; i < bs5.size(); ++i){
@@ -159,7 +159,7 @@ void Test::init(){
             bv5[i] = true;
         }
     }
-    
+
     bs10.reset();
     bv10.resize(10, false);
     for(size_t i = 0; i < bs10.size(); ++i){
@@ -168,7 +168,7 @@ void Test::init(){
             bv10[i] = true;
         }
     }
-    
+
     bs20.reset();
     bv20.resize(20, false);
     for(size_t i = 0; i < bs20.size(); ++i){
@@ -177,7 +177,7 @@ void Test::init(){
             bv20[i] = true;
         }
     }
-    
+
     bs50.reset();
     bv50.resize(50, false);
     for(size_t i = 0; i < bs50.size(); ++i){
@@ -186,7 +186,7 @@ void Test::init(){
             bv50[i] = true;
         }
     }
-    
+
     bs100.reset();
     bv100.resize(100, false);
     for(size_t i = 0; i < bs100.size(); ++i){
@@ -195,7 +195,7 @@ void Test::init(){
             bv100[i] = true;
         }
     }
-    
+
     bs1000.reset();
     bv1000.resize(1000, false);
     for(size_t i = 0; i < bs1000.size(); ++i){
@@ -204,7 +204,7 @@ void Test::init(){
             bv1000[i] = true;
         }
     }
-    
+
     v32 = str.size();
     check();
 }
@@ -231,13 +231,13 @@ void Test::check()const{
         MapBoolT::const_iterator itb = kb_map.find(kv_array[i].first);
         SOLID_CHECK(itb != kb_map.end());
         SOLID_CHECK(itb->second == ((i % 2) == 0));
-        
+
         SetT::const_iterator ssit = ss.find(kv_array[i].first);
         SOLID_CHECK(ssit != ss.end());
     }
     SOLID_CHECK(tmpstr == str);
     SOLID_CHECK(str.size() == v32);
-    
+
     for(size_t i = 0; i < bs5.size(); ++i){
         if((i % 2) == 0){
             SOLID_CHECK(bs5[i]);
@@ -247,7 +247,7 @@ void Test::check()const{
             SOLID_CHECK(not bv5[i]);
         }
     }
-    
+
     for(size_t i = 0; i < bs10.size(); ++i){
         if((i % 2) == 0){
             SOLID_CHECK(bs10[i]);
@@ -257,7 +257,7 @@ void Test::check()const{
             SOLID_CHECK(not bv10[i]);
         }
     }
-    
+
     for(size_t i = 0; i < bs20.size(); ++i){
         if((i % 2) == 0){
             SOLID_CHECK(bs20[i]);
@@ -267,7 +267,7 @@ void Test::check()const{
             SOLID_CHECK(not bv20[i]);
         }
     }
-    
+
     for(size_t i = 0; i < bs50.size(); ++i){
         if((i % 2) == 0){
             SOLID_CHECK(bs50[i]);
@@ -277,7 +277,7 @@ void Test::check()const{
             SOLID_CHECK(not bv50[i]);
         }
     }
-    
+
     for(size_t i = 0; i < bs100.size(); ++i){
         if((i % 2) == 0){
             SOLID_CHECK(bs100[i]);
@@ -287,7 +287,7 @@ void Test::check()const{
             SOLID_CHECK(not bv100[i]);
         }
     }
-    
+
     for(size_t i = 0; i < bs1000.size(); ++i){
         if((i % 2) == 0){
             SOLID_CHECK(bs1000[i]);

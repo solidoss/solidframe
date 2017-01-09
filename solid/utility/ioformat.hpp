@@ -1,6 +1,6 @@
 // solid/utility/ioforamt.hpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -20,14 +20,14 @@ struct TrimString{
     size_t      strlen;
     size_t      beglen;
     size_t      endlen;
-    
+
     TrimString(
         const char *_pstr,
         size_t      _strlen,
         size_t      _beglen,
         size_t      _endlen
     ):pstr(_pstr), strlen(_strlen), beglen(_beglen), endlen(_endlen){
-    
+
     }
 };
 

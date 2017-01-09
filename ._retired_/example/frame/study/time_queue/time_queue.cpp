@@ -43,7 +43,7 @@ void time_test(
     TQ          tq;
     for(size_t k = 0; k < _repeatcnt; ++k){
         TimeSpec    crttime = TimeSpec::createMonotonic();
-        
+
         for(size_t i = 0; i < _loopcnt; ++i){
             const size_t add_cnt = addTimeCount(i);
             for(size_t j = 0; j < add_cnt; ++j){
@@ -52,7 +52,7 @@ void time_test(
             newCurrentTime(crttime, i);
             tq.pop(crttime, do_something);
         }
-        
+
         tq.pop(TimeSpec::maximum, do_something);
     }
 }
@@ -66,7 +66,7 @@ public:
             maxsz = tq.size();
         }
     }
-    
+
     void pop(TimeSpec const &_ts, FunctionT _pf){
         while(tq.isHit(_ts)){
             (*_pf)(tq.frontValue());
@@ -94,7 +94,7 @@ public:
         }
 #endif
     }
-    
+
     void pop(TimeSpec const &_ts, FunctionT _pf){
 #ifdef USE_MINTS
         if(_ts < mints){
@@ -103,10 +103,10 @@ public:
         }
 #endif
         mints = TimeSpec::maximum;
-        
+
         size_t      sz = vv.size();
         bool        pass  = false;
-        
+
         for(size_t i = 0; i < sz;){
             ValueT const & rv(vv[i]);
             if(rv.first > _ts){
@@ -124,7 +124,7 @@ public:
                 vv.pop_back();
             }
         }
-        
+
         if(!pass){
             ++emptycnt;
         }
@@ -141,18 +141,18 @@ int main(int argc, char *argv[]){
     int     choice = 0;
     size_t  repeatcnt = 500;
     size_t  loopcnt = 10000;
-    
+
     if(argc > 1){
         choice = atoi(argv[1]);
     }
     if(argc > 2){
         repeatcnt = atoi(argv[2]);
     }
-    
+
     if(argc > 2){
         loopcnt = atoi(argv[2]);
     }
-    
+
     switch(choice){
         case 0:
             time_test<PriorityTimeQueue>(repeatcnt, loopcnt);

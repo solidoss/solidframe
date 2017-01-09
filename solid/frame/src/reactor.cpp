@@ -1,6 +1,6 @@
 // solid/frame/src/reactor.cpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -60,17 +60,17 @@ public:
     EventObject(): dummyhandler(proxy(), dummy_completion){
         use();
     }
-    
+
     void stop(){
         dummyhandler.deactivate();
         dummyhandler.unregister();
     }
-    
+
     template <class F>
     void post(ReactorContext &_rctx, F _f){
         Object::post(_rctx, _f);
     }
-    
+
     CompletionHandler       dummyhandler;
 };
 
@@ -78,7 +78,7 @@ struct NewTaskStub{
     NewTaskStub(
         UniqueId const&_ruid, TaskT const&_robjptr, Service &_rsvc, Event const &_revent
     ):uid(_ruid), objptr(_robjptr), rsvc(_rsvc), event(_revent){}
-    
+
     //NewTaskStub(){}
     UniqueId        uid;
     TaskT       objptr;
@@ -90,17 +90,17 @@ struct RaiseEventStub{
     RaiseEventStub(
         UniqueId const&_ruid, Event const &_revent
     ):uid(_ruid), event(_revent){}
-    
+
     RaiseEventStub(
         UniqueId const&_ruid, Event &&_uevent
     ):uid(_ruid), event(std::move(_uevent)){}
-    
+
     RaiseEventStub(const RaiseEventStub&) = delete;
-    
+
     RaiseEventStub(
         RaiseEventStub &&_ures
     ):uid(_ures.uid), event(std::move(_ures.event)){}
-    
+
     UniqueId    uid;
     Event       event;
 };
@@ -110,7 +110,7 @@ struct CompletionHandlerStub{
         CompletionHandler *_pch = nullptr,
         const size_t _objidx = InvalidIndex()
     ):pch(_pch), objidx(_objidx), unique(0){}
-    
+
     CompletionHandler       *pch;
     size_t                  objidx;
     UniqueT                 unique;
@@ -119,7 +119,7 @@ struct CompletionHandlerStub{
 
 struct ObjectStub{
     ObjectStub():unique(0), psvc(nullptr){}
-    
+
     UniqueT     unique;
     Service     *psvc;
     TaskT       objptr;
@@ -137,22 +137,22 @@ struct ExecStub{
     ExecStub(
         UniqueId const &_ruid, F _f, Event &&_uevent = Event()
     ):objuid(_ruid), exefnc(_f), event(std::move(_uevent)){}
-    
+
     template <class F>
     ExecStub(
         UniqueId const &_ruid, F _f, UniqueId const &_rchnuid, Event &&_revent = Event()
     ):objuid(_ruid), chnuid(_rchnuid), exefnc(_f), event(std::move(_revent)){}
-    
+
     ExecStub(
         UniqueId const &_ruid, Event const &_revent = Event()
     ):objuid(_ruid), event(_revent){}
-    
+
     ExecStub(
         ExecStub &&_res
     ): objuid(_res.objuid), chnuid(_res.chnuid), event(std::move(_res.event)){
         std::swap(exefnc, _res.exefnc);
     }
-    
+
     UniqueId                        objuid;
     UniqueId                        chnuid;
     Reactor::EventFunctionT         exefnc;
@@ -170,7 +170,7 @@ typedef TimeStore<size_t>                   TimeStoreT;
 
 struct Reactor::Data{
     Data(
-        
+
     ):  running(0), must_stop(false), crtpushtskvecidx(0),
         crtraisevecidx(0), crtpushvecsz(0), crtraisevecsz(0),
         objcnt(0), timestore(MinEventCapacity)
@@ -178,7 +178,7 @@ struct Reactor::Data{
         pcrtpushtskvec = &pushtskvec[1];
         pcrtraisevec = &raisevec[1];
     }
-    
+
     int computeWaitTimeMilliseconds(NanoTime const & _rcrt)const{
         if(exeq.size()){
             return 0;
@@ -202,12 +202,12 @@ struct Reactor::Data{
             return -1;
         }
     }
-    
+
     UniqueId dummyCompletionHandlerUid()const{
         const size_t idx = eventobj.dummyhandler.idxreactor;
         return UniqueId(idx, chdq[idx].unique);
     }
-    
+
     bool                        running;
     bool                        must_stop;
     size_t                      crtpushtskvecidx;
@@ -218,11 +218,11 @@ struct Reactor::Data{
     TimeStoreT                  timestore;
     NewTaskVectorT              *pcrtpushtskvec;
     RaiseEventVectorT           *pcrtraisevec;
-    
+
     mutex                       mtx;
     condition_variable          cnd;
     NewTaskVectorT              pushtskvec[2];
-    
+
     RaiseEventVectorT           raisevec[2];
     EventObject                 eventobj;
     CompletionHandlerDequeT     chdq;
@@ -234,7 +234,7 @@ struct Reactor::Data{
 
 Reactor::Reactor(
     SchedulerBase &_rsched,
-    const size_t _idx 
+    const size_t _idx
 ):ReactorBase(_rsched, _idx), d(*(new Data)){
     vdbgx(Debug::aio, "");
 }
@@ -247,16 +247,16 @@ Reactor::~Reactor(){
 bool Reactor::start(){
     doStoreSpecific();
     vdbgx(Debug::aio, "");
-    
+
     d.objdq.push_back(ObjectStub());
     d.objdq.back().objptr = &d.eventobj;
-    
+
     popUid(*d.objdq.back().objptr);
-    
+
     d.eventobj.registerCompletionHandlers();
-    
+
     d.running = true;
-    
+
     return true;
 }
 
@@ -266,7 +266,7 @@ bool Reactor::start(){
     size_t  raisevecsz = 0;
     {
         unique_lock<mutex>  lock(d.mtx);
-        
+
         d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, _revent));
         raisevecsz = d.raisevec[d.crtraisevecidx].size();
         d.crtraisevecsz = raisevecsz;
@@ -283,7 +283,7 @@ bool Reactor::start(){
     size_t  raisevecsz = 0;
     {
         unique_lock<mutex>  lock(d.mtx);
-        
+
         d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, std::move(_uevent)));
         raisevecsz = d.raisevec[d.crtraisevecidx].size();
         d.crtraisevecsz = raisevecsz;
@@ -309,9 +309,9 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
     {
         unique_lock<mutex>  lock(d.mtx);
         const UniqueId      uid = this->popUid(*_robj);
-        
+
         vdbgx(Debug::aio, (void*)this<<" uid = "<<uid.index<<','<<uid.unique<<" event = "<<_revent);
-            
+
         d.pushtskvec[d.crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revent));
         pushvecsz = d.pushtskvec[d.crtpushtskvecidx].size();
         d.crtpushvecsz = pushvecsz;
@@ -319,7 +319,7 @@ bool Reactor::push(TaskT &_robj, Service &_rsvc, Event const &_revent){
             d.cnd.notify_one();
         }
     }
-    
+
     return rv;
 }
 
@@ -328,22 +328,22 @@ void Reactor::run(){
     vdbgx(Debug::aio, "<enter>");
     bool        running = true;
     NanoTime    crttime;
-    
+
     while(running){
         crttime.currentRealTime();
-        
+
         crtload = d.objcnt + d.exeq.size();
-        
+
         if(doWaitEvent(crttime)){
             crttime.currentRealTime();
             doCompleteEvents(crttime);
         }
         crttime.currentRealTime();
         doCompleteTimer(crttime);
-        
+
         crttime.currentRealTime();
         doCompleteExec(crttime);
-        
+
         running = d.running || (d.objcnt != 0) || !d.exeq.empty();
     }
     d.eventobj.stop();
@@ -358,7 +358,7 @@ UniqueId Reactor::objectUid(ReactorContext const &_rctx)const{
 Service& Reactor::service(ReactorContext const &_rctx)const{
     return *d.objdq[_rctx.objidx].psvc;
 }
-    
+
 Object& Reactor::object(ReactorContext const &_rctx)const{
     return *d.objdq[_rctx.objidx].objptr;
 }
@@ -405,9 +405,9 @@ void Reactor::postObjectStop(ReactorContext &_rctx){
 
 void Reactor::doStopObject(ReactorContext &_rctx){
     ObjectStub      &ros = this->d.objdq[_rctx.objidx];
-    
+
     this->stopObject(*ros.objptr, ros.psvc->manager());
-    
+
     ros.objptr.clear();
     ros.psvc = nullptr;
     ++ros.unique;
@@ -418,7 +418,7 @@ void Reactor::doStopObject(ReactorContext &_rctx){
 struct ChangeTimerIndexCallback{
     Reactor &r;
     ChangeTimerIndexCallback(Reactor &_r):r(_r){}
-    
+
     void operator()(const size_t _chidx, const size_t _newidx, const size_t _oldidx)const{
         r.doUpdateTimerIndex(_chidx, _newidx, _oldidx);
     }
@@ -428,7 +428,7 @@ struct TimerCallback{
     Reactor         &r;
     ReactorContext  &rctx;
     TimerCallback(Reactor &_r, ReactorContext &_rctx): r(_r), rctx(_rctx){}
-    
+
     void operator()(const size_t _tidx, const size_t _chidx)const{
         r.onTimer(rctx, _tidx, _chidx);
     }
@@ -436,11 +436,11 @@ struct TimerCallback{
 
 void Reactor::onTimer(ReactorContext &_rctx, const size_t _tidx, const size_t _chidx){
     CompletionHandlerStub   &rch = d.chdq[_chidx];
-        
+
     _rctx.reactevn = ReactorEventTimer;
     _rctx.chnidx =  _chidx;
     _rctx.objidx = rch.objidx;
-    
+
     rch.pch->handleCompletion(_rctx);
     _rctx.clearError();
 }
@@ -458,7 +458,7 @@ void Reactor::doCompleteExec(NanoTime  const &_rcrttime){
         ExecStub                &rexe(d.exeq.front());
         ObjectStub              &ros(d.objdq[rexe.objuid.index]);
         CompletionHandlerStub   &rcs(d.chdq[rexe.chnuid.index]);
-        
+
         if(ros.unique == rexe.objuid.unique && rcs.unique == rexe.chnuid.unique){
             ctx.clearError();
             ctx.chnidx = rexe.chnuid.index;
@@ -473,7 +473,7 @@ bool Reactor::doWaitEvent(NanoTime const &_rcrttime){
     bool                rv = false;
     int                 waitmsec = d.computeWaitTimeMilliseconds(_rcrttime);
     unique_lock<mutex>  lock(d.mtx);
-    
+
     if(d.crtpushvecsz == 0 && d.crtraisevecsz == 0 && !d.must_stop){
         if(waitmsec > 0){
             d.cnd.wait_for(lock, std::chrono::milliseconds(waitmsec));
@@ -481,7 +481,7 @@ bool Reactor::doWaitEvent(NanoTime const &_rcrttime){
             d.cnd.wait(lock);
         }
     }
-    
+
     if(d.must_stop){
         d.running = false;
         d.must_stop = false;
@@ -492,7 +492,7 @@ bool Reactor::doWaitEvent(NanoTime const &_rcrttime){
             this->pushUid(*it);
         }
         d.freeuidvec.clear();
-        
+
         const size_t    crtpushvecidx = d.crtpushtskvecidx;
         d.crtpushtskvecidx = ((crtpushvecidx + 1) & 1);
         d.pcrtpushtskvec = &d.pushtskvec[crtpushvecidx];
@@ -510,47 +510,47 @@ bool Reactor::doWaitEvent(NanoTime const &_rcrttime){
 
 void Reactor::doCompleteEvents(NanoTime  const &_rcrttime){
     vdbgx(Debug::aio, "");
-    
+
     NewTaskVectorT      &crtpushvec = *d.pcrtpushtskvec;
     RaiseEventVectorT   &crtraisevec = *d.pcrtraisevec;
     ReactorContext      ctx(*this, _rcrttime);
-    
+
     if(crtpushvec.size()){
-        
+
         d.objcnt += crtpushvec.size();
-        
+
         for(auto it = crtpushvec.begin(); it != crtpushvec.end(); ++it){
             NewTaskStub     &rnewobj(*it);
-            
+
             if(rnewobj.uid.index >= d.objdq.size()){
                 d.objdq.resize(rnewobj.uid.index + 1);
             }
-            
+
             ObjectStub      &ros = d.objdq[rnewobj.uid.index];
             SOLID_ASSERT(ros.unique == rnewobj.uid.unique);
-            
+
             {
                 //NOTE: we must lock the mutex of the object
                 //in order to ensure that object is fully registered onto the manager
-                
-                unique_lock<std::mutex>     lock(rnewobj.rsvc.mutex(*rnewobj.objptr));              
+
+                unique_lock<std::mutex>     lock(rnewobj.rsvc.mutex(*rnewobj.objptr));
             }
-            
+
             ros.objptr = std::move(rnewobj.objptr);
             ros.psvc = &rnewobj.rsvc;
-            
+
             ctx.clearError();
             ctx.chnidx =  InvalidIndex();
             ctx.objidx = rnewobj.uid.index;
-            
+
             ros.objptr->registerCompletionHandlers();
-            
+
             d.exeq.push(ExecStub(rnewobj.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), std::move(rnewobj.event)));
         }
         crtpushvec.clear();
     }
-    
-    if(crtraisevec.size()){ 
+
+    if(crtraisevec.size()){
         for(auto it = crtraisevec.begin(); it != crtraisevec.end(); ++it){
             RaiseEventStub  &revent = *it;
             d.exeq.push(ExecStub(revent.uid, &call_object_on_event, d.dummyCompletionHandlerUid(), std::move(revent.event)));
@@ -604,11 +604,11 @@ void Reactor::registerCompletionHandler(CompletionHandler &_rch, Object const &_
     {
         NanoTime        dummytime;
         ReactorContext  ctx(*this, dummytime);
-        
+
         ctx.reactevn = ReactorEventInit;
         ctx.objidx = rcs.objidx;
         ctx.chnidx = idx;
-        
+
         _rch.handleCompletion(ctx);
     }
 }
@@ -619,15 +619,15 @@ void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
     {
         NanoTime        dummytime;
         ReactorContext  ctx(*this, dummytime);
-        
+
         ctx.reactevn = ReactorEventClear;
         ctx.objidx = rcs.objidx;
         ctx.chnidx = _rch.idxreactor;
-        
+
         _rch.handleCompletion(ctx);
     }
-    
-    
+
+
     rcs.pch = &d.eventobj.dummyhandler;
     rcs.objidx = 0;
     ++rcs.unique;

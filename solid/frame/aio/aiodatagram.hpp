@@ -1,6 +1,6 @@
 // solid/frame/aio/aiodatagram.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -27,16 +27,16 @@ class Datagram: public CompletionHandler{
     using ThisT = Datagram<Sock>;
     using RecvFunctionT = FUNCTION<void(ThisT&, ReactorContext&)>;
     using SendFunctionT = FUNCTION<void(ThisT&, ReactorContext&)>;
-    
+
     static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
         ThisT &rthis = static_cast<ThisT&>(_rch);
         rthis.completionCallback(&on_completion);
         rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitReadOrWrite);
     }
-    
+
     static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
         ThisT &rthis = static_cast<ThisT&>(_rch);
-        
+
         switch(rthis.s.filterReactorEvents(rthis.reactorEvent(_rctx))){
             case ReactorEventNone:
                 break;
@@ -65,37 +65,37 @@ class Datagram: public CompletionHandler{
                 SOLID_ASSERT(false);
         }
     }
-    
+
     //-----------
     static void on_posted_recv(ReactorContext &_rctx, Event const&){
         ThisT   &rthis = static_cast<ThisT&>(*completion_handler(_rctx));
         rthis.recv_is_posted = false;
         rthis.doRecv(_rctx);
     }
-    
+
     static void on_posted_send(ReactorContext &_rctx, Event const&){
         ThisT   &rthis = static_cast<ThisT&>(*completion_handler(_rctx));
         rthis.send_is_posted = false;
         rthis.doSend(_rctx);
     }
     static void on_dummy(ThisT &_rthis, ReactorContext &_rctx){
-        
+
     }
     //-----------
     template <class F>
     struct RecvFunctor{
         F   f;
-        
+
         RecvFunctor(F &_rf):f{std::move(_rf)}{}
-        
+
         void operator()(ThisT &_rthis, ReactorContext &_rctx){
             size_t  recv_sz = 0;
-            
+
             if(!_rctx.error()){
                 bool        can_retry;
                 ErrorCodeT  err;
                 int         rv = _rthis.s.recv(_rthis.recv_buf, _rthis.recv_buf_cp, can_retry, err);
-                
+
                 if(rv > 0){
                     recv_sz = rv;
                 }else if(rv == 0){
@@ -115,22 +115,22 @@ class Datagram: public CompletionHandler{
             tmp(_rctx, recv_sz);
         }
     };
-    
+
     template <class F>
     struct RecvFromFunctor{
         F   f;
-        
+
         RecvFromFunctor(F &_rf):f{std::move(_rf)}{}
-        
+
         void operator()(ThisT &_rthis, ReactorContext &_rctx){
             size_t          recv_sz = 0;
             SocketAddress   addr;
-            
+
             if(!_rctx.error()){
                 bool        can_retry;
                 ErrorCodeT  err;
                 int         rv = _rthis.s.recvFrom(_rthis.recv_buf, _rthis.recv_buf_cp, addr, can_retry, err);
-                
+
                 if(rv > 0){
                     recv_sz = rv;
                 }else if(rv == 0){
@@ -145,25 +145,25 @@ class Datagram: public CompletionHandler{
                     }
                 }
             }
-            
+
             F   tmp{std::move(f)};
             _rthis.doClearRecv(_rctx);
             tmp(_rctx, addr, recv_sz);
         }
     };
-    
+
     template <class F>
     struct SendFunctor{
         F   f;
-        
+
         SendFunctor(F &_rf):f{std::move(_rf)}{}
-        
+
         void operator()(ThisT &_rthis, ReactorContext &_rctx){
             if(!_rctx.error()){
                 bool            can_retry;
                 ErrorCodeT      err;
                 int             rv = _rthis.s.send(_rthis.send_buf, _rthis.send_buf_cp, can_retry, err);
-                
+
                 if(rv == _rthis.send_buf_cp){
                 }else if(rv >= 0){
                     _rthis.error(_rctx, error_datagram_shutdown);
@@ -177,25 +177,25 @@ class Datagram: public CompletionHandler{
                     }
                 }
             }
-            
+
             F   tmp{std::move(f)};
             _rthis.doClearSend(_rctx);
             tmp(_rctx);
         }
     };
-    
+
     template <class F>
     struct SendToFunctor{
         F   f;
-        
+
         SendToFunctor(F &_rf):f{std::move(_rf)}{}
-        
+
         void operator()(ThisT &_rthis, ReactorContext &_rctx){
             if(!_rctx.error()){
                 bool            can_retry;
                 ErrorCodeT      err;
                 int             rv = _rthis.s.sendTo(_rthis.send_buf, _rthis.send_buf_cp, _rthis.send_addr, can_retry, err);
-                
+
                 if(rv == static_cast<int>(_rthis.send_buf_cp)){
                 }else if(rv >= 0){
                     _rthis.error(_rctx, error_datagram_shutdown);
@@ -209,19 +209,19 @@ class Datagram: public CompletionHandler{
                     }
                 }
             }
-            
+
             F   tmp{std::move(f)};
             _rthis.doClearSend(_rctx);
             tmp(_rctx);
         }
     };
-    
+
     template <class F>
     struct ConnectFunctor{
         F   f;
-        
+
         ConnectFunctor(F &_rf):f{std::move(_rf)}{}
-        
+
         void operator()(ThisT &_rthis, ReactorContext &_rctx){
             F   tmp{std::move(f)};
             _rthis.doClearSend(_rctx);
@@ -235,43 +235,43 @@ public:
         recv_buf(nullptr), recv_buf_cp(0), recv_is_posted(false),
         send_buf(nullptr), send_buf_cp(0), send_is_posted(false)
     {}
-    
+
     Datagram(
         ObjectProxy const &_robj
     ):  CompletionHandler(_robj, on_dummy_completion),
         recv_buf(nullptr), recv_buf_cp(0), recv_is_posted(false),
         send_buf(nullptr), send_buf_cp(0), send_is_posted(false)
     {}
-    
-    
+
+
     ~Datagram(){
         //MUST call here and not in the ~CompletionHandler
         this->deactivate();
     }
-    
+
     bool hasPendingRecv()const{
         return !FUNCTION_EMPTY(recv_fnc);
     }
-    
+
     bool hasPendingSend()const{
         return !FUNCTION_EMPTY(send_fnc);
     }
-    
+
     template <typename F>
     bool connect(ReactorContext &_rctx, SocketAddressStub const &_rsas, F _f){
         if(FUNCTION_EMPTY(send_fnc)){
             ErrorCodeT  err;
-            
+
             errorClear(_rctx);
-            
+
             if(s.create(_rsas, err)){
                 completionCallback(&on_completion);
                 addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
-                
+
                 bool        can_retry;
                 bool        rv = s.connect(_rsas, can_retry, err);
                 if(rv){
-                    
+
                 }else if(can_retry){
                     send_fnc = ConnectFunctor<F>(_f);
                     return false;
@@ -285,13 +285,13 @@ public:
                 systemError(_rctx, err);
                 SOLID_ASSERT(err);
             }
-            
+
         }else{
             error(_rctx, error_already);
         }
         return true;
     }
-    
+
     template <typename F>
     bool postRecvFrom(
         ReactorContext &_rctx,
@@ -311,7 +311,7 @@ public:
             return true;
         }
     }
-    
+
     template <typename F>
     bool postRecv(
         ReactorContext &_rctx,
@@ -331,8 +331,8 @@ public:
             return true;
         }
     }
-    
-    
+
+
     template <typename F>
     bool recvFrom(
         ReactorContext &_rctx,
@@ -370,7 +370,7 @@ public:
         }
         return true;
     }
-    
+
     template <typename F>
     bool recv(
         ReactorContext &_rctx,
@@ -382,7 +382,7 @@ public:
             bool        can_retry;
             ErrorCodeT  err;
             int         rv = s.recv(_buf, _bufcp, can_retry, err);
-            
+
             if(rv == _bufcp){
                 _sz = rv;
                 errorClear(_rctx);
@@ -408,7 +408,7 @@ public:
         }
         return true;
     }
-    
+
     template <typename F>
     bool postSendTo(
         ReactorContext &_rctx,
@@ -431,7 +431,7 @@ public:
             return true;
         }
     }
-    
+
     template <typename F>
     bool postSend(
         ReactorContext &_rctx,
@@ -452,7 +452,7 @@ public:
             return true;
         }
     }
-    
+
     template <typename F>
     bool sendTo(
         ReactorContext &_rctx,
@@ -464,7 +464,7 @@ public:
             bool        can_retry;
             ErrorCodeT  err;
             int         rv = s.sendTo(_buf, _bufcp, _addrstub, can_retry, err);
-            
+
             if(rv == static_cast<int>(_bufcp)){
                 errorClear(_rctx);
             }else if(rv >= 0){
@@ -488,7 +488,7 @@ public:
         }
         return true;
     }
-    
+
     template <typename F>
     bool send(
         ReactorContext &_rctx,
@@ -500,7 +500,7 @@ public:
             bool        can_retry;
             ErrorCodeT  err;
             int         rv = s.sendTo(_buf, _bufcp, can_retry, err);
-            
+
             if(rv == _bufcp){
                 errorClear(_rctx);
             }else if(rv >= 0){
@@ -522,7 +522,7 @@ public:
             error(_rctx, error_already);
         }
         return true;
-        
+
     }
 private:
     void doPostRecvSome(ReactorContext &_rctx){
@@ -531,26 +531,26 @@ private:
     void doPostSendAll(ReactorContext &_rctx){
         reactor(_rctx).post(_rctx, on_posted_send, Event(), *this);
     }
-    
+
     void doRecv(ReactorContext &_rctx){
         if(!recv_is_posted and !FUNCTION_EMPTY(recv_fnc)){
             errorClear(_rctx);
             recv_fnc(*this, _rctx);
         }
     }
-    
+
     void doSend(ReactorContext &_rctx){
         if(!send_is_posted and !FUNCTION_EMPTY(send_fnc)){
             errorClear(_rctx);
             send_fnc(*this, _rctx);
         }
     }
-    
-    
+
+
     void doError(ReactorContext &_rctx){
         error(_rctx, error_datagram_socket);
         //TODO: set proper system error based on socket error
-        
+
         if(!FUNCTION_EMPTY(send_fnc)){
             send_fnc(*this, _rctx);
         }
@@ -558,13 +558,13 @@ private:
             recv_fnc(*this, _rctx);
         }
     }
-    
+
     void doClearRecv(ReactorContext &_rctx){
         FUNCTION_CLEAR(recv_fnc);
         recv_buf = nullptr;
         recv_buf_cp = 0;
     }
-    
+
     void doClearSend(ReactorContext &_rctx){
         FUNCTION_CLEAR(send_fnc);
         send_buf = nullptr;
@@ -579,12 +579,12 @@ private:
     }
 private:
     Sock                s;
-    
+
     char                *recv_buf;
     size_t              recv_buf_cp;
     RecvFunctionT       recv_fnc;
     bool                recv_is_posted;
-    
+
     const char          *send_buf;
     size_t              send_buf_cp;
     SendFunctionT       send_fnc;

@@ -1,6 +1,6 @@
 // solid/system/error.hpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -42,17 +42,17 @@ struct ErrorStub{
         unsigned _line = -1,
         const char *_file = nullptr
     ):  value(_value), category(_category), line(_line), file(_file){}
-    
+
     ErrorStub(
         ErrorCodeT const    &_code,
         unsigned _line = -1,
         const char *_file = nullptr
     ):  value(_code.value()), category(&_code.category()), line(_line), file(_file){}
-    
+
     ErrorCodeT errorCode()const{
         return ErrorCodeT(value, category ? *category : ERROR_NS::system_category());
     }
-        
+
     int                             value;
     ErrorCategoryT const            *category;
     unsigned                        line;

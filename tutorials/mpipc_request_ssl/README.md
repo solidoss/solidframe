@@ -13,7 +13,7 @@ Before continuing with this tutorial, you should:
  * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
  * follow the first mpipc tutorial: [mpipc_echo](../mpipc_echo)
  * __follow the mpipc request tutorial__: [mpipc_request](../mpipc_request)
- 
+
 ## Overview
 
 In this tutorial we will extend the previous client-server applications by adding:
@@ -22,7 +22,7 @@ In this tutorial we will extend the previous client-server applications by addin
  * support for compressing the communication via [Snappy](https://google.github.io/snappy/)
 
 We will further delve into the differences from the previous tutorial.
- 
+
 ## Protocol definition
 
 As you recall, the Request from the previous tutorial only contained a string "userid_regex" used for filtering the server records.
@@ -31,15 +31,15 @@ Now we will use a more powerful command message with support for polymorphic key
 ```C++
 struct Request: solid::frame::mpipc::Message{
     std::shared_ptr<RequestKey> key;
-    
+
     Request(){}
-    
+
     Request(std::shared_ptr<RequestKey> && _key): key(std::move(_key)){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(key, "key");
-    }   
+    }
 };
 ```
 
@@ -52,9 +52,9 @@ struct RequestKeyConstVisitor;
 struct RequestKey{
     RequestKey():cache_idx(solid::InvalidIndex{}){}
     virtual ~RequestKey(){}
-    
+
     virtual void print(std::ostream &_ros) const = 0;
-    
+
     virtual void visit(RequestKeyVisitor &) = 0;
     virtual void visit(RequestKeyConstVisitor &) const = 0;
 
@@ -66,7 +66,7 @@ Lets further dissect the RequestKey:
  * print: virtual method for printing the contents of the key to a std::ostream
  * visit: two virtual methods used for visiting the key with either a visitor which can modify the content of the key or one which cannot.
  * cache_idx: a member variable which does not get serialized and is used for some optimizations on the server side as we will see below.
- 
+
 Lets have a look at the generic visitors:
 
 ```C++
@@ -80,7 +80,7 @@ struct RequestKeyYearLess;
 
 struct RequestKeyVisitor{
     virtual ~RequestKeyVisitor(){}
-    
+
     virtual void visit(RequestKeyAnd&) = 0;
     virtual void visit(RequestKeyOr&) = 0;
     virtual void visit(RequestKeyAndList&) = 0;
@@ -92,7 +92,7 @@ struct RequestKeyVisitor{
 
 struct RequestKeyConstVisitor{
     virtual ~RequestKeyConstVisitor(){}
-    
+
     virtual void visit(const RequestKeyAnd&) = 0;
     virtual void visit(const RequestKeyOr&) = 0;
     virtual void visit(const RequestKeyAndList&) = 0;
@@ -111,7 +111,7 @@ Before declaring the RequestKeys themselves, we need a helper template struct fo
 ```C++
 template <class T>
 struct Visitable: RequestKey{
-    
+
     void visit(RequestKeyVisitor &_v) override{
         _v.visit(*static_cast<T*>(this));
     }
@@ -127,22 +127,22 @@ Here are all the RequestKey types:
 struct RequestKeyAnd: Visitable<RequestKeyAnd>{
     std::shared_ptr<RequestKey>     first;
     std::shared_ptr<RequestKey>     second;
-    
-    
+
+
     RequestKeyAnd(){}
-    
+
     template <class T1, class T2>
     RequestKeyAnd(
         std::shared_ptr<T1> && _p1,
         std::shared_ptr<T2> &&_p2
     ):  first(std::move(std::static_pointer_cast<RequestKey>(_p1))),
         second(std::move(std::static_pointer_cast<RequestKey>(_p2))){}
-        
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(second, "second").push(first, "first");
     }
-    
+
     void print(std::ostream &_ros) const override{
         _ros<<"and{";
         if(first) first->print(_ros);
@@ -150,27 +150,27 @@ struct RequestKeyAnd: Visitable<RequestKeyAnd>{
         if(second) second->print(_ros);
         _ros<<'}';
     }
-    
+
 };
 
 struct RequestKeyOr: Visitable<RequestKeyOr>{
     std::shared_ptr<RequestKey>     first;
     std::shared_ptr<RequestKey>     second;
-    
+
     RequestKeyOr(){}
-    
+
     template <class T1, class T2>
     RequestKeyOr(
         std::shared_ptr<T1> && _p1,
         std::shared_ptr<T2> &&_p2
     ):  first(std::move(std::static_pointer_cast<RequestKey>(_p1))),
         second(std::move(std::static_pointer_cast<RequestKey>(_p2))){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(second, "second").push(first, "first");
     }
-    
+
     void print(std::ostream &_ros) const override{
         _ros<<"or(";
         if(first) first->print(_ros);
@@ -182,17 +182,17 @@ struct RequestKeyOr: Visitable<RequestKeyOr>{
 
 struct RequestKeyAndList: Visitable<RequestKeyAndList>{
     std::vector<std::shared_ptr<RequestKey>> key_vec;
-    
+
     RequestKeyAndList(){}
-    
+
     template <class ...Args>
     RequestKeyAndList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.pushContainer(key_vec, "key_vec");
     }
-    
+
     void print(std::ostream &_ros) const override{
         _ros<<"AND{";
         for(auto const &key: key_vec){
@@ -205,18 +205,18 @@ struct RequestKeyAndList: Visitable<RequestKeyAndList>{
 
 struct RequestKeyOrList: Visitable<RequestKeyOrList>{
     std::vector<std::shared_ptr<RequestKey>> key_vec;
-    
-    
+
+
     RequestKeyOrList(){}
-    
+
     template <class ...Args>
     RequestKeyOrList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.pushContainer(key_vec, "key_vec");
     }
-    
+
     void print(std::ostream &_ros) const override{
         _ros<<"OR(";
         for(auto const &key: key_vec){
@@ -229,16 +229,16 @@ struct RequestKeyOrList: Visitable<RequestKeyOrList>{
 
 struct RequestKeyUserIdRegex: Visitable<RequestKeyUserIdRegex>{
     std::string     regex;
-    
+
     RequestKeyUserIdRegex(){}
-    
+
     RequestKeyUserIdRegex(std::string && _ustr): regex(std::move(_ustr)){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(regex, "regex");
     }
-    
+
     void print(std::ostream &_ros) const override{
         _ros<<"userid matches \""<<regex<<"\"";
     }
@@ -246,16 +246,16 @@ struct RequestKeyUserIdRegex: Visitable<RequestKeyUserIdRegex>{
 
 struct RequestKeyEmailRegex: Visitable<RequestKeyEmailRegex>{
     std::string     regex;
-    
+
     RequestKeyEmailRegex(){}
-    
+
     RequestKeyEmailRegex(std::string && _ustr): regex(std::move(_ustr)){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(regex, "regex");
     }
-    
+
     void print(std::ostream &_ros) const override{
         _ros<<"email matches \""<<regex<<"\"";
     }
@@ -264,14 +264,14 @@ struct RequestKeyEmailRegex: Visitable<RequestKeyEmailRegex>{
 
 struct RequestKeyYearLess: Visitable<RequestKeyYearLess>{
     uint16_t    year;
-    
+
     RequestKeyYearLess(uint16_t _year = 0xffff):year(_year){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(year, "year");
     }
-    
+
     void print(std::ostream &_ros) const override{
         _ros<<"year < "<<year;
     }
@@ -413,7 +413,7 @@ The last code snippets for client side, constructs a somehow hard-coded Request 
                             )
                         )
                     );
-                    
+
 ```
 
 and prints the its key tree to standard output:
@@ -527,9 +527,9 @@ So, in the above code we specialize MessageSetup for every type in the ipc_reque
  * the RequestKeys are registered using the basic version of registerType (without callback) and a call to registerCast from the concrete RequestKey class to the base Key class namely RequestKey.
 
  The above registerCast is needed because the Request command and the RequestKeys only hold shared_ptrs to the base class (RequestKey).
- 
+
  The complete_message<Response> is same as in previous tutorial, but complete_message<Request> function has changed like this:
- 
+
  ```C++
  template <>
 void complete_message<ipc_request::Request>(
@@ -541,33 +541,33 @@ void complete_message<ipc_request::Request>(
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
     SOLID_CHECK(not _rsent_msg_ptr);
-    
+
     cout<<"Received request: ";
     if(_rrecv_msg_ptr->key){
         _rrecv_msg_ptr->key->print(cout);
     }
     cout<<endl;
-    
-    
+
+
     auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
-    
+
     if(_rrecv_msg_ptr->key){
         PrepareKeyVisitor   prep;
-        
+
         _rrecv_msg_ptr->key->visit(prep);
-    
+
         for(const auto &ad: account_dq){
             AccountDataKeyVisitor v(ad, prep);
-            
-            
+
+
             _rrecv_msg_ptr->key->visit(v);
-            
+
             if(v.retval){
                 msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad))));
             }
         }
 }
-    
+
     SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
  ```
@@ -575,49 +575,49 @@ void complete_message<ipc_request::Request>(
 In the above code we're using two RequestKey visitors:
  * A non-const visitor - PrepareKeyVisitor - which builds a cache of std::regex-es for every key that needs regex matches and store the cache id in the RequestKey::cache_idx.
  * A const visitor - AccountDataKeyVisitor - which is used for deciding whether a database record should be sent to the client or skipped.
- 
+
  Here is PrepareKeyVisitor implementation:
- 
+
  ```C++
 using namespace ipc_request;
 
 struct PrepareKeyVisitor: RequestKeyVisitor{
     std::vector<std::regex>     regexvec;
-    
+
     void visit(RequestKeyAnd& _k) override{
         if(_k.first){_k.first->visit(*this);}
         if(_k.second){_k.second->visit(*this);}
     }
-    
+
     void visit(RequestKeyOr& _k) override{
         if(_k.first){_k.first->visit(*this);}
         if(_k.second){_k.second->visit(*this);}
     }
-    
+
     void visit(RequestKeyAndList& _k) override{
         for(auto &k: _k.key_vec){
             if(k) k->visit(*this);
         }
     }
-    
+
     void visit(RequestKeyOrList& _k) override{
         for(auto &k: _k.key_vec){
             if(k) k->visit(*this);
         }
     }
-    
+
     void visit(RequestKeyUserIdRegex& _k) override{
         _k.cache_idx = regexvec.size();
         regexvec.emplace_back(_k.regex);
     }
-    
+
     void visit(RequestKeyEmailRegex& _k) override{
         _k.cache_idx = regexvec.size();
         regexvec.emplace_back(_k.regex);
     }
-    
+
     void visit(RequestKeyYearLess& /*_k*/) override{
-        
+
     }
 };
 ```
@@ -626,7 +626,7 @@ So, this visitor does:
  * registers/caches the regex onto a vector and holds the cache position on the key's cache_idx member variable (for RequestKeyUserIdRegex and RequestKeyEmailRegex keys)
  * forward the visit to all child Keys (RequestKeyAnd, RequestKeyOr, RequestKeyAndList and RequestKeyOrList)
  * nothing for RequestKeyYearLess
- 
+
 Lets have a look at how AccountDataKeyVisitor is implemented:
 
 ```C++
@@ -634,12 +634,12 @@ struct AccountDataKeyVisitor: RequestKeyConstVisitor{
     const AccountData   &racc;
     PrepareKeyVisitor   &rprep;
     bool                retval;
-    
+
     AccountDataKeyVisitor(const AccountData &_racc, PrepareKeyVisitor &_rprep):racc(_racc), rprep(_rprep), retval(false){}
-    
+
     void visit(const RequestKeyAnd& _k) override{
         retval = false;
-        
+
         if(_k.first){
             _k.first->visit(*this);
             if(!retval) return;
@@ -652,7 +652,7 @@ struct AccountDataKeyVisitor: RequestKeyConstVisitor{
             if(!retval) return;
         }
     }
-    
+
     void visit(const RequestKeyOr& _k) override{
         retval = false;
         if(_k.first){
@@ -664,7 +664,7 @@ struct AccountDataKeyVisitor: RequestKeyConstVisitor{
             if(retval) return;
         }
     }
-    
+
     void visit(const RequestKeyAndList& _k) override{
         retval = false;
         for(auto &k: _k.key_vec){
@@ -683,14 +683,14 @@ struct AccountDataKeyVisitor: RequestKeyConstVisitor{
         }
         retval = false;
     }
-    
+
     void visit(const RequestKeyUserIdRegex& _k) override{
         retval = std::regex_match(racc.userid, rprep.regexvec[_k.cache_idx]);
     }
     void visit(const RequestKeyEmailRegex& _k) override{
         retval = std::regex_match(racc.email, rprep.regexvec[_k.cache_idx]);
     }
-    
+
     void visit(const RequestKeyYearLess& _k) override{
         retval = racc.birth_date.year < _k.year;
     }
@@ -702,12 +702,12 @@ The AccountDataKeyVisitor has:
  * a const reference to the current database record which must be validated
  * a reference to the PrepareKeyVisitor for its regex cache
  * a retval bool variable.
- 
+
 I will not delve into the details for every visit function as I believe they are pretty straight forward, but I would like to point out that:
  * for "OR" like RequestKeys we only visit child keys until a key accepts the database record
  * for "AND" like RequestKeys we only visit child keys until a key rejects the database record
 
- 
+
 Moving on with the changes on server code next is the code that enables SSL support:
 
 ```C++
@@ -766,8 +766,8 @@ On the client you will see that the records list is immediately received back fr
 
 ## Next
 
-If you are still interested what solid_frame_mpipc library has to offer, check-out the next tutorial 
- 
+If you are still interested what solid_frame_mpipc library has to offer, check-out the next tutorial
+
  * [MPIPC File](../mpipc_file)
- 
+
 in which you will learn how to implement a very basic remote file access protocol.

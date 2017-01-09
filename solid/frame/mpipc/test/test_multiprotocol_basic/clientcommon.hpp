@@ -26,7 +26,7 @@ struct Context{
     std::atomic<size_t>         &rwait_count;
     std::mutex                  &rmtx;
     std::condition_variable     &rcnd;
-    
+
     Context(
         AioSchedulerT &_rsched, solid::frame::Manager &_rm, solid::frame::aio::Resolver &_rresolver,
         size_t _max_per_pool_connection_count, const std::string &_rserver_port,

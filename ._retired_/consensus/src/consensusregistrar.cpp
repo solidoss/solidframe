@@ -1,6 +1,6 @@
 // consensus/src/consensusregistrar.cpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -20,11 +20,11 @@ struct Registrar::Data{
     struct Stub{
         Stub():objuid(frame::invalid_uid()){}
         frame::ObjectUidT   objuid;
-    };  
+    };
     typedef std::vector<Stub>   ObjectUidVectorT;
-    
+
     Data():insertidx(0){}
-    
+
     Mutex               mtx;
     ObjectUidVectorT    objuidvec;
     size_t              insertidx;

@@ -1,6 +1,6 @@
 // solid/serialization/src/binarybasic.cpp
 //
-// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -34,7 +34,7 @@ char* crossStore(char *_pd, uint16_t _v){
     const bool      ok = compute_value_with_crc(*pd, static_cast<uint8_t>(sz));
     if(ok){
         ++pd;
-        
+
         switch(sz){
             case 0:
                 break;
@@ -49,7 +49,7 @@ char* crossStore(char *_pd, uint16_t _v){
             default:
                 return nullptr;
         }
-        
+
         return _pd + sz + 1;
     }
     return nullptr;
@@ -60,7 +60,7 @@ char* crossStore(char *_pd, uint32_t _v){
     const bool      ok = compute_value_with_crc(*pd, static_cast<uint8_t>(sz));
     if(ok){
         ++pd;
-        
+
         switch(sz){
             case 0:
                 break;
@@ -91,7 +91,7 @@ char* crossStore(char *_pd, uint32_t _v){
             default:
                 return nullptr;
         }
-        
+
         return _pd + sz + 1;
     }
     return nullptr;
@@ -102,7 +102,7 @@ char* crossStore(char *_pd, uint64_t _v){
     const bool      ok = compute_value_with_crc(*pd, static_cast<uint8_t>(sz));
     if(ok){
         ++pd;
-        
+
         switch(sz){
             case 0:
                 break;
@@ -189,7 +189,7 @@ char* crossStore(char *_pd, uint64_t _v){
             default:
                 return nullptr;
         }
-        
+
         return _pd + sz + 1;
     }
     return nullptr;
@@ -200,10 +200,10 @@ const char* crossLoad(const char *_ps, uint8_t &_val){
     uint8_t             v = *ps;
     const bool      ok = check_value_with_crc(v, v);
     const size_t    sz = v;
-    
+
     if(ok){
         ++ps;
-        
+
         switch(sz){
             case 0:
                 _val = 0;
@@ -224,10 +224,10 @@ const char* crossLoad(const char *_ps, uint16_t &_val){
     uint8_t             v = *ps;
     const bool      ok = check_value_with_crc(v, v);
     const size_t    sz = v;
-    
+
     if(ok){
         ++ps;
-        
+
         switch(sz){
             case 0:
                 _val = 0;
@@ -251,10 +251,10 @@ const char* crossLoad(const char *_ps, uint32_t &_val){
     uint8_t             v = *ps;
     const bool      ok = check_value_with_crc(v, v);
     const size_t    sz = v;
-    
+
     if(ok){
         ++ps;
-        
+
         switch(sz){
             case 0:
                 _val = 0;
@@ -289,10 +289,10 @@ const char* crossLoad(const char *_ps, uint64_t &_val){
     uint8_t             v = *ps;
     const bool      ok = check_value_with_crc(v, v);
     const size_t    sz = v;
-    
+
     if(ok){
         ++ps;
-        
+
         switch(sz){
             case 0:
                 _val = 0;

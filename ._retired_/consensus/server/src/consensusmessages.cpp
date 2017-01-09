@@ -1,6 +1,6 @@
 // consensus/server/src/consensusmessages.cpp
 //
-// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -20,12 +20,12 @@ namespace server{
 
 Message::Message(){}
 Message::~Message(){
-    
+
 }
 /*virtual*/ void Message::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
     std::string             hoststr;
     std::string             portstr;
-    
+
     //TODO:!! sa not initialized !?
     SocketAddressInet4              sa;
     sa = frame::ipc::ConnectionContext::the().pairaddr;
@@ -36,7 +36,7 @@ Message::~Message(){
         ReverseResolveInfo::Numeric
     );
     DynamicPointer<frame::Message>  msgptr(_rmsgptr);
-    
+
     frame::Manager::specific().notify(msgptr, Registrar::the().objectUid(srvidx));
 }
 /*virtual*/ uint32 Message::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){

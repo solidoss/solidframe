@@ -1,6 +1,6 @@
 // solid/utility/innerlist.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -17,11 +17,11 @@ namespace solid{
 struct InnerLink{
     size_t  prev;
     size_t  next;
-    
+
     void clear(){
         prev = next = InvalidIndex();
     }
-    
+
     InnerLink(
         const size_t _prev = InvalidIndex(),
         const size_t _next = InvalidIndex()
@@ -42,13 +42,13 @@ struct InnerNode{
     enum{
         InnerNodeSize = Size,
     };
-    
+
 private:
     template <size_t Sz>
     friend InnerLink& inner_link_accessor(InnerNode<Sz> &_node, const size_t _index);
     template <size_t Sz>
     friend InnerLink const & inner_link_const_accessor(InnerNode<Sz> const &_node, const size_t _index);
-    
+
     InnerLink   links[InnerNodeSize];
 };
 
@@ -67,21 +67,21 @@ template <class Vec, size_t Link>
 class InnerList{
 public:
     typedef typename Vec::value_type ValueT;
-    
+
     InnerList(Vec &_rvec): rvec_(_rvec), size_(0), back_(InvalidIndex()), front_(InvalidIndex()){}
-    
+
     InnerList(InnerList<Vec, Link> &) = delete;
     InnerList(InnerList<Vec, Link> &&) = delete;
     InnerList(
         Vec &_rvec,
         InnerList<Vec, Link> &_rinnerlist
     ):rvec_(_rvec), size_(_rinnerlist.size_), back_(_rinnerlist.back_), front_(_rinnerlist.front_){}
-    
+
     void pushBack(const size_t _index){
         InnerLink &rcrt_link = link(_index);
-        
+
         rcrt_link = InnerLink(InvalidIndex(), back_);
-        
+
         if(back_ != InvalidIndex()){
             link(back_).prev = _index;
             back_ = _index;
@@ -89,15 +89,15 @@ public:
             back_ = _index;
             front_ = _index;
         }
-        
+
         ++size_;
     }
-    
+
     void pushFront(const size_t _index){
         InnerLink &rcrt_link = link(_index);
-        
+
         rcrt_link = InnerLink(front_, InvalidIndex());
-        
+
         if(front_ != InvalidIndex()){
             link(front_).next = _index;
             front_ = _index;
@@ -105,44 +105,44 @@ public:
             back_ = _index;
             front_ = _index;
         }
-        
+
         ++size_;
     }
-    
+
     ValueT& front(){
         return rvec_[front_];
     }
-    
+
     ValueT const & front()const{
         return rvec_[front_];
     }
-    
+
     size_t frontIndex()const{
         return front_;
     }
-    
+
     ValueT& back(){
         return rvec_[back_];
     }
-    
+
     ValueT const & back()const{
         return rvec_[back_];
     }
-    
+
     size_t backIndex()const{
         return back_;
     }
-    
+
     void erase(const size_t _index){
         InnerLink &rcrt_link = link(_index);
-        
+
         if(rcrt_link.prev != InvalidIndex()){
             link(rcrt_link.prev).next = rcrt_link.next;
         }else{
             //first message in the list
             back_ = rcrt_link.next;
         }
-        
+
         if(rcrt_link.next != InvalidIndex()){
             link(rcrt_link.next).prev = rcrt_link.prev;
         }else{
@@ -151,13 +151,13 @@ public:
         --size_;
         rcrt_link.clear();
     }
-    
+
     size_t popFront(){
         size_t old_front = front_;
         erase(front_);
         return old_front;
     }
-    
+
     size_t popBack(){
         size_t old_back = back_;
         erase(back_);
@@ -167,59 +167,59 @@ public:
     size_t size()const{
         return size_;
     }
-    
+
     bool empty()const{
         return size_ == 0;
     }
-    
+
     template <class F>
     void forEach(F _f){
         size_t it  = back_;
-        
+
         while(it != InvalidIndex()){
             const size_t crtit = it;
             it = link(it).next;
-            
+
             _f(crtit, rvec_[crtit]);
         }
     }
-    
+
     template <class F>
     void forEach(F _f)const{
         size_t it  = back_;
-        
+
         while(it != InvalidIndex()){
             const size_t crtit = it;
             it = link(it).next;
-            
+
             _f(crtit, rvec_[crtit]);
         }
     }
-    
+
     void fastClear(){
         size_ = 0;
         back_ = front_ = InvalidIndex();
     }
-    
+
     void clear(){
         while(size()){
             popFront();
         }
     }
-    
+
     size_t previousIndex(const size_t _index)const{
         return link(_index).prev;
     }
-    
+
     bool check()const{
-        
+
         if(back_ == InvalidIndex() or front_ == InvalidIndex()){
             return back_ == front_;
         }
-        
+
         return true;
     }
-    
+
     bool contains(const size_t _index)const{
         return link(_index).prev != InvalidIndex() or link(_index).next != InvalidIndex() or _index == front_;
     }

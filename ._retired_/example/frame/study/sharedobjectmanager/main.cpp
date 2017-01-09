@@ -18,7 +18,7 @@ struct Worker: Thread{
     const size_t        thridx;
     const size_t        notify_count;
     const size_t        insert_count;
-    
+
     Worker(
         SharedObjectManager &_rsom,
         size_t _thridx,
@@ -37,9 +37,9 @@ int main(int argc, char *argv[]){
     const size_t producer_cnt = 10;
     const size_t notify_cnt = 1000 * 1000 * 10;
     const size_t insert_cnt = 1000;
-    
+
     SharedObjectManager som;
-    
+
     som.start();
     {
         Locker<Mutex>   lock(mtx);
@@ -50,15 +50,15 @@ int main(int argc, char *argv[]){
             }
         }
     }
-    
+
     for(size_t i = 0; i < all_flg_repeat_cnt; ++i){
         som.notifyAll(SharedObjectManager::Flag1);
     }
-    
+
     for(size_t i = 0; i < all_val_repeat_cnt; ++i){
         som.notifyAll(SharedObjectManager::Flag2, i);
     }
-    
+
     {
         Locker<Mutex>   lock(mtx);
         while(wkrcnt != 0){

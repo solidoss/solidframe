@@ -49,7 +49,7 @@ public:
     int dynamicHandle(DynamicPointer<> &_dp, Context &_rctx);
     int dynamicHandle(const DynamicPointer<AObject> &_rdp, Context &_rctx);
     int dynamicHandle(const DynamicPointer<BObject> &_rdp, Context &_rctx);
-    
+
 protected:
     typedef std::vector<DynamicPointer<> >  DynamicPointerVectorT;
     static DynamicMapperT   dm;
@@ -77,16 +77,16 @@ class SecondHandler: public FirstHandler{
 public:
     SecondHandler(){
     }
-    
+
     static void init(){
         FirstHandler::init();
         dm.insert<BObject, SecondHandler>();
         dm.insert<CObject, SecondHandler>();
         dm.insert<DObject, SecondHandler>();
     }
-    
+
     void run();
-    
+
     int dynamicHandle(const DynamicPointer<BObject> &_dp, Context &_rctx);
     int dynamicHandle(const DynamicPointer<CObject> &_dp, Context &_rctx);
     int dynamicHandle(const DynamicPointer<DObject> &_dp, Context &_rctx);
@@ -136,7 +136,7 @@ public:
     void dynamicHandle(DynamicPointer<> &_dp, Context &_rctx);
     void dynamicHandle(const DynamicPointer<AObject> &_rdp, Context &_rctx);
     void dynamicHandle(const DynamicPointer<BObject> &_rdp, Context &_rctx);
-    
+
 protected:
     typedef std::vector<DynamicPointer<> >  DynamicPointerVectorT;
     static DynamicMapperT   dm;
@@ -187,7 +187,7 @@ public:
     void dynamicHandle(DynamicPointer<> &_dp);
     void dynamicHandle(const DynamicPointer<AObject> &_rdp);
     void dynamicHandle(const DynamicPointer<BObject> &_rdp);
-    
+
 protected:
     typedef std::vector<DynamicPointer<> >  DynamicPointerVectorT;
     static DynamicMapperT   dm;
@@ -222,7 +222,7 @@ int main(){
     Debug::the().moduleMask("any");
     Debug::the().initStdErr(false);
 #endif
-    
+
     {
         DynamicPointer<AObject>     dsap(new AObject(1));
         DynamicPointer<>            dsbp;
@@ -234,50 +234,50 @@ int main(){
         }
         idbg("ptr = "<<(void*)dsap.get()<<" ptr = "<<(void*)dsbp.get());
     }
-    
+
     SecondHandler::init();
-    
+
     SecondHandler   h;
-    
+
     h.push(DynamicPointer<>(new AObject(1)));
     h.push(DynamicPointer<>(new BObject(2,3)));
     h.push(DynamicPointer<>(new CObject(1,2,3)));
     h.push(DynamicPointer<>(new DObject("hello1", 4)));
-    
+
     h.run();
-    
+
     h.push(DynamicPointer<>(new AObject(11)));
     h.push(DynamicPointer<>(new BObject(22,33)));
     h.push(DynamicPointer<>(new CObject(11,22,33)));
     h.push(DynamicPointer<>(new DObject("hello2", 44)));
-    
+
     h.run();
-    
+
     h.push(DynamicPointer<>(new AObject(111)));
     h.push(DynamicPointer<>(new BObject(222,333)));
     h.push(DynamicPointer<>(new CObject(111,222,333)));
     h.push(DynamicPointer<>(new DObject("hello3", 444)));
-    
+
     h.run();
-    
+
     ThirdHandler::init();
     ThirdHandler    h3;
-    
+
     h3.push(DynamicPointer<>(new AObject(1)));
     h3.push(DynamicPointer<>(new BObject(2,3)));
     h3.push(DynamicPointer<>(new CObject(1,2,3)));
     h3.push(DynamicPointer<>(new DObject("hello1", 4)));
-    
+
     h3.run();
-    
+
     FourthHandler::init();
     FourthHandler   h4;
-    
+
     h4.push(DynamicPointer<>(new AObject(1)));
     h4.push(DynamicPointer<>(new BObject(2,3)));
     h4.push(DynamicPointer<>(new CObject(1,2,3)));
     h4.push(DynamicPointer<>(new DObject("hello1", 4)));
-    
+
     h4.run();
     return 0;
 }

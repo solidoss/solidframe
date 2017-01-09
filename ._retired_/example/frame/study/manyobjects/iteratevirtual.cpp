@@ -25,13 +25,13 @@ private:
 };
 
 /*virtual*/ void Object::onEvent(Context &_rctx){
-    
+
 }
 /*virtual*/ void Object::onEvent(Context &_rctx, size_t _data){
-    
+
 }
 /*virtual*/ void Object::onEvent(Context &_rctx, std::string const &_data){
-    
+
 }
 
 struct Context{
@@ -44,11 +44,11 @@ struct ObjectStub{
     DynamicPointer<Object>  objptr;
     size_t                  a;
     size_t                  b;
-    
+
     void registerObject(size_t _idx){
         objptr->id = _idx;
     }
-    
+
     void call(std::string const& _data){
         Context ctx(a, b);
         objptr->onEvent(ctx);
@@ -151,9 +151,9 @@ int main(int argc, char *argv[]){
     if(argc == 3){
         loopcount = atoi(argv[2]);
     }
-    
+
     deque<ObjectStub>   objdq;
-    
+
     for(size_t i = 0; i < objectcount; ++i){
         ObjectStub  stub;
         switch(i % 4){
@@ -167,18 +167,18 @@ int main(int argc, char *argv[]){
         objdq.push_back(stub);
         objdq.back().registerObject(objdq.size() - 1);
     }
-    
+
     std::string data("some");
     for(size_t i = 0; i < 10; ++i){
         data += data;
     }
-    
+
     for(size_t i = 0; i < loopcount; ++i){
         for(deque<ObjectStub>::iterator it(objdq.begin()); it != objdq.end(); ++it){
             it->call(data);
         }
         data.resize(data.size() / 2);
     }
-    
+
     return 0;
 }

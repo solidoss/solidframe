@@ -1,6 +1,6 @@
 // frame/aio/openssl/opensslsocket.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -32,12 +32,12 @@ public:
     ~Context();
     //! Creates a new OpenSSL SecureSocket
     Socket* createSocket();
-    
+
     //!Use it on client side to load the certificates
     bool loadFile(const char *_path);
     //!Use it on client side to load the certificates
     bool loadPath(const char *_path);
-    
+
     //!Use it on server side to load the certificates
     bool loadCertificateFile(const char *_path);
     //!Use it on server side to load the certificates
@@ -55,7 +55,7 @@ protected:
 /*!
     It is an implementation of foundation::aio::SecureSocket
     interface.
-    
+
     NOTE: this is not a complete nor a final/perfect interface.
     The intention is to have an easy to use wrapper for
     OpenSSL. One can extend and improve the interface to offer
@@ -72,7 +72,7 @@ public:
     /*virtual*/ AsyncE secureConnect();
 private:
 
-    friend class Context;   
+    friend class Context;
     Socket& operator=(const Socket&);
     Socket(const Socket&);
 protected:

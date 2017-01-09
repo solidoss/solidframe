@@ -49,7 +49,7 @@ struct Functor{
     int operator()(int _v){
         return mul * _v;
     }
-    
+
     int mul;
 };
 
@@ -63,16 +63,16 @@ int main(){
         vector<FNCNS::function<int(int)> > fncvec;
         FNCNS::function<int(int)>   fnc = Functor(10);
 //      FNCNS::function<int(int)>   fnc2;
-//      
+//
 //      fnc2 = fnc;
         fnc = Functor(11);
         cout<<"val = "<<fnc(10)<<endl;
-        
+
 //      fncvec.push_back(FNCNS::function<int(int)>());
 //      fncvec.push_back(FNCNS::function<int(int)>());
 //      fncvec[0] = Functor(10);
 //      fncvec[1] = Functor(20);
-//      
+//
 //      cout<<"val = "<<fncvec[0](3)<<endl;
 //      cout<<"val = "<<fncvec[1](4)<<endl;
     }

@@ -1,6 +1,6 @@
 // solid/frame/mpipc/mpipcservice.hpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -58,51 +58,51 @@ inline MessageFlagsValueT operator|(const MessageFlags _f1, const MessageFlags _
 
 
 struct Message: std::enable_shared_from_this<Message>{
-        
+
     static bool is_synchronous(const ulong _flags){
         return (_flags & MessageFlags::Synchronous) != 0;
     }
     static bool is_asynchronous(const ulong _flags){
         return (_flags & MessageFlags::Synchronous) == 0;
     }
-    
+
     static bool is_waiting_response(const ulong _flags){
         return (_flags & MessageFlags::WaitResponse) != 0;
     }
-    
+
     static bool is_request(const ulong _flags){
         return is_waiting_response(_flags);
     }
-    
+
     static bool is_idempotent(const ulong _flags){
         return (_flags & MessageFlags::Idempotent) != 0;
     }
-    
+
     static bool is_started_send(const ulong _flags){
         return (_flags & MessageFlags::StartedSend) != 0;
     }
-    
+
     static bool is_done_send(const ulong _flags){
         return (_flags & MessageFlags::DoneSend) != 0;
     }
-    
+
     static bool is_canceled(const ulong _flags){
         return (_flags & MessageFlags::Canceled) != 0;
     }
-    
+
     static bool is_one_shot(const ulong _flags){
         return (_flags & MessageFlags::OneShotSend) != 0;
     }
-    
+
     static bool is_response(const ulong _flags){
         return (_flags & MessageFlags::Response) != 0;
     }
-    
+
     Message(uint8_t _state = 0):stt(_state){}
     Message(Message const &_rmsg): requid(_rmsg.requid), stt(_rmsg.stt){}
-    
+
     virtual ~Message();
-    
+
     bool isOnSender()const{
         return stt == 0;
     }
@@ -112,19 +112,19 @@ struct Message: std::enable_shared_from_this<Message>{
     bool isBackOnSender()const{
         return stt == 2;
     }
-    
+
     uint8_t state()const{
         return stt;
     }
-    
+
     void clearState(){
         stt = 0;
     }
-    
+
     RequestId const& requestId()const{
         return requid;
     }
-    
+
     template <class S>
     void serialize(S &_rs, frame::mpipc::ConnectionContext &_rctx){
         if(S::IsSerializer){
@@ -141,8 +141,8 @@ struct Message: std::enable_shared_from_this<Message>{
             _rs.push(stt, "state");
         }
     }
-    
-    
+
+
     template <class S, class T>
     static void serialize(S &_rs, T &_rt, const char *_name){
         //here we do only pushes so we can have access to context
@@ -150,12 +150,12 @@ struct Message: std::enable_shared_from_this<Message>{
         _rs.push(_rt, _name);
         _rs.push(static_cast<Message&>(_rt), "message_base");
     }
-    
+
 private:
     friend class Service;
     friend class TestEntryway;
     friend class Connection;
-    
+
     void adjustState(){
         if(stt == 3) stt = 0;
     }

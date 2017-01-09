@@ -1,6 +1,6 @@
 // proxymulticonnection.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -17,7 +17,7 @@
 #include "system/timespec.hpp"
 
 using namespace solid;
-//static const char *hellostr = "Welcome to proxy service!!!\r\n"; 
+//static const char *hellostr = "Welcome to proxy service!!!\r\n";
 
 namespace concept{
 
@@ -36,14 +36,14 @@ MultiConnection::MultiConnection(const SocketDevice &_rsd):
     state(READ_ADDR);
 }
 /*
-NOTE: 
+NOTE:
 * Releasing the connection here and not in a base class destructor because
-here we know the exact type of the object - so the service can do other things 
+here we know the exact type of the object - so the service can do other things
 based on the type.
-* Also it ensures a proper/safe visiting. Suppose the unregister would have taken 
+* Also it ensures a proper/safe visiting. Suppose the unregister would have taken
 place in a base destructor. If the visited object is a leaf, one may visit
 destroyed data.
-NOTE: 
+NOTE:
 * Visitable data must be destroyed after releasing the connection!!!
 */
 
@@ -253,7 +253,7 @@ AsyncE MultiConnection::doProxy(const TimeSpec &_tout){
             }
             break;
     }
-    
+
     switch(socketState(1)){
         idbg("receive 1");
         case Receive:

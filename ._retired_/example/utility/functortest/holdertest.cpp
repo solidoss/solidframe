@@ -80,7 +80,7 @@ int main(){
     cout<<(void*)h->pbeg<<' '<<(void*)h->pend<<endl;
     Holder<BasicBuffer>     h2(DeleteBuffer(new char[128], 128));
     cout<<(void*)h2->pbeg<<' '<<(void*)h2->pend<<endl;
-    
+
     //h = Test();
     return 0;
 }

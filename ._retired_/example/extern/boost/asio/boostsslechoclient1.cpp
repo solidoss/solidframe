@@ -20,28 +20,28 @@ struct Manager{
     struct DataStub{
         std::string     data;
     };
-    
+
     typedef std::vector<DataStub>   DataVectorT;
-    
+
     Manager(
         uint32_t _repeatcnt,
         uint32_t _datafromlen,
         uint32_t _datatolen,
         uint32_t _datacnt
     );
-    
+
     const DataVectorT& dataVector()const{
         return datavec;
     }
     uint32_t repeatCount()const{return repeat_count;}
-    
+
     void endPoint(const TcpEndPointT &_rendpoint){
         endpoint = _rendpoint;
     }
     const TcpEndPointT& endPoint()const{
         return endpoint;
     }
-    
+
     void report(uint32_t _mintime, uint32_t _maxtime, const uint64_t &_readsz, const uint64_t &_writesz){
         if(mintime > _mintime) mintime = _mintime;
         if(maxtime < _maxtime) maxtime = _maxtime;
@@ -55,7 +55,7 @@ private:
     DataVectorT     datavec;
     uint32_t        repeat_count;
     TcpEndPointT    endpoint;
-    
+
     uint32_t        mintime;
     uint32_t        maxtime;
     uint64_t        readsz;
@@ -101,7 +101,7 @@ public:
         rm.report(mintime, maxtime, readsz, writesz);
         cout<<this<<' '<<idx<<' '<<readsz<<' '<<writesz<<endl;
     }
-    
+
     ssl_socket::lowest_layer_type& socket(){
         return socket_.lowest_layer();
     }
@@ -120,7 +120,7 @@ public:
     }
 
 private:
-    
+
     void handle_handshake(const boost::system::error_code& error)
     {
         --usecnt;
@@ -132,13 +132,13 @@ private:
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred)
             );
-        
+
             do_write();
         }else{
             delete this;
         }
     }
-    
+
     void handle_connect(
         const boost::system::error_code &_rerr
     ){
@@ -148,27 +148,27 @@ private:
                 delete this;
             return;
         }
-        
+
         boost::asio::socket_base::receive_buffer_size   recvoption(1024 * 64);
         boost::asio::socket_base::send_buffer_size      sendoption(1024 * 32);
         socket().set_option(sendoption);
         socket().set_option(recvoption);
-        
+
         //socket().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
         ++usecnt;
-        
+
         socket_.async_handshake(
             boost::asio::ssl::stream_base::client,
             boost::bind(&session::handle_handshake, this, boost::asio::placeholders::error)
         );
     }
-    
+
     void handle_read(const boost::system::error_code& error,
         size_t bytes_transferred)
     {
         --usecnt;
         if (!error)
-        {   
+        {
             if(consume_data(datar, bytes_transferred)){
                 if(!usecnt)
                     delete this;
@@ -183,7 +183,7 @@ private:
             );
         }
         else if(!usecnt)
-        {   
+        {
             delete this;
         }
     }
@@ -194,7 +194,7 @@ private:
         if (!error)
         {
             writesz += writecrt;
-            
+
             if(writecnt >  rm.repeatCount()){
                 return;
             }
@@ -210,7 +210,7 @@ private:
     void do_write(){
         const std::string   &data = rm.dataVector()[writeidx % rm.dataVector().size()].data;
         size_t              datasz = data.size() - writeoff;
-        
+
         if(datasz > max_length){
             datasz = max_length;
         }
@@ -233,7 +233,7 @@ private:
             writeoff = 0;
         }
     }
-    
+
     bool consume_data(const char *_p, size_t _l);
 };
 
@@ -241,17 +241,17 @@ bool session::consume_data(const char *_p, size_t _l){
     //cout<<"consume [";
     //cout.write(_p, _l)<<']'<<endl;
     readsz += _l;
-    
+
     while(_l){
         const uint32_t  crtdatalen = rm.dataVector()[readidx % rm.dataVector().size()].data.size();
         uint32_t        toread = crtdatalen - crtread;
         if(toread > _l) toread = _l;
-        
+
         crtread += toread;
         _l -= toread;
-        
+
         //cout<<"consume "<<(readidx % rm.dataVector().size())<<" size = "<<crtdatalen<<" crtread = "<<crtread<<endl;
-        
+
         if(crtread == crtdatalen){
             crtread = 0;
             TimeSpec ts(TimeSpec::createRealTime());
@@ -284,16 +284,16 @@ int main(int argc, char* argv[])
         }
 
         boost::asio::io_service io_service;
-        
+
         boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
         ctx.load_verify_file("echo-ca-cert.pem");
-        
+
         using namespace std; // For atoi.
-        
+
         Manager m(atoi(argv[4]), 1024 * 2, 1024 * 8, 10);
-        
+
         m.endPoint(ip::tcp::endpoint(ip::address::from_string(argv[1]), atoi(argv[2])));
-        
+
         int concnt = atoi(argv[3]);
         int idx = 0;
         while(concnt--){

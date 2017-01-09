@@ -37,11 +37,11 @@ struct ObjectStub{
     Object                  *pobj;
     size_t                  a;
     size_t                  b;
-    
+
     Cbk1T                   cbk1;
     Cbk2T                   cbk2;
     Cbk3T                   cbk3;
-    
+
     template <class Obj>
     static void call1(Object* _pobj, Context& _rctx){
         static_cast<Obj*>(_pobj)->onEvent1(_rctx);
@@ -54,7 +54,7 @@ struct ObjectStub{
     static void call3(Object* _pobj, Context& _rctx, std::string const& _v){
         static_cast<Obj*>(_pobj)->onEvent3(_rctx, _v);
     }
-    
+
     template<class Obj>
     void registerObject(size_t _idx){
         objptr->id = _idx;
@@ -63,7 +63,7 @@ struct ObjectStub{
         cbk2 = &ObjectStub::call2<Obj>;
         cbk3 = &ObjectStub::call3<Obj>;
     }
-    
+
     void call(std::string const& _data)const{
         Context ctx(a, b);
         (cbk1)(pobj, ctx);
@@ -166,35 +166,35 @@ int main(int argc, char *argv[]){
     if(argc == 3){
         loopcount = atoi(argv[2]);
     }
-    
+
     deque<ObjectStub>   objdq;
-    
+
     for(size_t i = 0; i < objectcount; ++i){
         ObjectStub  stub;
         stub.a = objdq.size();
         stub.b = objdq.size()/2;
-        
+
         switch(i % 4){
             case 0: stub.objptr = new FirstObject; stub.registerObject<FirstObject>(objdq.size()); break;
             case 1: stub.objptr = new SecondObject; stub.registerObject<SecondObject>(objdq.size()); break;
             case 2: stub.objptr = new ThirdObject; stub.registerObject<ThirdObject>(objdq.size()); break;
             case 3: stub.objptr = new FourthObject; stub.registerObject<FourthObject>(objdq.size()); break;
         }
-        
+
         objdq.push_back(stub);
     }
-    
+
     std::string data("some");
     for(size_t i = 0; i < 10; ++i){
         data += data;
     }
-    
+
     for(size_t i = 0; i < loopcount; ++i){
         for(deque<ObjectStub>::iterator it(objdq.begin()); it != objdq.end(); ++it){
             it->call(data);
         }
         data.resize(data.size() / 2);
     }
-    
+
     return 0;
 }

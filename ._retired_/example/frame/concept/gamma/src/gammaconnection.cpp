@@ -26,7 +26,7 @@
 
 using namespace solid;
 using namespace std;
-//static const char *hellostr = "Welcome to gamma service!!!\r\n"; 
+//static const char *hellostr = "Welcome to gamma service!!!\r\n";
 //static const char *sigstr = "Signaled!!!\r\n";
 
 namespace concept{
@@ -104,14 +104,14 @@ Connection::Connection(const SocketDevice &_rsd):
 }
 
 /*
-NOTE: 
+NOTE:
 * Releasing the connection here and not in a base class destructor because
-here we know the exact type of the object - so the service can do other things 
+here we know the exact type of the object - so the service can do other things
 based on the type.
-* Also it ensures a proper/safe visiting. Suppose the unregister would have taken 
+* Also it ensures a proper/safe visiting. Suppose the unregister would have taken
 place in a base destructor. If the visited object is a leaf, one may visit
 destroyed data.
-NOTE: 
+NOTE:
 * Visitable data must be destroyed after releasing the connection!!!
 */
 
@@ -146,10 +146,10 @@ Connection::~Connection(){
         _rexectx.close();
         return;
     }
-    
+
     Manager &rm = Manager::the();
     frame::requestuidptr->set(this->id(), rm.id(*this).second);
-    
+
     if(notified()){//we've received a signal
         DynamicHandler<DynamicMapperT>  dh(dm);
         ulong                           sm(0);
@@ -173,7 +173,7 @@ Connection::~Connection(){
         //now we determine if we return with Wait or we continue
         if(!_rexectx.eventMask()) return;
     }
-    
+
     uint sigsz = this->signaledSize();
     while(sigsz--){
         uint sid = this->signaledFront();
@@ -226,7 +226,7 @@ uint32 Connection::newRequestId(int _pos){
     if(rq > ridv.back().first){
         //push back
         ridv.push_back(std::pair<uint32, int>(rq, _pos));
-        
+
     }else{
         BinarySeekerResultT rv = reqbs(ridv.begin(), ridv.end(), rq);
         SOLID_ASSERT(!rv.first);
@@ -247,14 +247,14 @@ void   Connection::deleteRequestId(uint32 _v){
     SOLID_ASSERT(!rv.first);
     ridv.erase(ridv.begin() + rv.second);
 }
-    
+
 int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
     ulong       evs(this->socketEvents(_sid));
-    
+
     if(evs & (frame::EventTimeoutRecv | frame::EventTimeoutSend)) return Failure;
-    
+
     SocketData  &rsd(socketData(_sid));
-    
+
     switch(socketState(_sid)){
         case SocketRegister:
             this->socketRequestRegister(_sid);
@@ -301,7 +301,7 @@ int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
         default:
             edbg("unknown state "<<socketState(_sid));
             SOLID_ASSERT(false);
-            
+
     }
     return Wait;
 }
@@ -319,7 +319,7 @@ int Connection::doSocketPrepareBanner(const uint _sid, SocketData &_rsd){
     string              hoststr;
     string              portstr;
     SocketAddress       addr;
-    
+
     _rsd.w<<"* Hello from gamma server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
     socketLocalAddress(_sid, addr);
     synchronous_resolve(
@@ -452,7 +452,7 @@ void Connection::dynamicHandle(DynamicPointer<SocketMoveMessage> &_rmsgptr){
     _rmsgptr->psd = NULL;
     sdv[sid]->r.socketId(sid);
     sdv[sid]->w.socketId(sid);
-    
+
 }
 
 
@@ -474,8 +474,8 @@ void Connection::appendContextString(std::string &_str){
     char                buffer[256];
     IndexT              objid(this->id());
     uint32              objuid(rm.id(*this).second);
-    
-    
+
+
     if(sizeof(objid) == 8){
         sprintf(buffer, "%llX-%X", (unsigned long long)objid, objuid);
     }else{

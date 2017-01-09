@@ -1,6 +1,6 @@
 // serialization/idtypemapper.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -29,12 +29,12 @@ struct FakeMutex{
 
 template <class Ser, class Des, typename Int, typename Mtx = SharedMutex>
 class IdTypeMapper: public TypeMapperBase{
-    
+
     typedef IdTypeMapper<Ser, Des, Int, Mtx>    ThisT;
     typedef typename Ser::ContextT              SerContextT;
     typedef typename Des::ContextT              DesContextT;
-    
-    
+
+
     template <class T>
     static bool doMapSer(void *_p, void *_ps, void *_pid, const char *_name, void */*_pctx*/){
         Int         &rid = *reinterpret_cast<Int*>(_pid);
@@ -44,7 +44,7 @@ class IdTypeMapper: public TypeMapperBase{
         rs.push(rid, _name);
         return true;
     }
-    
+
     template <class T>
     static bool doMapDes(void *_p, void *_pd, const char *_name, void */*_pctx*/, FncInitPointerT _pinicbk){
         Des     &rd = *reinterpret_cast<Des*>(_pd);
@@ -55,13 +55,13 @@ class IdTypeMapper: public TypeMapperBase{
             T*      &rpt = *reinterpret_cast<T**>(_p);
             rpt = pt;
         }
-        
+
         T       &rp = *pt;
         rd.push(rp, _name);
-        
+
         return true;
     }
-    
+
     template <class T, class H>
     static bool doMapSerHandle(void *_p, void *_ps, void *_pid, const char *_name, void *_pctx){
         Ser             &rs = *reinterpret_cast<Ser*>(_ps);
@@ -69,7 +69,7 @@ class IdTypeMapper: public TypeMapperBase{
         Int             &rid = *reinterpret_cast<Int*>(_pid);
         H               handle;
         SerContextT     &rctx = *reinterpret_cast<SerContextT*>(_pctx);
-        
+
         if(handle.checkStore(&rp, rctx)){
             rs.template pushHandlePointer<T, H>(&rp, _name);
             rs.push(rp, _name);
@@ -80,8 +80,8 @@ class IdTypeMapper: public TypeMapperBase{
             return false;
         }
     }
-    
-    
+
+
     template <class T, class H>
     static bool doMapDesHandle(void *_p, void *_pd, const char *_name, void *_pctx, FncInitPointerT _pinicbk){
         Des             &rd = *reinterpret_cast<Des*>(_pd);
@@ -89,7 +89,7 @@ class IdTypeMapper: public TypeMapperBase{
         T               *pt = NULL;
         H               handle;
         DesContextT     &rctx = *reinterpret_cast<DesContextT*>(_pctx);
-        
+
         if(handle.checkLoad(pt, rctx)){
             pt = new T;
             if(_pinicbk){
@@ -107,7 +107,7 @@ class IdTypeMapper: public TypeMapperBase{
             return false;
         }
     }
-    
+
     template <class T, class CT>
     static bool doMapDes(void *_p, void *_pd, const char *_name, void */*_pctx*/, FncInitPointerT _pinicbk){
         Des     &rd = *reinterpret_cast<Des*>(_pd);
@@ -118,7 +118,7 @@ class IdTypeMapper: public TypeMapperBase{
             T*      &rpt = *reinterpret_cast<T**>(_p);
             rpt = pt;
         }
-        
+
         T       &rp = *pt;
         rd.push(rp, _name);
         return true;
@@ -143,7 +143,7 @@ public:
         Locker<Mtx>     lock(m);
         return this->insertFunction(&ThisT::template doMapSerHandle<T, H>, &ThisT::template doMapDesHandle<T, H>, idx, typeid(T).name());
     }
-    
+
     uint32 realIdentifier(uint32 _idx)const{
         return _idx;
     }
@@ -154,7 +154,7 @@ private:
         void *_pctx
     )const{
         uint32  *pid(NULL);
-        FncSerT pf; 
+        FncSerT pf;
         {
             SharedLocker<Mtx> lock(m);
             pf = this->function(_id, pid);
@@ -167,14 +167,14 @@ private:
         void *_pctx
     )const{
         uint32  *pid(NULL);
-        FncSerT pf; 
+        FncSerT pf;
         {
             SharedLocker<Mtx> lock(m);
             pf = this->function(_pid, pid);
         }
         return (*pf)(_pt, _pser, pid, _name, _pctx);
     }
-    
+
     /*virtual*/ bool prepareParsePointer(
         void *_pdes, std::string &_rs,
         void *_p, const char *_name,

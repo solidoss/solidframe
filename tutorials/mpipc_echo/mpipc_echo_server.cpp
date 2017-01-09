@@ -21,7 +21,7 @@ using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 //-----------------------------------------------------------------------------
 struct Parameters{
     Parameters():listener_port("0"), listener_addr("0.0.0.0"){}
-    
+
     string          listener_port;
     string          listener_addr;
 };
@@ -38,12 +38,12 @@ void complete_message(
     ErrorConditionT const &_rerror
 ){
     SOLID_CHECK(not _rerror);
-    
+
     if(_rrecv_msg_ptr){
         SOLID_CHECK(not _rsent_msg_ptr);
         SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
     }
-    
+
     if(_rsent_msg_ptr){
         SOLID_CHECK(not _rrecv_msg_ptr);
     }
@@ -69,39 +69,39 @@ bool parseArguments(Parameters &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
     Parameters p;
-    
+
     if(!parseArguments(p, argc, argv)) return 0;
-    
+
     {
-        
+
         AioSchedulerT           scheduler;
-        
-        
+
+
         frame::Manager          manager;
         frame::mpipc::ServiceT  ipcservice(manager);
         ErrorConditionT         err;
-        
+
         err = scheduler.start(1);
-        
+
         if(err){
             cout<<"Error starting aio scheduler: "<<err.message()<<endl;
             return 1;
         }
-        
+
         {
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
-            
+
             ipc_echo::ProtoSpecT::setup<ipc_echo_server::MessageSetup>(*proto);
-            
+
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
             cfg.server.listener_address_str += p.listener_port;
-            
+
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
-            
+
             err = ipcservice.reconfigure(std::move(cfg));
-            
+
             if(err){
                 cout<<"Error starting ipcservice: "<<err.message()<<endl;
                 manager.stop();
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]){
                 cout<<"server listens on port: "<<oss.str()<<endl;
             }
         }
-        
+
         cout<<"Press any char and ENTER to stop: ";
         char c;
         cin>>c;
@@ -126,16 +126,16 @@ int main(int argc, char *argv[]){
 bool parseArguments(Parameters &_par, int argc, char *argv[]){
     if(argc == 2){
         size_t          pos;
-        
+
         _par.listener_addr = argv[1];
-        
+
         pos = _par.listener_addr.rfind(':');
-        
+
         if(pos != string::npos){
             _par.listener_addr[pos] = '\0';
-            
+
             _par.listener_port.assign(_par.listener_addr.c_str() + pos + 1);
-            
+
             _par.listener_addr.resize(pos);
         }
     }

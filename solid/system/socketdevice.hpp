@@ -1,6 +1,6 @@
 // solid/system/socketdevice.hpp
 //
-// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -24,7 +24,7 @@ public:
 #else
     typedef int DescriptorT;
 #endif
-    
+
     //!Copy constructor
     SocketDevice(SocketDevice &&_sd);
     //!Basic constructor
@@ -37,7 +37,7 @@ public:
     void shutdownRead();
     //! Shutdown writing
     void shutdownWrite();
-    //! Shutdown reading and writing 
+    //! Shutdown reading and writing
     void shutdownReadWrite();
     //! Create a socket based ResolveIterator
     ErrorCodeT create(const ResolveIterator &_rri);
@@ -69,24 +69,24 @@ public:
     ErrorCodeT isBlocking(bool &_rrv)const;
     ErrorCodeT enableNoDelay();
     ErrorCodeT disableNoDelay();
-    
+
     ErrorCodeT enableNoSignal();
     ErrorCodeT disableNoSignal();
-    
+
     ErrorCodeT enableLinger();
     ErrorCodeT disableLinger();
-    
+
     ErrorCodeT hasNoDelay(bool &_rrv)const;
-    
+
     ErrorCodeT enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
     ErrorCodeT disableCork();
     ErrorCodeT hasCork(bool &_rrv)const;
-    
+
     //ErrorCodeT sendBufferSize(size_t _sz);
     //ErrorCodeT recvBufferSize(size_t _sz);
     ErrorCodeT sendBufferSize(int &_rrv);
     ErrorCodeT recvBufferSize(int &_rrv);
-    
+
     ErrorCodeT sendBufferSize(int &_rrv)const;
     ErrorCodeT recvBufferSize(int &_rrv)const;
     //! Write data on socket
@@ -111,9 +111,9 @@ public:
     }
 #endif
     void close();
-    
+
     ErrorCodeT lastError()const;
-    
+
     //! Get the socket type
     ErrorCodeT type(int &_rrv)const;
     //! Return true if the socket is listening

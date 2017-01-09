@@ -1,6 +1,6 @@
 // alphasignalss.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -75,7 +75,7 @@ struct RemoteListMessage: Dynamic<RemoteListMessage, DynamicShared<frame::ipc::M
     /*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
     /*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
     /*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
-    
+
     size_t use();
     size_t release();
 
@@ -123,7 +123,7 @@ struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::ipc::Messag
     ~FetchMasterMessage();
     /*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
     /*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
         _s.push(fname, "filename");
@@ -160,7 +160,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
     int sent(const solid::frame::ipc::ConnectionUid &);
 
     /*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
         _s.template pushReinit<FetchSlaveMessage, 0>(this, 0, "reinit");
@@ -171,7 +171,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
         _s.push(fuid.first,"fileuid_first").push(fuid.second, "fileuid_second");
         serialized = true;
     }
-    
+
     template <class S, uint32 I>
     serialization::binary::CbkReturnValueE serializationReinit(S &_rs, const uint32 &_rv, solid::frame::ipc::ConnectionContext const &_rctx){
         if(_rv == 1){
@@ -194,7 +194,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
     bool initOutputStream();
     void clearOutputStream();
     void print()const;
-//data: 
+//data:
     typedef solid::frame::file::FileIOStream<64>        FileIOStreamT;
     ObjectUidT                          fromv;
     ObjectUidT                          tov;

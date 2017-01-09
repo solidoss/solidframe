@@ -1,6 +1,6 @@
 // service.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -57,24 +57,24 @@ bool Service::insertListener(
     if(!sd.ok()){
         return false;
     }
-    
+
     frame::aio::openssl::Context    *pctx = NULL;
-    
+
     if(_secure){
         pctx = frame::aio::openssl::Context::create();
     }
-    
+
     if(pctx){
         const char *pcertpath = certificate_path();
-        
+
         pctx->loadCertificateFile(pcertpath);
         pctx->loadPrivateKeyFile(pcertpath);
     }
-    
+
     solid::DynamicPointer<solid::frame::aio::Object> lisptr(new Listener(*this, sd, pctx));
-    
+
     this->registerObject(*lisptr);
-    
+
     Manager::the().scheduleListener(lisptr);
     return true;
 }

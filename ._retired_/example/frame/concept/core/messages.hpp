@@ -1,6 +1,6 @@
 // messages.hpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -22,7 +22,7 @@ struct FilePointerMessage: solid::Dynamic<FilePointerMessage, solid::frame::Mess
         solid::frame::file::FilePointerT _ptr,
         size_t _reqidx = 0, solid::uint32 _requid = 0
     ):ptr(_ptr), reqidx(0), requid(_requid){}
-    
+
     solid::frame::file::FilePointerT    ptr;
     size_t                              reqidx;
     solid::uint32                       requid;

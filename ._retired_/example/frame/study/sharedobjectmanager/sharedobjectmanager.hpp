@@ -20,21 +20,21 @@ public:
     };
     SharedObjectManager();
     ~SharedObjectManager();
-    
+
     bool start();
-    
+
     void insert(size_t _v);
-    
+
     bool notify(size_t _idx, uint32_t _flags);
     bool notify(size_t _idx, uint32_t _flags, size_t _v);
-    
+
     bool notifyAll(uint32_t _flags);
     bool notifyAll(uint32_t _flags, size_t _v);
-    
+
     void stop(std::ostream &_ros);
 private:
     void executeObject(ObjectStub &_robj);
-    
+
     friend struct WorkPoolController;
     struct Data;
     Data &d;

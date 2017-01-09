@@ -1,6 +1,6 @@
 // solid/frame/src/sharedstore.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -131,7 +131,7 @@ namespace{
     void unlock_all(MutexMutualStoreT &_rms, const size_t _sz){
         _rms.visit(_sz, visit_unlock);
     }
-    
+
 }//namespace
 
 size_t StoreBase::doAllocateIndex(){

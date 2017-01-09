@@ -42,7 +42,7 @@ namespace{
         string              user_prefix;
         vector<string>      endpoint_str_vec;
         AddressVectorT      endpoint_vec;
-        
+
         bool prepare();
     };
 
@@ -54,14 +54,14 @@ namespace{
     MessageMatrix           &mm = *(new MessageMatrix);
     ServiceVectorT          svcvec;
     AioSchedulerT           *paio;
-    
-    
+
+
     static void term_handler(int signum){
         switch(signum) {
             case SIGINT:
             case SIGTERM:{
                 if(running){
-                    
+
                     Locker<Mutex>  lock(mtx);
                     running = false;
                     cnd.broadcast();
@@ -69,7 +69,7 @@ namespace{
             }
         }
     }
-    
+
     bool split_endpoint_string(std::string &_endpoint, std::string &_addr, int &_port){
         size_t          pos= _endpoint.rfind(':');
         if(pos == std::string::npos){
@@ -127,17 +127,17 @@ int main(int argc, char *argv[]){
     {
         frame::Manager                          m;
         AioSchedulerT                           aiosched(m);
-        
+
         paio = &aiosched;
-        
+
         Service::registerMessages();
-        
+
         cliRun();
-        
+
         idbg("");
-        
+
         m.stop();
-        
+
     }
     /*solid::*/Thread::waitAll();
     delete &mm;
@@ -182,7 +182,7 @@ bool Params::prepare(){
         addrstr.clear();
         port = 0;
         split_endpoint_string(*it, addrstr, port);
-        
+
         ResolveData     rd =  synchronous_resolve(addrstr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Stream);
         if(rd.empty()){
             cout<<"Error resolving address: "<<*it<<endl;
@@ -201,7 +201,7 @@ struct CommandStub{
         uint32 _cnt = 0,
         uint32 _cmdidx = 0
     ):cnt(_cnt), cmdidx(_cmdidx){}
-    
+
     uint32    cnt;
     uint32    cmdidx;
 };
@@ -225,7 +225,7 @@ void cliRun(){
     StringDequeT    cmdvec;
     uint32_t        cmdidx = 0;
     CommandStackT   cmdstk;
-    
+
     // the small CLI loop
     while(true){
         if(rc == -1){
@@ -239,7 +239,7 @@ void cliRun(){
             break;
         }
         rc = 0;
-        
+
         if(cmdidx < cmdvec.size()){
             pbuf = cmdvec[cmdidx].c_str();
         }else{
@@ -248,9 +248,9 @@ void cliRun(){
             pbuf = buf;
             cmdvec.push_back(buf);
         }
-        
+
         ++cmdidx;
-        
+
         if(!cstring::casecmp(pbuf,"quit") || !cstring::casecmp(pbuf,"q")){
             break;
         }
@@ -283,7 +283,7 @@ void cliRun(){
             }
             continue;
         }
-        
+
         if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("help"))){
             executeHelp();
             continue;
@@ -350,7 +350,7 @@ int executeSleep(const char* _pb, int _b){
     if(!mp.isAtEnd()){
         mp.parse(msec);
     }
-    
+
     cout<<"SLEEP sec = "<<sec<<" msec = "<<msec<<endl;
 #ifdef __WIN32__
     Sleep(sec * 1000 + msec);
@@ -367,7 +367,7 @@ int executeCreateMessageRow(const char* _pb, int _b){
     int             row_cnt;
     int             from_sz;
     int             to_sz;
-    
+
     mp.skipWhites();
     if(mp.isAtEnd()) return -1;
     mp.parse(row_idx);
@@ -380,11 +380,11 @@ int executeCreateMessageRow(const char* _pb, int _b){
     mp.skipWhites();
     if(mp.isAtEnd()) return -1;
     mp.parse(to_sz);
-    
+
     cout<<"CREATE_MESSAGE_ROW row_idx = "<<row_idx<<" row_cnt = "<<row_cnt<<" from_sz = "<<from_sz<<" to_sz = "<<to_sz<<endl;
-    
+
     mm.createRow(row_idx, row_cnt, from_sz, to_sz);
-    
+
     cout<<"Done CREATE_MESSAGE_ROW"<<endl;
     return 0;
 }
@@ -401,9 +401,9 @@ int executePrintMessageRow(const char* _pb, int _b){
         mp.parse(verbose);
     }
     cout<<"PRINT_MESSAGE_ROW row_idx = "<<row_idx<<" verbose = "<<verbose<<endl;
-    
+
     mm.printRowInfo(cout, row_idx, verbose == 1);
-    
+
     cout<<"Done PRINT_MESSAGE_ROW"<<endl;
     return 0;
 }
@@ -432,18 +432,18 @@ int executeCreateConnectionSet(const char* _pb, int _b){
     if(idx >= svcvec.size()){
         svcvec.resize(idx + 1);
     }
-    
+
     cout<<"CREATE_CONNECTION_SET idx = "<<idx<<" cnt = "<<cnt<<" retryconnectcnt = "<<retryconnectcnt<<" retryconnectsleepms = "<<retryconnectsleepms<<endl;
-    
+
     svcvec[idx] = new Service(frame::Manager::specific(), *paio, p.endpoint_vec, idx);
-    
+
     StartData sd;
     sd.concnt = cnt;
     sd.reconnectcnt = retryconnectcnt;
     sd.reconnectsleepmsec = retryconnectsleepms;
-    
+
     svcvec[idx]->start(sd);
-    
+
     cout<<"Done CREATE_CONNECTION_SET"<<endl;
     return 0;
 }
@@ -451,17 +451,17 @@ int executeWait(const char* _pb, int _b){
     cli::Parser     mp(_pb);
     int             idx;
     char            choice;
-    
+
     mp.skipWhites();
     if(mp.isAtEnd()) return -1;
     mp.parse(idx);
     mp.skipWhites();
     if(mp.isAtEnd()) return -1;
-    
+
     mp.parse(choice);
-    
+
     cout<<"WAIT idx = "<<idx<<" choice = "<<choice<<endl;
-    
+
     if(idx >= svcvec.size() || svcvec[idx].empty()){
         cout<<"Fail WAIT"<<endl;
         return 0;
@@ -489,7 +489,7 @@ int executeWait(const char* _pb, int _b){
             cout<<"Choice unknown!!"<<endl;
             break;
     }
-    
+
     TimeSpec    crt_time;
     crt_time.currentRealTime();
     crt_time -= start_time;
@@ -503,7 +503,7 @@ int executeSend(const char* _pb, int _b){
     int             msgrow;
     int             count;
     int             sleepms = 10;
-    
+
     mp.skipWhites();
     if(mp.isAtEnd()) return -1;
     mp.parse(conset);
@@ -518,13 +518,13 @@ int executeSend(const char* _pb, int _b){
         mp.parse(sleepms);
     }
     cout<<"SEND conset = "<<conset<<" msgrow = "<<msgrow<<" count = "<<count<<" sleepms = "<<sleepms<<endl;
-    
+
     if(conset >= svcvec.size() || svcvec[conset].empty() || !mm.hasRow(msgrow)){
         cout<<"Fail SEND"<<endl;
         return 0;
     }
     Service &rsvc = *svcvec[conset];
-    
+
     rsvc.send(msgrow, sleepms, count);
     cout<<"Done SEND"<<endl;
     return 0;

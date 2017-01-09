@@ -58,7 +58,7 @@ int main(){
     Test* ptc = (*pbc)(3);
     ptc->print();
     delete ptc;
-    
+
     dlclose(libb_handle);
     dlclose(libc_handle);
     return 0;

@@ -1,6 +1,6 @@
 // solid/frame/objectbase.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -30,38 +30,38 @@ class ObjectBase: public Dynamic<ObjectBase>{
 public:
     //! Get the id of the object
     IndexT id() const;
-    
+
     //! Virtual destructor
     virtual ~ObjectBase();
-    
+
     UniqueId const& runId()const;
-    
+
     bool isAcceptingEvents()const;
-    
+
 protected:
     friend class Service;
     friend class Manager;
     friend class ReactorBase;
-    
+
     //! Constructor
     ObjectBase();
-    
+
     //! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
     size_t grabSignalMask(const size_t _leave = 0);
-    
+
     void unregister(Manager &_rm);
     bool isRegistered()const;
     virtual void doStop(Manager &_rm);
-    
+
     bool notify(const size_t _smask);
-    
+
     bool disableVisits(Manager &_rm);
 private:
     void id(const IndexT &_fullid);
-    
+
     void runId(UniqueId const& _runid);
     void prepareSpecific();
-    
+
     void stop(Manager &_rm);
 private:
     std::atomic<IndexT> fullid;

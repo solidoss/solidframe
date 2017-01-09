@@ -60,47 +60,47 @@ int main(int argc, char *argv[]){
         string dbgout;
         Debug::the().levelMask("view");
         Debug::the().moduleMask("");
-        
+
         Debug::the().initStdErr(
             false,
             &dbgout
         );
-        
+
         cout<<"Debug output: "<<dbgout<<endl;
         dbgout.clear();
         Debug::the().moduleNames(dbgout);
         cout<<"Debug modules: "<<dbgout<<endl;
     }
     #endif
-    
+
     {
         SchedulerT                  s;
-        
+
         frame::Manager              m;
         frame::ServiceT             svc(m);
         solid::ErrorConditionT      err;
-        
-        
+
+
         err = s.start(1);
-        
+
         if(!err){
             const size_t    cnt = argc == 2 ? atoi(argv[1]) : 1000;
-            
+
             cout<<"Creating "<<cnt<<" objects:"<<endl;
-            
+
             for(size_t i = 0; i < cnt; ++i){
-                
+
                 objdq.emplace_back();
-                
+
                 DynamicPointer<frame::Object>   objptr(&objdq.back());
                 solid::frame::ObjectIdT         objuid;
                 {
                     unique_lock<mutex>  lock(mtx);
-                    
+
                     objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                    
+
                     idbg("Started BasicObject: "<<objuid.index<<','<<objuid.unique);
-                    
+
                     if(err){
                         cout<<"Error starting object "<<i<<": "<<err.message()<<endl;
                         break;
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]){
         }else{
             cout<<"Error starting scheduler: "<<err.message()<<endl;
         }
-        
+
         if(!err){
             {
                 unique_lock<mutex>  lock(mtx);
@@ -119,15 +119,15 @@ int main(int argc, char *argv[]){
                     cnd.wait(lock);
                 }
             }
-            
+
             cout<<"Notify all update: START"<<endl;
-            
+
             svc.notifyAll(generic_event_update);
-            
+
             cout<<"Notify all update: DONE"<<endl;
-            
+
             sleep(20);
-            
+
             cout<<"Notify all raise: START"<<endl;
             svc.notifyAll(generic_event_raise);
             cout<<"Notify all raise: DONE"<<endl;
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]){
 
 void BasicObject::onTimer(frame::ReactorContext &_rctx){
     idbg("");
-    
+
     if(status_ == StatusInMemory){
         status_ = StatusCompressed;
         timer_.waitFor(_rctx, NanoTime(10, 1000000 * (this->id() % 1000)), [this](frame::ReactorContext &_rctx){return onTimer(_rctx);});

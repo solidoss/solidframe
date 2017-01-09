@@ -1,6 +1,6 @@
 // solid/frame/file/src/filestore.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -67,14 +67,14 @@ struct TempWaitStub{
         uint64_t _size = 0,
         size_t _value = 0
     ):objuid(_uid), pfile(_pfile), size(_size), value(_value){}
-    
+
     void clear(){
         pfile = nullptr;
     }
     bool empty()const{
         return pfile == nullptr;
     }
-    
+
     UniqueId        objuid;
     File            *pfile;
     uint64_t        size;
@@ -136,7 +136,7 @@ struct Utf8ConfigurationImpl{
         std::string     localprefix;
         size_t          globalsize;
     };
-    
+
     Utf8ConfigurationImpl(){}
     Utf8ConfigurationImpl(Utf8Configuration const &_cfg){
         storagevec.reserve(_cfg.storagevec.size());
@@ -148,9 +148,9 @@ struct Utf8ConfigurationImpl{
             storagevec.push_back(Storage(*it));
         }
     }
-    
+
     typedef std::vector<Storage>        StorageVectorT;
-    
+
     StorageVectorT      storagevec;
 };
 
@@ -194,7 +194,7 @@ struct TempConfigurationImpl{
         bool            enqued;
         TempRemoveMode  removemode;
     };
-    
+
     TempConfigurationImpl(){}
     TempConfigurationImpl(TempConfiguration const &_cfg){
         storagevec.reserve(_cfg.storagevec.size());
@@ -207,12 +207,12 @@ struct TempConfigurationImpl{
         }
     }
     typedef std::vector<Storage>        StorageVectorT;
-    
+
     StorageVectorT      storagevec;
 };
 
 struct Utf8Controller::Data{
-    
+
     Utf8ConfigurationImpl   filecfg;//NOTE: it is accessed without lock in openFile
     TempConfigurationImpl   tempcfg;
     size_t                  minglobalprefixsz;
@@ -223,13 +223,13 @@ struct Utf8Controller::Data{
     PathSetT                pathset;
     IndexSetT               indexset;
     PathStubStackT          pathcache;
-    
+
     SizeVectorT             tempidxvec;
     TempWaitDequeT          tempwaitdq;
     TempWaitVectorT         tempwaitvec[2];
     TempWaitVectorT         *pfilltempwaitvec;
     TempWaitVectorT         *pconstempwaitvec;
-    
+
     Data(
         const Utf8Configuration &_rfilecfg,
         const TempConfiguration &_rtempcfg
@@ -237,10 +237,10 @@ struct Utf8Controller::Data{
         pfilltempwaitvec = &tempwaitvec[0];
         pconstempwaitvec = &tempwaitvec[1];
     }
-    
+
     void prepareFile();
     void prepareTemp();
-    
+
     size_t findFileStorage(std::string const&_path);
 };
 
@@ -260,7 +260,7 @@ void Utf8Controller::Data::prepareFile(){
             maxglobalprefixsz = it->globalprefix.size();
         }
     }
-    
+
     for(
         Utf8ConfigurationImpl::StorageVectorT::iterator it = filecfg.storagevec.begin();
         it != filecfg.storagevec.end();
@@ -275,7 +275,7 @@ void Utf8Controller::Data::prepareFile(){
 }
 
 void Utf8Controller::Data::prepareTemp(){
-    
+
 }
 
 size_t Utf8Controller::Data::findFileStorage(std::string const&_path){
@@ -305,7 +305,7 @@ Utf8Controller::Utf8Controller(
     const Utf8Configuration &_rfilecfg,
     const TempConfiguration &_rtempcfg
 ):d(*(new Data(_rfilecfg, _rtempcfg))){
-    
+
     d.prepareFile();
     d.prepareTemp();
 }
@@ -322,16 +322,16 @@ bool Utf8Controller::prepareIndex(
     //if found set _ridx and return true
     //else return false
     const size_t                            storeidx = d.findFileStorage(_rcmd.inpath);
-    
+
     _rcmd.outpath.storeidx = storeidx;
-    
+
     if(storeidx == InvalidIndex()){
         _rerr.assign(1, _rerr.category());
         return true;
     }
-    
+
     Utf8ConfigurationImpl::Storage const    &rstrg = d.filecfg.storagevec[storeidx];
-    
+
     _rcmd.outpath.path.assign(_rcmd.inpath.c_str() + rstrg.globalsize);
     PathSetT::const_iterator it = d.pathset.find(&_rcmd.outpath);
     if(it != d.pathset.end()){
@@ -364,14 +364,14 @@ bool Utf8Controller::preparePointer(
 void Utf8Controller::openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, ErrorCodeT &_rerr){
     Utf8ConfigurationImpl::Storage const    &rstrg = d.filecfg.storagevec[_rcmd.outpath.storeidx];
     std::string                             path;
-    
+
     path.reserve(rstrg.localprefix.size() + _rcmd.outpath.path.size());
     path.assign(rstrg.localprefix);
     path.append(_rcmd.outpath.path);
     if(!_rptr->open(path.c_str(), _rcmd.openflags)){
         _rerr = last_system_error();
     }
-    
+
 }
 
 bool Utf8Controller::prepareIndex(
@@ -395,7 +395,7 @@ bool Utf8Controller::preparePointer(
         //notify the shared store object
         _rsbacc.notify();
     }
-    
+
     return false;//will always store _rptr
 }
 
@@ -423,7 +423,7 @@ bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor &_rsbacc){
                 if(it->canUse(waitit->size, waitit->value)){
                     const size_t                    strgidx = it - d.tempcfg.storagevec.begin();
                     TempConfigurationImpl::Storage  &rstrg(*it);
-                    
+
                     if(it->shouldUse(waitit->size)){
                         d.tempwaitdq.resize(tempwaitdqsize);
                         doPrepareOpenTemp(*waitit->pfile, waitit->size, strgidx);
@@ -431,7 +431,7 @@ bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor &_rsbacc){
                         _rsbacc.consumeEraseVector().push_back(waitit->objuid);
                     }else{
                         d.tempwaitdq.push_back(*waitit);
-                        // we dont need the openflags any more - we know which 
+                        // we dont need the openflags any more - we know which
                         // storages apply
                         d.tempwaitdq.back().value = strgidx;
                         ++rstrg.waitcount;
@@ -475,11 +475,11 @@ bool Utf8Controller::clear(shared::StoreBase::Accessor &_rsbacc, File &_rf, cons
         TempBase                        &temp = *_rf.temp();
         const size_t                    strgidx = temp.tempstorageid;
         TempConfigurationImpl::Storage  &rstrg(d.tempcfg.storagevec[strgidx]);
-        
+
         doCloseTemp(temp);
-        
+
         _rf.clear();
-        
+
         if(rstrg.canDeliver() && !rstrg.enqued){
             d.tempidxvec.push_back(strgidx);
             rstrg.enqued = true;
@@ -489,10 +489,10 @@ bool Utf8Controller::clear(shared::StoreBase::Accessor &_rsbacc, File &_rf, cons
 }
 
 void Utf8Controller::doPrepareOpenTemp(File &_rf, uint64_t _sz, const size_t _storeid){
-    
+
     TempConfigurationImpl::Storage  &rstrg(d.tempcfg.storagevec[_storeid]);
     size_t                          fileid;
-    
+
     if(rstrg.idcache.size()){
         fileid = rstrg.idcache.top();
         rstrg.idcache.pop();
@@ -501,14 +501,14 @@ void Utf8Controller::doPrepareOpenTemp(File &_rf, uint64_t _sz, const size_t _st
         ++rstrg.currentid;
     }
     rstrg.usedsize += _sz;
-    
+
     //only creates the file backend - does not open it:
     if((rstrg.level & MemoryLevelFlag) && rstrg.path.empty()){
         _rf.ptmp = new TempMemory(_storeid, fileid, _sz);
     }else{
         _rf.ptmp = new TempFile(_storeid, fileid, _sz);
     }
-    
+
 }
 
 void Utf8Controller::openTemp(CreateTempCommandBase &_rcmd, FilePointerT &_rptr, ErrorCodeT &_rerr){
@@ -529,10 +529,10 @@ void Utf8Controller::doCloseTemp(TempBase &_rtemp){
 }
 
 void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const size_t _storeid){
-    
+
     TempConfigurationImpl::Storage  &rstrg(d.tempcfg.storagevec[_storeid]);
     TempWaitDequeT::iterator        it = d.tempwaitdq.begin();
-    
+
     rstrg.enqued = false;
     while(it != d.tempwaitdq.end()){
         //first we find the first item waiting on storage
@@ -545,7 +545,7 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const s
                 break;
             }
         }
-        
+
         SOLID_ASSERT(it != d.tempwaitdq.end());
         if(rstrg.waitsizefirst == 0){
             rstrg.waitsizefirst = it->size;
@@ -561,7 +561,7 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const s
         _rsbacc.consumeEraseVector().push_back(it->objuid);
         //delete the whole range [waitit, itend]
         const size_t    objidx = it->objuid.index;
-        
+
         if(waitit == d.tempwaitdq.begin()){
             while(waitit != d.tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == nullptr)){
                 waitit = d.tempwaitdq.erase(waitit);
@@ -616,18 +616,18 @@ void split_id(const uint32_t _id, size_t &_rfldrid, size_t &_rfileid){
 bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id){
     _rpath.assign(_prefix);
     if(_rpath.empty()) return false;
-    
+
     if(*_rpath.rbegin() != '/'){
         _rpath += '/';
     }
-    
+
     char    fldrbuf[128];
     char    filebuf[128];
     size_t  fldrid;
     size_t  fileid;
-    
+
     split_id(_id, fldrid, fileid);
-    
+
     if(sizeof(_id) == sizeof(uint64_t)){
         std::sprintf(fldrbuf, "%8.8X", static_cast<unsigned int>(fldrid));
         std::sprintf(filebuf, "/%8.8x.tmp", static_cast<unsigned int>(fileid));
@@ -644,11 +644,11 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 }//namespace
 
 /*virtual*/ bool TempFile::open(const char *_path, const size_t _openflags, bool _remove, ErrorCodeT &_rerr){
-    
+
     std::string path;
-    
+
     prepare_temp_file_path(path, _path, tempid);
-    
+
     bool rv = fd.open(path.c_str(), FileDevice::CreateE | FileDevice::TruncateE | FileDevice::ReadWriteE);
     if(!rv){
         _rerr = last_system_error();

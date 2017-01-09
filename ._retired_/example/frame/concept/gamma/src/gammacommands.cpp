@@ -55,7 +55,7 @@ struct Cmd{
 static const protocol::text::NameMatcher cmdm(cmds);
 //---------------------------------------------------------------
 /*
-    The creator method called by frame::Reader::fetchKey when the 
+    The creator method called by frame::Reader::fetchKey when the
     command name was parsed.
     All it does is to create the proper command, which in turn,
     will instruct the reader how to parse itself.

@@ -1,6 +1,6 @@
 // utility/streampointer.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -24,7 +24,7 @@ protected:
 
 //! An autoptr type of smart pointer for streams
 /*!
-    When the strea must be deleted (e.g. on clear), Stream::release is called and if it 
+    When the strea must be deleted (e.g. on clear), Stream::release is called and if it
     returns true then it will be acctually deleted.
 */
 template <class SO>

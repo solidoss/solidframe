@@ -1,6 +1,6 @@
 // frame/ipc/src/ipcservice.cpp
 //
-// Copyright (c) 2007, 2008, 2010 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2010 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -68,7 +68,7 @@ struct Service::Data{
         SocketAddressHash,
         SocketAddressEqual
     >   SessionAddr6MapT;
-    
+
     typedef std::unordered_map<
         const RelayAddress4T,
         ConnectionUid,
@@ -81,7 +81,7 @@ struct Service::Data{
         SocketAddressHash,
         SocketAddressEqual
     >   SessionRelayAddr6MapT;
-    
+
     typedef std::unordered_map<
         const GatewayRelayAddress4T,
         size_t,
@@ -94,52 +94,52 @@ struct Service::Data{
         SocketAddressHash,
         SocketAddressEqual
     >   GatewayRelayAddr6MapT;
-    
+
 #else
     typedef std::map<
         const BaseAddress4T,
-        ConnectionUid, 
+        ConnectionUid,
         SocketAddressCompare
     >   SessionAddr4MapT;
-    
+
     typedef std::map<
         const BaseAddress6T,
         ConnectionUid,
         SocketAddressCompare
     >   SessionAddr6MapT;
-    
+
     typedef std::map<
         const RelayAddress4T,
-        ConnectionUid, 
+        ConnectionUid,
         SocketAddressCompare
     >   SessionRelayAddr4MapT;
-    
+
     typedef std::map<
         const RelayAddress6T,
         ConnectionUid,
         SocketAddressCompare
     >   SessionRelayAddr6MapT;
-    
-    
+
+
     typedef std::map<
         const GatewayRelayAddress4T,
-        size_t, 
+        size_t,
         SocketAddressCompare
     >   GatewayRelayAddr4MapT;
-    
+
     typedef std::map<
         const GatewayRelayAddress6T,
         size_t,
         SocketAddressCompare
     >   GatewayRelayAddr6MapT;
-#endif  
+#endif
     struct TalkerStub{
         TalkerStub():cnt(0){}
         TalkerStub(const ObjectUidT &_ruid, uint32 _cnt = 0):uid(_ruid), cnt(_cnt){}
         ObjectUidT  uid;
         uint32      cnt;
     };
-    
+
     struct NodeStub{
         NodeStub():sesscnt(0), sockcnt(0){}
         NodeStub(
@@ -151,7 +151,7 @@ struct Service::Data{
         uint32      sesscnt;
         uint32      sockcnt;
     };
-    
+
     struct RelayAddress4Stub{
         RelayAddress4Stub():nid(0xffffffff), idx(0xffffffff){}
         RelayAddress4Stub(
@@ -159,29 +159,29 @@ struct Service::Data{
             uint32 _rnid,
             uint32 _idx
         ): addr(_addr), nid(_rnid), idx(_idx){}
-        
+
         SocketAddressInet4      addr;
         uint32                  nid;
         uint32                  idx;
     };
-    
+
     typedef std::vector<TalkerStub>                     TalkerStubVectorT;
     typedef std::vector<NodeStub>                       NodeStubVectorT;
     typedef std::deque<RelayAddress4Stub>               RelayAddress4DequeT;
-    
+
     typedef Queue<uint32>                               Uint32QueueT;
     typedef Stack<size_t>                               SizeStackT;
-    
+
     Data(
         const DynamicPointer<Controller> &_rctrlptr
     );
-    
+
     ~Data();
-    
+
     uint32 sessionCount()const{
         return sessionaddr4map.size();
     }
-    
+
     DynamicPointer<Controller>  ctrlptr;
     Configuration               config;
     uint32                      tkrcrt;
@@ -193,13 +193,13 @@ struct Service::Data{
     NodeStubVectorT             nodevec;
     SessionAddr4MapT            sessionaddr4map;
     SessionRelayAddr4MapT       sessionrelayaddr4map;
-    
+
     GatewayRelayAddr4MapT       gwrelayaddrmap;//local to remote
     RelayAddress4DequeT         gwrelayaddrdeq;
     SizeStackT                  gwfreestk;
     RelayAddressPointerVectorT  gwnetid2addrvec;
     RelayAddressPointerVectorT  gwaddr2netidvec;
-    
+
     Uint32QueueT                tkrq;
     Uint32QueueT                sessnodeq;
     Uint32QueueT                socknodeq;
@@ -270,38 +270,38 @@ struct RelayAddressAddrLess{
 
 bool Service::reconfigure(const Configuration &_rcfg){
     Locker<Mutex>   lock(mutex());
-    
+
     if(_rcfg == d.config){
         return true;
     }
-    
+
     unsafeReset(lock);
-    
+
     d.config = _rcfg;
-    
+
     if(
         d.config.baseaddr.isInet4()
     ){
-        
+
         d.firstaddr = d.config.baseaddr;
-        
-    
+
+
         SocketDevice    sd;
-        
+
         sd.create(SocketInfo::Inet4, SocketInfo::Datagram, 0);
         sd.makeNonBlocking();
         sd.bind(d.config.baseaddr);
-        
+
         if(!sd.ok()){
             return false;
         }
-        
+
         SocketAddress sa;
-        
+
         if(!sd.localAddress(sa)){
             return false;
         }
-        
+
         d.baseport = sa.port();
         if(configuration().node.timeout){
         }else{
@@ -313,7 +313,7 @@ bool Service::reconfigure(const Configuration &_rcfg){
             nodetimeout += d.config.session.keepalive;
             nodetimeout += d.config.session.relayresponsekeepalive;
             nodetimeout += d.config.session.relaykeepalive;
-            nodetimeout *= 2;//we need to be sure that the keepalive on note 
+            nodetimeout *= 2;//we need to be sure that the keepalive on note
             idbgx(Debug::ipc, "nodetimeout = "<<nodetimeout);
             d.config.node.timeout = nodetimeout / 1000;
         }
@@ -335,7 +335,7 @@ bool Service::reconfigure(const Configuration &_rcfg){
             RelayAddressAddrLess    cmp;
             std::sort(d.gwaddr2netidvec.begin(), d.gwaddr2netidvec.end(), cmp);
         }
-        
+
         //Locker<Mutex> lock(serviceMutex());
         SOLID_ASSERT(!d.tkrvec.size());//only the first tkr must be inserted from outside
         Talker          *ptkr(new Talker(sd, *this, 0));
@@ -355,7 +355,7 @@ bool Service::reconfigure(const Configuration &_rcfg){
             this->unsafeRegisterObject(*plsn);
             controller().scheduleListener(plsn);
         }
-        
+
         return true;
     }else{
         return false;
@@ -368,19 +368,19 @@ bool Service::sendMessage(
     uint32  _flags
 ){
     SOLID_ASSERT(_rconid.tkridx < d.tkrvec.size());
-    
+
     Locker<Mutex>       lock(mutex());
     const IndexT        fullid(d.tkrvec[_rconid.tkridx].uid.first);
     Locker<Mutex>       lock2(this->mutex(fullid));
     Talker              *ptkr(static_cast<Talker*>(this->object(fullid)));
-    
+
     SOLID_ASSERT(ptkr);
-    
+
     if(ptkr == NULL){
         //TODO: set specific error NoConnectionError;
         return false;
     }
-    
+
     if(ptkr->pushMessage(_rmsgptr, SERIALIZATION_INVALIDID, _rconid, _flags | SameConnectorFlag)){
         //the talker must be notified
         if(ptkr->notify(frame::S_RAISE)){
@@ -399,9 +399,9 @@ void Service::doSendEvent(
     const IndexT        fullid(d.tkrvec[_rconid.tkridx].uid.first);
     Locker<Mutex>       lock2(this->mutex(fullid));
     Talker              *ptkr(static_cast<Talker*>(this->object(fullid)));
-    
+
     SOLID_ASSERT(ptkr);
-    
+
     if(ptkr->pushEvent(_rconid, _event, _flags)){
         //the talker must be notified
         if(ptkr->notify(frame::S_RAISE)){
@@ -421,18 +421,18 @@ bool Service::sendMessage(
         //TODO: specific NoConnectionError;
         return false;
     }
-    
+
     Locker<Mutex>       lock(mutex());
     const IndexT        fullid(d.tkrvec[_rconid.tkridx].uid.first);
     Locker<Mutex>       lock2(this->mutex(fullid));
     Talker              *ptkr(static_cast<Talker*>(this->object(fullid)));
-    
+
     SOLID_ASSERT(ptkr);
     if(ptkr == NULL){
         //TODO: specific NoConnectionError;
         return false;
     }
-    
+
     if(ptkr->pushMessage(_rmsgptr, _rtid, _rconid, _flags | SameConnectorFlag)){
         //the talker must be notified
         if(ptkr->notify(frame::S_RAISE)){
@@ -479,17 +479,17 @@ bool Service::doSendMessage(
     const uint32 _netid_dest,
     uint32  _flags
 ){
-    
+
     if(
-        _rsa_dest.family() != SocketInfo::Inet4/* && 
+        _rsa_dest.family() != SocketInfo::Inet4/* &&
         _rsap.family() != SocketAddressInfo::Inet6*/
     ){
         //TODO: specific UnsupportedSocketFamilyError;
         return false;
     }
-    
+
     const uint32 netid = computeNetworkId(_rsa_dest, _netid_dest);
-    
+
     if(netid == LocalNetworkId){
         return doSendMessageLocal(_rmsgptr, _rtid, _pconid, _rsa_dest, netid, _flags);
     }else{
@@ -506,25 +506,25 @@ bool Service::doSendMessageLocal(
     uint32  _flags
 ){
     Locker<Mutex>   lock(mutex());
-    
+
     if(_rsap.family() == SocketInfo::Inet4){
         const SocketAddressInet4            sa(_rsap);
         const BaseAddress4T                 baddr(sa, _rsap.port());
-        
+
         Data::SessionAddr4MapT::iterator    it(d.sessionaddr4map.find(baddr));
-        
+
         if(it != d.sessionaddr4map.end()){
-        
+
             vdbgx(Debug::ipc, "");
-            
+
             ConnectionUid       conid(it->second);
             const IndexT        fullid(d.tkrvec[conid.tkridx].uid.first);
             Locker<Mutex>       lock2(this->mutex(fullid));
             Talker              *ptkr(static_cast<Talker*>(this->object(fullid)));
-            
+
             SOLID_ASSERT(conid.tkridx < d.tkrvec.size());
             SOLID_ASSERT(ptkr);
-            
+
             if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
                 //the talker must be notified
                 if(ptkr->notify(frame::S_RAISE)){
@@ -536,11 +536,11 @@ bool Service::doSendMessageLocal(
             }
         }else{//the connection/session does not exist
             vdbgx(Debug::ipc, "");
-            
+
             int16   tkridx(allocateTalkerForSession());
             IndexT  tkrfullid;
             uint32  tkruid;
-            
+
             if(tkridx >= 0){
                 //the talker exists
                 tkrfullid = d.tkrvec[tkridx].uid.first;
@@ -554,24 +554,24 @@ bool Service::doSendMessageLocal(
                 tkrfullid = d.tkrvec[tkridx].uid.first;
                 tkruid = d.tkrvec[tkridx].uid.second;
             }
-            
+
             Locker<Mutex>       lock2(this->mutex(tkrfullid));
             Talker              *ptkr(static_cast<Talker*>(this->object(tkrfullid)));
             Session             *pses(new Session(*this, sa));
             ConnectionUid       conid(tkridx);
-            
+
             SOLID_ASSERT(ptkr);
-            
+
             vdbgx(Debug::ipc, "");
             ptkr->pushSession(pses, conid);
             d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
-            
+
             ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags);
-            
+
             if(ptkr->notify(frame::S_RAISE)){
                 manager().raise(*ptkr);
             }
-            
+
             if(_pconid){
                 *_pconid = conid;
             }
@@ -593,27 +593,27 @@ bool Service::doSendMessageRelay(
     uint32  _flags
 ){
     Locker<Mutex>   lock(mutex());
-    
+
     if(_rsap.family() == SocketInfo::Inet4){
         const SocketAddressInet4                sa(_rsap);
         const RelayAddress4T                    addr(BaseAddress4T(sa, _rsap.port()), _netid_dest);
-        
+
         vdbgx(Debug::ipc, " addr = "<<sa<<" baseport = "<<_rsap.port()<<" netid = "<<_netid_dest);
-        
+
         Data::SessionRelayAddr4MapT::iterator   it(d.sessionrelayaddr4map.find(addr));
-        
+
         if(it != d.sessionrelayaddr4map.end()){
-        
+
             vdbgx(Debug::ipc, "");
-            
+
             ConnectionUid       conid(it->second);
             const IndexT        fullid(d.tkrvec[conid.tkridx].uid.first);
             Locker<Mutex>       lock2(this->mutex(fullid));
             Talker              *ptkr(static_cast<Talker*>(this->object(fullid)));
-            
+
             SOLID_ASSERT(conid.tkridx < d.tkrvec.size());
             SOLID_ASSERT(ptkr);
-            
+
             if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
                 //the talker must be notified
                 if(ptkr->notify(frame::S_RAISE)){
@@ -629,11 +629,11 @@ bool Service::doSendMessageRelay(
                 //TODO: specific NoGatewayError;
                 return false;
             }
-            
+
             int16   tkridx(allocateTalkerForSession());
             IndexT  tkrfullid;
             uint32  tkruid;
-            
+
             if(tkridx >= 0){
                 //the talker exists
                 tkrfullid = d.tkrvec[tkridx].uid.first;
@@ -647,26 +647,26 @@ bool Service::doSendMessageRelay(
                 tkrfullid = d.tkrvec[tkridx].uid.first;
                 tkruid = d.tkrvec[tkridx].uid.second;
             }
-            
+
             Locker<Mutex>       lock2(this->mutex(tkrfullid));
             Talker              *ptkr(static_cast<Talker*>(this->object(tkrfullid)));
             SOLID_ASSERT(ptkr);
             Session             *pses(new Session(*this, _netid_dest, sa, d.crtgwidx));
             ConnectionUid       conid(tkridx);
-            
+
             d.crtgwidx = (d.crtgwidx + 1) % d.config.gatewayaddrvec.size();
-            
+
             ptkr->pushSession(pses, conid);
-            
+
             vdbgx(Debug::ipc, ""<<pses->peerRelayAddress4().first.first);
             d.sessionrelayaddr4map[pses->peerRelayAddress4()] = conid;
-            
+
             ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags);
-            
+
             if(ptkr->notify(frame::S_RAISE)){
                 manager().raise(*ptkr);
             }
-            
+
             if(_pconid){
                 *_pconid = conid;
             }
@@ -680,17 +680,17 @@ bool Service::doSendMessageRelay(
 }
 //---------------------------------------------------------------------
 int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
-    
+
     if(d.tkrvec.size() >= d.config.talker.maxcnt){
         vdbgx(Debug::ipc, "maximum talker count reached "<<d.tkrvec.size());
         return -1;
     }
-    
+
     int16           tkrid(d.tkrvec.size());
-    
+
     SocketDevice    sd;
     uint            oldport(d.firstaddr.port());
-    
+
     d.firstaddr.port(0);//bind to any available port
     sd.create(d.firstaddr.family(), SocketInfo::Datagram, 0);
     sd.bind(d.firstaddr);
@@ -700,7 +700,7 @@ int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
         vdbgx(Debug::ipc, "Successful created talker");
         Talker      *ptkr(new Talker(sd, *this, tkrid));
         ObjectUidT  objuid(this->unsafeRegisterObject(*ptkr));
-        
+
         d.tkrq.push(d.tkrvec.size());
         d.tkrvec.push_back(objuid);
         controller().scheduleTalker(ptkr);
@@ -713,17 +713,17 @@ int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
 }
 //---------------------------------------------------------------------
 int Service::createNode(IndexT &_nodepos, uint32 &_nodeuid){
-    
+
     if(d.nodevec.size() >= d.config.node.maxcnt){
         vdbgx(Debug::ipc, "maximum node count reached "<<d.nodevec.size());
         return -1;
     }
-    
+
     int16           nodeid(d.nodevec.size());
-    
+
     SocketDevice    sd;
     uint            oldport(d.firstaddr.port());
-    
+
     d.firstaddr.port(0);//bind to any available port
     sd.create(d.firstaddr.family(), SocketInfo::Datagram, 0);
     sd.bind(d.firstaddr);
@@ -733,7 +733,7 @@ int Service::createNode(IndexT &_nodepos, uint32 &_nodeuid){
         vdbgx(Debug::ipc, "Successful created node");
         Node        *pnode(new Node(sd, *this, nodeid));
         ObjectUidT  objuid(this->unsafeRegisterObject(*pnode));
-        
+
         d.sessnodeq.push(d.nodevec.size());
         d.socknodeq.push(d.nodevec.size());
         d.nodevec.push_back(objuid);
@@ -846,33 +846,33 @@ bool Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData 
         inaddr,
         _rconndata
     );
-    
+
     {
         //TODO: see if the locking is ok!!!
-        
+
         Data::SessionAddr4MapT::iterator    it(d.sessionaddr4map.find(pses->peerBaseAddress4()));
-        
+
         if(it != d.sessionaddr4map.end()){
             //a connection still exists
             const IndexT    tkrfullid(d.tkrvec[it->second.tkridx].uid.first);
             Locker<Mutex>   lock2(this->mutex(tkrfullid));
             Talker          *ptkr(static_cast<Talker*>(this->object(tkrfullid)));
-            
+
             vdbgx(Debug::ipc, "");
-            
+
             ptkr->pushSession(pses, it->second, true);
-            
+
             if(ptkr->notify(frame::S_RAISE)){
                 manager().raise(*ptkr);
             }
             return true;
         }
     }
-    
+
     int     tkridx(allocateTalkerForSession());
     IndexT  tkrfullid;
     uint32  tkruid;
-    
+
     if(tkridx >= 0){
         //the talker exists
         tkrfullid = d.tkrvec[tkridx].uid.first;
@@ -886,17 +886,17 @@ bool Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData 
         tkrfullid = d.tkrvec[tkridx].uid.first;
         tkruid = d.tkrvec[tkridx].uid.second;
     }
-    
+
     Locker<Mutex>   lock2(this->mutex(tkrfullid));
     Talker          *ptkr(static_cast<Talker*>(this->object(tkrfullid)));
     ConnectionUid   conid(tkridx, 0xffff, 0xffff);
-    
+
     SOLID_ASSERT(ptkr);
     vdbgx(Debug::ipc, "");
-    
+
     ptkr->pushSession(pses, conid);
     d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
-    
+
     if(ptkr->notify(frame::S_RAISE)){
         manager().raise(*ptkr);
     }
@@ -914,23 +914,23 @@ bool Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData 
         _rconndata,
         d.crtgwidx
     );
-    
+
     d.crtgwidx = (d.crtgwidx + 1) % d.config.gatewayaddrvec.size();
     {
         //TODO: see if the locking is ok!!!
-        
+
         Data::SessionRelayAddr4MapT::iterator   it(d.sessionrelayaddr4map.find(pses->peerRelayAddress4()));
-        
+
         if(it != d.sessionrelayaddr4map.end()){
             //a connection still exists
             const IndexT    tkrfullid(d.tkrvec[it->second.tkridx].uid.first);
             Locker<Mutex>   lock2(this->mutex(tkrfullid));
             Talker          *ptkr(static_cast<Talker*>(this->object(tkrfullid)));
-            
+
             vdbgx(Debug::ipc, "");
-            
+
             ptkr->pushSession(pses, it->second, true);
-            
+
             if(ptkr->notify(frame::S_RAISE)){
                 manager().raise(*ptkr);
             }
@@ -940,7 +940,7 @@ bool Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData 
     int     tkridx(allocateTalkerForSession());
     IndexT  tkrfullid;
     uint32  tkruid;
-    
+
     if(tkridx >= 0){
         //the talker exists
         tkrfullid = d.tkrvec[tkridx].uid.first;
@@ -954,18 +954,18 @@ bool Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData 
         tkrfullid = d.tkrvec[tkridx].uid.first;
         tkruid = d.tkrvec[tkridx].uid.second;
     }
-    
+
     Locker<Mutex>   lock2(this->mutex(tkrfullid));
     Talker          *ptkr(static_cast<Talker*>(this->object(tkrfullid)));
     ConnectionUid   conid(tkridx, 0xffff, 0xffff);
-    
+
     SOLID_ASSERT(ptkr);
-    
+
     vdbgx(Debug::ipc, "");
-    
+
     ptkr->pushSession(pses, conid);
     d.sessionrelayaddr4map[pses->peerRelayAddress4()] = conid;
-    
+
     if(ptkr->notify(frame::S_RAISE)){
         manager().raise(*ptkr);
     }
@@ -974,27 +974,27 @@ bool Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData 
 //---------------------------------------------------------------------
 bool Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
     typedef Data::GatewayRelayAddr4MapT::const_iterator GatewayRelayAddr4MapConstIteratorT;
-    
+
     Locker<Mutex>                       lock(mutex());
-    
-    
+
+
     SocketAddressInet4                  addr(_rsa);
     GatewayRelayAddress4T               gwaddr(addr, _rconndata.relayid);
-    
+
     GatewayRelayAddr4MapConstIteratorT  it(d.gwrelayaddrmap.find(gwaddr));
-    
+
     if(d.gwrelayaddrmap.end() != it){
         //maybe a resent packet
         const Data::RelayAddress4Stub   &ras(d.gwrelayaddrdeq[it->second]);
         IndexT                          nodefullid;
-        
+
         nodefullid = d.nodevec[ras.nid].uid.first;
-        
+
         Locker<Mutex>                   lock2(this->mutex(nodefullid));
         Node                            *pnode(static_cast<Node*>(this->object(nodefullid)));
-        
+
         pnode->pushSession(_rsa, _rconndata, ras.idx);
-        
+
         if(pnode->notify(frame::S_RAISE)){
             manager().raise(*pnode);
         }
@@ -1002,7 +1002,7 @@ bool Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectDat
         int             nodeidx(allocateNodeForSession());
         IndexT          nodefullid;
         uint32          nodeuid;
-        
+
         if(nodeidx >= 0){
             //the node exists
             nodefullid = d.nodevec[nodeidx].uid.first;
@@ -1016,24 +1016,24 @@ bool Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectDat
             nodefullid = d.nodevec[nodeidx].uid.first;
             nodeuid = d.nodevec[nodeidx].uid.second;
         }
-        
+
         Locker<Mutex>   lock2(this->mutex(nodefullid));
         Node            *pnode(static_cast<Node*>(this->object(nodefullid)));
-        
+
         SOLID_ASSERT(pnode);
-        
+
         vdbgx(Debug::ipc, "");
-        
-        
+
+
         uint32 idx = pnode->pushSession(_rsa, _rconndata);
-        
+
         if(d.gwfreestk.size()){
             size_t ofs = d.gwfreestk.top();
             d.gwfreestk.pop();
             d.gwrelayaddrdeq[ofs].addr = addr;
             d.gwrelayaddrdeq[ofs].nid = nodeidx;
             d.gwrelayaddrdeq[ofs].idx = idx;
-            
+
             GatewayRelayAddress4T   gwa(d.gwrelayaddrdeq[ofs].addr, _rconndata.relayid);
             d.gwrelayaddrmap[gwa] = ofs;
         }else{
@@ -1041,7 +1041,7 @@ bool Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectDat
             GatewayRelayAddress4T   gwa(d.gwrelayaddrdeq.back().addr, _rconndata.relayid);
             d.gwrelayaddrmap[gwa] = d.gwrelayaddrdeq.size() - 1;
         }
-        
+
         if(pnode->notify(frame::S_RAISE)){
             manager().raise(*pnode);
         }
@@ -1051,10 +1051,10 @@ bool Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectDat
 //---------------------------------------------------------------------
 void Service::disconnectSession(const SocketAddressInet &_addr, uint32 _relayid){
     typedef Data::GatewayRelayAddr4MapT::iterator GatewayRelayAddr4MapConstIteratorT;
-    
+
     SocketAddressInet4                  addr(_addr);
     GatewayRelayAddress4T               gwaddr(addr, _relayid);
-    
+
     GatewayRelayAddr4MapConstIteratorT  it(d.gwrelayaddrmap.find(gwaddr));
     if(it != d.gwrelayaddrmap.end()){
         d.gwfreestk.push(it->second);
@@ -1067,7 +1067,7 @@ void Service::connectSession(const SocketAddressInet4 &_raddr){
     int             tkridx(allocateTalkerForSession());
     IndexT          tkrfullid;
     uint32          tkruid;
-    
+
     if(tkridx >= 0){
         //the talker exists
         tkrfullid = d.tkrvec[tkridx].uid.first;
@@ -1081,18 +1081,18 @@ void Service::connectSession(const SocketAddressInet4 &_raddr){
         tkrfullid = d.tkrvec[tkridx].uid.first;
         tkruid = d.tkrvec[tkridx].uid.second;
     }
-    
+
     Locker<Mutex>   lock2(this->mutex(tkrfullid));
     Talker          *ptkr(static_cast<Talker*>(this->object(tkrfullid)));
     Session         *pses(new Session(*this, _raddr));
     ConnectionUid   conid(tkridx);
-    
+
     SOLID_ASSERT(ptkr);
-    
+
     vdbgx(Debug::ipc, "");
     ptkr->pushSession(pses, conid);
     d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
-    
+
     if(ptkr->notify(frame::S_RAISE)){
         manager().raise(*ptkr);
     }
@@ -1117,7 +1117,7 @@ void Service::disconnectSession(Session *_pses){
             d.sessionrelayaddr4map.erase(peeraddr);
             addr = peeraddr.first.first;
             addr.port(peeraddr.first.second);
-            netid = peeraddr.second;            
+            netid = peeraddr.second;
         }else{
             const BaseAddress4T peeraddr = _pses->peerBaseAddress4();
             d.sessionaddr4map.erase(peeraddr);
@@ -1129,15 +1129,15 @@ void Service::disconnectSession(Session *_pses){
     //Use:Context::the().msgctx.connectionuid.tkridx
     const int           tkridx(Context::the().msgctx.connectionuid.tkridx);
     Data::TalkerStub    &rts(d.tkrvec[tkridx]);
-    
+
     --rts.cnt;
-    
+
     vdbgx(Debug::ipc, "disconnected session for talker "<<tkridx<<" session count per talker = "<<rts.cnt);
-    
+
     if(rts.cnt < d.config.talker.sescnt){
         d.tkrq.push(tkridx);
     }
-    
+
 }
 //---------------------------------------------------------------------
 bool Service::checkAcceptData(const SocketAddress &/*_rsa*/, const AcceptData &_raccdata){
@@ -1152,7 +1152,7 @@ void Service::insertConnection(
     int             nodeidx(allocateNodeForSocket());
     IndexT          nodefullid;
     uint32          nodeuid;
-        
+
     if(nodeidx >= 0){
         //the node exists
         nodefullid = d.nodevec[nodeidx].uid.first;
@@ -1166,25 +1166,25 @@ void Service::insertConnection(
         nodefullid = d.nodevec[nodeidx].uid.first;
         nodeuid = d.nodevec[nodeidx].uid.second;
     }
-        
+
     Locker<Mutex>   lock2(this->mutex(nodefullid));
     Node            *pnode(static_cast<Node*>(this->object(nodefullid)));
-    
+
     SOLID_ASSERT(pnode);
-    
+
     vdbgx(Debug::ipc, "");
-    
+
     SocketAddress       sa;
-    
+
     _rsd.remoteAddress(sa);
-    
+
     SocketAddressInet   sai(sa);
-    
+
     const size_t        off = address2NetIdFind(sai);
-    
+
     if(off != address2NetIdVectorSize()){
         pnode->pushConnection(_rsd, off, _pctx, _secure);
-    
+
         if(pnode->notify(frame::S_RAISE)){
             manager().raise(*pnode);
         }
@@ -1272,7 +1272,7 @@ const Controller& Service::controller()const{
 //      Controller
 //------------------------------------------------------------------
 /*virtual*/ Controller::~Controller(){
-    
+
 }
 /*virtual*/ bool Controller::compressPacket(
     PacketContext &_rpc,
@@ -1399,7 +1399,7 @@ BasicController::~BasicController(){
 //------------------------------------------------------------------
 
 /*virtual*/ Message::~Message(){
-    
+
 }
 /*virtual*/ void Message::ipcOnReceive(ConnectionContext const &_ripcctx, MessagePointerT &_rmsgptr){
 }
@@ -1407,7 +1407,7 @@ BasicController::~BasicController(){
     return 0;
 }
 /*virtual*/ void Message::ipcOnComplete(ConnectionContext const &_ripcctx, int _error){
-    
+
 }
 
 struct HandleMessage{
@@ -1416,7 +1416,7 @@ struct HandleMessage{
         if(_rt.ipcState() >= 2){
             _rt.ipcResetState();
         }
-        
+
     }
     void operator()(Service::DeserializerT &_rs, Message &_rt, const ConnectionContext &_rctx){
         vdbgx(Debug::ipc, "increment message state");

@@ -1,6 +1,6 @@
 // audit/log/src/logconnectors.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -91,13 +91,13 @@ LogBasicConnector::~LogBasicConnector(){
     LogRecorderVector& _outrv,
     const LogRecord &_rrec,
     const LogClientData &_rcl
-){  
+){
     if(_rcl.idx >= d.rv.size()){
-        //TODO ensure there a zeros filling 
+        //TODO ensure there a zeros filling
         d.rv.resize(_rcl.idx + 1);
     }
     LogRecorder *plr = d.rv[_rcl.idx];
-    if(!plr){   
+    if(!plr){
         plr = d.rv[_rcl.idx] = createRecorder(_rcl);
     }
     _outrv.push_back(plr);
@@ -118,7 +118,7 @@ LogRecorder* LogBasicConnector::createRecorder(const LogClientData &_rcl){
         buf,
         "_%04u-%02u-%02u__%02u_%02u_%02u__%06u",
         ploctm->tm_year + 1900,
-        ploctm->tm_mon + 1, 
+        ploctm->tm_mon + 1,
         ploctm->tm_mday,
         ploctm->tm_hour,
         ploctm->tm_min,

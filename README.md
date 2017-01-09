@@ -180,7 +180,7 @@ The next paragraphs will briefly present every library.
 ### <a id="solid_system"></a>solid_system
 
 The library consists of wrappers around system calls for:
- 
+
  * [__socketaddress.hpp__](solid/system/socketaddress.hpp): socket addresses, synchronous socket address resolver
  * [__nanotime.hpp__](solid/system/nanotime.hpp): high precision clock
  * [__debug.hpp__](solid/system/debug.hpp): debug log engine
@@ -219,7 +219,7 @@ The Debug engine allows for registering new modules like this:
 ```C++
     static const auto my_module_id = Debug::the().registerModule("my_module");
     //...
-    //enable the module 
+    //enable the module
     Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
     //...
     //log a INFO line for the module:
@@ -232,16 +232,16 @@ or like this:
         static const auto id = Debug::the().registerModule("my_module");
         return id;
     }
-    
+
     //...
-    //enable the module 
+    //enable the module
     Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
     //...
     //log a INFO line for the module:
     idbgx(my_module_id(), "error starting engine: "<<error.mesage());
 ```
 
- 
+
 ### <a id="solid_utility"></a>solid_utility
 
 The library consists of tools needed by upper level libraries:
@@ -256,7 +256,7 @@ The library consists of tools needed by upper level libraries:
  * [_stack.hpp_](solid/utility/stack.hpp): An alternative to std::stack
  * [_algorithm.hpp_](solid/utility/algorithm.hpp): Some inline algorithms
  * [_common.hpp_](solid/utility/common.hpp): Some bits related algorithms
- 
+
 Here are some sample code for some of the above tools:
 
 __Any__: [Sample code](solid/utility/test/test_any.cpp)
@@ -265,9 +265,9 @@ __Any__: [Sample code](solid/utility/test/test_any.cpp)
     using AnyT = solid::Any<>;
     //...
     AnyT    a;
-    
+
     a = std::string("Some text");
-    
+
     //...
     std::string *pstr = a.cast<std::string>();
     if(pstr){
@@ -278,27 +278,27 @@ Some code to show the difference from boost::any:
 
 ```C++
     using AnyT = solid::Any<128>;
-    
+
     struct A{
         uint64_t    a;
         uint64_t    b;
         double      c;
     };
-    
+
     struct B{
         uint64_t    a;
         uint64_t    b;
         double      c;
         char        buf[64];
     };
-    
+
     struct C{
         uint64_t    a;
         uint64_t    b;
         double      c;
         char        buf[128];
     };
-    
+
     AnyT    a;
     //...
     a = std::string("Some text");//as long as sizeof(std::string) <= 128 no allocation is made - Any uses placement new()
@@ -308,7 +308,7 @@ Some code to show the difference from boost::any:
     a = B();//as long as sizeof(B) <= 128 no allocation is made - Any uses placement new()
     //...
     a = C();//sizeof(C) > 128 so new allocation is made - Any uses new
-    
+
 ```
 
 __Event__: [Sample code](solid/utility/test/test_event.cpp)
@@ -360,7 +360,7 @@ void Object::handleEvent(Event &&_revt){
             }
         }
     };
-    
+
     event_handler.handle(_revt, *this);
 }
 ```
@@ -382,7 +382,7 @@ __MemoryFile__: [Sample code](solid/utility/test/test_memory_file.cpp)
  * [_binary.hpp_](solid/serialization/binary.hpp): Binary "asynchronous" serializer/deserializer.
  * [_binarybasic.hpp_](solid/serialization/binarybasic.hpp): Some "synchronous" load/store functions for basic types.
  * [_typeidmap.hpp_](solid/serialization/typeidmap.hpp): Class for helping "asynchronous" serializer/deserializer support polymorphism: serialize pointers to base classes.
- 
+
 The majority of serializers/deserializers offers the following functionality:
  * Synchronously serialize a data structure to a stream (e.g. std::ostringstream)
  * Synchronously deserialize a data structure from a stream (e.g. std::istringstream)
@@ -412,12 +412,12 @@ A structure with serialization support:
 struct Test{
     using KeyValueVectorT = std::vector<std::pair<std::string, std::string>>;
     using MapT = std::map<std::string, uint64_t>;
-    
+
     std::string         str;
     KeyValueVectorT     kv_vec;
     MapT                kv_map;
     uint32_t            v32;
-    
+
     template <class S>
     void serialize(S &_s){
         _s.push(str, "Test::str");
@@ -452,23 +452,23 @@ Serialize and deserialize a Test structure:
         const int       bufcp = 64;
         char            buf[bufcp];
         int             rv;
-        
+
         std::shared_ptr<Test>   test_ptr = Test::create();
         test_ptr->init();
-        
+
         ser.push(test_ptr, "test_ptr");
-        
+
         while((rv = ser.run(buf, bufcp)) > 0){
             data.append(buf, rv);
         }
     }
     {//deserialize
         DeserializerT           des(&typeidmap);
-        
+
         std::shared_ptr<Test>   test_ptr;
-        
+
         des.push(test_ptr, "test_ptr");
-        
+
         size_t                  rv = des.run(data.data(), data.size());
         SOLID_CHECK(rv == data.size());
     }
@@ -491,7 +491,7 @@ The library offers the base support for an asynchronous active object model and 
  * [_timestore.hpp_](solid/frame/timestore.hpp): Used by reactors for timer events support.
  * [_schedulerbase.hpp_](solid/frame/schedulerbase.hpp): Base for all schedulers.
  * [_objectbase.hpp_](solid/frame/objectbase.hpp): Base for all active Objects
- 
+
 
 __Usefull links__
  * [An overview of the asynchronous active object model](solid/frame/README.md)
@@ -507,7 +507,7 @@ The library extends solid_frame with active objects supporting IO, notification 
  * [__aioresolver.hpp__](solid/frame/aio/aioresolver.hpp): Asynchronous address resolver.
  * [__aioreactorcontext.hpp__](solid/frame/aio/aioreactorcontext.hpp): A context class given as parameter to every callback called from the aio::Reactor.
  * [_aioreactor.hpp_](solid/frame/aio/aioreactor.hpp): An active store of aio::Objects with support for IO, notification and timer events.
- 
+
 __Usefull links__
  * [An overview of the asynchronous active object model](solid/frame/README.md)
  * [Tutorial: aio_echo](tutorials/aio_echo/README.md)

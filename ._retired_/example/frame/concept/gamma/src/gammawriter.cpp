@@ -44,7 +44,7 @@ bool isLiteralString(const char *_pb, unsigned _bl){
     }else{//send quoted
         rw<<'\"';
         protocol::text::Parameter ppp(_rp);
-        
+
         rw.replace(&Writer::putChar, protocol::text::Parameter('\"'));
         rw.push(&Writer::putAtom, ppp);
         rw.push(&Writer::flush);//only try to do a flush
@@ -65,7 +65,7 @@ bool isLiteralString(const char *_pb, unsigned _bl){
     if(rp.a.p){
         rw.push(&Writer::putAtom, rp);
     }else{//send the msg
-        rw.push(&Writer::putAtom, protocol::text::Parameter((void*)rw.msgs.data(), rw.msgs.size()));    
+        rw.push(&Writer::putAtom, protocol::text::Parameter((void*)rw.msgs.data(), rw.msgs.size()));
     }
     //rw.push(&Writer::putChar, protocol::text::Parameter(' '));
     if(rw.tags.size()){

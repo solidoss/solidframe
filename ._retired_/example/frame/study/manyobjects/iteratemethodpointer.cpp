@@ -125,7 +125,7 @@ class Delegate<R, P1, void, void>{
 public:
     typedef Delegate<R, P1, void, void> ThisT;
     Delegate():pobj(NULL), cbk(NULL){}
-    
+
     template <class O, R(O::*TF)(P1)>
     static ThisT create(O *_po){
         ThisT t;
@@ -133,7 +133,7 @@ public:
         t.cbk = &dlg_fnc<O, TF>;
         return t;
     }
-    
+
     R operator()(P1 _p1)const{
         return (*cbk)(pobj, _p1);
     }
@@ -144,7 +144,7 @@ private:
     }
 private:
     typedef R (*CbkT)(void*, P1);
-    
+
     void    *pobj;
     CbkT    cbk;
 };
@@ -154,7 +154,7 @@ class Delegate<R, P1, P2, void>{
 public:
     typedef Delegate<R, P1, P2, void>   ThisT;
     Delegate():pobj(NULL), cbk(NULL){}
-    
+
     template <class O, R(O::*TF)(P1, P2)>
     static ThisT create(O *_po){
         ThisT t;
@@ -162,7 +162,7 @@ public:
         t.cbk = &dlg_fnc<O, TF>;
         return t;
     }
-    
+
     R operator()(P1 _p1, P2 _p2)const{
         return (*cbk)(pobj, _p1, _p2);
     }
@@ -173,7 +173,7 @@ private:
     }
 private:
     typedef R (*CbkT)(void*, P1, P2);
-    
+
     void    *pobj;
     CbkT    cbk;
 };
@@ -201,12 +201,12 @@ struct ObjectStub{
     DynamicPointer<Object>  objptr;
     size_t                  a;
     size_t                  b;
-    
+
     Fnc1T                   cbk1;
     Fnc2T                   cbk2;
     Fnc3T                   cbk3;
-    
-    
+
+
     template<class Obj>
     void registerObject(size_t _idx){
         objptr->id = _idx;
@@ -220,7 +220,7 @@ struct ObjectStub{
         cbk3 = std::bind(&Obj::onEvent3, static_cast<Obj*>(objptr.get()), std::placeholders::_1, std::placeholders::_2);
 #endif
     }
-    
+
     void call(std::string const& _data){
         Context ctx(a, b);
         (cbk1)(ctx);
@@ -285,35 +285,35 @@ int main(int argc, char *argv[]){
     if(argc == 3){
         loopcount = atoi(argv[2]);
     }
-    
+
     deque<ObjectStub>   objdq;
-    
+
     for(size_t i = 0; i < objectcount; ++i){
         ObjectStub  stub;
         stub.a = objdq.size();
         stub.b = objdq.size()/2;
-        
+
         switch(i % 4){
             case 0: stub.objptr = new FirstObject; stub.registerObject<FirstObject>(objdq.size()); break;
             case 1: stub.objptr = new SecondObject; stub.registerObject<SecondObject>(objdq.size()); break;
             case 2: stub.objptr = new ThirdObject; stub.registerObject<ThirdObject>(objdq.size()); break;
             case 3: stub.objptr = new FourthObject; stub.registerObject<FourthObject>(objdq.size()); break;
         }
-        
+
         objdq.push_back(stub);
     }
-    
+
     std::string data("some");
     for(size_t i = 0; i < 10; ++i){
         data += data;
     }
-    
+
     for(size_t i = 0; i < loopcount; ++i){
         for(deque<ObjectStub>::iterator it(objdq.begin()); it != objdq.end(); ++it){
             it->call(data);
         }
         data.resize(data.size() / 2);
     }
-    
+
     return 0;
 }

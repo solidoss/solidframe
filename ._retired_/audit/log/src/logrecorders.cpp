@@ -1,6 +1,6 @@
 // audit/log/logrecorders.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -61,14 +61,14 @@ static const char* levelName(unsigned _lvl){
         "%s[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
         levelName(_rrec.head.level),
         ploctm->tm_year + 1900,
-        ploctm->tm_mon + 1, 
+        ploctm->tm_mon + 1,
         ploctm->tm_mday,
         ploctm->tm_hour,
         ploctm->tm_min,
         ploctm->tm_sec,
         _rrec.head.nsec/1000000
     );
-    
+
     ofs<<buf<<'['<<_rcd.modulenamev[_rrec.head.module]<<']';
     if(_rrec.head.level < Log::Input)
         ofs<<'['<<_rrec.fileName()<<'('<<_rrec.head.lineno<<')'<<' '<<_rrec.functionName()<<']';

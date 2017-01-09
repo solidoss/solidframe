@@ -1,6 +1,6 @@
 // utility/functor.hpp
 //
-// Copyright (c) 2010, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2010, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -48,13 +48,13 @@ class FunctorReference<R, void, void, void, void>{
         T *pf = reinterpret_cast<T*>(_pf);
         return pf->ref();
     }
-    
+
     template <typename T>
     static void del(void *_pf){
         T *pf = reinterpret_cast<T*>(_pf);
         pf->~T();
     }
-    
+
     CallFncT    pcallfnc;
     DelFncT     pdelfnc;
     char        d[DataSizeT];
@@ -68,7 +68,7 @@ public:
     ~FunctorReference(){
         (*pdelfnc)(d);
     }
-    
+
     R operator()(){
         return (*pcallfnc)(d);
     }
@@ -86,19 +86,19 @@ class FunctorReference<R, P1, void, void, void>{
     enum{
         DataSizeT = sizeof(FunctorRefStub<int>)
     };
-    
+
     template <typename T>
     static R call(void *_pf, P1 _p1){
         T *pf = reinterpret_cast<T*>(_pf);
         return pf->ref(_p1);
     }
-    
+
     template <typename T>
     static void del(void *_pf){
         T *pf = reinterpret_cast<T*>(_pf);
         pf->~T();
     }
-    
+
     CallFncT    pcallfnc;
     DelFncT     pdelfnc;
     char        d[DataSizeT];
@@ -112,7 +112,7 @@ public:
     ~FunctorReference(){
         (*pdelfnc)(d);
     }
-    
+
     R operator()(P1 _p1){
         return (*pcallfnc)(d, _p1);
     }
@@ -129,19 +129,19 @@ class FunctorReference<R, P1, P2, void, void>{
     enum{
         DataSizeT = sizeof(FunctorRefStub<int>)
     };
-    
+
     template <typename T>
     static R call(void *_pf, P1 _p1, P2 _p2){
         T *pf = reinterpret_cast<T*>(_pf);
         return pf->ref(_p1, _p2);
     }
-    
+
     template <typename T>
     static void del(void *_pf){
         T *pf = reinterpret_cast<T*>(_pf);
         pf->~T();
     }
-    
+
     CallFncT    pcallfnc;
     DelFncT     pdelfnc;
     char        d[DataSizeT];
@@ -155,7 +155,7 @@ public:
     ~FunctorReference(){
         (*pdelfnc)(d);
     }
-    
+
     R operator()(P1 _p1, P2 _p2){
         return (*pcallfnc)(d, _p1, _p2);
     }
@@ -172,19 +172,19 @@ class FunctorReference<R, P1, P2, P3, void>{
     enum{
         DataSizeT = sizeof(FunctorRefStub<int>)
     };
-    
+
     template <typename T>
     static R call(void *_pf, P1 _p1, P2 _p2, P3 _p3){
         T *pf = reinterpret_cast<T*>(_pf);
         return pf->ref(_p1, _p2, _p3);
     }
-    
+
     template <typename T>
     static void del(void *_pf){
         T *pf = reinterpret_cast<T*>(_pf);
         pf->~T();
     }
-    
+
     CallFncT    pcallfnc;
     DelFncT     pdelfnc;
     char        d[DataSizeT];
@@ -198,7 +198,7 @@ public:
     ~FunctorReference(){
         (*pdelfnc)(d);
     }
-    
+
     R operator()(P1 _p1, P2 _p2, P3 _p3){
         return (*pcallfnc)(d, _p1, _p2, _p3);
     }
@@ -215,19 +215,19 @@ class FunctorReference{
     enum{
         DataSizeT = sizeof(FunctorRefStub<int>)
     };
-    
+
     template <typename T>
     static R call(void *_pf, P1 _p1, P2 _p2, P3 _p3, P4 _p4){
         T *pf = reinterpret_cast<T*>(_pf);
         return pf->ref(_p1, _p2, _p3, _p4);
     }
-    
+
     template <typename T>
     static void del(void *_pf){
         T *pf = reinterpret_cast<T*>(_pf);
         pf->~T();
     }
-    
+
     CallFncT    pcallfnc;
     DelFncT     pdelfnc;
     char        d[DataSizeT];
@@ -241,7 +241,7 @@ public:
     ~FunctorReference(){
         (*pdelfnc)(d);
     }
-    
+
     R operator()(P1 _p1, P2 _p2, P3 _p3, P4 _p4){
         return (*pcallfnc)(d, _p1, _p2, _p3, _p4);
     }

@@ -1,6 +1,6 @@
 // utility/holder.hpp
 //
-// Copyright (c) 2010 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2010 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -21,7 +21,7 @@ namespace solid{
     The interface resembles somehow that of a smart/auto pointer, but while
     a smart/auto pointer only holds a pointer/reference to an object
     a holder also keeps the object's allocation space.
-    It uses new(buf) for allocating the object and calls the 
+    It uses new(buf) for allocating the object and calls the
     destructor on deletion.
     For a good example of usage and benefits see ::protocol::Buffer,
     ::protocol::Writer, ::protocol::Reader
@@ -49,7 +49,7 @@ struct Holder{
     ~Holder(){
         get()->~B();
     }
-    
+
     //! A template assertion operator
     template <class C>
     Holder& operator=(const C &_c){
@@ -63,16 +63,16 @@ struct Holder{
     B& operator*(){
         return *get();
     }
-    
+
     //! Gets a const reference to the internal object
     const B& operator*()const{
         return *get();
     }
-    
+
     B* get()const{
         return reinterpret_cast<B*>(const_cast<char*>(b));
     }
-    
+
     //! The interface for a pointer
     B* operator->()const{
         return get();

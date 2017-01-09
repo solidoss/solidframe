@@ -1,6 +1,6 @@
 // solid/frame/src/execscheduler.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -38,13 +38,13 @@ public:
         RunningE,
         ReactorE
     };
-    
+
     ErrorCategory(){}
 private:
     const char*   name() const noexcept (true){
         return "solid::frame::Scheduler";
     }
-    
+
     std::string    message(int _ev) const{
         switch(_ev){
             case AlreadyE:
@@ -86,20 +86,20 @@ typedef std::atomic<size_t>     AtomicSizeT;
 
 struct ReactorStub{
     ReactorStub(ReactorBase *_preactor = nullptr):preactor(_preactor){}
-    
+
     ReactorStub(ReactorStub && _urs):thr(std::move(_urs.thr)), preactor(_urs.preactor){
         _urs.preactor = nullptr;
     }
-    
+
     bool isActive()const{
         static const std::thread empty_thread{};
         return thr.get_id() != empty_thread.get_id();
     }
-    
+
     void clear(){
         preactor = nullptr;
     }
-    
+
     thread          thr;
     ReactorBase     *preactor;
 };
@@ -120,7 +120,7 @@ typedef std::atomic<Statuses>           AtomicStatuesT;
 struct SchedulerBase::Data{
     Data():crtreactoridx(0), reactorcnt(0), stopwaitcnt(0), status(StatusStoppedE), usecnt(0){
     }
-    
+
     size_t                      crtreactoridx;
     size_t                      reactorcnt;
     size_t                      stopwaitcnt;
@@ -128,7 +128,7 @@ struct SchedulerBase::Data{
     AtomicSizeT                 usecnt;
     ThreadEnterFunctionT        threnfnc;
     ThreadExitFunctionT         threxfnc;
-    
+
     ReactorVectorT              reactorvec;
     mutex                       mtx;
     condition_variable          cnd;
@@ -160,10 +160,10 @@ ErrorConditionT SchedulerBase::doStart(
         _reactorcnt = thread::hardware_concurrency();
     }
     bool start_err = false;
-    
+
     {
         unique_lock<mutex>  lock(d.mtx);
-        
+
         if(d.status == StatusRunningE){
             return error_already();
         }else if(d.status != StatusStoppedE || d.stopwaitcnt){
@@ -171,49 +171,49 @@ ErrorConditionT SchedulerBase::doStart(
                 d.cnd.wait(lock);
             }while(d.status != StatusStoppedE || d.stopwaitcnt);
         }
-        
+
         d.reactorvec.resize(_reactorcnt);
-        
-        
+
+
         if(not FUNCTION_EMPTY(_renf)){
             FUNCTION_CLEAR(d.threnfnc);
             std::swap(d.threnfnc, _renf);
         }else{
             d.threnfnc = dummy_thread_enter;
         }
-        
+
         if(not FUNCTION_EMPTY(_rexf)){
             FUNCTION_CLEAR(d.threxfnc);
             std::swap(d.threxfnc, _rexf);
         }else{
             d.threxfnc = dummy_thread_exit;
         }
-        
+
         for(size_t i = 0; i < _reactorcnt; ++i){
             ReactorStub &rrs = d.reactorvec[i];
             //rrs.thrptr.reset((*_pf)(*this, i));
-            
-            
+
+
             if(not (*_pf)(*this, i, rrs.thr)){
                 start_err = true;
                 break;
             }
         }
-        
-        
+
+
         if(!start_err){
             d.status = StatusStartingWaitE;
-            
+
             do{
                 d.cnd.wait(lock);
             }while(d.status == StatusStartingWaitE && d.reactorcnt != d.reactorvec.size());
-            
+
             if(d.status == StatusStartingErrorE){
                 d.status = StatusStoppingWaitE;
                 start_err = true;
             }
         }
-        
+
         if(start_err){
             for(auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it){
                 if(it->preactor){
@@ -225,14 +225,14 @@ ErrorConditionT SchedulerBase::doStart(
             return ErrorConditionT();
         }
     }
-    
+
     for(auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it){
         if(it->isActive()){
             it->thr.join();
             it->clear();
         }
     }
-    
+
     unique_lock<mutex>  lock(d.mtx);
     d.status = StatusStoppedE;
     d.cnd.notify_all();
@@ -242,13 +242,13 @@ ErrorConditionT SchedulerBase::doStart(
 void SchedulerBase::doStop(bool _wait/* = true*/){
     {
         unique_lock<mutex>  lock(d.mtx);
-        
+
         if(d.status == StatusStartingWaitE || d.status == StatusStartingErrorE){
             do{
                 d.cnd.wait(lock);
             }while(d.status == StatusStartingWaitE || d.status == StatusStartingErrorE);
         }
-        
+
         if(d.status == StatusRunningE){
             d.status = _wait ? StatusStoppingWaitE : StatusStoppingE;
             for(auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it){
@@ -272,7 +272,7 @@ void SchedulerBase::doStop(bool _wait/* = true*/){
             return;
         }
     }
-    
+
     if(_wait){
         while(d.usecnt){
             this_thread::yield();
@@ -294,7 +294,7 @@ ObjectIdT SchedulerBase::doStartObject(ObjectBase &_robj, Service &_rsvc, Schedu
     ObjectIdT   rv;
     if(d.status == StatusRunningE){
         ReactorStub     &rrs = d.reactorvec[doComputeScheduleReactorIndex()];
-        
+
         rv = _rsvc.registerObject(_robj, *rrs.preactor, _rfct, _rerr);
     }else{
         _rerr = error_running();
@@ -335,7 +335,7 @@ size_t SchedulerBase::doComputeScheduleReactorIndex(){
         default:
             break;
     }
-    
+
     const size_t    cwi = d.crtreactoridx;
     d.crtreactoridx = (cwi + 1) % d.reactorvec.size();
     return cwi;
@@ -346,20 +346,20 @@ bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase &_rreactor, con
     {
         unique_lock<mutex>  lock(d.mtx);
         ReactorStub     &rrs = d.reactorvec[_idx];
-        
+
         if(_success && d.status == StatusStartingWaitE && thrensuccess){
             rrs.preactor = &_rreactor;
             ++d.reactorcnt;
             d.cnd.notify_all();
             return true;
         }
-        
+
         d.status = StatusStartingErrorE;
         d.cnd.notify_one();
     }
-    
+
     d.threxfnc();
-    
+
     return false;
 }
 

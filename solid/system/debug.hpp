@@ -1,6 +1,6 @@
 // solid/system/debug.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -103,15 +103,15 @@ struct /*EXPORT_DLL*/ Debug{
 
     void levelMask(const char *_msk = nullptr);
     void moduleMask(const char *_msk = nullptr);
-    
+
     void moduleNames(std::string &_ros);
     void setAllModuleBits();
     void resetAllModuleBits();
     void setModuleBit(unsigned _v);
     void resetModuleBit(unsigned _v);
-    
+
     unsigned registerModule(const char *_name);
-    
+
     std::ostream& print();
     std::ostream& print(
         const char _t,
@@ -149,7 +149,7 @@ private:
     Debug();
     Debug(Debug const&);
     Debug& operator=(Debug const&);
-    
+
     struct Data;
     Data &d;
 };
@@ -199,7 +199,7 @@ struct DebugTraceTest{
     if(solid::Debug::the().isSet(solid::Debug::Error, solid::Debug::any)){\
     solid::Debug::the().print('E', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
     }while(false);
-    
+
 #define edbgx(a,x)\
     do{\
     if(solid::Debug::the().isSet(solid::Debug::Error, a)){\
@@ -235,7 +235,7 @@ struct DebugTraceTest{
     if(solid::Debug::the().isSet(solid::Debug::Verbose, solid::Debug::any)){\
     solid::Debug::the().print('V', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}\
     }while(false);
-    
+
 #define vdbgx(a,x)\
     do{\
     if(solid::Debug::the().isSet(solid::Debug::Verbose, a)){\
@@ -255,7 +255,7 @@ struct DebugTraceTest{
     __dbgtrace__.v = 0;\
     solid::Debug::the().printTraceOut('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().doneTraceOut();}\
     }while(false);
-    
+
 
 #else
 #define tdbgi(a,x)

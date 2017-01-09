@@ -24,7 +24,7 @@ using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 //-----------------------------------------------------------------------------
 struct Parameters{
     Parameters():port("3333"){}
-    
+
     string          port;
 };
 
@@ -133,45 +133,45 @@ bool parseArguments(Parameters &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
     Parameters p;
-    
+
     if(!parseArguments(p, argc, argv)) return 0;
-    
+
     {
-        
+
         AioSchedulerT           scheduler;
-        
-        
+
+
         frame::Manager          manager;
         frame::mpipc::ServiceT  ipcservice(manager);
-        
+
         frame::aio::Resolver    resolver;
-        
+
         ErrorConditionT         err;
-        
+
         err = scheduler.start(1);
-        
+
         if(err){
             cout<<"Error starting aio scheduler: "<<err.message()<<endl;
             return 1;
         }
-        
+
         err = resolver.start(1);
-        
+
         if(err){
             cout<<"Error starting aio resolver: "<<err.message()<<endl;
             return 1;
         }
-        
+
         {
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
-            
+
             ipc_request::ProtoSpecT::setup<ipc_request_client::MessageSetup>(*proto);
-            
+
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
-            
+
             cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
-            
+
             frame::mpipc::openssl::setup_client(
                 cfg,
                 [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
@@ -182,27 +182,27 @@ int main(int argc, char *argv[]){
                 },
                 frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
             );
-            
+
             frame::mpipc::snappy::setup(cfg);
-            
+
             err = ipcservice.reconfigure(std::move(cfg));
-            
+
             if(err){
                 cout<<"Error starting ipcservice: "<<err.message()<<endl;
                 return 1;
             }
         }
-        
+
         cout<<"Expect lines like:"<<endl;
         cout<<"quit"<<endl;
         cout<<"q"<<endl;
         cout<<"localhost user\\d*"<<endl;
         cout<<"127.0.0.1 [a-z]+_man"<<endl;
-        
+
         while(true){
             string  line;
             getline(cin, line);
-            
+
             if(line == "q" or line == "Q" or line == "quit"){
                 break;
             }
@@ -211,9 +211,9 @@ int main(int argc, char *argv[]){
                 size_t      offset = line.find(' ');
                 if(offset != string::npos){
                     recipient = line.substr(0, offset);
-                    
-                    
-                    
+
+
+
                     auto  lambda = [](
                         frame::mpipc::ConnectionContext &_rctx,
                         std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
@@ -224,16 +224,16 @@ int main(int argc, char *argv[]){
                             cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
                             return;
                         }
-                        
+
                         SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
-                        
+
                         cout<<"Received "<<_rrecv_msg_ptr->user_data_map.size()<<" users:"<<endl;
-                        
+
                         for(const auto& user_data: _rrecv_msg_ptr->user_data_map){
                             cout<<'{'<<user_data.first<<"}: "<<user_data.second<<endl;
                         }
                     };
-                    
+
                     auto req_ptr = make_shared<ipc_request::Request>(
                         make_shared<ipc_request::RequestKeyAndList>(
                             make_shared<ipc_request::RequestKeyOr>(
@@ -246,11 +246,11 @@ int main(int argc, char *argv[]){
                             )
                         )
                     );
-                    
+
                     cout<<"Request key: ";
                     if(req_ptr->key) req_ptr->key->print(cout);
                     cout<<endl;
-                    
+
                     ipcservice.sendRequest(
                         recipient.c_str(), //make_shared<ipc_request::Request>(line.substr(offset + 1)),
                         req_ptr, lambda, 0

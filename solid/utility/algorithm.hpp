@@ -1,6 +1,6 @@
 // solid/utility/algorithm.hpp
 //
-// Copyright (c) 20015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 20015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -180,10 +180,10 @@ size_t find_cmp(It _it, Cmp const &_rcmp, SizeToType<2> _s){
 
 template <class It, class Cmp, size_t S>
 size_t find_cmp(It _it, Cmp const &_rcmp, SizeToType<S> s){
-    
+
     const size_t    off1 = find_cmp(_it, _rcmp, SizeToType<S/2>());
     const size_t    off2 = find_cmp(_it + S/2, _rcmp, SizeToType<S - S/2>()) + S/2;
-    
+
     if(_rcmp(*(_it + off1), *(_it + off2))){
         return off1;
     }
@@ -223,21 +223,21 @@ binary_search_result_t binary_search(It _from, It _to, const Key &_rk, const Com
 template<class It, class Key, class Compare = binary_search_basic_comparator>
 binary_search_result_t binary_search_first(It _from, It _to, const Key &_rk, const Compare &_rcmp = Compare()){
     binary_search_result_t p = solid::binary_search(_from, _to, _rk, _rcmp);
-    
+
     if(!p.first) return p;//not found
-    
+
     while(p.second && !_rcmp(*(_from + p.second - 1), _rk)){
         p =  solid::binary_search(_from, _from + p.second, _rk, _rcmp);
     }
     return p;
 }
-    
+
 template<class It, class Key, class Compare = binary_search_basic_comparator>
 binary_search_result_t binary_search_last(It _from, It _to, const Key &_rk, const Compare &_rcmp = Compare()){
     binary_search_result_t p = solid::binary_search(_from, _to, _rk, _rcmp);
-    
+
     if(!p.first) return p;//not found
-    
+
     while(p.second != (_to - _from - 1) && !_rcmp(*(_from + p.second + 1), _rk)){
         p =  solid::binary_search(_from + p.second + 1, _to, _rk, _rcmp);
     }

@@ -115,23 +115,23 @@ void Object::handleEvent(Event &&_revt){
             }
         }
     };
-    
+
     event_handler.handle(_revt, *this);
 }
 
 int test_event(int argc, char *argv[]){
-    
+
     cout<<"Event::any_size = "<<Event::any_size<<endl;
-    
+
     Object  obj;
-    
+
     Base    &rbase(obj);
-    
+
     rbase.handleEvent(global_event_category.event(GlobalEvents::First));
     rbase.handleEvent(alpha_event_category.event(AlphaEvents::Second));
     rbase.handleEvent(beta_event_category.event(BetaEvents::Third));
     rbase.handleEvent(beta_event_category.event(BetaEvents::Second));
     rbase.handleEvent(make_event(GenericEvents::Message, std::string("Some text")));
-    
+
     return 0;
 }

@@ -21,7 +21,7 @@ using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 //-----------------------------------------------------------------------------
 struct Parameters{
     Parameters():port("3333"){}
-    
+
     string          port;
 };
 
@@ -39,9 +39,9 @@ void complete_message(
         cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
         return;
     }
-    
+
     SOLID_CHECK(_rrecv_msg_ptr and _rsent_msg_ptr);
-    
+
     cout<<"Received from "<<_rctx.recipientName()<<": "<<_rrecv_msg_ptr->str<<endl;
 }
 
@@ -65,58 +65,58 @@ bool parseArguments(Parameters &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
     Parameters p;
-    
+
     if(!parseArguments(p, argc, argv)) return 0;
-    
+
     {
-        
+
         AioSchedulerT           scheduler;
-        
-        
+
+
         frame::Manager          manager;
         frame::mpipc::ServiceT  ipcservice(manager);
-        
+
         frame::aio::Resolver    resolver;
-        
+
         ErrorConditionT         err;
-        
+
         err = scheduler.start(1);
-        
+
         if(err){
             cout<<"Error starting aio scheduler: "<<err.message()<<endl;
             return 1;
         }
-        
+
         err = resolver.start(1);
-        
+
         if(err){
             cout<<"Error starting aio resolver: "<<err.message()<<endl;
             return 1;
         }
-        
+
         {
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
-            
+
             ipc_echo::ProtoSpecT::setup<ipc_echo_client::MessageSetup>(*proto);
-            
+
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
-            
+
             cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
-            
+
             err = ipcservice.reconfigure(std::move(cfg));
-            
+
             if(err){
                 cout<<"Error starting ipcservice: "<<err.message()<<endl;
                 return 1;
             }
         }
-        
-        
+
+
         while(true){
             string  line;
             getline(cin, line);
-            
+
             if(line == "q" or line == "Q" or line == "quit"){
                 break;
             }

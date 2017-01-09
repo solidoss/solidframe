@@ -1,6 +1,6 @@
 // protocol/text/src/buffer.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -54,10 +54,10 @@ SpecificBuffer::~SpecificBuffer(){
     const uint32 id(Specific::sizeToIndex(_sz));
     char *ptmp(Specific::popBuffer(id));
     memcpy(ptmp, _rpos, _wpos - _rpos);
-    
+
     const uint32 oldid(Specific::sizeToIndex(pend - pbeg));
     Specific::pushBuffer(pbeg, oldid);
-    
+
     pbeg = ptmp;
     pend = pbeg + Specific::indexToCapacity(id);
     return true;

@@ -1,6 +1,6 @@
 // protocol/text/src/reader.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -65,7 +65,7 @@ bool Reader::isError()const{
 void Reader::resetState(){
     state = RunState;
 }
-    
+
 int Reader::peek(int &_c){
     if(rpos != wpos) { _c = *(rpos); return Success;}
     return Wait;
@@ -100,7 +100,7 @@ int Reader::fetchLiteral(String &_rds, uint32 &_rdsz){
 
 int Reader::run(){
     while(fs.size()){
-        const int rval((*fs.top().first)(*this, fs.top().second)); 
+        const int rval((*fs.top().first)(*this, fs.top().second));
         switch(rval){
             case Failure:return Failure;
             case Wait: return Wait;//wait data
@@ -156,29 +156,29 @@ int Reader::run(){
 
 /*static*/ int Reader::fetchLiteralStream(Reader &_rr, Parameter &_rp){
     ostream         &ros(*reinterpret_cast<ostream*>(_rp.a.p));
-    
+
     uint64          &sz = *static_cast<uint64*>(_rp.b.p);
     ulong           minlen = (ulong)(_rr.wpos - _rr.rpos);
-    
+
     if(sz < minlen) minlen = sz;
-    
+
     //write what we allready have in buffer into the stream
     if(minlen){
         ros.write(_rr.rpos, minlen);
     }
-    
+
     idbgx(Debug::proto_txt, "stream size = "<<sz<<" minlen = "<<minlen);
     sz -= minlen;
-    
+
     if(sz){
         _rr.rpos = _rr.wpos = _rr.bh->pbeg;
-        
+
         ulong   toread(_rr.bh->pend - _rr.bh->pbeg);
-        
+
         if(sz < toread) toread = sz;
-        
+
         int     rv(Continue);
-        
+
         switch(_rr.read(_rr.bh->pbeg, toread)){
             case Failure: return Failure;
             case Success: break;
@@ -200,15 +200,15 @@ int Reader::run(){
     const ulong     bufsz(_rr.bh->pend - _rr.bh->pbeg);
     ulong           toread;
     ulong           tmpsz(bufsz * 8);
-    
+
     if(sz < tmpsz) tmpsz = sz;
     sz -= tmpsz;
     while(tmpsz){
         const ulong rdsz(_rr.readSize());
-        
+
         ros.write(_rr.bh->pbeg, rdsz);
-        tmpsz -= rdsz; 
-        
+        tmpsz -= rdsz;
+
         if(!tmpsz) break;
         toread = bufsz;
         if(tmpsz < toread) toread = tmpsz;
@@ -311,7 +311,7 @@ struct DigitFilter{
             return Error;
     }
     *reinterpret_cast<uint32 *>(_rp.a.p) = strtoul(_rr.tmp.c_str(), NULL, 10);
-    
+
     if(_rr.tmp.empty() || errno==ERANGE/* || *reinterpret_cast<uint32 *>(_rp.a.p) == 0*/){
         _rr.keyError(_rr.tmp, NotANumber);
         _rr.tmp.clear();
@@ -334,7 +334,7 @@ struct DigitFilter{
     }
     //*reinterpret_cast<uint32 *>(_rp.a.p) = strtoul(_rr.tmp.c_str(), NULL, 10);
     *reinterpret_cast<uint64 *>(_rp.a.p) = strtoull(_rr.tmp.c_str(), NULL, 10);
-    
+
     if(_rr.tmp.empty() || errno==ERANGE/* || *reinterpret_cast<uint32 *>(_rp.a.p) == 0*/){
         _rr.keyError(_rr.tmp, NotANumber);
         _rr.tmp.clear();
@@ -388,7 +388,7 @@ int Reader::doManage(int _mo){
 
 void Reader::doPrepareBuffer(char *_newbeg, const char *_newend){
     const uint32 sz(wpos - rpos);
-    
+
     if(sz){
         memcpy(_newbeg, rpos, wpos - rpos);
     }

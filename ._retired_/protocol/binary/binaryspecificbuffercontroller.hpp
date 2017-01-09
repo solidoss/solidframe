@@ -1,6 +1,6 @@
 // protocol/binary/binaryspecificbuffercontroller.hpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -29,9 +29,9 @@ struct SpecificBufferController{
     static const size_t rcv_spec_cp;
     static const int    snd_spec_id;
     static const size_t snd_spec_cp;
-    
+
     SpecificBufferController():rcvbuf(NULL), sndbuf(NULL){}
-    
+
     ~SpecificBufferController(){
         clear();
     }
@@ -59,7 +59,7 @@ struct SpecificBufferController{
             rcvbuf = Specific::popBuffer(rcv_spec_id);
         }
     }
-    
+
     size_t sendCapacity()const{
         return snd_spec_cp;
     }
@@ -74,7 +74,7 @@ struct SpecificBufferController{
         prepareRecv();
         return rcvbuf;
     }
-    
+
 private:
     char *rcvbuf;
     char *sndbuf;

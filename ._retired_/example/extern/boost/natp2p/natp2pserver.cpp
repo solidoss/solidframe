@@ -23,7 +23,7 @@ struct NatP2PServer{
         boost::asio::io_service &_io_service,
         int _port
     ):io_service(_io_service), sock(_io_service, udp::endpoint(udp::v4(), _port)){}
-    
+
     void run();
 private:
     void parseRequest(const char *_data, unsigned _len);
@@ -109,25 +109,25 @@ void NatP2PServer::connectCommand(istringstream &_iss){
     int     nat_port;
     string  fwl_addr;
     int     fwl_port;
-    
+
     _iss>>nat_addr>>nat_port>>fwl_addr>>fwl_port;
-    
+
     LOG("connectCommand("<<nat_addr<<':'<<nat_port<<'-'<<fwl_addr<<':'<<fwl_port<<')');
     udp::endpoint endpoint;
     endpoint.address(boost::asio::ip::address::from_string(nat_addr.c_str()));
     endpoint.port(nat_port);
     {
         ostringstream oss;
-        
+
         oss<<'C'<<' '<<sender_endpoint.address()<<' '<<sender_endpoint.port()<<' '<<fwl_addr<<' '<<fwl_port<<endl;
-        
+
         send(endpoint, oss);
     }
     if(0){
         ostringstream oss;
-        
+
         oss<<'C'<<' '<<endpoint.address()<<' '<<endpoint.port()<<endl;
-        
+
         send(sender_endpoint, oss);
     }
 }

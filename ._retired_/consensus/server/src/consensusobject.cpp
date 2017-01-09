@@ -1,6 +1,6 @@
 // consensus/server/src/consensusobject.cpp
 //
-// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -78,7 +78,7 @@ struct RequestStub{
     enum{
         SignaledEvent = 1,
         TimeoutEvent = 2,
-        
+
     };
     enum{
         HaveRequestFlag = 1,
@@ -94,7 +94,7 @@ struct RequestStub{
     ):
         msgptr(_rmsgptr), evs(0), flags(0), proposeid(InvalidIndex()), acceptid(InvalidIndex()), timerid(0),
         recvpropconf(0), recvpropdecl(0), st(InitState){}
-    
+
     bool hasRequest()const{
         return flags & HaveRequestFlag;
     }
@@ -117,7 +117,7 @@ struct RequestStub{
     bool isValidFastAcceptState()const;
     bool isValidAcceptConfirmState()const;
     bool isValidAcceptDeclineState()const;
-    
+
     WriteRequestMessagePointerT     msgptr;
     uint16                          evs;
     uint16                          flags;
@@ -240,7 +240,7 @@ struct Object::Data{
         FastAcceptOperation,
         AcceptConfirmOperation,
         AcceptDeclineOperation,
-        
+
     };
     struct ReqCmpEqual{
         bool operator()(const consensus::RequestId* const & _req1, const consensus::RequestId* const & _req2)const;
@@ -260,7 +260,7 @@ struct Object::Data{
     struct SenderHash{
         size_t operator()(const consensus::RequestId& _req1)const;
     };
-    
+
 #ifdef SOLID_USE_CPP11
     typedef std::unordered_map<const consensus::RequestId*, size_t, ReqHash, ReqCmpEqual>       RequestStubMapT;
     typedef std::unordered_set<consensus::RequestId, SenderHash, SenderCmpEqual>                SenderSetT;
@@ -275,7 +275,7 @@ struct Object::Data{
 //methods:
     Data(DynamicPointer<Configuration> &_rcfgptr);
     ~Data();
-    
+
     bool insertRequestStub(DynamicPointer<WriteRequestMessage> &_rmsgptr, size_t &_ridx);
     void eraseRequestStub(const size_t _idx);
     RequestStub& requestStub(const size_t _idx);
@@ -286,27 +286,27 @@ struct Object::Data{
     bool isCoordinator()const;
     bool canSendFastAccept()const;
     void coordinatorId(int8 _coordid);
-    
-    
-//data: 
+
+
+//data:
     ConfigurationPointerT   cfgptr;
     DynamicPointerVectorT   dv;
     uint32                  proposeid;
     frame::IndexT           srvidx;
-        
+
     uint32                  acceptid;
     uint32                  proposedacceptid;
     uint32                  confirmedacceptid;
-    
+
     uint32                  continuousacceptedproposes;
     size_t                  pendingacceptwaitidx;
-    
+
     int8                    coordinatorid;
     int8                    distancefromcoordinator;
     uint8                   acceptpendingcnt;//the number of stubs in waitrequest state
     bool                    isnotjuststarted;
     TimeSpec                lastaccepttime;
-    
+
     RequestStubMapT         reqmap;
     RequestStubVectorT      reqvec;
     SizeTQueueT             reqq;
@@ -370,7 +370,7 @@ Object::Data::Data(DynamicPointer<Configuration> &_rcfgptr):
     }
 }
 Object::Data::~Data(){
-    
+
 }
 
 void Object::Data::coordinatorId(int8 _coordid){
@@ -496,14 +496,14 @@ struct Object::RunData{
         TimeSpec const &_rts,
         int8 _coordinatorid
     ):signals(_sig), rtimepos(_rts), coordinatorid(_coordinatorid), opcnt(0), crtacceptincrement(1){}
-    
+
     bool isOperationsTableFull()const{
         return opcnt == OperationCapacity;
     }
     bool isCoordinator()const{
         return coordinatorid == -1;
     }
-    
+
     ulong           signals;
     TimeSpec const  &rtimepos;
     int8            coordinatorid;
@@ -564,7 +564,7 @@ bool Object::isRecoveryState()const{
 }
 //---------------------------------------------------------
 void Object::dynamicHandle(DynamicPointer<> &_dp, RunData &_rrd){
-    
+
 }
 //---------------------------------------------------------
 void Object::dynamicHandle(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunData &_rrd){
@@ -572,17 +572,17 @@ void Object::dynamicHandle(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunDat
     size_t          idx;
     bool            alreadyexisted(!d.insertRequestStub(_rmsgptr, idx));
     RequestStub     &rreq(d.requestStub(idx));
-    
+
     idbg("adding new request "<<rreq.msgptr->consensusRequestId()<<" on idx = "<<idx<<" existing = "<<alreadyexisted);
     rreq.flags |= RequestStub::HaveRequestFlag;
-    
+
     if(!(rreq.evs & RequestStub::SignaledEvent)){
         rreq.evs |= RequestStub::SignaledEvent;
         d.reqq.push(idx);
     }
 }
 void Object::dynamicHandle(DynamicPointer<ReadRequestMessage> &_rmsgptr, RunData &_rrd){
-    
+
 }
 void Object::dynamicHandle(DynamicPointer<OperationMessage<1> > &_rmsgptr, RunData &_rrd){
     idbg("opcount = 1");
@@ -643,7 +643,7 @@ void Object::doExecuteOperation(RunData &_rd, const uint8 _replicaidx, Operation
         default:
             SOLID_THROW_EX("Unknown operation ", (int)_rop.operation);
     }
-    
+
 }
 
 //on replica
@@ -664,14 +664,14 @@ void Object::doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, Op
     //we can accept the propose
     d.proposeid = _rop.proposeid;
     d.isnotjuststarted = true;
-    
+
     RequestStub &rreq(d.safeRequestStub(_rop.reqid, reqidx));
-    
+
     if(!rreq.isValidProposeState() && !isRecoveryState()){
         wdbg("Invalid state "<<rreq.state()<<" for reqidx "<<reqidx);
         return;
     }
-    
+
     rreq.proposeid = d.proposeid;
     rreq.flags |= RequestStub::HaveProposeFlag;
     if(!(rreq.flags & RequestStub::HaveAcceptFlag)){
@@ -683,7 +683,7 @@ void Object::doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, Op
     TimeSpec ts(frame::Object::currentTime());
     ts += 10 * 1000;//ms
     d.timerq.push(ts, TimerValue(reqidx, rreq.timerid));
-    
+
     doSendConfirmPropose(_rd, _replicaidx, reqidx);
 }
 
@@ -710,18 +710,18 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
     }
     SOLID_ASSERT(preq->flags & RequestStub::HaveAcceptFlag);
     SOLID_ASSERT(preq->flags & RequestStub::HaveProposeFlag);
-    
+
     const uint32 tmpaccid = overflow_safe_max(preq->acceptid, _rop.acceptid);
-    
+
 //  if(_rop.acceptid != tmpaccid){
 //      idbg("ignore a propose confirm operation from an outdated replica "<<tmpaccid<<" > "<<_rop.acceptid);
 //      return;
 //  }
-    
+
     preq->acceptid = tmpaccid;
-    
+
     ++preq->recvpropconf;
-    
+
     if(preq->recvpropconf == d.cfgptr->quorum){
         ++d.continuousacceptedproposes;
         preq->state(RequestStub::WaitAcceptConfirmState);
@@ -731,7 +731,7 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
         d.timerq.push(ts, TimerValue(reqidx, preq->timerid));
         doSendAccept(_rd, reqidx);
     }
-    
+
 }
 
 //on coordinator
@@ -747,13 +747,13 @@ void Object::doExecuteProposeDeclineOperation(RunData &_rd, const uint8 _replica
         idbg("no such request");
         return;
     }
-    
+
     if(!preq->isValidProposeDeclineState()){
         wdbg("Invalid state "<<(int)preq->state()<<" for reqidx "<<reqidx);
         return;
     }
     if(
-        preq->proposeid == 0 && 
+        preq->proposeid == 0 &&
         preq->proposeid != _rop.proposeid &&
         d.acceptid != _rop.acceptid
     ){
@@ -791,22 +791,22 @@ void Object::doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, Ope
         doSendDeclineAccept(_rd, _replicaidx, _rop);
         return;
     }
-    
+
     if(!preq->isValidAcceptState() && !isRecoveryState()){
         wdbg("Invalid state "<<(int)preq->state()<<" for reqidx "<<reqidx);
         return;
     }
-    
+
     preq->acceptid = _rop.acceptid;
     preq->flags |= RequestStub::HaveAcceptFlag;
-    
+
     preq->state(RequestStub::AcceptState);
-    
+
     if(!(preq->evs & RequestStub::SignaledEvent)){
         preq->evs |= RequestStub::SignaledEvent;
         d.reqq.push(reqidx);
     }
-    
+
     doSendConfirmAccept(_rd, _replicaidx, reqidx);
 }
 
@@ -821,21 +821,21 @@ void Object::doExecuteFastAcceptOperation(RunData &_rd, const uint8 _replicaidx,
     size_t  reqidx;
     //we can accept the propose
     d.proposeid = _rop.proposeid;
-    
+
     RequestStub &rreq(d.safeRequestStub(_rop.reqid, reqidx));
-    
+
     if(!rreq.isValidFastAcceptState() && !isRecoveryState()){
         wdbg("Invalid state "<<(int)rreq.state()<<" for reqidx "<<reqidx);
         return;
     }
-    
+
     rreq.proposeid = _rop.proposeid;
     rreq.acceptid = _rop.acceptid;
     d.proposedacceptid = overflow_safe_max(d.proposedacceptid, _rop.acceptid);
     rreq.flags |= (RequestStub::HaveProposeFlag | RequestStub::HaveAcceptFlag);
-    
+
     rreq.state(RequestStub::AcceptState);
-    
+
     if(!(rreq.evs & RequestStub::SignaledEvent)){
         rreq.evs |= RequestStub::SignaledEvent;
         d.reqq.push(reqidx);
@@ -868,9 +868,9 @@ void Object::doExecuteAcceptConfirmOperation(RunData &_rd, const uint8 _replicai
         wdbg("Invalid state "<<(int)preq->state()<<" for reqidx "<<reqidx);
         return;
     }
-    
+
     preq->state(RequestStub::AcceptState);
-    
+
     if(!(preq->evs & RequestStub::SignaledEvent)){
         preq->evs |= RequestStub::SignaledEvent;
         d.reqq.push(reqidx);
@@ -928,7 +928,7 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 //---------------------------------------------------------
 /*virtual*/ void Object::execute(ExecuteContext &_rexectx){
     frame::Manager &rm(frame::Manager::specific());
-    
+
     RunData                             rd(_rexectx.eventMask(), _rexectx.currentTime(), d.coordinatorid);
     if(notified()){//we've received a signal
         ulong                           sm(0);
@@ -951,7 +951,7 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
             }
         }
     }
-    
+
     AsyncE  rv;
 
     switch(state()){
@@ -1005,7 +1005,7 @@ AsyncE Object::doRun(RunData &_rd){
     //first we scan for timeout:
     while(d.timerq.isHit(_rd.rtimepos)){
         RequestStub &rreq(d.requestStub(d.timerq.frontValue().index));
-        
+
         if(rreq.timerid == d.timerq.frontValue().uid){
             rreq.evs |= RequestStub::TimeoutEvent;
             if(!(rreq.evs & RequestStub::SignaledEvent)){
@@ -1013,10 +1013,10 @@ AsyncE Object::doRun(RunData &_rd){
                 d.reqq.push(d.timerq.frontValue().index);
             }
         }
-        
+
         d.timerq.pop();
     }
-    
+
     //next we process all requests
     size_t cnt(d.reqq.size());
     while(cnt--){
@@ -1024,11 +1024,11 @@ AsyncE Object::doRun(RunData &_rd){
         d.reqq.pop();
         doProcessRequest(_rd, pos);
     }
-    
+
     doFlushOperations(_rd);
-    
+
     if(d.reqq.size()) return AsyncSuccess;
-    
+
     return AsyncWait;
 }
 //---------------------------------------------------------
@@ -1148,11 +1148,11 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
                 }
                 break;
             }
-            
+
             if(d.acceptid + _rd.crtacceptincrement != rreq.acceptid){
                 idbg("enterpending "<<_reqidx);
                 rreq.state(RequestStub::AcceptPendingState);
-                
+
                 if(d.acceptpendingcnt < 255){
                     ++d.acceptpendingcnt;
                 }
@@ -1173,12 +1173,12 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
             //we cannot do erase or Accept here, we must wait for the
             //send operations to be flushed away
             rreq.state(RequestStub::AcceptRunState);
-            
+
             if(!(rreq.evs & RequestStub::SignaledEvent)){
                 rreq.evs |= RequestStub::SignaledEvent;
                 d.reqq.push(_reqidx);
             }
-            
+
             break;
         case RequestStub::AcceptPendingState:
             idbg("AcceptPendingState "<<rreq.msgptr->consensusRequestId());
@@ -1215,20 +1215,20 @@ void Object::doSendAccept(RunData &_rd, const size_t _reqidx){
         doFlushOperations(_rd);
         _rd.coordinatorid = -1;
     }
-    
+
     d.coordinatorId(-1);
-    
+
     RequestStub &rreq(d.requestStub(_reqidx));
-    
+
     idbg(""<<_reqidx<<" rreq.proposeid = "<<rreq.proposeid<<" rreq.acceptid = "<<rreq.acceptid<<" "<<rreq.msgptr->consensusRequestId());
-    
+
     _rd.ops[_rd.opcnt].operation = Data::AcceptOperation;
     _rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
     _rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
     _rd.ops[_rd.opcnt].reqidx = _reqidx;
-    
+
     ++_rd.opcnt;
-    
+
     if(_rd.isOperationsTableFull()){
         idbg("");
         doFlushOperations(_rd);
@@ -1245,25 +1245,25 @@ void Object::doSendFastAccept(RunData &_rd, const size_t _reqidx){
         _rd.coordinatorid = -1;
     }
     RequestStub &rreq(d.requestStub(_reqidx));
-    
-    
-    
+
+
+
     ++d.proposeid;
     if(!d.proposeid) d.proposeid = 1;
     ++d.proposedacceptid;
-    
+
     rreq.acceptid = d.proposedacceptid;
     rreq.proposeid = d.proposeid;
     rreq.flags |= (RequestStub::HaveProposeFlag | RequestStub::HaveAcceptFlag);
     idbg(""<<_reqidx<<" rreq.proposeid = "<<rreq.proposeid<<" rreq.acceptid = "<<rreq.acceptid<<" "<<rreq.msgptr->consensusRequestId());
-    
+
     _rd.ops[_rd.opcnt].operation = Data::FastAcceptOperation;
     _rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
     _rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
     _rd.ops[_rd.opcnt].reqidx = _reqidx;
-    
+
     ++_rd.opcnt;
-    
+
     if(_rd.isOperationsTableFull()){
         doFlushOperations(_rd);
     }
@@ -1280,9 +1280,9 @@ void Object::doSendPropose(RunData &_rd, const size_t _reqidx){
         doFlushOperations(_rd);
         _rd.coordinatorid = -1;
     }
-    
+
     RequestStub &rreq(d.requestStub(_reqidx));
-    
+
     if(d.isnotjuststarted){
         ++d.proposeid;
         if(!d.proposeid) d.proposeid = 1;
@@ -1290,19 +1290,19 @@ void Object::doSendPropose(RunData &_rd, const size_t _reqidx){
         d.isnotjuststarted = true;
     }
     ++d.proposedacceptid;
-    
+
     rreq.acceptid = d.proposedacceptid;
     rreq.proposeid = d.proposeid;
     rreq.flags |= (RequestStub::HaveProposeFlag | RequestStub::HaveAcceptFlag);
     idbg("sendpropose: proposeid = "<<rreq.proposeid<<" acceptid = "<<rreq.acceptid<<" "<<rreq.msgptr->consensusRequestId());
-    
+
     _rd.ops[_rd.opcnt].operation = Data::ProposeOperation;
     _rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
     _rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
     _rd.ops[_rd.opcnt].reqidx = _reqidx;
-    
+
     ++_rd.opcnt;
-    
+
     if(_rd.isOperationsTableFull()){
         doFlushOperations(_rd);
     }
@@ -1316,19 +1316,19 @@ void Object::doSendConfirmPropose(RunData &_rd, const uint8 _replicaidx, const s
         doFlushOperations(_rd);
         _rd.coordinatorid = _replicaidx;
     }
-    
+
     RequestStub &rreq(d.requestStub(_reqidx));
     idbg(""<<_reqidx<<" "<<(int)_replicaidx<<" "<<rreq.msgptr->consensusRequestId());
-    
-    
-    //rreq.state = 
+
+
+    //rreq.state =
     _rd.ops[_rd.opcnt].operation = Data::ProposeConfirmOperation;
     _rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
     _rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
     _rd.ops[_rd.opcnt].reqidx = _reqidx;
-    
+
     ++_rd.opcnt;
-    
+
     if(_rd.isOperationsTableFull()){
         doFlushOperations(_rd);
     }
@@ -1341,15 +1341,15 @@ void Object::doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const O
         return;
     }
     OperationMessage<1> *po(new OperationMessage<1>);
-    
+
     po->replicaidx = d.cfgptr->crtidx;
     po->srvidx = serverIndex();
-    
+
     po->op.operation = Data::ProposeDeclineOperation;
     po->op.proposeid = d.proposeid;
     po->op.acceptid = d.acceptid;
     po->op.reqid = _rop.reqid;
-    
+
     DynamicPointer<frame::ipc::Message>     msgptr(po);
     this->doSendMessage(msgptr, d.cfgptr->addrvec[_replicaidx]);
 }
@@ -1363,20 +1363,20 @@ void Object::doSendConfirmAccept(RunData &_rd, const uint8 _replicaidx, const si
         doFlushOperations(_rd);
         _rd.coordinatorid = _replicaidx;
     }
-    
+
     d.coordinatorId(_replicaidx);
-    
+
     RequestStub &rreq(d.requestStub(_reqidx));
-    
+
     idbg(""<<(int)_replicaidx<<" "<<_reqidx<<" "<<rreq.msgptr->consensusRequestId());
-    
+
     _rd.ops[_rd.opcnt].operation = Data::AcceptConfirmOperation;
     _rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
     _rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
     _rd.ops[_rd.opcnt].reqidx = _reqidx;
-    
+
     ++_rd.opcnt;
-    
+
     if(_rd.isOperationsTableFull()){
         doFlushOperations(_rd);
     }
@@ -1388,17 +1388,17 @@ void Object::doSendDeclineAccept(RunData &_rd, const uint8 _replicaidx, const Op
         return;
     }
     OperationMessage<1> *po(new OperationMessage<1>);
-    
+
     po->replicaidx = d.cfgptr->crtidx;
     po->srvidx = serverIndex();
-    
+
     po->op.operation = Data::AcceptDeclineOperation;
     po->op.proposeid = d.proposeid;
     po->op.acceptid = d.acceptid;
     po->op.reqid = _rop.reqid;
-    
+
     DynamicPointer<frame::ipc::Message>     msgptr(po);
-    
+
     this->doSendMessage(msgptr, d.cfgptr->addrvec[_replicaidx]);
 }
 void Object::doFlushOperations(RunData &_rd){
@@ -1407,17 +1407,17 @@ void Object::doFlushOperations(RunData &_rd){
     OperationStub   *pos(NULL);
     const size_t    opcnt = _rd.opcnt;
     _rd.opcnt = 0;
-    
+
     if(opcnt == 0){
         return;
     }else if(opcnt == 1){
         OperationMessage<1>     *po(new OperationMessage<1>);
         RequestStub             &rreq(d.requestStub(_rd.ops[0].reqidx));
         pm = po;
-        
+
         po->replicaidx = d.cfgptr->crtidx;
         po->srvidx = serverIndex();
-        
+
         po->op.operation = _rd.ops[0].operation;
         po->op.acceptid = _rd.ops[0].acceptid;
         po->op.proposeid = _rd.ops[0].proposeid;
@@ -1463,7 +1463,7 @@ void Object::doFlushOperations(RunData &_rd){
         for(size_t i(0); i < opcnt; ++i){
             RequestStub &rreq(d.requestStub(_rd.ops[i].reqidx));
             //po->oparr.push_back(OperationStub());
-            
+
             pos[i].operation = _rd.ops[i].operation;
             pos[i].acceptid = _rd.ops[i].acceptid;
             pos[i].proposeid = _rd.ops[i].proposeid;
@@ -1471,7 +1471,7 @@ void Object::doFlushOperations(RunData &_rd){
             idbg("pos["<<i<<"].operation = "<<(int)pos[i].operation<<" proposeid = "<<pos[i].proposeid);
         }
     }
-    
+
     if(_rd.isCoordinator()){
         DynamicSharedPointer<Message>   sharedmsgptr(pm);
         idbg("broadcast to other replicas");
@@ -1493,9 +1493,9 @@ void Object::doFlushOperations(RunData &_rd){
 */
 struct RequestStubAcceptCmp{
     const RequestStubVectorT &rreqvec;
-    
+
     RequestStubAcceptCmp(const RequestStubVectorT &_rreqvec):rreqvec(_rreqvec){}
-    
+
     bool operator()(const size_t &_ridx1, const size_t &_ridx2)const{
         return overflow_safe_less(rreqvec[_ridx1].acceptid, rreqvec[_ridx2].acceptid);
     }
@@ -1505,14 +1505,14 @@ void Object::doScanPendingRequests(RunData &_rd){
     idbg(""<<(int)d.acceptpendingcnt);
     const size_t    accpendcnt = d.acceptpendingcnt;
     size_t          cnt(0);
-    
+
     d.acceptpendingcnt = 0;
-    
+
     if(accpendcnt != 255){
         size_t  posarr[256];
         size_t  idx(0);
-        
-        
+
+
         for(RequestStubVectorT::const_iterator it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
             const RequestStub   &rreq(*it);
             if(
@@ -1524,13 +1524,13 @@ void Object::doScanPendingRequests(RunData &_rd){
                 ++cnt;
             }
         }
-        
+
         RequestStubAcceptCmp    cmp(d.reqvec);
-        
+
         std::sort(posarr, posarr + idx, cmp);
-        
+
         uint32                  crtacceptid(d.acceptid);
-        
+
         for(size_t i(0); i < idx; ++i){
             RequestStub &rreq(d.reqvec[posarr[i]]);
             ++crtacceptid;
@@ -1568,13 +1568,13 @@ void Object::doScanPendingRequests(RunData &_rd){
                 ++cnt;
             }
         }
-        
+
         RequestStubAcceptCmp    cmp(d.reqvec);
-        
+
         std::sort(posvec.begin(), posvec.end(), cmp);
-        
+
         uint32                  crtacceptid(d.acceptid);
-        
+
         for(std::deque<size_t>::const_iterator it(posvec.begin()); it != posvec.end(); ++it){
             RequestStub &rreq(d.reqvec[*it]);
             ++crtacceptid;
@@ -1610,7 +1610,7 @@ void Object::doAcceptRequest(RunData &_rd, const size_t _reqidx){
     SOLID_ASSERT(rreq.flags & RequestStub::HaveRequestFlag);
     SOLID_ASSERT(rreq.acceptid == d.acceptid + 1);
     ++d.acceptid;
-    
+
     d.reqmap.erase(&rreq.msgptr->consensusRequestId());
     this->accept(rreq.msgptr);
     rreq.msgptr.clear();

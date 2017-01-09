@@ -1,6 +1,6 @@
 // consensus/src/consensusrequest.cpp
 //
-// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -30,7 +30,7 @@ bool RequestId::operator<(const RequestId &_rcsi)const{
 }
 
 bool RequestId::operator==(const RequestId &_rcsi)const{
-    return this->sockaddr == _rcsi.sockaddr && 
+    return this->sockaddr == _rcsi.sockaddr &&
         this->senderuid == _rcsi.senderuid &&
         this->requid == _rcsi.requid;
 }
@@ -40,7 +40,7 @@ size_t RequestId::hash()const{
 }
 
 bool RequestId::senderEqual(const RequestId &_rcsi)const{
-    return this->sockaddr == _rcsi.sockaddr && 
+    return this->sockaddr == _rcsi.sockaddr &&
         this->senderuid == _rcsi.senderuid;
 }
 
@@ -92,19 +92,19 @@ WriteRequestMessage::~WriteRequestMessage(){
 
 /*virtual*/ void WriteRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
     ipcconid = frame::ipc::ConnectionContext::the().connectionuid;
-    
+
     string              hoststr;
     string              portstr;
-    
+
     id.sockaddr = frame::ipc::ConnectionContext::the().pairaddr;
-    
+
     synchronous_resolve(
         hoststr,
         portstr,
         id.sockaddr,
         ReverseResolveInfo::Numeric
     );
-    
+
     if(ipcIsBackOnSender()){
         idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<hoststr<<":"<<portstr);
         if(static_cast<WriteRequestMessage*>(_rctx.requestMessage(*this).get())->consensusOnSuccess()){
@@ -172,19 +172,19 @@ ReadRequestMessage::~ReadRequestMessage(){
 
 void ReadRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, solid::frame::ipc::Message::MessagePointerT &_rmsgptr){
     ipcconid = _rctx.connectionuid;
-    
+
     string              hoststr;
     string              portstr;
-    
+
     id.sockaddr = frame::ipc::ConnectionContext::the().pairaddr;
-    
+
     synchronous_resolve(
         hoststr,
         portstr,
         id.sockaddr,
         ReverseResolveInfo::Numeric
     );
-    
+
     if(ipcIsBackOnSender()){
         idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<hoststr<<":"<<portstr);
         this->consensusNotifyClientWithThis();

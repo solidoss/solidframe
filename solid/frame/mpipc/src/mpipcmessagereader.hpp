@@ -1,6 +1,6 @@
 // solid/frame/ipc/src/ipcmessagereader.hpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -30,11 +30,11 @@ public:
         KeepaliveCompleteE,
     };
     using CompleteFunctionT = FUNCTION<void(const Events, MessagePointerT /*const*/&, const size_t)>;
-    
+
     MessageReader();
-    
+
     ~MessageReader();
-    
+
     uint32_t read(
         const char *_pbuf,
         uint32_t _bufsz,
@@ -44,7 +44,7 @@ public:
         ConnectionContext &_rctx,
         ErrorConditionT &_rerror
     );
-    
+
     void prepare(ReaderConfiguration const &_rconfig);
     void unprepare();
 private:
@@ -58,35 +58,35 @@ private:
         ErrorConditionT &_rerror
     );
 private:
-    
+
     enum States{
         HeaderReadStateE = 1,
         DataReadStateE,
     };
-    
+
     struct MessageStub{
         MessageStub(
             MessagePointerT &_rmsgptr,
 //          const size_t _msg_type_idx,
             ulong _flags
         ): message_ptr(std::move(_rmsgptr)), /*message_type_idx(_msg_type_idx),*/ packet_count(0){}
-        
+
         MessageStub():/*message_type_idx(InvalidIndex()), */packet_count(0){}
-        
+
         void clear(){
             deserializer_ptr = nullptr;
             message_ptr.reset();
 //          message_type_idx = InvalidIndex();
         }
-        
+
         MessagePointerT         message_ptr;
         //size_t                    message_type_idx;
         DeserializerPointerT    deserializer_ptr;
         size_t                  packet_count;
     };
-    
+
     typedef Queue<MessageStub>      MessageQueueT;
-    
+
     States          state;
     uint64_t            current_message_type_id;
     MessageQueueT   message_q;

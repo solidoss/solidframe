@@ -1,6 +1,6 @@
 // solid/frame/file/src/filestore.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -141,13 +141,13 @@ int FileBuf::writeAll(const char *_s, size_t _n){
             }
             return traits_type::to_int_type(_c);
         }
-        
+
         char *endp = pptr();
         if(_c != traits_type::eof()){
             *endp = _c;
             ++endp;
         }
-        
+
         size_t towrite = endp - pbase();
         int rv = writeAll(pbase(), towrite);
         if(static_cast<size_t>(rv) == towrite){
@@ -236,7 +236,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 }
 
 // /*virtual*/ void FileBuf::imbue(const locale& _loc){
-//  
+//
 // }
 
 /*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n){
@@ -249,7 +249,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
             setp(nullptr, nullptr);
             resetGet();
         }
-        
+
         if (gptr() < egptr()){ // buffer not exhausted
             streamsize sz = egptr() - gptr();
             if(sz > _n){
@@ -298,7 +298,7 @@ bool FileBuf::flushPut(){
     if(hasBuf()){
         //NOTE: it should work with the following line too
         //return streambuf::xsputn(_s, _n);
-        
+
         if(pptr() == nullptr){
             if(hasGet()){
                 off += (gptr() - buf);
@@ -306,11 +306,11 @@ bool FileBuf::flushPut(){
             }
             resetPut();
         }
-        
+
         const streamsize    sz = _n;
         const size_t        wleftsz = bufcp - (pptr() - pbase());
         size_t              towrite = _n;
-        
+
         if(wleftsz < towrite){
             towrite = wleftsz;
         }
@@ -318,7 +318,7 @@ bool FileBuf::flushPut(){
         _n -= towrite;
         _s += towrite;
         pbump(towrite);
-        
+
         if(_n != 0 || towrite == wleftsz){
             if(!flushPut()){
                 return 0;

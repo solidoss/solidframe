@@ -1,6 +1,6 @@
 // solid/utility/common.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -178,7 +178,7 @@ inline uint64_t bit_revert(const uint64_t _v){
     r |= (((uint64_t)reverted_chars[(_v >>  8) & 0xff]) << 48);
     r |= (((uint64_t)reverted_chars[(_v >> 16) & 0xff]) << 40);
     r |= (((uint64_t)reverted_chars[(_v >> 24) & 0xff]) << 32);
-    
+
     r |= (((uint64_t)reverted_chars[(_v >> 32) & 0xff]) << 24);
     r |= (((uint64_t)reverted_chars[(_v >> 40) & 0xff]) << 16);
     r |= (((uint64_t)reverted_chars[(_v >> 48) & 0xff]) << 8);

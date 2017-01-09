@@ -56,7 +56,7 @@ struct Params{
     int         talker_port;
     string      destination_addr_str;
     string      destination_port_str;
-    
+
     string      dbg_levels;
     string      dbg_modules;
     string      dbg_addr;
@@ -129,12 +129,12 @@ public:
 private:
     void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
     void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
-    
+
     void onTimer(frame::aio::ReactorContext &_rctx);
-    
+
     typedef frame::aio::Listener        ListenerSocketT;
     typedef frame::aio::Timer           TimerT;
-    
+
     frame::Service      &rsvc;
     AioSchedulerT       &rsch;
     ListenerSocketT     sock;
@@ -147,21 +147,21 @@ public:
 protected:
     void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
     void doStop(frame::Manager &_rm) override;
-    
+
     static void onRecvSock1(frame::aio::ReactorContext &_rctx, size_t _sz);
     static void onRecvSock2(frame::aio::ReactorContext &_rctx, size_t _sz);
     static void onSendSock1(frame::aio::ReactorContext &_rctx);
     static void onSendSock2(frame::aio::ReactorContext &_rctx);
-    
+
     void onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t _sz);
     static void onSendId(frame::aio::ReactorContext &_rctx);
-    
+
     void onConnect(frame::aio::ReactorContext &_rctx);
 protected:
     typedef frame::aio::Stream<frame::aio::Socket>      StreamSocketT;
     //typedef frame::aio::Timer                         TimerT;
     enum {BufferCapacity = 1024 * 2};
-    
+
     char                    buf1[BufferCapacity];
     char                    buf2[BufferCapacity];
     StreamSocketT           sock1;
@@ -177,12 +177,12 @@ protected:
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
-    
+
     if(parseArguments(params, argc, argv)) return 0;
-    
+
     signal(SIGINT, term_handler); /* Die on SIGTERM */
     //signal(SIGPIPE, SIG_IGN);
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -217,29 +217,29 @@ int main(int argc, char *argv[]){
 #endif
     async_resolver().start(1);
     {
-        
+
         AioSchedulerT       sch;
-        
-        
+
+
         frame::Manager      m;
         frame::ServiceT     svc(m);
-        
+
         if(sch.start(1)){
             running = false;
             cout<<"Error starting scheduler"<<endl;
         }else{
             ResolveData     rd =  synchronous_resolve("0.0.0.0", params.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    
+
             SocketDevice    sd;
-            
+
             sd.create(rd.begin());
             sd.prepareAccept(rd.begin(), 2000);
-            
+
             if(sd.ok()){
                 DynamicPointer<frame::aio::Object>  objptr(new Listener(svc, sch, std::move(sd)));
                 solid::ErrorConditionT              err;
                 solid::frame::ObjectIdT         objuid;
-                
+
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
                 idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
             }else{
@@ -247,7 +247,7 @@ int main(int argc, char *argv[]){
                 running = false;
             }
         }
-        
+
         if(0){
             unique_lock<mutex>  lock(mtx);
             while(running){
@@ -258,12 +258,12 @@ int main(int argc, char *argv[]){
             cin>>c;
             //exit(0);
         }
-        
-        
+
+
         async_resolver().stop();
         m.stop();
     }
-    
+
     return 0;
 }
 
@@ -290,20 +290,20 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
             cout << desc << "\n";
             return true;
         }
-        
+
         size_t          pos;
-        
+
         pos = _par.destination_addr_str.rfind(':');
         if(pos != string::npos){
             _par.destination_addr_str[pos] = '\0';
-            
+
             _par.destination_port_str.assign(_par.destination_addr_str.c_str() + pos + 1);
-            
+
             _par.destination_addr_str.resize(pos);
         }else{
             _par.destination_port_str = _par.listener_port;
         }
-        
+
         return false;
     }catch(exception& e){
         cout << e.what() << "\n";
@@ -326,7 +326,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
     idbg("");
     unsigned    repeatcnt = 4;
-    
+
     do{
         if(!_rctx.error()){
             int sz = 1024 * 64;
@@ -336,7 +336,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
             _rsd.enableNoDelay();
             DynamicPointer<frame::aio::Object>  objptr(new Connection(std::move(_rsd)));
             solid::ErrorConditionT              err;
-            
+
             rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
         }else{
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
@@ -345,7 +345,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(repeatcnt && sock.accept(_rctx, std::bind(&Listener::onAccept, this, _1, _2), _rsd));
-    
+
     if(!repeatcnt){
         sock.postAccept(
             _rctx,
@@ -361,14 +361,14 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 struct ResolvFunc{
     frame::Manager      &rm;
     frame::ObjectIdT    objuid;
-    
+
     ResolvFunc(frame::Manager &_rm, frame::ObjectIdT const& _robjuid): rm(_rm), objuid(_robjuid){}
-    
+
     void operator()(ResolveData &_rrd, ErrorCodeT const &_rerr){
         Event       ev(make_event(GenericEvents::Message));
-        
+
         ev.any().reset(std::move(_rrd));
-        
+
         idbg(this<<" send resolv_message");
         rm.notify(objuid, std::move(ev));
     }
@@ -378,22 +378,22 @@ struct MoveMessage{
     SocketDevice        sd;
     uint8_t             sz;
     char                buf[12];
-    
+
     MoveMessage(
-        SocketDevice &&_rsd, 
+        SocketDevice &&_rsd,
         char *_buf, uint8_t _buflen
     ): sd(std::move(_rsd)), sz(_buflen)
     {
         SOLID_ASSERT(_buflen < 12);
         memcpy(buf, _buf, _buflen);
     }
-    
+
     MoveMessage(
         MoveMessage &&_umm
     ):sd(std::move(_umm.sd)), sz(_umm.sz){
         memcpy(buf, _umm.buf, sz);
     }
-    
+
 //  //TODO this shoud not be present
 //  MoveMessage(
 //      const MoveMessage &_rmm
@@ -415,7 +415,7 @@ struct MoveMessage{
             );
         }else{
             const uint32_t id = crtid = crt_id++;
-            
+
             snprintf(buf1, BufferCapacity, "%lu\r\n", static_cast<unsigned long>(id));
             sock1.postSendAll(_rctx, buf1, strlen(buf1), Connection::onSendId);
             sock1.postRecvSome(_rctx, buf2, 12, [this](frame::aio::ReactorContext &_rctx, size_t _sz){return onRecvId(_rctx, 0, _sz);});
@@ -494,7 +494,7 @@ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
         }
         --repeatcnt;
     }while(repeatcnt && rthis.sock1.recvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1, _sz));
-    
+
     if(repeatcnt == 0){
         bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1);//fully asynchronous call
         SOLID_ASSERT(!rv);
@@ -524,7 +524,7 @@ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
         }
         --repeatcnt;
     }while(repeatcnt && rthis.sock2.recvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2, _sz));
-    
+
     if(repeatcnt == 0){
         bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2);//fully asynchronous call
         SOLID_ASSERT(!rv);
@@ -556,7 +556,7 @@ void Connection::onConnect(frame::aio::ReactorContext &_rctx){
 void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t _sz){
     idbg("sz = "<<_sz<<" off = "<<_off);
     _sz += _off;
-    
+
     size_t  i = _off;
     bool    found_eol = false;
     for(; i < _sz; ++i){
@@ -570,10 +570,10 @@ void Connection::onRecvId(frame::aio::ReactorContext &_rctx, size_t _off, size_t
             found_eol = true;
             if((i + 1) < _sz && buf2[i + 1] == '\n'){
                 ++i;
-            } 
-        } 
+            }
+        }
     }
-    
+
     if(found_eol){
         uint32_t idx = InvalidIndex();
         if(strlen(buf2) >= 1){

@@ -49,31 +49,31 @@ void serialize(S &_rs, T &_rt, const char *_name){
 typedef std::shared_ptr<Base>                                                   BasePointerT;
 
 int main(){
-    
+
     string      data;
-    
+
     TypeIdMapT  typemap;
-    
+
     typemap.registerType<TestA>("testa");
     typemap.registerType<TestB>("testb", serialize<BinSerializerT, TestB>, serialize<BinDeserializerT, TestB>);
     typemap.registerCast<TestA, Base>();
     typemap.registerCast<TestB, Base>();
-    
+
     {
         const size_t        bufcp = 64;
         char                buf[bufcp];
         BinSerializerT      ser(&typemap);
         int                 rv;
-        
+
         TestA               a;
-        
+
         Base                *pa = &a;
         BasePointerT        bptr(new TestB(2, 4));
-        
+
         cout<<"Typename pa: "<<typeid(*pa).name()<<endl;
-        
+
         ser.push(pa, "pa").push(bptr, "pb");
-        
+
         while((rv = ser.run(buf, bufcp)) == bufcp){
             data.append(buf, rv);
         }
@@ -87,22 +87,22 @@ int main(){
     {
         BinDeserializerT    des(&typemap);
         int                 rv;
-        
+
         Base                *pa = nullptr;
         BasePointerT        bptr;
-        
+
         des.push(pa, "pa").push(bptr, "pb");
-        
+
         rv = des.run(data.data(), data.size());
-        
+
         if(rv != static_cast<int>(data.size())){
             cout<<"ERROR: deserialization: "<<des.error().category().name()<<": "<<des.error().message()<<endl;
             return 0;
         }
-        
+
         cout<<"Data for pa = "<<typemap[pa]<<endl;
         cout<<"Data for pb = "<<typemap[bptr.get()]<<endl;
-        
+
         pa->print();
         bptr->print();
     }

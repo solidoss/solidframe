@@ -1,6 +1,6 @@
 // solid/utility/src/memoryfile.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -81,7 +81,7 @@ int MemoryFile::read(char *_pb, uint32_t _bl, int64_t _off){
         uint32_t tocopy(bufsz - buffoff);
         if(tocopy > _bl) tocopy = _bl;
         if(!bf){
-            
+
             memset(_pb, '\0', tocopy);
         }else{
             memcpy(_pb, bf + buffoff, tocopy);
@@ -108,7 +108,7 @@ int MemoryFile::write(const char *_pb, uint32_t _bl, int64_t _off){
         uint32_t tocopy(bufsz - buffoff);
         if(tocopy > _bl) tocopy = _bl;
         if(created){
-            memset(bf, '\0', buffoff); 
+            memset(bf, '\0', buffoff);
             memset(bf + buffoff + tocopy, '\0', bufsz - buffoff - tocopy);
         }
         memcpy(bf + buffoff, _pb, tocopy);
@@ -122,7 +122,7 @@ int MemoryFile::write(const char *_pb, uint32_t _bl, int64_t _off){
         errno = ENOSPC;
         return -1;
     }
-    
+
     if(sz < (_off + wd)){
         sz = _off + wd;
     }

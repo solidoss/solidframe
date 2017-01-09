@@ -14,7 +14,7 @@ if(OPENSSL_FOUND)
     add_library (solid_frame_aio_openssl STATIC
         ${Sources} ${Headers} ${Inlines}
     )
-    
+
     target_link_libraries(solid_frame_aio_openssl solid_frame_aio ${OPENSSL_LIBRARIES})
     target_include_directories(solid_frame_aio_openssl PUBLIC
         $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
@@ -22,7 +22,7 @@ if(OPENSSL_FOUND)
         PRIVATE src
     )
 
-    
+
     install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/aio/openssl)
     install (TARGETS solid_frame_aio_openssl DESTINATION lib EXPORT SolidFrameConfig)
 endif()

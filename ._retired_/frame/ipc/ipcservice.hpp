@@ -1,6 +1,6 @@
 // frame/ipc/ipcservice.hpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -68,20 +68,20 @@ enum Error{
     UnsupportedSocketFamilyError = -101,
     NoConnectionError = -102,
     TryReconnectError = -103,
-    
+
 };
 
 struct Controller: Dynamic<Controller, DynamicShared<> >{
     enum{
         AuthenticationFlag = 1
     };
-    
+
     virtual ~Controller();
 
     virtual void scheduleTalker(frame::aio::Object *_ptkr) = 0;
     virtual void scheduleListener(frame::aio::Object *_plis) = 0;
     virtual void scheduleNode(frame::aio::Object *_pnod) = 0;
-    
+
     virtual bool compressPacket(
         PacketContext &_rpc,
         const uint32 _bufsz,
@@ -93,27 +93,27 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
         char* &_rpb,
         uint32 &_bl
     );
-    
+
     bool hasAuthentication()const{
         return (flags & AuthenticationFlag) != 0;
     }
-    
+
     virtual bool onMessageReceive(
         DynamicPointer<Message> &_rmsgptr,
         ConnectionContext const &_rctx
     );
-    
+
     virtual uint32 onMessagePrepare(
         Message &_rmsg,
         ConnectionContext const &_rctx
     );
-    
+
     virtual void onMessageComplete(
         Message &_rmsg,
         ConnectionContext const &_rctx,
         int _error
     );
-    
+
     //Must return:
     // If _psig is NULL, the request is to initiate the authentication,
     // and _psig must be filled with a command to be sent to peer.
@@ -132,7 +132,7 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
     virtual uint32 computeNetworkId(
         const SocketAddressStub &_rsa_dest
     )const;
-    
+
     virtual void onDisconnect(const SocketAddressInet &_raddr, const uint32 _netid);
 
 protected:
@@ -140,9 +140,9 @@ protected:
         const uint32 _flags = 0,
         const uint32 _resdatasz = 0
     ):flags(0), resdatasz(_resdatasz){}
-    
+
     char * allocateBuffer(PacketContext &_rpc, uint32 &_cp);
-    
+
     void sendEvent(
         Service &_rs,
         const ConnectionUid &_rconid,//the id of the process connectors
@@ -206,18 +206,18 @@ struct Configuration{
             const uint32 _relayreskeepalive = 0,
             const uint32 _relayseskeepalive = 5 * 60 * 1000
         ):  responsekeepalive(
-            _reskeepalive < _seskeepalive 
-            ? 
+            _reskeepalive < _seskeepalive
+            ?
             (_reskeepalive == 0 ? _seskeepalive : _reskeepalive )
-            : 
+            :
             (_seskeepalive == 0 ? _reskeepalive : _seskeepalive)
         ),
         keepalive(_seskeepalive),
         relayresponsekeepalive(
-            _relayreskeepalive < _relayseskeepalive 
-            ? 
+            _relayreskeepalive < _relayseskeepalive
+            ?
             (_relayreskeepalive == 0 ? _relayseskeepalive : _relayreskeepalive )
-            : 
+            :
             (_relayseskeepalive == 0 ? _relayreskeepalive : _relayseskeepalive)
         ),
         relaykeepalive(_relayseskeepalive),
@@ -250,17 +250,17 @@ struct Configuration{
         uint32      connectretransmitcount;
         uint32      dataretransmitcount;
     };
-    
+
     Configuration(
         const uint32 _flags = 0
     ):  flags(_flags), localnetid(LocalNetworkId){}
-    
+
     bool operator==(const Configuration &_rcfg)const{
         return  flags == _rcfg.flags && localnetid == _rcfg.localnetid &&
                 baseaddr == _rcfg.baseaddr && talker == _rcfg.talker &&
                 node == _rcfg.node && session == _rcfg.session;
     }
-    
+
     typedef std::vector<SocketAddressInet>  SocketAddressInetVectorT;
     struct RelayAddress{
         RelayAddress():networkid(InvalidNetworkId){}
@@ -268,7 +268,7 @@ struct Configuration{
         SocketAddressInet   address;
     };
     typedef std::vector<RelayAddress>       RelayAddressVectorT;
-    
+
     uint32                      flags;
     uint32                      localnetid;
     SocketAddressInet           baseaddr;
@@ -287,17 +287,17 @@ struct Configuration{
     For processes within the same network, the messages are sent using a reliable
     protocol based on UDP.
     For processes within different networks, SolidFrame allows for configuring
-    gateway processes which will allow tunneling the ipc messages between 
+    gateway processes which will allow tunneling the ipc messages between
     networks over secure TCP connections.
     A process is identified by a tuple [networkid, IP address, base port].<br>
     + networkid - the id of the network for the destination process. Default
     value is LocalNetworkId in which case no relay is used.<br>
     + IPaddress:base port - because we want to scale up, the IPC service uses
-    multiple UPD sockets to communicate between processes. One of these sockets 
+    multiple UPD sockets to communicate between processes. One of these sockets
     is opened on a defined port, and is the one receiving "Connect" messages.
     After a session is established between two processes, the communication may
     continue between other UDP sockets (on random ports).<br>
-    
+
 */
 class Service: public Dynamic<Service, frame::Service>{
 public:
@@ -313,7 +313,7 @@ private:
         DeserializerT,
         SerializationTypeIdT
     >                       IdTypeMapperT;
-    
+
     struct Handle{
         bool checkStore(void */*_pt*/, const ConnectionContext &/*_rctx*/)const{
             return true;
@@ -323,11 +323,11 @@ private:
         }
         void afterSerialization(SerializerT &_rs, void *_pm, const ConnectionContext &_rctx){}
         void afterSerialization(DeserializerT &_rs, void *_pm, const ConnectionContext &_rctx){}
-    
+
         void beforeSerialization(SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx);
         void beforeSerialization(DeserializerT &_rs, Message *_pt, const ConnectionContext &_rctx);
     };
-    
+
     template <class H>
     struct ProxyHandle: H, Handle{
         void beforeSerialization(SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
@@ -337,41 +337,41 @@ private:
             this->Handle::beforeSerialization(_rd, _pt, _rctx);
         }
     };
-    
+
 public:
-        
+
     enum Types{
         PlainType = 1,
         RelayType
     };
     typedef Dynamic<Service, frame::Service> BaseT;
-    
+
     static const char* errorText(int _err);
-    
+
     Service(
         frame::Manager &_rm,
         const DynamicPointer<Controller> &_rctrlptr
     );
-    
+
     template <class T>
     uint32 registerMessageType(uint32 _idx = 0){
         return typeMapper().insertHandle<T, Handle>(_idx);
     }
-    
+
     template <class T, class H>
     uint32 registerMessageType(uint32 _idx = 0){
         return typeMapper().insertHandle<T, ProxyHandle<Handle> >(_idx);
     }
-    
+
     //! Destructor
     ~Service();
 
     bool reconfigure(Configuration const& _rcfg);
-    
+
     TimeSpec const& timeStamp()const;
-    
+
     int basePort()const;
-    
+
     //!Send a message (usually a response) to a peer process using a previously saved ConnectionUid
     /*!
         The message is send only if the connector exists. If the peer process,
@@ -380,13 +380,13 @@ public:
         \param _rconid A previously saved connectionuid
         \param _flags Control flags
     */
-    
+
     bool sendMessage(
         DynamicPointer<Message> &_rmsgptr,//the message to be sent
         const ConnectionUid &_rconid,//the id of the process connector
         uint32  _flags = 0
     );
-    
+
     //!Send a message to a peer process using it's base address.
     /*!
         The base address of a process is the address on which the process listens for new UDP connections.
@@ -417,7 +417,7 @@ public:
         const uint32 _netid_dest = LocalNetworkId,
         uint32  _flags = 0
     );
-    
+
     ///////
     bool sendMessage(
         DynamicPointer<Message> &_rmsgptr,//the message to be sent
@@ -425,7 +425,7 @@ public:
         const ConnectionUid &_rconid,//the id of the process connector
         uint32  _flags = 0
     );
-    
+
     //!Send a message to a peer process using it's base address.
     /*!
         The base address of a process is the address on which the process listens for new UDP connections.
@@ -458,7 +458,7 @@ public:
         const uint32 _netid_dest = LocalNetworkId,
         uint32  _flags = 0
     );
-    
+
     serialization::TypeMapperBase const& typeMapperBase() const;
     Configuration const& configuration()const;
 private:
@@ -467,31 +467,31 @@ private:
     friend class Controller;
     friend class Listener;
     friend class Node;
-    
-    
+
+
     typedef std::vector<const Configuration::RelayAddress*>     RelayAddressPointerVectorT;
-    
+
     IdTypeMapperT& typeMapper();
-    
+
     bool isLocalNetwork(
         const SocketAddressStub &_rsa_dest,
         const uint32 _netid_dest
     )const;
-    
-    
+
+
     uint32 computeNetworkId(
         const SocketAddressStub &_rsa_dest,
         const uint32 _netid_dest
     )const;
-    
+
     bool isGateway()const;
-    
+
     void doSendEvent(
         const ConnectionUid &_rconid,//the id of the process connectors
         int32 _event,
         uint32 _flags = 0
     );
-    
+
     bool doSendMessage(
         DynamicPointer<Message> &_rmsgptr,//the message to be sent
         const SerializationTypeIdT &_rtid,
@@ -500,7 +500,7 @@ private:
         const uint32 _netid_dest,
         uint32  _flags = 0
     );
-    
+
     bool doSendMessageLocal(
         DynamicPointer<Message> &_rmsgptr,//the message to be sent
         const SerializationTypeIdT &_rtid,
@@ -509,7 +509,7 @@ private:
         const uint32 _netid_dest,
         uint32  _flags
     );
-    
+
     bool doSendMessageRelay(
         DynamicPointer<Message> &_rmsgptr,//the message to be sent
         const SerializationTypeIdT &_rtid,
@@ -539,17 +539,17 @@ private:
         aio::openssl::Context *_pctx,
         bool _secure
     );
-    
+
     size_t  netId2AddressFind(uint32 _netid)const;
     Configuration::RelayAddress const&  netId2AddressAt(const size_t _off)const;
     size_t  netId2AddressVectorSize()const;
-    
+
     size_t  address2NetIdFind(SocketAddressInet const&)const;
     Configuration::RelayAddress const&  address2NetIdAt(const size_t _off)const;
     size_t  address2NetIdVectorSize()const;
-    
+
     Controller& controller();
-    
+
     Controller const& controller()const;
 private:
     struct Data;

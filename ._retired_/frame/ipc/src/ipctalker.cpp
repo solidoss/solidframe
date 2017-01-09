@@ -1,6 +1,6 @@
 // frame/ipc/src/ipctalker.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -52,7 +52,7 @@ struct StatisticData{
         memset(this, 0, sizeof(StatisticData));
     }
     ~StatisticData();
-    
+
     void receivedManyPackets();
     void receivedKeepAlive();
     void receivedData();
@@ -74,7 +74,7 @@ struct StatisticData{
     void receivedPackets2();
     void receivedPackets3();
     void receivedPackets4();
-    
+
     ulong   rcvdmannypackets;
     ulong   rcvdkeepalive;
     ulong   rcvddata;
@@ -113,7 +113,7 @@ struct Talker::Data{
             uint32 _flags
         ):  msgptr(_rmsgptr), stid(_rtid), sessionidx(_sesidx),
             sessionuid(_sesuid), flags(_flags){}
-        
+
         DynamicPointer<Message> msgptr;
         SerializationTypeIdT    stid;
         uint16                  sessionidx;
@@ -128,7 +128,7 @@ struct Talker::Data{
             uint32 _flags = 0
         ):  sessionidx(_sessionidx), sessionuid(_sessionuid),
             event(_event), flags(_flags){}
-        
+
         uint16                  sessionidx;
         uint16                  sessionuid;
         int32                   event;
@@ -156,7 +156,7 @@ struct Talker::Data{
         uint16      sessionidx;
         uint32      id;
     };
-    
+
     struct TimerData{
         TimerData(
             const TimeSpec &_rtimepos,
@@ -167,7 +167,7 @@ struct Talker::Data{
         uint32      id;
         uint16      sessionidx;
     };
-    
+
     struct TimerDataCmp{
         bool operator()(
             const TimerData &_rtd1,
@@ -185,8 +185,8 @@ struct Talker::Data{
         uint16      uid;
         bool        inexeq;
     };
-    
-    
+
+
     typedef std::vector<RecvPacket>             RecvPacketVectorT;
     typedef Queue<MessageData>                  MessageQueueT;
     typedef Queue<EventData>                    EventQueueT;
@@ -218,14 +218,14 @@ struct Talker::Data{
         SocketAddressHash,
         SocketAddressEqual
     >                                           BaseAddr4MapT;
-    
+
     typedef std::unordered_map<
-        const SocketAddressInet6, 
+        const SocketAddressInet6,
         uint32,
         SocketAddressHash,
         SocketAddressEqual
     >                                           PeerAddr6MapT;
-    
+
     typedef std::unordered_map<
         const BaseAddress6T,
         uint32,
@@ -244,13 +244,13 @@ struct Talker::Data{
         uint32,
         SocketAddressCompare
     >                                           BaseAddr4MapT;
-    
+
     typedef std::map<
-        const SocketAddressInet6*, 
+        const SocketAddressInet6*,
         uint32,
         SocketAddressCompare
     >                                           PeerAddr6MapT;
-    
+
     typedef std::map<
         const BaseAddress6T,
         uint32,
@@ -263,7 +263,7 @@ struct Talker::Data{
         TimerDataCmp
     >                                           TimerQueueT;
     typedef Queue<SendPacket>                   SendQueueT;
-    
+
 public:
     Data(
         Service &_rservice,
@@ -341,12 +341,12 @@ void Talker::execute(ExecuteContext &_rexectx){
                 _rexectx.close();
                 return;
             }
-            
+
             idbgx(Debug::ipc, "talker - signaled");
             if(sm == frame::S_RAISE){
                 sig |= frame::EventSignal;
                 Locker<Mutex>   lock(rm.mutex(*this));
-            
+
                 if(d.newsessionvec.size()){
                     doInsertNewSessions(ts);
                 }
@@ -362,31 +362,31 @@ void Talker::execute(ExecuteContext &_rexectx){
         }
     }
     sig |= socketEventsGrab();
-    
+
     if(sig & frame::EventDoneError){
         _rexectx.close();
         return;
     }
-    
+
     if(d.closingsessionvec.size()){
         //this is to ensure the locking order: first service then talker
         d.rservice.disconnectTalkerSessions(*this, ts);
     }
-    
+
     bool    must_reenter(false);
     AsyncE  rv;
-    
+
     rv = doReceivePackets(ts, 4, sig);
-    
+
     if(rv == AsyncSuccess){
         must_reenter = true;
     }else if(rv == AsyncError){
         _rexectx.close();
         return;
     }
-    
+
     must_reenter = doProcessReceivedPackets(ts) || must_reenter;
-    
+
     rv = doSendPackets(ts, sig);
     if(rv == AsyncSuccess){
         must_reenter = true;
@@ -394,9 +394,9 @@ void Talker::execute(ExecuteContext &_rexectx){
         _rexectx.close();
         return;
     }
-    
+
     must_reenter = doExecuteSessions(ts) || must_reenter;
-    
+
     if(must_reenter){
         _rexectx.reschedule();
     }else if(d.timerq.size()){
@@ -428,20 +428,20 @@ AsyncE Talker::doReceivePackets(TalkerStub &_rstub, uint _atmost, const ulong _s
                 return AsyncError;
         }
     }
-    
+
     COLLECT_DATA_0(d.statistics.receivedManyPackets);
     return AsyncSuccess;//can still read from socket
 }
 //----------------------------------------------------------------------
 bool Talker::doPreprocessReceivedPackets(TalkerStub &_rstub){
     for(Data::RecvPacketVectorT::const_iterator it(d.receivedpktvec.begin()); it != d.receivedpktvec.end(); ++it){
-        
+
         const Data::RecvPacket  &rcvpkt(*it);
         Data::SessionStub       &rss(d.sessionvec[rcvpkt.sessionidx]);
         Packet                  pkt(rcvpkt.data, Packet::Capacity);
-        
+
         pkt.bufferSize(rcvpkt.size);
-        
+
         if(rss.psession->preprocessReceivedPacket(pkt, _rstub)){
             if(!rss.inexeq){
                 d.sessionexecq.push(rcvpkt.sessionidx);
@@ -456,7 +456,7 @@ bool Talker::doPreprocessReceivedPackets(TalkerStub &_rstub){
 bool Talker::doProcessReceivedPackets(TalkerStub &_rstub){
     //ConnectionUid conuid(d.tkridx);
     TalkerStub      &ts = _rstub;
-#ifdef SOLID_HAS_STATISTICS 
+#ifdef SOLID_HAS_STATISTICS
     if(d.receivedpktvec.size() == 0){
         COLLECT_DATA_0(d.statistics.receivedPackets0);
     }else if(d.receivedpktvec.size() == 1){
@@ -469,20 +469,20 @@ bool Talker::doProcessReceivedPackets(TalkerStub &_rstub){
         COLLECT_DATA_0(d.statistics.receivedPackets4);
     }
 #endif
-    
+
     for(Data::RecvPacketVectorT::const_iterator it(d.receivedpktvec.begin()); it != d.receivedpktvec.end(); ++it){
-        
+
         const Data::RecvPacket  &rcvpkt(*it);
         Data::SessionStub       &rss(d.sessionvec[rcvpkt.sessionidx]);
         Packet                  pkt(rcvpkt.data, Packet::Capacity);
-        
+
         pkt.bufferSize(rcvpkt.size);
-        
+
         Context::the().msgctx.connectionuid.sesidx = rcvpkt.sessionidx;
         Context::the().msgctx.connectionuid.sesuid = rss.uid;
         ts.sessionidx = rcvpkt.sessionidx;
         rss.psession->prepareContext(Context::the());
-        
+
         if(rss.psession->pushReceivedPacket(pkt, ts/*, conuid*/)){
             if(!rss.inexeq){
                 d.sessionexecq.push(rcvpkt.sessionidx);
@@ -537,15 +537,15 @@ void Talker::doDispatchReceivedPacket(
                 }
             }
         }break;
-        
+
         case Packet::ConnectType:{
             COLLECT_DATA_0(d.statistics.receivedConnecting);
             ConnectData         conndata;
-            
+
             bool                rv = Session::parseConnectPacket(pkt, conndata, _rsa);
-            
+
             Packet::deallocate(pkt.release());
-            
+
             if(rv){
                 rv = d.rservice.acceptSession(_rsa, conndata);
                 if(!rv){
@@ -566,19 +566,19 @@ void Talker::doDispatchReceivedPacket(
                 edbgx(Debug::ipc, "connecting packet: parse");
                 COLLECT_DATA_0(d.statistics.receivedConnectingError);
             }
-            
+
         }break;
-        
+
         case Packet::AcceptType:{
             COLLECT_DATA_0(d.statistics.receivedAccepting);
             AcceptData          accdata;
-            
+
             const bool          rv = Session::parseAcceptPacket(pkt, accdata, _rsa);
             const bool          isrelay = pkt.isRelay();
             const uint32        relayid = isrelay ? pkt.relay() : 0;
-            
+
             Packet::deallocate(pkt.release());
-            
+
             if(!rv){
                 edbgx(Debug::ipc, "accepted packet: error parse");
                 COLLECT_DATA_0(d.statistics.receivedAcceptingError);
@@ -612,10 +612,10 @@ void Talker::doDispatchReceivedPacket(
                         _rstub.sessionidx = sessidx;
                         rss.psession->completeConnect(_rstub, _rsa.port(), accdata.relayid);
                         //register in peer map
-                        
+
                         //d.peeraddr4map[&rss.psession->peerAddress4()] = sessidx;
                         //TODO!!!
-                        
+
                         //the connector has at least some updates to send
                         if(!rss.inexeq){
                             d.sessionexecq.push(sessidx);
@@ -624,7 +624,7 @@ void Talker::doDispatchReceivedPacket(
                     }else{
                         idbgx(Debug::ipc, "");
                     }
-                    
+
                 }
             }else{
                 //TODO:...
@@ -640,7 +640,7 @@ void Talker::doDispatchReceivedPacket(
                     Data::SessionStub   &rss(d.sessionvec[bit->second]);
                     if(rss.psession){
                         _rstub.sessionidx = bit->second;
-                        
+
                         if(rss.psession->pushReceivedErrorPacket(pkt, _rstub) && !rss.inexeq){
                             d.sessionexecq.push(bit->second);
                             rss.inexeq = true;
@@ -688,7 +688,7 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
         }
         d.timerq.pop();
     }
-    
+
     ulong sz(d.sessionexecq.size());
     COLLECT_DATA_1(d.statistics.maxSessionExecQueueSize, sz);
     while(sz--){
@@ -697,9 +697,9 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
         Data::SessionStub   &rss(d.sessionvec[ts.sessionidx]);
         Context::the().msgctx.connectionuid.sesidx = ts.sessionidx;
         Context::the().msgctx.connectionuid.sesuid = rss.uid;
-        
+
         rss.psession->prepareContext(Context::the());
-        
+
         rss.inexeq = false;
         switch(rss.psession->execute(ts)){
             case AsyncSuccess:
@@ -712,7 +712,7 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
                 break;
         }
     }
-    
+
     return d.sessionexecq.size() != 0 || d.closingsessionvec.size() != 0;
 }
 //----------------------------------------------------------------------
@@ -720,21 +720,21 @@ AsyncE Talker::doSendPackets(TalkerStub &_rstub, const ulong _sig){
     if(socketHasPendingSend()){
         return AsyncWait;
     }
-    
+
     TalkerStub &ts = _rstub;
-    
+
     if(_sig & frame::EventDoneSend){
         SOLID_ASSERT(d.sendq.size());
         COLLECT_DATA_1(d.statistics.maxSendQueueSize, d.sendq.size());
         Data::SendPacket    &rsp(d.sendq.front());
         Data::SessionStub   &rss(d.sessionvec[rsp.sessionidx]);
-        
+
         ts.sessionidx = rsp.sessionidx;
-        
+
         Context::the().msgctx.connectionuid.sesidx = rsp.sessionidx;
         Context::the().msgctx.connectionuid.sesuid = rss.uid;
         rss.psession->prepareContext(Context::the());
-        
+
         if(rss.psession->pushSentPacket(ts, rsp.id, rsp.data, rsp.size)){
             if(!rss.inexeq){
                 d.sessionexecq.push(rsp.sessionidx);
@@ -743,19 +743,19 @@ AsyncE Talker::doSendPackets(TalkerStub &_rstub, const ulong _sig){
         }
         d.sendq.pop();
     }
-    
+
     while(d.sendq.size()){
         Data::SendPacket    &rsp(d.sendq.front());
         Data::SessionStub   &rss(d.sessionvec[rsp.sessionidx]);
-        
+
         switch(socketSendTo(rsp.data, rsp.size, rss.psession->peerAddress())){
             case aio::AsyncSuccess:
                 Context::the().msgctx.connectionuid.sesidx = rsp.sessionidx;
                 Context::the().msgctx.connectionuid.sesuid = rss.uid;
                 rss.psession->prepareContext(Context::the());
-                
+
                 ts.sessionidx = rsp.sessionidx;
-                
+
                 if(rss.psession->pushSentPacket(ts, rsp.id, rsp.data, rsp.size)){
                     if(!rss.inexeq){
                         d.sessionexecq.push(rsp.sessionidx);
@@ -820,17 +820,17 @@ void Talker::pushSession(Session *_pses, ConnectionUid &_rconid, bool _exists){
 void Talker::doInsertNewSessions(TalkerStub &_rstub){
     for(Data::SessionPairVectorT::const_iterator it(d.newsessionvec.begin()); it != d.newsessionvec.end(); ++it){
         vdbgx(Debug::ipc, "newsession idx = "<<it->second<<" session vector size = "<<d.sessionvec.size());
-        
+
         if(it->second >= d.sessionvec.size()){
             d.sessionvec.resize(it->second + 1);
         }
-        
+
         Data::SessionStub &rss(d.sessionvec[it->second]);
-        
+
         Context::the().msgctx.connectionuid.sesidx = it->second;
         Context::the().msgctx.connectionuid.sesuid = rss.uid;
         _rstub.sessionidx = it->second;
-        
+
         if(rss.psession == NULL){
             rss.psession = it->first;
             rss.psession->prepare(_rstub);
@@ -875,12 +875,12 @@ void Talker::doDispatchMessages(){
         Data::MessageData   &rsd(d.msgq.front());
         Data::SessionStub   &rss(d.sessionvec[rsd.sessionidx]);
         const uint32        flags(rsd.flags);
-        
+
         Context::the().msgctx.connectionuid.sesidx = rsd.sessionidx;
         Context::the().msgctx.connectionuid.sesuid = rss.uid;
 
         if(
-            rss.psession && 
+            rss.psession &&
             (
                 !(flags & SameConnectorFlag) ||
                 rss.uid == rsd.sessionuid
@@ -893,7 +893,7 @@ void Talker::doDispatchMessages(){
                 rss.inexeq = true;
             }
         }
-        
+
         d.msgq.pop();
     }
 }
@@ -903,12 +903,12 @@ void Talker::doDispatchEvents(){
         SOLID_ASSERT(d.eventq.front().sessionidx < d.sessionvec.size());
         Data::EventData     &red(d.eventq.front());
         Data::SessionStub   &rss(d.sessionvec[red.sessionidx]);
-        
+
         Context::the().msgctx.connectionuid.sesidx = red.sessionidx;
         Context::the().msgctx.connectionuid.sesuid = rss.uid;
 
         if(
-            rss.psession && 
+            rss.psession &&
             rss.uid == red.sessionuid
         ){
             rss.psession->prepareContext(Context::the());
@@ -918,7 +918,7 @@ void Talker::doDispatchEvents(){
                 rss.inexeq = true;
             }
         }
-        
+
         d.msgq.pop();
     }
 }
@@ -927,20 +927,20 @@ void Talker::doDispatchEvents(){
 void Talker::disconnectSessions(TalkerStub &_rstub){
     Manager         &rm(d.rservice.manager());
     Locker<Mutex>   lock(rm.mutex(*this));
-    
+
     if(d.newsessionvec.size()){
         doInsertNewSessions(_rstub);
     }
-    
+
     for(Data::UInt16VectorT::const_iterator it(d.closingsessionvec.begin()); it != d.closingsessionvec.end(); ++it){
         Data::SessionStub &rss(d.sessionvec[*it]);
         vdbgx(Debug::ipc, "disconnecting sessions "<<(void*)rss.psession);
         SOLID_ASSERT(rss.psession);
-        
+
         Context::the().msgctx.connectionuid.sesidx = *it;
         Context::the().msgctx.connectionuid.sesuid = rss.uid;
         rss.psession->prepareContext(Context::the());
-        
+
         if(rss.psession->isDisconnected()){
             idbgx(Debug::ipc, "deleting session "<<(void*)rss.psession<<" on pos "<<*it);
             d.rservice.disconnectSession(rss.psession);
@@ -1000,10 +1000,10 @@ std::ostream& ConnectData::print(std::ostream& _ros)const{
     _ros<<s<<f<<i<<p<<c<<' '<<(int)type<<' '<<version_major<<'.'<<version_minor<<' ';
     _ros<<flags<<' '<<baseport<<' '<<timestamp_s<<':'<<timestamp_n<<' ';
     _ros<<relayid<<' '<<receivernetworkid<<':';
-    
+
     std::string hoststr;
     std::string portstr;
-    
+
     synchronous_resolve(
         hoststr,
         portstr,
@@ -1040,7 +1040,7 @@ namespace{
 StatisticData::~StatisticData(){
     rdbgx(Debug::ipc, "Statistics:\r\n"<<*this);
 }
-    
+
 void StatisticData::receivedManyPackets(){
     ++rcvdmannypackets;
 }

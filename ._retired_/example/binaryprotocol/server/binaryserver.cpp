@@ -53,22 +53,22 @@ typedef serialization::IdTypeMapper<
 
 struct Handle{
     void beforeSerialization(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){}
-    
+
     void beforeSerialization(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){}
     bool checkStore(void *, ConnectionContext &_rctx)const{
         return true;
     }
-    
+
     bool checkLoad(void *_pm, ConnectionContext  &_rctx)const{
         return true;
     }
     void afterSerialization(BinSerializerT &_rs, void *_pm, ConnectionContext &_rctx){}
-    
-    
+
+
     void afterSerialization(BinDeserializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx);
     void afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx);
     void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
-    
+
 };
 
 namespace{
@@ -94,7 +94,7 @@ namespace{
             case SIGINT:
             case SIGTERM:{
                 if(run){
-                    
+
                     Locker<Mutex>  lock(mtx);
                     run = false;
                     cnd.broadcast();
@@ -102,7 +102,7 @@ namespace{
             }
         }
     }
-    
+
 }
 
 class Listener;
@@ -155,7 +155,7 @@ int main(int argc, char *argv[]){
     if(parseArguments(p, argc, argv)) return 0;
     signal(SIGINT,term_handler); /* Die on SIGTERM */
     /*solid::*/Thread::init();
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -188,25 +188,25 @@ int main(int argc, char *argv[]){
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-    
+
     {
         frame::Manager          m;
         AioSchedulerT           aiosched(m);
         UInt8TypeMapperT        tm;
-        
+
         tm.insertHandle<FirstRequest, Handle>();
         tm.insert<FirstResponse>();
         tm.insertHandle<SecondMessage, Handle>();
         tm.insertHandle<NoopMessage, Handle>();
-        
+
         Service                 svc(m, aiosched, tm);
         m.registerService(svc);
         {
-            
+
             ResolveData     rd =  synchronous_resolve(p.addr_str.c_str(), p.port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    
+
             SocketDevice    sd;
-    
+
             sd.create(rd.begin());
             sd.makeNonBlocking();
             sd.prepareAccept(rd.begin(), 100);
@@ -214,7 +214,7 @@ int main(int argc, char *argv[]){
                 cout<<"Error creating listener"<<endl;
                 return 0;
             }
-    
+
             frame::aio::openssl::Context *pctx = NULL;
 #if 0
             if(p.secure){
@@ -222,17 +222,17 @@ int main(int argc, char *argv[]){
             }
             if(pctx){
                 const char *pcertpath(OSSL_SOURCE_PATH"ssl_/certs/A-server.pem");
-                
+
                 pctx->loadCertificateFile(pcertpath);
                 pctx->loadPrivateKeyFile(pcertpath);
             }
 #endif
             ListenerPointerT lsnptr(new Listener(svc, sd, pctx));
-    
+
             m.registerObject(*lsnptr);
             aiosched.schedule(lsnptr);
         }
-        
+
         idbg("");
         if(1){
             Locker<Mutex>   lock(mtx);
@@ -243,12 +243,12 @@ int main(int argc, char *argv[]){
             char c;
             cin>>c;
         }
-        
+
         m.stop();
-        
+
     }
     /*solid::*/Thread::waitAll();
-    
+
     return 0;
 }
 //--------------------------------------------------------------------------
@@ -326,12 +326,12 @@ class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObj
     //typedef protocol::binary::BasicBufferController<2048>     BufferControllerT;
     typedef protocol::binary::SpecificBufferController<2048>    BufferControllerT;
 public:
-    
+
     typedef protocol::binary::AioEngine<
         frame::Message,
         int
     >                                                           ProtocolEngineT;
-    
+
     Connection(const SocketDevice &_rsd, const serialization::TypeMapperBase &_rtm):BaseT(_rsd), ser(_rtm), des(_rtm){
         idbg((void*)this);
     }
@@ -366,7 +366,7 @@ void Service::insertConnection(
 //--------------------------------------------------------------------------
 /*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
     static Compressor       compressor(BufferControllerT::DataCapacity);
-    
+
     solid::ulong            sm = grabSignalMask();
     if(sm){
         if(sm & frame::S_KILL){
@@ -378,7 +378,7 @@ void Service::insertConnection(
             //Locker<Mutex> lock(frame::Manager::specific().mutex(*this));
         }
     }
-    
+
     if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError)){
         done();
         _rexectx.close();

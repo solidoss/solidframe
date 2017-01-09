@@ -25,7 +25,7 @@ struct StartData{
 class Service: public solid::Dynamic<Service, solid::frame::Service>{
 public:
     static void registerMessages();
-    
+
     Service(
         solid::frame::Manager &_rm,
         AioSchedulerT &_rsched,
@@ -34,33 +34,33 @@ public:
     ):BaseT(_rm), rsched(_rsched), raddrvec(_raddrvec), idx(_idx){
         expect_create_cnt = 0;
         actual_create_cnt = 0;
-    
+
         expect_connect_cnt = 0;
         actual_connect_cnt = 0;
-        
+
         expect_login_cnt = 0;
         actual_login_cnt = 0;
-        
+
         expect_receive_cnt = 0;
         actual_receive_cnt = 0;
     }
     ~Service(){}
-    
+
     void start(const StartData &_rsd, const bool _async = true);
-    
+
     void send(const size_t _msgrow, const size_t _sleepms, const size_t _cnt);
-    
+
     void waitCreate();
     void waitConnect();
     void waitLogin();
     void waitReceive();
-    
+
     solid::TimeSpec startTime();
     solid::TimeSpec sendTime();
     size_t index()const{
         return idx;
     }
-    
+
 private:
     friend class Connection;
     struct StartThread;
@@ -71,22 +71,22 @@ private:
     void onLogin();
     void onReceive(const size_t _sz);
     void onReceiveDone();
-    
+
 private:
     AioSchedulerT           &rsched;
     const AddressVectorT    &raddrvec;
     solid::Mutex            mtx;
     solid::Condition        cnd;
-    
+
     size_t                  expect_create_cnt;
     size_t                  actual_create_cnt;
-    
+
     size_t                  expect_connect_cnt;
     size_t                  actual_connect_cnt;
-    
+
     size_t                  expect_login_cnt;
     size_t                  actual_login_cnt;
-    
+
     size_t                  expect_receive_cnt;
     size_t                  actual_receive_cnt;
     solid::TimeSpec         start_time;

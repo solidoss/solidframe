@@ -38,7 +38,7 @@ struct PktCmp{
     bool operator()(const Packet &_rpkt1, const Packet &_rpkt2)const{
         return operator()(_rpkt1.id(), _rpkt2.id());
     }
-    
+
 };
 
 namespace{
@@ -67,7 +67,7 @@ private:
 struct ConnectDataMessage: Message{
     ConnectDataMessage(){}
     ConnectDataMessage(const ConnectData& _rcd):data(_rcd){}
-    
+
     ConnectData data;
 };
 }//namespace
@@ -109,7 +109,7 @@ struct StatisticData{
     void sendStackSize2();
     void sendStackSize3();
     void sendStackSize4();
-    
+
     ulong   reconnectcnt;
     ulong   pushmsgcnt;
     ulong   pushreceivedpacketcnt;
@@ -157,7 +157,7 @@ struct Session::Data{
         MaxOutOfOrder = 4,//please also change moveToNextOutOfOrderPacket
         MinPacketDataSize = 8,
     };
-    
+
     enum Types{
         Dummy,
         Direct4,
@@ -183,7 +183,7 @@ struct Session::Data{
         Disconnected,
         DummyExecute,
     };
-    
+
     struct BinSerializer: Service::SerializerT{
         BinSerializer(
             const serialization::TypeMapperBase &_rtmb
@@ -209,11 +209,11 @@ struct Session::Data{
         }
         void specificRelease(){}
     };
-    
+
     typedef BinSerializer                       BinSerializerT;
     typedef BinDeserializer                     BinDeserializerT;
 
-    
+
     struct RecvMessageData{
         RecvMessageData(
             Message *_pmsg = NULL,
@@ -222,7 +222,7 @@ struct Session::Data{
         DynamicPointer<Message>     msgptr;
         BinDeserializerT            *pdeserializer;
     };
-    
+
     struct SendMessageData{
         SendMessageData(
             const DynamicPointer<Message>& _rmsgptr,
@@ -238,7 +238,7 @@ struct Session::Data{
                 if(_owc.msgptr.get()){
                 }else return true;
             }else return false;
-            
+
             return overflow_safe_less(idx, _owc.idx);
         }
         DynamicMessagePointerT  msgptr;
@@ -248,9 +248,9 @@ struct Session::Data{
         uint32                  idx;
         uint32                  uid;
     };
-    
+
     typedef std::vector<uint16>                 UInt16VectorT;
-    
+
     struct SendPacketData{
         SendPacketData():uid(0), sending(0), mustdelete(0){}
         Packet              packet;
@@ -259,7 +259,7 @@ struct Session::Data{
         uint8               sending;
         uint8               mustdelete;
     };
-    
+
     typedef Queue<uint32>                       UInt32QueueT;
     typedef Stack<uint32>                       UInt32StackT;
     typedef Stack<uint16>                       UInt16StackT;
@@ -268,7 +268,7 @@ struct Session::Data{
     typedef Queue<RecvMessageData>              RecvMessageQueueT;
     typedef std::vector<SendMessageData>        SendMessageVectorT;
     typedef std::vector<SendPacketData>         SendPacketVectorT;
-    
+
     struct MessageStub{
         MessageStub():tid(SERIALIZATION_INVALIDID),flags(0){}
         MessageStub(
@@ -289,9 +289,9 @@ public:
         uint8 _state,
         uint16 _baseport = 0
     );
-    
+
     ~Data();
-    
+
     BinSerializerT* popSerializer(const serialization::TypeMapperBase &_rtmb){
         BinSerializerT* p = Specific::uncache<BinSerializerT>();
         p->typeMapper(_rtmb);
@@ -313,23 +313,23 @@ public:
         SOLID_ASSERT(_p->empty());
         Specific::cache(_p);
     }
-    
+
     Session::DataDummy& dummy();
     Session::DataDummy const& dummy()const;
-    
+
     Session::DataDirect4& direct4();
     Session::DataDirect4 const& direct4()const;
-    
+
     Session::DataDirect6& direct6();
     Session::DataDirect6 const& direct6()const;
-    
+
     Session::DataRelayed44& relayed44();
     Session::DataRelayed44 const& relayed44()const;
-    
+
     bool isRelayType()const{
         return type == Relayed44;
     }
-    
+
     bool moveToNextOutOfOrderPacket(Packet &_rpkt);
     bool keepOutOfOrderPacket(Packet &_rpkt);
     bool mustSendUpdates();
@@ -340,17 +340,17 @@ public:
         const SerializationTypeIdT &_rtid,
         uint32 _flags,
         uint32 _id
-    );  
+    );
     void popSentWaitMessages(SendPacketData &_rspd);
     void popSentWaitMessage(const MessageUid &_rmsguid);
     void popSentWaitMessage(const uint32 _idx);
     void freeSentPacket(const uint32 _idx);
     void clearSentPacket(const uint32 _idx);
-    
+
     uint32 computeRetransmitTimeout(const uint32 _retrid, const uint32 _pktid);
     uint32 currentKeepAlive(const TalkerStub &_rstub)const;
     uint32 registerPacket(Packet &_rpkt);
-    
+
     bool isExpectingImmediateDataFromPeer()const{
         return rcvdmsgq.size() > 1 || ((rcvdmsgq.size() == 1) && rcvdmsgq.front().msgptr.get());
     }
@@ -359,7 +359,7 @@ public:
     }
     void moveMessagesToSendQueue();
     void moveAuthMessagesToSendQueue();
-    
+
     void pushMessageToSendQueue(
         DynamicPointer<Message> &_rmsgptr,
         const uint32 _flags,
@@ -382,7 +382,7 @@ public:
     uint8                   state;
     uint8                   sendpendingcount;
     uint8                   outoforderbufcount;
-    
+
     uint32                  rcvexpectedid;
     uint32                  sentmsgwaitresponse;
     uint32                  retransmittimepos;
@@ -394,7 +394,7 @@ public:
     uint16                  currentpacketmsgcount;
     uint16                  baseport;
     SocketAddressStub       pairaddr;
-    
+
     UInt32QueueT            rcvdidq;
     PacketVectorT           outoforderbufvec;
     RecvMessageQueueT       rcvdmsgq;
@@ -416,25 +416,25 @@ struct Session::DataDummy: Session::Data{
         UnknownSendType,
         ErrorSendType
     };
-    
+
     struct SendStub{
         SendStub(uint8 _sendtype = UnknownSendType): sendtype(_sendtype){}
         uint8           sendtype;
         SocketAddress   sa;
     };
-    
+
     struct ErrorStub{
         ErrorStub(int _error = 0):error(_error){}
         int     error;
     };
-    
+
     typedef Queue<SendStub>     SendQueueT;
     typedef Queue<ErrorStub>    ErrorQueueT;
-    
+
     Packet      crtpkt;
     SendQueueT  sendq;
     ErrorQueueT errorq;
-    
+
     DataDummy(Service &_rsvc) :Session::Data(_rsvc, Dummy, DummyExecute){}
 };
 //---------------------------------------------------------------------
@@ -481,7 +481,7 @@ struct Session::DataRelayed44: Session::Data{
     ):  Data(_rsvc, Relayed44, RelayInit, _raddr.port()), relayaddr(_raddr), netid(_netid),
         peerrelayid(0), lstgwidx((_gwidx + _rsvc.configuration().gatewayaddrvec.size()) % _rsvc.configuration().gatewayaddrvec.size()), crtgwidx(_gwidx){
     }
-    
+
     DataRelayed44(
         Service &_rsvc,
         const uint32 _netid,
@@ -490,10 +490,10 @@ struct Session::DataRelayed44: Session::Data{
         const uint32 _gwidx
     ):  Data(_rsvc, Relayed44, RelayAccepting), addr(_raddr), relayaddr(_rconndata.senderaddress), netid(_netid),
         peerrelayid(_rconndata.relayid), lstgwidx((_gwidx + _rsvc.configuration().gatewayaddrvec.size()) % _rsvc.configuration().gatewayaddrvec.size()), crtgwidx(_gwidx){
-        
+
         Data::pairaddr = addr;
     }
-    
+
     SocketAddressInet4  addr;
     SocketAddressInet4  relayaddr;
     const uint32        netid;
@@ -545,7 +545,7 @@ Session::Data::Data(
     uint16 _baseport
 ):  type(_type), state(_state), sendpendingcount(0),
     outoforderbufcount(0), rcvexpectedid(2), sentmsgwaitresponse(0),
-    retransmittimepos(0), sendmsgid(0), 
+    retransmittimepos(0), sendmsgid(0),
     sendid(1)/*, keepalivetimeout(_keepalivetout)*/,
     currentsendsyncid(-1), currentpacketmsgcount(_rsvc.configuration().session.maxmessagepacketcount), baseport(_baseport)
 {
@@ -599,7 +599,7 @@ Session::Data::~Data(){
             rsmd.msgptr.clear();
         }
         rsmd.tid = SERIALIZATION_INVALIDID;
-    }   
+    }
 }
 //---------------------------------------------------------------------
 bool Session::Data::moveToNextOutOfOrderPacket(Packet &_rpkt){
@@ -650,9 +650,9 @@ bool Session::Data::keepOutOfOrderPacket(Packet &_rpkt){
 }
 //---------------------------------------------------------------------
 inline bool Session::Data::mustSendUpdates(){
-    return rcvdidq.size() && 
+    return rcvdidq.size() &&
         //we are not expecting anything from the peer - send updates right away
-        (!isExpectingImmediateDataFromPeer() || 
+        (!isExpectingImmediateDataFromPeer() ||
         //or we've already waited too long to send the updates
         rcvdidq.size() >= ConnectionContext::the().service().configuration().session.maxrecvnoupdatecount);
 }
@@ -676,17 +676,17 @@ MessageUid Session::Data::pushSendWaitMessage(
     _flags &= ~SentFlag;
 //  _flags &= ~WaitResponseFlag;
     SOLID_ASSERT(_rmsgptr.get());
-    
+
     if(sendmsgfreeposstk.size()){
         const uint32    idx(sendmsgfreeposstk.top());
         SendMessageData &rsmd(sendmsgvec[idx]);
-        
+
         sendmsgfreeposstk.pop();
-        
+
         SOLID_ASSERT(!rsmd.msgptr.get());
         rsmd.msgptr = _rmsgptr;
         rsmd.tid = _rtid;
-        
+
         SOLID_ASSERT(!_rmsgptr.get());
         rsmd.flags = _flags;
         rsmd.idx = _idx;
@@ -738,7 +738,7 @@ void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
     if(_rmsguid.idx < sendmsgvec.size()){
         idbgx(Debug::ipc, ""<<_rmsguid.idx);
         SendMessageData &rsmd(sendmsgvec[_rmsguid.idx]);
-        
+
         if(rsmd.uid != _rmsguid.uid) return;
         ++rsmd.uid;
         if(rsmd.msgptr.get()){
@@ -775,7 +775,7 @@ void Session::Data::popSentWaitMessage(const uint32 _idx){
         ++rsmd.uid;
         rsmd.msgptr.clear();
         sendmsgfreeposstk.push(_idx);
-    }   
+    }
 }
 //---------------------------------------------------------------------
 void Session::Data::freeSentPacket(const uint32 _pktid){
@@ -786,37 +786,37 @@ void Session::Data::freeSentPacket(const uint32 _pktid){
         idx = 0;
         goto KeepAlive;
     }
-    if( sendpacketvec[1].packet.buffer() && 
+    if( sendpacketvec[1].packet.buffer() &&
         sendpacketvec[1].packet.id() == _pktid
     ){
         idx = 1;
         goto Success;
     }
-    if( sendpacketvec[2].packet.buffer() && 
+    if( sendpacketvec[2].packet.buffer() &&
         sendpacketvec[2].packet.id() == _pktid
     ){
         idx = 2;
         goto Success;
     }
-    if( sendpacketvec[3].packet.buffer() && 
+    if( sendpacketvec[3].packet.buffer() &&
         sendpacketvec[3].packet.id() == _pktid
     ){
         idx = 3;
         goto Success;
     }
-    if( sendpacketvec[4].packet.buffer() && 
+    if( sendpacketvec[4].packet.buffer() &&
         sendpacketvec[4].packet.id() == _pktid
     ){
         idx = 4;
         goto Success;
     }
-    if( sendpacketvec[5].packet.buffer() && 
+    if( sendpacketvec[5].packet.buffer() &&
         sendpacketvec[5].packet.id() == _pktid
     ){
         idx = 5;
         goto Success;
     }
-    if( sendpacketvec[6].packet.buffer() && 
+    if( sendpacketvec[6].packet.buffer() &&
         sendpacketvec[6].packet.id() == _pktid
     ){
         idx = 6;
@@ -841,7 +841,7 @@ void Session::Data::freeSentPacket(const uint32 _pktid){
             rspd.mustdelete = 1;
         }
     }
-    
+
 }
 //----------------------------------------------------------------------
 void Session::Data::clearSentPacket(const uint32 _idx){
@@ -867,7 +867,7 @@ inline uint32 Session::Data::computeRetransmitTimeout(const uint32 _retrid, cons
 inline uint32 Session::Data::currentKeepAlive(const TalkerStub &_rstub)const{
     uint32  seskeepalive;
     uint32  reskeepalive;
-    
+
     if(!isRelayType()){
         seskeepalive = _rstub.service().configuration().session.keepalive;
         reskeepalive = _rstub.service().configuration().session.responsekeepalive;
@@ -877,9 +877,9 @@ inline uint32 Session::Data::currentKeepAlive(const TalkerStub &_rstub)const{
         reskeepalive = _rstub.service().configuration().session.relayresponsekeepalive;
         vdbgx(Debug::ipc, "");
     }
-    
+
     uint32          keepalive(0);
-    
+
     if(sentmsgwaitresponse && reskeepalive){
         keepalive = reskeepalive;
         vdbgx(Debug::ipc, "");
@@ -887,7 +887,7 @@ inline uint32 Session::Data::currentKeepAlive(const TalkerStub &_rstub)const{
         keepalive = seskeepalive;
         vdbgx(Debug::ipc, "");
     }
-    
+
     switch(state){
         case WaitDisconnecting:
             keepalive = 0;
@@ -899,10 +899,10 @@ inline uint32 Session::Data::currentKeepAlive(const TalkerStub &_rstub)const{
             break;
         default:;
     }
-    
+
     if(
-        keepalive && 
-        (rcvdmsgq.empty() || (rcvdmsgq.size() == 1 && !rcvdmsgq.front().msgptr.get())) && 
+        keepalive &&
+        (rcvdmsgq.empty() || (rcvdmsgq.size() == 1 && !rcvdmsgq.front().msgptr.get())) &&
         msgq.empty() && sendmsgidxq.empty() && _rstub.currentTime() >= rcvtimepos
     ){
         vdbgx(Debug::ipc, ""<<keepalive);
@@ -910,19 +910,19 @@ inline uint32 Session::Data::currentKeepAlive(const TalkerStub &_rstub)const{
     }else{
         return 0;
     }
-        
+
 }
 //----------------------------------------------------------------------
 uint32 Session::Data::registerPacket(Packet &_rpkt){
     if(sendpacketfreeposstk.empty()) return -1;
-    
+
     const uint32    idx(sendpacketfreeposstk.top());
     SendPacketData  &rspd(sendpacketvec[idx]);
-    
+
     sendpacketfreeposstk.pop();
-    
+
     SOLID_ASSERT(rspd.packet.empty());
-    
+
     rspd.packet = _rpkt;
     return idx;
 }
@@ -930,7 +930,7 @@ uint32 Session::Data::registerPacket(Packet &_rpkt){
 void Session::Data::moveMessagesToSendQueue(){
     while(msgq.size() && sendmsgidxq.size() < ConnectionContext::the().service().configuration().session.maxsendmessagequeuesize){
         pushMessageToSendQueue(
-            msgq.front().msgptr, 
+            msgq.front().msgptr,
             msgq.front().flags,
             msgq.front().tid
         );
@@ -945,7 +945,7 @@ void Session::Data::moveAuthMessagesToSendQueue(){
             sendmsgidxq.size() <  ConnectionContext::the().service().configuration().session.maxsendmessagequeuesize
         ){
             pushMessageToSendQueue(
-                msgq.front().msgptr, 
+                msgq.front().msgptr,
                 msgq.front().flags,
                 msgq.front().tid
             );
@@ -965,7 +965,7 @@ void Session::Data::pushMessageToSendQueue(
     SOLID_ASSERT(_rmsgptr.get());
     const MessageUid    uid(pushSendWaitMessage(_rmsgptr, _tid, _flags, sendmsgid++));
     SendMessageData     &rsmd(sendmsgvec[uid.idx]);
-    
+
     sendmsgidxq.push(uid.idx);
     if(rsmd.msgptr->ipcIsOnSender()){
         rsmd.msgptr->ipcRequestMessageUid() = uid;
@@ -975,11 +975,11 @@ void Session::Data::pushMessageToSendQueue(
     }
     ConnectionContext   &rmsgctx = Context::the().msgctx;
     uint32              tmp_flgs = rmsgctx.service().controller().onMessagePrepare(*rsmd.msgptr, rmsgctx);//rsmd.msgptr->ipcOnPrepare(Context::the().msgctx);
-    
+
     rsmd.flags |= tmp_flgs;
-    
+
     vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag)<<" msguid = "<<uid.idx<<','<<uid.uid<<" msg = "<<(void*)rsmd.msgptr.get());
-    
+
     if(tmp_flgs & WaitResponseFlag){
         ++sentmsgwaitresponse;
     }/*else{
@@ -994,11 +994,11 @@ void Session::Data::resetKeepAlive(){
 }
 //----------------------------------------------------------------------
 bool Session::Data::moveToNextSendMessage(){
-    
+
     if(sendmsgidxq.size() == 1) return false;
-    
+
     uint32  crtidx(sendmsgidxq.front());
-    
+
     sendmsgidxq.pop();
     sendmsgidxq.push(crtidx);
 
@@ -1006,11 +1006,11 @@ bool Session::Data::moveToNextSendMessage(){
         SOLID_ASSERT(!(sendmsgvec[crtidx].flags & SynchronousSendFlag));
         crtidx = currentsendsyncid;
     }
-    
+
     Data::SendMessageData   &rsmd(sendmsgvec[crtidx]);
-    
+
     vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag));
-    
+
     if(rsmd.flags & SynchronousSendFlag){
         currentsendsyncid = crtidx;
         uint32 tmpidx(sendmsgidxq.front());
@@ -1044,7 +1044,7 @@ bool Session::Data::moveToNextSendMessage(){
     if(_rpkt.dataSize() < AcceptData::BaseSize){
         return false;
     }
-    
+
     const char *pos = _rpkt.data();
 
     pos = serialization::binary::load(pos, _raccdata.flags);
@@ -1052,7 +1052,7 @@ bool Session::Data::moveToNextSendMessage(){
     pos = serialization::binary::load(pos, _raccdata.timestamp_s);
     pos = serialization::binary::load(pos, _raccdata.timestamp_n);
     pos = serialization::binary::load(pos, _raccdata.relayid);
-    
+
     vdbgx(Debug::ipc, "AcceptData: "<<_raccdata);
     return true;
 }
@@ -1064,7 +1064,7 @@ bool Session::Data::moveToNextSendMessage(){
     if(_rpkt.dataSize() < ConnectData::BaseSize){
         return false;
     }
-    
+
     const char *pos = _rpkt.data();
 
     pos = serialization::binary::load(pos, _rcd.s);
@@ -1082,21 +1082,21 @@ bool Session::Data::moveToNextSendMessage(){
     if(_rcd.s != 's' || _rcd.f != 'f' || _rcd.i != 'i' || _rcd.p != 'p' || _rcd.c != 'c'){
         return false;
     }
-    
+
     if(_rcd.type == ConnectData::BasicType){
-        
+
     }else if(_rcd.type == ConnectData::Relay4Type){
         Binary<4>   bin;
         uint16      port;
 
         pos = serialization::binary::load(pos, _rcd.relayid);
-        
+
         pos = serialization::binary::load(pos, _rcd.receivernetworkid);
         pos = serialization::binary::load(pos, bin);
         pos = serialization::binary::load(pos, port);
-        
+
         _rcd.receiveraddress.fromBinary(bin, port);
-        
+
         pos = serialization::binary::load(pos, _rcd.sendernetworkid);
         pos = serialization::binary::load(pos, bin);
         pos = serialization::binary::load(pos, port);
@@ -1106,11 +1106,11 @@ bool Session::Data::moveToNextSendMessage(){
             _rcd.senderaddress.port(_rcd.baseport);
         }
     }else if(_rcd.type == ConnectData::Relay6Type){
-        
+
     }else{
         return true;
     }
-    
+
     vdbgx(Debug::ipc, "ConnectData: "<<_rcd);
     return true;
 }
@@ -1125,7 +1125,7 @@ bool Session::Data::moveToNextSendMessage(){
     uint32 v;
     serialization::binary::load(_rpkt.data(), v);
     _rdata.error = static_cast<int32>(v);
-    
+
     return true;
 }
 //---------------------------------------------------------------------
@@ -1134,7 +1134,7 @@ bool Session::Data::moveToNextSendMessage(){
     const AcceptData &_rad
 ){
     char                *ppos = _rpkt.dataEnd();
-    
+
     ppos = serialization::binary::store(ppos, _rad.flags);
     ppos = serialization::binary::store(ppos, _rad.baseport);
     ppos = serialization::binary::store(ppos, _rad.timestamp_s);
@@ -1150,7 +1150,7 @@ bool Session::Data::moveToNextSendMessage(){
     const ConnectData &_rcd
 ){
     char    *ppos = _rpkt.dataEnd();
-    
+
     ppos = serialization::binary::store(ppos, _rcd.s);
     ppos = serialization::binary::store(ppos, _rcd.f);
     ppos = serialization::binary::store(ppos, _rcd.i);
@@ -1163,26 +1163,26 @@ bool Session::Data::moveToNextSendMessage(){
     ppos = serialization::binary::store(ppos, _rcd.baseport);
     ppos = serialization::binary::store(ppos, _rcd.timestamp_s);
     ppos = serialization::binary::store(ppos, _rcd.timestamp_n);
-    
+
     if(_rcd.type == ConnectData::Relay4Type){
         Binary<4>   bin;
         uint16      port;
-        
+
         _rcd.receiveraddress.toBinary(bin, port);
-        
+
         ppos = serialization::binary::store(ppos, _rcd.relayid);
         ppos = serialization::binary::store(ppos, _rcd.receivernetworkid);
         ppos = serialization::binary::store(ppos, bin);
         ppos = serialization::binary::store(ppos, port);
-        
+
         _rcd.senderaddress.toBinary(bin, port);
-        
+
         ppos = serialization::binary::store(ppos, _rcd.sendernetworkid);
         ppos = serialization::binary::store(ppos, bin);
         ppos = serialization::binary::store(ppos, port);
 
     }
-    
+
     _rpkt.dataSize(_rpkt.dataSize() + (ppos - _rpkt.dataEnd()));
     return true;
 }
@@ -1194,7 +1194,7 @@ bool Session::Data::moveToNextSendMessage(){
     char                *ppos = _rpkt.dataEnd();
     uint32 v = _rad.error;
     ppos = serialization::binary::store(ppos, v);
-    
+
     _rpkt.dataSize(_rpkt.dataSize() + (ppos - _rpkt.dataEnd()));
     return true;
 }
@@ -1223,10 +1223,10 @@ Session::Session(
     const SocketAddressInet4 &_raddr,
     const ConnectData &_rconndata
 ):d(*(new DataDirect4(_rsvc, _raddr, _rconndata.baseport))){
-    
+
     DynamicPointer<Message> msgptr(new ConnectDataMessage(_rconndata));
     pushMessage(msgptr, 0, 0);
-    
+
     vdbgx(Debug::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
@@ -1242,10 +1242,10 @@ Session::Session(
     const SocketAddressInet6 &_raddr,
     const ConnectData &_rconndata
 ):d(*(new DataDirect6(_rsvc, _raddr, _rconndata.baseport))){
-    
+
     DynamicPointer<Message> msgptr(new ConnectDataMessage(_rconndata));
     pushMessage(msgptr, 0, 0);
-    
+
     vdbgx(Debug::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
@@ -1263,10 +1263,10 @@ Session::Session(
     const ConnectData &_rconndata,
     const uint32 _gwidx
 ):d(*(new DataRelayed44(_rsvc, _netid, _raddr, _rconndata, _gwidx))){
-    
+
     DynamicPointer<Message> msgptr(new ConnectDataMessage(_rconndata));
     pushMessage(msgptr, 0, 0);
-    
+
 }
 //---------------------------------------------------------------------
 Session::Session(
@@ -1295,7 +1295,7 @@ Session::~Session(){
         default:
             SOLID_THROW_EX("Unknown data type ", (int)d.type);
     }
-    
+
 }
 //---------------------------------------------------------------------
 const BaseAddress4T Session::peerBaseAddress4()const{
@@ -1373,9 +1373,9 @@ void Session::prepare(TalkerStub &_rstub){
 void Session::reconnect(Session *_pses){
     COLLECT_DATA_0(d.statistics.reconnect);
     vdbgx(Debug::ipc, "reconnecting session "<<(void*)_pses);
-    
+
     int                     adjustcount = 0;
-    
+
     //first we reset the peer addresses
     if(_pses){
         if(!isRelayType()){
@@ -1397,15 +1397,15 @@ void Session::reconnect(Session *_pses){
             d.msgq.push(_pses->d.msgq.front());
         }
         _pses->d.msgq.pop();
-        
+
         adjustcount = 1;
-        
+
         if(!d.isRelayType()){
             d.state = Data::Accepting;
         }else{
             d.state = Data::RelayAccepting;
         }
-        
+
     }else{
         if(!d.isRelayType()){
             d.state = Data::Connecting;
@@ -1413,9 +1413,9 @@ void Session::reconnect(Session *_pses){
             d.state = Data::RelayConnecting;
         }
     }
-    
+
     d.resetRetransmitPosition();
-    
+
     //clear the receive queue
     while(d.rcvdmsgq.size()){
         Data::RecvMessageData   &rrmd(d.rcvdmsgq.front());
@@ -1426,7 +1426,7 @@ void Session::reconnect(Session *_pses){
         }
         d.rcvdmsgq.pop();
     }
-    
+
     //keep sending messages that do not require the same connector
     for(int sz(d.msgq.size() - adjustcount); sz; --sz){
         if(!(d.msgq.front().flags & SameConnectorFlag)) {
@@ -1443,29 +1443,29 @@ void Session::reconnect(Session *_pses){
     }
     bool                mustdisconnect = false;
     ConnectionContext   &rmsgctx = Context::the().msgctx;
-    
+
     //see which sent/sending messages must be cleard
     for(Data::SendMessageVectorT::iterator it(d.sendmsgvec.begin()); it != d.sendmsgvec.end(); ++it){
         Data::SendMessageData &rsmd(*it);
         vdbgx(Debug::ipc, "pos = "<<(it - d.sendmsgvec.begin())<<" flags = "<<(rsmd.flags & SentFlag));
-        
+
         if(rsmd.pserializer){
             rsmd.pserializer->clear();
             d.pushSerializer(rsmd.pserializer);
             rsmd.pserializer = NULL;
         }
         if(!rsmd.msgptr) continue;
-        
+
         if((rsmd.flags & DisconnectAfterSendFlag) != 0){
             idbgx(Debug::ipc, "DisconnectAfterSendFlag");
             mustdisconnect = true;
         }
-        
+
         if(!(rsmd.flags & SameConnectorFlag)){
             if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
                 //if the message was sent and were waiting for response - were not sending twice
                 //rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -2);
-                
+
                 rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, -2);
                 rsmd.msgptr.clear();
                 ++rsmd.uid;
@@ -1487,7 +1487,7 @@ void Session::reconnect(Session *_pses){
     //sort the sendmsgvec, so that we can insert into msgq the messages that can be resent
     //in the exact order they were inserted
     std::sort(d.sendmsgvec.begin(), d.sendmsgvec.end());
-    
+
     //then we push into msgq the messages from sendmsgvec
     for(Data::SendMessageVectorT::const_iterator it(d.sendmsgvec.begin()); it != d.sendmsgvec.end(); ++it){
         const Data::SendMessageData &rsmd(*it);
@@ -1497,9 +1497,9 @@ void Session::reconnect(Session *_pses){
             d.msgq.push(Data::MessageStub(rsmd.msgptr, rsmd.tid, rsmd.flags));
         }else break;
     }
-    
+
     d.sendmsgvec.clear();
-    
+
     //delete the sending packets
     for(Data::SendPacketVectorT::iterator it(d.sendpacketvec.begin()); it != d.sendpacketvec.end(); ++it){
         Data::SendPacketData    &rspd(*it);
@@ -1510,11 +1510,11 @@ void Session::reconnect(Session *_pses){
             SOLID_ASSERT(rspd.sending == 0);
         }
     }
-    
+
     //clear the stacks
-    
+
     d.updatespacket.clear();
-    
+
     while(d.sendpacketfreeposstk.size()){
         d.sendpacketfreeposstk.pop();
     }
@@ -1586,7 +1586,7 @@ void Session::completeConnect(
 ){
     if(d.state == Data::Connected) return;
     if(d.state == Data::Authenticating) return;
-    
+
     d.direct4().addr.port(_pairport);
     Context::the().msgctx.psession = this;
     doCompleteConnect(_rstub);
@@ -1595,10 +1595,10 @@ void Session::completeConnect(
 void Session::completeConnect(TalkerStub &_rstub, uint16 _pairport, uint32 _relayid){
     if(d.state == Data::Connected) return;
     if(d.state == Data::Authenticating) return;
-    
+
     d.relayed44().addr.port(_pairport);
     d.relayed44().peerrelayid = _relayid;
-    
+
     d.sendpacketvec[0].packet.relay(_relayid);
     Context::the().msgctx.psession = this;
     doCompleteConnect(_rstub);
@@ -1647,7 +1647,7 @@ void Session::doCompleteConnect(TalkerStub &_rstub){
                 SOLID_THROW_EX("Invalid return value for authenticate", authrv);
         }
     }
-    
+
     d.freeSentPacket(1);
     //put the received accepting packet from peer as update - it MUST have id 0
     d.rcvdidq.push(1);
@@ -1659,26 +1659,26 @@ bool Session::executeTimeout(
 ){
     uint16                  idx;
     uint16                  uid;
-    
+
     unpack(idx, uid, _id);
-    
+
     Data::SendPacketData    &rspd(d.sendpacketvec[idx]);
-    
+
     COLLECT_DATA_0(d.statistics.timeout);
-    
+
     if(rspd.uid != uid){
         vdbgx(Debug::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rspd.uid);
         COLLECT_DATA_0(d.statistics.failedTimeout);
         return false;
     }
-    
+
     vdbgx(Debug::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rspd.packet.id());
     SOLID_ASSERT(!rspd.packet.empty());
-    
+
     rspd.packet.resend(rspd.packet.resend() + 1);
-    
+
     COLLECT_DATA_1(d.statistics.retransmitId, rspd.packet.resend());
-    
+
     if(rspd.packet.resend() > _rstub.service().configuration().session.dataretransmitcount){
         if(rspd.packet.type() == Packet::ConnectType){
             if(rspd.packet.resend() > _rstub.service().configuration().session.connectretransmitcount){//too many resends for connect type
@@ -1695,7 +1695,7 @@ bool Session::executeTimeout(
             return true;//disconnecting
         }
     }
-    
+
     if(!rspd.sending){
         uint32 keepalive = 0;
         if(idx == d.keepAlivePacketIndex()){
@@ -1725,7 +1725,7 @@ bool Session::executeTimeout(
             vdbgx(Debug::ipc, "send packet"<<rspd.packet.id()<<" pending");
         }
     }
-    
+
     return false;
 }
 //---------------------------------------------------------------------
@@ -1777,10 +1777,10 @@ bool Session::pushSentPacket(
         doTryScheduleKeepAlive(_rstub);
         return d.rcvdidq.size() != 0;
     }
-    
+
     //all we do is set a timer for this packet
     Data::SendPacketData &rspd(d.sendpacketvec[_id]);
-    
+
     if(_id == d.keepAlivePacketIndex()){
         vdbgx(Debug::ipc, "sent keep alive packet done");
         if(rspd.mustdelete){
@@ -1789,18 +1789,18 @@ bool Session::pushSentPacket(
         }
         TimeSpec tpos(_rstub.currentTime());
         tpos += d.computeRetransmitTimeout(rspd.packet.resend(), rspd.packet.id());
-    
+
         _rstub.pushTimer(pack(_id, rspd.uid), tpos);
         return false;
     }
-    
+
     SOLID_ASSERT(rspd.sending);
     SOLID_ASSERT(rspd.packet.buffer() == _data);
     rspd.sending = 0;
     --d.sendpendingcount;
-    
+
     bool b(false);
-    
+
     if(!d.sendpendingcount && d.state == Data::Reconnecting){
         b = true;
     }
@@ -1812,11 +1812,11 @@ bool Session::pushSentPacket(
         }
         return b;
     }
-    
+
     //schedule a timer for this packet
     TimeSpec tpos(_rstub.currentTime());
     tpos += d.computeRetransmitTimeout(rspd.packet.resend(), rspd.packet.id());
-    
+
     _rstub.pushTimer(pack(_id, rspd.uid), tpos);
     return b;
 }
@@ -1830,22 +1830,22 @@ bool Session::doPushExpectedReceivedPacket(
     vdbgx(Debug::ipc, "expected "<<_rpkt);
     //the expected packet
     d.rcvdidq.push(_rpkt.id());
-    
+
     bool mustexecute(false);
-    
+
     if(_rpkt.updateCount()){
         mustexecute = doFreeSentPackets(_rpkt/*, _rconid*/);
     }
-    
+
     if(d.state == Data::Authenticating || d.state == Data::Connected){
     }else{
         return true;
     }
-    
+
     if(_rpkt.type() == Packet::DataType){
         doParsePacket(_rstub, _rpkt/*, _rconid*/);
     }
-    
+
     d.incrementExpectedId();//move to the next packet
     //while(d.inbufq.top().id() == d.expectedid){
     Packet  p;
@@ -1867,11 +1867,11 @@ bool Session::doPushUnxpectedReceivedPacket(
     vdbgx(Debug::ipc, "unexpected "<<_rpkt<<" expectedid = "<<d.rcvexpectedid);
     PktCmp  pc;
     bool    mustexecute = false;
-    
+
     if(d.state == Data::Connecting){
         return false;
     }
-    
+
     if(_rpkt.id() <= Packet::LastPacketId){
         if(pc(_rpkt.id(), d.rcvexpectedid)){
             COLLECT_DATA_0(d.statistics.alreadyReceived);
@@ -1926,7 +1926,7 @@ void Session::doParsePacketDataType(
 ){
     uint8               datatype(*_bpos);
     CRCValue<uint8>     crcval(CRCValue<uint8>::check_and_create(datatype));
-    
+
     if(!crcval.ok()){
 #ifdef ENABLE_MORE_DEBUG
         while(d.rcvdmsgq.size()){
@@ -1938,7 +1938,7 @@ void Session::doParsePacketDataType(
         SOLID_THROW("Deserialization error");
         SOLID_ASSERT(false);
     }
-    
+
     ++_bpos;
     --_blen;
 #ifdef ENABLE_MORE_DEBUG
@@ -2001,10 +2001,10 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
     int         rv(0);
     int         firstblen(blen - 1);
     Context     &rctx = Context::the();
-    
+
     idbgx(Debug::ipc, "packetid = "<<_rpkt.id());
     rctx.msgctx.psession = this;
-    
+
 #ifdef ENABLE_MORE_DEBUG
     if(_rpkt.flags() & Packet::DebugFlag){
         //dump the wait queue
@@ -2021,25 +2021,25 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 #endif
 
     while(blen >= 2){
-        
+
         idbgx(Debug::ipc, "blen = "<<blen<<" bpos "<<(bpos - _rpkt.data()));
-        
+
         doParsePacketDataType(_rstub, _rpkt, bpos, blen, firstblen);
-        
+
         Data::RecvMessageData &rrsd(d.rcvdmsgq.front());
-        
+
         rv = rrsd.pdeserializer->run(bpos, blen, rctx.msgctx);
-        
+
         if(rv < 0){
             SOLID_THROW_EX("Deserialization error", rrsd.pdeserializer->error());
             SOLID_ASSERT(false);
             return;
         }
-        
+
         blen -= rv;
         bpos += rv;
-        
-#ifdef ENABLE_MORE_DEBUG        
+
+#ifdef ENABLE_MORE_DEBUG
         if(rv == 1){
             edbgx(Debug::ipc, "pktid = "<<_rpkt.id()<<" blen = "<<blen<<" bpos "<<(bpos - _rpkt.data()));
             edbgx(Debug::ipc, "pmsg = "<<(void*)rrsd.pmsg<<" pdes = "<<(void*)rrsd.pdeserializer);
@@ -2050,16 +2050,16 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
             Controller                  &rctrl = _rstub.service().controller();
             DynamicPointer<Message>     msgptr = rrsd.msgptr;
             MessageUid                  msguid = msgptr->ipcIsBackOnSender() ? msgptr->ipcRequestMessageUid() : MessageUid();
-            
+
             SOLID_ASSERT(rrsd.msgptr.empty());
-            
+
             vdbgx(Debug::ipc, "received message with message waiting = "<<msguid.idx<<','<<msguid.uid);
-            
+
             if(d.state == Data::Connected){
                 if(!rctrl.onMessageReceive(msgptr, rctx.msgctx)){
                     d.state = Data::Disconnecting;
                 }
-                
+
             }else if(d.state == Data::Authenticating){
                 idbgx(Debug::ipc, " - Authenticating");
                 uint32                  flags = 0;
@@ -2099,9 +2099,9 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
                     }
                 }
             }
-            
+
             idbgx(Debug::ipc, "done message "<<msguid.idx<<','<<msguid.uid);
-            
+
             if(msguid.idx != 0xffffffff){//a valid message waiting for response
                 d.popSentWaitMessage(msguid);
             }
@@ -2120,17 +2120,17 @@ AsyncE Session::doExecuteRelayInit(TalkerStub &_rstub){
     DataRelayed44       &rd = d.relayed44();
     const Configuration &rcfg = _rstub.service().configuration();
     const  size_t       gwcnt = rcfg.gatewayaddrvec.size();
-    
+
     idbgx(Debug::ipc, "gatewayCount = "<<gwcnt);
-    
+
     if(gwcnt == 0){
         //no relay for that destination - quit
         d.state = Data::Disconnecting;
         return AsyncSuccess;
     }
-    
+
     bool found = true;
-    
+
     while(rcfg.gatewayaddrvec[rd.crtgwidx].isInvalid()){
         rd.crtgwidx = (rd.crtgwidx + 1) % rcfg.gatewayaddrvec.size();
         if(rd.crtgwidx == rd.lstgwidx){
@@ -2138,49 +2138,49 @@ AsyncE Session::doExecuteRelayInit(TalkerStub &_rstub){
             break;
         }
     }
-    
+
     if(found){
         rd.addr = rcfg.gatewayaddrvec[rd.crtgwidx];
         d.pairaddr = rd.addr;
     }
-    
+
     d.state = Data::RelayConnecting;
-    
+
     return AsyncSuccess;
 }
 //---------------------------------------------------------------------
 AsyncE Session::doExecuteConnecting(TalkerStub &_rstub){
     const uint32            pktid(Specific::sizeToIndex(128));
     Packet                  pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
-    
+
     pkt.reset();
     pkt.type(Packet::ConnectType);
     pkt.id(d.sendid);
     d.incrementSendId();
-    
+
     {
         ConnectData     cd;
-        
+
         cd.type = ConnectData::BasicType;
         cd.baseport = _rstub.basePort();
         cd.timestamp_s = _rstub.service().timeStamp().seconds();
         cd.timestamp_n = _rstub.service().timeStamp().nanoSeconds();
-        
+
         fillConnectPacket(pkt, cd);
     }
-    
+
     const uint32            pktidx(d.registerPacket(pkt));
     Data::SendPacketData    &rspd(d.sendpacketvec[pktidx]);
-    
+
     SOLID_ASSERT(pktidx == 1);
     vdbgx(Debug::ipc, "send "<<rspd.packet);
-    
+
     if(_rstub.pushSendPacket(pktidx, rspd.packet.buffer(), rspd.packet.bufferSize())){
         //packet sent - setting a timer for it
         //schedule a timer for this packet
         TimeSpec tpos(_rstub.currentTime());
         tpos += d.computeRetransmitTimeout(rspd.packet.resend(), rspd.packet.id());
-        
+
         _rstub.pushTimer(pack(pktidx, rspd.uid) , tpos);
         vdbgx(Debug::ipc, "sent connecting "<<rspd.packet<<" done");
     }else{
@@ -2189,7 +2189,7 @@ AsyncE Session::doExecuteConnecting(TalkerStub &_rstub){
         ++d.sendpendingcount;
         vdbgx(Debug::ipc, "sent connecting "<<rspd.packet<<" pending");
     }
-    
+
     d.state = Data::WaitAccept;
     return AsyncWait;
 }
@@ -2197,47 +2197,47 @@ AsyncE Session::doExecuteConnecting(TalkerStub &_rstub){
 AsyncE Session::doExecuteRelayConnecting(TalkerStub &_rstub){
     const uint32            pktid(Specific::sizeToIndex(128));
     Packet                  pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
-    
+
     pkt.reset();
     pkt.type(Packet::ConnectType);
     pkt.id(d.sendid);
     pkt.relay(_rstub.relayId());
     d.incrementSendId();
-    
-    
-    
+
+
+
     {
         ConnectData         cd;
-        
+
         cd.type = ConnectData::Relay4Type;
         cd.baseport = _rstub.basePort();
         cd.timestamp_s = _rstub.service().timeStamp().seconds();
         cd.timestamp_n = _rstub.service().timeStamp().nanoSeconds();
         cd.receivernetworkid = d.relayed44().netid;
         cd.sendernetworkid = _rstub.service().configuration().localnetid;
-        
+
         cd.relayid = _rstub.relayId();
         cd.receiveraddress = this->d.relayed44().relayaddr;
         cd.senderaddress.address("0.0.0.0");
-        
+
         fillConnectPacket(pkt, cd);
-        
+
     }
-        
+
     const uint32            pktidx(d.registerPacket(pkt));
     Data::SendPacketData    &rspd(d.sendpacketvec[pktidx]);
-    
+
     SOLID_ASSERT(pktidx == 1);
     vdbgx(Debug::ipc, "send "<<rspd.packet<<" to "<<this->d.relayed44().addr);
-    
+
     rspd.packet.relayPacketSizeStore();
-    
+
     if(_rstub.pushSendPacket(pktidx, rspd.packet.buffer(), rspd.packet.bufferSize())){
         //packet sent - setting a timer for it
         //schedule a timer for this packet
         TimeSpec tpos(_rstub.currentTime());
         tpos += d.computeRetransmitTimeout(rspd.packet.resend(), rspd.packet.id());
-        
+
         _rstub.pushTimer(pack(pktidx, rspd.uid) , tpos);
         vdbgx(Debug::ipc, "sent connecting "<<rspd.packet<<" done");
     }else{
@@ -2246,7 +2246,7 @@ AsyncE Session::doExecuteRelayConnecting(TalkerStub &_rstub){
         ++d.sendpendingcount;
         vdbgx(Debug::ipc, "sent connecting "<<rspd.packet<<" pending");
     }
-    
+
     d.state = Data::WaitAccept;
     return AsyncWait;
 }
@@ -2254,39 +2254,39 @@ AsyncE Session::doExecuteRelayConnecting(TalkerStub &_rstub){
 AsyncE Session::doExecuteAccepting(TalkerStub &_rstub){
     const uint32    pktid(Specific::sizeToIndex(64));
     Packet          pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
-    
+
     pkt.reset();
     pkt.type(Packet::AcceptType);
     pkt.id(d.sendid);
     d.incrementSendId();
-    
-    
+
+
     {
         const ConnectData   &rcd = static_cast<ConnectDataMessage*>(d.msgq.front().msgptr.get())->data;
         AcceptData          ad;
-        
+
         ad.flags = 0;
         ad.baseport = _rstub.basePort();
         ad.relayid = 0;
         ad.timestamp_s = rcd.timestamp_s;
         ad.timestamp_n = rcd.timestamp_n;
-        
+
         fillAcceptPacket(pkt, ad);
 
         d.msgq.pop();//the connectdatamessage
     }
-    
+
     const uint32            pktidx(d.registerPacket(pkt));
     Data::SendPacketData    &rspd(d.sendpacketvec[pktidx]);
     SOLID_ASSERT(pktidx == 1);
-    
+
     vdbgx(Debug::ipc, "send "<<rspd.packet);
     if(_rstub.pushSendPacket(pktidx, rspd.packet.buffer(), rspd.packet.bufferSize())){
         //packet sent - setting a timer for it
         //schedule a timer for this packet
         TimeSpec tpos(_rstub.currentTime());
         tpos += d.computeRetransmitTimeout(rspd.packet.resend(), rspd.packet.id());
-        
+
         _rstub.pushTimer(pack(pktidx, rspd.uid), tpos);
         vdbgx(Debug::ipc, "sent accepting "<<rspd.packet<<" done");
     }else{
@@ -2295,9 +2295,9 @@ AsyncE Session::doExecuteAccepting(TalkerStub &_rstub){
         ++d.sendpendingcount;
         vdbgx(Debug::ipc, "sent accepting "<<rspd.packet<<" pending");
     }
-    
+
     Controller &rctrl = _rstub.service().controller();
-    
+
     if(!rctrl.hasAuthentication()){
         d.state = Data::Connected;
     }else{
@@ -2309,52 +2309,52 @@ AsyncE Session::doExecuteAccepting(TalkerStub &_rstub){
 AsyncE Session::doExecuteRelayAccepting(TalkerStub &_rstub){
     const uint32    pktid(Specific::sizeToIndex(64));
     Packet          pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
-    
+
     pkt.reset();
     pkt.type(Packet::AcceptType);
     pkt.id(d.sendid);
     d.incrementSendId();
-    
-    
+
+
     {
-        
+
         const ConnectData   &rcd = static_cast<ConnectDataMessage*>(d.msgq.front().msgptr.get())->data;
         AcceptData          ad;
-        
+
         ad.flags = 0;
         ad.baseport = _rstub.basePort();
         ad.relayid = _rstub.relayId();;
         ad.timestamp_s = rcd.timestamp_s;
         ad.timestamp_n = rcd.timestamp_n;
-        
+
         pkt.relay(rcd.relayid);
         d.sendpacketvec[0].packet.relay(rcd.relayid);
-        
+
         fillAcceptPacket(pkt, ad);
-        
-        
-        
+
+
+
         vdbgx(Debug::ipc, "relayid "<<rcd.relayid<<" bufrelay "<<pkt.relay());
-        
+
         d.msgq.pop();//the connectdatamessage
     }
-    
-    
-    
+
+
+
     const uint32            pktidx(d.registerPacket(pkt));
     Data::SendPacketData    &rspd(d.sendpacketvec[pktidx]);
     SOLID_ASSERT(pktidx == 1);
-    
+
     vdbgx(Debug::ipc, "send "<<rspd.packet);
-    
+
     rspd.packet.relayPacketSizeStore();
-    
+
     if(_rstub.pushSendPacket(pktidx, rspd.packet.buffer(), rspd.packet.bufferSize())){
         //packet sent - setting a timer for it
         //schedule a timer for this packet
         TimeSpec tpos(_rstub.currentTime());
         tpos += d.computeRetransmitTimeout(rspd.packet.resend(), rspd.packet.id());
-        
+
         _rstub.pushTimer(pack(pktidx, rspd.uid), tpos);
         vdbgx(Debug::ipc, "sent accepting "<<rspd.packet<<" done");
     }else{
@@ -2363,9 +2363,9 @@ AsyncE Session::doExecuteRelayAccepting(TalkerStub &_rstub){
         ++d.sendpendingcount;
         vdbgx(Debug::ipc, "sent accepting "<<rspd.packet<<" pending");
     }
-    
+
     Controller &rctrl = _rstub.service().controller();
-    
+
     if(!rctrl.hasAuthentication()){
         d.state = Data::Connected;
     }else{
@@ -2379,28 +2379,28 @@ AsyncE Session::doTrySendUpdates(TalkerStub &_rstub){
         //send an updates packet
         const uint32    pktid(Specific::sizeToIndex(256));
         Packet          pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
-        
+
         pkt.reset();
         pkt.type(Packet::DataType);
         pkt.id(Data::UpdatePacketId);
-        
+
         if(isRelayType()){
             pkt.relay(d.relayed44().peerrelayid);
         }
-        
+
         d.resetKeepAlive();
-        
+
         if(d.rcvdidq.size()){
             pkt.updateInit();
         }
-        
+
         while(d.rcvdidq.size() && pkt.updateCount() < 16){
             pkt.updatePush(d.rcvdidq.front());
             d.rcvdidq.pop();
         }
-        
+
         pkt.optimize(256);
-        
+
         COLLECT_DATA_1(d.statistics.sendOnlyUpdatesSize, pkt.updateCount());
 #ifdef SOLID_HAS_STATISTICS
         if(pkt.updateCount() == 1){
@@ -2418,7 +2418,7 @@ AsyncE Session::doTrySendUpdates(TalkerStub &_rstub){
             pkt.relayPacketSizeStore();
         }
         vdbgx(Debug::ipc, "send "<<pkt);
-        
+
         if(_rstub.pushSendPacket(-1, pkt.buffer(), pkt.bufferSize())){
             vdbgx(Debug::ipc, "sent updates "<<pkt<<" done");
             doTryScheduleKeepAlive(_rstub);
@@ -2435,7 +2435,7 @@ AsyncE Session::doTrySendUpdates(TalkerStub &_rstub){
 AsyncE Session::doExecuteConnectedLimited(TalkerStub &_rstub){
     vdbgx(Debug::ipc, ""<<d.sendpacketfreeposstk.size());
     Controller  &rctrl = _rstub.service().controller();
-    
+
     while(d.sendpacketfreeposstk.size()){
         if(d.state == Data::Authenticating){
             d.moveAuthMessagesToSendQueue();
@@ -2445,17 +2445,17 @@ AsyncE Session::doExecuteConnectedLimited(TalkerStub &_rstub){
         ){
             break;
         }
-        
+
         //we can still send packets
         Packet                  pkt(Packet::allocate(), Packet::Capacity);
-        
+
         const uint32            pktidx(d.registerPacket(pkt));
         Data::SendPacketData    &rspd(d.sendpacketvec[pktidx]);
-        
+
         rspd.packet.reset();
         rspd.packet.type(Packet::DataType);
         rspd.packet.id(d.sendid);
-        
+
         if(isRelayType()){
             rspd.packet.relay(d.relayed44().peerrelayid);
         }
@@ -2464,36 +2464,36 @@ AsyncE Session::doExecuteConnectedLimited(TalkerStub &_rstub){
         if(d.rcvdidq.size()){
             rspd.packet.updateInit();
         }
-        
+
         while(d.rcvdidq.size() && rspd.packet.updateCount() < 8){
             rspd.packet.updatePush(d.rcvdidq.front());
             d.rcvdidq.pop();
         }
-        
+
         COLLECT_DATA_1(d.statistics.sendUpdatesSize, rspd.packet.updateCount());
-        
+
         doFillSendPacket(_rstub, pktidx);
-        
+
         COLLECT_DATA_1(d.statistics.sendUncompressed, rspd.packet.bufferSize());
-        
+
         rspd.packet.compress(rctrl);
-        
+
         COLLECT_DATA_1(d.statistics.sendCompressed, rspd.packet.bufferSize());
-        
+
         d.resetKeepAlive();
-        
+
         if(isRelayType()){
             rspd.packet.relayPacketSizeStore();
         }
-        
+
         vdbgx(Debug::ipc, "send "<<rspd.packet);
-        
+
         if(_rstub.pushSendPacket(pktidx, rspd.packet.buffer(), rspd.packet.bufferSize())){
             //packet sent - setting a timer for it
             //schedule a timer for this packet
             TimeSpec tpos(_rstub.currentTime());
             tpos += d.computeRetransmitTimeout(rspd.packet.resend(), rspd.packet.id());
-            
+
             _rstub.pushTimer(pack(pktidx, rspd.uid), tpos);
             vdbgx(Debug::ipc, "sent data "<<rspd.packet<<" pending");
         }else{
@@ -2535,55 +2535,55 @@ AsyncE Session::doExecuteConnected(TalkerStub &_rstub){
     //if(d.sendpacketfreeposstk.size() && (d.msgq.size() || d.sendmsgidxq.size())){
         //we can still send packets
         Packet                  pkt(Packet::allocate(), Packet::Capacity);
-        
+
         const uint32            pktidx(d.registerPacket(pkt));
         Data::SendPacketData    &rspd(d.sendpacketvec[pktidx]);
-        
+
         rspd.packet.reset();
         rspd.packet.type(Packet::DataType);
         rspd.packet.id(d.sendid);
-        
+
         if(isRelayType()){
             rspd.packet.relay(d.relayed44().peerrelayid);
         }
-        
+
         d.incrementSendId();
-        
+
         if(d.rcvdidq.size()){
             rspd.packet.updateInit();
         }
-        
+
         while(d.rcvdidq.size() && rspd.packet.updateCount() < 8){
             rspd.packet.updatePush(d.rcvdidq.front());
             d.rcvdidq.pop();
         }
-        
+
         COLLECT_DATA_1(d.statistics.sendUpdatesSize, rspd.packet.updateCount());
 
         d.moveMessagesToSendQueue();
-        
+
         doFillSendPacket(_rstub, pktidx);
-        
+
         COLLECT_DATA_1(d.statistics.sendUncompressed, rspd.packet.bufferSize());
-        
+
         rspd.packet.compress(rctrl);
-        
+
         COLLECT_DATA_1(d.statistics.sendCompressed, rspd.packet.bufferSize());
-        
+
         d.resetKeepAlive();
-    
+
         if(isRelayType()){
             rspd.packet.relayPacketSizeStore();
         }
-        
+
         vdbgx(Debug::ipc, "send "<<rspd.packet);
-        
+
         if(_rstub.pushSendPacket(pktidx, rspd.packet.buffer(), rspd.packet.bufferSize())){
             //packet sent - setting a timer for it
             //schedule a timer for this packet
             TimeSpec tpos(_rstub.currentTime());
             tpos += d.computeRetransmitTimeout(rspd.packet.resend(), rspd.packet.id());
-            
+
             _rstub.pushTimer(pack(pktidx, rspd.uid), tpos);
             vdbgx(Debug::ipc, "sent data "<<rspd.packet<<" pending");
         }else{
@@ -2603,14 +2603,14 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
     Data::BinSerializerT    *pser(NULL);
     Controller              &rctrl = _rstub.service().controller();
     Context                 &rctx = Context::the();
-    
+
     rctx.msgctx.psession = this;
     COLLECT_DATA_1(d.statistics.sendMessageIdxQueueSize, d.sendmsgidxq.size());
-    
+
     while(d.sendmsgidxq.size()){
         if(d.currentpacketmsgcount){
             Data::SendMessageData   &rsmd(d.sendmsgvec[d.sendmsgidxq.front()]);
-            
+
             if(rsmd.pserializer){//a continued message
                 if(d.currentpacketmsgcount == _rstub.service().configuration().session.maxmessagepacketcount){
                     vdbgx(Debug::ipc, "oldmessage data size "<<rspd.packet.dataSize());
@@ -2633,16 +2633,16 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
                     rsmd.pserializer->push(pmsg, "message");
                 }else{
                     rsmd.pserializer->push(pmsg, _rstub.service().typeMapper(), rsmd.tid, "message");
-                }   
+                }
             }
             --d.currentpacketmsgcount;
-            
+
             const uint32 tofill = rspd.packet.dataFreeSize() - rctrl.reservedDataSize();
-            
+
             int rv = rsmd.pserializer->run(rspd.packet.dataEnd(), tofill, rctx.msgctx);
-            
+
             vdbgx(Debug::ipc, "d.crtmsgbufcnt = "<<d.currentpacketmsgcount<<" serialized len = "<<rv);
-            
+
             if(rv < 0){
                 SOLID_THROW("Serialization error");
                 SOLID_ASSERT(false);
@@ -2651,11 +2651,11 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
                 SOLID_THROW_EX("Serialization error: invalid return value", tofill);
                 SOLID_ASSERT(false);
             }
-            
-            
-            
+
+
+
             rspd.packet.dataSize(rspd.packet.dataSize() + rv);
-            
+
             if(rsmd.pserializer->empty()){//finished with this message
 #ifdef ENABLE_MORE_DEBUG
                 if(rv == 1){
@@ -2682,7 +2682,7 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
             }else{
                 break;
             }
-            
+
         }else if(d.moveToNextSendMessage()){
             vdbgx(Debug::ipc, "scqpop "<<d.sendmsgidxq.size());
             d.currentpacketmsgcount = _rstub.service().configuration().session.maxmessagepacketcount;
@@ -2690,7 +2690,7 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
             d.currentpacketmsgcount = _rstub.service().configuration().session.maxmessagepacketcount - 1;
         }
     }//while
-    
+
     if(pser) d.pushSerializer(pser);
 }
 //---------------------------------------------------------------------
@@ -2714,20 +2714,20 @@ void Session::doTryScheduleKeepAlive(TalkerStub &_rstub){
     vdbgx(Debug::ipc, "try send keepalive");
     const uint32 keepalive = d.currentKeepAlive(_rstub);
     if(keepalive){
-        
+
         COLLECT_DATA_0(d.statistics.scheduleKeepAlive);
-        
+
         const uint32            idx(d.keepAlivePacketIndex());
         Data::SendPacketData    &rspd(d.sendpacketvec[idx]);
-        
+
         ++rspd.uid;
-        
+
         //schedule a timer for this packet
         TimeSpec tpos(_rstub.currentTime());
         tpos += keepalive;
-        
+
         vdbgx(Debug::ipc, "can send keepalive "<<idx<<' '<<rspd.uid);
-        
+
         _rstub.pushTimer(pack(idx, rspd.uid), tpos);
     }
 }
@@ -2769,32 +2769,32 @@ AsyncE Session::doExecuteDummy(TalkerStub &_rstub){
     SOLID_ASSERT(d.type == Data::Dummy);
     DataDummy &rdd = d.dummy();
     if(rdd.sendq.empty()) return AsyncWait;
-    
+
     if(rdd.crtpkt.empty()){
         const uint32    pktid(Specific::sizeToIndex(128));
         Packet          pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
-        
+
         rdd.crtpkt = pkt;
     }
-    
+
     while(rdd.sendq.size()){
         DataDummy::SendStub &rss = rdd.sendq.front();
-        
+
         d.pairaddr = rss.sa;
-        
+
         if(rss.sendtype == DataDummy::ErrorSendType){
             rdd.crtpkt.reset();
             rdd.crtpkt.type(Packet::ErrorType);
             rdd.crtpkt.id(0);
-        
+
             ErrorData ed;
             ed.error = rdd.errorq.front().error;
             rdd.errorq.pop();
-            
+
             fillErrorPacket(rdd.crtpkt, ed);
-            
+
             vdbgx(Debug::ipc, "send "<<rdd.crtpkt);
-            
+
             if(_rstub.pushSendPacket(0, rdd.crtpkt.buffer(), rdd.crtpkt.bufferSize())){
                 vdbgx(Debug::ipc, "sent error packet done");
                 rdd.sendq.pop();
@@ -2805,11 +2805,11 @@ AsyncE Session::doExecuteDummy(TalkerStub &_rstub){
             edbgx(Debug::ipc, "unsupported sendtype = "<<rss.sendtype);
             rdd.sendq.pop();
         }
-        
+
     }
-    
+
     d.pairaddr.clear();
-    
+
     return AsyncWait;
 }
 //---------------------------------------------------------------------
@@ -2818,15 +2818,15 @@ bool Session::pushReceivedErrorPacket(
     TalkerStub &_rstub
 ){
     ErrorData   ed;
-    
+
     if(parseErrorPacket(_rpkt, ed)){
         idbgx(Debug::ipc, "Received error ("<<ed.error<<"): "<<Service::errorText(ed.error));
     }else{
         SOLID_ASSERT(false);
     }
-    
+
     d.state = Data::Disconnecting;
-    
+
     return true;
 }
 //======================================================================

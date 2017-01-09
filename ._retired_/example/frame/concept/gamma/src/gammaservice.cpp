@@ -15,7 +15,7 @@ using namespace solid;
 
 namespace concept{
 namespace gamma{
-    
+
 #ifdef SOLID_USE_SAFE_STATIC
 struct InitServiceOnce{
     InitServiceOnce(Manager &_rm);

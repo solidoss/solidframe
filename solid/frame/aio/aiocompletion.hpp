@@ -1,6 +1,6 @@
 // solid/frame/aio/aiocompletion.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -39,9 +39,9 @@ public:
         ObjectProxy const &_rop,
         CallbackT _pcall = &on_init_completion
     );
-    
+
     ~CompletionHandler();
-    
+
     bool isActive()const{
         return  idxreactor != static_cast<size_t>(-1);
     }
@@ -53,7 +53,7 @@ public:
     void unregister();
 protected:
     CompletionHandler(CallbackT _pcall = &on_init_completion);
-    
+
     void completionCallback(CallbackT _pcbk = &on_dummy_completion);
     ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
     Reactor& reactor(ReactorContext &_rctx)const;
@@ -67,7 +67,7 @@ protected:
     size_t indexWithinReactor() const;
 private:
     friend class Reactor;
-    
+
     void handleCompletion(ReactorContext &_rctx){
         (*call)(*this, _rctx);
     }

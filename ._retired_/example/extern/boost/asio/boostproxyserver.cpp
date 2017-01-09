@@ -17,7 +17,7 @@
 
     class session
     {
-        
+
     public:
         session(boost::asio::io_service& io_service)
             : socket_1(io_service), socket_2(io_service)
@@ -29,7 +29,7 @@
         }
         ~session(){
         }
-        
+
         bool pending()const{
             return pending_read1 || pending_read2 || pending_write1 != 0 || pending_write2 != 0;
         }
@@ -62,7 +62,7 @@
                 )
             );
         }
-        
+
         void handle_connect(const boost::system::error_code& error)
         {
             pending_read2 = false;
@@ -98,7 +98,7 @@
                 delete this;
             }
         }
-        
+
         void handle_read_one(
             const boost::system::error_code& error,
             size_t bytes_transferred
@@ -108,7 +108,7 @@
             if (!error)
             {
                 rpos1 += bytes_transferred;
-                
+
                 size_t rcap;
                 if(wpos1 <= rpos1){
                     rcap = (bbeg1 + max_length) - rpos1;
@@ -120,7 +120,7 @@
                 }else{
                     rcap = wpos1 - rpos1;
                 }
-                    
+
                 if(rcap >= read_min_capacity){
                     pending_read1 = true;
                     socket_1.async_read_some(
@@ -135,7 +135,7 @@
                 }
                 if(!pending_write2){
                     pending_write2 = wend1 - wpos1;
-                
+
                     if(pending_write2){
                         socket_2.async_write_some(
                             boost::asio::buffer(wpos1, pending_write2),
@@ -171,7 +171,7 @@
             if (!error)
             {
                 rpos2 += bytes_transferred;
-                
+
                 size_t rcap;
                 if(wpos2 <= rpos2){
                     rcap = (bbeg2 + max_length) - rpos2;
@@ -183,7 +183,7 @@
                 }else{
                     rcap = wpos2 - rpos2;
                 }
-                    
+
                 if(rcap >= read_min_capacity){
                     pending_read2 = true;
                     socket_2.async_read_some(
@@ -196,10 +196,10 @@
                         )
                     );
                 }
-                
+
                 if(!pending_write1){
                     pending_write1 = wend2 - wpos2;
-                    
+
                     if(pending_write1){
                         socket_1.async_write_some(
                             boost::asio::buffer(wpos2, pending_write1),
@@ -226,7 +226,7 @@
 
             }
         }
-        
+
         void handle_write_one(
             const boost::system::error_code& error,
             size_t bytes_transferred
@@ -235,13 +235,13 @@
             if (!error)
             {
                 wpos2 += bytes_transferred;
-                
-                
+
+
                 if(wpos2 == wend2 && rpos2 < wend2){
                     wpos2 = bbeg2 + max_length;
                     wend2 = wpos2;
                 }
-                
+
                 if(!pending_read2){
                     //see if we've freed enought space to do a read
                     assert(wpos2 > rpos2);
@@ -259,14 +259,14 @@
                         );
                     }
                 }
-                
+
                 if(wpos2 == (bbeg2 + max_length)){
                     wpos2 = bbeg2;
                     wend2 = rpos2;
                 }
-                
+
                 pending_write1 = wend2 - wpos2;
-                
+
                 if(pending_write1){
                     socket_1.async_write_some(
                         boost::asio::buffer(wpos2, pending_write1),
@@ -289,7 +289,7 @@
                     socket_1.close();
                     socket_2.close();
                 }
-            
+
             }
         }
 
@@ -301,13 +301,13 @@
             if (!error)
             {
                 wpos1 += bytes_transferred;
-                
-                
+
+
                 if(wpos1 == wend1 && rpos1 < wend1){
                     wpos1 = bbeg1 + max_length;
                     wend1 = wpos1;
                 }
-                
+
                 if(!pending_read1){
                     //see if we've freed enought space to do a read
                     assert(wpos1 > rpos1);
@@ -325,14 +325,14 @@
                         );
                     }
                 }
-                
+
                 if(wpos1 == (bbeg1 + max_length)){
                     wpos1 = bbeg1;
                     wend1 = rpos1;
                 }
-                
+
                 pending_write2 = wend1 - wpos1;
-                
+
                 if(pending_write2){
                     socket_2.async_write_some(
                         boost::asio::buffer(wpos1, pending_write2),
@@ -355,7 +355,7 @@
                     socket_1.close();
                     socket_2.close();
                 }
-            
+
             }
         }
     private:
@@ -363,7 +363,7 @@
             max_length = 16 * 1024,
             read_min_capacity = 1024
         };
-        
+
         tcp::socket     socket_1;
         tcp::socket     socket_2;
         bool            pending_read1;
@@ -386,7 +386,7 @@
         server(boost::asio::io_service& io_service, short port)
             : io_service_(io_service),
             acceptor_(io_service/*, tcp::endpoint(tcp::v4(), port)*/)
-            
+
         {
             boost::asio::ip::address_v4 localaddr;
             localaddr.from_string("127.0.0.1");
@@ -395,7 +395,7 @@
             acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
             acceptor_.bind(endpoint);
             acceptor_.listen();
-            
+
             session* new_session = new session(io_service_);
             acceptor_.async_accept(new_session->socketOne(),
                 boost::bind(&server::handle_accept, this, new_session,
@@ -461,7 +461,7 @@
             }
 
             boost::asio::io_service io_service;
-            
+
             using namespace std; // For atoi.
             server s(io_service, atoi(argv[1]));
             ServiceRunner sr(io_service);

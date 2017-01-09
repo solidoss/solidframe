@@ -12,22 +12,22 @@ using TestPointerT = shared_ptr<Test>;
 struct Test{
     using KeyValueVectorT = std::vector<std::pair<std::string, std::string>>;
     using MapT = std::map<std::string, uint64_t>;
-    
+
     std::string         str;
     KeyValueVectorT     kv_vec;
     MapT                kv_map;
     uint32_t            v32;
-    
+
     template <class S>
     void serialize(S &_s){
         _s.push(str, "Test::str");
         _s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");
         _s.pushCross(v32, "Test::v32");
     }
-    
+
     void init();
     void check()const;
-    
+
     static TestPointerT create(){
         return make_shared<Test>();
     }
@@ -38,43 +38,43 @@ using DeserializerT     = serialization::binary::Deserializer<void>;
 using TypeIdMapT        = serialization::TypeIdMap<SerializerT, DeserializerT>;
 
 int test_binary(int argc, char* argv[]){
-    
+
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("view");
     Debug::the().moduleMask("all");
     Debug::the().initStdErr(false, nullptr);
 #endif
-    
+
     string      test_data;
     TypeIdMapT  typemap;
-    
+
     typemap.registerType<Test>(0/*protocol ID*/);
-    
+
     {//serialization
         SerializerT         ser(&typemap);
         const int           bufcp = 64;
         char                buf[bufcp];
         int                 rv;
-        
+
         shared_ptr<Test>    test = Test::create();
-        
+
         test->init();
-        
+
         ser.push(test, "test");
-        
+
         while((rv = ser.run(buf, bufcp)) > 0){
             test_data.append(buf, rv);
         }
     }
     {//deserialization
         DeserializerT   des(&typemap);
-        
+
         shared_ptr<Test>    test;
-        
+
         des.push(test, "test");
-        
+
         int rv = des.run(test_data.data(), test_data.size());
-        
+
         SOLID_CHECK(rv == static_cast<int>(test_data.size()));
         test->check();
     }
@@ -101,7 +101,7 @@ const size_t kv_array_size = sizeof(kv_array)/sizeof(pair<string, string>);
 
 void Test::init(){
     kv_vec.reserve(kv_array_size);
-    
+
     for(size_t i = 0; i < kv_array_size; ++i){
         str.append(kv_array[i].first);
         str.append(kv_array[i].second);

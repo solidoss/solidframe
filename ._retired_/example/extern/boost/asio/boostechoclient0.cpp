@@ -18,28 +18,28 @@ struct Manager{
     struct DataStub{
         std::string     data;
     };
-    
+
     typedef std::vector<DataStub>   DataVectorT;
-    
+
     Manager(
         uint32_t _repeatcnt,
         uint32_t _datafromlen,
         uint32_t _datatolen,
         uint32_t _datacnt
     );
-    
+
     const DataVectorT& dataVector()const{
         return datavec;
     }
     uint32_t repeatCount()const{return repeat_count;}
-    
+
     void endPoint(const TcpEndPointT &_rendpoint){
         endpoint = _rendpoint;
     }
     const TcpEndPointT& endPoint()const{
         return endpoint;
     }
-    
+
     void report(uint32_t _mintime, uint32_t _maxtime, const uint64_t &_readsz, const uint64_t &_writesz){
         if(mintime > _mintime) mintime = _mintime;
         if(maxtime < _maxtime) maxtime = _maxtime;
@@ -53,7 +53,7 @@ private:
     DataVectorT     datavec;
     uint32_t        repeat_count;
     TcpEndPointT    endpoint;
-    
+
     uint32_t        mintime;
     uint32_t        maxtime;
     uint64_t        readsz;
@@ -102,12 +102,12 @@ private:
                 delete this;
             return;
         }
-        
+
         boost::asio::socket_base::receive_buffer_size   recvoption(1024 * 64);
         boost::asio::socket_base::send_buffer_size      sendoption(1024 * 32);
         socket().set_option(sendoption);
         socket().set_option(recvoption);
-        
+
         //socket().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
         usecnt += 2;
         socket().async_read_some(
@@ -116,7 +116,7 @@ private:
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred)
         );
-        
+
         const std::string &data = rm.dataVector()[writeidx % rm.dataVector().size()].data;
         //cout<<"write "<<(writeidx % rm.dataVector().size())<<" size = "<<data.size()<<endl;
         timeq.push(TimeSpec::createRealTime());
@@ -129,13 +129,13 @@ private:
         writecrt = data.size();
         writecnt = 1;
     }
-    
+
     void handle_read(const boost::system::error_code& error,
         size_t bytes_transferred)
     {
         --usecnt;
         if (!error)
-        {   
+        {
             if(consume_data(data_, bytes_transferred)){
                 if(!usecnt)
                     delete this;
@@ -150,7 +150,7 @@ private:
             );
         }
         else if(!usecnt)
-        {   
+        {
             delete this;
         }
     }
@@ -163,7 +163,7 @@ private:
             ++writeidx;
             ++writecnt;
             writesz += writecrt;
-            
+
             if(writecnt >  rm.repeatCount()){
                 return;
             }
@@ -185,7 +185,7 @@ private:
         }
     }
     bool consume_data(const char *_p, size_t _l);
-    
+
     typedef std::queue<TimeSpec>    TimeSpecQueueT;
     enum { max_length = 1024 * 4 };
     Manager         &rm;
@@ -218,11 +218,11 @@ int main(int argc, char* argv[])
         boost::asio::io_service io_service;
 
         using namespace std; // For atoi.
-        
+
         Manager m(atoi(argv[4]), 4096, 24 * 1024, 10);
-        
+
         m.endPoint(ip::tcp::endpoint(ip::address::from_string(argv[1]), atoi(argv[2])));
-        
+
         int concnt = atoi(argv[3]);
         int idx = 0;
         while(concnt--){
@@ -276,17 +276,17 @@ bool session::consume_data(const char *_p, size_t _l){
     //cout<<"consume [";
     //cout.write(_p, _l)<<']'<<endl;
     readsz += _l;
-    
+
     while(_l){
         const uint32_t  crtdatalen = rm.dataVector()[readidx % rm.dataVector().size()].data.size();
         uint32_t        toread = crtdatalen - crtread;
         if(toread > _l) toread = _l;
-        
+
         crtread += toread;
         _l -= toread;
-        
+
         //cout<<"consume "<<(readidx % rm.dataVector().size())<<" size = "<<crtdatalen<<" crtread = "<<crtread<<endl;
-        
+
         if(crtread == crtdatalen){
             crtread = 0;
             TimeSpec ts(TimeSpec::createRealTime());

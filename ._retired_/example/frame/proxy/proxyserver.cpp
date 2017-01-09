@@ -37,13 +37,13 @@ struct Params{
     string                  dbg_port;
     bool                    dbg_console;
     bool                    dbg_buffered;
-    
+
     int                     baseport;
     bool                    log;
     StringVectorT           connectstringvec;
-    
+
     PeerAddressVectorT      connectvec;
-    
+
     bool prepare();
 };
 
@@ -140,11 +140,11 @@ void insertConnection(frame::Manager &_rm, AioSchedulerT &_rsched);
 
 int main(int argc, char *argv[]){
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     signal(SIGINT,term_handler); /* Die on SIGTERM */
-    
+
     /*solid::*/Thread::init();
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -178,18 +178,18 @@ int main(int argc, char *argv[]){
     }
 #endif
     p.prepare();
-    
+
     {
         frame::Manager  m;
         AioSchedulerT   aiosched(m);
-        
+
         if(p.baseport > 0){
             insertListener(m, aiosched);
         }else{
             SOLID_ASSERT(p.connectvec.size() == 2);
             insertConnection(m, aiosched);
         }
-        
+
         if(1){
             Locker<Mutex>   lock(mtx);
             while(run){
@@ -200,10 +200,10 @@ int main(int argc, char *argv[]){
             cin>>c;
         }
         m.stop();
-        
+
     }
     /*solid::*/Thread::waitAll();
-    
+
     return 0;
 }
 //------------------------------------------------------------------
@@ -211,9 +211,9 @@ int main(int argc, char *argv[]){
 
 void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched){
     ResolveData     rd =  synchronous_resolve("0.0.0.0", p.baseport, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    
+
     SocketDevice    sd;
-    
+
     sd.create(rd.begin());
     sd.makeNonBlocking();
     sd.prepareAccept(rd.begin(), 100);
@@ -221,18 +221,18 @@ void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched){
         cout<<"error creating listener"<<endl;
         return;
     }
-    
+
     DynamicPointer<Listener> lsnptr(new Listener(_rm, _rsched, sd));
-    
+
     _rm.registerObject(*lsnptr);
     _rsched.schedule(lsnptr);
-    
+
     cout<<"inserted listener on port "<<p.baseport<<endl;
 }
 //------------------------------------------------------------------
 void insertConnection(frame::Manager &_rm, AioSchedulerT &_rsched){
     DynamicPointer<MultiConnection> conptr(new MultiConnection);
-    
+
     _rm.registerObject(*conptr);
     _rsched.schedule(conptr);
 }
@@ -270,7 +270,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 bool Params::prepare(){
     const uint16    default_port = 2000;
     size_t          pos;
-    
+
     for(std::vector<std::string>::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
         pos = it->rfind(':');
         if(pos == std::string::npos){
@@ -544,7 +544,7 @@ AsyncE MultiConnection::doProxy(const TimeSpec &_tout){
             }
             break;
     }
-    
+
     switch(socketState(1)){
         idbg("receive 1");
         case Receive:

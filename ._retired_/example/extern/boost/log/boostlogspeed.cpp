@@ -45,18 +45,18 @@ void producer(){
     std::vector<uint64_t> v1(size);
     std::vector<uint64_t> v2(size);
     for(int i = 0; i < loopcount; ++i){
-        
+
         for(size_t j = 0; j < size; ++j){
             v2[j] =  solid::bit_revert(v1[j] + j);
             BOOST_LOG_SEV(logger, boost::log::trivial::debug)<<" Some value = "<<v2[j];
             //wdbgx(testmodule, " Some value = "<<v2[j]);
         }
-        
+
     }
 }
 
 int main(int argc, char *argv[]){
-    
+
     if(argc >= 2){
         loopcount = atoi(argv[1]);
     }
@@ -66,15 +66,15 @@ int main(int argc, char *argv[]){
     if(argc >= 4){
         thr = atoi(argv[3]);
     }
-    
+
     //fsink->locked_backend()->auto_flush(true);
-    
+
     typedef sinks::synchronous_sink< sinks::text_ostream_backend > text_sink;
     boost::shared_ptr< text_sink > sink = boost::make_shared< text_sink >();
 
     // Add a stream to write log to
     sink->locked_backend()->add_stream(boost::shared_ptr< std::ostream >(&std::clog, boost::null_deleter()));
-    
+
     sink->set_formatter
     (
         expr::format("%1%:[%2%] %3%")
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]){
             //% expr::attr< boost::thread::id >("ThreadID")
             % expr::smessage
     );
-    
+
     logging::core::get()->add_sink(sink);
 
     logging::core::get()->set_filter
@@ -92,35 +92,35 @@ int main(int argc, char *argv[]){
     );
     logging::add_common_attributes();
 
-    
+
     boost::thread_group producer_threads;
-    
+
     testmodule = solid::Debug::the().registerModule("test");
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
     Debug::the().levelMask("view");
     Debug::the().moduleMask("test");
-    
+
     Debug::the().initStdErr(
         false,
         &dbgout
     );
-    
+
     cout<<"Debug output: "<<dbgout<<endl;
     dbgout.clear();
     Debug::the().moduleNames(dbgout);
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-     
+
     for (int i = 0; i != thr; ++i){
         producer_threads.create_thread(producer);
     }
-    
+
     producer_threads.join_all();
-    
+
     return 0;
 }
 

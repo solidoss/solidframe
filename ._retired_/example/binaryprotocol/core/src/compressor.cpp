@@ -9,7 +9,7 @@ struct Compressor::Data{
 };
 
 Compressor::Compressor(const size_t _cp):d(*(new Data)){
-    
+
 }
 Compressor::~Compressor(){
     delete &d;

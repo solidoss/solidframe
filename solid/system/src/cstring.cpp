@@ -1,6 +1,6 @@
 // solid/system/src/cstring.cpp
 //
-// Copyright (c) 2007, 2008, 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //

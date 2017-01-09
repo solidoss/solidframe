@@ -515,7 +515,7 @@ public:
     {
         function(std::allocator_arg, allocator, functor).swap(*this);
     }
-    
+
     void swap(function & other) FUNC_NOEXCEPT
     {
         detail::manager_storage_type temp_storage;

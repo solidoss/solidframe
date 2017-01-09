@@ -1,6 +1,6 @@
 // frame/aio/selector.hpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -37,7 +37,7 @@ class Selector: public frame::SelectorBase{
 public:
     typedef ObjectPointerT      JobT;
     typedef Object              ObjectT;
-    
+
     Selector();
     ~Selector();
     bool init(ulong _cp);
@@ -48,7 +48,7 @@ public:
     ulong size() const;
     bool empty()const;
     bool full()const;
-    
+
     bool push(JobT &_rcon);
     void prepare();
     void unprepare();
@@ -60,7 +60,7 @@ private:
     void doFullScanCheck(Stub &_rs, const ulong _pos);
     ulong doExecuteQueue();
     ulong doAddNewStub();
-    
+
     void doUnregisterObject(Object &_robj, int _lastfailpos = -1);
     ulong doIo(Socket &_rsock, ulong _evs, ulong _filter = 0);
     ulong doExecute(const ulong _pos);

@@ -1,6 +1,6 @@
 // solid/utility/queue.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -60,14 +60,14 @@ public:
         }
         delete pn;
     }
-    
+
     Queue& operator=(Queue &&_rq){
         sz = _rq.sz;
         popsz = _rq.popsz;
         pb = _rq.pb;
         pf = _rq.pf;
         ptn = _rq.ptn;
-        
+
         _rq.sz = 0;
         _rq.popsz = 0;
         _rq.pb = nullptr;
@@ -75,33 +75,33 @@ public:
         _rq.ptn = nullptr;
         return *this;
     }
-    
+
     bool empty()const   { return !sz;}
     size_t size() const { return sz;}
-    
+
     void push(const T &_t){
         if((sz + popsz) & NodeMask) ++pb;
         else pb = pushNode(pb);
-        
+
         ++sz;
         new(pb) T(_t);
     }
-    
+
     void push(T &&_t){
         if((sz + popsz) & NodeMask) ++pb;
         else pb = pushNode(pb);
-        
+
         ++sz;
         new(pb) T(std::move(_t));
     }
-    
+
     reference back(){
         return *pb;
     }
     const_reference back()const{
         return *pb;
     }
-    
+
     void pop(){
         pf->~T();
         --sz;

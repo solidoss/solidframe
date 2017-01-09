@@ -1,6 +1,6 @@
 // solid/frame/aio/src/aiolistener.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -29,7 +29,7 @@ namespace aio{
 
 /*static*/ void Listener::on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
     Listener &rthis = static_cast<Listener&>(_rch);
-    
+
     switch(rthis.reactorEvent(_rctx)){
         case ReactorEventRecv:
             if(!FUNCTION_EMPTY(rthis.f)){
@@ -38,7 +38,7 @@ namespace aio{
                 std::swap(tmpf, rthis.f);
                 SOLID_ASSERT(FUNCTION_EMPTY(rthis.f));
                 rthis.doAccept(_rctx, sd);
-                
+
                 tmpf(_rctx, sd);
             }break;
         case ReactorEventError:
@@ -61,7 +61,7 @@ namespace aio{
     Listener        *pthis = static_cast<Listener*>(completion_handler(_rctx));
     Listener        &rthis = *pthis;
     SocketDevice    sd;
-    
+
     if(!FUNCTION_EMPTY(rthis.f) && rthis.doTryAccept(_rctx, sd)){
         FunctionT   tmpf;
         std::swap(tmpf, rthis.f);
@@ -70,7 +70,7 @@ namespace aio{
 }
 
 /*static*/ void Listener::on_dummy(ReactorContext&, SocketDevice&){
-    
+
 }
 
 void Listener::doPostAccept(ReactorContext &_rctx){
@@ -81,7 +81,7 @@ void Listener::doPostAccept(ReactorContext &_rctx){
 bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
     bool        can_retry;
     ErrorCodeT  err = sd.accept(_rsd, can_retry);
-    
+
     if(!err){
     }else if(can_retry){
         return false;
@@ -95,7 +95,7 @@ bool Listener::doTryAccept(ReactorContext &_rctx, SocketDevice &_rsd){
 void Listener::doAccept(ReactorContext &_rctx, SocketDevice &_rsd){
     bool        can_retry;
     ErrorCodeT  err = sd.accept(_rsd, can_retry);
-    
+
     if(!err){
     }else if(can_retry){
         SOLID_ASSERT(false);

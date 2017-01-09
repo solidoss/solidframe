@@ -1,6 +1,6 @@
 // solid/frame/ipc/src/ipcprotocol.cpp
 //
-// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -35,11 +35,11 @@ bool PacketHeader::isOk()const{
             rv = false;
             break;
     }
-    
+
     if(size() > Protocol::MaxPacketDataSize){
         rv = false;
     }
-    
+
     return rv;
 }
 //-----------------------------------------------------------------------------

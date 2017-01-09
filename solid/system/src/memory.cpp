@@ -1,6 +1,6 @@
 // solid/system/src/memorycache.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -19,7 +19,7 @@ size_t getMemorySize();
 size_t getMemoryPageSize();
 
 namespace solid{
-    
+
 size_t memory_page_size(){
     return getMemoryPageSize();
 }

@@ -1,6 +1,6 @@
 // solid/frame/completion.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -36,9 +36,9 @@ public:
         ObjectProxy const &_rop,
         CallbackT _pcall = &on_init_completion
     );
-    
+
     ~CompletionHandler();
-    
+
     bool isActive()const{
         return  idxreactor != InvalidIndex();
     }
@@ -50,7 +50,7 @@ public:
     void unregister();
 protected:
     CompletionHandler(CallbackT _pcall = &on_init_completion);
-    
+
     void completionCallback(CallbackT _pcbk);
     ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
     Reactor& reactor(ReactorContext &_rctx)const;
@@ -61,7 +61,7 @@ protected:
     void remTimer(ReactorContext &_rctx, size_t const &_storedidx);
 private:
     friend class Reactor;
-    
+
     void handleCompletion(ReactorContext &_rctx){
         (*call)(*this, _rctx);
     }

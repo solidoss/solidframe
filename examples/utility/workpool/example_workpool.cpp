@@ -1,6 +1,6 @@
 // testa.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -21,7 +21,7 @@ typedef WorkPool<int, MyWorkPoolController> MyWorkPool;
 
 struct MyWorkPoolController: WorkPoolControllerBase{
     typedef std::vector<int>    IntVectorT;
-    
+
     void createWorker(MyWorkPool &_rwp, ushort _wkrcnt, std::thread &_rthr){
         _rwp.createMultiWorker(_rthr, 4);
     }
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
 #endif
     MyWorkPool  mwp;
     mwp.start(2);
-    
+
     for(int i(0); i < 100; ++i){
         mwp.push(i);
     }

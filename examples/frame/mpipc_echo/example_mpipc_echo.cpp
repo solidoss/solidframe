@@ -47,12 +47,12 @@ struct Params{
     string                  dbg_port;
     bool                    dbg_console;
     bool                    dbg_buffered;
-    
+
     std::string             baseport;
     bool                    log;
     StringVectorT           connectstringvec;
     bool                    secure;
-    
+
     bool prepare(frame::mpipc::Configuration &_rcfg, string &_err);
 };
 
@@ -82,13 +82,13 @@ namespace{
     //bool                  run = true;
     //uint32_t                  wait_count = 0;
     Params                  app_params;
-    
+
     void broadcast_message(frame::mpipc::Service &_rsvc, std::shared_ptr<frame::mpipc::Message> &_rmsgptr);
 }//namespace
 
 struct FirstMessage: frame::mpipc::Message{
     std::string                     str;
-    
+
     FirstMessage(std::string const &_str):str(_str){
         idbg("CREATE ---------------- "<<(void*)this);
     }
@@ -103,13 +103,13 @@ struct FirstMessage: frame::mpipc::Message{
     void serialize(S &_s, frame::mpipc::ConnectionContext &_rctx){
         _s.push(str, "data");
     }
-    
+
 };
 
 struct MessageHandler{
     frame::mpipc::Service &rsvc;
     MessageHandler(frame::mpipc::Service &_rsvc): rsvc(_rsvc){}
-    
+
     void operator()(
         frame::mpipc::ConnectionContext &_rctx,
         std::shared_ptr<FirstMessage> &_rsend_msg,
@@ -143,12 +143,12 @@ bool restart(
 );
 
 int main(int argc, char *argv[]){
-    
+
     cout<<"Built on SolidFrame version "<<SOLID_VERSION_MAJOR<<'.'<<SOLID_VERSION_MINOR<<'.'<<SOLID_VERSION_PATCH<<endl;
-    
+
     if(parseArguments(app_params, argc, argv)) return 0;
-    
-    
+
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -181,21 +181,21 @@ int main(int argc, char *argv[]){
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-    
+
     {
         AioSchedulerT           sch;
-        
-        
+
+
         frame::Manager          m;
         frame::mpipc::ServiceT  ipcsvc(m);
         ErrorConditionT         err;
-        
+
         frame::aio::Resolver    resolver;
-        
+
         if(not restart(ipcsvc, resolver, sch)){
             return 1;
         }
-        
+
         {
             string  s;
             do{
@@ -225,43 +225,43 @@ bool restart(
 ){
     ErrorConditionT             err;
     auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
-    
-    
+
+
     frame::Manager              &rm = _ipcsvc.manager();
-    
+
     rm.stop();
     _resolver.stop();
     _sch.stop();
-    
+
     rm.start();
-    
+
     err = _sch.start(1);
-        
+
     if(err){
         cout<<"Error starting aio scheduler: "<<err.message()<<endl;
         return 1;
     }
-    
+
     err = _resolver.start(1);
-    
+
     if(err){
         cout<<"Error starting aio resolver: "<<err.message()<<endl;
         return 1;
     }
-    
+
     frame::mpipc::Configuration cfg(_sch, proto);
-    
+
     proto->registerType<FirstMessage>(
         MessageHandler(_ipcsvc)
     );
-    
-    
+
+
     if(app_params.baseport.size()){
         cfg.server.listener_address_str = "0.0.0.0:";
         cfg.server.listener_address_str += app_params.baseport;
         cfg.server.listener_service_str = app_params.baseport;
     }
-    
+
     if(app_params.connectstringvec.size()){
         cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(_resolver, app_params.baseport.c_str());
     }
@@ -287,7 +287,7 @@ bool restart(
             },
             frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
         );
-        
+
         frame::mpipc::openssl::setup_server(
             cfg,
             [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
@@ -299,14 +299,14 @@ bool restart(
             frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}//does nothing - OpenSSL does not check for hostname on SSL_accept
         );
     }
-#endif          
+#endif
     err = _ipcsvc.reconfigure(std::move(cfg));
-    
+
     if(err){
         cout<<"Error starting ipcservice: "<<err.message()<<endl;
         return false;
     }
-    
+
     {
         std::ostringstream oss;
         oss<<_ipcsvc.configuration().server.listenerPort();
@@ -382,9 +382,9 @@ std::string loadFile(const char *_path){
 namespace{
 
 void broadcast_message(frame::mpipc::Service &_rsvc, std::shared_ptr<frame::mpipc::Message> &_rmsgptr){
-    
+
     vdbg("done stop===============================");
-    
+
     for(Params::StringVectorT::const_iterator it(app_params.connectstringvec.begin()); it != app_params.connectstringvec.end(); ++it){
         _rsvc.sendMessage(it->c_str(), _rmsgptr, 0|frame::mpipc::MessageFlags::WaitResponse);
     }

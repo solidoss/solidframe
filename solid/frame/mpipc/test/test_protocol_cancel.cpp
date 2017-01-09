@@ -51,11 +51,11 @@ size_t real_size(size_t _sz){
 struct Message: frame::mpipc::Message{
     uint32_t                            idx;
     std::string                     str;
-    
+
     Message(uint32_t _idx):idx(_idx){
         idbg("CREATE ---------------- "<<(void*)this<<" idx = "<<idx);
         init();
-        
+
     }
     Message(){
         idbg("CREATE ---------------- "<<(void*)this);
@@ -68,9 +68,9 @@ struct Message: frame::mpipc::Message{
     void serialize(S &_s, frame::mpipc::ConnectionContext &_rctx){
         _s.push(str, "str");
         _s.push(idx, "idx");
-        
+
     }
-    
+
     void init(){
         const size_t    sz = real_size(initarray[idx % initarraysize].size);
         str.resize(sz);
@@ -92,13 +92,13 @@ struct Message: frame::mpipc::Message{
         const uint64_t  *pu = reinterpret_cast<const uint64_t*>(str.data());
         const uint64_t  *pup = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
-        
+
         for(uint64_t i = 0; i < count; ++i){
             if(pu[i] != pup[i % pattern_size]) return false;
         }
         return true;
     }
-    
+
 };
 
 
@@ -113,14 +113,14 @@ void complete_message(
 
 struct Context{
     Context():mpipcreaderconfig(nullptr), mpipcwriterconfig(nullptr), mpipcprotocol(nullptr), mpipcmsgreader(nullptr), mpipcmsgwriter(nullptr){}
-    
+
     frame::mpipc::ReaderConfiguration   *mpipcreaderconfig;
     frame::mpipc::WriterConfiguration   *mpipcwriterconfig;
     frame::mpipc::Protocol          *mpipcprotocol;
     frame::mpipc::MessageReader     *mpipcmsgreader;
     frame::mpipc::MessageWriter     *mpipcmsgwriter;
 
-    
+
 }                               ctx;
 
 frame::mpipc::ConnectionContext &mpipcconctx(frame::mpipc::TestEntryway::createContext());
@@ -147,18 +147,18 @@ void complete_message(
         if(not static_cast<Message&>(*_rresponse_ptr).check()){
             SOLID_THROW("Message check failed.");
         }
-        
+
         ++crtreadidx;
-        
+
         if(crtreadidx == 1){
             idbg(crtreadidx<<" canceling all messages");
             for(const auto& msguid:message_uid_vec){
-                
+
                 frame::mpipc::MessageBundle msgbundle;
                 frame::mpipc::MessageId     pool_msg_id;
-                
+
                 bool rv = ctx.mpipcmsgwriter->cancel(msguid, msgbundle, pool_msg_id);
-                
+
                 if(rv){
                     idbg("Cancel message "<<msguid<<" retval = "<<rv<<" msgdatasz = "<<static_cast<Message&>(*msgbundle.message_ptr).str.size());
                 }else{
@@ -174,84 +174,84 @@ void complete_message(
 }
 
 }//namespace
- 
+
 int test_protocol_cancel(int argc, char **argv){
-    
+
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
     Debug::the().moduleMask("any:ew");
     Debug::the().initStdErr(false, nullptr);
 #endif
-    
+
     for(int i = 0; i < 127; ++i){
         if(isprint(i) and !isblank(i)){
             pattern += static_cast<char>(i);
         }
     }
-    
+
     size_t  sz = real_size(pattern.size());
-    
+
     if(sz > pattern.size()){
         pattern.resize(sz - sizeof(uint64_t));
     }else if(sz < pattern.size()){
         pattern.resize(sz);
     }
-    
+
     const uint16_t                          bufcp(1024*4);
     char                                    buf[bufcp];
-    
+
     frame::mpipc::WriterConfiguration           mpipcwriterconfig;
     frame::mpipc::ReaderConfiguration           mpipcreaderconfig;
     auto                                    mpipcprotocol = frame::mpipc::serialization_v1::Protocol::create();
     frame::mpipc::MessageReader             mpipcmsgreader;
     frame::mpipc::MessageWriter             mpipcmsgwriter;
-    
+
     ErrorConditionT                         error;
-    
-    
+
+
     ctx.mpipcreaderconfig       = &mpipcreaderconfig;
     ctx.mpipcwriterconfig       = &mpipcwriterconfig;
     ctx.mpipcprotocol           = mpipcprotocol.get();
     ctx.mpipcmsgreader      = &mpipcmsgreader;
     ctx.mpipcmsgwriter      = &mpipcmsgwriter;
-    
+
     mpipcwriterconfig.max_message_count_multiplex = 16;
-    
+
     mpipcprotocol->registerType<::Message>(
         complete_message
     );
-    
+
     const size_t                    start_count = 16;
-    
+
     writecount = 16;//start_count;//
-    
+
     for(; crtwriteidx < start_count; ++crtwriteidx){
         frame::mpipc::MessageBundle msgbundle;
         frame::mpipc::MessageId     writer_msg_id;
         frame::mpipc::MessageId     pool_msg_id;
-        
+
         msgbundle.message_flags = initarray[crtwriteidx % initarraysize].flags;
         msgbundle.message_ptr = std::move(frame::mpipc::MessagePointerT(new Message(crtwriteidx)));
         msgbundle.message_type_id = ctx.mpipcprotocol->typeIndex(msgbundle.message_ptr.get());
-        
-        
+
+
         bool rv = mpipcmsgwriter.enqueue(
             mpipcwriterconfig, msgbundle, pool_msg_id, writer_msg_id
         );
 
         message_uid_vec.push_back(writer_msg_id);
-        
+
         idbg("enqueue rv = "<<rv<<" writer_msg_id = "<<writer_msg_id);
         SOLID_CHECK(rv);
         idbg(frame::mpipc::MessageWriterPrintPairT(mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
-        
+
         if(not initarray[crtwriteidx % initarraysize].cancel){
             idbg("do not cancel "<<message_uid_vec.back());
             message_uid_vec.pop_back(); //we do not cancel this one
         }
     }
-    
-    
+
+
     {
         auto    reader_complete_lambda(
             [&mpipcprotocol](const frame::mpipc::MessageReader::Events _event, frame::mpipc::MessagePointerT & _rresponse_ptr, const size_t _message_type_id){
@@ -268,7 +268,7 @@ int test_protocol_cancel(int argc, char **argv){
                 }
             }
         );
-        
+
         auto    writer_complete_lambda(
             [&mpipcprotocol](frame::mpipc::MessageBundle &_rmsgbundle, frame::mpipc::MessageId const &_rmsgid){
                 idbg("writer complete message");
@@ -278,26 +278,26 @@ int test_protocol_cancel(int argc, char **argv){
                 return ErrorConditionT();
             }
         );
-        
+
         frame::mpipc::MessageReader::CompleteFunctionT  readercompletefnc(std::cref(reader_complete_lambda));
         frame::mpipc::MessageWriter::CompleteFunctionT  writercompletefnc(std::cref(writer_complete_lambda));
-        
+
         mpipcmsgreader.prepare(mpipcreaderconfig);
-        
+
         bool is_running = true;
-        
+
         while(is_running and !error){
             uint32_t bufsz = mpipcmsgwriter.write(buf, bufcp, false, writercompletefnc, mpipcwriterconfig, *mpipcprotocol, mpipcconctx, error);
-            
+
             if(!error and bufsz){
-                
+
                 mpipcmsgreader.read(buf, bufsz, readercompletefnc, mpipcreaderconfig, *mpipcprotocol, mpipcconctx, error);
             }else{
                 is_running = false;
             }
         }
     }
-    
+
     return 0;
 }
 

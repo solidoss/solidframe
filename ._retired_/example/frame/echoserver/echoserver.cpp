@@ -65,7 +65,7 @@ public:
     ~Listener();
 private:
     /*virtual*/ void execute(ExecuteContext &_rexectx);
-    
+
     typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
     int                 state;
     SocketDevice        sd;
@@ -82,7 +82,7 @@ public:
     ~Connection();
 private:
     /*virtual*/ void execute(ExecuteContext &_rexectx);
-    
+
 private:
     enum {BUFSZ = 1024};
     enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT, CONNECT_TOUT};
@@ -122,11 +122,11 @@ void insertTalker(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr
 int main(int argc, char *argv[]){
     Params p;
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     signal(SIGINT,term_handler); /* Die on SIGTERM */
-    
+
     /*solid::*/Thread::init();
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -159,21 +159,21 @@ int main(int argc, char *argv[]){
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-    
+
     {
         frame::Manager  m;
         AioSchedulerT   aiosched(m);
-        
+
         insertListener(m, aiosched, "0.0.0.0", p.start_port + 111, false);
         insertTalker(m, aiosched, "0.0.0.0", p.start_port + 112);
-        
-        
+
+
         cout<<"Here some examples how to test: "<<endl;
         cout<<"For tcp:"<<endl;
         cout<<"\t$ nc localhost 2111"<<endl;
         cout<<"For udp:"<<endl;
         cout<<"\t$ nc -u localhost 2112"<<endl;
-        
+
         if(0){
             Locker<Mutex>   lock(mtx);
             while(run){
@@ -184,10 +184,10 @@ int main(int argc, char *argv[]){
             cin>>c;
         }
         m.stop();
-        
+
     }
     /*solid::*/Thread::waitAll();
-    
+
     return 0;
 }
 //------------------------------------------------------------------
@@ -195,9 +195,9 @@ int main(int argc, char *argv[]){
 
 void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr, int _port, bool _secure){
     ResolveData     rd =  synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    
+
     SocketDevice    sd;
-    
+
     sd.create(rd.begin());
     sd.makeNonBlocking();
     sd.prepareAccept(rd.begin(), 100);
@@ -205,43 +205,43 @@ void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_ad
         cout<<"error creating listener"<<endl;
         return;
     }
-    
+
     frame::aio::openssl::Context *pctx(NULL);
-    
+
     if(_secure){
         pctx = frame::aio::openssl::Context::create();
     }
     if(pctx){
         const char *pcertpath = OSSL_SOURCE_PATH"ssl_/certs/A-server.pem";
-        
+
         pctx->loadCertificateFile(pcertpath);
         pctx->loadPrivateKeyFile(pcertpath);
     }
-    
+
     DynamicPointer<Listener> lsnptr(new Listener(_rm, _rsched, sd, pctx));
-    
+
     _rm.registerObject(*lsnptr);
     _rsched.schedule(lsnptr);
-    
+
     cout<<"inserted listener on port "<<_port<<endl;
 }
 void insertTalker(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr, int _port){
     ResolveData     rd =  synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
     SocketDevice    sd;
-    
+
     sd.create(rd.begin());
     sd.bind(rd.begin());
-    
+
     if(!sd.ok()){
         cout<<"error creating talker"<<endl;
         return;
     }
-    
+
     DynamicPointer<Talker> tkrptr(new Talker(sd));
-    
+
     _rm.registerObject(*tkrptr);
     _rsched.schedule(tkrptr);
-    
+
     cout<<"inserted talker on port "<<_port<<endl;
 }
 //------------------------------------------------------------------
@@ -358,12 +358,12 @@ Connection::~Connection(){
             _rexectx.close();
             return;
         }
-        if(state == READ_TOUT){ 
+        if(state == READ_TOUT){
             SOLID_ASSERT(sevs & frame::EventDoneRecv);
-        }else if(state == WRITE_TOUT){  
+        }else if(state == WRITE_TOUT){
             SOLID_ASSERT(sevs & frame::EventDoneSend);
         }
-        
+
     }
     int rc = 512 * 1024;
     do{
@@ -374,8 +374,8 @@ Connection::~Connection(){
                         _rexectx.close();
                         return;
                     case frame::aio::AsyncSuccess: break;
-                    case frame::aio::AsyncWait: 
-                        state = READ_TOUT; 
+                    case frame::aio::AsyncWait:
+                        state = READ_TOUT;
                         socketTimeoutRecv(30);
                         return;
                 }
@@ -387,7 +387,7 @@ Connection::~Connection(){
                         _rexectx.close();
                         return;
                     case frame::aio::AsyncSuccess: break;
-                    case frame::aio::AsyncWait: 
+                    case frame::aio::AsyncWait:
                         state = WRITE_TOUT;
                         socketTimeoutSend(10);
                         return;
@@ -441,7 +441,7 @@ Talker::~Talker(){
                 case frame::aio::AsyncSuccess: state = READ_TOUT;break;
                 case frame::aio::AsyncWait:
                     socketTimeoutRecv(5 * 60);
-                    state = READ_TOUT; 
+                    state = READ_TOUT;
                     return;
             }
         case READ_TOUT:

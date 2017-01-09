@@ -1,6 +1,6 @@
 // solid/utility/workpool.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -46,7 +46,7 @@ struct WorkPoolBase{
     }
 protected:
     WorkPoolBase():st(Stopped), wkrcnt(0) {}
-    
+
     State                       st;
     int                         wkrcnt;
     std::condition_variable     thrcnd;
@@ -93,12 +93,12 @@ struct WorkPoolControllerBase{
  */
 template <class J, class C, class W = WorkerBase>
 class WorkPool: public WorkPoolBase{
-    
+
     typedef std::vector<J>              JobVectorT;
     typedef WorkPool<J, C, W>           ThisT;
     typedef std::vector<std::thread>    ThreadVectorT;
-    
-    
+
+
     struct SingleWorker: W{
         SingleWorker(ThisT &_rw):rw(_rw){}
         void run(){
@@ -114,9 +114,9 @@ class WorkPool: public WorkPoolBase{
         ThisT   &rw;
     };
     struct MultiWorker: W{
-        
+
         MultiWorker(ThisT &_rw, size_t _maxcnt):rw(_rw), maxcnt(_maxcnt){}
-        
+
         void run(){
             if(!rw.enterWorker(*this)){
                 return;
@@ -132,39 +132,39 @@ class WorkPool: public WorkPoolBase{
         ThisT   &rw;
         size_t  maxcnt;
     };
-    
+
     static void single_worker_run(ThisT *_pthis){
         SingleWorker wkr(*_pthis);
         wkr.run();
     }
-    
+
     static void multi_worker_run(ThisT *_pthis, const size_t _cnt){
         MultiWorker wkr(*_pthis, _cnt);
         wkr.run();
     }
-    
+
 public:
     typedef ThisT   WorkPoolT;
     typedef C       ControllerT;
     typedef W       WorkerT;
     typedef J       JobT;
-    
-    
+
+
     WorkPool(){
     }
-    
+
     template <class T>
     WorkPool(T &_rt):ctrl(_rt){
     }
-    
+
     ~WorkPool(){
         stop(true);
     }
-    
+
     ControllerT& controller(){
         return ctrl;
     }
-    
+
     //! Push a new job
     void push(const JobT& _jb){
         std::unique_lock<std::mutex>    lock(mtx);
@@ -183,7 +183,7 @@ public:
         sigcnd.notify_all();
         ctrl.onMultiPush(*this, cnt);
     }
-    
+
     //! Starts the workpool, creating _minwkrcnt
     void start(ushort _minwkrcnt = 0){
         std::unique_lock<std::mutex>    lock(mtx);
@@ -216,23 +216,23 @@ public:
     bool empty()const{
         return jobq.empty();
     }
-    
+
     void createWorker(){
         ++wkrcnt;
-        
+
         static const std::thread    empty_thread{};
-        
+
         thread_vec.push_back(std::move(std::thread()));
-        
+
         ctrl.createWorker(*this, wkrcnt, thread_vec.back());
-        
+
         if(thread_vec.back().get_id() == empty_thread.get_id()){
             --wkrcnt;
             thread_vec.pop_back();
             thrcnd.notify_all();
         }
     }
-    
+
     void createSingleWorker(std::thread &_rthr){
         try{
             _rthr = std::thread(single_worker_run, this);
@@ -241,7 +241,7 @@ public:
             _rthr = std::thread();
         }
     }
-    
+
     void createMultiWorker(std::thread &_rthr, size_t _maxcnt){
         try{
             _rthr = std::thread(multi_worker_run, this, _maxcnt);
@@ -250,11 +250,11 @@ public:
             _rthr = std::thread();
         }
     }
-    
+
 private:
     friend struct SingleWorker;
     friend struct MultiWorker;
-    
+
     void doStop(std::unique_lock<std::mutex> &_lock, bool _wait){
         if(state() == Stopped) return;
         state(Stopping);
@@ -270,10 +270,10 @@ private:
         thread_vec.clear();
         state(Stopped);
     }
-    
+
     bool pop(WorkerT &_rw, JobVectorT &_rjobvec, size_t _maxcnt){
         std::unique_lock<std::mutex>    lock(mtx);
-        
+
         uint32_t insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
         if(!insertcount){
             return true;
@@ -288,11 +288,11 @@ private:
         }
         return false;
     }
-    
+
     bool pop(WorkerT &_rw, JobT &_rjob){
-        
+
         std::unique_lock<std::mutex>    lock(mtx);
-        
+
         if(ctrl.onPopStart(*this, _rw, 1) == 0){
             sigcnd.notify_one();
             return false;
@@ -305,14 +305,14 @@ private:
         }
         return false;
     }
-    
+
     size_t doWaitJob(std::unique_lock<std::mutex> &_lock){
         while(jobq.empty() && isRunning()){
             sigcnd.wait(_lock);
         }
         return jobq.size();
     }
-    
+
     bool enterWorker(WorkerT &_rw){
         std::unique_lock<std::mutex>    lock(mtx);
         if(!ctrl.prepareWorker(_rw)){

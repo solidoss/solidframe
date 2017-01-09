@@ -1,6 +1,6 @@
 // solid/serialization/src/typeidmap.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -25,7 +25,7 @@ private:
     const char*   name() const noexcept (true){
         return "solid::serialization::TypeIdMap";
     }
-    
+
     std::string    message(int _ev) const{
         switch(_ev){
             case NoTypeE:
@@ -54,13 +54,13 @@ const ErrorCategory     ec;
 
 bool joinTypeId(uint64_t &_rtype_id, const uint32_t _protocol_id, const uint64_t _message_id){
     size_t          proto_bit_count = max_bit_count(_protocol_id);
-    
+
     if(proto_bit_count > 30) return false;
-    
+
     const size_t    proto_byte_count = (fast_padded_size(proto_bit_count + 2, 3) >> 3);
     const size_t    msgid_byte_count = max_padded_byte_cout(_message_id);
-    
-    
+
+
     if(proto_byte_count + msgid_byte_count > sizeof(uint64_t)){
         return false;
     }
@@ -86,19 +86,19 @@ bool TypeIdMapBase::findTypeIndex(const uint64_t &_rid, size_t &_rindex) const {
 
 
 size_t TypeIdMapBase::doAllocateNewIndex(const size_t _protocol_id, uint64_t &_rid){
-    
+
     auto            protoit = protomap.find(_protocol_id);
-    
+
     if(protoit != protomap.end()){
     }else{
         protomap[_protocol_id] = ProtocolStub();
     }
     ProtocolStub    &rps = protomap[_protocol_id];
-    
+
     size_t          rv = InvalidIndex();
-    
+
     do{
-    
+
         if(joinTypeId(_rid, static_cast<uint32_t>(_protocol_id), rps.current_message_index)){
             ++rps.current_message_index;
         }else{

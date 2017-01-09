@@ -1,6 +1,6 @@
 // alphareader.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -55,7 +55,7 @@ void Reader::clear(){
         _rr.push(&Reader::refill);
         return Continue;
     }
-    
+
     SOLID_ASSERT(rv == Success);
     if(c == '{'){
         rr.drop();
@@ -72,7 +72,7 @@ void Reader::clear(){
         rr.fs.top().first = &Reader::copyTmpString;
         rr.push(&Reader::checkChar, protocol::text::Parameter('\"'));
         rr.push(&Reader::fetchQString, protocol::text::Parameter(&rr.tmp));
-        
+
     }else{//we have an atom
         rr.fs.top().first = &Reader::fetchFilteredString<AtomFilter>;
         _rp.b.u32 = 1024;//the string max size
@@ -238,7 +238,7 @@ void Reader::clear(){
     rr.drop();
     uint32 litlen;
     rv = rr.extractLiteralLength(litlen);
-    
+
     if(rv == Success){
         //rw.putTag()<<es;
         //rw.put('\r','\n');
@@ -249,7 +249,7 @@ void Reader::clear(){
         return Failure;
     }
     //rc == Wait cant send the response yet
-    
+
     _rp.a.u32 = 64 * 1024;
     rr.tmp.clear();
     rr.push(&Reader::fetchLiteralDummy, protocol::text::Parameter(litlen));

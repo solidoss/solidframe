@@ -1,6 +1,6 @@
 // system/thread.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -32,26 +32,26 @@ struct Mutex;
 //! A wrapper for system threads
 /*!
     <b>Usage:</b><br>
-    In your application, before creating any thread you should call 
-    Thread::init and when dying after you signaled all your application threads to 
+    In your application, before creating any thread you should call
+    Thread::init and when dying after you signaled all your application threads to
     stop, you should call Thread::waitAll to blocking wait for all threads to stop.
-    Then inherit from Thread, implement Thread::run method (and eventually 
+    Then inherit from Thread, implement Thread::run method (and eventually
     Thread::prepare && Thread::unprepare).
 */
 class Thread{
 public:
     typedef void RunParamT;
     typedef void (*SpecificFncT)(void *_ptr);
-    
+
     static void dummySpecificDestroy(void*);
-    
-    static void init(); 
+
+    static void init();
     static void cleanup();
     //! Make the current thread to sleep fo _msec milliseconds
     static void sleep(ulong _msec);
     //! Returns the number of processors on the running machine
     static size_t processorCount();
-    
+
     static long processId();
     static void waitAll();
     //! Releases the processor for another thread
@@ -66,20 +66,20 @@ public:
     static void* specific(const size_t _pos);
     //! Sets the data for a specific id, allong with a pointer to a destructor function
     static void specific(const size_t _pos, void *_psd, SpecificFncT _pfnc = &dummySpecificDestroy);
-    
-    
+
+
     static Specific& specific();
-    
+
     //! Returns a reference to a global mutex
     static Mutex& gmutex();
-    
+
     virtual ~Thread();
-    
+
     //! Starts a new thread
     /*!
         \param _wait If true, the function will return after the the thread was started.
         \param _detached If true create the thread in a detached state
-        \param _stacksz 
+        \param _stacksz
     */
     bool start(bool _wait = false, bool _detached = true, ulong _stacksz = 0);
     //! Join the calling thread
@@ -88,13 +88,13 @@ public:
     bool detached() const;
     //! Detach the thread
     bool detach();
-    
+
     Mutex& mutex()const;
-    
+
     void specificErrorClear();
     void specificErrorPush(const ErrorStub &_rerr);
     ErrorVectorT const& specificErrorGet()const;
-    
+
 protected:
 #ifdef _WIN32
     Thread(bool _detached = false, void* _th = NULL);
@@ -111,7 +111,7 @@ private:
     //a dummy function
     static void free_thread(void *_ptr);
     static Thread* associateToCurrent();
-    
+
     static void current(Thread *_ptb);
     Thread(const Thread&){}
 #ifdef SOLID_ON_WINDOWS
@@ -121,7 +121,7 @@ private:
 #endif
     static void enter();
     static void exit();
-    
+
     void signalWaiter();
     int waited();
 private:

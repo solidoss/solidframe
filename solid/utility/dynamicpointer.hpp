@@ -1,6 +1,6 @@
 // solid/utility/dynamicpointer.hpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -34,7 +34,7 @@ public:
     typedef DynamicPointer<T>           ThisT;
     typedef T                           DynamicT;
     typedef T                           element_type;
-    
+
     DynamicPointer(DynamicT *_pdyn = nullptr):pdyn(_pdyn){
         if(_pdyn){
             use(static_cast<DynamicBase*>(_pdyn));
@@ -51,25 +51,25 @@ public:
     template <class B>
     DynamicPointer(DynamicPointer<B> &&_rcp):pdyn(static_cast<T*>(_rcp.release())){
     }
-    
+
     DynamicPointer(ThisT &&_rcp):pdyn(static_cast<T*>(_rcp.release())){
     }
-    
+
 #endif
-    
+
     //The copy constructor must be specified - the compiler wount consider the above constructor as copy-constructor
     DynamicPointer(ThisT const &_rcp):pdyn(static_cast<T*>(_rcp.get())){
         if(pdyn){
             use(static_cast<DynamicBase*>(pdyn));
         }
     }
-    
+
     ~DynamicPointer(){
         if(pdyn){
             DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
         }
     }
-    
+
     template <class O>
     ThisT& operator=(DynamicPointer<O> const &_rcp){
         DynamicT *p(_rcp.get());
@@ -81,7 +81,7 @@ public:
         return *this;
     }
 
-#ifdef SOLID_USE_CPP11  
+#ifdef SOLID_USE_CPP11
     template <class O>
     ThisT& operator=(DynamicPointer<O> &&_rcp){
         DynamicT *p(_rcp.release());
@@ -89,7 +89,7 @@ public:
         pdyn = p;
         return *this;
     }
-    
+
     ThisT& operator=(ThisT &&_rcp){
         DynamicT *p(_rcp.release());
         if(pdyn) clear();
@@ -121,20 +121,20 @@ public:
     DynamicT* get() const       {return pdyn;}
     bool empty()const           {return !pdyn;}
     bool operator!()const       {return empty();}
-    
+
     void clear(){
         if(pdyn){
             DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
             pdyn = nullptr;
         }
     }
-    
+
     DynamicT* release(){
         DynamicT *ptmp = pdyn;
         pdyn = nullptr;
         return ptmp;
     }
-    
+
 protected:
     void set(DynamicT *_pdyn){
         pdyn = _pdyn;
@@ -142,7 +142,7 @@ protected:
             use(static_cast<DynamicBase*>(pdyn));
         }
     }
-    
+
 private:
     mutable DynamicT *pdyn;
 };

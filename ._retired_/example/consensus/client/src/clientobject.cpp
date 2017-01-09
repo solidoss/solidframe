@@ -24,7 +24,7 @@ using namespace solid;
 ClientParams::ClientParams(
     const ClientParams &_rcp
 ):cnt(_rcp.cnt), addrvec(_rcp.addrvec), reqvec(_rcp.reqvec), strvec(_rcp.strvec){
-    
+
 }
 //------------------------------------------------------------
 bool ClientParams::init(){
@@ -73,11 +73,11 @@ const char* parseUInt32(const char* _p, uint32 &_ru){
     _ru = strtoul(_p, &pend, 10);
     if(pend == _p) return NULL;
     return pend;
-    
+
 }
 bool ClientParams::parseRequests(){
     const char *p(seqstr.c_str());
-    
+
     while(p && *p){
         switch(*p){
             case 'i'://insert(uint32)
@@ -141,12 +141,12 @@ void ClientParams::print(std::ostream &_ros){
         _ros<<*it<<';';
     }
     _ros<<endl;
-    _ros<<"strszvec     : "; 
+    _ros<<"strszvec     : ";
     for(UInt32VectorT::const_iterator it(strszvec.begin()); it != strszvec.end(); ++it){
         _ros<<*it<<';';
     }
     _ros<<endl;
-    
+
     _ros<<"Parsed parameters:"<<endl;
     _ros<<"Addresses: ";
     string      hoststr;
@@ -198,7 +198,7 @@ ClientObject::~ClientObject(){
 //------------------------------------------------------------
 void ClientObject::execute(ExecuteContext &_rexectx){
     frame::Manager &rm(frame::Manager::specific());
-    
+
     if(notified()){//we've received a signal
         solid::ulong                            sm(0);
         DynamicHandler<DynamicMapperT>  dh(dm);
@@ -261,7 +261,7 @@ void ClientObject::execute(ExecuteContext &_rexectx){
                 uint32          sid(sendMessage(new FetchRequest(s)));
                 expectFetch(sid, s, params.addrvec.size());
                 break;
-            }   
+            }
             case 'e':{
                 const string    &s(params.strvec[rr.u.u32s.u32_1]);
                 uint32          sid(sendMessage(new EraseRequest(s)));
@@ -317,7 +317,7 @@ uint32 ClientObject::newRequestId(int _pos){
     if(reqidvec.size() && rq > reqidvec.back().first){
         //push back
         reqidvec.push_back(std::pair<uint32, int>(rq, _pos));
-        
+
     }else{
         BinarySeekerResultT rv = reqbs(reqidvec.begin(), reqidvec.end(), rq);
         reqidvec.insert(reqidvec.begin() + rv.first, std::pair<uint32, int>(rq, _pos));
@@ -344,7 +344,7 @@ uint32 ClientObject::sendMessage(consensus::WriteRequestMessage *_pmsg){
     //sigptr->requestId(newRequestId(-1));
     reqptr->consensusExpectCount(params.addrvec.size());
     reqptr->consensusRequestId(consensus::RequestId(newRequestId(-1), solid::frame::Manager::specific().id(*this)));
-    
+
     for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
         DynamicPointer<frame::ipc::Message> msgptr(reqptr);
         ripcsvc.sendMessage(msgptr, SocketAddressStub(*it));
@@ -403,10 +403,10 @@ void ClientObject::expectFetch(uint32 _rid, const string &_rs, uint32 _cnt){
 }
 //------------------------------------------------------------
 void ClientObject::expectErase(uint32 _rid, const string &_rs, uint32 _cnt){
-    
+
 }
 //------------------------------------------------------------
 void ClientObject::expectErase(uint32 _rid, uint32 _cnt){
-    
+
 }
 //------------------------------------------------------------

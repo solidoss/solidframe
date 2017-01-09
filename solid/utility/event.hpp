@@ -1,6 +1,6 @@
 // solid/frame/event.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -35,55 +35,55 @@ class EventHandlerBase;
 
 struct Event{
     static constexpr size_t any_size = AnyBase::min_data_size + sizeof(void*) + sizeof(uint64_t);
-    
+
     using AnyT = Any<any_size>;
-    
+
     Event();
     Event(Event &&);
     Event(const Event &);
-    
+
     Event& operator=(const Event &);
     Event& operator=(Event&&);
-    
+
     std::ostream& print(std::ostream &_ros)const;
-    
+
     AnyT& any(){
         return any_;
     }
-    
+
     const AnyT& any()const{
         return any_;
     }
-    
+
     bool operator==(const Event &_revt)const;
-    
+
     void clear();
-    
+
     bool isDefault()const;
-    
+
 private:
     friend class EventCategoryBase;
     friend class EventHandlerBase;
-    
+
     Event(
         const size_t _id,
         const EventCategoryBase &_rcategory
     ):pcategory_(&_rcategory), id_(_id){}
-    
+
     template <class T>
     explicit Event(
         const size_t _id,
         const EventCategoryBase &_rcategory,
         const T &_rany_value
     ):pcategory_(&_rcategory), id_(_id), any_(_rany_value, true){}
-    
+
     template <class T>
     explicit Event(
         const size_t _id,
         const EventCategoryBase &_rcategory,
         T &&_uany_value
     ):pcategory_(&_rcategory), id_(_id), any_(std::move(_uany_value), true){}
-    
+
 private:
     const EventCategoryBase *pcategory_;
     size_t                  id_;
@@ -103,26 +103,26 @@ public:
         return name_;
     }
 protected:
-    
+
     EventCategoryBase(const std::string &_name):name_(_name){}
-    
+
     virtual ~EventCategoryBase(){}
-    
+
     Event event(const size_t _idx)const{
         return Event(_idx, *this);
     }
-    
-    
+
+
     template <typename T>
     Event event(const size_t _idx, const T &_rany_value)const{
         return Event(_idx, *this, _rany_value);
     }
-    
+
     template <typename T>
     Event event(const size_t _idx, T &&_uany_value)const{
         return Event(_idx, *this, std::move(_uany_value));
     }
-    
+
     size_t eventId(const Event &_revt)const{
         return _revt.id_;
     }
@@ -143,16 +143,16 @@ class EventCategory: public EventCategoryBase{
 public:
     template <typename F>
     EventCategory(const std::string &_name, F _f):EventCategoryBase(_name), names_fnc_(_f){}
-    
+
     Event event(const EventIds _id)const{
         return EventCategoryBase::event(static_cast<size_t>(_id));
     }
-    
+
     template <typename T>
     Event event(const EventIds _id, const T &_rany_value)const{
         return EventCategoryBase::event(static_cast<size_t>(_id), _rany_value);
     }
-    
+
     template <typename T>
     Event event(const EventIds _id, T &&_uany_value)const{
         return EventCategoryBase::event(static_cast<size_t>(_id), std::move(_uany_value));
@@ -183,7 +183,7 @@ extern const EventCategory<GenericEvents>   generic_event_category;
 inline Event make_event(const GenericEvents _id){
     return generic_event_category.event(_id);
 }
-    
+
 template <typename T>
 inline Event make_event(const GenericEvents _id, const T &_rany_value){
     return generic_event_category.event(_id, _rany_value);
@@ -214,7 +214,7 @@ protected:
     const EventCategoryBase* eventCategory(const Event &_revt)const{
         return _revt.pcategory_;
     }
-    
+
     size_t eventId(const Event &_revt)const{
         return _revt.id_;
     }
@@ -236,11 +236,11 @@ public:
     struct InitItem{
         const Event     evt;
         FunctionT       fnc;
-        
+
         template <typename F>
         InitItem(Event && _uevt, F &&_rf):evt(std::move(_uevt)), fnc(std::cref(_rf)){}
     };
-    
+
     template <typename F>
     EventHandler(
         F &&_rf,
@@ -252,7 +252,7 @@ public:
             for(const InitItem &it:init_lst){
                 const std::type_index    category_type_index{typeid(*eventCategory(it.evt))};
                 auto                     map_it = category_map_.find(category_type_index);
-                
+
                 if(map_it != category_map_.end()){
                     if(map_it->second.second < eventId(it.evt)){
                         vec_size += (eventId(it.evt) - map_it->second.second);
@@ -263,10 +263,10 @@ public:
                     vec_size += (eventId(it.evt) + 1);
                 }
             }
-            
+
             function_vec_.resize(vec_size);
         }
-        
+
         {
             size_t  crt_off = 0;
             for(auto it = category_map_.begin(); it != category_map_.end(); ++it){
@@ -275,17 +275,17 @@ public:
                 crt_off += skip;
             }
         }
-        
+
         for(const InitItem &it:init_lst){
             const std::type_index   category_type_index{typeid(*eventCategory(it.evt))};
             SizeTPairT              &categ_pair = category_map_[category_type_index];
-            
+
             FunctionT   &f = function_vec_[categ_pair.first + eventId(it.evt)];
-            
+
             f = it.fnc;
         }
     }
-    
+
     RetVal handle(Event &_revt, Args...args)const{
         const std::type_index   category_type_index{typeid(*eventCategory(_revt))};
         auto                    map_it = category_map_.find(category_type_index);

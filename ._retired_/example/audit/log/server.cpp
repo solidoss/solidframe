@@ -117,7 +117,7 @@ int main(int _argc, char *argv[]){
     Directory::create("log");
     lm.insertConnector(new audit::LogBasicConnector("log"));
     Log::the().reinit(argv[0], new DeviceInputOutputStream(pairfd[1],invalid_descriptor), "ALL");
-    
+
     string s;
     while(true){
         cin>>s;

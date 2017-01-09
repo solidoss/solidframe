@@ -1,6 +1,6 @@
 /////// manager.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -56,7 +56,7 @@ In this example we do:
 struct AuthMessage: Dynamic<AuthMessage, DynamicShared<frame::ipc::Message> >{
     AuthMessage():authidx(0), authcnt(0){}
     ~AuthMessage(){}
-    
+
     template <class S>
     void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
         _s.push(authidx, "authidx").push(authcnt, "authcnt");
@@ -71,12 +71,12 @@ struct AuthMessage: Dynamic<AuthMessage, DynamicShared<frame::ipc::Message> >{
 struct IpcServiceController: frame::ipc::Controller{
     IpcServiceController():frame::ipc::Controller(0, 400), authidx(0){
     }
-    
+
     /*virtual*/ void scheduleTalker(frame::aio::Object *_po);
     /*virtual*/ void scheduleListener(frame::aio::Object *_po);
     /*virtual*/ void scheduleNode(frame::aio::Object *_po);
-    
-    
+
+
     /*virtual*/ bool compressPacket(
         frame::ipc::PacketContext &_rbc,
         const uint32 _bufsz,
@@ -94,7 +94,7 @@ struct IpcServiceController: frame::ipc::Controller{
         uint32 &_rflags,
         frame::ipc::SerializationTypeIdT &_rtid
     );
-    
+
 private:
     qlz_state_compress      qlz_comp_ctx;
     qlz_state_decompress    qlz_decomp_ctx;
@@ -112,7 +112,7 @@ struct Manager::Data{
         mainaiosched(_rm), scndaiosched(_rm), objsched(_rm),
         ipcsvc(_rm, new IpcServiceController){
     }
-    
+
     AioSchedulerT               mainaiosched;
     AioSchedulerT               scndaiosched;
     SchedulerT                  objsched;
@@ -136,7 +136,7 @@ Manager::~Manager(){
     d.mainaiosched.stop(false);
     d.scndaiosched.stop(false);
     d.objsched.stop(false);
-    
+
     d.mainaiosched.stop(true);
     d.scndaiosched.stop(true);
     d.objsched.stop(true);
@@ -145,30 +145,30 @@ Manager::~Manager(){
 
 void Manager::start(){
     d.ipcsvc.registerMessageType<AuthMessage>();
-    
+
     registerService(d.ipcsvc);
     d.resolver.start();
     {
         frame::file::Utf8Configuration  utf8cfg;
         frame::file::TempConfiguration  tempcfg;
-        
+
         system("[ -d /tmp/solidframe_concept ] || mkdir -p /tmp/solidframe_concept");
-        
+
         const char *homedir = getenv("HOME");
-        
+
         utf8cfg.storagevec.push_back(solid::frame::file::Utf8Configuration::Storage());
         utf8cfg.storagevec.back().globalprefix = "/";
         utf8cfg.storagevec.back().localprefix = homedir;
         if(utf8cfg.storagevec.back().localprefix.size() && *utf8cfg.storagevec.back().localprefix.rbegin() != '/'){
             utf8cfg.storagevec.back().localprefix.push_back('/');
         }
-        
+
         tempcfg.storagevec.push_back(solid::frame::file::TempConfiguration::Storage());
         tempcfg.storagevec.back().level = frame::file::MemoryLevelFlag;
         tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
         tempcfg.storagevec.back().minsize = 0;
         tempcfg.storagevec.back().maxsize = 1024 * 10;
-        
+
         tempcfg.storagevec.push_back(solid::frame::file::TempConfiguration::Storage());
         tempcfg.storagevec.back().path = "/tmp/solidframe_concept/";
         tempcfg.storagevec.back().level = frame::file::VeryFastLevelFlag;
@@ -176,10 +176,10 @@ void Manager::start(){
         tempcfg.storagevec.back().minsize = 0;
         tempcfg.storagevec.back().maxsize = 1024 * 1024 * 10;
         tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
-    
+
         d.filestoreptr = new FileStoreT(*this, utf8cfg, tempcfg);
     }
-    
+
     registerObject(*d.filestoreptr);
     d.objsched.schedule(d.filestoreptr);
 }
@@ -282,9 +282,9 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
         return AsyncError;
     }
     AuthMessage &rmsg(static_cast<AuthMessage&>(*_msgptr));
-    
+
     idbg("sig = "<<(void*)_msgptr.get()<<" auth("<<rmsg.authidx<<','<<rmsg.authcnt<<") authidx = "<<this->authidx);
-    
+
     if(rmsg.authidx == 0){
         if(this->authidx == 2){
             idbg("");
@@ -293,15 +293,15 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
         ++this->authidx;
         rmsg.authidx = this->authidx;
     }
-    
+
     ++rmsg.authcnt;
-    
+
     if(rmsg.authidx == 2 && rmsg.authcnt >= 3){
         idbg("");
         return solid::AsyncError;
     }
-    
-    
+
+
     if(rmsg.authcnt == 4){
         idbg("");
         return solid::AsyncSuccess;

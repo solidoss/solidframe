@@ -27,13 +27,13 @@ struct BasicMessage: solid::Dynamic<BasicMessage, solid::frame::Message>{
         ErrorAuth,
         ErrorState
     };
-    
+
     BasicMessage(solid::uint32 _v = 0):v(_v){}
-    
+
     solid::uint32       v;
-    
+
     const char *errorText()const;
-    
+
     template <class S>
     void serialize(S &_s, ConnectionContext &_rctx){
         _s.push(v, "value");
@@ -43,7 +43,7 @@ struct BasicMessage: solid::Dynamic<BasicMessage, solid::frame::Message>{
 struct TextMessageBase{
     TextMessageBase(const std::string &_txt):text(_txt){}
     TextMessageBase(){}
-    
+
     std::string     text;
     std::string     user;
     template <class S>

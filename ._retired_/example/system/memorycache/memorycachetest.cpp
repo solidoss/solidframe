@@ -29,11 +29,11 @@ struct CacheBase: Base{
     static void* operator new (std::size_t _sz){
         return mc.allocate(_sz);
     }
-    
+
 };
 
 struct SpecificBase: SpecificObject, Base{
-    
+
 };
 
 template <uint16_t Sz, class B>
@@ -114,22 +114,22 @@ int main(int argc, char *argv[]){
         cout<<"\tUse specific MemoryCache"<<endl;
         return 0;
     }
-    
+
     solid::Thread::init();
     solid::Specific::the().configure();
-    
+
     solid::Debug::the().initStdErr(false);
     solid::Debug::the().moduleMask("all");
     solid::Debug::the().levelMask("iew");
-    
+
     std::vector<Base* > vec;
-    
+
     const size_t step = 3000;
     const size_t repeatcnt = 100;
     const size_t cp = repeatcnt * step;
     const size_t fullrepeatcnt = 10;
     vec.reserve(cp * 3);
-    
+
     size_t rescnt = 0;
     if(choice == CacheE){
         rescnt = mc.reserve(sizeof(Test<4,  CacheBase>),  cp);
@@ -144,7 +144,7 @@ int main(int argc, char *argv[]){
     }
     idbg("Reserved "<<rescnt<<" items");
     cout<<"Reserved "<<rescnt<<" items"<<endl;
-    
+
     for(size_t k = 0; k < fullrepeatcnt; ++k){
         size_t crtcp = 0;
         for(size_t i = 0; i < repeatcnt; ++i){
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]){
             idbg("Allocate "<<crtcp<<" items");
 
             (pushfnctbl[choice])(vec, crtcp);
-            
+
             idbg("+++++++++++++++++++++++++++++");
             mc.print(4);
             idbg("-----------------------------");

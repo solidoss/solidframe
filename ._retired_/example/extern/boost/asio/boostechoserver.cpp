@@ -72,7 +72,7 @@ public:
         socket_.set_option(recvoption);
         //cout<<"recv_buffer_size = "<<recvoption.value()<<endl;
         //cout<<"send_buffer_size = "<<sendoption.value()<<endl;
-        
+
 #ifdef USE_BIND
         socket_.async_read_some(
             boost::asio::buffer(data_, max_length),
@@ -81,7 +81,7 @@ public:
                 boost::asio::placeholders::bytes_transferred
             )
         );
-#else       
+#else
         socket_.async_read_some(
             boost::asio::buffer(data_, max_length),
             [this](const boost::system::error_code& _error, size_t _sz){handle_read(_error, _sz);}
@@ -90,7 +90,7 @@ public:
     }
 
 private:
-    
+
     void handle_read(const boost::system::error_code& error, size_t bytes_transferred)
     {
         if (!error)

@@ -1,6 +1,6 @@
 // forkoffset.cpp
 //
-// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -40,7 +40,7 @@ struct Test{
     void serialize(S &_s){
         _s.push(no, "Test::no").template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 0, "Test::call").push(fn,"Test::fn");
     }
-    
+
     template <class S>
     void serializationReinit(S &_rs, const uint64_t &_rv, ErrorConditionT &_rerr){
         idbg("_rv = "<<_rv);
@@ -66,13 +66,13 @@ struct Test{
                 _rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 2, "Test::reinit");
                 ostream *ps = &fs;
                 _rs.pushStream(ps, 0, 1000, "Test::ostream");
-            }   
+            }
         }else{
             idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamError().message());
         }
-        
+
     }
-    
+
     void print();
 private:
     int32_t     no;

@@ -1,6 +1,6 @@
 // frame/ipc/src/ipclistener.cpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -34,7 +34,7 @@ void Listener::execute(ExecuteContext &_rexectx){
             return;
         }
     }
-    
+
     uint cnt(10);
     while(cnt--){
         if(state == 0){

@@ -1,6 +1,6 @@
 // solid/frame/src/aiocompletion.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -37,7 +37,7 @@ CompletionHandler::CompletionHandler(
 CompletionHandler::CompletionHandler(
     CallbackT _pcall/* = &on_init_completion*/
 ):pprev(nullptr), idxreactor(InvalidIndex()), call(_pcall){
-    
+
 }
 
 

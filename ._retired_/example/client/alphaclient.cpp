@@ -43,7 +43,7 @@ struct Params{
     string      dbg_port;
     bool        dbg_buffered;
     bool        dbg_console;
-    
+
     uint32      con_cnt;
     string      srv_addr;
     string      srv_port;
@@ -217,7 +217,7 @@ void AlphaThread::run(){
             return;
         }
     }
-    
+
     //timeval tv;
 //  memset(&tv, 0, sizeof(timeval));
 //  tv.tv_sec = 30;
@@ -582,12 +582,12 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
     Params  p;
-    
+
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     signal(SIGPIPE, SIG_IGN);
     Thread::init();
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -627,13 +627,13 @@ int main(int argc, char *argv[]){
         SSL_load_error_strings();
         ERR_load_BIO_strings();
         OpenSSL_add_all_algorithms();
-        
+
         sslctx = SSL_CTX_new(SSLv23_client_method());
-        
+
         //const char *pcertpath = "../../../../extern/linux/openssl/demos/tunala/A-client.pem";
         const char *pcertpath = certificate_path();
         cout<<"Client certificate path: "<<pcertpath<<endl;
-        
+
         if(!sslctx){
             cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
             return 0;
@@ -643,7 +643,7 @@ int main(int argc, char *argv[]){
             return 0;
         }
         system("mkdir certs");
-        
+
         if(!SSL_CTX_load_verify_locations(sslctx, NULL, "certs")){
             cout<<"failed SSL_CTX_load_verify_locations 2 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
             return 0;
@@ -651,19 +651,19 @@ int main(int argc, char *argv[]){
     }
     //------------------------------------------
     //done with ssl context stuff
-    
+
     for(int i = 0; i < p.con_cnt; ++i){
         AlphaThread *pt = new AlphaThread(p, inf.pushBack(), i);
         inf.addWait();
         pt->start(true, true, 24*1024);
     }
-    
+
     inf.ft.currentMonotonic();
-    
+
     while(inf.print()){
         Thread::sleep(500);
     }
-    
+
     Thread::waitAll();
     cout<<"done"<<endl;
     return 0;

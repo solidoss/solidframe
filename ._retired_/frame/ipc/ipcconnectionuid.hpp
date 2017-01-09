@@ -1,6 +1,6 @@
 // frame/ipc/ipcconnectionuid.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -29,9 +29,9 @@ enum{
 //! A structure to uniquely indetify an IPC connection/session
 /*!
     <b>Overview:</b><br>
-    
+
     <b>Usage:</b><br>
-    
+
 */
 struct ConnectionUid{
     ConnectionUid(
@@ -68,33 +68,33 @@ class Service;
     callbacks (Signal::ipcComplete, Signal::ipcReceive).<br>
     Also for the case when we want to wait for response, on signal
     serialization we need to use the signaluid from the current context.
-    
+
     See concept::alpha::RemoteListSignal from alphasignals.hpp for an example.
-    
+
 */
 struct ConnectionContext{
     typedef DynamicPointer<Message>     MessagePointerT;
     static const ConnectionContext& the();
-    
+
     Service             &rservice;
     ConnectionUid       connectionuid;
     const ObjectUidT    tkruid;
     int                 baseport;
     SocketAddressStub   pairaddr;
     uint32              netid;
-    
-    
+
+
     MessagePointerT& requestMessage(const Message &_rmsg)const;
-    
+
     Service& service()const{
         return rservice;
     }
 private:
     friend class Context;
     friend class Session;
-    
+
     Session             *psession;
-    
+
     ConnectionContext(
         Service &_rsrv,
         const uint16 _tkridx,

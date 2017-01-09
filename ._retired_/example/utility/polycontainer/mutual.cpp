@@ -14,14 +14,14 @@ int main(int argc, char *argv[]){
     int mutcolsbts(atoi(argv[3]));
     int count(atoi(argv[4]));
     MutualStore<uint32_t> ms(objpermutbts, mutrowsbts, mutcolsbts);
-    
+
     for(int i = 0; i < count; ++i){
         ms.safeAt(i) = i;
     }
-    
+
     for(int i(0); i < count; ++i){
         cout<<"object("<<i<<") = "<<ms.at(i)<<endl;
     }
-    
+
     return 0;
 }

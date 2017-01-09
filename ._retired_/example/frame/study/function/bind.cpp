@@ -63,24 +63,24 @@ struct ReactorContext{
 };
 
 struct Event{
-    
+
 };
 
 class Listener{
 public:
     Listener(){}
-    
+
     template <typename F>
     bool accept(ReactorContext &_rctx, F _f){
         fnc = _f;
         return true;
     }
-    
+
     bool call(ReactorContext &_rctx){
         SocketDevice sd;
         return fnc(_rctx, sd);
     }
-    
+
 private:
     typedef boost::function<bool(ReactorContext&, SocketDevice &)>  FunctionT;
     FunctionT   fnc;
@@ -93,7 +93,7 @@ struct Big{
 class Object{
 public:
     Object(Listener &_rlsn):rlsn(_rlsn){}
-    
+
     bool onEvent(ReactorContext &_rctx, Event const &_revent){
         auto f = std::bind(&Object::onAccept, this, std::placeholders::_1, std::placeholders::_2, Big());
         cerr<<"sizeof(f) = "<<sizeof(f)<<endl;
@@ -122,10 +122,10 @@ int main(int argc, char *argv[]){
     cerr<<"================Step5"<<endl;
     obj.onEvent(ctx, Event());
     cerr<<"================Step6"<<endl;
-    
+
     lsn.call(ctx);
     cerr<<"================Step7"<<endl;
-    
-    
+
+
     return 0;
 }

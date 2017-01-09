@@ -1,6 +1,6 @@
 // system/src/memorycache.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -54,34 +54,34 @@ struct Page{
         pn -= (pn % _rcfg.pagecp);
         return reinterpret_cast<Page*>(pn);
     }
-    
+
     bool empty()const{
         return usecount == 0;
     }
-    
+
     bool full()const{
         return ptop == NULL;
     }
-    
+
     void* pop(const size_t _cp, Configuration const &_rcfg){
         void *pv = ptop;
         ptop = ptop->pnext;
         ++usecount;
         return pv;
     }
-    
+
     void push(void *_pv, const size_t _cp, Configuration const &_rcfg){
         --usecount;
         Node *pnode = static_cast<Node*>(_pv);
         pnode->pnext = ptop;
         ptop = pnode;
     }
-    
+
     size_t init(const size_t _cp, Configuration const &_rcfg){
         pprev = pnext = NULL;
         ptop = NULL;
         usecount = 0;
-        
+
         char    *pc = reinterpret_cast<char *>(this);
         void    *pv = pc + sizeof(*this);
         size_t  sz = _rcfg.pagecp - sizeof(*this);
@@ -98,16 +98,16 @@ struct Page{
         }
         return cnt;
     }
-    
+
     void print()const{
         idbgx(dbgid, "Page: "<<(void*)this<<" pnext = "<<(void*)pnext<<" pprev = "<<(void*)pprev<<" ptop = "<<ptop<<" usecount = "<<usecount);
     }
-    
+
     Page    *pprev;
     Page    *pnext;
-    
+
     Node    *ptop;
-    
+
     uint16_t    usecount;
 };
 
@@ -119,7 +119,7 @@ CacheStub::CacheStub(
     , itemcnt(0)
 #endif
     {}
-    
+
 CacheStub::~CacheStub(){
     clear();
 }
@@ -129,7 +129,7 @@ void CacheStub::clear(){
     while(pit){
         Page *ptmp = pit;
         pit = pit->pprev;
-        
+
         memory_free_aligned(ptmp);
     }
     pfrontpage = pbackpage = NULL;
@@ -141,9 +141,9 @@ inline size_t CacheStub::allocate(const size_t _cp, Configuration const &_rcfg){
     if(pv){
         Page *ppage = reinterpret_cast<Page*>(pv);
         cnt = ppage->init(_cp, _rcfg);
-        
+
         ppage->pprev = pfrontpage;
-        
+
         if(pfrontpage){
             pfrontpage->pnext = ppage;
             pfrontpage = ppage;
@@ -171,21 +171,21 @@ void* CacheStub::pop(const size_t _cp, Configuration const &_rcfg){
         itemcnt += cnt;
 #endif
     }
-    
+
     if(pfrontpage->empty()){
         --emptypagecnt;
     }
-    
+
     void *pv = pfrontpage->pop(_cp, _rcfg);
-    
+
     if(pfrontpage->full() && pfrontpage != pbackpage && !pfrontpage->pprev->full()){
         vdbgx(dbgid, "move frontpage to back: itemcnt = "<<itemcnt);
         //move the frontpage to back
         Page *ptmp = pfrontpage;
-        
+
         pfrontpage = ptmp->pprev;
         pfrontpage->pnext = NULL;
-        
+
         pbackpage->pprev = ptmp;
         ptmp->pnext = pbackpage;
         ptmp->pprev = NULL;
@@ -196,7 +196,7 @@ void* CacheStub::pop(const size_t _cp, Configuration const &_rcfg){
 #endif
     return pv;
 }
-    
+
 void CacheStub::push(void *_pv, size_t _cp, Configuration const &_rcfg){
 #ifdef SOLID_HAS_DEBUG
     ++itemcnt;
@@ -211,7 +211,7 @@ void CacheStub::push(void *_pv, size_t _cp, Configuration const &_rcfg){
             SOLID_ASSERT(pfrontpage == ppage);
             pfrontpage = ppage->pprev;
         }
-        
+
         if(ppage->pprev){
             ppage->pprev->pnext = ppage->pnext;
         }else{
@@ -231,7 +231,7 @@ void CacheStub::push(void *_pv, size_t _cp, Configuration const &_rcfg){
         if(pbackpage == ppage){
             pbackpage = ppage->pnext;
         }
-        
+
         ppage->pnext = NULL;
         ppage->pprev = pfrontpage;
         pfrontpage->pnext = ppage;
@@ -275,7 +275,7 @@ void MemoryCache::configure(
     cfg.reset((_pagecp ? _pagecp : memory_page_size()), boost::alignment_of<long>::value, _emptypagecnt);
     pagedatacp = Page::dataCapacity(cfg);
     const size_t  cnt = (pagedatacp / cfg.alignsz) + 1;
-        
+
     cachevec.reserve(cnt);
     for(size_t i = 0; i < cnt; ++i){
         cachevec.push_back(CacheStub(cfg));
@@ -297,11 +297,11 @@ size_t MemoryCache::reserve(const size_t _sz, const size_t _cnt, const bool _laz
     const size_t    cp = indexToCapacity(idx);
     CacheStub       &cs(cachevec[idx]);
     size_t          pgcnt = 0;
-    
+
     if(!cs.pagecnt){
         cs.keeppagecnt = 0;
     }
-    
+
     while(totcnt < _cnt && (crtcnt = cs.allocate(cp, cfg))){
         totcnt += crtcnt;
         ++pgcnt;

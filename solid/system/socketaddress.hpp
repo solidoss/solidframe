@@ -1,6 +1,6 @@
 // solid/system/socketaddress.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -42,7 +42,7 @@ class SocketDevice;
 //==================================================================
 //! An interator for POSIX addrinfo (see man getaddrinfo)
 /*!
-    Usually it will hold all data needed for creating and connecting 
+    Usually it will hold all data needed for creating and connecting
     a socket. Use ResolverData::begin() to get started.
 */
 struct ResolveIterator{
@@ -88,12 +88,12 @@ struct DirectResoveInfo{
 */
 struct ResolveData{
     typedef ResolveIterator const_iterator;
-    
+
     ResolveData();
     ResolveData(addrinfo *_pai);
     ResolveData(const ResolveData &_rai);
-    
-    
+
+
     ~ResolveData();
     //! Get an iterator to he first resolved ip address
     const_iterator begin()const;
@@ -117,17 +117,17 @@ private:
 
 ResolveData synchronous_resolve(const char *_node, const char *_service);
 ResolveData synchronous_resolve(
-    const char *_node, 
-    const char *_service, 
+    const char *_node,
+    const char *_service,
     int _flags,
     int _family = -1,
     int _type = -1,
     int _proto = -1
-);  
+);
 
 ResolveData synchronous_resolve(const char *_node, int _port);
 ResolveData synchronous_resolve(
-    const char *_node, 
+    const char *_node,
     int _port,
     int _flags,
     int _family = -1,
@@ -166,39 +166,39 @@ typedef int socklen_t;
 //! A pair of a sockaddr pointer and a size
 /*!
     It is a commodity structure, it will not allocate data
-    for sockaddr pointer nor it will delete it. Use this 
+    for sockaddr pointer nor it will delete it. Use this
     structure with SocketAddress and ResolveIterator
 */
 struct SocketAddressStub{
     SocketAddressStub(sockaddr *_pa = nullptr, size_t _sz = 0);
-    
+
     SocketAddressStub(const ResolveIterator &_it);
     SocketAddressStub(const SocketAddress &_rsa);
     SocketAddressStub(const SocketAddressInet &_rsa);
     SocketAddressStub(const SocketAddressInet4 &_rsa);
     SocketAddressStub(const SocketAddressInet6 &_rsa);
     SocketAddressStub(const SocketAddressLocal &_rsa);
-    
+
     SocketAddressStub& operator=(const ResolveIterator &_it);
     SocketAddressStub& operator=(const SocketAddress &_rsa);
     SocketAddressStub& operator=(const SocketAddressInet &_rsa);
     SocketAddressStub& operator=(const SocketAddressInet4 &_rsa);
     SocketAddressStub& operator=(const SocketAddressInet6 &_rsa);
     SocketAddressStub& operator=(const SocketAddressLocal &_rsa);
-    
+
     operator const sockaddr*()const;
-    
+
     void clear();
-    
+
     SocketInfo::Family family()const;
-    
+
     bool isInet4()const;
     bool isInet6()const;
     bool isLocal()const;
-    
+
     socklen_t size()const;
     int port()const;
-    
+
     const sockaddr  *sockAddr()const;
 private:
     const sockaddr  *addr;
@@ -207,7 +207,7 @@ private:
 //==================================================================
 //! Holds a generic socket address
 /*!
-    On unix it can be either: inet_v4, inet_v6 or unix/local address 
+    On unix it can be either: inet_v4, inet_v6 or unix/local address
 */
 struct SocketAddress{
 private:
@@ -221,35 +221,35 @@ private:
     };
 public:
     enum {Capacity = sizeof(AddrUnion)};
-    
+
     SocketAddress();
     SocketAddress(const SocketAddressStub &);
     SocketAddress(const char* _addr, int _port);
     SocketAddress(const char* _path);
-    
+
     SocketAddress& operator=(const SocketAddressStub &);
-    
+
     SocketInfo::Family family()const;
-    
+
     bool isInet4()const;
     bool isInet6()const;
     bool isLocal()const;
-    
+
     bool isLoopback()const;
     bool isInvalid()const;
-    
+
     bool empty()const;
-    
+
     const socklen_t&    size()const;
 
     const sockaddr* sockAddr()const;
     operator const sockaddr*()const;
-    
+
     bool operator<(const SocketAddress &_raddr)const;
     bool operator==(const SocketAddress &_raddr)const;
-    
+
     void address(const char*_str);
-    
+
     const in_addr& address4()const;
     const in6_addr& address6()const;
     int port()const;
@@ -257,7 +257,7 @@ public:
     void clear();
     size_t hash()const;
     size_t addressHash()const;
-    
+
     void path(const char*_pth);
     const char* path()const;
 private:
@@ -277,50 +277,50 @@ private:
     };
 public:
     enum {Capacity = sizeof(AddrUnion)};
-    
+
     typedef std::array<uint8_t, 4>  DataArray4T;
     typedef std::array<uint8_t, 16> DataArray6T;
-    
+
     SocketAddressInet();
     SocketAddressInet(const SocketAddressStub &);
     SocketAddressInet(const char* _addr, int _port = 0);
-    
+
     SocketAddressInet& operator=(const SocketAddressStub &);
-    
+
     SocketInfo::Family family()const;
-    
+
     bool isInet4()const;
     bool isInet6()const;
-    
+
     bool isLoopback()const;
     bool isInvalid()const;
-    
+
     bool empty()const;
-    
+
     const socklen_t&    size()const;
 
     const sockaddr* sockAddr()const;
     operator const sockaddr*()const;
-    
+
     bool toBinary(DataArray4T &_bin, uint16_t &_port)const;
     bool toBinary(DataArray6T &_bin, uint16_t &_port)const;
     void fromBinary(const DataArray4T &_bin, uint16_t _port = 0);
     void fromBinary(const DataArray6T &_bin, uint16_t _port = 0);
-    
+
     bool operator<(const SocketAddressInet &_raddr)const;
     bool operator==(const SocketAddressInet &_raddr)const;
-    
+
     void address(const char*_str);
-    
+
     const in_addr& address4()const;
     const in6_addr& address6()const;
-    
+
     int port()const;
     bool port(int _port);
     void clear();
     size_t hash()const;
     size_t addressHash()const;
-    
+
 private:
     friend class SocketDevice;
     operator sockaddr*();
@@ -338,49 +338,49 @@ private:
 public:
     enum {Capacity = sizeof(AddrUnion)};
     typedef std::array<uint8_t, 4>  DataArrayT;
-    
+
     SocketAddressInet4();
     SocketAddressInet4(const SocketAddressStub &);
     SocketAddressInet4(const char* _addr, int _port = 0);
     SocketAddressInet4(uint32_t _addr, int _port);
     SocketAddressInet4(const DataArrayT &_addr, int _port = 0);
-    
+
     //SocketAddressInet4& operator=(const ResolveIterator &);
     SocketAddressInet4& operator=(const SocketAddressStub &);
-            
+
     SocketInfo::Family family()const;
     bool isInet4()const;
-        
+
     bool isLoopback()const;
     bool isInvalid()const;
-    
+
     socklen_t   size()const;
 
     const sockaddr* sockAddr()const;
     //operator sockaddr*(){return sockAddr();}
     operator const sockaddr*()const;
-    
+
     void toBinary(DataArrayT &_bin, uint16_t &_port)const;
-    
+
     void toUInt(uint32_t &_addr, uint16_t &_port)const;
-    
+
     void fromBinary(const DataArrayT &_bin, uint16_t _port = 0);
     void fromUInt(uint32_t _addr, uint16_t _port = 0);
-    
-    
+
+
     bool operator<(const SocketAddressInet4 &_raddr)const;
     bool operator==(const SocketAddressInet4 &_raddr)const;
-    
+
     void address(const char*_str);
-    
+
     const in_addr& address()const;
-    
+
     int port()const;
     void port(int _port);
     void clear();
     size_t hash()const;
     size_t addressHash()const;
-    
+
 private:
     friend class SocketDevice;
     operator sockaddr*();
@@ -397,44 +397,44 @@ private:
 public:
     enum {Capacity = sizeof(AddrUnion)};
     typedef std::array<uint8_t, 16> DataArrayT;
-    
+
     SocketAddressInet6();
     SocketAddressInet6(const SocketAddressStub &);
     SocketAddressInet6(const char* _addr, int _port = 0);
     SocketAddressInet6(const DataArrayT &_addr, int _port = 0);
-    
+
     SocketAddressInet6& operator=(const SocketAddressStub &);
-        
+
     SocketInfo::Family family()const;
     bool isInet6()const;
-    
+
     bool isLoopback()const;
     bool isInvalid()const;
-    
+
     bool empty()const;
-    
+
     socklen_t size()const;
 
     const sockaddr* sockAddr()const;
     operator const sockaddr*()const;
-    
+
     void toBinary(DataArrayT &_bin, uint16_t &_port)const;
-    
+
     void fromBinary(const DataArrayT &_bin, uint16_t _port = 0);
-    
+
     bool operator<(const SocketAddressInet6 &_raddr)const;
     bool operator==(const SocketAddressInet6 &_raddr)const;
-    
+
     void address(const char*_str);
-    
+
     const in6_addr& address()const;
-    
+
     int port()const;
     void port(int _port);
     void clear();
     size_t hash()const;
     size_t addressHash()const;
-    
+
 private:
     friend class SocketDevice;
     operator sockaddr*();
@@ -470,28 +470,28 @@ private:
     };
 public:
     enum {Capacity = sizeof(AddrUnion)};
-    
+
     SocketAddressLocal();
     SocketAddressLocal(const char* _path);
-    
+
     SocketAddressLocal& operator=(const SocketAddressStub &);
-    
+
     SocketInfo::Family family()const;
-    
+
     bool empty()const;
-    
+
     const socklen_t&    size()const;
 
     const sockaddr* sockAddr()const;
     operator const sockaddr*()const;
-    
+
     bool operator<(const SocketAddressLocal &_raddr)const;
     bool operator==(const SocketAddressLocal &_raddr)const;
-    
+
     void clear();
     size_t hash()const;
     size_t addressHash()const;
-    
+
     void path(const char*_pth);
     const char* path()const;
 private:

@@ -1,6 +1,6 @@
 // solid/system/src/system.cpp
 //
-// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -89,7 +89,7 @@ struct TimeStartData{
     const uint64_t  start_msec;
 #endif
 };
- 
+
 TimeStartData& tsd_instance_stub(){
     static TimeStartData tsd;
     return tsd;
@@ -98,7 +98,7 @@ TimeStartData& tsd_instance_stub(){
 void once_cbk_tsd(){
     tsd_instance_stub();
 }
- 
+
 TimeStartData& TimeStartData::instance(){
     static boost::once_flag once = BOOST_ONCE_INIT;
     boost::call_once(&once_cbk_tsd, once);
@@ -117,7 +117,7 @@ const NanoTime& NanoTime::currentRealTime(){
 #else
     const TimeStartData &tsd = TimeStartData::instance();
     LARGE_INTEGER       ms;
-    
+
     QueryPerformanceCounter(&ms);
     const uint64_t qpc = ms.QuadPart - tsd.start_msec.QuadPart;
     const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
@@ -138,7 +138,7 @@ const NanoTime& NanoTime::currentMonotonic(){
 #else
     const TimeStartData &tsd = TimeStartData::instance();
     LARGE_INTEGER       ms;
-    
+
     QueryPerformanceCounter(&ms);
     const uint64_t qpc = ms.QuadPart;
     const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);

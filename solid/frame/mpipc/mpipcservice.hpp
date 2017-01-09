@@ -1,6 +1,6 @@
 // solid/frame/mpipc/mpipcservice.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -44,50 +44,50 @@ struct MessageBundle;
     A synchronous message is one sent with MessageFlags::Synchronous flag set:
     sendMessage(..., MessageFlags::Synchronous)
     Messages with MessageFlags::Synchronous flag unset are asynchronous.
-    
+
     Synchronous messages
         * are always sent one after another, so they reach destination
             in the same order they were sent.
         * if multiple connections through peers are posible, only one is used for
             synchronous messages.
-    
+
     Asynchronous messages
         * Because the messages are multiplexed, although the messages start being
             serialized on the socket stream in the same order sendMessage was called
             they will reach destination in a different order deppending on the
             message serialization size.
-            
-    
+
+
     Example:
         sendMessage("peer_name", m1_500MB, MessageFlags::Synchronous);
         sendMessage("peer_name", m2_100MB, MessageFlags::Synchronous);
         sendMessage("peer_name", m3_10MB, 0);
         sendMessage("peer_name", m4_1MB, 0);
-        
+
         The order they will reach the peer side is:
         m4_1MB, m3_10MB, m1_500MB, m2_100MB
         or
         m3_10MB, m4_1MB, m1_500MB, m2_100MB
-    
+
 */
 class Service: public frame::Service{
-    
+
 public:
     typedef frame::Service BaseT;
-    
+
     Service(
         frame::UseServiceShell _force_shell
     );
-    
+
     //! Destructor
     ~Service();
-    
+
     ErrorConditionT start();
-    
+
     ErrorConditionT reconfigure(Configuration && _ucfg);
-    
+
     Configuration const & configuration()const;
-    
+
     // send message using recipient name --------------------------------------
     template <class T>
     ErrorConditionT sendMessage(
@@ -95,7 +95,7 @@ public:
         std::shared_ptr<T> const &_rmsgptr,
         ulong _flags = 0
     );
-    
+
     template <class T>
     ErrorConditionT sendMessage(
         const char *_recipient_name,
@@ -103,7 +103,7 @@ public:
         RecipientId &_rrecipient_id,
         ulong _flags = 0
     );
-    
+
     template <class T>
     ErrorConditionT sendMessage(
         const char *_recipient_name,
@@ -112,16 +112,16 @@ public:
         MessageId &_rmsg_id,
         ulong _flags = 0
     );
-    
+
     // send message using connection uid  -------------------------------------
-    
+
     template <class T>
     ErrorConditionT sendMessage(
         RecipientId const &_rrecipient_id,
         std::shared_ptr<T> const &_rmsgptr,
         ulong _flags = 0
     );
-    
+
     template <class T>
     ErrorConditionT sendMessage(
         RecipientId const &_rrecipient_id,
@@ -129,9 +129,9 @@ public:
         MessageId &_rmsg_id,
         ulong _flags = 0
     );
-    
+
     // send request using recipient name --------------------------------------
-    
+
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         const char *_recipient_name,
@@ -139,7 +139,7 @@ public:
         Fnc _complete_fnc,
         ulong _flags = 0
     );
-    
+
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         const char *_recipient_name,
@@ -148,7 +148,7 @@ public:
         RecipientId &_rrecipient_id,
         ulong _flags = 0
     );
-    
+
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         const char *_recipient_name,
@@ -158,16 +158,16 @@ public:
         MessageId &_rmsguid,
         ulong _flags = 0
     );
-    
+
     // send message using connection uid  -------------------------------------
-    
+
     template <class T>
     ErrorConditionT sendResponse(
         RecipientId const &_rrecipient_id,
         std::shared_ptr<T> const &_rmsgptr,
         ulong _flags = 0
     );
-    
+
     template <class T>
     ErrorConditionT sendResponse(
         RecipientId const &_rrecipient_id,
@@ -175,9 +175,9 @@ public:
         MessageId &_rmsg_id,
         ulong _flags = 0
     );
-    
+
     // send request using connection uid --------------------------------------
-    
+
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         RecipientId const &_rrecipient_id,
@@ -185,7 +185,7 @@ public:
         Fnc _complete_fnc,
         ulong _flags = 0
     );
-    
+
     template <class T, class Fnc>
     ErrorConditionT sendRequest(
         RecipientId const &_rrecipient_id,
@@ -195,7 +195,7 @@ public:
         ulong _flags = 0
     );
     // send message with complete using recipient name ------------------------
-    
+
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         const char *_recipient_name,
@@ -203,7 +203,7 @@ public:
         Fnc _complete_fnc,
         ulong _flags
     );
-    
+
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         const char *_recipient_name,
@@ -212,7 +212,7 @@ public:
         RecipientId &_rrecipient_id,
         ulong _flags
     );
-    
+
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         const char *_recipient_name,
@@ -222,7 +222,7 @@ public:
         MessageId &_rmsguid,
         ulong _flags
     );
-    
+
     // send message with complete using connection uid ------------------------
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
@@ -231,7 +231,7 @@ public:
         Fnc _complete_fnc,
         ulong _flags
     );
-    
+
     template <class T, class Fnc>
     ErrorConditionT sendMessage(
         RecipientId const &_rrecipient_id,
@@ -240,66 +240,66 @@ public:
         MessageId &_rmsguid,
         ulong _flags
     );
-    
+
     //-------------------------------------------------------------------------
     template <typename F>
     ErrorConditionT forceCloseConnectionPool(
         RecipientId const &_rrecipient_id,
         F _f
     );
-    
+
     template <typename F>
     ErrorConditionT delayCloseConnectionPool(
         RecipientId const &_rrecipient_id,
         F _f
     );
-    
-    
+
+
     template <class CompleteFnc>
     ErrorConditionT connectionNotifyEnterActiveState(
         RecipientId const &_rrecipient_id,
         CompleteFnc _complete_fnc,
         const size_t _send_buffer_capacity = 0//0 means: leave as it is
     );
-    
+
     ErrorConditionT connectionNotifyEnterActiveState(
         RecipientId const &_rrecipient_id,
         const size_t _send_buffer_capacity = 0//0 means: leave as it is
     );
-    
+
     template <class CompleteFnc>
     ErrorConditionT connectionNotifyStartSecureHandshake(
         RecipientId const &_rrecipient_id,
         CompleteFnc _complete_fnc
     );
-    
+
     template <class CompleteFnc>
     ErrorConditionT connectionNotifyEnterPassiveState(
         RecipientId const &_rrecipient_id,
         CompleteFnc _complete_fnc
     );
-    
+
     ErrorConditionT connectionNotifyEnterPassiveState(
         RecipientId const &_rrecipient_id
     );
-    
+
     template <class CompleteFnc>
     ErrorConditionT connectionNotifySendAllRawData(
         RecipientId const &_rrecipient_id,
         CompleteFnc _complete_fnc,
         std::string &&_rdata
     );
-    
+
     template <class CompleteFnc>
     ErrorConditionT connectionNotifyRecvSomeRawData(
         RecipientId const &_rrecipient_id,
         CompleteFnc _complete_fnc
     );
-    
+
     ErrorConditionT cancelMessage(RecipientId const &_rrecipient_id, MessageId const &_rmsg_id);
-    
+
     bool closeConnection(RecipientId const &_rrecipient_id);
-    
+
 private:
     ErrorConditionT doConnectionNotifyEnterActiveState(
         RecipientId const &_rrecipient_id,
@@ -310,7 +310,7 @@ private:
         RecipientId const &_rrecipient_id,
         ConnectionSecureHandhakeCompleteFunctionT &&_ucomplete_fnc
     );
-    
+
     ErrorConditionT doConnectionNotifyEnterPassiveState(
         RecipientId const &_rrecipient_id,
         ConnectionEnterPassiveCompleteFunctionT &&_ucomplete_fnc
@@ -327,17 +327,17 @@ private:
 private:
     friend class Listener;
     friend class Connection;
-    
+
     //void doStop();
-    
+
     ErrorConditionT doStart();
-    
+
     void acceptIncomingConnection(SocketDevice &_rsd);
-    
+
     ErrorConditionT activateConnection(Connection &_rcon, ObjectIdT const &_robjuid);
-    
+
     void connectionStop(Connection const &_rcon);
-    
+
     bool connectionStopping(
         Connection &_rcon, ObjectIdT const &_robjuid,
         ulong &_rseconds_to_wait,
@@ -346,7 +346,7 @@ private:
         Event &_revent_context,
         ErrorConditionT &_rerror
     );
-    
+
     bool doNonMainConnectionStopping(
         Connection &_rcon, ObjectIdT const &_robjuid,
         ulong &_rseconds_to_wait,
@@ -355,7 +355,7 @@ private:
         Event &_revent_context,
         ErrorConditionT &_rerror
     );
-    
+
     bool doMainConnectionStoppingNotLast(
         Connection &_rcon, ObjectIdT const &/*_robjuid*/,
         ulong &_rseconds_to_wait,
@@ -364,7 +364,7 @@ private:
         Event &_revent_context,
         ErrorConditionT &_rerror
     );
-    
+
     bool doMainConnectionStoppingCleanOneShot(
         Connection &_rcon, ObjectIdT const &_robjuid,
         ulong &_rseconds_to_wait,
@@ -373,7 +373,7 @@ private:
         Event &_revent_context,
         ErrorConditionT &_rerror
     );
-    
+
     bool doMainConnectionStoppingCleanAll(
         Connection &_rcon, ObjectIdT const &_robjuid,
         ulong &_rseconds_to_wait,
@@ -382,7 +382,7 @@ private:
         Event &_revent_context,
         ErrorConditionT &_rerror
     );
-    
+
     bool doMainConnectionStoppingPrepareCleanOneShot(
         Connection &_rcon, ObjectIdT const &/*_robjuid*/,
         ulong &/*_rseconds_to_wait*/,
@@ -391,7 +391,7 @@ private:
         Event &_revent_context,
         ErrorConditionT &_rerror
     );
-    
+
     bool doMainConnectionStoppingPrepareCleanAll(
         Connection &_rcon, ObjectIdT const &/*_robjuid*/,
         ulong &/*_rseconds_to_wait*/,
@@ -400,7 +400,7 @@ private:
         Event &_revent_context,
         ErrorConditionT &_rerror
     );
-    
+
     bool doMainConnectionRestarting(
         Connection &_rcon, ObjectIdT const &/*_robjuid*/,
         ulong &/*_rseconds_to_wait*/,
@@ -409,45 +409,45 @@ private:
         Event &_revent_context,
         ErrorConditionT &_rerror
     );
-    
+
     void onIncomingConnectionStart(ConnectionContext &_rconctx);
     void onOutgoingConnectionStart(ConnectionContext &_rconctx);
     void onConnectionStop(ConnectionContext &_rconctx);
-    
+
     ErrorConditionT pollPoolForUpdates(
         Connection &_rcon,
         ObjectIdT const &_robjuid,
         MessageId const &_rmsgid
     );
-    
+
     void rejectNewPoolMessage(Connection const &_rcon);
-    
+
     bool fetchMessage(Connection &_rcon, ObjectIdT const &_robjuid, MessageId const &_rmsg_id);
-    
+
     bool fetchCanceledMessage(Connection const &_rcon, MessageId const &_rmsg_id, MessageBundle &_rmsg_bundle);
-    
+
     bool doTryPushMessageToConnection(
         Connection &_rcon,
         ObjectIdT const &_robjuid,
         const size_t _pool_idx,
         const size_t msg_idx
     );
-    
+
     bool doTryPushMessageToConnection(
         Connection &_rcon,
         ObjectIdT const &_robjuid,
         const size_t _pool_idx,
         const MessageId & _rmsg_id
     );
-    
+
     void forwardResolveMessage(ConnectionPoolId const &_rconpoolid, Event &_revent);
-    
+
     void doPushFrontMessageToPool(
         const ConnectionPoolId &_rpool_id,
         MessageBundle &_rmsgbundle,
         MessageId const &_rmsgid
     );
-    
+
 
     ErrorConditionT doSendMessage(
         const char *_recipient_name,
@@ -458,7 +458,7 @@ private:
         MessageId *_pmsg_id_out,
         ulong _flags
     );
-    
+
     ErrorConditionT doSendMessageToNewPool(
         const char *_recipient_name,
         MessagePointerT &_rmsgptr,
@@ -468,7 +468,7 @@ private:
         MessageId *_pmsguid_out,
         ulong _flags
     );
-    
+
     ErrorConditionT doSendMessageToConnection(
         const RecipientId   &_rrecipient_id_in,
         MessagePointerT &_rmsgptr,
@@ -477,33 +477,33 @@ private:
         MessageId *_pmsg_id_out,
         ulong _flags
     );
-    
+
     bool doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorConditionT &_rerror);
-    
+
     void doFetchResendableMessagesFromConnection(
         Connection &_rcon
     );
-    
+
     size_t doPushNewConnectionPool();
-    
+
     void pushFrontMessageToConnectionPool(
         ConnectionPoolId &_rconpoolid,
         MessageBundle &_rmsgbundle,
         MessageId const &_rmsgid
     );
-    
+
     bool doTryNotifyPoolWaitingConnection(const size_t _conpoolindex);
-    
+
     ErrorConditionT doForceCloseConnectionPool(
-        RecipientId const &_rrecipient_id, 
+        RecipientId const &_rrecipient_id,
         MessageCompleteFunctionT &_rcomplete_fnc
     );
-    
+
     ErrorConditionT doDelayCloseConnectionPool(
-        RecipientId const &_rrecipient_id, 
+        RecipientId const &_rrecipient_id,
         MessageCompleteFunctionT &_rcomplete_fnc
     );
-    
+
 private:
     struct  Data;
     Data    &d;
@@ -590,12 +590,12 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     RecipientId                 recipient_id;
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlags::WaitResponse);
 }
 //-------------------------------------------------------------------------
@@ -612,12 +612,12 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     RecipientId                 recipient_id;
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags | MessageFlags::WaitResponse);
 }
 //-------------------------------------------------------------------------
@@ -635,12 +635,12 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     RecipientId                 recipient_id;
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsguid, _flags | MessageFlags::WaitResponse);
 }
 //-------------------------------------------------------------------------
@@ -657,11 +657,11 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlags::WaitResponse);
 }
 //-------------------------------------------------------------------------
@@ -678,11 +678,11 @@ ErrorConditionT Service::sendRequest(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags | MessageFlags::WaitResponse);
 }
 
@@ -729,12 +729,12 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     RecipientId                 recipient_id;
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
 //-------------------------------------------------------------------------
@@ -751,12 +751,12 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     RecipientId                 recipient_id;
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags);
 }
 //-------------------------------------------------------------------------
@@ -774,12 +774,12 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     RecipientId                 recipient_id;
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(_recipient_name, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsguid, _flags);
 }
 //-------------------------------------------------------------------------
@@ -796,11 +796,11 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags);
 }
 //-------------------------------------------------------------------------
@@ -817,11 +817,11 @@ ErrorConditionT Service::sendMessage(
         typename message_complete_traits<decltype(_complete_fnc)>::send_type,
         typename message_complete_traits<decltype(_complete_fnc)>::recv_type
     >;
-    
+
     MessagePointerT             msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     CompleteHandlerT            fnc(_complete_fnc);
     MessageCompleteFunctionT    complete_handler(fnc);
-    
+
     return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags);
 }
 //-------------------------------------------------------------------------
@@ -833,7 +833,7 @@ ErrorConditionT Service::forceCloseConnectionPool(
     auto fnc = [_f](ConnectionContext &_rctx, MessagePointerT &/*_rmsgptr*/, MessagePointerT &, ErrorConditionT const &/*_err*/){
         _f(_rctx);
     };
-    
+
     MessageCompleteFunctionT    complete_handler(fnc);
     return doForceCloseConnectionPool(_rrecipient_id, complete_handler);
 }
@@ -846,7 +846,7 @@ ErrorConditionT Service::delayCloseConnectionPool(
     auto fnc = [_f](ConnectionContext &_rctx, MessagePointerT &/*_rmsgptr*/, MessagePointerT &, ErrorConditionT const &/*_err*/){
         _f(_rctx);
     };
-    
+
     MessageCompleteFunctionT    complete_handler(fnc);
     return doDelayCloseConnectionPool(_rrecipient_id, complete_handler);
 }

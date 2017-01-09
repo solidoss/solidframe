@@ -1,6 +1,6 @@
 // system/specific.hpp
 //
-// Copyright (c) 2007, 2008, 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -42,18 +42,18 @@ struct SpecificObject{
 class Specific{
 public:
     static Specific& the();
-    
+
     void configure(
         const size_t _pagecp = 0,
         const size_t _emptypagecnt = 1
     );
-    
+
     void *allocate(const size_t _cp);
-    
+
     void free(void *_p, const size_t _cp);
-    
+
     size_t reserve(const size_t _sz, const size_t _cnt, const bool _lazy = true);
-    
+
 private:
     friend class Thread;
     static void destroy(void *_pv);
@@ -68,7 +68,7 @@ private:
 inline void *Specific::allocate(const size_t _cp){
     return cache.allocate(_cp);
 }
-    
+
 inline void Specific::free(void *_p, const size_t _cp){
     return cache.free(_p, _cp);
 }

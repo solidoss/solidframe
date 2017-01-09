@@ -1,6 +1,6 @@
 // solid/frame/schedulerbase.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -32,10 +32,10 @@ class SchedulerBase{
 public:
 protected:
     typedef bool (*CreateWorkerF)(SchedulerBase &_rsch, const size_t, std::thread &_rthr);
-    
+
     typedef FUNCTION<bool()>                    ThreadEnterFunctionT;
     typedef FUNCTION<void()>                    ThreadExitFunctionT;
-    
+
     ErrorConditionT doStart(
         CreateWorkerF _pf,
         ThreadEnterFunctionT &_renf,
@@ -44,15 +44,15 @@ protected:
     );
 
     void doStop(const bool _wait = true);
-    
+
     ObjectIdT doStartObject(ObjectBase &_robj, Service &_rsvc, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr);
-    
+
 protected:
     SchedulerBase();
     ~SchedulerBase();
 private:
     friend class ReactorBase;
-    
+
     bool prepareThread(const size_t _idx, ReactorBase &_rsel, const bool _success);
     void unprepareThread(const size_t _idx, ReactorBase &_rsel);
     size_t doComputeScheduleReactorIndex();

@@ -39,7 +39,7 @@ struct ClientParams{
         Request(solid::uint8 _opp = 0):opp(_opp){
             u.u64 = 0;
         }
-        
+
         solid::uint8        opp;
         union{
             solid::uint64   u64;
@@ -51,16 +51,16 @@ struct ClientParams{
     };
     typedef std::vector<Request>    RequestVectorT;
     typedef std::vector<solid::uint32>      UInt32VectorT;
-    
+
     std::string     seqstr;
     StringVectorT   addrstrvec;
     solid::uint32   cnt;
     UInt32VectorT   strszvec;
-    
+
     AddressVectorT  addrvec;
     RequestVectorT  reqvec;
     StringVectorT   strvec;
-    
+
     ClientParams():cnt(0){}
     ClientParams(const ClientParams &_rcp);
     bool init();
@@ -90,20 +90,20 @@ public:
     void dynamicHandle(solid::DynamicPointer<StoreRequest> &_rmsgptr);
     void dynamicHandle(solid::DynamicPointer<FetchRequest> &_rmsgptr);
     void dynamicHandle(solid::DynamicPointer<EraseRequest> &_rmsgptr);
-        
+
     solid::uint32 newRequestId(int _pos = -1);
     bool   isRequestIdExpected(solid::uint32 _v, int &_rpos)const;
     void   deleteRequestId(solid::uint32 _v);
 private:
     /*virtual*/ void execute(ExecuteContext &_rexectx);
     solid::uint32 sendMessage(solid::consensus::WriteRequestMessage *_pmsg);
-    
+
     const std::string& getString(solid::uint32 _pos, solid::uint32 _crtpos);
     void expectStore(solid::uint32 _rid, const std::string &_rs, solid::uint32 _v, solid::uint32 _cnt);
     void expectFetch(solid::uint32 _rid, const std::string &_rs, solid::uint32 _cnt);
     void expectErase(solid::uint32 _rid, const std::string &_rs, solid::uint32 _cnt);
     void expectErase(solid::uint32 _rid, solid::uint32 _cnt);
-    
+
     /*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
     void state(int _st){
         st = _st;
@@ -115,8 +115,8 @@ private:
     static DynamicMapperT       dm;
     typedef std::vector<std::pair<solid::uint32, int> >     RequestIdVectorT;
     typedef std::vector<solid::DynamicPointer<> >           DynamicPointerVectorT;
-    
-    
+
+
     ClientParams                params;
     solid::frame::ipc::Service  &ripcsvc;
     solid::uint32               crtreqid;
@@ -124,7 +124,7 @@ private:
     solid::uint32               crtpos;
     solid::uint32               waitresponsecount;
     int                         st;
-    
+
     solid::TimeSpec             nexttimepos;
     DynamicPointerVectorT       dv;
     RequestIdVectorT            reqidvec;

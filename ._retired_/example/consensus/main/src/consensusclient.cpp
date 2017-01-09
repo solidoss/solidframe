@@ -66,19 +66,19 @@ static void term_handler(int signum){
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
-    
+
     Params p;
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     Thread::init();
-    
+
     if(!p.p.init()){
         cout<<"Error: "<<p.p.errorString()<<endl;
         return 0;
     }
-    
+
     p.p.print(cout);
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -120,28 +120,28 @@ int main(int argc, char *argv[]){
             sleep(pos + 1);
         }
     }
-    
+
     if(true){
-        
+
         frame::Manager          m;
-        
+
         AioSchedulerT           aiosched(m);
         SchedulerT              objsched(m);
-        
+
         frame::ipc::Service     ipcsvc(m, new frame::ipc::BasicController(aiosched));
-        
+
         //ipcsvc.typeMapper().insert<FirstMessage>();
-        
+
         m.registerService(ipcsvc);
-        
+
         {
             frame::ipc::Configuration   cfg;
             ResolveData                 rd = synchronous_resolve("0.0.0.0", p.ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
             //frame::aio::Error         err;
             bool                        err;
-            
+
             cfg.baseaddr = rd.begin();
-            
+
             err = ipcsvc.reconfigure(cfg);
             if(!err){
                 //TODO:
@@ -152,20 +152,20 @@ int main(int argc, char *argv[]){
         }
         ClientObject::dynamicRegister();
         mapSignals(ipcsvc);
-        
+
         DynamicPointer<ClientObject> objptr(new ClientObject(p.p, ipcsvc));
-    
+
         m.registerObject(*objptr);
         objsched.schedule(objptr);
-        
-        
+
+
         {
             Locker<Mutex>   lock(mtx);
             while(run){
                 cnd.wait(lock);
             }
         }
-    
+
         m.stop();
     }
     Thread::waitAll();

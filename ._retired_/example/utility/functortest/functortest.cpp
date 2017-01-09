@@ -48,7 +48,7 @@ struct TestCFunctor{
 
 struct TestDFunctor{
     TestDFunctor(int _v):v(_v){}
-    
+
     int operator()(int _x, const std::string &_rs){
         idbg("v = "<<v<<" string = "<<_rs<<" x = "<<_x);
         return v;
@@ -73,7 +73,7 @@ struct TestInt{
 
 struct TestEFunctor{
     TestEFunctor(int _v):v(_v){}
-    
+
     void operator()(const std::string &_rs, int _x){
         idbg("v = "<<v<<" string = "<<_rs<<" x = "<<_x);
     }
@@ -101,14 +101,14 @@ int main(int argc, char *argv[]){
 #endif
     {
         TestAFunctor        af(10);
-        
+
         FunctorReference<>  fs(af);
-        
+
         fs();
     }
     {
         FunctorReference<int>   fs(calla);
-        
+
         int rv = fs();
         idbg("rv = "<<rv);
     }

@@ -73,9 +73,9 @@ int test_multiprotocol_basic(int argc, char **argv){
     Debug::the().initStdErr(false, nullptr);
     //Debug::the().initFile("test_clientserver_basic", false);
 #endif
-    
+
     size_t max_per_pool_connection_count = 1;
-    
+
     if(argc > 1){
         max_per_pool_connection_count = atoi(argv[1]);
         if(max_per_pool_connection_count == 0){
@@ -85,65 +85,65 @@ int test_multiprotocol_basic(int argc, char **argv){
             max_per_pool_connection_count = 100;
         }
     }
-    
-    
+
+
     {
         AioSchedulerT           sch_client;
         AioSchedulerT           sch_server;
-            
-            
+
+
         frame::Manager          m;
         frame::mpipc::ServiceT  mpipcserver(m);
         ErrorConditionT         err;
-        
+
         frame::aio::Resolver    resolver;
-        
+
         err = sch_client.start(1);
-        
+
         if(err){
             edbg("starting aio client scheduler: "<<err.message());
             return 1;
         }
-        
+
         err = sch_server.start(1);
-        
+
         if(err){
             edbg("starting aio server scheduler: "<<err.message());
             return 1;
         }
-        
+
         err = resolver.start(1);
-        
+
         if(err){
             edbg("starting aio resolver: "<<err.message());
             return 1;
         }
-        
+
         std::string     server_port;
-        
+
         {//mpipc server initialization
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
-            
+
             gamma_server::register_messages(*proto);
             beta_server::register_messages(*proto);
             alpha_server::register_messages(*proto);
-            
+
             cfg.connection_stop_fnc = server_connection_stop;
             cfg.server.connection_start_fnc = server_connection_start;
-            
-            
+
+
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
             cfg.server.listener_address_str = "0.0.0.0:0";
-            
+
             err = mpipcserver.reconfigure(std::move(cfg));
-            
+
             if(err){
                 edbg("starting server mpipcservice: "<<err.message());
                 //exiting
                 return 1;
             }
-            
+
             {
                 std::ostringstream oss;
                 oss<<mpipcserver.configuration().server.listenerPort();
@@ -151,35 +151,35 @@ int test_multiprotocol_basic(int argc, char **argv){
                 idbg("server listens on port: "<<server_port);
             }
         }
-        
+
         Context     ctx(sch_client, m, resolver, max_per_pool_connection_count, server_port, wait_count, mtx, cnd);
-        
+
         err = alpha_client::start(ctx);
-        
+
         if(err){
             edbg("starting alpha mpipcservice: "<<err.message());
             //exiting
             return 1;
         }
-        
+
         err = beta_client::start(ctx);
-        
+
         if(err){
             edbg("starting alpha mpipcservice: "<<err.message());
             //exiting
             return 1;
         }
-        
+
         err = gamma_client::start(ctx);
-        
+
         if(err){
             edbg("starting gamma mpipcservice: "<<err.message());
             //exiting
             return 1;
         }
-        
+
         unique_lock<mutex>  lock(mtx);
-        
+
         while(wait_count){
             //cnd.wait(lock);
             NanoTime    abstime = NanoTime::createRealTime();
@@ -196,9 +196,9 @@ int test_multiprotocol_basic(int argc, char **argv){
         beta_client::stop();
         gamma_client::stop();
     }
-    
+
     //exiting
-    
+
     std::cout<<"Transfered size = "<<(transfered_size * 2)/1024<<"KB"<<endl;
     std::cout<<"Transfered count = "<<transfered_count<<endl;
     std::cout<<"Connection count = "<<connection_count<<endl;

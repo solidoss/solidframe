@@ -1,6 +1,6 @@
 // solid/system/src/socketaddress.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -41,8 +41,8 @@ ResolveData synchronous_resolve(const char *_node, const char *_service){
     return ResolveData(paddr);
 }
 ResolveData synchronous_resolve(
-    const char *_node, 
-    const char *_service, 
+    const char *_node,
+    const char *_service,
     int _flags,
     int _family,
     int _type,
@@ -75,7 +75,7 @@ ResolveData synchronous_resolve(const char *_node, int _port){
     return synchronous_resolve(_node, buf);
 }
 ResolveData synchronous_resolve(
-    const char *_node, 
+    const char *_node,
     int _port,
     int _flags,
     int _family,

@@ -1,6 +1,6 @@
 // solid/frame/timer.hpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -24,15 +24,15 @@ struct  ReactorContext;
 
 class Timer: public CompletionHandler{
     typedef Timer   ThisT;
-    
+
     static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
         ThisT &rthis = static_cast<ThisT&>(_rch);
         rthis.completionCallback(Timer::on_completion);
     }
-    
+
     static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
         ThisT &rthis = static_cast<ThisT&>(_rch);
-        
+
         switch(rthis.reactorEvent(_rctx)){
             case ReactorEventTimer:
                 rthis.doExec(_rctx);
@@ -46,7 +46,7 @@ class Timer: public CompletionHandler{
         }
     }
     static void on_dummy(ReactorContext &_rctx){
-        
+
     }
 public:
     Timer(
@@ -54,7 +54,7 @@ public:
     ):CompletionHandler(_robj, Timer::on_init_completion), storeidx(InvalidIndex())
     {
     }
-    
+
     ~Timer(){
         //MUST call here and not in the ~CompletionHandler
         this->deactivate();
@@ -67,7 +67,7 @@ public:
         t += _tm;
         return waitUntil(_rctx, t, _f);
     }
-    
+
     //Returns true when the operation completed. Check _rctx.error() for success or fail
     //Returns false when operation is scheduled for completion. On completion _f(...) will be called.
     template <typename F>
@@ -100,7 +100,7 @@ private:
     }
 private:
     typedef FUNCTION<void(ReactorContext&)>     FunctionT;
-    
+
     FunctionT               f;
     size_t                  storeidx;
 };

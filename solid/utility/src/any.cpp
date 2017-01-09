@@ -1,6 +1,6 @@
 // solid/utility/src/any.cpp
 //
-// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -15,7 +15,7 @@ namespace solid{
 namespace impl{
 
 /*virtual*/ AnyValueBase::~AnyValueBase(){
-    
+
 }
 
 

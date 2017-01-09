@@ -54,11 +54,11 @@ void operator delete(void* ptr) throw()
 #endif
 
 struct Context{
-    
+
 };
 
 struct Event{
-    
+
 };
 
 template <class T>
@@ -158,7 +158,7 @@ struct Stub{
     void set(T _t){
         f = _t;
     }
-    
+
     void call(Context &_rctx){
         f(_rctx);
     }
@@ -170,14 +170,14 @@ struct Test{
     size_t      v;
     size_t      v1;
     size_t      v2;
-    
+
     Test():v(0){}
     Test(string const &_rtxt, size_t _v = 0):txt(_rtxt), v(_v){}
-    
+
     void operator()(Context &_rctx){
         cout<<"txt = "<<txt<<" v = "<<v<<endl;
     }
-    
+
 };
 
 int main(int argc, char *argv[]){

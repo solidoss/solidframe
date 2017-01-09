@@ -1,6 +1,6 @@
 // solid/frame/aio/aiolistener.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -40,14 +40,14 @@ public:
             sd.makeNonBlocking();
         }
     }
-    
+
     ~Listener(){
         //MUST call here and not in the ~CompletionHandler
         this->deactivate();
     }
-    
+
     const SocketDevice& device()const;
-    
+
     //Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
     //Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
     template <typename F>
@@ -61,7 +61,7 @@ public:
             return true;
         }
     }
-    
+
     //Returns true when the operation completed. Check _rctx.error() for success or fail
     //Returns false when operation is scheduled for completion. On completion _f(...) will be called.
     template <typename F>

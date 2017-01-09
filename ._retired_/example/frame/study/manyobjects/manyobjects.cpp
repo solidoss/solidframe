@@ -35,7 +35,7 @@ int main(int argc, char *argv[]){
         srand(stime);
     }
     cout<<"Creating "<<cnt<<" elements. sizeof stub "<<sizeof(Stub)<<" uid "<<sizeof(boost::uuids::uuid)<<endl;
-    
+
     boost::uuids::string_generator gen;
     for(size_t i = 0; i < cnt; ++i){
         boost::uuids::uuid u1 = gen("{01234567-89ab-cdef-0123-456789abcdef}");

@@ -56,8 +56,8 @@ struct ConnectStub{
     frame::aio::Resolver    &resolver;
     std::string             &connect_addr;
     std::string             &connect_port;
-    
-    
+
+
     ConnectStub(
         frame::aio::Resolver &_resolver,
         std::string &_connect_addr,
@@ -71,7 +71,7 @@ class Connection: public Dynamic<Connection, frame::aio::Object>{
 public:
     Connection(SecureContextT &_secure_ctx):sock(this->proxy(), _secure_ctx), crt_send_idx(0){}
     ~Connection(){}
-    
+
     static void onConnect(frame::aio::ReactorContext &_rctx, ConnectFunction &_rconnect);
 protected:
     /*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
@@ -79,7 +79,7 @@ protected:
     static void onSent(frame::aio::ReactorContext &_rctx);
     static void onSecureConnect(frame::aio::ReactorContext &_rctx);
     static bool onSecureVerify(frame::aio::ReactorContext &_rctx, bool _preverified, frame::aio::openssl::VerifyContext &_rverify_ctx);
-    
+
     unsigned crtFillIdx()const{
         return (crt_send_idx + 1) % 2;
     }
@@ -92,9 +92,9 @@ protected:
 protected:
     typedef frame::aio::Stream<frame::aio::openssl::Socket>     StreamSocketT;
     //typedef frame::aio::Stream<frame::aio::Socket>        StreamSocketT;
-    
+
     enum {BufferCapacity = 1024 * 2};
-    
+
     char            buf[BufferCapacity];
     StreamSocketT   sock;
     string          send_strs[2];
@@ -107,7 +107,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 int main(int argc, char *argv[]){
     Params p;
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     SecureContextT              secure_ctx(SecureContextT::create());
 #if 0
     {
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]){
     }
 #endif
     signal(SIGPIPE, SIG_IGN);
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]){
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-    
+
     {
         ErrorCodeT err = secure_ctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
         if(err){
@@ -162,49 +162,49 @@ int main(int argc, char *argv[]){
         secure_ctx.loadCertificateFile("echo-client-cert.pem");
         secure_ctx.loadPrivateKeyFile("echo-client-key.pem");
     }
-    
-    
+
+
     {
-        
+
         AioSchedulerT               scheduler;
-        
+
         frame::Manager              manager;
         frame::ServiceT             service(manager);
         frame::ObjectIdT            objuid;
-        
+
         frame::aio::Resolver        resolver;
         ErrorConditionT             err;
-        
+
         err = scheduler.start(1);
-        
+
         if(err){
             cout<<"Error starting aio scheduler: "<<err.message()<<endl;
             return 1;
         }
-        
+
         err = resolver.start(1);
-        
+
         if(err){
             cout<<"Error starting aio resolver: "<<err.message()<<endl;
             return 1;
         }
-        
+
         {
-            
+
             DynamicPointer<frame::aio::Object>  objptr(new Connection(secure_ctx));
             solid::ErrorConditionT              err;
-            
+
             objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, p.connect_addr, p.connect_port)), err);
-            
+
             idbg("Started Client Connection object: "<<objuid.index<<','<<objuid.unique);
         }
-        
-        
+
+
         while(true){
             string  line;
-            
+
             getline(cin, line);
-            
+
             if(line == "q" or line == "Q" or line == "quit"){
                 break;
             }
@@ -212,7 +212,7 @@ int main(int argc, char *argv[]){
             if(manager.notify(objuid, make_event(GenericEvents::Message, std::move(line)))){
             }else break;
         }
-        
+
     }
     return 0;
 }
@@ -254,7 +254,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 struct ConnectFunction{
     Event                           event;
     ResolveData::const_iterator     iterator;
-    
+
     void operator()(frame::aio::ReactorContext &_rctx){
         Connection::onConnect(_rctx, *this);
     }
@@ -267,48 +267,48 @@ struct ConnectFunction{
     edbg(this<<" "<<_revent);
     if(generic_event_message == _revent){
         std::string *pline = _revent.any().cast<std::string>();
-        
+
         SOLID_CHECK(pline != nullptr);
-        
+
         send_strs[crtFillIdx()].append(*pline);
-        
+
         if(not sock.hasPendingSend()){
             crt_send_idx = crtFillIdx();
             sock.postSendAll(_rctx, send_strs[crtSendIdx()].data(), send_strs[crtSendIdx()].size(), onSent);
         }
-        
+
     }else if(generic_event_start == _revent){
         ConnectStub *pconnect_stub = _revent.any().cast<ConnectStub>();
-        
+
         SOLID_CHECK(pconnect_stub != nullptr);
         idbg("Resolving: "<<pconnect_stub->connect_addr<<':'<<pconnect_stub->connect_port);
-        
+
         frame::Manager      &manager = _rctx.service().manager();
         frame::ObjectIdT    objuid = _rctx.service().manager().id(*this);
-        
+
         sock.secureSetCheckHostName(_rctx, "echo-server"/*pconnect_stub->connect_addr*/);
-        
+
         pconnect_stub->resolver.requestResolve(
             [&manager, objuid](ResolveData &_rrd, ErrorCodeT const &/*_rerr*/){
                 idbg("send resolv_message");
                 manager.notify(objuid, make_event(GenericEvents::Raise, std::move(_rrd)));
-            }, 
+            },
             pconnect_stub->connect_addr.c_str(),
             pconnect_stub->connect_port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream
         );
     }else if(generic_event_raise == _revent){
         ResolveData *presolve_data = _revent.any().cast<ResolveData>();
-        
+
         SOLID_CHECK(presolve_data != nullptr);
-        
+
         if(not presolve_data->empty()){
             ConnectFunction cf;
             cf.event = std::move(_revent);
             cf.iterator = presolve_data->begin();
             SocketAddressInet   inetaddr(cf.iterator);
-            
+
             idbg("Connect to: "<<inetaddr);
-            
+
             if(sock.connect(_rctx, cf.iterator, cf)){
                 onConnect(_rctx, cf);
             }
@@ -340,11 +340,11 @@ struct ConnectFunction{
     Connection &rthis = static_cast<Connection&>(_rctx.object());
     if(!_rctx.error()){
         idbg(&rthis<<" postRecvSome");
-        
+
         rthis.send_strs[rthis.crtSendIdx()].clear();
-        
+
         rthis.nextSendIdx();
-        
+
         if(rthis.send_strs[rthis.crtSendIdx()].size()){//we have something to send
             rthis.sock.postSendAll(_rctx, rthis.send_strs[rthis.crtSendIdx()].data(), rthis.send_strs[rthis.crtSendIdx()].size(), onSent);
         }
@@ -359,9 +359,9 @@ struct ConnectFunction{
     if(!_rctx.error()){
         idbg(&rthis<<"");
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
-        
+
         rthis.crt_send_idx = 0;
-        
+
         if(rthis.send_strs[0].size()){//we have something to send
             rthis.sock.postSendAll(_rctx, rthis.send_strs[0].data(), rthis.send_strs[0].size(), onSent);
         }
@@ -373,9 +373,9 @@ struct ConnectFunction{
 
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext &_rctx, ConnectFunction &_rcf){
     Connection      &rthis = static_cast<Connection&>(_rctx.object());
-    
+
     idbg(&rthis<<"");
-    
+
     if(!_rctx.error()){
         idbg(&rthis<<" Connected");
         rthis.sock.secureSetVerifyDepth(_rctx, 10);
@@ -386,11 +386,11 @@ struct ConnectFunction{
         }
     }else{
         ResolveData     *presolve_data = _rcf.event.any().cast<ResolveData>();
-        
+
         SOLID_CHECK(presolve_data != nullptr);
-        
+
         ++_rcf.iterator;
-        
+
         if(_rcf.iterator != presolve_data->end()){
             if(rthis.sock.connect(_rctx, _rcf.iterator, std::move(_rcf))){
                 rthis.post(_rctx, std::move(_rcf));

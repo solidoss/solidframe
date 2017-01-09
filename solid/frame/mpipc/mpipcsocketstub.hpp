@@ -1,6 +1,6 @@
 // solid/frame/mpipc/mpipcsocketstub.hpp
 //
-// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -28,54 +28,54 @@ public:
     typedef void (*OnSendF)(frame::aio::ReactorContext &);
     typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext &);
     typedef void (*OnSecureConnectF)(frame::aio::ReactorContext &);
-    
+
     static void emplace_deleter(SocketStub *_pss){
         _pss->~SocketStub();
     }
-    
+
     static void delete_deleter(SocketStub *_pss){
         delete _pss;
     }
-    
+
     virtual ~SocketStub(){
-        
+
     }
-    
+
     virtual SocketDevice const& device()const = 0;
-    
+
     virtual bool postSendAll(
         frame::aio::ReactorContext &_rctx, OnSendAllRawF _pf, const char *_pbuf, size_t _bufcp, Event &_revent
     ) = 0;
-    
-    
+
+
     virtual bool postRecvSome(
         frame::aio::ReactorContext &_rctx, OnRecvF _pf,  char *_pbuf, size_t _bufcp
     ) = 0;
-    
+
     virtual bool postRecvSome(
         frame::aio::ReactorContext &_rctx, OnRecvSomeRawF _pf, char *_pbuf, size_t _bufcp, Event &_revent
     ) = 0;
-    
+
     virtual bool hasValidSocket() const = 0;
-    
+
     virtual bool connect(
         frame::aio::ReactorContext &_rctx, OnConnectF _pf, const SocketAddressInet&_raddr
     ) = 0;
-    
+
     virtual bool recvSome(
         frame::aio::ReactorContext &_rctx, OnRecvF _pf, char *_buf, size_t _bufcp, size_t &_sz
     ) = 0;
-    
+
     virtual bool hasPendingSend() const = 0;
-    
+
     virtual bool sendAll(
         frame::aio::ReactorContext &_rctx, OnSendF _pf, char *_buf, size_t _bufcp
     ) = 0;
-    
+
     virtual void prepareSocket(
         frame::aio::ReactorContext &_rctx
     ) = 0;
-    
+
     virtual bool secureAccept(
         frame::aio::ReactorContext &_rctx, ConnectionContext &_rconctx, OnSecureAcceptF _pf, ErrorConditionT &_rerror
     );

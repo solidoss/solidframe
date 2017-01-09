@@ -1,6 +1,6 @@
 // frame/aio/src/aioobject.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -49,15 +49,15 @@ size_t Object::doOnTimeoutRecv(const TimeSpec &_timepos){
     //add all timeouted stubs to responses
     const size_t    *pend(itoutpos);
     uint            rv(0);
-    
+
     *pitimepos = TimeSpec::maximum;
-    
+
     for(size_t *pit(itoutbeg); pit != pend;){
         SocketStub &rss(pstubs[*pit]);
         SOLID_ASSERT(rss.psock);
-        
+
         vdbgx(Debug::aio, "compare time for pos "<<*pit<<" tout "<<rss.itimepos.seconds()<<" with crttime "<<_timepos.seconds());
-        
+
         if(rss.itimepos <= _timepos){
             rv = EventTimeoutRecv;
             socketPostEvents(*pit, EventTimeoutRecv);
@@ -80,15 +80,15 @@ size_t Object::doOnTimeoutSend(const TimeSpec &_timepos){
     //add all timeouted stubs to responses
     const size_t    *pend(otoutpos);
     size_t          rv(0);
-    
+
     *potimepos = TimeSpec::maximum;
-    
+
     for(size_t *pit(otoutbeg); pit != pend;){
         SocketStub &rss(pstubs[*pit]);
         SOLID_ASSERT(rss.psock);
-        
+
         vdbgx(Debug::aio, "compare time for pos "<<*pit<<" tout "<<rss.otimepos.seconds()<<" with crttime "<<_timepos.seconds());
-        
+
         if(rss.otimepos <= _timepos){
             rv = EventTimeoutSend;
             socketPostEvents(*pit, EventTimeoutSend);
@@ -106,7 +106,7 @@ size_t Object::doOnTimeoutSend(const TimeSpec &_timepos){
     }
     return rv;
 }
-    
+
 inline void Object::doPopTimeoutRecv(const size_t _pos){
     SOLID_ASSERT(itoutpos != itoutbeg);
     vdbgx(Debug::aio, "pop itimeout pos "<<_pos<<" tout "<<pstubs[_pos].itimepos.seconds());
@@ -126,7 +126,7 @@ inline void Object::doPopTimeoutSend(const size_t _pos){
     pstubs[*otoutpos].otoutpos = tpos;
     pstubs[_pos].otoutpos = -1;
 }
-    
+
 void Object::doPushTimeoutRecv(const size_t _pos, const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec){
     SocketStub &rss(pstubs[_pos]);
     rss.itimepos = _crttime;
@@ -364,7 +364,7 @@ bool SingleObject::socketInsert(const SocketDevice &_rsd, const bool _isacceptor
         Socket::Type tp;
         const std::pair<bool, int> socktp = _rsd.type();
         if(!socktp.first) return false;
-        
+
         if(socktp.second == SocketInfo::Datagram){
             tp = Socket::STATION;
         }else if(socktp.second == SocketInfo::Stream){
@@ -373,9 +373,9 @@ bool SingleObject::socketInsert(const SocketDevice &_rsd, const bool _isacceptor
             }else{
                 tp = Socket::CHANNEL;
             }
-            
+
         }else return false;
-        
+
         stub.psock = new Socket(tp, _rsd);
         return true;
     }
@@ -560,12 +560,12 @@ AsyncE MultiObject::socketRecvFrom(
     return rv;
 }
 
-uint32 MultiObject::socketRecvSize(const size_t _pos)const{ 
+uint32 MultiObject::socketRecvSize(const size_t _pos)const{
     SOLID_ASSERT(_pos < stubcp);
     return pstubs[_pos].psock->recvSize();
 }
 
-const uint64& MultiObject::socketSendCount(const size_t _pos)const{ 
+const uint64& MultiObject::socketSendCount(const size_t _pos)const{
     SOLID_ASSERT(_pos < stubcp);
     return pstubs[_pos].psock->sendCount();
 }
@@ -644,9 +644,9 @@ size_t MultiObject::socketInsert(const SocketDevice &_rsd, const bool _isaccepto
         const size_t                pos = newStub();
         Socket::Type                tp;
         const std::pair<bool, int>  socktp = _rsd.type();
-        
+
         if(!socktp.first) return -1;
-        
+
         if(socktp.second == SocketInfo::Datagram){
             tp = Socket::STATION;
         }else if(socktp.second == SocketInfo::Stream){
@@ -655,9 +655,9 @@ size_t MultiObject::socketInsert(const SocketDevice &_rsd, const bool _isaccepto
             }else{
                 tp = Socket::CHANNEL;
             }
-            
+
         }else return -1;
-        
+
         pstubs[pos].psock = new Socket(tp, _rsd);
         return pos;
     }
@@ -703,13 +703,13 @@ void MultiObject::reserve(const size_t _cp){
     SOLID_ASSERT(_cp > stubcp);
     //first we allocate the space
     char* buf = new char[dataSize(_cp)];
-    
+
     SocketStub  *pnewstubs   (reinterpret_cast<SocketStub*>(buf));
     size_t      *pnewreqbeg  (reinterpret_cast<size_t*>(buf + sizeof(SocketStub) * _cp));
     size_t      *pnewresbeg  (reinterpret_cast<size_t*>(buf + sizeof(SocketStub) * _cp + 1 * _cp * sizeof(size_t)));
     size_t      *pnewitoutbeg(reinterpret_cast<size_t*>(buf + sizeof(SocketStub) * _cp + 2 * _cp * sizeof(size_t)));
     size_t      *pnewotoutbeg(reinterpret_cast<size_t*>(buf + sizeof(SocketStub) * _cp + 3 * _cp * sizeof(size_t)));
-    
+
     if(pstubs){
         //then copy all the existing stubs:
         memcpy(pnewstubs, (void*)pstubs, sizeof(SocketStub) * stubcp);
@@ -732,7 +732,7 @@ void MultiObject::reserve(const size_t _cp){
         itoutpos = itoutbeg = NULL;
         otoutpos = otoutbeg = NULL;
     }
-    
+
     {
         size_t i = _cp;
         do{
@@ -741,7 +741,7 @@ void MultiObject::reserve(const size_t _cp){
             posstk.push(i);
         }while(i > stubcp);
     }
-    
+
     pstubs = pnewstubs;
     stubcp = _cp;
     reqpos = pnewreqbeg + (reqpos - reqbeg);

@@ -1,6 +1,6 @@
 // solid/frame/aio/src/aioobject.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -26,7 +26,7 @@ namespace aio{
 Object::Object(){}
 
 /*virtual*/ void Object::onEvent(ReactorContext &_rctx, Event &&_uevent){
-    
+
 }
 
 bool Object::isRunning()const{
@@ -45,7 +45,7 @@ bool Object::registerCompletionHandler(CompletionHandler &_rch){
 
 void Object::registerCompletionHandlers(){
     CompletionHandler *pch = this->pnext;
-    
+
     while(pch != nullptr){
         pch->activate(*this);
         pch = pch->pnext;
@@ -55,11 +55,11 @@ void Object::registerCompletionHandlers(){
 bool Object::doPrepareStop(ReactorContext &_rctx){
     if(this->disableVisits(_rctx.service().manager())){
         CompletionHandler *pch = this->pnext;
-        
+
         while(pch != nullptr){
             pch->pprev = nullptr;//unregister
             pch->deactivate();
-            
+
             pch = pch->pnext;
         }
         this->pnext = nullptr;

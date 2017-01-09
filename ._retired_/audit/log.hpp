@@ -1,6 +1,6 @@
 // audit/log.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -76,26 +76,26 @@ public:
         Verbose = 64,
         AllLevels = 0xffff
     };
-    
+
     static const unsigned any;
-    
+
     static Log& the();
-    
-    
+
+
     void levelMask(const char *_msk = NULL);
     void moduleMask(const char *_msk = NULL);
-    
+
     bool reinit(const char* _procname, OutputStream *_pos, const char *_modmsk = NULL, const char *_lvlmsk = NULL);
-    
+
     void reinit(OutputStream *_pos);
-    
+
     void moduleNames(std::string &_ros);
     void setAllModuleBits();
     void resetAllModuleBits();
     void setModuleBit(unsigned _v);
     void resetModuleBit(unsigned _v);
     unsigned registerModule(const char *_name);
-    
+
     std::ostream& record(
         Level _lvl,
         unsigned _module,

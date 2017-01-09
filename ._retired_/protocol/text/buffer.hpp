@@ -1,6 +1,6 @@
 // protocol/text/buffer.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -19,7 +19,7 @@ namespace text{
 struct Buffer{
     mutable char    *pbeg;
     const char      *pend;
-    
+
     Buffer(char *_pb = NULL, uint32 _bl = 0):pbeg(_pb), pend(_pb + _bl){
     }
     virtual ~Buffer();

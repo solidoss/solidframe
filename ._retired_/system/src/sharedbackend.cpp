@@ -1,6 +1,6 @@
 // system/src/sharedbackend.cpp
 //
-// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -35,12 +35,12 @@ struct SharedBackend::Data{
     static SharedBackend sb;
     return sb;
 }
-    
+
 SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
     SharedStub                      *pss;
     SharedBackend                   &th = the();
     std::unique_lock<std::mutex>    lock(th.d.mtx);
-    
+
     if(th.d.freeque.size()){
         const ulong     pos = th.d.freeque.front();
         th.d.freeque.pop();

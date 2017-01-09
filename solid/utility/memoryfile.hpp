@@ -1,6 +1,6 @@
 // solid/utility/memoryfile.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -23,7 +23,7 @@ namespace solid{
     It has the same interface like FileDevice.
     It has support for writing only at different offsets.
     It uses the given allocator for allocating/releasing data buffers.
-    
+
 */
 class MemoryFile{
 public:
@@ -83,13 +83,13 @@ private:
         uint32_t    idx;
         char    *data;
     };
-    
+
     static int64_t compute_capacity(const int64_t _cp, Allocator &_ral);
-    
+
     struct BuffCmp;
     friend struct BuffCmp;
     typedef std::deque<Buffer>  BufferVectorT;
-    
+
     const int64_t       cp;
     int64_t             sz;
     int64_t             off;

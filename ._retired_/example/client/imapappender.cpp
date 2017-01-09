@@ -104,16 +104,16 @@ int main(int argc, char *argv[]){
     Params  p;
     cout<<"OSSL_SOURCE_PATH = "<<OSSL_SOURCE_PATH<<endl;
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     //Initializing OpenSSL
     //------------------------------------------
     SSL_library_init();
     SSL_load_error_strings();
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
-    
+
     sslctx = SSL_CTX_new(SSLv23_client_method());
-    
+
     const char *pcertpath = OSSL_SOURCE_PATH"ssl_/certs/A-client.pem";
     cout<<"Client certificate path: "<<pcertpath<<endl;
     if(!sslctx){
@@ -126,24 +126,24 @@ int main(int argc, char *argv[]){
     }
     //system("mkdir certs");
     Directory::create("certs");
-    
+
     if(!SSL_CTX_load_verify_locations(sslctx, NULL, "certs")){
         cout<<"failed SSL_CTX_load_verify_locations 2 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
         return 0;
     }
     //------------------------------------------
     //done with ssl context stuff
-    
+
     SocketDevice sd;
-    
+
     {
         ResolveData    rd = synchronous_resolve(p.host.c_str(), p.port.c_str());
         if(rd.empty()){
             cout<<"No such address: "<<p.host<<":"<<p.port<<endl;
             return 0;
         }
-        
-        
+
+
         sd.create(rd.begin());
         if(sd.connect(rd.begin())){
             cout<<"Unable to connect to: "<<p.host<<":"<<p.port<<endl;
@@ -168,7 +168,7 @@ int main(int argc, char *argv[]){
         return 0;
     }
     wr.reinit(sd.descriptor(), pssl);
-    
+
     if(!doAuthenticate(wr, sd, pssl)){
         cout<<"Authentication failed"<<endl;
         return 0;
@@ -226,7 +226,7 @@ int main(int argc, char *argv[]){
             ++added;
         }
         ++piccnt;
-        ++it; 
+        ++it;
     }
     cout<<"done"<<endl;
     if(added){
@@ -241,7 +241,7 @@ int main(int argc, char *argv[]){
 // bool parseArguments(Params &_par, int argc, char *argv[]){
 //  try{
 //      TCLAP::CmdLine cmd("imapappender application", ' ', "0.1");
-//      
+//
 //      TCLAP::ValueArg<std::string> host("a","addr","IMAP server host",false,"localhost","string");
 //      TCLAP::ValueArg<std::string> port("p","port","IMAP server port",false,"143","string");
 //      TCLAP::ValueArg<std::string> path("l","localpath","Path to local folder containing files",true,"","string");
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]){
 //      TCLAP::ValueArg<uint32> maxsz("m","maxsz","per mail maximum size",false,1024 * 1024 * 5,"uint32");
 //      TCLAP::ValueArg<uint32> maxcnt("c","maxcnt","per mail maximum attachement count",false,50,"uint32");
 //      TCLAP::SwitchArg ssl("s","ssl", "Use ssl for communication", false, false);
-//      
+//
 //      cmd.add(host);
 //      cmd.add(port);
 //      cmd.add(path);
@@ -257,10 +257,10 @@ int main(int argc, char *argv[]){
 //      cmd.add(ssl);
 //      cmd.add(maxsz);
 //      cmd.add(maxcnt);
-//      
+//
 //      // Parse the argv array.
 //      cmd.parse( argc, argv );
-//      
+//
 //      _par.host = host.getValue();
 //      _par.port = port.getValue();
 //      _par.path = path.getValue();
@@ -317,7 +317,7 @@ int initOutput(ofstream &_os, const Params &_p, int _cnt, int _piccnt){
     _os.clear();
     _os.open("tmp.eml");
     cout<<"is open temp = "<<_os.is_open()<<endl;
-    
+
     _os<<"To:  \"pictures\"\n";
     _os<<"From:  \"pictures\"\n";
     _os<<"Subject: "<<_p.folder<<' '<<_cnt<<' '<<_piccnt<<"\n";
@@ -395,22 +395,22 @@ uint64 size(ofstream &_ofs){
 bool addFile(ofstream &_os, const Params &_p, const string &_s){
     ifstream ifs;
     ifs.open(_s.c_str());
-    
+
     uint64 ifsize(size(ifs));
-    
+
     if(ifsize >= _p.maxsz){
         cout<<"Skip file "<<_s<<" with size "<<ifsize<<endl;
         return false;
     }else{
         cout<<"Adding file "<<_s<<" with size "<<ifsize<<endl;
     }
-    
+
     const char *name = strrchr(_s.c_str(), '/');
     if(!name) name = _s.c_str();
     else ++name;
     string ctp;
     contentType(ctp, _s);
-    
+
     _os<<"\n\n";
     _os<<"------=_NextPart_000_0007_01C97BFB.E8916420\n";
     _os<<"Content-Type: "<<ctp<<";\n";
@@ -419,7 +419,7 @@ bool addFile(ofstream &_os, const Params &_p, const string &_s){
     _os<<"Content-Disposition: attachment;\n";
     _os<<"\tfilename=\""<<name<<"\"\n\n";
 
-    
+
     cxxtools::Base64ostream b64os(_os);
     copystream(b64os, ifs);
     b64os.end();
@@ -474,7 +474,7 @@ bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_p){
         }else{
             cout<<"connection closed by peer"<<endl;
         }
-        
+
     }
     return false;
 }

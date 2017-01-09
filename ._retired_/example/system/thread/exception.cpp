@@ -34,7 +34,7 @@ int main(){
     }catch(exception& e){
         cout<<"caught exeption: "<<e.what()<<endl;
     }
-    
+
     try{
         SOLID_THROW_EX("3-tuple exception", solid::make_tuple(2,TwoInts(9,10),static_cast<const char*>("a string")));
     }catch(exception& e){

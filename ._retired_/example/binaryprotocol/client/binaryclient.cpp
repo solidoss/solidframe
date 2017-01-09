@@ -49,7 +49,7 @@ namespace{
             case SIGINT:
             case SIGTERM:{
                 if(run){
-                    
+
                     Locker<Mutex>  lock(mtx);
                     run = false;
                     cnd.broadcast();
@@ -57,7 +57,7 @@ namespace{
             }
         }
     }
-    
+
 }
 
 class Connection;
@@ -94,18 +94,18 @@ class Connection: public frame::aio::SingleObject{
             const uint32 _flags = 0,
             const size_t _idx = -1
         ):msgptr(_rmsgptr), flags(_flags), idx(_idx){}
-        
+
         MessageDynamicPointerT  msgptr;
         uint32                  flags;
         size_t                  idx;
     };
-    
+
     typedef std::vector<MessageStub>                            MessageVectorT;
     typedef protocol::binary::AioEngine<
         frame::Message,
         int
     >                                                           ProtocolEngineT;
-        
+
     typedef protocol::binary::BasicBufferController<2048>       BufferControllerT;
     enum{
         InitState = 1,
@@ -120,11 +120,11 @@ public:
         const ResolveData &_rd,
         const serialization::TypeMapperBase &_rtm
     ):rm(_rm), rd(_rd), st(PrepareState), ser(_rtm), des(_rtm), sndidx(1), waitnoop(false){}
-    
+
     size_t send(DynamicPointer<solid::frame::Message>   &_rmsgptr, const uint32 _flags = 0){
         Locker<Mutex>   lock(rm.mutex(*this));
         size_t idx;
-        
+
         if(freesndidxstk.size()){
             idx = freesndidxstk.top();
             freesndidxstk.pop();
@@ -132,15 +132,15 @@ public:
             idx = sndidx;
             ++sndidx;
         }
-        
+
         sndmsgvec.push_back(MessageStub(_rmsgptr, _flags, idx));
-        
+
         if(Object::notify(frame::S_SIG | frame::S_RAISE)){
             rm.raise(*this);
         }
         return idx;
     }
-    
+
 private:
     friend struct Handle;
     friend struct EngineController;
@@ -162,7 +162,7 @@ private:
     }
 private:
     typedef Stack<size_t>   SizeStackT;
-    
+
     frame::Manager          &rm;
     ResolveData             rd;
     uint16                  st;
@@ -180,19 +180,19 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 
 struct Handle{
     void beforeSerialization(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){}
-    
+
     void beforeSerialization(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){}
     bool checkStore(void *, ConnectionContext &_rctx)const{
         return true;
     }
-    
+
     bool checkLoad(void *_pm, ConnectionContext &_rctx)const{
         return true;
     }
     void afterSerialization(BinSerializerT &_rs, void *_pm, ConnectionContext &_rctx){}
-    
+
     void afterSerialization(BinDeserializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx);
-        
+
     void afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx);
     void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
 };
@@ -202,7 +202,7 @@ int main(int argc, char *argv[]){
     if(parseArguments(p, argc, argv)) return 0;
     signal(SIGINT,term_handler); /* Die on SIGTERM */
     /*solid::*/Thread::init();
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -237,17 +237,17 @@ int main(int argc, char *argv[]){
 #endif
     {
         typedef DynamicSharedPointer<Connection>    ConnectionPointerT;
-        
+
         frame::Manager                          m;
         AioSchedulerT                           aiosched(m);
         UInt8TypeMapperT                        tm;
-        
+
         tm.insert<FirstRequest>();
         tm.insertHandle<FirstResponse, Handle>();
         tm.insertHandle<SecondMessage, Handle>();
         tm.insertHandle<NoopMessage, Handle>();
-        
-        
+
+
         ConnectionPointerT              ccptr(
             new Connection(
                 m,
@@ -255,14 +255,14 @@ int main(int argc, char *argv[]){
                 tm
             )
         );
-        
+
         m.registerObject(*ccptr);
         aiosched.schedule(ccptr);
-        
+
         DynamicPointer<solid::frame::Message>   msgptr;
         uint32                                  idx = 0;
-        
-        
+
+
         do{
             if(idx % 2){
                 {
@@ -287,16 +287,16 @@ int main(int argc, char *argv[]){
                 msgptr = new SecondMessage(idx++, s);
                 ccptr->send(msgptr);
             }
-        
+
         }while(true);
-        
+
         idbg("");
-        
+
         m.stop();
-        
+
     }
     /*solid::*/Thread::waitAll();
-    
+
     return 0;
 }
 
@@ -336,10 +336,10 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 //-----------------------------------------------------------------------
 /*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
     typedef DynamicSharedPointer<solid::frame::Message>     MessageSharedPointerT;
-    
+
     static Compressor               compressor(BufferControllerT::DataCapacity);
     static MessageSharedPointerT    noopmsgptr(new NoopMessage);
-    
+
     solid::ulong                    sm = grabSignalMask();
     if(sm){
         if(sm & frame::S_KILL){
@@ -367,9 +367,9 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
             waitnoop = true;
         }
     }
-    
+
     ConnectionContext               ctx(*this);
-    
+
     bool reenter = false;
     if(st == RunningState){
         const AsyncE rv = engine.run(*this, evs, ctx, ser, des, bufctl, compressor);
@@ -434,7 +434,7 @@ void Handle::afterSerialization(BinDeserializerT &_rs, FirstResponse *_pm, Conne
         cout<<prefix<<flush;
     }
 }
-    
+
 void Handle::afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx){
     static const char *blancs = "                                    ";
     _rctx.rcon.onDoneIndex(_rctx.rcvmsgidx);

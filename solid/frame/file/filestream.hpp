@@ -1,6 +1,6 @@
 // solid/frame/file/filestream.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -96,7 +96,7 @@ public:
         buf(_rdev, pb, _bufcp){
         rdbuf(&buf);
     }
-    
+
     FileIStream(
         const size_t _bufcp = 0
     ):  std::istream(nullptr),

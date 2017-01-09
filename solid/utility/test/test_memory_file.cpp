@@ -31,10 +31,10 @@ void init(string &_rostr, size_t _sz){
 }
 
 void test_read_write(size_t _sz, const std::vector<size_t> &_write_size_vec, const std::vector<size_t> &_read_size_vec){
-    
+
     MemoryFile      mf;
-    
-    
+
+
     std::string     instr;
     {
         init(instr, _sz);
@@ -51,10 +51,10 @@ void test_read_write(size_t _sz, const std::vector<size_t> &_write_size_vec, con
             ++idx;
         }while(off < instr.size());
     }
-    
+
     SOLID_CHECK(mf.size() == static_cast<int64_t>(instr.size()));
     mf.seek(0, SeekBeg);
-    
+
     {
         std::string         outstr;
         size_t              idx = 0;
@@ -62,7 +62,7 @@ void test_read_write(size_t _sz, const std::vector<size_t> &_write_size_vec, con
         char                buf[10 * 1024];
         bool                fwd;
         do{
-            
+
             int to_read = static_cast<int>(_read_size_vec[idx % _read_size_vec.size()]);
             SOLID_CHECK(to_read < buf_cp);
             int rv = mf.read(buf, to_read);
@@ -72,7 +72,7 @@ void test_read_write(size_t _sz, const std::vector<size_t> &_write_size_vec, con
             }
             fwd = (rv == to_read);
         }while(fwd);
-        
+
         SOLID_CHECK(outstr == instr);
     }
 }
@@ -88,16 +88,16 @@ int test_memory_file(int argc, char *argv[]){
             }
         }
     }
-    
+
     int     size = 1000000;
-    
+
     if(argc >= 2){
         size = atoi(argv[1]);
     }
-    
+
     const std::vector<size_t>       write_size_vec = {10, 100, 1000, 2000, 4000, 6000, 8000, 10000};
     const std::vector<size_t>       read_size_vec = {11, 111, 1111, 2222, 44444, 6666, 8888, 11111};
-    
+
     test_read_write(size, write_size_vec, read_size_vec);
     return 0;
 }

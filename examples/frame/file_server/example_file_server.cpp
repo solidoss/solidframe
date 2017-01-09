@@ -76,9 +76,9 @@ namespace{
             }
         }
     }
-    
+
     typedef DynamicPointer<frame::file::Store<> >   FileStoreSharedPointerT;
-    
+
     FileStoreSharedPointerT     filestoreptr;
 
 }//namespace
@@ -98,9 +98,9 @@ public:
 private:
     /*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
     void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
-    
+
     typedef frame::aio::Listener        ListenerSocketT;
-    
+
     frame::Service      &rsvc;
     AioSchedulerT       &rsch;
     ListenerSocketT     sock;
@@ -115,11 +115,11 @@ class Connection: public Dynamic<Connection, frame::aio::Object>{
     typedef std::vector<solid::DynamicPointer<> >   DynamicPointerVectorT;
     typedef frame::file::FileIOStream< 1024  >      IOFileStreamT;
     typedef frame::aio::Stream<frame::aio::Socket>  StreamSocketT;
-    
+
 public:
     Connection(SocketDevice &_rsd);
     ~Connection();
-    
+
 private:
     /*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
     static void onRecv(frame::aio::ReactorContext &_rctx, size_t _sz);
@@ -141,7 +141,7 @@ private:
         RunWrite,
         CloseFileError,
     };
-    
+
     StreamSocketT               sock;
     int                         state;
     char                        bbeg[BufferCapacity];
@@ -165,9 +165,9 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 int main(int argc, char *argv[]){
     Params p;
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     signal(SIGINT,term_handler); /* Die on SIGTERM */
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -200,36 +200,36 @@ int main(int argc, char *argv[]){
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-    
+
     {
         AioSchedulerT   aiosched;
         SchedulerT      sched;
-        
+
         frame::Manager  m;
         frame::ServiceT svc(m);
-        
+
         if(!sched.start(1) && !aiosched.start(1)){
             {
                 frame::file::Utf8Configuration  utf8cfg;
                 frame::file::TempConfiguration  tempcfg;
-                
+
                 (void)system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver");
-                
+
                 const char *homedir = getenv("HOME");
-                
+
                 utf8cfg.storagevec.push_back(frame::file::Utf8Configuration::Storage());
                 utf8cfg.storagevec.back().globalprefix = "/";
                 utf8cfg.storagevec.back().localprefix = homedir;
                 if(utf8cfg.storagevec.back().localprefix.size() && *utf8cfg.storagevec.back().localprefix.rbegin() != '/'){
                     utf8cfg.storagevec.back().localprefix.push_back('/');
                 }
-                
+
                 tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
                 tempcfg.storagevec.back().level = frame::file::MemoryLevelFlag;
                 tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
                 tempcfg.storagevec.back().minsize = 0;
                 tempcfg.storagevec.back().maxsize = 1024 * 10;
-                
+
                 tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
                 tempcfg.storagevec.back().path = "/tmp/fileserver/";
                 tempcfg.storagevec.back().level = frame::file::VeryFastLevelFlag;
@@ -237,31 +237,31 @@ int main(int argc, char *argv[]){
                 tempcfg.storagevec.back().minsize = 0;
                 tempcfg.storagevec.back().maxsize = 1024 * 10;
                 tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
-            
+
                 filestoreptr = new frame::file::Store<>(m, utf8cfg, tempcfg);
             }
-            
+
             solid::ErrorConditionT              err;
             solid::frame::ObjectIdT         objuid;
-            
+
             {
                 SchedulerT::ObjectPointerT      objptr(filestoreptr);
                 objuid = sched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
             }
-            
+
             {
                 ResolveData     rd =  synchronous_resolve("0.0.0.0", p.start_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    
+
                 SocketDevice    sd;
-                
+
                 sd.create(rd.begin());
                 sd.prepareAccept(rd.begin(), 2000);
-                
+
                 if(sd.ok()){
                     DynamicPointer<frame::aio::Object>  objptr(new Listener(svc, aiosched, sd));
                     solid::ErrorConditionT              err;
                     solid::frame::ObjectIdT         objuid;
-                    
+
                     objuid = aiosched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
                     idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
                 }else{
@@ -273,11 +273,11 @@ int main(int argc, char *argv[]){
             run = false;
             std::cerr<<"Could not start schedulers"<<endl;
         }
-        
-        
+
+
         cout<<"Here some examples how to test: "<<endl;
         cout<<"\t$ nc localhost 2000"<<endl;
-        
+
         if(0){
             unique_lock<mutex>  lock(mtx);
             while(run){
@@ -292,7 +292,7 @@ int main(int argc, char *argv[]){
         sched.stop();
         filestoreptr.clear();
     }
-    
+
     return 0;
 }
 //------------------------------------------------------------------
@@ -342,12 +342,12 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
     idbg("");
     unsigned    repeatcnt = 4;
-    
+
     do{
         if(!_rctx.error()){
             DynamicPointer<frame::aio::Object>  objptr(new Connection(_rsd));
             solid::ErrorConditionT              err;
-            
+
             rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
         }else{
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
@@ -356,7 +356,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(repeatcnt && sock.accept(_rctx, std::bind(&Listener::onAccept, this, _1, _2), _rsd));
-    
+
     if(!repeatcnt){
         sock.postAccept(
             _rctx,
@@ -372,7 +372,7 @@ static const char * patt = "\n.\r\n";
 struct FilePointerMessage{
     FilePointerMessage(){}
     FilePointerMessage(frame::file::FilePointerT _ptr):ptr(_ptr){}
-    
+
     frame::file::FilePointerT   ptr;
 };
 
@@ -404,7 +404,7 @@ const char * Connection::findEnd(const char *_p){
     if(!*crtpat){//we've found the pattern
         return p - 2;
     }
-    
+
     return p - (crtpat - patt);
 }
 
@@ -474,7 +474,7 @@ void Connection::doRun(frame::aio::ReactorContext &_rctx){
         case RunRead:
             if(!iofs.eof()){
                 iofs.read(bbeg, BufferCapacity);
-                
+
                 sock.postSendAll(_rctx, bbeg, iofs.gcount(), onSend);
             }else{
                 iofs.close();
@@ -502,12 +502,12 @@ void Connection::doRun(frame::aio::ReactorContext &_rctx){
 struct OpenCbk{
     frame::Manager      &rm;
     frame::ObjectIdT    uid;
-    
+
     OpenCbk(
         frame::Manager &_rm,
         const frame::ObjectIdT &_robjuid
     ):rm(_rm), uid(_robjuid){}
-    
+
     void operator()(
         frame::file::Store<> &,
         frame::file::FilePointerT &_rptr,
@@ -516,7 +516,7 @@ struct OpenCbk{
         idbg("");
         Event ev{generic_event_message};
         ev.any().reset(FilePointerMessage(_rptr));
-        
+
         rm.notify(uid, std::move(ev));
     }
 };
@@ -525,9 +525,9 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext &_rctx){
     if(path.size() && path[path.size() - 1] == '\r'){
         path.resize(path.size() - 1);
     }
-    
+
     frame::Manager &rm = _rctx.service().manager();
-    
+
     switch(cmd){
         case 'R':
         case 'r':

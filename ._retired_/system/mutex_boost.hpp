@@ -1,6 +1,6 @@
 // system/mutex_boost.hpp
 //
-// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //

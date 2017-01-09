@@ -71,16 +71,16 @@ typedef WorkPool<JobT, WorkPoolController, Worker>      WorkPoolT;
 
 struct WorkPoolController: WorkPoolControllerBase{
     typedef std::vector<JobT>       JobVectorT;
-    
+
     SharedObjectManager &rsom;
-    
+
     WorkPoolController(SharedObjectManager &_rsom):rsom(_rsom){}
-    
+
     bool createWorker(WorkPoolT &_rwp, ushort _wkrcnt){
         _rwp.createMultiWorker(32)->start();
         return true;
     }
-    
+
     void execute(WorkPoolBase &_rwp, Worker &_rwkr, JobVectorT &_rjobvec){
         for(JobVectorT::const_iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
             size_t  idx;
@@ -114,11 +114,11 @@ void unlock_all(MutexMutualStoreT &_rms, const size_t _sz){
 
 struct SharedObjectManager::Data: WorkPoolControllerBase{
     Data(SharedObjectManager &_rsom):crtidx(0), wp(_rsom){}
-    
+
     Mutex& mutex(const ObjectStub& _robj){
         return mtxstore.at(_robj.idx);
     }
-    
+
     AtomicSizeT         crtidx;
     WorkPoolT           wp;
     ObjectVectorT       objvec;
@@ -130,7 +130,7 @@ struct SharedObjectManager::Data: WorkPoolControllerBase{
 //=========================================================================
 
 SharedObjectManager::SharedObjectManager():d(*(new Data(*this))){
-    
+
 }
 SharedObjectManager::~SharedObjectManager(){
     delete &d;
@@ -222,7 +222,7 @@ void SharedObjectManager::executeObject(ObjectStub &_robj){
     size_t flags = _robj.flags.fetch_and(0);
     if(flags & EventFlag){
         Locker<Mutex>   lock(d.mutex(_robj));
-        flags |= _robj.flags.fetch_and(0);  //this is to prevent from the following SOLID_ASSERT - 
+        flags |= _robj.flags.fetch_and(0);  //this is to prevent from the following SOLID_ASSERT -
                                             //between the first fetch_and and the lock, other thread can
                                             //add new values in valvec.
         SOLID_ASSERT(_robj.valvec.size());

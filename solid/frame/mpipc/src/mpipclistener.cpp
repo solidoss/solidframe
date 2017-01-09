@@ -1,6 +1,6 @@
 // solid/frame/ipc/src/ipclistener.cpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -50,7 +50,7 @@ inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
     idbgx(Debug::mpipc, "");
     unsigned    repeatcnt = 4;
-    
+
     do{
         if(!_rctx.error()){
             service(_rctx).acceptIncomingConnection(_rsd);
@@ -64,14 +64,14 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(
-        repeatcnt && 
+        repeatcnt &&
         sock.accept(
             _rctx,
             [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);},
             _rsd
         )
     );
-    
+
     if(!repeatcnt){
         sock.postAccept(
             _rctx,

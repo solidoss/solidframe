@@ -1,6 +1,6 @@
 // consensus/server/consensusobject.hpp
 //
-// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -38,7 +38,7 @@ struct OperationStub;
 
 struct Configuration: Dynamic<Configuration, DynamicShared<> >{
     typedef std::vector<SocketAddressInet4> AddressVectorT;
-    
+
     AddressVectorT  addrvec;
     uint8           crtidx;
     uint8           quorum;
@@ -49,9 +49,9 @@ struct Configuration: Dynamic<Configuration, DynamicShared<> >{
  * recovery to have a replicated object which needs consensus on the order it(they) process
  * the incomming requests from clients.<br>
  * The distributed::consensus::Object implements fast multi Paxos algorithm.<br>
- * 
+ *
  * \see example/distributed/consensus for a proof-of-concept
- * 
+ *
  */
 class Object: public Dynamic<Object, frame::Object>{
     struct RunData;
@@ -64,7 +64,7 @@ public:
     void serverIndex(const frame::IndexT &_ridx);
     frame::IndexT serverIndex()const;
     void dynamicHandle(DynamicPointer<> &_dp, RunData &_rrd);
-    
+
     void dynamicHandle(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunData &_rrd);
     void dynamicHandle(DynamicPointer<ReadRequestMessage> &_rmsgptr, RunData &_rrd);
     void dynamicHandle(DynamicPointer<OperationMessage<1> > &_rmsgptr, RunData &_rrd);
@@ -75,7 +75,7 @@ public:
     void dynamicHandle(DynamicPointer<OperationMessage<32> > &_rmsgptr, RunData &_rrd);
 protected:
     static DynamicMapperT   dm;
-    
+
     enum State{
         InitState,
         PrepareRunState,

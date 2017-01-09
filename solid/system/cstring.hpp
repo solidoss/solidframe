@@ -1,6 +1,6 @@
 // solid/system/cstring.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -32,13 +32,13 @@ struct cstring{
         while(*_pc != C1) ++_pc;
         return _pc;
     }
-    
+
     template <class T, T C1, T C2>
     static T* find(T *_pc){
         while(*_pc != C2 && *_pc != C1) ++_pc;
         return _pc;
     }
-    
+
     template <class T, T C1, T C2, T C3>
     static T* find(T *_pc){
         while(*_pc != C2 && *_pc != C1 && *_pc != C3) ++_pc;

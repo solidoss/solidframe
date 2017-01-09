@@ -1,6 +1,6 @@
 // solid/system/src/debug.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -225,7 +225,7 @@ struct ModuleStub{
 };
 struct Debug::Data{
     typedef std::bitset<DEBUG_BITSET_SIZE>          BitSetT;
-    
+
     typedef std::vector<ModuleStub>                 ModuleVectorT;
     typedef std::map<
         const char *, unsigned, StrLess>            StringMapT;
@@ -247,9 +247,9 @@ struct Debug::Data{
     bool initFile(uint32_t _respincnt, uint64_t _respinsz, string *_poutput);
     void doRespin();
     bool isActive()const{return lvlmsk != 0 && !bs.none();}
-    
+
     unsigned registerModule(const char *_name, uint32_t _lvlmsk);
-    
+
     mutex                   m;
     BitSetT                 bs;
     unsigned                lvlmsk;
@@ -289,7 +289,7 @@ namespace{
 uint32_t parseLevels(const char *_lvl){
     if(!_lvl) return 0;
     uint32_t r = 0;
-    
+
     while(*_lvl){
         switch(*_lvl){
             case 'i':
@@ -332,9 +332,9 @@ void Debug::Data::setBit(const char *_pbeg, const char *_pend){
     uint32_t        lvls = -1;
     {
         std::string lvlstr;
-        
+
         size_t      off = str.rfind(':');
-        
+
         if(off == string::npos){
             name = str;
         }else{
@@ -345,7 +345,7 @@ void Debug::Data::setBit(const char *_pbeg, const char *_pend){
             lvls= parseLevels(lvlstr.c_str());
         }
     }
-    
+
     if(!cstring::ncasecmp(name.c_str(), "all", name.size())){
         bs.set();
     }else if(!cstring::ncasecmp(name.c_str(), "none", name.size())){
@@ -362,9 +362,9 @@ unsigned Debug::Data::registerModule(const char *_name, uint32_t _lvlmsk){
     for(std::string::iterator it = name.begin(); it != name.end(); ++it){
         *it = toupper(*it);
     }
-    
+
     StringMapT::const_iterator it = namemap.find(_name);
-    
+
     if(it != namemap.end()){
         return it->second;
     }else{
@@ -391,7 +391,7 @@ void Debug::Data::setModuleMask(const char *_opt){
                     pbeg = pcrt;
                 }else{
                     ++pcrt;
-                    state = ParseNameState; 
+                    state = ParseNameState;
                 }
             }else if(state == ParseNameState){
                 if(!isspace(*pcrt)){
@@ -412,9 +412,9 @@ void Debug::Data::setModuleMask(const char *_opt){
 void filePath(string &_out, uint32_t _pos, const string &_path, const string &_name){
     _out = _path;
     _out += _name;
-    
+
     char    buf[2048];
-    
+
     if(_pos){
         sprintf(buf, "_%04lu.dbg", (unsigned long)_pos);
     }else{
@@ -455,27 +455,27 @@ void Debug::Data::doRespin(){
         }
         string frompath;
         string topath;
-        
+
         if(lastpos == respincnt){
             filePath(topath, respincnt, path, name);
             --lastpos;
         }else{
             filePath(topath, lastpos + 1, path, name);
         }
-        
+
         while(lastpos){
             filePath(frompath, lastpos, path, name);
             Directory::renameFile(topath.c_str(), frompath.c_str());
             topath = frompath;
             --lastpos;
         }
-        
+
         filePath(frompath, 0, path, name);
         Directory::renameFile(topath.c_str(), frompath.c_str());
         fname = frompath;
     }
-    
-    
+
+
     if(fd.create(fname.c_str(), FileDevice::WriteOnlyE)){
         pos = &cerr;
     }else{
@@ -527,7 +527,7 @@ void Debug::initFile(
     d.dos.close();
     d.dbos.close();
     if(!d.isActive()) return;
-    
+
     if(_prefix && *_prefix){
         splitPrefix(d.path, d.name, _prefix);
         if(d.path.empty()){
@@ -578,17 +578,17 @@ void Debug::initSocket(
     }else{
         d.sd.close();//make sure the socket is closed
     }
-    
+
     unique_lock<mutex>  lock(d.m);
     d.respinsz = 0;
-    
+
     d.dos.close();
     d.dbos.close();
-    
+
     if(_addr == 0 || !*_addr){
         _addr = "localhost";
     }
-    
+
     if(d.sd.ok()){
         if(_buffered){
             d.dos.device(d.sd);
@@ -700,7 +700,7 @@ std::ostream& Debug::print(
         "%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s]",
         _t,
         ploctm->tm_year + 1900,
-        ploctm->tm_mon + 1, 
+        ploctm->tm_mon + 1,
         ploctm->tm_mday,
         ploctm->tm_hour,
         ploctm->tm_min,
@@ -752,7 +752,7 @@ std::ostream& Debug::printTraceIn(
         "%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
         _t,
         ploctm->tm_year + 1900,
-        ploctm->tm_mon + 1, 
+        ploctm->tm_mon + 1,
         ploctm->tm_mday,
         ploctm->tm_hour,
         ploctm->tm_min,
@@ -798,7 +798,7 @@ std::ostream& Debug::printTraceOut(
         "%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
         _t,
         ploctm->tm_year + 1900,
-        ploctm->tm_mon + 1, 
+        ploctm->tm_mon + 1,
         ploctm->tm_mday,
         ploctm->tm_hour,
         ploctm->tm_min,

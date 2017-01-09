@@ -43,17 +43,17 @@ bool ServerConfiguration::init(int _ipc_port){
     }
     std::sort(addrvec.begin(), addrvec.end());
     BinarySeeker<> bs;
-    
+
     struct ifaddrs* ifap(NULL);
     if(::getifaddrs(&ifap)){
         err = "getifaddrs did not work";
         return false;
     }
-    
+
     struct ifaddrs *it(ifap);
     char host[512];
     char srvc[128];
-    
+
     while(it){
         if(it->ifa_addr && it->ifa_addr->sa_family == AF_INET)
         {
@@ -61,7 +61,7 @@ bool ServerConfiguration::init(int _ipc_port){
             if(addr->sin_addr.s_addr != 0){
                 getnameinfo(it->ifa_addr, sizeof(sockaddr_in), host, 512, srvc, 128, NI_NUMERICHOST | NI_NUMERICSERV);
                 idbg("inaddr: name = "<<it->ifa_name<<", addr = "<<host<<":"<<srvc);
-                
+
             }
             SocketAddressInet4 sa(SocketAddressStub(it->ifa_addr, sizeof(sockaddr_in)));
             sa.port(_ipc_port);
@@ -75,7 +75,7 @@ bool ServerConfiguration::init(int _ipc_port){
     }
     freeifaddrs(ifap);
     quorum = addrvec.size()/2 + 1;
-    
+
     return true;
 }
 
@@ -117,10 +117,10 @@ ServerObject::ServerObject(
     solid::frame::ipc::Service &_ripcsvc,
     DynamicPointer<solid::consensus::server::Configuration> &_rcfgptr
 ):BaseT(_rcfgptr), ripcsvc(_ripcsvc){
-    
+
 }
 ServerObject::~ServerObject(){
-    
+
 }
 
 /*virtual*/ void ServerObject::accept(DynamicPointer<solid::consensus::WriteRequestMessage> &_rmsgptr){
@@ -141,16 +141,16 @@ ServerObject::~ServerObject(){
 }
 
 void ServerObject::dynamicHandle(DynamicPointer<> &_dp, int){
-    
+
 }
 
 void ServerObject::dynamicHandle(DynamicPointer<StoreRequest> &_rmsgptr, int){
     const frame::ipc::ConnectionUid ipcconid(_rmsgptr->consensusIpcConnectionId());
-    
+
     _rmsgptr->v = this->acceptId();
 
     idbg("StoreRequest: v = "<<_rmsgptr->v<<" for request "<<_rmsgptr->consensusRequestId());
-    
+
     DynamicPointer<frame::ipc::Message>     msgptr(_rmsgptr);
     ripcsvc.sendMessage(msgptr, ipcconid);
 }

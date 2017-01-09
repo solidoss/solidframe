@@ -1,4 +1,4 @@
-/* 
+/*
 
 $ openssl genrsa 2048 > ca-key.pem
 $ openssl req -new -x509 -nodes -days 1000 -key ca-key.pem > ca-cert.pem
@@ -93,11 +93,11 @@ public:
 private:
     /*virtual*/ void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
     void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
-    
-    
+
+
     typedef frame::aio::Listener            ListenerSocketT;
     typedef frame::aio::Timer               TimerT;
-    
+
     frame::Service      &rsvc;
     AioSchedulerT       &rsch;
     ListenerSocketT     sock;
@@ -126,7 +126,7 @@ protected:
     typedef frame::aio::Stream<frame::aio::openssl::Socket>     StreamSocketT;
     //typedef frame::aio::Timer                                 TimerT;
     enum {BufferCapacity = 1024 * 2};
-    
+
     char            buf[BufferCapacity];
     StreamSocketT   sock;
     uint64_t        recvcnt;
@@ -142,10 +142,10 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 int main(int argc, char *argv[]){
     Params p;
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     signal(SIGINT, term_handler); /* Die on SIGTERM */
     signal(SIGPIPE, SIG_IGN);
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -178,35 +178,35 @@ int main(int argc, char *argv[]){
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-    
+
     secure_ctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
     secure_ctx.loadCertificateFile("echo-server-cert.pem");
     secure_ctx.loadPrivateKeyFile("echo-server-key.pem");
-    
+
     {
-        
+
         AioSchedulerT       sch;
-        
-        
+
+
         frame::Manager      m;
         frame::ServiceT     svc(m);
-        
+
         if(sch.start(1)){
             running = false;
             cout<<"Error starting scheduler"<<endl;
         }else{
             ResolveData     rd =  synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    
+
             SocketDevice    sd;
-            
+
             sd.create(rd.begin());
             sd.prepareAccept(rd.begin(), 2000);
-            
+
             if(sd.ok()){
                 DynamicPointer<frame::aio::Object>  objptr(new Listener(svc, sch, std::move(sd)));
                 solid::ErrorConditionT              err;
                 solid::frame::ObjectIdT             objuid;
-                
+
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
                 idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
             }else{
@@ -215,7 +215,7 @@ int main(int argc, char *argv[]){
             }
 
         }
-        
+
         if(0){
             unique_lock<mutex>  lock(mtx);
             while(running){
@@ -226,7 +226,7 @@ int main(int argc, char *argv[]){
             cin>>c;
             //exit(0);
         }
-        
+
         //m.stop();
     }
     return 0;
@@ -277,7 +277,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
     idbg("");
     unsigned    repeatcnt = 4;
-    
+
     do{
         if(!_rctx.error()){
 #ifdef USE_CONNECTION
@@ -288,9 +288,9 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
             edbg("new_connection");
             DynamicPointer<frame::aio::Object>  objptr(new Connection(std::move(_rsd), secure_ctx));
             solid::ErrorConditionT              err;
-            
+
             rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
-            
+
 #else
             cout<<"Accepted connection: "<<_rsd.descriptor()<<endl;
 #endif
@@ -301,7 +301,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(repeatcnt && sock.accept(_rctx, std::bind(&Listener::onAccept, this, _1, _2), _rsd));
-    
+
     if(!repeatcnt){
         sock.postAccept(
             _rctx,
@@ -361,7 +361,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv, _sz));
-    
+
     idbg(&rthis<<" "<<repeatcnt);
     //timer.waitFor(_rctx, NanoTime(30), std::bind(&Connection::onTimer, this, _1));
     if(repeatcnt == 0){

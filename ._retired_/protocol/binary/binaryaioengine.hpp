@@ -1,6 +1,6 @@
 // protocol/binary/binaryaioengine.hpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -22,12 +22,12 @@ class AioEngine: public binary::Engine<Msg, MsgCtx, Ctl>{
     typedef binary::Engine<Msg, MsgCtx, Ctl>    BaseT;
 public:
     AioEngine(){}
-    
+
     template <class T>
     AioEngine(T &_rt):BaseT(_rt){
-        
+
     }
-    template <class ConCtx, class Des, class BufCtl, class Com> 
+    template <class ConCtx, class Des, class BufCtl, class Com>
     AsyncE runRecv(
         frame::aio::SingleObject &_raioobj,
         ulong _evs,
@@ -35,7 +35,7 @@ public:
         Des &_rdes,
         BufCtl &_rbufctl,
         Com &_rcom
-        
+
     ){
         typedef BufCtl BufCtlT;
         if(_evs & frame::EventDoneError){
@@ -70,8 +70,8 @@ public:
         }
         return reenter ? AsyncSuccess : AsyncWait;
     }
-    
-    template <class ConCtx, class Ser, class BufCtl, class Com> 
+
+    template <class ConCtx, class Ser, class BufCtl, class Com>
     AsyncE runSend(
         frame::aio::SingleObject &_raioobj,
         ulong _evs,
@@ -79,7 +79,7 @@ public:
         Ser &_rser,
         BufCtl &_rbufctl,
         Com &_rcom
-        
+
     ){
         typedef BufCtl BufCtlT;
         bool reenter = false;
@@ -99,7 +99,7 @@ public:
                     case frame::aio::AsyncWait:
                         cnt = 0;
                         break;
-                    case frame::aio::AsyncError: 
+                    case frame::aio::AsyncError:
                         return done();
                     default:
                         break;
@@ -109,10 +109,10 @@ public:
                 reenter = true;
             }
         }
-        
+
         return reenter ? AsyncSuccess : AsyncWait;
     }
-    template <class ConCtx, class Ser, class Des, class BufCtl, class Com> 
+    template <class ConCtx, class Ser, class Des, class BufCtl, class Com>
     AsyncE run(
         frame::aio::SingleObject &_raioobj,
         ulong _evs,
@@ -121,7 +121,7 @@ public:
         Des &_rdes,
         BufCtl &_rbufctl,
         Com &_rcom
-        
+
     ){
         const AsyncE rcvrv = runRecv(_raioobj, _evs, _rconctx, _rdes, _rbufctl, _rcom);
         if(rcvrv == AsyncError) return done();

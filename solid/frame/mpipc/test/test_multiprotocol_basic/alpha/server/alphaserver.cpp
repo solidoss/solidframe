@@ -29,7 +29,7 @@ void complete_message<alpha_protocol::FirstMessage>(
     if(_rrecv_msg_ptr){
         SOLID_CHECK(not _rsent_msg_ptr);
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
-        
+
         if(err){
             SOLID_THROW_EX("Connection id should not be invalid!", err.message());
         }
@@ -51,7 +51,7 @@ void complete_message<alpha_protocol::SecondMessage>(
     if(_rrecv_msg_ptr){
         SOLID_CHECK(not _rsent_msg_ptr);
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
-        
+
         if(err){
             SOLID_THROW_EX("Connection id should not be invalid!", err.message());
         }
@@ -73,7 +73,7 @@ void complete_message<alpha_protocol::ThirdMessage>(
     if(_rrecv_msg_ptr){
         SOLID_CHECK(not _rsent_msg_ptr);
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
-        
+
         if(err){
             SOLID_THROW_EX("Connection id should not be invalid!", err.message());
         }
@@ -86,10 +86,10 @@ void complete_message<alpha_protocol::ThirdMessage>(
 template <typename T>
 struct MessageSetup{
     std::string str;
-    
+
     MessageSetup(std::string &&_rstr):str(_rstr){}
     MessageSetup(){}
-    
+
     void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
         _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
     }
@@ -99,7 +99,7 @@ struct MessageSetup{
 void register_messages(frame::mpipc::serialization_v1::Protocol &_rprotocol){
     alpha_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol);
     //alpha_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol, 0, std::string("ceva"));
-    
+
 //  _rprotocol.registerType<alpha_protocol::FirstMessage>(
 //      complete_message<alpha_protocol::FirstMessage>
 //  );

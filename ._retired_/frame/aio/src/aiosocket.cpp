@@ -1,6 +1,6 @@
 // frame/aio/src/aiosocket.cpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -24,7 +24,7 @@
 
 enum{
     FLAG_POLL_IN  = EPOLLIN,
-    FLAG_POLL_OUT = EPOLLOUT 
+    FLAG_POLL_OUT = EPOLLOUT
 };
 
 #endif
@@ -37,7 +37,7 @@ enum{
 
 enum{
     FLAG_POLL_IN  = 1,
-    FLAG_POLL_OUT = 2 
+    FLAG_POLL_OUT = 2
 };
 
 #endif
@@ -84,7 +84,7 @@ Socket::Socket(Type _type, const SocketDevice &_rsd, SecureSocket *_pss):
     pss(NULL),
     type(_type), want(0), rcvcnt(0), sndcnt(0),
     rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0), ioreq(0)
-{   
+{
     sd.makeNonBlocking();
     secureSocket(_pss);
     d.psd = NULL;
@@ -221,7 +221,7 @@ AsyncE Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
     return AsyncWait;
 }
 
-AsyncE Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){   
+AsyncE Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){
     SOLID_ASSERT(!isSendPending());
     int rv = sd.send(_pb, _bl, _sap);
     if(rv == (ssize_t)_bl){
@@ -233,7 +233,7 @@ AsyncE Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap
     if(errno != EAGAIN) return AsyncError;
     sndbuf = _pb;
     sndlen = _bl;
-    
+
     ioreq |= FLAG_POLL_OUT;
     d.psd->sndaddrpair = _sap;
     return AsyncWait;
@@ -278,7 +278,7 @@ void Socket::doUnprepare(){
     4) cona->execute, return ok
     5) selector puts cona in execq (selector still waits for recv on cona)
     6) selector does epollselect and finds cona ready for read
-    
+
     The situation is far more difficult to avoid on multiconnections/multitalkers.
 */
 ulong Socket::doSendPlain(){
@@ -484,7 +484,7 @@ ulong Socket::doSecureReadWrite(int _w){
                 sndcnt += rv;
                 sndlen -= rv;
                 if(sndlen){
-                    
+
                 }else{
                     sndbuf = NULL;
                     retval |= EventDoneSend;
@@ -505,7 +505,7 @@ ulong Socket::doSecureReadWrite(int _w){
             if(rv < 0){
                 int sw = pss->wantEvents();
                 if(!sw) return EventDoneError;
-                
+
                 return 0;
             }else{
                 rcvcnt += rv;
@@ -576,7 +576,7 @@ AsyncE Socket::secureConnect(){
     SOLID_ASSERT(type == CHANNEL);
     const AsyncE rv = pss->secureConnect();
     if(rv != AsyncWait) return rv;
-    
+
     sndbuf = "";
     sndlen = 0;
     ioreq = 0;

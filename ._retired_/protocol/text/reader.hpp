@@ -1,6 +1,6 @@
 // protocol/text/reader.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -41,9 +41,9 @@ struct DummyKey{
     - it is buffer oriented not line oriented<br>
     - has suport for recovering from parsing errors<br>
     - it is flexible and easely extensible<br>
-    
+
     <b>Overview:</b><br>
-        Internally it uses a stack of pairs of a function pointer and a parameter 
+        Internally it uses a stack of pairs of a function pointer and a parameter
         (see protocol::Parameter) whith wich the function will be called.
         <br>
         Every function can in turn push new calls in the stack.
@@ -52,10 +52,10 @@ struct DummyKey{
         of scheduled functions. The state machine will exit when, either the buffer is empty
         and it cannot be filled (wait to be filled asynchrounously), the stack is empty,
         a function return Reader::Failure.<br>
-        
-    
+
+
     <b>Usage:</b><br>
-        Inherit, implement the virtual methods and extend the reader with new 
+        Inherit, implement the virtual methods and extend the reader with new
         parsing functions.<br>
         In your protocol (connection) execute loop:<br>
         > push some parsing callbacks and reset the parser state<br>
@@ -63,9 +63,9 @@ struct DummyKey{
         <br>
         - Failure usually means that the connection was/must be closed<br>
         - Success means that the stack is empty - it doesnt mean the data was
-        parsed successfully - an error might have occurred and the parser has successfully recovered 
+        parsed successfully - an error might have occurred and the parser has successfully recovered
         (use isError)<br>
-        
+
     <b>Notes:</b><br>
         - You can safely use pointers to existing parameters within the stack.<br>
         - As an example see test::alpha::Writer (test/foundation/alpha/src/alpha.(h/cpp)).<br>
@@ -103,20 +103,20 @@ public:
         \param _plog A pointer to a logger object or NULL
     */
     Reader(Logger *_plog = NULL);
-    
+
     //!virtual destructor
     virtual ~Reader();
-    
+
     //! Sets the internal buffer
     template <class B>
     void buffer(const B &_b){
         doPrepareBuffer(_b.pbeg, _b.pend);
         bh = _b;
     }
-    
+
     //! Gets the internal buffer
     const Buffer& buffer()const;
-    
+
     //! Sheduller push method
     /*!
         \param _pf A pointer to a function
@@ -155,7 +155,7 @@ public:
     static int fetchLiteralDummy(Reader &_rr, Parameter &_rp);
     //!Callback fetching a literal string
     static int fetchLiteralString(Reader &_rr, Parameter &_rp);
-    
+
     //!Callback fetching a literal string
     static int fetchLiteralStream(Reader &_rr, Parameter &_rp);
     //!Callback for refilling the input buffers
@@ -235,7 +235,7 @@ public:
         return Success;
     }
     //! Callback which check the current char using the filter and if it passes it pops callbacks
-    
+
     template <class Filter>
     static int checkIfCharThenPop(Reader &_rr, Parameter &_rp){
         int c;
@@ -248,7 +248,7 @@ public:
         }
         return Success;
     }
-    
+
 protected:
     enum States{
         RunState,
@@ -272,9 +272,9 @@ protected:
     int fetch(String &_rds, uint32 _maxsz){
         const char *tbeg = rpos;
         while(rpos != wpos && Filter::check(*(rpos))) ++rpos;
-        
+
         const uint32 sz(_rds.size() + (rpos - tbeg));
-        
+
         if(sz <= _maxsz){
             _rds.append(tbeg, rpos - tbeg);
             if(rpos != wpos){

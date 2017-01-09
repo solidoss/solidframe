@@ -1,6 +1,6 @@
 // system/src/specific.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -29,17 +29,17 @@ namespace{
 //  static const unsigned   thrspecpos = Thread::specificId();
 //  return thrspecpos;
 // }
-// 
+//
 // void once_cbk(){
 //  specificPositionStub();
 // }
-// 
+//
 // const unsigned specificPosition(){
 //  static boost::once_flag once = BOOST_ONCE_INIT;
 //  boost::call_once(&once_cbk, once);
 //  return specificPositionStub();
 // }
-// 
+//
 // #endif
 }
 //----------------------------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ void Specific::configure(
 //  }else{
 //      return prepareThread();
 //  }
-//  
+//
 // }
 
 

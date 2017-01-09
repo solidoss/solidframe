@@ -1,6 +1,6 @@
 // solid/frame/mpipc/mpipcconfiguration.hpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -75,18 +75,18 @@ enum struct ConnectionState{
 
 struct ReaderConfiguration{
     ReaderConfiguration();
-    
+
     size_t                  max_message_count_multiplex;
     UncompressFunctionT     decompress_fnc;
 };
 
 struct WriterConfiguration{
     WriterConfiguration();
-    
+
     size_t                          max_message_count_multiplex;
     size_t                          max_message_count_response_wait;
     size_t                          max_message_continuous_packet_count;
-    
+
     CompressFunctionT               inplace_compress_fnc;
     //ResetSerializerLimitsFunctionT    reset_serializer_limits_fnc;
 };
@@ -104,39 +104,39 @@ public:
     {
         init();
     }
-    
+
     Configuration& reset(Configuration &&_ucfg){
         *this = std::move(_ucfg);
         prepare();
         return *this;
     }
-    
+
     AioSchedulerT & scheduler(){
         return *pscheduler;
     }
-    
+
     bool isServer()const{
         return server.listener_address_str.size() != 0;
     }
-    
+
     bool isClient()const{
         return not FUNCTION_EMPTY(client.name_resolve_fnc);
     }
-    
+
     bool isServerOnly()const{
         return isServer() && !isClient();
     }
-    
+
     bool isClientOnly()const{
         return !isServer() && isClient();
     }
-    
+
     char* allocateRecvBuffer(uint8_t &_rbuffer_capacity_kb)const;
     void freeRecvBuffer(char *_pb)const;
-    
+
     char* allocateSendBuffer(uint8_t &_rbuffer_capacity_kb)const;
     void freeSendBuffer(char *_pb)const;
-    
+
     size_t connectionReconnectTimeoutSeconds(
         const uint8_t _retry_count,
         const bool _failed_create_connection_object,
@@ -144,104 +144,104 @@ public:
         const bool _last_connection_was_active,
         const bool _last_connection_was_secured
     )const;
-    
+
     ErrorConditionT check() const;
-    
+
 
     size_t connetionReconnectTimeoutSeconds()const;
-    
+
     size_t                                          pool_max_active_connection_count;
     size_t                                          pool_max_pending_connection_count;
     size_t                                          pool_max_message_queue_size;
-    
+
     size_t                                          pools_mutex_count;
-    
+
     ReaderConfiguration                             reader;
     WriterConfiguration                             writer;
-    
+
     struct Server{
         using ConnectionCreateSocketFunctionT       = FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, SocketDevice &&, char *)>;
         using ConnectionSecureHandshakeFunctionT    = FUNCTION<void(ConnectionContext &)>;
-        
+
         Server():listener_port(-1){}
-        
+
         bool hasSecureConfiguration()const{
             return not secure_any.empty();
         }
-        
+
         ConnectionCreateSocketFunctionT             connection_create_socket_fnc;
         ConnectionState                             connection_start_state;
         bool                                        connection_start_secure;
         ConnectionStartFunctionT                    connection_start_fnc;
         ConnectionSecureHandshakeFunctionT          connection_on_secure_handshake_fnc;
-        
+
         Any<>                                       secure_any;
-        
+
         std::string                                 listener_address_str;
         std::string                                 listener_service_str;
-        
+
         int listenerPort()const{
             return listener_port;
         }
     private:
         friend class Service;
         int                                         listener_port;
-        
+
     }                                               server;
-    
+
     struct Client{
         using ConnectionCreateSocketFunctionT       = FUNCTION<SocketStubPtrT(Configuration const &, frame::aio::ObjectProxy const &, char *)>;
         using AsyncResolveFunctionT                 = FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
         using ConnectionSecureHandshakeFunctionT    = FUNCTION<void(ConnectionContext &)>;
-        
+
         bool hasSecureConfiguration()const{
             return not secure_any.empty();
         }
-    
-        
+
+
         ConnectionCreateSocketFunctionT             connection_create_socket_fnc;
-        
+
         ConnectionState                             connection_start_state;
         bool                                        connection_start_secure;
         ConnectionStartFunctionT                    connection_start_fnc;
-        
+
         AsyncResolveFunctionT                       name_resolve_fnc;
-        
+
         ConnectionSecureHandshakeFunctionT          connection_on_secure_handshake_fnc;
         Any<>                                       secure_any;
-        
+
     }                                               client;
-    
-    
+
+
     size_t                                          connection_reconnect_timeout_seconds;
     uint32_t                                        connection_inactivity_timeout_seconds;
     uint32_t                                        connection_keepalive_timeout_seconds;
-    
-    uint32_t                                        connection_inactivity_keepalive_count;  //server error if receives more than inactivity_keepalive_count keep alive 
+
+    uint32_t                                        connection_inactivity_keepalive_count;  //server error if receives more than inactivity_keepalive_count keep alive
                                                                                             //messages during inactivity_timeout_seconds interval
-    
+
     uint8_t                                         connection_recv_buffer_start_capacity_kb;
     uint8_t                                         connection_recv_buffer_max_capacity_kb;
-    
+
     uint8_t                                         connection_send_buffer_start_capacity_kb;
     uint8_t                                         connection_send_buffer_max_capacity_kb;
-    
-    
+
+
     ConnectionStopFunctionT                         connection_stop_fnc;
     ConnectionOnEventFunctionT                      connection_on_event_fnc;
-    
+
     AllocateBufferFunctionT                         connection_recv_buffer_allocate_fnc;
     AllocateBufferFunctionT                         connection_send_buffer_allocate_fnc;
 
     FreeBufferFunctionT                             connection_recv_buffer_free_fnc;
     FreeBufferFunctionT                             connection_send_buffer_free_fnc;
-    
+
     ProtocolPointerT                                protocol_ptr;
-    
+
     Protocol& protocol(){
         return *protocol_ptr;
     }
-    
+
     const Protocol& protocol()const{
         return *protocol_ptr;
     }
@@ -260,13 +260,13 @@ struct InternetResolverF{
     aio::Resolver       &rresolver;
     std::string         default_service;
     SocketInfo::Family  family;
-    
+
     InternetResolverF(
         aio::Resolver &_rresolver,
         const char *_default_service,
         SocketInfo::Family  _family = SocketInfo::AnyFamily
     ):  rresolver(_rresolver), default_service(_default_service), family(_family){}
-    
+
     void operator()(const std::string&, ResolveCompleteFunctionT&);
 };
 

@@ -1,6 +1,6 @@
 // consensus/consensusrequest.hpp
 //
-// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -23,12 +23,12 @@ namespace solid{
 namespace consensus{
 //! A base class for all write distributed consensus requests
 /*!
- * Inherit WriteRequestSignal if you want a distributed request to be 
+ * Inherit WriteRequestSignal if you want a distributed request to be
  * used with a distributed/replicated consensus object.<br>
- * 
+ *
  * \see example/distributed/consensus for a proof-of-concept
- * 
- */ 
+ *
+ */
 struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::ipc::Message> >{
     WriteRequestMessage(const uint8 _expectcnt = 0);
     WriteRequestMessage(const RequestId &_rreqid, const uint8 _expectcnt = 0);
@@ -49,17 +49,17 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::ip
     virtual void consensusNotifyServerWithThis() = 0;
     virtual void consensusNotifyClientWithThis() = 0;
     virtual void consensusNotifyClientWithFail() = 0;
-    
+
     template <class S>
     S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
         _s.push(id.requid, "id.requid").push(id.senderuid, "sender");
         return _s;
     }
-    
+
     /*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
     /*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
     /*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
-    
+
     size_t use();
     size_t release();
     const RequestId& consensusRequestId()const;
@@ -106,12 +106,12 @@ inline bool WriteRequestMessage::consensusOnSuccess(){
 }
 //! A base class for all read-only distributed consensus requests
 /*!
- * Inherit WriteRequestSignal if you want a distributed request to be 
+ * Inherit WriteRequestSignal if you want a distributed request to be
  * used with a distributed/replicated consensus object.<br>
- * 
+ *
  * \see example/distributed/consensus for a proof-of-concept
- * 
- */ 
+ *
+ */
 struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::ipc::Message> >{
     ReadRequestMessage();
     ReadRequestMessage(const RequestId &_rreqid);
@@ -131,20 +131,20 @@ struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::ipc:
     virtual void consensusNotifyServerWithThis() = 0;
     virtual void consensusNotifyClientWithThis() = 0;
     virtual void consensusNotifyClientWithFail() = 0;
-    
+
     template <class S>
     S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
         _s.push(id.requid, "id.requid").push(id.senderuid, "sender");
         return _s;
     }
-    
+
     /*virtual*/ void   ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr);
     /*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
     /*virtual*/ void   ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
-    
+
     size_t use();
     size_t release();
-    
+
     uint8                           expectcnt;
     ATOMIC_NS::atomic<uint8>        completecnt;
     frame::ipc::ConnectionUid       ipcconid;

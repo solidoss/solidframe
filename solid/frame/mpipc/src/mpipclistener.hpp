@@ -1,6 +1,6 @@
 // solid/frame/ipc/src/ipclistener.hpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -38,13 +38,13 @@ public:
 private:
     Service& service(frame::aio::ReactorContext &_rctx);
     void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
-    
+
     void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
-    
-    
+
+
     typedef frame::aio::Listener            ListenerSocketT;
     typedef frame::aio::Timer               TimerT;
-    
+
     ListenerSocketT     sock;
     TimerT              timer;
 };

@@ -1,6 +1,6 @@
 // forkreinit.cpp
 //
-// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -55,19 +55,19 @@ struct Test{
             }else{
                 idbg("fail open");
             }
-            
+
             _rs.template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 1, "Test::reinit");
             ostream *ps = &fs;
             _rs.pushStream(ps, "Test::ostream");
         }
     }
-    
+
     template <class S>
     void serialize(S &_s){
         _s.push(no, "Test::no").template pushCall([this](S &_rs, uint64_t _val, ErrorConditionT &_rerr){return serializationReinit(_rs, _val, _rerr);}, 0, "Test::call").push(fn,"Test::fn");
     }
-    
-    
+
+
     void print();
 private:
     int32_t     no;

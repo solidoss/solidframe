@@ -1,6 +1,6 @@
 // protocol/text/writer.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -27,9 +27,9 @@ namespace text{
     - it is designed for nonblocking/asynchrounous usage<br>
     - it is buffer oriented not line oriented<br>
     - it is flexible and easely extensible<br>
-    
+
     <b>Overview:</b><br>
-        Internally it uses a stack of pairs of a function pointer and a parameter 
+        Internally it uses a stack of pairs of a function pointer and a parameter
         (protocol::Parameter) whith wich the function will be called.
         <br>
         Every function can in turn push new calls in the stack.
@@ -38,9 +38,9 @@ namespace text{
         of scheduled functions. The state machine will exit when, either the buffer must be flushed
         and this cannot be done imediatly (wait to flushed asynchrounously), the stack is empty,
         a function return Writer::Failure.<br>
-    
+
     <b>Usage:</b><br>
-        Inherit, implement the virtual methods and extend the writer with new 
+        Inherit, implement the virtual methods and extend the writer with new
         writing functions.<br>
         In your protocol (connection) execute loop:<br>
         > push some writing callbacks<br>
@@ -48,11 +48,11 @@ namespace text{
         <br>
         For writing use the defined operator<<(s) and/or callbacks for sending strings/chars/streams etc.<br>
         - Failure usually means that the connection was/must be closed<br>
-        - Success means that the stack is empty - it doesnt mean the data was parsed 
-        successfully - an error might have occurred and the parser has successfully recovered 
+        - Success means that the stack is empty - it doesnt mean the data was parsed
+        successfully - an error might have occurred and the parser has successfully recovered
         (use isError)<br>
-        
-        
+
+
     <b>Notes:</b><br>
         - You can safely use pointers to existing parameters within the stack.<br>
         - As an example see test::alpha::Writer (test/foundation/alpha/src/alpha.(h/cpp)).<br>
@@ -82,17 +82,17 @@ public:
     Writer(Logger *_plog = NULL);
     //! Writer destructor
     virtual ~Writer();
-    
+
     //! Sets the internal buffer
     template <class B>
     void buffer(const B &_b){
         doPrepareBuffer(_b.pbeg, _b.pend);
         bh = _b;
     }
-    
+
     //! Gets the internal buffer
     const Buffer& buffer()const;
-    
+
     //! Check if the log is active.
     bool isLogActive()const{return plog != NULL;}
     //! Sheduller push method
@@ -141,8 +141,8 @@ public:
     void put(uint32 _v);
     //! Convenient method for silently putting a number on the output
     void putSilent(uint32 _v);
-    
-    
+
+
     //! Convenient method for putting a number on the output
     void put(uint64 _v);
     //! Convenient method for silently putting a number on the output

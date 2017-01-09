@@ -23,7 +23,7 @@ int main(){
             sprintf(buf, "\"CR\"");
         }else if(i == '\n'){
             sprintf(buf, "\"LF\"");
-        }else if(isgraph(i)){   
+        }else if(isgraph(i)){
             sprintf(buf, "\"%c\"", (unsigned char)i);
         }else{
             sprintf(buf, "\"Ox%02X\"", (unsigned char)i);

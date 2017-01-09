@@ -1,6 +1,6 @@
 // alphasteward.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -67,7 +67,7 @@ struct Steward::Data{
     IndexTimerQueueT        listtq;
     RemoteListDequeT        listdq;
     IndexStackT             listcache;
-    
+
     IndexTimerQueueT        fetchtq;
     FetchDequeT             fetchdq;
     IndexStackT             fetchcache;
@@ -121,9 +121,9 @@ void Steward::sendMessage(solid::DynamicPointer<solid::frame::Message> &_rmsgptr
     while(d.listtq.isHit(_rexectx.currentTime())){
         const size_t idx = d.listtq.frontValue();
         d.listtq.pop();
-        
+
         doExecute(d.listdq[idx]);
-        
+
         d.listdq[idx].clear();
         d.listcache.push(idx);
     }
@@ -140,9 +140,9 @@ void Steward::dynamicHandle(solid::DynamicPointer<RemoteListMessage> &_rmsgptr){
     if(_rmsgptr->tout){
         size_t      idx;
         TimeSpec    ts = Steward::currentTime();
-        
+
         ts += _rmsgptr->tout;
-        
+
         if(d.listcache.size()){
             idx = d.listcache.top();
             d.listcache.pop();
@@ -151,7 +151,7 @@ void Steward::dynamicHandle(solid::DynamicPointer<RemoteListMessage> &_rmsgptr){
             idx = d.listdq.size();
             d.listdq.push_back(_rmsgptr);
         }
-        
+
         d.listtq.push(ts, idx);
     }else{
         doExecute(_rmsgptr);
@@ -168,7 +168,7 @@ struct OpenCbk{
         size_t _fetchidx,
         uint32 _fetchuid
     ):uid(_robjuid), fetchidx(_fetchidx), fetchuid(_fetchuid){}
-    
+
     void operator()(
         frame::file::Store<> &,
         frame::file::FilePointerT &_rptr,
@@ -203,21 +203,21 @@ void Steward::dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr)
     const size_t    msgidx = _rmsgptr->reqidx;
     const uint32    msguid = _rmsgptr->requid;
     if(msgidx < d.fetchdq.size() && d.fetchdq[msgidx].second == msguid){
-        
+
         solid::DynamicPointer<FetchMasterMessage>   &rmsgptr = d.fetchdq[msgidx].first;
-        
+
         rmsgptr->fileptr = _rmsgptr->ptr;
-        
+
         if(!rmsgptr->fileptr.empty()){
             d.rm.fileStore().uniqueToShared(rmsgptr->fileptr);
             idbg((void*)this<<" send first stream");
             FetchSlaveMessage                       *pmsg(new FetchSlaveMessage);
             DynamicPointer<frame::ipc::Message>     msgptr(pmsg);
             ERROR_NS::error_code                    err;
-            
+
             pmsg->ipcResetState(rmsgptr->ipcState());
             rmsgptr->filesz = rmsgptr->fileptr->size();
-            
+
             pmsg->tov = rmsgptr->fromv;
             pmsg->filesz = rmsgptr->filesz;
             pmsg->streamsz = rmsgptr->streamsz;
@@ -260,22 +260,22 @@ void Steward::dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr){
         DynamicPointer<frame::ipc::Message>         msgptr(_rmsgptr);
         solid::DynamicPointer<FetchMasterMessage>   &rmsgptr = d.fetchdq[msgidx].first;
         ERROR_NS::error_code                        err;
-        
+
         {
             frame::file::FilePointerT   fptr = d.rm.fileStore().shared(rmsgptr->fileptr.id(), err);
             pmsg->ios.device(fptr);
         }
-        
+
         pmsg->filepos = rmsgptr->filepos;
         if(pmsg->streamsz > rmsgptr->filesz){
             pmsg->streamsz = rmsgptr->filesz;
         }
-        
+
         rmsgptr->filepos += pmsg->streamsz;
         rmsgptr->filesz -= pmsg->streamsz;
-        
+
         d.rm.ipc().sendMessage(msgptr, rmsgptr->conid);
-        
+
         if(!rmsgptr->filesz){
             idbg(" filesz = "<<rmsgptr->filesz);
             doClearFetch(msgidx);
@@ -288,18 +288,18 @@ void Steward::doExecute(solid::DynamicPointer<RemoteListMessage> &_rmsgptr){
     idbg("");
     fs::directory_iterator              it,end;
     fs::path                            pth(_rmsgptr->strpth.c_str()/*, fs::native*/);
-    
+
     RemoteListMessage                   &rmsg = *_rmsgptr;
     DynamicPointer<frame::ipc::Message> msgptr(_rmsgptr);
-    
+
     rmsg.ppthlst = new RemoteList::PathListT;
     rmsg.strpth.clear();
-    
+
     if(!exists( pth ) || !is_directory(pth)){
         d.rm.ipc().sendMessage(msgptr, rmsg.conid);
         return;
     }
-    
+
     try{
         it = fs::directory_iterator(pth);
     }catch ( const std::exception & ex ){
@@ -309,7 +309,7 @@ void Steward::doExecute(solid::DynamicPointer<RemoteListMessage> &_rmsgptr){
         d.rm.ipc().sendMessage(msgptr, rmsg.conid);
         return;
     }
-    
+
     while(it != end){
         rmsg.ppthlst->push_back(std::pair<String, int64>(it->path().c_str(), -1));
         if(is_directory(*it)){

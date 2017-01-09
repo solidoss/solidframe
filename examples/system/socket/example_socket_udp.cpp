@@ -23,16 +23,16 @@ int main(){
 #endif
     ResolveData rd =  synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Datagram, 0);
     ResolveIterator it(rd.begin());
-    
+
     SocketDevice sd;
     sd.create(it);
     sd.bind(it);
-    
+
     if(sd.ok()){
         string              hoststr;
         string              servstr;
         SocketAddress       addr;
-        
+
         sd.localAddress(addr);
         synchronous_resolve(
             hoststr,

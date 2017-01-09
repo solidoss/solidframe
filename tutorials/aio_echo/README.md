@@ -106,7 +106,7 @@ Let us start with the "main" function's part in which we parse the program argum
 int main(int argc, char *argv[]){
     Params p;
     if(not parseArguments(p, argc, argv)) return 0;
-    
+
     signal(SIGPIPE, SIG_IGN);
 ```
 
@@ -135,11 +135,11 @@ Now, let us go back to the code, instantiate the above objects and start the sch
 
 ```C++
     AioSchedulerT       scheduler;
-    
-    
+
+
     frame::Manager      manager;
     frame::ServiceT     service(manager);
-    
+
     if(scheduler.start(1/*a single thread*/)){
         cout<<"Error starting scheduler"<<endl;
         return 0;
@@ -152,22 +152,22 @@ Next we will instantiate and start a Listener (which is a solid::frame::aio::Obj
     {
         ResolveData     rd =  synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
         SocketDevice    sd;
-        
+
         sd.create(rd.begin());
         sd.prepareAccept(rd.begin(), 2000);
-        
+
         if(sd.ok()){
-            
+
             {
                 SocketAddress   sa;
                 sd.localAddress(sa);
                 cout<<"Listening for TCP connections on port: "<<sa<<endl;
             }
-            
+
             DynamicPointer<frame::aio::Object>  objptr(new Listener(service, scheduler, std::move(sd)));
             solid::ErrorConditionT              error;
             solid::frame::ObjectIdT             objuid;
-            
+
             objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
             (void)objuid;
         }else{
@@ -196,7 +196,7 @@ The startObject method parameters are:
  * _objptr_: a smart pointer to a solid::frame::aio::Object - in our case the listener;
  * _service_: reference to the service which will keep the object;
  * _event_: the first event to be delivered to the object if it gets scheduled onto scheduler.
- 
+
 As you will soon see in the declaration of Listener class, every solid::frame::aio::Object must override the onEvent method to handle the notification events sent to the object:
 
 ```C++
@@ -209,27 +209,27 @@ Now, lets get back to the main function and instantiate a Talker (a UDP socket) 
     {
         ResolveData     rd =  synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
         SocketDevice    sd;
-        
+
         sd.create(rd.begin());
         sd.bind(rd.begin());
-        
+
         if(sd.ok()){
-            
+
             {
                 SocketAddress   sa;
                 sd.localAddress(sa);
                 cout<<"Listening for UDP datagrams on port: "<<sa<<endl;
             }
-            
+
             DynamicPointer<frame::aio::Object>  objptr(new Talker(std::move(sd)));
-            
+
             solid::ErrorConditionT              error;
             solid::frame::ObjectIdT             objuid;
-            
+
             objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
-            
+
             (void)objuid;
-            
+
         }else{
             cout<<"Error creating talker socket"<<endl;
             return 0;
@@ -274,10 +274,10 @@ public:
 private:
     void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
     void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
-    
+
     using ListenerSocketT = frame::aio::Listener;
     using TimerT = frame::aio::Timer;
-    
+
     frame::Service      &rservice;
     AioSchedulerT       &rscheduler;
     ListenerSocketT     sock;
@@ -313,12 +313,12 @@ Let us further see the definition of the __onAccept__ method:
 ```C++
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
     unsigned    repeatcnt = 4;
-    
+
     do{
         if(!_rctx.error()){
             DynamicPointer<frame::aio::Object>  objptr(new Connection(std::move(_rsd)));
             solid::ErrorConditionT              err;
-            
+
             rscheduler.startObject(objptr, rservice, make_event(GenericEvents::Start), err);
         }else{
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
@@ -333,7 +333,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(repeatcnt && sock.accept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);}, _rsd));
-    
+
     if(!repeatcnt){
         sock.postAccept(
             _rctx,
@@ -361,7 +361,7 @@ private:
 private:
     using  StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
     enum {BufferCapacity = 1024 * 2};
-    
+
     char            buf[BufferCapacity];
     StreamSocketT   sock;
 };
@@ -403,7 +403,7 @@ Next is the code for __Connection::onRecv__ and for __Connection::onSend__ which
         }
         --repeatcnt;
     }while(repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv, _sz));
-    
+
     if(repeatcnt == 0){
         bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
         SOLID_ASSERT(!rv);
@@ -438,9 +438,9 @@ private:
     void onSend(frame::aio::ReactorContext &_rctx);
 private:
     using DatagramSocketT = frame::aio::Datagram<frame::aio::Socket>;
-    
+
     enum {BufferCapacity = 1024 * 2 };
-    
+
     char            buf[BufferCapacity];
     DatagramSocketT sock;
 };
@@ -488,7 +488,7 @@ void Talker::onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, si
             [this](frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){onRecv(_rctx, _raddr, _sz);}, _raddr, _sz
         )
     );
-    
+
     if(repeatcnt == 0){
         sock.postRecvFrom(
             _rctx, buf, BufferCapacity,
@@ -521,8 +521,8 @@ In this tutorial you have learned about basic usage of the solid_frame and solid
  * How to create a Talker for UDP communication
  * How to receive UDP data and how to send it back
  * How to create and start aio::Objects
- * How to notify aio::Objects 
- 
+ * How to notify aio::Objects
+
 ## Next
 
 If you are interested on a higher level communication engine you can check out the tutorials about solid_frame_mpipc (Message Passing InterProcess Communication) library:

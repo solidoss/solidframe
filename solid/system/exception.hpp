@@ -1,6 +1,6 @@
 // solid/system/exception.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -39,7 +39,7 @@ struct Exception<const char*>:std::exception{
         const Exception<const char*> &_rex
     )throw(): t(_rex.t), file(_rex.file), line(_rex.line),function(_rex.function){
     }
-    
+
     ~Exception()throw(){}
     Exception & operator=(Exception<const char*>& _rex)throw(){
         t = _rex.t;
@@ -55,7 +55,7 @@ struct Exception<const char*>:std::exception{
         }
         return w.c_str();
     }
-    
+
     const char          *t;
     const char          *file;
     int                 line;
@@ -78,7 +78,7 @@ struct Exception<ErrorCodeT>:std::exception{
         const Exception<ErrorCodeT> &_rex
     )throw(): pt(_rex.pt), t(_rex.t), file(_rex.file), line(_rex.line),function(_rex.function){
     }
-    
+
     ~Exception()throw(){}
     Exception & operator=(Exception<ErrorCodeT> const & _rex)throw(){
         pt= _rex.pt;
@@ -95,7 +95,7 @@ struct Exception<ErrorCodeT>:std::exception{
         }
         return w.c_str();
     }
-    
+
     const char              *pt;
     ErrorCodeT              t;
     const char              *file;
@@ -116,7 +116,7 @@ struct Exception:std::exception{
         pdbg(file, line, function, "EXCEPTION: "<<pt<<':'<<' '<<t);
     }
     Exception(Exception<T> const &_rex)throw(): t(_rex.t), file(_rex.file), line(_rex.line){}
-    
+
     ~Exception()throw(){}
     Exception & operator=(Exception<T> const& _rex)throw(){
         t = _rex.t;
@@ -164,7 +164,7 @@ void throw_exception(const char* const _pt, const T& _rt, const char *const _fil
 #define SOLID_THROW(x)\
     throw Exception<const char*>(static_cast<const char*>((x)), __FILE__, __LINE__, CRT_FUNCTION_NAME);
 
-    
+
 #define SOLID_CHECK(a)\
     if(!(a)) SOLID_THROW("Failed checking: "#a);
 

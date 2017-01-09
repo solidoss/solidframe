@@ -1,6 +1,6 @@
 // solid/frame/sharedstore.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -54,7 +54,7 @@ public:
         Accessor& operator=(const Accessor&);
     };
     Manager& manager();
-    
+
     virtual ~StoreBase();
 protected:
     enum WaitKind{
@@ -67,36 +67,36 @@ protected:
         UniqueLockStateE,
         SharedLockStateE,
     };
-    
+
     struct ExecWaitStub{
         ExecWaitStub():pt(nullptr), pw(nullptr){}
         ExecWaitStub(UniqueId const & _uid, void *_pt, void *_pw):uid(_uid), pt(_pt), pw(_pw){}
-        
+
         UniqueId    uid;
         void    *pt;
         void    *pw;
     };
-    
+
     typedef std::vector<size_t>                 SizeVectorT;
     typedef std::vector<ExecWaitStub>           ExecWaitVectorT;
-    
+
     StoreBase(
         Manager &_rm
     );
-    
+
     std::mutex &mutex();
     std::mutex &mutex(const size_t _idx);
-    
+
     size_t doAllocateIndex();
     void* doTryAllocateWait();
     void pointerId(PointerBase &_rpb, UniqueId const & _ruid);
     void doExecuteCache();
     void doCacheObjectIndex(const size_t _idx);
     size_t atomicMaxCount()const;
-    
+
     UidVectorT& consumeEraseVector()const;
     UidVectorT& fillEraseVector()const;
-    
+
     SizeVectorT& indexVector()const;
     ExecWaitVectorT& executeWaitVector()const;
     Accessor accessor();
@@ -109,7 +109,7 @@ private:
     virtual bool doExecute() = 0;
     virtual void doResizeObjectVector(const size_t _newsz) = 0;
     virtual void doExecuteOnSignal(ulong _sm) = 0;
-    
+
     /*virtual*/void onEvent(frame::ReactorContext &_rctx, Event &&_revent) override;
 private:
     struct Data;
@@ -135,7 +135,7 @@ protected:
     PointerBase(StoreBase *_psb = nullptr):psb(_psb){}
     PointerBase(StoreBase *_psb, UniqueId const &_uid):uid(_uid), psb(_psb){}
     PointerBase(PointerBase const &_rpb):uid(_rpb.uid), psb(_rpb.psb){}
-    
+
     void doClear(const bool _isalive);
     void doReset(StoreBase *_psb, UniqueId const &_uid)const{
         uid = _uid;
@@ -151,43 +151,43 @@ template <
     class T
 >
 struct Pointer: PointerBase{
-    
+
     typedef Pointer<T>      PointerT;
-    
+
     Pointer(StoreBase *_psb = nullptr):PointerBase(_psb), pt(nullptr){}
     explicit Pointer(
         T *_pt,
         StoreBase *_psb  = nullptr,
         UniqueId const &_uid = UniqueId()
     ): PointerBase(_psb, _uid), pt(_pt){}
-    
+
     Pointer(PointerT const &_rptr):PointerBase(_rptr), pt(_rptr.release()){}
     ~Pointer(){
         clear();
     }
-    
+
     PointerT& operator=(PointerT const &_rptr){
         clear();
         doReset(_rptr.store(), _rptr.id());
         pt = _rptr.release();
         return *this;
     }
-    
+
     void reset(T *_pt, StoreBase *_psb, UniqueId const &_uid){
         clear();
         pt = _pt;
-        
+
     }
     bool alive()const{
         return pt == nullptr;
     }
-    
+
     T& operator*()const         {return *pt;}
     T* operator->()const        {return pt;}
     T* get() const              {return pt;}
     //operator bool () const    {return psig;}
     bool operator!()const       {return empty();}
-    
+
     T* release()const{
         T *p = pt;
         pt = nullptr;
@@ -218,11 +218,11 @@ public:
     typedef Pointer<T>                          PointerT;
     typedef Ctl                                 ControllerT;
     typedef Dynamic<Store<T, Ctl>, StoreBase>   BaseT;
-    
+
     Store(
         Manager &_rm
     ):BaseT(_rm){}
-    
+
     PointerT    insertAlive(T &_rt){
         std::unique_lock<std::mutex>    lock(this->mutex());
         const size_t    idx = this->doAllocateIndex();
@@ -235,7 +235,7 @@ public:
         }
         return ptr;
     }
-    
+
     PointerT    insertShared(T &_rt){
         std::unique_lock<std::mutex>    lock(this->mutex());
         const size_t    idx = this->doAllocateIndex();
@@ -248,7 +248,7 @@ public:
         }
         return ptr;
     }
-    
+
     PointerT    insertUnique(T &_rt){
         std::unique_lock<std::mutex>    lock(this->mutex());
         const size_t    idx = this->doAllocateIndex();
@@ -261,7 +261,7 @@ public:
         }
         return ptr;
     }
-    
+
     PointerT    insertAlive(){
         std::unique_lock<std::mutex>    lock(this->mutex());
         const size_t    idx = this->doAllocateIndex();
@@ -272,7 +272,7 @@ public:
         }
         return ptr;
     }
-    
+
     PointerT    insertShared(){
         std::unique_lock<std::mutex>    lock(this->mutex());
         const size_t    idx = this->doAllocateIndex();
@@ -283,7 +283,7 @@ public:
         }
         return ptr;
     }
-    
+
     PointerT    insertUnique(){
         std::unique_lock<std::mutex>    lock(this->mutex());
         const size_t    idx = this->doAllocateIndex();
@@ -294,7 +294,7 @@ public:
         }
         return ptr;
     }
-    
+
     //Try get an alive pointer for an intem
     PointerT    alive(UniqueId const & _ruid, ErrorCodeT &_rerr){
         PointerT        ptr;
@@ -308,7 +308,7 @@ public:
         }
         return ptr;
     }
-    
+
     //Try get an unique pointer for an item
     PointerT    unique(UniqueId const & _ruid, ErrorCodeT &_rerr){
         PointerT        ptr;
@@ -322,7 +322,7 @@ public:
         }
         return ptr;
     }
-    
+
     //Try get a shared pointer for an item
     PointerT    shared(UniqueId const & _ruid, ErrorCodeT &_rerr){
         PointerT        ptr;
@@ -336,7 +336,7 @@ public:
         }
         return ptr;
     }
-    
+
     bool uniqueToShared(PointerT const &_rptr){
         bool rv = false;
         bool do_notify = false;
@@ -360,7 +360,7 @@ public:
         }
         return rv;
     }
-    
+
     //! Return true if the _f was called within the current thread
     template <typename F>
     bool requestReinit(F &_f, size_t _flags = 0){
@@ -472,13 +472,13 @@ public:
         }
         return false;
     }
-    
+
     ControllerT &controller(){
         return *static_cast<ControllerT*>(this);
     }
 private:
     typedef FUNCTION<void(ControllerT&, PointerT&,ErrorCodeT const&)>   FunctionT;
-    
+
     struct WaitStub{
         WaitStub():kind(StoreBase::ReinitWaitE), pnext(nullptr){}
         StoreBase::WaitKind     kind;
@@ -488,7 +488,7 @@ private:
     struct Stub{
         Stub(
         ):uid(0), alivecnt(0), usecnt(0), state(StoreBase::UnlockedStateE), pwaitfirst(nullptr), pwaitlast(nullptr){}
-        
+
         void clear(){
             ++uid;
             state = StoreBase::UnlockedStateE;
@@ -496,7 +496,7 @@ private:
         bool canClear()const{
             return usecnt == 0 && alivecnt == 0 && pwaitfirst == nullptr;
         }
-        
+
         T           obj;
         uint32_t        uid;
         size_t      alivecnt;
@@ -505,22 +505,22 @@ private:
         WaitStub    *pwaitfirst;
         WaitStub    *pwaitlast;
     };
-    
+
     typedef std::deque<Stub>        StubVectorT;
     typedef std::deque<WaitStub>    WaitDequeT;
-    
-    
+
+
     /*virtual*/ void doResizeObjectVector(const size_t _newsz){
         stubvec.resize(_newsz);
     }
-    
+
     PointerT doTryGetAlive(const size_t _idx){
         Stub        &rs = stubvec[_idx];
         ++rs.alivecnt;
         rs.state = StoreBase::UniqueLockStateE;
         return PointerT(nullptr, this, UniqueId(_idx, rs.uid));
     }
-    
+
     PointerT doTryGetShared(const size_t _idx){
         Stub        &rs = stubvec[_idx];
         if(rs.state == StoreBase::SharedLockStateE && rs.pwaitfirst == nullptr){
@@ -529,7 +529,7 @@ private:
         }
         return PointerT();
     }
-    
+
     PointerT doTryGetUnique(const size_t _idx){
         Stub        &rs = stubvec[_idx];
         if(rs.usecnt == 0){
@@ -551,7 +551,7 @@ private:
     }
     bool doSwitchUniqueToShared(const size_t _idx){
         Stub        &rs = stubvec[_idx];
-        
+
         if(rs.state == StoreBase::UniqueLockStateE){
             SOLID_ASSERT(rs.usecnt == 1);
             rs.state = StoreBase::SharedLockStateE;
@@ -570,7 +570,7 @@ private:
         pwait->kind = _k;
         pwait->fnc = _f;
         pwait->pnext = nullptr;
-        
+
         if(rs.pwaitlast == nullptr){
             rs.pwaitfirst = rs.pwaitlast = pwait;
         }else{
@@ -578,7 +578,7 @@ private:
             rs.pwaitlast = pwait;
         }
     }
-    
+
     /*virtual*/ bool doDecrementObjectUseCount(UniqueId const &_uid, const bool _isalive){
         //the coresponding mutex is already locked
         Stub &rs = stubvec[_uid.index];
@@ -593,12 +593,12 @@ private:
         }
         return false;
     }
-    
+
     /*virtual*/ void doExecuteOnSignal(ulong _sm){
         StoreBase::Accessor         acc = StoreBase::accessor();
         controller().executeOnSignal(acc, _sm);
     }
-    
+
     /*virtual*/ bool doExecute(){
         StoreBase::Accessor         acc = StoreBase::accessor();
         StoreBase::UidVectorT const &reraseuidvec = StoreBase::consumeEraseVector();
@@ -606,7 +606,7 @@ private:
         StoreBase::ExecWaitVectorT  &rexewaitvec = StoreBase::executeWaitVector();
         const size_t                eraseuidvecsize = reraseuidvec.size();
         bool                        must_reschedule = controller().executeBeforeErase(acc);
-        
+
         if(reraseuidvec.empty()){
             return must_reschedule;
         }
@@ -640,7 +640,7 @@ private:
             ErrorCodeT              err;
             rw.fnc(this->controller(), ptr, err);
         }
-        
+
         {
             std::unique_lock<std::mutex>    lock(this->mutex());
             if(rcacheidxvec.size()){
@@ -666,7 +666,7 @@ private:
         }
         return must_reschedule;
     }
-    
+
     void doExecuteErase(const size_t _idx){
         Stub                        &rs = stubvec[_idx];
         WaitStub                    *pwait = rs.pwaitfirst;

@@ -1,6 +1,6 @@
 // solid/frame/ipc/src/ipcerror.cpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -58,9 +58,9 @@ enum {
 };
 
 class ErrorCategory: public ErrorCategoryT
-{     
+{
 public:
-    ErrorCategory(){} 
+    ErrorCategory(){}
     const char* name() const noexcept{
         return "solid::frame::mpipc";
     }
@@ -72,9 +72,9 @@ const ErrorCategory category;
 
 std::string ErrorCategory::message(int _ev) const{
     std::ostringstream oss;
-    
+
     oss<<"("<<name()<<":"<<_ev<<"): ";
-    
+
     switch(_ev){
         case 0:
             oss<<"Success";

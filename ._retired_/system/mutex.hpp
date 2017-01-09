@@ -1,6 +1,6 @@
 // system/mutex.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -42,7 +42,7 @@ public:
     bool tryLock();
 protected:
     enum Type{
-        FAST = PTHREAD_MUTEX_NORMAL, 
+        FAST = PTHREAD_MUTEX_NORMAL,
         RECURSIVE = PTHREAD_MUTEX_RECURSIVE,
         ERRORCHECK = PTHREAD_MUTEX_ERRORCHECK
     };
@@ -67,7 +67,7 @@ struct TimedMutex: public Mutex{
 
 struct RecursiveTimedMutex: public Mutex{
     RecursiveTimedMutex():Mutex(RECURSIVE){}
-    
+
     int timedLock(const TimeSpec &_rts){
         return Mutex::timedLock(_rts);
     }
@@ -92,7 +92,7 @@ private:
 template <class M>
 struct Locker{
     typedef Locker<M> ThisT;
-    
+
     Locker(M &_m):m(_m){
         m.lock();
     }
@@ -108,13 +108,13 @@ private:
 template <class M>
 struct SmartLocker{
     typedef SmartLocker<M> ThisT;
-    
+
     SmartLocker(M &_rm): pm(&_rm){
         pm->lock();
     }
-    
+
     SmartLocker():pm(nullptr){}
-    
+
     ThisT& operator=(ThisT && _rl){
         if(pm){
             pm->unlock();
@@ -123,7 +123,7 @@ struct SmartLocker{
         _rl.pm = nullptr;
         return *this;
     }
-    
+
     ~SmartLocker(){
         if(pm) pm->unlock();
     }

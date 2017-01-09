@@ -3,7 +3,7 @@ This document contains design ideas about the replicated object concept
 Working on the following scenario:
 
     - a client object C1 requesting a write opperation RC1 from a three time replicated object: Sx, Sy, Sz.
-    
+
 Some ideas:
 
 * S* must associate an internal state Ss to RC1, and it MUST be the same for every replica.
@@ -21,7 +21,7 @@ Some ideas:
 
 * Sy receives RC1:
     * wait an amount of time TW in which in normal conditions, if Sx would be alive, would have sent a LockSet signal.
-    * if received LockSet 
+    * if received LockSet
         * then
             * wait for RCt if not received allready, and associates Ssy == Ssx (?) to RCt
             * send ok to Sx
@@ -33,10 +33,10 @@ Some ideas:
                 * then //Sx didn't receive RC1 and there was no other pending signal
                     * execute RC1 and sends response to C1
             * if Sx responds LockSet((RCt, Ssx),(RC1, Ssx + 1)...)
-                * then 
+                * then
                     ...
             * if no response from Sx
-                * then 
+                * then
                     * mark Sx as disconnected
                     * send LockSet(RC1, Ssy) to Sz
                     * wait OK from Sz
@@ -52,5 +52,5 @@ Some ideas:
             * execute RC1 and sends response to C1
         * else
             * send to Sx and Sy a LockRequest(RC1, Ssz)
-            
-    
+
+

@@ -21,6 +21,6 @@ void testa(){
     idbg("caching string "<<(void*)pcs);
     std::cout<<"caching string "<<(void*)pcs<<std::endl;
     Specific::cache(pcs);
-    
+
 }
 

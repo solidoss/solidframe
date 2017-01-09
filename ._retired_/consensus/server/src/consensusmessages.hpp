@@ -1,6 +1,6 @@
 // consensus/server/src/consensussignals.hpp
 //
-// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2011, 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -48,11 +48,11 @@ struct OperationMessage<1>: Dynamic<OperationMessage<1>, Message>{
     template <class S>
     S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
         static_cast<Message*>(this)->serialize(_s, _rctx);
-        
+
         _s.push(op, "operation");
         return _s;
     }
-    
+
     OperationStub   op;
 };
 
@@ -65,7 +65,7 @@ struct OperationMessage<2>: Dynamic<OperationMessage<2>, Message>{
         _s.push(op[1], "operation2");
         return _s;
     }
-    
+
     OperationStub   op[2];
 };
 
@@ -80,7 +80,7 @@ struct OperationMessage: Dynamic<OperationMessage<Count>, Message>{
         _s.pushArray(op, opsz, "operations");
         return _s;
     }
-    
+
     OperationStub       op[Count];
     size_t              opsz;
 };

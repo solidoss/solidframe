@@ -1,6 +1,6 @@
 // frame/aio/aiosingleobject.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -48,16 +48,16 @@ public:
     ~SingleObject();
     //! Returs true if the socket is ok
     bool socketOk()const;
-    
+
     //! Asynchronous accept an incomming connection
     AsyncE socketAccept(SocketDevice &_rsd);
-    
+
     //! Asynchronous connect
     /*!
         \param _rai An SocketAddressInfo iterator holding the destination address.
     */
     AsyncE socketConnect(const SocketAddressStub& _rsas);
-    
+
     //! Asynchronous send
     AsyncE socketSend(const char* _pb, uint32 _bl, uint32 _flags = 0);
     //! Asynchronous send to a specific address
@@ -76,8 +76,8 @@ public:
         Call this on successful completion of socketRecv
     */
     const SocketAddress &socketRecvAddr() const;
-    
-    
+
+
     //! The ammount of data sent
     const uint64& socketSendCount()const;
     //! The ammount of data received
@@ -86,39 +86,39 @@ public:
     bool socketHasPendingSend()const;
     //! Return true if the socket is already waiting for a receive completion
     bool socketHasPendingRecv()const;
-    
+
     //! Get the local address of the socket
     bool socketLocalAddress(SocketAddress &_rsa)const;
     //! Get the remote address of the socket
     bool socketRemoteAddress(SocketAddress &_rsa)const;
-    
+
     //! Set the timeout for asynchronous recv opperation completion
     void socketTimeoutRecv(const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec = 0);
     //! Set the timeout for asynchronous send opperation completion
     void socketTimeoutSend(const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec = 0);
-    
-    
+
+
     //! Set the timeout for asynchronous recv opperation completion
     void socketTimeoutRecv(const ulong _addsec, const ulong _addnsec = 0);
     //! Set the timeout for asynchronous send opperation completion
     void socketTimeoutSend(const ulong _addsec, const ulong _addnsec = 0);
-    
+
     //! Gets the mask with completion events for the socket.
     //uint32 socketEvents()const;
-    
+
     uint32 socketEventsGrab();
-    
+
     //! Erase the socket - call socketRequestRegister before
     void socketErase();
-    
+
     //! Grabs the internal aio socket structure - to move it to another aioobject
     void socketGrab(SocketPointer &_rsp);
-    
+
     //! Sets the socket given an aio::Socket
     bool socketInsert(const SocketPointer &_rsp);
     //! Sets the socket given a SocketDevice
     bool socketInsert(const SocketDevice &_rsd, const bool _isacceptor = false);
-    
+
     //! Request for registering the socket onto the aio::Selector
     void socketRequestRegister();
     //! Request for unregistering the socket onto the aio::Selector
@@ -127,28 +127,28 @@ public:
         on object destruction.
     */
     void socketRequestUnregister();
-    
+
     //! Gets the state associated to the socket
     int socketState()const;
     //! Sets the state associated to the socket
     void socketState(int _st);
-    
-    
+
+
     //! Returns true if the socket is secure - SSL
     bool socketIsSecure()const;
     //! Gets the secure socket associated to socket
     SecureSocket* socketSecureSocket();
     //! Sets the secure socket associated to the socket
     void socketSecureSocket(SecureSocket *_pss);
-    
+
     //! Asynchronous secure accept
     AsyncE socketSecureAccept();
     //! Asynchronous secure connect
     AsyncE socketSecureConnect();
-    
+
     //TODO: not implemented
     ERROR_NS::error_code socketError()const;
-    
+
 private:
     SocketStub  stub;
     size_t      req;

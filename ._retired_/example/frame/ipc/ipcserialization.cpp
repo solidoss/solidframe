@@ -23,7 +23,7 @@ struct Params{
     bool                    dbg_console;
     bool                    dbg_buffered;
     bool                    log;
-    
+
     uint32                  repeat_count;
     uint32                  message_count;
     uint32                  min_size;
@@ -46,25 +46,25 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
     uint32          nsec;
     std::string     str;
     MessageUid      msguid;
-    
-    
+
+
     FirstMessage();
     ~FirstMessage();
-    
+
     uint32 size()const{
         return sizeof(state) + sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32) + str.size();
     }
-    
+
     /*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
     /*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
     /*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
-    
+
     template <class S>
     void serialize(S &_s){
         _s.push(state, "state").push(sec, "seconds").push(nsec, "nanoseconds").push(str, "data");
         _s.push(msguid.idx, "msguid.idx").push(msguid.uid,"msguid.uid");
     }
-    
+
 };
 
 FirstMessage* create_message(uint32_t _idx, const bool _incremental = false);
@@ -95,12 +95,12 @@ void execute_messages(FirstMessageSharedPointerQueueT   &_rmsgq, Context &_ctx);
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
-    
+
     if(parseArguments(p, argc, argv)) return 0;
-    
-    
+
+
     Thread::init();
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -133,31 +133,31 @@ int main(int argc, char *argv[]){
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-    
+
     FirstMessageSharedPointerQueueT     msgq;
     Context                             ctx;
     ctx.tm.insert<FirstMessage>();
-    
+
     for(uint32 i = 0; i < p.message_count; ++i){
-        
+
         DynamicSharedPointer<FirstMessage>  msgptr(create_message(i));
         msgq.push(msgptr);
     }
-    
-    TimeSpec    begintime(TimeSpec::createRealTime()); 
-    
+
+    TimeSpec    begintime(TimeSpec::createRealTime());
+
     for(uint32 i = 0; i < p.repeat_count; ++i){
         execute_messages(msgq, ctx);
     }
-    
+
     TimeSpec    endtime(TimeSpec::createRealTime());
     endtime -= begintime;
     uint64      duration = endtime.seconds() * 1000;
-    
+
     duration += endtime.nanoSeconds() / 1000000;
-    
+
     cout<<"Duration(msec) = "<<duration<<endl;
-    
+
     Thread::waitAll();
     return 0;
 }
@@ -236,40 +236,40 @@ string create_string(){
 FirstMessage* create_message(uint32_t _idx, const bool _incremental){
     static const string s(create_string());
     FirstMessage *pmsg = new FirstMessage;
-    
+
     pmsg->state = 0;
-    
+
     if(!_incremental){
         _idx = p.message_count - 1 - _idx;
     }
-    
+
     const uint32_t size = (p.min_size * (p.message_count - _idx - 1) + _idx * p.max_size) / (p.message_count - 1);
     idbg("create message with size "<<size);
     pmsg->str.resize(size);
     for(uint32_t i = 0; i < size; ++i){
         pmsg->str[i] = s[i % s.size()];
     }
-    
+
     TimeSpec    crttime(TimeSpec::createRealTime());
     pmsg->sec = crttime.seconds();
     pmsg->nsec = crttime.nanoSeconds();
-    
+
     return pmsg;
 }
 
 void execute_messages(FirstMessageSharedPointerQueueT   &_rmsgq, Context &_rctx){
     const uint32        sz = _rmsgq.size();
-    
-    
+
+
     for(uint32 i = 0; i < sz; ++i){
         FirstMessageSharedPointerT  frmsgptr = _rmsgq.front();
         FirstMessageSharedPointerT  tomsgptr(new FirstMessage);
-        
+
         _rmsgq.pop();
-        
+
         _rctx.ser.push(*frmsgptr, "msgptr");
         _rctx.des.push(*tomsgptr, "msgptr");
-        
+
         int rv;
         while((rv = _rctx.ser.run(_rctx.buf, _rctx.bufcp)) == _rctx.bufcp){
             _rctx.des.run(_rctx.buf, rv);
@@ -277,9 +277,9 @@ void execute_messages(FirstMessageSharedPointerQueueT   &_rmsgq, Context &_rctx)
         if(rv > 0){
             _rctx.des.run(_rctx.buf, rv);
         }
-        
+
         _rmsgq.push(tomsgptr);
-        
+
     }
 }
 

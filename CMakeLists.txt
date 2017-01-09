@@ -108,13 +108,13 @@ if(CMAKE_SYSTEM MATCHES "SunOS*")
     set(ON_FOUND TRUE)
     set(SOLID_ON_SOLARIS TRUE)
     set(SOLID_ON_POSIX TRUE)
-    set(SYS_DEBUG_FLAGS "-features=extensions -library=stlport4 -mt -g") 
+    set(SYS_DEBUG_FLAGS "-features=extensions -library=stlport4 -mt -g")
     set(SYS_MAINTAIN_FLAGS "-features=extensions -library=stlport4 -mt")
     set(SYS_OPTIMIZED_FLAGS "-features=extensions -library=stlport4 -mt")
     set(SYS_NOLOG_FLAGS "-features=extensions -library=stlport4 -mt")
     set(SYS_RELEASE_FLAGS "-features=extensions -library=stlport4 -mt")
-    
-    set(SYS_BASIC_LIBS pthread socket nsl)  
+
+    set(SYS_BASIC_LIBS pthread socket nsl)
 
 endif(CMAKE_SYSTEM MATCHES "SunOS*")
 
@@ -163,8 +163,8 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     set(ON_FOUND TRUE)
     set(SOLID_ON_LINUX TRUE)
     set(SOLID_ON_POSIX TRUE)
-    
-    
+
+
     set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
     set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
     set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
@@ -176,7 +176,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     set(SYS_OPTIMIZED_LINKER_FLAGS "")
     set(SYS_NOLOG_LINKER_FLAGS "")
     set(SYS_RELEASE_LINKER_FLAGS "-O3")
-    
+
     set(SYS_BASIC_LIBS pthread rt)
     set(SYS_DYNAMIC_LOAD_LIB dl)
 endif(CMAKE_SYSTEM MATCHES "Linux*")
@@ -208,8 +208,8 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     set(ON_ANDROID TRUE)
     set(SOLID_ON_LINUX TRUE)
     set(SOLID_ON_POSIX TRUE)
-    
-    
+
+
     set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
     set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
     set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
@@ -221,7 +221,7 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     set(SYS_OPTIMIZED_LINKER_FLAGS "")
     set(SYS_NOLOG_LINKER_FLAGS "")
     set(SYS_RELEASE_LINKER_FLAGS "-O3")
-    
+
     set(SYS_BASIC_LIBS pthread rt)
     set(SYS_DYNAMIC_LOAD_LIB dl)
 endif(CMAKE_SYSTEM MATCHES "Android*")
@@ -232,7 +232,7 @@ if(NOT ON_FOUND)
     message("\r\n === Sorry unsupported system - please contact project owner ===\r\n")
     return()
 else(NOT ON_FOUND)
-    
+
 endif(NOT ON_FOUND)
 
 #-----------------------------------------------------------------
@@ -267,11 +267,11 @@ endif()
 #-----------------------------------------------------------------
 if(NOT (INSTALL_PATH STREQUAL ""))
     set(CMAKE_INSTALL_PREFIX "${INSTALL_PATH}")
-    
+
     if(ON_ANDROID)
         set(CMAKE_INSTALL_PREFIX "${INSTALL_PATH}/${ANDROID_ABI}")
     endif()
-    
+
     message("Using install prefix: ${CMAKE_INSTALL_PREFIX}")
 endif(NOT (INSTALL_PATH STREQUAL ""))
 
@@ -312,7 +312,7 @@ endif ()
 #-----------------------------------------------------------------
 # Debug build
 #-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_DEBUG 
+set(CMAKE_CXX_FLAGS_DEBUG
     "${SYS_DEBUG_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during debug builds."
     FORCE
@@ -322,7 +322,7 @@ set(CMAKE_CXX_FLAGS_DEBUG
 #-----------------------------------------------------------------
 # Maintain build
 #-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_MAINTAIN 
+set(CMAKE_CXX_FLAGS_MAINTAIN
     "${SYS_MAINTAIN_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during maintain builds."
     FORCE
@@ -342,7 +342,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
 #-----------------------------------------------------------------
 # Optimized build
 #-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_OPTIMIZED 
+set(CMAKE_CXX_FLAGS_OPTIMIZED
     "${SYS_OPTIMIZED_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during optimized builds."
     FORCE
@@ -362,7 +362,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
 #-----------------------------------------------------------------
 # Nolog build
 #-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_NOLOG 
+set(CMAKE_CXX_FLAGS_NOLOG
     "${SYS_NOLOG_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during nolog builds."
     FORCE

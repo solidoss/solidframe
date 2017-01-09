@@ -30,7 +30,7 @@ const MessageTypeIds& MessageTypeIds::the(const MessageTypeIds *_pids){
     static const MessageTypeIds ids(*_pids);
     return ids;
 }
-    
+
 //-----------------------------------------------------------------------------------
 // RemoteListMessage
 //-----------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ size_t RemoteListMessage::release(){
 }
 uint32 RemoteListMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
     Locker<Mutex>                       lock(shared_mutex(this));
-    
+
     if(success == 0) success = 1;//wait
     idbg(""<<(void*)this);
     if(ipcIsOnSender()){//on sender

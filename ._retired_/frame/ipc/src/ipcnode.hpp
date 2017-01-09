@@ -1,6 +1,6 @@
 // frame/ipc/src/ipcnode.hpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -41,7 +41,7 @@ public:
         uint16 _id
     );
     ~Node();
-    
+
     uint32 pushSession(
         const SocketAddress &_rsa,
         const ConnectData &_rconndata,
@@ -56,7 +56,7 @@ public:
     void disconnectSessions();
 private:
     /*virtual*/ void execute(ExecuteContext &_rexectx);
-    
+
     void doInsertNewSessions();
     void doPrepareInsertNewSessions();
     void doInsertNewConnections();

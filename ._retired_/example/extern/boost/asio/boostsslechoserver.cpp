@@ -36,7 +36,7 @@ public:
         socket().set_option(recvoption);
         //cout<<"recv_buffer_size = "<<recvoption.value()<<endl;
         //cout<<"send_buffer_size = "<<sendoption.value()<<endl;
-        
+
         socket_.async_handshake(
             boost::asio::ssl::stream_base::server,
             boost::bind(&session::handle_handshake, this, boost::asio::placeholders::error)
@@ -44,7 +44,7 @@ public:
     }
 
 private:
-    
+
     void handle_handshake(const boost::system::error_code& error)
     {
         if (!error){
@@ -56,17 +56,17 @@ private:
                     boost::asio::placeholders::bytes_transferred
                 )
             );
-#else       
+#else
             socket_.async_read_some(
                 boost::asio::buffer(data_, max_length),
                 [this](const boost::system::error_code& _error, size_t _sz){handle_read(_error, _sz);}
             );
-#endif  
+#endif
         }else{
             delete this;
         }
     }
-    
+
     void handle_read(const boost::system::error_code& error, size_t bytes_transferred)
     {
         if (!error)
@@ -134,7 +134,7 @@ public:
         : io_service_(io_service),
         acceptor_(io_service, tcp::endpoint(tcp::v4(), port)), context_(boost::asio::ssl::context::sslv23)
     {
-        
+
         context_.set_options(
             boost::asio::ssl::context::default_workarounds |
             boost::asio::ssl::context::no_sslv2 |

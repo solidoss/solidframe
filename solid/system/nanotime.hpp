@@ -1,6 +1,6 @@
 // solid/system/nanotime.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -28,17 +28,17 @@ namespace solid{
 */
 struct NanoTime: public timespec{
     typedef UnsignedConvertor<time_t>::UnsignedType TimeT;
-    
+
     static const NanoTime maximum;
-    
+
     static NanoTime createRealTime();
     static NanoTime createMonotonic();
-    
+
     //! Current of the wall time
     const NanoTime& currentRealTime();
     //! Current time lapsed from a fixed moment - e.g. computer power-up
     const NanoTime& currentMonotonic();
-    
+
     NanoTime(const TimeT &_s = 0, long _ns = 0){set(_s, _ns);}
     TimeT   seconds()const{return tv_sec;}
     bool isMax()const;

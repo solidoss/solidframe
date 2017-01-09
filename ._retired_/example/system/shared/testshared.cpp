@@ -23,7 +23,7 @@ struct Test{
     ~Test(){
         //idbg("");
     }
-    
+
     int test(int _x){
         return v * _x;
     }
@@ -39,10 +39,10 @@ public:
     }
     typedef SharedPtr<T> ThisT;
     SharedPtr():pss(&ss){}
-    
+
     SharedPtr(T *_pt):pss(SharedBackend::create(_pt, &delT)){
     }
-    
+
     SharedPtr(const ThisT& _rptr):pss(_rptr.pss){
         //idbg("");
         SharedBackend::use(*pss);
@@ -54,7 +54,7 @@ public:
     ~SharedPtr(){
         SharedBackend::release(*pss);
     }
-    
+
     ThisT& operator=(const ThisT&_rptr){
         //idbg("");
         release();
@@ -62,25 +62,25 @@ public:
         SharedBackend::use(*pss);
         return *this;
     }
-    
+
     ThisT& operator=(ThisT&& __r) noexcept{
         this->ThisT::operator=(std::move(__r));
         //idbg("");
         return *this;
     }
-    
+
     void release()noexcept{
         SharedBackend::release(*pss);
         pss = &ss;
     }
-    
+
     bool empty()const noexcept{
         return pss->ptr == NULL;
     }
     T* get()const noexcept{
         return reinterpret_cast<T*>(pss->ptr);
     }
-    
+
     T* operator->()const noexcept{
         return get();
     }
@@ -94,19 +94,19 @@ template <class T>
 class NoSharedPtr{
 public:
     typedef NoSharedPtr<T> ThisT;
-    
+
     NoSharedPtr():p(NULL){}
-    
+
     NoSharedPtr(T *_p):p(_p){
     }
-    
+
     NoSharedPtr(const ThisT& _rptr):p(_rptr.p){
         _rptr.p = NULL;
     }
     ~NoSharedPtr(){
         delete p;
     }
-    
+
     ThisT& operator=(const ThisT&_rptr){
         if(!empty()){
             release();
@@ -115,19 +115,19 @@ public:
         _rptr.p = NULL;
         return *this;
     }
-    
+
     void release(){
         delete p;
         p = NULL;
     }
-    
+
     bool empty()const{
         return p == NULL;
     }
     T* get()const{
         return p;
     }
-    
+
     T* operator->()const{
         return get();
     }
@@ -140,19 +140,19 @@ template <class T>
 class WeakPtr{
 public:
     typedef WeakPtr<T> ThisT;
-    
+
     WeakPtr():p(NULL){}
-    
+
     WeakPtr(T *_p):p(_p){
     }
-    
+
     WeakPtr(const ThisT& _rptr):p(_rptr.p){
     }
     WeakPtr(const NoSharedPtr<T>& _rptr):p(_rptr.p){
     }
     ~WeakPtr(){
     }
-    
+
     ThisT& operator=(const ThisT&_rptr){
         if(!empty()){
             release();
@@ -160,18 +160,18 @@ public:
         p = _rptr.p;
         return *this;
     }
-    
+
     void release(){
         p = NULL;
     }
-    
+
     bool empty()const{
         return p == NULL;
     }
     T* get()const{
         return p;
     }
-    
+
     T* operator->()const{
         return get();
     }
@@ -207,9 +207,9 @@ static int          objcnt;
 int main(int argc, char *argv[]){
     if(argc != 4){
         cout<<"Use: ./example_testshare repeatcnt objcnt thrcnt"<<endl;
-        
+
         cout<<"sizeof(SharedStub) = "<<sizeof(SharedStub)<<endl;
-        
+
         return 0;
     }
 #ifdef SOLID_HAS_DEBUG
@@ -221,14 +221,14 @@ int main(int argc, char *argv[]){
     int repcnt = atoi(argv[1]);
     objcnt = atoi(argv[2]);
     int thrcnt = atoi(argv[3]);
-    
+
     TestSharedPtrT      t1(new Test(1));
     TestSharedPtrT      t2;
-    
+
     t2 = t1;
-    
+
     ThreadVectorT thrvec;
-    
+
     while(repcnt--){
         idbg("create "<<thrcnt<<" threads:");
         for(int i = 0; i < thrcnt; ++i){

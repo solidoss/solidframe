@@ -1,6 +1,6 @@
 // audit/log/logrecord.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -30,7 +30,7 @@ struct LogRecord{
     //! record text data size
     uint32 dataSize()const{return sz - head.filenamelen - head.functionnamelen;}
     //! record size
-    uint32 size()const{return sz;} 
+    uint32 size()const{return sz;}
     //! set the record size
     uint32 size(uint32 _sz){sz = _sz; return _sz;}
     //! get the record buffer capacity

@@ -81,12 +81,12 @@ public:
 private:
     void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
     void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
-    
+
     void onTimer(frame::aio::ReactorContext &_rctx);
-    
+
     typedef frame::aio::Listener            ListenerSocketT;
     typedef frame::aio::Timer               TimerT;
-    
+
     frame::Service      &rsvc;
     AioSchedulerT       &rsch;
     ListenerSocketT     sock;
@@ -118,7 +118,7 @@ protected:
     typedef frame::aio::Stream<frame::aio::Socket>      StreamSocketT;
     //typedef frame::aio::Timer                         TimerT;
     enum {BufferCapacity = 1024 * 2};
-    
+
     char            buf[BufferCapacity];
     StreamSocketT   sock;
     uint64_t            recvcnt;
@@ -154,9 +154,9 @@ private:
     void onSend(frame::aio::ReactorContext &_rctx);
 private:
     typedef frame::aio::Datagram<frame::aio::Socket>    DatagramSocketT;
-    
+
     enum {BufferCapacity = 1024 * 2 };
-    
+
     char            buf[BufferCapacity];
     DatagramSocketT sock;
 };
@@ -167,10 +167,10 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 int main(int argc, char *argv[]){
     Params p;
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     signal(SIGINT, term_handler); /* Die on SIGTERM */
     signal(SIGPIPE, SIG_IGN);
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -204,29 +204,29 @@ int main(int argc, char *argv[]){
     }
 #endif
     {
-        
+
         AioSchedulerT       sch;
-        
-        
+
+
         frame::Manager      m;
         frame::ServiceT     svc(m);
-        
+
         if(sch.start(1)){
             running = false;
             cout<<"Error starting scheduler"<<endl;
         }else{
             ResolveData     rd =  synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    
+
             SocketDevice    sd;
-            
+
             sd.create(rd.begin());
             sd.prepareAccept(rd.begin(), 2000);
-            
+
             if(sd.ok()){
                 DynamicPointer<frame::aio::Object>  objptr(new Listener(svc, sch, std::move(sd)));
                 solid::ErrorConditionT              err;
                 solid::frame::ObjectIdT             objuid;
-                
+
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
                 idbg("Started Listener object: "<<objuid.index<<','<<objuid.unique);
             }else{
@@ -236,31 +236,31 @@ int main(int argc, char *argv[]){
 #ifdef USE_CONNECTION
             {
                 rd = synchronous_resolve("127.0.0.1", p.connect_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-                
+
                 DynamicPointer<frame::aio::Object>  objptr(new ClientConnection(rd));
                 solid::ErrorConditionT              err;
                 solid::frame::ObjectIdT         objuid;
-                
+
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                
+
                 idbg("Started Client Connection object: "<<objuid.index<<','<<objuid.unique);
-                
+
             }
 #endif
-#ifdef USE_TALKER           
+#ifdef USE_TALKER
             rd = synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-            
+
             sd.create(rd.begin());
             sd.bind(rd.begin());
-            
+
             if(sd.ok()){
                 DynamicPointer<frame::aio::Object>  objptr(new Talker(std::move(sd)));
-                
+
                 solid::ErrorConditionT              err;
                 solid::frame::ObjectIdT         objuid;
-                
+
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                
+
                 idbg("Started Talker object: "<<objuid.index<<','<<objuid.unique);
             }else{
                 cout<<"Error creating talker socket"<<endl;
@@ -268,7 +268,7 @@ int main(int argc, char *argv[]){
             }
 #endif
         }
-        
+
         if(0){
             unique_lock<mutex>  lock(mtx);
             while(running){
@@ -279,7 +279,7 @@ int main(int argc, char *argv[]){
             cin>>c;
             //exit(0);
         }
-        
+
         //m.stop();
     }
     return 0;
@@ -348,7 +348,7 @@ void Listener::onTimer(frame::aio::ReactorContext &_rctx){
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
     idbg("");
     unsigned    repeatcnt = 4;
-    
+
     do{
         if(!_rctx.error()){
 #ifdef USE_CONNECTION
@@ -360,7 +360,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
             _rsd.sendBufferSize(sz);
             DynamicPointer<frame::aio::Object>  objptr(new Connection(std::move(_rsd)));
             solid::ErrorConditionT              err;
-            
+
             rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
 #else
             cout<<"Accepted connection: "<<_rsd.descriptor()<<endl;
@@ -372,7 +372,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(repeatcnt && sock.accept(_rctx, std::bind(&Listener::onAccept, this, _1, _2), _rsd));
-    
+
     if(!repeatcnt){
 #if 1
         //the normal way
@@ -435,7 +435,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv/*std::bind(&Connection::onRecv, this, _1, _2)*/, _sz));
-    
+
     idbg(&rthis<<" "<<repeatcnt);
     //timer.waitFor(_rctx, NanoTime(30), std::bind(&Connection::onTimer, this, _1));
     if(repeatcnt == 0){
@@ -458,7 +458,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
 }
 
 void Connection::onTimer(frame::aio::ReactorContext &_rctx){
-    
+
 }
 
 //-----------------------------------------------------------------------------
@@ -466,19 +466,19 @@ void Connection::onTimer(frame::aio::ReactorContext &_rctx){
 /*virtual*/ void ClientConnection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
     edbg(this<<" event = "<<_revent);
     if(generic_event_start == _revent){
-        
+
         string              hoststr;
         string              servstr;
-        
+
         synchronous_resolve(
             hoststr,
             servstr,
             rd.begin(),
             ReverseResolveInfo::Numeric
         );
-        
+
         idbg("Connect to "<<hoststr<<":"<<servstr);
-        
+
         if(sock.connect(_rctx, rd.begin(), std::bind(&ClientConnection::onConnect, this, _1))){
             onConnect(_rctx);
         }
@@ -535,7 +535,7 @@ void Talker::onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, si
         }
         --repeatcnt;
     }while(repeatcnt && sock.recvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3), _raddr, _sz));
-    
+
     idbg(repeatcnt);
     if(repeatcnt == 0){
         bool rv = sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3));//fully asynchronous call

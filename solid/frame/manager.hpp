@@ -1,6 +1,6 @@
 // solid/frame/manager.hpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -42,60 +42,60 @@ public:
         const size_t _objmtxcnt = 0,
         const size_t _objbucketsize = 0
     );
-    
+
     virtual ~Manager();
 
     void stop();
-    
+
     void start();
-    
+
     bool notify(ObjectIdT const &_ruid, Event &&_uevt, const size_t _sigmsk = 0);
-    
+
     //bool notifyAll(Event const &_revt, const size_t _sigmsk = 0);
-    
-    
+
+
     template <class F>
     bool visit(ObjectIdT const &_ruid, F _f){
         ObjectVisitFunctionT fct(_f);
         return doVisit(_ruid, fct);
     }
-    
-    
+
+
     ObjectIdT  id(const ObjectBase &_robj)const;
-    
+
     Service& service(const ObjectBase &_robj)const;
 protected:
     size_t serviceCount()const;
-    
+
 private:
     friend class Service;
     friend class ObjectBase;
     friend class ReactorBase;
     friend class SchedulerBase;
-    
+
     typedef FUNCTION<bool(ObjectBase&, ReactorBase&)>           ObjectVisitFunctionT;
-    
+
     static bool notify_object(
         ObjectBase &_robj, ReactorBase &_rreact,
         Event const &_revt, const size_t _sigmsk
     );
-    
+
     static bool notify_object(
         ObjectBase &_robj, ReactorBase &_rreact,
         Event &&_uevt, const size_t _sigmsk
     );
-    
+
     bool registerService(Service &_rsvc);
     void unregisterService(Service &_rsvc);
-    
+
     void unregisterObject(ObjectBase &_robj);
     bool disableObjectVisits(ObjectBase &_robj);
-    
+
     ObjectIdT  unsafeId(const ObjectBase &_robj)const;
-    
+
     std::mutex& mutex(const Service &_rsvc)const;
     std::mutex& mutex(const ObjectBase &_robj)const;
-    
+
     ObjectIdT registerObject(
         const Service &_rsvc,
         ObjectBase &_robj,
@@ -103,21 +103,21 @@ private:
         ScheduleFunctionT &_rfct,
         ErrorConditionT &_rerr
     );
-    
+
     size_t notifyAll(const Service &_rsvc, Event const & _revt, const size_t _sigmsk);
-    
+
     template <typename F>
     size_t forEachServiceObject(const Service &_rsvc, F _f){
         ObjectVisitFunctionT fct(_f);
         return doForEachServiceObject(_rsvc, fct);
     }
-    
+
     bool raise(const ObjectBase &_robj, Event const &_re);
 
     void stopService(Service &_rsvc, bool _wait);
     bool startService(Service &_rsvc);
-    
-    
+
+
     size_t doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctionT &_rfct);
     size_t doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctionT &_rfct);
     bool doVisit(ObjectIdT const &_ruid, ObjectVisitFunctionT &_fctor);

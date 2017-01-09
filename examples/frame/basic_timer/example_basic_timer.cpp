@@ -52,12 +52,12 @@ int main(int argc, char *argv[]){
     string dbgout;
     Debug::the().levelMask("view");
     Debug::the().moduleMask("all");
-    
+
     Debug::the().initStdErr(
         false,
         &dbgout
     );
-    
+
     cout<<"Debug output: "<<dbgout<<endl;
     dbgout.clear();
     Debug::the().moduleNames(dbgout);
@@ -67,22 +67,22 @@ int main(int argc, char *argv[]){
 
     {
         SchedulerT          s;
-        
+
         frame::Manager      m;
         frame::ServiceT     svc(m);
-        
+
         if(!s.start(1)){
             const size_t    cnt = argc == 2 ? atoi(argv[1]) : 1;
-            
+
             for(size_t i = 0; i < cnt; ++i){
                 DynamicPointer<frame::Object>   objptr(new BasicObject(10));
                 solid::ErrorConditionT          err;
                 solid::frame::ObjectIdT         objuid;
-                
+
                 objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
                 idbg("Started BasicObject: "<<objuid.index<<','<<objuid.unique);
             }
-            
+
             {
                 unique_lock<mutex>  lock(mtx);
                 while(running){
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]){
             cout<<"Error starting scheduler"<<endl;
         }
         m.stop();
-        
+
     }
     return 0;
 }
@@ -113,7 +113,7 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
     if(_idx == 0){
         if(repeat--){
             t2.cancel(_rctx);
-            t1.waitUntil(_rctx, _rctx.time() + 1000 * 5, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);}); 
+            t1.waitUntil(_rctx, _rctx.time() + 1000 * 5, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);});
             SOLID_ASSERT(!_rctx.error());
             t2.waitUntil(_rctx, _rctx.time() + 1000 * 10, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 1);});
             SOLID_ASSERT(!_rctx.error());
@@ -138,7 +138,7 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
         case frame::EventInit:
             cout<<"EventInit("<<_rexectx.event().index<<") at "<<_rexectx.time()<<endl;
             //t1 should fire first
-            t1.waitUntil(_rexectx, _rexectx.time() + 1000 * 5, frame::EventTimer, 1); 
+            t1.waitUntil(_rexectx, _rexectx.time() + 1000 * 5, frame::EventTimer, 1);
             SOLID_ASSERT(!_rexectx.error());
             t2.waitUntil(_rexectx, _rexectx.time() + 1000 * 10, frame::EventTimer, 2);
             SOLID_ASSERT(!_rexectx.error());
@@ -148,7 +148,7 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
             if(_rexectx.event().index == 1){
                 if(repeat--){
                     t2.cancel(_rexectx);
-                    t1.waitUntil(_rexectx, _rexectx.time() + 1000 * 5, frame::EventTimer, 1); 
+                    t1.waitUntil(_rexectx, _rexectx.time() + 1000 * 5, frame::EventTimer, 1);
                     SOLID_ASSERT(!_rexectx.error());
                     t2.waitUntil(_rexectx, _rexectx.time() + 1000 * 10, frame::EventTimer, 2);
                     SOLID_ASSERT(!_rexectx.error());

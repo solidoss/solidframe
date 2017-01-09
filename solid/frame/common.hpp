@@ -1,6 +1,6 @@
 // solid/frame/common.hpp
 //
-// Copyright (c) 2007, 2008, 2013, 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013, 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -38,24 +38,24 @@ typedef size_t UniqueT;
 struct UniqueId{
     IndexT      index;
     UniqueT     unique;
-    
-    
+
+
     static UniqueId invalid(){
         return UniqueId();
     }
-    
+
     UniqueId(
         IndexT const& _idx = InvalidIndex(),
         UniqueT _unq = InvalidIndex()
     ): index(_idx), unique(_unq){}
-    
+
     bool isInvalid()const{
         return index == InvalidIndex();
     }
     bool isValid()const{
         return !isInvalid();
     }
-    
+
     bool operator==(UniqueId const &_ruid)const{
         return _ruid.index == this->index and _ruid.unique == this->unique;
     }

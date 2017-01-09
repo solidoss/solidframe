@@ -1,6 +1,6 @@
 // alphawriter.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -50,7 +50,7 @@ bool isLiteralString(const char *_pb, unsigned _bl){
     }else{//send quoted
         rw<<'\"';
         protocol::text::Parameter ppp(_rp);
-        
+
         rw.replace(&Writer::putChar, protocol::text::Parameter('\"'));
         rw.push(&Writer::putAtom, ppp);
         rw.push(&Writer::flush);//only try to do a flush

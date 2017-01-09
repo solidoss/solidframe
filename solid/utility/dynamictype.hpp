@@ -1,6 +1,6 @@
 // solid/utility/dynamic.hpp
 //
-// Copyright (c) 2010 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2010 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -34,9 +34,9 @@ struct DynamicBase{
     }
     //! Get the type id for a Dynamic object.
     virtual size_t dynamicTypeId()const = 0;
-    
+
     static bool isTypeDynamic(const size_t _id);
-    
+
     static void staticTypeIds(DynamicIdVectorT &_rv){
     }
     virtual void dynamicTypeIds(DynamicIdVectorT &_rv)const{
@@ -44,10 +44,10 @@ struct DynamicBase{
 protected:
     static size_t generateId();
     DynamicBase():usecount(0){}
-    
+
     friend class DynamicPointerBase;
     virtual ~DynamicBase();
-    
+
     //! Used by DynamicPointer - smartpointers
     size_t use();
     //! Used by DynamicPointer to know if the object must be deleted
@@ -58,7 +58,7 @@ protected:
     size_t release();
 private:
     typedef std::atomic<size_t>         AtomicSizeT;
-    
+
     AtomicSizeT     usecount;
 };
 
@@ -74,7 +74,7 @@ private:
     if you need to have:<br>
         C: public B <br>
         B: public A <br>
-    you will actually have:<br> 
+    you will actually have:<br>
         C: public Dynamic\<C,B><br>
         B: public Dynamic\<B,A><br>
         A: public Dynamic\<A>
@@ -82,12 +82,12 @@ private:
 template <class X, class T = DynamicBase>
 struct Dynamic: T{
     typedef Dynamic<X,T>    BaseT;
-    
+
     template <typename ...Args>
     explicit Dynamic(Args&&..._args):T(std::forward<Args>(_args)...){
-        
+
     }
-    
+
     //!The static type id
     static size_t staticTypeId(){
         static const size_t id(DynamicBase::generateId());
@@ -107,30 +107,30 @@ struct Dynamic: T{
         if(_id == staticTypeId()) return true;
         return T::isTypeDynamic(_id);
     }
-    
+
     static X* cast(DynamicBase *_pdb){
         if(_pdb and isTypeDynamic(_pdb->dynamicTypeId())){
             return static_cast<X*>(_pdb);
         }
         return nullptr;
     }
-    
+
     static const X* cast(const DynamicBase *_pdb){
         if(isTypeDynamic(_pdb->dynamicTypeId())){
             return static_cast<const X*>(_pdb);
         }
         return nullptr;
     }
-    
+
     static void staticTypeIds(DynamicIdVectorT &_rv){
         _rv.push_back(BaseT::staticTypeId());
         T::staticTypeIds(_rv);
     }
-    
+
     /*virtual*/ void dynamicTypeIds(DynamicIdVectorT &_rv)const{
         staticTypeIds(_rv);
     }
-    
+
     DynamicPointer<X> dynamicFromThis()const{
         return DynamicPointer<X>(this);
     }

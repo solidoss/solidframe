@@ -1,6 +1,6 @@
 // protocol/binary/binaryengine.hpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -42,11 +42,11 @@ struct PacketHeader{
         flags = _flags;
         size = _size;
     }
-    
+
     bool isDataType()const{
         return type == DataType;
     }
-    
+
     bool isCompressed()const{
         return flags & CompressedFlag;
     }
@@ -57,7 +57,7 @@ struct PacketHeader{
         _pc = _rs.storeValue(_pc, size);
         return _pc;
     }
-    
+
     template <class D>
     const char* load(D &_rd, const char *_pc){
         _pc = _rd.loadValue(_pc, type);
@@ -65,7 +65,7 @@ struct PacketHeader{
         _pc = _rd.loadValue(_pc, size);
         return _pc;
     }
-    
+
     uint8   type;
     uint8   flags;
     uint16  size;
@@ -90,10 +90,10 @@ struct DummyCompressor{
 struct BasicController{
     template <class Ctx>
     void onDoneSend(Ctx &_rctx, const size_t _msgidx){}
-    
+
     template <class Ctx>
     void onSend(Ctx &_rctx, const size_t _sz){}
-    
+
     template <class Ctx>
     void onRecv(Ctx &_rctx, const size_t _sz){}
 };
@@ -102,7 +102,7 @@ template <class Msg, class MsgCtx, class Ctl = BasicController>
 class Engine{
     struct MessageStub{
         MessageStub():sndflgs(0), onsendq(false){}
-        
+
         void sendClear(){
             sndmsgptr.clear();
             sndflgs = 0;
@@ -111,27 +111,27 @@ class Engine{
         void recvClear(){
             rcvmsgptr.clear();
         }
-        
+
         MsgCtx              ctx;
         DynamicPointer<Msg> sndmsgptr;
         DynamicPointer<Msg> rcvmsgptr;
         uint32              sndflgs;
         bool                onsendq;
-        
+
     };
     enum{
         RecvPacketHeaderState = 1,
         RecvPacketDataState
     };
 public:
-    
+
     Engine():rcvbufoff(0), cnsbufoff(0), rcvstate(RecvPacketHeaderState), rcvmsgidx(-1){}
-    
+
     template <class T>
     Engine(T &_rt):ctl(_rt), rcvbufoff(0), cnsbufoff(0), rcvstate(RecvPacketHeaderState), rcvmsgidx(-1){
-        
+
     }
-    
+
     size_t send(size_t _idx, DynamicPointer<Msg> &_rmsgptr, uint32 _flags = 0){
         if(_idx == static_cast<size_t>(-1)){
             _idx = msgvec.size();
@@ -147,7 +147,7 @@ public:
         sndq.push(_idx);
         return _idx;
     }
-    
+
     size_t send(const size_t _idx, DynamicPointer<Msg> &_rmsgptr, MsgCtx &_rmsgctx, uint32 _flags = 0){
         if(_idx >= msgvec.size()){
             msgvec.resize(_idx + 1);
@@ -161,7 +161,7 @@ public:
         sndq.push(_idx);
         return _idx;
     }
-    
+
     DynamicPointer<Msg>& sendMessage(const size_t _idx){
         SOLID_ASSERT(_idx < msgvec.size());
         return msgvec[_idx].sndmsgptr;
@@ -170,7 +170,7 @@ public:
         SOLID_ASSERT(_idx < msgvec.size());
         return msgvec[_idx].sndmsgptr;
     }
-    
+
     DynamicPointer<Msg>& recvMessage(const size_t _idx){
         SOLID_ASSERT(_idx < msgvec.size());
         return msgvec[_idx].rcvmsgptr;
@@ -179,12 +179,12 @@ public:
         SOLID_ASSERT(_idx < msgvec.size());
         return msgvec[_idx].rcvmsgptr;
     }
-    
+
     MsgCtx& messageContext(const size_t _idx){
         SOLID_ASSERT(_idx < msgvec.size());
         return msgvec[_idx].ctx;
     }
-    
+
     const MsgCtx& messageContext(const size_t _idx)const{
         SOLID_ASSERT(_idx < msgvec.size());
         return msgvec[_idx].ctx;
@@ -205,7 +205,7 @@ public:
     const size_t recvBufferCapacity(const size_t _cp)const{
         return _cp - rcvbufoff;
     }
-    
+
     template <class Des, class Ctx, class C>
     bool consume(
         Des &_rd,
@@ -216,13 +216,13 @@ public:
     ){
         typedef C   CompressorT;
         typedef Des DeserializerT;
-        
+
         if(!_bl) return true;
-        
+
         rcvbufoff += _bl;
         const char  *cnspos = _pb + cnsbufoff;
         size_t      cnslen = rcvbufoff - cnsbufoff;
-        
+
         while(cnslen){
             if(rcvstate == RecvPacketHeaderState){
                 if(cnslen < PacketHeader::SizeOf){
@@ -232,9 +232,9 @@ public:
                 rcvstate = RecvPacketDataState;
             }
             PacketHeader    pkthdr;
-            
+
             pkthdr.load(_rd, cnspos);
-            
+
             if((pkthdr.size + PacketHeader::SizeOf) > cnslen){
                 optimizeRecvBuffer(_pb);
                 return true;//wait for more data
@@ -252,7 +252,7 @@ public:
                 crttmppos = cnspos + PacketHeader::SizeOf;
                 crttmplen = pkthdr.size;
             }
-            
+
             while(crttmplen){
                 if(_rd.empty()){
                     crttmppos = _rd.loadValue(crttmppos, rcvmsgidx);
@@ -264,11 +264,11 @@ public:
                     MessageStub &rms = msgvec[rcvmsgidx];
                     _rd.push(rms.rcvmsgptr, "message");
                 }
-                
+
                 _rctx.recvMessageIndex(rcvmsgidx);
-                
+
                 int rv = _rd.run(crttmppos, crttmplen, _rctx);
-                
+
                 if(rv < 0){
                     msgvec[rcvmsgidx].recvClear();
                     return false;
@@ -287,7 +287,7 @@ public:
         optimizeRecvBuffer(_pb);
         return true;
     }
-    
+
     template <class Ser, class Ctx, class C>
     int fill(
         Ser &_rs,
@@ -298,23 +298,23 @@ public:
     ){
         typedef C   CompressorT;
         typedef Ser SerializerT;
-        
+
         if(sndq.empty()) return 0;
-        
+
         char    *crtpos = _pb;
         size_t  crtlen = _bl;
-        
+
         while(crtlen >= _tmpbufcp && sndq.size()){
             char    *crttmppos = _tmpbuf;
             size_t  crttmplen = _tmpbufcp;
             size_t  crttmpsz = 0;
             crttmplen -= PacketHeader::SizeOf;
             crttmplen -= _rc.reservedSize();
-            
+
             while(crttmplen > 8 && sndq.size()){
                 const size_t    msgidx = sndq.front();
                 MessageStub     &rms = msgvec[msgidx];
-                
+
                 if(_rs.empty()){
                     crttmppos = _rs.storeValue(crttmppos, static_cast<uint32>(msgidx));
                     crttmplen -= sizeof(uint32);
@@ -322,11 +322,11 @@ public:
                     idbgx(Debug::proto_bin, "send message on pos "<<msgidx);
                     _rs.push(rms.sndmsgptr.get(), "message");
                 }
-                
+
                 _rctx.sendMessageIndex(sndq.front());
-                
+
                 int rv = _rs.run(crttmppos, crttmplen, _rctx);
-                
+
                 if(rv < 0){
                     rms.sendClear();
                     sndq.pop();
@@ -337,12 +337,12 @@ public:
                     sndq.pop();
                     ctl.onDoneSend(_rctx, msgidx);
                 }
-                
+
                 crttmppos += rv;
                 crttmplen -= rv;
                 crttmpsz  += rv;
             }
-            
+
             size_t          destsz = crtlen - PacketHeader::SizeOf;
             uint8           pkgflags = 0;
             if(_rc.shouldCompress(crttmpsz)){
@@ -354,16 +354,16 @@ public:
                 memcpy(crtpos + PacketHeader::SizeOf, _tmpbuf, crttmpsz);
                 destsz = crttmpsz;
             }
-            
+
             PacketHeader    pkthdr(PacketHeader::DataType, pkgflags, destsz);
-            
+
             crtpos = pkthdr.store(_rs, crtpos);
             crtlen -= PacketHeader::SizeOf;
-            
+
             crtlen -= destsz;
             crtpos += destsz;
         }
-        
+
         return crtpos - _pb;
     }
     template <class Ser, class Ctx>
@@ -373,30 +373,30 @@ public:
         char *_pb, size_t _bl
     ){
         typedef Ser SerializerT;
-        
+
         if(sndq.empty()) return 0;
-        
+
         char    *crtpos = _pb;
         size_t  crtlen = _bl;
-        
+
         char    *crttmppos = crtpos + PacketHeader::SizeOf;
         size_t  crttmplen = crtlen - PacketHeader::SizeOf;
         size_t  crttmpsz = 0;
-        
+
         while(crttmplen > 8 && sndq.size()){
             MessageStub     &rms = msgvec[sndq.front()];
-            
+
             if(_rs.empty()){
                 crttmppos = _rs.storeValue(crttmppos, static_cast<uint32>(sndq.front()));
                 crttmplen -= sizeof(uint32);
                 crttmpsz  += sizeof(uint32);
                 _rs.push(rms.sndmsgptr.get(), "message");
             }
-            
+
             _rctx.sendMessageIndex(sndq.front());
-            
+
             int rv = _rs.run(crttmppos, crttmplen, _rctx);
-            
+
             if(rv < 0){
                 rms.sendClear();
                 sndq.pop();
@@ -407,21 +407,21 @@ public:
                 sndq.pop();
                 ctl.onDoneSend(_rctx);
             }
-            
+
             crttmppos += rv;
             crttmplen -= rv;
             crttmpsz  += rv;
         }
-        
+
         size_t          destsz = crttmpsz;
         uint8           pkgflags = 0;
         PacketHeader    pkthdr(PacketHeader::DataType, pkgflags, destsz);
-        
+
         crtpos = pkthdr.store(_rs, crtpos);
-                    
+
         //crtlen -= (destsz + PacketHeader::SizeOf);
         crtpos += destsz;
-        
+
         return crtpos - _pb;
     }
 private:
@@ -439,7 +439,7 @@ protected:
 private:
     typedef std::deque<MessageStub>     MessageVectorT;
     typedef Queue<size_t>               SizeTQueueT;
-    
+
     uint16              rcvbufoff;
     uint16              cnsbufoff;
     uint8               rcvstate;

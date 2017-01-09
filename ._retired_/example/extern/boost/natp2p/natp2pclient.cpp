@@ -42,7 +42,7 @@ struct NatP2PClient{
         server_endpoint(_server_endpoint),
         connect_nat_endpoint(_connect_nat_endpoint),
         connect_fwl_endpoint(_connect_fwl_endpoint), state(Init){}
-    
+
     void run();
     void runSend();
 private:
@@ -56,7 +56,7 @@ private:
     void sendConnect(bool _send_to_server = true);
     void sendAccept();
     void startSendThread();
- 
+
 private:
     boost::asio::io_service &io_service;
     udp::socket             sock;
@@ -87,24 +87,24 @@ int main(int argc, char* argv[])
         udp::endpoint           server_endpoint;
         udp::endpoint           connect_nat_endpoint;
         udp::endpoint           connect_fwl_endpoint;
-        
-        
+
+
         local_endpoint.address(boost::asio::ip::address::from_string(argv[1]));
         local_endpoint.port(atoi(argv[2]));
-        
+
         server_endpoint.address(boost::asio::ip::address::from_string(argv[3]));
         server_endpoint.port(atoi(argv[4]));
-        
+
         if(argc >= 7){
             connect_nat_endpoint.address(boost::asio::ip::address::from_string(argv[5]));
             connect_nat_endpoint.port(atoi(argv[6]));
         }
-        
+
         if(argc >= 9){
             connect_fwl_endpoint.address(boost::asio::ip::address::from_string(argv[7]));
             connect_fwl_endpoint.port(atoi(argv[8]));
         }
-        
+
         NatP2PClient            clnt(
             io_service,
             local_endpoint,
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
             connect_nat_endpoint,
             connect_fwl_endpoint
         );
-        
+
         clnt.run();
 //  }
 //  catch (std::exception& e)
@@ -202,7 +202,7 @@ void NatP2PClient::runSend(){
     while(true){
         cin>>s;
         sock.send_to(boost::asio::buffer(s.data(), s.size()), peer_endpoint);
-        
+
         LOG("send data to "<<peer_endpoint<<": ["<<s<<']');
     }
 }
@@ -219,7 +219,7 @@ void NatP2PClient::sendConnect(bool _send_to_server){
     if(connect_nat_endpoint.address() == noaddr){
         return;
     }
-    if(_send_to_server){    
+    if(_send_to_server){
         ostringstream oss;
         oss<<'c'<<' '<<connect_nat_endpoint.address()<<' '<<connect_nat_endpoint.port()<<' '<<local_endpoint.address()<<' '<<local_endpoint.port()<<endl;
         send(server_endpoint, oss);
@@ -229,7 +229,7 @@ void NatP2PClient::sendConnect(bool _send_to_server){
         oss<<'c'<<' '<<exit_endpoint.address()<<' '<<exit_endpoint.port()<<endl;
         send(connect_nat_endpoint, oss);
     }
-    {   
+    {
         ostringstream oss;
         oss<<'c'<<' '<<local_endpoint.address()<<' '<<local_endpoint.port()<<endl;
         send(connect_fwl_endpoint, oss);
@@ -294,15 +294,15 @@ void NatP2PClient::initCommand(istringstream &_iss){
 void NatP2PClient::connectCommand(istringstream &_iss){
     string  addr;
     int     port;
-    
+
     _iss>>addr>>port;
-    
+
     LOG("connectCommand("<<addr<<','<<port<<')');
     udp::endpoint endpoint;
     endpoint.address(boost::asio::ip::address::from_string(addr.c_str()));
     endpoint.port(port);
     peer_endpoint = sender_endpoint;
-    
+
     sendAccept();
 }
 
@@ -311,23 +311,23 @@ void NatP2PClient::connectStunCommand(istringstream &_iss){
     int     nat_port;
     string  fwl_addr;
     int     fwl_port;
-    
+
     _iss>>nat_addr>>nat_port;
     _iss>>fwl_addr>>fwl_port;
-    
+
     LOG("connectStunCommand("<<nat_addr<<','<<nat_port<<'-'<<fwl_addr<<','<<fwl_port<<')');
     udp::endpoint nat_endpoint;
     udp::endpoint fwl_endpoint;
-    
+
     nat_endpoint.address(boost::asio::ip::address::from_string(nat_addr.c_str()));
     nat_endpoint.port(nat_port);
-    
+
     fwl_endpoint.address(boost::asio::ip::address::from_string(fwl_addr.c_str()));
     fwl_endpoint.port(fwl_port);
-    
+
     connect_nat_endpoint = nat_endpoint;
     connect_fwl_endpoint = fwl_endpoint;
-    
+
     sendConnect(false);
 }
 

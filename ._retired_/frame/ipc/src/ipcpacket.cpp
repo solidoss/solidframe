@@ -51,13 +51,13 @@ void Packet::optimize(uint16 _cp){
     const uint      mid(Specific::capacityToIndex(_cp ? _cp : Packet::Capacity));
     if(mid > id){
         uint32 datasz = this->dataSize();//the size
-        
+
         char *newbuf(Specific::popBuffer(id));
         memcpy(newbuf, this->buffer(), bufsz);//copy to the new buffer
-        
+
         char *pb = this->release();
         Specific::pushBuffer(pb, mid);
-        
+
         this->pb = newbuf;
         this->dl = datasz;
         this->bc = Specific::indexToCapacity(id);
@@ -70,10 +70,10 @@ bool Packet::compress(Controller &_rctrl){
     PacketContext   bctx(headersize);
     int32           datasz(dataSize() + updatesz);
     char            *pd(data() - updatesz);
-    
+
     uint32          tmpdatasz(datasz);
     char            *tmppd(pd);
-    
+
     vdbgx(Debug::ipc, "buffer before compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
     if(_rctrl.compressPacket(bctx, this->bufferSize(), tmppd, tmpdatasz)){
         if(tmppd != pd){
@@ -114,10 +114,10 @@ bool Packet::decompress(Controller &_rctrl){
     PacketContext   bctx(headersize);
     uint32          datasz = dl + updatesz;
     char            *pd = pb + headersize;
-    
+
     uint32          tmpdatasz = datasz;
     char            *tmppd(pd);
-    
+
     vdbgx(Debug::ipc, "packet before decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
     if(_rctrl.decompressPacket(bctx, tmppd, tmpdatasz)){
         if(bctx.reqbufid != (uint)-1){
@@ -192,7 +192,7 @@ std::ostream& operator<<(std::ostream &_ros, const Packet &_rb){
     }
     _ros<<']';
     return _ros;
-    
+
 }
 
 

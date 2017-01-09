@@ -1,6 +1,6 @@
 // solid/frame/service.hpp
 //
-// Copyright (c) 2013, 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013, 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -31,18 +31,18 @@ class ServiceShell;
 
 struct UseServiceShell{
     Manager &rmanager;
-    
+
     UseServiceShell() = delete;
     UseServiceShell& operator=(const UseServiceShell&) = delete;
     UseServiceShell& operator=(UseServiceShell&&) = delete;
-    
+
     UseServiceShell(UseServiceShell &&_uss): rmanager(_uss.rmanager){}
     UseServiceShell(const UseServiceShell &_uss): rmanager(_uss.rmanager){}
-    
+
 private:
     template <class S>
     friend class ServiceShell;
-    
+
     explicit UseServiceShell(Manager &_rmanager):rmanager(_rmanager){}
 };
 
@@ -52,52 +52,52 @@ protected:
         UseServiceShell _force_shell
     );
 public:
-    
+
     Service(const Service &) = delete;
     Service(Service&&) = delete;
     Service& operator=(const Service&) = delete;
     Service& operator=(Service&&) = delete;
-    
+
     virtual ~Service();
-    
+
     bool isRegistered()const;
-    
-    
+
+
     void notifyAll(Event const &_e, const size_t _sigmsk = 0);
 
     template <class F>
     bool forEach(F &_rf){
         return rm.forEachServiceObject(*this, _rf);
     }
-    
+
     void stop(const bool _wait = true);
-    
+
     bool start();
-    
+
     Manager& manager();
-    
+
     std::mutex& mutex(const ObjectBase &_robj)const;
-    
+
     bool isRunning()const;
-    
-    
+
+
 protected:
     std::mutex& mutex()const;
 private:
     friend class Manager;
     friend class SchedulerBase;
-    
+
     void setRunning(){
         running = true;
     }
-    
+
     void resetRunning(){
         running = false;
     }
-    
+
     ObjectIdT registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr);
 private:
-    
+
     Manager                     &rm;
     std::atomic<size_t>         idx;
     std::atomic<bool>           running;
@@ -134,13 +134,13 @@ class ServiceShell final: public S{
 public:
     template <typename ...Args>
     explicit ServiceShell(Manager &_rm, Args&&..._args):S(UseServiceShell(_rm), std::forward<Args>(_args)...){
-        
+
     }
-    
+
     ~ServiceShell(){
         Service::stop(true);
     }
-    
+
 };
 
 using ServiceT = ServiceShell<>;

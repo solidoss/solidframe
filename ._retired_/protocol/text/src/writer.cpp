@@ -1,6 +1,6 @@
 // protocol/text/src/writer.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -59,7 +59,7 @@ int Writer::flush(){
     int towrite = wpos - rpos;
     if(towrite < FlushLength)
         return Success;
-        
+
     int rv = write(rpos, towrite);
     if(dolog) plog->outFlush();
     if(rv == Success){
@@ -73,12 +73,12 @@ int Writer::flushAll(){
     int towrite = wpos - rpos;
     if(towrite == 0)
         return Success;
-        
+
     int rv = write(rpos, towrite);
     if(dolog)
         plog->outFlush();
     if(rv == Success){
-        rpos = wpos = bh->pbeg; 
+        rpos = wpos = bh->pbeg;
         return Success;
     }
     return rv;
@@ -136,7 +136,7 @@ void Writer::putSilentChar(char _c1){
     SOLID_ASSERT(wpos <= bh->pend);
     if(wpos != bh->pend){
     }else resize(1);
-    
+
     *(wpos++) = _c1;
 }
 
@@ -144,7 +144,7 @@ void Writer::putSilentChar(char _c1, char _c2){
     SOLID_ASSERT(wpos <= bh->pend);
     if(2 < (uint32)(bh->pend - wpos)){
     }else resize(2);
-    
+
     *(wpos++) = _c1;
     *(wpos++) = _c2;
 }
@@ -153,7 +153,7 @@ void Writer::putSilentChar(char _c1, char _c2, char _c3){
     SOLID_ASSERT(wpos <= bh->pend);
     if(3 < (uint32)(bh->pend - wpos)){
     }else resize(3);
-    
+
     *(wpos++) = _c1;
     *(wpos++) = _c2;
     *(wpos++) = _c3;
@@ -163,7 +163,7 @@ void Writer::putSilentChar(char _c1, char _c2, char _c3, char _c4){
     SOLID_ASSERT(wpos <= bh->pend);
     if(4 < (uint32)(bh->pend - wpos)){
     }else resize(4);
-    
+
     *(wpos++) = _c1;
     *(wpos++) = _c2;
     *(wpos++) = _c3;
@@ -308,9 +308,9 @@ bool read_stream_all(istream &_ris, char *_pb, size_t _sz){
             rv = false;
             break;
         }
-        
+
         size_t rsz = _ris.gcount();
-        
+
         if(rsz == 0){
             rv = false;
             break;
@@ -333,7 +333,7 @@ bool read_stream_all(istream &_ris, char *_pb, size_t _sz){
         _rw.wpos += sz;
         int rv = _rw.flush();
         if(rv){
-            _rw.fs.top().first = &Writer::doneFlush; 
+            _rw.fs.top().first = &Writer::doneFlush;
             return rv;
         }
         return Success;
@@ -353,15 +353,15 @@ bool read_stream_all(istream &_ris, char *_pb, size_t _sz){
     const ulong     blen = _rw.bh->pend - _rw.bh->pbeg;
     ulong           tmpsz = blen * 16;
     int             rv = 0;
-    
-    
+
+
     if(tmpsz > sz) tmpsz = sz;
     sz -= tmpsz;
-    
+
     while(tmpsz){
         toread = blen;
         if(toread > tmpsz) toread = tmpsz;
-        
+
         if(!read_stream_all(ris, _rw.bh->pbeg, toread)){
             return Failure;
         }
@@ -380,7 +380,7 @@ bool read_stream_all(istream &_ris, char *_pb, size_t _sz){
                 return Wait;
         }
     }
-    
+
     if(sz != 0){
         return Yield;
     }
@@ -452,7 +452,7 @@ int Writer::doManage(int _mo){
 
 Writer& Writer::operator << (char _c){
     if(dolog) putChar(_c);
-    else putSilentChar(_c); 
+    else putSilentChar(_c);
     return *this;
 }
 
@@ -480,7 +480,7 @@ Writer& Writer::operator << (uint64 _v){
 
 void Writer::doPrepareBuffer(char *_newbeg, const char *_newend){
     const uint32 sz(wpos - rpos);
-    
+
     if(sz){
         memcpy(_newbeg, rpos, wpos - rpos);
     }

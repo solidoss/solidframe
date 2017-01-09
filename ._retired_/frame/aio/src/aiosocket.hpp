@@ -1,6 +1,6 @@
 // frame/aio/src/aiosocket.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -69,7 +69,7 @@ public:
     bool localAddress(SocketAddress &_rsa)const;
     //! Return the remote address of the socket
     bool remoteAddress(SocketAddress &_rsa)const;
-    
+
     //! Asynchrounous recv_from  call
     AsyncE recvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
     //! Asynchrounous send_to call
@@ -89,31 +89,31 @@ private:
     void doPrepare();
     void doUnprepare();
     void doClear();
-    
+
     void doWantAccept(int _w);
     void doWantConnect(int _w);
     void doWantRead(int _w);
     void doWantWrite(int _w);
-    
+
     ulong doSend();
     ulong doRecv();
-    
+
     ulong doSendPlain();
     ulong doRecvPlain();
-    
+
     AsyncE doSendPlain(const char* _pb, uint32 _bl, uint32 _flags);
     AsyncE doRecvPlain(char *_pb, uint32 _bl, uint32 _flags);
-    
+
     ulong doSendSecure();
     ulong doRecvSecure();
-    
+
     AsyncE doSendSecure(const char* _pb, uint32 _bl, uint32 _flags);
     AsyncE doRecvSecure(char *_pb, uint32 _bl, uint32 _flags);
-    
+
     ulong doSecureReadWrite(int _w);
     ulong doSecureAccept();
     ulong doSecureConnect();
-    
+
     uint32 ioRequest()const;
     int descriptor()const{return sd.descriptor();}
 private:

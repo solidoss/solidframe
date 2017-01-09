@@ -1,6 +1,6 @@
 // alphacommands.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -100,9 +100,9 @@ public:
     void execute(Connection &);
     //! Writer plugin
     /*!
-        Implements the logic for requesting a file from FileManager, 
+        Implements the logic for requesting a file from FileManager,
         eventually wait for it, write the file on socket.<br>
-        
+
         For remote fetch the things are more complicated as we will
         use a local temp file as buffer and:<br>
         - request a temp stream
@@ -149,9 +149,9 @@ private:
     int16                                       state;
     uint64                                      litsz;
     solid::protocol::text::Parameter            *pp;
-    
+
     FileIOStreamT                               ios;
-    
+
     solid::frame::UidT                          mastermsguid;
     uint32                                      tmpstreamcp;//temp stream capacity
     uint64                                      streamsz;
@@ -162,7 +162,7 @@ private:
 /*!
     Syntax:<br>
     tag SP STORE SP astring = path SP '{' number = literalsize '}' CRLF literal_data CRLF<br>
-    
+
 */
 class Store: public Command{
 public:
@@ -178,7 +178,7 @@ private:
     typedef solid::frame::file::FileOStream<1024>       FileOStreamT;
     solid::String                               strpth;//the file path
     FileOStreamT                                os;
-    Connection                                  &rc;    
+    Connection                                  &rc;
     int                                         st;
     uint32                                      litsz;
     uint64                                      litsz64;
@@ -188,7 +188,7 @@ private:
 /*!
     Syntax:<br>
     tag SP LIST SP astring = path [SP astring = peer_ipc_address] [SP number=peer_ipc_port]<br>
-    
+
     If the path is a directory, the direct cildren are displayed.
     If the path is a file, the file information is displayed.
 */
@@ -199,7 +199,7 @@ public:
     ~List();
     void initReader(Reader &);
     void execute(Connection &);
-    
+
     int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 private:
     solid::String           strpth;
@@ -210,7 +210,7 @@ private:
 /*!
     Syntax:<br>
     tag SP REMOTELIST SP astring = path SP astring = peer_ipc_address SP number=peer_ipc_port<br>
-    
+
     If the path is a directory, the direct cildren are displayed.
     If the path is a file, the file information is displayed.
 */
@@ -226,11 +226,11 @@ public:
     ~RemoteList();
     void initReader(Reader &);
     void execute(Connection &);
-    
+
     int reinitWriter(Writer &, solid::protocol::text::Parameter &);
     template <int U>
     int reinitReader(Reader &, solid::protocol::text::Parameter &);
-    
+
 private:
     /*virtual*/ int receiveMessage(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
 private:
@@ -257,7 +257,7 @@ private:
     tag SP IDLE CRLF <br>
     ...events are displayed ...<br>
     done CRLF<br>
-    
+
     So the command will both wait for "done" from client and for
     events.
 */

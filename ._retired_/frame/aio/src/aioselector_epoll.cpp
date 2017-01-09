@@ -1,6 +1,6 @@
 // frame/aio/src/aioselector_epoll.cpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -15,7 +15,7 @@
 #ifndef UPIPESIGNAL
     #ifdef SOLID_USE_EVENTFD
         #include <sys/eventfd.h>
-    #else 
+    #else
         #define UPIPESIGNAL
     #endif
 #endif
@@ -62,7 +62,7 @@ struct Selector::Stub{
         events(0){
     }
     void reset(){
-        timepos = TimeSpec::maximum; 
+        timepos = TimeSpec::maximum;
         state = OutExecQueue;
         events = 0;
     }
@@ -86,7 +86,7 @@ struct Selector::Data{
     typedef Stack<uint32>           Uint32StackT;
     typedef Queue<uint32>           Uint32QueueT;
     typedef std::vector<Stub>       StubVectorT;
-    
+
     ulong               objcp;
     ulong               objsz;
 //  ulong               sockcp;
@@ -107,10 +107,10 @@ struct Selector::Data{
 #endif
     TimeSpec            ntimepos;//next timepos == next timeout
     TimeSpec            ctimepos;//current time pos
-    
+
 //reporting data:
     uint                rep_fullscancount;
-    
+
 public://methods:
     Data();
     ~Data();
@@ -182,9 +182,9 @@ bool Selector::init(ulong _cp){
     SOLID_ASSERT(_cp);
     d.objcp = _cp;
     //d.sockcp = _cp;
-    
+
     setCurrentTimeSpecific(d.ctimepos);
-    
+
     //first create the epoll descriptor:
     SOLID_ASSERT(d.epollfd < 0);
     d.epollfd = epoll_create(_cp);
@@ -201,11 +201,11 @@ bool Selector::init(ulong _cp){
         SOLID_ASSERT(false);
         return false;
     }
-    
+
     //make the pipes nonblocking
     fcntl(d.pipefds[0], F_SETFL, O_NONBLOCK);
     fcntl(d.pipefds[1], F_SETFL, O_NONBLOCK);
-    
+
     //register the pipes onto epoll
     epoll_event ev;
     ev.data.u64 = 0;
@@ -239,7 +239,7 @@ bool Selector::init(ulong _cp){
     d.stubs.reserve(d.objcp);
     //add the pipe stub:
     doAddNewStub();
-    
+
     d.ctimepos.set(0);
     d.ntimepos = TimeSpec::maximum;
     d.objsz = 1;
@@ -285,22 +285,22 @@ bool Selector::full()const{
 bool Selector::push(JobT &_objptr){
     if(full()){
         //NOTE:we cannot increase selvec because, objects keep pointers to Stub structures from vector
-        //if we'd use deque instead, we'd have a performance penalty 
+        //if we'd use deque instead, we'd have a performance penalty
         SOLID_THROW("Selector full");
     }
     uint stubpos = doAddNewStub();
     Stub &stub = d.stubs[stubpos];
-    
+
     if(!this->setObjectThread(*_objptr, stubpos)){
         return false;
     }
-    
+
     stub.timepos  = TimeSpec::maximum;
     stub.itimepos = TimeSpec::maximum;
     stub.otimepos = TimeSpec::maximum;
-    
+
     _objptr->doPrepare(&stub.itimepos, &stub.otimepos);
-    
+
     //add events for every socket
     bool fail = false;
     uint failpos = 0;
@@ -308,7 +308,7 @@ bool Selector::push(JobT &_objptr){
         epoll_event ev;
         ev.data.u64 = 0L;
         ev.events = 0;
-        
+
         Object::SocketStub *psockstub = _objptr->pstubs;
         for(uint i = 0; i < _objptr->stubcp; ++i, ++psockstub){
             Socket *psock = psockstub->psock;
@@ -363,36 +363,36 @@ void Selector::run(){
     int                 nbcnt = -1; //non blocking opperations count,
                                     //used to reduce the number of calls for the system time.
     int                 pollwait = 0;
-    
+
     do{
         flags = 0;
         if(nbcnt < 0){
             d.ctimepos.currentMonotonic();
             nbcnt = maxnbcnt;
         }
-        
+
         if(d.selcnt){
             --nbcnt;
             flags |= doAllIo();
         }
-        
+
         if(flags & Data::READ_PIPE){
             --nbcnt;
             flags |= doReadPipe();
         }
-        
+
         if(d.ctimepos >= d.ntimepos || (flags & Data::FULL_SCAN)){
             nbcnt -= 4;
             flags |= doFullScan();
         }
-        
+
         if(d.execq.size()){
             nbcnt -= d.execq.size();
             flags |= doExecuteQueue();
         }
-        
+
         if(empty()) flags |= Data::EXIT_LOOP;
-        
+
         if(flags || d.execq.size()){
             pollwait = 0;
             --nbcnt;
@@ -402,7 +402,7 @@ void Selector::run(){
             vdbgx(Debug::aio, "ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
             nbcnt = -1;
         }
-        
+
         d.selcnt = epoll_wait(d.epollfd, d.events, Data::MAX_EVENTS_COUNT, pollwait);
         vdbgx(Debug::aio, "epollwait = "<<d.selcnt);
         if(d.selcnt < 0) d.selcnt = 0;
@@ -419,7 +419,7 @@ ulong Selector::doReadPipe(){
     long        j(0);
     long        maxcnt((d.objcp / BUFSZ) + 1);
     Stub        *pstub(NULL);
-    
+
     while((++j <= maxcnt) && ((rsz = read(d.pipefds[0], buf, BUFLEN)) == BUFLEN)){
         for(int i = 0; i < BUFSZ; ++i){
             uint pos(buf[i]);
@@ -436,7 +436,7 @@ ulong Selector::doReadPipe(){
     }
     if(rsz){
         rsz >>= 2;
-        for(int i = 0; i < rsz; ++i){   
+        for(int i = 0; i < rsz; ++i){
             uint pos(buf[i]);
             if(pos){
                 if(pos < d.stubs.size() && !(pstub = &d.stubs[pos])->objptr.empty() && pstub->objptr->notified(S_RAISE)){
@@ -462,7 +462,7 @@ ulong Selector::doReadPipe(){
     uint64  v = 0;
     bool mustempty = false;
     Stub        *pstub(NULL);
-    
+
     while(read(d.efd, &v, sizeof(v)) == sizeof(v)){
         Locker<Mutex> lock(d.m);
         uint    limiter = 16;
@@ -560,17 +560,17 @@ ulong Selector::doAllIo(){
             Stub                &stub(d.stubs[stubpos]);
             Object::SocketStub  &sockstub(stub.objptr->pstubs[sockpos]);
             Socket              &sock(*sockstub.psock);
-            
+
             SOLID_ASSERT(sockpos < stub.objptr->stubcp);
             SOLID_ASSERT(stub.objptr->pstubs[sockpos].psock);
-            
+
             vdbgx(Debug::aio, "io events stubpos = "<<stubpos<<" events = "<<d.events[i].events);
             evs = doIo(sock, d.events[i].events);
             {
                 const uint t = sockstub.psock->ioRequest();
                 if((sockstub.selevents & Data::EPOLLMASK) != t){
                     sockstub.selevents = t;
-                    
+
                     epoll_event ev;
                     ev.events = t | EPOLLERR | EPOLLHUP | EPOLLET;
                     ev.data.u64 = d.events[i].data.u64;
@@ -604,7 +604,7 @@ void Selector::doFullScanCheck(Stub &_rstub, const ulong _pos){
     }else if(d.ntimepos > _rstub.itimepos){
         d.ntimepos = _rstub.itimepos;
     }
-    
+
     if(d.ctimepos >= _rstub.otimepos){
         evs |= _rstub.objptr->doOnTimeoutSend(d.ctimepos);
         if(d.ntimepos > _rstub.otimepos){
@@ -613,13 +613,13 @@ void Selector::doFullScanCheck(Stub &_rstub, const ulong _pos){
     }else if(d.ntimepos > _rstub.otimepos){
         d.ntimepos = _rstub.otimepos;
     }
-    
+
     if(d.ctimepos >= _rstub.timepos){
         evs |= EventTimeout;
     }else if(d.ntimepos > _rstub.timepos){
         d.ntimepos = _rstub.timepos;
     }
-    
+
     if(_rstub.objptr->notified(S_RAISE)){
         evs |= EventSignal;//should not be checked by objs
     }
@@ -653,24 +653,24 @@ ulong Selector::doFullScan(){
 }
 ulong Selector::doExecute(const ulong _pos){
     Stub                        &stub(d.stubs[_pos]);
-    
+
     SOLID_ASSERT(stub.state == Stub::InExecQueue);
     stub.state = Stub::OutExecQueue;
-    
+
     ulong                       rv(0);
     Object::ExecuteController   exectl(stub.events, d.ctimepos);
-    
+
     stub.timepos = TimeSpec::maximum;
-    
+
     stub.events = 0;
     stub.objptr->doClearRequests();//clears the requests from object to selector
-    
+
     idbgx(Debug::aio, "execute object "<<_pos);
-    
+
     this->associateObjectToCurrentThread(*stub.objptr);
-    
+
     this->executeObject(*stub.objptr, exectl);
-    
+
     switch(exectl.returnValue()){
         case Object::ExecuteContext::RescheduleRequest:
             d.execq.push(_pos);
@@ -763,20 +763,20 @@ void Selector::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
         if(_timepos < stub.timepos && _timepos != d.ctimepos){
             stub.timepos = _timepos;
         }
-        
+
         if(stub.timepos == d.ctimepos){
             stub.timepos = TimeSpec::maximum;
         }else if(d.ntimepos > stub.timepos){
             d.ntimepos = stub.timepos;
         }
-        
+
         if(d.ntimepos > stub.itimepos){
             d.ntimepos = stub.itimepos;
         }
         if(d.ntimepos > stub.otimepos){
             d.ntimepos = stub.otimepos;
         }
-        
+
     }else if(stub.state != Stub::InExecQueue){
         d.execq.push(_pos);
         stub.state = Stub::InExecQueue;

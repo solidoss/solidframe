@@ -27,7 +27,7 @@ using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 //-----------------------------------------------------------------------------
 struct Parameters{
     Parameters():listener_port("0"), listener_addr("0.0.0.0"){}
-    
+
     string          listener_port;
     string          listener_addr;
 };
@@ -95,41 +95,41 @@ using namespace ipc_request;
 
 struct PrepareKeyVisitor: RequestKeyVisitor{
     std::vector<std::regex>     regexvec;
-    
+
     void visit(RequestKeyAnd& _k) override{
         if(_k.first){_k.first->visit(*this);}
         if(_k.second){_k.second->visit(*this);}
     }
-    
+
     void visit(RequestKeyOr& _k) override{
         if(_k.first){_k.first->visit(*this);}
         if(_k.second){_k.second->visit(*this);}
     }
-    
+
     void visit(RequestKeyAndList& _k) override{
         for(auto &k: _k.key_vec){
             if(k) k->visit(*this);
         }
     }
-    
+
     void visit(RequestKeyOrList& _k) override{
         for(auto &k: _k.key_vec){
             if(k) k->visit(*this);
         }
     }
-    
+
     void visit(RequestKeyUserIdRegex& _k) override{
         _k.cache_idx = regexvec.size();
         regexvec.emplace_back(_k.regex);
     }
-    
+
     void visit(RequestKeyEmailRegex& _k) override{
         _k.cache_idx = regexvec.size();
         regexvec.emplace_back(_k.regex);
     }
-    
+
     void visit(RequestKeyYearLess& /*_k*/) override{
-        
+
     }
 };
 
@@ -137,12 +137,12 @@ struct AccountDataKeyVisitor: RequestKeyConstVisitor{
     const AccountData   &racc;
     PrepareKeyVisitor   &rprep;
     bool                retval;
-    
+
     AccountDataKeyVisitor(const AccountData &_racc, PrepareKeyVisitor &_rprep):racc(_racc), rprep(_rprep), retval(false){}
-    
+
     void visit(const RequestKeyAnd& _k) override{
         retval = false;
-        
+
         if(_k.first){
             _k.first->visit(*this);
             if(!retval) return;
@@ -155,7 +155,7 @@ struct AccountDataKeyVisitor: RequestKeyConstVisitor{
             if(!retval) return;
         }
     }
-    
+
     void visit(const RequestKeyOr& _k) override{
         retval = false;
         if(_k.first){
@@ -167,7 +167,7 @@ struct AccountDataKeyVisitor: RequestKeyConstVisitor{
             if(retval) return;
         }
     }
-    
+
     void visit(const RequestKeyAndList& _k) override{
         retval = false;
         for(auto &k: _k.key_vec){
@@ -186,14 +186,14 @@ struct AccountDataKeyVisitor: RequestKeyConstVisitor{
         }
         retval = false;
     }
-    
+
     void visit(const RequestKeyUserIdRegex& _k) override{
         retval = std::regex_match(racc.userid, rprep.regexvec[_k.cache_idx]);
     }
     void visit(const RequestKeyEmailRegex& _k) override{
         retval = std::regex_match(racc.email, rprep.regexvec[_k.cache_idx]);
     }
-    
+
     void visit(const RequestKeyYearLess& _k) override{
         retval = racc.birth_date.year < _k.year;
     }
@@ -210,33 +210,33 @@ void complete_message<ipc_request::Request>(
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
     SOLID_CHECK(not _rsent_msg_ptr);
-    
+
     cout<<"Received request: ";
     if(_rrecv_msg_ptr->key){
         _rrecv_msg_ptr->key->print(cout);
     }
     cout<<endl;
-    
-    
+
+
     auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
-    
+
     if(_rrecv_msg_ptr->key){
         PrepareKeyVisitor   prep;
-        
+
         _rrecv_msg_ptr->key->visit(prep);
-    
+
         for(const auto &ad: account_dq){
             AccountDataKeyVisitor v(ad, prep);
-            
-            
+
+
             _rrecv_msg_ptr->key->visit(v);
-            
+
             if(v.retval){
                 msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad))));
             }
         }
 }
-    
+
     SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
@@ -334,37 +334,37 @@ bool parseArguments(Parameters &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
     Parameters p;
-    
+
     if(!parseArguments(p, argc, argv)) return 0;
-    
+
     {
-        
+
         AioSchedulerT           scheduler;
-        
-        
+
+
         frame::Manager          manager;
         frame::mpipc::ServiceT  ipcservice(manager);
         ErrorConditionT         err;
-        
+
         err = scheduler.start(1);
-        
+
         if(err){
             cout<<"Error starting aio scheduler: "<<err.message()<<endl;
             return 1;
         }
-        
+
         {
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
-            
+
             ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
-            
+
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
             cfg.server.listener_address_str += p.listener_port;
-            
+
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
-            
+
             frame::mpipc::openssl::setup_server(
                 cfg,
                 [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
@@ -375,11 +375,11 @@ int main(int argc, char *argv[]){
                 },
                 frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}//does nothing - OpenSSL does not check for hostname on SSL_accept
             );
-            
+
             frame::mpipc::snappy::setup(cfg);
-            
+
             err = ipcservice.reconfigure(std::move(cfg));
-            
+
             if(err){
                 cout<<"Error starting ipcservice: "<<err.message()<<endl;
                 manager.stop();
@@ -391,7 +391,7 @@ int main(int argc, char *argv[]){
                 cout<<"server listens on port: "<<oss.str()<<endl;
             }
         }
-        
+
         cout<<"Press any char and ENTER to stop:"<<endl;
         char c;
         cin>>c;
@@ -404,16 +404,16 @@ int main(int argc, char *argv[]){
 bool parseArguments(Parameters &_par, int argc, char *argv[]){
     if(argc == 2){
         size_t          pos;
-        
+
         _par.listener_addr = argv[1];
-        
+
         pos = _par.listener_addr.rfind(':');
-        
+
         if(pos != string::npos){
             _par.listener_addr[pos] = '\0';
-            
+
             _par.listener_port.assign(_par.listener_addr.c_str() + pos + 1);
-            
+
             _par.listener_addr.resize(pos);
         }
     }

@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
 #endif
-    
+
     if(argc < 3){
         cout<<"error too few arguments"<<endl;
         return 0;
@@ -72,18 +72,18 @@ int main(int argc, char *argv[]){
     int family = SocketInfo::Inet4;
     int type = SocketInfo::Stream;
     int proto = 0;
-    
+
     //list all the local interfaces
     listLocalInterfaces();
-    
-    
+
+
     //SocketAddressInfo ai(node, srv);
     ResolveData rd =  synchronous_resolve(node, srv, flags, family, type, proto);
     ResolveIterator it(rd.begin());
     while(it != rd.end()){
-        
+
         SocketAddress   sa(it);
-        
+
         std::string hoststr;
         std::string servstr;
         synchronous_resolve(
@@ -91,80 +91,80 @@ int main(int argc, char *argv[]){
             sa,
             ReverseResolveInfo::Numeric
         );
-        
+
         cout<<"host = "<<hoststr<<":"<<servstr<<endl;
-        
+
         synchronous_resolve(hoststr, servstr, sa);
-        
+
         cout<<"Reverse resolve: "<<hoststr<<":"<<servstr<<endl;
-        
+
         SocketDevice sd;
         sd.create(it);
-        
+
         ErrorCodeT rv = sd.connect(it);
-        
+
         cout<<"rv = "<<rv.message()<<endl;
-        
+
         if(!rv){
             sd.write("hello word\r\n", strlen("hello word\r\n"));
         }
-        
+
         SocketAddressInet4 sa4_0(it);
-        
+
         synchronous_resolve(
             hoststr, servstr,
             sa4_0,
             ReverseResolveInfo::Numeric
         );
-        
+
         cout<<"sa4_0 host = "<<hoststr<<":"<<servstr<<endl;
-        
+
         uint16_t portx;
         uint32_t addr;
-        
+
         sa4_0.toUInt(addr, portx);
-        
+
         ++addr;
-        
+
         SocketAddressInet4 sa4_1(addr, portx);
-        
+
         synchronous_resolve(
             hoststr, servstr,
             sa4_1,
             ReverseResolveInfo::Numeric
         );
-        
+
         cout<<"sa4_1 host = "<<hoststr<<":"<<servstr<<endl;
-        
+
         SOLID_ASSERT(sa4_0 < sa4_1);
-        
+
         SOLID_ASSERT(sa4_0.address() < sa4_1.address());
-        
+
         SocketAddressInet4::DataArrayT  binaddr4;
         sa4_0.toBinary(binaddr4, portx);
-        
+
         SocketAddressInet4 sa4_2(binaddr4, portx);
-        
+
         synchronous_resolve(
             hoststr, servstr,
             sa4_2,
             ReverseResolveInfo::Numeric
         );
-        
+
         cout<<"sa4_2 host = "<<hoststr<<":"<<servstr<<endl;
-        
+
         SOLID_ASSERT(!(sa4_1 == sa4_2));
         SOLID_ASSERT(sa4_0 == sa4_2);
         SOLID_ASSERT(!(sa4_0 < sa4_2));
         SOLID_ASSERT(!(sa4_2 < sa4_0));
-        
+
 //      int sd = socket(it.family(), it.type(), it.protocol());
 //      struct timeval tosnd;
 //      struct timeval torcv;
-//      
+//
 //      tosnd.tv_sec = -1;
 //      tosnd.tv_usec = -1;
-//      
+//
 //      torcv.tv_sec = -1;
 //      torcv.tv_usec = -1;
 //      socklen_t socklen(sizeof(torcv));
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]){
 //                  int rv = poll(&pfd, 1, -1);
 //                  cout<<"pollrv = "<<rv<<endl;
 //                  if(pfd.revents & (POLLERR | POLLHUP | POLLNVAL)){
-//                      
+//
 //                      cout<<"poll err "<<(pfd.revents & POLLERR)<<' '<<(pfd.revents & POLLHUP)<<' '<<(pfd.revents & POLLNVAL)<<' '<<endl;
 //                  }
 //              }
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]){
 //          int v = 0;
 //          int rv = getsockopt(sd, SOL_SOCKET, SO_ERROR, &v, &len);
 //          cout<<"getsockopt rv = "<<rv<<" v = "<<v<<" err = "<<strerror(v)<<" len = "<<len<<endl;
-//          
+//
 //      }else{
 //          cout<<"failed socket"<<endl;
 //      }
@@ -214,27 +214,27 @@ void listLocalInterfaces(){
     };
     SocketDevice s;
     s.create(SocketAddressInfo::Inet4, SocketAddressInfo::Stream, 0);
-    
+
     ifreq *ifrp, *ifend;
     struct ifconf ifc;
     struct ifreq ifs[MAX_IFS];
-    
+
     ifc.ifc_len = sizeof( ifs );
     ifc.ifc_buf = (char*)ifs;
     if (ioctl(s.descriptor(), SIOCGIFCONF, (caddr_t)&ifc) < 0){
         cout<<"error ioctl SIOCGIFCONF "<<strerror(errno)<<endl;
         return;
     }
-    
+
     //iterate through interface info:
     int total,current;
     int remaining = total = ifc.ifc_len;
     ifrp = ifc.ifc_req;
     ifend = ifs + (ifc.ifc_len / sizeof(struct ifreq));
-    
+
     char host[512];
     char srvc[128];
-    
+
     for(;ifrp != ifend; ++ifrp){
         sockaddr_in *addr;
         if( ifrp->ifr_addr.sa_family == AF_INET ){
@@ -255,11 +255,11 @@ void listLocalInterfaces(){
         cout<<"getifaddrs did not work"<<endl;
         return;
     }
-    
+
     struct ifaddrs *it(ifap);
     char host[512];
     char srvc[128];
-    
+
     while(it){
         //sockaddr_in *addr;
         if(it->ifa_addr && it->ifa_addr->sa_family == AF_INET)

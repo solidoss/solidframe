@@ -79,19 +79,19 @@ namespace {
 
 struct Handle{
     void beforeSerialization(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){}
-    
+
     void beforeSerialization(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){}
     bool checkStore(void *, ConnectionContext &_rctx)const{
         return true;
     }
-    
+
     bool checkLoad(void *_pm, ConnectionContext &_rctx)const{
         return true;
     }
     void afterSerialization(BinSerializerT &_rs, void *_pm, ConnectionContext &_rctx){}
-    
+
     void afterSerialization(BinDeserializerT &_rs, BasicMessage *_pm, ConnectionContext &_rctx);
-        
+
     void afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx);
     void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
 };
@@ -102,7 +102,7 @@ class Connection: public solid::frame::aio::SingleObject{
     typedef solid::DynamicMapper<void, Connection>                      DynamicMapperT;
     typedef solid::DynamicPointer<solid::frame::Message>                MessageDynamicPointerT;
     typedef std::vector<solid::DynamicPointer<> >                       DynamicPointerVectorT;
-    
+
     static DynamicMapperT       dm;
     struct MessageStub{
         MessageStub():flags(0), idx(InvalidIndex()){}
@@ -111,7 +111,7 @@ class Connection: public solid::frame::aio::SingleObject{
             const solid::uint32 _flags = 0,
             const size_t _idx = InvalidIndex()
         ):msgptr(_rmsgptr), flags(_flags), idx(_idx){}
-        
+
         MessageDynamicPointerT  msgptr;
         solid::uint32           flags;
         size_t                  idx;
@@ -130,7 +130,7 @@ class Connection: public solid::frame::aio::SingleObject{
         int,
         ProtocolController
     >                                                                   ProtocolEngineT;
-        
+
     typedef solid::protocol::binary::BasicBufferController<2048>        BufferControllerT;
     enum{
         CreateState = 1,
@@ -149,10 +149,10 @@ public:
         const size_t _reconnectsleepms
     ):  idx(_idx), rsa(_rsa), st(CreateState), connectcnt(_reconnectcnt + 1), ser(_rtm), des(_rtm),
         sndidx(1), waitnoop(false), reconnectsleepms(_reconnectsleepms){}
-    
-    
+
+
     /*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
-    
+
     Service& service()const{
         return static_cast<Service&>(frame::Manager::specific().service(*this));
     }
@@ -173,7 +173,7 @@ private:
     void onDoneSend(const size_t _msgidx);
 private:
     typedef solid::Queue<SendJob::PointerT>     JobQueueT;
-    
+
     const size_t            idx;
     const SocketAddressInet &rsa;
     solid::uint16           st;
@@ -204,12 +204,12 @@ private:
 struct Service::StartThread: Thread{
     Service         &rsvc;
     StartData       sd;
-    
+
     StartThread(
         Service &_rsvc,
         const StartData &_rsd
     ):rsvc(_rsvc), sd(_rsd){}
-    
+
     /*virtual*/ void run(){
         rsvc.doStart(sd);
     }
@@ -238,7 +238,7 @@ void Service::doStart(const StartData &_rsd){
     }
     for(size_t i = 0; i < _rsd.concnt; ++i){
         DynamicPointer<frame::aio::Object>  conptr(new Connection(i, raddrvec[i % raddrvec.size()], typemap, _rsd.reconnectcnt, _rsd.reconnectsleepmsec));
-        
+
         this->registerObject(*conptr);
         rsched.schedule(conptr);
     }
@@ -251,7 +251,7 @@ void Service::send(const size_t _msgrow, const size_t _sleepms, const size_t _cn
             send_time.currentRealTime();
         }
         expect_receive_cnt = expect_create_cnt * (expect_create_cnt - 1) * _cnt;
-        
+
     }
     frame::MessageSharedPointerT    msgptr(new SendJob(_msgrow, _sleepms, _cnt));
     this->notifyAll(msgptr);
@@ -317,7 +317,7 @@ void Service::onReceive(const size_t _sz){
                 msecs += crt_time_ex.nanoSeconds() / 1000000;
                 uint64  s = recv_sz / msecs;
                 cout<<"Download speed = "<<s<<" KB/s                \r";
-                
+
             }
         }
         ++recv_cnt;
@@ -388,10 +388,10 @@ void Connection::done(){
         }
     } ini(dm);
     typedef DynamicSharedPointer<solid::frame::Message>     MessageSharedPointerT;
-    
+
     static Compressor               compressor(BufferControllerT::DataCapacity);
     static MessageSharedPointerT    noopmsgptr(new NoopMessage);
-    
+
     solid::ulong                    sm = grabSignalMask();
     if(sm){
         if(sm & frame::S_KILL){
@@ -412,16 +412,16 @@ void Connection::done(){
             }
         }
     }
-    
+
     if(_rexectx.eventMask() & (frame::EventDoneError)){
         idbg("errdone");
         done();
         _rexectx.close();
         return;
     }
-    
+
     ConnectionContext               ctx(*this);
-    
+
     bool reenter = false;
     if(st == RunningState){
         if(nooptime.seconds() && nooptime <= _rexectx.currentTime()){
@@ -505,7 +505,7 @@ void Connection::done(){
                 return;
             }else{
                 st = PrepareState;
-            }   
+            }
         }else{
             st = InitState;
         }

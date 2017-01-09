@@ -1,6 +1,6 @@
 // serialization/src/binary.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -35,7 +35,7 @@ struct TypeMapperBase::Data{
             const char *_name = NULL,
             const uint32 _id = 0
         ):pfs(_pfs), pfd(_pfd), name(_name), id(_id){}
-        
+
         FncSerT     pfs;
         FncDesT     pfd;
         const char  *name;
@@ -73,7 +73,7 @@ struct TypeMapperBase::Data{
 };
 //================================================================
 TypeMapperBase::Data::~Data(){
-    
+
 }
 TypeMapperBase::TypeMapperBase():d(*(new Data())){
 }
@@ -85,17 +85,17 @@ TypeMapperBase::~TypeMapperBase(){
 TypeMapperBase::FncSerT TypeMapperBase::function(const uint32 _id, uint32* &_rpid)const{
     //Locker<Mutex>             lock(d.mtx);
     const Data::FunctionStub    &rfs(d.fncvec[_id]);
-    
+
     _rpid = const_cast<uint32*>(&rfs.id);
-    
+
     return rfs.pfs;
 }
 TypeMapperBase::FncSerT TypeMapperBase::function(const char *_pid, uint32* &_rpid)const{
     //Locker<Mutex>             lock(d.mtx);
     const Data::FunctionStub    &rfs(d.fncvec[d.fncmap[_pid]]);
-    
+
     _rpid = const_cast<uint32*>(&rfs.id);
-    
+
     return rfs.pfs;
 }
 TypeMapperBase::FncDesT TypeMapperBase::function(const uint32 _id)const{
@@ -157,13 +157,13 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint32 _pos, con
             return _pos;
         }
     }
-    
+
     CRCValue<uint32>    crcval(_pos);
-    
+
     if(!crcval.ok()){
         SOLID_THROW_EX("Invalid CRCValue", _pos);
     }
-    
+
     Data::FunctionStub  &rfs(d.fncvec[_pos]);
     rfs.pfs = _fs;
     rfs.pfd = _fd;
@@ -195,13 +195,13 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint16 _pos, con
             return _pos;
         }
     }
-    
+
     CRCValue<uint16>    crcval(_pos);
-    
+
     if(!crcval.ok()){
         SOLID_THROW_EX("Invalid CRCValue", _pos);
     }
-    
+
     Data::FunctionStub  &rfs(d.fncvec[_pos]);
     rfs.pfs = _fs;
     rfs.pfd = _fd;
@@ -233,13 +233,13 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint8  _pos, con
             return _pos;
         }
     }
-    
+
     CRCValue<uint8>     crcval(_pos);
-    
+
     if(!crcval.ok()){
         SOLID_THROW_EX("Invalid CRCValue", _pos);
     }
-    
+
     Data::FunctionStub  &rfs(d.fncvec[_pos]);
     rfs.pfs = _fs;
     rfs.pfd = _fd;
@@ -279,7 +279,7 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint8  _pos, con
     void *_pdes, std::string &_rs,
     const char *_name
 )const{
-    
+
 }
 
 }//namespace serialization

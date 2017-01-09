@@ -1,6 +1,6 @@
 // solid/serialization/binarybasic.hpp
 //
-// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -42,16 +42,16 @@ inline char *store(char *_pd, const uint16_t _val){
 }
 
 inline char *store(char *_pd, const uint32_t _val){
-    
+
     _pd = store(_pd, static_cast<uint16_t>(_val >> 16));
-    
+
     return store(_pd, static_cast<uint16_t>(_val & 0xffff));;
 }
 
 inline char *store(char *_pd, const uint64_t _val){
-    
+
     _pd = store(_pd, static_cast<uint32_t>(_val >> 32));
-    
+
     return store(_pd, static_cast<uint32_t>(_val & 0xffffffffULL));;
 }
 

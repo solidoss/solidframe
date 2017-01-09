@@ -1,6 +1,6 @@
 // audit/src/log.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -49,17 +49,17 @@ public:
         //t = time(NULL);
         //ct.currentRealTime();
     }
-    
+
     const char* data()const{
         return s.data();
     }
-    
+
     uint32  size()const{return s.size();}
-    
+
     void clear(){
         s.resize(sizeof(audit::LogRecordHead));
     }
-    
+
     void current(
         uint16 _level,
         uint16 _module,
@@ -68,7 +68,7 @@ public:
         const char *_file,
         const char *_function
     );
-    
+
     void setLength(){
         audit::LogRecordHead &lh(*((audit::LogRecordHead*)s.data()));
         lh.dataLength(s.size() - lh.datalen);
@@ -115,7 +115,7 @@ struct Log::Data: std::ostream{
     ~Data(){
         delete pos;
     }
-    
+
     void setModuleMask(const char*);
     void setBit(const char *_pbeg, const char *_pend);
     void sendInfo();
@@ -143,7 +143,7 @@ namespace{
 uint32 parseLevels(const char *_lvl){
     if(!_lvl) return 0;
     uint32 r = 0;
-    
+
     while(*_lvl){
         switch(*_lvl){
             case 'i':
@@ -184,9 +184,9 @@ void Log::Data::setBit(const char *_pbeg, const char *_pend){
     uint32      lvls = -1;
     {
         std::string lvlstr;
-        
+
         size_t      off = str.rfind(':');
-        
+
         if(off == string::npos){
             name = str;
         }else{
@@ -197,7 +197,7 @@ void Log::Data::setBit(const char *_pbeg, const char *_pend){
             lvls= parseLevels(lvlstr.c_str());
         }
     }
-    
+
     if(!cstring::ncasecmp(name.c_str(), "all", name.size())){
         bs.set();
     }else if(!cstring::ncasecmp(name.c_str(), "none", name.size())){
@@ -214,9 +214,9 @@ unsigned Log::Data::registerModule(const char *_name, uint32 _lvlmsk){
     for(std::string::iterator it = name.begin(); it != name.end(); ++it){
         *it = toupper(*it);
     }
-    
+
     StringMapT::const_iterator it = namemap.find(_name);
-    
+
     if(it != namemap.end()){
         return it->second;
     }else{
@@ -243,7 +243,7 @@ void Log::Data::setModuleMask(const char *_opt){
                     pbeg = pcrt;
                 }else{
                     ++pcrt;
-                    state = ParseNameState; 
+                    state = ParseNameState;
                 }
             }else if(state == ParseNameState){
                 if(!isspace(*pcrt)){

@@ -12,7 +12,7 @@ Before continuing with this tutorial, you should:
  * read the [overview of the asynchronous active object model](../../solid/frame/README.md).
  * read the [informations about solid_frame_mpipc](../../solid/frame/mpipc/README.md)
  * follow the first ipc tutorial: [mpipc_echo](../mpipc_echo)
- 
+
 ## Overview
 
 In this tutorial you will learn how to use solid_frame_mpipc library for a simple client-server application pair.
@@ -41,7 +41,7 @@ You will need three source files:
  * _mpipc_request_messages.hpp_: the protocol messages.
  * _mpipc_request_client.cpp_: the client implementation.
  * _mpipc_request_server.cpp_: the server implementation.
- 
+
 ## Protocol definition
 
 As you've seen in the mpipc_echo tutorial, the protocol - i.e. the exchanged messages - is defined in a single header file.
@@ -60,15 +60,15 @@ namespace ipc_request{
 
 struct Request: solid::frame::mpipc::Message{
     std::string         userid_regex;
-    
+
     Request(){}
-    
+
     Request(std::string && _ustr): userid_regex(std::move(_ustr)){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(userid_regex, "userid_regex");
-    }   
+    }
 };
 ```
 
@@ -79,7 +79,7 @@ struct Date{
     uint8_t     day;
     uint8_t     month;
     uint16_t    year;
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(day, "day").push(month, "month").push(year, "year");
@@ -92,7 +92,7 @@ struct UserData{
     std::string     country;
     std::string     city;
     Date            birth_date;
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(full_name, "full_name").push(email, "email");
@@ -102,13 +102,13 @@ struct UserData{
 
 struct Response: solid::frame::mpipc::Message{
     using UserDataMapT = std::map<std::string, UserData>;
-    
+
     UserDataMapT    user_data_map;
-    
+
     Response(){}
-    
+
     Response(const solid::frame::mpipc::Message &_rmsg):solid::frame::mpipc::Message(_rmsg){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.pushContainer(user_data_map, "user_data_map");
@@ -142,24 +142,24 @@ First off, initialize the ipcservice and its prerequisites:
 
 ```C++
         AioSchedulerT           scheduler;
-        
-        
+
+
         frame::Manager          manager;
         frame::mpipc::ServiceT  ipcservice(manager);
-        
+
         frame::aio::Resolver    resolver;
-        
+
         ErrorConditionT         err;
-        
+
         err = scheduler.start(1);
-        
+
         if(err){
             cout<<"Error starting aio scheduler: "<<err.message()<<endl;
             return 1;
         }
-        
+
         err = resolver.start(1);
-        
+
         if(err){
             cout<<"Error starting aio resolver: "<<err.message()<<endl;
             return 1;
@@ -171,15 +171,15 @@ Next, configure the ipcservice:
         {
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
-            
+
             ipc_request::ProtoSpecT::setup<ipc_request_client::MessageSetup>(*proto);
-            
+
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
-            
+
             cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
-            
+
             err = ipcservice.reconfigure(std::move(cfg));
-            
+
             if(err){
                 cout<<"Error starting ipcservice: "<<err.message()<<endl;
                 return 1;
@@ -222,18 +222,18 @@ And finally we have the command loop:
         while(true){
             string  line;
             getline(cin, line);
-            
+
             if(line == "q" or line == "Q" or line == "quit"){
                 break;
             }
             {
                 string      recipient;
                 size_t      offset = line.find(' ');
-                
+
                 if(offset != string::npos){
-                    
+
                     recipient = line.substr(0, offset);
-                    
+
                     auto  lambda = [](
                         frame::mpipc::ConnectionContext &_rctx,
                         std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
@@ -244,24 +244,24 @@ And finally we have the command loop:
                             cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
                             return;
                         }
-                        
+
                         SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
-                        
+
                         cout<<"Received "<<_rrecv_msg_ptr->user_data_map.size()<<" users:"<<endl;
-                        
+
                         for(const auto& user_data: _rrecv_msg_ptr->user_data_map){
                             cout<<'{'<<user_data.first<<"}: "<<user_data.second<<endl;
                         }
                     };
-                    
+
                     auto req_ptr = make_shared<ipc_request::Request>(line.substr(offset + 1));
-                    
+
                     ipcservice.sendRequest(
                         recipient.c_str(), req_ptr,
                         lambda,
                         0
                     );
-                
+
                 }else{
                     cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
                 }
@@ -290,17 +290,17 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
         {
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
-            
+
             ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
-            
+
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
             cfg.server.listener_address_str += p.listener_port;
-            
+
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
-            
+
             err = ipcservice.reconfigure(std::move(cfg));
-            
+
             if(err){
                 cout<<"Error starting ipcservice: "<<err.message()<<endl;
                 manager.stop();
@@ -332,7 +332,7 @@ void complete_message(
     std::shared_ptr<M> &_rrecv_msg_ptr,
     ErrorConditionT const &_rerror
 );
-    
+
 template <>
 void complete_message<ipc_request::Request>(
     frame::mpipc::ConnectionContext &_rctx,
@@ -343,18 +343,18 @@ void complete_message<ipc_request::Request>(
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
     SOLID_CHECK(not _rsent_msg_ptr);
-    
+
     auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
-    
-    
+
+
     std::regex  userid_regex(_rrecv_msg_ptr->userid_regex);
-    
+
     for(const auto &ad: account_dq){
         if(std::regex_match(ad.userid, userid_regex)){
             msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, std::move(make_user_data(ad)))));
         }
     }
-    
+
     SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
@@ -387,7 +387,7 @@ The request callback, on the other hand, is called when a request is received fr
  * create a Response message from the Request one
  * filters the accounts table using the regular expression received from the client, populating the response map with matched records.
  * send the Response message back to the client on the same connection the request was received.
- 
+
 The accounts table, i.e. the accounts_dq is defined like this:
 
 ```C++
@@ -491,7 +491,7 @@ On the client you will see that the records list is immediately received back fr
 ## Next
 
 In the next tutorial:
- 
+
  * [MPIPC Request SSL](../mpipc_request_ssl)
 
 we will extend the current example by:

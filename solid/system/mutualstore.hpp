@@ -1,6 +1,6 @@
 // mutualstore.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -19,19 +19,19 @@ namespace solid{
 //! A container of shared objects
 /*!
     Here's the concrete situation for which this object store was designed for:<br><br>
-    
+
     Suppose you have lots of objects in a vector. Also suppose that every
     this object needs an associated mutex. More over such a mutex can be
     shared by multiple objects, and you dont want all mutexez created at once.
-    
+
     MutualSStore does:<br>
     - associate M indexes (a range of indexes) to a mutex/an object;
     - allocates the mutexes by rows of N mutexes/objects
     - allocates no more than R rows
-    
+
     So what happens when the matrix is full but the ids keep increasing?<br>
     - Then it will start allover with the mutex(0,0)
-    
+
     In the end Ive decided that instead of a mutext I should have any type I want,
     so the template\<Obj\> MutualStore appeared.
 */
@@ -41,7 +41,7 @@ public:
     typedef Obj MutualObjectT;
     //!Constructor
     /*!
-        \param _objpermutbts The number of objects associated to a mutex as bitcount 
+        \param _objpermutbts The number of objects associated to a mutex as bitcount
         (real count 1<<bitcount)
         \param _mutrowsbts The number of mutex rows as bitcount (real count 1<<bitcount)
         \param _mutcolsbts The number of mutexes in a row as bitcount (real count 1<<bitcount)
@@ -65,7 +65,7 @@ public:
             objmat[i] = _preload ? new MutualObjectT[mutcolscnt] : nullptr;
         }
     }
-    
+
     ~MutualStore(){
         for(uint i(0); i < mutrowscnt; ++i){
             delete []objmat[i];
@@ -172,7 +172,7 @@ private:
     inline size_t getObjectRow(const size_t i)const{
         return ((i >> objpermutbts) >> mutrowsbts) & mutrowsmsk;
     }
-    
+
     inline size_t getObjectRow(const size_t i, const unsigned _objpermutbts){
         return ((i >> _objpermutbts) >> mutrowsbts) & mutrowsmsk;
     }

@@ -33,7 +33,7 @@ using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 //-----------------------------------------------------------------------------
 struct Parameters{
     Parameters():listener_port("0"), listener_addr("0.0.0.0"){}
-    
+
     string          listener_port;
     string          listener_addr;
 };
@@ -51,7 +51,7 @@ void complete_message(
     std::shared_ptr<M> &_rrecv_msg_ptr,
     ErrorConditionT const &_rerror
 );
-    
+
 template <>
 void complete_message<ipc_file::ListRequest>(
     frame::mpipc::ConnectionContext &_rctx,
@@ -62,21 +62,21 @@ void complete_message<ipc_file::ListRequest>(
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
     SOLID_CHECK(not _rsent_msg_ptr);
-    
+
     auto msgptr = std::make_shared<ipc_file::ListResponse>(*_rrecv_msg_ptr);
-    
-    
+
+
     fs::path fs_path(_rrecv_msg_ptr->path.c_str()/*, fs::native*/);
-    
+
     if(fs::exists( fs_path ) and fs::is_directory(fs_path)){
         fs::directory_iterator  it,end;
-        
+
         try{
             it = fs::directory_iterator(fs_path);
         }catch ( const std::exception & ex ){
             it = end;
         }
-        
+
         while(it != end){
             msgptr->node_dq.emplace_back(std::string(it->path().c_str()), static_cast<uint8_t>(is_directory(*it)));
             ++it;
@@ -108,15 +108,15 @@ void complete_message<ipc_file::FileRequest>(
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
     SOLID_CHECK(not _rsent_msg_ptr);
-    
+
     auto msgptr = std::make_shared<ipc_file::FileResponse>(*_rrecv_msg_ptr);
-    
+
     if(0){
         boost::system::error_code   error;
-    
+
         msgptr->remote_file_size = fs::file_size(fs::path(_rrecv_msg_ptr->remote_path), error);
     }
-    
+
     SOLID_CHECK_ERROR(_rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr)));
 }
 
@@ -153,39 +153,39 @@ bool parseArguments(Parameters &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
     Parameters p;
-    
+
     if(!parseArguments(p, argc, argv)) return 0;
-    
+
     {
-        
+
         AioSchedulerT           scheduler;
-        
-        
+
+
         frame::Manager          manager;
         frame::mpipc::ServiceT  ipcservice(manager);
         ErrorConditionT         err;
-        
+
         err = scheduler.start(1);
-        
+
         if(err){
             cout<<"Error starting aio scheduler: "<<err.message()<<endl;
             return 1;
         }
-        
+
         {
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
-            
+
             ipc_file::ProtoSpecT::setup<ipc_file_server::MessageSetup>(*proto);
-            
+
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
             cfg.server.listener_address_str += p.listener_port;
-            
+
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
-            
+
             err = ipcservice.reconfigure(std::move(cfg));
-            
+
             if(err){
                 cout<<"Error starting ipcservice: "<<err.message()<<endl;
                 manager.stop();
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]){
                 cout<<"server listens on port: "<<oss.str()<<endl;
             }
         }
-        
+
         cout<<"Press any char and ENTER to stop: ";
         char c;
         cin>>c;
@@ -210,16 +210,16 @@ int main(int argc, char *argv[]){
 bool parseArguments(Parameters &_par, int argc, char *argv[]){
     if(argc == 2){
         size_t          pos;
-        
+
         _par.listener_addr = argv[1];
-        
+
         pos = _par.listener_addr.rfind(':');
-        
+
         if(pos != string::npos){
             _par.listener_addr[pos] = '\0';
-            
+
             _par.listener_port.assign(_par.listener_addr.c_str() + pos + 1);
-            
+
             _par.listener_addr.resize(pos);
         }
     }

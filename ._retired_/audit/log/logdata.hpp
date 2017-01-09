@@ -1,6 +1,6 @@
 // audit/log/logdata.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -25,7 +25,7 @@ struct LogRecordHead{
     uint16      filenamelen;
     uint16      functionnamelen;
     uint32      datalen;
-    
+
     void set(uint16 _lvl, uint16 _mod, uint32 _id, uint32 _lineno, uint32 _sec, uint32 _nsec){
         level = toNetwork(_lvl);
         module = toNetwork(_mod);
@@ -61,7 +61,7 @@ struct LogHead{
         uint16 _modulecnt = 0
     ):procid(_procid), version(1), procnamelen(_procnamelen),
          modulecnt(_modulecnt), flags(0xffff){}
-    
+
     void convertToNetwork(){
         version = toNetwork(version);
         procnamelen = toNetwork(procnamelen);
@@ -74,7 +74,7 @@ struct LogHead{
         procid = toHost(procid);
         modulecnt = toHost(modulecnt);
     }
-    
+
     uint32  procid;
     uint16  version;
     uint16  procnamelen;

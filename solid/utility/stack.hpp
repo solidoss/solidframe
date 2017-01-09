@@ -1,6 +1,6 @@
 // solid/utility/stack.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -52,36 +52,36 @@ public:
             ptn = tn;
         }
     }
-    
+
     Stack& operator=(Stack&& _rs){
         sz = _rs.sz;
         p = _rs.p;
         ptn = _rs.ptn;
-        
+
         _rs.sz = 0;
         _rs.p = nullptr;
         _rs.ptn = nullptr;
         return *this;
     }
-    
+
     bool empty()const{return !sz;}
     size_t size()const{return sz;}
     void push(const T &_t){
         if((sz) & NodeMask) ++p;
         else p = pushNode(p);
-        
+
         ++sz;
         new(p) T(_t);
     }
-    
+
     void push(T &&_t){
         if((sz) & NodeMask) ++p;
         else p = pushNode(p);
-        
+
         ++sz;
         new(p) T(std::move(_t));
     }
-    
+
     reference top(){return *p;}
     const_reference top()const{return *p;}
     void pop(){
@@ -90,7 +90,7 @@ public:
         else p = popNode(p);
     }
 private:
-    T *pushNode(void *_p){//_p points to 
+    T *pushNode(void *_p){//_p points to
         Node *pn = _p ? (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*)): nullptr;
         if(ptn){
             Node *tn = pn;
@@ -105,7 +105,7 @@ private:
     T *popNode(void *_p){
         //cSOLID_ASSERT(_p);
         Node *pn = ((Node*)(((char*)_p) - sizeof(Node*)));
-        Node *ppn = pn->prev; 
+        Node *ppn = pn->prev;
         SOLID_ASSERT(pn != ptn);
         pn->prev = ptn; ptn = pn;//cache the node
         if(ppn){

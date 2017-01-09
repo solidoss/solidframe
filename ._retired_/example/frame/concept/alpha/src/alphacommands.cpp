@@ -1,6 +1,6 @@
 // alphacommands.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -101,7 +101,7 @@ struct Cmd{
 static const protocol::text::NameMatcher cmdm(cmds);
 //---------------------------------------------------------------
 /*
-    The creator method called by frame::Reader::fetchKey when the 
+    The creator method called by frame::Reader::fetchKey when the
     command name was parsed.
     All it does is to create the proper command, which in turn,
     will instruct the reader how to parse itself.
@@ -247,9 +247,9 @@ RemoteList::~RemoteList(){
 void RemoteList::initReader(Reader &_rr){
     typedef CharFilter<' '>             SpaceFilterT;
     typedef NotFilter<SpaceFilterT>     NotSpaceFilterT;
-    
+
     hostvec.push_back(HostAddr());
-    
+
     _rr.push(&Reader::reinitExtended<RemoteList, 0>, protocol::text::Parameter(this));
     _rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&hostvec.back().netid));
     _rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
@@ -265,12 +265,12 @@ template <>
 int RemoteList::reinitReader<0>(Reader &_rr, protocol::text::Parameter &){
     typedef CharFilter<' '>             SpaceFilterT;
     typedef NotFilter<SpaceFilterT>     NotSpaceFilterT;
-    
+
     hostvec.push_back(HostAddr());
-    
+
     _rr.push(&Reader::returnValue<true>, protocol::text::Parameter(Reader::Success));
     _rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&pausems));
-    
+
     //the pause amount
     _rr.push(&Reader::pop, protocol::text::Parameter(2));
     _rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&hostvec.back().netid));
@@ -278,7 +278,7 @@ int RemoteList::reinitReader<0>(Reader &_rr, protocol::text::Parameter &){
     _rr.push(&Reader::fetchAString, protocol::text::Parameter(&hostvec.back().port));
     _rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
     _rr.push(&Reader::fetchAString, protocol::text::Parameter(&hostvec.back().addr));
-    
+
     //not a digit
     _rr.push(&Reader::checkIfCharThenPop<DigitFilter>, protocol::text::Parameter(6));
     _rr.push(&Reader::dropChar);//SPACE
@@ -289,18 +289,18 @@ int RemoteList::reinitReader<0>(Reader &_rr, protocol::text::Parameter &){
 void RemoteList::execute(Connection &_rc){
     pp = &_rc.writer().push(&Writer::putStatus);
     *pp = protocol::text::Parameter(StrDef(" OK Done REMOTELIST@"));
-    
+
     if(hostvec.back().addr.empty()){
         hostvec.pop_back();
     }
-    
+
     DynamicSharedPointer<RemoteListMessage> sig_sp(new RemoteListMessage(pausems, hostvec.size()));
-    
+
     sig_sp->strpth = strpth;
     sig_sp->requid = _rc.newRequestId();
     sig_sp->fromv.first = _rc.id();
     sig_sp->fromv.second = Manager::the().id(_rc).second;
-    
+
     for(HostAddrVectorT::const_iterator it(hostvec.begin()); it != hostvec.end(); ++it){
         const String &straddr(it->addr);
         const String &port(it->port);
@@ -363,7 +363,7 @@ struct FetchOpenCbk{
     uint32              reqid;
     FetchOpenCbk(){}
     FetchOpenCbk(const frame::ObjectUidT &_robjuid, uint32 _reqid):uid(_robjuid), reqid(_reqid){}
-    
+
     void operator()(
         frame::file::Store<> &,
         frame::file::FilePointerT &_rptr,
@@ -372,7 +372,7 @@ struct FetchOpenCbk{
         idbg("");
         frame::Manager              &rm = frame::Manager::specific();
         frame::file::FilePointerT   emptyptr;
-        
+
         frame::MessagePointerT      msgptr(new FilePointerMessage(err ? emptyptr :_rptr, reqid));
         rm.notify(msgptr, uid);
     }
@@ -395,7 +395,7 @@ void Fetch::initReader(Reader &_rr){
     _rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::text::Parameter(5));
     _rr.push(&Reader::fetchAString, protocol::text::Parameter(&strpth));
     _rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-    
+
 }
 void Fetch::execute(Connection &_rc){
     idbg("path "<<strpth<<", address "<<straddr<<", port "<<port<<' '<<(void*)this);
@@ -437,14 +437,14 @@ void Fetch::doSendMaster(const solid::frame::UidT &_ruid){
         //send the master remote command
         FetchMasterMessage                      *pmsg(new FetchMasterMessage);
         DynamicPointer<frame::ipc::Message>     msgptr(pmsg);
-        
+
         pmsg->fname = strpth;
         pmsg->requid = rc.newRequestId();
         pmsg->fromv = Manager::the().id(rc);
         pmsg->tmpfuid = _ruid;
         pmsg->streamsz = streamcp;
         state = WaitFirstRemoteStream;
-        
+
         Manager::the().ipc().sendMessage(msgptr, rd.begin());
     }else{
         *pp = protocol::text::Parameter(StrDef(" NO FETCH: no such peer address@"));
@@ -480,7 +480,7 @@ int Fetch::doSendNextData(Writer &_rw){
         ios.seekg(streamsz);
         cachedmsg->streampos = streamsz;
     }
-    
+
     uint64 remainsz(litsz - streamsz);
     if(remainsz){
         //not the last chunk - request another one
@@ -593,7 +593,7 @@ int Fetch::receiveFilePointer(FilePointerMessage &_rmsg){
         if(cachedmsg->filesz >= 0){
             state = SendNextData;
             //litsz = cachedmsg->filesz;
-            //streamsz = 
+            //streamsz =
         }else{
             state = ReturnBad;
         }

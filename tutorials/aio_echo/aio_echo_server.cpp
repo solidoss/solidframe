@@ -48,10 +48,10 @@ public:
 private:
     void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
     void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
-    
+
     using ListenerSocketT = frame::aio::Listener;
     using TimerT = frame::aio::Timer;
-    
+
     frame::Service      &rservice;
     AioSchedulerT       &rscheduler;
     ListenerSocketT     sock;
@@ -69,7 +69,7 @@ private:
 private:
     using  StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
     enum {BufferCapacity = 1024 * 2};
-    
+
     char            buf[BufferCapacity];
     StreamSocketT   sock;
 };
@@ -83,9 +83,9 @@ private:
     void onSend(frame::aio::ReactorContext &_rctx);
 private:
     using DatagramSocketT = frame::aio::Datagram<frame::aio::Socket>;
-    
+
     enum {BufferCapacity = 1024 * 2 };
-    
+
     char            buf[BufferCapacity];
     DatagramSocketT sock;
 };
@@ -95,39 +95,39 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 int main(int argc, char *argv[]){
     Params p;
     if(not parseArguments(p, argc, argv)) return 0;
-    
+
     signal(SIGPIPE, SIG_IGN);
-    
+
     AioSchedulerT       scheduler;
-    
-    
+
+
     frame::Manager      manager;
     frame::ServiceT     service(manager);
-    
+
     if(scheduler.start(1/*a single thread*/)){
         cout<<"Error starting scheduler"<<endl;
         return 0;
     }
-    
+
     {
         ResolveData     rd =  synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
         SocketDevice    sd;
-        
+
         sd.create(rd.begin());
         sd.prepareAccept(rd.begin(), 2000);
-        
+
         if(sd.ok()){
-            
+
             {
                 SocketAddress   sa;
                 sd.localAddress(sa);
                 cout<<"Listening for TCP connections on port: "<<sa<<endl;
             }
-            
+
             DynamicPointer<frame::aio::Object>  objptr(new Listener(service, scheduler, std::move(sd)));
             solid::ErrorConditionT              error;
             solid::frame::ObjectIdT             objuid;
-            
+
             objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
             (void)objuid;
         }else{
@@ -139,33 +139,33 @@ int main(int argc, char *argv[]){
     {
         ResolveData     rd =  synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
         SocketDevice    sd;
-        
+
         sd.create(rd.begin());
         sd.bind(rd.begin());
-        
+
         if(sd.ok()){
-            
+
             {
                 SocketAddress   sa;
                 sd.localAddress(sa);
                 cout<<"Listening for UDP datagrams on port: "<<sa<<endl;
             }
-            
+
             DynamicPointer<frame::aio::Object>  objptr(new Talker(std::move(sd)));
-            
+
             solid::ErrorConditionT              error;
             solid::frame::ObjectIdT             objuid;
-            
+
             objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
-            
+
             (void)objuid;
-            
+
         }else{
             cout<<"Error creating talker socket"<<endl;
             return 0;
         }
     }
-    
+
     cout<<"Press any key and ENTER to terminate..."<<endl;
     char c;
     cin>>c;
@@ -201,12 +201,12 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
     unsigned    repeatcnt = 4;
-    
+
     do{
         if(!_rctx.error()){
             DynamicPointer<frame::aio::Object>  objptr(new Connection(std::move(_rsd)));
             solid::ErrorConditionT              err;
-            
+
             rscheduler.startObject(objptr, rservice, make_event(GenericEvents::Start), err);
         }else{
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
@@ -221,7 +221,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(repeatcnt && sock.accept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);}, _rsd));
-    
+
     if(!repeatcnt){
         sock.postAccept(
             _rctx,
@@ -261,7 +261,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }
         --repeatcnt;
     }while(repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv, _sz));
-    
+
     if(repeatcnt == 0){
         bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
         SOLID_ASSERT(!rv);
@@ -317,7 +317,7 @@ void Talker::onRecv(frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, si
             [this](frame::aio::ReactorContext &_rctx, SocketAddress &_raddr, size_t _sz){onRecv(_rctx, _raddr, _sz);}, _raddr, _sz
         )
     );
-    
+
     if(repeatcnt == 0){
         sock.postRecvFrom(
             _rctx, buf, BufferCapacity,

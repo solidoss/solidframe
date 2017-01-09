@@ -1,6 +1,6 @@
 // frame/ipc/src/ipcutility.hpp
 //
-// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -35,21 +35,21 @@ struct SocketAddressHash{
     size_t operator()(const SocketAddressInet4* const &_rsa)const{
         return _rsa->hash();
     }
-    
+
     size_t operator()(BaseAddress4T const &_rsa)const{
         return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
     }
     size_t operator()(GatewayRelayAddress4T const &_rsa)const{
         return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
     }
-    
+
     size_t operator()(GatewayRelayAddress6T const &_rsa)const{
         return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
     }
     size_t operator()(BaseAddress6T const &_rsa)const{
         return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
     }
-    
+
     size_t operator()(RelayAddress4T const &_rsa)const{
         return in_addr_hash(_rsa.first.first.address()) ^ _rsa.first.second ^ _rsa.second;
     }
@@ -65,7 +65,7 @@ struct SocketAddressEqual{
     )const{
         return *_rsa1 == *_rsa2;
     }
-    
+
     bool operator()(BaseAddress4T const &_rsa1, BaseAddress4T const &_rsa2)const{
         return _rsa1.first.address() == _rsa2.first.address() &&
         _rsa1.second == _rsa2.second;
@@ -84,12 +84,12 @@ struct SocketAddressEqual{
     }
     bool operator()(RelayAddress4T const &_rsa1, RelayAddress4T const &_rsa2)const{
         return _rsa1.first.first.address() == _rsa2.first.first.address() &&
-        _rsa1.first.second == _rsa2.first.second && 
+        _rsa1.first.second == _rsa2.first.second &&
         _rsa1.second == _rsa2.second;
     }
     bool operator()(RelayAddress6T const &_rsa1, RelayAddress6T const &_rsa2)const{
         return _rsa1.first.first.address() == _rsa2.first.first.address() &&
-        _rsa1.first.second == _rsa2.first.second && 
+        _rsa1.first.second == _rsa2.first.second &&
         _rsa1.second == _rsa2.second;
     }
 };
@@ -137,14 +137,14 @@ typedef std::pair<BaseAddress6T, uint32>    RelayAddress6T;
 
 
 struct SocketAddressCompare{
-    
+
     bool operator()(
         const SocketAddressInet4* const &_sa1,
         const SocketAddressInet4* const &_sa2
     )const{
         return *_sa1 < *_sa2;
     }
-    
+
     bool operator()(BaseAddress4T const &_rsa1, BaseAddress4T const &_rsa2)const{
         if(_rsa1.first.address() < _rsa2.first.address()){
             return true;
@@ -161,7 +161,7 @@ struct SocketAddressCompare{
         }
         return false;
     }
-    
+
     bool operator()(RelayAddress4T const &_rsa1, RelayAddress4T const &_rsa2)const{
         if(_rsa1.first.first.address() < _rsa2.first.first.address()){
             return true;
@@ -186,7 +186,7 @@ struct SocketAddressCompare{
         }
         return false;
     }
-    
+
     bool operator()(GatewayRelayAddress4T const &_rsa1, GatewayRelayAddress4T const &_rsa2)const{
         if(_rsa1.first.address() < _rsa2.first.address()){
             return true;

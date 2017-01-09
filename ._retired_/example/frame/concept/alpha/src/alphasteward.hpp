@@ -1,6 +1,6 @@
 // alphasteward.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -19,7 +19,7 @@ class Manager;
 struct FilePointerMessage;
 
 namespace alpha{
-    
+
 struct RemoteListMessage;
 struct FetchMasterMessage;
 struct FetchSlaveMessage;
@@ -28,18 +28,18 @@ struct FetchSlaveMessage;
 class Steward: public solid::Dynamic<Steward, solid::frame::Object>{
 public:
     static Steward& the(Steward *_ps = NULL);
-    
+
     Steward(Manager &_rmgr);
     ~Steward();
-    
+
     void sendMessage(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
-    
+
     void dynamicHandle(solid::DynamicPointer<> &_dp);
     void dynamicHandle(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
     void dynamicHandle(solid::DynamicPointer<FetchMasterMessage> &_rmsgptr);
     void dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
     void dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr);
-    
+
 private:
     void doExecute(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
     void doClearFetch(const size_t _idx);

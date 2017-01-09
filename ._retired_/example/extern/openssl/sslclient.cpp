@@ -23,7 +23,7 @@ using namespace solid;
 int tocrlf(char *_pb, const char *_bend);
 
 int main(int argc, char *argv[]){
-    
+
     if(argc != 3){
         cout<<"usage:\n$ echo_client addr port"<<endl;
         return 0;
@@ -55,36 +55,36 @@ int main(int argc, char *argv[]){
     SSL_load_error_strings();
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
-    
+
     //create a connection
-    
+
     ResolveData rd = synchronous_resolve(
         argv[1],
         argv[2],
         0,
         SocketInfo::Inet4, SocketInfo::Stream, 0
     );
-    
+
     if(rd.empty()){
         cout<<"no such address"<<endl;
         return 0;
     }
     SocketDevice sd;
     sd.create(rd.begin());
-    
+
     pollfd pfds[2];
-    
+
     pfds[0].fd = fileno(stdin);
     pfds[0].events = POLLIN;
     pfds[0].revents = 0;
-    
+
     pfds[1].fd = sd.descriptor();
     pfds[1].events = POLLIN;
     pfds[1].revents = 0;
-    
+
     SSL_CTX * ctx = SSL_CTX_new(SSLv23_client_method());
     SSL * ssl;
-    
+
     if(!ctx){
         cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
         return 0;
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]){
         return 0;
     }
     system("mkdir certs");
-    
+
     if(! SSL_CTX_load_verify_locations(ctx, NULL, "certs")){
         cout<<"failed SSL_CTX_load_verify_locations 2 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
         return 0;
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]){
         cout<<"could not connect = "<<strerror(errno)<<endl;
         return 0;
     }
-    
+
     sd.makeNonBlocking();
     err = SSL_set_fd(ssl, sd.descriptor());
     cout<<"done ssl_set_fd "<<err<<endl;
@@ -140,13 +140,13 @@ int main(int argc, char *argv[]){
         }else if(err == 0)
             return 11;
         else break;
-        
+
     }
     ERR_print_errors_fp(stderr);
     cout<<"done SSL_connect"<<err<<endl;
     CHK_SSL(err);
     cout<<"done ssl connect"<<endl;
-    
+
     cout<<"done ssl handshaking"<<endl;
     char    bufs[2][1024 + 128];
     char    *wbuf[2];
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]){
         if(pfds[0].revents & POLLIN && !readsz[0]){
             read_stdin = true;
         }
-        
+
         if(pfds[1].revents & POLLOUT){
             write_socket = write_socket || (readsz[0] != 0);
             read_socket = read_socket || wait_write_on_read;
@@ -173,11 +173,11 @@ int main(int argc, char *argv[]){
             //TODO: maybe you only need:
             //read_socket = true;
         }
-        
+
         if(pfds[1].revents && !(pfds[1].revents & (POLLIN | POLLOUT))){
             break;
         }
-        
+
         if(read_stdin){//we can safely read from stdin
             readsz[0] = ::read(fileno(stdin), bufs[0], 1024);
             readsz[0] = tocrlf(bufs[0], bufs[0] + readsz[0]);
@@ -187,7 +187,7 @@ int main(int argc, char *argv[]){
             read_stdin = false;
             if(memcmp(bufs[0], "quit", 4) == 0) break;
         }
-        
+
         if(write_socket){//write to socket
             int rv = SSL_write(ssl, wbuf[0], readsz[0]);
             wait_write_on_write = false;
@@ -218,7 +218,7 @@ int main(int argc, char *argv[]){
                 break;
             }
         }
-        
+
         if(read_socket){
             //we can read:
             int rv = SSL_read(ssl, bufs[1], 8);
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]){
         int pollcnt = poll(pfds, 2, (read_socket || read_stdin) ? 0 : -1);
         if(pollcnt <= 0) continue;
     }
-    
+
     SSL_free(ssl);
     cout<<"Closing"<<endl;
     cout<<sd.write("closing", 4)<<endl;

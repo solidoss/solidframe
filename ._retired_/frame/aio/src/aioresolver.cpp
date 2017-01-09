@@ -1,6 +1,6 @@
 // frame/aio/src/aioresolver.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -26,7 +26,7 @@ typedef WorkPool<ResolverPointerT, WorkPoolController>  WorkPoolT;
 struct WorkPoolController: WorkPoolControllerBase{
     size_t      maxthrcnt;
     WorkPoolController(size_t _thrcnt):maxthrcnt(_thrcnt){}
-    
+
     bool createWorker(WorkPoolT &_rwp, ushort _wkrcnt){
         if(_wkrcnt <= maxthrcnt){
             _rwp.createSingleWorker()->start();
@@ -42,13 +42,13 @@ struct WorkPoolController: WorkPoolControllerBase{
 
 struct Resolver::Data{
     Data(size_t _thrcnt):wp(_thrcnt){}
-    
+
     WorkPoolT   wp;
     size_t      thrcnt;
 };
 
 Resolver::Resolver(size_t _thrcnt):d(*(new Data(_thrcnt))){
-    
+
     if(_thrcnt == 0){
         d.wp.controller().maxthrcnt = Thread::processorCount();
     }

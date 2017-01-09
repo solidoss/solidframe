@@ -1,6 +1,6 @@
 // utility/src/stream.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -61,12 +61,12 @@ bool InputStream::readAll(char *_pd, uint32_t _dl, uint32_t){
 
  int InputStream::read(uint64_t _offset, char* _pbuf, uint32_t _blen, uint32_t _flags){
      const int64_t  crtoff(seek(0, SeekCur));
-     
+
      if(crtoff < 0) return -1;
      if(_offset != static_cast<uint64_t>(seek(_offset))) return -1;
-     
+
      int rv = read(_pbuf, _blen, _flags);
-     
+
      seek(crtoff);
      return rv;
  }
@@ -74,12 +74,12 @@ bool InputStream::readAll(char *_pd, uint32_t _dl, uint32_t){
 
 int OutputStream::write(uint64_t _offset, const char *_pbuf, uint32_t _blen, uint32_t _flags){
      const int64_t  crtoff(seek(0, SeekCur));
-     
+
      if(crtoff < 0) return -1;
      if(_offset != static_cast<uint64_t>(seek(_offset))) return -1;
-     
+
      int rv = write(_pbuf, _blen, _flags);
-     
+
      seek(crtoff);
      return rv;
 }

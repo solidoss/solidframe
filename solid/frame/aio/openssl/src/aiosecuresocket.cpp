@@ -1,6 +1,6 @@
 // solid/frame/aio/openssl/src/aiocompletion.cpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -29,14 +29,14 @@
 
 namespace{
 class OpenSSLErrorCategory: public solid::ErrorCategoryT
-{     
+{
 public:
-    OpenSSLErrorCategory(){} 
+    OpenSSLErrorCategory(){}
     const char* name() const noexcept{
         return "OpenSSL";
     }
     std::string message(int _ev)const;
-    
+
     solid::ErrorCodeT makeError(int _err)const{
         return solid::ErrorCodeT(_err, *this);
     }
@@ -48,9 +48,9 @@ const OpenSSLErrorCategory ssl_category;
 std::string OpenSSLErrorCategory::message(int _ev) const{
     std::ostringstream  oss;
     char                buf[1024];
-    
+
     ERR_error_string_n(_ev, buf, 1024);
-    
+
     oss<<"("<<name()<<":"<<_ev<<"): "<<buf;
     return oss.str();
 }
@@ -63,14 +63,14 @@ enum struct WrapperError: int{
 };
 
 class ErrorCategory: public solid::ErrorCategoryT
-{     
+{
 public:
-    ErrorCategory(){} 
+    ErrorCategory(){}
     const char* name() const noexcept{
         return "solid::frame::aio::openssl";
     }
     std::string message(int _ev)const;
-    
+
     solid::ErrorCodeT makeError(WrapperError _err)const{
         return solid::ErrorCodeT(static_cast<int>(_err), *this);
     }
@@ -82,7 +82,7 @@ const ErrorCategory wrapper_category;
 std::string ErrorCategory::message(int _ev) const{
     std::ostringstream  oss;
     oss<<"("<<name()<<":"<<_ev<<"): ";
-    
+
     switch(static_cast<WrapperError>(_ev)){
         case WrapperError::Call:
             oss<<"OpenSSL API call";break;
@@ -96,7 +96,7 @@ std::string ErrorCategory::message(int _ev) const{
             oss<<"Unknown error";
             break;
     }
-    
+
     return oss.str();
 }
 
@@ -110,7 +110,7 @@ namespace openssl{
 
 
 struct Starter{
-    
+
     Starter(){
 #ifndef OPENSSL_IS_BORINGSSL
         ::OPENSSL_init_ssl(0,NULL);
@@ -123,12 +123,12 @@ struct Starter{
         ::CONF_modules_unload(1);
 #endif
     }
-    
+
     static Starter& the(){
         static Starter s;
         return s;
     }
-    
+
 };
 
 //=============================================================================
@@ -166,7 +166,7 @@ Context& Context::operator=(Context && _rctx){
     return *this;
 }
 Context::Context():pctx(nullptr){
-    
+
 }
 Context::~Context(){
     if(isValid()){
@@ -188,7 +188,7 @@ Context::~Context(){
 
 
 namespace{
-    
+
 typedef void (*BIODeleter)(BIO*);
 typedef void (*X509Deleter)(X509*);
 typedef void (*EVP_PKEYDeleter)(EVP_PKEY*);
@@ -204,7 +204,7 @@ void x509_deleter(X509 *_px509){
 void evp_pkey_deleter(EVP_PKEY *_pkey){
     if(_pkey) ::EVP_PKEY_free(_pkey);
 }
-    
+
 }//namespace
 
 ErrorCodeT Context::addVerifyAuthority(const unsigned char *_data, const size_t _data_size){
@@ -212,11 +212,11 @@ ErrorCodeT Context::addVerifyAuthority(const unsigned char *_data, const size_t 
     ::ERR_clear_error();
 
     std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, _data_size), bio_deleter);
-    
+
     if(bio_ptr){
-        
+
         std::unique_ptr<::X509, X509Deleter> cert_ptr(::PEM_read_bio_X509(bio_ptr.get(), 0, 0, 0), x509_deleter);
-        
+
         if(cert_ptr){
             if(X509_STORE* store = ::SSL_CTX_get_cert_store(pctx)){
                 if (::X509_STORE_add_cert(store, cert_ptr.get()) == 1){
@@ -270,7 +270,7 @@ ErrorCodeT Context::loadCertificateFile(const char *_path, const FileFormat _ffo
 ErrorCodeT Context::loadCertificate(const unsigned char *_data, const size_t _data_size, const FileFormat _fformat/* = FileFormat::Pem*/){
     ErrorCodeT err;
     ::ERR_clear_error();
-    
+
     if(_fformat == FileFormat::Asn1){
         if(
             ::SSL_CTX_use_certificate_ASN1(
@@ -315,10 +315,10 @@ ErrorCodeT Context::loadPrivateKeyFile(const char *_path, const FileFormat _ffor
 ErrorCodeT Context::loadPrivateKey(const unsigned char *_data, const size_t _data_size, const FileFormat _fformat/* = FileFormat::Pem*/){
     ErrorCodeT err;
     ::ERR_clear_error();
-    
+
     std::unique_ptr<::BIO, BIODeleter>              bio_ptr(::BIO_new_mem_buf(_data, _data_size), bio_deleter);
     std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>    key_ptr(nullptr, evp_pkey_deleter);
-    
+
     if(_fformat == FileFormat::Asn1){
         key_ptr = std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>(::d2i_PrivateKey_bio(bio_ptr.get(), 0), evp_pkey_deleter);
     }else if(_fformat == FileFormat::Pem){
@@ -349,29 +349,29 @@ ErrorCodeT Context::loadPrivateKey(const std::string &_str, const FileFormat _ff
 ErrorCodeT Context::doSetPasswordCallback(){
     SSL_CTX_set_default_passwd_cb(pctx, on_password_cb);
     SSL_CTX_set_default_passwd_cb_userdata(pctx, this);
-    
+
     return ErrorCodeT();
 }
 
 /*static*/ int Context::on_password_cb(char *buf, int size, int rwflag, void *u){
     Context &rthis = *static_cast<Context*>(u);
-    
+
     buf[0] = 0;
-    
+
     if(not FUNCTION_EMPTY(rthis.pwdfnc)){
         std::string pwd = rthis.pwdfnc(size, rwflag == 1 ? PasswordPurpose::Write : PasswordPurpose::Read);
         size_t      sz = strlen(pwd.c_str());
-        
+
         if(sz < static_cast<size_t>(size)){
-            
+
         }else{
             sz = static_cast<size_t>(size - 1);
         }
-        
+
         memcpy(buf, pwd.c_str(), sz);
         buf[sz] = 0;
     }
-    
+
     return strlen(buf);
 }
 
@@ -397,7 +397,7 @@ Socket::Socket(
         SSL_set_fd(pssl, sd.descriptor());
     }
 }
-    
+
 Socket::Socket(const Context &_rctx): want_read_on_recv(false), want_read_on_send(false), want_write_on_recv(false), want_write_on_send(false){
     pssl = SSL_new(_rctx.pctx);
     ::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
@@ -500,20 +500,20 @@ ReactorEventsE Socket::filterReactorEvents(
 
 int Socket::recv(void *_pctx, char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
     want_read_on_recv = want_write_on_recv = false;
-    
+
     storeThisPointer();
     storeContextPointer(_pctx);
-    
+
     ::ERR_clear_error();
-    
+
     const int               retval   = ::SSL_read(pssl, _pb, _bl);
     const ErrorCodeT        err_sys  = last_socket_error();
     const int               err_cond = ::SSL_get_error(pssl, retval);
     const unsigned long     err_code = ::ERR_get_error();
-    
+
     clearThisPointer();
     clearContextPointer();
-    
+
     switch(err_cond){
         case SSL_ERROR_NONE:
             _can_retry = false;
@@ -555,20 +555,20 @@ int Socket::recv(void *_pctx, char *_pb, size_t _bl, bool &_can_retry, ErrorCode
 
 int Socket::send(void *_pctx, const char *_pb, size_t _bl, bool &_can_retry, ErrorCodeT &_rerr){
     want_read_on_send = want_write_on_send = false;
-    
+
     storeThisPointer();
     storeContextPointer(_pctx);
-    
+
     ::ERR_clear_error();
-    
+
     const int               retval   = ::SSL_write(pssl, _pb, _bl);
     const ErrorCodeT        err_sys  = last_socket_error();
     const int               err_cond = ::SSL_get_error(pssl, retval);
     const unsigned long     err_code = ::ERR_get_error();
-    
+
     clearThisPointer();
     clearContextPointer();
-    
+
     switch(err_cond){
         case SSL_ERROR_NONE:
             _can_retry = false;
@@ -608,20 +608,20 @@ int Socket::send(void *_pctx, const char *_pb, size_t _bl, bool &_can_retry, Err
 
 bool Socket::secureAccept(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
     want_read_on_recv = want_write_on_recv = false;
-    
+
     storeThisPointer();
     storeContextPointer(_pctx);
-    
+
     ::ERR_clear_error();
-    
+
     const int               retval   = ::SSL_accept(pssl);
     const ErrorCodeT        err_sys  = last_socket_error();
     const int               err_cond = ::SSL_get_error(pssl, retval);
     const unsigned long     err_code = ::ERR_get_error();
-    
+
     clearThisPointer();
     clearContextPointer();
-    
+
     switch(err_cond){
         case SSL_ERROR_NONE:
             _can_retry = false;
@@ -658,22 +658,22 @@ bool Socket::secureAccept(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 
 bool Socket::secureConnect(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
     want_read_on_send = want_write_on_send = false;
-    
+
     storeThisPointer();
     storeContextPointer(_pctx);
-    
+
     ::ERR_clear_error();
-    
+
     const int               retval   = ::SSL_connect(pssl);
     const ErrorCodeT        err_sys  = last_socket_error();
     const int               err_cond = ::SSL_get_error(pssl, retval);
     const unsigned long     err_code = ::ERR_get_error();
-    
+
     clearThisPointer();
     clearContextPointer();
-    
+
     vdbgx(Debug::aio, "ssl_connect rv = "<<retval<<" ssl_error "<<err_cond);
-    
+
     switch(err_cond){
         case SSL_ERROR_NONE:
             _can_retry = false;
@@ -710,21 +710,21 @@ bool Socket::secureConnect(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
 
 bool Socket::secureShutdown(void *_pctx, bool &_can_retry, ErrorCodeT &_rerr){
     want_read_on_send = want_write_on_send = false;
-    
+
     storeThisPointer();
     storeContextPointer(_pctx);
-    
+
     ::ERR_clear_error();
-    
+
     const int               retval   = ::SSL_shutdown(pssl);
     const ErrorCodeT        err_sys  = last_socket_error();
     const int               err_cond = ::SSL_get_error(pssl, retval);
     const unsigned long     err_code = ::ERR_get_error();
-    
-    
+
+
     clearThisPointer();
     clearContextPointer();
-    
+
     switch(err_cond){
         case SSL_ERROR_NONE:
             _can_retry = false;
@@ -799,7 +799,7 @@ static int convertMask(const VerifyMaskT _verify_mask){
 
 ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask){
     SSL_set_verify(pssl, convertMask(_verify_mask), on_verify);
-    
+
     return ErrorCodeT();
 }
 
@@ -807,13 +807,13 @@ ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask){
     SSL     *ssl = static_cast<SSL*>(X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));
     Socket  *pthis = static_cast<Socket*>(SSL_get_ex_data(ssl, thisSSLDataIndex()));
     void    *pctx = SSL_get_ex_data(ssl, contextPointerSSLDataIndex());
-    
+
     SOLID_CHECK(ssl);
     SOLID_CHECK(pthis);
-    
+
     if(not FUNCTION_EMPTY(pthis->verify_cbk)){
         VerifyContext   vctx(x509_ctx);
-        
+
         bool rv = pthis->verify_cbk(pctx, preverify_ok != 0, vctx);
         return rv ? 1 : 0;
     }else{
@@ -827,7 +827,7 @@ ErrorCodeT Socket::setVerifyDepth(const int _depth){
     X509_VERIFY_PARAM_set_depth(param, _depth);
     return ErrorCodeT();
 }
-    
+
 ErrorCodeT Socket::setVerifyMode(VerifyMaskT _verify_mask){
     SSL_set_verify(pssl, convertMask(_verify_mask), on_verify);
     return ErrorCodeT();
@@ -835,7 +835,7 @@ ErrorCodeT Socket::setVerifyMode(VerifyMaskT _verify_mask){
 
 ErrorCodeT Socket::setCheckHostName(const std::string &_hostname){
     X509_VERIFY_PARAM *param = SSL_get0_param(pssl);
-    
+
     //X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
     if(X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), 0)){
         return ErrorCodeT();

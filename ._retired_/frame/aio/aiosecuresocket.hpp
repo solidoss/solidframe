@@ -1,6 +1,6 @@
 // frame/aio/aiosecuresocket.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -49,7 +49,7 @@ public:
     //!Send method
     /*!
         The return value is modeled around OpenSSL API.
-        
+
         \retval 0 for clean connection close, <0 for an error
         (for nonblocking sockets check wantEvents), >0 success.
     */
@@ -57,7 +57,7 @@ public:
     //!Receive method
     /*!
         The return value is modeled around OpenSSL API.
-        
+
         \retval 0 for clean connection close, <0 for an error
         (for nonblocking sockets check wantEvents), >0 success.
     */
@@ -73,9 +73,9 @@ public:
         This is modeled around the OpenSSL API.
         It does the secure hand-shake for incomming
         connections. The socket has to be created.
-        
+
         The return value is modeled around OpenSSL API.
-        
+
         \retval 0 for clean connection close, <0 for an error
         (for nonblocking sockets check wantEvents), >0 success.
     */
@@ -85,9 +85,9 @@ public:
         This is modeled around the OpenSSL API.
         It does the secure hand-shake for outgoing
         connections.
-        
+
         The return value is modeled around OpenSSL API.
-        
+
         \retval 0 for clean connection close, <0 for an error
         (for nonblocking sockets check wantEvents), >0 success.
     */

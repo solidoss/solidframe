@@ -1,6 +1,6 @@
 // frame/ipc/src/ipctalker.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -36,13 +36,13 @@ struct ConnectData{
         VersionMajor = 1,
         VersionMinor = 0
     };
-    
+
     ConnectData():
         s('s'), f('f'), i('i'), p('p'), c('c'), type(0),
         version_major(VersionMajor), version_minor(VersionMinor),
         flags(0), baseport(0), timestamp_s(0), timestamp_n(0),
         relayid(0), receivernetworkid(0), sendernetworkid(0){}
-    
+
     std::ostream& print(std::ostream& _ros)const;
     uint8                   s;
     uint8                   f;
@@ -71,9 +71,9 @@ struct AcceptData{
         BaseSize = 2 + 2 + 4 + 4
     };
     AcceptData():baseport(0){}
-    
+
     std::ostream& print(std::ostream& _ros)const;
-    
+
     uint16  flags;
     uint16  baseport;
     uint32  timestamp_s;
@@ -83,7 +83,7 @@ struct AcceptData{
 
 struct ErrorData{
     ErrorData():error(0){}
-    
+
     int error;
 };
 
@@ -113,7 +113,7 @@ private:
     Service         &rs;
     uint16          sessionidx;
     const TimeSpec  &crttime;
-    
+
 };
 
 //! A talker for io requests
@@ -121,10 +121,10 @@ class Talker: public Dynamic<Talker, frame::aio::SingleObject>{
 public:
     //! Interface from Talker to Session
     //typedef Service                           ServiceT;
-    
+
     Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _tkridx);
     ~Talker();
-    
+
     bool pushMessage(
         DynamicPointer<Message> &_pmsgptr,
         const SerializationTypeIdT &_rtid,
@@ -136,7 +136,7 @@ public:
         int32 _event,
         uint32 _flags
     );
-        
+
     void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
     void disconnectSessions(TalkerStub &_rstub);
 private:

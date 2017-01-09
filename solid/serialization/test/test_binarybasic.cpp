@@ -36,33 +36,33 @@ bool test(const T &_v, const size_t _estimated_size){
         SOLID_THROW("error");
         return false;
     }
-    
+
     if(static_cast<size_t>(p - tmp) != _estimated_size){
         SOLID_THROW("error");
         return false;
     }
-    
+
     if(crossSize(tmp) != _estimated_size){
         SOLID_THROW("error");
         return false;
     }
-    
+
     T   v;
-    
+
     const char *cp;
-    
+
     cp = crossLoad(tmp, v);
-    
+
     if(cp == nullptr){
         SOLID_THROW("error");
         return false;
     }
-    
+
     if(static_cast<size_t>(cp - tmp) != _estimated_size){
         SOLID_THROW("error");
         return false;
     }
-    
+
     if(v != _v){
         SOLID_THROW("error");
         return false;
@@ -72,7 +72,7 @@ bool test(const T &_v, const size_t _estimated_size){
 
 int test_binarybasic(int argc, char *argv[]){
     cout<<"max uint8_t value with crc: "<<(int)max_value_without_crc_8()<<endl;
-    
+
     print(0);
     print(1);
     print(2);
@@ -85,20 +85,20 @@ int test_binarybasic(int argc, char *argv[]){
     print(0xffffff);
     print(0xfffffff);
     print(0xffffffff);
-    
-    
+
+
     if(!test(static_cast<uint8_t>(0x00), 1)){
         SOLID_ASSERT(false);
     }
-    
+
     if(!test(static_cast<uint8_t>(0x1), 2)){
         SOLID_ASSERT(false);
     }
-    
+
     if(!test(static_cast<uint8_t>(0xff), 2)){
         SOLID_ASSERT(false);
     }
-    
+
     if(!test(static_cast<uint16_t>(0), 1)){
         SOLID_ASSERT(false);
     }
@@ -108,7 +108,7 @@ int test_binarybasic(int argc, char *argv[]){
     if(!test(static_cast<uint16_t>(0xffff), 3)){
         SOLID_ASSERT(false);
     }
-    
+
     if(!test(static_cast<uint32_t>(0), 1)){
         SOLID_ASSERT(false);
     }
@@ -124,7 +124,7 @@ int test_binarybasic(int argc, char *argv[]){
     if(!test(static_cast<uint32_t>(0xffffffff), 5)){
         SOLID_ASSERT(false);
     }
-    
+
     if(!test(static_cast<uint64_t>(0), 1)){
         SOLID_ASSERT(false);
     }

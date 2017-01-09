@@ -1,6 +1,6 @@
 // protocol/text/logger.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -31,7 +31,7 @@ class Logger{
 public:
     //! Constructor with an estimated line size
     /*!
-        Lines bigger then _linesz will be split on 
+        Lines bigger then _linesz will be split on
         multiple lines
     */
     Logger(uint32 _linesz = 1024);
@@ -41,7 +41,7 @@ public:
     void inFlush();
     //! Logs a char
     void inChar(int _c);
-    //! Logs an atom 
+    //! Logs an atom
     /*! No check for unprintable chars is done
     */
     void inAtom(const char *_pb, unsigned _bl);
@@ -56,7 +56,7 @@ public:
         inLocate will call inLiteral and append '...' to log line.
     */
     void inLocate(const char *_pb, unsigned _bl);
-    
+
     //! Flushes the outgoing log data
     void outFlush();
     //! Logs one char

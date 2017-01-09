@@ -45,7 +45,7 @@ struct RunThread: Thread{
 };
 
 void RunThread::run(){
-    
+
     if(runspecific){
         runSpecific();
     }else{
@@ -63,7 +63,7 @@ void RunThread::runSpecific(){
     vector<SpecificData<192>* >     d6vec;
     size_t      crtcnt = startcnt;
     for(size_t i = 0; i < repeatcnt; ++i){
-        
+
         for(size_t j = 0; j < crtcnt; ++j){
             d1vec.push_back(new SpecificData<6>);
             d2vec.push_back(new SpecificData<12>);
@@ -89,7 +89,7 @@ void RunThread::runSpecific(){
         crtcnt += incrementby;
     }
     for(size_t i = 0; i < repeatcnt; ++i){
-        
+
         for(size_t j = 0; j < crtcnt; ++j){
             d1vec.push_back(new SpecificData<6>);
             d2vec.push_back(new SpecificData<12>);
@@ -124,7 +124,7 @@ void RunThread::runNormal(){
     vector<Data<192>* >     d6vec;
     size_t      crtcnt = startcnt;
     for(size_t i = 0; i < repeatcnt; ++i){
-        
+
         for(size_t j = 0; j < crtcnt; ++j){
             d1vec.push_back(new Data<6>);
             d2vec.push_back(new Data<12>);
@@ -150,7 +150,7 @@ void RunThread::runNormal(){
         crtcnt += incrementby;
     }
     for(size_t i = 0; i < repeatcnt; ++i){
-        
+
         for(size_t j = 0; j < crtcnt; ++j){
             d1vec.push_back(new Data<6>);
             d2vec.push_back(new Data<12>);

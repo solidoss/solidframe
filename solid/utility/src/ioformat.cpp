@@ -1,6 +1,6 @@
 // solid/utility/src/ioformat.cpp
 //
-// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2015 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -24,7 +24,7 @@ std::ostream& operator<<(std::ostream &_ros, TrimString const &_trimstr){
             endlen = _trimstr.endlen;
         }
     }
-    
+
     _ros.write(_trimstr.pstr, beglen);
     if(endlen != 0 or beglen < _trimstr.strlen){
         _ros<<'.'<<'.'<<'.';

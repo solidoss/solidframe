@@ -1,6 +1,6 @@
 // audit/log/logmanager.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -26,13 +26,13 @@ public:
     typedef std::pair<uint32, uint32> UidT;
     LogManager();
     ~LogManager();
-    
+
     UidT insertChannel(InputStream *_pis);
     UidT insertListener(const char *_addr, const char *_port);
-    
+
     void eraseClient(const UidT &_ruid);
     void eraseListener(const UidT &_ruid);
-    
+
     bool start();
     void stop(bool _wait = true);
     UidT insertConnector(LogConnector *_plc);

@@ -36,7 +36,7 @@ public:
     virtual void initReader(Reader &) = 0;
     //! Called by alpha::Connection to prepare the response
     virtual void execute(const uint _sid) = 0;
-    
+
     virtual void contextData(ObjectUidT &_robjuid);
 
 };

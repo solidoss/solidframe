@@ -13,24 +13,24 @@ namespace ipc_file{
 
 struct ListRequest: solid::frame::mpipc::Message{
     std::string         path;
-    
+
     ListRequest(){}
-    
+
     ListRequest(std::string && _path): path(std::move(_path)){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(path, "path");
-    }   
+    }
 };
 
 struct ListResponse: solid::frame::mpipc::Message{
     std::deque<std::pair<std::string, uint8_t> >    node_dq;
-    
+
     ListResponse(){}
-    
+
     ListResponse(const ListRequest &_rmsg):solid::frame::mpipc::Message(_rmsg){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.pushContainer(node_dq, "node_dq");
@@ -41,32 +41,32 @@ struct ListResponse: solid::frame::mpipc::Message{
 struct FileRequest: solid::frame::mpipc::Message{
     std::string         remote_path;
     std::string         local_path;
-    
-    
+
+
     FileRequest(){}
-    
+
     FileRequest(
         std::string && _remote_path, std::string && _local_path
     ): remote_path(std::move(_remote_path)), local_path(std::move(_local_path)){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(remote_path, "remote_path");
-    }   
+    }
 };
 
 struct FileResponse: solid::frame::mpipc::Message{
     std::string         remote_path;
     std::fstream        fs;
     int64_t             remote_file_size;
-    
+
     FileResponse(){}
-    
+
     FileResponse(
         const FileRequest &_rmsg
     ):  solid::frame::mpipc::Message(_rmsg), remote_path(_rmsg.remote_path),
         remote_file_size(solid::InvalidSize()){}
-    
+
     template <class S>
     void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.pushCall(
@@ -74,7 +74,7 @@ struct FileResponse: solid::frame::mpipc::Message{
                 if(S::IsSerializer){
                     fs.open(remote_path.c_str());
                     _rs.pushStream(static_cast<std::istream*>(&fs), "fs");
-                    
+
                     if(fs){
                         std::streampos pos = fs.tellg();
                         fs.seekg(0, fs.end);
@@ -87,7 +87,7 @@ struct FileResponse: solid::frame::mpipc::Message{
                     _rs.push(remote_file_size, "remote_file_size");
                 }else{
                     std::string *plocal_path = localPath(_rctx);
-                    
+
                     if(remote_file_size != solid::InvalidSize() and plocal_path){
                         fs.open(plocal_path->c_str(), std::fstream::out | std::fstream::binary);
                     }

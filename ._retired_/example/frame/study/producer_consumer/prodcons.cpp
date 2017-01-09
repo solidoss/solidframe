@@ -101,13 +101,13 @@ class Worker: public Thread{
     TaskVectorT     tskvec[2];
     Condition       cnd;
     size_t          crtpushtskvecidx;
-    
-    
+
+
     Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0){
         tskvec[0].reserve(1024 * 30);
         tskvec[1].reserve(1024 * 30);
     }
-    
+
     TaskVectorT* waitTasks(bool _peek, bool &_isrunning);
     void run();
     void schedule(TaskPtrT &_rtskptr);
@@ -131,25 +131,25 @@ class Scheduler: public ::Scheduler{
     Status          status;
     size_t          stopwaitcnt;
     size_t          crtwkridx;
-    
+
     ~Scheduler();
     virtual bool start(const size_t _conscnt);
     virtual void schedule(TaskPtrT &_rtskptr);
     virtual void stop(bool _wait);
     size_t  computeScheduleWorkerIndex();
-    
+
 public:
     Scheduler():status(StatusStoppedE), stopwaitcnt(0), crtwkridx(0){}
 };
 
 Scheduler::~Scheduler(){
-    
+
 }
 /*virtual*/ bool Scheduler::start(const size_t _conscnt){
     bool            err = false;
     {
         Locker<Mutex>   lock(mtx);
-        
+
         if(status == StatusRunningE){
             idbg("status == StatusRunningE");
             return true;
@@ -159,7 +159,7 @@ Scheduler::~Scheduler(){
                 cnd.wait(lock);
             }while(status != StatusStoppedE || stopwaitcnt);
         }
-        
+
         for(size_t i = 0; i < _conscnt; ++i){
             WorkerPtrT  wkrptr(new Worker(*this));
             if(wkrptr->start(false, false)){
@@ -169,7 +169,7 @@ Scheduler::~Scheduler(){
                 break;
             }
         }
-        
+
         if(err){
             edbg("status = StatusStoppingWaitE");
             status = StatusStoppingWaitE;
@@ -280,18 +280,18 @@ void Worker::run(){
     size_t      conscnt = 0;
     size_t      loopcnt = 0;
     TaskQueueT  tskq;
-    
+
     bool        isrunning = true;
-    
+
     do{
         size_t  tskqsz = tskq.size();
-        
+
         if(tskqsz > maxqtsks){
             maxqtsks = tskqsz;
         }
         loopcnt += tskqsz;
         consloopcnt += tskqsz;
-        
+
         while(tskqsz--){
             if(tskq.front()->run(ctx)){
                 tskq.push(std::move(tskq.front()));
@@ -308,7 +308,7 @@ void Worker::run(){
             conscnt += ptv->size();
             loopcnt += ptv->size();
             constskcnt += ptv->size();
-            
+
             for(auto it = ptv->begin(); it != ptv->end(); ++it){
                 tskq.push(std::move(*it));
             }
@@ -316,7 +316,7 @@ void Worker::run(){
         }
         ctx.ct.currentMonotonic();
     }while(tskq.size() || isrunning);
-    
+
     vdbg("Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt);
     cout<<"Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt<<endl;
 }
@@ -347,7 +347,7 @@ template <class C>
 size_t find_min(const std::array<C, 3> &_ra, size_t &_rcrtidx){
     size_t  crtidx;
     C       crtmin;
-    
+
     if(_ra[0] < _ra[1]){
         crtidx = 0;
         crtmin = _ra[0];
@@ -362,14 +362,14 @@ size_t find_min(const std::array<C, 3> &_ra, size_t &_rcrtidx){
         crtidx = 0;
         crtmin = _ra[0];
     }
-    
+
     if(crtmin < _ra[2]){
         return crtidx;
     }else{
         return 2;
     }
-    
-    
+
+
 }
 template <class C>
 size_t find_min(const std::array<C, 4> &_ra, size_t &_rcrtidx){
@@ -402,7 +402,7 @@ size_t find_min(const std::array<C, 4> &_ra, size_t &_rcrtidx){
     size_t  crtidx;
     C       crtmin;
     size_t  eqlcnt = 0;
-    
+
     if(_ra[0] < _ra[1]){
         crtidx = 0;
         crtmin = _ra[0];
@@ -414,16 +414,16 @@ size_t find_min(const std::array<C, 4> &_ra, size_t &_rcrtidx){
         crtmin = _ra[0];
         eqlcnt = 2;
     }
-    
+
     if(crtmin < _ra[2]){
-        
+
     }else if(crtmin > _ra[2]){
         crtmin = _ra[2];
         crtidx = 2;
     }else{//==
         ++eqlcnt;
     }
-    
+
     if(crtmin < _ra[3]){
         return crtidx;
     }else if(crtmin > _ra[3]){
@@ -431,7 +431,7 @@ size_t find_min(const std::array<C, 4> &_ra, size_t &_rcrtidx){
     }else if(eqlcnt < 3){//==
         return crtidx;
     }
-        
+
     crtidx = _rcrtidx;
     _rcrtidx = (crtidx + 1) % 4;
     return crtidx;
@@ -475,10 +475,10 @@ class Worker: public Thread{
     size_t          crtpushtskvecidx;
     AtomicSizeT     crtpushsz;
     AtomicSizeT     load;
-    
-    
+
+
     Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0), crtpushsz(0), load(0){}
-    
+
     TaskVectorT* waitTasks(bool _peek, bool &_isrunning);
     void run();
     void schedule(TaskPtrT &_rtskptr);
@@ -502,7 +502,7 @@ class Scheduler: public ::Scheduler{
     Status          status;
     size_t          stopwaitcnt;
     size_t          crtwkridx;
-    
+
     ~Scheduler();
     virtual bool start(const size_t _conscnt);
     virtual void schedule(TaskPtrT &_rtskptr);
@@ -513,13 +513,13 @@ public:
 };
 
 Scheduler::~Scheduler(){
-    
+
 }
 /*virtual*/ bool Scheduler::start(const size_t _conscnt){
     bool            err = false;
     {
         Locker<Mutex>   lock(mtx);
-        
+
         if(status == StatusRunningE){
             idbg("status == StatusRunningE");
             return true;
@@ -529,7 +529,7 @@ Scheduler::~Scheduler(){
                 cnd.wait(lock);
             }while(status != StatusStoppedE || stopwaitcnt);
         }
-        
+
         for(size_t i = 0; i < _conscnt; ++i){
             WorkerPtrT  wkrptr(new Worker(*this));
             if(wkrptr->start(false, false)){
@@ -539,7 +539,7 @@ Scheduler::~Scheduler(){
                 break;
             }
         }
-        
+
         if(err){
             edbg("status = StatusStoppingWaitE");
             status = StatusStoppingWaitE;
@@ -615,7 +615,7 @@ inline size_t   Scheduler::computeScheduleWorkerIndex(){
         default:
             break;
     }
-    
+
     const size_t    cwi = crtwkridx;
     crtwkridx = (cwi + 1) % wkrvec.size();
     return cwi;
@@ -711,11 +711,11 @@ void Worker::run(){
     size_t      conscnt = 0;
     size_t      loopcnt = 0;
     TaskQueueT  tskq;
-    
+
     bool        isrunning = true;
-    
+
     size_t      opcnt = 0;
-    
+
     do{
         const size_t    tskqsz = tskq.size();
         if(tskqsz > maxqtsks){
@@ -724,7 +724,7 @@ void Worker::run(){
         loopcnt += tskqsz;
         consloopcnt += tskqsz;
         opcnt += tskqsz;
-        
+
         size_t          qcnt = tskqsz;
         while(qcnt--){
             if(tskq.front()->run(ctx)){
@@ -744,7 +744,7 @@ void Worker::run(){
             conscnt += ptv->size();
             loopcnt += ptv->size();
             constskcnt += ptv->size();
-            
+
             for(auto it = ptv->begin(); it != ptv->end(); ++it){
                 tskq.push(std::move(*it));
             }
@@ -753,7 +753,7 @@ void Worker::run(){
         ctx.ct.currentMonotonic();
         load = tskq.size();
     }while(tskq.size() || isrunning);
-    
+
     vdbg("Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt);
     cout<<"Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt<<endl;
 }
@@ -784,15 +784,15 @@ class Worker: public Thread{
     AtomicSizeT     crtpushsz;
     AtomicSizeT     load;
     AtomicBoolT     isrunning;
-    
-    
+
+
     Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0), crtpushsz(0), load(0), isrunning(true){}
-    
+
     TaskVectorT* waitTasks(const bool _peek);
     void run();
     void schedule(TaskPtrT &_rtskptr);
     void stop();
-    
+
 public:
     size_t currentLoad()const{
         return load;
@@ -821,7 +821,7 @@ class Scheduler: public ::Scheduler{
     size_t                  crtwkridx;
     AtomicSizeT             usecnt;
     AtomicSizeT             eqlcount;
-    
+
     ~Scheduler();
     virtual bool start(const size_t _conscnt);
     virtual void schedule(TaskPtrT &_rtskptr);
@@ -831,13 +831,13 @@ public:
     Scheduler():pwrkvec(nullptr), status(StatusStoppedE), stopwaitcnt(0), crtwkridx(0), usecnt(0), eqlcount(0){}
 };
 
-Scheduler::~Scheduler(){    
+Scheduler::~Scheduler(){
 }
 /*virtual*/ bool Scheduler::start(const size_t _conscnt){
     bool            err = false;
     {
         Locker<Mutex>   lock(mtx);
-        
+
         if(status == StatusRunningE){
             idbg("status == StatusRunningE");
             return true;
@@ -847,7 +847,7 @@ Scheduler::~Scheduler(){
                 cnd.wait(lock);
             }while(status != StatusStoppedE || stopwaitcnt);
         }
-        
+
         for(size_t i = 0; i < _conscnt; ++i){
             WorkerPtrT  wkrptr(new Worker(*this));
             if(wkrptr->start(false, false)){
@@ -857,7 +857,7 @@ Scheduler::~Scheduler(){
                 break;
             }
         }
-        
+
         if(err){
             edbg("status = StatusStoppingWaitE");
             status = StatusStoppingWaitE;
@@ -913,7 +913,7 @@ inline size_t   Scheduler::computeScheduleWorkerIndex(){
         default:
             break;
     }
-    
+
     ++eqlcount;
     const size_t    cwi = crtwkridx;
     crtwkridx = (cwi + 1) % wkrvec.size();
@@ -984,9 +984,9 @@ TaskVectorT* Worker::waitTasks(const bool _peek){
         return isrunning ? &emptyvec : nullptr;
     }
     crtpushsz = 0;
-    
+
     Locker<Mutex>   lock(mtx);
-    
+
     if(tskvec[crtpushtskvecidx].empty()){
         if(_peek){
             return isrunning ? &emptyvec : nullptr;
@@ -996,7 +996,7 @@ TaskVectorT* Worker::waitTasks(const bool _peek){
             }
         }
     }
-    
+
     if(tskvec[crtpushtskvecidx].size()){
         TaskVectorT *pvec = &tskvec[crtpushtskvecidx];
         crtpushtskvecidx = (crtpushtskvecidx + 1) % 2;
@@ -1025,9 +1025,9 @@ void Worker::run(){
     size_t      conscnt = 0;
     size_t      loopcnt = 0;
     TaskQueueT  tskq;
-    
+
     size_t      opcnt = 0;
-    
+
     do{
         const size_t    tskqsz = tskq.size();
         if(tskqsz > maxqtsks){
@@ -1036,7 +1036,7 @@ void Worker::run(){
         loopcnt += tskqsz;
         consloopcnt += tskqsz;
         opcnt += tskqsz;
-        
+
         size_t          qcnt = tskqsz;
         while(qcnt--){
             if(tskq.front()->run(ctx)){
@@ -1056,7 +1056,7 @@ void Worker::run(){
             conscnt += ptv->size();
             loopcnt += ptv->size();
             constskcnt += ptv->size();
-            
+
             for(auto it = ptv->begin(); it != ptv->end(); ++it){
                 tskq.push(std::move(*it));
             }
@@ -1065,7 +1065,7 @@ void Worker::run(){
         ctx.ct.currentMonotonic();
         load = tskq.size();
     }while(tskq.size() || ptv);
-    
+
     vdbg("Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt);
     cout<<"Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt<<endl;
 }
@@ -1094,15 +1094,15 @@ class Worker: public Thread{
     AtomicSizeT         crtpushsz;
     AtomicSizeT         load;
     AtomicBoolT         isrunning;
-    
-    
+
+
     Worker(Scheduler &_rsched):rsched(_rsched), pushq(128), crtpushtskvecidx(0), crtpushsz(0), load(0), isrunning(true){}
-    
+
     size_t waitTasks(const bool _peek);
     void run();
     void schedule(TaskPtrT &_rtskptr);
     void stop();
-    
+
 public:
     size_t currentLoad()const{
         return load;
@@ -1131,7 +1131,7 @@ class Scheduler: public ::Scheduler{
     size_t                  crtwkridx;
     AtomicSizeT             usecnt;
     AtomicSizeT             eqlcount;
-    
+
     ~Scheduler();
     virtual bool start(const size_t _conscnt);
     virtual void schedule(TaskPtrT &_rtskptr);
@@ -1141,13 +1141,13 @@ public:
     Scheduler():pwrkvec(nullptr), status(StatusStoppedE), stopwaitcnt(0), crtwkridx(0), usecnt(0), eqlcount(0){}
 };
 
-Scheduler::~Scheduler(){    
+Scheduler::~Scheduler(){
 }
 /*virtual*/ bool Scheduler::start(const size_t _conscnt){
     bool            err = false;
     {
         Locker<Mutex>   lock(mtx);
-        
+
         if(status == StatusRunningE){
             idbg("status == StatusRunningE");
             return true;
@@ -1157,7 +1157,7 @@ Scheduler::~Scheduler(){
                 cnd.wait(lock);
             }while(status != StatusStoppedE || stopwaitcnt);
         }
-        
+
         for(size_t i = 0; i < _conscnt; ++i){
             WorkerPtrT  wkrptr(new Worker(*this));
             if(wkrptr->start(false, false)){
@@ -1167,7 +1167,7 @@ Scheduler::~Scheduler(){
                 break;
             }
         }
-        
+
         if(err){
             edbg("status = StatusStoppingWaitE");
             status = StatusStoppingWaitE;
@@ -1223,7 +1223,7 @@ inline size_t   Scheduler::computeScheduleWorkerIndex(){
         default:
             break;
     }
-    
+
     ++eqlcount;
     const size_t    cwi = crtwkridx;
     crtwkridx = (cwi + 1) % wkrvec.size();
@@ -1299,7 +1299,7 @@ size_t Worker::waitTasks(const bool _peek){
             }
         }
     }
-    
+
     size_t  rv;
     rv = crtpushsz.fetch_and(0);
     return rv ? rv : isrunning ? 0 : -1;
@@ -1324,7 +1324,7 @@ void Worker::run(){
     TaskQueueT  tskq;
     size_t      crtpopcnt;
     size_t      opcnt = 0;
-    
+
     do{
         const size_t    tskqsz = tskq.size();
         if(tskqsz > maxqtsks){
@@ -1333,7 +1333,7 @@ void Worker::run(){
         loopcnt += tskqsz;
         consloopcnt += tskqsz;
         opcnt += tskqsz;
-        
+
         size_t          qcnt = tskqsz;
         while(qcnt--){
             if(tskq.front()->run(ctx)){
@@ -1363,7 +1363,7 @@ void Worker::run(){
         ctx.ct.currentMonotonic();
         load = tskq.size();
     }while(tskq.size() || crtpopcnt != InvalidIndex());
-    
+
     vdbg("Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt);
     cout<<"Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt<<endl;
 }
@@ -1392,15 +1392,15 @@ class Worker: public Thread{
     AtomicSizeT     crtpushsz;
     AtomicSizeT     load;
     AtomicBoolT     isrunning;
-    
-    
+
+
     Worker(Scheduler &_rsched):rsched(_rsched), crtpushtskvecidx(0), crtpushsz(0), load(0), isrunning(true){}
-    
+
     TaskVectorT* waitTasks(const bool _peek);
     void run();
     void schedule(TaskPtrT &_rtskptr);
     void stop();
-    
+
 public:
     size_t currentLoad()const{
         return load;
@@ -1429,7 +1429,7 @@ class Scheduler: public ::Scheduler{
     size_t                  crtwkridx;
     AtomicSizeT             usecnt;
     AtomicSizeT             eqlcount;
-    
+
     ~Scheduler();
     virtual bool start(const size_t _conscnt);
     virtual void schedule(TaskPtrT &_rtskptr);
@@ -1442,13 +1442,13 @@ public:
     Scheduler():pwrkvec(nullptr), status(StatusStoppedE), stopwaitcnt(0), crtwkridx(0), usecnt(0), eqlcount(0){}
 };
 
-Scheduler::~Scheduler(){    
+Scheduler::~Scheduler(){
 }
 /*virtual*/ bool Scheduler::start(const size_t _conscnt){
     bool            err = false;
     {
         Locker<Mutex>   lock(mtx);
-        
+
         if(status == StatusRunningE){
             idbg("status == StatusRunningE");
             return true;
@@ -1458,7 +1458,7 @@ Scheduler::~Scheduler(){
                 cnd.wait(lock);
             }while(status != StatusStoppedE || stopwaitcnt);
         }
-        
+
         for(size_t i = 0; i < _conscnt; ++i){
             WorkerPtrT  wkrptr(new Worker(*this));
             if(wkrptr->start(false, false)){
@@ -1468,7 +1468,7 @@ Scheduler::~Scheduler(){
                 break;
             }
         }
-        
+
         if(err){
             edbg("status = StatusStoppingWaitE");
             status = StatusStoppingWaitE;
@@ -1524,7 +1524,7 @@ inline size_t   Scheduler::computeScheduleWorkerIndex(){
         default:
             break;
     }
-    
+
     ++eqlcount;
     const size_t    cwi = crtwkridx;
     crtwkridx = (cwi + 1) % wkrvec.size();
@@ -1596,7 +1596,7 @@ TaskVectorT* Worker::waitTasks(const bool _peek){
     }
     Locker<Mutex>   lock(rsched.mutex());
     crtpushsz = 0;
-    
+
     if(tskvec[crtpushtskvecidx].empty()){
         if(_peek){
             return isrunning ? &emptyvec : nullptr;
@@ -1606,7 +1606,7 @@ TaskVectorT* Worker::waitTasks(const bool _peek){
             }
         }
     }
-    
+
     if(tskvec[crtpushtskvecidx].size()){
         TaskVectorT *pvec = &tskvec[crtpushtskvecidx];
         crtpushtskvecidx = (crtpushtskvecidx + 1) % 2;
@@ -1634,9 +1634,9 @@ void Worker::run(){
     size_t      conscnt = 0;
     size_t      loopcnt = 0;
     TaskQueueT  tskq;
-    
+
     size_t      opcnt = 0;
-    
+
     do{
         const size_t    tskqsz = tskq.size();
         if(tskqsz > maxqtsks){
@@ -1645,7 +1645,7 @@ void Worker::run(){
         loopcnt += tskqsz;
         consloopcnt += tskqsz;
         opcnt += tskqsz;
-        
+
         size_t          qcnt = tskqsz;
         while(qcnt--){
             if(tskq.front()->run(ctx)){
@@ -1665,7 +1665,7 @@ void Worker::run(){
             conscnt += ptv->size();
             loopcnt += ptv->size();
             constskcnt += ptv->size();
-            
+
             for(auto it = ptv->begin(); it != ptv->end(); ++it){
                 tskq.push(std::move(*it));
             }
@@ -1674,7 +1674,7 @@ void Worker::run(){
         ctx.ct.currentMonotonic();
         load = tskq.size();
     }while(tskq.size() || ptv);
-    
+
     vdbg("Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt);
     cout<<"Worker exit - maxtsks = "<<maxtsks<<" maxqtsks = "<<maxqtsks<<" conscnt = "<<conscnt<<" loopcnt = "<<loopcnt<<endl;
 }
@@ -1706,7 +1706,7 @@ const size_t cnts[] = {
     100,
     1000,
     10000,
-    
+
 };
 
 ATOMIC_NS::atomic<size_t>   prodtskcnt(0);
@@ -1714,15 +1714,15 @@ ATOMIC_NS::atomic<size_t>   prodtskcnt(0);
 class Producer: public Thread{
     Scheduler       &rsched;
     const size_t    taskcnt;
-    
+
     /*virtual*/ void run(){
         this->yield();
         this->yield();
         this->yield();
-        
+
         const size_t    strcnt = (sizeof(strs)/sizeof(const char*));
         const size_t    cntcnt = (sizeof(cnts)/sizeof(size_t));
-        
+
         for(size_t i = 0; i < taskcnt; ++i){
             ++prodtskcnt;
             const size_t    loopcnt = cnts[i % cntcnt];
@@ -1731,7 +1731,7 @@ class Producer: public Thread{
                 rsched.schedule(tskptr);
             }else{
                 size_t  stridx = (i/2) % strcnt;
-                
+
                 TaskPtrT        tskptr(new StringTask(loopcnt, strs[stridx]));
                 rsched.schedule(tskptr);
             }
@@ -1740,7 +1740,7 @@ class Producer: public Thread{
 public:
     Producer(Scheduler &_rsched, const size_t _taskcnt):rsched(_rsched), taskcnt(_taskcnt){}
     ~Producer(){
-        
+
     }
 };
 
@@ -1771,27 +1771,27 @@ int main(int argc, char *argv[]){
     Debug::the().initStdErr(false);
     Debug::the().levelMask("view");
     Debug::the().moduleMask("any");
-    
+
     const size_t        prodcnt = 4;
     const size_t        conscnt = 4;
-    
+
     const size_t        prodtaskcnt = 100000/* * 1000*/;
-    
+
     Scheduler           *psch = nullptr;
-    
+
     if(argc >= 2){
         psch = schedulerFactory(*argv[1]);
     }
-    
+
     if(!psch){
         cout<<"Unknown scheduler type"<<endl;
         return 0;
     }
-    
+
     Scheduler           &sched(*psch);
-    
+
     sched.start(conscnt);
-    
+
     ProducerVectorT     prodvec;
     for(size_t i = 0; i < prodcnt; ++i){
         std::unique_ptr<Producer>   uniptr(new Producer(sched, prodtaskcnt));
@@ -1799,19 +1799,19 @@ int main(int argc, char *argv[]){
             prodvec.push_back(std::move(uniptr));
         }
     }
-    
+
     for(auto it = prodvec.begin(); it != prodvec.end(); ++it){
         (*it)->join();
     }
     return 0;
     sched.stop();
-    
+
     idbg("produced "<<prodtskcnt<<" tasks");
     idbg("consumed "<<constskcnt<<" tasks");
     cout<<"produced "<<prodtskcnt<<" tasks"<<endl;
     cout<<"consumed "<<constskcnt<<" tasks with "<<consloopcnt<<" loops"<<endl;
     Thread::waitAll();
-    
+
     return 0;
 }
 

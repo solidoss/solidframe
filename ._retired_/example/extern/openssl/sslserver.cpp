@@ -83,7 +83,7 @@ struct Handle{
     uint32_t                    eevents;//expected events
     uint32_t                    sevents;//set events
     uint32_t                    events;//incomming events
-    
+
     bool                    wait_read_on_write;
     bool                    wait_read_on_read;
     bool                    wait_write_on_write;
@@ -93,7 +93,7 @@ struct Handle{
     int                     state;
     SocketDevice            sd;
     SSL                     *ssl;
-    //we use multiple buffers to be able to 
+    //we use multiple buffers to be able to
     //test synchrounous read and writes
     char                    buf[2][BufferCapacity];
     int                     len[2];
@@ -124,7 +124,7 @@ int main(int argc, char* argv[]){
     Debug::the().levelMask("iew");
     Debug::the().moduleMask();
     Debug::the().initStdErr(false, &s);
-    
+
     cout<<"Debug output: "<<s<<endl;
     s.clear();
     Debug::the().moduleNames(s);
@@ -134,8 +134,8 @@ int main(int argc, char* argv[]){
     SSL_load_error_strings();
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
-    
-    
+
+
     ctx = SSL_CTX_new (SSLv23_server_method());
     if (!ctx) {
         ERR_print_errors_fp(stderr);
@@ -143,7 +143,7 @@ int main(int argc, char* argv[]){
     }
     const char *pcertpath = OSSL_SOURCE_PATH"ssl_/certs/A-server.pem";
     cout<<"Client certificate path: "<<pcertpath<<endl;
-    
+
     if (SSL_CTX_use_certificate_file(ctx, pcertpath, SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
         exit(3);
@@ -152,16 +152,16 @@ int main(int argc, char* argv[]){
         ERR_print_errors_fp(stderr);
         exit(4);
     }
-    
+
     if (!SSL_CTX_check_private_key(ctx)) {
         fprintf(stderr,"Private key does not match the certificate public key\n");
         exit(5);
-    }   
-    
+    }
+
     //create a connection
     handles.reserve(2048);
     ResolveData rd = synchronous_resolve(argv[1], argv[2]);
-    
+
     if(rd.empty()){
         cout<<"no such address"<<endl;
         return 0;

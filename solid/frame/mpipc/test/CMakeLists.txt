@@ -81,9 +81,9 @@ if(OPENSSL_FOUND)
         test_clientserver_delayed.cpp
         test_clientserver_idempotent.cpp
     )
-    # 
+    #
     create_test_sourcelist( mpipcClientServerTests test_mpipc_clientserver.cpp ${mpipcClientServerTestSuite})
-    
+
     add_executable(test_mpipc_clientserver ${mpipcClientServerTests})
     add_dependencies(test_mpipc_clientserver mpipc_test_copy_certs)
 
@@ -100,7 +100,7 @@ if(OPENSSL_FOUND)
         ${SYS_DYNAMIC_LOAD_LIB}
         ${SYS_BASIC_LIBS}
     )
-    
+
     add_test(NAME TestClientServerBasic1        COMMAND  test_mpipc_clientserver test_clientserver_basic 1)
     add_test(NAME TestClientServerBasic2        COMMAND  test_mpipc_clientserver test_clientserver_basic 2)
     add_test(NAME TestClientServerBasic4        COMMAND  test_mpipc_clientserver test_clientserver_basic 4)
@@ -110,12 +110,12 @@ if(OPENSSL_FOUND)
     add_test(NAME TestClientServerBasic2S       COMMAND  test_mpipc_clientserver test_clientserver_basic 2 s)
     add_test(NAME TestClientServerBasic4S       COMMAND  test_mpipc_clientserver test_clientserver_basic 4 s)
     add_test(NAME TestClientServerBasic8S       COMMAND  test_mpipc_clientserver test_clientserver_basic 8 s)
-    
+
     add_test(NAME TestClientServerBasic1C       COMMAND  test_mpipc_clientserver test_clientserver_basic 1 c)
     add_test(NAME TestClientServerBasic2C       COMMAND  test_mpipc_clientserver test_clientserver_basic 2 c)
     add_test(NAME TestClientServerBasic4C       COMMAND  test_mpipc_clientserver test_clientserver_basic 4 c)
     add_test(NAME TestClientServerBasic8C       COMMAND  test_mpipc_clientserver test_clientserver_basic 8 c)
-    
+
     add_test(NAME TestClientServerBasic1B       COMMAND  test_mpipc_clientserver test_clientserver_basic 1 b)
     add_test(NAME TestClientServerBasic2B       COMMAND  test_mpipc_clientserver test_clientserver_basic 2 b)
     add_test(NAME TestClientServerBasic4B       COMMAND  test_mpipc_clientserver test_clientserver_basic 4 b)

@@ -31,16 +31,16 @@ void sig_cbk(int _sig){
 }
 
 int main(){
-    
+
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = sig_cbk; 
+    sa.sa_handler = sig_cbk;
     sigaction(SIGTERM, &sa, NULL);
-    
+
     while(w.wait()){
         w.v = 0;
     }
-    
+
     return 0;
 }
 

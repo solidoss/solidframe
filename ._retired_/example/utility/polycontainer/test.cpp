@@ -1,6 +1,6 @@
 // test.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -24,7 +24,7 @@ struct A{
 
 struct B{
     typedef string J;
-    void set(string _s) { 
+    void set(string _s) {
         cout<<"B::set "<<_s<<endl;
         s = _s;
     }
@@ -33,7 +33,7 @@ struct B{
 
 struct C{
     typedef string J;
-    void set(string _s){ 
+    void set(string _s){
         cout<<"C::set "<<_s<<endl;
         a = _s.size();
     }
@@ -61,7 +61,7 @@ int main(){
     //mc.get<A*>() = new A;
     mc.get<A>().set(10);
     mc.get<C>().set("gigi");
-    
+
     mcc.get<B*>()->set("gigi");
     mcc.get<std::vector<A*> >()[0]->set(10);
     return 0;

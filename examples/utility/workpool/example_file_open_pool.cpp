@@ -1,6 +1,6 @@
 // open.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -56,7 +56,7 @@ struct MyWorkerBase: WorkerBase{
     ~MyWorkerBase(){
         delete []bf;
     }
-    
+
     const solid::ulong  readsz;
     char                *bf;
     char                *buf;

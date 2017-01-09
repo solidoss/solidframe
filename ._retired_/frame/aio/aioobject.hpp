@@ -1,6 +1,6 @@
 // frame/aio/aioobject.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -28,7 +28,7 @@ class Selector;
     It allows for multiple sockets but this is only from the aio::Selector side,
     as actual support for single/multiple sockets must came from upper levels,
     i.e. inheritants - see aio::SingleObject or aio::MultiObject.
-    
+
 */
 class Object: public Dynamic<Object, frame::Object>{
 public:
@@ -91,7 +91,7 @@ protected:
         The data is not dealocated, it is the responsability of inheritants.
         E.g. some classes may avoid "new" allocation by holding the table
         within the class (as aio::SingleObject). Others may do a single
-        allocation of a big chunck to hold all the tables and just set 
+        allocation of a big chunck to hold all the tables and just set
         the pointers to offsets within.
         \param _pstubs A table with allocated stubs, can be changed after
         \param _stubcp The capacity of the table
@@ -113,7 +113,7 @@ protected:
         itoutbeg(_itoutbeg), itoutpos(_itoutbeg),
         otoutbeg(_otoutbeg), otoutpos(_otoutbeg){
     }
-    
+
     void socketPushRequest(const size_t _pos, const uint8 _req);
     void socketPostEvents(const size_t _pos, const uint32 _evs);
 private:
@@ -121,19 +121,19 @@ private:
     void doUnprepare();
     /*virtual*/void doStop();
     void doClearRequests();
-    
+
     size_t doOnTimeoutRecv(const TimeSpec &_timepos);
     size_t doOnTimeoutSend(const TimeSpec &_timepos);
-    
+
     void doPopTimeoutRecv(const size_t _pos);
     void doPopTimeoutSend(const size_t _pos);
 protected:
     void doPushTimeoutRecv(const size_t _pos, const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec);
     void doPushTimeoutSend(const size_t _pos, const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec);
-    
+
     void setSocketPointer(const SocketPointer &_rsp, Socket *_ps);
     Socket* getSocketPointer(const SocketPointer &_rsp);
-    
+
 protected:
     TimeSpec            *pitimepos;
     TimeSpec            *potimepos;

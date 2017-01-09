@@ -1,6 +1,6 @@
 // serialization_simple.cpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -66,7 +66,7 @@ struct TestD{
     int32_t                         a;
     SocketAddressInet4::DataArrayT  addr;
     uint16_t                        port;
-    
+
     TestD(
         const char *_paddr = nullptr,
         solid::uint _port = 0,
@@ -80,13 +80,13 @@ struct TestD{
             }
         }
     }
-    
+
     void print()const {
         cout<<"testd: a  = "<<a<<endl;
         string              hoststr;
         string              portstr;
         SocketAddressInet4  sock_addr(addr, port);
-        
+
         synchronous_resolve(
             hoststr,
             portstr,
@@ -94,7 +94,7 @@ struct TestD{
             ReverseResolveInfo::Numeric
         );
         cout<<"testd: sa = "<<hoststr<<':'<<portstr<<endl;
-        
+
     }
     template <class S>
     void serialize(S &_s, Context &){
@@ -240,16 +240,16 @@ struct Array: Base{
         _s.pushArray(td, tdsz, "td");
     }
     void print()const;
-    
+
     std::string sa[3];
     size_t      sasz;
-    
+
     TestA       *pta;
     size_t      ptasz;
-    
+
     TestA       *pta1;
     size_t      pta1sz;
-    
+
     TestD       td[4];
     size_t      tdsz;
 };
@@ -337,70 +337,70 @@ int main(int argc, char *argv[]){
     typedef serialization::binary::Serializer<Context>                              BinSerializerT;
     typedef serialization::binary::Deserializer<Context>                            BinDeserializerT;
     typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>              TypeIdMapT;
-    
-    
+
+
     TypeIdMapT      tm;
-    
-    
+
+
     tm.registerType<String>(0, STRING_TYPE_INDEX);
     tm.registerType<UnsignedInteger>(0, UNSIGNED_TYPE_INDEX);
     tm.registerType<IntegerVector>(0, INTEGER_VECTOR_TYPE_INDEX);
     tm.registerType<Array>(0, ARRAY_TYPE_INDEX);
-    
+
     tm.registerCast<String, Base>();
     tm.registerCast<UnsignedInteger, Base>();
     tm.registerCast<IntegerVector, Base>();
     tm.registerCast<Array, Base>();
-    
-    
+
+
     //const char* str = nullptr;
     for(int i = 0; i < 1; ++i){
-        {   
+        {
             idbg("");
             Context         ctx("Serialization", 1000);
             BinSerializerT  ser(&tm);
-            
+
             TestA           ta;
             TestB           tb;// = new TestB;
             TestC           tc;
             StrDeqT         sdq;
             string          s("some string");
-            
+
             sdq.push_back("first");
             sdq.push_back("second");
             sdq.push_back("third");
             sdq.push_back("fourth");
-            
+
             Base            *b1 = new String("some mega base string that is more than few buffers spawned");
             Base            *b2 = new UnsignedInteger(-2, 10);
             IntegerVector   *iv;
             Base            *b3 = iv = new IntegerVector(true);
             Base            *b4 = new Array(true);
-            
+
             for(int i = 1; i < 20; ++i){
                 iv->iv.push_back(i);
             }
             //static_cast<String*>(b1)->makeDefault();
-            
+
             ta.print();
             tb.print();
             tc.print();
-            
+
             cout<<"string: "<<s<<endl;
             print(sdq);
-            
+
             b1->print();
             b2->print();
             b3->print();
             b4->print();
-            
+
             ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
             idbg("");
             ser.push(s, "string").pushContainer(sdq, "names");
             idbg("");
             ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
             ser.push(b4, "basea");
-            
+
             PairIntDeqT pidq;
             pidq.push_back(pair<int32_t, int32_t>(1,2));
             pidq.push_back(pair<int32_t, int32_t>(2,3));
@@ -439,7 +439,7 @@ int main(int argc, char *argv[]){
             Base                    *b2 = nullptr;
             Base                    *b3 = nullptr;
             Base                    *b4 = nullptr;
-            
+
             des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
             idbg("");
             des.push(s, "string").pushContainer(sdq, "names");

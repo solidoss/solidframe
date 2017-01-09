@@ -1,6 +1,6 @@
 // utility/binaryseeker.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -24,20 +24,20 @@ namespace solid{
         bool operator<(const ComplexData &_cd)const{<br>
             return id \< _cd.id;<br>
         }<br>
-        
+
         bool operator<(uint32_t _id)const{<br>
             return id \< _id;<br>
         }<br>
-        
+
         uint32_t    id;<br>
         string  sdata;<br>
         uint64_t    udata;<br>
     };<br>
-    
+
     typedef std::vector\<ComplexData> CDVectorT;
-    
+
     BinarySeeker<> bs;
-    
+
     void find(const CDVectorT &_rv, uint32_t _d){<br>
         int rv = bs(_rv.begin(), _rv.end(), _d);<br>
     }
@@ -63,7 +63,7 @@ struct BasicComparator{
         string  sdata;<br>
         uint64_t    udata;<br>
     };<br>
-    
+
     struct ComplexDataComparator{<br>
         bool operator()(const ComplexData &_cd1, const ComplexData &_cd2)const{<br>
             return _cd1.id \< _cd2.id;<br>
@@ -72,11 +72,11 @@ struct BasicComparator{
             return _cd1.id \< _id;<br>
         }<br>
     };
-    
+
     typedef std::vector\<ComplexData> CDVectorT;<br>
-    
+
     BinarySeeker\<ComplexDataComparator\> bs;<br>
-    
+
     void find(const CDVectorT &_rv, uint32_t _d){<br>
         int rv = bs(_rv.begin(), _rv.end(), _d);<br>
     }
@@ -87,9 +87,9 @@ typedef std::pair<bool, size_t> BinarySeekerResultT;
 
 template <class Cmp = BasicComparator>
 struct BinarySeeker{
-    
+
     typedef BinarySeekerResultT ResultT;
-    
+
     //! Seeks for requested key, within the range given by _from iterator and _to itereator
     /*!
         \retval >= 0 the position where the item was found
@@ -100,7 +100,7 @@ struct BinarySeeker{
             int insertpos = - rv - 1;<br>
         }
         </code>
-        
+
     */
     template<class It, class Key>
     ResultT operator()(It _from, It _to, const Key &_rk)const{
@@ -118,18 +118,18 @@ struct BinarySeeker{
         }
         return ResultT(false, _from - beg);
     }
-    
+
     template<class It, class Key>
     ResultT first(It _from, It _to, const Key &_rk)const{
         ResultT p = (*this)(_from, _to, _rk);
         if(!p.first) return p;//not found
-        
+
         while(p.second && !cmp(*(_from + p.second - 1), _rk)){
             p =  (*this)(_from, _from + p.second, _rk);
         }
         return p;
     }
-    
+
     template<class It, class Key>
     ResultT last(It _from, It _to, const Key &_rk)const{
         ResultT p = (*this)(_from, _to, _rk);

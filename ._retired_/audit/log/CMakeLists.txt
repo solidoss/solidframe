@@ -20,7 +20,7 @@ set(Headers
     #logwriter.hpp
 )
 
-set(Inlines 
+set(Inlines
 )
 
 add_library (solid_audit_log_manager

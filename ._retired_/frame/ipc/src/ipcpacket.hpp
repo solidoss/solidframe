@@ -1,6 +1,6 @@
 // frame/ipc/src/ipcpacket.hpp
 //
-// Copyright (c) 2012,2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2012,2013 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -48,7 +48,7 @@ struct Packet{
         Unknown
     };
     enum Flags{
-        UpdateFlag = 1,//fixed position 
+        UpdateFlag = 1,//fixed position
         CompressedFlag = 2,
         RelayFlag = 4,//fixed position
         DebugFlag = 8,
@@ -58,10 +58,10 @@ struct Packet{
         NewMessage,
         OldMessage
     };
-    
+
     static char* allocate();
     static void deallocate(char *_pb);
-    
+
     Packet(
         char *_pb = NULL,
         uint16 _bc = 0,
@@ -70,69 +70,69 @@ struct Packet{
     Packet(const Packet& _rpkt);
     Packet& operator=(const Packet& _rpkt);
     ~Packet();
-    
+
     bool empty()const;
-    
+
     void reset();
-    
+
     void clear();
-    
+
     void optimize(uint16 _cp = 0);
-    
+
     bool compress(Controller &_rctrl);
     bool decompress(Controller &_rctrl);
-    
+
     bool check()const;
-    
+
     void reinit(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0);
-    
+
     char *buffer()const;
     char *data()const ;
-    
+
     char *release(uint32 &_cp)const;
     char *release()const;
-    
+
     uint32 bufferSize()const;
-    
+
     void bufferSize(const uint32 _sz);
-    
+
     uint32 bufferCapacity()const;
-    
+
     uint32 dataSize()const;
     void dataSize(const uint32 _dl);
     uint32 dataCapacity()const;
-    
+
     char* dataEnd()const;
     uint32 dataFreeSize()const;
-    
+
     void dataType(DataTypes _dt);
-    
+
     uint8 version()const;
     void version(uint8 _v);
-    
+
     uint8 resend()const;
     void resend(uint8 _ri);
-    
+
     uint8 type()const;
     void type(uint8 _tp);
-    
+
     uint16 flags()const;
     void flags(uint16 _flags);
-    
+
     uint32 id()const;
     void id(const uint32 _id);
-    
+
     uint32 relay()const;
     void relay(const uint32 _id);
-    
+
     uint16 relayPacketSize()const;
     void relayPacketSizeStore();
-    
+
     bool isRelay()const;
-    
+
     uint8 updateCount()const;
     void updateInit();
-    
+
     uint32 update(const uint _pos)const;
     void updatePush(const uint32 _upd);
     uint32 headerSize()const;

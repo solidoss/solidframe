@@ -1,6 +1,6 @@
 // solid/system/src/device.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -143,7 +143,7 @@ int64_t SeekableDevice::seek(int64_t _pos, SeekRef _ref){
 
     li.QuadPart = _pos;
     li.LowPart = SetFilePointer(descriptor(), li.LowPart, &li.HighPart, seekmap[_ref]);
-    
+
     if(
         li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR
     ){
@@ -421,7 +421,7 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
     WCHAR pwcfr[4096];
     WCHAR *pwctmpto(nullptr);
     WCHAR *pwctmpfr(nullptr);
-    
+
     //first convert _to to _pwc
     int rv = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, 4096);
     if(rv == 0){
@@ -563,7 +563,7 @@ ErrorCodeT SocketDevice::create(const ResolveIterator &_rri){
     SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), nullptr, 0, 0);
     Device::descriptor((HANDLE)s);
 #else
-    Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));    
+    Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));
 #endif
     return ok() ? ErrorCodeT() : last_socket_error();
 }
@@ -749,7 +749,7 @@ ErrorCodeT SocketDevice::makeBlocking(size_t _msec){
     if (rv < 0){
         return last_socket_error();
     }
-    struct timeval timeout;      
+    struct timeval timeout;
     timeout.tv_sec = _msec / 1000;
     timeout.tv_usec = _msec % 1000;
     rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
@@ -768,7 +768,7 @@ ErrorCodeT SocketDevice::makeNonBlocking(){
 #ifdef SOLID_ON_WINDOWS
     u_long mode = 1;
     int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
-    
+
     if (rv == NO_ERROR){
         return ErrorCodeT();
     }
@@ -792,7 +792,7 @@ ErrorCodeT SocketDevice::makeNonBlocking(){
 #else
 
     const int flg = fcntl(descriptor(), F_GETFL);
-    
+
     if(flg != -1){
         _rrv = ((flg & O_NONBLOCK) == 0);
         return ErrorCodeT();
@@ -883,7 +883,7 @@ ErrorCodeT SocketDevice::type(int &_rrv)const{
         _rrv = val;
         return ErrorCodeT();
     }
-    
+
     return last_socket_error();
 #endif
 }
@@ -899,7 +899,7 @@ ErrorCodeT SocketDevice::type(int &_rrv)const{
 //      _rerr = last_error();
 //      return val != 0 ? Success : Failure;
 //  }
-// 
+//
 //  if(this->type() == SocketInfo::Datagram){
 //      return Failure;
 //  }
@@ -943,7 +943,7 @@ ErrorCodeT SocketDevice::enableNoSignal(){
         return ErrorCodeT();
     }
     return last_socket_error();
-#endif  
+#endif
 }
 
 ErrorCodeT SocketDevice::disableNoSignal(){
@@ -981,7 +981,7 @@ ErrorCodeT SocketDevice::hasNoDelay(bool &_rrv)const{
     return last_socket_error();
 #endif
 }
-    
+
 ErrorCodeT SocketDevice::enableCork(){
 #ifdef SOLID_ON_WINDOWS
     return solid::error_not_implemented;
@@ -1044,7 +1044,7 @@ ErrorCodeT SocketDevice::sendBufferSize(int &_rsz){
         int         sockbufsz(0);
         socklen_t   sz(sizeof(sockbufsz));
         int         rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
-        
+
         if(rv == 0){
             _rsz = sockbufsz;
             return ErrorCodeT();
@@ -1084,7 +1084,7 @@ ErrorCodeT SocketDevice::sendBufferSize(int &_rsz)const{
     int         sockbufsz(0);
     socklen_t   sz(sizeof(sockbufsz));
     int         rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
-    
+
     if(rv == 0){
         _rsz = sockbufsz;
         return ErrorCodeT();
@@ -1115,7 +1115,7 @@ ErrorCodeT SocketDevice::lastError()const{
     int         err = 0;
     socklen_t   errlen = sizeof(err);
     getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, (void*)&err, &errlen);
-    
+
     return ErrorCodeT(err, std::system_category());
 #endif
 }

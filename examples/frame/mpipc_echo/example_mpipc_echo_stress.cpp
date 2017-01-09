@@ -58,22 +58,22 @@ struct Params{
     string                  dbg_port;
     bool                    dbg_console;
     bool                    dbg_buffered;
-    
+
     int                     baseport;
     bool                    log;
     StringVectorT           connectstringvec;
     StringVectorT           gatewaystringvec;
-    
+
     uint32_t                    repeat_count;
     uint32_t                    message_count;
     uint32_t                    min_size;
     uint32_t                    max_size;
     uint32_t                    netid;
-    
-    
+
+
     PeerAddressVectorT      connectvec;
     SocketAddressMapT       connectmap;
-    
+
     bool prepare(frame::ipc::Configuration &_rcfg, string &_err);
     uint32_t server(const PeerAddressPairT&)const;
 };
@@ -114,24 +114,24 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
     int                             state;
     std::string                     str;
     frame::ipc::MessageUid          msguid;
-    
-    
+
+
     FirstMessage();
     ~FirstMessage();
-    
+
     uint32_t size()const{
         return sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32_t) + str.size();
     }
-    
+
     /*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
     /*virtual*/ uint32_t ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
     /*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
-    
+
     template <class S>
     void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
         _s.push(state, "state").push(idx, "index").push(sec, "seconds").push(nsec, "nanoseconds").push(str, "data");
     }
-    
+
 };
 
 FirstMessage* create_message(uint32_t _idx, const bool _incremental = false);
@@ -154,15 +154,15 @@ static void term_handler(int signum){
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
-    
+
     if(parseArguments(p, argc, argv)) return 0;
-    
+
     //p.prepare();
-    
+
     signal(SIGINT,term_handler); /* Die on SIGTERM */
-    
+
     Thread::init();
-    
+
 #ifdef SOLID_HAS_DEBUG
     {
     string dbgout;
@@ -195,25 +195,25 @@ int main(int argc, char *argv[]){
     cout<<"Debug modules: "<<dbgout<<endl;
     }
 #endif
-    
+
     {
-        
+
         frame::Manager          m;
-        
+
         AioSchedulerT           aiosched(m);
-        
+
         frame::ipc::Service     ipcsvc(m, new frame::ipc::BasicController(aiosched));
-        
+
         ipcsvc.registerMessageType<FirstMessage>();
-        
+
         m.registerService(ipcsvc);
-        
+
         {
             frame::ipc::Configuration   cfg;
             ResolveData                 rd = synchronous_resolve("0.0.0.0", p.baseport, 0, SocketInfo::Inet4, SocketInfo::Datagram);
             //frame::aio::Error         err;
             bool                        rv;
-            
+
             {
                 string errstr;
                 if(!p.prepare(cfg, errstr)){
@@ -222,10 +222,10 @@ int main(int argc, char *argv[]){
                     return 0;
                 }
             }
-            
-            
+
+
             cfg.baseaddr = rd.begin();
-            
+
             rv = ipcsvc.reconfigure(cfg);
             if(!rv){
                 //TODO:
@@ -234,18 +234,18 @@ int main(int argc, char *argv[]){
                 return 0;
             }
         }
-        
-        
+
+
         wait_count = p.message_count;
-        
+
         srvvec.resize(p.connectvec.size());
         msgvec.resize(p.message_count);
-        
-        NanoTime    begintime(NanoTime::createRealTime()); 
-        
+
+        NanoTime    begintime(NanoTime::createRealTime());
+
         if(p.connectvec.size()){
             for(uint32_t i = 0; i < p.message_count; ++i){
-                
+
                 DynamicSharedPointer<FirstMessage>  fmsgptr(create_message(i));
 
                 for(Params::PeerAddressVectorT::iterator it(p.connectvec.begin()); it != p.connectvec.end(); ++it){
@@ -258,7 +258,7 @@ int main(int argc, char *argv[]){
                 }
             }
         }
-        
+
         {
             Locker<Mutex>   lock(mtx);
             while(run){
@@ -269,22 +269,22 @@ int main(int argc, char *argv[]){
             NanoTime    endtime(NanoTime::createRealTime());
             endtime -= begintime;
             uint64_t        duration = endtime.seconds() * 1000;
-            
+
             duration += endtime.nanoSeconds() / 1000000;
-            
+
             uint64_t        speed = (srvvec.front().sz * 125) / (128 * duration);
-            
+
             cout<<"Speed = "<<speed<<" KB/s"<<endl;
         }
         m.stop();
         vdbg("done stop");
     }
     Thread::waitAll();
-    
+
     {
         uint64_t    minmsec = 0xffffffff;
         uint64_t    maxmsec = 0;
-        
+
         for(ServerVectorT::const_iterator it(srvvec.begin()); it != srvvec.end(); ++it){
             const uint32_t idx = it - srvvec.begin();
             cout<<"Server ["<<p.connectvec[idx].first<<':'<<p.connectvec[idx].second<<"] mintime = "<<it->minmsec<<" maxtime = "<<it->maxmsec<<endl;
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]){
             doprint = true;
         }else{
             cnt = msgvec.front().count;
-            
+
             for(MessageVectorT::const_iterator it(msgvec.begin() + 1); it != msgvec.end(); ++it){
                 if(it->count != cnt){
                     doprint = true;
@@ -320,7 +320,7 @@ int main(int argc, char *argv[]){
             cout<<"All "<<msgvec.size()<<" messages have count: "<<cnt<<endl;
         }
     }
-    
+
     return 0;
 }
 
@@ -365,7 +365,7 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
     const uint16_t  default_port = 2000;
     const int       default_netid = solid::frame::ipc::LocalNetworkId;
     size_t          pos;
-    
+
     for(std::vector<std::string>::iterator it(gatewaystringvec.begin()); it != gatewaystringvec.end(); ++it){
         pos = it->rfind(':');
         if(pos == std::string::npos){
@@ -386,28 +386,28 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
         posb = it->rfind(':');
         int netid = default_netid;
         int port  = -1;
-        
-        
+
+
         if(posa == std::string::npos){
             _err = "Error parsing connect address: ";
             _err += *it;
             return false;
         }
-        
+
         (*it)[posa] = '\0';
         netid = atoi(it->c_str());
-    
+
         if(posb == posa){
             port = default_port;
         }else{
             (*it)[posb] = '\0';
             port = atoi(it->c_str() + posb + 1);
         }
-        
+
         const char *addr = it->c_str() + posa + 1;
-        
+
         ResolveData rd = synchronous_resolve(addr, port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-        
+
         if(!rd.empty()){
             connectvec.push_back(PeerAddressPairT(netid, SocketAddressInet4(rd.begin())));
             idbg("added connect address "<<*it<<" "<<connectvec.back().first<<":"<<connectvec.back().second);
@@ -415,13 +415,13 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
             idbg("skiped connect address "<<*it);
         }
     }
-    
+
     if(min_size > max_size){
         uint32_t tmp = min_size;
         min_size = max_size;
         max_size = tmp;
     }
-    
+
     for(PeerAddressVectorT::const_iterator it(connectvec.begin()); it != connectvec.end(); ++it){
         const uint32_t idx = it - connectvec.begin();
         connectmap[&(*it)] = idx;
@@ -451,51 +451,51 @@ FirstMessage::~FirstMessage(){
 /*virtual*/ void FirstMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
     ++state;
     idbg("EXECUTE ---------------- "<<state<<" size = "<<str.size());
-    
+
     if(this->idx >= msgvec.size()){
         msgvec.resize(this->idx + 1);
     }
-    
+
     ++msgvec[this->idx].count;
-    
+
     if(ipcIsOnReceiver()){
-        
+
         PeerAddressPairT    peersa(_rctx.netid, _rctx.pairaddr);
-        
+
         idbg("Received message: "<<peersa.first<<":"<<peersa.second);
-        
+
         _rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, (uint32_t)0/*fdt::ipc::Service::SynchronousSendFlag*/);
     }else{
         NanoTime            crttime(NanoTime::createRealTime());
         NanoTime            tmptime(this->sec, this->nsec);
         PeerAddressPairT    peersa(_rctx.netid, _rctx.pairaddr);
-        
+
         idbg("Received message: "<<peersa.first<<":"<<peersa.second<<" waiting message: "<<(void*)_rctx.requestMessage(*this).get());
-        
+
         tmptime =  crttime - tmptime;
-        
+
         peersa.second.port(_rctx.baseport);
-        
+
         const uint32_t      srvidx = p.server(peersa);
         ServerStub          &rss = srvvec[srvidx];
         uint64_t                crtmsec = tmptime.seconds() * 1000;
-        
+
         rss.sz += this->size();
-        
+
         crtmsec += tmptime.nanoSeconds() / 1000000;
-        
+
         if(crtmsec < rss.minmsec){
             rss.minmsec = crtmsec;
         }
         if(crtmsec > rss.maxmsec){
             rss.maxmsec = crtmsec;
         }
-        
+
         if(state <= p.repeat_count){
-        
+
             this->sec = crttime.seconds();
             this->nsec = crttime.nanoSeconds();
-            
+
             _rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, frame::ipc::WaitResponseFlag/*frame::ipc::Service::SynchronousSendFlag*/);
         }else{
             Locker<Mutex>  lock(mtx);
@@ -541,24 +541,24 @@ string create_string(){
 FirstMessage* create_message(uint32_t _idx, const bool _incremental){
     static const string s(create_string());
     FirstMessage *pmsg = new FirstMessage;
-    
+
     pmsg->state = 0;
     pmsg->idx = _idx;
-    
+
     if(!_incremental){
         _idx = p.message_count - 1 - _idx;
     }
-    
+
     const uint32_t size = p.message_count == 1 ? p.min_size : (p.min_size * (p.message_count - _idx - 1) + _idx * p.max_size) / (p.message_count - 1);
     idbg("create message with size "<<size);
     pmsg->str.resize(size);
     for(uint32_t i = 0; i < size; ++i){
         pmsg->str[i] = s[i % s.size()];
     }
-    
+
     NanoTime    crttime(NanoTime::createRealTime());
     pmsg->sec = crttime.seconds();
     pmsg->nsec = crttime.nanoSeconds();
-    
+
     return pmsg;
 }

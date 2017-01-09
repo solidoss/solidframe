@@ -37,7 +37,7 @@ T* find_any(T *_t){
 
 namespace cli{
 Parser::Parser(const char *_pb):pb(_pb){}
-    
+
 bool Parser::isAtEnd()const{
     return !pb || (*pb == 0) || (*pb == '\r') || (*pb == '\n');
 }
