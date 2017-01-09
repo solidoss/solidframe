@@ -17,18 +17,18 @@ namespace consensus{
 
 class Registrar{
 public:
-	static Registrar& the();
-	frame::IndexT  registerObject(const frame::ObjectUidT &_robjuid, const frame::IndexT &_ridx = INVALID_INDEX);
-	void unregisterObject(frame::IndexT &_ridx);
-	frame::ObjectUidT objectUid(const frame::IndexT &_ridx)const;
+    static Registrar& the();
+    frame::IndexT  registerObject(const frame::ObjectUidT &_robjuid, const frame::IndexT &_ridx = INVALID_INDEX);
+    void unregisterObject(frame::IndexT &_ridx);
+    frame::ObjectUidT objectUid(const frame::IndexT &_ridx)const;
 private:
-	Registrar();
-	~Registrar();
-	Registrar(const Registrar&);
-	Registrar& operator=(const Registrar&);
+    Registrar();
+    ~Registrar();
+    Registrar(const Registrar&);
+    Registrar& operator=(const Registrar&);
 private:
-	struct Data;
-	Data &d;
+    struct Data;
+    Data &d;
 };
 
 

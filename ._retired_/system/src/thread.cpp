@@ -52,81 +52,81 @@
 namespace solid{
 
 struct Cleaner{
-	~Cleaner(){
-		Thread::cleanup();
-	}
+    ~Cleaner(){
+        Thread::cleanup();
+    }
 };
 
 /*static*/ const char* src_file_name(char const *_fname){
 #ifdef SOLID_ON_WINDOWS
-	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
+    static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
 #else
-	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system/src")));
+    static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system/src")));
 #endif
-	return _fname + fileoff;
+    return _fname + fileoff;
 }
 
 void throw_exception(const char* const _pt, const char * const _file, const int _line, const char * const _func){
-	throw Exception<const char*>(_pt, _file, _line, _func);
+    throw Exception<const char*>(_pt, _file, _line, _func);
 }
 
 #ifndef SOLID_ON_WINDOWS
-static const pthread_once_t	oncek = PTHREAD_ONCE_INIT;
+static const pthread_once_t oncek = PTHREAD_ONCE_INIT;
 #else
 #endif//SOLID_ON_WINDOWS
 
 struct ThreadData{
-	enum {
-		MutexPoolSize = 4,
-		FirstSpecificId = 0
-	};
-	//ThreadData();
-	//ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
-	uint32_t    						thcnt;
+    enum {
+        MutexPoolSize = 4,
+        FirstSpecificId = 0
+    };
+    //ThreadData();
+    //ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
+    uint32_t                            thcnt;
 #ifndef SOLID_ON_WINDOWS
-	pthread_key_t					crtthread_key;
-	pthread_once_t					once_key;
+    pthread_key_t                   crtthread_key;
+    pthread_once_t                  once_key;
 #else
-	DWORD							crtthread_key;
+    DWORD                           crtthread_key;
 #endif
-	Condition						gcon;
-	Mutex							gmut;
-	FastMutexPool<MutexPoolSize>	mutexpool;
-	ThreadData():thcnt(0)
+    Condition                       gcon;
+    Mutex                           gmut;
+    FastMutexPool<MutexPoolSize>    mutexpool;
+    ThreadData():thcnt(0)
 #ifndef SOLID_ON_WINDOWS
-		,crtthread_key(0)
-		,once_key(oncek){
-	}
+        ,crtthread_key(0)
+        ,once_key(oncek){
+    }
 #else
-	{
-		crtthread_key = TlsAlloc();
-	}
+    {
+        crtthread_key = TlsAlloc();
+    }
 #endif
 };
 
 #ifdef SOLID_USE_SAFE_STATIC
 static ThreadData& threadData(){
-	static ThreadData td;
-	return td;
+    static ThreadData td;
+    return td;
 }
 #else
 ThreadData& threadDataStub(){
-	static ThreadData td;
-	return td;
+    static ThreadData td;
+    return td;
 }
 
 void once_cbk_thread_data(){
-	threadDataStub();
+    threadDataStub();
 }
 static ThreadData& threadData(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk_thread_data, once);
-	return threadDataStub();
+    static boost::once_flag once = BOOST_ONCE_INIT;
+    boost::call_once(&once_cbk_thread_data, once);
+    return threadDataStub();
 }
 #endif
 
-Cleaner             			cleaner;
-//static unsigned 				crtspecid = 0;
+Cleaner                         cleaner;
+//static unsigned               crtspecid = 0;
 //*************************************************************************
 /*static*/ const TimeSpec TimeSpec::maximum(0xffffffff, 0xffffffff);
 #ifdef SOLID_HAS_NO_INLINES
@@ -134,153 +134,153 @@ Cleaner             			cleaner;
 #endif
 
 /*static*/ TimeSpec TimeSpec::createRealTime(){
-	TimeSpec ct;
-	return ct.currentRealTime();
+    TimeSpec ct;
+    return ct.currentRealTime();
 }
 /*static*/ TimeSpec TimeSpec::createMonotonic(){
-	TimeSpec ct;
-	return ct.currentMonotonic();
+    TimeSpec ct;
+    return ct.currentMonotonic();
 }
 
-#if		defined(SOLID_ON_WINDOWS)
+#if     defined(SOLID_ON_WINDOWS)
 
 struct TimeStartData{
 #ifdef NWINDOWSQPC
-	TimeStartData():start_time(time(NULL)), start_msec(::GetTickCount64()){
-	}
+    TimeStartData():start_time(time(NULL)), start_msec(::GetTickCount64()){
+    }
 #else
-	TimeStartData():start_time(time(NULL)){
-		QueryPerformanceCounter(&start_msec);
-		QueryPerformanceFrequency(&start_freq);
-	}
+    TimeStartData():start_time(time(NULL)){
+        QueryPerformanceCounter(&start_msec);
+        QueryPerformanceFrequency(&start_freq);
+    }
 #endif
-	static TimeStartData& instance();
-	const time_t	start_time;
+    static TimeStartData& instance();
+    const time_t    start_time;
 #ifndef NWINDOWSQPC
-	LARGE_INTEGER	start_msec;
-	LARGE_INTEGER	start_freq;
+    LARGE_INTEGER   start_msec;
+    LARGE_INTEGER   start_freq;
 #else
-	const uint64_t	start_msec;
+    const uint64_t  start_msec;
 #endif
 };
  
 TimeStartData& tsd_instance_stub(){
-	static TimeStartData tsd;
-	return tsd;
+    static TimeStartData tsd;
+    return tsd;
 }
 
 void once_cbk_tsd(){
- 	tsd_instance_stub();
+    tsd_instance_stub();
 }
  
 TimeStartData& TimeStartData::instance(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk_tsd, once);
-	return tsd_instance_stub();
+    static boost::once_flag once = BOOST_ONCE_INIT;
+    boost::call_once(&once_cbk_tsd, once);
+    return tsd_instance_stub();
 }
 
 const TimeSpec& TimeSpec::currentRealTime(){
 #ifdef NWINDOWSQPC
-	const TimeStartData	&tsd = TimeStartData::instance();
-	const ULONGLONG	msecs = ::GetTickCount64() - tsd.start_msec;
+    const TimeStartData &tsd = TimeStartData::instance();
+    const ULONGLONG msecs = ::GetTickCount64() - tsd.start_msec;
 
-	const ulong		secs = static_cast<ulong>(msecs / 1000);
-	const ulong		nsecs = (msecs % 1000) * 1000 * 1000;
-	this->seconds(tsd.start_time + secs);
-	this->nanoSeconds(nsecs);
+    const ulong     secs = static_cast<ulong>(msecs / 1000);
+    const ulong     nsecs = (msecs % 1000) * 1000 * 1000;
+    this->seconds(tsd.start_time + secs);
+    this->nanoSeconds(nsecs);
 #else
-	const TimeStartData	&tsd = TimeStartData::instance();
-	LARGE_INTEGER		ms;
-	
-	QueryPerformanceCounter(&ms);
-	const uint64_t qpc = ms.QuadPart - tsd.start_msec.QuadPart;
-	const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
-	const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
-	this->seconds(tsd.start_time + secs);
-	this->nanoSeconds(nsecs);
+    const TimeStartData &tsd = TimeStartData::instance();
+    LARGE_INTEGER       ms;
+    
+    QueryPerformanceCounter(&ms);
+    const uint64_t qpc = ms.QuadPart - tsd.start_msec.QuadPart;
+    const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
+    const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
+    this->seconds(tsd.start_time + secs);
+    this->nanoSeconds(nsecs);
 #endif
-	return *this;
+    return *this;
 }
 
 const TimeSpec& TimeSpec::currentMonotonic(){
 #ifdef NWINDOWSQPC
-	const ULONGLONG	msecs = ::GetTickCount64();
-	const ulong		secs = msecs / 1000;
-	const ulong		nsecs = (msecs % 1000) * 1000 * 1000;
-	this->seconds(secs);
-	this->nanoSeconds(nsecs);
+    const ULONGLONG msecs = ::GetTickCount64();
+    const ulong     secs = msecs / 1000;
+    const ulong     nsecs = (msecs % 1000) * 1000 * 1000;
+    this->seconds(secs);
+    this->nanoSeconds(nsecs);
 #else
-	const TimeStartData	&tsd = TimeStartData::instance();
-	LARGE_INTEGER		ms;
-	
-	QueryPerformanceCounter(&ms);
-	const uint64_t qpc = ms.QuadPart;
-	const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
-	const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
-	this->seconds(secs);
-	this->nanoSeconds(nsecs);
+    const TimeStartData &tsd = TimeStartData::instance();
+    LARGE_INTEGER       ms;
+    
+    QueryPerformanceCounter(&ms);
+    const uint64_t qpc = ms.QuadPart;
+    const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
+    const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
+    this->seconds(secs);
+    this->nanoSeconds(nsecs);
 #endif
-	return *this;
+    return *this;
 }
 
-#elif	defined(SOLID_ON_DARWIN)
+#elif   defined(SOLID_ON_DARWIN)
 
 struct TimeStartData{
-	TimeStartData(){
-		st = time(NULL);
-		stns = mach_absolute_time();
-		stns -= (stns % 1000000000);
-	}
-	uint64_t	stns;
-	time_t	st;
+    TimeStartData(){
+        st = time(NULL);
+        stns = mach_absolute_time();
+        stns -= (stns % 1000000000);
+    }
+    uint64_t    stns;
+    time_t  st;
 };
 struct HelperMatchTimeBase: mach_timebase_info_data_t{
     HelperMatchTimeBase(){
-		this->denom = 0;
-		this->numer = 0;
-		::mach_timebase_info((mach_timebase_info_data_t*)this);
-	}
+        this->denom = 0;
+        this->numer = 0;
+        ::mach_timebase_info((mach_timebase_info_data_t*)this);
+    }
 };
 const TimeSpec& TimeSpec::currentRealTime(){
-	static TimeStartData		tsd;
-	static HelperMatchTimeBase	info;
-	uint64_t				difference = mach_absolute_time() - tsd.stns;
+    static TimeStartData        tsd;
+    static HelperMatchTimeBase  info;
+    uint64_t                difference = mach_absolute_time() - tsd.stns;
 
-	uint64_t elapsednano = difference * (info.numer / info.denom);
+    uint64_t elapsednano = difference * (info.numer / info.denom);
 
-	this->seconds(tsd.st + elapsednano / 1000000000);
-	this->nanoSeconds(elapsednano % 1000000000);
-	return *this;
+    this->seconds(tsd.st + elapsednano / 1000000000);
+    this->nanoSeconds(elapsednano % 1000000000);
+    return *this;
 }
 
 const TimeSpec& TimeSpec::currentMonotonic(){
-	static uint64_t			tsd(mach_absolute_time());
-	static HelperMatchTimeBase	info;
-	uint64_t				difference = mach_absolute_time() - tsd;
+    static uint64_t         tsd(mach_absolute_time());
+    static HelperMatchTimeBase  info;
+    uint64_t                difference = mach_absolute_time() - tsd;
 
-	uint64_t elapsednano = difference * (info.numer / info.denom);
+    uint64_t elapsednano = difference * (info.numer / info.denom);
 
-	this->seconds(elapsednano / 1000000000);
-	this->nanoSeconds(elapsednano % 1000000000);
-	return *this;
+    this->seconds(elapsednano / 1000000000);
+    this->nanoSeconds(elapsednano % 1000000000);
+    return *this;
 }
 
 #else
 
 const TimeSpec& TimeSpec::currentRealTime(){
-	clock_gettime(CLOCK_REALTIME, this);
-	return *this;
+    clock_gettime(CLOCK_REALTIME, this);
+    return *this;
 }
 
 const TimeSpec& TimeSpec::currentMonotonic(){
-	clock_gettime(CLOCK_MONOTONIC, this);
-	return *this;
+    clock_gettime(CLOCK_MONOTONIC, this);
+    return *this;
 }
 
 #endif
 
-#if 	defined(USTLMUTEX)
-#elif	defined(UBOOSTMUTEX)
+#if     defined(USTLMUTEX)
+#elif   defined(UBOOSTMUTEX)
 #else
 //*************************************************************************
 #ifdef SOLID_HAS_NO_INLINES
@@ -292,34 +292,34 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 #endif
 //-------------------------------------------------------------------------
 bool Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
-	const int rv = pthread_cond_timedwait(&cond,&_lock.m.mut, &_ts);
-	if(rv == 0){
-		return true;
-	}else if(rv == ETIMEDOUT){
-		return false;
-	}else{
-		SOLID_ASSERT(false);
-		return false;
-	}
+    const int rv = pthread_cond_timedwait(&cond,&_lock.m.mut, &_ts);
+    if(rv == 0){
+        return true;
+    }else if(rv == ETIMEDOUT){
+        return false;
+    }else{
+        SOLID_ASSERT(false);
+        return false;
+    }
 }
 //-------------------------------------------------------------------------
 int Mutex::timedLock(const TimeSpec &_rts){
 #if defined (SOLID_ON_DARWIN)
     return -1;
 #else
-	return pthread_mutex_timedlock(&mut,&_rts);
+    return pthread_mutex_timedlock(&mut,&_rts);
 #endif
 }
 //-------------------------------------------------------------------------
 int Mutex::reinit(Type _type){
 #ifdef UPOSIXMUTEX
-	pthread_mutex_destroy(&mut);
-	pthread_mutexattr_t att;
-	pthread_mutexattr_init(&att);
-	pthread_mutexattr_settype(&att, (int)_type);
-	return pthread_mutex_init(&mut,&att);
+    pthread_mutex_destroy(&mut);
+    pthread_mutexattr_t att;
+    pthread_mutexattr_init(&att);
+    pthread_mutexattr_settype(&att, (int)_type);
+    return pthread_mutex_init(&mut,&att);
 #else
-	return -1;
+    return -1;
 #endif
 }
 #endif
@@ -327,11 +327,11 @@ int Mutex::reinit(Type _type){
 namespace{
 struct DummyThread: Thread{
 #ifdef SOLID_ON_WINDOWS
-	DummyThread(HANDLE _th = NULL):Thread(true, _th){}
+    DummyThread(HANDLE _th = NULL):Thread(true, _th){}
 #else
-	DummyThread(pthread_t _th = 0):Thread(true, _th){}
+    DummyThread(pthread_t _th = 0):Thread(true, _th){}
 #endif
-	void run(){}
+    void run(){}
 };
 
 }//namespace
@@ -339,43 +339,43 @@ struct DummyThread: Thread{
 #ifdef SOLID_ON_WINDOWS
 #else
 void Thread::free_thread(void *_pth){
-	delete static_cast<Thread*>(_pth);
+    delete static_cast<Thread*>(_pth);
 }
 #endif
 
 /*static*/ void Thread::init(){
 #ifdef SOLID_ON_WINDOWS
-	TlsSetValue(threadData().crtthread_key, NULL);
+    TlsSetValue(threadData().crtthread_key, NULL);
 #else
-	SOLID_VERIFY(!pthread_key_create(&threadData().crtthread_key, &Thread::free_thread));
+    SOLID_VERIFY(!pthread_key_create(&threadData().crtthread_key, &Thread::free_thread));
 #endif
 }
 //-------------------------------------------------------------------------
 void Thread::cleanup(){
 #ifdef SOLID_ON_WINDOWS
-	TlsFree(threadData().crtthread_key);
+    TlsFree(threadData().crtthread_key);
 #else
-	pthread_key_delete(threadData().crtthread_key);
+    pthread_key_delete(threadData().crtthread_key);
 #endif
 }
 //-------------------------------------------------------------------------
 void Thread::sleep(ulong _msec){
 #ifdef SOLID_ON_WINDOWS
-	Sleep(_msec);
+    Sleep(_msec);
 #else
-	usleep(_msec*1000);
+    usleep(_msec*1000);
 #endif
 }
 //-------------------------------------------------------------------------
 inline void Thread::enter(){
-	ThreadData &td(threadData());
+    ThreadData &td(threadData());
     //td.gmut.lock();
     ++td.thcnt; td.gcon.broadcast();
     //td.gmut.unlock();
 }
 //-------------------------------------------------------------------------
 inline void Thread::exit(){
-	ThreadData &td(threadData());
+    ThreadData &td(threadData());
     td.gmut.lock();
     --td.thcnt; td.gcon.broadcast();
     td.gmut.unlock();
@@ -383,29 +383,29 @@ inline void Thread::exit(){
 //-------------------------------------------------------------------------
 Thread* Thread::associateToCurrent(){
 #ifdef SOLID_ON_WINDOWS
-	Thread *pth = new DummyThread(GetCurrentThread());
+    Thread *pth = new DummyThread(GetCurrentThread());
 #else
-	Thread *pth = new DummyThread(pthread_self());
+    Thread *pth = new DummyThread(pthread_self());
 #endif
-	Thread::current(pth);
-	return pth;
+    Thread::current(pth);
+    return pth;
 }
 //-------------------------------------------------------------------------
 Thread& Thread::current(){
 #ifdef SOLID_ON_WINDOWS
-	Thread * pth = reinterpret_cast<Thread*>(TlsGetValue(threadData().crtthread_key));
-	return pth ? *pth : *associate_to_current_thread();
+    Thread * pth = reinterpret_cast<Thread*>(TlsGetValue(threadData().crtthread_key));
+    return pth ? *pth : *associate_to_current_thread();
 #else
-	Thread * pth = reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
-	return pth ? *pth : *associateToCurrent();
+    Thread * pth = reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
+    return pth ? *pth : *associateToCurrent();
 #endif
 }
 //-------------------------------------------------------------------------
 long Thread::processId(){
 #ifdef SOLID_ON_WINDOWS
-	return _getpid();
+    return _getpid();
 #else
-	return getpid();
+    return getpid();
 #endif
 }
 //-------------------------------------------------------------------------
@@ -418,20 +418,20 @@ Thread::Thread(bool _detached, pthread_t _th):th(_th), dtchd(_detached), pthrstu
 #endif
 //-------------------------------------------------------------------------
 Thread::~Thread(){
-	for(SpecVecT::iterator it(specvec.begin()); it != specvec.end(); ++it){
-		if(it->first){
-			SOLID_ASSERT(it->second);
-			(*it->second)(it->first);
-		}
-	}
+    for(SpecVecT::iterator it(specvec.begin()); it != specvec.end(); ++it){
+        if(it->first){
+            SOLID_ASSERT(it->second);
+            (*it->second)(it->first);
+        }
+    }
 }
 //-------------------------------------------------------------------------
 #ifdef SOLID_ON_WINDOWS
 long Thread::currentId(){
-	return (long)GetCurrentThreadId();
+    return (long)GetCurrentThreadId();
 }
 void Thread::yield(){
-	SwitchToThread();
+    SwitchToThread();
 }
 #endif
 
@@ -440,330 +440,330 @@ void Thread::dummySpecificDestroy(void*){
 }
 //-------------------------------------------------------------------------
 /*static*/ size_t Thread::processorCount(){
-#if		defined(SOLID_ON_SOLARIS)
-	return 1;
-#elif	defined(SOLID_ON_FREEBSD) || defined(SOLID_ON_DARWIN)
-	int count;
+#if     defined(SOLID_ON_SOLARIS)
+    return 1;
+#elif   defined(SOLID_ON_FREEBSD) || defined(SOLID_ON_DARWIN)
+    int count;
     size_t size=sizeof(count);
     return 1;//sysctlbyname("hw.ncpu",&count,&size,NULL,0)?0:count;
-#elif	defined(SOLID_ON_WINDOWS)
-	SYSTEM_INFO info={{0}};
+#elif   defined(SOLID_ON_WINDOWS)
+    SYSTEM_INFO info={{0}};
     GetSystemInfo(&info);
     return info.dwNumberOfProcessors;
 #else
-	return get_nprocs();
+    return get_nprocs();
 #endif
 }
 //-------------------------------------------------------------------------
 bool Thread::join(){
-	specific_error_clear();
+    specific_error_clear();
 #ifdef SOLID_ON_WINDOWS
-	if(detached()) return false;
-	WaitForSingleObject(th, INFINITE);
-	return true;
+    if(detached()) return false;
+    WaitForSingleObject(th, INFINITE);
+    return true;
 #else
-	if(pthread_equal(th, pthread_self())) return false;
-	if(detached()) return false;
-	int rv =  pthread_join(this->th, NULL);
-	if(rv < 0){
-		SPECIFIC_ERROR_PUSH1(last_system_error());
-		return false;
-	}
-	return true;
+    if(pthread_equal(th, pthread_self())) return false;
+    if(detached()) return false;
+    int rv =  pthread_join(this->th, NULL);
+    if(rv < 0){
+        SPECIFIC_ERROR_PUSH1(last_system_error());
+        return false;
+    }
+    return true;
 #endif
 }
 //-------------------------------------------------------------------------
 bool Thread::detached() const{
-	//Locker<Mutex> lock(mutex());
-	return dtchd;
+    //Locker<Mutex> lock(mutex());
+    return dtchd;
 }
 //-------------------------------------------------------------------------
 bool Thread::detach(){
 #ifdef SOLID_ON_WINDOWS
-	Locker<Mutex> lock(mutex());
-	if(detached()) return true;
-	dtchd = true;
-	return false;
+    Locker<Mutex> lock(mutex());
+    if(detached()) return true;
+    dtchd = true;
+    return false;
 #else
-	Locker<Mutex> lock(mutex());
-	if(detached()) return true;
-	int rcode = pthread_detach(this->th);
-	if(rcode == 0){
-		dtchd = true;
-		return true;
-	}
-	return false;
+    Locker<Mutex> lock(mutex());
+    if(detached()) return true;
+    int rcode = pthread_detach(this->th);
+    if(rcode == 0){
+        dtchd = true;
+        return true;
+    }
+    return false;
 #endif
 }
 //-------------------------------------------------------------------------
-typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+typedef ATOMIC_NS::atomic<size_t>           AtomicSizeT;
 
 #ifdef SOLID_USE_SAFE_STATIC
 size_t Thread::specificId(){
-	static AtomicSizeT sid((size_t)ThreadData::FirstSpecificId);
-	return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
+    static AtomicSizeT sid((size_t)ThreadData::FirstSpecificId);
+    return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 #else
 
 size_t specificIdStub(){
-	static AtomicSizeT sid(ATOMIC_VAR_INIT((size_t)ThreadData::FirstSpecificId));
-	return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
+    static AtomicSizeT sid(ATOMIC_VAR_INIT((size_t)ThreadData::FirstSpecificId));
+    return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 
 void once_cbk_specific_id(){
-	specificIdStub();
+    specificIdStub();
 }
 
 size_t Thread::specificId(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk_specific_id, once);
-	return specificIdStub();
+    static boost::once_flag once = BOOST_ONCE_INIT;
+    boost::call_once(&once_cbk_specific_id, once);
+    return specificIdStub();
 }
 
 #endif
 //-------------------------------------------------------------------------
 void Thread::specific(const size_t _pos, void *_psd, SpecificFncT _pf){
-	Thread &rct = current();
-	if(_pos >= rct.specvec.size()) rct.specvec.resize(_pos + 4);
-	//This is safe because pair will initialize with NULL on resize
-	if(rct.specvec[_pos].first){
-		(*rct.specvec[_pos].second)(rct.specvec[_pos].first);
-	}
-	rct.specvec[_pos] = SpecPairT(_psd, _pf);
-	//return _pos;
+    Thread &rct = current();
+    if(_pos >= rct.specvec.size()) rct.specvec.resize(_pos + 4);
+    //This is safe because pair will initialize with NULL on resize
+    if(rct.specvec[_pos].first){
+        (*rct.specvec[_pos].second)(rct.specvec[_pos].first);
+    }
+    rct.specvec[_pos] = SpecPairT(_psd, _pf);
+    //return _pos;
 }
 //-------------------------------------------------------------------------
 void* Thread::specific(const size_t _pos){
-	if(_pos < current().specvec.size()){
-		return current().specvec[_pos].first;
-	}else{
-		return NULL;
-	}
+    if(_pos < current().specvec.size()){
+        return current().specvec[_pos].first;
+    }else{
+        return NULL;
+    }
 }
 //-------------------------------------------------------------------------
 Mutex& Thread::gmutex(){
-	return threadData().gmut;
+    return threadData().gmut;
 }
 //-------------------------------------------------------------------------
 void Thread::current(Thread *_ptb){
 #ifdef SOLID_ON_WINDOWS
-	TlsSetValue(threadData().crtthread_key, _ptb);
+    TlsSetValue(threadData().crtthread_key, _ptb);
 #else
-	pthread_setspecific(threadData().crtthread_key, _ptb);
+    pthread_setspecific(threadData().crtthread_key, _ptb);
 #endif
 }
 //-------------------------------------------------------------------------
 Mutex& Thread::mutex()const{
-	return threadData().mutexpool.getr(this);
+    return threadData().mutexpool.getr(this);
 }
 //-------------------------------------------------------------------------
 #ifndef PTHREAD_STACK_MIN
 #define PTHREAD_STACK_MIN 4096
 #endif
 struct Thread::ThreadStub{
-	ThreadStub(
-		Condition *_pcnd = NULL,
-		int *_pval = NULL
-	):pcnd(_pcnd), pval(_pval){}
-	Condition	*pcnd;
-	int			*pval;
+    ThreadStub(
+        Condition *_pcnd = NULL,
+        int *_pval = NULL
+    ):pcnd(_pcnd), pval(_pval){}
+    Condition   *pcnd;
+    int         *pval;
 };
 bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
-	specific_error_clear();
+    specific_error_clear();
 #ifdef SOLID_ON_WINDOWS
-	if(_wait){
-		Locker<Mutex>	lock(mutex());
-		Condition		cnd;
-		int				val(1);
-		ThreadStub		thrstub(&cnd, &val);
-		if(th){
-			
-			return false;
-		}
-		pthrstub = &thrstub;
-		{
-			Locker<Mutex>	lock2(gmutex());
-			Thread::enter();
-		}
-		if(_detached){
-			dtchd = true;
-		}
-		th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
-		if(th == NULL){
-			{
-				Locker<Mutex>	lock2(gmutex());
-				Thread::exit();
-			}
-			pthrstub = NULL;
-			return false;
-		}
-		while(val){
-			cnd.wait(lock);
-		}
-	}else{
-		Locker<Mutex>	lock(mutex());
-		if(th){
-			return false;
-		}
-		{
-			Locker<Mutex>	lock2(gmutex());
-			Thread::enter();
-		}
-		if(_detached){
-			dtchd = true;
-		}
-		th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
-		if(th == NULL){
-			{
-				Locker<Mutex>	lock2(gmutex());
-				Thread::exit();
-			}
-			return false;
-		}
-	}
-	return true;
+    if(_wait){
+        Locker<Mutex>   lock(mutex());
+        Condition       cnd;
+        int             val(1);
+        ThreadStub      thrstub(&cnd, &val);
+        if(th){
+            
+            return false;
+        }
+        pthrstub = &thrstub;
+        {
+            Locker<Mutex>   lock2(gmutex());
+            Thread::enter();
+        }
+        if(_detached){
+            dtchd = true;
+        }
+        th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
+        if(th == NULL){
+            {
+                Locker<Mutex>   lock2(gmutex());
+                Thread::exit();
+            }
+            pthrstub = NULL;
+            return false;
+        }
+        while(val){
+            cnd.wait(lock);
+        }
+    }else{
+        Locker<Mutex>   lock(mutex());
+        if(th){
+            return false;
+        }
+        {
+            Locker<Mutex>   lock2(gmutex());
+            Thread::enter();
+        }
+        if(_detached){
+            dtchd = true;
+        }
+        th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
+        if(th == NULL){
+            {
+                Locker<Mutex>   lock2(gmutex());
+                Thread::exit();
+            }
+            return false;
+        }
+    }
+    return true;
 #else
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	if(_detached){
-		if(pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED)){
-			pthread_attr_destroy(&attr);
-			edbgx(Debug::system, "pthread_attr_setdetachstate: "<<strerror(errno));
-			return false;
-		}
-	}
-	if(_stacksz){
-		if(_stacksz < PTHREAD_STACK_MIN){
-			_stacksz = PTHREAD_STACK_MIN;
-		}
-		int rv = pthread_attr_setstacksize(&attr, _stacksz);
-		if(rv){
-			edbgx(Debug::system, "pthread_attr_setstacksize "<<_stacksz<<": "<<strerror(errno));
-			pthread_attr_destroy(&attr);
-			return false;
-		}
-	}
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    if(_detached){
+        if(pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED)){
+            pthread_attr_destroy(&attr);
+            edbgx(Debug::system, "pthread_attr_setdetachstate: "<<strerror(errno));
+            return false;
+        }
+    }
+    if(_stacksz){
+        if(_stacksz < PTHREAD_STACK_MIN){
+            _stacksz = PTHREAD_STACK_MIN;
+        }
+        int rv = pthread_attr_setstacksize(&attr, _stacksz);
+        if(rv){
+            edbgx(Debug::system, "pthread_attr_setstacksize "<<_stacksz<<": "<<strerror(errno));
+            pthread_attr_destroy(&attr);
+            return false;
+        }
+    }
 
-	if(_wait){
-		Locker<Mutex>	lock(mutex());
-		Condition		cnd;
-		int				val(1);
-		ThreadStub		thrstub(&cnd, &val);
-		if(th){
-			pthread_attr_destroy(&attr);
-			return false;
-		}
-		pthrstub = &thrstub;
-		{
-			Locker<Mutex>	lock2(gmutex());
-			Thread::enter();
-		}
-		if(_detached){
-			dtchd = true;
-		}
-		if(pthread_create(&th,&attr,&Thread::th_run,this)){
-			edbgx(Debug::system, "pthread_create: "<<strerror(errno));
-			pthread_attr_destroy(&attr);
-			th = 0;
-			pthrstub = NULL;
-			{
-				Locker<Mutex>	lock2(gmutex());
-				Thread::exit();
-			}
-			return false;
-		}
-		idbgx(Debug::system, "started thread "<<th);
-		while(val){
-			cnd.wait(lock);
-		}
-	}else{
-		Locker<Mutex>	lock(mutex());
-		if(th){
-			pthread_attr_destroy(&attr);
-			return false;
-		}
-		{
-			Locker<Mutex>	lock2(gmutex());
-			Thread::enter();
-		}
-		if(_detached){
-			dtchd = true;
-		}
-		if(pthread_create(&th,&attr,&Thread::th_run,this)){
-			edbgx(Debug::system, "pthread_create: "<<strerror(errno));
-			pthread_attr_destroy(&attr);
-			th = 0;
-			{
-				Locker<Mutex>	lock2(gmutex());
-				Thread::exit();
-			}
-			return false;
-		}
-		idbgx(Debug::system, "started thread "<<th);
-	}
-	pthread_attr_destroy(&attr);
-	vdbgx(Debug::system, "");
-	return true;
+    if(_wait){
+        Locker<Mutex>   lock(mutex());
+        Condition       cnd;
+        int             val(1);
+        ThreadStub      thrstub(&cnd, &val);
+        if(th){
+            pthread_attr_destroy(&attr);
+            return false;
+        }
+        pthrstub = &thrstub;
+        {
+            Locker<Mutex>   lock2(gmutex());
+            Thread::enter();
+        }
+        if(_detached){
+            dtchd = true;
+        }
+        if(pthread_create(&th,&attr,&Thread::th_run,this)){
+            edbgx(Debug::system, "pthread_create: "<<strerror(errno));
+            pthread_attr_destroy(&attr);
+            th = 0;
+            pthrstub = NULL;
+            {
+                Locker<Mutex>   lock2(gmutex());
+                Thread::exit();
+            }
+            return false;
+        }
+        idbgx(Debug::system, "started thread "<<th);
+        while(val){
+            cnd.wait(lock);
+        }
+    }else{
+        Locker<Mutex>   lock(mutex());
+        if(th){
+            pthread_attr_destroy(&attr);
+            return false;
+        }
+        {
+            Locker<Mutex>   lock2(gmutex());
+            Thread::enter();
+        }
+        if(_detached){
+            dtchd = true;
+        }
+        if(pthread_create(&th,&attr,&Thread::th_run,this)){
+            edbgx(Debug::system, "pthread_create: "<<strerror(errno));
+            pthread_attr_destroy(&attr);
+            th = 0;
+            {
+                Locker<Mutex>   lock2(gmutex());
+                Thread::exit();
+            }
+            return false;
+        }
+        idbgx(Debug::system, "started thread "<<th);
+    }
+    pthread_attr_destroy(&attr);
+    vdbgx(Debug::system, "");
+    return true;
 #endif
 }
 //-------------------------------------------------------------------------
 void Thread::signalWaiter(){
-	*(pthrstub->pval) = 0;
-	pthrstub->pcnd->signal();
-	pthrstub = NULL;
+    *(pthrstub->pval) = 0;
+    pthrstub->pcnd->signal();
+    pthrstub = NULL;
 }
 //-------------------------------------------------------------------------
 int Thread::waited(){
-	return pthrstub != NULL;
+    return pthrstub != NULL;
 }
 //-------------------------------------------------------------------------
 void Thread::waitAll(){
-	ThreadData &td(threadData());
+    ThreadData &td(threadData());
     Locker<Mutex> lock(td.gmut);
     while(td.thcnt != 0) td.gcon.wait(lock);
 }
 //-------------------------------------------------------------------------
 #ifdef SOLID_ON_WINDOWS
 unsigned long Thread::th_run(void *pv){
-	vdbgx(Debug::system, "thrun enter "<<pv);
-	Thread	*pth(reinterpret_cast<Thread*>(pv));
-	//Thread::enter();
-	Thread::current(pth);
-	if(pth->waited()){
-		pth->signalWaiter();
-		Thread::yield();
-	}
-	pth->prepare();
-	pth->run();
-	pth->unprepare();
-	if(!pth->detached()){
-		Thread::current(NULL);
-	}
-	vdbgx(Debug::system, "thrun exit "<<pv);
-	Thread::exit();
-	return NULL;
+    vdbgx(Debug::system, "thrun enter "<<pv);
+    Thread  *pth(reinterpret_cast<Thread*>(pv));
+    //Thread::enter();
+    Thread::current(pth);
+    if(pth->waited()){
+        pth->signalWaiter();
+        Thread::yield();
+    }
+    pth->prepare();
+    pth->run();
+    pth->unprepare();
+    if(!pth->detached()){
+        Thread::current(NULL);
+    }
+    vdbgx(Debug::system, "thrun exit "<<pv);
+    Thread::exit();
+    return NULL;
 }
 
 #else
 void* Thread::th_run(void *pv){
-	vdbgx(Debug::system, "thrun enter "<<pv);
-	Thread	*pth(reinterpret_cast<Thread*>(pv));
-	//Thread::enter();
-	Thread::current(pth);
-	if(pth->waited()){
-		pth->signalWaiter();
-		Thread::yield();
-	}
-	pth->prepare();
-	pth->run();
-	pth->unprepare();
-	if(pth->detached()){
-		delete pth;
-	}
-	Thread::current(NULL);
-	vdbgx(Debug::system, "thrun exit "<<pv);
-	Thread::exit();
-	return NULL;
+    vdbgx(Debug::system, "thrun enter "<<pv);
+    Thread  *pth(reinterpret_cast<Thread*>(pv));
+    //Thread::enter();
+    Thread::current(pth);
+    if(pth->waited()){
+        pth->signalWaiter();
+        Thread::yield();
+    }
+    pth->prepare();
+    pth->run();
+    pth->unprepare();
+    if(pth->detached()){
+        delete pth;
+    }
+    Thread::current(NULL);
+    vdbgx(Debug::system, "thrun exit "<<pv);
+    Thread::exit();
+    return NULL;
 }
 #endif
 //-------------------------------------------------------------------------

@@ -22,15 +22,15 @@ struct TimeSpec;
 
 class Semaphore{
 public:
-	Semaphore(int _cnt = 0);
-	~Semaphore();
-	void wait();
-	operator int ();
-	Semaphore & operator++();
-	bool tryWait();
+    Semaphore(int _cnt = 0);
+    ~Semaphore();
+    void wait();
+    operator int ();
+    Semaphore & operator++();
+    bool tryWait();
 private:
 #ifndef SOLID_ON_WINDOWS
-	sem_t sem;
+    sem_t sem;
 #endif
 };
 #ifndef SOLID_HAS_NO_INLINES

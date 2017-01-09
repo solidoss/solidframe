@@ -6,7 +6,7 @@
 namespace beta_client{
 
 solid::ErrorConditionT start(
-	Context &_rctx
+    Context &_rctx
 );
 
 void stop();

@@ -29,62 +29,62 @@ struct ReactorContext;
 struct ReactorEvent;
 
 class CompletionHandler: public ForwardCompletionHandler{
-	static void on_init_completion(CompletionHandler&, ReactorContext &);
+    static void on_init_completion(CompletionHandler&, ReactorContext &);
 protected:
-	static void on_dummy_completion(CompletionHandler&, ReactorContext &);
-	static CompletionHandler* completion_handler(ReactorContext &);
-	typedef void (*CallbackT)(CompletionHandler&, ReactorContext &);
+    static void on_dummy_completion(CompletionHandler&, ReactorContext &);
+    static CompletionHandler* completion_handler(ReactorContext &);
+    typedef void (*CallbackT)(CompletionHandler&, ReactorContext &);
 public:
-	CompletionHandler(
-		ObjectProxy const &_rop,
-		CallbackT _pcall = &on_init_completion
-	);
-	
-	~CompletionHandler();
-	
-	bool isActive()const{
-		return  idxreactor != static_cast<size_t>(-1);
-	}
-	bool isRegistered()const{
-		return pprev != nullptr;
-	}
-	bool activate(Object const &_robj);
-	void deactivate();
-	void unregister();
+    CompletionHandler(
+        ObjectProxy const &_rop,
+        CallbackT _pcall = &on_init_completion
+    );
+    
+    ~CompletionHandler();
+    
+    bool isActive()const{
+        return  idxreactor != static_cast<size_t>(-1);
+    }
+    bool isRegistered()const{
+        return pprev != nullptr;
+    }
+    bool activate(Object const &_robj);
+    void deactivate();
+    void unregister();
 protected:
-	CompletionHandler(CallbackT _pcall = &on_init_completion);
-	
-	void completionCallback(CallbackT _pcbk = &on_dummy_completion);
-	ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
-	Reactor& reactor(ReactorContext &_rctx)const;
-	void error(ReactorContext &_rctx, ErrorConditionT const& _err)const;
-	void errorClear(ReactorContext &_rctx)const;
-	void systemError(ReactorContext &_rctx, ErrorCodeT const& _err)const;
-	void addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req);
-	void remDevice(ReactorContext &_rctx, Device const &_rsd);
-	void addTimer(ReactorContext &_rctx, NanoTime const&_rt, size_t &_storedidx);
-	void remTimer(ReactorContext &_rctx, size_t const &_storedidx);
-	size_t indexWithinReactor() const;
+    CompletionHandler(CallbackT _pcall = &on_init_completion);
+    
+    void completionCallback(CallbackT _pcbk = &on_dummy_completion);
+    ReactorEventsE reactorEvent(ReactorContext &_rctx)const;
+    Reactor& reactor(ReactorContext &_rctx)const;
+    void error(ReactorContext &_rctx, ErrorConditionT const& _err)const;
+    void errorClear(ReactorContext &_rctx)const;
+    void systemError(ReactorContext &_rctx, ErrorCodeT const& _err)const;
+    void addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req);
+    void remDevice(ReactorContext &_rctx, Device const &_rsd);
+    void addTimer(ReactorContext &_rctx, NanoTime const&_rt, size_t &_storedidx);
+    void remTimer(ReactorContext &_rctx, size_t const &_storedidx);
+    size_t indexWithinReactor() const;
 private:
-	friend class Reactor;
-	
-	void handleCompletion(ReactorContext &_rctx){
-		(*call)(*this, _rctx);
-	}
+    friend class Reactor;
+    
+    void handleCompletion(ReactorContext &_rctx){
+        (*call)(*this, _rctx);
+    }
 private:
-	friend class Object;
+    friend class Object;
 private:
-	ForwardCompletionHandler		*pprev;
-	size_t							idxreactor;//index within reactor
-	CallbackT						call;
+    ForwardCompletionHandler        *pprev;
+    size_t                          idxreactor;//index within reactor
+    CallbackT                       call;
 };
 
 inline void CompletionHandler::completionCallback(CallbackT _pcbk){
-	call = _pcbk;
+    call = _pcbk;
 }
 
 inline size_t CompletionHandler::indexWithinReactor() const{
-	return idxreactor;
+    return idxreactor;
 }
 
 SocketDevice & dummy_socket_device();

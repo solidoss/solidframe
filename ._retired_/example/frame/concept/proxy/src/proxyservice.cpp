@@ -27,21 +27,21 @@ Service::~Service(){
 }
 
 ObjectUidT Service::insertConnection(
-	const solid::ResolveData &_rai,
-	solid::frame::aio::openssl::Context *_pctx,
-	bool _secure
+    const solid::ResolveData &_rai,
+    solid::frame::aio::openssl::Context *_pctx,
+    bool _secure
 ){
-	return frame::invalid_uid();
+    return frame::invalid_uid();
 }
 /*virtual*/ ObjectUidT Service::insertConnection(
-	const solid::SocketDevice &_rsd,
-	solid::frame::aio::openssl::Context *_pctx,
-	bool _secure
+    const solid::SocketDevice &_rsd,
+    solid::frame::aio::openssl::Context *_pctx,
+    bool _secure
 ){
-	DynamicPointer<frame::aio::Object>	conptr(new MultiConnection(_rsd));
-	ObjectUidT rv = this->registerObject(*conptr);
-	Manager::the().scheduleAioObject(conptr);
-	return rv;
+    DynamicPointer<frame::aio::Object>  conptr(new MultiConnection(_rsd));
+    ObjectUidT rv = this->registerObject(*conptr);
+    Manager::the().scheduleAioObject(conptr);
+    return rv;
 }
 
 }//namespace proxy

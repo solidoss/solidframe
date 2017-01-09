@@ -36,21 +36,21 @@ class Listener;
 
 class Service: public solid::frame::Service{
 public:
-	Service(Manager &_rm);
-	~Service();
-	
-	bool insertListener(
-		const solid::ResolveData &_rai,
-		bool _secure = false
-	);
+    Service(Manager &_rm);
+    ~Service();
+    
+    bool insertListener(
+        const solid::ResolveData &_rai,
+        bool _secure = false
+    );
 private:
-	friend class Listener;
+    friend class Listener;
 
-	virtual ObjectUidT insertConnection(
-		const solid::SocketDevice &_rsd,
-		solid::frame::aio::openssl::Context *_pctx = NULL,
-		bool _secure = false
-	);
+    virtual ObjectUidT insertConnection(
+        const solid::SocketDevice &_rsd,
+        solid::frame::aio::openssl::Context *_pctx = NULL,
+        bool _secure = false
+    );
 };
 
 }//namespace concept

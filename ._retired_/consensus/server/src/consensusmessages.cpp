@@ -20,44 +20,44 @@ namespace server{
 
 Message::Message(){}
 Message::~Message(){
-	
+    
 }
 /*virtual*/ void Message::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
-	std::string				hoststr;
-	std::string				portstr;
-	
-	//TODO:!! sa not initialized !?
-	SocketAddressInet4				sa;
-	sa = frame::ipc::ConnectionContext::the().pairaddr;
-	synchronous_resolve(
-		hoststr,
-		portstr,
-		sa,
-		ReverseResolveInfo::Numeric
-	);
-	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
-	
-	frame::Manager::specific().notify(msgptr, Registrar::the().objectUid(srvidx));
+    std::string             hoststr;
+    std::string             portstr;
+    
+    //TODO:!! sa not initialized !?
+    SocketAddressInet4              sa;
+    sa = frame::ipc::ConnectionContext::the().pairaddr;
+    synchronous_resolve(
+        hoststr,
+        portstr,
+        sa,
+        ReverseResolveInfo::Numeric
+    );
+    DynamicPointer<frame::Message>  msgptr(_rmsgptr);
+    
+    frame::Manager::specific().notify(msgptr, Registrar::the().objectUid(srvidx));
 }
 /*virtual*/ uint32 Message::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
-	uint32 rv(0);
-	rv |= frame::ipc::SynchronousSendFlag;
-	rv |= frame::ipc::SameConnectorFlag;
-	return rv;
+    uint32 rv(0);
+    rv |= frame::ipc::SynchronousSendFlag;
+    rv |= frame::ipc::SameConnectorFlag;
+    return rv;
 }
 void Message::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
-	idbg((void*)this<<" err = "<<_err);
+    idbg((void*)this<<" err = "<<_err);
 }
 
 size_t Message::use(){
-	size_t rv = DynamicShared<frame::ipc::Message>::use();
-	idbg((void*)this<<" usecount = "<<usecount);
-	return rv;
+    size_t rv = DynamicShared<frame::ipc::Message>::use();
+    idbg((void*)this<<" usecount = "<<usecount);
+    return rv;
 }
 size_t Message::release(){
-	size_t rv = DynamicShared<frame::ipc::Message>::release();
-	idbg((void*)this<<" usecount = "<<usecount);
-	return rv;
+    size_t rv = DynamicShared<frame::ipc::Message>::release();
+    idbg((void*)this<<" usecount = "<<usecount);
+    return rv;
 }
 
 }//namespace server

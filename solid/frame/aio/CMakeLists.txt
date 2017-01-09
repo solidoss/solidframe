@@ -1,35 +1,35 @@
 
 
 set(Sources
-	src/aioresolver.cpp
-	src/aiocompletion.cpp
-	src/aioreactor.cpp
-	src/aiolistener.cpp
-	src/aioobject.cpp
-	src/aioerror.cpp
+    src/aioresolver.cpp
+    src/aiocompletion.cpp
+    src/aioreactor.cpp
+    src/aiolistener.cpp
+    src/aioobject.cpp
+    src/aioerror.cpp
 )
 
 set(Headers
-	aiocommon.hpp
-	aiocompletion.hpp
-	aiodatagram.hpp
-	aioerror.hpp
-	aioforwardcompletion.hpp
-	aiolistener.hpp
-	aioobject.hpp
-	aioreactorcontext.hpp
-	aioreactor.hpp
-	aioresolver.hpp
-	aiosocket.hpp
-	aiostream.hpp
-	aiotimer.hpp
+    aiocommon.hpp
+    aiocompletion.hpp
+    aiodatagram.hpp
+    aioerror.hpp
+    aioforwardcompletion.hpp
+    aiolistener.hpp
+    aioobject.hpp
+    aioreactorcontext.hpp
+    aioreactor.hpp
+    aioresolver.hpp
+    aiosocket.hpp
+    aiostream.hpp
+    aiotimer.hpp
 )
 
 set(Inlines
 )
 
 add_library (solid_frame_aio STATIC
-	${Sources} ${Headers} ${Inlines}
+    ${Sources} ${Headers} ${Inlines}
 )
 
 target_include_directories(solid_frame_aio PUBLIC

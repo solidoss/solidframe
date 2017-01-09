@@ -21,7 +21,7 @@
 
 #else
 inline bool dummy(bool _b){
-	return _b;
+    return _b;
 }
 #define SOLID_ASSERT(a)
 #define SOLID_VERIFY(a) dummy((a))
@@ -36,8 +36,8 @@ struct static_test;
 
 template <>
 struct static_test<true>{
-	static void ok(){
-	}
+    static void ok(){
+    }
 };
 
 template <>

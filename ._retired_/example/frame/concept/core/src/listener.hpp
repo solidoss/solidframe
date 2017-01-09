@@ -33,20 +33,20 @@ class Service;
 //! A simple listener
 class Listener: public solid::Dynamic<Listener, solid::frame::aio::SingleObject>{
 public:
-	typedef Service		ServiceT;
-	Listener(
-		Service &_rsvc,
-		const solid::SocketDevice &_rsd,
-		solid::frame::aio::openssl::Context *_pctx = NULL
-	);
+    typedef Service     ServiceT;
+    Listener(
+        Service &_rsvc,
+        const solid::SocketDevice &_rsd,
+        solid::frame::aio::openssl::Context *_pctx = NULL
+    );
 private:
-	/*virtual*/ void execute(ExecuteContext &_rexectx);
+    /*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
-	typedef std::auto_ptr<solid::frame::aio::openssl::Context> SslContextPtrT;
-	ServiceT			&rsvc;
-	solid::SocketDevice	sd;
-	SslContextPtrT		ctxptr;
-	int					state;
+    typedef std::auto_ptr<solid::frame::aio::openssl::Context> SslContextPtrT;
+    ServiceT            &rsvc;
+    solid::SocketDevice sd;
+    SslContextPtrT      ctxptr;
+    int                 state;
 };
 
 }//namespace concept

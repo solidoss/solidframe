@@ -17,29 +17,29 @@ namespace frame{
 namespace aio{
 
 enum ReactorEventsE{
-	ReactorEventNone = 0,
-	ReactorEventRecv = 1,
-	ReactorEventSend = 2,
-	ReactorEventRecvSend = ReactorEventRecv | ReactorEventSend,
-	ReactorEventSendRecv = 4,
-	ReactorEventError = 8,
-	ReactorEventHangup = 16,
-	ReactorEventOOB = 32,//receive Out Of Band Data
-	ReactorEventOOBSend = ReactorEventOOB | ReactorEventSend,
-	ReactorEventRecvHangup = 64,
-	ReactorEventClear = 128,
-	ReactorEventInit = 256,
-	ReactorEventTimer = 512,
+    ReactorEventNone = 0,
+    ReactorEventRecv = 1,
+    ReactorEventSend = 2,
+    ReactorEventRecvSend = ReactorEventRecv | ReactorEventSend,
+    ReactorEventSendRecv = 4,
+    ReactorEventError = 8,
+    ReactorEventHangup = 16,
+    ReactorEventOOB = 32,//receive Out Of Band Data
+    ReactorEventOOBSend = ReactorEventOOB | ReactorEventSend,
+    ReactorEventRecvHangup = 64,
+    ReactorEventClear = 128,
+    ReactorEventInit = 256,
+    ReactorEventTimer = 512,
 };
 
 enum ReactorWaitRequestsE{
-	ReactorWaitNone = 0,
-	ReactorWaitRead,
-	ReactorWaitWrite,
-	ReactorWaitReadOrWrite,
-	ReactorWaitUser,
-	//Add above!
-	ReactorWaitError
+    ReactorWaitNone = 0,
+    ReactorWaitRead,
+    ReactorWaitWrite,
+    ReactorWaitReadOrWrite,
+    ReactorWaitUser,
+    //Add above!
+    ReactorWaitError
 };
 
 }//namespace aio

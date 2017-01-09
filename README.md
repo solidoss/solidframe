@@ -32,55 +32,55 @@ Boost Software License - Version 1.0 - August 17th, 2003
 **Focused:**
 
 * [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing Inter-Process Communication over secure/plain TCP ([MPIPC library](solid/frame/mpipc/README.md))
-	* _mpipc::Service_ - pass messages to/from multiple peers.
+    * _mpipc::Service_ - pass messages to/from multiple peers.
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
-	* _Object_ - reactive object with support for Asynchronous IO
-	* _Reactor_ - reactor with support for Asynchronous IO
-	* _Listener_ - asynchronous TCP listener/server socket
-	* _Stream_ - asynchronous TCP socket
-	* _Datagram_ - asynchronous UDP socket
-	* _Timer_ - allows objects to schedule time based events
+    * _Object_ - reactive object with support for Asynchronous IO
+    * _Reactor_ - reactor with support for Asynchronous IO
+    * _Listener_ - asynchronous TCP listener/server socket
+    * _Stream_ - asynchronous TCP socket
+    * _Datagram_ - asynchronous UDP socket
+    * _Timer_ - allows objects to schedule time based events
 * [__solid_serialization__](#solid_serialization): binary serialization/marshaling
-	* _binary::Serializer_
-	* _binary::Deserializer_
-	* _TypeIdMap_
+    * _binary::Serializer_
+    * _binary::Deserializer_
+    * _TypeIdMap_
 
 **All:**
 
 * [__solid_system__](#solid_system):
-	* Wrappers for socket/file devices, socket address, directory access
-	* Debug log engine
+    * Wrappers for socket/file devices, socket address, directory access
+    * Debug log engine
 * [__solid_utility__](#solid_utility):
-	* _Any_ - similar to boost::any
-	* _Event_ - Event class containing an ID a solid::Any object and a Category (similar to std::error_category)
-	* _InnerList_ - bidirectional list mapped over a vector/deque
-	* _Stack_ - alternative to std::stack
-	* _Queue_ - alternative to std:queue
-	* _WorkPool_ - generic thread pool
+    * _Any_ - similar to boost::any
+    * _Event_ - Event class containing an ID a solid::Any object and a Category (similar to std::error_category)
+    * _InnerList_ - bidirectional list mapped over a vector/deque
+    * _Stack_ - alternative to std::stack
+    * _Queue_ - alternative to std:queue
+    * _WorkPool_ - generic thread pool
 * [__solid_serialization__](#solid_serialization): binary serialization/marshalling
-	* _binary::Serializer_
-	* _binary::Deserializer_
-	* _TypeIdMap_
+    * _binary::Serializer_
+    * _binary::Deserializer_
+    * _TypeIdMap_
 * [__solid_frame__](#solid_frame):
-	* _Object_ - reactive object
-	* _Manager_ - store services and notifies objects within services
-	* _Service_ - store and notifies objects
-	* _Reactor_ - active store of objects - allows objects to asynchronously react on events
-	* _Scheduler_ - a thread pool of reactors
-	* _Timer_ - allows objects to schedule time based events
-	* _shared::Store_ - generic store of shared objects that need either multiple read or single write access
+    * _Object_ - reactive object
+    * _Manager_ - store services and notifies objects within services
+    * _Service_ - store and notifies objects
+    * _Reactor_ - active store of objects - allows objects to asynchronously react on events
+    * _Scheduler_ - a thread pool of reactors
+    * _Timer_ - allows objects to schedule time based events
+    * _shared::Store_ - generic store of shared objects that need either multiple read or single write access
 * [__solid_frame_aio__](#solid_frame_aio): asynchronous communication library using epoll on Linux and kqueue on FreeBSD/macOS
-	* _Object_ - reactive object with support for Asynchronous IO
-	* _Reactor_ - reactor with support for Asynchronous IO
-	* _Listener_ - asynchronous TCP listener/server socket
-	* _Stream_ - asynchronous TCP socket
-	* _Datagram_ - asynchronous UDP socket
-	* _Timer_ - allows objects to schedule time based events
+    * _Object_ - reactive object with support for Asynchronous IO
+    * _Reactor_ - reactor with support for Asynchronous IO
+    * _Listener_ - asynchronous TCP listener/server socket
+    * _Stream_ - asynchronous TCP socket
+    * _Datagram_ - asynchronous UDP socket
+    * _Timer_ - allows objects to schedule time based events
 * [__solid_frame_aio_openssl__](#solid_frame_aio_openssl): SSL support via OpenSSL
 * [__solid_frame_file__](#solid_frame_file)
-	* _file::Store_ - a shared store for files
+    * _file::Store_ - a shared store for files
 * [__solid_frame_mpipc__](#solid_frame_mpipc): Message Passing InterProcess Communication over TCP ([MPIPC library](solid/frame/mpipc/README.md))
-	* _mpipc::Service_ - pass messages to/from multiple peers.
+    * _mpipc::Service_ - pass messages to/from multiple peers.
 
 ## <a id="installation"></a>Installation
 
@@ -196,15 +196,15 @@ The debug engine defines some macros for easily specify log lines. The macros ar
 Also, the debug engine has support for registering modules and for specifying enabled log levels. Here is an example:
 
 ```C++
-	Debug::the().levelMask("view");
-	Debug::the().moduleMask("frame_ipc:iew any:ew");
-	Debug::the().initStdErr();
-	//...
-	//a log line for module "any"
-	edbg("starting aio server scheduler: "<<err.message());
-	//...
-	//a log line for a predefined module "frame_ipc" aka Debug::ipc
-	idbgx(Debug::ipc, this<<" enqueue message "<<_rpool_msg_id<<" to connection "<<this<<" retval = "<<success);
+    Debug::the().levelMask("view");
+    Debug::the().moduleMask("frame_ipc:iew any:ew");
+    Debug::the().initStdErr();
+    //...
+    //a log line for module "any"
+    edbg("starting aio server scheduler: "<<err.message());
+    //...
+    //a log line for a predefined module "frame_ipc" aka Debug::ipc
+    idbgx(Debug::ipc, this<<" enqueue message "<<_rpool_msg_id<<" to connection "<<this<<" retval = "<<success);
 ```
 
 In the above code we:
@@ -217,28 +217,28 @@ In the above code we:
 The Debug engine allows for registering new modules like this:
 
 ```C++
-	static const auto my_module_id = Debug::the().registerModule("my_module");
-	//...
-	//enable the module 
-	Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
-	//...
-	//log a INFO line for the module:
-	idbgx(my_module_id, "error starting engine: "<<error.mesage());
+    static const auto my_module_id = Debug::the().registerModule("my_module");
+    //...
+    //enable the module 
+    Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
+    //...
+    //log a INFO line for the module:
+    idbgx(my_module_id, "error starting engine: "<<error.mesage());
 ```
 or like this:
 
 ```C++
-	static unsigned my_module_id(){
-		static const auto id = Debug::the().registerModule("my_module");
-		return id;
-	}
-	
-	//...
-	//enable the module 
-	Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
-	//...
-	//log a INFO line for the module:
-	idbgx(my_module_id(), "error starting engine: "<<error.mesage());
+    static unsigned my_module_id(){
+        static const auto id = Debug::the().registerModule("my_module");
+        return id;
+    }
+    
+    //...
+    //enable the module 
+    Debug::the().moduleMask("frame_mpipc:iew any:ew my_module:view");
+    //...
+    //log a INFO line for the module:
+    idbgx(my_module_id(), "error starting engine: "<<error.mesage());
 ```
 
  
@@ -262,53 +262,53 @@ Here are some sample code for some of the above tools:
 __Any__: [Sample code](solid/utility/test/test_any.cpp)
 
 ```C++
-	using AnyT = solid::Any<>;
-	//...
-	AnyT	a;
-	
-	a = std::string("Some text");
-	
-	//...
-	std::string *pstr = a.cast<std::string>();
-	if(pstr){
-		cout<<*pstr<<endl;
-	}
+    using AnyT = solid::Any<>;
+    //...
+    AnyT    a;
+    
+    a = std::string("Some text");
+    
+    //...
+    std::string *pstr = a.cast<std::string>();
+    if(pstr){
+        cout<<*pstr<<endl;
+    }
 ```
 Some code to show the difference from boost::any:
 
 ```C++
-	using AnyT = solid::Any<128>;
-	
-	struct A{
-		uint64_t	a;
-		uint64_t	b;
-		double		c;
-	};
-	
-	struct B{
-		uint64_t	a;
-		uint64_t	b;
-		double		c;
-		char		buf[64];
-	};
-	
-	struct C{
-		uint64_t	a;
-		uint64_t	b;
-		double		c;
-		char		buf[128];
-	};
-	
-	AnyT	a;
-	//...
-	a = std::string("Some text");//as long as sizeof(std::string) <= 128 no allocation is made - Any uses placement new()
-	//...
-	a = A();//as long as sizeof(A) <= 128 no allocation is made - Any uses placement new()
-	//...
-	a = B();//as long as sizeof(B) <= 128 no allocation is made - Any uses placement new()
-	//...
-	a = C();//sizeof(C) > 128 so new allocation is made - Any uses new
-	
+    using AnyT = solid::Any<128>;
+    
+    struct A{
+        uint64_t    a;
+        uint64_t    b;
+        double      c;
+    };
+    
+    struct B{
+        uint64_t    a;
+        uint64_t    b;
+        double      c;
+        char        buf[64];
+    };
+    
+    struct C{
+        uint64_t    a;
+        uint64_t    b;
+        double      c;
+        char        buf[128];
+    };
+    
+    AnyT    a;
+    //...
+    a = std::string("Some text");//as long as sizeof(std::string) <= 128 no allocation is made - Any uses placement new()
+    //...
+    a = A();//as long as sizeof(A) <= 128 no allocation is made - Any uses placement new()
+    //...
+    a = B();//as long as sizeof(B) <= 128 no allocation is made - Any uses placement new()
+    //...
+    a = C();//sizeof(C) > 128 so new allocation is made - Any uses new
+    
 ```
 
 __Event__: [Sample code](solid/utility/test/test_event.cpp)
@@ -317,25 +317,25 @@ Create a new event category:
 
 ```C++
 enum struct AlphaEvents{
-	First,
-	Second,
-	Third,
+    First,
+    Second,
+    Third,
 };
 using AlphaEventCategory = EventCategory<AlphaEvents>;
-const AlphaEventCategory	alpha_event_category{
-	"::alpha_event_category",
-	[](const AlphaEvents _evt){
-		switch(_evt){
-			case AlphaEvents::First:
-				return "first";
-			case AlphaEvents::Second:
-				return "second";
-			case AlphaEvents::Third:
-				return "third";
-			default:
-				return "unknown";
-		}
-	}
+const AlphaEventCategory    alpha_event_category{
+    "::alpha_event_category",
+    [](const AlphaEvents _evt){
+        switch(_evt){
+            case AlphaEvents::First:
+                return "first";
+            case AlphaEvents::Second:
+                return "second";
+            case AlphaEvents::Third:
+                return "third";
+            default:
+                return "unknown";
+        }
+    }
 };
 ```
 
@@ -343,35 +343,35 @@ Handle events:
 
 ```C++
 void Object::handleEvent(Event &&_revt){
-	static const EventHandler<void, Object&> event_handler = {
-		[](Event &_revt, Object &_robj){cout<<"handle unknown event "<<_revt<< on "<<&_robj<<endl;},
-		{
-			{
-				alpha_event_category.event(AlphaEvents::First),
-				[](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
-			},
-			{
-				alpha_event_category.event(AlphaEvents::Second),
-				[](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
-			},
-			{
-				generic_event_category.event(GenericEvents::Message),
-				[](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<"("<<*_revt.any().cast<std::string>()<<") on "<<&_robj<<endl;}
-			}
-		}
-	};
-	
-	event_handler.handle(_revt, *this);
+    static const EventHandler<void, Object&> event_handler = {
+        [](Event &_revt, Object &_robj){cout<<"handle unknown event "<<_revt<< on "<<&_robj<<endl;},
+        {
+            {
+                alpha_event_category.event(AlphaEvents::First),
+                [](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
+            },
+            {
+                alpha_event_category.event(AlphaEvents::Second),
+                [](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<" on "<<&_robj<<endl;}
+            },
+            {
+                generic_event_category.event(GenericEvents::Message),
+                [](Event &_revt, Object &_robj){cout<<"handle event "<<_revt<<"("<<*_revt.any().cast<std::string>()<<") on "<<&_robj<<endl;}
+            }
+        }
+    };
+    
+    event_handler.handle(_revt, *this);
 }
 ```
 
 Creating events:
 
 ```C++
-	//...
-	rbase.handleEvent(alpha_event_category.event(AlphaEvents::Second));
-	rbase.handleEvent(generic_event_category.event(GenericEvents::Message, std::string("Some text")));
-	//...
+    //...
+    rbase.handleEvent(alpha_event_category.event(AlphaEvents::Second));
+    rbase.handleEvent(generic_event_category.event(GenericEvents::Message, std::string("Some text")));
+    //...
 ```
 
 __InnerList__: [Sample code](solid/utility/test/test_innerlist.cpp)
@@ -410,20 +410,20 @@ A structure with serialization support:
 
 ```C++
 struct Test{
-	using KeyValueVectorT = std::vector<std::pair<std::string, std::string>>;
-	using MapT = std::map<std::string, uint64_t>;
-	
-	std::string			str;
-	KeyValueVectorT		kv_vec;
-	MapT				kv_map;
-	uint32_t			v32;
-	
-	template <class S>
-	void serialize(S &_s){
-		_s.push(str, "Test::str");
-		_s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");
-		_s.pushCross(v32, "Test::v32");
-	}
+    using KeyValueVectorT = std::vector<std::pair<std::string, std::string>>;
+    using MapT = std::map<std::string, uint64_t>;
+    
+    std::string         str;
+    KeyValueVectorT     kv_vec;
+    MapT                kv_map;
+    uint32_t            v32;
+    
+    template <class S>
+    void serialize(S &_s){
+        _s.push(str, "Test::str");
+        _s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");
+        _s.pushCross(v32, "Test::v32");
+    }
 };
 ```
 
@@ -432,46 +432,46 @@ Defining the serializer/deserializer/typeidmap:
 ```C++
 #include "solid/serialization/binary.hpp"
 
-using SerializerT	= serialization::binary::Serializer<void>;
+using SerializerT   = serialization::binary::Serializer<void>;
 using DeserializerT = serialization::binary::Deserializer<void>;
-using TypeIdMapT	= serialization::TypeIdMap<SerializerT, DeserializerT>;
+using TypeIdMapT    = serialization::TypeIdMap<SerializerT, DeserializerT>;
 ```
 
 Prepare the typeidmap:
 
 ```C++
-TypeIdMapT	typemap;
+TypeIdMapT  typemap;
 typemap.registerType<Test>(0/*protocol ID*/);
 ```
 
 Serialize and deserialize a Test structure:
 ```C++
-	std::string		data;
-	{//serialize
-		SerializerT		ser(&typeidmap);
-		const int		bufcp = 64;
-		char 			buf[bufcp];
-		int				rv;
-		
-		std::shared_ptr<Test>	test_ptr = Test::create();
-		test_ptr->init();
-		
-		ser.push(test_ptr, "test_ptr");
-		
-		while((rv = ser.run(buf, bufcp)) > 0){
-			data.append(buf, rv);
-		}
-	}
-	{//deserialize
-		DeserializerT			des(&typeidmap);
-		
-		std::shared_ptr<Test>	test_ptr;
-		
-		des.push(test_ptr, "test_ptr");
-		
-		size_t					rv = des.run(data.data(), data.size());
-		SOLID_CHECK(rv == data.size());
-	}
+    std::string     data;
+    {//serialize
+        SerializerT     ser(&typeidmap);
+        const int       bufcp = 64;
+        char            buf[bufcp];
+        int             rv;
+        
+        std::shared_ptr<Test>   test_ptr = Test::create();
+        test_ptr->init();
+        
+        ser.push(test_ptr, "test_ptr");
+        
+        while((rv = ser.run(buf, bufcp)) > 0){
+            data.append(buf, rv);
+        }
+    }
+    {//deserialize
+        DeserializerT           des(&typeidmap);
+        
+        std::shared_ptr<Test>   test_ptr;
+        
+        des.push(test_ptr, "test_ptr");
+        
+        size_t                  rv = des.run(data.data(), data.size());
+        SOLID_CHECK(rv == data.size());
+    }
 ```
 
 

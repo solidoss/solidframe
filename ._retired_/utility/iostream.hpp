@@ -18,17 +18,17 @@ namespace solid{
 //! A stream for both input and output
 class InputOutputStream: public InputStream, public OutputStream{
 public:
-	virtual ~InputOutputStream();
+    virtual ~InputOutputStream();
 };
 //! An InputOutputStreamIterator - an offset within the stream: a pointer to an iostream
 struct InputOutputStreamIterator{
-	InputOutputStreamIterator(InputOutputStream *_ps = NULL, int64_t _off = 0);
-	void reinit(InputOutputStream *_ps = NULL, int64_t _off = 0);
-	int64_t start();
-	InputOutputStream* operator->() const{return ps;}
-	InputOutputStream& operator*() {return *ps;}
-	InputOutputStream	*ps;
-	int64_t		off;
+    InputOutputStreamIterator(InputOutputStream *_ps = NULL, int64_t _off = 0);
+    void reinit(InputOutputStream *_ps = NULL, int64_t _off = 0);
+    int64_t start();
+    InputOutputStream* operator->() const{return ps;}
+    InputOutputStream& operator*() {return *ps;}
+    InputOutputStream   *ps;
+    int64_t     off;
 };
 
 #ifndef SOLID_HAS_NO_INLINES

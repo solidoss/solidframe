@@ -17,50 +17,50 @@ namespace text{
 //!A simple and fast runtime case-insensitive name matcher
 /*! Intended usage example:<br>
 <CODE>
-	struct Name{<br>
-		const char *name;<br>
-		Command*(*)() pf;<br>
-	} const cmd_tbl[] = {<br>
-		{"login", &create_login},<br>
-		{"delete", &create_delete},<br>
-		{"create", &create_create},<br>
-		{NULL, &create_null}<br>
-	};<br>
-	static const NameMatcher cmdm(cmd_tbl);<br>
-	<br>
-	string s;cin>>s;<br>
-	Command *pcmd = (*cmd_tbl[cmdm.match(s.c_str())].pf)();<br>
+    struct Name{<br>
+        const char *name;<br>
+        Command*(*)() pf;<br>
+    } const cmd_tbl[] = {<br>
+        {"login", &create_login},<br>
+        {"delete", &create_delete},<br>
+        {"create", &create_create},<br>
+        {NULL, &create_null}<br>
+    };<br>
+    static const NameMatcher cmdm(cmd_tbl);<br>
+    <br>
+    string s;cin>>s;<br>
+    Command *pcmd = (*cmd_tbl[cmdm.match(s.c_str())].pf)();<br>
 </CODE>
 */
 
 class NameMatcher{
-	class Data;
+    class Data;
 public:
-	//! Template constructor giving the table containing the names
-	/*! \see NameMatcher documentation
-		There must be a last NULL name in the given table
-	*/
-	template <typename Name>
-	NameMatcher(const Name *_names):d(createData()){
-		while(_names->name){
-			push(_names->name);
-			++_names;
-		}
-	}
-	//!Destructor
-	~NameMatcher();
-	//! Matching method
-	/*!
-		Returns the position of the matched string or the position of NULL
-		if no match was found.
-		\param _name The name to search
-		\retval int the position in the table given on constructor
-	*/
-	int match(const char *_name)const;
+    //! Template constructor giving the table containing the names
+    /*! \see NameMatcher documentation
+        There must be a last NULL name in the given table
+    */
+    template <typename Name>
+    NameMatcher(const Name *_names):d(createData()){
+        while(_names->name){
+            push(_names->name);
+            ++_names;
+        }
+    }
+    //!Destructor
+    ~NameMatcher();
+    //! Matching method
+    /*!
+        Returns the position of the matched string or the position of NULL
+        if no match was found.
+        \param _name The name to search
+        \retval int the position in the table given on constructor
+    */
+    int match(const char *_name)const;
 private:
-	void push(const char *_name);
-	Data& createData();
-	Data &d;
+    void push(const char *_name);
+    Data& createData();
+    Data &d;
 };
 
 

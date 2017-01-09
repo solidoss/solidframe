@@ -1,17 +1,17 @@
 set(Sources
-	src/log.cpp
+    src/log.cpp
 )
 
 set(Headers
-	log.hpp
-	report.hpp
+    log.hpp
+    report.hpp
 )
 
 set(Inlines
 )
 
 add_library (solid_audit_log
-	${Sources} ${Headers} ${Inlines}
+    ${Sources} ${Headers} ${Inlines}
 )
 
 add_subdirectory (log)

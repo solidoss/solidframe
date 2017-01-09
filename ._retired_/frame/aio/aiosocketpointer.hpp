@@ -18,27 +18,27 @@ class Object;
 class Socket;
 class SocketPointer{
 public:
-	SocketPointer():ps(NULL){}
-	~SocketPointer(){
-		clear();
-	}
-	SocketPointer(const SocketPointer &_ps):ps(_ps.release()){}
-	SocketPointer& operator=(const SocketPointer &_ps){
-		clear(_ps.release());
-		return *this;
-	}
-	operator bool ()const	{return ps != NULL;}
+    SocketPointer():ps(NULL){}
+    ~SocketPointer(){
+        clear();
+    }
+    SocketPointer(const SocketPointer &_ps):ps(_ps.release()){}
+    SocketPointer& operator=(const SocketPointer &_ps){
+        clear(_ps.release());
+        return *this;
+    }
+    operator bool ()const   {return ps != NULL;}
 private:
-	friend class Object;
-	SocketPointer(Socket*_ps):ps(NULL){}
-	void clear(Socket *_ps = NULL)const;
-	Socket* release()const{
-		Socket *tps(ps);
-		ps = NULL;
-		return tps;
-	}
+    friend class Object;
+    SocketPointer(Socket*_ps):ps(NULL){}
+    void clear(Socket *_ps = NULL)const;
+    Socket* release()const{
+        Socket *tps(ps);
+        ps = NULL;
+        return tps;
+    }
 private:
-	mutable Socket	*ps;
+    mutable Socket  *ps;
 };
 
 }//namespace aio

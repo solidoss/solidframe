@@ -29,48 +29,48 @@ namespace solid{
 namespace frame{
 
 Service::Service(
-	UseServiceShell _force_shell
+    UseServiceShell _force_shell
 ):rm(_force_shell.rmanager), idx(static_cast<size_t>(InvalidIndex())), running(false){
-	rm.registerService(*this);
-	vdbgx(Debug::frame, ""<<this);
+    rm.registerService(*this);
+    vdbgx(Debug::frame, ""<<this);
 }
 
 Service::~Service(){
-	vdbgx(Debug::frame, ""<<this);
-	stop(true);
-	rm.unregisterService(*this);
-	vdbgx(Debug::frame, ""<<this);
+    vdbgx(Debug::frame, ""<<this);
+    stop(true);
+    rm.unregisterService(*this);
+    vdbgx(Debug::frame, ""<<this);
 }
 
 void Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){
-	rm.notifyAll(*this, _revt, _sigmsk);
+    rm.notifyAll(*this, _revt, _sigmsk);
 }
 
 
 bool Service::start(){
-	return rm.startService(*this);
+    return rm.startService(*this);
 }
 
 void Service::stop(const bool _wait){
-	rm.stopService(*this, _wait);
+    rm.stopService(*this, _wait);
 }
 
 std::mutex& Service::mutex(const ObjectBase &_robj)const{
-	return rm.mutex(_robj);
+    return rm.mutex(_robj);
 }
 
 std::mutex& Service::mutex()const{
-	return rm.mutex(*this);
+    return rm.mutex(*this);
 }
 
 
 ObjectIdT Service::registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr){
-	return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
+    return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
 }
 
 // void Service::unsafeStop(Locker<Mutex> &_rlock, bool _wait){
-// 	const size_t	svcidx = idx.load(/*std::memory_order_seq_cst*/);
-// 	rm.doWaitStopService(svcidx, _rlock, true);
+//  const size_t    svcidx = idx.load(/*std::memory_order_seq_cst*/);
+//  rm.doWaitStopService(svcidx, _rlock, true);
 // }
 
 }//namespace frame

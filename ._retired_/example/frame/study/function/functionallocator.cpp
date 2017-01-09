@@ -54,153 +54,153 @@ void operator delete(void* ptr) throw()
 #endif
 
 struct Context{
-	
+    
 };
 
 struct Event{
-	
+    
 };
 
 template <class T>
 class Allocator {
-	public:
-	// type definitions
-	typedef T				value_type;
-	typedef T*				pointer;
-	typedef const T*		const_pointer;
-	typedef T&       reference;
-	typedef const T& const_reference;
-	typedef std::size_t    size_type;
-	typedef std::ptrdiff_t difference_type;
+    public:
+    // type definitions
+    typedef T               value_type;
+    typedef T*              pointer;
+    typedef const T*        const_pointer;
+    typedef T&       reference;
+    typedef const T& const_reference;
+    typedef std::size_t    size_type;
+    typedef std::ptrdiff_t difference_type;
 
-	// rebind allocator to type U
-	template <class U>
-	struct rebind {
-		typedef Allocator<U> other;
-	};
+    // rebind allocator to type U
+    template <class U>
+    struct rebind {
+        typedef Allocator<U> other;
+    };
 
-	// return address of values
-	pointer address (reference value) const {
-		return &value;
-	}
-	const_pointer address (const_reference value) const {
-		return &value;
-	}
+    // return address of values
+    pointer address (reference value) const {
+        return &value;
+    }
+    const_pointer address (const_reference value) const {
+        return &value;
+    }
 
-	/* constructors and destructor
-	* - nothing to do because the allocator has no state
-	*/
-	Allocator() throw() {
-	}
-	Allocator(const Allocator&) throw() {
-	}
-	template <class U>
-	Allocator (const Allocator<U>&) throw() {
-	}
-	~Allocator() throw() {
-	}
+    /* constructors and destructor
+    * - nothing to do because the allocator has no state
+    */
+    Allocator() throw() {
+    }
+    Allocator(const Allocator&) throw() {
+    }
+    template <class U>
+    Allocator (const Allocator<U>&) throw() {
+    }
+    ~Allocator() throw() {
+    }
 
-	// return maximum number of elements that can be allocated
-	size_type max_size () const throw() {
-		return std::numeric_limits<std::size_t>::max() / sizeof(T);
-	}
+    // return maximum number of elements that can be allocated
+    size_type max_size () const throw() {
+        return std::numeric_limits<std::size_t>::max() / sizeof(T);
+    }
 
-	// allocate but don't initialize num elements of type T
-	pointer allocate (size_type num, const void* = 0) {
-		// print message and allocate memory with global new
-		std::cerr << "allocate " << num << " element(s)"
-					<< " of size " << sizeof(T) << std::endl;
-		pointer ret = (pointer)(::operator new(num*sizeof(T)));
-		std::cerr << " allocated at: " << (void*)ret << std::endl;
-		return ret;
-	}
+    // allocate but don't initialize num elements of type T
+    pointer allocate (size_type num, const void* = 0) {
+        // print message and allocate memory with global new
+        std::cerr << "allocate " << num << " element(s)"
+                    << " of size " << sizeof(T) << std::endl;
+        pointer ret = (pointer)(::operator new(num*sizeof(T)));
+        std::cerr << " allocated at: " << (void*)ret << std::endl;
+        return ret;
+    }
 
-	// initialize elements of allocated storage p with value value
-	void construct (pointer p, const T& value) {
-		// initialize memory with placement new
-		new((void*)p)T(value);
-	}
+    // initialize elements of allocated storage p with value value
+    void construct (pointer p, const T& value) {
+        // initialize memory with placement new
+        new((void*)p)T(value);
+    }
 
-	// destroy elements of initialized storage p
-	void destroy (pointer p) {
-		// destroy objects by calling their destructor
-		p->~T();
-	}
+    // destroy elements of initialized storage p
+    void destroy (pointer p) {
+        // destroy objects by calling their destructor
+        p->~T();
+    }
 
-	// deallocate storage p of deleted elements
-	void deallocate (pointer p, size_type num) {
-		// print message and deallocate memory with global delete
-		std::cerr << "deallocate " << num << " element(s)"
-					<< " of size " << sizeof(T)
-					<< " at: " << (void*)p << std::endl;
-		::operator delete((void*)p);
-	}
+    // deallocate storage p of deleted elements
+    void deallocate (pointer p, size_type num) {
+        // print message and deallocate memory with global delete
+        std::cerr << "deallocate " << num << " element(s)"
+                    << " of size " << sizeof(T)
+                    << " at: " << (void*)p << std::endl;
+        ::operator delete((void*)p);
+    }
 };
 
 // return that all specializations of this allocator are interchangeable
 template <class T1, class T2>
 bool operator== (const Allocator<T1>&,
-				const Allocator<T2>&) throw() {
-	return true;
+                const Allocator<T2>&) throw() {
+    return true;
 }
 template <class T1, class T2>
 bool operator!= (const Allocator<T1>&,
-				const Allocator<T2>&) throw() {
-	return false;
+                const Allocator<T2>&) throw() {
+    return false;
 }
 
 
-typedef FUNCTION_NS::function<void(Context&)>	FunctionT;
+typedef FUNCTION_NS::function<void(Context&)>   FunctionT;
 
 
 struct Stub{
-	template <typename T>
-	void set(T _t){
-		f = _t;
-	}
-	
-	void call(Context &_rctx){
-		f(_rctx);
-	}
-	FunctionT	f;
+    template <typename T>
+    void set(T _t){
+        f = _t;
+    }
+    
+    void call(Context &_rctx){
+        f(_rctx);
+    }
+    FunctionT   f;
 };
 
 struct Test{
-	std::string txt;
-	size_t		v;
-	size_t		v1;
-	size_t		v2;
-	
-	Test():v(0){}
-	Test(string const &_rtxt, size_t _v = 0):txt(_rtxt), v(_v){}
-	
-	void operator()(Context &_rctx){
-		cout<<"txt = "<<txt<<" v = "<<v<<endl;
-	}
-	
+    std::string txt;
+    size_t      v;
+    size_t      v1;
+    size_t      v2;
+    
+    Test():v(0){}
+    Test(string const &_rtxt, size_t _v = 0):txt(_rtxt), v(_v){}
+    
+    void operator()(Context &_rctx){
+        cout<<"txt = "<<txt<<" v = "<<v<<endl;
+    }
+    
 };
 
 int main(int argc, char *argv[]){
-	cout<<"Sizeof(FunctionT) = "<<sizeof(FunctionT)<<endl;
-	Stub	s;
-	Context ctx;
-	cout<<"Setting the functor"<<endl;
-	s.set(Test("something", 10));
-	cout<<"Calling the functor"<<endl;
-	s.call(ctx);
-	FunctionT f;
-	f = std::move(s.f);
-	cout<<"s.f valid = "<<(bool)s.f<<endl;
-	f(ctx);
-	f = 0;
-	cout<<"someother1"<<endl;
-	//f = std::move(FunctionT(Test("someotherthing", 3), boost::pool_allocator<Test>()));
-	f.assign(Test("", 3), Allocator<Test>());
-	f(ctx);
-	f = 0;
-	cout<<"someother2"<<endl;
-	f.assign(Test("", 5), Allocator<Test>());
-	f(ctx);
-	return 0;
+    cout<<"Sizeof(FunctionT) = "<<sizeof(FunctionT)<<endl;
+    Stub    s;
+    Context ctx;
+    cout<<"Setting the functor"<<endl;
+    s.set(Test("something", 10));
+    cout<<"Calling the functor"<<endl;
+    s.call(ctx);
+    FunctionT f;
+    f = std::move(s.f);
+    cout<<"s.f valid = "<<(bool)s.f<<endl;
+    f(ctx);
+    f = 0;
+    cout<<"someother1"<<endl;
+    //f = std::move(FunctionT(Test("someotherthing", 3), boost::pool_allocator<Test>()));
+    f.assign(Test("", 3), Allocator<Test>());
+    f(ctx);
+    f = 0;
+    cout<<"someother2"<<endl;
+    f.assign(Test("", 5), Allocator<Test>());
+    f(ctx);
+    return 0;
 }
 

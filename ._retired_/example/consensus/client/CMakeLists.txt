@@ -1,16 +1,16 @@
 set(Sources
-	src/clientobject.cpp
+    src/clientobject.cpp
 )
 
 set(Headers
-	clientobject.hpp
+    clientobject.hpp
 )
 
 set(Inlines
 )
 
 add_library (example_consensus_clientobject
-	${Sources} ${Headers} ${Inlines}
+    ${Sources} ${Headers} ${Inlines}
 )
 
 

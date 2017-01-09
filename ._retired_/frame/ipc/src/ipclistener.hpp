@@ -26,21 +26,21 @@ namespace ipc{
 
 class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
 public:
-	Listener(
-		Service &_rsvc,
-		const SocketDevice &_rsd,
-		Service::Types	_type,
-		frame::aio::openssl::Context *_pctx = NULL
-	);
+    Listener(
+        Service &_rsvc,
+        const SocketDevice &_rsd,
+        Service::Types  _type,
+        frame::aio::openssl::Context *_pctx = NULL
+    );
 private:
-	/*virtual*/ void execute(ExecuteContext &_rexectx);
+    /*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
-	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
-	Service				&rsvc;
-	SocketDevice		sd;
-	Service::Types		type;
-	SslContextPtrT		pctx;
-	int					state;
+    typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
+    Service             &rsvc;
+    SocketDevice        sd;
+    Service::Types      type;
+    SslContextPtrT      pctx;
+    int                 state;
 };
 
 

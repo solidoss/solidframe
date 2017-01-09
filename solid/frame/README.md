@@ -8,14 +8,14 @@ When implementing network enabled asynchronous applications one ends up having m
  * be able to react on IO events
  * be able to react on timer events
  * be able to react on custom events
-	
+    
 Let us consider some examples:
 
 __A TCP Connection__
  * handles IO events for its associated socket
  * handles timer event for IO operations - e.g. most often we want to do something if a send operation is taking too long
  * handles custom events - e.g. force_kill when we want a certain connection to forcefully stop.
-	
+    
 __A TCP Listener__
  * handles IO events for its associated listener socket - new incoming connection
  * handles custom events - e.g. stop listening, pause listening
@@ -27,18 +27,18 @@ Here is some hypothetical code:
 
 ```C++
 void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
-	authentication::Service &rauth_service(_rctx.authenticationService());
-	
-	rauth_service.asyncAuthenticate(
-		auth_credentials,
-		[/*something*/](std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
-			if(_error){
-				//use /*something*/ to notify "this" connection that the authentication failed
-			}else{
-				//use /*something*/ to notify "this" connection that the authentication succeed
-			}
-		}
-	);
+    authentication::Service &rauth_service(_rctx.authenticationService());
+    
+    rauth_service.asyncAuthenticate(
+        auth_credentials,
+        [/*something*/](std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
+            if(_error){
+                //use /*something*/ to notify "this" connection that the authentication failed
+            }else{
+                //use /*something*/ to notify "this" connection that the authentication succeed
+            }
+        }
+    );
 }
 ```
 
@@ -61,94 +61,94 @@ Closely related to either Objects are:
  * [_solid::frame::Reactor_](reactor.hpp): Active container of solid::frame::Objects. Delivers timer and notification events to registered objects.
  * [_solid::frame::aio::Reactor_](aio/reactor.hpp): Active container of solid::frame::aio::Objects. Delivers IO, timer and notification events to registered objects.
  * [_solid::frame::Scheduler<ReactorT>_](scheduler.hpp): A thread pool of reactors.
-	
+    
 Let us look further to some sample code to clarify the use of the above classes:
 ```C++
 int main(int argc, char *argv[]){
-	using namespace solid;
-	using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+    using namespace solid;
+    using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 
-	frame::ObjectIdT	listeneruid;
-	
-	AioSchedulerT		scheduler;
-	frame::Manager		manager;
-	frame::Service		service(manager);
-	ErrorConditionT		error = scheduler.start(1/*a single thread*/);
-	
-	if(error){
-		cout<<"Error starting scheduler: "<<error.message()<<endl;
-		return 1;
-	}
-	
-	{
-		ResolveData		rd =  synchronous_resolve("0.0.0.0", listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-	
-		SocketDevice	sd;
-			
-		sd.create(rd.begin());
-		sd.prepareAccept(rd.begin(), 2000);
-			
-		if(sd.ok()){
-			DynamicPointer<frame::aio::Object>	objptr(new Listener(service, scheduler, std::move(sd)));
-				
-			listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
-			
-			if(error){
-				SOLID_ASSERT(listeneruid.isInvalid());
-				cout<<"Error starting object: "<<error.message()<<endl;
-				return 1;
-			}
-			(void)objuid;
-		}else{
-			cout<<"Error creating listener socket"<<endl;
-			return 1;
-		}
-	}
-	
-	//...
-	//send listener a dummy event
-	if(
-		not manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
-	){
-		cout<<"Message not delivered"<<endl;
-	}
-	
-	
-	manager.stop();
-	return 0;
+    frame::ObjectIdT    listeneruid;
+    
+    AioSchedulerT       scheduler;
+    frame::Manager      manager;
+    frame::Service      service(manager);
+    ErrorConditionT     error = scheduler.start(1/*a single thread*/);
+    
+    if(error){
+        cout<<"Error starting scheduler: "<<error.message()<<endl;
+        return 1;
+    }
+    
+    {
+        ResolveData     rd =  synchronous_resolve("0.0.0.0", listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+    
+        SocketDevice    sd;
+            
+        sd.create(rd.begin());
+        sd.prepareAccept(rd.begin(), 2000);
+            
+        if(sd.ok()){
+            DynamicPointer<frame::aio::Object>  objptr(new Listener(service, scheduler, std::move(sd)));
+                
+            listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+            
+            if(error){
+                SOLID_ASSERT(listeneruid.isInvalid());
+                cout<<"Error starting object: "<<error.message()<<endl;
+                return 1;
+            }
+            (void)objuid;
+        }else{
+            cout<<"Error creating listener socket"<<endl;
+            return 1;
+        }
+    }
+    
+    //...
+    //send listener a dummy event
+    if(
+        not manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
+    ){
+        cout<<"Message not delivered"<<endl;
+    }
+    
+    
+    manager.stop();
+    return 0;
 }
 ```
 Basically the above code instantiates a TCP Listener, starts it and notifies it with a Message event. For the Listener to function it needs a "manager", a "service" and a "scheduler". 
 
 The line:
 ```C++
-	ErrorConditionT		error = scheduler.start(1/*a single thread*/);
+    ErrorConditionT     error = scheduler.start(1/*a single thread*/);
 ```
 tries to start the scheduler with a single thread and implicitly a single reactor.
 
 The following lines:
 ```C++
-	ResolveData		rd =  synchronous_resolve("0.0.0.0", listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-	
-	SocketDevice	sd;
-		
-	sd.create(rd.begin());
-	sd.prepareAccept(rd.begin(), 2000);
+    ResolveData     rd =  synchronous_resolve("0.0.0.0", listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+    
+    SocketDevice    sd;
+        
+    sd.create(rd.begin());
+    sd.prepareAccept(rd.begin(), 2000);
 ```
 create and configures a socket device/descriptor for listening for TCP connections.
 After this, if we have a valid socket device, we can create and start a Listener object:
 
 ```C++
 if(sd.ok()){
-	DynamicPointer<frame::aio::Object>	objptr(new Listener(service, scheduler, std::move(sd)));
-		
-	listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
-	
-	if(listeneruid.isInvalid()){
-		cout<<"Error starting object: "<<error.message()<<endl;
-		return 1;
-	}
-	(void)objuid;
+    DynamicPointer<frame::aio::Object>  objptr(new Listener(service, scheduler, std::move(sd)));
+        
+    listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+    
+    if(listeneruid.isInvalid()){
+        cout<<"Error starting object: "<<error.message()<<endl;
+        return 1;
+    }
+    (void)objuid;
 }
 ```
 
@@ -160,7 +160,7 @@ As you can see above, the Listener constructor needs:
 The next line:
  
  ```C++
-	listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
+    listeneruid = scheduler.startObject(objptr, service, generic_event_category.event(GenericEvents::Start), error);
  ```
  
 will try to atomically:
@@ -171,7 +171,7 @@ will try to atomically:
 Every object must override:
  
  ```C++
-	virtual void Object::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
+    virtual void Object::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent);
  ```
  
 to receive the events, so on the above code, once the Listener got started, Listener::onEvent will be called on the scheduler thread with the GenericEvents::Start event.
@@ -182,7 +182,7 @@ As we can see it returns a frame::ObjectIdT and an error. While the error value 
 This way "listeneruid" can be used at any time during the lifetime of "manager" to notify the Listener object with a custom event, as we do with the following line:
  
  ```C++
-	manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
+    manager.notify(listeneruid, generic_event_category.event(GenericEvents::Message, std::string("Some ignored message")))
  ```
  
 **Notes:**
@@ -195,19 +195,19 @@ Now that you have had a birds eye view of Object/Manager/Service/Scheduler archi
 
 ```C++
 void Connection::onReceiveAuthentication(Context &_rctx, const std::string &auth_credentials){
-	
-	//NOTE: frame::Manager must outlive authentication::Service
-	
-	authentication::Service &rauth_service(_rctx.authenticationService());
-	frame::Manager			&rmanager(_rctx.service().manager());
-	frame::ObjectIdT		connection_id = service(_rctx).manager().id(*this);
-	
-	rauth_service.asyncAuthenticate(
-		auth_credentials,
-		[connection_id, &rmanager](std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
-			rmanager.notify(connection_id, Connection::createAuthenticationResultEvent(_user_stub_ptr, _error));
-		}
-	);
+    
+    //NOTE: frame::Manager must outlive authentication::Service
+    
+    authentication::Service &rauth_service(_rctx.authenticationService());
+    frame::Manager          &rmanager(_rctx.service().manager());
+    frame::ObjectIdT        connection_id = service(_rctx).manager().id(*this);
+    
+    rauth_service.asyncAuthenticate(
+        auth_credentials,
+        [connection_id, &rmanager](std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
+            rmanager.notify(connection_id, Connection::createAuthenticationResultEvent(_user_stub_ptr, _error));
+        }
+    );
 }
 ```
 
@@ -219,7 +219,7 @@ For simple cases where we have few notification events we can use a generic even
 ```C++
 using AuthenticationResultT = std::pair<std::shared_ptr<UserStub>, std::error_condition>;
 /*static*/ Event Connection::createAuthenticationResultEvent(std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
-	return 	generic_event_category.event(GenericEvents::Message, AuthenticationResultT(_user_stub_ptr, _error));
+    return  generic_event_category.event(GenericEvents::Message, AuthenticationResultT(_user_stub_ptr, _error));
 }
 ```
 
@@ -227,16 +227,16 @@ and do the dispatch using solid::Any<>::cast:
 
 ```C++
 void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
-	if(_revent == generic_event_category.event(GenericEvents::Message)){
-		AuthenticationResultT *pauth_result = _revent.any().cast<AuthenticationResultT>();
-		if(pauth_result){
-			if(pauth_result->second){
-				//authentication failed
-			}else{
-				//authentication succeeded
-			}
-		}
-	}
+    if(_revent == generic_event_category.event(GenericEvents::Message)){
+        AuthenticationResultT *pauth_result = _revent.any().cast<AuthenticationResultT>();
+        if(pauth_result){
+            if(pauth_result->second){
+                //authentication failed
+            }else{
+                //authentication succeeded
+            }
+        }
+    }
 }
 ```
 
@@ -246,20 +246,20 @@ First we need to create an EventCategory:
 
 ```C++
 enum class ConnectionEvents{
-	//...
-	AuthenticationResponse,
-	//
+    //...
+    AuthenticationResponse,
+    //
 };
-const EventCategory<ConnectionEvents>	connection_event_category{
-	"project::protocol::connection_event_category",
-	[](const ConnectionEvents _e){
-		switch(_e){
-			//...
-			case ConnectionEvents::AuthenticationResponse: return "AuthenticationResponse";
-			//...
-			default: return "Unknown";
-		}
-	}
+const EventCategory<ConnectionEvents>   connection_event_category{
+    "project::protocol::connection_event_category",
+    [](const ConnectionEvents _e){
+        switch(_e){
+            //...
+            case ConnectionEvents::AuthenticationResponse: return "AuthenticationResponse";
+            //...
+            default: return "Unknown";
+        }
+    }
 };
 ```
 
@@ -268,7 +268,7 @@ then we need to use it in createAuthenticationResultEvent:
 ```C++
 using AuthenticationResultT = std::pair<std::shared_ptr<UserStub>, std::error_condition>;
 /*static*/ Event Connection::createAuthenticationResultEvent(std::shared_ptr<UserStub> &_user_stub_ptr, const std::error_condition &_error){
-	return 	connection_event_category.event(ConnectionEvents::AuthenticationResponse, AuthenticationResultT(_user_stub_ptr, _error));
+    return  connection_event_category.event(ConnectionEvents::AuthenticationResponse, AuthenticationResultT(_user_stub_ptr, _error));
 }
 ```
 
@@ -276,39 +276,39 @@ last, we need to use an event handler in the Connection's onEvent method, like t
 
 ```C++
 void Connection::onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent){
-	static const EventHandler<
-		void, 
-		Connection&,
-		frame::aio::ReactorContext&
-	>	event_handler = {
-		[](Event &_re, Connection &_rcon, frame::aio::ReactorContext &_rctx){
-			//do nothing for unknown events
-		},
-		{
-			{
-				generic_event_category.event(GenericEvents::Start),
-				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
-					_rcon.doHandleEventStart(_rctx, _revt);
-				}
-			},
-			{
-				generic_event_category.event(GenericEvents::Kill),
-				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
-					_rcon.doHandleEventKill(_rctx, _revt);
-				}
-			},
-			//...
-			{
-				connection_event_category.event(ConnectionEvents::AuthenticationResponse),
-				[](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
-					_rcon.doHandleEventAuthenticationResponse(_rctx, _revt);
-				}
-			},
-			//...
-		}
-	};
-	
-	//use the static event_handler to dispatch the event:
-	event_handler.handle(_revent, *this, _rctx);
+    static const EventHandler<
+        void, 
+        Connection&,
+        frame::aio::ReactorContext&
+    >   event_handler = {
+        [](Event &_re, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+            //do nothing for unknown events
+        },
+        {
+            {
+                generic_event_category.event(GenericEvents::Start),
+                [](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+                    _rcon.doHandleEventStart(_rctx, _revt);
+                }
+            },
+            {
+                generic_event_category.event(GenericEvents::Kill),
+                [](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+                    _rcon.doHandleEventKill(_rctx, _revt);
+                }
+            },
+            //...
+            {
+                connection_event_category.event(ConnectionEvents::AuthenticationResponse),
+                [](Event &_revt, Connection &_rcon, frame::aio::ReactorContext &_rctx){
+                    _rcon.doHandleEventAuthenticationResponse(_rctx, _revt);
+                }
+            },
+            //...
+        }
+    };
+    
+    //use the static event_handler to dispatch the event:
+    event_handler.handle(_revent, *this, _rctx);
 }
 ```

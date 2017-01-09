@@ -61,21 +61,21 @@ public://nonstatic methods
     }
     Writer& operator << ( Writer& (*f)(Writer&)){ return f(*this);}
     struct atomstring{
-        const char		*str;
+        const char      *str;
         solid::ushort    len;
     };
     Writer& operator<<(atomstring _qs){
         put(_qs.str,_qs.len); return *this;
     }
     struct qstring{
-        const char		*str;
+        const char      *str;
         solid::ushort    len;
     };
     Writer& operator<<(qstring _qs){
         put('\"');put(_qs.str,_qs.len);put('\"'); return *this;
     }
     struct lstring{
-        const char		*str;
+        const char      *str;
         solid::ushort    len;
     };
     Writer& operator<<(lstring _qs){
@@ -86,7 +86,7 @@ public://nonstatic methods
         return *this;
     }
     struct astring{
-       const char		*str;
+       const char       *str;
         solid::ushort    len;
     };
     Writer& operator<<(astring _qs){
@@ -112,8 +112,8 @@ public://nonstatic methods
         return *this;
     }
     struct littp{
-        uint32			len;
-        InputStream		*pstream;
+        uint32          len;
+        InputStream     *pstream;
     };
     Writer& operator<<(littp _t){
         put('{');
@@ -125,8 +125,8 @@ public://nonstatic methods
         return *this;
     }
 private:
-    int	        	sd;
-    SSL				*pssl;
+    int             sd;
+    SSL             *pssl;
     int             wrerr;
     char            bbeg[BUFFLEN+4];
     char            *bend;

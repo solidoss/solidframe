@@ -3,18 +3,18 @@
 
 
 struct Test{
-	virtual ~Test(){}
-	virtual void print() = 0;
+    virtual ~Test(){}
+    virtual void print() = 0;
 };
 
 class TestA{
 public:
-	static TestA& instance();
-	TestA();
-	void set(int _a);
-	int get()const;
+    static TestA& instance();
+    TestA();
+    void set(int _a);
+    int get()const;
 private:
-	int a;
+    int a;
 };
 
 

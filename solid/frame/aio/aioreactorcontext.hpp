@@ -29,70 +29,70 @@ class Reactor;
 class CompletionHandler;
 
 struct ReactorContext{
-	~ReactorContext(){
-		
-	}
-	
-	const NanoTime& time()const{
-		return rcurrent_time_;
-	}
-	
-	ErrorCodeT const& systemError()const{
-		return system_error_;
-	}
-	
-	ErrorConditionT const& error()const{
-		return error_;
-	}
-	
-	Object& object()const;
-	Service& service()const;
-	
-	UniqueId objectUid()const;
-	
-	void clearError(){
-		error_.clear();
-		system_error_.clear();
-	}
+    ~ReactorContext(){
+        
+    }
+    
+    const NanoTime& time()const{
+        return rcurrent_time_;
+    }
+    
+    ErrorCodeT const& systemError()const{
+        return system_error_;
+    }
+    
+    ErrorConditionT const& error()const{
+        return error_;
+    }
+    
+    Object& object()const;
+    Service& service()const;
+    
+    UniqueId objectUid()const;
+    
+    void clearError(){
+        error_.clear();
+        system_error_.clear();
+    }
 private:
-	friend class CompletionHandler;
-	friend class Reactor;
-	friend class Object;
-	
-	Reactor& reactor(){
-		return rreactor_;
-	}
-	
-	Reactor const& reactor()const{
-		return rreactor_;
-	}
-	ReactorEventsE reactorEvent()const{
-		return reactor_event_;
-	}
-	CompletionHandler* completionHandler()const;
-	
-	
-	void error(ErrorConditionT const& _err){
-		error_ = _err;
-	}
-	
-	void systemError(ErrorCodeT const& _err){
-		system_error_ = _err;
-	}
-	
-	ReactorContext(
-		Reactor	&_rreactor,
-		const NanoTime &_rcurrent_time
-	):	rreactor_(_rreactor),
-		rcurrent_time_(_rcurrent_time), channel_index_(-1), object_index_(-1), reactor_event_(ReactorEventNone){}
-	
-	Reactor						&rreactor_;
-	const NanoTime				&rcurrent_time_;
-	size_t						channel_index_;
-	size_t						object_index_;
-	ReactorEventsE				reactor_event_;
-	ErrorCodeT					system_error_;
-	ErrorConditionT				error_;
+    friend class CompletionHandler;
+    friend class Reactor;
+    friend class Object;
+    
+    Reactor& reactor(){
+        return rreactor_;
+    }
+    
+    Reactor const& reactor()const{
+        return rreactor_;
+    }
+    ReactorEventsE reactorEvent()const{
+        return reactor_event_;
+    }
+    CompletionHandler* completionHandler()const;
+    
+    
+    void error(ErrorConditionT const& _err){
+        error_ = _err;
+    }
+    
+    void systemError(ErrorCodeT const& _err){
+        system_error_ = _err;
+    }
+    
+    ReactorContext(
+        Reactor &_rreactor,
+        const NanoTime &_rcurrent_time
+    ):  rreactor_(_rreactor),
+        rcurrent_time_(_rcurrent_time), channel_index_(-1), object_index_(-1), reactor_event_(ReactorEventNone){}
+    
+    Reactor                     &rreactor_;
+    const NanoTime              &rcurrent_time_;
+    size_t                      channel_index_;
+    size_t                      object_index_;
+    ReactorEventsE              reactor_event_;
+    ErrorCodeT                  system_error_;
+    ErrorConditionT             error_;
 };
 
 }//namespace aio

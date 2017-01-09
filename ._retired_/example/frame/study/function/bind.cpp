@@ -57,75 +57,75 @@ void operator delete(void* ptr) throw()
 
 
 struct ReactorContext{
-	void print(){
-		cout<<"ReactorContext this = "<<(void*)this<<endl;
-	}
+    void print(){
+        cout<<"ReactorContext this = "<<(void*)this<<endl;
+    }
 };
 
 struct Event{
-	
+    
 };
 
 class Listener{
 public:
-	Listener(){}
-	
-	template <typename F>
-	bool accept(ReactorContext &_rctx, F _f){
-		fnc = _f;
-		return true;
-	}
-	
-	bool call(ReactorContext &_rctx){
-		SocketDevice sd;
-		return fnc(_rctx, sd);
-	}
-	
+    Listener(){}
+    
+    template <typename F>
+    bool accept(ReactorContext &_rctx, F _f){
+        fnc = _f;
+        return true;
+    }
+    
+    bool call(ReactorContext &_rctx){
+        SocketDevice sd;
+        return fnc(_rctx, sd);
+    }
+    
 private:
-	typedef boost::function<bool(ReactorContext&, SocketDevice &)>	FunctionT;
-	FunctionT	fnc;
+    typedef boost::function<bool(ReactorContext&, SocketDevice &)>  FunctionT;
+    FunctionT   fnc;
 };
 
 struct Big{
-	char buf[312];
+    char buf[312];
 };
 
 class Object{
 public:
-	Object(Listener &_rlsn):rlsn(_rlsn){}
-	
-	bool onEvent(ReactorContext &_rctx, Event const &_revent){
-		auto f = std::bind(&Object::onAccept, this, std::placeholders::_1, std::placeholders::_2, Big());
-		cerr<<"sizeof(f) = "<<sizeof(f)<<endl;
-		rlsn.accept(_rctx, f);
-		return true;
-	}
-	bool onAccept(ReactorContext &_rctx, SocketDevice &_rsd, Big &_big){
-		_rctx.print();
-		cout<<"On Accept"<<endl;
-		return true;
-	}
+    Object(Listener &_rlsn):rlsn(_rlsn){}
+    
+    bool onEvent(ReactorContext &_rctx, Event const &_revent){
+        auto f = std::bind(&Object::onAccept, this, std::placeholders::_1, std::placeholders::_2, Big());
+        cerr<<"sizeof(f) = "<<sizeof(f)<<endl;
+        rlsn.accept(_rctx, f);
+        return true;
+    }
+    bool onAccept(ReactorContext &_rctx, SocketDevice &_rsd, Big &_big){
+        _rctx.print();
+        cout<<"On Accept"<<endl;
+        return true;
+    }
 private:
-	Listener	&rlsn;
+    Listener    &rlsn;
 };
 
 
 int main(int argc, char *argv[]){
-	cerr<<"================Step1"<<endl;
-	Listener	lsn;
-	cerr<<"================Step2"<<endl;
-	Object		obj(lsn);
-	cerr<<"================Step3"<<endl;
-	ReactorContext	ctx;
-	cerr<<"================Step4"<<endl;
-	ctx.print();
-	cerr<<"================Step5"<<endl;
-	obj.onEvent(ctx, Event());
-	cerr<<"================Step6"<<endl;
-	
-	lsn.call(ctx);
-	cerr<<"================Step7"<<endl;
-	
-	
-	return 0;
+    cerr<<"================Step1"<<endl;
+    Listener    lsn;
+    cerr<<"================Step2"<<endl;
+    Object      obj(lsn);
+    cerr<<"================Step3"<<endl;
+    ReactorContext  ctx;
+    cerr<<"================Step4"<<endl;
+    ctx.print();
+    cerr<<"================Step5"<<endl;
+    obj.onEvent(ctx, Event());
+    cerr<<"================Step6"<<endl;
+    
+    lsn.call(ctx);
+    cerr<<"================Step7"<<endl;
+    
+    
+    return 0;
 }

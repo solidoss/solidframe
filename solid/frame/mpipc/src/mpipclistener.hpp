@@ -31,22 +31,22 @@ class Service;
 
 class Listener: public Dynamic<Listener, frame::aio::Object>{
 public:
-	Listener(
-		SocketDevice &_rsd
-	);
-	~Listener();
+    Listener(
+        SocketDevice &_rsd
+    );
+    ~Listener();
 private:
-	Service& service(frame::aio::ReactorContext &_rctx);
-	void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
-	
-	void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
-	
-	
-	typedef frame::aio::Listener			ListenerSocketT;
-	typedef frame::aio::Timer				TimerT;
-	
-	ListenerSocketT		sock;
-	TimerT				timer;
+    Service& service(frame::aio::ReactorContext &_rctx);
+    void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
+    
+    void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
+    
+    
+    typedef frame::aio::Listener            ListenerSocketT;
+    typedef frame::aio::Timer               TimerT;
+    
+    ListenerSocketT     sock;
+    TimerT              timer;
 };
 
 

@@ -16,22 +16,22 @@ namespace solid{
 
 template <size_t S>
 struct Binary{
-	enum{
-		Size = S,
-		Capacity = S
-	};
-	size_t size()const{return Size;}
-	size_t capacity()const{return Capacity;}
-	
-	uint8_t& operator[](const size_t &_off){
-		return data[_off];
-	}
-	
-	uint8_t operator[](const size_t &_off)const{
-		return data[_off];
-	}
-	
-	uint8_t data[Capacity];
+    enum{
+        Size = S,
+        Capacity = S
+    };
+    size_t size()const{return Size;}
+    size_t capacity()const{return Capacity;}
+    
+    uint8_t& operator[](const size_t &_off){
+        return data[_off];
+    }
+    
+    uint8_t operator[](const size_t &_off)const{
+        return data[_off];
+    }
+    
+    uint8_t data[Capacity];
 };
 
 

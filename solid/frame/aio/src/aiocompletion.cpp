@@ -20,114 +20,114 @@ namespace solid{
 namespace frame{
 namespace aio{
 //---------------------------------------------------------------------
-//----	Completion	----
+//----  Completion  ----
 //---------------------------------------------------------------------
 
 
 CompletionHandler::CompletionHandler(
-	ObjectProxy const &_rop,
-	CallbackT _pcall/* = &on_init_completion*/
+    ObjectProxy const &_rop,
+    CallbackT _pcall/* = &on_init_completion*/
 ):pprev(nullptr), idxreactor(InvalidIndex()), call(_pcall)
 {
-	if(_rop.object().registerCompletionHandler(*this)){
-		this->activate(_rop.object());
-	}
+    if(_rop.object().registerCompletionHandler(*this)){
+        this->activate(_rop.object());
+    }
 }
 
 CompletionHandler::CompletionHandler(
-	CallbackT _pcall/* = &on_init_completion*/
+    CallbackT _pcall/* = &on_init_completion*/
 ):pprev(nullptr), idxreactor(InvalidIndex()), call(_pcall){
-	
+    
 }
 
 
 CompletionHandler::~CompletionHandler(){
-	unregister();
-	//cannot call deactivate here. it must be called by inheritants in their destructor
-	//deactivate();
+    unregister();
+    //cannot call deactivate here. it must be called by inheritants in their destructor
+    //deactivate();
 }
 
 ReactorEventsE CompletionHandler::reactorEvent(ReactorContext &_rctx)const{
-	return _rctx.reactorEvent();
+    return _rctx.reactorEvent();
 }
 
 /*static*/ CompletionHandler* CompletionHandler::completion_handler(ReactorContext &_rctx){
-	return _rctx.completionHandler();
+    return _rctx.completionHandler();
 }
 
 Reactor& CompletionHandler::reactor(ReactorContext &_rctx)const{
-	return _rctx.reactor();
+    return _rctx.reactor();
 }
 
 void CompletionHandler::error(ReactorContext &_rctx, ErrorConditionT const& _err)const{
-	_rctx.error(_err);
+    _rctx.error(_err);
 }
 
 void CompletionHandler::errorClear(ReactorContext &_rctx)const{
-	_rctx.clearError();
+    _rctx.clearError();
 }
 
 void CompletionHandler::systemError(ReactorContext &_rctx, ErrorCodeT const& _err)const{
-	_rctx.systemError(_err);
+    _rctx.systemError(_err);
 }
 
 bool CompletionHandler::activate(Object const &_robj){
-	Reactor *preactor = nullptr;
-	if(!isActive() && (preactor = Reactor::safeSpecific())){
-		preactor->registerCompletionHandler(*this, _robj);
-	}
-	return isActive();
+    Reactor *preactor = nullptr;
+    if(!isActive() && (preactor = Reactor::safeSpecific())){
+        preactor->registerCompletionHandler(*this, _robj);
+    }
+    return isActive();
 }
 
 
 void CompletionHandler::unregister(){
-	if(isRegistered()){
-		this->pprev->pnext = this->pnext;
-		this->pprev = this->pnext = nullptr;
-	}
+    if(isRegistered()){
+        this->pprev->pnext = this->pnext;
+        this->pprev = this->pnext = nullptr;
+    }
 }
 
 void CompletionHandler::deactivate(){
-	Reactor *preactor = nullptr;
-	if(isActive() && (preactor = Reactor::safeSpecific())){
-		//the object has entered the reactor
-		preactor->unregisterCompletionHandler(*this);
-		idxreactor = InvalidIndex();
-	}
-	if(isActive()){
-		SOLID_THROW("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");
-		std::terminate();
-	}
+    Reactor *preactor = nullptr;
+    if(isActive() && (preactor = Reactor::safeSpecific())){
+        //the object has entered the reactor
+        preactor->unregisterCompletionHandler(*this);
+        idxreactor = InvalidIndex();
+    }
+    if(isActive()){
+        SOLID_THROW("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");
+        std::terminate();
+    }
 }
 
 /*static*/ void CompletionHandler::on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
-	_rch.call = nullptr;
+    _rch.call = nullptr;
 }
 
 /*static*/ void CompletionHandler::on_dummy_completion(CompletionHandler&, ReactorContext &){
 }
 
 void CompletionHandler::addDevice(ReactorContext &_rctx, Device const &_rsd, const ReactorWaitRequestsE _req){
-	SOLID_ASSERT(isActive());
-	_rctx.reactor().addDevice(_rctx, *this, _rsd, _req);
+    SOLID_ASSERT(isActive());
+    _rctx.reactor().addDevice(_rctx, *this, _rsd, _req);
 }
 void CompletionHandler::remDevice(ReactorContext &_rctx, Device const &_rsd){
-	SOLID_ASSERT(isActive());
-	_rctx.reactor().remDevice(*this, _rsd);
+    SOLID_ASSERT(isActive());
+    _rctx.reactor().remDevice(*this, _rsd);
 }
 
 void CompletionHandler::addTimer(ReactorContext &_rctx, NanoTime const &_rt, size_t &_storedidx){
-	SOLID_ASSERT(isActive());
-	_rctx.reactor().addTimer(*this, _rt, _storedidx);
+    SOLID_ASSERT(isActive());
+    _rctx.reactor().addTimer(*this, _rt, _storedidx);
 }
 void CompletionHandler::remTimer(ReactorContext &_rctx, size_t const &_storedidx){
-	SOLID_ASSERT(isActive());
-	_rctx.reactor().remTimer(*this, _storedidx);
+    SOLID_ASSERT(isActive());
+    _rctx.reactor().remTimer(*this, _storedidx);
 }
 
 SocketDevice & dummy_socket_device(){
-	static SocketDevice sd;
-	return sd;
+    static SocketDevice sd;
+    return sd;
 }
 
 }//namespace aio

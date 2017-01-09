@@ -17,8 +17,8 @@ namespace aio{
 class CompletionHandler;
 
 struct ForwardCompletionHandler{
-	ForwardCompletionHandler(CompletionHandler *_pch = nullptr):pnext(_pch){}
-	CompletionHandler	*pnext;
+    ForwardCompletionHandler(CompletionHandler *_pch = nullptr):pnext(_pch){}
+    CompletionHandler   *pnext;
 };
 
 }//namespace aio

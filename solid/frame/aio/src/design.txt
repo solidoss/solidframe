@@ -5,104 +5,104 @@
 
 Optimization:
 ============
-*	Prevent checking if the CH is registered onto reactor on any CH's action.
+*   Prevent checking if the CH is registered onto reactor on any CH's action.
 Solution:
-	Automatically schedule a Register action on any newly created CH. 
+    Automatically schedule a Register action on any newly created CH. 
 
 
 //==================================================================
 
 struct frame::ActionContext{
-	error_code	error;
+    error_code  error;
 };
 
 struct frame::Action{
-	bool		done;
-	error_code	error;
-	CbkPtrT		pcbk;
+    bool        done;
+    error_code  error;
+    CbkPtrT     pcbk;
 };
 
 class frame::CompletionHandler{
 private:
-	void handleCompletion(ActionContext &_rctx){
-		cassert(pacc);
-		(*pact->pcbk)(this, _rctx);
-	}
+    void handleCompletion(ActionContext &_rctx){
+        cassert(pacc);
+        (*pact->pcbk)(this, _rctx);
+    }
 protected:
-	ObjectBase				&robj;
-	CompletionHandler		*pobjprev;
-	CompletionHandler		*pobjnext;//double linked list within the object
-	size_t					selidx;//index within selector
-	Action					*pact;
+    ObjectBase              &robj;
+    CompletionHandler       *pobjprev;
+    CompletionHandler       *pobjnext;//double linked list within the object
+    size_t                  selidx;//index within selector
+    Action                  *pact;
 };
 
 //for selector
 struct ObjectStub{
-	ObjectPointerT		objptr;
-	uint32				uid;
-	CompletionHandler	*pch;
+    ObjectPointerT      objptr;
+    uint32              uid;
+    CompletionHandler   *pch;
 };
 
 
 class frame::ObjectBase{
 public:
-	
+    
 private:
-	void onRegisterToSelector(Selector &_rsel){
-		FOR_EACH(it, complvec.begin(), complvec.end()){
-			it->registerToSelector(_rsel);
-		}
-	}
-	void onUnregisterFromSelector(Selector &_rsel){
-		FOR_EACH(it, complvec.begin(), complvec.end()){
-			it->unregisterFromSelector(_rsel);
-		}
-	}
-	void registerCompletionHandler(CompletionHandler &_rcplhnd){
-		
-	}
-	void unregisterCompletionHandler(CompletionHandler &_rcplhnd){
-	}
+    void onRegisterToSelector(Selector &_rsel){
+        FOR_EACH(it, complvec.begin(), complvec.end()){
+            it->registerToSelector(_rsel);
+        }
+    }
+    void onUnregisterFromSelector(Selector &_rsel){
+        FOR_EACH(it, complvec.begin(), complvec.end()){
+            it->unregisterFromSelector(_rsel);
+        }
+    }
+    void registerCompletionHandler(CompletionHandler &_rcplhnd){
+        
+    }
+    void unregisterCompletionHandler(CompletionHandler &_rcplhnd){
+    }
 private:
-	struct NotificationStub{
-		size_t					event;
-		DynamicPointer<Message> msgptr;
-		size_t					index;
-	};
-	typedef std::vector<NotificationStub>		NotificationVectorT;
-	
-	CompletionHandler			*pcmplst;
-	NotificationVectorT			ntfvec;
-	IndexT						fullid;
+    struct NotificationStub{
+        size_t                  event;
+        DynamicPointer<Message> msgptr;
+        size_t                  index;
+    };
+    typedef std::vector<NotificationStub>       NotificationVectorT;
+    
+    CompletionHandler           *pcmplst;
+    NotificationVectorT         ntfvec;
+    IndexT                      fullid;
 
-	ATOMIC_NS::atomic<IndexT>	thrid;
+    ATOMIC_NS::atomic<IndexT>   thrid;
 };
 
 class frame::Object: public frame::ObjectBase{
 public:
-	struct ExecuteContext{
-		size_t event()const{
-			return ev;
-		}
-		size_t index()const{
-			return idx;
-		}
-		DynamicPointer<Message>& message(){
-			return msgptr;
-		}
-		
-		const TimeSpec& time()const{
-			return rcrttm;
-		}
-		
-		void reschedule(size_t _event, size_t _index = 0);
-		void close();
-		
-	protected:
-		
-	};
+    struct ExecuteContext{
+        size_t event()const{
+            return ev;
+        }
+        size_t index()const{
+            return idx;
+        }
+        DynamicPointer<Message>& message(){
+            return msgptr;
+        }
+        
+        const TimeSpec& time()const{
+            return rcrttm;
+        }
+        
+        void reschedule(size_t _event, size_t _index = 0);
+        void close();
+        
+    protected:
+        
+    };
 private:
-	virtual void execute(ExecuteContext &_rctx) = 0;
+    virtual void execute(ExecuteContext &_rctx) = 0;
 };
 
 /*
@@ -113,110 +113,110 @@ private:
  */
 class frame::aio::Object: public frame::ObjectBase{
 public:
-	struct ExecuteContext{
-		size_t event()const{
-			return ev;
-		}
-		size_t index()const{
-			return idx;
-		}
-		DynamicPointer<Message>& message(){
-			return msgptr;
-		}
-		
-		const TimeSpec& time()const{
-			return rcrttm;
-		}
-		
-		void reschedule(Event const &_evt);
-		
-		void reschedule(
-		void close();
-	};
+    struct ExecuteContext{
+        size_t event()const{
+            return ev;
+        }
+        size_t index()const{
+            return idx;
+        }
+        DynamicPointer<Message>& message(){
+            return msgptr;
+        }
+        
+        const TimeSpec& time()const{
+            return rcrttm;
+        }
+        
+        void reschedule(Event const &_evt);
+        
+        void reschedule(
+        void close();
+    };
 protected:
 private:
-	virtual void onEvent(ExecuteContext &_rctx, Event const &_evt) = 0;
+    virtual void onEvent(ExecuteContext &_rctx, Event const &_evt) = 0;
 };
 
 
 
 class frame::Timer: public CompletionHandler{
 public:
-	bool waitFor(TimeSpec const &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
-		
-	}
-	bool waitUntil(TimeSpec const &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
-		if(selector()->time() >= _rts){
-			return true;
-		}
-		
-		selector()->
-	}
-	void cancel(){
-	}
+    bool waitFor(TimeSpec const &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
+        
+    }
+    bool waitUntil(TimeSpec const &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
+        if(selector()->time() >= _rts){
+            return true;
+        }
+        
+        selector()->
+    }
+    void cancel(){
+    }
 };
 
 struct frame::aio::ActionContext: frame::ActionContext{
-	size_t	events;
+    size_t  events;
 };
 
 
 void aio::Selector::run(){
-	d.should_continue = true;
-	do{
-		const size_t	selcnt = d.selcnt;
-		for(size_t i = 0; i < selcnt; ++i){
-			CompletionHandlerStub	&rch = d.chstubvec[d.events[i].u64];
-			aio::ActionContext		ctx(d.events[i].events);
-			
-			rch.handler->handleCompletion(ctx);
-		}
-		
-		while(timerq.size() && timerq.front().time >= crttime){
-			const size_t	chidx = timerq.front().idx;
-			const uint32	chuid = timerq.front().uid;
-			
-			timerq.pop();
-			cassert(chidx < d.chstubvec.size());
-			
-			if(d.chstubvec[chidx].uid == chuid){
-				CompletionHandlerStub	&rch = d.chstubvec[d.events[i].u64];
-				frame::ActionContext	ctx;
-			
-				rch.handler->handleCompletion(ctx);
-			}
-		}
-		
-		
-		const size_t cnt = d.objevsq.size();
-		for(size_t i(0); i < cnt; ++cnt, d.objevsq.pop()){
-			ObjectEventStub		&robjevs = d.objevsq.front();
-			if(robjevs.objidx < d.objvec.size() && robjevs.objuid == d.objvec[robjevs.objidx].uid){
-				ObjectStub 		&ros = d.objvec[robjevs.objidx];
-				ExecuteContext	ctx;
-				ctx.evt = robjevs.event;
-				ctx.msg = robjevs.msgptr;
-				ctx.idx = robjevs.index;
-				
-				ros.objptr->execute(ctx);
-			}
-		}
-	}while(d.should_continue);
+    d.should_continue = true;
+    do{
+        const size_t    selcnt = d.selcnt;
+        for(size_t i = 0; i < selcnt; ++i){
+            CompletionHandlerStub   &rch = d.chstubvec[d.events[i].u64];
+            aio::ActionContext      ctx(d.events[i].events);
+            
+            rch.handler->handleCompletion(ctx);
+        }
+        
+        while(timerq.size() && timerq.front().time >= crttime){
+            const size_t    chidx = timerq.front().idx;
+            const uint32    chuid = timerq.front().uid;
+            
+            timerq.pop();
+            cassert(chidx < d.chstubvec.size());
+            
+            if(d.chstubvec[chidx].uid == chuid){
+                CompletionHandlerStub   &rch = d.chstubvec[d.events[i].u64];
+                frame::ActionContext    ctx;
+            
+                rch.handler->handleCompletion(ctx);
+            }
+        }
+        
+        
+        const size_t cnt = d.objevsq.size();
+        for(size_t i(0); i < cnt; ++cnt, d.objevsq.pop()){
+            ObjectEventStub     &robjevs = d.objevsq.front();
+            if(robjevs.objidx < d.objvec.size() && robjevs.objuid == d.objvec[robjevs.objidx].uid){
+                ObjectStub      &ros = d.objvec[robjevs.objidx];
+                ExecuteContext  ctx;
+                ctx.evt = robjevs.event;
+                ctx.msg = robjevs.msgptr;
+                ctx.idx = robjevs.index;
+                
+                ros.objptr->execute(ctx);
+            }
+        }
+    }while(d.should_continue);
 }
 
 void aio::Selector::run(){
-	bool should_continue = true;
-	do{
-		
-		
-	}while(should_continue);
+    bool should_continue = true;
+    do{
+        
+        
+    }while(should_continue);
 }
 
 
 //================================================================================
 class aio::Socket{
 public:
-	
+    
 };
 
 class openssl::Socket{
@@ -226,124 +226,124 @@ public:
 template <class Sock>
 class Listener: public aio::CompletionHandler{
 public:
-	bool accept(
-		frame::aio::ExecuteContext &_rexectx,
-		SocketDevice &_rdev,
-		
-	){
-		
-	}
-	
-	
-	
-	bool doneAccept(error_code &_rerr, SocketDevice &_rdev){
-		
-	}
+    bool accept(
+        frame::aio::ExecuteContext &_rexectx,
+        SocketDevice &_rdev,
+        
+    ){
+        
+    }
+    
+    
+    
+    bool doneAccept(error_code &_rerr, SocketDevice &_rdev){
+        
+    }
 private:
-	Sock	s;
+    Sock    s;
 };
 
 template <class Sock>
 class Datagram: public aio::CompletionHandler{
 public:
 private:
-	Sock	s;
+    Sock    s;
 };
 
 template <class Sock>
 class Stream: public aio::CompletionHandler{
 public:
-	Stream(Device &_rd):s(_rd){}
-	
-	bool connect(SocketAddress &_rsa, error_code &_err){
-		
-	}
-	
-	bool doneConnect(error_code &_rerr){
-		
-	}
-	
-	bool recvSome(
-		frame::aio::ExecuteContext &_rctx,
-		char *_buf, size_t _bufcp,
-		error_code &_err, size_t &_rsz,
-		frame::Event const &_evs = Event(EventRecv)
-	){
-		StreamAction *psa = static_cast<StreamAction*>(this->pact);
-		
-		if(!psa->hasPendingRecv()){
-		
-			const WantE want = s.recvSome(0, _buf, _bufcp, _err, _rsz);
-			
-			if(want == WantDone){
-				return true;
-			}else{
-				psa->recvHandler(&ThisT::doRecvSome, _evs, _buf, _bufcp);
-				return aio::CompletionHandler::wait(_rctx.selector(), want, _err);
-			}
-		}else{
-			err = aio::already_in_progress_error;
-			return true;
-		}
-	}
+    Stream(Device &_rd):s(_rd){}
+    
+    bool connect(SocketAddress &_rsa, error_code &_err){
+        
+    }
+    
+    bool doneConnect(error_code &_rerr){
+        
+    }
+    
+    bool recvSome(
+        frame::aio::ExecuteContext &_rctx,
+        char *_buf, size_t _bufcp,
+        error_code &_err, size_t &_rsz,
+        frame::Event const &_evs = Event(EventRecv)
+    ){
+        StreamAction *psa = static_cast<StreamAction*>(this->pact);
+        
+        if(!psa->hasPendingRecv()){
+        
+            const WantE want = s.recvSome(0, _buf, _bufcp, _err, _rsz);
+            
+            if(want == WantDone){
+                return true;
+            }else{
+                psa->recvHandler(&ThisT::doRecvSome, _evs, _buf, _bufcp);
+                return aio::CompletionHandler::wait(_rctx.selector(), want, _err);
+            }
+        }else{
+            err = aio::already_in_progress_error;
+            return true;
+        }
+    }
 
-	bool recvAll(
-		frame::aio::ExecuteContext &_rexectx,
-		char *_buf, size_t _bufcp,
-		error_code &_err, size_t &_rsz,
-		frame::Event const &_evs = Event(EventRecv)
-	){
-		StreamAction *psa = static_cast<StreamAction*>(this->pact);
-		
-		if(!psa->hasPendingRecv()){
-		
-			const WantE want = s.recvSome(0, _buf, _bufcp, _err, _rsz);
-			
-			if(want == WantDone && (_rsz == _bufcp || _err)){
-				return true;
-			}else{
-				psa->recvHandler(&ThisT::doRecvAll, _evs, _buf, _bufcp, _rsz);
-				return aio::CompletionHandler::wait(_rctx.selector(), want, _err);
-			}
-		}else{
-			err = aio::already_in_progress_error;
-			return true;
-		}
-	}
-	bool doneRecv(frame::aio::ExecuteContext &_rexectx, error_code &_err, size_t &_rsz){
-	}
-	bool sendSome(frame::aio::ExecuteContext &_rexectx, const char *_buf, size_t _bufcp, Event const &_ev = Event(EventRecv)){
-	}
-	bool sendAll(frame::aio::ExecuteContext &_rexectx, const char *_buf, size_t _bufcp, Event const &_evs = Event(EventRecv)){
-	}
-	bool doneSend(frame::aio::ExecuteContext &_rexectx, error_code &_err, size_t &_rsz){
-	}
+    bool recvAll(
+        frame::aio::ExecuteContext &_rexectx,
+        char *_buf, size_t _bufcp,
+        error_code &_err, size_t &_rsz,
+        frame::Event const &_evs = Event(EventRecv)
+    ){
+        StreamAction *psa = static_cast<StreamAction*>(this->pact);
+        
+        if(!psa->hasPendingRecv()){
+        
+            const WantE want = s.recvSome(0, _buf, _bufcp, _err, _rsz);
+            
+            if(want == WantDone && (_rsz == _bufcp || _err)){
+                return true;
+            }else{
+                psa->recvHandler(&ThisT::doRecvAll, _evs, _buf, _bufcp, _rsz);
+                return aio::CompletionHandler::wait(_rctx.selector(), want, _err);
+            }
+        }else{
+            err = aio::already_in_progress_error;
+            return true;
+        }
+    }
+    bool doneRecv(frame::aio::ExecuteContext &_rexectx, error_code &_err, size_t &_rsz){
+    }
+    bool sendSome(frame::aio::ExecuteContext &_rexectx, const char *_buf, size_t _bufcp, Event const &_ev = Event(EventRecv)){
+    }
+    bool sendAll(frame::aio::ExecuteContext &_rexectx, const char *_buf, size_t _bufcp, Event const &_evs = Event(EventRecv)){
+    }
+    bool doneSend(frame::aio::ExecuteContext &_rexectx, error_code &_err, size_t &_rsz){
+    }
 private:
-	static void doRecvSome(ActionContext &_rctx, void *_ph, void *_pa){
-		ThisT				*pthis = reinterpret_cast<ThisT*>(_ph);
-		RecvAction			*pact = reinterpret_cast<BasicRecvAction*>(_pa);
-		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
-		
-		const WanttE 		want = pthis->s.recvSome(_rctx.events, pact->buf, pact->bufcp, pact->err, pact->sz);
-			
-		if(want == WantDone || aio::CompletionHandler::wait(rctx.selector(), want, pact->err)){
-			pthis->aio::CompletionHandler::complete(rctx.selector(), pact->event);
-		}
-	}
-	static void doRecvAll(ActionContext &_rctx, void *_ph, void *_pa){
-		ThisT				*pthis = reinterpret_cast<ThisT*>(_ph);
-		RecvAction			*pact = reinterpret_cast<BasicRecvAction*>(_pa);
-		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
-		
-		size_t				sz;
-		const WanttE 		want = pthis->s.recvSome(_rctx.events, pact->buf, pact->bufcp, pact->err, sz);
-			
-		if(want == WantDone || aio::CompletionHandler::wait(rctx.selector(), want, pact->err)){
-			pthis->aio::CompletionHandler::complete(rctx.selector(), pact->event);
-		}
-	}
+    static void doRecvSome(ActionContext &_rctx, void *_ph, void *_pa){
+        ThisT               *pthis = reinterpret_cast<ThisT*>(_ph);
+        RecvAction          *pact = reinterpret_cast<BasicRecvAction*>(_pa);
+        aio::ActionContext  &rctx = static_cast<aio::ActionContext&>(_rctx);
+        
+        const WanttE        want = pthis->s.recvSome(_rctx.events, pact->buf, pact->bufcp, pact->err, pact->sz);
+            
+        if(want == WantDone || aio::CompletionHandler::wait(rctx.selector(), want, pact->err)){
+            pthis->aio::CompletionHandler::complete(rctx.selector(), pact->event);
+        }
+    }
+    static void doRecvAll(ActionContext &_rctx, void *_ph, void *_pa){
+        ThisT               *pthis = reinterpret_cast<ThisT*>(_ph);
+        RecvAction          *pact = reinterpret_cast<BasicRecvAction*>(_pa);
+        aio::ActionContext  &rctx = static_cast<aio::ActionContext&>(_rctx);
+        
+        size_t              sz;
+        const WanttE        want = pthis->s.recvSome(_rctx.events, pact->buf, pact->bufcp, pact->err, sz);
+            
+        if(want == WantDone || aio::CompletionHandler::wait(rctx.selector(), want, pact->err)){
+            pthis->aio::CompletionHandler::complete(rctx.selector(), pact->event);
+        }
+    }
 private:
-	Sock	s;
+    Sock    s;
 };
 
 

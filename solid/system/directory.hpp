@@ -15,12 +15,12 @@ namespace solid{
 //! A wrapper for filesystem directory opperations
 class Directory{
 public:
-	//! Create a new directory
-	static bool create(const char *);
-	//! Erase a file
-	static bool eraseFile(const char *);
-	//! Rename a file
-	static bool renameFile(const char *_to, const char *_from);
+    //! Create a new directory
+    static bool create(const char *);
+    //! Erase a file
+    static bool eraseFile(const char *);
+    //! Rename a file
+    static bool renameFile(const char *_to, const char *_from);
 };
 
 }//namespace solid

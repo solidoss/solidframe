@@ -43,15 +43,15 @@ namespace solid{
 
 /*static*/ const char* src_file_name(char const *_fname){
 #ifdef SOLID_ON_WINDOWS
-	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
+    static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
 #else
-	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "solid/system/src")));
+    static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "solid/system/src")));
 #endif
-	return _fname + fileoff;
+    return _fname + fileoff;
 }
 
 //=============================================================================
-//	NanoTime
+//  NanoTime
 //=============================================================================
 /*static*/ const NanoTime NanoTime::maximum(-1, -1);
 
@@ -60,147 +60,147 @@ namespace solid{
 #endif
 
 /*static*/ NanoTime NanoTime::createRealTime(){
-	NanoTime ct;
-	return ct.currentRealTime();
+    NanoTime ct;
+    return ct.currentRealTime();
 }
 /*static*/ NanoTime NanoTime::createMonotonic(){
-	NanoTime ct;
-	return ct.currentMonotonic();
+    NanoTime ct;
+    return ct.currentMonotonic();
 }
 
-#if		defined(SOLID_ON_WINDOWS)
+#if     defined(SOLID_ON_WINDOWS)
 
 struct TimeStartData{
 #ifdef NWINDOWSQPC
-	TimeStartData():start_time(time(nullptr)), start_msec(::GetTickCount64()){
-	}
+    TimeStartData():start_time(time(nullptr)), start_msec(::GetTickCount64()){
+    }
 #else
-	TimeStartData():start_time(time(nullptr)){
-		QueryPerformanceCounter(&start_msec);
-		QueryPerformanceFrequency(&start_freq);
-	}
+    TimeStartData():start_time(time(nullptr)){
+        QueryPerformanceCounter(&start_msec);
+        QueryPerformanceFrequency(&start_freq);
+    }
 #endif
-	static TimeStartData& instance();
-	const time_t	start_time;
+    static TimeStartData& instance();
+    const time_t    start_time;
 #ifndef NWINDOWSQPC
-	LARGE_INTEGER	start_msec;
-	LARGE_INTEGER	start_freq;
+    LARGE_INTEGER   start_msec;
+    LARGE_INTEGER   start_freq;
 #else
-	const uint64_t	start_msec;
+    const uint64_t  start_msec;
 #endif
 };
  
 TimeStartData& tsd_instance_stub(){
-	static TimeStartData tsd;
-	return tsd;
+    static TimeStartData tsd;
+    return tsd;
 }
 
 void once_cbk_tsd(){
- 	tsd_instance_stub();
+    tsd_instance_stub();
 }
  
 TimeStartData& TimeStartData::instance(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk_tsd, once);
-	return tsd_instance_stub();
+    static boost::once_flag once = BOOST_ONCE_INIT;
+    boost::call_once(&once_cbk_tsd, once);
+    return tsd_instance_stub();
 }
 
 const NanoTime& NanoTime::currentRealTime(){
 #ifdef NWINDOWSQPC
-	const TimeStartData	&tsd = TimeStartData::instance();
-	const ULONGLONG	msecs = ::GetTickCount64() - tsd.start_msec;
+    const TimeStartData &tsd = TimeStartData::instance();
+    const ULONGLONG msecs = ::GetTickCount64() - tsd.start_msec;
 
-	const ulong		secs = static_cast<ulong>(msecs / 1000);
-	const ulong		nsecs = (msecs % 1000) * 1000 * 1000;
-	this->seconds(tsd.start_time + secs);
-	this->nanoSeconds(nsecs);
+    const ulong     secs = static_cast<ulong>(msecs / 1000);
+    const ulong     nsecs = (msecs % 1000) * 1000 * 1000;
+    this->seconds(tsd.start_time + secs);
+    this->nanoSeconds(nsecs);
 #else
-	const TimeStartData	&tsd = TimeStartData::instance();
-	LARGE_INTEGER		ms;
-	
-	QueryPerformanceCounter(&ms);
-	const uint64_t qpc = ms.QuadPart - tsd.start_msec.QuadPart;
-	const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
-	const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
-	this->seconds(tsd.start_time + secs);
-	this->nanoSeconds(nsecs);
+    const TimeStartData &tsd = TimeStartData::instance();
+    LARGE_INTEGER       ms;
+    
+    QueryPerformanceCounter(&ms);
+    const uint64_t qpc = ms.QuadPart - tsd.start_msec.QuadPart;
+    const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
+    const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
+    this->seconds(tsd.start_time + secs);
+    this->nanoSeconds(nsecs);
 #endif
-	return *this;
+    return *this;
 }
 
 const NanoTime& NanoTime::currentMonotonic(){
 #ifdef NWINDOWSQPC
-	const ULONGLONG	msecs = ::GetTickCount64();
-	const ulong		secs = msecs / 1000;
-	const ulong		nsecs = (msecs % 1000) * 1000 * 1000;
-	this->seconds(secs);
-	this->nanoSeconds(nsecs);
+    const ULONGLONG msecs = ::GetTickCount64();
+    const ulong     secs = msecs / 1000;
+    const ulong     nsecs = (msecs % 1000) * 1000 * 1000;
+    this->seconds(secs);
+    this->nanoSeconds(nsecs);
 #else
-	const TimeStartData	&tsd = TimeStartData::instance();
-	LARGE_INTEGER		ms;
-	
-	QueryPerformanceCounter(&ms);
-	const uint64_t qpc = ms.QuadPart;
-	const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
-	const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
-	this->seconds(secs);
-	this->nanoSeconds(nsecs);
+    const TimeStartData &tsd = TimeStartData::instance();
+    LARGE_INTEGER       ms;
+    
+    QueryPerformanceCounter(&ms);
+    const uint64_t qpc = ms.QuadPart;
+    const uint32_t secs = static_cast<uint32_t>(qpc / tsd.start_freq.QuadPart);
+    const uint32_t nsecs = static_cast<uint32_t>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
+    this->seconds(secs);
+    this->nanoSeconds(nsecs);
 #endif
-	return *this;
+    return *this;
 }
 
-#elif	defined(SOLID_ON_DARWIN)
+#elif   defined(SOLID_ON_DARWIN)
 
 struct TimeStartData{
-	TimeStartData(){
-		st = time(nullptr);
-		stns = mach_absolute_time();
-		stns -= (stns % 1000000000);
-	}
-	uint64_t	stns;
-	time_t	st;
+    TimeStartData(){
+        st = time(nullptr);
+        stns = mach_absolute_time();
+        stns -= (stns % 1000000000);
+    }
+    uint64_t    stns;
+    time_t  st;
 };
 struct HelperMatchTimeBase: mach_timebase_info_data_t{
     HelperMatchTimeBase(){
-		this->denom = 0;
-		this->numer = 0;
-		::mach_timebase_info((mach_timebase_info_data_t*)this);
-	}
+        this->denom = 0;
+        this->numer = 0;
+        ::mach_timebase_info((mach_timebase_info_data_t*)this);
+    }
 };
 const NanoTime& NanoTime::currentRealTime(){
-	static TimeStartData		tsd;
-	static HelperMatchTimeBase	info;
-	uint64_t				difference = mach_absolute_time() - tsd.stns;
+    static TimeStartData        tsd;
+    static HelperMatchTimeBase  info;
+    uint64_t                difference = mach_absolute_time() - tsd.stns;
 
-	uint64_t elapsednano = difference * (info.numer / info.denom);
+    uint64_t elapsednano = difference * (info.numer / info.denom);
 
-	this->seconds(tsd.st + elapsednano / 1000000000);
-	this->nanoSeconds(elapsednano % 1000000000);
-	return *this;
+    this->seconds(tsd.st + elapsednano / 1000000000);
+    this->nanoSeconds(elapsednano % 1000000000);
+    return *this;
 }
 
 const NanoTime& NanoTime::currentMonotonic(){
-	static uint64_t			tsd(mach_absolute_time());
-	static HelperMatchTimeBase	info;
-	uint64_t				difference = mach_absolute_time() - tsd;
+    static uint64_t         tsd(mach_absolute_time());
+    static HelperMatchTimeBase  info;
+    uint64_t                difference = mach_absolute_time() - tsd;
 
-	uint64_t elapsednano = difference * (info.numer / info.denom);
+    uint64_t elapsednano = difference * (info.numer / info.denom);
 
-	this->seconds(elapsednano / 1000000000);
-	this->nanoSeconds(elapsednano % 1000000000);
-	return *this;
+    this->seconds(elapsednano / 1000000000);
+    this->nanoSeconds(elapsednano % 1000000000);
+    return *this;
 }
 
 #else
 
 const NanoTime& NanoTime::currentRealTime(){
-	clock_gettime(CLOCK_REALTIME, this);
-	return *this;
+    clock_gettime(CLOCK_REALTIME, this);
+    return *this;
 }
 
 const NanoTime& NanoTime::currentMonotonic(){
-	clock_gettime(CLOCK_MONOTONIC, this);
-	return *this;
+    clock_gettime(CLOCK_MONOTONIC, this);
+    return *this;
 }
 
 #endif

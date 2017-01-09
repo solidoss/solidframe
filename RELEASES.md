@@ -25,9 +25,9 @@
 * pushCall instead of pushReinit
 * Finalizing the MPIPC library.
 * Cross-platform support:
-	* Linux
-	* FreeBSD
-	* Darwin/OSX (starting with XCode 8 for thread_local)
+    * Linux
+    * FreeBSD
+    * Darwin/OSX (starting with XCode 8 for thread_local)
 * Add "make install" support.
 * Documentation.
 

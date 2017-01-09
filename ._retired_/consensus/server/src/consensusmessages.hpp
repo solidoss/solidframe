@@ -29,15 +29,15 @@ namespace consensus{
 namespace server{
 
 struct OperationStub{
-	template <class S>
-	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
-		_s.push(operation, "opp").push(reqid, "reqid").push(proposeid, "proposeid").push(acceptid, "acceptid");
-		return _s;
-	}
-	uint8					operation;
-	consensus::RequestId	reqid;
-	uint32					proposeid;
-	uint32					acceptid;
+    template <class S>
+    S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
+        _s.push(operation, "opp").push(reqid, "reqid").push(proposeid, "proposeid").push(acceptid, "acceptid");
+        return _s;
+    }
+    uint8                   operation;
+    consensus::RequestId    reqid;
+    uint32                  proposeid;
+    uint32                  acceptid;
 };
 
 template <uint16 Count>
@@ -45,44 +45,44 @@ struct OperationMessage;
 
 template <>
 struct OperationMessage<1>: Dynamic<OperationMessage<1>, Message>{
-	template <class S>
-	S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
-		static_cast<Message*>(this)->serialize(_s, _rctx);
-		
-		_s.push(op, "operation");
-		return _s;
-	}
-	
-	OperationStub	op;
+    template <class S>
+    S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+        static_cast<Message*>(this)->serialize(_s, _rctx);
+        
+        _s.push(op, "operation");
+        return _s;
+    }
+    
+    OperationStub   op;
 };
 
 template <>
 struct OperationMessage<2>: Dynamic<OperationMessage<2>, Message>{
-	template <class S>
-	S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
-		static_cast<Message*>(this)->serialize(_s, _rctx);
-		_s.push(op[0], "operation1");
-		_s.push(op[1], "operation2");
-		return _s;
-	}
-	
-	OperationStub	op[2];
+    template <class S>
+    S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+        static_cast<Message*>(this)->serialize(_s, _rctx);
+        _s.push(op[0], "operation1");
+        _s.push(op[1], "operation2");
+        return _s;
+    }
+    
+    OperationStub   op[2];
 };
 
 template <uint16 Count>
 struct OperationMessage: Dynamic<OperationMessage<Count>, Message>{
-	OperationMessage(){
-		opsz = 0;
-	}
-	template <class S>
-	S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
-		static_cast<Message*>(this)->serialize(_s, _rctx);
-		_s.pushArray(op, opsz, "operations");
-		return _s;
-	}
-	
-	OperationStub		op[Count];
-	size_t				opsz;
+    OperationMessage(){
+        opsz = 0;
+    }
+    template <class S>
+    S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+        static_cast<Message*>(this)->serialize(_s, _rctx);
+        _s.pushArray(op, opsz, "operations");
+        return _s;
+    }
+    
+    OperationStub       op[Count];
+    size_t              opsz;
 };
 
 }//namespace server

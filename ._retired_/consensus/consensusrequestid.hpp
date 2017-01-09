@@ -29,29 +29,29 @@ namespace consensus{
  * 
  */
 struct RequestId{
-	RequestId():requid(InvalidIndex()){}
-	RequestId(const uint32 _requid, frame::ObjectUidT const &_objuid):requid(_requid), senderuid(_objuid){}
-	
-	template <class S>
-	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
-		_s.push(requid, "opp").push(requid, "reqid");
-		_s.push(senderuid.first, "senderuid_first");
-		_s.push(senderuid.second, "senderuid_second");
-		const SocketAddressInet4 &rsa = sockaddr;
-		_s.pushBinary((void*)rsa.sockAddr(), SocketAddressInet4::Capacity, "sockaddr");
-		return _s;
-	}
-	
-	bool operator<(const RequestId &_rcsi)const;
-	bool operator==(const RequestId &_rcsi)const;
-	size_t hash()const;
-	bool senderEqual(const RequestId &_rcsi)const;
-	bool senderLess(const RequestId &_rcsi)const;
-	size_t senderHash()const;
-	
-	uint32 						requid;
-	frame::ObjectUidT			senderuid;
-	SocketAddressInet4			sockaddr;
+    RequestId():requid(InvalidIndex()){}
+    RequestId(const uint32 _requid, frame::ObjectUidT const &_objuid):requid(_requid), senderuid(_objuid){}
+    
+    template <class S>
+    S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
+        _s.push(requid, "opp").push(requid, "reqid");
+        _s.push(senderuid.first, "senderuid_first");
+        _s.push(senderuid.second, "senderuid_second");
+        const SocketAddressInet4 &rsa = sockaddr;
+        _s.pushBinary((void*)rsa.sockAddr(), SocketAddressInet4::Capacity, "sockaddr");
+        return _s;
+    }
+    
+    bool operator<(const RequestId &_rcsi)const;
+    bool operator==(const RequestId &_rcsi)const;
+    size_t hash()const;
+    bool senderEqual(const RequestId &_rcsi)const;
+    bool senderLess(const RequestId &_rcsi)const;
+    size_t senderHash()const;
+    
+    uint32                      requid;
+    frame::ObjectUidT           senderuid;
+    SocketAddressInet4          sockaddr;
 };
 
 std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid);

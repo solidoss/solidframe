@@ -19,7 +19,7 @@ class Manager;
 struct FilePointerMessage;
 
 namespace alpha{
-	
+    
 struct RemoteListMessage;
 struct FetchMasterMessage;
 struct FetchSlaveMessage;
@@ -27,27 +27,27 @@ struct FetchSlaveMessage;
 //! A simple Steward object
 class Steward: public solid::Dynamic<Steward, solid::frame::Object>{
 public:
-	static Steward& the(Steward *_ps = NULL);
-	
-	Steward(Manager &_rmgr);
-	~Steward();
-	
-	void sendMessage(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
-	
-	void dynamicHandle(solid::DynamicPointer<> &_dp);
-	void dynamicHandle(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<FetchMasterMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr);
-	
+    static Steward& the(Steward *_ps = NULL);
+    
+    Steward(Manager &_rmgr);
+    ~Steward();
+    
+    void sendMessage(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
+    
+    void dynamicHandle(solid::DynamicPointer<> &_dp);
+    void dynamicHandle(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
+    void dynamicHandle(solid::DynamicPointer<FetchMasterMessage> &_rmsgptr);
+    void dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
+    void dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr);
+    
 private:
-	void doExecute(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
-	void doClearFetch(const size_t _idx);
-	/*virtual*/ void execute(ExecuteContext &_rexectx);
-	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
+    void doExecute(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
+    void doClearFetch(const size_t _idx);
+    /*virtual*/ void execute(ExecuteContext &_rexectx);
+    /*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
 private:
-	struct Data;
-	Data &d;
+    struct Data;
+    Data &d;
 };
 
 }//namespace alpha

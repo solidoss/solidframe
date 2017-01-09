@@ -18,66 +18,66 @@ namespace frame{
 namespace mpipc{
 
 Listener::Listener(
-	SocketDevice &_rsd
+    SocketDevice &_rsd
 ):
-	sock(this->proxy(), std::move(_rsd)), timer(this->proxy())
+    sock(this->proxy(), std::move(_rsd)), timer(this->proxy())
 {
-	idbgx(Debug::mpipc, this);
+    idbgx(Debug::mpipc, this);
 }
 Listener::~Listener(){
-	idbgx(Debug::mpipc, this);
+    idbgx(Debug::mpipc, this);
 }
 
 inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
-	return static_cast<Service&>(_rctx.service());
+    return static_cast<Service&>(_rctx.service());
 }
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent){
-	idbgx(Debug::mpipc, "event = "<<_uevent);
-	if(
-		_uevent == generic_event_start or
-		_uevent == generic_event_timer
-	){
-		sock.postAccept(
-			_rctx,
-			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
-		);
-	}else if(_uevent == generic_event_kill){
-		postStop(_rctx);
-	}
+    idbgx(Debug::mpipc, "event = "<<_uevent);
+    if(
+        _uevent == generic_event_start or
+        _uevent == generic_event_timer
+    ){
+        sock.postAccept(
+            _rctx,
+            [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
+        );
+    }else if(_uevent == generic_event_kill){
+        postStop(_rctx);
+    }
 }
 
 void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
-	idbgx(Debug::mpipc, "");
-	unsigned	repeatcnt = 4;
-	
-	do{
-		if(!_rctx.error()){
-			service(_rctx).acceptIncomingConnection(_rsd);
-		}else{
-			idbgx(Debug::mpipc, "listen error"<<_rctx.error().message());
-			timer.waitFor(
-				_rctx, NanoTime(10),
-				[this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, make_event(GenericEvents::Timer));}
-			);
-			break;
-		}
-		--repeatcnt;
-	}while(
-		repeatcnt && 
-		sock.accept(
-			_rctx,
-			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);},
-			_rsd
-		)
-	);
-	
-	if(!repeatcnt){
-		sock.postAccept(
-			_rctx,
-			[this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
-		);//fully asynchronous call
-	}
+    idbgx(Debug::mpipc, "");
+    unsigned    repeatcnt = 4;
+    
+    do{
+        if(!_rctx.error()){
+            service(_rctx).acceptIncomingConnection(_rsd);
+        }else{
+            idbgx(Debug::mpipc, "listen error"<<_rctx.error().message());
+            timer.waitFor(
+                _rctx, NanoTime(10),
+                [this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, make_event(GenericEvents::Timer));}
+            );
+            break;
+        }
+        --repeatcnt;
+    }while(
+        repeatcnt && 
+        sock.accept(
+            _rctx,
+            [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);},
+            _rsd
+        )
+    );
+    
+    if(!repeatcnt){
+        sock.postAccept(
+            _rctx,
+            [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
+        );//fully asynchronous call
+    }
 }
 
 }//namespace mpipc

@@ -22,49 +22,49 @@ using namespace solid;
 namespace concept{
 
 Listener::Listener(
-	Service &_rsvc,
-	const solid::SocketDevice &_rsd,
-	solid::frame::aio::openssl::Context *_pctx
+    Service &_rsvc,
+    const solid::SocketDevice &_rsd,
+    solid::frame::aio::openssl::Context *_pctx
 ):BaseT(_rsd, true), rsvc(_rsvc), ctxptr(_pctx){
-	state = 0;
+    state = 0;
 }
 
 /*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
-	idbg("here");
-	SOLID_ASSERT(this->socketOk());
-	if(notified()){
-		Locker<Mutex>	lock(Manager::specific().mutex(*this));
-		solid::ulong sm = this->grabSignalMask();
-		if(sm & frame::S_KILL){ 
-			_rexectx.close();
-			return;
-		}
-	}
-	
-	solid::uint cnt(10);
-	
-	while(cnt--){
-		if(state == 0){
-			switch(this->socketAccept(sd)){
-				case frame::aio::AsyncError:
-					_rexectx.close();
-					return;
-				case frame::aio::AsyncSuccess:break;
-				case frame::aio::AsyncWait:
-					state = 1;
-					return;
-			}
-		}
-		state = 0;
-		SOLID_ASSERT(sd.ok());
-		//TODO: one may do some filtering on sd based on sd.remoteAddress()
-		if(ctxptr.get()){
-			rsvc.insertConnection(sd, ctxptr.get(), true);
-		}else{
-			rsvc.insertConnection(sd);
-		}
-	}
-	_rexectx.reschedule();
+    idbg("here");
+    SOLID_ASSERT(this->socketOk());
+    if(notified()){
+        Locker<Mutex>   lock(Manager::specific().mutex(*this));
+        solid::ulong sm = this->grabSignalMask();
+        if(sm & frame::S_KILL){ 
+            _rexectx.close();
+            return;
+        }
+    }
+    
+    solid::uint cnt(10);
+    
+    while(cnt--){
+        if(state == 0){
+            switch(this->socketAccept(sd)){
+                case frame::aio::AsyncError:
+                    _rexectx.close();
+                    return;
+                case frame::aio::AsyncSuccess:break;
+                case frame::aio::AsyncWait:
+                    state = 1;
+                    return;
+            }
+        }
+        state = 0;
+        SOLID_ASSERT(sd.ok());
+        //TODO: one may do some filtering on sd based on sd.remoteAddress()
+        if(ctxptr.get()){
+            rsvc.insertConnection(sd, ctxptr.get(), true);
+        }else{
+            rsvc.insertConnection(sd);
+        }
+    }
+    _rexectx.reschedule();
 }
 
 }//namespace concept

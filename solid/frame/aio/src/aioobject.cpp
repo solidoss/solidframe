@@ -20,52 +20,52 @@ namespace solid{
 namespace frame{
 namespace aio{
 //---------------------------------------------------------------------
-//----	Object	----
+//----  Object  ----
 //---------------------------------------------------------------------
 
 Object::Object(){}
 
 /*virtual*/ void Object::onEvent(ReactorContext &_rctx, Event &&_uevent){
-	
+    
 }
 
 bool Object::isRunning()const{
-	return runId().isValid();
+    return runId().isValid();
 }
 
 bool Object::registerCompletionHandler(CompletionHandler &_rch){
-	_rch.pnext = this->pnext;
-	if(_rch.pnext){
-		_rch.pnext->pprev = &_rch;
-	}
-	this->pnext = &_rch;
-	_rch.pprev = this;
-	return isRunning();
+    _rch.pnext = this->pnext;
+    if(_rch.pnext){
+        _rch.pnext->pprev = &_rch;
+    }
+    this->pnext = &_rch;
+    _rch.pprev = this;
+    return isRunning();
 }
 
 void Object::registerCompletionHandlers(){
-	CompletionHandler *pch = this->pnext;
-	
-	while(pch != nullptr){
-		pch->activate(*this);
-		pch = pch->pnext;
-	}
+    CompletionHandler *pch = this->pnext;
+    
+    while(pch != nullptr){
+        pch->activate(*this);
+        pch = pch->pnext;
+    }
 }
 
 bool Object::doPrepareStop(ReactorContext &_rctx){
-	if(this->disableVisits(_rctx.service().manager())){
-		CompletionHandler *pch = this->pnext;
-		
-		while(pch != nullptr){
-			pch->pprev = nullptr;//unregister
-			pch->deactivate();
-			
-			pch = pch->pnext;
-		}
-		this->pnext = nullptr;
-		return true;
-	}
-	return false;
+    if(this->disableVisits(_rctx.service().manager())){
+        CompletionHandler *pch = this->pnext;
+        
+        while(pch != nullptr){
+            pch->pprev = nullptr;//unregister
+            pch->deactivate();
+            
+            pch = pch->pnext;
+        }
+        this->pnext = nullptr;
+        return true;
+    }
+    return false;
 }
 
 }//namespace aio

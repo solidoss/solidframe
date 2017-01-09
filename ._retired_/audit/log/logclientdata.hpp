@@ -18,13 +18,13 @@ namespace solid{
 namespace audit{
 //! Log data identifing a client for log server
 struct LogClientData{
-	typedef std::vector<std::string> NameVectorT;
-	LogClientData():idx(InvalidIndex()), uid(-1){}
-	uint32			idx;
-	uint32			uid;
-	LogHead			head;
-	std::string		procname;
-	NameVectorT		modulenamev;
+    typedef std::vector<std::string> NameVectorT;
+    LogClientData():idx(InvalidIndex()), uid(-1){}
+    uint32          idx;
+    uint32          uid;
+    LogHead         head;
+    std::string     procname;
+    NameVectorT     modulenamev;
 };
 
 }//namespace audit

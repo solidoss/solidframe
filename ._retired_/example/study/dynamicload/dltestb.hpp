@@ -5,13 +5,13 @@
 
 class TestB: public Test{
 public:
-	TestB(int _b);
-	~TestB();
-	void set(int _b);
-	int get()const;
-	void print();
+    TestB(int _b);
+    ~TestB();
+    void set(int _b);
+    int get()const;
+    void print();
 private:
-	int b;
+    int b;
 };
 
 

@@ -35,10 +35,10 @@ using namespace std;
 using namespace solid;
 
 /*
-	The proof of concept application.
-	It instantiate a manager, creates some services,
-	registers some listeners talkers on those services
-	and offers a small CLI.
+    The proof of concept application.
+    It instantiate a manager, creates some services,
+    registers some listeners talkers on those services
+    and offers a small CLI.
 */
 // prints the CLI help
 void printHelp();
@@ -74,22 +74,22 @@ int pairfd[2];
 
 
 struct Params {
-    typedef std::vector<std::string>		StringVectorT;
-    typedef std::vector<SocketAddressInet4>	SocketAddressInet4VectorT;
+    typedef std::vector<std::string>        StringVectorT;
+    typedef std::vector<SocketAddressInet4> SocketAddressInet4VectorT;
 
     bool prepare();
 
-    int								start_port;
-    uint32							network_id;
-    string							dbg_levels;
-    string							dbg_modules;
-    string							dbg_addr;
-    string							dbg_port;
-    bool							dbg_buffered;
-    bool							dbg_console;
-    bool							log;
-    StringVectorT					ipcgwvec;
-    SocketAddressInet4VectorT		ipcgwaddrvec;
+    int                             start_port;
+    uint32                          network_id;
+    string                          dbg_levels;
+    string                          dbg_modules;
+    string                          dbg_addr;
+    string                          dbg_port;
+    bool                            dbg_buffered;
+    bool                            dbg_console;
+    bool                            log;
+    StringVectorT                   ipcgwvec;
+    SocketAddressInet4VectorT       ipcgwaddrvec;
 };
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
@@ -188,10 +188,10 @@ int main(int argc, char* argv[]) {
 
     do {
 
-        concept::Manager			m;
-        concept::alpha::Service		alphasvc(m);
-        concept::proxy::Service		proxysvc(m);
-        concept::gamma::Service		gammasvc(m);
+        concept::Manager            m;
+        concept::alpha::Service     alphasvc(m);
+        concept::proxy::Service     proxysvc(m);
+        concept::gamma::Service     gammasvc(m);
 
         m.start();
 
@@ -201,9 +201,9 @@ int main(int argc, char* argv[]) {
 
         if(true) {
             int port = p.start_port + 222;
-            frame::ipc::Configuration	cfg;
-            ResolveData					rd = synchronous_resolve("0.0.0.0", port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-            bool						rv;
+            frame::ipc::Configuration   cfg;
+            ResolveData                 rd = synchronous_resolve("0.0.0.0", port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+            bool                        rv;
 
             cfg.baseaddr = rd.begin();
 
@@ -288,7 +288,7 @@ bool insertListener(
     int _port,
     bool _secure
 ) {
-    ResolveData		rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+    ResolveData     rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
     if(!_rsvc.insertListener(rd, _secure)) {
         cout<<"["<<_name<<"] Failed adding listener on port "<<_port<<endl;
@@ -317,14 +317,14 @@ bool parseArguments(Params &_par, int argc, char *argv[]) {
         ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(true)->default_value(false), "Debug unbuffered")
         ("use-log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
         ("gateway,g", value<vector<string> >(&_par.ipcgwvec), "IPC gateways")
-        /*		("verbose,v", po::value<int>()->implicit_value(1),
-        				"enable verbosity (optionally specify level)")*/
-        /*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
-        				->default_value(0,"no"),
-        				"listen on a port.")
-        		("include-path,I", po::value< vector<string> >(),
-        				"include path")
-        		("input-file", po::value< vector<string> >(), "input file")*/
+        /*      ("verbose,v", po::value<int>()->implicit_value(1),
+                        "enable verbosity (optionally specify level)")*/
+        /*      ("listen,l", po::value<int>(&portnum)->implicit_value(1001)
+                        ->default_value(0,"no"),
+                        "listen on a port.")
+                ("include-path,I", po::value< vector<string> >(),
+                        "include path")
+                ("input-file", po::value< vector<string> >(), "input file")*/
         ;
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
@@ -346,7 +346,7 @@ bool Params::prepare() {
     for(std::vector<std::string>::iterator it(ipcgwvec.begin()); it != ipcgwvec.end(); ++it) {
         pos = it->find(':');
         if(pos == std::string::npos) {
-            ResolveData		rd = synchronous_resolve(it->c_str(), default_gw_ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+            ResolveData     rd = synchronous_resolve(it->c_str(), default_gw_ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
             if(!rd.empty()) {
                 ipcgwaddrvec.push_back(SocketAddressInet4(rd.begin()));
             } else {
@@ -356,7 +356,7 @@ bool Params::prepare() {
         } else {
             (*it)[pos] = '\0';
             int port = atoi(it->c_str() + pos + 1);
-            ResolveData		rd = synchronous_resolve(it->c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+            ResolveData     rd = synchronous_resolve(it->c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
             if(!rd.empty()) {
                 ipcgwaddrvec.push_back(SocketAddressInet4(rd.begin()));
             } else {

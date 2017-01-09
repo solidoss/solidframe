@@ -23,31 +23,31 @@ class LogConnector;
 //! The main class for log management
 class LogManager{
 public:
-	typedef std::pair<uint32, uint32> UidT;
-	LogManager();
-	~LogManager();
-	
-	UidT insertChannel(InputStream *_pis);
-	UidT insertListener(const char *_addr, const char *_port);
-	
-	void eraseClient(const UidT &_ruid);
-	void eraseListener(const UidT &_ruid);
-	
-	bool start();
-	void stop(bool _wait = true);
-	UidT insertConnector(LogConnector *_plc);
-	void eraseConnector(const UidT &_ruid);
+    typedef std::pair<uint32, uint32> UidT;
+    LogManager();
+    ~LogManager();
+    
+    UidT insertChannel(InputStream *_pis);
+    UidT insertListener(const char *_addr, const char *_port);
+    
+    void eraseClient(const UidT &_ruid);
+    void eraseListener(const UidT &_ruid);
+    
+    bool start();
+    void stop(bool _wait = true);
+    UidT insertConnector(LogConnector *_plc);
+    void eraseConnector(const UidT &_ruid);
 private:
-	struct ListenerWorker;
-	struct ChannelWorker;
-	friend struct ListenerWorker;
-	friend struct ChannelWorker;
+    struct ListenerWorker;
+    struct ChannelWorker;
+    friend struct ListenerWorker;
+    friend struct ChannelWorker;
 private:
-	void runListener(ListenerWorker &_w);
-	void runChannel(ChannelWorker &_w);
+    void runListener(ListenerWorker &_w);
+    void runChannel(ChannelWorker &_w);
 private:
-	struct Data;
-	Data	&d;
+    struct Data;
+    Data    &d;
 };
 
 }//namespace audit

@@ -38,40 +38,40 @@ class Manager;
 
 namespace concept{
 
-typedef solid::frame::Scheduler<solid::frame::aio::Selector>	AioSchedulerT;
-typedef solid::frame::Scheduler<solid::frame::ObjectSelector>	SchedulerT;
-typedef solid::frame::file::Store<>								FileStoreT;
+typedef solid::frame::Scheduler<solid::frame::aio::Selector>    AioSchedulerT;
+typedef solid::frame::Scheduler<solid::frame::ObjectSelector>   SchedulerT;
+typedef solid::frame::file::Store<>                             FileStoreT;
 
 //! A proof of concept server
 /*!
-	This is a proof of concept server and should be taken accordingly.
-	
-	It tries to give an ideea of how the foundation::Manager should be used.
-	
-	To complicate things a little, it allso keeps a map service name to service,
-	so that services can be more naturally accessed by their names.
+    This is a proof of concept server and should be taken accordingly.
+    
+    It tries to give an ideea of how the foundation::Manager should be used.
+    
+    To complicate things a little, it allso keeps a map service name to service,
+    so that services can be more naturally accessed by their names.
 */
 class Manager: public solid::frame::Manager{
 public:
-	Manager();
-	
-	~Manager();
-	
-	void start();
-	
-	static Manager& the(Manager *_pm = NULL);
-	
-	void scheduleListener(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
-	void scheduleTalker(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
-	void scheduleAioObject(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
-	void scheduleObject(solid::DynamicPointer<solid::frame::Object> &_objptr);
-	
-	solid::frame::ipc::Service 	&ipc()const;
-	FileStoreT&	fileStore()const;
-	solid::frame::aio::Resolver& resolver();
+    Manager();
+    
+    ~Manager();
+    
+    void start();
+    
+    static Manager& the(Manager *_pm = NULL);
+    
+    void scheduleListener(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
+    void scheduleTalker(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
+    void scheduleAioObject(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
+    void scheduleObject(solid::DynamicPointer<solid::frame::Object> &_objptr);
+    
+    solid::frame::ipc::Service  &ipc()const;
+    FileStoreT& fileStore()const;
+    solid::frame::aio::Resolver& resolver();
 private:
-	struct Data;
-	Data	&d;
+    struct Data;
+    Data    &d;
 };
 
 

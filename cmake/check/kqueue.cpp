@@ -4,7 +4,7 @@
 #include <cstdio>
 
 int main(){
-	int kq = kqueue();
-	printf("kq = %d", kq);
-	return 0;
+    int kq = kqueue();
+    printf("kq = %d", kq);
+    return 0;
 }

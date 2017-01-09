@@ -11,12 +11,12 @@ namespace gamma{
 
 struct SocketData;
 
-//!	A signal for sending a socket from a multi object to another
+//! A signal for sending a socket from a multi object to another
 struct SocketMoveMessage: solid::Dynamic<SocketMoveMessage, solid::frame::Message>{
-	SocketMoveMessage(const solid::frame::aio::SocketPointer &_rsp, SocketData *_psd): sp(_rsp), psd(_psd){}
+    SocketMoveMessage(const solid::frame::aio::SocketPointer &_rsp, SocketData *_psd): sp(_rsp), psd(_psd){}
     virtual ~SocketMoveMessage();
-    solid::frame::aio::SocketPointer	sp;
-	SocketData							*psd;
+    solid::frame::aio::SocketPointer    sp;
+    SocketData                          *psd;
 };
 
 

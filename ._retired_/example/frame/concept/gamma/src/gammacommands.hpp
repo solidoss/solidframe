@@ -37,35 +37,35 @@ class Writer;
 //! Basic alpha commands - with no parameters.
 class Basic: public Command{
 public:
-	enum Types{
-		Noop, Logout, Capability
-	};
-	Basic(Types _tp);
-	~Basic();
-	void initReader(Reader &);
-	void execute(const uint _sid);
+    enum Types{
+        Noop, Logout, Capability
+    };
+    Basic(Types _tp);
+    ~Basic();
+    void initReader(Reader &);
+    void execute(const uint _sid);
 private:
-	void execNoop(const uint _sid);
-	void execLogout(const uint _sid);
-	void execCapability(const uint _sid);
+    void execNoop(const uint _sid);
+    void execLogout(const uint _sid);
+    void execCapability(const uint _sid);
 private:
-	Types tp;
+    Types tp;
 };
 
 //! Alpha Login command
 /*!
-	Syntax:<br>
-	tag SP LOGIN SP astring = nume SP astring = password CRLF<br>
+    Syntax:<br>
+    tag SP LOGIN SP astring = nume SP astring = password CRLF<br>
 */
 class Login: public Command{
 public:
-	Login();
-	~Login();
-	void initReader(Reader &);
-	void execute(const uint _sid);
+    Login();
+    ~Login();
+    void initReader(Reader &);
+    void execute(const uint _sid);
 private:
-	void contextData(ObjectUidT &);
-	solid::String user,pass, ctx;
+    void contextData(ObjectUidT &);
+    solid::String user,pass, ctx;
 };
 
 }//namespace gamma

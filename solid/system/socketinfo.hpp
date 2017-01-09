@@ -27,30 +27,30 @@ namespace solid{
 ErrorCodeT last_socket_error();
 
 struct SocketInfo{
-	enum Family{
-		Local		= AF_UNIX,
-		Inet4		= AF_INET,
-		Inet6 		= AF_INET6,
-		AnyFamily	= AF_UNSPEC,
-	};
-	enum Type{
-		Stream = SOCK_STREAM,
-		Datagram = SOCK_DGRAM
-	};
-	enum {
-		HostStringCapacity = NI_MAXHOST,
-		ServiceStringCapacity = NI_MAXSERV
-	};
-// 	//! Some request flags
-// 	enum {
-// 		NumericHost = NI_NUMERICHOST,	//!< Generate only numeric host
-// 		NameRequest = NI_NAMEREQD,		//!< Force name lookup - fail if not found
-// 		NumericService = NI_NUMERICSERV	//!< Generate only the port number
-// 	};
+    enum Family{
+        Local       = AF_UNIX,
+        Inet4       = AF_INET,
+        Inet6       = AF_INET6,
+        AnyFamily   = AF_UNSPEC,
+    };
+    enum Type{
+        Stream = SOCK_STREAM,
+        Datagram = SOCK_DGRAM
+    };
+    enum {
+        HostStringCapacity = NI_MAXHOST,
+        ServiceStringCapacity = NI_MAXSERV
+    };
+//  //! Some request flags
+//  enum {
+//      NumericHost = NI_NUMERICHOST,   //!< Generate only numeric host
+//      NameRequest = NI_NAMEREQD,      //!< Force name lookup - fail if not found
+//      NumericService = NI_NUMERICSERV //!< Generate only the port number
+//  };
 private:
-	SocketInfo();
-	SocketInfo(const SocketInfo&);
-	SocketInfo& operator=(const SocketInfo&);
+    SocketInfo();
+    SocketInfo(const SocketInfo&);
+    SocketInfo& operator=(const SocketInfo&);
 };
 
 }//namespace solid

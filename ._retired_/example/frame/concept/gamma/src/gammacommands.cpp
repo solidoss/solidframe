@@ -35,46 +35,46 @@ namespace gamma{
 
 //The commands and the associated namemather
 struct Cmd{
-	enum CmdId{
-		LoginCmd,
-		LogoutCmd,
-		CapabilityCmd,
-		OpenCmd,
-		NoopCmd,
-		CmdCount
-	};
-	const char *name;
-	CmdId		id;
+    enum CmdId{
+        LoginCmd,
+        LogoutCmd,
+        CapabilityCmd,
+        OpenCmd,
+        NoopCmd,
+        CmdCount
+    };
+    const char *name;
+    CmdId       id;
 } const cmds[] = {
-	{"login", Cmd::LoginCmd},
-	{"logout",Cmd::LogoutCmd},
-	{"capability",Cmd::CapabilityCmd},
-	{"open", Cmd::OpenCmd},
-	{NULL,Cmd::CmdCount},
+    {"login", Cmd::LoginCmd},
+    {"logout",Cmd::LogoutCmd},
+    {"capability",Cmd::CapabilityCmd},
+    {"open", Cmd::OpenCmd},
+    {NULL,Cmd::CmdCount},
 };
 static const protocol::text::NameMatcher cmdm(cmds);
 //---------------------------------------------------------------
 /*
-	The creator method called by frame::Reader::fetchKey when the 
-	command name was parsed.
-	All it does is to create the proper command, which in turn,
-	will instruct the reader how to parse itself.
+    The creator method called by frame::Reader::fetchKey when the 
+    command name was parsed.
+    All it does is to create the proper command, which in turn,
+    will instruct the reader how to parse itself.
 */
 Command* Connection::doCreateSlave(const String& _name, Reader &_rr){
-	SocketData	&rsd(socketData(_rr.socketId()));
-	SOLID_ASSERT(!rsd.pcmd);
-	idbg("create command "<<_name);
-	switch(cmds[cmdm.match(_name.c_str())].id){
-		case Cmd::LoginCmd:
-			return rsd.pcmd = new Login;
-		case Cmd::LogoutCmd:
-			return rsd.pcmd = new Basic(Basic::Logout);
-		case Cmd::NoopCmd:
-			return rsd.pcmd = new Basic(Basic::Noop);
-		case Cmd::CapabilityCmd:
-			return rsd.pcmd = new Basic(Basic::Capability);
-		default:return NULL;
-	}
+    SocketData  &rsd(socketData(_rr.socketId()));
+    SOLID_ASSERT(!rsd.pcmd);
+    idbg("create command "<<_name);
+    switch(cmds[cmdm.match(_name.c_str())].id){
+        case Cmd::LoginCmd:
+            return rsd.pcmd = new Login;
+        case Cmd::LogoutCmd:
+            return rsd.pcmd = new Basic(Basic::Logout);
+        case Cmd::NoopCmd:
+            return rsd.pcmd = new Basic(Basic::Noop);
+        case Cmd::CapabilityCmd:
+            return rsd.pcmd = new Basic(Basic::Capability);
+        default:return NULL;
+    }
 }
 /*static*/ void Connection::doInitStaticSlave(Manager &_rm){
 }
@@ -88,28 +88,28 @@ Basic::~Basic(){
 void Basic::initReader(Reader &_rr){
 }
 void Basic::execute(const uint _sid){
-	switch(tp){
-		case Noop:	execNoop(_sid); break;
-		case Logout: execLogout(_sid); break;
-		case Capability: execCapability(_sid); break;
-	}
+    switch(tp){
+        case Noop:  execNoop(_sid); break;
+        case Logout: execLogout(_sid); break;
+        case Capability: execCapability(_sid); break;
+    }
 }
 
 void Basic::execNoop(const uint _sid){
-	Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done NOOP@")));
+    Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done NOOP@")));
 }
 void Basic::execLogout(const uint _sid){
-	Connection	&rc(Connection::the());
-	SocketData	&rsd(rc.socketData(_sid));
-	rsd.w.push(&Writer::returnValue<true>, protocol::text::Parameter(Writer::Failure));
-	rsd.w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done LOGOUT@")));
-	rsd.w.push(&Writer::putAtom, protocol::text::Parameter(StrDef("* Alpha connection closing\r\n")));
+    Connection  &rc(Connection::the());
+    SocketData  &rsd(rc.socketData(_sid));
+    rsd.w.push(&Writer::returnValue<true>, protocol::text::Parameter(Writer::Failure));
+    rsd.w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done LOGOUT@")));
+    rsd.w.push(&Writer::putAtom, protocol::text::Parameter(StrDef("* Alpha connection closing\r\n")));
 }
 void Basic::execCapability(const uint _sid){
-	Connection	&rc(Connection::the());
-	SocketData	&rsd(rc.socketData(_sid));
-	rsd.w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done CAPABILITY@")));
-	rsd.w.push(&Writer::putAtom, protocol::text::Parameter(StrDef("* CAPABILITIES noop logout login\r\n")));
+    Connection  &rc(Connection::the());
+    SocketData  &rsd(rc.socketData(_sid));
+    rsd.w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done CAPABILITY@")));
+    rsd.w.push(&Writer::putAtom, protocol::text::Parameter(StrDef("* CAPABILITIES noop logout login\r\n")));
 }
 //---------------------------------------------------------------
 // Login command
@@ -119,41 +119,41 @@ Login::Login(){
 Login::~Login(){
 }
 void Login::initReader(Reader &_rr){
-	typedef CharFilter<' '>				SpaceFilterT;
-	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&ctx));
-	_rr.push(&Reader::dropChar);
-	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::text::Parameter(2));
-	_rr.push(&Reader::manage, protocol::text::Parameter(Reader::ResetLogging));
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&pass));
-	_rr.push(&Reader::manage, protocol::text::Parameter(Reader::ClearLogging));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&user));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+    typedef CharFilter<' '>             SpaceFilterT;
+    typedef NotFilter<SpaceFilterT>     NotSpaceFilterT;
+    _rr.push(&Reader::fetchAString, protocol::text::Parameter(&ctx));
+    _rr.push(&Reader::dropChar);
+    _rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::text::Parameter(2));
+    _rr.push(&Reader::manage, protocol::text::Parameter(Reader::ResetLogging));
+    _rr.push(&Reader::fetchAString, protocol::text::Parameter(&pass));
+    _rr.push(&Reader::manage, protocol::text::Parameter(Reader::ClearLogging));
+    _rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+    _rr.push(&Reader::fetchAString, protocol::text::Parameter(&user));
+    _rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
 void Login::execute(const uint _sid){
-	Connection	&rc(Connection::the());
-	if(ctx.empty()){
-		ctx += " OK [";
-		rc.appendContextString(ctx);
-		ctx += "] Done LOGIN@";
-		Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::text::Parameter((void*)ctx.data(), ctx.size()));
-	}else{
-		SocketData	&rsd(rc.socketData(_sid));
-		rsd.w.push(&Writer::returnValue<false>, protocol::text::Parameter(Writer::Leave));
-	}
+    Connection  &rc(Connection::the());
+    if(ctx.empty()){
+        ctx += " OK [";
+        rc.appendContextString(ctx);
+        ctx += "] Done LOGIN@";
+        Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::text::Parameter((void*)ctx.data(), ctx.size()));
+    }else{
+        SocketData  &rsd(rc.socketData(_sid));
+        rsd.w.push(&Writer::returnValue<false>, protocol::text::Parameter(Writer::Leave));
+    }
 }
 
 void Login::contextData(ObjectUidT &_robjuid){
-	SOLID_ASSERT(ctx.size());
-	if(sizeof(_robjuid.first) == 8){
-		unsigned long long v;
-		sscanf(ctx.c_str(), "%llX-%X", &v, &_robjuid.second);
-		_robjuid.first = v;
-	}else{
-		sscanf(ctx.c_str(), "%lX-%X", &_robjuid.first, &_robjuid.second);
-	}
-	ctx.clear();
+    SOLID_ASSERT(ctx.size());
+    if(sizeof(_robjuid.first) == 8){
+        unsigned long long v;
+        sscanf(ctx.c_str(), "%llX-%X", &v, &_robjuid.second);
+        _robjuid.first = v;
+    }else{
+        sscanf(ctx.c_str(), "%lX-%X", &_robjuid.first, &_robjuid.second);
+    }
+    ctx.clear();
 }
 
 }//namespace gamma

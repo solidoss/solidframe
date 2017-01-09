@@ -19,33 +19,33 @@ namespace protocol{
 namespace text{
 
 struct StrCmp{
-	bool operator()(const char *const &_s1, const char *const &_s2)const{
-		return strcasecmp(_s1, _s2) < 0;
-	}
+    bool operator()(const char *const &_s1, const char *const &_s2)const{
+        return strcasecmp(_s1, _s2) < 0;
+    }
 };
 struct NameMatcher::Data{
-	Data(){}
-	typedef map<const char*, int, StrCmp> StrMapT;
-	//typedef tr1::unordered_map<const char*, int/*, StrCmp*/> StrMapT;
-	StrMapT 	m;
+    Data(){}
+    typedef map<const char*, int, StrCmp> StrMapT;
+    //typedef tr1::unordered_map<const char*, int/*, StrCmp*/> StrMapT;
+    StrMapT     m;
 };
 
 NameMatcher::Data& NameMatcher::createData(){
-	return *new Data;
+    return *new Data;
 }
 NameMatcher::~NameMatcher(){
-	delete &d;
+    delete &d;
 }
 
 int NameMatcher::match(const char *_name)const{
-	Data::StrMapT::const_iterator it(d.m.find(_name));
-	if(it != d.m.end()) return it->second;
-	return d.m.size();
+    Data::StrMapT::const_iterator it(d.m.find(_name));
+    if(it != d.m.end()) return it->second;
+    return d.m.size();
 }
 
 void NameMatcher::push(const char *_name){
-	pair<Data::StrMapT::iterator, bool> r(d.m.insert(Data::StrMapT::value_type(_name, d.m.size())));
-	SOLID_ASSERT(r.second);
+    pair<Data::StrMapT::iterator, bool> r(d.m.insert(Data::StrMapT::value_type(_name, d.m.size())));
+    SOLID_ASSERT(r.second);
 }
 
 }//namespace text

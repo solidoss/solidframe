@@ -7,51 +7,51 @@
 using namespace std;
 
 struct Singleton{
-	static void once_cbk();
-	static	Singleton& instance();
-	Singleton():val(0){
+    static void once_cbk();
+    static  Singleton& instance();
+    Singleton():val(0){
 #ifdef SOLID_ON_WINDOWS
-		Sleep(1000*10);
+        Sleep(1000*10);
 #else
-		sleep(10);
+        sleep(10);
 #endif
-		val = 1;
-	}
-	int val;
+        val = 1;
+    }
+    int val;
 private:
-	static	Singleton& the_instance();
+    static  Singleton& the_instance();
 };
 
 
 void Singleton::once_cbk(){
-	the_instance();
+    the_instance();
 }
 
 Singleton& Singleton::instance(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk, once);
-	return the_instance();
+    static boost::once_flag once = BOOST_ONCE_INIT;
+    boost::call_once(&once_cbk, once);
+    return the_instance();
 }
 
 Singleton& Singleton::the_instance(){
-	static Singleton s;
-	return s;
+    static Singleton s;
+    return s;
 }
 
 
 
 struct Runner{
-	void operator()(){
-		cout<<"in runner: "<<Singleton::instance().val<<endl;
-	}
+    void operator()(){
+        cout<<"in runner: "<<Singleton::instance().val<<endl;
+    }
 };
 
 
 
 int main(){
-	Runner r;
+    Runner r;
     boost::thread thrd(r);
-	cout<<"in main: "<<Singleton::instance().val<<endl;
-	thrd.join();
-	return 0;
+    cout<<"in main: "<<Singleton::instance().val<<endl;
+    thrd.join();
+    return 0;
 }

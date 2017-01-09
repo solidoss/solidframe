@@ -27,62 +27,62 @@ class SchedulerBase;
  */
 class ReactorBase{
 public:
-	virtual bool raise(UniqueId const& _robjuid, Event const& _re) = 0;
-	virtual bool raise(UniqueId const& _robjuid, Event && _ue) = 0;
-	virtual void stop() = 0;
-	
-	bool prepareThread(const bool _success);
-	void unprepareThread();
-	size_t load()const;
+    virtual bool raise(UniqueId const& _robjuid, Event const& _re) = 0;
+    virtual bool raise(UniqueId const& _robjuid, Event && _ue) = 0;
+    virtual void stop() = 0;
+    
+    bool prepareThread(const bool _success);
+    void unprepareThread();
+    size_t load()const;
 protected:
-	typedef std::atomic<size_t> AtomicSizeT;
-	
-	ReactorBase(
-		SchedulerBase &_rsch, const size_t _schidx, const size_t _crtidx = 0
-	):rsch(_rsch), schidx(_schidx), crtidx(_crtidx){}
-	
-	void stopObject(ObjectBase &_robj, Manager &_rm);
-	SchedulerBase& scheduler();
-	UniqueId popUid(ObjectBase &_robj);
-	void pushUid(UniqueId const &_ruid);
-	
-	AtomicSizeT		crtload;
-	
-	size_t runIndex(ObjectBase &_robj)const;
+    typedef std::atomic<size_t> AtomicSizeT;
+    
+    ReactorBase(
+        SchedulerBase &_rsch, const size_t _schidx, const size_t _crtidx = 0
+    ):rsch(_rsch), schidx(_schidx), crtidx(_crtidx){}
+    
+    void stopObject(ObjectBase &_robj, Manager &_rm);
+    SchedulerBase& scheduler();
+    UniqueId popUid(ObjectBase &_robj);
+    void pushUid(UniqueId const &_ruid);
+    
+    AtomicSizeT     crtload;
+    
+    size_t runIndex(ObjectBase &_robj)const;
 private:
-	friend	class SchedulerBase;
-	size_t idInScheduler()const;
+    friend  class SchedulerBase;
+    size_t idInScheduler()const;
 private:
-	typedef Stack<UniqueId>		UidStackT;
-	
-	SchedulerBase	&rsch;
-	size_t			schidx;
-	size_t			crtidx;
-	UidStackT		uidstk;
+    typedef Stack<UniqueId>     UidStackT;
+    
+    SchedulerBase   &rsch;
+    size_t          schidx;
+    size_t          crtidx;
+    UidStackT       uidstk;
 };
 
 inline SchedulerBase& ReactorBase::scheduler(){
-	return rsch;
+    return rsch;
 }
 
 inline void ReactorBase::stopObject(ObjectBase &_robj, Manager &_rm){
-	_robj.stop(_rm);
+    _robj.stop(_rm);
 }
 
 inline size_t ReactorBase::idInScheduler()const{
-	return schidx;
+    return schidx;
 }
 
 inline size_t ReactorBase::load()const{
-	return crtload;
+    return crtload;
 }
 
 inline void ReactorBase::pushUid(UniqueId const &_ruid){
-	uidstk.push(_ruid);
+    uidstk.push(_ruid);
 }
 
 inline size_t ReactorBase::runIndex(ObjectBase &_robj)const{
-	return _robj.runId().index;
+    return _robj.runId().index;
 }
 
 }//namespace frame

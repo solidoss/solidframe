@@ -17,19 +17,19 @@ using namespace std;
 
 
 int main(){
-	Mutex 		m;
-	Condition	c;
-	TimeSpec ts;
-	m.lock();
-	cout<<"before enter"<<endl;
-	ts.currentRealTime();
-	cout<<"tv_sec = "<<ts.tv_sec<<" ts.tv_nsec = "<<ts.tv_nsec<<endl;
-	cout<<"time(null) = "<<time(NULL)<<endl;
-	ts.tv_sec += 5;
-	ts.tv_nsec += 100;
-	c.wait(m, ts);
-	cout<<"after exit"<<endl;
-	m.unlock();
-	return 0;
+    Mutex       m;
+    Condition   c;
+    TimeSpec ts;
+    m.lock();
+    cout<<"before enter"<<endl;
+    ts.currentRealTime();
+    cout<<"tv_sec = "<<ts.tv_sec<<" ts.tv_nsec = "<<ts.tv_nsec<<endl;
+    cout<<"time(null) = "<<time(NULL)<<endl;
+    ts.tv_sec += 5;
+    ts.tv_nsec += 100;
+    c.wait(m, ts);
+    cout<<"after exit"<<endl;
+    m.unlock();
+    return 0;
 }
 

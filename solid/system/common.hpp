@@ -16,28 +16,28 @@
 
 #ifdef SOLID_ON_WINDOWS
 //#ifdef SOLID_USE_CPP11
-//	#define USTLMUTEX
+//  #define USTLMUTEX
 //#else
-	#define UBOOSTMUTEX
-	#define UBOOSTSHAREDPTR
+    #define UBOOSTMUTEX
+    #define UBOOSTSHAREDPTR
 //#endif
 #endif
 
 namespace solid{
 
-typedef unsigned char		uchar;
-typedef unsigned int		uint;
+typedef unsigned char       uchar;
+typedef unsigned int        uint;
 
 typedef unsigned long       ulong;
 typedef unsigned short      ushort;
 
-typedef long long			longlong;
-typedef unsigned long long	ulonglong;
+typedef long long           longlong;
+typedef unsigned long long  ulonglong;
 
 enum SeekRef {
-	SeekBeg=0,
-	SeekCur=1,
-	SeekEnd=2
+    SeekBeg=0,
+    SeekCur=1,
+    SeekEnd=2
 };
 
 struct EmptyType{};
@@ -45,18 +45,18 @@ class NullType{};
 
 template <size_t V>
 struct SizeToType{
-	enum {value = V};
+    enum {value = V};
 };
 
 template <bool V>
 struct BoolToType{
-	enum {value = V};
+    enum {value = V};
 };
 
 
 template <class T>
 struct TypeToType{
-	using TypeT = T;
+    using TypeT = T;
 };
 
 

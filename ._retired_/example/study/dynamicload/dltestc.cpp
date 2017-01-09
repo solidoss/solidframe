@@ -6,7 +6,7 @@ using namespace std;
 
 extern "C"{
 Test* createC(int _c){
-	return new TestC(_c + TestA::instance().get());
+    return new TestC(_c + TestA::instance().get());
 }
 }
 
@@ -15,11 +15,11 @@ TestC::TestC(int _c):c(_c){
 TestC::~TestC(){
 }
 void TestC::set(int _c){
-	c = _c + TestA::instance().get();
+    c = _c + TestA::instance().get();
 }
 int TestC::get()const{
-	return c;
+    return c;
 }
 void TestC::print(){
-	idbg("testc = "<<c<<" testa ptr = "<<(void*)&TestA::instance());
+    idbg("testc = "<<c<<" testa ptr = "<<(void*)&TestA::instance());
 }

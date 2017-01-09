@@ -15,7 +15,7 @@ namespace solid{
 namespace impl{
 
 /*virtual*/ AnyValueBase::~AnyValueBase(){
-	
+    
 }
 
 

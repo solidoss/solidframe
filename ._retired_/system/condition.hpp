@@ -13,9 +13,9 @@
 #include "system/common.hpp"
 #include "system/cassert.hpp"
 
-#if 	defined(USTLMUTEX)
+#if     defined(USTLMUTEX)
 #include "system/condition_stl.hpp"
-#elif	defined(UBOOSTMUTEX)
+#elif   defined(UBOOSTMUTEX)
 #include "system/condition_boost.hpp"
 #else
 
@@ -31,18 +31,18 @@ struct Locker;
 //! A simple posix condition wrapper
 class Condition{
 public:
-	Condition();
-	~Condition();
-	//! Try to wake one waiting thread
-	void signal();
-	//! Try to wake all waiting threads
-	void broadcast();
-	//! Wait for a signal
-	void wait(Locker<Mutex> &_lock);
-	//! Wait for a signal a certain amount of time
-	bool wait(Locker<Mutex> &_lock, const TimeSpec &_ts);
+    Condition();
+    ~Condition();
+    //! Try to wake one waiting thread
+    void signal();
+    //! Try to wake all waiting threads
+    void broadcast();
+    //! Wait for a signal
+    void wait(Locker<Mutex> &_lock);
+    //! Wait for a signal a certain amount of time
+    bool wait(Locker<Mutex> &_lock, const TimeSpec &_ts);
 private:
-	pthread_cond_t cond;
+    pthread_cond_t cond;
 };
 
 }//namespace solid

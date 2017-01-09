@@ -4,17 +4,17 @@
 
 
 set(Sources
-	src/opensslsocket.cpp
+    src/opensslsocket.cpp
 )
 
 set(Headers
-	opensslsocket.hpp
+    opensslsocket.hpp
 )
 
 set(Inlines
 )
 
 add_library (solid_frame_aio_openssl
-	${Sources} ${Headers} ${Inlines}
+    ${Sources} ${Headers} ${Inlines}
 )
 

@@ -21,52 +21,52 @@ namespace solid{
 namespace{
 // #ifdef SOLID_USE_SAFE_STATIC
 // static const unsigned specificPosition(){
-// 	static const unsigned	thrspecpos = Thread::specificId();
-// 	return thrspecpos;
+//  static const unsigned   thrspecpos = Thread::specificId();
+//  return thrspecpos;
 // }
 // #else
 // const unsigned specificPositionStub(){
-// 	static const unsigned	thrspecpos = Thread::specificId();
-// 	return thrspecpos;
+//  static const unsigned   thrspecpos = Thread::specificId();
+//  return thrspecpos;
 // }
 // 
 // void once_cbk(){
-// 	specificPositionStub();
+//  specificPositionStub();
 // }
 // 
 // const unsigned specificPosition(){
-// 	static boost::once_flag once = BOOST_ONCE_INIT;
-// 	boost::call_once(&once_cbk, once);
-// 	return specificPositionStub();
+//  static boost::once_flag once = BOOST_ONCE_INIT;
+//  boost::call_once(&once_cbk, once);
+//  return specificPositionStub();
 // }
 // 
 // #endif
 }
 //----------------------------------------------------------------------------------------------------
 /*static*/ void Specific::destroy(void *_pv){
-	Specific *ps = reinterpret_cast<Specific*>(_pv);
-	delete ps;
+    Specific *ps = reinterpret_cast<Specific*>(_pv);
+    delete ps;
 }
 
 void Specific::configure(
-	const size_t _pagecp,
-	const size_t _emptypagecnt
+    const size_t _pagecp,
+    const size_t _emptypagecnt
 ){
-	cache.configure(_pagecp, _emptypagecnt);
+    cache.configure(_pagecp, _emptypagecnt);
 }
 
 /*static*/ Specific& Specific::the(){
-	return Thread::specific();
+    return Thread::specific();
 }
 
 // /*static*/ Specific& Specific::the(){
-// 	Specific *pspec = static_cast<Specific*>(Thread::specific(specificPosition()));
-// 	if(pspec){
-// 		return *pspec;
-// 	}else{
-// 		return prepareThread();
-// 	}
-// 	
+//  Specific *pspec = static_cast<Specific*>(Thread::specific(specificPosition()));
+//  if(pspec){
+//      return *pspec;
+//  }else{
+//      return prepareThread();
+//  }
+//  
 // }
 
 

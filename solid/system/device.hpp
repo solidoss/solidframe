@@ -27,47 +27,47 @@ namespace solid{
 class Device{
 public:
 #ifdef SOLID_ON_WINDOWS
-	typedef HANDLE DescriptorT;
+    typedef HANDLE DescriptorT;
 #else
-	typedef int DescriptorT;
+    typedef int DescriptorT;
 #endif
-	static const DescriptorT invalidDescriptor(){
+    static const DescriptorT invalidDescriptor(){
 #ifdef SOLID_ON_WINDOWS
-		return INVALID_HANDLE_VALUE;
+        return INVALID_HANDLE_VALUE;
 #else
-		return -1;
+        return -1;
 #endif
-	}
-	Device(Device &&_dev);
-	//! The copy constructor which will grab the desc from the given device (like std::autoptr)
-	Device(DescriptorT _desc = invalidDescriptor());
-	~Device();
-	//! Read call
-	int read(char	*_pb, size_t _bl);
-	//! Write call
-	int write(const char* _pb, size_t _bl);
-	//! Cancels existing io operations
-	bool cancel();
-	//! Close the device
-	void close();
-	//! Flush the device
-	void flush();
-	//! Check if the device is valid
-	bool ok()const{return desc != invalidDescriptor();}
-	Device& operator=(Device &&_dev);
-	//! The native descriptor associated to the socket
-	DescriptorT descriptor()const;
+    }
+    Device(Device &&_dev);
+    //! The copy constructor which will grab the desc from the given device (like std::autoptr)
+    Device(DescriptorT _desc = invalidDescriptor());
+    ~Device();
+    //! Read call
+    int read(char   *_pb, size_t _bl);
+    //! Write call
+    int write(const char* _pb, size_t _bl);
+    //! Cancels existing io operations
+    bool cancel();
+    //! Close the device
+    void close();
+    //! Flush the device
+    void flush();
+    //! Check if the device is valid
+    bool ok()const{return desc != invalidDescriptor();}
+    Device& operator=(Device &&_dev);
+    //! The native descriptor associated to the socket
+    DescriptorT descriptor()const;
 protected:
-	void descriptor(DescriptorT _desc);
+    void descriptor(DescriptorT _desc);
 private:
-	Device(const Device &_dev);
-	Device& operator=(const Device &_dev);
-	DescriptorT desc;
+    Device(const Device &_dev);
+    Device& operator=(const Device &_dev);
+    DescriptorT desc;
 };
 
 inline Device::DescriptorT Device::descriptor()const{return desc;}
 inline void Device::descriptor(DescriptorT _desc){
-	desc = _desc;
+    desc = _desc;
 }
 
 }//namespace solid

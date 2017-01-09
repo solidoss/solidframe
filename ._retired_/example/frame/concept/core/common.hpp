@@ -14,16 +14,16 @@
 
 #include <string.h>
 
-//typedef solid::frame::RequestUidT		RequestUidT;
-//typedef solid::frame::FileUidT			FileUidT;
-typedef solid::frame::ObjectUidT		ObjectUidT;
-//typedef solid::frame::MessageUidT		MessageUidT;
-typedef solid::frame::IndexT			IndexT;
+//typedef solid::frame::RequestUidT     RequestUidT;
+//typedef solid::frame::FileUidT            FileUidT;
+typedef solid::frame::ObjectUidT        ObjectUidT;
+//typedef solid::frame::MessageUidT     MessageUidT;
+typedef solid::frame::IndexT            IndexT;
 
 struct StrLess{
-	bool operator()(const char* const &_str1, const char* const &_str2)const{
-		return strcasecmp(_str1,_str2) < 0;
-	}
+    bool operator()(const char* const &_str1, const char* const &_str2)const{
+        return strcasecmp(_str1,_str2) < 0;
+    }
 };
 
 

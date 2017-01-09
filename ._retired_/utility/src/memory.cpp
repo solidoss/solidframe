@@ -14,17 +14,17 @@
 namespace solid{
 
 void EmptyChecker::add(){
-	++v;
+    ++v;
 }
 void EmptyChecker::sub(){
-	--v;
+    --v;
 }
 
 EmptyChecker::~EmptyChecker(){
-	if(v){
-		idbgx(Debug::utility, "object check failed for "<<v);
-	}
-	SOLID_ASSERT(v == 0);
+    if(v){
+        idbgx(Debug::utility, "object check failed for "<<v);
+    }
+    SOLID_ASSERT(v == 0);
 }
 
 }//namespace solid

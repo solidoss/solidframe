@@ -12,14 +12,14 @@ namespace gamma{
 
 class Service: public solid::Dynamic<Service, concept::Service>{
 public:
-	Service(Manager &_rm);
-	~Service();
+    Service(Manager &_rm);
+    ~Service();
 private:
-	/*virtual*/ ObjectUidT insertConnection(
-		const solid::SocketDevice &_rsd,
-		solid::frame::aio::openssl::Context *_pctx,
-		bool _secure
-	);
+    /*virtual*/ ObjectUidT insertConnection(
+        const solid::SocketDevice &_rsd,
+        solid::frame::aio::openssl::Context *_pctx,
+        bool _secure
+    );
 };
 
 }//namespace gamma

@@ -24,117 +24,117 @@ namespace solid{
 #endif
 
 //-----------------------------------------------------------------------
-//			synchronous_resolve
+//          synchronous_resolve
 //-----------------------------------------------------------------------
 void ResolveData::delete_addrinfo(void *_pv){
-	if(_pv){
-		freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
-	}
+    if(_pv){
+        freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
+    }
 }
 
 ResolveData synchronous_resolve(const char *_node, const char *_service){
-	if(!_node && !_service){
-		return ResolveData();
-	}
-	addrinfo *paddr = nullptr;
-	getaddrinfo(_node, _service, nullptr, &paddr);
-	return ResolveData(paddr);
+    if(!_node && !_service){
+        return ResolveData();
+    }
+    addrinfo *paddr = nullptr;
+    getaddrinfo(_node, _service, nullptr, &paddr);
+    return ResolveData(paddr);
 }
 ResolveData synchronous_resolve(
-	const char *_node, 
-	const char *_service, 
-	int _flags,
-	int _family,
-	int _type,
-	int _proto
+    const char *_node, 
+    const char *_service, 
+    int _flags,
+    int _family,
+    int _type,
+    int _proto
 ){
-	if(!_node && !_service){
-		return ResolveData();
-	}
-	if(_family < 0) _family = AF_UNSPEC;
-	if(_type < 0) _type = 0;
-	if(_proto < 0) _proto = 0;
-	addrinfo h;
-	h.ai_flags = _flags;
-	h.ai_family = _family;
-	h.ai_socktype = _type;
-	h.ai_protocol = _proto;
-	h.ai_addrlen = 0;
-	h.ai_addr = nullptr;
-	h.ai_canonname = nullptr;
-	h.ai_next = nullptr;
-	addrinfo *paddr = nullptr;
-	getaddrinfo(_node, _service, &h, &paddr);
-	return ResolveData(paddr);
+    if(!_node && !_service){
+        return ResolveData();
+    }
+    if(_family < 0) _family = AF_UNSPEC;
+    if(_type < 0) _type = 0;
+    if(_proto < 0) _proto = 0;
+    addrinfo h;
+    h.ai_flags = _flags;
+    h.ai_family = _family;
+    h.ai_socktype = _type;
+    h.ai_protocol = _proto;
+    h.ai_addrlen = 0;
+    h.ai_addr = nullptr;
+    h.ai_canonname = nullptr;
+    h.ai_next = nullptr;
+    addrinfo *paddr = nullptr;
+    getaddrinfo(_node, _service, &h, &paddr);
+    return ResolveData(paddr);
 }
 
 
 ResolveData synchronous_resolve(const char *_node, int _port){
-	char buf[12];
-	sprintf(buf, "%u", _port);
-	return synchronous_resolve(_node, buf);
+    char buf[12];
+    sprintf(buf, "%u", _port);
+    return synchronous_resolve(_node, buf);
 }
 ResolveData synchronous_resolve(
-	const char *_node, 
-	int _port,
-	int _flags,
-	int _family,
-	int _type,
-	int _proto
+    const char *_node, 
+    int _port,
+    int _flags,
+    int _family,
+    int _type,
+    int _proto
 ){
-	char buf[12];
-	sprintf(buf, "%u", _port);
-	return synchronous_resolve(_node, buf, _flags, _family, _type, _proto);
+    char buf[12];
+    sprintf(buf, "%u", _port);
+    return synchronous_resolve(_node, buf, _flags, _family, _type, _proto);
 }
 
 bool synchronous_resolve(std::string &_rhost, std::string &_rserv, const SocketAddressStub &_rsa, int _flags){
-	char hbuf[NI_MAXHOST];
-	char sbuf[NI_MAXSERV];
-	if(getnameinfo(_rsa.sockAddr(), _rsa.size(), hbuf, sizeof(hbuf), sbuf, sizeof(sbuf), _flags) == 0){
-		_rhost.assign(hbuf);
-		_rserv.assign(sbuf);
-		return true;
-	}else{
-		_rhost.clear();
-		_rserv.clear();
-		return false;
-	}
+    char hbuf[NI_MAXHOST];
+    char sbuf[NI_MAXSERV];
+    if(getnameinfo(_rsa.sockAddr(), _rsa.size(), hbuf, sizeof(hbuf), sbuf, sizeof(sbuf), _flags) == 0){
+        _rhost.assign(hbuf);
+        _rserv.assign(sbuf);
+        return true;
+    }else{
+        _rhost.clear();
+        _rserv.clear();
+        return false;
+    }
 }
 
 std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa){
-	std::string hoststr;
-	std::string servstr;
-	synchronous_resolve(
-		hoststr, servstr,
-		_rsa,
-		ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
-	);
-	_ros<<hoststr<<':'<<servstr;
-	return _ros;
+    std::string hoststr;
+    std::string servstr;
+    synchronous_resolve(
+        hoststr, servstr,
+        _rsa,
+        ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
+    );
+    _ros<<hoststr<<':'<<servstr;
+    return _ros;
 }
 
 std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet& _rsa){
-	std::string hoststr;
-	std::string servstr;
-	synchronous_resolve(
-		hoststr, servstr,
-		_rsa,
-		ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
-	);
-	_ros<<hoststr<<':'<<servstr;
-	return _ros;
+    std::string hoststr;
+    std::string servstr;
+    synchronous_resolve(
+        hoststr, servstr,
+        _rsa,
+        ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
+    );
+    _ros<<hoststr<<':'<<servstr;
+    return _ros;
 }
 
 std::ostream& operator<<(std::ostream& _ros, const SocketAddress& _rsa){
-	std::string hoststr;
-	std::string servstr;
-	synchronous_resolve(
-		hoststr, servstr,
-		_rsa,
-		ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
-	);
-	_ros<<hoststr<<':'<<servstr;
-	return _ros;
+    std::string hoststr;
+    std::string servstr;
+    synchronous_resolve(
+        hoststr, servstr,
+        _rsa,
+        ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
+    );
+    _ros<<hoststr<<':'<<servstr;
+    return _ros;
 }
 
 }//namespace solid

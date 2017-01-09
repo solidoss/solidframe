@@ -22,25 +22,25 @@ namespace mpipc{
 /*virtual*/ Protocol::~Protocol(){}
 //-----------------------------------------------------------------------------
 bool PacketHeader::isOk()const{
-	bool rv = true;
-	switch(type_){
-		case SwitchToNewMessageTypeE:
-		case SwitchToOldMessageTypeE:
-		case ContinuedMessageTypeE:
-		case SwitchToOldCanceledMessageTypeE:
-		case ContinuedCanceledMessageTypeE:
-		case KeepAliveTypeE:
-			break;
-		default:
-			rv = false;
-			break;
-	}
-	
-	if(size() > Protocol::MaxPacketDataSize){
-		rv = false;
-	}
-	
-	return rv;
+    bool rv = true;
+    switch(type_){
+        case SwitchToNewMessageTypeE:
+        case SwitchToOldMessageTypeE:
+        case ContinuedMessageTypeE:
+        case SwitchToOldCanceledMessageTypeE:
+        case ContinuedCanceledMessageTypeE:
+        case KeepAliveTypeE:
+            break;
+        default:
+            rv = false;
+            break;
+    }
+    
+    if(size() > Protocol::MaxPacketDataSize){
+        rv = false;
+    }
+    
+    return rv;
 }
 //-----------------------------------------------------------------------------
 }//namespace mpipc

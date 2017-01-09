@@ -12,12 +12,12 @@ namespace solid{namespace frame{namespace mpipc{
 
 class TestEntryway{
 public:
-	static ConnectionContext& createContext(){
-		Connection	&rcon = *static_cast<Connection*>(nullptr);
-		Service		&rsvc = *static_cast<Service*>(nullptr);
-		static ConnectionContext conctx(rsvc, rcon);
-		return conctx;
-	}
+    static ConnectionContext& createContext(){
+        Connection  &rcon = *static_cast<Connection*>(nullptr);
+        Service     &rsvc = *static_cast<Service*>(nullptr);
+        static ConnectionContext conctx(rsvc, rcon);
+        return conctx;
+    }
 };
 
 }/*namespace mpipc*/}/*namespace frame*/}/*namespace solid*/

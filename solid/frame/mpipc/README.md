@@ -7,19 +7,19 @@
  * Pluggable - i.e. header only - secure communication support via solid_frame_aio_openssl (wrapper over OpenSSL1.1.0/BoringSSL).
  * Pluggable - i.e. header only - communication compression support via [Snappy](https://google.github.io/snappy/)
  * Pluggable - i.e. header only - protocol based on solid_serialization - a buffer oriented message serialization engine. Thus, messages are serialized (marshaled) one fixed size buffer at a time, further enabling:
- 	* **No limit for message size** - one can send a 100GB file as a single message.
-	* **Message multiplexing** - messages from the send queue are sent in parallel on the same connection. This means for example that multiple small messages can be sent while also sending one (or more) bigger message(s).
+    * **No limit for message size** - one can send a 100GB file as a single message.
+    * **Message multiplexing** - messages from the send queue are sent in parallel on the same connection. This means for example that multiple small messages can be sent while also sending one (or more) bigger message(s).
  * For client side, use **connection pool per recipient**.
-	* By default the connection pool is limited to a single connection.
-	* For higher throughput one can increase this limit in mpipc::Service's configuration.
+    * By default the connection pool is limited to a single connection.
+    * For higher throughput one can increase this limit in mpipc::Service's configuration.
  * Rescale up after a network failure.
  * Messages can be any of the following types:
-	* __basic__: normal behavior
-		* In case of network failures, the library will keep on trying to send the message until the message has Started to be sent.
-		* If, while sending the message, there is a network failure the library will complete it immediately and not try to resend it.
-	* __synchronous__: all synchronous messages are sent one after another.
-	* __one_shot__: only tries once to send the message.
-	* __idempotent__: will try re-sending the message until either successfully sent (i.e. completely left the sending side) or, in case the message awaits a response, until the response was received.
+    * __basic__: normal behavior
+        * In case of network failures, the library will keep on trying to send the message until the message has Started to be sent.
+        * If, while sending the message, there is a network failure the library will complete it immediately and not try to resend it.
+    * __synchronous__: all synchronous messages are sent one after another.
+    * __one_shot__: only tries once to send the message.
+    * __idempotent__: will try re-sending the message until either successfully sent (i.e. completely left the sending side) or, in case the message awaits a response, until the response was received.
 
 __NOTE__: The header only plugins ensure that solid_frame_mpipc itself does not depend on the libraries the plugins depend on.
 

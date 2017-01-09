@@ -17,19 +17,19 @@ namespace proxy{
 
 class Service: public solid::Dynamic<Service, concept::Service>{
 public:
-	Service(Manager &_rm);
-	~Service();
-	ObjectUidT insertConnection(
-		const solid::ResolveData &_rai,
-		solid::frame::aio::openssl::Context *_pctx,
-		bool _secure
-	);
+    Service(Manager &_rm);
+    ~Service();
+    ObjectUidT insertConnection(
+        const solid::ResolveData &_rai,
+        solid::frame::aio::openssl::Context *_pctx,
+        bool _secure
+    );
 private:
-	/*virtual*/ ObjectUidT insertConnection(
-		const solid::SocketDevice &_rsd,
-		solid::frame::aio::openssl::Context *_pctx,
-		bool _secure
-	);
+    /*virtual*/ ObjectUidT insertConnection(
+        const solid::SocketDevice &_rsd,
+        solid::frame::aio::openssl::Context *_pctx,
+        bool _secure
+    );
 };
 
 }//namespace echo

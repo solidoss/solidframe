@@ -49,7 +49,7 @@ const char* strs[] = {
 }//namespace
 
 const char * char_to_cstring(unsigned _c){
-	return strs[_c & 255];
+    return strs[_c & 255];
 }
 
 
@@ -81,7 +81,7 @@ const char * char_to_cstring(unsigned _c){
 #ifdef SOLID_ON_DARWIN
     return strlen(s);
 #else
-	return strnlen(s, maxlen);
+    return strnlen(s, maxlen);
 #endif
 }
 

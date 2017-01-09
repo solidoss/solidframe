@@ -18,38 +18,38 @@ namespace binary{
 
 template <uint16 DataCp, uint16 RecvCp = DataCp * 2, uint16 SendCp = DataCp * 2>
 struct BasicBufferController{
-	enum{
-		DataCapacity = DataCp,
-		RecvCapacity = RecvCp,
-		SendCapacity = SendCp
-	};
-	size_t sendCapacity()const{
-		return SendCapacity;
-	}
-	size_t recvCapacity()const{
-		return RecvCapacity;
-	}
-	char *sendBuffer(){
-		return sndbuf;
-	}
-	char *recvBuffer(){
-	
-		return rcvbuf;
-	}
-	
-	void clearSend(){
-	}
-	void clearRecv(){
-	}
-	void clear(){
-	}
-	void prepareSend(){
-	}
-	void prepareRecv(){
-	}
+    enum{
+        DataCapacity = DataCp,
+        RecvCapacity = RecvCp,
+        SendCapacity = SendCp
+    };
+    size_t sendCapacity()const{
+        return SendCapacity;
+    }
+    size_t recvCapacity()const{
+        return RecvCapacity;
+    }
+    char *sendBuffer(){
+        return sndbuf;
+    }
+    char *recvBuffer(){
+    
+        return rcvbuf;
+    }
+    
+    void clearSend(){
+    }
+    void clearRecv(){
+    }
+    void clear(){
+    }
+    void prepareSend(){
+    }
+    void prepareRecv(){
+    }
 private:
-	char rcvbuf[RecvCapacity];
-	char sndbuf[SendCapacity];
+    char rcvbuf[RecvCapacity];
+    char sndbuf[SendCapacity];
 };
 
 
