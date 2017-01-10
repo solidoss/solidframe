@@ -30,4 +30,5 @@ install (TARGETS solid_serialization DESTINATION lib EXPORT SolidFrameConfig)
 
 if(NOT ON_CROSS)
     add_subdirectory(test)
+    add_subdirectory(benchmark)
 endif()

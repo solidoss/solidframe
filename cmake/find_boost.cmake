@@ -9,4 +9,5 @@ find_package(Boost
 		filesystem
 		date_time
 		program_options
+		serialization
 )
