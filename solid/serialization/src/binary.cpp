@@ -159,17 +159,15 @@ int SerializerBase::run(char *_pb, unsigned _bl, void *_pctx){
         FncData &rfd = fstk.top();
         switch((*reinterpret_cast<FncT>(rfd.f))(*this, rfd, _pctx)) {
             case ContinueE: continue;
-            case SuccessE: fstk.pop(); break;
-            case WaitE: goto Done;
-            case FailureE:
-                resetLimits();
-                return -1;
-            default:
-                return -1;
+            case SuccessE:  fstk.pop(); continue;
+            case WaitE:     return cpb - pb;
+            case FailureE:  resetLimits(); return -1;
+            default:        return -1;
         }
     }
+    
     resetLimits();
-    Done:
+    
     SOLID_ASSERT(fstk.size() || (fstk.empty() && estk.empty()));
     return cpb - pb;
 }
@@ -344,7 +342,9 @@ template <>
 ReturnValues SerializerBase::storeBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
     idbgx(Debug::ser_bin, "");
     SerializerBase &rs(static_cast<SerializerBase&>(_rb));
+    
     if(!rs.cpb) return SuccessE;
+    
     const unsigned  len = rs.be - rs.cpb;
     const char      *ps = reinterpret_cast<const char*>(_rfd.p);
     if(len >= 8){
@@ -824,20 +824,18 @@ int DeserializerBase::run(const char *_pb, unsigned _bl, void *_pctx){
     while(fstk.size()){
         FncData &rfd = fstk.top();
         switch((*reinterpret_cast<FncT>(rfd.f))(*this, rfd, _pctx)){
-            case ContinueE: continue;
-            case SuccessE: fstk.pop(); break;
-            case WaitE: goto Done;
-            case FailureE:
-                idbgx(Debug::ser_bin, "error: "<<err.message());
-                resetLimits();
-                return -1;
-            default:
-                return -1;
+            case ContinueE:     continue;
+            case SuccessE:      fstk.pop(); continue;
+            case WaitE:         return cpb - pb;
+            case FailureE:      resetLimits(); return -1;
+            default:            return -1;
         }
     }
+    
     resetLimits();
-    Done:
+    
     SOLID_ASSERT(fstk.size() || (fstk.empty() && estk.empty()));
+    
     return cpb - pb;
 }
 

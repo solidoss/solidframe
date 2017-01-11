@@ -15,6 +15,7 @@
 #include <istream>
 #include <ostream>
 #include <bitset>
+#include <stack>
 
 #include "solid/serialization/typeidmap.hpp"
 
@@ -65,10 +66,10 @@ enum {
 };
 
 enum ReturnValues{
+    ContinueE,
     SuccessE,
     WaitE,
     FailureE,
-    ContinueE,
     LastReturnValueE,
 };
 
@@ -462,16 +463,17 @@ protected:
 
     static const char*      default_name;
 protected:
-    typedef Stack<FncData>  FncDataStackT;
+    typedef Stack<FncData>      FncDataStackT;
     typedef Stack<ExtendedData> ExtendedDataStackT;
+    
     const Limits            &rdefaultlmts;
     Limits                  lmts;
     ErrorConditionT         err;
     ErrorConditionT         streamerr;
-    uint64_t                    streamsz;
+    uint64_t                streamsz;
     ulong                   uls;
     FncDataStackT           fstk;
-    ExtendedDataStackT          estk;
+    ExtendedDataStackT      estk;
 };
 
 //===============================================================
@@ -625,9 +627,9 @@ protected:
 
     template <typename T, class Ser>
     static ReturnValues storeContainerContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
-        Ser                     &rs(static_cast<Ser&>(_rs));
         using                   IteratorT = typename T::iterator;
-        //typename T::iterator &rit = *reinterpret_cast<typename T::iterator*>(rs.estk.top().buf);
+        
+        Ser                     &rs(static_cast<Ser&>(_rs));
         ExtendedData            &rextdata = rs.estk.top();
         IteratorT               &rit = *(rextdata.genericCast<IteratorT>());
         T                       *c = reinterpret_cast<T*>(_rfd.p);
@@ -1719,7 +1721,10 @@ protected:
             *c = new T;
             _rfd.p = *c;
         }
-
+        
+        T                       *c = reinterpret_cast<T*>(_rfd.p);
+        c->reserve(i);
+        
         if(i){
             _rfd.f = &DeserializerBase::loadContainerContinue<T, Des>;
             _rfd.s = 0;//(uint32_t)i;
@@ -1742,7 +1747,7 @@ protected:
 
         --ri;
         c->insert(c->end(), std::move(*pvt));
-
+        
         if(rd.cpb && ri){
             rd.push(*pvt);
             return ContinueE;
