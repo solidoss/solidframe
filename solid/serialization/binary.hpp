@@ -1722,8 +1722,8 @@ protected:
             _rfd.p = *c;
         }
         
-        T                       *c = reinterpret_cast<T*>(_rfd.p);
-        c->reserve(i);
+        //T                       *c = reinterpret_cast<T*>(_rfd.p);
+        //c->reserve(i);
         
         if(i){
             _rfd.f = &DeserializerBase::loadContainerContinue<T, Des>;
