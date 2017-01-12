@@ -37,7 +37,7 @@ struct Request: solid::frame::mpipc::Message{
     Request(std::shared_ptr<RequestKey> && _key): key(std::move(_key)){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(key, "key");
     }
 };
@@ -139,7 +139,7 @@ struct RequestKeyAnd: Visitable<RequestKeyAnd>{
         second(std::move(std::static_pointer_cast<RequestKey>(_p2))){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(second, "second").push(first, "first");
     }
 
@@ -167,7 +167,7 @@ struct RequestKeyOr: Visitable<RequestKeyOr>{
         second(std::move(std::static_pointer_cast<RequestKey>(_p2))){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(second, "second").push(first, "first");
     }
 
@@ -189,7 +189,7 @@ struct RequestKeyAndList: Visitable<RequestKeyAndList>{
     RequestKeyAndList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.pushContainer(key_vec, "key_vec");
     }
 
@@ -213,7 +213,7 @@ struct RequestKeyOrList: Visitable<RequestKeyOrList>{
     RequestKeyOrList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.pushContainer(key_vec, "key_vec");
     }
 
@@ -235,7 +235,7 @@ struct RequestKeyUserIdRegex: Visitable<RequestKeyUserIdRegex>{
     RequestKeyUserIdRegex(std::string && _ustr): regex(std::move(_ustr)){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(regex, "regex");
     }
 
@@ -252,7 +252,7 @@ struct RequestKeyEmailRegex: Visitable<RequestKeyEmailRegex>{
     RequestKeyEmailRegex(std::string && _ustr): regex(std::move(_ustr)){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(regex, "regex");
     }
 
@@ -268,7 +268,7 @@ struct RequestKeyYearLess: Visitable<RequestKeyYearLess>{
     RequestKeyYearLess(uint16_t _year = 0xffff):year(_year){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(year, "year");
     }
 

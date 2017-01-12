@@ -20,11 +20,11 @@ namespace binary{
 
 #define BASIC_DECL(tp) \
 template <class S>\
-void serialize(S &_s, tp &_t){\
+void solidSerialize(S &_s, tp &_t){\
     _s.push(_t, "basic");\
 }\
 template <class S, class Ctx>\
-void serialize(S &_s, tp &_t, Ctx &){\
+void solidSerialize(S &_s, tp &_t, Ctx &){\
     _s.push(_t, "basic");\
 }
 

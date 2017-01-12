@@ -126,7 +126,7 @@ struct Message: std::enable_shared_from_this<Message>{
     }
 
     template <class S>
-    void serialize(S &_rs, frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_rs, frame::mpipc::ConnectionContext &_rctx){
         if(S::IsSerializer){
             //because a message can be sent to multiple destinations (usign DynamicPointer)
             //on serialization we cannot use/modify the values stored by ipc::Message
@@ -144,7 +144,7 @@ struct Message: std::enable_shared_from_this<Message>{
 
 
     template <class S, class T>
-    static void serialize(S &_rs, T &_rt, const char *_name){
+    static void solidSerialize(S &_rs, T &_rt, const char *_name){
         //here we do only pushes so we can have access to context
         //using the above "serialize" function
         _rs.push(_rt, _name);

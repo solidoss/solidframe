@@ -15,7 +15,7 @@ struct Message: solid::frame::mpipc::Message{
     Message(std::string && _ustr): str(std::move(_ustr)){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(str, "str");
     }
 };

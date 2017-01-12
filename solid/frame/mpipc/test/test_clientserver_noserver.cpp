@@ -87,7 +87,7 @@ struct Message: frame::mpipc::Message{
     }
 
     template <class S>
-    void serialize(S &_s, frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, frame::mpipc::ConnectionContext &_rctx){
         _s.push(str, "str");
         _s.push(idx, "idx");
 

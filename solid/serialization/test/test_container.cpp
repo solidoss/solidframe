@@ -44,7 +44,7 @@ struct Test{
 
 
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.push(str, "Test::str");
         _s.push(b, "Test::b");
         _s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map").pushContainer(kb_map, "Test::kb_map").pushContainer(bool_deq, "bool_deq");

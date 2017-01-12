@@ -140,7 +140,7 @@ struct Protocol: public mpipc::Protocol, std::enable_shared_from_this<Protocol>{
         ts.complete_fnc = MessageCompleteFunctionT(CompleteHandlerT(_complete_fnc));
 
         size_t rv = type_map.registerType<Msg>(
-            ts, Message::serialize<SerializerT, Msg>, Message::serialize<DeserializerT, Msg>,
+            ts, Message::solidSerialize<SerializerT, Msg>, Message::solidSerialize<DeserializerT, Msg>,
             _protocol_id, _idx
         );
         registerCast<Msg, mpipc::Message>();
@@ -165,7 +165,7 @@ struct Protocol: public mpipc::Protocol, std::enable_shared_from_this<Protocol>{
         ts.complete_fnc = MessageCompleteFunctionT(CompleteHandlerT(_complete_fnc));
 
         size_t rv = type_map.registerTypeAlloc<Msg>(
-            ts, Message::serialize<SerializerT, Msg>, Message::serialize<DeserializerT, Msg>, _allocator,
+            ts, Message::solidSerialize<SerializerT, Msg>, Message::solidSerialize<DeserializerT, Msg>, _allocator,
             _protocol_id, _idx
         );
         registerCast<Msg, mpipc::Message>();

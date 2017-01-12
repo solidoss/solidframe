@@ -52,12 +52,12 @@ typedef void(*StringCheckFncT)(std::string const &/*_rstr*/, const char* /*_pb*/
 // }
 
 template <class S, class T>
-void serialize(S &_s, T &_t){
-    _t.serialize(_s);
+void solidSerialize(S &_s, T &_t){
+    _t.solidSerialize(_s);
 }
 template <class S, class Ctx, class T>
-void serialize(S &_s, T &_t, Ctx &_ctx){
-    _t.serialize(_s, _ctx);
+void solidSerialize(S &_s, T &_t, Ctx &_ctx){
+    _t.solidSerialize(_s, _ctx);
 }
 
 enum {
@@ -858,7 +858,7 @@ ReturnValues SerializerBase::store(Base &_rs, FncData &_rfd, void */*_pctx*/){
     if(!rs.cpb) return SuccessE;
     T& rt = *((T*)_rfd.p);
     rs.fstk.pop();
-    serialize(rs, rt);
+    solidSerialize(rs, rt);
     return ContinueE;
 }
 
@@ -870,7 +870,7 @@ ReturnValues SerializerBase::store(Base &_rs, FncData &_rfd, void *_pctx){
     T       &rt = *((T*)_rfd.p);
     Ctx     &rctx = *reinterpret_cast<Ctx*>(_pctx);
     rs.fstk.pop();
-    serialize(rs, rt, rctx);
+    solidSerialize(rs, rt, rctx);
     return ContinueE;
 }
 
@@ -1995,7 +1995,7 @@ ReturnValues DeserializerBase::load(Base& _rd, FncData &_rfd, void *_pctx){
     Des &rd(static_cast<Des&>(_rd));
     if(!rd.cpb) return SuccessE;
     rd.fstk.pop();
-    serialize(rd, *reinterpret_cast<T*>(_rfd.p));
+    solidSerialize(rd, *reinterpret_cast<T*>(_rfd.p));
     return ContinueE;
 }
 
@@ -2007,7 +2007,7 @@ ReturnValues DeserializerBase::load(Base& _rd, FncData &_rfd, void *_pctx){
     rd.fstk.pop();
     Ctx &rctx = *reinterpret_cast<Ctx*>(_pctx);
     //*reinterpret_cast<T*>(_rfd.p) & rd;
-    serialize(rd, *reinterpret_cast<T*>(_rfd.p), rctx);
+    solidSerialize(rd, *reinterpret_cast<T*>(_rfd.p), rctx);
     return ContinueE;
 }
 

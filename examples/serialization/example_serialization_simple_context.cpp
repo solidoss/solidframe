@@ -37,7 +37,7 @@ struct Context{
 struct TestA{
     TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
     template <class S, class C>
-    void serialize(S &_s, C &_ctx){
+    void solidSerialize(S &_s, C &_ctx){
         _s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
     }
     int32_t         a;
@@ -51,7 +51,7 @@ struct TestB{
     int32_t         a;
     void print()const {cout<<"testb: a = "<<a<<endl;}
     template <class S, class C>
-    void serialize(S &_s, C &){
+    void solidSerialize(S &_s, C &){
         _s.push(a, "b::a");
     }
 };
@@ -97,7 +97,7 @@ struct TestD{
 
     }
     template <class S>
-    void serialize(S &_s, Context &){
+    void solidSerialize(S &_s, Context &){
         _s.push(a, "b::a");
         _s.push(addr, "addr");
         _s.push(port, "port");
@@ -114,7 +114,7 @@ struct String: Base{
     String():dflt(false){}
     String(const char *_str):dflt(false), str(_str){}
     template <class S>
-    void serialize(S &_s, Context &_rctx){
+    void solidSerialize(S &_s, Context &_rctx){
         _rctx.print();
         if(dflt){
             //_s;
@@ -136,7 +136,7 @@ private:
 struct Integer: Base{
     Integer(int _i = 0):tc(_i){}
     template <class S>
-    void serialize(S &_s, Context &_rctx){
+    void solidSerialize(S &_s, Context &_rctx){
         _rctx.print();
         _s.push(tc, "tc");
     }
@@ -150,10 +150,10 @@ private:
 struct UnsignedInteger: Integer{
     UnsignedInteger(int _i = 0, unsigned _u = 0):Integer(_i),u(_u){}
     template <class S>
-    void serialize(S &_s, Context &_rctx){
+    void solidSerialize(S &_s, Context &_rctx){
         _rctx.print();
         _s.push(u, "String::str");
-        Integer::serialize(_s, _rctx);
+        Integer::solidSerialize(_s, _rctx);
     }
     void print()const{
         cout<<"Unsigned Integer{"<<endl;
@@ -192,7 +192,7 @@ void IntegerVector::print()const{
 }
 namespace solid{namespace serialization{namespace binary{
 template <class S>
-void serialize(S &_s, IntegerVector &_iv, Context &_rctx){
+void solidSerialize(S &_s, IntegerVector &_iv, Context &_rctx){
     _rctx.print();
     _s.pushContainer(_iv.iv, "IntegerVector::iv").pushContainer(_iv.piv1,"piv1").pushContainer(_iv.piv2, "piv2");
 }
@@ -232,7 +232,7 @@ struct Array: Base{
         delete []pta1;
     }
     template <class S>
-    void serialize(S &_s, Context &_rctx){
+    void solidSerialize(S &_s, Context &_rctx){
         _rctx.print();
         _s.pushArray(sa, sasz, "sa");
         _s.pushDynamicArray(pta, ptasz, "pta");
@@ -284,18 +284,18 @@ void Array::print() const{
 
 namespace solid{namespace serialization{namespace binary{
 template <class S>
-void serialize(S &_s, Base &, Context &_rctx){
+void solidSerialize(S &_s, Base &, Context &_rctx){
     SOLID_ASSERT(false);
 }
 
 template <class S>
-void serialize(S &_s, TestC &_tb, Context &_rctx){
+void solidSerialize(S &_s, TestC &_tb, Context &_rctx){
     _rctx.print();
     _s.push(_tb.a, "c::a");
 }
 
 template <class S>
-void serialize(S &_s, pair<int32_t,int32_t> &_tb, Context &_rctx){
+void solidSerialize(S &_s, pair<int32_t,int32_t> &_tb, Context &_rctx){
     _rctx.print();
     _s.push(_tb.first, "first").push(_tb.second, "second");
 }

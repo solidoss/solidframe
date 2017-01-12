@@ -56,7 +56,7 @@ struct Test: Base{
     }
 
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.push(value, "alpha::Test::value");
     }
 
@@ -89,7 +89,7 @@ struct Test: Base{
     Test(const std::string &_v = "", const size_t _value = 0): Base(_value), value(_v){}
 
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.push(value, "beta::Test::value");
     }
 
@@ -146,7 +146,7 @@ struct Test: Base{
     }
 
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.push(value, "delta::Test::value");
     }
 

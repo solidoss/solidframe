@@ -28,7 +28,7 @@ using namespace solid;
 struct Test{
     Test(const char *_fn = nullptr);
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.push(no, "Test::no");
         if(S::IsSerializer){
             istream *ps = &fs;

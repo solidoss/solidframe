@@ -23,7 +23,7 @@ struct OrKey: Key{
     OrKey(shared_ptr<K1> &&_k1, shared_ptr<K2> &&_k2):first(std::move(static_pointer_cast<Key>(_k1))), second(std::move(static_pointer_cast<Key>(_k2))){}
 
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.push(second, "second").push(first, "first");
     }
 
@@ -50,7 +50,7 @@ struct OrVecKey: Key{
     OrVecKey(shared_ptr<Args>&& ..._args):keys{std::move(_args)...}{}
 
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.pushContainer(keys, "keys");
     }
 
@@ -72,7 +72,7 @@ struct IntKey: Key{
 
 
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.push(v, "v");
     }
 
@@ -89,7 +89,7 @@ struct StringKey: Key{
 
 
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.push(v, "v");
     }
 
@@ -107,7 +107,7 @@ struct Command{
     Command(shared_ptr<K> &&_k):key(static_pointer_cast<Key>(std::move(_k))){}
 
     template <class S>
-    void serialize(S &_s){
+    void solidSerialize(S &_s){
         _s.push(key, "key");
     }
 

@@ -128,7 +128,7 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
     /*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 
     template <class S>
-    void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+    void solidSerialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
         _s.push(state, "state").push(idx, "index").push(sec, "seconds").push(nsec, "nanoseconds").push(str, "data");
     }
 

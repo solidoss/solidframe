@@ -19,7 +19,7 @@ struct ListRequest: solid::frame::mpipc::Message{
     ListRequest(std::string && _path): path(std::move(_path)){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(path, "path");
     }
 };
@@ -32,7 +32,7 @@ struct ListResponse: solid::frame::mpipc::Message{
     ListResponse(const ListRequest &_rmsg):solid::frame::mpipc::Message(_rmsg){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.pushContainer(node_dq, "node_dq");
     }
 };
@@ -50,7 +50,7 @@ struct FileRequest: solid::frame::mpipc::Message{
     ): remote_path(std::move(_remote_path)), local_path(std::move(_local_path)){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.push(remote_path, "remote_path");
     }
 };
@@ -68,7 +68,7 @@ struct FileResponse: solid::frame::mpipc::Message{
         remote_file_size(solid::InvalidSize()){}
 
     template <class S>
-    void serialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
         _s.pushCall(
             [this](S &_rs, solid::frame::mpipc::ConnectionContext &_rctx, uint64_t _val, solid::ErrorConditionT &_rerr){
                 if(S::IsSerializer){
