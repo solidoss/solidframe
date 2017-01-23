@@ -1,6 +1,6 @@
 // utility/ostream.ipp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -13,26 +13,26 @@
 
 
 inline bool OutputStream::ook()const{
-	return flags.flags == 0;
+    return flags.flags == 0;
 }
 inline bool OutputStream::oeof()const{
-	return (flags.flags & StreamFlags::OEof) != 0;
+    return (flags.flags & StreamFlags::OEof) != 0;
 }
 inline bool OutputStream::obad()const{
-	return (flags.flags & StreamFlags::OBad) != 0;
+    return (flags.flags & StreamFlags::OBad) != 0;
 }
 inline bool OutputStream::ofail()const{
-	return obad() || ((flags.flags & StreamFlags::OFail) != 0);
+    return obad() || ((flags.flags & StreamFlags::OFail) != 0);
 }
 
 inline OutputStreamIterator::OutputStreamIterator(OutputStream *_ps, int64_t _off):ps(_ps),off(_off){
 }
 inline void OutputStreamIterator::reinit(OutputStream *_ps, int64_t _off){
-	ps = _ps;
-	off = _off;
+    ps = _ps;
+    off = _off;
 }
 inline int64_t OutputStreamIterator::start(){
-	return ps->seek(off);
+    return ps->seek(off);
 }
 
 

@@ -26,7 +26,7 @@ printUsage()
 	echo
 }
 
-BOOST_ADDR="http://sourceforge.net/projects/boost/files/boost/1.62.0/boost_1_62_0.tar.bz2"
+BOOST_ADDR="http://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.bz2"
 OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.0c.tar.gz"
 SNAPPY_ADDR="https://github.com/google/snappy/releases/download/1.1.3/snappy-1.1.3.tar.gz"
 

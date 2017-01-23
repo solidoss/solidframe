@@ -203,14 +203,17 @@ fi
 # 	exit
 # fi
 
-if [ ! -d $EXTERN_PATH ]; then
-	echo "Invalid prerequisites path: $EXTERN_PATH"
-	exit
-fi
+if [ ! -z $EXTERN_PATH ]; then
 
-cd $EXTERN_PATH
-EXTERN_PATH=`pwd`
-cd -
+    if [ ! -d $EXTERN_PATH ]; then
+        echo "Invalid prerequisites path: $EXTERN_PATH"
+        exit
+    fi
+
+    cd $EXTERN_PATH
+    EXTERN_PATH=`pwd`
+    cd -
+fi
 
 echo "Using extern prerequisites from: $EXTERN_PATH"
 

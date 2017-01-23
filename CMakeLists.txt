@@ -26,13 +26,12 @@ add_definitions(${EXTRA_DEFINITIONS})
 #-----------------------------------------------------------------
 
 if(NOT UEXTERN OR UEXTERN STREQUAL "")
-    set(UEXTERN "${CMAKE_INSTALL_PREFIX}")
-    message("Default extern path: \"${UEXTERN}\"")
+    message("Extern path not given")
+else()
+    set(EXTERN_PATH "${UEXTERN}/" CACHE PATH "External prerequisites path")
+    message("Extern path: \"${EXTERN_PATH}\"")
 endif()
 
-set(EXTERN_PATH "${UEXTERN}/" CACHE PATH "External prerequisites path")
-
-message("Extern path: \"${EXTERN_PATH}\"")
 
 if(NOT UINSTALL_PREFIX OR UINSTALL_PREFIX STREQUAL "")
     set(UINSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
@@ -208,6 +207,7 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     set(ON_ANDROID TRUE)
     set(SOLID_ON_LINUX TRUE)
     set(SOLID_ON_POSIX TRUE)
+    set(NO_EXTERNAL TRUE)
 
 
     set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
@@ -239,25 +239,41 @@ endif(NOT ON_FOUND)
 # Find external libraries
 #-----------------------------------------------------------------
 
-if(NOT ON_ANDROID)
-    include(cmake/find_boost.cmake)
-    include(cmake/find_openssl.cmake)
-    include(cmake/find_snappy.cmake)
+if(NOT NO_EXTERNAL)
+    
+    if(NOT EXTERN_PATH)
+        set(EXTERN_PATH "${CMAKE_CURRENT_BINARY_DIR}/external")
+        include(ExternalProject)
 
-    message("")
-    if(${Boost_FOUND})
-        message("Boost found with version: ${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
+        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+        include(cmake/build_boost.cmake)
+        include(cmake/build_openssl.cmake)
     else()
-        message("Boost not found - some targets will not compile")
+        #define dummy targets
+        add_custom_target(boost)
+        add_custom_target(openssl)
+        add_custom_target(snappy)
+    
+        include(cmake/find_boost.cmake)
+        include(cmake/find_openssl.cmake)
+        include(cmake/find_snappy.cmake)
+
+        message("")
+        if(${Boost_FOUND})
+            message("Boost found with version: ${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
+        else()
+            message("Boost not found - some targets will not compile")
+        endif()
+
+        if(OPENSSL_FOUND)
+            message("OpenSSL found with version: ${OPENSSL_VERSION}")
+        else()
+            message("OpenSSL not found - some targets will not compile")
+        endif()
+
+        message("")
     endif()
 
-    if(OPENSSL_FOUND)
-        message("OpenSSL found with version: ${OPENSSL_VERSION}")
-    else()
-        message("OpenSSL not found - some targets will not compile")
-    endif()
-
-    message("")
 else()
     set(OPENSSL_FOUND TRUE)
 endif()

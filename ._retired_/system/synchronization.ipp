@@ -1,6 +1,6 @@
 // system/synchronization.ipp
 //
-// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -15,25 +15,25 @@
 
 #ifndef SOLID_ON_WINDOWS
 inline Semaphore::Semaphore(int _cnt){
-	sem_init(&sem,0,_cnt);
+    sem_init(&sem,0,_cnt);
 }
 inline Semaphore::~Semaphore(){
-	sem_destroy(&sem);
+    sem_destroy(&sem);
 }
 inline void Semaphore::wait(){
-	sem_wait(&sem);
+    sem_wait(&sem);
 }
-inline Semaphore::operator int () {	
-	int v;
-	sem_getvalue(&sem,&v);
-	return v;
+inline Semaphore::operator int () {
+    int v;
+    sem_getvalue(&sem,&v);
+    return v;
 }
 inline Semaphore &Semaphore::operator++(){
-	sem_post(&sem);
-	return *this;
+    sem_post(&sem);
+    return *this;
 }
 inline bool Semaphore::tryWait(){
-	return sem_trywait(&sem) == 0;
+    return sem_trywait(&sem) == 0;
 }
 
 #else
@@ -44,14 +44,14 @@ inline Semaphore::~Semaphore(){
 }
 inline void Semaphore::wait(){
 }
-inline Semaphore::operator int () {	
-	return 0;
+inline Semaphore::operator int () {
+    return 0;
 }
 inline Semaphore &Semaphore::operator++(){
-	return *this;
+    return *this;
 }
 inline int Semaphore::tryWait(){
-	return 0;
+    return 0;
 }
 #endif
 

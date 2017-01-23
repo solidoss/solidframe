@@ -1,6 +1,6 @@
 // system/mutex.ipp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -14,91 +14,91 @@
 
 inline Mutex::Mutex(){
 #ifdef SOLID_HAS_DEBUG
-	pthread_mutexattr_t att;
-	pthread_mutexattr_init(&att);
-	pthread_mutexattr_settype(&att, (int)ERRORCHECK);
-	pthread_mutex_init(&mut,&att);
-	pthread_mutexattr_destroy(&att);
+    pthread_mutexattr_t att;
+    pthread_mutexattr_init(&att);
+    pthread_mutexattr_settype(&att, (int)ERRORCHECK);
+    pthread_mutex_init(&mut,&att);
+    pthread_mutexattr_destroy(&att);
 #else
-	//pthread_mutexattr_settype(&att, (int)FAST);
-	pthread_mutex_init(&mut, NULL);
+    //pthread_mutexattr_settype(&att, (int)FAST);
+    pthread_mutex_init(&mut, NULL);
 #endif
 }
 
 inline Mutex::Mutex(Type _type){
-	pthread_mutexattr_t att;
-	pthread_mutexattr_init(&att);
-	pthread_mutexattr_settype(&att, (int)_type);
-	pthread_mutex_init(&mut,&att);
-	pthread_mutexattr_destroy(&att);
+    pthread_mutexattr_t att;
+    pthread_mutexattr_init(&att);
+    pthread_mutexattr_settype(&att, (int)_type);
+    pthread_mutex_init(&mut,&att);
+    pthread_mutexattr_destroy(&att);
 }
 inline Mutex::~Mutex(){
-	pthread_mutex_destroy(&mut);
+    pthread_mutex_destroy(&mut);
 }
 
 inline void Mutex::lock(){
 #ifdef SOLID_HAS_DEBUG
 #ifdef SOLID_HAS_NO_INLINES
-	int rv = pthread_mutex_lock(&mut);
-	if(rv){
-		edbgx(Debug::system, "pthread_mutex_lock: "<<strerror(errno));
-		SOLID_ASSERT(!rv);
-	}
+    int rv = pthread_mutex_lock(&mut);
+    if(rv){
+        edbgx(Debug::system, "pthread_mutex_lock: "<<strerror(errno));
+        SOLID_ASSERT(!rv);
+    }
 #else
-	pthread_mutex_lock(&mut);
+    pthread_mutex_lock(&mut);
 #endif
 #else
-	pthread_mutex_lock(&mut);
+    pthread_mutex_lock(&mut);
 #endif
 }
 inline void Mutex::unlock(){
 #ifdef SOLID_HAS_DEBUG
 #ifdef SOLID_HAS_NO_INLINES
-	int rv = pthread_mutex_unlock(&mut);
-	if(rv){
-		edbgx(Debug::system, "pthread_mutex_unlock: "<<strerror(errno));
-	}
-	SOLID_ASSERT(!rv);
+    int rv = pthread_mutex_unlock(&mut);
+    if(rv){
+        edbgx(Debug::system, "pthread_mutex_unlock: "<<strerror(errno));
+    }
+    SOLID_ASSERT(!rv);
 #else
-	pthread_mutex_unlock(&mut);
+    pthread_mutex_unlock(&mut);
 #endif
 #else
-	pthread_mutex_unlock(&mut);
+    pthread_mutex_unlock(&mut);
 #endif
 }
 
 inline SharedMutex::SharedMutex(){
-	 pthread_rwlock_init(&mut, NULL);
+     pthread_rwlock_init(&mut, NULL);
 }
 inline SharedMutex::~SharedMutex(){
-	pthread_rwlock_destroy(&mut);
+    pthread_rwlock_destroy(&mut);
 }
 inline void SharedMutex::lock(){
-	pthread_rwlock_wrlock(&mut);
+    pthread_rwlock_wrlock(&mut);
 }
 inline void SharedMutex::unlock(){
-	 pthread_rwlock_unlock(&mut);
+     pthread_rwlock_unlock(&mut);
 }
 inline bool SharedMutex::tryLock(){
-	return pthread_rwlock_trywrlock(&mut) == 0;
+    return pthread_rwlock_trywrlock(&mut) == 0;
 }
 inline void SharedMutex::sharedLock(){
-	pthread_rwlock_rdlock(&mut);
+    pthread_rwlock_rdlock(&mut);
 }
 inline void SharedMutex::sharedUnlock(){
-	 pthread_rwlock_unlock(&mut);
+     pthread_rwlock_unlock(&mut);
 }
 inline bool SharedMutex::sharedTryLock(){
-	return pthread_rwlock_tryrdlock(&mut) == 0;
+    return pthread_rwlock_tryrdlock(&mut) == 0;
 }
 
 #ifdef _WIN32
 inline bool Mutex::tryLock(){
-	return false;
+    return false;
 }
 #else
 inline bool Mutex::tryLock(){
-	return pthread_mutex_trylock(&mut)==0;
+    return pthread_mutex_trylock(&mut)==0;
 }
 #endif
 

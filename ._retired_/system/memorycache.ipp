@@ -1,6 +1,6 @@
 // system/memorycache.ipp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -14,41 +14,41 @@
 
 
 inline void *MemoryCache::allocate(const size_t _sz){
-	if(isSmall(_sz)){
-		
-		const size_t	idx = sizeToIndex(_sz);
-		const size_t	cp = indexToCapacity(idx);
-		
-		CacheStub		&cs(cachevec[idx]);
-		void* const		pv = cs.pop(cp, cfg);
+    if(isSmall(_sz)){
+
+        const size_t    idx = sizeToIndex(_sz);
+        const size_t    cp = indexToCapacity(idx);
+
+        CacheStub       &cs(cachevec[idx]);
+        void* const     pv = cs.pop(cp, cfg);
 #ifdef SOLID_HAS_NO_INLINES
-		vdbgx(dbgid, "Allocated "<<pv<<" of capacity "<<cp<<" using cachestub "<<idx);
+        vdbgx(dbgid, "Allocated "<<pv<<" of capacity "<<cp<<" using cachestub "<<idx);
 #endif
-		return pv;
-	}else{
-		void*			pv = new char[_sz];
+        return pv;
+    }else{
+        void*           pv = new char[_sz];
 #ifdef SOLID_HAS_NO_INLINES
-		vdbgx(dbgid, "Allocated "<<pv<<" using default allocator");
+        vdbgx(dbgid, "Allocated "<<pv<<" using default allocator");
 #endif
-		return pv;
-	}
+        return pv;
+    }
 }
 
 inline void MemoryCache::free(void *_pv, const size_t _sz){
-	if(isSmall(_sz)){
-		const size_t	idx = sizeToIndex(_sz);
-		const size_t	cp = indexToCapacity(idx);
-		CacheStub		&cs(cachevec[idx]);
-		cs.push(_pv, cp, cfg);
+    if(isSmall(_sz)){
+        const size_t    idx = sizeToIndex(_sz);
+        const size_t    cp = indexToCapacity(idx);
+        CacheStub       &cs(cachevec[idx]);
+        cs.push(_pv, cp, cfg);
 #ifdef SOLID_HAS_NO_INLINES
-		vdbgx(dbgid, "Freed "<<_pv<<" of capacity "<<cp<<" using cachestub "<<idx);
+        vdbgx(dbgid, "Freed "<<_pv<<" of capacity "<<cp<<" using cachestub "<<idx);
 #endif
-	}else{
+    }else{
 #ifdef SOLID_HAS_NO_INLINES
-		vdbgx(dbgid, "Freed "<<_pv<<" using default allocator");
+        vdbgx(dbgid, "Freed "<<_pv<<" using default allocator");
 #endif
-		delete []static_cast<char*>(_pv);
-	}
+        delete []static_cast<char*>(_pv);
+    }
 }
 
 
