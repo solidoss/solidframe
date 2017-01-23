@@ -2,6 +2,8 @@ if(${Boost_FOUND})
 
 add_executable (tutorial_mpipc_file_server mpipc_file_server.cpp mpipc_file_messages.hpp)
 
+add_dependencies(tutorial_mpipc_file_server build_boost)
+
 target_link_libraries (tutorial_mpipc_file_server
     solid_frame_mpipc
     solid_frame_aio

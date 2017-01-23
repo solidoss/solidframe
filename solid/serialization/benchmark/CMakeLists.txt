@@ -1,5 +1,7 @@
 add_executable(benchmark EXCLUDE_FROM_ALL main.cpp boost/record.cpp solid/record.cpp)
 
+add_dependencies(benchmark build_boost)
+
 target_link_libraries(benchmark
     solid_serialization
     solid_utility

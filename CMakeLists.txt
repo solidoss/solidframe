@@ -27,6 +27,7 @@ add_definitions(${EXTRA_DEFINITIONS})
 
 if(NOT UEXTERN OR UEXTERN STREQUAL "")
     message("Extern path not given")
+    set(EXTERN_PATH "" CACHE PATH "External prerequisites path")
 else()
     set(EXTERN_PATH "${UEXTERN}/" CACHE PATH "External prerequisites path")
     message("Extern path: \"${EXTERN_PATH}\"")
@@ -241,18 +242,19 @@ endif(NOT ON_FOUND)
 
 if(NOT NO_EXTERNAL)
     
-    if(NOT EXTERN_PATH)
+    if(EXTERN_PATH STREQUAL "")
         set(EXTERN_PATH "${CMAKE_CURRENT_BINARY_DIR}/external")
         include(ExternalProject)
 
         set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
         include(cmake/build_boost.cmake)
         include(cmake/build_openssl.cmake)
+        include(cmake/build_snappy.cmake)
     else()
         #define dummy targets
-        add_custom_target(boost)
-        add_custom_target(openssl)
-        add_custom_target(snappy)
+        add_custom_target(build_boost)
+        add_custom_target(build_openssl)
+        add_custom_target(build_snappy)
     
         include(cmake/find_boost.cmake)
         include(cmake/find_openssl.cmake)

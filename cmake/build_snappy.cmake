@@ -1,18 +1,18 @@
-ExternalProject_Add(snappy
-   URL https://snappy.googlecode.com/files/snappy-${GIT_TAG}.tar.gz
-
-  CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR>
-                                           --enable-shared
-                                           --disable-static
+ExternalProject_Add(
+    build_snappy
+    PREFIX ${EXTERN_PATH}/snappy
+    URL https://github.com/google/snappy/releases/download/1.1.3/snappy-1.1.3.tar.gz
+    CONFIGURE_COMMAND ${EXTERN_PATH}/snappy/src/build_snappy/configure --prefix=${EXTERN_PATH} 
+                                           --disable-shared
+                                           --enable-static
                                            --disable-dependency-tracking
                                            --disable-gtest
 
-  BUILD_COMMAND make all
-
-  INSTALL_DIR ${CMAKE_BINARY_DIR}/install
-  INSTALL_COMMAND make install
-          COMMAND rm -r <INSTALL_DIR>/share
-          COMMAND rm <INSTALL_DIR>/lib/libsnappy.la
-
-  COMMAND ${CMAKE_COMMAND} -E echo FILE "(COPY lib include DESTINATION \"\${CMAKE_INSTALL_PREFIX}\")" > <INSTALL_DIR>/CMakeLists.txt
+    BUILD_COMMAND make all
+    INSTALL_COMMAND make install
+    BUILD_IN_SOURCE 1
+    LOG_UPDATE ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
 )
