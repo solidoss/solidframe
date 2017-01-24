@@ -374,7 +374,7 @@ public:
                 if(rv){
 
                 }else if(can_retry){
-                    send_fnc = ConnectFunctor<F>(_f);
+                    send_fnc = ConnectFunctor<F>{_f};
                     return false;
                 }else{
                     error(_rctx, error_stream_system);

@@ -281,12 +281,15 @@ function buildSnappy()
 	echo
 
 	cd $DIR_NAME
-
-	if [ -n "$DEBUG" ] ; then
-		./configure --disable-shared --prefix="$EXT_DIR"
-	else
-		./configure --disable-shared --prefix="$EXT_DIR"
-	fi
+	
+	if      [ "$SYSTEM" = "FreeBSD" ] ; then
+        CC=clang CXX=clang++ ./configure --disable-shared --prefix="$EXT_DIR"
+    elif    [ "$SYSTEM" = "Darwin" ] ; then
+        CC=clang CXX=clang++ ./configure --disable-shared --prefix="$EXT_DIR"
+    else
+        ./configure --disable-shared --prefix="$EXT_DIR"
+    fi
+	
 	make && make install
 	cd ..
 	echo

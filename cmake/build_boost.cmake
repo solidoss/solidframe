@@ -1,12 +1,15 @@
+if(SOLID_ON_FREEBSD)
+    set(WITH_TOOLSET --with-toolset=clang)
+endif()
 
 ExternalProject_Add(
     build_boost
     PREFIX ${EXTERN_PATH}/boost
     URL "http://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.bz2"
     #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
-    CONFIGURE_COMMAND ${EXTERN_PATH}/boost/src/build_boost/bootstrap.sh --with-libraries=system,thread,program_options,serialization,filesystem --prefix=${EXTERN_PATH}
-    BUILD_COMMAND ./bjam link=static cxxflags='-fPIC'
-    INSTALL_COMMAND ./bjam link=static install
+    CONFIGURE_COMMAND ./bootstrap.sh ${WITH_TOOLSET} --with-libraries=system,thread,program_options,serialization,filesystem
+    BUILD_COMMAND ./b2 --prefix=${EXTERN_PATH} --layout=system link=static threading=multi install
+    INSTALL_COMMAND ""
     BUILD_IN_SOURCE 1
     LOG_UPDATE ON
     LOG_CONFIGURE ON
