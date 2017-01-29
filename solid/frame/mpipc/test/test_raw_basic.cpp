@@ -460,17 +460,10 @@ int test_raw_basic(int argc, char **argv){
 
         unique_lock<mutex>  lock(mtx);
 
-        while(running){
-            //cnd.wait(lock);
-            NanoTime    abstime = NanoTime::createRealTime();
-            abstime += (120 * 1000);//ten seconds
-            cnd.wait(lock);
-            bool b = true;//cnd.wait(lock, abstime);
-            if(!b){
-                //timeout expired
-                SOLID_THROW("Process is taking too long.");
-            }
+        if(not cnd.wait_for(lock, std::chrono::seconds(120), [](){return not running;})){
+             SOLID_THROW("Process is taking too long.");
         }
+        
         //m.stop();
         if(crtwriteidx != crtackidx){
             SOLID_ASSERT(false);

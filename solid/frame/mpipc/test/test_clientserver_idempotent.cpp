@@ -493,12 +493,11 @@ int test_clientserver_idempotent(int argc, char **argv){
 
         {
             unique_lock<mutex>  lock(mtx);
-            while(!start_sleep){
-                if(cnd.wait_for(lock, std::chrono::milliseconds(10*1000)) == std::cv_status::timeout){
-                    //timeout expired
-                    SOLID_THROW("Process is taking too long.");
-                }
+            
+            if(not cnd.wait_for(lock, std::chrono::seconds(10), [](){ return start_sleep;})){
+                SOLID_THROW("Process is taking too long.");
             }
+            
         }
 
         idbg("---- Before server stopping ----");
@@ -512,14 +511,10 @@ int test_clientserver_idempotent(int argc, char **argv){
         idbg("---- After server started ----");
 
         unique_lock<mutex>  lock(mtx);
-
-        while(running){
-            //cnd.wait(lock);
-            //cnd.wait(lock);
-            if(cnd.wait_for(lock, std::chrono::milliseconds(30*1000)) == std::cv_status::timeout){
-                //timeout expired
-                SOLID_THROW("Process is taking too long.");
-            }
+        
+        
+        if(not cnd.wait_for(lock, std::chrono::seconds(120), [](){return not running;})){
+             SOLID_THROW("Process is taking too long.");
         }
 
         if(crtwriteidx != crtackidx){
