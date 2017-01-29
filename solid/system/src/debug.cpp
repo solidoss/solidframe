@@ -23,7 +23,6 @@
 #include <map>
 #endif
 
-#include "solid/system/nanotime.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/system/filedevice.hpp"
 #include "solid/system/cassert.hpp"
@@ -34,6 +33,7 @@
 
 #include <mutex>
 #include <thread>
+#include <chrono>
 
 #ifdef SOLID_ON_SOLARIS
 #include <strings.h>
@@ -44,6 +44,7 @@
 #define DEBUG_BITSET_SIZE 256
 
 using namespace std;
+using namespace std::chrono;
 
 namespace solid{
 
@@ -686,8 +687,8 @@ std::ostream& Debug::print(
         d.doRespin();
     }
     char        buf[128];
-    NanoTime    ts_now(NanoTime::createRealTime());
-    time_t      t_now = ts_now.seconds();
+    const auto  now = system_clock::now();
+    time_t      t_now = system_clock::to_time_t(now);
     tm          *ploctm;
 #ifdef SOLID_ON_WINDOWS
     ploctm = localtime(&t_now);
@@ -705,7 +706,7 @@ std::ostream& Debug::print(
         ploctm->tm_hour,
         ploctm->tm_min,
         ploctm->tm_sec,
-        (uint)ts_now.nanoSeconds()/1000000,
+        static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000),
         d.modvec[_module].name.c_str()//,
         //Thread::currentId()
     );
@@ -738,8 +739,8 @@ std::ostream& Debug::printTraceIn(
         d.doRespin();
     }
     char        buf[128];
-    NanoTime    ts_now(NanoTime::createRealTime());
-    time_t      t_now = ts_now.seconds();
+    const auto  now = system_clock::now();
+    time_t      t_now = system_clock::to_time_t(now);
     tm          *ploctm;
 #ifdef SOLID_ON_WINDOWS
     ploctm = localtime(&t_now);
@@ -757,7 +758,7 @@ std::ostream& Debug::printTraceIn(
         ploctm->tm_hour,
         ploctm->tm_min,
         ploctm->tm_sec,
-        (uint)ts_now.nanoSeconds()/1000000//,
+        static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
         //d.nv[_module],
         //Thread::currentId()
     );
@@ -784,8 +785,8 @@ std::ostream& Debug::printTraceOut(
         d.doRespin();
     }
     char        buf[128];
-    NanoTime    ts_now(NanoTime::createRealTime());
-    time_t      t_now = ts_now.seconds();
+    const auto  now = system_clock::now();
+    time_t      t_now = system_clock::to_time_t(now);
     tm          *ploctm;
 #ifdef SOLID_ON_WINDOWS
     ploctm = localtime(&t_now);
@@ -803,7 +804,7 @@ std::ostream& Debug::printTraceOut(
         ploctm->tm_hour,
         ploctm->tm_min,
         ploctm->tm_sec,
-        (uint)ts_now.nanoSeconds()/1000000//,
+        static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
         //d.nv[_module],
         //Thread::currentId()
     );
