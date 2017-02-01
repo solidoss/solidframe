@@ -461,7 +461,7 @@ void Connection::doStop(frame::aio::ReactorContext &_rctx, const ErrorConditionT
             idbgx(Debug::mpipc, this<<' '<<this->id()<<" wait "<<seconds_to_wait<<" seconds");
             if(seconds_to_wait){
                 timer.waitFor(_rctx,
-                    NanoTime(seconds_to_wait),
+                    std::chrono::seconds(seconds_to_wait),
                     [event](frame::aio::ReactorContext &_rctx){
                         Connection  &rthis = static_cast<Connection&>(_rctx.object());
                         rthis.doContinueStopping(_rctx, event);
@@ -553,7 +553,7 @@ void Connection::doCompleteAllMessages(
     }else if(_seconds_to_wait){
         idbgx(Debug::mpipc, this<<" secs to wait = "<<_seconds_to_wait);
         timer.waitFor(_rctx,
-            NanoTime(_seconds_to_wait),
+            std::chrono::seconds(_seconds_to_wait),
             [_rerr, _revent](frame::aio::ReactorContext &_rctx){
                 Connection  &rthis = static_cast<Connection&>(_rctx.object());
                 rthis.doContinueStopping(_rctx, _revent);
@@ -605,7 +605,7 @@ void Connection::doContinueStopping(
     }else if(seconds_to_wait){
         idbgx(Debug::mpipc, this<<' '<<this->id()<<" wait for "<<seconds_to_wait<<" seconds");
         timer.waitFor(_rctx,
-            NanoTime(seconds_to_wait),
+            std::chrono::seconds(seconds_to_wait),
             [_revent](frame::aio::ReactorContext &_rctx){
                 Connection  &rthis = static_cast<Connection&>(_rctx.object());
                 rthis.doContinueStopping(_rctx, _revent);
@@ -1173,7 +1173,7 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 
             idbgx(Debug::mpipc, this<<' '<<this->id()<<" wait for "<<config.connection_inactivity_timeout_seconds<<" seconds");
 
-            timer.waitFor(_rctx, NanoTime(config.connection_inactivity_timeout_seconds), onTimerInactivity);
+            timer.waitFor(_rctx, std::chrono::seconds(config.connection_inactivity_timeout_seconds), onTimerInactivity);
         }
     }else{//client
         if(config.connection_keepalive_timeout_seconds){
@@ -1181,7 +1181,7 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext &_rctx){
 
             idbgx(Debug::mpipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
 
-            timer.waitFor(_rctx, NanoTime(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
+            timer.waitFor(_rctx, std::chrono::seconds(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
         }
     }
 }
@@ -1199,7 +1199,7 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext &_rctx){
 
             vdbgx(Debug::mpipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
 
-            timer.waitFor(_rctx, NanoTime(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
+            timer.waitFor(_rctx, std::chrono::seconds(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
         }
     }
 }
@@ -1218,7 +1218,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 
             idbgx(Debug::mpipc, this<<' '<<this->id()<<" wait for "<<config.connection_keepalive_timeout_seconds<<" seconds");
 
-            timer.waitFor(_rctx, NanoTime(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
+            timer.waitFor(_rctx, std::chrono::seconds(config.connection_keepalive_timeout_seconds), onTimerKeepalive);
         }
     }
 }
@@ -1237,7 +1237,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext &_rctx){
 
         idbgx(Debug::mpipc, &rthis<<' '<<rthis.id()<<" wait for "<<config.connection_inactivity_timeout_seconds<<" seconds");
 
-        rthis.timer.waitFor(_rctx, NanoTime(config.connection_inactivity_timeout_seconds), onTimerInactivity);
+        rthis.timer.waitFor(_rctx, std::chrono::seconds(config.connection_inactivity_timeout_seconds), onTimerInactivity);
     }else{
         rthis.doStop(_rctx, error_connection_inactivity_timeout);
     }

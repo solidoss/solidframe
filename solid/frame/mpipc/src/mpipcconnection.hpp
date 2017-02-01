@@ -266,7 +266,7 @@ private:
         return send_buf_cp_kb * 1024;
     }
 protected:
-    using TimerT = frame::aio::Timer;
+    using TimerT = frame::aio::SteadyTimer;
 
     ConnectionPoolId            pool_id;
     const std::string           &rpool_name;

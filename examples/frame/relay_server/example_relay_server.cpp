@@ -133,7 +133,7 @@ private:
     void onTimer(frame::aio::ReactorContext &_rctx);
 
     typedef frame::aio::Listener        ListenerSocketT;
-    typedef frame::aio::Timer           TimerT;
+    typedef frame::aio::SteadyTimer     TimerT;
 
     frame::Service      &rsvc;
     AioSchedulerT       &rsch;

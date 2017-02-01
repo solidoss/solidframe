@@ -57,7 +57,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
         }else{
             idbgx(Debug::mpipc, "listen error"<<_rctx.error().message());
             timer.waitFor(
-                _rctx, NanoTime(10),
+                _rctx, std::chrono::seconds(10),
                 [this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, make_event(GenericEvents::Timer));}
             );
             break;

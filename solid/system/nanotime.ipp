@@ -11,7 +11,7 @@
 #define inline
 #endif
 
-
+#if 0
 inline void NanoTime::set(const TimeT &_s, long _ns){
     tv_sec = _s;tv_nsec = _ns;
 }
@@ -44,7 +44,29 @@ inline void NanoTime::sub(const TimeT &_s, long _ns){
     tv_sec -= tv_nsec/1000000000;
     tv_nsec %= 1000000000;
 }
-
+inline NanoTime& NanoTime::operator += (unsigned _msec){
+    tv_sec += _msec / 1000;
+    tv_nsec += (_msec % 1000) * 1000000;
+    tv_sec += tv_nsec/1000000000;
+    tv_nsec %= 1000000000;
+    return *this;
+}
+inline NanoTime& NanoTime::operator += (const NanoTime &_ts){
+    tv_sec += _ts.seconds();
+    tv_nsec += _ts.nanoSeconds();
+    tv_sec += tv_nsec/1000000000;
+    tv_nsec %= 1000000000;
+    return *this;
+}
+inline NanoTime& NanoTime::operator -= (const NanoTime &_ts){
+    tv_sec -= _ts.seconds();
+    --tv_sec;
+    tv_nsec = (tv_nsec + 1000000000) - _ts.nanoSeconds();
+    tv_sec += tv_nsec/1000000000;
+    tv_nsec %= 1000000000;
+    return *this;
+}
+#endif
 inline bool NanoTime::operator >=(const NanoTime &_ts)const{
     return (seconds() > _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec >= _ts.tv_nsec));
 }
@@ -61,36 +83,12 @@ inline bool NanoTime::operator <(const NanoTime &_ts)const{
     return (seconds() < _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec < _ts.tv_nsec));
 }
 
-inline NanoTime& NanoTime::operator += (unsigned _msec){
-    tv_sec += _msec / 1000;
-    tv_nsec += (_msec % 1000) * 1000000;
-    tv_sec += tv_nsec/1000000000;
-    tv_nsec %= 1000000000;
-    return *this;
-}
-
 inline bool NanoTime::operator !=(const NanoTime &_ts)const{
     return tv_sec != _ts.tv_sec || tv_nsec != _ts.tv_nsec;
 }
 
 inline bool NanoTime::operator ==(const NanoTime &_ts)const{
     return tv_sec == _ts.tv_sec && tv_nsec == _ts.tv_nsec;
-}
-
-inline NanoTime& NanoTime::operator += (const NanoTime &_ts){
-    tv_sec += _ts.seconds();
-    tv_nsec += _ts.nanoSeconds();
-    tv_sec += tv_nsec/1000000000;
-    tv_nsec %= 1000000000;
-    return *this;
-}
-inline NanoTime& NanoTime::operator -= (const NanoTime &_ts){
-    tv_sec -= _ts.seconds();
-    --tv_sec;
-    tv_nsec = (tv_nsec + 1000000000) - _ts.nanoSeconds();
-    tv_sec += tv_nsec/1000000000;
-    tv_nsec %= 1000000000;
-    return *this;
 }
 
 inline bool NanoTime::isMax()const{

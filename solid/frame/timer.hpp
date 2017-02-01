@@ -22,12 +22,12 @@ namespace frame{
 struct  ObjectProxy;
 struct  ReactorContext;
 
-class Timer: public CompletionHandler{
-    typedef Timer   ThisT;
+class SteadyTimer: public CompletionHandler{
+    typedef SteadyTimer   ThisT;
 
     static void on_init_completion(CompletionHandler& _rch, ReactorContext &_rctx){
         ThisT &rthis = static_cast<ThisT&>(_rch);
-        rthis.completionCallback(Timer::on_completion);
+        rthis.completionCallback(SteadyTimer::on_completion);
     }
 
     static void on_completion(CompletionHandler& _rch, ReactorContext &_rctx){
@@ -49,32 +49,31 @@ class Timer: public CompletionHandler{
 
     }
 public:
-    Timer(
+    SteadyTimer(
         ObjectProxy const &_robj
-    ):CompletionHandler(_robj, Timer::on_init_completion), storeidx(InvalidIndex())
+    ):CompletionHandler(_robj, SteadyTimer::on_init_completion), storeidx(InvalidIndex())
     {
     }
 
-    ~Timer(){
+    ~SteadyTimer(){
         //MUST call here and not in the ~CompletionHandler
         this->deactivate();
     }
     //Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
     //Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
-    template <typename F>
-    bool waitFor(ReactorContext &_rctx, NanoTime const& _tm, F _f){
-        NanoTime t = _rctx.time();
-        t += _tm;
-        return waitUntil(_rctx, t, _f);
+    template <class Rep, class Period, typename F>
+    bool waitFor(ReactorContext &_rctx, std::chrono::duration<Rep, Period> const& _rd, F _f){
+        return waitUntil(_rctx, _rctx.steadyTime() + _rd, _f);
     }
 
     //Returns true when the operation completed. Check _rctx.error() for success or fail
     //Returns false when operation is scheduled for completion. On completion _f(...) will be called.
-    template <typename F>
-    bool waitUntil(ReactorContext &_rctx, NanoTime const& _tm, F _f){
+    template <class Clock, class Duration, typename F>
+    bool waitUntil(ReactorContext &_rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F _f){
         if(FUNCTION_EMPTY(f)){
             f = _f;
-            this->addTimer(_rctx, _tm, storeidx);
+            NanoTime steady_nt{time_point_clock_cast<std::chrono::steady_clock>(_rtp)};
+            this->addTimer(_rctx, steady_nt, storeidx);
             return false;
         }else{
             //TODO: set proper error

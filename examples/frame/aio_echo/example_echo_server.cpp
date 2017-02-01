@@ -85,7 +85,7 @@ private:
     void onTimer(frame::aio::ReactorContext &_rctx);
 
     typedef frame::aio::Listener            ListenerSocketT;
-    typedef frame::aio::Timer               TimerT;
+    typedef frame::aio::SteadyTimer         TimerT;
 
     frame::Service      &rsvc;
     AioSchedulerT       &rsch;
@@ -325,9 +325,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
         sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
         //sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
         ptimer = new TimerT(this->proxy());
-        NanoTime waittime = _rctx.time();
-        waittime += 2000;
-        ptimer->waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
+        ptimer->waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(2), [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
     }else if(generic_event_kill == _revent){
         postStop(_rctx);
     }
@@ -335,9 +333,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 
 void Listener::onTimer(frame::aio::ReactorContext &_rctx){
     idbg("On Listener Timer");
-    NanoTime waittime = _rctx.time();
-    waittime += 2000;
-    ptimer->waitUntil(_rctx, waittime, [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
+    ptimer->waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(2), [this](frame::aio::ReactorContext &_rctx){return onTimer(_rctx);});
     ++timercnt;
     if(timercnt == 4){
         delete ptimer;

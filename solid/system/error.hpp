@@ -21,7 +21,7 @@
 #ifdef SOLID_USE_CPP11
 #include <system_error>
 #else
-#include "boost/solid/system/error_code.hpp"
+#include "boost/system/error_code.hpp"
 #endif
 
 #include <vector>

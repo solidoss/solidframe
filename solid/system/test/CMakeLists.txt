@@ -3,6 +3,7 @@ set( MyTests
     test_thread.cpp
     test_file.cpp
     test_socket.cpp
+    test_nanotime.cpp
 )
 
 create_test_sourcelist( Tests system_test.cpp ${MyTests})
@@ -21,4 +22,9 @@ add_test( SocketTest system_test
 
 add_test( FileTest system_test
     test_file
+)
+
+
+add_test( NanoTimeTest system_test
+    test_nanotime
 )

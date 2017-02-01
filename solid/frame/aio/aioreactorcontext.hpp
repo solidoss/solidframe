@@ -33,10 +33,14 @@ struct ReactorContext{
 
     }
 
-    const NanoTime& time()const{
+    const NanoTime& nanoTime()const{
         return rcurrent_time_;
     }
-
+    
+    std::chrono::steady_clock::time_point steadyTime()const{
+        return rcurrent_time_.timePointCast<std::chrono::steady_clock::time_point>();
+    }
+    
     ErrorCodeT const& systemError()const{
         return system_error_;
     }

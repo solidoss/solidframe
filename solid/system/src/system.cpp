@@ -53,12 +53,13 @@ namespace solid{
 //=============================================================================
 //  NanoTime
 //=============================================================================
-/*static*/ const NanoTime NanoTime::maximum(-1, -1);
+/*static*/ const NanoTime NanoTime::maximum{};
 
 #ifdef SOLID_HAS_NO_INLINES
 #include "solid/system/nanotime.ipp"
 #endif
 
+#if 0
 /*static*/ NanoTime NanoTime::createRealTime(){
     NanoTime ct;
     return ct.currentRealTime();
@@ -205,5 +206,6 @@ const NanoTime& NanoTime::currentMonotonic(){
 
 #endif
 
+#endif
 
 }//namespace solid

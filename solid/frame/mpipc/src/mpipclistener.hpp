@@ -43,7 +43,7 @@ private:
 
 
     typedef frame::aio::Listener            ListenerSocketT;
-    typedef frame::aio::Timer               TimerT;
+    typedef frame::aio::SteadyTimer         TimerT;
 
     ListenerSocketT     sock;
     TimerT              timer;

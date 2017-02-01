@@ -41,9 +41,9 @@ private:
     void onEvent(frame::ReactorContext &_rctx, Event &&_revent) override;
     void onTimer(frame::ReactorContext &_rctx, size_t _idx);
 private:
-    size_t          repeat;
-    frame::Timer    t1;
-    frame::Timer    t2;
+    size_t                repeat;
+    frame::SteadyTimer    t1;
+    frame::SteadyTimer    t2;
 };
 
 int main(int argc, char *argv[]){
@@ -101,8 +101,8 @@ int main(int argc, char *argv[]){
 /*virtual*/ void BasicObject::onEvent(frame::ReactorContext &_rctx, Event &&_uevent){
     idbg("event = "<<_uevent);
     if(_uevent == generic_event_start){
-        t1.waitUntil(_rctx, _rctx.time() + 5 * 1000, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);});
-        t2.waitUntil(_rctx, _rctx.time() + 10 * 1000, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 1);});
+        t1.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(5), [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);});
+        t2.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(10), [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 1);});
     }else if(_uevent == generic_event_kill){
         postStop(_rctx);
     }
@@ -113,9 +113,9 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx, size_t _idx){
     if(_idx == 0){
         if(repeat--){
             t2.cancel(_rctx);
-            t1.waitUntil(_rctx, _rctx.time() + 1000 * 5, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);});
+            t1.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(5), [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 0);});
             SOLID_ASSERT(!_rctx.error());
-            t2.waitUntil(_rctx, _rctx.time() + 1000 * 10, [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 1);});
+            t2.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(10), [this](frame::ReactorContext &_rctx){return onTimer(_rctx, 1);});
             SOLID_ASSERT(!_rctx.error());
         }else{
             t2.cancel(_rctx);

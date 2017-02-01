@@ -37,9 +37,9 @@ private:
     void onEvent(frame::ReactorContext &_rctx, Event &&_revent) override;
     void onTimer(frame::ReactorContext &_rctx);
 private:
-    frame::Timer    timer_;
-    Status          status_;
-    bool            active_;
+    frame::SteadyTimer  timer_;
+    Status              status_;
+    bool                active_;
 };
 
 using ObjectDequeT = std::deque<BasicObject>;
@@ -168,7 +168,7 @@ int main(int argc, char *argv[]){
         }
     }else if(_uevent == generic_event_update){
         active_ = true;
-        timer_.waitFor(_rctx, NanoTime(10, 1000000 * (this->id() % 1000)), [this](frame::ReactorContext &_rctx){return onTimer(_rctx);});
+        timer_.waitFor(_rctx, std::chrono::seconds(10) + std::chrono::milliseconds(this->id() % 1000), [this](frame::ReactorContext &_rctx){return onTimer(_rctx);});
     }
 }
 
@@ -177,7 +177,7 @@ void BasicObject::onTimer(frame::ReactorContext &_rctx){
 
     if(status_ == StatusInMemory){
         status_ = StatusCompressed;
-        timer_.waitFor(_rctx, NanoTime(10, 1000000 * (this->id() % 1000)), [this](frame::ReactorContext &_rctx){return onTimer(_rctx);});
+        timer_.waitFor(_rctx, std::chrono::seconds(10) + std::chrono::milliseconds(this->id() % 1000), [this](frame::ReactorContext &_rctx){return onTimer(_rctx);});
     }else if(status_ == StatusCompressed){
         status_ = StatusOnDisk;
         unique_lock<mutex>  lock(mtx);

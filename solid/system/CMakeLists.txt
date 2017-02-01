@@ -48,5 +48,5 @@ install (FILES ${Headers} ${Inlines} DESTINATION include/solid/system)
 install (TARGETS solid_system DESTINATION lib EXPORT SolidFrameConfig)
 
 if(NOT ON_CROSS)
-    #add_subdirectory(test)
+    add_subdirectory(test)
 endif()

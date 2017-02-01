@@ -50,7 +50,7 @@ private:
     void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
 
     using ListenerSocketT = frame::aio::Listener;
-    using TimerT = frame::aio::Timer;
+    using TimerT = frame::aio::SteadyTimer;
 
     frame::Service      &rservice;
     AioSchedulerT       &rscheduler;
@@ -212,7 +212,7 @@ void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             timer.waitFor(
                 _rctx,
-                 NanoTime(10),
+                 std::chrono::seconds(10),
                 [this](frame::aio::ReactorContext &_rctx){
                     sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
                 }

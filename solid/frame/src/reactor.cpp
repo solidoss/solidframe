@@ -186,10 +186,13 @@ struct Reactor::Data{
             if(_rcrt < timestore.next()){
                 const int64_t   maxwait = 1000 * 60; //1 minute
                 int64_t         diff = 0;
-                NanoTime    delta = timestore.next();
-                delta -= _rcrt;
-                diff = (delta.seconds() * 1000);
-                diff += (delta.nanoSeconds() / 1000000);
+//                 NanoTime    delta = timestore.next();
+//                 delta -= _rcrt;
+//                 diff = (delta.seconds() * 1000);
+//                 diff += (delta.nanoSeconds() / 1000000);
+                const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
+                diff = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
                 if(diff > maxwait){
                     return maxwait;
                 }else{
@@ -330,18 +333,18 @@ void Reactor::run(){
     NanoTime    crttime;
 
     while(running){
-        crttime.currentRealTime();
+        
 
         crtload = d.objcnt + d.exeq.size();
 
         if(doWaitEvent(crttime)){
-            crttime.currentRealTime();
+            crttime = std::chrono::steady_clock::now();
             doCompleteEvents(crttime);
         }
-        crttime.currentRealTime();
+        crttime = std::chrono::steady_clock::now();
         doCompleteTimer(crttime);
 
-        crttime.currentRealTime();
+        crttime = std::chrono::steady_clock::now();
         doCompleteExec(crttime);
 
         running = d.running || (d.objcnt != 0) || !d.exeq.empty();
@@ -575,8 +578,8 @@ bool Reactor::addTimer(CompletionHandler const &_rch, NanoTime const &_rt, size_
 
 void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx){
     CompletionHandlerStub &rch = d.chdq[_chidx];
-    SOLID_ASSERT(static_cast<Timer*>(rch.pch)->storeidx == _oldidx);
-    static_cast<Timer*>(rch.pch)->storeidx = _newidx;
+    SOLID_ASSERT(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx);
+    static_cast<SteadyTimer*>(rch.pch)->storeidx = _newidx;
 }
 
 bool Reactor::remTimer(CompletionHandler const &_rch, size_t const &_rstoreidx){
