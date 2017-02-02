@@ -33,7 +33,7 @@ struct ReactorContext{
     const NanoTime& nanoTime()const{
         return rcrttm;
     }
-    
+
     std::chrono::steady_clock::time_point steadyTime()const{
         return rcrttm.timePointCast<std::chrono::steady_clock::time_point>();
     }

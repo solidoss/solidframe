@@ -321,7 +321,7 @@ struct Reactor::Data{
                 //delta -= _rcrt;
                 //diff = (delta.seconds() * 1000);
                 //diff += (delta.nanoSeconds() / 1000000);
-                
+
                 const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
                 const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
                 diff = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();

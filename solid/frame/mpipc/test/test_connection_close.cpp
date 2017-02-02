@@ -433,7 +433,7 @@ int test_connection_close(int argc, char **argv){
         if(not cnd.wait_for(lock, std::chrono::seconds(120), [](){return not running;})){
              SOLID_THROW("Process is taking too long.");
         }
-        
+
         vdbg("stopping");
         //m.stop();
     }

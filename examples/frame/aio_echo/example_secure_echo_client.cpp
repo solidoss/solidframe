@@ -254,11 +254,11 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 struct ConnectFunction{
     Event                           event;
     ResolveData::const_iterator     iterator;
-    
+
     ConnectFunction(){}
     ConnectFunction(ConnectFunction &&_ucf):event{std::move(_ucf.event)}, iterator{_ucf.iterator}{}
     ConnectFunction(ConnectFunction const &_rcf):event{_rcf.event}, iterator{_rcf.iterator}{}
-    
+
     void operator()(frame::aio::ReactorContext &_rctx){
         Connection::onConnect(_rctx, *this);
     }

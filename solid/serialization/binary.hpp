@@ -465,7 +465,7 @@ protected:
 protected:
     typedef Stack<FncData>      FncDataStackT;
     typedef Stack<ExtendedData> ExtendedDataStackT;
-    
+
     const Limits            &rdefaultlmts;
     Limits                  lmts;
     ErrorConditionT         err;
@@ -628,7 +628,7 @@ protected:
     template <typename T, class Ser>
     static ReturnValues storeContainerContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
         using                   IteratorT = typename T::iterator;
-        
+
         Ser                     &rs(static_cast<Ser&>(_rs));
         ExtendedData            &rextdata = rs.estk.top();
         IteratorT               &rit = *(rextdata.genericCast<IteratorT>());
@@ -1721,10 +1721,10 @@ protected:
             *c = new T;
             _rfd.p = *c;
         }
-        
+
         //T                       *c = reinterpret_cast<T*>(_rfd.p);
         //c->reserve(i);
-        
+
         if(i){
             _rfd.f = &DeserializerBase::loadContainerContinue<T, Des>;
             _rfd.s = 0;//(uint32_t)i;
@@ -1747,7 +1747,7 @@ protected:
 
         --ri;
         c->insert(c->end(), std::move(*pvt));
-        
+
         if(rd.cpb && ri){
             rd.push(*pvt);
             return ContinueE;

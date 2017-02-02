@@ -82,7 +82,7 @@ public:
     void silentCancel(ReactorContext &_rctx){
         doClear(_rctx);
     }
-    
+
     void cancel(ReactorContext &_rctx){
         if(not FUNCTION_EMPTY(f)){
             remTimer(_rctx, storeidx);

@@ -59,7 +59,7 @@ add_custom_target(example_mpipc_echo_copy_certs
 
 if(${Boost_FOUND} AND OPENSSL_FOUND)
     add_executable (example_mpipc_echo example_mpipc_echo.cpp)
-    
+
     add_dependencies(example_mpipc_echo example_mpipc_echo_copy_certs build_boost build_openssl)
 
     target_link_libraries (example_mpipc_echo

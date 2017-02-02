@@ -333,7 +333,7 @@ void Reactor::run(){
     NanoTime    crttime;
 
     while(running){
-        
+
 
         crtload = d.objcnt + d.exeq.size();
 

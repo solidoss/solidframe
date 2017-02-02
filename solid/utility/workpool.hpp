@@ -14,6 +14,7 @@
 #include <mutex>
 #include <vector>
 #include <condition_variable>
+#include <functional>
 
 #include "solid/utility/common.hpp"
 #include "solid/utility/queue.hpp"
@@ -44,11 +45,14 @@ struct WorkPoolBase{
     bool isStopping()const{
         return st == Stopping;
     }
+    size_t workerCount()const{
+        return wkrcnt;
+    }
 protected:
     WorkPoolBase():st(Stopped), wkrcnt(0) {}
 
     State                       st;
-    int                         wkrcnt;
+    size_t                      wkrcnt;
     std::condition_variable     thrcnd;
     std::condition_variable     sigcnd;
     std::mutex                  mtx;
@@ -67,9 +71,9 @@ struct WorkPoolControllerBase{
     }
     void unprepareWorker(WorkerBase &_rw){
     }
-    void onPush(WorkPoolBase &){
+    void onPush(WorkPoolBase &, size_t){
     }
-    void onMultiPush(WorkPoolBase &, size_t _cnd){
+    void onMultiPush(WorkPoolBase &, size_t _cnd, size_t ){
     }
     size_t onPopStart(WorkPoolBase &, WorkerBase &, size_t _maxcnt){
         return _maxcnt;
@@ -153,10 +157,10 @@ public:
     WorkPool(){
     }
 
-    template <class T>
-    WorkPool(T &_rt):ctrl(_rt){
+    template <typename ...Args>
+    explicit WorkPool(Args&&..._args):ctrl(std::forward<Args>(_args)...){
     }
-
+    
     ~WorkPool(){
         stop(true);
     }
@@ -166,22 +170,32 @@ public:
     }
 
     //! Push a new job
-    void push(const JobT& _jb){
+    template <class JT>
+    void push(const JT& _jb){
         std::unique_lock<std::mutex>    lock(mtx);
         jobq.push(_jb);
         sigcnd.notify_one();
-        ctrl.onPush(*this);
+        ctrl.onPush(*this, jobq.size());
     }
-    //! Push a table of jobs of size _cnt
+    
+    template <class JT>
+    void push(JT && _jb){
+        std::unique_lock<std::mutex>    lock(mtx);
+        jobq.push(std::move(_jb));
+        sigcnd.notify_one();
+        ctrl.onPush(*this, jobq.size());
+    }
+    
+    //! Push multiple jobs
     template <class I>
     void push(I _i, const I &_end){
         std::unique_lock<std::mutex>    lock(mtx);
         size_t cnt(_end - _i);
         for(; _i != _end; ++_i){
-            jobq.push(*_i);
+            jobq.push(std::move(*_i));
         }
         sigcnd.notify_all();
-        ctrl.onMultiPush(*this, cnt);
+        ctrl.onMultiPush(*this, cnt, jobq.size());
     }
 
     //! Starts the workpool, creating _minwkrcnt
@@ -280,7 +294,7 @@ private:
         }
         if(doWaitJob(lock)){
             do{
-                _rjobvec.push_back(jobq.front());
+                _rjobvec.push_back(std::move(jobq.front()));
                 jobq.pop();
             }while(jobq.size() && --insertcount);
             ctrl.onPopDone(*this, _rw);
@@ -298,7 +312,7 @@ private:
             return false;
         }
         if(doWaitJob(lock)){
-            _rjob = jobq.front();
+            _rjob = std::move(jobq.front());
             jobq.pop();
             ctrl.onPopDone(*this, _rw);
             return true;
@@ -340,6 +354,39 @@ private:
     ControllerT                 ctrl;
     ThreadVectorT               thread_vec;
 };
+
+
+using FunctionJobT = std::function<void()>;
+
+template <class F>
+struct WPFunctionController: WorkPoolControllerBase{
+    const size_t max_thr_cnt_;
+    
+    WPFunctionController(const size_t _max_thr_cnt):max_thr_cnt_(_max_thr_cnt){}
+    
+    template <class WP>
+    bool createWorker(WP &_rwp, size_t /*_wkrcnt*/, std::thread &_rthr){
+        _rwp.createSingleWorker(_rthr);
+        return true;
+    }
+    
+    template <class WP>
+    void onPush(WP &_rwp, size_t _qsz){
+        if(_qsz > _rwp.workerCount() and _rwp.workerCount() < max_thr_cnt_){
+            _rwp.createWorker();
+        }
+    }
+    
+    void onMultiPush(WorkPoolBase &, size_t /*_cnd*/, size_t ){
+    }
+    
+    void execute(WorkPoolBase &/*_rwp*/, WorkerBase &/*_rw*/, FunctionJobT &_rf){
+        _rf();
+    }
+};
+
+
+using FunctionWorkPoolT = WorkPool<FunctionJobT, WPFunctionController<FunctionJobT>>;
 
 }//namespace solid
 

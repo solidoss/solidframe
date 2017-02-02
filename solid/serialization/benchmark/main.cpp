@@ -67,10 +67,10 @@ solid_serialization_test(size_t iterations)
     for (size_t i = 0; i < kStringsCount; i++) {
         r1.strings.push_back(kStringValue);
     }
-    
+
     SerializerT     s;
     DeserializerT   d;
-    
+
     std::string     serialized;
 
     to_string(s, r1, serialized);
@@ -124,9 +124,9 @@ main(int argc, char **argv)
     }
 
     std::cout << "performing " << iterations << " iterations" << std::endl << std::endl;
-    
+
      try {
-  
+
         if (names.empty() || names.find("boost") != names.end()) {
             boost_serialization_test(iterations);
         }
@@ -141,5 +141,5 @@ main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
-    
+
 

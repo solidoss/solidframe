@@ -52,7 +52,7 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( mpipcProtocolTests test_mpipc_protocol.cpp ${mpipcProtocolTestSuite})
 
     add_executable(test_mpipc_protocol ${mpipcProtocolTests})
-    
+
     add_dependencies(test_mpipc_protocol build_openssl)
 
     target_link_libraries(test_mpipc_protocol
@@ -149,7 +149,7 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( mpipcKeepAliveTests test_mpipc_keepalive.cpp ${mpipcKeepAliveTestSuite})
 
     add_executable(test_mpipc_keepalive ${mpipcKeepAliveTests})
-    
+
     add_dependencies(test_mpipc_keepalive build_openssl)
 
     target_link_libraries(test_mpipc_keepalive
@@ -179,7 +179,7 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( mpipcConnectionTests test_mpipc_connection.cpp ${mpipcConnectionTestSuite})
 
     add_executable(test_mpipc_connection ${mpipcConnectionTests})
-    
+
     add_dependencies(test_mpipc_connection build_openssl)
 
     target_link_libraries(test_mpipc_connection
@@ -207,7 +207,7 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( mpipcPoolTests test_mpipc_pool.cpp ${mpipcPoolTestSuite})
 
     add_executable(test_mpipc_pool ${mpipcPoolTests})
-    
+
     add_dependencies(test_mpipc_pool build_openssl)
 
     target_link_libraries(test_mpipc_pool
@@ -242,9 +242,9 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( mpipcMultiProtocolTests test_mpipc_multiprotocol.cpp ${mpipcMultiProtocolTestSuite})
 
     add_executable(test_mpipc_multiprotocol ${mpipcMultiProtocolTests})
-    
+
     add_dependencies(test_mpipc_multiprotocol build_openssl)
-    
+
     target_link_libraries(test_mpipc_multiprotocol
         test_multiprotocol_alpha_client
         test_multiprotocol_alpha_server
@@ -276,7 +276,7 @@ if(OPENSSL_FOUND)
     create_test_sourcelist( mpipcRawTests test_mpipc_raw.cpp ${mpipcRawTestSuite})
 
     add_executable(test_mpipc_raw ${mpipcRawTests})
-    
+
     add_dependencies(test_mpipc_raw build_openssl)
 
     target_link_libraries(test_mpipc_raw

@@ -165,9 +165,9 @@ int SerializerBase::run(char *_pb, unsigned _bl, void *_pctx){
             default:        return -1;
         }
     }
-    
+
     resetLimits();
-    
+
     SOLID_ASSERT(fstk.size() || (fstk.empty() && estk.empty()));
     return cpb - pb;
 }
@@ -342,9 +342,9 @@ template <>
 ReturnValues SerializerBase::storeBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
     idbgx(Debug::ser_bin, "");
     SerializerBase &rs(static_cast<SerializerBase&>(_rb));
-    
+
     if(!rs.cpb) return SuccessE;
-    
+
     const unsigned  len = rs.be - rs.cpb;
     const char      *ps = reinterpret_cast<const char*>(_rfd.p);
     if(len >= 8){
@@ -831,11 +831,11 @@ int DeserializerBase::run(const char *_pb, unsigned _bl, void *_pctx){
             default:            return -1;
         }
     }
-    
+
     resetLimits();
-    
+
     SOLID_ASSERT(fstk.size() || (fstk.empty() && estk.empty()));
-    
+
     return cpb - pb;
 }
 

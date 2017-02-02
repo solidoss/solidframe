@@ -256,7 +256,7 @@ void server_complete_message(
         if(_rctx.recipientId().isInvalidConnection()){
             SOLID_THROW("Connection id should not be invalid!");
         }
-        
+
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
         if(err and err != frame::mpipc::error_service_stopping){
@@ -494,11 +494,11 @@ int test_clientserver_idempotent(int argc, char **argv){
 
         {
             unique_lock<mutex>  lock(mtx);
-            
+
             if(not cnd.wait_for(lock, std::chrono::seconds(10), [](){ return start_sleep;})){
                 SOLID_THROW("Process is taking too long.");
             }
-            
+
         }
 
         idbg("---- Before server stopping ----");
@@ -512,8 +512,8 @@ int test_clientserver_idempotent(int argc, char **argv){
         idbg("---- After server started ----");
 
         unique_lock<mutex>  lock(mtx);
-        
-        
+
+
         if(not cnd.wait_for(lock, std::chrono::seconds(120), [](){return not running;})){
              SOLID_THROW("Process is taking too long.");
         }

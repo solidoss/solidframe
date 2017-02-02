@@ -1,6 +1,6 @@
 if(${Boost_FOUND} AND OPENSSL_FOUND)
     add_executable (example_relay_server example_relay_server.cpp)
-    
+
     add_dependencies(example_relay_server build_boost build_openssl)
 
     target_link_libraries (example_relay_server

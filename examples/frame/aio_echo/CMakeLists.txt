@@ -1,6 +1,6 @@
 if(${Boost_FOUND} AND OPENSSL_FOUND)
     add_executable (example_echo_server example_echo_server.cpp)
-    
+
     add_dependencies(example_echo_server build_boost)
 
     target_link_libraries (example_echo_server
@@ -63,7 +63,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
     )
 
     add_executable (example_secure_echo_server example_secure_echo_server.cpp)
-    
+
     add_dependencies(example_secure_echo_server example_secure_certs build_boost build_openssl)
 
     target_link_libraries (example_secure_echo_server
@@ -81,7 +81,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
     )
 
     add_executable (example_secure_echo_client example_secure_echo_client.cpp)
-    
+
     add_dependencies(example_secure_echo_client example_secure_certs build_boost build_openssl)
 
     target_link_libraries (example_secure_echo_client

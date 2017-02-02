@@ -463,7 +463,7 @@ int test_raw_basic(int argc, char **argv){
         if(not cnd.wait_for(lock, std::chrono::seconds(120), [](){return not running;})){
              SOLID_THROW("Process is taking too long.");
         }
-        
+
         //m.stop();
         if(crtwriteidx != crtackidx){
             SOLID_ASSERT(false);

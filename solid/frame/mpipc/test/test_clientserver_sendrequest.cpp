@@ -532,11 +532,11 @@ int test_clientserver_sendrequest(int argc, char **argv){
         }
 
         unique_lock<mutex>  lock(mtx);
-        
+
         if(not cnd.wait_for(lock, std::chrono::seconds(120), [](){return not running;})){
              SOLID_THROW("Process is taking too long.");
         }
-        
+
         if(crtwriteidx != crtackidx){
             SOLID_THROW("Not all messages were completed");
         }

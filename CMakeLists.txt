@@ -48,6 +48,10 @@ message("Install path: \"${INSTALL_PATH}\"")
 # Prepare the definitions for build types
 #-----------------------------------------------------------------
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "release")
+endif()
+
 string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
 
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
@@ -241,7 +245,7 @@ endif(NOT ON_FOUND)
 #-----------------------------------------------------------------
 
 if(NOT NO_EXTERNAL)
-    
+
     if(EXTERN_PATH STREQUAL "")
         set(EXTERN_PATH "${CMAKE_CURRENT_BINARY_DIR}/external")
         include(ExternalProject)
@@ -255,7 +259,7 @@ if(NOT NO_EXTERNAL)
         add_custom_target(build_boost)
         add_custom_target(build_openssl)
         add_custom_target(build_snappy)
-    
+
         include(cmake/find_boost.cmake)
         include(cmake/find_openssl.cmake)
         include(cmake/find_snappy.cmake)
