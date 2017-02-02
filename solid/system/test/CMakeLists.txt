@@ -12,17 +12,17 @@ add_executable(system_test ${Tests})
 
 target_link_libraries(system_test solid_system)
 
-add_test( ThreadTest system_test
-    test_thread
-)
+# add_test( ThreadTest system_test
+#     test_thread
+# )
 
-add_test( SocketTest system_test
-    test_socket
-)
+# add_test( SocketTest system_test
+#     test_socket
+# )
 
-add_test( FileTest system_test
-    test_file
-)
+# add_test( FileTest system_test
+#     test_file
+# )
 
 
 add_test( NanoTimeTest system_test

@@ -10,6 +10,7 @@
 * solid_serialization: test agaist ProtoBuf and FlatBuffers
 
 ## Version 2.1
+* (DONE) all: switch from NanoTime to std::chrono
 * (DONE) solid_frame_aio_openssl: Improved OpenSSL/BoringSSL support
 * (DONE) solid_frame_mpipc: Pluggable (header only) support for SSL
 * (DONE) BUILD: Android support - https://github.com/vipalade/bubbles
