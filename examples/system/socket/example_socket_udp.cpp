@@ -5,12 +5,13 @@
 using namespace std;
 using namespace solid;
 
-int main(){
+int main()
+{
 #ifdef SOLID_ON_WINDOWS
     WSADATA wsaData;
     int     err;
     WORD    wVersionRequested;
-/* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+    /* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
     wVersionRequested = MAKEWORD(2, 2);
 
     err = WSAStartup(wVersionRequested, &wsaData);
@@ -21,27 +22,26 @@ int main(){
         return 1;
     }
 #endif
-    ResolveData rd =  synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Datagram, 0);
+    ResolveData     rd = synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Datagram, 0);
     ResolveIterator it(rd.begin());
 
     SocketDevice sd;
     sd.create(it);
     sd.bind(it);
 
-    if(sd.ok()){
-        string              hoststr;
-        string              servstr;
-        SocketAddress       addr;
+    if (sd.ok()) {
+        string        hoststr;
+        string        servstr;
+        SocketAddress addr;
 
         sd.localAddress(addr);
         synchronous_resolve(
             hoststr,
             servstr,
             addr,
-            ReverseResolveInfo::Numeric
-        );
-        cout<<hoststr<<':'<<servstr<<endl;
+            ReverseResolveInfo::Numeric);
+        cout << hoststr << ':' << servstr << endl;
     }
-    cout<<sd.ok()<<endl;
+    cout << sd.ok() << endl;
     return 0;
 }

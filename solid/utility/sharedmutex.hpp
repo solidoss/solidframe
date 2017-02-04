@@ -10,12 +10,11 @@
 #ifndef UTILITY_SHARED_MUTEX_STORE_HPP
 #define UTILITY_SHARED_MUTEX_STORE_HPP
 
-namespace solid{
+namespace solid {
 
-std::mutex &shared_mutex_safe(const void *_p);
-std::mutex &shared_mutex(const void *_p);
+std::mutex& shared_mutex_safe(const void* _p);
+std::mutex& shared_mutex(const void* _p);
 
-
-}//namespace solid
+} //namespace solid
 
 #endif

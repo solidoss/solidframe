@@ -12,43 +12,43 @@
 #include <unistd.h>
 #include <unistd.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #include <ifaddrs.h>
 
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 #endif
+#include "solid/system/cassert.hpp"
+#include "solid/system/nanotime.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
-#include "solid/system/nanotime.hpp"
-#include "solid/system/cassert.hpp"
-#include <fcntl.h>
 #include <cerrno>
-#include <iostream>
 #include <cstring>
+#include <fcntl.h>
+#include <iostream>
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 using namespace std;
 using namespace solid;
 
 void listLocalInterfaces();
 
-
-int main(int argc, char *argv[]){
+int main(int argc, char* argv[])
+{
 #ifdef SOLID_ON_WINDOWS
     WSADATA wsaData;
     int     err;
     WORD    wVersionRequested;
-/* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+    /* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
     wVersionRequested = MAKEWORD(2, 2);
 
     err = WSAStartup(wVersionRequested, &wsaData);
@@ -60,52 +60,52 @@ int main(int argc, char *argv[]){
     }
 #endif
 
-    if(argc < 3){
-        cout<<"error too few arguments"<<endl;
+    if (argc < 3) {
+        cout << "error too few arguments" << endl;
         return 0;
     }
-    const char *node = nullptr;
-    if(strlen(argv[1])) node = argv[1];
-    const char *srv = nullptr;
-    if(strlen(argv[2])) srv = argv[2];
-    int flags = 0;
+    const char* node = nullptr;
+    if (strlen(argv[1]))
+        node        = argv[1];
+    const char* srv = nullptr;
+    if (strlen(argv[2]))
+        srv    = argv[2];
+    int flags  = 0;
     int family = SocketInfo::Inet4;
-    int type = SocketInfo::Stream;
-    int proto = 0;
+    int type   = SocketInfo::Stream;
+    int proto  = 0;
 
     //list all the local interfaces
     listLocalInterfaces();
 
-
     //SocketAddressInfo ai(node, srv);
-    ResolveData rd =  synchronous_resolve(node, srv, flags, family, type, proto);
+    ResolveData     rd = synchronous_resolve(node, srv, flags, family, type, proto);
     ResolveIterator it(rd.begin());
-    while(it != rd.end()){
+    while (it != rd.end()) {
 
-        SocketAddress   sa(it);
+        SocketAddress sa(it);
 
         std::string hoststr;
         std::string servstr;
         synchronous_resolve(
             hoststr, servstr,
             sa,
-            ReverseResolveInfo::Numeric
-        );
+            ReverseResolveInfo::Numeric);
 
-        cout<<"host = "<<hoststr<<":"<<servstr<<endl;
+        cout << "host = " << hoststr << ":" << servstr << endl;
 
         synchronous_resolve(hoststr, servstr, sa);
 
-        cout<<"Reverse resolve: "<<hoststr<<":"<<servstr<<endl;
+        cout << "Reverse resolve: " << hoststr << ":" << servstr << endl;
 
         SocketDevice sd;
         sd.create(it);
 
         ErrorCodeT rv = sd.connect(it);
 
-        cout<<"rv = "<<rv.message()<<endl;
+        cout << "rv = " << rv.message() << endl;
 
-        if(!rv){
+        if (!rv) {
             sd.write("hello word\r\n", strlen("hello word\r\n"));
         }
 
@@ -114,10 +114,9 @@ int main(int argc, char *argv[]){
         synchronous_resolve(
             hoststr, servstr,
             sa4_0,
-            ReverseResolveInfo::Numeric
-        );
+            ReverseResolveInfo::Numeric);
 
-        cout<<"sa4_0 host = "<<hoststr<<":"<<servstr<<endl;
+        cout << "sa4_0 host = " << hoststr << ":" << servstr << endl;
 
         uint16_t portx;
         uint32_t addr;
@@ -131,16 +130,15 @@ int main(int argc, char *argv[]){
         synchronous_resolve(
             hoststr, servstr,
             sa4_1,
-            ReverseResolveInfo::Numeric
-        );
+            ReverseResolveInfo::Numeric);
 
-        cout<<"sa4_1 host = "<<hoststr<<":"<<servstr<<endl;
+        cout << "sa4_1 host = " << hoststr << ":" << servstr << endl;
 
         SOLID_ASSERT(sa4_0 < sa4_1);
 
         SOLID_ASSERT(sa4_0.address() < sa4_1.address());
 
-        SocketAddressInet4::DataArrayT  binaddr4;
+        SocketAddressInet4::DataArrayT binaddr4;
         sa4_0.toBinary(binaddr4, portx);
 
         SocketAddressInet4 sa4_2(binaddr4, portx);
@@ -148,60 +146,59 @@ int main(int argc, char *argv[]){
         synchronous_resolve(
             hoststr, servstr,
             sa4_2,
-            ReverseResolveInfo::Numeric
-        );
+            ReverseResolveInfo::Numeric);
 
-        cout<<"sa4_2 host = "<<hoststr<<":"<<servstr<<endl;
+        cout << "sa4_2 host = " << hoststr << ":" << servstr << endl;
 
         SOLID_ASSERT(!(sa4_1 == sa4_2));
         SOLID_ASSERT(sa4_0 == sa4_2);
         SOLID_ASSERT(!(sa4_0 < sa4_2));
         SOLID_ASSERT(!(sa4_2 < sa4_0));
 
-//      int sd = socket(it.family(), it.type(), it.protocol());
-//      struct timeval tosnd;
-//      struct timeval torcv;
-//
-//      tosnd.tv_sec = -1;
-//      tosnd.tv_usec = -1;
-//
-//      torcv.tv_sec = -1;
-//      torcv.tv_usec = -1;
-//      socklen_t socklen(sizeof(torcv));
-//      if(sd > 0){
-//          cout<<"Connecting..."<<endl;
-//          getsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (char*)&torcv, &socklen);
-//          socklen = sizeof(tosnd);
-//          getsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tosnd, &socklen);
-//          cout<<"rcvtimeo "<<torcv.tv_sec<<"."<<torcv.tv_usec<<endl;
-//          cout<<"sndtimeo "<<tosnd.tv_sec<<"."<<tosnd.tv_usec<<endl;
-//          fcntl(sd, F_SETFL, O_NONBLOCK);
-//          if(!connect(sd, it.sockAddr(), it.size())){
-//              cout<<"Connected!"<<endl;
-//          }else{
-//              if(errno != EINPROGRESS){
-//                  cout<<"Failed connect"<<endl;
-//              }else{
-//                  cout<<"Polling ..."<<endl;
-//                  pollfd pfd;
-//                  pfd.fd = sd;
-//                  pfd.events = 0;//POLLOUT;
-//                  int rv = poll(&pfd, 1, -1);
-//                  cout<<"pollrv = "<<rv<<endl;
-//                  if(pfd.revents & (POLLERR | POLLHUP | POLLNVAL)){
-//
-//                      cout<<"poll err "<<(pfd.revents & POLLERR)<<' '<<(pfd.revents & POLLHUP)<<' '<<(pfd.revents & POLLNVAL)<<' '<<endl;
-//                  }
-//              }
-//          }
-//          socklen_t len = 4;
-//          int v = 0;
-//          int rv = getsockopt(sd, SOL_SOCKET, SO_ERROR, &v, &len);
-//          cout<<"getsockopt rv = "<<rv<<" v = "<<v<<" err = "<<strerror(v)<<" len = "<<len<<endl;
-//
-//      }else{
-//          cout<<"failed socket"<<endl;
-//      }
+        //      int sd = socket(it.family(), it.type(), it.protocol());
+        //      struct timeval tosnd;
+        //      struct timeval torcv;
+        //
+        //      tosnd.tv_sec = -1;
+        //      tosnd.tv_usec = -1;
+        //
+        //      torcv.tv_sec = -1;
+        //      torcv.tv_usec = -1;
+        //      socklen_t socklen(sizeof(torcv));
+        //      if(sd > 0){
+        //          cout<<"Connecting..."<<endl;
+        //          getsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (char*)&torcv, &socklen);
+        //          socklen = sizeof(tosnd);
+        //          getsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tosnd, &socklen);
+        //          cout<<"rcvtimeo "<<torcv.tv_sec<<"."<<torcv.tv_usec<<endl;
+        //          cout<<"sndtimeo "<<tosnd.tv_sec<<"."<<tosnd.tv_usec<<endl;
+        //          fcntl(sd, F_SETFL, O_NONBLOCK);
+        //          if(!connect(sd, it.sockAddr(), it.size())){
+        //              cout<<"Connected!"<<endl;
+        //          }else{
+        //              if(errno != EINPROGRESS){
+        //                  cout<<"Failed connect"<<endl;
+        //              }else{
+        //                  cout<<"Polling ..."<<endl;
+        //                  pollfd pfd;
+        //                  pfd.fd = sd;
+        //                  pfd.events = 0;//POLLOUT;
+        //                  int rv = poll(&pfd, 1, -1);
+        //                  cout<<"pollrv = "<<rv<<endl;
+        //                  if(pfd.revents & (POLLERR | POLLHUP | POLLNVAL)){
+        //
+        //                      cout<<"poll err "<<(pfd.revents & POLLERR)<<' '<<(pfd.revents & POLLHUP)<<' '<<(pfd.revents & POLLNVAL)<<' '<<endl;
+        //                  }
+        //              }
+        //          }
+        //          socklen_t len = 4;
+        //          int v = 0;
+        //          int rv = getsockopt(sd, SOL_SOCKET, SO_ERROR, &v, &len);
+        //          cout<<"getsockopt rv = "<<rv<<" v = "<<v<<" err = "<<strerror(v)<<" len = "<<len<<endl;
+        //
+        //      }else{
+        //          cout<<"failed socket"<<endl;
+        //      }
         ++it;
     }
     return 0;
@@ -248,26 +245,26 @@ void listLocalInterfaces(){
 
 #endif
 
-void listLocalInterfaces(){
+void listLocalInterfaces()
+{
 #ifndef SOLID_ON_WINDOWS
     struct ifaddrs* ifap;
-    if(::getifaddrs(&ifap)){
-        cout<<"getifaddrs did not work"<<endl;
+    if (::getifaddrs(&ifap)) {
+        cout << "getifaddrs did not work" << endl;
         return;
     }
 
-    struct ifaddrs *it(ifap);
-    char host[512];
-    char srvc[128];
+    struct ifaddrs* it(ifap);
+    char            host[512];
+    char            srvc[128];
 
-    while(it){
+    while (it) {
         //sockaddr_in *addr;
-        if(it->ifa_addr && it->ifa_addr->sa_family == AF_INET)
-        {
+        if (it->ifa_addr && it->ifa_addr->sa_family == AF_INET) {
             struct sockaddr_in* addr = reinterpret_cast<struct sockaddr_in*>(it->ifa_addr);
-            if(addr->sin_addr.s_addr != 0){
+            if (addr->sin_addr.s_addr != 0) {
                 getnameinfo(it->ifa_addr, sizeof(sockaddr_in), host, 512, srvc, 128, NI_NUMERICHOST | NI_NUMERICSERV);
-                cout<<"name = "<<it->ifa_name<<" addr = "<<host<<":"<<srvc<<endl;
+                cout << "name = " << it->ifa_name << " addr = " << host << ":" << srvc << endl;
             }
         }
         it = it->ifa_next;
@@ -275,4 +272,3 @@ void listLocalInterfaces(){
     freeifaddrs(ifap);
 #endif
 }
-

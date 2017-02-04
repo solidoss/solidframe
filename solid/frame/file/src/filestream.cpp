@@ -8,80 +8,92 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#include "solid/system/debug.hpp"
 #include "solid/frame/file/filestream.hpp"
+#include "solid/system/debug.hpp"
 
 using namespace std;
 
-namespace solid{
-namespace frame{
-namespace file{
+namespace solid {
+namespace frame {
+namespace file {
 
 FileBuf::FileBuf(
-    FilePointerT &_rptr,
-    char* _buf, size_t _bufcp
-):dev(_rptr), buf(_buf), bufcp(_bufcp), off(0){
-    if(_bufcp){
+    FilePointerT& _rptr,
+    char* _buf, size_t _bufcp)
+    : dev(_rptr)
+    , buf(_buf)
+    , bufcp(_bufcp)
+    , off(0)
+{
+    if (_bufcp) {
         setp(nullptr, nullptr);
         resetGet();
     }
 }
 FileBuf::FileBuf(
-    char* _buf, size_t _bufcp
-): buf(_buf), bufcp(_bufcp), off(0){
-    if(_bufcp){
+    char* _buf, size_t _bufcp)
+    : buf(_buf)
+    , bufcp(_bufcp)
+    , off(0)
+{
+    if (_bufcp) {
         setp(nullptr, nullptr);
         resetGet();
     }
 }
-FileBuf::~FileBuf(){
+FileBuf::~FileBuf()
+{
     idbgx(dbgid(), "");
-    if(dev.get()){
+    if (dev.get()) {
         sync();
         dev.clear();
     }
 }
 
-FilePointerT& FileBuf::device(){
+FilePointerT& FileBuf::device()
+{
     idbgx(dbgid(), "");
     return dev;
 }
-void FileBuf::device(FilePointerT &_rptr){
+void FileBuf::device(FilePointerT& _rptr)
+{
     idbgx(dbgid(), "");
     dev = _rptr;
 }
 
-/*virtual*/ streamsize FileBuf::showmanyc(){
+/*virtual*/ streamsize FileBuf::showmanyc()
+{
     idbgx(dbgid(), "");
     return 0;
 }
 
-/*virtual*/ FileBuf::int_type FileBuf::underflow(){
+/*virtual*/ FileBuf::int_type FileBuf::underflow()
+{
     //idbgx(dbgid(), "");
-    if(hasBuf()){
-        if(hasPut()){
+    if (hasBuf()) {
+        if (hasPut()) {
             SOLID_ASSERT(false);
-            if(!flushPut()){
+            if (!flushPut()) {
                 return 0;
             }
         }
-        if(gptr() < egptr()){ // buffer not exhausted
+        if (gptr() < egptr()) { // buffer not exhausted
             return traits_type::to_int_type(*gptr());
         }
         //refill rbuf
-        idbgx(dbgid(), "read "<<bufcp<<" from "<<off);
-        int     rv = dev->read(buf, bufcp, off);
-        if(rv > 0){
-            char    *end = buf + rv;
+        idbgx(dbgid(), "read " << bufcp << " from " << off);
+        int rv = dev->read(buf, bufcp, off);
+        if (rv > 0) {
+            char* end = buf + rv;
             setg(buf, buf, end);
             //rbufsz = rv;
             return traits_type::to_int_type(*gptr());
         }
-    }else{
+    } else {
         //very inneficient
         char c;
-        int rv = dev->read(&c, 1, off);
-        if(rv == 1){
+        int  rv = dev->read(&c, 1, off);
+        if (rv == 1) {
             return traits_type::to_int_type(c);
         }
     }
@@ -89,15 +101,16 @@ void FileBuf::device(FilePointerT &_rptr){
     return traits_type::eof();
 }
 
-/*virtual*/ FileBuf::int_type FileBuf::uflow(){
+/*virtual*/ FileBuf::int_type FileBuf::uflow()
+{
     //idbgx(dbgid(), "");
-    if(hasBuf()){
+    if (hasBuf()) {
         return streambuf::uflow();
-    }else{
+    } else {
         //very inneficient
-        char        c;
-        const int   rv = dev->read(&c, 1, off);
-        if(rv == 1){
+        char      c;
+        const int rv = dev->read(&c, 1, off);
+        if (rv == 1) {
             ++off;
             return traits_type::to_int_type(c);
         }
@@ -105,61 +118,64 @@ void FileBuf::device(FilePointerT &_rptr){
     return traits_type::eof();
 }
 
-/*virtual*/ FileBuf::int_type FileBuf::pbackfail(int_type _c){
-    idbgx(dbgid(), ""<<_c);
+/*virtual*/ FileBuf::int_type FileBuf::pbackfail(int_type _c)
+{
+    idbgx(dbgid(), "" << _c);
     return traits_type::eof();
 }
 
-int FileBuf::writeAll(const char *_s, size_t _n){
+int FileBuf::writeAll(const char* _s, size_t _n)
+{
     int wcnt = 0;
     int rv;
-    do{
+    do {
         rv = dev->write(_s, _n, off);
-        if(rv > 0){
+        if (rv > 0) {
             _s += rv;
             _n -= rv;
             wcnt += rv;
-        }else{
+        } else {
             wcnt = 0;
         }
-    }while(rv > 0 && _n != 0);
+    } while (rv > 0 && _n != 0);
     return wcnt;
 }
 
-/*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c){
-    idbgx(dbgid(), ""<<_c<<" off = "<<off);
-    if(hasBuf()){
-        if(pptr() == nullptr){
-            if(hasGet()){
+/*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c)
+{
+    idbgx(dbgid(), "" << _c << " off = " << off);
+    if (hasBuf()) {
+        if (pptr() == nullptr) {
+            if (hasGet()) {
                 off += (gptr() - buf);
                 resetGet();
             }
             resetPut();
-            if(_c != traits_type::eof()){
+            if (_c != traits_type::eof()) {
                 *pptr() = _c;
                 pbump(1);
             }
             return traits_type::to_int_type(_c);
         }
 
-        char *endp = pptr();
-        if(_c != traits_type::eof()){
+        char* endp = pptr();
+        if (_c != traits_type::eof()) {
             *endp = _c;
             ++endp;
         }
 
         size_t towrite = endp - pbase();
-        int rv = writeAll(pbase(), towrite);
-        if(static_cast<size_t>(rv) == towrite){
+        int    rv      = writeAll(pbase(), towrite);
+        if (static_cast<size_t>(rv) == towrite) {
             off += towrite;
             resetPut();
-        }else{
+        } else {
             setp(nullptr, nullptr);
         }
-    }else{
-        const char  c = _c;
-        const int   rv = dev->write(&c, 1, off);
-        if(rv == 1){
+    } else {
+        const char c  = _c;
+        const int  rv = dev->write(&c, 1, off);
+        if (rv == 1) {
             return traits_type::to_int_type(c);
         }
     }
@@ -168,50 +184,50 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 
 /*virtual*/ FileBuf::pos_type FileBuf::seekoff(
     off_type _off, ios_base::seekdir _way,
-    ios_base::openmode _mode
-){
-    idbgx(dbgid(), "seekoff = "<<_off<<" way = "<<_way<<" mode = "<<_mode<<" off = "<<off);
-    if(hasBuf()){
-        if(hasPut()){
+    ios_base::openmode _mode)
+{
+    idbgx(dbgid(), "seekoff = " << _off << " way = " << _way << " mode = " << _mode << " off = " << off);
+    if (hasBuf()) {
+        if (hasPut()) {
             SOLID_ASSERT(!hasGet());
-            if(!flushPut()){
+            if (!flushPut()) {
                 return pos_type(-1);
             }
             setp(nullptr, nullptr);
             resetGet();
         }
         int64_t newoff = 0;
-        if(_way == ios_base::beg){
-        }else if(_way == ios_base::end){
-            newoff = off + (pptr() - pbase());
+        if (_way == ios_base::beg) {
+        } else if (_way == ios_base::end) {
+            newoff        = off + (pptr() - pbase());
             int64_t devsz = dev->size();
-            if(newoff <= devsz){
+            if (newoff <= devsz) {
                 newoff = devsz;
             }
-        }else if(!_off){//cur
+        } else if (!_off) { //cur
             return off + (gptr() - eback());
-        }else{
+        } else {
             newoff = off;
             newoff += (gptr() - eback());
         }
         newoff += _off;
-        int     bufoff = egptr() - eback();
-        if(newoff >= off &&  newoff < (off + bufoff)){
+        int bufoff = egptr() - eback();
+        if (newoff >= off && newoff < (off + bufoff)) {
             int newbufoff = newoff - off;
             setg(buf, buf + newbufoff, egptr());
             newoff = off + newbufoff;
-        }else{
+        } else {
             off = newoff;
             setp(nullptr, nullptr);
             resetGet();
         }
         return newoff;
-    }else{
-        if(_way == ios_base::beg){
+    } else {
+        if (_way == ios_base::beg) {
             off = _off;
-        }else if(_way == ios_base::end){
+        } else if (_way == ios_base::end) {
             off = dev->size() + _off;
-        }else{//cur
+        } else { //cur
             off += _off;
         }
         return off;
@@ -219,16 +235,17 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 }
 
 /*virtual*/ FileBuf::pos_type FileBuf::seekpos(
-    pos_type _pos,
-    ios_base::openmode _mode
-){
-    idbgx(dbgid(), ""<<_pos);
+    pos_type           _pos,
+    ios_base::openmode _mode)
+{
+    idbgx(dbgid(), "" << _pos);
     return seekoff(_pos, std::ios_base::beg, _mode);
 }
 
-/*virtual*/ int FileBuf::sync(){
+/*virtual*/ int FileBuf::sync()
+{
     idbgx(dbgid(), "");
-    if(hasPut()){
+    if (hasPut()) {
         flushPut();
     }
     dev->flush();
@@ -239,20 +256,21 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 //
 // }
 
-/*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n){
-    idbgx(dbgid(), ""<<_n<<" off = "<<off);
-    if(hasBuf()){
-        if(hasPut()){
-            if(!flushPut()){
+/*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n)
+{
+    idbgx(dbgid(), "" << _n << " off = " << off);
+    if (hasBuf()) {
+        if (hasPut()) {
+            if (!flushPut()) {
                 return 0;
             }
             setp(nullptr, nullptr);
             resetGet();
         }
 
-        if (gptr() < egptr()){ // buffer not exhausted
+        if (gptr() < egptr()) { // buffer not exhausted
             streamsize sz = egptr() - gptr();
-            if(sz > _n){
+            if (sz > _n) {
                 sz = _n;
             }
             memcpy(_s, gptr(), sz);
@@ -260,15 +278,15 @@ int FileBuf::writeAll(const char *_s, size_t _n){
             return sz;
         }
         //read directly in the given buffer
-        int     rv = dev->read(_s, _n, off);
-        if(rv > 0){
+        int rv = dev->read(_s, _n, off);
+        if (rv > 0) {
             off += rv;
             resetGet();
             return rv;
         }
-    }else{
-        const int   rv = dev->read(_s, _n, off);
-        if(rv > 0){
+    } else {
+        const int rv = dev->read(_s, _n, off);
+        if (rv > 0) {
             off += rv;
             return rv;
         }
@@ -277,15 +295,16 @@ int FileBuf::writeAll(const char *_s, size_t _n){
     return 0;
 }
 
-bool FileBuf::flushPut(){
-    if(pptr() != epptr()){
+bool FileBuf::flushPut()
+{
+    if (pptr() != epptr()) {
         size_t towrite = pptr() - pbase();
-        idbgx(dbgid(), ""<<towrite<<" off = "<<off);
+        idbgx(dbgid(), "" << towrite << " off = " << off);
         int rv = writeAll(buf, towrite);
-        if(static_cast<size_t>(rv) == towrite){
+        if (static_cast<size_t>(rv) == towrite) {
             off += towrite;
             resetBoth();
-        }else{
+        } else {
             setp(nullptr, nullptr);
             return false;
         }
@@ -293,25 +312,26 @@ bool FileBuf::flushPut(){
     return true;
 }
 
-/*virtual*/ streamsize FileBuf::xsputn(const char_type* _s, streamsize _n){
-    idbgx(dbgid(), ""<<_n<<" off = "<<off);
-    if(hasBuf()){
+/*virtual*/ streamsize FileBuf::xsputn(const char_type* _s, streamsize _n)
+{
+    idbgx(dbgid(), "" << _n << " off = " << off);
+    if (hasBuf()) {
         //NOTE: it should work with the following line too
         //return streambuf::xsputn(_s, _n);
 
-        if(pptr() == nullptr){
-            if(hasGet()){
+        if (pptr() == nullptr) {
+            if (hasGet()) {
                 off += (gptr() - buf);
                 resetGet();
             }
             resetPut();
         }
 
-        const streamsize    sz = _n;
-        const size_t        wleftsz = bufcp - (pptr() - pbase());
-        size_t              towrite = _n;
+        const streamsize sz      = _n;
+        const size_t     wleftsz = bufcp - (pptr() - pbase());
+        size_t           towrite = _n;
 
-        if(wleftsz < towrite){
+        if (wleftsz < towrite) {
             towrite = wleftsz;
         }
         memcpy(pptr(), _s, towrite);
@@ -319,30 +339,30 @@ bool FileBuf::flushPut(){
         _s += towrite;
         pbump(towrite);
 
-        if(_n != 0 || towrite == wleftsz){
-            if(!flushPut()){
+        if (_n != 0 || towrite == wleftsz) {
+            if (!flushPut()) {
                 return 0;
             }
-            if(_n && static_cast<size_t>(_n) <= bufcp/2){
+            if (_n && static_cast<size_t>(_n) <= bufcp / 2) {
                 memcpy(pptr(), _s, _n);
                 pbump(_n);
-            }else if(_n){
+            } else if (_n) {
                 size_t towrite = _n;
-                int rv = writeAll(_s, towrite);
-                if(static_cast<size_t>(rv) == towrite){
+                int    rv      = writeAll(_s, towrite);
+                if (static_cast<size_t>(rv) == towrite) {
                     off += rv;
                     resetPut();
-                }else{
+                } else {
                     return 0;
                 }
-            }else{
+            } else {
                 resetPut();
             }
         }
         return sz;
-    }else{
-        const int   rv = dev->write(_s, _n, off);
-        if(rv > 0){
+    } else {
+        const int rv = dev->write(_s, _n, off);
+        if (rv > 0) {
             off += rv;
             return rv;
         }
@@ -350,6 +370,6 @@ bool FileBuf::flushPut(){
     return 0;
 }
 
-}//namespace file
-}//namespace frame
-}//namespace solid
+} //namespace file
+} //namespace frame
+} //namespace solid

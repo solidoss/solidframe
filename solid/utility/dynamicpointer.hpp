@@ -10,148 +10,170 @@
 #ifndef UTILITY_DYNAMIC_POINTER_HPP
 #define UTILITY_DYNAMIC_POINTER_HPP
 
-#include <memory>
 #include "solid/system/common.hpp"
+#include <memory>
 
-namespace solid{
+namespace solid {
 
 struct DynamicBase;
 
-class DynamicPointerBase{
+class DynamicPointerBase {
 protected:
-    void clear(DynamicBase *_pdyn);
-    void use(DynamicBase *_pdyn);
+    void clear(DynamicBase* _pdyn);
+    void use(DynamicBase* _pdyn);
 };
-
 
 template <class T = DynamicBase>
 class DynamicPointer;
 
-
 template <class T>
-class DynamicPointer: DynamicPointerBase{
+class DynamicPointer : DynamicPointerBase {
 public:
-    typedef DynamicPointer<T>           ThisT;
-    typedef T                           DynamicT;
-    typedef T                           element_type;
+    typedef DynamicPointer<T> ThisT;
+    typedef T                 DynamicT;
+    typedef T                 element_type;
 
-    DynamicPointer(DynamicT *_pdyn = nullptr):pdyn(_pdyn){
-        if(_pdyn){
+    DynamicPointer(DynamicT* _pdyn = nullptr)
+        : pdyn(_pdyn)
+    {
+        if (_pdyn) {
             use(static_cast<DynamicBase*>(_pdyn));
         }
     }
     template <class B>
-    explicit DynamicPointer(DynamicPointer<B> const &_rcp):pdyn(static_cast<T*>(_rcp.get())){
-        if(pdyn){
+    explicit DynamicPointer(DynamicPointer<B> const& _rcp)
+        : pdyn(static_cast<T*>(_rcp.get()))
+    {
+        if (pdyn) {
             use(static_cast<DynamicBase*>(pdyn));
         }
     }
 
 #ifdef SOLID_USE_CPP11
     template <class B>
-    DynamicPointer(DynamicPointer<B> &&_rcp):pdyn(static_cast<T*>(_rcp.release())){
+    DynamicPointer(DynamicPointer<B>&& _rcp)
+        : pdyn(static_cast<T*>(_rcp.release()))
+    {
     }
 
-    DynamicPointer(ThisT &&_rcp):pdyn(static_cast<T*>(_rcp.release())){
+    DynamicPointer(ThisT&& _rcp)
+        : pdyn(static_cast<T*>(_rcp.release()))
+    {
     }
 
 #endif
 
     //The copy constructor must be specified - the compiler wount consider the above constructor as copy-constructor
-    DynamicPointer(ThisT const &_rcp):pdyn(static_cast<T*>(_rcp.get())){
-        if(pdyn){
+    DynamicPointer(ThisT const& _rcp)
+        : pdyn(static_cast<T*>(_rcp.get()))
+    {
+        if (pdyn) {
             use(static_cast<DynamicBase*>(pdyn));
         }
     }
 
-    ~DynamicPointer(){
-        if(pdyn){
+    ~DynamicPointer()
+    {
+        if (pdyn) {
             DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
         }
     }
 
     template <class O>
-    ThisT& operator=(DynamicPointer<O> const &_rcp){
-        DynamicT *p(_rcp.get());
-        if(p == pdyn){
+    ThisT& operator=(DynamicPointer<O> const& _rcp)
+    {
+        DynamicT* p(_rcp.get());
+        if (p == pdyn) {
             return *this;
         }
-        if(pdyn) clear();
+        if (pdyn)
+            clear();
         set(p);
         return *this;
     }
 
 #ifdef SOLID_USE_CPP11
     template <class O>
-    ThisT& operator=(DynamicPointer<O> &&_rcp){
-        DynamicT *p(_rcp.release());
-        if(pdyn) clear();
+    ThisT& operator=(DynamicPointer<O>&& _rcp)
+    {
+        DynamicT* p(_rcp.release());
+        if (pdyn)
+            clear();
         pdyn = p;
         return *this;
     }
 
-    ThisT& operator=(ThisT &&_rcp){
-        DynamicT *p(_rcp.release());
-        if(pdyn) clear();
+    ThisT& operator=(ThisT&& _rcp)
+    {
+        DynamicT* p(_rcp.release());
+        if (pdyn)
+            clear();
         pdyn = p;
         return *this;
     }
 #endif
 
-    ThisT& operator=(ThisT const &_rcp){
-        DynamicT *p(_rcp.get());
-        if(p == pdyn){
+    ThisT& operator=(ThisT const& _rcp)
+    {
+        DynamicT* p(_rcp.get());
+        if (p == pdyn) {
             return *this;
         }
-        if(pdyn) clear();
+        if (pdyn)
+            clear();
         set(p);
         return *this;
     }
 
-    ThisT& reset(DynamicT *_pdyn){
-        if(_pdyn == pdyn){
+    ThisT& reset(DynamicT* _pdyn)
+    {
+        if (_pdyn == pdyn) {
             return *this;
         }
         clear();
         set(_pdyn);
         return *this;
     }
-    DynamicT& operator*()const  {return *pdyn;}
-    DynamicT* operator->()const {return pdyn;}
-    DynamicT* get() const       {return pdyn;}
-    bool empty()const           {return !pdyn;}
-    bool operator!()const       {return empty();}
+    DynamicT& operator*() const { return *pdyn; }
+    DynamicT* operator->() const { return pdyn; }
+    DynamicT* get() const { return pdyn; }
+    bool      empty() const { return !pdyn; }
+    bool operator!() const { return empty(); }
 
-    void clear(){
-        if(pdyn){
+    void clear()
+    {
+        if (pdyn) {
             DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
             pdyn = nullptr;
         }
     }
 
-    DynamicT* release(){
-        DynamicT *ptmp = pdyn;
-        pdyn = nullptr;
+    DynamicT* release()
+    {
+        DynamicT* ptmp = pdyn;
+        pdyn           = nullptr;
         return ptmp;
     }
 
 protected:
-    void set(DynamicT *_pdyn){
+    void set(DynamicT* _pdyn)
+    {
         pdyn = _pdyn;
-        if(pdyn){
+        if (pdyn) {
             use(static_cast<DynamicBase*>(pdyn));
         }
     }
 
 private:
-    mutable DynamicT *pdyn;
+    mutable DynamicT* pdyn;
 };
 
-template <class T, typename ...Args>
-DynamicPointer<T> make_dynamic(Args&&..._args){
+template <class T, typename... Args>
+DynamicPointer<T> make_dynamic(Args&&... _args)
+{
     return DynamicPointer<T>(new T{std::forward<Args>(_args)...});
 }
 
-}//namespace solid
+} //namespace solid
 
 #endif

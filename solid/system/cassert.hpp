@@ -12,7 +12,6 @@
 
 #include "solid/system/common.hpp"
 
-
 #ifdef SOLID_HAS_ASSERT
 
 #include <cassert>
@@ -20,7 +19,8 @@
 #define SOLID_VERIFY(a) assert((a))
 
 #else
-inline bool dummy(bool _b){
+inline bool dummy(bool _b)
+{
     return _b;
 }
 #define SOLID_ASSERT(a)
@@ -28,23 +28,23 @@ inline bool dummy(bool _b){
 
 #endif
 
-
-namespace solid{
+namespace solid {
 
 template <bool B>
 struct static_test;
 
 template <>
-struct static_test<true>{
-    static void ok(){
+struct static_test<true> {
+    static void ok()
+    {
     }
 };
 
 template <>
-struct static_test<false>{
+struct static_test<false> {
 };
 
-}//namespace solid
+} //namespace solid
 
 #define cstatic_assert(e) solid::static_test<(e)>::ok()
 

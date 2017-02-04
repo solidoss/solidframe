@@ -10,48 +10,46 @@
 #ifndef SOLID_FRAME_MPIPC_SRC_MPIPC_LISTENER_HPP
 #define SOLID_FRAME_MPIPC_SRC_MPIPC_LISTENER_HPP
 
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
+#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
 #include "solid/system/socketdevice.hpp"
 
-namespace solid{
+namespace solid {
 struct Event;
-namespace frame{
-namespace aio{
-namespace openssl{
+namespace frame {
+namespace aio {
+namespace openssl {
 class Context;
 }
 }
 
-namespace mpipc{
+namespace mpipc {
 
 class Service;
 
-class Listener: public Dynamic<Listener, frame::aio::Object>{
+class Listener : public Dynamic<Listener, frame::aio::Object> {
 public:
     Listener(
-        SocketDevice &_rsd
-    );
+        SocketDevice& _rsd);
     ~Listener();
+
 private:
-    Service& service(frame::aio::ReactorContext &_rctx);
-    void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
+    Service& service(frame::aio::ReactorContext& _rctx);
+    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
 
-    void onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd);
+    void onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 
+    typedef frame::aio::Listener    ListenerSocketT;
+    typedef frame::aio::SteadyTimer TimerT;
 
-    typedef frame::aio::Listener            ListenerSocketT;
-    typedef frame::aio::SteadyTimer         TimerT;
-
-    ListenerSocketT     sock;
-    TimerT              timer;
+    ListenerSocketT sock;
+    TimerT          timer;
 };
 
-
-}//namespace mpipc
-}//namespace frame
-}//namespace solid
+} //namespace mpipc
+} //namespace frame
+} //namespace solid
 
 #endif

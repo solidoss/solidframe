@@ -10,101 +10,101 @@
 #ifndef SYSTEM_COMMON_HPP
 #define SYSTEM_COMMON_HPP
 
-#include <cstdlib>
-#include <cstdint>
 #include "solid/solid_config.hpp"
+#include <cstdint>
+#include <cstdlib>
 
 #ifdef SOLID_ON_WINDOWS
 //#ifdef SOLID_USE_CPP11
 //  #define USTLMUTEX
 //#else
-    #define UBOOSTMUTEX
-    #define UBOOSTSHAREDPTR
+#define UBOOSTMUTEX
+#define UBOOSTSHAREDPTR
 //#endif
 #endif
 
-namespace solid{
+namespace solid {
 
-typedef unsigned char       uchar;
-typedef unsigned int        uint;
+typedef unsigned char uchar;
+typedef unsigned int  uint;
 
-typedef unsigned long       ulong;
-typedef unsigned short      ushort;
+typedef unsigned long  ulong;
+typedef unsigned short ushort;
 
-typedef long long           longlong;
-typedef unsigned long long  ulonglong;
+typedef long long          longlong;
+typedef unsigned long long ulonglong;
 
 enum SeekRef {
-    SeekBeg=0,
-    SeekCur=1,
-    SeekEnd=2
+    SeekBeg = 0,
+    SeekCur = 1,
+    SeekEnd = 2
 };
 
-struct EmptyType{};
-class NullType{};
+struct EmptyType {
+};
+class NullType {
+};
 
 template <size_t V>
-struct SizeToType{
-    enum {value = V};
+struct SizeToType {
+    enum { value = V };
 };
 
 template <bool V>
-struct BoolToType{
-    enum {value = V};
+struct BoolToType {
+    enum { value = V };
 };
-
 
 template <class T>
-struct TypeToType{
+struct TypeToType {
     using TypeT = T;
 };
-
 
 template <class T>
 struct UnsignedType;
 
 template <>
-struct UnsignedType<int8_t>{
+struct UnsignedType<int8_t> {
     typedef uint8_t Type;
 };
 
 template <>
-struct UnsignedType<int16_t>{
+struct UnsignedType<int16_t> {
     typedef uint16_t Type;
 };
 
 template <>
-struct UnsignedType<int32_t>{
+struct UnsignedType<int32_t> {
     typedef uint32_t Type;
 };
 
 template <>
-struct UnsignedType<int64_t>{
+struct UnsignedType<int64_t> {
     typedef uint64_t Type;
 };
 
 template <>
-struct UnsignedType<uint8_t>{
+struct UnsignedType<uint8_t> {
     typedef uint8_t Type;
 };
 
 template <>
-struct UnsignedType<uint16_t>{
+struct UnsignedType<uint16_t> {
     typedef uint16_t Type;
 };
 
 template <>
-struct UnsignedType<uint32_t>{
+struct UnsignedType<uint32_t> {
     typedef uint32_t Type;
 };
 
 template <>
-struct UnsignedType<uint64_t>{
+struct UnsignedType<uint64_t> {
     typedef uint64_t Type;
 };
 
-const char* src_file_name(char const *_fname);
+const char* src_file_name(char const* _fname);
 
-}//namespace solid
+} //namespace solid
 
 #endif

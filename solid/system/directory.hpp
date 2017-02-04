@@ -10,19 +10,19 @@
 #ifndef SYSTEM_DIRECTORY_HPP
 #define SYSTEM_DIRECTORY_HPP
 
-namespace solid{
+namespace solid {
 
 //! A wrapper for filesystem directory opperations
-class Directory{
+class Directory {
 public:
     //! Create a new directory
-    static bool create(const char *);
+    static bool create(const char*);
     //! Erase a file
-    static bool eraseFile(const char *);
+    static bool eraseFile(const char*);
     //! Rename a file
-    static bool renameFile(const char *_to, const char *_from);
+    static bool renameFile(const char* _to, const char* _from);
 };
 
-}//namespace solid
+} //namespace solid
 
 #endif

@@ -9,54 +9,58 @@
 //
 #include "solid/system/cassert.hpp"
 
+#include "solid/frame/completion.hpp"
+#include "solid/frame/manager.hpp"
 #include "solid/frame/object.hpp"
 #include "solid/frame/reactor.hpp"
-#include "solid/frame/completion.hpp"
 #include "solid/frame/reactorcontext.hpp"
-#include "solid/frame/manager.hpp"
 #include "solid/frame/service.hpp"
 
-namespace solid{
-namespace frame{
+namespace solid {
+namespace frame {
 //---------------------------------------------------------------------
 //----  Object  ----
 //---------------------------------------------------------------------
 
-Object::Object(){}
+Object::Object() {}
 
-/*virtual*/ void Object::onEvent(ReactorContext &_rctx, Event &&_uevent){
-
+/*virtual*/ void Object::onEvent(ReactorContext& _rctx, Event&& _uevent)
+{
 }
 
-bool Object::isRunning()const{
+bool Object::isRunning() const
+{
     return runId().isValid();
 }
 
-bool Object::registerCompletionHandler(CompletionHandler &_rch){
+bool Object::registerCompletionHandler(CompletionHandler& _rch)
+{
     _rch.pnext = this->pnext;
-    if(_rch.pnext){
+    if (_rch.pnext) {
         _rch.pnext->pprev = &_rch;
     }
     this->pnext = &_rch;
-    _rch.pprev = this;
+    _rch.pprev  = this;
     return isRunning();
 }
 
-void Object::registerCompletionHandlers(){
-    CompletionHandler *pch = this->pnext;
+void Object::registerCompletionHandlers()
+{
+    CompletionHandler* pch = this->pnext;
 
-    while(pch != nullptr){
+    while (pch != nullptr) {
         pch->activate(*this);
         pch = pch->pnext;
     }
 }
 
-bool Object::doPrepareStop(ReactorContext &_rctx){
-    if(this->disableVisits(_rctx.service().manager())){
-        CompletionHandler *pch = this->pnext;
+bool Object::doPrepareStop(ReactorContext& _rctx)
+{
+    if (this->disableVisits(_rctx.service().manager())) {
+        CompletionHandler* pch = this->pnext;
 
-        while(pch != nullptr){
-            pch->pprev = nullptr;//unregister
+        while (pch != nullptr) {
+            pch->pprev = nullptr; //unregister
             pch->deactivate();
 
             pch = pch->pnext;
@@ -71,12 +75,15 @@ bool Object::doPrepareStop(ReactorContext &_rctx){
 //----  ObjectBase      ----
 //---------------------------------------------------------------------
 
-ObjectBase::ObjectBase():
-    fullid(static_cast<IndexT>(InvalidIndex())), smask(0){
+ObjectBase::ObjectBase()
+    : fullid(static_cast<IndexT>(InvalidIndex()))
+    , smask(0)
+{
 }
 
-void ObjectBase::unregister(Manager &_rm){
-    if(isRegistered()){
+void ObjectBase::unregister(Manager& _rm)
+{
+    if (isRegistered()) {
         _rm.unregisterObject(*this);
         fullid.store(InvalidIndex());
     }
@@ -97,21 +104,23 @@ void ObjectBase::unregister(Manager &_rm){
         This works because disableVisits is only called on the Reactor thread.
 */
 
-bool ObjectBase::disableVisits(Manager &_rm){
+bool ObjectBase::disableVisits(Manager& _rm)
+{
     return _rm.disableObjectVisits(*this);
 }
 
-ObjectBase::~ObjectBase(){
+ObjectBase::~ObjectBase()
+{
 }
 
-/*virtual*/void ObjectBase::doStop(Manager &_rm){
+/*virtual*/ void ObjectBase::doStop(Manager& _rm)
+{
 }
-void ObjectBase::stop(Manager &_rm){
+void ObjectBase::stop(Manager& _rm)
+{
     doStop(_rm);
     unregister(_rm);
 }
 
-
-}//namespace frame
-}//namespace solid
-
+} //namespace frame
+} //namespace solid

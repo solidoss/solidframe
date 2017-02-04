@@ -10,82 +10,98 @@
 #ifndef SOLID_FRAME_AIO_RESOLVER_HPP
 #define SOLID_FRAME_AIO_RESOLVER_HPP
 
-#include "solid/utility/dynamictype.hpp"
+#include "aioerror.hpp"
 #include "solid/system/function.hpp"
 #include "solid/system/socketaddress.hpp"
-#include "aioerror.hpp"
+#include "solid/utility/dynamictype.hpp"
 #include <string>
 
-namespace solid{
-namespace frame{
-namespace aio{
+namespace solid {
+namespace frame {
+namespace aio {
 
-struct ResolveBase: Dynamic<ResolveBase>{
+struct ResolveBase : Dynamic<ResolveBase> {
 
-    ErrorCodeT      error;
-    int             flags;
+    ErrorCodeT error;
+    int        flags;
 
-    ResolveBase(int _flags):flags(_flags){}
+    ResolveBase(int _flags)
+        : flags(_flags)
+    {
+    }
 
     virtual ~ResolveBase();
     virtual void run(bool _fail) = 0;
 };
 
-struct DirectResolve: ResolveBase{
+struct DirectResolve : ResolveBase {
 
-    std::string     host;
-    std::string     srvc;
-    int             family;
-    int             type;
-    int             proto;
+    std::string host;
+    std::string srvc;
+    int         family;
+    int         type;
+    int         proto;
 
     DirectResolve(
-        const char *_host,
-        const char *_srvc,
-        int _flags,
-        int _family,
-        int _type,
-        int _proto
-    ):ResolveBase(_flags), host(_host), srvc(_srvc), family(_family), type(_type), proto(_proto){}
+        const char* _host,
+        const char* _srvc,
+        int         _flags,
+        int         _family,
+        int         _type,
+        int         _proto)
+        : ResolveBase(_flags)
+        , host(_host)
+        , srvc(_srvc)
+        , family(_family)
+        , type(_type)
+        , proto(_proto)
+    {
+    }
 
     ResolveData doRun();
 };
 
-struct ReverseResolve: ResolveBase{
+struct ReverseResolve : ResolveBase {
 
-    SocketAddressInet   addr;
+    SocketAddressInet addr;
 
     ReverseResolve(
-        const SocketAddressStub &_rsa,
-        int _flags
-    ):ResolveBase(_flags), addr(_rsa){}
+        const SocketAddressStub& _rsa,
+        int                      _flags)
+        : ResolveBase(_flags)
+        , addr(_rsa)
+    {
+    }
 
-    void doRun(std::string &_rhost, std::string &_rsrvc);
+    void doRun(std::string& _rhost, std::string& _rsrvc);
 };
 
 template <class Cbk>
-struct DirectResolveCbk: DirectResolve{
+struct DirectResolveCbk : DirectResolve {
 
-    Cbk     cbk;
+    Cbk cbk;
 
     DirectResolveCbk(
-        Cbk _cbk,
-        const char *_host,
-        const char *_srvc,
-        int _flags,
-        int _family,
-        int _type,
-        int _proto
-    ):DirectResolve(_host, _srvc, _flags, _family, _type, _proto), cbk(_cbk){
+        Cbk         _cbk,
+        const char* _host,
+        const char* _srvc,
+        int         _flags,
+        int         _family,
+        int         _type,
+        int         _proto)
+        : DirectResolve(_host, _srvc, _flags, _family, _type, _proto)
+        , cbk(_cbk)
+    {
     }
 
-    /*virtual*/ void run(bool _fail){
+    /*virtual*/ void run(bool _fail)
+    {
 
         ResolveData rd;
 
-        if(!_fail){
+        if (!_fail) {
             rd = this->doRun();
-        }else{
+        } else {
             this->error = error_resolver_direct;
         }
         cbk(rd, this->error);
@@ -93,27 +109,31 @@ struct DirectResolveCbk: DirectResolve{
 };
 
 template <class Cbk>
-struct ReverseResolveCbk: ReverseResolve{
+struct ReverseResolveCbk : ReverseResolve {
 
-    Cbk     cbk;
+    Cbk cbk;
 
     ReverseResolveCbk(
-        Cbk _cbk,
-        const SocketAddressStub &_rsa,
-        int _flags
-    ):ReverseResolve(_rsa, _flags), cbk(_cbk){}
+        Cbk                      _cbk,
+        const SocketAddressStub& _rsa,
+        int                      _flags)
+        : ReverseResolve(_rsa, _flags)
+        , cbk(_cbk)
+    {
+    }
 
-    /*virtual*/ void run(bool _fail){
-        if(!_fail){
+    /*virtual*/ void run(bool _fail)
+    {
+        if (!_fail) {
             this->doRun(cbk.hostString(), cbk.serviceString());
-        }else{
+        } else {
             this->error = error_resolver_reverse;
         }
         cbk(this->error);
     }
 };
 
-class Resolver{
+class Resolver {
 public:
     Resolver(size_t _thrcnt = 0);
     ~Resolver();
@@ -122,39 +142,38 @@ public:
 
     template <class Cbk>
     void requestResolve(
-        Cbk _cbk,
-        const char *_host,
-        const char *_srvc,
-        int _flags = 0,
-        int _family = -1,
-        int _type = -1,
-        int _proto = -1
-    ){
+        Cbk         _cbk,
+        const char* _host,
+        const char* _srvc,
+        int         _flags  = 0,
+        int         _family = -1,
+        int         _type   = -1,
+        int         _proto  = -1)
+    {
         doSchedule(new DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
     }
 
     template <class Cbk>
     void requestResolve(
-        Cbk _cbk,
-        const SocketAddressStub &_rsa,
-        int _flags = 0
-    ){
+        Cbk                      _cbk,
+        const SocketAddressStub& _rsa,
+        int                      _flags = 0)
+    {
         doSchedule(new ReverseResolveCbk<Cbk>(_rsa, _flags));
     }
 
     void stop();
+
 private:
-    void doSchedule(ResolveBase *_pb);
+    void doSchedule(ResolveBase* _pb);
+
 private:
     struct Data;
-    Data    &d;
+    Data& d;
 };
 
-
-}//namespace aio
-}//namespace frame
-}//namespace solid
-
-
+} //namespace aio
+} //namespace frame
+} //namespace solid
 
 #endif

@@ -10,18 +10,20 @@
 #ifndef SOLID_FRAME_FORWARD_COMPLETION_HPP
 #define SOLID_FRAME_FORWARD_COMPLETION_HPP
 
-namespace solid{
-namespace frame{
+namespace solid {
+namespace frame {
 
 class CompletionHandler;
 
-struct ForwardCompletionHandler{
-    ForwardCompletionHandler(CompletionHandler *_pch = nullptr):pnext(_pch){}
-    CompletionHandler   *pnext;
+struct ForwardCompletionHandler {
+    ForwardCompletionHandler(CompletionHandler* _pch = nullptr)
+        : pnext(_pch)
+    {
+    }
+    CompletionHandler* pnext;
 };
 
-}//namespace frame
-}//namespace solid
-
+} //namespace frame
+} //namespace solid
 
 #endif

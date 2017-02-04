@@ -67,35 +67,41 @@ inline NanoTime& NanoTime::operator -= (const NanoTime &_ts){
     return *this;
 }
 #endif
-inline bool NanoTime::operator >=(const NanoTime &_ts)const{
+inline bool NanoTime::operator>=(const NanoTime& _ts) const
+{
     return (seconds() > _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec >= _ts.tv_nsec));
 }
 
-inline bool NanoTime::operator >(const NanoTime &_ts)const{
+inline bool NanoTime::operator>(const NanoTime& _ts) const
+{
     return (seconds() > _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec > _ts.tv_nsec));
 }
 
-inline bool NanoTime::operator <=(const NanoTime &_ts)const{
+inline bool NanoTime::operator<=(const NanoTime& _ts) const
+{
     return (seconds() < _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec <= _ts.tv_nsec));
 }
 
-inline bool NanoTime::operator <(const NanoTime &_ts)const{
+inline bool NanoTime::operator<(const NanoTime& _ts) const
+{
     return (seconds() < _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec < _ts.tv_nsec));
 }
 
-inline bool NanoTime::operator !=(const NanoTime &_ts)const{
+inline bool NanoTime::operator!=(const NanoTime& _ts) const
+{
     return tv_sec != _ts.tv_sec || tv_nsec != _ts.tv_nsec;
 }
 
-inline bool NanoTime::operator ==(const NanoTime &_ts)const{
+inline bool NanoTime::operator==(const NanoTime& _ts) const
+{
     return tv_sec == _ts.tv_sec && tv_nsec == _ts.tv_nsec;
 }
 
-inline bool NanoTime::isMax()const{
+inline bool NanoTime::isMax() const
+{
     return tv_sec == static_cast<decltype(tv_sec)>(-1);
 }
 
 #ifdef SOLID_HAS_NO_INLINES
 #undef inline
 #endif
-

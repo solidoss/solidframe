@@ -9,25 +9,25 @@
 //
 #ifndef SYSTEM_FILE_DEVICE_HPP
 #define SYSTEM_FILE_DEVICE_HPP
-#include <fcntl.h>
 #include "seekabledevice.hpp"
+#include <fcntl.h>
 
-namespace solid{
+namespace solid {
 
 //! Wrapper for a file descriptor
-class FileDevice: public SeekableDevice{
+class FileDevice : public SeekableDevice {
 public:
     enum OpenMode {
-        ReadOnlyE = O_RDONLY, //!< Read only
+        ReadOnlyE  = O_RDONLY, //!< Read only
         WriteOnlyE = O_WRONLY, //!< Write only
         ReadWriteE = O_RDWR, //!< Read write
-        TruncateE = O_TRUNC, //!< Truncate
-        AppendE = O_APPEND,//!< Append
-        CreateE = O_CREAT //!< Create
+        TruncateE  = O_TRUNC, //!< Truncate
+        AppendE    = O_APPEND, //!< Append
+        CreateE    = O_CREAT //!< Create
     };
     FileDevice();
     //!returns the size of a file without opening it - using stat!
-    static int64_t size(const char *_fname);
+    static int64_t size(const char* _fname);
     //! Open a file using its name and open mode flags
     bool open(const char* _fname, int _how);
     //! Create a file using its name and open mode flags
@@ -37,16 +37,16 @@ public:
         Use FileDevice::size(const char*) to find the size of a file
         without opening it
     */
-    int64_t size()const;
+    int64_t size() const;
     //! Check if a failed open opperation may succeed on retry
     /*!
         It uses errno so, it should be used imediatly after the open call.
         It returns true in cases when the file could not be opened because
         there were no available file descriptors or kernel memory.
     */
-    bool canRetryOpen()const;
+    bool canRetryOpen() const;
 };
 
-}//namespace solid
+} //namespace solid
 
 #endif

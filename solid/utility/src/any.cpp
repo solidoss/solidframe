@@ -10,15 +10,14 @@
 
 #include "solid/utility/any.hpp"
 
-namespace solid{
+namespace solid {
 
-namespace impl{
+namespace impl {
 
-/*virtual*/ AnyValueBase::~AnyValueBase(){
-
+/*virtual*/ AnyValueBase::~AnyValueBase()
+{
 }
 
+} //namespace impl
 
-}//namespace impl
-
-}//namespace solid
+} //namespace solid

@@ -4,8 +4,8 @@
 
 #include "solid/frame/aio/aioresolver.hpp"
 
-#include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
+#include "solid/frame/mpipc/mpipcservice.hpp"
 
 #include "mpipc_echo_messages.hpp"
 
@@ -19,78 +19,82 @@ using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 //-----------------------------------------------------------------------------
 //      Parameters
 //-----------------------------------------------------------------------------
-struct Parameters{
-    Parameters():port("3333"){}
+struct Parameters {
+    Parameters()
+        : port("3333")
+    {
+    }
 
-    string          port;
+    string port;
 };
 
 //-----------------------------------------------------------------------------
-namespace ipc_echo_client{
+namespace ipc_echo_client {
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<M> &_rsent_msg_ptr,
-    std::shared_ptr<M> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
-    if(_rerror){
-        cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<M>&              _rsent_msg_ptr,
+    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
+{
+    if (_rerror) {
+        cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
         return;
     }
 
     SOLID_CHECK(_rrecv_msg_ptr and _rsent_msg_ptr);
 
-    cout<<"Received from "<<_rctx.recipientName()<<": "<<_rrecv_msg_ptr->str<<endl;
+    cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg_ptr->str << endl;
 }
 
 template <typename T>
-struct MessageSetup{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
+struct MessageSetup {
+    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    {
         _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
     }
 };
 
-
-}//namespace
+} //namespace
 
 //-----------------------------------------------------------------------------
 
-bool parseArguments(Parameters &_par, int argc, char *argv[]);
+bool parseArguments(Parameters& _par, int argc, char* argv[]);
 
 //-----------------------------------------------------------------------------
 //      main
 //-----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]){
+int main(int argc, char* argv[])
+{
     Parameters p;
 
-    if(!parseArguments(p, argc, argv)) return 0;
+    if (!parseArguments(p, argc, argv))
+        return 0;
 
     {
 
-        AioSchedulerT           scheduler;
+        AioSchedulerT scheduler;
 
+        frame::Manager         manager;
+        frame::mpipc::ServiceT ipcservice(manager);
 
-        frame::Manager          manager;
-        frame::mpipc::ServiceT  ipcservice(manager);
+        frame::aio::Resolver resolver;
 
-        frame::aio::Resolver    resolver;
-
-        ErrorConditionT         err;
+        ErrorConditionT err;
 
         err = scheduler.start(1);
 
-        if(err){
-            cout<<"Error starting aio scheduler: "<<err.message()<<endl;
+        if (err) {
+            cout << "Error starting aio scheduler: " << err.message() << endl;
             return 1;
         }
 
         err = resolver.start(1);
 
-        if(err){
-            cout<<"Error starting aio resolver: "<<err.message()<<endl;
+        if (err) {
+            cout << "Error starting aio resolver: " << err.message() << endl;
             return 1;
         }
 
@@ -106,28 +110,28 @@ int main(int argc, char *argv[]){
 
             err = ipcservice.reconfigure(std::move(cfg));
 
-            if(err){
-                cout<<"Error starting ipcservice: "<<err.message()<<endl;
+            if (err) {
+                cout << "Error starting ipcservice: " << err.message() << endl;
                 return 1;
             }
         }
 
-
-        while(true){
-            string  line;
+        while (true) {
+            string line;
             getline(cin, line);
 
-            if(line == "q" or line == "Q" or line == "quit"){
+            if (line == "q" or line == "Q" or line == "quit") {
                 break;
             }
             {
-                string      recipient;
-                size_t      offset = line.find(' ');
-                if(offset != string::npos){
+                string recipient;
+                size_t offset = line.find(' ');
+                if (offset != string::npos) {
                     recipient = line.substr(0, offset);
-                    ipcservice.sendMessage(recipient.c_str(), make_shared<ipc_echo::Message>(line.substr(offset + 1)), 0|frame::mpipc::MessageFlags::WaitResponse);
-                }else{
-                    cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
+                    ipcservice.sendMessage(recipient.c_str(), make_shared<ipc_echo::Message>(line.substr(offset + 1)), 0 | frame::mpipc::MessageFlags::WaitResponse);
+                } else {
+                    cout << "No recipient specified. E.g:" << endl
+                         << "localhost:4444 Some text to send" << endl;
                 }
             }
         }
@@ -137,11 +141,10 @@ int main(int argc, char *argv[]){
 
 //-----------------------------------------------------------------------------
 
-bool parseArguments(Parameters &_par, int argc, char *argv[]){
-    if(argc == 2){
+bool parseArguments(Parameters& _par, int argc, char* argv[])
+{
+    if (argc == 2) {
         _par.port = argv[1];
     }
     return true;
 }
-
-

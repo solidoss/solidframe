@@ -24,48 +24,58 @@
 #include "boost/system/error_code.hpp"
 #endif
 
-#include <vector>
 #include <ostream>
+#include <vector>
 
-namespace solid{
+namespace solid {
 
-typedef ERROR_NS::error_condition   ErrorConditionT;
-typedef ERROR_NS::error_code        ErrorCodeT;
-typedef ERROR_NS::error_category    ErrorCategoryT;
+typedef ERROR_NS::error_condition ErrorConditionT;
+typedef ERROR_NS::error_code      ErrorCodeT;
+typedef ERROR_NS::error_category  ErrorCategoryT;
 
 ErrorCodeT last_system_error();
 
-struct ErrorStub{
+struct ErrorStub {
     ErrorStub(
-        int _value = -1,
-        ErrorCategoryT const    *_category = nullptr,
-        unsigned _line = -1,
-        const char *_file = nullptr
-    ):  value(_value), category(_category), line(_line), file(_file){}
+        int                   _value    = -1,
+        ErrorCategoryT const* _category = nullptr,
+        unsigned              _line     = -1,
+        const char*           _file     = nullptr)
+        : value(_value)
+        , category(_category)
+        , line(_line)
+        , file(_file)
+    {
+    }
 
     ErrorStub(
-        ErrorCodeT const    &_code,
-        unsigned _line = -1,
-        const char *_file = nullptr
-    ):  value(_code.value()), category(&_code.category()), line(_line), file(_file){}
+        ErrorCodeT const& _code,
+        unsigned          _line = -1,
+        const char*       _file = nullptr)
+        : value(_code.value())
+        , category(&_code.category())
+        , line(_line)
+        , file(_file)
+    {
+    }
 
-    ErrorCodeT errorCode()const{
+    ErrorCodeT errorCode() const
+    {
         return ErrorCodeT(value, category ? *category : ERROR_NS::system_category());
     }
 
-    int                             value;
-    ErrorCategoryT const            *category;
-    unsigned                        line;
-    const char                      *file;
+    int                   value;
+    ErrorCategoryT const* category;
+    unsigned              line;
+    const char*           file;
 };
 
-typedef std::vector<ErrorStub>  ErrorVectorT;
+typedef std::vector<ErrorStub> ErrorVectorT;
 
-extern const ErrorCodeT         error_not_implemented;
-extern const ErrorCodeT         error_system;
-extern const ErrorCodeT         error_thread_started;
+extern const ErrorCodeT error_not_implemented;
+extern const ErrorCodeT error_system;
+extern const ErrorCodeT error_thread_started;
 
-
-}//namespace solid
+} //namespace solid
 
 #endif

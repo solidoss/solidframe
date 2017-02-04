@@ -14,13 +14,14 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace solid{
+namespace solid {
 
-struct CStringHash{
-    size_t operator()(const char * _s)const{
+struct CStringHash {
+    size_t operator()(const char* _s) const
+    {
         size_t hash = 0;
 
-        for(; *_s; ++_s){
+        for (; *_s; ++_s) {
             hash += *_s;
             hash += (hash << 10);
             hash ^= (hash >> 6);
@@ -34,12 +35,13 @@ struct CStringHash{
     }
 };
 
-struct CStringEqual{
-    bool operator()(const char *_val1, const char *_val2)const{
+struct CStringEqual {
+    bool operator()(const char* _val1, const char* _val2) const
+    {
         return ::strcmp(_val1, _val2) == 0;
     }
 };
 
-}//namespace solid
+} //namespace solid
 
 #endif

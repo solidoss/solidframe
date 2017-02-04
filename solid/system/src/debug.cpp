@@ -11,29 +11,29 @@
 #ifdef SOLID_ON_WINDOWS
 #include <process.h>
 #else
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include <bitset>
 #include <cstring>
 #include <ctime>
-#include <iostream>
+#include <fcntl.h>
 #include <fstream>
-#include <bitset>
+#include <iostream>
 #include <map>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
-#include "solid/system/socketdevice.hpp"
-#include "solid/system/filedevice.hpp"
 #include "solid/system/cassert.hpp"
+#include "solid/system/cstring.hpp"
 #include "solid/system/debug.hpp"
 #include "solid/system/directory.hpp"
-#include "solid/system/cstring.hpp"
 #include "solid/system/filedevice.hpp"
+#include "solid/system/filedevice.hpp"
+#include "solid/system/socketdevice.hpp"
 
+#include <chrono>
 #include <mutex>
 #include <thread>
-#include <chrono>
 
 #ifdef SOLID_ON_SOLARIS
 #include <strings.h>
@@ -46,7 +46,7 @@
 using namespace std;
 using namespace std::chrono;
 
-namespace solid{
+namespace solid {
 
 //-----------------------------------------------------------------
 
@@ -70,21 +70,32 @@ namespace solid{
 class DeviceOutBasicBuffer : public std::streambuf {
 public:
     // constructor
-    DeviceOutBasicBuffer(uint64_t &_rsz): pd(nullptr), sz(_rsz){}
-    DeviceOutBasicBuffer(Device & _d, uint64_t &_rsz) : pd(&_d), sz(_rsz){}
-    void device(Device & _d){
+    DeviceOutBasicBuffer(uint64_t& _rsz)
+        : pd(nullptr)
+        , sz(_rsz)
+    {
+    }
+    DeviceOutBasicBuffer(Device& _d, uint64_t& _rsz)
+        : pd(&_d)
+        , sz(_rsz)
+    {
+    }
+    void device(Device& _d)
+    {
         pd = &_d;
     }
-    void close(){
+    void close()
+    {
         pd = nullptr;
     }
+
 protected:
     // write one character
-    virtual
-    int_type overflow(int_type c){
-        if(c != EOF){
+    virtual int_type overflow(int_type c)
+    {
+        if (c != EOF) {
             char z = c;
-            if(pd->write(&z, 1) != 1){
+            if (pd->write(&z, 1) != 1) {
                 return EOF;
             }
             ++sz;
@@ -92,61 +103,81 @@ protected:
         return c;
     }
     // write multiple characters
-    virtual
-    std::streamsize xsputn(const char* s, std::streamsize num){
+    virtual std::streamsize xsputn(const char* s, std::streamsize num)
+    {
         sz += num;
         return pd->write(s, static_cast<uint32_t>(num));
     }
+
 private:
-    Device      *pd;
-    uint64_t    &sz;
+    Device*   pd;
+    uint64_t& sz;
 };
 
 //-----------------------------------------------------------------
 
 class DeviceOutBuffer : public std::streambuf {
 public:
-    enum {BUFF_CP = 2048, BUFF_FLUSH = 1024};
+    enum { BUFF_CP = 2048,
+        BUFF_FLUSH = 1024 };
     // constructor
-    DeviceOutBuffer(uint64_t &_rsz):pd(nullptr), sz(_rsz), bpos(bbeg){}
-    DeviceOutBuffer(Device & _d, uint64_t &_rsz): pd(&_d), sz(_rsz), bpos(bbeg){}
-    void device(Device & _d){
+    DeviceOutBuffer(uint64_t& _rsz)
+        : pd(nullptr)
+        , sz(_rsz)
+        , bpos(bbeg)
+    {
+    }
+    DeviceOutBuffer(Device& _d, uint64_t& _rsz)
+        : pd(&_d)
+        , sz(_rsz)
+        , bpos(bbeg)
+    {
+    }
+    void device(Device& _d)
+    {
         pd = &_d;
     }
-    void close(){
-        if(pd == nullptr || !pd->ok()) return;
+    void close()
+    {
+        if (pd == nullptr || !pd->ok())
+            return;
         flush();
         pd = nullptr;
     }
+
 protected:
     // write one character
-    virtual
-    int_type overflow(int_type c);
+    virtual int_type overflow(int_type c);
     // write multiple characters
-    virtual
-    std::streamsize xsputn(const char* s, std::streamsize num);
+    virtual std::streamsize xsputn(const char* s, std::streamsize num);
+
 private:
-    bool flush(){
+    bool flush()
+    {
         int towrite = bpos - bbeg;
-        bpos = bbeg;
-        if(pd->write(bbeg, towrite) != towrite) return false;
+        bpos        = bbeg;
+        if (pd->write(bbeg, towrite) != towrite)
+            return false;
         sz += towrite;
         return true;
     }
+
 private:
-    Device      *pd;
-    uint64_t    &sz;
-    char        bbeg[BUFF_CP];
-    char        *bpos;
+    Device*   pd;
+    uint64_t& sz;
+    char      bbeg[BUFF_CP];
+    char*     bpos;
 };
 
 //-----------------------------------------------------------------
 
 // virtual
-std::streambuf::int_type DeviceOutBuffer::overflow(int_type c) {
-    if (c != EOF){
-        *bpos = c; ++bpos;
-        if((bpos - bbeg) > BUFF_FLUSH && !flush()){
+std::streambuf::int_type DeviceOutBuffer::overflow(int_type c)
+{
+    if (c != EOF) {
+        *bpos = c;
+        ++bpos;
+        if ((bpos - bbeg) > BUFF_FLUSH && !flush()) {
             return EOF;
         }
     }
@@ -154,20 +185,23 @@ std::streambuf::int_type DeviceOutBuffer::overflow(int_type c) {
 }
 // write multiple characters
 // virtual
-std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
+std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num)
+{
     //we can safely put BUFF_FLUSH into the buffer
     int towrite = BUFF_CP - BUFF_FLUSH;
-    if(towrite > static_cast<int>(num)) towrite = static_cast<int>(num);
+    if (towrite > static_cast<int>(num))
+        towrite = static_cast<int>(num);
     memcpy(bpos, s, towrite);
     bpos += towrite;
-    if((bpos - bbeg) > BUFF_FLUSH && !flush()){
+    if ((bpos - bbeg) > BUFF_FLUSH && !flush()) {
         SOLID_ASSERT(0);
         return -1;
     }
-    if(num == towrite) return num;
+    if (num == towrite)
+        return num;
     num -= towrite;
     s += towrite;
-    if(num >= BUFF_FLUSH){
+    if (num >= BUFF_FLUSH) {
         std::streamsize retv = pd->write(s, static_cast<uint32_t>(num));
         SOLID_ASSERT(retv != num);
         return retv;
@@ -180,17 +214,26 @@ std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 class DeviceBasicOutStream : public std::ostream {
 protected:
     DeviceOutBasicBuffer buf;
+
 public:
-    DeviceBasicOutStream(Device &_d, uint64_t &_rsz) : std::ostream(0), buf(_d, _rsz) {
+    DeviceBasicOutStream(Device& _d, uint64_t& _rsz)
+        : std::ostream(0)
+        , buf(_d, _rsz)
+    {
         rdbuf(&buf);
     }
-    DeviceBasicOutStream(uint64_t &_rsz):std::ostream(0), buf(_rsz){
+    DeviceBasicOutStream(uint64_t& _rsz)
+        : std::ostream(0)
+        , buf(_rsz)
+    {
         rdbuf(&buf);
     }
-    void device(Device &_d){
+    void device(Device& _d)
+    {
         buf.device(_d);
     }
-    void close(){
+    void close()
+    {
         buf.close();
     }
 };
@@ -198,258 +241,289 @@ public:
 class DeviceOutStream : public std::ostream {
 protected:
     DeviceOutBuffer buf;
+
 public:
-    DeviceOutStream(uint64_t &_rsz):std::ostream(0), buf(_rsz){
+    DeviceOutStream(uint64_t& _rsz)
+        : std::ostream(0)
+        , buf(_rsz)
+    {
         rdbuf(&buf);
     }
-    DeviceOutStream(Device &_d, uint64_t &_rsz) : std::ostream(0), buf(_d, _rsz) {
+    DeviceOutStream(Device& _d, uint64_t& _rsz)
+        : std::ostream(0)
+        , buf(_d, _rsz)
+    {
         rdbuf(&buf);
     }
-    void device(Device &_d){
+    void device(Device& _d)
+    {
         buf.device(_d);
     }
-    void close(){
+    void close()
+    {
         buf.close();
     }
 };
 //-----------------------------------------------------------------
-struct StrLess{
-    bool operator()(const char *_str1, const char *_str2)const{
+struct StrLess {
+    bool operator()(const char* _str1, const char* _str2) const
+    {
         const int rv = cstring::casecmp(_str1, _str2);
         return rv < 0;
     }
 };
-struct ModuleStub{
-    ModuleStub(const char *_name, uint32_t _lvlmsk):name(_name), lvlmsk(_lvlmsk){}
-    string      name;
-    uint32_t    lvlmsk;
+struct ModuleStub {
+    ModuleStub(const char* _name, uint32_t _lvlmsk)
+        : name(_name)
+        , lvlmsk(_lvlmsk)
+    {
+    }
+    string   name;
+    uint32_t lvlmsk;
 };
-struct Debug::Data{
-    typedef std::bitset<DEBUG_BITSET_SIZE>          BitSetT;
+struct Debug::Data {
+    typedef std::bitset<DEBUG_BITSET_SIZE> BitSetT;
 
-    typedef std::vector<ModuleStub>                 ModuleVectorT;
-    typedef std::map<
-        const char *, unsigned, StrLess>            StringMapT;
-    Data():
-        lvlmsk(0), sz(0), respinsz(0), respincnt(0),
-        respinpos(0), dos(sz), dbos(sz), trace_debth(0)
+    typedef std::vector<ModuleStub> ModuleVectorT;
+    typedef std::map<const char*, unsigned, StrLess> StringMapT;
+    Data()
+        : lvlmsk(0)
+        , sz(0)
+        , respinsz(0)
+        , respincnt(0)
+        , respinpos(0)
+        , dos(sz)
+        , dbos(sz)
+        , trace_debth(0)
     {
         pos = &std::cerr;
         bs.reset();
         modvec.reserve(DEBUG_BITSET_SIZE);
     }
-    ~Data(){
+    ~Data()
+    {
 #ifdef SOLID_ON_WINDOWS
         WSACleanup();
 #endif
     }
     void setModuleMask(const char*);
-    void setBit(const char *_pbeg, const char *_pend);
-    bool initFile(uint32_t _respincnt, uint64_t _respinsz, string *_poutput);
+    void setBit(const char* _pbeg, const char* _pend);
+    bool initFile(uint32_t _respincnt, uint64_t _respinsz, string* _poutput);
     void doRespin();
-    bool isActive()const{return lvlmsk != 0 && !bs.none();}
+    bool isActive() const { return lvlmsk != 0 && !bs.none(); }
 
-    unsigned registerModule(const char *_name, uint32_t _lvlmsk);
+    unsigned registerModule(const char* _name, uint32_t _lvlmsk);
 
-    mutex                   m;
-    BitSetT                 bs;
-    unsigned                lvlmsk;
-    ModuleVectorT           modvec;
-    StringMapT              namemap;
-    uint64_t                sz;
-    uint64_t                respinsz;
-    uint32_t                respincnt;
-    uint32_t                respinpos;
-    DeviceOutStream         dos;
-    DeviceBasicOutStream    dbos;
-    FileDevice              fd;
-    SocketDevice            sd;
+    mutex                m;
+    BitSetT              bs;
+    unsigned             lvlmsk;
+    ModuleVectorT        modvec;
+    StringMapT           namemap;
+    uint64_t             sz;
+    uint64_t             respinsz;
+    uint32_t             respincnt;
+    uint32_t             respinpos;
+    DeviceOutStream      dos;
+    DeviceBasicOutStream dbos;
+    FileDevice           fd;
+    SocketDevice         sd;
     //std::ofstream         ofs;
-    std::ostream            *pos;
-    string                  path;
-    string                  name;
-    uint                    trace_debth;
+    std::ostream* pos;
+    string        path;
+    string        name;
+    uint          trace_debth;
 };
 //-----------------------------------------------------------------
-void splitPrefix(string &_path, string &_name, const char *_prefix);
+void splitPrefix(string& _path, string& _name, const char* _prefix);
 
-/*static*/ Debug& Debug::the(){
-    static Debug *pd = new Debug;//TODO: don't leave it leaked
+/*static*/ Debug& Debug::the()
+{
+    static Debug* pd = new Debug; //TODO: don't leave it leaked
     return *pd;
 }
 
-Debug::~Debug(){
-    (*d.pos)<<flush;
+Debug::~Debug()
+{
+    (*d.pos) << flush;
     d.dos.close();
     d.dbos.close();
     d.pos = &cerr;
     delete &d;
 }
 
-namespace{
-uint32_t parseLevels(const char *_lvl){
-    if(!_lvl) return 0;
+namespace {
+uint32_t parseLevels(const char* _lvl)
+{
+    if (!_lvl)
+        return 0;
     uint32_t r = 0;
 
-    while(*_lvl){
-        switch(*_lvl){
-            case 'i':
-            case 'I':
-                r |= Debug::Info;
-                break;
-            case 'e':
-            case 'E':
-                r |= Debug::Error;
-                break;
-            case 'w':
-            case 'W':
-                r |= Debug::Warn;
-                break;
-            case 'r':
-            case 'R':
-                r |= Debug::Report;
-                break;
-            case 'v':
-            case 'V':
-                r |= Debug::Verbose;
-                break;
-            case 't':
-            case 'T':
-                r |= Debug::Trace;
-                break;
-            default:
-                break;
+    while (*_lvl) {
+        switch (*_lvl) {
+        case 'i':
+        case 'I':
+            r |= Debug::Info;
+            break;
+        case 'e':
+        case 'E':
+            r |= Debug::Error;
+            break;
+        case 'w':
+        case 'W':
+            r |= Debug::Warn;
+            break;
+        case 'r':
+        case 'R':
+            r |= Debug::Report;
+            break;
+        case 'v':
+        case 'V':
+            r |= Debug::Verbose;
+            break;
+        case 't':
+        case 'T':
+            r |= Debug::Trace;
+            break;
+        default:
+            break;
         }
         ++_lvl;
     }
     return r;
 }
-}//namespace
+} //namespace
 
-void Debug::Data::setBit(const char *_pbeg, const char *_pend){
+void Debug::Data::setBit(const char* _pbeg, const char* _pend)
+{
     std::string str;
     str.assign(_pbeg, _pend - _pbeg);
     std::string name;
-    uint32_t        lvls = -1;
+    uint32_t    lvls = -1;
     {
         std::string lvlstr;
 
-        size_t      off = str.rfind(':');
+        size_t off = str.rfind(':');
 
-        if(off == string::npos){
+        if (off == string::npos) {
             name = str;
-        }else{
-            name = str.substr(0, off);
+        } else {
+            name   = str.substr(0, off);
             lvlstr = str.substr(off, str.size() - off);
         }
-        if(lvlstr.size()){
-            lvls= parseLevels(lvlstr.c_str());
+        if (lvlstr.size()) {
+            lvls = parseLevels(lvlstr.c_str());
         }
     }
 
-    if(!cstring::ncasecmp(name.c_str(), "all", name.size())){
+    if (!cstring::ncasecmp(name.c_str(), "all", name.size())) {
         bs.set();
-    }else if(!cstring::ncasecmp(name.c_str(), "none", name.size())){
+    } else if (!cstring::ncasecmp(name.c_str(), "none", name.size())) {
         bs.reset();
-    }else{
-        unsigned pos = registerModule(name.c_str(), 0);
+    } else {
+        unsigned pos       = registerModule(name.c_str(), 0);
         modvec[pos].lvlmsk = lvls;
         bs.set(pos);
     }
 }
 
-unsigned Debug::Data::registerModule(const char *_name, uint32_t _lvlmsk){
+unsigned Debug::Data::registerModule(const char* _name, uint32_t _lvlmsk)
+{
     std::string name = _name;
-    for(std::string::iterator it = name.begin(); it != name.end(); ++it){
+    for (std::string::iterator it = name.begin(); it != name.end(); ++it) {
         *it = toupper(*it);
     }
 
     StringMapT::const_iterator it = namemap.find(_name);
 
-    if(it != namemap.end()){
+    if (it != namemap.end()) {
         return it->second;
-    }else{
+    } else {
         modvec.push_back(ModuleStub(name.c_str(), _lvlmsk));
         namemap[modvec.back().name.c_str()] = modvec.size() - 1;
         return modvec.size() - 1;
     }
 }
 
-void Debug::Data::setModuleMask(const char *_opt){
-    enum{
+void Debug::Data::setModuleMask(const char* _opt)
+{
+    enum {
         SkipSpacesState,
         ParseNameState
     };
     bs.reset();
-    if(_opt){
-        const char *pbeg = _opt;
-        const char *pcrt = _opt;
-        int state = 0;
-        while(*pcrt){
-            if(state == SkipSpacesState){
-                if(isspace(*pcrt)){
+    if (_opt) {
+        const char* pbeg  = _opt;
+        const char* pcrt  = _opt;
+        int         state = 0;
+        while (*pcrt) {
+            if (state == SkipSpacesState) {
+                if (isspace(*pcrt)) {
                     ++pcrt;
                     pbeg = pcrt;
-                }else{
+                } else {
                     ++pcrt;
                     state = ParseNameState;
                 }
-            }else if(state == ParseNameState){
-                if(!isspace(*pcrt)){
+            } else if (state == ParseNameState) {
+                if (!isspace(*pcrt)) {
                     ++pcrt;
-                }else{
+                } else {
                     setBit(pbeg, pcrt);
-                    pbeg = pcrt;
+                    pbeg  = pcrt;
                     state = 0;
                 }
             }
         }
-        if(pcrt != pbeg){
+        if (pcrt != pbeg) {
             setBit(pbeg, pcrt);
         }
     }
 }
 
-void filePath(string &_out, uint32_t _pos, const string &_path, const string &_name){
+void filePath(string& _out, uint32_t _pos, const string& _path, const string& _name)
+{
     _out = _path;
     _out += _name;
 
-    char    buf[2048];
+    char buf[2048];
 
-    if(_pos){
+    if (_pos) {
         sprintf(buf, "_%04lu.dbg", (unsigned long)_pos);
-    }else{
+    } else {
         sprintf(buf, ".dbg");
     }
     _out += buf;
 }
 
-bool Debug::Data::initFile(uint32_t _respincnt, uint64_t _respinsz, string *_poutput){
+bool Debug::Data::initFile(uint32_t _respincnt, uint64_t _respinsz, string* _poutput)
+{
     respincnt = _respincnt;
-    respinsz = _respinsz;
+    respinsz  = _respinsz;
     respinpos = 0;
     string fpath;
     filePath(fpath, 0, path, name);
-    if(!fd.open(fpath.c_str(), FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::AppendE)) return false;
+    if (!fd.open(fpath.c_str(), FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::AppendE))
+        return false;
     sz = fd.size();
-    if(_poutput){
+    if (_poutput) {
         *_poutput = fpath;
     }
     return true;
 }
 
-void Debug::Data::doRespin(){
+void Debug::Data::doRespin()
+{
     sz = 0;
     string fname;
     //find the last file
-    if(respincnt == 0){
+    if (respincnt == 0) {
         filePath(fname, 0, path, name);
         Directory::eraseFile(fname.c_str());
-    }else{
+    } else {
         uint32_t lastpos = respincnt;
-        while(lastpos >= 1){
+        while (lastpos >= 1) {
             filePath(fname, lastpos, path, name);
-            if(FileDevice::size(fname.c_str()) >= 0){
+            if (FileDevice::size(fname.c_str()) >= 0) {
                 break;
             }
             --lastpos;
@@ -457,14 +531,14 @@ void Debug::Data::doRespin(){
         string frompath;
         string topath;
 
-        if(lastpos == respincnt){
+        if (lastpos == respincnt) {
             filePath(topath, respincnt, path, name);
             --lastpos;
-        }else{
+        } else {
             filePath(topath, lastpos + 1, path, name);
         }
 
-        while(lastpos){
+        while (lastpos) {
             filePath(frompath, lastpos, path, name);
             Directory::renameFile(topath.c_str(), frompath.c_str());
             topath = frompath;
@@ -476,39 +550,38 @@ void Debug::Data::doRespin(){
         fname = frompath;
     }
 
-
-    if(fd.create(fname.c_str(), FileDevice::WriteOnlyE)){
+    if (fd.create(fname.c_str(), FileDevice::WriteOnlyE)) {
         pos = &cerr;
-    }else{
-        if(pos == &dos){
-            dos.device(fd);//close the current file
-        }else if(pos == &dbos){
-            dbos.device(fd);//close the current file
-        }else{
+    } else {
+        if (pos == &dos) {
+            dos.device(fd); //close the current file
+        } else if (pos == &dbos) {
+            dbos.device(fd); //close the current file
+        } else {
             SOLID_ASSERT(false);
         }
     }
 }
 
-
 void Debug::initStdErr(
-    bool _buffered,
-    std::string *_output
-){
-    unique_lock<mutex>  lock(d.m);
+    bool         _buffered,
+    std::string* _output)
+{
+    unique_lock<mutex> lock(d.m);
 
     d.dos.close();
     d.dbos.close();
-    if(!d.isActive()) return;
-    if(_buffered){
+    if (!d.isActive())
+        return;
+    if (_buffered) {
         d.pos = &std::clog;
-        if(_output){
+        if (_output) {
             *_output += "clog";
             *_output += " (buffered)";
         }
-    }else{
+    } else {
         d.pos = &std::cerr;
-        if(_output){
+        if (_output) {
             *_output += "cerr";
             *_output += " (unbuffered)";
         }
@@ -516,110 +589,112 @@ void Debug::initStdErr(
 }
 
 void Debug::initFile(
-    const char * _prefix,
-    bool _buffered,
-    ulong _respincnt,
-    ulong _respinsize,
-    std::string *_output
-){
-    unique_lock<mutex>  lock(d.m);
+    const char*  _prefix,
+    bool         _buffered,
+    ulong        _respincnt,
+    ulong        _respinsize,
+    std::string* _output)
+{
+    unique_lock<mutex> lock(d.m);
     d.respinsz = 0;
 
     d.dos.close();
     d.dbos.close();
-    if(!d.isActive()) return;
+    if (!d.isActive())
+        return;
 
-    if(_prefix && *_prefix){
+    if (_prefix && *_prefix) {
         splitPrefix(d.path, d.name, _prefix);
-        if(d.path.empty()){
+        if (d.path.empty()) {
             Directory::create("dbg");
             d.path = "dbg/";
         }
-        if(d.initFile(_respincnt, _respinsize, _output)){
-            if(_buffered){
+        if (d.initFile(_respincnt, _respinsize, _output)) {
+            if (_buffered) {
                 d.dos.device(d.fd);
                 d.pos = &d.dos;
-                if(_output){
+                if (_output) {
                     *_output += " (buffered)";
                 }
-            }else{
+            } else {
                 d.dbos.device(d.fd);
                 d.pos = &d.dbos;
-                if(_output){
+                if (_output) {
                     *_output += " (unbuffered)";
                 }
             }
             return;
         }
     }
-    if(_buffered){
+    if (_buffered) {
         d.pos = &std::clog;
-        if(_output){
+        if (_output) {
             *_output += "clog";
             *_output += " (buffered)";
         }
-    }else{
+    } else {
         d.pos = &std::cerr;
-        if(_output){
+        if (_output) {
             *_output += "cerr";
             *_output += " (unbuffered)";
         }
     }
 }
 void Debug::initSocket(
-    const char * _addr,
-    const char * _port,
-    bool _buffered,
-    std::string *_output
-){
-    if(!d.isActive()) return;
+    const char*  _addr,
+    const char*  _port,
+    bool         _buffered,
+    std::string* _output)
+{
+    if (!d.isActive())
+        return;
     //do the connect outside locking
-    ResolveData             rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    if(!rd.empty() && !d.sd.create(rd.begin()) && d.sd.connect(rd.begin())){
-    }else{
-        d.sd.close();//make sure the socket is closed
+    ResolveData rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+    if (!rd.empty() && !d.sd.create(rd.begin()) && d.sd.connect(rd.begin())) {
+    } else {
+        d.sd.close(); //make sure the socket is closed
     }
 
-    unique_lock<mutex>  lock(d.m);
+    unique_lock<mutex> lock(d.m);
     d.respinsz = 0;
 
     d.dos.close();
     d.dbos.close();
 
-    if(_addr == 0 || !*_addr){
+    if (_addr == 0 || !*_addr) {
         _addr = "localhost";
     }
 
-    if(d.sd.ok()){
-        if(_buffered){
+    if (d.sd.ok()) {
+        if (_buffered) {
             d.dos.device(d.sd);
             d.pos = &d.dos;
-            if(_output){
+            if (_output) {
                 *_output += _addr;
                 *_output += ':';
                 *_output += _port;
                 *_output += " (buffered)";
             }
-        }else{
+        } else {
             d.dbos.device(d.sd);
             d.pos = &d.dbos;
-            if(_output){
+            if (_output) {
                 *_output += _addr;
                 *_output += ':';
                 *_output += _port;
                 *_output += " (unbuffered)";
             }
         }
-    }else{
-        if(_buffered){
+    } else {
+        if (_buffered) {
             d.pos = &std::clog;
-            if(_output){
+            if (_output) {
                 *_output += "clog";
                 *_output += " (buffered)";
             }
-        }else{
+        } else {
             d.pos = &std::cerr;
-            if(_output){
+            if (_output) {
                 *_output += "cerr";
                 *_output += " (unbuffered)";
             }
@@ -627,73 +702,82 @@ void Debug::initSocket(
     }
 }
 
-void Debug::levelMask(const char *_msk){
-    if(!_msk){
+void Debug::levelMask(const char* _msk)
+{
+    if (!_msk) {
         _msk = "iewrvt";
     }
-    unique_lock<mutex>  lock(d.m);
+    unique_lock<mutex> lock(d.m);
     d.lvlmsk = parseLevels(_msk);
 }
-void Debug::moduleMask(const char *_msk){
-    if(!_msk){
+void Debug::moduleMask(const char* _msk)
+{
+    if (!_msk) {
         _msk = "all";
     }
-    unique_lock<mutex>  lock(d.m);
+    unique_lock<mutex> lock(d.m);
     d.setModuleMask(_msk);
 }
 
-void Debug::moduleNames(std::string &_ros){
-    unique_lock<mutex>  lock(d.m);
-    for(Data::ModuleVectorT::const_iterator it(d.modvec.begin()); it != d.modvec.end(); ++it){
+void Debug::moduleNames(std::string& _ros)
+{
+    unique_lock<mutex> lock(d.m);
+    for (Data::ModuleVectorT::const_iterator it(d.modvec.begin()); it != d.modvec.end(); ++it) {
         _ros += it->name;
         _ros += ' ';
     }
 }
-void Debug::setAllModuleBits(){
-    unique_lock<mutex>  lock(d.m);
+void Debug::setAllModuleBits()
+{
+    unique_lock<mutex> lock(d.m);
     d.bs.set();
 }
-void Debug::resetAllModuleBits(){
-    unique_lock<mutex>  lock(d.m);
+void Debug::resetAllModuleBits()
+{
+    unique_lock<mutex> lock(d.m);
     d.bs.reset();
 }
-void Debug::setModuleBit(unsigned _v){
-    unique_lock<mutex>  lock(d.m);
+void Debug::setModuleBit(unsigned _v)
+{
+    unique_lock<mutex> lock(d.m);
     d.bs.set(_v);
 }
-void Debug::resetModuleBit(unsigned _v){
-    unique_lock<mutex>  lock(d.m);
+void Debug::resetModuleBit(unsigned _v)
+{
+    unique_lock<mutex> lock(d.m);
     d.bs.reset(_v);
 }
-unsigned Debug::registerModule(const char *_name){
-    unique_lock<mutex>  lock(d.m);
+unsigned Debug::registerModule(const char* _name)
+{
+    unique_lock<mutex> lock(d.m);
     return d.registerModule(_name, -1);
 }
 
-std::ostream& Debug::print(){
+std::ostream& Debug::print()
+{
     d.m.lock();
     return std::cerr;
 }
 
 std::ostream& Debug::print(
-    const char _t,
-    unsigned _module,
-    const char *_file,
-    const char *_fnc,
-    int _line
-){
+    const char  _t,
+    unsigned    _module,
+    const char* _file,
+    const char* _fnc,
+    int         _line)
+{
     d.m.lock();
-    if(d.respinsz && d.respinsz <= d.sz){
+    if (d.respinsz && d.respinsz <= d.sz) {
         d.doRespin();
     }
-    char        buf[128];
-    const auto  now = system_clock::now();
-    time_t      t_now = system_clock::to_time_t(now);
-    tm          *ploctm;
+    char       buf[128];
+    const auto now   = system_clock::now();
+    time_t     t_now = system_clock::to_time_t(now);
+    tm*        ploctm;
 #ifdef SOLID_ON_WINDOWS
     ploctm = localtime(&t_now);
 #else
-    tm          loctm;
+    tm loctm;
     ploctm = localtime_r(&t_now, &loctm);
 #endif
     sprintf(
@@ -707,45 +791,46 @@ std::ostream& Debug::print(
         ploctm->tm_min,
         ploctm->tm_sec,
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000),
-        d.modvec[_module].name.c_str()//,
+        d.modvec[_module].name.c_str() //,
         //Thread::currentId()
-    );
+        );
 #ifdef SOLID_ON_WINDOWS
-    return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"]["<<std::this_thread::get_id()<<']'<<' ';
+    return (*d.pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][" << std::this_thread::get_id() << ']' << ' ';
 #else
-    return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"][0x"<<std::hex<<std::this_thread::get_id()<<std::dec<<']'<<' ';
+    return (*d.pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ';
 #endif
 }
-static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
-                         "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
-                         "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+static const char tabs[] = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
+                           "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
+                           "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-DebugTraceTest::~DebugTraceTest(){
-    if(v){
-        Debug::the().printTraceOut('T', mod, file, fnc, line)<<"???";
+DebugTraceTest::~DebugTraceTest()
+{
+    if (v) {
+        Debug::the().printTraceOut('T', mod, file, fnc, line) << "???";
         Debug::the().doneTraceOut();
     }
 }
 
 std::ostream& Debug::printTraceIn(
-    const char _t,
-    unsigned _module,
-    const char *_file,
-    const char *_fnc,
-    int _line
-){
+    const char  _t,
+    unsigned    _module,
+    const char* _file,
+    const char* _fnc,
+    int         _line)
+{
     d.m.lock();
-    if(d.respinsz && d.respinsz <= d.sz){
+    if (d.respinsz && d.respinsz <= d.sz) {
         d.doRespin();
     }
-    char        buf[128];
-    const auto  now = system_clock::now();
-    time_t      t_now = system_clock::to_time_t(now);
-    tm          *ploctm;
+    char       buf[128];
+    const auto now   = system_clock::now();
+    time_t     t_now = system_clock::to_time_t(now);
+    tm*        ploctm;
 #ifdef SOLID_ON_WINDOWS
     ploctm = localtime(&t_now);
 #else
-    tm          loctm;
+    tm loctm;
     ploctm = localtime_r(&t_now, &loctm);
 #endif
     sprintf(
@@ -761,37 +846,37 @@ std::ostream& Debug::printTraceIn(
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
         //d.nv[_module],
         //Thread::currentId()
-    );
-    (*d.pos)<<buf;
+        );
+    (*d.pos) << buf;
     d.pos->write(tabs, d.trace_debth);
     ++d.trace_debth;
 #ifdef SOLID_ON_WINDOWS
-    (*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<std::this_thread::get_id()<<']'<<' '<<_fnc<<'(';
+    (*d.pos) << '[' << d.modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << _fnc << '(';
 #else
-    (*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<std::this_thread::get_id()<<std::dec<<']'<<' '<<_fnc<<'(';
+    (*d.pos) << '[' << d.modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << _fnc << '(';
 #endif
     return (*d.pos);
 }
 
 std::ostream& Debug::printTraceOut(
-    const char _t,
-    unsigned _module,
-    const char *_file,
-    const char *_fnc,
-    int _line
-){
+    const char  _t,
+    unsigned    _module,
+    const char* _file,
+    const char* _fnc,
+    int         _line)
+{
     d.m.lock();
-    if(d.respinsz && d.respinsz <= d.sz){
+    if (d.respinsz && d.respinsz <= d.sz) {
         d.doRespin();
     }
-    char        buf[128];
-    const auto  now = system_clock::now();
-    time_t      t_now = system_clock::to_time_t(now);
-    tm          *ploctm;
+    char       buf[128];
+    const auto now   = system_clock::now();
+    time_t     t_now = system_clock::to_time_t(now);
+    tm*        ploctm;
 #ifdef SOLID_ON_WINDOWS
     ploctm = localtime(&t_now);
 #else
-    tm          loctm;
+    tm loctm;
     ploctm = localtime_r(&t_now, &loctm);
 #endif
     sprintf(
@@ -807,50 +892,57 @@ std::ostream& Debug::printTraceOut(
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
         //d.nv[_module],
         //Thread::currentId()
-    );
-    (*d.pos)<<buf;
+        );
+    (*d.pos) << buf;
     --d.trace_debth;
     d.pos->write(tabs, d.trace_debth);
 #ifdef SOLID_ON_WINDOWS
-    (*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<std::this_thread::get_id()<<']'<<' '<<'}'<<_fnc<<'(';
+    (*d.pos) << '[' << d.modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << '}' << _fnc << '(';
 #else
-    (*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<std::this_thread::get_id()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
+    (*d.pos) << '[' << d.modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << '}' << _fnc << '(';
 #endif
     return (*d.pos);
 }
 
-void Debug::done(){
-    (*d.pos)<<std::endl;
+void Debug::done()
+{
+    (*d.pos) << std::endl;
     SOLID_ASSERT(d.pos->good());
     d.m.unlock();
 }
 
-void Debug::doneTraceIn(){
-    (*d.pos)<<')'<<'{'<<std::endl;
+void Debug::doneTraceIn()
+{
+    (*d.pos) << ')' << '{' << std::endl;
     d.m.unlock();
 }
 
-void Debug::doneTraceOut(){
-    (*d.pos)<<')'<<std::endl;
+void Debug::doneTraceOut()
+{
+    (*d.pos) << ')' << std::endl;
     d.m.unlock();
 }
 
-bool Debug::isSet(Level _lvl, unsigned _v)const{
+bool Debug::isSet(Level _lvl, unsigned _v) const
+{
     return (d.lvlmsk & _lvl) && _v < d.bs.size() && d.bs[_v] && d.modvec[_v].lvlmsk & _lvl;
 }
-Debug::Debug():d(*(new Data)){
+Debug::Debug()
+    : d(*(new Data))
+{
     resetAllModuleBits();
     levelMask();
 }
 
-void splitPrefix(string &_path, string &_name, const char *_prefix){
-    const char *p = strrchr(_prefix, '/');
-    if(!p){
+void splitPrefix(string& _path, string& _name, const char* _prefix)
+{
+    const char* p = strrchr(_prefix, '/');
+    if (!p) {
         _name = _prefix;
-    }else{
+    } else {
         _path.assign(_prefix, (p - _prefix) + 1);
         _name = (p + 1);
     }
 }
 
-}//namespace solid
+} //namespace solid

@@ -8,78 +8,71 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#include "solid/utility/event.hpp"
-#include "solid/frame/aio/aioreactorcontext.hpp"
 #include "mpipclistener.hpp"
+#include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
+#include "solid/utility/event.hpp"
 
-namespace solid{
-namespace frame{
-namespace mpipc{
+namespace solid {
+namespace frame {
+namespace mpipc {
 
 Listener::Listener(
-    SocketDevice &_rsd
-):
-    sock(this->proxy(), std::move(_rsd)), timer(this->proxy())
+    SocketDevice& _rsd)
+    : sock(this->proxy(), std::move(_rsd))
+    , timer(this->proxy())
 {
     idbgx(Debug::mpipc, this);
 }
-Listener::~Listener(){
+Listener::~Listener()
+{
     idbgx(Debug::mpipc, this);
 }
 
-inline Service& Listener::service(frame::aio::ReactorContext &_rctx){
+inline Service& Listener::service(frame::aio::ReactorContext& _rctx)
+{
     return static_cast<Service&>(_rctx.service());
 }
 
-/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext &_rctx, Event &&_uevent){
-    idbgx(Debug::mpipc, "event = "<<_uevent);
-    if(
-        _uevent == generic_event_start or
-        _uevent == generic_event_timer
-    ){
+/*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _uevent)
+{
+    idbgx(Debug::mpipc, "event = " << _uevent);
+    if (
+        _uevent == generic_event_start or _uevent == generic_event_timer) {
         sock.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
-        );
-    }else if(_uevent == generic_event_kill){
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); });
+    } else if (_uevent == generic_event_kill) {
         postStop(_rctx);
     }
 }
 
-void Listener::onAccept(frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){
+void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
+{
     idbgx(Debug::mpipc, "");
-    unsigned    repeatcnt = 4;
+    unsigned repeatcnt = 4;
 
-    do{
-        if(!_rctx.error()){
+    do {
+        if (!_rctx.error()) {
             service(_rctx).acceptIncomingConnection(_rsd);
-        }else{
-            idbgx(Debug::mpipc, "listen error"<<_rctx.error().message());
+        } else {
+            idbgx(Debug::mpipc, "listen error" << _rctx.error().message());
             timer.waitFor(
                 _rctx, std::chrono::seconds(10),
-                [this](frame::aio::ReactorContext &_rctx){onEvent(_rctx, make_event(GenericEvents::Timer));}
-            );
+                [this](frame::aio::ReactorContext& _rctx) { onEvent(_rctx, make_event(GenericEvents::Timer)); });
             break;
         }
         --repeatcnt;
-    }while(
-        repeatcnt &&
-        sock.accept(
-            _rctx,
-            [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);},
-            _rsd
-        )
-    );
+    } while (
+        repeatcnt && sock.accept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
 
-    if(!repeatcnt){
+    if (!repeatcnt) {
         sock.postAccept(
             _rctx,
-            [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){onAccept(_rctx, _rsd);}
-        );//fully asynchronous call
+            [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }); //fully asynchronous call
     }
 }
 
-}//namespace mpipc
-}//namespace frame
-}//namespace solid
+} //namespace mpipc
+} //namespace frame
+} //namespace solid

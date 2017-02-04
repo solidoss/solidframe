@@ -12,11 +12,11 @@
 
 #include <cstdlib>
 
-#include "solid/system/convertors.hpp"
 #include "solid/system/cassert.hpp"
+#include "solid/system/convertors.hpp"
 #include "solid/system/debug.hpp"
 
-namespace solid{
+namespace solid {
 
 //! A simple and fast queue with interface similar to std::queue
 /*!
@@ -26,34 +26,53 @@ namespace solid{
     in memory (no reallocation is performed)
 */
 template <class T, size_t NBits = 5>
-class Queue{
-    enum{
+class Queue {
+    enum {
         NodeMask = BitsToMask(NBits),
         NodeSize = BitsToCount(NBits)
     };
-    struct Node{
-        Node(Node *_pnext = nullptr): next(_pnext){}
-        Node    *next;
-        char    data[NodeSize * sizeof(T)];
+    struct Node {
+        Node(Node* _pnext = nullptr)
+            : next(_pnext)
+        {
+        }
+        Node* next;
+        char  data[NodeSize * sizeof(T)];
     };
-public:
-    typedef T&          reference;
-    typedef T const&    const_reference;
 
 public:
-    Queue():sz(0), popsz(0), pb(nullptr), pf(nullptr), ptn(nullptr){}
-    Queue(Queue &&_rq):sz(_rq.sz), popsz(_rq.popsz), pb(_rq.pb), pf(_rq.pf), ptn(_rq.ptn){
-        _rq.sz = 0;
-        _rq.popsz = 0;
-        _rq.pb = nullptr;
-        _rq.pf = nullptr;
-        _rq.ptn = nullptr;
+    typedef T&       reference;
+    typedef T const& const_reference;
+
+public:
+    Queue()
+        : sz(0)
+        , popsz(0)
+        , pb(nullptr)
+        , pf(nullptr)
+        , ptn(nullptr)
+    {
     }
-    ~Queue(){
-        while(sz) pop();
-        Node *pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)): nullptr;
-        while(ptn){
-            Node *tn = ptn->next;
+    Queue(Queue&& _rq)
+        : sz(_rq.sz)
+        , popsz(_rq.popsz)
+        , pb(_rq.pb)
+        , pf(_rq.pf)
+        , ptn(_rq.ptn)
+    {
+        _rq.sz    = 0;
+        _rq.popsz = 0;
+        _rq.pb    = nullptr;
+        _rq.pf    = nullptr;
+        _rq.ptn   = nullptr;
+    }
+    ~Queue()
+    {
+        while (sz)
+            pop();
+        Node* pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)) : nullptr;
+        while (ptn) {
+            Node* tn = ptn->next;
             SOLID_ASSERT(ptn != pn);
             delete ptn;
             ptn = tn;
@@ -61,109 +80,131 @@ public:
         delete pn;
     }
 
-    Queue& operator=(Queue &&_rq){
-        sz = _rq.sz;
+    Queue& operator=(Queue&& _rq)
+    {
+        sz    = _rq.sz;
         popsz = _rq.popsz;
-        pb = _rq.pb;
-        pf = _rq.pf;
-        ptn = _rq.ptn;
+        pb    = _rq.pb;
+        pf    = _rq.pf;
+        ptn   = _rq.ptn;
 
-        _rq.sz = 0;
+        _rq.sz    = 0;
         _rq.popsz = 0;
-        _rq.pb = nullptr;
-        _rq.pf = nullptr;
-        _rq.ptn = nullptr;
+        _rq.pb    = nullptr;
+        _rq.pf    = nullptr;
+        _rq.ptn   = nullptr;
         return *this;
     }
 
-    bool empty()const   { return !sz;}
-    size_t size() const { return sz;}
+    bool   empty() const { return !sz; }
+    size_t size() const { return sz; }
 
-    void push(const T &_t){
-        if((sz + popsz) & NodeMask) ++pb;
-        else pb = pushNode(pb);
-
-        ++sz;
-        new(pb) T(_t);
-    }
-
-    void push(T &&_t){
-        if((sz + popsz) & NodeMask) ++pb;
-        else pb = pushNode(pb);
+    void push(const T& _t)
+    {
+        if ((sz + popsz) & NodeMask)
+            ++pb;
+        else
+            pb = pushNode(pb);
 
         ++sz;
-        new(pb) T(std::move(_t));
+        new (pb) T(_t);
     }
 
-    reference back(){
+    void push(T&& _t)
+    {
+        if ((sz + popsz) & NodeMask)
+            ++pb;
+        else
+            pb = pushNode(pb);
+
+        ++sz;
+        new (pb) T(std::move(_t));
+    }
+
+    reference back()
+    {
         return *pb;
     }
-    const_reference back()const{
+    const_reference back() const
+    {
         return *pb;
     }
 
-    void pop(){
+    void pop()
+    {
         pf->~T();
         --sz;
-        if((++popsz) & NodeMask) ++pf;
-        else{ pf = popNode(pf);popsz = 0;}
+        if ((++popsz) & NodeMask)
+            ++pf;
+        else {
+            pf    = popNode(pf);
+            popsz = 0;
+        }
     }
-    reference front(){
+    reference front()
+    {
         return *pf;
     }
-    const_reference front()const{
+    const_reference front() const
+    {
         return *pf;
     }
+
 private:
-    T* pushNode(void *_p){
-        Node *pn = _p ? (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*)): nullptr;
-        if(ptn){
-            Node *tn = ptn;
-            ptn = ptn->next;
+    T* pushNode(void* _p)
+    {
+        Node* pn = _p ? (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*)) : nullptr;
+        if (ptn) {
+            Node* tn = ptn;
+            ptn      = ptn->next;
             tn->next = nullptr;
-            if(pn){
+            if (pn) {
                 pn->next = tn;
                 return (T*)tn->data;
-            }else{
+            } else {
                 return (pf = (T*)tn->data);
             }
-        }else{
-            if(pn){
+        } else {
+            if (pn) {
                 pn->next = new Node;
-                pn = pn->next;
+                pn       = pn->next;
                 return (T*)pn->data;
-            }else{
+            } else {
                 pn = new Node;
                 return (pf = (T*)pn->data);
             }
         }
     }
-    T* popNode(void *_p){
+    T* popNode(void* _p)
+    {
         //SOLID_ASSERT(_p);
         SOLID_ASSERT(_p);
-        Node *pn = (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*));
-        Node *ppn = pn->next;
-        pn->next = ptn; ptn = pn;//cache the node
-        if(ppn){
+        Node* pn  = (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*));
+        Node* ppn = pn->next;
+        pn->next  = ptn;
+        ptn       = pn; //cache the node
+        if (ppn) {
             return (T*)(ppn->data);
-        }else{
+        } else {
             SOLID_ASSERT(!sz);
             pb = nullptr;
             //pf = nullptr;
             return nullptr;
         }
     }
+
 private:
     Queue(const Queue&);
     Queue& operator=(const Queue&);
+
 private:
-    size_t      sz;
-    size_t      popsz;
-    T           *pb;//back
-    T           *pf;//front
-    Node        *ptn;//empty nodes
+    size_t sz;
+    size_t popsz;
+    T*     pb; //back
+    T*     pf; //front
+    Node*  ptn; //empty nodes
 };
 
-}//namespace solid
+} //namespace solid
 
 #endif

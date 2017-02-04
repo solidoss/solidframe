@@ -13,8 +13,7 @@
 #include "solid/system/common.hpp"
 #include "solid/system/convertors.hpp"
 
-
-namespace solid{
+namespace solid {
 
 //! A container of shared objects
 /*!
@@ -36,7 +35,7 @@ namespace solid{
     so the template\<Obj\> MutualStore appeared.
 */
 template <class Obj>
-class MutualStore{
+class MutualStore {
 public:
     typedef Obj MutualObjectT;
     //!Constructor
@@ -47,149 +46,172 @@ public:
         \param _mutcolsbts The number of mutexes in a row as bitcount (real count 1<<bitcount)
     */
     MutualStore(
-        const bool _preload = false,
-        unsigned _objpermutbts = 6,
-        unsigned _mutrowsbts = 3,
-        unsigned _mutcolsbts = 3
-     ):
-        objpermutbts(_objpermutbts),
-        objpermutmsk(bitsToMask(_objpermutbts)),
-        mutrowsbts(_mutrowsbts),
-        mutrowsmsk(bitsToMask(_mutrowsbts)),
-        mutrowscnt(bitsToCount(_mutrowsbts)),
-        mutcolsmsk(bitsToMask(_mutcolsbts)),
-        mutcolscnt(bitsToCount(_mutcolsbts)),
-        objmat(new MutualObjectT*[mutrowscnt])
+        const bool _preload      = false,
+        unsigned   _objpermutbts = 6,
+        unsigned   _mutrowsbts   = 3,
+        unsigned   _mutcolsbts   = 3)
+        : objpermutbts(_objpermutbts)
+        , objpermutmsk(bitsToMask(_objpermutbts))
+        , mutrowsbts(_mutrowsbts)
+        , mutrowsmsk(bitsToMask(_mutrowsbts))
+        , mutrowscnt(bitsToCount(_mutrowsbts))
+        , mutcolsmsk(bitsToMask(_mutcolsbts))
+        , mutcolscnt(bitsToCount(_mutcolsbts))
+        , objmat(new MutualObjectT*[mutrowscnt])
     {
-        for(uint i = 0; i < mutrowscnt; ++i){
+        for (uint i = 0; i < mutrowscnt; ++i) {
             objmat[i] = _preload ? new MutualObjectT[mutcolscnt] : nullptr;
         }
     }
 
-    ~MutualStore(){
-        for(uint i(0); i < mutrowscnt; ++i){
-            delete []objmat[i];
+    ~MutualStore()
+    {
+        for (uint i(0); i < mutrowscnt; ++i) {
+            delete[] objmat[i];
         }
-        delete []objmat;
+        delete[] objmat;
     }
     //! Fast but unsafe get the mutex for a position
     /*!
         Use this after calling safeObject once for a certain position.
     */
-    inline MutualObjectT& at(const size_t i){
+    inline MutualObjectT& at(const size_t i)
+    {
         return doGetObject(i >> objpermutbts);
     }
-    inline MutualObjectT& at(const size_t i, const unsigned _objpermutbts){
+    inline MutualObjectT& at(const size_t i, const unsigned _objpermutbts)
+    {
         return doGetObject(i >> objpermutbts);
     }
-    inline MutualObjectT const& at(const size_t i)const{
+    inline MutualObjectT const& at(const size_t i) const
+    {
         return doGetObject(i >> objpermutbts);
     }
-    inline MutualObjectT const& at(const size_t i, const unsigned _objpermutbts)const{
+    inline MutualObjectT const& at(const size_t i, const unsigned _objpermutbts) const
+    {
         return doGetObject(i >> _objpermutbts);
     }
     //! Slower but safe get the mutex for a position
     /*!
         It will reallocate new mutexes if needed
     */
-    MutualObjectT& safeAt(const size_t i){
+    MutualObjectT& safeAt(const size_t i)
+    {
         const size_t mrow = getObjectRow(i);
-        if(!objmat[mrow]){
+        if (!objmat[mrow]) {
             objmat[mrow] = new MutualObjectT[mutcolscnt];
         }
         return at(i);
     }
-    MutualObjectT& safeAt(const size_t i, const unsigned _objpermutbts){
+    MutualObjectT& safeAt(const size_t i, const unsigned _objpermutbts)
+    {
         const size_t mrow = getObjectRow(i, _objpermutbts);
-        if(!objmat[mrow]){
+        if (!objmat[mrow]) {
             objmat[mrow] = new MutualObjectT[mutcolscnt];
         }
         return at(i);
     }
     //! Gets the mutex at pos i (the matrix is seen as a vector)
-    inline MutualObjectT& operator[](const size_t i){
+    inline MutualObjectT& operator[](const size_t i)
+    {
         return doGetObject(i);
     }
-    inline MutualObjectT const& operator[](const size_t i)const{
+    inline MutualObjectT const& operator[](const size_t i) const
+    {
         return doGetObject(i);
     }
     //! Will return true if i is the first index of a range sharing the same mutex
-    inline bool isRangeBegin(const size_t i)const{
+    inline bool isRangeBegin(const size_t i) const
+    {
         return !(i & objpermutmsk);
     }
-    inline bool isRangeBegin(const size_t i, const size_t _objpermutmsk)const{
+    inline bool isRangeBegin(const size_t i, const size_t _objpermutmsk) const
+    {
         return !(i & _objpermutmsk);
     }
     template <typename V>
-    void visit(const size_t _upto, V &_rv){
+    void visit(const size_t _upto, V& _rv)
+    {
         const size_t mutcnt = mutrowscnt * mutcolscnt;
-        const size_t cnt = _upto >> objpermutbts/* ? (_upto >> objpermutbts) + 1 : 0*/;
-        const size_t end = cnt > mutcnt ? mutcnt : cnt;
-        for(size_t i(0); i < end; ++i){
+        const size_t cnt    = _upto >> objpermutbts /* ? (_upto >> objpermutbts) + 1 : 0*/;
+        const size_t end    = cnt > mutcnt ? mutcnt : cnt;
+        for (size_t i(0); i < end; ++i) {
             _rv(doGetObject(i));
         }
     }
     template <typename V>
-    void visit(const size_t _upto, V &_rv)const{
+    void visit(const size_t _upto, V& _rv) const
+    {
         const size_t mutcnt = mutrowscnt * mutcolscnt;
-        const size_t cnt = _upto >> objpermutbts/* ? (_upto >> objpermutbts) + 1 : 0*/;
-        const size_t end = cnt > mutcnt ? mutcnt : cnt;
-        for(size_t i(0); i < end; ++i){
+        const size_t cnt    = _upto >> objpermutbts /* ? (_upto >> objpermutbts) + 1 : 0*/;
+        const size_t end    = cnt > mutcnt ? mutcnt : cnt;
+        for (size_t i(0); i < end; ++i) {
             _rv(doGetObject(i));
         }
     }
     template <typename V>
-    void visit(const size_t _upto, V &_rv, const unsigned _objpermutbts){
+    void visit(const size_t _upto, V& _rv, const unsigned _objpermutbts)
+    {
         const size_t mutcnt = mutrowscnt * mutcolscnt;
-        const size_t cnt = _upto >> _objpermutbts/* ? (_upto >> _objpermutbts) + 1 : 0*/;
-        const size_t end = cnt > mutcnt ? mutcnt : cnt;
-        for(size_t i(0); i < end; ++i){
-            _rv(doGetObject(i/*, _objpermutbts*/));
+        const size_t cnt    = _upto >> _objpermutbts /* ? (_upto >> _objpermutbts) + 1 : 0*/;
+        const size_t end    = cnt > mutcnt ? mutcnt : cnt;
+        for (size_t i(0); i < end; ++i) {
+            _rv(doGetObject(i /*, _objpermutbts*/));
         }
     }
     template <typename V>
-    void visit(const size_t _upto, V &_rv, const unsigned _objpermutbts)const{
+    void visit(const size_t _upto, V& _rv, const unsigned _objpermutbts) const
+    {
         const size_t mutcnt = mutrowscnt * mutcolscnt;
-        const size_t cnt = _upto >> _objpermutbts/* ? (_upto >> _objpermutbts) + 1 : 0*/;
-        const size_t end = cnt > mutcnt ? mutcnt : cnt;
-        for(size_t i(0); i < end; ++i){
-            _rv(doGetObject(i/*, _objpermutbts*/));
+        const size_t cnt    = _upto >> _objpermutbts /* ? (_upto >> _objpermutbts) + 1 : 0*/;
+        const size_t end    = cnt > mutcnt ? mutcnt : cnt;
+        for (size_t i(0); i < end; ++i) {
+            _rv(doGetObject(i /*, _objpermutbts*/));
         }
     }
-    size_t rowRangeSize()const{
+    size_t rowRangeSize() const
+    {
         return mutcolscnt * bitsToCount(objpermutbts);
     }
+
 private:
-    inline MutualObjectT& doGetObject(const size_t i){
+    inline MutualObjectT& doGetObject(const size_t i)
+    {
         return objmat[(i >> mutrowsbts) & mutrowsmsk][i & mutcolsmsk];
     }
-    inline const MutualObjectT& doGetObject(const size_t i)const{
+    inline const MutualObjectT& doGetObject(const size_t i) const
+    {
         return objmat[(i >> mutrowsbts) & mutrowsmsk][i & mutcolsmsk];
     }
-    inline size_t getObjectRow(const size_t i){
+    inline size_t getObjectRow(const size_t i)
+    {
         return ((i >> objpermutbts) >> mutrowsbts) & mutrowsmsk;
     }
-    inline size_t getObjectRow(const size_t i)const{
+    inline size_t getObjectRow(const size_t i) const
+    {
         return ((i >> objpermutbts) >> mutrowsbts) & mutrowsmsk;
     }
 
-    inline size_t getObjectRow(const size_t i, const unsigned _objpermutbts){
+    inline size_t getObjectRow(const size_t i, const unsigned _objpermutbts)
+    {
         return ((i >> _objpermutbts) >> mutrowsbts) & mutrowsmsk;
     }
-    inline size_t getObjectRow(const size_t i, const unsigned _objpermutbts)const{
+    inline size_t getObjectRow(const size_t i, const unsigned _objpermutbts) const
+    {
         return ((i >> _objpermutbts) >> mutrowsbts) & mutrowsmsk;
     }
+
 private:
-    const unsigned      objpermutbts;//objects per mutex mask
-    const size_t        objpermutmsk;//objects per mutex count
-    const unsigned      mutrowsbts;//mutex rows bits
-    const size_t        mutrowsmsk;//mutex rows mask
-    const size_t        mutrowscnt;//mutex rows count
-    const size_t        mutcolsmsk;//mutex columns mask
-    const size_t        mutcolscnt;//mutex columns count
-    MutualObjectT       **objmat;
+    const unsigned  objpermutbts; //objects per mutex mask
+    const size_t    objpermutmsk; //objects per mutex count
+    const unsigned  mutrowsbts; //mutex rows bits
+    const size_t    mutrowsmsk; //mutex rows mask
+    const size_t    mutrowscnt; //mutex rows count
+    const size_t    mutcolsmsk; //mutex columns mask
+    const size_t    mutcolscnt; //mutex columns count
+    MutualObjectT** objmat;
 };
 
-}//namespace solid
+} //namespace solid
 
 #endif

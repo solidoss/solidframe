@@ -12,61 +12,69 @@
 
 #include "solid/frame/common.hpp"
 #include "solid/frame/manager.hpp"
-#include <mutex>
-#include "solid/utility/dynamictype.hpp"
-#include <vector>
 #include "solid/frame/schedulerbase.hpp"
+#include "solid/utility/dynamictype.hpp"
 #include <atomic>
+#include <mutex>
+#include <vector>
 
-namespace solid{
+namespace solid {
 struct Event;
-namespace frame{
+namespace frame {
 
-class   ObjectBase;
+class ObjectBase;
 
 class Service;
 
 template <class S = Service>
 class ServiceShell;
 
-struct UseServiceShell{
-    Manager &rmanager;
+struct UseServiceShell {
+    Manager& rmanager;
 
-    UseServiceShell() = delete;
+    UseServiceShell()        = delete;
     UseServiceShell& operator=(const UseServiceShell&) = delete;
     UseServiceShell& operator=(UseServiceShell&&) = delete;
 
-    UseServiceShell(UseServiceShell &&_uss): rmanager(_uss.rmanager){}
-    UseServiceShell(const UseServiceShell &_uss): rmanager(_uss.rmanager){}
+    UseServiceShell(UseServiceShell&& _uss)
+        : rmanager(_uss.rmanager)
+    {
+    }
+    UseServiceShell(const UseServiceShell& _uss)
+        : rmanager(_uss.rmanager)
+    {
+    }
 
 private:
     template <class S>
     friend class ServiceShell;
 
-    explicit UseServiceShell(Manager &_rmanager):rmanager(_rmanager){}
+    explicit UseServiceShell(Manager& _rmanager)
+        : rmanager(_rmanager)
+    {
+    }
 };
 
-class Service{
+class Service {
 protected:
     explicit Service(
-        UseServiceShell _force_shell
-    );
-public:
+        UseServiceShell _force_shell);
 
-    Service(const Service &) = delete;
-    Service(Service&&) = delete;
+public:
+    Service(const Service&) = delete;
+    Service(Service&&)      = delete;
     Service& operator=(const Service&) = delete;
     Service& operator=(Service&&) = delete;
 
     virtual ~Service();
 
-    bool isRegistered()const;
+    bool isRegistered() const;
 
-
-    void notifyAll(Event const &_e, const size_t _sigmsk = 0);
+    void notifyAll(Event const& _e, const size_t _sigmsk = 0);
 
     template <class F>
-    bool forEach(F &_rf){
+    bool forEach(F& _rf)
+    {
         return rm.forEachServiceObject(*this, _rf);
     }
 
@@ -76,43 +84,47 @@ public:
 
     Manager& manager();
 
-    std::mutex& mutex(const ObjectBase &_robj)const;
+    std::mutex& mutex(const ObjectBase& _robj) const;
 
-    bool isRunning()const;
-
+    bool isRunning() const;
 
 protected:
-    std::mutex& mutex()const;
+    std::mutex& mutex() const;
+
 private:
     friend class Manager;
     friend class SchedulerBase;
 
-    void setRunning(){
+    void setRunning()
+    {
         running = true;
     }
 
-    void resetRunning(){
+    void resetRunning()
+    {
         running = false;
     }
 
-    ObjectIdT registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr);
-private:
+    ObjectIdT registerObject(ObjectBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr);
 
-    Manager                     &rm;
-    std::atomic<size_t>         idx;
-    std::atomic<bool>           running;
+private:
+    Manager&            rm;
+    std::atomic<size_t> idx;
+    std::atomic<bool>   running;
 };
 
-inline Manager& Service::manager(){
+inline Manager& Service::manager()
+{
     return rm;
 }
-inline bool Service::isRegistered()const{
+inline bool Service::isRegistered() const
+{
     return idx.load(/*std::memory_order_seq_cst*/) != InvalidIndex();
 }
-inline bool Service::isRunning()const{
+inline bool Service::isRunning() const
+{
     return running;
 }
-
 
 //! A Shell class for every Service
 /*!
@@ -130,22 +142,23 @@ inline bool Service::isRunning()const{
  * a ServiceShell.
  */
 template <class S>
-class ServiceShell final: public S{
+class ServiceShell final : public S {
 public:
-    template <typename ...Args>
-    explicit ServiceShell(Manager &_rm, Args&&..._args):S(UseServiceShell(_rm), std::forward<Args>(_args)...){
-
+    template <typename... Args>
+    explicit ServiceShell(Manager& _rm, Args&&... _args)
+        : S(UseServiceShell(_rm), std::forward<Args>(_args)...)
+    {
     }
 
-    ~ServiceShell(){
+    ~ServiceShell()
+    {
         Service::stop(true);
     }
-
 };
 
 using ServiceT = ServiceShell<>;
 
-}//namespace frame
-}//namespace solid
+} //namespace frame
+} //namespace solid
 
 #endif

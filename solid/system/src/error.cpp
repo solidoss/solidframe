@@ -11,9 +11,10 @@
 #include "solid/system/error.hpp"
 #include <sstream>
 
-namespace solid{
+namespace solid {
 
-ErrorCodeT last_system_error(){
+ErrorCodeT last_system_error()
+{
 #ifdef SOLID_ON_WINDOWS
     const DWORD err = GetLastError();
     return ErrorCodeT(err, std::system_category());
@@ -22,55 +23,55 @@ ErrorCodeT last_system_error(){
 #endif
 }
 
-namespace{
-enum{
+namespace {
+enum {
     ErrorNotImplementedE = 1,
     ErrorSystemE,
     ErrorThreadStartedE
 };
 
-class ErrorCategory: public ErrorCategoryT
-{
+class ErrorCategory : public ErrorCategoryT {
 public:
-    ErrorCategory(){}
-    const char* name() const noexcept{
+    ErrorCategory() {}
+    const char* name() const noexcept
+    {
         return "solid";
     }
-    std::string message(int _ev)const;
+    std::string message(int _ev) const;
 };
 
 const ErrorCategory category;
 
-
-std::string ErrorCategory::message(int _ev) const{
+std::string ErrorCategory::message(int _ev) const
+{
     std::ostringstream oss;
 
-    oss<<"("<<name()<<":"<<_ev<<"): ";
+    oss << "(" << name() << ":" << _ev << "): ";
 
-    switch(_ev){
-        case 0:
-            oss<<"Success";
-            break;
-        case ErrorNotImplementedE:
-            oss<<"Functionality not implemented";
-            break;
-        case ErrorSystemE:
-            oss<<"System";
-            break;
-        case ErrorThreadStartedE:
-            oss<<"Thread started";
-            break;
-        default:
-            oss<<"Unknown";
-            break;
+    switch (_ev) {
+    case 0:
+        oss << "Success";
+        break;
+    case ErrorNotImplementedE:
+        oss << "Functionality not implemented";
+        break;
+    case ErrorSystemE:
+        oss << "System";
+        break;
+    case ErrorThreadStartedE:
+        oss << "Thread started";
+        break;
+    default:
+        oss << "Unknown";
+        break;
     }
     return oss.str();
 }
 
-}//namespace
+} //namespace
 
-/*extern*/ const ErrorCodeT     error_not_implemented(ErrorNotImplementedE, category);
-/*extern*/ const ErrorCodeT     error_system(ErrorSystemE, category);
-/*extern*/ const ErrorCodeT     error_thread_started(ErrorThreadStartedE, category);
+/*extern*/ const ErrorCodeT error_not_implemented(ErrorNotImplementedE, category);
+/*extern*/ const ErrorCodeT error_system(ErrorSystemE, category);
+/*extern*/ const ErrorCodeT error_thread_started(ErrorThreadStartedE, category);
 
-}//namespace solid
+} //namespace solid

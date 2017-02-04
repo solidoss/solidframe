@@ -12,9 +12,9 @@
 
 #include "solid/system/error.hpp"
 
-namespace solid{
-namespace frame{
-namespace mpipc{
+namespace solid {
+namespace frame {
+namespace mpipc {
 
 extern const ErrorConditionT error_connection_inactivity_timeout;
 extern const ErrorConditionT error_connection_too_many_keepalive_packets_received;
@@ -57,9 +57,8 @@ extern const ErrorConditionT error_service_unknown_message;
 extern const ErrorConditionT error_compression_unavailable;
 extern const ErrorConditionT error_compression_engine;
 
-
-}//namespace mpipc
-}//namespace frame
-}//namespace solid
+} //namespace mpipc
+} //namespace frame
+} //namespace solid
 
 #endif

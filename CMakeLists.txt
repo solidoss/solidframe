@@ -463,4 +463,5 @@ if(NOT ON_CROSS)
     add_subdirectory (tutorials)
 endif()
 
+include(cmake/clang-format.cmake)
 

@@ -1,13 +1,13 @@
-#include "solid/utility/innerlist.hpp"
-#include <vector>
 #include "solid/system/cassert.hpp"
+#include "solid/utility/innerlist.hpp"
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
 using namespace solid;
 
-enum{
+enum {
     InnerListOrder = 0,
     InnerListPending,
     InnerListSending,
@@ -16,25 +16,29 @@ enum{
     InnerListCount //do not change
 };
 
-enum{
+enum {
     InnerLinkOrder = 0,
     InnerLinkStatus,
 
     InnerLinkCount
 };
 
-struct Node: InnerNode<InnerLinkCount>{
-    Node(const std::string &_rstr):str(_rstr){}
+struct Node : InnerNode<InnerLinkCount> {
+    Node(const std::string& _rstr)
+        : str(_rstr)
+    {
+    }
     std::string str;
 };
 
-typedef std::vector<Node>   NodeVectorT;
+typedef std::vector<Node> NodeVectorT;
 
-typedef InnerList<NodeVectorT, InnerLinkOrder>      InnerOrderListT;
+typedef InnerList<NodeVectorT, InnerLinkOrder> InnerOrderListT;
 
-int test_innerlist(int argc, char *argv[]){
-    NodeVectorT         node_vec;
-    InnerOrderListT     order_list(node_vec);
+int test_innerlist(int argc, char* argv[])
+{
+    NodeVectorT     node_vec;
+    InnerOrderListT order_list(node_vec);
 
     SOLID_ASSERT(order_list.empty());
 
@@ -55,30 +59,28 @@ int test_innerlist(int argc, char *argv[]){
     order_list.pushBack(0);
     SOLID_ASSERT(order_list.size() == 5);
 
-    cout<<"order_list("<<order_list.size()<<"): ";
+    cout << "order_list(" << order_list.size() << "): ";
 
-    auto visit_fnc = [](const size_t _index, Node const &_rnode){cout<<_rnode.str<<' ';};
+    auto visit_fnc = [](const size_t _index, Node const& _rnode) { cout << _rnode.str << ' '; };
 
     order_list.forEach(visit_fnc);
-    cout<<endl;
+    cout << endl;
 
-    cout<<"front = "<<order_list.front().str<<endl;
+    cout << "front = " << order_list.front().str << endl;
 
     order_list.erase(3);
     SOLID_ASSERT(order_list.size() == 4);
 
-    cout<<"after erase(3) order_list("<<order_list.size()<<"): ";
+    cout << "after erase(3) order_list(" << order_list.size() << "): ";
     order_list.forEach(visit_fnc);
-    cout<<endl;
-
+    cout << endl;
 
     order_list.popFront();
     SOLID_ASSERT(order_list.size() == 3);
 
-
-    cout<<"after popFront order_list("<<order_list.size()<<"): ";
+    cout << "after popFront order_list(" << order_list.size() << "): ";
     order_list.forEach(visit_fnc);
-    cout<<endl;
+    cout << endl;
 
     return 0;
 }

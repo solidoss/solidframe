@@ -1,6 +1,6 @@
 #include "solid/serialization/binary.hpp"
-#include <memory>
 #include <map>
+#include <memory>
 #include <vector>
 
 using namespace solid;
@@ -9,35 +9,38 @@ using namespace std;
 struct Test;
 using TestPointerT = shared_ptr<Test>;
 
-struct Test{
+struct Test {
     using KeyValueVectorT = std::vector<std::pair<std::string, std::string>>;
-    using MapT = std::map<std::string, uint64_t>;
+    using MapT            = std::map<std::string, uint64_t>;
 
-    std::string         str;
-    KeyValueVectorT     kv_vec;
-    MapT                kv_map;
-    uint32_t            v32;
+    std::string     str;
+    KeyValueVectorT kv_vec;
+    MapT            kv_map;
+    uint32_t        v32;
 
     template <class S>
-    void solidSerialize(S &_s){
+    void solidSerialize(S& _s)
+    {
         _s.push(str, "Test::str");
         _s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");
         _s.pushCross(v32, "Test::v32");
     }
 
     void init();
-    void check()const;
+    void check() const;
 
-    static TestPointerT create(){
+    static TestPointerT create()
+    {
         return make_shared<Test>();
     }
 };
 
-using SerializerT       = serialization::binary::Serializer<void>;
-using DeserializerT     = serialization::binary::Deserializer<void>;
-using TypeIdMapT        = serialization::TypeIdMap<SerializerT, DeserializerT>;
+using SerializerT   = serialization::binary::Serializer<void>;
+using DeserializerT = serialization::binary::Deserializer<void>;
+using TypeIdMapT    = serialization::TypeIdMap<SerializerT, DeserializerT>;
 
-int test_binary(int argc, char* argv[]){
+int test_binary(int argc, char* argv[])
+{
 
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("view");
@@ -45,31 +48,31 @@ int test_binary(int argc, char* argv[]){
     Debug::the().initStdErr(false, nullptr);
 #endif
 
-    string      test_data;
-    TypeIdMapT  typemap;
+    string     test_data;
+    TypeIdMapT typemap;
 
-    typemap.registerType<Test>(0/*protocol ID*/);
+    typemap.registerType<Test>(0 /*protocol ID*/);
 
-    {//serialization
-        SerializerT         ser(&typemap);
-        const int           bufcp = 64;
-        char                buf[bufcp];
-        int                 rv;
+    { //serialization
+        SerializerT ser(&typemap);
+        const int   bufcp = 64;
+        char        buf[bufcp];
+        int         rv;
 
-        shared_ptr<Test>    test = Test::create();
+        shared_ptr<Test> test = Test::create();
 
         test->init();
 
         ser.push(test, "test");
 
-        while((rv = ser.run(buf, bufcp)) > 0){
+        while ((rv = ser.run(buf, bufcp)) > 0) {
             test_data.append(buf, rv);
         }
     }
-    {//deserialization
-        DeserializerT   des(&typemap);
+    { //deserialization
+        DeserializerT des(&typemap);
 
-        shared_ptr<Test>    test;
+        shared_ptr<Test> test;
 
         des.push(test, "test");
 
@@ -81,8 +84,8 @@ int test_binary(int argc, char* argv[]){
     return 0;
 }
 
-namespace{
-const pair<string, string>  kv_array[] = {
+namespace {
+const pair<string, string> kv_array[] = {
     {"first_key", "first_value"},
     {"second_key", "secon_value"},
     {"third_key", "third_value"},
@@ -95,14 +98,15 @@ const pair<string, string>  kv_array[] = {
     {"tenth_key", "tenth_value"},
 };
 
-const size_t kv_array_size = sizeof(kv_array)/sizeof(pair<string, string>);
+const size_t kv_array_size = sizeof(kv_array) / sizeof(pair<string, string>);
 
-}//namespace
+} //namespace
 
-void Test::init(){
+void Test::init()
+{
     kv_vec.reserve(kv_array_size);
 
-    for(size_t i = 0; i < kv_array_size; ++i){
+    for (size_t i = 0; i < kv_array_size; ++i) {
         str.append(kv_array[i].first);
         str.append(kv_array[i].second);
         kv_vec.push_back(kv_array[i]);
@@ -112,11 +116,12 @@ void Test::init(){
     check();
 }
 
-void Test::check()const{
-    idbg("str = "<<str);
+void Test::check() const
+{
+    idbg("str = " << str);
     SOLID_CHECK(kv_vec.size() == kv_map.size());
     string tmpstr;
-    for(size_t i = 0; i < kv_vec.size(); ++i){
+    for (size_t i = 0; i < kv_vec.size(); ++i) {
         tmpstr.append(kv_array[i].first);
         tmpstr.append(kv_array[i].second);
         SOLID_CHECK(kv_vec[i] == kv_array[i]);
@@ -127,4 +132,3 @@ void Test::check()const{
     SOLID_CHECK(tmpstr == str);
     SOLID_CHECK(str.size() == v32);
 }
-

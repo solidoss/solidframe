@@ -1,9 +1,9 @@
 #ifndef __SOLID_RECORD_HPP_INCLUDED__
 #define __SOLID_RECORD_HPP_INCLUDED__
 
-#include <vector>
-#include <string>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include <stdint.h>
 
@@ -16,39 +16,37 @@ typedef std::vector<std::string> Strings;
 
 class Record {
 public:
-
     Integers ids;
     Strings  strings;
 
-    bool operator==(const Record &other) {
+    bool operator==(const Record& other)
+    {
         return (ids == other.ids && strings == other.strings);
     }
 
-    bool operator!=(const Record &other) {
+    bool operator!=(const Record& other)
+    {
         return !(*this == other);
     }
 
     template <class S>
-    void solidSerialize(S &_s){
+    void solidSerialize(S& _s)
+    {
         _s.pushContainer(ids, "Record::ids");
         _s.pushContainer(strings, "Record::strings");
     }
 };
 
+using SerializerT   = solid::serialization::binary::Serializer<void>;
+using DeserializerT = solid::serialization::binary::Deserializer<void>;
+using TypeIdMapT    = solid::serialization::TypeIdMap<SerializerT, DeserializerT>;
 
-using SerializerT       = solid::serialization::binary::Serializer<void>;
-using DeserializerT     = solid::serialization::binary::Deserializer<void>;
-using TypeIdMapT        = solid::serialization::TypeIdMap<SerializerT, DeserializerT>;
+void to_string(Record& record, std::string& data);
+void from_string(Record& record, const std::string& data);
 
-void to_string(Record &record, std::string &data);
-void from_string(Record &record, const std::string &data);
-
-
-void to_string(SerializerT &_rs, Record &record, std::string &data);
-void from_string(DeserializerT &_rd, Record &record, const std::string &data);
-
+void to_string(SerializerT& _rs, Record& record, std::string& data);
+void from_string(DeserializerT& _rd, Record& record, const std::string& data);
 
 } // namespace
 
 #endif
-

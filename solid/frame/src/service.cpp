@@ -7,64 +7,72 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#include <deque>
-#include <vector>
 #include <algorithm>
 #include <cstring>
+#include <deque>
+#include <vector>
 
 #include "solid/system/debug.hpp"
-#include <condition_variable>
 #include "solid/system/exception.hpp"
+#include <condition_variable>
 
 #include "solid/system/mutualstore.hpp"
 #include "solid/utility/queue.hpp"
 #include "solid/utility/stack.hpp"
 
-#include "solid/frame/manager.hpp"
-#include "solid/frame/service.hpp"
-#include "solid/frame/object.hpp"
 #include "solid/frame/common.hpp"
+#include "solid/frame/manager.hpp"
+#include "solid/frame/object.hpp"
+#include "solid/frame/service.hpp"
 
-namespace solid{
-namespace frame{
+namespace solid {
+namespace frame {
 
 Service::Service(
-    UseServiceShell _force_shell
-):rm(_force_shell.rmanager), idx(static_cast<size_t>(InvalidIndex())), running(false){
+    UseServiceShell _force_shell)
+    : rm(_force_shell.rmanager)
+    , idx(static_cast<size_t>(InvalidIndex()))
+    , running(false)
+{
     rm.registerService(*this);
-    vdbgx(Debug::frame, ""<<this);
+    vdbgx(Debug::frame, "" << this);
 }
 
-Service::~Service(){
-    vdbgx(Debug::frame, ""<<this);
+Service::~Service()
+{
+    vdbgx(Debug::frame, "" << this);
     stop(true);
     rm.unregisterService(*this);
-    vdbgx(Debug::frame, ""<<this);
+    vdbgx(Debug::frame, "" << this);
 }
 
-void Service::notifyAll(Event const & _revt, const size_t _sigmsk/* = 0*/){
+void Service::notifyAll(Event const& _revt, const size_t _sigmsk /* = 0*/)
+{
     rm.notifyAll(*this, _revt, _sigmsk);
 }
 
-
-bool Service::start(){
+bool Service::start()
+{
     return rm.startService(*this);
 }
 
-void Service::stop(const bool _wait){
+void Service::stop(const bool _wait)
+{
     rm.stopService(*this, _wait);
 }
 
-std::mutex& Service::mutex(const ObjectBase &_robj)const{
+std::mutex& Service::mutex(const ObjectBase& _robj) const
+{
     return rm.mutex(_robj);
 }
 
-std::mutex& Service::mutex()const{
+std::mutex& Service::mutex() const
+{
     return rm.mutex(*this);
 }
 
-
-ObjectIdT Service::registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleFunctionT &_rfct, ErrorConditionT &_rerr){
+ObjectIdT Service::registerObject(ObjectBase& _robj, ReactorBase& _rr, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
+{
     return rm.registerObject(*this, _robj, _rr, _rfct, _rerr);
 }
 
@@ -73,7 +81,5 @@ ObjectIdT Service::registerObject(ObjectBase &_robj, ReactorBase &_rr, ScheduleF
 //  rm.doWaitStopService(svcidx, _rlock, true);
 // }
 
-}//namespace frame
-}//namespace solid
-
-
+} //namespace frame
+} //namespace solid

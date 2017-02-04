@@ -2,24 +2,23 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
-#include "solid/frame/aio/aioreactor.hpp"
-#include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aiolistener.hpp"
-#include "solid/frame/aio/aiotimer.hpp"
+#include "solid/frame/aio/aioobject.hpp"
+#include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioresolver.hpp"
+#include "solid/frame/aio/aiotimer.hpp"
 
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
-#include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
-
+#include <condition_variable>
 #include <mutex>
 #include <thread>
-#include <condition_variable>
 
 #include "solid/system/exception.hpp"
 
@@ -30,14 +29,14 @@
 using namespace std;
 using namespace solid;
 
-typedef frame::Scheduler<frame::aio::Reactor>   AioSchedulerT;
-typedef frame::aio::openssl::Context            SecureContextT;
+typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
+typedef frame::aio::openssl::Context          SecureContextT;
 
-namespace{
+namespace {
 
-struct InitStub{
-    size_t      size;
-    ulong       flags;
+struct InitStub {
+    size_t size;
+    ulong  flags;
 };
 
 InitStub initarray[] = {
@@ -55,156 +54,160 @@ InitStub initarray[] = {
     {2048000, 0},
     {4096000, 0},
     {8192000, 0},
-    {16384000, 0}
-};
+    {16384000, 0}};
 
-std::string                     pattern;
-const size_t                    initarraysize = sizeof(initarray)/sizeof(InitStub);
+std::string  pattern;
+const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
-std::atomic<size_t>             crtwriteidx(0);
-std::atomic<size_t>             crtreadidx(0);
-std::atomic<size_t>             crtbackidx(0);
-std::atomic<size_t>             crtackidx(0);
-std::atomic<size_t>             writecount(0);
+std::atomic<size_t> crtwriteidx(0);
+std::atomic<size_t> crtreadidx(0);
+std::atomic<size_t> crtbackidx(0);
+std::atomic<size_t> crtackidx(0);
+std::atomic<size_t> writecount(0);
 
-size_t                          connection_count(0);
+size_t connection_count(0);
 
-bool                            running = true;
-mutex                           mtx;
-condition_variable              cnd;
-frame::mpipc::Service               *pmpipcclient = nullptr;
-std::atomic<uint64_t>           transfered_size(0);
-std::atomic<size_t>             transfered_count(0);
+bool                   running = true;
+mutex                  mtx;
+condition_variable     cnd;
+frame::mpipc::Service* pmpipcclient = nullptr;
+std::atomic<uint64_t>  transfered_size(0);
+std::atomic<size_t>    transfered_count(0);
 
-
-size_t real_size(size_t _sz){
+size_t real_size(size_t _sz)
+{
     //offset + (align - (offset mod align)) mod align
     return _sz + ((sizeof(uint64_t) - (_sz % sizeof(uint64_t))) % sizeof(uint64_t));
 }
 
-struct Message: frame::mpipc::Message{
-    uint32_t                            idx;
-    std::string                     str;
-    bool                            serialized;
+struct Message : frame::mpipc::Message {
+    uint32_t    idx;
+    std::string str;
+    bool        serialized;
 
-    Message(uint32_t _idx):idx(_idx), serialized(false){
-        idbg("CREATE ---------------- "<<(void*)this<<" idx = "<<idx);
+    Message(uint32_t _idx)
+        : idx(_idx)
+        , serialized(false)
+    {
+        idbg("CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
-
     }
-    Message(): serialized(false){
-        idbg("CREATE ---------------- "<<(void*)this);
+    Message()
+        : serialized(false)
+    {
+        idbg("CREATE ---------------- " << (void*)this);
     }
-    ~Message(){
-        idbg("DELETE ---------------- "<<(void*)this);
+    ~Message()
+    {
+        idbg("DELETE ---------------- " << (void*)this);
         SOLID_ASSERT(serialized or this->isBackOnSender() or (idx == 1));
     }
 
     template <class S>
-    void solidSerialize(S &_s, frame::mpipc::ConnectionContext &_rctx){
+    void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
+    {
         _s.push(str, "str");
         _s.push(idx, "idx");
 
-        if(S::IsSerializer){
+        if (S::IsSerializer) {
             serialized = true;
         }
     }
 
-    void init(){
-        const size_t    sz = real_size(initarray[idx % initarraysize].size);
+    void init()
+    {
+        const size_t sz = real_size(initarray[idx % initarraysize].size);
         str.resize(sz);
-        const size_t    count = sz / sizeof(uint64_t);
-        uint64_t            *pu  = reinterpret_cast<uint64_t*>(const_cast<char*>(str.data()));
-        const uint64_t  *pup = reinterpret_cast<const uint64_t*>(pattern.data());
+        const size_t    count        = sz / sizeof(uint64_t);
+        uint64_t*       pu           = reinterpret_cast<uint64_t*>(const_cast<char*>(str.data()));
+        const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
-        for(uint64_t i = 0; i < count; ++i){
-            pu[i] = pup[(idx + i) % pattern_size];//pattern[i % pattern.size()];
+        for (uint64_t i = 0; i < count; ++i) {
+            pu[i] = pup[(idx + i) % pattern_size]; //pattern[i % pattern.size()];
         }
     }
 
-    bool check()const{
-        const size_t    sz = real_size(initarray[idx % initarraysize].size);
-        idbg("str.size = "<<str.size()<<" should be equal to "<<sz);
-        if(sz != str.size()){
+    bool check() const
+    {
+        const size_t sz = real_size(initarray[idx % initarraysize].size);
+        idbg("str.size = " << str.size() << " should be equal to " << sz);
+        if (sz != str.size()) {
             return false;
         }
         //return true;
-        const size_t    count = sz / sizeof(uint64_t);
-        const uint64_t  *pu = reinterpret_cast<const uint64_t*>(str.data());
-        const uint64_t  *pup = reinterpret_cast<const uint64_t*>(pattern.data());
+        const size_t    count        = sz / sizeof(uint64_t);
+        const uint64_t* pu           = reinterpret_cast<const uint64_t*>(str.data());
+        const uint64_t* pup          = reinterpret_cast<const uint64_t*>(pattern.data());
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
 
-        for(uint64_t i = 0; i < count; ++i){
-            if(pu[i] != pup[(i + idx) % pattern_size]){
+        for (uint64_t i = 0; i < count; ++i) {
+            if (pu[i] != pup[(i + idx) % pattern_size]) {
                 SOLID_THROW("Message check failed.");
                 return false;
             }
         }
         return true;
     }
-
 };
 
-void client_connection_stop(frame::mpipc::ConnectionContext &_rctx){
-    idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
-    if(!running){
+void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
+{
+    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
+    if (!running) {
         ++connection_count;
     }
 }
 
-void client_connection_start(frame::mpipc::ConnectionContext &_rctx){
+void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
+{
     idbg(_rctx.recipientId());
 }
 
-void server_connection_stop(frame::mpipc::ConnectionContext &_rctx){
-    idbg(_rctx.recipientId()<<" error: "<<_rctx.error().message());
+void server_connection_stop(frame::mpipc::ConnectionContext& _rctx)
+{
+    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
-void server_connection_start(frame::mpipc::ConnectionContext &_rctx){
+void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
+{
     idbg(_rctx.recipientId());
 }
-
 
 void client_complete_message(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<Message> &_rsent_msg_ptr, std::shared_ptr<Message> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    ErrorConditionT const& _rerror)
+{
     idbg(_rctx.recipientId());
 
-    if(_rsent_msg_ptr.get()){
-        if(!_rerror){
+    if (_rsent_msg_ptr.get()) {
+        if (!_rerror) {
             ++crtackidx;
-        }else{
+        } else {
             //it should be the one shot message
             SOLID_CHECK(
-                _rerror == frame::mpipc::error_message_connection and
-                (
-                    (_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError())
-                    or
-                    (_rctx.error() and _rctx.systemError())
-                )
-            );
+                _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError())
+                                                                          or (_rctx.error() and _rctx.systemError())));
             SOLID_CHECK(_rsent_msg_ptr->idx == 1);
             SOLID_CHECK(not _rrecv_msg_ptr);
         }
     }
-    if(_rrecv_msg_ptr){
-        if(not _rrecv_msg_ptr->check()){
+    if (_rrecv_msg_ptr) {
+        if (not _rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
 
-        if(_rrecv_msg_ptr->idx == 2){
+        if (_rrecv_msg_ptr->idx == 2) {
             //only the third (idx == 2) message expects response
             SOLID_CHECK(_rsent_msg_ptr.get());
             SOLID_CHECK(_rsent_msg_ptr->idx == _rrecv_msg_ptr->idx);
         }
 
-        if(_rrecv_msg_ptr->idx == 0){
+        if (_rrecv_msg_ptr->idx == 0) {
             //the first message does not expect response
             SOLID_CHECK(not _rsent_msg_ptr);
-        }else{
-            if(!_rrecv_msg_ptr->isBackOnSender()){
+        } else {
+            if (!_rrecv_msg_ptr->isBackOnSender()) {
                 SOLID_THROW("Message not back on sender!.");
             }
         }
@@ -215,7 +218,7 @@ void client_complete_message(
 
         ++crtbackidx;
 
-        if(crtbackidx == writecount){
+        if (crtbackidx == writecount) {
             unique_lock<mutex> lock(mtx);
             running = false;
             cnd.notify_one();
@@ -224,199 +227,193 @@ void client_complete_message(
 }
 
 void server_complete_message(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<Message> &_rsent_msg_ptr, std::shared_ptr<Message> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
-    if(_rrecv_msg_ptr.get()){
-        idbg(_rctx.recipientId()<<" received message with id on sender "<<_rrecv_msg_ptr->requestId());
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    ErrorConditionT const& _rerror)
+{
+    if (_rrecv_msg_ptr.get()) {
+        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->requestId());
 
-        if(not _rrecv_msg_ptr->check()){
+        if (not _rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
 
-        if(!_rrecv_msg_ptr->isOnPeer()){
+        if (!_rrecv_msg_ptr->isOnPeer()) {
             SOLID_THROW("Message not on peer!.");
         }
 
         //send message back
-        if(_rctx.recipientId().isInvalidConnection()){
+        if (_rctx.recipientId().isInvalidConnection()) {
             SOLID_THROW("Connection id should not be invalid!");
         }
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if(err){
+        if (err) {
             SOLID_THROW_EX("Connection id should not be invalid!", err.message());
         }
     }
-    if(_rsent_msg_ptr.get()){
-        idbg(_rctx.recipientId()<<" done sent message "<<_rsent_msg_ptr.get());
+    if (_rsent_msg_ptr.get()) {
+        idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
     }
 }
 
-}//namespace
+} //namespace
 
-int test_clientserver_delayed(int argc, char **argv){
+int test_clientserver_delayed(int argc, char** argv)
+{
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
     Debug::the().moduleMask("frame_mpipc:ew any:ew");
     Debug::the().initStdErr(false, nullptr);
-    //Debug::the().initFile("test_clientserver_basic", false);
+//Debug::the().initFile("test_clientserver_basic", false);
 #endif
 
     size_t max_per_pool_connection_count = 1;
 
-    if(argc > 1){
+    if (argc > 1) {
         max_per_pool_connection_count = atoi(argv[1]);
-        if(max_per_pool_connection_count == 0){
+        if (max_per_pool_connection_count == 0) {
             max_per_pool_connection_count = 1;
         }
-        if(max_per_pool_connection_count > 100){
+        if (max_per_pool_connection_count > 100) {
             max_per_pool_connection_count = 100;
         }
     }
 
-    bool    secure = false;
+    bool secure = false;
 
-    if(argc > 2){
-        if(*argv[2] == 's' or *argv[2] == 'S'){
+    if (argc > 2) {
+        if (*argv[2] == 's' or *argv[2] == 'S') {
             secure = true;
         }
     }
 
-    for(int j = 0; j < 1; ++j){
-        for(int i = 0; i < 127; ++i){
+    for (int j = 0; j < 1; ++j) {
+        for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if(isprint(c) and !isblank(c)){
+            if (isprint(c) and !isblank(c)) {
                 pattern += static_cast<char>(c);
             }
         }
     }
 
-    size_t  sz = real_size(pattern.size());
+    size_t sz = real_size(pattern.size());
 
-    if(sz > pattern.size()){
+    if (sz > pattern.size()) {
         pattern.resize(sz - sizeof(uint64_t));
-    }else if(sz < pattern.size()){
+    } else if (sz < pattern.size()) {
         pattern.resize(sz);
     }
 
     {
-        AioSchedulerT           sch_client;
-        AioSchedulerT           sch_server;
+        AioSchedulerT sch_client;
+        AioSchedulerT sch_server;
 
+        frame::Manager         m;
+        frame::mpipc::ServiceT mpipcserver(m);
+        frame::mpipc::ServiceT mpipcclient(m);
+        ErrorConditionT        err;
 
-        frame::Manager          m;
-        frame::mpipc::ServiceT  mpipcserver(m);
-        frame::mpipc::ServiceT  mpipcclient(m);
-        ErrorConditionT         err;
-
-        frame::aio::Resolver    resolver;
+        frame::aio::Resolver resolver;
 
         err = sch_client.start(1);
 
-        if(err){
-            edbg("starting aio client scheduler: "<<err.message());
+        if (err) {
+            edbg("starting aio client scheduler: " << err.message());
             return 1;
         }
 
         err = sch_server.start(1);
 
-        if(err){
-            edbg("starting aio server scheduler: "<<err.message());
+        if (err) {
+            edbg("starting aio server scheduler: " << err.message());
             return 1;
         }
 
         err = resolver.start(1);
 
-        if(err){
-            edbg("starting aio resolver: "<<err.message());
+        if (err) {
+            edbg("starting aio resolver: " << err.message());
             return 1;
         }
 
-        std::string     server_port("8888");
+        std::string server_port("8888");
 
-        {//mpipc client initialization
+        { //mpipc client initialization
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(sch_client, proto);
 
             proto->registerType<Message>(
-                client_complete_message
-            );
+                client_complete_message);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
 
-            cfg.connection_stop_fnc = client_connection_stop;
+            cfg.connection_stop_fnc         = client_connection_stop;
             cfg.client.connection_start_fnc = client_connection_start;
 
             cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 
-            cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str()/*, SocketInfo::Inet4*/);
+            cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
 
-            if(secure){
+            if (secure) {
                 idbg("Configure SSL client ------------------------------------");
                 frame::mpipc::openssl::setup_client(
                     cfg,
-                    [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
-                        _rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+                    [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
+                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
                         _rctx.loadCertificateFile("echo-client-cert.pem");
                         _rctx.loadPrivateKeyFile("echo-client-key.pem");
                         return ErrorCodeT();
                     },
-                    frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
-                );
+                    frame::mpipc::openssl::NameCheckSecureStart{"echo-server"});
             }
 
             err = mpipcclient.reconfigure(std::move(cfg));
 
-            if(err){
-                edbg("starting client mpipcservice: "<<err.message());
+            if (err) {
+                edbg("starting client mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
         }
         {
-            frame::mpipc::MessagePointerT   msgptr(new Message(0));
+            frame::mpipc::MessagePointerT msgptr(new Message(0));
             err = mpipcclient.sendMessage(
-                "localhost", msgptr
-            );
+                "localhost", msgptr);
             ++writecount;
         }
 
         {
-            frame::mpipc::MessagePointerT   msgptr(new Message(1));
+            frame::mpipc::MessagePointerT msgptr(new Message(1));
             err = mpipcclient.sendMessage(
-                "localhost", msgptr, 0|frame::mpipc::MessageFlags::OneShotSend
-            );
+                "localhost", msgptr, 0 | frame::mpipc::MessageFlags::OneShotSend);
             //++writecount;
             //this message should not be sent
         }
 
         {
-            frame::mpipc::MessagePointerT   msgptr(new Message(2));
+            frame::mpipc::MessagePointerT msgptr(new Message(2));
             err = mpipcclient.sendMessage(
-                "localhost", msgptr, 0|frame::mpipc::MessageFlags::WaitResponse
-            );
+                "localhost", msgptr, 0 | frame::mpipc::MessageFlags::WaitResponse);
             ++writecount;
         }
 
         sleep(10);
 
-        {//mpipc server initialization
+        { //mpipc server initialization
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
 
             proto->registerType<Message>(
-                server_complete_message
-            );
+                server_complete_message);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
 
-            cfg.connection_stop_fnc = server_connection_stop;
+            cfg.connection_stop_fnc         = server_connection_stop;
             cfg.server.connection_start_fnc = server_connection_start;
 
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
@@ -424,42 +421,41 @@ int test_clientserver_delayed(int argc, char **argv){
             cfg.server.listener_address_str = "0.0.0.0:";
             cfg.server.listener_address_str += server_port;
 
-            if(secure){
+            if (secure) {
                 idbg("Configure SSL server -------------------------------------");
                 frame::mpipc::openssl::setup_server(
                     cfg,
-                    [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
-                        _rctx.loadVerifyFile("echo-ca-cert.pem"/*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+                    [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
+                        _rctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
                         _rctx.loadCertificateFile("echo-server-cert.pem");
                         _rctx.loadPrivateKeyFile("echo-server-key.pem");
                         return ErrorCodeT();
                     },
-                    frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}
-                );
+                    frame::mpipc::openssl::NameCheckSecureStart{"echo-client"});
             }
 
             err = mpipcserver.reconfigure(std::move(cfg));
 
-            if(err){
-                edbg("starting server mpipcservice: "<<err.message());
+            if (err) {
+                edbg("starting server mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
 
             {
                 std::ostringstream oss;
-                oss<<mpipcserver.configuration().server.listenerPort();
+                oss << mpipcserver.configuration().server.listenerPort();
                 server_port = oss.str();
-                idbg("server listens on port: "<<server_port);
+                idbg("server listens on port: " << server_port);
             }
         }
 
-        pmpipcclient  = &mpipcclient;
+        pmpipcclient = &mpipcclient;
 
-        unique_lock<mutex>  lock(mtx);
+        unique_lock<mutex> lock(mtx);
 
-        if(not cnd.wait_for(lock, std::chrono::seconds(120), [](){return not running;})){
-             SOLID_THROW("Process is taking too long.");
+        if (not cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+            SOLID_THROW("Process is taking too long.");
         }
 
         //m.stop();
@@ -468,9 +464,9 @@ int test_clientserver_delayed(int argc, char **argv){
 
     //exiting
 
-    std::cout<<"Transfered size = "<<(transfered_size * 2)/1024<<"KB"<<endl;
-    std::cout<<"Transfered count = "<<transfered_count<<endl;
-    std::cout<<"Connection count = "<<connection_count<<endl;
+    std::cout << "Transfered size = " << (transfered_size * 2) / 1024 << "KB" << endl;
+    std::cout << "Transfered count = " << transfered_count << endl;
+    std::cout << "Connection count = " << connection_count << endl;
 
     return 0;
 }

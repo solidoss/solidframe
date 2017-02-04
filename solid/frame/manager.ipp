@@ -11,9 +11,6 @@
 #define inline
 #endif
 
-
 #ifdef SOLID_HAS_NO_INLINES
 #undef inline
 #endif
-
-

@@ -1,21 +1,20 @@
 //courtesy to: https://github.com/thekvs/cpp-serializers
 
-#include <string>
-#include <set>
-#include <iostream>
-#include <stdexcept>
-#include <memory>
 #include <chrono>
+#include <iostream>
+#include <memory>
+#include <set>
 #include <sstream>
+#include <stdexcept>
+#include <string>
 
 #include <boost/lexical_cast.hpp>
 
-#include "data.hpp"
 #include "boost/record.hpp"
+#include "data.hpp"
 #include "solid/record.hpp"
 
-void
-boost_serialization_test(size_t iterations)
+void boost_serialization_test(size_t iterations)
 {
     using namespace boost_test;
 
@@ -47,14 +46,14 @@ boost_serialization_test(size_t iterations)
         to_string(r1, serialized);
         from_string(r2, serialized);
     }
-    auto finish = std::chrono::high_resolution_clock::now();
+    auto finish   = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
 
-    std::cout << "boost: time = " << duration << " milliseconds" << std::endl << std::endl;
+    std::cout << "boost: time = " << duration << " milliseconds" << std::endl
+              << std::endl;
 }
 
-void
-solid_serialization_test(size_t iterations)
+void solid_serialization_test(size_t iterations)
 {
     using namespace solid_test;
 
@@ -68,10 +67,10 @@ solid_serialization_test(size_t iterations)
         r1.strings.push_back(kStringValue);
     }
 
-    SerializerT     s;
-    DeserializerT   d;
+    SerializerT   s;
+    DeserializerT d;
 
-    std::string     serialized;
+    std::string serialized;
 
     to_string(s, r1, serialized);
     from_string(d, r2, serialized);
@@ -88,20 +87,22 @@ solid_serialization_test(size_t iterations)
         to_string(s, r1, serialized);
         from_string(d, r2, serialized);
     }
-    auto finish = std::chrono::high_resolution_clock::now();
+    auto finish   = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
 
-    std::cout << "solid: time = " << duration << " milliseconds" << std::endl << std::endl;
+    std::cout << "solid: time = " << duration << " milliseconds" << std::endl
+              << std::endl;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     if (argc < 2) {
         std::cout << "usage: " << argv[0] << " N [boost solid]";
-        std::cout << std::endl << std::endl;
+        std::cout << std::endl
+                  << std::endl;
         std::cout << "arguments: " << std::endl;
-        std::cout << " N  -- number of iterations" << std::endl << std::endl;
+        std::cout << " N  -- number of iterations" << std::endl
+                  << std::endl;
         return EXIT_SUCCESS;
     }
 
@@ -109,7 +110,7 @@ main(int argc, char **argv)
 
     try {
         iterations = boost::lexical_cast<size_t>(argv[1]);
-    } catch (std::exception &exc) {
+    } catch (std::exception& exc) {
         std::cerr << "Error: " << exc.what() << std::endl;
         std::cerr << "First positional argument must be an integer." << std::endl;
         return EXIT_FAILURE;
@@ -123,9 +124,10 @@ main(int argc, char **argv)
         }
     }
 
-    std::cout << "performing " << iterations << " iterations" << std::endl << std::endl;
+    std::cout << "performing " << iterations << " iterations" << std::endl
+              << std::endl;
 
-     try {
+    try {
 
         if (names.empty() || names.find("boost") != names.end()) {
             boost_serialization_test(iterations);
@@ -134,12 +136,10 @@ main(int argc, char **argv)
         if (names.empty() || names.find("solid") != names.end()) {
             solid_serialization_test(iterations);
         }
-    } catch (std::exception &exc) {
+    } catch (std::exception& exc) {
         std::cerr << "Error: " << exc.what() << std::endl;
         return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
 }
-
-

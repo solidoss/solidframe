@@ -7,19 +7,23 @@
 #include "solid/frame/mpipc/src/mpipcmessagereader.hpp"
 #include "solid/frame/mpipc/src/mpipcmessagewriter.hpp"
 
+namespace solid {
+namespace frame {
+namespace mpipc {
 
-namespace solid{namespace frame{namespace mpipc{
-
-class TestEntryway{
+class TestEntryway {
 public:
-    static ConnectionContext& createContext(){
-        Connection  &rcon = *static_cast<Connection*>(nullptr);
-        Service     &rsvc = *static_cast<Service*>(nullptr);
+    static ConnectionContext& createContext()
+    {
+        Connection&              rcon = *static_cast<Connection*>(nullptr);
+        Service&                 rsvc = *static_cast<Service*>(nullptr);
         static ConnectionContext conctx(rsvc, rcon);
         return conctx;
     }
 };
 
-}/*namespace mpipc*/}/*namespace frame*/}/*namespace solid*/
+} /*namespace mpipc*/
+} /*namespace frame*/
+} /*namespace solid*/
 
 #endif

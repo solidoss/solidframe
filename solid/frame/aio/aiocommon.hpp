@@ -12,27 +12,27 @@
 
 #include "solid/frame/common.hpp"
 
-namespace solid{
-namespace frame{
-namespace aio{
+namespace solid {
+namespace frame {
+namespace aio {
 
-enum ReactorEventsE{
-    ReactorEventNone = 0,
-    ReactorEventRecv = 1,
-    ReactorEventSend = 2,
-    ReactorEventRecvSend = ReactorEventRecv | ReactorEventSend,
-    ReactorEventSendRecv = 4,
-    ReactorEventError = 8,
-    ReactorEventHangup = 16,
-    ReactorEventOOB = 32,//receive Out Of Band Data
-    ReactorEventOOBSend = ReactorEventOOB | ReactorEventSend,
+enum ReactorEventsE {
+    ReactorEventNone       = 0,
+    ReactorEventRecv       = 1,
+    ReactorEventSend       = 2,
+    ReactorEventRecvSend   = ReactorEventRecv | ReactorEventSend,
+    ReactorEventSendRecv   = 4,
+    ReactorEventError      = 8,
+    ReactorEventHangup     = 16,
+    ReactorEventOOB        = 32, //receive Out Of Band Data
+    ReactorEventOOBSend    = ReactorEventOOB | ReactorEventSend,
     ReactorEventRecvHangup = 64,
-    ReactorEventClear = 128,
-    ReactorEventInit = 256,
-    ReactorEventTimer = 512,
+    ReactorEventClear      = 128,
+    ReactorEventInit       = 256,
+    ReactorEventTimer      = 512,
 };
 
-enum ReactorWaitRequestsE{
+enum ReactorWaitRequestsE {
     ReactorWaitNone = 0,
     ReactorWaitRead,
     ReactorWaitWrite,
@@ -42,9 +42,8 @@ enum ReactorWaitRequestsE{
     ReactorWaitError
 };
 
-}//namespace aio
-}//namespace frame
-}//namespace solid
-
+} //namespace aio
+} //namespace frame
+} //namespace solid
 
 #endif

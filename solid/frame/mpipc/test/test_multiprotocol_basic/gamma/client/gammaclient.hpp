@@ -3,13 +3,11 @@
 
 #include "../../clientcommon.hpp"
 
-namespace gamma_client{
+namespace gamma_client {
 
 solid::ErrorConditionT start(
-    Context &_rctx
-);
+    Context& _rctx);
 
 void stop();
-
 }
 #endif

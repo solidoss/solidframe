@@ -1,50 +1,53 @@
 #include "solid/serialization/binary.hpp"
-#include <memory>
-#include <map>
-#include <vector>
-#include <deque>
 #include <bitset>
+#include <deque>
+#include <map>
+#include <memory>
 #include <set>
+#include <vector>
 
 using namespace solid;
 using namespace std;
 
-namespace{
+namespace {
 struct Test;
 using TestPointerT = shared_ptr<Test>;
 
-struct Test{
+struct Test {
     using KeyValueVectorT = std::vector<std::pair<std::string, std::string>>;
-    using MapT = std::map<std::string, uint64_t>;
-    using MapBoolT = std::map<std::string, bool>;
-    using SetT = std::set<std::string>;
+    using MapT            = std::map<std::string, uint64_t>;
+    using MapBoolT        = std::map<std::string, bool>;
+    using SetT            = std::set<std::string>;
 
-    Test():b(false){}
+    Test()
+        : b(false)
+    {
+    }
 
-    bool                b;
-    std::string         str;
-    KeyValueVectorT     kv_vec;
-    MapT                kv_map;
-    MapBoolT            kb_map;
-    uint32_t            v32;
-    deque<bool>         bool_deq;
-    bitset<5>           bs5;
-    bitset<10>          bs10;
-    bitset<20>          bs20;
-    bitset<50>          bs50;
-    bitset<100>         bs100;
-    bitset<1000>        bs1000;
-    vector<bool>        bv5;
-    vector<bool>        bv10;
-    vector<bool>        bv20;
-    vector<bool>        bv50;
-    vector<bool>        bv100;
-    vector<bool>        bv1000;
-    SetT                ss;
-
+    bool            b;
+    std::string     str;
+    KeyValueVectorT kv_vec;
+    MapT            kv_map;
+    MapBoolT        kb_map;
+    uint32_t        v32;
+    deque<bool>     bool_deq;
+    bitset<5>       bs5;
+    bitset<10>      bs10;
+    bitset<20>      bs20;
+    bitset<50>      bs50;
+    bitset<100>     bs100;
+    bitset<1000>    bs1000;
+    vector<bool>    bv5;
+    vector<bool>    bv10;
+    vector<bool>    bv20;
+    vector<bool>    bv50;
+    vector<bool>    bv100;
+    vector<bool>    bv1000;
+    SetT            ss;
 
     template <class S>
-    void solidSerialize(S &_s){
+    void solidSerialize(S& _s)
+    {
         _s.push(str, "Test::str");
         _s.push(b, "Test::b");
         _s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map").pushContainer(kb_map, "Test::kb_map").pushContainer(bool_deq, "bool_deq");
@@ -65,16 +68,18 @@ struct Test{
     }
 
     void init();
-    void check()const;
+    void check() const;
 
-    static TestPointerT create(){
+    static TestPointerT create()
+    {
         return make_shared<Test>();
     }
 };
 
-}//namespace
+} //namespace
 
-int test_container(int argc, char* argv[]){
+int test_container(int argc, char* argv[])
+{
 
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("view");
@@ -82,35 +87,35 @@ int test_container(int argc, char* argv[]){
     Debug::the().initStdErr(false, nullptr);
 #endif
 
-    using SerializerT       = serialization::binary::Serializer<void>;
-    using DeserializerT     = serialization::binary::Deserializer<void>;
-    using TypeIdMapT        = serialization::TypeIdMap<SerializerT, DeserializerT>;
+    using SerializerT   = serialization::binary::Serializer<void>;
+    using DeserializerT = serialization::binary::Deserializer<void>;
+    using TypeIdMapT    = serialization::TypeIdMap<SerializerT, DeserializerT>;
 
-    string      test_data;
-    TypeIdMapT  typemap;
+    string     test_data;
+    TypeIdMapT typemap;
 
-    typemap.registerType<Test>(0/*protocol ID*/);
+    typemap.registerType<Test>(0 /*protocol ID*/);
 
-    {//serialization
-        SerializerT         ser(&typemap);
-        const int           bufcp = 64;
-        char                buf[bufcp];
-        int                 rv;
+    { //serialization
+        SerializerT ser(&typemap);
+        const int   bufcp = 64;
+        char        buf[bufcp];
+        int         rv;
 
-        shared_ptr<Test>    test = Test::create();
+        shared_ptr<Test> test = Test::create();
 
         test->init();
 
         ser.push(test, "test");
 
-        while((rv = ser.run(buf, bufcp)) > 0){
+        while ((rv = ser.run(buf, bufcp)) > 0) {
             test_data.append(buf, rv);
         }
     }
-    {//deserialization
-        DeserializerT   des(&typemap);
+    { //deserialization
+        DeserializerT des(&typemap);
 
-        shared_ptr<Test>    test;
+        shared_ptr<Test> test;
 
         des.push(test, "test");
 
@@ -122,8 +127,8 @@ int test_container(int argc, char* argv[]){
     return 0;
 }
 
-namespace{
-const pair<string, string>  kv_array[] = {
+namespace {
+const pair<string, string> kv_array[] = {
     {"first_key", "first_value"},
     {"second_key", "secon_value"},
     {"third_key", "third_value"},
@@ -136,12 +141,13 @@ const pair<string, string>  kv_array[] = {
     {"tenth_key", "tenth_value"},
 };
 
-const size_t kv_array_size = sizeof(kv_array)/sizeof(pair<string, string>);
+const size_t kv_array_size = sizeof(kv_array) / sizeof(pair<string, string>);
 
-void Test::init(){
+void Test::init()
+{
     kv_vec.reserve(kv_array_size);
     b = true;
-    for(size_t i = 0; i < kv_array_size; ++i){
+    for (size_t i = 0; i < kv_array_size; ++i) {
         str.append(kv_array[i].first);
         str.append(kv_array[i].second);
         kv_vec.push_back(kv_array[i]);
@@ -153,8 +159,8 @@ void Test::init(){
 
     bs5.reset();
     bv5.resize(5, false);
-    for(size_t i = 0; i < bs5.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs5.size(); ++i) {
+        if ((i % 2) == 0) {
             bs5.set(i);
             bv5[i] = true;
         }
@@ -162,8 +168,8 @@ void Test::init(){
 
     bs10.reset();
     bv10.resize(10, false);
-    for(size_t i = 0; i < bs10.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs10.size(); ++i) {
+        if ((i % 2) == 0) {
             bs10.set(i);
             bv10[i] = true;
         }
@@ -171,8 +177,8 @@ void Test::init(){
 
     bs20.reset();
     bv20.resize(20, false);
-    for(size_t i = 0; i < bs20.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs20.size(); ++i) {
+        if ((i % 2) == 0) {
             bs20.set(i);
             bv20[i] = true;
         }
@@ -180,8 +186,8 @@ void Test::init(){
 
     bs50.reset();
     bv50.resize(50, false);
-    for(size_t i = 0; i < bs50.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs50.size(); ++i) {
+        if ((i % 2) == 0) {
             bs50.set(i);
             bv50[i] = true;
         }
@@ -189,8 +195,8 @@ void Test::init(){
 
     bs100.reset();
     bv100.resize(100, false);
-    for(size_t i = 0; i < bs100.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs100.size(); ++i) {
+        if ((i % 2) == 0) {
             bs100.set(i);
             bv100[i] = true;
         }
@@ -198,8 +204,8 @@ void Test::init(){
 
     bs1000.reset();
     bv1000.resize(1000, false);
-    for(size_t i = 0; i < bs1000.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs1000.size(); ++i) {
+        if ((i % 2) == 0) {
             bs1000.set(i);
             bv1000[i] = true;
         }
@@ -209,18 +215,19 @@ void Test::init(){
     check();
 }
 
-void Test::check()const{
-    idbg("str = "<<str);
-    idbg("bs5 = "<<bs5.to_string());
-    idbg("bs10 = "<<bs10.to_string());
-    idbg("bs20 = "<<bs20.to_string());
-    idbg("bs50 = "<<bs50.to_string());
-    idbg("bs100 = "<<bs100.to_string());
-    idbg("bs1000 = "<<bs1000.to_string());
+void Test::check() const
+{
+    idbg("str = " << str);
+    idbg("bs5 = " << bs5.to_string());
+    idbg("bs10 = " << bs10.to_string());
+    idbg("bs20 = " << bs20.to_string());
+    idbg("bs50 = " << bs50.to_string());
+    idbg("bs100 = " << bs100.to_string());
+    idbg("bs1000 = " << bs1000.to_string());
     SOLID_CHECK(b);
     SOLID_CHECK(kv_vec.size() == kv_map.size());
     string tmpstr;
-    for(size_t i = 0; i < kv_vec.size(); ++i){
+    for (size_t i = 0; i < kv_vec.size(); ++i) {
         tmpstr.append(kv_array[i].first);
         tmpstr.append(kv_array[i].second);
         SOLID_CHECK(kv_vec[i] == kv_array[i]);
@@ -238,65 +245,65 @@ void Test::check()const{
     SOLID_CHECK(tmpstr == str);
     SOLID_CHECK(str.size() == v32);
 
-    for(size_t i = 0; i < bs5.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs5.size(); ++i) {
+        if ((i % 2) == 0) {
             SOLID_CHECK(bs5[i]);
             SOLID_CHECK(bv5[i]);
-        }else{
+        } else {
             SOLID_CHECK(not bs5[i]);
             SOLID_CHECK(not bv5[i]);
         }
     }
 
-    for(size_t i = 0; i < bs10.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs10.size(); ++i) {
+        if ((i % 2) == 0) {
             SOLID_CHECK(bs10[i]);
             SOLID_CHECK(bv10[i]);
-        }else{
+        } else {
             SOLID_CHECK(not bs10[i]);
             SOLID_CHECK(not bv10[i]);
         }
     }
 
-    for(size_t i = 0; i < bs20.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs20.size(); ++i) {
+        if ((i % 2) == 0) {
             SOLID_CHECK(bs20[i]);
             SOLID_CHECK(bv20[i]);
-        }else{
+        } else {
             SOLID_CHECK(not bs20[i]);
             SOLID_CHECK(not bv20[i]);
         }
     }
 
-    for(size_t i = 0; i < bs50.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs50.size(); ++i) {
+        if ((i % 2) == 0) {
             SOLID_CHECK(bs50[i]);
             SOLID_CHECK(bv50[i]);
-        }else{
+        } else {
             SOLID_CHECK(not bs50[i]);
             SOLID_CHECK(not bv50[i]);
         }
     }
 
-    for(size_t i = 0; i < bs100.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs100.size(); ++i) {
+        if ((i % 2) == 0) {
             SOLID_CHECK(bs100[i]);
             SOLID_CHECK(bv100[i]);
-        }else{
+        } else {
             SOLID_CHECK(not bs100[i]);
             SOLID_CHECK(not bv100[i]);
         }
     }
 
-    for(size_t i = 0; i < bs1000.size(); ++i){
-        if((i % 2) == 0){
+    for (size_t i = 0; i < bs1000.size(); ++i) {
+        if ((i % 2) == 0) {
             SOLID_CHECK(bs1000[i]);
             SOLID_CHECK(bv1000[i]);
-        }else{
+        } else {
             SOLID_CHECK(not bs1000[i]);
             SOLID_CHECK(not bv1000[i]);
         }
     }
 }
 
-}//namespace
+} //namespace

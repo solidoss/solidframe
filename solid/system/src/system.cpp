@@ -12,7 +12,6 @@
 #include "solid/system/nanotime.hpp"
 #include <cstring>
 
-
 #if defined(SOLID_ON_FREEBSD)
 #include <pmc.h>
 #elif defined(SOLID_ON_DARWIN)
@@ -21,27 +20,26 @@
 #include <sys/sysinfo.h>
 #endif
 
-
 #if defined(SOLID_ON_WINDOWS)
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <windows.h>
 #include <Process.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <windows.h>
 //#include <io.h>
 #else
-#include <unistd.h>
 #include <pthread.h>
+#include <unistd.h>
 #endif
 
 #if defined(SOLID_ON_DARWIN)
 #include <mach/mach_time.h>
 #endif
 
+namespace solid {
 
-namespace solid{
-
-/*static*/ const char* src_file_name(char const *_fname){
+/*static*/ const char* src_file_name(char const* _fname)
+{
 #ifdef SOLID_ON_WINDOWS
     static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
 #else
@@ -69,7 +67,7 @@ namespace solid{
     return ct.currentMonotonic();
 }
 
-#if     defined(SOLID_ON_WINDOWS)
+#if defined(SOLID_ON_WINDOWS)
 
 struct TimeStartData{
 #ifdef NWINDOWSQPC
@@ -150,7 +148,7 @@ const NanoTime& NanoTime::currentMonotonic(){
     return *this;
 }
 
-#elif   defined(SOLID_ON_DARWIN)
+#elif defined(SOLID_ON_DARWIN)
 
 struct TimeStartData{
     TimeStartData(){
@@ -208,4 +206,4 @@ const NanoTime& NanoTime::currentMonotonic(){
 
 #endif
 
-}//namespace solid
+} //namespace solid

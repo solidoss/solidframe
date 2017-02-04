@@ -10,20 +10,22 @@
 #ifndef SOLID_FRAME_AIO_FORWARD_COMPLETION_HPP
 #define SOLID_FRAME_AIO_FORWARD_COMPLETION_HPP
 
-namespace solid{
-namespace frame{
-namespace aio{
+namespace solid {
+namespace frame {
+namespace aio {
 
 class CompletionHandler;
 
-struct ForwardCompletionHandler{
-    ForwardCompletionHandler(CompletionHandler *_pch = nullptr):pnext(_pch){}
-    CompletionHandler   *pnext;
+struct ForwardCompletionHandler {
+    ForwardCompletionHandler(CompletionHandler* _pch = nullptr)
+        : pnext(_pch)
+    {
+    }
+    CompletionHandler* pnext;
 };
 
-}//namespace aio
-}//namespace frame
-}//namespace solid
-
+} //namespace aio
+} //namespace frame
+} //namespace solid
 
 #endif
