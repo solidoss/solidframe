@@ -27,7 +27,7 @@ int test_workpool(int argc, char *argv[]){
     
     cout<<"wp started"<<endl;
     
-    for(int i = 0; i < cnt; ++i){
+    for(size_t i = 0; i < cnt; ++i){
         auto    l = [i, &val](){
             if(0){
                 unique_lock_t   lock(mtx);

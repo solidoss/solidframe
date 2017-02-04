@@ -30,12 +30,12 @@ public:
         }
     }
     
-    void execute(WorkPoolBase &/*_rwp*/, WorkerBase &/*_rw*/, int v){
+    void execute(WorkPoolBase &/*_rwp*/, WorkerBase &/*_rw*/, size_t v){
         val += v;
     }
 };
 
-typedef WorkPool<int, WPController> MyWorkPoolT;
+typedef WorkPool<size_t, WPController> MyWorkPoolT;
 
 int test_workpool_fast(int argc, char *argv[]){
     MyWorkPoolT                 wp{5};
@@ -45,7 +45,7 @@ int test_workpool_fast(int argc, char *argv[]){
     
     cout<<"wp started"<<endl;
     
-    for(int i = 0; i < cnt; ++i){
+    for(size_t i = 0; i < cnt; ++i){
         wp.push(i);
     };
     
