@@ -159,8 +159,8 @@ struct Message : std::enable_shared_from_this<Message> {
             //on serialization we cannot use/modify the values stored by ipc::Message
             //so, we'll use ones store in the context. Because the context is volatile
             //we'll store as values.
-            _rs.pushCrossValue(_rctx.request_id.index, "requid_idx");
-            _rs.pushCrossValue(_rctx.request_id.unique, "requid_idx");
+            _rs.pushCross(_rctx.request_id.index, "requid_idx");
+            _rs.pushCross(_rctx.request_id.unique, "requid_idx");
             _rs.pushValue(_rctx.message_state, "state");
         } else {
             _rs.pushCross(requid.index, "requid_idx");

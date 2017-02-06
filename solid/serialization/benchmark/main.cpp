@@ -14,6 +14,8 @@
 #include "data.hpp"
 #include "solid/record.hpp"
 
+using namespace std;
+
 void boost_serialization_test(size_t iterations)
 {
     using namespace boost_test;
@@ -82,13 +84,25 @@ void solid_serialization_test(size_t iterations)
     std::cout << "solid: size = " << serialized.size() << " bytes" << std::endl;
 
     auto start = std::chrono::high_resolution_clock::now();
+    //char buf[256];
     for (size_t i = 0; i < iterations; i++) {
         serialized.clear();
+        //s.pushNoop(25102510);
+        //s.run(buf, 256);
+        //d.pushNoop(25072507);
+        //d.run(buf, 256);
         to_string(s, r1, serialized);
         from_string(d, r2, serialized);
     }
     auto finish   = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+
+#ifdef SOLID_HAS_STATISTICS
+    cout << "Serialization statistics  :" << endl
+         << s.statistics() << endl;
+    cout << "Deserialization statistics:" << endl
+         << d.statistics() << endl;
+#endif
 
     std::cout << "solid: time = " << duration << " milliseconds" << std::endl
               << std::endl;
