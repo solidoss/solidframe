@@ -83,10 +83,6 @@ struct AnyValue<T, true> : AnyValueBase {
 
 template <class T>
 struct AnyValue<T, false> : AnyValueBase {
-    //explicit AnyValue(const T &_rt){}
-
-    //explicit AnyValue(T &&_rt):value_(std::move(_rt)){}
-
     template <class... Args>
     explicit AnyValue(Args&&... _args)
         : value_(std::forward<Args>(_args)...)
@@ -346,15 +342,6 @@ private:
     {
         return new impl::AnyValue<T>(std::forward<Args>(_args)...);
     }
-    //     template <class T>
-    //     impl::AnyValueBase* do_allocate(const T &_rt,  BoolToType<true> /*_emplace_new*/){
-    //         return new(data_) impl::AnyValue<T>{_rt};
-    //     }
-    //
-    //     template <class T>
-    //     impl::AnyValueBase* do_allocate(const T &_rt,  BoolToType<false> /*_plain_new*/){
-    //         return new impl::AnyValue<T>{_rt};
-    //     }
 private:
     char data_[DataSize];
 };

@@ -111,8 +111,8 @@ struct ExtendedData {
     BasicValue  first_value_;
 
     struct Generic {
-        void*           ptr;
         size_t          type_id;
+        void*           ptr;
         char            buffer[MAX_GENERIC_SIZE];
         DeleteFunctionT delete_fnc;
     } generic_;
@@ -177,46 +177,6 @@ struct ExtendedData {
         return first_value_.void_value;
     }
 
-//     const int64_t& second_int64_t_value() const
-//     {
-//         return tuple_.values[1].int64_t_value;
-//     }
-// 
-//     int64_t& second_int64_t_value()
-//     {
-//         return tuple_.values[1].int64_t_value;
-//     }
-// 
-//     const uint64_t& second_uint64_t_value() const
-//     {
-//         return tuple_.values[1].uint64_t_value;
-//     }
-// 
-//     uint64_t& second_uint64_t_value()
-//     {
-//         return tuple_.values[1].uint64_t_value;
-//     }
-// 
-//     void* const& first_void_value() const
-//     {
-//         return tuple_.values[0].void_value;
-//     }
-// 
-//     void*& first_void_value()
-//     {
-//         return tuple_.values[0].void_value;
-//     }
-// 
-//     void* const& third_void_value() const
-//     {
-//         return tuple_.values[2].void_value;
-//     }
-// 
-//     void*& third_void_value()
-//     {
-//         return tuple_.values[2].void_value;
-//     }
-
     ExtendedData()
     {
         init();
@@ -242,47 +202,18 @@ struct ExtendedData {
         init();
         first_uint64_t_value() = _u64;
     }
-//     explicit ExtendedData(uint64_t _u64, uint64_t _u64_1)
-//     {
-//         init();
-//         first_uint64_t_value()  = _u64;
-//         second_uint64_t_value() = _u64_1;
-//     }
+
     explicit ExtendedData(void* _p)
     {
         init();
         first_void_value() = _p;
     }
-//     explicit ExtendedData(int32_t _i32, int64_t _i64_1)
-//     {
-//         init();
-//         first_int32_t_value()  = _i32;
-//         second_int64_t_value() = _i64_1;
-//     }
-//     explicit ExtendedData(uint32_t _u32, int64_t _i64_1)
-//     {
-//         init();
-//         first_uint32_t_value() = _u32;
-//         second_int64_t_value() = _i64_1;
-//     }
+
     explicit ExtendedData(int64_t _i64)
     {
         init();
         first_int64_t_value() = _i64;
     }
-//     explicit ExtendedData(int64_t _i64_0, int64_t _i64_1)
-//     {
-//         init();
-//         first_int64_t_value()  = _i64_0;
-//         second_int64_t_value() = _i64_1;
-//     }
-//     explicit ExtendedData(uint64_t _u64_0, uint64_t _u64_1, void* _pv)
-//     {
-//         init();
-//         first_uint64_t_value()  = _u64_0;
-//         second_uint64_t_value() = _u64_1;
-//         third_void_value()      = _pv;
-//     }
 
     ~ExtendedData()
     {
@@ -305,38 +236,14 @@ struct ExtendedData {
     T* generic(const T& _rt)
     {
         clear();
-        T* retval = nullptr;
-        if (sizeof(T) <= MAX_GENERIC_SIZE) {
-            retval              = new (generic_.buffer) T(_rt);
-            generic_.ptr        = retval;
-            generic_.delete_fnc = &destroyer<T>;
-            generic_.type_id    = typeId<T>();
-        } else {
-            retval              = new T(_rt);
-            generic_.ptr        = retval;
-            generic_.delete_fnc = &deleter<T>;
-            generic_.type_id    = typeId<T>();
-        }
-        return retval;
+        return doGenericCreate(_rt, BoolToType<sizeof(T) <= MAX_GENERIC_SIZE>());
     }
 
     template <class T>
     T* generic(T&& _ut)
     {
         clear();
-        T* retval = nullptr;
-        if (sizeof(T) <= MAX_GENERIC_SIZE) {
-            retval              = new (generic_.buffer) T{std::move(_ut)};
-            generic_.ptr        = retval;
-            generic_.delete_fnc = &destroyer<T>;
-            generic_.type_id    = typeId<T>();
-        } else {
-            retval              = new T{std::move(_ut)};
-            generic_.ptr        = retval;
-            generic_.delete_fnc = &deleter<T>;
-            generic_.type_id    = typeId<T>();
-        }
-        return retval;
+        return doGenericCreate(std::move(_ut), BoolToType<sizeof(T) <= MAX_GENERIC_SIZE>());
     }
 
     template <class T>
@@ -371,6 +278,40 @@ struct ExtendedData {
     }
 
 private:
+    template <class T>
+    T* doGenericCreate(const T& _rt, BoolToType<true> /*_b*/){
+        T* retval           = new (generic_.buffer) T(_rt);
+        generic_.ptr        = retval;
+        generic_.delete_fnc = &destroyer<T>;
+        generic_.type_id    = typeId<T>();
+        return retval;
+    }
+    template <class T>
+    T* doGenericCreate(const T& _rt, BoolToType<false> /*_b*/){
+        T* retval           = new T(_rt);
+        generic_.ptr        = retval;
+        generic_.delete_fnc = &deleter<T>;
+        generic_.type_id    = typeId<T>();
+        return retval;
+    }
+    
+    template <class T>
+    T* doGenericCreate(T&& _ut, BoolToType<true> /*_b*/){
+        T* retval           = new (generic_.buffer) T{std::move(_ut)};
+        generic_.ptr        = retval;
+        generic_.delete_fnc = &destroyer<T>;
+        generic_.type_id    = typeId<T>();
+        return retval;
+    }
+    template <class T>
+    T* doGenericCreate(T&& _ut, BoolToType<false> /*_b*/){
+        T* retval           = new T{std::move(_ut)};
+        generic_.ptr        = retval;
+        generic_.delete_fnc = &deleter<T>;
+        generic_.type_id    = typeId<T>();
+        return retval;
+    }
+    
     void init()
     {
         first_value_.uint64_t_value = 0;
