@@ -291,10 +291,8 @@ struct Array : Base {
     void solidSerialize(S& _s, Context& _rctx)
     {
         _rctx.print();
-        _s.pushArray(sa, sasz, "sa");
-        _s.pushDynamicArray(pta, ptasz, "pta");
-        _s.pushDynamicArray(pta1, pta1sz, "pta1");
-        _s.pushArray(td, tdsz, "td");
+        _s.pushArray(sa, sasz, 3, "sa");
+        _s.pushArray(td, tdsz, 4, "td");
     }
     void print() const;
 

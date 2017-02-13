@@ -30,11 +30,7 @@ inline bool compute_value_with_crc(uint64_t& _to, uint64_t _from)
 inline bool check_value_with_crc(uint64_t& _to, uint64_t _v)
 {
     _to = _v >> 6;
-    if (bit_count(_to) == (_v & ((1 << 6) - 1))) {
-        return true;
-    } else {
-        return false;
-    }
+    return bit_count(_to) == (_v & ((1 << 6) - 1));
 }
 
 inline uint64_t max_value_without_crc_64()
@@ -57,11 +53,7 @@ inline bool compute_value_with_crc(uint32_t& _to, uint32_t _from)
 inline bool check_value_with_crc(uint32_t& _to, uint32_t _v)
 {
     _to = _v >> 5;
-    if (bit_count(_to) == (_v & ((1 << 5) - 1))) {
-        return true;
-    } else {
-        return false;
-    }
+    return bit_count(_to) == (_v & ((1 << 5) - 1));
 }
 
 inline uint32_t max_value_without_crc_32()
@@ -84,11 +76,7 @@ inline bool compute_value_with_crc(uint16_t& _to, uint16_t _from)
 inline bool check_value_with_crc(uint16_t& _to, uint16_t _v)
 {
     _to = _v >> 4;
-    if (bit_count(_to) == (_v & ((1 << 4) - 1))) {
-        return true;
-    } else {
-        return false;
-    }
+    return bit_count(_to) == (_v & ((1 << 4) - 1));
 }
 
 inline uint16_t max_value_without_crc_16()
@@ -111,11 +99,7 @@ inline bool compute_value_with_crc(uint8_t& _to, uint8_t _from)
 inline bool check_value_with_crc(uint8_t& _to, uint8_t _v)
 {
     _to = _v >> 3;
-    if (bit_count(_to) == (_v & ((1 << 3) - 1))) {
-        return true;
-    } else {
-        return false;
-    }
+    return bit_count(_to) == (_v & ((1 << 3) - 1));
 }
 
 inline uint8_t max_value_without_crc_8()
