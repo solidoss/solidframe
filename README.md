@@ -1,6 +1,6 @@
 # SolidFrame
 
-Cross-platform C++ framework for scalable, asynchronous, distributed applications.
+Cross-platform C++ framework for asynchronous, distributed applications.
 
 ## License
 
