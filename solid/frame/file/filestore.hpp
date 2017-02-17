@@ -69,6 +69,9 @@ struct File {
         : ptmp(nullptr)
     {
     }
+    ~File(){
+        clear();
+    }
     void clear()
     {
         fd.close();

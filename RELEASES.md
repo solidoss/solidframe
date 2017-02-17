@@ -3,14 +3,17 @@
 ## Backlog
 
 * solid_frame_consensus: implement Paxos or Raft algorithms over solid_frame_mpipc
-* solid_frame_compressed_store/solid_compressed_store: in memory object store with compression support
 * solid_frame_mpipc: SOCKS5
 * solid_frame_mpipc: test with thousands of connections
 * DOCUMENTAION: API
 * solid_serialization: test agaist ProtoBuf and FlatBuffers
 
-## Version 2.1
+## Version 2.2
 * (DONE) all: switch from NanoTime to std::chrono
+* (DONE) BUILD: cmake support for clangformat
+* (DONE) solid_serialization: speed improvements, plain arrays serialization
+
+## Version 2.1
 * (DONE) solid_frame_aio_openssl: Improved OpenSSL/BoringSSL support
 * (DONE) solid_frame_mpipc: Pluggable (header only) support for SSL
 * (DONE) BUILD: Android support - https://github.com/vipalade/bubbles
