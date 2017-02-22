@@ -7,6 +7,7 @@ set( UtilityTestSuite
     test_memory_file.cpp
     test_workpool.cpp
     test_workpool_fast.cpp
+    test_ioformat.cpp
 )
 
 create_test_sourcelist( UtilityTests test_utility.cpp ${UtilityTestSuite})
@@ -47,7 +48,13 @@ add_test( TestUtility test_utility
     test_workpool_fast
 )
 
+add_test( TestUtility test_utility
+    test_ioformat
+)
+
 add_test(NAME TestUtilityWorkPool           COMMAND  test_utility test_workpool)
+add_test(NAME TestUtilityWorkPoolFast       COMMAND  test_utility test_workpool_fast)
+add_test(NAME TestUtilityIoFormat           COMMAND  test_utility test_ioformat)
 add_test(NAME TestUtilityInvalidIndex       COMMAND  test_utility test_invalid_index)
 add_test(NAME TestUtilityInnerList          COMMAND  test_utility test_innerlist)
 add_test(NAME TestUtilityAny                COMMAND  test_utility test_any)

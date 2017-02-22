@@ -20,19 +20,8 @@
 namespace solid {
 namespace frame {
 
-#ifdef UINDEX32
-typedef uint32_t IndexT;
-#elif defined(UINDEX64)
-typedef uint64_t IndexT;
-#else
-typedef size_t IndexT;
-#endif
-
-#define ID_MASK (static_cast<frame::IndexT>(-1))
-
-#define INVALID_INDEX ID_MASK
-
-typedef size_t UniqueT;
+using IndexT = uint64_t;
+using UniqueT = uint32_t;
 
 struct UniqueId {
     IndexT  index;
@@ -75,8 +64,7 @@ struct UniqueId {
     }
 };
 
-//typedef UniqueId      UniqueId;
-typedef UniqueId ObjectIdT;
+using ObjectIdT = UniqueId;
 
 std::ostream& operator<<(std::ostream& _ros, UniqueId const& _uid);
 
@@ -86,12 +74,12 @@ enum {
 
 inline bool is_valid_index(const IndexT& _idx)
 {
-    return _idx != INVALID_INDEX;
+    return _idx != static_cast<frame::IndexT>(-1);
 }
 
 inline bool is_invalid_index(const IndexT& _idx)
 {
-    return _idx == INVALID_INDEX;
+    return _idx == static_cast<frame::IndexT>(-1);
 }
 
 template <typename T>

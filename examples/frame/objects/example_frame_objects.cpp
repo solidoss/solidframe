@@ -21,8 +21,18 @@ using namespace std;
 
 using SchedulerT = frame::Scheduler<frame::Reactor>;
 
+
+struct GlobalId{
+    GlobalId(): index(-1), unique(-1), group_index(-1), group_unique(-1){}
+    
+    uint64_t    index;
+    uint32_t    unique;
+    uint16_t    group_index;
+    uint16_t    group_unique;
+};
+
 class BasicObject : public Dynamic<BasicObject, frame::Object> {
-    enum Status {
+    enum Status: uint8_t {
         StatusInMemory,
         StatusCompressed,
         StatusOnDisk
@@ -45,6 +55,7 @@ private:
     frame::SteadyTimer timer_;
     Status             status_;
     bool               active_;
+    GlobalId           id_;
 };
 
 using ObjectDequeT = std::deque<BasicObject>;
@@ -124,16 +135,23 @@ int main(int argc, char* argv[])
             }
 
             cout << "Notify all update: START" << endl;
-
+            auto start_time = std::chrono::steady_clock::now();
+            
             svc.notifyAll(generic_event_update);
-
-            cout << "Notify all update: DONE" << endl;
+            
+            auto duration = std::chrono::duration_cast< std::chrono::milliseconds> 
+                                (std::chrono::steady_clock::now() - start_time);
+                                
+            cout << "Notify all update: DONE. "<<duration.count() << "ms" << endl;
 
             sleep(20);
 
             cout << "Notify all raise: START" << endl;
+            start_time = std::chrono::steady_clock::now();
             svc.notifyAll(generic_event_raise);
-            cout << "Notify all raise: DONE" << endl;
+            duration = std::chrono::duration_cast< std::chrono::milliseconds> 
+                                (std::chrono::steady_clock::now() - start_time);
+            cout << "Notify all raise: DONE. " << duration.count() << "ms" << endl;
             {
                 unique_lock<mutex> lock(mtx);
                 while (ondisk_objcnt != running_objcnt) {

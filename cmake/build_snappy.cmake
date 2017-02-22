@@ -2,6 +2,7 @@ configure_file(cmake/build_wrapper.sh.in build_wrapper.sh @ONLY)
 
 ExternalProject_Add(
     build_snappy
+    EXCLUDE_FROM_ALL 1
     PREFIX ${EXTERN_PATH}/snappy
     URL https://github.com/google/snappy/releases/download/1.1.3/snappy-1.1.3.tar.gz
     CONFIGURE_COMMAND sh ${CMAKE_CURRENT_BINARY_DIR}/build_wrapper.sh ${EXTERN_PATH}/snappy/src/build_snappy/configure --prefix=${EXTERN_PATH} 

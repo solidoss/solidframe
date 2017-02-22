@@ -1,6 +1,7 @@
 
 ExternalProject_Add(
     build_openssl
+    EXCLUDE_FROM_ALL 1
     PREFIX ${EXTERN_PATH}/openssl
     URL https://www.openssl.org/source/openssl-1.1.0c.tar.gz
     #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
