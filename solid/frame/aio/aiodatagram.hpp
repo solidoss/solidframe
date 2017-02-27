@@ -15,6 +15,7 @@
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/system/common.hpp"
 #include "solid/system/socketdevice.hpp"
+#include "solid/utility/event.hpp"
 
 namespace solid {
 namespace frame {

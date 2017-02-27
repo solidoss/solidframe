@@ -48,8 +48,8 @@ struct NanoTime : public timespec {
 
     NanoTime()
     {
-        tv_sec  = -1;
-        tv_nsec = -1;
+        tv_sec  = 0;
+        tv_nsec = 0;
     }
 
     static NanoTime createSystem()
@@ -116,6 +116,10 @@ struct NanoTime : public timespec {
     bool operator<(const NanoTime& _ts) const;
 
 private:
+    NanoTime(bool){
+        tv_sec  = -1;
+        tv_nsec = -1;
+    }
     template <class Clock, class Duration>
     void doClockCast(std::chrono::time_point<Clock, Duration>& _rtp, const std::chrono::time_point<Clock, Duration>& _rmytp) const
     {

@@ -18,9 +18,9 @@
 
 #elif defined(SOLID_USE_KQUEUE)
 
-#include <sys/event.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/event.h>
 
 #endif
 
@@ -382,12 +382,6 @@ struct Reactor::Data {
 
                 const int64_t maxwait = 1000 * 60 * 10; //ten minutes
                 int64_t       diff    = 0;
-                //NanoTime        delta = timestore.next();
-
-                //delta -= _rcrt;
-                //diff = (delta.seconds() * 1000);
-                //diff += (delta.nanoSeconds() / 1000000);
-
                 const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
                 const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
                 diff               = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
@@ -415,15 +409,14 @@ struct Reactor::Data {
         } else if (timestore.size()) {
 
             if (_rcrt < timestore.next()) {
-                const NanoTime maxwait(1000 * 60 * 10); //ten minutes
-                NanoTime       delta = timestore.next();
-
-                delta -= _rcrt;
-
-                if (delta > maxwait) {
-                    return maxwait;
-                } else {
+                const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
+                const auto delta = next_tp - crt_tp;
+                
+                if (delta <= std::chrono::minutes(10)) {
                     return delta;
+                } else {
+                    return std::chrono::minutes(10);
                 }
 
             } else {

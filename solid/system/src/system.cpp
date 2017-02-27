@@ -51,7 +51,7 @@ namespace solid {
 //=============================================================================
 //  NanoTime
 //=============================================================================
-/*static*/ const NanoTime NanoTime::maximum{};
+/*static*/ const NanoTime NanoTime::maximum{true};
 
 #ifdef SOLID_HAS_NO_INLINES
 #include "solid/system/nanotime.ipp"
