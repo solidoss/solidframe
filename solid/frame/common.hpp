@@ -20,7 +20,7 @@
 namespace solid {
 namespace frame {
 
-using IndexT = uint64_t;
+using IndexT  = uint64_t;
 using UniqueT = uint32_t;
 
 struct UniqueId {

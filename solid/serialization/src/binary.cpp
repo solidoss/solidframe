@@ -1537,7 +1537,7 @@ ReturnValues DeserializerBase::loadBinaryStringCheck(Base& _rb, FncData& _rfd, v
         _rfd.f = &DeserializerBase::loadBinaryString;
 
         return ContinueE;
-    }else{
+    } else {
         idbgx(Debug::ser_bin, "error");
         rd.err = make_error(ERR_STRING_LIMIT);
         return FailureE;
@@ -1558,7 +1558,7 @@ ReturnValues DeserializerBase::loadBinaryString(Base& _rb, FncData& _rfd, void* 
 
     size_t   len = rd.be - rd.cpb;
     uint64_t ul  = _rfd.d;
-    
+
     if (len > ul) {
         len = static_cast<size_t>(ul);
     }

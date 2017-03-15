@@ -20,7 +20,9 @@ struct Test {
     using SetT            = std::set<std::string>;
 
     Test()
-        : b(false), sa_sz(0), u8a_sz(0)
+        : b(false)
+        , sa_sz(0)
+        , u8a_sz(0)
     {
     }
 
@@ -218,17 +220,17 @@ void Test::init()
     }
 
     v32 = str.size();
-    
-    for(size_t i = 0; i < 100; ++i){
+
+    for (size_t i = 0; i < 100; ++i) {
         sa[i] = kv_array[i % kv_array_size].second;
     }
     sa_sz = 100;
-    
-    for(size_t i = 0; i < 500; ++i){
+
+    for (size_t i = 0; i < 500; ++i) {
         u8a[i] = i % std::numeric_limits<uint8_t>::max();
     }
     u8a_sz = 500;
-    
+
     check();
 }
 
@@ -321,14 +323,14 @@ void Test::check() const
             SOLID_CHECK(not bv1000[i]);
         }
     }
-    
+
     SOLID_CHECK(sa_sz == 100);
-    for(size_t i = 0; i < sa_sz; ++i){
+    for (size_t i = 0; i < sa_sz; ++i) {
         SOLID_CHECK(sa[i] == kv_array[i % kv_array_size].second);
     }
-    
+
     SOLID_CHECK(u8a_sz == 500);
-    for(size_t i = 0; i < u8a_sz; ++i){
+    for (size_t i = 0; i < u8a_sz; ++i) {
         SOLID_CHECK(u8a[i] == (i % std::numeric_limits<uint8_t>::max()));
     }
 }

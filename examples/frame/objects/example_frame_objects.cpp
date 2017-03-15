@@ -21,18 +21,23 @@ using namespace std;
 
 using SchedulerT = frame::Scheduler<frame::Reactor>;
 
+struct GlobalId {
+    GlobalId()
+        : index(-1)
+        , unique(-1)
+        , group_index(-1)
+        , group_unique(-1)
+    {
+    }
 
-struct GlobalId{
-    GlobalId(): index(-1), unique(-1), group_index(-1), group_unique(-1){}
-    
-    uint64_t    index;
-    uint32_t    unique;
-    uint16_t    group_index;
-    uint16_t    group_unique;
+    uint64_t index;
+    uint32_t unique;
+    uint16_t group_index;
+    uint16_t group_unique;
 };
 
 class BasicObject : public Dynamic<BasicObject, frame::Object> {
-    enum Status: uint8_t {
+    enum Status : uint8_t {
         StatusInMemory,
         StatusCompressed,
         StatusOnDisk
@@ -136,21 +141,19 @@ int main(int argc, char* argv[])
 
             cout << "Notify all update: START" << endl;
             auto start_time = std::chrono::steady_clock::now();
-            
+
             svc.notifyAll(generic_event_update);
-            
-            auto duration = std::chrono::duration_cast< std::chrono::milliseconds> 
-                                (std::chrono::steady_clock::now() - start_time);
-                                
-            cout << "Notify all update: DONE. "<<duration.count() << "ms" << endl;
+
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time);
+
+            cout << "Notify all update: DONE. " << duration.count() << "ms" << endl;
 
             sleep(20);
 
             cout << "Notify all raise: START" << endl;
             start_time = std::chrono::steady_clock::now();
             svc.notifyAll(generic_event_raise);
-            duration = std::chrono::duration_cast< std::chrono::milliseconds> 
-                                (std::chrono::steady_clock::now() - start_time);
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time);
             cout << "Notify all raise: DONE. " << duration.count() << "ms" << endl;
             {
                 unique_lock<mutex> lock(mtx);

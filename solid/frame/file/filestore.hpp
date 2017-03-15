@@ -69,7 +69,8 @@ struct File {
         : ptmp(nullptr)
     {
     }
-    ~File(){
+    ~File()
+    {
         clear();
     }
     void clear()

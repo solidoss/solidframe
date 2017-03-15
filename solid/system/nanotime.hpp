@@ -116,7 +116,8 @@ struct NanoTime : public timespec {
     bool operator<(const NanoTime& _ts) const;
 
 private:
-    NanoTime(bool){
+    NanoTime(bool)
+    {
         tv_sec  = -1;
         tv_nsec = -1;
     }
@@ -158,7 +159,6 @@ void time_point_clock_cast(std::chrono::time_point<RetClock, RetDuration>& _rret
 template <class RetClock, class Clock, class Duration>
 typename RetClock::time_point time_point_clock_cast(const std::chrono::time_point<Clock, Duration>& _rtp)
 {
-    //return typename RetClock::time_point();
     typename RetClock::time_point ret_tp;
 
     detail::time_point_clock_cast(ret_tp, _rtp);

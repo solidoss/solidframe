@@ -47,31 +47,33 @@ inline TrimString trim_str(const char* _pcstr, size_t _strlen, size_t _beglen, s
 std::ostream& operator<<(std::ostream& _ros, TrimString const&);
 
 template <size_t Sz>
-struct Format{
+struct Format {
     char        buf[Sz];
     std::string str;
 };
 
-template <size_t Sz, typename ...Args>
-inline Format<Sz> format(const char *_fmt, Args ...args){
-    Format<Sz>  fmt;
-    const size_t sz = snprintf(nullptr, 0, _fmt, args ...) + 1;
-    if(sz <= Sz){
-        snprintf(fmt.buf, Sz, _fmt, args ...);
-    }else{
+template <size_t  Sz, typename... Args>
+inline Format<Sz> format(const char* _fmt, Args... args)
+{
+    Format<Sz>   fmt;
+    const size_t sz = snprintf(nullptr, 0, _fmt, args...) + 1;
+    if (sz <= Sz) {
+        snprintf(fmt.buf, Sz, _fmt, args...);
+    } else {
         fmt.str.resize(sz + 1);
-        snprintf(const_cast<char*>(fmt.str.data()), sz, _fmt, args ...);
+        snprintf(const_cast<char*>(fmt.str.data()), sz, _fmt, args...);
         fmt.str.resize(sz - 1);
     }
     return fmt;
 }
 
 template <size_t Sz>
-std::ostream& operator<<(std::ostream& _ros, Format<Sz> const&_rfmt){
-    if(_rfmt.str.empty()){
-        _ros<<_rfmt.buf;
-    }else{
-        _ros<<_rfmt.str;
+std::ostream& operator<<(std::ostream& _ros, Format<Sz> const& _rfmt)
+{
+    if (_rfmt.str.empty()) {
+        _ros << _rfmt.buf;
+    } else {
+        _ros << _rfmt.str;
     }
     return _ros;
 }

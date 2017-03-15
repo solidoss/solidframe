@@ -342,6 +342,7 @@ private:
     {
         return new impl::AnyValue<T>(std::forward<Args>(_args)...);
     }
+
 private:
     char data_[DataSize];
 };
