@@ -9,7 +9,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 ## Resources
  * [Tutorials](tutorials/README.md)
  * [Release Notes](RELEASES.md)
- * [IPC library](solid/frame/ipc/README.md)
+ * [MPIPC library](solid/frame/mpipc/README.md)
  * [API Reference](solid/API.md) - __TODO__
  * [Wiki](https://github.com/vipalade/solidframe/wiki) - __TODO__
 
