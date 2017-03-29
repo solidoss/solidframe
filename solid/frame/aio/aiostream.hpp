@@ -596,7 +596,7 @@ private:
 
     void doRecv(ReactorContext& _rctx)
     {
-        if (!recv_is_posted and !FUNCTION_EMPTY(recv_fnc)) {
+        if (!recv_is_posted && !FUNCTION_EMPTY(recv_fnc)) {
             vdbgx(Debug::aio, "");
             errorClear(_rctx);
             recv_fnc(*this, _rctx);

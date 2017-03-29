@@ -124,7 +124,7 @@ public:
 
     bool isClient() const
     {
-        return not FUNCTION_EMPTY(client.name_resolve_fnc);
+        return !FUNCTION_EMPTY(client.name_resolve_fnc);
     }
 
     bool isServerOnly() const
@@ -174,7 +174,7 @@ public:
 
         bool hasSecureConfiguration() const
         {
-            return not secure_any.empty();
+            return !secure_any.empty();
         }
 
         ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
@@ -206,7 +206,7 @@ public:
 
         bool hasSecureConfiguration() const
         {
-            return not secure_any.empty();
+            return !secure_any.empty();
         }
 
         ConnectionCreateSocketFunctionT connection_create_socket_fnc;

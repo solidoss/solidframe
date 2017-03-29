@@ -43,7 +43,7 @@ struct Engine {
 
             ::snappy::RawCompress(_piobuf, _bufsz, tmpbuf, &len);
 
-            if (_bufsz <= len or (_bufsz - len) < diff_threshold) {
+            if (_bufsz <= len || (_bufsz - len) < diff_threshold) {
                 return 0; //compression not eficient
             }
 

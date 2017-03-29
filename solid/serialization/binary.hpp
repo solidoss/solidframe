@@ -589,7 +589,7 @@ protected:
 
             uint64_t crcsz;
 
-            if (not compute_value_with_crc(crcsz, pbs->size())) {
+            if (!compute_value_with_crc(crcsz, pbs->size())) {
                 rs.err = make_error(ERR_CONTAINER_MAX_LIMIT);
                 return FailureE;
             }
@@ -617,7 +617,7 @@ protected:
         const std::bitset<V>* pbs    = reinterpret_cast<std::bitset<V>*>(_rfd.p);
         size_t                bitoff = 0;
 
-        while ((rs.be - rs.cpb) and _rfd.s < pbs->size()) {
+        while ((rs.be - rs.cpb) && _rfd.s < pbs->size()) {
             uint8_t* puc = reinterpret_cast<uint8_t*>(rs.cpb);
 
             if (bitoff == 0) {
@@ -665,7 +665,7 @@ protected:
                 return FailureE;
             }
             uint64_t crcsz;
-            if (not compute_value_with_crc(crcsz, c->size())) {
+            if (!compute_value_with_crc(crcsz, c->size())) {
                 rs.err = make_error(ERR_CONTAINER_MAX_LIMIT);
                 return FailureE;
             }
@@ -727,7 +727,7 @@ protected:
 
         if (c && _rfd.s > 0) {
             uint64_t crcsz;
-            if (_rfd.s > rs.lmts.containerlimit or _rfd.s > _rfd.d) {
+            if (_rfd.s > rs.lmts.containerlimit || _rfd.s > _rfd.d) {
                 rs.err = make_error(ERR_ARRAY_LIMIT);
                 return FailureE;
             } else if (compute_value_with_crc(crcsz, _rfd.s)) {
@@ -1779,7 +1779,7 @@ protected:
         uint64_t&       len    = rd.estk.top().first_uint64_t_value();
         size_t          bitoff = 0;
 
-        while ((rd.be - rd.cpb) > 0 and _rfd.s < len) {
+        while ((rd.be - rd.cpb) > 0 && _rfd.s < len) {
             const uint8_t* puc = reinterpret_cast<const uint8_t*>(rd.cpb);
 
             pbs->set(_rfd.s, (*puc & (1 << bitoff)) != 0);
@@ -1952,7 +1952,7 @@ protected:
 
         idbgx(Debug::ser_bin, "size " << rsz);
 
-        if (rsz > rd.lmts.containerlimit or rsz > _rfd.d) {
+        if (rsz > rd.lmts.containerlimit || rsz > _rfd.d) {
             idbgx(Debug::ser_bin, "error");
             rd.err = make_error(ERR_ARRAY_LIMIT);
             return FailureE;
@@ -1990,7 +1990,7 @@ protected:
 
         idbgx(Debug::ser_bin, "size " << rsz);
 
-        if (rsz > rd.lmts.containerlimit or rsz > _rfd.d) {
+        if (rsz > rd.lmts.containerlimit || rsz > _rfd.d) {
             idbgx(Debug::ser_bin, "error");
             rd.err = make_error(ERR_ARRAY_LIMIT);
             return FailureE;

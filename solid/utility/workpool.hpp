@@ -429,7 +429,7 @@ struct WPFunctionController : WorkPoolControllerBase {
     template <class WP>
     void onPush(WP& _rwp, size_t _qsz)
     {
-        if (_qsz > _rwp.workerCount() and _rwp.workerCount() < max_thr_cnt_) {
+        if (_qsz > _rwp.workerCount() && _rwp.workerCount() < max_thr_cnt_) {
             _rwp.createWorker();
         }
     }

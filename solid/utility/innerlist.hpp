@@ -248,7 +248,7 @@ public:
     bool check() const
     {
 
-        if (back_ == InvalidIndex() or front_ == InvalidIndex()) {
+        if (back_ == InvalidIndex() || front_ == InvalidIndex()) {
             return back_ == front_;
         }
 
@@ -257,7 +257,7 @@ public:
 
     bool contains(const size_t _index) const
     {
-        return link(_index).prev != InvalidIndex() or link(_index).next != InvalidIndex() or _index == front_;
+        return link(_index).prev != InvalidIndex() || link(_index).next != InvalidIndex() || _index == front_;
     }
 
 private:

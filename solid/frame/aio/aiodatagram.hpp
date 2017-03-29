@@ -576,7 +576,7 @@ private:
 
     void doRecv(ReactorContext& _rctx)
     {
-        if (!recv_is_posted and !FUNCTION_EMPTY(recv_fnc)) {
+        if (!recv_is_posted && !FUNCTION_EMPTY(recv_fnc)) {
             errorClear(_rctx);
             recv_fnc(*this, _rctx);
         }
@@ -584,7 +584,7 @@ private:
 
     void doSend(ReactorContext& _rctx)
     {
-        if (!send_is_posted and !FUNCTION_EMPTY(send_fnc)) {
+        if (!send_is_posted && !FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
             send_fnc(*this, _rctx);
         }

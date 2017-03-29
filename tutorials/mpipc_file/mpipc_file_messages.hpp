@@ -102,14 +102,14 @@ struct FileResponse : solid::frame::mpipc::Message {
                 } else {
                     std::string* plocal_path = localPath(_rctx);
 
-                    if (remote_file_size != solid::InvalidSize() and plocal_path) {
+                    if (remote_file_size != solid::InvalidSize() && plocal_path) {
                         fs.open(plocal_path->c_str(), std::fstream::out | std::fstream::binary);
                     }
                     _rs.pushStream(static_cast<std::ostream*>(&fs), "fs");
                 }
             },
             0, "reinit");
-        if (not S::IsSerializer) {
+        if (!S::IsSerializer) {
             _s.push(remote_file_size, "remote_file_size");
         }
     }

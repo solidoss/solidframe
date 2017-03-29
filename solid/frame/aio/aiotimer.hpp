@@ -93,7 +93,7 @@ public:
 
     void cancel(ReactorContext& _rctx)
     {
-        if (not FUNCTION_EMPTY(f)) {
+        if (!FUNCTION_EMPTY(f)) {
             remTimer(_rctx, storeidx);
             error(_rctx, error_timer_cancel);
             doExec(_rctx);

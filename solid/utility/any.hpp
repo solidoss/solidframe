@@ -71,7 +71,7 @@ struct AnyValue<T, true> : AnyValueBase {
     {
         if (sizeof(AnyValue<T>) <= _sz) {
             return new (_pd) AnyValue<T>{std::move(value_)};
-        } else if (not _uses_data) { //the pointer was allocated
+        } else if (!_uses_data) { //the pointer was allocated
             return this;
         } else {
             return new AnyValue<T>{std::move(value_)};
@@ -109,7 +109,7 @@ struct AnyValue<T, false> : AnyValueBase {
     {
         if (sizeof(AnyValue<T>) <= _sz) {
             return new (_pd) AnyValue<T>{std::move(value_)};
-        } else if (not _uses_data) { //the pointer was allocated
+        } else if (!_uses_data) { //the pointer was allocated
             return this;
         } else {
             return new AnyValue<T>{std::move(value_)};

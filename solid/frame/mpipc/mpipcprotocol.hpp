@@ -86,11 +86,11 @@ struct CompleteHandler {
 
         ErrorConditionT error(_err);
 
-        if (not error and _rreq_msg_ptr and not req_msg_ptr) {
+        if (!error && _rreq_msg_ptr && !req_msg_ptr) {
             error = error_service_bad_cast_request;
         }
 
-        if (not error and _rres_msg_ptr and not res_msg_ptr) {
+        if (!error && _rres_msg_ptr && !res_msg_ptr) {
             error = error_service_bad_cast_response;
         }
 

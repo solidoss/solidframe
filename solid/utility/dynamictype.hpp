@@ -124,7 +124,7 @@ struct Dynamic : T {
 
     static X* cast(DynamicBase* _pdb)
     {
-        if (_pdb and isTypeDynamic(_pdb->dynamicTypeId())) {
+        if (_pdb && isTypeDynamic(_pdb->dynamicTypeId())) {
             return static_cast<X*>(_pdb);
         }
         return nullptr;
