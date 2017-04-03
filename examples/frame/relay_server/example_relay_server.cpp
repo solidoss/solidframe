@@ -51,8 +51,8 @@ namespace {
 struct Params {
     int    listener_port;
     int    talker_port;
-    string destination_addr_str;
-    string destination_port_str;
+    string connect_addr_str;
+    string connect_port_str;
 
     string dbg_levels;
     string dbg_modules;
@@ -175,7 +175,6 @@ protected:
 
 protected:
     typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
-    //typedef frame::aio::Timer                         TimerT;
     enum { BufferCapacity = 1024 * 2 };
 
     char          buf1[BufferCapacity];
@@ -185,9 +184,7 @@ protected:
     uint64_t      recvcnt;
     uint64_t      sendcnt;
     size_t        sendcrt;
-    //frame::MessagePointerT    resolv_msgptr;
     uint32_t crtid;
-    //TimerT            timer;
 };
 
 bool parseArguments(Params& _par, int argc, char* argv[]);
@@ -199,7 +196,7 @@ int main(int argc, char* argv[])
         return 0;
 
     signal(SIGINT, term_handler); /* Die on SIGTERM */
-//signal(SIGPIPE, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
 
 #ifdef SOLID_HAS_DEBUG
     {
@@ -238,7 +235,7 @@ int main(int argc, char* argv[])
         frame::Manager  m;
         frame::ServiceT svc(m);
 
-        if (sch.start(1)) {
+        if (sch.start(thread::hardware_concurrency())) {
             running = false;
             cout << "Error starting scheduler" << endl;
         } else {
@@ -285,8 +282,8 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 {
     using namespace boost::program_options;
     try {
-        options_description desc("SolidFrame concept application");
-        desc.add_options()("help,h", "List program options")("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")("destination-addr,d", value<string>(&_par.destination_addr_str)->default_value(""), "Destination address")("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"), "Debug logging levels")("debug-modules,M", value<string>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        options_description desc("SolidFrame Example Relay-Server Application");
+        desc.add_options()("help,h", "List program options")("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")("connect-addr,d", value<string>(&_par.connect_addr_str)->default_value(""), "Connect address")("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"), "Debug logging levels")("debug-modules,M", value<string>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
         notify(vm);
@@ -297,15 +294,15 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 
         size_t pos;
 
-        pos = _par.destination_addr_str.rfind(':');
+        pos = _par.connect_addr_str.rfind(':');
         if (pos != string::npos) {
-            _par.destination_addr_str[pos] = '\0';
+            _par.connect_addr_str[pos] = '\0';
 
-            _par.destination_port_str.assign(_par.destination_addr_str.c_str() + pos + 1);
+            _par.connect_port_str.assign(_par.connect_addr_str.c_str() + pos + 1);
 
-            _par.destination_addr_str.resize(pos);
+            _par.connect_addr_str.resize(pos);
         } else {
-            _par.destination_port_str = _par.listener_port;
+            _par.connect_port_str = _par.listener_port;
         }
 
         return false;
@@ -406,13 +403,6 @@ struct MoveMessage {
     {
         memcpy(buf, _umm.buf, sz);
     }
-
-    //  //TODO this shoud not be present
-    //  MoveMessage(
-    //      const MoveMessage &_rmm
-    //  ){
-    //      SOLID_ASSERT(false);
-    //  }
 };
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
@@ -420,12 +410,12 @@ struct MoveMessage {
     edbg(this << " " << _revent);
     if (generic_event_start == _revent) {
         //sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);//fully asynchronous call
-        if (params.destination_addr_str.size()) {
+        if (params.connect_addr_str.size()) {
             //we must resolve the address then connect
-            idbg("async_resolve = " << params.destination_addr_str << " " << params.destination_port_str);
+            idbg("async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
-                ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), params.destination_addr_str.c_str(),
-                params.destination_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
+                ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), params.connect_addr_str.c_str(),
+                params.connect_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
         } else {
             const uint32_t id = crtid = crt_id++;
 
@@ -435,7 +425,6 @@ struct MoveMessage {
         }
     } else if (generic_event_kill == _revent) {
         edbg(this << " postStop");
-        //sock.shutdown(_rctx);
         postStop(_rctx);
     } else if (generic_event_message == _revent) {
         MoveMessage* pmovemsg = _revent.any().cast<MoveMessage>();

@@ -234,7 +234,7 @@ int main(int argc, char* argv[])
         frame::Manager  m;
         frame::ServiceT svc(m);
 
-        if (sch.start(1)) {
+        if (sch.start(thread::hardware_concurrency())) {
             running = false;
             cout << "Error starting scheduler" << endl;
         } else {
