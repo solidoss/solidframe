@@ -31,7 +31,7 @@ using namespace solid;
 using namespace std::placeholders;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
-using BufferPairT = pair<const char *, size_t>;
+using BufferPairT   = pair<const char*, size_t>;
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -101,26 +101,28 @@ public:
     {
         init();
     }
-    
-    Connection(const frame::ObjectIdT &_peer_obduid)
+
+    Connection(const frame::ObjectIdT& _peer_obduid)
         : sock(this->proxy())
         , peer_objuid(_peer_obduid)
     {
         init();
     }
-    
-    void init(){
-        buf_crt_recv = 0;
-        buf_crt_send = 0;
-        buf_ack_send = 0;
-        buf_pop_sending = 0;
+
+    void init()
+    {
+        buf_crt_recv     = 0;
+        buf_crt_send     = 0;
+        buf_ack_send     = 0;
+        buf_pop_sending  = 0;
         buf_push_sending = 0;
     }
-    
+
     ~Connection() {}
 protected:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
-    void doStop(frame::Manager& _rm) override{
+    void doStop(frame::Manager& _rm) override
+    {
         _rm.notify(peer_objuid, Event(generic_event_kill));
     }
 
@@ -131,20 +133,17 @@ protected:
 
 protected:
     typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
-    enum { BufferCapacity = 1024 * 2, BufferCount = 2 };
+    enum { BufferCapacity = 1024 * 4,
+        BufferCount       = 8 };
 
-    char          buf[BufferCount][BufferCapacity];
-    uint8_t       buf_crt_recv;
-    uint8_t       buf_crt_send;
-    uint8_t       buf_ack_send;
-    uint8_t       buf_pop_sending;
-    uint8_t       buf_push_sending;
-    
-    
-    
-    BufferPairT   buf_sending[BufferCount];
-    
-    StreamSocketT sock;
+    char             buf[BufferCount][BufferCapacity];
+    uint8_t          buf_crt_recv;
+    uint8_t          buf_crt_send;
+    uint8_t          buf_ack_send;
+    uint8_t          buf_pop_sending;
+    uint8_t          buf_push_sending;
+    BufferPairT      buf_sending[BufferCount];
+    StreamSocketT    sock;
     frame::ObjectIdT peer_objuid;
 };
 
@@ -270,7 +269,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 {
     idbg("event = " << _revent);
     if (_revent == generic_event_start) {
-        sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd){this->onAccept(_rctx, _rsd);});
+        sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { this->onAccept(_rctx, _rsd); });
     } else if (_revent == generic_event_kill) {
         postStop(_rctx);
     }
@@ -283,12 +282,14 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
+#if 0
             int sz = 1024 * 64;
             _rsd.recvBufferSize(sz);
             sz = 1024 * 32;
             _rsd.sendBufferSize(sz);
+#endif
             _rsd.enableNoDelay();
-            
+
             frame::ObjectIdT objuid;
             {
                 DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd)));
@@ -296,7 +297,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
                 objuid = rsch.startObject(objptr, rsvc, make_event(GenericEvents::Start), err);
             }
-            
+
             {
                 DynamicPointer<frame::aio::Object> objptr(new Connection(objuid));
                 solid::ErrorConditionT             err;
@@ -347,40 +348,40 @@ struct ResolvFunc {
 {
     edbg(this << " " << _revent);
     if (generic_event_raise == _revent) {
-        BufferPairT *pbufpair = _revent.any().cast<BufferPairT>();
-        
-        if(pbufpair){
+        BufferPairT* pbufpair = _revent.any().cast<BufferPairT>();
+
+        if (pbufpair) {
             //new data to send
             SOLID_ASSERT(buf_sending[buf_push_sending].first == nullptr);
-            idbg(this << " new data to sent " << (int)buf_pop_sending<< ' ' <<(int)buf_push_sending<< ' ' <<pbufpair->second);
+            idbg(this << " new data to sent " << (int)buf_pop_sending << ' ' << (int)buf_push_sending << ' ' << pbufpair->second);
             buf_sending[buf_push_sending] = *pbufpair;
-            
-            if(buf_push_sending == buf_pop_sending){
+
+            if (buf_push_sending == buf_pop_sending) {
                 idbg(this << " sending " << buf_sending[buf_pop_sending].second);
                 sock.postSendAll(_rctx, buf_sending[buf_pop_sending].first, buf_sending[buf_pop_sending].second, Connection::onSend);
             }
-            
+
             buf_push_sending = (buf_push_sending + 1) % BufferCount;
-        }else{
+        } else {
             //a send ack
-            
-            idbg(this << " on sent ack event "<< (int)buf_crt_recv << ' ' << (int)buf_ack_send << ' '<< sock.hasPendingRecv());
-            
-            if(buf_ack_send != buf_crt_recv){
-                if(not sock.hasPendingRecv()){
+
+            idbg(this << " on sent ack event " << (int)buf_crt_recv << ' ' << (int)buf_ack_send << ' ' << sock.hasPendingRecv());
+
+            if (buf_ack_send != buf_crt_recv) {
+                if (not sock.hasPendingRecv()) {
                     sock.postRecvSome(_rctx, buf[buf_crt_recv], BufferCapacity, Connection::onRecv);
                 }
             }
-            
+
             buf_ack_send = (buf_ack_send + 1) % BufferCount;
         }
-        
+
     } else if (generic_event_start == _revent) {
-        if(sock.device().ok()){
+        if (sock.device().ok()) {
             sock.device().enableNoDelay();
             //the accepted socket
             //wait for peer to connect
-        }else{
+        } else {
             //the connecting socket
             idbg("async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
@@ -402,9 +403,9 @@ struct ResolvFunc {
                 }
             }
         }
-        
+
         frame::ObjectIdT* ppeer_objuid = _revent.any().cast<frame::ObjectIdT>();
-        if(ppeer_objuid){
+        if (ppeer_objuid) {
             //peer connection established
             peer_objuid = *ppeer_objuid;
             //do the first read
@@ -415,22 +416,22 @@ struct ResolvFunc {
 
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
-    
+    Connection& rthis = static_cast<Connection&>(_rctx.object());
+
     if (!_rctx.error()) {
         idbg(&rthis << " SUCCESS");
-        
+
         Event ev(make_event(GenericEvents::Message));
 
         ev.any().reset(_rctx.service().manager().id(rthis));
 
         idbg(&rthis << " send resolv_message");
-        if(_rctx.service().manager().notify(rthis.peer_objuid, std::move(ev))){
-        
+        if (_rctx.service().manager().notify(rthis.peer_objuid, std::move(ev))) {
+
             rthis.sock.device().enableNoDelay();
             //do the first read
             rthis.sock.postRecvSome(_rctx, rthis.buf[rthis.buf_crt_recv], BufferCapacity, Connection::onRecv);
-        }else{
+        } else {
             //peer has died
             edbg(&rthis << " postStop " << _rctx.systemError().message());
             rthis.postStop(_rctx);
@@ -443,56 +444,52 @@ struct ResolvFunc {
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
-    
+    Connection& rthis = static_cast<Connection&>(_rctx.object());
+
     idbg(&rthis << " " << _sz);
-    
+
     if (!_rctx.error()) {
-        
+
         Event ev(make_event(GenericEvents::Raise));
 
         ev.any().reset(BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz));
-        
+
         _rctx.service().manager().notify(rthis.peer_objuid, std::move(ev));
-        
+
         rthis.buf_crt_recv = (rthis.buf_crt_recv + 1) % BufferCount;
-        
-        if(rthis.buf_ack_send != rthis.buf_crt_recv){
+
+        if (rthis.buf_ack_send != rthis.buf_crt_recv) {
             rthis.sock.postRecvSome(_rctx, rthis.buf[rthis.buf_crt_recv], BufferCapacity, Connection::onRecv);
-        }else{
+        } else {
             //no free buffer
         }
-        
-    }else{
+
+    } else {
         edbg(&rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
 }
-
-
 
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
-    
+
     if (!_rctx.error()) {
         _rctx.service().manager().notify(rthis.peer_objuid, make_event(GenericEvents::Raise));
-        
-        idbg(&rthis << " " << (int)rthis.buf_pop_sending<< ' ' <<(int)rthis.buf_push_sending);
-        
+
+        idbg(&rthis << " " << (int)rthis.buf_pop_sending << ' ' << (int)rthis.buf_push_sending);
+
         rthis.buf_sending[rthis.buf_pop_sending].first = nullptr;
-        rthis.buf_pop_sending = (rthis.buf_pop_sending + 1) % BufferCount;
-        
-        if(rthis.buf_pop_sending != rthis.buf_push_sending){
+        rthis.buf_pop_sending                          = (rthis.buf_pop_sending + 1) % BufferCount;
+
+        if (rthis.buf_pop_sending != rthis.buf_push_sending) {
             rthis.sock.postSendAll(_rctx, rthis.buf_sending[rthis.buf_pop_sending].first, rthis.buf_sending[rthis.buf_pop_sending].second, Connection::onSend);
         }
-        
-    }else{
+
+    } else {
         edbg(&rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
 }
 
-
 //-----------------------------------------------------------------------------
-

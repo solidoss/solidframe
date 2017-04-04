@@ -17,10 +17,10 @@
 
 #include "solid/system/cassert.hpp"
 
+#include <atomic>
+#include <condition_variable>
 #include <mutex>
 #include <thread>
-#include <condition_variable>
-#include <atomic>
 
 #include <signal.h>
 
@@ -30,13 +30,13 @@ using namespace std;
 using namespace solid;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
-using AtomicSizeT = atomic<size_t>;
-namespace{
+using AtomicSizeT   = atomic<size_t>;
+namespace {
 struct Params {
     uint32_t connection_count;
     uint32_t repeat_count;
-    string connect_addr_str;
-    string connect_port_str;
+    string   connect_addr_str;
+    string   connect_port_str;
 
     string dbg_levels;
     string dbg_modules;
@@ -50,9 +50,9 @@ mutex              mtx;
 condition_variable cnd;
 AtomicSizeT        concnt(0);
 uint64_t           recv_count(0);
-Params params;
+Params             params;
 
-const size_t        sizes[]{
+const size_t sizes[]{
     100,
     200,
     400,
@@ -62,12 +62,32 @@ const size_t        sizes[]{
     3200,
     4800,
     6400,
-    8800,
-    12800
-};
-size_t          sizes_size = sizeof(sizes)/sizeof(size_t);
+    //    8800,
+    //    12800
+    100,
+    200,
+    400,
+    800,
+    1600,
+    2400,
+    3200,
+    4800,
+    100,
+    200,
+    400,
+    800,
+    1600,
+    2400,
+    3200,
+    100,
+    200,
+    400,
+    800,
+    1600,
+    2400};
+size_t sizes_size = sizeof(sizes) / sizeof(size_t);
 
-vector<string>  send_data_vec;
+vector<string> send_data_vec;
 
 frame::aio::Resolver& async_resolver()
 {
@@ -75,7 +95,7 @@ frame::aio::Resolver& async_resolver()
     return r;
 }
 
-}//namespace
+} //namespace
 
 class Connection : public Dynamic<Connection, frame::aio::Object> {
 public:
@@ -90,33 +110,34 @@ public:
     ~Connection() {}
 private:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
-    void doStop(frame::Manager& _rm) override{
+    void doStop(frame::Manager& _rm) override
+    {
         unique_lock<mutex> lock(mtx);
         --concnt;
         recv_count += recvcnt;
-        if(concnt == 0){
+        if (concnt == 0) {
             cnd.notify_one();
         }
     }
-    
+
     void doSend(frame::aio::ReactorContext& _rctx);
-    
+
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void onSend(frame::aio::ReactorContext& _rctx);
 
     static void onConnect(frame::aio::ReactorContext& _rctx);
-    
-    
+
 private:
     typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
     enum { BufferCapacity = 1024 * 2 };
 
     char          buf[BufferCapacity];
-    StreamSocketT sock;;
-    uint64_t      recvcnt;
-    const size_t  idx;
-    size_t        crt_send_idx;
-    size_t        expect_recvcnt;
+    StreamSocketT sock;
+    ;
+    uint64_t     recvcnt;
+    const size_t idx;
+    size_t       crt_send_idx;
+    size_t       expect_recvcnt;
 };
 
 bool parseArguments(Params& _par, int argc, char* argv[]);
@@ -128,9 +149,9 @@ int main(int argc, char* argv[])
 
     if (parseArguments(params, argc, argv))
         return 0;
-    
+
     prepareSendData();
-    
+
     //signal(SIGINT, term_handler); /* Die on SIGTERM */
     signal(SIGPIPE, SIG_IGN);
 
@@ -174,27 +195,26 @@ int main(int argc, char* argv[])
         if (sch.start(thread::hardware_concurrency())) {
             cout << "Error starting scheduler" << endl;
         } else {
-            for(size_t i = 0; i < params.connection_count; ++i){
+            for (size_t i = 0; i < params.connection_count; ++i) {
                 DynamicPointer<frame::aio::Object> objptr(new Connection(i));
                 solid::ErrorConditionT             err;
                 solid::frame::ObjectIdT            objuid;
-            
+
                 ++concnt;
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                if(objuid.isInvalid()){
-                  --concnt;  
+                if (objuid.isInvalid()) {
+                    --concnt;
                 }
                 idbg("Started Connection Object: " << objuid.index << ',' << objuid.unique);
             }
-            
         }
 
         unique_lock<mutex> lock(mtx);
-        
+
         while (concnt) {
             cnd.wait(lock);
         }
-        cout<<"Received "<<recv_count/1024<<"KB on "<<params.connection_count<<" connections"<<endl;
+        cout << "Received " << recv_count / 1024 << "KB on " << params.connection_count << " connections" << endl;
         async_resolver().stop();
         m.stop();
     }
@@ -208,11 +228,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     using namespace boost::program_options;
     try {
         options_description desc("SolidFrame concept application");
-        desc.add_options()
-        ("connect,c", value<string>(&_par.connect_addr_str)->default_value(""), "Connect address")
-        ("connection-count", value<uint32_t>(&_par.connection_count)->default_value(1), "Connection count")
-        ("repeat-count", value<uint32_t>(&_par.repeat_count)->default_value(100), "Repeat count")
-        ("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"), "Debug logging levels")("debug-modules,M", value<string>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")("help,h", "List program options");
+        desc.add_options()("connect,c", value<string>(&_par.connect_addr_str)->default_value(""), "Connect address")("connection-count", value<uint32_t>(&_par.connection_count)->default_value(1), "Connection count")("repeat-count", value<uint32_t>(&_par.repeat_count)->default_value(100), "Repeat count")("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"), "Debug logging levels")("debug-modules,M", value<string>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")("help,h", "List program options");
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
         notify(vm);
@@ -242,22 +258,23 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 }
 
 //-----------------------------------------------------------------------------
-void prepareSendData(){
-    
+void prepareSendData()
+{
+
     string pattern;
     pattern.reserve(256);
-    
-    for(int i = 0; i < 256; ++i){
-        if(isgraph(i)){
+
+    for (int i = 0; i < 256; ++i) {
+        if (isgraph(i)) {
             pattern += static_cast<char>(i);
         }
     }
-    
+
     send_data_vec.resize(sizes_size);
-    for(size_t i = 0; i < sizes_size; ++i){
-        auto &s = send_data_vec[i];
+    for (size_t i = 0; i < sizes_size; ++i) {
+        auto& s = send_data_vec[i];
         s.reserve(sizes[i]);
-        for(size_t j = 0; j < sizes[i]; ++j){
+        for (size_t j = 0; j < sizes[i]; ++j) {
             s += pattern[(i + j) % pattern.size()];
         }
     }
@@ -285,7 +302,8 @@ struct ResolvFunc {
     }
 };
 
-void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent){
+void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
+{
     idbg("event = " << _revent);
     if (_revent == generic_event_start) {
         if (params.connect_addr_str.size()) {
@@ -312,17 +330,19 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent){
     }
 }
 
-void Connection::doSend(frame::aio::ReactorContext& _rctx){
-    size_t sendidx = (crt_send_idx + idx) % send_data_vec.size();
-    const auto &str = send_data_vec[sendidx];
-    expect_recvcnt = str.size();
-    idbg(this<<" sending "<<str.size());
+void Connection::doSend(frame::aio::ReactorContext& _rctx)
+{
+    size_t      sendidx = (crt_send_idx + idx) % send_data_vec.size();
+    const auto& str     = send_data_vec[sendidx];
+    expect_recvcnt      = str.size();
+    idbg(this << " sending " << str.size());
     sock.postSendAll(_rctx, str.data(), str.size(), &Connection::onSend);
 }
 
-/*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx){
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
-     if (!_rctx.error()) {
+/*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
+{
+    Connection& rthis = static_cast<Connection&>(_rctx.object());
+    if (!_rctx.error()) {
         idbg(&rthis << " SUCCESS");
         rthis.sock.device().enableNoDelay();
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);
@@ -333,40 +353,40 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx){
     }
 }
 
+/*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
+{
+    Connection& rthis = static_cast<Connection&>(_rctx.object());
 
-/*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz){
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
-    
     if (!_rctx.error()) {
         rthis.recvcnt += _sz;
-        
+
         SOLID_ASSERT(_sz <= rthis.expect_recvcnt);
-        
-        idbg(&rthis<<" received "<<_sz);
-        
+
+        idbg(&rthis << " received " << _sz);
+
         rthis.expect_recvcnt -= _sz;
-        
-        if(rthis.expect_recvcnt == 0){
+
+        if (rthis.expect_recvcnt == 0) {
             ++rthis.crt_send_idx;
-            if(rthis.crt_send_idx != params.repeat_count){
+            if (rthis.crt_send_idx != params.repeat_count) {
                 rthis.doSend(_rctx);
-            }else{
+            } else {
                 rthis.postStop(_rctx);
             }
         }
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);
-    }else{
+    } else {
         edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
-    
 }
 
-/*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx){
-    Connection& rthis     = static_cast<Connection&>(_rctx.object());
-    
+/*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
+{
+    Connection& rthis = static_cast<Connection&>(_rctx.object());
+
     if (!_rctx.error()) {
-    }else{
+    } else {
         edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
