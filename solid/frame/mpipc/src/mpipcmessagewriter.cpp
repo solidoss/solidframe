@@ -103,7 +103,7 @@ bool MessageWriter::cancel(
     MessageBundle&   _rmsgbundle,
     MessageId&       _rpool_msg_id)
 {
-    if (_rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique) {
+    if (_rmsguid.isValid() and _rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique) {
         return doCancel(_rmsguid.index, _rmsgbundle, _rpool_msg_id);
     }
 
@@ -112,7 +112,7 @@ bool MessageWriter::cancel(
 //-----------------------------------------------------------------------------
 MessagePointerT MessageWriter::fetchRequest(MessageId const& _rmsguid) const
 {
-    if (_rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique) {
+    if (_rmsguid.isValid() and _rmsguid.index < message_vec.size() and _rmsguid.unique == message_vec[_rmsguid.index].unique) {
         const MessageStub& rmsgstub = message_vec[_rmsguid.index];
         return MessagePointerT(rmsgstub.msgbundle.message_ptr);
     }
@@ -336,15 +336,11 @@ char* MessageWriter::doFillPacket(
             continue;
         }
 
-        if (not rmsgstub.msgbundle.message_ptr->isOnPeer()) {
-            //on sender
-            _rctx.request_id.index  = msgidx;
-            _rctx.request_id.unique = rmsgstub.unique;
-        } else {
-            _rctx.request_id = rmsgstub.msgbundle.message_ptr->requestId();
-        }
+        _rctx.request_id.index  = (msgidx + 1);
+        _rctx.request_id.unique = rmsgstub.unique;
 
-        _rctx.message_state = rmsgstub.msgbundle.message_ptr->state() + 1;
+        _rctx.message_flags = Message::clear_state_flags(rmsgstub.msgbundle.message_flags) | Message::state_flags(rmsgstub.msgbundle.message_ptr->flags());
+        _rctx.message_flags = Message::update_state_flags(_rctx.message_flags);
 
         const int rv = rmsgstub.serializer_ptr->run(_rctx, pbufpos, _pbufend - pbufpos);
 

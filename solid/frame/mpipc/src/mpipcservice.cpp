@@ -79,8 +79,9 @@ struct MessageStub : InnerNode<InnerLinkCount> {
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _msgflags)
-        : msgbundle(_rmsgptr, _msg_type_idx, _msgflags, _rcomplete_fnc)
+        ulong                     _msgflags,
+        std::string&              _rmsg_url)
+        : msgbundle(_rmsgptr, _msg_type_idx, _msgflags, _rcomplete_fnc, _rmsg_url)
         , unique(0)
         , flags(0)
     {
@@ -257,7 +258,8 @@ struct ConnectionPoolStub {
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _flags)
+        ulong                     _flags,
+        std::string&              _msg_url)
     {
         size_t idx;
 
@@ -271,7 +273,7 @@ struct ConnectionPoolStub {
 
         MessageStub& rmsgstub(msgvec[idx]);
 
-        rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc);
+        rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc, _msg_url);
 
         //SOLID_ASSERT(rmsgstub.msgbundle.message_ptr.get());
 
@@ -282,9 +284,10 @@ struct ConnectionPoolStub {
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _flags)
+        ulong                     _flags,
+        std::string&              _msg_url)
     {
-        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags);
+        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _msg_url);
 
         msgorder_inner_list.pushBack(msgid.index);
 
@@ -304,9 +307,10 @@ struct ConnectionPoolStub {
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _flags)
+        ulong                     _flags,
+        std::string&              _msg_url)
     {
-        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags);
+        const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _msg_url);
 
         msgorder_inner_list.pushFront(msgid.index);
 
@@ -327,13 +331,14 @@ struct ConnectionPoolStub {
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _flags)
+        ulong                     _flags,
+        std::string&              _msg_url)
     {
         MessageStub& rmsgstub(msgvec[_rmsgid.index]);
 
         SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr and rmsgstub.unique == _rmsgid.unique);
 
-        rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc);
+        rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc, _msg_url);
 
         msgorder_inner_list.pushFront(_rmsgid.index);
 
@@ -588,6 +593,7 @@ struct Service::Data {
     ConnectionPoolDequeT pooldq;
     SizeStackT           conpoolcachestk;
     Configuration        config;
+    std::string          tmp_str;
 };
 //=============================================================================
 
@@ -755,7 +761,7 @@ struct OnRelsolveF {
 
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doSendMessage(
-    const char*               _recipient_name,
+    const char*               _recipient_url,
     const RecipientId&        _rrecipient_id_in,
     MessagePointerT&          _rmsgptr,
     MessageCompleteFunctionT& _rcomplete_fnc,
@@ -809,6 +815,15 @@ ErrorConditionT Service::doSendMessage(
         return error;
     }
 
+    std::string message_url;
+    const char* recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, d.tmp_str);
+
+    if (_recipient_url != nullptr and recipient_name == nullptr) {
+        edbgx(Debug::mpipc, this << " failed extracting recipient name");
+        error = error_service_invalid_url;
+        return error;
+    }
+
     if (_rrecipient_id_in.isValidConnection()) {
         SOLID_ASSERT(_precipient_id_out == nullptr);
         //directly send the message to a connection object
@@ -818,9 +833,10 @@ ErrorConditionT Service::doSendMessage(
             msg_type_idx,
             _rcomplete_fnc,
             _pmsgid_out,
-            _flags);
-    } else if (_recipient_name) {
-        NameMapT::const_iterator it = d.namemap.find(_recipient_name);
+            _flags,
+            message_url);
+    } else if (recipient_name) {
+        NameMapT::const_iterator it = d.namemap.find(recipient_name);
 
         if (it != d.namemap.end()) {
             pool_idx = it->second;
@@ -832,8 +848,8 @@ ErrorConditionT Service::doSendMessage(
             }
 
             return this->doSendMessageToNewPool(
-                _recipient_name, _rmsgptr, msg_type_idx,
-                _rcomplete_fnc, _precipient_id_out, _pmsgid_out, _flags);
+                recipient_name, _rmsgptr, msg_type_idx,
+                _rcomplete_fnc, _precipient_id_out, _pmsgid_out, _flags, message_url);
         }
     } else if (
         _rrecipient_id_in.poolid.index < d.pooldq.size()) {
@@ -875,7 +891,7 @@ ErrorConditionT Service::doSendMessage(
 
     //At this point we can fetch the message from user's pointer
     //because from now on we can call complete on the message
-    const MessageId msgid = rpool.pushBackMessage(_rmsgptr, msg_type_idx, _rcomplete_fnc, _flags);
+    const MessageId msgid = rpool.pushBackMessage(_rmsgptr, msg_type_idx, _rcomplete_fnc, _flags, message_url);
 
     if (_pmsgid_out) {
 
@@ -932,7 +948,8 @@ ErrorConditionT Service::doSendMessageToConnection(
     const size_t              _msg_type_idx,
     MessageCompleteFunctionT& _rcomplete_fnc,
     MessageId*                _pmsgid_out,
-    ulong                     _flags)
+    ulong                     _flags,
+    std::string&              _msg_url)
 {
     //d.mtx must be locked
 
@@ -961,12 +978,12 @@ ErrorConditionT Service::doSendMessageToConnection(
     if (is_server_side_pool) {
         //for a server pool we want to enque messages in the pool
         //
-        msgid   = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlags::OneShotSend);
+        msgid   = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlags::OneShotSend, _msg_url);
         success = manager().notify(
             _rrecipient_id_in.connectionId(),
             Connection::eventNewMessage());
     } else {
-        msgid   = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlags::OneShotSend);
+        msgid   = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlags::OneShotSend, _msg_url);
         success = manager().notify(
             _rrecipient_id_in.connectionId(),
             Connection::eventNewMessage(msgid));
@@ -998,7 +1015,8 @@ ErrorConditionT Service::doSendMessageToNewPool(
     MessageCompleteFunctionT& _rcomplete_fnc,
     RecipientId*              _precipient_id_out,
     MessageId*                _pmsgid_out,
-    ulong                     _flags)
+    ulong                     _flags,
+    std::string&              _msg_url)
 {
 
     vdbgx(Debug::mpipc, this);
@@ -1018,7 +1036,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 
     rpool.name = _recipient_name;
 
-    MessageId msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags);
+    MessageId msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _msg_url);
 
     if (not doTryCreateNewConnectionForPool(pool_idx, error)) {
         edbgx(Debug::mpipc, this << " Starting Session: " << error.message());
@@ -1314,8 +1332,9 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
     }
 
     MessagePointerT empty_msg_ptr;
+    std::string     empty_str;
 
-    const MessageId msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0);
+    const MessageId msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0, empty_str);
     (void)msgid;
 
     //notify all waiting connections about the new message
@@ -1357,8 +1376,9 @@ ErrorConditionT Service::doForceCloseConnectionPool(
     }
 
     MessagePointerT empty_msg_ptr;
+    string          empty_str;
 
-    const MessageId msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0 | MessageFlags::Synchronous);
+    const MessageId msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0 | MessageFlags::Synchronous, empty_str);
     (void)msgid;
 
     //no reason to cancel all messages - they'll be handled on connection stop.
@@ -2094,14 +2114,16 @@ void Service::doPushFrontMessageToPool(
                 _rmsgbundle.message_ptr,
                 _rmsgbundle.message_type_id,
                 _rmsgbundle.complete_fnc,
-                _rmsgbundle.message_flags);
+                _rmsgbundle.message_flags,
+                _rmsgbundle.message_url);
         } else {
             rpool.reinsertFrontMessage(
                 _rmsgid,
                 _rmsgbundle.message_ptr,
                 _rmsgbundle.message_type_id,
                 _rmsgbundle.complete_fnc,
-                _rmsgbundle.message_flags);
+                _rmsgbundle.message_flags,
+                _rmsgbundle.message_url);
         }
     }
 }

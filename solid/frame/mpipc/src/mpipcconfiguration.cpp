@@ -60,6 +60,11 @@ SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::a
     return plain::create_server_socket(_rcfg, _rproxy, std::move(_usd), _emplace_buf);
 }
 
+const char* default_extract_recipient_name(const char* _purl, std::string&, std::string&)
+{
+    return _purl;
+}
+
 } //namespace
 
 ReaderConfiguration::ReaderConfiguration()
@@ -115,6 +120,8 @@ void Configuration::init()
 
     client.connection_create_socket_fnc = default_create_client_socket;
     server.connection_create_socket_fnc = default_create_server_socket;
+
+    extract_recipient_name_fnc = default_extract_recipient_name;
 
     pool_max_active_connection_count  = 1;
     pool_max_pending_connection_count = 1;

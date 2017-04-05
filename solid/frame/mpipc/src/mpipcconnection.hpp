@@ -306,7 +306,7 @@ inline Any<>& Connection::any()
 
 inline MessagePointerT Connection::fetchRequest(Message const& _rmsg) const
 {
-    return msg_writer.fetchRequest(_rmsg.requid);
+    return msg_writer.fetchRequest(_rmsg.requestId());
 }
 
 inline ConnectionPoolId const& Connection::poolId() const

@@ -25,7 +25,7 @@ namespace mpipc {
 class Service;
 class Connection;
 
-enum struct MessageFlags : ulong {
+enum struct MessageFlags : MessageFlagsValueT {
     FirstFlagIndex = 0, //for rezerved flags
     WaitResponse   = (1 << (FirstFlagIndex + 0)),
     Synchronous    = (1 << (FirstFlagIndex + 1)),
@@ -35,9 +35,11 @@ enum struct MessageFlags : ulong {
     DoneSend       = (1 << (FirstFlagIndex + 5)),
     Canceled       = (1 << (FirstFlagIndex + 6)),
     Response       = (1 << (FirstFlagIndex + 7)),
+    OnPeer         = (1 << (FirstFlagIndex + 8)),
+    BackOnSender   = (1 << (FirstFlagIndex + 9)),
 };
 
-using MessageFlagsValueT = std::underlying_type<MessageFlags>::type;
+//using MessageFlagsValueT = std::underlying_type<MessageFlags>::type;
 
 inline MessageFlagsValueT operator|(const MessageFlagsValueT _v, const MessageFlags _f)
 {
@@ -62,62 +64,109 @@ inline MessageFlagsValueT operator|(const MessageFlags _f1, const MessageFlags _
 
 struct Message : std::enable_shared_from_this<Message> {
 
-    static bool is_synchronous(const ulong _flags)
+    using FlagsT = MessageFlagsValueT;
+
+    static bool is_synchronous(const FlagsT _flags)
     {
         return (_flags & MessageFlags::Synchronous) != 0;
     }
-    static bool is_asynchronous(const ulong _flags)
+    static bool is_asynchronous(const FlagsT _flags)
     {
         return (_flags & MessageFlags::Synchronous) == 0;
     }
 
-    static bool is_waiting_response(const ulong _flags)
+    static bool is_waiting_response(const FlagsT _flags)
     {
         return (_flags & MessageFlags::WaitResponse) != 0;
     }
 
-    static bool is_request(const ulong _flags)
+    static bool is_request(const FlagsT _flags)
     {
         return is_waiting_response(_flags);
     }
 
-    static bool is_idempotent(const ulong _flags)
+    static bool is_idempotent(const FlagsT _flags)
     {
         return (_flags & MessageFlags::Idempotent) != 0;
     }
 
-    static bool is_started_send(const ulong _flags)
+    static bool is_started_send(const FlagsT _flags)
     {
         return (_flags & MessageFlags::StartedSend) != 0;
     }
 
-    static bool is_done_send(const ulong _flags)
+    static bool is_done_send(const FlagsT _flags)
     {
         return (_flags & MessageFlags::DoneSend) != 0;
     }
 
-    static bool is_canceled(const ulong _flags)
+    static bool is_canceled(const FlagsT _flags)
     {
         return (_flags & MessageFlags::Canceled) != 0;
     }
 
-    static bool is_one_shot(const ulong _flags)
+    static bool is_one_shot(const FlagsT _flags)
     {
         return (_flags & MessageFlags::OneShotSend) != 0;
     }
 
-    static bool is_response(const ulong _flags)
+    static bool is_response(const FlagsT _flags)
     {
         return (_flags & MessageFlags::Response) != 0;
     }
 
-    Message(uint8_t _state = 0)
-        : stt(_state)
+    static bool is_on_sender(const FlagsT _flags)
+    {
+        return !is_on_peer(_flags) && !is_back_on_sender(_flags);
+    }
+
+    static bool is_on_peer(const FlagsT _flags)
+    {
+        return (_flags & MessageFlags::OnPeer) != 0;
+    }
+
+    static bool is_back_on_sender(const FlagsT _flags)
+    {
+        return (_flags & MessageFlags::BackOnSender) != 0;
+    }
+
+    static bool is_back_on_peer(const FlagsT _flags)
+    {
+        return is_on_peer(_flags) && is_back_on_sender(_flags);
+    }
+
+    static FlagsT clear_state_flags(const FlagsT _flags)
+    {
+        return _flags & (~(MessageFlags::OnPeer | MessageFlags::BackOnSender));
+    }
+
+    static FlagsT state_flags(const FlagsT _flags)
+    {
+        return _flags & (MessageFlags::OnPeer | MessageFlags::BackOnSender);
+    }
+
+    static FlagsT update_state_flags(const FlagsT _flags)
+    {
+        if (is_on_sender(_flags)) {
+            return _flags | MessageFlags::OnPeer;
+        } else if (is_back_on_peer(_flags)) {
+            return clear_state_flags(_flags);
+        } else if (is_on_peer(_flags)) {
+            return (_flags | MessageFlags::BackOnSender) & ~(0 | MessageFlags::OnPeer);
+        } else /* if(is_back_on_sender(_flags))*/ {
+            return _flags | MessageFlags::OnPeer;
+        }
+    }
+
+    Message()
+        : flags_(0)
     {
     }
+
     Message(Message const& _rmsg)
-        : requid(_rmsg.requid)
-        , stt(_rmsg.stt)
+        : sender_request_id_(_rmsg.sender_request_id_)
+        , recipient_request_id_(_rmsg.recipient_request_id_)
+        , flags_(state_flags(_rmsg.flags_))
     {
     }
 
@@ -125,30 +174,35 @@ struct Message : std::enable_shared_from_this<Message> {
 
     bool isOnSender() const
     {
-        return stt == 0;
+        return is_on_sender(flags());
     }
     bool isOnPeer() const
     {
-        return stt == 1;
+        return is_on_peer(flags());
     }
     bool isBackOnSender() const
     {
-        return stt == 2;
+        return is_back_on_sender(flags());
     }
 
-    uint8_t state() const
+    bool isBackOnPeer() const
     {
-        return stt;
+        return is_back_on_peer(flags());
     }
 
-    void clearState()
+    const std::string& url() const
     {
-        stt = 0;
+        return url_;
     }
 
-    RequestId const& requestId() const
+    void clearStateFlags()
     {
-        return requid;
+        flags_ = clear_state_flags(flags_);
+    }
+
+    FlagsT flags() const
+    {
+        return flags_;
     }
 
     template <class S>
@@ -159,13 +213,25 @@ struct Message : std::enable_shared_from_this<Message> {
             //on serialization we cannot use/modify the values stored by ipc::Message
             //so, we'll use ones store in the context. Because the context is volatile
             //we'll store as values.
-            _rs.pushCross(_rctx.request_id.index, "requid_idx");
-            _rs.pushCross(_rctx.request_id.unique, "requid_idx");
-            _rs.pushValue(_rctx.message_state, "state");
+
+            _rs.pushCross(sender_request_id_.index, "sender_request_index");
+            _rs.pushCross(sender_request_id_.unique, "sender_request_unique");
+
+            _rs.pushCross(_rctx.request_id.index, "sender_request_index");
+            _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
+
+            _rs.push(_rctx.message_url, "url");
+            _rs.pushCross(_rctx.message_flags, "flags");
         } else {
-            _rs.pushCross(requid.index, "requid_idx");
-            _rs.pushCross(requid.unique, "requid_uid");
-            _rs.push(stt, "state");
+
+            _rs.pushCross(recipient_request_id_.index, "recipient_request_index");
+            _rs.pushCross(recipient_request_id_.unique, "recipient_request_unique");
+
+            _rs.pushCross(sender_request_id_.index, "sender_request_index");
+            _rs.pushCross(sender_request_id_.unique, "sender_request_unique");
+
+            _rs.push(url_, "url");
+            _rs.pushCross(flags_, "flags");
         }
     }
 
@@ -178,20 +244,26 @@ struct Message : std::enable_shared_from_this<Message> {
         _rs.push(static_cast<Message&>(_rt), "message_base");
     }
 
+    RequestId const& senderRequestId() const
+    {
+        return sender_request_id_;
+    }
+
 private:
     friend class Service;
     friend class TestEntryway;
     friend class Connection;
 
-    void adjustState()
+    RequestId const& requestId() const
     {
-        if (stt == 3)
-            stt = 0;
+        return recipient_request_id_;
     }
 
 private:
-    RequestId requid;
-    uint8_t   stt;
+    RequestId   sender_request_id_;
+    RequestId   recipient_request_id_;
+    FlagsT      flags_;
+    std::string url_;
 };
 
 using MessagePointerT = std::shared_ptr<Message>;

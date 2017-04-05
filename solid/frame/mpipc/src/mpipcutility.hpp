@@ -139,11 +139,11 @@ private:
 };
 
 struct MessageBundle {
-    size_t message_type_id;
-    ulong  message_flags;
-
+    size_t                   message_type_id;
+    MessageFlagsValueT       message_flags;
     MessagePointerT          message_ptr;
     MessageCompleteFunctionT complete_fnc;
+    std::string              message_url;
 
     MessageBundle()
         : message_type_id(InvalidIndex())
@@ -154,11 +154,13 @@ struct MessageBundle {
     MessageBundle(
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
-        ulong                     _flags,
-        MessageCompleteFunctionT& _complete_fnc)
+        MessageFlagsValueT        _flags,
+        MessageCompleteFunctionT& _complete_fnc,
+        std::string&              _rmessage_url)
         : message_type_id(_msg_type_idx)
         , message_flags(_flags)
         , message_ptr(std::move(_rmsgptr))
+        , message_url(std::move(_rmessage_url))
     {
         std::swap(complete_fnc, _complete_fnc);
     }
@@ -168,6 +170,7 @@ struct MessageBundle {
         : message_type_id(_rmsgbundle.message_type_id)
         , message_flags(_rmsgbundle.message_flags)
         , message_ptr(std::move(_rmsgbundle.message_ptr))
+        , message_url(std::move(_rmsgbundle.message_url))
     {
         std::swap(complete_fnc, _rmsgbundle.complete_fnc);
     }
@@ -177,6 +180,7 @@ struct MessageBundle {
         message_type_id = _rmsgbundle.message_type_id;
         message_flags   = _rmsgbundle.message_flags;
         message_ptr     = std::move(_rmsgbundle.message_ptr);
+        message_url     = std::move(_rmsgbundle.message_url);
         FUNCTION_CLEAR(complete_fnc);
         std::swap(complete_fnc, _rmsgbundle.complete_fnc);
         return *this;
@@ -187,6 +191,7 @@ struct MessageBundle {
         message_type_id = InvalidIndex();
         message_flags   = 0;
         message_ptr.reset();
+        message_url.clear();
         FUNCTION_CLEAR(complete_fnc);
     }
 };

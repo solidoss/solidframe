@@ -255,8 +255,7 @@ void on_receive_response(
         SOLID_THROW("Message not back on sender!.");
     }
 
-    //++crtbackidx; //NOTE: incremented on per-response callback
-
+    
     if (crtbackidx == writecount) {
         unique_lock<mutex> lock(mtx);
         running = false;
@@ -296,7 +295,7 @@ void server_complete_request(
         return;
     }
 
-    idbg(_rctx.recipientId() << " message id on sender " << _rrecvmsgptr->requestId());
+    idbg(_rctx.recipientId() << " message id on sender " << _rrecvmsgptr->senderRequestId());
 
     if (not _rrecvmsgptr->check()) {
         SOLID_THROW("Message check failed.");
@@ -355,8 +354,8 @@ void server_complete_response(
 int test_clientserver_sendrequest(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("all");
+    Debug::the().levelMask("view");
+    Debug::the().moduleMask("any");
     Debug::the().initStdErr(false, nullptr);
 #endif
 
@@ -510,9 +509,9 @@ int test_clientserver_sendrequest(int argc, char** argv)
 
         pmpipcclient = &mpipcclient;
 
-        const size_t start_count = initarraysize / 2;
+        const size_t start_count = 1;//initarraysize / 2;
 
-        writecount = initarraysize;
+        writecount = 1;//initarraysize;
 
         for (; crtwriteidx < start_count;) {
             frame::mpipc::MessagePointerT msgptr(new Request(crtwriteidx));

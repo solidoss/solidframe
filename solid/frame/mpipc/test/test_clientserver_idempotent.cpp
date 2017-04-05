@@ -240,7 +240,7 @@ void server_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
-        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->requestId());
+        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
 
         //SOLID_CHECK(_rrecv_msg_ptr->idx != 0);
 

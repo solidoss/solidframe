@@ -129,7 +129,7 @@ struct RequestId {
 
     bool isInvalid() const
     {
-        return index == InvalidIndex();
+        return index == 0;
     }
 
     bool isValid() const
@@ -137,9 +137,15 @@ struct RequestId {
         return !isInvalid();
     }
 
+    void clear()
+    {
+        index  = 0;
+        unique = 0;
+    }
+
     RequestId(
-        const uint32_t _idx = InvalidIndex(),
-        const uint32_t _uid = InvalidIndex())
+        const uint32_t _idx = 0,
+        const uint32_t _uid = 0)
         : index(_idx)
         , unique(_uid)
     {
@@ -164,6 +170,11 @@ struct MessageId {
         : index(_rrequid.index)
         , unique(_rrequid.unique)
     {
+        if(_rrequid.isInvalid()){
+            index = InvalidIndex();
+        }else{
+            --index;
+        }
     }
 
     bool isInvalid() const
@@ -223,6 +234,8 @@ private:
     Connection& connection(frame::aio::ReactorContext& _rctx) const;
 };
 
+using MessageFlagsValueT = uint32_t;
+
 struct ConnectionContext {
     ConnectionContext(
         frame::aio::ReactorContext& _rctx,
@@ -230,7 +243,6 @@ struct ConnectionContext {
         : rservice(_rccs.service(_rctx))
         , rconnection(_rccs.connection(_rctx))
         , message_flags(0)
-        , message_state(0)
     {
     }
 
@@ -252,7 +264,7 @@ struct ConnectionContext {
     bool isConnectionActive() const;
     bool isConnectionServer() const;
 
-    ulong messageFlags() const
+    MessageFlagsValueT messageFlags() const
     {
         return message_flags;
     }
@@ -283,20 +295,18 @@ private:
     friend struct Message;
     friend class TestEntryway;
 
-    Service&    rservice;
-    Connection& rconnection;
-
-    ulong     message_flags;
-    uint8_t   message_state;
-    RequestId request_id;
-    MessageId message_id;
+    Service&           rservice;
+    Connection&        rconnection;
+    MessageFlagsValueT message_flags;
+    RequestId          request_id;
+    MessageId          message_id;
+    std::string        message_url; //TODO: make it reference
 
     ConnectionContext(
         Service& _rsrv, Connection& _rcon)
         : rservice(_rsrv)
         , rconnection(_rcon)
         , message_flags(0)
-        , message_state(0)
     {
     }
 

@@ -1966,7 +1966,7 @@ template <>
             rd.err = make_error(ERR_CROSS_VALUE_SMALL);
             return FailureE;
         }
-    } else {
+    } else if (vsz <= (sizeof(uint64_t) + 1)) {
         rd.tmpstr.resize(vsz);
         memcpy(const_cast<char*>(rd.tmpstr.data()), rd.cpb, len);
         rd.cpb += len;
@@ -1977,6 +1977,9 @@ template <>
 
         _rfd.f = loadCrossDone<uint64_t>;
         return ContinueE;
+    } else {
+        rd.err = make_error(ERR_DESERIALIZE_VALUE);
+        return FailureE;
     }
 }
 //========================================================================

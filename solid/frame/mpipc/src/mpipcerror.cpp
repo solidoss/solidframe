@@ -55,6 +55,7 @@ enum {
     ErrorServiceMessageAlreadyCanceledE,
     ErrorServiceMessageLostE,
     ErrorServiceUnknownMessageE,
+    ErrorServiceInvalidUrlE,
 };
 
 class ErrorCategory : public ErrorCategoryT {
@@ -187,6 +188,9 @@ std::string ErrorCategory::message(int _ev) const
     case ErrorServiceUnknownMessageE:
         oss << "Service: unknown message";
         break;
+    case ErrorServiceInvalidUrlE:
+        oss << "Service: invalid URL";
+        break;
     default:
         oss << "Unknown";
         break;
@@ -238,6 +242,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_service_message_already_canceled(ErrorServiceMessageAlreadyCanceledE, category);
 /*extern*/ const ErrorConditionT error_service_message_lost(ErrorServiceMessageLostE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_message(ErrorServiceUnknownMessageE, category);
+/*extern*/ const ErrorConditionT error_service_invalid_url(ErrorServiceInvalidUrlE, category);
 
 } //namespace mpipc
 } //namespace frame

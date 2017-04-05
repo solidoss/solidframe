@@ -46,13 +46,14 @@ typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
 
 using AddressVectorT = std::vector<SocketAddressInet>;
 
-using ResolveCompleteFunctionT = FUNCTION<void(AddressVectorT&&)>;
-using ConnectionStopFunctionT  = FUNCTION<void(ConnectionContext&)>;
-using ConnectionStartFunctionT = FUNCTION<void(ConnectionContext&)>;
-using AllocateBufferFunctionT  = FUNCTION<char*(const uint16_t)>;
-using FreeBufferFunctionT      = FUNCTION<void(char*)>;
-using CompressFunctionT        = FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
-using UncompressFunctionT      = FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
+using ResolveCompleteFunctionT      = FUNCTION<void(AddressVectorT&&)>;
+using ConnectionStopFunctionT       = FUNCTION<void(ConnectionContext&)>;
+using ConnectionStartFunctionT      = FUNCTION<void(ConnectionContext&)>;
+using AllocateBufferFunctionT       = FUNCTION<char*(const uint16_t)>;
+using FreeBufferFunctionT           = FUNCTION<void(char*)>;
+using CompressFunctionT             = FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
+using UncompressFunctionT           = FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
+using ExtractRecipientNameFunctionT = FUNCTION<const char*(const char*, std::string&, std::string&)>;
 //using ResetSerializerLimitsFunctionT              = FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
@@ -209,14 +210,11 @@ public:
             return !secure_any.empty();
         }
 
-        ConnectionCreateSocketFunctionT connection_create_socket_fnc;
-
-        ConnectionState          connection_start_state;
-        bool                     connection_start_secure;
-        ConnectionStartFunctionT connection_start_fnc;
-
-        AsyncResolveFunctionT name_resolve_fnc;
-
+        ConnectionCreateSocketFunctionT    connection_create_socket_fnc;
+        ConnectionState                    connection_start_state;
+        bool                               connection_start_secure;
+        ConnectionStartFunctionT           connection_start_fnc;
+        AsyncResolveFunctionT              name_resolve_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
         Any<>                              secure_any;
 
@@ -234,6 +232,8 @@ public:
 
     uint8_t connection_send_buffer_start_capacity_kb;
     uint8_t connection_send_buffer_max_capacity_kb;
+
+    ExtractRecipientNameFunctionT extract_recipient_name_fnc;
 
     ConnectionStopFunctionT    connection_stop_fnc;
     ConnectionOnEventFunctionT connection_on_event_fnc;

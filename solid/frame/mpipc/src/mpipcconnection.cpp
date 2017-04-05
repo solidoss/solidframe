@@ -1545,17 +1545,17 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePoi
     ErrorConditionT      error;
     MessageBundle        msg_bundle; //request message
 
-    if (_rresponse_ptr->isBackOnSender()) {
-        idbgx(Debug::mpipc, this << ' ' << "Completing back on sender message: " << _rresponse_ptr->requid);
+    if (_rresponse_ptr->isBackOnSender() or _rresponse_ptr->isBackOnPeer()) {
+        idbgx(Debug::mpipc, this << ' ' << "Completing back on sender message: " << _rresponse_ptr->requestId());
 
         MessageId pool_msg_id;
 
-        msg_writer.cancel(_rresponse_ptr->requid, msg_bundle, pool_msg_id);
+        msg_writer.cancel(_rresponse_ptr->requestId(), msg_bundle, pool_msg_id);
 
         idbgx(Debug::mpipc, this);
 
         conctx.message_flags = msg_bundle.message_flags;
-        conctx.request_id    = _rresponse_ptr->requid;
+        conctx.request_id    = _rresponse_ptr->requestId();
         conctx.message_id    = pool_msg_id;
 
         if (not FUNCTION_EMPTY(msg_bundle.complete_fnc)) {

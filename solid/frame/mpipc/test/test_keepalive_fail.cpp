@@ -229,7 +229,7 @@ void client_complete_message(
 
 void server_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_ptr<Message>& _rmsgptr)
 {
-    idbg(_rctx.recipientId() << " message id on sender " << _rmsgptr->requestId());
+    idbg(_rctx.recipientId() << " message id on sender " << _rmsgptr->senderRequestId());
     if (not _rmsgptr->check()) {
         SOLID_THROW("Message check failed.");
     }
