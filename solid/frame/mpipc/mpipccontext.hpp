@@ -170,9 +170,9 @@ struct MessageId {
         : index(_rrequid.index)
         , unique(_rrequid.unique)
     {
-        if(_rrequid.isInvalid()){
+        if (_rrequid.isInvalid()) {
             index = InvalidIndex();
-        }else{
+        } else {
             --index;
         }
     }
