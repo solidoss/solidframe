@@ -62,6 +62,66 @@ inline MessageFlagsValueT operator|(const MessageFlags _f1, const MessageFlags _
     return static_cast<MessageFlagsValueT>(_f1) | static_cast<MessageFlagsValueT>(_f2);
 }
 
+struct MessageHeader{
+    using FlagsT = MessageFlagsValueT;
+    
+    static FlagsT state_flags(const FlagsT _flags)
+    {
+        return _flags & (MessageFlags::OnPeer | MessageFlags::BackOnSender);
+    }
+    
+    MessageHeader():flags_(0){}
+    
+    MessageHeader(
+        const MessageHeader &_rmsgh
+    ):sender_request_id_(_rmsgh.sender_request_id_)
+      , recipient_request_id_(_rmsgh.recipient_request_id_)
+      , flags_(state_flags(_rmsgh.flags_)){}
+    
+    MessageHeader& operator=(MessageHeader &&_umh){
+        sender_request_id_ = _umh.sender_request_id_;
+        recipient_request_id_ = _umh.recipient_request_id_;
+        flags_ = _umh.flags_;
+        url_ = std::move(_umh.url_);
+        return *this;
+    }
+    
+    RequestId   sender_request_id_;
+    RequestId   recipient_request_id_;
+    FlagsT      flags_;
+    std::string url_;
+    
+    template <class S>
+    void solidSerialize(S& _rs, frame::mpipc::ConnectionContext& _rctx)
+    {
+        if (S::IsSerializer) {
+            //because a message can be sent to multiple destinations (usign DynamicPointer)
+            //on serialization we cannot use/modify the values stored by ipc::Message
+            //so, we'll use ones store in the context. Because the context is volatile
+            //we'll store as values.
+
+            _rs.pushCross(sender_request_id_.index, "sender_request_index");
+            _rs.pushCross(sender_request_id_.unique, "sender_request_unique");
+
+            _rs.pushCross(_rctx.request_id.index, "sender_request_index");
+            _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
+
+            _rs.push(_rctx.message_url, "url");
+            _rs.pushCross(_rctx.message_flags, "flags");
+        } else {
+
+            _rs.pushCross(recipient_request_id_.index, "recipient_request_index");
+            _rs.pushCross(recipient_request_id_.unique, "recipient_request_unique");
+
+            _rs.pushCross(sender_request_id_.index, "sender_request_index");
+            _rs.pushCross(sender_request_id_.unique, "sender_request_unique");
+
+            _rs.push(url_, "url");
+            _rs.pushCross(flags_, "flags");
+        }
+    }
+};
+
 struct Message : std::enable_shared_from_this<Message> {
 
     using FlagsT = MessageFlagsValueT;
@@ -159,16 +219,10 @@ struct Message : std::enable_shared_from_this<Message> {
     }
 
     Message()
-        : flags_(0)
     {
     }
 
-    Message(Message const& _rmsg)
-        : sender_request_id_(_rmsg.sender_request_id_)
-        , recipient_request_id_(_rmsg.recipient_request_id_)
-        , flags_(state_flags(_rmsg.flags_))
-    {
-    }
+    Message(Message const& _rmsg):header_(_rmsg.header_){}
 
     virtual ~Message();
 
@@ -192,47 +246,17 @@ struct Message : std::enable_shared_from_this<Message> {
 
     const std::string& url() const
     {
-        return url_;
+        return header_.url_;
     }
 
     void clearStateFlags()
     {
-        flags_ = clear_state_flags(flags_);
+        header_.flags_ = clear_state_flags(header_.flags_);
     }
 
     FlagsT flags() const
     {
-        return flags_;
-    }
-
-    template <class S>
-    void solidSerialize(S& _rs, frame::mpipc::ConnectionContext& _rctx)
-    {
-        if (S::IsSerializer) {
-            //because a message can be sent to multiple destinations (usign DynamicPointer)
-            //on serialization we cannot use/modify the values stored by ipc::Message
-            //so, we'll use ones store in the context. Because the context is volatile
-            //we'll store as values.
-
-            _rs.pushCross(sender_request_id_.index, "sender_request_index");
-            _rs.pushCross(sender_request_id_.unique, "sender_request_unique");
-
-            _rs.pushCross(_rctx.request_id.index, "sender_request_index");
-            _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
-
-            _rs.push(_rctx.message_url, "url");
-            _rs.pushCross(_rctx.message_flags, "flags");
-        } else {
-
-            _rs.pushCross(recipient_request_id_.index, "recipient_request_index");
-            _rs.pushCross(recipient_request_id_.unique, "recipient_request_unique");
-
-            _rs.pushCross(sender_request_id_.index, "sender_request_index");
-            _rs.pushCross(sender_request_id_.unique, "sender_request_unique");
-
-            _rs.push(url_, "url");
-            _rs.pushCross(flags_, "flags");
-        }
+        return header_.flags_;
     }
 
     template <class S, class T>
@@ -241,12 +265,11 @@ struct Message : std::enable_shared_from_this<Message> {
         //here we do only pushes so we can have access to context
         //using the above "serialize" function
         _rs.push(_rt, _name);
-        _rs.push(static_cast<Message&>(_rt), "message_base");
     }
 
     RequestId const& senderRequestId() const
     {
-        return sender_request_id_;
+        return header_.sender_request_id_;
     }
 
 private:
@@ -256,14 +279,15 @@ private:
 
     RequestId const& requestId() const
     {
-        return recipient_request_id_;
+        return header_.recipient_request_id_;
     }
-
+    
+    void header(MessageHeader &&_umh){
+        header_ = std::move(_umh);
+    }
+    
 private:
-    RequestId   sender_request_id_;
-    RequestId   recipient_request_id_;
-    FlagsT      flags_;
-    std::string url_;
+    MessageHeader   header_;
 };
 
 using MessagePointerT = std::shared_ptr<Message>;

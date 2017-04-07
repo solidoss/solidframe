@@ -313,7 +313,8 @@ char* MessageWriter::doFillPacket(
                 continue;
             }
         }
-
+        
+        
         msgswitch = doPrepareMessageForSending(msgidx, _rconfig, _rproto, _rctx, tmp_serializer);
 
         if (packet_message_count == 0) {
@@ -325,7 +326,7 @@ char* MessageWriter::doFillPacket(
         }
 
         ++packet_message_count;
-
+        
         if (rmsgstub.isCanceled()) {
             //message already completed - just drop it from write list
             write_inner_list.erase(msgidx);
@@ -341,16 +342,25 @@ char* MessageWriter::doFillPacket(
 
         _rctx.message_flags = Message::clear_state_flags(rmsgstub.msgbundle.message_flags) | Message::state_flags(rmsgstub.msgbundle.message_ptr->flags());
         _rctx.message_flags = Message::update_state_flags(_rctx.message_flags);
-
+        
+        char *psizepos = pbufpos;
+        if(not writing_message_header){
+            pbufpos = _rproto.storeValue(pbufpos, static_cast<uint16_t>(0));
+        }
+        
         const int rv = rmsgstub.serializer_ptr->run(_rctx, pbufpos, _pbufend - pbufpos);
 
         if (rv > 0) {
 
             pbufpos += rv;
             freesz -= rv;
-
-            doTryCompleteMessageAfterSerialization(msgidx, _complete_fnc, _rconfig, _rproto, _rctx, tmp_serializer, _rerror);
-
+            
+            if(not writing_message_header){
+                rproto.storeValue(psizepos, static_cast<uint16_t>(rv));
+                doTryCompleteMessageAfterSerialization(msgidx, _complete_fnc, _rconfig, _rproto, _rctx, tmp_serializer, _rerror);
+            }
+            
+            
             if (_rerror) {
                 //pbufpos = nullptr;
                 break;
@@ -382,7 +392,9 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
     if (rmsgstub.serializer_ptr->empty()) {
         RequestId requid(_msgidx, rmsgstub.unique);
+        
         vdbgx(Debug::mpipc, "done serializing message " << requid << ". Message id sent to client " << _rctx.request_id);
+        
         _rtmp_serializer = std::move(rmsgstub.serializer_ptr);
         //done serializing the message:
 
@@ -427,7 +439,9 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
         }
     }
 }
+
 //-----------------------------------------------------------------------------
+
 PacketHeader::Types MessageWriter::doPrepareMessageForSending(
     const size_t               _msgidx,
     WriterConfiguration const& _rconfig,
@@ -454,9 +468,18 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
         _rproto.reset(*rmsgstub.serializer_ptr);
 
         rmsgstub.msgbundle.message_flags |= MessageFlags::StartedSend;
+        rmsgstub.pmsgheader = &rmsgstub.msgbundle.message_ptr->header_;
 
+        rmsgstub.serializer_ptr->push(*rmsgstub.pmsgheader);
+    } else if (rmsgstub.pmsgheader && !rmsgstub.serializer_ptr->empty()) {
+        
+        //we've just finished serializing header
+        
         rmsgstub.serializer_ptr->push(rmsgstub.msgbundle.message_ptr, rmsgstub.msgbundle.message_type_id);
-
+        rmsgstub.pmsgheader = nullptr;
+        //continued message
+        msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;
+        
     } else if (rmsgstub.isCanceled()) {
 
         if (rmsgstub.packet_count == 0) {

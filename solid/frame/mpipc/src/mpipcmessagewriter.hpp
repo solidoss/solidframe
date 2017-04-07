@@ -117,6 +117,7 @@ private:
             , packet_count(_rmsgstub.packet_count)
             , serializer_ptr(std::move(_rmsgstub.serializer_ptr))
             , pool_msg_id(_rmsgstub.pool_msg_id)
+            , pmsgheader(nullptr)
         {
         }
 
@@ -129,6 +130,8 @@ private:
             serializer_ptr = nullptr;
 
             pool_msg_id.clear();
+            
+            pmsgheader = nullptr;
         }
 
         bool isStop() const noexcept
@@ -146,6 +149,7 @@ private:
         size_t             packet_count;
         SerializerPointerT serializer_ptr;
         MessageId          pool_msg_id;
+        MessageHeader      *pmsgheader;
     };
 
     using MessageVectorT          = std::vector<MessageStub>;
