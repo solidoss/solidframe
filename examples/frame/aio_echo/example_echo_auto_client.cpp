@@ -133,7 +133,6 @@ private:
 
     char          buf[BufferCapacity];
     StreamSocketT sock;
-    ;
     uint64_t     recvcnt;
     const size_t idx;
     size_t       crt_send_idx;

@@ -225,7 +225,11 @@ struct Message : std::enable_shared_from_this<Message> {
     Message(Message const& _rmsg):header_(_rmsg.header_){}
 
     virtual ~Message();
-
+    
+    void header(MessageHeader &&_umh){
+        header_ = std::move(_umh);
+    }
+    
     bool isOnSender() const
     {
         return is_on_sender(flags());
@@ -265,6 +269,15 @@ struct Message : std::enable_shared_from_this<Message> {
         //here we do only pushes so we can have access to context
         //using the above "serialize" function
         _rs.push(_rt, _name);
+        if(S::IsDeserializer){
+            _rs.pushCall(
+                [&_rt](S& /*_rs*/, solid::frame::mpipc::ConnectionContext& _rctx, uint64_t _val, solid::ErrorConditionT& _rerr){
+                    _rt.header_ = std::move(*_rctx.pmessage_header);
+                },
+                0,
+                "call"
+            );
+        }
     }
 
     RequestId const& senderRequestId() const
@@ -276,14 +289,11 @@ private:
     friend class Service;
     friend class TestEntryway;
     friend class Connection;
+    friend class MessageWriter;
 
     RequestId const& requestId() const
     {
         return header_.recipient_request_id_;
-    }
-    
-    void header(MessageHeader &&_umh){
-        header_ = std::move(_umh);
     }
     
 private:

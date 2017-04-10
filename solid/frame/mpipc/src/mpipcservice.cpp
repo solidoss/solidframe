@@ -2096,14 +2096,15 @@ void Service::doPushFrontMessageToPool(
     MessageId const&        _rmsgid)
 {
 
-    vdbgx(Debug::mpipc, this);
+    vdbgx(Debug::mpipc, this << " " << _rmsgbundle.message_ptr.get());
 
     ConnectionPoolStub& rpool(d.pooldq[_rpool_id.index]);
 
     SOLID_ASSERT(rpool.unique == _rpool_id.unique);
 
     if (
-        Message::is_idempotent(_rmsgbundle.message_flags) or (not Message::is_started_send(_rmsgbundle.message_flags) and not Message::is_done_send(_rmsgbundle.message_flags))) {
+        Message::is_idempotent(_rmsgbundle.message_flags) or not Message::is_done_send(_rmsgbundle.message_flags)
+    ) {
 
         vdbgx(Debug::mpipc, this << " " << _rmsgbundle.message_ptr.get());
 

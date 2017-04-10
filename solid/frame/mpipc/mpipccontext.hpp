@@ -29,6 +29,7 @@ struct ReactorContext;
 namespace mpipc {
 
 struct Message;
+struct MessageHeader;
 
 //! A structure to uniquely indetify an IPC connection pool
 /*!
@@ -292,11 +293,14 @@ private:
 private:
     friend class Connection;
     friend class MessageWriter;
+    friend class MessageReader;
+    friend struct MessageHeader;
     friend struct Message;
     friend class TestEntryway;
 
     Service&           rservice;
     Connection&        rconnection;
+    MessageHeader*     pmessage_header;
     MessageFlagsValueT message_flags;
     RequestId          request_id;
     MessageId          message_id;
@@ -306,6 +310,7 @@ private:
         Service& _rsrv, Connection& _rcon)
         : rservice(_rsrv)
         , rconnection(_rcon)
+        , pmessage_header(nullptr)
         , message_flags(0)
     {
     }

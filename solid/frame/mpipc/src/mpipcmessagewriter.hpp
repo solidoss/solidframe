@@ -194,7 +194,9 @@ private:
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,
-        SerializerPointerT&        _rtmp_serializer);
+        SerializerPointerT&        _rtmp_serializer,
+        bool &_just_written_message_header,
+        bool &_currently_writing_message_header);
 
     void doTryCompleteMessageAfterSerialization(
         const size_t               _msgidx,

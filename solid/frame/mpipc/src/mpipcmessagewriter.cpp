@@ -314,13 +314,19 @@ char* MessageWriter::doFillPacket(
             }
         }
         
+        bool just_written_message_header;
+        bool currently_writing_message_header;
         
-        msgswitch = doPrepareMessageForSending(msgidx, _rconfig, _rproto, _rctx, tmp_serializer);
+        msgswitch = doPrepareMessageForSending(
+            msgidx, _rconfig, _rproto, _rctx, tmp_serializer,
+            just_written_message_header,
+            currently_writing_message_header
+        );
 
         if (packet_message_count == 0) {
             //first message in the packet
             _rpacket_options.packet_type = msgswitch;
-        } else {
+        } else /*if(not just_written_message_header)*/{
             uint8_t tmp = static_cast<uint8_t>(msgswitch);
             pbufpos     = _rproto.storeValue(pbufpos, tmp);
         }
@@ -344,7 +350,8 @@ char* MessageWriter::doFillPacket(
         _rctx.message_flags = Message::update_state_flags(_rctx.message_flags);
         
         char *psizepos = pbufpos;
-        if(not writing_message_header){
+        
+        if(not currently_writing_message_header){
             pbufpos = _rproto.storeValue(pbufpos, static_cast<uint16_t>(0));
         }
         
@@ -355,8 +362,8 @@ char* MessageWriter::doFillPacket(
             pbufpos += rv;
             freesz -= rv;
             
-            if(not writing_message_header){
-                rproto.storeValue(psizepos, static_cast<uint16_t>(rv));
+            if(not currently_writing_message_header){
+                _rproto.storeValue(psizepos, static_cast<uint16_t>(rv));
                 doTryCompleteMessageAfterSerialization(msgidx, _complete_fnc, _rconfig, _rproto, _rctx, tmp_serializer, _rerror);
             }
             
@@ -447,13 +454,18 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
     WriterConfiguration const& _rconfig,
     Protocol const&            _rproto,
     ConnectionContext&         _rctx,
-    SerializerPointerT&        _rtmp_serializer)
+    SerializerPointerT&        _rtmp_serializer,
+    bool &_rjust_written_message_header,
+    bool &_rcurrently_writing_message_header)
 {
 
     PacketHeader::Types msgswitch; // = PacketHeader::ContinuedMessageTypeE;
 
     MessageStub& rmsgstub(message_vec[_msgidx]);
-
+    
+    _rjust_written_message_header = false;
+    _rcurrently_writing_message_header = false;
+    
     if (not rmsgstub.serializer_ptr) {
 
         //switch to new message
@@ -469,17 +481,10 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 
         rmsgstub.msgbundle.message_flags |= MessageFlags::StartedSend;
         rmsgstub.pmsgheader = &rmsgstub.msgbundle.message_ptr->header_;
+        
+        _rcurrently_writing_message_header = true;
 
         rmsgstub.serializer_ptr->push(*rmsgstub.pmsgheader);
-    } else if (rmsgstub.pmsgheader && !rmsgstub.serializer_ptr->empty()) {
-        
-        //we've just finished serializing header
-        
-        rmsgstub.serializer_ptr->push(rmsgstub.msgbundle.message_ptr, rmsgstub.msgbundle.message_type_id);
-        rmsgstub.pmsgheader = nullptr;
-        //continued message
-        msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;
-        
     } else if (rmsgstub.isCanceled()) {
 
         if (rmsgstub.packet_count == 0) {
@@ -488,6 +493,26 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
             msgswitch = PacketHeader::ContinuedCanceledMessageTypeE;
         }
 
+    } else if (rmsgstub.pmsgheader) {
+        
+        if(rmsgstub.serializer_ptr->empty()){
+            //we've just finished serializing header
+            
+            _rjust_written_message_header = true;
+            
+            rmsgstub.serializer_ptr->push(rmsgstub.msgbundle.message_ptr, rmsgstub.msgbundle.message_type_id);
+            
+            rmsgstub.pmsgheader = nullptr;
+            //continued message
+            msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;        
+
+        }else{
+            
+            _rcurrently_writing_message_header = true;
+            
+            msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;
+        }
+        
     } else if (rmsgstub.packet_count == 0) {
 
         //switch to old message
@@ -500,7 +525,9 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
     }
     return msgswitch;
 }
+
 //-----------------------------------------------------------------------------
+
 void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_fnc)
 {
 
@@ -541,7 +568,9 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
         }
     }
 }
+
 //-----------------------------------------------------------------------------
+
 void MessageWriter::print(std::ostream& _ros, const PrintWhat _what) const
 {
     if (_what == PrintInnerListsE) {
@@ -560,7 +589,9 @@ void MessageWriter::print(std::ostream& _ros, const PrintWhat _what) const
         _ros << '\t';
     }
 }
+
 //-----------------------------------------------------------------------------
+
 std::ostream& operator<<(std::ostream& _ros, std::pair<MessageWriter const&, MessageWriter::PrintWhat> const& _msgwriterpair)
 {
     _msgwriterpair.first.print(_ros, _msgwriterpair.second);

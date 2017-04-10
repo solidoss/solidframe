@@ -110,20 +110,21 @@ struct Message : frame::mpipc::Message {
 
         if (S::IsSerializer) {
             serialized = true;
-        }
-        if (isOnPeer()) {
-            ++crtreadidx;
-            idbg(crtreadidx);
-            if (crtreadidx == 1) {
+        }else{
+            if (isOnPeer()) {
+                ++crtreadidx;
+                idbg(crtreadidx);
+                if (crtreadidx == 1) {
 
-                pmpipcclient->forceCloseConnectionPool(
-                    recipinet_id,
-                    [](frame::mpipc::ConnectionContext& _rctx) {
-                        idbg("------------------");
-                        unique_lock<mutex> lock(mtx);
-                        running = false;
-                        cnd.notify_one();
-                    });
+                    pmpipcclient->forceCloseConnectionPool(
+                        recipinet_id,
+                        [](frame::mpipc::ConnectionContext& _rctx) {
+                            idbg("------------------");
+                            unique_lock<mutex> lock(mtx);
+                            running = false;
+                            cnd.notify_one();
+                        });
+                }
             }
         }
     }
@@ -214,8 +215,8 @@ void server_complete_message(
 int test_pool_force_close(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("frame_mpipc:ew any:ew");
+    Debug::the().levelMask("view");
+    Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
 #endif

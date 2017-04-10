@@ -108,6 +108,7 @@ struct TypeStub {
 class Deserializer {
 public:
     virtual ~Deserializer();
+    virtual void push(MessageHeader &_rmsghdr) = 0;
     virtual void push(MessagePointerT& _rmsgptr) = 0;
     virtual int run(ConnectionContext&, const char* _pdata, size_t _data_len) = 0;
     virtual ErrorConditionT error() const = 0;

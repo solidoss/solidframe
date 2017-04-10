@@ -41,7 +41,7 @@ struct InitStub {
 };
 
 InitStub initarray[] = {
-    {88192000, 0},
+    {18192000, 0},
     {16384000, 0},
     {26384000, 0},
     {16384000, 0},
@@ -240,7 +240,7 @@ void server_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
-        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
+        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " idx = " <<_rrecv_msg_ptr->idx);
 
         //SOLID_CHECK(_rrecv_msg_ptr->idx != 0);
 
@@ -453,7 +453,7 @@ int test_clientserver_idempotent(int argc, char** argv)
             ++crtwriteidx;
             mpipcclient.sendMessage(
                 "localhost", msg_vec[0],
-                0 | frame::mpipc::MessageFlags::WaitResponse);
+                0 | frame::mpipc::MessageFlags::WaitResponse | frame::mpipc::MessageFlags::OneShotSend);
         }
 
         {

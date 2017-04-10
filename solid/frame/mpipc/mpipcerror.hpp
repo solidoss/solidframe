@@ -33,6 +33,7 @@ extern const ErrorConditionT error_message_connection;
 extern const ErrorConditionT error_reader_invalid_packet_header;
 extern const ErrorConditionT error_reader_invalid_message_switch;
 extern const ErrorConditionT error_reader_too_many_multiplex;
+extern const ErrorConditionT error_reader_protocol;
 
 extern const ErrorConditionT error_service_stopping;
 extern const ErrorConditionT error_service_message_unknown_type;

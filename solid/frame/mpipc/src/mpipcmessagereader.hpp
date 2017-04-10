@@ -66,15 +66,16 @@ private:
     struct MessageStub {
         MessageStub(
             MessagePointerT& _rmsgptr,
-            //          const size_t _msg_type_idx,
             ulong _flags)
             : message_ptr(std::move(_rmsgptr))
-            , /*message_type_idx(_msg_type_idx),*/ packet_count(0)
+            ,  packet_count(0)
+            ,  is_reading_message_header(false)
         {
         }
 
         MessageStub()
-            : /*message_type_idx(InvalidIndex()), */ packet_count(0)
+            : packet_count(0)
+            , is_reading_message_header(false)
         {
         }
 
@@ -82,13 +83,13 @@ private:
         {
             deserializer_ptr = nullptr;
             message_ptr.reset();
-            //          message_type_idx = InvalidIndex();
         }
 
         MessagePointerT message_ptr;
-        //size_t                    message_type_idx;
         DeserializerPointerT deserializer_ptr;
         size_t               packet_count;
+        MessageHeader        message_header;
+        bool                 is_reading_message_header;
     };
 
     typedef Queue<MessageStub> MessageQueueT;

@@ -36,6 +36,7 @@ enum {
     ErrorReaderInvalidPacketHeaderE,
     ErrorReaderInvalidMessageSwitchE,
     ErrorReaderTooManyMultiplexE,
+    ErrorReaderProtocolE,
     ErrorServiceStoppingE,
     ErrorServiceMessageUnknownTypeE,
     ErrorServiceMessageFlagsE,
@@ -131,6 +132,9 @@ std::string ErrorCategory::message(int _ev) const
     case ErrorReaderTooManyMultiplexE:
         oss << "Reader: too many multiplexed messages";
         break;
+    case ErrorReaderProtocolE:
+        oss << "Reader: protocol";
+        break;
     case ErrorServiceStoppingE:
         oss << "Service: stopping";
         break;
@@ -220,7 +224,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_reader_invalid_packet_header(ErrorReaderInvalidPacketHeaderE, category);
 /*extern*/ const ErrorConditionT error_reader_invalid_message_switch(ErrorReaderInvalidMessageSwitchE, category);
 /*extern*/ const ErrorConditionT error_reader_too_many_multiplex(ErrorReaderTooManyMultiplexE, category);
-;
+/*extern*/ const ErrorConditionT error_reader_protocol(ErrorReaderProtocolE, category);
 
 /*extern*/ const ErrorConditionT error_service_stopping(ErrorServiceStoppingE, category);
 /*extern*/ const ErrorConditionT error_service_message_unknown_type(ErrorServiceMessageUnknownTypeE, category);
