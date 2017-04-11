@@ -41,9 +41,13 @@ struct PacketHeader {
     };
 
     enum Types {
-        SwitchToNewMessageTypeE = 1,
-        SwitchToOldMessageTypeE,
-        ContinuedMessageTypeE,
+        EndMessageTypeE            = 1, //DO NOT CHANGE!
+        SwitchToNewMessageTypeE    = 2,
+        SwitchToNewEndMessageTypeE = SwitchToNewMessageTypeE + EndMessageTypeE,
+        SwitchToOldMessageTypeE    = 4,
+        SwitchToOldEndMessageTypeE = SwitchToOldMessageTypeE + EndMessageTypeE,
+        ContinuedMessageTypeE      = 6,
+        ContinuedEndMessageTypeE   = ContinuedMessageTypeE + EndMessageTypeE,
         SwitchToOldCanceledMessageTypeE,
         ContinuedCanceledMessageTypeE,
 

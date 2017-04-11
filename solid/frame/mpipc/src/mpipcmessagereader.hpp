@@ -66,10 +66,10 @@ private:
     struct MessageStub {
         MessageStub(
             MessagePointerT& _rmsgptr,
-            ulong _flags)
+            ulong            _flags)
             : message_ptr(std::move(_rmsgptr))
-            ,  packet_count(0)
-            ,  is_reading_message_header(false)
+            , packet_count(0)
+            , is_reading_message_header(false)
         {
         }
 
@@ -85,7 +85,7 @@ private:
             message_ptr.reset();
         }
 
-        MessagePointerT message_ptr;
+        MessagePointerT      message_ptr;
         DeserializerPointerT deserializer_ptr;
         size_t               packet_count;
         MessageHeader        message_header;

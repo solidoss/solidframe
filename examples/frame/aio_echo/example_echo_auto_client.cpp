@@ -31,6 +31,16 @@ using namespace solid;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 using AtomicSizeT   = atomic<size_t>;
+
+
+struct Statistics{
+    AtomicSizeT     concnt;
+    AtomicSizeT     connectcnt;
+    AtomicSizeT     connectedcnt;
+    AtomicSizeT     donecnt;
+    Statistics():concnt(0), connectcnt(0), connectedcnt(0), donecnt(0){}
+} stats;
+
 namespace {
 struct Params {
     uint32_t connection_count;
@@ -106,8 +116,11 @@ public:
         , crt_send_idx(0)
         , expect_recvcnt(0)
     {
+        ++stats.concnt;
     }
-    ~Connection() {}
+    ~Connection() {
+        --stats.concnt;
+    }
 private:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     void doStop(frame::Manager& _rm) override
@@ -133,10 +146,10 @@ private:
 
     char          buf[BufferCapacity];
     StreamSocketT sock;
-    uint64_t     recvcnt;
-    const size_t idx;
-    size_t       crt_send_idx;
-    size_t       expect_recvcnt;
+    uint64_t      recvcnt;
+    const size_t  idx;
+    size_t        crt_send_idx;
+    size_t        expect_recvcnt;
 };
 
 bool parseArguments(Params& _par, int argc, char* argv[]);
@@ -319,8 +332,10 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
         if (presolvemsg) {
             if (presolvemsg->empty()) {
                 edbg(this << " postStop");
+                //++stats.donecnt;
                 postStop(_rctx);
             } else {
+                ++stats.connectcnt;
                 if (sock.connect(_rctx, presolvemsg->begin(), &Connection::onConnect)) {
                     onConnect(_rctx);
                 }
@@ -334,20 +349,25 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     size_t      sendidx = (crt_send_idx + idx) % send_data_vec.size();
     const auto& str     = send_data_vec[sendidx];
     expect_recvcnt      = str.size();
+
     idbg(this << " sending " << str.size());
+
     sock.postSendAll(_rctx, str.data(), str.size(), &Connection::onSend);
 }
 
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
+    --stats.connectcnt;
     Connection& rthis = static_cast<Connection&>(_rctx.object());
     if (!_rctx.error()) {
         idbg(&rthis << " SUCCESS");
+        ++stats.connectedcnt;
         rthis.sock.device().enableNoDelay();
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);
         rthis.doSend(_rctx);
     } else {
         edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
+        //++stats.donecnt;
         rthis.postStop(_rctx);
     }
 }
@@ -371,11 +391,13 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 rthis.doSend(_rctx);
             } else {
                 rthis.postStop(_rctx);
+                ++stats.donecnt;
             }
         }
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);
     } else {
         edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
+        //++stats.donecnt;
         rthis.postStop(_rctx);
     }
 }
@@ -387,6 +409,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     if (!_rctx.error()) {
     } else {
         edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
+        //++stats.donecnt;
         rthis.postStop(_rctx);
     }
 }

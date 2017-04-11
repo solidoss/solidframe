@@ -130,7 +130,7 @@ private:
             serializer_ptr = nullptr;
 
             pool_msg_id.clear();
-            
+
             pmsgheader = nullptr;
         }
 
@@ -149,7 +149,7 @@ private:
         size_t             packet_count;
         SerializerPointerT serializer_ptr;
         MessageId          pool_msg_id;
-        MessageHeader      *pmsgheader;
+        MessageHeader*     pmsgheader;
     };
 
     using MessageVectorT          = std::vector<MessageStub>;
@@ -195,8 +195,8 @@ private:
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,
         SerializerPointerT&        _rtmp_serializer,
-        bool &_just_written_message_header,
-        bool &_currently_writing_message_header);
+        bool&                      _just_written_message_header,
+        bool&                      _currently_writing_message_header);
 
     void doTryCompleteMessageAfterSerialization(
         const size_t               _msgidx,

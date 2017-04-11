@@ -141,6 +141,7 @@ void MessageReader::doConsumePacket(
 
         switch (crt_msg_type) {
         case PacketHeader::SwitchToNewMessageTypeE:
+        case PacketHeader::SwitchToNewEndMessageTypeE:
 
             vdbgx(Debug::mpipc, "SwitchToNewMessageTypeE " << message_q.size());
 
@@ -167,6 +168,7 @@ void MessageReader::doConsumePacket(
             break;
 
         case PacketHeader::SwitchToOldMessageTypeE:
+        case PacketHeader::SwitchToOldEndMessageTypeE:
 
             vdbgx(Debug::mpipc, "SwitchToOldMessageTypeE " << message_q.size());
 
@@ -178,12 +180,13 @@ void MessageReader::doConsumePacket(
             break;
 
         case PacketHeader::ContinuedMessageTypeE:
+        case PacketHeader::ContinuedEndMessageTypeE:
 
             vdbgx(Debug::mpipc, "ContinuedMessageTypeE " << message_q.size());
 
-            SOLID_ASSERT(message_q.size() and message_q.front().deserializer_ptr/* and message_q.front().message_ptr*/);
-            
-            if(not message_q.front().is_reading_message_header){
+            SOLID_ASSERT(message_q.size() and message_q.front().deserializer_ptr /* and message_q.front().message_ptr*/);
+
+            if (not message_q.front().is_reading_message_header) {
                 ++message_q.front().packet_count;
             }
             break;
@@ -215,44 +218,43 @@ void MessageReader::doConsumePacket(
             _rerror = error_reader_invalid_message_switch;
             return;
         }
-        
+
         if (not canceled_message) {
-            MessageStub&    rmsgstub = message_q.front();
-            const bool      is_currently_reading_message_header = rmsgstub.is_reading_message_header;
-            uint16_t        message_size;
-            
-            if(not is_currently_reading_message_header){
-                if((pbufend - pbufpos) >= 2){
-                    pbufpos      = _rproto.loadValue(pbufpos, message_size);
-                }else{
-                    //protocol error
-                    _rerror = error_reader_protocol;
-                    break;
-                }
+
+            MessageStub& rmsgstub                            = message_q.front();
+            const bool   is_currently_reading_message_header = rmsgstub.is_reading_message_header;
+            uint16_t     message_size;
+
+            if ((pbufend - pbufpos) >= 2) {
+                pbufpos = _rproto.loadValue(pbufpos, message_size);
+            } else {
+                //protocol error
+                _rerror = error_reader_protocol;
+                break;
             }
-            
+
             _rctx.pmessage_header = &rmsgstub.message_header;
-            
+
             int rv = rmsgstub.deserializer_ptr->run(_rctx, pbufpos, pbufend - pbufpos);
 
-            if (rv > 0) {
+            if (rv >= 0) {
 
                 pbufpos += rv;
-                
-                if (rmsgstub.deserializer_ptr->empty()) {
-                    
-                    if(is_currently_reading_message_header){
-                        
+
+                if ((crt_msg_type & PacketHeader::EndMessageTypeE) && rmsgstub.deserializer_ptr->empty()) {
+
+                    if (is_currently_reading_message_header) {
+
                         rmsgstub.is_reading_message_header = false;
                         rmsgstub.deserializer_ptr->clear();
-                        
+
                         message_q.front().deserializer_ptr->push(rmsgstub.message_ptr);
-                        
-                    }else{
+
+                    } else {
                         SOLID_ASSERT(rv == message_size);
                         //done with the message
                         rmsgstub.deserializer_ptr->clear();
-                        
+
                         const size_t message_type_id = rmsgstub.message_ptr.get() ? _rproto.typeIndex(rmsgstub.message_ptr.get()) : InvalidIndex();
 
                         //complete the message waiting for this response

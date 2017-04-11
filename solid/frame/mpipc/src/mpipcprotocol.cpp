@@ -26,8 +26,11 @@ bool PacketHeader::isOk() const
     bool rv = true;
     switch (type_) {
     case SwitchToNewMessageTypeE:
+    case SwitchToNewEndMessageTypeE:
     case SwitchToOldMessageTypeE:
+    case SwitchToOldEndMessageTypeE:
     case ContinuedMessageTypeE:
+    case ContinuedEndMessageTypeE:
     case SwitchToOldCanceledMessageTypeE:
     case ContinuedCanceledMessageTypeE:
     case KeepAliveTypeE:

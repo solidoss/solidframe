@@ -33,8 +33,9 @@ struct Serializer : public mpipc::Serializer {
         : ser(_rlimits, &_ridmap)
     {
     }
-    
-    /*virtual*/ void push(MessageHeader &_rmsghdr) override{
+
+    /*virtual*/ void push(MessageHeader& _rmsghdr) override
+    {
         ser.push(_rmsghdr, "message_header");
     }
 
@@ -70,10 +71,11 @@ struct Deserializer : public mpipc::Deserializer {
     {
     }
 
-    /*virtual*/ void push(MessageHeader &_rmsghdr) override{
+    /*virtual*/ void push(MessageHeader& _rmsghdr) override
+    {
         des.push(_rmsghdr, "message_header");
     }
-    
+
     /*virtual*/ void push(MessagePointerT& _rmsgptr) override
     {
         des.push(_rmsgptr, "message");

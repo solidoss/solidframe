@@ -110,7 +110,7 @@ struct Message : frame::mpipc::Message {
 
         if (S::IsSerializer) {
             serialized = true;
-        }else{
+        } else {
             if (isOnPeer()) {
                 ++crtreadidx;
                 idbg(crtreadidx);

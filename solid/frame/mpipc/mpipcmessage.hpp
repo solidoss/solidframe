@@ -62,35 +62,41 @@ inline MessageFlagsValueT operator|(const MessageFlags _f1, const MessageFlags _
     return static_cast<MessageFlagsValueT>(_f1) | static_cast<MessageFlagsValueT>(_f2);
 }
 
-struct MessageHeader{
+struct MessageHeader {
     using FlagsT = MessageFlagsValueT;
-    
+
     static FlagsT state_flags(const FlagsT _flags)
     {
         return _flags & (MessageFlags::OnPeer | MessageFlags::BackOnSender);
     }
-    
-    MessageHeader():flags_(0){}
-    
+
+    MessageHeader()
+        : flags_(0)
+    {
+    }
+
     MessageHeader(
-        const MessageHeader &_rmsgh
-    ):sender_request_id_(_rmsgh.sender_request_id_)
-      , recipient_request_id_(_rmsgh.recipient_request_id_)
-      , flags_(state_flags(_rmsgh.flags_)){}
-    
-    MessageHeader& operator=(MessageHeader &&_umh){
-        sender_request_id_ = _umh.sender_request_id_;
+        const MessageHeader& _rmsgh)
+        : sender_request_id_(_rmsgh.sender_request_id_)
+        , recipient_request_id_(_rmsgh.recipient_request_id_)
+        , flags_(state_flags(_rmsgh.flags_))
+    {
+    }
+
+    MessageHeader& operator=(MessageHeader&& _umh)
+    {
+        sender_request_id_    = _umh.sender_request_id_;
         recipient_request_id_ = _umh.recipient_request_id_;
-        flags_ = _umh.flags_;
-        url_ = std::move(_umh.url_);
+        flags_                = _umh.flags_;
+        url_                  = std::move(_umh.url_);
         return *this;
     }
-    
+
     RequestId   sender_request_id_;
     RequestId   recipient_request_id_;
     FlagsT      flags_;
     std::string url_;
-    
+
     template <class S>
     void solidSerialize(S& _rs, frame::mpipc::ConnectionContext& _rctx)
     {
@@ -222,14 +228,18 @@ struct Message : std::enable_shared_from_this<Message> {
     {
     }
 
-    Message(Message const& _rmsg):header_(_rmsg.header_){}
+    Message(Message const& _rmsg)
+        : header_(_rmsg.header_)
+    {
+    }
 
     virtual ~Message();
-    
-    void header(MessageHeader &&_umh){
+
+    void header(MessageHeader&& _umh)
+    {
         header_ = std::move(_umh);
     }
-    
+
     bool isOnSender() const
     {
         return is_on_sender(flags());
@@ -269,14 +279,13 @@ struct Message : std::enable_shared_from_this<Message> {
         //here we do only pushes so we can have access to context
         //using the above "serialize" function
         _rs.push(_rt, _name);
-        if(S::IsDeserializer){
+        if (S::IsDeserializer) {
             _rs.pushCall(
-                [&_rt](S& /*_rs*/, solid::frame::mpipc::ConnectionContext& _rctx, uint64_t _val, solid::ErrorConditionT& _rerr){
+                [&_rt](S& /*_rs*/, solid::frame::mpipc::ConnectionContext& _rctx, uint64_t _val, solid::ErrorConditionT& _rerr) {
                     _rt.header_ = std::move(*_rctx.pmessage_header);
                 },
                 0,
-                "call"
-            );
+                "call");
         }
     }
 
@@ -295,9 +304,9 @@ private:
     {
         return header_.recipient_request_id_;
     }
-    
+
 private:
-    MessageHeader   header_;
+    MessageHeader header_;
 };
 
 using MessagePointerT = std::shared_ptr<Message>;

@@ -472,10 +472,10 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         ErrorConditionT tmp_error(error());
         ObjectIdT       objuid(uid(_rctx));
         ulong           seconds_to_wait = 0;
-        MessageBundle msg_bundle;
-        MessageId     pool_msg_id;
-        Event event;
-        bool can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
+        MessageBundle   msg_bundle;
+        MessageId       pool_msg_id;
+        Event           event;
+        bool            can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 
         if (msg_bundle.message_ptr.get() or not FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
             doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);

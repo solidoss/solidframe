@@ -2103,8 +2103,7 @@ void Service::doPushFrontMessageToPool(
     SOLID_ASSERT(rpool.unique == _rpool_id.unique);
 
     if (
-        Message::is_idempotent(_rmsgbundle.message_flags) or not Message::is_done_send(_rmsgbundle.message_flags)
-    ) {
+        Message::is_idempotent(_rmsgbundle.message_flags) or not Message::is_done_send(_rmsgbundle.message_flags)) {
 
         vdbgx(Debug::mpipc, this << " " << _rmsgbundle.message_ptr.get());
 
