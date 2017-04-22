@@ -658,7 +658,7 @@ ErrorConditionT Service::doStart()
 
         if (not rd.empty()) {
             sd.create(rd.begin());
-            sd.prepareAccept(rd.begin(), 2000);
+            sd.prepareAccept(rd.begin(), Listener::backlog_size());
         }
 
         if (sd.ok()) {

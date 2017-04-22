@@ -98,8 +98,8 @@ public:
         doPost(_rctx, eventfnc, std::move(_uev));
     }
 
-    bool waitDevice(ReactorContext& _rctx, CompletionHandler const& _rch, Device const& _rsd, const ReactorWaitRequestsE _req);
     bool addDevice(ReactorContext& _rctx, CompletionHandler const& _rch, Device const& _rsd, const ReactorWaitRequestsE _req);
+    bool modDevice(ReactorContext& _rctx, CompletionHandler const& _rch, Device const& _rsd, const ReactorWaitRequestsE _req);
     bool remDevice(CompletionHandler const& _rch, Device const& _rsd);
 
     bool addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_t& _rstoreidx);

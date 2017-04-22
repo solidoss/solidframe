@@ -16,6 +16,7 @@
 #include <unistd.h>
 #endif
 
+#include <cassert>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
@@ -25,6 +26,7 @@
 #include "solid/system/directory.hpp"
 #include "solid/system/filedevice.hpp"
 #include "solid/system/socketdevice.hpp"
+#include "solid/system/socketinfo.hpp"
 
 using namespace std;
 
@@ -635,8 +637,8 @@ ErrorCodeT SocketDevice::connect(const SocketAddressStub& _rsas, bool& _rcan_wai
     const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
     _rcan_wait   = (WSAGetLastError() == WSAEWOULDBLOCK);
 #else
-    const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-    _rcan_wait   = (errno == EINPROGRESS);
+    const int rv    = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+    _rcan_wait      = (errno == EINPROGRESS);
 #endif
     return rv == 0 ? ErrorCodeT() : last_socket_error();
 }
@@ -646,9 +648,32 @@ ErrorCodeT SocketDevice::connect(const SocketAddressStub& _rsas)
 #ifdef SOLID_ON_WINDOWS
     int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #else
-    int rv       = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+    int       rv    = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #endif
     return rv == 0 ? ErrorCodeT() : last_socket_error();
+}
+
+ErrorCodeT SocketDevice::checkConnect() const
+{
+#ifdef SOLID_ON_WINDOWS
+    return ErrorCodeT();
+#else
+    int       val   = 0;
+    socklen_t valsz = sizeof(int);
+    int       rv    = getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, &val, &valsz);
+    if (rv == 0) {
+        if (val == 0) {
+            return ErrorCodeT();
+        } else {
+            //TODO:
+            ErrorCodeT err;
+            err.assign(val, err.category());
+            return err;
+        }
+    }
+
+    return last_socket_error();
+#endif
 }
 
 // int SocketDevice::connect(const ResolveIterator &_rai){
@@ -691,8 +716,8 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
     }
     return last_socket_error();
 #else
-    int yes      = 1;
-    int rv       = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes));
+    int yes = 1;
+    int rv  = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes));
     if (rv < 0) {
         return last_socket_error();
     }
@@ -718,10 +743,10 @@ ErrorCodeT SocketDevice::accept(SocketDevice& _dev, bool& _rcan_retry)
     _dev.Device::descriptor((HANDLE)rv);
     return last_socket_error();
 #else
-    SocketAddress sa;
-    const int     rv = ::accept(descriptor(), sa, &sa.sz);
-    _rcan_retry      = (errno == EAGAIN);
+    const int rv = ::accept(descriptor(), nullptr, nullptr);
+    _rcan_retry  = (errno == EAGAIN || errno == ENETDOWN || errno == EPROTO || errno == ENOPROTOOPT || errno == EHOSTDOWN || errno == ENONET || errno == EHOSTUNREACH || errno == EOPNOTSUPP || errno == ENETUNREACH);
     _dev.Device::descriptor(rv);
+
     return rv > 0 ? ErrorCodeT() : last_socket_error();
 #endif
 }
@@ -734,8 +759,7 @@ ErrorCodeT SocketDevice::accept(SocketDevice& _dev)
     _dev.Device::descriptor((HANDLE)rv);
     return last_socket_error();
 #else
-    SocketAddress sa;
-    int           rv = ::accept(descriptor(), sa, &sa.sz);
+    int rv = ::accept(descriptor(), nullptr, nullptr);
     _dev.Device::descriptor(rv);
     return rv > 0 ? ErrorCodeT() : last_socket_error();
 #endif
@@ -861,7 +885,7 @@ int SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, ErrorCode
     return -1;
 #else
     int rv      = ::send(descriptor(), _pb, _ul, 0);
-    _rcan_retry = (errno == EAGAIN /* || errno == EWOULDBLOCK*/);
+    _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
     _rerr       = last_socket_error();
     return rv;
 #endif
@@ -872,7 +896,7 @@ int SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _re
     return -1;
 #else
     int rv      = ::recv(descriptor(), _pb, _ul, 0);
-    _rcan_retry = (errno == EAGAIN /* || errno == EWOULDBLOCK*/);
+    _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
     _rerr       = last_socket_error();
     return rv;
 #endif
@@ -883,7 +907,7 @@ int SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub& _sa
     return -1;
 #else
     int rv      = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
-    _rcan_retry = (errno == EAGAIN /* || errno == EWOULDBLOCK*/);
+    _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
     _rerr       = last_socket_error();
     return rv;
 #endif
@@ -896,7 +920,7 @@ int SocketDevice::recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rcan_r
     _rsa.clear();
     _rsa.sz     = SocketAddress::Capacity;
     int rv      = ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
-    _rcan_retry = (errno == EAGAIN /* || errno == EWOULDBLOCK*/);
+    _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
     _rerr       = last_socket_error();
     return rv;
 #endif
@@ -1210,6 +1234,11 @@ std::ostream& operator<<(std::ostream& _ros, const RemoteAddressPlot& _ra)
     _ra.rsd.remoteAddress(sa);
     _ros << sa;
     return _ros;
+}
+
+/*static*/ size_t SocketInfo::max_listen_backlog_size()
+{
+    return 128; //TODO: try take the value from the system
 }
 
 } //namespace solid

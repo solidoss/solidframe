@@ -81,6 +81,16 @@ SecureContextT secure_ctx(SecureContextT::create());
 
 class Listener : public Dynamic<Listener, frame::aio::Object> {
 public:
+    // We will use the this backlog_size
+    // both as parameter to listen and as max
+    // accept loop count - this way we make sure
+    // that the accetor socket backlog queue is
+    // emptied a.s.a.p.
+    static size_t backlog_size()
+    {
+        return SocketInfo::max_listen_backlog_size();
+    }
+
     Listener(
         frame::Service& _rsvc,
         AioSchedulerT&  _rsched,
@@ -195,7 +205,7 @@ int main(int argc, char* argv[])
         frame::Manager  m;
         frame::ServiceT svc(m);
 
-        if (sch.start(1)) {
+        if (sch.start(thread::hardware_concurrency())) {
             running = false;
             cout << "Error starting scheduler" << endl;
         } else {
@@ -204,7 +214,7 @@ int main(int argc, char* argv[])
             SocketDevice sd;
 
             sd.create(rd.begin());
-            sd.prepareAccept(rd.begin(), 2000);
+            sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
             if (sd.ok()) {
                 DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
@@ -273,7 +283,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     idbg("");
-    unsigned repeatcnt = 4;
+    unsigned repeatcnt = backlog_size();
 
     do {
         if (!_rctx.error()) {
@@ -293,7 +303,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 #endif
         } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
-            //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
+            //timer.waitFor(_rctx, std::chrono::seconds(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
         }
         --repeatcnt;

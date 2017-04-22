@@ -46,24 +46,22 @@ typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
 
 using AddressVectorT = std::vector<SocketAddressInet>;
 
-using ResolveCompleteFunctionT      = FUNCTION<void(AddressVectorT&&)>;
-using ConnectionStopFunctionT       = FUNCTION<void(ConnectionContext&)>;
-using ConnectionStartFunctionT      = FUNCTION<void(ConnectionContext&)>;
-using AllocateBufferFunctionT       = FUNCTION<char*(const uint16_t)>;
-using FreeBufferFunctionT           = FUNCTION<void(char*)>;
-using CompressFunctionT             = FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
-using UncompressFunctionT           = FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
-using ExtractRecipientNameFunctionT = FUNCTION<const char*(const char*, std::string&, std::string&)>;
-//using ResetSerializerLimitsFunctionT              = FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
-
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
-
+using ResolveCompleteFunctionT                  = FUNCTION<void(AddressVectorT&&)>;
+using ConnectionStopFunctionT                   = FUNCTION<void(ConnectionContext&)>;
+using ConnectionStartFunctionT                  = FUNCTION<void(ConnectionContext&)>;
+using AllocateBufferFunctionT                   = FUNCTION<char*(const uint16_t)>;
+using FreeBufferFunctionT                       = FUNCTION<void(char*)>;
+using CompressFunctionT                         = FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
+using UncompressFunctionT                       = FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
+using ExtractRecipientNameFunctionT             = FUNCTION<const char*(const char*, std::string&, std::string&)>;
+using AioSchedulerT                             = frame::Scheduler<frame::aio::Reactor>;
 using ConnectionEnterActiveCompleteFunctionT    = FUNCTION<MessagePointerT(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionEnterPassiveCompleteFunctionT   = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionSecureHandhakeCompleteFunctionT = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionSendRawDataCompleteFunctionT    = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionRecvRawDataCompleteFunctionT    = FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
 using ConnectionOnEventFunctionT                = FUNCTION<void(ConnectionContext&, Event&)>;
+//using ResetSerializerLimitsFunctionT              = FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
 
 enum struct ConnectionState {
     Raw,
@@ -220,31 +218,22 @@ public:
 
     } client;
 
-    size_t   connection_reconnect_timeout_seconds;
-    uint32_t connection_inactivity_timeout_seconds;
-    uint32_t connection_keepalive_timeout_seconds;
-
-    uint32_t connection_inactivity_keepalive_count; //server error if receives more than inactivity_keepalive_count keep alive
-    //messages during inactivity_timeout_seconds interval
-
-    uint8_t connection_recv_buffer_start_capacity_kb;
-    uint8_t connection_recv_buffer_max_capacity_kb;
-
-    uint8_t connection_send_buffer_start_capacity_kb;
-    uint8_t connection_send_buffer_max_capacity_kb;
-
+    size_t                        connection_reconnect_timeout_seconds;
+    uint32_t                      connection_inactivity_timeout_seconds;
+    uint32_t                      connection_keepalive_timeout_seconds;
+    uint32_t                      connection_inactivity_keepalive_count; //server error if receives more than inactivity_keepalive_count keep alive messages during inactivity_timeout_seconds interval
+    uint8_t                       connection_recv_buffer_start_capacity_kb;
+    uint8_t                       connection_recv_buffer_max_capacity_kb;
+    uint8_t                       connection_send_buffer_start_capacity_kb;
+    uint8_t                       connection_send_buffer_max_capacity_kb;
     ExtractRecipientNameFunctionT extract_recipient_name_fnc;
-
-    ConnectionStopFunctionT    connection_stop_fnc;
-    ConnectionOnEventFunctionT connection_on_event_fnc;
-
-    AllocateBufferFunctionT connection_recv_buffer_allocate_fnc;
-    AllocateBufferFunctionT connection_send_buffer_allocate_fnc;
-
-    FreeBufferFunctionT connection_recv_buffer_free_fnc;
-    FreeBufferFunctionT connection_send_buffer_free_fnc;
-
-    ProtocolPointerT protocol_ptr;
+    ConnectionStopFunctionT       connection_stop_fnc;
+    ConnectionOnEventFunctionT    connection_on_event_fnc;
+    AllocateBufferFunctionT       connection_recv_buffer_allocate_fnc;
+    AllocateBufferFunctionT       connection_send_buffer_allocate_fnc;
+    FreeBufferFunctionT           connection_recv_buffer_free_fnc;
+    FreeBufferFunctionT           connection_send_buffer_free_fnc;
+    ProtocolPointerT              protocol_ptr;
 
     Protocol& protocol()
     {

@@ -32,13 +32,18 @@ using namespace solid;
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
 using AtomicSizeT   = atomic<size_t>;
 
-
-struct Statistics{
-    AtomicSizeT     concnt;
-    AtomicSizeT     connectcnt;
-    AtomicSizeT     connectedcnt;
-    AtomicSizeT     donecnt;
-    Statistics():concnt(0), connectcnt(0), connectedcnt(0), donecnt(0){}
+struct Statistics {
+    AtomicSizeT concnt;
+    AtomicSizeT connectcnt;
+    AtomicSizeT connectedcnt;
+    AtomicSizeT donecnt;
+    Statistics()
+        : concnt(0)
+        , connectcnt(0)
+        , connectedcnt(0)
+        , donecnt(0)
+    {
+    }
 } stats;
 
 namespace {
@@ -118,9 +123,11 @@ public:
     {
         ++stats.concnt;
     }
-    ~Connection() {
+    ~Connection()
+    {
         --stats.concnt;
     }
+
 private:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     void doStop(frame::Manager& _rm) override

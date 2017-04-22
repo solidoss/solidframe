@@ -65,6 +65,7 @@ protected:
     void errorClear(ReactorContext& _rctx) const;
     void systemError(ReactorContext& _rctx, ErrorCodeT const& _err) const;
     void addDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req);
+    void modDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req);
     void remDevice(ReactorContext& _rctx, Device const& _rsd);
     void addTimer(ReactorContext& _rctx, NanoTime const& _rt, size_t& _storedidx);
     void remTimer(ReactorContext& _rctx, size_t const& _storedidx);

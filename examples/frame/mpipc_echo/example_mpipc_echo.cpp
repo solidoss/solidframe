@@ -244,7 +244,7 @@ bool restart(
 
     rm.start();
 
-    err = _sch.start(1);
+    err = _sch.start(thread::hardware_concurrency());
 
     if (err) {
         cout << "Error starting aio scheduler: " << err.message() << endl;

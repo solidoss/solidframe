@@ -31,6 +31,11 @@ class Service;
 
 class Listener : public Dynamic<Listener, frame::aio::Object> {
 public:
+    static size_t backlog_size()
+    {
+        return SocketInfo::max_listen_backlog_size();
+    }
+
     Listener(
         SocketDevice& _rsd);
     ~Listener();

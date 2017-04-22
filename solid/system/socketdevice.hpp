@@ -119,6 +119,8 @@ public:
     ErrorCodeT type(int& _rrv) const;
     //! Return true if the socket is listening
     //bool isListening()const;
+    ErrorCodeT checkConnect() const;
+
 private:
     SocketDevice(const SocketDevice& _dev);
     SocketDevice& operator=(const SocketDevice& _dev);

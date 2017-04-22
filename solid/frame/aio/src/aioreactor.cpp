@@ -434,16 +434,15 @@ struct Reactor::Data {
         return UniqueId(idx, chdq[idx].unique);
     }
 
-    int         reactor_fd;
-    AtomicBoolT running;
-    size_t      crtpushtskvecidx;
-    size_t      crtraisevecidx;
-    AtomicSizeT crtpushvecsz;
-    AtomicSizeT crtraisevecsz;
-    size_t      devcnt;
-    size_t      objcnt;
-    TimeStoreT  timestore;
-
+    int                     reactor_fd;
+    AtomicBoolT             running;
+    size_t                  crtpushtskvecidx;
+    size_t                  crtraisevecidx;
+    AtomicSizeT             crtpushvecsz;
+    AtomicSizeT             crtraisevecsz;
+    size_t                  devcnt;
+    size_t                  objcnt;
+    TimeStoreT              timestore;
     mutex                   mtx;
     EventVectorT            eventvec;
     NewTaskVectorT          pushtskvec[2];
@@ -530,7 +529,6 @@ bool Reactor::start()
     d.eventvec.resize(MinEventCapacity);
     d.eventvec.resize(d.eventvec.capacity());
     d.running = true;
-    ++d.devcnt;
 
     return true;
 }
@@ -708,6 +706,8 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events)
     case EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT:
     case EPOLLIN | EPOLLOUT | EPOLLHUP:
     case EPOLLERR | EPOLLOUT | EPOLLIN:
+    case EPOLLERR | EPOLLOUT | EPOLLHUP:
+    case EPOLLERR | EPOLLIN | EPOLLHUP:
         retval = ReactorEventHangup;
         break;
 #ifdef SOLID_USE_EPOLLRDHUP
@@ -1076,7 +1076,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 
 //-----------------------------------------------------------------------------
 
-bool Reactor::waitDevice(ReactorContext& _rctx, CompletionHandler const& _rch, Device const& _rsd, const ReactorWaitRequestsE _req)
+bool Reactor::modDevice(ReactorContext& _rctx, CompletionHandler const& _rch, Device const& _rsd, const ReactorWaitRequestsE _req)
 {
     idbgx(Debug::aio, _rsd.descriptor());
 #if defined(SOLID_USE_EPOLL)
@@ -1087,6 +1087,7 @@ bool Reactor::waitDevice(ReactorContext& _rctx, CompletionHandler const& _rch, D
 
     if (epoll_ctl(d.reactor_fd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev)) {
         edbgx(Debug::aio, "epoll_ctl: " << last_system_error().message());
+        SOLID_THROW("epoll_ctl");
         return false;
     }
 #elif defined(SOLID_USE_KQUEUE)
@@ -1162,6 +1163,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, CompletionHandler const& _rch, De
 
     if (epoll_ctl(d.reactor_fd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)) {
         edbgx(Debug::aio, "epoll_ctl: " << last_system_error().message());
+        SOLID_THROW("epoll_ctl");
         return false;
     } else {
         ++d.devcnt;
@@ -1240,6 +1242,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
 
     if (epoll_ctl(d.reactor_fd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev)) {
         edbgx(Debug::aio, "epoll_ctl: " << last_system_error().message());
+        SOLID_THROW("epoll_ctl");
         return false;
     } else {
         --d.devcnt;

@@ -15,6 +15,7 @@
 #include "solid/system/common.hpp"
 #include "solid/system/debug.hpp"
 #include "solid/system/socketdevice.hpp"
+#include <cassert>
 
 namespace solid {
 namespace frame {
@@ -143,6 +144,7 @@ class Stream : public CompletionHandler {
 
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
+            _rthis.doCheckConnect(_rctx);
             F tmp{std::move(f)};
             _rthis.doClearSend(_rctx);
             tmp(_rctx);
@@ -441,7 +443,7 @@ public:
             ErrorCodeT err;
             if (s.create(_rsas, err)) {
                 completionCallback(&on_completion);
-                addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
+                addDevice(_rctx, s.device(), ReactorWaitWrite);
 
                 bool can_retry;
                 bool rv = s.connect(_rsas, can_retry, err);
@@ -664,6 +666,17 @@ private:
             }
         }
         return true;
+    }
+
+    void doCheckConnect(ReactorContext& _rctx)
+    {
+        ErrorCodeT err = s.device().checkConnect();
+        if (!err) {
+            modDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
+        } else {
+            error(_rctx, error_stream_system);
+            systemError(_rctx, err);
+        }
     }
 
     void doError(ReactorContext& _rctx)

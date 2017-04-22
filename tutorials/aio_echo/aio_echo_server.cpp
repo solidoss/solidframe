@@ -38,6 +38,16 @@ struct Params {
 
 class Listener : public frame::aio::Object {
 public:
+    // We will use the this backlog_size
+    // both as parameter to listen and as max
+    // accept loop count - this way we make sure
+    // that the accetor socket backlog queue is
+    // emptied a.s.a.p.
+    static size_t backlog_size()
+    {
+        return SocketInfo::max_listen_backlog_size();
+    }
+
     Listener(
         frame::Service& _rsvc,
         AioSchedulerT&  _rsched,
@@ -118,7 +128,7 @@ int main(int argc, char* argv[])
     frame::Manager  manager;
     frame::ServiceT service(manager);
 
-    if (scheduler.start(1 /*a single thread*/)) {
+    if (scheduler.start(thread::hardware_concurrency())) {
         cout << "Error starting scheduler" << endl;
         return 0;
     }
@@ -128,7 +138,7 @@ int main(int argc, char* argv[])
         SocketDevice sd;
 
         sd.create(rd.begin());
-        sd.prepareAccept(rd.begin(), 2000);
+        sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
         if (sd.ok()) {
 
@@ -221,7 +231,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    unsigned repeatcnt = 4;
+    unsigned repeatcnt = backlog_size();
 
     do {
         if (!_rctx.error()) {

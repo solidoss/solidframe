@@ -47,6 +47,8 @@ struct SocketInfo {
     //      NameRequest = NI_NAMEREQD,      //!< Force name lookup - fail if not found
     //      NumericService = NI_NUMERICSERV //!< Generate only the port number
     //  };
+    static size_t max_listen_backlog_size();
+
 private:
     SocketInfo();
     SocketInfo(const SocketInfo&);
