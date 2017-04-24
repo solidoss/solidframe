@@ -1,6 +1,14 @@
-add_executable(benchmark EXCLUDE_FROM_ALL main.cpp boost/record.cpp solid/record.cpp)
+include(ExternalProject)
 
-add_dependencies(benchmark build_boost)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+include(${CMAKE_SOURCE_DIR}/cmake/build_cereal.cmake)
+
+add_executable(benchmark EXCLUDE_FROM_ALL main.cpp boost/record.cpp solid/record.cpp cereal/record.cpp)
+
+add_dependencies(benchmark build_boost build_cereal)
+
+include_directories(${CMAKE_BINARY_DIR}/external/include)
 
 target_link_libraries(benchmark
     solid_serialization
