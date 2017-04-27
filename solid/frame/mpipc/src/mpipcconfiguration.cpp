@@ -65,6 +65,13 @@ const char* default_extract_recipient_name(const char* _purl, std::string&, std:
     return _purl;
 }
 
+bool default_setup_socket_device(SocketDevice& _rsd)
+{
+    _rsd.enableNoDelay();
+    _rsd.enableNoSignal();
+    return true;
+}
+
 } //namespace
 
 ReaderConfiguration::ReaderConfiguration()
@@ -120,6 +127,9 @@ void Configuration::init()
 
     client.connection_create_socket_fnc = default_create_client_socket;
     server.connection_create_socket_fnc = default_create_server_socket;
+
+    server.socket_device_setup_fnc = default_setup_socket_device;
+    client.socket_device_setup_fnc = default_setup_socket_device;
 
     extract_recipient_name_fnc = default_extract_recipient_name;
 

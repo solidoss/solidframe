@@ -270,33 +270,23 @@ protected:
 
     ConnectionPoolId   pool_id;
     const std::string& rpool_name;
-
-    TimerT timer;
-
-    uint16_t flags;
-
-    uint32_t recv_buf_off;
-    uint32_t cons_buf_off;
-
-    uint32_t recv_keepalive_count;
-
-    char* recv_buf;
-    char* send_buf;
-
-    uint8_t recv_buf_cp_kb; //kilobytes
-    uint8_t send_buf_cp_kb; //kilobytes
-
-    MessageIdVectorT pending_message_vec;
-
-    MessageReader msg_reader;
-    MessageWriter msg_writer;
-
-    ErrorConditionT err;
-    ErrorCodeT      syserr;
-
-    Any<>          any_data;
-    char           socket_emplace_buf[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
-    SocketStubPtrT sock_ptr;
+    TimerT             timer;
+    uint16_t           flags;
+    uint32_t           recv_buf_off;
+    uint32_t           cons_buf_off;
+    uint32_t           recv_keepalive_count;
+    char*              recv_buf;
+    char*              send_buf;
+    uint8_t            recv_buf_cp_kb; //kilobytes
+    uint8_t            send_buf_cp_kb; //kilobytes
+    MessageIdVectorT   pending_message_vec;
+    MessageReader      msg_reader;
+    MessageWriter      msg_writer;
+    ErrorConditionT    err;
+    ErrorCodeT         syserr;
+    Any<>              any_data;
+    char               socket_emplace_buf[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
+    SocketStubPtrT     sock_ptr;
 };
 
 inline Any<>& Connection::any()

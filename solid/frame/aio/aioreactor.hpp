@@ -120,7 +120,6 @@ public:
     Service& service(ReactorContext const& _rctx) const;
 
     Object& object(ReactorContext const& _rctx) const;
-    UniqueId objectUid(ReactorContext const& _rctx) const;
 
     CompletionHandler* completionHandler(ReactorContext const& _rctx) const;
 
@@ -130,6 +129,7 @@ private:
     friend struct ChangeTimerIndexCallback;
     friend struct TimerCallback;
     friend struct ExecStub;
+    friend struct ReactorContext;
 
     static Reactor* safeSpecific();
     static Reactor& specific();
@@ -154,10 +154,14 @@ private:
     static void stop_object(ReactorContext& _rctx, Event&& _uevent);
     static void stop_object_repost(ReactorContext& _rctx, Event&& _uevent);
 
+    UniqueId objectUid(ReactorContext const& _rctx) const;
+
 private: //data
     struct Data;
     Data& d;
 };
+
+//-----------------------------------------------------------------------------
 
 } //namespace aio
 } //namespace frame

@@ -2183,6 +2183,8 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
 
     vdbgx(Debug::mpipc, this);
 
+    configuration().server.socket_device_setup_fnc(_rsd);
+
     size_t                  pool_idx;
     unique_lock<std::mutex> lock(d.mtx);
 

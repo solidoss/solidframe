@@ -227,6 +227,66 @@ inline Event make_event(const GenericEvents _id, T&& _uany_value)
 {
     return generic_event_category.event(_id, _uany_value);
 }
+//-----------------------------------------------------------------------------
+
+inline Event::Event()
+    : pcategory_(&generic_event_category)
+    , id_(static_cast<size_t>(GenericEvents::Default))
+{
+}
+
+inline Event::Event(Event&& _uevt)
+    : pcategory_(_uevt.pcategory_)
+    , id_(_uevt.id_)
+    , any_(std::move(_uevt.any_))
+{
+    _uevt.pcategory_ = &generic_event_category;
+    _uevt.id_        = static_cast<size_t>(GenericEvents::Default);
+}
+
+inline Event::Event(const Event& _revt)
+    : pcategory_(_revt.pcategory_)
+    , id_(_revt.id_)
+    , any_(_revt.any_)
+{
+}
+
+inline Event& Event::operator=(const Event& _revt)
+{
+    pcategory_ = _revt.pcategory_;
+    id_        = _revt.id_;
+    any_       = _revt.any_;
+    return *this;
+}
+
+inline Event& Event::operator=(Event&& _uevt)
+{
+    pcategory_       = _uevt.pcategory_;
+    id_              = _uevt.id_;
+    any_             = std::move(_uevt.any_);
+    _uevt.pcategory_ = &generic_event_category;
+    _uevt.id_        = static_cast<size_t>(GenericEvents::Default);
+    return *this;
+}
+
+inline void Event::clear()
+{
+    pcategory_ = &generic_event_category;
+    id_        = static_cast<size_t>(GenericEvents::Default);
+    any_.clear();
+}
+
+inline bool Event::isDefault() const
+{
+    return pcategory_ == &generic_event_category && id_ == static_cast<size_t>(GenericEvents::Default);
+}
+
+inline bool Event::operator==(const Event& _revt) const
+{
+    return (pcategory_ == _revt.pcategory_) && (id_ == _revt.id_);
+}
+
+//-----------------------------------------------------------------------------
 
 extern const Event generic_event_default;
 extern const Event generic_event_start;

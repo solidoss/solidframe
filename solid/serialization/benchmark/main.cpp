@@ -10,10 +10,10 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "data.hpp"
 #include "boost/record.hpp"
-#include "solid/record.hpp"
 #include "cereal/record.hpp"
+#include "data.hpp"
+#include "solid/record.hpp"
 
 using namespace std;
 
@@ -55,7 +55,6 @@ void boost_serialization_test(size_t iterations)
     std::cout << "boost: time = " << duration << " milliseconds" << std::endl
               << std::endl;
 }
-
 
 void cereal_serialization_test(size_t iterations)
 {
@@ -190,7 +189,7 @@ int main(int argc, char** argv)
         if (names.empty() || names.find("solid") != names.end()) {
             solid_serialization_test(iterations);
         }
-        
+
         if (names.empty() || names.find("cereal") != names.end()) {
             cereal_serialization_test(iterations);
         }

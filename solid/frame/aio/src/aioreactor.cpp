@@ -543,7 +543,7 @@ bool Reactor::start()
     {
         unique_lock<std::mutex> lock(d.mtx);
 
-        d.raisevec[d.crtraisevecidx].push_back(RaiseEventStub(_robjuid, std::move(_uevent)));
+        d.raisevec[d.crtraisevecidx].emplace_back(_robjuid, std::move(_uevent));
         raisevecsz      = d.raisevec[d.crtraisevecidx].size();
         d.crtraisevecsz = raisevecsz;
     }
@@ -767,7 +767,7 @@ inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _reques
 #endif
 //-----------------------------------------------------------------------------
 
-UniqueId Reactor::objectUid(ReactorContext const& _rctx) const
+inline UniqueId Reactor::objectUid(ReactorContext const& _rctx) const
 {
     return UniqueId(_rctx.object_index_, d.objdq[_rctx.object_index_].unique);
 }
@@ -798,7 +798,7 @@ CompletionHandler* Reactor::completionHandler(ReactorContext const& _rctx) const
 void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT& _revfn, Event&& _uev)
 {
     vdbgx(Debug::aio, "exeq " << d.exeq.size());
-    d.exeq.push(ExecStub(_rctx.objectUid(), std::move(_uev)));
+    d.exeq.push(ExecStub(objectUid(_rctx), std::move(_uev)));
     FUNCTION_CLEAR(d.exeq.back().exefnc);
     std::swap(d.exeq.back().exefnc, _revfn);
     d.exeq.back().chnuid = d.dummyCompletionHandlerUid();

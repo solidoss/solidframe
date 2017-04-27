@@ -747,7 +747,7 @@ bool Manager::disableObjectVisits(ObjectBase& _robj)
     }
     return retval;
 }
-
+#if 1
 bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk /* = 0*/)
 {
     auto do_notify_fnc = [&_uevt, _sigmsk](ObjectBase& _robj, ReactorBase& _rreact) {
@@ -757,6 +757,26 @@ bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk
 
     return doVisit(_ruid, f);
 }
+#else
+bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk /* = 0*/)
+{
+    bool retval = false;
+    if (_ruid.index < d.maxobjcnt) {
+        const size_t objstoreidx = d.aquireReadObjectStore();
+        ObjectChunk& rchk(*d.chunk(objstoreidx, _ruid.index));
+        {
+            std::unique_lock<std::mutex> lock(rchk.rmtx);
+            ObjectStub const&            ros(d.object(objstoreidx, _ruid.index));
+
+            if (ros.unique == _ruid.unique && ros.pobject && ros.preactor) {
+                retval = notify_object(*ros.pobject, *ros.preactor, std::move(_uevt), _sigmsk);
+            }
+        }
+        d.releaseReadObjectStore(objstoreidx);
+    }
+    return retval;
+}
+#endif
 
 size_t Manager::notifyAll(const Service& _rsvc, Event const& _revt, const size_t _sigmsk)
 {

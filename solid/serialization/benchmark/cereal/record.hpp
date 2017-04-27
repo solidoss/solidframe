@@ -2,12 +2,12 @@
 #ifndef __CEREAL_RECORD_HPP_INCLUDED__
 #define __CEREAL_RECORD_HPP_INCLUDED__
 
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
 #include <sstream>
+#include <stdint.h>
 #include <string>
 #include <vector>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/string.hpp>
-#include <stdint.h>
 
 namespace cereal_test {
 
@@ -28,10 +28,10 @@ public:
     {
         return !(*this == other);
     }
-private:
 
+private:
     friend class cereal::access;
-    
+
     template <typename Archive>
     void serialize(Archive& ar)
     {
@@ -45,4 +45,3 @@ void from_string(Record& record, const std::string& data);
 } // namespace
 
 #endif
-

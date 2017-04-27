@@ -17,6 +17,7 @@
 #include "solid/frame/scheduler.hpp"
 #include "solid/system/function.hpp"
 #include "solid/system/socketaddress.hpp"
+#include "solid/system/socketdevice.hpp"
 #include <vector>
 
 #include "solid/frame/mpipc/mpipcsocketstub.hpp"
@@ -44,8 +45,9 @@ struct Configuration;
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
 
-using AddressVectorT = std::vector<SocketAddressInet>;
-
+using AddressVectorT                            = std::vector<SocketAddressInet>;
+using ServerSetupSocketDeviceFunctionT          = FUNCTION<bool(SocketDevice&)>;
+using ClientSetupSocketDeviceFunctionT          = FUNCTION<bool(SocketDevice&)>;
 using ResolveCompleteFunctionT                  = FUNCTION<void(AddressVectorT&&)>;
 using ConnectionStopFunctionT                   = FUNCTION<void(ConnectionContext&)>;
 using ConnectionStartFunctionT                  = FUNCTION<void(ConnectionContext&)>;
@@ -181,6 +183,7 @@ public:
         bool                               connection_start_secure;
         ConnectionStartFunctionT           connection_start_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
+        ServerSetupSocketDeviceFunctionT   socket_device_setup_fnc;
 
         Any<> secure_any;
 
@@ -214,6 +217,7 @@ public:
         ConnectionStartFunctionT           connection_start_fnc;
         AsyncResolveFunctionT              name_resolve_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
+        ClientSetupSocketDeviceFunctionT   socket_device_setup_fnc;
         Any<>                              secure_any;
 
     } client;

@@ -76,6 +76,11 @@ private:
         return sock.device();
     }
 
+    SocketDevice& device() override final
+    {
+        return sock.device();
+    }
+
     bool postSendAll(
         frame::aio::ReactorContext& _rctx, OnSendAllRawF _pf, const char* _pbuf, size_t _bufcp, Event& _revent) override final
     {
@@ -163,7 +168,6 @@ private:
     void prepareSocket(
         frame::aio::ReactorContext& _rctx) override final
     {
-        sock.device().enableNoSignal();
     }
 
     bool secureAccept(

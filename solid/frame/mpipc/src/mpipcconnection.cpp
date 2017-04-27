@@ -410,6 +410,7 @@ void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incom
         }
     } else {
         flags |= static_cast<size_t>(Flags::Connected);
+        config.client.socket_device_setup_fnc(sock_ptr->device());
         if (not start_secure) {
             service(_rctx).onOutgoingConnectionStart(conctx);
         }
