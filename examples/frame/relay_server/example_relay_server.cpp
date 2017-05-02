@@ -415,7 +415,7 @@ struct MoveMessage {
             //we must resolve the address then connect
             idbg("async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
-                ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), params.connect_addr_str.c_str(),
+                ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
                 params.connect_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
         } else {
             const uint32_t id = crtid = crt_id++;
@@ -593,7 +593,7 @@ void Connection::onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t
             buf1[0] = _sz - i;
             buf1[1] = i;
             memcpy(buf1 + 1, buf2 + i, _sz - i);
-            connection_register(crtid, _rctx.service().manager().id(*this));
+            connection_register(crtid, _rctx.manager().id(*this));
         } else {
             //move to a peer connection
             frame::ObjectIdT objid = connection_uid(idx);
@@ -601,7 +601,7 @@ void Connection::onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t
             SocketDevice     sd(sock1.reset(_rctx));
             ev.any().reset(MoveMessage(std::move(sd), buf2 + i, _sz - i));
             idbg(this << " send move_message with size = " << (_sz - i));
-            _rctx.service().manager().notify(objid, std::move(ev));
+            _rctx.manager().notify(objid, std::move(ev));
             edbg(this << " postStop");
             postStop(_rctx);
         }

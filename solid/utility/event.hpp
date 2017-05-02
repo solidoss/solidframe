@@ -20,7 +20,9 @@
 #include <queue>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
+#include "solid/utility/common.hpp"
 #include "solid/utility/any.hpp"
 
 namespace solid {
@@ -32,8 +34,9 @@ class EventHandlerBase;
 //      Event
 //-----------------------------------------------------------------------------
 
+
 struct Event {
-    static constexpr size_t any_size = AnyBase::min_data_size + sizeof(void*) + sizeof(uint64_t);
+    static constexpr size_t any_size = AnyBase::min_data_size + max_size(sizeof(void*) + sizeof(uint64_t), sizeof(std::shared_ptr<uint64_t>));
 
     using AnyT = Any<any_size>;
 

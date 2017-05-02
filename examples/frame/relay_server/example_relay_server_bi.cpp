@@ -385,7 +385,7 @@ struct ResolvFunc {
             //the connecting socket
             idbg("async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
-                ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), params.connect_addr_str.c_str(),
+                ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
                 params.connect_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
         }
     } else if (generic_event_kill == _revent) {
@@ -421,12 +421,10 @@ struct ResolvFunc {
     if (!_rctx.error()) {
         idbg(&rthis << " SUCCESS");
 
-        Event ev(make_event(GenericEvents::Message));
-
-        ev.any().reset(_rctx.service().manager().id(rthis));
+        Event ev(make_event(GenericEvents::Message, std::move(_rctx.manager().id(rthis))));
 
         idbg(&rthis << " send resolv_message");
-        if (_rctx.service().manager().notify(rthis.peer_objuid, std::move(ev))) {
+        if (_rctx.manager().notify(rthis.peer_objuid, std::move(ev))) {
 
             rthis.sock.device().enableNoDelay();
             //do the first read
@@ -450,11 +448,9 @@ struct ResolvFunc {
 
     if (!_rctx.error()) {
 
-        Event ev(make_event(GenericEvents::Raise));
+        Event ev(make_event(GenericEvents::Raise, BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz)));
 
-        ev.any().reset(BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz));
-
-        _rctx.service().manager().notify(rthis.peer_objuid, std::move(ev));
+        _rctx.manager().notify(rthis.peer_objuid, std::move(ev));
 
         rthis.buf_crt_recv = (rthis.buf_crt_recv + 1) % BufferCount;
 
@@ -475,7 +471,7 @@ struct ResolvFunc {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
     if (!_rctx.error()) {
-        _rctx.service().manager().notify(rthis.peer_objuid, make_event(GenericEvents::Raise));
+        _rctx.manager().notify(rthis.peer_objuid, make_event(GenericEvents::Raise));
 
         idbg(&rthis << " " << (int)rthis.buf_pop_sending << ' ' << (int)rthis.buf_push_sending);
 

@@ -21,6 +21,7 @@ namespace solid {
 namespace frame {
 
 class Service;
+class Manager;
 
 namespace aio {
 
@@ -55,6 +56,8 @@ struct ReactorContext {
 
     Object&  object() const;
     Service& service() const;
+    Manager& manager() const;
+    
 
     UniqueId objectUid() const;
 

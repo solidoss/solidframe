@@ -1408,6 +1408,12 @@ Service& ReactorContext::service() const
 
 //-----------------------------------------------------------------------------
 
+Manager& ReactorContext::manager() const{
+    return reactor().service(*this).manager();
+}
+
+//-----------------------------------------------------------------------------
+
 UniqueId ReactorContext::objectUid() const
 {
     return reactor().objectUid(*this);

@@ -349,7 +349,7 @@ struct ResolvFunc {
 
 size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 {
-    _rctx.service().manager().notify(peer_objuid, make_event(GenericEvents::Raise));
+    _rctx.manager().notify(peer_objuid, make_event(GenericEvents::Raise));
 
     const size_t sz = buf_sending[buf_pop_sending].second;
 
@@ -403,7 +403,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
             //the connecting socket
             idbg("async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
-                ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), params.connect_addr_str.c_str(),
+                ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
                 params.connect_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
         }
     } else if (generic_event_kill == _revent) {
@@ -441,10 +441,10 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 
         Event ev(make_event(GenericEvents::Message));
 
-        ev.any().reset(_rctx.service().manager().id(rthis));
+        ev.any().reset(_rctx.manager().id(rthis));
 
         idbg(&rthis << " send resolv_message");
-        if (_rctx.service().manager().notify(rthis.peer_objuid, std::move(ev))) {
+        if (_rctx.manager().notify(rthis.peer_objuid, std::move(ev))) {
 
             rthis.sock.device().enableNoDelay();
             //do the first read
@@ -472,7 +472,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 
         ev.any().reset(BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz));
 
-        _rctx.service().manager().notify(rthis.peer_objuid, std::move(ev));
+        _rctx.manager().notify(rthis.peer_objuid, std::move(ev));
 
         rthis.buf_crt_recv = (rthis.buf_crt_recv + 1) % BufferCount;
 
