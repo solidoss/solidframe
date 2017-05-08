@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SYSTEM_COMMON_HPP
-#define SYSTEM_COMMON_HPP
+
+#pragma once
 
 #include "solid/solid_config.hpp"
 #include <cstdint>
@@ -106,5 +106,3 @@ struct UnsignedType<uint64_t> {
 const char* src_file_name(char const* _fname);
 
 } //namespace solid
-
-#endif

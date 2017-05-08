@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_MPIPC_SRC_MPIPC_LISTENER_HPP
-#define SOLID_FRAME_MPIPC_SRC_MPIPC_LISTENER_HPP
+
+#pragma once
 
 #include "solid/frame/aio/aiolistener.hpp"
 #include "solid/frame/aio/aioobject.hpp"
@@ -56,5 +56,3 @@ private:
 } //namespace mpipc
 } //namespace frame
 } //namespace solid
-
-#endif

@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_MPIPC_SRC_MPIPC_UTILITY_HPP
-#define SOLID_FRAME_MPIPC_SRC_MPIPC_UTILITY_HPP
+
+#pragma once
 
 #include "solid/system/cassert.hpp"
 #include "solid/system/socketaddress.hpp"
@@ -203,5 +203,3 @@ struct MessageBundle {
 } //namespace mpipc
 } //namespace frame
 } //namespace solid
-
-#endif

@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SYSTEM_SOCKETADDRESS_HPP
-#define SYSTEM_SOCKETADDRESS_HPP
+
+#pragma once
 
 #ifndef SOLID_ON_WINDOWS
 #include <arpa/inet.h>
@@ -515,5 +515,3 @@ private:
 //==================================================================
 
 } //namespace solid
-
-#endif

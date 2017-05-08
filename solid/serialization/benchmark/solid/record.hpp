@@ -1,5 +1,5 @@
-#ifndef __SOLID_RECORD_HPP_INCLUDED__
-#define __SOLID_RECORD_HPP_INCLUDED__
+
+#pragma once
 
 #include <sstream>
 #include <string>
@@ -48,5 +48,3 @@ void to_string(SerializerT& _rs, Record& record, std::string& data);
 void from_string(DeserializerT& _rd, Record& record, const std::string& data);
 
 } // namespace
-
-#endif

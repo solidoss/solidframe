@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef UTILITY_ALGORITHM_HPP
-#define UTILITY_ALGORITHM_HPP
+
+#pragma once
 
 #include "solid/utility/common.hpp"
 #include <utility>
@@ -265,5 +265,3 @@ binary_search_result_t binary_search_last(It _from, It _to, const Key& _rk, cons
 }
 
 } //namespace solid
-
-#endif

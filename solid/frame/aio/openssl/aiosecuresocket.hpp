@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_AIO_OPENSSL_SECURE_SOCKET_HPP
-#define SOLID_FRAME_AIO_OPENSSL_SECURE_SOCKET_HPP
+
+#pragma once
 
 #include "openssl/ssl.h"
 #include "solid/frame/aio/aiocommon.hpp"
@@ -154,5 +154,3 @@ inline Socket::NativeHandleT Socket::nativeHandle() const
 } //namespace aio
 } //namespace frame
 } //namespace solid
-
-#endif

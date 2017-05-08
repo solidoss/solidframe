@@ -1,5 +1,5 @@
-#ifndef TUTORIAL_IPC_REQUEST_MESSAGES_HPP
-#define TUTORIAL_IPC_REQUEST_MESSAGES_HPP
+
+#pragma once
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
@@ -336,5 +336,3 @@ using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0,
     RequestKeyYearLess>;
 
 } //namespace ipc_request
-
-#endif

@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef UTILITY_COMMON_HPP
-#define UTILITY_COMMON_HPP
+
+#pragma once
 
 #include "solid/system/common.hpp"
 #include <limits>
@@ -271,5 +271,3 @@ constexpr size_t max_size(const size_t _s1, const size_t _s2)
 {
     return _s1 >= _s2 ? _s1 : _s2;
 }
-
-#endif

@@ -1,5 +1,5 @@
-#ifndef TEST_MULTIPROTOCOL_ALPHA_PROTOCOL_HPP
-#define TEST_MULTIPROTOCOL_ALPHA_PROTOCOL_HPP
+
+#pragma once
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
@@ -68,5 +68,3 @@ struct ThirdMessage : solid::frame::mpipc::Message {
 using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, FirstMessage, SecondMessage, ThirdMessage>;
 
 } //namespace
-
-#endif

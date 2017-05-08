@@ -1,5 +1,5 @@
-#ifndef TUTORIAL_IPC_ECHO_MESSAGES_HPP
-#define TUTORIAL_IPC_ECHO_MESSAGES_HPP
+
+#pragma once
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
@@ -27,5 +27,3 @@ struct Message : solid::frame::mpipc::Message {
 using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, Message>;
 
 } //namespace ipc_echo
-
-#endif

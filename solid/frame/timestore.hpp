@@ -8,8 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#ifndef SOLID_FRAME_TIME_STORE_HPP
-#define SOLID_FRAME_TIME_STORE_HPP
+#pragma once
 
 #include "solid/system/nanotime.hpp"
 #include <vector>
@@ -107,5 +106,3 @@ private:
 
 } //namespace frame
 } //namespace solid
-
-#endif

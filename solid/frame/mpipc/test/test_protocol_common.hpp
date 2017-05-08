@@ -1,5 +1,5 @@
-#ifndef TEST_PROTOCOL_COMMON_HPP
-#define TEST_PROTOCOL_COMMON_HPP
+
+#pragma once
 
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
@@ -25,5 +25,3 @@ public:
 } /*namespace mpipc*/
 } /*namespace frame*/
 } /*namespace solid*/
-
-#endif

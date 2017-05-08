@@ -8,8 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#ifndef SOLID_FRAME_MPIPC_MPIPCPROTOCOL_SERIALIZATION_V1_HPP
-#define SOLID_FRAME_MPIPC_MPIPCPROTOCOL_SERIALIZATION_V1_HPP
+#pragma once
 
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
 #include "solid/serialization/binary.hpp"
@@ -332,5 +331,3 @@ struct ProtoSpec {
 } //namespace mpipc
 } //namespace frame
 } //namespace solid
-
-#endif

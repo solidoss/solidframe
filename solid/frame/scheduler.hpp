@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_SCHEDULER_HPP
-#define SOLID_FRAME_SCHEDULER_HPP
+
+#pragma once
 
 #include "solid/frame/manager.hpp"
 #include "solid/frame/schedulerbase.hpp"
@@ -106,5 +106,3 @@ public:
 
 } //namespace frame
 } //namespace solid
-
-#endif

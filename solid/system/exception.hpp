@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SYSTEM_EXCEPTION_HPP
-#define SYSTEM_EXCEPTION_HPP
+
+#pragma once
 
 #include "solid/system/common.hpp"
 #include "solid/system/debug.hpp"
@@ -207,5 +207,3 @@ void throw_exception(const char* const _pt, const T& _rt, const char* const _fil
         SOLID_THROW_EX("Failed checking [" #err "]", (err).message());
 
 } //namespace solid
-
-#endif

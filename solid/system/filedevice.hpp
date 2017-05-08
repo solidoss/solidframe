@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SYSTEM_FILE_DEVICE_HPP
-#define SYSTEM_FILE_DEVICE_HPP
+
+#pragma once
 #include "seekabledevice.hpp"
 #include <fcntl.h>
 
@@ -48,5 +48,3 @@ public:
 };
 
 } //namespace solid
-
-#endif

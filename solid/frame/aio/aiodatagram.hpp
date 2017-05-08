@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_AIO_DATAGRAM_HPP
-#define SOLID_FRAME_AIO_DATAGRAM_HPP
+
+#pragma once
 
 #include "solid/frame/aio/aiocompletion.hpp"
 #include "solid/frame/aio/aioerror.hpp"
@@ -643,5 +643,3 @@ private:
 } //namespace aio
 } //namespace frame
 } //namespace solid
-
-#endif

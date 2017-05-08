@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef UTILITY_SHARED_MUTEX_STORE_HPP
-#define UTILITY_SHARED_MUTEX_STORE_HPP
+
+#pragma once
 
 namespace solid {
 
@@ -16,5 +16,3 @@ std::mutex& shared_mutex_safe(const void* _p);
 std::mutex& shared_mutex(const void* _p);
 
 } //namespace solid
-
-#endif

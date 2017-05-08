@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SYSTEM_SOCKETDEVICE_HPP
-#define SYSTEM_SOCKETDEVICE_HPP
+
+#pragma once
 
 #include "solid/system/device.hpp"
 #include "solid/system/error.hpp"
@@ -156,5 +156,3 @@ std::ostream& operator<<(std::ostream& _ros, const LocalAddressPlot& _ra);
 std::ostream& operator<<(std::ostream& _ros, const RemoteAddressPlot& _ra);
 
 } //namespace solid
-
-#endif

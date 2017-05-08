@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SYSTEM_CONVERTORS_HPP
-#define SYSTEM_CONVERTORS_HPP
+
+#pragma once
 
 #include "common.hpp"
 #ifdef SOLID_ON_WINDOWS
@@ -119,5 +119,3 @@ inline uint16_t toHost(uint16_t _v)
 }
 
 } //namespace solid
-
-#endif

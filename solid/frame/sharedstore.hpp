@@ -8,8 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#ifndef SOLID_FRAME_SHARED_STORE_HPP
-#define SOLID_FRAME_SHARED_STORE_HPP
+#pragma once
 
 #include "solid/frame/common.hpp"
 #include "solid/frame/object.hpp"
@@ -817,5 +816,3 @@ inline StoreBase::Accessor StoreBase::accessor()
 } //namespace shared
 } //namespace frame
 } //namespace solid
-
-#endif

@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_MPIPC_MPIPC_SOCKET_STUB_OPENSSL_HPP
-#define SOLID_FRAME_MPIPC_MPIPC_SOCKET_STUB_OPENSSL_HPP
+
+#pragma once
 
 #include "solid/system/function.hpp"
 #include "solid/system/socketdevice.hpp"
@@ -348,5 +348,3 @@ inline void setup_server(
 } //namespace mpipc
 } //namespace frame
 } //namespace solid
-
-#endif

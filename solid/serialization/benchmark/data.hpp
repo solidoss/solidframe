@@ -1,5 +1,5 @@
-#ifndef __DATA_HPP_INCLUDED__
-#define __DATA_HPP_INCLUDED__
+
+#pragma once
 
 #include <stdint.h>
 #include <vector>
@@ -108,5 +108,3 @@ const std::vector<int64_t> kIntegers = {
     47843, 61836, 25260, 36400, 22250, 17010, 29460, 51714, 42262, 28230,
     54088, 34531, 17424, 36588, 53806, 32847, 11804, 28344, 16504, 38941,
     23441, 53703, 31551, 61990, 59981, 19355, 32417, 16169, 64680, 1600};
-
-#endif

@@ -1,6 +1,6 @@
 //courtesy to: https://github.com/thekvs/cpp-serializers
-#ifndef __CEREAL_RECORD_HPP_INCLUDED__
-#define __CEREAL_RECORD_HPP_INCLUDED__
+
+#pragma once
 
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
@@ -43,5 +43,3 @@ void to_string(const Record& record, std::string& data);
 void from_string(Record& record, const std::string& data);
 
 } // namespace
-
-#endif

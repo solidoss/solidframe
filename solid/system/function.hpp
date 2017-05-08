@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_SYSTEM_FUNCTION_HPP
-#define SOLID_SYSTEM_FUNCTION_HPP
+
+#pragma once
 
 #include "solid/solid_config.hpp"
 
@@ -35,6 +35,4 @@
 #define FUNCTION std::function
 #define FUNCTION_EMPTY(f) (f == nullptr)
 #define FUNCTION_CLEAR(f) (f = nullptr)
-#endif
-
 #endif

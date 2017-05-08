@@ -1,5 +1,5 @@
-#ifndef TEST_MULTIPROTOCOL_GAMMA_CLIENT_HPP
-#define TEST_MULTIPROTOCOL_GAMMA_CLIENT_HPP
+
+#pragma once
 
 #include "../../clientcommon.hpp"
 
@@ -10,4 +10,3 @@ solid::ErrorConditionT start(
 
 void stop();
 }
-#endif

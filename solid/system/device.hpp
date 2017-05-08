@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SYSTEM_DEVICE_HPP
-#define SYSTEM_DEVICE_HPP
+
+#pragma once
 #ifdef SOLID_ON_WINDOWS
 #include <WinSock2.h>
 #include <Windows.h>
@@ -75,5 +75,3 @@ inline void Device::descriptor(DescriptorT _desc)
 }
 
 } //namespace solid
-
-#endif

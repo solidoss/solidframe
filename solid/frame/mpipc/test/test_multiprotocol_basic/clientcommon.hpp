@@ -1,5 +1,5 @@
-#ifndef TEST_MULTIPROTOCOL_CLIENT_COMMON_HPP
-#define TEST_MULTIPROTOCOL_CLIENT_COMMON_HPP
+
+#pragma once
 
 #include "solid/system/common.hpp"
 
@@ -43,5 +43,3 @@ struct Context {
     {
     }
 };
-
-#endif

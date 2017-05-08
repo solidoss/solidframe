@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_SERIALIZATION_BINARY_BASIC_HPP
-#define SOLID_SERIALIZATION_BINARY_BASIC_HPP
+
+#pragma once
 
 #include "solid/utility/algorithm.hpp"
 #include <array>
@@ -161,5 +161,3 @@ const char* crossLoad(const char* _ps, uint64_t& _val);
 } //namespace binary
 } //namespace serialization
 } //namespace solid
-
-#endif

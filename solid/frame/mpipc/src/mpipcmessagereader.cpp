@@ -225,7 +225,7 @@ void MessageReader::doConsumePacket(
             const bool   is_currently_reading_message_header = rmsgstub.is_reading_message_header;
             uint16_t     message_size;
 
-            if ((pbufend - pbufpos) >= sizeof(uint16_t)) {
+            if (static_cast<size_t>(pbufend - pbufpos) >= sizeof(uint16_t)) {
                 pbufpos = _rproto.loadValue(pbufpos, message_size);
             } else {
                 //protocol error

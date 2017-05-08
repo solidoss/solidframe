@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SYSTEM_NANO_TIME_HPP
-#define SYSTEM_NANO_TIME_HPP
+
+#pragma once
 
 #include "convertors.hpp"
 #include <chrono>
@@ -170,5 +170,3 @@ typename RetClock::time_point time_point_clock_cast(const std::chrono::time_poin
 #endif
 
 } //namespace solid
-
-#endif

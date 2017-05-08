@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_AIO_COMPLETION_HPP
-#define SOLID_FRAME_AIO_COMPLETION_HPP
+
+#pragma once
 
 #include "solid/frame/aio/aiocommon.hpp"
 #include "solid/frame/aio/aioforwardcompletion.hpp"
@@ -103,5 +103,3 @@ SocketDevice& dummy_socket_device();
 } //namespace aio
 } //namespace frame
 } //namespace solid
-
-#endif
