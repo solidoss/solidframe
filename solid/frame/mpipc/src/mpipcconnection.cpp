@@ -112,21 +112,21 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext& _rctx) const
 /*static*/ Event Connection::eventNewMessage(const MessageId& _rmsgid)
 {
     Event event = connection_event_category.event(ConnectionEvents::NewConnMessage);
-    event.any().reset(_rmsgid);
+    event.any() = _rmsgid;
     return event;
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventCancelConnMessage(const MessageId& _rmsgid)
 {
     Event event = connection_event_category.event(ConnectionEvents::CancelConnMessage);
-    event.any().reset(_rmsgid);
+    event.any() = _rmsgid;
     return event;
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventCancelPoolMessage(const MessageId& _rmsgid)
 {
     Event event = connection_event_category.event(ConnectionEvents::CancelPoolMessage);
-    event.any().reset(_rmsgid);
+    event.any() = _rmsgid;
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -150,7 +150,7 @@ struct EnterActive {
 /*static*/ Event Connection::eventEnterActive(ConnectionEnterActiveCompleteFunctionT&& _ucomplete_fnc, const size_t _send_buffer_capacity)
 {
     Event event = connection_event_category.event(ConnectionEvents::EnterActive);
-    event.any().reset(EnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity));
+    event.any() = EnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity);
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -166,7 +166,7 @@ struct EnterPassive {
 /*static*/ Event Connection::eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::EnterPassive);
-    event.any().reset(EnterPassive(std::move(_ucomplete_fnc)));
+    event.any() = EnterPassive(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -182,7 +182,7 @@ struct StartSecure {
 /*static*/ Event Connection::eventStartSecure(ConnectionSecureHandhakeCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::StartSecure);
-    event.any().reset(StartSecure(std::move(_ucomplete_fnc)));
+    event.any() = StartSecure(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -203,7 +203,7 @@ struct SendRaw {
 /*static*/ Event Connection::eventSendRaw(ConnectionSendRawDataCompleteFunctionT&& _ucomplete_fnc, std::string&& _udata)
 {
     Event event = connection_event_category.event(ConnectionEvents::SendRaw);
-    event.any().reset(SendRaw(std::move(_ucomplete_fnc), std::move(_udata)));
+    event.any() = SendRaw(std::move(_ucomplete_fnc), std::move(_udata));
     return event;
 }
 //-----------------------------------------------------------------------------
@@ -219,7 +219,7 @@ struct RecvRaw {
 /*static*/ Event Connection::eventRecvRaw(ConnectionRecvRawDataCompleteFunctionT&& _ucomplete_fnc)
 {
     Event event = connection_event_category.event(ConnectionEvents::RecvRaw);
-    event.any().reset(RecvRaw(std::move(_ucomplete_fnc)));
+    event.any() = RecvRaw(std::move(_ucomplete_fnc));
     return event;
 }
 //-----------------------------------------------------------------------------

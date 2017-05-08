@@ -1408,7 +1408,8 @@ Service& ReactorContext::service() const
 
 //-----------------------------------------------------------------------------
 
-Manager& ReactorContext::manager() const{
+Manager& ReactorContext::manager() const
+{
     return reactor().service(*this).manager();
 }
 

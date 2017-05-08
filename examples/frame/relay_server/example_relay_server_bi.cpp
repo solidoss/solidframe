@@ -337,7 +337,7 @@ struct ResolvFunc {
     {
         Event ev(make_event(GenericEvents::Message));
 
-        ev.any().reset(std::move(_rrd));
+        ev.any() = std::move(_rrd);
 
         idbg(this << " send resolv_message");
         rm.notify(objuid, std::move(ev));

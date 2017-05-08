@@ -256,21 +256,19 @@ struct Reactor::Data {
         return UniqueId(idx, chdq[idx].unique);
     }
 
-    bool               running;
-    bool               must_stop;
-    size_t             crtpushtskvecidx;
-    size_t             crtraisevecidx;
-    size_t             crtpushvecsz;
-    size_t             crtraisevecsz;
-    size_t             objcnt;
-    TimeStoreT         timestore;
-    NewTaskVectorT*    pcrtpushtskvec;
-    RaiseEventVectorT* pcrtraisevec;
-
-    mutex              mtx;
-    condition_variable cnd;
-    NewTaskVectorT     pushtskvec[2];
-
+    bool                    running;
+    bool                    must_stop;
+    size_t                  crtpushtskvecidx;
+    size_t                  crtraisevecidx;
+    size_t                  crtpushvecsz;
+    size_t                  crtraisevecsz;
+    size_t                  objcnt;
+    TimeStoreT              timestore;
+    NewTaskVectorT*         pcrtpushtskvec;
+    RaiseEventVectorT*      pcrtraisevec;
+    mutex                   mtx;
+    condition_variable      cnd;
+    NewTaskVectorT          pushtskvec[2];
     RaiseEventVectorT       raisevec[2];
     EventObject             eventobj;
     CompletionHandlerDequeT chdq;

@@ -17,13 +17,13 @@
 
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <queue>
 #include <unordered_map>
 #include <vector>
-#include <memory>
 
-#include "solid/utility/common.hpp"
 #include "solid/utility/any.hpp"
+#include "solid/utility/common.hpp"
 
 namespace solid {
 
@@ -34,9 +34,8 @@ class EventHandlerBase;
 //      Event
 //-----------------------------------------------------------------------------
 
-
 struct Event {
-    static constexpr size_t any_size = AnyBase::min_data_size + max_size(sizeof(void*) + sizeof(uint64_t), sizeof(std::shared_ptr<uint64_t>));
+    static constexpr size_t any_size = any_min_data_size + max_size(sizeof(void*) + sizeof(uint64_t), sizeof(std::shared_ptr<uint64_t>));
 
     using AnyT = Any<any_size>;
 
@@ -84,7 +83,7 @@ private:
         const T&                 _rany_value)
         : pcategory_(&_rcategory)
         , id_(_id)
-        , any_(_rany_value, true)
+        , any_(_rany_value)
     {
     }
 
@@ -95,7 +94,7 @@ private:
         T&&                      _uany_value)
         : pcategory_(&_rcategory)
         , id_(_id)
-        , any_(std::move(_uany_value), true)
+        , any_(std::move(_uany_value))
     {
     }
 

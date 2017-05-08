@@ -267,7 +267,8 @@ inline bool is_valid_size(SizeT const& _index)
 
 } //namespace solid
 
-constexpr size_t max_size(const size_t _s1, const size_t _s2){
+constexpr size_t max_size(const size_t _s1, const size_t _s2)
+{
     return _s1 >= _s2 ? _s1 : _s2;
 }
 

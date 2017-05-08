@@ -752,7 +752,7 @@ struct OnRelsolveF {
     void operator()(AddressVectorT&& _raddrvec)
     {
         idbgx(Debug::mpipc, "OnResolveF(addrvec of size " << _raddrvec.size() << ")");
-        event.any().reset(ResolveMessage(std::move(_raddrvec)));
+        event.any() = ResolveMessage(std::move(_raddrvec));
         rm.notify(objuid, std::move(event));
     }
 };
@@ -1853,7 +1853,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
     if (rpool.msgorder_inner_list.size()) {
         rpool.setCleaningOneShotMessages();
 
-        _revent_context.any().reset(rpool.msgorder_inner_list.frontIndex());
+        _revent_context.any() = rpool.msgorder_inner_list.frontIndex();
 
         return false;
     } else {
@@ -2028,7 +2028,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
                 //use the rest of the already resolved addresses
                 Event event = Connection::eventResolve();
 
-                event.any().reset(ResolveMessage(std::move(rpool.connect_addr_vec)));
+                event.any() = ResolveMessage(std::move(rpool.connect_addr_vec));
 
                 manager().notify(conuid, std::move(event));
             }

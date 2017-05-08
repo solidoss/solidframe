@@ -340,7 +340,7 @@ struct ResolvFunc {
     {
         Event ev(make_event(GenericEvents::Message));
 
-        ev.any().reset(std::move(_rrd));
+        ev.any() = std::move(_rrd);
 
         idbg(this << " send resolv_message");
         rm.notify(objuid, std::move(ev));
@@ -441,7 +441,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 
         Event ev(make_event(GenericEvents::Message));
 
-        ev.any().reset(_rctx.manager().id(rthis));
+        ev.any() = _rctx.manager().id(rthis);
 
         idbg(&rthis << " send resolv_message");
         if (_rctx.manager().notify(rthis.peer_objuid, std::move(ev))) {
@@ -470,7 +470,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 
         Event ev(make_event(GenericEvents::Raise));
 
-        ev.any().reset(BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz));
+        ev.any() = BufferPairT(rthis.buf[rthis.buf_crt_recv], _sz);
 
         _rctx.manager().notify(rthis.peer_objuid, std::move(ev));
 

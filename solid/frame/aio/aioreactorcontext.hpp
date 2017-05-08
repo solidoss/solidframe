@@ -57,7 +57,6 @@ struct ReactorContext {
     Object&  object() const;
     Service& service() const;
     Manager& manager() const;
-    
 
     UniqueId objectUid() const;
 

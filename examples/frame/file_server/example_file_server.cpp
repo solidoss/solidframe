@@ -522,7 +522,7 @@ struct OpenCbk {
     {
         idbg("");
         Event ev{generic_event_message};
-        ev.any().reset(FilePointerMessage(_rptr));
+        ev.any() = FilePointerMessage(_rptr);
 
         rm.notify(uid, std::move(ev));
     }

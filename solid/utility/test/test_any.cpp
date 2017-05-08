@@ -106,6 +106,37 @@ struct Data {
     uint16_t    age;
 };
 
+struct Test {
+    int i_;
+
+    Test(int _i)
+        : i_(_i)
+    {
+        cout << "Test(): " << this << " : " << i_ << endl;
+    }
+
+    Test(const Test& _t)
+        : i_(_t.i_)
+    {
+        cout << "Test(const Test&): " << this << " : " << i_ << endl;
+    }
+
+    Test(Test&& _t)
+        : i_(_t.i_)
+    {
+        _t.i_ = 0;
+        cout << "Test(Test&&): " << this << " : " << i_ << endl;
+    }
+
+    Test& operator=(const Test& _t) = delete;
+    Test& operator=(Test&& _t) = delete;
+
+    ~Test()
+    {
+        cout << "~Test(): " << this << " : " << i_ << endl;
+    }
+};
+
 int test_any(int argc, char* argv[])
 {
 #ifdef TEST_BOOST_ANY
@@ -122,6 +153,9 @@ int test_any(int argc, char* argv[])
     }
 
 #endif
+
+    cout << "is convertible: " << std::is_convertible<typename std::remove_reference<Any<>>::type*, AnyBase*>::value << endl;
+
     Any<>   any0;
     Any<32> any32(make_any<32, string>(string("best string ever")));
 
@@ -195,6 +229,20 @@ int test_any(int argc, char* argv[])
         SOLID_CHECK(any_ptr2.cast<std::shared_ptr<Data>>()->use_count() == 3);
         SOLID_CHECK(ptr.use_count() == 0);
     }
+    {
+        Any<any_data_size<Test>()> any_t{Test{10}};
+        Any<>                      any_0{std::move(any_t)};
 
+        SOLID_CHECK(any_t.empty());
+        SOLID_CHECK(not any_0.empty());
+
+        any_t = std::move(any_0);
+
+        SOLID_CHECK(any_0.empty());
+        SOLID_CHECK(not any_t.empty());
+
+        any_0 = Test{5};
+        SOLID_CHECK(not any_0.empty());
+    }
     return 0;
 }

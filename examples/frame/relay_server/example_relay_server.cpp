@@ -376,7 +376,7 @@ struct ResolvFunc {
     {
         Event ev(make_event(GenericEvents::Message));
 
-        ev.any().reset(std::move(_rrd));
+        ev.any() = std::move(_rrd);
 
         idbg(this << " send resolv_message");
         rm.notify(objuid, std::move(ev));
@@ -599,7 +599,7 @@ void Connection::onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t
             frame::ObjectIdT objid = connection_uid(idx);
             Event            ev(make_event(GenericEvents::Message));
             SocketDevice     sd(sock1.reset(_rctx));
-            ev.any().reset(MoveMessage(std::move(sd), buf2 + i, _sz - i));
+            ev.any() = MoveMessage(std::move(sd), buf2 + i, _sz - i);
             idbg(this << " send move_message with size = " << (_sz - i));
             _rctx.manager().notify(objid, std::move(ev));
             edbg(this << " postStop");

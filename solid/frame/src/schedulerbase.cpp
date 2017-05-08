@@ -147,10 +147,9 @@ struct SchedulerBase::Data {
     AtomicSizeT          usecnt;
     ThreadEnterFunctionT threnfnc;
     ThreadExitFunctionT  threxfnc;
-
-    ReactorVectorT     reactorvec;
-    mutex              mtx;
-    condition_variable cnd;
+    ReactorVectorT       reactorvec;
+    mutex                mtx;
+    condition_variable   cnd;
 };
 
 SchedulerBase::SchedulerBase()

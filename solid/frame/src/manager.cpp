@@ -245,29 +245,22 @@ typedef std::atomic<State> AtomicStateT;
 //---------------------------------------------------------
 struct Manager::Data {
 
-    AtomicSizeT      crtsvcstoreidx;
-    ServiceDequeT    svcdq;
-    ServiceStoreStub svcstore[2];
-    AtomicSizeT      crtsvcidx;
-    size_t           svccnt;
-    SizeStackT       svccache;
-
-    std::mutex* pobjmtxarr;
-    size_t      objmtxcnt;
-
-    std::mutex* psvcmtxarr;
-    size_t      svcmtxcnt;
-
-    AtomicSizeT     crtobjstoreidx;
-    ObjectStoreStub objstore[2];
-    size_t          objchkcnt;
-    //AtomicSizeT               objcnt;
-    AtomicSizeT maxobjcnt;
-
-    SizeStackT chkcache;
-
-    AtomicStateT state;
-
+    AtomicSizeT             crtsvcstoreidx;
+    ServiceDequeT           svcdq;
+    ServiceStoreStub        svcstore[2];
+    AtomicSizeT             crtsvcidx;
+    size_t                  svccnt;
+    SizeStackT              svccache;
+    std::mutex*             pobjmtxarr;
+    size_t                  objmtxcnt;
+    std::mutex*             psvcmtxarr;
+    size_t                  svcmtxcnt;
+    AtomicSizeT             crtobjstoreidx;
+    ObjectStoreStub         objstore[2];
+    size_t                  objchkcnt;
+    AtomicSizeT             maxobjcnt;
+    SizeStackT              chkcache;
+    AtomicStateT            state;
     std::mutex              mtx;
     std::condition_variable cnd;
 
