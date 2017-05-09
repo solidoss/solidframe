@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
         sd.create(rd.begin());
         sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
-        if (sd.ok()) {
+        if (sd) {
 
             {
                 SocketAddress sa;
@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
         sd.create(rd.begin());
         sd.bind(rd.begin());
 
-        if (sd.ok()) {
+        if (sd) {
 
             {
                 SocketAddress sa;

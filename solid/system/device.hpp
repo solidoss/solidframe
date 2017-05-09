@@ -54,14 +54,18 @@ public:
     //! Flush the device
     void flush();
     //! Check if the device is valid
-    bool    ok() const { return desc != invalidDescriptor(); }
+    explicit operator bool () const noexcept{
+        return ok();
+    }
     Device& operator=(Device&& _dev);
     //! The native descriptor associated to the socket
     DescriptorT descriptor() const;
 
 protected:
     void descriptor(DescriptorT _desc);
-
+    bool ok() const noexcept{
+        return desc != invalidDescriptor();
+    }
 private:
     Device(const Device& _dev);
     Device& operator=(const Device& _dev);

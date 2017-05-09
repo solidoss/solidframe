@@ -139,7 +139,7 @@ private:
 
     bool hasValidSocket() const override final
     {
-        return sock.device().ok();
+        return static_cast<bool>(sock.device());
     }
 
     bool connect(

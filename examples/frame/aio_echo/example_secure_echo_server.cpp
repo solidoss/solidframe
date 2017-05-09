@@ -216,7 +216,7 @@ int main(int argc, char* argv[])
             sd.create(rd.begin());
             sd.prepareAccept(rd.begin(), Listener::backlog_size());
 
-            if (sd.ok()) {
+            if (sd) {
                 DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
                 solid::ErrorConditionT             err;
                 solid::frame::ObjectIdT            objuid;

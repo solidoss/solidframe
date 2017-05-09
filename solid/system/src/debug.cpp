@@ -139,7 +139,7 @@ public:
     }
     void close()
     {
-        if (pd == nullptr || !pd->ok())
+        if (pd == nullptr || !*pd)
             return;
         flush();
         pd = nullptr;
@@ -665,7 +665,7 @@ void Debug::initSocket(
         _addr = "localhost";
     }
 
-    if (d.sd.ok()) {
+    if (d.sd) {
         if (_buffered) {
             d.dos.device(d.sd);
             d.pos = &d.dos;

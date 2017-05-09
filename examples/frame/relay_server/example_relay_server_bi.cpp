@@ -204,7 +204,7 @@ int main(int argc, char* argv[])
             sd.create(rd.begin());
             sd.prepareAccept(rd.begin(), 2000);
 
-            if (sd.ok()) {
+            if (sd) {
                 DynamicPointer<frame::aio::Object> objptr(new Listener(svc, sch, std::move(sd)));
                 solid::ErrorConditionT             err;
                 solid::frame::ObjectIdT            objuid;
@@ -377,7 +377,7 @@ struct ResolvFunc {
         }
 
     } else if (generic_event_start == _revent) {
-        if (sock.device().ok()) {
+        if (sock.device()) {
             sock.device().enableNoDelay();
             //the accepted socket
             //wait for peer to connect

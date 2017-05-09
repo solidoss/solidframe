@@ -424,7 +424,7 @@ Socket::Socket(
     pssl = SSL_new(_rctx.pctx);
     ::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
     ::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
-    if (sd.ok()) {
+    if (sd) {
         sd.makeNonBlocking();
         SSL_set_fd(pssl, sd.descriptor());
     }
@@ -450,7 +450,7 @@ SocketDevice Socket::reset(const Context& _rctx, SocketDevice&& _rsd, ErrorCodeT
 {
     SocketDevice tmpsd = std::move(sd);
     sd                 = std::move(_rsd);
-    if (sd.ok()) {
+    if (sd) {
         sd.makeNonBlocking();
         SSL_set_fd(pssl, sd.descriptor());
     } else {

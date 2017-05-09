@@ -661,7 +661,7 @@ ErrorConditionT Service::doStart()
             sd.prepareAccept(rd.begin(), Listener::backlog_size());
         }
 
-        if (sd.ok()) {
+        if (sd) {
 
             SocketAddress local_address;
 

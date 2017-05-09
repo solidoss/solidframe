@@ -25,7 +25,7 @@ public:
     Socket(SocketDevice&& _rsd)
         : sd(std::move(_rsd))
     {
-        if (sd.ok()) {
+        if (sd) {
             sd.makeNonBlocking();
         }
     }
@@ -43,7 +43,7 @@ public:
 
     void shutdown()
     {
-        if (sd.ok()) {
+        if (sd) {
             sd.shutdownReadWrite();
         }
     }

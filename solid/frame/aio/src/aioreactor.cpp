@@ -149,7 +149,7 @@ bool EventHandler::init()
 #if defined(SOLID_USE_EPOLL)
     dev = Device(eventfd(0, EFD_NONBLOCK));
 
-    if (!dev.ok()) {
+    if (!dev) {
         edbgx(Debug::aio, "eventfd: " << last_system_error().message());
         return false;
     }
@@ -1236,7 +1236,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
 #if defined(SOLID_USE_EPOLL)
     epoll_event ev;
 
-    if (!_rsd.ok()) {
+    if (!_rsd) {
         return false;
     }
 

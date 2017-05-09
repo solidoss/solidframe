@@ -39,7 +39,7 @@ public:
         , sd(std::move(_rsd))
         , waitreq(ReactorWaitNone)
     {
-        if (sd.ok()) {
+        if (sd) {
             sd.makeNonBlocking();
         }
     }

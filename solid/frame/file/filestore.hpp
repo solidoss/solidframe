@@ -130,7 +130,7 @@ struct File {
     void flush()
     {
         if (!ptmp) {
-            if (fd.ok()) {
+            if (fd) {
                 fd.flush();
             }
         } else {

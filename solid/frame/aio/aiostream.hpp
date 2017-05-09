@@ -344,11 +344,11 @@ public:
 
     SocketDevice reset(ReactorContext& _rctx, SocketDevice&& _rnewdev = std::move(dummy_socket_device()))
     {
-        if (s.device().ok()) {
+        if (s.device()) {
             remDevice(_rctx, s.device());
         }
         SocketDevice sd(s.reset(std::move(_rnewdev)));
-        if (s.device().ok()) {
+        if (s.device()) {
             completionCallback(&on_completion);
             addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
         }

@@ -29,7 +29,7 @@ int main()
     sd.create(it);
     sd.bind(it);
 
-    if (sd.ok()) {
+    if (sd) {
         string        hoststr;
         string        servstr;
         SocketAddress addr;
@@ -42,6 +42,6 @@ int main()
             ReverseResolveInfo::Numeric);
         cout << hoststr << ':' << servstr << endl;
     }
-    cout << sd.ok() << endl;
+    cout << static_cast<bool>(sd) << endl;
     return 0;
 }
