@@ -54,7 +54,8 @@ public:
     //! Flush the device
     void flush();
     //! Check if the device is valid
-    explicit operator bool () const noexcept{
+    explicit operator bool() const noexcept
+    {
         return ok();
     }
     Device& operator=(Device&& _dev);
@@ -63,9 +64,11 @@ public:
 
 protected:
     void descriptor(DescriptorT _desc);
-    bool ok() const noexcept{
+    bool ok() const noexcept
+    {
         return desc != invalidDescriptor();
     }
+
 private:
     Device(const Device& _dev);
     Device& operator=(const Device& _dev);

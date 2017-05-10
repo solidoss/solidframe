@@ -361,6 +361,18 @@ inline std::ostream& operator<<(std::ostream& _ros, const Statistics& _rs)
 }
 #endif
 
+template <class T>
+void container_reserve_helper(std::vector<T>& _rc, size_t _cp)
+{
+    _rc.reserve(_cp);
+}
+
+template <class C>
+void container_reserve_helper(C& _rc, size_t _cp)
+{
+    //do nothing
+}
+
 //===============================================================
 //! A base class for binary serializer and deserializer
 /*!
@@ -1884,8 +1896,10 @@ protected:
             _rfd.p = *c;
         }
 
-        //T                       *c = reinterpret_cast<T*>(_rfd.p);
-        //c->reserve(i);
+        {
+            T* c = reinterpret_cast<T*>(_rfd.p);
+            container_reserve_helper(*c, i);
+        }
 
         if (i) {
             FncData fd(_rfd); //we need a local copy
