@@ -46,9 +46,9 @@ Service::~Service()
     vdbgx(Debug::frame, "" << this);
 }
 
-void Service::notifyAll(Event const& _revt, const size_t _sigmsk /* = 0*/)
+void Service::notifyAll(Event const& _revt)
 {
-    rm.notifyAll(*this, _revt, _sigmsk);
+    rm.notifyAll(*this, _revt);
 }
 
 bool Service::start()

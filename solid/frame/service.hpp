@@ -70,7 +70,7 @@ public:
 
     bool isRegistered() const;
 
-    void notifyAll(Event const& _e, const size_t _sigmsk = 0);
+    void notifyAll(Event const& _e);
 
     template <class F>
     bool forEach(F& _rf)

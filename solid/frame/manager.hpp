@@ -11,6 +11,8 @@
 #pragma once
 
 #include <mutex>
+#include <typeindex>
+#include <typeinfo>
 
 #include "solid/frame/common.hpp"
 #include "solid/frame/schedulerbase.hpp"
@@ -36,6 +38,32 @@ struct ServiceStub;
 
 class Manager {
 public:
+    class VisitContext {
+        friend class Manager;
+        Manager&     rm_;
+        ReactorBase& rr_;
+        ObjectBase&  ro_;
+
+        VisitContext(Manager& _rm, ReactorBase& _rr, ObjectBase& _ro)
+            : rm_(_rm)
+            , rr_(_rr)
+            , ro_(_ro)
+        {
+        }
+
+        VisitContext(const VisitContext&);
+        VisitContext& operator=(const VisitContext&);
+
+    public:
+        ObjectBase& object() const
+        {
+            return ro_;
+        }
+
+        bool raiseObject(Event const& _revt) const;
+        bool raiseObject(Event&& _uevt) const;
+    };
+
     Manager(
         const size_t _svcmtxcnt     = 0,
         const size_t _objmtxcnt     = 0,
@@ -47,14 +75,44 @@ public:
 
     void start();
 
-    bool notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk = 0);
+    bool notify(ObjectIdT const& _ruid, Event&& _uevt);
 
     //bool notifyAll(Event const &_revt, const size_t _sigmsk = 0);
 
     template <class F>
     bool visit(ObjectIdT const& _ruid, F _f)
     {
-        ObjectVisitFunctionT fct(_f);
+        ObjectVisitFunctionT fct(std::cref(_f));
+        return doVisit(_ruid, fct);
+    }
+
+    template <class T, class F>
+    bool visitDynamicCast(ObjectIdT const& _ruid, F _f)
+    {
+        auto l = [&_f](VisitContext& _rctx) {
+            T* pt = dynamic_cast<T*>(&_rctx.object());
+            if (pt) {
+                return _f(_rctx, *pt);
+            }
+            return false;
+        };
+        ObjectVisitFunctionT fct(std::cref(l));
+        return doVisit(_ruid, fct);
+    }
+
+    template <class T, class F>
+    bool visitCast(ObjectIdT const& _ruid, F _f)
+    {
+        auto l = [&_f](VisitContext& _rctx) {
+            const std::type_info& req_type = typeid(T);
+            const std::type_info& val_type = typeid(*(&_rctx.object()));
+
+            if (std::type_index(req_type) == std::type_index(val_type)) {
+                return _f(_rctx, static_cast<T&>(_rctx.object()));
+            }
+            return false;
+        };
+        ObjectVisitFunctionT fct(std::cref(l));
         return doVisit(_ruid, fct);
     }
 
@@ -70,8 +128,9 @@ private:
     friend class ObjectBase;
     friend class ReactorBase;
     friend class SchedulerBase;
+    friend class Manager::VisitContext;
 
-    typedef FUNCTION<bool(ObjectBase&, ReactorBase&)> ObjectVisitFunctionT;
+    typedef FUNCTION<bool(VisitContext&)> ObjectVisitFunctionT;
 
     static bool notify_object(
         ObjectBase& _robj, ReactorBase& _rreact,
@@ -99,7 +158,7 @@ private:
         ScheduleFunctionT& _rfct,
         ErrorConditionT&   _rerr);
 
-    size_t notifyAll(const Service& _rsvc, Event const& _revt, const size_t _sigmsk);
+    size_t notifyAll(const Service& _rsvc, Event const& _revt);
 
     template <typename F>
     size_t forEachServiceObject(const Service& _rsvc, F _f)

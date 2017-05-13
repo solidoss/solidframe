@@ -394,7 +394,7 @@ Manager::Data::~Data()
     }
 }
 
-/*static*/ inline bool Manager::notify_object(
+inline bool Manager::notify_object(
     ObjectBase& _robj, ReactorBase& _rreact,
     Event&& _uevt, const size_t _sigmsk)
 {
@@ -404,7 +404,7 @@ Manager::Data::~Data()
     return true;
 }
 
-/*static*/ inline bool Manager::notify_object(
+inline bool Manager::notify_object(
     ObjectBase& _robj, ReactorBase& _rreact,
     Event const& _revt, const size_t _sigmsk)
 {
@@ -412,6 +412,16 @@ Manager::Data::~Data()
         return _rreact.raise(_robj.runId(), _revt);
     }
     return true;
+}
+
+bool Manager::VisitContext::raiseObject(Event const& _revt) const
+{
+    return rr_.raise(ro_.runId(), _revt);
+}
+
+bool Manager::VisitContext::raiseObject(Event&& _uevt) const
+{
+    return rr_.raise(ro_.runId(), std::move(_uevt));
 }
 
 Manager::Manager(
@@ -741,10 +751,10 @@ bool Manager::disableObjectVisits(ObjectBase& _robj)
     return retval;
 }
 #if 1
-bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk /* = 0*/)
+bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt)
 {
-    auto do_notify_fnc = [&_uevt, _sigmsk](ObjectBase& _robj, ReactorBase& _rreact) {
-        return notify_object(_robj, _rreact, std::move(_uevt), _sigmsk);
+    auto do_notify_fnc = [&_uevt](VisitContext& _rctx) {
+        return _rctx.raiseObject(std::move(_uevt));
     };
     ObjectVisitFunctionT f(std::cref(do_notify_fnc));
 
@@ -771,10 +781,10 @@ bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk
 }
 #endif
 
-size_t Manager::notifyAll(const Service& _rsvc, Event const& _revt, const size_t _sigmsk)
+size_t Manager::notifyAll(const Service& _rsvc, Event const& _revt)
 {
-    auto do_notify_fnc = [_revt, _sigmsk](ObjectBase& _robj, ReactorBase& _rreact) {
-        return notify_object(_robj, _rreact, _revt, _sigmsk);
+    auto do_notify_fnc = [_revt](VisitContext& _rctx) {
+        return _rctx.raiseObject(_revt);
     };
     ObjectVisitFunctionT f(std::cref(do_notify_fnc));
     return doForEachServiceObject(_rsvc, f);
@@ -791,7 +801,8 @@ bool Manager::doVisit(ObjectIdT const& _ruid, ObjectVisitFunctionT& _rfct)
             ObjectStub const&            ros(d.object(objstoreidx, _ruid.index));
 
             if (ros.unique == _ruid.unique && ros.pobject && ros.preactor) {
-                retval = _rfct(*ros.pobject, *ros.preactor);
+                VisitContext ctx(*this, *ros.preactor, *ros.pobject);
+                retval = _rfct(ctx);
             }
         }
         d.releaseReadObjectStore(objstoreidx);
@@ -897,7 +908,8 @@ size_t Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisi
 
         for (size_t i(0), cnt(0); i < d.objchkcnt && cnt < rchk.objcnt; ++i) {
             if (poss[i].pobject && poss[i].preactor) {
-                _rfct(*poss[i].pobject, *poss[i].preactor);
+                VisitContext ctx(*this, *poss[i].preactor, *poss[i].pobject);
+                _rfct(ctx);
                 ++visited_count;
                 ++cnt;
             }
@@ -974,10 +986,10 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
         return;
     }
     if (rss.state == StateRunningE) {
-        ObjectVisitFunctionT fctor(
-            [](ObjectBase& _robj, ReactorBase& _rreact) {
-                return notify_object(_robj, _rreact, make_event(GenericEvents::Kill), 0);
-            });
+        auto l = [](VisitContext& _rctx) {
+            return _rctx.raiseObject(make_event(GenericEvents::Kill));
+        };
+        ObjectVisitFunctionT fctor(std::cref(l));
 
         rss.psvc->resetRunning();
 
@@ -1055,8 +1067,8 @@ void Manager::stop()
 
             if (rss.psvc && rss.state == StateRunningE) {
                 ObjectVisitFunctionT fctor(
-                    [](ObjectBase& _robj, ReactorBase& _rreact) {
-                        return notify_object(_robj, _rreact, make_event(GenericEvents::Kill), 0);
+                    [](VisitContext& _rctx) {
+                        return _rctx.raiseObject(make_event(GenericEvents::Kill));
                     });
 
                 rss.psvc->resetRunning();
