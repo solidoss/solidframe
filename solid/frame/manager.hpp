@@ -101,7 +101,7 @@ public:
     }
 
     template <class T, class F>
-    bool visitCast(ObjectIdT const& _ruid, F _f)
+    bool visitExplicitCast(ObjectIdT const& _ruid, F _f)
     {
         auto l = [&_f](VisitContext& _rctx) {
             const std::type_info& req_type = typeid(T);
