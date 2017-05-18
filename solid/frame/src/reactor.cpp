@@ -750,10 +750,27 @@ Service& ReactorContext::service() const
     return reactor().service(*this);
 }
 
+//-----------------------------------------------------------------------------
+
+Manager& ReactorContext::manager() const
+{
+    return reactor().service(*this).manager();
+}
+
+//-----------------------------------------------------------------------------
+
 UniqueId ReactorContext::objectUid() const
 {
     return reactor().objectUid(*this);
 }
+
+//-----------------------------------------------------------------------------
+
+std::mutex& ReactorContext::objectMutex()const{
+    return reactor().service(*this).mutex(reactor().object(*this));
+}
+
+//-----------------------------------------------------------------------------
 
 CompletionHandler* ReactorContext::completionHandler() const
 {

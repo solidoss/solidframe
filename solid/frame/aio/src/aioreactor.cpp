@@ -1415,6 +1415,12 @@ Manager& ReactorContext::manager() const
 
 //-----------------------------------------------------------------------------
 
+std::mutex& ReactorContext::objectMutex()const{
+    return reactor().service(*this).mutex(reactor().object(*this));
+}
+
+//-----------------------------------------------------------------------------
+
 UniqueId ReactorContext::objectUid() const
 {
     return reactor().objectUid(*this);

@@ -16,6 +16,7 @@
 #include "solid/system/socketdevice.hpp"
 
 #include "solid/frame/aio/aiocommon.hpp"
+#include <mutex>
 
 namespace solid {
 namespace frame {
@@ -52,8 +53,10 @@ struct ReactorContext {
 
     Object&  object() const;
     Service& service() const;
+    Manager& manager() const;
 
     UniqueId objectUid() const;
+    std::mutex& objectMutex()const;
 
     void clearError()
     {

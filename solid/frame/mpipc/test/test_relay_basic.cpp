@@ -83,12 +83,19 @@ size_t real_size(size_t _sz)
 }
 
 struct Register : frame::mpipc::Message {
-    std::string     str;
-    uint32_t        err;
-    
-    Register(const std::string &_rstr, uint32_t _err = 0):str(_rstr), err(_err){}
-    Register(uint32_t _err = -1):err(_err){}
-    
+    std::string str;
+    uint32_t    err;
+
+    Register(const std::string& _rstr, uint32_t _err = 0)
+        : str(_rstr)
+        , err(_err)
+    {
+    }
+    Register(uint32_t _err = -1)
+        : err(_err)
+    {
+    }
+
     template <class S>
     void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
     {
@@ -171,7 +178,6 @@ struct Message : frame::mpipc::Message {
 void peera_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
     idbg(_rctx.recipientId());
-    
 }
 
 void peera_connection_stop(frame::mpipc::ConnectionContext& _rctx)
@@ -197,7 +203,6 @@ void peerb_connection_stop(frame::mpipc::ConnectionContext& _rctx)
     idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
-
 void peera_complete_register(
     frame::mpipc::ConnectionContext& _rctx,
     std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
@@ -205,14 +210,14 @@ void peera_complete_register(
 {
     idbg(_rctx.recipientId());
     SOLID_CHECK(not _rerror);
-    
-    if(_rrecv_msg_ptr and _rrecv_msg_ptr->err == 0){
+
+    if (_rrecv_msg_ptr and _rrecv_msg_ptr->err == 0) {
         auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
             idbg("enter active error: " << _rerror.message());
             return frame::mpipc::MessagePointerT();
         };
         _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
-    }else{
+    } else {
         SOLID_CHECK(false);
     }
 }
@@ -224,14 +229,14 @@ void peerb_complete_register(
 {
     idbg(_rctx.recipientId());
     SOLID_CHECK(not _rerror);
-    
-    if(_rrecv_msg_ptr and _rrecv_msg_ptr->err == 0){
+
+    if (_rrecv_msg_ptr and _rrecv_msg_ptr->err == 0) {
         auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
             idbg("enter active error: " << _rerror.message());
             return frame::mpipc::MessagePointerT();
         };
         _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
-    }else{
+    } else {
         SOLID_CHECK(false);
     }
 }
@@ -315,7 +320,6 @@ void peerb_complete_message(
 
 } //namespace
 
-
 int test_relay_basic(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
@@ -324,7 +328,7 @@ int test_relay_basic(int argc, char** argv)
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
 #endif
-    
+
     size_t max_per_pool_connection_count = 1;
 
     if (argc > 1) {
@@ -375,15 +379,16 @@ int test_relay_basic(int argc, char** argv)
     }
 
     {
-        AioSchedulerT sch_peera;
-        AioSchedulerT sch_peerb;
-        AioSchedulerT sch_relay;
+        AioSchedulerT          sch_peera;
+        AioSchedulerT          sch_peerb;
+        AioSchedulerT          sch_relay;
         frame::Manager         m;
         frame::mpipc::ServiceT mpipcrelay(m);
         frame::mpipc::ServiceT mpipcpeera(m);
-        frame::mpipc::ServiceT mpipcpeerb(m);;
+        frame::mpipc::ServiceT mpipcpeerb(m);
+        ;
         frame::aio::Resolver resolver;
-        ErrorConditionT        err;
+        ErrorConditionT      err;
 
         err = sch_peera.start(1);
 
@@ -398,14 +403,14 @@ int test_relay_basic(int argc, char** argv)
             edbg("starting aio peerb scheduler: " << err.message());
             return 1;
         }
-        
+
         err = sch_relay.start(1);
 
         if (err) {
             edbg("starting aio relay scheduler: " << err.message());
             return 1;
         }
-        
+
         err = resolver.start(1);
 
         if (err) {
@@ -420,7 +425,7 @@ int test_relay_basic(int argc, char** argv)
             frame::mpipc::Configuration cfg(sch_relay, proto);
 
             proto->registerType<Register>(relay_complete_register);
-            
+
             cfg.server.listener_address_str = "0.0.0.0:0";
 
             if (secure) {
@@ -455,14 +460,14 @@ int test_relay_basic(int argc, char** argv)
                 idbg("relay listens on port: " << relay_port);
             }
         }
-        
+
         pmpipcpeera = &mpipcpeera;
         pmpipcpeerb = &mpipcpeerb;
-        
+
         { //mpipc peera initialization
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(sch_peera, proto);
-            
+
             proto->registerType<Register>(peera_complete_register);
             proto->registerType<Message>(peera_complete_message);
 
@@ -498,7 +503,7 @@ int test_relay_basic(int argc, char** argv)
                 return 1;
             }
         }
-        
+
         { //mpipc peerb initialization
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(sch_peerb, proto);
@@ -542,15 +547,14 @@ int test_relay_basic(int argc, char** argv)
         const size_t start_count = 10;
 
         writecount = initarraysize * 10; //start_count;//
-        
+
         //ensure we have provisioned connections on peerb
         {
             auto msgptr = std::make_shared<Register>("b");
-            for(size_t i = 0; i < max_per_pool_connection_count; ++i){
+            for (size_t i = 0; i < max_per_pool_connection_count; ++i) {
                 mpipcpeera.sendMessage("", msgptr, frame::mpipc::MessageFlags::WaitResponse);
             }
         }
-        
 
         for (; crtwriteidx < start_count;) {
             mpipcpeera.sendMessage(

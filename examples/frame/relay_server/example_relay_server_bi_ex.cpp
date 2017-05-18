@@ -31,39 +31,39 @@ using namespace solid;
 using namespace std::placeholders;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
-using BufferPairT   = pair<const char*, size_t>;
+using BufferPairT = pair<const char*, size_t>;
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
 namespace {
 
-struct Params {
-    int    listener_port;
-    string connect_addr_str;
-    string connect_port_str;
+    struct Params {
+        int    listener_port;
+        string connect_addr_str;
+        string connect_port_str;
 
-    string dbg_levels;
-    string dbg_modules;
-    string dbg_addr;
-    string dbg_port;
-    bool   dbg_console;
-    bool   dbg_buffered;
-    bool   log;
-};
+        string dbg_levels;
+        string dbg_modules;
+        string dbg_addr;
+        string dbg_port;
+        bool   dbg_console;
+        bool   dbg_buffered;
+        bool   log;
+    };
 
-Params params;
+    Params params;
 
-frame::aio::Resolver& async_resolver()
-{
-    static frame::aio::Resolver r;
-    return r;
-}
+    frame::aio::Resolver& async_resolver()
+    {
+        static frame::aio::Resolver r;
+        return r;
+    }
 
 } //namespace
 
-//------------------------------------------------------------------
-//------------------------------------------------------------------
+  //------------------------------------------------------------------
+  //------------------------------------------------------------------
 
 class Listener final : public Dynamic<Listener, frame::aio::Object> {
 public:
@@ -152,19 +152,26 @@ BufferPtrT make_buffer(const size_t _sz)
 {
     if (_sz <= 512) {
         return std::make_shared<Buffer<512>>(_sz);
-    } else if (_sz <= 1024) {
+    }
+    else if (_sz <= 1024) {
         return std::make_shared<Buffer<1024 * 1>>(_sz);
-    } else if (_sz <= 1024 * 2) {
+    }
+    else if (_sz <= 1024 * 2) {
         return std::make_shared<Buffer<1024 * 2>>(_sz);
-    } else if (_sz <= 1024 * 4) {
+    }
+    else if (_sz <= 1024 * 4) {
         return std::make_shared<Buffer<1024 * 4>>(_sz);
-    } else if (_sz <= 1024 * 8) {
+    }
+    else if (_sz <= 1024 * 8) {
         return std::make_shared<Buffer<1024 * 8>>(_sz);
-    } else if (_sz <= 1024 * 16) {
+    }
+    else if (_sz <= 1024 * 16) {
         return std::make_shared<Buffer<1024 * 16>>(_sz);
-    } else if (_sz <= 1024 * 32) {
+    }
+    else if (_sz <= 1024 * 32) {
         return std::make_shared<Buffer<1024 * 32>>(_sz);
-    } else if (_sz <= 1024 * 64) {
+    }
+    else if (_sz <= 1024 * 64) {
         return std::make_shared<Buffer<1024 * 64>>(_sz);
     }
 
@@ -177,19 +184,26 @@ BufferPtrT make_buffer(const size_t _sz)
 {
     if (_sz <= 512) {
         return BufferPtrT(new Buffer<512>(_sz));
-    } else if (_sz <= 1024) {
+    }
+    else if (_sz <= 1024) {
         return BufferPtrT(new Buffer<1024 * 1>(_sz));
-    } else if (_sz <= 1024 * 2) {
+    }
+    else if (_sz <= 1024 * 2) {
         return BufferPtrT(new Buffer<1024 * 2>(_sz));
-    } else if (_sz <= 1024 * 4) {
+    }
+    else if (_sz <= 1024 * 4) {
         return BufferPtrT(new Buffer<1024 * 4>(_sz));
-    } else if (_sz <= 1024 * 8) {
+    }
+    else if (_sz <= 1024 * 8) {
         return BufferPtrT(new Buffer<1024 * 8>(_sz));
-    } else if (_sz <= 1024 * 16) {
+    }
+    else if (_sz <= 1024 * 16) {
         return BufferPtrT(new Buffer<1024 * 16>(_sz));
-    } else if (_sz <= 1024 * 32) {
+    }
+    else if (_sz <= 1024 * 32) {
         return BufferPtrT(new Buffer<1024 * 32>(_sz));
-    } else if (_sz <= 1024 * 64) {
+    }
+    else if (_sz <= 1024 * 64) {
         return BufferPtrT(new Buffer<1024 * 64>(_sz));
     }
 
@@ -211,6 +225,8 @@ struct EventData {
         : bufsz_(-1)
     {
     }
+    
+    EventData(const frame::ObjectIdT& _objid, BufferPtrT &&_ubufptr, const size_t _bufsz):senderid_(_objid), bufptr_(std::move(_ubufptr)), bufsz_(_bufsz){}
 };
 
 class Connection final : public Dynamic<Connection, frame::aio::Object> {
@@ -232,9 +248,8 @@ public:
 protected:
     void init()
     {
-        rbufcnt_        = 1;
-        rbufptr_        = make_buffer(BufferCapacity);
-        pweventdataend_ = nullptr;
+        rbufcnt_ = 1;
+        rbufptr_ = make_buffer(BufferCapacity);
     }
 
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
@@ -252,7 +267,8 @@ protected:
     {
         if (rbufptr_) {
             return true;
-        } else if (rbufcnt_ < BufferCount) {
+        }
+        else if (rbufcnt_ < BufferCount) {
             rbufptr_ = make_buffer(BufferCapacity);
             ++rbufcnt_;
             return true;
@@ -261,45 +277,68 @@ protected:
         return false;
     }
 
-    EventDataPtrT makeReadEventData(frame::aio::ReactorContext& _rctx, const size_t _bufsz)
-    {
-        EventDataPtrT rv;
-        if (reventdataptr_) {
-            rv             = std::move(reventdataptr_);
-            reventdataptr_ = std::move(rv->nextptr_);
-        } else {
-            //rv = std::make_shared<EventData>();
-            rv = EventDataPtrT(new EventData());
-        }
-        rv->senderid_ = _rctx.manager().id(*this);
-        rv->bufptr_   = std::move(rbufptr_);
-        rbufptr_      = std::move(rv->bufptr_->next_);
-        rv->bufsz_    = _bufsz;
-        return rv;
+    void notifyPeerOnRecv(frame::aio::ReactorContext& _rctx, const size_t _bufsz) {
+        EventData   ed{_rctx.manager().id(*this), std::move(rbufptr_), _bufsz};
+        rbufptr_ = std::move(ed.bufptr_->next_);
+
+        auto        l = [&ed](frame::Manager::VisitContext& _rctx, Connection &_rcon) {
+            if (_rcon.pushEventDataOnRecv(ed)) {
+                _rctx.raiseObject(make_event(GenericEvents::Raise));
+            }
+            return true;
+        };
+
+        _rctx.manager().visitExplicitCast<Connection>(peer_objuid_, l);
     }
 
-    EventDataPtrT popWriteEventData()
-    {
-        EventDataPtrT rv;
-        rv                = std::move(weventdatabegptr_);
-        rv->bufsz_        = 0;
-        weventdatabegptr_ = std::move(rv->nextptr_);
-        if (!weventdatabegptr_) {
-            pweventdataend_ = nullptr;
+    void notifyPeerOnSend(frame::aio::ReactorContext& _rctx) {
+        auto &red = wpop_ed_vec[wpop_ed_vec_off++];
+        auto  l = [&red](frame::Manager::VisitContext& _rctx, Connection &_rcon) {
+            if(_rcon.pushSentBuffer(std::move(red.bufptr_))){
+                _rctx.raiseObject(make_event(GenericEvents::Resume));
+            }
+            return true;
+        };
+        _rctx.manager().visitExplicitCast<Connection>(red.senderid_, l);
+    }
+    
+    bool pushSentBuffer(BufferPtrT &&_rbufptr){
+        //TODO:
+    }
+    
+    bool pushEventDataOnRecv(EventData &_red) {
+        wpush_ed_vec.emplace_back(std::move(_red));
+        return wpush_ed_vec.size() == 1;
+    }
+    
+    void sendCurrent(frame::aio::ReactorContext& _rctx){
+        const auto &red = wpop_ed_vec[wpop_ed_vec_off];
+        sock_.postSendAll(_rctx, red.bufptr_->data(), red.bufsz_, Connection::onSend);
+    }
+    
+    bool swapWriteEventDataVectors(frame::aio::ReactorContext& _rctx){
+        wpop_ed_vec.clear();
+        wpop_ed_vec_off = 0;
+        {
+            std::unique_lock<std::mutex> lock{_rctx.objectMutex()};
+            std::swap(wpop_ed_vec, wpush_ed_vec);
         }
-        return rv;
+        return !wpop_ed_vec.empty();
     }
 
 protected:
-    enum { BufferCapacity = 1024 * 4,
-        BufferCount       = 8 };
+    enum {
+        BufferCapacity = 1024 * 4,
+        BufferCount = 8
+    };
     using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
+    using EventDataVectorT = std::vector<EventData>;
 
     BufferPtrT       rbufptr_;
     uint16_t         rbufcnt_;
-    EventDataPtrT    reventdataptr_;
-    EventDataPtrT    weventdatabegptr_;
-    EventData*       pweventdataend_;
+    EventDataVectorT wpush_ed_vec;
+    EventDataVectorT wpop_ed_vec;
+    size_t           wpop_ed_vec_off;
     StreamSocketT    sock_;
     frame::ObjectIdT peer_objuid_;
 };
@@ -325,11 +364,13 @@ int main(int argc, char* argv[])
                 params.dbg_port.c_str(),
                 params.dbg_buffered,
                 &dbgout);
-        } else if (params.dbg_console) {
+        }
+        else if (params.dbg_console) {
             Debug::the().initStdErr(
                 params.dbg_buffered,
                 &dbgout);
-        } else {
+        }
+        else {
             Debug::the().initFile(
                 *argv[0] == '.' ? argv[0] + 2 : argv[0],
                 params.dbg_buffered,
@@ -353,7 +394,8 @@ int main(int argc, char* argv[])
 
         if (sch.start(thread::hardware_concurrency())) {
             cout << "Error starting scheduler" << endl;
-        } else {
+        }
+        else {
             ResolveData rd = synchronous_resolve("0.0.0.0", params.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
             SocketDevice sd;
@@ -368,7 +410,8 @@ int main(int argc, char* argv[])
 
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
                 idbg("Started Listener object: " << objuid.index << ',' << objuid.unique);
-            } else {
+            }
+            else {
                 cout << "Error creating listener socket" << endl;
             }
         }
@@ -408,12 +451,14 @@ bool parseArguments(Params& _par, int argc, char* argv[])
             _par.connect_port_str.assign(_par.connect_addr_str.c_str() + pos + 1);
 
             _par.connect_addr_str.resize(pos);
-        } else {
+        }
+        else {
             _par.connect_port_str = _par.listener_port;
         }
 
         return false;
-    } catch (exception& e) {
+    }
+    catch (exception& e) {
         cout << e.what() << "\n";
         return true;
     }
@@ -427,7 +472,8 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     idbg("event = " << _revent);
     if (_revent == generic_event_start) {
         sock_.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { this->onAccept(_rctx, _rsd); });
-    } else if (_revent == generic_event_kill) {
+    }
+    else if (_revent == generic_event_kill) {
         postStop(_rctx);
     }
 }
@@ -461,7 +507,8 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
                 rsch_.startObject(objptr, rsvc_, make_event(GenericEvents::Start), err);
             }
-        } else {
+        }
+        else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
@@ -505,61 +552,42 @@ struct ResolvFunc {
 {
     edbg(this << " " << _revent);
     if (generic_event_raise == _revent) {
-        EventDataPtrT& evtdataptr = *_revent.any().cast<EventDataPtrT>();
-
-        if (evtdataptr->bufsz_) {
-            //new data to send
-            idbg(this << " new data to sent ");
-
-            if (pweventdataend_) {
-                pweventdataend_->nextptr_ = std::move(evtdataptr);
-                pweventdataend_           = pweventdataend_->nextptr_.get();
-            } else {
-                weventdatabegptr_ = std::move(evtdataptr);
-                pweventdataend_   = weventdatabegptr_.get();
-                sock_.postSendAll(_rctx, weventdatabegptr_->bufptr_->data(), weventdatabegptr_->bufsz_, Connection::onSend);
+        if(wpop_ed_vec.empty()){
+            if(swapWriteEventDataVectors(_rctx)){
+                sendCurrent(_rctx);
             }
-        } else {
-            //a send ack
-
-            idbg(this << " on sent ack event " << sock_.hasPendingRecv());
-
-            //store both the read event data ptr and the bufptr
-            //first store the bufptr
-            if (rbufptr_) {
-                evtdataptr->bufptr_->next_ = std::move(rbufptr_->next_);
-                rbufptr_->next_            = std::move(evtdataptr->bufptr_);
-            } else {
-                rbufptr_ = std::move(evtdataptr->bufptr_);
-                sock_.postRecvSome(_rctx, rbufptr_->data(), rbufptr_->capacity(), Connection::onRecv);
-            }
-            //then store the event data ptr
-            evtdataptr->nextptr_ = std::move(reventdataptr_);
-            reventdataptr_       = std::move(evtdataptr);
         }
-
-    } else if (generic_event_start == _revent) {
+    }
+    else if (generic_event_resume == _revent) {
+        //sent buffers are back
+        //TODO:
+    }
+    else if (generic_event_start == _revent) {
         if (sock_.device()) {
             sock_.device().enableNoDelay();
             //the accepted socket
             //wait for peer to connect
-        } else {
+        }
+        else {
             //the connecting socket
             idbg("async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
                 ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
                 params.connect_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
         }
-    } else if (generic_event_kill == _revent) {
+    }
+    else if (generic_event_kill == _revent) {
         edbg(this << " postStop");
         postStop(_rctx);
-    } else if (generic_event_message == _revent) {
+    }
+    else if (generic_event_message == _revent) {
         ResolveData* presolvemsg = _revent.any().cast<ResolveData>();
         if (presolvemsg) {
             if (presolvemsg->empty()) {
                 edbg(this << " postStop");
                 postStop(_rctx);
-            } else {
+            }
+            else {
                 if (sock_.connect(_rctx, presolvemsg->begin(), &Connection::onConnect)) {
                     onConnect(_rctx);
                 }
@@ -591,12 +619,14 @@ struct ResolvFunc {
             rthis.sock_.device().enableNoDelay();
             //do the first read
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
-        } else {
+        }
+        else {
             //peer has died
             edbg(&rthis << " postStop " << _rctx.systemError().message());
             rthis.postStop(_rctx);
         }
-    } else {
+    }
+    else {
         edbg(&rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
@@ -610,15 +640,17 @@ struct ResolvFunc {
 
     if (!_rctx.error()) {
 
-        _rctx.manager().notify(rthis.peer_objuid_, make_event(GenericEvents::Raise, rthis.makeReadEventData(_rctx, _sz)));
+        rthis.notifyPeerOnRecv(_rctx, _sz);
 
         if (rthis.prepareCurrentReadBuffer()) {
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
-        } else {
+        }
+        else {
             //no free buffer
         }
 
-    } else {
+    }
+    else {
         edbg(&rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
@@ -629,15 +661,19 @@ struct ResolvFunc {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
     if (!_rctx.error()) {
-        _rctx.manager().notify(rthis.peer_objuid_, make_event(GenericEvents::Raise, rthis.popWriteEventData()));
+        rthis.notifyPeerOnSend(_rctx);
 
         idbg(&rthis << " ");
-
-        if (rthis.weventdatabegptr_) {
-            rthis.sock_.postSendAll(_rctx, rthis.weventdatabegptr_->bufptr_->data(), rthis.weventdatabegptr_->bufsz_, Connection::onSend);
+        
+        if(
+            rthis.wpop_ed_vec_off != rthis.wpop_ed_vec.size() ||
+            rthis.swapWriteEventDataVectors(_rctx)
+        ){
+            rthis.sendCurrent(_rctx);
         }
 
-    } else {
+    }
+    else {
         edbg(&rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }

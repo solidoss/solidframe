@@ -175,7 +175,7 @@ protected:
 
 protected:
     typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
-    enum { BufferCapacity = 1024 * 8 };
+    enum { BufferCapacity = 1024 * 4 };
 
     char          buf1[BufferCapacity];
     char          buf2[BufferCapacity];
