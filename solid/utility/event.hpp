@@ -1,4 +1,4 @@
-// solid/frame/event.hpp
+// solid/event.hpp
 //
 // Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
