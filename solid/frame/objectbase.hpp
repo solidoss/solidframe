@@ -36,8 +36,6 @@ public:
 
     UniqueId const& runId() const;
 
-    bool isAcceptingEvents() const;
-
 protected:
     friend class Service;
     friend class Manager;
@@ -46,14 +44,9 @@ protected:
     //! Constructor
     ObjectBase();
 
-    //! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
-    size_t grabSignalMask(const size_t _leave = 0);
-
     void unregister(Manager& _rm);
     bool         isRegistered() const;
     virtual void doStop(Manager& _rm);
-
-    bool notify(const size_t _smask);
 
     bool disableVisits(Manager& _rm);
 
@@ -68,22 +61,21 @@ private:
 private:
     std::atomic<IndexT> fullid;
     UniqueId            runid;
-    std::atomic<size_t> smask;
 };
 
 inline IndexT ObjectBase::id() const
 {
-    return fullid;
+    return fullid.load(/*std::memory_order_relaxed*/);
 }
 
 inline bool ObjectBase::isRegistered() const
 {
-    return fullid.load() != InvalidIndex();
+    return fullid.load(/*std::memory_order_relaxed*/) != InvalidIndex();
 }
 
 inline void ObjectBase::id(IndexT const& _fullid)
 {
-    fullid = _fullid;
+    fullid.store(_fullid /*, std::memory_order_relaxed*/);
 }
 
 inline UniqueId const& ObjectBase::runId() const
@@ -96,16 +88,16 @@ inline void ObjectBase::runId(UniqueId const& _runid)
     runid = _runid;
 }
 
-inline size_t ObjectBase::grabSignalMask(const size_t _leave /* = 0*/)
-{
-    return smask.fetch_and(_leave /*, std::memory_order_seq_cst*/);
-}
-
-inline bool ObjectBase::notify(const size_t _smask)
-{
-    const size_t osm = smask.fetch_or(_smask /*, std::memory_order_seq_cst*/);
-    return (_smask | osm) != osm;
-}
+// inline size_t ObjectBase::grabSignalMask(const size_t _leave /* = 0*/)
+// {
+//     return smask.fetch_and(_leave /*, std::memory_order_seq_cst*/);
+// }
+//
+// inline bool ObjectBase::notify(const size_t _smask)
+// {
+//     const size_t osm = smask.fetch_or(_smask /*, std::memory_order_seq_cst*/);
+//     return (_smask | osm) != osm;
+// }
 
 } //namespace frame
 } //namespace solid

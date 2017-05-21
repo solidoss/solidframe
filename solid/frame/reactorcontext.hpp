@@ -55,8 +55,8 @@ struct ReactorContext {
     Service& service() const;
     Manager& manager() const;
 
-    UniqueId objectUid() const;
-    std::mutex& objectMutex()const;
+    UniqueId    objectUid() const;
+    std::mutex& objectMutex() const;
 
     void clearError()
     {

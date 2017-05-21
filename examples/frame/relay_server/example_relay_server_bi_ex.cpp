@@ -31,39 +31,38 @@ using namespace solid;
 using namespace std::placeholders;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
-using BufferPairT = pair<const char*, size_t>;
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
 namespace {
 
-    struct Params {
-        int    listener_port;
-        string connect_addr_str;
-        string connect_port_str;
+struct Params {
+    int    listener_port;
+    string connect_addr_str;
+    string connect_port_str;
 
-        string dbg_levels;
-        string dbg_modules;
-        string dbg_addr;
-        string dbg_port;
-        bool   dbg_console;
-        bool   dbg_buffered;
-        bool   log;
-    };
+    string dbg_levels;
+    string dbg_modules;
+    string dbg_addr;
+    string dbg_port;
+    bool   dbg_console;
+    bool   dbg_buffered;
+    bool   log;
+};
 
-    Params params;
+Params params;
 
-    frame::aio::Resolver& async_resolver()
-    {
-        static frame::aio::Resolver r;
-        return r;
-    }
+frame::aio::Resolver& async_resolver()
+{
+    static frame::aio::Resolver r;
+    return r;
+}
 
 } //namespace
 
-  //------------------------------------------------------------------
-  //------------------------------------------------------------------
+//------------------------------------------------------------------
+//------------------------------------------------------------------
 
 class Listener final : public Dynamic<Listener, frame::aio::Object> {
 public:
@@ -147,70 +146,28 @@ public:
     }
 };
 
-#if 1
 BufferPtrT make_buffer(const size_t _sz)
 {
     if (_sz <= 512) {
         return std::make_shared<Buffer<512>>(_sz);
-    }
-    else if (_sz <= 1024) {
+    } else if (_sz <= 1024) {
         return std::make_shared<Buffer<1024 * 1>>(_sz);
-    }
-    else if (_sz <= 1024 * 2) {
+    } else if (_sz <= 1024 * 2) {
         return std::make_shared<Buffer<1024 * 2>>(_sz);
-    }
-    else if (_sz <= 1024 * 4) {
+    } else if (_sz <= 1024 * 4) {
         return std::make_shared<Buffer<1024 * 4>>(_sz);
-    }
-    else if (_sz <= 1024 * 8) {
+    } else if (_sz <= 1024 * 8) {
         return std::make_shared<Buffer<1024 * 8>>(_sz);
-    }
-    else if (_sz <= 1024 * 16) {
+    } else if (_sz <= 1024 * 16) {
         return std::make_shared<Buffer<1024 * 16>>(_sz);
-    }
-    else if (_sz <= 1024 * 32) {
+    } else if (_sz <= 1024 * 32) {
         return std::make_shared<Buffer<1024 * 32>>(_sz);
-    }
-    else if (_sz <= 1024 * 64) {
+    } else if (_sz <= 1024 * 64) {
         return std::make_shared<Buffer<1024 * 64>>(_sz);
     }
 
     return std::make_shared<Buffer<0>>(_sz);
 }
-
-#else
-
-BufferPtrT make_buffer(const size_t _sz)
-{
-    if (_sz <= 512) {
-        return BufferPtrT(new Buffer<512>(_sz));
-    }
-    else if (_sz <= 1024) {
-        return BufferPtrT(new Buffer<1024 * 1>(_sz));
-    }
-    else if (_sz <= 1024 * 2) {
-        return BufferPtrT(new Buffer<1024 * 2>(_sz));
-    }
-    else if (_sz <= 1024 * 4) {
-        return BufferPtrT(new Buffer<1024 * 4>(_sz));
-    }
-    else if (_sz <= 1024 * 8) {
-        return BufferPtrT(new Buffer<1024 * 8>(_sz));
-    }
-    else if (_sz <= 1024 * 16) {
-        return BufferPtrT(new Buffer<1024 * 16>(_sz));
-    }
-    else if (_sz <= 1024 * 32) {
-        return BufferPtrT(new Buffer<1024 * 32>(_sz));
-    }
-    else if (_sz <= 1024 * 64) {
-        return BufferPtrT(new Buffer<1024 * 64>(_sz));
-    }
-
-    return BufferPtrT(new Buffer<0>(_sz));
-}
-
-#endif
 
 struct EventData;
 using EventDataPtrT = std::unique_ptr<EventData>;
@@ -225,14 +182,20 @@ struct EventData {
         : bufsz_(-1)
     {
     }
-    
-    EventData(const frame::ObjectIdT& _objid, BufferPtrT &&_ubufptr, const size_t _bufsz):senderid_(_objid), bufptr_(std::move(_ubufptr)), bufsz_(_bufsz){}
+
+    EventData(const frame::ObjectIdT& _objid, BufferPtrT&& _ubufptr, const size_t _bufsz)
+        : senderid_(_objid)
+        , bufptr_(std::move(_ubufptr))
+        , bufsz_(_bufsz)
+    {
+    }
 };
 
 class Connection final : public Dynamic<Connection, frame::aio::Object> {
 public:
     Connection(SocketDevice&& _rsd)
         : sock_(this->proxy(), std::move(_rsd))
+        , wcan_swap(false)
     {
         init();
     }
@@ -240,6 +203,7 @@ public:
     Connection(const frame::ObjectIdT& _peer_obduid)
         : sock_(this->proxy())
         , peer_objuid_(_peer_obduid)
+        , wcan_swap(false)
     {
         init();
     }
@@ -248,8 +212,9 @@ public:
 protected:
     void init()
     {
-        rbufcnt_ = 1;
-        rbufptr_ = make_buffer(BufferCapacity);
+        rbufcnt_      = 1;
+        rbufptr_      = make_buffer(BufferCapacity);
+        prpushbufend_ = nullptr;
     }
 
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
@@ -267,8 +232,7 @@ protected:
     {
         if (rbufptr_) {
             return true;
-        }
-        else if (rbufcnt_ < BufferCount) {
+        } else if (rbufcnt_ < BufferCount) {
             rbufptr_ = make_buffer(BufferCapacity);
             ++rbufcnt_;
             return true;
@@ -277,11 +241,12 @@ protected:
         return false;
     }
 
-    void notifyPeerOnRecv(frame::aio::ReactorContext& _rctx, const size_t _bufsz) {
-        EventData   ed{_rctx.manager().id(*this), std::move(rbufptr_), _bufsz};
+    void notifyPeerOnRecv(frame::aio::ReactorContext& _rctx, const size_t _bufsz)
+    {
+        EventData ed{_rctx.manager().id(*this), std::move(rbufptr_), _bufsz};
         rbufptr_ = std::move(ed.bufptr_->next_);
 
-        auto        l = [&ed](frame::Manager::VisitContext& _rctx, Connection &_rcon) {
+        auto l = [&ed](frame::Manager::VisitContext& _rctx, Connection& _rcon) {
             if (_rcon.pushEventDataOnRecv(ed)) {
                 _rctx.raiseObject(make_event(GenericEvents::Raise));
             }
@@ -291,56 +256,77 @@ protected:
         _rctx.manager().visitExplicitCast<Connection>(peer_objuid_, l);
     }
 
-    void notifyPeerOnSend(frame::aio::ReactorContext& _rctx) {
-        auto &red = wpop_ed_vec[wpop_ed_vec_off++];
-        auto  l = [&red](frame::Manager::VisitContext& _rctx, Connection &_rcon) {
-            if(_rcon.pushSentBuffer(std::move(red.bufptr_))){
+    void notifyPeerOnSend(frame::aio::ReactorContext& _rctx)
+    {
+        auto& red = wpop_ed_vec[wpop_ed_vec_off++];
+        auto l    = [&red](frame::Manager::VisitContext& _rctx, Connection& _rcon) {
+            if (_rcon.pushSentBuffer(std::move(red.bufptr_))) {
                 _rctx.raiseObject(make_event(GenericEvents::Resume));
             }
             return true;
         };
         _rctx.manager().visitExplicitCast<Connection>(red.senderid_, l);
     }
-    
-    bool pushSentBuffer(BufferPtrT &&_rbufptr){
-        //TODO:
+
+    bool pushSentBuffer(BufferPtrT&& _rbufptr)
+    {
+        //under mutex lock
+        if (prpushbufend_) {
+            prpushbufend_->next_ = std::move(_rbufptr);
+            prpushbufend_        = prpushbufend_->next_.get();
+            return false;
+        } else {
+            rpushbufptr_  = std::move(_rbufptr);
+            prpushbufend_ = rpushbufptr_.get();
+            return true;
+        }
     }
-    
-    bool pushEventDataOnRecv(EventData &_red) {
+
+    bool pushEventDataOnRecv(EventData& _red)
+    {
+        //under mutex lock
         wpush_ed_vec.emplace_back(std::move(_red));
         return wpush_ed_vec.size() == 1;
     }
-    
-    void sendCurrent(frame::aio::ReactorContext& _rctx){
-        const auto &red = wpop_ed_vec[wpop_ed_vec_off];
+
+    void sendCurrent(frame::aio::ReactorContext& _rctx)
+    {
+        const auto& red = wpop_ed_vec[wpop_ed_vec_off];
         sock_.postSendAll(_rctx, red.bufptr_->data(), red.bufsz_, Connection::onSend);
     }
-    
-    bool swapWriteEventDataVectors(frame::aio::ReactorContext& _rctx){
+
+    bool swapWriteEventDataVectors(frame::aio::ReactorContext& _rctx)
+    {
         wpop_ed_vec.clear();
         wpop_ed_vec_off = 0;
+        if (!wcan_swap)
+            return false;
         {
             std::unique_lock<std::mutex> lock{_rctx.objectMutex()};
             std::swap(wpop_ed_vec, wpush_ed_vec);
         }
+        wcan_swap = false;
         return !wpop_ed_vec.empty();
     }
 
 protected:
     enum {
         BufferCapacity = 1024 * 4,
-        BufferCount = 8
+        BufferCount    = 4
     };
-    using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
+    using StreamSocketT    = frame::aio::Stream<frame::aio::Socket>;
     using EventDataVectorT = std::vector<EventData>;
 
     BufferPtrT       rbufptr_;
     uint16_t         rbufcnt_;
+    BufferPtrT       rpushbufptr_;
+    BufferBase*      prpushbufend_;
     EventDataVectorT wpush_ed_vec;
     EventDataVectorT wpop_ed_vec;
     size_t           wpop_ed_vec_off;
     StreamSocketT    sock_;
     frame::ObjectIdT peer_objuid_;
+    atomic<bool>     wcan_swap;
 };
 
 bool parseArguments(Params& _par, int argc, char* argv[]);
@@ -364,13 +350,11 @@ int main(int argc, char* argv[])
                 params.dbg_port.c_str(),
                 params.dbg_buffered,
                 &dbgout);
-        }
-        else if (params.dbg_console) {
+        } else if (params.dbg_console) {
             Debug::the().initStdErr(
                 params.dbg_buffered,
                 &dbgout);
-        }
-        else {
+        } else {
             Debug::the().initFile(
                 *argv[0] == '.' ? argv[0] + 2 : argv[0],
                 params.dbg_buffered,
@@ -384,6 +368,25 @@ int main(int argc, char* argv[])
         cout << "Debug modules: " << dbgout << endl;
     }
 #endif
+    if (0) {
+        cout << "Test vector swap:" << endl;
+        vector<int> v1 = {1, 2, 3, 4};
+        vector<int> v2 = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        cout << "v1: cap = " << v1.capacity() << " data = " << v1.data() << endl;
+        cout << "v2: cap = " << v2.capacity() << " data = " << v2.data() << endl;
+        std::swap(v1, v2);
+        cout << "After swap:" << endl;
+        cout << "v1: cap = " << v1.capacity() << " data = " << v1.data() << endl;
+        cout << "v2: cap = " << v2.capacity() << " data = " << v2.data() << endl;
+        cout << "After clear and swap:" << endl;
+        v1.clear();
+        v2.clear();
+        cout << "v1: cap = " << v1.capacity() << " data = " << v1.data() << endl;
+        cout << "v2: cap = " << v2.capacity() << " data = " << v2.data() << endl;
+    }
+
+    cout << "sizeof(Connection) = " << sizeof(Connection) << endl;
+
     async_resolver().start(1);
     {
 
@@ -394,8 +397,7 @@ int main(int argc, char* argv[])
 
         if (sch.start(thread::hardware_concurrency())) {
             cout << "Error starting scheduler" << endl;
-        }
-        else {
+        } else {
             ResolveData rd = synchronous_resolve("0.0.0.0", params.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
             SocketDevice sd;
@@ -410,8 +412,7 @@ int main(int argc, char* argv[])
 
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
                 idbg("Started Listener object: " << objuid.index << ',' << objuid.unique);
-            }
-            else {
+            } else {
                 cout << "Error creating listener socket" << endl;
             }
         }
@@ -451,14 +452,12 @@ bool parseArguments(Params& _par, int argc, char* argv[])
             _par.connect_port_str.assign(_par.connect_addr_str.c_str() + pos + 1);
 
             _par.connect_addr_str.resize(pos);
-        }
-        else {
+        } else {
             _par.connect_port_str = _par.listener_port;
         }
 
         return false;
-    }
-    catch (exception& e) {
+    } catch (exception& e) {
         cout << e.what() << "\n";
         return true;
     }
@@ -472,8 +471,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     idbg("event = " << _revent);
     if (_revent == generic_event_start) {
         sock_.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { this->onAccept(_rctx, _rsd); });
-    }
-    else if (_revent == generic_event_kill) {
+    } else if (_revent == generic_event_kill) {
         postStop(_rctx);
     }
 }
@@ -507,8 +505,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
                 rsch_.startObject(objptr, rsvc_, make_event(GenericEvents::Start), err);
             }
-        }
-        else {
+        } else {
             //e.g. a limit of open file descriptors was reached - we sleep for 10 seconds
             //timer.waitFor(_rctx, NanoTime(10), std::bind(&Listener::onEvent, this, _1, frame::Event(EventStartE)));
             break;
@@ -552,42 +549,54 @@ struct ResolvFunc {
 {
     edbg(this << " " << _revent);
     if (generic_event_raise == _revent) {
-        if(wpop_ed_vec.empty()){
-            if(swapWriteEventDataVectors(_rctx)){
+        wcan_swap = true;
+        if (wpop_ed_vec.empty()) {
+            if (swapWriteEventDataVectors(_rctx)) {
                 sendCurrent(_rctx);
             }
         }
-    }
-    else if (generic_event_resume == _revent) {
+    } else if (generic_event_resume == _revent) {
         //sent buffers are back
-        //TODO:
-    }
-    else if (generic_event_start == _revent) {
+        BufferPtrT  tmpbufptr;
+        BufferBase* pbufend;
+        {
+            std::unique_lock<std::mutex> lock{_rctx.objectMutex()};
+            tmpbufptr     = std::move(rpushbufptr_);
+            pbufend       = prpushbufend_;
+            prpushbufend_ = nullptr;
+        }
+
+        if (pbufend) {
+            if (rbufptr_) {
+                pbufend->next_  = std::move(rbufptr_->next_);
+                rbufptr_->next_ = std::move(tmpbufptr);
+            } else {
+                rbufptr_ = std::move(tmpbufptr);
+                sock_.postRecvSome(_rctx, rbufptr_->data(), rbufptr_->capacity(), Connection::onRecv);
+            }
+        }
+    } else if (generic_event_start == _revent) {
         if (sock_.device()) {
             sock_.device().enableNoDelay();
             //the accepted socket
             //wait for peer to connect
-        }
-        else {
+        } else {
             //the connecting socket
             idbg("async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
                 ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
                 params.connect_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
         }
-    }
-    else if (generic_event_kill == _revent) {
+    } else if (generic_event_kill == _revent) {
         edbg(this << " postStop");
         postStop(_rctx);
-    }
-    else if (generic_event_message == _revent) {
+    } else if (generic_event_message == _revent) {
         ResolveData* presolvemsg = _revent.any().cast<ResolveData>();
         if (presolvemsg) {
             if (presolvemsg->empty()) {
                 edbg(this << " postStop");
                 postStop(_rctx);
-            }
-            else {
+            } else {
                 if (sock_.connect(_rctx, presolvemsg->begin(), &Connection::onConnect)) {
                     onConnect(_rctx);
                 }
@@ -619,14 +628,12 @@ struct ResolvFunc {
             rthis.sock_.device().enableNoDelay();
             //do the first read
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
-        }
-        else {
+        } else {
             //peer has died
             edbg(&rthis << " postStop " << _rctx.systemError().message());
             rthis.postStop(_rctx);
         }
-    }
-    else {
+    } else {
         edbg(&rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
@@ -644,13 +651,11 @@ struct ResolvFunc {
 
         if (rthis.prepareCurrentReadBuffer()) {
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
-        }
-        else {
+        } else {
             //no free buffer
         }
 
-    }
-    else {
+    } else {
         edbg(&rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
@@ -664,16 +669,13 @@ struct ResolvFunc {
         rthis.notifyPeerOnSend(_rctx);
 
         idbg(&rthis << " ");
-        
-        if(
-            rthis.wpop_ed_vec_off != rthis.wpop_ed_vec.size() ||
-            rthis.swapWriteEventDataVectors(_rctx)
-        ){
+
+        if (
+            rthis.wpop_ed_vec_off != rthis.wpop_ed_vec.size() || (rthis.swapWriteEventDataVectors(_rctx))) {
             rthis.sendCurrent(_rctx);
         }
 
-    }
-    else {
+    } else {
         edbg(&rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }

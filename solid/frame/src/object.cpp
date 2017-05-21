@@ -77,7 +77,6 @@ bool Object::doPrepareStop(ReactorContext& _rctx)
 
 ObjectBase::ObjectBase()
     : fullid(static_cast<IndexT>(InvalidIndex()))
-    , smask(0)
 {
 }
 

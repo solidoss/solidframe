@@ -1415,7 +1415,8 @@ Manager& ReactorContext::manager() const
 
 //-----------------------------------------------------------------------------
 
-std::mutex& ReactorContext::objectMutex()const{
+std::mutex& ReactorContext::objectMutex() const
+{
     return reactor().service(*this).mutex(reactor().object(*this));
 }
 

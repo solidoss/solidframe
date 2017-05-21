@@ -394,26 +394,6 @@ Manager::Data::~Data()
     }
 }
 
-inline bool Manager::notify_object(
-    ObjectBase& _robj, ReactorBase& _rreact,
-    Event&& _uevt, const size_t _sigmsk)
-{
-    if (!_sigmsk || _robj.notify(_sigmsk)) {
-        return _rreact.raise(_robj.runId(), std::move(_uevt));
-    }
-    return true;
-}
-
-inline bool Manager::notify_object(
-    ObjectBase& _robj, ReactorBase& _rreact,
-    Event const& _revt, const size_t _sigmsk)
-{
-    if (!_sigmsk || _robj.notify(_sigmsk)) {
-        return _rreact.raise(_robj.runId(), _revt);
-    }
-    return true;
-}
-
 bool Manager::VisitContext::raiseObject(Event const& _revt) const
 {
     return rr_.raise(ro_.runId(), _revt);

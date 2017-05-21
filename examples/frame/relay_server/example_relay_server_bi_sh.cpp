@@ -343,6 +343,9 @@ int main(int argc, char* argv[])
         cout << "Debug modules: " << dbgout << endl;
     }
 #endif
+
+    cout << "sizeof(Connection) = " << sizeof(Connection) << endl;
+
     async_resolver().start(1);
     {
 

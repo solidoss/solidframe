@@ -187,9 +187,7 @@ void StoreBase::notifyObject(UniqueId const& _ruid)
     {
         std::unique_lock<std::mutex> lock(mutex());
         d.pfillerasevec->push_back(_ruid);
-        if (d.pfillerasevec->size() == 1) {
-            do_raise = Object::notify(S_RAISE);
-        }
+        do_raise = d.pfillerasevec->size() == 1;
     }
     if (do_raise) {
         manager().notify(manager().id(*this), make_event(GenericEvents::Raise));
@@ -206,13 +204,11 @@ void StoreBase::raise()
     if (_revent == generic_event_raise) {
         {
             std::unique_lock<std::mutex> lock(mutex());
-            ulong                        sm = grabSignalMask();
-            if (sm & S_RAISE) {
-                if (d.pfillerasevec->size()) {
-                    solid::exchange(d.pconserasevec, d.pfillerasevec);
-                }
-                doExecuteOnSignal(sm);
+            ulong                        sm = 0;
+            if (d.pfillerasevec->size()) {
+                solid::exchange(d.pconserasevec, d.pfillerasevec);
             }
+            doExecuteOnSignal(sm);
         }
         vdbgx(Debug::frame, "");
         if (this->doExecute()) {
