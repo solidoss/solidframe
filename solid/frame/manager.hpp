@@ -18,6 +18,7 @@
 #include "solid/frame/schedulerbase.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/function.hpp"
+#include "solid/utility/delegate.hpp"
 #include "solid/utility/dynamicpointer.hpp"
 
 //#include "solid/utility/functor.hpp"
@@ -82,8 +83,8 @@ public:
     template <class F>
     bool visit(ObjectIdT const& _ruid, F _f)
     {
-        ObjectVisitFunctionT fct(std::cref(_f));
-        return doVisit(_ruid, fct);
+        //ObjectVisitFunctionT fct(std::cref(_f));
+        return doVisit(_ruid, ObjectVisitFunctionT{_f});
     }
 
     template <class T, class F>
@@ -103,7 +104,7 @@ public:
     template <class T, class F>
     bool visitExplicitCast(ObjectIdT const& _ruid, F _f)
     {
-        auto l = [&_f](VisitContext& _rctx) {
+        auto visit_lambda = [&_f](VisitContext& _rctx) {
             const std::type_info& req_type = typeid(T);
             const std::type_info& val_type = typeid(*(&_rctx.object()));
 
@@ -112,8 +113,8 @@ public:
             }
             return false;
         };
-        ObjectVisitFunctionT fct(std::cref(l));
-        return doVisit(_ruid, fct);
+        //ObjectVisitFunctionT fct(std::cref(l));
+        return doVisit(_ruid, ObjectVisitFunctionT{visit_lambda});
     }
 
     ObjectIdT id(const ObjectBase& _robj) const;
@@ -130,7 +131,8 @@ private:
     friend class SchedulerBase;
     friend class Manager::VisitContext;
 
-    typedef FUNCTION<bool(VisitContext&)> ObjectVisitFunctionT;
+    //typedef FUNCTION<bool(VisitContext&)> ObjectVisitFunctionT;
+    using ObjectVisitFunctionT = Delegate<bool(VisitContext&)>;
 
     static bool notify_object(
         ObjectBase& _robj, ReactorBase& _rreact,
@@ -172,19 +174,15 @@ private:
     void stopService(Service& _rsvc, bool _wait);
     bool startService(Service& _rsvc);
 
-    size_t doForEachServiceObject(const Service& _rsvc, ObjectVisitFunctionT& _rfct);
-    size_t doForEachServiceObject(const size_t _chkidx, ObjectVisitFunctionT& _rfct);
-    bool doVisit(ObjectIdT const& _ruid, ObjectVisitFunctionT& _fctor);
+    size_t doForEachServiceObject(const Service& _rsvc, const ObjectVisitFunctionT _rfct);
+    size_t doForEachServiceObject(const size_t _chkidx, const ObjectVisitFunctionT _rfct);
+    bool doVisit(ObjectIdT const& _ruid, const ObjectVisitFunctionT _fctor);
     void doUnregisterService(ServiceStub& _rss);
 
 private:
     struct Data;
     Data& d;
 };
-
-#ifndef SOLID_HAS_NO_INLINES
-#include "solid/frame/manager.ipp"
-#endif
 
 } //namespace frame
 } //namespace solid

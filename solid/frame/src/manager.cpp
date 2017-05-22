@@ -733,12 +733,12 @@ bool Manager::disableObjectVisits(ObjectBase& _robj)
 #if 1
 bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt)
 {
-    auto do_notify_fnc = [&_uevt](VisitContext& _rctx) {
+    const auto do_notify_fnc = [&_uevt](VisitContext& _rctx) {
         return _rctx.raiseObject(std::move(_uevt));
     };
-    ObjectVisitFunctionT f(std::cref(do_notify_fnc));
+    //ObjectVisitFunctionT f(std::cref(do_notify_fnc));
 
-    return doVisit(_ruid, f);
+    return doVisit(_ruid, ObjectVisitFunctionT{do_notify_fnc});
 }
 #else
 bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk /* = 0*/)
@@ -763,14 +763,14 @@ bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk
 
 size_t Manager::notifyAll(const Service& _rsvc, Event const& _revt)
 {
-    auto do_notify_fnc = [_revt](VisitContext& _rctx) {
+    const auto do_notify_fnc = [_revt](VisitContext& _rctx) {
         return _rctx.raiseObject(_revt);
     };
-    ObjectVisitFunctionT f(std::cref(do_notify_fnc));
-    return doForEachServiceObject(_rsvc, f);
+    //ObjectVisitFunctionT f(std::cref(do_notify_fnc));
+    return doForEachServiceObject(_rsvc, ObjectVisitFunctionT{do_notify_fnc});
 }
 
-bool Manager::doVisit(ObjectIdT const& _ruid, ObjectVisitFunctionT& _rfct)
+bool Manager::doVisit(ObjectIdT const& _ruid, const ObjectVisitFunctionT _rfct)
 {
     bool retval = false;
     if (_ruid.index < d.maxobjcnt) {
@@ -847,7 +847,7 @@ std::mutex& Manager::mutex(const Service& _rsvc) const
     return *pmtx;
 }
 
-size_t Manager::doForEachServiceObject(const Service& _rsvc, ObjectVisitFunctionT& _rfct)
+size_t Manager::doForEachServiceObject(const Service& _rsvc, const ObjectVisitFunctionT _rfct)
 {
     if (!_rsvc.isRegistered()) {
         return false;
@@ -868,7 +868,7 @@ size_t Manager::doForEachServiceObject(const Service& _rsvc, ObjectVisitFunction
     return doForEachServiceObject(chkidx, _rfct);
 }
 
-size_t Manager::doForEachServiceObject(const size_t _chkidx, Manager::ObjectVisitFunctionT& _rfct)
+size_t Manager::doForEachServiceObject(const size_t _chkidx, const ObjectVisitFunctionT _rfct)
 {
 
     size_t crtchkidx     = _chkidx;
@@ -966,14 +966,14 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
         return;
     }
     if (rss.state == StateRunningE) {
-        auto l = [](VisitContext& _rctx) {
+        const auto raise_lambda = [](VisitContext& _rctx) {
             return _rctx.raiseObject(make_event(GenericEvents::Kill));
         };
-        ObjectVisitFunctionT fctor(std::cref(l));
+        //ObjectVisitFunctionT fctor(std::cref(l));
 
         rss.psvc->resetRunning();
 
-        const bool cnt = doForEachServiceObject(rss.firstchk, fctor);
+        const bool cnt = doForEachServiceObject(rss.firstchk, ObjectVisitFunctionT{raise_lambda});
 
         if (cnt == 0 and rss.objcnt == 0) {
             rss.state = StateStoppedE;
@@ -1038,6 +1038,10 @@ void Manager::stop()
 
     ServiceStoreStub& rsvcstore = d.svcstore[svcstoreidx];
 
+    const auto raise_lambda = [](VisitContext& _rctx) {
+        return _rctx.raiseObject(make_event(GenericEvents::Kill));
+    };
+
     //broadcast to all objects to stop
     for (auto it = rsvcstore.vec.begin(); it != rsvcstore.vec.end(); ++it) {
         if (*it) {
@@ -1046,14 +1050,9 @@ void Manager::stop()
             std::unique_lock<std::mutex> lock(rss.rmtx);
 
             if (rss.psvc && rss.state == StateRunningE) {
-                ObjectVisitFunctionT fctor(
-                    [](VisitContext& _rctx) {
-                        return _rctx.raiseObject(make_event(GenericEvents::Kill));
-                    });
-
                 rss.psvc->resetRunning();
 
-                const size_t cnt = doForEachServiceObject(rss.firstchk, fctor);
+                const size_t cnt = doForEachServiceObject(rss.firstchk, ObjectVisitFunctionT{raise_lambda});
                 (void)cnt;
                 rss.state = (rss.objcnt != 0) ? StateStoppingE : StateStoppedE;
                 vdbgx(Debug::frame, "StateStoppedE on " << (it - rsvcstore.vec.begin()));

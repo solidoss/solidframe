@@ -147,7 +147,6 @@ public:
     }
 };
 
-#if 1
 BufferPtrT make_buffer(const size_t _sz)
 {
     if (_sz <= 512) {
@@ -170,33 +169,6 @@ BufferPtrT make_buffer(const size_t _sz)
 
     return std::make_shared<Buffer<0>>(_sz);
 }
-
-#else
-
-BufferPtrT make_buffer(const size_t _sz)
-{
-    if (_sz <= 512) {
-        return BufferPtrT(new Buffer<512>(_sz));
-    } else if (_sz <= 1024) {
-        return BufferPtrT(new Buffer<1024 * 1>(_sz));
-    } else if (_sz <= 1024 * 2) {
-        return BufferPtrT(new Buffer<1024 * 2>(_sz));
-    } else if (_sz <= 1024 * 4) {
-        return BufferPtrT(new Buffer<1024 * 4>(_sz));
-    } else if (_sz <= 1024 * 8) {
-        return BufferPtrT(new Buffer<1024 * 8>(_sz));
-    } else if (_sz <= 1024 * 16) {
-        return BufferPtrT(new Buffer<1024 * 16>(_sz));
-    } else if (_sz <= 1024 * 32) {
-        return BufferPtrT(new Buffer<1024 * 32>(_sz));
-    } else if (_sz <= 1024 * 64) {
-        return BufferPtrT(new Buffer<1024 * 64>(_sz));
-    }
-
-    return BufferPtrT(new Buffer<0>(_sz));
-}
-
-#endif
 
 struct EventData;
 using EventDataPtrT = std::unique_ptr<EventData>;
@@ -292,7 +264,7 @@ protected:
 
 protected:
     enum { BufferCapacity = 1024 * 4,
-        BufferCount       = 8 };
+        BufferCount       = 4 };
     using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
 
     BufferPtrT       rbufptr_;
