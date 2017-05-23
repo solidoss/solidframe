@@ -29,7 +29,7 @@ public:
         MessageCompleteE,
         KeepaliveCompleteE,
     };
-    using CompleteFunctionT = FUNCTION<void(const Events, MessagePointerT /*const*/&, const size_t)>;
+    using CompleteFunctionT = SOLID_FUNCTION<void(const Events, MessagePointerT /*const*/&, const size_t)>;
 
     MessageReader();
 

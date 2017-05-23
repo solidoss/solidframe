@@ -76,51 +76,50 @@ void StoreBase::Accessor::notify()
 
 StoreBase::StoreBase(
     Manager& _rm)
-    : d(*(new Data(_rm)))
+    : impl(std::make_unique<Data>(_rm))
 {
 }
 
 /*virtual*/ StoreBase::~StoreBase()
 {
-    delete &d;
 }
 
 Manager& StoreBase::manager()
 {
-    return d.rm;
+    return impl->rm;
 }
 
 mutex& StoreBase::mutex()
 {
-    return d.mtx;
+    return impl->mtx;
 }
 mutex& StoreBase::mutex(const size_t _idx)
 {
-    return d.mtxstore.at(_idx);
+    return impl->mtxstore.at(_idx);
 }
 
 size_t StoreBase::atomicMaxCount() const
 {
-    return d.objmaxcnt.load();
+    return impl->objmaxcnt.load();
 }
 
 UidVectorT& StoreBase::fillEraseVector() const
 {
-    return *d.pfillerasevec;
+    return *impl->pfillerasevec;
 }
 
 UidVectorT& StoreBase::consumeEraseVector() const
 {
-    return *d.pconserasevec;
+    return *impl->pconserasevec;
 }
 
 StoreBase::SizeVectorT& StoreBase::indexVector() const
 {
-    return d.cacheobjidxvec;
+    return impl->cacheobjidxvec;
 }
 StoreBase::ExecWaitVectorT& StoreBase::executeWaitVector() const
 {
-    return d.exewaitvec;
+    return impl->exewaitvec;
 }
 
 namespace {
@@ -151,26 +150,26 @@ size_t StoreBase::doAllocateIndex()
 {
     //mutex is locked
     size_t rv;
-    if (d.cacheobjidxstk.size()) {
-        rv = d.cacheobjidxstk.top();
-        d.cacheobjidxstk.pop();
+    if (impl->cacheobjidxstk.size()) {
+        rv = impl->cacheobjidxstk.top();
+        impl->cacheobjidxstk.pop();
     } else {
-        const size_t objcnt = d.objmaxcnt.load();
-        lock_all(d.mtxstore, objcnt);
+        const size_t objcnt = impl->objmaxcnt.load();
+        lock_all(impl->mtxstore, objcnt);
         doResizeObjectVector(objcnt + 1024);
         for (size_t i = objcnt + 1023; i > objcnt; --i) {
-            d.cacheobjidxstk.push(i);
+            impl->cacheobjidxstk.push(i);
         }
-        d.objmaxcnt.store(objcnt + 1024);
-        unlock_all(d.mtxstore, objcnt);
+        impl->objmaxcnt.store(objcnt + 1024);
+        unlock_all(impl->mtxstore, objcnt);
         rv = objcnt;
-        d.mtxstore.safeAt(rv);
+        impl->mtxstore.safeAt(rv);
     }
     return rv;
 }
 void StoreBase::erasePointer(UniqueId const& _ruid, const bool _isalive)
 {
-    if (_ruid.index < d.objmaxcnt.load()) {
+    if (_ruid.index < impl->objmaxcnt.load()) {
         bool do_notify = true;
         {
             std::unique_lock<std::mutex> lock(mutex(_ruid.index));
@@ -186,8 +185,8 @@ void StoreBase::notifyObject(UniqueId const& _ruid)
     bool do_raise = false;
     {
         std::unique_lock<std::mutex> lock(mutex());
-        d.pfillerasevec->push_back(_ruid);
-        do_raise = d.pfillerasevec->size() == 1;
+        impl->pfillerasevec->push_back(_ruid);
+        do_raise = impl->pfillerasevec->size() == 1;
     }
     if (do_raise) {
         manager().notify(manager().id(*this), make_event(GenericEvents::Raise));
@@ -205,8 +204,8 @@ void StoreBase::raise()
         {
             std::unique_lock<std::mutex> lock(mutex());
             ulong                        sm = 0;
-            if (d.pfillerasevec->size()) {
-                solid::exchange(d.pconserasevec, d.pfillerasevec);
+            if (impl->pfillerasevec->size()) {
+                solid::exchange(impl->pconserasevec, impl->pfillerasevec);
             }
             doExecuteOnSignal(sm);
         }
@@ -217,7 +216,7 @@ void StoreBase::raise()
                 [this](frame::ReactorContext& _rctx, Event&& _revent) { onEvent(_rctx, std::move(_revent)); },
                 make_event(GenericEvents::Raise));
         }
-        d.pconserasevec->clear();
+        impl->pconserasevec->clear();
     } else if (_revent == generic_event_kill) {
         this->postStop(_rctx);
     }
@@ -225,25 +224,25 @@ void StoreBase::raise()
 
 void StoreBase::doCacheObjectIndex(const size_t _idx)
 {
-    d.cacheobjidxstk.push(_idx);
+    impl->cacheobjidxstk.push(_idx);
 }
 
 void StoreBase::doExecuteCache()
 {
     vdbgx(Debug::frame, "");
-    for (ExecWaitVectorT::const_iterator it(d.exewaitvec.begin()); it != d.exewaitvec.end(); ++it) {
-        d.cachewaitstk.push(it->pw);
+    for (ExecWaitVectorT::const_iterator it(impl->exewaitvec.begin()); it != impl->exewaitvec.end(); ++it) {
+        impl->cachewaitstk.push(it->pw);
     }
-    d.cacheobjidxvec.clear();
-    d.exewaitvec.clear();
+    impl->cacheobjidxvec.clear();
+    impl->exewaitvec.clear();
 }
 
 void* StoreBase::doTryAllocateWait()
 {
     vdbgx(Debug::frame, "");
-    if (d.cachewaitstk.size()) {
-        void* rv = d.cachewaitstk.top();
-        d.cachewaitstk.pop();
+    if (impl->cachewaitstk.size()) {
+        void* rv = impl->cachewaitstk.top();
+        impl->cachewaitstk.pop();
         return rv;
     }
     return nullptr;

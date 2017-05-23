@@ -21,13 +21,7 @@
 #include "solid/system/common.hpp"
 #include "solid/system/socketinfo.hpp"
 
-#if defined(SOLID_USE_CPP11) && !defined(USHAREDBACKEND)
 #include <memory>
-#elif defined(UBOOSTSHAREDPTR) && !defined(USHAREDBACKEND)
-#include "boost/shared_ptr.hpp"
-#else
-#include "solid/system/sharedbackend.hpp"
-#endif
 
 #ifndef SOLID_HAS_NO_INLINES
 #include "solid/system/cassert.hpp"
@@ -105,15 +99,8 @@ struct ResolveData {
 
 private:
     static void delete_addrinfo(void* _pv);
-#if defined(SOLID_USE_CPP11) && !defined(USHAREDBACKEND)
     typedef std::shared_ptr<addrinfo> AddrInfoSharedPtrT;
     AddrInfoSharedPtrT                aiptr;
-#elif defined(UBOOSTSHAREDPTR) && !defined(USHAREDBACKEND)
-    typedef boost::shared_ptr<addrinfo> AddrInfoSharedPtrT;
-    AddrInfoSharedPtrT                  aiptr;
-#else
-    SharedStub* pss;
-#endif
 };
 
 ResolveData synchronous_resolve(const char* _node, const char* _service);

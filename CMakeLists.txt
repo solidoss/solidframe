@@ -308,9 +308,7 @@ if(NOT ON_CROSS)
     include(cmake/check.config.cmake)
 elseif(ON_ANDROID)
     set(SOLID_USE_EPOLL TRUE)
-    set(SOLID_USE_CPP11 TRUE)
     set(SOLID_USE_EVENTFD TRUE)
-    set(SOLID_USE_CPP11FLAG TRUE)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp)
@@ -320,13 +318,9 @@ install (FILES ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp DESTINATION in
 install (EXPORT SolidFrameConfig DESTINATION lib/cmake/SolidFrame)
 
 if (CMAKE_VERSION VERSION_LESS "3.1")
-    if(SOLID_USE_CPP11FLAG)
-        set (CMAKE_CXX_FLAGS "--std=c++11 ${CMAKE_CXX_FLAGS}")
-    else()
-        message(FATAL_ERROR "SolidFrame framework needs C++11 enabled compiler")
-    endif()
+    set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")
 else ()
-   set (CMAKE_CXX_STANDARD 11)
+   set (CMAKE_CXX_STANDARD 14)
 endif ()
 
 #-----------------------------------------------------------------

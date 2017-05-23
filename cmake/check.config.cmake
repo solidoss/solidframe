@@ -11,7 +11,6 @@ if(SOLID_USE_EPOLL)
 	set(SOLID_USE_EPOLLRDHUP TRUE)
 endif()
 #check_include_files("unordered_map" HAVE_UNORDERED_MAP)
-check_cxx_compiler_flag(-std=c++11 SOLID_USE_CPP11FLAG)
 
 # check if function local static variables are thread safe
 file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/safestatic.cpp" source_code)
@@ -24,13 +23,6 @@ CHECK_CXX_SOURCE_RUNS("${source_code}" SOLID_USE_SAFE_STATIC)
 file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/kqueue.cpp" source_code)
 
 CHECK_CXX_SOURCE_RUNS("${source_code}" SOLID_USE_KQUEUE)
-
-
-file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/cpp11.cpp" source_code)
-
-set(CMAKE_REQUIRED_FLAGS -std=c++11)
-
-CHECK_CXX_SOURCE_RUNS("${source_code}" SOLID_USE_CPP11)
 
 
 file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/gnuatomic.cpp" source_code)

@@ -93,7 +93,7 @@ public:
 
     void cancel(ReactorContext& _rctx)
     {
-        if (!FUNCTION_EMPTY(f)) {
+        if (!SOLID_FUNCTION_EMPTY(f)) {
             remTimer(_rctx, storeidx);
             error(_rctx, error_timer_cancel);
             doExec(_rctx);
@@ -113,13 +113,13 @@ private:
     }
     void doClear(ReactorContext& _rctx)
     {
-        FUNCTION_CLEAR(f);
+        SOLID_FUNCTION_CLEAR(f);
         remTimer(_rctx, storeidx);
         storeidx = InvalidIndex();
     }
 
 private:
-    typedef FUNCTION<void(ReactorContext&)> FunctionT;
+    typedef SOLID_FUNCTION<void(ReactorContext&)> FunctionT;
 
     FunctionT f;
     size_t    storeidx;

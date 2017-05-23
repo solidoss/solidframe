@@ -49,7 +49,6 @@ public:
         }
     }
 
-#ifdef SOLID_USE_CPP11
     template <class B>
     DynamicPointer(DynamicPointer<B>&& _rcp)
         : pdyn(static_cast<T*>(_rcp.release()))
@@ -60,8 +59,6 @@ public:
         : pdyn(static_cast<T*>(_rcp.release()))
     {
     }
-
-#endif
 
     //The copy constructor must be specified - the compiler wount consider the above constructor as copy-constructor
     DynamicPointer(ThisT const& _rcp)
@@ -92,7 +89,6 @@ public:
         return *this;
     }
 
-#ifdef SOLID_USE_CPP11
     template <class O>
     ThisT& operator=(DynamicPointer<O>&& _rcp)
     {
@@ -111,7 +107,6 @@ public:
         pdyn = p;
         return *this;
     }
-#endif
 
     ThisT& operator=(ThisT const& _rcp)
     {

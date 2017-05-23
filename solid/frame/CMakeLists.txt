@@ -28,7 +28,6 @@ set(Headers
 )
 
 set(Inlines
-    manager.ipp
 )
 
 add_library (solid_frame STATIC

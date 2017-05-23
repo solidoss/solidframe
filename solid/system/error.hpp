@@ -12,26 +12,15 @@
 
 #include "solid/solid_config.hpp"
 
-#ifdef SOLID_USE_CPP11
-#define ERROR_NS std
-#else
-#define ERROR_NS boost::system
-#endif
-
-#ifdef SOLID_USE_CPP11
-#include <system_error>
-#else
-#include "boost/system/error_code.hpp"
-#endif
-
 #include <ostream>
+#include <system_error>
 #include <vector>
 
 namespace solid {
 
-typedef ERROR_NS::error_condition ErrorConditionT;
-typedef ERROR_NS::error_code      ErrorCodeT;
-typedef ERROR_NS::error_category  ErrorCategoryT;
+typedef std::error_condition ErrorConditionT;
+typedef std::error_code      ErrorCodeT;
+typedef std::error_category  ErrorCategoryT;
 
 ErrorCodeT last_system_error();
 
@@ -61,7 +50,7 @@ struct ErrorStub {
 
     ErrorCodeT errorCode() const
     {
-        return ErrorCodeT(value, category ? *category : ERROR_NS::system_category());
+        return ErrorCodeT(value, category ? *category : std::system_category());
     }
 
     int                   value;

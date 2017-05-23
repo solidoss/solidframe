@@ -20,7 +20,7 @@
 #include "solid/frame/mpipc/mpipcerror.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/pimpl.hpp"
 
 namespace solid {
 namespace frame {
@@ -76,6 +76,11 @@ public:
 
     Service(
         frame::UseServiceShell _force_shell);
+
+    Service(const Service&) = delete;
+    Service(Service&&)      = delete;
+    Service& operator=(const Service&) = delete;
+    Service& operator=(Service&&) = delete;
 
     //! Destructor
     ~Service();
@@ -457,7 +462,7 @@ private:
 
 private:
     struct Data;
-    Data& d;
+    PimplT<Data> impl;
 };
 
 //-------------------------------------------------------------------------

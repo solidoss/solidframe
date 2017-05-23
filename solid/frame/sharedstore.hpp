@@ -14,6 +14,7 @@
 #include "solid/frame/object.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/function.hpp"
+#include "solid/system/pimpl.hpp"
 #include "solid/utility/dynamictype.hpp"
 #include <deque>
 #include <mutex>
@@ -128,7 +129,7 @@ private:
 
 private:
     struct Data;
-    Data& d;
+    PimplT<Data> impl;
 };
 
 struct PointerBase {
@@ -541,7 +542,7 @@ public:
     }
 
 private:
-    typedef FUNCTION<void(ControllerT&, PointerT&, ErrorCodeT const&)> FunctionT;
+    typedef SOLID_FUNCTION<void(ControllerT&, PointerT&, ErrorCodeT const&)> FunctionT;
 
     struct WaitStub {
         WaitStub()

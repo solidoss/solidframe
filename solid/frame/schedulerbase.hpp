@@ -13,6 +13,7 @@
 #include "solid/frame/common.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/function.hpp"
+#include "solid/system/pimpl.hpp"
 #include <thread>
 
 namespace solid {
@@ -24,7 +25,7 @@ class ReactorBase;
 class ObjectBase;
 
 //typedef FunctorReference<bool, ReactorBase&>  ScheduleFunctorT;
-typedef FUNCTION<bool(ReactorBase&)> ScheduleFunctionT;
+typedef SOLID_FUNCTION<bool(ReactorBase&)> ScheduleFunctionT;
 
 //! A base class for all schedulers
 class SchedulerBase {
@@ -32,8 +33,8 @@ public:
 protected:
     typedef bool (*CreateWorkerF)(SchedulerBase& _rsch, const size_t, std::thread& _rthr);
 
-    typedef FUNCTION<bool()> ThreadEnterFunctionT;
-    typedef FUNCTION<void()> ThreadExitFunctionT;
+    typedef SOLID_FUNCTION<bool()> ThreadEnterFunctionT;
+    typedef SOLID_FUNCTION<void()> ThreadExitFunctionT;
 
     ErrorConditionT doStart(
         CreateWorkerF         _pf,
@@ -58,7 +59,7 @@ private:
 
 private:
     struct Data;
-    Data& d;
+    PimplT<Data> impl;
 };
 
 } //namespace frame

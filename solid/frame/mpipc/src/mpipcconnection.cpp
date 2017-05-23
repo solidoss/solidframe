@@ -478,7 +478,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         Event           event;
         bool            can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 
-        if (msg_bundle.message_ptr.get() or not FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+        if (msg_bundle.message_ptr.get() or not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
             doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
         }
 
@@ -620,7 +620,7 @@ void Connection::doContinueStopping(
 
     bool can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 
-    if (msg_bundle.message_ptr or not FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+    if (msg_bundle.message_ptr or not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
         doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
     }
 
@@ -1004,14 +1004,14 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
         return;
     }
 
-    if (not FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)) {
+    if (not SOLID_FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)) {
         config.client.connection_on_secure_handshake_fnc(conctx);
     }
 
     if (not config.client.connection_start_secure) {
         vdbgx(Debug::mpipc, &rthis << "");
         //we need the connection_on_secure_connect_fnc for advancing.
-        if (FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)) {
             rthis.doStop(_rctx, error_connection_invalid_state); //TODO: add new error
         }
     } else {
@@ -1056,14 +1056,14 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
         return;
     }
 
-    if (not FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)) {
+    if (not SOLID_FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)) {
         config.server.connection_on_secure_handshake_fnc(conctx);
     }
 
     if (not config.server.connection_start_secure) {
         vdbgx(Debug::mpipc, &rthis << "");
         //we need the connection_on_secure_accept_fnc for advancing.
-        if (FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)) {
             rthis.doStop(_rctx, error_connection_invalid_state); //TODO: add new error
         }
     } else {
@@ -1556,7 +1556,7 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePoi
         conctx.request_id    = _rresponse_ptr->requestId();
         conctx.message_id    = pool_msg_id;
 
-        if (not FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+        if (not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
             idbgx(Debug::mpipc, this);
             msg_bundle.complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
         } else if (msg_bundle.message_ptr) {
@@ -1590,7 +1590,7 @@ void Connection::doCompleteMessage(
     conctx.message_flags = _rmsg_bundle.message_flags;
     conctx.message_id    = _rpool_msg_id;
 
-    if (not FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
+    if (not SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
         idbgx(Debug::mpipc, this);
         _rmsg_bundle.complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
     } else {

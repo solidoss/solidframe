@@ -57,7 +57,7 @@ public:
     template <typename F>
     bool postAccept(ReactorContext& _rctx, F _f)
     {
-        if (FUNCTION_EMPTY(f)) {
+        if (SOLID_FUNCTION_EMPTY(f)) {
             f = _f;
             doPostAccept(_rctx);
             return false;
@@ -72,7 +72,7 @@ public:
     template <typename F>
     bool accept(ReactorContext& _rctx, F _f, SocketDevice& _rsd)
     {
-        if (FUNCTION_EMPTY(f)) {
+        if (SOLID_FUNCTION_EMPTY(f)) {
             if (this->doTryAccept(_rctx, _rsd)) {
                 return true;
             }
@@ -91,7 +91,7 @@ private:
     void doClear(ReactorContext& _rctx);
 
 private:
-    typedef FUNCTION<void(ReactorContext&, SocketDevice&)> FunctionT;
+    typedef SOLID_FUNCTION<void(ReactorContext&, SocketDevice&)> FunctionT;
     FunctionT            f;
     SocketDevice         sd;
     ReactorWaitRequestsE waitreq;

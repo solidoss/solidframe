@@ -185,7 +185,7 @@ struct MessageBundle {
         message_flags   = _rmsgbundle.message_flags;
         message_ptr     = std::move(_rmsgbundle.message_ptr);
         message_url     = std::move(_rmsgbundle.message_url);
-        FUNCTION_CLEAR(complete_fnc);
+        SOLID_FUNCTION_CLEAR(complete_fnc);
         std::swap(complete_fnc, _rmsgbundle.complete_fnc);
         return *this;
     }
@@ -196,7 +196,7 @@ struct MessageBundle {
         message_flags   = 0;
         message_ptr.reset();
         message_url.clear();
-        FUNCTION_CLEAR(complete_fnc);
+        SOLID_FUNCTION_CLEAR(complete_fnc);
     }
 };
 

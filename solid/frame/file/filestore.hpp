@@ -13,6 +13,7 @@
 #include "solid/frame/file/tempbase.hpp"
 #include "solid/frame/sharedstore.hpp"
 #include "solid/system/filedevice.hpp"
+#include "solid/system/pimpl.hpp"
 
 namespace solid {
 namespace frame {
@@ -266,7 +267,7 @@ private:
 
 private:
     struct Data;
-    Data& d;
+    PimplT<Data> impl;
 };
 
 struct Utf8PathStub {

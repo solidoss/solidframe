@@ -27,6 +27,7 @@ set(Headers
     socketdevice.hpp
     socketinfo.hpp
     nanotime.hpp
+    pimpl.hpp
 )
 
 set(Inlines
@@ -37,6 +38,7 @@ set(Inlines
 add_library (solid_system STATIC
     ${Sources} ${Headers} ${Inlines}
 )
+
 target_include_directories(solid_system PUBLIC
     $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
     $<BUILD_INTERFACE:${SolidFrame_BINARY_DIR}>

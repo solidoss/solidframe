@@ -15,9 +15,6 @@
 #include <cstdlib>
 
 #ifdef SOLID_ON_WINDOWS
-//#ifdef SOLID_USE_CPP11
-//  #define USTLMUTEX
-//#else
 #define UBOOSTMUTEX
 #define UBOOSTSHAREDPTR
 //#endif

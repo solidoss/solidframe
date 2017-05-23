@@ -22,6 +22,7 @@
 #endif
 
 #include "solid/system/common.hpp"
+#include "solid/system/pimpl.hpp"
 #include <ostream>
 #include <string>
 
@@ -132,7 +133,7 @@ private:
     Debug& operator=(Debug const&);
 
     struct Data;
-    Data& d;
+    PimplT<Data> impl;
 };
 
 struct DebugTraceTest {

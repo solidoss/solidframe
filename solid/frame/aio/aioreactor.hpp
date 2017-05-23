@@ -15,6 +15,7 @@
 #include "solid/frame/common.hpp"
 #include "solid/frame/reactorbase.hpp"
 #include "solid/system/nanotime.hpp"
+#include "solid/system/pimpl.hpp"
 #include "solid/utility/dynamicpointer.hpp"
 
 namespace solid {
@@ -41,7 +42,7 @@ typedef DynamicPointer<Object> ObjectPointerT;
 
 */
 class Reactor : public frame::ReactorBase {
-    typedef FUNCTION<void(ReactorContext&, Event&&)> EventFunctionT;
+    typedef SOLID_FUNCTION<void(ReactorContext&, Event&&)> EventFunctionT;
 
     template <class Function>
     struct StopObjectF {
@@ -158,7 +159,7 @@ private:
 
 private: //data
     struct Data;
-    Data& d;
+    PimplT<Data> impl;
 };
 
 //-----------------------------------------------------------------------------

@@ -153,14 +153,13 @@ struct SchedulerBase::Data {
 };
 
 SchedulerBase::SchedulerBase()
-    : d(*(new Data))
+    : impl(std::make_unique<Data>())
 {
 }
 
 SchedulerBase::~SchedulerBase()
 {
     doStop(true);
-    delete &d;
 }
 
 bool dummy_thread_enter()
@@ -182,34 +181,34 @@ ErrorConditionT SchedulerBase::doStart(
     bool start_err = false;
 
     {
-        unique_lock<mutex> lock(d.mtx);
+        unique_lock<mutex> lock(impl->mtx);
 
-        if (d.status == StatusRunningE) {
+        if (impl->status == StatusRunningE) {
             return error_already();
-        } else if (d.status != StatusStoppedE || d.stopwaitcnt) {
+        } else if (impl->status != StatusStoppedE || impl->stopwaitcnt) {
             do {
-                d.cnd.wait(lock);
-            } while (d.status != StatusStoppedE || d.stopwaitcnt);
+                impl->cnd.wait(lock);
+            } while (impl->status != StatusStoppedE || impl->stopwaitcnt);
         }
 
-        d.reactorvec.resize(_reactorcnt);
+        impl->reactorvec.resize(_reactorcnt);
 
-        if (not FUNCTION_EMPTY(_renf)) {
-            FUNCTION_CLEAR(d.threnfnc);
-            std::swap(d.threnfnc, _renf);
+        if (not SOLID_FUNCTION_EMPTY(_renf)) {
+            SOLID_FUNCTION_CLEAR(impl->threnfnc);
+            std::swap(impl->threnfnc, _renf);
         } else {
-            d.threnfnc = dummy_thread_enter;
+            impl->threnfnc = dummy_thread_enter;
         }
 
-        if (not FUNCTION_EMPTY(_rexf)) {
-            FUNCTION_CLEAR(d.threxfnc);
-            std::swap(d.threxfnc, _rexf);
+        if (not SOLID_FUNCTION_EMPTY(_rexf)) {
+            SOLID_FUNCTION_CLEAR(impl->threxfnc);
+            std::swap(impl->threxfnc, _rexf);
         } else {
-            d.threxfnc = dummy_thread_exit;
+            impl->threxfnc = dummy_thread_exit;
         }
 
         for (size_t i = 0; i < _reactorcnt; ++i) {
-            ReactorStub& rrs = d.reactorvec[i];
+            ReactorStub& rrs = impl->reactorvec[i];
             //rrs.thrptr.reset((*_pf)(*this, i));
 
             if (not(*_pf)(*this, i, rrs.thr)) {
@@ -219,106 +218,106 @@ ErrorConditionT SchedulerBase::doStart(
         }
 
         if (!start_err) {
-            d.status = StatusStartingWaitE;
+            impl->status = StatusStartingWaitE;
 
             do {
-                d.cnd.wait(lock);
-            } while (d.status == StatusStartingWaitE && d.reactorcnt != d.reactorvec.size());
+                impl->cnd.wait(lock);
+            } while (impl->status == StatusStartingWaitE && impl->reactorcnt != impl->reactorvec.size());
 
-            if (d.status == StatusStartingErrorE) {
-                d.status  = StatusStoppingWaitE;
-                start_err = true;
+            if (impl->status == StatusStartingErrorE) {
+                impl->status = StatusStoppingWaitE;
+                start_err    = true;
             }
         }
 
         if (start_err) {
-            for (auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it) {
+            for (auto it = impl->reactorvec.begin(); it != impl->reactorvec.end(); ++it) {
                 if (it->preactor) {
                     it->preactor->stop();
                 }
             }
         } else {
-            d.status = StatusRunningE;
+            impl->status = StatusRunningE;
             return ErrorConditionT();
         }
     }
 
-    for (auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it) {
+    for (auto it = impl->reactorvec.begin(); it != impl->reactorvec.end(); ++it) {
         if (it->isActive()) {
             it->thr.join();
             it->clear();
         }
     }
 
-    unique_lock<mutex> lock(d.mtx);
-    d.status = StatusStoppedE;
-    d.cnd.notify_all();
+    unique_lock<mutex> lock(impl->mtx);
+    impl->status = StatusStoppedE;
+    impl->cnd.notify_all();
     return error_worker();
 }
 
 void SchedulerBase::doStop(bool _wait /* = true*/)
 {
     {
-        unique_lock<mutex> lock(d.mtx);
+        unique_lock<mutex> lock(impl->mtx);
 
-        if (d.status == StatusStartingWaitE || d.status == StatusStartingErrorE) {
+        if (impl->status == StatusStartingWaitE || impl->status == StatusStartingErrorE) {
             do {
-                d.cnd.wait(lock);
-            } while (d.status == StatusStartingWaitE || d.status == StatusStartingErrorE);
+                impl->cnd.wait(lock);
+            } while (impl->status == StatusStartingWaitE || impl->status == StatusStartingErrorE);
         }
 
-        if (d.status == StatusRunningE) {
-            d.status = _wait ? StatusStoppingWaitE : StatusStoppingE;
-            for (auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it) {
+        if (impl->status == StatusRunningE) {
+            impl->status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+            for (auto it = impl->reactorvec.begin(); it != impl->reactorvec.end(); ++it) {
                 if (it->preactor) {
                     it->preactor->stop();
                 }
             }
-        } else if (d.status == StatusStoppingE) {
-            d.status = _wait ? StatusStoppingWaitE : StatusStoppingE;
-        } else if (d.status == StatusStoppingWaitE) {
+        } else if (impl->status == StatusStoppingE) {
+            impl->status = _wait ? StatusStoppingWaitE : StatusStoppingE;
+        } else if (impl->status == StatusStoppingWaitE) {
             if (_wait) {
-                ++d.stopwaitcnt;
+                ++impl->stopwaitcnt;
                 do {
-                    d.cnd.wait(lock);
-                } while (d.status != StatusStoppedE);
-                --d.stopwaitcnt;
-                d.cnd.notify_one();
+                    impl->cnd.wait(lock);
+                } while (impl->status != StatusStoppedE);
+                --impl->stopwaitcnt;
+                impl->cnd.notify_one();
             }
             return;
-        } else if (d.status == StatusStoppedE) {
+        } else if (impl->status == StatusStoppedE) {
             return;
         }
     }
 
     if (_wait) {
-        while (d.usecnt) {
+        while (impl->usecnt) {
             this_thread::yield();
         }
-        for (auto it = d.reactorvec.begin(); it != d.reactorvec.end(); ++it) {
+        for (auto it = impl->reactorvec.begin(); it != impl->reactorvec.end(); ++it) {
             if (it->isActive()) {
                 it->thr.join();
                 it->clear();
             }
         }
-        unique_lock<mutex> lock(d.mtx);
-        d.status = StatusStoppedE;
-        d.cnd.notify_all();
+        unique_lock<mutex> lock(impl->mtx);
+        impl->status = StatusStoppedE;
+        impl->cnd.notify_all();
     }
 }
 
 ObjectIdT SchedulerBase::doStartObject(ObjectBase& _robj, Service& _rsvc, ScheduleFunctionT& _rfct, ErrorConditionT& _rerr)
 {
-    ++d.usecnt;
+    ++impl->usecnt;
     ObjectIdT rv;
-    if (d.status == StatusRunningE) {
-        ReactorStub& rrs = d.reactorvec[doComputeScheduleReactorIndex()];
+    if (impl->status == StatusRunningE) {
+        ReactorStub& rrs = impl->reactorvec[doComputeScheduleReactorIndex()];
 
         rv = _rsvc.registerObject(_robj, *rrs.preactor, _rfct, _rerr);
     } else {
         _rerr = error_running();
     }
-    --d.usecnt;
+    --impl->usecnt;
     return rv;
 }
 
@@ -329,58 +328,58 @@ bool less_cmp(ReactorStub const& _rrs1, ReactorStub const& _rrs2)
 
 size_t SchedulerBase::doComputeScheduleReactorIndex()
 {
-    switch (d.reactorvec.size()) {
+    switch (impl->reactorvec.size()) {
     case 1:
         return 0;
     case 2: {
-        return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<2>());
+        return find_cmp(impl->reactorvec.begin(), less_cmp, SizeToType<2>());
     }
     case 3: {
-        return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<3>());
+        return find_cmp(impl->reactorvec.begin(), less_cmp, SizeToType<3>());
     }
     case 4: {
-        return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<4>());
+        return find_cmp(impl->reactorvec.begin(), less_cmp, SizeToType<4>());
     }
     case 5: {
-        return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<5>());
+        return find_cmp(impl->reactorvec.begin(), less_cmp, SizeToType<5>());
     }
     case 6: {
-        return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<6>());
+        return find_cmp(impl->reactorvec.begin(), less_cmp, SizeToType<6>());
     }
     case 7: {
-        return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<7>());
+        return find_cmp(impl->reactorvec.begin(), less_cmp, SizeToType<7>());
     }
     case 8: {
-        return find_cmp(d.reactorvec.begin(), less_cmp, SizeToType<8>());
+        return find_cmp(impl->reactorvec.begin(), less_cmp, SizeToType<8>());
     }
     default:
         break;
     }
 
-    const size_t cwi = d.crtreactoridx;
-    d.crtreactoridx  = (cwi + 1) % d.reactorvec.size();
+    const size_t cwi    = impl->crtreactoridx;
+    impl->crtreactoridx = (cwi + 1) % impl->reactorvec.size();
     return cwi;
 }
 
 bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase& _rreactor, const bool _success)
 {
-    const bool thrensuccess = d.threnfnc();
+    const bool thrensuccess = impl->threnfnc();
     {
-        unique_lock<mutex> lock(d.mtx);
-        ReactorStub&       rrs = d.reactorvec[_idx];
+        unique_lock<mutex> lock(impl->mtx);
+        ReactorStub&       rrs = impl->reactorvec[_idx];
 
-        if (_success && d.status == StatusStartingWaitE && thrensuccess) {
+        if (_success && impl->status == StatusStartingWaitE && thrensuccess) {
             rrs.preactor = &_rreactor;
-            ++d.reactorcnt;
-            d.cnd.notify_all();
+            ++impl->reactorcnt;
+            impl->cnd.notify_all();
             return true;
         }
 
-        d.status = StatusStartingErrorE;
-        d.cnd.notify_one();
+        impl->status = StatusStartingErrorE;
+        impl->cnd.notify_one();
     }
 
-    d.threxfnc();
+    impl->threxfnc();
 
     return false;
 }
@@ -388,13 +387,13 @@ bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase& _rreactor, con
 void SchedulerBase::unprepareThread(const size_t _idx, ReactorBase& _rreactor)
 {
     {
-        unique_lock<mutex> lock(d.mtx);
-        ReactorStub&       rrs = d.reactorvec[_idx];
+        unique_lock<mutex> lock(impl->mtx);
+        ReactorStub&       rrs = impl->reactorvec[_idx];
         rrs.preactor           = nullptr;
-        --d.reactorcnt;
-        d.cnd.notify_one();
+        --impl->reactorcnt;
+        impl->cnd.notify_one();
     }
-    d.threxfnc();
+    impl->threxfnc();
 }
 
 } //namespace frame

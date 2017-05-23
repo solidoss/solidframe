@@ -27,8 +27,8 @@ struct ReactorContext;
 template <class Sock>
 class Stream : public CompletionHandler {
     using ThisT         = Stream<Sock>;
-    using RecvFunctionT = FUNCTION<void(ThisT&, ReactorContext&)>;
-    using SendFunctionT = FUNCTION<void(ThisT&, ReactorContext&)>;
+    using RecvFunctionT = SOLID_FUNCTION<void(ThisT&, ReactorContext&)>;
+    using SendFunctionT = SOLID_FUNCTION<void(ThisT&, ReactorContext&)>;
 
     static void on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx)
     {
@@ -321,12 +321,12 @@ public:
 
     bool hasPendingRecv() const
     {
-        return !FUNCTION_EMPTY(recv_fnc);
+        return !SOLID_FUNCTION_EMPTY(recv_fnc);
     }
 
     bool hasPendingSend() const
     {
-        return !FUNCTION_EMPTY(send_fnc);
+        return !SOLID_FUNCTION_EMPTY(send_fnc);
     }
     SocketDevice& device()
     {
@@ -358,7 +358,7 @@ public:
     template <typename F>
     bool postRecvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f)
     {
-        if (FUNCTION_EMPTY(recv_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
             recv_fnc       = RecvSomeFunctor<F>(_f);
             recv_buf       = _buf;
             recv_buf_cp    = _bufcp;
@@ -376,7 +376,7 @@ public:
     template <typename F>
     bool recvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f, size_t& _sz)
     {
-        if (FUNCTION_EMPTY(recv_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
             recv_buf    = _buf;
             recv_buf_cp = _bufcp;
             recv_buf_sz = 0;
@@ -398,7 +398,7 @@ public:
     template <typename F>
     bool postSendAll(ReactorContext& _rctx, const char* _buf, size_t _bufcp, F _f)
     {
-        if (FUNCTION_EMPTY(send_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             send_fnc       = SendAllFunctor<F>(_f);
             send_buf       = _buf;
             send_buf_cp    = _bufcp;
@@ -417,7 +417,7 @@ public:
     template <typename F>
     bool sendAll(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f)
     {
-        if (FUNCTION_EMPTY(send_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             send_buf    = _buf;
             send_buf_cp = _bufcp;
             send_buf_sz = 0;
@@ -438,7 +438,7 @@ public:
     template <typename F>
     bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, F _f)
     {
-        if (FUNCTION_EMPTY(send_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
             ErrorCodeT err;
             if (s.create(_rsas, err)) {
@@ -477,7 +477,7 @@ public:
     template <typename F>
     bool secureConnect(ReactorContext& _rctx, F _f)
     {
-        if (FUNCTION_EMPTY(send_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
             bool       can_retry;
             ErrorCodeT err;
@@ -497,7 +497,7 @@ public:
     template <typename F>
     bool secureAccept(ReactorContext& _rctx, F _f)
     {
-        if (FUNCTION_EMPTY(recv_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
             errorClear(_rctx);
             bool       can_retry;
             ErrorCodeT err;
@@ -517,7 +517,7 @@ public:
     template <typename F>
     bool secureShutdown(ReactorContext& _rctx, F _f)
     {
-        if (FUNCTION_EMPTY(send_fnc)) {
+        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
             bool       can_retry;
             ErrorCodeT err;
@@ -598,7 +598,7 @@ private:
 
     void doRecv(ReactorContext& _rctx)
     {
-        if (!recv_is_posted && !FUNCTION_EMPTY(recv_fnc)) {
+        if (!recv_is_posted && !SOLID_FUNCTION_EMPTY(recv_fnc)) {
             vdbgx(Debug::aio, "");
             errorClear(_rctx);
             recv_fnc(*this, _rctx);
@@ -607,7 +607,7 @@ private:
 
     void doSend(ReactorContext& _rctx)
     {
-        if (!send_is_posted && !FUNCTION_EMPTY(send_fnc)) {
+        if (!send_is_posted && !SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
             send_fnc(*this, _rctx);
         }
@@ -684,11 +684,11 @@ private:
         error(_rctx, error_stream_socket);
         systemError(_rctx, s.device().lastError());
 
-        if (!FUNCTION_EMPTY(send_fnc)) {
+        if (!SOLID_FUNCTION_EMPTY(send_fnc)) {
             send_buf_sz = send_buf_cp = 0;
             send_fnc(*this, _rctx);
         }
-        if (!FUNCTION_EMPTY(recv_fnc)) {
+        if (!SOLID_FUNCTION_EMPTY(recv_fnc)) {
             recv_buf_sz = recv_buf_cp = 0;
             recv_fnc(*this, _rctx);
         }
@@ -696,16 +696,16 @@ private:
 
     void doClearRecv(ReactorContext& _rctx)
     {
-        FUNCTION_CLEAR(recv_fnc);
-        SOLID_ASSERT(FUNCTION_EMPTY(recv_fnc));
+        SOLID_FUNCTION_CLEAR(recv_fnc);
+        SOLID_ASSERT(SOLID_FUNCTION_EMPTY(recv_fnc));
         recv_buf    = nullptr;
         recv_buf_sz = recv_buf_cp = 0;
     }
 
     void doClearSend(ReactorContext& _rctx)
     {
-        FUNCTION_CLEAR(send_fnc);
-        SOLID_ASSERT(FUNCTION_EMPTY(send_fnc));
+        SOLID_FUNCTION_CLEAR(send_fnc);
+        SOLID_ASSERT(SOLID_FUNCTION_EMPTY(send_fnc));
         send_buf    = nullptr;
         send_buf_sz = send_buf_cp = 0;
     }

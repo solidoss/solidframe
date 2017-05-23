@@ -98,7 +98,7 @@ struct CompleteHandler {
     }
 };
 
-using MessageCompleteFunctionT = FUNCTION<void(
+using MessageCompleteFunctionT = SOLID_FUNCTION<void(
     ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&)>;
 
 struct TypeStub {

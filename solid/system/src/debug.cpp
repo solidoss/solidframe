@@ -344,11 +344,10 @@ void splitPrefix(string& _path, string& _name, const char* _prefix);
 
 Debug::~Debug()
 {
-    (*d.pos) << flush;
-    d.dos.close();
-    d.dbos.close();
-    d.pos = &cerr;
-    delete &d;
+    (*impl->pos) << flush;
+    impl->dos.close();
+    impl->dbos.close();
+    impl->pos = &cerr;
 }
 
 namespace {
@@ -567,20 +566,20 @@ void Debug::initStdErr(
     bool         _buffered,
     std::string* _output)
 {
-    unique_lock<mutex> lock(d.m);
+    unique_lock<mutex> lock(impl->m);
 
-    d.dos.close();
-    d.dbos.close();
-    if (!d.isActive())
+    impl->dos.close();
+    impl->dbos.close();
+    if (!impl->isActive())
         return;
     if (_buffered) {
-        d.pos = &std::clog;
+        impl->pos = &std::clog;
         if (_output) {
             *_output += "clog";
             *_output += " (buffered)";
         }
     } else {
-        d.pos = &std::cerr;
+        impl->pos = &std::cerr;
         if (_output) {
             *_output += "cerr";
             *_output += " (unbuffered)";
@@ -595,30 +594,30 @@ void Debug::initFile(
     ulong        _respinsize,
     std::string* _output)
 {
-    unique_lock<mutex> lock(d.m);
-    d.respinsz = 0;
+    unique_lock<mutex> lock(impl->m);
+    impl->respinsz = 0;
 
-    d.dos.close();
-    d.dbos.close();
-    if (!d.isActive())
+    impl->dos.close();
+    impl->dbos.close();
+    if (!impl->isActive())
         return;
 
     if (_prefix && *_prefix) {
-        splitPrefix(d.path, d.name, _prefix);
-        if (d.path.empty()) {
+        splitPrefix(impl->path, impl->name, _prefix);
+        if (impl->path.empty()) {
             Directory::create("dbg");
-            d.path = "dbg/";
+            impl->path = "dbg/";
         }
-        if (d.initFile(_respincnt, _respinsize, _output)) {
+        if (impl->initFile(_respincnt, _respinsize, _output)) {
             if (_buffered) {
-                d.dos.device(d.fd);
-                d.pos = &d.dos;
+                impl->dos.device(impl->fd);
+                impl->pos = &impl->dos;
                 if (_output) {
                     *_output += " (buffered)";
                 }
             } else {
-                d.dbos.device(d.fd);
-                d.pos = &d.dbos;
+                impl->dbos.device(impl->fd);
+                impl->pos = &impl->dbos;
                 if (_output) {
                     *_output += " (unbuffered)";
                 }
@@ -627,13 +626,13 @@ void Debug::initFile(
         }
     }
     if (_buffered) {
-        d.pos = &std::clog;
+        impl->pos = &std::clog;
         if (_output) {
             *_output += "clog";
             *_output += " (buffered)";
         }
     } else {
-        d.pos = &std::cerr;
+        impl->pos = &std::cerr;
         if (_output) {
             *_output += "cerr";
             *_output += " (unbuffered)";
@@ -646,29 +645,29 @@ void Debug::initSocket(
     bool         _buffered,
     std::string* _output)
 {
-    if (!d.isActive())
+    if (!impl->isActive())
         return;
     //do the connect outside locking
     ResolveData rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    if (!rd.empty() && !d.sd.create(rd.begin()) && d.sd.connect(rd.begin())) {
+    if (!rd.empty() && !impl->sd.create(rd.begin()) && impl->sd.connect(rd.begin())) {
     } else {
-        d.sd.close(); //make sure the socket is closed
+        impl->sd.close(); //make sure the socket is closed
     }
 
-    unique_lock<mutex> lock(d.m);
-    d.respinsz = 0;
+    unique_lock<mutex> lock(impl->m);
+    impl->respinsz = 0;
 
-    d.dos.close();
-    d.dbos.close();
+    impl->dos.close();
+    impl->dbos.close();
 
     if (_addr == 0 || !*_addr) {
         _addr = "localhost";
     }
 
-    if (d.sd) {
+    if (impl->sd) {
         if (_buffered) {
-            d.dos.device(d.sd);
-            d.pos = &d.dos;
+            impl->dos.device(impl->sd);
+            impl->pos = &impl->dos;
             if (_output) {
                 *_output += _addr;
                 *_output += ':';
@@ -676,8 +675,8 @@ void Debug::initSocket(
                 *_output += " (buffered)";
             }
         } else {
-            d.dbos.device(d.sd);
-            d.pos = &d.dbos;
+            impl->dbos.device(impl->sd);
+            impl->pos = &impl->dbos;
             if (_output) {
                 *_output += _addr;
                 *_output += ':';
@@ -687,13 +686,13 @@ void Debug::initSocket(
         }
     } else {
         if (_buffered) {
-            d.pos = &std::clog;
+            impl->pos = &std::clog;
             if (_output) {
                 *_output += "clog";
                 *_output += " (buffered)";
             }
         } else {
-            d.pos = &std::cerr;
+            impl->pos = &std::cerr;
             if (_output) {
                 *_output += "cerr";
                 *_output += " (unbuffered)";
@@ -707,55 +706,55 @@ void Debug::levelMask(const char* _msk)
     if (!_msk) {
         _msk = "iewrvt";
     }
-    unique_lock<mutex> lock(d.m);
-    d.lvlmsk = parseLevels(_msk);
+    unique_lock<mutex> lock(impl->m);
+    impl->lvlmsk = parseLevels(_msk);
 }
 void Debug::moduleMask(const char* _msk)
 {
     if (!_msk) {
         _msk = "all";
     }
-    unique_lock<mutex> lock(d.m);
-    d.setModuleMask(_msk);
+    unique_lock<mutex> lock(impl->m);
+    impl->setModuleMask(_msk);
 }
 
 void Debug::moduleNames(std::string& _ros)
 {
-    unique_lock<mutex> lock(d.m);
-    for (Data::ModuleVectorT::const_iterator it(d.modvec.begin()); it != d.modvec.end(); ++it) {
+    unique_lock<mutex> lock(impl->m);
+    for (Data::ModuleVectorT::const_iterator it(impl->modvec.begin()); it != impl->modvec.end(); ++it) {
         _ros += it->name;
         _ros += ' ';
     }
 }
 void Debug::setAllModuleBits()
 {
-    unique_lock<mutex> lock(d.m);
-    d.bs.set();
+    unique_lock<mutex> lock(impl->m);
+    impl->bs.set();
 }
 void Debug::resetAllModuleBits()
 {
-    unique_lock<mutex> lock(d.m);
-    d.bs.reset();
+    unique_lock<mutex> lock(impl->m);
+    impl->bs.reset();
 }
 void Debug::setModuleBit(unsigned _v)
 {
-    unique_lock<mutex> lock(d.m);
-    d.bs.set(_v);
+    unique_lock<mutex> lock(impl->m);
+    impl->bs.set(_v);
 }
 void Debug::resetModuleBit(unsigned _v)
 {
-    unique_lock<mutex> lock(d.m);
-    d.bs.reset(_v);
+    unique_lock<mutex> lock(impl->m);
+    impl->bs.reset(_v);
 }
 unsigned Debug::registerModule(const char* _name)
 {
-    unique_lock<mutex> lock(d.m);
-    return d.registerModule(_name, -1);
+    unique_lock<mutex> lock(impl->m);
+    return impl->registerModule(_name, -1);
 }
 
 std::ostream& Debug::print()
 {
-    d.m.lock();
+    impl->m.lock();
     return std::cerr;
 }
 
@@ -766,9 +765,9 @@ std::ostream& Debug::print(
     const char* _fnc,
     int         _line)
 {
-    d.m.lock();
-    if (d.respinsz && d.respinsz <= d.sz) {
-        d.doRespin();
+    impl->m.lock();
+    if (impl->respinsz && impl->respinsz <= impl->sz) {
+        impl->doRespin();
     }
     char       buf[128];
     const auto now   = system_clock::now();
@@ -791,13 +790,13 @@ std::ostream& Debug::print(
         ploctm->tm_min,
         ploctm->tm_sec,
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000),
-        d.modvec[_module].name.c_str() //,
+        impl->modvec[_module].name.c_str() //,
         //Thread::currentId()
         );
 #ifdef SOLID_ON_WINDOWS
-    return (*d.pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][" << std::this_thread::get_id() << ']' << ' ';
+    return (*impl->pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][" << std::this_thread::get_id() << ']' << ' ';
 #else
-    return (*d.pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ';
+    return (*impl->pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ';
 #endif
 }
 static const char tabs[] = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -819,9 +818,9 @@ std::ostream& Debug::printTraceIn(
     const char* _fnc,
     int         _line)
 {
-    d.m.lock();
-    if (d.respinsz && d.respinsz <= d.sz) {
-        d.doRespin();
+    impl->m.lock();
+    if (impl->respinsz && impl->respinsz <= impl->sz) {
+        impl->doRespin();
     }
     char       buf[128];
     const auto now   = system_clock::now();
@@ -844,18 +843,18 @@ std::ostream& Debug::printTraceIn(
         ploctm->tm_min,
         ploctm->tm_sec,
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
-        //d.nv[_module],
+        //impl->nv[_module],
         //Thread::currentId()
         );
-    (*d.pos) << buf;
-    d.pos->write(tabs, d.trace_debth);
-    ++d.trace_debth;
+    (*impl->pos) << buf;
+    impl->pos->write(tabs, impl->trace_debth);
+    ++impl->trace_debth;
 #ifdef SOLID_ON_WINDOWS
-    (*d.pos) << '[' << d.modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << _fnc << '(';
+    (*impl->pos) << '[' << impl->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << _fnc << '(';
 #else
-    (*d.pos) << '[' << d.modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << _fnc << '(';
+    (*impl->pos) << '[' << impl->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << _fnc << '(';
 #endif
-    return (*d.pos);
+    return (*impl->pos);
 }
 
 std::ostream& Debug::printTraceOut(
@@ -865,9 +864,9 @@ std::ostream& Debug::printTraceOut(
     const char* _fnc,
     int         _line)
 {
-    d.m.lock();
-    if (d.respinsz && d.respinsz <= d.sz) {
-        d.doRespin();
+    impl->m.lock();
+    if (impl->respinsz && impl->respinsz <= impl->sz) {
+        impl->doRespin();
     }
     char       buf[128];
     const auto now   = system_clock::now();
@@ -890,45 +889,45 @@ std::ostream& Debug::printTraceOut(
         ploctm->tm_min,
         ploctm->tm_sec,
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
-        //d.nv[_module],
+        //impl->nv[_module],
         //Thread::currentId()
         );
-    (*d.pos) << buf;
-    --d.trace_debth;
-    d.pos->write(tabs, d.trace_debth);
+    (*impl->pos) << buf;
+    --impl->trace_debth;
+    impl->pos->write(tabs, impl->trace_debth);
 #ifdef SOLID_ON_WINDOWS
-    (*d.pos) << '[' << d.modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << '}' << _fnc << '(';
+    (*impl->pos) << '[' << impl->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << '}' << _fnc << '(';
 #else
-    (*d.pos) << '[' << d.modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << '}' << _fnc << '(';
+    (*impl->pos) << '[' << impl->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << '}' << _fnc << '(';
 #endif
-    return (*d.pos);
+    return (*impl->pos);
 }
 
 void Debug::done()
 {
-    (*d.pos) << std::endl;
-    SOLID_ASSERT(d.pos->good());
-    d.m.unlock();
+    (*impl->pos) << std::endl;
+    SOLID_ASSERT(impl->pos->good());
+    impl->m.unlock();
 }
 
 void Debug::doneTraceIn()
 {
-    (*d.pos) << ')' << '{' << std::endl;
-    d.m.unlock();
+    (*impl->pos) << ')' << '{' << std::endl;
+    impl->m.unlock();
 }
 
 void Debug::doneTraceOut()
 {
-    (*d.pos) << ')' << std::endl;
-    d.m.unlock();
+    (*impl->pos) << ')' << std::endl;
+    impl->m.unlock();
 }
 
 bool Debug::isSet(Level _lvl, unsigned _v) const
 {
-    return (d.lvlmsk & _lvl) && _v < d.bs.size() && d.bs[_v] && d.modvec[_v].lvlmsk & _lvl;
+    return (impl->lvlmsk & _lvl) && _v < impl->bs.size() && impl->bs[_v] && impl->modvec[_v].lvlmsk & _lvl;
 }
 Debug::Debug()
-    : d(*(new Data))
+    : impl(std::make_unique<Data>())
 {
     resetAllModuleBits();
     levelMask();

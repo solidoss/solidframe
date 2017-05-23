@@ -46,24 +46,24 @@ typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
 
 using AddressVectorT                            = std::vector<SocketAddressInet>;
-using ServerSetupSocketDeviceFunctionT          = FUNCTION<bool(SocketDevice&)>;
-using ClientSetupSocketDeviceFunctionT          = FUNCTION<bool(SocketDevice&)>;
-using ResolveCompleteFunctionT                  = FUNCTION<void(AddressVectorT&&)>;
-using ConnectionStopFunctionT                   = FUNCTION<void(ConnectionContext&)>;
-using ConnectionStartFunctionT                  = FUNCTION<void(ConnectionContext&)>;
-using AllocateBufferFunctionT                   = FUNCTION<char*(const uint16_t)>;
-using FreeBufferFunctionT                       = FUNCTION<void(char*)>;
-using CompressFunctionT                         = FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
-using UncompressFunctionT                       = FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
-using ExtractRecipientNameFunctionT             = FUNCTION<const char*(const char*, std::string&, std::string&)>;
+using ServerSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
+using ClientSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
+using ResolveCompleteFunctionT                  = SOLID_FUNCTION<void(AddressVectorT&&)>;
+using ConnectionStopFunctionT                   = SOLID_FUNCTION<void(ConnectionContext&)>;
+using ConnectionStartFunctionT                  = SOLID_FUNCTION<void(ConnectionContext&)>;
+using AllocateBufferFunctionT                   = SOLID_FUNCTION<char*(const uint16_t)>;
+using FreeBufferFunctionT                       = SOLID_FUNCTION<void(char*)>;
+using CompressFunctionT                         = SOLID_FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
+using UncompressFunctionT                       = SOLID_FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
+using ExtractRecipientNameFunctionT             = SOLID_FUNCTION<const char*(const char*, std::string&, std::string&)>;
 using AioSchedulerT                             = frame::Scheduler<frame::aio::Reactor>;
-using ConnectionEnterActiveCompleteFunctionT    = FUNCTION<MessagePointerT(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionEnterPassiveCompleteFunctionT   = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionSecureHandhakeCompleteFunctionT = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionSendRawDataCompleteFunctionT    = FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionRecvRawDataCompleteFunctionT    = FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
-using ConnectionOnEventFunctionT                = FUNCTION<void(ConnectionContext&, Event&)>;
-//using ResetSerializerLimitsFunctionT              = FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
+using ConnectionEnterActiveCompleteFunctionT    = SOLID_FUNCTION<MessagePointerT(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionEnterPassiveCompleteFunctionT   = SOLID_FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionSecureHandhakeCompleteFunctionT = SOLID_FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionSendRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
+using ConnectionRecvRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
+using ConnectionOnEventFunctionT                = SOLID_FUNCTION<void(ConnectionContext&, Event&)>;
+//using ResetSerializerLimitsFunctionT              = SOLID_FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
 
 enum struct ConnectionState {
     Raw,
@@ -125,7 +125,7 @@ public:
 
     bool isClient() const
     {
-        return !FUNCTION_EMPTY(client.name_resolve_fnc);
+        return !SOLID_FUNCTION_EMPTY(client.name_resolve_fnc);
     }
 
     bool isServerOnly() const
@@ -165,8 +165,8 @@ public:
     WriterConfiguration writer;
 
     struct Server {
-        using ConnectionCreateSocketFunctionT    = FUNCTION<SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, SocketDevice&&, char*)>;
-        using ConnectionSecureHandshakeFunctionT = FUNCTION<void(ConnectionContext&)>;
+        using ConnectionCreateSocketFunctionT    = SOLID_FUNCTION<SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, SocketDevice&&, char*)>;
+        using ConnectionSecureHandshakeFunctionT = SOLID_FUNCTION<void(ConnectionContext&)>;
 
         Server()
             : listener_port(-1)
@@ -202,9 +202,9 @@ public:
     } server;
 
     struct Client {
-        using ConnectionCreateSocketFunctionT    = FUNCTION<SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, char*)>;
-        using AsyncResolveFunctionT              = FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
-        using ConnectionSecureHandshakeFunctionT = FUNCTION<void(ConnectionContext&)>;
+        using ConnectionCreateSocketFunctionT    = SOLID_FUNCTION<SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, char*)>;
+        using AsyncResolveFunctionT              = SOLID_FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
+        using ConnectionSecureHandshakeFunctionT = SOLID_FUNCTION<void(ConnectionContext&)>;
 
         bool hasSecureConfiguration() const
         {

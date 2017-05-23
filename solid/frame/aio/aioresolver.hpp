@@ -12,6 +12,7 @@
 
 #include "aioerror.hpp"
 #include "solid/system/function.hpp"
+#include "solid/system/pimpl.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/utility/dynamictype.hpp"
 #include <string>
@@ -169,7 +170,7 @@ private:
 
 private:
     struct Data;
-    Data& d;
+    PimplT<Data> impl;
 };
 
 } //namespace aio

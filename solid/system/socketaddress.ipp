@@ -64,7 +64,6 @@ inline ResolveIterator::ResolveIterator(addrinfo* _pa)
 //-----------------------------------------------------------------------
 //          ResolveData
 //-----------------------------------------------------------------------
-#if (defined(SOLID_USE_CPP11) || defined(UBOOSTSHAREDPTR)) && !defined(USHAREDBACKEND)
 inline ResolveData::ResolveData()
 {
 }
@@ -105,54 +104,6 @@ inline ResolveData& ResolveData::operator=(const ResolveData& _rrd)
     aiptr = _rrd.aiptr;
     return *this;
 }
-#else
-inline ResolveData::ResolveData()
-    : pss(&SharedBackend::emptyStub())
-{
-    SharedBackend::use(*pss);
-}
-inline ResolveData::ResolveData(addrinfo* _pai)
-    : pss(SharedBackend::create(_pai, &delete_addrinfo))
-{
-}
-inline ResolveData::ResolveData(const ResolveData& _rai)
-    : pss(_rai.pss)
-{
-    SharedBackend::use(*pss);
-}
-inline ResolveData::~ResolveData()
-{
-    SharedBackend::release(*pss);
-}
-inline ResolveData::const_iterator ResolveData::begin() const
-{
-    if (pss->ptr) {
-        return const_iterator(reinterpret_cast<addrinfo*>(pss->ptr));
-    } else {
-        return end();
-    }
-}
-inline ResolveData::const_iterator ResolveData::end() const
-{
-    const static const_iterator emptyit;
-    return emptyit;
-}
-inline bool ResolveData::empty() const
-{
-    return pss->ptr == NULL;
-}
-inline void ResolveData::clear()
-{
-    SharedBackend::release(*pss);
-    pss = &SharedBackend::emptyStub();
-}
-inline ResolveData& ResolveData::operator=(const ResolveData& _rrd)
-{
-    pss = _rrd.pss;
-    SharedBackend::use(*pss);
-    return *this;
-}
-#endif
 
 //-----------------------------------------------------------------------
 //          SocketAddressStub

@@ -26,12 +26,12 @@ namespace mpipc {
 
 class MessageWriter {
 public:
-    using VisitFunctionT = FUNCTION<void(
+    using VisitFunctionT = SOLID_FUNCTION<void(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
         )>;
 
-    using CompleteFunctionT = FUNCTION<ErrorConditionT(
+    using CompleteFunctionT = SOLID_FUNCTION<ErrorConditionT(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
         )>;

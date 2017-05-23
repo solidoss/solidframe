@@ -18,6 +18,7 @@
 #include "solid/frame/schedulerbase.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/function.hpp"
+#include "solid/system/pimpl.hpp"
 #include "solid/utility/delegate.hpp"
 #include "solid/utility/dynamicpointer.hpp"
 
@@ -69,6 +70,11 @@ public:
         const size_t _svcmtxcnt     = 0,
         const size_t _objmtxcnt     = 0,
         const size_t _objbucketsize = 0);
+
+    Manager(const Manager&) = delete;
+    Manager(Manager&&)      = delete;
+    Manager& operator=(const Manager&) = delete;
+    Manager& operator=(Manager&&) = delete;
 
     virtual ~Manager();
 
@@ -131,7 +137,7 @@ private:
     friend class SchedulerBase;
     friend class Manager::VisitContext;
 
-    //typedef FUNCTION<bool(VisitContext&)> ObjectVisitFunctionT;
+    //typedef SOLID_FUNCTION<bool(VisitContext&)> ObjectVisitFunctionT;
     using ObjectVisitFunctionT = Delegate<bool(VisitContext&)>;
 
     static bool notify_object(
@@ -181,7 +187,7 @@ private:
 
 private:
     struct Data;
-    Data& d;
+    PimplT<Data> impl;
 };
 
 } //namespace frame

@@ -57,35 +57,34 @@ struct Resolver::Data {
 }
 
 Resolver::Resolver(size_t _thrcnt)
-    : d(*(new Data(_thrcnt)))
+    : impl(std::make_unique<Data>(_thrcnt))
 {
 
     if (_thrcnt == 0) {
-        d.wp.controller().maxthrcnt = std::thread::hardware_concurrency();
+        impl->wp.controller().maxthrcnt = std::thread::hardware_concurrency();
     }
 }
 
 Resolver::~Resolver()
 {
-    delete &d;
 }
 
 ErrorConditionT Resolver::start(ushort _thrcnt)
 {
-    d.wp.start(_thrcnt);
+    impl->wp.start(_thrcnt);
     //TODO: compute a proper error response
     return ErrorConditionT();
 }
 
 void Resolver::stop()
 {
-    d.wp.stop();
+    impl->wp.stop();
 }
 
 void Resolver::doSchedule(ResolveBase* _pb)
 {
     ResolverPointerT ptr(_pb);
-    d.wp.push(ptr);
+    impl->wp.push(ptr);
 }
 
 //---------------------------------------------------------------

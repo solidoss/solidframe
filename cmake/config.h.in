@@ -3,7 +3,6 @@
 
 #cmakedefine SOLID_USE_PTHREAD
 #cmakedefine SOLID_USE_EVENTFD
-#cmakedefine SOLID_USE_CPP11
 #cmakedefine SOLID_USE_EPOLL
 #cmakedefine SOLID_USE_KQUEUE
 #cmakedefine SOLID_USE_SAFE_STATIC

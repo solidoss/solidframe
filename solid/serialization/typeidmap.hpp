@@ -36,8 +36,8 @@ class TypeIdMapBase {
 protected:
     //typedef void(*LoadFunctionT)(void*, void*, const char*);
     //typedef void(*StoreFunctionT)(void*, void*, const char*);
-    typedef FUNCTION<void(void*, void*, const char*)> LoadFunctionT;
-    typedef FUNCTION<void(void*, void*, const char*)> StoreFunctionT;
+    typedef SOLID_FUNCTION<void(void*, void*, const char*)> LoadFunctionT;
+    typedef SOLID_FUNCTION<void(void*, void*, const char*)> StoreFunctionT;
 
     typedef void (*CastFunctionT)(void*, void*);
 
@@ -54,7 +54,7 @@ protected:
         CastFunctionT shared_cast;
     };
 
-    typedef FUNCTION<void*(const CastFunctionT&, void*)> FactoryFunctionT;
+    typedef SOLID_FUNCTION<void*(const CastFunctionT&, void*)> FactoryFunctionT;
 
     typedef std::pair<std::type_index, size_t> CastIdT;
 

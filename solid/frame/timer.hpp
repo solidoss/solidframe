@@ -77,7 +77,7 @@ public:
     template <class Clock, class Duration, typename F>
     bool waitUntil(ReactorContext& _rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F _f)
     {
-        if (FUNCTION_EMPTY(f)) {
+        if (SOLID_FUNCTION_EMPTY(f)) {
             f = _f;
             NanoTime steady_nt{time_point_clock_cast<std::chrono::steady_clock>(_rtp)};
             this->addTimer(_rctx, steady_nt, storeidx);
@@ -104,13 +104,13 @@ private:
     }
     void doClear(ReactorContext& _rctx)
     {
-        FUNCTION_CLEAR(f);
+        SOLID_FUNCTION_CLEAR(f);
         remTimer(_rctx, storeidx);
         storeidx = InvalidIndex();
     }
 
 private:
-    typedef FUNCTION<void(ReactorContext&)> FunctionT;
+    typedef SOLID_FUNCTION<void(ReactorContext&)> FunctionT;
 
     FunctionT f;
     size_t    storeidx;
