@@ -15,6 +15,7 @@
 #ifdef SOLID_HAS_ASSERT
 
 #include <cassert>
+
 #define SOLID_ASSERT(a) assert((a))
 #define SOLID_VERIFY(a) assert((a))
 

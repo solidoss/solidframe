@@ -554,7 +554,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
             MessageStub& rmsgstub = message_vec[msgidx];
 
             if (not rmsgstub.msgbundle.message_ptr) {
-                SOLID_THROW_EX("invalid message - something went wrong with the nested queue for message: ", msgidx);
+                SOLID_THROW("invalid message - something went wrong with the nested queue for message: " << msgidx);
                 continue;
             }
 

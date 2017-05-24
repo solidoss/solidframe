@@ -20,170 +20,6 @@
 
 namespace solid {
 
-template <class T>
-struct Exception;
-template <>
-struct Exception<const char*>;
-
-template <>
-struct Exception<const char*> : std::exception {
-    explicit Exception(
-        const char* _pt,
-        const char* _file,
-        const int   _line,
-        const char* _func) throw()
-        : t(_pt)
-        , file(_file)
-        , line(_line)
-        , function(_func)
-    {
-        pdbg(file, line, function, "EXCEPTION: " << t);
-    }
-    Exception(
-        const Exception<const char*>& _rex) throw()
-        : t(_rex.t)
-        , file(_rex.file)
-        , line(_rex.line)
-        , function(_rex.function)
-    {
-    }
-
-    ~Exception() throw() {}
-    Exception& operator=(Exception<const char*>& _rex) throw()
-    {
-        t    = _rex.t;
-        file = _rex.file;
-        line = _rex.line;
-        return *this;
-    }
-    const char* what() const throw()
-    {
-        if (w.empty()) {
-            std::ostringstream oss;
-            oss << '[' << src_file_name(file) << '(' << line << ')' << ' ' << function << ']' << ':' << ' ' << t;
-            w = oss.str();
-        }
-        return w.c_str();
-    }
-
-    const char*         t;
-    const char*         file;
-    int                 line;
-    const char*         function;
-    mutable std::string w;
-};
-
-template <>
-struct Exception<ErrorCodeT> : std::exception {
-    explicit Exception(
-        const char*       _pt,
-        ErrorCodeT const& _rt,
-        const char*       _file,
-        const int         _line,
-        const char*       _func) throw()
-        : pt(_pt)
-        , t(_rt)
-        , file(_file)
-        , line(_line)
-        , function(_func)
-    {
-        pdbg(file, line, function, "EXCEPTION: " << pt << ' ' << t << " - " << t.message());
-    }
-    Exception(
-        const Exception<ErrorCodeT>& _rex) throw()
-        : pt(_rex.pt)
-        , t(_rex.t)
-        , file(_rex.file)
-        , line(_rex.line)
-        , function(_rex.function)
-    {
-    }
-
-    ~Exception() throw() {}
-    Exception& operator=(Exception<ErrorCodeT> const& _rex) throw()
-    {
-        pt   = _rex.pt;
-        t    = _rex.t;
-        file = _rex.file;
-        line = _rex.line;
-        return *this;
-    }
-    const char* what() const throw()
-    {
-        if (w.empty()) {
-            std::ostringstream oss;
-            oss << '[' << src_file_name(file) << '(' << line << ')' << ' ' << function << "]: " << pt << ' ' << t << " - " << t.message();
-            w = oss.str();
-        }
-        return w.c_str();
-    }
-
-    const char*         pt;
-    ErrorCodeT          t;
-    const char*         file;
-    int                 line;
-    const char*         function;
-    mutable std::string w;
-};
-
-template <class T>
-struct Exception : std::exception {
-    explicit Exception(
-        const char* _pt,
-        T const&    _rt,
-        const char* _file,
-        const int   _line,
-        const char* _func) throw()
-        : pt(_pt)
-        , t(_rt)
-        , file(_file)
-        , line(_line)
-        , function(_func)
-    {
-        pdbg(file, line, function, "EXCEPTION: " << pt << ':' << ' ' << t);
-    }
-    Exception(Exception<T> const& _rex) throw()
-        : t(_rex.t)
-        , file(_rex.file)
-        , line(_rex.line)
-    {
-    }
-
-    ~Exception() throw() {}
-    Exception& operator=(Exception<T> const& _rex) throw()
-    {
-        t    = _rex.t;
-        file = _rex.file;
-        line = _rex.line;
-    }
-    const char* what() const throw()
-    {
-        if (w.empty()) {
-            std::ostringstream oss;
-            oss << '[' << src_file_name(file) << '(' << line << ')' << ' ' << function << ']' << ':' << ' ' << pt << ':' << ' ' << t;
-            w = oss.str();
-        }
-        return w.c_str();
-    }
-    const char*         pt;
-    T                   t;
-    const char*         file;
-    const int           line;
-    const char*         function;
-    mutable std::string w;
-};
-
-inline void throw_exception(const char* const _pt, const char* const _file, const int _line, const char* const _func)
-{
-    throw Exception<const char*>(_pt, _file, _line, _func);
-}
-
-template <typename T>
-void throw_exception(const char* const _pt, const T& _rt, const char* const _file, const int _line, const char* const _func)
-{
-    throw Exception<T>(_pt, _rt, _file, _line, _func);
-}
-
 #ifndef CRT_FUNCTION_NAME
 #ifdef SOLID_ON_WINDOWS
 #define CRT_FUNCTION_NAME __func__
@@ -192,18 +28,39 @@ void throw_exception(const char* const _pt, const T& _rt, const char* const _fil
 #endif
 #endif
 
-#define SOLID_THROW_EX(x, y) \
-    throw Exception<decltype(y)>(static_cast<const char*>(x), y, __FILE__, __LINE__, CRT_FUNCTION_NAME);
+struct oss_str {
+};
+
+inline std::string operator>>(std::ostream& _ros, const oss_str&)
+{
+    return static_cast<std::ostringstream&>(_ros).str();
+}
 
 #define SOLID_THROW(x) \
-    throw Exception<const char*>(static_cast<const char*>((x)), __FILE__, __LINE__, CRT_FUNCTION_NAME);
+    throw std::logic_error(std::ostringstream() << "[" __FILE__ "(" << __LINE__ << ")][" << CRT_FUNCTION_NAME << "] " << x >> oss_str())
 
-#define SOLID_CHECK(a) \
-    if (!(a))          \
-        SOLID_THROW("Failed checking: " #a);
+//adapted from https://github.com/Microsoft/GSL/blob/master/include/gsl/gsl_assert
+#if defined(__clang__) || defined(__GNUC__)
+#define SOLID_LIKELY(x) __builtin_expect(!!(x), 1)
+#define SOLID_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+#define SOLID_LIKELY(x) (!!(x))
+#define SOLID_UNLIKELY(x) (!!(x))
+#endif
 
-#define SOLID_CHECK_ERROR(err) \
-    if ((err))                 \
-        SOLID_THROW_EX("Failed checking [" #err "]", (err).message());
+#define SOLID_CHECK1(a) \
+    (SOLID_LIKELY(a) ? static_cast<void>(0) : SOLID_THROW(#a " check failed"));
+
+#define SOLID_CHECK2(a, msg) \
+    (SOLID_LIKELY(a) ? static_cast<void>(0) : SOLID_THROW(#a " check failed: " << msg));
+
+#define GET_3RD_ARG(arg1, arg2, arg3, ...) arg3
+
+#define SOLID_CHECK_MACRO_CHOOSER(...)     \
+    GET_3RD_ARG(__VA_ARGS__, SOLID_CHECK2, \
+        SOLID_CHECK1, )
+
+#define SOLID_CHECK(...) SOLID_CHECK_MACRO_CHOOSER(__VA_ARGS__) \
+(__VA_ARGS__)
 
 } //namespace solid

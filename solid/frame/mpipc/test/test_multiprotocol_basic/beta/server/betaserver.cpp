@@ -34,9 +34,7 @@ void complete_message<beta_protocol::FirstMessage>(
             _rctx.recipientId(),
             std::make_shared<beta_protocol::SecondMessage>(std::move(*_rrecv_msg_ptr)));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
         SOLID_CHECK(not _rrecv_msg_ptr);
@@ -56,9 +54,7 @@ void complete_message<beta_protocol::SecondMessage>(
         SOLID_CHECK(not _rsent_msg_ptr);
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
         SOLID_CHECK(not _rrecv_msg_ptr);
@@ -81,9 +77,7 @@ void complete_message<beta_protocol::ThirdMessage>(
             _rctx.recipientId(),
             std::make_shared<beta_protocol::FirstMessage>(std::move(*_rrecv_msg_ptr)));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
         SOLID_CHECK(not _rrecv_msg_ptr);

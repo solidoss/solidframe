@@ -246,9 +246,7 @@ void server_complete_message(
         }
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr.get()) {
         idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
@@ -274,9 +272,7 @@ void server_complete_logout(
 
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
 
     if (_rsent_msg_ptr.get()) {

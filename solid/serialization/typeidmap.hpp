@@ -332,7 +332,7 @@ protected:
             typemap[std::type_index(typeid(Derived))] = _idx;
             return true;
         } else {
-            SOLID_THROW_EX("Invalid type index ", _idx);
+            SOLID_THROW("Invalid type index " << _idx);
             return false;
         }
     }

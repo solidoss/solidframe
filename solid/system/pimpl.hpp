@@ -11,8 +11,10 @@
 #pragma once
 
 #include <memory>
+
 namespace solid {
 
 template <typename T>
 using PimplT = const std::unique_ptr<T>;
+
 } //namespace solid

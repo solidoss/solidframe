@@ -490,7 +490,7 @@ void complete_message<ipc_file::ListRequest>(
             ++it;
         }
     }
-    SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -519,7 +519,7 @@ void complete_message<ipc_file::FileRequest>(
 
     auto msgptr = std::make_shared<ipc_file::FileResponse>(*_rrecv_msg_ptr);
 
-    SOLID_CHECK_ERROR(_rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(_rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>

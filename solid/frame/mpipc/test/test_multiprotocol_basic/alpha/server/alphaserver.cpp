@@ -24,14 +24,14 @@ void complete_message<alpha_protocol::FirstMessage>(
     ErrorConditionT const&                         _rerror)
 {
     idbg("");
+
     SOLID_CHECK(not _rerror);
+
     if (_rrecv_msg_ptr) {
-        SOLID_CHECK(not _rsent_msg_ptr);
+        SOLID_CHECK(not _rsent_msg_ptr, "");
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
         SOLID_CHECK(not _rrecv_msg_ptr);
@@ -51,9 +51,7 @@ void complete_message<alpha_protocol::SecondMessage>(
         SOLID_CHECK(not _rsent_msg_ptr);
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
         SOLID_CHECK(not _rrecv_msg_ptr);
@@ -73,9 +71,7 @@ void complete_message<alpha_protocol::ThirdMessage>(
         SOLID_CHECK(not _rsent_msg_ptr);
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
         SOLID_CHECK(not _rrecv_msg_ptr);

@@ -45,7 +45,7 @@ void complete_message(
 
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(not _rsent_msg_ptr);
-        SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
+        SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
     }
 
     if (_rsent_msg_ptr) {

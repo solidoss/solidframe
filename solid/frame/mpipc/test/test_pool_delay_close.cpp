@@ -236,9 +236,7 @@ void server_complete_message(
         }
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr.get()) {
         idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr->idx);
@@ -436,7 +434,7 @@ int test_pool_delay_close(int argc, char** argv)
                     recipinet_id, msgptr,
                     0 | frame::mpipc::MessageFlags::WaitResponse);
                 idbg("send message error message: " << err.message());
-                SOLID_CHECK(err)
+                SOLID_CHECK(err);
             }
         }
 

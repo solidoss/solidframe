@@ -295,14 +295,14 @@ int test_clientserver_oneshot(int argc, char** argv)
                 "localhost", msgptr,
                 recipient_id, message_id,
                 frame::mpipc::MessageFlags::WaitResponse | frame::mpipc::MessageFlags::OneShotSend);
-            SOLID_CHECK(not err);
+            SOLID_CHECK(not err, "" << err.message());
         }
 
         sleep(5);
 
         err = mpipcclient.cancelMessage(recipient_id, message_id);
 
-        SOLID_CHECK(err);
+        SOLID_CHECK(err, err.message());
 
         unique_lock<mutex> lock(mtx);
 

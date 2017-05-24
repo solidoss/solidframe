@@ -193,10 +193,8 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
 {
     idbg(_rctx.recipientId());
 
-    if (not _rmsgptr->check()) {
-        SOLID_THROW("Message check failed.");
-    }
-    SOLID_CHECK(false);
+    SOLID_CHECK(_rmsgptr->check(), "Message check failed.");
+    SOLID_THROW("should not be called");
 }
 
 void client_complete_message(
@@ -465,9 +463,7 @@ int test_clientserver_cancel_client(int argc, char** argv)
                     recipient_id,
                     msguid);
 
-                if (err) {
-                    SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-                }
+                SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
                 if (recipient_id.isInvalidPool()) {
                     SOLID_THROW("Connection pool should not be invalid!");

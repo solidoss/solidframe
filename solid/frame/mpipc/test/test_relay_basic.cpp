@@ -298,9 +298,7 @@ void peerb_complete_message(
         }
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if (err) {
-            SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-        }
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
         ++crtreadidx;
         idbg(crtreadidx);
@@ -308,9 +306,8 @@ void peerb_complete_message(
             err = pmpipcpeera->sendMessage(
                 "/b", std::make_shared<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlags::WaitResponse);
-            if (err) {
-                SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-            }
+
+            SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
         }
     }
     if (_rsent_msg_ptr) {

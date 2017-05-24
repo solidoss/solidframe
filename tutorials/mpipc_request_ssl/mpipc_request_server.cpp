@@ -270,7 +270,7 @@ void complete_message<ipc_request::Request>(
         }
     }
 
-    SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>

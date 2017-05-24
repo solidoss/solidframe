@@ -263,9 +263,7 @@ void server_complete_message(
 
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        if (err and err != frame::mpipc::error_service_stopping) {
-            SOLID_THROW_EX("sendResponse should not fail: ", err.message());
-        }
+        SOLID_CHECK(!(err and err != frame::mpipc::error_service_stopping), "sendResponse should not fail: " << err.message());
     }
     if (_rsent_msg_ptr.get()) {
         idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());

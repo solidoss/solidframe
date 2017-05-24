@@ -82,7 +82,7 @@ void complete_message<ipc_file::ListRequest>(
             ++it;
         }
     }
-    SOLID_CHECK_ERROR(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -116,7 +116,7 @@ void complete_message<ipc_file::FileRequest>(
         msgptr->remote_file_size = fs::file_size(fs::path(_rrecv_msg_ptr->remote_path), error);
     }
 
-    SOLID_CHECK_ERROR(_rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(_rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>

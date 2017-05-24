@@ -273,9 +273,7 @@ void server_complete_message(
                 recipient_id, frame::mpipc::MessagePointerT(new Message(crtwriteidx)),
                 msguid);
 
-            if (err) {
-                SOLID_THROW_EX("Connection id should not be invalid!", err.message());
-            }
+            SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
             if (initarray[crtwriteidx % initarraysize].cancel) {
                 message_uid_vec.push_back(msguid); //we cancel this one
