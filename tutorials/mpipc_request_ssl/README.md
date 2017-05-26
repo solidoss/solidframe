@@ -372,16 +372,16 @@ The above code will register onto the serialization engine both the message type
 Next let configure the mpipc::Service with OpenSSL support:
 
 ```C++
-            frame::mpipc::openssl::setup_client(
-                cfg,
-                [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
-                    _rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
-                    _rctx.loadCertificate(loadFile("echo-client-cert.pem"));
-                    _rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
-                    return ErrorCodeT();
-                },
-                frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
-            );
+frame::mpipc::openssl::setup_client(
+    cfg,
+    [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+        _rctx.addVerifyAuthority(loadFile("echo-ca-cert.pem"));
+        _rctx.loadCertificate(loadFile("echo-client-cert.pem"));
+        _rctx.loadPrivateKey(loadFile("echo-client-key.pem"));
+        return ErrorCodeT();
+    },
+    frame::mpipc::openssl::NameCheckSecureStart{"echo-server"}
+);
 ```
 
 Note that the _pem_ self-signed certificates files above must be on the same directory from where the application is run, otherwise an absolute path would be more appropriate.
@@ -389,39 +389,38 @@ Note that the _pem_ self-signed certificates files above must be on the same dir
 To add Snappy communication compress we just need the following line:
 
 ```C++
-    frame::mpipc::snappy::setup(cfg);
+frame::mpipc::snappy::setup(cfg);
 ```
 
 Both code snippets above must be added just before:
 
 ```C++
-    err = ipcservice.reconfigure(std::move(cfg));
+err = ipcservice.reconfigure(std::move(cfg));
 ```
 
 The last code snippets for client side, constructs a somehow hard-coded Request as follows:
 
 ```C++
-                    auto req_ptr = make_shared<ipc_request::Request>(
-                        make_shared<ipc_request::RequestKeyAndList>(
-                            make_shared<ipc_request::RequestKeyOr>(
-                                make_shared<ipc_request::RequestKeyUserIdRegex>(line.substr(offset + 1)),
-                                make_shared<ipc_request::RequestKeyEmailRegex>(line.substr(offset + 1))
-                            ),
-                            make_shared<ipc_request::RequestKeyOr>(
-                                make_shared<ipc_request::RequestKeyYearLess>(2000),
-                                make_shared<ipc_request::RequestKeyYearLess>(2003)
-                            )
-                        )
-                    );
-
+auto req_ptr = make_shared<ipc_request::Request>(
+    make_shared<ipc_request::RequestKeyAndList>(
+        make_shared<ipc_request::RequestKeyOr>(
+            make_shared<ipc_request::RequestKeyUserIdRegex>(line.substr(offset + 1)),
+            make_shared<ipc_request::RequestKeyEmailRegex>(line.substr(offset + 1))
+        ),
+        make_shared<ipc_request::RequestKeyOr>(
+            make_shared<ipc_request::RequestKeyYearLess>(2000),
+            make_shared<ipc_request::RequestKeyYearLess>(2003)
+        )
+    )
+);
 ```
 
 and prints the its key tree to standard output:
 
 ```C++
-                    cout<<"Request key: ";
-                    if(req_ptr->key) req_ptr->key->print(cout);
-                    cout<<endl;
+cout<<"Request key: ";
+if(req_ptr->key) req_ptr->key->print(cout);
+cout<<endl;
 ```
 
 before sending the message command to the server.
@@ -711,28 +710,28 @@ I will not delve into the details for every visit function as I believe they are
 Moving on with the changes on server code next is the code that enables SSL support:
 
 ```C++
-            frame::mpipc::openssl::setup_server(
-                cfg,
-                [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
-                    _rctx.loadVerifyFile("echo-ca-cert.pem");
-                    _rctx.loadCertificateFile("echo-server-cert.pem");
-                    _rctx.loadPrivateKeyFile("echo-server-key.pem");
-                    return ErrorCodeT();
-                },
-                frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}//does nothing - OpenSSL does not check for hostname on SSL_accept
-            );
+frame::mpipc::openssl::setup_server(
+    cfg,
+    [](frame::aio::openssl::Context &_rctx) -> ErrorCodeT{
+        _rctx.loadVerifyFile("echo-ca-cert.pem");
+        _rctx.loadCertificateFile("echo-server-cert.pem");
+        _rctx.loadPrivateKeyFile("echo-server-key.pem");
+        return ErrorCodeT();
+    },
+    frame::mpipc::openssl::NameCheckSecureStart{"echo-client"}//does nothing - OpenSSL does not check for hostname on SSL_accept
+);
 ```
 
 along with the code that enables Snappy communication compression:
 
 ```C++
-    frame::mpipc::snappy::setup(cfg);
+frame::mpipc::snappy::setup(cfg);
 ```
 
 Both the above snippets of code should be put just above the following line:
 
 ```C++
-    err = ipcservice.reconfigure(std::move(cfg));
+err = ipcservice.reconfigure(std::move(cfg));
 ```
 
 ### Compile

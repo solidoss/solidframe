@@ -262,52 +262,52 @@ Here are some sample code for some of the above tools:
 __Any__: [Sample code](solid/utility/test/test_any.cpp)
 
 ```C++
-    using AnyT = solid::Any<>;
-    //...
-    AnyT    a;
+using AnyT = solid::Any<>;
+//...
+AnyT    a;
 
-    a = std::string("Some text");
+a = std::string("Some text");
 
-    //...
-    std::string *pstr = a.cast<std::string>();
-    if(pstr){
-        cout<<*pstr<<endl;
-    }
+//...
+std::string *pstr = a.cast<std::string>();
+if(pstr){
+    cout<<*pstr<<endl;
+}
 ```
 Some code to show the difference from boost::any:
 
 ```C++
-    using AnyT = solid::Any<128>;
+using AnyT = solid::Any<128>;
 
-    struct A{
-        uint64_t    a;
-        uint64_t    b;
-        double      c;
-    };
+struct A{
+    uint64_t    a;
+    uint64_t    b;
+    double      c;
+};
 
-    struct B{
-        uint64_t    a;
-        uint64_t    b;
-        double      c;
-        char        buf[64];
-    };
+struct B{
+    uint64_t    a;
+    uint64_t    b;
+    double      c;
+    char        buf[64];
+};
 
-    struct C{
-        uint64_t    a;
-        uint64_t    b;
-        double      c;
-        char        buf[128];
-    };
+struct C{
+    uint64_t    a;
+    uint64_t    b;
+    double      c;
+    char        buf[128];
+};
 
-    AnyT    a;
-    //...
-    a = std::string("Some text");//as long as sizeof(std::string) <= 128 no allocation is made - Any uses placement new()
-    //...
-    a = A();//as long as sizeof(A) <= 128 no allocation is made - Any uses placement new()
-    //...
-    a = B();//as long as sizeof(B) <= 128 no allocation is made - Any uses placement new()
-    //...
-    a = C();//sizeof(C) > 128 so new allocation is made - Any uses new
+AnyT    a;
+//...
+a = std::string("Some text");//as long as sizeof(std::string) <= 128 no allocation is made - Any uses placement new()
+//...
+a = A();//as long as sizeof(A) <= 128 no allocation is made - Any uses placement new()
+//...
+a = B();//as long as sizeof(B) <= 128 no allocation is made - Any uses placement new()
+//...
+a = C();//sizeof(C) > 128 so new allocation is made - Any uses new
 
 ```
 
@@ -368,10 +368,10 @@ void Object::handleEvent(Event &&_revt){
 Creating events:
 
 ```C++
-    //...
-    rbase.handleEvent(alpha_event_category.event(AlphaEvents::Second));
-    rbase.handleEvent(generic_event_category.event(GenericEvents::Message, std::string("Some text")));
-    //...
+//...
+rbase.handleEvent(alpha_event_category.event(AlphaEvents::Second));
+rbase.handleEvent(generic_event_category.event(GenericEvents::Message, std::string("Some text")));
+//...
 ```
 
 __InnerList__: [Sample code](solid/utility/test/test_innerlist.cpp)
@@ -446,32 +446,32 @@ typemap.registerType<Test>(0/*protocol ID*/);
 
 Serialize and deserialize a Test structure:
 ```C++
-    std::string     data;
-    {//serialize
-        SerializerT     ser(&typeidmap);
-        const int       bufcp = 64;
-        char            buf[bufcp];
-        int             rv;
+std::string     data;
+{//serialize
+    SerializerT     ser(&typeidmap);
+    const int       bufcp = 64;
+    char            buf[bufcp];
+    int             rv;
 
-        std::shared_ptr<Test>   test_ptr = Test::create();
-        test_ptr->init();
+    std::shared_ptr<Test>   test_ptr = Test::create();
+    test_ptr->init();
 
-        ser.push(test_ptr, "test_ptr");
+    ser.push(test_ptr, "test_ptr");
 
-        while((rv = ser.run(buf, bufcp)) > 0){
-            data.append(buf, rv);
-        }
+    while((rv = ser.run(buf, bufcp)) > 0){
+        data.append(buf, rv);
     }
-    {//deserialize
-        DeserializerT           des(&typeidmap);
+}
+{//deserialize
+    DeserializerT           des(&typeidmap);
 
-        std::shared_ptr<Test>   test_ptr;
+    std::shared_ptr<Test>   test_ptr;
 
-        des.push(test_ptr, "test_ptr");
+    des.push(test_ptr, "test_ptr");
 
-        size_t                  rv = des.run(data.data(), data.size());
-        SOLID_CHECK(rv == data.size());
-    }
+    size_t                  rv = des.run(data.data(), data.size());
+    SOLID_CHECK(rv == data.size());
+}
 ```
 
 
@@ -538,7 +538,7 @@ __Usefull links__
  * [README](solid/frame/mpipc/README.md)
  * [Tutorial: mpipc_echo](tutorials/mpipc_echo/README.md)
  * [Tutorial: mpipc_request](tutorials/mpipc_request/README.md)
- * [MPIPC Request with SSL and compression](tutorials/mpipc_request_ssl/README.md)
+ * [Tutorial: mpipc_request_ssl](tutorials/mpipc_request_ssl/README.md)
  * [Tutorial: mpipc_file](tutorials/mpipc_file/README.md)
 
 ### <a id="solid_frame_file"></a>solid_frame_file

@@ -141,50 +141,50 @@ Let us now walk through the code.
 First off, initialize the ipcservice and its prerequisites:
 
 ```C++
-        AioSchedulerT           scheduler;
+AioSchedulerT           scheduler;
 
 
-        frame::Manager          manager;
-        frame::mpipc::ServiceT  ipcservice(manager);
+frame::Manager          manager;
+frame::mpipc::ServiceT  ipcservice(manager);
 
-        frame::aio::Resolver    resolver;
+frame::aio::Resolver    resolver;
 
-        ErrorConditionT         err;
+ErrorConditionT         err;
 
-        err = scheduler.start(1);
+err = scheduler.start(1);
 
-        if(err){
-            cout<<"Error starting aio scheduler: "<<err.message()<<endl;
-            return 1;
-        }
+if(err){
+    cout<<"Error starting aio scheduler: "<<err.message()<<endl;
+    return 1;
+}
 
-        err = resolver.start(1);
+err = resolver.start(1);
 
-        if(err){
-            cout<<"Error starting aio resolver: "<<err.message()<<endl;
-            return 1;
-        }
+if(err){
+    cout<<"Error starting aio resolver: "<<err.message()<<endl;
+    return 1;
+}
 ```
 
 Next, configure the ipcservice:
 ```C++
-        {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
-            frame::mpipc::Configuration cfg(scheduler, proto);
+{
+    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_request::ProtoSpecT::setup<ipc_request_client::MessageSetup>(*proto);
+    ipc_request::ProtoSpecT::setup<ipc_request_client::MessageSetup>(*proto);
 
-            cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
+    cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 
-            cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
+    cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 
-            err = ipcservice.reconfigure(std::move(cfg));
+    err = ipcservice.reconfigure(std::move(cfg));
 
-            if(err){
-                cout<<"Error starting ipcservice: "<<err.message()<<endl;
-                return 1;
-            }
-        }
+    if(err){
+        cout<<"Error starting ipcservice: "<<err.message()<<endl;
+        return 1;
+    }
+}
 ```
 
 The ipc_request_client::MessageSetup is defined like this:
@@ -219,54 +219,54 @@ It must be specified in the ipcservice configuration, but in our current situati
 And finally we have the command loop:
 
 ```C++
-        while(true){
-            string  line;
-            getline(cin, line);
+while(true){
+    string  line;
+    getline(cin, line);
 
-            if(line == "q" or line == "Q" or line == "quit"){
-                break;
-            }
-            {
-                string      recipient;
-                size_t      offset = line.find(' ');
+    if(line == "q" or line == "Q" or line == "quit"){
+        break;
+    }
+    {
+        string      recipient;
+        size_t      offset = line.find(' ');
 
-                if(offset != string::npos){
+        if(offset != string::npos){
 
-                    recipient = line.substr(0, offset);
+            recipient = line.substr(0, offset);
 
-                    auto  lambda = [](
-                        frame::mpipc::ConnectionContext &_rctx,
-                        std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
-                        std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
-                        ErrorConditionT const &_rerror
-                    ){
-                        if(_rerror){
-                            cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
-                            return;
-                        }
-
-                        SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
-
-                        cout<<"Received "<<_rrecv_msg_ptr->user_data_map.size()<<" users:"<<endl;
-
-                        for(const auto& user_data: _rrecv_msg_ptr->user_data_map){
-                            cout<<'{'<<user_data.first<<"}: "<<user_data.second<<endl;
-                        }
-                    };
-
-                    auto req_ptr = make_shared<ipc_request::Request>(line.substr(offset + 1));
-
-                    ipcservice.sendRequest(
-                        recipient.c_str(), req_ptr,
-                        lambda,
-                        0
-                    );
-
-                }else{
-                    cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
+            auto  lambda = [](
+                frame::mpipc::ConnectionContext &_rctx,
+                std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
+                std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
+                ErrorConditionT const &_rerror
+            ){
+                if(_rerror){
+                    cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
+                    return;
                 }
-            }
+
+                SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
+
+                cout<<"Received "<<_rrecv_msg_ptr->user_data_map.size()<<" users:"<<endl;
+
+                for(const auto& user_data: _rrecv_msg_ptr->user_data_map){
+                    cout<<'{'<<user_data.first<<"}: "<<user_data.second<<endl;
+                }
+            };
+
+            auto req_ptr = make_shared<ipc_request::Request>(line.substr(offset + 1));
+
+            ipcservice.sendRequest(
+                recipient.c_str(), req_ptr,
+                lambda,
+                0
+            );
+
+        }else{
+            cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
         }
+    }
+}
 ```
 On the above code, the notable part is the one with _ipcservice.sendRequest_ call which uses a lambda to specify the
 completion callback for the response. Also note the message types used in the lambda definition - they are the concrete message types
@@ -287,37 +287,37 @@ Now that we have a client application, we need a server to connect to. Let's mov
 We will skip the the initialization of the ipcservice and its prerequisites as it is the same as on the client and we'll start with the ipcservice configuration:
 
 ```C++
-        {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
-            frame::mpipc::Configuration cfg(scheduler, proto);
+{
+    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
+    ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
 
-            cfg.server.listener_address_str = p.listener_addr;
-            cfg.server.listener_address_str += ':';
-            cfg.server.listener_address_str += p.listener_port;
+    cfg.server.listener_address_str = p.listener_addr;
+    cfg.server.listener_address_str += ':';
+    cfg.server.listener_address_str += p.listener_port;
 
-            cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
+    cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 
-            err = ipcservice.reconfigure(std::move(cfg));
+    err = ipcservice.reconfigure(std::move(cfg));
 
-            if(err){
-                cout<<"Error starting ipcservice: "<<err.message()<<endl;
-                manager.stop();
-                return 1;
-            }
-            {
-                std::ostringstream oss;
-                oss<<ipcservice.configuration().server.listenerPort();
-                cout<<"server listens on port: "<<oss.str()<<endl;
-            }
-        }
+    if(err){
+        cout<<"Error starting ipcservice: "<<err.message()<<endl;
+        manager.stop();
+        return 1;
+    }
+    {
+        std::ostringstream oss;
+        oss<<ipcservice.configuration().server.listenerPort();
+        cout<<"server listens on port: "<<oss.str()<<endl;
+    }
+}
 ```
 
 Notable is the protocol implementation:
 
 ```C++
-    ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
+ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
 ```
 
 which uses ipc_request_server::MessageSetup defined as follows:
@@ -439,24 +439,24 @@ Before moving on, lets stop for a moment on a previous statement:
 which translates to the following line of code from the request message completion callback:
 
 ```C++
-    auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
+auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
 ```
 So, a response message MUST be constructed from the request one. This is because some data from the Request message is needed to be passed to the Response. That data will be transparently serialized along with the response when sent back to the client and used on the client to identify the request message waiting for the response.
 
 As an idea, for a message that moves back and forth from client to server, because of mpipc::Message internal data, one can always know on which side a message is, by using the following methods from mpipc::Message:
 
 ```C++
-    bool isOnSender()const
-    bool isOnPeer()const;
-    bool isBackOnSender()const;
+bool isOnSender()const
+bool isOnPeer()const;
+bool isBackOnSender()const;
 ```
 
 Returning to our server, the last code block is one which keeps the server alive until user input:
 
 ```C++
-    cout<<"Press any char and ENTER to stop: ";
-    char c;
-    cin>>c;
+cout<<"Press any char and ENTER to stop: ";
+char c;
+cin>>c;
 ```
 
 ### Compile

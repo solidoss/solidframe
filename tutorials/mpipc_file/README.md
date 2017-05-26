@@ -206,50 +206,50 @@ using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, ListReque
 First off, initialize the ipcservice and its prerequisites:
 
 ```C++
-        AioSchedulerT           scheduler;
+AioSchedulerT           scheduler;
 
 
-        frame::Manager          manager;
-        frame::mpipc::ServiceT  ipcservice(manager);
+frame::Manager          manager;
+frame::mpipc::ServiceT  ipcservice(manager);
 
-        frame::aio::Resolver    resolver;
+frame::aio::Resolver    resolver;
 
-        ErrorConditionT         err;
+ErrorConditionT         err;
 
-        err = scheduler.start(1);
+err = scheduler.start(1);
 
-        if(err){
-            cout<<"Error starting aio scheduler: "<<err.message()<<endl;
-            return 1;
-        }
+if(err){
+    cout<<"Error starting aio scheduler: "<<err.message()<<endl;
+    return 1;
+}
 
-        err = resolver.start(1);
+err = resolver.start(1);
 
-        if(err){
-            cout<<"Error starting aio resolver: "<<err.message()<<endl;
-            return 1;
-        }
+if(err){
+    cout<<"Error starting aio resolver: "<<err.message()<<endl;
+    return 1;
+}
 ```
 
 Next, configure the ipcservice:
 ```C++
-        {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
-            frame::mpipc::Configuration cfg(scheduler, proto);
+{
+    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_file::ProtoSpecT::setup<ipc_file_client::MessageSetup>(*proto);
+    ipc_file::ProtoSpecT::setup<ipc_file_client::MessageSetup>(*proto);
 
-            cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
+    cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 
-            cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
+    cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 
-            err = ipcservice.reconfigure(std::move(cfg));
+    err = ipcservice.reconfigure(std::move(cfg));
 
-            if(err){
-                cout<<"Error starting ipcservice: "<<err.message()<<endl;
-                return 1;
-            }
-        }
+    if(err){
+        cout<<"Error starting ipcservice: "<<err.message()<<endl;
+        return 1;
+    }
+}
 ```
 
 The ipc_file_client::MessageSetup is defined like this:
@@ -283,108 +283,108 @@ It must be specified in the ipcservice configuration, but in our current situati
 And finally we have the command loop:
 
 ```C++
-        while(true){
-            string  line;
-            getline(cin, line);
+while(true){
+    string  line;
+    getline(cin, line);
 
-            if(line == "q" or line == "Q" or line == "quit"){
-                break;
-            }
-            {
-                string      recipient;
-                size_t      offset = line.find(' ');
-                if(offset != string::npos){
+    if(line == "q" or line == "Q" or line == "quit"){
+        break;
+    }
+    {
+        string      recipient;
+        size_t      offset = line.find(' ');
+        if(offset != string::npos){
 
-                    recipient = line.substr(0, offset);
+            recipient = line.substr(0, offset);
 
-                    std::istringstream iss(line.substr(offset + 1));
+            std::istringstream iss(line.substr(offset + 1));
 
-                    char            choice;
+            char            choice;
 
-                    iss>>choice;
+            iss>>choice;
 
-                    switch(choice){
-                        case 'l':
-                        case 'L':{
+            switch(choice){
+                case 'l':
+                case 'L':{
 
-                            std::string     path;
-                            iss>>path;
+                    std::string     path;
+                    iss>>path;
 
-                            ipcservice.sendRequest(
-                                recipient.c_str(), make_shared<ipc_file::ListRequest>(std::move(path)),
-                                [](
-                                    frame::mpipc::ConnectionContext &_rctx,
-                                    std::shared_ptr<ipc_file::ListRequest> &_rsent_msg_ptr,
-                                    std::shared_ptr<ipc_file::ListResponse> &_rrecv_msg_ptr,
-                                    ErrorConditionT const &_rerror
-                                ){
-                                    if(_rerror){
-                                        cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
-                                        return;
-                                    }
+                    ipcservice.sendRequest(
+                        recipient.c_str(), make_shared<ipc_file::ListRequest>(std::move(path)),
+                        [](
+                            frame::mpipc::ConnectionContext &_rctx,
+                            std::shared_ptr<ipc_file::ListRequest> &_rsent_msg_ptr,
+                            std::shared_ptr<ipc_file::ListResponse> &_rrecv_msg_ptr,
+                            ErrorConditionT const &_rerror
+                        ){
+                            if(_rerror){
+                                cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
+                                return;
+                            }
 
-                                    SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
+                            SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
 
-                                    cout<<"File List from "<<_rctx.recipientName()<<":"<<_rsent_msg_ptr->path<<" with "<<_rrecv_msg_ptr->node_dq.size()<<" items: {"<<endl;
+                            cout<<"File List from "<<_rctx.recipientName()<<":"<<_rsent_msg_ptr->path<<" with "<<_rrecv_msg_ptr->node_dq.size()<<" items: {"<<endl;
 
-                                    for(auto it: _rrecv_msg_ptr->node_dq){
-                                        cout<<(it.second ? 'D' : 'F')<<": "<<it.first<<endl;
-                                    }
-                                    cout<<"}"<<endl;
-                                },
-                                0
-                            );
+                            for(auto it: _rrecv_msg_ptr->node_dq){
+                                cout<<(it.second ? 'D' : 'F')<<": "<<it.first<<endl;
+                            }
+                            cout<<"}"<<endl;
+                        },
+                        0
+                    );
 
-                            break;
-                        }
-
-                        case 'c':
-                        case 'C':{
-                            std::string     remote_path, local_path;
-
-                            iss>>remote_path>>local_path;
-
-                            ipcservice.sendRequest(
-                                recipient.c_str(), make_shared<ipc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
-                                [](
-                                    frame::mpipc::ConnectionContext &_rctx,
-                                    std::shared_ptr<ipc_file::FileRequest> &_rsent_msg_ptr,
-                                    std::shared_ptr<ipc_file::FileResponse> &_rrecv_msg_ptr,
-                                    ErrorConditionT const &_rerror
-                                ){
-                                    if(_rerror){
-                                        cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
-                                        return;
-                                    }
-
-                                    SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
-                                    SOLID_CHECK(_rsent_msg_ptr->local_path == _rrecv_msg_ptr->local_path);
-                                    SOLID_CHECK(_rsent_msg_ptr->remote_path == _rrecv_msg_ptr->remote_path);
-
-                                    cout<<"Done copy from "<<_rctx.recipientName()<<":"<<_rsent_msg_ptr->remote_path<<" to "<<_rsent_msg_ptr->local_path<<": ";
-
-                                    if(_rrecv_msg_ptr->remote_file_size != InvalidSize() and _rrecv_msg_ptr->remote_file_size == stream_size(_rrecv_msg_ptr->fs)){
-                                        cout<<"Success("<<_rrecv_msg_ptr->remote_file_size<<")"<<endl;
-                                    }else if(_rrecv_msg_ptr->remote_file_size == InvalidSize()){
-                                        cout<<"Fail(no remote)"<<endl;
-                                    }else{
-                                        cout<<"Fail("<<stream_size(_rrecv_msg_ptr->fs)<<" instead of "<<_rrecv_msg_ptr->remote_file_size<<")"<<endl;
-                                    }
-                                },
-                                0
-                            );
-                            break;
-                        }
-                        default:
-                            cout<<"Unknown choice"<<endl;
-                            break;
-                    }
-
-                }else{
-                    cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
+                    break;
                 }
+
+                case 'c':
+                case 'C':{
+                    std::string     remote_path, local_path;
+
+                    iss>>remote_path>>local_path;
+
+                    ipcservice.sendRequest(
+                        recipient.c_str(), make_shared<ipc_file::FileRequest>(std::move(remote_path), std::move(local_path)),
+                        [](
+                            frame::mpipc::ConnectionContext &_rctx,
+                            std::shared_ptr<ipc_file::FileRequest> &_rsent_msg_ptr,
+                            std::shared_ptr<ipc_file::FileResponse> &_rrecv_msg_ptr,
+                            ErrorConditionT const &_rerror
+                        ){
+                            if(_rerror){
+                                cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
+                                return;
+                            }
+
+                            SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
+                            SOLID_CHECK(_rsent_msg_ptr->local_path == _rrecv_msg_ptr->local_path);
+                            SOLID_CHECK(_rsent_msg_ptr->remote_path == _rrecv_msg_ptr->remote_path);
+
+                            cout<<"Done copy from "<<_rctx.recipientName()<<":"<<_rsent_msg_ptr->remote_path<<" to "<<_rsent_msg_ptr->local_path<<": ";
+
+                            if(_rrecv_msg_ptr->remote_file_size != InvalidSize() and _rrecv_msg_ptr->remote_file_size == stream_size(_rrecv_msg_ptr->fs)){
+                                cout<<"Success("<<_rrecv_msg_ptr->remote_file_size<<")"<<endl;
+                            }else if(_rrecv_msg_ptr->remote_file_size == InvalidSize()){
+                                cout<<"Fail(no remote)"<<endl;
+                            }else{
+                                cout<<"Fail("<<stream_size(_rrecv_msg_ptr->fs)<<" instead of "<<_rrecv_msg_ptr->remote_file_size<<")"<<endl;
+                            }
+                        },
+                        0
+                    );
+                    break;
+                }
+                default:
+                    cout<<"Unknown choice"<<endl;
+                    break;
             }
+
+        }else{
+            cout<<"No recipient specified. E.g:"<<endl<<"localhost:4444 Some text to send"<<endl;
         }
+    }
+}
 ```
 
 So, in the above loop, for every line we read from the standard input:
@@ -414,37 +414,37 @@ Now that we have a client application, we need a server to connect to. Let's mov
 We will skip the the initialization of the ipcservice and its prerequisites as it is the same as on the client and we'll start with the ipcservice configuration:
 
 ```C++
-        {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
-            frame::mpipc::Configuration cfg(scheduler, proto);
+{
+    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_file::ProtoSpecT::setup<ipc_file_server::MessageSetup>(*proto);
+    ipc_file::ProtoSpecT::setup<ipc_file_server::MessageSetup>(*proto);
 
-            cfg.server.listener_address_str = p.listener_addr;
-            cfg.server.listener_address_str += ':';
-            cfg.server.listener_address_str += p.listener_port;
+    cfg.server.listener_address_str = p.listener_addr;
+    cfg.server.listener_address_str += ':';
+    cfg.server.listener_address_str += p.listener_port;
 
-            cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
+    cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 
-            err = ipcservice.reconfigure(std::move(cfg));
+    err = ipcservice.reconfigure(std::move(cfg));
 
-            if(err){
-                cout<<"Error starting ipcservice: "<<err.message()<<endl;
-                manager.stop();
-                return 1;
-            }
-            {
-                std::ostringstream oss;
-                oss<<ipcservice.configuration().server.listenerPort();
-                cout<<"server listens on port: "<<oss.str()<<endl;
-            }
-        }
+    if(err){
+        cout<<"Error starting ipcservice: "<<err.message()<<endl;
+        manager.stop();
+        return 1;
+    }
+    {
+        std::ostringstream oss;
+        oss<<ipcservice.configuration().server.listenerPort();
+        cout<<"server listens on port: "<<oss.str()<<endl;
+    }
+}
 ```
 
 Notable is the protocol implementation:
 
 ```C++
-    ipc_file::ProtoSpecT::setup<ipc_file_server::MessageSetup>(*proto);
+ipc_file::ProtoSpecT::setup<ipc_file_server::MessageSetup>(*proto);
 ```
 
 which uses ipc_file_server::MessageSetup defined as follows:
@@ -559,9 +559,9 @@ For the FileRequest, things are simpler:
 Finally returning to our server's main function, the last code block is one which keeps the server alive until user input:
 
 ```C++
-    cout<<"Press any char and ENTER to stop: ";
-    char c;
-    cin>>c;
+cout<<"Press any char and ENTER to stop: ";
+char c;
+cin>>c;
 ```
 ### Compile
 

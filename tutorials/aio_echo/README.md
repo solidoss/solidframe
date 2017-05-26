@@ -134,47 +134,47 @@ service.notifyAll(generic_event_stop);
 Now, let us go back to the code, instantiate the above objects and start the scheduler with a single running thread:
 
 ```C++
-    AioSchedulerT       scheduler;
+AioSchedulerT       scheduler;
 
 
-    frame::Manager      manager;
-    frame::ServiceT     service(manager);
+frame::Manager      manager;
+frame::ServiceT     service(manager);
 
-    if(scheduler.start(1/*a single thread*/)){
-        cout<<"Error starting scheduler"<<endl;
-        return 0;
-    }
+if(scheduler.start(1/*a single thread*/)){
+    cout<<"Error starting scheduler"<<endl;
+    return 0;
+}
 ```
 
 Next we will instantiate and start a Listener (which is a solid::frame::aio::Object):
 
 ```C++
-    {
-        ResolveData     rd =  synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-        SocketDevice    sd;
+{
+    ResolveData     rd = synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+    SocketDevice    sd;
 
-        sd.create(rd.begin());
-        sd.prepareAccept(rd.begin(), 2000);
+    sd.create(rd.begin());
+    sd.prepareAccept(rd.begin(), 2000);
 
-        if(sd.ok()){
+    if(sd.ok()){
 
-            {
-                SocketAddress   sa;
-                sd.localAddress(sa);
-                cout<<"Listening for TCP connections on port: "<<sa<<endl;
-            }
-
-            DynamicPointer<frame::aio::Object>  objptr(new Listener(service, scheduler, std::move(sd)));
-            solid::ErrorConditionT              error;
-            solid::frame::ObjectIdT             objuid;
-
-            objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
-            (void)objuid;
-        }else{
-            cout<<"Error creating listener socket"<<endl;
-            return 0;
+        {
+            SocketAddress   sa;
+            sd.localAddress(sa);
+            cout<<"Listening for TCP connections on port: "<<sa<<endl;
         }
+
+        DynamicPointer<frame::aio::Object>  objptr(new Listener(service, scheduler, std::move(sd)));
+        solid::ErrorConditionT              error;
+        solid::frame::ObjectIdT             objuid;
+
+        objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
+        (void)objuid;
+    }else{
+        cout<<"Error creating listener socket"<<endl;
+        return 0;
     }
+}
 ```
 
 In the first four lines of the above code we prepare a socket device for listening for new connections. Then, if the socket device is OK we go on and print the local address of the socket then we instantiate a Listener object. The listener object will need:
@@ -189,7 +189,7 @@ After the Listener object is created it must be _atomically_:
 This is done in the line:
 
 ```C++
-    objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
+objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
 ```
 
 The startObject method parameters are:
@@ -200,41 +200,41 @@ The startObject method parameters are:
 As you will soon see in the declaration of Listener class, every solid::frame::aio::Object must override the onEvent method to handle the notification events sent to the object:
 
 ```C++
-    void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
+void onEvent(frame::aio::ReactorContext &_rctx, Event &&_revent) override;
 ```
 
 Now, lets get back to the main function and instantiate a Talker (a UDP socket) with a code block similar to that for Listener:
 
 ```C++
-    {
-        ResolveData     rd =  synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-        SocketDevice    sd;
+{
+    ResolveData     rd = synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+    SocketDevice    sd;
 
-        sd.create(rd.begin());
-        sd.bind(rd.begin());
+    sd.create(rd.begin());
+    sd.bind(rd.begin());
 
-        if(sd.ok()){
+    if(sd.ok()){
 
-            {
-                SocketAddress   sa;
-                sd.localAddress(sa);
-                cout<<"Listening for UDP datagrams on port: "<<sa<<endl;
-            }
-
-            DynamicPointer<frame::aio::Object>  objptr(new Talker(std::move(sd)));
-
-            solid::ErrorConditionT              error;
-            solid::frame::ObjectIdT             objuid;
-
-            objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
-
-            (void)objuid;
-
-        }else{
-            cout<<"Error creating talker socket"<<endl;
-            return 0;
+        {
+            SocketAddress   sa;
+            sd.localAddress(sa);
+            cout<<"Listening for UDP datagrams on port: "<<sa<<endl;
         }
+
+        DynamicPointer<frame::aio::Object>  objptr(new Talker(std::move(sd)));
+
+        solid::ErrorConditionT              error;
+        solid::frame::ObjectIdT             objuid;
+
+        objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start), error);
+
+        (void)objuid;
+
+    }else{
+        cout<<"Error creating talker socket"<<endl;
+        return 0;
     }
+}
 ```
 
 We'll get to the declarations for Listener and Talker below but for now lets finish with the main function by waiting for user input to terminate the application:
