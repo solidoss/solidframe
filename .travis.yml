@@ -4,6 +4,12 @@ compiler:
  - clang
 os:
  - linux
+addons:
+  apt:
+    sources:
+      kalakris-cmake
+    packages:
+      - cmake
 script:
  - ./configure && cd build/release && make Experimental
 
