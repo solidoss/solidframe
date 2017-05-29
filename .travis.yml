@@ -6,6 +6,6 @@ os:
  - linux
 dist: trusty
 script:
- - ./configure && cd build/release && make Experimental
+ - ./configure && cd build/release && make
 
 
