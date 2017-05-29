@@ -38,7 +38,7 @@ public:
     uint32_t read(
         const char*                _pbuf,
         uint32_t                   _bufsz,
-        CompleteFunctionT&         _complete_fnc,
+        const CompleteFunctionT&   _complete_fnc,
         ReaderConfiguration const& _rconfig,
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,
@@ -51,7 +51,7 @@ private:
     void doConsumePacket(
         const char*                _pbuf,
         PacketHeader const&        _packet_header,
-        CompleteFunctionT&         _complete_fnc,
+        const CompleteFunctionT&   _complete_fnc,
         ReaderConfiguration const& _rconfig,
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,
@@ -64,6 +64,12 @@ private:
     };
 
     struct MessageStub {
+        MessagePointerT      message_ptr;
+        DeserializerPointerT deserializer_ptr;
+        size_t               packet_count;
+        MessageHeader        message_header;
+        bool                 is_reading_message_header;
+        
         MessageStub(
             MessagePointerT& _rmsgptr,
             ulong            _flags)
@@ -84,12 +90,6 @@ private:
             deserializer_ptr = nullptr;
             message_ptr.reset();
         }
-
-        MessagePointerT      message_ptr;
-        DeserializerPointerT deserializer_ptr;
-        size_t               packet_count;
-        MessageHeader        message_header;
-        bool                 is_reading_message_header;
     };
 
     typedef Queue<MessageStub> MessageQueueT;

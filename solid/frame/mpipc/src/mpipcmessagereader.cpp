@@ -42,7 +42,7 @@ void MessageReader::unprepare()
 uint32_t MessageReader::read(
     const char*                _pbuf,
     uint32_t                   _bufsz,
-    CompleteFunctionT&         _complete_fnc,
+    const CompleteFunctionT&   _complete_fnc,
     ReaderConfiguration const& _rconfig,
     Protocol const&            _rproto,
     ConnectionContext&         _rctx,
@@ -109,7 +109,7 @@ uint32_t MessageReader::read(
 void MessageReader::doConsumePacket(
     const char*                _pbuf,
     PacketHeader const&        _packet_header,
-    CompleteFunctionT&         _complete_fnc,
+    const CompleteFunctionT&   _complete_fnc,
     ReaderConfiguration const& _rconfig,
     Protocol const&            _rproto,
     ConnectionContext&         _rctx,
@@ -223,7 +223,7 @@ void MessageReader::doConsumePacket(
 
             MessageStub& rmsgstub                            = message_q.front();
             const bool   is_currently_reading_message_header = rmsgstub.is_reading_message_header;
-            uint16_t     message_size;
+            uint16_t     message_size = 0;
 
             if (static_cast<size_t>(pbufend - pbufpos) >= sizeof(uint16_t)) {
                 pbufpos = _rproto.loadValue(pbufpos, message_size);

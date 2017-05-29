@@ -220,12 +220,7 @@ class Connection;
 struct Configuration;
 
 struct ConnectionProxy {
-    //ConnectionProxy(const ConnectionProxy&) = delete;
-    //ConnectionProxy(ConnectionProxy&&) = delete;
-
     ConnectionProxy& operator=(const ConnectionProxy&) = delete;
-    //ConnectionProxy& operator=(ConnectionProxy&&) = delete;
-
 private:
     friend class SocketStub;
     ConnectionProxy() {}
