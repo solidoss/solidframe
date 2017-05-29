@@ -76,7 +76,7 @@ void StoreBase::Accessor::notify()
 
 StoreBase::StoreBase(
     Manager& _rm)
-    : impl(std::make_unique<Data>(_rm))
+    : impl(make_pimpl<Data>(_rm))
 {
 }
 

@@ -409,7 +409,7 @@ Manager::Manager(
     const size_t _objmtxcnt /* = 0*/,
     const size_t _objbucketsize /* = 0*/
     )
-    : impl(std::make_unique<Data>(*this))
+    : impl(make_pimpl<Data>(*this))
 {
     vdbgx(Debug::frame, "" << this);
 

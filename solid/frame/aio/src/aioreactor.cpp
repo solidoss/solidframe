@@ -482,7 +482,7 @@ Reactor::Reactor(
     SchedulerBase& _rsched,
     const size_t   _idx)
     : ReactorBase(_rsched, _idx)
-    , impl(std::make_unique<Data>())
+    , impl(make_pimpl<Data>())
 {
     vdbgx(Debug::aio, "");
 }

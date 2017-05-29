@@ -927,7 +927,7 @@ bool Debug::isSet(Level _lvl, unsigned _v) const
     return (impl->lvlmsk & _lvl) && _v < impl->bs.size() && impl->bs[_v] && impl->modvec[_v].lvlmsk & _lvl;
 }
 Debug::Debug()
-    : impl(std::make_unique<Data>())
+    : impl(make_pimpl<Data>())
 {
     resetAllModuleBits();
     levelMask();

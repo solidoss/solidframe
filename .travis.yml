@@ -4,7 +4,7 @@ compiler:
  - clang
 os:
  - linux
-dist: xenial
+dist: trusty
 script:
  - ./configure && cd build/release && make
 
