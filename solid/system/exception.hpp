@@ -44,7 +44,7 @@ struct LogicError: std::logic_error{
 
 #define SOLID_THROW(x) \
     throw solid::LogicError(\
-        [](const char* _file, int _line, const char *_fnc){\
+        [&](const char* _file, int _line, const char *_fnc){\
             std::ostringstream os; os<<'['<<_file <<'('<<_line<< ")][" << _fnc << "] " << x; return os.str();\
         }, __FILE__, __LINE__, CRT_FUNCTION_NAME\
     )
