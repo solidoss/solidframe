@@ -331,7 +331,7 @@ size_t Utf8Controller::Data::findFileStorage(std::string const& _path)
 Utf8Controller::Utf8Controller(
     const Utf8Configuration& _rfilecfg,
     const TempConfiguration& _rtempcfg)
-    : impl(std::make_unique<Data>(_rfilecfg, _rtempcfg))
+    : impl(make_pimpl<Data>(_rfilecfg, _rtempcfg))
 {
 
     impl->prepareFile();

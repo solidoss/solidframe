@@ -17,4 +17,10 @@ namespace solid {
 template <typename T>
 using PimplT = const std::unique_ptr<T>;
 
+template<typename T, typename... Args>
+std::unique_ptr<T> make_pimpl(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
 } //namespace solid

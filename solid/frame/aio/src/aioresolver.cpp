@@ -57,7 +57,7 @@ struct Resolver::Data {
 }
 
 Resolver::Resolver(size_t _thrcnt)
-    : impl(std::make_unique<Data>(_thrcnt))
+    : impl(make_pimpl<Data>(_thrcnt))
 {
 
     if (_thrcnt == 0) {

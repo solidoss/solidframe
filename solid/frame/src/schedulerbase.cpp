@@ -153,7 +153,7 @@ struct SchedulerBase::Data {
 };
 
 SchedulerBase::SchedulerBase()
-    : impl(std::make_unique<Data>())
+    : impl(make_pimpl<Data>())
 {
 }
 

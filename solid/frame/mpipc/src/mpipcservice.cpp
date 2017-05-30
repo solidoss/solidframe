@@ -594,7 +594,7 @@ struct Service::Data {
 Service::Service(
     UseServiceShell _force_shell)
     : BaseT(_force_shell)
-    , impl(std::make_unique<Data>(*this))
+    , impl(make_pimpl<Data>(*this))
 {
 }
 
