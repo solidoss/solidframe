@@ -21,7 +21,7 @@
 struct solid_oss_str {
 };
 
-inline std::string operator>>(std::ostream& _ros, const solid_oss_str&)
+inline std::string operator<<(std::ostream& _ros, const solid_oss_str&)
 {
     return static_cast<std::ostringstream&>(_ros).str();
 }
@@ -37,7 +37,7 @@ namespace solid {
 #endif
 
 #define SOLID_THROW(x) \
-    throw std::logic_error(std::ostringstream() << "[" __FILE__ "(" << __LINE__ << ")][" << CRT_FUNCTION_NAME << "] " << x >> solid_oss_str())
+    throw std::logic_error(std::ostringstream() << "[" __FILE__ "(" << __LINE__ << ")][" << CRT_FUNCTION_NAME << "] " << x << solid_oss_str())
 
 
 //#define SOLID_THROW(x) \
