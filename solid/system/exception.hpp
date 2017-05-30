@@ -18,6 +18,14 @@
 #include <sstream>
 #include <string>
 
+struct solid_oss_str {
+};
+
+inline std::string operator>>(std::ostream& _ros, const solid_oss_str&)
+{
+    return static_cast<std::ostringstream&>(_ros).str();
+}
+
 namespace solid {
 
 #ifndef CRT_FUNCTION_NAME
@@ -28,16 +36,12 @@ namespace solid {
 #endif
 #endif
 
-struct oss_str {
-};
-
-inline std::string operator>>(std::ostream& _ros, const oss_str&)
-{
-    return static_cast<std::ostringstream&>(_ros).str();
-}
-
 #define SOLID_THROW(x) \
-    throw std::logic_error(std::ostringstream() << "[" __FILE__ "(" << __LINE__ << ")][" << CRT_FUNCTION_NAME << "] " << x >> oss_str())
+    throw std::logic_error(std::ostringstream() << "[" __FILE__ "(" << __LINE__ << ")][" << CRT_FUNCTION_NAME << "] " << x >> solid_oss_str())
+
+
+//#define SOLID_THROW(x) \
+//    throw std::logic_error(std::ostringstream() << "[" __FILE__ "(" << __LINE__ << ")][" << CRT_FUNCTION_NAME << "] " << x >> oss_str())
 
 //adapted from https://github.com/Microsoft/GSL/blob/master/include/gsl/gsl_assert
 #if defined(__clang__) || defined(__GNUC__)
