@@ -4,6 +4,7 @@ set( MyTests
     test_file.cpp
     test_socket.cpp
     test_nanotime.cpp
+    test_exception.cpp
 )
 
 create_test_sourcelist( Tests system_test.cpp ${MyTests})
@@ -27,4 +28,7 @@ target_link_libraries(system_test solid_system)
 
 add_test( NanoTimeTest system_test
     test_nanotime
+)
+add_test( NanoTimeTest system_test
+    test_exception "some super text"
 )
