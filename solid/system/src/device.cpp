@@ -736,12 +736,18 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
 
 ErrorCodeT SocketDevice::accept(SocketDevice& _dev, bool& _rcan_retry)
 {
-#ifdef SOLID_ON_WINDOWS
+#if defined(SOLID_ON_WINDOWS)
     SocketAddress sa;
     const SOCKET  rv = ::accept(descriptor(), sa, &sa.sz);
     _rcan_retry      = (WSAGetLastError() == WSAEWOULDBLOCK);
     _dev.Device::descriptor((HANDLE)rv);
     return last_socket_error();
+#elif defined(SOLID_ON_DARWIN)
+    const int rv = ::accept(descriptor(), nullptr, nullptr);
+    _rcan_retry  = (errno == EAGAIN || errno == ENETDOWN || errno == EPROTO || errno == ENOPROTOOPT || errno == EHOSTDOWN || errno == EHOSTUNREACH || errno == EOPNOTSUPP || errno == ENETUNREACH);
+    _dev.Device::descriptor(rv);
+
+    return rv > 0 ? ErrorCodeT() : last_socket_error();
 #else
     const int rv = ::accept(descriptor(), nullptr, nullptr);
     _rcan_retry  = (errno == EAGAIN || errno == ENETDOWN || errno == EPROTO || errno == ENOPROTOOPT || errno == EHOSTDOWN || errno == ENONET || errno == EHOSTUNREACH || errno == EOPNOTSUPP || errno == ENETUNREACH);
