@@ -15,6 +15,7 @@
 #include <typeinfo>
 
 #include "solid/frame/common.hpp"
+#include "solid/frame/objectbase.hpp"
 #include "solid/frame/schedulerbase.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/function.hpp"
