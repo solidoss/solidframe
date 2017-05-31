@@ -8,6 +8,6 @@ matrix:
       osx_image: xcode8.3
 
 script:
- - ./configure && cd build/release && make
+ - ./configure && cd build/release && make Experimental
 
 
