@@ -1249,7 +1249,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
 #elif defined(SOLID_USE_KQUEUE)
     struct kevent ev[2];
 
-    if (_rsd.ok()) {
+    if (_rsd) {
         EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, EV_DELETE, 0, 0, 0);
         EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, EV_DELETE, 0, 0, 0);
         if (kevent(impl->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
