@@ -1,4 +1,5 @@
 # SolidFrame
+[![Build Status](https://travis-ci.org/vipalade/solidframe.svg?branch=mpipc_relay)](https://travis-ci.org/vipalade/solidframe)
 
 Cross-platform C++ framework for scalable, asynchronous, distributed applications.
 
