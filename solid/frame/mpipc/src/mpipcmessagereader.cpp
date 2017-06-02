@@ -223,7 +223,7 @@ void MessageReader::doConsumePacket(
 
             MessageStub& rmsgstub                            = message_q.front();
             const bool   is_currently_reading_message_header = rmsgstub.is_reading_message_header;
-            uint16_t     message_size = 0;
+            uint16_t     message_size                        = 0;
 
             if (static_cast<size_t>(pbufend - pbufpos) >= sizeof(uint16_t)) {
                 pbufpos = _rproto.loadValue(pbufpos, message_size);

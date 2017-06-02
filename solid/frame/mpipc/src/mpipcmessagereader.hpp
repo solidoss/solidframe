@@ -69,7 +69,7 @@ private:
         size_t               packet_count;
         MessageHeader        message_header;
         bool                 is_reading_message_header;
-        
+
         MessageStub(
             MessagePointerT& _rmsgptr,
             ulong            _flags)

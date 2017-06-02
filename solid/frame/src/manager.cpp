@@ -22,8 +22,8 @@
 #include "solid/system/memory.hpp"
 #include <atomic>
 
-#include "solid/frame/objectbase.hpp"
 #include "solid/frame/manager.hpp"
+#include "solid/frame/objectbase.hpp"
 #include "solid/frame/reactorbase.hpp"
 #include "solid/frame/service.hpp"
 

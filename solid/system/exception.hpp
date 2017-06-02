@@ -20,7 +20,7 @@
 
 // struct solid_oss_str {
 // };
-// 
+//
 // inline std::string operator<<(std::ostream& _ros, const solid_oss_str&)
 // {
 //     return static_cast<std::ostringstream&>(_ros).str();
@@ -36,19 +36,22 @@ namespace solid {
 #endif
 #endif
 
-struct LogicError: std::logic_error{
+struct LogicError : std::logic_error {
     template <typename F>
-    LogicError(const F &_rf, const char *_file, int _line, const char *_fnc):std::logic_error(_rf(_file, _line, _fnc)){}
-    
+    LogicError(const F& _rf, const char* _file, int _line, const char* _fnc)
+        : std::logic_error(_rf(_file, _line, _fnc))
+    {
+    }
 };
 
-#define SOLID_THROW(x) \
-    throw solid::LogicError(\
-        [&](const char* _file, int _line, const char *_fnc){\
-            std::ostringstream os; os<<'['<<_file <<'('<<_line<< ")][" << _fnc << "] " << x; return os.str();\
-        }, __FILE__, __LINE__, CRT_FUNCTION_NAME\
-    )
-
+#define SOLID_THROW(x)                                                        \
+    throw solid::LogicError(                                                  \
+        [&](const char* _file, int _line, const char* _fnc) {                 \
+            std::ostringstream os;                                            \
+            os << '[' << _file << '(' << _line << ")][" << _fnc << "] " << x; \
+            return os.str();                                                  \
+        },                                                                    \
+        __FILE__, __LINE__, CRT_FUNCTION_NAME)
 
 //adapted from https://github.com/Microsoft/GSL/blob/master/include/gsl/gsl_assert
 #if defined(__clang__) || defined(__GNUC__)
@@ -71,7 +74,8 @@ struct LogicError: std::logic_error{
     GET_3RD_ARG(__VA_ARGS__, SOLID_CHECK2, \
         SOLID_CHECK1, )
 
-#define SOLID_CHECK(...) SOLID_CHECK_MACRO_CHOOSER(__VA_ARGS__) \
-(__VA_ARGS__)
+#define SOLID_CHECK(...)                   \
+    SOLID_CHECK_MACRO_CHOOSER(__VA_ARGS__) \
+    (__VA_ARGS__)
 
 } //namespace solid

@@ -39,7 +39,7 @@ class ReactorBase;
 
 struct ServiceStub;
 
-class Manager {
+class Manager final {
 public:
     class VisitContext {
         friend class Manager;
@@ -128,11 +128,6 @@ public:
 
     Service& service(const ObjectBase& _robj) const;
 
-protected:
-    size_t serviceCount() const;
-    static const std::type_info& doGetTypeId(const ObjectBase& _robj){
-        return typeid(_robj);
-    }
 private:
     friend class Service;
     friend class ObjectBase;
@@ -140,8 +135,14 @@ private:
     friend class SchedulerBase;
     friend class Manager::VisitContext;
 
-    //typedef SOLID_FUNCTION<bool(VisitContext&)> ObjectVisitFunctionT;
     using ObjectVisitFunctionT = Delegate<bool(VisitContext&)>;
+
+    size_t serviceCount() const;
+
+    static const std::type_info& doGetTypeId(const ObjectBase& _robj)
+    {
+        return typeid(_robj);
+    }
 
     static bool notify_object(
         ObjectBase& _robj, ReactorBase& _rreact,

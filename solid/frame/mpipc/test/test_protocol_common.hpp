@@ -20,11 +20,13 @@ public:
         static ConnectionContext conctx(rsvc, rcon);
         return conctx;
     }
-    static Connection* createConnection(){
-	    return nullptr;
+    static Connection* createConnection()
+    {
+        return nullptr;
     }
-    static Service* createService(){
-           return nullptr;
+    static Service* createService()
+    {
+        return nullptr;
     }
 };
 

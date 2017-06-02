@@ -173,11 +173,12 @@ template <size_t DataSize>
 class Any : public AnyBase {
     template <size_t DS>
     friend class Any;
-    
-    static bool canCast(const impl::AnyValueBase &_rv, const std::type_info& _req_type){
+
+    static bool canCast(const impl::AnyValueBase& _rv, const std::type_info& _req_type)
+    {
         return std::type_index(_req_type) == std::type_index(typeid(_rv));
     }
-    
+
 public:
     using ThisT = Any<DataSize>;
 
@@ -220,7 +221,7 @@ public:
     {
         clear();
     }
-    
+
     template <typename T>
     T* cast()
     {
@@ -232,8 +233,6 @@ public:
         }
         return nullptr;
     }
-    
-    
 
     template <typename T>
     const T* cast() const

@@ -45,8 +45,8 @@ protected:
     ObjectBase();
 
     void unregister(Manager& _rm);
-    bool         isRegistered() const;
-    
+    bool isRegistered() const;
+
     virtual void onStop(Manager& _rm);
 
     bool disableVisits(Manager& _rm);

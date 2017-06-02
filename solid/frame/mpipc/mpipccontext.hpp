@@ -221,6 +221,7 @@ struct Configuration;
 
 struct ConnectionProxy {
     ConnectionProxy& operator=(const ConnectionProxy&) = delete;
+
 private:
     friend class SocketStub;
     ConnectionProxy() {}
