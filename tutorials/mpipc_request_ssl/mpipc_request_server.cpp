@@ -265,7 +265,7 @@ void complete_message<ipc_request::Request>(
             _rrecv_msg_ptr->key->visit(v);
 
             if (v.retval) {
-                msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad))));
+                msgptr->user_data_map.insert(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad)));
             }
         }
     }

@@ -130,7 +130,7 @@ public:
 
 private:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
-    void doStop(frame::Manager& _rm) override
+    void onStop(frame::Manager& _rm) override
     {
         unique_lock<mutex> lock(mtx);
         --concnt;

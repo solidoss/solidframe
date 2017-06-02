@@ -160,7 +160,7 @@ void complete_message(
             frame::mpipc::MessageId     pool_msg_id;
 
             msgbundle.message_flags   = initarray[crtwriteidx % initarraysize].flags;
-            msgbundle.message_ptr     = std::move(frame::mpipc::MessagePointerT(new Message(crtwriteidx)));
+            msgbundle.message_ptr     = frame::mpipc::MessagePointerT(new Message(crtwriteidx));
             msgbundle.message_type_id = ctx.mpipcprotocol->typeIndex(msgbundle.message_ptr.get());
 
             bool rv = ctx.mpipcmsgwriter->enqueue(
@@ -228,7 +228,7 @@ int test_protocol_synchronous(int argc, char** argv)
         frame::mpipc::MessageId     pool_msg_id;
 
         msgbundle.message_flags   = initarray[crtwriteidx % initarraysize].flags;
-        msgbundle.message_ptr     = std::move(frame::mpipc::MessagePointerT(new Message(crtwriteidx)));
+        msgbundle.message_ptr     = frame::mpipc::MessagePointerT(new Message(crtwriteidx));
         msgbundle.message_type_id = ctx.mpipcprotocol->typeIndex(msgbundle.message_ptr.get());
 
         bool rv = mpipcmsgwriter.enqueue(

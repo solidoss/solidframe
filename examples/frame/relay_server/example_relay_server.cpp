@@ -161,7 +161,7 @@ public:
     ~Connection() {}
 protected:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
-    void doStop(frame::Manager& _rm) override;
+    void onStop(frame::Manager& _rm) override;
 
     static void onRecvSock1(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void onRecvSock2(frame::aio::ReactorContext& _rctx, size_t _sz);
@@ -471,7 +471,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     }
 }
 
-/*virtual*/ void Connection::doStop(frame::Manager& _rm)
+/*virtual*/ void Connection::onStop(frame::Manager& _rm)
 {
     connection_unregister(crtid);
 }

@@ -112,12 +112,12 @@ ObjectBase::~ObjectBase()
 {
 }
 
-/*virtual*/ void ObjectBase::doStop(Manager& _rm)
+/*virtual*/ void ObjectBase::onStop(Manager& _rm)
 {
 }
 void ObjectBase::stop(Manager& _rm)
 {
-    doStop(_rm);
+    onStop(_rm);
     unregister(_rm);
 }
 

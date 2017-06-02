@@ -88,7 +88,7 @@ typedef std::atomic<size_t> AtomicSizeT;
 
 /*static*/ size_t DynamicBase::generateId()
 {
-    static AtomicSizeT u(ATOMIC_VAR_INIT(0));
+    static AtomicSizeT u{0};
     return u.fetch_add(1 /*, std::memory_order_seq_cst*/);
 }
 

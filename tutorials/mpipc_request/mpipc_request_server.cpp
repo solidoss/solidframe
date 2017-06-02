@@ -102,7 +102,7 @@ void complete_message<ipc_request::Request>(
 
     for (const auto& ad : account_dq) {
         if (std::regex_match(ad.userid, userid_regex)) {
-            msgptr->user_data_map.insert(std::move(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad))));
+            msgptr->user_data_map.insert(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad)));
         }
     }
 

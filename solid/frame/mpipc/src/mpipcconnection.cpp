@@ -261,7 +261,7 @@ Connection::Connection(
     , send_buf(nullptr)
     , recv_buf_cp_kb(0)
     , send_buf_cp_kb(0)
-    , sock_ptr(std::move(_rconfiguration.client.connection_create_socket_fnc(_rconfiguration, this->proxy(), this->socket_emplace_buf)))
+    , sock_ptr(_rconfiguration.client.connection_create_socket_fnc(_rconfiguration, this->proxy(), this->socket_emplace_buf))
 {
     idbgx(Debug::mpipc, this);
 }
@@ -282,7 +282,7 @@ Connection::Connection(
     , send_buf(nullptr)
     , recv_buf_cp_kb(0)
     , send_buf_cp_kb(0)
-    , sock_ptr(std::move(_rconfiguration.server.connection_create_socket_fnc(_rconfiguration, this->proxy(), std::move(_rsd), this->socket_emplace_buf)))
+    , sock_ptr(_rconfiguration.server.connection_create_socket_fnc(_rconfiguration, this->proxy(), std::move(_rsd), this->socket_emplace_buf))
 {
     idbgx(Debug::mpipc, this << " (" << local_address(sock_ptr->device()) << ") -> (" << remote_address(sock_ptr->device()) << ')');
 }

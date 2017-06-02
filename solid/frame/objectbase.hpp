@@ -46,7 +46,8 @@ protected:
 
     void unregister(Manager& _rm);
     bool         isRegistered() const;
-    virtual void doStop(Manager& _rm);
+    
+    virtual void onStop(Manager& _rm);
 
     bool disableVisits(Manager& _rm);
 

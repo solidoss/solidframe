@@ -43,7 +43,7 @@ struct InitStub {
 InitStub initarray[] = {
     {18192000, 0},
     {16384000, 0},
-    {26384000, 0},
+    {263840000, 0},
     {16384000, 0},
     {8192000, 0}};
 
@@ -112,6 +112,7 @@ struct Message : frame::mpipc::Message {
             if (!start_sleep) {
                 start_sleep = true;
                 cnd.notify_one();
+                std::this_thread::yield();
                 return;
             }
         }

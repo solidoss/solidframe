@@ -121,7 +121,7 @@ public:
     ~Connection() {}
 protected:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
-    void doStop(frame::Manager& _rm) override
+    void onStop(frame::Manager& _rm) override
     {
         _rm.notify(peer_objuid, Event(generic_event_kill));
     }

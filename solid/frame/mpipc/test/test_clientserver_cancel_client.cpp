@@ -74,8 +74,8 @@ const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
 
 std::atomic<size_t> crtwriteidx(0);
 std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
+//std::atomic<size_t> crtbackidx(0);
+//std::atomic<size_t> crtackidx(0);
 std::atomic<size_t> writecount(0);
 
 size_t connection_count(0);

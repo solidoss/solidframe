@@ -210,7 +210,7 @@ protected:
     }
 
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
-    void doStop(frame::Manager& _rm) override
+    void onStop(frame::Manager& _rm) override
     {
         _rm.notify(peer_objuid_, Event(generic_event_kill));
     }
@@ -558,7 +558,7 @@ struct ResolvFunc {
     if (!_rctx.error()) {
         idbg(&rthis << " SUCCESS");
 
-        Event ev(make_event(GenericEvents::Message, std::move(_rctx.manager().id(rthis))));
+        Event ev(make_event(GenericEvents::Message, _rctx.manager().id(rthis)));
 
         idbg(&rthis << " send resolv_message");
         if (_rctx.manager().notify(rthis.peer_objuid_, std::move(ev))) {
