@@ -742,7 +742,7 @@ ErrorCodeT SocketDevice::accept(SocketDevice& _dev, bool& _rcan_retry)
     _rcan_retry      = (WSAGetLastError() == WSAEWOULDBLOCK);
     _dev.Device::descriptor((HANDLE)rv);
     return last_socket_error();
-#elif defined(SOLID_ON_DARWIN)
+#elif defined(SOLID_ON_DARWIN) || defined(SOLID_ON_FREEBSD)
     const int rv = ::accept(descriptor(), nullptr, nullptr);
     _rcan_retry  = (errno == EAGAIN || errno == ENETDOWN || errno == EPROTO || errno == ENOPROTOOPT || errno == EHOSTDOWN || errno == EHOSTUNREACH || errno == EOPNOTSUPP || errno == ENETUNREACH);
     _dev.Device::descriptor(rv);
