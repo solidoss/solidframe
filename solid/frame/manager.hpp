@@ -113,7 +113,7 @@ public:
     {
         auto visit_lambda = [&_f](VisitContext& _rctx) {
             const std::type_info& req_type = typeid(T);
-            const std::type_info& val_type = typeid(*(&_rctx.object()));
+            const std::type_info& val_type = doGetTypeId(*(&_rctx.object()));
 
             if (std::type_index(req_type) == std::type_index(val_type)) {
                 return _f(_rctx, static_cast<T&>(_rctx.object()));
@@ -130,7 +130,9 @@ public:
 
 protected:
     size_t serviceCount() const;
-
+    static const std::type_info& doGetTypeId(const ObjectBase& _robj){
+        return typeid(_robj);
+    }
 private:
     friend class Service;
     friend class ObjectBase;

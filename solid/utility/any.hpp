@@ -139,7 +139,7 @@ protected:
     {
     }
 
-    impl::AnyValueBase* doMoveFrom(AnyBase& _ranybase, void* _pv, const size_t _sz, const bool _uses_data)
+    static impl::AnyValueBase* doMoveFrom(AnyBase& _ranybase, void* _pv, const size_t _sz, const bool _uses_data)
     {
         impl::AnyValueBase* rv = nullptr;
 
@@ -150,7 +150,7 @@ protected:
         return rv;
     }
 
-    impl::AnyValueBase* doCopyFrom(const AnyBase& _ranybase, void* _pv, const size_t _sz)
+    static impl::AnyValueBase* doCopyFrom(const AnyBase& _ranybase, void* _pv, const size_t _sz)
     {
         if (_ranybase.pvalue_) {
             return _ranybase.pvalue_->copyTo(_pv, _sz);
@@ -173,7 +173,11 @@ template <size_t DataSize>
 class Any : public AnyBase {
     template <size_t DS>
     friend class Any;
-
+    
+    static bool canCast(const impl::AnyValueBase &_rv, const std::type_info& _req_type){
+        return std::type_index(_req_type) == std::type_index(typeid(_rv));
+    }
+    
 public:
     using ThisT = Any<DataSize>;
 
@@ -216,27 +220,27 @@ public:
     {
         clear();
     }
-
+    
     template <typename T>
     T* cast()
     {
         if (pvalue_) {
             const std::type_info& req_type = typeid(impl::AnyValue<T>);
-            const std::type_info& val_type = typeid(*pvalue_);
-            if (std::type_index(req_type) == std::type_index(val_type)) {
+            if (canCast(*pvalue_, req_type)) {
                 return reinterpret_cast<T*>(pvalue_->get());
             }
         }
         return nullptr;
     }
+    
+    
 
     template <typename T>
     const T* cast() const
     {
         if (pvalue_) {
             const std::type_info& req_type = typeid(impl::AnyValue<T>);
-            const std::type_info& val_type = typeid(*pvalue_);
-            if (std::type_index(req_type) == std::type_index(val_type)) {
+            if (canCast(*pvalue_, req_type)) {
                 return reinterpret_cast<const T*>(pvalue_->get());
             }
         }

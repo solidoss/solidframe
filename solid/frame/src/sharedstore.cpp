@@ -51,7 +51,7 @@ struct StoreBase::Data {
     Data(
         Manager& _rm)
         : rm(_rm)
-        , objmaxcnt(ATOMIC_VAR_INIT(0))
+        , objmaxcnt{0}
     {
         pfillerasevec = &erasevec[0];
         pconserasevec = &erasevec[1];

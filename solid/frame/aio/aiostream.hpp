@@ -448,7 +448,7 @@ public:
                 bool can_retry;
                 bool rv = s.connect(_rsas, can_retry, err);
                 if (rv) {
-
+                    doCheckConnect(_rctx);
                 } else if (can_retry) {
                     send_fnc = ConnectFunctor<F>{_f};
                     return false;
