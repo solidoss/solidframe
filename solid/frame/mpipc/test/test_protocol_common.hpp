@@ -15,10 +15,16 @@ class TestEntryway {
 public:
     static ConnectionContext& createContext()
     {
-        Connection&              rcon = *static_cast<Connection*>(nullptr);
-        Service&                 rsvc = *static_cast<Service*>(nullptr);
+        Connection&              rcon = *createConnection();
+        Service&                 rsvc = *createService();
         static ConnectionContext conctx(rsvc, rcon);
         return conctx;
+    }
+    static Connection* createConnection(){
+	    return nullptr;
+    }
+    static Service* createService(){
+           return nullptr;
     }
 };
 
