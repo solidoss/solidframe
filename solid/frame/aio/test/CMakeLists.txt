@@ -65,15 +65,15 @@ if(OPENSSL_FOUND)
         ${SYS_BASIC_LIBS}
     )
 
-    add_test(NAME TestAioEchoTcpStress1        COMMAND  test_aio_echo test_aio_tcp_stress 1)
-    add_test(NAME TestAioEchoTcpStress2        COMMAND  test_aio_echo test_aio_tcp_stress 2)
-    add_test(NAME TestAioEchoTcpStress4        COMMAND  test_aio_echo test_aio_tcp_stress 4)
-    add_test(NAME TestAioEchoTcpStress8        COMMAND  test_aio_echo test_aio_tcp_stress 8)
+    add_test(NAME TestAioEchoTcpStress1        COMMAND  test_aio_echo test_echo_tcp_stress 1)
+    add_test(NAME TestAioEchoTcpStress2        COMMAND  test_aio_echo test_echo_tcp_stress 2)
+    add_test(NAME TestAioEchoTcpStress4        COMMAND  test_aio_echo test_echo_tcp_stress 4)
+    add_test(NAME TestAioEchoTcpStress8        COMMAND  test_aio_echo test_echo_tcp_stress 8)
 
-    add_test(NAME TestAioEchoTcpStress1s       COMMAND  test_aio_echo test_aio_tcp_stress 1 s)
-    add_test(NAME TestAioEchoTcpStress2s       COMMAND  test_aio_echo test_aio_tcp_stress 2 s)
-    add_test(NAME TestAioEchoTcpStress4s       COMMAND  test_aio_echo test_aio_tcp_stress 4 s)
-    add_test(NAME TestAioEchoTcpStress8s       COMMAND  test_aio_echo test_aio_tcp_stress 8 s)
+#     add_test(NAME TestAioEchoTcpStress1s       COMMAND  test_aio_echo test_echo_tcp_stress 1 s)
+#     add_test(NAME TestAioEchoTcpStress2s       COMMAND  test_aio_echo test_echo_tcp_stress 2 s)
+#     add_test(NAME TestAioEchoTcpStress4s       COMMAND  test_aio_echo test_echo_tcp_stress 4 s)
+#     add_test(NAME TestAioEchoTcpStress8s       COMMAND  test_aio_echo test_echo_tcp_stress 8 s)
 
     #==============================================================================
 endif(OPENSSL_FOUND)
