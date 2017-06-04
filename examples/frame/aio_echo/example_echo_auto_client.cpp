@@ -100,7 +100,7 @@ const size_t sizes[]{
     800,
     1600,
     2400};
-size_t sizes_size = sizeof(sizes) / sizeof(size_t);
+const size_t sizes_size = sizeof(sizes) / sizeof(size_t);
 
 vector<string> send_data_vec;
 
