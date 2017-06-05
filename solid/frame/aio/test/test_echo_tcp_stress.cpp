@@ -22,8 +22,6 @@
 
 #include "solid/utility/event.hpp"
 
-#include "boost/program_options.hpp"
-
 #include <functional>
 #include <iostream>
 #include <signal.h>
