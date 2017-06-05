@@ -648,7 +648,7 @@ private:
         ErrorCodeT err;
         int        rv = s.send(&_rctx, send_buf, send_buf_cp - send_buf_sz, can_retry, err);
 
-        vdbgx(Debug::aio, "send (" << (send_buf_cp - send_buf_sz) << ") = " << rv<< ' '<<can_retry);
+        vdbgx(Debug::aio, "send (" << (send_buf_cp - send_buf_sz) << ") = " << rv << ' ' << can_retry);
 
         if (rv > 0) {
             send_buf_sz += rv;

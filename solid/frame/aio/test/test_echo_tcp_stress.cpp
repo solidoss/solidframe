@@ -5,9 +5,9 @@
 #include "solid/frame/aio/aiolistener.hpp"
 #include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
+#include "solid/frame/aio/aioresolver.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
-#include "solid/frame/aio/aioresolver.hpp"
 
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
@@ -19,7 +19,6 @@
 #include "solid/system/debug.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
-
 
 #include "solid/utility/event.hpp"
 
@@ -37,20 +36,20 @@ using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using AtomicSizeT    = atomic<size_t>;
 using SecureContextT = frame::aio::openssl::Context;
 //-----------------------------------------------------------------------------
-bool                   running = true;
-mutex                  mtx;
-condition_variable     cnd;
-size_t                 concnt = 0;
-size_t                 recv_count = 0;
-const size_t           repeat_count = 10000;
-std::string            srv_port_str;
-std::string            rly_port_str;
-bool be_secure   = false;
-bool use_relay = false;
+bool               running = true;
+mutex              mtx;
+condition_variable cnd;
+size_t             concnt       = 0;
+size_t             recv_count   = 0;
+const size_t       repeat_count = 10000;
+std::string        srv_port_str;
+std::string        rly_port_str;
+bool               be_secure = false;
+bool               use_relay = false;
 //-----------------------------------------------------------------------------
 frame::aio::Resolver& async_resolver();
 //-----------------------------------------------------------------------------
-namespace server{
+namespace server {
 class Listener final : public Dynamic<Listener, frame::aio::Object> {
 public:
     static size_t backlog_size()
@@ -62,7 +61,7 @@ public:
         frame::Service& _rsvc,
         AioSchedulerT&  _rsched,
         SocketDevice&&  _rsd,
-        SecureContextT *_psecurectx)
+        SecureContextT* _psecurectx)
         : rsvc(_rsvc)
         , rsch(_rsched)
         , sock(this->proxy(), std::move(_rsd))
@@ -77,19 +76,20 @@ private:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     void onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 
-    typedef frame::aio::Listener    ListenerSocketT;
+    typedef frame::aio::Listener ListenerSocketT;
 
     frame::Service& rsvc;
     AioSchedulerT&  rsch;
     ListenerSocketT sock;
-    SecureContextT  *psecurectx;
+    SecureContextT* psecurectx;
 };
 //-----------------------------------------------------------------------------
 class Connection : public frame::aio::Object {
-    virtual void start(frame::aio::ReactorContext& _rctx) = 0;
+    virtual void start(frame::aio::ReactorContext& _rctx)        = 0;
     virtual void postRecvSome(frame::aio::ReactorContext& _rctx) = 0;
-    virtual bool sendAll(frame::aio::ReactorContext& _rctx, size_t _sz) = 0;
-    virtual bool recvSome(frame::aio::ReactorContext& _rctx, size_t &_rsz) = 0;
+    virtual bool sendAll(frame::aio::ReactorContext& _rctx, size_t _sz)    = 0;
+    virtual bool recvSome(frame::aio::ReactorContext& _rctx, size_t& _rsz) = 0;
+
 protected:
     Connection()
         : recvcnt(0)
@@ -104,47 +104,64 @@ protected:
 protected:
     enum { BufferCapacity = 1024 * 2 };
 
-    char          buf[BufferCapacity];
-    uint64_t      recvcnt;
-    uint64_t      sendcnt;
-    size_t        sendcrt;
+    char     buf[BufferCapacity];
+    uint64_t recvcnt;
+    uint64_t sendcnt;
+    size_t   sendcrt;
 };
 
-class PlainConnection final: public Connection{
+class PlainConnection final : public Connection {
 public:
-    PlainConnection(SocketDevice&& _rsd): sock(this->proxy(), std::move(_rsd)){}
+    PlainConnection(SocketDevice&& _rsd)
+        : sock(this->proxy(), std::move(_rsd))
+    {
+    }
+
 private:
-    void postRecvSome(frame::aio::ReactorContext& _rctx) override{
+    void postRecvSome(frame::aio::ReactorContext& _rctx) override
+    {
         sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);
     }
-    bool sendAll(frame::aio::ReactorContext& _rctx, size_t _sz) override{
+    bool sendAll(frame::aio::ReactorContext& _rctx, size_t _sz) override
+    {
         return sock.sendAll(_rctx, buf, _sz, Connection::onSend);
     }
-    bool recvSome(frame::aio::ReactorContext& _rctx, size_t &_rsz) override{
+    bool recvSome(frame::aio::ReactorContext& _rctx, size_t& _rsz) override
+    {
         return sock.recvSome(_rctx, buf, BufferCapacity, Connection::onRecv, _rsz);
     }
-    void start(frame::aio::ReactorContext& _rctx) override{
+    void start(frame::aio::ReactorContext& _rctx) override
+    {
         postRecvSome(_rctx);
     }
+
 private:
     using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
     StreamSocketT sock;
 };
 
-class SecureConnection final: public Connection{
+class SecureConnection final : public Connection {
 public:
-    SecureConnection(SocketDevice&& _rsd, SecureContextT &_rctx): sock(this->proxy(), std::move(_rsd), _rctx){}
+    SecureConnection(SocketDevice&& _rsd, SecureContextT& _rctx)
+        : sock(this->proxy(), std::move(_rsd), _rctx)
+    {
+    }
+
 private:
-    void postRecvSome(frame::aio::ReactorContext& _rctx) override{
+    void postRecvSome(frame::aio::ReactorContext& _rctx) override
+    {
         sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);
     }
-    bool sendAll(frame::aio::ReactorContext& _rctx, size_t _sz) override{
+    bool sendAll(frame::aio::ReactorContext& _rctx, size_t _sz) override
+    {
         return sock.sendAll(_rctx, buf, _sz, Connection::onSend);
     }
-    bool recvSome(frame::aio::ReactorContext& _rctx, size_t &_rsz) override{
+    bool recvSome(frame::aio::ReactorContext& _rctx, size_t& _rsz) override
+    {
         return sock.recvSome(_rctx, buf, BufferCapacity, Connection::onRecv, _rsz);
     }
-    void start(frame::aio::ReactorContext& _rctx) override{
+    void start(frame::aio::ReactorContext& _rctx) override
+    {
         sock.secureSetCheckHostName(_rctx, "echo-client");
         sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
         if (sock.secureAccept(_rctx, onSecureAccept)) {
@@ -156,7 +173,8 @@ private:
             }
         }
     }
-    static void onSecureAccept(frame::aio::ReactorContext& _rctx){
+    static void onSecureAccept(frame::aio::ReactorContext& _rctx)
+    {
         SecureConnection& rthis = static_cast<SecureConnection&>(_rctx.object());
         if (!_rctx.error()) {
             idbg(&rthis << " postRecvSome");
@@ -166,25 +184,27 @@ private:
             rthis.postStop(_rctx);
         }
     }
-    static bool onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& /*_rverify_ctx*/){
+    static bool onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& /*_rverify_ctx*/)
+    {
         SecureConnection& rthis = static_cast<SecureConnection&>(_rctx.object());
         idbg(&rthis << " " << _preverified);
         return _preverified;
     }
+
 private:
     using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
     StreamSocketT sock;
 };
 
-}//namespace server
+} //namespace server
 
 //-----------------------------------------------------------------------------
 
-namespace client{
+namespace client {
 class Connection : public frame::aio::Object {
 protected:
-    Connection(const size_t _idx):
-          recvcnt(0)
+    Connection(const size_t _idx)
+        : recvcnt(0)
         , sendcnt(0)
         , idx(_idx)
         , crt_send_idx(0)
@@ -194,10 +214,12 @@ protected:
     virtual ~Connection()
     {
     }
+
 private:
     virtual void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas) = 0;
     virtual void postRecvSome(frame::aio::ReactorContext& _rctx) = 0;
-    virtual void postSendAll(frame::aio::ReactorContext& _rctx, const char *_pbuf, const size_t _sz) = 0;
+    virtual void postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, const size_t _sz) = 0;
+
 private:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     void onStop(frame::Manager& _rm) override
@@ -212,71 +234,93 @@ private:
     }
 
     void doSend(frame::aio::ReactorContext& _rctx);
-    bool checkRecvData(const size_t _sz)const;
+    bool checkRecvData(const size_t _sz) const;
+
 protected:
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
     static void onSend(frame::aio::ReactorContext& _rctx);
 
     static void onConnect(frame::aio::ReactorContext& _rctx);
+
 protected:
     enum { BufferCapacity = 1024 * 2 };
 
-    char          buf[BufferCapacity];
+    char buf[BufferCapacity];
+
 private:
-    uint64_t      recvcnt;
-    uint64_t      sendcnt;
-    const size_t  idx;
-    size_t        crt_send_idx;
-    size_t        expect_recvcnt;
+    uint64_t     recvcnt;
+    uint64_t     sendcnt;
+    const size_t idx;
+    size_t       crt_send_idx;
+    size_t       expect_recvcnt;
 };
 
-class PlainConnection final: public Connection{
+class PlainConnection final : public Connection {
 public:
-    PlainConnection(const size_t _idx):Connection(_idx), sock(this->proxy()){}
+    PlainConnection(const size_t _idx)
+        : Connection(_idx)
+        , sock(this->proxy())
+    {
+    }
+
 private:
-    void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas) override{
-        if(sock.connect(_rctx, _rsas, [this](frame::aio::ReactorContext& _rctx){
-            onConnect(_rctx);
-        })){
+    void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas) override
+    {
+        if (sock.connect(_rctx, _rsas, [this](frame::aio::ReactorContext& _rctx) {
+                onConnect(_rctx);
+            })) {
             onConnect(_rctx);
         }
     }
-    void postRecvSome(frame::aio::ReactorContext& _rctx) override{
+    void postRecvSome(frame::aio::ReactorContext& _rctx) override
+    {
         sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);
     }
-    void postSendAll(frame::aio::ReactorContext& _rctx, const char *_pbuf, const size_t _sz) override{
+    void postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, const size_t _sz) override
+    {
         sock.postSendAll(_rctx, _pbuf, _sz, Connection::onSend);
     }
-    void onConnect(frame::aio::ReactorContext& _rctx){
+    void onConnect(frame::aio::ReactorContext& _rctx)
+    {
         sock.device().enableNoDelay();
-        Connection::onConnect(_rctx);  
+        Connection::onConnect(_rctx);
     }
+
 private:
     using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
     StreamSocketT sock;
 };
 
-class SecureConnection final: public Connection{
+class SecureConnection final : public Connection {
 public:
-    SecureConnection(const size_t _idx, SecureContextT &_rctx):Connection(_idx), sock(this->proxy(), _rctx){}
+    SecureConnection(const size_t _idx, SecureContextT& _rctx)
+        : Connection(_idx)
+        , sock(this->proxy(), _rctx)
+    {
+    }
+
 private:
-    void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas) override{
-        if(sock.connect(_rctx, _rsas, [this](frame::aio::ReactorContext& _rctx){
-            this->onConnect(_rctx);  
-        })){
+    void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas) override
+    {
+        if (sock.connect(_rctx, _rsas, [this](frame::aio::ReactorContext& _rctx) {
+                this->onConnect(_rctx);
+            })) {
             this->onConnect(_rctx);
         }
     }
-    
-    void postRecvSome(frame::aio::ReactorContext& _rctx) override{
+
+    void postRecvSome(frame::aio::ReactorContext& _rctx) override
+    {
         sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv);
     }
-    
-    void postSendAll(frame::aio::ReactorContext& _rctx, const char *_pbuf, const size_t _sz) override{
+
+    void postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, const size_t _sz) override
+    {
         sock.postSendAll(_rctx, _pbuf, _sz, Connection::onSend);
     }
-    
-    void onConnect(frame::aio::ReactorContext& _rctx){
+
+    void onConnect(frame::aio::ReactorContext& _rctx)
+    {
         if (!_rctx.error()) {
             idbg(this << " Connected");
             sock.device().enableNoDelay();
@@ -291,23 +335,24 @@ private:
             postStop(_rctx);
         }
     }
-    
-    static bool onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx){
+
+    static bool onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx)
+    {
         SecureConnection& rthis = static_cast<SecureConnection&>(_rctx.object());
         idbg(&rthis << " " << _preverified);
         return _preverified;
     }
+
 private:
     using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
     StreamSocketT sock;
 };
 
-
 void prepareSendData();
 
-}//namespace client
+} //namespace client
 
-namespace relay{
+namespace relay {
 class Listener final : public Dynamic<Listener, frame::aio::Object> {
 public:
     Listener(
@@ -327,7 +372,7 @@ private:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     void onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 
-    typedef frame::aio::Listener    ListenerSocketT;
+    typedef frame::aio::Listener ListenerSocketT;
 
     frame::Service& rsvc;
     AioSchedulerT&  rsch;
@@ -368,9 +413,10 @@ protected:
     size_t        sendcrt;
     uint32_t      crtid;
 };
-}//namespace relay
+} //namespace relay
 
-int test_echo_tcp_stress(int argc, char **argv){
+int test_echo_tcp_stress(int argc, char** argv)
+{
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("view");
     Debug::the().moduleMask("frame_aio:ew any:ew");
@@ -397,7 +443,7 @@ int test_echo_tcp_stress(int argc, char **argv){
             use_relay = true;
         }
     }
-    
+
     if (argc > 3) {
         if (*argv[3] == 's' or *argv[3] == 'S') {
             be_secure = true;
@@ -406,23 +452,23 @@ int test_echo_tcp_stress(int argc, char **argv){
             use_relay = true;
         }
     }
-    
+
     {
         AioSchedulerT   srv_sch;
         frame::Manager  srv_mgr;
         SecureContextT  srv_secure_ctx{SecureContextT::create()};
         frame::ServiceT srv_svc{srv_mgr};
-        
-        if(async_resolver().start(1)){
-            cout<<"failed to start async_resolver"<<endl;
+
+        if (async_resolver().start(1)) {
+            cout << "failed to start async_resolver" << endl;
             return -1;
         }
-        if(be_secure){
+        if (be_secure) {
             srv_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
             srv_secure_ctx.loadCertificateFile("echo-server-cert.pem");
             srv_secure_ctx.loadPrivateKeyFile("echo-server-key.pem");
         }
-        
+
         if (srv_sch.start(thread::hardware_concurrency())) {
             running = false;
             cout << "Error starting server scheduler" << endl;
@@ -442,7 +488,7 @@ int test_echo_tcp_stress(int argc, char **argv){
                     sd.localAddress(local_address);
 
                     int srv_port = local_address.port();
-                    oss<<srv_port;
+                    oss << srv_port;
                     srv_port_str = oss.str();
                 }
                 DynamicPointer<frame::aio::Object> objptr(new server::Listener(srv_svc, srv_sch, std::move(sd), be_secure ? &srv_secure_ctx : nullptr));
@@ -456,13 +502,12 @@ int test_echo_tcp_stress(int argc, char **argv){
                 running = false;
             }
         }
-        
-        
+
         AioSchedulerT   rly_sch;
         frame::Manager  rly_mgr;
         frame::ServiceT rly_svc{rly_mgr};
-        
-        if(use_relay){
+
+        if (use_relay) {
             if (rly_sch.start(thread::hardware_concurrency())) {
                 running = false;
                 cout << "Error starting scheduler" << endl;
@@ -482,7 +527,7 @@ int test_echo_tcp_stress(int argc, char **argv){
                         sd.localAddress(local_address);
 
                         int srv_port = local_address.port();
-                        oss<<srv_port;
+                        oss << srv_port;
                         rly_port_str = oss.str();
                     }
                     DynamicPointer<frame::aio::Object> objptr(new relay::Listener(rly_svc, rly_sch, std::move(sd)));
@@ -497,13 +542,13 @@ int test_echo_tcp_stress(int argc, char **argv){
                 }
             }
         }
-        
+
         AioSchedulerT   clt_sch;
         frame::Manager  clt_mgr;
         SecureContextT  clt_secure_ctx{SecureContextT::create()};
         frame::ServiceT clt_svc{clt_mgr};
-        
-        if(be_secure){
+
+        if (be_secure) {
             ErrorCodeT err = clt_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
             if (err) {
                 cout << "error configuring openssl: " << err.message() << endl;
@@ -512,24 +557,24 @@ int test_echo_tcp_stress(int argc, char **argv){
             clt_secure_ctx.loadCertificateFile("echo-client-cert.pem");
             clt_secure_ctx.loadPrivateKeyFile("echo-client-key.pem");
         }
-        
+
         if (clt_sch.start(thread::hardware_concurrency())) {
             running = false;
             cout << "Error starting client scheduler" << endl;
         } else {
             client::prepareSendData();
-            
+
             for (size_t i = 0; i < connection_count; ++i) {
                 DynamicPointer<frame::aio::Object> objptr;
                 solid::ErrorConditionT             err;
                 solid::frame::ObjectIdT            objuid;
-                
-                if(be_secure){
+
+                if (be_secure) {
                     objptr.reset(new client::SecureConnection(i, clt_secure_ctx));
-                }else{
+                } else {
                     objptr.reset(new client::PlainConnection(i));
                 }
-                
+
                 ++concnt;
                 objuid = clt_sch.startObject(objptr, clt_svc, make_event(GenericEvents::Start), err);
                 if (objuid.isInvalid()) {
@@ -548,7 +593,7 @@ int test_echo_tcp_stress(int argc, char **argv){
             SOLID_CHECK(recv_count != 0);
         }
     }
-    
+
     return 0;
 }
 
@@ -560,7 +605,7 @@ frame::aio::Resolver& async_resolver()
 }
 //-----------------------------------------------------------------------------
 
-namespace server{
+namespace server {
 //-----------------------------------------------------------------------------
 //      Listener
 //-----------------------------------------------------------------------------
@@ -569,7 +614,7 @@ namespace server{
 {
     idbg("event = " << _revent);
     if (generic_event_start == _revent) {
-        sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd){onAccept(_rctx, _rsd);});
+        sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); });
     } else if (generic_event_kill == _revent) {
         postStop(_rctx);
     }
@@ -585,10 +630,10 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             _rsd.enableNoDelay();
             DynamicPointer<frame::aio::Object> objptr;
             solid::ErrorConditionT             err;
-            
-            if(psecurectx){
+
+            if (psecurectx) {
                 objptr.reset(new SecureConnection(std::move(_rsd), *psecurectx));
-            }else{
+            } else {
                 objptr.reset(new PlainConnection(std::move(_rsd)));
             }
 
@@ -599,7 +644,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
             break;
         }
         --repeatcnt;
-    } while (repeatcnt && sock.accept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd){onAccept(_rctx, _rsd);}, _rsd));
+    } while (repeatcnt && sock.accept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); }, _rsd));
 
     if (!repeatcnt) {
         sock.postAccept(
@@ -671,9 +716,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
         rthis.postStop(_rctx);
     }
 }
-}//namespace server
+} //namespace server
 //-----------------------------------------------------------------------------
-namespace client{
+namespace client {
 const size_t sizes[]{
     100,
     200,
@@ -765,7 +810,9 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
     idbg("event = " << _revent);
     if (_revent == generic_event_start) {
         //we must resolve the address then connect
-        idbg("async_resolve = " << "127.0.0.1" << " " << srv_port_str);
+        idbg("async_resolve = "
+            << "127.0.0.1"
+            << " " << srv_port_str);
         async_resolver().requestResolve(
             ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), "127.0.0.1",
             use_relay ? rly_port_str.c_str() : srv_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
@@ -792,7 +839,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     expect_recvcnt      = str.size();
 
     idbg(this << " sending " << str.size());
-    
+
     sendcnt += str.size();
 
     postSendAll(_rctx, str.data(), str.size());
@@ -801,7 +848,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 /*static*/ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
-    
+
     if (!_rctx.error()) {
         edbg(&rthis << " SUCCESS");
         rthis.postRecvSome(_rctx);
@@ -822,7 +869,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
         SOLID_CHECK(_sz <= rthis.expect_recvcnt);
         SOLID_CHECK(rthis.checkRecvData(_sz));
-        
+
         idbg(&rthis << " received " << _sz);
 
         rthis.expect_recvcnt -= _sz;
@@ -838,7 +885,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         }
         rthis.postRecvSome(_rctx);
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message()<< " " <<_rctx.error().message());
+        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message() << " " << _rctx.error().message());
         //++stats.donecnt;
         rthis.postStop(_rctx);
     }
@@ -849,7 +896,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
     if (!_rctx.error()) {
-        idbg(&rthis << " " <<rthis.recvcnt);
+        idbg(&rthis << " " << rthis.recvcnt);
     } else {
         edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
         //++stats.donecnt;
@@ -857,18 +904,19 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     }
 }
 
-bool Connection::checkRecvData(const size_t _sz)const{
+bool Connection::checkRecvData(const size_t _sz) const
+{
     size_t      sendidx = (crt_send_idx + idx) % send_data_vec.size();
     const auto& str     = send_data_vec[sendidx];
-    const char *pbuf    = str.data() + (str.size() - expect_recvcnt);
+    const char* pbuf    = str.data() + (str.size() - expect_recvcnt);
     return memcmp(buf, pbuf, _sz) == 0;
 }
 
-}//namespace client
+} //namespace client
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-namespace relay{
+namespace relay {
 //-----------------------------------------------------------------------------
 //      Listener
 //-----------------------------------------------------------------------------
@@ -940,7 +988,9 @@ struct ResolvFunc {
     edbg(this << " " << _revent);
     if (generic_event_start == _revent) {
         //we must resolve the address then connect
-        idbg("async_resolve = " << "127.0.0.1" << " " << srv_port_str);
+        idbg("async_resolve = "
+            << "127.0.0.1"
+            << " " << srv_port_str);
         async_resolver().requestResolve(
             ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), "127.0.0.1",
             srv_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
@@ -955,7 +1005,7 @@ struct ResolvFunc {
                 //sock.shutdown(_rctx);
                 postStop(_rctx);
             } else {
-                if (sock2.connect(_rctx, presolvemsg->begin(), [this](frame::aio::ReactorContext& _rctx){onConnect(_rctx);})) {
+                if (sock2.connect(_rctx, presolvemsg->begin(), [this](frame::aio::ReactorContext& _rctx) { onConnect(_rctx); })) {
                     onConnect(_rctx);
                 }
             }
@@ -1060,5 +1110,5 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     }
 }
 
-}//namespace relay
+} //namespace relay
 //-----------------------------------------------------------------------------
