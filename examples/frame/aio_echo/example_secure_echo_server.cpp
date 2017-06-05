@@ -327,7 +327,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
         sock.secureSetCheckHostName(_rctx, "echo-client");
         sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
         if (sock.secureAccept(_rctx, Connection::onSecureAccept)) {
-            if (_rctx.error()) {
+            if (!_rctx.error()) {
                 sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
             } else {
                 edbg(this << " postStop");

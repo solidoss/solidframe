@@ -148,7 +148,7 @@ private:
         sock.secureSetCheckHostName(_rctx, "echo-client");
         sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
         if (sock.secureAccept(_rctx, onSecureAccept)) {
-            if (_rctx.error()) {
+            if (!_rctx.error()) {
                 sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
             } else {
                 edbg(this << " postStop");
@@ -236,10 +236,8 @@ public:
 private:
     void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas) override{
         if(sock.connect(_rctx, _rsas, [this](frame::aio::ReactorContext& _rctx){
-            sock.device().enableNoDelay();
-            Connection::onConnect(_rctx);  
+            onConnect(_rctx);
         })){
-            sock.device().enableNoDelay();
             onConnect(_rctx);
         }
     }
@@ -248,6 +246,10 @@ private:
     }
     void postSendAll(frame::aio::ReactorContext& _rctx, const char *_pbuf, const size_t _sz) override{
         sock.postSendAll(_rctx, _pbuf, _sz, Connection::onSend);
+    }
+    void onConnect(frame::aio::ReactorContext& _rctx){
+        sock.device().enableNoDelay();
+        Connection::onConnect(_rctx);  
     }
 private:
     using StreamSocketT = frame::aio::Stream<frame::aio::Socket>;
@@ -836,7 +838,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         }
         rthis.postRecvSome(_rctx);
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
+        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message()<< " " <<_rctx.error().message());
         //++stats.donecnt;
         rthis.postStop(_rctx);
     }
