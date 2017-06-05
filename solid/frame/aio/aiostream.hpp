@@ -123,11 +123,12 @@ class Stream : public CompletionHandler {
 
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
-            if (_rthis.doTrySend(_rctx)) {
+            while (_rthis.doTrySend(_rctx)) {
                 if (_rthis.send_buf_sz == _rthis.send_buf_cp) {
                     F tmp{std::move(f)};
                     _rthis.doClearSend(_rctx);
                     tmp(_rctx);
+                    break;
                 }
             }
         }
@@ -647,7 +648,7 @@ private:
         ErrorCodeT err;
         int        rv = s.send(&_rctx, send_buf, send_buf_cp - send_buf_sz, can_retry, err);
 
-        vdbgx(Debug::aio, "send (" << (send_buf_cp - send_buf_sz) << ") = " << rv);
+        vdbgx(Debug::aio, "send (" << (send_buf_cp - send_buf_sz) << ") = " << rv<< ' '<<can_retry);
 
         if (rv > 0) {
             send_buf_sz += rv;

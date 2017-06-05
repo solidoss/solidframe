@@ -36,7 +36,7 @@ using ConnectionServerVerifyFunctionT  = SOLID_FUNCTION<bool(frame::aio::Reactor
 using ConnectionClientVerifyFunctionT  = SOLID_FUNCTION<bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&)>;
 
 struct ClientConfiguration {
-    ClientConfiguration() {}
+    ClientConfiguration(): context{ContextT::create()}{}
 
     ContextT context;
 
@@ -45,7 +45,7 @@ struct ClientConfiguration {
 };
 
 struct ServerConfiguration {
-    ServerConfiguration() {}
+    ServerConfiguration(): context{ContextT::create()}{}
 
     ContextT context;
 

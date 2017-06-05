@@ -31,11 +31,10 @@ enum struct FileFormat {
 
 class Socket;
 class Context {
+    Context();
 public:
     using NativeContextT = SSL_CTX*;
     static Context create(const SSL_METHOD* = nullptr);
-
-    Context();
 
     Context(Context const&) = delete;
 
