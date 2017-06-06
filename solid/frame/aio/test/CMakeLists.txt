@@ -67,21 +67,25 @@ if(OPENSSL_FOUND)
     add_test(NAME TestAioEchoTcpStress2        COMMAND  test_aio_echo test_echo_tcp_stress 2)
     add_test(NAME TestAioEchoTcpStress4        COMMAND  test_aio_echo test_echo_tcp_stress 4)
     add_test(NAME TestAioEchoTcpStress8        COMMAND  test_aio_echo test_echo_tcp_stress 8)
+    add_test(NAME TestAioEchoTcpStress16       COMMAND  test_aio_echo test_echo_tcp_stress 16)
     
     add_test(NAME TestAioEchoTcpStress1r       COMMAND  test_aio_echo test_echo_tcp_stress 1 r)
     add_test(NAME TestAioEchoTcpStress2r       COMMAND  test_aio_echo test_echo_tcp_stress 2 r)
     add_test(NAME TestAioEchoTcpStress4r       COMMAND  test_aio_echo test_echo_tcp_stress 4 r)
     add_test(NAME TestAioEchoTcpStress8r       COMMAND  test_aio_echo test_echo_tcp_stress 8 r)
+    add_test(NAME TestAioEchoTcpStress16r      COMMAND  test_aio_echo test_echo_tcp_stress 16 r)
     
     add_test(NAME TestAioEchoTcpStress1s       COMMAND  test_aio_echo test_echo_tcp_stress 1 s)
     add_test(NAME TestAioEchoTcpStress2s       COMMAND  test_aio_echo test_echo_tcp_stress 2 s)
     add_test(NAME TestAioEchoTcpStress4s       COMMAND  test_aio_echo test_echo_tcp_stress 4 s)
     add_test(NAME TestAioEchoTcpStress8s       COMMAND  test_aio_echo test_echo_tcp_stress 8 s)
+    add_test(NAME TestAioEchoTcpStress16s      COMMAND  test_aio_echo test_echo_tcp_stress 16 s)
     
     add_test(NAME TestAioEchoTcpStress1rs      COMMAND  test_aio_echo test_echo_tcp_stress 1 r s)
     add_test(NAME TestAioEchoTcpStress2rs      COMMAND  test_aio_echo test_echo_tcp_stress 2 r s)
     add_test(NAME TestAioEchoTcpStress4rs      COMMAND  test_aio_echo test_echo_tcp_stress 4 r s)
     add_test(NAME TestAioEchoTcpStress8rs      COMMAND  test_aio_echo test_echo_tcp_stress 8 r s)
+    add_test(NAME TestAioEchoTcpStress16rs     COMMAND  test_aio_echo test_echo_tcp_stress 16 r s)
 
     #==============================================================================
 endif(OPENSSL_FOUND)
