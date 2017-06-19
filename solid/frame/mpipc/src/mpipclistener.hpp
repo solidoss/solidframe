@@ -29,7 +29,7 @@ namespace mpipc {
 
 class Service;
 
-class Listener : public Dynamic<Listener, frame::aio::Object> {
+class Listener final : public Dynamic<Listener, frame::aio::Object> {
 public:
     static size_t backlog_size()
     {

@@ -133,7 +133,7 @@ private:
     Debug& operator=(Debug const&);
 
     struct Data;
-    PimplT<Data> impl;
+    PimplT<Data> impl_;
 };
 
 struct DebugTraceTest {

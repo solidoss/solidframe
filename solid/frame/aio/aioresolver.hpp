@@ -170,7 +170,7 @@ private:
 
 private:
     struct Data;
-    PimplT<Data> impl;
+    PimplT<Data> impl_;
 };
 
 } //namespace aio

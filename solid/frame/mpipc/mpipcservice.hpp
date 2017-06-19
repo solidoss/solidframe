@@ -462,7 +462,7 @@ private:
 
 private:
     struct Data;
-    PimplT<Data> impl;
+    PimplT<Data> impl_;
 };
 
 //-------------------------------------------------------------------------

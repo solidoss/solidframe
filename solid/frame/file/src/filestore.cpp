@@ -331,11 +331,11 @@ size_t Utf8Controller::Data::findFileStorage(std::string const& _path)
 Utf8Controller::Utf8Controller(
     const Utf8Configuration& _rfilecfg,
     const TempConfiguration& _rtempcfg)
-    : impl(make_pimpl<Data>(_rfilecfg, _rtempcfg))
+    : impl_(make_pimpl<Data>(_rfilecfg, _rtempcfg))
 {
 
-    impl->prepareFile();
-    impl->prepareTemp();
+    impl_->prepareFile();
+    impl_->prepareTemp();
 }
 
 Utf8Controller::~Utf8Controller()
@@ -349,7 +349,7 @@ bool Utf8Controller::prepareIndex(
     //find _rcmd.inpath file and set _rcmd.outpath
     //if found set _ridx and return true
     //else return false
-    const size_t storeidx = impl->findFileStorage(_rcmd.inpath);
+    const size_t storeidx = impl_->findFileStorage(_rcmd.inpath);
 
     _rcmd.outpath.storeidx = storeidx;
 
@@ -358,11 +358,11 @@ bool Utf8Controller::prepareIndex(
         return true;
     }
 
-    Utf8ConfigurationImpl::Storage const& rstrg = impl->filecfg.storagevec[storeidx];
+    Utf8ConfigurationImpl::Storage const& rstrg = impl_->filecfg.storagevec[storeidx];
 
     _rcmd.outpath.path.assign(_rcmd.inpath.c_str() + rstrg.globalsize);
-    PathSetT::const_iterator it = impl->pathset.find(&_rcmd.outpath);
-    if (it != impl->pathset.end()) {
+    PathSetT::const_iterator it = impl_->pathset.find(&_rcmd.outpath);
+    if (it != impl_->pathset.end()) {
         _ridx = (*it)->idx;
         return true;
     }
@@ -375,23 +375,23 @@ bool Utf8Controller::preparePointer(
 {
     //just do map[_rcmd.outpath] = _rptr.uid().first
     Utf8PathStub* ppath;
-    if (impl->pathcache.size()) {
-        ppath  = impl->pathcache.top();
+    if (impl_->pathcache.size()) {
+        ppath  = impl_->pathcache.top();
         *ppath = _rcmd.outpath;
-        impl->pathcache.pop();
+        impl_->pathcache.pop();
     } else {
-        impl->pathdq.push_back(_rcmd.outpath);
-        ppath = &impl->pathdq.back();
+        impl_->pathdq.push_back(_rcmd.outpath);
+        ppath = &impl_->pathdq.back();
     }
     ppath->idx = _rptr.id().index;
-    impl->pathset.insert(ppath);
-    impl->indexset.insert(ppath);
+    impl_->pathset.insert(ppath);
+    impl_->indexset.insert(ppath);
     return true; //we don't store _runiptr for later use
 }
 
 void Utf8Controller::openFile(Utf8OpenCommandBase& _rcmd, FilePointerT& _rptr, ErrorCodeT& _rerr)
 {
-    Utf8ConfigurationImpl::Storage const& rstrg = impl->filecfg.storagevec[_rcmd.outpath.storeidx];
+    Utf8ConfigurationImpl::Storage const& rstrg = impl_->filecfg.storagevec[_rcmd.outpath.storeidx];
     std::string                           path;
 
     path.reserve(rstrg.localprefix.size() + _rcmd.outpath.path.size());
@@ -418,8 +418,8 @@ bool Utf8Controller::preparePointer(
     UniqueId uid = _rptr.id();
     File*    pf  = _rptr.release();
 
-    impl->pfilltempwaitvec->push_back(TempWaitStub(uid, pf, _rcmd.size, _rcmd.openflags));
-    if (impl->pfilltempwaitvec->size() == 1) {
+    impl_->pfilltempwaitvec->push_back(TempWaitStub(uid, pf, _rcmd.size, _rcmd.openflags));
+    if (impl_->pfilltempwaitvec->size() == 1) {
         //notify the shared store object
         _rsbacc.notify();
     }
@@ -430,38 +430,38 @@ bool Utf8Controller::preparePointer(
 void Utf8Controller::executeOnSignal(shared::StoreBase::Accessor& _rsbacc, ulong _sm)
 {
     //We're under Store's mutex lock
-    solid::exchange(impl->pfilltempwaitvec, impl->pconstempwaitvec);
-    impl->pfilltempwaitvec->clear();
+    solid::exchange(impl_->pfilltempwaitvec, impl_->pconstempwaitvec);
+    impl_->pfilltempwaitvec->clear();
 }
 
 bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor& _rsbacc)
 {
     //We're NOT under Store's mutex lock
-    if (impl->pconstempwaitvec->size()) {
+    if (impl_->pconstempwaitvec->size()) {
         for (
-            TempWaitVectorT::const_iterator waitit = impl->pconstempwaitvec->begin();
-            waitit != impl->pconstempwaitvec->end();
+            TempWaitVectorT::const_iterator waitit = impl_->pconstempwaitvec->begin();
+            waitit != impl_->pconstempwaitvec->end();
             ++waitit) {
-            const size_t tempwaitdqsize = impl->tempwaitdq.size();
+            const size_t tempwaitdqsize = impl_->tempwaitdq.size();
             bool         canuse         = false;
             for (
-                TempConfigurationImpl::StorageVectorT::iterator it(impl->tempcfg.storagevec.begin());
-                it != impl->tempcfg.storagevec.end();
+                TempConfigurationImpl::StorageVectorT::iterator it(impl_->tempcfg.storagevec.begin());
+                it != impl_->tempcfg.storagevec.end();
                 ++it) {
                 if (it->canUse(waitit->size, waitit->value)) {
-                    const size_t                    strgidx = it - impl->tempcfg.storagevec.begin();
+                    const size_t                    strgidx = it - impl_->tempcfg.storagevec.begin();
                     TempConfigurationImpl::Storage& rstrg(*it);
 
                     if (it->shouldUse(waitit->size)) {
-                        impl->tempwaitdq.resize(tempwaitdqsize);
+                        impl_->tempwaitdq.resize(tempwaitdqsize);
                         doPrepareOpenTemp(*waitit->pfile, waitit->size, strgidx);
                         //we schedule for erase the waitit pointer
                         _rsbacc.consumeEraseVector().push_back(waitit->objuid);
                     } else {
-                        impl->tempwaitdq.push_back(*waitit);
+                        impl_->tempwaitdq.push_back(*waitit);
                         // we dont need the openflags any more - we know which
                         // storages apply
-                        impl->tempwaitdq.back().value = strgidx;
+                        impl_->tempwaitdq.back().value = strgidx;
                         ++rstrg.waitcount;
                         if (rstrg.waitcount == 1) {
                             rstrg.waitsizefirst = waitit->size;
@@ -476,11 +476,11 @@ bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor& _rsbacc)
             }
         }
     }
-    if (impl->tempidxvec.size()) {
-        for (SizeVectorT::const_iterator it = impl->tempidxvec.begin(); it != impl->tempidxvec.begin(); ++it) {
+    if (impl_->tempidxvec.size()) {
+        for (SizeVectorT::const_iterator it = impl_->tempidxvec.begin(); it != impl_->tempidxvec.begin(); ++it) {
             doDeliverTemp(_rsbacc, *it);
         }
-        impl->tempidxvec.clear();
+        impl_->tempidxvec.clear();
     }
     return false;
 }
@@ -493,34 +493,34 @@ bool Utf8Controller::clear(shared::StoreBase::Accessor& _rsbacc, File& _rf, cons
         _rf.clear();
         Utf8PathStub path;
         path.idx               = _idx;
-        IndexSetT::iterator it = impl->indexset.find(&path);
-        if (it != impl->indexset.end()) {
+        IndexSetT::iterator it = impl_->indexset.find(&path);
+        if (it != impl_->indexset.end()) {
             Utf8PathStub* ps = const_cast<Utf8PathStub*>(*it);
-            impl->pathset.erase(ps);
-            impl->indexset.erase(it);
-            impl->pathcache.push(ps);
+            impl_->pathset.erase(ps);
+            impl_->indexset.erase(it);
+            impl_->pathcache.push(ps);
         }
     } else {
         TempBase&                       temp    = *_rf.temp();
         const size_t                    strgidx = temp.tempstorageid;
-        TempConfigurationImpl::Storage& rstrg(impl->tempcfg.storagevec[strgidx]);
+        TempConfigurationImpl::Storage& rstrg(impl_->tempcfg.storagevec[strgidx]);
 
         doCloseTemp(temp);
 
         _rf.clear();
 
         if (rstrg.canDeliver() && !rstrg.enqued) {
-            impl->tempidxvec.push_back(strgidx);
+            impl_->tempidxvec.push_back(strgidx);
             rstrg.enqued = true;
         }
     }
-    return !impl->tempidxvec.empty();
+    return !impl_->tempidxvec.empty();
 }
 
 void Utf8Controller::doPrepareOpenTemp(File& _rf, uint64_t _sz, const size_t _storeid)
 {
 
-    TempConfigurationImpl::Storage& rstrg(impl->tempcfg.storagevec[_storeid]);
+    TempConfigurationImpl::Storage& rstrg(impl_->tempcfg.storagevec[_storeid]);
     size_t                          fileid;
 
     if (rstrg.idcache.size()) {
@@ -543,7 +543,7 @@ void Utf8Controller::doPrepareOpenTemp(File& _rf, uint64_t _sz, const size_t _st
 void Utf8Controller::openTemp(CreateTempCommandBase& _rcmd, FilePointerT& _rptr, ErrorCodeT& _rerr)
 {
     if (_rptr->isTemp()) {
-        TempConfigurationImpl::Storage& rstrg(impl->tempcfg.storagevec[_rptr->temp()->tempstorageid]);
+        TempConfigurationImpl::Storage& rstrg(impl_->tempcfg.storagevec[_rptr->temp()->tempstorageid]);
         _rptr->temp()->open(rstrg.path.c_str(), _rcmd.openflags, rstrg.removemode == RemoveAfterCreateE, _rerr);
     } else {
         _rerr.assign(1, _rerr.category());
@@ -553,7 +553,7 @@ void Utf8Controller::openTemp(CreateTempCommandBase& _rcmd, FilePointerT& _rptr,
 void Utf8Controller::doCloseTemp(TempBase& _rtemp)
 {
     //erase the temp file for on-disk temps
-    TempConfigurationImpl::Storage& rstrg(impl->tempcfg.storagevec[_rtemp.tempstorageid]);
+    TempConfigurationImpl::Storage& rstrg(impl_->tempcfg.storagevec[_rtemp.tempstorageid]);
     rstrg.usedsize -= _rtemp.tempsize;
     rstrg.idcache.push(_rtemp.tempid);
     _rtemp.close(rstrg.path.c_str(), rstrg.removemode == RemoveAfterCloseE);
@@ -562,14 +562,14 @@ void Utf8Controller::doCloseTemp(TempBase& _rtemp)
 void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor& _rsbacc, const size_t _storeid)
 {
 
-    TempConfigurationImpl::Storage& rstrg(impl->tempcfg.storagevec[_storeid]);
-    TempWaitDequeT::iterator        it = impl->tempwaitdq.begin();
+    TempConfigurationImpl::Storage& rstrg(impl_->tempcfg.storagevec[_storeid]);
+    TempWaitDequeT::iterator        it = impl_->tempwaitdq.begin();
 
     rstrg.enqued = false;
-    while (it != impl->tempwaitdq.end()) {
+    while (it != impl_->tempwaitdq.end()) {
         //first we find the first item waiting on storage
         TempWaitDequeT::iterator waitit = it;
-        for (; it != impl->tempwaitdq.end(); ++it) {
+        for (; it != impl_->tempwaitdq.end(); ++it) {
             if (it->objuid.index != waitit->objuid.index) {
                 waitit = it;
             }
@@ -578,7 +578,7 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor& _rsbacc, const s
             }
         }
 
-        SOLID_ASSERT(it != impl->tempwaitdq.end());
+        SOLID_ASSERT(it != impl_->tempwaitdq.end());
         if (rstrg.waitsizefirst == 0) {
             rstrg.waitsizefirst = it->size;
         }
@@ -594,12 +594,12 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor& _rsbacc, const s
         //delete the whole range [waitit, itend]
         const size_t objidx = it->objuid.index;
 
-        if (waitit == impl->tempwaitdq.begin()) {
-            while (waitit != impl->tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == nullptr)) {
-                waitit = impl->tempwaitdq.erase(waitit);
+        if (waitit == impl_->tempwaitdq.begin()) {
+            while (waitit != impl_->tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == nullptr)) {
+                waitit = impl_->tempwaitdq.erase(waitit);
             }
         } else {
-            while (waitit != impl->tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == nullptr)) {
+            while (waitit != impl_->tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == nullptr)) {
                 waitit->pfile = nullptr;
                 ++waitit;
             }

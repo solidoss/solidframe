@@ -143,7 +143,7 @@ private:
 
 private: //data
     struct Data;
-    PimplT<Data> impl;
+    PimplT<Data> impl_;
 };
 
 } //namespace frame

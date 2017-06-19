@@ -296,4 +296,31 @@ if(OPENSSL_FOUND)
     #add_test(NAME TestRawProxy     COMMAND  test_mpipc_raw test_raw_proxy)
 
     #==============================================================================
+    
+    set( mpipcRelayTestSuite
+        test_relay_basic.cpp
+    )
+    #
+    create_test_sourcelist( mpipcRelayTests test_mpipc_relay.cpp ${mpipcRelayTestSuite})
+
+    add_executable(test_mpipc_relay ${mpipcRelayTests})
+    add_dependencies(test_mpipc_relay mpipc_test_copy_certs build_openssl build_snappy)
+
+    target_link_libraries(test_mpipc_relay
+        solid_frame_mpipc
+        solid_frame_aio
+        solid_frame_aio_openssl
+        solid_frame
+        solid_serialization
+        solid_utility
+        solid_system
+        snappy
+        ${OPENSSL_LIBRARIES}
+        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYS_BASIC_LIBS}
+    )
+
+    add_test(NAME TestRelayBasic1        COMMAND  test_mpipc_relay test_relay_basic 1)
+    
+    #==============================================================================
 endif(OPENSSL_FOUND)

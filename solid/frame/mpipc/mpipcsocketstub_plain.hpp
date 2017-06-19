@@ -23,7 +23,7 @@ namespace frame {
 namespace mpipc {
 namespace plain {
 
-class SocketStub : public mpipc::SocketStub {
+class SocketStub final : public mpipc::SocketStub {
 public:
     SocketStub(frame::aio::ObjectProxy const& _rproxy)
         : sock(_rproxy)

@@ -67,7 +67,7 @@ struct ResolveMessage {
 
 using MessageIdVectorT = std::vector<MessageId>;
 
-class Connection : public Dynamic<Connection, frame::aio::Object> {
+class Connection final : public Dynamic<Connection, frame::aio::Object> {
 public:
     static Event eventResolve();
     static Event eventNewMessage();

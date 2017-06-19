@@ -344,10 +344,10 @@ void splitPrefix(string& _path, string& _name, const char* _prefix);
 
 Debug::~Debug()
 {
-    (*impl->pos) << flush;
-    impl->dos.close();
-    impl->dbos.close();
-    impl->pos = &cerr;
+    (*impl_->pos) << flush;
+    impl_->dos.close();
+    impl_->dbos.close();
+    impl_->pos = &cerr;
 }
 
 namespace {
@@ -566,20 +566,20 @@ void Debug::initStdErr(
     bool         _buffered,
     std::string* _output)
 {
-    unique_lock<mutex> lock(impl->m);
+    unique_lock<mutex> lock(impl_->m);
 
-    impl->dos.close();
-    impl->dbos.close();
-    if (!impl->isActive())
+    impl_->dos.close();
+    impl_->dbos.close();
+    if (!impl_->isActive())
         return;
     if (_buffered) {
-        impl->pos = &std::clog;
+        impl_->pos = &std::clog;
         if (_output) {
             *_output += "clog";
             *_output += " (buffered)";
         }
     } else {
-        impl->pos = &std::cerr;
+        impl_->pos = &std::cerr;
         if (_output) {
             *_output += "cerr";
             *_output += " (unbuffered)";
@@ -594,30 +594,30 @@ void Debug::initFile(
     ulong        _respinsize,
     std::string* _output)
 {
-    unique_lock<mutex> lock(impl->m);
-    impl->respinsz = 0;
+    unique_lock<mutex> lock(impl_->m);
+    impl_->respinsz = 0;
 
-    impl->dos.close();
-    impl->dbos.close();
-    if (!impl->isActive())
+    impl_->dos.close();
+    impl_->dbos.close();
+    if (!impl_->isActive())
         return;
 
     if (_prefix && *_prefix) {
-        splitPrefix(impl->path, impl->name, _prefix);
-        if (impl->path.empty()) {
+        splitPrefix(impl_->path, impl_->name, _prefix);
+        if (impl_->path.empty()) {
             Directory::create("dbg");
-            impl->path = "dbg/";
+            impl_->path = "dbg/";
         }
-        if (impl->initFile(_respincnt, _respinsize, _output)) {
+        if (impl_->initFile(_respincnt, _respinsize, _output)) {
             if (_buffered) {
-                impl->dos.device(impl->fd);
-                impl->pos = &impl->dos;
+                impl_->dos.device(impl_->fd);
+                impl_->pos = &impl_->dos;
                 if (_output) {
                     *_output += " (buffered)";
                 }
             } else {
-                impl->dbos.device(impl->fd);
-                impl->pos = &impl->dbos;
+                impl_->dbos.device(impl_->fd);
+                impl_->pos = &impl_->dbos;
                 if (_output) {
                     *_output += " (unbuffered)";
                 }
@@ -626,13 +626,13 @@ void Debug::initFile(
         }
     }
     if (_buffered) {
-        impl->pos = &std::clog;
+        impl_->pos = &std::clog;
         if (_output) {
             *_output += "clog";
             *_output += " (buffered)";
         }
     } else {
-        impl->pos = &std::cerr;
+        impl_->pos = &std::cerr;
         if (_output) {
             *_output += "cerr";
             *_output += " (unbuffered)";
@@ -645,29 +645,29 @@ void Debug::initSocket(
     bool         _buffered,
     std::string* _output)
 {
-    if (!impl->isActive())
+    if (!impl_->isActive())
         return;
     //do the connect outside locking
     ResolveData rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-    if (!rd.empty() && !impl->sd.create(rd.begin()) && impl->sd.connect(rd.begin())) {
+    if (!rd.empty() && !impl_->sd.create(rd.begin()) && impl_->sd.connect(rd.begin())) {
     } else {
-        impl->sd.close(); //make sure the socket is closed
+        impl_->sd.close(); //make sure the socket is closed
     }
 
-    unique_lock<mutex> lock(impl->m);
-    impl->respinsz = 0;
+    unique_lock<mutex> lock(impl_->m);
+    impl_->respinsz = 0;
 
-    impl->dos.close();
-    impl->dbos.close();
+    impl_->dos.close();
+    impl_->dbos.close();
 
     if (_addr == 0 || !*_addr) {
         _addr = "localhost";
     }
 
-    if (impl->sd) {
+    if (impl_->sd) {
         if (_buffered) {
-            impl->dos.device(impl->sd);
-            impl->pos = &impl->dos;
+            impl_->dos.device(impl_->sd);
+            impl_->pos = &impl_->dos;
             if (_output) {
                 *_output += _addr;
                 *_output += ':';
@@ -675,8 +675,8 @@ void Debug::initSocket(
                 *_output += " (buffered)";
             }
         } else {
-            impl->dbos.device(impl->sd);
-            impl->pos = &impl->dbos;
+            impl_->dbos.device(impl_->sd);
+            impl_->pos = &impl_->dbos;
             if (_output) {
                 *_output += _addr;
                 *_output += ':';
@@ -686,13 +686,13 @@ void Debug::initSocket(
         }
     } else {
         if (_buffered) {
-            impl->pos = &std::clog;
+            impl_->pos = &std::clog;
             if (_output) {
                 *_output += "clog";
                 *_output += " (buffered)";
             }
         } else {
-            impl->pos = &std::cerr;
+            impl_->pos = &std::cerr;
             if (_output) {
                 *_output += "cerr";
                 *_output += " (unbuffered)";
@@ -706,55 +706,55 @@ void Debug::levelMask(const char* _msk)
     if (!_msk) {
         _msk = "iewrvt";
     }
-    unique_lock<mutex> lock(impl->m);
-    impl->lvlmsk = parseLevels(_msk);
+    unique_lock<mutex> lock(impl_->m);
+    impl_->lvlmsk = parseLevels(_msk);
 }
 void Debug::moduleMask(const char* _msk)
 {
     if (!_msk) {
         _msk = "all";
     }
-    unique_lock<mutex> lock(impl->m);
-    impl->setModuleMask(_msk);
+    unique_lock<mutex> lock(impl_->m);
+    impl_->setModuleMask(_msk);
 }
 
 void Debug::moduleNames(std::string& _ros)
 {
-    unique_lock<mutex> lock(impl->m);
-    for (Data::ModuleVectorT::const_iterator it(impl->modvec.begin()); it != impl->modvec.end(); ++it) {
+    unique_lock<mutex> lock(impl_->m);
+    for (Data::ModuleVectorT::const_iterator it(impl_->modvec.begin()); it != impl_->modvec.end(); ++it) {
         _ros += it->name;
         _ros += ' ';
     }
 }
 void Debug::setAllModuleBits()
 {
-    unique_lock<mutex> lock(impl->m);
-    impl->bs.set();
+    unique_lock<mutex> lock(impl_->m);
+    impl_->bs.set();
 }
 void Debug::resetAllModuleBits()
 {
-    unique_lock<mutex> lock(impl->m);
-    impl->bs.reset();
+    unique_lock<mutex> lock(impl_->m);
+    impl_->bs.reset();
 }
 void Debug::setModuleBit(unsigned _v)
 {
-    unique_lock<mutex> lock(impl->m);
-    impl->bs.set(_v);
+    unique_lock<mutex> lock(impl_->m);
+    impl_->bs.set(_v);
 }
 void Debug::resetModuleBit(unsigned _v)
 {
-    unique_lock<mutex> lock(impl->m);
-    impl->bs.reset(_v);
+    unique_lock<mutex> lock(impl_->m);
+    impl_->bs.reset(_v);
 }
 unsigned Debug::registerModule(const char* _name)
 {
-    unique_lock<mutex> lock(impl->m);
-    return impl->registerModule(_name, -1);
+    unique_lock<mutex> lock(impl_->m);
+    return impl_->registerModule(_name, -1);
 }
 
 std::ostream& Debug::print()
 {
-    impl->m.lock();
+    impl_->m.lock();
     return std::cerr;
 }
 
@@ -765,9 +765,9 @@ std::ostream& Debug::print(
     const char* _fnc,
     int         _line)
 {
-    impl->m.lock();
-    if (impl->respinsz && impl->respinsz <= impl->sz) {
-        impl->doRespin();
+    impl_->m.lock();
+    if (impl_->respinsz && impl_->respinsz <= impl_->sz) {
+        impl_->doRespin();
     }
     char       buf[128];
     const auto now   = system_clock::now();
@@ -790,13 +790,13 @@ std::ostream& Debug::print(
         ploctm->tm_min,
         ploctm->tm_sec,
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000),
-        impl->modvec[_module].name.c_str() //,
+        impl_->modvec[_module].name.c_str() //,
         //Thread::currentId()
         );
 #ifdef SOLID_ON_WINDOWS
-    return (*impl->pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][" << std::this_thread::get_id() << ']' << ' ';
+    return (*impl_->pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][" << std::this_thread::get_id() << ']' << ' ';
 #else
-    return (*impl->pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ';
+    return (*impl_->pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ';
 #endif
 }
 static const char tabs[] = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -818,9 +818,9 @@ std::ostream& Debug::printTraceIn(
     const char* _fnc,
     int         _line)
 {
-    impl->m.lock();
-    if (impl->respinsz && impl->respinsz <= impl->sz) {
-        impl->doRespin();
+    impl_->m.lock();
+    if (impl_->respinsz && impl_->respinsz <= impl_->sz) {
+        impl_->doRespin();
     }
     char       buf[128];
     const auto now   = system_clock::now();
@@ -843,18 +843,18 @@ std::ostream& Debug::printTraceIn(
         ploctm->tm_min,
         ploctm->tm_sec,
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
-        //impl->nv[_module],
+        //impl_->nv[_module],
         //Thread::currentId()
         );
-    (*impl->pos) << buf;
-    impl->pos->write(tabs, impl->trace_debth);
-    ++impl->trace_debth;
+    (*impl_->pos) << buf;
+    impl_->pos->write(tabs, impl_->trace_debth);
+    ++impl_->trace_debth;
 #ifdef SOLID_ON_WINDOWS
-    (*impl->pos) << '[' << impl->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << _fnc << '(';
+    (*impl_->pos) << '[' << impl_->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << _fnc << '(';
 #else
-    (*impl->pos) << '[' << impl->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << _fnc << '(';
+    (*impl_->pos) << '[' << impl_->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << _fnc << '(';
 #endif
-    return (*impl->pos);
+    return (*impl_->pos);
 }
 
 std::ostream& Debug::printTraceOut(
@@ -864,9 +864,9 @@ std::ostream& Debug::printTraceOut(
     const char* _fnc,
     int         _line)
 {
-    impl->m.lock();
-    if (impl->respinsz && impl->respinsz <= impl->sz) {
-        impl->doRespin();
+    impl_->m.lock();
+    if (impl_->respinsz && impl_->respinsz <= impl_->sz) {
+        impl_->doRespin();
     }
     char       buf[128];
     const auto now   = system_clock::now();
@@ -889,45 +889,45 @@ std::ostream& Debug::printTraceOut(
         ploctm->tm_min,
         ploctm->tm_sec,
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
-        //impl->nv[_module],
+        //impl_->nv[_module],
         //Thread::currentId()
         );
-    (*impl->pos) << buf;
-    --impl->trace_debth;
-    impl->pos->write(tabs, impl->trace_debth);
+    (*impl_->pos) << buf;
+    --impl_->trace_debth;
+    impl_->pos->write(tabs, impl_->trace_debth);
 #ifdef SOLID_ON_WINDOWS
-    (*impl->pos) << '[' << impl->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << '}' << _fnc << '(';
+    (*impl_->pos) << '[' << impl_->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][" << std::this_thread::get_id() << ']' << ' ' << '}' << _fnc << '(';
 #else
-    (*impl->pos) << '[' << impl->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << '}' << _fnc << '(';
+    (*impl_->pos) << '[' << impl_->modvec[_module].name << ']' << '[' << src_file_name(_file) << ':' << _line << "][0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ' << '}' << _fnc << '(';
 #endif
-    return (*impl->pos);
+    return (*impl_->pos);
 }
 
 void Debug::done()
 {
-    (*impl->pos) << std::endl;
-    SOLID_ASSERT(impl->pos->good());
-    impl->m.unlock();
+    (*impl_->pos) << std::endl;
+    SOLID_ASSERT(impl_->pos->good());
+    impl_->m.unlock();
 }
 
 void Debug::doneTraceIn()
 {
-    (*impl->pos) << ')' << '{' << std::endl;
-    impl->m.unlock();
+    (*impl_->pos) << ')' << '{' << std::endl;
+    impl_->m.unlock();
 }
 
 void Debug::doneTraceOut()
 {
-    (*impl->pos) << ')' << std::endl;
-    impl->m.unlock();
+    (*impl_->pos) << ')' << std::endl;
+    impl_->m.unlock();
 }
 
 bool Debug::isSet(Level _lvl, unsigned _v) const
 {
-    return (impl->lvlmsk & _lvl) && _v < impl->bs.size() && impl->bs[_v] && impl->modvec[_v].lvlmsk & _lvl;
+    return (impl_->lvlmsk & _lvl) && _v < impl_->bs.size() && impl_->bs[_v] && impl_->modvec[_v].lvlmsk & _lvl;
 }
 Debug::Debug()
-    : impl(make_pimpl<Data>())
+    : impl_(make_pimpl<Data>())
 {
     resetAllModuleBits();
     levelMask();

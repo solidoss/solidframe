@@ -175,6 +175,10 @@ struct Message : frame::mpipc::Message {
     }
 };
 
+//-----------------------------------------------------------------------------
+//      PeerA
+//-----------------------------------------------------------------------------
+
 void peera_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
     idbg(_rctx.recipientId());
@@ -188,41 +192,7 @@ void peera_connection_stop(frame::mpipc::ConnectionContext& _rctx)
     }
 }
 
-void peerb_connection_start(frame::mpipc::ConnectionContext& _rctx)
-{
-    idbg(_rctx.recipientId());
-    auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
-        idbg("enter active error: " << _rerror.message());
-        return frame::mpipc::MessagePointerT();
-    };
-    _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
-}
-
-void peerb_connection_stop(frame::mpipc::ConnectionContext& _rctx)
-{
-    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
-}
-
 void peera_complete_register(
-    frame::mpipc::ConnectionContext& _rctx,
-    std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
-    ErrorConditionT const& _rerror)
-{
-    idbg(_rctx.recipientId());
-    SOLID_CHECK(not _rerror);
-
-    if (_rrecv_msg_ptr and _rrecv_msg_ptr->err == 0) {
-        auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
-            idbg("enter active error: " << _rerror.message());
-            return frame::mpipc::MessagePointerT();
-        };
-        _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
-    } else {
-        SOLID_CHECK(false);
-    }
-}
-
-void peerb_complete_register(
     frame::mpipc::ConnectionContext& _rctx,
     std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
@@ -276,6 +246,44 @@ void peera_complete_message(
     }
 }
 
+//-----------------------------------------------------------------------------
+//      PeerB
+//-----------------------------------------------------------------------------
+
+void peerb_connection_start(frame::mpipc::ConnectionContext& _rctx)
+{
+    idbg(_rctx.recipientId());
+    auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
+        idbg("enter active error: " << _rerror.message());
+        return frame::mpipc::MessagePointerT();
+    };
+    _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
+}
+
+void peerb_connection_stop(frame::mpipc::ConnectionContext& _rctx)
+{
+    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
+}
+
+void peerb_complete_register(
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
+    ErrorConditionT const& _rerror)
+{
+    idbg(_rctx.recipientId());
+    SOLID_CHECK(not _rerror);
+
+    if (_rrecv_msg_ptr and _rrecv_msg_ptr->err == 0) {
+        auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
+            idbg("enter active error: " << _rerror.message());
+            return frame::mpipc::MessagePointerT();
+        };
+        _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
+    } else {
+        SOLID_CHECK(false);
+    }
+}
+
 void peerb_complete_message(
     frame::mpipc::ConnectionContext& _rctx,
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
@@ -304,7 +312,7 @@ void peerb_complete_message(
         idbg(crtreadidx);
         if (crtwriteidx < writecount) {
             err = pmpipcpeera->sendMessage(
-                "/b", std::make_shared<Message>(crtwriteidx++),
+                "localhost/b", std::make_shared<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlags::WaitResponse);
 
             SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
@@ -315,6 +323,30 @@ void peerb_complete_message(
     }
 }
 
+//-----------------------------------------------------------------------------
+//      Relay
+//-----------------------------------------------------------------------------
+void relay_connection_start(frame::mpipc::ConnectionContext& _rctx)
+{
+    idbg(_rctx.recipientId());
+}
+
+void relay_connection_stop(frame::mpipc::ConnectionContext& _rctx)
+{
+    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
+    if (!running) {
+        ++connection_count;
+    }
+}
+
+void relay_complete_register(
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
+    ErrorConditionT const& _rerror)
+{
+}
+
+//-----------------------------------------------------------------------------
 } //namespace
 
 int test_relay_basic(int argc, char** argv)
@@ -371,10 +403,6 @@ int test_relay_basic(int argc, char** argv)
         pattern.resize(sz);
     }
 
-    for (auto it = pattern.cbegin(); it != pattern.cend(); ++it) {
-        pattern_check[static_cast<size_t>(*it)] = pattern[static_cast<size_t>(((it - pattern.cbegin()) + 1) % pattern.size())];
-    }
-
     {
         AioSchedulerT          sch_peera;
         AioSchedulerT          sch_peerb;
@@ -383,9 +411,8 @@ int test_relay_basic(int argc, char** argv)
         frame::mpipc::ServiceT mpipcrelay(m);
         frame::mpipc::ServiceT mpipcpeera(m);
         frame::mpipc::ServiceT mpipcpeerb(m);
-        ;
-        frame::aio::Resolver resolver;
-        ErrorConditionT      err;
+        frame::aio::Resolver   resolver;
+        ErrorConditionT        err;
 
         err = sch_peera.start(1);
 
@@ -549,13 +576,13 @@ int test_relay_basic(int argc, char** argv)
         {
             auto msgptr = std::make_shared<Register>("b");
             for (size_t i = 0; i < max_per_pool_connection_count; ++i) {
-                mpipcpeera.sendMessage("", msgptr, frame::mpipc::MessageFlags::WaitResponse);
+                mpipcpeera.sendMessage("localhost", msgptr, 0|frame::mpipc::MessageFlags::WaitResponse);
             }
         }
 
         for (; crtwriteidx < start_count;) {
             mpipcpeera.sendMessage(
-                "/b", std::make_shared<Message>(crtwriteidx++),
+                "localhost/b", std::make_shared<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlags::WaitResponse);
         }
 

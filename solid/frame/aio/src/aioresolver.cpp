@@ -57,11 +57,11 @@ struct Resolver::Data {
 }
 
 Resolver::Resolver(size_t _thrcnt)
-    : impl(make_pimpl<Data>(_thrcnt))
+    : impl_(make_pimpl<Data>(_thrcnt))
 {
 
     if (_thrcnt == 0) {
-        impl->wp.controller().maxthrcnt = std::thread::hardware_concurrency();
+        impl_->wp.controller().maxthrcnt = std::thread::hardware_concurrency();
     }
 }
 
@@ -71,20 +71,20 @@ Resolver::~Resolver()
 
 ErrorConditionT Resolver::start(ushort _thrcnt)
 {
-    impl->wp.start(_thrcnt);
+    impl_->wp.start(_thrcnt);
     //TODO: compute a proper error response
     return ErrorConditionT();
 }
 
 void Resolver::stop()
 {
-    impl->wp.stop();
+    impl_->wp.stop();
 }
 
 void Resolver::doSchedule(ResolveBase* _pb)
 {
     ResolverPointerT ptr(_pb);
-    impl->wp.push(ptr);
+    impl_->wp.push(ptr);
 }
 
 //---------------------------------------------------------------

@@ -59,7 +59,7 @@ struct ServerConfiguration {
     ConnectionServerVerifyFunctionT  connection_verify_fnc;
 };
 
-class SocketStub : public mpipc::SocketStub {
+class SocketStub final : public mpipc::SocketStub {
 public:
     SocketStub(frame::aio::ObjectProxy const& _rproxy, ContextT& _rsecure_ctx)
         : sock(_rproxy, _rsecure_ctx)
