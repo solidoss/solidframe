@@ -180,6 +180,26 @@ void complete_message(
     }
 }
 
+struct Receiver : frame::mpipc::MessageReader::Receiver {
+    frame::mpipc::serialization_v1::Protocol    &rprotocol_;
+
+    Receiver(frame::mpipc::serialization_v1::Protocol &_rprotocol):rprotocol_(_rprotocol)
+    {
+    }
+
+    void receiveMessage(frame::mpipc::MessagePointerT& _rresponse_ptr, const size_t _msg_type_id) override
+    {
+        frame::mpipc::MessagePointerT message_ptr;
+        ErrorConditionT               error;
+        rprotocol_[_msg_type_id].complete_fnc(mpipcconctx, message_ptr, _rresponse_ptr, error);
+    }
+
+    void receiveKeepAlive() override
+    {
+        idbg("");
+    }
+};
+
 } //namespace
 
 int test_protocol_cancel(int argc, char** argv)
@@ -256,20 +276,7 @@ int test_protocol_cancel(int argc, char** argv)
     }
 
     {
-        auto reader_complete_lambda(
-            [&mpipcprotocol](const frame::mpipc::MessageReader::Events _event, frame::mpipc::MessagePointerT& _rresponse_ptr, const size_t _message_type_id) {
-                switch (_event) {
-                case frame::mpipc::MessageReader::MessageCompleteE: {
-                    idbg("reader complete message");
-                    frame::mpipc::MessagePointerT message_ptr;
-                    ErrorConditionT               error;
-                    (*mpipcprotocol)[_message_type_id].complete_fnc(mpipcconctx, message_ptr, _rresponse_ptr, error);
-                } break;
-                case frame::mpipc::MessageReader::KeepaliveCompleteE:
-                    idbg("complete keepalive");
-                    break;
-                }
-            });
+        Receiver rcvr(*mpipcprotocol);
 
         auto writer_complete_lambda(
             [&mpipcprotocol](frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& _rmsgid) {
@@ -280,7 +287,6 @@ int test_protocol_cancel(int argc, char** argv)
                 return ErrorConditionT();
             });
 
-        frame::mpipc::MessageReader::CompleteFunctionT readercompletefnc(std::cref(reader_complete_lambda));
         frame::mpipc::MessageWriter::CompleteFunctionT writercompletefnc(std::cref(writer_complete_lambda));
 
         mpipcmsgreader.prepare(mpipcreaderconfig);
@@ -292,7 +298,7 @@ int test_protocol_cancel(int argc, char** argv)
 
             if (!error and bufsz) {
 
-                mpipcmsgreader.read(buf, bufsz, readercompletefnc, mpipcreaderconfig, *mpipcprotocol, mpipcconctx, error);
+                mpipcmsgreader.read(buf, bufsz, rcvr, mpipcreaderconfig, *mpipcprotocol, mpipcconctx, error);
             } else {
                 is_running = false;
             }

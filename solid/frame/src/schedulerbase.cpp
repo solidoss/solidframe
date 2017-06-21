@@ -226,7 +226,7 @@ ErrorConditionT SchedulerBase::doStart(
 
             if (impl_->status == StatusStartingErrorE) {
                 impl_->status = StatusStoppingWaitE;
-                start_err    = true;
+                start_err     = true;
             }
         }
 
@@ -356,7 +356,7 @@ size_t SchedulerBase::doComputeScheduleReactorIndex()
         break;
     }
 
-    const size_t cwi    = impl_->crtreactoridx;
+    const size_t cwi     = impl_->crtreactoridx;
     impl_->crtreactoridx = (cwi + 1) % impl_->reactorvec.size();
     return cwi;
 }

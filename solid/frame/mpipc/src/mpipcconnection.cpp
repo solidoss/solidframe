@@ -1330,32 +1330,45 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     }
 }
 //-----------------------------------------------------------------------------
+struct Connection::Receiver : MessageReader::Receiver {
+    Connection&                 rcon_;
+    frame::aio::ReactorContext& rctx_;
+
+    Receiver(Connection& _rcon, frame::aio::ReactorContext& _rctx)
+        : rcon_(_rcon)
+        , rctx_(_rctx)
+    {
+    }
+
+    void receiveMessage(MessagePointerT& _rmsg_ptr, const size_t _msg_type_id) override
+    {
+        rcon_.doCompleteMessage(rctx_, _rmsg_ptr, _msg_type_id);
+        rcon_.flags |= static_cast<size_t>(Flags::PollPool); //reset flag
+        rcon_.post(
+            rctx_,
+            [](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {
+                Connection& rthis = static_cast<Connection&>(_rctx.object());
+                rthis.doSend(_rctx);
+            });
+    }
+
+    void receiveKeepAlive() override
+    {
+        rcon_.doCompleteKeepalive(rctx_);
+    }
+};
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
 
     Connection&          rthis = static_cast<Connection&>(_rctx.object());
     ConnectionContext    conctx(rthis.service(_rctx), rthis);
-    const Configuration& rconfig = rthis.service(_rctx).configuration();
-
-    unsigned       repeatcnt = 4;
-    char*          pbuf;
-    size_t         bufsz;
-    const uint32_t recvbufcp      = rthis.recvBufferCapacity();
-    bool           recv_something = false;
-
-    auto complete_lambda(
-        [&rthis, &_rctx](const MessageReader::Events _event, MessagePointerT& _rmsg_ptr, const size_t _msg_type_id) {
-            switch (_event) {
-            case MessageReader::MessageCompleteE:
-                rthis.doCompleteMessage(_rctx, _rmsg_ptr, _msg_type_id);
-                rthis.flags |= static_cast<size_t>(Flags::PollPool); //reset flag
-                rthis.post(_rctx, [&rthis](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { rthis.doSend(_rctx); });
-                break;
-            case MessageReader::KeepaliveCompleteE:
-                rthis.doCompleteKeepalive(_rctx);
-                break;
-            }
-        });
+    const Configuration& rconfig   = rthis.service(_rctx).configuration();
+    unsigned             repeatcnt = 4;
+    char*                pbuf;
+    size_t               bufsz;
+    const uint32_t       recvbufcp      = rthis.recvBufferCapacity();
+    bool                 recv_something = false;
+    Receiver             rcvr(rthis, _rctx);
 
     rthis.doResetTimerRecv(_rctx);
 
@@ -1367,11 +1380,9 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
             rthis.recv_buf_off += _sz;
             pbuf  = rthis.recv_buf + rthis.cons_buf_off;
             bufsz = rthis.recv_buf_off - rthis.cons_buf_off;
-            ErrorConditionT                  error;
-            MessageReader::CompleteFunctionT completefnc(std::cref(complete_lambda));
-
+            ErrorConditionT error;
             rthis.cons_buf_off += rthis.msg_reader.read(
-                pbuf, bufsz, completefnc, rconfig.reader, rconfig.protocol(), conctx, error);
+                pbuf, bufsz, rcvr, rconfig.reader, rconfig.protocol(), conctx, error);
 
             vdbgx(Debug::mpipc, &rthis << " consumed size " << rthis.cons_buf_off << " of " << bufsz);
 

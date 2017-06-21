@@ -543,7 +543,7 @@ bool Reactor::start()
         unique_lock<std::mutex> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].emplace_back(_robjuid, std::move(_uevent));
-        raisevecsz          = impl_->raisevec[impl_->crtraisevecidx].size();
+        raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
         impl_->crtraisevecsz = raisevecsz;
     }
     if (raisevecsz == 1) {
@@ -563,7 +563,7 @@ bool Reactor::start()
         unique_lock<std::mutex> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].push_back(RaiseEventStub(_robjuid, _revent));
-        raisevecsz          = impl_->raisevec[impl_->crtraisevecidx].size();
+        raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
         impl_->crtraisevecsz = raisevecsz;
     }
     if (raisevecsz == 1) {
@@ -596,7 +596,7 @@ bool Reactor::push(TaskT& _robj, Service& _rsvc, Event&& _uevent)
         vdbgx(Debug::aio, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _uevent);
 
         impl_->pushtskvec[impl_->crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, std::move(_uevent)));
-        pushvecsz          = impl_->pushtskvec[impl_->crtpushtskvecidx].size();
+        pushvecsz           = impl_->pushtskvec[impl_->crtpushtskvecidx].size();
         impl_->crtpushvecsz = pushvecsz;
     }
 
@@ -640,7 +640,7 @@ void Reactor::run()
 
         selcnt = epoll_wait(impl_->reactor_fd, impl_->eventvec.data(), impl_->eventvec.size(), waitmsec);
 #elif defined(SOLID_USE_KQUEUE)
-        waittime     = impl_->computeWaitTimeMilliseconds(crttime);
+        waittime      = impl_->computeWaitTimeMilliseconds(crttime);
 
         vdbgx(Debug::aio, "kqueue msec = " << waittime.seconds() << ':' << waittime.nanoSeconds());
 

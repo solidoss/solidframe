@@ -207,7 +207,7 @@ void peera_complete_register(
         };
         _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
     } else {
-        SOLID_CHECK(false);
+        idbg("");
     }
 }
 
@@ -280,7 +280,7 @@ void peerb_complete_register(
         };
         _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
     } else {
-        SOLID_CHECK(false);
+        idbg("");
     }
 }
 
@@ -344,6 +344,23 @@ void relay_complete_register(
     std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
+    SOLID_CHECK(!_rerror);
+    if (_rrecv_msg_ptr) {
+        SOLID_CHECK(!_rsent_msg_ptr);
+        idbg("recv register response: " << _rrecv_msg_ptr->str);
+
+        { //do register connection
+        }
+
+        _rrecv_msg_ptr->str.clear();
+        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+
+        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
+
+    } else {
+        SOLID_CHECK(!_rrecv_msg_ptr);
+        idbg("sent register response");
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -353,7 +370,7 @@ int test_relay_basic(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
-    Debug::the().moduleMask("frame_mpipc:ew any:ew");
+    Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -576,7 +593,7 @@ int test_relay_basic(int argc, char** argv)
         {
             auto msgptr = std::make_shared<Register>("b");
             for (size_t i = 0; i < max_per_pool_connection_count; ++i) {
-                mpipcpeera.sendMessage("localhost", msgptr, 0|frame::mpipc::MessageFlags::WaitResponse);
+                mpipcpeera.sendMessage("localhost", msgptr, 0 | frame::mpipc::MessageFlags::WaitResponse);
             }
         }
 

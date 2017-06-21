@@ -25,11 +25,12 @@ struct PacketHeader;
 
 class MessageReader {
 public:
-    enum Events {
-        MessageCompleteE,
-        KeepaliveCompleteE,
+    struct Receiver {
+        virtual ~Receiver() {}
+
+        virtual void receiveMessage(MessagePointerT&, const size_t /*_msg_type_id*/) = 0;
+        virtual void receiveKeepAlive() = 0;
     };
-    using CompleteFunctionT = SOLID_FUNCTION<void(const Events, MessagePointerT /*const*/&, const size_t)>;
 
     MessageReader();
 
@@ -38,7 +39,7 @@ public:
     uint32_t read(
         const char*                _pbuf,
         uint32_t                   _bufsz,
-        const CompleteFunctionT&   _complete_fnc,
+        Receiver&                  _receiver,
         ReaderConfiguration const& _rconfig,
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,
@@ -51,52 +52,61 @@ private:
     void doConsumePacket(
         const char*                _pbuf,
         PacketHeader const&        _packet_header,
-        const CompleteFunctionT&   _complete_fnc,
+        Receiver&                  _receiver,
         ReaderConfiguration const& _rconfig,
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,
         ErrorConditionT&           _rerror);
 
+    const char* doConsumeMessage(
+        const char*        _pbufpos,
+        const char* const  _pbufend,
+        const bool         _is_end_of_message,
+        Receiver&          _receiver,
+        Protocol const&    _rproto,
+        ConnectionContext& _rctx,
+        ErrorConditionT&   _rerror);
+
 private:
-    enum States {
-        HeaderReadStateE = 1,
-        DataReadStateE,
+    enum struct StateE {
+        ReadPacketHead = 1,
+        ReadPacketBody,
     };
 
     struct MessageStub {
-        MessagePointerT      message_ptr;
-        DeserializerPointerT deserializer_ptr;
-        size_t               packet_count;
-        MessageHeader        message_header;
-        bool                 is_reading_message_header;
+        enum struct StateE : uint8_t {
+            NotStarted,
+            ReadHead,
+            ReadBody,
+            RelayBody,
+            Canceled,
+        };
 
-        MessageStub(
-            MessagePointerT& _rmsgptr,
-            ulong            _flags)
-            : message_ptr(std::move(_rmsgptr))
-            , packet_count(0)
-            , is_reading_message_header(false)
-        {
-        }
+        MessagePointerT      message_ptr_;
+        DeserializerPointerT deserializer_ptr_;
+        MessageHeader        message_header_;
+        size_t               packet_count_;
+        StateE               state_;
 
         MessageStub()
-            : packet_count(0)
-            , is_reading_message_header(false)
+            : packet_count_(0), state_(StateE::NotStarted)
         {
         }
 
         void clear()
         {
-            deserializer_ptr = nullptr;
-            message_ptr.reset();
+            message_ptr_.reset();
+            deserializer_ptr_.reset();
+            packet_count_ = 0;
+            state_ = StateE::NotStarted;
         }
     };
 
     typedef Queue<MessageStub> MessageQueueT;
 
-    States        state;
-    uint64_t      current_message_type_id;
-    MessageQueueT message_q;
+    MessageQueueT message_q_;
+    uint64_t      current_message_type_id_;
+    StateE        state_;
 };
 
 } //namespace mpipc

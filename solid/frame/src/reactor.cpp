@@ -318,7 +318,7 @@ bool Reactor::start()
         unique_lock<mutex> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].push_back(RaiseEventStub(_robjuid, _revent));
-        raisevecsz          = impl_->raisevec[impl_->crtraisevecidx].size();
+        raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
         impl_->crtraisevecsz = raisevecsz;
         if (raisevecsz == 1) {
             impl_->cnd.notify_one();
@@ -336,7 +336,7 @@ bool Reactor::start()
         unique_lock<mutex> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].push_back(RaiseEventStub(_robjuid, std::move(_uevent)));
-        raisevecsz          = impl_->raisevec[impl_->crtraisevecidx].size();
+        raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
         impl_->crtraisevecsz = raisevecsz;
         if (raisevecsz == 1) {
             impl_->cnd.notify_one();
@@ -366,7 +366,7 @@ bool Reactor::push(TaskT& _robj, Service& _rsvc, Event const& _revent)
         vdbgx(Debug::aio, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _revent);
 
         impl_->pushtskvec[impl_->crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revent));
-        pushvecsz          = impl_->pushtskvec[impl_->crtpushtskvecidx].size();
+        pushvecsz           = impl_->pushtskvec[impl_->crtpushtskvecidx].size();
         impl_->crtpushvecsz = pushvecsz;
         if (pushvecsz == 1) {
             impl_->cnd.notify_one();
@@ -569,15 +569,15 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime)
         impl_->freeuidvec.clear();
 
         const size_t crtpushvecidx = impl_->crtpushtskvecidx;
-        impl_->crtpushtskvecidx     = ((crtpushvecidx + 1) & 1);
-        impl_->pcrtpushtskvec       = &impl_->pushtskvec[crtpushvecidx];
+        impl_->crtpushtskvecidx    = ((crtpushvecidx + 1) & 1);
+        impl_->pcrtpushtskvec      = &impl_->pushtskvec[crtpushvecidx];
         rv                         = true;
     }
     if (impl_->crtraisevecsz) {
-        impl_->crtraisevecsz         = 0;
+        impl_->crtraisevecsz        = 0;
         const size_t crtraisevecidx = impl_->crtraisevecidx;
-        impl_->crtraisevecidx        = ((crtraisevecidx + 1) & 1);
-        impl_->pcrtraisevec          = &impl_->raisevec[crtraisevecidx];
+        impl_->crtraisevecidx       = ((crtraisevecidx + 1) & 1);
+        impl_->pcrtraisevec         = &impl_->raisevec[crtraisevecidx];
         rv                          = true;
     }
     return rv;

@@ -267,6 +267,8 @@ private:
 
 protected:
     using TimerT = frame::aio::SteadyTimer;
+    struct Receiver;
+    friend struct Receiver;
 
     ConnectionPoolId   pool_id;
     const std::string& rpool_name;
