@@ -183,9 +183,10 @@ void complete_message(
 }
 
 struct Receiver : frame::mpipc::MessageReader::Receiver {
-    frame::mpipc::serialization_v1::Protocol    &rprotocol_;
+    frame::mpipc::serialization_v1::Protocol& rprotocol_;
 
-    Receiver(frame::mpipc::serialization_v1::Protocol &_rprotocol):rprotocol_(_rprotocol)
+    Receiver(frame::mpipc::serialization_v1::Protocol& _rprotocol)
+        : rprotocol_(_rprotocol)
     {
     }
 
@@ -201,7 +202,6 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
         idbg("");
     }
 };
-
 
 } //namespace
 
@@ -244,6 +244,8 @@ int test_protocol_basic(int argc, char** argv)
     ctx.mpipcprotocol     = mpipcprotocol.get();
     ctx.mpipcmsgreader    = &mpipcmsgreader;
     ctx.mpipcmsgwriter    = &mpipcmsgwriter;
+
+    mpipcmsgwriter.prepare(mpipcwriterconfig);
 
     mpipcprotocol->registerType<::Message>(
         complete_message);

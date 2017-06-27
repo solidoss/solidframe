@@ -1357,6 +1357,7 @@ struct Connection::Receiver : MessageReader::Receiver {
         rcon_.doCompleteKeepalive(rctx_);
     }
 };
+
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
 

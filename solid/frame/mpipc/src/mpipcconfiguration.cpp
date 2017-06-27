@@ -62,9 +62,13 @@ SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::a
     return plain::create_server_socket(_rcfg, _rproxy, std::move(_usd), _emplace_buf);
 }
 
-const char* default_fast_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
+const char* default_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
 {
+    if (_purl == nullptr)
+        return nullptr;
+
     const char* p = strchr(_purl, '/');
+
     if (p == nullptr) {
         return _purl;
     } else {
@@ -74,7 +78,7 @@ const char* default_fast_extract_recipient_name(const char* _purl, std::string& 
     }
 }
 
-const char* default_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
+const char* default_fast_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
 {
 
     return _purl;

@@ -8,16 +8,19 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include <algorithm>
+#include <atomic>
+#include <condition_variable>
 #include <cstring>
+#include <deque>
+#include <mutex>
+#include <thread>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "solid/system/debug.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/system/socketdevice.hpp"
-#include <condition_variable>
-#include <mutex>
-#include <thread>
 
 #include "solid/utility/queue.hpp"
 
@@ -35,16 +38,10 @@
 #include "solid/utility/queue.hpp"
 #include "solid/utility/stack.hpp"
 #include "solid/utility/string.hpp"
-#include <atomic>
 
 #include "mpipcconnection.hpp"
 #include "mpipclistener.hpp"
 #include "mpipcutility.hpp"
-
-#include <deque>
-#include <vector>
-
-#include <unordered_map>
 
 using namespace std;
 
@@ -171,6 +168,7 @@ struct ConnectionPoolStub {
     };
 
     uint32_t               unique;
+    uint16_t               persistent_connection_count;
     uint16_t               pending_connection_count;
     uint16_t               active_connection_count;
     uint16_t               stopping_connection_count;
@@ -189,6 +187,7 @@ struct ConnectionPoolStub {
 
     ConnectionPoolStub()
         : unique(0)
+        , persistent_connection_count(0)
         , pending_connection_count(0)
         , active_connection_count(0)
         , stopping_connection_count(0)
@@ -203,6 +202,7 @@ struct ConnectionPoolStub {
     ConnectionPoolStub(
         ConnectionPoolStub&& _rpool)
         : unique(_rpool.unique)
+        , persistent_connection_count(_rpool.persistent_connection_count)
         , pending_connection_count(_rpool.pending_connection_count)
         , active_connection_count(_rpool.active_connection_count)
         , stopping_connection_count(_rpool.stopping_connection_count)
@@ -229,9 +229,10 @@ struct ConnectionPoolStub {
         name.clear();
         main_connection_id = ObjectIdT();
         ++unique;
-        pending_connection_count  = 0;
-        active_connection_count   = 0;
-        stopping_connection_count = 0;
+        persistent_connection_count = 0;
+        pending_connection_count    = 0;
+        active_connection_count     = 0;
+        stopping_connection_count   = 0;
         while (conn_waitingq.size()) {
             conn_waitingq.pop();
         }
@@ -752,6 +753,59 @@ struct OnRelsolveF {
 
 //-----------------------------------------------------------------------------
 
+ErrorConditionT Service::createConnectionPool(const char* _recipient_url, const size_t _persistent_connection_count /* = 1*/)
+{
+    solid::ErrorConditionT error;
+    size_t                 pool_idx;
+    std::string            message_url;
+
+    unique_lock<std::mutex> lock(impl_->mtx);
+    const char*             recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
+
+    if (recipient_name == nullptr or recipient_name[0] == '\0') {
+        edbgx(Debug::mpipc, this << " failed extracting recipient name");
+        error = error_service_invalid_url;
+        return error;
+    }
+
+    {
+        NameMapT::const_iterator it = impl_->namemap.find(recipient_name);
+
+        if (it != impl_->namemap.end()) {
+            pool_idx = it->second;
+
+            unique_lock<std::mutex> lock2(impl_->poolMutex(pool_idx));
+            ConnectionPoolStub&     rpool(impl_->pooldq[pool_idx]);
+
+            rpool.persistent_connection_count = _persistent_connection_count;
+            doTryCreateNewConnectionForPool(pool_idx, error);
+        } else {
+            if (impl_->conpoolcachestk.size()) {
+                pool_idx = impl_->conpoolcachestk.top();
+                impl_->conpoolcachestk.pop();
+            } else {
+                pool_idx = this->doPushNewConnectionPool();
+            }
+
+            unique_lock<std::mutex> lock2(impl_->poolMutex(pool_idx));
+            ConnectionPoolStub&     rpool(impl_->pooldq[pool_idx]);
+
+            rpool.name                        = recipient_name;
+            rpool.persistent_connection_count = _persistent_connection_count;
+
+            if (not doTryCreateNewConnectionForPool(pool_idx, error)) {
+                rpool.clear();
+                impl_->conpoolcachestk.push(pool_idx);
+                return error;
+            }
+
+            impl_->namemap[rpool.name.c_str()] = pool_idx;
+        }
+    }
+
+    return error;
+}
+
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::doSendMessage(
     const char*               _recipient_url,
@@ -811,7 +865,7 @@ ErrorConditionT Service::doSendMessage(
     std::string message_url;
     const char* recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
 
-    if (_recipient_url != nullptr and recipient_name == nullptr) {
+    if (_recipient_url != nullptr and (recipient_name == nullptr or recipient_name[0] == '\0')) {
         edbgx(Debug::mpipc, this << " failed extracting recipient name");
         error = error_service_invalid_url;
         return error;
@@ -1660,9 +1714,9 @@ bool Service::connectionStopping(
 //-----------------------------------------------------------------------------
 bool Service::doNonMainConnectionStopping(
     Connection& _rcon, ObjectIdT const& _robjuid,
-    ulong&         _rseconds_to_wait,
-    MessageId&     _rmsg_id,
-    MessageBundle& _rmsg_bundle,
+    ulong& /*_rseconds_to_wait*/,
+    MessageId& /*_rmsg_id*/,
+    MessageBundle& /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
     )
@@ -1787,7 +1841,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 //-----------------------------------------------------------------------------
 bool Service::doMainConnectionStoppingCleanAll(
     Connection& _rcon, ObjectIdT const& _robjuid,
-    ulong&         _rseconds_to_wait,
+    ulong& /*_rseconds_to_wait*/,
     MessageId&     _rmsg_id,
     MessageBundle& _rmsg_bundle,
     Event& /*_revent_context*/,
@@ -1843,7 +1897,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 
     rpool.resetMainConnectionActive();
 
-    if (rpool.msgorder_inner_list.size()) {
+    if (rpool.msgorder_inner_list.size() or rpool.persistent_connection_count != 0) {
         rpool.setCleaningOneShotMessages();
 
         _revent_context.any() = rpool.msgorder_inner_list.frontIndex();
@@ -1915,7 +1969,7 @@ bool Service::doMainConnectionRestarting(
         rpool.retry_connect_count = 0;
     }
 
-    if (rpool.hasAnyMessage()) {
+    if (rpool.hasAnyMessage() or rpool.persistent_connection_count != 0) {
 
         ErrorConditionT error;
         bool            success = false;
@@ -1991,9 +2045,10 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
     vdbgx(Debug::mpipc, this);
 
     ConnectionPoolStub& rpool(impl_->pooldq[_pool_index]);
+    const bool          is_new_connection_needed = rpool.active_connection_count < rpool.persistent_connection_count or (rpool.hasAnyMessage() and rpool.conn_waitingq.size() < rpool.msgorder_inner_list.size());
 
     if (
-        rpool.active_connection_count < configuration().pool_max_active_connection_count and rpool.pending_connection_count == 0 and rpool.hasAnyMessage() and rpool.conn_waitingq.size() < rpool.msgorder_inner_list.size() and isRunning()) {
+        rpool.active_connection_count < configuration().pool_max_active_connection_count and rpool.pending_connection_count == 0 and is_new_connection_needed and isRunning()) {
 
         idbgx(Debug::mpipc, this << " try create new connection in pool " << rpool.active_connection_count << " pending connections " << rpool.pending_connection_count);
 
@@ -2028,6 +2083,8 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
 
             return true;
         }
+    } else {
+        _rerror = error_service_connection_not_needed;
     }
     return false;
 }
@@ -2134,6 +2191,11 @@ ErrorConditionT Service::activateConnection(Connection& _rconnection, ObjectIdT 
     SOLID_ASSERT(rpool.unique == _rconnection.poolId().unique);
     if (rpool.unique != _rconnection.poolId().unique) {
         error = error_service_unknown_pool;
+        return error;
+    }
+
+    if (_rconnection.isActiveState()) {
+        error = error_service_already_active;
         return error;
     }
 

@@ -36,6 +36,7 @@ bool Object::isRunning() const
 
 bool Object::registerCompletionHandler(CompletionHandler& _rch)
 {
+    idbgx(Debug::aio, "" << &_rch);
     _rch.pnext = this->pnext;
     if (_rch.pnext) {
         _rch.pnext->pprev = &_rch;
@@ -47,6 +48,7 @@ bool Object::registerCompletionHandler(CompletionHandler& _rch)
 
 void Object::registerCompletionHandlers()
 {
+    idbgx(Debug::aio, "");
     CompletionHandler* pch = this->pnext;
 
     while (pch != nullptr) {

@@ -96,60 +96,70 @@ private:
     };
 
     struct MessageStub : InnerNode<InnerLinkCount> {
+
+        enum struct StateE : uint8_t {
+            NotStarted,
+            WriteHead,
+            WriteBody,
+            RelayBody,
+            Canceled,
+        };
+
         MessageStub(
             MessageBundle& _rmsgbundle)
-            : msgbundle(std::move(_rmsgbundle))
-            , packet_count(0)
+            : msgbundle_(std::move(_rmsgbundle))
+            , packet_count_(0)
+            , state_(StateE::NotStarted)
         {
         }
 
         MessageStub()
-            : unique(0)
-            , packet_count(0)
+            : unique_(0)
+            , packet_count_(0)
+            , state_(StateE::NotStarted)
         {
         }
 
         MessageStub(
             MessageStub&& _rmsgstub)
             : InnerNode<InnerLinkCount>(std::move(_rmsgstub))
-            , msgbundle(std::move(_rmsgstub.msgbundle))
-            , unique(_rmsgstub.unique)
-            , packet_count(_rmsgstub.packet_count)
-            , serializer_ptr(std::move(_rmsgstub.serializer_ptr))
-            , pool_msg_id(_rmsgstub.pool_msg_id)
-            , pmsgheader(nullptr)
+            , msgbundle_(std::move(_rmsgstub.msgbundle_))
+            , unique_(_rmsgstub.unique_)
+            , packet_count_(_rmsgstub.packet_count_)
+            , serializer_ptr_(std::move(_rmsgstub.serializer_ptr_))
+            , pool_msg_id_(_rmsgstub.pool_msg_id_)
+            , state_(_rmsgstub.state_)
         {
         }
 
         void clear()
         {
-            msgbundle.clear();
-            ++unique;
-            packet_count = 0;
+            msgbundle_.clear();
+            ++unique_;
+            packet_count_ = 0;
 
-            serializer_ptr = nullptr;
+            serializer_ptr_ = nullptr;
 
-            pool_msg_id.clear();
-
-            pmsgheader = nullptr;
+            pool_msg_id_.clear();
+            state_ = StateE::NotStarted;
         }
 
         bool isStop() const noexcept
         {
-            return not msgbundle.message_ptr and not Message::is_canceled(msgbundle.message_flags);
+            return not msgbundle_.message_ptr and not Message::is_canceled(msgbundle_.message_flags);
         }
 
         bool isCanceled() const noexcept
         {
-            return Message::is_canceled(msgbundle.message_flags);
+            return Message::is_canceled(msgbundle_.message_flags);
         }
 
-        MessageBundle      msgbundle;
-        uint32_t           unique;
-        size_t             packet_count;
-        SerializerPointerT serializer_ptr;
-        MessageId          pool_msg_id;
-        MessageHeader*     pmsgheader;
+        MessageBundle      msgbundle_;
+        uint32_t           unique_;
+        size_t             packet_count_;
+        SerializerPointerT serializer_ptr_;
+        MessageId          pool_msg_id_;
+        StateE             state_;
     };
 
     using MessageVectorT          = std::vector<MessageStub>;
@@ -194,9 +204,7 @@ private:
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,
-        SerializerPointerT&        _rtmp_serializer,
-        bool&                      _just_written_message_header,
-        bool&                      _currently_writing_message_header);
+        SerializerPointerT&        _rtmp_serializer);
 
     void doTryCompleteMessageAfterSerialization(
         const size_t               _msgidx,
@@ -210,12 +218,12 @@ private:
     void doUnprepareMessageStub(const size_t _msgidx);
 
 private:
-    MessageVectorT          message_vec;
-    uint32_t                current_message_type_id;
-    size_t                  current_synchronous_message_idx;
-    MessageOrderInnerListT  order_inner_list;
-    MessageStatusInnerListT write_inner_list;
-    MessageStatusInnerListT cache_inner_list;
+    MessageVectorT          message_vec_;
+    uint32_t                current_message_type_id_;
+    size_t                  current_synchronous_message_idx_;
+    MessageOrderInnerListT  order_inner_list_;
+    MessageStatusInnerListT write_inner_list_;
+    MessageStatusInnerListT cache_inner_list_;
 };
 
 typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat> MessageWriterPrintPairT;

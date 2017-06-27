@@ -91,6 +91,8 @@ public:
 
     Configuration const& configuration() const;
 
+    ErrorConditionT createConnectionPool(const char* _recipient_url, const size_t _persistent_connection_count = 1);
+
     // send message using recipient name --------------------------------------
     template <class T>
     ErrorConditionT sendMessage(
@@ -357,8 +359,8 @@ private:
         ulong& /*_rseconds_to_wait*/,
         MessageId& /*_rmsg_id*/,
         MessageBundle& /*_rmsg_bundle*/,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
+        Event& _revent_context,
+        ErrorConditionT& /*_rerror*/);
 
     bool doMainConnectionStoppingPrepareCleanAll(
         Connection& _rcon, ObjectIdT const& /*_robjuid*/,

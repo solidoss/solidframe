@@ -234,57 +234,6 @@ void MessageReader::doConsumePacket(
             crt_msg_type = 0;
             pbufpos      = _rproto.loadValue(pbufpos, crt_msg_type);
         }
-#if 0                                   
-        if (not canceled_message) {
-
-            MessageStub& rmsgstub                            = message_q_.front();
-            const bool   is_currently_reading_message_header = (rmsgstub.state_ == MessageStub::StateE::ReadHead);
-            uint16_t     message_size                        = 0;
-
-            if (static_cast<size_t>(pbufend - pbufpos) >= sizeof(uint16_t)) {
-                pbufpos = _rproto.loadValue(pbufpos, message_size);
-            } else {
-                //protocol error
-                _rerror = error_reader_protocol;
-                break;
-            }
-
-            _rctx.pmessage_header = &rmsgstub.message_header_;
-
-            int rv = rmsgstub.deserializer_ptr_->run(_rctx, pbufpos, pbufend - pbufpos);
-
-            if (rv >= 0) {
-
-                pbufpos += rv;
-
-                if ((crt_msg_type & PacketHeader::EndMessageTypeE) && rmsgstub.deserializer_ptr_->empty()) {
-
-                    if (is_currently_reading_message_header) {
-
-                        rmsgstub.is_reading_message_header = false;
-                        rmsgstub.deserializer_ptr_->clear();
-
-                        message_q_.front().deserializer_ptr_->push(rmsgstub.message_ptr_);
-
-                    } else {
-                        SOLID_ASSERT(rv == message_size);
-                        //done with the message
-                        rmsgstub.deserializer_ptr_->clear();
-
-                        const size_t message_type_id = rmsgstub.message_ptr_.get() ? _rproto.typeIndex(rmsgstub.message_ptr_.get()) : InvalidIndex();
-
-                        //complete the message waiting for this response
-                        _receiver.receiveMessage(rmsgstub.message_ptr, message_type_id);
-
-                        message_q_.front().message_ptr_.reset();
-                    }
-                }
-            } else {
-                _rerror = message_q_.front().deserializer_ptr_->error();
-                break;
-            }
-        }
-#endif
     } //while
 }
 
@@ -320,6 +269,7 @@ const char* MessageReader::doConsumeMessage(
                             rmsgstub.deserializer_ptr_->clear();
                             message_q_.front().deserializer_ptr_->push(rmsgstub.message_ptr_);
                         } else {
+                            vdbgx(Debug::mpipc, "Relay message: " << rmsgstub.message_header_.url_);
                             rmsgstub.state_ = MessageStub::StateE::RelayBody;
                             rmsgstub.deserializer_ptr_->clear();
                             rmsgstub.deserializer_ptr_.reset();
@@ -381,7 +331,7 @@ const char* MessageReader::doConsumeMessage(
         rmsgstub.clear();
         break;
     case MessageStub::StateE::RelayBody:
-        SOLID_CHECK(false, "Not implemented yet");
+        SOLID_CHECK(false, "Not implemented yet. Relay to: " << rmsgstub.message_header_.url_);
         break;
     case MessageStub::StateE::Canceled:
         rmsgstub.clear();

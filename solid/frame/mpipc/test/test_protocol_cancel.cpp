@@ -181,9 +181,10 @@ void complete_message(
 }
 
 struct Receiver : frame::mpipc::MessageReader::Receiver {
-    frame::mpipc::serialization_v1::Protocol    &rprotocol_;
+    frame::mpipc::serialization_v1::Protocol& rprotocol_;
 
-    Receiver(frame::mpipc::serialization_v1::Protocol &_rprotocol):rprotocol_(_rprotocol)
+    Receiver(frame::mpipc::serialization_v1::Protocol& _rprotocol)
+        : rprotocol_(_rprotocol)
     {
     }
 
@@ -243,6 +244,8 @@ int test_protocol_cancel(int argc, char** argv)
     ctx.mpipcmsgwriter    = &mpipcmsgwriter;
 
     mpipcwriterconfig.max_message_count_multiplex = 16;
+
+    mpipcmsgwriter.prepare(mpipcwriterconfig);
 
     mpipcprotocol->registerType<::Message>(
         complete_message);

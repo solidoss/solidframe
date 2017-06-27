@@ -111,8 +111,8 @@ struct MessageHeader {
 
             _rs.pushCross(_rctx.request_id.index, "sender_request_index");
             _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
-
-            _rs.push(_rctx.message_url, "url");
+            SOLID_CHECK(_rctx.pmessage_url, "message url must not be null");
+            _rs.push(*_rctx.pmessage_url, "url");
             _rs.pushCross(_rctx.message_flags, "flags");
         } else {
 

@@ -49,6 +49,7 @@ enum {
     ErrorServicePoolFullE,
     ErrorServiceUnknownConnectionE,
     ErrorServiceTooManyActiveConnectionsE,
+    ErrorServiceAlreadyActiveE,
     ErrorServiceBadCastRequestE,
     ErrorServiceBadCastResponseE,
     ErrorServiceStartE,
@@ -57,6 +58,7 @@ enum {
     ErrorServiceMessageLostE,
     ErrorServiceUnknownMessageE,
     ErrorServiceInvalidUrlE,
+    ErrorServiceConnectionNotNeededE,
 };
 
 class ErrorCategory : public ErrorCategoryT {
@@ -171,6 +173,9 @@ std::string ErrorCategory::message(int _ev) const
     case ErrorServiceTooManyActiveConnectionsE:
         oss << "Service: too many active connections";
         break;
+    case ErrorServiceAlreadyActiveE:
+        oss << "Service: connection already active";
+        break;
     case ErrorServiceBadCastRequestE:
         oss << "Service: bad cast request message";
         break;
@@ -194,6 +199,9 @@ std::string ErrorCategory::message(int _ev) const
         break;
     case ErrorServiceInvalidUrlE:
         oss << "Service: invalid URL";
+        break;
+    case ErrorServiceConnectionNotNeededE:
+        oss << "Service: connection not needed";
         break;
     default:
         oss << "Unknown";
@@ -238,6 +246,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_service_pool_full(ErrorServicePoolFullE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_connection(ErrorServiceUnknownConnectionE, category);
 /*extern*/ const ErrorConditionT error_service_too_many_active_connections(ErrorServiceTooManyActiveConnectionsE, category);
+/*extern*/ const ErrorConditionT error_service_already_active(ErrorServiceAlreadyActiveE, category);
 
 /*extern*/ const ErrorConditionT error_service_bad_cast_request(ErrorServiceBadCastRequestE, category);
 /*extern*/ const ErrorConditionT error_service_bad_cast_response(ErrorServiceBadCastResponseE, category);
@@ -247,6 +256,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_service_message_lost(ErrorServiceMessageLostE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_message(ErrorServiceUnknownMessageE, category);
 /*extern*/ const ErrorConditionT error_service_invalid_url(ErrorServiceInvalidUrlE, category);
+/*extern*/ const ErrorConditionT error_service_connection_not_needed(ErrorServiceConnectionNotNeededE, category);
 
 } //namespace mpipc
 } //namespace frame

@@ -89,7 +89,8 @@ private:
         StateE               state_;
 
         MessageStub()
-            : packet_count_(0), state_(StateE::NotStarted)
+            : packet_count_(0)
+            , state_(StateE::NotStarted)
         {
         }
 
@@ -98,7 +99,7 @@ private:
             message_ptr_.reset();
             deserializer_ptr_.reset();
             packet_count_ = 0;
-            state_ = StateE::NotStarted;
+            state_        = StateE::NotStarted;
         }
     };
 

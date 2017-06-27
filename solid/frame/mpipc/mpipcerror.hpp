@@ -47,6 +47,7 @@ extern const ErrorConditionT error_service_pool_stopping;
 extern const ErrorConditionT error_service_pool_full;
 extern const ErrorConditionT error_service_unknown_connection;
 extern const ErrorConditionT error_service_too_many_active_connections;
+extern const ErrorConditionT error_service_already_active;
 extern const ErrorConditionT error_service_bad_cast_request;
 extern const ErrorConditionT error_service_bad_cast_response;
 extern const ErrorConditionT error_service_start;
@@ -55,6 +56,7 @@ extern const ErrorConditionT error_service_message_already_canceled;
 extern const ErrorConditionT error_service_message_lost;
 extern const ErrorConditionT error_service_unknown_message;
 extern const ErrorConditionT error_service_invalid_url;
+extern const ErrorConditionT error_service_connection_not_needed;
 
 extern const ErrorConditionT error_compression_unavailable;
 extern const ErrorConditionT error_compression_engine;
