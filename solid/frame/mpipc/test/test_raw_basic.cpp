@@ -33,8 +33,8 @@ typedef frame::aio::openssl::Context          SecureContextT;
 namespace {
 
 struct InitStub {
-    size_t size;
-    ulong  flags;
+    size_t                      size;
+    frame::mpipc::MessageFlagsT flags;
 };
 
 InitStub initarray[] = {
@@ -461,7 +461,7 @@ int test_raw_basic(int argc, char** argv)
             ++crtwriteidx;
             mpipcclient.sendMessage(
                 "localhost", msgptr,
-                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlags::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageOptions::WaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

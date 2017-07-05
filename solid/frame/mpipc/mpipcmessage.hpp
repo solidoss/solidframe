@@ -14,6 +14,7 @@
 #include "solid/system/function.hpp"
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
+#include "solid/frame/mpipc/mpipcmessageflags.hpp"
 
 #include <memory>
 #include <type_traits>
@@ -25,49 +26,13 @@ namespace mpipc {
 class Service;
 class Connection;
 
-enum struct MessageFlags : MessageFlagsValueT {
-    FirstFlagIndex = 0, //for rezerved flags
-    WaitResponse   = (1 << (FirstFlagIndex + 0)),
-    Synchronous    = (1 << (FirstFlagIndex + 1)),
-    Idempotent     = (1 << (FirstFlagIndex + 2)),
-    OneShotSend    = (1 << (FirstFlagIndex + 3)),
-    StartedSend    = (1 << (FirstFlagIndex + 4)),
-    DoneSend       = (1 << (FirstFlagIndex + 5)),
-    Canceled       = (1 << (FirstFlagIndex + 6)),
-    Response       = (1 << (FirstFlagIndex + 7)),
-    OnPeer         = (1 << (FirstFlagIndex + 8)),
-    BackOnSender   = (1 << (FirstFlagIndex + 9)),
-};
-
-//using MessageFlagsValueT = std::underlying_type<MessageFlags>::type;
-
-inline MessageFlagsValueT operator|(const MessageFlagsValueT _v, const MessageFlags _f)
-{
-    return _v | static_cast<MessageFlagsValueT>(_f);
-}
-
-inline MessageFlagsValueT operator&(const MessageFlagsValueT _v, const MessageFlags _f)
-{
-    return _v & static_cast<MessageFlagsValueT>(_f);
-}
-
-inline MessageFlagsValueT& operator|=(MessageFlagsValueT& _rv, const MessageFlags _f)
-{
-    _rv |= static_cast<MessageFlagsValueT>(_f);
-    return _rv;
-}
-
-inline MessageFlagsValueT operator|(const MessageFlags _f1, const MessageFlags _f2)
-{
-    return static_cast<MessageFlagsValueT>(_f1) | static_cast<MessageFlagsValueT>(_f2);
-}
-
 struct MessageHeader {
     using FlagsT = MessageFlagsValueT;
 
-    static FlagsT state_flags(const FlagsT _flags)
+    static MessageFlagsT fetch_state_flags(const MessageFlagsT& _flags)
     {
-        return _flags & (MessageFlags::OnPeer | MessageFlags::BackOnSender);
+        static const MessageFlagsT state_flags{MessageOptions::OnPeer, MessageOptions::BackOnSender};
+        return _flags & state_flags;
     }
 
     MessageHeader()
@@ -79,7 +44,7 @@ struct MessageHeader {
         const MessageHeader& _rmsgh)
         : sender_request_id_(_rmsgh.sender_request_id_)
         , recipient_request_id_(_rmsgh.recipient_request_id_)
-        , flags_(state_flags(_rmsgh.flags_))
+        , flags_(fetch_state_flags(_rmsgh.flags_).toULong())
     {
     }
 
@@ -113,7 +78,8 @@ struct MessageHeader {
             _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
             SOLID_CHECK(_rctx.pmessage_url, "message url must not be null");
             _rs.push(*_rctx.pmessage_url, "url");
-            _rs.pushCross(_rctx.message_flags, "flags");
+            uint64_t tmp = _rctx.message_flags.toUint64(); //not nice but safe - better solution in future versions
+            _rs.pushCross(tmp, "flags");
         } else {
 
             _rs.pushCross(recipient_request_id_.index, "recipient_request_index");
@@ -132,95 +98,96 @@ struct Message : std::enable_shared_from_this<Message> {
 
     using FlagsT = MessageFlagsValueT;
 
-    static bool is_synchronous(const FlagsT _flags)
+    static bool is_synchronous(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::Synchronous) != 0;
+        return _flags.has(MessageOptions::Synchronous);
     }
-    static bool is_asynchronous(const FlagsT _flags)
+    static bool is_asynchronous(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::Synchronous) == 0;
-    }
-
-    static bool is_waiting_response(const FlagsT _flags)
-    {
-        return (_flags & MessageFlags::WaitResponse) != 0;
+        return not is_synchronous(_flags);
     }
 
-    static bool is_request(const FlagsT _flags)
+    static bool is_waiting_response(const MessageFlagsT& _flags)
+    {
+        return _flags.has(MessageOptions::WaitResponse);
+    }
+
+    static bool is_request(const MessageFlagsT& _flags)
     {
         return is_waiting_response(_flags);
     }
 
-    static bool is_idempotent(const FlagsT _flags)
+    static bool is_idempotent(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::Idempotent) != 0;
+        return _flags.has(MessageOptions::Idempotent);
     }
 
-    static bool is_started_send(const FlagsT _flags)
+    static bool is_started_send(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::StartedSend) != 0;
+        return _flags.has(MessageOptions::StartedSend);
     }
 
-    static bool is_done_send(const FlagsT _flags)
+    static bool is_done_send(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::DoneSend) != 0;
+        return _flags.has(MessageOptions::DoneSend);
     }
 
-    static bool is_canceled(const FlagsT _flags)
+    static bool is_canceled(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::Canceled) != 0;
+        return _flags.has(MessageOptions::Canceled);
     }
 
-    static bool is_one_shot(const FlagsT _flags)
+    static bool is_one_shot(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::OneShotSend) != 0;
+        return _flags.has(MessageOptions::OneShotSend);
     }
 
-    static bool is_response(const FlagsT _flags)
+    static bool is_response(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::Response) != 0;
+        return _flags.has(MessageOptions::Response);
     }
 
-    static bool is_on_sender(const FlagsT _flags)
+    static bool is_on_sender(const MessageFlagsT& _flags)
     {
         return !is_on_peer(_flags) && !is_back_on_sender(_flags);
     }
 
-    static bool is_on_peer(const FlagsT _flags)
+    static bool is_on_peer(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::OnPeer) != 0;
+        return _flags.has(MessageOptions::OnPeer);
     }
 
-    static bool is_back_on_sender(const FlagsT _flags)
+    static bool is_back_on_sender(const MessageFlagsT& _flags)
     {
-        return (_flags & MessageFlags::BackOnSender) != 0;
+        return _flags.has(MessageOptions::BackOnSender);
     }
 
-    static bool is_back_on_peer(const FlagsT _flags)
+    static bool is_back_on_peer(const MessageFlagsT& _flags)
     {
         return is_on_peer(_flags) && is_back_on_sender(_flags);
     }
 
-    static FlagsT clear_state_flags(const FlagsT _flags)
+    static MessageFlagsT clear_state_flags(MessageFlagsT _flags)
     {
-        return _flags & (~(MessageFlags::OnPeer | MessageFlags::BackOnSender));
+        _flags.reset(MessageOptions::OnPeer).reset(MessageOptions::BackOnSender);
+        return _flags;
     }
 
-    static FlagsT state_flags(const FlagsT _flags)
+    static MessageFlagsT state_flags(const MessageFlagsT& _flags)
     {
-        return _flags & (MessageFlags::OnPeer | MessageFlags::BackOnSender);
+        return MessageHeader::fetch_state_flags(_flags);
     }
 
-    static FlagsT update_state_flags(const FlagsT _flags)
+    static MessageFlagsT update_state_flags(MessageFlagsT _flags)
     {
         if (is_on_sender(_flags)) {
-            return _flags | MessageFlags::OnPeer;
+            return _flags | MessageOptions::OnPeer;
         } else if (is_back_on_peer(_flags)) {
             return clear_state_flags(_flags);
         } else if (is_on_peer(_flags)) {
-            return (_flags | MessageFlags::BackOnSender) & ~(0 | MessageFlags::OnPeer);
+            return (_flags | MessageOptions::BackOnSender).reset(MessageOptions::OnPeer);
         } else /* if(is_back_on_sender(_flags))*/ {
-            return _flags | MessageFlags::OnPeer;
+            return _flags | MessageOptions::OnPeer;
         }
     }
 
@@ -265,12 +232,12 @@ struct Message : std::enable_shared_from_this<Message> {
 
     void clearStateFlags()
     {
-        header_.flags_ = clear_state_flags(header_.flags_);
+        header_.flags_ = clear_state_flags(header_.flags_).toULong();
     }
 
-    FlagsT flags() const
+    MessageFlagsT flags() const
     {
-        return header_.flags_;
+        return MessageFlagsT(header_.flags_);
     }
 
     template <class S, class T>

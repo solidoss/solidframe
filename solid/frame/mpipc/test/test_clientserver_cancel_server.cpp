@@ -41,9 +41,9 @@ typedef frame::aio::openssl::Context          SecureContextT;
 namespace {
 
 struct InitStub {
-    size_t size;
-    bool   cancel;
-    ulong  flags;
+    size_t                      size;
+    bool                        cancel;
+    frame::mpipc::MessageFlagsT flags;
 };
 
 //NOTE: if making more messages non-cancelable, please consider to change the value of expected_transfered_count
@@ -51,11 +51,11 @@ struct InitStub {
 InitStub initarray[] = {
     {100000, false, 0}, //first message must not be canceled
     {16384000, false, 0}, //not caceled
-    {8192000, true, 0 | frame::mpipc::MessageFlags::Synchronous},
+    {8192000, true, {frame::mpipc::MessageOptions::Synchronous}},
     {4096000, true, 0},
     {2048000, false, 0}, //not caceled
     {1024000, true, 0},
-    {512000, false, 0 | frame::mpipc::MessageFlags::Synchronous}, //not canceled
+    {512000, false, {frame::mpipc::MessageOptions::Synchronous}}, //not canceled
     {256000, true, 0},
     {1280000, true, 0},
     {6400000, true, 0},

@@ -36,8 +36,8 @@ typedef frame::aio::openssl::Context          SecureContextT;
 namespace {
 
 struct InitStub {
-    size_t size;
-    ulong  flags;
+    size_t                      size;
+    frame::mpipc::MessageFlagsT flags;
 };
 
 InitStub initarray[] = {
@@ -242,7 +242,7 @@ void peerb_connection_start(frame::mpipc::ConnectionContext& _rctx)
     idbg(_rctx.recipientId());
 
     auto            msgptr = std::make_shared<Register>("b");
-    ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), 0 | frame::mpipc::MessageFlags::WaitResponse);
+    ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageOptions::WaitResponse});
     SOLID_CHECK(not err, "failed send Register");
 }
 
@@ -299,7 +299,7 @@ void peerb_complete_message(
         if (crtwriteidx < writecount) {
             err = pmpipcpeera->sendMessage(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
-                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlags::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageOptions::WaitResponse);
 
             SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
         }
@@ -584,7 +584,7 @@ int test_relay_basic(int argc, char** argv)
             for (; crtwriteidx < start_count;) {
                 mpipcpeera.sendMessage(
                     "localhost/b", std::make_shared<Message>(crtwriteidx++),
-                    initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlags::WaitResponse);
+                    initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageOptions::WaitResponse);
             }
         }
 

@@ -452,35 +452,35 @@ int test_clientserver_idempotent(int argc, char** argv)
             ++crtwriteidx;
             mpipcclient.sendMessage(
                 "localhost", msg_vec[0],
-                0 | frame::mpipc::MessageFlags::WaitResponse | frame::mpipc::MessageFlags::OneShotSend);
+                {frame::mpipc::MessageOptions::WaitResponse, frame::mpipc::MessageOptions::OneShotSend});
         }
 
         {
             ++crtwriteidx;
             mpipcclient.sendMessage(
                 "localhost", msg_vec[1],
-                frame::mpipc::MessageFlags::WaitResponse | frame::mpipc::MessageFlags::Idempotent);
+                {frame::mpipc::MessageOptions::WaitResponse, frame::mpipc::MessageOptions::Idempotent});
         }
 
         {
             ++crtwriteidx;
             mpipcclient.sendMessage(
                 "localhost", msg_vec[2],
-                0 | frame::mpipc::MessageFlags::OneShotSend);
+                {frame::mpipc::MessageOptions::OneShotSend});
         }
 
         {
             ++crtwriteidx;
             mpipcclient.sendMessage(
                 "localhost", msg_vec[3],
-                frame::mpipc::MessageFlags::WaitResponse | frame::mpipc::MessageFlags::Idempotent | frame::mpipc::MessageFlags::Synchronous);
+                {frame::mpipc::MessageOptions::WaitResponse, frame::mpipc::MessageOptions::Idempotent, frame::mpipc::MessageOptions::Synchronous});
         }
 
         {
             ++crtwriteidx;
             mpipcclient.sendMessage(
                 "localhost", msg_vec[4],
-                frame::mpipc::MessageFlags::WaitResponse | frame::mpipc::MessageFlags::Synchronous);
+                {frame::mpipc::MessageOptions::WaitResponse, frame::mpipc::MessageOptions::Synchronous});
         }
 
         writecount = 3;

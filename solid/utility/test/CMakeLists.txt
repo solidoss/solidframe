@@ -8,6 +8,7 @@ set( UtilityTestSuite
     test_workpool.cpp
     test_workpool_fast.cpp
     test_ioformat.cpp
+    test_flags.cpp
 )
 
 create_test_sourcelist( UtilityTests test_utility.cpp ${UtilityTestSuite})
@@ -50,6 +51,10 @@ add_test( TestUtility test_utility
 
 add_test( TestUtility test_utility
     test_ioformat
+)
+
+add_test( TestUtility test_utility
+    test_flags
 )
 
 add_test(NAME TestUtilityWorkPool           COMMAND  test_utility test_workpool)

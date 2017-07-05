@@ -6,26 +6,26 @@ using namespace solid;
 namespace {
 
 struct InitStub {
-    size_t size;
-    ulong  flags;
+    size_t                      size;
+    frame::mpipc::MessageFlagsT flags;
 };
 
 InitStub initarray[] = {
-    {100000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {16384000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {8192000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {4096000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {2048000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {1024000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {512000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {256000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {128000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {64000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {32000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {16000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {8000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {4000, 0 | frame::mpipc::MessageFlags::Synchronous},
-    {2000, 0 | frame::mpipc::MessageFlags::Synchronous},
+    {100000, {frame::mpipc::MessageOptions::Synchronous}},
+    {16384000, {frame::mpipc::MessageOptions::Synchronous}},
+    {8192000, {frame::mpipc::MessageOptions::Synchronous}},
+    {4096000, {frame::mpipc::MessageOptions::Synchronous}},
+    {2048000, {frame::mpipc::MessageOptions::Synchronous}},
+    {1024000, {frame::mpipc::MessageOptions::Synchronous}},
+    {512000, {frame::mpipc::MessageOptions::Synchronous}},
+    {256000, {frame::mpipc::MessageOptions::Synchronous}},
+    {128000, {frame::mpipc::MessageOptions::Synchronous}},
+    {64000, {frame::mpipc::MessageOptions::Synchronous}},
+    {32000, {frame::mpipc::MessageOptions::Synchronous}},
+    {16000, {frame::mpipc::MessageOptions::Synchronous}},
+    {8000, {frame::mpipc::MessageOptions::Synchronous}},
+    {4000, {frame::mpipc::MessageOptions::Synchronous}},
+    {2000, {frame::mpipc::MessageOptions::Synchronous}},
 };
 
 std::string  pattern;

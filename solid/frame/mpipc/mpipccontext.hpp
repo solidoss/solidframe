@@ -12,6 +12,7 @@
 
 #include "solid/system/socketaddress.hpp"
 
+#include "solid/frame/mpipc/mpipcmessageflags.hpp"
 #include "solid/utility/any.hpp"
 #include "solid/utility/dynamicpointer.hpp"
 
@@ -231,8 +232,6 @@ private:
     Connection& connection(frame::aio::ReactorContext& _rctx) const;
 };
 
-using MessageFlagsValueT = uint32_t;
-
 struct ConnectionContext {
     ConnectionContext(
         frame::aio::ReactorContext& _rctx,
@@ -261,7 +260,7 @@ struct ConnectionContext {
     bool isConnectionActive() const;
     bool isConnectionServer() const;
 
-    MessageFlagsValueT messageFlags() const
+    const MessageFlagsT& messageFlags() const
     {
         return message_flags;
     }
@@ -294,13 +293,13 @@ private:
     friend struct Message;
     friend class TestEntryway;
 
-    Service&           rservice;
-    Connection&        rconnection;
-    MessageHeader*     pmessage_header;
-    MessageFlagsValueT message_flags;
-    RequestId          request_id;
-    MessageId          message_id;
-    std::string*       pmessage_url; //we cannot make it const - serializer constraint
+    Service&       rservice;
+    Connection&    rconnection;
+    MessageHeader* pmessage_header;
+    MessageFlagsT  message_flags;
+    RequestId      request_id;
+    MessageId      message_id;
+    std::string*   pmessage_url; //we cannot make it const - serializer constraint
 
     ConnectionContext(
         Service& _rsrv, Connection& _rcon)

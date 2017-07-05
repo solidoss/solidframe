@@ -73,8 +73,7 @@ bool MessageWriter::enqueue(
     SOLID_ASSERT(_rmsgbundle.message_ptr.get());
 
     //clear all disrupting flags
-    _rmsgbundle.message_flags &= ~(0 | MessageFlags::StartedSend);
-    _rmsgbundle.message_flags &= ~(0 | MessageFlags::DoneSend);
+    _rmsgbundle.message_flags.reset(MessageOptions::StartedSend).reset(MessageOptions::DoneSend);
 
     const size_t idx = cache_inner_list_.popFront();
     MessageStub& rmsgstub(message_vec_[idx]);
@@ -144,7 +143,7 @@ bool MessageWriter::doCancel(
         return false; //already canceled
     }
 
-    rmsgstub.msgbundle_.message_flags |= MessageFlags::Canceled;
+    rmsgstub.msgbundle_.message_flags.set(MessageOptions::Canceled);
 
     _rmsgbundle   = std::move(rmsgstub.msgbundle_);
     _rpool_msg_id = rmsgstub.pool_msg_id_;
@@ -426,8 +425,8 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
             current_synchronous_message_idx_ = InvalidIndex();
         }
 
-        rmsgstub.msgbundle_.message_flags &= (~(0 | MessageFlags::StartedSend));
-        rmsgstub.msgbundle_.message_flags |= MessageFlags::DoneSend;
+        rmsgstub.msgbundle_.message_flags.reset(MessageOptions::StartedSend);
+        rmsgstub.msgbundle_.message_flags.set(MessageOptions::DoneSend);
 
         rmsgstub.serializer_ptr_ = nullptr; //free some memory
         rmsgstub.state_          = MessageStub::StateE::NotStarted;
@@ -446,7 +445,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
             vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
         } else {
-            rmsgstub.msgbundle_.message_flags |= MessageFlags::WaitResponse;
+            rmsgstub.msgbundle_.message_flags.set(MessageOptions::WaitResponse);
         }
 
         vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
@@ -489,7 +488,7 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 
         _rproto.reset(*rmsgstub.serializer_ptr_);
 
-        rmsgstub.msgbundle_.message_flags |= MessageFlags::StartedSend;
+        rmsgstub.msgbundle_.message_flags.set(MessageOptions::StartedSend);
 
         rmsgstub.state_ = MessageStub::StateE::WriteHead;
 

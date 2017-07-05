@@ -292,7 +292,7 @@ int test_clientserver_noserver(int argc, char** argv)
             err = mpipcclient.sendMessage(
                 "localhost", msgptr,
                 recipient_id, message_id,
-                0 | frame::mpipc::MessageFlags::WaitResponse);
+                {frame::mpipc::MessageOptions::WaitResponse});
             SOLID_CHECK(not err);
         }
 

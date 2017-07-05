@@ -253,7 +253,7 @@ struct ConnectionPoolStub {
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _flags,
+        const MessageFlagsT&      _flags,
         std::string&              _msg_url)
     {
         size_t idx;
@@ -279,7 +279,7 @@ struct ConnectionPoolStub {
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _flags,
+        const MessageFlagsT&      _flags,
         std::string&              _msg_url)
     {
         const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _msg_url);
@@ -302,7 +302,7 @@ struct ConnectionPoolStub {
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _flags,
+        const MessageFlagsT&      _flags,
         std::string&              _msg_url)
     {
         const MessageId msgid = insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _msg_url);
@@ -326,7 +326,7 @@ struct ConnectionPoolStub {
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
         MessageCompleteFunctionT& _rcomplete_fnc,
-        ulong                     _flags,
+        const MessageFlagsT&      _flags,
         std::string&              _msg_url)
     {
         MessageStub& rmsgstub(msgvec[_rmsgid.index]);
@@ -814,7 +814,7 @@ ErrorConditionT Service::doSendMessage(
     MessageCompleteFunctionT& _rcomplete_fnc,
     RecipientId*              _precipient_id_out,
     MessageId*                _pmsgid_out,
-    ulong                     _flags)
+    const MessageFlagsT&      _flags)
 {
 
     vdbgx(Debug::mpipc, this);
@@ -995,7 +995,7 @@ ErrorConditionT Service::doSendMessageToConnection(
     const size_t              _msg_type_idx,
     MessageCompleteFunctionT& _rcomplete_fnc,
     MessageId*                _pmsgid_out,
-    ulong                     _flags,
+    const MessageFlagsT&      _flags,
     std::string&              _msg_url)
 {
     //d.mtx must be locked
@@ -1025,12 +1025,12 @@ ErrorConditionT Service::doSendMessageToConnection(
     if (is_server_side_pool) {
         //for a server pool we want to enque messages in the pool
         //
-        msgid   = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlags::OneShotSend, _msg_url);
+        msgid   = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageOptions::OneShotSend, _msg_url);
         success = manager().notify(
             _rrecipient_id_in.connectionId(),
             Connection::eventNewMessage());
     } else {
-        msgid   = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageFlags::OneShotSend, _msg_url);
+        msgid   = rpool.insertMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags | MessageOptions::OneShotSend, _msg_url);
         success = manager().notify(
             _rrecipient_id_in.connectionId(),
             Connection::eventNewMessage(msgid));
@@ -1062,7 +1062,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
     MessageCompleteFunctionT& _rcomplete_fnc,
     RecipientId*              _precipient_id_out,
     MessageId*                _pmsgid_out,
-    ulong                     _flags,
+    const MessageFlagsT&      _flags,
     std::string&              _msg_url)
 {
 
@@ -1425,7 +1425,7 @@ ErrorConditionT Service::doForceCloseConnectionPool(
     MessagePointerT empty_msg_ptr;
     string          empty_str;
 
-    const MessageId msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, 0 | MessageFlags::Synchronous, empty_str);
+    const MessageId msgid = rpool.pushBackMessage(empty_msg_ptr, 0, _rcomplete_fnc, {MessageOptions::Synchronous}, empty_str);
     (void)msgid;
 
     //no reason to cancel all messages - they'll be handled on connection stop.
@@ -1472,7 +1472,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
 
                 SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr);
 
-                rmsgstub.msgbundle.message_flags |= MessageFlags::Canceled;
+                rmsgstub.msgbundle.message_flags.set(MessageOptions::Canceled);
 
                 success = manager().notify(
                     rmsgstub.objid,
@@ -1493,7 +1493,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
 
                 vdbgx(Debug::mpipc, this << " message " << _rmsg_id << " from pool " << pool_idx << " not handled by any connection");
 
-                rmsgstub.msgbundle.message_flags |= MessageFlags::Canceled;
+                rmsgstub.msgbundle.message_flags.set(MessageOptions::Canceled);
 
                 success = manager().notify(
                     rpool.main_connection_id,
@@ -2157,7 +2157,7 @@ void Service::doPushFrontMessageToPool(
 
         vdbgx(Debug::mpipc, this << " " << _rmsgbundle.message_ptr.get());
 
-        _rmsgbundle.message_flags &= ~(MessageFlags::DoneSend | MessageFlags::StartedSend);
+        _rmsgbundle.message_flags.reset(MessageOptions::DoneSend).reset(MessageOptions::StartedSend);
 
         if (_rmsgid.isInvalid()) {
             rpool.pushFrontMessage(

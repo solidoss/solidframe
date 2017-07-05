@@ -24,6 +24,7 @@ set(Headers
     stack.hpp
     string.hpp
     workpool.hpp
+    flags.hpp
 )
 
 set(Inlines

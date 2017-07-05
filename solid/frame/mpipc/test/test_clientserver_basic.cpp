@@ -36,8 +36,8 @@ typedef frame::aio::openssl::Context          SecureContextT;
 namespace {
 
 struct InitStub {
-    size_t size;
-    ulong  flags;
+    size_t                      size;
+    frame::mpipc::MessageFlagsT flags;
 };
 
 InitStub initarray[] = {
@@ -248,7 +248,7 @@ void server_complete_message(
         if (crtwriteidx < writecount) {
             err = pmpipcclient->sendMessage(
                 "localhost", std::make_shared<Message>(crtwriteidx++),
-                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlags::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageOptions::WaitResponse);
             SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
         }
     }
@@ -471,7 +471,7 @@ int test_clientserver_basic(int argc, char** argv)
         for (; crtwriteidx < start_count;) {
             mpipcclient.sendMessage(
                 "localhost", std::make_shared<Message>(crtwriteidx++),
-                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlags::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageOptions::WaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

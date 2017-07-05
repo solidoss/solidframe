@@ -144,7 +144,7 @@ private:
 
 struct MessageBundle {
     size_t                   message_type_id;
-    MessageFlagsValueT       message_flags;
+    MessageFlagsT            message_flags;
     MessagePointerT          message_ptr;
     MessageCompleteFunctionT complete_fnc;
     std::string              message_url;
@@ -158,7 +158,7 @@ struct MessageBundle {
     MessageBundle(
         MessagePointerT&          _rmsgptr,
         const size_t              _msg_type_idx,
-        MessageFlagsValueT        _flags,
+        const MessageFlagsT&      _flags,
         MessageCompleteFunctionT& _complete_fnc,
         std::string&              _rmessage_url)
         : message_type_id(_msg_type_idx)
@@ -193,7 +193,7 @@ struct MessageBundle {
     void clear()
     {
         message_type_id = InvalidIndex();
-        message_flags   = 0;
+        message_flags.reset();
         message_ptr.reset();
         message_url.clear();
         SOLID_FUNCTION_CLEAR(complete_fnc);
