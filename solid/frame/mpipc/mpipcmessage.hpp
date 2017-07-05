@@ -31,7 +31,7 @@ struct MessageHeader {
 
     static MessageFlagsT fetch_state_flags(const MessageFlagsT& _flags)
     {
-        static const MessageFlagsT state_flags{MessageOptions::OnPeer, MessageOptions::BackOnSender};
+        static const MessageFlagsT state_flags{MessageFlagsE::OnPeer, MessageFlagsE::BackOnSender};
         return _flags & state_flags;
     }
 
@@ -100,7 +100,7 @@ struct Message : std::enable_shared_from_this<Message> {
 
     static bool is_synchronous(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::Synchronous);
+        return _flags.has(MessageFlagsE::Synchronous);
     }
     static bool is_asynchronous(const MessageFlagsT& _flags)
     {
@@ -109,7 +109,7 @@ struct Message : std::enable_shared_from_this<Message> {
 
     static bool is_waiting_response(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::WaitResponse);
+        return _flags.has(MessageFlagsE::WaitResponse);
     }
 
     static bool is_request(const MessageFlagsT& _flags)
@@ -119,32 +119,32 @@ struct Message : std::enable_shared_from_this<Message> {
 
     static bool is_idempotent(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::Idempotent);
+        return _flags.has(MessageFlagsE::Idempotent);
     }
 
     static bool is_started_send(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::StartedSend);
+        return _flags.has(MessageFlagsE::StartedSend);
     }
 
     static bool is_done_send(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::DoneSend);
+        return _flags.has(MessageFlagsE::DoneSend);
     }
 
     static bool is_canceled(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::Canceled);
+        return _flags.has(MessageFlagsE::Canceled);
     }
 
     static bool is_one_shot(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::OneShotSend);
+        return _flags.has(MessageFlagsE::OneShotSend);
     }
 
     static bool is_response(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::Response);
+        return _flags.has(MessageFlagsE::Response);
     }
 
     static bool is_on_sender(const MessageFlagsT& _flags)
@@ -154,12 +154,12 @@ struct Message : std::enable_shared_from_this<Message> {
 
     static bool is_on_peer(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::OnPeer);
+        return _flags.has(MessageFlagsE::OnPeer);
     }
 
     static bool is_back_on_sender(const MessageFlagsT& _flags)
     {
-        return _flags.has(MessageOptions::BackOnSender);
+        return _flags.has(MessageFlagsE::BackOnSender);
     }
 
     static bool is_back_on_peer(const MessageFlagsT& _flags)
@@ -169,7 +169,7 @@ struct Message : std::enable_shared_from_this<Message> {
 
     static MessageFlagsT clear_state_flags(MessageFlagsT _flags)
     {
-        _flags.reset(MessageOptions::OnPeer).reset(MessageOptions::BackOnSender);
+        _flags.reset(MessageFlagsE::OnPeer).reset(MessageFlagsE::BackOnSender);
         return _flags;
     }
 
@@ -181,13 +181,13 @@ struct Message : std::enable_shared_from_this<Message> {
     static MessageFlagsT update_state_flags(MessageFlagsT _flags)
     {
         if (is_on_sender(_flags)) {
-            return _flags | MessageOptions::OnPeer;
+            return _flags | MessageFlagsE::OnPeer;
         } else if (is_back_on_peer(_flags)) {
             return clear_state_flags(_flags);
         } else if (is_on_peer(_flags)) {
-            return (_flags | MessageOptions::BackOnSender).reset(MessageOptions::OnPeer);
+            return (_flags | MessageFlagsE::BackOnSender).reset(MessageFlagsE::OnPeer);
         } else /* if(is_back_on_sender(_flags))*/ {
-            return _flags | MessageOptions::OnPeer;
+            return _flags | MessageFlagsE::OnPeer;
         }
     }
 

@@ -11,21 +11,21 @@ struct InitStub {
 };
 
 InitStub initarray[] = {
-    {100000, {frame::mpipc::MessageOptions::Synchronous}},
-    {16384000, {frame::mpipc::MessageOptions::Synchronous}},
-    {8192000, {frame::mpipc::MessageOptions::Synchronous}},
-    {4096000, {frame::mpipc::MessageOptions::Synchronous}},
-    {2048000, {frame::mpipc::MessageOptions::Synchronous}},
-    {1024000, {frame::mpipc::MessageOptions::Synchronous}},
-    {512000, {frame::mpipc::MessageOptions::Synchronous}},
-    {256000, {frame::mpipc::MessageOptions::Synchronous}},
-    {128000, {frame::mpipc::MessageOptions::Synchronous}},
-    {64000, {frame::mpipc::MessageOptions::Synchronous}},
-    {32000, {frame::mpipc::MessageOptions::Synchronous}},
-    {16000, {frame::mpipc::MessageOptions::Synchronous}},
-    {8000, {frame::mpipc::MessageOptions::Synchronous}},
-    {4000, {frame::mpipc::MessageOptions::Synchronous}},
-    {2000, {frame::mpipc::MessageOptions::Synchronous}},
+    {100000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {16384000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {8192000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {4096000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {2048000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {1024000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {512000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {256000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {128000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {64000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {32000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {16000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {8000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {4000, {frame::mpipc::MessageFlagsE::Synchronous}},
+    {2000, {frame::mpipc::MessageFlagsE::Synchronous}},
 };
 
 std::string  pattern;

@@ -15,6 +15,7 @@
 #include "solid/utility/any.hpp"
 #include "solid/utility/event.hpp"
 #include "solid/utility/queue.hpp"
+#include "solid/utility/flags.hpp"
 
 #include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
@@ -125,12 +126,12 @@ public:
 
     MessageIdVectorT const& pendingMessageVector() const
     {
-        return pending_message_vec;
+        return pending_message_vec_;
     }
 
     void pendingMessageVectorEraseFirst(const size_t _count)
     {
-        pending_message_vec.erase(pending_message_vec.begin(), pending_message_vec.begin() + _count);
+        pending_message_vec_.erase(pending_message_vec_.begin(), pending_message_vec_.begin() + _count);
     }
 
     template <class Fnc>
@@ -144,7 +145,7 @@ public:
         };
         MessageWriter::VisitFunctionT fnc(std::cref(visit_fnc));
 
-        msg_writer.forEveryMessagesNewerToOlder(fnc);
+        msg_writer_.forEveryMessagesNewerToOlder(fnc);
     }
 
     static void onSendAllRaw(frame::aio::ReactorContext& _rctx, Event& _revent);
@@ -246,6 +247,8 @@ private:
         Event&                      _revent);
 
 private:
+    
+    
     bool postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent);
     bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp);
     bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, Event& _revent);
@@ -258,71 +261,94 @@ private:
 
     uint32_t recvBufferCapacity() const
     {
-        return recv_buf_cp_kb * 1024;
+        return recv_buf_cp_kb_ * 1024;
     }
     uint32_t sendBufferCapacity() const
     {
-        return send_buf_cp_kb * 1024;
+        return send_buf_cp_kb_ * 1024;
     }
 
-protected:
+private:
     using TimerT = frame::aio::SteadyTimer;
+    using BufferVectorT = std::vector<BufferPointerT>;
+    
+    enum class FlagsE : size_t {
+        Active             ,
+        Server             ,
+        Keepalive          ,
+        WaitKeepAliveTimer ,
+        StopPeer           ,
+        HasActivity        ,
+        PollPool           ,
+        Stopping           ,
+        DelayedStopping    ,
+        Secure             ,
+        Raw                ,
+        InPoolWaitQueue    ,
+        Connected          , //once set - the flag should not be reset. Is used by pool for restarting
+        LastFlag,
+    };
+    
+    using FlagsT = solid::Flags<FlagsE>;
+    
     struct Receiver;
     friend struct Receiver;
 
-    ConnectionPoolId   pool_id;
-    const std::string& rpool_name;
-    TimerT             timer;
-    uint16_t           flags;
-    uint32_t           recv_buf_off;
-    uint32_t           cons_buf_off;
-    uint32_t           recv_keepalive_count;
-    char*              recv_buf;
-    char*              send_buf;
-    uint8_t            recv_buf_cp_kb; //kilobytes
-    uint8_t            send_buf_cp_kb; //kilobytes
-    MessageIdVectorT   pending_message_vec;
-    MessageReader      msg_reader;
-    MessageWriter      msg_writer;
-    ErrorConditionT    err;
-    ErrorCodeT         syserr;
-    Any<>              any_data;
-    char               socket_emplace_buf[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
-    SocketStubPtrT     sock_ptr;
+    ConnectionPoolId   pool_id_;
+    const std::string& rpool_name_;
+    TimerT             timer_;
+    FlagsT             flags_;
+    uint32_t           recv_buf_off_;
+    uint32_t           cons_buf_off_;
+    uint32_t           recv_keepalive_count_;
+    BufferPointerT     recv_buf_;
+    BufferPointerT     send_buf_;
+    BufferVectorT      send_buf_vec_;
+    uint16_t           send_buf_vec_sentinel_;
+    uint8_t            recv_buf_cp_kb_; //kilobytes
+    uint8_t            send_buf_cp_kb_; //kilobytes
+    MessageIdVectorT   pending_message_vec_;
+    MessageReader      msg_reader_;
+    MessageWriter      msg_writer_;
+    ErrorConditionT    error_;
+    ErrorCodeT         sys_error_;
+    Any<>              any_data_;
+    char               socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
+    SocketStubPtrT     sock_ptr_;
 };
 
 inline Any<>& Connection::any()
 {
-    return any_data;
+    return any_data_;
 }
 
 inline MessagePointerT Connection::fetchRequest(Message const& _rmsg) const
 {
-    return msg_writer.fetchRequest(_rmsg.requestId());
+    return msg_writer_.fetchRequest(_rmsg.requestId());
 }
 
 inline ConnectionPoolId const& Connection::poolId() const
 {
-    return pool_id;
+    return pool_id_;
 }
 
 inline const std::string& Connection::poolName() const
 {
-    return rpool_name;
+    return rpool_name_;
 }
 
 inline bool Connection::isWriterEmpty() const
 {
-    return msg_writer.empty();
+    return msg_writer_.empty();
 }
 
 inline const ErrorConditionT& Connection::error() const
 {
-    return err;
+    return error_;
 }
 inline const ErrorCodeT& Connection::systemError() const
 {
-    return syserr;
+    return sys_error_;
 }
 
 inline Connection* new_connection(

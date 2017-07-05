@@ -551,7 +551,7 @@ ErrorConditionT Service::sendRequest(
     CompleteHandlerT         fnc(_complete_fnc);
     MessageCompleteFunctionT complete_handler(fnc);
 
-    return doSendMessage(_recipient_url, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageOptions::WaitResponse);
+    return doSendMessage(_recipient_url, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::WaitResponse);
 }
 //-------------------------------------------------------------------------
 template <class T, class Fnc>
@@ -571,7 +571,7 @@ ErrorConditionT Service::sendRequest(
     CompleteHandlerT         fnc(_complete_fnc);
     MessageCompleteFunctionT complete_handler(fnc);
 
-    return doSendMessage(_recipient_url, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags | MessageOptions::WaitResponse);
+    return doSendMessage(_recipient_url, recipient_id, msgptr, complete_handler, &_rrecipient_id, nullptr, _flags | MessageFlagsE::WaitResponse);
 }
 //-------------------------------------------------------------------------
 template <class T, class Fnc>
@@ -592,7 +592,7 @@ ErrorConditionT Service::sendRequest(
     CompleteHandlerT         fnc(_complete_fnc);
     MessageCompleteFunctionT complete_handler(fnc);
 
-    return doSendMessage(_recipient_url, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsguid, _flags | MessageOptions::WaitResponse);
+    return doSendMessage(_recipient_url, recipient_id, msgptr, complete_handler, &_rrecipient_id, &_rmsguid, _flags | MessageFlagsE::WaitResponse);
 }
 //-------------------------------------------------------------------------
 // send request using connection uid --------------------------------------
@@ -611,7 +611,7 @@ ErrorConditionT Service::sendRequest(
     CompleteHandlerT         fnc(_complete_fnc);
     MessageCompleteFunctionT complete_handler(fnc);
 
-    return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageOptions::WaitResponse);
+    return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::WaitResponse);
 }
 //-------------------------------------------------------------------------
 template <class T, class Fnc>
@@ -630,7 +630,7 @@ ErrorConditionT Service::sendRequest(
     CompleteHandlerT         fnc(_complete_fnc);
     MessageCompleteFunctionT complete_handler(fnc);
 
-    return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags | MessageOptions::WaitResponse);
+    return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsguid, _flags | MessageFlagsE::WaitResponse);
 }
 
 //-------------------------------------------------------------------------
@@ -644,7 +644,7 @@ ErrorConditionT Service::sendResponse(
 {
     MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
-    return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageOptions::Response);
+    return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::Response);
 }
 
 //-------------------------------------------------------------------------
@@ -658,7 +658,7 @@ ErrorConditionT Service::sendResponse(
 {
     MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     MessageCompleteFunctionT complete_handler;
-    return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsg_id, _flags | MessageOptions::Response);
+    return doSendMessage(nullptr, _rrecipient_id, msgptr, complete_handler, nullptr, &_rmsg_id, _flags | MessageFlagsE::Response);
 }
 
 //-------------------------------------------------------------------------

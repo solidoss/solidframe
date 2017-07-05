@@ -45,14 +45,15 @@ struct Configuration;
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
 
+using BufferPointerT                            = std::unique_ptr<char[]>;
 using AddressVectorT                            = std::vector<SocketAddressInet>;
 using ServerSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
 using ClientSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
 using ResolveCompleteFunctionT                  = SOLID_FUNCTION<void(AddressVectorT&&)>;
 using ConnectionStopFunctionT                   = SOLID_FUNCTION<void(ConnectionContext&)>;
 using ConnectionStartFunctionT                  = SOLID_FUNCTION<void(ConnectionContext&)>;
-using AllocateBufferFunctionT                   = SOLID_FUNCTION<char*(const uint16_t)>;
-using FreeBufferFunctionT                       = SOLID_FUNCTION<void(char*)>;
+using AllocateBufferFunctionT                   = SOLID_FUNCTION<BufferPointerT(const uint32_t)>;
+using FreeBufferFunctionT                       = SOLID_FUNCTION<void(BufferPointerT &)>;
 using CompressFunctionT                         = SOLID_FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
 using UncompressFunctionT                       = SOLID_FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
 using ExtractRecipientNameFunctionT             = SOLID_FUNCTION<const char*(const char*, std::string&, std::string&)>;
@@ -138,11 +139,11 @@ public:
         return !isServer() && isClient();
     }
 
-    char* allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;
-    void freeRecvBuffer(char* _pb) const;
+    BufferPointerT allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;
+    void freeRecvBuffer(BufferPointerT &_rbuffptr) const;
 
-    char* allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
-    void freeSendBuffer(char* _pb) const;
+    BufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
+    void freeSendBuffer(BufferPointerT &_rbuffptr) const;
 
     size_t connectionReconnectTimeoutSeconds(
         const uint8_t _retry_count,

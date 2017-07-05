@@ -387,7 +387,7 @@ int test_clientserver_delayed(int argc, char** argv)
         {
             frame::mpipc::MessagePointerT msgptr(new Message(1));
             err = mpipcclient.sendMessage(
-                "localhost", msgptr, {frame::mpipc::MessageOptions::OneShotSend});
+                "localhost", msgptr, {frame::mpipc::MessageFlagsE::OneShotSend});
             //++writecount;
             //this message should not be sent
         }
@@ -395,7 +395,7 @@ int test_clientserver_delayed(int argc, char** argv)
         {
             frame::mpipc::MessagePointerT msgptr(new Message(2));
             err = mpipcclient.sendMessage(
-                "localhost", msgptr, {frame::mpipc::MessageOptions::WaitResponse});
+                "localhost", msgptr, {frame::mpipc::MessageFlagsE::WaitResponse});
             ++writecount;
         }
 

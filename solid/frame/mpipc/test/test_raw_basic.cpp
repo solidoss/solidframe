@@ -461,7 +461,7 @@ int test_raw_basic(int argc, char** argv)
             ++crtwriteidx;
             mpipcclient.sendMessage(
                 "localhost", msgptr,
-                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageOptions::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

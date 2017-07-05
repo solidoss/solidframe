@@ -129,6 +129,10 @@ public:
     {
         return static_cast<uint64_t>(bits_.to_ullong());
     }
+    
+    std::string toString(const char _zero = '0', const char _one = '1'){
+        return bits_.to_string(_zero, _one);
+    }
 };
 
 template <class E, E L>

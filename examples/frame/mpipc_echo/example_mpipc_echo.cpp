@@ -383,7 +383,7 @@ void broadcast_message(frame::mpipc::Service& _rsvc, std::shared_ptr<frame::mpip
     vdbg("done stop===============================");
 
     for (Params::StringVectorT::const_iterator it(app_params.connectstringvec.begin()); it != app_params.connectstringvec.end(); ++it) {
-        _rsvc.sendMessage(it->c_str(), _rmsgptr, {frame::mpipc::MessageOptions::WaitResponse});
+        _rsvc.sendMessage(it->c_str(), _rmsgptr, {frame::mpipc::MessageFlagsE::WaitResponse});
     }
 }
 

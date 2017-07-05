@@ -206,7 +206,7 @@ void client_complete_message(
 
             pmpipcclient->sendMessage(
                 _rctx.recipientId(), msgptr,
-                {frame::mpipc::MessageOptions::WaitResponse});
+                {frame::mpipc::MessageFlagsE::WaitResponse});
         }
 
         client_received_message = true;
@@ -421,7 +421,7 @@ int test_connection_close(int argc, char** argv)
             frame::mpipc::MessagePointerT msgptr(new Message(0));
             mpipcclient.sendMessage(
                 "localhost", msgptr,
-                initarray[0].flags | frame::mpipc::MessageOptions::WaitResponse);
+                initarray[0].flags | frame::mpipc::MessageFlagsE::WaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

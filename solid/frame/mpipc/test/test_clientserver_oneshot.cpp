@@ -294,7 +294,7 @@ int test_clientserver_oneshot(int argc, char** argv)
             err = mpipcclient.sendMessage(
                 "localhost", msgptr,
                 recipient_id, message_id,
-                {frame::mpipc::MessageOptions::WaitResponse, frame::mpipc::MessageOptions::OneShotSend});
+                {frame::mpipc::MessageFlagsE::WaitResponse, frame::mpipc::MessageFlagsE::OneShotSend});
             SOLID_CHECK(not err, "" << err.message());
         }
 

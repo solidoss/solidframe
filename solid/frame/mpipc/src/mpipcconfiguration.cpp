@@ -21,14 +21,13 @@ namespace frame {
 namespace mpipc {
 //-----------------------------------------------------------------------------
 namespace {
-char* default_allocate_buffer(const uint16_t _cp)
+BufferPointerT default_allocate_buffer(const uint32_t _cp)
 {
-    char* rv = new char[_cp];
-    return rv;
+    return BufferPointerT(new char[_cp]);
 }
-void default_free_buffer(char* _pbuf)
+void default_free_buffer(BufferPointerT &/*_rbufptr*/)
 {
-    delete[] _pbuf;
+    //let the buffer pointer free the buffer
 }
 
 //void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
@@ -220,7 +219,7 @@ void Configuration::prepare()
     }
 }
 //-----------------------------------------------------------------------------
-char* Configuration::allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const
+BufferPointerT Configuration::allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const
 {
     if (_rbuffer_capacity_kb == 0) {
         _rbuffer_capacity_kb = connection_recv_buffer_start_capacity_kb;
@@ -230,12 +229,12 @@ char* Configuration::allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const
     return connection_recv_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
-void Configuration::freeRecvBuffer(char* _pb) const
+void Configuration::freeRecvBuffer(BufferPointerT &_rbuffptr) const
 {
-    connection_recv_buffer_free_fnc(_pb);
+    connection_recv_buffer_free_fnc(_rbuffptr);
 }
 //-----------------------------------------------------------------------------
-char* Configuration::allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const
+BufferPointerT Configuration::allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const
 {
     if (_rbuffer_capacity_kb == 0) {
         _rbuffer_capacity_kb = connection_send_buffer_start_capacity_kb;
@@ -245,9 +244,9 @@ char* Configuration::allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const
     return connection_send_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
-void Configuration::freeSendBuffer(char* _pb) const
+void Configuration::freeSendBuffer(BufferPointerT &_rbuffptr) const
 {
-    connection_send_buffer_free_fnc(_pb);
+    connection_send_buffer_free_fnc(_rbuffptr);
 }
 //-----------------------------------------------------------------------------
 } //namespace mpipc

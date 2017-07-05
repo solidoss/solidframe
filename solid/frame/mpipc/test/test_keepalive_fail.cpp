@@ -248,7 +248,7 @@ void server_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
         ++crtwriteidx;
         pmpipcclient->sendMessage(
             "localhost", msgptr,
-            initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageOptions::WaitResponse);
+            initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
     }
 }
 
@@ -416,7 +416,7 @@ int test_keepalive_fail(int argc, char** argv)
             ++crtwriteidx;
             mpipcclient.sendMessage(
                 "localhost", msgptr,
-                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageOptions::WaitResponse);
+                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);

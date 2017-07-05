@@ -398,7 +398,7 @@ int test_pool_delay_close(int argc, char** argv)
                 {
                     ++crtwriteidx;
                     mpipcclient.sendMessage(
-                        "localhost", *it, recipinet_id, {frame::mpipc::MessageOptions::WaitResponse});
+                        "localhost", *it, recipinet_id, {frame::mpipc::MessageFlagsE::WaitResponse});
                 }
 
                 ++it;
@@ -406,7 +406,7 @@ int test_pool_delay_close(int argc, char** argv)
                 for (; crtwriteidx < start_count; ++it) {
                     ++crtwriteidx;
                     mpipcclient.sendMessage(
-                        recipinet_id, *it, {frame::mpipc::MessageOptions::WaitResponse});
+                        recipinet_id, *it, {frame::mpipc::MessageFlagsE::WaitResponse});
                 }
             }
         }
@@ -432,7 +432,7 @@ int test_pool_delay_close(int argc, char** argv)
                 frame::mpipc::MessagePointerT msgptr(new Message(0));
                 ErrorConditionT               err = pmpipcclient->sendMessage(
                     recipinet_id, msgptr,
-                    {frame::mpipc::MessageOptions::WaitResponse});
+                    {frame::mpipc::MessageFlagsE::WaitResponse});
                 idbg("send message error message: " << err.message());
                 SOLID_CHECK(err);
             }
