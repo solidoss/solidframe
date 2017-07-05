@@ -25,7 +25,7 @@ BufferPointerT default_allocate_buffer(const uint32_t _cp)
 {
     return BufferPointerT(new char[_cp]);
 }
-void default_free_buffer(BufferPointerT &/*_rbufptr*/)
+void default_free_buffer(BufferPointerT& /*_rbufptr*/)
 {
     //let the buffer pointer free the buffer
 }
@@ -229,7 +229,7 @@ BufferPointerT Configuration::allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) 
     return connection_recv_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
-void Configuration::freeRecvBuffer(BufferPointerT &_rbuffptr) const
+void Configuration::freeRecvBuffer(BufferPointerT& _rbuffptr) const
 {
     connection_recv_buffer_free_fnc(_rbuffptr);
 }
@@ -244,7 +244,7 @@ BufferPointerT Configuration::allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) 
     return connection_send_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
-void Configuration::freeSendBuffer(BufferPointerT &_rbuffptr) const
+void Configuration::freeSendBuffer(BufferPointerT& _rbuffptr) const
 {
     connection_send_buffer_free_fnc(_rbuffptr);
 }

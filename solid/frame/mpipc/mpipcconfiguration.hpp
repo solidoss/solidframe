@@ -53,7 +53,7 @@ using ResolveCompleteFunctionT                  = SOLID_FUNCTION<void(AddressVec
 using ConnectionStopFunctionT                   = SOLID_FUNCTION<void(ConnectionContext&)>;
 using ConnectionStartFunctionT                  = SOLID_FUNCTION<void(ConnectionContext&)>;
 using AllocateBufferFunctionT                   = SOLID_FUNCTION<BufferPointerT(const uint32_t)>;
-using FreeBufferFunctionT                       = SOLID_FUNCTION<void(BufferPointerT &)>;
+using FreeBufferFunctionT                       = SOLID_FUNCTION<void(BufferPointerT&)>;
 using CompressFunctionT                         = SOLID_FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
 using UncompressFunctionT                       = SOLID_FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
 using ExtractRecipientNameFunctionT             = SOLID_FUNCTION<const char*(const char*, std::string&, std::string&)>;
@@ -140,10 +140,10 @@ public:
     }
 
     BufferPointerT allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;
-    void freeRecvBuffer(BufferPointerT &_rbuffptr) const;
+    void freeRecvBuffer(BufferPointerT& _rbuffptr) const;
 
     BufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
-    void freeSendBuffer(BufferPointerT &_rbuffptr) const;
+    void freeSendBuffer(BufferPointerT& _rbuffptr) const;
 
     size_t connectionReconnectTimeoutSeconds(
         const uint8_t _retry_count,

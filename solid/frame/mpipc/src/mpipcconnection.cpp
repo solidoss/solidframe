@@ -451,7 +451,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
 
     if (not isStopping()) {
 
-        error_    = _rerr;
+        error_     = _rerr;
         sys_error_ = _rsyserr;
 
         edbgx(Debug::mpipc, this << ' ' << this->id() << " [" << error_.message() << "][" << sys_error_.message() << "]");
@@ -1425,9 +1425,8 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         }
 
         if (not this->hasPendingSend()) {
-            ConnectionContext conctx(service(_rctx), *this);
-            unsigned          repeatcnt = 4;
-
+            ConnectionContext    conctx(service(_rctx), *this);
+            unsigned             repeatcnt      = 4;
             const uint32_t       sendbufcp      = sendBufferCapacity();
             const Configuration& rconfig        = service(_rctx).configuration();
             bool                 sent_something = false;

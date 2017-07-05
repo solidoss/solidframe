@@ -14,8 +14,8 @@
 
 #include "solid/utility/any.hpp"
 #include "solid/utility/event.hpp"
-#include "solid/utility/queue.hpp"
 #include "solid/utility/flags.hpp"
+#include "solid/utility/queue.hpp"
 
 #include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
@@ -247,8 +247,6 @@ private:
         Event&                      _revent);
 
 private:
-    
-    
     bool postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent);
     bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp);
     bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, Event& _revent);
@@ -269,28 +267,28 @@ private:
     }
 
 private:
-    using TimerT = frame::aio::SteadyTimer;
+    using TimerT        = frame::aio::SteadyTimer;
     using BufferVectorT = std::vector<BufferPointerT>;
-    
+
     enum class FlagsE : size_t {
-        Active             ,
-        Server             ,
-        Keepalive          ,
-        WaitKeepAliveTimer ,
-        StopPeer           ,
-        HasActivity        ,
-        PollPool           ,
-        Stopping           ,
-        DelayedStopping    ,
-        Secure             ,
-        Raw                ,
-        InPoolWaitQueue    ,
-        Connected          , //once set - the flag should not be reset. Is used by pool for restarting
+        Active,
+        Server,
+        Keepalive,
+        WaitKeepAliveTimer,
+        StopPeer,
+        HasActivity,
+        PollPool,
+        Stopping,
+        DelayedStopping,
+        Secure,
+        Raw,
+        InPoolWaitQueue,
+        Connected, //once set - the flag should not be reset. Is used by pool for restarting
         LastFlag,
     };
-    
+
     using FlagsT = solid::Flags<FlagsE>;
-    
+
     struct Receiver;
     friend struct Receiver;
 
