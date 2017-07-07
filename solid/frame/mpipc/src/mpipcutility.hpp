@@ -41,23 +41,19 @@ struct PacketHeader {
     };
 
     enum Types {
-        EndMessageTypeE            = 1, //DO NOT CHANGE!
-        SwitchToNewMessageTypeE    = 2,
-        SwitchToNewEndMessageTypeE = SwitchToNewMessageTypeE + EndMessageTypeE,
-        SwitchToOldMessageTypeE    = 4,
-        SwitchToOldEndMessageTypeE = SwitchToOldMessageTypeE + EndMessageTypeE,
-        ContinuedMessageTypeE      = 6,
-        ContinuedEndMessageTypeE   = ContinuedMessageTypeE + EndMessageTypeE,
-        SwitchToOldCanceledMessageTypeE,
-        ContinuedCanceledMessageTypeE,
-
-        KeepAliveTypeE,
+        MessageTypeE               = 1,
+        EndMessageTypeE            = 2,
+        CancelMessageTypeE         = 4,
+        KeepAliveTypeE             = 5,
+        UpdateTypeE                = 6,
 
     };
 
     enum Flags {
         Size64KBFlagE   = 1, // DO NOT CHANGE!!
         CompressedFlagE = 2,
+        AckCountFlagE   = 4,
+        ExpectAckFlagE  = 8,
     };
 
     PacketHeader(

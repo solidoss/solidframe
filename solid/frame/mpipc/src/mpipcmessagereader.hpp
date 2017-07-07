@@ -13,7 +13,7 @@
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
 #include "solid/system/common.hpp"
 #include "solid/system/error.hpp"
-#include "solid/utility/queue.hpp"
+#include <deque>
 
 namespace solid {
 namespace frame {
@@ -30,6 +30,7 @@ public:
 
         virtual void receiveMessage(MessagePointerT&, const size_t /*_msg_type_id*/) = 0;
         virtual void receiveKeepAlive() = 0;
+        virtual void receiveAckCount(uint8_t _count) = 0;
     };
 
     MessageReader();
@@ -102,12 +103,12 @@ private:
             state_        = StateE::NotStarted;
         }
     };
+    using MessageVectorT = std::deque<MessageStub>;
 
-    typedef Queue<MessageStub> MessageQueueT;
-
-    MessageQueueT message_q_;
-    uint64_t      current_message_type_id_;
-    StateE        state_;
+    MessageVectorT  message_vec_;
+    uint32_t        current_message_idx_;
+    uint64_t        current_message_type_id_;
+    StateE          state_;
 };
 
 } //namespace mpipc

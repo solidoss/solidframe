@@ -21,7 +21,8 @@ namespace mpipc {
 
 //-----------------------------------------------------------------------------
 MessageReader::MessageReader()
-    : current_message_type_id_(InvalidIndex())
+    : current_message_idx_(0)
+    , current_message_type_id_(InvalidIndex())
     , state_(StateE::ReadPacketHead)
 {
 }
@@ -32,7 +33,7 @@ MessageReader::~MessageReader()
 //-----------------------------------------------------------------------------
 void MessageReader::prepare(ReaderConfiguration const& _rconfig)
 {
-    message_q_.push(MessageStub()); //start with an empty message
+    //message_vec_.push(MessageStub()); //start with an empty message
 }
 //-----------------------------------------------------------------------------
 void MessageReader::unprepare()
@@ -76,11 +77,6 @@ uint32_t MessageReader::read(
             _rerror = error_reader_invalid_packet_header;
             SOLID_ASSERT(false);
             break;
-        }
-
-        if (packet_header.isTypeKeepAlive()) {
-            _receiver.receiveKeepAlive();
-            continue;
         }
 
         //parse the data
@@ -133,10 +129,32 @@ void MessageReader::doConsumePacket(
     }
 
     uint8_t crt_msg_type = _packet_header.type();
+    
+    if(_packet_header.flags() & PacketHeader::AckCountFlagE and pbufpos < pbufend){
+        uint8_t     count = 0;
+        pbufpos = _rproto.loadValue(pbufpos, count);
+        _receiver.receiveAckCount(count);
+    }
+    
     //DeserializerPointerT  tmp_deserializer;
 
     while (pbufpos < pbufend and not _rerror) {
-
+        
+        switch(crt_msg_type){
+            case PacketHeader::MessageTypeE:
+            case PacketHeader::EndMessageTypeE:
+            case PacketHeader::CancelMessageTypeE:
+                
+            case PacketHeader::KeepAliveTypeE:{
+                _receiver.receiveKeepAlive();
+            }   return;
+            case PacketHeader::UpdateTypeE:{
+            }   return;
+            default:
+                _rerror = error_reader_invalid_message_switch;
+                return;
+        }
+#if 0       
         switch (crt_msg_type) {
         case PacketHeader::SwitchToNewMessageTypeE:
         case PacketHeader::SwitchToNewEndMessageTypeE:
@@ -219,14 +237,19 @@ void MessageReader::doConsumePacket(
 
             message_q_.front().state_ = MessageStub::StateE::Canceled;
             break;
+        case PacketHeader::KeepAliveTypeE:{
+            _receiver.receiveKeepAlive();
+        }   return;
+        case PacketHeader::UpdateTypeE:{
+        }   return;
         default:
             _rerror = error_reader_invalid_message_switch;
             return;
         }
+#endif
+        SOLID_CHECK(message_vec_.size(), "message_q should not be empty");
 
-        SOLID_CHECK(message_q_.size(), "message_q should not be empty");
-
-        const bool is_end_of_message = (crt_msg_type & PacketHeader::EndMessageTypeE) == PacketHeader::EndMessageTypeE;
+        const bool is_end_of_message = (crt_msg_type == PacketHeader::EndMessageTypeE);
 
         pbufpos = doConsumeMessage(pbufpos, pbufend, is_end_of_message, _receiver, _rproto, _rctx, _rerror);
 

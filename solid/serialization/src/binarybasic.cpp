@@ -15,7 +15,7 @@ namespace solid {
 namespace serialization {
 namespace binary {
 //========================================================================
-char* crossStore(char* _pd, uint8_t _v)
+char* crossStore(char* _pd, const size_t _sz, uint8_t _v)
 {
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -29,7 +29,7 @@ char* crossStore(char* _pd, uint8_t _v)
     }
     return nullptr;
 }
-char* crossStore(char* _pd, uint16_t _v)
+char* crossStore(char* _pd, const size_t _sz, uint16_t _v)
 {
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -56,7 +56,7 @@ char* crossStore(char* _pd, uint16_t _v)
     }
     return nullptr;
 }
-char* crossStore(char* _pd, uint32_t _v)
+char* crossStore(char* _pd, const size_t _sz, uint32_t _v)
 {
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -99,7 +99,7 @@ char* crossStore(char* _pd, uint32_t _v)
     }
     return nullptr;
 }
-char* crossStore(char* _pd, uint64_t _v)
+char* crossStore(char* _pd, const size_t _sz, uint64_t _v)
 {
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -199,32 +199,34 @@ char* crossStore(char* _pd, uint64_t _v)
     return nullptr;
 }
 
-const char* crossLoad(const char* _ps, uint8_t& _val)
+const char* crossLoad(const char* _ps, const size_t _sz, uint8_t& _val)
 {
-    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint8_t        v  = *ps;
-    const bool     ok = check_value_with_crc(v, v);
-    const size_t   sz = v;
+    if(_sz != 0){
+        const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
+        uint8_t        v  = *ps;
+        const bool     ok = check_value_with_crc(v, v);
+        const size_t   sz = v;
 
-    if (ok) {
-        ++ps;
+        if (ok) {
+            ++ps;
 
-        switch (sz) {
-        case 0:
-            _val = 0;
-            break;
-        case 1:
-            _val = *ps;
-            break;
-        default:
-            return nullptr;
+            switch (sz) {
+            case 0:
+                _val = 0;
+                break;
+            case 1:
+                _val = *ps;
+                break;
+            default:
+                return nullptr;
+            }
+
+            return _ps + static_cast<size_t>(v) + 1;
         }
-
-        return _ps + static_cast<size_t>(v) + 1;
     }
     return nullptr;
 }
-const char* crossLoad(const char* _ps, uint16_t& _val)
+const char* crossLoad(const char* _ps, const size_t _sz, uint16_t& _val)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
     uint8_t        v  = *ps;
@@ -252,7 +254,7 @@ const char* crossLoad(const char* _ps, uint16_t& _val)
     }
     return nullptr;
 }
-const char* crossLoad(const char* _ps, uint32_t& _val)
+const char* crossLoad(const char* _ps, const size_t _sz, uint32_t& _val)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
     uint8_t        v  = *ps;
@@ -291,7 +293,7 @@ const char* crossLoad(const char* _ps, uint32_t& _val)
     }
     return nullptr;
 }
-const char* crossLoad(const char* _ps, uint64_t& _val)
+const char* crossLoad(const char* _ps, const size_t _sz, uint64_t& _val)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
     uint8_t        v  = *ps;

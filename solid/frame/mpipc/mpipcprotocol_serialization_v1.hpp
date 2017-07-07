@@ -222,6 +222,11 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
     {
         return serialization::binary::store(_pd, _v);
     }
+    
+    /*virtual*/ char* storeCrossValue(char* _pd, const size_t _sz, uint32_t _v) const override
+    {
+        return serialization::binary::crossStore(_pd, _sz, _v);
+    }
 
     /*virtual*/ const char* loadValue(const char* _ps, uint8_t& _v) const override
     {
@@ -238,6 +243,10 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
     /*virtual*/ const char* loadValue(const char* _ps, uint64_t& _v) const override
     {
         return serialization::binary::load(_ps, _v);
+    }
+    /*virtual*/ const char* loadCrossValue(const char* _ps, const size_t _sz, uint32_t& _v) const override
+    {
+        return serialization::binary::crossLoad(_ps, _sz, _v);
     }
 
     /*virtual*/ size_t typeIndex(const Message* _pmsg) const override

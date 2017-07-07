@@ -18,6 +18,8 @@
 
 #include "mpipcutility.hpp"
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
+
+#include "solid/utility/flags.hpp"
 #include "solid/utility/innerlist.hpp"
 
 namespace solid {
@@ -40,6 +42,14 @@ public:
         PrintInnerListsE,
     };
 
+    enum struct WriteFlagsE {
+        ShouldSendKeepAlive,
+        CanSendRelayedMessages,
+        LastFlag
+    };
+
+    using WriteFlagsT = Flags<WriteFlagsE>;
+
     MessageWriter();
     ~MessageWriter();
 
@@ -61,8 +71,10 @@ public:
         MessageId&     _rpool_msg_id);
 
     uint32_t write(
-        char*    _pbuf,
-        uint32_t _bufsz, const bool _keep_alive,
+        char*                      _pbuf,
+        uint32_t                   _bufsz,
+        const WriteFlagsT&         _flags,
+        uint8_t                    _ackd_buf_count,
         CompleteFunctionT&         _complete_fnc,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
@@ -70,6 +82,10 @@ public:
         ErrorConditionT&           _rerror);
 
     bool empty() const;
+
+    //a relay message is a message the is to be relayed on its path to destination
+    //for those messages we'll use relay buffers
+    bool isFrontRelayMessage()const;
 
     bool full(WriterConfiguration const& _rconfig) const;
 
@@ -148,10 +164,24 @@ private:
         {
             return not msgbundle_.message_ptr and not Message::is_canceled(msgbundle_.message_flags);
         }
-
+        
+        bool isRelay() const noexcept{
+            return not msgbundle_.message_url.empty();
+            
+        }
+        
+        bool isSynchronous()const noexcept{
+            return Message::is_synchronous(msgbundle_.message_flags);
+        }
+        
         bool isCanceled() const noexcept
         {
-            return Message::is_canceled(msgbundle_.message_flags);
+            return state_ == StateE::Canceled;
+        }
+        
+        void cancel(){
+             msgbundle_.message_flags.set(MessageFlagsE::Canceled);
+             state_ = StateE::Canceled;
         }
 
         MessageBundle      msgbundle_;
@@ -168,7 +198,7 @@ private:
 
     struct PacketOptions {
         PacketOptions()
-            : packet_type(PacketHeader::SwitchToNewMessageTypeE)
+            : packet_type(PacketHeader::MessageTypeE)
             , force_no_compress(false)
         {
         }
@@ -182,6 +212,8 @@ private:
         char*                      _pbufend,
         PacketOptions&             _rpacket_options,
         bool&                      _rmore,
+        const WriteFlagsT&         _flags,
+        uint8_t                    _ackd_buf_count,
         CompleteFunctionT&         _complete_fnc,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
@@ -192,14 +224,16 @@ private:
         const size_t   _msgidx,
         MessageBundle& _rmsgbundle,
         MessageId&     _rpool_msg_id);
-
+    
+    void doLocateNextWriteMessage();
+    
     bool isSynchronousInSendingQueue() const;
     bool isAsynchronousInPendingQueue() const;
     bool isDelayedCloseInPendingQueue() const;
 
     void doTryMoveMessageFromPendingToWriteQueue(mpipc::Configuration const& _rconfig);
 
-    PacketHeader::Types doPrepareMessageForSending(
+    void doPrepareMessageForSending(
         const size_t               _msgidx,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,

@@ -142,8 +142,8 @@ bool MessageWriter::doCancel(
     if (Message::is_canceled(rmsgstub.msgbundle_.message_flags)) {
         return false; //already canceled
     }
-
-    rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::Canceled);
+    
+    rmsgstub.cancel();
 
     _rmsgbundle   = std::move(rmsgstub.msgbundle_);
     _rpool_msg_id = rmsgstub.pool_msg_id_;
@@ -170,6 +170,13 @@ bool MessageWriter::empty() const
     return order_inner_list_.empty();
 }
 //-----------------------------------------------------------------------------
+
+bool MessageWriter::isFrontRelayMessage()const
+{
+    return not write_inner_list_.empty() and write_inner_list_.front().isRelay();
+}
+
+//-----------------------------------------------------------------------------
 // Does:
 // prepare message
 // serialize messages on buffer
@@ -181,7 +188,10 @@ bool MessageWriter::empty() const
 //
 
 uint32_t MessageWriter::write(
-    char* _pbuf, uint32_t _bufsz, const bool _keep_alive,
+    char* _pbuf,
+    uint32_t _bufsz,
+    const WriteFlagsT&         _flags,
+    uint8_t                   _ackd_buf_count,
     CompleteFunctionT&         _complete_fnc,
     WriterConfiguration const& _rconfig,
     Protocol const&            _rproto,
@@ -196,10 +206,11 @@ uint32_t MessageWriter::write(
     bool more = true;
 
     while (freesz >= (PacketHeader::SizeOfE + _rproto.minimumFreePacketDataSize()) and more) {
-        PacketHeader  packet_header(PacketHeader::SwitchToNewMessageTypeE, 0, 0);
+        
+        PacketHeader  packet_header(PacketHeader::MessageTypeE, 0, 0);
         PacketOptions packet_options;
         char*         pbufdata = pbufpos + PacketHeader::SizeOfE;
-        char*         pbuftmp  = doFillPacket(pbufdata, pbufend, packet_options, more, _complete_fnc, _rconfig, _rproto, _rctx, _rerror);
+        char*         pbuftmp  = doFillPacket(pbufdata, pbufend, packet_options, more, _ackd_buf_count, _complete_fnc, _rconfig, _rproto, _rctx, _rerror);
 
         if (pbuftmp != pbufdata) {
 
@@ -224,6 +235,11 @@ uint32_t MessageWriter::write(
 
             packet_header.type(packet_options.packet_type);
             packet_header.size(pbuftmp - pbufdata);
+            
+            if(_ackd_buf_count){
+                packet_header.flags(packet_header.flags() | PacketHeader::AckCountFlagE);
+                _ackd_buf_count = 0;
+            }
 
             pbufpos = packet_header.store(pbufpos, _rproto);
             pbufpos = pbuftmp;
@@ -233,10 +249,15 @@ uint32_t MessageWriter::write(
         }
     }
 
-    if (not _rerror) {
-        if (pbufpos == _pbuf and _keep_alive) {
-            PacketHeader packet_header(PacketHeader::KeepAliveTypeE, 0, 0);
+    if (not _rerror and pbufpos == _pbuf) {
+        if(_flags.has(WriteFlagsE::ShouldSendKeepAlive)){
+            PacketHeader packet_header(PacketHeader::KeepAliveTypeE, PacketHeader::AckCountFlagE, sizeof(_ackd_buf_count));
             pbufpos = packet_header.store(pbufpos, _rproto);
+            pbufpos = _rproto.storeValue(pbufpos, _ackd_buf_count);
+        }else if(_ackd_buf_count){
+            PacketHeader packet_header(PacketHeader::UpdateTypeE, PacketHeader::AckCountFlagE, sizeof(_ackd_buf_count));
+            pbufpos = packet_header.store(pbufpos, _rproto);
+            pbufpos = _rproto.storeValue(pbufpos, _ackd_buf_count);
         }
     }
     return pbufpos - _pbuf;
@@ -284,6 +305,8 @@ char* MessageWriter::doFillPacket(
     char*                      _pbufend,
     PacketOptions&             _rpacket_options,
     bool&                      _rmore,
+    const WriteFlagsT&         _flags,
+    uint8_t                    _ackd_buf_count,
     CompleteFunctionT&         _complete_fnc,
     WriterConfiguration const& _rconfig,
     Protocol const&            _rproto,
@@ -293,30 +316,21 @@ char* MessageWriter::doFillPacket(
 
     char*    pbufpos = _pbufbeg;
     uint32_t freesz  = _pbufend - pbufpos;
-
     SerializerPointerT tmp_serializer;
     size_t             packet_message_count = 0;
+    size_t             loop_guard = write_inner_list_.size();
 
-    while (write_inner_list_.size() and freesz >= _rproto.minimumFreePacketDataSize()) {
-
-        const size_t msgidx = write_inner_list_.frontIndex();
-
-        MessageStub&        rmsgstub = message_vec_[msgidx];
-        PacketHeader::Types msgswitch; // = PacketHeader::ContinuedMessageTypeE;
-
-        if (
-            Message::is_synchronous(rmsgstub.msgbundle_.message_flags)) {
-            if (current_synchronous_message_idx_ == InvalidIndex() or current_synchronous_message_idx_ == msgidx) {
-                current_synchronous_message_idx_ = msgidx;
-            } else {
-                write_inner_list_.popFront();
-                write_inner_list_.pushBack(msgidx);
-                continue;
-            }
+    while (write_inner_list_.size() and freesz >= _rproto.minimumFreePacketDataSize() and (loop_guard--) != 0) {
+        if(not _flags.has(WriteFlagsE::CanSendRelayedMessages) and write_inner_list_.front().isRelay()){
+            write_inner_list_.pushBack(write_inner_list_.popFront());
+            continue;
         }
+        
+        const size_t msgidx = write_inner_list_.frontIndex();
+        MessageStub&        rmsgstub = message_vec_[msgidx];
+        PacketHeader::Types msgswitch = PacketHeader::MessageTypeE;
 
-        msgswitch = doPrepareMessageForSending(
-            msgidx, _rconfig, _rproto, _rctx, tmp_serializer);
+        doPrepareMessageForSending(msgidx, _rconfig, _rproto, _rctx, tmp_serializer);
 
         char* pswitchpos = nullptr;
 
@@ -324,7 +338,9 @@ char* MessageWriter::doFillPacket(
             pswitchpos = pbufpos;
             pbufpos += sizeof(char); //skip one byte - the switch type
         }
-
+        
+        pbufpos = _rproto.storeCrossValue(pbufpos, static_cast<uint32_t>(msgidx));
+        
         ++packet_message_count;
 
         if (rmsgstub.isCanceled()) {
@@ -352,7 +368,14 @@ char* MessageWriter::doFillPacket(
         _rctx.message_flags = Message::update_state_flags(_rctx.message_flags);
 
         _rctx.pmessage_url = &rmsgstub.msgbundle_.message_url;
-
+        
+        if(_ackd_buf_count){
+            pbufpos = _rproto.storeValue(pbufpos, _ackd_buf_count);
+            _ackd_buf_count = 0;
+        }
+        
+        
+        
         char* psizepos = pbufpos;
         pbufpos        = _rproto.storeValue(pbufpos, static_cast<uint16_t>(0));
 
@@ -366,7 +389,7 @@ char* MessageWriter::doFillPacket(
             freesz -= rv;
 
             if (rmsgstub.serializer_ptr_->empty()) {
-                msgswitch = static_cast<PacketHeader::Types>(static_cast<int>(msgswitch) | PacketHeader::EndMessageTypeE);
+                msgswitch = PacketHeader::EndMessageTypeE;
             }
 
             if (rmsgstub.state_ == MessageStub::StateE::WriteBody) {
@@ -399,6 +422,20 @@ char* MessageWriter::doFillPacket(
     return pbufpos;
 }
 //-----------------------------------------------------------------------------
+//Explanation:
+//We can have multiple messages in the writeq. Some Synchronous and some asynchronous.
+//The asynchronous messages can be multiplexed with the current synchronous one.
+inline void MessageWriter::doLocateNextWriteMessage(){
+    if(current_synchronous_message_idx_ == InvalidIndex()){
+        return;
+    }else if(not write_inner_list_.empty()){
+        //locate next asynchronous message or the current synchronous message
+        while(current_synchronous_message_idx_ != write_inner_list_.frontIndex() and write_inner_list_.front().isSynchronous()){
+            write_inner_list_.pushBack(write_inner_list_.popFront());
+        }
+    }
+}
+//-----------------------------------------------------------------------------
 void MessageWriter::doTryCompleteMessageAfterSerialization(
     const size_t               _msgidx,
     CompleteFunctionT&         _complete_fnc,
@@ -424,6 +461,8 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
         if (current_synchronous_message_idx_ == _msgidx) {
             current_synchronous_message_idx_ = InvalidIndex();
         }
+        
+        doLocateNextWriteMessage();
 
         rmsgstub.msgbundle_.message_flags.reset(MessageFlagsE::StartedSend);
         rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::DoneSend);
@@ -457,6 +496,9 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
             rmsgstub.packet_count_ = 0;
             write_inner_list_.popFront();
             write_inner_list_.pushBack(_msgidx);
+            
+            doLocateNextWriteMessage();
+            
             vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
         }
     }
@@ -464,7 +506,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
 //-----------------------------------------------------------------------------
 
-PacketHeader::Types MessageWriter::doPrepareMessageForSending(
+void MessageWriter::doPrepareMessageForSending(
     const size_t               _msgidx,
     WriterConfiguration const& _rconfig,
     Protocol const&            _rproto,
@@ -472,63 +514,44 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
     SerializerPointerT&        _rtmp_serializer)
 {
 
-    PacketHeader::Types msgswitch; // = PacketHeader::ContinuedMessageTypeE;
     MessageStub&        rmsgstub(message_vec_[_msgidx]);
+    
+    
+    switch(rmsgstub.state_){
+        case MessageStub::StateE::NotStarted:
+            //switch to new message
+            if (_rtmp_serializer) {
+                rmsgstub.serializer_ptr_ = std::move(_rtmp_serializer);
+            } else {
+                rmsgstub.serializer_ptr_ = _rproto.createSerializer();
+            }
 
-    if (rmsgstub.state_ == MessageStub::StateE::NotStarted) {
+            _rproto.reset(*rmsgstub.serializer_ptr_);
 
-        //switch to new message
-        msgswitch = PacketHeader::SwitchToNewMessageTypeE;
+            rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::StartedSend);
 
-        if (_rtmp_serializer) {
-            rmsgstub.serializer_ptr_ = std::move(_rtmp_serializer);
-        } else {
-            rmsgstub.serializer_ptr_ = _rproto.createSerializer();
-        }
+            rmsgstub.state_ = MessageStub::StateE::WriteHead;
 
-        _rproto.reset(*rmsgstub.serializer_ptr_);
+            vdbgx(Debug::mpipc, "message header url: " << rmsgstub.msgbundle_.message_url);
 
-        rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::StartedSend);
+            rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr->header_);
+            break;
+        case MessageStub::StateE::Canceled:
+            break;
+        case MessageStub::StateE::WriteHead:
+            if (rmsgstub.serializer_ptr_->empty()) {
+                //we've just finished serializing header
 
-        rmsgstub.state_ = MessageStub::StateE::WriteHead;
+                rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr, rmsgstub.msgbundle_.message_type_id);
 
-        vdbgx(Debug::mpipc, "message header url: " << rmsgstub.msgbundle_.message_url);
-
-        rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr->header_);
-    } else if (rmsgstub.isCanceled()) {
-
-        if (rmsgstub.packet_count_ == 0) {
-            msgswitch = PacketHeader::SwitchToOldCanceledMessageTypeE;
-        } else {
-            msgswitch = PacketHeader::ContinuedCanceledMessageTypeE;
-        }
-
-    } else if (rmsgstub.state_ == MessageStub::StateE::WriteHead) {
-
-        if (rmsgstub.serializer_ptr_->empty()) {
-            //we've just finished serializing header
-
-            rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr, rmsgstub.msgbundle_.message_type_id);
-
-            rmsgstub.state_ = MessageStub::StateE::WriteBody;
-            //continued message
-            msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;
-
-        } else {
-            msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;
-        }
-
-    } else if (rmsgstub.packet_count_ == 0) {
-
-        //switch to old message
-        msgswitch = PacketHeader::PacketHeader::SwitchToOldMessageTypeE;
-
-    } else {
-
-        //continued message
-        msgswitch = PacketHeader::PacketHeader::ContinuedMessageTypeE;
-    }
-    return msgswitch;
+                rmsgstub.state_ = MessageStub::StateE::WriteBody;
+            }
+            break;
+        case MessageStub::StateE::WriteBody:
+            break;
+        case MessageStub::StateE::RelayBody:
+            break;
+    }//switch
 }
 
 //-----------------------------------------------------------------------------

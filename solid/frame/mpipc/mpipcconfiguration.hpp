@@ -231,6 +231,7 @@ public:
     uint8_t                       connection_recv_buffer_max_capacity_kb;
     uint8_t                       connection_send_buffer_start_capacity_kb;
     uint8_t                       connection_send_buffer_max_capacity_kb;
+    uint16_t                      connection_send_relay_buffer_count;
     ExtractRecipientNameFunctionT extract_recipient_name_fnc;
     ConnectionStopFunctionT       connection_stop_fnc;
     ConnectionOnEventFunctionT    connection_on_event_fnc;

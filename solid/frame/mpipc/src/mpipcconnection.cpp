@@ -244,6 +244,7 @@ Connection::Connection(
     , recv_buf_(nullptr)
     , send_buf_(nullptr)
     , send_buf_vec_sentinel_(0)
+    , ackd_buf_count_(0)
     , recv_buf_cp_kb_(0)
     , send_buf_cp_kb_(0)
     , socket_emplace_buf_{0}
@@ -267,6 +268,7 @@ Connection::Connection(
     , recv_buf_(nullptr)
     , send_buf_(nullptr)
     , send_buf_vec_sentinel_(0)
+    , ackd_buf_count_(0)
     , recv_buf_cp_kb_(0)
     , send_buf_cp_kb_(0)
     , socket_emplace_buf_{0}
@@ -1342,6 +1344,10 @@ struct Connection::Receiver : MessageReader::Receiver {
     {
         rcon_.doCompleteKeepalive(rctx_);
     }
+    
+    void receiveAckCount(uint8_t _count) override{
+        rcon_.doCompleteAckCount(rctx_, _count);
+    }
 };
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
@@ -1356,6 +1362,7 @@ struct Connection::Receiver : MessageReader::Receiver {
     const uint32_t       recvbufcp      = rthis.recvBufferCapacity();
     bool                 recv_something = false;
     Receiver             rcvr(rthis, _rctx);
+    ErrorConditionT      error;
 
     rthis.doResetTimerRecv(_rctx);
 
@@ -1367,7 +1374,7 @@ struct Connection::Receiver : MessageReader::Receiver {
             rthis.recv_buf_off_ += _sz;
             pbuf  = rthis.recv_buf_.get() + rthis.cons_buf_off_;
             bufsz = rthis.recv_buf_off_ - rthis.cons_buf_off_;
-            ErrorConditionT error;
+            
             rthis.cons_buf_off_ += rthis.msg_reader_.read(
                 pbuf, bufsz, rcvr, rconfig.reader, rconfig.protocol(), conctx, error);
 
@@ -1406,6 +1413,21 @@ struct Connection::Receiver : MessageReader::Receiver {
     }
 }
 //-----------------------------------------------------------------------------
+inline bool Connection::hasRelayBuffer(const Configuration& _rconfig, char*& _rpbuf)
+{
+    if (send_buf_vec_sentinel_ < send_buf_vec_.size()) {
+        _rpbuf = send_buf_vec_[send_buf_vec_sentinel_].get();
+        ++send_buf_vec_sentinel_;
+        return true;
+    } else if (send_buf_vec_.size() < _rconfig.connection_send_relay_buffer_count) {
+        send_buf_vec_.push_back(_rconfig.allocateRecvBuffer(recv_buf_cp_kb_));
+        _rpbuf = send_buf_vec_[send_buf_vec_sentinel_].get();
+        ++send_buf_vec_sentinel_;
+        return true;
+    }
+    return false;
+}
+//-----------------------------------------------------------------------------
 void Connection::doSend(frame::aio::ReactorContext& _rctx)
 {
 
@@ -1430,13 +1452,13 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             const uint32_t       sendbufcp      = sendBufferCapacity();
             const Configuration& rconfig        = service(_rctx).configuration();
             bool                 sent_something = false;
-
-            auto complete_lambda(
+            auto                 complete_lambda(
                 [this, &_rctx](MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) {
                     this->doCompleteMessage(_rctx, _rpool_msg_id, _rmsg_bundle, ErrorConditionT());
                     return service(_rctx).pollPoolForUpdates(*this, uid(_rctx), _rpool_msg_id);
                 });
-
+            MessageWriter::CompleteFunctionT completefnc(std::cref(complete_lambda));
+            MessageWriter::WriteFlagsT       write_flags;
             //doResetTimerSend(_rctx);
 
             while (repeatcnt) {
@@ -1451,14 +1473,28 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                     }
                 }
 
-                MessageWriter::CompleteFunctionT completefnc(std::cref(complete_lambda));
+                write_flags.reset();
+
+                if (shouldSendKeepalive()) {
+                    write_flags.set(MessageWriter::WriteFlagsE::ShouldSendKeepAlive);
+                }
+
+                const bool use_relay_buffer = msg_writer_.isFrontRelayMessage();
+                char*      buffer           = send_buf_.get();
+
+                if (use_relay_buffer and hasRelayBuffer(rconfig, buffer)) {
+                    write_flags.set(MessageWriter::WriteFlagsE::CanSendRelayedMessages);
+                }
 
                 uint32_t sz = msg_writer_.write(
-                    send_buf_.get(), sendbufcp, shouldSendKeepalive(), completefnc, rconfig.writer, rconfig.protocol(), conctx, error);
+                    buffer, sendbufcp, write_flags, ackd_buf_count_, completefnc, rconfig.writer, rconfig.protocol(), conctx, error);
 
                 flags_.reset(FlagsE::Keepalive);
 
                 if (!error) {
+                    
+                    ackd_buf_count_ = 0;
+                    
                     if (sz && this->sendAll(_rctx, send_buf_.get(), sz)) {
                         if (_rctx.error()) {
                             edbgx(Debug::mpipc, this << ' ' << id() << " sending " << sz << ": " << _rctx.error().message());
@@ -1617,7 +1653,21 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
                 [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {
                     this->doStop(_rctx, error_connection_too_many_keepalive_packets_received);
                 });
+            return;
         }
+    }
+}
+//-----------------------------------------------------------------------------
+void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count){
+    if(_count <= send_buf_vec_sentinel_){
+        send_buf_vec_sentinel_ -= _count;
+        this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
+    }else{
+        this->post(
+            _rctx,
+            [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {
+                this->doStop(_rctx, error_connection_ack_count);
+            });
     }
 }
 //-----------------------------------------------------------------------------

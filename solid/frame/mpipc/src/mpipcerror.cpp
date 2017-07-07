@@ -29,6 +29,7 @@ enum {
     ErrorConnectionStoppingE,
     ErrorConnectionInvalidStateE,
     ErrorConnectionNoSecureConfigurationE,
+    ErrorConnectionAckCountE,
     ErrorMessageCanceledE,
     ErrorMessageConnectionE,
     ErrorCompressionUnavailableE,
@@ -100,6 +101,9 @@ std::string ErrorCategory::message(int _ev) const
         break;
     case ErrorConnectionDelayedClosedE:
         oss << "Connection delayed closed";
+        break;
+    case ErrorConnectionAckCountE:
+        oss << "Connection: invalid ACK count received";
         break;
     case ErrorMessageCanceledE:
         oss << "Message canceled";
@@ -222,6 +226,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_connection_stopping(ErrorConnectionStoppingE, category);
 /*extern*/ const ErrorConditionT error_connection_invalid_state(ErrorConnectionInvalidStateE, category);
 /*extern*/ const ErrorConditionT error_connection_no_secure_configuration(ErrorConnectionNoSecureConfigurationE, category);
+/*extern*/ const ErrorConditionT error_connection_ack_count(ErrorConnectionAckCountE, category);
 
 /*extern*/ const ErrorConditionT error_message_canceled(ErrorMessageCanceledE, category);
 /*extern*/ const ErrorConditionT error_message_connection(ErrorMessageConnectionE, category);

@@ -122,6 +122,8 @@ void Configuration::init()
     connection_keepalive_timeout_seconds  = 60 * 5; //five minutes
     connection_reconnect_timeout_seconds  = 10;
 
+    connection_send_relay_buffer_count = 8;
+
     connection_inactivity_keepalive_count = 2;
 
     server.connection_start_state  = ConnectionState::Passive;

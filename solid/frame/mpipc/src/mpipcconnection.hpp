@@ -220,6 +220,7 @@ private:
         ErrorConditionT const&             _rerr);
 
     void doCompleteKeepalive(frame::aio::ReactorContext& _rctx);
+    void doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count);
 
     void doHandleEventKill(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventStart(frame::aio::ReactorContext& _rctx, Event& _revent);
@@ -245,8 +246,8 @@ private:
         const ulong                 _seconds_to_wait,
         ErrorConditionT const&      _rerr,
         Event&                      _revent);
-
 private:
+    bool hasRelayBuffer(const Configuration& _rconfig, char*& _rpbuf);
     bool postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent);
     bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp);
     bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, Event& _revent);
@@ -302,7 +303,8 @@ private:
     BufferPointerT     recv_buf_;
     BufferPointerT     send_buf_;
     BufferVectorT      send_buf_vec_;
-    uint16_t           send_buf_vec_sentinel_;
+    uint8_t           send_buf_vec_sentinel_;
+    uint8_t           ackd_buf_count_;
     uint8_t            recv_buf_cp_kb_; //kilobytes
     uint8_t            send_buf_cp_kb_; //kilobytes
     MessageIdVectorT   pending_message_vec_;

@@ -148,15 +148,15 @@ inline size_t crossSize(uint64_t _v)
     return max_padded_byte_cout(_v) + 1;
 }
 
-char* crossStore(char* _pd, uint8_t _v);
-char* crossStore(char* _pd, uint16_t _v);
-char* crossStore(char* _pd, uint32_t _v);
-char* crossStore(char* _pd, uint64_t _v);
+char* crossStore(char* _pd, const size_t _sz, uint8_t _v);
+char* crossStore(char* _pd, const size_t _sz, uint16_t _v);
+char* crossStore(char* _pd, const size_t _sz, uint32_t _v);
+char* crossStore(char* _pd, const size_t _sz, uint64_t _v);
 
-const char* crossLoad(const char* _ps, uint8_t& _val);
-const char* crossLoad(const char* _ps, uint16_t& _val);
-const char* crossLoad(const char* _ps, uint32_t& _val);
-const char* crossLoad(const char* _ps, uint64_t& _val);
+const char* crossLoad(const char* _ps, const size_t _sz, uint8_t& _val);
+const char* crossLoad(const char* _ps, const size_t _sz, uint16_t& _val);
+const char* crossLoad(const char* _ps, const size_t _sz, uint32_t& _val);
+const char* crossLoad(const char* _ps, const size_t _sz, uint64_t& _val);
 
 } //namespace binary
 } //namespace serialization
