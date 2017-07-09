@@ -1344,8 +1344,9 @@ struct Connection::Receiver : MessageReader::Receiver {
     {
         rcon_.doCompleteKeepalive(rctx_);
     }
-    
-    void receiveAckCount(uint8_t _count) override{
+
+    void receiveAckCount(uint8_t _count) override
+    {
         rcon_.doCompleteAckCount(rctx_, _count);
     }
 };
@@ -1374,7 +1375,7 @@ struct Connection::Receiver : MessageReader::Receiver {
             rthis.recv_buf_off_ += _sz;
             pbuf  = rthis.recv_buf_.get() + rthis.cons_buf_off_;
             bufsz = rthis.recv_buf_off_ - rthis.cons_buf_off_;
-            
+
             rthis.cons_buf_off_ += rthis.msg_reader_.read(
                 pbuf, bufsz, rcvr, rconfig.reader, rconfig.protocol(), conctx, error);
 
@@ -1492,9 +1493,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 flags_.reset(FlagsE::Keepalive);
 
                 if (!error) {
-                    
+
                     ackd_buf_count_ = 0;
-                    
+
                     if (sz && this->sendAll(_rctx, send_buf_.get(), sz)) {
                         if (_rctx.error()) {
                             edbgx(Debug::mpipc, this << ' ' << id() << " sending " << sz << ": " << _rctx.error().message());
@@ -1658,11 +1659,12 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count){
-    if(_count <= send_buf_vec_sentinel_){
+void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count)
+{
+    if (_count <= send_buf_vec_sentinel_) {
         send_buf_vec_sentinel_ -= _count;
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
-    }else{
+    } else {
         this->post(
             _rctx,
             [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {

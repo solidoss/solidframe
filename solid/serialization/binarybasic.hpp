@@ -117,8 +117,8 @@ inline const char* load(const char* _ps, std::array<uint8_t, S>& _val)
 }
 
 //cross integer serialization
-
-inline size_t crossSize(const char* _ps)
+namespace cross {
+inline size_t size(const char* _ps)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
     uint8_t        v  = *ps;
@@ -126,38 +126,38 @@ inline size_t crossSize(const char* _ps)
     if (ok) {
         return v + 1;
     }
-    return -1;
+    return InvalidSize();
 }
 
-inline size_t crossSize(uint8_t _v)
+inline size_t size(uint8_t _v)
 {
     return max_padded_byte_cout(_v) + 1;
 }
 
-inline size_t crossSize(uint16_t _v)
+inline size_t size(uint16_t _v)
 {
     return max_padded_byte_cout(_v) + 1;
 }
 
-inline size_t crossSize(uint32_t _v)
+inline size_t size(uint32_t _v)
 {
     return max_padded_byte_cout(_v) + 1;
 }
-inline size_t crossSize(uint64_t _v)
+inline size_t size(uint64_t _v)
 {
     return max_padded_byte_cout(_v) + 1;
 }
 
-char* crossStore(char* _pd, const size_t _sz, uint8_t _v);
-char* crossStore(char* _pd, const size_t _sz, uint16_t _v);
-char* crossStore(char* _pd, const size_t _sz, uint32_t _v);
-char* crossStore(char* _pd, const size_t _sz, uint64_t _v);
+char* store(char* _pd, const size_t _sz, uint8_t _v);
+char* store(char* _pd, const size_t _sz, uint16_t _v);
+char* store(char* _pd, const size_t _sz, uint32_t _v);
+char* store(char* _pd, const size_t _sz, uint64_t _v);
 
-const char* crossLoad(const char* _ps, const size_t _sz, uint8_t& _val);
-const char* crossLoad(const char* _ps, const size_t _sz, uint16_t& _val);
-const char* crossLoad(const char* _ps, const size_t _sz, uint32_t& _val);
-const char* crossLoad(const char* _ps, const size_t _sz, uint64_t& _val);
-
+const char* load(const char* _ps, const size_t _sz, uint8_t& _val);
+const char* load(const char* _ps, const size_t _sz, uint16_t& _val);
+const char* load(const char* _ps, const size_t _sz, uint32_t& _val);
+const char* load(const char* _ps, const size_t _sz, uint64_t& _val);
+} //namespace cross
 } //namespace binary
 } //namespace serialization
 } //namespace solid

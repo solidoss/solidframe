@@ -17,7 +17,7 @@ namespace frame {
 namespace mpipc {
 
 using MessageFlagsValueT = uint32_t;
-    
+
 enum struct MessageFlagsE : MessageFlagsValueT {
     WaitResponse,
     Synchronous,
@@ -34,7 +34,6 @@ enum struct MessageFlagsE : MessageFlagsValueT {
 
 using MessageFlagsT = Flags<MessageFlagsE>;
 
-    
 } //namespace mpipc
 } //namespace frame
 } //namespace solid

@@ -85,7 +85,7 @@ public:
 
     //a relay message is a message the is to be relayed on its path to destination
     //for those messages we'll use relay buffers
-    bool isFrontRelayMessage()const;
+    bool isFrontRelayMessage() const;
 
     bool full(WriterConfiguration const& _rconfig) const;
 
@@ -164,24 +164,26 @@ private:
         {
             return not msgbundle_.message_ptr and not Message::is_canceled(msgbundle_.message_flags);
         }
-        
-        bool isRelay() const noexcept{
+
+        bool isRelay() const noexcept
+        {
             return not msgbundle_.message_url.empty();
-            
         }
-        
-        bool isSynchronous()const noexcept{
+
+        bool isSynchronous() const noexcept
+        {
             return Message::is_synchronous(msgbundle_.message_flags);
         }
-        
+
         bool isCanceled() const noexcept
         {
             return state_ == StateE::Canceled;
         }
-        
-        void cancel(){
-             msgbundle_.message_flags.set(MessageFlagsE::Canceled);
-             state_ = StateE::Canceled;
+
+        void cancel()
+        {
+            msgbundle_.message_flags.set(MessageFlagsE::Canceled);
+            state_ = StateE::Canceled;
         }
 
         MessageBundle      msgbundle_;
@@ -224,9 +226,9 @@ private:
         const size_t   _msgidx,
         MessageBundle& _rmsgbundle,
         MessageId&     _rpool_msg_id);
-    
+
     void doLocateNextWriteMessage();
-    
+
     bool isSynchronousInSendingQueue() const;
     bool isAsynchronousInPendingQueue() const;
     bool isDelayedCloseInPendingQueue() const;

@@ -41,11 +41,11 @@ struct PacketHeader {
     };
 
     enum Types {
-        MessageTypeE               = 1,
-        EndMessageTypeE            = 2,
-        CancelMessageTypeE         = 4,
-        KeepAliveTypeE             = 5,
-        UpdateTypeE                = 6,
+        MessageTypeE       = 1,
+        EndMessageTypeE    = 2,
+        CancelMessageTypeE = 4,
+        KeepAliveTypeE     = 5,
+        UpdateTypeE        = 6,
 
     };
 

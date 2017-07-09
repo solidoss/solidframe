@@ -113,9 +113,8 @@ void MessageReader::doConsumePacket(
 {
     const char* pbufpos = _pbuf;
     const char* pbufend = _pbuf + _packet_header.size();
-
-    //decompress = TODO: try not to use so much stack
-    char tmpbuf[Protocol::MaxPacketDataSize];
+    char        tmpbuf[Protocol::MaxPacketDataSize]; //decompress = TODO: try not to use so much stack
+    uint32_t    message_idx;
 
     if (_packet_header.isCompressed()) {
         size_t uncompressed_size = _rconfig.decompress_fnc(tmpbuf, pbufpos, pbufend - pbufpos, _rerror);
@@ -129,30 +128,48 @@ void MessageReader::doConsumePacket(
     }
 
     uint8_t crt_msg_type = _packet_header.type();
-    
-    if(_packet_header.flags() & PacketHeader::AckCountFlagE and pbufpos < pbufend){
-        uint8_t     count = 0;
-        pbufpos = _rproto.loadValue(pbufpos, count);
+
+    if (_packet_header.flags() & PacketHeader::AckCountFlagE and pbufpos < pbufend) {
+        uint8_t count = 0;
+        pbufpos       = _rproto.loadValue(pbufpos, count);
         _receiver.receiveAckCount(count);
     }
-    
+
     //DeserializerPointerT  tmp_deserializer;
 
     while (pbufpos < pbufend and not _rerror) {
-        
-        switch(crt_msg_type){
-            case PacketHeader::MessageTypeE:
-            case PacketHeader::EndMessageTypeE:
-            case PacketHeader::CancelMessageTypeE:
-                
-            case PacketHeader::KeepAliveTypeE:{
-                _receiver.receiveKeepAlive();
-            }   return;
-            case PacketHeader::UpdateTypeE:{
-            }   return;
-            default:
-                _rerror = error_reader_invalid_message_switch;
+
+        switch (crt_msg_type) {
+        case PacketHeader::MessageTypeE:
+        case PacketHeader::EndMessageTypeE:
+            pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
+            if (pbufpos and message_idx < _rconfig.max_message_count_multiplex) {
+                if (message_idx >= message_vec_.size()) {
+                    message_vec_.resize(message_idx + 1);
+                }
+
+            } else {
+                _rerror = error_reader_protocol;
                 return;
+            }
+        case PacketHeader::CancelMessageTypeE:
+            pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
+            if (pbufpos and message_idx < message_vec_.size()) {
+                message_vec_[message_idx].clear();
+            } else {
+                _rerror = error_reader_protocol;
+            }
+            return;
+        case PacketHeader::KeepAliveTypeE: {
+            _receiver.receiveKeepAlive();
+        }
+            return;
+        case PacketHeader::UpdateTypeE: {
+        }
+            return;
+        default:
+            _rerror = error_reader_invalid_message_switch;
+            return;
         }
 #if 0       
         switch (crt_msg_type) {
