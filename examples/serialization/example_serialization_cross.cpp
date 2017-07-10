@@ -146,17 +146,17 @@ void test_basic(uint8_t _v)
 {
     using namespace serialization::binary;
     char buf[32];
-    cout << "store: " << (int)_v << " size = " << crossSize(_v) << endl;
-    crossStore(buf, _v);
+    cout << "store: " << (int)_v << " size = " << cross::size(_v) << endl;
+    cross::store(buf, 32, _v);
     //
     uint8_t  v08;
     uint16_t v16;
     uint32_t v32;
     uint64_t v64;
-    crossLoad(buf, v08);
-    crossLoad(buf, v16);
-    crossLoad(buf, v32);
-    crossLoad(buf, v64);
+    cross::load(buf, 32, v08);
+    cross::load(buf, 32, v16);
+    cross::load(buf, 32, v32);
+    cross::load(buf, 32, v64);
     cout << "load: " << (int)v08 << ' ' << v16 << ' ' << v32 << ' ' << v64 << endl;
 }
 
@@ -164,17 +164,17 @@ void test_basic(uint16_t _v)
 {
     using namespace serialization::binary;
     char buf[32];
-    cout << "store: " << _v << " size = " << crossSize(_v) << endl;
-    crossStore(buf, _v);
+    cout << "store: " << _v << " size = " << cross::size(_v) << endl;
+    cross::store(buf, 32, _v);
     //
     uint8_t  v08;
     uint16_t v16;
     uint32_t v32;
     uint64_t v64;
-    crossLoad(buf, v08);
-    crossLoad(buf, v16);
-    crossLoad(buf, v32);
-    crossLoad(buf, v64);
+    cross::load(buf, 32, v08);
+    cross::load(buf, 32, v16);
+    cross::load(buf, 32, v32);
+    cross::load(buf, 32, v64);
     cout << "load: " << (int)v08 << ' ' << v16 << ' ' << v32 << ' ' << v64 << endl;
 }
 
@@ -182,17 +182,17 @@ void test_basic(uint32_t _v)
 {
     using namespace serialization::binary;
     char buf[32];
-    cout << "store: " << _v << " size = " << crossSize(_v) << endl;
-    crossStore(buf, _v);
+    cout << "store: " << _v << " size = " << cross::size(_v) << endl;
+    cross::store(buf, 32, _v);
     //
     uint8_t  v08;
     uint16_t v16;
     uint32_t v32;
     uint64_t v64;
-    crossLoad(buf, v08);
-    crossLoad(buf, v16);
-    crossLoad(buf, v32);
-    crossLoad(buf, v64);
+    cross::load(buf, 32, v08);
+    cross::load(buf, 32, v16);
+    cross::load(buf, 32, v32);
+    cross::load(buf, 32, v64);
     cout << "load: " << (int)v08 << ' ' << v16 << ' ' << v32 << ' ' << v64 << endl;
 }
 
@@ -200,17 +200,17 @@ void test_basic(uint64_t _v)
 {
     using namespace serialization::binary;
     char buf[32];
-    cout << "store: " << _v << " size = " << crossSize(_v) << endl;
-    crossStore(buf, _v);
+    cout << "store: " << _v << " size = " << cross::size(_v) << endl;
+    cross::store(buf, 32, _v);
     //
     uint8_t  v08;
     uint16_t v16;
     uint32_t v32;
     uint64_t v64;
-    crossLoad(buf, v08);
-    crossLoad(buf, v16);
-    crossLoad(buf, v32);
-    crossLoad(buf, v64);
+    cross::load(buf, 32, v08);
+    cross::load(buf, 32, v16);
+    cross::load(buf, 32, v32);
+    cross::load(buf, 32, v64);
     cout << "load: " << (unsigned)v08 << ' ' << v16 << ' ' << v32 << ' ' << v64 << endl;
 }
 

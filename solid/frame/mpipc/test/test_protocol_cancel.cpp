@@ -199,6 +199,11 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
     {
         idbg("");
     }
+
+    void receiveAckCount(uint8_t _count) override
+    {
+        idbg("");
+    }
 };
 
 } //namespace
@@ -297,7 +302,7 @@ int test_protocol_cancel(int argc, char** argv)
         bool is_running = true;
 
         while (is_running and !error) {
-            uint32_t bufsz = mpipcmsgwriter.write(buf, bufcp, false, writercompletefnc, mpipcwriterconfig, *mpipcprotocol, mpipcconctx, error);
+            uint32_t bufsz = mpipcmsgwriter.write(buf, bufcp, frame::mpipc::MessageWriter::WriteFlagsT(), false, writercompletefnc, mpipcwriterconfig, *mpipcprotocol, mpipcconctx, error);
 
             if (!error and bufsz) {
 

@@ -1714,7 +1714,7 @@ protected:
 
         T& v = *reinterpret_cast<T*>(_rfd.p);
 
-        const char* p = binary::crossLoad(rd.tmpstr.data(), v);
+        const char* p = binary::cross::load(rd.tmpstr.data(), rd.tmpstr.size(), v);
         if (p) {
             return SuccessE;
         } else {

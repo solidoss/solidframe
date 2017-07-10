@@ -19,7 +19,7 @@ bool test(const uint32_t _protocol_id, const uint64_t _message_id, bool _should_
         return true;
     }
 
-    cout << "crossSize(" << tid << ") = " << binary::crossSize(tid) << endl;
+    cout << "cross::size(" << tid << ") = " << binary::cross::size(tid) << endl;
 
     uint32_t pid;
     uint64_t mid;

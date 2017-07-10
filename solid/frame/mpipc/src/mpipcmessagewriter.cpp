@@ -315,12 +315,11 @@ char* MessageWriter::doFillPacket(
 {
 
     char*              pbufpos = _pbufbeg;
-    uint32_t           freesz  = _pbufend - pbufpos;
     SerializerPointerT tmp_serializer;
     size_t             packet_message_count = 0;
     size_t             loop_guard           = write_inner_list_.size();
 
-    while (write_inner_list_.size() and freesz >= _rproto.minimumFreePacketDataSize() and (loop_guard--) != 0) {
+    while (write_inner_list_.size() and (_pbufend - pbufpos) >= _rproto.minimumFreePacketDataSize() and (loop_guard--) != 0) {
         if (not _flags.has(WriteFlagsE::CanSendRelayedMessages) and write_inner_list_.front().isRelay()) {
             write_inner_list_.pushBack(write_inner_list_.popFront());
             continue;
@@ -385,7 +384,6 @@ char* MessageWriter::doFillPacket(
             _rproto.storeValue(psizepos, static_cast<uint16_t>(rv));
 
             pbufpos += rv;
-            freesz -= rv;
 
             if (rmsgstub.serializer_ptr_->empty()) {
                 msgswitch = PacketHeader::EndMessageTypeE;

@@ -27,12 +27,12 @@ template <typename T>
 bool test(const T& _v, const size_t _estimated_size)
 {
     char   tmp[256] = {0};
-    size_t sz       = crossSize(_v);
+    size_t sz       = cross::size(_v);
     if (sz != _estimated_size) {
         SOLID_THROW("error");
         return false;
     }
-    char* p = crossStore(tmp, _v);
+    char* p = cross::store(tmp, 256, _v);
     if (p == nullptr) {
         SOLID_THROW("error");
         return false;
@@ -43,7 +43,7 @@ bool test(const T& _v, const size_t _estimated_size)
         return false;
     }
 
-    if (crossSize(tmp) != _estimated_size) {
+    if (cross::size(tmp) != _estimated_size) {
         SOLID_THROW("error");
         return false;
     }
@@ -52,7 +52,7 @@ bool test(const T& _v, const size_t _estimated_size)
 
     const char* cp;
 
-    cp = crossLoad(tmp, v);
+    cp = cross::load(tmp, 256, v);
 
     if (cp == nullptr) {
         SOLID_THROW("error");

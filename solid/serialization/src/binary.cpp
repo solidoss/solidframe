@@ -763,14 +763,14 @@ template <>
 
     const uint8_t v   = static_cast<uint8_t>(_rfd.d);
     const size_t  len = rs.be - rs.cpb;
-    const size_t  vsz = crossSize(v);
+    const size_t  vsz = cross::size(v);
 
     if (len >= vsz) {
-        rs.cpb = binary::crossStore(rs.cpb, v);
+        rs.cpb = binary::cross::store(rs.cpb, len, v);
         return SuccessE;
     } else {
         rs.tmpstr.resize(vsz);
-        binary::crossStore(const_cast<char*>(rs.tmpstr.data()), v);
+        binary::cross::store(const_cast<char*>(rs.tmpstr.data()), vsz, v);
         memcpy(rs.cpb, rs.tmpstr.data(), len);
         rs.cpb += len;
         _rfd.s = len;
@@ -788,14 +788,14 @@ template <>
 
     const uint16_t v   = static_cast<uint16_t>(_rfd.d);
     const size_t   len = rs.be - rs.cpb;
-    const size_t   vsz = crossSize(v);
+    const size_t   vsz = cross::size(v);
 
     if (len >= vsz) {
-        rs.cpb = binary::crossStore(rs.cpb, v);
+        rs.cpb = binary::cross::store(rs.cpb, len, v);
         return SuccessE;
     } else {
         rs.tmpstr.resize(vsz);
-        binary::crossStore(const_cast<char*>(rs.tmpstr.data()), v);
+        binary::cross::store(const_cast<char*>(rs.tmpstr.data()), vsz, v);
         memcpy(rs.cpb, rs.tmpstr.data(), len);
         rs.cpb += len;
         _rfd.s = len;
@@ -813,14 +813,14 @@ template <>
 
     const uint32_t v   = static_cast<uint32_t>(_rfd.d);
     const size_t   len = rs.be - rs.cpb;
-    const size_t   vsz = crossSize(v);
+    const size_t   vsz = cross::size(v);
 
     if (len >= vsz) {
-        rs.cpb = binary::crossStore(rs.cpb, v);
+        rs.cpb = binary::cross::store(rs.cpb, len, v);
         return SuccessE;
     } else {
         rs.tmpstr.resize(vsz);
-        binary::crossStore(const_cast<char*>(rs.tmpstr.data()), v);
+        binary::cross::store(const_cast<char*>(rs.tmpstr.data()), vsz, v);
         memcpy(rs.cpb, rs.tmpstr.data(), len);
         rs.cpb += len;
         _rfd.s = len;
@@ -838,14 +838,14 @@ template <>
 
     const uint64_t v   = _rfd.d;
     const unsigned len = rs.be - rs.cpb;
-    const unsigned vsz = crossSize(v);
+    const unsigned vsz = cross::size(v);
 
     if (len >= vsz) {
-        rs.cpb = binary::crossStore(rs.cpb, v);
+        rs.cpb = binary::cross::store(rs.cpb, len, v);
         return SuccessE;
     } else {
         rs.tmpstr.resize(vsz);
-        binary::crossStore(const_cast<char*>(rs.tmpstr.data()), v);
+        binary::cross::store(const_cast<char*>(rs.tmpstr.data()), vsz, v);
         memcpy(rs.cpb, rs.tmpstr.data(), len);
         rs.cpb += len;
         _rfd.s = len;
@@ -1833,11 +1833,11 @@ template <>
     if (!len)
         return WaitE;
 
-    const size_t vsz = crossSize(rd.cpb);
+    const size_t vsz = cross::size(rd.cpb);
     uint8_t&     v   = *reinterpret_cast<uint8_t*>(_rfd.p);
 
     if (vsz <= len) {
-        const char* p = binary::crossLoad(rd.cpb, v);
+        const char* p = binary::cross::load(rd.cpb, len, v);
         if (p) {
             rd.cpb = p;
             return SuccessE;
@@ -1874,11 +1874,11 @@ template <>
     if (!len)
         return WaitE;
 
-    const unsigned vsz = crossSize(rd.cpb);
+    const unsigned vsz = cross::size(rd.cpb);
     uint16_t&      v   = *reinterpret_cast<uint16_t*>(_rfd.p);
 
     if (vsz <= len) {
-        const char* p = binary::crossLoad(rd.cpb, v);
+        const char* p = binary::cross::load(rd.cpb, len, v);
         if (p) {
             rd.cpb = p;
             return SuccessE;
@@ -1914,11 +1914,11 @@ template <>
     if (!len)
         return WaitE;
 
-    const unsigned vsz = crossSize(rd.cpb);
+    const unsigned vsz = cross::size(rd.cpb);
     uint32_t&      v   = *reinterpret_cast<uint32_t*>(_rfd.p);
 
     if (vsz <= len) {
-        const char* p = binary::crossLoad(rd.cpb, v);
+        const char* p = binary::cross::load(rd.cpb, len, v);
         if (p) {
             rd.cpb = p;
             return SuccessE;
@@ -1954,11 +1954,11 @@ template <>
     if (!len)
         return WaitE;
 
-    const unsigned vsz = crossSize(rd.cpb);
+    const unsigned vsz = cross::size(rd.cpb);
     uint64_t&      v   = *reinterpret_cast<uint64_t*>(_rfd.p);
 
     if (vsz <= len) {
-        const char* p = binary::crossLoad(rd.cpb, v);
+        const char* p = binary::cross::load(rd.cpb, len, v);
         if (p) {
             rd.cpb = p;
             return SuccessE;

@@ -62,6 +62,7 @@ private:
     const char* doConsumeMessage(
         const char*        _pbufpos,
         const char* const  _pbufend,
+        const uint32_t     _msgidx,
         const bool         _is_end_of_message,
         Receiver&          _receiver,
         Protocol const&    _rproto,
@@ -80,7 +81,6 @@ private:
             ReadHead,
             ReadBody,
             RelayBody,
-            Canceled,
         };
 
         MessagePointerT      message_ptr_;
