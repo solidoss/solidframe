@@ -321,6 +321,7 @@ char* MessageWriter::doFillPacket(
 
     while (write_inner_list_.size() and (_pbufend - pbufpos) >= _rproto.minimumFreePacketDataSize() and (loop_guard--) != 0) {
         if (not _flags.has(WriteFlagsE::CanSendRelayedMessages) and write_inner_list_.front().isRelay()) {
+            vdbgx(Debug::mpipc, "skip idx = "<<write_inner_list_.frontIndex());
             write_inner_list_.pushBack(write_inner_list_.popFront());
             continue;
         }
@@ -362,7 +363,7 @@ char* MessageWriter::doFillPacket(
             }
             continue;
         }
-
+        
         _rctx.request_id.index  = (msgidx + 1);
         _rctx.request_id.unique = rmsgstub.unique_;
 
@@ -382,8 +383,9 @@ char* MessageWriter::doFillPacket(
         const int rv = rmsgstub.serializer_ptr_->run(_rctx, pbufpos, _pbufend - pbufpos);
 
         if (rv >= 0) {
-
+            
             _rproto.storeValue(psizepos, static_cast<uint16_t>(rv));
+            vdbgx(Debug::mpipc, "stored message with index = "<<msgidx<<" and chunksize = "<<rv);
 
             pbufpos += rv;
 
@@ -426,13 +428,15 @@ char* MessageWriter::doFillPacket(
 //The asynchronous messages can be multiplexed with the current synchronous one.
 inline void MessageWriter::doLocateNextWriteMessage()
 {
-    if (current_synchronous_message_idx_ == InvalidIndex()) {
+    if (current_synchronous_message_idx_ == InvalidIndex() or write_inner_list_.empty()) {
         return;
-    } else if (not write_inner_list_.empty()) {
+    } else {
         //locate next asynchronous message or the current synchronous message
         while (current_synchronous_message_idx_ != write_inner_list_.frontIndex() and write_inner_list_.front().isSynchronous()) {
+            vdbgx(Debug::mpipc, "skip idx = "<<write_inner_list_.frontIndex());
             write_inner_list_.pushBack(write_inner_list_.popFront());
         }
+        vdbgx(Debug::mpipc, "stop on idx = "<<write_inner_list_.frontIndex());
     }
 }
 //-----------------------------------------------------------------------------
@@ -493,6 +497,10 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
         ++rmsgstub.packet_count_;
 
         if (rmsgstub.packet_count_ >= _rconfig.max_message_continuous_packet_count) {
+            if(rmsgstub.isSynchronous()){
+                current_synchronous_message_idx_ = _msgidx;
+            }
+            
             rmsgstub.packet_count_ = 0;
             write_inner_list_.popFront();
             write_inner_list_.pushBack(_msgidx);

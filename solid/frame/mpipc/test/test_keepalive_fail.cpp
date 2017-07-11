@@ -269,7 +269,7 @@ int test_keepalive_fail(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
-    Debug::the().moduleMask("all");
+    Debug::the().moduleMask("any:view frame_mpipc:view");
     Debug::the().initStdErr(false, nullptr);
 #endif
 

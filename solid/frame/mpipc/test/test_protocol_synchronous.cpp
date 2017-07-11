@@ -142,14 +142,10 @@ void complete_message(
 
         size_t msgidx = static_cast<Message&>(*_rresponse_ptr).idx;
 
-        if (not static_cast<Message&>(*_rresponse_ptr).check()) {
-            SOLID_THROW("Message check failed.");
-        }
+        SOLID_CHECK(static_cast<Message&>(*_rresponse_ptr).check(), "Message check failed.");
 
-        if (msgidx != crtreadidx) {
-            SOLID_THROW("Message index invalid - SynchronousFlagE failed.");
-        }
-
+        SOLID_CHECK(msgidx == crtreadidx, "Message index invalid - SynchronousFlagE failed.");
+        
         ++crtreadidx;
 
         idbg(crtreadidx);
@@ -205,8 +201,8 @@ int test_protocol_synchronous(int argc, char** argv)
 {
 
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("any:ew");
+    Debug::the().levelMask("view");
+    Debug::the().moduleMask("any:view frame_mpipc:view");
     Debug::the().initStdErr(false, nullptr);
 #endif
 

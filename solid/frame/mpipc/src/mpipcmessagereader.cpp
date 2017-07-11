@@ -129,27 +129,31 @@ void MessageReader::doConsumePacket(
     }
 
     uint8_t crt_msg_type = _packet_header.type();
+    bool    go_on = false;
 
     if (_packet_header.flags() & PacketHeader::AckCountFlagE and pbufpos < pbufend) {
         uint8_t count = 0;
         pbufpos       = _rproto.loadValue(pbufpos, count);
-        vdbgx(Debug::mpipc, "AckCountFlagE "<<count);
+        vdbgx(Debug::mpipc, "AckCountFlagE "<<(int)count);
         _receiver.receiveAckCount(count);
     }
 
     //DeserializerPointerT  tmp_deserializer;
 
-    while (pbufpos < pbufend and not _rerror) {
+    do {
 
         switch (crt_msg_type) {
         case PacketHeader::MessageTypeE:
         case PacketHeader::EndMessageTypeE:
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             if (pbufpos and message_idx < _rconfig.max_message_count_multiplex) {
-                vdbgx(Debug::mpipc, "MessageType "<<message_idx);
+                vdbgx(Debug::mpipc, (crt_msg_type == PacketHeader::MessageTypeE ? "MessageType ": "EndMessageType ")<<message_idx);
                 if (message_idx >= message_vec_.size()) {
                     message_vec_.resize(message_idx + 1);
                 }
+                const bool is_end_of_message = (crt_msg_type == PacketHeader::EndMessageTypeE);
+
+                pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, is_end_of_message, _receiver, _rproto, _rctx, _rerror);
             } else {
                 _rerror = error_reader_protocol;
                 SOLID_ASSERT(false);
@@ -160,34 +164,34 @@ void MessageReader::doConsumePacket(
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             vdbgx(Debug::mpipc, "CancelMessageType "<<message_idx);
             if (pbufpos and message_idx < message_vec_.size()) {
+                SOLID_ASSERT(message_vec_[message_idx].state_ != MessageStub::StateE::NotStarted);
                 message_vec_[message_idx].clear();
             } else {
                 _rerror = error_reader_protocol;
                 SOLID_ASSERT(false);
             }
-            return;
+            break;
         case PacketHeader::KeepAliveTypeE:
             vdbgx(Debug::mpipc, "KeepAliveTypeE "<<message_idx);
             _receiver.receiveKeepAlive();
-            return;
+            break;
         case PacketHeader::UpdateTypeE:
             vdbgx(Debug::mpipc, "UpdateTypeE "<<message_idx);
-            return;
+            break;
         default:
             _rerror = error_reader_invalid_message_switch;
             return;
         }
 
-        const bool is_end_of_message = (crt_msg_type == PacketHeader::EndMessageTypeE);
-
-        pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, is_end_of_message, _receiver, _rproto, _rctx, _rerror);
-
         SOLID_ASSERT(!_rerror);
         if (pbufpos < pbufend) {
             crt_msg_type = 0;
             pbufpos      = _rproto.loadValue(pbufpos, crt_msg_type);
+            go_on = true;
+        }else{
+            go_on = false;
         }
-    } //while
+    } while (go_on and not _rerror);
 }
 
 const char* MessageReader::doConsumeMessage(
@@ -205,7 +209,7 @@ const char* MessageReader::doConsumeMessage(
 
     switch (rmsgstub.state_) {
     case MessageStub::StateE::NotStarted:
-        vdbgx(Debug::mpipc, "NotStarted "<<_msgidx);
+        vdbgx(Debug::mpipc, "NotStarted msgidx = "<<_msgidx);
         rmsgstub.deserializer_ptr_ = _rproto.createDeserializer();
         _rproto.reset(*rmsgstub.deserializer_ptr_);
         rmsgstub.deserializer_ptr_->push(rmsgstub.message_header_);
@@ -214,7 +218,7 @@ const char* MessageReader::doConsumeMessage(
         vdbgx(Debug::mpipc, "ReadHead "<<_msgidx);
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);
-
+            vdbgx(Debug::mpipc, "msgidx = "<<_msgidx<<" message_size = "<<message_size);
             if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
                 _rctx.pmessage_header = &rmsgstub.message_header_;
 
@@ -256,7 +260,7 @@ const char* MessageReader::doConsumeMessage(
         ++rmsgstub.packet_count_;
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);
-
+            vdbgx(Debug::mpipc, "msgidx = "<<_msgidx<<" message_size = "<<message_size);
             if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
                 _rctx.pmessage_header = &rmsgstub.message_header_;
 
