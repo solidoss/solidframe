@@ -212,8 +212,8 @@ int test_protocol_cancel(int argc, char** argv)
 {
 
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("any:ew");
+    Debug::the().levelMask("view");
+    Debug::the().moduleMask("any:view frame_mpipc:view");
     Debug::the().initStdErr(false, nullptr);
 #endif
 

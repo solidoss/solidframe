@@ -350,7 +350,9 @@ char* MessageWriter::doFillPacket(
             if (current_synchronous_message_idx_ == msgidx) {
                 current_synchronous_message_idx_ = InvalidIndex();
             }
-
+            
+            msgswitch = PacketHeader::CancelMessageTypeE;
+            
             if (pswitchpos) {
                 uint8_t tmp = static_cast<uint8_t>(msgswitch);
                 _rproto.storeValue(pswitchpos, tmp);

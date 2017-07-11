@@ -133,6 +133,7 @@ void MessageReader::doConsumePacket(
     if (_packet_header.flags() & PacketHeader::AckCountFlagE and pbufpos < pbufend) {
         uint8_t count = 0;
         pbufpos       = _rproto.loadValue(pbufpos, count);
+        vdbgx(Debug::mpipc, "AckCountFlagE "<<count);
         _receiver.receiveAckCount(count);
     }
 
@@ -145,6 +146,7 @@ void MessageReader::doConsumePacket(
         case PacketHeader::EndMessageTypeE:
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             if (pbufpos and message_idx < _rconfig.max_message_count_multiplex) {
+                vdbgx(Debug::mpipc, "MessageType "<<message_idx);
                 if (message_idx >= message_vec_.size()) {
                     message_vec_.resize(message_idx + 1);
                 }
@@ -156,6 +158,7 @@ void MessageReader::doConsumePacket(
             break;
         case PacketHeader::CancelMessageTypeE:
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
+            vdbgx(Debug::mpipc, "CancelMessageType "<<message_idx);
             if (pbufpos and message_idx < message_vec_.size()) {
                 message_vec_[message_idx].clear();
             } else {
@@ -163,12 +166,12 @@ void MessageReader::doConsumePacket(
                 SOLID_ASSERT(false);
             }
             return;
-        case PacketHeader::KeepAliveTypeE: {
+        case PacketHeader::KeepAliveTypeE:
+            vdbgx(Debug::mpipc, "KeepAliveTypeE "<<message_idx);
             _receiver.receiveKeepAlive();
-        }
             return;
-        case PacketHeader::UpdateTypeE: {
-        }
+        case PacketHeader::UpdateTypeE:
+            vdbgx(Debug::mpipc, "UpdateTypeE "<<message_idx);
             return;
         default:
             _rerror = error_reader_invalid_message_switch;
@@ -202,11 +205,13 @@ const char* MessageReader::doConsumeMessage(
 
     switch (rmsgstub.state_) {
     case MessageStub::StateE::NotStarted:
+        vdbgx(Debug::mpipc, "NotStarted "<<_msgidx);
         rmsgstub.deserializer_ptr_ = _rproto.createDeserializer();
         _rproto.reset(*rmsgstub.deserializer_ptr_);
         rmsgstub.deserializer_ptr_->push(rmsgstub.message_header_);
         rmsgstub.state_ = MessageStub::StateE::ReadHead;
     case MessageStub::StateE::ReadHead:
+        vdbgx(Debug::mpipc, "ReadHead "<<_msgidx);
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);
 
@@ -247,6 +252,7 @@ const char* MessageReader::doConsumeMessage(
         rmsgstub.clear();
         break;
     case MessageStub::StateE::ReadBody:
+        vdbgx(Debug::mpipc, "ReadBody "<<_msgidx);
         ++rmsgstub.packet_count_;
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);
