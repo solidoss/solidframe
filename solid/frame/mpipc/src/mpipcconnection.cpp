@@ -1639,10 +1639,10 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
 {
     if (isServer()) {
         Configuration const& config = service(_rctx).configuration();
-        
+
         ++recv_keepalive_count_;
-        
-        vdbgx(Debug::mpipc, this << "recv_keep_alive_count = "<<recv_keepalive_count_);
+
+        vdbgx(Debug::mpipc, this << "recv_keep_alive_count = " << recv_keepalive_count_);
 
         if (recv_keepalive_count_ < config.connection_inactivity_keepalive_count) {
             flags_.set(FlagsE::Keepalive);

@@ -145,7 +145,7 @@ void complete_message(
         SOLID_CHECK(static_cast<Message&>(*_rresponse_ptr).check(), "Message check failed.");
 
         SOLID_CHECK(msgidx == crtreadidx, "Message index invalid - SynchronousFlagE failed.");
-        
+
         ++crtreadidx;
 
         idbg(crtreadidx);
