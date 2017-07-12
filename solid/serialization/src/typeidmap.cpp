@@ -21,6 +21,7 @@ public:
         NoCastE,
     };
     ErrorCategory() {}
+
 private:
     const char* name() const noexcept(true)
     {

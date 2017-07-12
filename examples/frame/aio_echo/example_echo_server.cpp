@@ -130,6 +130,7 @@ public:
     {
     }
     ~Connection() {}
+
 protected:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
     static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
@@ -177,6 +178,7 @@ public:
     {
     }
     ~Talker() {}
+
 private:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
     void onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz);

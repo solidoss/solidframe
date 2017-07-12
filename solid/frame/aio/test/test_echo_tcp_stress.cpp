@@ -388,6 +388,7 @@ public:
     {
     }
     ~Connection() {}
+
 protected:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
 

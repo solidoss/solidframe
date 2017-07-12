@@ -30,6 +30,8 @@ bool PacketHeader::isOk() const
     case CancelMessageTypeE:
     case KeepAliveTypeE:
     case UpdateTypeE:
+    case CancelRequestTypeE:
+    case AckdCountTypeE:
         break;
     default:
         rv = false;

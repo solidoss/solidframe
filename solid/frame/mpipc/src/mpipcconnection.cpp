@@ -1349,6 +1349,10 @@ struct Connection::Receiver : MessageReader::Receiver {
     {
         rcon_.doCompleteAckCount(rctx_, _count);
     }
+    void receiveCancelRequest(const RequestId& _reqid) override
+    {
+        rcon_.doCompleteCancelRequest(rctx_, _reqid);
+    }
 };
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
@@ -1488,7 +1492,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 }
 
                 uint32_t sz = msg_writer_.write(
-                    buffer, sendbufcp, write_flags, ackd_buf_count_, completefnc, rconfig.writer, rconfig.protocol(), conctx, error);
+                    buffer, sendbufcp, write_flags, ackd_buf_count_, cancel_remote_msg_vec_, completefnc, rconfig.writer, rconfig.protocol(), conctx, error);
 
                 flags_.reset(FlagsE::Keepalive);
 
@@ -1672,6 +1676,17 @@ void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _
             [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {
                 this->doStop(_rctx, error_connection_ack_count);
             });
+    }
+}
+//-----------------------------------------------------------------------------
+void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid)
+{
+    MessageId     msgid(_reqid);
+    MessageBundle msg_bundle;
+    MessageId     pool_msg_id;
+
+    if (msg_writer_.cancel(msgid, msg_bundle, pool_msg_id)) {
+        doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_canceled_peer);
     }
 }
 //-----------------------------------------------------------------------------

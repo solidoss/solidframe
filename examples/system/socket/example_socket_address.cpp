@@ -10,7 +10,6 @@
 #ifndef SOLID_ON_WINDOWS
 #include <poll.h>
 #include <unistd.h>
-#include <unistd.h>
 
 #include <net/if.h>
 #include <sys/ioctl.h>

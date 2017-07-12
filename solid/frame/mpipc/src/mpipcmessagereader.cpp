@@ -131,13 +131,6 @@ void MessageReader::doConsumePacket(
     uint8_t crt_msg_type = _packet_header.type();
     bool    go_on        = false;
 
-    if (_packet_header.flags() & PacketHeader::AckCountFlagE and pbufpos < pbufend) {
-        uint8_t count = 0;
-        pbufpos       = _rproto.loadValue(pbufpos, count);
-        vdbgx(Debug::mpipc, "AckCountFlagE " << (int)count);
-        _receiver.receiveAckCount(count);
-    }
-
     //DeserializerPointerT  tmp_deserializer;
 
     do {
@@ -172,11 +165,34 @@ void MessageReader::doConsumePacket(
             }
             break;
         case PacketHeader::KeepAliveTypeE:
-            vdbgx(Debug::mpipc, "KeepAliveTypeE " << message_idx);
+            vdbgx(Debug::mpipc, "KeepAliveTypeE");
             _receiver.receiveKeepAlive();
             break;
         case PacketHeader::UpdateTypeE:
-            vdbgx(Debug::mpipc, "UpdateTypeE " << message_idx);
+            vdbgx(Debug::mpipc, "UpdateTypeE");
+            break;
+        case PacketHeader::CancelRequestTypeE: {
+            vdbgx(Debug::mpipc, "CancelRequestTypeE");
+            RequestId requid;
+            pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, requid.index);
+            if (pbufpos and (pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique))) {
+                _receiver.receiveCancelRequest(requid);
+            } else {
+                _rerror = error_reader_protocol;
+                SOLID_ASSERT(false);
+            }
+        } break;
+        case PacketHeader::AckdCountTypeE:
+            vdbgx(Debug::mpipc, "AckdCountTypeE");
+            if (pbufpos < pbufend) {
+                uint8_t count = 0;
+                pbufpos       = _rproto.loadValue(pbufpos, count);
+                vdbgx(Debug::mpipc, "AckdCountTypeE " << (int)count);
+                _receiver.receiveAckCount(count);
+            } else {
+                _rerror = error_reader_protocol;
+                SOLID_ASSERT(false);
+            }
             break;
         default:
             _rerror = error_reader_invalid_message_switch;

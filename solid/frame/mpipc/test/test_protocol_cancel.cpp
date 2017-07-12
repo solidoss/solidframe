@@ -181,11 +181,21 @@ void complete_message(
 }
 
 struct Receiver : frame::mpipc::MessageReader::Receiver {
-    frame::mpipc::serialization_v1::Protocol& rprotocol_;
+    frame::mpipc::serialization_v1::Protocol&     rprotocol_;
+    frame::mpipc::MessageWriter::RequestIdVectorT reqvec;
+    uint8_t                                       ackd_count;
 
     Receiver(frame::mpipc::serialization_v1::Protocol& _rprotocol)
         : rprotocol_(_rprotocol)
+        , ackd_count(15)
     {
+    }
+
+    void fillRequestVector(size_t _m = 10)
+    {
+        for (size_t i = 0; i < _m; ++i) {
+            reqvec.push_back(frame::mpipc::RequestId(i, i));
+        }
     }
 
     void receiveMessage(frame::mpipc::MessagePointerT& _rresponse_ptr, const size_t _msg_type_id) override
@@ -202,7 +212,22 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
 
     void receiveAckCount(uint8_t _count) override
     {
-        idbg("");
+        idbg("" << (int)_count);
+        SOLID_CHECK(_count == ackd_count, "invalid ack count");
+    }
+    void receiveCancelRequest(const frame::mpipc::RequestId& _reqid) override
+    {
+        vdbg("" << _reqid);
+        bool found = false;
+        for (auto it = reqvec.cbegin(); it != reqvec.cend();) {
+            if (*it == _reqid) {
+                found = true;
+                it    = reqvec.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        SOLID_CHECK(found, "request not found");
     }
 };
 
@@ -239,8 +264,7 @@ int test_protocol_cancel(int argc, char** argv)
     auto                              mpipcprotocol = frame::mpipc::serialization_v1::Protocol::create();
     frame::mpipc::MessageReader       mpipcmsgreader;
     frame::mpipc::MessageWriter       mpipcmsgwriter;
-
-    ErrorConditionT error;
+    ErrorConditionT                   error;
 
     ctx.mpipcreaderconfig = &mpipcreaderconfig;
     ctx.mpipcwriterconfig = &mpipcwriterconfig;
@@ -299,10 +323,24 @@ int test_protocol_cancel(int argc, char** argv)
 
         mpipcmsgreader.prepare(mpipcreaderconfig);
 
-        bool is_running = true;
+        bool   is_running = true;
+        size_t i          = 10;
+        bool   refill     = false;
 
         while (is_running and !error) {
-            uint32_t bufsz = mpipcmsgwriter.write(buf, bufcp, frame::mpipc::MessageWriter::WriteFlagsT(), false, writercompletefnc, mpipcwriterconfig, *mpipcprotocol, mpipcconctx, error);
+            refill = false;
+            --rcvr.ackd_count;
+            if (i) {
+                --i;
+                rcvr.fillRequestVector(10);
+                refill = true;
+            }
+
+            uint32_t bufsz = mpipcmsgwriter.write(buf, bufcp, frame::mpipc::MessageWriter::WriteFlagsT(), rcvr.ackd_count, rcvr.reqvec, writercompletefnc, mpipcwriterconfig, *mpipcprotocol, mpipcconctx, error);
+
+            if (refill) {
+                rcvr.fillRequestVector(10);
+            }
 
             if (!error and bufsz) {
 

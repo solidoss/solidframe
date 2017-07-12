@@ -221,6 +221,7 @@ private:
 
     void doCompleteKeepalive(frame::aio::ReactorContext& _rctx);
     void doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count);
+    void doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid);
 
     void doHandleEventKill(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventStart(frame::aio::ReactorContext& _rctx, Event& _revent);
@@ -289,7 +290,8 @@ private:
         LastFlag,
     };
 
-    using FlagsT = solid::Flags<FlagsE>;
+    using FlagsT           = solid::Flags<FlagsE>;
+    using RequestIdVectorT = MessageWriter::RequestIdVectorT;
 
     struct Receiver;
     friend struct Receiver;
@@ -311,6 +313,7 @@ private:
     MessageIdVectorT   pending_message_vec_;
     MessageReader      msg_reader_;
     MessageWriter      msg_writer_;
+    RequestIdVectorT   cancel_remote_msg_vec_;
     ErrorConditionT    error_;
     ErrorCodeT         sys_error_;
     Any<>              any_data_;

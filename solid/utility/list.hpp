@@ -67,6 +67,7 @@ protected:
     }
     Link*       theEnd() { return &lend; }
     const Link* theEnd() const { return &lend; }
+
 protected:
     size_t sz;
     Link*  ptop;

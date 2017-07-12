@@ -46,14 +46,14 @@ struct PacketHeader {
         CancelMessageTypeE = 4,
         KeepAliveTypeE     = 5,
         UpdateTypeE        = 6,
+        CancelRequestTypeE = 7,
+        AckdCountTypeE     = 8,
 
     };
 
     enum Flags {
         Size64KBFlagE   = 1, // DO NOT CHANGE!!
         CompressedFlagE = 2,
-        AckCountFlagE   = 4,
-        ExpectAckFlagE  = 8,
     };
 
     PacketHeader(

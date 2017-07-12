@@ -145,6 +145,11 @@ struct RequestId {
         unique = 0;
     }
 
+    bool operator==(const RequestId& _reqid) const
+    {
+        return index == _reqid.index and unique == _reqid.unique;
+    }
+
     RequestId(
         const uint32_t _idx = 0,
         const uint32_t _uid = 0)
@@ -226,6 +231,7 @@ struct ConnectionProxy {
 private:
     friend class SocketStub;
     ConnectionProxy() {}
+
 private:
     friend struct ConnectionContext;
     Service& service(frame::aio::ReactorContext& _rctx) const;

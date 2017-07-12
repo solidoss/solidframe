@@ -48,7 +48,8 @@ public:
         LastFlag
     };
 
-    using WriteFlagsT = Flags<WriteFlagsE>;
+    using WriteFlagsT      = Flags<WriteFlagsE>;
+    using RequestIdVectorT = std::vector<RequestId>;
 
     MessageWriter();
     ~MessageWriter();
@@ -75,6 +76,7 @@ public:
         uint32_t                   _bufsz,
         const WriteFlagsT&         _flags,
         uint8_t                    _ackd_buf_count,
+        RequestIdVectorT&          _cancel_remote_msg_vec,
         CompleteFunctionT&         _complete_fnc,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
@@ -215,7 +217,8 @@ private:
         PacketOptions&             _rpacket_options,
         bool&                      _rmore,
         const WriteFlagsT&         _flags,
-        uint8_t                    _ackd_buf_count,
+        uint8_t&                   _ackd_buf_count,
+        RequestIdVectorT&          _cancel_remote_msg_vec,
         CompleteFunctionT&         _complete_fnc,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,

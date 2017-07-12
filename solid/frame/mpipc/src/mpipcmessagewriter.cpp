@@ -192,6 +192,7 @@ uint32_t MessageWriter::write(
     uint32_t                   _bufsz,
     const WriteFlagsT&         _flags,
     uint8_t                    _ackd_buf_count,
+    RequestIdVectorT&          _cancel_remote_msg_vec,
     CompleteFunctionT&         _complete_fnc,
     WriterConfiguration const& _rconfig,
     Protocol const&            _rproto,
@@ -210,7 +211,7 @@ uint32_t MessageWriter::write(
         PacketHeader  packet_header(PacketHeader::MessageTypeE, 0, 0);
         PacketOptions packet_options;
         char*         pbufdata = pbufpos + PacketHeader::SizeOfE;
-        char*         pbuftmp  = doFillPacket(pbufdata, pbufend, packet_options, more, _flags, _ackd_buf_count, _complete_fnc, _rconfig, _rproto, _rctx, _rerror);
+        char*         pbuftmp  = doFillPacket(pbufdata, pbufend, packet_options, more, _flags, _ackd_buf_count, _cancel_remote_msg_vec, _complete_fnc, _rconfig, _rproto, _rctx, _rerror);
 
         if (pbuftmp != pbufdata) {
 
@@ -236,11 +237,6 @@ uint32_t MessageWriter::write(
             packet_header.type(packet_options.packet_type);
             packet_header.size(pbuftmp - pbufdata);
 
-            if (_ackd_buf_count) {
-                packet_header.flags(packet_header.flags() | PacketHeader::AckCountFlagE);
-                _ackd_buf_count = 0;
-            }
-
             pbufpos = packet_header.store(pbufpos, _rproto);
             pbufpos = pbuftmp;
             freesz  = pbufend - pbufpos;
@@ -251,13 +247,8 @@ uint32_t MessageWriter::write(
 
     if (not _rerror and pbufpos == _pbuf) {
         if (_flags.has(WriteFlagsE::ShouldSendKeepAlive)) {
-            PacketHeader packet_header(PacketHeader::KeepAliveTypeE, PacketHeader::AckCountFlagE, sizeof(_ackd_buf_count));
+            PacketHeader packet_header(PacketHeader::KeepAliveTypeE);
             pbufpos = packet_header.store(pbufpos, _rproto);
-            pbufpos = _rproto.storeValue(pbufpos, _ackd_buf_count);
-        } else if (_ackd_buf_count) {
-            PacketHeader packet_header(PacketHeader::UpdateTypeE, PacketHeader::AckCountFlagE, sizeof(_ackd_buf_count));
-            pbufpos = packet_header.store(pbufpos, _rproto);
-            pbufpos = _rproto.storeValue(pbufpos, _ackd_buf_count);
         }
     }
     return pbufpos - _pbuf;
@@ -306,18 +297,45 @@ char* MessageWriter::doFillPacket(
     PacketOptions&             _rpacket_options,
     bool&                      _rmore,
     const WriteFlagsT&         _flags,
-    uint8_t                    _ackd_buf_count,
+    uint8_t&                   _ackd_buf_count,
+    RequestIdVectorT&          _cancel_remote_msg_vec,
     CompleteFunctionT&         _complete_fnc,
     WriterConfiguration const& _rconfig,
     Protocol const&            _rproto,
     ConnectionContext&         _rctx,
     ErrorConditionT&           _rerror)
 {
-
-    char*              pbufpos = _pbufbeg;
     SerializerPointerT tmp_serializer;
+    char*              pbufpos              = _pbufbeg;
     size_t             packet_message_count = 0;
     size_t             loop_guard           = write_inner_list_.size();
+
+    if (_ackd_buf_count) {
+        vdbgx(Debug::mpipc, "stored ackd_buf_count = " << (int)_ackd_buf_count);
+        pbufpos                      = _rproto.storeValue(pbufpos, _ackd_buf_count);
+        _ackd_buf_count              = 0;
+        _rpacket_options.packet_type = PacketHeader::AckdCountTypeE;
+        ++packet_message_count;
+    }
+
+    while (_cancel_remote_msg_vec.size() and (_pbufend - pbufpos) >= _rproto.minimumFreePacketDataSize()) {
+        if (packet_message_count) {
+            uint8_t tmp = PacketHeader::CancelRequestTypeE;
+            pbufpos     = _rproto.storeValue(pbufpos, tmp);
+        } else {
+            _rpacket_options.packet_type = PacketHeader::CancelRequestTypeE;
+            ++packet_message_count;
+            if (_ackd_buf_count) {
+                pbufpos         = _rproto.storeValue(pbufpos, _ackd_buf_count);
+                _ackd_buf_count = 0;
+            }
+        }
+        pbufpos = _rproto.storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
+        SOLID_CHECK(pbufpos != nullptr, "fail store cross value");
+        pbufpos = _rproto.storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().unique);
+        SOLID_CHECK(pbufpos != nullptr, "fail store cross value");
+        _cancel_remote_msg_vec.pop_back();
+    }
 
     while (write_inner_list_.size() and (_pbufend - pbufpos) >= _rproto.minimumFreePacketDataSize() and (loop_guard--) != 0) {
         if (not _flags.has(WriteFlagsE::CanSendRelayedMessages) and write_inner_list_.front().isRelay()) {
@@ -371,11 +389,6 @@ char* MessageWriter::doFillPacket(
         _rctx.message_flags = Message::update_state_flags(_rctx.message_flags);
 
         _rctx.pmessage_url = &rmsgstub.msgbundle_.message_url;
-
-        if (_ackd_buf_count) {
-            pbufpos         = _rproto.storeValue(pbufpos, _ackd_buf_count);
-            _ackd_buf_count = 0;
-        }
 
         char* psizepos = pbufpos;
         pbufpos        = _rproto.storeValue(pbufpos, static_cast<uint16_t>(0));

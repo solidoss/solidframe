@@ -28,7 +28,6 @@
 #include "solid/system/debug.hpp"
 #include "solid/system/directory.hpp"
 #include "solid/system/filedevice.hpp"
-#include "solid/system/filedevice.hpp"
 #include "solid/system/socketdevice.hpp"
 
 #include <chrono>

@@ -201,6 +201,7 @@ public:
     }
 
     ~Connection() {}
+
 protected:
     void init()
     {

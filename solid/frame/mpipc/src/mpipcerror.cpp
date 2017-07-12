@@ -31,6 +31,7 @@ enum {
     ErrorConnectionNoSecureConfigurationE,
     ErrorConnectionAckCountE,
     ErrorMessageCanceledE,
+    ErrorMessageCanceledPeerE,
     ErrorMessageConnectionE,
     ErrorCompressionUnavailableE,
     ErrorCompressionEngineE,
@@ -107,6 +108,9 @@ std::string ErrorCategory::message(int _ev) const
         break;
     case ErrorMessageCanceledE:
         oss << "Message canceled";
+        break;
+    case ErrorMessageCanceledPeerE:
+        oss << "Message canceled by peer";
         break;
     case ErrorMessageConnectionE:
         oss << "Message connection";
@@ -229,6 +233,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_connection_ack_count(ErrorConnectionAckCountE, category);
 
 /*extern*/ const ErrorConditionT error_message_canceled(ErrorMessageCanceledE, category);
+/*extern*/ const ErrorConditionT error_message_canceled_peer(ErrorMessageCanceledPeerE, category);
 /*extern*/ const ErrorConditionT error_message_connection(ErrorMessageConnectionE, category);
 
 /*extern*/ const ErrorConditionT error_compression_unavailable(ErrorCompressionUnavailableE, category);

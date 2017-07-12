@@ -35,6 +35,7 @@ namespace binary {
 class ErrorCategory : public ErrorCategoryT {
 public:
     ErrorCategory() {}
+
 private:
     const char* name() const noexcept(true)
     {
