@@ -20,6 +20,7 @@ namespace {
 enum {
     ErrorConnectionInactivityTimeoutE = 1,
     ErrorConnectionTooManyKAPacketsReceivedE,
+    ErrorConnectionTooManyRecvBuffersE,
     ErrorConnectionKilledE,
     ErrorConnectionLogicE,
     ErrorConnectionResolveE,
@@ -90,6 +91,9 @@ std::string ErrorCategory::message(int _ev) const
         break;
     case ErrorConnectionTooManyKAPacketsReceivedE:
         oss << "Connection: Received too many KeepAlive packets";
+        break;
+    case ErrorConnectionTooManyRecvBuffersE:
+        oss << "Connection: Too many recv buffers";
         break;
     case ErrorConnectionKilledE:
         oss << "Connection: killed";
@@ -222,6 +226,7 @@ std::string ErrorCategory::message(int _ev) const
 
 /*extern*/ const ErrorConditionT error_connection_inactivity_timeout(ErrorConnectionInactivityTimeoutE, category);
 /*extern*/ const ErrorConditionT error_connection_too_many_keepalive_packets_received(ErrorConnectionTooManyKAPacketsReceivedE, category);
+/*extern*/ const ErrorConditionT error_connection_too_many_recv_buffers(ErrorConnectionTooManyRecvBuffersE, category);
 /*extern*/ const ErrorConditionT error_connection_killed(ErrorConnectionKilledE, category);
 /*extern*/ const ErrorConditionT error_connection_logic(ErrorConnectionLogicE, category);
 /*extern*/ const ErrorConditionT error_connection_resolve(ErrorConnectionResolveE, category);

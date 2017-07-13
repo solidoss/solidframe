@@ -18,6 +18,7 @@ namespace mpipc {
 
 extern const ErrorConditionT error_connection_inactivity_timeout;
 extern const ErrorConditionT error_connection_too_many_keepalive_packets_received;
+extern const ErrorConditionT error_connection_too_many_recv_buffers;
 extern const ErrorConditionT error_connection_killed;
 extern const ErrorConditionT error_connection_delayed_closed;
 extern const ErrorConditionT error_connection_enter_active;

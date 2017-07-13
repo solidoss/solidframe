@@ -45,15 +45,16 @@ struct Configuration;
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
 
-using BufferPointerT                            = std::unique_ptr<char[]>;
+using SendBufferPointerT                        = std::unique_ptr<char[]>;
+using RecvBufferPointerT                        = std::shared_ptr<char[]>;
 using AddressVectorT                            = std::vector<SocketAddressInet>;
 using ServerSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
 using ClientSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
 using ResolveCompleteFunctionT                  = SOLID_FUNCTION<void(AddressVectorT&&)>;
 using ConnectionStopFunctionT                   = SOLID_FUNCTION<void(ConnectionContext&)>;
 using ConnectionStartFunctionT                  = SOLID_FUNCTION<void(ConnectionContext&)>;
-using AllocateBufferFunctionT                   = SOLID_FUNCTION<BufferPointerT(const uint32_t)>;
-using FreeBufferFunctionT                       = SOLID_FUNCTION<void(BufferPointerT&)>;
+using SendAllocateBufferFunctionT               = SOLID_FUNCTION<SendBufferPointerT(const uint32_t)>;
+using RecvAllocateBufferFunctionT               = SOLID_FUNCTION<RecvBufferPointerT(const uint32_t)>;
 using CompressFunctionT                         = SOLID_FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
 using UncompressFunctionT                       = SOLID_FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
 using ExtractRecipientNameFunctionT             = SOLID_FUNCTION<const char*(const char*, std::string&, std::string&)>;
@@ -64,6 +65,7 @@ using ConnectionSecureHandhakeCompleteFunctionT = SOLID_FUNCTION<void(Connection
 using ConnectionSendRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionRecvRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
 using ConnectionOnEventFunctionT                = SOLID_FUNCTION<void(ConnectionContext&, Event&)>;
+using ConnectionOnRelayFunctionT                = SOLID_FUNCTION<bool(ConnectionContext&, MessageHeader&, RecvBufferPointerT, const char*, size_t, ObjectIdT&, ErrorConditionT&)>;
 //using ResetSerializerLimitsFunctionT              = SOLID_FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
 
 enum struct ConnectionState {
@@ -139,11 +141,9 @@ public:
         return !isServer() && isClient();
     }
 
-    BufferPointerT allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;
-    void freeRecvBuffer(BufferPointerT& _rbuffptr) const;
+    RecvBufferPointerT allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;
 
-    BufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
-    void freeSendBuffer(BufferPointerT& _rbuffptr) const;
+    SendBufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;
 
     size_t connectionReconnectTimeoutSeconds(
         const uint8_t _retry_count,
@@ -231,14 +231,13 @@ public:
     uint8_t                       connection_recv_buffer_max_capacity_kb;
     uint8_t                       connection_send_buffer_start_capacity_kb;
     uint8_t                       connection_send_buffer_max_capacity_kb;
-    uint16_t                      connection_send_relay_buffer_count;
+    uint16_t                      connection_relay_buffer_count;
     ExtractRecipientNameFunctionT extract_recipient_name_fnc;
     ConnectionStopFunctionT       connection_stop_fnc;
     ConnectionOnEventFunctionT    connection_on_event_fnc;
-    AllocateBufferFunctionT       connection_recv_buffer_allocate_fnc;
-    AllocateBufferFunctionT       connection_send_buffer_allocate_fnc;
-    FreeBufferFunctionT           connection_recv_buffer_free_fnc;
-    FreeBufferFunctionT           connection_send_buffer_free_fnc;
+    ConnectionOnRelayFunctionT    connection_on_relay_fnc;
+    RecvAllocateBufferFunctionT   connection_recv_buffer_allocate_fnc;
+    SendAllocateBufferFunctionT   connection_send_buffer_allocate_fnc;
     ProtocolPointerT              protocol_ptr;
 
     Protocol& protocol()

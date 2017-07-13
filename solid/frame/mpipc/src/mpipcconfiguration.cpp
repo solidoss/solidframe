@@ -21,13 +21,14 @@ namespace frame {
 namespace mpipc {
 //-----------------------------------------------------------------------------
 namespace {
-BufferPointerT default_allocate_buffer(const uint32_t _cp)
+RecvBufferPointerT default_allocate_recv_buffer(const uint32_t _cp)
 {
-    return BufferPointerT(new char[_cp]);
+    return RecvBufferPointerT(new char[_cp]);
 }
-void default_free_buffer(BufferPointerT& /*_rbufptr*/)
+
+SendBufferPointerT default_allocate_send_buffer(const uint32_t _cp)
 {
-    //let the buffer pointer free the buffer
+    return SendBufferPointerT(new char[_cp]);
 }
 
 //void empty_reset_serializer_limits(ConnectionContext &, serialization::binary::Limits&){}
@@ -90,6 +91,11 @@ bool default_setup_socket_device(SocketDevice& _rsd)
     return true;
 }
 
+bool default_connection_on_relay(ConnectionContext& _rconctx, MessageHeader& _rmsghdr, RecvBufferPointerT _bufptr, const char* _pbeg, size_t _sz, ObjectIdT& _rrelay_id, ErrorConditionT& _rerror)
+{
+    return false; //ignore relay messages
+}
+
 } //namespace
 
 ReaderConfiguration::ReaderConfiguration()
@@ -122,7 +128,7 @@ void Configuration::init()
     connection_keepalive_timeout_seconds  = 60 * 5; //five minutes
     connection_reconnect_timeout_seconds  = 10;
 
-    connection_send_relay_buffer_count = 8;
+    connection_relay_buffer_count = 8;
 
     connection_inactivity_keepalive_count = 2;
 
@@ -132,11 +138,8 @@ void Configuration::init()
     client.connection_start_state  = ConnectionState::Passive;
     client.connection_start_secure = true;
 
-    connection_recv_buffer_allocate_fnc = default_allocate_buffer;
-    connection_send_buffer_allocate_fnc = default_allocate_buffer;
-
-    connection_recv_buffer_free_fnc = default_free_buffer;
-    connection_send_buffer_free_fnc = default_free_buffer;
+    connection_recv_buffer_allocate_fnc = default_allocate_recv_buffer;
+    connection_send_buffer_allocate_fnc = default_allocate_send_buffer;
 
     connection_stop_fnc = empty_connection_stop;
 
@@ -144,6 +147,7 @@ void Configuration::init()
     client.connection_start_fnc = empty_connection_start;
 
     connection_on_event_fnc = empty_connection_on_event;
+    connection_on_relay_fnc = default_connection_on_relay;
 
     client.connection_create_socket_fnc = default_create_client_socket;
     server.connection_create_socket_fnc = default_create_server_socket;
@@ -221,7 +225,7 @@ void Configuration::prepare()
     }
 }
 //-----------------------------------------------------------------------------
-BufferPointerT Configuration::allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const
+RecvBufferPointerT Configuration::allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const
 {
     if (_rbuffer_capacity_kb == 0) {
         _rbuffer_capacity_kb = connection_recv_buffer_start_capacity_kb;
@@ -231,12 +235,7 @@ BufferPointerT Configuration::allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) 
     return connection_recv_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
 }
 //-----------------------------------------------------------------------------
-void Configuration::freeRecvBuffer(BufferPointerT& _rbuffptr) const
-{
-    connection_recv_buffer_free_fnc(_rbuffptr);
-}
-//-----------------------------------------------------------------------------
-BufferPointerT Configuration::allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const
+SendBufferPointerT Configuration::allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const
 {
     if (_rbuffer_capacity_kb == 0) {
         _rbuffer_capacity_kb = connection_send_buffer_start_capacity_kb;
@@ -244,11 +243,6 @@ BufferPointerT Configuration::allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) 
         _rbuffer_capacity_kb = connection_send_buffer_max_capacity_kb;
     }
     return connection_send_buffer_allocate_fnc(_rbuffer_capacity_kb * 1024);
-}
-//-----------------------------------------------------------------------------
-void Configuration::freeSendBuffer(BufferPointerT& _rbuffptr) const
-{
-    connection_send_buffer_free_fnc(_rbuffptr);
 }
 //-----------------------------------------------------------------------------
 } //namespace mpipc

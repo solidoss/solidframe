@@ -314,7 +314,43 @@ const char* MessageReader::doConsumeMessage(
         rmsgstub.clear();
         break;
     case MessageStub::StateE::RelayBody:
-        SOLID_CHECK(false, "Not implemented yet. Relay to: " << rmsgstub.message_header_.url_);
+        if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
+            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+
+            vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
+
+            if (_receiver.receiveRelayBody(rmsgstub.message_header_, _pbufpos, message_size, rmsgstub.relay_id, _rerror)) {
+            } else {
+                rmsgstub.state_ = MessageStub::StateE::RelayFail;
+            }
+            _pbufpos += message_size;
+
+            if (_rerror) {
+                _pbufpos = _pbufend;
+            }
+            break;
+        }
+        //protocol error
+        _rerror = error_reader_protocol;
+        SOLID_ASSERT(false);
+        _pbufpos = _pbufend;
+        rmsgstub.clear();
+        break;
+    case MessageStub::StateE::RelayFail:
+        if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
+            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+            vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
+            _pbufpos += message_size;
+            if (_is_end_of_message) {
+                rmsgstub.clear();
+            }
+            break;
+        }
+        //protocol error
+        _rerror = error_reader_protocol;
+        SOLID_ASSERT(false);
+        _pbufpos = _pbufend;
+        rmsgstub.clear();
         break;
     default:
         SOLID_CHECK(false, "Invalid message state: " << (int)rmsgstub.state_);

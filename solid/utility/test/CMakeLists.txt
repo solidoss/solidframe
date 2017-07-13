@@ -21,42 +21,6 @@ target_link_libraries(test_utility
     ${SYS_BASIC_LIBS}
 )
 
-add_test( TestUtility test_utility
-    test_invalid_index
-)
-
-add_test( TestUtility test_utility
-    test_innerlist
-)
-
-add_test( TestUtility test_utility
-    test_any
-)
-
-add_test( TestUtility test_utility
-    test_event
-)
-
-add_test( TestUtility test_utility
-    test_memory_file
-)
-
-add_test( TestUtility test_utility
-    test_workpool
-)
-
-add_test( TestUtility test_utility
-    test_workpool_fast
-)
-
-add_test( TestUtility test_utility
-    test_ioformat
-)
-
-add_test( TestUtility test_utility
-    test_flags
-)
-
 add_test(NAME TestUtilityWorkPool           COMMAND  test_utility test_workpool)
 add_test(NAME TestUtilityWorkPoolFast       COMMAND  test_utility test_workpool_fast)
 add_test(NAME TestUtilityIoFormat           COMMAND  test_utility test_ioformat)

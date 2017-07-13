@@ -312,12 +312,30 @@ void peerb_complete_message(
 //-----------------------------------------------------------------------------
 //      Relay
 //-----------------------------------------------------------------------------
-void relay_connection_start(frame::mpipc::ConnectionContext& _rctx)
+
+struct RelayEngine {
+
+    void onConnectionStart(frame::mpipc::ConnectionContext& _rctx);
+    void onConnectionStop(frame::mpipc::ConnectionContext& _rctx);
+    void onRegister(
+        frame::mpipc::ConnectionContext& _rctx,
+        std::shared_ptr<Register>&       _rsent_msg_ptr,
+        std::shared_ptr<Register>&       _rrecv_msg_ptr,
+        ErrorConditionT const&           _rerror);
+    bool onRelay(
+        frame::mpipc::ConnectionContext&  _rctx,
+        frame::mpipc::MessageHeader&      _rmsghdr,
+        frame::mpipc::RecvBufferPointerT& _rbufptr, const char* _pbeg, size_t _sz,
+        frame::ObjectIdT& _rrelay_id,
+        ErrorConditionT&  _rerror);
+};
+
+void RelayEngine::onConnectionStart(frame::mpipc::ConnectionContext& _rctx)
 {
     idbg(_rctx.recipientId());
 }
 
-void relay_connection_stop(frame::mpipc::ConnectionContext& _rctx)
+void RelayEngine::onConnectionStop(frame::mpipc::ConnectionContext& _rctx)
 {
     idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
     if (!running) {
@@ -325,7 +343,7 @@ void relay_connection_stop(frame::mpipc::ConnectionContext& _rctx)
     }
 }
 
-void relay_complete_register(
+void RelayEngine::onRegister(
     frame::mpipc::ConnectionContext& _rctx,
     std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
@@ -347,6 +365,18 @@ void relay_complete_register(
         SOLID_CHECK(!_rrecv_msg_ptr);
         idbg("sent register response");
     }
+}
+
+bool RelayEngine::onRelay(
+    frame::mpipc::ConnectionContext&  _rctx,
+    frame::mpipc::MessageHeader&      _rmsghdr,
+    frame::mpipc::RecvBufferPointerT& _rbufptr, const char* _pbeg, size_t _sz,
+    frame::ObjectIdT& _rrelay_id,
+    ErrorConditionT&  _rerror)
+{
+    idbg("relay message to: " << _rmsghdr.url_);
+    //SOLID_CHECK(false, "Not implemented yet");
+    return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -415,6 +445,7 @@ int test_relay_basic(int argc, char** argv)
         frame::mpipc::ServiceT mpipcpeera(m);
         frame::mpipc::ServiceT mpipcpeerb(m);
         frame::aio::Resolver   resolver;
+        RelayEngine            relay_engine;
         ErrorConditionT        err;
 
         err = sch_peera.start(1);
@@ -448,13 +479,35 @@ int test_relay_basic(int argc, char** argv)
         std::string relay_port;
 
         { //mpipc relay initialization
+            auto con_start                                                                = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStart(_rctx); };
+            auto con_stop                                                                 = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStart(_rctx); };
+            auto                                                             con_register = [&relay_engine](
+                frame::mpipc::ConnectionContext& _rctx,
+                std::shared_ptr<Register>&       _rsent_msg_ptr,
+                std::shared_ptr<Register>&       _rrecv_msg_ptr,
+                ErrorConditionT const&           _rerror) {
+                relay_engine.onRegister(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerror);
+            };
+            auto con_relay = [&relay_engine](
+                frame::mpipc::ConnectionContext& _rctx,
+                frame::mpipc::MessageHeader&     _rmsghdr,
+                frame::mpipc::RecvBufferPointerT _bufptr, const char* _pbeg, size_t _sz,
+                frame::ObjectIdT& _rrelay_id,
+                ErrorConditionT&  _rerror) -> bool {
+                return relay_engine.onRelay(_rctx, _rmsghdr, _bufptr, _pbeg, _sz, _rrelay_id, _rerror);
+            };
+
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
             frame::mpipc::Configuration cfg(sch_relay, proto);
 
-            proto->registerType<Register>(relay_complete_register, 0, 10);
+            proto->registerType<Register>(con_register, 0, 10);
 
             cfg.server.listener_address_str      = "0.0.0.0:0";
             cfg.pool_max_active_connection_count = 2 * max_per_pool_connection_count;
+            cfg.connection_stop_fnc              = con_start;
+            cfg.client.connection_start_fnc      = con_stop;
+            cfg.connection_on_relay_fnc          = con_relay;
+            cfg.client.connection_start_state    = frame::mpipc::ConnectionState::Active;
 
             if (secure) {
                 idbg("Configure SSL server -------------------------------------");

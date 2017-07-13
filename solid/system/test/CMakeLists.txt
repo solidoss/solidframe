@@ -7,28 +7,13 @@ set( MyTests
     test_exception.cpp
 )
 
-create_test_sourcelist( Tests system_test.cpp ${MyTests})
+create_test_sourcelist( Tests test_system.cpp ${MyTests})
 
-add_executable(system_test ${Tests})
+add_executable(test_system ${Tests})
 
-target_link_libraries(system_test solid_system)
-
-# add_test( ThreadTest system_test
-#     test_thread
-# )
-
-# add_test( SocketTest system_test
-#     test_socket
-# )
-
-# add_test( FileTest system_test
-#     test_file
-# )
+target_link_libraries(test_system solid_system)
 
 
-add_test( NanoTimeTest system_test
-    test_nanotime
-)
-add_test( NanoTimeTest system_test
-    test_exception "some super text"
-)
+add_test(NAME TestNanoTime      COMMAND  test_system test_nanotime)
+add_test(NAME TestException     COMMAND  test_system test_exception "some super text")
+

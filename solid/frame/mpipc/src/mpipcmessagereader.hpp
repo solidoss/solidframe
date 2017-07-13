@@ -32,6 +32,10 @@ public:
         virtual void receiveKeepAlive()                     = 0;
         virtual void receiveAckCount(uint8_t _count)        = 0;
         virtual void receiveCancelRequest(const RequestId&) = 0;
+        virtual bool receiveRelayBody(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, ObjectIdT& _rrelay_id, ErrorConditionT& _rerror)
+        {
+            return false;
+        }
     };
 
     MessageReader();
@@ -82,12 +86,14 @@ private:
             ReadHead,
             ReadBody,
             RelayBody,
+            RelayFail,
         };
 
         MessagePointerT      message_ptr_;
         DeserializerPointerT deserializer_ptr_;
         MessageHeader        message_header_;
         size_t               packet_count_;
+        ObjectIdT            relay_id;
         StateE               state_;
 
         MessageStub()

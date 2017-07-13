@@ -222,6 +222,8 @@ private:
     void doCompleteKeepalive(frame::aio::ReactorContext& _rctx);
     void doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count);
     void doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid);
+    bool doCompleteRelayBody(
+        frame::aio::ReactorContext& _rctx, MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, ObjectIdT& _rrelay_id, ErrorConditionT& _rerror);
 
     void doHandleEventKill(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventStart(frame::aio::ReactorContext& _rctx, Event& _revent);
@@ -247,6 +249,7 @@ private:
         const ulong                 _seconds_to_wait,
         ErrorConditionT const&      _rerr,
         Event&                      _revent);
+    void doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const bool _used_relay, ErrorConditionT& _rerr);
 
 private:
     bool hasRelayBuffer(const Configuration& _rconfig, char*& _rpbuf);
@@ -270,9 +273,6 @@ private:
     }
 
 private:
-    using TimerT        = frame::aio::SteadyTimer;
-    using BufferVectorT = std::vector<BufferPointerT>;
-
     enum class FlagsE : size_t {
         Active,
         Server,
@@ -290,8 +290,11 @@ private:
         LastFlag,
     };
 
-    using FlagsT           = solid::Flags<FlagsE>;
-    using RequestIdVectorT = MessageWriter::RequestIdVectorT;
+    using TimerT            = frame::aio::SteadyTimer;
+    using SendBufferVectorT = std::vector<SendBufferPointerT>;
+    using FlagsT            = solid::Flags<FlagsE>;
+    using RequestIdVectorT  = MessageWriter::RequestIdVectorT;
+    using RecvBufferVectorT = std::vector<RecvBufferPointerT>;
 
     struct Receiver;
     friend struct Receiver;
@@ -303,9 +306,11 @@ private:
     uint32_t           recv_buf_off_;
     uint32_t           cons_buf_off_;
     uint32_t           recv_keepalive_count_;
-    BufferPointerT     recv_buf_;
-    BufferPointerT     send_buf_;
-    BufferVectorT      send_buf_vec_;
+    uint16_t           recv_buf_count_;
+    RecvBufferPointerT recv_buf_;
+    RecvBufferVectorT  recv_buf_vec_;
+    SendBufferPointerT send_buf_;
+    SendBufferVectorT  send_buf_vec_;
     uint8_t            send_buf_vec_sentinel_;
     uint8_t            ackd_buf_count_;
     uint8_t            recv_buf_cp_kb_; //kilobytes
