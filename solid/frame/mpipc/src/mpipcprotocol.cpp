@@ -25,6 +25,8 @@ bool PacketHeader::isOk() const
 {
     bool rv = true;
     switch (type_) {
+    case NewMessageTypeE:
+    case FullMessageTypeE:
     case MessageTypeE:
     case EndMessageTypeE:
     case CancelMessageTypeE:

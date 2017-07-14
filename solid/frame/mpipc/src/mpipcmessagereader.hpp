@@ -26,6 +26,10 @@ struct PacketHeader;
 class MessageReader {
 public:
     struct Receiver {
+        uint8_t request_buffer_ack_count_;
+        
+        Receiver():request_buffer_ack_count_(0){}
+        
         virtual ~Receiver() {}
 
         virtual void receiveMessage(MessagePointerT&, const size_t /*_msg_type_id*/) = 0;
@@ -36,6 +40,7 @@ public:
         {
             return false;
         }
+        virtual void pushCancelRequest(const RequestId&){}
     };
 
     MessageReader();
@@ -68,7 +73,7 @@ private:
         const char*        _pbufpos,
         const char* const  _pbufend,
         const uint32_t     _msgidx,
-        const bool         _is_end_of_message,
+        const uint8_t      _msg_type,
         Receiver&          _receiver,
         Protocol const&    _rproto,
         ConnectionContext& _rctx,

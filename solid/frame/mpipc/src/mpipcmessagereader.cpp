@@ -127,6 +127,10 @@ void MessageReader::doConsumePacket(
             return;
         }
     }
+    
+    if(_packet_header.flags() & PacketHeader::Flags::AckRequestFlagE){
+        ++_receiver.request_buffer_ack_count_;
+    }
 
     uint8_t crt_msg_type = _packet_header.type();
     bool    go_on        = false;
@@ -136,17 +140,18 @@ void MessageReader::doConsumePacket(
     do {
 
         switch (crt_msg_type) {
+        case PacketHeader::NewMessageTypeE:
+        case PacketHeader::FullMessageTypeE:
         case PacketHeader::MessageTypeE:
         case PacketHeader::EndMessageTypeE:
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             if (pbufpos and message_idx < _rconfig.max_message_count_multiplex) {
-                vdbgx(Debug::mpipc, (crt_msg_type == PacketHeader::MessageTypeE ? "MessageType " : "EndMessageType ") << message_idx);
+                vdbgx(Debug::mpipc, "messagetype = "<<(int)crt_msg_type << " msgidx = " << message_idx);
                 if (message_idx >= message_vec_.size()) {
                     message_vec_.resize(message_idx + 1);
                 }
-                const bool is_end_of_message = (crt_msg_type == PacketHeader::EndMessageTypeE);
-
-                pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, is_end_of_message, _receiver, _rproto, _rctx, _rerror);
+                
+                pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, crt_msg_type, _receiver, _rproto, _rctx, _rerror);
             } else {
                 _rerror = error_reader_protocol;
                 SOLID_ASSERT(false);
@@ -172,12 +177,13 @@ void MessageReader::doConsumePacket(
             vdbgx(Debug::mpipc, "UpdateTypeE");
             break;
         case PacketHeader::CancelRequestTypeE: {
-            vdbgx(Debug::mpipc, "CancelRequestTypeE");
             RequestId requid;
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, requid.index);
             if (pbufpos and (pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique))) {
+                vdbgx(Debug::mpipc, "CancelRequestTypeE: "<<requid);
                 _receiver.receiveCancelRequest(requid);
             } else {
+                vdbgx(Debug::mpipc, "CancelRequestTypeE - error parsing requestid");
                 _rerror = error_reader_protocol;
                 SOLID_ASSERT(false);
             }
@@ -214,7 +220,7 @@ const char* MessageReader::doConsumeMessage(
     const char*        _pbufpos,
     const char* const  _pbufend,
     const uint32_t     _msgidx,
-    const bool         _is_end_of_message,
+    const uint8_t      _msg_type,
     Receiver&          _receiver,
     Protocol const&    _rproto,
     ConnectionContext& _rctx,
@@ -222,7 +228,11 @@ const char* MessageReader::doConsumeMessage(
 {
     MessageStub& rmsgstub     = message_vec_[_msgidx];
     uint16_t     message_size = 0;
-
+    
+    if(_msg_type & PacketHeader::NewMessageTypeE){
+        rmsgstub.clear();
+    }
+    
     switch (rmsgstub.state_) {
     case MessageStub::StateE::NotStarted:
         vdbgx(Debug::mpipc, "NotStarted msgidx = " << _msgidx);
@@ -285,7 +295,7 @@ const char* MessageReader::doConsumeMessage(
 
                 if (rv == static_cast<int>(message_size)) {
 
-                    if (_is_end_of_message) {
+                    if (_msg_type & PacketHeader::EndMessageTypeFlagE) {
                         if (rmsgstub.deserializer_ptr_->empty()) {
                             //done parsing the message body
                             MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
@@ -318,10 +328,12 @@ const char* MessageReader::doConsumeMessage(
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);
 
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
-
-            if (_receiver.receiveRelayBody(rmsgstub.message_header_, _pbufpos, message_size, rmsgstub.relay_id, _rerror)) {
+            
+            //TODO: 
+            if (_receiver.receiveRelayBody(rmsgstub.message_header_, _pbufpos, message_size, rmsgstub.relay_id, /*(_msg_type & PacketHeader::EndMessageTypeFlagE) != 0,*/ _rerror)) {
             } else {
                 rmsgstub.state_ = MessageStub::StateE::RelayFail;
+                _receiver.pushCancelRequest(rmsgstub.message_header_.sender_request_id_);
             }
             _pbufpos += message_size;
 
@@ -341,7 +353,7 @@ const char* MessageReader::doConsumeMessage(
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
             _pbufpos += message_size;
-            if (_is_end_of_message) {
+            if (_msg_type & PacketHeader::EndMessageTypeFlagE) {
                 rmsgstub.clear();
             }
             break;

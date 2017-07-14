@@ -299,6 +299,7 @@ if(OPENSSL_FOUND)
     
     set( mpipcRelayTestSuite
         test_relay_basic.cpp
+        test_relay_disabled.cpp
     )
     #
     create_test_sourcelist( mpipcRelayTests test_mpipc_relay.cpp ${mpipcRelayTestSuite})
@@ -320,6 +321,7 @@ if(OPENSSL_FOUND)
         ${SYS_BASIC_LIBS}
     )
 
+    add_test(NAME TestRelayDisabled1     COMMAND  test_mpipc_relay test_relay_disabled 1)
     add_test(NAME TestRelayBasic1        COMMAND  test_mpipc_relay test_relay_basic 1)
     
     #==============================================================================

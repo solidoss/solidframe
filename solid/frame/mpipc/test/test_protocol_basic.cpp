@@ -233,6 +233,23 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
     }
 };
 
+struct Sender: frame::mpipc::MessageWriter::Sender{
+     frame::mpipc::serialization_v1::Protocol&     rprotocol_;
+    
+    Sender(frame::mpipc::serialization_v1::Protocol& _rprotocol):rprotocol_(_rprotocol){}
+    
+    ErrorConditionT completeMessage(frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& /*_rmsgid*/) override{
+        idbg("writer complete message");
+        frame::mpipc::MessagePointerT response_ptr;
+        ErrorConditionT               error;
+        rprotocol_[_rmsgbundle.message_type_id].complete_fnc(mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
+        return ErrorConditionT();
+    }
+    virtual void releaseRelayBuffer() override{
+        
+    }
+};
+
 } //namespace
 
 int test_protocol_basic(int argc, char** argv)
@@ -301,16 +318,7 @@ int test_protocol_basic(int argc, char** argv)
 
     {
         Receiver rcvr(*mpipcprotocol);
-
-        auto writer_complete_lambda(
-            [&mpipcprotocol](frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& _rmsgid) {
-                frame::mpipc::MessagePointerT response_ptr;
-                ErrorConditionT               error;
-                (*mpipcprotocol)[_rmsgbundle.message_type_id].complete_fnc(mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
-                return ErrorConditionT();
-            });
-
-        frame::mpipc::MessageWriter::CompleteFunctionT writercompletefnc(std::cref(writer_complete_lambda));
+        Sender   sndr(*mpipcprotocol);
 
         mpipcmsgreader.prepare(mpipcreaderconfig);
 
@@ -326,7 +334,7 @@ int test_protocol_basic(int argc, char** argv)
                 rcvr.fillRequestVector(10);
                 refill = true;
             }
-            uint32_t bufsz = mpipcmsgwriter.write(buf, bufcp, frame::mpipc::MessageWriter::WriteFlagsT(), rcvr.ackd_count, rcvr.reqvec, writercompletefnc, mpipcwriterconfig, *mpipcprotocol, mpipcconctx, error);
+            uint32_t bufsz = mpipcmsgwriter.write(buf, bufcp, frame::mpipc::MessageWriter::WriteFlagsT(), rcvr.ackd_count, rcvr.reqvec, sndr, mpipcwriterconfig, *mpipcprotocol, mpipcconctx, error);
             if (refill) {
                 rcvr.fillRequestVector(10);
             }

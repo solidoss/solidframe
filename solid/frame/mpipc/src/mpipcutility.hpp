@@ -41,19 +41,23 @@ struct PacketHeader {
     };
 
     enum Types {
-        MessageTypeE       = 1,
-        EndMessageTypeE    = 2,
-        CancelMessageTypeE = 4,
-        KeepAliveTypeE     = 5,
-        UpdateTypeE        = 6,
-        CancelRequestTypeE = 7,
-        AckdCountTypeE     = 8,
+        EndMessageTypeFlagE = 1,//do not change the values
+        NewMessageTypeE     = 2,
+        FullMessageTypeE    = 3,
+        MessageTypeE        = 4,
+        EndMessageTypeE     = 5,
+        CancelMessageTypeE  = 6,
+        KeepAliveTypeE      = 7,
+        UpdateTypeE         = 8,
+        CancelRequestTypeE  = 9,
+        AckdCountTypeE      = 10,
 
     };
 
     enum Flags {
         Size64KBFlagE   = 1, // DO NOT CHANGE!!
         CompressedFlagE = 2,
+        AckRequestFlagE = 4,
     };
 
     PacketHeader(

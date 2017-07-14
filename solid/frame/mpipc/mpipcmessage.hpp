@@ -71,8 +71,8 @@ struct MessageHeader {
             //so, we'll use ones store in the context. Because the context is volatile
             //we'll store as values.
 
-            _rs.pushCross(sender_request_id_.index, "sender_request_index");
-            _rs.pushCross(sender_request_id_.unique, "sender_request_unique");
+            _rs.pushCross(sender_request_id_.index, "recipient_request_index");
+            _rs.pushCross(sender_request_id_.unique, "recipient_request_unique");
 
             _rs.pushCross(_rctx.request_id.index, "sender_request_index");
             _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");

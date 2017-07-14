@@ -28,6 +28,13 @@ namespace mpipc {
 
 class MessageWriter {
 public:
+    struct Sender{
+        virtual ~Sender(){}
+        
+        virtual ErrorConditionT completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/) = 0;
+        virtual void releaseRelayBuffer() = 0;
+    };
+    
     using VisitFunctionT = SOLID_FUNCTION<void(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
@@ -77,7 +84,7 @@ public:
         const WriteFlagsT&         _flags,
         uint8_t                    _ackd_buf_count,
         RequestIdVectorT&          _cancel_remote_msg_vec,
-        CompleteFunctionT&         _complete_fnc,
+        Sender&                    _rsender,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,
@@ -204,11 +211,13 @@ private:
         PacketOptions()
             : packet_type(PacketHeader::MessageTypeE)
             , force_no_compress(false)
+            , request_accept(false)
         {
         }
 
         PacketHeader::Types packet_type;
         bool                force_no_compress;
+        bool                request_accept;
     };
 
     char* doFillPacket(
@@ -219,7 +228,7 @@ private:
         const WriteFlagsT&         _flags,
         uint8_t&                   _ackd_buf_count,
         RequestIdVectorT&          _cancel_remote_msg_vec,
-        CompleteFunctionT&         _complete_fnc,
+        Sender&                    _rsender,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,
@@ -238,7 +247,7 @@ private:
 
     void doTryMoveMessageFromPendingToWriteQueue(mpipc::Configuration const& _rconfig);
 
-    void doPrepareMessageForSending(
+    PacketHeader::Types doPrepareMessageForSending(
         const size_t               _msgidx,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
@@ -247,7 +256,7 @@ private:
 
     void doTryCompleteMessageAfterSerialization(
         const size_t               _msgidx,
-        CompleteFunctionT&         _complete_fnc,
+        Sender&                    _rsender,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
         ConnectionContext&         _rctx,

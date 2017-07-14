@@ -136,7 +136,7 @@ struct Message : frame::mpipc::Message {
     {
         idbg("DELETE ---------------- " << (void*)this);
 
-        SOLID_ASSERT(serialized or this->isBackOnSender());
+        //SOLID_ASSERT(serialized or this->isBackOnSender());
     }
 
     template <class S>
@@ -209,32 +209,17 @@ void peera_complete_message(
     ErrorConditionT const& _rerror)
 {
     idbg(_rctx.recipientId()<<" error: "<<_rerror.message());
-    SOLID_CHECK(not _rerror, "Error sending message: "<<_rerror.message());
-    if (_rsent_msg_ptr) {
-        if (!_rerror) {
-            ++crtackidx;
-        }
-    }
-    if (_rrecv_msg_ptr) {
-        if (not _rrecv_msg_ptr->check()) {
-            SOLID_THROW("Message check failed.");
-        }
-
-        //cout<< _rmsgptr->str.size()<<'\n';
-        transfered_size += _rrecv_msg_ptr->str.size();
-        ++transfered_count;
-
-        if (!_rrecv_msg_ptr->isBackOnSender()) {
-            SOLID_THROW("Message not back on sender!.");
-        }
-
-        ++crtbackidx;
-
-        if (crtbackidx == writecount) {
-            unique_lock<mutex> lock(mtx);
-            running = false;
-            cnd.notify_one();
-        }
+    SOLID_CHECK(!_rrecv_msg_ptr, "should not receive any message");
+    SOLID_CHECK(_rsent_msg_ptr, "sent message should not be null");
+    SOLID_CHECK(_rerror == frame::mpipc::error_message_canceled_peer, "message should be canceled by peer");
+    
+    ++crtackidx;
+    ++crtbackidx;
+    
+    if (crtbackidx == writecount) {
+        unique_lock<mutex> lock(mtx);
+        running = false;
+        cnd.notify_one();
     }
 }
 
@@ -387,10 +372,10 @@ bool RelayEngine::onRelay(
 //-----------------------------------------------------------------------------
 } //namespace
 
-int test_relay_basic(int argc, char** argv)
+int test_relay_disabled(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("view");
+    Debug::the().levelMask("ew");
     Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
@@ -630,21 +615,23 @@ int test_relay_basic(int argc, char** argv)
             }
         }
 
-        const size_t start_count = 1;
+        //const size_t start_count = 1;
 
-        writecount = 1; //initarraysize * 10; //start_count;//
+        writecount = initarraysize; //start_count;//
 
         //ensure we have provisioned connections on peerb
         //err = mpipcpeerb.createConnectionPool("localhost");
         //SOLID_CHECK(not err, "failed create connection from peerb: "<<err.message());
 
         if (1) {
-            for (; crtwriteidx < start_count;) {
+            for (; crtwriteidx < writecount;) {
                 mpipcpeera.sendMessage(
                     "localhost/b", std::make_shared<Message>(crtwriteidx++),
                     initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
             }
         }
+        
+        idbg("send message count: "<<writecount);
 
         unique_lock<mutex> lock(mtx);
 

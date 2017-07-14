@@ -249,7 +249,7 @@ private:
         const ulong                 _seconds_to_wait,
         ErrorConditionT const&      _rerr,
         Event&                      _revent);
-    void doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const bool _used_relay, ErrorConditionT& _rerr);
+    void doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint8_t _request_buffer_ack_count, ErrorConditionT& _rerr);
 
 private:
     bool hasRelayBuffer(const Configuration& _rconfig, char*& _rpbuf);
@@ -298,6 +298,8 @@ private:
 
     struct Receiver;
     friend struct Receiver;
+    struct Sender;
+    friend struct Sender;
 
     ConnectionPoolId   pool_id_;
     const std::string& rpool_name_;
