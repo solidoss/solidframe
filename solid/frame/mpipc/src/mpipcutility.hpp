@@ -41,7 +41,7 @@ struct PacketHeader {
     };
 
     enum Types {
-        EndMessageTypeFlagE = 1,//do not change the values
+        EndMessageTypeFlagE = 1, //do not change the values
         NewMessageTypeE     = 2,
         FullMessageTypeE    = 3,
         MessageTypeE        = 4,

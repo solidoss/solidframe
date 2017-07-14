@@ -27,9 +27,12 @@ class MessageReader {
 public:
     struct Receiver {
         uint8_t request_buffer_ack_count_;
-        
-        Receiver():request_buffer_ack_count_(0){}
-        
+
+        Receiver()
+            : request_buffer_ack_count_(0)
+        {
+        }
+
         virtual ~Receiver() {}
 
         virtual void receiveMessage(MessagePointerT&, const size_t /*_msg_type_id*/) = 0;
@@ -40,7 +43,7 @@ public:
         {
             return false;
         }
-        virtual void pushCancelRequest(const RequestId&){}
+        virtual void pushCancelRequest(const RequestId&) {}
     };
 
     MessageReader();

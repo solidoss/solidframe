@@ -1347,12 +1347,12 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
     } else {
         //tried to relay received messages/message parts - but all failed
         //so we need to ack the buffer
-        vdbgx(Debug::mpipc, this << " send accept for "<<(int)_request_buffer_ack_count<<" buffers");
-        
-        if(ackd_buf_count_ == 0){
+        vdbgx(Debug::mpipc, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
+
+        if (ackd_buf_count_ == 0) {
             ackd_buf_count_ += _request_buffer_ack_count;
             this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
-        }else{
+        } else {
             ackd_buf_count_ += _request_buffer_ack_count;
         }
     }
@@ -1398,10 +1398,11 @@ struct Connection::Receiver : MessageReader::Receiver {
     {
         return rcon_.doCompleteRelayBody(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _rerror);
     }
-    
-    void pushCancelRequest(const RequestId& _reqid) override{
+
+    void pushCancelRequest(const RequestId& _reqid) override
+    {
         rcon_.cancel_remote_msg_vec_.push_back(_reqid);
-        if(rcon_.cancel_remote_msg_vec_.size() == 1){
+        if (rcon_.cancel_remote_msg_vec_.size() == 1) {
             rcon_.post(
                 rctx_,
                 [](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {
@@ -1484,37 +1485,39 @@ inline bool Connection::hasRelayBuffer(const Configuration& _rconfig, char*& _rp
     if (send_buf_vec_sentinel_ < send_buf_vec_.size()) {
         _rpbuf = send_buf_vec_[send_buf_vec_sentinel_].get();
         ++send_buf_vec_sentinel_;
-        vdbgx(Debug::mpipc, this << " sentinel = "<<(int)send_buf_vec_sentinel_);
+        vdbgx(Debug::mpipc, this << " sentinel = " << (int)send_buf_vec_sentinel_);
         return true;
     } else if (send_buf_vec_.size() < _rconfig.connection_relay_buffer_count) {
         send_buf_vec_.push_back(_rconfig.allocateSendBuffer(recv_buf_cp_kb_));
         _rpbuf = send_buf_vec_[send_buf_vec_sentinel_].get();
         ++send_buf_vec_sentinel_;
-        vdbgx(Debug::mpipc, this << " sentinel = "<<(int)send_buf_vec_sentinel_);
+        vdbgx(Debug::mpipc, this << " sentinel = " << (int)send_buf_vec_sentinel_);
         return true;
     }
     return false;
 }
 //-----------------------------------------------------------------------------
 
-struct Connection::Sender: MessageWriter::Sender{
+struct Connection::Sender : MessageWriter::Sender {
     Connection&                 rcon_;
     frame::aio::ReactorContext& rctx_;
-    
+
     Sender(Connection& _rcon, frame::aio::ReactorContext& _rctx)
         : rcon_(_rcon)
         , rctx_(_rctx)
     {
     }
-    
-    ErrorConditionT completeMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override{
+
+    ErrorConditionT completeMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
+    {
         rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, ErrorConditionT());
         return rcon_.service(rctx_).pollPoolForUpdates(rcon_, rcon_.uid(rctx_), _rpool_msg_id);
     }
-    
-    void releaseRelayBuffer() override{
+
+    void releaseRelayBuffer() override
+    {
         --rcon_.send_buf_vec_sentinel_;
-        vdbgx(Debug::mpipc, this << " sentinel = "<<(int)rcon_.send_buf_vec_sentinel_);
+        vdbgx(Debug::mpipc, this << " sentinel = " << (int)rcon_.send_buf_vec_sentinel_);
     }
 };
 
@@ -1537,13 +1540,13 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         }
 
         if (not this->hasPendingSend()) {
-            ConnectionContext    conctx(service(_rctx), *this);
-            unsigned             repeatcnt      = 4;
-            const uint32_t       sendbufcp      = sendBufferCapacity();
-            const Configuration& rconfig        = service(_rctx).configuration();
-            bool                 sent_something = false;
-            Sender               sender(*this, _rctx);
-            MessageWriter::WriteFlagsT       write_flags;
+            ConnectionContext          conctx(service(_rctx), *this);
+            unsigned                   repeatcnt      = 4;
+            const uint32_t             sendbufcp      = sendBufferCapacity();
+            const Configuration&       rconfig        = service(_rctx).configuration();
+            bool                       sent_something = false;
+            Sender                     sender(*this, _rctx);
+            MessageWriter::WriteFlagsT write_flags;
             //doResetTimerSend(_rctx);
 
             while (repeatcnt) {
@@ -1752,11 +1755,11 @@ void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _
 {
     if (_count <= send_buf_vec_sentinel_) {
         send_buf_vec_sentinel_ -= _count;
-        vdbgx(Debug::mpipc, this << " count = "<<(int)_count<<" sentinel = "<<(int)send_buf_vec_sentinel_);
-        
+        vdbgx(Debug::mpipc, this << " count = " << (int)_count << " sentinel = " << (int)send_buf_vec_sentinel_);
+
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
     } else {
-        vdbgx(Debug::mpipc, this << " count = "<<(int)_count<<" sentinel = "<<(int)send_buf_vec_sentinel_);
+        vdbgx(Debug::mpipc, this << " count = " << (int)_count << " sentinel = " << (int)send_buf_vec_sentinel_);
         this->post(
             _rctx,
             [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {
@@ -1770,7 +1773,7 @@ void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, cons
     MessageId     msgid(_reqid);
     MessageBundle msg_bundle;
     MessageId     pool_msg_id;
-    
+
     if (msg_writer_.cancel(msgid, msg_bundle, pool_msg_id)) {
         doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_canceled_peer);
     }

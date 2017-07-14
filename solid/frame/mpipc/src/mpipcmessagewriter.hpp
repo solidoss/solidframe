@@ -28,13 +28,13 @@ namespace mpipc {
 
 class MessageWriter {
 public:
-    struct Sender{
-        virtual ~Sender(){}
-        
+    struct Sender {
+        virtual ~Sender() {}
+
         virtual ErrorConditionT completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/) = 0;
-        virtual void releaseRelayBuffer() = 0;
+        virtual void            releaseRelayBuffer() = 0;
     };
-    
+
     using VisitFunctionT = SOLID_FUNCTION<void(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/

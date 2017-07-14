@@ -231,21 +231,24 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
     }
 };
 
+struct Sender : frame::mpipc::MessageWriter::Sender {
+    frame::mpipc::serialization_v1::Protocol& rprotocol_;
 
-struct Sender: frame::mpipc::MessageWriter::Sender{
-     frame::mpipc::serialization_v1::Protocol&     rprotocol_;
-    
-    Sender(frame::mpipc::serialization_v1::Protocol& _rprotocol):rprotocol_(_rprotocol){}
-    
-    ErrorConditionT completeMessage(frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& /*_rmsgid*/) override{
+    Sender(frame::mpipc::serialization_v1::Protocol& _rprotocol)
+        : rprotocol_(_rprotocol)
+    {
+    }
+
+    ErrorConditionT completeMessage(frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& /*_rmsgid*/) override
+    {
         idbg("writer complete message");
         frame::mpipc::MessagePointerT response_ptr;
         ErrorConditionT               error;
         rprotocol_[_rmsgbundle.message_type_id].complete_fnc(mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
         return ErrorConditionT();
     }
-    virtual void releaseRelayBuffer() override{
-        
+    virtual void releaseRelayBuffer() override
+    {
     }
 };
 

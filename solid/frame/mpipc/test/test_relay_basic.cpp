@@ -208,8 +208,8 @@ void peera_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    idbg(_rctx.recipientId()<<" error: "<<_rerror.message());
-    SOLID_CHECK(not _rerror, "Error sending message: "<<_rerror.message());
+    idbg(_rctx.recipientId() << " error: " << _rerror.message());
+    SOLID_CHECK(not _rerror, "Error sending message: " << _rerror.message());
     if (_rsent_msg_ptr) {
         if (!_rerror) {
             ++crtackidx;

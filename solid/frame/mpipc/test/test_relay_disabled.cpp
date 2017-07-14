@@ -208,14 +208,14 @@ void peera_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    idbg(_rctx.recipientId()<<" error: "<<_rerror.message());
+    idbg(_rctx.recipientId() << " error: " << _rerror.message());
     SOLID_CHECK(!_rrecv_msg_ptr, "should not receive any message");
     SOLID_CHECK(_rsent_msg_ptr, "sent message should not be null");
     SOLID_CHECK(_rerror == frame::mpipc::error_message_canceled_peer, "message should be canceled by peer");
-    
+
     ++crtackidx;
     ++crtbackidx;
-    
+
     if (crtbackidx == writecount) {
         unique_lock<mutex> lock(mtx);
         running = false;
@@ -630,8 +630,8 @@ int test_relay_disabled(int argc, char** argv)
                     initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
             }
         }
-        
-        idbg("send message count: "<<writecount);
+
+        idbg("send message count: " << writecount);
 
         unique_lock<mutex> lock(mtx);
 

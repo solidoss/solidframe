@@ -127,8 +127,8 @@ void MessageReader::doConsumePacket(
             return;
         }
     }
-    
-    if(_packet_header.flags() & PacketHeader::Flags::AckRequestFlagE){
+
+    if (_packet_header.flags() & PacketHeader::Flags::AckRequestFlagE) {
         ++_receiver.request_buffer_ack_count_;
     }
 
@@ -146,11 +146,11 @@ void MessageReader::doConsumePacket(
         case PacketHeader::EndMessageTypeE:
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             if (pbufpos and message_idx < _rconfig.max_message_count_multiplex) {
-                vdbgx(Debug::mpipc, "messagetype = "<<(int)crt_msg_type << " msgidx = " << message_idx);
+                vdbgx(Debug::mpipc, "messagetype = " << (int)crt_msg_type << " msgidx = " << message_idx);
                 if (message_idx >= message_vec_.size()) {
                     message_vec_.resize(message_idx + 1);
                 }
-                
+
                 pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, crt_msg_type, _receiver, _rproto, _rctx, _rerror);
             } else {
                 _rerror = error_reader_protocol;
@@ -180,7 +180,7 @@ void MessageReader::doConsumePacket(
             RequestId requid;
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, requid.index);
             if (pbufpos and (pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique))) {
-                vdbgx(Debug::mpipc, "CancelRequestTypeE: "<<requid);
+                vdbgx(Debug::mpipc, "CancelRequestTypeE: " << requid);
                 _receiver.receiveCancelRequest(requid);
             } else {
                 vdbgx(Debug::mpipc, "CancelRequestTypeE - error parsing requestid");
@@ -228,11 +228,11 @@ const char* MessageReader::doConsumeMessage(
 {
     MessageStub& rmsgstub     = message_vec_[_msgidx];
     uint16_t     message_size = 0;
-    
-    if(_msg_type & PacketHeader::NewMessageTypeE){
+
+    if (_msg_type & PacketHeader::NewMessageTypeE) {
         rmsgstub.clear();
     }
-    
+
     switch (rmsgstub.state_) {
     case MessageStub::StateE::NotStarted:
         vdbgx(Debug::mpipc, "NotStarted msgidx = " << _msgidx);
@@ -328,8 +328,8 @@ const char* MessageReader::doConsumeMessage(
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);
 
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
-            
-            //TODO: 
+
+            //TODO:
             if (_receiver.receiveRelayBody(rmsgstub.message_header_, _pbufpos, message_size, rmsgstub.relay_id, /*(_msg_type & PacketHeader::EndMessageTypeFlagE) != 0,*/ _rerror)) {
             } else {
                 rmsgstub.state_ = MessageStub::StateE::RelayFail;
