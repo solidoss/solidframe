@@ -2297,6 +2297,7 @@ void Service::onConnectionStop(ConnectionContext& _rconctx)
 ErrorConditionT Service::sendRelay(const ObjectIdT& _rconid, RelayData&& _urelmsg)
 {
     ErrorConditionT error;
+
     return error;
 }
 //-----------------------------------------------------------------------------

@@ -20,6 +20,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 #include "solid/system/exception.hpp"
 
@@ -319,6 +320,17 @@ void peerb_complete_message(
 //-----------------------------------------------------------------------------
 
 struct RelayEngine {
+    struct ConnectionStub {
+        using RelayDataVectorT = std::vector<frame::mpipc::RelayData>;
+
+        frame::ObjectIdT conid;
+        RelayDataVectorT relay_data_vec;
+    };
+
+    using ConnectionMapT = std::unordered_map<std::string, ConnectionStub>;
+
+    ConnectionMapT conmap;
+    mutex          mtx;
 
     void onConnectionStart(frame::mpipc::ConnectionContext& _rctx);
     void onConnectionStop(frame::mpipc::ConnectionContext& _rctx);
@@ -358,13 +370,26 @@ void RelayEngine::onRegister(
         SOLID_CHECK(!_rsent_msg_ptr);
         idbg("recv register response: " << _rrecv_msg_ptr->str);
 
-        { //do register connection
-        }
-
         _rrecv_msg_ptr->str.clear();
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
+        SOLID_CHECK(!err, "Failed sending register response: " << err.message());
+
+        { //do register connection
+            unique_lock<mutex> lock(mtx);
+
+            ConnectionStub& rcon = conmap[_rrecv_msg_ptr->str];
+            rcon.conid           = _rctx.connectionId();
+
+            if (rcon.relay_data_vec.size()) {
+                //some RelayData already waiting
+                for (auto& rd : rcon.relay_data_vec) {
+                    err = _rctx.service().sendRelay(rcon.conid, std::move(rd));
+                    SOLID_CHECK(!err, "Failed sending relay data to connection: " << err.message());
+                }
+                rcon.relay_data_vec.clear();
+            }
+        }
 
     } else {
         SOLID_CHECK(!_rrecv_msg_ptr);
@@ -379,8 +404,30 @@ bool RelayEngine::onRelay(
     ErrorConditionT&                 _rerror)
 {
     idbg("relay message to: " << _rrelmsg.header_.url_);
-    //SOLID_CHECK(false, "Not implemented yet");
-    return false;
+
+    if (_rrelay_id.isValid()) {
+        ErrorConditionT err = _rctx.service().sendRelay(_rrelay_id, std::move(_rrelmsg));
+
+        SOLID_CHECK(!err, "Failed sending relay data to connection: " << err.message());
+
+        return !err;
+    } else {
+
+        unique_lock<mutex> lock(mtx);
+        ConnectionStub&    rcon = conmap[_rrelmsg.header_.url_];
+
+        if (rcon.conid.isValid()) {
+            ErrorConditionT err = _rctx.service().sendRelay(_rrelay_id, std::move(_rrelmsg));
+
+            SOLID_CHECK(!err, "Failed sending relay data to connection: " << err.message());
+            _rrelay_id = rcon.conid;
+            return !err;
+        } else {
+            //peer not connected yet, just store the relaydata
+            rcon.relay_data_vec.emplace_back(std::move(_rrelmsg));
+            return true;
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -633,8 +680,8 @@ int test_relay_basic(int argc, char** argv)
         writecount = 1; //initarraysize * 10; //start_count;//
 
         //ensure we have provisioned connections on peerb
-        //err = mpipcpeerb.createConnectionPool("localhost");
-        //SOLID_CHECK(not err, "failed create connection from peerb: "<<err.message());
+        err = mpipcpeerb.createConnectionPool("localhost");
+        SOLID_CHECK(not err, "failed create connection from peerb: " << err.message());
 
         if (1) {
             for (; crtwriteidx < start_count;) {
