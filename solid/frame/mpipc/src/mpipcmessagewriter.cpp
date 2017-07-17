@@ -172,7 +172,7 @@ bool MessageWriter::empty() const
 }
 //-----------------------------------------------------------------------------
 
-bool MessageWriter::isFrontRelayMessage() const
+bool MessageWriter::isFrontRelayData() const
 {
     return not write_inner_list_.empty() and write_inner_list_.front().isRelay();
 }

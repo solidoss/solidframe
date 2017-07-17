@@ -38,6 +38,7 @@ enum struct ConnectionValues : size_t {
 };
 
 class Service;
+class Connection;
 class MessageWriter;
 struct ConnectionContext;
 struct Configuration;
@@ -45,8 +46,56 @@ struct Configuration;
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
 
-using SendBufferPointerT                        = std::unique_ptr<char[]>;
-using RecvBufferPointerT                        = std::shared_ptr<char[]>;
+using SendBufferPointerT = std::unique_ptr<char[]>;
+using RecvBufferPointerT = std::shared_ptr<char[]>;
+
+struct RelayData {
+    MessageHeader      header_;
+    RecvBufferPointerT bufptr_;
+    const char*        pdata_;
+    size_t             data_size_;
+    ObjectIdT          connection_id_;
+
+    RelayData(
+        RelayData&& _rrelmsg)
+        : header_(std::move(_rrelmsg.header_))
+        , bufptr_(std::move(_rrelmsg.bufptr_))
+        , pdata_(_rrelmsg.pdata_)
+        , data_size_(_rrelmsg.data_size_)
+        , connection_id_(_rrelmsg.connection_id_)
+    {
+    }
+
+    RelayData& operator=(RelayData&& _rrelmsg)
+    {
+        header_        = std::move(_rrelmsg.header_);
+        bufptr_        = std::move(_rrelmsg.bufptr_);
+        pdata_         = _rrelmsg.pdata_;
+        data_size_     = _rrelmsg.data_size_;
+        connection_id_ = _rrelmsg.connection_id_;
+        return *this;
+    }
+
+    RelayData(const RelayData&) = delete;
+    RelayData& operator=(const RelayData&) = delete;
+
+private:
+    friend class Connection;
+    RelayData(
+        MessageHeader&&      _header,
+        RecvBufferPointerT&& _bufptr,
+        const char*          _pdata,
+        size_t               _data_size,
+        const ObjectIdT&     _connection_id)
+        : header_(std::move(_header))
+        , bufptr_(std::move(_bufptr))
+        , pdata_(_pdata)
+        , data_size_(_data_size)
+        , connection_id_(_connection_id)
+    {
+    }
+};
+
 using AddressVectorT                            = std::vector<SocketAddressInet>;
 using ServerSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
 using ClientSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
@@ -65,7 +114,7 @@ using ConnectionSecureHandhakeCompleteFunctionT = SOLID_FUNCTION<void(Connection
 using ConnectionSendRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionRecvRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
 using ConnectionOnEventFunctionT                = SOLID_FUNCTION<void(ConnectionContext&, Event&)>;
-using ConnectionOnRelayFunctionT                = SOLID_FUNCTION<bool(ConnectionContext&, MessageHeader&, RecvBufferPointerT, const char*, size_t, ObjectIdT&, ErrorConditionT&)>;
+using ConnectionOnRelayFunctionT                = SOLID_FUNCTION<bool(ConnectionContext&, RelayData&&, ObjectIdT&, ErrorConditionT&)>;
 //using ResetSerializerLimitsFunctionT              = SOLID_FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
 
 enum struct ConnectionState {

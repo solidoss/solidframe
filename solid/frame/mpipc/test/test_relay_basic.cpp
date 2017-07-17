@@ -327,12 +327,12 @@ struct RelayEngine {
         std::shared_ptr<Register>&       _rsent_msg_ptr,
         std::shared_ptr<Register>&       _rrecv_msg_ptr,
         ErrorConditionT const&           _rerror);
+
     bool onRelay(
-        frame::mpipc::ConnectionContext&  _rctx,
-        frame::mpipc::MessageHeader&      _rmsghdr,
-        frame::mpipc::RecvBufferPointerT& _rbufptr, const char* _pbeg, size_t _sz,
-        frame::ObjectIdT& _rrelay_id,
-        ErrorConditionT&  _rerror);
+        frame::mpipc::ConnectionContext& _rctx,
+        frame::mpipc::RelayData&&        _rrelmsg,
+        frame::ObjectIdT&                _rrelay_id,
+        ErrorConditionT&                 _rerror);
 };
 
 void RelayEngine::onConnectionStart(frame::mpipc::ConnectionContext& _rctx)
@@ -373,13 +373,12 @@ void RelayEngine::onRegister(
 }
 
 bool RelayEngine::onRelay(
-    frame::mpipc::ConnectionContext&  _rctx,
-    frame::mpipc::MessageHeader&      _rmsghdr,
-    frame::mpipc::RecvBufferPointerT& _rbufptr, const char* _pbeg, size_t _sz,
-    frame::ObjectIdT& _rrelay_id,
-    ErrorConditionT&  _rerror)
+    frame::mpipc::ConnectionContext& _rctx,
+    frame::mpipc::RelayData&&        _rrelmsg,
+    frame::ObjectIdT&                _rrelay_id,
+    ErrorConditionT&                 _rerror)
 {
-    idbg("relay message to: " << _rmsghdr.url_);
+    idbg("relay message to: " << _rrelmsg.header_.url_);
     //SOLID_CHECK(false, "Not implemented yet");
     return false;
 }
@@ -495,11 +494,10 @@ int test_relay_basic(int argc, char** argv)
             };
             auto con_relay = [&relay_engine](
                 frame::mpipc::ConnectionContext& _rctx,
-                frame::mpipc::MessageHeader&     _rmsghdr,
-                frame::mpipc::RecvBufferPointerT _bufptr, const char* _pbeg, size_t _sz,
-                frame::ObjectIdT& _rrelay_id,
-                ErrorConditionT&  _rerror) -> bool {
-                return relay_engine.onRelay(_rctx, _rmsghdr, _bufptr, _pbeg, _sz, _rrelay_id, _rerror);
+                frame::mpipc::RelayData&&        _rrelmsg,
+                frame::ObjectIdT&                _rrelay_id,
+                ErrorConditionT&                 _rerror) -> bool {
+                return relay_engine.onRelay(_rctx, std::move(_rrelmsg), _rrelay_id, _rerror);
             };
 
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();

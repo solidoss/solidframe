@@ -1567,7 +1567,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                     write_flags.set(MessageWriter::WriteFlagsE::ShouldSendKeepAlive);
                 }
 
-                const bool use_relay_buffer = msg_writer_.isFrontRelayMessage();
+                const bool use_relay_buffer = msg_writer_.isFrontRelayData();
                 char*      buffer           = send_buf_.get();
 
                 if (use_relay_buffer and hasRelayBuffer(rconfig, buffer)) {
@@ -1784,7 +1784,9 @@ bool Connection::doCompleteRelayBody(
 {
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx(service(_rctx), *this);
-    return config.connection_on_relay_fnc(conctx, _rmsghdr, recv_buf_, _pbeg, _sz, _rrelay_id, _rerror);
+    RelayData            relmsg(std::move(_rmsghdr), std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx));
+
+    return config.connection_on_relay_fnc(conctx, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)

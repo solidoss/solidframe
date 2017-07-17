@@ -94,7 +94,7 @@ public:
 
     //a relay message is a message the is to be relayed on its path to destination
     //for those messages we'll use relay buffers
-    bool isFrontRelayMessage() const;
+    bool isFrontRelayData() const;
 
     bool full(WriterConfiguration const& _rconfig) const;
 

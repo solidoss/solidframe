@@ -2293,6 +2293,18 @@ void Service::onConnectionStop(ConnectionContext& _rconctx)
     vdbgx(Debug::mpipc, this);
     configuration().connection_stop_fnc(_rconctx);
 }
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::sendRelay(const ObjectIdT& _rconid, RelayData&& _urelmsg)
+{
+    ErrorConditionT error;
+    return error;
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT Service::sendRelayCancel(RelayData&& _urelmsg)
+{
+    ErrorConditionT error;
+    return error;
+}
 //=============================================================================
 //-----------------------------------------------------------------------------
 /*virtual*/ Message::~Message()

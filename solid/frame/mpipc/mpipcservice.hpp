@@ -228,7 +228,9 @@ public:
         Fnc                       _complete_fnc,
         MessageId&                _rmsguid,
         const MessageFlagsT&      _flags);
-
+    //-------------------------------------------------------------------------
+    ErrorConditionT sendRelay(const ObjectIdT& _rconid, RelayData&& _urelmsg);
+    ErrorConditionT sendRelayCancel(RelayData&& _urelmsg);
     //-------------------------------------------------------------------------
     template <typename F>
     ErrorConditionT forceCloseConnectionPool(

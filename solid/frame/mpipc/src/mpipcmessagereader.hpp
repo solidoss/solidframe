@@ -116,6 +116,7 @@ private:
             deserializer_ptr_.reset();
             packet_count_ = 0;
             state_        = StateE::NotStarted;
+            relay_id.clear();
         }
     };
     using MessageVectorT = std::deque<MessageStub>;
