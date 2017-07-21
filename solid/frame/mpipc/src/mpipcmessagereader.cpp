@@ -330,7 +330,7 @@ const char* MessageReader::doConsumeMessage(
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
 
             //TODO:
-            if (_receiver.receiveRelayBody(rmsgstub.message_header_, _pbufpos, message_size, rmsgstub.relay_id, /*(_msg_type & PacketHeader::EndMessageTypeFlagE) != 0,*/ _rerror)) {
+            if (_receiver.receiveRelayBody(rmsgstub.message_header_, _pbufpos, message_size, rmsgstub.relay_id, (_msg_type & PacketHeader::EndMessageTypeFlagE) != 0, _rerror)) {
             } else {
                 rmsgstub.state_ = MessageStub::StateE::RelayFail;
                 _receiver.pushCancelRequest(rmsgstub.message_header_.sender_request_id_);

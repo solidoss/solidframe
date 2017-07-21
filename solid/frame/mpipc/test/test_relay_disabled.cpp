@@ -357,7 +357,7 @@ void RelayEngine::onRegister(
 int test_relay_disabled(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
+    Debug::the().levelMask("view");
     Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
@@ -462,10 +462,12 @@ int test_relay_disabled(int argc, char** argv)
             };
             auto con_relay = [&relay_engine](
                 frame::mpipc::ConnectionContext& /*_rctx*/,
+                frame::mpipc::MessageHeader& _rmsghdr,
                 frame::mpipc::RelayData&& _rrelmsg,
                 frame::ObjectIdT& /*_rrelay_id*/,
+                const bool /*_is_last*/,
                 ErrorConditionT & /*_rerror*/) -> bool {
-                idbg("relay message to: " << _rrelmsg.header_.url_);
+                idbg("relay message to: " << _rmsghdr.url_);
                 return false;
             };
 

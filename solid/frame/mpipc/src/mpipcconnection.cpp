@@ -1394,9 +1394,9 @@ struct Connection::Receiver : MessageReader::Receiver {
         rcon_.doCompleteCancelRequest(rctx_, _reqid);
     }
 
-    bool receiveRelayBody(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, ObjectIdT& _rrelay_id, ErrorConditionT& _rerror) override
+    bool receiveRelayBody(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, ObjectIdT& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
     {
-        return rcon_.doCompleteRelayBody(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _rerror);
+        return rcon_.doCompleteRelayBody(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
     }
 
     void pushCancelRequest(const RequestId& _reqid) override
@@ -1551,9 +1551,10 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
             while (repeatcnt) {
 
-                if (
-                    shouldPollPool()) {
+                if (shouldPollPool()) {
+                    
                     flags_.reset(FlagsE::PollPool); //reset flag
+                    
                     if ((error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId()))) {
                         doStop(_rctx, error);
                         sent_something = false; //prevent calling doResetTimerSend after doStop
@@ -1567,7 +1568,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                     write_flags.set(MessageWriter::WriteFlagsE::ShouldSendKeepAlive);
                 }
 
-                const bool use_relay_buffer = msg_writer_.isFrontRelayData();
+                const bool use_relay_buffer = msg_writer_.isFrontRelayMessage();
                 char*      buffer           = send_buf_.get();
 
                 if (use_relay_buffer and hasRelayBuffer(rconfig, buffer)) {
@@ -1780,13 +1781,19 @@ void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, cons
 }
 //-----------------------------------------------------------------------------
 bool Connection::doCompleteRelayBody(
-    frame::aio::ReactorContext& _rctx, MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, ObjectIdT& _rrelay_id, ErrorConditionT& _rerror)
+    frame::aio::ReactorContext& _rctx,
+    MessageHeader& _rmsghdr,
+    const char* _pbeg,
+    size_t _sz,
+    ObjectIdT& _rrelay_id,
+    const bool _is_last,
+    ErrorConditionT& _rerror)
 {
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx(service(_rctx), *this);
-    RelayData            relmsg(std::move(_rmsghdr), std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx));
+    RelayData            relmsg(std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx));
 
-    return config.connection_on_relay_fnc(conctx, std::move(relmsg), _rrelay_id, _rerror);
+    return config.connection_on_relay_fnc(conctx, _rmsghdr, std::move(relmsg), _rrelay_id, _is_last, _rerror);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)

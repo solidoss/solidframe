@@ -320,21 +320,39 @@ void peerb_complete_message(
 //-----------------------------------------------------------------------------
 
 struct RelayEngine {
-    struct ConnectionStub {
-        using RelayDataVectorT = std::vector<frame::mpipc::RelayData>;
-
-        frame::ObjectIdT conid;
-        RelayDataVectorT relay_data_vec;
+    
+    struct RelayStub{
+        frame::mpipc::RelayData data_;
+        RelayStub               *pnext;
     };
-
+    
+    struct MessageStub{
+        uint32_t                        unique_;
+        frame::mpipc::MessageHeader     header_;
+        frame::ObjectIdT                connection_id_;
+        RelayStub                       *prelay_front;
+        RelayStub                       *prelay_back;
+        MessageStub                     *pnext;
+    };
+    
+    struct ConnectionStub {
+        std::string      name_;
+        frame::ObjectIdT connection_id_;
+        MessageStub      *pfront;
+        MessageStub      *pback;
+    };
+    
     using ConnectionMapT = std::unordered_map<std::string, ConnectionStub>;
+    using MessageDequeT = std::deque<MessageStub>;
 
     ConnectionMapT conmap;
+    MessageDequeT  msgdq;
     mutex          mtx;
 
     void onConnectionStart(frame::mpipc::ConnectionContext& _rctx);
     void onConnectionStop(frame::mpipc::ConnectionContext& _rctx);
-    void onRegister(
+    
+    void onConnectionRegister(
         frame::mpipc::ConnectionContext& _rctx,
         std::shared_ptr<Register>&       _rsent_msg_ptr,
         std::shared_ptr<Register>&       _rrecv_msg_ptr,
@@ -342,8 +360,10 @@ struct RelayEngine {
 
     bool onRelay(
         frame::mpipc::ConnectionContext& _rctx,
+        frame::mpipc::MessageHeader&     _rmsghdr,
         frame::mpipc::RelayData&&        _rrelmsg,
         frame::ObjectIdT&                _rrelay_id,
+        const bool                       _is_last,
         ErrorConditionT&                 _rerror);
 };
 
@@ -360,12 +380,13 @@ void RelayEngine::onConnectionStop(frame::mpipc::ConnectionContext& _rctx)
     }
 }
 
-void RelayEngine::onRegister(
+void RelayEngine::onConnectionRegister(
     frame::mpipc::ConnectionContext& _rctx,
     std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
     SOLID_CHECK(!_rerror);
+#if 0
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(!_rsent_msg_ptr);
         idbg("recv register response: " << _rrecv_msg_ptr->str);
@@ -395,16 +416,33 @@ void RelayEngine::onRegister(
         SOLID_CHECK(!_rrecv_msg_ptr);
         idbg("sent register response");
     }
+#endif
 }
 
 bool RelayEngine::onRelay(
     frame::mpipc::ConnectionContext& _rctx,
+    frame::mpipc::MessageHeader&     _rmsghdr,
     frame::mpipc::RelayData&&        _rrelmsg,
     frame::ObjectIdT&                _rrelay_id,
+    const bool                       _is_last,
     ErrorConditionT&                 _rerror)
 {
-    idbg("relay message to: " << _rrelmsg.header_.url_);
+    idbg("relay message to: " << _rmsghdr.url_);
+    unique_lock<mutex> lock(mtx);
+    frame::ObjectIdT    msgid;
 
+//     if(_rrelay_id.isValid()) {//a continued message
+//         msgid = _rrelay_id;
+//         
+//     }else{//a new message
+//         msgid = allocateMessageId();
+//         
+//     }
+//     
+//     MessageStub &rmsg = msgdq[msgid.index];
+    
+    
+#if 0
     if (_rrelay_id.isValid()) {
         ErrorConditionT err = _rctx.service().sendRelay(_rrelay_id, std::move(_rrelmsg));
 
@@ -428,6 +466,7 @@ bool RelayEngine::onRelay(
             return true;
         }
     }
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -531,20 +570,22 @@ int test_relay_basic(int argc, char** argv)
 
         { //mpipc relay initialization
             auto con_start                                                                = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStart(_rctx); };
-            auto con_stop                                                                 = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStart(_rctx); };
+            auto con_stop                                                                 = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStop(_rctx); };
             auto                                                             con_register = [&relay_engine](
                 frame::mpipc::ConnectionContext& _rctx,
                 std::shared_ptr<Register>&       _rsent_msg_ptr,
                 std::shared_ptr<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
-                relay_engine.onRegister(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerror);
+                relay_engine.onConnectionRegister(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerror);
             };
             auto con_relay = [&relay_engine](
                 frame::mpipc::ConnectionContext& _rctx,
+                frame::mpipc::MessageHeader&     _rmsghdr,
                 frame::mpipc::RelayData&&        _rrelmsg,
                 frame::ObjectIdT&                _rrelay_id,
+                const bool                       _is_last,
                 ErrorConditionT&                 _rerror) -> bool {
-                return relay_engine.onRelay(_rctx, std::move(_rrelmsg), _rrelay_id, _rerror);
+                return relay_engine.onRelay(_rctx, _rmsghdr, std::move(_rrelmsg), _rrelay_id, _is_last, _rerror);
             };
 
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();

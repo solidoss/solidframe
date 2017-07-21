@@ -79,7 +79,7 @@ public:
         MessageId&     _rpool_msg_id);
 
     uint32_t write(
-        char*                      _pbuf,
+        char*&                     _rpbuf,
         uint32_t                   _bufsz,
         const WriteFlagsT&         _flags,
         uint8_t                    _ackd_buf_count,
@@ -94,7 +94,7 @@ public:
 
     //a relay message is a message the is to be relayed on its path to destination
     //for those messages we'll use relay buffers
-    bool isFrontRelayData() const;
+    bool isFrontRelayMessage() const;
 
     bool full(WriterConfiguration const& _rconfig) const;
 
@@ -123,25 +123,34 @@ private:
     struct MessageStub : InnerNode<InnerLinkCount> {
 
         enum struct StateE : uint8_t {
-            NotStarted,
+            WriteStart,
             WriteHead,
             WriteBody,
-            RelayBody,
+            RelayedStart,
+            RelayedHead,
+            RelayedBody,
             Canceled,
         };
+        
+        MessageBundle      msgbundle_;
+        uint32_t           unique_;
+        size_t             packet_count_;
+        SerializerPointerT serializer_ptr_;
+        MessageId          pool_msg_id_;
+        StateE             state_;
 
         MessageStub(
             MessageBundle& _rmsgbundle)
             : msgbundle_(std::move(_rmsgbundle))
             , packet_count_(0)
-            , state_(StateE::NotStarted)
+            , state_(StateE::WriteStart)
         {
         }
 
         MessageStub()
             : unique_(0)
             , packet_count_(0)
-            , state_(StateE::NotStarted)
+            , state_(StateE::WriteStart)
         {
         }
 
@@ -166,7 +175,7 @@ private:
             serializer_ptr_ = nullptr;
 
             pool_msg_id_.clear();
-            state_ = StateE::NotStarted;
+            state_ = StateE::WriteStart;
         }
 
         bool isStop() const noexcept
@@ -195,12 +204,6 @@ private:
             state_ = StateE::Canceled;
         }
 
-        MessageBundle      msgbundle_;
-        uint32_t           unique_;
-        size_t             packet_count_;
-        SerializerPointerT serializer_ptr_;
-        MessageId          pool_msg_id_;
-        StateE             state_;
     };
 
     using MessageVectorT          = std::vector<MessageStub>;
@@ -208,21 +211,22 @@ private:
     using MessageStatusInnerListT = InnerList<MessageVectorT, InnerLinkStatus>;
 
     struct PacketOptions {
+        PacketHeader::Types packet_type;
+        bool                force_no_compress;
+        bool                request_accept;
+        
         PacketOptions()
             : packet_type(PacketHeader::MessageTypeE)
             , force_no_compress(false)
             , request_accept(false)
         {
         }
-
-        PacketHeader::Types packet_type;
-        bool                force_no_compress;
-        bool                request_accept;
     };
 
-    char* doFillPacket(
-        char*                      _pbufbeg,
-        char*                      _pbufend,
+    size_t doFillPacketData(
+        char*&                     _rpbuf,
+        char*&                     _pbufbeg,
+        char*&                     _pbufend,
         PacketOptions&             _rpacket_options,
         bool&                      _rmore,
         const WriteFlagsT&         _flags,

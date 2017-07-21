@@ -223,7 +223,12 @@ private:
     void doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count);
     void doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid);
     bool doCompleteRelayBody(
-        frame::aio::ReactorContext& _rctx, MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, ObjectIdT& _rrelay_id, ErrorConditionT& _rerror);
+        frame::aio::ReactorContext& _rctx,
+        MessageHeader& _rmsghdr,
+        const char* _pbeg, size_t _sz,
+        ObjectIdT& _rrelay_id,
+        const bool _is_last,
+        ErrorConditionT& _rerror);
 
     void doHandleEventKill(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventStart(frame::aio::ReactorContext& _rctx, Event& _revent);

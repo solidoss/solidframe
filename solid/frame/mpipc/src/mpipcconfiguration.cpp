@@ -91,7 +91,7 @@ bool default_setup_socket_device(SocketDevice& _rsd)
     return true;
 }
 
-bool default_connection_on_relay(ConnectionContext& _rconctx, RelayData&& _rrelmsg, ObjectIdT& _rrelay_id, ErrorConditionT& _rerror)
+bool default_connection_on_relay(ConnectionContext& _rconctx, MessageHeader& _msghead, RelayData&& _rrelmsg, ObjectIdT& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
 {
     return false; //ignore relay messages
 }
