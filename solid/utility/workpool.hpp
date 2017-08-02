@@ -16,6 +16,7 @@
 #include <thread>
 #include <vector>
 
+#include "solid/system/exception.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/queue.hpp"
 
@@ -55,6 +56,8 @@ struct WorkPoolBase {
     }
 
 protected:
+    //static ErrorConditionT error_running;
+    
     WorkPoolBase()
         : st(Stopped)
         , wkrcnt(0)
@@ -99,6 +102,11 @@ struct WorkPoolControllerBase {
     void onStop()
     {
     }
+    
+    size_t maxQueueSize()const{
+        return -1;
+    }
+    
 };
 
 //! A generic workpool
@@ -206,6 +214,14 @@ public:
     void push(const JT& _jb)
     {
         std::unique_lock<std::mutex> lock(mtx);
+        
+        if(jobq.size() < ctrl.maxQueueSize()){
+        }else{
+            do{
+                sigcnd.wait(lock);
+            }while(jobq.size() >= ctrl.maxQueueSize());
+        }
+        
         jobq.push(_jb);
         sigcnd.notify_one();
         ctrl.onPush(*this, jobq.size());
@@ -215,6 +231,14 @@ public:
     void push(JT&& _jb)
     {
         std::unique_lock<std::mutex> lock(mtx);
+        
+        if(jobq.size() < ctrl.maxQueueSize()){
+        }else{
+            do{
+                sigcnd.wait(lock);
+            }while(jobq.size() >= ctrl.maxQueueSize());
+        }
+        
         jobq.push(std::move(_jb));
         sigcnd.notify_one();
         ctrl.onPush(*this, jobq.size());
@@ -226,7 +250,14 @@ public:
     {
         std::unique_lock<std::mutex> lock(mtx);
         size_t                       cnt(_end - _i);
+        
         for (; _i != _end; ++_i) {
+            if(jobq.size() < ctrl.maxQueueSize()){
+            }else{
+                do{
+                    sigcnd.wait(lock);
+                }while(jobq.size() >= ctrl.maxQueueSize());
+            }
             jobq.push(std::move(*_i));
         }
         sigcnd.notify_all();
@@ -339,11 +370,13 @@ private:
             return true;
         }
         if (doWaitJob(lock)) {
+            const bool was_full = jobq.size() == ctrl.maxQueueSize();
             do {
                 _rjobvec.push_back(std::move(jobq.front()));
                 jobq.pop();
             } while (jobq.size() && --insertcount);
             ctrl.onPopDone(*this, _rw);
+            if(was_full) sigcnd.notify_all();
             return true;
         }
         return false;
@@ -359,9 +392,11 @@ private:
             return false;
         }
         if (doWaitJob(lock)) {
+            const bool was_full = jobq.size() == ctrl.maxQueueSize();
             _rjob = std::move(jobq.front());
             jobq.pop();
             ctrl.onPopDone(*this, _rw);
+            if(was_full) sigcnd.notify_all();
             return true;
         }
         return false;
@@ -413,9 +448,10 @@ using FunctionJobT = std::function<void()>;
 template <class F>
 struct WPFunctionController : WorkPoolControllerBase {
     const size_t max_thr_cnt_;
+    const size_t max_job_cnt_;
 
-    WPFunctionController(const size_t _max_thr_cnt)
-        : max_thr_cnt_(_max_thr_cnt)
+    WPFunctionController(const size_t _max_thr_cnt, const size_t _max_job_cnt = -1)
+        : max_thr_cnt_(_max_thr_cnt), max_job_cnt_(_max_job_cnt)
     {
     }
 
@@ -441,6 +477,10 @@ struct WPFunctionController : WorkPoolControllerBase {
     void execute(WorkPoolBase& /*_rwp*/, WorkerBase& /*_rw*/, FunctionJobT& _rf)
     {
         _rf();
+    }
+    
+    size_t maxQueueSize()const{
+        return max_job_cnt_;
     }
 };
 

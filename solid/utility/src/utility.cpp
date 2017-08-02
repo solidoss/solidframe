@@ -9,7 +9,6 @@
 //
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
-#include "solid/utility/workpool.hpp"
 
 namespace solid {
 

@@ -9,6 +9,7 @@
 //
 
 #include "solid/system/error.hpp"
+#include "solid/system/exception.hpp"
 #include <sstream>
 
 namespace solid {
@@ -69,6 +70,11 @@ std::string ErrorCategory::message(int _ev) const
 }
 
 } //namespace
+
+
+/*virtual*/ RuntimeErrorCondition::~RuntimeErrorCondition()noexcept{
+    
+}
 
 /*extern*/ const ErrorCodeT error_not_implemented(ErrorNotImplementedE, category);
 /*extern*/ const ErrorCodeT error_system(ErrorSystemE, category);

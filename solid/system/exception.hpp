@@ -44,6 +44,22 @@ struct LogicError : std::logic_error {
     }
 };
 
+struct RuntimeErrorCondition : std::runtime_error {
+    template <typename F>
+    RuntimeErrorCondition(const ErrorConditionT &_err, const F& _rf, const char* _file, int _line, const char* _fnc)
+        : std::runtime_error(_rf(_file, _line, _fnc, _err)), err_(_err)
+    {
+    }
+    
+    virtual ~RuntimeErrorCondition()noexcept;
+    
+    const ErrorConditionT& error()const noexcept{
+        return err_;
+    }
+private:
+    ErrorConditionT err_;
+};
+
 #define SOLID_THROW(x)                                                        \
     throw solid::LogicError(                                                  \
         [&](const char* _file, int _line, const char* _fnc) {                 \
@@ -52,6 +68,25 @@ struct LogicError : std::logic_error {
             return os.str();                                                  \
         },                                                                    \
         __FILE__, __LINE__, CRT_FUNCTION_NAME)
+
+#define SOLID_THROW_CONDITION(c)\
+    throw solid::RuntimeErrorCondition((c),\
+        [&](const char* _file, int _line, const char* _fnc, const solid::ErrorConditionT &_err) {                 \
+            std::ostringstream os;                                            \
+            os << '[' << _file << '(' << _line << ")][" << _fnc << "]: " << _err.message(); \
+            return os.str();                                                  \
+        },                                                                    \
+        __FILE__, __LINE__, CRT_FUNCTION_NAME)
+
+#define SOLID_TRY_THROW_CONDITION(c)\
+    if((c)){                            \
+        throw solid::RuntimeErrorCondition((c), \
+            [&](const char* _file, int _line, const char* _fnc, const solid::ErrorConditionT &_err) {                 \
+                std::ostringstream os;                                            \
+                os << '[' << _file << '(' << _line << ")][" << _fnc << "]: " << _err.message(); \
+                return os.str();                                                  \
+            },                                                                    \
+            __FILE__, __LINE__, CRT_FUNCTION_NAME);}else{}
 
 //adapted from https://github.com/Microsoft/GSL/blob/master/include/gsl/gsl_assert
 #if defined(__clang__) || defined(__GNUC__)
@@ -77,5 +112,11 @@ struct LogicError : std::logic_error {
 #define SOLID_CHECK(...)                   \
     SOLID_CHECK_MACRO_CHOOSER(__VA_ARGS__) \
     (__VA_ARGS__)
+
+#define SOLID_CHECK_CONDITION(a, c)\
+    (SOLID_LIKELY(a) ? static_cast<void>(0) : SOLID_THROW_CONDITION(c));
+    
+
+
 
 } //namespace solid
