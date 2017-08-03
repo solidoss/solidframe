@@ -23,19 +23,12 @@ typedef DynamicPointer<ResolveBase> ResolverPointerT;
 struct WorkPoolController;
 typedef WorkPool<ResolverPointerT, WorkPoolController> WorkPoolT;
 
-struct WorkPoolController : WorkPoolControllerBase {
-    size_t maxthrcnt;
-    WorkPoolController(size_t _thrcnt)
-        : maxthrcnt(_thrcnt)
+struct WorkPoolController : solid::WorkPoolController{
+    WorkPoolController(const size_t _max_thr_cnt, const size_t _max_job_cnt)
+        : solid::WorkPoolController(_max_thr_cnt, _max_job_cnt)
     {
     }
 
-    void createWorker(WorkPoolT& _rwp, ushort _wkrcnt, std::thread& _rthr)
-    {
-        if (_wkrcnt <= maxthrcnt) {
-            _rwp.createSingleWorker(_rthr);
-        }
-    }
     void execute(WorkPoolBase& _wp, WorkerBase&, ResolverPointerT& _ptr)
     {
         _ptr->run(_wp.isStopping());
@@ -43,8 +36,8 @@ struct WorkPoolController : WorkPoolControllerBase {
 };
 
 struct Resolver::Data {
-    Data(size_t _thrcnt)
-        : wp(_thrcnt)
+    Data(const size_t _max_thr_cnt, const size_t _max_job_cnt)
+        : wp(_max_thr_cnt, _max_job_cnt)
     {
     }
 
@@ -56,13 +49,9 @@ struct Resolver::Data {
 {
 }
 
-Resolver::Resolver(size_t _thrcnt)
-    : impl_(make_pimpl<Data>(_thrcnt))
+Resolver::Resolver(const size_t _max_thr_cnt, const size_t _max_job_cnt)
+    : impl_(make_pimpl<Data>(_max_thr_cnt, _max_job_cnt))
 {
-
-    if (_thrcnt == 0) {
-        impl_->wp.controller().maxthrcnt = std::thread::hardware_concurrency();
-    }
 }
 
 Resolver::~Resolver()

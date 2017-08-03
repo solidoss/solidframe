@@ -14,14 +14,21 @@ using mutex_t       = std::mutex;
 using unique_lock_t = std::unique_lock<mutex_t>;
 
 namespace {
+
 mutex_t mtx;
+using FunctionJobT = std::function<void()>;
+
 }
 
 int test_workpool(int argc, char* argv[])
 {
-    FunctionWorkPoolT   wp{5};
-    std::atomic<size_t> val{0};
-    const size_t        cnt{5000000};
+    auto l = [](FunctionJobT &_jf){
+        _jf();
+    };
+    
+    FunctionWorkPoolT<FunctionJobT>  wp{l, 5};
+    std::atomic<size_t>              val{0};
+    const size_t                     cnt{5000000};
 
     wp.start(5);
 

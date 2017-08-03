@@ -443,15 +443,13 @@ private:
     ThreadVectorT thread_vec;
 };
 
-using FunctionJobT = std::function<void()>;
 
-template <class F>
-struct WPFunctionController : WorkPoolControllerBase {
-    const size_t max_thr_cnt_;
-    const size_t max_job_cnt_;
-
-    WPFunctionController(const size_t _max_thr_cnt, const size_t _max_job_cnt = -1)
-        : max_thr_cnt_(_max_thr_cnt), max_job_cnt_(_max_job_cnt)
+struct WorkPoolController : WorkPoolControllerBase{
+    const size_t            max_thr_cnt_;
+    const size_t            max_job_cnt_;
+    
+    WorkPoolController(const size_t _max_thr_cnt = 0, const size_t _max_job_cnt = -1)
+        : max_thr_cnt_(_max_thr_cnt ? std::thread::hardware_concurrency() : _max_thr_cnt), max_job_cnt_(_max_job_cnt)
     {
     }
 
@@ -474,16 +472,32 @@ struct WPFunctionController : WorkPoolControllerBase {
     {
     }
 
-    void execute(WorkPoolBase& /*_rwp*/, WorkerBase& /*_rw*/, FunctionJobT& _rf)
-    {
-        _rf();
-    }
     
     size_t maxQueueSize()const{
         return max_job_cnt_;
     }
 };
 
-using FunctionWorkPoolT = WorkPool<FunctionJobT, WPFunctionController<FunctionJobT>>;
+template <class J>
+struct WorkPoolFunctionController: WorkPoolController{
+    using FunctionJobT = std::function<void(J&)>;
+    
+    const FunctionJobT      job_fnc_;
+    
+    template <class F>
+    WorkPoolFunctionController(F &&_f, const size_t _max_thr_cnt = 0, const size_t _max_job_cnt = -1)
+        : WorkPoolController(_max_thr_cnt, _max_job_cnt), job_fnc_(std::forward<F>(_f))
+    {
+    }
+    
+    void execute(WorkPoolBase& /*_rwp*/, WorkerBase& /*_rw*/, J& _rj)
+    {
+        job_fnc_(_rj);
+    }
+};
+
+
+template <class J>
+using FunctionWorkPoolT = WorkPool<J, WorkPoolFunctionController<J>>;
 
 } //namespace solid

@@ -136,7 +136,7 @@ struct ReverseResolveCbk : ReverseResolve {
 
 class Resolver {
 public:
-    Resolver(size_t _thrcnt = 0);
+    Resolver(const size_t _max_thr_cnt = 0, const size_t _max_job_cnt = 1024 * 64);
     ~Resolver();
 
     ErrorConditionT start(ushort _thrcnt = 0);

@@ -11,41 +11,14 @@ using namespace std;
 
 std::atomic<size_t> val{0};
 
-class WPController : public WorkPoolControllerBase {
-public:
-    const size_t max_thr_cnt_;
-
-    WPController(const size_t _max_thr_cnt)
-        : max_thr_cnt_(_max_thr_cnt)
-    {
-    }
-
-    template <class WP>
-    bool createWorker(WP& _rwp, size_t /*_wkrcnt*/, std::thread& _rthr)
-    {
-        _rwp.createSingleWorker(_rthr);
-        return true;
-    }
-
-    template <class WP>
-    void onPush(WP& _rwp, size_t _qsz)
-    {
-        if (_qsz > _rwp.workerCount() and _rwp.workerCount() < max_thr_cnt_) {
-            _rwp.createWorker();
-        }
-    }
-
-    void execute(WorkPoolBase& /*_rwp*/, WorkerBase& /*_rw*/, size_t v)
-    {
-        val += v;
-    }
-};
-
-typedef WorkPool<size_t, WPController> MyWorkPoolT;
-
 int test_workpool_fast(int argc, char* argv[])
 {
-    MyWorkPoolT  wp{5};
+    FunctionWorkPoolT<size_t>  wp{
+        [](size_t _v){
+            val += _v;
+        },
+        5
+    };
     const size_t cnt{5000000};
 
     wp.start(5);
