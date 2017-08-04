@@ -26,6 +26,32 @@ namespace solid {
 namespace frame {
 namespace mpipc {
 
+struct WriteBuffer {
+    WriteBuffer(char* _data = nullptr, size_t _size = -1)
+        : data_(_data)
+        , size_(_size)
+    {
+    }
+    char*  data() const noexcept { return data_; }
+    size_t size() const noexcept { return size_; }
+
+    void resize(const size_t _size) noexcept { size_ = _size; }
+
+    bool empty() const noexcept { return size_ == 0; }
+
+    char* end() const noexcept { return data_ + size_; }
+
+    void reset(char* _data = nullptr, size_t _size = -1) noexcept
+    {
+        data_ = _data;
+        size_ = _size;
+    }
+
+private:
+    char*  data_;
+    size_t size_;
+};
+
 class MessageWriter {
 public:
     struct Sender {
@@ -51,7 +77,7 @@ public:
 
     enum struct WriteFlagsE {
         ShouldSendKeepAlive,
-        CanSendRelayedMessages,
+        CanSendRelayMessages,
         LastFlag
     };
 
@@ -78,17 +104,15 @@ public:
         MessageBundle& _rmsgbundle,
         MessageId&     _rpool_msg_id);
 
-    uint32_t write(
-        char*&                     _rpbuf,
-        uint32_t                   _bufsz,
+    ErrorConditionT write(
+        WriteBuffer&               _rbuffer,
         const WriteFlagsT&         _flags,
         uint8_t                    _ackd_buf_count,
         RequestIdVectorT&          _cancel_remote_msg_vec,
         Sender&                    _rsender,
         WriterConfiguration const& _rconfig,
         Protocol const&            _rproto,
-        ConnectionContext&         _rctx,
-        ErrorConditionT&           _rerror);
+        ConnectionContext&         _rctx);
 
     bool empty() const;
 
@@ -131,7 +155,7 @@ private:
             RelayedBody,
             Canceled,
         };
-        
+
         MessageBundle      msgbundle_;
         uint32_t           unique_;
         size_t             packet_count_;
@@ -203,7 +227,6 @@ private:
             msgbundle_.message_flags.set(MessageFlagsE::Canceled);
             state_ = StateE::Canceled;
         }
-
     };
 
     using MessageVectorT          = std::vector<MessageStub>;
@@ -214,7 +237,7 @@ private:
         PacketHeader::Types packet_type;
         bool                force_no_compress;
         bool                request_accept;
-        
+
         PacketOptions()
             : packet_type(PacketHeader::MessageTypeE)
             , force_no_compress(false)
@@ -223,10 +246,9 @@ private:
         }
     };
 
-    size_t doFillPacketData(
-        char*&                     _rpbuf,
-        char*&                     _pbufbeg,
-        char*&                     _pbufend,
+    size_t doWritePacketData(
+        char*                      _pbufbeg,
+        char*                      _pbufend,
         PacketOptions&             _rpacket_options,
         bool&                      _rmore,
         const WriteFlagsT&         _flags,

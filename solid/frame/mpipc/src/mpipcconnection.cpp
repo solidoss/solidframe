@@ -244,7 +244,8 @@ Connection::Connection(
     , recv_buf_count_(0)
     , recv_buf_(nullptr)
     , send_buf_(nullptr)
-    , send_buf_vec_sentinel_(0)
+    , send_buf_count_(0)
+    , send_buf_sentinel_(0)
     , ackd_buf_count_(0)
     , recv_buf_cp_kb_(0)
     , send_buf_cp_kb_(0)
@@ -269,7 +270,8 @@ Connection::Connection(
     , recv_buf_count_(0)
     , recv_buf_(nullptr)
     , send_buf_(nullptr)
-    , send_buf_vec_sentinel_(0)
+    , send_buf_count_(0)
+    , send_buf_sentinel_(0)
     , ackd_buf_count_(0)
     , recv_buf_cp_kb_(0)
     , send_buf_cp_kb_(0)
@@ -1480,18 +1482,18 @@ struct Connection::Receiver : MessageReader::Receiver {
     }
 }
 //-----------------------------------------------------------------------------
-inline bool Connection::hasRelayBuffer(const Configuration& _rconfig, char*& _rpbuf)
+inline bool Connection::hasRelayBuffer(const Configuration& _rconfig)
 {
-    if (send_buf_vec_sentinel_ < send_buf_vec_.size()) {
-        _rpbuf = send_buf_vec_[send_buf_vec_sentinel_].get();
-        ++send_buf_vec_sentinel_;
-        vdbgx(Debug::mpipc, this << " sentinel = " << (int)send_buf_vec_sentinel_);
+    if (send_buf_sentinel_ < send_buf_count_) {
+        ++send_buf_sentinel_;
+        vdbgx(Debug::mpipc, this << " sentinel = " << (int)send_buf_sentinel_);
+
         return true;
-    } else if (send_buf_vec_.size() < _rconfig.connection_relay_buffer_count) {
-        send_buf_vec_.push_back(_rconfig.allocateSendBuffer(recv_buf_cp_kb_));
-        _rpbuf = send_buf_vec_[send_buf_vec_sentinel_].get();
-        ++send_buf_vec_sentinel_;
-        vdbgx(Debug::mpipc, this << " sentinel = " << (int)send_buf_vec_sentinel_);
+    } else if (send_buf_count_ < _rconfig.connection_relay_buffer_count) {
+
+        ++send_buf_count_;
+        ++send_buf_sentinel_;
+        vdbgx(Debug::mpipc, this << " sentinel = " << (int)send_buf_sentinel_);
         return true;
     }
     return false;
@@ -1552,9 +1554,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             while (repeatcnt) {
 
                 if (shouldPollPool()) {
-                    
+
                     flags_.reset(FlagsE::PollPool); //reset flag
-                    
+
                     if ((error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId()))) {
                         doStop(_rctx, error);
                         sent_something = false; //prevent calling doResetTimerSend after doStop
@@ -1569,17 +1571,18 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 }
 
                 const bool use_relay_buffer = msg_writer_.isFrontRelayMessage();
-                char*      buffer           = send_buf_.get();
+                //char*      buffer           = send_buf_.get();
+                WriteBuffer buffer{send_buf_.get(), sendBufferCapacity()};
 
-                if (use_relay_buffer and hasRelayBuffer(rconfig, buffer)) {
+                if (use_relay_buffer and hasRelayBuffer(rconfig)) {
                     vdbgx(Debug::mpipc, this << ' ' << id() << " using a relay buffer");
-                    write_flags.set(MessageWriter::WriteFlagsE::CanSendRelayedMessages);
+                    write_flags.set(MessageWriter::WriteFlagsE::CanSendRelayMessages);
                 } else {
                     vdbgx(Debug::mpipc, this << ' ' << id() << " using the direct buffer");
                 }
 
-                uint32_t sz = msg_writer_.write(
-                    buffer, sendbufcp, write_flags, ackd_buf_count_, cancel_remote_msg_vec_, sender, rconfig.writer, rconfig.protocol(), conctx, error);
+                error = msg_writer_.write(
+                    buffer, write_flags, ackd_buf_count_, cancel_remote_msg_vec_, sender, rconfig.writer, rconfig.protocol(), conctx);
 
                 flags_.reset(FlagsE::Keepalive);
 
@@ -1587,9 +1590,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
                     ackd_buf_count_ = 0;
 
-                    if (sz && this->sendAll(_rctx, buffer, sz)) {
+                    if (buffer.size() && this->sendAll(_rctx, buffer.data(), buffer.size())) {
                         if (_rctx.error()) {
-                            edbgx(Debug::mpipc, this << ' ' << id() << " sending " << sz << ": " << _rctx.error().message());
+                            edbgx(Debug::mpipc, this << ' ' << id() << " sending " << buffer.size() << ": " << _rctx.error().message());
                             flags_.set(FlagsE::StopPeer);
                             doStop(_rctx, _rctx.error(), _rctx.systemError());
                             sent_something = false; //prevent calling doResetTimerSend after doStop
@@ -1601,10 +1604,10 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                         break;
                     }
                 } else {
-                    edbgx(Debug::mpipc, this << ' ' << id() << " size to send " << sz << " error " << error.message());
+                    edbgx(Debug::mpipc, this << ' ' << id() << " size to send " << buffer.size() << " error " << error.message());
 
-                    if (sz) {
-                        this->sendAll(_rctx, buffer, sz);
+                    if (buffer.size()) {
+                        this->sendAll(_rctx, buffer.data(), buffer.size());
                     }
 
                     doStop(_rctx, error);
@@ -1782,12 +1785,12 @@ void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, cons
 //-----------------------------------------------------------------------------
 bool Connection::doCompleteRelayBody(
     frame::aio::ReactorContext& _rctx,
-    MessageHeader& _rmsghdr,
-    const char* _pbeg,
-    size_t _sz,
-    ObjectIdT& _rrelay_id,
-    const bool _is_last,
-    ErrorConditionT& _rerror)
+    MessageHeader&              _rmsghdr,
+    const char*                 _pbeg,
+    size_t                      _sz,
+    ObjectIdT&                  _rrelay_id,
+    const bool                  _is_last,
+    ErrorConditionT&            _rerror)
 {
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx(service(_rctx), *this);

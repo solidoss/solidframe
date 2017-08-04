@@ -57,7 +57,7 @@ struct WorkPoolBase {
 
 protected:
     //static ErrorConditionT error_running;
-    
+
     WorkPoolBase()
         : st(Stopped)
         , wkrcnt(0)
@@ -102,11 +102,11 @@ struct WorkPoolControllerBase {
     void onStop()
     {
     }
-    
-    size_t maxQueueSize()const{
+
+    size_t maxQueueSize() const
+    {
         return -1;
     }
-    
 };
 
 //! A generic workpool
@@ -214,14 +214,14 @@ public:
     void push(const JT& _jb)
     {
         std::unique_lock<std::mutex> lock(mtx);
-        
-        if(jobq.size() < ctrl.maxQueueSize()){
-        }else{
-            do{
+
+        if (jobq.size() < ctrl.maxQueueSize()) {
+        } else {
+            do {
                 sigcnd.wait(lock);
-            }while(jobq.size() >= ctrl.maxQueueSize());
+            } while (jobq.size() >= ctrl.maxQueueSize());
         }
-        
+
         jobq.push(_jb);
         sigcnd.notify_one();
         ctrl.onPush(*this, jobq.size());
@@ -231,14 +231,14 @@ public:
     void push(JT&& _jb)
     {
         std::unique_lock<std::mutex> lock(mtx);
-        
-        if(jobq.size() < ctrl.maxQueueSize()){
-        }else{
-            do{
+
+        if (jobq.size() < ctrl.maxQueueSize()) {
+        } else {
+            do {
                 sigcnd.wait(lock);
-            }while(jobq.size() >= ctrl.maxQueueSize());
+            } while (jobq.size() >= ctrl.maxQueueSize());
         }
-        
+
         jobq.push(std::move(_jb));
         sigcnd.notify_one();
         ctrl.onPush(*this, jobq.size());
@@ -250,13 +250,13 @@ public:
     {
         std::unique_lock<std::mutex> lock(mtx);
         size_t                       cnt(_end - _i);
-        
+
         for (; _i != _end; ++_i) {
-            if(jobq.size() < ctrl.maxQueueSize()){
-            }else{
-                do{
+            if (jobq.size() < ctrl.maxQueueSize()) {
+            } else {
+                do {
                     sigcnd.wait(lock);
-                }while(jobq.size() >= ctrl.maxQueueSize());
+                } while (jobq.size() >= ctrl.maxQueueSize());
             }
             jobq.push(std::move(*_i));
         }
@@ -376,7 +376,8 @@ private:
                 jobq.pop();
             } while (jobq.size() && --insertcount);
             ctrl.onPopDone(*this, _rw);
-            if(was_full) sigcnd.notify_all();
+            if (was_full)
+                sigcnd.notify_all();
             return true;
         }
         return false;
@@ -393,10 +394,11 @@ private:
         }
         if (doWaitJob(lock)) {
             const bool was_full = jobq.size() == ctrl.maxQueueSize();
-            _rjob = std::move(jobq.front());
+            _rjob               = std::move(jobq.front());
             jobq.pop();
             ctrl.onPopDone(*this, _rw);
-            if(was_full) sigcnd.notify_all();
+            if (was_full)
+                sigcnd.notify_all();
             return true;
         }
         return false;
@@ -443,13 +445,13 @@ private:
     ThreadVectorT thread_vec;
 };
 
+struct WorkPoolController : WorkPoolControllerBase {
+    const size_t max_thr_cnt_;
+    const size_t max_job_cnt_;
 
-struct WorkPoolController : WorkPoolControllerBase{
-    const size_t            max_thr_cnt_;
-    const size_t            max_job_cnt_;
-    
     WorkPoolController(const size_t _max_thr_cnt = 0, const size_t _max_job_cnt = -1)
-        : max_thr_cnt_(_max_thr_cnt ? std::thread::hardware_concurrency() : _max_thr_cnt), max_job_cnt_(_max_job_cnt)
+        : max_thr_cnt_(_max_thr_cnt ? std::thread::hardware_concurrency() : _max_thr_cnt)
+        , max_job_cnt_(_max_job_cnt)
     {
     }
 
@@ -472,30 +474,30 @@ struct WorkPoolController : WorkPoolControllerBase{
     {
     }
 
-    
-    size_t maxQueueSize()const{
+    size_t maxQueueSize() const
+    {
         return max_job_cnt_;
     }
 };
 
 template <class J>
-struct WorkPoolFunctionController: WorkPoolController{
+struct WorkPoolFunctionController : WorkPoolController {
     using FunctionJobT = std::function<void(J&)>;
-    
-    const FunctionJobT      job_fnc_;
-    
+
+    const FunctionJobT job_fnc_;
+
     template <class F>
-    WorkPoolFunctionController(F &&_f, const size_t _max_thr_cnt = 0, const size_t _max_job_cnt = -1)
-        : WorkPoolController(_max_thr_cnt, _max_job_cnt), job_fnc_(std::forward<F>(_f))
+    WorkPoolFunctionController(F&& _f, const size_t _max_thr_cnt = 0, const size_t _max_job_cnt = -1)
+        : WorkPoolController(_max_thr_cnt, _max_job_cnt)
+        , job_fnc_(std::forward<F>(_f))
     {
     }
-    
+
     void execute(WorkPoolBase& /*_rwp*/, WorkerBase& /*_rw*/, J& _rj)
     {
         job_fnc_(_rj);
     }
 };
-
 
 template <class J>
 using FunctionWorkPoolT = WorkPool<J, WorkPoolFunctionController<J>>;

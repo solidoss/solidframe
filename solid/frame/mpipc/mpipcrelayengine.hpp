@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "solid/system/pimpl.hpp"
 #include "solid/system/error.hpp"
+#include "solid/system/pimpl.hpp"
 
 namespace solid {
 namespace frame {
@@ -19,19 +19,20 @@ namespace mpipc {
 
 struct ConnectionContext;
 
-struct RelayStub{
-    RelayData data_;
-    RelayStub *pnext;
+struct RelayStub {
+    RelayData  data_;
+    RelayStub* pnext;
 };
 
-class RelayEngine{
+class RelayEngine {
 protected:
     void onConnectionRegister(
         ConnectionContext& _rctx,
         const std::string& _name);
+
 private:
     friend class Connection;
-    
+
     virtual bool relay(
         ConnectionContext& _rctx,
         MessageHeader&     _rmsghdr,
@@ -39,14 +40,14 @@ private:
         ObjectIdT&         _rrelay_id,
         const bool         _is_last,
         ErrorConditionT&   _rerror);
-    
-    ErrorContionT pollUpdates(ConnectionContext& _rctx, Connection &_rcon);
-    
+
+    ErrorContionT pollUpdates(ConnectionContext& _rctx, Connection& _rcon);
+
 private:
     struct Data;
     PimplT<Data> impl_;
 };
 
-}//namespace mpipc
-}//namespace frame
-}//namespace solid
+} //namespace mpipc
+} //namespace frame
+} //namespace solid

@@ -23,7 +23,7 @@ typedef DynamicPointer<ResolveBase> ResolverPointerT;
 struct WorkPoolController;
 typedef WorkPool<ResolverPointerT, WorkPoolController> WorkPoolT;
 
-struct WorkPoolController : solid::WorkPoolController{
+struct WorkPoolController : solid::WorkPoolController {
     WorkPoolController(const size_t _max_thr_cnt, const size_t _max_job_cnt)
         : solid::WorkPoolController(_max_thr_cnt, _max_job_cnt)
     {

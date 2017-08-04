@@ -320,30 +320,30 @@ void peerb_complete_message(
 //-----------------------------------------------------------------------------
 
 struct RelayEngine {
-    
-    struct RelayStub{
+
+    struct RelayStub {
         frame::mpipc::RelayData data_;
-        RelayStub               *pnext;
+        RelayStub*              pnext;
     };
-    
-    struct MessageStub{
-        uint32_t                        unique_;
-        frame::mpipc::MessageHeader     header_;
-        frame::ObjectIdT                connection_id_;
-        RelayStub                       *prelay_front;
-        RelayStub                       *prelay_back;
-        MessageStub                     *pnext;
+
+    struct MessageStub {
+        uint32_t                    unique_;
+        frame::mpipc::MessageHeader header_;
+        frame::ObjectIdT            connection_id_;
+        RelayStub*                  prelay_front;
+        RelayStub*                  prelay_back;
+        MessageStub*                pnext;
     };
-    
+
     struct ConnectionStub {
         std::string      name_;
         frame::ObjectIdT connection_id_;
-        MessageStub      *pfront;
-        MessageStub      *pback;
+        MessageStub*     pfront;
+        MessageStub*     pback;
     };
-    
+
     using ConnectionMapT = std::unordered_map<std::string, ConnectionStub>;
-    using MessageDequeT = std::deque<MessageStub>;
+    using MessageDequeT  = std::deque<MessageStub>;
 
     ConnectionMapT conmap;
     MessageDequeT  msgdq;
@@ -351,7 +351,7 @@ struct RelayEngine {
 
     void onConnectionStart(frame::mpipc::ConnectionContext& _rctx);
     void onConnectionStop(frame::mpipc::ConnectionContext& _rctx);
-    
+
     void onConnectionRegister(
         frame::mpipc::ConnectionContext& _rctx,
         std::shared_ptr<Register>&       _rsent_msg_ptr,
@@ -429,19 +429,18 @@ bool RelayEngine::onRelay(
 {
     idbg("relay message to: " << _rmsghdr.url_);
     unique_lock<mutex> lock(mtx);
-    frame::ObjectIdT    msgid;
+    frame::ObjectIdT   msgid;
 
 //     if(_rrelay_id.isValid()) {//a continued message
 //         msgid = _rrelay_id;
-//         
+//
 //     }else{//a new message
 //         msgid = allocateMessageId();
-//         
+//
 //     }
-//     
+//
 //     MessageStub &rmsg = msgdq[msgid.index];
-    
-    
+
 #if 0
     if (_rrelay_id.isValid()) {
         ErrorConditionT err = _rctx.service().sendRelay(_rrelay_id, std::move(_rrelmsg));

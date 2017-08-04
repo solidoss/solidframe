@@ -224,10 +224,10 @@ private:
     void doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid);
     bool doCompleteRelayBody(
         frame::aio::ReactorContext& _rctx,
-        MessageHeader& _rmsghdr,
+        MessageHeader&              _rmsghdr,
         const char* _pbeg, size_t _sz,
-        ObjectIdT& _rrelay_id,
-        const bool _is_last,
+        ObjectIdT&       _rrelay_id,
+        const bool       _is_last,
         ErrorConditionT& _rerror);
 
     void doHandleEventKill(frame::aio::ReactorContext& _rctx, Event& _revent);
@@ -257,7 +257,7 @@ private:
     void doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint8_t _request_buffer_ack_count, ErrorConditionT& _rerr);
 
 private:
-    bool hasRelayBuffer(const Configuration& _rconfig, char*& _rpbuf);
+    bool hasRelayBuffer(const Configuration& _rconfig);
     bool postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent);
     bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp);
     bool postRecvSome(frame::aio::ReactorContext& _rctx, char* _pbuf, size_t _bufcp, Event& _revent);
@@ -317,8 +317,8 @@ private:
     RecvBufferPointerT recv_buf_;
     RecvBufferVectorT  recv_buf_vec_;
     SendBufferPointerT send_buf_;
-    SendBufferVectorT  send_buf_vec_;
-    uint8_t            send_buf_vec_sentinel_;
+    uint8_t            send_buf_count_;
+    uint8_t            send_buf_sentinel_;
     uint8_t            ackd_buf_count_;
     uint8_t            recv_buf_cp_kb_; //kilobytes
     uint8_t            send_buf_cp_kb_; //kilobytes

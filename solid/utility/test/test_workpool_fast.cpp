@@ -13,12 +13,11 @@ std::atomic<size_t> val{0};
 
 int test_workpool_fast(int argc, char* argv[])
 {
-    FunctionWorkPoolT<size_t>  wp{
-        [](size_t _v){
+    FunctionWorkPoolT<size_t> wp{
+        [](size_t _v) {
             val += _v;
         },
-        5
-    };
+        5};
     const size_t cnt{5000000};
 
     wp.start(5);

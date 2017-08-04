@@ -188,30 +188,29 @@ bool MessageWriter::isFrontRelayMessage() const
 // Needs:
 //
 
-uint32_t MessageWriter::write(
-    char*&                     _rpbuf,
-    uint32_t                   _bufsz,
+ErrorConditionT MessageWriter::write(
+    WriteBuffer&               _rbuffer,
     const WriteFlagsT&         _flags,
     uint8_t                    _ackd_buf_count,
     RequestIdVectorT&          _cancel_remote_msg_vec,
     Sender&                    _rsender,
     WriterConfiguration const& _rconfig,
     Protocol const&            _rproto,
-    ConnectionContext& _rctx,
-    ErrorConditionT& _rerror)
+    ConnectionContext&         _rctx)
 {
 
-    char* pbufpos = _rpbuf;
-    char* pbufend = _rpbuf + _bufsz;
-    uint32_t freesz =  _bufsz; //pbufend - pbufpos;
-    bool more = true;
-    
+    char*           pbufpos = _rbuffer.data();
+    char*           pbufend = _rbuffer.end();
+    uint32_t        freesz  = _rbuffer.size();
+    bool            more    = true;
+    ErrorConditionT error;
+
     while (more and freesz >= (PacketHeader::SizeOfE + _rproto.minimumFreePacketDataSize())) {
 
         PacketHeader  packet_header(PacketHeader::MessageTypeE, 0, 0);
         PacketOptions packet_options;
         char*         pbufdata = pbufpos + PacketHeader::SizeOfE;
-        size_t        fillsz  = doFillPacketData(_rpbuf, pbufdata, pbufend, packet_options, more, _flags, _ackd_buf_count, _cancel_remote_msg_vec, _rsender, _rconfig, _rproto, _rctx, _rerror);
+        size_t        fillsz   = doWritePacketData(pbufdata, pbufend, packet_options, more, _flags, _ackd_buf_count, _cancel_remote_msg_vec, _rsender, _rconfig, _rproto, _rctx, error);
 
         if (fillsz) {
 
@@ -226,22 +225,22 @@ uint32_t MessageWriter::write(
                     //the buffer was not modified, we can send it uncompressed
                 } else {
                     //there was an error and the inplace buffer was changed - exit with error
-                    more    = false;
-                    _rerror = compress_error;
+                    more  = false;
+                    error = compress_error;
                     break;
                 }
             }
             if (packet_options.request_accept) {
-                SOLID_ASSERT(_flags.has(WriteFlagsE::CanSendRelayedMessages));
+                SOLID_ASSERT(_flags.has(WriteFlagsE::CanSendRelayMessages));
                 vdbgx(Debug::mpipc, "send AckRequestFlagE");
                 packet_header.flags(packet_header.flags() | PacketHeader::Flags::AckRequestFlagE);
                 more = false; //do not allow multiple packets per relay buffer
-            } else if (_flags.has(WriteFlagsE::CanSendRelayedMessages)) {
+            } else if (_flags.has(WriteFlagsE::CanSendRelayMessages)) {
                 vdbgx(Debug::mpipc, "releaseRelayBuffer - no request accept");
                 _rsender.releaseRelayBuffer();
                 more = false; //do not allow multiple packets per relay buffer
             }
-            
+
             SOLID_ASSERT(static_cast<size_t>(fillsz) < static_cast<size_t>(0xffffUL));
 
             packet_header.type(packet_options.packet_type);
@@ -255,60 +254,28 @@ uint32_t MessageWriter::write(
         }
     }
 
-    if (not _rerror and pbufpos == _rpbuf) {
+    if (not error and _rbuffer.data() == pbufpos) {
         if (_flags.has(WriteFlagsE::ShouldSendKeepAlive)) {
             PacketHeader packet_header(PacketHeader::KeepAliveTypeE);
             pbufpos = packet_header.store(pbufpos, _rproto);
         }
-        if (_flags.has(WriteFlagsE::CanSendRelayedMessages)) {
+        if (_flags.has(WriteFlagsE::CanSendRelayMessages)) {
             vdbgx(Debug::mpipc, "releaseRelayBuffer - nothing sent");
             _rsender.releaseRelayBuffer();
         }
     }
-    return pbufpos - _rpbuf;
+    _rbuffer.resize(pbufpos - _rbuffer.data());
+    return error;
 }
 //-----------------------------------------------------------------------------
-//  |4B - PacketHeader|PacketHeader.size - PacketData|
-//  Examples:
-//
-//  3 Messages Packet
-//  |[PH(NewMessageTypeE)]|[MessageData-1][1B - DataType = NewMessageTypeE][MessageData-2][NewMessageTypeE][MessageData-3]|
-//
-//  2 Messages, one spread over 3 packets and one new:
-//  |[PH(NewMessageTypeE)]|[MessageData-1]|
-//  |[PH(ContinuedMessageTypeE)]|[MessageData-1]|
-//  |[PH(ContinuedMessageTypeE)]|[MessageData-1][NewMessageTypeE][MessageData-2]|
-//
-//  3 Messages, one Continued, one old continued and one new
-//  |[PH(ContinuedMessageTypeE)]|[MessageData-3]|
-//  |[PH(ContinuedMessageTypeE)]|[MessageData-3]| # message 3 not finished
-//  |[PH(OldMessageTypeE)]|[MessageData-2]|
-//  |[PH(ContinuedMessageTypeE)]|[MessageData-2]|
-//  |[PH(ContinuedMessageTypeE)]|[MessageData-2]|
-//  |[PH(ContinuedMessageTypeE)]|[MessageData-2][NewMessageTypeE][MessageData-4][OldMessageTypeE][MessageData-3]| # message 2 finished, message 3 still not finished
-//  |[PH(ContinuedMessageTypeE)]|[MessageData-3]|
-//
-//
-//  NOTE:
-//  Header type can be: NewMessageTypeE, OldMessageTypeE, ContinuedMessageTypeE
-//  Data type can be: NewMessageTypeE, OldMessageTypeE
-//
-//  PROBLEM:
-//  1) Should we call prepare on a message, and if so when?
-//      > If we call it on doFillPacket, we cannot use prepare as a flags filter.
-//          This is because of Send Synchronous Flag which, if sent on prepare would be too late.
-//          One cannot set Send Synchronous Flag because the connection might not be the
-//          one handling Synchronous Messages.
-//
-//      > If we call it before message gets to a connection we do not have a MessageId (e.g. can be used for tracing).
-//
-//
-//      * Decided to drop the "prepare" functionality.
-//
-size_t MessageWriter::doFillPacketData(
-    char*&                     _rpbuf,
-    char*&                     _rpbufbeg,
-    char*&                     _rpbufend,
+// we have three types of messages:
+// - direct: serialized onto buffer
+// - relay: serialized onto a relay buffer (one that needs confirmation)
+// - relayed: copyed onto the output buffer (no serialization)
+
+size_t MessageWriter::doWritePacketData(
+    char*                      _pbufbeg,
+    char*                      _pbufend,
     PacketOptions&             _rpacket_options,
     bool&                      _rmore,
     const WriteFlagsT&         _flags,
@@ -321,9 +288,10 @@ size_t MessageWriter::doFillPacketData(
     ErrorConditionT&           _rerror)
 {
     SerializerPointerT tmp_serializer;
-    char*              pbufpos              = _rpbufbeg;
+    char*              pbufpos              = _pbufbeg;
     size_t             packet_message_count = 0;
     size_t             loop_guard           = write_inner_list_.size() * 4; //one for the message header and one for body ... rest just to be sure
+    const bool         is_relay_buffer      = _flags.has(WriteFlagsE::CanSendRelayMessages);
 
     if (_ackd_buf_count) {
         vdbgx(Debug::mpipc, "stored ackd_buf_count = " << (int)_ackd_buf_count);
@@ -333,7 +301,7 @@ size_t MessageWriter::doFillPacketData(
         ++packet_message_count;
     }
 
-    while (_cancel_remote_msg_vec.size() and (_rpbufend - pbufpos) >= _rproto.minimumFreePacketDataSize()) {
+    while (_cancel_remote_msg_vec.size() and (_pbufend - pbufpos) >= _rproto.minimumFreePacketDataSize()) {
         if (packet_message_count) {
             uint8_t tmp = PacketHeader::CancelRequestTypeE;
             pbufpos     = _rproto.storeValue(pbufpos, tmp);
@@ -353,30 +321,33 @@ size_t MessageWriter::doFillPacketData(
     }
 
     while (write_inner_list_.size() and (_pbufend - pbufpos) >= _rproto.minimumFreePacketDataSize() and (loop_guard--) != 0) {
-        if (not _flags.has(WriteFlagsE::CanSendRelayedMessages) and write_inner_list_.front().isRelay()) {
+        if (not is_relay_buffer and write_inner_list_.front().isRelay()) {
             vdbgx(Debug::mpipc, "skip idx = " << write_inner_list_.frontIndex());
             write_inner_list_.pushBack(write_inner_list_.popFront());
             continue;
         }
 
-        const size_t        msgidx    = write_inner_list_.frontIndex();
-        MessageStub&        rmsgstub  = message_vec_[msgidx];
+        const size_t msgidx   = write_inner_list_.frontIndex();
+        MessageStub& rmsgstub = message_vec_[msgidx];
         //PacketHeader::Types msgswitch = doPrepareMessageForSending(msgidx, _rconfig, _rproto, _rctx, tmp_serializer);
 
         vdbgx(Debug::mpipc, "msgidx = " << msgidx);
-        
-        switch(rmsgstub.state_){
-            case MessageStub::StateE::WriteStart:
-                doPrepareMessageForWrite();
-            case MessageStub::StateE::WriteHead:
-                doWriteMessageHead();break;
-            case MessageStub::StateE::WriteBody:
-                doWriteMessageBody();break;
-            case MessageStub::StateE::RelayedStart:
-            case MessageStub::StateE::RelayedHead:
-            case MessageStub::StateE::RelayedBody:
-            case MessageStub::StateE::Canceled:
-                doWriteMessageCancel();break;
+
+        switch (rmsgstub.state_) {
+        case MessageStub::StateE::WriteStart:
+            doPrepareMessageForWrite();
+        case MessageStub::StateE::WriteHead:
+            doWriteMessageHead();
+            break;
+        case MessageStub::StateE::WriteBody:
+            doWriteMessageBody();
+            break;
+        case MessageStub::StateE::RelayedStart:
+        case MessageStub::StateE::RelayedHead:
+        case MessageStub::StateE::RelayedBody:
+        case MessageStub::StateE::Canceled:
+            doWriteMessageCancel();
+            break;
         }
 #if 0
         char* pswitchpos = nullptr;
@@ -463,7 +434,7 @@ size_t MessageWriter::doFillPacketData(
             break;
         }
 #endif
-    }//while
+    } //while
 
     vdbgx(Debug::mpipc, "write_q_size " << write_inner_list_.size() << " order_q_size " << order_inner_list_.size());
 

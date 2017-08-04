@@ -463,7 +463,7 @@ int test_relay_disabled(int argc, char** argv)
             auto con_relay = [&relay_engine](
                 frame::mpipc::ConnectionContext& /*_rctx*/,
                 frame::mpipc::MessageHeader& _rmsghdr,
-                frame::mpipc::RelayData&& _rrelmsg,
+                frame::mpipc::RelayData&&    _rrelmsg,
                 frame::ObjectIdT& /*_rrelay_id*/,
                 const bool /*_is_last*/,
                 ErrorConditionT & /*_rerror*/) -> bool {
