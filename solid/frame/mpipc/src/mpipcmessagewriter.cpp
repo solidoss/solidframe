@@ -252,6 +252,15 @@ ErrorConditionT MessageWriter::write(
     return error;
 }
 //-----------------------------------------------------------------------------
+bool MessageWriter::findEligibleMessage(){
+    size_t qsz = write_inner_list_.size();
+    while(qsz--){
+        const size_t msgidx   = write_inner_list_.frontIndex();
+        MessageStub& rmsgstub = message_vec_[msgidx];
+        
+    }
+}
+//-----------------------------------------------------------------------------
 // we have three types of messages:
 // - direct: serialized onto buffer
 // - relay: serialized onto a relay buffer (one that needs confirmation)
