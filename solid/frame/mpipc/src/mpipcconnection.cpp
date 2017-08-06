@@ -244,8 +244,7 @@ Connection::Connection(
     , recv_buf_count_(0)
     , recv_buf_(nullptr)
     , send_buf_(nullptr)
-    , send_buf_count_(0)
-    , send_buf_sentinel_(0)
+    , send_relay_free_count_(_rconfiguration.connection_relay_buffer_count)
     , ackd_buf_count_(0)
     , recv_buf_cp_kb_(0)
     , send_buf_cp_kb_(0)
@@ -270,8 +269,7 @@ Connection::Connection(
     , recv_buf_count_(0)
     , recv_buf_(nullptr)
     , send_buf_(nullptr)
-    , send_buf_count_(0)
-    , send_buf_sentinel_(0)
+    , send_relay_free_count_(_rconfiguration.connection_relay_buffer_count)
     , ackd_buf_count_(0)
     , recv_buf_cp_kb_(0)
     , send_buf_cp_kb_(0)
@@ -1482,30 +1480,20 @@ struct Connection::Receiver : MessageReader::Receiver {
     }
 }
 //-----------------------------------------------------------------------------
-inline bool Connection::hasRelayBuffer(const Configuration& _rconfig)
-{
-    if (send_buf_sentinel_ < send_buf_count_) {
-        ++send_buf_sentinel_;
-        vdbgx(Debug::mpipc, this << " sentinel = " << (int)send_buf_sentinel_);
-
-        return true;
-    } else if (send_buf_count_ < _rconfig.connection_relay_buffer_count) {
-
-        ++send_buf_count_;
-        ++send_buf_sentinel_;
-        vdbgx(Debug::mpipc, this << " sentinel = " << (int)send_buf_sentinel_);
-        return true;
-    }
-    return false;
-}
-//-----------------------------------------------------------------------------
 
 struct Connection::Sender : MessageWriter::Sender {
     Connection&                 rcon_;
     frame::aio::ReactorContext& rctx_;
 
-    Sender(Connection& _rcon, frame::aio::ReactorContext& _rctx)
-        : rcon_(_rcon)
+    Sender(
+        Connection& _rcon,
+        frame::aio::ReactorContext& _rctx,
+        WriterConfiguration const& _rconfig,
+        Protocol const&            _rproto,
+        ConnectionContext&         _rconctx
+    )
+        : MessageWriter::Sender(_rconfig, _rproto, _rconctx)
+        , rcon_(_rcon)
         , rctx_(_rctx)
     {
     }
@@ -1514,12 +1502,6 @@ struct Connection::Sender : MessageWriter::Sender {
     {
         rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, ErrorConditionT());
         return rcon_.service(rctx_).pollPoolForUpdates(rcon_, rcon_.uid(rctx_), _rpool_msg_id);
-    }
-
-    void releaseRelayBuffer() override
-    {
-        --rcon_.send_buf_vec_sentinel_;
-        vdbgx(Debug::mpipc, this << " sentinel = " << (int)rcon_.send_buf_vec_sentinel_);
     }
 };
 
@@ -1547,7 +1529,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             const uint32_t             sendbufcp      = sendBufferCapacity();
             const Configuration&       rconfig        = service(_rctx).configuration();
             bool                       sent_something = false;
-            Sender                     sender(*this, _rctx);
+            Sender                     sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx);
             MessageWriter::WriteFlagsT write_flags;
             //doResetTimerSend(_rctx);
 
@@ -1570,25 +1552,14 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                     write_flags.set(MessageWriter::WriteFlagsE::ShouldSendKeepAlive);
                 }
 
-                const bool use_relay_buffer = msg_writer_.isFrontRelayMessage();
-                //char*      buffer           = send_buf_.get();
                 WriteBuffer buffer{send_buf_.get(), sendBufferCapacity()};
 
-                if (use_relay_buffer and hasRelayBuffer(rconfig)) {
-                    vdbgx(Debug::mpipc, this << ' ' << id() << " using a relay buffer");
-                    write_flags.set(MessageWriter::WriteFlagsE::CanSendRelayMessages);
-                } else {
-                    vdbgx(Debug::mpipc, this << ' ' << id() << " using the direct buffer");
-                }
-
                 error = msg_writer_.write(
-                    buffer, write_flags, ackd_buf_count_, cancel_remote_msg_vec_, sender, rconfig.writer, rconfig.protocol(), conctx);
+                    buffer, write_flags, ackd_buf_count_, cancel_remote_msg_vec_, send_relay_free_count_, sender);
 
                 flags_.reset(FlagsE::Keepalive);
 
                 if (!error) {
-
-                    ackd_buf_count_ = 0;
 
                     if (buffer.size() && this->sendAll(_rctx, buffer.data(), buffer.size())) {
                         if (_rctx.error()) {

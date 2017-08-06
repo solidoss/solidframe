@@ -55,10 +55,24 @@ private:
 class MessageWriter {
 public:
     struct Sender {
+        WriterConfiguration const& rconfig_;
+        Protocol const&            rproto_;
+        ConnectionContext&         rctx_;
+        
+        Sender(
+            WriterConfiguration const& _rconfig,
+            Protocol const&            _rproto,
+            ConnectionContext&         _rctx
+        ):rconfig_(_rconfig), rproto_(_rproto), rctx_(_rctx){}
+        
+        WriterConfiguration const& configuration()const{return rconfig_;}
+        Protocol const& protocol()const{return rproto_;}
+        ConnectionContext& context()const{return rctx_;}
+        
+        
         virtual ~Sender() {}
 
         virtual ErrorConditionT completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/) = 0;
-        virtual void            releaseRelayBuffer() = 0;
     };
 
     using VisitFunctionT = SOLID_FUNCTION<void(
@@ -77,7 +91,6 @@ public:
 
     enum struct WriteFlagsE {
         ShouldSendKeepAlive,
-        CanSendRelayMessages,
         LastFlag
     };
 
@@ -107,18 +120,12 @@ public:
     ErrorConditionT write(
         WriteBuffer&               _rbuffer,
         const WriteFlagsT&         _flags,
-        uint8_t                    _ackd_buf_count,
+        uint8_t&                   _rackd_buf_count,
         RequestIdVectorT&          _cancel_remote_msg_vec,
-        Sender&                    _rsender,
-        WriterConfiguration const& _rconfig,
-        Protocol const&            _rproto,
-        ConnectionContext&         _rctx);
+        uint8_t&                   _rrelay_free_count,
+        Sender&                    _rsender);
 
     bool empty() const;
-
-    //a relay message is a message the is to be relayed on its path to destination
-    //for those messages we'll use relay buffers
-    bool isFrontRelayMessage() const;
 
     bool full(WriterConfiguration const& _rconfig) const;
 
@@ -252,12 +259,10 @@ private:
         PacketOptions&             _rpacket_options,
         bool&                      _rmore,
         const WriteFlagsT&         _flags,
-        uint8_t&                   _ackd_buf_count,
+        uint8_t&                   _rackd_buf_count,
         RequestIdVectorT&          _cancel_remote_msg_vec,
+        uint8_t                    _relay_free_count,
         Sender&                    _rsender,
-        WriterConfiguration const& _rconfig,
-        Protocol const&            _rproto,
-        ConnectionContext&         _rctx,
         ErrorConditionT&           _rerror);
 
     bool doCancel(

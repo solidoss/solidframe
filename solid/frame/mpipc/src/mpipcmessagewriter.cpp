@@ -171,13 +171,6 @@ bool MessageWriter::empty() const
     return order_inner_list_.empty();
 }
 //-----------------------------------------------------------------------------
-
-bool MessageWriter::isFrontRelayMessage() const
-{
-    return not write_inner_list_.empty() and write_inner_list_.front().isRelay();
-}
-
-//-----------------------------------------------------------------------------
 // Does:
 // prepare message
 // serialize messages on buffer
@@ -191,12 +184,10 @@ bool MessageWriter::isFrontRelayMessage() const
 ErrorConditionT MessageWriter::write(
     WriteBuffer&               _rbuffer,
     const WriteFlagsT&         _flags,
-    uint8_t                    _ackd_buf_count,
+    uint8_t&                   _rackd_buf_count,
     RequestIdVectorT&          _cancel_remote_msg_vec,
-    Sender&                    _rsender,
-    WriterConfiguration const& _rconfig,
-    Protocol const&            _rproto,
-    ConnectionContext&         _rctx)
+    uint8_t&                   _rrelay_free_count,
+    Sender&                    _rsender)
 {
 
     char*           pbufpos = _rbuffer.data();
@@ -205,18 +196,18 @@ ErrorConditionT MessageWriter::write(
     bool            more    = true;
     ErrorConditionT error;
 
-    while (more and freesz >= (PacketHeader::SizeOfE + _rproto.minimumFreePacketDataSize())) {
+    while (more and freesz >= (PacketHeader::SizeOfE + _rsender.protocol().minimumFreePacketDataSize())) {
 
         PacketHeader  packet_header(PacketHeader::MessageTypeE, 0, 0);
         PacketOptions packet_options;
         char*         pbufdata = pbufpos + PacketHeader::SizeOfE;
-        size_t        fillsz   = doWritePacketData(pbufdata, pbufend, packet_options, more, _flags, _ackd_buf_count, _cancel_remote_msg_vec, _rsender, _rconfig, _rproto, _rctx, error);
+        size_t        fillsz   = doWritePacketData(pbufdata, pbufend, packet_options, more, _flags, _rackd_buf_count, _cancel_remote_msg_vec, _rrelay_free_count, _rsender, error);
 
         if (fillsz) {
 
             if (not packet_options.force_no_compress) {
                 ErrorConditionT compress_error;
-                size_t          compressed_size = _rconfig.inplace_compress_fnc(pbufdata, fillsz, compress_error);
+                size_t          compressed_size = _rsender.configuration().inplace_compress_fnc(pbufdata, fillsz, compress_error);
 
                 if (compressed_size) {
                     packet_header.flags(packet_header.flags() | PacketHeader::CompressedFlagE);
@@ -231,13 +222,10 @@ ErrorConditionT MessageWriter::write(
                 }
             }
             if (packet_options.request_accept) {
-                SOLID_ASSERT(_flags.has(WriteFlagsE::CanSendRelayMessages));
+                SOLID_ASSERT(_rrelay_free_count != 0);
                 vdbgx(Debug::mpipc, "send AckRequestFlagE");
+                --_rrelay_free_count;
                 packet_header.flags(packet_header.flags() | PacketHeader::Flags::AckRequestFlagE);
-                more = false; //do not allow multiple packets per relay buffer
-            } else if (_flags.has(WriteFlagsE::CanSendRelayMessages)) {
-                vdbgx(Debug::mpipc, "releaseRelayBuffer - no request accept");
-                _rsender.releaseRelayBuffer();
                 more = false; //do not allow multiple packets per relay buffer
             }
 
@@ -246,7 +234,7 @@ ErrorConditionT MessageWriter::write(
             packet_header.type(packet_options.packet_type);
             packet_header.size(fillsz);
 
-            pbufpos = packet_header.store(pbufpos, _rproto);
+            pbufpos = packet_header.store(pbufpos, _rsender.protocol());
             pbufpos = pbufdata + fillsz;
             freesz  = pbufend - pbufpos;
         } else {
@@ -257,11 +245,7 @@ ErrorConditionT MessageWriter::write(
     if (not error and _rbuffer.data() == pbufpos) {
         if (_flags.has(WriteFlagsE::ShouldSendKeepAlive)) {
             PacketHeader packet_header(PacketHeader::KeepAliveTypeE);
-            pbufpos = packet_header.store(pbufpos, _rproto);
-        }
-        if (_flags.has(WriteFlagsE::CanSendRelayMessages)) {
-            vdbgx(Debug::mpipc, "releaseRelayBuffer - nothing sent");
-            _rsender.releaseRelayBuffer();
+            pbufpos = packet_header.store(pbufpos, _rsender.protocol());
         }
     }
     _rbuffer.resize(pbufpos - _rbuffer.data());
@@ -279,48 +263,48 @@ size_t MessageWriter::doWritePacketData(
     PacketOptions&             _rpacket_options,
     bool&                      _rmore,
     const WriteFlagsT&         _flags,
-    uint8_t&                   _ackd_buf_count,
+    uint8_t&                   _rackd_buf_count,
     RequestIdVectorT&          _cancel_remote_msg_vec,
+    uint8_t                    _relay_free_count,
     Sender&                    _rsender,
-    WriterConfiguration const& _rconfig,
-    Protocol const&            _rproto,
-    ConnectionContext&         _rctx,
     ErrorConditionT&           _rerror)
 {
     SerializerPointerT tmp_serializer;
     char*              pbufpos              = _pbufbeg;
     size_t             packet_message_count = 0;
-    size_t             loop_guard           = write_inner_list_.size() * 4; //one for the message header and one for body ... rest just to be sure
-    const bool         is_relay_buffer      = _flags.has(WriteFlagsE::CanSendRelayMessages);
-
-    if (_ackd_buf_count) {
-        vdbgx(Debug::mpipc, "stored ackd_buf_count = " << (int)_ackd_buf_count);
-        pbufpos                      = _rproto.storeValue(pbufpos, _ackd_buf_count);
-        _ackd_buf_count              = 0;
+    
+    if(not findEligibleMessage()){
+        return 0;
+    }
+    
+    if (_rackd_buf_count) {
+        vdbgx(Debug::mpipc, "stored ackd_buf_count = " << (int)_rackd_buf_count);
+        pbufpos                      = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
+        _rackd_buf_count              = 0;
         _rpacket_options.packet_type = PacketHeader::AckdCountTypeE;
         ++packet_message_count;
     }
 
-    while (_cancel_remote_msg_vec.size() and (_pbufend - pbufpos) >= _rproto.minimumFreePacketDataSize()) {
+    while (_cancel_remote_msg_vec.size() and (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
         if (packet_message_count) {
             uint8_t tmp = PacketHeader::CancelRequestTypeE;
-            pbufpos     = _rproto.storeValue(pbufpos, tmp);
+            pbufpos     = _rsender.protocol().storeValue(pbufpos, tmp);
         } else {
             _rpacket_options.packet_type = PacketHeader::CancelRequestTypeE;
             ++packet_message_count;
-            if (_ackd_buf_count) {
-                pbufpos         = _rproto.storeValue(pbufpos, _ackd_buf_count);
-                _ackd_buf_count = 0;
+            if (_rackd_buf_count) {
+                pbufpos         = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
+                _rackd_buf_count = 0;
             }
         }
-        pbufpos = _rproto.storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
+        pbufpos = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
         SOLID_CHECK(pbufpos != nullptr, "fail store cross value");
-        pbufpos = _rproto.storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().unique);
+        pbufpos = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().unique);
         SOLID_CHECK(pbufpos != nullptr, "fail store cross value");
         _cancel_remote_msg_vec.pop_back();
     }
 
-    while (write_inner_list_.size() and (_pbufend - pbufpos) >= _rproto.minimumFreePacketDataSize() and (loop_guard--) != 0) {
+    while (write_inner_list_.size() and (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
         if (not is_relay_buffer and write_inner_list_.front().isRelay()) {
             vdbgx(Debug::mpipc, "skip idx = " << write_inner_list_.frontIndex());
             write_inner_list_.pushBack(write_inner_list_.popFront());
@@ -438,7 +422,7 @@ size_t MessageWriter::doWritePacketData(
 
     vdbgx(Debug::mpipc, "write_q_size " << write_inner_list_.size() << " order_q_size " << order_inner_list_.size());
 
-    return pbufpos;
+    return pbufpos - _pbufbeg;
 }
 //-----------------------------------------------------------------------------
 //Explanation:
