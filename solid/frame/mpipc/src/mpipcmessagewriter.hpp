@@ -58,18 +58,21 @@ public:
         WriterConfiguration const& rconfig_;
         Protocol const&            rproto_;
         ConnectionContext&         rctx_;
-        
+
         Sender(
             WriterConfiguration const& _rconfig,
             Protocol const&            _rproto,
-            ConnectionContext&         _rctx
-        ):rconfig_(_rconfig), rproto_(_rproto), rctx_(_rctx){}
-        
-        WriterConfiguration const& configuration()const{return rconfig_;}
-        Protocol const& protocol()const{return rproto_;}
-        ConnectionContext& context()const{return rctx_;}
-        
-        
+            ConnectionContext&         _rctx)
+            : rconfig_(_rconfig)
+            , rproto_(_rproto)
+            , rctx_(_rctx)
+        {
+        }
+
+        WriterConfiguration const& configuration() const { return rconfig_; }
+        Protocol const&            protocol() const { return rproto_; }
+        ConnectionContext&         context() const { return rctx_; }
+
         virtual ~Sender() {}
 
         virtual ErrorConditionT completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/) = 0;
@@ -118,12 +121,12 @@ public:
         MessageId&     _rpool_msg_id);
 
     ErrorConditionT write(
-        WriteBuffer&               _rbuffer,
-        const WriteFlagsT&         _flags,
-        uint8_t&                   _rackd_buf_count,
-        RequestIdVectorT&          _cancel_remote_msg_vec,
-        uint8_t&                   _rrelay_free_count,
-        Sender&                    _rsender);
+        WriteBuffer&       _rbuffer,
+        const WriteFlagsT& _flags,
+        uint8_t&           _rackd_buf_count,
+        RequestIdVectorT&  _cancel_remote_msg_vec,
+        uint8_t&           _rrelay_free_count,
+        Sender&            _rsender);
 
     bool empty() const;
 
@@ -208,7 +211,11 @@ private:
             pool_msg_id_.clear();
             state_ = StateE::WriteStart;
         }
-
+        
+        bool isHeaderState() const noexcept{
+            return state_ == StateE::WriteHead or state_ == StateE::RelayedHead;
+        }
+        
         bool isStop() const noexcept
         {
             return not msgbundle_.message_ptr and not Message::is_canceled(msgbundle_.message_flags);
@@ -217,6 +224,14 @@ private:
         bool isRelay() const noexcept
         {
             return not msgbundle_.message_url.empty();
+        }
+        
+        bool isRelayed() const noexcept{
+            return false;//TODO:
+        }
+        
+        bool willRelayedFit(const size_t _sz)const noexcept{
+            return false;
         }
 
         bool isSynchronous() const noexcept
@@ -254,45 +269,63 @@ private:
     };
 
     size_t doWritePacketData(
-        char*                      _pbufbeg,
-        char*                      _pbufend,
-        PacketOptions&             _rpacket_options,
-        bool&                      _rmore,
-        const WriteFlagsT&         _flags,
-        uint8_t&                   _rackd_buf_count,
-        RequestIdVectorT&          _cancel_remote_msg_vec,
-        uint8_t                    _relay_free_count,
-        Sender&                    _rsender,
-        ErrorConditionT&           _rerror);
+        char*              _pbufbeg,
+        char*              _pbufend,
+        PacketOptions&     _rpacket_options,
+        uint8_t&           _rackd_buf_count,
+        RequestIdVectorT&  _cancel_remote_msg_vec,
+        uint8_t            _relay_free_count,
+        Sender&            _rsender,
+        ErrorConditionT&   _rerror);
 
     bool doCancel(
         const size_t   _msgidx,
         MessageBundle& _rmsgbundle,
         MessageId&     _rpool_msg_id);
 
-    void doLocateNextWriteMessage();
-
     bool isSynchronousInSendingQueue() const;
     bool isAsynchronousInPendingQueue() const;
     bool isDelayedCloseInPendingQueue() const;
+    
+    bool doFindEligibleMessage(const bool _can_send_relay, const size_t _size, const bool _fast);
 
     void doTryMoveMessageFromPendingToWriteQueue(mpipc::Configuration const& _rconfig);
 
-    PacketHeader::Types doPrepareMessageForSending(
-        const size_t               _msgidx,
-        WriterConfiguration const& _rconfig,
-        Protocol const&            _rproto,
-        ConnectionContext&         _rctx,
-        SerializerPointerT&        _rtmp_serializer);
+    char* doWriteMessageHead(
+        char*                     _pbufpos,
+        char*                     _pbufend,
+        const size_t              _msgidx,
+        PacketOptions&            _rpacket_options,
+        Sender&                   _rsender,
+        const bool                _is_first,
+        const PacketHeader::Types _msg_type,
+        ErrorConditionT&          _rerror);
+
+    char* doWriteMessageBody(
+        char*               _pbufpos,
+        char*               _pbufend,
+        const size_t        _msgidx,
+        PacketOptions&      _rpacket_options,
+        Sender&             _rsender,
+        const bool          _is_first,
+        PacketHeader::Types _msg_type,
+        SerializerPointerT& _rtmp_serializer,
+        ErrorConditionT&    _rerror);
+
+    char* doWriteMessageCancel(
+        char*            _pbufpos,
+        char*            _pbufend,
+        const size_t     _msgidx,
+        PacketOptions&   _rpacket_options,
+        Sender&          _rsender,
+        const bool       _is_first,
+        ErrorConditionT& _rerror);
 
     void doTryCompleteMessageAfterSerialization(
-        const size_t               _msgidx,
-        Sender&                    _rsender,
-        WriterConfiguration const& _rconfig,
-        Protocol const&            _rproto,
-        ConnectionContext&         _rctx,
-        SerializerPointerT&        _rtmp_serializer,
-        ErrorConditionT&           _rerror);
+        const size_t        _msgidx,
+        Sender&             _rsender,
+        SerializerPointerT& _rtmp_serializer,
+        ErrorConditionT&    _rerror);
 
     void doUnprepareMessageStub(const size_t _msgidx);
 

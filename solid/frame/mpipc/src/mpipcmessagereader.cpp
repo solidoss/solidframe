@@ -251,23 +251,25 @@ const char* MessageReader::doConsumeMessage(
                 const int rv = rmsgstub.deserializer_ptr_->run(_rctx, _pbufpos, message_size);
                 _pbufpos += message_size;
 
-                if (rv == static_cast<int>(message_size)) {
+                if (rv >= 0) {
+                    if (rv <= static_cast<int>(message_size)) {
 
-                    if (rmsgstub.deserializer_ptr_->empty()) {
-                        //done reading message header
-                        if (rmsgstub.message_header_.url_.empty()) {
-                            rmsgstub.state_ = MessageStub::StateE::ReadBody;
-                            rmsgstub.deserializer_ptr_->clear();
-                            rmsgstub.deserializer_ptr_->push(rmsgstub.message_ptr_);
-                        } else {
-                            vdbgx(Debug::mpipc, "Relay message: " << rmsgstub.message_header_.url_);
-                            rmsgstub.state_ = MessageStub::StateE::RelayBody;
-                            rmsgstub.deserializer_ptr_->clear();
-                            rmsgstub.deserializer_ptr_.reset();
+                        if (rmsgstub.deserializer_ptr_->empty()) {
+                            //done reading message header
+                            if (rmsgstub.message_header_.url_.empty()) {
+                                rmsgstub.state_ = MessageStub::StateE::ReadBody;
+                                rmsgstub.deserializer_ptr_->clear();
+                                rmsgstub.deserializer_ptr_->push(rmsgstub.message_ptr_);
+                            } else {
+                                vdbgx(Debug::mpipc, "Relay message: " << rmsgstub.message_header_.url_);
+                                rmsgstub.state_ = MessageStub::StateE::RelayBody;
+                                rmsgstub.deserializer_ptr_->clear();
+                                rmsgstub.deserializer_ptr_.reset();
+                            }
                         }
+                        break;
                     }
-                    break;
-                } else if (rv < 0) {
+                } else {
                     _rerror  = rmsgstub.deserializer_ptr_->error();
                     _pbufpos = _pbufend;
                     rmsgstub.clear();
@@ -293,22 +295,24 @@ const char* MessageReader::doConsumeMessage(
                 const int rv = rmsgstub.deserializer_ptr_->run(_rctx, _pbufpos, message_size);
                 _pbufpos += message_size;
 
-                if (rv == static_cast<int>(message_size)) {
+                if (rv >= 0) {
+                    if (rv <= static_cast<int>(message_size)) {
 
-                    if (_msg_type & PacketHeader::EndMessageTypeFlagE) {
-                        if (rmsgstub.deserializer_ptr_->empty()) {
-                            //done parsing the message body
-                            MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
-                            rmsgstub.clear();
-                            const size_t message_type_id = msgptr.get() ? _rproto.typeIndex(msgptr.get()) : InvalidIndex();
-                            _receiver.receiveMessage(msgptr, message_type_id);
+                        if (_msg_type & PacketHeader::EndMessageTypeFlagE) {
+                            if (rmsgstub.deserializer_ptr_->empty()) {
+                                //done parsing the message body
+                                MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
+                                rmsgstub.clear();
+                                const size_t message_type_id = msgptr.get() ? _rproto.typeIndex(msgptr.get()) : InvalidIndex();
+                                _receiver.receiveMessage(msgptr, message_type_id);
+                                break;
+                            }
+                            //fail: protocol error
+                        } else if (not rmsgstub.deserializer_ptr_->empty()) {
                             break;
                         }
-                        //fail: protocol error
-                    } else if (not rmsgstub.deserializer_ptr_->empty()) {
-                        break;
                     }
-                } else if (rv < 0) {
+                } else {
                     _rerror  = rmsgstub.deserializer_ptr_->error();
                     _pbufpos = _pbufend;
                     rmsgstub.clear();

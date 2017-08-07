@@ -1486,12 +1486,11 @@ struct Connection::Sender : MessageWriter::Sender {
     frame::aio::ReactorContext& rctx_;
 
     Sender(
-        Connection& _rcon,
+        Connection&                 _rcon,
         frame::aio::ReactorContext& _rctx,
-        WriterConfiguration const& _rconfig,
-        Protocol const&            _rproto,
-        ConnectionContext&         _rconctx
-    )
+        WriterConfiguration const&  _rconfig,
+        Protocol const&             _rproto,
+        ConnectionContext&          _rconctx)
         : MessageWriter::Sender(_rconfig, _rproto, _rconctx)
         , rcon_(_rcon)
         , rctx_(_rctx)
@@ -1526,7 +1525,6 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         if (not this->hasPendingSend()) {
             ConnectionContext          conctx(service(_rctx), *this);
             unsigned                   repeatcnt      = 4;
-            const uint32_t             sendbufcp      = sendBufferCapacity();
             const Configuration&       rconfig        = service(_rctx).configuration();
             bool                       sent_something = false;
             Sender                     sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx);
@@ -1728,13 +1726,16 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
 //-----------------------------------------------------------------------------
 void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count)
 {
-    if (_count <= send_buf_vec_sentinel_) {
-        send_buf_vec_sentinel_ -= _count;
-        vdbgx(Debug::mpipc, this << " count = " << (int)_count << " sentinel = " << (int)send_buf_vec_sentinel_);
+    int new_count = static_cast<int>(send_relay_free_count_) + _count;
+    Configuration const& config = service(_rctx).configuration();
+    
+    if(new_count <= config.connection_relay_buffer_count){
+        send_relay_free_count_ = static_cast<uint8_t>(new_count);
+        vdbgx(Debug::mpipc, this << " count = " << (int)_count << " sentinel = " << (int)send_relay_free_count_);
 
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
-    } else {
-        vdbgx(Debug::mpipc, this << " count = " << (int)_count << " sentinel = " << (int)send_buf_vec_sentinel_);
+    }else{
+        vdbgx(Debug::mpipc, this << " count = " << (int)_count << " sentinel = " << (int)send_relay_free_count_);
         this->post(
             _rctx,
             [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {

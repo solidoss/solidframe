@@ -41,7 +41,7 @@ private:
         const bool         _is_last,
         ErrorConditionT&   _rerror);
 
-    ErrorContionT pollUpdates(ConnectionContext& _rctx, Connection& _rcon);
+    ErrorConditionT pollUpdates(ConnectionContext& _rctx, Connection& _rcon);
 
 private:
     struct Data;

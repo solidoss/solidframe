@@ -182,12 +182,12 @@ bool MessageWriter::empty() const
 //
 
 ErrorConditionT MessageWriter::write(
-    WriteBuffer&               _rbuffer,
-    const WriteFlagsT&         _flags,
-    uint8_t&                   _rackd_buf_count,
-    RequestIdVectorT&          _cancel_remote_msg_vec,
-    uint8_t&                   _rrelay_free_count,
-    Sender&                    _rsender)
+    WriteBuffer&       _rbuffer,
+    const WriteFlagsT& _flags,
+    uint8_t&           _rackd_buf_count,
+    RequestIdVectorT&  _cancel_remote_msg_vec,
+    uint8_t&           _rrelay_free_count,
+    Sender&            _rsender)
 {
 
     char*           pbufpos = _rbuffer.data();
@@ -201,7 +201,7 @@ ErrorConditionT MessageWriter::write(
         PacketHeader  packet_header(PacketHeader::MessageTypeE, 0, 0);
         PacketOptions packet_options;
         char*         pbufdata = pbufpos + PacketHeader::SizeOfE;
-        size_t        fillsz   = doWritePacketData(pbufdata, pbufend, packet_options, more, _flags, _rackd_buf_count, _cancel_remote_msg_vec, _rrelay_free_count, _rsender, error);
+        size_t        fillsz   = doWritePacketData(pbufdata, pbufend, packet_options, _rackd_buf_count, _cancel_remote_msg_vec, _rrelay_free_count, _rsender, error);
 
         if (fillsz) {
 
@@ -252,13 +252,44 @@ ErrorConditionT MessageWriter::write(
     return error;
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::findEligibleMessage(){
+bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size_t _size, const bool _fast)
+{
+    if(_fast){
+        return true;//TODO:
+    }
     size_t qsz = write_inner_list_.size();
-    while(qsz--){
+    while (qsz--) {
         const size_t msgidx   = write_inner_list_.frontIndex();
         MessageStub& rmsgstub = message_vec_[msgidx];
         
+        if(rmsgstub.isHeaderState()) return true;//prevent splitting the header
+        
+        if (rmsgstub.isSynchronous()) {
+            if (current_synchronous_message_idx_ != InvalidIndex() or msgidx == current_synchronous_message_idx_) {
+            } else {
+                write_inner_list_.pushBack(write_inner_list_.popFront());
+                continue;
+            }
+        }
+
+        if (rmsgstub.isRelay()) {
+            if (_can_send_relay) {
+            } else {
+                write_inner_list_.pushBack(write_inner_list_.popFront());
+                continue;
+            }
+        }
+
+        if (rmsgstub.isRelayed()) {
+            if(rmsgstub.willRelayedFit(_size)){
+            }else{
+                write_inner_list_.pushBack(write_inner_list_.popFront());
+                continue;
+            }
+        }
+        return true;
     }
+    return false;
 }
 //-----------------------------------------------------------------------------
 // we have three types of messages:
@@ -267,29 +298,23 @@ bool MessageWriter::findEligibleMessage(){
 // - relayed: copyed onto the output buffer (no serialization)
 
 size_t MessageWriter::doWritePacketData(
-    char*                      _pbufbeg,
-    char*                      _pbufend,
-    PacketOptions&             _rpacket_options,
-    bool&                      _rmore,
-    const WriteFlagsT&         _flags,
-    uint8_t&                   _rackd_buf_count,
-    RequestIdVectorT&          _cancel_remote_msg_vec,
-    uint8_t                    _relay_free_count,
-    Sender&                    _rsender,
-    ErrorConditionT&           _rerror)
+    char*              _pbufbeg,
+    char*              _pbufend,
+    PacketOptions&     _rpacket_options,
+    uint8_t&           _rackd_buf_count,
+    RequestIdVectorT&  _cancel_remote_msg_vec,
+    uint8_t            _relay_free_count,
+    Sender&            _rsender,
+    ErrorConditionT&   _rerror)
 {
     SerializerPointerT tmp_serializer;
     char*              pbufpos              = _pbufbeg;
     size_t             packet_message_count = 0;
-    
-    if(not findEligibleMessage()){
-        return 0;
-    }
-    
+
     if (_rackd_buf_count) {
         vdbgx(Debug::mpipc, "stored ackd_buf_count = " << (int)_rackd_buf_count);
         pbufpos                      = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
-        _rackd_buf_count              = 0;
+        _rackd_buf_count             = 0;
         _rpacket_options.packet_type = PacketHeader::AckdCountTypeE;
         ++packet_message_count;
     }
@@ -302,7 +327,7 @@ size_t MessageWriter::doWritePacketData(
             _rpacket_options.packet_type = PacketHeader::CancelRequestTypeE;
             ++packet_message_count;
             if (_rackd_buf_count) {
-                pbufpos         = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
+                pbufpos          = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
                 _rackd_buf_count = 0;
             }
         }
@@ -313,120 +338,58 @@ size_t MessageWriter::doWritePacketData(
         _cancel_remote_msg_vec.pop_back();
     }
 
-    while (write_inner_list_.size() and (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
-        if (not is_relay_buffer and write_inner_list_.front().isRelay()) {
-            vdbgx(Debug::mpipc, "skip idx = " << write_inner_list_.frontIndex());
-            write_inner_list_.pushBack(write_inner_list_.popFront());
-            continue;
-        }
-
+    PacketHeader::Types msgtype = PacketHeader::MessageTypeE;
+    bool                fast_find_eligible = false;
+    while (
+        not _rerror and
+        (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() and
+        doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos, fast_find_eligible)
+    ) {
         const size_t msgidx   = write_inner_list_.frontIndex();
-        MessageStub& rmsgstub = message_vec_[msgidx];
-        //PacketHeader::Types msgswitch = doPrepareMessageForSending(msgidx, _rconfig, _rproto, _rctx, tmp_serializer);
-
+        
         vdbgx(Debug::mpipc, "msgidx = " << msgidx);
+        
+        fast_find_eligible = false;
+        
+        switch (message_vec_[msgidx].state_) {
+        case MessageStub::StateE::WriteStart:{
+            MessageStub& rmsgstub = message_vec_[msgidx];
+            
+            if (tmp_serializer) {
+                rmsgstub.serializer_ptr_ = std::move(tmp_serializer);
+            } else {
+                rmsgstub.serializer_ptr_ = _rsender.protocol().createSerializer();
+            }
 
-        switch (rmsgstub.state_) {
-        case MessageStub::StateE::WriteStart:
-            doPrepareMessageForWrite();
+            _rsender.protocol().reset(*rmsgstub.serializer_ptr_);
+
+            rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::StartedSend);
+
+            rmsgstub.state_ = MessageStub::StateE::WriteHead;
+
+            vdbgx(Debug::mpipc, "message header url: " << rmsgstub.msgbundle_.message_url);
+
+            rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr->header_);
+
+            msgtype = PacketHeader::NewMessageTypeE;
+        }
         case MessageStub::StateE::WriteHead:
-            doWriteMessageHead();
+            ++packet_message_count;
+            pbufpos = doWriteMessageHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, packet_message_count == 0, msgtype, _rerror);
+            fast_find_eligible = true;
             break;
         case MessageStub::StateE::WriteBody:
-            doWriteMessageBody();
+            ++packet_message_count;
+            pbufpos = doWriteMessageBody(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, packet_message_count == 0, msgtype, tmp_serializer, _rerror);
             break;
         case MessageStub::StateE::RelayedStart:
         case MessageStub::StateE::RelayedHead:
         case MessageStub::StateE::RelayedBody:
         case MessageStub::StateE::Canceled:
-            doWriteMessageCancel();
+            ++packet_message_count;
+            pbufpos = doWriteMessageCancel(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, packet_message_count == 0, _rerror);
             break;
         }
-#if 0
-        char* pswitchpos = nullptr;
-
-        if (packet_message_count) {
-            pswitchpos = pbufpos;
-            pbufpos += sizeof(char); //skip one byte - the switch type
-        }
-
-        pbufpos = _rproto.storeCrossValue(pbufpos, _pbufend - pbufpos, static_cast<uint32_t>(msgidx));
-        SOLID_CHECK(pbufpos != nullptr, "fail store cross value");
-
-        ++packet_message_count;
-
-        if (rmsgstub.isCanceled()) {
-            //message already completed - just drop it from write list
-            write_inner_list_.erase(msgidx);
-            doUnprepareMessageStub(msgidx);
-            if (current_synchronous_message_idx_ == msgidx) {
-                current_synchronous_message_idx_ = InvalidIndex();
-            }
-
-            msgswitch = PacketHeader::CancelMessageTypeE;
-
-            if (pswitchpos) {
-                uint8_t tmp = static_cast<uint8_t>(msgswitch);
-                _rproto.storeValue(pswitchpos, tmp);
-            } else {
-                //first message in the packet
-                _rpacket_options.packet_type = msgswitch;
-            }
-            continue;
-        }
-
-        _rctx.request_id.index  = (msgidx + 1);
-        _rctx.request_id.unique = rmsgstub.unique_;
-
-        _rctx.message_flags = Message::clear_state_flags(rmsgstub.msgbundle_.message_flags) | Message::state_flags(rmsgstub.msgbundle_.message_ptr->flags());
-        _rctx.message_flags = Message::update_state_flags(_rctx.message_flags);
-
-        _rctx.pmessage_url = &rmsgstub.msgbundle_.message_url;
-
-        char* psizepos = pbufpos;
-        pbufpos        = _rproto.storeValue(pbufpos, static_cast<uint16_t>(0));
-
-        const int rv = rmsgstub.serializer_ptr_->run(_rctx, pbufpos, _pbufend - pbufpos);
-
-        if (rv >= 0) {
-
-            _rproto.storeValue(psizepos, static_cast<uint16_t>(rv));
-            vdbgx(Debug::mpipc, "stored message with index = " << msgidx << " and chunksize = " << rv);
-
-            pbufpos += rv;
-
-            if (rmsgstub.state_ == MessageStub::StateE::WriteBody) {
-                if (rmsgstub.serializer_ptr_->empty()) {
-                    msgswitch = static_cast<PacketHeader::Types>(msgswitch | PacketHeader::EndMessageTypeFlagE);
-                }
-
-                doTryCompleteMessageAfterSerialization(msgidx, _rsender, _rconfig, _rproto, _rctx, tmp_serializer, _rerror);
-
-                if (rmsgstub.isRelay()) {
-                    _rpacket_options.request_accept = true;
-                }
-            }
-
-            //set the message switch type
-            if (pswitchpos) {
-                uint8_t tmp = static_cast<uint8_t>(msgswitch);
-                _rproto.storeValue(pswitchpos, tmp);
-            } else {
-                //first message in the packet
-                _rpacket_options.packet_type = msgswitch;
-            }
-
-            if (_rerror) {
-                //pbufpos = nullptr;
-                break;
-            }
-
-        } else {
-            _rerror = rmsgstub.serializer_ptr_->error();
-            pbufpos = nullptr;
-            break;
-        }
-#endif
     } //while
 
     vdbgx(Debug::mpipc, "write_q_size " << write_inner_list_.size() << " order_q_size " << order_inner_list_.size());
@@ -434,129 +397,43 @@ size_t MessageWriter::doWritePacketData(
     return pbufpos - _pbufbeg;
 }
 //-----------------------------------------------------------------------------
-//Explanation:
-//We can have multiple messages in the writeq. Some Synchronous and some asynchronous.
-//The asynchronous messages can be multiplexed with the current synchronous one.
-inline void MessageWriter::doLocateNextWriteMessage()
+char* MessageWriter::doWriteMessageHead(
+    char*                     _pbufpos,
+    char*                     _pbufend,
+    const size_t              _msgidx,
+    PacketOptions&            _rpacket_options,
+    Sender&                   _rsender,
+    const bool                _is_first,
+    const PacketHeader::Types _msg_type,
+    ErrorConditionT&          _rerror)
 {
-    if (current_synchronous_message_idx_ == InvalidIndex() or write_inner_list_.empty()) {
-        return;
+    if (_is_first) {
+        _rpacket_options.packet_type = _msg_type;
     } else {
-        //locate next asynchronous message or the current synchronous message
-        while (current_synchronous_message_idx_ != write_inner_list_.frontIndex() and write_inner_list_.front().isSynchronous()) {
-            vdbgx(Debug::mpipc, "skip idx = " << write_inner_list_.frontIndex());
-            write_inner_list_.pushBack(write_inner_list_.popFront());
-        }
-        vdbgx(Debug::mpipc, "stop on idx = " << write_inner_list_.frontIndex());
+        uint8_t tmp = static_cast<uint8_t>(_msg_type);
+        _pbufpos    = _rsender.protocol().storeValue(_pbufpos, tmp);
     }
-}
-//-----------------------------------------------------------------------------
-void MessageWriter::doTryCompleteMessageAfterSerialization(
-    const size_t               _msgidx,
-    Sender&                    _rsender,
-    WriterConfiguration const& _rconfig,
-    Protocol const&            _rproto,
-    ConnectionContext&         _rctx,
-    SerializerPointerT&        _rtmp_serializer,
-    ErrorConditionT&           _rerror)
-{
 
-    MessageStub& rmsgstub(message_vec_[_msgidx]);
+    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
 
-    if (rmsgstub.serializer_ptr_->empty()) {
-        RequestId requid(_msgidx, rmsgstub.unique_);
+    char* psizepos = _pbufpos;
+    _pbufpos       = _rsender.protocol().storeValue(_pbufpos, static_cast<uint16_t>(0));
 
-        vdbgx(Debug::mpipc, "done serializing message " << requid << ". Message id sent to client " << _rctx.request_id);
+    MessageStub& rmsgstub = message_vec_[_msgidx];
 
-        _rtmp_serializer = std::move(rmsgstub.serializer_ptr_);
-        //done serializing the message:
+    _rsender.context().request_id.index  = (_msgidx + 1);
+    _rsender.context().request_id.unique = rmsgstub.unique_;
+    _rsender.context().message_flags     = Message::clear_state_flags(rmsgstub.msgbundle_.message_flags) | Message::state_flags(rmsgstub.msgbundle_.message_ptr->flags());
+    _rsender.context().message_flags     = Message::update_state_flags(_rsender.context().message_flags);
+    _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
 
-        write_inner_list_.popFront();
+    const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
 
-        if (current_synchronous_message_idx_ == _msgidx) {
-            current_synchronous_message_idx_ = InvalidIndex();
-        }
+    if (rv >= 0) {
+        _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
+        vdbgx(Debug::mpipc, "stored message header with index = " << _msgidx << " and size = " << rv);
 
-        doLocateNextWriteMessage();
-
-        rmsgstub.msgbundle_.message_flags.reset(MessageFlagsE::StartedSend);
-        rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::DoneSend);
-
-        rmsgstub.serializer_ptr_ = nullptr; //free some memory
-        rmsgstub.state_          = MessageStub::StateE::NotStarted;
-
-        vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
-
-        if (not Message::is_waiting_response(rmsgstub.msgbundle_.message_flags)) {
-            //no wait response for the message - complete
-            MessageBundle tmp_msg_bundle(std::move(rmsgstub.msgbundle_));
-            MessageId     tmp_pool_msg_id(rmsgstub.pool_msg_id_);
-
-            order_inner_list_.erase(_msgidx);
-            doUnprepareMessageStub(_msgidx);
-
-            _rerror = _rsender.completeMessage(tmp_msg_bundle, tmp_pool_msg_id);
-
-            vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
-        } else {
-            rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::WaitResponse);
-        }
-
-        vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
-    } else {
-        //message not done - packet should be full
-        ++rmsgstub.packet_count_;
-
-        if (rmsgstub.packet_count_ >= _rconfig.max_message_continuous_packet_count) {
-            if (rmsgstub.isSynchronous()) {
-                current_synchronous_message_idx_ = _msgidx;
-            }
-
-            rmsgstub.packet_count_ = 0;
-            write_inner_list_.popFront();
-            write_inner_list_.pushBack(_msgidx);
-
-            doLocateNextWriteMessage();
-
-            vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-
-PacketHeader::Types MessageWriter::doPrepareMessageForSending(
-    const size_t               _msgidx,
-    WriterConfiguration const& _rconfig,
-    Protocol const&            _rproto,
-    ConnectionContext&         _rctx,
-    SerializerPointerT&        _rtmp_serializer)
-{
-
-    MessageStub& rmsgstub(message_vec_[_msgidx]);
-
-    switch (rmsgstub.state_) {
-    case MessageStub::StateE::NotStarted:
-        //switch to new message
-        if (_rtmp_serializer) {
-            rmsgstub.serializer_ptr_ = std::move(_rtmp_serializer);
-        } else {
-            rmsgstub.serializer_ptr_ = _rproto.createSerializer();
-        }
-
-        _rproto.reset(*rmsgstub.serializer_ptr_);
-
-        rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::StartedSend);
-
-        rmsgstub.state_ = MessageStub::StateE::WriteHead;
-
-        vdbgx(Debug::mpipc, "message header url: " << rmsgstub.msgbundle_.message_url);
-
-        rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr->header_);
-        return PacketHeader::NewMessageTypeE;
-    case MessageStub::StateE::Canceled:
-        break;
-    case MessageStub::StateE::WriteHead:
         if (rmsgstub.serializer_ptr_->empty()) {
             //we've just finished serializing header
 
@@ -564,13 +441,172 @@ PacketHeader::Types MessageWriter::doPrepareMessageForSending(
 
             rmsgstub.state_ = MessageStub::StateE::WriteBody;
         }
-        break;
-    case MessageStub::StateE::WriteBody:
-        break;
-    case MessageStub::StateE::RelayBody:
-        break;
-    } //switch
-    return PacketHeader::MessageTypeE;
+        _pbufpos += rv;
+    } else {
+        _rerror = rmsgstub.serializer_ptr_->error();
+    }
+
+    return _pbufpos;
+}
+//-----------------------------------------------------------------------------
+char* MessageWriter::doWriteMessageBody(
+    char*               _pbufpos,
+    char*               _pbufend,
+    const size_t        _msgidx,
+    PacketOptions&      _rpacket_options,
+    Sender&             _rsender,
+    const bool          _is_first,
+    PacketHeader::Types _msg_type,
+    SerializerPointerT& _rtmp_serializer,
+    ErrorConditionT&    _rerror)
+{
+    if (_is_first) {
+        _rpacket_options.packet_type = _msg_type;
+    } else {
+        uint8_t tmp = static_cast<uint8_t>(_msg_type);
+        _pbufpos    = _rsender.protocol().storeValue(_pbufpos, tmp);
+    }
+
+    char* ptypepos = nullptr;
+
+    if (not _is_first) {
+        ptypepos = _pbufpos;
+        _pbufpos += 1;
+    }
+
+    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+
+    char* psizepos = _pbufpos;
+    _pbufpos       = _rsender.protocol().storeValue(_pbufpos, static_cast<uint16_t>(0));
+
+    MessageStub& rmsgstub = message_vec_[_msgidx];
+
+    _rsender.context().request_id.index  = (_msgidx + 1);
+    _rsender.context().request_id.unique = rmsgstub.unique_;
+    _rsender.context().message_flags     = Message::clear_state_flags(rmsgstub.msgbundle_.message_flags) | Message::state_flags(rmsgstub.msgbundle_.message_ptr->flags());
+    _rsender.context().message_flags     = Message::update_state_flags(_rsender.context().message_flags);
+    _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
+
+    const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+
+    if (rv >= 0) {
+        
+        if(rmsgstub.isRelay()){
+            _rpacket_options.request_accept = true;
+        }
+        
+        if (rmsgstub.serializer_ptr_->empty()) {
+            //we've just finished serializing body
+            _msg_type = static_cast<PacketHeader::Types>(_msg_type | PacketHeader::EndMessageTypeFlagE);
+
+            doTryCompleteMessageAfterSerialization(_msgidx, _rsender, _rtmp_serializer, _rerror);
+        } else {
+            //try reschedule message - so we can multiplex multiple messages on the same stream
+            ++rmsgstub.packet_count_;
+
+            if (rmsgstub.packet_count_ >= _rsender.configuration().max_message_continuous_packet_count) {
+                if (rmsgstub.isSynchronous()) {
+                    current_synchronous_message_idx_ = _msgidx;
+                }
+
+                rmsgstub.packet_count_ = 0;
+                write_inner_list_.popFront();
+                write_inner_list_.pushBack(_msgidx);
+
+                vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+            }
+        }
+
+        if (_is_first) {
+            _rpacket_options.packet_type = _msg_type;
+        } else {
+            uint8_t tmp = static_cast<uint8_t>(_msg_type);
+            _pbufpos    = _rsender.protocol().storeValue(ptypepos, tmp);
+        }
+
+        //store the data size
+        _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
+        vdbgx(Debug::mpipc, "stored message body with index = " << _msgidx << " and size = " << rv);
+
+        _pbufpos += rv;
+    } else {
+        _rerror = rmsgstub.serializer_ptr_->error();
+    }
+
+    return _pbufpos;
+}
+//-----------------------------------------------------------------------------
+char* MessageWriter::doWriteMessageCancel(
+    char*            _pbufpos,
+    char*            _pbufend,
+    const size_t     _msgidx,
+    PacketOptions&   _rpacket_options,
+    Sender&          _rsender,
+    const bool       _is_first,
+    ErrorConditionT& _rerror)
+{
+    if (_is_first) {
+        _rpacket_options.packet_type = PacketHeader::CancelMessageTypeE;
+    } else {
+        uint8_t tmp = static_cast<uint8_t>(PacketHeader::CancelMessageTypeE);
+        _pbufpos    = _rsender.protocol().storeValue(_pbufpos, tmp);
+    }
+    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+
+    write_inner_list_.erase(_msgidx);
+    doUnprepareMessageStub(_msgidx);
+    if (current_synchronous_message_idx_ == _msgidx) {
+        current_synchronous_message_idx_ = InvalidIndex();
+    }
+    return _pbufpos;
+}
+//-----------------------------------------------------------------------------
+void MessageWriter::doTryCompleteMessageAfterSerialization(
+    const size_t        _msgidx,
+    Sender&             _rsender,
+    SerializerPointerT& _rtmp_serializer,
+    ErrorConditionT&    _rerror)
+{
+
+    MessageStub& rmsgstub(message_vec_[_msgidx]);
+    RequestId    requid(_msgidx, rmsgstub.unique_);
+
+    vdbgx(Debug::mpipc, "done serializing message " << requid << ". Message id sent to client " << _rsender.context().request_id);
+
+    _rtmp_serializer = std::move(rmsgstub.serializer_ptr_);
+
+    write_inner_list_.popFront();
+
+    if (current_synchronous_message_idx_ == _msgidx) {
+        current_synchronous_message_idx_ = InvalidIndex();
+    }
+
+    rmsgstub.msgbundle_.message_flags.reset(MessageFlagsE::StartedSend);
+    rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::DoneSend);
+
+    rmsgstub.serializer_ptr_ = nullptr;
+    rmsgstub.state_          = MessageStub::StateE::WriteStart;
+
+    vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+
+    if (not Message::is_waiting_response(rmsgstub.msgbundle_.message_flags)) {
+        //no wait response for the message - complete
+        MessageBundle tmp_msg_bundle(std::move(rmsgstub.msgbundle_));
+        MessageId     tmp_pool_msg_id(rmsgstub.pool_msg_id_);
+
+        order_inner_list_.erase(_msgidx);
+        doUnprepareMessageStub(_msgidx);
+
+        _rerror = _rsender.completeMessage(tmp_msg_bundle, tmp_pool_msg_id);
+
+        vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+    } else {
+        rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::WaitResponse);
+    }
+
+    vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 }
 
 //-----------------------------------------------------------------------------
