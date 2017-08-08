@@ -254,16 +254,17 @@ ErrorConditionT MessageWriter::write(
 //-----------------------------------------------------------------------------
 bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size_t _size, const bool _fast)
 {
-    if(_fast){
-        return true;//TODO:
+    if (_fast) {
+        return true; //TODO:
     }
     size_t qsz = write_inner_list_.size();
     while (qsz--) {
         const size_t msgidx   = write_inner_list_.frontIndex();
         MessageStub& rmsgstub = message_vec_[msgidx];
-        
-        if(rmsgstub.isHeaderState()) return true;//prevent splitting the header
-        
+
+        if (rmsgstub.isHeaderState())
+            return true; //prevent splitting the header
+
         if (rmsgstub.isSynchronous()) {
             if (current_synchronous_message_idx_ != InvalidIndex() or msgidx == current_synchronous_message_idx_) {
             } else {
@@ -281,8 +282,8 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
         }
 
         if (rmsgstub.isRelayed()) {
-            if(rmsgstub.willRelayedFit(_size)){
-            }else{
+            if (rmsgstub.willRelayedFit(_size)) {
+            } else {
                 write_inner_list_.pushBack(write_inner_list_.popFront());
                 continue;
             }
@@ -298,14 +299,14 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
 // - relayed: copyed onto the output buffer (no serialization)
 
 size_t MessageWriter::doWritePacketData(
-    char*              _pbufbeg,
-    char*              _pbufend,
-    PacketOptions&     _rpacket_options,
-    uint8_t&           _rackd_buf_count,
-    RequestIdVectorT&  _cancel_remote_msg_vec,
-    uint8_t            _relay_free_count,
-    Sender&            _rsender,
-    ErrorConditionT&   _rerror)
+    char*             _pbufbeg,
+    char*             _pbufend,
+    PacketOptions&    _rpacket_options,
+    uint8_t&          _rackd_buf_count,
+    RequestIdVectorT& _cancel_remote_msg_vec,
+    uint8_t           _relay_free_count,
+    Sender&           _rsender,
+    ErrorConditionT&  _rerror)
 {
     SerializerPointerT tmp_serializer;
     char*              pbufpos              = _pbufbeg;
@@ -338,23 +339,20 @@ size_t MessageWriter::doWritePacketData(
         _cancel_remote_msg_vec.pop_back();
     }
 
-    PacketHeader::Types msgtype = PacketHeader::MessageTypeE;
+    PacketHeader::Types msgtype            = PacketHeader::MessageTypeE;
     bool                fast_find_eligible = false;
     while (
-        not _rerror and
-        (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() and
-        doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos, fast_find_eligible)
-    ) {
-        const size_t msgidx   = write_inner_list_.frontIndex();
-        
+        not _rerror and (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() and doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos, fast_find_eligible)) {
+        const size_t msgidx = write_inner_list_.frontIndex();
+
         vdbgx(Debug::mpipc, "msgidx = " << msgidx);
-        
+
         fast_find_eligible = false;
-        
+
         switch (message_vec_[msgidx].state_) {
-        case MessageStub::StateE::WriteStart:{
+        case MessageStub::StateE::WriteStart: {
             MessageStub& rmsgstub = message_vec_[msgidx];
-            
+
             if (tmp_serializer) {
                 rmsgstub.serializer_ptr_ = std::move(tmp_serializer);
             } else {
@@ -375,7 +373,7 @@ size_t MessageWriter::doWritePacketData(
         }
         case MessageStub::StateE::WriteHead:
             ++packet_message_count;
-            pbufpos = doWriteMessageHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, packet_message_count == 0, msgtype, _rerror);
+            pbufpos            = doWriteMessageHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, packet_message_count == 0, msgtype, _rerror);
             fast_find_eligible = true;
             break;
         case MessageStub::StateE::WriteBody:
@@ -491,11 +489,11 @@ char* MessageWriter::doWriteMessageBody(
     const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
 
     if (rv >= 0) {
-        
-        if(rmsgstub.isRelay()){
+
+        if (rmsgstub.isRelay()) {
             _rpacket_options.request_accept = true;
         }
-        
+
         if (rmsgstub.serializer_ptr_->empty()) {
             //we've just finished serializing body
             _msg_type = static_cast<PacketHeader::Types>(_msg_type | PacketHeader::EndMessageTypeFlagE);

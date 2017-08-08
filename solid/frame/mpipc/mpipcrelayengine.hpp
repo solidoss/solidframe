@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/pimpl.hpp"
 
@@ -24,24 +25,20 @@ struct RelayStub {
     RelayStub* pnext;
 };
 
-class RelayEngine {
-protected:
-    void onConnectionRegister(
-        ConnectionContext& _rctx,
-        const std::string& _name);
+class RelayEngine : public RelayEngineBase {
+public:
+    void connectionStop(ConnectionContext& _rctx);
+
+    void connectionRegister(ConnectionContext& _rctx, const std::string& _name);
 
 private:
-    friend class Connection;
-
-    virtual bool relay(
+    bool relay(
         ConnectionContext& _rctx,
         MessageHeader&     _rmsghdr,
         RelayData&&        _rrelmsg,
         ObjectIdT&         _rrelay_id,
         const bool         _is_last,
-        ErrorConditionT&   _rerror);
-
-    ErrorConditionT pollUpdates(ConnectionContext& _rctx, Connection& _rcon);
+        ErrorConditionT&   _rerror) override;
 
 private:
     struct Data;

@@ -91,6 +91,27 @@ private:
     }
 };
 
+class RelayEngineBase {
+public:
+    static RelayEngineBase& instance();
+
+protected:
+    virtual ~RelayEngineBase();
+
+private:
+    friend class Connection;
+
+    virtual bool relay(
+        ConnectionContext& _rctx,
+        MessageHeader&     _rmsghdr,
+        RelayData&&        _rrelmsg,
+        ObjectIdT&         _rrelay_id,
+        const bool         _is_last,
+        ErrorConditionT&   _rerror);
+
+    ErrorConditionT pollUpdates(ConnectionContext& _rctx, Connection& _rcon);
+};
+
 using AddressVectorT                            = std::vector<SocketAddressInet>;
 using ServerSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
 using ClientSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
@@ -109,7 +130,6 @@ using ConnectionSecureHandhakeCompleteFunctionT = SOLID_FUNCTION<void(Connection
 using ConnectionSendRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
 using ConnectionRecvRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
 using ConnectionOnEventFunctionT                = SOLID_FUNCTION<void(ConnectionContext&, Event&)>;
-using ConnectionOnRelayFunctionT                = SOLID_FUNCTION<bool(ConnectionContext&, MessageHeader&, RelayData&&, ObjectIdT&, const bool, ErrorConditionT&)>;
 //using ResetSerializerLimitsFunctionT              = SOLID_FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
 
 enum struct ConnectionState {
@@ -149,6 +169,20 @@ public:
         : pools_mutex_count(16)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
         , pscheduler(&_rsch)
+        , prelayengine(&RelayEngineBase::instance())
+    {
+        init();
+    }
+
+    template <class P>
+    Configuration(
+        AioSchedulerT&      _rsch,
+        RelayEngineBase&    _rrelayengine,
+        std::shared_ptr<P>& _rprotcol_ptr)
+        : pools_mutex_count(16)
+        , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
+        , pscheduler(&_rsch)
+        , prelayengine(&_rrelayengine)
     {
         init();
     }
@@ -160,9 +194,14 @@ public:
         return *this;
     }
 
-    AioSchedulerT& scheduler()
+    AioSchedulerT& scheduler() const
     {
         return *pscheduler;
+    }
+
+    RelayEngineBase& relayEngine() const
+    {
+        return *prelayengine;
     }
 
     bool isServer() const
@@ -279,7 +318,6 @@ public:
     ExtractRecipientNameFunctionT extract_recipient_name_fnc;
     ConnectionStopFunctionT       connection_stop_fnc;
     ConnectionOnEventFunctionT    connection_on_event_fnc;
-    ConnectionOnRelayFunctionT    connection_on_relay_fnc;
     RecvAllocateBufferFunctionT   connection_recv_buffer_allocate_fnc;
     SendAllocateBufferFunctionT   connection_send_buffer_allocate_fnc;
     ProtocolPointerT              protocol_ptr;
@@ -299,13 +337,15 @@ private:
     void prepare();
 
 private:
-    AioSchedulerT* pscheduler;
+    AioSchedulerT*   pscheduler;
+    RelayEngineBase* prelayengine;
 
 private:
     friend class Service;
     //friend class MessageWriter;
     Configuration()
         : pscheduler(nullptr)
+        , prelayengine(nullptr)
     {
     }
 };

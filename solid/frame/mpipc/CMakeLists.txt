@@ -22,6 +22,7 @@ set(Headers
     mpipcsocketstub_openssl.hpp
     mpipcsocketstub_plain.hpp
     mpipccompression_snappy.hpp
+    mpipcrelayengine.hpp
 )
 
 set(Inlines

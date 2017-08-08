@@ -14,6 +14,7 @@
 #include "solid/frame/mpipc/mpipccompression_snappy.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcrelayengine.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
@@ -314,160 +315,6 @@ void peerb_complete_message(
         idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
     }
 }
-
-//-----------------------------------------------------------------------------
-//      Relay
-//-----------------------------------------------------------------------------
-
-struct RelayEngine {
-
-    struct RelayStub {
-        frame::mpipc::RelayData data_;
-        RelayStub*              pnext;
-    };
-
-    struct MessageStub {
-        uint32_t                    unique_;
-        frame::mpipc::MessageHeader header_;
-        frame::ObjectIdT            connection_id_;
-        RelayStub*                  prelay_front;
-        RelayStub*                  prelay_back;
-        MessageStub*                pnext;
-    };
-
-    struct ConnectionStub {
-        std::string      name_;
-        frame::ObjectIdT connection_id_;
-        MessageStub*     pfront;
-        MessageStub*     pback;
-    };
-
-    using ConnectionMapT = std::unordered_map<std::string, ConnectionStub>;
-    using MessageDequeT  = std::deque<MessageStub>;
-
-    ConnectionMapT conmap;
-    MessageDequeT  msgdq;
-    mutex          mtx;
-
-    void onConnectionStart(frame::mpipc::ConnectionContext& _rctx);
-    void onConnectionStop(frame::mpipc::ConnectionContext& _rctx);
-
-    void onConnectionRegister(
-        frame::mpipc::ConnectionContext& _rctx,
-        std::shared_ptr<Register>&       _rsent_msg_ptr,
-        std::shared_ptr<Register>&       _rrecv_msg_ptr,
-        ErrorConditionT const&           _rerror);
-
-    bool onRelay(
-        frame::mpipc::ConnectionContext& _rctx,
-        frame::mpipc::MessageHeader&     _rmsghdr,
-        frame::mpipc::RelayData&&        _rrelmsg,
-        frame::ObjectIdT&                _rrelay_id,
-        const bool                       _is_last,
-        ErrorConditionT&                 _rerror);
-};
-
-void RelayEngine::onConnectionStart(frame::mpipc::ConnectionContext& _rctx)
-{
-    idbg(_rctx.recipientId());
-}
-
-void RelayEngine::onConnectionStop(frame::mpipc::ConnectionContext& _rctx)
-{
-    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
-    if (!running) {
-        ++connection_count;
-    }
-}
-
-void RelayEngine::onConnectionRegister(
-    frame::mpipc::ConnectionContext& _rctx,
-    std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
-    ErrorConditionT const& _rerror)
-{
-    SOLID_CHECK(!_rerror);
-#if 0
-    if (_rrecv_msg_ptr) {
-        SOLID_CHECK(!_rsent_msg_ptr);
-        idbg("recv register response: " << _rrecv_msg_ptr->str);
-
-        _rrecv_msg_ptr->str.clear();
-        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
-
-        SOLID_CHECK(!err, "Failed sending register response: " << err.message());
-
-        { //do register connection
-            unique_lock<mutex> lock(mtx);
-
-            ConnectionStub& rcon = conmap[_rrecv_msg_ptr->str];
-            rcon.conid           = _rctx.connectionId();
-
-            if (rcon.relay_data_vec.size()) {
-                //some RelayData already waiting
-                for (auto& rd : rcon.relay_data_vec) {
-                    err = _rctx.service().sendRelay(rcon.conid, std::move(rd));
-                    SOLID_CHECK(!err, "Failed sending relay data to connection: " << err.message());
-                }
-                rcon.relay_data_vec.clear();
-            }
-        }
-
-    } else {
-        SOLID_CHECK(!_rrecv_msg_ptr);
-        idbg("sent register response");
-    }
-#endif
-}
-
-bool RelayEngine::onRelay(
-    frame::mpipc::ConnectionContext& _rctx,
-    frame::mpipc::MessageHeader&     _rmsghdr,
-    frame::mpipc::RelayData&&        _rrelmsg,
-    frame::ObjectIdT&                _rrelay_id,
-    const bool                       _is_last,
-    ErrorConditionT&                 _rerror)
-{
-    idbg("relay message to: " << _rmsghdr.url_);
-    unique_lock<mutex> lock(mtx);
-    frame::ObjectIdT   msgid;
-
-//     if(_rrelay_id.isValid()) {//a continued message
-//         msgid = _rrelay_id;
-//
-//     }else{//a new message
-//         msgid = allocateMessageId();
-//
-//     }
-//
-//     MessageStub &rmsg = msgdq[msgid.index];
-
-#if 0
-    if (_rrelay_id.isValid()) {
-        ErrorConditionT err = _rctx.service().sendRelay(_rrelay_id, std::move(_rrelmsg));
-
-        SOLID_CHECK(!err, "Failed sending relay data to connection: " << err.message());
-
-        return !err;
-    } else {
-
-        unique_lock<mutex> lock(mtx);
-        ConnectionStub&    rcon = conmap[_rrelmsg.header_.url_];
-
-        if (rcon.conid.isValid()) {
-            ErrorConditionT err = _rctx.service().sendRelay(_rrelay_id, std::move(_rrelmsg));
-
-            SOLID_CHECK(!err, "Failed sending relay data to connection: " << err.message());
-            _rrelay_id = rcon.conid;
-            return !err;
-        } else {
-            //peer not connected yet, just store the relaydata
-            rcon.relay_data_vec.emplace_back(std::move(_rrelmsg));
-            return true;
-        }
-    }
-#endif
-}
-
 //-----------------------------------------------------------------------------
 } //namespace
 
@@ -526,16 +373,16 @@ int test_relay_basic(int argc, char** argv)
     }
 
     {
-        AioSchedulerT          sch_peera;
-        AioSchedulerT          sch_peerb;
-        AioSchedulerT          sch_relay;
-        frame::Manager         m;
-        frame::mpipc::ServiceT mpipcrelay(m);
-        frame::mpipc::ServiceT mpipcpeera(m);
-        frame::mpipc::ServiceT mpipcpeerb(m);
-        frame::aio::Resolver   resolver;
-        RelayEngine            relay_engine;
-        ErrorConditionT        err;
+        AioSchedulerT             sch_peera;
+        AioSchedulerT             sch_peerb;
+        AioSchedulerT             sch_relay;
+        frame::Manager            m;
+        frame::mpipc::ServiceT    mpipcrelay(m);
+        frame::mpipc::ServiceT    mpipcpeera(m);
+        frame::mpipc::ServiceT    mpipcpeerb(m);
+        frame::aio::Resolver      resolver;
+        frame::mpipc::RelayEngine relay_engine;
+        ErrorConditionT           err;
 
         err = sch_peera.start(1);
 
@@ -568,27 +415,44 @@ int test_relay_basic(int argc, char** argv)
         std::string relay_port;
 
         { //mpipc relay initialization
-            auto con_start                                                                = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStart(_rctx); };
-            auto con_stop                                                                 = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStop(_rctx); };
-            auto                                                             con_register = [&relay_engine](
+            auto con_start = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) {
+                idbg(_rctx.recipientId());
+            };
+            auto con_stop = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) {
+                relay_engine.connectionStop(_rctx);
+                if (!running) {
+                    ++connection_count;
+                }
+            };
+            auto con_register = [&relay_engine](
                 frame::mpipc::ConnectionContext& _rctx,
                 std::shared_ptr<Register>&       _rsent_msg_ptr,
                 std::shared_ptr<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
-                relay_engine.onConnectionRegister(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerror);
-            };
-            auto con_relay = [&relay_engine](
-                frame::mpipc::ConnectionContext& _rctx,
-                frame::mpipc::MessageHeader&     _rmsghdr,
-                frame::mpipc::RelayData&&        _rrelmsg,
-                frame::ObjectIdT&                _rrelay_id,
-                const bool                       _is_last,
-                ErrorConditionT&                 _rerror) -> bool {
-                return relay_engine.onRelay(_rctx, _rmsghdr, std::move(_rrelmsg), _rrelay_id, _is_last, _rerror);
+                SOLID_CHECK(!_rerror);
+                if (_rrecv_msg_ptr) {
+                    SOLID_CHECK(!_rsent_msg_ptr);
+                    idbg("recv register response: " << _rrecv_msg_ptr->str);
+
+                    relay_engine.connectionRegister(_rctx, _rrecv_msg_ptr->str);
+
+                    _rrecv_msg_ptr->str.clear();
+                    ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+
+                    SOLID_CHECK(!err, "Failed sending register response: " << err.message());
+
+                } else {
+                    SOLID_CHECK(!_rrecv_msg_ptr);
+                    idbg("sent register response");
+                }
+
+                if (not _rerror and _rrecv_msg_ptr) {
+                    relay_engine.connectionRegister(_rctx, _rrecv_msg_ptr->str);
+                }
             };
 
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
-            frame::mpipc::Configuration cfg(sch_relay, proto);
+            frame::mpipc::Configuration cfg(sch_relay, relay_engine, proto);
 
             proto->registerType<Register>(con_register, 0, 10);
 
@@ -596,7 +460,6 @@ int test_relay_basic(int argc, char** argv)
             cfg.pool_max_active_connection_count = 2 * max_per_pool_connection_count;
             cfg.connection_stop_fnc              = con_start;
             cfg.client.connection_start_fnc      = con_stop;
-            cfg.connection_on_relay_fnc          = con_relay;
             cfg.client.connection_start_state    = frame::mpipc::ConnectionState::Active;
 
             if (secure) {

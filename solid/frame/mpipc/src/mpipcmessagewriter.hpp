@@ -211,11 +211,12 @@ private:
             pool_msg_id_.clear();
             state_ = StateE::WriteStart;
         }
-        
-        bool isHeaderState() const noexcept{
+
+        bool isHeaderState() const noexcept
+        {
             return state_ == StateE::WriteHead or state_ == StateE::RelayedHead;
         }
-        
+
         bool isStop() const noexcept
         {
             return not msgbundle_.message_ptr and not Message::is_canceled(msgbundle_.message_flags);
@@ -225,12 +226,14 @@ private:
         {
             return not msgbundle_.message_url.empty();
         }
-        
-        bool isRelayed() const noexcept{
-            return false;//TODO:
+
+        bool isRelayed() const noexcept
+        {
+            return false; //TODO:
         }
-        
-        bool willRelayedFit(const size_t _sz)const noexcept{
+
+        bool willRelayedFit(const size_t _sz) const noexcept
+        {
             return false;
         }
 
@@ -269,14 +272,14 @@ private:
     };
 
     size_t doWritePacketData(
-        char*              _pbufbeg,
-        char*              _pbufend,
-        PacketOptions&     _rpacket_options,
-        uint8_t&           _rackd_buf_count,
-        RequestIdVectorT&  _cancel_remote_msg_vec,
-        uint8_t            _relay_free_count,
-        Sender&            _rsender,
-        ErrorConditionT&   _rerror);
+        char*             _pbufbeg,
+        char*             _pbufend,
+        PacketOptions&    _rpacket_options,
+        uint8_t&          _rackd_buf_count,
+        RequestIdVectorT& _cancel_remote_msg_vec,
+        uint8_t           _relay_free_count,
+        Sender&           _rsender,
+        ErrorConditionT&  _rerror);
 
     bool doCancel(
         const size_t   _msgidx,
@@ -286,7 +289,7 @@ private:
     bool isSynchronousInSendingQueue() const;
     bool isAsynchronousInPendingQueue() const;
     bool isDelayedCloseInPendingQueue() const;
-    
+
     bool doFindEligibleMessage(const bool _can_send_relay, const size_t _size, const bool _fast);
 
     void doTryMoveMessageFromPendingToWriteQueue(mpipc::Configuration const& _rconfig);

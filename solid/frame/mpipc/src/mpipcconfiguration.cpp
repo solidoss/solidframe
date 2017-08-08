@@ -91,11 +91,6 @@ bool default_setup_socket_device(SocketDevice& _rsd)
     return true;
 }
 
-bool default_connection_on_relay(ConnectionContext& _rconctx, MessageHeader& _msghead, RelayData&& _rrelmsg, ObjectIdT& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
-{
-    return false; //ignore relay messages
-}
-
 } //namespace
 
 ReaderConfiguration::ReaderConfiguration()
@@ -115,7 +110,34 @@ WriterConfiguration::WriterConfiguration()
     inplace_compress_fnc = default_compress;
     //reset_serializer_limits_fnc = empty_reset_serializer_limits;
 }
-
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/*static*/ RelayEngineBase& RelayEngineBase::instance()
+{
+    static RelayEngineBase eng;
+    return eng;
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ RelayEngineBase::~RelayEngineBase()
+{
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ bool RelayEngineBase::relay(
+    ConnectionContext& /*_rctx*/,
+    MessageHeader& /*_rmsghdr*/,
+    RelayData&& /*_rrelmsg*/,
+    ObjectIdT& /*_rrelay_id*/,
+    const bool /*_is_last*/,
+    ErrorConditionT& /*_rerror*/)
+{
+    return false; //ignore relay messages
+}
+//-----------------------------------------------------------------------------
+ErrorConditionT RelayEngineBase::pollUpdates(ConnectionContext& _rctx, Connection& _rcon)
+{
+    return ErrorConditionT{};
+}
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void Configuration::init()
 {
@@ -147,7 +169,6 @@ void Configuration::init()
     client.connection_start_fnc = empty_connection_start;
 
     connection_on_event_fnc = empty_connection_on_event;
-    connection_on_relay_fnc = default_connection_on_relay;
 
     client.connection_create_socket_fnc = default_create_client_socket;
     server.connection_create_socket_fnc = default_create_server_socket;

@@ -1726,15 +1726,15 @@ void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
 //-----------------------------------------------------------------------------
 void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count)
 {
-    int new_count = static_cast<int>(send_relay_free_count_) + _count;
-    Configuration const& config = service(_rctx).configuration();
-    
-    if(new_count <= config.connection_relay_buffer_count){
+    int                  new_count = static_cast<int>(send_relay_free_count_) + _count;
+    Configuration const& config    = service(_rctx).configuration();
+
+    if (new_count <= config.connection_relay_buffer_count) {
         send_relay_free_count_ = static_cast<uint8_t>(new_count);
         vdbgx(Debug::mpipc, this << " count = " << (int)_count << " sentinel = " << (int)send_relay_free_count_);
 
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
-    }else{
+    } else {
         vdbgx(Debug::mpipc, this << " count = " << (int)_count << " sentinel = " << (int)send_relay_free_count_);
         this->post(
             _rctx,
@@ -1768,7 +1768,7 @@ bool Connection::doCompleteRelayBody(
     ConnectionContext    conctx(service(_rctx), *this);
     RelayData            relmsg(std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx));
 
-    return config.connection_on_relay_fnc(conctx, _rmsghdr, std::move(relmsg), _rrelay_id, _is_last, _rerror);
+    return config.relayEngine().relay(conctx, _rmsghdr, std::move(relmsg), _rrelay_id, _is_last, _rerror);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)

@@ -1,4 +1,4 @@
-// solid/frame/ipc/src/ipcprotocol.cpp
+// solid/frame/ipc/src/mpipcprotocol.cpp
 //
 // Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com)
 //
