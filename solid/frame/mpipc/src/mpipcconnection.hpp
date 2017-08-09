@@ -171,6 +171,7 @@ private:
 
     bool shouldSendKeepalive() const;
     bool shouldPollPool() const;
+    bool shouldPollRelayEngine() const;
 
     bool willAcceptNewMessage(frame::aio::ReactorContext& _rctx) const;
 
@@ -285,6 +286,7 @@ private:
         StopPeer,
         HasActivity,
         PollPool,
+        PollRelayEngine,
         Stopping,
         DelayedStopping,
         Secure,

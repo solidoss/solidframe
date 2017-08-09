@@ -27,9 +27,11 @@ struct RelayStub {
 
 class RelayEngine : public RelayEngineBase {
 public:
+    RelayEngine();
+
     void connectionStop(ConnectionContext& _rctx);
 
-    void connectionRegister(ConnectionContext& _rctx, const std::string& _name);
+    void connectionRegister(ConnectionContext& _rctx, std::string&& _uname);
 
 private:
     bool relay(
@@ -39,6 +41,8 @@ private:
         ObjectIdT&         _rrelay_id,
         const bool         _is_last,
         ErrorConditionT&   _rerror) override;
+
+    ErrorConditionT doPoll(ConnectionContext& _rctx, PushFunctionT& _try_push_fnc, bool& _rmore) override;
 
 private:
     struct Data;

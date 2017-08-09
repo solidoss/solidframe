@@ -90,6 +90,41 @@ bool MessageWriter::enqueue(
     return true;
 }
 //-----------------------------------------------------------------------------
+bool MessageWriter::enqueue(
+    WriterConfiguration const& _rconfig,
+    RelayData*                 _prelay_data,
+    MessageId const&           _rengine_msg_id,
+    MessageId&                 _rconn_msg_id)
+{
+    if (full(_rconfig) or cache_inner_list_.empty()) {
+        return false;
+    }
+
+    //see if we have too many messages waiting for responses
+
+    if (_rconn_msg_id.isInvalid()) { //front message data
+        if (
+            Message::is_waiting_response(_prelay_data->message_header_.flags_) and ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
+            return false;
+        }
+    }
+
+    const size_t idx = cache_inner_list_.popFront();
+    MessageStub& rmsgstub(message_vec_[idx]);
+
+    rmsgstub.prelay_data_ = _prelay_data;
+    rmsgstub.pool_msg_id_ = _rengine_msg_id;
+
+    _rconn_msg_id = MessageId(idx, rmsgstub.unique_);
+
+    order_inner_list_.pushBack(idx);
+    write_inner_list_.pushBack(idx);
+    vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+
+    return true;
+    ;
+}
+//-----------------------------------------------------------------------------
 void MessageWriter::doUnprepareMessageStub(const size_t _msgidx)
 {
     MessageStub& rmsgstub(message_vec_[_msgidx]);

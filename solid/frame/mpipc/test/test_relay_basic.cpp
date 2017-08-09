@@ -434,7 +434,7 @@ int test_relay_basic(int argc, char** argv)
                     SOLID_CHECK(!_rsent_msg_ptr);
                     idbg("recv register response: " << _rrecv_msg_ptr->str);
 
-                    relay_engine.connectionRegister(_rctx, _rrecv_msg_ptr->str);
+                    relay_engine.connectionRegister(_rctx, std::move(_rrecv_msg_ptr->str));
 
                     _rrecv_msg_ptr->str.clear();
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
@@ -447,7 +447,7 @@ int test_relay_basic(int argc, char** argv)
                 }
 
                 if (not _rerror and _rrecv_msg_ptr) {
-                    relay_engine.connectionRegister(_rctx, _rrecv_msg_ptr->str);
+                    relay_engine.connectionRegister(_rctx, std::move(_rrecv_msg_ptr->str));
                 }
             };
 

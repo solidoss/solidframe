@@ -249,9 +249,6 @@ struct Sender : frame::mpipc::MessageWriter::Sender {
         rprotocol_[_rmsgbundle.message_type_id].complete_fnc(mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
         return ErrorConditionT();
     }
-    virtual void releaseRelayBuffer() override
-    {
-    }
 };
 
 } //namespace

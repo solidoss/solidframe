@@ -15,14 +15,22 @@ namespace solid {
 namespace frame {
 namespace mpipc {
 //-----------------------------------------------------------------------------
-void RelayEngine::connectionStop(ConnectionContext& _rctx){
-    
+struct RelayEngine::Data {
+};
+//-----------------------------------------------------------------------------
+RelayEngine::RelayEngine()
+    : impl_(make_pimpl<Data>())
+{
 }
-    
-void RelayEngine::connectionRegister(ConnectionContext& _rctx, const std::string& _name){
-            
+//-----------------------------------------------------------------------------
+void RelayEngine::connectionStop(ConnectionContext& _rctx)
+{
 }
-
+//-----------------------------------------------------------------------------
+void RelayEngine::connectionRegister(ConnectionContext& _rctx, std::string&& _uname)
+{
+}
+//-----------------------------------------------------------------------------
 bool RelayEngine::relay(
     ConnectionContext& _rctx,
     MessageHeader&     _rmsghdr,
@@ -33,9 +41,12 @@ bool RelayEngine::relay(
 {
     return false;
 }
-
+//-----------------------------------------------------------------------------
+ErrorConditionT RelayEngine::doPoll(ConnectionContext& _rctx, PushFunctionT& _try_push_fnc, bool& _rmore)
+{
+    return ErrorConditionT{};
+}
 //-----------------------------------------------------------------------------
 } //namespace mpipc
 } //namespace frame
 } //namespace solid
-

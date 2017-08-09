@@ -133,8 +133,9 @@ WriterConfiguration::WriterConfiguration()
     return false; //ignore relay messages
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT RelayEngineBase::pollUpdates(ConnectionContext& _rctx, Connection& _rcon)
+ErrorConditionT RelayEngineBase::doPoll(ConnectionContext& /*_rctx*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
 {
+    SOLID_THROW("should not be called");
     return ErrorConditionT{};
 }
 //-----------------------------------------------------------------------------

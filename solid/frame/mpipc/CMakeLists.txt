@@ -8,6 +8,7 @@ set(Sources
     src/mpipcmessagereader.cpp
     src/mpipcmessagewriter.cpp
     src/mpipcprotocol.cpp
+    src/mpipcrelayengine.cpp
 )
 
 set(Headers

@@ -54,6 +54,8 @@ struct RelayData {
     const char*        pdata_;
     size_t             data_size_;
     ObjectIdT          connection_id_;
+    RelayData*         pnext_;
+    MessageHeader      message_header_;
 
     RelayData(
         RelayData&& _rrelmsg)
@@ -61,6 +63,7 @@ struct RelayData {
         , pdata_(_rrelmsg.pdata_)
         , data_size_(_rrelmsg.data_size_)
         , connection_id_(_rrelmsg.connection_id_)
+        , pnext_(nullptr)
     {
     }
 
@@ -87,6 +90,7 @@ private:
         , pdata_(_pdata)
         , data_size_(_data_size)
         , connection_id_(_connection_id)
+        , pnext_(nullptr)
     {
     }
 };
@@ -96,20 +100,31 @@ public:
     static RelayEngineBase& instance();
 
 protected:
+    using PushFunctionT = SOLID_FUNCTION<bool(RelayData*, const MessageId&, MessageId&)>;
+
     virtual ~RelayEngineBase();
 
 private:
     friend class Connection;
 
+    //NOTE: we require _rmsghdr parameter because the relay function
+    // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
+    // or copy it in case of multicasts
     virtual bool relay(
         ConnectionContext& _rctx,
         MessageHeader&     _rmsghdr,
-        RelayData&&        _rrelmsg,
+        RelayData&&        _rrelay_data,
         ObjectIdT&         _rrelay_id,
         const bool         _is_last,
         ErrorConditionT&   _rerror);
+    virtual ErrorConditionT doPoll(ConnectionContext& /*_rctx*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
 
-    ErrorConditionT pollUpdates(ConnectionContext& _rctx, Connection& _rcon);
+    template <class F>
+    ErrorConditionT poll(ConnectionContext& _rctx, F _try_push, bool& _rmore)
+    {
+        PushFunctionT try_push_fnc{_try_push};
+        return doPoll(_rctx, try_push_fnc, _rmore);
+    }
 };
 
 using AddressVectorT                            = std::vector<SocketAddressInet>;

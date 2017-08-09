@@ -109,6 +109,12 @@ public:
         MessageId const&           _rpool_msg_id,
         MessageId&                 _rconn_msg_id);
 
+    bool enqueue(
+        WriterConfiguration const& _rconfig,
+        RelayData*                 _prelay_data,
+        MessageId const&           _rengine_msg_id,
+        MessageId&                 _rconn_msg_id);
+
     bool cancel(
         MessageId const& _rmsguid,
         MessageBundle&   _rmsgbundle,
@@ -172,12 +178,14 @@ private:
         SerializerPointerT serializer_ptr_;
         MessageId          pool_msg_id_;
         StateE             state_;
+        RelayData*         prelay_data_;
 
         MessageStub(
             MessageBundle& _rmsgbundle)
             : msgbundle_(std::move(_rmsgbundle))
             , packet_count_(0)
             , state_(StateE::WriteStart)
+            , prelay_data_(nullptr)
         {
         }
 
@@ -185,6 +193,7 @@ private:
             : unique_(0)
             , packet_count_(0)
             , state_(StateE::WriteStart)
+            , prelay_data_(nullptr)
         {
         }
 
@@ -197,6 +206,7 @@ private:
             , serializer_ptr_(std::move(_rmsgstub.serializer_ptr_))
             , pool_msg_id_(_rmsgstub.pool_msg_id_)
             , state_(_rmsgstub.state_)
+            , prelay_data_(nullptr)
         {
         }
 
@@ -206,6 +216,7 @@ private:
             ++unique_;
             packet_count_ = 0;
 
+            SOLID_ASSERT(prelay_data_ == nullptr);
             serializer_ptr_ = nullptr;
 
             pool_msg_id_.clear();
@@ -229,7 +240,7 @@ private:
 
         bool isRelayed() const noexcept
         {
-            return false; //TODO:
+            return prelay_data_ != nullptr; //TODO:
         }
 
         bool willRelayedFit(const size_t _sz) const noexcept

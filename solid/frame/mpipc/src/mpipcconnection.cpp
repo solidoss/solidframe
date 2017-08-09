@@ -356,6 +356,11 @@ inline bool Connection::shouldPollPool() const
     return flags_.has(FlagsE::PollPool);
 }
 //-----------------------------------------------------------------------------
+inline bool Connection::shouldPollRelayEngine() const
+{
+    return flags_.has(FlagsE::PollRelayEngine);
+}
+//-----------------------------------------------------------------------------
 bool Connection::isWaitingKeepAliveTimer() const
 {
     return flags_.has(FlagsE::WaitKeepAliveTimer);
@@ -1510,22 +1515,34 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     vdbgx(Debug::mpipc, this << " isstopping = " << this->isStopping());
 
     if (not this->isStopping()) {
-        ErrorConditionT error;
+        ErrorConditionT      error;
+        const Configuration& rconfig = service(_rctx).configuration();
+        ConnectionContext    conctx(service(_rctx), *this);
+        auto relay_poll_push_lambda = [this, &rconfig](RelayData* _prelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id) -> bool {
+            return msg_writer_.enqueue(rconfig.writer, _prelay_data, _rengine_msg_id, _rconn_msg_id);
+        };
         //we do a pollPoolForUpdates here because we want to be able to
         //receive a force pool close, even though we are waiting for send.
-        if (
-            shouldPollPool()) {
+        if (shouldPollPool()) {
             flags_.reset(FlagsE::PollPool); //reset flag
             if ((error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId()))) {
                 doStop(_rctx, error);
                 return;
             }
         }
+        if (shouldPollRelayEngine()) {
+            bool more = false;
+            if ((error = rconfig.relayEngine().poll(conctx, relay_poll_push_lambda, more))) {
+                doStop(_rctx, error);
+                return;
+            }
+            if (not more) {
+                flags_.reset(FlagsE::PollRelayEngine); //reset flag
+            }
+        }
 
         if (not this->hasPendingSend()) {
-            ConnectionContext          conctx(service(_rctx), *this);
             unsigned                   repeatcnt      = 4;
-            const Configuration&       rconfig        = service(_rctx).configuration();
             bool                       sent_something = false;
             Sender                     sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx);
             MessageWriter::WriteFlagsT write_flags;
@@ -1534,13 +1551,21 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             while (repeatcnt) {
 
                 if (shouldPollPool()) {
-
                     flags_.reset(FlagsE::PollPool); //reset flag
-
                     if ((error = service(_rctx).pollPoolForUpdates(*this, uid(_rctx), MessageId()))) {
                         doStop(_rctx, error);
                         sent_something = false; //prevent calling doResetTimerSend after doStop
                         break;
+                    }
+                }
+                if (shouldPollRelayEngine()) {
+                    bool more = false;
+                    if ((error = rconfig.relayEngine().poll(conctx, relay_poll_push_lambda, more))) {
+                        doStop(_rctx, error);
+                        return;
+                    }
+                    if (not more) {
+                        flags_.reset(FlagsE::PollRelayEngine); //reset flag
                     }
                 }
 
@@ -1765,8 +1790,8 @@ bool Connection::doCompleteRelayBody(
     ErrorConditionT&            _rerror)
 {
     Configuration const& config = service(_rctx).configuration();
-    ConnectionContext    conctx(service(_rctx), *this);
-    RelayData            relmsg(std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx));
+    ConnectionContext    conctx{service(_rctx), *this};
+    RelayData            relmsg{std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx)};
 
     return config.relayEngine().relay(conctx, _rmsghdr, std::move(relmsg), _rrelay_id, _is_last, _rerror);
 }

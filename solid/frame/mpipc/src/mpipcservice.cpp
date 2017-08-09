@@ -1256,8 +1256,8 @@ ErrorConditionT Service::pollPoolForUpdates(
 
     idbgx(Debug::mpipc, this << ' ' << &_rconnection << " messages in pool: " << rpool.msgorder_inner_list.size());
 
-    bool       connection_may_handle_more_messages = not _rconnection.isFull(configuration());
-    const bool connection_can_handle_synchronous_messages{_robjuid == rpool.main_connection_id};
+    bool       connection_may_handle_more_messages        = not _rconnection.isFull(configuration());
+    const bool connection_can_handle_synchronous_messages = _robjuid == rpool.main_connection_id;
 
     //We need to push as many messages as we can to the connection
     //in order to handle eficiently the situation with multiple small messages.

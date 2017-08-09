@@ -12,6 +12,7 @@
 
 #include "solid/frame/aio/aiocompletion.hpp"
 #include "solid/frame/aio/aioerror.hpp"
+#include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/system/common.hpp"
 #include "solid/system/socketdevice.hpp"
