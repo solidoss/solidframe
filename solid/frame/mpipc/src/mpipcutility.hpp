@@ -40,28 +40,32 @@ struct PacketHeader {
         SizeOfE = 4,
     };
 
-    enum Types {
-        EndMessageTypeFlagE = 1, //do not change the values
-        NewMessageTypeE     = 2,
-        FullMessageTypeE    = 3,
-        MessageTypeE        = 4,
-        EndMessageTypeE     = 5,
-        CancelMessageTypeE  = 6,
-        KeepAliveTypeE      = 7,
-        UpdateTypeE         = 8,
-        CancelRequestTypeE  = 9,
-        AckdCountTypeE      = 10,
+    enum struct TypeE : uint8_t {
+        Data = 1,
+        KeepAlive,
+    };
+
+    enum struct CommandE : uint8_t {
+        EndMessageFlag = 1, //do not change the values
+        NewMessage     = 2,
+        FullMessage    = 3,
+        Message        = 4,
+        EndMessage     = 5,
+        CancelMessage  = 6,
+        Update         = 7,
+        CancelRequest  = 8,
+        AckdCount      = 9,
 
     };
 
-    enum Flags {
-        Size64KBFlagE   = 1, // DO NOT CHANGE!!
-        CompressedFlagE = 2,
-        AckRequestFlagE = 4,
+    enum struct FlagE : uint8_t {
+        Size64KB   = 1, // DO NOT CHANGE!!
+        Compressed = 2,
+        AckRequest = 4,
     };
 
     PacketHeader(
-        const uint8_t  _type  = 0,
+        const TypeE    _type  = TypeE::Data,
         const uint8_t  _flags = 0,
         const uint16_t _size  = 0)
     {
@@ -69,7 +73,7 @@ struct PacketHeader {
     }
 
     void reset(
-        const uint8_t  _type  = 0,
+        const TypeE    _type  = TypeE::Data,
         const uint8_t  _flags = 0,
         const uint16_t _size  = 0)
     {
@@ -80,7 +84,7 @@ struct PacketHeader {
 
     uint32_t size() const
     {
-        uint32_t sz = (flags_ & Size64KBFlagE);
+        uint32_t sz = (flags_ & static_cast<uint32_t>(FlagE::Size64KB));
         return (sz << 16) | size_;
     }
 
@@ -94,9 +98,9 @@ struct PacketHeader {
         return flags_;
     }
 
-    void type(uint8_t _type)
+    void type(const TypeE _type)
     {
-        type_ = _type;
+        type_ = static_cast<uint8_t>(_type);
     }
     void flags(uint8_t _flags)
     {
@@ -111,12 +115,12 @@ struct PacketHeader {
 
     bool isTypeKeepAlive() const
     {
-        return type_ == KeepAliveTypeE;
+        return type_ == static_cast<uint8_t>(TypeE::KeepAlive);
     }
 
     bool isCompressed() const
     {
-        return flags_ & CompressedFlagE;
+        return flags_ & static_cast<uint8_t>(FlagE::Compressed);
     }
     bool isOk() const;
 

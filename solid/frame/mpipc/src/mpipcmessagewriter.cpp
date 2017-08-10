@@ -96,33 +96,43 @@ bool MessageWriter::enqueue(
     MessageId const&           _rengine_msg_id,
     MessageId&                 _rconn_msg_id)
 {
-    if (full(_rconfig) or cache_inner_list_.empty()) {
+    if (full(_rconfig)) {
         return false;
     }
 
+    size_t idx;
     //see if we have too many messages waiting for responses
 
     if (_rconn_msg_id.isInvalid()) { //front message data
+        if (cache_inner_list_.empty()) {
+            return false;
+        }
         if (
             Message::is_waiting_response(_prelay_data->message_header_.flags_) and ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
             return false;
         }
+
+        idx                      = cache_inner_list_.popFront();
+        _rconn_msg_id            = MessageId(idx, message_vec_[idx].unique_);
+        message_vec_[idx].state_ = MessageStub::StateE::RelayedStart;
+        order_inner_list_.pushBack(idx);
+    } else {
+        idx = _rconn_msg_id.index;
+        SOLID_ASSERT(message_vec_[idx].unique_ == _rconn_msg_id.unique);
+        if (message_vec_[idx].unique_ != _rconn_msg_id.unique or message_vec_[idx].prelay_data_ != nullptr) {
+            return false;
+        }
     }
 
-    const size_t idx = cache_inner_list_.popFront();
     MessageStub& rmsgstub(message_vec_[idx]);
 
     rmsgstub.prelay_data_ = _prelay_data;
     rmsgstub.pool_msg_id_ = _rengine_msg_id;
 
-    _rconn_msg_id = MessageId(idx, rmsgstub.unique_);
-
-    order_inner_list_.pushBack(idx);
     write_inner_list_.pushBack(idx);
     vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 
     return true;
-    ;
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doUnprepareMessageStub(const size_t _msgidx)
@@ -233,7 +243,7 @@ ErrorConditionT MessageWriter::write(
 
     while (more and freesz >= (PacketHeader::SizeOfE + _rsender.protocol().minimumFreePacketDataSize())) {
 
-        PacketHeader  packet_header(PacketHeader::MessageTypeE, 0, 0);
+        PacketHeader  packet_header(PacketHeader::TypeE::Data, 0, 0);
         PacketOptions packet_options;
         char*         pbufdata = pbufpos + PacketHeader::SizeOfE;
         size_t        fillsz   = doWritePacketData(pbufdata, pbufend, packet_options, _rackd_buf_count, _cancel_remote_msg_vec, _rrelay_free_count, _rsender, error);
@@ -245,7 +255,7 @@ ErrorConditionT MessageWriter::write(
                 size_t          compressed_size = _rsender.configuration().inplace_compress_fnc(pbufdata, fillsz, compress_error);
 
                 if (compressed_size) {
-                    packet_header.flags(packet_header.flags() | PacketHeader::CompressedFlagE);
+                    packet_header.flags(packet_header.flags() | static_cast<uint8_t>(PacketHeader::FlagE::Compressed));
                     fillsz = compressed_size;
                 } else if (!compress_error) {
                     //the buffer was not modified, we can send it uncompressed
@@ -260,13 +270,12 @@ ErrorConditionT MessageWriter::write(
                 SOLID_ASSERT(_rrelay_free_count != 0);
                 vdbgx(Debug::mpipc, "send AckRequestFlagE");
                 --_rrelay_free_count;
-                packet_header.flags(packet_header.flags() | PacketHeader::Flags::AckRequestFlagE);
+                packet_header.flags(packet_header.flags() | static_cast<uint8_t>(PacketHeader::FlagE::AckRequest));
                 more = false; //do not allow multiple packets per relay buffer
             }
 
             SOLID_ASSERT(static_cast<size_t>(fillsz) < static_cast<size_t>(0xffffUL));
 
-            packet_header.type(packet_options.packet_type);
             packet_header.size(fillsz);
 
             pbufpos = packet_header.store(pbufpos, _rsender.protocol());
@@ -279,7 +288,7 @@ ErrorConditionT MessageWriter::write(
 
     if (not error and _rbuffer.data() == pbufpos) {
         if (_flags.has(WriteFlagsE::ShouldSendKeepAlive)) {
-            PacketHeader packet_header(PacketHeader::KeepAliveTypeE);
+            PacketHeader packet_header(PacketHeader::TypeE::KeepAlive);
             pbufpos = packet_header.store(pbufpos, _rsender.protocol());
         }
     }
@@ -344,38 +353,28 @@ size_t MessageWriter::doWritePacketData(
     ErrorConditionT&  _rerror)
 {
     SerializerPointerT tmp_serializer;
-    char*              pbufpos              = _pbufbeg;
-    size_t             packet_message_count = 0;
+    char*              pbufpos = _pbufbeg;
 
     if (_rackd_buf_count) {
         vdbgx(Debug::mpipc, "stored ackd_buf_count = " << (int)_rackd_buf_count);
-        pbufpos                      = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
-        _rackd_buf_count             = 0;
-        _rpacket_options.packet_type = PacketHeader::AckdCountTypeE;
-        ++packet_message_count;
+        pbufpos          = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
+        _rackd_buf_count = 0;
+        uint8_t cmd      = static_cast<uint8_t>(PacketHeader::CommandE::AckdCount);
+        pbufpos          = _rsender.protocol().storeValue(pbufpos, cmd);
     }
 
     while (_cancel_remote_msg_vec.size() and (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
-        if (packet_message_count) {
-            uint8_t tmp = PacketHeader::CancelRequestTypeE;
-            pbufpos     = _rsender.protocol().storeValue(pbufpos, tmp);
-        } else {
-            _rpacket_options.packet_type = PacketHeader::CancelRequestTypeE;
-            ++packet_message_count;
-            if (_rackd_buf_count) {
-                pbufpos          = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
-                _rackd_buf_count = 0;
-            }
-        }
-        pbufpos = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
+        uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
+        pbufpos     = _rsender.protocol().storeValue(pbufpos, cmd);
+        pbufpos     = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
         SOLID_CHECK(pbufpos != nullptr, "fail store cross value");
         pbufpos = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().unique);
         SOLID_CHECK(pbufpos != nullptr, "fail store cross value");
         _cancel_remote_msg_vec.pop_back();
     }
 
-    PacketHeader::Types msgtype            = PacketHeader::MessageTypeE;
-    bool                fast_find_eligible = false;
+    PacketHeader::CommandE cmd                = PacketHeader::CommandE::Message;
+    bool                   fast_find_eligible = false;
     while (
         not _rerror and (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() and doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos, fast_find_eligible)) {
         const size_t msgidx = write_inner_list_.frontIndex();
@@ -404,23 +403,20 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr->header_);
 
-            msgtype = PacketHeader::NewMessageTypeE;
+            cmd = PacketHeader::CommandE::NewMessage;
         }
         case MessageStub::StateE::WriteHead:
-            ++packet_message_count;
-            pbufpos            = doWriteMessageHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, packet_message_count == 0, msgtype, _rerror);
+            pbufpos            = doWriteMessageHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, cmd, _rerror);
             fast_find_eligible = true;
             break;
         case MessageStub::StateE::WriteBody:
-            ++packet_message_count;
-            pbufpos = doWriteMessageBody(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, packet_message_count == 0, msgtype, tmp_serializer, _rerror);
+            pbufpos = doWriteMessageBody(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, cmd, tmp_serializer, _rerror);
             break;
         case MessageStub::StateE::RelayedStart:
         case MessageStub::StateE::RelayedHead:
         case MessageStub::StateE::RelayedBody:
         case MessageStub::StateE::Canceled:
-            ++packet_message_count;
-            pbufpos = doWriteMessageCancel(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, packet_message_count == 0, _rerror);
+            pbufpos = doWriteMessageCancel(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
             break;
         }
     } //while
@@ -431,27 +427,23 @@ size_t MessageWriter::doWritePacketData(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteMessageHead(
-    char*                     _pbufpos,
-    char*                     _pbufend,
-    const size_t              _msgidx,
-    PacketOptions&            _rpacket_options,
-    Sender&                   _rsender,
-    const bool                _is_first,
-    const PacketHeader::Types _msg_type,
-    ErrorConditionT&          _rerror)
+    char*                        _pbufpos,
+    char*                        _pbufend,
+    const size_t                 _msgidx,
+    PacketOptions&               _rpacket_options,
+    Sender&                      _rsender,
+    const PacketHeader::CommandE _cmd,
+    ErrorConditionT&             _rerror)
 {
-    if (_is_first) {
-        _rpacket_options.packet_type = _msg_type;
-    } else {
-        uint8_t tmp = static_cast<uint8_t>(_msg_type);
-        _pbufpos    = _rsender.protocol().storeValue(_pbufpos, tmp);
-    }
+
+    uint8_t cmd = static_cast<uint8_t>(_cmd);
+    _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
 
     char* psizepos = _pbufpos;
-    _pbufpos       = _rsender.protocol().storeValue(_pbufpos, static_cast<uint16_t>(0));
+    _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
 
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
@@ -483,35 +475,25 @@ char* MessageWriter::doWriteMessageHead(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteMessageBody(
-    char*               _pbufpos,
-    char*               _pbufend,
-    const size_t        _msgidx,
-    PacketOptions&      _rpacket_options,
-    Sender&             _rsender,
-    const bool          _is_first,
-    PacketHeader::Types _msg_type,
-    SerializerPointerT& _rtmp_serializer,
-    ErrorConditionT&    _rerror)
+    char*                  _pbufpos,
+    char*                  _pbufend,
+    const size_t           _msgidx,
+    PacketOptions&         _rpacket_options,
+    Sender&                _rsender,
+    PacketHeader::CommandE _cmd,
+    SerializerPointerT&    _rtmp_serializer,
+    ErrorConditionT&       _rerror)
 {
-    if (_is_first) {
-        _rpacket_options.packet_type = _msg_type;
-    } else {
-        uint8_t tmp = static_cast<uint8_t>(_msg_type);
-        _pbufpos    = _rsender.protocol().storeValue(_pbufpos, tmp);
-    }
+    char* pcmdpos = nullptr;
 
-    char* ptypepos = nullptr;
-
-    if (not _is_first) {
-        ptypepos = _pbufpos;
-        _pbufpos += 1;
-    }
+    pcmdpos = _pbufpos;
+    _pbufpos += 1;
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
 
     char* psizepos = _pbufpos;
-    _pbufpos       = _rsender.protocol().storeValue(_pbufpos, static_cast<uint16_t>(0));
+    _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
 
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
@@ -531,7 +513,7 @@ char* MessageWriter::doWriteMessageBody(
 
         if (rmsgstub.serializer_ptr_->empty()) {
             //we've just finished serializing body
-            _msg_type = static_cast<PacketHeader::Types>(_msg_type | PacketHeader::EndMessageTypeFlagE);
+            _cmd = static_cast<PacketHeader::CommandE>(static_cast<uint8_t>(_cmd) | static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag));
 
             doTryCompleteMessageAfterSerialization(_msgidx, _rsender, _rtmp_serializer, _rerror);
         } else {
@@ -551,12 +533,8 @@ char* MessageWriter::doWriteMessageBody(
             }
         }
 
-        if (_is_first) {
-            _rpacket_options.packet_type = _msg_type;
-        } else {
-            uint8_t tmp = static_cast<uint8_t>(_msg_type);
-            _pbufpos    = _rsender.protocol().storeValue(ptypepos, tmp);
-        }
+        uint8_t cmd = static_cast<uint8_t>(_cmd);
+        _pbufpos    = _rsender.protocol().storeValue(pcmdpos, cmd);
 
         //store the data size
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
@@ -576,15 +554,12 @@ char* MessageWriter::doWriteMessageCancel(
     const size_t     _msgidx,
     PacketOptions&   _rpacket_options,
     Sender&          _rsender,
-    const bool       _is_first,
     ErrorConditionT& _rerror)
 {
-    if (_is_first) {
-        _rpacket_options.packet_type = PacketHeader::CancelMessageTypeE;
-    } else {
-        uint8_t tmp = static_cast<uint8_t>(PacketHeader::CancelMessageTypeE);
-        _pbufpos    = _rsender.protocol().storeValue(_pbufpos, tmp);
-    }
+
+    uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
+    _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
+
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
 

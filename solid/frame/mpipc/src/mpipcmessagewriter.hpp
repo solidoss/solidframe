@@ -245,7 +245,7 @@ private:
 
         bool willRelayedFit(const size_t _sz) const noexcept
         {
-            return false;
+            return prelay_data_->data_size_;
         }
 
         bool isSynchronous() const noexcept
@@ -270,13 +270,11 @@ private:
     using MessageStatusInnerListT = InnerList<MessageVectorT, InnerLinkStatus>;
 
     struct PacketOptions {
-        PacketHeader::Types packet_type;
-        bool                force_no_compress;
-        bool                request_accept;
+        bool force_no_compress;
+        bool request_accept;
 
         PacketOptions()
-            : packet_type(PacketHeader::MessageTypeE)
-            , force_no_compress(false)
+            : force_no_compress(false)
             , request_accept(false)
         {
         }
@@ -306,25 +304,23 @@ private:
     void doTryMoveMessageFromPendingToWriteQueue(mpipc::Configuration const& _rconfig);
 
     char* doWriteMessageHead(
-        char*                     _pbufpos,
-        char*                     _pbufend,
-        const size_t              _msgidx,
-        PacketOptions&            _rpacket_options,
-        Sender&                   _rsender,
-        const bool                _is_first,
-        const PacketHeader::Types _msg_type,
-        ErrorConditionT&          _rerror);
+        char*                        _pbufpos,
+        char*                        _pbufend,
+        const size_t                 _msgidx,
+        PacketOptions&               _rpacket_options,
+        Sender&                      _rsender,
+        const PacketHeader::CommandE _cmd,
+        ErrorConditionT&             _rerror);
 
     char* doWriteMessageBody(
-        char*               _pbufpos,
-        char*               _pbufend,
-        const size_t        _msgidx,
-        PacketOptions&      _rpacket_options,
-        Sender&             _rsender,
-        const bool          _is_first,
-        PacketHeader::Types _msg_type,
-        SerializerPointerT& _rtmp_serializer,
-        ErrorConditionT&    _rerror);
+        char*                  _pbufpos,
+        char*                  _pbufend,
+        const size_t           _msgidx,
+        PacketOptions&         _rpacket_options,
+        Sender&                _rsender,
+        PacketHeader::CommandE _cmd,
+        SerializerPointerT&    _rtmp_serializer,
+        ErrorConditionT&       _rerror);
 
     char* doWriteMessageCancel(
         char*            _pbufpos,
@@ -332,7 +328,6 @@ private:
         const size_t     _msgidx,
         PacketOptions&   _rpacket_options,
         Sender&          _rsender,
-        const bool       _is_first,
         ErrorConditionT& _rerror);
 
     void doTryCompleteMessageAfterSerialization(

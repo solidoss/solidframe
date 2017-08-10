@@ -76,7 +76,7 @@ private:
         const char*        _pbufpos,
         const char* const  _pbufend,
         const uint32_t     _msgidx,
-        const uint8_t      _msg_type,
+        const uint8_t      _cmd,
         Receiver&          _receiver,
         Protocol const&    _rproto,
         ConnectionContext& _rctx,

@@ -24,16 +24,9 @@ namespace mpipc {
 bool PacketHeader::isOk() const
 {
     bool rv = true;
-    switch (type_) {
-    case NewMessageTypeE:
-    case FullMessageTypeE:
-    case MessageTypeE:
-    case EndMessageTypeE:
-    case CancelMessageTypeE:
-    case KeepAliveTypeE:
-    case UpdateTypeE:
-    case CancelRequestTypeE:
-    case AckdCountTypeE:
+    switch (static_cast<TypeE>(type_)) {
+    case TypeE::Data:
+    case TypeE::KeepAlive:
         break;
     default:
         rv = false;
