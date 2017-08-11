@@ -1791,9 +1791,9 @@ bool Connection::doCompleteRelayBody(
 {
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx{service(_rctx), *this};
-    RelayData            relmsg{std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx)};
+    RelayData            relmsg{std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx), _is_last};
 
-    return config.relayEngine().relay(conctx, _rmsghdr, std::move(relmsg), _rrelay_id, _is_last, _rerror);
+    return config.relayEngine().relay(conctx, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)

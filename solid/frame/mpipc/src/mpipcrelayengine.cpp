@@ -36,7 +36,6 @@ bool RelayEngine::relay(
     MessageHeader&     _rmsghdr,
     RelayData&&        _rrelmsg,
     ObjectIdT&         _rrelay_id,
-    const bool         _is_last,
     ErrorConditionT&   _rerror)
 {
     return false;

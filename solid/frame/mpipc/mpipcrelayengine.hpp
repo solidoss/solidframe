@@ -39,7 +39,6 @@ private:
         MessageHeader&     _rmsghdr,
         RelayData&&        _rrelmsg,
         ObjectIdT&         _rrelay_id,
-        const bool         _is_last,
         ErrorConditionT&   _rerror) override;
 
     ErrorConditionT doPoll(ConnectionContext& _rctx, PushFunctionT& _try_push_fnc, bool& _rmore) override;

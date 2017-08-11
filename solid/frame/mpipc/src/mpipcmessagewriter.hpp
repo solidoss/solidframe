@@ -166,9 +166,11 @@ private:
             WriteStart,
             WriteHead,
             WriteBody,
+            WriteWait,
             RelayedStart,
             RelayedHead,
             RelayedBody,
+            RelayedWait,
             Canceled,
         };
 
@@ -178,7 +180,10 @@ private:
         SerializerPointerT serializer_ptr_;
         MessageId          pool_msg_id_;
         StateE             state_;
-        RelayData*         prelay_data_;
+        RelayData*         prelay_data_;//TODO: make somehow prelay_data_ act as a const pointer as its data must not be changed by Writer
+        const char*        prelay_pos_;
+        size_t             relay_size_;
+
 
         MessageStub(
             MessageBundle& _rmsgbundle)
@@ -223,11 +228,16 @@ private:
             state_ = StateE::WriteStart;
         }
 
-        bool isHeaderState() const noexcept
+        bool isHeadState() const noexcept
         {
             return state_ == StateE::WriteHead or state_ == StateE::RelayedHead;
         }
-
+        
+        bool isStartOrHeadState() const noexcept
+        {
+            return state_ == StateE::WriteStart or state_ == StateE::WriteHead or state_ == StateE::RelayedStart or state_ == StateE::RelayedHead;
+        }
+        
         bool isStop() const noexcept
         {
             return not msgbundle_.message_ptr and not Message::is_canceled(msgbundle_.message_flags);
@@ -241,11 +251,6 @@ private:
         bool isRelayed() const noexcept
         {
             return prelay_data_ != nullptr; //TODO:
-        }
-
-        bool willRelayedFit(const size_t _sz) const noexcept
-        {
-            return prelay_data_->data_size_;
         }
 
         bool isSynchronous() const noexcept
@@ -299,7 +304,7 @@ private:
     bool isAsynchronousInPendingQueue() const;
     bool isDelayedCloseInPendingQueue() const;
 
-    bool doFindEligibleMessage(const bool _can_send_relay, const size_t _size, const bool _fast);
+    bool doFindEligibleMessage(const bool _can_send_relay, const size_t _size);
 
     void doTryMoveMessageFromPendingToWriteQueue(mpipc::Configuration const& _rconfig);
 
@@ -318,10 +323,27 @@ private:
         const size_t           _msgidx,
         PacketOptions&         _rpacket_options,
         Sender&                _rsender,
-        PacketHeader::CommandE _cmd,
         SerializerPointerT&    _rtmp_serializer,
         ErrorConditionT&       _rerror);
 
+    char* doWriteRelayedHead(
+        char*                        _pbufpos,
+        char*                        _pbufend,
+        const size_t                 _msgidx,
+        PacketOptions&               _rpacket_options,
+        Sender&                      _rsender,
+        const PacketHeader::CommandE _cmd,
+        SerializerPointerT&          _rtmp_serializer,
+        ErrorConditionT&             _rerror);
+
+    char* doWriteRelayedBody(
+        char*                  _pbufpos,
+        char*                  _pbufend,
+        const size_t           _msgidx,
+        PacketOptions&         _rpacket_options,
+        Sender&                _rsender,
+        ErrorConditionT&       _rerror);
+    
     char* doWriteMessageCancel(
         char*            _pbufpos,
         char*            _pbufend,

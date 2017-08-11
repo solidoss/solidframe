@@ -55,6 +55,7 @@ struct RelayData {
     size_t             data_size_;
     ObjectIdT          connection_id_;
     RelayData*         pnext_;
+    bool               is_last_;
     MessageHeader      message_header_;
 
     RelayData(
@@ -64,6 +65,7 @@ struct RelayData {
         , data_size_(_rrelmsg.data_size_)
         , connection_id_(_rrelmsg.connection_id_)
         , pnext_(nullptr)
+        , is_last_(false)
     {
     }
 
@@ -73,6 +75,8 @@ struct RelayData {
         pdata_         = _rrelmsg.pdata_;
         data_size_     = _rrelmsg.data_size_;
         connection_id_ = _rrelmsg.connection_id_;
+        pnext_ = _rrelmsg.pnext_;
+        is_last_ = _rrelmsg.is_last_;
         return *this;
     }
 
@@ -85,12 +89,15 @@ private:
         RecvBufferPointerT&& _bufptr,
         const char*          _pdata,
         size_t               _data_size,
-        const ObjectIdT&     _connection_id)
+        const ObjectIdT&     _connection_id,
+        const bool _is_last
+             )
         : bufptr_(std::move(_bufptr))
         , pdata_(_pdata)
         , data_size_(_data_size)
         , connection_id_(_connection_id)
         , pnext_(nullptr)
+        , is_last_(_is_last)
     {
     }
 };
@@ -115,8 +122,8 @@ private:
         MessageHeader&     _rmsghdr,
         RelayData&&        _rrelay_data,
         ObjectIdT&         _rrelay_id,
-        const bool         _is_last,
         ErrorConditionT&   _rerror);
+    
     virtual ErrorConditionT doPoll(ConnectionContext& /*_rctx*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
 
     template <class F>
