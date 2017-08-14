@@ -23,6 +23,10 @@ RelayEngine::RelayEngine()
 {
 }
 //-----------------------------------------------------------------------------
+RelayEngine::~RelayEngine(){
+    
+}
+//-----------------------------------------------------------------------------
 void RelayEngine::connectionStop(ConnectionContext& _rctx)
 {
 }

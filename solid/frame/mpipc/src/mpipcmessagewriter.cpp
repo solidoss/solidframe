@@ -653,12 +653,20 @@ char* MessageWriter::doWriteRelayedBody(
         
         write_inner_list_.erase(_msgidx);//call before _rsender.pollRelayEngine
         
-        //_rsender.pollRelayEngine(...)
+        const bool is_last = rmsgstub.prelay_data_->is_last_;
+        const bool is_waiting_for_response = Message::is_waiting_response(rmsgstub.prelay_data_->message_header_.flags_);
         
-        if(rmsgstub.prelay_data_->is_last_){
+        _rsender.completeRelay(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_, _rerror);
+        
+        if(is_last){
             cmd |= static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag);
-            //TODO: done sending the message
-            //if(rmsgstub.isNotWaitingResponse()) order_inner_list_.erase(_msgidx);
+            if(is_waiting_for_response){
+                //TODO:
+            }else{
+                order_inner_list_.erase(_msgidx);
+                rmsgstub.clear();
+            }
+            
         }
     }
     

@@ -1507,6 +1507,10 @@ struct Connection::Sender : MessageWriter::Sender {
         rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, ErrorConditionT());
         return rcon_.service(rctx_).pollPoolForUpdates(rcon_, rcon_.uid(rctx_), _rpool_msg_id);
     }
+    void completeRelay(RelayData* _prelay_data, MessageId const& _rmsgid, ErrorConditionT&  _rerror) override
+    {
+        rcon_.doCompleteRelay(rctx_, _prelay_data, _rmsgid, _rerror);
+    }
 };
 
 void Connection::doSend(frame::aio::ReactorContext& _rctx)
@@ -1723,6 +1727,26 @@ void Connection::doCompleteMessage(
     }
 }
 //-----------------------------------------------------------------------------
+void Connection::doCompleteRelay(
+    solid::frame::aio::ReactorContext& _rctx,
+    RelayData *_prelay_data,
+    MessageId const& _rengine_msg_id,
+    ErrorConditionT&  _rerror)
+{
+    ConnectionContext    conctx(service(_rctx), *this);
+    const Configuration& rconfig = service(_rctx).configuration();
+    const auto relay_poll_push_lambda = [this, &rconfig](RelayData* _prelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id) -> bool {
+        return msg_writer_.enqueue(rconfig.writer, _prelay_data, _rengine_msg_id, _rconn_msg_id);
+    };
+    bool more = false;
+    if ((_rerror = rconfig.relayEngine().poll(conctx, relay_poll_push_lambda, more))) {
+        return;
+    }
+    if (not more) {
+        flags_.reset(FlagsE::PollRelayEngine); //reset flag
+    }
+}
+//-----------------------------------------------------------------------------
 void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
 {
     if (isServer()) {
@@ -1768,7 +1792,7 @@ void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _
             });
     }
 }
-//-----------------------------------------------------------------------------
+// //-----------------------------------------------------------------------------
 void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid)
 {
     MessageId     msgid(_reqid);

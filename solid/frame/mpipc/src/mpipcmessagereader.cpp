@@ -208,7 +208,7 @@ void MessageReader::doConsumePacket(
 
     } //while
 }
-
+//-----------------------------------------------------------------------------
 const char* MessageReader::doConsumeMessage(
     const char*        _pbufpos,
     const char* const  _pbufend,

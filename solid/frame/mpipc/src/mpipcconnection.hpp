@@ -219,7 +219,13 @@ private:
         MessageId const&                   _rpool_msg_id,
         MessageBundle&                     _rmsg_local,
         ErrorConditionT const&             _rerr);
-
+    
+    void doCompleteRelay(
+        solid::frame::aio::ReactorContext& _rctx,
+        RelayData *_prelay_data,
+        MessageId const& _rengine_msg_id,
+        ErrorConditionT&  _rerror);
+    
     void doCompleteKeepalive(frame::aio::ReactorContext& _rctx);
     void doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count);
     void doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid);

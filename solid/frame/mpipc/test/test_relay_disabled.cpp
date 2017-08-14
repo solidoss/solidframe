@@ -480,7 +480,6 @@ int test_relay_disabled(int argc, char** argv)
             cfg.pool_max_active_connection_count = 2 * max_per_pool_connection_count;
             cfg.connection_stop_fnc              = con_start;
             cfg.client.connection_start_fnc      = con_stop;
-            cfg.connection_on_relay_fnc          = con_relay;
             cfg.client.connection_start_state    = frame::mpipc::ConnectionState::Active;
 
             if (secure) {

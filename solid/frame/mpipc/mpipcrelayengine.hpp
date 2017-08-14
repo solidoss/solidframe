@@ -28,6 +28,7 @@ struct RelayStub {
 class RelayEngine : public RelayEngineBase {
 public:
     RelayEngine();
+    ~RelayEngine();
 
     void connectionStop(ConnectionContext& _rctx);
 
