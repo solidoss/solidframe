@@ -18,8 +18,6 @@ namespace solid {
 namespace frame {
 namespace mpipc {
 
-struct ConnectionContext;
-
 struct RelayStub {
     RelayData  data_;
     RelayStub* pnext;
@@ -30,19 +28,20 @@ public:
     RelayEngine();
     ~RelayEngine();
 
-    void connectionStop(ConnectionContext& _rctx);
+    void connectionStop(const ObjectIdT& _rconuid);
 
-    void connectionRegister(ConnectionContext& _rctx, std::string&& _uname);
+    void connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname);
 
 private:
     bool relay(
-        ConnectionContext& _rctx,
-        MessageHeader&     _rmsghdr,
-        RelayData&&        _rrelmsg,
-        ObjectIdT&         _rrelay_id,
-        ErrorConditionT&   _rerror) override;
+        const ObjectIdT& _rconuid,
+        MessageHeader&   _rmsghdr,
+        RelayData&&      _rrelmsg,
+        MessageId&       _rrelay_id,
+        ErrorConditionT& _rerror) override;
 
-    ErrorConditionT doPoll(ConnectionContext& _rctx, PushFunctionT& _try_push_fnc, bool& _rmore) override;
+    void doPoll(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore) override;
+    void doPoll(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore) override;
 
 private:
     struct Data;

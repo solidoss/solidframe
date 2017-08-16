@@ -88,6 +88,8 @@ public:
 
     bool isRunning() const;
 
+    ObjectIdT id(const ObjectBase& _robj) const;
+
 protected:
     std::mutex& mutex() const;
 

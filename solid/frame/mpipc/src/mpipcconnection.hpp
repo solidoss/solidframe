@@ -135,18 +135,40 @@ public:
     }
 
     template <class Fnc>
+    void fetchResendableMessages(Service& _rsvc,
+        Fnc const&                        _f)
+    {
+        auto visit_fnc = [this, &_rsvc, &_f](
+            MessageBundle&   _rmsgbundle,
+            MessageId const& _rmsgid,
+            RelayData*       _prelay_data) {
+            if (_rmsgbundle.message_ptr) {
+                _f(this->poolId(), _rmsgbundle, _rmsgid);
+            } else {
+                this->doCompleteRelayed(_rsvc, _prelay_data, _rmsgid);
+            }
+        };
+        MessageWriter::VisitFunctionT fnc(std::cref(visit_fnc));
+
+        msg_writer_.forEveryMessagesNewerToOlder(fnc);
+    }
+#if 0
+    template <class Fnc>
     void forEveryMessagesNewerToOlder(
         Fnc const& _f)
     {
         auto visit_fnc = [this, &_f](
             MessageBundle&   _rmsgbundle,
-            MessageId const& _rmsgid) {
+            MessageId const& _rmsgid,
+            RelayData* /*_prelay_data*/
+        ) {
             _f(this->poolId(), _rmsgbundle, _rmsgid);
         };
         MessageWriter::VisitFunctionT fnc(std::cref(visit_fnc));
 
         msg_writer_.forEveryMessagesNewerToOlder(fnc);
     }
+#endif
 
     static void onSendAllRaw(frame::aio::ReactorContext& _rctx, Event& _revent);
     static void onRecvSomeRaw(frame::aio::ReactorContext& _rctx, const size_t _sz, Event& _revent);
@@ -211,6 +233,8 @@ private:
     void doResetTimerSend(frame::aio::ReactorContext& _rctx);
     void doResetTimerRecv(frame::aio::ReactorContext& _rctx);
 
+    bool doCheckIsRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id);
+
     void doCompleteMessage(
         frame::aio::ReactorContext& _rctx, MessagePointerT& _rresponse_ptr, const size_t _response_type_id);
 
@@ -219,13 +243,12 @@ private:
         MessageId const&                   _rpool_msg_id,
         MessageBundle&                     _rmsg_local,
         ErrorConditionT const&             _rerr);
-    
-    void doCompleteRelay(
-        solid::frame::aio::ReactorContext& _rctx,
-        RelayData *_prelay_data,
-        MessageId const& _rengine_msg_id,
-        ErrorConditionT&  _rerror);
-    
+
+    void doCompleteRelayed(
+        Service&         _rsvc,
+        RelayData*       _prelay_data,
+        MessageId const& _rengine_msg_id);
+
     void doCompleteKeepalive(frame::aio::ReactorContext& _rctx);
     void doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count);
     void doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid);
@@ -233,7 +256,7 @@ private:
         frame::aio::ReactorContext& _rctx,
         MessageHeader&              _rmsghdr,
         const char* _pbeg, size_t _sz,
-        ObjectIdT&       _rrelay_id,
+        MessageId&       _rrelay_id,
         const bool       _is_last,
         ErrorConditionT& _rerror);
 

@@ -2131,7 +2131,7 @@ void Service::doFetchResendableMessagesFromConnection(
 {
 
     //the final front message in msgorder_inner_list should be the oldest one from connection
-    _rcon.forEveryMessagesNewerToOlder(
+    _rcon.fetchResendableMessages(*this,
         [this](
             const ConnectionPoolId& _rpool_id,
             MessageBundle&          _rmsgbundle,

@@ -39,7 +39,16 @@ public:
         virtual void receiveKeepAlive()                     = 0;
         virtual void receiveAckCount(uint8_t _count)        = 0;
         virtual void receiveCancelRequest(const RequestId&) = 0;
-        virtual bool receiveRelayBody(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, ObjectIdT& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+        virtual bool receiveRelayBody(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+        {
+            return false;
+        }
+
+        virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id)
+        {
+            return false;
+        }
+        virtual bool receiveRelayedResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
         {
             return false;
         }
@@ -95,13 +104,14 @@ private:
             ReadBody,
             RelayBody,
             RelayFail,
+            RelayedResponse,
         };
 
         MessagePointerT      message_ptr_;
         DeserializerPointerT deserializer_ptr_;
         MessageHeader        message_header_;
         size_t               packet_count_;
-        ObjectIdT            relay_id;
+        MessageId            relay_id;
         StateE               state_;
 
         MessageStub()

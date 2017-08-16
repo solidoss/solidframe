@@ -23,31 +23,36 @@ RelayEngine::RelayEngine()
 {
 }
 //-----------------------------------------------------------------------------
-RelayEngine::~RelayEngine(){
-    
-}
-//-----------------------------------------------------------------------------
-void RelayEngine::connectionStop(ConnectionContext& _rctx)
+RelayEngine::~RelayEngine()
 {
 }
 //-----------------------------------------------------------------------------
-void RelayEngine::connectionRegister(ConnectionContext& _rctx, std::string&& _uname)
+void RelayEngine::connectionStop(const ObjectIdT& _rconuid)
+{
+}
+//-----------------------------------------------------------------------------
+void RelayEngine::connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname)
 {
 }
 //-----------------------------------------------------------------------------
 bool RelayEngine::relay(
-    ConnectionContext& _rctx,
-    MessageHeader&     _rmsghdr,
-    RelayData&&        _rrelmsg,
-    ObjectIdT&         _rrelay_id,
-    ErrorConditionT&   _rerror)
+    const ObjectIdT& _rconuid,
+    MessageHeader&   _rmsghdr,
+    RelayData&&      _rrelmsg,
+    MessageId&       _rrelay_id,
+    ErrorConditionT& _rerror)
 {
     return false;
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT RelayEngine::doPoll(ConnectionContext& _rctx, PushFunctionT& _try_push_fnc, bool& _rmore)
+void RelayEngine::doPoll(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore)
 {
-    return ErrorConditionT{};
+    //TODO:
+}
+//-----------------------------------------------------------------------------
+void RelayEngine::doPoll(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
+{
+    //TODO:
 }
 //-----------------------------------------------------------------------------
 } //namespace mpipc

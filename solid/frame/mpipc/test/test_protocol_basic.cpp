@@ -236,8 +236,12 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
 struct Sender : frame::mpipc::MessageWriter::Sender {
     frame::mpipc::serialization_v1::Protocol& rprotocol_;
 
-    Sender(frame::mpipc::serialization_v1::Protocol& _rprotocol)
-        : rprotocol_(_rprotocol)
+    Sender(
+        frame::mpipc::WriterConfiguration&        _rconfig,
+        frame::mpipc::serialization_v1::Protocol& _rprotocol,
+        frame::mpipc::ConnectionContext&          _conctx)
+        : frame::mpipc::MessageWriter::Sender(_rconfig, _rprotocol, _conctx)
+        , rprotocol_(_rprotocol)
     {
     }
 
@@ -319,7 +323,7 @@ int test_protocol_basic(int argc, char** argv)
 
     {
         Receiver rcvr(*mpipcprotocol);
-        Sender   sndr(*mpipcprotocol);
+        Sender   sndr(mpipcwriterconfig, *mpipcprotocol, mpipcconctx);
 
         mpipcmsgreader.prepare(mpipcreaderconfig);
 
@@ -335,13 +339,15 @@ int test_protocol_basic(int argc, char** argv)
                 rcvr.fillRequestVector(10);
                 refill = true;
             }
-            uint32_t bufsz = mpipcmsgwriter.write(buf, bufcp, frame::mpipc::MessageWriter::WriteFlagsT(), rcvr.ackd_count, rcvr.reqvec, sndr, mpipcwriterconfig, *mpipcprotocol, mpipcconctx, error);
+            frame::mpipc::WriteBuffer wb(buf, bufcp);
+            uint8_t                   relay_free_count = 0;
+            error                                      = mpipcmsgwriter.write(wb, frame::mpipc::MessageWriter::WriteFlagsT(), rcvr.ackd_count, rcvr.reqvec, relay_free_count, sndr);
             if (refill) {
                 rcvr.fillRequestVector(10);
             }
-            if (!error and bufsz) {
+            if (!error and wb.size()) {
 
-                mpipcmsgreader.read(buf, bufsz, rcvr, mpipcreaderconfig, *mpipcprotocol, mpipcconctx, error);
+                mpipcmsgreader.read(wb.data(), wb.size(), rcvr, mpipcreaderconfig, *mpipcprotocol, mpipcconctx, error);
             } else {
                 is_running = false;
             }

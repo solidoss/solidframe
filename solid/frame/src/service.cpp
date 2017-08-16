@@ -66,6 +66,11 @@ std::mutex& Service::mutex(const ObjectBase& _robj) const
     return rm.mutex(_robj);
 }
 
+ObjectIdT Service::id(const ObjectBase& _robj) const
+{
+    return rm.id(_robj);
+}
+
 std::mutex& Service::mutex() const
 {
     return rm.mutex(*this);

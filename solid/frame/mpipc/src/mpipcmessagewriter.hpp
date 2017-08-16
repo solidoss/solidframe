@@ -76,12 +76,13 @@ public:
         virtual ~Sender() {}
 
         virtual ErrorConditionT completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/) = 0;
-        virtual void completeRelay(RelayData* _relay_data, MessageId const& _rmsgid, ErrorConditionT& _rerror) = 0;
+        virtual void completeRelayed(RelayData* _relay_data, MessageId const& _rmsgid) {}
     };
 
     using VisitFunctionT = SOLID_FUNCTION<void(
         MessageBundle& /*_rmsgbundle*/,
-        MessageId const& /*_rmsgid*/
+        MessageId const& /*_rmsgid*/,
+        RelayData* /*_prelay_data*/
         )>;
 
     using CompleteFunctionT = SOLID_FUNCTION<ErrorConditionT(
@@ -122,6 +123,8 @@ public:
         MessageId&       _rpool_msg_id);
 
     MessagePointerT fetchRequest(MessageId const& _rmsguid) const;
+
+    bool isRelayedResponse(MessageId const& _rmsguid, MessageId& _rrelay_id) const;
 
     bool cancelOldest(
         MessageBundle& _rmsgbundle,
@@ -168,11 +171,11 @@ private:
             WriteHead,
             WriteBody,
             WriteWait,
-            RelayedStart,
+            Canceled,
+            RelayedStart, //add non-relayed states above
             RelayedHead,
             RelayedBody,
             RelayedWait,
-            Canceled,
         };
 
         MessageBundle      msgbundle_;
@@ -181,10 +184,9 @@ private:
         SerializerPointerT serializer_ptr_;
         MessageId          pool_msg_id_;
         StateE             state_;
-        RelayData*         prelay_data_;//TODO: make somehow prelay_data_ act as a const pointer as its data must not be changed by Writer
+        RelayData*         prelay_data_; //TODO: make somehow prelay_data_ act as a const pointer as its data must not be changed by Writer
         const char*        prelay_pos_;
         size_t             relay_size_;
-
 
         MessageStub(
             MessageBundle& _rmsgbundle)
@@ -233,12 +235,17 @@ private:
         {
             return state_ == StateE::WriteHead or state_ == StateE::RelayedHead;
         }
-        
+
         bool isStartOrHeadState() const noexcept
         {
             return state_ == StateE::WriteStart or state_ == StateE::WriteHead or state_ == StateE::RelayedStart or state_ == StateE::RelayedHead;
         }
-        
+
+        bool isWaitResponseState() const noexcept
+        {
+            return state_ == StateE::WriteWait or state_ == StateE::RelayedWait;
+        }
+
         bool isStop() const noexcept
         {
             return not msgbundle_.message_ptr and not Message::is_canceled(msgbundle_.message_flags);
@@ -251,7 +258,7 @@ private:
 
         bool isRelayed() const noexcept
         {
-            return prelay_data_ != nullptr; //TODO:
+            return state_ >= StateE::RelayedStart;
         }
 
         bool isSynchronous() const noexcept
@@ -319,13 +326,13 @@ private:
         ErrorConditionT&             _rerror);
 
     char* doWriteMessageBody(
-        char*                  _pbufpos,
-        char*                  _pbufend,
-        const size_t           _msgidx,
-        PacketOptions&         _rpacket_options,
-        Sender&                _rsender,
-        SerializerPointerT&    _rtmp_serializer,
-        ErrorConditionT&       _rerror);
+        char*               _pbufpos,
+        char*               _pbufend,
+        const size_t        _msgidx,
+        PacketOptions&      _rpacket_options,
+        Sender&             _rsender,
+        SerializerPointerT& _rtmp_serializer,
+        ErrorConditionT&    _rerror);
 
     char* doWriteRelayedHead(
         char*                        _pbufpos,
@@ -338,13 +345,13 @@ private:
         ErrorConditionT&             _rerror);
 
     char* doWriteRelayedBody(
-        char*                  _pbufpos,
-        char*                  _pbufend,
-        const size_t           _msgidx,
-        PacketOptions&         _rpacket_options,
-        Sender&                _rsender,
-        ErrorConditionT&       _rerror);
-    
+        char*            _pbufpos,
+        char*            _pbufend,
+        const size_t     _msgidx,
+        PacketOptions&   _rpacket_options,
+        Sender&          _rsender,
+        ErrorConditionT& _rerror);
+
     char* doWriteMessageCancel(
         char*            _pbufpos,
         char*            _pbufend,

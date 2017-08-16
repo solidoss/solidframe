@@ -75,8 +75,8 @@ struct RelayData {
         pdata_         = _rrelmsg.pdata_;
         data_size_     = _rrelmsg.data_size_;
         connection_id_ = _rrelmsg.connection_id_;
-        pnext_ = _rrelmsg.pnext_;
-        is_last_ = _rrelmsg.is_last_;
+        pnext_         = _rrelmsg.pnext_;
+        is_last_       = _rrelmsg.is_last_;
         return *this;
     }
 
@@ -90,8 +90,7 @@ private:
         const char*          _pdata,
         size_t               _data_size,
         const ObjectIdT&     _connection_id,
-        const bool _is_last
-             )
+        const bool           _is_last)
         : bufptr_(std::move(_bufptr))
         , pdata_(_pdata)
         , data_size_(_data_size)
@@ -118,19 +117,27 @@ private:
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
     // or copy it in case of multicasts
     virtual bool relay(
-        ConnectionContext& _rctx,
-        MessageHeader&     _rmsghdr,
-        RelayData&&        _rrelay_data,
-        ObjectIdT&         _rrelay_id,
-        ErrorConditionT&   _rerror);
-    
-    virtual ErrorConditionT doPoll(ConnectionContext& /*_rctx*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
+        const ObjectIdT& _rconuid,
+        MessageHeader&   _rmsghdr,
+        RelayData&&      _rrelay_data,
+        MessageId&       _rrelay_id,
+        ErrorConditionT& _rerror);
+
+    virtual void doPoll(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
+
+    virtual void doPoll(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, RelayData* /*_prelay_data*/, MessageId const& /*_rengine_msg_id*/, bool& /*_rmore*/);
 
     template <class F>
-    ErrorConditionT poll(ConnectionContext& _rctx, F _try_push, bool& _rmore)
+    void poll(const ObjectIdT& _rconuid, F _try_push, bool& _rmore)
     {
         PushFunctionT try_push_fnc{_try_push};
-        return doPoll(_rctx, try_push_fnc, _rmore);
+        doPoll(_rconuid, try_push_fnc, _rmore);
+    }
+    template <class F>
+    void poll(const ObjectIdT& _rconuid, F _try_push, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
+    {
+        PushFunctionT try_push_fnc{_try_push};
+        doPoll(_rconuid, try_push_fnc, _prelay_data, _rengine_msg_id, _rmore);
     }
 };
 

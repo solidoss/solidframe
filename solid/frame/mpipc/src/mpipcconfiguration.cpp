@@ -123,19 +123,23 @@ WriterConfiguration::WriterConfiguration()
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngineBase::relay(
-    ConnectionContext& /*_rctx*/,
+    const ObjectIdT& /*_rconuid*/,
     MessageHeader& /*_rmsghdr*/,
     RelayData&& /*_rrelmsg*/,
-    ObjectIdT& /*_rrelay_id*/,
+    MessageId& /*_rrelay_id*/,
     ErrorConditionT& /*_rerror*/)
 {
     return false; //ignore relay messages
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT RelayEngineBase::doPoll(ConnectionContext& /*_rctx*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
+void RelayEngineBase::doPoll(const ObjectIdT& /*_rconuid*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
 {
     SOLID_THROW("should not be called");
-    return ErrorConditionT{};
+}
+//-----------------------------------------------------------------------------
+void RelayEngineBase::doPoll(const ObjectIdT& /*_rconuid*/, PushFunctionT& /*_try_push_fnc*/, RelayData* /*_prelay_data*/, MessageId const& /*_rengine_msg_id*/, bool& /*_rmore*/)
+{
+    SOLID_THROW("should not be called");
 }
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

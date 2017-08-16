@@ -79,7 +79,7 @@ inline Service& Connection::service(frame::aio::ReactorContext& _rctx) const
 //-----------------------------------------------------------------------------
 inline ObjectIdT Connection::uid(frame::aio::ReactorContext& _rctx) const
 {
-    return service(_rctx).manager().id(*this);
+    return service(_rctx).id(*this);
 }
 //-----------------------------------------------------------------------------
 
@@ -466,13 +466,14 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
 
         flags_.set(FlagsE::Stopping);
 
-        ErrorConditionT tmp_error(error());
-        ObjectIdT       objuid(uid(_rctx));
-        ulong           seconds_to_wait = 0;
-        MessageBundle   msg_bundle;
-        MessageId       pool_msg_id;
-        Event           event;
-        bool            can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
+        ConnectionContext conctx(service(_rctx), *this);
+        ErrorConditionT   tmp_error(error());
+        ObjectIdT         objuid(uid(_rctx));
+        ulong             seconds_to_wait = 0;
+        MessageBundle     msg_bundle;
+        MessageId         pool_msg_id;
+        Event             event;
+        bool              can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 
         if (msg_bundle.message_ptr.get() or not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
             doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
@@ -1399,7 +1400,7 @@ struct Connection::Receiver : MessageReader::Receiver {
         rcon_.doCompleteCancelRequest(rctx_, _reqid);
     }
 
-    bool receiveRelayBody(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, ObjectIdT& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
+    bool receiveRelayBody(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
     {
         return rcon_.doCompleteRelayBody(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
     }
@@ -1415,6 +1416,16 @@ struct Connection::Receiver : MessageReader::Receiver {
                     rthis.doSend(_rctx);
                 });
         }
+    }
+
+    virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) override
+    {
+        return rcon_.doCheckIsRelayedResponse(_rrequid, _rrelay_id);
+    }
+
+    virtual bool receiveRelayedResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
+    {
+        return rcon_.doCompleteRelayBody(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
     }
 };
 
@@ -1507,9 +1518,9 @@ struct Connection::Sender : MessageWriter::Sender {
         rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, ErrorConditionT());
         return rcon_.service(rctx_).pollPoolForUpdates(rcon_, rcon_.uid(rctx_), _rpool_msg_id);
     }
-    void completeRelay(RelayData* _prelay_data, MessageId const& _rmsgid, ErrorConditionT&  _rerror) override
+    void completeRelayed(RelayData* _prelay_data, MessageId const& _rmsgid) override
     {
-        rcon_.doCompleteRelay(rctx_, _prelay_data, _rmsgid, _rerror);
+        rcon_.doCompleteRelayed(rcon_.service(rctx_), _prelay_data, _rmsgid);
     }
 };
 
@@ -1536,10 +1547,8 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         }
         if (shouldPollRelayEngine()) {
             bool more = false;
-            if ((error = rconfig.relayEngine().poll(conctx, relay_poll_push_lambda, more))) {
-                doStop(_rctx, error);
-                return;
-            }
+            rconfig.relayEngine().poll(uid(_rctx), relay_poll_push_lambda, more);
+
             if (not more) {
                 flags_.reset(FlagsE::PollRelayEngine); //reset flag
             }
@@ -1564,10 +1573,8 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 }
                 if (shouldPollRelayEngine()) {
                     bool more = false;
-                    if ((error = rconfig.relayEngine().poll(conctx, relay_poll_push_lambda, more))) {
-                        doStop(_rctx, error);
-                        return;
-                    }
+                    rconfig.relayEngine().poll(uid(_rctx), relay_poll_push_lambda, more);
+
                     if (not more) {
                         flags_.reset(FlagsE::PollRelayEngine); //reset flag
                     }
@@ -1727,21 +1734,19 @@ void Connection::doCompleteMessage(
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doCompleteRelay(
-    solid::frame::aio::ReactorContext& _rctx,
-    RelayData *_prelay_data,
-    MessageId const& _rengine_msg_id,
-    ErrorConditionT&  _rerror)
+void Connection::doCompleteRelayed(
+    Service&         _rsvc,
+    RelayData*       _prelay_data,
+    MessageId const& _rengine_msg_id)
 {
-    ConnectionContext    conctx(service(_rctx), *this);
-    const Configuration& rconfig = service(_rctx).configuration();
+    const Configuration& rconfig      = _rsvc.configuration();
     const auto relay_poll_push_lambda = [this, &rconfig](RelayData* _prelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id) -> bool {
         return msg_writer_.enqueue(rconfig.writer, _prelay_data, _rengine_msg_id, _rconn_msg_id);
     };
     bool more = false;
-    if ((_rerror = rconfig.relayEngine().poll(conctx, relay_poll_push_lambda, more))) {
-        return;
-    }
+
+    rconfig.relayEngine().poll(_rsvc.id(*this), relay_poll_push_lambda, _prelay_data, _rengine_msg_id, more);
+
     if (not more) {
         flags_.reset(FlagsE::PollRelayEngine); //reset flag
     }
@@ -1809,7 +1814,7 @@ bool Connection::doCompleteRelayBody(
     MessageHeader&              _rmsghdr,
     const char*                 _pbeg,
     size_t                      _sz,
-    ObjectIdT&                  _rrelay_id,
+    MessageId&                  _rrelay_id,
     const bool                  _is_last,
     ErrorConditionT&            _rerror)
 {
@@ -1817,7 +1822,12 @@ bool Connection::doCompleteRelayBody(
     ConnectionContext    conctx{service(_rctx), *this};
     RelayData            relmsg{std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx), _is_last};
 
-    return config.relayEngine().relay(conctx, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relay(uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+}
+//-----------------------------------------------------------------------------
+bool Connection::doCheckIsRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id)
+{
+    return msg_writer_.isRelayedResponse(_rrequid, _rrelay_id);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)
