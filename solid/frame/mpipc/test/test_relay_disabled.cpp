@@ -452,23 +452,13 @@ int test_relay_disabled(int argc, char** argv)
 
         { //mpipc relay initialization
             auto con_start                                                                = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStart(_rctx); };
-            auto con_stop                                                                 = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStart(_rctx); };
+            auto con_stop                                                                 = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStop(_rctx); };
             auto                                                             con_register = [&relay_engine](
                 frame::mpipc::ConnectionContext& _rctx,
                 std::shared_ptr<Register>&       _rsent_msg_ptr,
                 std::shared_ptr<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
                 relay_engine.onRegister(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerror);
-            };
-            auto con_relay = [&relay_engine](
-                frame::mpipc::ConnectionContext& /*_rctx*/,
-                frame::mpipc::MessageHeader& _rmsghdr,
-                frame::mpipc::RelayData&&    _rrelmsg,
-                frame::ObjectIdT& /*_rrelay_id*/,
-                const bool /*_is_last*/,
-                ErrorConditionT & /*_rerror*/) -> bool {
-                idbg("relay message to: " << _rmsghdr.url_);
-                return false;
             };
 
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();

@@ -86,12 +86,12 @@ struct RelayData {
 private:
     friend class Connection;
     RelayData(
-        RecvBufferPointerT&& _bufptr,
-        const char*          _pdata,
-        size_t               _data_size,
-        const ObjectIdT&     _connection_id,
-        const bool           _is_last)
-        : bufptr_(std::move(_bufptr))
+        RecvBufferPointerT& _bufptr,
+        const char*         _pdata,
+        size_t              _data_size,
+        const ObjectIdT&    _connection_id,
+        const bool          _is_last)
+        : bufptr_(_bufptr)
         , pdata_(_pdata)
         , data_size_(_data_size)
         , connection_id_(_connection_id)

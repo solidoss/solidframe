@@ -1353,6 +1353,7 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
     } else {
         //tried to relay received messages/message parts - but all failed
         //so we need to ack the buffer
+        SOLID_ASSERT(recv_buf_.use_count());
         vdbgx(Debug::mpipc, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
 
         if (ackd_buf_count_ == 0) {
@@ -1480,7 +1481,11 @@ struct Connection::Receiver : MessageReader::Receiver {
         }
         --repeatcnt;
         rthis.doOptimizeRecvBuffer();
-        pbuf  = rthis.recv_buf_.get() + rthis.recv_buf_off_;
+
+        SOLID_ASSERT(rthis.recv_buf_);
+
+        pbuf = rthis.recv_buf_.get() + rthis.recv_buf_off_;
+
         bufsz = recvbufcp - rthis.recv_buf_off_;
         //idbgx(Debug::mpipc, &rthis<<" buffer size "<<bufsz);
     } while (repeatcnt && rthis.recvSome(_rctx, pbuf, bufsz, _sz));
@@ -1820,7 +1825,7 @@ bool Connection::doCompleteRelayBody(
 {
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx{service(_rctx), *this};
-    RelayData            relmsg{std::move(recv_buf_), _pbeg, _sz, this->uid(_rctx), _is_last};
+    RelayData            relmsg{recv_buf_, _pbeg, _sz, this->uid(_rctx), _is_last};
 
     return config.relayEngine().relay(uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }

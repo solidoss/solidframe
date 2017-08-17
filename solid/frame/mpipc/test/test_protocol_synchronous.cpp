@@ -330,7 +330,8 @@ int test_protocol_synchronous(int argc, char** argv)
 
             frame::mpipc::WriteBuffer wb(buf, bufcp);
             uint8_t                   relay_free_count = 0;
-            error                                      = mpipcmsgwriter.write(wb, frame::mpipc::MessageWriter::WriteFlagsT(), rcvr.ackd_count, rcvr.reqvec, relay_free_count, sndr);
+            uint8_t                   ack_cnt          = rcvr.ackd_count;
+            error                                      = mpipcmsgwriter.write(wb, frame::mpipc::MessageWriter::WriteFlagsT(), ack_cnt, rcvr.reqvec, relay_free_count, sndr);
 
             if (refill) {
                 rcvr.fillRequestVector(10);

@@ -322,7 +322,7 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
             return true; //prevent splitting the header
 
         if (rmsgstub.isSynchronous()) {
-            if (current_synchronous_message_idx_ != InvalidIndex() or msgidx == current_synchronous_message_idx_) {
+            if (current_synchronous_message_idx_ == InvalidIndex() or msgidx == current_synchronous_message_idx_) {
             } else {
                 write_inner_list_.pushBack(write_inner_list_.popFront());
                 continue;
@@ -338,9 +338,19 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
                 continue;
             }
         }
-
+        vdbgx(Debug::mpipc, "FOUND eligible message");
         return true;
     }
+    vdbgx(Debug::mpipc, "NO eligible message in a queue of " << write_inner_list_.size());
+#if 0
+    qsz = write_inner_list_.size();
+    while (qsz--) {
+        const size_t msgidx   = write_inner_list_.frontIndex();
+        MessageStub& rmsgstub = message_vec_[msgidx];
+        vdbgx(Debug::mpipc, ""<<msgidx<<" "<<(int)rmsgstub.state_<<" "<<rmsgstub.isSynchronous()<<" "<<current_synchronous_message_idx_);
+        write_inner_list_.pushBack(write_inner_list_.popFront());
+    }
+#endif
     return false;
 }
 //-----------------------------------------------------------------------------
@@ -364,10 +374,10 @@ size_t MessageWriter::doWritePacketData(
 
     if (_rackd_buf_count) {
         vdbgx(Debug::mpipc, "stored ackd_buf_count = " << (int)_rackd_buf_count);
-        pbufpos          = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
-        _rackd_buf_count = 0;
         uint8_t cmd      = static_cast<uint8_t>(PacketHeader::CommandE::AckdCount);
         pbufpos          = _rsender.protocol().storeValue(pbufpos, cmd);
+        pbufpos          = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
+        _rackd_buf_count = 0;
     }
 
     while (_cancel_remote_msg_vec.size() and (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
