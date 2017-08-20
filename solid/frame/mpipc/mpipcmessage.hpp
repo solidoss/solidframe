@@ -62,6 +62,13 @@ struct MessageHeader {
     FlagsT      flags_;
     std::string url_;
 
+    void clear()
+    {
+        sender_request_id_.clear();
+        recipient_request_id_.clear();
+        url_.clear();
+        flags_ = 0;
+    }
     template <class S>
     void solidSerialize(S& _rs, frame::mpipc::ConnectionContext& _rctx)
     {

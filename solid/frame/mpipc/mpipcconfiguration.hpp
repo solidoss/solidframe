@@ -56,8 +56,16 @@ struct RelayData {
     ObjectIdT          connection_id_;
     RelayData*         pnext_;
     bool               is_last_;
-    MessageHeader      message_header_;
+    MessageHeader*     pmessage_header_;
 
+    RelayData()
+        : pdata_(nullptr)
+        , data_size_(0)
+        , pnext_(nullptr)
+        , is_last_(false)
+        , pmessage_header_(nullptr)
+    {
+    }
     RelayData(
         RelayData&& _rrelmsg)
         : bufptr_(std::move(_rrelmsg.bufptr_))
@@ -66,22 +74,34 @@ struct RelayData {
         , connection_id_(_rrelmsg.connection_id_)
         , pnext_(nullptr)
         , is_last_(false)
+        , pmessage_header_(nullptr)
     {
     }
 
     RelayData& operator=(RelayData&& _rrelmsg)
     {
-        bufptr_        = std::move(_rrelmsg.bufptr_);
-        pdata_         = _rrelmsg.pdata_;
-        data_size_     = _rrelmsg.data_size_;
-        connection_id_ = _rrelmsg.connection_id_;
-        pnext_         = _rrelmsg.pnext_;
-        is_last_       = _rrelmsg.is_last_;
+        bufptr_          = std::move(_rrelmsg.bufptr_);
+        pdata_           = _rrelmsg.pdata_;
+        data_size_       = _rrelmsg.data_size_;
+        connection_id_   = _rrelmsg.connection_id_;
+        pnext_           = _rrelmsg.pnext_;
+        is_last_         = _rrelmsg.is_last_;
+        pmessage_header_ = _rrelmsg.pmessage_header_;
         return *this;
     }
 
     RelayData(const RelayData&) = delete;
     RelayData& operator=(const RelayData&) = delete;
+
+    void clear()
+    {
+        pdata_     = nullptr;
+        data_size_ = 0;
+        connection_id_.clear();
+        pnext_           = nullptr;
+        is_last_         = false;
+        pmessage_header_ = nullptr;
+    }
 
 private:
     friend class Connection;
@@ -97,6 +117,7 @@ private:
         , connection_id_(_connection_id)
         , pnext_(nullptr)
         , is_last_(_is_last)
+        , pmessage_header_(nullptr)
     {
     }
 };

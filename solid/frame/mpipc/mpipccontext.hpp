@@ -204,6 +204,7 @@ private:
     friend class Connection;
     friend class MessageWriter;
     friend struct ConnectionPoolStub;
+    friend class RelayEngine;
 
     friend std::ostream& operator<<(std::ostream& _ros, MessageId const& _msguid);
 

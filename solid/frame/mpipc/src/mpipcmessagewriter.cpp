@@ -108,7 +108,7 @@ bool MessageWriter::enqueue(
             return false;
         }
         if (
-            Message::is_waiting_response(_prelay_data->message_header_.flags_) and ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
+            Message::is_waiting_response(_prelay_data->pmessage_header_->flags_) and ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
             return false;
         }
 
@@ -445,9 +445,9 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.state_ = MessageStub::StateE::RelayedHead;
 
-            vdbgx(Debug::mpipc, "message header url: " << rmsgstub.prelay_data_->message_header_.url_);
+            vdbgx(Debug::mpipc, "message header url: " << rmsgstub.prelay_data_->pmessage_header_->url_);
 
-            rmsgstub.serializer_ptr_->push(rmsgstub.prelay_data_->message_header_);
+            rmsgstub.serializer_ptr_->push(*rmsgstub.prelay_data_->pmessage_header_);
 
             cmd = PacketHeader::CommandE::NewMessage;
         }
@@ -612,9 +612,9 @@ char* MessageWriter::doWriteRelayedHead(
 
     _rsender.context().request_id.index  = (_msgidx + 1);
     _rsender.context().request_id.unique = rmsgstub.unique_;
-    _rsender.context().message_flags     = rmsgstub.prelay_data_->message_header_.flags_;
+    _rsender.context().message_flags     = rmsgstub.prelay_data_->pmessage_header_->flags_;
     _rsender.context().message_flags     = Message::update_state_flags(_rsender.context().message_flags);
-    _rsender.context().pmessage_url      = &rmsgstub.prelay_data_->message_header_.url_;
+    _rsender.context().pmessage_url      = &rmsgstub.prelay_data_->pmessage_header_->url_;
 
     const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
 
@@ -677,7 +677,7 @@ char* MessageWriter::doWriteRelayedBody(
         write_inner_list_.erase(_msgidx); //call before _rsender.pollRelayEngine
 
         const bool is_last                 = rmsgstub.prelay_data_->is_last_;
-        const bool is_waiting_for_response = Message::is_waiting_response(rmsgstub.prelay_data_->message_header_.flags_);
+        const bool is_waiting_for_response = Message::is_waiting_response(rmsgstub.prelay_data_->pmessage_header_->flags_);
 
         _rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
 
