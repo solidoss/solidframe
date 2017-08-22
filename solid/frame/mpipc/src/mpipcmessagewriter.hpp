@@ -115,7 +115,8 @@ public:
         WriterConfiguration const& _rconfig,
         RelayData*                 _prelay_data,
         MessageId const&           _rengine_msg_id,
-        MessageId&                 _rconn_msg_id);
+        MessageId&                 _rconn_msg_id,
+        bool&                      _rmore);
 
     bool cancel(
         MessageId const& _rmsguid,

@@ -53,10 +53,10 @@ struct RelayData {
     RecvBufferPointerT bufptr_;
     const char*        pdata_;
     size_t             data_size_;
-    ObjectIdT          connection_id_;
-    RelayData*         pnext_;
-    bool               is_last_;
-    MessageHeader*     pmessage_header_;
+    //ObjectIdT          connection_id_;
+    RelayData*     pnext_;
+    bool           is_last_;
+    MessageHeader* pmessage_header_;
 
     RelayData()
         : pdata_(nullptr)
@@ -71,7 +71,7 @@ struct RelayData {
         : bufptr_(std::move(_rrelmsg.bufptr_))
         , pdata_(_rrelmsg.pdata_)
         , data_size_(_rrelmsg.data_size_)
-        , connection_id_(_rrelmsg.connection_id_)
+        //, connection_id_(_rrelmsg.connection_id_)
         , pnext_(nullptr)
         , is_last_(false)
         , pmessage_header_(nullptr)
@@ -80,10 +80,10 @@ struct RelayData {
 
     RelayData& operator=(RelayData&& _rrelmsg)
     {
-        bufptr_          = std::move(_rrelmsg.bufptr_);
-        pdata_           = _rrelmsg.pdata_;
-        data_size_       = _rrelmsg.data_size_;
-        connection_id_   = _rrelmsg.connection_id_;
+        bufptr_    = std::move(_rrelmsg.bufptr_);
+        pdata_     = _rrelmsg.pdata_;
+        data_size_ = _rrelmsg.data_size_;
+        //connection_id_   = _rrelmsg.connection_id_;
         pnext_           = _rrelmsg.pnext_;
         is_last_         = _rrelmsg.is_last_;
         pmessage_header_ = _rrelmsg.pmessage_header_;
@@ -97,7 +97,7 @@ struct RelayData {
     {
         pdata_     = nullptr;
         data_size_ = 0;
-        connection_id_.clear();
+        //connection_id_.clear();
         pnext_           = nullptr;
         is_last_         = false;
         pmessage_header_ = nullptr;
@@ -109,12 +109,12 @@ private:
         RecvBufferPointerT& _bufptr,
         const char*         _pdata,
         size_t              _data_size,
-        const ObjectIdT&    _connection_id,
-        const bool          _is_last)
+        //const ObjectIdT&    _connection_id,
+        const bool _is_last)
         : bufptr_(_bufptr)
         , pdata_(_pdata)
         , data_size_(_data_size)
-        , connection_id_(_connection_id)
+        //, connection_id_(_connection_id)
         , pnext_(nullptr)
         , is_last_(_is_last)
         , pmessage_header_(nullptr)
@@ -122,12 +122,19 @@ private:
     }
 };
 
+enum struct RelayEngineNotification {
+    NewData,
+    DoneData,
+};
+
 class RelayEngineBase {
 public:
     static RelayEngineBase& instance();
 
 protected:
-    using PushFunctionT = SOLID_FUNCTION<bool(RelayData*, const MessageId&, MessageId&)>;
+    using PushFunctionT   = SOLID_FUNCTION<bool(RelayData*, const MessageId&, MessageId&, bool&)>;
+    using NotifyFunctionT = SOLID_FUNCTION<bool(const ObjectIdT&, RelayEngineNotification)>;
+    using DoneFunctionT   = SOLID_FUNCTION<void(RecvBufferPointerT&)>;
 
     virtual ~RelayEngineBase();
 
@@ -137,28 +144,49 @@ private:
     //NOTE: we require _rmsghdr parameter because the relay function
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
     // or copy it in case of multicasts
-    virtual bool relay(
+    virtual bool doRelay(
         const ObjectIdT& _rconuid,
+        NotifyFunctionT& _rnotify_fnc,
         MessageHeader&   _rmsghdr,
-        RelayData&&      _rrelay_data,
+        RelayData&&      _urelay_data,
         MessageId&       _rrelay_id,
         ErrorConditionT& _rerror);
 
-    virtual void doPoll(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
-
-    virtual void doPoll(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, RelayData* /*_prelay_data*/, MessageId const& /*_rengine_msg_id*/, bool& /*_rmore*/);
+    virtual void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
+    virtual void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/);
+    virtual void doComplete(const ObjectIdT& _rconuid, NotifyFunctionT&, RelayData* /*_prelay_data*/, MessageId const& /*_rengine_msg_id*/, bool& /*_rmore*/);
 
     template <class F>
-    void poll(const ObjectIdT& _rconuid, F _try_push, bool& _rmore)
+    void pollNew(const ObjectIdT& _rconuid, F& _try_push, bool& _rmore)
     {
-        PushFunctionT try_push_fnc{_try_push};
-        doPoll(_rconuid, try_push_fnc, _rmore);
+        PushFunctionT try_push_fnc{std::cref(_try_push)};
+        doPollNew(_rconuid, try_push_fnc, _rmore);
+    }
+
+    template <class F>
+    void pollDone(const ObjectIdT& _rconuid, F& _done_fnc)
+    {
+        DoneFunctionT done_fnc{std::cref(_done_fnc)};
+        doPollDone(_rconuid, done_fnc);
+    }
+
+    template <class F>
+    void complete(const ObjectIdT& _rconuid, F& _notify_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
+    {
+        NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
+        doComplete(_rconuid, notify_fnc, _prelay_data, _rengine_msg_id, _rmore);
     }
     template <class F>
-    void poll(const ObjectIdT& _rconuid, F _try_push, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
+    bool relay(
+        const ObjectIdT& _rconuid,
+        F&               _notify_fnc,
+        MessageHeader&   _rmsghdr,
+        RelayData&&      _urelay_data,
+        MessageId&       _rrelay_id,
+        ErrorConditionT& _rerror)
     {
-        PushFunctionT try_push_fnc{_try_push};
-        doPoll(_rconuid, try_push_fnc, _prelay_data, _rengine_msg_id, _rmore);
+        NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
+        return doRelay(_rconuid, notify_fnc, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 };
 

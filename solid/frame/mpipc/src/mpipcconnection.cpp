@@ -1538,8 +1538,8 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         ErrorConditionT      error;
         const Configuration& rconfig = service(_rctx).configuration();
         ConnectionContext    conctx(service(_rctx), *this);
-        auto relay_poll_push_lambda = [this, &rconfig](RelayData* _prelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id) -> bool {
-            return msg_writer_.enqueue(rconfig.writer, _prelay_data, _rengine_msg_id, _rconn_msg_id);
+        auto relay_poll_push_lambda = [this, &rconfig](RelayData* _prelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id, bool& _rmore) -> bool {
+            return msg_writer_.enqueue(rconfig.writer, _prelay_data, _rengine_msg_id, _rconn_msg_id, _rmore);
         };
         //we do a pollPoolForUpdates here because we want to be able to
         //receive a force pool close, even though we are waiting for send.
@@ -1552,7 +1552,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         }
         if (shouldPollRelayEngine()) {
             bool more = false;
-            rconfig.relayEngine().poll(uid(_rctx), relay_poll_push_lambda, more);
+            rconfig.relayEngine().pollNew(uid(_rctx), relay_poll_push_lambda, more);
 
             if (not more) {
                 flags_.reset(FlagsE::PollRelayEngine); //reset flag
@@ -1578,7 +1578,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 }
                 if (shouldPollRelayEngine()) {
                     bool more = false;
-                    rconfig.relayEngine().poll(uid(_rctx), relay_poll_push_lambda, more);
+                    rconfig.relayEngine().pollNew(uid(_rctx), relay_poll_push_lambda, more);
 
                     if (not more) {
                         flags_.reset(FlagsE::PollRelayEngine); //reset flag
@@ -1739,18 +1739,24 @@ void Connection::doCompleteMessage(
     }
 }
 //-----------------------------------------------------------------------------
+/*static*/ bool Connection::notify_connection(Service& _rsvc, const ObjectIdT& _conuid, RelayEngineNotification _what)
+{
+    //TODO:
+    return false;
+}
+//-----------------------------------------------------------------------------
 void Connection::doCompleteRelayed(
     Service&         _rsvc,
     RelayData*       _prelay_data,
     MessageId const& _rengine_msg_id)
 {
-    const Configuration& rconfig      = _rsvc.configuration();
-    const auto relay_poll_push_lambda = [this, &rconfig](RelayData* _prelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id) -> bool {
-        return msg_writer_.enqueue(rconfig.writer, _prelay_data, _rengine_msg_id, _rconn_msg_id);
+    const Configuration& rconfig = _rsvc.configuration();
+    bool                 more    = false;
+    const auto lambda            = [&_rsvc](const ObjectIdT& _con_id, RelayEngineNotification _n) {
+        return notify_connection(_rsvc, _con_id, _n);
     };
-    bool more = false;
 
-    rconfig.relayEngine().poll(_rsvc.id(*this), relay_poll_push_lambda, _prelay_data, _rengine_msg_id, more);
+    rconfig.relayEngine().complete(_rsvc.id(*this), lambda, _prelay_data, _rengine_msg_id, more);
 
     if (not more) {
         flags_.reset(FlagsE::PollRelayEngine); //reset flag
@@ -1825,9 +1831,14 @@ bool Connection::doCompleteRelayBody(
 {
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx{service(_rctx), *this};
-    RelayData            relmsg{recv_buf_, _pbeg, _sz, this->uid(_rctx), _is_last};
+    RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
+    Service&             rsvc = service(_rctx);
 
-    return config.relayEngine().relay(uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+    const auto lambda = [&rsvc](const ObjectIdT& _con_id, RelayEngineNotification _n) {
+        return notify_connection(rsvc, _con_id, _n);
+    };
+
+    return config.relayEngine().relay(uid(_rctx), lambda, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doCheckIsRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id)

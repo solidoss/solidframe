@@ -49,8 +49,8 @@ namespace solid {
 namespace frame {
 namespace mpipc {
 //=============================================================================
-typedef std::unordered_map<const char*, size_t, CStringHash, CStringEqual> NameMapT;
-typedef Queue<ObjectIdT> ObjectIdQueueT;
+using NameMapT       = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
+using ObjectIdQueueT = Queue<ObjectIdT>;
 
 enum {
     InnerLinkOrder = 0,

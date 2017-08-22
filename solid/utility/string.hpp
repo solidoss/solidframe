@@ -11,8 +11,10 @@
 #pragma once
 
 #include "solid/utility/common.hpp"
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 namespace solid {
 
@@ -41,5 +43,15 @@ struct CStringEqual {
         return ::strcmp(_val1, _val2) == 0;
     }
 };
+
+inline void to_lower(std::string& _rstr)
+{
+    std::transform(_rstr.begin(), _rstr.end(), _rstr.begin(), [](unsigned char c) { return std::tolower(c); });
+}
+
+inline void to_upper(std::string& _rstr)
+{
+    std::transform(_rstr.begin(), _rstr.end(), _rstr.begin(), [](unsigned char c) { return std::toupper(c); });
+}
 
 } //namespace solid

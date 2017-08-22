@@ -186,6 +186,8 @@ private:
     friend struct ConnectionContext;
     friend class Service;
 
+    static bool notify_connection(Service& _rsvc, const ObjectIdT&, RelayEngineNotification);
+
     Service& service(frame::aio::ReactorContext& _rctx) const;
     ObjectIdT uid(frame::aio::ReactorContext& _rctx) const;
 

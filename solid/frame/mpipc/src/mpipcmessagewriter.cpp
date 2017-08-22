@@ -94,9 +94,11 @@ bool MessageWriter::enqueue(
     WriterConfiguration const& _rconfig,
     RelayData*                 _prelay_data,
     MessageId const&           _rengine_msg_id,
-    MessageId&                 _rconn_msg_id)
+    MessageId&                 _rconn_msg_id,
+    bool&                      _rmore)
 {
     if (full(_rconfig)) {
+        _rmore = false;
         return false;
     }
 
@@ -105,6 +107,7 @@ bool MessageWriter::enqueue(
 
     if (_rconn_msg_id.isInvalid()) { //front message data
         if (cache_inner_list_.empty()) {
+            _rmore = false;
             return false;
         }
         if (

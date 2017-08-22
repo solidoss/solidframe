@@ -122,22 +122,28 @@ WriterConfiguration::WriterConfiguration()
 {
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool RelayEngineBase::relay(
-    const ObjectIdT& /*_rconuid*/,
-    MessageHeader& /*_rmsghdr*/,
-    RelayData&& /*_rrelmsg*/,
-    MessageId& /*_rrelay_id*/,
-    ErrorConditionT& /*_rerror*/)
+/*virtual*/ bool RelayEngineBase::doRelay(
+    const ObjectIdT& _rconuid,
+    NotifyFunctionT& _rnotify_fnc,
+    MessageHeader&   _rmsghdr,
+    RelayData&&      _urelay_data,
+    MessageId&       _rrelay_id,
+    ErrorConditionT& _rerror)
 {
-    return false; //ignore relay messages
+    return false;
 }
 //-----------------------------------------------------------------------------
-void RelayEngineBase::doPoll(const ObjectIdT& /*_rconuid*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
+/*virtual*/ void RelayEngineBase::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
 {
     SOLID_THROW("should not be called");
 }
 //-----------------------------------------------------------------------------
-void RelayEngineBase::doPoll(const ObjectIdT& /*_rconuid*/, PushFunctionT& /*_try_push_fnc*/, RelayData* /*_prelay_data*/, MessageId const& /*_rengine_msg_id*/, bool& /*_rmore*/)
+/*virtual*/ void RelayEngineBase::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/)
+{
+    SOLID_THROW("should not be called");
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ void RelayEngineBase::doComplete(const ObjectIdT& _rconuid, NotifyFunctionT&, RelayData* /*_prelay_data*/, MessageId const& /*_rengine_msg_id*/, bool& /*_rmore*/)
 {
     SOLID_THROW("should not be called");
 }
