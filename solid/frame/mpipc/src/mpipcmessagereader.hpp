@@ -39,16 +39,19 @@ public:
         virtual void receiveKeepAlive()                     = 0;
         virtual void receiveAckCount(uint8_t _count)        = 0;
         virtual void receiveCancelRequest(const RequestId&) = 0;
-        virtual bool receiveRelayBody(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+        virtual bool receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
         {
             return false;
         }
-
+        virtual bool receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+        {
+            return false;
+        }
+        virtual bool receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+        {
+            return false;
+        }
         virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id)
-        {
-            return false;
-        }
-        virtual bool receiveRelayedResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
         {
             return false;
         }
@@ -102,9 +105,10 @@ private:
             NotStarted,
             ReadHead,
             ReadBody,
+            RelayStart,
             RelayBody,
             RelayFail,
-            RelayedResponse,
+            RelayResponse,
         };
 
         MessagePointerT      message_ptr_;

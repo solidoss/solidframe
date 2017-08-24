@@ -64,9 +64,9 @@ struct MessageStub {
     uint32_t      unique_;
     ObjectIdT     sender_con_id_;
     ObjectIdT     receiver_con_id_;
-    MessageHeader header_;
     MessageId     receiver_msg_id_;
     size_t        next_msg_idx_;
+    MessageHeader header_;
 
     MessageStub()
         : pfront_(nullptr)
@@ -212,7 +212,7 @@ size_t RelayEngine::doRegisterConnection(std::string&& _uname)
     return con_idx;
 }
 //-----------------------------------------------------------------------------
-bool RelayEngine::doRelay(
+bool RelayEngine::doRelayStart(
     const ObjectIdT& _rconuid,
     NotifyFunctionT& _rnotify_fnc,
     MessageHeader&   _rmsghdr,
@@ -223,14 +223,9 @@ bool RelayEngine::doRelay(
     size_t msgidx;
 
     unique_lock<mutex> lock(impl_->mtx_);
+    SOLID_ASSERT(_rrelay_id.isInvalid());
 
-    if (_rrelay_id.isValid()) {
-        if (_rrelay_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
-            msgidx = _rrelay_id.index;
-        } else {
-            return false;
-        }
-    } else {
+    {
         to_lower(_rmsghdr.url_);
 
         const auto it = impl_->con_id_umap_.find(_rconuid.index);
@@ -254,23 +249,94 @@ bool RelayEngine::doRelay(
         rmsg.receiver_con_id_ = ObjectIdT(con_idx, rcon.unique_);
     }
 
-    MessageStub& rmsg                          = impl_->msg_dq_[msgidx];
-    bool         is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
+    MessageStub&    rmsg = impl_->msg_dq_[msgidx];
+    ConnectionStub& rcon = impl_->con_dq_[rmsg.receiver_con_id_.index];
+
+    SOLID_ASSERT(rmsg.pfront_ == nullptr);
 
     rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
 
-    if (is_msg_relay_data_queue_empty) {
+    if (rcon.back_msg_idx_ == InvalidIndex()) {
+        rcon.front_msg_idx_ = rcon.back_msg_idx_ = msgidx;
+        _rnotify_fnc(rcon.id_, RelayEngineNotification::NewData);
+    } else {
+        impl_->msg_dq_[rcon.back_msg_idx_].next_msg_idx_ = msgidx;
+        rcon.back_msg_idx_                               = msgidx;
+    }
+    return true;
+}
+//-----------------------------------------------------------------------------
+bool RelayEngine::doRelayResponse(
+    const ObjectIdT& _rconuid,
+    NotifyFunctionT& _rnotify_fnc,
+    MessageHeader&   _rmsghdr,
+    RelayData&&      _rrelmsg,
+    const MessageId& _rrelay_id,
+    ErrorConditionT& _rerror)
+{
+    unique_lock<mutex> lock(impl_->mtx_);
+    SOLID_ASSERT(_rrelay_id.isValid());
+
+    if (_rrelay_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
+        const size_t msgidx = _rrelay_id.index;
+        MessageStub& rmsg   = impl_->msg_dq_[msgidx];
+
+        std::swap(rmsg.receiver_con_id_, rmsg.sender_con_id_);
+        rmsg.receiver_msg_id_.clear();
+
+        SOLID_ASSERT(rmsg.pfront_ == nullptr);
+        rmsg.header_ = std::move(_rmsghdr);
+
+        rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
+
         ConnectionStub& rcon = impl_->con_dq_[rmsg.receiver_con_id_.index];
 
         if (rcon.back_msg_idx_ == InvalidIndex()) {
             rcon.front_msg_idx_ = rcon.back_msg_idx_ = msgidx;
-            //TODO: notify receiver connection
+            _rnotify_fnc(rcon.id_, RelayEngineNotification::NewData);
         } else {
             impl_->msg_dq_[rcon.back_msg_idx_].next_msg_idx_ = msgidx;
             rcon.back_msg_idx_                               = msgidx;
         }
+
+        return true;
+    } else {
+        return false;
     }
-    return true;
+}
+//-----------------------------------------------------------------------------
+bool RelayEngine::doRelay(
+    const ObjectIdT& _rconuid,
+    NotifyFunctionT& _rnotify_fnc,
+    RelayData&&      _rrelmsg,
+    const MessageId& _rrelay_id,
+    ErrorConditionT& _rerror)
+{
+    unique_lock<mutex> lock(impl_->mtx_);
+    SOLID_ASSERT(_rrelay_id.isValid());
+
+    if (_rrelay_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
+        const size_t msgidx                        = _rrelay_id.index;
+        MessageStub& rmsg                          = impl_->msg_dq_[msgidx];
+        bool         is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
+
+        rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
+
+        if (is_msg_relay_data_queue_empty) {
+            ConnectionStub& rcon = impl_->con_dq_[rmsg.receiver_con_id_.index];
+
+            if (rcon.back_msg_idx_ == InvalidIndex()) {
+                rcon.front_msg_idx_ = rcon.back_msg_idx_ = msgidx;
+                _rnotify_fnc(rcon.id_, RelayEngineNotification::NewData);
+            } else {
+                impl_->msg_dq_[rcon.back_msg_idx_].next_msg_idx_ = msgidx;
+                rcon.back_msg_idx_                               = msgidx;
+            }
+        }
+        return true;
+    } else {
+        return false;
+    }
 }
 //-----------------------------------------------------------------------------
 void RelayEngine::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore)
@@ -325,9 +391,27 @@ void RelayEngine::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_
 //-----------------------------------------------------------------------------
 void RelayEngine::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc)
 {
+    unique_lock<mutex> lock(impl_->mtx_);
+    const auto         it = impl_->con_id_umap_.find(_rconuid.index);
+    if (it != impl_->con_id_umap_.end()) {
+        const size_t    con_idx = it->second;
+        ConnectionStub& rcon    = impl_->con_dq_[con_idx];
+
+        SOLID_ASSERT(rcon.id_.unique == _rconuid.unique);
+
+        RelayData* prd = rcon.pdone_relay_data_top_;
+
+        while (prd) {
+            _done_fnc(prd->bufptr_);
+            prd->bufptr_.reset();
+            prd = prd->pnext_;
+        }
+
+        rcon.pdone_relay_data_top_ = nullptr;
+    }
 }
 //-----------------------------------------------------------------------------
-void RelayEngine::doComplete(const ObjectIdT& _rconuid, NotifyFunctionT& _notify_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
+void RelayEngine::doComplete(const ObjectIdT& _rconuid, NotifyFunctionT& _rnotify_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
 {
     unique_lock<mutex> lock(impl_->mtx_);
     MessageStub&       rmsg = impl_->msg_dq_[_rengine_msg_id.index];
@@ -337,7 +421,7 @@ void RelayEngine::doComplete(const ObjectIdT& _rconuid, NotifyFunctionT& _notify
 
         if (rcon.back_msg_idx_ == InvalidIndex()) {
             rcon.front_msg_idx_ = rcon.back_msg_idx_ = _rengine_msg_id.index;
-            //TODO: notify receiver connection
+            _rnotify_fnc(rcon.id_, RelayEngineNotification::NewData);
         } else {
             impl_->msg_dq_[rcon.back_msg_idx_].next_msg_idx_ = _rengine_msg_id.index;
             rcon.back_msg_idx_                               = _rengine_msg_id.index;
@@ -356,8 +440,9 @@ void RelayEngine::doComplete(const ObjectIdT& _rconuid, NotifyFunctionT& _notify
 
             rcon.pdone_relay_data_top_ = _prelay_data;
             if (was_pdone_relay_data_stack_empty) {
-                //TODO: notify sender connection
+                _rnotify_fnc(rcon.id_, RelayEngineNotification::DoneData);
             }
+
             if (_prelay_data->is_last_ and not Message::is_waiting_response(_prelay_data->pmessage_header_->flags_)) {
                 //TODO: erase the message
             }

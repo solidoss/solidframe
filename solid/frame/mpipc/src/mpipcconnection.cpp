@@ -1401,9 +1401,19 @@ struct Connection::Receiver : MessageReader::Receiver {
         rcon_.doCompleteCancelRequest(rctx_, _reqid);
     }
 
-    bool receiveRelayBody(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
+    bool receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
     {
-        return rcon_.doCompleteRelayBody(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
+        return rcon_.doReceiveRelayStart(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
+    }
+
+    bool receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
+    {
+        return rcon_.doReceiveRelayBody(rctx_, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
+    }
+
+    bool receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
+    {
+        return rcon_.doReceiveRelayResponse(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
     }
 
     void pushCancelRequest(const RequestId& _reqid) override
@@ -1422,11 +1432,6 @@ struct Connection::Receiver : MessageReader::Receiver {
     virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) override
     {
         return rcon_.doCheckIsRelayedResponse(_rrequid, _rrelay_id);
-    }
-
-    virtual bool receiveRelayedResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror) override
-    {
-        return rcon_.doCompleteRelayBody(rctx_, _rmsghdr, _pbeg, _sz, _rrelay_id, _is_last, _rerror);
     }
 };
 
@@ -1820,7 +1825,7 @@ void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, cons
     }
 }
 //-----------------------------------------------------------------------------
-bool Connection::doCompleteRelayBody(
+bool Connection::doReceiveRelayStart(
     frame::aio::ReactorContext& _rctx,
     MessageHeader&              _rmsghdr,
     const char*                 _pbeg,
@@ -1838,7 +1843,48 @@ bool Connection::doCompleteRelayBody(
         return notify_connection(rsvc, _con_id, _n);
     };
 
-    return config.relayEngine().relay(uid(_rctx), lambda, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relayStart(uid(_rctx), lambda, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+}
+//-----------------------------------------------------------------------------
+bool Connection::doReceiveRelayBody(
+    frame::aio::ReactorContext& _rctx,
+    const char*                 _pbeg,
+    size_t                      _sz,
+    const MessageId&            _rrelay_id,
+    const bool                  _is_last,
+    ErrorConditionT&            _rerror)
+{
+    Configuration const& config = service(_rctx).configuration();
+    ConnectionContext    conctx{service(_rctx), *this};
+    RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
+    Service&             rsvc = service(_rctx);
+
+    const auto lambda = [&rsvc](const ObjectIdT& _con_id, RelayEngineNotification _n) {
+        return notify_connection(rsvc, _con_id, _n);
+    };
+
+    return config.relayEngine().relay(uid(_rctx), lambda, std::move(relmsg), _rrelay_id, _rerror);
+}
+//-----------------------------------------------------------------------------
+bool Connection::doReceiveRelayResponse(
+    frame::aio::ReactorContext& _rctx,
+    MessageHeader&              _rmsghdr,
+    const char*                 _pbeg,
+    size_t                      _sz,
+    const MessageId&            _rrelay_id,
+    const bool                  _is_last,
+    ErrorConditionT&            _rerror)
+{
+    Configuration const& config = service(_rctx).configuration();
+    ConnectionContext    conctx{service(_rctx), *this};
+    RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
+    Service&             rsvc = service(_rctx);
+
+    const auto lambda = [&rsvc](const ObjectIdT& _con_id, RelayEngineNotification _n) {
+        return notify_connection(rsvc, _con_id, _n);
+    };
+
+    return config.relayEngine().relayResponse(uid(_rctx), lambda, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doCheckIsRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id)

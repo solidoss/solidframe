@@ -33,7 +33,7 @@ public:
     void connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname);
 
 private:
-    bool doRelay(
+    bool doRelayStart(
         const ObjectIdT& _rconuid,
         NotifyFunctionT& _rnotify_fnc,
         MessageHeader&   _rmsghdr,
@@ -41,9 +41,24 @@ private:
         MessageId&       _rrelay_id,
         ErrorConditionT& _rerror) override;
 
+    bool doRelayResponse(
+        const ObjectIdT& _rconuid,
+        NotifyFunctionT& _rnotify_fnc,
+        MessageHeader&   _rmsghdr,
+        RelayData&&      _rrelmsg,
+        const MessageId& _rrelay_id,
+        ErrorConditionT& _rerror) override;
+
+    bool doRelay(
+        const ObjectIdT& _rconuid,
+        NotifyFunctionT& _rnotify_fnc,
+        RelayData&&      _rrelmsg,
+        const MessageId& _rrelay_id,
+        ErrorConditionT& _rerror) override;
+
     void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore) override;
     void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc) override;
-    void doComplete(const ObjectIdT& _rconuid, NotifyFunctionT& _notify_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore) override;
+    void doComplete(const ObjectIdT& _rconuid, NotifyFunctionT& _rnotify_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore) override;
 
     size_t doRegisterConnection(std::string&& _uname);
 

@@ -125,7 +125,7 @@ public:
 
     MessagePointerT fetchRequest(MessageId const& _rmsguid) const;
 
-    bool isRelayedResponse(MessageId const& _rmsguid, MessageId& _rrelay_id) const;
+    bool isRelayedResponse(MessageId const& _rmsguid, MessageId& _rrelay_id);
 
     bool cancelOldest(
         MessageBundle& _rmsgbundle,

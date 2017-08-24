@@ -254,13 +254,32 @@ private:
     void doCompleteKeepalive(frame::aio::ReactorContext& _rctx);
     void doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count);
     void doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid);
-    bool doCompleteRelayBody(
+
+    bool doReceiveRelayStart(
         frame::aio::ReactorContext& _rctx,
         MessageHeader&              _rmsghdr,
-        const char* _pbeg, size_t _sz,
-        MessageId&       _rrelay_id,
-        const bool       _is_last,
-        ErrorConditionT& _rerror);
+        const char*                 _pbeg,
+        size_t                      _sz,
+        MessageId&                  _rrelay_id,
+        const bool                  _is_last,
+        ErrorConditionT&            _rerror);
+
+    bool doReceiveRelayBody(
+        frame::aio::ReactorContext& _rctx,
+        const char*                 _pbeg,
+        size_t                      _sz,
+        const MessageId&            _rrelay_id,
+        const bool                  _is_last,
+        ErrorConditionT&            _rerror);
+
+    bool doReceiveRelayResponse(
+        frame::aio::ReactorContext& _rctx,
+        MessageHeader&              _rmsghdr,
+        const char*                 _pbeg,
+        size_t                      _sz,
+        const MessageId&            _rrelay_id,
+        const bool                  _is_last,
+        ErrorConditionT&            _rerror);
 
     void doHandleEventKill(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventStart(frame::aio::ReactorContext& _rctx, Event& _revent);

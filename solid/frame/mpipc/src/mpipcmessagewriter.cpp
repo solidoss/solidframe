@@ -167,11 +167,12 @@ MessagePointerT MessageWriter::fetchRequest(MessageId const& _rmsguid) const
     return MessagePointerT();
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::isRelayedResponse(MessageId const& _rmsguid, MessageId& _rrelay_id) const
+bool MessageWriter::isRelayedResponse(MessageId const& _rmsguid, MessageId& _rrelay_id)
 {
     if (_rmsguid.isValid() and _rmsguid.index < message_vec_.size() and _rmsguid.unique == message_vec_[_rmsguid.index].unique_ and message_vec_[_rmsguid.index].state_ == MessageStub::StateE::RelayedWait) {
-        const MessageStub& rmsgstub = message_vec_[_rmsguid.index];
-        _rrelay_id                  = rmsgstub.pool_msg_id_;
+        MessageStub& rmsgstub = message_vec_[_rmsguid.index];
+        _rrelay_id            = rmsgstub.pool_msg_id_;
+        doUnprepareMessageStub(_rmsguid.index);
         return true;
     }
     return false;

@@ -53,10 +53,9 @@ struct RelayData {
     RecvBufferPointerT bufptr_;
     const char*        pdata_;
     size_t             data_size_;
-    //ObjectIdT          connection_id_;
-    RelayData*     pnext_;
-    bool           is_last_;
-    MessageHeader* pmessage_header_;
+    RelayData*         pnext_;
+    bool               is_last_;
+    MessageHeader*     pmessage_header_;
 
     RelayData()
         : pdata_(nullptr)
@@ -71,7 +70,6 @@ struct RelayData {
         : bufptr_(std::move(_rrelmsg.bufptr_))
         , pdata_(_rrelmsg.pdata_)
         , data_size_(_rrelmsg.data_size_)
-        //, connection_id_(_rrelmsg.connection_id_)
         , pnext_(nullptr)
         , is_last_(false)
         , pmessage_header_(nullptr)
@@ -80,10 +78,9 @@ struct RelayData {
 
     RelayData& operator=(RelayData&& _rrelmsg)
     {
-        bufptr_    = std::move(_rrelmsg.bufptr_);
-        pdata_     = _rrelmsg.pdata_;
-        data_size_ = _rrelmsg.data_size_;
-        //connection_id_   = _rrelmsg.connection_id_;
+        bufptr_          = std::move(_rrelmsg.bufptr_);
+        pdata_           = _rrelmsg.pdata_;
+        data_size_       = _rrelmsg.data_size_;
         pnext_           = _rrelmsg.pnext_;
         is_last_         = _rrelmsg.is_last_;
         pmessage_header_ = _rrelmsg.pmessage_header_;
@@ -109,12 +106,10 @@ private:
         RecvBufferPointerT& _bufptr,
         const char*         _pdata,
         size_t              _data_size,
-        //const ObjectIdT&    _connection_id,
-        const bool _is_last)
+        const bool          _is_last)
         : bufptr_(_bufptr)
         , pdata_(_pdata)
         , data_size_(_data_size)
-        //, connection_id_(_connection_id)
         , pnext_(nullptr)
         , is_last_(_is_last)
         , pmessage_header_(nullptr)
@@ -144,12 +139,27 @@ private:
     //NOTE: we require _rmsghdr parameter because the relay function
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
     // or copy it in case of multicasts
-    virtual bool doRelay(
+    virtual bool doRelayStart(
         const ObjectIdT& _rconuid,
         NotifyFunctionT& _rnotify_fnc,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         MessageId&       _rrelay_id,
+        ErrorConditionT& _rerror);
+
+    virtual bool doRelayResponse(
+        const ObjectIdT& _rconuid,
+        NotifyFunctionT& _rnotify_fnc,
+        MessageHeader&   _rmsghdr,
+        RelayData&&      _urelay_data,
+        const MessageId& _rrelay_id,
+        ErrorConditionT& _rerror);
+
+    virtual bool doRelay(
+        const ObjectIdT& _rconuid,
+        NotifyFunctionT& _rnotify_fnc,
+        RelayData&&      _urelay_data,
+        const MessageId& _rrelay_id,
         ErrorConditionT& _rerror);
 
     virtual void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
@@ -176,8 +186,9 @@ private:
         NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
         doComplete(_rconuid, notify_fnc, _prelay_data, _rengine_msg_id, _rmore);
     }
+
     template <class F>
-    bool relay(
+    bool relayStart(
         const ObjectIdT& _rconuid,
         F&               _notify_fnc,
         MessageHeader&   _rmsghdr,
@@ -186,7 +197,32 @@ private:
         ErrorConditionT& _rerror)
     {
         NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
-        return doRelay(_rconuid, notify_fnc, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelayStart(_rconuid, notify_fnc, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
+    }
+
+    template <class F>
+    bool relayResponse(
+        const ObjectIdT& _rconuid,
+        F&               _notify_fnc,
+        MessageHeader&   _rmsghdr,
+        RelayData&&      _urelay_data,
+        const MessageId& _rrelay_id,
+        ErrorConditionT& _rerror)
+    {
+        NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
+        return doRelayResponse(_rconuid, notify_fnc, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
+    }
+
+    template <class F>
+    bool relay(
+        const ObjectIdT& _rconuid,
+        F&               _notify_fnc,
+        RelayData&&      _urelay_data,
+        const MessageId& _rrelay_id,
+        ErrorConditionT& _rerror)
+    {
+        NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
+        return doRelay(_rconuid, notify_fnc, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 };
 

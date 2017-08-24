@@ -122,12 +122,33 @@ WriterConfiguration::WriterConfiguration()
 {
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool RelayEngineBase::doRelay(
+/*virtual*/ bool RelayEngineBase::doRelayStart(
     const ObjectIdT& _rconuid,
     NotifyFunctionT& _rnotify_fnc,
     MessageHeader&   _rmsghdr,
     RelayData&&      _urelay_data,
     MessageId&       _rrelay_id,
+    ErrorConditionT& _rerror)
+{
+    return false;
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ bool RelayEngineBase::doRelayResponse(
+    const ObjectIdT& _rconuid,
+    NotifyFunctionT& _rnotify_fnc,
+    MessageHeader&   _rmsghdr,
+    RelayData&&      _urelay_data,
+    const MessageId& _rrelay_id,
+    ErrorConditionT& _rerror)
+{
+    return false;
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ bool RelayEngineBase::doRelay(
+    const ObjectIdT& _rconuid,
+    NotifyFunctionT& _rnotify_fnc,
+    RelayData&&      _urelay_data,
+    const MessageId& _rrelay_id,
     ErrorConditionT& _rerror)
 {
     return false;
