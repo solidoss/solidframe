@@ -293,6 +293,8 @@ private:
     void doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& _revent);
+    void doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, Event& _revent);
+    void doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event& _revent);
 
     void doContinueStopping(
         frame::aio::ReactorContext& _rctx,

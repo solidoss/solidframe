@@ -33,6 +33,8 @@ enum class ConnectionEvents {
     SendRaw,
     RecvRaw,
     Stopping,
+    RelayNew,
+    RelayDone,
     Invalid,
 };
 
@@ -62,6 +64,10 @@ const EventCategory<ConnectionEvents> connection_event_category{
             return "RecvRaw";
         case ConnectionEvents::Stopping:
             return "Stopping";
+        case ConnectionEvents::RelayNew:
+            return "RelayNew";
+        case ConnectionEvents::RelayDone:
+            return "RelayDone";
         case ConnectionEvents::Invalid:
             return "Invalid";
         default:
@@ -723,6 +729,14 @@ void Connection::onStopped(frame::aio::ReactorContext& _rctx)
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         _rcon.doHandleEventRecvRaw(_rctx, _revt);
                     }},
+                {connection_event_category.event(ConnectionEvents::RelayNew),
+                    [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
+                        _rcon.doHandleEventRelayNew(_rctx, _revt);
+                    }},
+                {connection_event_category.event(ConnectionEvents::RelayDone),
+                    [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
+                        _rcon.doHandleEventRelayDone(_rctx, _revt);
+                    }},
                 {connection_event_category.event(ConnectionEvents::Stopping),
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         idbgx(Debug::mpipc, &_rcon << ' ' << _rcon.id() << " cancel timer");
@@ -1163,6 +1177,29 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
     } else if (pdata) {
 
         pdata->complete_fnc(conctx, nullptr, used_size, error_connection_invalid_state);
+    }
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, Event& _revent)
+{
+    flags_.set(FlagsE::PollRelayEngine);
+    doSend(_rctx);
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event& _revent)
+{
+    Configuration const& config      = service(_rctx).configuration();
+    size_t               ack_buf_cnt = 0;
+    const auto lambda                = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
+        if (_rbuf.use_count() == 1) {
+            ++ack_buf_cnt;
+            this->recv_buf_vec_.emplace_back(std::move(_rbuf));
+        }
+    };
+    config.relayEngine().pollDone(uid(_rctx), lambda);
+    if (ack_buf_cnt) {
+        ackd_buf_count_ += ack_buf_cnt;
+        doSend(_rctx);
     }
 }
 //-----------------------------------------------------------------------------
@@ -1746,7 +1783,14 @@ void Connection::doCompleteMessage(
 //-----------------------------------------------------------------------------
 /*static*/ bool Connection::notify_connection(Service& _rsvc, const ObjectIdT& _conuid, RelayEngineNotification _what)
 {
-    //TODO:
+    switch (_what) {
+    case RelayEngineNotification::NewData:
+        return _rsvc.manager().notify(_conuid, connection_event_category.event(ConnectionEvents::RelayNew));
+    case RelayEngineNotification::DoneData:
+        return _rsvc.manager().notify(_conuid, connection_event_category.event(ConnectionEvents::RelayDone));
+    default:
+        break;
+    }
     return false;
 }
 //-----------------------------------------------------------------------------

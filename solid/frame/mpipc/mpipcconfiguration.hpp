@@ -95,6 +95,7 @@ struct RelayData {
         pdata_     = nullptr;
         data_size_ = 0;
         //connection_id_.clear();
+        bufptr_.reset();
         pnext_           = nullptr;
         is_last_         = false;
         pmessage_header_ = nullptr;
@@ -123,8 +124,6 @@ enum struct RelayEngineNotification {
 };
 
 class RelayEngineBase {
-public:
-    static RelayEngineBase& instance();
 
 protected:
     using PushFunctionT   = SOLID_FUNCTION<bool(RelayData*, const MessageId&, MessageId&, bool&)>;
@@ -135,6 +134,8 @@ protected:
 
 private:
     friend class Connection;
+    friend struct Configuration;
+    static RelayEngineBase& instance();
 
     //NOTE: we require _rmsghdr parameter because the relay function
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
