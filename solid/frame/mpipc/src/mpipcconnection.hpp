@@ -236,6 +236,7 @@ private:
     void doResetTimerRecv(frame::aio::ReactorContext& _rctx);
 
     bool doCheckIsRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id);
+    bool doCheckIsRelayedMessage(frame::aio::ReactorContext& _rctx, const std::string& _rurl) const;
 
     void doCompleteMessage(
         frame::aio::ReactorContext& _rctx, MessagePointerT& _rresponse_ptr, const size_t _response_type_id);

@@ -33,6 +33,8 @@ public:
     void connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname);
 
 private:
+    bool isRelayedMessage(const std::string& _rmsg) const override;
+
     bool doRelayStart(
         const ObjectIdT& _rconuid,
         NotifyFunctionT& _rnotify_fnc,
@@ -61,6 +63,7 @@ private:
     void doComplete(const ObjectIdT& _rconuid, NotifyFunctionT& _rnotify_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore) override;
 
     size_t doRegisterConnection(std::string&& _uname);
+    size_t doRegisterConnection(const ObjectIdT& _rconuid);
 
 private:
     struct Data;

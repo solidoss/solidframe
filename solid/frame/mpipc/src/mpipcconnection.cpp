@@ -747,6 +747,7 @@ void Connection::onStopped(frame::aio::ReactorContext& _rctx)
                     }},
             }};
 
+    idbgx(Debug::mpipc, this << ' ' << this->id() << " " << _uevent);
     event_handler.handle(_uevent, *this, _rctx);
 }
 //-----------------------------------------------------------------------------
@@ -1466,9 +1467,14 @@ struct Connection::Receiver : MessageReader::Receiver {
         }
     }
 
-    virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) override
+    virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) const override
     {
         return rcon_.doCheckIsRelayedResponse(_rrequid, _rrelay_id);
+    }
+
+    bool isRelayedMessage(const std::string& _rurl) const override
+    {
+        return rcon_.doCheckIsRelayedMessage(rctx_, _rurl);
     }
 };
 
@@ -1599,6 +1605,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             if (not more) {
                 flags_.reset(FlagsE::PollRelayEngine); //reset flag
             }
+            idbgx(Debug::mpipc, this << ' ' << id() << " shouldPollRelayEngine = " << shouldPollRelayEngine());
         }
 
         if (not this->hasPendingSend()) {
@@ -1625,6 +1632,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                     if (not more) {
                         flags_.reset(FlagsE::PollRelayEngine); //reset flag
                     }
+                    idbgx(Debug::mpipc, this << ' ' << id() << " shouldPollRelayEngine = " << shouldPollRelayEngine());
                 }
 
                 write_flags.reset();
@@ -1934,6 +1942,12 @@ bool Connection::doReceiveRelayResponse(
 bool Connection::doCheckIsRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id)
 {
     return msg_writer_.isRelayedResponse(_rrequid, _rrelay_id);
+}
+//-----------------------------------------------------------------------------
+bool Connection::doCheckIsRelayedMessage(frame::aio::ReactorContext& _rctx, const std::string& _rurl) const
+{
+    Configuration const& config = service(_rctx).configuration();
+    return config.relayEngine().isRelayedMessage(_rurl);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)

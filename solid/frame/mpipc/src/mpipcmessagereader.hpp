@@ -51,7 +51,11 @@ public:
         {
             return false;
         }
-        virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id)
+        virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) const
+        {
+            return false;
+        }
+        virtual bool isRelayedMessage(const std::string& _rurl) const
         {
             return false;
         }

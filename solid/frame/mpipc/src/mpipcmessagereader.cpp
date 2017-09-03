@@ -254,7 +254,7 @@ const char* MessageReader::doConsumeMessage(
                                 rmsgstub.state_ = MessageStub::StateE::RelayResponse;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_.reset();
-                            } else if (rmsgstub.message_header_.url_.empty()) {
+                            } else if (not _receiver.isRelayedMessage(rmsgstub.message_header_.url_)) {
                                 rmsgstub.state_ = MessageStub::StateE::ReadBody;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_->push(rmsgstub.message_ptr_);

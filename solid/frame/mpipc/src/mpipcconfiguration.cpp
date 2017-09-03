@@ -122,6 +122,11 @@ WriterConfiguration::WriterConfiguration()
 {
 }
 //-----------------------------------------------------------------------------
+/*virtual*/ bool RelayEngineBase::isRelayedMessage(const std::string& _rmsg) const
+{
+    return false;
+}
+//-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngineBase::doRelayStart(
     const ObjectIdT& _rconuid,
     NotifyFunctionT& _rnotify_fnc,

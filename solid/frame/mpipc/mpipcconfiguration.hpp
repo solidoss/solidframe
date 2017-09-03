@@ -137,6 +137,8 @@ private:
     friend struct Configuration;
     static RelayEngineBase& instance();
 
+    virtual bool isRelayedMessage(const std::string& _rmsg) const;
+
     //NOTE: we require _rmsghdr parameter because the relay function
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
     // or copy it in case of multicasts
