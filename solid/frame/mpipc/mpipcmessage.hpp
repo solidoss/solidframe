@@ -31,7 +31,7 @@ struct MessageHeader {
 
     static MessageFlagsT fetch_state_flags(const MessageFlagsT& _flags)
     {
-        static const MessageFlagsT state_flags{MessageFlagsE::OnPeer, MessageFlagsE::BackOnSender};
+        static const MessageFlagsT state_flags{MessageFlagsE::OnPeer, MessageFlagsE::BackOnSender, MessageFlagsE::Relayed};
         return _flags & state_flags;
     }
 
@@ -174,9 +174,14 @@ struct Message : std::enable_shared_from_this<Message> {
         return is_on_peer(_flags) && is_back_on_sender(_flags);
     }
 
+    static bool is_relayed(const MessageFlagsT& _flags)
+    {
+        return _flags.has(MessageFlagsE::Relayed);
+    }
+
     static MessageFlagsT clear_state_flags(MessageFlagsT _flags)
     {
-        _flags.reset(MessageFlagsE::OnPeer).reset(MessageFlagsE::BackOnSender);
+        _flags.reset(MessageFlagsE::OnPeer).reset(MessageFlagsE::BackOnSender).reset(MessageFlagsE::Relayed);
         return _flags;
     }
 
@@ -230,6 +235,11 @@ struct Message : std::enable_shared_from_this<Message> {
     bool isBackOnPeer() const
     {
         return is_back_on_peer(flags());
+    }
+
+    bool isRelayed() const
+    {
+        return is_relayed(flags());
     }
 
     const std::string& url() const

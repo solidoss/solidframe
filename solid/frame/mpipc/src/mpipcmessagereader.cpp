@@ -306,9 +306,12 @@ const char* MessageReader::doConsumeMessage(
                                 break;
                             }
                             //fail: protocol error
+                            SOLID_ASSERT(false);
                         } else if (not rmsgstub.deserializer_ptr_->empty()) {
                             break;
                         }
+                    } else {
+                        SOLID_ASSERT(false);
                     }
                 } else {
                     _rerror  = rmsgstub.deserializer_ptr_->error();
@@ -316,12 +319,15 @@ const char* MessageReader::doConsumeMessage(
                     rmsgstub.clear();
                     break;
                 }
+            } else {
+                SOLID_ASSERT(false);
             }
+        } else {
+            SOLID_ASSERT(false);
         }
 
         //protocol error
-        _rerror = error_reader_protocol;
-        SOLID_ASSERT(false);
+        _rerror  = error_reader_protocol;
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;

@@ -254,7 +254,7 @@ private:
 
         bool isRelay() const noexcept
         {
-            return not msgbundle_.message_url.empty();
+            return not msgbundle_.message_url.empty() or Message::is_relayed(msgbundle_.message_flags); //TODO: optimize!!
         }
 
         bool isRelayed() const noexcept

@@ -29,6 +29,7 @@ enum struct MessageFlagsE : MessageFlagsValueT {
     Response,
     OnPeer,
     BackOnSender,
+    Relayed,
     LastFlag
 };
 

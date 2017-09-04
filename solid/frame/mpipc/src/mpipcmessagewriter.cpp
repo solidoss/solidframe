@@ -85,7 +85,7 @@ bool MessageWriter::enqueue(
 
     order_inner_list_.pushBack(idx);
     write_inner_list_.pushBack(idx);
-    vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+    vdbgx(Debug::mpipc, "is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
 
     return true;
 }
@@ -130,10 +130,12 @@ bool MessageWriter::enqueue(
     MessageStub& rmsgstub(message_vec_[idx]);
 
     rmsgstub.prelay_data_ = _prelay_data;
+    rmsgstub.prelay_pos_  = rmsgstub.prelay_data_->pdata_;
+    rmsgstub.relay_size_  = rmsgstub.prelay_data_->data_size_;
     rmsgstub.pool_msg_id_ = _rengine_msg_id;
 
     write_inner_list_.pushBack(idx);
-    vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+    vdbgx(Debug::mpipc, "relay_data.is_last " << _prelay_data->is_last_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
 
     return true;
 }
@@ -196,6 +198,8 @@ bool MessageWriter::doCancel(
 
     vdbgx(Debug::mpipc, "" << _msgidx);
 
+    order_inner_list_.erase(_msgidx);
+
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
     if (rmsgstub.isCanceled()) {
@@ -203,12 +207,15 @@ bool MessageWriter::doCancel(
         return false; //already canceled
     }
 
+    if (not rmsgstub.msgbundle_.message_ptr) {
+        vdbgx(Debug::mpipc, "" << _msgidx << " relayed message");
+        return false;
+    }
+
     rmsgstub.cancel();
 
     _rmsgbundle   = std::move(rmsgstub.msgbundle_);
     _rpool_msg_id = rmsgstub.pool_msg_id_;
-
-    order_inner_list_.erase(_msgidx);
 
     if (rmsgstub.serializer_ptr_.get()) {
         //the message is being sent
@@ -491,12 +498,12 @@ char* MessageWriter::doWriteMessageHead(
     char* psizepos = _pbufpos;
     _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
 
-    MessageStub& rmsgstub = message_vec_[_msgidx];
+    MessageStub& rmsgstub             = message_vec_[_msgidx];
+    rmsgstub.msgbundle_.message_flags = Message::update_state_flags(Message::clear_state_flags(rmsgstub.msgbundle_.message_flags) | Message::state_flags(rmsgstub.msgbundle_.message_ptr->flags()));
 
     _rsender.context().request_id.index  = (_msgidx + 1);
     _rsender.context().request_id.unique = rmsgstub.unique_;
-    _rsender.context().message_flags     = Message::clear_state_flags(rmsgstub.msgbundle_.message_flags) | Message::state_flags(rmsgstub.msgbundle_.message_ptr->flags());
-    _rsender.context().message_flags     = Message::update_state_flags(_rsender.context().message_flags);
+    _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
     _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
 
     const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
@@ -545,8 +552,7 @@ char* MessageWriter::doWriteMessageBody(
 
     _rsender.context().request_id.index  = (_msgidx + 1);
     _rsender.context().request_id.unique = rmsgstub.unique_;
-    _rsender.context().message_flags     = Message::clear_state_flags(rmsgstub.msgbundle_.message_flags) | Message::state_flags(rmsgstub.msgbundle_.message_ptr->flags());
-    _rsender.context().message_flags     = Message::update_state_flags(_rsender.context().message_flags);
+    _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
     _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
 
     const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
@@ -617,8 +623,8 @@ char* MessageWriter::doWriteRelayedHead(
     _rsender.context().request_id.index  = (_msgidx + 1);
     _rsender.context().request_id.unique = rmsgstub.unique_;
     _rsender.context().message_flags     = rmsgstub.prelay_data_->pmessage_header_->flags_;
-    _rsender.context().message_flags     = Message::update_state_flags(_rsender.context().message_flags);
-    _rsender.context().pmessage_url      = &rmsgstub.prelay_data_->pmessage_header_->url_;
+    _rsender.context().message_flags.set(MessageFlagsE::Relayed);
+    _rsender.context().pmessage_url = &rmsgstub.prelay_data_->pmessage_header_->url_;
 
     const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
 
@@ -630,10 +636,7 @@ char* MessageWriter::doWriteRelayedHead(
             //we've just finished serializing header
 
             _rtmp_serializer = std::move(rmsgstub.serializer_ptr_);
-
-            rmsgstub.prelay_pos_ = rmsgstub.prelay_data_->pdata_;
-            rmsgstub.relay_size_ = rmsgstub.prelay_data_->data_size_;
-            rmsgstub.state_      = MessageStub::StateE::RelayedBody;
+            rmsgstub.state_  = MessageStub::StateE::RelayedBody;
         }
         _pbufpos += rv;
     } else {
@@ -684,6 +687,7 @@ char* MessageWriter::doWriteRelayedBody(
         const bool is_waiting_for_response = Message::is_waiting_response(rmsgstub.prelay_data_->pmessage_header_->flags_);
 
         _rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
+        rmsgstub.prelay_data_ = nullptr;
 
         if (is_last) {
             cmd |= static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag);
@@ -695,8 +699,9 @@ char* MessageWriter::doWriteRelayedBody(
             }
         }
     }
-
-    _rsender.protocol().storeValue(pcmdpos, cmd);
+    vdbgx(Debug::mpipc, "stored " << towrite << " bytes")
+        _rsender.protocol()
+            .storeValue(pcmdpos, cmd);
 
     //store the data size
     _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(towrite));
@@ -776,6 +781,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_fnc)
 {
 
+    vdbgx(Debug::mpipc, "");
     { //iterate through non completed messages
         size_t msgidx = order_inner_list_.frontIndex();
 

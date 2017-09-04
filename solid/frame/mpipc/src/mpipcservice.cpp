@@ -2130,6 +2130,7 @@ void Service::doFetchResendableMessagesFromConnection(
     Connection& _rcon)
 {
 
+    vdbgx(Debug::mpipc, this << " " << &_rcon);
     //the final front message in msgorder_inner_list should be the oldest one from connection
     _rcon.fetchResendableMessages(*this,
         [this](

@@ -212,11 +212,10 @@ void peera_complete_message(
 {
     idbg(_rctx.recipientId() << " error: " << _rerror.message());
     SOLID_CHECK(not _rerror, "Error sending message: " << _rerror.message());
-    if (_rsent_msg_ptr) {
-        if (!_rerror) {
-            ++crtackidx;
-        }
-    }
+    SOLID_CHECK(_rsent_msg_ptr, "Error: no request message");
+
+    ++crtackidx;
+
     if (_rrecv_msg_ptr) {
         if (not _rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
@@ -293,6 +292,10 @@ void peerb_complete_message(
             SOLID_THROW("Message not on peer!.");
         }
 
+        if (!_rrecv_msg_ptr->isRelayed()) {
+            SOLID_THROW("Message not relayed!.");
+        }
+
         //send message back
         if (_rctx.recipientId().isInvalidConnection()) {
             SOLID_THROW("Connection id should not be invalid!");
@@ -302,7 +305,7 @@ void peerb_complete_message(
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
         ++crtreadidx;
-        idbg(crtreadidx);
+        idbg(crtreadidx << " < " << writecount);
         if (crtwriteidx < writecount) {
             err = pmpipcpeera->sendMessage(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
@@ -377,11 +380,11 @@ int test_relay_basic(int argc, char** argv)
         AioSchedulerT             sch_peerb;
         AioSchedulerT             sch_relay;
         frame::Manager            m;
+        frame::mpipc::RelayEngine relay_engine; //before relay service because it must overlive it
         frame::mpipc::ServiceT    mpipcrelay(m);
         frame::mpipc::ServiceT    mpipcpeera(m);
         frame::mpipc::ServiceT    mpipcpeerb(m);
         frame::aio::Resolver      resolver;
-        frame::mpipc::RelayEngine relay_engine;
         ErrorConditionT           err;
 
         err = sch_peera.start(1);

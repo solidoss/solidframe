@@ -392,9 +392,9 @@ bool RelayEngine::doRelayResponse(
     SOLID_ASSERT(_rrelay_id.isValid());
 
     if (_rrelay_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
-        const size_t msgidx = _rrelay_id.index;
-        MessageStub& rmsg   = impl_->msg_dq_[msgidx];
-
+        const size_t msgidx            = _rrelay_id.index;
+        MessageStub& rmsg              = impl_->msg_dq_[msgidx];
+        RequestId    sender_request_id = rmsg.header_.sender_request_id_;
         idbgx(Debug::mpipc, _rconuid << " msgid = " << _rrelay_id << " receiver_con_idx " << rmsg.receiver_con_id_.index << " sender_con_idx " << rmsg.sender_con_id_.index);
 
         std::swap(rmsg.receiver_con_id_, rmsg.sender_con_id_);
@@ -402,6 +402,8 @@ bool RelayEngine::doRelayResponse(
 
         SOLID_ASSERT(rmsg.pfront_ == nullptr);
         rmsg.header_ = std::move(_rmsghdr);
+        //set the proper recipient_request_id_
+        rmsg.header_.sender_request_id_ = sender_request_id;
 
         rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
 
