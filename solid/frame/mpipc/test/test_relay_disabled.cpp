@@ -357,7 +357,7 @@ void RelayEngine::onRegister(
 int test_relay_disabled(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("view");
+    Debug::the().levelMask("ew");
     Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
@@ -417,7 +417,6 @@ int test_relay_disabled(int argc, char** argv)
         frame::mpipc::ServiceT mpipcpeera(m);
         frame::mpipc::ServiceT mpipcpeerb(m);
         frame::aio::Resolver   resolver;
-        RelayEngine            relay_engine;
         ErrorConditionT        err;
 
         err = sch_peera.start(1);
@@ -451,14 +450,13 @@ int test_relay_disabled(int argc, char** argv)
         std::string relay_port;
 
         { //mpipc relay initialization
-            auto con_start                                                                = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStart(_rctx); };
-            auto con_stop                                                                 = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) { relay_engine.onConnectionStop(_rctx); };
-            auto                                                             con_register = [&relay_engine](
+            auto con_start                                                   = [](frame::mpipc::ConnectionContext& _rctx) {};
+            auto con_stop                                                    = [](frame::mpipc::ConnectionContext& _rctx) {};
+            auto                                                con_register = [](
                 frame::mpipc::ConnectionContext& _rctx,
                 std::shared_ptr<Register>&       _rsent_msg_ptr,
                 std::shared_ptr<Register>&       _rrecv_msg_ptr,
                 ErrorConditionT const&           _rerror) {
-                relay_engine.onRegister(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerror);
             };
 
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
@@ -471,6 +469,7 @@ int test_relay_disabled(int argc, char** argv)
             cfg.connection_stop_fnc              = con_start;
             cfg.client.connection_start_fnc      = con_stop;
             cfg.client.connection_start_state    = frame::mpipc::ConnectionState::Active;
+            cfg.relay_enabled                    = true; //enable relay but do not provide a propper relay engine
 
             if (secure) {
                 idbg("Configure SSL server -------------------------------------");

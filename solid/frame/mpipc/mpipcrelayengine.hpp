@@ -30,37 +30,41 @@ public:
 
     void connectionStop(const ObjectIdT& _rconuid);
 
-    void connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname);
+    void connectionRegister(Service& _rsvc, const ObjectIdT& _rconuid, std::string&& _uname);
 
 private:
-    bool isRelayedMessage(const std::string& _rmsg) const override;
-
     bool doRelayStart(
+        Service&         _rsvc,
         const ObjectIdT& _rconuid,
-        NotifyFunctionT& _rnotify_fnc,
         MessageHeader&   _rmsghdr,
         RelayData&&      _rrelmsg,
         MessageId&       _rrelay_id,
         ErrorConditionT& _rerror) override;
 
     bool doRelayResponse(
+        Service&         _rsvc,
         const ObjectIdT& _rconuid,
-        NotifyFunctionT& _rnotify_fnc,
         MessageHeader&   _rmsghdr,
         RelayData&&      _rrelmsg,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror) override;
 
     bool doRelay(
+        Service&         _rsvc,
         const ObjectIdT& _rconuid,
-        NotifyFunctionT& _rnotify_fnc,
         RelayData&&      _rrelmsg,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror) override;
 
+    void doComplete(
+        Service&         _rsvc,
+        const ObjectIdT& _rconuid,
+        RelayData*       _prelay_data,
+        MessageId const& _rengine_msg_id,
+        bool&            _rmore) override;
+
     void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore) override;
     void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc) override;
-    void doComplete(const ObjectIdT& _rconuid, NotifyFunctionT& _rnotify_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore) override;
 
     size_t doRegisterConnection(std::string&& _uname);
     size_t doRegisterConnection(const ObjectIdT& _rconuid);

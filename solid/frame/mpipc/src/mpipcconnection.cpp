@@ -1472,9 +1472,10 @@ struct Connection::Receiver : MessageReader::Receiver {
         return rcon_.doCheckIsRelayedResponse(_rrequid, _rrelay_id);
     }
 
-    bool isRelayedMessage(const std::string& _rurl) const override
+    bool isRelayDisabled() const override
     {
-        return rcon_.doCheckIsRelayedMessage(rctx_, _rurl);
+        const Configuration& rconfig = rcon_.service(rctx_).configuration();
+        return not rconfig.relay_enabled;
     }
 };
 
@@ -1789,7 +1790,7 @@ void Connection::doCompleteMessage(
     }
 }
 //-----------------------------------------------------------------------------
-/*static*/ bool Connection::notify_connection(Service& _rsvc, const ObjectIdT& _conuid, RelayEngineNotification _what)
+/*static*/ bool Connection::notify(Service& _rsvc, const ObjectIdT& _conuid, const RelayEngineNotification _what)
 {
     switch (_what) {
     case RelayEngineNotification::NewData:
@@ -1809,11 +1810,8 @@ void Connection::doCompleteRelayed(
 {
     const Configuration& rconfig = _rsvc.configuration();
     bool                 more    = false;
-    const auto lambda            = [&_rsvc](const ObjectIdT& _con_id, RelayEngineNotification _n) {
-        return notify_connection(_rsvc, _con_id, _n);
-    };
 
-    rconfig.relayEngine().complete(_rsvc.id(*this), lambda, _prelay_data, _rengine_msg_id, more);
+    rconfig.relayEngine().complete(_rsvc, _rsvc.id(*this), _prelay_data, _rengine_msg_id, more);
 
     if (not more) {
         flags_.reset(FlagsE::PollRelayEngine); //reset flag
@@ -1891,11 +1889,7 @@ bool Connection::doReceiveRelayStart(
     RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
     Service&             rsvc = service(_rctx);
 
-    const auto lambda = [&rsvc](const ObjectIdT& _con_id, RelayEngineNotification _n) {
-        return notify_connection(rsvc, _con_id, _n);
-    };
-
-    return config.relayEngine().relayStart(uid(_rctx), lambda, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relayStart(rsvc, uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doReceiveRelayBody(
@@ -1911,11 +1905,7 @@ bool Connection::doReceiveRelayBody(
     RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
     Service&             rsvc = service(_rctx);
 
-    const auto lambda = [&rsvc](const ObjectIdT& _con_id, RelayEngineNotification _n) {
-        return notify_connection(rsvc, _con_id, _n);
-    };
-
-    return config.relayEngine().relay(uid(_rctx), lambda, std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relay(rsvc, uid(_rctx), std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doReceiveRelayResponse(
@@ -1932,22 +1922,12 @@ bool Connection::doReceiveRelayResponse(
     RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
     Service&             rsvc = service(_rctx);
 
-    const auto lambda = [&rsvc](const ObjectIdT& _con_id, RelayEngineNotification _n) {
-        return notify_connection(rsvc, _con_id, _n);
-    };
-
-    return config.relayEngine().relayResponse(uid(_rctx), lambda, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relayResponse(rsvc, uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doCheckIsRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id)
 {
     return msg_writer_.isRelayedResponse(_rrequid, _rrelay_id);
-}
-//-----------------------------------------------------------------------------
-bool Connection::doCheckIsRelayedMessage(frame::aio::ReactorContext& _rctx, const std::string& _rurl) const
-{
-    Configuration const& config = service(_rctx).configuration();
-    return config.relayEngine().isRelayedMessage(_rurl);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)

@@ -184,9 +184,10 @@ protected:
 
 private:
     friend struct ConnectionContext;
+    friend class RelayEngineBase;
     friend class Service;
 
-    static bool notify_connection(Service& _rsvc, const ObjectIdT&, RelayEngineNotification);
+    static bool notify(Service& _rsvc, const ObjectIdT&, const RelayEngineNotification);
 
     Service& service(frame::aio::ReactorContext& _rctx) const;
     ObjectIdT uid(frame::aio::ReactorContext& _rctx) const;
@@ -236,7 +237,6 @@ private:
     void doResetTimerRecv(frame::aio::ReactorContext& _rctx);
 
     bool doCheckIsRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id);
-    bool doCheckIsRelayedMessage(frame::aio::ReactorContext& _rctx, const std::string& _rurl) const;
 
     void doCompleteMessage(
         frame::aio::ReactorContext& _rctx, MessagePointerT& _rresponse_ptr, const size_t _response_type_id);

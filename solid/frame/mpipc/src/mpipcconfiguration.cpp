@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
+#include "mpipcconnection.hpp"
 #include "solid/frame/mpipc/mpipcerror.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_plain.hpp"
 
@@ -118,18 +119,18 @@ WriterConfiguration::WriterConfiguration()
     return eng;
 }
 //-----------------------------------------------------------------------------
+/*static*/ bool RelayEngineBase::notify_connection(Service& _rsvc, const ObjectIdT& _rconuid, const RelayEngineNotification _what)
+{
+    return Connection::notify(_rsvc, _rconuid, _what);
+}
+//-----------------------------------------------------------------------------
 /*virtual*/ RelayEngineBase::~RelayEngineBase()
 {
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool RelayEngineBase::isRelayedMessage(const std::string& _rmsg) const
-{
-    return false;
-}
-//-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngineBase::doRelayStart(
+    Service&         _rsvc,
     const ObjectIdT& _rconuid,
-    NotifyFunctionT& _rnotify_fnc,
     MessageHeader&   _rmsghdr,
     RelayData&&      _urelay_data,
     MessageId&       _rrelay_id,
@@ -139,8 +140,8 @@ WriterConfiguration::WriterConfiguration()
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngineBase::doRelayResponse(
+    Service&         _rsvc,
     const ObjectIdT& _rconuid,
-    NotifyFunctionT& _rnotify_fnc,
     MessageHeader&   _rmsghdr,
     RelayData&&      _urelay_data,
     const MessageId& _rrelay_id,
@@ -150,13 +151,24 @@ WriterConfiguration::WriterConfiguration()
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngineBase::doRelay(
+    Service&         _rsvc,
     const ObjectIdT& _rconuid,
-    NotifyFunctionT& _rnotify_fnc,
     RelayData&&      _urelay_data,
     const MessageId& _rrelay_id,
     ErrorConditionT& _rerror)
 {
     return false;
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ void RelayEngineBase::doComplete(
+    Service&         _rsvc,
+    const ObjectIdT& _rconuid,
+    RelayData* /*_prelay_data*/,
+    MessageId const& /*_rengine_msg_id*/,
+    bool& /*_rmore*/
+    )
+{
+    SOLID_THROW("should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngineBase::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
@@ -165,11 +177,6 @@ WriterConfiguration::WriterConfiguration()
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngineBase::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/)
-{
-    SOLID_THROW("should not be called");
-}
-//-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngineBase::doComplete(const ObjectIdT& _rconuid, NotifyFunctionT&, RelayData* /*_prelay_data*/, MessageId const& /*_rengine_msg_id*/, bool& /*_rmore*/)
 {
     SOLID_THROW("should not be called");
 }
@@ -217,6 +224,7 @@ void Configuration::init()
     pool_max_active_connection_count  = 1;
     pool_max_pending_connection_count = 1;
     pool_max_message_queue_size       = 1024;
+    relay_enabled                     = false;
 }
 //-----------------------------------------------------------------------------
 size_t Configuration::connectionReconnectTimeoutSeconds(

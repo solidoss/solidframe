@@ -254,7 +254,7 @@ const char* MessageReader::doConsumeMessage(
                                 rmsgstub.state_ = MessageStub::StateE::RelayResponse;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_.reset();
-                            } else if (not _receiver.isRelayedMessage(rmsgstub.message_header_.url_)) {
+                            } else if (_receiver.isRelayDisabled() or rmsgstub.message_header_.url_.empty()) {
                                 rmsgstub.state_ = MessageStub::StateE::ReadBody;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_->push(rmsgstub.message_ptr_);
@@ -309,6 +309,8 @@ const char* MessageReader::doConsumeMessage(
                             SOLID_ASSERT(false);
                         } else if (not rmsgstub.deserializer_ptr_->empty()) {
                             break;
+                        } else {
+                            SOLID_ASSERT(false);
                         }
                     } else {
                         SOLID_ASSERT(false);
@@ -335,8 +337,8 @@ const char* MessageReader::doConsumeMessage(
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);
 
-            vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
+            vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size << " is_message_end = " << is_message_end);
             //TODO:
             if (_receiver.receiveRelayStart(rmsgstub.message_header_, _pbufpos, message_size, rmsgstub.relay_id, is_message_end, _rerror)) {
                 rmsgstub.state_ = MessageStub::StateE::RelayBody;

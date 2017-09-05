@@ -135,7 +135,7 @@ bool MessageWriter::enqueue(
     rmsgstub.pool_msg_id_ = _rengine_msg_id;
 
     write_inner_list_.pushBack(idx);
-    vdbgx(Debug::mpipc, "relay_data.is_last " << _prelay_data->is_last_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
+    vdbgx(Debug::mpipc, idx << " relay_data.is_last " << _prelay_data->is_last_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
 
     return true;
 }
@@ -174,6 +174,8 @@ bool MessageWriter::isRelayedResponse(MessageId const& _rmsguid, MessageId& _rre
     if (_rmsguid.isValid() and _rmsguid.index < message_vec_.size() and _rmsguid.unique == message_vec_[_rmsguid.index].unique_ and message_vec_[_rmsguid.index].state_ == MessageStub::StateE::RelayedWait) {
         MessageStub& rmsgstub = message_vec_[_rmsguid.index];
         _rrelay_id            = rmsgstub.pool_msg_id_;
+
+        order_inner_list_.erase(_rmsguid.index);
         doUnprepareMessageStub(_rmsguid.index);
         return true;
     }
@@ -589,7 +591,7 @@ char* MessageWriter::doWriteMessageBody(
 
         //store the data size
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
-        vdbgx(Debug::mpipc, "stored message body with index = " << _msgidx << " and size = " << rv);
+        vdbgx(Debug::mpipc, "stored message body with index = " << _msgidx << " and size = " << rv << " cmd = " << (int)cmd);
 
         _pbufpos += rv;
     } else {
@@ -680,6 +682,9 @@ char* MessageWriter::doWriteRelayedBody(
     rmsgstub.prelay_pos_ += towrite;
     rmsgstub.relay_size_ -= towrite;
 
+    vdbgx(Debug::mpipc, "storing " << towrite << " bytes"
+                                   << " cmd = " << (int)cmd << " is_last = " << rmsgstub.prelay_data_->is_last_ << " relaydata = " << rmsgstub.prelay_data_);
+
     if (rmsgstub.relay_size_ == 0) {
         write_inner_list_.erase(_msgidx); //call before _rsender.pollRelayEngine
 
@@ -699,9 +704,8 @@ char* MessageWriter::doWriteRelayedBody(
             }
         }
     }
-    vdbgx(Debug::mpipc, "stored " << towrite << " bytes")
-        _rsender.protocol()
-            .storeValue(pcmdpos, cmd);
+
+    _rsender.protocol().storeValue(pcmdpos, cmd);
 
     //store the data size
     _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(towrite));

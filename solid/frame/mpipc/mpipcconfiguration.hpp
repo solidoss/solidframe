@@ -71,7 +71,7 @@ struct RelayData {
         , pdata_(_rrelmsg.pdata_)
         , data_size_(_rrelmsg.data_size_)
         , pnext_(nullptr)
-        , is_last_(false)
+        , is_last_(_rrelmsg.is_last_)
         , pmessage_header_(nullptr)
     {
     }
@@ -126,48 +126,53 @@ enum struct RelayEngineNotification {
 class RelayEngineBase {
 
 protected:
-    using PushFunctionT   = SOLID_FUNCTION<bool(RelayData*, const MessageId&, MessageId&, bool&)>;
-    using NotifyFunctionT = SOLID_FUNCTION<bool(const ObjectIdT&, RelayEngineNotification)>;
-    using DoneFunctionT   = SOLID_FUNCTION<void(RecvBufferPointerT&)>;
+    using PushFunctionT = SOLID_FUNCTION<bool(RelayData*, const MessageId&, MessageId&, bool&)>;
+    using DoneFunctionT = SOLID_FUNCTION<void(RecvBufferPointerT&)>;
 
     virtual ~RelayEngineBase();
+
+    static bool notify_connection(Service& _rsvc, const ObjectIdT& _rconuid, const RelayEngineNotification _what);
 
 private:
     friend class Connection;
     friend struct Configuration;
     static RelayEngineBase& instance();
 
-    virtual bool isRelayedMessage(const std::string& _rmsg) const;
-
     //NOTE: we require _rmsghdr parameter because the relay function
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
     // or copy it in case of multicasts
     virtual bool doRelayStart(
+        Service&         _rsvc,
         const ObjectIdT& _rconuid,
-        NotifyFunctionT& _rnotify_fnc,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         MessageId&       _rrelay_id,
         ErrorConditionT& _rerror);
 
     virtual bool doRelayResponse(
+        Service&         _rsvc,
         const ObjectIdT& _rconuid,
-        NotifyFunctionT& _rnotify_fnc,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror);
 
     virtual bool doRelay(
+        Service&         _rsvc,
         const ObjectIdT& _rconuid,
-        NotifyFunctionT& _rnotify_fnc,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror);
 
+    virtual void doComplete(
+        Service&         _rsvc,
+        const ObjectIdT& _rconuid,
+        RelayData* /*_prelay_data*/,
+        MessageId const& /*_rengine_msg_id*/,
+        bool& /*_rmore*/);
+
     virtual void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
     virtual void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/);
-    virtual void doComplete(const ObjectIdT& _rconuid, NotifyFunctionT&, RelayData* /*_prelay_data*/, MessageId const& /*_rengine_msg_id*/, bool& /*_rmore*/);
 
     template <class F>
     void pollNew(const ObjectIdT& _rconuid, F& _try_push, bool& _rmore)
@@ -183,49 +188,41 @@ private:
         doPollDone(_rconuid, done_fnc);
     }
 
-    template <class F>
-    void complete(const ObjectIdT& _rconuid, F& _notify_fnc, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
+    void complete(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
     {
-        NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
-        doComplete(_rconuid, notify_fnc, _prelay_data, _rengine_msg_id, _rmore);
+        doComplete(_rsvc, _rconuid, _prelay_data, _rengine_msg_id, _rmore);
     }
 
-    template <class F>
     bool relayStart(
+        Service&         _rsvc,
         const ObjectIdT& _rconuid,
-        F&               _notify_fnc,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         MessageId&       _rrelay_id,
         ErrorConditionT& _rerror)
     {
-        NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
-        return doRelayStart(_rconuid, notify_fnc, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelayStart(_rsvc, _rconuid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 
-    template <class F>
     bool relayResponse(
+        Service&         _rsvc,
         const ObjectIdT& _rconuid,
-        F&               _notify_fnc,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror)
     {
-        NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
-        return doRelayResponse(_rconuid, notify_fnc, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelayResponse(_rsvc, _rconuid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 
-    template <class F>
     bool relay(
+        Service&         _rsvc,
         const ObjectIdT& _rconuid,
-        F&               _notify_fnc,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror)
     {
-        NotifyFunctionT notify_fnc{std::cref(_notify_fnc)};
-        return doRelay(_rconuid, notify_fnc, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelay(_rsvc, _rconuid, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 };
 
@@ -361,6 +358,7 @@ public:
     size_t pool_max_message_queue_size;
 
     size_t pools_mutex_count;
+    bool   relay_enabled;
 
     ReaderConfiguration reader;
     WriterConfiguration writer;

@@ -55,9 +55,9 @@ public:
         {
             return false;
         }
-        virtual bool isRelayedMessage(const std::string& _rurl) const
+        virtual bool isRelayDisabled() const
         {
-            return false;
+            return true;
         }
         virtual void pushCancelRequest(const RequestId&) {}
     };

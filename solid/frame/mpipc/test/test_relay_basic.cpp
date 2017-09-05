@@ -217,6 +217,7 @@ void peera_complete_message(
     ++crtackidx;
 
     if (_rrecv_msg_ptr) {
+        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
         if (not _rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
@@ -282,26 +283,31 @@ void peerb_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
-        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
+        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
 
         if (not _rrecv_msg_ptr->check()) {
+            SOLID_ASSERT(false);
             SOLID_THROW("Message check failed.");
         }
 
         if (!_rrecv_msg_ptr->isOnPeer()) {
+            SOLID_ASSERT(false);
             SOLID_THROW("Message not on peer!.");
         }
 
         if (!_rrecv_msg_ptr->isRelayed()) {
+            SOLID_ASSERT(false);
             SOLID_THROW("Message not relayed!.");
         }
 
         //send message back
         if (_rctx.recipientId().isInvalidConnection()) {
+            SOLID_ASSERT(false);
             SOLID_THROW("Connection id should not be invalid!");
         }
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
+        SOLID_ASSERT(!err);
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
         ++crtreadidx;
@@ -324,7 +330,7 @@ void peerb_complete_message(
 int test_relay_basic(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("view");
+    Debug::the().levelMask("ew");
     Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
@@ -437,7 +443,7 @@ int test_relay_basic(int argc, char** argv)
                     SOLID_CHECK(!_rsent_msg_ptr);
                     idbg("recv register request: " << _rrecv_msg_ptr->str);
 
-                    relay_engine.connectionRegister(_rctx.connectionId(), std::move(_rrecv_msg_ptr->str));
+                    relay_engine.connectionRegister(_rctx.service(), _rctx.connectionId(), std::move(_rrecv_msg_ptr->str));
 
                     _rrecv_msg_ptr->str.clear();
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
@@ -460,6 +466,7 @@ int test_relay_basic(int argc, char** argv)
             cfg.connection_stop_fnc              = con_start;
             cfg.client.connection_start_fnc      = con_stop;
             cfg.client.connection_start_state    = frame::mpipc::ConnectionState::Active;
+            cfg.relay_enabled                    = true;
 
             if (secure) {
                 idbg("Configure SSL server -------------------------------------");
@@ -577,20 +584,18 @@ int test_relay_basic(int argc, char** argv)
             }
         }
 
-        const size_t start_count = 1;
+        const size_t start_count = 10;
 
-        writecount = 1; //initarraysize * 10; //start_count;//
+        writecount = initarraysize * 2; //start_count;//
 
         //ensure we have provisioned connections on peerb
         err = mpipcpeerb.createConnectionPool("localhost");
         SOLID_CHECK(not err, "failed create connection from peerb: " << err.message());
 
-        if (1) {
-            for (; crtwriteidx < start_count;) {
-                mpipcpeera.sendMessage(
-                    "localhost/b", std::make_shared<Message>(crtwriteidx++),
-                    initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
-            }
+        for (; crtwriteidx < start_count;) {
+            mpipcpeera.sendMessage(
+                "localhost/b", std::make_shared<Message>(crtwriteidx++),
+                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);
