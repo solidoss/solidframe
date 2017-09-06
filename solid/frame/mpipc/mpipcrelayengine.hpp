@@ -28,11 +28,11 @@ public:
     RelayEngine();
     ~RelayEngine();
 
-    void connectionStop(const ObjectIdT& _rconuid);
-
     void connectionRegister(Service& _rsvc, const ObjectIdT& _rconuid, std::string&& _uname);
 
 private:
+    void connectionStop(Service& _rsvc, const ObjectIdT& _rconuid) override;
+
     bool doRelayStart(
         Service&         _rsvc,
         const ObjectIdT& _rconuid,
@@ -62,6 +62,12 @@ private:
         RelayData*       _prelay_data,
         MessageId const& _rengine_msg_id,
         bool&            _rmore) override;
+
+    void doCompleteClose(
+        Service&         _rsvc,
+        const ObjectIdT& _rconuid,
+        RelayData*       _prelay_data,
+        MessageId const& _rengine_msg_id) override;
 
     void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore) override;
     void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc) override;

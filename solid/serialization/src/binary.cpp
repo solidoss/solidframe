@@ -681,7 +681,7 @@ ReturnValues SerializerBase::storeStream(Base& _rb, FncData& _rfd, void* /*_pctx
 
         toread = rv;
 
-        uint16_t crcsz;
+        uint16_t crcsz = 0;
 
         compute_value_with_crc(crcsz, toread);
 

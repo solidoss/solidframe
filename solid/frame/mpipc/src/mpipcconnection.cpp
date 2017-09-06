@@ -1818,6 +1818,16 @@ void Connection::doCompleteRelayed(
     }
 }
 //-----------------------------------------------------------------------------
+void Connection::doCompleteRelayedClose(
+    Service&         _rsvc,
+    RelayData*       _prelay_data,
+    MessageId const& _rengine_msg_id)
+{
+    const Configuration& rconfig = _rsvc.configuration();
+
+    rconfig.relayEngine().completeClose(_rsvc, _rsvc.id(*this), _prelay_data, _rengine_msg_id);
+}
+//-----------------------------------------------------------------------------
 void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
 {
     if (isServer()) {

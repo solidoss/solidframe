@@ -2292,6 +2292,7 @@ void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
 void Service::onConnectionStop(ConnectionContext& _rconctx)
 {
     vdbgx(Debug::mpipc, this);
+    configuration().relayEngine().connectionStop(*this, _rconctx.connectionId());
     configuration().connection_stop_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------

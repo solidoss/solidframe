@@ -298,59 +298,6 @@ void peerb_complete_message(
         idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
     }
 }
-
-//-----------------------------------------------------------------------------
-//      Relay
-//-----------------------------------------------------------------------------
-
-struct RelayEngine {
-
-    void onConnectionStart(frame::mpipc::ConnectionContext& _rctx);
-    void onConnectionStop(frame::mpipc::ConnectionContext& _rctx);
-    void onRegister(
-        frame::mpipc::ConnectionContext& _rctx,
-        std::shared_ptr<Register>&       _rsent_msg_ptr,
-        std::shared_ptr<Register>&       _rrecv_msg_ptr,
-        ErrorConditionT const&           _rerror);
-};
-
-void RelayEngine::onConnectionStart(frame::mpipc::ConnectionContext& _rctx)
-{
-    idbg(_rctx.recipientId());
-}
-
-void RelayEngine::onConnectionStop(frame::mpipc::ConnectionContext& _rctx)
-{
-    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
-    if (!running) {
-        ++connection_count;
-    }
-}
-
-void RelayEngine::onRegister(
-    frame::mpipc::ConnectionContext& _rctx,
-    std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
-    ErrorConditionT const& _rerror)
-{
-    SOLID_CHECK(!_rerror);
-    if (_rrecv_msg_ptr) {
-        SOLID_CHECK(!_rsent_msg_ptr);
-        idbg("recv register response: " << _rrecv_msg_ptr->str);
-
-        { //do register connection
-        }
-
-        _rrecv_msg_ptr->str.clear();
-        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
-
-        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
-
-    } else {
-        SOLID_CHECK(!_rrecv_msg_ptr);
-        idbg("sent register response");
-    }
-}
-
 //-----------------------------------------------------------------------------
 } //namespace
 

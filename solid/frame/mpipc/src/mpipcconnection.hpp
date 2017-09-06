@@ -252,6 +252,11 @@ private:
         RelayData*       _prelay_data,
         MessageId const& _rengine_msg_id);
 
+    void doCompleteRelayedClose(
+        Service&         _rsvc,
+        RelayData*       _prelay_data,
+        MessageId const& _rengine_msg_id);
+
     void doCompleteKeepalive(frame::aio::ReactorContext& _rctx);
     void doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count);
     void doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid);

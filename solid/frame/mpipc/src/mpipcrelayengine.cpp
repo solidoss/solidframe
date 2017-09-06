@@ -59,7 +59,23 @@ struct ConnectionStub {
     }
 };
 
+/*
+NOTE:
+    Message turning points:
+    * sender connection closes
+    * receiver connection closes
+    * sender connection receives a message canceled command
+    * receiver connection receives message cancel request command which should be forwarder up to the initial sender of the message
+*/
+
+enum struct MessageStateE {
+    Relay,
+    WaitResponse,
+    Cancel
+};
+
 struct MessageStub {
+    MessageStateE state_;
     RelayData*    pfront_;
     RelayData*    pback_;
     uint32_t      unique_;
@@ -70,7 +86,8 @@ struct MessageStub {
     MessageHeader header_;
 
     MessageStub()
-        : pfront_(nullptr)
+        : state_(MessageStateE::Relay)
+        , pfront_(nullptr)
         , pback_(nullptr)
         , unique_(0)
         , next_msg_idx_(InvalidIndex())
@@ -78,6 +95,7 @@ struct MessageStub {
     }
     void clear()
     {
+        state_  = MessageStateE::Relay;
         pfront_ = nullptr;
         pback_  = nullptr;
         ++unique_;
@@ -166,7 +184,7 @@ RelayEngine::~RelayEngine()
 {
 }
 //-----------------------------------------------------------------------------
-void RelayEngine::connectionStop(const ObjectIdT& _rconuid)
+void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
 {
     unique_lock<mutex> lock(impl_->mtx_);
 
@@ -630,6 +648,23 @@ void RelayEngine::doComplete(
         _prelay_data->clear();
         impl_->reldata_cache_.push(_prelay_data);
         edbgx(Debug::mpipc, _rconuid << " message not found " << _rengine_msg_id);
+    }
+}
+//-----------------------------------------------------------------------------
+// called by the receiver connection (the one forwarding the relay data) on close
+//
+void RelayEngine::doCompleteClose(
+    Service&         _rsvc,
+    const ObjectIdT& _rconuid,
+    RelayData*       _prelay_data,
+    MessageId const& _rengine_msg_id)
+{
+    unique_lock<mutex> lock(impl_->mtx_);
+
+    idbgx(Debug::mpipc, _rconuid << " try complete cancel msg " << _rengine_msg_id);
+
+    if (_rengine_msg_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
+        MessageStub& rmsg = impl_->msg_dq_[_rengine_msg_id.index];
     }
 }
 //-----------------------------------------------------------------------------

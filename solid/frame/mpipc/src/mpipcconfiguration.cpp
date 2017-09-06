@@ -79,11 +79,11 @@ const char* default_extract_recipient_name(const char* _purl, std::string& _msgu
     }
 }
 
-const char* default_fast_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
-{
-
-    return _purl;
-}
+// const char* default_fast_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
+// {
+//
+//     return _purl;
+// }
 
 bool default_setup_socket_device(SocketDevice& _rsd)
 {
@@ -128,6 +128,10 @@ WriterConfiguration::WriterConfiguration()
 {
 }
 //-----------------------------------------------------------------------------
+/*virtual*/ void RelayEngineBase::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
+{
+}
+//-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngineBase::doRelayStart(
     Service&         _rsvc,
     const ObjectIdT& _rconuid,
@@ -167,6 +171,15 @@ WriterConfiguration::WriterConfiguration()
     MessageId const& /*_rengine_msg_id*/,
     bool& /*_rmore*/
     )
+{
+    SOLID_THROW("should not be called");
+}
+//-----------------------------------------------------------------------------
+/*virtual*/ void RelayEngineBase::doCompleteClose(
+    Service&         _rsvc,
+    const ObjectIdT& _rconuid,
+    RelayData* /*_prelay_data*/,
+    MessageId const& /*_rengine_msg_id*/)
 {
     SOLID_THROW("should not be called");
 }

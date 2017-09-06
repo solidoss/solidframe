@@ -136,7 +136,10 @@ protected:
 private:
     friend class Connection;
     friend struct Configuration;
+    friend class Service;
     static RelayEngineBase& instance();
+
+    virtual void connectionStop(Service& _rsvc, const ObjectIdT& _rconuid);
 
     //NOTE: we require _rmsghdr parameter because the relay function
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
@@ -171,6 +174,12 @@ private:
         MessageId const& /*_rengine_msg_id*/,
         bool& /*_rmore*/);
 
+    virtual void doCompleteClose(
+        Service&         _rsvc,
+        const ObjectIdT& _rconuid,
+        RelayData* /*_prelay_data*/,
+        MessageId const& /*_rengine_msg_id*/);
+
     virtual void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
     virtual void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/);
 
@@ -191,6 +200,11 @@ private:
     void complete(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
     {
         doComplete(_rsvc, _rconuid, _prelay_data, _rengine_msg_id, _rmore);
+    }
+
+    void completeClose(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id)
+    {
+        doCompleteClose(_rsvc, _rconuid, _prelay_data, _rengine_msg_id);
     }
 
     bool relayStart(
@@ -383,11 +397,9 @@ public:
         ConnectionStartFunctionT           connection_start_fnc;
         ConnectionSecureHandshakeFunctionT connection_on_secure_handshake_fnc;
         ServerSetupSocketDeviceFunctionT   socket_device_setup_fnc;
-
-        Any<> secure_any;
-
-        std::string listener_address_str;
-        std::string listener_service_str;
+        std::string                        listener_address_str;
+        std::string                        listener_service_str;
+        Any<>                              secure_any;
 
         int listenerPort() const
         {

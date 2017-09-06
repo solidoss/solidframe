@@ -393,7 +393,7 @@ size_t MessageWriter::doWritePacketData(
         _rackd_buf_count = 0;
     }
 
-    while (_cancel_remote_msg_vec.size() and (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
+    while (_cancel_remote_msg_vec.size() and static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
         uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
         pbufpos     = _rsender.protocol().storeValue(pbufpos, cmd);
         pbufpos     = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
@@ -404,7 +404,7 @@ size_t MessageWriter::doWritePacketData(
     }
 
     while (
-        not _rerror and (_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() and doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos)) {
+        not _rerror and static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() and doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos)) {
         const size_t msgidx = write_inner_list_.frontIndex();
 
         PacketHeader::CommandE cmd = PacketHeader::CommandE::Message;
