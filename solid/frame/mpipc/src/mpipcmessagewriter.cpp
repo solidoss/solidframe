@@ -787,7 +787,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
 
     vdbgx(Debug::mpipc, "");
     { //iterate through non completed messages
-        size_t msgidx = order_inner_list_.frontIndex();
+        size_t msgidx = order_inner_list_.backIndex();
 
         while (msgidx != InvalidIndex()) {
             MessageStub& rmsgstub = message_vec_[msgidx];

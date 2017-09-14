@@ -35,6 +35,7 @@
 #include "solid/frame/mpipc/mpipcservice.hpp"
 
 #include "solid/system/mutualstore.hpp"
+#include "solid/utility/innerlist.hpp"
 #include "solid/utility/queue.hpp"
 #include "solid/utility/stack.hpp"
 #include "solid/utility/string.hpp"
@@ -60,7 +61,7 @@ enum {
 
 //-----------------------------------------------------------------------------
 
-struct MessageStub : InnerNode<InnerLinkCount> {
+struct MessageStub : inner::Node<InnerLinkCount> {
 
     enum {
         CancelableFlag = 1
@@ -80,7 +81,7 @@ struct MessageStub : InnerNode<InnerLinkCount> {
 
     MessageStub(
         MessageStub&& _rmsg)
-        : InnerNode<InnerLinkCount>(std::move(_rmsg))
+        : inner::Node<InnerLinkCount>(std::move(_rmsg))
         , msgbundle(std::move(_rmsg.msgbundle))
         , msgid(_rmsg.msgid)
         , objid(_rmsg.objid)
@@ -124,9 +125,9 @@ struct MessageStub : InnerNode<InnerLinkCount> {
 //-----------------------------------------------------------------------------
 
 using MessageVectorT         = std::vector<MessageStub>;
-using MessageOrderInnerListT = InnerList<MessageVectorT, InnerLinkOrder>;
-using MessageCacheInnerListT = InnerList<MessageVectorT, InnerLinkOrder>;
-using MessageAsyncInnerListT = InnerList<MessageVectorT, InnerLinkAsync>;
+using MessageOrderInnerListT = inner::List<MessageVectorT, InnerLinkOrder>;
+using MessageCacheInnerListT = inner::List<MessageVectorT, InnerLinkOrder>;
+using MessageAsyncInnerListT = inner::List<MessageVectorT, InnerLinkAsync>;
 
 //-----------------------------------------------------------------------------
 
@@ -1142,6 +1143,7 @@ bool Service::doTryPushMessageToConnection(
             rmsgstub.objid = _robjuid;
 
             rpool.msgorder_inner_list.erase(_msg_idx);
+            idbgx(Debug::mpipc, this << " msgorder_inner_list = " << rpool.msgorder_inner_list);
 
             if (message_is_asynchronous) {
                 rpool.msgasync_inner_list.erase(_msg_idx);
@@ -1155,6 +1157,7 @@ bool Service::doTryPushMessageToConnection(
         if (success and not message_is_null) {
 
             rpool.msgorder_inner_list.erase(_msg_idx);
+            idbgx(Debug::mpipc, this << " msgorder_inner_list = " << rpool.msgorder_inner_list);
 
             if (message_is_asynchronous) {
                 rpool.msgasync_inner_list.erase(_msg_idx);
@@ -1254,7 +1257,7 @@ ErrorConditionT Service::pollPoolForUpdates(
         return error;
     }
 
-    idbgx(Debug::mpipc, this << ' ' << &_rconnection << " messages in pool: " << rpool.msgorder_inner_list.size());
+    idbgx(Debug::mpipc, this << ' ' << &_rconnection << " messages in pool: " << rpool.msgorder_inner_list);
 
     bool       connection_may_handle_more_messages        = not _rconnection.isFull(configuration());
     const bool connection_can_handle_synchronous_messages = _robjuid == rpool.main_connection_id;
@@ -1504,6 +1507,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
                     //erase/unlink the message from any list
                     if (rpool.msgorder_inner_list.contains(_rmsg_id.index)) {
                         rpool.msgorder_inner_list.erase(_rmsg_id.index);
+                        idbgx(Debug::mpipc, this << " msgorder_inner_list = " << rpool.msgorder_inner_list);
                         if (Message::is_asynchronous(rmsgstub.msgbundle.message_flags)) {
                             SOLID_ASSERT(rpool.msgasync_inner_list.contains(_rmsg_id.index));
                             rpool.msgasync_inner_list.erase(_rmsg_id.index);
@@ -1802,7 +1806,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 
         MessageStub& rmsgstub = rpool.msgvec[crtmsgidx];
 
-        *pmsgidx = rpool.msgorder_inner_list.previousIndex(crtmsgidx);
+        *pmsgidx = rpool.msgorder_inner_list.nextIndex(crtmsgidx);
 
         if (rpool.msgorder_inner_list.size() != 1) {
             SOLID_ASSERT(rpool.msgorder_inner_list.contains(crtmsgidx));

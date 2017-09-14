@@ -165,7 +165,7 @@ private:
         Completing
     };
 
-    struct MessageStub : InnerNode<InnerLinkCount> {
+    struct MessageStub : inner::Node<InnerLinkCount> {
 
         enum struct StateE : uint8_t {
             WriteStart,
@@ -208,7 +208,7 @@ private:
 
         MessageStub(
             MessageStub&& _rmsgstub)
-            : InnerNode<InnerLinkCount>(std::move(_rmsgstub))
+            : inner::Node<InnerLinkCount>(std::move(_rmsgstub))
             , msgbundle_(std::move(_rmsgstub.msgbundle_))
             , unique_(_rmsgstub.unique_)
             , packet_count_(_rmsgstub.packet_count_)
@@ -280,8 +280,8 @@ private:
     };
 
     using MessageVectorT          = std::vector<MessageStub>;
-    using MessageOrderInnerListT  = InnerList<MessageVectorT, InnerLinkOrder>;
-    using MessageStatusInnerListT = InnerList<MessageVectorT, InnerLinkStatus>;
+    using MessageOrderInnerListT  = inner::List<MessageVectorT, InnerLinkOrder>;
+    using MessageStatusInnerListT = inner::List<MessageVectorT, InnerLinkStatus>;
 
     struct PacketOptions {
         bool force_no_compress;

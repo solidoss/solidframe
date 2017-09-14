@@ -14,66 +14,67 @@
 
 namespace solid {
 
-struct InnerLink {
-    size_t prev;
-    size_t next;
+namespace inner {
+struct Link {
+    size_t prev_;
+    size_t next_;
 
     void clear()
     {
-        prev = next = InvalidIndex();
+        prev_ = next_ = InvalidIndex();
     }
 
-    InnerLink(
+    Link(
         const size_t _prev = InvalidIndex(),
         const size_t _next = InvalidIndex())
-        : prev(_prev)
-        , next(_next)
+        : prev_(_prev)
+        , next_(_next)
     {
     }
 };
 
 template <size_t Size>
-struct InnerNode;
+struct Node;
 
 template <size_t Size>
-InnerLink& inner_link_accessor(InnerNode<Size>& _node, const size_t _index);
+Link& link_accessor(Node<Size>& _node, const size_t _index);
 
 template <size_t Size>
-InnerLink const& inner_link_const_accessor(InnerNode<Size> const& _node, const size_t _index);
+Link const& link_const_accessor(Node<Size> const& _node, const size_t _index);
 
 template <size_t Size>
-struct InnerNode {
+struct Node {
     enum {
-        InnerNodeSize = Size,
+        NodeSize = Size,
     };
 
 private:
-    template <size_t  Sz>
-    friend InnerLink& inner_link_accessor(InnerNode<Sz>& _node, const size_t _index);
-    template <size_t        Sz>
-    friend InnerLink const& inner_link_const_accessor(InnerNode<Sz> const& _node, const size_t _index);
+    template <size_t Sz>
+    friend Link& link_accessor(Node<Sz>& _node, const size_t _index);
+    template <size_t   Sz>
+    friend Link const& link_const_accessor(Node<Sz> const& _node, const size_t _index);
 
-    InnerLink links[InnerNodeSize];
+    Link links[NodeSize];
 };
 
 template <size_t Size>
-InnerLink& inner_link_accessor(InnerNode<Size>& _node, const size_t _index)
+Link& link_accessor(Node<Size>& _node, const size_t _index)
 {
     return _node.links[_index];
 }
 
 template <size_t Size>
-InnerLink const& inner_link_const_accessor(InnerNode<Size> const& _node, const size_t _index)
+Link const& link_const_accessor(Node<Size> const& _node, const size_t _index)
 {
     return _node.links[_index];
 }
 
-template <class Vec, size_t Link>
-class InnerList {
+template <class Vec, size_t LinkId>
+class List {
 public:
     typedef typename Vec::value_type ValueT;
 
-    InnerList(Vec& _rvec)
+    List(Vec& _rvec)
         : rvec_(_rvec)
         , size_(0)
         , back_(InvalidIndex())
@@ -81,11 +82,11 @@ public:
     {
     }
 
-    InnerList(InnerList<Vec, Link>&)  = delete;
-    InnerList(InnerList<Vec, Link>&&) = delete;
-    InnerList(
+    List(List<Vec, LinkId>&)  = delete;
+    List(List<Vec, LinkId>&&) = delete;
+    List(
         Vec& _rvec,
-        InnerList<Vec, Link>& _rinnerlist)
+        List<Vec, LinkId>& _rinnerlist)
         : rvec_(_rvec)
         , size_(_rinnerlist.size_)
         , back_(_rinnerlist.back_)
@@ -95,13 +96,13 @@ public:
 
     void pushBack(const size_t _index)
     {
-        InnerLink& rcrt_link = link(_index);
+        Link& rcrt_link = link(_index);
 
-        rcrt_link = InnerLink(InvalidIndex(), back_);
+        rcrt_link = Link(back_, InvalidIndex());
 
         if (back_ != InvalidIndex()) {
-            link(back_).prev = _index;
-            back_            = _index;
+            link(back_).next_ = _index;
+            back_             = _index;
         } else {
             back_  = _index;
             front_ = _index;
@@ -112,13 +113,13 @@ public:
 
     void pushFront(const size_t _index)
     {
-        InnerLink& rcrt_link = link(_index);
+        Link& rcrt_link = link(_index);
 
-        rcrt_link = InnerLink(front_, InvalidIndex());
+        rcrt_link = Link(InvalidIndex(), front_);
 
         if (front_ != InvalidIndex()) {
-            link(front_).next = _index;
-            front_            = _index;
+            link(front_).prev_ = _index;
+            front_             = _index;
         } else {
             back_  = _index;
             front_ = _index;
@@ -159,19 +160,20 @@ public:
 
     void erase(const size_t _index)
     {
-        InnerLink& rcrt_link = link(_index);
+        Link& rcrt_link = link(_index);
 
-        if (rcrt_link.prev != InvalidIndex()) {
-            link(rcrt_link.prev).next = rcrt_link.next;
+        if (rcrt_link.prev_ != InvalidIndex()) {
+            link(rcrt_link.prev_).next_ = rcrt_link.next_;
         } else {
-            //first message in the list
-            back_ = rcrt_link.next;
+            //first in the list
+            front_ = rcrt_link.next_;
         }
 
-        if (rcrt_link.next != InvalidIndex()) {
-            link(rcrt_link.next).prev = rcrt_link.prev;
+        if (rcrt_link.next_ != InvalidIndex()) {
+            link(rcrt_link.next_).prev_ = rcrt_link.prev_;
         } else {
-            front_ = rcrt_link.prev;
+            //last in the list
+            back_ = rcrt_link.prev_;
         }
         --size_;
         rcrt_link.clear();
@@ -204,11 +206,11 @@ public:
     template <class F>
     void forEach(F _f)
     {
-        size_t it = back_;
+        size_t it = front_;
 
         while (it != InvalidIndex()) {
             const size_t crtit = it;
-            it                 = link(it).next;
+            it                 = link(it).next_;
 
             _f(crtit, rvec_[crtit]);
         }
@@ -217,11 +219,11 @@ public:
     template <class F>
     void forEach(F _f) const
     {
-        size_t it = back_;
+        size_t it = front_;
 
         while (it != InvalidIndex()) {
             const size_t crtit = it;
-            it                 = link(it).next;
+            it                 = link(it).next_;
 
             _f(crtit, rvec_[crtit]);
         }
@@ -242,7 +244,12 @@ public:
 
     size_t previousIndex(const size_t _index) const
     {
-        return link(_index).prev;
+        return link(_index).prev_;
+    }
+
+    size_t nextIndex(const size_t _index) const
+    {
+        return link(_index).next_;
     }
 
     bool check() const
@@ -257,19 +264,19 @@ public:
 
     bool contains(const size_t _index) const
     {
-        return link(_index).prev != InvalidIndex() || link(_index).next != InvalidIndex() || _index == front_;
+        return link(_index).prev_ != InvalidIndex() || link(_index).next_ != InvalidIndex() || _index == back_;
     }
 
 private:
-    InnerLink& link(const size_t _index)
+    Link& link(const size_t _index)
     {
         //typedef Vec::value_type       NodeT;
-        return inner_link_accessor(rvec_[_index], Link);
+        return link_accessor(rvec_[_index], LinkId);
     }
-    InnerLink const& link(const size_t _index) const
+    Link const& link(const size_t _index) const
     {
         //typedef Vec::value_type       NodeT;
-        return inner_link_const_accessor(rvec_[_index], Link);
+        return link_const_accessor(rvec_[_index], LinkId);
     }
 
 private:
@@ -278,5 +285,7 @@ private:
     size_t back_;
     size_t front_;
 };
+
+} //namespace inner
 
 } //namespace solid
