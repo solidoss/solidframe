@@ -30,7 +30,7 @@ public:
 
     void connectionRegister(Service& _rsvc, const ObjectIdT& _rconuid, std::string&& _uname);
 
-private:
+protected:
     void connectionStop(Service& _rsvc, const ObjectIdT& _rconuid) override;
 
     bool doRelayStart(

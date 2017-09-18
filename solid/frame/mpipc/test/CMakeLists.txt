@@ -325,4 +325,29 @@ if(OPENSSL_FOUND)
     add_test(NAME TestRelayBasic1        COMMAND  test_mpipc_relay test_relay_basic 1)
     
     #==============================================================================
+    
+    set( mpipcRelayEngineTestSuite
+        test_relay_engine_basic.cpp
+    )
+
+    create_test_sourcelist( mpipcRelayEngineTests test_mpipc_relay_engine.cpp ${mpipcRelayEngineTestSuite})
+
+    add_executable(test_mpipc_relay_engine ${mpipcRelayEngineTests})
+
+    add_dependencies(test_mpipc_relay_engine build_openssl)
+
+    target_link_libraries(test_mpipc_relay_engine
+        solid_frame_mpipc
+        solid_frame_aio
+        solid_frame
+        solid_serialization
+        solid_utility
+        solid_system
+        ${OPENSSL_LIBRARIES}
+        ${SYS_DYNAMIC_LOAD_LIB}
+        ${SYS_BASIC_LIBS}
+    )
+
+    add_test(NAME TestRelayEngneBasic     COMMAND  test_mpipc_relay_engine test_relay_engine_basic)
+    #==============================================================================
 endif(OPENSSL_FOUND)

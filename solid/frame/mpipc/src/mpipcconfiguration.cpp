@@ -119,7 +119,7 @@ WriterConfiguration::WriterConfiguration()
     return eng;
 }
 //-----------------------------------------------------------------------------
-/*static*/ bool RelayEngineBase::notify_connection(Service& _rsvc, const ObjectIdT& _rconuid, const RelayEngineNotification _what)
+/*virtual*/ bool RelayEngineBase::notifyConnection(Service& _rsvc, const ObjectIdT& _rconuid, const RelayEngineNotification _what)
 {
     return Connection::notify(_rsvc, _rconuid, _what);
 }

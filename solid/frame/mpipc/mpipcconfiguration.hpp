@@ -131,12 +131,13 @@ protected:
 
     virtual ~RelayEngineBase();
 
-    static bool notify_connection(Service& _rsvc, const ObjectIdT& _rconuid, const RelayEngineNotification _what);
+    virtual bool notifyConnection(Service& _rsvc, const ObjectIdT& _rconuid, const RelayEngineNotification _what);
 
 private:
     friend class Connection;
     friend struct Configuration;
     friend class Service;
+
     static RelayEngineBase& instance();
 
     virtual void connectionStop(Service& _rsvc, const ObjectIdT& _rconuid);
@@ -186,14 +187,14 @@ private:
     template <class F>
     void pollNew(const ObjectIdT& _rconuid, F& _try_push, bool& _rmore)
     {
-        PushFunctionT try_push_fnc{std::cref(_try_push)};
+        PushFunctionT try_push_fnc{std::ref(_try_push)};
         doPollNew(_rconuid, try_push_fnc, _rmore);
     }
 
     template <class F>
     void pollDone(const ObjectIdT& _rconuid, F& _done_fnc)
     {
-        DoneFunctionT done_fnc{std::cref(_done_fnc)};
+        DoneFunctionT done_fnc{std::ref(_done_fnc)};
         doPollDone(_rconuid, done_fnc);
     }
 
