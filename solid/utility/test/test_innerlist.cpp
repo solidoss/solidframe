@@ -8,15 +8,6 @@ using namespace std;
 using namespace solid;
 
 enum {
-    InnerListOrder = 0,
-    InnerListPending,
-    InnerListSending,
-    InnerListCache,
-
-    InnerListCount //do not change
-};
-
-enum {
     InnerLinkOrder = 0,
     InnerLinkStatus,
 

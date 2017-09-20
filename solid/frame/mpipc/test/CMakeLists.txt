@@ -348,6 +348,6 @@ if(OPENSSL_FOUND)
         ${SYS_BASIC_LIBS}
     )
 
-    add_test(NAME TestRelayEngneBasic     COMMAND  test_mpipc_relay_engine test_relay_engine_basic)
+    add_test(NAME TestRelayEngineBasic     COMMAND  test_mpipc_relay_engine test_relay_engine_basic)
     #==============================================================================
 endif(OPENSSL_FOUND)
