@@ -126,8 +126,9 @@ enum struct RelayEngineNotification {
 class RelayEngineBase {
 
 protected:
-    using PushFunctionT = SOLID_FUNCTION<bool(RelayData*, const MessageId&, MessageId&, bool&)>;
-    using DoneFunctionT = SOLID_FUNCTION<void(RecvBufferPointerT&)>;
+    using PushFunctionT   = SOLID_FUNCTION<bool(RelayData*, const MessageId&, MessageId&, bool&)>;
+    using DoneFunctionT   = SOLID_FUNCTION<void(RecvBufferPointerT&)>;
+    using CancelFunctionT = SOLID_FUNCTION<void(const MessageHeader&)>;
 
     virtual ~RelayEngineBase();
 
@@ -182,7 +183,7 @@ private:
         MessageId const& /*_rengine_msg_id*/);
 
     virtual void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
-    virtual void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/);
+    virtual void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/);
 
     template <class F>
     void pollNew(const ObjectIdT& _rconuid, F& _try_push, bool& _rmore)
@@ -191,11 +192,13 @@ private:
         doPollNew(_rconuid, try_push_fnc, _rmore);
     }
 
-    template <class F>
-    void pollDone(const ObjectIdT& _rconuid, F& _done_fnc)
+    template <class DF, class CF>
+    void pollDone(const ObjectIdT& _rconuid, DF& _done_fnc, CF& _cancel_fnc)
     {
-        DoneFunctionT done_fnc{std::ref(_done_fnc)};
-        doPollDone(_rconuid, done_fnc);
+        DoneFunctionT   done_fnc{std::ref(_done_fnc)};
+        CancelFunctionT cancel_fnc{std::ref(_cancel_fnc)};
+
+        doPollDone(_rconuid, done_fnc, cancel_fnc);
     }
 
     void complete(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)

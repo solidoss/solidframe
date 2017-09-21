@@ -145,7 +145,7 @@ public:
             if (_rmsgbundle.message_ptr) {
                 _f(this->poolId(), _rmsgbundle, _rmsgid);
             } else {
-                this->doCompleteRelayed(_rsvc, _prelay_data, _rmsgid);
+                this->doCompleteRelayedClose(_rsvc, _prelay_data, _rmsgid);
             }
         };
         MessageWriter::VisitFunctionT fnc(std::cref(visit_fnc));
@@ -248,9 +248,9 @@ private:
         ErrorConditionT const&             _rerr);
 
     void doCompleteRelayed(
-        Service&         _rsvc,
-        RelayData*       _prelay_data,
-        MessageId const& _rengine_msg_id);
+        frame::aio::ReactorContext& _rctx,
+        RelayData*                  _prelay_data,
+        MessageId const&            _rengine_msg_id);
 
     void doCompleteRelayedClose(
         Service&         _rsvc,

@@ -583,9 +583,9 @@ int test_relay_basic(int argc, char** argv)
             }
         }
 
-        const size_t start_count = 10;
+        const size_t start_count = 2;
 
-        writecount = initarraysize * 2; //start_count;//
+        writecount = 2; //initarraysize * 2; //start_count;//
 
         //ensure we have provisioned connections on peerb
         err = mpipcpeerb.createConnectionPool("localhost");

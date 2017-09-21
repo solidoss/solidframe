@@ -1191,14 +1191,20 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
 {
     Configuration const& config      = service(_rctx).configuration();
     size_t               ack_buf_cnt = 0;
-    const auto lambda                = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
+    const auto done_lambda           = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
         if (_rbuf.use_count() == 1) {
             ++ack_buf_cnt;
             this->recv_buf_vec_.emplace_back(std::move(_rbuf));
         }
     };
-    config.relayEngine().pollDone(uid(_rctx), lambda);
-    if (ack_buf_cnt) {
+    const auto cancel_lambda = [this](const MessageHeader& _rmsghdr) {
+        //we must request the remote side to stop sending the message
+        cancel_remote_msg_vec_.push_back(_rmsghdr.sender_request_id_);
+    };
+
+    config.relayEngine().pollDone(uid(_rctx), done_lambda, cancel_lambda);
+
+    if (ack_buf_cnt or cancel_remote_msg_vec_.size()) {
         ackd_buf_count_ += ack_buf_cnt;
         doSend(_rctx);
     }
@@ -1574,7 +1580,7 @@ struct Connection::Sender : MessageWriter::Sender {
     }
     void completeRelayed(RelayData* _prelay_data, MessageId const& _rmsgid) override
     {
-        rcon_.doCompleteRelayed(rcon_.service(rctx_), _prelay_data, _rmsgid);
+        rcon_.doCompleteRelayed(rctx_, _prelay_data, _rmsgid);
     }
 };
 
@@ -1804,17 +1810,19 @@ void Connection::doCompleteMessage(
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteRelayed(
-    Service&         _rsvc,
-    RelayData*       _prelay_data,
-    MessageId const& _rengine_msg_id)
+    frame::aio::ReactorContext& _rctx,
+    RelayData*                  _prelay_data,
+    MessageId const&            _rengine_msg_id)
 {
-    const Configuration& rconfig = _rsvc.configuration();
+
+    const Configuration& rconfig = service(_rctx).configuration();
     bool                 more    = false;
 
-    rconfig.relayEngine().complete(_rsvc, _rsvc.id(*this), _prelay_data, _rengine_msg_id, more);
+    rconfig.relayEngine().complete(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, more);
 
     if (not more) {
         flags_.reset(FlagsE::PollRelayEngine); //reset flag
+        this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
     }
 }
 //-----------------------------------------------------------------------------

@@ -70,7 +70,7 @@ protected:
         MessageId const& _rengine_msg_id) override;
 
     void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore) override;
-    void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc) override;
+    void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc) override;
 
     size_t doRegisterConnection(std::string&& _uname);
     size_t doRegisterConnection(const ObjectIdT& _rconuid);

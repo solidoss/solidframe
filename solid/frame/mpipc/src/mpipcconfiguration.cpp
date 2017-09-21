@@ -189,7 +189,7 @@ WriterConfiguration::WriterConfiguration()
     SOLID_THROW("should not be called");
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngineBase::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/)
+/*virtual*/ void RelayEngineBase::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/)
 {
     SOLID_THROW("should not be called");
 }

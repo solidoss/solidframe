@@ -238,10 +238,12 @@ struct RelayEngine::Data {
 RelayEngine::RelayEngine()
     : impl_(make_pimpl<Data>())
 {
+    idbgx(Debug::mpipc, this);
 }
 //-----------------------------------------------------------------------------
 RelayEngine::~RelayEngine()
 {
+    idbgx(Debug::mpipc, this);
 }
 //-----------------------------------------------------------------------------
 void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
@@ -262,8 +264,8 @@ void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
     ConnectionStub& rcon = impl_->con_dq_[conidx];
     {
         while (rcon.recv_msg_list_.size()) {
-            MessageStub& rmsg      = rcon.recv_msg_list_.front();
-            const size_t msgidx    = rcon.recv_msg_list_.popFront();
+            MessageStub& rmsg       = rcon.recv_msg_list_.front();
+            const size_t msgidx     = rcon.recv_msg_list_.popFront();
             const size_t snd_conidx = rmsg.sender_con_id_.index;
 
             rmsg.receiver_con_id_.clear(); //unlink from the receiver connection
@@ -289,7 +291,7 @@ void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
                         should_notify_connection = should_notify_connection and (rmsg.pfront_ != nullptr);
 
                         {
-                            const bool sndcon_already_has_canceled_messages = rsndcon.send_msg_list_.front().isCanceled();
+                            const bool sndcon_already_has_canceled_messages = rsndcon.send_msg_list_.front().state_ == MessageStateE::RecvCancel;
                             should_notify_connection                        = should_notify_connection or not sndcon_already_has_canceled_messages;
                         }
 
@@ -320,8 +322,8 @@ void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
 
     {
         while (rcon.send_msg_list_.size()) {
-            MessageStub& rmsg      = rcon.send_msg_list_.front();
-            const size_t msgidx    = rcon.send_msg_list_.popFront();
+            MessageStub& rmsg       = rcon.send_msg_list_.front();
+            const size_t msgidx     = rcon.send_msg_list_.popFront();
             const size_t rcv_conidx = rmsg.receiver_con_id_.index;
 
             rmsg.sender_con_id_.clear(); //unlink from the sender connection
@@ -424,7 +426,7 @@ void RelayEngine::connectionRegister(Service& _rsvc, const ObjectIdT& _rconuid, 
             impl_->con_umap_[impl_->con_dq_[conidx].name_.c_str()] = conidx;
         } else {
             conidx = impl_->con_dq_.size();
-            impl_->con_dq_.emplace_back(std::move(_uname));
+            impl_->con_dq_.emplace_back(impl_->msg_dq_, std::move(_uname));
             impl_->con_umap_[impl_->con_dq_.back().name_.c_str()] = conidx;
         }
     } else {
@@ -490,7 +492,7 @@ size_t RelayEngine::doRegisterConnection(std::string&& _uname)
         impl_->con_umap_[impl_->con_dq_[conidx].name_.c_str()] = conidx;
     } else {
         conidx = impl_->con_dq_.size();
-        impl_->con_dq_.emplace_back(std::move(_uname));
+        impl_->con_dq_.emplace_back(impl_->msg_dq_, std::move(_uname));
         impl_->con_umap_[impl_->con_dq_.back().name_.c_str()] = conidx;
     }
     idbgx(Debug::mpipc, "name = " << impl_->con_dq_[conidx].name_ << " conidx = " << conidx);
@@ -580,16 +582,17 @@ bool RelayEngine::doRelay(
         const size_t msgidx                        = _rrelay_id.index;
         MessageStub& rmsg                          = impl_->msg_dq_[msgidx];
         bool         is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
-        
+        size_t       data_size                     = _rrelmsg.data_size_;
+
         rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
 
         if (rmsg.state_ == MessageStateE::Relay) {
 
-            idbgx(Debug::mpipc, _rconuid << " msgid = " << _rrelay_id << " receiver_conidx " << rmsg.receiver_con_id_.index << " sender_conidx " << rmsg.sender_con_id_.index << " is_last = " << _rrelmsg.is_last_ << " is_msg_relay_data_queue_empty = " << is_msg_relay_data_queue_empty);
+            idbgx(Debug::mpipc, _rconuid << " msgid = " << _rrelay_id << " receiver_conidx " << rmsg.receiver_con_id_.index << " sender_conidx " << rmsg.sender_con_id_.index << " is_last = " << _rrelmsg.is_last_ << " is_msg_relay_data_queue_empty = " << is_msg_relay_data_queue_empty << " data size = " << data_size);
 
             if (is_msg_relay_data_queue_empty) {
                 ConnectionStub& rrcvcon                  = impl_->con_dq_[rmsg.receiver_con_id_.index];
-                bool            should_notify_connection = not rrcvcon.recv_msg_list_.back().isActive();
+                bool            should_notify_connection = rrcvcon.recv_msg_list_.backIndex() == msgidx or not rrcvcon.recv_msg_list_.back().isActive();
 
                 SOLID_ASSERT(not rrcvcon.recv_msg_list_.empty());
 
@@ -599,6 +602,7 @@ bool RelayEngine::doRelay(
                 rrcvcon.recv_msg_list_.pushBack(msgidx);
 
                 if (should_notify_connection) {
+                    //idbgx(Debug::mpipc, _rconuid <<" notify receiver connection");
                     SOLID_CHECK(notifyConnection(_rsvc, rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
                 }
             }
@@ -630,30 +634,31 @@ bool RelayEngine::doRelayResponse(
         MessageStub& rmsg              = impl_->msg_dq_[msgidx];
         RequestId    sender_request_id = rmsg.header_.sender_request_id_;
         idbgx(Debug::mpipc, _rconuid << " msgid = " << _rrelay_id << " receiver_conidx " << rmsg.receiver_con_id_ << " sender_conidx " << rmsg.sender_con_id_ << " is_last = " << _rrelmsg.is_last_);
-        
-        if(rmsg.state_ == MessageStateE::WaitResponse){
+
+        if (rmsg.state_ == MessageStateE::WaitResponse) {
             SOLID_ASSERT(rmsg.sender_con_id_.isValid());
             SOLID_ASSERT(rmsg.receiver_con_id_.isValid());
             SOLID_ASSERT(rmsg.pfront_ == nullptr);
-            
+
             rmsg.receiver_msg_id_.clear();
-            
+
             std::swap(rmsg.receiver_con_id_, rmsg.sender_con_id_);
             rmsg.header_ = std::move(_rmsghdr);
             //set the proper recipient_request_id_
             rmsg.header_.sender_request_id_ = sender_request_id;
 
             rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
-            
+            rmsg.state_ = MessageStateE::Relay;
+
             const size_t rcv_conidx = rmsg.receiver_con_id_.index;
             const size_t snd_conidx = rmsg.sender_con_id_.index;
             SOLID_ASSERT(rcv_conidx < impl_->con_dq_.size() and impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique);
             SOLID_ASSERT(snd_conidx < impl_->con_dq_.size() and impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique);
-            
-            ConnectionStub& rrcvcon = impl_->con_dq_[rcv_conidx];
-            ConnectionStub& rsndcon = impl_->con_dq_[snd_conidx];
-            bool            should_notify_connection = not rrcvcon.recv_msg_list_.back().isActive();
-            
+
+            ConnectionStub& rrcvcon                  = impl_->con_dq_[rcv_conidx];
+            ConnectionStub& rsndcon                  = impl_->con_dq_[snd_conidx];
+            bool            should_notify_connection = rrcvcon.recv_msg_list_.empty() or not rrcvcon.recv_msg_list_.back().isActive();
+
             rsndcon.recv_msg_list_.erase(msgidx);
             rsndcon.send_msg_list_.pushBack(msgidx);
             rrcvcon.send_msg_list_.erase(msgidx);
@@ -670,93 +675,95 @@ bool RelayEngine::doRelayResponse(
     }
 }
 //-----------------------------------------------------------------------------
+//called by the receiver connection
 void RelayEngine::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore)
 {
     unique_lock<mutex> lock(impl_->mtx_);
     //TODO: optimize the search
     const auto it = impl_->con_id_umap_.find(_rconuid.index);
-    if (it != impl_->con_id_umap_.end()) {
-        const size_t    conidx = it->second;
-        ConnectionStub& rcon   = impl_->con_dq_[conidx];
 
-        idbgx(Debug::mpipc, _rconuid << " rcon.name = " << rcon.name_);
-        SOLID_ASSERT(rcon.id_.unique == _rconuid.unique);
+    SOLID_ASSERT(it != impl_->con_id_umap_.end()); //the current connection must be registered
 
-        bool   can_retry  = true;
-        size_t sentinel   = impl_->innerListBackIndex(InnerListE::Recv, conidx);
-        size_t crt_msgidx = impl_->innerListFrontIndex(InnerListE::Recv, conidx);
+    const size_t    conidx = it->second;
+    ConnectionStub& rcon   = impl_->con_dq_[conidx];
 
-        while (can_retry and crt_msgidx != InvalidIndex()) {
-            MessageStub& rmsg  = impl_->msg_dq_[crt_msgidx];
-            RelayData*   pnext = rmsg.pfront_ ? rmsg.pfront_->pnext_ : nullptr;
+    SOLID_ASSERT(rcon.id_.unique == _rconuid.unique);
 
-            edbgx(Debug::mpipc, _rconuid << " msgidx = " << crt_msgidx << " pnext = " << pnext);
+    idbgx(Debug::mpipc, _rconuid << " rcon.name = " << rcon.name_);
 
-            if (_try_push_fnc(rmsg.pfront_, MessageId(crt_msgidx, rmsg.unique_), rmsg.receiver_msg_id_, can_retry)) {
-                //relay data accepted
-                rmsg.pfront_ = pnext;
+    bool   can_retry = true;
+    size_t msgidx    = rcon.recv_msg_list_.backIndex();
 
-                if (rmsg.pfront_ == nullptr) {
-                    rmsg.pback_ = nullptr;
-                }
-                impl_->innerListPopFront(InnerListE::Recv, conidx);
-                crt_msgidx = impl_->innerListFrontIndex(InnerListE::Recv, conidx);
-                //drop the message from the connection queue
+    while (can_retry and msgidx != InvalidIndex() and impl_->msg_dq_[msgidx].isActive()) {
+        MessageStub& rmsg        = impl_->msg_dq_[msgidx];
+        const size_t prev_msgidx = rcon.recv_msg_list_.previousIndex(msgidx);
+        RelayData*   pnext       = rmsg.pfront_ ? rmsg.pfront_->pnext_ : nullptr;
 
-                if (rmsg.pfront_ == nullptr) {
-                    SOLID_ASSERT(rmsg.state_ == MessageStateE::SendCancel);
-                    //TODO: erase message
-                }
-                vdbgx(Debug::mpipc, _rconuid << " " << crt_msgidx);
-            } else if (can_retry) {
-                //relay data not accepted but we can try with other message
-                //reschedule the message onto the connection's message queue
+        if (_try_push_fnc(rmsg.pfront_, MessageId(msgidx, rmsg.unique_), rmsg.receiver_msg_id_, can_retry)) {
 
-                impl_->innerListPushBack(InnerListE::Recv, conidx, impl_->innerListPopFront(InnerListE::Recv, conidx));
-                crt_msgidx = impl_->innerListFrontIndex(InnerListE::Recv, conidx);
-                vdbgx(Debug::mpipc, _rconuid << " " << crt_msgidx);
-                if (crt_msgidx == sentinel) {
-                    break;
-                }
+            rmsg.pfront_ = pnext;
+
+            if (rmsg.pfront_ == nullptr) {
+                rmsg.pback_ = nullptr;
+            }
+
+            //relay data accepted
+            if (rmsg.state_ == MessageStateE::SendCancel) {
+                //delete the message
+                rcon.recv_msg_list_.erase(msgidx);
+                rmsg.clear();
+                impl_->freeMessage(msgidx);
+            } else if (rmsg.pfront_) {
+                //message has more data - leave it where it is on the list
             } else {
-                break;
+                //message has no more data, move it to front
+                rcon.recv_msg_list_.erase(msgidx);
+                rcon.recv_msg_list_.pushFront(msgidx);
             }
         }
+        msgidx = prev_msgidx;
+    } //while
 
-        _rmore = not impl_->innerListEmpty(InnerListE::Recv, conidx);
-        ;
-    } else {
-        edbgx(Debug::mpipc, _rconuid << " connection not found");
-    }
+    _rmore = rcon.recv_msg_list_.size() and rcon.recv_msg_list_.back().isActive();
+    idbgx(Debug::mpipc, _rconuid << " more = " << _rmore);
 }
 //-----------------------------------------------------------------------------
-void RelayEngine::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc)
+void RelayEngine::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc)
 {
     unique_lock<mutex> lock(impl_->mtx_);
 
     const auto it = impl_->con_id_umap_.find(_rconuid.index);
 
-    if (it != impl_->con_id_umap_.end()) {
-        const size_t    conidx = it->second;
-        ConnectionStub& rcon   = impl_->con_dq_[conidx];
+    SOLID_ASSERT(it != impl_->con_id_umap_.end()); //the current connection must be registered
+    const size_t    conidx = it->second;
+    ConnectionStub& rcon   = impl_->con_dq_[conidx];
 
-        edbgx(Debug::mpipc, _rconuid << " rcon.name = " << rcon.name_);
-        SOLID_ASSERT(rcon.id_.unique == _rconuid.unique);
+    idbgx(Debug::mpipc, _rconuid << " rcon.name = " << rcon.name_);
+    SOLID_ASSERT(rcon.id_.unique == _rconuid.unique);
 
-        //TODO: also notify connection about recv canceled messages
+    //TODO: also notify connection about recv canceled messages
 
-        RelayData* prd = rcon.pdone_relay_data_top_;
+    RelayData* prd = rcon.pdone_relay_data_top_;
 
-        while (prd) {
-            _done_fnc(prd->bufptr_);
-            RelayData* ptmprd = prd->pnext_;
-            prd->clear();
-            impl_->reldata_cache_.push(prd);
-            prd = ptmprd;
-        }
-        rcon.pdone_relay_data_top_ = nullptr;
-    } else {
-        edbgx(Debug::mpipc, _rconuid << " connection not found");
+    while (prd) {
+        _done_fnc(prd->bufptr_);
+        RelayData* ptmprd = prd->pnext_;
+        prd->clear();
+        impl_->freeRelayData(prd);
+        prd = ptmprd;
+    }
+    rcon.pdone_relay_data_top_ = nullptr;
+
+    while (rcon.send_msg_list_.size() and rcon.send_msg_list_.front().state_ == MessageStateE::RecvCancel) {
+        MessageStub& rmsg   = rcon.send_msg_list_.front();
+        size_t       msgidx = rcon.send_msg_list_.popFront();
+
+        SOLID_ASSERT(rmsg.receiver_con_id_.isInvalid());
+
+        _cancel_fnc(rmsg.header_);
+
+        rmsg.clear();
+        impl_->freeMessage(msgidx);
     }
 }
 //-----------------------------------------------------------------------------
@@ -771,64 +778,51 @@ void RelayEngine::doComplete(
     unique_lock<mutex> lock(impl_->mtx_);
 
     idbgx(Debug::mpipc, _rconuid << " try complete msg " << _rengine_msg_id);
+    SOLID_ASSERT(_prelay_data);
 
     if (_rengine_msg_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
-        MessageStub& rmsg = impl_->msg_dq_[_rengine_msg_id.index];
+        const size_t msgidx = _rengine_msg_id.index;
+        MessageStub& rmsg   = impl_->msg_dq_[msgidx];
 
-        if (rmsg.pfront_ != nullptr) {
+        if (rmsg.sender_con_id_.isValid()) {
+            SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
 
-            SOLID_ASSERT(rmsg.receiver_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.receiver_con_id_.index].unique_ == rmsg.receiver_con_id_.unique);
-            ConnectionStub& rcon = impl_->con_dq_[rmsg.receiver_con_id_.index];
+            ConnectionStub& rsndcon                  = impl_->con_dq_[rmsg.sender_con_id_.index];
+            ConnectionStub& rrcvcon                  = impl_->con_dq_[rmsg.receiver_con_id_.index]; //the connection currently calling this method
+            bool            should_notify_connection = rsndcon.pdone_relay_data_top_ == nullptr;
 
-            SOLID_ASSERT(rcon.id_ == _rconuid);
+            _prelay_data->pnext_          = rsndcon.pdone_relay_data_top_;
+            rsndcon.pdone_relay_data_top_ = _prelay_data;
 
-            idbgx(Debug::mpipc, _rconuid << " rcon.name = " << rcon.name_);
-
-            const bool recv_list_empty = impl_->innerListEmpty(InnerListE::Recv, rmsg.receiver_con_id_.index);
-
-            impl_->innerListPushBack(InnerListE::Recv, rmsg.receiver_con_id_.index, _rengine_msg_id.index);
-
-            if (recv_list_empty) {
-                ConnectionStub& rcon = impl_->con_dq_[rmsg.receiver_con_id_.index];
-                SOLID_CHECK(notifyConnection(_rsvc, rcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+            if (should_notify_connection) {
+                SOLID_CHECK(notifyConnection(_rsvc, rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
             }
-        }
 
-        if (rmsg.sender_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique) {
-            ConnectionStub& rcon = impl_->con_dq_[rmsg.sender_con_id_.index];
+            if (_prelay_data->is_last_) {
+                SOLID_ASSERT(rmsg.pfront_ == nullptr);
 
-            idbgx(Debug::mpipc, _rconuid << " rcon.name = " << rcon.name_);
+                if (Message::is_waiting_response(_prelay_data->pmessage_header_->flags_)) {
+                    rmsg.state_ = MessageStateE::WaitResponse;
 
-            bool was_pdone_relay_data_stack_empty = rcon.pdone_relay_data_top_ == nullptr;
-
-            if (_prelay_data) {
-                _prelay_data->pnext_       = rcon.pdone_relay_data_top_;
-                rcon.pdone_relay_data_top_ = _prelay_data;
-
-                if (was_pdone_relay_data_stack_empty) {
-                    SOLID_CHECK(notifyConnection(_rsvc, rcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
-                }
-
-                if (_prelay_data->is_last_ and not Message::is_waiting_response(_prelay_data->pmessage_header_->flags_)) {
-                    SOLID_ASSERT(rmsg.pfront_ == nullptr);
-                    impl_->innerListErase(InnerListE::Send, rmsg.sender_con_id_.index, _rengine_msg_id.index);
+                    rrcvcon.recv_msg_list_.erase(msgidx);
+                    rrcvcon.recv_msg_list_.pushFront(msgidx);
+                } else {
+                    rrcvcon.recv_msg_list_.erase(msgidx);
+                    rsndcon.send_msg_list_.erase(msgidx);
                     rmsg.clear();
-                    idbgx(Debug::mpipc, _rconuid << " clear msg " << _rengine_msg_id);
-                    impl_->msg_cache_.push(_rengine_msg_id.index);
+                    impl_->freeMessage(msgidx);
+                    idbgx(Debug::mpipc, _rconuid << " erase message " << msgidx);
                 }
-            } else {
-                impl_->innerListErase(InnerListE::Send, rmsg.sender_con_id_.index, _rengine_msg_id.index);
-                rmsg.clear();
-                impl_->msg_cache_.push(_rengine_msg_id.index);
             }
-        } else {
-            edbgx(Debug::mpipc, _rconuid << " sender connection not found " << rmsg.sender_con_id_);
+
+            _rmore = rrcvcon.recv_msg_list_.size() and rrcvcon.recv_msg_list_.back().isActive();
+            return;
         }
-    } else {
-        _prelay_data->clear();
-        impl_->reldata_cache_.push(_prelay_data);
-        edbgx(Debug::mpipc, _rconuid << " message not found " << _rengine_msg_id);
     }
+
+    _prelay_data->clear();
+    impl_->freeRelayData(_prelay_data);
+    edbgx(Debug::mpipc, _rconuid << " message not found " << _rengine_msg_id);
 }
 //-----------------------------------------------------------------------------
 // called by the receiver connection (the one forwarding the relay data) on close
@@ -850,7 +844,7 @@ void RelayEngine::doCompleteClose(
         //do nothing for now - leave the processing to connectionStop method
     } else {
         _prelay_data->clear();
-        impl_->reldata_cache_.push(_prelay_data);
+        impl_->freeRelayData(_prelay_data);
         edbgx(Debug::mpipc, _rconuid << " message not found " << _rengine_msg_id);
     }
 }
