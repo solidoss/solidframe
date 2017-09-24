@@ -7,6 +7,8 @@ matrix:
       addons:
         apt:
           packages: ['g++-5']
+          sources: &sources
+            - ubuntu-toolchain-r-test
       env: COMPILER=g++-5
       
     - os: osx
