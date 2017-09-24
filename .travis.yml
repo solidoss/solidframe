@@ -1,11 +1,17 @@
-language: cpp
+language: c++
 matrix:
   include:
     - os: linux
       dist: trusty
       sudo: false
+      addons:
+        apt:
+          packages: ['g++-5']
+      env: COMPILER=g++-5
+      
     - os: osx
       osx_image: xcode8.3
+      compiler: clang
 
 script:
  - ./configure && cd build/release && make Experimental

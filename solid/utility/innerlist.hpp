@@ -254,7 +254,9 @@ public:
 
     bool check() const
     {
-
+        if (size() && (back_ == InvalidIndex() || front_ == InvalidIndex())) {
+            return false;
+        }
         if (back_ == InvalidIndex() || front_ == InvalidIndex()) {
             return back_ == front_;
         }

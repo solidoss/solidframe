@@ -330,7 +330,7 @@ void peerb_complete_message(
 int test_relay_basic(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("view");
+    Debug::the().levelMask("ew");
     Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
@@ -583,9 +583,9 @@ int test_relay_basic(int argc, char** argv)
             }
         }
 
-        const size_t start_count = 2;
+        const size_t start_count = 10;
 
-        writecount = 2; //initarraysize * 2; //start_count;//
+        writecount = initarraysize * 2; //start_count;//
 
         //ensure we have provisioned connections on peerb
         err = mpipcpeerb.createConnectionPool("localhost");
