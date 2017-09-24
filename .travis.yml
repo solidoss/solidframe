@@ -9,13 +9,14 @@ matrix:
           packages: ['g++-5']
           sources: &sources
             - ubuntu-toolchain-r-test
-      env: COMPILER=g++-5
+      env: [ CXX_COMPILER=g++-5, C_COMPILER=gcc-5]
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
+      env: [ CXX_COMPILER=clang++, C_COMPILER=clang]
 
 script:
- - ./configure && cd build/release && make Experimental
+ - ./configure -P -DCMAKE_C_COMPILER=$C_COMPILER -P -DCMAKE_CXX_COMPILER=$CXX_COMPILER && cd build/release && make Experimental
 
 
