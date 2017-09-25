@@ -21,10 +21,30 @@ namespace solid {
 namespace frame {
 namespace mpipc {
 //-----------------------------------------------------------------------------
+
+/*virtual*/ BufferBase::~BufferBase(){
+    
+}
+
+RecvBufferPointerT make_recv_buffer(const size_t _cp){
+    switch(_cp){
+        case 512: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<512>>());
+        case 1*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<1*1024>>());
+        case 2*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<2*1024>>());
+        case 4*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<4*1024>>());
+        case 8*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<8*1024>>());
+        case 16*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<16*1024>>());
+        case 32*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<32*1024>>());
+        case 64*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<64*1024>>());
+        default:
+            return std::make_shared<Buffer<0>>(_cp);
+    }
+}
+
 namespace {
 RecvBufferPointerT default_allocate_recv_buffer(const uint32_t _cp)
 {
-    return RecvBufferPointerT(new char[_cp]);
+    return make_recv_buffer(_cp);
 }
 
 SendBufferPointerT default_allocate_send_buffer(const uint32_t _cp)

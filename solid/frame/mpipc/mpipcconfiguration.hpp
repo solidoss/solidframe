@@ -46,8 +46,46 @@ struct Configuration;
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
 
+
+struct BufferBase{
+    virtual ~BufferBase();
+    
+    char *data()const{return data_;}
+    size_t capacity()const{return capacity_;}
+protected:
+    BufferBase(char *_data = nullptr, size_t _cap = 0):data_(_data), capacity_(_cap){}
+    void reset(char *_data = nullptr, size_t _cap = 0){
+        data_ = _data;
+        capacity_ = _cap;
+    }
+protected:
+    char    *data_;
+    size_t  capacity_;
+};
+
+template <size_t Cp>
+struct Buffer;
+
+template <>
+struct Buffer<0>: BufferBase{
+    Buffer(size_t _cp):BufferBase(new char[_cp], _cp){}
+    ~Buffer(){
+        delete []data_;
+    }
+};
+
+template <size_t Cp>
+struct Buffer: BufferBase{
+    char d_[Cp];
+    Buffer(){
+        reset(d_, Cp);
+    }
+};
+
 using SendBufferPointerT = std::unique_ptr<char[]>;
-using RecvBufferPointerT = std::shared_ptr<char[]>;
+using RecvBufferPointerT = std::shared_ptr<BufferBase>;
+
+RecvBufferPointerT make_recv_buffer(const size_t _cp);
 
 struct RelayData {
     RecvBufferPointerT bufptr_;

@@ -219,7 +219,7 @@ inline void Connection::doOptimizeRecvBuffer()
     if (cnssz <= cons_buf_off_) {
         //idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
 
-        memcpy(recv_buf_.get(), recv_buf_.get() + cons_buf_off_, cnssz);
+        memcpy(recv_buf_->data(), recv_buf_->data() + cons_buf_off_, cnssz);
         cons_buf_off_ = 0;
         recv_buf_off_ = cnssz;
     }
@@ -231,7 +231,7 @@ inline void Connection::doOptimizeRecvBufferForced()
 
     //idbgx(Debug::proto_bin, this<<' '<<"memcopy "<<cnssz<<" rcvoff = "<<receivebufoff<<" cnsoff = "<<consumebufoff);
 
-    memmove(recv_buf_.get(), recv_buf_.get() + cons_buf_off_, cnssz);
+    memmove(recv_buf_->data(), recv_buf_->data() + cons_buf_off_, cnssz);
     cons_buf_off_ = 0;
     recv_buf_off_ = cnssz;
 }
@@ -910,7 +910,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
                 });
 
             //start receiving messages
-            this->postRecvSome(_rctx, recv_buf_.get(), recvBufferCapacity());
+            this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
 
             doResetTimerStart(_rctx);
 
@@ -961,7 +961,7 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
         });
 
     //start receiving messages
-    this->postRecvSome(_rctx, recv_buf_.get(), recvBufferCapacity());
+    this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
 
     doResetTimerStart(_rctx);
 }
@@ -1154,14 +1154,14 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
 
     if (this->isRawState() and pdata) {
         if (recv_buf_off_ == cons_buf_off_) {
-            if (this->postRecvSome(_rctx, recv_buf_.get(), this->recvBufferCapacity(), _revent)) {
+            if (this->postRecvSome(_rctx, recv_buf_->data(), this->recvBufferCapacity(), _revent)) {
 
                 pdata->complete_fnc(conctx, nullptr, used_size, _rctx.error());
             }
         } else {
             used_size = recv_buf_off_ - cons_buf_off_;
 
-            pdata->complete_fnc(conctx, recv_buf_.get() + cons_buf_off_, used_size, _rctx.error());
+            pdata->complete_fnc(conctx, recv_buf_->data() + cons_buf_off_, used_size, _rctx.error());
 
             if (used_size > (recv_buf_off_ - cons_buf_off_)) {
                 used_size = (recv_buf_off_ - cons_buf_off_);
@@ -1356,7 +1356,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
         size_t used_size = _sz;
 
-        pdata->complete_fnc(conctx, rthis.recv_buf_.get(), used_size, _rctx.error());
+        pdata->complete_fnc(conctx, rthis.recv_buf_->data(), used_size, _rctx.error());
 
         if (used_size > _sz) {
             used_size = _sz;
@@ -1390,7 +1390,7 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
         }
         const size_t cnssz = recv_buf_off_ - cons_buf_off_;
 
-        memcpy(new_buf.get(), recv_buf_.get() + cons_buf_off_, cnssz);
+        memcpy(new_buf->data(), recv_buf_->data() + cons_buf_off_, cnssz);
         cons_buf_off_ = 0;
         recv_buf_off_ = cnssz;
         recv_buf_     = std::move(new_buf);
@@ -1507,7 +1507,7 @@ struct Connection::Receiver : MessageReader::Receiver {
         if (!_rctx.error()) {
             recv_something = true;
             rthis.recv_buf_off_ += _sz;
-            pbuf  = rthis.recv_buf_.get() + rthis.cons_buf_off_;
+            pbuf  = rthis.recv_buf_->data() + rthis.cons_buf_off_;
             bufsz = rthis.recv_buf_off_ - rthis.cons_buf_off_;
 
             rcvr.request_buffer_ack_count_ = 0;
@@ -1539,7 +1539,7 @@ struct Connection::Receiver : MessageReader::Receiver {
 
         SOLID_ASSERT(rthis.recv_buf_);
 
-        pbuf = rthis.recv_buf_.get() + rthis.recv_buf_off_;
+        pbuf = rthis.recv_buf_->data() + rthis.recv_buf_off_;
 
         bufsz = recvbufcp - rthis.recv_buf_off_;
         //idbgx(Debug::mpipc, &rthis<<" buffer size "<<bufsz);
