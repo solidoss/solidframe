@@ -46,38 +46,49 @@ struct Configuration;
 typedef void (*OnSecureConnectF)(frame::aio::ReactorContext&);
 typedef void (*OnSecureAcceptF)(frame::aio::ReactorContext&);
 
-
-struct BufferBase{
+struct BufferBase {
     virtual ~BufferBase();
-    
-    char *data()const{return data_;}
-    size_t capacity()const{return capacity_;}
+
+    char*  data() const { return data_; }
+    size_t capacity() const { return capacity_; }
+
 protected:
-    BufferBase(char *_data = nullptr, size_t _cap = 0):data_(_data), capacity_(_cap){}
-    void reset(char *_data = nullptr, size_t _cap = 0){
-        data_ = _data;
+    BufferBase(char* _data = nullptr, size_t _cap = 0)
+        : data_(_data)
+        , capacity_(_cap)
+    {
+    }
+    void reset(char* _data = nullptr, size_t _cap = 0)
+    {
+        data_     = _data;
         capacity_ = _cap;
     }
+
 protected:
-    char    *data_;
-    size_t  capacity_;
+    char*  data_;
+    size_t capacity_;
 };
 
 template <size_t Cp>
 struct Buffer;
 
 template <>
-struct Buffer<0>: BufferBase{
-    Buffer(size_t _cp):BufferBase(new char[_cp], _cp){}
-    ~Buffer(){
-        delete []data_;
+struct Buffer<0> : BufferBase {
+    Buffer(size_t _cp)
+        : BufferBase(new char[_cp], _cp)
+    {
+    }
+    ~Buffer()
+    {
+        delete[] data_;
     }
 };
 
 template <size_t Cp>
-struct Buffer: BufferBase{
+struct Buffer : BufferBase {
     char d_[Cp];
-    Buffer(){
+    Buffer()
+    {
         reset(d_, Cp);
     }
 };
@@ -214,11 +225,12 @@ private:
         MessageId const& /*_rengine_msg_id*/,
         bool& /*_rmore*/);
 
-    virtual void doCompleteClose(
+    virtual void doCancel(
         Service&         _rsvc,
         const ObjectIdT& _rconuid,
         RelayData* /*_prelay_data*/,
-        MessageId const& /*_rengine_msg_id*/);
+        MessageId const& /*_rengine_msg_id*/,
+        bool& /*_rmore*/);
 
     virtual void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
     virtual void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/);
@@ -244,9 +256,9 @@ private:
         doComplete(_rsvc, _rconuid, _prelay_data, _rengine_msg_id, _rmore);
     }
 
-    void completeClose(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id)
+    void cancel(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
     {
-        doCompleteClose(_rsvc, _rconuid, _prelay_data, _rengine_msg_id);
+        doCancel(_rsvc, _rconuid, _prelay_data, _rengine_msg_id, _rmore);
     }
 
     bool relayStart(

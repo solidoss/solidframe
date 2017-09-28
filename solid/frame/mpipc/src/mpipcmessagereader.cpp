@@ -167,8 +167,12 @@ void MessageReader::doConsumePacket(
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             vdbgx(Debug::mpipc, "CancelMessage " << message_idx);
             if (pbufpos and message_idx < message_vec_.size()) {
-                SOLID_ASSERT(message_vec_[message_idx].state_ != MessageStub::StateE::NotStarted);
-                message_vec_[message_idx].clear();
+                MessageStub& rmsgstub = message_vec_[message_idx];
+                SOLID_ASSERT(rmsgstub.state_ != MessageStub::StateE::NotStarted);
+                if (rmsgstub.state_ == MessageStub::StateE::RelayBody) {
+                    _receiver.cancelRelayed(rmsgstub.relay_id);
+                }
+                rmsgstub.clear();
             } else {
                 _rerror = error_reader_protocol;
                 SOLID_ASSERT(false);
@@ -435,6 +439,38 @@ const char* MessageReader::doConsumeMessage(
     SOLID_ASSERT(!_rerror || (_rerror && _pbufpos == _pbufend));
     return _pbufpos;
 }
+
+//-----------------------------------------------------------------------------
+
+/*virtual*/ MessageReader::Receiver::~Receiver() {}
+
+/*virtual*/ // void MessageReader::Receiver::receiveMessage(MessagePointerT&, const size_t /*_msg_type_id*/) = 0;
+/*virtual*/ // void MessageReader::Receiver::receiveKeepAlive()                     = 0;
+/*virtual*/ // void MessageReader::Receiver::receiveAckCount(uint8_t _count)        = 0;
+/*virtual*/ // void MessageReader::Receiver::receiveCancelRequest(const RequestId&) = 0;
+/*virtual*/ bool MessageReader::Receiver::receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+{
+    return false;
+}
+/*virtual*/ bool MessageReader::Receiver::receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+{
+    return false;
+}
+/*virtual*/ bool MessageReader::Receiver::receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+{
+    return false;
+}
+/*virtual*/ bool MessageReader::Receiver::isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) const
+{
+    return false;
+}
+/*virtual*/ bool MessageReader::Receiver::isRelayDisabled() const
+{
+    return true;
+}
+/*virtual*/ void MessageReader::Receiver::pushCancelRequest(const RequestId&) {}
+/*virtual*/ void MessageReader::Receiver::cancelRelayed(const MessageId&) {}
+//-----------------------------------------------------------------------------
 
 } //namespace mpipc
 } //namespace frame

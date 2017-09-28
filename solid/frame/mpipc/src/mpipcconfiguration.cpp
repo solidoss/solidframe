@@ -22,22 +22,31 @@ namespace frame {
 namespace mpipc {
 //-----------------------------------------------------------------------------
 
-/*virtual*/ BufferBase::~BufferBase(){
-    
+/*virtual*/ BufferBase::~BufferBase()
+{
 }
 
-RecvBufferPointerT make_recv_buffer(const size_t _cp){
-    switch(_cp){
-        case 512: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<512>>());
-        case 1*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<1*1024>>());
-        case 2*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<2*1024>>());
-        case 4*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<4*1024>>());
-        case 8*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<8*1024>>());
-        case 16*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<16*1024>>());
-        case 32*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<32*1024>>());
-        case 64*1024: return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<64*1024>>());
-        default:
-            return std::make_shared<Buffer<0>>(_cp);
+RecvBufferPointerT make_recv_buffer(const size_t _cp)
+{
+    switch (_cp) {
+    case 512:
+        return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<512>>());
+    case 1 * 1024:
+        return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<1 * 1024>>());
+    case 2 * 1024:
+        return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<2 * 1024>>());
+    case 4 * 1024:
+        return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<4 * 1024>>());
+    case 8 * 1024:
+        return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<8 * 1024>>());
+    case 16 * 1024:
+        return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<16 * 1024>>());
+    case 32 * 1024:
+        return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<32 * 1024>>());
+    case 64 * 1024:
+        return std::dynamic_pointer_cast<BufferBase>(std::make_shared<Buffer<64 * 1024>>());
+    default:
+        return std::make_shared<Buffer<0>>(_cp);
     }
 }
 
@@ -195,11 +204,13 @@ WriterConfiguration::WriterConfiguration()
     SOLID_THROW("should not be called");
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngineBase::doCompleteClose(
+/*virtual*/ void RelayEngineBase::doCancel(
     Service&         _rsvc,
     const ObjectIdT& _rconuid,
     RelayData* /*_prelay_data*/,
-    MessageId const& /*_rengine_msg_id*/)
+    MessageId const& /*_rengine_msg_id*/,
+    bool& /*_rmore*/
+    )
 {
     SOLID_THROW("should not be called");
 }

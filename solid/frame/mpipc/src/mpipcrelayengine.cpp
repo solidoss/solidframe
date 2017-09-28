@@ -56,6 +56,17 @@ NOTE:
     * sender connection receives a message canceled command
         * 
     * receiver connection receives message cancel request command which should be forwarder up to the initial sender of the message
+    
+    W1---->RR-->RW---->R2
+    R1<----RW<--RR<----W2
+    
+    W1 - Writer for connection 1
+    R1 - Reader for connection 1
+    RR - Relay reader
+    RW - Relay writer
+    R2 - Reader for connection 2
+    W2 - Writer for connection 2
+    
 */
 
 enum struct MessageStateE {
@@ -234,6 +245,19 @@ struct RelayEngine::Data {
         }
         return prd;
     }
+    RelayData* createRelayData()
+    {
+        RelayData* prd = nullptr;
+        if (prelay_data_cache_top_) {
+            prd                    = prelay_data_cache_top_;
+            prelay_data_cache_top_ = prelay_data_cache_top_->pnext_;
+            prd->clear();
+        } else {
+            reldata_dq_.emplace_back();
+            prd = &reldata_dq_.back();
+        }
+        return prd;
+    }
     void freeRelayData(RelayData*& _prd)
     {
         _prd->pnext_           = prelay_data_cache_top_;
@@ -367,7 +391,7 @@ void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
                     rmsg.state_ = MessageStateE::SendCancel;
 
                     SOLID_ASSERT(rcv_conidx < impl_->con_dq_.size() and impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique);
-
+                    rmsg.push(impl_->createRelayData());
                     {
                         ConnectionStub& rrcvcon                  = impl_->con_dq_[rcv_conidx];
                         bool            should_notify_connection = rrcvcon.send_msg_list_.empty();
@@ -866,20 +890,21 @@ void RelayEngine::doComplete(
             return;
         }
     }
-
+    //it happens for canceled relayed messages - see MessageWriter::doWriteRelayedCancelRequest
     _prelay_data->clear();
     impl_->freeRelayData(_prelay_data);
-    edbgx(Debug::mpipc, _rconuid << " message not found " << _rengine_msg_id);
+    idbgx(Debug::mpipc, _rconuid << " message not found " << _rengine_msg_id);
 }
 //-----------------------------------------------------------------------------
-// called by the receiving connection (the one forwarding the relay data) on close
-// _prelay_data must somehow reach the sending connection
-//
-void RelayEngine::doCompleteClose(
+// called by any of connection when either:
+// sending peer stops/cancels sending the message - MessageReader::Receiver::cancelRelayed
+// receiver side, request canceling the message - MessageWriter::Sender::cancelRelayed
+void RelayEngine::doCancel(
     Service&         _rsvc,
     const ObjectIdT& _rconuid,
     RelayData*       _prelay_data,
-    MessageId const& _rengine_msg_id)
+    MessageId const& _rengine_msg_id,
+    bool&            _rmore)
 {
     unique_lock<mutex> lock(impl_->mtx_);
 
@@ -887,14 +912,54 @@ void RelayEngine::doCompleteClose(
 
     if (_rengine_msg_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
         MessageStub& rmsg = impl_->msg_dq_[_rengine_msg_id.index];
-        rmsg.push(_prelay_data);
-        //do nothing for now - leave the processing to connectionStop method
-    } else {
+        //need to findout on which side we are - sender or receiver
+        if (rmsg.sender_con_id_.isValid()) {
+            SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
+
+            ConnectionStub& rsndcon = impl_->con_dq_[rmsg.sender_con_id_.index];
+
+            if (rsndcon.id_ == _rconuid) {
+            }
+        }
+
+        if (rmsg.receiver_con_id_.isValid()) {
+            SOLID_ASSERT(rmsg.receiver_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.receiver_con_id_.index].unique_ == rmsg.receiver_con_id_.unique);
+
+            ConnectionStub& rrcvcon = impl_->con_dq_[rmsg.receiver_con_id_.index];
+            SOLID_ASSERT(rrcvcon.id_ == _rconuid);
+        }
+    }
+
+    if (_prelay_data) {
         _prelay_data->clear();
         impl_->freeRelayData(_prelay_data);
         edbgx(Debug::mpipc, _rconuid << " message not found " << _rengine_msg_id);
     }
 }
+//-----------------------------------------------------------------------------
+// called by the receiving connection (the one forwarding the relay data) on close
+// _prelay_data must somehow reach the sending connection
+//
+// void RelayEngine::doCompleteClose(
+//     Service&         _rsvc,
+//     const ObjectIdT& _rconuid,
+//     RelayData*       _prelay_data,
+//     MessageId const& _rengine_msg_id)
+// {
+//     unique_lock<mutex> lock(impl_->mtx_);
+//
+//     idbgx(Debug::mpipc, _rconuid << " try complete cancel msg " << _rengine_msg_id);
+//
+//     if (_rengine_msg_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
+//         MessageStub& rmsg = impl_->msg_dq_[_rengine_msg_id.index];
+//         rmsg.push(_prelay_data);
+//         //do nothing for now - leave the processing to connectionStop method
+//     } else {
+//         _prelay_data->clear();
+//         impl_->freeRelayData(_prelay_data);
+//         edbgx(Debug::mpipc, _rconuid << " message not found " << _rengine_msg_id);
+//     }
+// }
 //-----------------------------------------------------------------------------
 } //namespace mpipc
 } //namespace frame

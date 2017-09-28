@@ -528,6 +528,45 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
     }
 }
 //-----------------------------------------------------------------------------
+struct Connection::Sender : MessageWriter::Sender {
+    Connection&                 rcon_;
+    frame::aio::ReactorContext& rctx_;
+    ErrorConditionT             err_;
+
+    Sender(
+        Connection&                 _rcon,
+        frame::aio::ReactorContext& _rctx,
+        WriterConfiguration const&  _rconfig,
+        Protocol const&             _rproto,
+        ConnectionContext&          _rconctx,
+        const ErrorConditionT&      _rerr = ErrorConditionT{})
+        : MessageWriter::Sender(_rconfig, _rproto, _rconctx)
+        , rcon_(_rcon)
+        , rctx_(_rctx)
+        , err_(_rerr)
+    {
+    }
+
+    ErrorConditionT completeMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
+    {
+        rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, err_);
+        return rcon_.service(rctx_).pollPoolForUpdates(rcon_, rcon_.uid(rctx_), _rpool_msg_id);
+    }
+    void completeRelayed(RelayData* _prelay_data, MessageId const& _rmsgid) override
+    {
+        rcon_.doCompleteRelayed(rctx_, _prelay_data, _rmsgid);
+    }
+
+    void cancelMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
+    {
+        rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, err_);
+    }
+    void cancelRelayed(RelayData* _prelay_data, MessageId const& _rmsgid) override
+    {
+        rcon_.doCancelRelayed(rctx_, _prelay_data, _rmsgid);
+    }
+};
+
 void Connection::doCompleteAllMessages(
     frame::aio::ReactorContext& _rctx,
     size_t                      _offset,
@@ -542,12 +581,11 @@ void Connection::doCompleteAllMessages(
     if (has_any_message) {
         idbgx(Debug::mpipc, this);
         //complete msg_writer messages
-        MessageBundle msg_bundle;
-        MessageId     pool_msg_id;
+        ConnectionContext    conctx(service(_rctx), *this);
+        Configuration const& rconfig = service(_rctx).configuration();
+        Sender               sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, _rerr);
 
-        if (msg_writer_.cancelOldest(msg_bundle, pool_msg_id)) {
-            doCompleteMessage(_rctx, pool_msg_id, msg_bundle, _rerr);
-        }
+        msg_writer_.cancelOldest(sender);
 
         has_any_message = (not msg_writer_.empty()) or (not pending_message_vec_.empty());
 
@@ -851,11 +889,10 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rct
     SOLID_ASSERT(pmsgid);
 
     if (pmsgid) {
-        MessageBundle msg_bundle;
-        MessageId     pool_msg_id;
-        if (msg_writer_.cancel(*pmsgid, msg_bundle, pool_msg_id)) {
-            doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_canceled);
-        }
+        ConnectionContext    conctx(service(_rctx), *this);
+        Configuration const& rconfig = service(_rctx).configuration();
+        Sender               sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, error_message_canceled);
+        msg_writer_.cancel(*pmsgid, sender);
     }
 }
 //-----------------------------------------------------------------------------
@@ -1473,6 +1510,11 @@ struct Connection::Receiver : MessageReader::Receiver {
         }
     }
 
+    void cancelRelayed(const solid::frame::mpipc::MessageId& _rrelay_id) override
+    {
+        rcon_.doCancelRelayed(rctx_, nullptr, _rrelay_id);
+    }
+
     virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) const override
     {
         return rcon_.doCheckIsRelayedResponse(_rrequid, _rrelay_id);
@@ -1556,34 +1598,6 @@ struct Connection::Receiver : MessageReader::Receiver {
     }
 }
 //-----------------------------------------------------------------------------
-
-struct Connection::Sender : MessageWriter::Sender {
-    Connection&                 rcon_;
-    frame::aio::ReactorContext& rctx_;
-
-    Sender(
-        Connection&                 _rcon,
-        frame::aio::ReactorContext& _rctx,
-        WriterConfiguration const&  _rconfig,
-        Protocol const&             _rproto,
-        ConnectionContext&          _rconctx)
-        : MessageWriter::Sender(_rconfig, _rproto, _rconctx)
-        , rcon_(_rcon)
-        , rctx_(_rctx)
-    {
-    }
-
-    ErrorConditionT completeMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
-    {
-        rcon_.doCompleteMessage(rctx_, _rpool_msg_id, _rmsg_bundle, ErrorConditionT());
-        return rcon_.service(rctx_).pollPoolForUpdates(rcon_, rcon_.uid(rctx_), _rpool_msg_id);
-    }
-    void completeRelayed(RelayData* _prelay_data, MessageId const& _rmsgid) override
-    {
-        rcon_.doCompleteRelayed(rctx_, _prelay_data, _rmsgid);
-    }
-};
-
 void Connection::doSend(frame::aio::ReactorContext& _rctx)
 {
 
@@ -1731,43 +1745,65 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     }
 }
 //-----------------------------------------------------------------------------
+
+struct Connection::SenderResponse : Connection::Sender {
+    MessagePointerT& rresponse_ptr_;
+
+    bool request_found_;
+
+    SenderResponse(
+        Connection&                 _rcon,
+        frame::aio::ReactorContext& _rctx,
+        WriterConfiguration const&  _rconfig,
+        Protocol const&             _rproto,
+        ConnectionContext&          _rconctx,
+        MessagePointerT&            _rresponse_ptr)
+        : Connection::Sender(_rcon, _rctx, _rconfig, _rproto, _rconctx)
+        , rresponse_ptr_(_rresponse_ptr)
+        , request_found_(false)
+    {
+    }
+
+    void cancelMessage(MessageBundle& _rmsg_bundle, MessageId const& _rpool_msg_id) override
+    {
+
+        context().message_flags = _rmsg_bundle.message_flags;
+        context().request_id    = rresponse_ptr_->requestId();
+        context().message_id    = _rpool_msg_id;
+
+        if (not SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
+            idbgx(Debug::mpipc, this);
+            _rmsg_bundle.complete_fnc(context(), _rmsg_bundle.message_ptr, rresponse_ptr_, err_);
+            request_found_ = true;
+        } else if (_rmsg_bundle.message_ptr) {
+            idbgx(Debug::mpipc, this << " " << _rmsg_bundle.message_type_id);
+            rproto_[_rmsg_bundle.message_type_id].complete_fnc(context(), _rmsg_bundle.message_ptr, rresponse_ptr_, err_);
+            request_found_ = true;
+        }
+    }
+};
+
 void Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePointerT& _rresponse_ptr, const size_t _response_type_id)
 {
-
     ConnectionContext    conctx(service(_rctx), *this);
     const Configuration& rconfig = service(_rctx).configuration();
     const Protocol&      rproto  = rconfig.protocol();
     ErrorConditionT      error;
-    MessageBundle        msg_bundle; //request message
 
     if (_rresponse_ptr->isBackOnSender() or _rresponse_ptr->isBackOnPeer()) {
         idbgx(Debug::mpipc, this << ' ' << "Completing back on sender message: " << _rresponse_ptr->requestId());
+        SenderResponse sender(*this, _rctx, rconfig.writer, rproto, conctx, _rresponse_ptr);
 
-        MessageId pool_msg_id;
+        msg_writer_.cancel(_rresponse_ptr->requestId(), sender);
 
-        msg_writer_.cancel(_rresponse_ptr->requestId(), msg_bundle, pool_msg_id);
-
-        idbgx(Debug::mpipc, this);
-
-        conctx.message_flags = msg_bundle.message_flags;
-        conctx.request_id    = _rresponse_ptr->requestId();
-        conctx.message_id    = pool_msg_id;
-
-        if (not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
-            idbgx(Debug::mpipc, this);
-            msg_bundle.complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
-        } else if (msg_bundle.message_ptr) {
-            idbgx(Debug::mpipc, this << " " << msg_bundle.message_type_id);
-            rproto[msg_bundle.message_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
-        } else {
-            idbgx(Debug::mpipc, this << " " << _response_type_id);
-            rproto[_response_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
+        if (sender.request_found_) {
+            return;
         }
-
-    } else {
-        idbgx(Debug::mpipc, this << " " << _response_type_id);
-        rproto[_response_type_id].complete_fnc(conctx, msg_bundle.message_ptr, _rresponse_ptr, error);
     }
+    MessageBundle empty_msg_bundle; //request message
+
+    idbgx(Debug::mpipc, this << " " << _response_type_id);
+    rproto[_response_type_id].complete_fnc(conctx, empty_msg_bundle.message_ptr, _rresponse_ptr, error);
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteMessage(
@@ -1826,14 +1862,21 @@ void Connection::doCompleteRelayed(
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doCompleteRelayedClose(
-    Service&         _rsvc,
-    RelayData*       _prelay_data,
-    MessageId const& _rengine_msg_id)
+void Connection::doCancelRelayed(
+    frame::aio::ReactorContext& _rctx,
+    RelayData*                  _prelay_data,
+    MessageId const&            _rengine_msg_id)
 {
-    const Configuration& rconfig = _rsvc.configuration();
 
-    rconfig.relayEngine().completeClose(_rsvc, _rsvc.id(*this), _prelay_data, _rengine_msg_id);
+    const Configuration& rconfig = service(_rctx).configuration();
+    bool                 more    = false;
+
+    rconfig.relayEngine().cancel(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, more);
+
+    if (not more) {
+        flags_.reset(FlagsE::PollRelayEngine); //reset flag
+        this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
+    }
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
@@ -1884,13 +1927,14 @@ void Connection::doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _
 // //-----------------------------------------------------------------------------
 void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, const RequestId& _reqid)
 {
-    MessageId     msgid(_reqid);
-    MessageBundle msg_bundle;
-    MessageId     pool_msg_id;
+    MessageId            msgid(_reqid);
+    MessageBundle        msg_bundle;
+    MessageId            pool_msg_id;
+    ConnectionContext    conctx(service(_rctx), *this);
+    Configuration const& rconfig = service(_rctx).configuration();
+    Sender               sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, error_message_canceled_peer);
 
-    if (msg_writer_.cancel(msgid, msg_bundle, pool_msg_id)) {
-        doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_canceled_peer);
-    }
+    msg_writer_.cancel(msgid, sender);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doReceiveRelayStart(

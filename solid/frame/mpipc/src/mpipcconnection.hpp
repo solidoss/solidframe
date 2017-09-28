@@ -140,13 +140,8 @@ public:
     {
         auto visit_fnc = [this, &_rsvc, &_f](
             MessageBundle&   _rmsgbundle,
-            MessageId const& _rmsgid,
-            RelayData*       _prelay_data) {
-            if (_rmsgbundle.message_ptr) {
-                _f(this->poolId(), _rmsgbundle, _rmsgid);
-            } else {
-                this->doCompleteRelayedClose(_rsvc, _prelay_data, _rmsgid);
-            }
+            MessageId const& _rmsgid) {
+            _f(this->poolId(), _rmsgbundle, _rmsgid);
         };
         MessageWriter::VisitFunctionT fnc(std::cref(visit_fnc));
 
@@ -252,10 +247,10 @@ private:
         RelayData*                  _prelay_data,
         MessageId const&            _rengine_msg_id);
 
-    void doCompleteRelayedClose(
-        Service&         _rsvc,
-        RelayData*       _prelay_data,
-        MessageId const& _rengine_msg_id);
+    void doCancelRelayed(
+        frame::aio::ReactorContext& _rctx,
+        RelayData*                  _prelay_data,
+        MessageId const&            _rengine_msg_id);
 
     void doCompleteKeepalive(frame::aio::ReactorContext& _rctx);
     void doCompleteAckCount(frame::aio::ReactorContext& _rctx, uint8_t _count);
@@ -363,7 +358,9 @@ private:
     struct Receiver;
     friend struct Receiver;
     struct Sender;
+    struct SenderResponse;
     friend struct Sender;
+    friend struct SenderResponse;
 
     ConnectionPoolId   pool_id_;
     const std::string& rpool_name_;

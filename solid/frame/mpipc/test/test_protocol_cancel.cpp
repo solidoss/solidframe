@@ -132,6 +132,34 @@ struct Context {
 } ctx;
 
 frame::mpipc::ConnectionContext& mpipcconctx(frame::mpipc::TestEntryway::createContext());
+auto                             mpipcprotocol = frame::mpipc::serialization_v1::Protocol::create();
+
+struct Sender : frame::mpipc::MessageWriter::Sender {
+    frame::mpipc::serialization_v1::Protocol& rprotocol_;
+
+    Sender(
+        frame::mpipc::WriterConfiguration&        _rconfig,
+        frame::mpipc::serialization_v1::Protocol& _rprotocol,
+        frame::mpipc::ConnectionContext&          _conctx)
+        : frame::mpipc::MessageWriter::Sender(_rconfig, _rprotocol, _conctx)
+        , rprotocol_(_rprotocol)
+    {
+    }
+
+    ErrorConditionT completeMessage(frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& /*_rmsgid*/) override
+    {
+        idbg("writer complete message");
+        frame::mpipc::MessagePointerT response_ptr;
+        ErrorConditionT               error;
+        rprotocol_[_rmsgbundle.message_type_id].complete_fnc(mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
+        return ErrorConditionT();
+    }
+
+    void cancelMessage(frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& /*_rmsgid*/) override
+    {
+        idbg("Cancel message " << static_cast<Message&>(*_rmsgbundle.message_ptr).str.size());
+    }
+};
 
 void complete_message(
     frame::mpipc::ConnectionContext& _rctx,
@@ -161,16 +189,9 @@ void complete_message(
             idbg(crtreadidx << " canceling all messages");
             for (const auto& msguid : message_uid_vec) {
 
-                frame::mpipc::MessageBundle msgbundle;
-                frame::mpipc::MessageId     pool_msg_id;
+                Sender sndr(*ctx.mpipcwriterconfig, *mpipcprotocol, mpipcconctx);
 
-                bool rv = ctx.mpipcmsgwriter->cancel(msguid, msgbundle, pool_msg_id);
-
-                if (rv) {
-                    idbg("Cancel message " << msguid << " retval = " << rv << " msgdatasz = " << static_cast<Message&>(*msgbundle.message_ptr).str.size());
-                } else {
-                    //TODO: add more checking
-                }
+                ctx.mpipcmsgwriter->cancel(msguid, sndr);
             }
         } else {
             idbg(crtreadidx);
@@ -231,28 +252,6 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
     }
 };
 
-struct Sender : frame::mpipc::MessageWriter::Sender {
-    frame::mpipc::serialization_v1::Protocol& rprotocol_;
-
-    Sender(
-        frame::mpipc::WriterConfiguration&        _rconfig,
-        frame::mpipc::serialization_v1::Protocol& _rprotocol,
-        frame::mpipc::ConnectionContext&          _conctx)
-        : frame::mpipc::MessageWriter::Sender(_rconfig, _rprotocol, _conctx)
-        , rprotocol_(_rprotocol)
-    {
-    }
-
-    ErrorConditionT completeMessage(frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& /*_rmsgid*/) override
-    {
-        idbg("writer complete message");
-        frame::mpipc::MessagePointerT response_ptr;
-        ErrorConditionT               error;
-        rprotocol_[_rmsgbundle.message_type_id].complete_fnc(mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
-        return ErrorConditionT();
-    }
-};
-
 } //namespace
 
 int test_protocol_cancel(int argc, char** argv)
@@ -283,7 +282,6 @@ int test_protocol_cancel(int argc, char** argv)
 
     frame::mpipc::WriterConfiguration mpipcwriterconfig;
     frame::mpipc::ReaderConfiguration mpipcreaderconfig;
-    auto                              mpipcprotocol = frame::mpipc::serialization_v1::Protocol::create();
     frame::mpipc::MessageReader       mpipcmsgreader;
     frame::mpipc::MessageWriter       mpipcmsgwriter;
     ErrorConditionT                   error;

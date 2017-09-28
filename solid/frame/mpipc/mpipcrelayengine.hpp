@@ -63,11 +63,12 @@ protected:
         MessageId const& _rengine_msg_id,
         bool&            _rmore) override;
 
-    void doCompleteClose(
+    void doCancel(
         Service&         _rsvc,
         const ObjectIdT& _rconuid,
         RelayData*       _prelay_data,
-        MessageId const& _rengine_msg_id) override;
+        MessageId const& _rengine_msg_id,
+        bool&            _rmore) override;
 
     void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore) override;
     void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc) override;

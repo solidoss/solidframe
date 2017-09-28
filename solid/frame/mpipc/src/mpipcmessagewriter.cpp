@@ -127,12 +127,22 @@ bool MessageWriter::enqueue(
         }
     }
 
+    SOLID_ASSERT(_prelay_data);
+
     MessageStub& rmsgstub(message_vec_[idx]);
 
     rmsgstub.prelay_data_ = _prelay_data;
     rmsgstub.prelay_pos_  = rmsgstub.prelay_data_->pdata_;
     rmsgstub.relay_size_  = rmsgstub.prelay_data_->data_size_;
     rmsgstub.pool_msg_id_ = _rengine_msg_id;
+
+    if (_prelay_data->pdata_ == nullptr) {
+        SOLID_ASSERT(rmsgstub.relay_size_ == 0);
+        //called from relay engine on cancel request from the reader (RR - see mpipcrelayengine.cpp) side of the link.
+        //after this call, the MessageStub in the RelayEngine is distroyed.
+        //we need to forward the cancel on the connection
+        rmsgstub.state_ = MessageStub::StateE::RelayedCancelRequest;
+    }
 
     write_inner_list_.pushBack(idx);
     vdbgx(Debug::mpipc, idx << " relay_data.is_last " << _prelay_data->is_last_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
@@ -148,16 +158,13 @@ void MessageWriter::doUnprepareMessageStub(const size_t _msgidx)
     cache_inner_list_.pushFront(_msgidx);
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::cancel(
+void MessageWriter::cancel(
     MessageId const& _rmsguid,
-    MessageBundle&   _rmsgbundle,
-    MessageId&       _rpool_msg_id)
+    Sender&          _rsender)
 {
     if (_rmsguid.isValid() and _rmsguid.index < message_vec_.size() and _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
-        return doCancel(_rmsguid.index, _rmsgbundle, _rpool_msg_id);
+        doCancel(_rmsguid.index, _rsender);
     }
-
-    return false;
 }
 //-----------------------------------------------------------------------------
 MessagePointerT MessageWriter::fetchRequest(MessageId const& _rmsguid) const
@@ -182,20 +189,16 @@ bool MessageWriter::isRelayedResponse(MessageId const& _rmsguid, MessageId& _rre
     return false;
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::cancelOldest(
-    MessageBundle& _rmsgbundle,
-    MessageId&     _rpool_msg_id)
+void MessageWriter::cancelOldest(Sender& _rsender)
 {
     if (order_inner_list_.size()) {
-        return doCancel(order_inner_list_.frontIndex(), _rmsgbundle, _rpool_msg_id);
+        doCancel(order_inner_list_.frontIndex(), _rsender);
     }
-    return false;
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::doCancel(
-    const size_t   _msgidx,
-    MessageBundle& _rmsgbundle,
-    MessageId&     _rpool_msg_id)
+void MessageWriter::doCancel(
+    const size_t _msgidx,
+    Sender&      _rsender)
 {
 
     vdbgx(Debug::mpipc, "" << _msgidx);
@@ -206,32 +209,50 @@ bool MessageWriter::doCancel(
 
     if (rmsgstub.isCanceled()) {
         vdbgx(Debug::mpipc, "" << _msgidx << " already canceled");
-        return false; //already canceled
+        return; //already canceled
     }
 
-    if (not rmsgstub.msgbundle_.message_ptr) {
-        vdbgx(Debug::mpipc, "" << _msgidx << " relayed message");
-        return false;
-    }
+    if (rmsgstub.msgbundle_.message_ptr) {
+        //called on explicit user request or on peer request (via reader) or on response received
+        _rsender.cancelMessage(rmsgstub.msgbundle_, rmsgstub.pool_msg_id_);
+        rmsgstub.cancel();
 
-    rmsgstub.cancel();
-
-    _rmsgbundle   = std::move(rmsgstub.msgbundle_);
-    _rpool_msg_id = rmsgstub.pool_msg_id_;
-
-    if (rmsgstub.serializer_ptr_.get()) {
-        //the message is being sent
-        rmsgstub.serializer_ptr_->clear();
-    } else if (Message::is_waiting_response(rmsgstub.msgbundle_.message_flags)) {
-        //message is waiting response
-        doUnprepareMessageStub(_msgidx);
+        if (rmsgstub.serializer_ptr_.get()) {
+            //the message is being sent
+            rmsgstub.serializer_ptr_->clear();
+        } else if (Message::is_waiting_response(rmsgstub.msgbundle_.message_flags)) {
+            //message is waiting response
+            doUnprepareMessageStub(_msgidx);
+        } else {
+            //message is waiting to be sent
+            write_inner_list_.erase(_msgidx);
+            doUnprepareMessageStub(_msgidx);
+        }
     } else {
-        //message is waiting to be sent
-        write_inner_list_.erase(_msgidx);
-        doUnprepareMessageStub(_msgidx);
+        //usually called when reader receives a cancel request
+        switch (rmsgstub.state_) {
+        case MessageStub::StateE::RelayedHead:
+            rmsgstub.serializer_ptr_->clear();
+        case MessageStub::StateE::RelayedBody:
+            rmsgstub.state_ = MessageStub::StateE::RelayedCanceled;
+            _rsender.cancelRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
+            if (not rmsgstub.prelay_data_) { //message not in write_inner_list_
+                write_inner_list_.pushBack(_msgidx);
+            }
+            break;
+        case MessageStub::StateE::RelayedStart:
+        //message not yet started
+        case MessageStub::StateE::RelayedWait:
+            //message waiting for response
+            _rsender.cancelRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
+            doUnprepareMessageStub(_msgidx);
+            break;
+        case MessageStub::StateE::RelayedCanceled:
+        default:
+            SOLID_ASSERT(false);
+            return;
+        }
     }
-
-    return true;
 }
 //-----------------------------------------------------------------------------
 bool MessageWriter::empty() const
@@ -473,6 +494,12 @@ size_t MessageWriter::doWritePacketData(
         case MessageStub::StateE::RelayedWait:
             SOLID_THROW("Invalid state for write queue - RelayedWait");
             break;
+        case MessageStub::StateE::RelayedCanceled:
+            pbufpos = doWriteMessageCancel(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
+            break;
+        case MessageStub::StateE::RelayedCancelRequest:
+            pbufpos = doWriteRelayedCancelRequest(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
+            break;
         }
     } //while
 
@@ -692,7 +719,7 @@ char* MessageWriter::doWriteRelayedBody(
         const bool is_waiting_for_response = Message::is_waiting_response(rmsgstub.prelay_data_->pmessage_header_->flags_);
 
         _rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
-        rmsgstub.prelay_data_ = nullptr;
+        rmsgstub.prelay_data_ = nullptr; //when prelay_data_ is null we consider the message not in write_inner_list_
 
         if (is_last) {
             cmd |= static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag);
@@ -729,6 +756,35 @@ char* MessageWriter::doWriteMessageCancel(
 
     write_inner_list_.erase(_msgidx);
     doUnprepareMessageStub(_msgidx);
+    if (current_synchronous_message_idx_ == _msgidx) {
+        current_synchronous_message_idx_ = InvalidIndex();
+    }
+    return _pbufpos;
+}
+//-----------------------------------------------------------------------------
+char* MessageWriter::doWriteRelayedCancelRequest(
+    char*            _pbufpos,
+    char*            _pbufend,
+    const size_t     _msgidx,
+    PacketOptions&   _rpacket_options,
+    Sender&          _rsender,
+    ErrorConditionT& _rerror)
+{
+    MessageStub& rmsgstub = message_vec_[_msgidx];
+    RequestId    reqid{rmsgstub.prelay_data_->pmessage_header_->sender_request_id_};
+    uint8_t      cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
+
+    _pbufpos = _rsender.protocol().storeValue(_pbufpos, cmd);
+    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, reqid.index);
+    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, reqid.unique);
+    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+
+    _rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
+
+    write_inner_list_.erase(_msgidx);
+    doUnprepareMessageStub(_msgidx);
+
     if (current_synchronous_message_idx_ == _msgidx) {
         current_synchronous_message_idx_ = InvalidIndex();
     }
@@ -786,24 +842,19 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
 {
 
     vdbgx(Debug::mpipc, "");
-    { //iterate through non completed messages
-        size_t msgidx = order_inner_list_.backIndex();
+    size_t msgidx = order_inner_list_.backIndex();
 
-        while (msgidx != InvalidIndex()) {
-            MessageStub& rmsgstub = message_vec_[msgidx];
+    while (msgidx != InvalidIndex()) {
+        MessageStub& rmsgstub = message_vec_[msgidx];
 
-            if (not rmsgstub.msgbundle_.message_ptr and not rmsgstub.isRelayed()) {
-                SOLID_THROW("invalid message - something went wrong with the nested queue for message: " << msgidx);
-                continue;
-            }
+        const bool message_in_write_queue = not rmsgstub.isWaitResponseState();
 
-            const bool message_in_write_queue = not rmsgstub.isWaitResponseState();
-
+        if (rmsgstub.msgbundle_.message_ptr) { //skip relayed messages
             _rvisit_fnc(
                 rmsgstub.msgbundle_,
-                rmsgstub.pool_msg_id_, rmsgstub.prelay_data_);
+                rmsgstub.pool_msg_id_);
 
-            if (not rmsgstub.msgbundle_.message_ptr) {
+            if (not rmsgstub.msgbundle_.message_ptr) { //message fetched
 
                 if (message_in_write_queue) {
                     write_inner_list_.erase(msgidx);
@@ -821,7 +872,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
                 msgidx = order_inner_list_.previousIndex(msgidx);
             }
         }
-    }
+    } //while
 }
 
 //-----------------------------------------------------------------------------
@@ -843,6 +894,25 @@ void MessageWriter::print(std::ostream& _ros, const PrintWhat _what) const
         //cache_inner_list_.forEach(print_fnc);
         _ros << '\t';
     }
+}
+
+//-----------------------------------------------------------------------------
+
+/*virtual*/ MessageWriter::Sender::~Sender()
+{
+}
+/*virtual*/ ErrorConditionT MessageWriter::Sender::completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/)
+{
+    return ErrorConditionT{};
+}
+/*virtual*/ void MessageWriter::Sender::completeRelayed(RelayData* _relay_data, MessageId const& _rmsgid)
+{
+}
+/*virtual*/ void MessageWriter::Sender::cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/)
+{
+}
+/*virtual*/ void MessageWriter::Sender::cancelRelayed(RelayData* _relay_data, MessageId const& _rmsgid)
+{
 }
 
 //-----------------------------------------------------------------------------

@@ -33,33 +33,19 @@ public:
         {
         }
 
-        virtual ~Receiver() {}
+        virtual ~Receiver();
 
         virtual void receiveMessage(MessagePointerT&, const size_t /*_msg_type_id*/) = 0;
         virtual void receiveKeepAlive()                     = 0;
         virtual void receiveAckCount(uint8_t _count)        = 0;
         virtual void receiveCancelRequest(const RequestId&) = 0;
-        virtual bool receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
-        {
-            return false;
-        }
-        virtual bool receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
-        {
-            return false;
-        }
-        virtual bool receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
-        {
-            return false;
-        }
-        virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) const
-        {
-            return false;
-        }
-        virtual bool isRelayDisabled() const
-        {
-            return true;
-        }
-        virtual void pushCancelRequest(const RequestId&) {}
+        virtual bool receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
+        virtual bool receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
+        virtual bool receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
+        virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) const;
+        virtual bool isRelayDisabled() const;
+        virtual void pushCancelRequest(const RequestId&);
+        virtual void cancelRelayed(const MessageId&);
     };
 
     MessageReader();

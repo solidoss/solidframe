@@ -57,32 +57,33 @@ public:
     struct Sender {
         WriterConfiguration const& rconfig_;
         Protocol const&            rproto_;
-        ConnectionContext&         rctx_;
+        ConnectionContext&         rconctx_;
 
         Sender(
             WriterConfiguration const& _rconfig,
             Protocol const&            _rproto,
-            ConnectionContext&         _rctx)
+            ConnectionContext&         _rconctx)
             : rconfig_(_rconfig)
             , rproto_(_rproto)
-            , rctx_(_rctx)
+            , rconctx_(_rconctx)
         {
         }
 
         WriterConfiguration const& configuration() const { return rconfig_; }
         Protocol const&            protocol() const { return rproto_; }
-        ConnectionContext&         context() const { return rctx_; }
+        ConnectionContext&         context() const { return rconctx_; }
 
-        virtual ~Sender() {}
+        virtual ~Sender();
 
-        virtual ErrorConditionT completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/) = 0;
-        virtual void completeRelayed(RelayData* _relay_data, MessageId const& _rmsgid) {}
+        virtual ErrorConditionT completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/);
+        virtual void completeRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
+        virtual void cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/);
+        virtual void cancelRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
     };
 
     using VisitFunctionT = SOLID_FUNCTION<void(
         MessageBundle& /*_rmsgbundle*/,
-        MessageId const& /*_rmsgid*/,
-        RelayData* /*_prelay_data*/
+        MessageId const& /*_rmsgid*/
         )>;
 
     using CompleteFunctionT = SOLID_FUNCTION<ErrorConditionT(
@@ -118,18 +119,13 @@ public:
         MessageId&                 _rconn_msg_id,
         bool&                      _rmore);
 
-    bool cancel(
-        MessageId const& _rmsguid,
-        MessageBundle&   _rmsgbundle,
-        MessageId&       _rpool_msg_id);
+    void cancel(MessageId const& _rmsguid, Sender& _rsender);
 
     MessagePointerT fetchRequest(MessageId const& _rmsguid) const;
 
     bool isRelayedResponse(MessageId const& _rmsguid, MessageId& _rrelay_id);
 
-    bool cancelOldest(
-        MessageBundle& _rmsgbundle,
-        MessageId&     _rpool_msg_id);
+    void cancelOldest(Sender& _rsender);
 
     ErrorConditionT write(
         WriteBuffer&       _rbuffer,
@@ -177,6 +173,8 @@ private:
             RelayedHead,
             RelayedBody,
             RelayedWait,
+            RelayedCanceled,
+            RelayedCancelRequest
         };
 
         MessageBundle      msgbundle_;
@@ -304,10 +302,7 @@ private:
         Sender&           _rsender,
         ErrorConditionT&  _rerror);
 
-    bool doCancel(
-        const size_t   _msgidx,
-        MessageBundle& _rmsgbundle,
-        MessageId&     _rpool_msg_id);
+    void doCancel(const size_t _msgidx, Sender& _rsender);
 
     bool isSynchronousInSendingQueue() const;
     bool isAsynchronousInPendingQueue() const;
@@ -360,7 +355,13 @@ private:
         PacketOptions&   _rpacket_options,
         Sender&          _rsender,
         ErrorConditionT& _rerror);
-
+    char* doWriteRelayedCancelRequest(
+        char*            _pbufpos,
+        char*            _pbufend,
+        const size_t     _msgidx,
+        PacketOptions&   _rpacket_options,
+        Sender&          _rsender,
+        ErrorConditionT& _rerror);
     void doTryCompleteMessageAfterSerialization(
         const size_t        _msgidx,
         Sender&             _rsender,
