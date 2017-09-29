@@ -28,6 +28,7 @@ extern const ErrorConditionT error_connection_logic;
 extern const ErrorConditionT error_connection_resolve;
 extern const ErrorConditionT error_connection_no_secure_configuration;
 extern const ErrorConditionT error_connection_ack_count;
+extern const ErrorConditionT error_connection_invalid_response_state;
 
 extern const ErrorConditionT error_message_canceled;
 extern const ErrorConditionT error_message_canceled_peer;

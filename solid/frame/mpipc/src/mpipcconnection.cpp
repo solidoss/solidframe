@@ -1515,9 +1515,9 @@ struct Connection::Receiver : MessageReader::Receiver {
         rcon_.doCancelRelayed(rctx_, nullptr, _rrelay_id);
     }
 
-    virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) const override
+    ResponseStateE checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id) const override
     {
-        return rcon_.doCheckIsRelayedResponse(_rrequid, _rrelay_id);
+        return rcon_.doCheckResponseState(rctx_, _rmsghdr, _rrelay_id);
     }
 
     bool isRelayDisabled() const override
@@ -1856,9 +1856,11 @@ void Connection::doCompleteRelayed(
 
     rconfig.relayEngine().complete(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, more);
 
-    if (not more) {
-        flags_.reset(FlagsE::PollRelayEngine); //reset flag
+    if (more) {
+        flags_.set(FlagsE::PollRelayEngine); //set flag
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
+    } else {
+        flags_.reset(FlagsE::PollRelayEngine); //reset flag
     }
 }
 //-----------------------------------------------------------------------------
@@ -1868,14 +1870,24 @@ void Connection::doCancelRelayed(
     MessageId const&            _rengine_msg_id)
 {
 
-    const Configuration& rconfig = service(_rctx).configuration();
-    bool                 more    = false;
+    const Configuration& rconfig     = service(_rctx).configuration();
+    bool                 more        = false;
+    size_t               ack_buf_cnt = 0;
+    const auto done_lambda           = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
+        if (_rbuf.use_count() == 1) {
+            ++ack_buf_cnt;
+            this->recv_buf_vec_.emplace_back(std::move(_rbuf));
+        }
+    };
 
-    rconfig.relayEngine().cancel(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, more);
+    rconfig.relayEngine().cancel(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, done_lambda, more);
 
-    if (not more) {
-        flags_.reset(FlagsE::PollRelayEngine); //reset flag
+    if (more or ack_buf_cnt) {
+        ackd_buf_count_ += ack_buf_cnt;
+        flags_.set(FlagsE::PollRelayEngine); //set flag
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
+    } else if (not more) {
+        flags_.reset(FlagsE::PollRelayEngine); //set flag
     }
 }
 //-----------------------------------------------------------------------------
@@ -1987,9 +1999,26 @@ bool Connection::doReceiveRelayResponse(
     return config.relayEngine().relayResponse(rsvc, uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
-bool Connection::doCheckIsRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id)
+ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id)
 {
-    return msg_writer_.isRelayedResponse(_rrequid, _rrelay_id);
+    ResponseStateE rv = msg_writer_.checkResponseState(_rmsghdr.recipient_request_id_, _rrelay_id);
+    if (rv == ResponseStateE::Invalid) {
+        this->post(
+            _rctx,
+            [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) {
+                this->doStop(_rctx, error_connection_invalid_response_state);
+            });
+        return ResponseStateE::Cancel;
+    } else if (rv == ResponseStateE::Cancel) {
+        if (_rmsghdr.sender_request_id_.isValid()) {
+            cancel_remote_msg_vec_.push_back(_rmsghdr.sender_request_id_);
+            if (cancel_remote_msg_vec_.size() == 1) {
+                post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { doSend(_rctx); });
+            }
+        }
+        return ResponseStateE::Cancel;
+    }
+    return rv;
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool Connection::postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _bufcp, Event& _revent)

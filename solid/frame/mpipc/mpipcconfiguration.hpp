@@ -230,6 +230,7 @@ private:
         const ObjectIdT& _rconuid,
         RelayData* /*_prelay_data*/,
         MessageId const& /*_rengine_msg_id*/,
+        DoneFunctionT& /*_done_fnc*/,
         bool& /*_rmore*/);
 
     virtual void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
@@ -256,9 +257,11 @@ private:
         doComplete(_rsvc, _rconuid, _prelay_data, _rengine_msg_id, _rmore);
     }
 
-    void cancel(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
+    template <class DF>
+    void cancel(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, DF& _done_fnc, bool& _rmore)
     {
-        doCancel(_rsvc, _rconuid, _prelay_data, _rengine_msg_id, _rmore);
+        DoneFunctionT done_fnc{std::ref(_done_fnc)};
+        doCancel(_rsvc, _rconuid, _prelay_data, _rengine_msg_id, done_fnc, _rmore);
     }
 
     bool relayStart(

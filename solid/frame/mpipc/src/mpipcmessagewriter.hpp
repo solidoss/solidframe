@@ -123,7 +123,7 @@ public:
 
     MessagePointerT fetchRequest(MessageId const& _rmsguid) const;
 
-    bool isRelayedResponse(MessageId const& _rmsguid, MessageId& _rrelay_id);
+    ResponseStateE checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id);
 
     void cancelOldest(Sender& _rsender);
 

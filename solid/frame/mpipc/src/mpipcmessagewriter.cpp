@@ -176,17 +176,28 @@ MessagePointerT MessageWriter::fetchRequest(MessageId const& _rmsguid) const
     return MessagePointerT();
 }
 //-----------------------------------------------------------------------------
-bool MessageWriter::isRelayedResponse(MessageId const& _rmsguid, MessageId& _rrelay_id)
+ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id)
 {
-    if (_rmsguid.isValid() and _rmsguid.index < message_vec_.size() and _rmsguid.unique == message_vec_[_rmsguid.index].unique_ and message_vec_[_rmsguid.index].state_ == MessageStub::StateE::RelayedWait) {
+    if (_rmsguid.isValid() and _rmsguid.index < message_vec_.size() and _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
         MessageStub& rmsgstub = message_vec_[_rmsguid.index];
-        _rrelay_id            = rmsgstub.pool_msg_id_;
-
-        order_inner_list_.erase(_rmsguid.index);
-        doUnprepareMessageStub(_rmsguid.index);
-        return true;
+        switch (rmsgstub.state_) {
+        case MessageStub::StateE::WriteWait:
+            return ResponseStateE::Wait;
+        case MessageStub::StateE::RelayedWait:
+            _rrelay_id = rmsgstub.pool_msg_id_;
+            order_inner_list_.erase(_rmsguid.index);
+            doUnprepareMessageStub(_rmsguid.index);
+            return ResponseStateE::RelayedWait;
+        case MessageStub::StateE::Canceled:
+            order_inner_list_.erase(_rmsguid.index);
+            doUnprepareMessageStub(_rmsguid.index);
+            return ResponseStateE::Cancel;
+        default:
+            SOLID_ASSERT(false);
+            return ResponseStateE::Invalid;
+        }
     }
-    return false;
+    return ResponseStateE::None;
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::cancelOldest(Sender& _rsender)
@@ -376,15 +387,6 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
         return true;
     }
     vdbgx(Debug::mpipc, "NO eligible message in a queue of " << write_inner_list_.size());
-#if 0
-    qsz = write_inner_list_.size();
-    while (qsz--) {
-        const size_t msgidx   = write_inner_list_.frontIndex();
-        MessageStub& rmsgstub = message_vec_[msgidx];
-        vdbgx(Debug::mpipc, ""<<msgidx<<" "<<(int)rmsgstub.state_<<" "<<rmsgstub.isSynchronous()<<" "<<current_synchronous_message_idx_);
-        write_inner_list_.pushBack(write_inner_list_.popFront());
-    }
-#endif
     return false;
 }
 //-----------------------------------------------------------------------------

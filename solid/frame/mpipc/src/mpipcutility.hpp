@@ -19,6 +19,14 @@ namespace solid {
 namespace frame {
 namespace mpipc {
 
+enum struct ResponseStateE {
+    Wait,
+    RelayedWait,
+    Cancel,
+    Invalid,
+    None
+};
+
 struct SocketAddressHash {
     size_t operator()(const SocketAddressInet* const& _rsa) const
     {

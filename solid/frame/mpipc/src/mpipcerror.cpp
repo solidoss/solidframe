@@ -31,6 +31,7 @@ enum {
     ErrorConnectionInvalidStateE,
     ErrorConnectionNoSecureConfigurationE,
     ErrorConnectionAckCountE,
+    ErrorConnectionInvalidResponseStateE,
     ErrorMessageCanceledE,
     ErrorMessageCanceledPeerE,
     ErrorMessageConnectionE,
@@ -130,6 +131,9 @@ std::string ErrorCategory::message(int _ev) const
         break;
     case ErrorConnectionNoSecureConfigurationE:
         oss << "Connection: no secure configuration";
+        break;
+    case ErrorConnectionInvalidResponseStateE:
+        oss << "Connection: invalid response state";
         break;
     case ErrorCompressionUnavailableE:
         oss << "Compression support is unavailable";
@@ -236,6 +240,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_connection_invalid_state(ErrorConnectionInvalidStateE, category);
 /*extern*/ const ErrorConditionT error_connection_no_secure_configuration(ErrorConnectionNoSecureConfigurationE, category);
 /*extern*/ const ErrorConditionT error_connection_ack_count(ErrorConnectionAckCountE, category);
+/*extern*/ const ErrorConditionT error_connection_invalid_response_state(ErrorConnectionInvalidResponseStateE, category);
 
 /*extern*/ const ErrorConditionT error_message_canceled(ErrorMessageCanceledE, category);
 /*extern*/ const ErrorConditionT error_message_canceled_peer(ErrorMessageCanceledPeerE, category);

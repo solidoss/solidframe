@@ -68,6 +68,7 @@ protected:
         const ObjectIdT& _rconuid,
         RelayData*       _prelay_data,
         MessageId const& _rengine_msg_id,
+        DoneFunctionT&   _done_fnc,
         bool&            _rmore) override;
 
     void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore) override;

@@ -252,18 +252,27 @@ const char* MessageReader::doConsumeMessage(
                     if (rv <= static_cast<int>(message_size)) {
 
                         if (rmsgstub.deserializer_ptr_->empty()) {
-                            //done reading message header
-                            if (_receiver.isRelayedResponse(rmsgstub.message_header_.recipient_request_id_, rmsgstub.relay_id)) {
-                                vdbgx(Debug::mpipc, "Relayed response: " << rmsgstub.message_header_.url_ << " " << rmsgstub.message_header_.recipient_request_id_);
+                            vdbgx(Debug::mpipc, "message_size = " << message_size << " recipient_req_id = " << rmsgstub.message_header_.recipient_request_id_ << " sender_req_id = " << rmsgstub.message_header_.sender_request_id_ << " url = " << rmsgstub.message_header_.url_);
+
+                            const ResponseStateE rsp_state = rmsgstub.message_header_.recipient_request_id_.isValid() ? _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id) : ResponseStateE::None;
+
+                            if (rsp_state == ResponseStateE::Cancel) {
+                                vdbgx(Debug::mpipc, "Canceled response");
+                                rmsgstub.state_ = MessageStub::StateE::IgnoreBody;
+                                rmsgstub.deserializer_ptr_->clear();
+                                rmsgstub.deserializer_ptr_.reset();
+                            } else if (rsp_state == ResponseStateE::RelayedWait) {
+                                vdbgx(Debug::mpipc, "Relayed response");
                                 rmsgstub.state_ = MessageStub::StateE::RelayResponse;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_.reset();
                             } else if (_receiver.isRelayDisabled() or rmsgstub.message_header_.url_.empty()) {
+                                vdbgx(Debug::mpipc, "Read Body");
                                 rmsgstub.state_ = MessageStub::StateE::ReadBody;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_->push(rmsgstub.message_ptr_);
                             } else {
-                                vdbgx(Debug::mpipc, "Relay message: " << rmsgstub.message_header_.url_);
+                                vdbgx(Debug::mpipc, "Relay message");
                                 rmsgstub.state_ = MessageStub::StateE::RelayStart;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_.reset();
@@ -325,6 +334,32 @@ const char* MessageReader::doConsumeMessage(
                     rmsgstub.clear();
                     break;
                 }
+            } else {
+                SOLID_ASSERT(false);
+            }
+        } else {
+            SOLID_ASSERT(false);
+        }
+
+        //protocol error
+        _rerror  = error_reader_protocol;
+        _pbufpos = _pbufend;
+        rmsgstub.clear();
+        break;
+    case MessageStub::StateE::IgnoreBody:
+        vdbgx(Debug::mpipc, "ReadBody " << _msgidx);
+        ++rmsgstub.packet_count_;
+        if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
+            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+            vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
+            if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
+
+                _pbufpos += message_size;
+
+                if (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) {
+                    rmsgstub.clear();
+                }
+                break;
             } else {
                 SOLID_ASSERT(false);
             }
@@ -444,10 +479,6 @@ const char* MessageReader::doConsumeMessage(
 
 /*virtual*/ MessageReader::Receiver::~Receiver() {}
 
-/*virtual*/ // void MessageReader::Receiver::receiveMessage(MessagePointerT&, const size_t /*_msg_type_id*/) = 0;
-/*virtual*/ // void MessageReader::Receiver::receiveKeepAlive()                     = 0;
-/*virtual*/ // void MessageReader::Receiver::receiveAckCount(uint8_t _count)        = 0;
-/*virtual*/ // void MessageReader::Receiver::receiveCancelRequest(const RequestId&) = 0;
 /*virtual*/ bool MessageReader::Receiver::receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
 {
     return false;
@@ -460,9 +491,9 @@ const char* MessageReader::doConsumeMessage(
 {
     return false;
 }
-/*virtual*/ bool MessageReader::Receiver::isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) const
+/*virtual*/ ResponseStateE MessageReader::Receiver::checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id) const
 {
-    return false;
+    return ResponseStateE::None;
 }
 /*virtual*/ bool MessageReader::Receiver::isRelayDisabled() const
 {

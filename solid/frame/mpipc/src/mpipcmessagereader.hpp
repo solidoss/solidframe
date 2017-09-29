@@ -9,7 +9,7 @@
 //
 
 #pragma once
-
+#include "mpipcutility.hpp"
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
 #include "solid/system/common.hpp"
 #include "solid/system/error.hpp"
@@ -42,7 +42,7 @@ public:
         virtual bool receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
         virtual bool receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
         virtual bool receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror);
-        virtual bool isRelayedResponse(const RequestId& _rrequid, MessageId& _rrelay_id) const;
+        virtual ResponseStateE checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id) const;
         virtual bool isRelayDisabled() const;
         virtual void pushCancelRequest(const RequestId&);
         virtual void cancelRelayed(const MessageId&);
@@ -95,6 +95,7 @@ private:
             NotStarted,
             ReadHead,
             ReadBody,
+            IgnoreBody,
             RelayStart,
             RelayBody,
             RelayFail,
