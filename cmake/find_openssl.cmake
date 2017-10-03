@@ -7,18 +7,18 @@ endif()
 find_package(OpenSSL)
 
 # FIND_LIBRARY(OPENSSL_CRYPTO_LIB
-# 	NAMES
-# 		libeay32
-# 		crypto
-# 	PATHS
-# 		${EXTERN_PATH}/lib NO_DEFAULT_PATH
+#   NAMES
+#       libeay32
+#       crypto
+#   PATHS
+#       ${EXTERN_PATH}/lib NO_DEFAULT_PATH
 # )
 # FIND_LIBRARY(OPENSSL_SSL_LIB
-# 		NAMES
-# 			ssleay32
-# 			ssl
-# 		PATHS
-# 			${EXTERN_PATH}/lib NO_DEFAULT_PATH
+#       NAMES
+#           ssleay32
+#           ssl
+#       PATHS
+#           ${EXTERN_PATH}/lib NO_DEFAULT_PATH
 # )
 # 
 # SET(OPENSSL_LIBS ${OPENSSL_SSL_LIB} ${OPENSSL_CRYPTO_LIB})
