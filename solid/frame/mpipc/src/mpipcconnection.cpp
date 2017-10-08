@@ -1794,7 +1794,7 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePoi
         idbgx(Debug::mpipc, this << ' ' << "Completing back on sender message: " << _rresponse_ptr->requestId());
         SenderResponse sender(*this, _rctx, rconfig.writer, rproto, conctx, _rresponse_ptr);
 
-        msg_writer_.cancel(_rresponse_ptr->requestId(), sender);
+        msg_writer_.cancel(_rresponse_ptr->requestId(), sender, true /*force*/);
 
         if (sender.request_found_) {
             return;

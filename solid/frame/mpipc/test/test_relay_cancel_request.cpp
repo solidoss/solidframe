@@ -65,17 +65,19 @@ InitStub initarray[] = {
     {8192000, 0, false},
     {16384000, 0, false}};
 
-using MessageIdT = std::pair<frame::mpipc::RecipientId, frame::mpipc::MessageId>;
+using MessageIdT       = std::pair<frame::mpipc::RecipientId, frame::mpipc::MessageId>;
 using MessageIdVectorT = std::vector<MessageIdT>;
 
-std::string  pattern;
-const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
-std::atomic<size_t> crtwriteidx(0);
-std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
-size_t connection_count(0);
+std::string            pattern;
+const size_t           initarraysize = sizeof(initarray) / sizeof(InitStub);
+std::atomic<size_t>    crtwriteidx(0);
+std::atomic<size_t>    writecount(0);
+std::atomic<size_t>    created_count(0);
+std::atomic<size_t>    cancelable_created_count(0);
+std::atomic<size_t>    cancelable_deleted_count(0);
+std::atomic<size_t>    canceled_count(0);
+std::atomic<size_t>    response_count(0);
+size_t                 connection_count(0);
 bool                   running = true;
 mutex                  mtx;
 condition_variable     cnd;
@@ -84,6 +86,23 @@ frame::mpipc::Service* pmpipcpeerb = nullptr;
 std::atomic<uint64_t>  transfered_size(0);
 std::atomic<size_t>    transfered_count(0);
 MessageIdVectorT       msgid_vec;
+
+bool try_stop()
+{
+    //writecount messages were sent by peera
+    //cancelable_created_count were realy canceld on peera
+    //2xcancelable_created_count == cancelable_deleted_count
+    //
+    idbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count);
+    if (
+        crtwriteidx >= writecount and canceled_count == cancelable_created_count and 2 * cancelable_created_count == cancelable_deleted_count and response_count == (writecount - canceled_count)) {
+        unique_lock<mutex> lock(mtx);
+        running = false;
+        cnd.notify_one();
+        return true;
+    }
+    return false;
+}
 
 size_t real_size(size_t _sz)
 {
@@ -130,37 +149,51 @@ struct Message : frame::mpipc::Message {
     {
         idbg("CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
+        ++created_count;
+        if (cancelable()) {
+            ++cancelable_created_count;
+        }
     }
     Message()
         : serialized(false)
     {
+        ++created_count;
         idbg("CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
         idbg("DELETE ---------------- " << (void*)this);
 
-        SOLID_ASSERT(serialized or this->isBackOnSender());
+        if (cancelable()) {
+            ++cancelable_deleted_count;
+        } else {
+            SOLID_ASSERT(serialized or this->isBackOnSender());
+        }
+        try_stop();
+    }
+
+    bool cancelable() const
+    {
+        return initarray[idx % initarraysize].cancel;
     }
 
     template <class S>
     void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(str, "str");
-         if (S::IsDeserializer) {
+        if (S::IsDeserializer) {
             _s.template pushCall(
-                [this](S& _rs, frame::mpipc::ConnectionContext& _rctx, uint64_t _val, ErrorConditionT& _rerr){
-                    if(initarray[this->idx % initarraysize].cancel){
-                        idbg("Cancel message: "<<idx<<" "<<msgid_vec[this->idx].second);
+                [this](S& _rs, frame::mpipc::ConnectionContext& _rctx, uint64_t _val, ErrorConditionT& _rerr) {
+                    if (cancelable()) {
+                        idbg("Cancel message: " << idx << " " << msgid_vec[this->idx].second);
                         //we're on the peerb,
                         //we now cancel the message on peer a
                         pmpipcpeera->cancelMessage(msgid_vec[this->idx].first, msgid_vec[this->idx].second);
                     }
                 },
                 0,
-                "call"
-            );
-         }
+                "call");
+        }
         _s.push(idx, "idx");
 
         if (S::IsSerializer) {
@@ -227,33 +260,31 @@ void peera_complete_message(
     ErrorConditionT const& _rerror)
 {
     idbg(_rctx.recipientId() << " error: " << _rerror.message());
-    SOLID_CHECK(not _rerror, "Error sending message: " << _rerror.message());
     SOLID_CHECK(_rsent_msg_ptr, "Error: no request message");
 
-    ++crtackidx;
-
-    if (_rrecv_msg_ptr) {
-        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
-        if (not _rrecv_msg_ptr->check()) {
-            SOLID_THROW("Message check failed.");
-        }
-
-        //cout<< _rmsgptr->str.size()<<'\n';
-        transfered_size += _rrecv_msg_ptr->str.size();
-        ++transfered_count;
-
-        if (!_rrecv_msg_ptr->isBackOnSender()) {
-            SOLID_THROW("Message not back on sender!.");
-        }
-
-        ++crtbackidx;
-
-        if (crtbackidx == writecount) {
-            unique_lock<mutex> lock(mtx);
-            running = false;
-            cnd.notify_one();
-        }
+    if (_rsent_msg_ptr->cancelable()) {
+        SOLID_CHECK(not _rrecv_msg_ptr, "Error: there should be no response");
+        ++canceled_count;
+        return;
     }
+
+    SOLID_CHECK(_rrecv_msg_ptr, "Error: no response message");
+    SOLID_CHECK(not _rerror, "Error sending message: " << _rerror.message());
+
+    idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
+    if (not _rrecv_msg_ptr->check()) {
+        SOLID_THROW("Message check failed.");
+    }
+
+    //cout<< _rmsgptr->str.size()<<'\n';
+    transfered_size += _rrecv_msg_ptr->str.size();
+    ++transfered_count;
+
+    if (!_rrecv_msg_ptr->isBackOnSender()) {
+        SOLID_THROW("Message not back on sender!.");
+    }
+    ++response_count;
+    try_stop();
 }
 
 //-----------------------------------------------------------------------------
@@ -326,11 +357,12 @@ void peerb_complete_message(
         SOLID_ASSERT(!err);
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
-        ++crtreadidx;
-        idbg(crtreadidx << " < " << writecount);
         if (crtwriteidx < writecount) {
+            msgid_vec.emplace_back();
             err = pmpipcpeera->sendMessage(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
+                msgid_vec.back().first,
+                msgid_vec.back().second,
                 initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
 
             SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
@@ -601,7 +633,7 @@ int test_relay_cancel_request(int argc, char** argv)
 
         const size_t start_count = 1;
 
-        writecount = 1;// initarraysize * 2; //start_count;//
+        writecount = 1; // initarraysize * 2; //start_count;//
 
         //ensure we have provisioned connections on peerb
         err = mpipcpeerb.createConnectionPool("localhost");
@@ -612,7 +644,7 @@ int test_relay_cancel_request(int argc, char** argv)
             mpipcpeera.sendMessage(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
                 msgid_vec.back().first,
-                msgid_vec.back().second,                   
+                msgid_vec.back().second,
                 initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
         }
 
@@ -622,9 +654,9 @@ int test_relay_cancel_request(int argc, char** argv)
             SOLID_THROW("Process is taking too long.");
         }
 
-        if (crtwriteidx != crtackidx) {
-            SOLID_THROW("Not all messages were completed");
-        }
+        //         if (crtwriteidx != crtackidx) {
+        //             SOLID_THROW("Not all messages were completed");
+        //         }
 
         //m.stop();
     }
@@ -637,4 +669,3 @@ int test_relay_cancel_request(int argc, char** argv)
 
     return 0;
 }
-

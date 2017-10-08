@@ -125,7 +125,7 @@ bool default_setup_socket_device(SocketDevice& _rsd)
 
 ReaderConfiguration::ReaderConfiguration()
 {
-    max_message_count_multiplex = 64;
+    max_message_count_multiplex = 64 + 128;
 
     decompress_fnc = default_decompress;
 }

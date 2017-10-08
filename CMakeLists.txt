@@ -3,12 +3,12 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 # The project
 #-----------------------------------------------------------------
 project (SolidFrame VERSION 2.2)
-
-exec_program(
-    "git"
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ARGS "rev-parse HEAD"
-    OUTPUT_VARIABLE GIT_VERSION ${VERSION} )
+    
+execute_process(
+    COMMAND "git" "rev-parse" "HEAD"
+    WORKING_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_VERSION ${VERSION}
+	OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 set(PROJECT_VERSION_PATCH "${GIT_VERSION}")
 

@@ -248,7 +248,7 @@ void server_complete_message(
 int test_pool_delay_close(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
+    Debug::the().levelMask("view");
     Debug::the().moduleMask("frame_mpipc:ew any:ew");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);

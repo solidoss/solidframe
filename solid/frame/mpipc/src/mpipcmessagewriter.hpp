@@ -119,7 +119,7 @@ public:
         MessageId&                 _rconn_msg_id,
         bool&                      _rmore);
 
-    void cancel(MessageId const& _rmsguid, Sender& _rsender);
+    void cancel(MessageId const& _rmsguid, Sender& _rsender, const bool _force = false);
 
     MessagePointerT fetchRequest(MessageId const& _rmsguid) const;
 
@@ -168,13 +168,14 @@ private:
             WriteHead,
             WriteBody,
             WriteWait,
-            Canceled,
+            WriteCanceled,
+            WriteWaitCanceled,
             RelayedStart, //add non-relayed states above
             RelayedHead,
             RelayedBody,
             RelayedWait,
-            RelayedCanceled,
-            RelayedCancelRequest
+            RelayedCancelRequest,
+            RelayedCancel
         };
 
         MessageBundle      msgbundle_;
@@ -264,17 +265,6 @@ private:
         {
             return Message::is_synchronous(msgbundle_.message_flags);
         }
-
-        bool isCanceled() const noexcept
-        {
-            return state_ == StateE::Canceled;
-        }
-
-        void cancel()
-        {
-            msgbundle_.message_flags.set(MessageFlagsE::Canceled);
-            state_ = StateE::Canceled;
-        }
     };
 
     using MessageVectorT          = std::vector<MessageStub>;
@@ -302,7 +292,7 @@ private:
         Sender&           _rsender,
         ErrorConditionT&  _rerror);
 
-    void doCancel(const size_t _msgidx, Sender& _rsender);
+    void doCancel(const size_t _msgidx, Sender& _rsender, const bool _force = false);
 
     bool isSynchronousInSendingQueue() const;
     bool isAsynchronousInPendingQueue() const;
@@ -349,6 +339,13 @@ private:
         ErrorConditionT& _rerror);
 
     char* doWriteMessageCancel(
+        char*            _pbufpos,
+        char*            _pbufend,
+        const size_t     _msgidx,
+        PacketOptions&   _rpacket_options,
+        Sender&          _rsender,
+        ErrorConditionT& _rerror);
+    char* doWriteRelayedCancel(
         char*            _pbufpos,
         char*            _pbufend,
         const size_t     _msgidx,

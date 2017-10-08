@@ -296,58 +296,67 @@ const char* MessageReader::doConsumeMessage(
         break;
     case MessageStub::StateE::ReadBody:
         vdbgx(Debug::mpipc, "ReadBody " << _msgidx);
-        ++rmsgstub.packet_count_;
-        if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
-            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
-            vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
-            if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
-                _rctx.pmessage_header = &rmsgstub.message_header_;
+        if (
+            (rmsgstub.packet_count_ & 15) != 0 or _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id) != ResponseStateE::Cancel) {
+            ++rmsgstub.packet_count_;
+            if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
+                _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+                vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
 
-                const int rv = rmsgstub.deserializer_ptr_->run(_rctx, _pbufpos, message_size);
-                _pbufpos += message_size;
+                if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
 
-                if (rv >= 0) {
-                    if (rv <= static_cast<int>(message_size)) {
+                    _rctx.pmessage_header = &rmsgstub.message_header_;
 
-                        if (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) {
-                            if (rmsgstub.deserializer_ptr_->empty()) {
-                                //done parsing the message body
-                                MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
-                                rmsgstub.clear();
-                                const size_t message_type_id = msgptr.get() ? _rproto.typeIndex(msgptr.get()) : InvalidIndex();
-                                _receiver.receiveMessage(msgptr, message_type_id);
+                    const int rv = rmsgstub.deserializer_ptr_->run(_rctx, _pbufpos, message_size);
+                    _pbufpos += message_size;
+
+                    if (rv >= 0) {
+                        if (rv <= static_cast<int>(message_size)) {
+
+                            if (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) {
+                                if (rmsgstub.deserializer_ptr_->empty()) {
+                                    //done parsing the message body
+                                    MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
+                                    rmsgstub.clear();
+                                    const size_t message_type_id = msgptr.get() ? _rproto.typeIndex(msgptr.get()) : InvalidIndex();
+                                    _receiver.receiveMessage(msgptr, message_type_id);
+                                    break;
+                                }
+                                //fail: protocol error
+                                SOLID_ASSERT(false);
+                            } else if (not rmsgstub.deserializer_ptr_->empty()) {
                                 break;
+                            } else {
+                                SOLID_ASSERT(false);
                             }
-                            //fail: protocol error
-                            SOLID_ASSERT(false);
-                        } else if (not rmsgstub.deserializer_ptr_->empty()) {
-                            break;
                         } else {
                             SOLID_ASSERT(false);
                         }
                     } else {
-                        SOLID_ASSERT(false);
+                        _rerror  = rmsgstub.deserializer_ptr_->error();
+                        _pbufpos = _pbufend;
+                        rmsgstub.clear();
+                        break;
                     }
                 } else {
-                    _rerror  = rmsgstub.deserializer_ptr_->error();
-                    _pbufpos = _pbufend;
-                    rmsgstub.clear();
-                    break;
+                    SOLID_ASSERT(false);
                 }
             } else {
                 SOLID_ASSERT(false);
             }
-        } else {
-            SOLID_ASSERT(false);
-        }
 
-        //protocol error
-        _rerror  = error_reader_protocol;
-        _pbufpos = _pbufend;
-        rmsgstub.clear();
-        break;
+            //protocol error
+            _rerror  = error_reader_protocol;
+            _pbufpos = _pbufend;
+            rmsgstub.clear();
+            break;
+        } else {
+            rmsgstub.state_ = MessageStub::StateE::IgnoreBody;
+            rmsgstub.deserializer_ptr_->clear();
+            rmsgstub.deserializer_ptr_.reset();
+        }
     case MessageStub::StateE::IgnoreBody:
-        vdbgx(Debug::mpipc, "ReadBody " << _msgidx);
+        vdbgx(Debug::mpipc, "IgnoreBody " << _msgidx);
         ++rmsgstub.packet_count_;
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);

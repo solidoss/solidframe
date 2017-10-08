@@ -139,9 +139,9 @@ bool MessageWriter::enqueue(
     if (_prelay_data->pdata_ == nullptr) {
         SOLID_ASSERT(rmsgstub.relay_size_ == 0);
         //called from relay engine on cancel request from the reader (RR - see mpipcrelayengine.cpp) side of the link.
-        //after this call, the MessageStub in the RelayEngine is distroyed.
+        //after the current function call, the MessageStub in the RelayEngine is distroyed.
         //we need to forward the cancel on the connection
-        rmsgstub.state_ = MessageStub::StateE::RelayedCancelRequest;
+        rmsgstub.state_ = MessageStub::StateE::RelayedCancel;
     }
 
     write_inner_list_.pushBack(idx);
@@ -160,10 +160,11 @@ void MessageWriter::doUnprepareMessageStub(const size_t _msgidx)
 //-----------------------------------------------------------------------------
 void MessageWriter::cancel(
     MessageId const& _rmsguid,
-    Sender&          _rsender)
+    Sender&          _rsender,
+    const bool       _force)
 {
     if (_rmsguid.isValid() and _rmsguid.index < message_vec_.size() and _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
-        doCancel(_rmsguid.index, _rsender);
+        doCancel(_rmsguid.index, _rsender, _force);
     }
 }
 //-----------------------------------------------------------------------------
@@ -188,7 +189,13 @@ ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, Mess
             order_inner_list_.erase(_rmsguid.index);
             doUnprepareMessageStub(_rmsguid.index);
             return ResponseStateE::RelayedWait;
-        case MessageStub::StateE::Canceled:
+        case MessageStub::StateE::WriteCanceled:
+            SOLID_ASSERT(write_inner_list_.size());
+            order_inner_list_.erase(_rmsguid.index);
+            write_inner_list_.erase(_rmsguid.index);
+            doUnprepareMessageStub(_rmsguid.index);
+            return ResponseStateE::Cancel;
+        case MessageStub::StateE::WriteWaitCanceled:
             order_inner_list_.erase(_rmsguid.index);
             doUnprepareMessageStub(_rmsguid.index);
             return ResponseStateE::Cancel;
@@ -203,39 +210,61 @@ ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, Mess
 void MessageWriter::cancelOldest(Sender& _rsender)
 {
     if (order_inner_list_.size()) {
-        doCancel(order_inner_list_.frontIndex(), _rsender);
+        doCancel(order_inner_list_.frontIndex(), _rsender, true);
     }
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doCancel(
     const size_t _msgidx,
-    Sender&      _rsender)
+    Sender&      _rsender,
+    const bool   _force)
 {
 
     vdbgx(Debug::mpipc, "" << _msgidx);
 
-    order_inner_list_.erase(_msgidx);
-
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
-    if (rmsgstub.isCanceled()) {
+    if (rmsgstub.state_ == MessageStub::StateE::WriteWaitCanceled) {
         vdbgx(Debug::mpipc, "" << _msgidx << " already canceled");
+
+        if (_force) {
+            order_inner_list_.erase(_msgidx);
+            doUnprepareMessageStub(_msgidx);
+        }
+        return; //already canceled
+    }
+
+    if (rmsgstub.state_ == MessageStub::StateE::WriteCanceled) {
+        vdbgx(Debug::mpipc, "" << _msgidx << " already canceled");
+
+        if (_force) {
+            SOLID_ASSERT(write_inner_list_.size());
+            order_inner_list_.erase(_msgidx);
+            write_inner_list_.erase(_msgidx);
+            doUnprepareMessageStub(_msgidx);
+        }
         return; //already canceled
     }
 
     if (rmsgstub.msgbundle_.message_ptr) {
         //called on explicit user request or on peer request (via reader) or on response received
+        rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::Canceled);
         _rsender.cancelMessage(rmsgstub.msgbundle_, rmsgstub.pool_msg_id_);
-        rmsgstub.cancel();
 
         if (rmsgstub.serializer_ptr_.get()) {
             //the message is being sent
             rmsgstub.serializer_ptr_->clear();
-        } else if (Message::is_waiting_response(rmsgstub.msgbundle_.message_flags)) {
+            rmsgstub.state_ = MessageStub::StateE::WriteCanceled;
+        } else if (!_force and rmsgstub.state_ == MessageStub::StateE::WriteWait) {
             //message is waiting response
+            rmsgstub.state_ = MessageStub::StateE::WriteWaitCanceled;
+        } else if (rmsgstub.state_ == MessageStub::StateE::WriteWait or rmsgstub.state_ == MessageStub::StateE::WriteWaitCanceled) {
+            order_inner_list_.erase(_msgidx);
             doUnprepareMessageStub(_msgidx);
         } else {
             //message is waiting to be sent
+            SOLID_ASSERT(write_inner_list_.size());
+            order_inner_list_.erase(_msgidx);
             write_inner_list_.erase(_msgidx);
             doUnprepareMessageStub(_msgidx);
         }
@@ -245,7 +274,7 @@ void MessageWriter::doCancel(
         case MessageStub::StateE::RelayedHead:
             rmsgstub.serializer_ptr_->clear();
         case MessageStub::StateE::RelayedBody:
-            rmsgstub.state_ = MessageStub::StateE::RelayedCanceled;
+            rmsgstub.state_ = MessageStub::StateE::RelayedCancelRequest;
             _rsender.cancelRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
             if (not rmsgstub.prelay_data_) { //message not in write_inner_list_
                 write_inner_list_.pushBack(_msgidx);
@@ -256,9 +285,10 @@ void MessageWriter::doCancel(
         case MessageStub::StateE::RelayedWait:
             //message waiting for response
             _rsender.cancelRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
+            order_inner_list_.erase(_msgidx);
             doUnprepareMessageStub(_msgidx);
             break;
-        case MessageStub::StateE::RelayedCanceled:
+        case MessageStub::StateE::RelayedCancelRequest:
         default:
             SOLID_ASSERT(false);
             return;
@@ -465,7 +495,7 @@ size_t MessageWriter::doWritePacketData(
         case MessageStub::StateE::WriteWait:
             SOLID_THROW("Invalid state for write queue - WriteWait");
             break;
-        case MessageStub::StateE::Canceled:
+        case MessageStub::StateE::WriteCanceled:
             pbufpos = doWriteMessageCancel(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
             break;
         case MessageStub::StateE::RelayedStart: {
@@ -496,11 +526,11 @@ size_t MessageWriter::doWritePacketData(
         case MessageStub::StateE::RelayedWait:
             SOLID_THROW("Invalid state for write queue - RelayedWait");
             break;
-        case MessageStub::StateE::RelayedCanceled:
-            pbufpos = doWriteMessageCancel(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
-            break;
         case MessageStub::StateE::RelayedCancelRequest:
             pbufpos = doWriteRelayedCancelRequest(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
+            break;
+        case MessageStub::StateE::RelayedCancel:
+            pbufpos = doWriteRelayedCancel(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
             break;
         }
     } //while
@@ -715,6 +745,7 @@ char* MessageWriter::doWriteRelayedBody(
                                    << " cmd = " << (int)cmd << " is_last = " << rmsgstub.prelay_data_->is_last_ << " relaydata = " << rmsgstub.prelay_data_);
 
     if (rmsgstub.relay_size_ == 0) {
+        SOLID_ASSERT(write_inner_list_.size());
         write_inner_list_.erase(_msgidx); //call before _rsender.pollRelayEngine
 
         const bool is_last                 = rmsgstub.prelay_data_->is_last_;
@@ -756,7 +787,38 @@ char* MessageWriter::doWriteMessageCancel(
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
 
+    SOLID_ASSERT(write_inner_list_.size());
     write_inner_list_.erase(_msgidx);
+    order_inner_list_.erase(_msgidx);
+    doUnprepareMessageStub(_msgidx);
+    if (current_synchronous_message_idx_ == _msgidx) {
+        current_synchronous_message_idx_ = InvalidIndex();
+    }
+    return _pbufpos;
+}
+//-----------------------------------------------------------------------------
+char* MessageWriter::doWriteRelayedCancel(
+    char*            _pbufpos,
+    char*            _pbufend,
+    const size_t     _msgidx,
+    PacketOptions&   _rpacket_options,
+    Sender&          _rsender,
+    ErrorConditionT& _rerror)
+{
+
+    uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
+    _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
+
+    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
+    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+
+    MessageStub& rmsgstub = message_vec_[_msgidx];
+    _rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
+    rmsgstub.prelay_data_ = nullptr;
+
+    SOLID_ASSERT(write_inner_list_.size());
+    write_inner_list_.erase(_msgidx);
+    order_inner_list_.erase(_msgidx);
     doUnprepareMessageStub(_msgidx);
     if (current_synchronous_message_idx_ == _msgidx) {
         current_synchronous_message_idx_ = InvalidIndex();
@@ -772,21 +834,17 @@ char* MessageWriter::doWriteRelayedCancelRequest(
     Sender&          _rsender,
     ErrorConditionT& _rerror)
 {
-    MessageStub& rmsgstub = message_vec_[_msgidx];
-    RequestId    reqid{rmsgstub.prelay_data_->pmessage_header_->sender_request_id_};
-    uint8_t      cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
 
-    _pbufpos = _rsender.protocol().storeValue(_pbufpos, cmd);
-    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, reqid.index);
-    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
-    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, reqid.unique);
+    uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
+    _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
+
+    _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
     SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
 
-    _rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
-
+    SOLID_ASSERT(write_inner_list_.size());
     write_inner_list_.erase(_msgidx);
+    order_inner_list_.erase(_msgidx);
     doUnprepareMessageStub(_msgidx);
-
     if (current_synchronous_message_idx_ == _msgidx) {
         current_synchronous_message_idx_ = InvalidIndex();
     }
@@ -807,6 +865,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
     _rtmp_serializer = std::move(rmsgstub.serializer_ptr_);
 
+    SOLID_ASSERT(write_inner_list_.size());
     write_inner_list_.popFront();
 
     if (current_synchronous_message_idx_ == _msgidx) {
@@ -859,6 +918,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
             if (not rmsgstub.msgbundle_.message_ptr) { //message fetched
 
                 if (message_in_write_queue) {
+                    SOLID_ASSERT(write_inner_list_.size());
                     write_inner_list_.erase(msgidx);
                 }
 
