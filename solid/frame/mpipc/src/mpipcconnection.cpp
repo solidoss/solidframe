@@ -1236,6 +1236,7 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
     };
     const auto cancel_lambda = [this](const MessageHeader& _rmsghdr) {
         //we must request the remote side to stop sending the message
+        idbgx(Debug::mpipc, this << " cancel_remote_msg = "<<_rmsghdr.sender_request_id_);
         cancel_remote_msg_vec_.push_back(_rmsghdr.sender_request_id_);
     };
 
@@ -1499,6 +1500,7 @@ struct Connection::Receiver : MessageReader::Receiver {
 
     void pushCancelRequest(const RequestId& _reqid) override
     {
+        idbgx(Debug::mpipc, this << " cancel_remote_msg = "<<_reqid);
         rcon_.cancel_remote_msg_vec_.push_back(_reqid);
         if (rcon_.cancel_remote_msg_vec_.size() == 1) {
             rcon_.post(
@@ -2011,6 +2013,7 @@ ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rct
         return ResponseStateE::Cancel;
     } else if (rv == ResponseStateE::Cancel) {
         if (_rmsghdr.sender_request_id_.isValid()) {
+            idbgx(Debug::mpipc, this << " cancel_remote_msg = "<<_rmsghdr.sender_request_id_);
             cancel_remote_msg_vec_.push_back(_rmsghdr.sender_request_id_);
             if (cancel_remote_msg_vec_.size() == 1) {
                 post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { doSend(_rctx); });

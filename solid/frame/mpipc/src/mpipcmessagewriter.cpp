@@ -447,6 +447,7 @@ size_t MessageWriter::doWritePacketData(
     }
 
     while (_cancel_remote_msg_vec.size() and static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
+        vdbgx(Debug::mpipc, "send CancelRequest "<<_cancel_remote_msg_vec.back());
         uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
         pbufpos     = _rsender.protocol().storeValue(pbufpos, cmd);
         pbufpos     = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
