@@ -413,7 +413,7 @@ const char* MessageReader::doConsumeMessage(
 
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
-            //TODO:
+
             if (_receiver.receiveRelayBody(_pbufpos, message_size, rmsgstub.relay_id, is_message_end, _rerror)) {
             } else {
                 rmsgstub.state_ = MessageStub::StateE::RelayFail;

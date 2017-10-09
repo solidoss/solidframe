@@ -1236,8 +1236,10 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
     };
     const auto cancel_lambda = [this](const MessageHeader& _rmsghdr) {
         //we must request the remote side to stop sending the message
-        idbgx(Debug::mpipc, this << " cancel_remote_msg = "<<_rmsghdr.sender_request_id_);
-        cancel_remote_msg_vec_.push_back(_rmsghdr.sender_request_id_);
+        idbgx(Debug::mpipc, this << " cancel_remote_msg sreqid =  " << _rmsghdr.sender_request_id_ << " rreqid = " << _rmsghdr.recipient_request_id_);
+        //cancel_remote_msg_vec_.push_back(_rmsghdr.recipient_request_id_);
+        //we do nothing here because the message cancel will be discovered onto messagereader
+        //when calling receiveRelayBody which will return false
     };
 
     config.relayEngine().pollDone(uid(_rctx), done_lambda, cancel_lambda);
@@ -1500,7 +1502,7 @@ struct Connection::Receiver : MessageReader::Receiver {
 
     void pushCancelRequest(const RequestId& _reqid) override
     {
-        idbgx(Debug::mpipc, this << " cancel_remote_msg = "<<_reqid);
+        idbgx(Debug::mpipc, this << " cancel_remote_msg = " << _reqid);
         rcon_.cancel_remote_msg_vec_.push_back(_reqid);
         if (rcon_.cancel_remote_msg_vec_.size() == 1) {
             rcon_.post(
@@ -1949,6 +1951,7 @@ void Connection::doCompleteCancelRequest(frame::aio::ReactorContext& _rctx, cons
     Sender               sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, error_message_canceled_peer);
 
     msg_writer_.cancel(msgid, sender);
+    this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
 }
 //-----------------------------------------------------------------------------
 bool Connection::doReceiveRelayStart(
@@ -2013,7 +2016,7 @@ ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rct
         return ResponseStateE::Cancel;
     } else if (rv == ResponseStateE::Cancel) {
         if (_rmsghdr.sender_request_id_.isValid()) {
-            idbgx(Debug::mpipc, this << " cancel_remote_msg = "<<_rmsghdr.sender_request_id_);
+            idbgx(Debug::mpipc, this << " cancel_remote_msg = " << _rmsghdr.sender_request_id_);
             cancel_remote_msg_vec_.push_back(_rmsghdr.sender_request_id_);
             if (cancel_remote_msg_vec_.size() == 1) {
                 post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { doSend(_rctx); });

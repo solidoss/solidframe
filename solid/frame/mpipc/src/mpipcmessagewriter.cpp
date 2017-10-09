@@ -279,12 +279,14 @@ void MessageWriter::doCancel(
             if (not rmsgstub.prelay_data_) { //message not in write_inner_list_
                 write_inner_list_.pushBack(_msgidx);
             }
+            rmsgstub.prelay_data_ = nullptr;
             break;
         case MessageStub::StateE::RelayedStart:
         //message not yet started
         case MessageStub::StateE::RelayedWait:
             //message waiting for response
             _rsender.cancelRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
+            rmsgstub.prelay_data_ = nullptr;
             order_inner_list_.erase(_msgidx);
             doUnprepareMessageStub(_msgidx);
             break;
@@ -439,7 +441,7 @@ size_t MessageWriter::doWritePacketData(
     char*              pbufpos = _pbufbeg;
 
     if (_rackd_buf_count) {
-        vdbgx(Debug::mpipc, "stored ackd_buf_count = " << (int)_rackd_buf_count);
+        vdbgx(Debug::mpipc, this << " stored ackd_buf_count = " << (int)_rackd_buf_count);
         uint8_t cmd      = static_cast<uint8_t>(PacketHeader::CommandE::AckdCount);
         pbufpos          = _rsender.protocol().storeValue(pbufpos, cmd);
         pbufpos          = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
@@ -447,7 +449,7 @@ size_t MessageWriter::doWritePacketData(
     }
 
     while (_cancel_remote_msg_vec.size() and static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
-        vdbgx(Debug::mpipc, "send CancelRequest "<<_cancel_remote_msg_vec.back());
+        vdbgx(Debug::mpipc, this << " send CancelRequest " << _cancel_remote_msg_vec.back());
         uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
         pbufpos     = _rsender.protocol().storeValue(pbufpos, cmd);
         pbufpos     = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
@@ -463,7 +465,7 @@ size_t MessageWriter::doWritePacketData(
 
         PacketHeader::CommandE cmd = PacketHeader::CommandE::Message;
 
-        vdbgx(Debug::mpipc, "msgidx = " << msgidx);
+        vdbgx(Debug::mpipc, this << " msgidx = " << msgidx);
 
         switch (message_vec_[msgidx].state_) {
         case MessageStub::StateE::WriteStart: {
@@ -481,7 +483,7 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.state_ = MessageStub::StateE::WriteHead;
 
-            vdbgx(Debug::mpipc, "message header url: " << rmsgstub.msgbundle_.message_url);
+            vdbgx(Debug::mpipc, this << " message header url: " << rmsgstub.msgbundle_.message_url);
 
             rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr->header_);
 
@@ -512,7 +514,7 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.state_ = MessageStub::StateE::RelayedHead;
 
-            vdbgx(Debug::mpipc, "message header url: " << rmsgstub.prelay_data_->pmessage_header_->url_);
+            vdbgx(Debug::mpipc, this << " message header url: " << rmsgstub.prelay_data_->pmessage_header_->url_);
 
             rmsgstub.serializer_ptr_->push(*rmsgstub.prelay_data_->pmessage_header_);
 
@@ -536,7 +538,7 @@ size_t MessageWriter::doWritePacketData(
         }
     } //while
 
-    vdbgx(Debug::mpipc, "write_q_size " << write_inner_list_.size() << " order_q_size " << order_inner_list_.size());
+    vdbgx(Debug::mpipc, this << " write_q_size " << write_inner_list_.size() << " order_q_size " << order_inner_list_.size());
 
     return pbufpos - _pbufbeg;
 }
@@ -782,6 +784,8 @@ char* MessageWriter::doWriteMessageCancel(
     ErrorConditionT& _rerror)
 {
 
+    vdbgx(Debug::mpipc, "" << _msgidx);
+
     uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
@@ -806,6 +810,8 @@ char* MessageWriter::doWriteRelayedCancel(
     Sender&          _rsender,
     ErrorConditionT& _rerror)
 {
+
+    vdbgx(Debug::mpipc, "" << _msgidx);
 
     uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
@@ -835,6 +841,8 @@ char* MessageWriter::doWriteRelayedCancelRequest(
     Sender&          _rsender,
     ErrorConditionT& _rerror)
 {
+
+    vdbgx(Debug::mpipc, "" << _msgidx);
 
     uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);

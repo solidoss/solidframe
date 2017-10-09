@@ -696,6 +696,9 @@ bool RelayEngine::doRelayResponse(
             std::swap(rmsg.receiver_con_id_, rmsg.sender_con_id_);
 
             rmsg.header_ = std::move(_rmsghdr);
+
+            std::swap(rmsg.header_.recipient_request_id_, rmsg.header_.sender_request_id_);
+
             //set the proper recipient_request_id_
             rmsg.header_.sender_request_id_ = sender_request_id;
 

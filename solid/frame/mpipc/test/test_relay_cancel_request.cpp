@@ -59,11 +59,11 @@ InitStub initarray[] = {
     {128000, 0, false},
     {256000, 0, false},
     {512000, 0, false},
-    {1024000, 0, false},
-    {2048000, 0, false},
-    {4096000, 0, false},
-    {8192000, 0, false},
-    {16384000, 0, false}};
+    {10240000, 0, true},
+    {20480000, 0, false},
+    {40960000, 0, true},
+    {81920000, 0, false},
+    {16384000, 0, true}};
 
 using MessageIdT       = std::pair<frame::mpipc::RecipientId, frame::mpipc::MessageId>;
 using MessageIdVectorT = std::vector<MessageIdT>;
@@ -93,7 +93,7 @@ bool try_stop()
     //cancelable_created_count were realy canceld on peera
     //2xcancelable_created_count == cancelable_deleted_count
     //
-    idbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count);
+    edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count);
     if (
         crtwriteidx >= writecount and canceled_count == cancelable_created_count and 2 * cancelable_created_count == cancelable_deleted_count and response_count == (writecount - canceled_count)) {
         unique_lock<mutex> lock(mtx);
@@ -357,7 +357,7 @@ void peerb_complete_message(
         SOLID_ASSERT(!err);
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
-        if (crtwriteidx < writecount) {
+        for (int i = 0; i < 2 and crtwriteidx < writecount; ++i) {
             msgid_vec.emplace_back();
             err = pmpipcpeera->sendMessage(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
@@ -378,7 +378,7 @@ void peerb_complete_message(
 int test_relay_cancel_request(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("view");
+    Debug::the().levelMask("ew");
     Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
@@ -631,9 +631,9 @@ int test_relay_cancel_request(int argc, char** argv)
             }
         }
 
-        const size_t start_count = 1;
+        const size_t start_count = 4;
 
-        writecount = 1; // initarraysize * 2; //start_count;//
+        writecount = initarraysize * 2; //start_count;//
 
         //ensure we have provisioned connections on peerb
         err = mpipcpeerb.createConnectionPool("localhost");
