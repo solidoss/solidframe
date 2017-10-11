@@ -44,8 +44,8 @@ struct InitStub {
 };
 
 InitStub initarray[] = {
-    {10000000, 0, true},
     {100, 0, false},
+    {10000000, 0, true}, //
     {200, 0, false},
     {400, 0, false},
     {800, 0, false},
@@ -59,14 +59,14 @@ InitStub initarray[] = {
     {128000, 0, false},
     {256000, 0, false},
     {512000, 0, false},
-    {10240000, 0, true},
+    {10240000, 0, true}, //
     {20480000, 0, false},
-    {40960000, 0, true},
+    {40960000, 0, true}, //
     {81920000, 0, false},
-    {16384000, 0, true}};
+    {16384000, 0, true}}; //
 
 using MessageIdT       = std::pair<frame::mpipc::RecipientId, frame::mpipc::MessageId>;
-using MessageIdVectorT = std::vector<MessageIdT>;
+using MessageIdVectorT = std::deque<MessageIdT>;
 
 std::string            pattern;
 const size_t           initarraysize = sizeof(initarray) / sizeof(InitStub);
@@ -93,7 +93,7 @@ bool try_stop()
     //cancelable_created_count were realy canceld on peera
     //2xcancelable_created_count == cancelable_deleted_count
     //
-    edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count);
+    edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
     if (
         crtwriteidx >= writecount and canceled_count == cancelable_created_count and 2 * cancelable_created_count == cancelable_deleted_count and response_count == (writecount - canceled_count)) {
         unique_lock<mutex> lock(mtx);
@@ -162,7 +162,7 @@ struct Message : frame::mpipc::Message {
     }
     ~Message()
     {
-        idbg("DELETE ---------------- " << (void*)this);
+        idbg("DELETE ---------------- " << (void*)this << " idx = " << idx);
 
         if (cancelable()) {
             ++cancelable_deleted_count;
@@ -358,11 +358,14 @@ void peerb_complete_message(
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
         for (int i = 0; i < 2 and crtwriteidx < writecount; ++i) {
+            mtx.lock();
             msgid_vec.emplace_back();
+            auto& back_msg_id = msgid_vec.back();
+            mtx.unlock();
             err = pmpipcpeera->sendMessage(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
-                msgid_vec.back().first,
-                msgid_vec.back().second,
+                back_msg_id.first,
+                back_msg_id.second,
                 initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
 
             SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
@@ -631,7 +634,7 @@ int test_relay_cancel_request(int argc, char** argv)
             }
         }
 
-        const size_t start_count = 4;
+        const size_t start_count = 10;
 
         writecount = initarraysize * 2; //start_count;//
 
@@ -640,25 +643,23 @@ int test_relay_cancel_request(int argc, char** argv)
         SOLID_CHECK(not err, "failed create connection from peerb: " << err.message());
 
         for (; crtwriteidx < start_count;) {
+            mtx.lock();
             msgid_vec.emplace_back();
+            auto& back_msg_id = msgid_vec.back();
+            mtx.unlock();
             mpipcpeera.sendMessage(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
-                msgid_vec.back().first,
-                msgid_vec.back().second,
+                back_msg_id.first,
+                back_msg_id.second,
                 initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
         }
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(220), []() { return not running; })) {
+        if (not cnd.wait_for(lock, std::chrono::seconds(50), []() { return not running; })) {
+            relay_engine.debugDump();
             SOLID_THROW("Process is taking too long.");
         }
-
-        //         if (crtwriteidx != crtackidx) {
-        //             SOLID_THROW("Not all messages were completed");
-        //         }
-
-        //m.stop();
     }
 
     //exiting

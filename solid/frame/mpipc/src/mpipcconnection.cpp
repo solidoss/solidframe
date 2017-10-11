@@ -1438,7 +1438,7 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
         //tried to relay received messages/message parts - but all failed
         //so we need to ack the buffer
         SOLID_ASSERT(recv_buf_.use_count());
-        vdbgx(Debug::mpipc, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
+        edbgx(Debug::mpipc, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
 
         if (ackd_buf_count_ == 0) {
             ackd_buf_count_ += _request_buffer_ack_count;
@@ -1886,13 +1886,16 @@ void Connection::doCancelRelayed(
 
     rconfig.relayEngine().cancel(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, done_lambda, more);
 
-    if (more or ack_buf_cnt) {
+    //TODO: do not ignore more
+    //bacause relay_engine cancel, does not modify more for now,
+    //we ignore it
+    if (/*more or */ ack_buf_cnt) {
         ackd_buf_count_ += ack_buf_cnt;
         flags_.set(FlagsE::PollRelayEngine); //set flag
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
-    } else if (not more) {
-        flags_.reset(FlagsE::PollRelayEngine); //set flag
-    }
+    } /* else if (not more) {
+        flags_.reset(FlagsE::PollRelayEngine); //reset flag
+    }*/
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)
