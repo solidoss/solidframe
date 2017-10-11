@@ -1875,7 +1875,6 @@ void Connection::doCancelRelayed(
 {
 
     const Configuration& rconfig     = service(_rctx).configuration();
-    bool                 more        = false;
     size_t               ack_buf_cnt = 0;
     const auto done_lambda           = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
         if (_rbuf.use_count() == 1) {
@@ -1884,18 +1883,13 @@ void Connection::doCancelRelayed(
         }
     };
 
-    rconfig.relayEngine().cancel(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, done_lambda, more);
+    rconfig.relayEngine().cancel(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, done_lambda);
 
-    //TODO: do not ignore more
-    //bacause relay_engine cancel, does not modify more for now,
-    //we ignore it
-    if (/*more or */ ack_buf_cnt) {
+    if (ack_buf_cnt) {
         ackd_buf_count_ += ack_buf_cnt;
         flags_.set(FlagsE::PollRelayEngine); //set flag
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
-    } /* else if (not more) {
-        flags_.reset(FlagsE::PollRelayEngine); //reset flag
-    }*/
+    }
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteKeepalive(frame::aio::ReactorContext& _rctx)

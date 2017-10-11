@@ -894,13 +894,13 @@ void RelayEngine::doComplete(
 // called by any of connection when either:
 // sending peer stops/cancels sending the message - MessageReader::Receiver::cancelRelayed
 // receiver side, request canceling the message - MessageWriter::Sender::cancelRelayed
+//TODO: add _rmore support as for doComplete
 void RelayEngine::doCancel(
     Service&         _rsvc,
     const ObjectIdT& _rconuid,
     RelayData*       _prelay_data,
     MessageId const& _rengine_msg_id,
-    DoneFunctionT&   _done_fnc,
-    bool&            _rmore)
+    DoneFunctionT&   _done_fnc)
 {
     unique_lock<mutex> lock(impl_->mtx_);
 

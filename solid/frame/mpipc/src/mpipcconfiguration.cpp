@@ -209,8 +209,7 @@ WriterConfiguration::WriterConfiguration()
     const ObjectIdT& _rconuid,
     RelayData* /*_prelay_data*/,
     MessageId const& /*_rengine_msg_id*/,
-    DoneFunctionT& /*_done_fnc*/,
-    bool& /*_rmore*/
+    DoneFunctionT& /*_done_fnc*/
     )
 {
     SOLID_THROW("should not be called");
