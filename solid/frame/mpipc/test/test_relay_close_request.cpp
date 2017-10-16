@@ -29,6 +29,8 @@
 
 #include <iostream>
 
+#include <signal.h>
+
 using namespace std;
 using namespace solid;
 
@@ -44,25 +46,9 @@ struct InitStub {
 };
 
 InitStub initarray[] = {
-    {100, 0, false},
-    {10000000, 0, true}, //
-    {200, 0, false},
-    {400, 0, false},
-    {800, 0, false},
-    {1000, 0, false},
-    {2000, 0, false},
-    {4000, 0, false},
-    {8000, 0, false},
-    {16000, 0, false},
-    {32000, 0, false},
-    {64000, 0, false},
-    {128000, 0, false},
-    {256000, 0, false},
-    {512000, 0, false},
-    {10240000, 0, true}, //
-    {20480000, 0, false},
-    {40960000, 0, true}, //
-    {81920000, 0, false},
+    {80000000, 0, false}, //
+    {80240000, 0, false}, //
+    {80960000, 0, false}, //
     {16384000, 0, true}}; //
 
 using MessageIdT       = std::pair<frame::mpipc::RecipientId, frame::mpipc::MessageId>;
@@ -73,10 +59,8 @@ const size_t           initarraysize = sizeof(initarray) / sizeof(InitStub);
 std::atomic<size_t>    crtwriteidx(0);
 std::atomic<size_t>    writecount(0);
 std::atomic<size_t>    created_count(0);
-std::atomic<size_t>    cancelable_created_count(0);
-std::atomic<size_t>    cancelable_deleted_count(0);
 std::atomic<size_t>    canceled_count(0);
-std::atomic<size_t>    response_count(0);
+std::atomic<size_t>    deleted_count(0);
 size_t                 connection_count(0);
 bool                   running = true;
 mutex                  mtx;
@@ -93,9 +77,9 @@ bool try_stop()
     //cancelable_created_count were realy canceld on peera
     //2xcancelable_created_count == cancelable_deleted_count
     //
-    edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
+    edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " deleted_cnt = " << deleted_count);
     if (
-        crtwriteidx >= writecount and canceled_count == cancelable_created_count and 2 * cancelable_created_count == cancelable_deleted_count and response_count == (writecount - canceled_count)) {
+        crtwriteidx >= writecount and canceled_count == writecount and created_count == deleted_count and created_count == 2 * writecount) {
         unique_lock<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
@@ -150,9 +134,6 @@ struct Message : frame::mpipc::Message {
         idbg("CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
         ++created_count;
-        if (cancelable()) {
-            ++cancelable_created_count;
-        }
     }
     Message()
         : serialized(false)
@@ -164,11 +145,7 @@ struct Message : frame::mpipc::Message {
     {
         idbg("DELETE ---------------- " << (void*)this << " idx = " << idx);
 
-        if (cancelable()) {
-            ++cancelable_deleted_count;
-        } else {
-            SOLID_ASSERT(serialized or this->isBackOnSender());
-        }
+        ++deleted_count;
         try_stop();
     }
 
@@ -185,10 +162,14 @@ struct Message : frame::mpipc::Message {
             _s.template pushCall(
                 [this](S& _rs, frame::mpipc::ConnectionContext& _rctx, uint64_t _val, ErrorConditionT& _rerr) {
                     if (cancelable()) {
-                        idbg("Cancel message: " << idx << " " << msgid_vec[this->idx].second);
+                        edbg("Close connection: " << idx << " " << msgid_vec[this->idx].first);
                         //we're on the peerb,
                         //we now cancel the message on peer a
-                        pmpipcpeera->cancelMessage(msgid_vec[this->idx].first, msgid_vec[this->idx].second);
+                        pmpipcpeera->forceCloseConnectionPool(
+                            msgid_vec[this->idx].first,
+                            [](frame::mpipc::ConnectionContext& _rctx) {
+                                edbg("Close pool callback");
+                            });
                     }
                 },
                 0,
@@ -262,28 +243,10 @@ void peera_complete_message(
     idbg(_rctx.recipientId() << " error: " << _rerror.message());
     SOLID_CHECK(_rsent_msg_ptr, "Error: no request message");
 
-    if (_rsent_msg_ptr->cancelable()) {
-        SOLID_CHECK(not _rrecv_msg_ptr, "Error: there should be no response");
-        ++canceled_count;
-        return;
-    }
+    SOLID_CHECK(not _rrecv_msg_ptr, "Error: there should be no response");
+    ++canceled_count;
+    SOLID_CHECK(_rerror, "Error: there should be an error");
 
-    SOLID_CHECK(_rrecv_msg_ptr, "Error: no response message");
-    SOLID_CHECK(not _rerror, "Error sending message: " << _rerror.message());
-
-    idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
-    if (not _rrecv_msg_ptr->check()) {
-        SOLID_THROW("Message check failed.");
-    }
-
-    //cout<< _rmsgptr->str.size()<<'\n';
-    transfered_size += _rrecv_msg_ptr->str.size();
-    ++transfered_count;
-
-    if (!_rrecv_msg_ptr->isBackOnSender()) {
-        SOLID_THROW("Message not back on sender!.");
-    }
-    ++response_count;
     try_stop();
 }
 
@@ -356,20 +319,6 @@ void peerb_complete_message(
 
         SOLID_ASSERT(!err);
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
-
-        for (int i = 0; i < 2 and crtwriteidx < writecount; ++i) {
-            mtx.lock();
-            msgid_vec.emplace_back();
-            auto& back_msg_id = msgid_vec.back();
-            mtx.unlock();
-            err = pmpipcpeera->sendMessage(
-                "localhost/b", std::make_shared<Message>(crtwriteidx++),
-                back_msg_id.first,
-                back_msg_id.second,
-                initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
-
-            SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
-        }
     }
     if (_rsent_msg_ptr) {
         idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
@@ -380,6 +329,7 @@ void peerb_complete_message(
 
 int test_relay_close_request(int argc, char** argv)
 {
+    signal(SIGPIPE, SIG_IGN);
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
     Debug::the().moduleMask("frame_mpipc:view any:view");
@@ -634,9 +584,9 @@ int test_relay_close_request(int argc, char** argv)
             }
         }
 
-        const size_t start_count = 10;
+        const size_t start_count = initarraysize;
 
-        writecount = initarraysize * 2; //start_count;//
+        writecount = initarraysize; //start_count;//
 
         //ensure we have provisioned connections on peerb
         err = mpipcpeerb.createConnectionPool("localhost");
@@ -670,4 +620,3 @@ int test_relay_close_request(int argc, char** argv)
 
     return 0;
 }
-

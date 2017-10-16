@@ -291,6 +291,12 @@ void MessageWriter::doCancel(
             doUnprepareMessageStub(_msgidx);
             break;
         case MessageStub::StateE::RelayedCancelRequest:
+            if (_force) {
+                write_inner_list_.erase(_msgidx);
+                order_inner_list_.erase(_msgidx);
+                doUnprepareMessageStub(_msgidx);
+                return;
+            }
         default:
             SOLID_ASSERT(false);
             return;

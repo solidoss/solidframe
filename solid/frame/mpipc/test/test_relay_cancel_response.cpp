@@ -661,12 +661,6 @@ int test_relay_cancel_response(int argc, char** argv)
             relay_engine.debugDump();
             SOLID_THROW("Process is taking too long.");
         }
-
-        //         if (crtwriteidx != crtackidx) {
-        //             SOLID_THROW("Not all messages were completed");
-        //         }
-
-        //m.stop();
     }
 
     //exiting

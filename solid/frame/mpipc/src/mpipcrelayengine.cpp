@@ -885,7 +885,7 @@ void RelayEngine::doComplete(
         }
     }
     //it happens for canceled relayed messages - see MessageWriter::doWriteRelayedCancelRequest
-    SOLID_ASSERT(false);
+    //SOLID_ASSERT(false);
     _prelay_data->clear();
     impl_->eraseRelayData(_prelay_data);
     idbgx(Debug::mpipc, _rconuid << " message not found " << _rengine_msg_id);
