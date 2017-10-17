@@ -182,7 +182,7 @@ private:
     friend class RelayEngineBase;
     friend class Service;
 
-    static bool notify(Service& _rsvc, const ObjectIdT&, const RelayEngineNotification);
+    static bool notify(Manager& _rm, const ObjectIdT&, const RelayEngineNotification);
 
     Service& service(frame::aio::ReactorContext& _rctx) const;
     ObjectIdT uid(frame::aio::ReactorContext& _rctx) const;

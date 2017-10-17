@@ -216,6 +216,7 @@ using ConnectionIdMapT = std::unordered_map<size_t, size_t>;
 } //namespace
 
 struct RelayEngine::Data {
+    Manager&         rm;
     mutex            mtx_;
     MessageDequeT    msg_dq_;
     RelayDataDequeT  reldata_dq_;
@@ -226,10 +227,16 @@ struct RelayEngine::Data {
     ConnectionIdMapT con_id_umap_;
     SizeTStackT      con_cache_;
 
-    Data()
-        : prelay_data_cache_top_(nullptr)
+    Data(Manager& _rm)
+        : rm(_rm)
+        , prelay_data_cache_top_(nullptr)
         , msg_cache_inner_list_(msg_dq_)
     {
+    }
+
+    Manager& manager() const
+    {
+        return rm;
     }
 
     RelayData* createRelayData(RelayData&& _urd)
@@ -285,8 +292,8 @@ struct RelayEngine::Data {
     }
 };
 //-----------------------------------------------------------------------------
-RelayEngine::RelayEngine()
-    : impl_(make_pimpl<Data>())
+RelayEngine::RelayEngine(Manager& _rm)
+    : impl_(make_pimpl<Data>(_rm))
 {
     idbgx(Debug::mpipc, this);
 }
@@ -296,7 +303,7 @@ RelayEngine::~RelayEngine()
     idbgx(Debug::mpipc, this);
 }
 //-----------------------------------------------------------------------------
-void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
+void RelayEngine::connectionStop(const ObjectIdT& _rconuid)
 {
     unique_lock<mutex> lock(impl_->mtx_);
     size_t             conidx;
@@ -337,7 +344,7 @@ void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
                         SOLID_ASSERT(rsndcon.send_msg_list_.check());
 
                         if (should_notify_connection) {
-                            SOLID_CHECK(notifyConnection(_rsvc, rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
+                            SOLID_CHECK(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
                         }
                     }
                     continue;
@@ -389,7 +396,7 @@ void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
                         rrcvcon.recv_msg_list_.pushBack(msgidx);
 
                         if (should_notify_connection) {
-                            SOLID_CHECK(notifyConnection(_rsvc, rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+                            SOLID_CHECK(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
                         }
                     }
                     continue;
@@ -430,7 +437,7 @@ void RelayEngine::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
     impl_->con_cache_.push(_rconuid.index);
 }
 //-----------------------------------------------------------------------------
-void RelayEngine::connectionRegister(Service& _rsvc, const ObjectIdT& _rconuid, std::string&& _uname)
+void RelayEngine::connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname)
 {
     to_lower(_uname);
     unique_lock<mutex> lock(impl_->mtx_);
@@ -480,7 +487,7 @@ void RelayEngine::connectionRegister(Service& _rsvc, const ObjectIdT& _rconuid, 
     rcon.id_             = _rconuid;
 
     if (not rcon.recv_msg_list_.empty()) {
-        SOLID_CHECK(notifyConnection(_rsvc, rcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+        SOLID_CHECK(notifyConnection(impl_->manager(), rcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
     }
 
     idbgx(Debug::mpipc, _rconuid << " name = " << rcon.name_ << " conidx = " << conidx);
@@ -540,7 +547,6 @@ size_t RelayEngine::doRegisterConnection(std::string&& _uname)
 //-----------------------------------------------------------------------------
 // called by sending connection on new relayed message
 bool RelayEngine::doRelayStart(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     MessageHeader&   _rmsghdr,
     RelayData&&      _rrelmsg,
@@ -605,7 +611,7 @@ bool RelayEngine::doRelayStart(
     rrcvcon.recv_msg_list_.pushBack(msgidx);
 
     if (should_notify_connection and rrcvcon.id_.isValid()) {
-        SOLID_CHECK(notifyConnection(_rsvc, rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+        SOLID_CHECK(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
     }
 
     return true;
@@ -613,7 +619,6 @@ bool RelayEngine::doRelayStart(
 //-----------------------------------------------------------------------------
 // called by sending connection on new relay data for an existing message
 bool RelayEngine::doRelay(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     RelayData&&      _rrelmsg,
     const MessageId& _rrelay_id,
@@ -648,7 +653,7 @@ bool RelayEngine::doRelay(
 
                 if (should_notify_connection) {
                     //idbgx(Debug::mpipc, _rconuid <<" notify receiver connection");
-                    SOLID_CHECK(notifyConnection(_rsvc, rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+                    SOLID_CHECK(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
                 }
             }
         } else {
@@ -668,7 +673,6 @@ bool RelayEngine::doRelay(
 // associtate to the message are swapped (the receiving connection becomes the sending and
 // the sending one becomes receving)
 bool RelayEngine::doRelayResponse(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     MessageHeader&   _rmsghdr,
     RelayData&&      _rrelmsg,
@@ -723,7 +727,7 @@ bool RelayEngine::doRelayResponse(
             SOLID_ASSERT(rrcvcon.send_msg_list_.check());
 
             if (should_notify_connection) {
-                SOLID_CHECK(notifyConnection(_rsvc, rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+                SOLID_CHECK(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
             }
         }
         return true;
@@ -831,7 +835,6 @@ void RelayEngine::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc
 //-----------------------------------------------------------------------------
 // called by receiving connection after using the relay_data
 void RelayEngine::doComplete(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     RelayData*       _prelay_data,
     MessageId const& _rengine_msg_id,
@@ -857,7 +860,7 @@ void RelayEngine::doComplete(
             rsndcon.pdone_relay_data_top_ = _prelay_data;
 
             if (should_notify_connection) {
-                SOLID_CHECK(notifyConnection(_rsvc, rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
+                SOLID_CHECK(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
             }
 
             if (_prelay_data->is_last_) {
@@ -896,7 +899,6 @@ void RelayEngine::doComplete(
 // receiver side, request canceling the message - MessageWriter::Sender::cancelRelayed
 //TODO: add _rmore support as for doComplete
 void RelayEngine::doCancel(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     RelayData*       _prelay_data,
     MessageId const& _rengine_msg_id,
@@ -953,7 +955,7 @@ void RelayEngine::doCancel(
 
                         if (should_notify_connection) {
                             idbgx(Debug::mpipc, _rconuid << " notify recv connection of canceled message " << _rengine_msg_id);
-                            SOLID_CHECK(notifyConnection(_rsvc, rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+                            SOLID_CHECK(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
                         } else {
                             vdbgx(Debug::mpipc, _rconuid << " rcv con " << rrcvcon.id_ << " not notified for message " << _rengine_msg_id);
                         }
@@ -1004,7 +1006,7 @@ void RelayEngine::doCancel(
 
                 if (should_notify_connection) {
                     idbgx(Debug::mpipc, _rconuid << " notify sending connection of canceled message " << _rengine_msg_id);
-                    SOLID_CHECK(notifyConnection(_rsvc, rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
+                    SOLID_CHECK(notifyConnection(impl_->manager(), rsndcon.id_, RelayEngineNotification::DoneData), "Connection should be alive");
                 } else {
                     vdbgx(Debug::mpipc, _rconuid << " snd con not notified for message " << _rengine_msg_id);
                 }

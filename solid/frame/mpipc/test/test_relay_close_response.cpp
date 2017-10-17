@@ -386,7 +386,7 @@ int test_relay_close_response(int argc, char** argv)
         AioSchedulerT             sch_peerb;
         AioSchedulerT             sch_relay;
         frame::Manager            m;
-        frame::mpipc::RelayEngine relay_engine; //before relay service because it must overlive it
+        frame::mpipc::RelayEngine relay_engine(m); //before relay service because it must overlive it
         frame::mpipc::ServiceT    mpipcrelay(m);
         frame::mpipc::ServiceT    mpipcpeera(m);
         frame::mpipc::ServiceT    mpipcpeerb(m);
@@ -442,7 +442,7 @@ int test_relay_close_response(int argc, char** argv)
                     SOLID_CHECK(!_rsent_msg_ptr);
                     idbg("recv register request: " << _rrecv_msg_ptr->str);
 
-                    relay_engine.connectionRegister(_rctx.service(), _rctx.connectionId(), std::move(_rrecv_msg_ptr->str));
+                    relay_engine.connectionRegister(_rctx.connectionId(), std::move(_rrecv_msg_ptr->str));
 
                     _rrecv_msg_ptr->str.clear();
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));

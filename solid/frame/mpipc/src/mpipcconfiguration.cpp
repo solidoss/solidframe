@@ -148,21 +148,20 @@ WriterConfiguration::WriterConfiguration()
     return eng;
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool RelayEngineBase::notifyConnection(Service& _rsvc, const ObjectIdT& _rconuid, const RelayEngineNotification _what)
+bool RelayEngineBase::notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, const RelayEngineNotification _what)
 {
-    return Connection::notify(_rsvc, _rconuid, _what);
+    return Connection::notify(_rm, _rconuid, _what);
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ RelayEngineBase::~RelayEngineBase()
 {
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngineBase::connectionStop(Service& _rsvc, const ObjectIdT& _rconuid)
+/*virtual*/ void RelayEngineBase::connectionStop(const ObjectIdT& _rconuid)
 {
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngineBase::doRelayStart(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     MessageHeader&   _rmsghdr,
     RelayData&&      _urelay_data,
@@ -173,7 +172,6 @@ WriterConfiguration::WriterConfiguration()
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngineBase::doRelayResponse(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     MessageHeader&   _rmsghdr,
     RelayData&&      _urelay_data,
@@ -184,7 +182,6 @@ WriterConfiguration::WriterConfiguration()
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngineBase::doRelay(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     RelayData&&      _urelay_data,
     const MessageId& _rrelay_id,
@@ -194,7 +191,6 @@ WriterConfiguration::WriterConfiguration()
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngineBase::doComplete(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     RelayData* /*_prelay_data*/,
     MessageId const& /*_rengine_msg_id*/,
@@ -205,7 +201,6 @@ WriterConfiguration::WriterConfiguration()
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngineBase::doCancel(
-    Service&         _rsvc,
     const ObjectIdT& _rconuid,
     RelayData* /*_prelay_data*/,
     MessageId const& /*_rengine_msg_id*/,

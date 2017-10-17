@@ -5,17 +5,20 @@ using namespace solid::frame;
 
 namespace {
 
-mpipc::Service& service()
+Manager& manager()
 {
-    static mpipc::Service* psvc = nullptr;
-    return *psvc;
+    static Manager* pmgr = nullptr;
+    return *pmgr;
 }
 
 class Test : public mpipc::RelayEngine {
 public:
-    Test() {}
+    Test()
+        : mpipc::RelayEngine(manager())
+    {
+    }
 
-    bool notifyConnection(mpipc::Service& _rsvc, const ObjectIdT& _rconuid, const mpipc::RelayEngineNotification _what) override
+    bool notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, const mpipc::RelayEngineNotification _what) override
     {
         return true;
     }

@@ -1836,13 +1836,13 @@ void Connection::doCompleteMessage(
     }
 }
 //-----------------------------------------------------------------------------
-/*static*/ bool Connection::notify(Service& _rsvc, const ObjectIdT& _conuid, const RelayEngineNotification _what)
+/*static*/ bool Connection::notify(Manager& _rm, const ObjectIdT& _conuid, const RelayEngineNotification _what)
 {
     switch (_what) {
     case RelayEngineNotification::NewData:
-        return _rsvc.manager().notify(_conuid, connection_event_category.event(ConnectionEvents::RelayNew));
+        return _rm.notify(_conuid, connection_event_category.event(ConnectionEvents::RelayNew));
     case RelayEngineNotification::DoneData:
-        return _rsvc.manager().notify(_conuid, connection_event_category.event(ConnectionEvents::RelayDone));
+        return _rm.notify(_conuid, connection_event_category.event(ConnectionEvents::RelayDone));
     default:
         break;
     }
@@ -1858,7 +1858,7 @@ void Connection::doCompleteRelayed(
     const Configuration& rconfig = service(_rctx).configuration();
     bool                 more    = false;
 
-    rconfig.relayEngine().complete(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, more);
+    rconfig.relayEngine().complete(service(_rctx).id(*this), _prelay_data, _rengine_msg_id, more);
 
     if (more) {
         flags_.set(FlagsE::PollRelayEngine); //set flag
@@ -1883,7 +1883,7 @@ void Connection::doCancelRelayed(
         }
     };
 
-    rconfig.relayEngine().cancel(service(_rctx), service(_rctx).id(*this), _prelay_data, _rengine_msg_id, done_lambda);
+    rconfig.relayEngine().cancel(service(_rctx).id(*this), _prelay_data, _rengine_msg_id, done_lambda);
 
     if (ack_buf_cnt) {
         ackd_buf_count_ += ack_buf_cnt;
@@ -1963,9 +1963,8 @@ bool Connection::doReceiveRelayStart(
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx{service(_rctx), *this};
     RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
-    Service&             rsvc = service(_rctx);
 
-    return config.relayEngine().relayStart(rsvc, uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relayStart(uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doReceiveRelayBody(
@@ -1979,9 +1978,8 @@ bool Connection::doReceiveRelayBody(
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx{service(_rctx), *this};
     RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
-    Service&             rsvc = service(_rctx);
 
-    return config.relayEngine().relay(rsvc, uid(_rctx), std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relay(uid(_rctx), std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doReceiveRelayResponse(
@@ -1996,9 +1994,8 @@ bool Connection::doReceiveRelayResponse(
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx{service(_rctx), *this};
     RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
-    Service&             rsvc = service(_rctx);
 
-    return config.relayEngine().relayResponse(rsvc, uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relayResponse(uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id)

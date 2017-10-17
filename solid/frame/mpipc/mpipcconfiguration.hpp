@@ -179,9 +179,10 @@ protected:
     using DoneFunctionT   = SOLID_FUNCTION<void(RecvBufferPointerT&)>;
     using CancelFunctionT = SOLID_FUNCTION<void(const MessageHeader&)>;
 
+    RelayEngineBase() {}
     virtual ~RelayEngineBase();
 
-    virtual bool notifyConnection(Service& _rsvc, const ObjectIdT& _rconuid, const RelayEngineNotification _what);
+    virtual bool notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, const RelayEngineNotification _what);
 
 private:
     friend class Connection;
@@ -190,13 +191,12 @@ private:
 
     static RelayEngineBase& instance();
 
-    virtual void connectionStop(Service& _rsvc, const ObjectIdT& _rconuid);
+    virtual void connectionStop(const ObjectIdT& _rconuid);
 
     //NOTE: we require _rmsghdr parameter because the relay function
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
     // or copy it in case of multicasts
     virtual bool doRelayStart(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
@@ -204,7 +204,6 @@ private:
         ErrorConditionT& _rerror);
 
     virtual bool doRelayResponse(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
@@ -212,21 +211,18 @@ private:
         ErrorConditionT& _rerror);
 
     virtual bool doRelay(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror);
 
     virtual void doComplete(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         RelayData* /*_prelay_data*/,
         MessageId const& /*_rengine_msg_id*/,
         bool& /*_rmore*/);
 
     virtual void doCancel(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         RelayData* /*_prelay_data*/,
         MessageId const& /*_rengine_msg_id*/,
@@ -251,48 +247,45 @@ private:
         doPollDone(_rconuid, done_fnc, cancel_fnc);
     }
 
-    void complete(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
+    void complete(const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
     {
-        doComplete(_rsvc, _rconuid, _prelay_data, _rengine_msg_id, _rmore);
+        doComplete(_rconuid, _prelay_data, _rengine_msg_id, _rmore);
     }
 
     template <class DF>
-    void cancel(Service& _rsvc, const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, DF& _done_fnc)
+    void cancel(const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, DF& _done_fnc)
     {
         DoneFunctionT done_fnc{std::ref(_done_fnc)};
-        doCancel(_rsvc, _rconuid, _prelay_data, _rengine_msg_id, done_fnc);
+        doCancel(_rconuid, _prelay_data, _rengine_msg_id, done_fnc);
     }
 
     bool relayStart(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         MessageId&       _rrelay_id,
         ErrorConditionT& _rerror)
     {
-        return doRelayStart(_rsvc, _rconuid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelayStart(_rconuid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 
     bool relayResponse(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror)
     {
-        return doRelayResponse(_rsvc, _rconuid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelayResponse(_rconuid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 
     bool relay(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror)
     {
-        return doRelay(_rsvc, _rconuid, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelay(_rconuid, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 };
 

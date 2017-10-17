@@ -25,18 +25,17 @@ struct RelayStub {
 
 class RelayEngine : public RelayEngineBase {
 public:
-    RelayEngine();
+    RelayEngine(Manager& _rm);
     ~RelayEngine();
 
-    void connectionRegister(Service& _rsvc, const ObjectIdT& _rconuid, std::string&& _uname);
+    void connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname);
 
     void debugDump();
 
 protected:
-    void connectionStop(Service& _rsvc, const ObjectIdT& _rconuid) override;
+    void connectionStop(const ObjectIdT& _rconuid) override;
 
     bool doRelayStart(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _rrelmsg,
@@ -44,7 +43,6 @@ protected:
         ErrorConditionT& _rerror) override;
 
     bool doRelayResponse(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _rrelmsg,
@@ -52,21 +50,18 @@ protected:
         ErrorConditionT& _rerror) override;
 
     bool doRelay(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         RelayData&&      _rrelmsg,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror) override;
 
     void doComplete(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         RelayData*       _prelay_data,
         MessageId const& _rengine_msg_id,
         bool&            _rmore) override;
 
     void doCancel(
-        Service&         _rsvc,
         const ObjectIdT& _rconuid,
         RelayData*       _prelay_data,
         MessageId const& _rengine_msg_id,
