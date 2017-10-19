@@ -216,7 +216,7 @@ using ConnectionIdMapT = std::unordered_map<size_t, size_t>;
 } //namespace
 
 struct RelayEngine::Data {
-    Manager&         rm;
+    Manager&         rm_;
     mutex            mtx_;
     MessageDequeT    msg_dq_;
     RelayDataDequeT  reldata_dq_;
@@ -228,7 +228,7 @@ struct RelayEngine::Data {
     SizeTStackT      con_cache_;
 
     Data(Manager& _rm)
-        : rm(_rm)
+        : rm_(_rm)
         , prelay_data_cache_top_(nullptr)
         , msg_cache_inner_list_(msg_dq_)
     {
@@ -236,7 +236,7 @@ struct RelayEngine::Data {
 
     Manager& manager() const
     {
-        return rm;
+        return rm_;
     }
 
     RelayData* createRelayData(RelayData&& _urd)
