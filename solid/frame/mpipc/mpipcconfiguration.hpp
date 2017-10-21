@@ -175,7 +175,7 @@ enum struct RelayEngineNotification {
 class RelayEngineBase {
 
 protected:
-    using PushFunctionT   = SOLID_FUNCTION<bool(RelayData*, const MessageId&, MessageId&, bool&)>;
+    using PushFunctionT   = SOLID_FUNCTION<bool(RelayData*&, const MessageId&, MessageId&, bool&)>;
     using DoneFunctionT   = SOLID_FUNCTION<void(RecvBufferPointerT&)>;
     using CancelFunctionT = SOLID_FUNCTION<void(const MessageHeader&)>;
 

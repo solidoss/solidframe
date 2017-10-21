@@ -762,20 +762,35 @@ void RelayEngine::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_
         RelayData*   pnext       = rmsg.pfront_ ? rmsg.pfront_->pnext_ : nullptr;
 
         if (_try_push_fnc(rmsg.pfront_, MessageId(msgidx, rmsg.unique_), rmsg.receiver_msg_id_, can_retry)) {
-
-            rmsg.pfront_ = pnext;
-
             if (rmsg.pfront_ == nullptr) {
-                rmsg.pback_ = nullptr;
-            }
+                rmsg.pfront_ = pnext;
 
-            //relay data accepted
-            if (rmsg.pfront_) {
-                //message has more data - leave it where it is on the list
+                if (rmsg.pfront_ == nullptr) {
+                    rmsg.pback_ = nullptr;
+                }
+
+                //relay data accepted
+                if (rmsg.pfront_) {
+                    //message has more data - leave it where it is on the list
+                } else {
+                    //message has no more data, move it to front
+                    rcon.recv_msg_list_.erase(msgidx);
+                    rcon.recv_msg_list_.pushFront(msgidx);
+                }
             } else {
-                //message has no more data, move it to front
+                //the connection has received the SendCancel event for the message,
+                //we can now safely delete the message
+                SOLID_ASSERT(not rmsg.pfront_->bufptr_);
+                SOLID_ASSERT(rmsg.sender_con_id_.isInvalid());
+                SOLID_ASSERT(pnext == nullptr);
+
+                rmsg.pfront_->clear();
+                impl_->eraseRelayData(rmsg.pfront_);
+                rmsg.pback_ = nullptr;
                 rcon.recv_msg_list_.erase(msgidx);
-                rcon.recv_msg_list_.pushFront(msgidx);
+                rmsg.clear();
+                impl_->eraseMessage(msgidx);
+                edbgx(Debug::mpipc, _rconuid << " erase msg " << msgidx << " rcv_lst = " << rcon.recv_msg_list_);
             }
         }
         msgidx = prev_msgidx;

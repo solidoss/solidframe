@@ -46,10 +46,10 @@ struct InitStub {
 };
 
 InitStub initarray[] = {
-    {10000000, 0, false}, //
-    {10240000, 0, false}, //
-    {10960000, 0, false}, //
-    {12384000, 0, true}}; //
+    {21000000, 0, false}, //
+    {21240000, 0, false}, //
+    {21960000, 0, false}, //
+    {21384000, 0, true}}; //
 
 using MessageIdT       = std::pair<frame::mpipc::RecipientId, frame::mpipc::MessageId>;
 using MessageIdVectorT = std::deque<MessageIdT>;
@@ -61,6 +61,7 @@ std::atomic<size_t>    writecount(0);
 std::atomic<size_t>    created_count(0);
 std::atomic<size_t>    canceled_count(0);
 std::atomic<size_t>    deleted_count(0);
+std::atomic<size_t>    back_on_sender_count(0);
 size_t                 connection_count(0);
 bool                   running = true;
 mutex                  mtx;
@@ -149,11 +150,6 @@ struct Message : frame::mpipc::Message {
         try_stop();
     }
 
-    bool cancelable() const
-    {
-        return initarray[idx % initarraysize].cancel;
-    }
-
     template <class S>
     void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
     {
@@ -161,15 +157,19 @@ struct Message : frame::mpipc::Message {
         if (S::IsDeserializer) {
             _s.template pushCall(
                 [this](S& _rs, frame::mpipc::ConnectionContext& _rctx, uint64_t _val, ErrorConditionT& _rerr) {
-                    if (cancelable() and this->isBackOnSender()) {
-                        idbg("Cancel message: " << idx << " " << msgid_vec[this->idx].second);
-                        //we're on the peerb,
-                        //we now cancel the message on peer a
-                        pmpipcpeera->forceCloseConnectionPool(
-                            msgid_vec[this->idx].first,
-                            [](frame::mpipc::ConnectionContext& _rctx) {
-                                edbg("Close pool callback");
-                            });
+                    if (this->isBackOnSender()) {
+                        ++back_on_sender_count;
+                        SOLID_ASSERT(back_on_sender_count <= writecount);
+                        if (back_on_sender_count == writecount) {
+                            idbg("Close connection: " << idx << " " << msgid_vec[this->idx].first);
+                            //we're on the peerb,
+                            //we now cancel the message on peer a
+                            pmpipcpeera->forceCloseConnectionPool(
+                                msgid_vec[this->idx].first,
+                                [](frame::mpipc::ConnectionContext& _rctx) {
+                                    edbg("Close pool callback");
+                                });
+                        }
                     }
                 },
                 0,
@@ -241,11 +241,12 @@ void peera_complete_message(
     ErrorConditionT const& _rerror)
 {
     idbg(_rctx.recipientId() << " error: " << _rerror.message());
-    SOLID_CHECK(_rsent_msg_ptr, "Error: no request message");
 
+    SOLID_CHECK(_rsent_msg_ptr, "Error: no request message");
+    SOLID_CHECK(_rerror, "Error there should be an error: " << _rsent_msg_ptr->idx);
     SOLID_CHECK(not _rrecv_msg_ptr, "Error: there should be no response");
+
     ++canceled_count;
-    SOLID_CHECK(_rerror, "Error there should be an error");
 
     try_stop();
 }

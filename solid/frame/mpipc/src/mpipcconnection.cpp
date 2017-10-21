@@ -1438,7 +1438,7 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
         //tried to relay received messages/message parts - but all failed
         //so we need to ack the buffer
         SOLID_ASSERT(recv_buf_.use_count());
-        edbgx(Debug::mpipc, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
+        idbgx(Debug::mpipc, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
 
         if (ackd_buf_count_ == 0) {
             ackd_buf_count_ += _request_buffer_ack_count;
@@ -1611,8 +1611,8 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         ErrorConditionT      error;
         const Configuration& rconfig = service(_rctx).configuration();
         ConnectionContext    conctx(service(_rctx), *this);
-        auto relay_poll_push_lambda = [this, &rconfig](RelayData* _prelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id, bool& _rmore) -> bool {
-            return msg_writer_.enqueue(rconfig.writer, _prelay_data, _rengine_msg_id, _rconn_msg_id, _rmore);
+        auto relay_poll_push_lambda = [this, &rconfig](RelayData*& _rprelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id, bool& _rmore) -> bool {
+            return msg_writer_.enqueue(rconfig.writer, _rprelay_data, _rengine_msg_id, _rconn_msg_id, _rmore);
         };
         //we do a pollPoolForUpdates here because we want to be able to
         //receive a force pool close, even though we are waiting for send.

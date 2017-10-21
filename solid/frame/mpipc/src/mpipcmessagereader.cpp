@@ -165,7 +165,7 @@ void MessageReader::doConsumePacket(
             break;
         case PacketHeader::CommandE::CancelMessage:
             pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
-            vdbgx(Debug::mpipc, "CancelMessage " << message_idx);
+            edbgx(Debug::mpipc, "CancelMessage " << message_idx);
             if (pbufpos and message_idx < message_vec_.size()) {
                 MessageStub& rmsgstub = message_vec_[message_idx];
                 SOLID_ASSERT(rmsgstub.state_ != MessageStub::StateE::NotStarted);
@@ -257,22 +257,22 @@ const char* MessageReader::doConsumeMessage(
                             const ResponseStateE rsp_state = rmsgstub.message_header_.recipient_request_id_.isValid() ? _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id) : ResponseStateE::None;
 
                             if (rsp_state == ResponseStateE::Cancel) {
-                                vdbgx(Debug::mpipc, "Canceled response");
+                                idbgx(Debug::mpipc, "Canceled response");
                                 rmsgstub.state_ = MessageStub::StateE::IgnoreBody;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_.reset();
                             } else if (rsp_state == ResponseStateE::RelayedWait) {
-                                vdbgx(Debug::mpipc, "Relayed response");
+                                idbgx(Debug::mpipc, "Relayed response");
                                 rmsgstub.state_ = MessageStub::StateE::RelayResponse;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_.reset();
                             } else if (_receiver.isRelayDisabled() or rmsgstub.message_header_.url_.empty()) {
-                                vdbgx(Debug::mpipc, "Read Body");
+                                idbgx(Debug::mpipc, "Read Body");
                                 rmsgstub.state_ = MessageStub::StateE::ReadBody;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_->push(rmsgstub.message_ptr_);
                             } else {
-                                vdbgx(Debug::mpipc, "Relay message");
+                                idbgx(Debug::mpipc, "Relay message");
                                 rmsgstub.state_ = MessageStub::StateE::RelayStart;
                                 rmsgstub.deserializer_ptr_->clear();
                                 rmsgstub.deserializer_ptr_.reset();
@@ -284,6 +284,7 @@ const char* MessageReader::doConsumeMessage(
                     _rerror  = rmsgstub.deserializer_ptr_->error();
                     _pbufpos = _pbufend;
                     rmsgstub.clear();
+                    SOLID_ASSERT(false);
                     break;
                 }
             }
@@ -333,9 +334,11 @@ const char* MessageReader::doConsumeMessage(
                             SOLID_ASSERT(false);
                         }
                     } else {
+                        edbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
                         _rerror  = rmsgstub.deserializer_ptr_->error();
                         _pbufpos = _pbufend;
                         rmsgstub.clear();
+                        SOLID_ASSERT(false);
                         break;
                     }
                 } else {
@@ -356,7 +359,7 @@ const char* MessageReader::doConsumeMessage(
             rmsgstub.deserializer_ptr_.reset();
         }
     case MessageStub::StateE::IgnoreBody:
-        vdbgx(Debug::mpipc, "IgnoreBody " << _msgidx);
+        edbgx(Debug::mpipc, "IgnoreBody " << _msgidx);
         ++rmsgstub.packet_count_;
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);

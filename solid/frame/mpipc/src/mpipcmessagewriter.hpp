@@ -114,7 +114,7 @@ public:
 
     bool enqueue(
         WriterConfiguration const& _rconfig,
-        RelayData*                 _prelay_data,
+        RelayData*&                _rprelay_data,
         MessageId const&           _rengine_msg_id,
         MessageId&                 _rconn_msg_id,
         bool&                      _rmore);
@@ -175,7 +175,7 @@ private:
             RelayedBody,
             RelayedWait,
             RelayedCancelRequest,
-            RelayedCancel
+            RelayedCancel,
         };
 
         MessageBundle      msgbundle_;
