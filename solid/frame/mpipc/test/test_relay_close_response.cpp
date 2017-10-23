@@ -46,8 +46,8 @@ struct InitStub {
 };
 
 InitStub initarray[] = {
-    {21000000, 0, false}, //
-    {21240000, 0, false}, //
+    {41000000, 0, false}, //
+    {31240000, 0, false}, //
     {21960000, 0, false}, //
     {21384000, 0, true}}; //
 

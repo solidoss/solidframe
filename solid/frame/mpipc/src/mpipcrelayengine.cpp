@@ -781,8 +781,16 @@ void RelayEngine::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_
                 //the connection has received the SendCancel event for the message,
                 //we can now safely delete the message
                 SOLID_ASSERT(not rmsg.pfront_->bufptr_);
-                SOLID_ASSERT(rmsg.sender_con_id_.isInvalid());
                 SOLID_ASSERT(pnext == nullptr);
+
+                if (rmsg.sender_con_id_.isValid()) {
+                    //we can safely unlink message from sender connection
+                    SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
+
+                    ConnectionStub& rsndcon = impl_->con_dq_[rmsg.sender_con_id_.index];
+
+                    rsndcon.send_msg_list_.erase(msgidx);
+                }
 
                 rmsg.pfront_->clear();
                 impl_->eraseRelayData(rmsg.pfront_);
