@@ -142,26 +142,26 @@ WriterConfiguration::WriterConfiguration()
 }
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-/*static*/ RelayEngineBase& RelayEngineBase::instance()
+/*static*/ RelayEngine& RelayEngine::instance()
 {
-    static RelayEngineBase eng;
+    static RelayEngine eng;
     return eng;
 }
 //-----------------------------------------------------------------------------
-bool RelayEngineBase::notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, const RelayEngineNotification _what)
+bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, const RelayEngineNotification _what)
 {
     return Connection::notify(_rm, _rconuid, _what);
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ RelayEngineBase::~RelayEngineBase()
+/*virtual*/ RelayEngine::~RelayEngine()
 {
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngineBase::connectionStop(const ObjectIdT& _rconuid)
+/*virtual*/ void RelayEngine::stopConnection(const ObjectIdT& _rconuid)
 {
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool RelayEngineBase::doRelayStart(
+/*virtual*/ bool RelayEngine::doRelayStart(
     const ObjectIdT& _rconuid,
     MessageHeader&   _rmsghdr,
     RelayData&&      _urelay_data,
@@ -171,7 +171,7 @@ bool RelayEngineBase::notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, 
     return false;
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool RelayEngineBase::doRelayResponse(
+/*virtual*/ bool RelayEngine::doRelayResponse(
     const ObjectIdT& _rconuid,
     MessageHeader&   _rmsghdr,
     RelayData&&      _urelay_data,
@@ -181,7 +181,7 @@ bool RelayEngineBase::notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, 
     return false;
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ bool RelayEngineBase::doRelay(
+/*virtual*/ bool RelayEngine::doRelay(
     const ObjectIdT& _rconuid,
     RelayData&&      _urelay_data,
     const MessageId& _rrelay_id,
@@ -190,7 +190,7 @@ bool RelayEngineBase::notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, 
     return false;
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngineBase::doComplete(
+/*virtual*/ void RelayEngine::doComplete(
     const ObjectIdT& _rconuid,
     RelayData* /*_prelay_data*/,
     MessageId const& /*_rengine_msg_id*/,
@@ -200,7 +200,7 @@ bool RelayEngineBase::notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, 
     SOLID_THROW("should not be called");
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngineBase::doCancel(
+/*virtual*/ void RelayEngine::doCancel(
     const ObjectIdT& _rconuid,
     RelayData* /*_prelay_data*/,
     MessageId const& /*_rengine_msg_id*/,
@@ -210,12 +210,12 @@ bool RelayEngineBase::notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, 
     SOLID_THROW("should not be called");
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngineBase::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
+/*virtual*/ void RelayEngine::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
 {
     SOLID_THROW("should not be called");
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngineBase::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/)
+/*virtual*/ void RelayEngine::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/)
 {
     SOLID_THROW("should not be called");
 }

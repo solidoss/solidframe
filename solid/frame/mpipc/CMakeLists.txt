@@ -8,7 +8,7 @@ set(Sources
     src/mpipcmessagereader.cpp
     src/mpipcmessagewriter.cpp
     src/mpipcprotocol.cpp
-    src/mpipcrelayengine.cpp
+    src/mpipcrelay.cpp
 )
 
 set(Headers
@@ -23,7 +23,7 @@ set(Headers
     mpipcsocketstub_openssl.hpp
     mpipcsocketstub_plain.hpp
     mpipccompression_snappy.hpp
-    mpipcrelayengine.hpp
+    mpipcrelay.hpp
 )
 
 set(Inlines

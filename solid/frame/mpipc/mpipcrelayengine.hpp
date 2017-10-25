@@ -17,23 +17,32 @@
 namespace solid {
 namespace frame {
 namespace mpipc {
+namespace relay {
 
-struct RelayStub {
-    RelayData  data_;
-    RelayStub* pnext;
+struct ConnectionStubBase{
+    ConnectionStubBase():next_(InvalidIndex()), prev_(InvalidIndex()){}
+    ConnectionStubBase(std::string &&_uname):name_(std::move(_uname)), next_(InvalidIndex()), prev_(InvalidIndex()){}
+    
+    void clear(){
+        name_.clear();
+        next_ = InvalidIndex();
+        prev_ = InvalidIndex();
+    }
+    
+    std::string         name_;
+    size_t              next_;
+    size_t              prev_;
 };
 
-class RelayEngine : public RelayEngineBase {
+class EngineCore : public RelayEngine {
 public:
-    RelayEngine(Manager& _rm);
-    ~RelayEngine();
-
-    void connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname);
-
     void debugDump();
-
+    Manager& manager();
 protected:
-    void connectionStop(const ObjectIdT& _rconuid) override;
+    EngineCore(Manager& _rm);
+    ~EngineCore();
+
+    void stopConnection(const ObjectIdT& _rconuid) override;
 
     bool doRelayStart(
         const ObjectIdT& _rconuid,
@@ -78,6 +87,7 @@ private:
     PimplT<Data> impl_;
 };
 
+} //namespace relay
 } //namespace mpipc
 } //namespace frame
 } //namespace solid

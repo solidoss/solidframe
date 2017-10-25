@@ -179,7 +179,7 @@ protected:
 
 private:
     friend struct ConnectionContext;
-    friend class RelayEngineBase;
+    friend class RelayEngine;
     friend class Service;
 
     static bool notify(Manager& _rm, const ObjectIdT&, const RelayEngineNotification);

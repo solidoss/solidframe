@@ -172,15 +172,15 @@ enum struct RelayEngineNotification {
     DoneData,
 };
 
-class RelayEngineBase {
+class RelayEngine {
 
 protected:
     using PushFunctionT   = SOLID_FUNCTION<bool(RelayData*&, const MessageId&, MessageId&, bool&)>;
     using DoneFunctionT   = SOLID_FUNCTION<void(RecvBufferPointerT&)>;
     using CancelFunctionT = SOLID_FUNCTION<void(const MessageHeader&)>;
 
-    RelayEngineBase() {}
-    virtual ~RelayEngineBase();
+    RelayEngine() {}
+    virtual ~RelayEngine();
 
     virtual bool notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, const RelayEngineNotification _what);
 
@@ -189,9 +189,9 @@ private:
     friend struct Configuration;
     friend class Service;
 
-    static RelayEngineBase& instance();
+    static RelayEngine& instance();
 
-    virtual void connectionStop(const ObjectIdT& _rconuid);
+    virtual void stopConnection(const ObjectIdT& _rconuid);
 
     //NOTE: we require _rmsghdr parameter because the relay function
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
@@ -346,7 +346,7 @@ public:
         : pools_mutex_count(16)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
         , pscheduler(&_rsch)
-        , prelayengine(&RelayEngineBase::instance())
+        , prelayengine(&RelayEngine::instance())
     {
         init();
     }
@@ -354,7 +354,7 @@ public:
     template <class P>
     Configuration(
         AioSchedulerT&      _rsch,
-        RelayEngineBase&    _rrelayengine,
+        RelayEngine&    _rrelayengine,
         std::shared_ptr<P>& _rprotcol_ptr)
         : pools_mutex_count(16)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
@@ -376,7 +376,7 @@ public:
         return *pscheduler;
     }
 
-    RelayEngineBase& relayEngine() const
+    RelayEngine& relayEngine() const
     {
         return *prelayengine;
     }
@@ -514,7 +514,7 @@ private:
 
 private:
     AioSchedulerT*   pscheduler;
-    RelayEngineBase* prelayengine;
+    RelayEngine*     prelayengine;
 
 private:
     friend class Service;

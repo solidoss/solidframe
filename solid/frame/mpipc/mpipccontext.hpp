@@ -32,6 +32,10 @@ namespace mpipc {
 struct Message;
 struct MessageHeader;
 
+namespace relay{
+class Engine;
+}
+
 //! A structure to uniquely indetify an IPC connection pool
 /*!
     <b>Overview:</b><br>
@@ -204,7 +208,7 @@ private:
     friend class Connection;
     friend class MessageWriter;
     friend struct ConnectionPoolStub;
-    friend class RelayEngine;
+    friend class relay::Engine;
 
     friend std::ostream& operator<<(std::ostream& _ros, MessageId const& _msguid);
 

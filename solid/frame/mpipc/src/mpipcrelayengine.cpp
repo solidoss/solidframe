@@ -1,6 +1,6 @@
 // solid/frame/ipc/src/mpipcrelayengine.cpp
 //
-// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com)
+// Copyright (c) 2017 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -24,6 +24,7 @@ using namespace std;
 namespace solid {
 namespace frame {
 namespace mpipc {
+namespace relay {
 //-----------------------------------------------------------------------------
 namespace {
 
@@ -48,8 +49,8 @@ NOTE:
     * receiver connection closes
         * if the message was not completely received, sender connection must send CancelRequest and discard any incomming data
         * if message is waiting for response, sender connection must send CancelRequest
-        * the connection must call RelayEngine::doCompleteClose on all relayed messages in its writer
-        *   then RelayEngine::connectionStop is called.
+        * the connection must call EngineCore::doCompleteClose on all relayed messages in its writer
+        *   then EngineCore::connectionStop is called.
         - Ideas:
             - on doCompleteClose can add _prelay_data back to message list and add the message to the receiver connection message list
             - on connectionStop
@@ -171,10 +172,9 @@ std::ostream& operator<<(std::ostream& _ros, const RecvInnerListT& _rlst)
     return _ros;
 }
 
-struct ConnectionStub {
+struct ConnectionStub: ConnectionStubBase{
     uint32_t       unique_;
     ObjectIdT      id_;
-    string         name_;
     RelayData*     pdone_relay_data_top_;
     SendInnerListT send_msg_list_;
     RecvInnerListT recv_msg_list_;
@@ -188,8 +188,8 @@ struct ConnectionStub {
     }
 
     ConnectionStub(MessageDequeT& _rmsg_dq, std::string&& _uname)
-        : unique_(0)
-        , name_(std::move(_uname))
+        : ConnectionStubBase(std::move(_uname))
+        , unique_(0)
         , pdone_relay_data_top_(nullptr)
         , send_msg_list_(_rmsg_dq)
         , recv_msg_list_(_rmsg_dq)
@@ -199,8 +199,9 @@ struct ConnectionStub {
     void clear()
     {
         ++unique_;
+        
         id_.clear();
-        name_.clear();
+        ConnectionStubBase::clear();
         pdone_relay_data_top_ = nullptr;
         SOLID_ASSERT(send_msg_list_.empty());
         SOLID_ASSERT(recv_msg_list_.empty());
@@ -215,7 +216,7 @@ using ConnectionMapT   = std::unordered_map<const char*, size_t, CStringHash, CS
 using ConnectionIdMapT = std::unordered_map<size_t, size_t>;
 } //namespace
 
-struct RelayEngine::Data {
+struct EngineCore::Data {
     Manager&         rm_;
     mutex            mtx_;
     MessageDequeT    msg_dq_;
@@ -292,18 +293,22 @@ struct RelayEngine::Data {
     }
 };
 //-----------------------------------------------------------------------------
-RelayEngine::RelayEngine(Manager& _rm)
+EngineCore::EngineCore(Manager& _rm)
     : impl_(make_pimpl<Data>(_rm))
 {
     idbgx(Debug::mpipc, this);
 }
 //-----------------------------------------------------------------------------
-RelayEngine::~RelayEngine()
+EngineCore::~EngineCore()
 {
     idbgx(Debug::mpipc, this);
 }
 //-----------------------------------------------------------------------------
-void RelayEngine::connectionStop(const ObjectIdT& _rconuid)
+Manager& EngineCore::manager(){
+    return impl_->manager();
+}
+//-----------------------------------------------------------------------------
+void EngineCore::stopConnection(const ObjectIdT& _rconuid)
 {
     unique_lock<mutex> lock(impl_->mtx_);
     size_t             conidx;
@@ -317,8 +322,12 @@ void RelayEngine::connectionStop(const ObjectIdT& _rconuid)
             conidx = it->second;
         }
     }
-
-    ConnectionStub& rcon = impl_->con_dq_[conidx];
+    doStopConnection(conidx);
+}
+//-----------------------------------------------------------------------------
+void EngineCore::doStopConnection(const size_t _conidx)
+{
+    ConnectionStub& rcon = impl_->con_dq_[_conidx];
     {
         while (rcon.recv_msg_list_.size()) {
             MessageStub& rmsg       = rcon.recv_msg_list_.front();
@@ -417,7 +426,7 @@ void RelayEngine::connectionStop(const ObjectIdT& _rconuid)
         //clean-up done relay data
         RelayData* prd = rcon.pdone_relay_data_top_;
 
-        idbgx(Debug::mpipc, _rconuid << " name = " << rcon.name_ << " conidx = " << conidx);
+        idbgx(Debug::mpipc, rcon.id_ << " name = " << rcon.name_ << " conidx = " << _conidx);
 
         while (prd) {
             RelayData* ptmprd = prd->pnext_;
@@ -426,18 +435,17 @@ void RelayEngine::connectionStop(const ObjectIdT& _rconuid)
             prd = ptmprd;
         }
     }
-
-    if (not rcon.name_.empty()) {
-        impl_->con_umap_.erase(rcon.name_.c_str());
-    }
+    
+    unregisterConnectionName(_conidx, rcon.id_, rcon);
 
     impl_->con_id_umap_.erase(rcon.id_.index);
 
     rcon.clear();
-    impl_->con_cache_.push(_rconuid.index);
+    impl_->con_cache_.push(_conidx);
 }
 //-----------------------------------------------------------------------------
-void RelayEngine::connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname)
+#if 0
+void EngineCore::connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname)
 {
     to_lower(_uname);
     unique_lock<mutex> lock(impl_->mtx_);
@@ -492,8 +500,72 @@ void RelayEngine::connectionRegister(const ObjectIdT& _rconuid, std::string&& _u
 
     idbgx(Debug::mpipc, _rconuid << " name = " << rcon.name_ << " conidx = " << conidx);
 }
+#endif
 //-----------------------------------------------------------------------------
-size_t RelayEngine::doRegisterConnection(const ObjectIdT& _rconuid)
+// must prepare for the following situations:
+// - (1) single name for connection
+// - (2) single name for multiple connections
+// - (3) multiple names for a single connection - multiple layers of relay servers
+
+void EngineCore::registerSingleNameConnection(const ObjectIdT& _rconuid, RegisterSingleNameConnectionProxy &_register_proxy){
+    unique_lock<mutex> lock(impl_->mtx_);
+
+    size_t conidx = InvalidIndex();
+    {
+        //try to find connection by id - the connection might has been used as "sending connection" for
+        //sending a relayed message
+        const auto it = impl_->con_id_umap_.find(_rconuid.index);
+
+        if (it != impl_->con_id_umap_.end()) {
+            const size_t    tmp_conidx = it->second;
+            ConnectionStub& rcon       = impl_->con_dq_[tmp_conidx];
+
+            if (rcon.id_.unique == _rconuid.unique) {
+                conidx = tmp_conidx;
+            }
+        }
+    }
+    
+    size_t nameidx = _register_proxy.find();
+    
+    if(conidx == InvalidIndex()){
+        if(nameidx == InvalidIndex()){
+            //do full registration
+        }else{
+            ConnectionStub& rcon = impl_->con_dq_[nameidx];
+            if(rcon.id_.isInvalid() or rcon.id_ == _rconuid){ 
+                //use the connection already registered by name
+                conidx = nameidx;
+            }else if(_register_proxy.shouldExitIfConnectionExists(conidx, rcon.id_, rcon)){
+                //there already is an active connection with the given name
+                return;
+            }else{
+                //there already is an active connection with the given name but we replace it
+            }
+        }
+    }else if(nameidx != InvalidIndex()){
+        //conflicting situation
+        // - the connection was used for sending relayed messages - thus was registered without a name
+        // - also the name was associated to a connection stub
+        doStopConnection(conidx); 
+        conidx = nameidx;
+    }else{
+        //simply register the name for existing connection
+        _register_proxy.insert(conidx);
+    }
+    
+    {
+        ConnectionStub& rcon = impl_->con_dq_[conidx];
+        rcon.id_             = _rconuid;
+
+        if (not rcon.recv_msg_list_.empty()) {
+            SOLID_CHECK(notifyConnection(impl_->manager(), rcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+        }
+    }
+    idbgx(Debug::mpipc, _rconuid << " name = " << _register_proxy << " conidx = " << conidx);
+}
+//-----------------------------------------------------------------------------
+size_t EngineCore::doRegisterConnection(const ObjectIdT& _rconuid)
 {
     const auto it = impl_->con_id_umap_.find(_rconuid.index);
 
@@ -524,7 +596,7 @@ size_t RelayEngine::doRegisterConnection(const ObjectIdT& _rconuid)
     return conidx;
 }
 //-----------------------------------------------------------------------------
-size_t RelayEngine::doRegisterConnection(std::string&& _uname)
+size_t EngineCore::doRegisterConnection(std::string&& _uname)
 {
     size_t     conidx = InvalidIndex();
     const auto it     = impl_->con_umap_.find(_uname.c_str());
@@ -546,7 +618,7 @@ size_t RelayEngine::doRegisterConnection(std::string&& _uname)
 }
 //-----------------------------------------------------------------------------
 // called by sending connection on new relayed message
-bool RelayEngine::doRelayStart(
+bool EngineCore::doRelayStart(
     const ObjectIdT& _rconuid,
     MessageHeader&   _rmsghdr,
     RelayData&&      _rrelmsg,
@@ -618,7 +690,7 @@ bool RelayEngine::doRelayStart(
 }
 //-----------------------------------------------------------------------------
 // called by sending connection on new relay data for an existing message
-bool RelayEngine::doRelay(
+bool EngineCore::doRelay(
     const ObjectIdT& _rconuid,
     RelayData&&      _rrelmsg,
     const MessageId& _rrelay_id,
@@ -672,7 +744,7 @@ bool RelayEngine::doRelay(
 // after this call, the receiving and sending connections, previously
 // associtate to the message are swapped (the receiving connection becomes the sending and
 // the sending one becomes receving)
-bool RelayEngine::doRelayResponse(
+bool EngineCore::doRelayResponse(
     const ObjectIdT& _rconuid,
     MessageHeader&   _rmsghdr,
     RelayData&&      _rrelmsg,
@@ -738,7 +810,7 @@ bool RelayEngine::doRelayResponse(
 }
 //-----------------------------------------------------------------------------
 // called by the receiver connection on new relay data
-void RelayEngine::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore)
+void EngineCore::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore)
 {
     unique_lock<mutex> lock(impl_->mtx_);
     //TODO: optimize the search
@@ -811,7 +883,7 @@ void RelayEngine::doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_
 // called by sender connection when either
 // have completed relaydata (the receiving connections have sent the data) or
 // have messages canceled by receiving connections
-void RelayEngine::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc)
+void EngineCore::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc)
 {
     unique_lock<mutex> lock(impl_->mtx_);
 
@@ -857,7 +929,7 @@ void RelayEngine::doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc
 }
 //-----------------------------------------------------------------------------
 // called by receiving connection after using the relay_data
-void RelayEngine::doComplete(
+void EngineCore::doComplete(
     const ObjectIdT& _rconuid,
     RelayData*       _prelay_data,
     MessageId const& _rengine_msg_id,
@@ -921,7 +993,7 @@ void RelayEngine::doComplete(
 // sending peer stops/cancels sending the message - MessageReader::Receiver::cancelRelayed
 // receiver side, request canceling the message - MessageWriter::Sender::cancelRelayed
 //TODO: add _rmore support as for doComplete
-void RelayEngine::doCancel(
+void EngineCore::doCancel(
     const ObjectIdT& _rconuid,
     RelayData*       _prelay_data,
     MessageId const& _rengine_msg_id,
@@ -1051,7 +1123,7 @@ void RelayEngine::doCancel(
     }
 }
 //-----------------------------------------------------------------------------
-void RelayEngine::debugDump()
+void EngineCore::debugDump()
 {
     unique_lock<mutex> lock(impl_->mtx_);
     int                i = 0;
@@ -1072,6 +1144,7 @@ void RelayEngine::debugDump()
     }
 }
 //-----------------------------------------------------------------------------
+} //namespace relay
 } //namespace mpipc
 } //namespace frame
 } //namespace solid
