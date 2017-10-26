@@ -5,16 +5,9 @@ using namespace solid::frame;
 
 namespace {
 
-Manager& manager()
-{
-    static Manager* pmgr = nullptr;
-    return *pmgr;
-}
-
 class Test : public mpipc::RelayEngine {
 public:
     Test()
-        : mpipc::RelayEngine(manager())
     {
     }
 

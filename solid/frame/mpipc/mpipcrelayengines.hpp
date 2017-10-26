@@ -19,11 +19,17 @@ namespace frame {
 namespace mpipc {
 namespace relay {
 
-class SingleNameEngine: public EngineCore{
+class SingleNameEngine : public EngineCore {
 public:
     SingleNameEngine(Manager& _rm);
     ~SingleNameEngine();
-    void connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname);
+    ErrorConditionT registerConnection(const ObjectIdT& _rconuid, std::string&& _uname);
+
+private:
+    void unregisterConnectionName(Proxy& _proxy, size_t _conidx) override;
+    size_t registerConnection(Proxy& _proxy, std::string&& _uname) override;
+    std::ostream& print(std::ostream& _ros, const ConnectionStubBase& _rcon) const override;
+
 private:
     struct Data;
     PimplT<Data> impl_;
@@ -33,4 +39,3 @@ private:
 } //namespace mpipc
 } //namespace frame
 } //namespace solid
-

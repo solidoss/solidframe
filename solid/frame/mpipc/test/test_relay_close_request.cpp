@@ -14,7 +14,7 @@
 #include "solid/frame/mpipc/mpipccompression_snappy.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
-#include "solid/frame/mpipc/mpipcrelayengine.hpp"
+#include "solid/frame/mpipc/mpipcrelayengines.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
@@ -383,16 +383,16 @@ int test_relay_close_request(int argc, char** argv)
     }
 
     {
-        AioSchedulerT             sch_peera;
-        AioSchedulerT             sch_peerb;
-        AioSchedulerT             sch_relay;
-        frame::Manager            m;
-        frame::mpipc::RelayEngine relay_engine(m); //before relay service because it must overlive it
-        frame::mpipc::ServiceT    mpipcrelay(m);
-        frame::mpipc::ServiceT    mpipcpeera(m);
-        frame::mpipc::ServiceT    mpipcpeerb(m);
-        frame::aio::Resolver      resolver;
-        ErrorConditionT           err;
+        AioSchedulerT                         sch_peera;
+        AioSchedulerT                         sch_peerb;
+        AioSchedulerT                         sch_relay;
+        frame::Manager                        m;
+        frame::mpipc::relay::SingleNameEngine relay_engine(m); //before relay service because it must overlive it
+        frame::mpipc::ServiceT                mpipcrelay(m);
+        frame::mpipc::ServiceT                mpipcpeera(m);
+        frame::mpipc::ServiceT                mpipcpeerb(m);
+        frame::aio::Resolver                  resolver;
+        ErrorConditionT                       err;
 
         err = sch_peera.start(1);
 
@@ -443,7 +443,7 @@ int test_relay_close_request(int argc, char** argv)
                     SOLID_CHECK(!_rsent_msg_ptr);
                     idbg("recv register request: " << _rrecv_msg_ptr->str);
 
-                    relay_engine.connectionRegister(_rctx.connectionId(), std::move(_rrecv_msg_ptr->str));
+                    relay_engine.registerConnection(_rctx.connectionId(), std::move(_rrecv_msg_ptr->str));
 
                     _rrecv_msg_ptr->str.clear();
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));

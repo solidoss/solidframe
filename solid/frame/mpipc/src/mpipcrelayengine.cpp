@@ -172,9 +172,8 @@ std::ostream& operator<<(std::ostream& _ros, const RecvInnerListT& _rlst)
     return _ros;
 }
 
-struct ConnectionStub: ConnectionStubBase{
+struct ConnectionStub : ConnectionStubBase {
     uint32_t       unique_;
-    ObjectIdT      id_;
     RelayData*     pdone_relay_data_top_;
     SendInnerListT send_msg_list_;
     RecvInnerListT recv_msg_list_;
@@ -199,7 +198,7 @@ struct ConnectionStub: ConnectionStubBase{
     void clear()
     {
         ++unique_;
-        
+
         id_.clear();
         ConnectionStubBase::clear();
         pdone_relay_data_top_ = nullptr;
@@ -215,6 +214,11 @@ using ConnectionDequeT = std::deque<ConnectionStub>;
 using ConnectionMapT   = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
 using ConnectionIdMapT = std::unordered_map<size_t, size_t>;
 } //namespace
+
+std::ostream& operator<<(std::ostream& _ros, const ConnectionPrintStub& _rps)
+{
+    return _rps.re_.print(_ros, _rps.rc_);
+}
 
 struct EngineCore::Data {
     Manager&         rm_;
@@ -291,6 +295,26 @@ struct EngineCore::Data {
     {
         msg_cache_inner_list_.pushBack(_idx);
     }
+
+    size_t createConnection()
+    {
+        size_t conidx;
+        if (con_cache_.size()) {
+            conidx = con_cache_.top();
+            con_cache_.pop();
+        } else {
+            conidx = con_dq_.size();
+            con_dq_.emplace_back(msg_dq_);
+        }
+        return conidx;
+    }
+
+    void eraseConnection(const size_t _conidx)
+    {
+        con_id_umap_.erase(con_dq_[_conidx].id_.index);
+        con_dq_[_conidx].clear();
+        con_cache_.push(_conidx);
+    }
 };
 //-----------------------------------------------------------------------------
 EngineCore::EngineCore(Manager& _rm)
@@ -304,9 +328,11 @@ EngineCore::~EngineCore()
     idbgx(Debug::mpipc, this);
 }
 //-----------------------------------------------------------------------------
-Manager& EngineCore::manager(){
+Manager& EngineCore::manager()
+{
     return impl_->manager();
 }
+
 //-----------------------------------------------------------------------------
 void EngineCore::stopConnection(const ObjectIdT& _rconuid)
 {
@@ -435,137 +461,22 @@ void EngineCore::doStopConnection(const size_t _conidx)
             prd = ptmprd;
         }
     }
-    
-    unregisterConnectionName(_conidx, rcon.id_, rcon);
+    {
+        Proxy proxy(*this);
+        unregisterConnectionName(proxy, _conidx);
+    }
 
-    impl_->con_id_umap_.erase(rcon.id_.index);
-
-    rcon.clear();
-    impl_->con_cache_.push(_conidx);
+    impl_->eraseConnection(_conidx);
 }
 //-----------------------------------------------------------------------------
-#if 0
-void EngineCore::connectionRegister(const ObjectIdT& _rconuid, std::string&& _uname)
+void EngineCore::doExecute(ExecuteFunctionT& _rfnc)
 {
-    to_lower(_uname);
+    Proxy              proxy(*this);
     unique_lock<mutex> lock(impl_->mtx_);
-
-    size_t conidx = InvalidIndex();
-    {
-        const auto it = impl_->con_id_umap_.find(_rconuid.index);
-
-        if (it != impl_->con_id_umap_.end()) {
-            const size_t    tmp_conidx = it->second;
-            ConnectionStub& rcon       = impl_->con_dq_[tmp_conidx];
-
-            if (rcon.id_.unique == _rconuid.unique) {
-                conidx = tmp_conidx;
-            }
-        }
-    }
-    if (not _uname.empty()) {
-        const auto it = impl_->con_umap_.find(_uname.c_str());
-
-        if (it != impl_->con_umap_.end()) {
-            //TODO: see "CONFLICT scenario" below
-            SOLID_ASSERT(conidx == InvalidIndex() or conidx == it->second);
-            conidx = it->second;
-        } else if (conidx != InvalidIndex()) {
-            impl_->con_dq_[conidx].name_                           = std::move(_uname);
-            impl_->con_umap_[impl_->con_dq_[conidx].name_.c_str()] = conidx;
-        } else if (impl_->con_cache_.size()) {
-            conidx = impl_->con_cache_.top();
-            impl_->con_cache_.pop();
-            impl_->con_dq_[conidx].name_                           = std::move(_uname);
-            impl_->con_umap_[impl_->con_dq_[conidx].name_.c_str()] = conidx;
-        } else {
-            conidx = impl_->con_dq_.size();
-            impl_->con_dq_.emplace_back(impl_->msg_dq_, std::move(_uname));
-            impl_->con_umap_[impl_->con_dq_.back().name_.c_str()] = conidx;
-        }
-    } else {
-        //TODO:
-        conidx = doRegisterConnection(_rconuid);
-        SOLID_ASSERT(false);
-    }
-
-    impl_->con_id_umap_[_rconuid.index] = conidx;
-
-    ConnectionStub& rcon = impl_->con_dq_[conidx];
-    rcon.id_             = _rconuid;
-
-    if (not rcon.recv_msg_list_.empty()) {
-        SOLID_CHECK(notifyConnection(impl_->manager(), rcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
-    }
-
-    idbgx(Debug::mpipc, _rconuid << " name = " << rcon.name_ << " conidx = " << conidx);
-}
-#endif
-//-----------------------------------------------------------------------------
-// must prepare for the following situations:
-// - (1) single name for connection
-// - (2) single name for multiple connections
-// - (3) multiple names for a single connection - multiple layers of relay servers
-
-void EngineCore::registerSingleNameConnection(const ObjectIdT& _rconuid, RegisterSingleNameConnectionProxy &_register_proxy){
-    unique_lock<mutex> lock(impl_->mtx_);
-
-    size_t conidx = InvalidIndex();
-    {
-        //try to find connection by id - the connection might has been used as "sending connection" for
-        //sending a relayed message
-        const auto it = impl_->con_id_umap_.find(_rconuid.index);
-
-        if (it != impl_->con_id_umap_.end()) {
-            const size_t    tmp_conidx = it->second;
-            ConnectionStub& rcon       = impl_->con_dq_[tmp_conidx];
-
-            if (rcon.id_.unique == _rconuid.unique) {
-                conidx = tmp_conidx;
-            }
-        }
-    }
-    
-    size_t nameidx = _register_proxy.find();
-    
-    if(conidx == InvalidIndex()){
-        if(nameidx == InvalidIndex()){
-            //do full registration
-        }else{
-            ConnectionStub& rcon = impl_->con_dq_[nameidx];
-            if(rcon.id_.isInvalid() or rcon.id_ == _rconuid){ 
-                //use the connection already registered by name
-                conidx = nameidx;
-            }else if(_register_proxy.shouldExitIfConnectionExists(conidx, rcon.id_, rcon)){
-                //there already is an active connection with the given name
-                return;
-            }else{
-                //there already is an active connection with the given name but we replace it
-            }
-        }
-    }else if(nameidx != InvalidIndex()){
-        //conflicting situation
-        // - the connection was used for sending relayed messages - thus was registered without a name
-        // - also the name was associated to a connection stub
-        doStopConnection(conidx); 
-        conidx = nameidx;
-    }else{
-        //simply register the name for existing connection
-        _register_proxy.insert(conidx);
-    }
-    
-    {
-        ConnectionStub& rcon = impl_->con_dq_[conidx];
-        rcon.id_             = _rconuid;
-
-        if (not rcon.recv_msg_list_.empty()) {
-            SOLID_CHECK(notifyConnection(impl_->manager(), rcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
-        }
-    }
-    idbgx(Debug::mpipc, _rconuid << " name = " << _register_proxy << " conidx = " << conidx);
+    _rfnc(proxy);
 }
 //-----------------------------------------------------------------------------
-size_t EngineCore::doRegisterConnection(const ObjectIdT& _rconuid)
+size_t EngineCore::doRegisterUnnamedConnection(const ObjectIdT& _rconuid)
 {
     const auto it = impl_->con_id_umap_.find(_rconuid.index);
 
@@ -596,23 +507,10 @@ size_t EngineCore::doRegisterConnection(const ObjectIdT& _rconuid)
     return conidx;
 }
 //-----------------------------------------------------------------------------
-size_t EngineCore::doRegisterConnection(std::string&& _uname)
+size_t EngineCore::doRegisterNamedConnection(std::string&& _uname)
 {
-    size_t     conidx = InvalidIndex();
-    const auto it     = impl_->con_umap_.find(_uname.c_str());
-
-    if (it != impl_->con_umap_.end()) {
-        conidx = it->second;
-    } else if (impl_->con_cache_.size()) {
-        conidx = impl_->con_cache_.top();
-        impl_->con_cache_.pop();
-        impl_->con_dq_[conidx].name_                           = std::move(_uname);
-        impl_->con_umap_[impl_->con_dq_[conidx].name_.c_str()] = conidx;
-    } else {
-        conidx = impl_->con_dq_.size();
-        impl_->con_dq_.emplace_back(impl_->msg_dq_, std::move(_uname));
-        impl_->con_umap_[impl_->con_dq_.back().name_.c_str()] = conidx;
-    }
+    Proxy  proxy(*this);
+    size_t conidx = registerConnection(proxy, std::move(_uname));
     idbgx(Debug::mpipc, "name = " << impl_->con_dq_[conidx].name_ << " conidx = " << conidx);
     return conidx;
 }
@@ -639,14 +537,14 @@ bool EngineCore::doRelayStart(
         wdbgx(Debug::mpipc, "relay must be called only on registered connections");
         //CONFLICT scenario:
         //con B sends a message to not existing connection "A"
-        //  a connection stub is crated for "A" with idA1
+        //  a connection stub is created for "A" with idA1
         //unreginstered connection A, sends a message to con "B"
         //  an unnamed connection stub must be created for A with idA2 associated to conIdA
         //connection A wants to register with name "A"
         //  conIdA is associated to stub idA2 and "A" is associated idA1 (CONFLICT)
 
         //return false;
-        snd_conidx = doRegisterConnection(_rconuid);
+        snd_conidx = doRegisterUnnamedConnection(_rconuid);
     } else {
         snd_conidx = it->second;
     }
@@ -661,7 +559,7 @@ bool EngineCore::doRelayStart(
 
     _rrelay_id = MessageId(msgidx, rmsg.unique_);
 
-    const size_t    rcv_conidx = doRegisterConnection(std::move(rmsg.header_.url_));
+    const size_t    rcv_conidx = doRegisterNamedConnection(std::move(rmsg.header_.url_));
     ConnectionStub& rrcvcon    = impl_->con_dq_[rcv_conidx];
     ConnectionStub& rsndcon    = impl_->con_dq_[snd_conidx];
 
@@ -1142,6 +1040,49 @@ void EngineCore::debugDump()
     for (const auto& con : impl_->con_dq_) {
         edbgx(Debug::mpipc, "Con " << i++ << ": " << con.id_ << " name = " << con.name_ << " done = " << con.pdone_relay_data_top_ << " rcvlst = " << con.recv_msg_list_ << " sndlst = " << con.send_msg_list_);
     }
+}
+//-----------------------------------------------------------------------------
+size_t EngineCore::Proxy::createConnection()
+{
+    return re_.impl_->createConnection();
+}
+//-----------------------------------------------------------------------------
+size_t EngineCore::Proxy::findConnection(const ObjectIdT& _rconuid)
+{
+    size_t conidx = InvalidIndex();
+    {
+        const auto it = re_.impl_->con_id_umap_.find(_rconuid.index);
+
+        if (it != re_.impl_->con_id_umap_.end()) {
+            const size_t    tmp_conidx = it->second;
+            ConnectionStub& rcon       = re_.impl_->con_dq_[tmp_conidx];
+
+            if (rcon.id_.unique == _rconuid.unique) {
+                conidx = tmp_conidx;
+            }
+        }
+    }
+    return conidx;
+}
+//-----------------------------------------------------------------------------
+ConnectionStubBase& EngineCore::Proxy::connection(const size_t _idx)
+{
+    return re_.impl_->con_dq_[_idx];
+}
+//-----------------------------------------------------------------------------
+bool EngineCore::Proxy::notifyConnection(const ObjectIdT& _rconuid, const RelayEngineNotification _what)
+{
+    return re_.notifyConnection(re_.manager(), _rconuid, _what);
+}
+//-----------------------------------------------------------------------------
+void EngineCore::Proxy::stopConnection(const size_t _idx)
+{
+    re_.doStopConnection(_idx);
+}
+//-----------------------------------------------------------------------------
+void EngineCore::Proxy::registerConnectionId(const size_t _idx)
+{
+    re_.impl_->con_id_umap_[re_.impl_->con_dq_[_idx].id_.index] = _idx;
 }
 //-----------------------------------------------------------------------------
 } //namespace relay

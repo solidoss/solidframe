@@ -354,7 +354,7 @@ public:
     template <class P>
     Configuration(
         AioSchedulerT&      _rsch,
-        RelayEngine&    _rrelayengine,
+        RelayEngine&        _rrelayengine,
         std::shared_ptr<P>& _rprotcol_ptr)
         : pools_mutex_count(16)
         , protocol_ptr(std::static_pointer_cast<Protocol>(_rprotcol_ptr))
@@ -513,8 +513,8 @@ private:
     void prepare();
 
 private:
-    AioSchedulerT*   pscheduler;
-    RelayEngine*     prelayengine;
+    AioSchedulerT* pscheduler;
+    RelayEngine*   prelayengine;
 
 private:
     friend class Service;
