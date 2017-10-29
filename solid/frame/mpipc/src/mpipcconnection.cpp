@@ -1242,7 +1242,7 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
         //when calling receiveRelayBody which will return false
     };
 
-    config.relayEngine().pollDone(uid(_rctx), done_lambda, cancel_lambda);
+    config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
 
     if (ack_buf_cnt or cancel_remote_msg_vec_.size()) {
         ackd_buf_count_ += ack_buf_cnt;
@@ -1625,7 +1625,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         }
         if (shouldPollRelayEngine()) {
             bool more = false;
-            rconfig.relayEngine().pollNew(uid(_rctx), relay_poll_push_lambda, more);
+            rconfig.relayEngine().pollNew(relay_id_, relay_poll_push_lambda, more);
 
             if (not more) {
                 flags_.reset(FlagsE::PollRelayEngine); //reset flag
@@ -1652,7 +1652,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                 }
                 if (shouldPollRelayEngine()) {
                     bool more = false;
-                    rconfig.relayEngine().pollNew(uid(_rctx), relay_poll_push_lambda, more);
+                    rconfig.relayEngine().pollNew(relay_id_, relay_poll_push_lambda, more);
 
                     if (not more) {
                         flags_.reset(FlagsE::PollRelayEngine); //reset flag
@@ -1858,7 +1858,7 @@ void Connection::doCompleteRelayed(
     const Configuration& rconfig = service(_rctx).configuration();
     bool                 more    = false;
 
-    rconfig.relayEngine().complete(service(_rctx).id(*this), _prelay_data, _rengine_msg_id, more);
+    rconfig.relayEngine().complete(relay_id_, _prelay_data, _rengine_msg_id, more);
 
     if (more) {
         flags_.set(FlagsE::PollRelayEngine); //set flag
@@ -1883,7 +1883,7 @@ void Connection::doCancelRelayed(
         }
     };
 
-    rconfig.relayEngine().cancel(service(_rctx).id(*this), _prelay_data, _rengine_msg_id, done_lambda);
+    rconfig.relayEngine().cancel(relay_id_, _prelay_data, _rengine_msg_id, done_lambda);
 
     if (ack_buf_cnt) {
         ackd_buf_count_ += ack_buf_cnt;
@@ -1964,7 +1964,7 @@ bool Connection::doReceiveRelayStart(
     ConnectionContext    conctx{service(_rctx), *this};
     RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
 
-    return config.relayEngine().relayStart(uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relayStart(uid(_rctx), relay_id_, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doReceiveRelayBody(
@@ -1979,7 +1979,7 @@ bool Connection::doReceiveRelayBody(
     ConnectionContext    conctx{service(_rctx), *this};
     RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
 
-    return config.relayEngine().relay(uid(_rctx), std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relay(relay_id_, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 bool Connection::doReceiveRelayResponse(
@@ -1995,7 +1995,7 @@ bool Connection::doReceiveRelayResponse(
     ConnectionContext    conctx{service(_rctx), *this};
     RelayData            relmsg{recv_buf_, _pbeg, _sz /*, this->uid(_rctx)*/, _is_last};
 
-    return config.relayEngine().relayResponse(uid(_rctx), _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
+    return config.relayEngine().relayResponse(relay_id_, _rmsghdr, std::move(relmsg), _rrelay_id, _rerror);
 }
 //-----------------------------------------------------------------------------
 ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rctx, const MessageHeader& _rmsghdr, MessageId& _rrelay_id)
@@ -2108,6 +2108,16 @@ RecipientId ConnectionContext::recipientId() const
 ObjectIdT ConnectionContext::connectionId() const
 {
     return rservice.manager().id(rconnection);
+}
+//-----------------------------------------------------------------------------
+const UniqueId& ConnectionContext::relayId() const
+{
+    return rconnection.relayId();
+}
+//-----------------------------------------------------------------------------
+void ConnectionContext::relayId(const UniqueId& _relay_id) const
+{
+    rconnection.relayId(_relay_id);
 }
 //-----------------------------------------------------------------------------
 const std::string& ConnectionContext::recipientName() const

@@ -182,7 +182,7 @@ protected:
     RelayEngine() {}
     virtual ~RelayEngine();
 
-    virtual bool notifyConnection(Manager& _rm, const ObjectIdT& _rconuid, const RelayEngineNotification _what);
+    virtual bool notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, const RelayEngineNotification _what);
 
 private:
     friend class Connection;
@@ -191,101 +191,103 @@ private:
 
     static RelayEngine& instance();
 
-    virtual void stopConnection(const ObjectIdT& _rconuid);
+    virtual void stopConnection(const UniqueId& _rrelay_uid);
 
     //NOTE: we require _rmsghdr parameter because the relay function
     // will know if it can move it into _rrelay_data.message_header_ (for unicasts)
     // or copy it in case of multicasts
     virtual bool doRelayStart(
-        const ObjectIdT& _rconuid,
+        const ObjectIdT& _rcon_uid,
+        UniqueId&        _rrelay_uid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         MessageId&       _rrelay_id,
         ErrorConditionT& _rerror);
 
     virtual bool doRelayResponse(
-        const ObjectIdT& _rconuid,
+        const UniqueId&  _rrelay_uid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror);
 
     virtual bool doRelay(
-        const ObjectIdT& _rconuid,
+        const UniqueId&  _rrelay_uid,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror);
 
     virtual void doComplete(
-        const ObjectIdT& _rconuid,
+        const UniqueId& _rrelay_uid,
         RelayData* /*_prelay_data*/,
         MessageId const& /*_rengine_msg_id*/,
         bool& /*_rmore*/);
 
     virtual void doCancel(
-        const ObjectIdT& _rconuid,
+        const UniqueId& _rrelay_uid,
         RelayData* /*_prelay_data*/,
         MessageId const& /*_rengine_msg_id*/,
         DoneFunctionT& /*_done_fnc*/);
 
-    virtual void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
-    virtual void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/);
+    virtual void doPollNew(const UniqueId& _rrelay_uid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/);
+    virtual void doPollDone(const UniqueId& _rrelay_uid, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/);
 
     template <class F>
-    void pollNew(const ObjectIdT& _rconuid, F& _try_push, bool& _rmore)
+    void pollNew(const UniqueId& _rrelay_uid, F& _try_push, bool& _rmore)
     {
         PushFunctionT try_push_fnc{std::ref(_try_push)};
-        doPollNew(_rconuid, try_push_fnc, _rmore);
+        doPollNew(_rrelay_uid, try_push_fnc, _rmore);
     }
 
     template <class DF, class CF>
-    void pollDone(const ObjectIdT& _rconuid, DF& _done_fnc, CF& _cancel_fnc)
+    void pollDone(const UniqueId& _rrelay_uid, DF& _done_fnc, CF& _cancel_fnc)
     {
         DoneFunctionT   done_fnc{std::ref(_done_fnc)};
         CancelFunctionT cancel_fnc{std::ref(_cancel_fnc)};
 
-        doPollDone(_rconuid, done_fnc, cancel_fnc);
+        doPollDone(_rrelay_uid, done_fnc, cancel_fnc);
     }
 
-    void complete(const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
+    void complete(const UniqueId& _rrelay_uid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, bool& _rmore)
     {
-        doComplete(_rconuid, _prelay_data, _rengine_msg_id, _rmore);
+        doComplete(_rrelay_uid, _prelay_data, _rengine_msg_id, _rmore);
     }
 
     template <class DF>
-    void cancel(const ObjectIdT& _rconuid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, DF& _done_fnc)
+    void cancel(const UniqueId& _rrelay_uid, RelayData* _prelay_data, MessageId const& _rengine_msg_id, DF& _done_fnc)
     {
         DoneFunctionT done_fnc{std::ref(_done_fnc)};
-        doCancel(_rconuid, _prelay_data, _rengine_msg_id, done_fnc);
+        doCancel(_rrelay_uid, _prelay_data, _rengine_msg_id, done_fnc);
     }
 
     bool relayStart(
-        const ObjectIdT& _rconuid,
+        const ObjectIdT& _rcon_uid,
+        UniqueId&        _rrelay_uid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         MessageId&       _rrelay_id,
         ErrorConditionT& _rerror)
     {
-        return doRelayStart(_rconuid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelayStart(_rcon_uid, _rrelay_uid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 
     bool relayResponse(
-        const ObjectIdT& _rconuid,
+        const UniqueId&  _rrelay_uid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror)
     {
-        return doRelayResponse(_rconuid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelayResponse(_rrelay_uid, _rmsghdr, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 
     bool relay(
-        const ObjectIdT& _rconuid,
+        const UniqueId&  _rrelay_uid,
         RelayData&&      _urelay_data,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror)
     {
-        return doRelay(_rconuid, std::move(_urelay_data), _rrelay_id, _rerror);
+        return doRelay(_rrelay_uid, std::move(_urelay_data), _rrelay_id, _rerror);
     }
 };
 

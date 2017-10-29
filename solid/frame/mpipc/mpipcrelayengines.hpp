@@ -23,7 +23,7 @@ class SingleNameEngine : public EngineCore {
 public:
     SingleNameEngine(Manager& _rm);
     ~SingleNameEngine();
-    ErrorConditionT registerConnection(const ObjectIdT& _rconuid, std::string&& _uname);
+    ErrorConditionT registerConnection(const ConnectionContext& _rconctx, std::string&& _uname);
 
 private:
     void unregisterConnectionName(Proxy& _proxy, size_t _conidx) override;

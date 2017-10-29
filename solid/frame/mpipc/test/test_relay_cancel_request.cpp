@@ -493,7 +493,7 @@ int test_relay_cancel_request(int argc, char** argv)
                     SOLID_CHECK(!_rsent_msg_ptr);
                     idbg("recv register request: " << _rrecv_msg_ptr->str);
 
-                    relay_engine.registerConnection(_rctx.connectionId(), std::move(_rrecv_msg_ptr->str));
+                    relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->str));
 
                     _rrecv_msg_ptr->str.clear();
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));

@@ -315,10 +315,10 @@ void peerb_complete_message(
             SOLID_ASSERT(false);
             SOLID_THROW("Connection id should not be invalid!");
         }
-        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+        //no need to send back the response
+        //ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        SOLID_ASSERT(!err);
-        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
+        //SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
         idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
@@ -443,7 +443,7 @@ int test_relay_close_request(int argc, char** argv)
                     SOLID_CHECK(!_rsent_msg_ptr);
                     idbg("recv register request: " << _rrecv_msg_ptr->str);
 
-                    relay_engine.registerConnection(_rctx.connectionId(), std::move(_rrecv_msg_ptr->str));
+                    relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->str));
 
                     _rrecv_msg_ptr->str.clear();
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));

@@ -119,6 +119,10 @@ public:
 
     Any<>& any();
 
+    const UniqueId& relayId() const;
+
+    void relayId(const UniqueId& _relay_id);
+
     MessagePointerT fetchRequest(Message const& _rmsg) const;
 
     ConnectionPoolId const& poolId() const;
@@ -386,6 +390,7 @@ private:
     Any<>              any_data_;
     char               socket_emplace_buf_[static_cast<size_t>(ConnectionValues::SocketEmplacementSize)];
     SocketStubPtrT     sock_ptr_;
+    UniqueId           relay_id_;
 };
 
 inline Any<>& Connection::any()
@@ -420,6 +425,16 @@ inline const ErrorConditionT& Connection::error() const
 inline const ErrorCodeT& Connection::systemError() const
 {
     return sys_error_;
+}
+
+inline const UniqueId& Connection::relayId() const
+{
+    return relay_id_;
+}
+
+inline void Connection::relayId(const UniqueId& _relay_id)
+{
+    relay_id_ = _relay_id;
 }
 
 inline Connection* new_connection(

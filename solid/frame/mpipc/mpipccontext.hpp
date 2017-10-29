@@ -262,6 +262,8 @@ struct ConnectionContext {
 
     ObjectIdT connectionId() const;
 
+    const UniqueId& relayId() const;
+
     RecipientId recipientId() const;
 
     const std::string& recipientName() const;
@@ -296,6 +298,8 @@ private:
         return request_id;
     }
 
+    void relayId(const UniqueId& _relay_id) const;
+
 private:
     friend class Connection;
     friend class MessageWriter;
@@ -303,6 +307,7 @@ private:
     friend struct MessageHeader;
     friend struct Message;
     friend class TestEntryway;
+    friend class relay::EngineCore;
 
     Service&       rservice;
     Connection&    rconnection;

@@ -62,19 +62,12 @@ std::ostream& operator<<(std::ostream& _ros, const ConnectionPrintStub& _rps);
 
 class EngineCore : public RelayEngine {
 public:
-    void     debugDump();
-    Manager& manager();
-
-    virtual std::ostream& print(std::ostream& _ros, const ConnectionStubBase& _rcon) const = 0;
-
-protected:
     struct Proxy {
-        size_t createConnection();
-        size_t findConnection(const ObjectIdT& _rconuid);
+        size_t              createConnection();
         ConnectionStubBase& connection(const size_t _idx);
-        bool notifyConnection(const ObjectIdT& _rconuid, const RelayEngineNotification _what);
+        bool notifyConnection(const ObjectIdT& _rrelay_con_uid, const RelayEngineNotification _what);
         void stopConnection(const size_t _idx);
-        void registerConnectionId(const size_t _idx);
+        void registerConnectionId(const ConnectionContext& _rconctx, const size_t _idx);
 
     private:
         friend class EngineCore;
@@ -88,6 +81,12 @@ protected:
         Proxy(Proxy&&)      = delete;
     };
 
+    void     debugDump();
+    Manager& manager();
+
+    virtual std::ostream& print(std::ostream& _ros, const ConnectionStubBase& _rcon) const = 0;
+
+protected:
     EngineCore(Manager& _rm);
     ~EngineCore();
 
@@ -113,47 +112,50 @@ private:
 
     void doExecute(ExecuteFunctionT& _rfnc);
 
-    void stopConnection(const ObjectIdT& _rconuid) final;
+    void stopConnection(const UniqueId& _rrelay_con_uid) final;
 
     void doStopConnection(const size_t _conidx);
 
     bool doRelayStart(
-        const ObjectIdT& _rconuid,
+        const ObjectIdT& _rcon_uid,
+        UniqueId&        _rrelay_con_uid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _rrelmsg,
         MessageId&       _rrelay_id,
         ErrorConditionT& _rerror) final;
 
     bool doRelayResponse(
-        const ObjectIdT& _rconuid,
+        const UniqueId&  _rrelay_con_uid,
         MessageHeader&   _rmsghdr,
         RelayData&&      _rrelmsg,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror) final;
 
     bool doRelay(
-        const ObjectIdT& _rconuid,
+        const UniqueId&  _rrelay_con_uid,
         RelayData&&      _rrelmsg,
         const MessageId& _rrelay_id,
         ErrorConditionT& _rerror) final;
 
     void doComplete(
-        const ObjectIdT& _rconuid,
+        const UniqueId&  _rrelay_con_uid,
         RelayData*       _prelay_data,
         MessageId const& _rengine_msg_id,
         bool&            _rmore) final;
 
     void doCancel(
-        const ObjectIdT& _rconuid,
+        const UniqueId&  _rrelay_con_uid,
         RelayData*       _prelay_data,
         MessageId const& _rengine_msg_id,
         DoneFunctionT&   _done_fnc) final;
 
-    void doPollNew(const ObjectIdT& _rconuid, PushFunctionT& _try_push_fnc, bool& _rmore) final;
-    void doPollDone(const ObjectIdT& _rconuid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc) final;
+    void doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_push_fnc, bool& _rmore) final;
+    void doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc) final;
 
     size_t doRegisterNamedConnection(std::string&& _uname);
-    size_t doRegisterUnnamedConnection(const ObjectIdT& _rconuid);
+    size_t doRegisterUnnamedConnection(const ObjectIdT& _rcon_uid, UniqueId& _rrelay_con_uid);
+
+    void doRegisterConnectionId(const ConnectionContext& _rconctx, const size_t _idx);
 
 private:
     struct Data;

@@ -43,13 +43,13 @@ SingleNameEngine::~SingleNameEngine()
 {
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT SingleNameEngine::registerConnection(const ObjectIdT& _rconuid, std::string&& _uname)
+ErrorConditionT SingleNameEngine::registerConnection(const ConnectionContext& _rconctx, std::string&& _uname)
 {
     SOLID_ASSERT(not _uname.empty());
     ErrorConditionT err;
-    auto lambda = [&_uname, this, &_rconuid, &err](EngineCore::Proxy& _proxy) {
+    auto lambda = [&_uname, this, &_rconctx, &err](EngineCore::Proxy& _proxy) {
 
-        size_t conidx = _proxy.findConnection(_rconuid);
+        size_t conidx = static_cast<size_t>(_rconctx.relayId().index);
 
         size_t nameidx = InvalidIndex();
 
@@ -69,7 +69,7 @@ ErrorConditionT SingleNameEngine::registerConnection(const ObjectIdT& _rconuid, 
                 rcon.name_                           = std::move(_uname);
                 impl_->con_umap_[rcon.name_.c_str()] = conidx;
             } else {
-                if (_proxy.connection(nameidx).id_.isInvalid() or _proxy.connection(nameidx).id_ == _rconuid) {
+                if (_proxy.connection(nameidx).id_.isInvalid() or _proxy.connection(nameidx).id_ == _rconctx.connectionId()) {
                     //use the connection already registered by name
                     conidx = nameidx;
                 } else {
@@ -97,10 +97,10 @@ ErrorConditionT SingleNameEngine::registerConnection(const ObjectIdT& _rconuid, 
         }
 
         ConnectionStubBase& rcon = _proxy.connection(conidx);
-        rcon.id_                 = _rconuid;
-        _proxy.registerConnectionId(conidx);
+        rcon.id_                 = _rconctx.connectionId();
+        _proxy.registerConnectionId(_rconctx, conidx);
 
-        SOLID_CHECK(_proxy.notifyConnection(rcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
+        SOLID_CHECK(_proxy.notifyConnection(_proxy.connection(conidx).id_, RelayEngineNotification::NewData), "Connection should be alive");
     };
 
     to_lower(_uname);
@@ -133,7 +133,7 @@ size_t SingleNameEngine::registerConnection(Proxy& _proxy, std::string&& _uname)
 //-----------------------------------------------------------------------------
 std::ostream& SingleNameEngine::print(std::ostream& _ros, const ConnectionStubBase& _rcon) const /*override*/
 {
-    return _ros << " con.id = " << _rcon.id_ << " con.name = " << _rcon.name_;
+    return _ros << "con.id = " << _rcon.id_ << " con.name = " << _rcon.name_;
 }
 //-----------------------------------------------------------------------------
 } //namespace relay

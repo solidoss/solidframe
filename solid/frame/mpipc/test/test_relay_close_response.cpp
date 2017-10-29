@@ -46,9 +46,9 @@ struct InitStub {
 };
 
 InitStub initarray[] = {
-    {41000000, 0, false}, //
-    {31240000, 0, false}, //
-    {21960000, 0, false}, //
+    {81000000, 0, false}, //
+    {61240000, 0, false}, //
+    {41960000, 0, false}, //
     {21384000, 0, true}}; //
 
 using MessageIdT       = std::pair<frame::mpipc::RecipientId, frame::mpipc::MessageId>;
@@ -443,7 +443,7 @@ int test_relay_close_response(int argc, char** argv)
                     SOLID_CHECK(!_rsent_msg_ptr);
                     idbg("recv register request: " << _rrecv_msg_ptr->str);
 
-                    relay_engine.registerConnection(_rctx.connectionId(), std::move(_rrecv_msg_ptr->str));
+                    relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->str));
 
                     _rrecv_msg_ptr->str.clear();
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));

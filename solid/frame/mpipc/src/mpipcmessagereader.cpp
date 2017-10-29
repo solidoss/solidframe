@@ -359,7 +359,7 @@ const char* MessageReader::doConsumeMessage(
             rmsgstub.deserializer_ptr_.reset();
         }
     case MessageStub::StateE::IgnoreBody:
-        edbgx(Debug::mpipc, "IgnoreBody " << _msgidx);
+        vdbgx(Debug::mpipc, "IgnoreBody " << _msgidx);
         ++rmsgstub.packet_count_;
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _rproto.loadValue(_pbufpos, message_size);
