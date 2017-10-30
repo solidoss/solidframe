@@ -97,7 +97,7 @@ if(OPENSSL_FOUND)
         solid_serialization
         solid_utility
         solid_system
-        snappy
+        ${SNAPPY_LIB}
         ${OPENSSL_LIBRARIES}
         ${SYS_DYNAMIC_LOAD_LIB}
         ${SYS_BASIC_LIBS}
@@ -319,7 +319,7 @@ if(OPENSSL_FOUND)
         solid_serialization
         solid_utility
         solid_system
-        snappy
+        ${SNAPPY_LIB}
         ${OPENSSL_LIBRARIES}
         ${SYS_DYNAMIC_LOAD_LIB}
         ${SYS_BASIC_LIBS}

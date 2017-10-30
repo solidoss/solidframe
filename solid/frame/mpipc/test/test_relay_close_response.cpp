@@ -62,6 +62,7 @@ std::atomic<size_t>    created_count(0);
 std::atomic<size_t>    canceled_count(0);
 std::atomic<size_t>    deleted_count(0);
 std::atomic<size_t>    back_on_sender_count(0);
+std::atomic<size_t>    success_count(0);
 size_t                 connection_count(0);
 bool                   running = true;
 mutex                  mtx;
@@ -80,10 +81,11 @@ bool try_stop()
     //
     edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " deleted_cnt = " << deleted_count);
     if (
-        crtwriteidx >= writecount and canceled_count == writecount and created_count == deleted_count and created_count == 3 * writecount) {
+        crtwriteidx >= writecount and (canceled_count + success_count) == writecount and created_count == deleted_count and created_count == 3 * writecount) {
         unique_lock<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
+        SOLID_CHECK(canceled_count != 0);
         return true;
     }
     return false;
@@ -242,11 +244,15 @@ void peera_complete_message(
 {
     idbg(_rctx.recipientId() << " error: " << _rerror.message());
 
-    SOLID_CHECK(_rsent_msg_ptr, "Error: no request message");
-    SOLID_CHECK(_rerror, "Error there should be an error: " << _rsent_msg_ptr->idx);
-    SOLID_CHECK(not _rrecv_msg_ptr, "Error: there should be no response");
-
-    ++canceled_count;
+    SOLID_CHECK(_rsent_msg_ptr, "Error: there should be a request message");
+    if (_rerror) {
+        SOLID_CHECK(not _rrecv_msg_ptr, "Error: there should be no response");
+        ++canceled_count;
+    } else {
+        ++success_count;
+        SOLID_CHECK(_rrecv_msg_ptr, "Error: there should be a response");
+        SOLID_CHECK(_rrecv_msg_ptr->check());
+    }
 
     try_stop();
 }

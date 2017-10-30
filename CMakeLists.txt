@@ -245,24 +245,27 @@ endif(NOT ON_FOUND)
 #-----------------------------------------------------------------
 
 if(NOT NO_EXTERNAL)
+    include(ExternalProject)
 
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    include(cmake/build_snappy.cmake)
+    
+    include_directories(${CMAKE_BINARY_DIR}/external/include)
+    
     if(EXTERN_PATH STREQUAL "")
         set(EXTERN_PATH "${CMAKE_CURRENT_BINARY_DIR}/external")
-        include(ExternalProject)
-
-        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+        
         include(cmake/build_boost.cmake)
         include(cmake/build_openssl.cmake)
-        include(cmake/build_snappy.cmake)
     else()
         #define dummy targets
         add_custom_target(build_boost)
         add_custom_target(build_openssl)
-        add_custom_target(build_snappy)
+        #add_custom_target(build_snappy)
 
         include(cmake/find_boost.cmake)
         include(cmake/find_openssl.cmake)
-        include(cmake/find_snappy.cmake)
+        #include(cmake/find_snappy.cmake)
 
         message("")
         if(${Boost_FOUND})

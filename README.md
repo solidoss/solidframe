@@ -542,7 +542,8 @@ The header only plugins ensure that solid_frame_mpipc itself does not depend on 
  * [__mpipcconfiguration.hpp__](solid/frame/mpipc/mpipcconfiguration.hpp): Configuration data for mpipc::Service.
 
 __Usefull links__
- * [README](solid/frame/mpipc/README.md)
+ * [MPIPC README](solid/frame/mpipc/README.md)
+ * [MPIPC Relay README](solid/frame/mpipc/README.md#relay_engine)
  * [Tutorial: mpipc_echo](tutorials/mpipc_echo/README.md)
  * [Tutorial: mpipc_request](tutorials/mpipc_request/README.md)
  * [Tutorial: mpipc_request_ssl](tutorials/mpipc_request_ssl/README.md)

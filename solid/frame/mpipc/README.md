@@ -3,7 +3,8 @@
 ## Features
 
  * C++ only (no IDLs) with easy to use **asynchronous API**.
- * A single class (solid::frame::mpipc::Service) for both client and server. An instance of solid::frame::mpipc::Service can act as a client, as a server, or as both.
+ * Supported modes: client, server and relay.
+ * A single class (solid::frame::mpipc::Service) for all modes. An instance of solid::frame::mpipc::Service can act as any combinations of client, server or relay engine.
  * Pluggable - i.e. header only - secure communication support via solid_frame_aio_openssl (wrapper over OpenSSL1.1.0/BoringSSL).
  * Pluggable - i.e. header only - communication compression support via [Snappy](https://google.github.io/snappy/)
  * Pluggable - i.e. header only - protocol based on solid_serialization - a buffer oriented message serialization engine. Thus, messages are serialized (marshaled) one fixed size buffer at a time, further enabling:
@@ -21,7 +22,7 @@
     * __one_shot__: only tries once to send the message.
     * __idempotent__: will try re-sending the message until either successfully sent (i.e. completely left the sending side) or, in case the message awaits a response, until the response was received.
 
-__NOTE__: The header only plugins ensure that solid_frame_mpipc itself does not depend on the libraries the plugins depend on.
+__NOTE__: The header only plugins ensure that solid_frame_mpipc library itself does not depend on the libraries the plugins depend on.
 
 **solid_frame_mpipc** is a peer-to-peer message passing communication library which provides a pure C++ way of implementing communication between two processes. It uses:
  * asynchronous secure/plain TCP connection pools through solid_frame_aio library.
@@ -39,6 +40,16 @@ Here are two examples of Android applications using solid_frame_mpipc to communi
  * [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient) - C++ Linux server + Android client application all using solid_frame_mpipc with secure communication
 
 Both examples implement the communication and application logic in a C++ library and use a JNI (Java Native Interface) _facade_ for interacting with Android Java user interface code.
+
+## <a id="relay_engine"></a>Relay Engine
+
+The relay engine enables transparent message forwarding from one connection to another.
+
+The mpipc library is mostly designed as a message passing fabric for cloud infrastructures. The relay engine, comes from the need to transparently multiplex messages comming from multiple connections on few other (service) connections.
+
+As described above, one advantage the solid_frame_mpipc library has over other message passing implementations is the fact that there is no actual limit on the size of the messages  it transfers. The same rule applies also to relayed messages thus, the relay engine is able to forward messages of any size from one connection to another. Though, not yet tested, there can be a mesh of servers, relaying messages from one connection to another one not necessarily handled by the same relay server.
+
+The aim of the relay support in the MPIPC library, is to enable cloud infrastructures where N client connections can exchage messages with M services, where M<<N (M being up to thousands while N being millions or more).
 
 ## Backlog
 * solid_frame_mpipc: test_unresolved_recipient

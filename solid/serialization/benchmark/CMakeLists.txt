@@ -8,8 +8,6 @@ add_executable(benchmark EXCLUDE_FROM_ALL main.cpp boost/record.cpp solid/record
 
 add_dependencies(benchmark build_boost build_cereal)
 
-include_directories(${CMAKE_BINARY_DIR}/external/include)
-
 target_link_libraries(benchmark
     solid_serialization
     solid_utility

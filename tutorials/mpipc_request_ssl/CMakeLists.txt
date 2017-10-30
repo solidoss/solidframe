@@ -52,7 +52,7 @@ target_link_libraries (tutorial_mpipc_request_ssl_server
     solid_serialization
     solid_utility
     solid_system
-    snappy
+    ${SNAPPY_LIB}
     ${OPENSSL_LIBRARIES}
     ${SYS_BASIC_LIBS}
     ${SYS_DYNAMIC_LOAD_LIB}
@@ -70,7 +70,7 @@ target_link_libraries (tutorial_mpipc_request_ssl_client
     solid_serialization
     solid_utility
     solid_system
-    snappy
+    ${SNAPPY_LIB}
     ${OPENSSL_LIBRARIES}
     ${SYS_BASIC_LIBS}
     ${SYS_DYNAMIC_LOAD_LIB}

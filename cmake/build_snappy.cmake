@@ -1,21 +1,16 @@
-configure_file(cmake/build_wrapper.sh.in build_wrapper.sh @ONLY)
+set(snappy_PREFIX ${CMAKE_BINARY_DIR}/external/snappy)
 
 ExternalProject_Add(
     build_snappy
     EXCLUDE_FROM_ALL 1
-    PREFIX ${EXTERN_PATH}/snappy
-    URL https://github.com/google/snappy/releases/download/1.1.3/snappy-1.1.3.tar.gz
-    CONFIGURE_COMMAND sh ${CMAKE_CURRENT_BINARY_DIR}/build_wrapper.sh ${EXTERN_PATH}/snappy/src/build_snappy/configure --prefix=${EXTERN_PATH} 
-                                           --disable-shared
-                                           --enable-static
-                                           --disable-dependency-tracking
-                                           --disable-gtest
-
-    BUILD_COMMAND sh ${CMAKE_CURRENT_BINARY_DIR}/build_wrapper.sh make all
-    INSTALL_COMMAND sh ${CMAKE_CURRENT_BINARY_DIR}/build_wrapper.sh make install
-    BUILD_IN_SOURCE 1
+    PREFIX ${snappy_PREFIX}
+    URL https://github.com/google/snappy/archive/1.1.7.tar.gz
+    CMAKE_ARGS
+            -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/external -DCMAKE_INSTALL_LIBDIR=lib
     LOG_UPDATE ON
     LOG_CONFIGURE ON
     LOG_BUILD ON
     LOG_INSTALL ON
 )
+
+set(SNAPPY_LIB ${CMAKE_BINARY_DIR}/external/lib/libsnappy.a)
