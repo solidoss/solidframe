@@ -4,7 +4,7 @@ Exemplifies the use of solid_frame_mpipc for relaying messages between connectio
 
 __Source files__
  * Register message definition: [mpipc_relay_echo_register.hpp](mpipc_relay_echo_register.hpp)
- * The relay server: [mpipc_relay_echo_relay.cpp](mpipc_relay_echo_relay.cpp)
+ * The relay server: [mpipc_relay_echo_server.cpp](mpipc_relay_echo_server.cpp)
  * The client: [mpipc_relay_echo_client.cpp](mpipc_relay_echo_client.cpp)
 
 Before continuing with this tutorial, you should:
@@ -92,6 +92,70 @@ struct Message : solid::frame::mpipc::Message {
 
 ## The client implementation
 
+We will skip the instatiation of needed objects (Manager, mpipc::Service, Scheduler, Resolver) as they were presented in previous tutorials. Now we will continue with the configuration of mpipc::Service.
+
+First initializing the protocol:
+```C++
+            auto   proto = frame::mpipc::serialization_v1::Protocol::create();
+            frame::mpipc::Configuration cfg(scheduler, proto);
+
+            proto->registerType<Register>(con_register, 0, 10);
+            proto->registerType<Message>(on_message, 1, 10);
+```
+
+where con_register is a lambda defined as follows:
+```C++
+            auto con_register = [](
+                frame::mpipc::ConnectionContext& _rctx,
+                std::shared_ptr<Register>&       _rsent_msg_ptr,
+                std::shared_ptr<Register>&       _rrecv_msg_ptr,
+                ErrorConditionT const&           _rerror) {
+                SOLID_CHECK(!_rerror);
+
+                if (_rrecv_msg_ptr and _rrecv_msg_ptr->name.empty()) {
+                    auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
+                        idbg("peerb --- enter active error: " << _rerror.message());
+                        return frame::mpipc::MessagePointerT();
+                    };
+                    cout << "Connection registered" << endl;
+                    _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
+                }
+            };
+```
+
+The above lambda is called when receiving the Register response message from the server. It activates the connection (connectionNotifyEnterActiveState(...)) when the server responds with success (the name field of the Register structure is empty).
+
+The "on_message" in the above code snippet is also a lambda, defined as follows:
+
+```C++
+            auto on_message = [&p](
+                frame::mpipc::ConnectionContext& _rctx,
+                std::shared_ptr<Message>&        _rsent_msg_ptr,
+                std::shared_ptr<Message>&        _rrecv_msg_ptr,
+                ErrorConditionT const&           _rerror) {
+
+                if (_rrecv_msg_ptr) {
+                    cout << _rrecv_msg_ptr->name << ": " << _rrecv_msg_ptr->data << endl;
+                    if (!_rsent_msg_ptr) {
+                        //we're on peer - echo back the response
+                        _rrecv_msg_ptr->name = p.name;
+                        ErrorConditionT err  = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+
+                        (void)err;
+                    }
+                }
+            };
+```
+
+It is called:
+ * when receiving a Message from a peer client
+ * when receiving a response Message back on sender
+ * when sending back a response Message
+
+Of interest are only the first two situations:
+ * for both we output to console the message name and data
+ * and for the first case, we send back the response.
+
 
 
 ### Compile
@@ -110,16 +174,16 @@ Now that we have a client application, we need a server to connect to. Let's mov
 
 ```bash
 $ cd solid_frame_tutorials/mpipc_relay_echo
-$ c++ -o mpipc_relay_echo_relay mpipc_relay_echo_relay.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ c++ -o mpipc_relay_echo_relay mpipc_relay_echo_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 
 ## Test
 
-Now that we have the client and the relay server applications, let us test them in a little scenario with two clients and a server.
+Now that we have both the client and the relay server applications, let us test them in a little scenario with two clients and a server.
 
 **Console-1**:
 ```BASH
-$ ./mpipc_relay_echo_relay
+$ ./mpipc_relay_echo_server
 ```
 **Console-2**:
 ```BASH
