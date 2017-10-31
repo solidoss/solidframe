@@ -141,6 +141,25 @@ message_type_id = protocol_index + type_index;
 
 We want to be able to use Secure TCP connections as transport layer.
 
+### Support for relay
+
+**Description**
+
+Transparently exchange messages between connections.
+
+**Test**
+
+* test_relay_basic
+    * same as test_clientserver_basic only that there is an intermediate server relaying the messages
+* test_relay_cancel_request
+    * cancel relayed requests while being sent
+* test_relay_cancel_response
+    * cancel relayed responses while being received
+* test_relay_close_request
+    * close connection while relay requests are being sent
+* test_relay_close_response
+    * close connection while relay responses are being received
+
 ### Support for SOCKS5 and alike
 
 Connections can be started in Raw mode, which means that sending and receiving data on the corresponding socket

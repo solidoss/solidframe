@@ -45,11 +45,14 @@ Both examples implement the communication and application logic in a C++ library
 
 The relay engine enables transparent message forwarding from one connection to another.
 
-The mpipc library is mostly designed as a message passing fabric for cloud infrastructures. The relay engine, comes from the need to transparently multiplex messages comming from multiple connections on few other (service) connections.
+The MPIPC library is mostly designed as a message passing bus for cloud infrastructures. The relay engine, comes from the need to transparently multiplex messages coming from multiple connections on (few) other (service) connections.
 
-As described above, one advantage the solid_frame_mpipc library has over other message passing implementations is the fact that there is no actual limit on the size of the messages  it transfers. The same rule applies also to relayed messages thus, the relay engine is able to forward messages of any size from one connection to another. Though, not yet tested, there can be a mesh of servers, relaying messages from one connection to another one not necessarily handled by the same relay server.
+As described above, one advantage the solid_frame_mpipc library has over other message passing implementations is the fact that there is no actual limit on the size of the messages  it transfers. The same rule applies also to relayed messages thus, the relay engine is able to forward messages of any size from one connection to another. 
+Though, not yet tested, the engine is designed to work in a mesh of nodes which can relay data from one connection to another not necessarily both on the same node.
 
-The aim of the relay support in the MPIPC library, is to enable cloud infrastructures where N client connections can exchage messages with M services, where M<<N (M being up to thousands while N being millions or more).
+The aim of the relay support in the MPIPC library, is to enable cloud infrastructures where (hundreds of) millions of connections can exchange messages with each other. 
+
+Follow the following [tutorial](../../../tutorials/mpipc_relay_echo) for details.
 
 ## Backlog
 * solid_frame_mpipc: test_unresolved_recipient

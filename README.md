@@ -543,7 +543,7 @@ The header only plugins ensure that solid_frame_mpipc itself does not depend on 
 
 __Usefull links__
  * [MPIPC README](solid/frame/mpipc/README.md)
- * [MPIPC Relay README](solid/frame/mpipc/README.md#relay_engine)
+ * [MPIPC Relay](solid/frame/mpipc/README.md#relay_engine)
  * [Tutorial: mpipc_echo](tutorials/mpipc_echo/README.md)
  * [Tutorial: mpipc_request](tutorials/mpipc_request/README.md)
  * [Tutorial: mpipc_request_ssl](tutorials/mpipc_request_ssl/README.md)
