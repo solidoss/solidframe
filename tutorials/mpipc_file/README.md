@@ -559,9 +559,8 @@ For the FileRequest, things are simpler:
 Finally returning to our server's main function, the last code block is one which keeps the server alive until user input:
 
 ```C++
-cout<<"Press any char and ENTER to stop: ";
-char c;
-cin>>c;
+cout<<"Press ENTER to stop: ";
+cin.ignore();
 ```
 ### Compile
 
@@ -584,5 +583,7 @@ localhost:3333 c /home/user/file.txt ./file.txt
 ```
 ## Next
 
-Well, this is the last tutorial for now.
-If solid_frame_mpipc library or solid_frame has captured you attention, start using it and give feedback.
+Next you can learn how to use the relay support from the solid_frame_mpipc library.
+
+ * [MPIPC Relay Echo](../mpipc_relay_echo)
+

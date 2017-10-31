@@ -287,8 +287,7 @@ int main(int argc, char* argv[])
                 cnd.wait(lock);
             }
         } else if (run) {
-            char c;
-            cin >> c;
+            cin.ignore();
         }
         m.stop();
         aiosched.stop();

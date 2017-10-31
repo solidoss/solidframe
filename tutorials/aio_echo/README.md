@@ -240,9 +240,8 @@ Now, lets get back to the main function and instantiate a Talker (a UDP socket) 
 We'll get to the declarations for Listener and Talker below but for now lets finish with the main function by waiting for user input to terminate the application:
 
 ```C++
-    cout<<"Press any key and ENTER to terminate..."<<endl;
-    char c;
-    cin>>c;
+    cout<<"Press ENTER to terminate..."<<endl;
+    cin.ignore();
     return 0;
 }
 ```

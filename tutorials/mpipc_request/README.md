@@ -454,9 +454,8 @@ bool isBackOnSender()const;
 Returning to our server, the last code block is one which keeps the server alive until user input:
 
 ```C++
-cout<<"Press any char and ENTER to stop: ";
-char c;
-cin>>c;
+cout<<"Press ENTER to stop: ";
+cin.ignore();;
 ```
 
 ### Compile

@@ -187,9 +187,8 @@ int main(int argc, char* argv[])
             }
         }
 
-        cout << "Press any char and ENTER to stop: ";
-        char c;
-        cin >> c;
+        cout << "Press ENTER to stop: ";
+        cin.ignore();
     }
     return 0;
 }

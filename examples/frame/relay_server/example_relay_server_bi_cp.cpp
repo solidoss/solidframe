@@ -220,10 +220,8 @@ int main(int argc, char* argv[])
             }
         }
 
-        {
-            char c;
-            cin >> c;
-        }
+        cin.ignore();
+
         async_resolver().stop();
         m.stop();
     }

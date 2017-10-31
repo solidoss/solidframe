@@ -383,9 +383,8 @@ which prints on standard-output the actual port used for listening. This is part
 
 The last code block for the server is one which keeps the server alive until user input:
 ```C++
-cout<<"Press any char and ENTER to stop: ";
-char c;
-cin>>c;
+cout<<"Press ENTER to stop: ";
+cin.ignore();
 ```
 
 ### Compile
@@ -397,7 +396,7 @@ $ c++ -o mpipc_echo_server mpipc_echo_server.cpp -I~/work/extern/include/ -L~/wo
 
 ## Test
 
-Now that we have two applications a client and a server let us test it in a little scenario with two servers and a client.
+Now that we have the client and the server applications, let us test them in a little scenario with two servers and a client.
 
 **Console-1**:
 ```BASH

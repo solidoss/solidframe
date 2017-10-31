@@ -190,9 +190,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    cout << "Press any key and ENTER to terminate..." << endl;
-    char c;
-    cin >> c;
+    cout << "Press ENTER to terminate..." << endl;
+    cin.ignore();
     return 0;
 }
 

@@ -11,7 +11,7 @@ target_link_libraries (tutorial_mpipc_relay_echo_client
     ${SYS_DYNAMIC_LOAD_LIB}
 )
 
-add_executable (tutorial_mpipc_relay_echo_client mpipc_relay_echo_relay.cpp)
+add_executable (tutorial_mpipc_relay_echo_relay mpipc_relay_echo_relay.cpp)
 
 target_link_libraries (tutorial_mpipc_relay_echo_relay
     solid_frame_mpipc

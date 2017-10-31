@@ -304,9 +304,7 @@ int main(int argc, char* argv[])
                 cnd.wait(lock);
             }
         } else {
-            char c;
-            cin >> c;
-            //exit(0);
+            cin.ignore();
         }
 
         //m.stop();
