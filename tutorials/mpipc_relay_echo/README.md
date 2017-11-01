@@ -38,7 +38,7 @@ You will need three source files:
 ## Protocol definition
 
 There are two protocols involved in this tutorial environment:
- * the one between clients and the releay server, used for registering connections onto relay server: Register message
+ * the one between clients and the relay server, used for registering connections onto relay server: Register message
  * the one between clients themselves: Message.
 
 We put the definition of the Register message in a separate header(mpipc_relay_echo_register.hpp) used by both the client and server code:
@@ -92,7 +92,7 @@ struct Message : solid::frame::mpipc::Message {
 
 ## The client implementation
 
-We will skip the instatiation of needed objects (Manager, mpipc::Service, Scheduler, Resolver) as they were presented in previous tutorials. Now we will continue with the configuration of mpipc::Service.
+We will skip the instantiation of needed objects (Manager, mpipc::Service, Scheduler, Resolver) as they were presented in previous tutorials. Now we will continue with the configuration of mpipc::Service.
 
 First initializing the protocol:
 ```C++
@@ -125,7 +125,7 @@ where con_register is a lambda defined as follows:
 
 The above lambda is called when receiving the Register response message from the server. It activates the connection (connectionNotifyEnterActiveState(...)) when the server responds with success (the name field of the Register structure is empty).
 
-The "on_message" in the above code snippet is also a lambda, defined as follows:
+The "on_message" in protocol initialization code snippet is also a lambda, defined as follows:
 
 ```C++
             auto on_message = [&p](
@@ -147,16 +147,70 @@ The "on_message" in the above code snippet is also a lambda, defined as follows:
             };
 ```
 
-It is called:
- * when receiving a Message from a peer client
- * when receiving a response Message back on sender
- * when sending back a response Message
+The captured "p" variable is a data structure with parsed program parameters.
+
+The lambda is called after:
+ * receiving a Message from a peer client
+ * receiving a response Message back on sender
+ * sending back a response Message
 
 Of interest are only the first two situations:
- * for both we output to console the message name and data
+ * on both cases we output to console the message name and data
  * and for the first case, we send back the response.
 
+In order to be able to receive messages from other peers, a client must always stay connected and registered to the server. To activate this behaviour on client, we need to:
+ * register the connection after it was established
+ * create a connection pool with active connections
 
+To register connection after it was established we need to configure mpipc::Service with a callback for connection start event:
+
+```C++
+    cfg.client.connection_start_fnc = on_connection_start;
+```
+where, _on_connection_start_ is a lambda:
+
+```C++
+            auto on_connection_start = [&p](frame::mpipc::ConnectionContext& _rctx) {
+                idbg(_rctx.recipientId());
+
+                auto            msgptr = std::make_shared<Register>(p.name);
+                ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageFlagsE::WaitResponse});
+                SOLID_CHECK(not err, "failed send Register");
+            };
+```
+which instantiates a Register request message and sends it to the server.
+
+To activate a connection pool directed to the server, we need to call the following method after having successfully configured the mpipc::Service:
+
+```C++
+    ipcservice.createConnectionPool(p.server_addr.c_str());
+```
+
+Next we have the loop for reading user input, construct the Message and send it to the server to be relayed to the requested peer:
+
+```C++
+        while (true) {
+            string line;
+            getline(cin, line);
+
+            if (line == "q" or line == "Q" or line == "quit") {
+                break;
+            }
+            {
+                string recipient;
+                size_t offset = line.find(' ');
+                if (offset != string::npos) {
+                    recipient = p.server_addr + '/' + line.substr(0, offset);
+                    ipcservice.sendMessage(recipient.c_str(), make_shared<Message>(p.name, line.substr(offset + 1)), {frame::mpipc::MessageFlagsE::WaitResponse});
+                } else {
+                    cout << "No recipient name specified. E.g:" << endl
+                         << "alpha Some text to send" << endl;
+                }
+            }
+        }
+```
+
+Notable is that now we specify the recipient name of the form "relay_host_addr/peer_name" (e.g. "localhost/alpha", "localhost:4345/alpha"). The _relay_host_addr_ is the address of the relay server while _peer_name_ must be a name registered on the relay server.
 
 ### Compile
 
@@ -168,7 +222,149 @@ Now that we have a client application, we need a server to connect to. Let's mov
 
 ## The relay server implementation
 
+The relay server, listens on a specified port for connections. On a newly created connection, a Register request is received with a given name. The server uses that name to register the connection onto the RelayEngine.
 
+The program will expect none or a single parameter - the address on which the server should listen (default: 0.0.0.0:3333) - and will initialize the following structure:
+
+```C++
+struct Parameters {
+    Parameters()
+        : listener_port("3333")
+        , listener_addr("0.0.0.0")
+    {
+    }
+
+    string listener_port;
+    string listener_addr;
+};
+```
+The main method starts by parsing the program arguments:
+
+```C++
+int main(int argc, char* argv[])
+{
+    Parameters p;
+
+    if (!parseArguments(p, argc, argv))
+        return 0;
+
+```
+
+then, (preferable in a new block), instantiate the needed objects (notable being the relay_engine) and tries to start the scheduler:
+
+```C++
+    {
+        AioSchedulerT                         scheduler;
+        frame::Manager                        manager;
+        frame::mpipc::relay::SingleNameEngine relay_engine(manager); //before relay service because it must outlive it
+        frame::mpipc::ServiceT                ipcservice(manager);
+        ErrorConditionT                       err;
+
+        err = scheduler.start(1);
+
+        if (err) {
+            cout << "Error starting aio scheduler: " << err.message() << endl;
+            return 1;
+        }
+```
+
+next follows a new block for configuring the mpipc::Service:
+
+```C++
+        {
+            auto con_register = [&relay_engine](
+                frame::mpipc::ConnectionContext& _rctx,
+                std::shared_ptr<Register>&       _rsent_msg_ptr,
+                std::shared_ptr<Register>&       _rrecv_msg_ptr,
+                ErrorConditionT const&           _rerror) {
+                SOLID_CHECK(!_rerror);
+                if (_rrecv_msg_ptr) {
+                    SOLID_CHECK(!_rsent_msg_ptr);
+                    idbg("recv register request: " << _rrecv_msg_ptr->name);
+
+                    relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->name));
+
+                    ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+
+                    SOLID_CHECK(!err, "Failed sending register response: " << err.message());
+
+                } else {
+                    SOLID_CHECK(!_rrecv_msg_ptr);
+                    idbg("sent register response");
+                }
+            };
+
+            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            frame::mpipc::Configuration cfg(scheduler, relay_engine, proto);
+
+            proto->registerType<Register>(con_register, 0, 10);
+
+            cfg.server.listener_address_str = p.listener_addr;
+            cfg.server.listener_address_str += ':';
+            cfg.server.listener_address_str += p.listener_port;
+            cfg.relay_enabled = true;
+
+            cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
+
+            err = ipcservice.reconfigure(std::move(cfg));
+
+            if (err) {
+                cout << "Error starting ipcservice: " << err.message() << endl;
+                manager.stop();
+                return 1;
+            }
+            {
+                std::ostringstream oss;
+                oss << ipcservice.configuration().server.listenerPort();
+                cout << "server listens on port: " << oss.str() << endl;
+            }
+        }
+```
+
+the line:
+
+```C++
+    proto->registerType<Register>(con_register, 0, 10);
+```
+
+registers the con_register lambda to be called after a Register request message is received or response was sent back to the client.
+
+All that the con_register lambda does, upon receiving a request, is to register the current, calling connection, onto relay_engine:
+
+```C++
+    relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->name));
+```
+
+and send back the response
+
+```C++
+    ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+
+    SOLID_CHECK(!err, "Failed sending register response: " << err.message());
+```
+
+going back to the configuration code, after configuring the listener, we enable the relay onto the server:
+
+```C++
+    cfg.relay_enabled = true;
+```
+and set Active as the start state for connections:
+
+```C++
+    cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
+```
+
+the last part of the configuration block handles the service _reconfigure_ call and, in case of success, it prints the port on which the server is listening on.
+
+If everything was Ok, the server awaits for the user to press ENTER, and then exits:
+
+```C++
+    cout << "Press ENTER to stop: ";
+        cin.ignore();
+    }//service instantiation block
+    return 0;
+}//main function block
+```
 
 ### Compile
 

@@ -47,11 +47,9 @@ int main(int argc, char* argv[])
         return 0;
 
     {
-
-        AioSchedulerT scheduler;
-
+        AioSchedulerT                         scheduler;
         frame::Manager                        manager;
-        frame::mpipc::relay::SingleNameEngine relay_engine(manager); //before relay service because it must overlive it
+        frame::mpipc::relay::SingleNameEngine relay_engine(manager); //before relay service because it must outlive it
         frame::mpipc::ServiceT                ipcservice(manager);
         ErrorConditionT                       err;
 
@@ -75,7 +73,6 @@ int main(int argc, char* argv[])
 
                     relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->name));
 
-                    _rrecv_msg_ptr->name.clear();
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
                     SOLID_CHECK(!err, "Failed sending register response: " << err.message());

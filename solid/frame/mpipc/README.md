@@ -47,10 +47,10 @@ The relay engine enables transparent message forwarding from one connection to a
 
 The MPIPC library is mostly designed as a message passing bus for cloud infrastructures. The relay engine, comes from the need to transparently multiplex messages coming from multiple connections on (few) other (service) connections.
 
-As described above, one advantage the solid_frame_mpipc library has over other message passing implementations is the fact that there is no actual limit on the size of the messages  it transfers. The same rule applies also to relayed messages thus, the relay engine is able to forward messages of any size from one connection to another. 
+As described above, one advantage the solid_frame_mpipc library has over other message passing implementations is the fact that there is no actual limit on the size of the messages  it transfers. The same rule applies also to relayed messages thus, the relay engine is able to forward messages of any size from one connection to another.
 Though, not yet tested, the engine is designed to work in a mesh of nodes which can relay data from one connection to another not necessarily both on the same node.
 
-The aim of the relay support in the MPIPC library, is to enable cloud infrastructures where (hundreds of) millions of connections can exchange messages with each other. 
+The aim of the relay support in the MPIPC library, is to enable cloud infrastructures where (hundreds of) millions of connections can exchange messages with each other.
 
 Follow the following [tutorial](../../../tutorials/mpipc_relay_echo) for details.
 

@@ -65,9 +65,7 @@ int main(int argc, char* argv[])
         return 0;
 
     {
-
-        AioSchedulerT scheduler;
-
+        AioSchedulerT          scheduler;
         frame::Manager         manager;
         frame::mpipc::ServiceT ipcservice(manager);
         frame::aio::Resolver   resolver;
