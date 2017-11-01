@@ -1,13 +1,5 @@
 # SolidFrame Releases
 
-## Backlog
-
-* solid_frame_consensus: implement Paxos or Raft algorithms over solid_frame_mpipc
-* solid_frame_mpipc: SOCKS5
-* solid_frame_mpipc: test with thousands of connections
-* DOCUMENTAION: API
-* solid_serialization: test agaist ProtoBuf and FlatBuffers
-
 ## Version 2.2
 * (DONE) all: switch from NanoTime to std::chrono
 * (DONE) BUILD: cmake support for clangformat
