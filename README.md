@@ -7,7 +7,6 @@ Cross-platform C++ framework for scalable, asynchronous, distributed application
 |:---|----|
 |master|[![Build Status master](https://travis-ci.org/vipalade/solidframe.svg?branch=master)](https://travis-ci.org/vipalade/solidframe)|
 |work|[![Build Status work](https://travis-ci.org/vipalade/solidframe.svg?branch=work)](https://travis-ci.org/vipalade/solidframe)|
-|mpipc_relay|[![Build Status mpipc_relay](https://travis-ci.org/vipalade/solidframe.svg?branch=mpipc_relay)](https://travis-ci.org/vipalade/solidframe)|
 
 ## License
 
