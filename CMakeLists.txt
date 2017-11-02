@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SolidFrame VERSION 2.2)
+project (SolidFrame VERSION 3.0)
     
 execute_process(
     COMMAND "git" "rev-parse" "HEAD"

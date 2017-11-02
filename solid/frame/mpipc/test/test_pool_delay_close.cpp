@@ -249,7 +249,7 @@ int test_pool_delay_close(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("view");
-    Debug::the().moduleMask("frame_mpipc:ew any:ew");
+    Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -345,7 +345,7 @@ int test_pool_delay_close(int argc, char** argv)
 
             {
                 std::ostringstream oss;
-                oss << mpipcserver.configuration().server.listenerPort();
+                oss << mpipcserver.configuration().server.listenerPort() + 1;
                 server_port = oss.str();
                 idbg("server listens on port: " << server_port);
             }

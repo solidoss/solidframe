@@ -149,7 +149,7 @@ int test_polymorphic(int argc, char* argv[])
 {
 
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("view");
+    Debug::the().levelMask("ew");
     Debug::the().moduleMask("all");
     Debug::the().initStdErr(false, nullptr);
 #endif
