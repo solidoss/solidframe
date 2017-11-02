@@ -215,7 +215,7 @@ void server_complete_message(
 int test_pool_force_close(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
+    Debug::the().levelMask("view");
     Debug::the().moduleMask("frame_mpipc:view any:view");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);

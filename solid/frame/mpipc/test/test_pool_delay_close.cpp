@@ -345,7 +345,7 @@ int test_pool_delay_close(int argc, char** argv)
 
             {
                 std::ostringstream oss;
-                oss << mpipcserver.configuration().server.listenerPort() + 1;
+                oss << mpipcserver.configuration().server.listenerPort() ;
                 server_port = oss.str();
                 idbg("server listens on port: " << server_port);
             }
