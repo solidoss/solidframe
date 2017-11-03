@@ -829,7 +829,7 @@ void Connection::doHandleEventResolve(
             if (this->connect(_rctx, presolvemsg->currentAddress())) {
                 onConnect(_rctx);
             }
-            
+
             presolvemsg->popAddress();
 
             service(_rctx).forwardResolveMessage(poolId(), _revent);
