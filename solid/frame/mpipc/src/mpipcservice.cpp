@@ -2121,7 +2121,6 @@ void Service::forwardResolveMessage(ConnectionPoolId const& _rpoolid, Event& _re
         } else {
             //enough pending connection - cache the addrvec for later use
             rpool.connect_addr_vec = std::move(presolvemsg->addrvec);
-            rpool.connect_addr_vec.pop_back();
         }
     } else {
         unique_lock<std::mutex> lock(impl_->poolMutex(_rpoolid.index));

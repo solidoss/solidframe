@@ -829,10 +829,13 @@ void Connection::doHandleEventResolve(
             if (this->connect(_rctx, presolvemsg->currentAddress())) {
                 onConnect(_rctx);
             }
+            
+            presolvemsg->popAddress();
 
             service(_rctx).forwardResolveMessage(poolId(), _revent);
         } else {
             edbgx(Debug::mpipc, this << ' ' << this->id() << " Empty resolve message");
+            SOLID_ASSERT(false);
             doStop(_rctx, error_connection_resolve);
         }
     } else {
