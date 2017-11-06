@@ -4,12 +4,12 @@ Test build environments:
 * **Linux**:
     * Fedora 26 x86_64 - gcc (GCC) 7.2.1 20170915 (Red Hat 7.2.1-2);
     * Raspbian Linux raspberrypi armv7l - gcc (Raspbian 4.9.2-10) 4.9.2
-    * **Travis**: Ubuntu 14.04 gcc 5.4.1
+    * **Travis**: Ubuntu 14.04 - gcc 5.4.1
 * **macOS**:
-    * 10.13 - TODO
-    * **Travis**: macOS xcode8.3 LLVM version 8.1.0 (clang-802.0.42)
+    * 10.13 - xcode 9.1 - Apple LLVM version 9.0.0 (clang-900.0.38)
+    * **Travis**: Apple LLVM version 8.1.0 (clang-802.0.42)
 * **FreeBSD**:
-    * TrueOS -- TODO
+    * TrueOS - FreeBSD 12.0 - clang version 4.0.0 (based on LLVM 4.0.0)
 
 ## Version 3.0
 * (DONE) solid_frame_mpipc: improve protocol to allow transparent (i.e. not knowing the type of the mesage) message handling - e.g. skipping, relaying.
