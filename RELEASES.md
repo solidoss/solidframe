@@ -1,15 +1,17 @@
 # SolidFrame Releases
 
 Test build environments:
-* Linux - Fedora 26 x86_64: gcc (GCC) 7.2.1 20170915 (Red Hat 7.2.1-2)
-* macOS - 10.13 -- TODO
-* FreeBSD - TrueOS -- TODO
-* Travis: Linux Ubuntu 14.04 gcc 5.4.1
-* Travis: macOS xcode8.3 LLVM version 8.1.0 (clang-802.0.42)
+* **Linux**:
+    * Fedora 26 x86_64 - gcc (GCC) 7.2.1 20170915 (Red Hat 7.2.1-2);
+    * Raspbian Linux raspberrypi armv7l - gcc (Raspbian 4.9.2-10) 4.9.2
+    * **Travis**: Ubuntu 14.04 gcc 5.4.1
+* **macOS**:
+    * 10.13 - TODO
+    * **Travis**: macOS xcode8.3 LLVM version 8.1.0 (clang-802.0.42)
+* **FreeBSD**:
+    * TrueOS -- TODO
 
 ## Version 3.0
-* (DONE) integrate Travis support
-* (DONE) integrate clangformat support
 * (DONE) solid_frame_mpipc: improve protocol to allow transparent (i.e. not knowing the type of the mesage) message handling - e.g. skipping, relaying.
 * (DONE) solid_frame_mpipc: support for generic message relaying: solid::frame::mpipc::relay::Engine. 
 * (DONE) tutorials: mpipc_relay_echo
@@ -17,6 +19,8 @@ Test build environments:
 * (DONE) solid_system: pimpl.h with make_pimpl support
 * (DONE) solid_utility: fix and improve solid::inner::List
 * (DONE) solid_utility: delegate.h
+* (DONE) integrate Travis support
+* (DONE) integrate clangformat support
 
 ## Version 2.2
 * (DONE) all: switch from NanoTime to std::chrono
