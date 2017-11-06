@@ -397,5 +397,5 @@ alpha Some other text sent from beta to alpha
 ## Next
 
 Well, this is the last tutorial for now.
-If solid_frame_mpipc library or solid_frame has captured your attention, start using it and give feedback.
+If solid_frame_mpipc library or solid_frame has captured your attention, start using it and/or give feedback.
 

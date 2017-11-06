@@ -418,7 +418,6 @@ On the client you will see that the text is immediately received back from :3333
 
 ## Next
 
-Now that you have some idea about the solid_frame_mpipc library and you are still interested of its capabilities you can further check the next tutorials:
+Now that you have some idea about the solid_frame_mpipc library and you are still interested of its capabilities you can further check the next tutorial on solid_frame_mpipc library:
 
  * [MPIPC Request](../mpipc_request)
- * [MPIPC File](../mpipc_file)

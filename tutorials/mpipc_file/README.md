@@ -583,7 +583,7 @@ localhost:3333 c /home/user/file.txt ./file.txt
 ```
 ## Next
 
-Next you can learn how to use the relay support from the solid_frame_mpipc library.
+Next you can learn how to use the relay support from the solid_frame_mpipc library:
 
  * [MPIPC Relay Echo](../mpipc_relay_echo)
 
