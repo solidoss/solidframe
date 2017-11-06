@@ -17,15 +17,9 @@
 #include <cassert>
 
 #define SOLID_ASSERT(a) assert((a))
-#define SOLID_VERIFY(a) assert((a))
 
 #else
-inline bool dummy(bool _b)
-{
-    return _b;
-}
 #define SOLID_ASSERT(a)
-#define SOLID_VERIFY(a) dummy((a))
 
 #endif
 

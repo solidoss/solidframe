@@ -813,14 +813,14 @@ void EngineCore::doComplete(
     SOLID_ASSERT(_prelay_data);
 
     if (_rengine_msg_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
-        const size_t msgidx = _rengine_msg_id.index;
-        MessageStub& rmsg   = impl_->msg_dq_[msgidx];
+        const size_t    msgidx  = _rengine_msg_id.index;
+        MessageStub&    rmsg    = impl_->msg_dq_[msgidx];
+        ConnectionStub& rrcvcon = impl_->con_dq_[rmsg.receiver_con_id_.index]; //the connection currently calling this method
 
         if (rmsg.sender_con_id_.isValid()) {
             SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
 
             ConnectionStub& rsndcon                  = impl_->con_dq_[rmsg.sender_con_id_.index];
-            ConnectionStub& rrcvcon                  = impl_->con_dq_[rmsg.receiver_con_id_.index]; //the connection currently calling this method
             bool            should_notify_connection = rsndcon.pdone_relay_data_top_ == nullptr;
 
             _prelay_data->pnext_          = rsndcon.pdone_relay_data_top_;
@@ -853,6 +853,8 @@ void EngineCore::doComplete(
             idbgx(Debug::mpipc, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
             return;
         }
+        _rmore = rrcvcon.recv_msg_list_.size() and rrcvcon.recv_msg_list_.back().hasData();
+        idbgx(Debug::mpipc, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
     }
     //it happens for canceled relayed messages - see MessageWriter::doWriteRelayedCancelRequest
     _prelay_data->clear();

@@ -1654,8 +1654,8 @@ bool Service::fetchCanceledMessage(Connection const& _rcon, MessageId const& _rm
     if (
         _rmsg_id.index < rpool.msgvec.size() and rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
         MessageStub& rmsgstub = rpool.msgvec[_rmsg_id.index];
-        SOLID_ASSERT(Message::is_canceled(rmsgstub.msgbundle.message_flags));
         SOLID_ASSERT(not rpool.msgorder_inner_list.contains(_rmsg_id.index));
+        //rmsgstub.msgbundle.message_flags.set(MessageFlagsE::Canceled);
         _rmsg_bundle = std::move(rmsgstub.msgbundle);
         rmsgstub.clear();
         rpool.msgcache_inner_list.pushBack(_rmsg_id.index);

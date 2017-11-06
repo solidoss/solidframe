@@ -104,7 +104,9 @@ void Device::close()
 #ifdef SOLID_ON_WINDOWS
         CloseHandle(desc);
 #else
-        SOLID_VERIFY(!::close(desc));
+        if (::close(desc) != 0) {
+            SOLID_ASSERT(errno != EBADF);
+        }
 #endif
         desc = invalidDescriptor();
     }
@@ -114,9 +116,9 @@ void Device::flush()
 {
     SOLID_ASSERT(ok());
 #ifdef SOLID_ON_WINDOWS
-    SOLID_VERIFY(FlushFileBuffers(desc));
+    FlushFileBuffers(desc);
 #else
-    SOLID_VERIFY(!fsync(desc));
+    fsync(desc);
 #endif
 }
 
