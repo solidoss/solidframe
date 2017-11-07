@@ -372,12 +372,25 @@ struct ConnectionPoolStub {
         SOLID_ASSERT(msgorder_inner_list.check());
     }
 
-    void eraseMessage(const size_t _msg_idx)
+    void eraseMessageOrder(const size_t _msg_idx)
     {
         idbgx(Debug::mpipc, "msgorder_inner_list " << msgorder_inner_list);
         msgorder_inner_list.erase(_msg_idx);
         SOLID_ASSERT(msgorder_inner_list.check());
     }
+
+    void eraseMessageOrderAsync(const size_t _msg_idx)
+    {
+        idbgx(Debug::mpipc, "msgorder_inner_list " << msgorder_inner_list);
+        msgorder_inner_list.erase(_msg_idx);
+        const MessageStub& rmsgstub(msgvec[_msg_idx]);
+        if (Message::is_asynchronous(rmsgstub.msgbundle.message_flags)) {
+            SOLID_ASSERT(msgasync_inner_list.contains(_msg_idx));
+            msgasync_inner_list.erase(_msg_idx);
+        }
+        SOLID_ASSERT(msgorder_inner_list.check());
+    }
+
     void clearPopAndCacheMessage(const size_t _msg_idx)
     {
         idbgx(Debug::mpipc, "msgorder_inner_list " << msgorder_inner_list);
@@ -957,9 +970,17 @@ ErrorConditionT Service::doSendMessage(
         rpool.isCleaningOneShotMessages() and Message::is_one_shot(_flags)) {
         success = manager().notify(
             rpool.main_connection_id,
-            Connection::eventNewMessage(msgid));
+            Connection::eventCancelPoolMessage(msgid));
 
-        SOLID_ASSERT(success);
+        if (success) {
+            vdbgx(Debug::mpipc, this << " message " << msgid << " from pool " << pool_idx << " sent for canceling to " << rpool.main_connection_id);
+            //erase/unlink the message from any list
+            if (rpool.msgorder_inner_list.contains(msgid.index)) {
+                rpool.eraseMessageOrderAsync(msgid.index);
+            }
+        } else {
+            SOLID_THROW("Message Cancel connection not available");
+        }
     }
 
     if (
@@ -1142,8 +1163,7 @@ bool Service::doTryPushMessageToConnection(
 
             rmsgstub.objid = _robjuid;
 
-            rpool.msgorder_inner_list.erase(_msg_idx);
-            idbgx(Debug::mpipc, this << " msgorder_inner_list = " << rpool.msgorder_inner_list);
+            rpool.eraseMessageOrder(_msg_idx);
 
             if (message_is_asynchronous) {
                 rpool.msgasync_inner_list.erase(_msg_idx);
@@ -1156,8 +1176,7 @@ bool Service::doTryPushMessageToConnection(
 
         if (success and not message_is_null) {
 
-            rpool.msgorder_inner_list.erase(_msg_idx);
-            idbgx(Debug::mpipc, this << " msgorder_inner_list = " << rpool.msgorder_inner_list);
+            rpool.eraseMessageOrder(_msg_idx);
 
             if (message_is_asynchronous) {
                 rpool.msgasync_inner_list.erase(_msg_idx);
@@ -1506,12 +1525,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
                     vdbgx(Debug::mpipc, this << " message " << _rmsg_id << " from pool " << pool_idx << " sent for canceling to " << rpool.main_connection_id);
                     //erase/unlink the message from any list
                     if (rpool.msgorder_inner_list.contains(_rmsg_id.index)) {
-                        rpool.msgorder_inner_list.erase(_rmsg_id.index);
-                        idbgx(Debug::mpipc, this << " msgorder_inner_list = " << rpool.msgorder_inner_list);
-                        if (Message::is_asynchronous(rmsgstub.msgbundle.message_flags)) {
-                            SOLID_ASSERT(rpool.msgasync_inner_list.contains(_rmsg_id.index));
-                            rpool.msgasync_inner_list.erase(_rmsg_id.index);
-                        }
+                        rpool.eraseMessageOrderAsync(_rmsg_id.index);
                     }
                 } else {
                     SOLID_THROW("Message Cancel connection not available");
@@ -1654,9 +1668,14 @@ bool Service::fetchCanceledMessage(Connection const& _rcon, MessageId const& _rm
     if (
         _rmsg_id.index < rpool.msgvec.size() and rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
         MessageStub& rmsgstub = rpool.msgvec[_rmsg_id.index];
-        SOLID_ASSERT(not rpool.msgorder_inner_list.contains(_rmsg_id.index));
+
+        if (rpool.msgorder_inner_list.contains(_rmsg_id.index)) {
+            rpool.eraseMessageOrderAsync(_rmsg_id.index);
+        }
+
         //rmsgstub.msgbundle.message_flags.set(MessageFlagsE::Canceled);
         _rmsg_bundle = std::move(rmsgstub.msgbundle);
+
         rmsgstub.clear();
         rpool.msgcache_inner_list.pushBack(_rmsg_id.index);
         return true;
