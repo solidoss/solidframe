@@ -1,8 +1,8 @@
-# solid_frame_mpipc: Message Passing Inter-Process Communication Engine
+# solid_frame_mpipc: Message Passing - Inter Process Communication Engine
 
 ## Features
 
- * C++ only (no IDLs) with easy to use **asynchronous API**.
+ * C++ only (no IDLs/proto files) with easy to use **asynchronous API**.
  * Supported modes: client, server and relay.
  * A single class (solid::frame::mpipc::Service) for all modes. An instance of solid::frame::mpipc::Service can act as any combinations of client, server or relay engine.
  * Pluggable - i.e. header only - secure communication support via solid_frame_aio_openssl (wrapper over OpenSSL1.1.0/BoringSSL).
@@ -15,7 +15,7 @@
     * For higher throughput one can increase this limit in mpipc::Service's configuration.
  * Rescale up after a network failure.
  * Messages can be any of the following types:
-    * __basic__: normal behavior
+    * __basic__: normal behavior, i.e.:
         * In case of network failures, the library will keep on trying to send the message until the message has Started to be sent.
         * If, while sending the message, there is a network failure the library will complete it immediately and not try to resend it.
     * __synchronous__: all synchronous messages are sent one after another.
@@ -29,7 +29,7 @@ __NOTE__: The header only plugins ensure that solid_frame_mpipc library itself d
  * a serialization protocol based on solid_serialization library.
 
 Thus, solid_frame_mpipc differs from other implementations by:
- * not needing a message pre-processor for marshaling (as does: Google protobuf) - you specify how a message gets marshaled using simple C++ code (something similar to boost-serialization).
+ * not needing a message pre-processor for marshaling (as does: Google protobuf) - you specify how a message gets marshaled using simple C++ code (something similar to boost-serialization, see below).
  * not needing a pre-processor for creating client server stubs (Apache thrift) - you just instantiate a frame::mpipc::ServiceT allong with its dependencies and configure it.
 
 The downside is that solid_frame_mpipc will always be a C++ only library while the above alternatives (protobuf & thrift) can be used from multiple languages.
@@ -40,6 +40,17 @@ Here are two examples of Android applications using solid_frame_mpipc to communi
  * [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient) - C++ Linux server + Android client application all using solid_frame_mpipc with secure communication
 
 Both examples implement the communication and application logic in a C++ library and use a JNI (Java Native Interface) _facade_ for interacting with Android Java user interface code.
+
+### Serialization Engine
+
+The default pluggable serialization engine is based on solid_serialization library, which as specified earlier, resembles somehow boost_serialization/cereal libraries. The main difference, though comes from the fact that solid_serialization is asynchronous enabled while others are synchronous.
+Synchronous serializers mean that a message can be started to be deserialized (e.g. reconstructed on peer process) only after the entire serialization data is present. Let us think for a moment what that mean in case of IPC:
+ * every message must be sent synchronously, one after the other.
+ * message serialization data size cannot exceed the RAM available to the process (we can write the data to a file stream and deserialize it from there but I do not see this a feasible idea).
+ 
+With an asynchronous serialization engine, though, a message gets deserialized one fixed data buffer at a time, this enabling:
+ * the possibility to send multiple multiplexed messages over a single connection.
+ * the possibility to specify streams as serialization items: an input stream on the sending side and an output one on the receiver - the stream IO error being handled by the engine (follow this [tutorial](../../../tutorials/mpipc_file) for more details).
 
 ## <a id="relay_engine"></a>Relay Engine
 

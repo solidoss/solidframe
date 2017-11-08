@@ -527,7 +527,7 @@ Work in progress: The library extends solid_frame_aio with support for Secure So
 
 ### <a id="solid_frame_mpipc"></a>solid_frame_mpipc
 
-Message Passing Inter Process Communication library:
+Message Passing - Inter Process Communication library:
  * Pluggable - i.e. header only - protocol based on solid_serialization.
  * Pluggable - i.e. header only - support for secure communication via solid_frame_aio_openssl.
  * Pluggable - i.e. header only - support for communication compression via Snappy.
