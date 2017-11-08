@@ -63,7 +63,7 @@ Though, not yet tested, the engine is designed to work in a mesh of nodes which 
 
 The aim of the relay support in the MPIPC library, is to enable cloud infrastructures where (hundreds of) millions of connections can exchange messages with each other.
 
-Follow the following [tutorial](../../../tutorials/mpipc_relay_echo) for details.
+Follow this [tutorial](../../../tutorials/mpipc_relay_echo) for details.
 
 ## Backlog
 * solid_frame_mpipc: test_unresolved_recipient
