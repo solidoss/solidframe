@@ -31,13 +31,13 @@ __NOTE__: The header only plugins ensure that solid_frame_mpipc library itself d
  * not needing a message pre-processor for marshaling (as do: Google gRPC, Apache Thrift) - you specify how a message gets marshaled using simple C++ code (something similar to boost-serialization, see below).
  * not needing a pre-processor for creating client server stubs (as do: Google gRPC, Apache Thrift) - you just instantiate a frame::mpipc::ServiceT allong with its dependencies and configure it.
 
-The downside is that solid_frame_mpipc will always be a C++ only library while the above alternatives (gRPC & Thrift) can be used with multiple languages.
+The downside is that **solid_frame_mpipc** will always be a C++ only library while the above alternatives (gRPC & Thrift) can be used with multiple languages.
 
 On the other hand you should be able to call native C/C++ code from other languages.
 
-Here are two examples of Android applications using solid_frame_mpipc to communicate with a central server:
- * [Bubbles](https://github.com/vipalade/bubbles) - C++ Linux server + Qt Linux Client + Android client application all using solid_frame_mpipc with secure communication
- * [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient) - C++ Linux server + Android client application all using solid_frame_mpipc with secure communication
+Here are two examples of Android applications using **solid_frame_mpipc** to communicate with a central server:
+ * [Bubbles](https://github.com/vipalade/bubbles) - C++ Linux server + Qt Linux Client + Android client application all using **solid_frame_mpipc** with secure communication
+ * [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient) - C++ Linux server + Android client application all using **solid_frame_mpipc** with secure communication
 
 Both examples implement the communication and application logic in a C++ library and use a JNI (Java Native Interface) _facade_ for interacting with Android Java user interface code.
 
@@ -56,7 +56,7 @@ Here are some advantages I have observed for the asynchronous model while having
  * more "natural" integration with an asynchronous communication libraries (like _solid_frame_aio_ or _boost_asio_);
  * more "natural" support for transmitting streams (e.g. files) with error handling.
  * easier to implement message multiplexing.
- * a lot more control over serialization / deserialization with support for imposing per item limits - e.g. for a certain message, we can impose a limit for certain/all strings to be less than 1K in size - the serializer / deserializer will immediately error on the first string exceeding the limit (for now, solid_serialization library supports three kinds of limits: for string size, for container size and for stream size).
+ * a lot more control over serialization / deserialization with support for imposing per item limits - e.g. for a certain message, we can impose a limit for certain/all strings to be less than 1K in size - the serializer / deserializer will immediately error on the first string exceeding the limit (for now, **solid_serialization** library supports three kinds of limits: for string size, for container size and for stream size).
 
 
 ## <a id="relay_engine"></a>Relay Engine
