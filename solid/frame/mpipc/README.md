@@ -24,8 +24,8 @@
 __NOTE__: The header only plugins ensure that solid_frame_mpipc library itself does not depend on the libraries the plugins depend on.
 
 **solid_frame_mpipc** is a peer-to-peer message passing communication library which provides a pure C++ way of implementing communication between two processes. It uses:
- * asynchronous secure/plain TCP connection pools through solid_frame_aio library.
- * a serialization protocol based on solid_serialization library.
+ * asynchronous **secure** / plain TCP connection pools via **solid_frame_aio** library.
+ * a serialization protocol based on **solid_serialization** library.
 
 **solid_frame_mpipc** differs from other implementations by:
  * not needing a message pre-processor for marshaling (as do: Google gRPC, Apache Thrift) - you specify how a message gets marshaled using simple C++ code (something similar to boost-serialization, see below).
@@ -43,9 +43,9 @@ Both examples implement the communication and application logic in a C++ library
 
 ### Serialization Engine
 
-The default pluggable serialization engine is based on solid_serialization library, which resembles somehow boost_serialization/cereal libraries.
+The default pluggable serialization engine is based on **solid_serialization** library, which resembles somehow _boost_serialization_ / _cereal_ libraries.
 
-The main difference, comes from the fact that solid_serialization is asynchronous enabled while the others are synchronous.
+The main difference, comes from the fact that **solid_serialization** is asynchronous enabled while the others are synchronous.
 
 Synchronous serialization means that a message can be started to be deserialized (e.g. reconstructed on peer process) only after the entire serialization data is present.
 
@@ -53,10 +53,10 @@ With asynchronous serialization engines the deserialization starts with the firs
 
 Here are some advantages I have observed for the asynchronous model while having used both models in network communication libraries:
  
- * more "natural" integration with an asynchronous communication library (like solid_frame_aio or boost_asio);
- * more "natural" support for transmitting streams (e.g. files)
+ * more "natural" integration with an asynchronous communication libraries (like _solid_frame_aio_ or _boost_asio_);
+ * more "natural" support for transmitting streams (e.g. files) with error handling.
  * easier to implement message multiplexing.
- * a lot more control over serialization / deserialization with support for imposing item limits - e.g. for a certain message, we can impose a limit for all strings to be less than 1K in size - the serializer / deserializer will immediately error on the first string exceeding the limit (for now, solid_serialization library supports three kinds of limits: for string size, for container size and for stream size).
+ * a lot more control over serialization / deserialization with support for imposing per item limits - e.g. for a certain message, we can impose a limit for certain/all strings to be less than 1K in size - the serializer / deserializer will immediately error on the first string exceeding the limit (for now, solid_serialization library supports three kinds of limits: for string size, for container size and for stream size).
 
 
 ## <a id="relay_engine"></a>Relay Engine
