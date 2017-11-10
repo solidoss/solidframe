@@ -657,7 +657,7 @@ int test_relay_cancel_response(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (not cnd.wait_for(lock, std::chrono::seconds(60 * 4), []() { return not running; })) {
             relay_engine.debugDump();
             SOLID_THROW("Process is taking too long.");
         }

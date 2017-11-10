@@ -443,6 +443,10 @@ link_directories(
 # Testing support (CTest & CDash)
 #-----------------------------------------------------------------
 if(NOT ON_CROSS)
+    find_program( MEMORYCHECK_COMMAND valgrind )
+    set( MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full" )
+    set( MEMORYCHECK_SUPPRESSIONS_FILE "${PROJECT_SOURCE_DIR}/cmake/valgrind_suppress.txt" )
+    
     ENABLE_TESTING()
     INCLUDE(CTest)
 endif()

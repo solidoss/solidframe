@@ -321,8 +321,10 @@ private:
     {
         if (_pvalue == pvalue_) {
             //moved pvalue_
-        } else if (pvalue_) {
+        } else if (usesData()) {
             pvalue_->~AnyValueBase();
+        } else {
+            delete pvalue_;
         }
         pvalue_ = nullptr;
     }

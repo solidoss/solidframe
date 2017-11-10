@@ -40,7 +40,8 @@ protected:
 
     ReactorBase(
         SchedulerBase& _rsch, const size_t _schidx, const size_t _crtidx = 0)
-        : rsch(_rsch)
+        : crtload(0)
+        , rsch(_rsch)
         , schidx(_schidx)
         , crtidx(_crtidx)
     {
