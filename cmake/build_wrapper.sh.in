@@ -1,3 +1,0 @@
-export "CC=@CMAKE_C_COMPILER@"
-export "CXX=@CMAKE_CXX_COMPILER@"
-eval "$*"

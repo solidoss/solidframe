@@ -70,17 +70,13 @@ const size_t expected_transfered_count = 5;
 
 typedef std::vector<frame::mpipc::MessageId> MessageIdVectorT;
 
-std::string  pattern;
-const size_t initarraysize = sizeof(initarray) / sizeof(InitStub);
-
-std::atomic<size_t> crtwriteidx(0);
-//std::atomic<size_t> crtreadidx(0);
-std::atomic<size_t> crtbackidx(0);
-std::atomic<size_t> crtackidx(0);
-std::atomic<size_t> writecount(0);
-
-size_t connection_count(0);
-
+std::string               pattern;
+const size_t              initarraysize = sizeof(initarray) / sizeof(InitStub);
+std::atomic<size_t>       crtwriteidx(0);
+std::atomic<size_t>       crtbackidx(0);
+std::atomic<size_t>       crtackidx(0);
+std::atomic<size_t>       writecount(0);
+size_t                    connection_count(0);
 bool                      running = true;
 mutex                     mtx;
 condition_variable        cnd;
@@ -89,8 +85,7 @@ frame::mpipc::Service*    pmpipcserver = nullptr;
 std::atomic<uint64_t>     transfered_size(0);
 std::atomic<size_t>       transfered_count(0);
 frame::mpipc::RecipientId recipient_id;
-
-MessageIdVectorT message_uid_vec;
+MessageIdVectorT          message_uid_vec;
 
 size_t real_size(size_t _sz)
 {
@@ -194,12 +189,10 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
 {
     idbg(_rctx.recipientId());
 
-    if (not _rmsgptr->check()) {
-        SOLID_THROW("Message check failed.");
-    }
+    SOLID_CHECK(_rmsgptr->check(), "Message check failed.");
 
-    size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-    SOLID_CHECK(not initarray[idx % initarraysize].cancel);
+    const size_t idx = static_cast<Message&>(*_rmsgptr).idx;
+    SOLID_CHECK(not initarray[idx % initarraysize].cancel, "Canceled message "<<idx<<" should not reach client side");
 
     //cout<< _rmsgptr->str.size()<<'\n';
     transfered_size += _rmsgptr->str.size();
@@ -247,17 +240,12 @@ void server_complete_message(
     idbg(_rctx.recipientId());
     if (_rrecv_msg_ptr.get()) {
         idbg(_rctx.recipientId() << " message id on sender " << _rrecv_msg_ptr->senderRequestId());
-        if (not _rrecv_msg_ptr->check()) {
-            SOLID_THROW("Message check failed.");
-        }
 
-        if (!_rrecv_msg_ptr->isOnPeer()) {
-            SOLID_THROW("Message not on peer!.");
-        }
+        SOLID_CHECK(_rrecv_msg_ptr->check(), "Message check failed!");
 
-        if (_rctx.recipientId().isInvalidConnection()) {
-            SOLID_THROW("Connection id should not be invalid!");
-        }
+        SOLID_CHECK(_rrecv_msg_ptr->isOnPeer(), "Message not on peer!");
+
+        SOLID_CHECK(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
         SOLID_CHECK(recipient_id.isInvalidConnection());
 
