@@ -192,7 +192,7 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
     SOLID_CHECK(_rmsgptr->check(), "Message check failed.");
 
     const size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-    SOLID_CHECK(not initarray[idx % initarraysize].cancel, "Canceled message "<<idx<<" should not reach client side");
+    SOLID_CHECK(not initarray[idx % initarraysize].cancel, "Canceled message " << idx << " should not reach client side");
 
     //cout<< _rmsgptr->str.size()<<'\n';
     transfered_size += _rmsgptr->str.size();
@@ -254,9 +254,9 @@ void server_complete_message(
 
         // Step 2
         writecount = initarraysize; //start_count;//
-        
+
         unique_lock<mutex> lock(mtx);
-        
+
         for (crtwriteidx = 0; crtwriteidx < writecount; ++crtwriteidx) {
             frame::mpipc::MessageId msguid;
 
