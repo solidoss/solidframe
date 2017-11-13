@@ -1,7 +1,7 @@
 # Build
 .kdev4/
 build/
-solidframe.kdev4
+*.kdev4
 
 # Prerequisites
 *.d
