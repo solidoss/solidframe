@@ -318,7 +318,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BIN
 
 
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp DESTINATION include/solid)
-install (EXPORT SolidFrameConfig DESTINATION lib/cmake/SolidFrame)
 
 if (CMAKE_VERSION VERSION_LESS "3.1")
     set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")
@@ -457,7 +456,26 @@ endif()
 
 add_subdirectory (solid)
 
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/SolidFrameConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
 export(EXPORT SolidFrameConfig FILE SolidFrameConfig.cmake)
+
+install(EXPORT SolidFrameConfig DESTINATION lib/cmake/SolidFrame)
+
+install(
+  FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/SolidFrameConfigVersion.cmake"
+  DESTINATION
+    lib/cmake/SolidFrame
+  COMPONENT
+    Devel
+)
 
 if(NOT ON_CROSS)
     add_subdirectory (examples)
