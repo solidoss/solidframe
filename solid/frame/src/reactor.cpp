@@ -183,8 +183,8 @@ struct ExecStub {
 
     ExecStub(
         ExecStub&& _res)
-        : objuid(_res.objuid)
-        , chnuid(_res.chnuid)
+        : objuid(std::move(_res.objuid))
+        , chnuid(std::move(_res.chnuid))
         , event(std::move(_res.event))
     {
         std::swap(exefnc, _res.exefnc);
