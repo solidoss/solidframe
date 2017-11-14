@@ -2,6 +2,7 @@
 .kdev4/
 build/
 *.kdev4
+.vscode/
 
 # Prerequisites
 *.d
