@@ -252,6 +252,11 @@ struct Message : std::enable_shared_from_this<Message> {
         header_.flags_ = clear_state_flags(header_.flags_).toULong();
     }
 
+    void clearHeader()
+    {
+        header_.clear();
+    }
+
     MessageFlagsT flags() const
     {
         return MessageFlagsT(header_.flags_);

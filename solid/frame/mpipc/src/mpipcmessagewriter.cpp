@@ -214,6 +214,7 @@ ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, Mess
             return ResponseStateE::Cancel;
         default:
             SOLID_ASSERT(false);
+            //SOLID_CHECK(false, "Unknown state for response: "<<(int)rmsgstub.state_<<" for messageid: "<<_rmsguid);
             return ResponseStateE::Invalid;
         }
     }
