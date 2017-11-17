@@ -24,6 +24,7 @@ namespace {
 enum class ConnectionEvents {
     Resolve,
     NewPoolMessage,
+    NewPoolQueueMessage,
     NewConnMessage,
     CancelConnMessage,
     CancelPoolMessage,
@@ -46,6 +47,8 @@ const EventCategory<ConnectionEvents> connection_event_category{
             return "Resolve";
         case ConnectionEvents::NewPoolMessage:
             return "NewPoolMessage";
+        case ConnectionEvents::NewPoolQueueMessage:
+            return "NewPoolQueueMessage";
         case ConnectionEvents::NewConnMessage:
             return "NewConnMessage";
         case ConnectionEvents::CancelConnMessage:
@@ -97,6 +100,11 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext& _rctx) const
 /*static*/ Event Connection::eventNewMessage()
 {
     return connection_event_category.event(ConnectionEvents::NewPoolMessage);
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::eventNewQueueMessage()
+{
+    return connection_event_category.event(ConnectionEvents::NewPoolQueueMessage);
 }
 //-----------------------------------------------------------------------------
 /*static*/ Event Connection::eventNewMessage(const MessageId& _rmsgid)
@@ -735,6 +743,10 @@ void Connection::onStopped(frame::aio::ReactorContext& _rctx)
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         _rcon.doHandleEventNewPoolMessage(_rctx, _revt);
                     }},
+                {connection_event_category.event(ConnectionEvents::NewPoolQueueMessage),
+                    [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
+                        _rcon.doHandleEventNewPoolQueueMessage(_rctx, _revt);
+                    }},
                 {connection_event_category.event(ConnectionEvents::NewConnMessage),
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         _rcon.doHandleEventNewConnMessage(_rctx, _revt);
@@ -848,10 +860,16 @@ bool Connection::willAcceptNewMessage(frame::aio::ReactorContext& _rctx) const
     return not isStopping() /* and waiting_message_vec.empty() and msg_writer.willAcceptNewMessage(service(_rctx).configuration().writer)*/;
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent)
+void Connection::doHandleEventNewPoolQueueMessage(frame::aio::ReactorContext& _rctx, Event& _revent)
 {
 
     flags_.reset(FlagsE::InPoolWaitQueue); //reset flag
+
+    doHandleEventNewPoolMessage(_rctx, _revent);
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent)
+{
 
     if (willAcceptNewMessage(_rctx)) {
         flags_.set(FlagsE::PollPool);

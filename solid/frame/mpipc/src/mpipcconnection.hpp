@@ -79,6 +79,7 @@ public:
     static Event eventResolve();
     static Event eventNewMessage();
     static Event eventNewMessage(const MessageId&);
+    static Event eventNewQueueMessage();
     static Event eventCancelConnMessage(const MessageId&);
     static Event eventCancelPoolMessage(const MessageId&);
     static Event eventStopping();
@@ -296,6 +297,7 @@ private:
     void doHandleEventStart(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventResolve(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
+    void doHandleEventNewPoolQueueMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent);

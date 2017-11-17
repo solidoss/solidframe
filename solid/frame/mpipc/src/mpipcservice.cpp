@@ -179,12 +179,10 @@ struct ConnectionPoolStub {
     MessageOrderInnerListT msgorder_inner_list;
     MessageCacheInnerListT msgcache_inner_list;
     MessageAsyncInnerListT msgasync_inner_list;
-
-    ObjectIdQueueT conn_waitingq;
-
-    uint8_t        flags;
-    uint8_t        retry_connect_count;
-    AddressVectorT connect_addr_vec;
+    ObjectIdQueueT         conn_waitingq;
+    uint8_t                flags;
+    uint8_t                retry_connect_count;
+    AddressVectorT         connect_addr_vec;
 
     ConnectionPoolStub()
         : unique(0)
@@ -1372,7 +1370,7 @@ bool Service::doTryNotifyPoolWaitingConnection(const size_t _pool_index)
 
         success = manager().notify(
             objuid,
-            Connection::eventNewMessage());
+            Connection::eventNewQueueMessage());
     }
     return success;
 }
@@ -1414,7 +1412,7 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
 
         manager().notify(
             objuid,
-            Connection::eventNewMessage());
+            Connection::eventNewQueueMessage());
     }
 
     return error;
@@ -1459,7 +1457,7 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 
         manager().notify(
             objuid,
-            Connection::eventNewMessage());
+            Connection::eventNewQueueMessage());
     }
 
     return error;
