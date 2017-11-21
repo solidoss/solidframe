@@ -846,8 +846,7 @@ void Connection::doHandleEventResolve(
 
             service(_rctx).forwardResolveMessage(poolId(), _revent);
         } else {
-            edbgx(Debug::mpipc, this << ' ' << this->id() << " Empty resolve message");
-            SOLID_ASSERT(false);
+            wdbgx(Debug::mpipc, this << ' ' << this->id() << " Empty resolve message");
             doStop(_rctx, error_connection_resolve);
         }
     } else {
