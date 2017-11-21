@@ -65,7 +65,7 @@ The relay engine enables transparent message forwarding from one connection to a
 
 The MPIPC library is mostly designed as a message passing bus for cloud infrastructures. The relay engine, comes from the need to transparently multiplex messages coming from multiple connections on (few) other (e.g. service) connections.
 
-As described above, one advantage the solid_frame_mpipc library has over other message passing implementations is the fact that there is no actual limit on the size of the messages  it transfers. The same rule applies also to relayed messages thus, the relay engine is able to forward messages of any size from one connection to another.
+As described above, one advantage the solid_frame_mpipc library has over other message passing implementations is the fact that there is no actual limit on the size of the messages  it transfers. The same rule applies also to relayed messages - i.e. the relay engine is able to forward messages of any size from one connection to another.
 Though, not yet tested, the engine is designed to work in a mesh of nodes which can relay data from one connection to another not necessarily both on the same node.
 
 The aim of the relay support in the MPIPC library, is to enable cloud infrastructures where (hundreds of) millions of connections can exchange messages with each other.
@@ -78,13 +78,16 @@ Follow this [tutorial](../../../tutorials/mpipc_relay_echo) for details.
 * solid_frame_mpipc: SOCKS5
 * solid_frame_mpipc: test with thousands of connections
 
+## TODO v3.0
+* (DONE) solid_frame_mpipc: improve protocol to allow transparent (i.e. not knowing the type of the mesage) message handling - e.g. skipping, relaying.
+* (DONE) solid_frame_mpipc: support for generic message relaying: solid::frame::mpipc::relay::Engine. 
+
 ## TODO v2.1
 * (DONE) solid_frame_mpipc: Pluggable (header only) support for SSL
 * (DONE) solid_frame_mpipc: Pluggable (header only) basic compression support using [Snappy](https://google.github.io/snappy/)
 
 
 ## TODO v2.0:
-* (DONE) connection should fail if recipient name is not resolved - should not retry send messages
 * (DONE) test_raw_basic
 * (DONE) test_multiprotocol
 * (DONE) test_connection_close

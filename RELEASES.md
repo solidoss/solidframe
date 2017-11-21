@@ -2,7 +2,7 @@
 
 ## Test build environments
 * **Linux**:
-    * Fedora 26 x86_64 - gcc (GCC) 7.2.1 20170915 (Red Hat 7.2.1-2);
+    * Fedora 27 x86_64 - gcc (GCC) 7.2.1 20170915 (Red Hat 7.2.1-2);
     * Raspbian Linux raspberrypi armv7l - gcc (Raspbian 4.9.2-10) 4.9.2
     * **Travis**: Ubuntu 14.04 - gcc 5.4.1
 * **macOS**:
