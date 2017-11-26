@@ -1,239 +1,253 @@
 // solid/frame/src/sharedstore.cpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#include <mutex>
 #include "solid/frame/sharedstore.hpp"
 #include "solid/frame/manager.hpp"
-#include "solid/system/cassert.hpp"
-#include "solid/system/mutualstore.hpp"
-#include <atomic>
-#include "solid/utility/queue.hpp"
-#include "solid/utility/stack.hpp"
-#include "solid/utility/event.hpp"
 #include "solid/frame/reactorcontext.hpp"
 #include "solid/frame/service.hpp"
+#include "solid/system/cassert.hpp"
+#include "solid/system/mutualstore.hpp"
+#include "solid/utility/event.hpp"
+#include "solid/utility/queue.hpp"
+#include "solid/utility/stack.hpp"
+#include <atomic>
+#include <mutex>
 
 using namespace std;
 
-namespace solid{
-namespace frame{
-namespace shared{
+namespace solid {
+namespace frame {
+namespace shared {
 
-enum{
-	S_RAISE = 1,
+enum {
+    S_RAISE = 1,
 };
 
-void PointerBase::doClear(const bool _isalive){
-	if(psb){
-		psb->erasePointer(id(), _isalive);
-		uid = UniqueId::invalid();
-		psb = nullptr;
-	}
+void PointerBase::doClear(const bool _isalive)
+{
+    if (psb) {
+        psb->erasePointer(id(), _isalive);
+        uid = UniqueId::invalid();
+        psb = nullptr;
+    }
 }
 
 //---------------------------------------------------------------
-//		StoreBase
+//      StoreBase
 //---------------------------------------------------------------
-typedef std::atomic<size_t>			AtomicSizeT;
-typedef MutualStore<mutex>					MutexMutualStoreT;
-typedef Queue<UniqueId>						UidQueueT;
-typedef Stack<size_t>						SizeStackT;
-typedef Stack<void*>						VoidPtrStackT;
+typedef std::atomic<size_t> AtomicSizeT;
+typedef MutualStore<mutex>  MutexMutualStoreT;
+typedef Queue<UniqueId>     UidQueueT;
+typedef Stack<size_t>       SizeStackT;
+typedef Stack<void*>        VoidPtrStackT;
 
-
-struct StoreBase::Data{
-	Data(
-		Manager &_rm
-	):	rm(_rm),
-		objmaxcnt(ATOMIC_VAR_INIT(0))
-	{
-		pfillerasevec = &erasevec[0];
-		pconserasevec = &erasevec[1];
-	}
-	Manager				&rm;
-	shared::AtomicSizeT	objmaxcnt;
-	MutexMutualStoreT	mtxstore;
-	UidVectorT			erasevec[2];
-	UidVectorT			*pfillerasevec;
-	UidVectorT			*pconserasevec;
-	SizeVectorT			cacheobjidxvec;
-	SizeStackT			cacheobjidxstk;
-	ExecWaitVectorT		exewaitvec;
-	VoidPtrStackT		cachewaitstk;
-	std::mutex			mtx;
+struct StoreBase::Data {
+    Data(
+        Manager& _rm)
+        : rm(_rm)
+        , objmaxcnt{0}
+    {
+        pfillerasevec = &erasevec[0];
+        pconserasevec = &erasevec[1];
+    }
+    Manager&            rm;
+    shared::AtomicSizeT objmaxcnt;
+    MutexMutualStoreT   mtxstore;
+    UidVectorT          erasevec[2];
+    UidVectorT*         pfillerasevec;
+    UidVectorT*         pconserasevec;
+    SizeVectorT         cacheobjidxvec;
+    SizeStackT          cacheobjidxstk;
+    ExecWaitVectorT     exewaitvec;
+    VoidPtrStackT       cachewaitstk;
+    std::mutex          mtx;
 };
 
-
-void StoreBase::Accessor::notify(){
-	store().raise();
+void StoreBase::Accessor::notify()
+{
+    store().raise();
 }
 
 StoreBase::StoreBase(
-	Manager &_rm
-):d(*(new Data(_rm))){}
-
-/*virtual*/ StoreBase::~StoreBase(){
-	delete &d;
+    Manager& _rm)
+    : impl_(make_pimpl<Data>(_rm))
+{
 }
 
-
-Manager& StoreBase::manager(){
-	return d.rm;
+/*virtual*/ StoreBase::~StoreBase()
+{
 }
 
-mutex &StoreBase::mutex(){
-	return d.mtx;
-}
-mutex &StoreBase::mutex(const size_t _idx){
-	return d.mtxstore.at(_idx);
+Manager& StoreBase::manager()
+{
+    return impl_->rm;
 }
 
-size_t StoreBase::atomicMaxCount()const{
-	return d.objmaxcnt.load();
+mutex& StoreBase::mutex()
+{
+    return impl_->mtx;
+}
+mutex& StoreBase::mutex(const size_t _idx)
+{
+    return impl_->mtxstore.at(_idx);
 }
 
-UidVectorT& StoreBase::fillEraseVector()const{
-	return *d.pfillerasevec;
+size_t StoreBase::atomicMaxCount() const
+{
+    return impl_->objmaxcnt.load();
 }
 
-UidVectorT& StoreBase::consumeEraseVector()const{
-	return *d.pconserasevec;
+UidVectorT& StoreBase::fillEraseVector() const
+{
+    return *impl_->pfillerasevec;
 }
 
-StoreBase::SizeVectorT& StoreBase::indexVector()const{
-	return d.cacheobjidxvec;
-}
-StoreBase::ExecWaitVectorT& StoreBase::executeWaitVector()const{
-	return d.exewaitvec;
+UidVectorT& StoreBase::consumeEraseVector() const
+{
+    return *impl_->pconserasevec;
 }
 
-
-namespace{
-
-	void visit_lock(mutex &_rm){
-		_rm.lock();
-	}
-
-	void visit_unlock(mutex &_rm){
-		_rm.unlock();
-	}
-
-	void lock_all(MutexMutualStoreT &_rms, const size_t _sz){
-		_rms.visit(_sz, visit_lock);
-	}
-
-	void unlock_all(MutexMutualStoreT &_rms, const size_t _sz){
-		_rms.visit(_sz, visit_unlock);
-	}
-	
-}//namespace
-
-size_t StoreBase::doAllocateIndex(){
-	//mutex is locked
-	size_t		rv;
-	if(d.cacheobjidxstk.size()){
-		rv = d.cacheobjidxstk.top();
-		d.cacheobjidxstk.pop();
-	}else{
-		const size_t objcnt = d.objmaxcnt.load();
-		lock_all(d.mtxstore, objcnt);
-		doResizeObjectVector(objcnt + 1024);
-		for(size_t i = objcnt + 1023; i > objcnt; --i){
-			d.cacheobjidxstk.push(i);
-		}
-		d.objmaxcnt.store(objcnt + 1024);
-		unlock_all(d.mtxstore, objcnt);
-		rv = objcnt;
-		d.mtxstore.safeAt(rv);
-	}
-	return rv;
+StoreBase::SizeVectorT& StoreBase::indexVector() const
+{
+    return impl_->cacheobjidxvec;
 }
-void StoreBase::erasePointer(UniqueId const & _ruid, const bool _isalive){
-	if(_ruid.index < d.objmaxcnt.load()){
-		bool	do_notify = true;
-		{
-			std::unique_lock<std::mutex>	lock(mutex(_ruid.index));
-			do_notify = doDecrementObjectUseCount(_ruid, _isalive);
-			(void)do_notify;
-		}
-		notifyObject(_ruid);
-	}
+StoreBase::ExecWaitVectorT& StoreBase::executeWaitVector() const
+{
+    return impl_->exewaitvec;
 }
 
-void StoreBase::notifyObject(UniqueId const & _ruid){
-	bool	do_raise = false;
-	{
-		std::unique_lock<std::mutex>	lock(mutex());
-		d.pfillerasevec->push_back(_ruid);
-		if(d.pfillerasevec->size() == 1){
-			do_raise = Object::notify(S_RAISE);
-		}
-	}
-	if(do_raise){
-		manager().notify(manager().id(*this), generic_event_category.event(GenericEvents::Raise));
-	}
+namespace {
+
+void visit_lock(mutex& _rm)
+{
+    _rm.lock();
 }
 
-void StoreBase::raise(){
-	manager().notify(manager().id(*this), generic_event_category.event(GenericEvents::Raise));
+void visit_unlock(mutex& _rm)
+{
+    _rm.unlock();
 }
 
-
-/*virtual*/void StoreBase::onEvent(frame::ReactorContext &_rctx, Event &&_revent){
-	if(_revent == generic_event_category.event(GenericEvents::Raise)){
-		{
-			std::unique_lock<std::mutex>	lock(mutex());
-			ulong sm = grabSignalMask();
-			if(sm & S_RAISE){
-				if(d.pfillerasevec->size()){
-					solid::exchange(d.pconserasevec, d.pfillerasevec);
-				}
-				doExecuteOnSignal(sm);
-			}
-		}
-		vdbgx(Debug::frame, "");
-		if(this->doExecute()){
-			this->post(
-				_rctx,
-				[this](frame::ReactorContext &_rctx, Event &&_revent){onEvent(_rctx, std::move(_revent));},
-				generic_event_category.event(GenericEvents::Raise)
-			);
-		}
-		d.pconserasevec->clear();
-	}else if(_revent == generic_event_category.event(GenericEvents::Kill)){
-		this->postStop(_rctx);
-	}
+void lock_all(MutexMutualStoreT& _rms, const size_t _sz)
+{
+    _rms.visit(_sz, visit_lock);
 }
 
-void StoreBase::doCacheObjectIndex(const size_t _idx){
-	d.cacheobjidxstk.push(_idx);
+void unlock_all(MutexMutualStoreT& _rms, const size_t _sz)
+{
+    _rms.visit(_sz, visit_unlock);
 }
 
-void StoreBase::doExecuteCache(){
-	vdbgx(Debug::frame, "");
-	for(ExecWaitVectorT::const_iterator it(d.exewaitvec.begin()); it != d.exewaitvec.end(); ++it){
-		d.cachewaitstk.push(it->pw);
-	}
-	d.cacheobjidxvec.clear();
-	d.exewaitvec.clear();
+} //namespace
+
+size_t StoreBase::doAllocateIndex()
+{
+    //mutex is locked
+    size_t rv;
+    if (impl_->cacheobjidxstk.size()) {
+        rv = impl_->cacheobjidxstk.top();
+        impl_->cacheobjidxstk.pop();
+    } else {
+        const size_t objcnt = impl_->objmaxcnt.load();
+        lock_all(impl_->mtxstore, objcnt);
+        doResizeObjectVector(objcnt + 1024);
+        for (size_t i = objcnt + 1023; i > objcnt; --i) {
+            impl_->cacheobjidxstk.push(i);
+        }
+        impl_->objmaxcnt.store(objcnt + 1024);
+        unlock_all(impl_->mtxstore, objcnt);
+        rv = objcnt;
+        impl_->mtxstore.safeAt(rv);
+    }
+    return rv;
+}
+void StoreBase::erasePointer(UniqueId const& _ruid, const bool _isalive)
+{
+    if (_ruid.index < impl_->objmaxcnt.load()) {
+        bool do_notify = true;
+        {
+            std::unique_lock<std::mutex> lock(mutex(_ruid.index));
+            do_notify = doDecrementObjectUseCount(_ruid, _isalive);
+            (void)do_notify;
+        }
+        notifyObject(_ruid);
+    }
 }
 
-void* StoreBase::doTryAllocateWait(){
-	vdbgx(Debug::frame, "");
-	if(d.cachewaitstk.size()){
-		void *rv = d.cachewaitstk.top();
-		d.cachewaitstk.pop();
-		return rv;
-	}
-	return nullptr;
+void StoreBase::notifyObject(UniqueId const& _ruid)
+{
+    bool do_raise = false;
+    {
+        std::unique_lock<std::mutex> lock(mutex());
+        impl_->pfillerasevec->push_back(_ruid);
+        do_raise = impl_->pfillerasevec->size() == 1;
+    }
+    if (do_raise) {
+        manager().notify(manager().id(*this), make_event(GenericEvents::Raise));
+    }
 }
 
-}//namespace shared
-}//namespace frame
-}//namespace solid
+void StoreBase::raise()
+{
+    manager().notify(manager().id(*this), make_event(GenericEvents::Raise));
+}
+
+/*virtual*/ void StoreBase::onEvent(frame::ReactorContext& _rctx, Event&& _revent)
+{
+    if (_revent == generic_event_raise) {
+        {
+            std::unique_lock<std::mutex> lock(mutex());
+            ulong                        sm = 0;
+            if (impl_->pfillerasevec->size()) {
+                solid::exchange(impl_->pconserasevec, impl_->pfillerasevec);
+            }
+            doExecuteOnSignal(sm);
+        }
+        vdbgx(Debug::frame, "");
+        if (this->doExecute()) {
+            this->post(
+                _rctx,
+                [this](frame::ReactorContext& _rctx, Event&& _revent) { onEvent(_rctx, std::move(_revent)); },
+                make_event(GenericEvents::Raise));
+        }
+        impl_->pconserasevec->clear();
+    } else if (_revent == generic_event_kill) {
+        this->postStop(_rctx);
+    }
+}
+
+void StoreBase::doCacheObjectIndex(const size_t _idx)
+{
+    impl_->cacheobjidxstk.push(_idx);
+}
+
+void StoreBase::doExecuteCache()
+{
+    vdbgx(Debug::frame, "");
+    for (ExecWaitVectorT::const_iterator it(impl_->exewaitvec.begin()); it != impl_->exewaitvec.end(); ++it) {
+        impl_->cachewaitstk.push(it->pw);
+    }
+    impl_->cacheobjidxvec.clear();
+    impl_->exewaitvec.clear();
+}
+
+void* StoreBase::doTryAllocateWait()
+{
+    vdbgx(Debug::frame, "");
+    if (impl_->cachewaitstk.size()) {
+        void* rv = impl_->cachewaitstk.top();
+        impl_->cachewaitstk.pop();
+        return rv;
+    }
+    return nullptr;
+}
+
+} //namespace shared
+} //namespace frame
+} //namespace solid

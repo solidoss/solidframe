@@ -3,7 +3,6 @@
 
 #cmakedefine SOLID_USE_PTHREAD
 #cmakedefine SOLID_USE_EVENTFD
-#cmakedefine SOLID_USE_CPP11
 #cmakedefine SOLID_USE_EPOLL
 #cmakedefine SOLID_USE_KQUEUE
 #cmakedefine SOLID_USE_SAFE_STATIC
@@ -24,12 +23,5 @@
 #define SOLID_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
 #define SOLID_VERSION_MINOR @PROJECT_VERSION_MINOR@
 #define SOLID_VERSION_PATCH "@PROJECT_VERSION_PATCH@"
-
-#ifdef _LP64
-#define UWORDSIZE 64
-#else
-#define UWORDSIZE 32
-#endif
-
 
 #endif

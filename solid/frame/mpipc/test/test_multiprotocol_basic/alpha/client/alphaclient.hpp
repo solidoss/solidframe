@@ -1,16 +1,12 @@
-#ifndef TEST_MULTIPROTOCOL_ALPHA_CLIENT_HPP
-#define TEST_MULTIPROTOCOL_ALPHA_CLIENT_HPP
+
+#pragma once
 
 #include "../../clientcommon.hpp"
 
-namespace alpha_client{
+namespace alpha_client {
 
 solid::ErrorConditionT start(
-	Context &_rctx
-);
+    Context& _rctx);
 
 void stop();
-
 }
-
-#endif

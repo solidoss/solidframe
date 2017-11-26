@@ -1,21 +1,21 @@
 
 set(Sources
-	src/binarybasic.cpp
-	src/binary.cpp
-	src/typeidmap.cpp
+    src/binarybasic.cpp
+    src/binary.cpp
+    src/typeidmap.cpp
 )
 
 set(Headers
-	binary.hpp
-	binarybasic.hpp
-	typeidmap.hpp
+    binary.hpp
+    binarybasic.hpp
+    typeidmap.hpp
 )
 
 set(Inlines
 )
 
 add_library(solid_serialization STATIC
-	${Sources} ${Headers} ${Inlines}
+    ${Sources} ${Headers} ${Inlines}
 )
 target_include_directories(solid_serialization PUBLIC
     $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>
@@ -29,5 +29,6 @@ install (FILES ${Headers} ${Inlines} DESTINATION include/solid/serialization)
 install (TARGETS solid_serialization DESTINATION lib EXPORT SolidFrameConfig)
 
 if(NOT ON_CROSS)
-	add_subdirectory(test)
+    add_subdirectory(test)
+    add_subdirectory(benchmark)
 endif()

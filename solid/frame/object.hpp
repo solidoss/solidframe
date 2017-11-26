@@ -1,24 +1,24 @@
 // solid/frame/object.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_OBJECT_HPP
-#define SOLID_FRAME_OBJECT_HPP
 
-#include "solid/utility/event.hpp"
-#include "solid/frame/objectbase.hpp"
+#pragma once
+
 #include "solid/frame/common.hpp"
 #include "solid/frame/forwardcompletion.hpp"
+#include "solid/frame/objectbase.hpp"
 #include "solid/frame/reactor.hpp"
 #include "solid/frame/reactorcontext.hpp"
+#include "solid/utility/event.hpp"
 
-namespace solid{
-namespace frame{
+namespace solid {
+namespace frame {
 
 class Reactor;
 struct ReactorContext;
@@ -26,61 +26,72 @@ class CompletionHandler;
 
 class Object;
 
-struct ObjectProxy{
-	Object& object()const{
-		return robj;
-	}
+struct ObjectProxy {
+    Object& object() const
+    {
+        return robj;
+    }
+
 private:
-	friend class Object;
-	ObjectProxy(Object &_robj): robj(_robj){}
-	ObjectProxy(ObjectProxy const &_rd):robj(_rd.robj){}
-	ObjectProxy& operator=(ObjectProxy const&_rd);
+    friend class Object;
+    ObjectProxy(Object& _robj)
+        : robj(_robj)
+    {
+    }
+    ObjectProxy(ObjectProxy const& _rd)
+        : robj(_rd.robj)
+    {
+    }
+    ObjectProxy& operator=(ObjectProxy const& _rd);
+
 private:
-	Object &robj;
+    Object& robj;
 };
 
-class Object: public Dynamic<Object, ObjectBase>, ForwardCompletionHandler{
+class Object : public Dynamic<Object, ObjectBase>, ForwardCompletionHandler {
 protected:
-	friend class CompletionHandler;
-	friend class Reactor;
-	
-	//! Constructor
-	Object();
-	
-	ObjectProxy proxy(){
-		return ObjectProxy(*this);
-	}
-	
-	bool registerCompletionHandler(CompletionHandler &_rch);
-	
-	void registerCompletionHandlers();
-	
-	bool isRunning()const;
-	
-	void postStop(ReactorContext &_rctx){
-		if(doPrepareStop(_rctx)){
-			_rctx.reactor().postObjectStop(_rctx);
-		}
-	}
-	
-	template <class F>
-	void postStop(ReactorContext &_rctx, F _f, Event &&_revent = Event()){
-		if(doPrepareStop(_rctx)){
-			_rctx.reactor().postObjectStop(_rctx, _f, _revent);
-		}
-	}
-	
-	template <class F>
-	void post(ReactorContext &_rctx, F _f, Event &&_revent = Event()){
-		_rctx.reactor().post(_rctx, _f, std::move(_revent));
-	}
+    friend class CompletionHandler;
+    friend class Reactor;
+
+    //! Constructor
+    Object();
+
+    ObjectProxy proxy()
+    {
+        return ObjectProxy(*this);
+    }
+
+    bool registerCompletionHandler(CompletionHandler& _rch);
+
+    void registerCompletionHandlers();
+
+    bool isRunning() const;
+
+    void postStop(ReactorContext& _rctx)
+    {
+        if (doPrepareStop(_rctx)) {
+            _rctx.reactor().postObjectStop(_rctx);
+        }
+    }
+
+    template <class F>
+    void postStop(ReactorContext& _rctx, F _f, Event&& _revent = Event())
+    {
+        if (doPrepareStop(_rctx)) {
+            _rctx.reactor().postObjectStop(_rctx, _f, _revent);
+        }
+    }
+
+    template <class F>
+    void post(ReactorContext& _rctx, F _f, Event&& _revent = Event())
+    {
+        _rctx.reactor().post(_rctx, _f, std::move(_revent));
+    }
+
 private:
-	virtual void onEvent(ReactorContext &_rctx, Event &&_uevent);
-	bool doPrepareStop(ReactorContext &_rctx);
+    virtual void onEvent(ReactorContext& _rctx, Event&& _uevent);
+    bool doPrepareStop(ReactorContext& _rctx);
 };
 
-}//namespace frame
-}//namespace solid
-
-
-#endif
+} //namespace frame
+} //namespace solid

@@ -1,38 +1,37 @@
 # the frame libraries:
 set(Sources
-	src/manager.cpp
-	src/object.cpp
-	src/service.cpp
-	src/schedulerbase.cpp
-	src/reactor.cpp
-	src/completion.cpp
-	src/sharedstore.cpp
+    src/manager.cpp
+    src/object.cpp
+    src/service.cpp
+    src/schedulerbase.cpp
+    src/reactor.cpp
+    src/completion.cpp
+    src/sharedstore.cpp
 )
 
 set(Headers
-	common.hpp
-	completion.hpp
-	forwardcompletion.hpp
-	manager.hpp
-	objectbase.hpp
-	object.hpp
-	reactorbase.hpp
-	reactorcontext.hpp
-	reactor.hpp
-	schedulerbase.hpp
-	scheduler.hpp
-	service.hpp
-	sharedstore.hpp
-	timer.hpp
-	timestore.hpp
+    common.hpp
+    completion.hpp
+    forwardcompletion.hpp
+    manager.hpp
+    objectbase.hpp
+    object.hpp
+    reactorbase.hpp
+    reactorcontext.hpp
+    reactor.hpp
+    schedulerbase.hpp
+    scheduler.hpp
+    service.hpp
+    sharedstore.hpp
+    timer.hpp
+    timestore.hpp
 )
 
 set(Inlines
-	manager.ipp
 )
 
 add_library (solid_frame STATIC
-	${Sources} ${Headers} ${Inlines}
+    ${Sources} ${Headers} ${Inlines}
 )
 target_include_directories(solid_frame PUBLIC
     $<BUILD_INTERFACE:${SolidFrame_SOURCE_DIR}>

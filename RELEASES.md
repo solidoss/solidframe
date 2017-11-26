@@ -1,11 +1,31 @@
 # SolidFrame Releases
 
-## Backlog
+## Test build environments
+* **Linux**:
+    * Fedora 27 x86_64 - gcc (GCC) 7.2.1 20170915 (Red Hat 7.2.1-2);
+    * Raspbian Linux raspberrypi armv7l - gcc (Raspbian 4.9.2-10) 4.9.2
+    * **Travis**: Ubuntu 14.04 - gcc 5.4.1
+* **macOS**:
+    * 10.13 - xcode 9.1 - Apple LLVM version 9.0.0 (clang-900.0.38)
+    * **Travis**: Apple LLVM version 8.1.0 (clang-802.0.42)
+* **FreeBSD**:
+    * TrueOS - FreeBSD 12.0 - clang version 4.0.0 (based on LLVM 4.0.0)
 
-* solid_frame_mpipc: SOCKS5
-* solid_frame_mpipc: test with thousands of connections
-* DOCUMENTAION: API
-* solid_serialization: test agaist ProtoBuf and FlatBuffers
+## Version 3.0
+* (DONE) solid_frame_mpipc: improve protocol to allow transparent (i.e. not knowing the type of the mesage) message handling - e.g. skipping, relaying.
+* (DONE) solid_frame_mpipc: support for generic message relaying: solid::frame::mpipc::relay::Engine. 
+* (DONE) tutorials: mpipc_relay_echo
+* (DONE) solid_system: improve SOLID_CHECK and SOLID_THROW
+* (DONE) solid_system: pimpl.h with make_pimpl support
+* (DONE) solid_utility: fix and improve solid::inner::List
+* (DONE) solid_utility: delegate.h
+* (DONE) integrate Travis support
+* (DONE) integrate clangformat support
+
+## Version 2.2
+* (DONE) all: switch from NanoTime to std::chrono
+* (DONE) BUILD: cmake support for clangformat
+* (DONE) solid_serialization: speed improvements, plain arrays serialization
 
 ## Version 2.1
 * (DONE) solid_frame_aio_openssl: Improved OpenSSL/BoringSSL support
@@ -23,9 +43,9 @@
 * pushCall instead of pushReinit
 * Finalizing the MPIPC library.
 * Cross-platform support:
-	* Linux
-	* FreeBSD
-	* Darwin/OSX (starting with XCode 8 for thread_local)
+    * Linux
+    * FreeBSD
+    * Darwin/OSX (starting with XCode 8 for thread_local)
 * Add "make install" support.
 * Documentation.
 
