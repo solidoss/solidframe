@@ -62,6 +62,9 @@ size_t memory_size()
 size_t getMemoryPageSize()
 {
 #ifdef SOLID_ON_WINDOWS
+    SYSTEM_INFO siSysInfo;
+    GetSystemInfo(&siSysInfo);
+    return siSysInfo.dwPageSize;
 #else
     return (size_t)sysconf(_SC_PAGESIZE);
 #endif

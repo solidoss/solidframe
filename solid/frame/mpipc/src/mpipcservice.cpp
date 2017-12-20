@@ -1432,7 +1432,7 @@ ErrorConditionT Service::doForceCloseConnectionPool(
     unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
     ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
 
-    if (rpool.unique != _rrecipient_id.poolId().unique) {
+    if (pool_index >= impl_->pooldq.size() || rpool.unique != _rrecipient_id.poolId().unique) {
         return error_service_unknown_connection;
     }
 
