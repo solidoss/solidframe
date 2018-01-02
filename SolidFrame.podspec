@@ -114,9 +114,11 @@ Pod::Spec.new do |s|
     sp.source_files = 'solid/frame/mpipc/src/*.{cpp,hpp}'
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
+  
+  s.header_mappings_dir = '"$(PODS_ROOT)/SolidFrame"'
 
   s.prepare_command = <<-END_OF_COMMAND
-    cat > "$(PODS_ROOT)/SolidFrame/solid/solid_config.hpp" <<EOF
+    cat > '"$(PODS_ROOT)/SolidFrame/solid/solid_config.hpp"' <<EOF
     #ifndef SOLID_SYSTEM_CONFIG_H
     #define SOLID_SYSTEM_CONFIG_H
 
