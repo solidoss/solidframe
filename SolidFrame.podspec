@@ -63,7 +63,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'utility' do |sp|
     sp.name = 'utility'
-    sp.dependency = "SolidFrame/system"
+    sp.dependency 'SolidFrame/system'
     sp.preserve_paths = "solid/utility", "solid/utility/*.hpp"
     sp.public_header_files = 'solid/utility/*.hpp'
     sp.source_files = 'solid/utility/src/*.{cpp,hpp}'
@@ -72,7 +72,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'serialization' do |sp|
     sp.name = 'serialization'
-    sp.dependency = "SolidFrame/utility"
+    sp.dependency 'SolidFrame/utility'
     sp.preserve_paths = "solid/serialization", "solid/serialization/*.hpp"
     sp.public_header_files = 'solid/serialization/*.hpp'
     sp.source_files = 'solid/serialization/src/*.{cpp,hpp}'
@@ -81,7 +81,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'frame' do |sp|
     sp.name = 'frame'
-    sp.dependency = "SolidFrame/utility"
+    sp.dependency 'SolidFrame/utility'
     sp.preserve_paths = "solid/frame", "solid/frame/*.hpp"
     sp.public_header_files = 'solid/frame/*.hpp'
     sp.source_files = 'solid/frame/src/*.{cpp,hpp}'
@@ -90,7 +90,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'frame_aio' do |sp|
     sp.name = 'frame_aio'
-    sp.dependency = "SolidFrame/frame_aio"
+    sp.dependency 'SolidFrame/frame'
     sp.preserve_paths = "solid/frame/aio", "solid/frame/frame/aio/*.hpp"
     sp.public_header_files = 'solid/frame/aio/*.hpp'
     sp.source_files = 'solid/frame/aio/src/*.{cpp,hpp}'
@@ -99,7 +99,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'frame_aio_openssl' do |sp|
     sp.name = 'frame_aio_openssl'
-    sp.dependency = "SolidFrame/frame_aio_openssl"
+    sp.dependency 'SolidFrame/frame_aio'
     sp.preserve_paths = "solid/frame/aio/openssl", "solid/frame/frame/aio/openssl/*.hpp"
     sp.public_header_files = 'solid/frame/aio/openssl/*.hpp'
     sp.source_files = 'solid/frame/aio/openssl/src/*.{cpp,hpp}'
@@ -108,7 +108,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'frame_mpipc' do |sp|
     sp.name = 'frame_mpipc'
-    sp.dependency = "SolidFrame/frame_mpipc"
+    sp.dependency 'SolidFrame/frame_aio'
     sp.preserve_paths = "solid/frame/mpipc", "solid/frame/frame/mpipc/*.hpp"
     sp.public_header_files = 'solid/frame/mpipc/*.hpp'
     sp.source_files = 'solid/frame/mpipc/src/*.{cpp,hpp}'
