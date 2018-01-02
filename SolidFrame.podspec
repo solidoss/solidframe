@@ -27,7 +27,7 @@ Pod::Spec.new do |s|
 
   # ――― Author Metadata  ――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   
-  s.author             = { "Valentin Palade" }
+  s.author             =  "Valentin Palade"
   
   # ――― Platform Specifics ――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   
