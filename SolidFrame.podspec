@@ -116,7 +116,7 @@ Pod::Spec.new do |s|
   end
 
   s.prepare_command = <<-END_OF_COMMAND
-    cat > include/solid/solid_config.hpp <<EOF
+    cat > solid/solid_config.hpp <<EOF
     #ifndef SOLID_SYSTEM_CONFIG_H
     #define SOLID_SYSTEM_CONFIG_H
 
