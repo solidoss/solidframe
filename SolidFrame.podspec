@@ -129,6 +129,10 @@ Pod::Spec.new do |s|
       #define SOLID_ON_POSIX
 
       #define SOLID_HAS_DEBUG
+      #define SOLID_HAS_NO_INLINES
+      #define SOLID_HAS_ASSERT
+      #define SOLID_HAS_STATISTICS
+
       #define SOLID_VERSION_MAJOR 3
       #define SOLID_VERSION_MINOR 1
       #define SOLID_VERSION_PATCH "xxx"
