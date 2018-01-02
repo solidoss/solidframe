@@ -59,24 +59,6 @@ Pod::Spec.new do |s|
     sp.public_header_files = 'solid/system/*.hpp'
     sp.source_files = 'solid/system/src/*.{cpp,hpp}'
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
-    sp.prepare_command = <<-END_OF_COMMAND
-      cat > include/solid/solid_config.hpp <<EOF
-      #ifndef SOLID_SYSTEM_CONFIG_H
-      #define SOLID_SYSTEM_CONFIG_H
-
-        #define SOLID_USE_PTHREAD
-        #define SOLID_USE_KQUEUE
-        #define SOLID_USE_SAFE_STATIC
-        #define SOLID_ON_DARWIN
-        #define SOLID_ON_POSIX
-
-        #define SOLID_HAS_DEBUG
-        #define SOLID_VERSION_MAJOR 3
-        #define SOLID_VERSION_MINOR 1
-        #define SOLID_VERSION_PATCH "xxx"
-      #endif
-      EOF
-    END_OF_COMMAND
   end
 
   s.subspec 'utility' do |sp|
@@ -132,6 +114,25 @@ Pod::Spec.new do |s|
     sp.source_files = 'solid/frame/mpipc/src/*.{cpp,hpp}'
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
+
+  s.prepare_command = <<-END_OF_COMMAND
+    cat > include/solid/solid_config.hpp <<EOF
+    #ifndef SOLID_SYSTEM_CONFIG_H
+    #define SOLID_SYSTEM_CONFIG_H
+
+      #define SOLID_USE_PTHREAD
+      #define SOLID_USE_KQUEUE
+      #define SOLID_USE_SAFE_STATIC
+      #define SOLID_ON_DARWIN
+      #define SOLID_ON_POSIX
+
+      #define SOLID_HAS_DEBUG
+      #define SOLID_VERSION_MAJOR 3
+      #define SOLID_VERSION_MINOR 1
+      #define SOLID_VERSION_PATCH "xxx"
+    #endif
+    EOF
+  END_OF_COMMAND
 
   # ――― Resources ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   #
