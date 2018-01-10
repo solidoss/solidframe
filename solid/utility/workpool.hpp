@@ -365,7 +365,7 @@ private:
     {
         std::unique_lock<std::mutex> lock(mtx);
 
-        uint32_t insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
+        size_t insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
         if (!insertcount) {
             return true;
         }

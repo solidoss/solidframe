@@ -240,7 +240,7 @@ struct Reactor::Data {
                 if (diff > maxwait) {
                     return maxwait;
                 } else {
-                    return diff;
+                    return static_cast<int>(diff);
                 }
             } else {
                 return 0;

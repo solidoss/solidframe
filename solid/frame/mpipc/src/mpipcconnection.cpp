@@ -1556,10 +1556,10 @@ struct Connection::Receiver : MessageReader::Receiver {
 
     Connection&          rthis = static_cast<Connection&>(_rctx.object());
     ConnectionContext    conctx(rthis.service(_rctx), rthis);
-    const Configuration& rconfig   = rthis.service(_rctx).configuration();
-    unsigned             repeatcnt = 4;
-    char*                pbuf;
-    size_t               bufsz;
+    const Configuration& rconfig        = rthis.service(_rctx).configuration();
+    unsigned             repeatcnt      = 4;
+    char*                pbuf           = nullptr;
+    size_t               bufsz          = 0;
     const uint32_t       recvbufcp      = rthis.recvBufferCapacity();
     bool                 recv_something = false;
     Receiver             rcvr(rthis, _rctx);

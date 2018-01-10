@@ -112,7 +112,7 @@ inline ResolveData& ResolveData::operator=(const ResolveData& _rrd)
 inline SocketAddressStub::SocketAddressStub(
     sockaddr* _pa, size_t _sz)
     : addr(_pa)
-    , sz(_sz)
+    , sz(static_cast<socklen_t>(_sz))
 {
 }
 
@@ -120,7 +120,7 @@ inline SocketAddressStub::SocketAddressStub(const ResolveIterator& _it)
 {
     if (_it) {
         addr = _it.sockAddr();
-        sz   = _it.size();
+        sz   = static_cast<socklen_t>(_it.size());
     } else {
         addr = NULL;
         sz   = 0;
@@ -157,7 +157,7 @@ inline SocketAddressStub& SocketAddressStub::operator=(const ResolveIterator& _i
 {
     if (_it) {
         addr = _it.sockAddr();
-        sz   = _it.size();
+        sz   = static_cast<socklen_t>(_it.size());
     } else {
         addr = NULL;
         sz   = 0;

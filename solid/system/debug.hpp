@@ -43,21 +43,22 @@
 namespace solid {
 
 struct /*EXPORT_DLL*/ Debug {
-    static const unsigned any;
-    static const unsigned system;
-    static const unsigned specific;
-    static const unsigned proto_txt;
-    static const unsigned proto_bin;
-    static const unsigned ser_bin;
-    static const unsigned utility;
-    static const unsigned frame;
-    static const unsigned mpipc;
-    static const unsigned tcp;
-    static const unsigned udp;
-    static const unsigned file;
-    static const unsigned log;
-    static const unsigned aio;
-    static Debug&         the();
+    static const size_t any;
+    static const size_t system;
+    static const size_t specific;
+    static const size_t proto_txt;
+    static const size_t proto_bin;
+    static const size_t ser_bin;
+    static const size_t utility;
+    static const size_t frame;
+    static const size_t mpipc;
+    static const size_t tcp;
+    static const size_t udp;
+    static const size_t file;
+    static const size_t log;
+    static const size_t aio;
+
+    static Debug& the();
     enum Level {
         Info      = 1,
         Error     = 2,
@@ -77,8 +78,8 @@ struct /*EXPORT_DLL*/ Debug {
     void initFile(
         const char*  _fname,
         bool         _buffered   = true,
-        ulong        _respincnt  = 2,
-        ulong        _respinsize = 1024 * 1024 * 1024,
+        uint32_t     _respincnt  = 2,
+        uint64_t     _respinsize = 1024 * 1024 * 1024,
         std::string* _output     = nullptr);
     void initSocket(
         const char*  _addr,
@@ -92,10 +93,10 @@ struct /*EXPORT_DLL*/ Debug {
     void moduleNames(std::string& _ros);
     void setAllModuleBits();
     void resetAllModuleBits();
-    void setModuleBit(unsigned _v);
-    void resetModuleBit(unsigned _v);
+    void setModuleBit(const size_t _v);
+    void resetModuleBit(const size_t _v);
 
-    unsigned registerModule(const char* _name);
+    size_t registerModule(const char* _name);
 
     std::ostream& print();
     std::ostream& print(
@@ -104,27 +105,27 @@ struct /*EXPORT_DLL*/ Debug {
         const char* _fnc,
         int         _line);
     std::ostream& print(
-        const char  _t,
-        unsigned    _module,
-        const char* _file,
-        const char* _fnc,
-        int         _line);
+        const char   _t,
+        const size_t _module,
+        const char*  _file,
+        const char*  _fnc,
+        int          _line);
     std::ostream& printTraceIn(
-        const char  _t,
-        unsigned    _module,
-        const char* _file,
-        const char* _fnc,
-        int         _line);
+        const char   _t,
+        const size_t _module,
+        const char*  _file,
+        const char*  _fnc,
+        int          _line);
     std::ostream& printTraceOut(
-        const char  _t,
-        unsigned    _module,
-        const char* _file,
-        const char* _fnc,
-        int         _line);
+        const char   _t,
+        const size_t _module,
+        const char*  _file,
+        const char*  _fnc,
+        int          _line);
     void done();
     void doneTraceIn();
     void doneTraceOut();
-    bool isSet(Level _lvl, unsigned _v) const;
+    bool isSet(Level _lvl, const size_t _v) const;
 
 private:
     static Debug& dbg_the();

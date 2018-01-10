@@ -33,7 +33,7 @@ enum VerifyMode {
     VerifyModeClientOnce       = 8,
 };
 
-using VerifyMaskT = int;
+using VerifyMaskT = unsigned long;
 
 class Socket;
 
@@ -86,18 +86,18 @@ public:
     ReactorEventsE filterReactorEvents(
         const ReactorEventsE _evt) const;
 
-    int recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr);
+    ssize_t recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr);
 
-    int send(void* _pctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr);
+    ssize_t send(void* _pctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr);
 
     SocketDevice const& device() const;
     SocketDevice&       device();
 
     NativeHandleT nativeHandle() const;
 
-    int recvFrom(char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr);
+    ssize_t recvFrom(char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr);
 
-    int sendTo(const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr);
+    ssize_t sendTo(const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr);
 
     bool secureAccept(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr);
     bool secureConnect(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr);

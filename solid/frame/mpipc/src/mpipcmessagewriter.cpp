@@ -344,7 +344,7 @@ ErrorConditionT MessageWriter::write(
 
     char*           pbufpos = _rbuffer.data();
     char*           pbufend = _rbuffer.end();
-    uint32_t        freesz  = _rbuffer.size();
+    size_t          freesz  = _rbuffer.size();
     bool            more    = true;
     ErrorConditionT error;
 
@@ -383,7 +383,7 @@ ErrorConditionT MessageWriter::write(
 
             SOLID_ASSERT(static_cast<size_t>(fillsz) < static_cast<size_t>(0xffffUL));
 
-            packet_header.size(fillsz);
+            packet_header.size(static_cast<uint32_t>(fillsz));
 
             pbufpos = packet_header.store(pbufpos, _rsender.protocol());
             pbufpos = pbufdata + fillsz;
@@ -589,7 +589,7 @@ char* MessageWriter::doWriteMessageHead(
     MessageStub& rmsgstub             = message_vec_[_msgidx];
     rmsgstub.msgbundle_.message_flags = Message::update_state_flags(Message::clear_state_flags(rmsgstub.msgbundle_.message_flags) | Message::state_flags(rmsgstub.msgbundle_.message_ptr->flags()));
 
-    _rsender.context().request_id.index  = (_msgidx + 1);
+    _rsender.context().request_id.index  = static_cast<uint32_t>(_msgidx + 1);
     _rsender.context().request_id.unique = rmsgstub.unique_;
     _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
     _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
@@ -638,7 +638,7 @@ char* MessageWriter::doWriteMessageBody(
 
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
-    _rsender.context().request_id.index  = (_msgidx + 1);
+    _rsender.context().request_id.index  = static_cast<uint32_t>(_msgidx + 1);
     _rsender.context().request_id.unique = rmsgstub.unique_;
     _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
     _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
@@ -708,7 +708,7 @@ char* MessageWriter::doWriteRelayedHead(
 
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
-    _rsender.context().request_id.index  = (_msgidx + 1);
+    _rsender.context().request_id.index  = static_cast<uint32_t>(_msgidx + 1);
     _rsender.context().request_id.unique = rmsgstub.unique_;
     _rsender.context().message_flags     = rmsgstub.prelay_data_->pmessage_header_->flags_;
     _rsender.context().message_flags.set(MessageFlagsE::Relayed);
@@ -894,7 +894,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 {
 
     MessageStub& rmsgstub(message_vec_[_msgidx]);
-    RequestId    requid(_msgidx, rmsgstub.unique_);
+    RequestId    requid(static_cast<uint32_t>(_msgidx), rmsgstub.unique_);
 
     vdbgx(Debug::mpipc, "done serializing message " << requid << ". Message id sent to client " << _rsender.context().request_id);
 

@@ -66,7 +66,7 @@ namespace {
 void dummy_completion(CompletionHandler&, ReactorContext&)
 {
 }
-
+#if defined(SOLID_USE_KQUEUE)
 inline void* indexToVoid(const size_t _idx)
 {
     return reinterpret_cast<void*>(_idx);
@@ -76,7 +76,7 @@ inline size_t voidToIndex(const void* _ptr)
 {
     return reinterpret_cast<size_t>(_ptr);
 }
-
+#endif
 } //namespace
 
 //=============================================================================
@@ -132,7 +132,7 @@ private:
     EventHandler& rthis = static_cast<EventHandler&>(_rch);
 #if defined(SOLID_USE_EPOLL)
     uint64_t v = -1;
-    int      rv;
+    ssize_t  rv;
 
     do {
         rv = rthis.dev.read(reinterpret_cast<char*>(&v), sizeof(v));
@@ -389,7 +389,7 @@ struct Reactor::Data {
                 if (diff > maxwait) {
                     return maxwait;
                 } else {
-                    return diff;
+                    return static_cast<int>(diff);
                 }
 
             } else {
@@ -638,13 +638,13 @@ void Reactor::run()
 
         vdbgx(Debug::aio, "epoll_wait msec = " << waitmsec);
 
-        selcnt = epoll_wait(impl_->reactor_fd, impl_->eventvec.data(), impl_->eventvec.size(), waitmsec);
+        selcnt = epoll_wait(impl_->reactor_fd, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waitmsec);
 #elif defined(SOLID_USE_KQUEUE)
         waittime      = impl_->computeWaitTimeMilliseconds(crttime);
 
         vdbgx(Debug::aio, "kqueue msec = " << waittime.seconds() << ':' << waittime.nanoSeconds());
 
-        selcnt = kevent(impl_->reactor_fd, nullptr, 0, impl_->eventvec.data(), impl_->eventvec.size(), waittime != NanoTime::maximum ? &waittime : nullptr);
+        selcnt = kevent(impl_->reactor_fd, nullptr, 0, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::maximum ? &waittime : nullptr);
 #endif
         crttime = std::chrono::steady_clock::now();
 

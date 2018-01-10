@@ -619,7 +619,7 @@ private:
         bool       can_retry;
         ErrorCodeT err;
 
-        int rv = s.recv(&_rctx, recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
+        ssize_t rv = s.recv(&_rctx, recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
 
         vdbgx(Debug::aio, "recv (" << (recv_buf_cp - recv_buf_sz) << ") = " << rv);
 
@@ -646,7 +646,7 @@ private:
     {
         bool       can_retry;
         ErrorCodeT err;
-        int        rv = s.send(&_rctx, send_buf, send_buf_cp - send_buf_sz, can_retry, err);
+        ssize_t    rv = s.send(&_rctx, send_buf, send_buf_cp - send_buf_sz, can_retry, err);
 
         vdbgx(Debug::aio, "send (" << (send_buf_cp - send_buf_sz) << ") = " << rv << ' ' << can_retry);
 

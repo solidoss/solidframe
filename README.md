@@ -130,6 +130,12 @@ $ ./configure -b debug -e ~/work/extern --prefix ~/work/extern
 $ cd build/debug
 ```
 
+Also if, on Linux clang toolchain is wanted for build, the configure line will be:
+
+```bash
+$ CXX=clang++ CC=clang ./configure -e ~/work/extern --prefix ~/work/extern
+```
+
 For more information about ./configure script use:
 
 ```bash

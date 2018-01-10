@@ -57,7 +57,7 @@ const char* char_to_cstring(unsigned _c)
     return ::strcmp(_s1, _s2);
 }
 
-/*static*/ int cstring::ncmp(const char* _s1, const char* _s2, uint _len)
+/*static*/ int cstring::ncmp(const char* _s1, const char* _s2, size_t _len)
 {
     return ::strncmp(_s1, _s2, _len);
 }
@@ -71,7 +71,7 @@ const char* char_to_cstring(unsigned _c)
 #endif
 }
 
-/*static*/ int cstring::ncasecmp(const char* _s1, const char* _s2, uint _len)
+/*static*/ int cstring::ncasecmp(const char* _s1, const char* _s2, size_t _len)
 {
 #ifdef SOLID_ON_WINDOWS
     return _strnicmp(_s1, _s2, _len);

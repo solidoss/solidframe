@@ -41,9 +41,9 @@ namespace solid {
 /*static*/ const char* src_file_name(char const* _fname)
 {
 #ifdef SOLID_ON_WINDOWS
-    static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
+    static const size_t fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
 #else
-    static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "solid/system/src")));
+    static const size_t fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "solid/system/src")));
 #endif
     return _fname + fileoff;
 }

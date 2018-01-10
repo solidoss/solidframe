@@ -44,9 +44,9 @@ public:
     Device(DescriptorT _desc = invalidDescriptor());
     ~Device();
     //! Read call
-    int read(char* _pb, size_t _bl);
+    ssize_t read(char* _pb, size_t _bl);
     //! Write call
-    int write(const char* _pb, size_t _bl);
+    ssize_t write(const char* _pb, size_t _bl);
     //! Cancels existing io operations
     bool cancel();
     //! Close the device

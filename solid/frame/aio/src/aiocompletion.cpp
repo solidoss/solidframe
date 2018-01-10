@@ -112,7 +112,6 @@ void CompletionHandler::deactivate()
     }
     if (isActive()) {
         SOLID_THROW("FATAL: CompletionHandler deleted/deactivated outside object's reactor!");
-        std::terminate();
     }
 }
 

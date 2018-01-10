@@ -105,7 +105,7 @@ class Datagram : public CompletionHandler {
             if (!_rctx.error()) {
                 bool       can_retry;
                 ErrorCodeT err;
-                int        rv = _rthis.s.recv(_rthis.recv_buf, _rthis.recv_buf_cp, can_retry, err);
+                ssize_t    rv = _rthis.s.recv(_rthis.recv_buf, _rthis.recv_buf_cp, can_retry, err);
 
                 if (rv > 0) {
                     recv_sz = rv;
@@ -144,7 +144,7 @@ class Datagram : public CompletionHandler {
             if (!_rctx.error()) {
                 bool       can_retry;
                 ErrorCodeT err;
-                int        rv = _rthis.s.recvFrom(_rthis.recv_buf, _rthis.recv_buf_cp, addr, can_retry, err);
+                ssize_t    rv = _rthis.s.recvFrom(_rthis.recv_buf, _rthis.recv_buf_cp, addr, can_retry, err);
 
                 if (rv > 0) {
                     recv_sz = rv;
@@ -181,7 +181,7 @@ class Datagram : public CompletionHandler {
             if (!_rctx.error()) {
                 bool       can_retry;
                 ErrorCodeT err;
-                int        rv = _rthis.s.send(_rthis.send_buf, _rthis.send_buf_cp, can_retry, err);
+                ssize_t    rv = _rthis.s.send(_rthis.send_buf, _rthis.send_buf_cp, can_retry, err);
 
                 if (rv == _rthis.send_buf_cp) {
                 } else if (rv >= 0) {
@@ -217,7 +217,7 @@ class Datagram : public CompletionHandler {
             if (!_rctx.error()) {
                 bool       can_retry;
                 ErrorCodeT err;
-                int        rv = _rthis.s.sendTo(_rthis.send_buf, _rthis.send_buf_cp, _rthis.send_addr, can_retry, err);
+                ssize_t    rv = _rthis.s.sendTo(_rthis.send_buf, _rthis.send_buf_cp, _rthis.send_addr, can_retry, err);
 
                 if (rv == static_cast<int>(_rthis.send_buf_cp)) {
                 } else if (rv >= 0) {
@@ -385,8 +385,8 @@ public:
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
             bool       can_retry;
             ErrorCodeT err;
-            int        rv = s.recvFrom(_buf, _bufcp, _raddr, can_retry, err);
-            if (rv == static_cast<int>(_bufcp)) {
+            ssize_t    rv = s.recvFrom(_buf, _bufcp, _raddr, can_retry, err);
+            if (rv == static_cast<ssize_t>(_bufcp)) {
                 _sz = rv;
                 errorClear(_rctx);
             } else if (rv >= 0) {
@@ -422,7 +422,7 @@ public:
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
             bool       can_retry;
             ErrorCodeT err;
-            int        rv = s.recv(_buf, _bufcp, can_retry, err);
+            ssize_t    rv = s.recv(_buf, _bufcp, can_retry, err);
 
             if (rv == _bufcp) {
                 _sz = rv;
@@ -504,9 +504,9 @@ public:
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             bool       can_retry;
             ErrorCodeT err;
-            int        rv = s.sendTo(_buf, _bufcp, _addrstub, can_retry, err);
+            ssize_t    rv = s.sendTo(_buf, _bufcp, _addrstub, can_retry, err);
 
-            if (rv == static_cast<int>(_bufcp)) {
+            if (rv == static_cast<ssize_t>(_bufcp)) {
                 errorClear(_rctx);
             } else if (rv >= 0) {
                 error(_rctx, error_datagram_shutdown);
@@ -540,7 +540,7 @@ public:
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             bool       can_retry;
             ErrorCodeT err;
-            int        rv = s.sendTo(_buf, _bufcp, can_retry, err);
+            ssize_t    rv = s.sendTo(_buf, _bufcp, can_retry, err);
 
             if (rv == _bufcp) {
                 errorClear(_rctx);

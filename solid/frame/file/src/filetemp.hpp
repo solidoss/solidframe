@@ -23,15 +23,15 @@ namespace file {
 struct TempFile : TempBase {
     TempFile(
         size_t   _storageid,
-        size_t   _id,
+        uint32_t _id,
         uint64_t _size); //:TempBase(_storageid, _id, _size){
 private:
     /*virtual*/ ~TempFile();
 
     /*virtual*/ bool open(const char* _path, const size_t _openflags, bool _remove, ErrorCodeT& _rerr);
     /*virtual*/ void close(const char* _path, bool _remove);
-    /*virtual*/ int read(char* _pb, uint32_t _bl, int64_t _off);
-    /*virtual*/ int write(const char* _pb, uint32_t _bl, int64_t _off);
+    /*virtual*/ ssize_t read(char* _pb, size_t _bl, int64_t _off);
+    /*virtual*/ ssize_t write(const char* _pb, size_t _bl, int64_t _off);
     /*virtual*/ int64_t size() const;
 
     /*virtual*/ bool truncate(int64_t _len = 0);
@@ -44,15 +44,15 @@ private:
 struct TempMemory : TempBase {
     TempMemory(
         size_t   _storageid,
-        size_t   _id,
+        uint32_t _id,
         uint64_t _size); //:TempBase(_storageid, _id, _size){
 private:
     /*virtual*/ ~TempMemory();
 
     /*virtual*/ bool open(const char* _path, const size_t _openflags, bool _remove, ErrorCodeT& _rerr);
     /*virtual*/ void close(const char* _path, bool _remove);
-    /*virtual*/ int read(char* _pb, uint32_t _bl, int64_t _off);
-    /*virtual*/ int write(const char* _pb, uint32_t _bl, int64_t _off);
+    /*virtual*/ ssize_t read(char* _pb, size_t _bl, int64_t _off);
+    /*virtual*/ ssize_t write(const char* _pb, size_t _bl, int64_t _off);
     /*virtual*/ int64_t size() const;
 
     /*virtual*/ bool truncate(int64_t _len = 0);

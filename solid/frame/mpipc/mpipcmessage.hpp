@@ -44,7 +44,7 @@ struct MessageHeader {
         const MessageHeader& _rmsgh)
         : sender_request_id_(_rmsgh.sender_request_id_)
         , recipient_request_id_(_rmsgh.recipient_request_id_)
-        , flags_(fetch_state_flags(_rmsgh.flags_).toULong())
+        , flags_(fetch_state_flags(_rmsgh.flags_).toUint32())
     {
     }
 
@@ -249,7 +249,7 @@ struct Message : std::enable_shared_from_this<Message> {
 
     void clearStateFlags()
     {
-        header_.flags_ = clear_state_flags(header_.flags_).toULong();
+        header_.flags_ = clear_state_flags(header_.flags_).toUint32();
     }
 
     void clearHeader()

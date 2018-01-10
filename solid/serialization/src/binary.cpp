@@ -183,7 +183,7 @@ void SerializerBase::doPushContainerLimit(size_t _v)
     fstk.push(FncData(&Base::setContainerLimit, 0, 0, _v));
 }
 
-int SerializerBase::run(char* _pb, unsigned _bl, void* _pctx)
+int SerializerBase::run(char* _pb, size_t _bl, void* _pctx)
 {
     cpb = pb = _pb;
     be       = cpb + _bl;
@@ -197,7 +197,7 @@ int SerializerBase::run(char* _pb, unsigned _bl, void* _pctx)
             fstk.pop();
             continue;
         case WaitE:
-            return cpb - pb;
+            return static_cast<int>(cpb - pb);
         case FailureE:
             resetLimits();
             return -1;
@@ -209,7 +209,7 @@ int SerializerBase::run(char* _pb, unsigned _bl, void* _pctx)
     resetLimits();
 
     SOLID_ASSERT(fstk.size() || (fstk.empty() && estk.empty()));
-    return cpb - pb;
+    return static_cast<int>(cpb - pb);
 }
 
 /*static*/ ReturnValues SerializerBase::storeBitvec(Base& _rs, FncData& _rfd, void* /*_pctx*/)
@@ -287,9 +287,9 @@ ReturnValues SerializerBase::storeBinary<0>(Base& _rb, FncData& _rfd, void* /*_p
     SerializerBase& rs(static_cast<SerializerBase&>(_rb));
     if (!rs.cpb)
         return SuccessE;
-    uint32_t len = rs.be - rs.cpb;
+    size_t len = rs.be - rs.cpb;
     if (len > _rfd.s)
-        len = static_cast<uint32_t>(_rfd.s);
+        len = static_cast<size_t>(_rfd.s);
     idbgx(Debug::ser_bin, _rfd.s << ' ' << len << ' ' << trim_str((const char*)_rfd.p, len, 4, 4));
     memcpy(rs.cpb, _rfd.p, len);
     rs.cpb += len;
@@ -308,7 +308,7 @@ ReturnValues SerializerBase::storeBinary<1>(Base& _rb, FncData& _rfd, void* /*_p
 
     if (!rs.cpb)
         return SuccessE;
-    const unsigned len = rs.be - rs.cpb;
+    const size_t len = rs.be - rs.cpb;
 
     if (len) {
         *rs.cpb = *reinterpret_cast<const char*>(_rfd.p);
@@ -326,8 +326,8 @@ ReturnValues SerializerBase::storeBinary<2>(Base& _rb, FncData& _rfd, void* /*_p
 
     if (!rs.cpb)
         return SuccessE;
-    const unsigned len = rs.be - rs.cpb;
-    const char*    ps  = reinterpret_cast<const char*>(_rfd.p);
+    const size_t len = rs.be - rs.cpb;
+    const char*  ps  = reinterpret_cast<const char*>(_rfd.p);
 
     if (len >= 2) {
         *(rs.cpb + 0) = *(ps + 0);
@@ -350,8 +350,8 @@ ReturnValues SerializerBase::storeBinary<4>(Base& _rb, FncData& _rfd, void* /*_p
     SerializerBase& rs(static_cast<SerializerBase&>(_rb));
     if (!rs.cpb)
         return SuccessE;
-    const unsigned len = rs.be - rs.cpb;
-    const char*    ps  = reinterpret_cast<const char*>(_rfd.p);
+    const size_t len = rs.be - rs.cpb;
+    const char*  ps  = reinterpret_cast<const char*>(_rfd.p);
     if (len >= 4) {
         *(rs.cpb + 0) = *(ps + 0);
         *(rs.cpb + 1) = *(ps + 1);
@@ -395,8 +395,8 @@ ReturnValues SerializerBase::storeBinary<8>(Base& _rb, FncData& _rfd, void* /*_p
     if (!rs.cpb)
         return SuccessE;
 
-    const unsigned len = rs.be - rs.cpb;
-    const char*    ps  = reinterpret_cast<const char*>(_rfd.p);
+    const size_t len = rs.be - rs.cpb;
+    const char*  ps  = reinterpret_cast<const char*>(_rfd.p);
     if (len >= 8) {
         *(rs.cpb + 0) = *(ps + 0);
         *(rs.cpb + 1) = *(ps + 1);
@@ -482,7 +482,7 @@ ReturnValues SerializerBase::store<bool>(Base& _rb, FncData& _rfd, void* /*_pctx
 
     if (!rs.cpb)
         return SuccessE;
-    const unsigned len = rs.be - rs.cpb;
+    const size_t len = rs.be - rs.cpb;
 
     if (len) {
         *rs.cpb = (*static_cast<const bool*>(_rfd.p) ? 1 : 0);
@@ -595,7 +595,7 @@ ReturnValues SerializerBase::storeStreamBegin(Base& _rb, FncData& _rfd, void* /*
     if (!rs.cpb)
         return SuccessE;
 
-    int32_t toread = rs.be - rs.cpb;
+    size_t toread = rs.be - rs.cpb;
 
     if (toread < MIN_STREAM_BUFFER_SIZE)
         return WaitE;
@@ -660,7 +660,7 @@ ReturnValues SerializerBase::storeStream(Base& _rb, FncData& _rfd, void* /*_pctx
 
     std::istream& ris = *reinterpret_cast<std::istream*>(_rfd.p);
 
-    int rv;
+    ptrdiff_t rv;
 
     if (ris) {
         ris.read(rs.cpb + 2, toread);
@@ -838,8 +838,8 @@ template <>
         return SuccessE;
 
     const uint64_t v   = _rfd.d;
-    const unsigned len = rs.be - rs.cpb;
-    const unsigned vsz = cross::size(v);
+    const size_t   len = rs.be - rs.cpb;
+    const size_t   vsz = cross::size(v);
 
     if (len >= vsz) {
         rs.cpb = binary::cross::store(rs.cpb, len, v);
@@ -908,8 +908,9 @@ void DeserializerBase::doPushContainerLimit(size_t _v)
     fstk.push(FncData(&Base::setContainerLimit, 0, 0, _v));
 }
 
-int DeserializerBase::run(const char* _pb, unsigned _bl, void* _pctx)
+int DeserializerBase::run(const char* _pb, size_t _bl, void* _pctx)
 {
+
     cpb = pb = _pb;
     be       = pb + _bl;
     while (fstk.size()) {
@@ -922,7 +923,7 @@ int DeserializerBase::run(const char* _pb, unsigned _bl, void* _pctx)
             fstk.pop();
             continue;
         case WaitE:
-            return cpb - pb;
+            return static_cast<int>(cpb - pb);
         case FailureE:
             resetLimits();
             return -1;
@@ -935,7 +936,7 @@ int DeserializerBase::run(const char* _pb, unsigned _bl, void* _pctx)
 
     SOLID_ASSERT(fstk.size() || (fstk.empty() && estk.empty()));
 
-    return cpb - pb;
+    return static_cast<int>(cpb - pb);
 }
 
 /*static*/ ReturnValues DeserializerBase::loadBitvec(Base& _rd, FncData& _rfd, void* /*_pctx*/)
@@ -1028,9 +1029,9 @@ ReturnValues DeserializerBase::loadBinary<0>(Base& _rb, FncData& _rfd, void* /*_
     idbgx(Debug::ser_bin, "" << _rfd.s);
     if (!rd.cpb)
         return SuccessE;
-    uint32_t len = rd.be - rd.cpb;
+    size_t len = rd.be - rd.cpb;
     if (len > _rfd.s)
-        len = static_cast<uint32_t>(_rfd.s);
+        len = static_cast<size_t>(_rfd.s);
     memcpy(_rfd.p, rd.cpb, len);
     rd.cpb += len;
     _rfd.p = (char*)_rfd.p + len;
@@ -1052,8 +1053,8 @@ ReturnValues DeserializerBase::loadBinary<1>(Base& _rb, FncData& _rfd, void* /*_
     idbgx(Debug::ser_bin, "");
     if (!rd.cpb)
         return SuccessE;
-    const unsigned len = rd.be - rd.cpb;
-    char*          ps  = reinterpret_cast<char*>(_rfd.p);
+    const size_t len = rd.be - rd.cpb;
+    char*        ps  = reinterpret_cast<char*>(_rfd.p);
     idbgx(Debug::ser_bin, "" << len << ' ' << (void*)rd.cpb);
     if (len >= 1) {
         *(ps + 0) = *(rd.cpb + 0);
@@ -1070,8 +1071,8 @@ ReturnValues DeserializerBase::loadBinary<2>(Base& _rb, FncData& _rfd, void* /*_
     idbgx(Debug::ser_bin, "");
     if (!rd.cpb)
         return SuccessE;
-    const unsigned len = rd.be - rd.cpb;
-    char*          ps  = reinterpret_cast<char*>(_rfd.p);
+    const size_t len = rd.be - rd.cpb;
+    char*        ps  = reinterpret_cast<char*>(_rfd.p);
     if (len >= 2) {
         *(ps + 0) = *(rd.cpb + 0);
         *(ps + 1) = *(rd.cpb + 1);
@@ -1093,8 +1094,8 @@ ReturnValues DeserializerBase::loadBinary<3>(Base& _rb, FncData& _rfd, void* /*_
     idbgx(Debug::ser_bin, "");
     if (!rd.cpb)
         return SuccessE;
-    const unsigned len = rd.be - rd.cpb;
-    char*          ps  = reinterpret_cast<char*>(_rfd.p);
+    const size_t len = rd.be - rd.cpb;
+    char*        ps  = reinterpret_cast<char*>(_rfd.p);
     if (len >= 3) {
         *(ps + 0) = *(rd.cpb + 0);
         *(ps + 1) = *(rd.cpb + 1);
@@ -1123,8 +1124,8 @@ ReturnValues DeserializerBase::loadBinary<4>(Base& _rb, FncData& _rfd, void* /*_
     idbgx(Debug::ser_bin, "");
     if (!rd.cpb)
         return SuccessE;
-    const unsigned len = rd.be - rd.cpb;
-    char*          ps  = reinterpret_cast<char*>(_rfd.p);
+    const size_t len = rd.be - rd.cpb;
+    char*        ps  = reinterpret_cast<char*>(_rfd.p);
     if (len >= 4) {
         *(ps + 0) = *(rd.cpb + 0);
         *(ps + 1) = *(rd.cpb + 1);
@@ -1162,8 +1163,8 @@ ReturnValues DeserializerBase::loadBinary<5>(Base& _rb, FncData& _rfd, void* /*_
     idbgx(Debug::ser_bin, "");
     if (!rd.cpb)
         return SuccessE;
-    const unsigned len = rd.be - rd.cpb;
-    char*          ps  = reinterpret_cast<char*>(_rfd.p);
+    const size_t len = rd.be - rd.cpb;
+    char*        ps  = reinterpret_cast<char*>(_rfd.p);
     if (len >= 5) {
         *(ps + 0) = *(rd.cpb + 0);
         *(ps + 1) = *(rd.cpb + 1);
@@ -1209,8 +1210,8 @@ ReturnValues DeserializerBase::loadBinary<6>(Base& _rb, FncData& _rfd, void* /*_
     idbgx(Debug::ser_bin, "");
     if (!rd.cpb)
         return SuccessE;
-    const unsigned len = rd.be - rd.cpb;
-    char*          ps  = reinterpret_cast<char*>(_rfd.p);
+    const size_t len = rd.be - rd.cpb;
+    char*        ps  = reinterpret_cast<char*>(_rfd.p);
     if (len >= 6) {
         *(ps + 0) = *(rd.cpb + 0);
         *(ps + 1) = *(rd.cpb + 1);
@@ -1266,8 +1267,8 @@ ReturnValues DeserializerBase::loadBinary<7>(Base& _rb, FncData& _rfd, void* /*_
     idbgx(Debug::ser_bin, "");
     if (!rd.cpb)
         return SuccessE;
-    const unsigned len = rd.be - rd.cpb;
-    char*          ps  = reinterpret_cast<char*>(_rfd.p);
+    const size_t len = rd.be - rd.cpb;
+    char*        ps  = reinterpret_cast<char*>(_rfd.p);
     if (len >= 7) {
         *(ps + 0) = *(rd.cpb + 0);
         *(ps + 1) = *(rd.cpb + 1);
@@ -1334,8 +1335,8 @@ ReturnValues DeserializerBase::loadBinary<8>(Base& _rb, FncData& _rfd, void* /*_
     idbgx(Debug::ser_bin, "");
     if (!rd.cpb)
         return SuccessE;
-    const unsigned len = rd.be - rd.cpb;
-    char*          ps  = reinterpret_cast<char*>(_rfd.p);
+    const size_t len = rd.be - rd.cpb;
+    char*        ps  = reinterpret_cast<char*>(_rfd.p);
     if (len >= 8) {
         *(ps + 0) = *(rd.cpb + 0);
         *(ps + 1) = *(rd.cpb + 1);
@@ -1414,8 +1415,8 @@ ReturnValues DeserializerBase::load<bool>(Base& _rb, FncData& _rfd, void* /*_pct
     idbgx(Debug::ser_bin, "");
     if (!rd.cpb)
         return SuccessE;
-    const unsigned len = rd.be - rd.cpb;
-    bool*          pb  = reinterpret_cast<bool*>(_rfd.p);
+    const size_t len = rd.be - rd.cpb;
+    bool*        pb  = reinterpret_cast<bool*>(_rfd.p);
     idbgx(Debug::ser_bin, "" << len << ' ' << (void*)rd.cpb);
     if (len >= 1) {
         *pb = ((*rd.cpb) == 1) ? true : false;
@@ -1724,7 +1725,7 @@ ReturnValues DeserializerBase::loadDummyStream(Base& _rb, FncData& _rfd, void* /
     if (!rd.cpb)
         return SuccessE;
 
-    int32_t towrite = rd.be - rd.cpb;
+    ptrdiff_t towrite = rd.be - rd.cpb;
 
     if (towrite < 2) {
         return WaitE;
@@ -1732,8 +1733,8 @@ ReturnValues DeserializerBase::loadDummyStream(Base& _rb, FncData& _rfd, void* /
 
     towrite -= 2;
 
-    if (towrite > static_cast<int32_t>(_rfd.s)) {
-        towrite = static_cast<int32_t>(_rfd.s);
+    if (towrite > static_cast<ptrdiff_t>(_rfd.s)) {
+        towrite = static_cast<ptrdiff_t>(_rfd.s);
     }
     uint16_t sz(0);
 
@@ -1771,7 +1772,7 @@ ReturnValues DeserializerBase::loadUtf8(Base& _rb, FncData& _rfd, void* /*_pctx*
     DeserializerBase& rd(static_cast<DeserializerBase&>(_rb));
     idbgx(Debug::ser_bin, "");
     std::string* ps     = reinterpret_cast<std::string*>(_rfd.p);
-    unsigned     len    = rd.be - rd.cpb;
+    size_t       len    = rd.be - rd.cpb;
     size_t       slen   = cstring::nlen(rd.cpb, len);
     size_t       totlen = ps->size() + slen;
     idbgx(Debug::ser_bin, "len = " << len);
@@ -1871,12 +1872,12 @@ template <>
     if (!rd.cpb)
         return SuccessE;
 
-    const unsigned len = rd.be - rd.cpb;
+    const size_t len = rd.be - rd.cpb;
     if (!len)
         return WaitE;
 
-    const unsigned vsz = cross::size(rd.cpb);
-    uint16_t&      v   = *reinterpret_cast<uint16_t*>(_rfd.p);
+    const size_t vsz = cross::size(rd.cpb);
+    uint16_t&    v   = *reinterpret_cast<uint16_t*>(_rfd.p);
 
     if (vsz <= len) {
         const char* p = binary::cross::load(rd.cpb, len, v);
@@ -1911,12 +1912,12 @@ template <>
     if (!rd.cpb)
         return SuccessE;
 
-    const unsigned len = rd.be - rd.cpb;
+    const size_t len = rd.be - rd.cpb;
     if (!len)
         return WaitE;
 
-    const unsigned vsz = cross::size(rd.cpb);
-    uint32_t&      v   = *reinterpret_cast<uint32_t*>(_rfd.p);
+    const size_t vsz = cross::size(rd.cpb);
+    uint32_t&    v   = *reinterpret_cast<uint32_t*>(_rfd.p);
 
     if (vsz <= len) {
         const char* p = binary::cross::load(rd.cpb, len, v);
@@ -1951,12 +1952,12 @@ template <>
     if (!rd.cpb)
         return SuccessE;
 
-    const unsigned len = rd.be - rd.cpb;
+    const size_t len = rd.be - rd.cpb;
     if (!len)
         return WaitE;
 
-    const unsigned vsz = cross::size(rd.cpb);
-    uint64_t&      v   = *reinterpret_cast<uint64_t*>(_rfd.p);
+    const size_t vsz = cross::size(rd.cpb);
+    uint64_t&    v   = *reinterpret_cast<uint64_t*>(_rfd.p);
 
     if (vsz <= len) {
         const char* p = binary::cross::load(rd.cpb, len, v);

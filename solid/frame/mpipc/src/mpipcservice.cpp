@@ -833,7 +833,7 @@ ErrorConditionT Service::doSendMessage(
 
     solid::ErrorConditionT error;
     size_t                 pool_index;
-    uint32_t               unique;
+    uint32_t               unique    = -1;
     bool                   check_uid = false;
 
     unique_lock<std::mutex> lock(impl_->mtx);
@@ -1507,8 +1507,8 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
                 } else {
                     rmsgstub.msgid = MessageId();
                     rmsgstub.objid = ObjectIdT();
+                    error          = error_service_message_lost;
                     SOLID_THROW("Lost message");
-                    error = error_service_message_lost;
                 }
             }
 

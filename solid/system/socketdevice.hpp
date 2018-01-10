@@ -89,13 +89,13 @@ public:
     ErrorCodeT sendBufferSize(int& _rrv) const;
     ErrorCodeT recvBufferSize(int& _rrv) const;
     //! Write data on socket
-    int send(const char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned _flags = 0);
+    ssize_t send(const char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned _flags = 0);
     //! Reads data from a socket
-    int recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned _flags = 0);
+    ssize_t recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned _flags = 0);
     //! Send a datagram to a socket
-    int send(const char* _pb, size_t _ul, const SocketAddressStub& _sap, bool& _rcan_retry, ErrorCodeT& _rerr);
+    ssize_t send(const char* _pb, size_t _ul, const SocketAddressStub& _sap, bool& _rcan_retry, ErrorCodeT& _rerr);
     //! Recv data from a socket
-    int recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rcan_retry, ErrorCodeT& _rerr);
+    ssize_t recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rcan_retry, ErrorCodeT& _rerr);
     //! Gets the remote address for a connected socket
     ErrorCodeT remoteAddress(SocketAddress& _rsa) const;
     //! Gets the local address for a socket

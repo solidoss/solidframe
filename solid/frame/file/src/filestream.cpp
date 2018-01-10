@@ -82,7 +82,7 @@ void FileBuf::device(FilePointerT& _rptr)
         }
         //refill rbuf
         idbgx(dbgid(), "read " << bufcp << " from " << off);
-        int rv = dev->read(buf, bufcp, off);
+        ssize_t rv = dev->read(buf, bufcp, off);
         if (rv > 0) {
             char* end = buf + rv;
             setg(buf, buf, end);
@@ -91,8 +91,8 @@ void FileBuf::device(FilePointerT& _rptr)
         }
     } else {
         //very inneficient
-        char c;
-        int  rv = dev->read(&c, 1, off);
+        char    c;
+        ssize_t rv = dev->read(&c, 1, off);
         if (rv == 1) {
             return traits_type::to_int_type(c);
         }
@@ -108,8 +108,8 @@ void FileBuf::device(FilePointerT& _rptr)
         return streambuf::uflow();
     } else {
         //very inneficient
-        char      c;
-        const int rv = dev->read(&c, 1, off);
+        char          c;
+        const ssize_t rv = dev->read(&c, 1, off);
         if (rv == 1) {
             ++off;
             return traits_type::to_int_type(c);
@@ -124,10 +124,10 @@ void FileBuf::device(FilePointerT& _rptr)
     return traits_type::eof();
 }
 
-int FileBuf::writeAll(const char* _s, size_t _n)
+ssize_t FileBuf::writeAll(const char* _s, size_t _n)
 {
-    int wcnt = 0;
-    int rv;
+    int     wcnt = 0;
+    ssize_t rv;
     do {
         rv = dev->write(_s, _n, off);
         if (rv > 0) {
@@ -164,8 +164,8 @@ int FileBuf::writeAll(const char* _s, size_t _n)
             ++endp;
         }
 
-        size_t towrite = endp - pbase();
-        int    rv      = writeAll(pbase(), towrite);
+        size_t  towrite = endp - pbase();
+        ssize_t rv      = writeAll(pbase(), towrite);
         if (static_cast<size_t>(rv) == towrite) {
             off += towrite;
             resetPut();
@@ -173,8 +173,8 @@ int FileBuf::writeAll(const char* _s, size_t _n)
             setp(nullptr, nullptr);
         }
     } else {
-        const char c  = _c;
-        const int  rv = dev->write(&c, 1, off);
+        const char    c  = _c;
+        const ssize_t rv = dev->write(&c, 1, off);
         if (rv == 1) {
             return traits_type::to_int_type(c);
         }
@@ -211,9 +211,9 @@ int FileBuf::writeAll(const char* _s, size_t _n)
             newoff += (gptr() - eback());
         }
         newoff += _off;
-        int bufoff = egptr() - eback();
+        ssize_t bufoff = egptr() - eback();
         if (newoff >= off && newoff < (off + bufoff)) {
-            int newbufoff = newoff - off;
+            ssize_t newbufoff = newoff - off;
             setg(buf, buf + newbufoff, egptr());
             newoff = off + newbufoff;
         } else {
@@ -274,18 +274,18 @@ int FileBuf::writeAll(const char* _s, size_t _n)
                 sz = _n;
             }
             memcpy(_s, gptr(), sz);
-            gbump(sz);
+            gbump(static_cast<int>(sz));
             return sz;
         }
         //read directly in the given buffer
-        int rv = dev->read(_s, _n, off);
+        ssize_t rv = dev->read(_s, _n, off);
         if (rv > 0) {
             off += rv;
             resetGet();
             return rv;
         }
     } else {
-        const int rv = dev->read(_s, _n, off);
+        const ssize_t rv = dev->read(_s, _n, off);
         if (rv > 0) {
             off += rv;
             return rv;
@@ -300,7 +300,7 @@ bool FileBuf::flushPut()
     if (pptr() != epptr()) {
         size_t towrite = pptr() - pbase();
         idbgx(dbgid(), "" << towrite << " off = " << off);
-        int rv = writeAll(buf, towrite);
+        ssize_t rv = writeAll(buf, towrite);
         if (static_cast<size_t>(rv) == towrite) {
             off += towrite;
             resetBoth();
@@ -337,7 +337,7 @@ bool FileBuf::flushPut()
         memcpy(pptr(), _s, towrite);
         _n -= towrite;
         _s += towrite;
-        pbump(towrite);
+        pbump(static_cast<int>(towrite));
 
         if (_n != 0 || towrite == wleftsz) {
             if (!flushPut()) {
@@ -345,10 +345,10 @@ bool FileBuf::flushPut()
             }
             if (_n && static_cast<size_t>(_n) <= bufcp / 2) {
                 memcpy(pptr(), _s, _n);
-                pbump(_n);
+                pbump(static_cast<int>(_n));
             } else if (_n) {
-                size_t towrite = _n;
-                int    rv      = writeAll(_s, towrite);
+                size_t  towrite = _n;
+                ssize_t rv      = writeAll(_s, towrite);
                 if (static_cast<size_t>(rv) == towrite) {
                     off += rv;
                     resetPut();
@@ -361,7 +361,7 @@ bool FileBuf::flushPut()
         }
         return sz;
     } else {
-        const int rv = dev->write(_s, _n, off);
+        const ssize_t rv = dev->write(_s, _n, off);
         if (rv > 0) {
             off += rv;
             return rv;

@@ -52,9 +52,9 @@ public:
 
     ~MessageReader();
 
-    uint32_t read(
+    size_t read(
         const char*                _pbuf,
-        uint32_t                   _bufsz,
+        size_t                     _bufsz,
         Receiver&                  _receiver,
         ReaderConfiguration const& _rconfig,
         Protocol const&            _rproto,

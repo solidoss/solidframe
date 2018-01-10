@@ -851,7 +851,7 @@ protected:
     void doPushStreamLimit(uint64_t _v);
     void doPushContainerLimit();
     void doPushContainerLimit(size_t _v);
-    int run(char* _pb, unsigned _bl, void* _pctx);
+    int run(char* _pb, size_t _bl, void* _pctx);
 
 public:
     typedef void ContextT;
@@ -1090,7 +1090,7 @@ public:
     {
     }
 
-    int run(char* _pb, unsigned _bl)
+    int run(char* _pb, size_t _bl)
     {
         return SerializerBase::run(_pb, _bl, nullptr);
     }
@@ -1375,7 +1375,7 @@ public:
     {
     }
 
-    int run(char* _pb, unsigned _bl, Ctx& _rctx)
+    int run(char* _pb, size_t _bl, Ctx& _rctx)
     {
         const void* pctx = &_rctx;
         return SerializerBase::run(_pb, _bl, const_cast<void*>(pctx));
@@ -2119,7 +2119,7 @@ protected:
     void doPushStreamLimit(uint64_t _v);
     void doPushContainerLimit();
     void doPushContainerLimit(size_t _v);
-    int run(const char* _pb, unsigned _bl, void* _pctx);
+    int run(const char* _pb, size_t _bl, void* _pctx);
 
 public:
     typedef void ContextT;
@@ -2360,7 +2360,7 @@ public:
     {
     }
 
-    int run(const char* _pb, unsigned _bl)
+    int run(const char* _pb, size_t _bl)
     {
         return DeserializerBase::run(_pb, _bl, nullptr);
     }
@@ -2640,7 +2640,7 @@ public:
     {
     }
 
-    int run(const char* _pb, unsigned _bl, Ctx& _rctx)
+    int run(const char* _pb, size_t _bl, Ctx& _rctx)
     {
         const void* pctx = &_rctx;
         return DeserializerBase::run(_pb, _bl, const_cast<void*>(pctx));

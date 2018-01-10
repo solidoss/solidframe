@@ -50,7 +50,7 @@ inline Service& Listener::service(frame::aio::ReactorContext& _rctx)
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     idbgx(Debug::mpipc, "");
-    unsigned repeatcnt = backlog_size();
+    size_t repeatcnt = backlog_size();
 
     do {
         if (!_rctx.error()) {

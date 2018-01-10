@@ -61,7 +61,7 @@ private:
     {
         return gptr() != egptr();
     }
-    int writeAll(const char* _s, size_t _n);
+    ssize_t writeAll(const char* _s, size_t _n);
     void resetBoth()
     {
         char* end = buf + bufcp;

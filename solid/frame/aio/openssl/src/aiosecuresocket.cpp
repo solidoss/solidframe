@@ -37,9 +37,9 @@ public:
     }
     std::string message(int _ev) const;
 
-    solid::ErrorCodeT makeError(int _err) const
+    solid::ErrorCodeT makeError(unsigned long _err) const
     {
-        return solid::ErrorCodeT(_err, *this);
+        return solid::ErrorCodeT(static_cast<int>(_err), *this);
     }
 };
 
@@ -230,7 +230,7 @@ ErrorCodeT Context::addVerifyAuthority(const unsigned char* _data, const size_t 
     ErrorCodeT err;
     ::ERR_clear_error();
 
-    std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, _data_size), bio_deleter);
+    std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, static_cast<int>(_data_size)), bio_deleter);
 
     if (bio_ptr) {
 
@@ -305,7 +305,7 @@ ErrorCodeT Context::loadCertificate(const unsigned char* _data, const size_t _da
             return err;
         }
     } else if (_fformat == FileFormat::Pem) {
-        std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, _data_size), bio_deleter);
+        std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, static_cast<int>(_data_size)), bio_deleter);
         if (bio_ptr) {
             std::unique_ptr<::X509, X509Deleter> cert_ptr(::PEM_read_bio_X509(bio_ptr.get(), 0, 0, 0), x509_deleter);
             if (cert_ptr) {
@@ -340,7 +340,7 @@ ErrorCodeT Context::loadPrivateKey(const unsigned char* _data, const size_t _dat
     ErrorCodeT err;
     ::ERR_clear_error();
 
-    std::unique_ptr<::BIO, BIODeleter>           bio_ptr(::BIO_new_mem_buf(_data, _data_size), bio_deleter);
+    std::unique_ptr<::BIO, BIODeleter>           bio_ptr(::BIO_new_mem_buf(_data, static_cast<int>(_data_size)), bio_deleter);
     std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter> key_ptr(nullptr, evp_pkey_deleter);
 
     if (_fformat == FileFormat::Asn1) {
@@ -397,7 +397,7 @@ ErrorCodeT Context::doSetPasswordCallback()
         buf[sz] = 0;
     }
 
-    return strlen(buf);
+    return static_cast<int>(strlen(buf));
 }
 
 //=============================================================================
@@ -543,7 +543,7 @@ ReactorEventsE Socket::filterReactorEvents(
     return _evt;
 }
 
-int Socket::recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
 {
     want_read_on_recv = want_write_on_recv = false;
 
@@ -552,7 +552,7 @@ int Socket::recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCode
 
     ::ERR_clear_error();
 
-    const int           retval   = ::SSL_read(pssl, _pb, _bl);
+    const int           retval   = ::SSL_read(pssl, _pb, static_cast<int>(_bl));
     const ErrorCodeT    err_sys  = last_socket_error();
     const int           err_cond = ::SSL_get_error(pssl, retval);
     const unsigned long err_code = ::ERR_get_error();
@@ -599,7 +599,7 @@ int Socket::recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCode
     return -1;
 }
 
-int Socket::send(void* _pctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::send(void* _pctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
 {
     want_read_on_send = want_write_on_send = false;
 
@@ -608,7 +608,7 @@ int Socket::send(void* _pctx, const char* _pb, size_t _bl, bool& _can_retry, Err
 
     ::ERR_clear_error();
 
-    const int           retval   = ::SSL_write(pssl, _pb, _bl);
+    const int           retval   = ::SSL_write(pssl, _pb, static_cast<int>(_bl));
     const ErrorCodeT    err_sys  = last_socket_error();
     const int           err_cond = ::SSL_get_error(pssl, retval);
     const unsigned long err_code = ::ERR_get_error();
@@ -808,12 +808,12 @@ bool Socket::secureShutdown(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
     return false;
 }
 
-int Socket::recvFrom(char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::recvFrom(char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
 {
     return -1;
 }
 
-int Socket::sendTo(const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::sendTo(const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
 {
     return -1;
 }

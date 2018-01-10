@@ -40,9 +40,9 @@ void MessageReader::unprepare()
 {
 }
 //-----------------------------------------------------------------------------
-uint32_t MessageReader::read(
+size_t MessageReader::read(
     const char*                _pbuf,
-    uint32_t                   _bufsz,
+    size_t                     _bufsz,
     Receiver&                  _receiver,
     ReaderConfiguration const& _rconfig,
     Protocol const&            _rproto,

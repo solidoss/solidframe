@@ -378,8 +378,8 @@ private:
     const std::string& rpool_name_;
     TimerT             timer_;
     FlagsT             flags_;
-    uint32_t           recv_buf_off_;
-    uint32_t           cons_buf_off_;
+    size_t             recv_buf_off_;
+    size_t             cons_buf_off_;
     uint32_t           recv_keepalive_count_;
     uint16_t           recv_buf_count_;
     RecvBufferPointerT recv_buf_;

@@ -55,7 +55,7 @@ Device::~Device()
     close();
 }
 
-int Device::read(char* _pb, size_t _bl)
+ssize_t Device::read(char* _pb, size_t _bl)
 {
     SOLID_ASSERT(ok());
 #ifdef SOLID_ON_WINDOWS
@@ -70,7 +70,7 @@ int Device::read(char* _pb, size_t _bl)
 #endif
 }
 
-int Device::write(const char* _pb, size_t _bl)
+ssize_t Device::write(const char* _pb, size_t _bl)
 {
     SOLID_ASSERT(ok());
 #ifdef SOLID_ON_WINDOWS
@@ -123,7 +123,7 @@ void Device::flush()
 }
 
 //-- SeekableDevice ----------------------------------------
-int SeekableDevice::read(char* _pb, size_t _bl, int64_t _off)
+ssize_t SeekableDevice::read(char* _pb, size_t _bl, int64_t _off)
 {
 #ifdef SOLID_ON_WINDOWS
     int64_t off(seek(0, SeekCur));
@@ -136,12 +136,12 @@ int SeekableDevice::read(char* _pb, size_t _bl, int64_t _off)
 #endif
 }
 
-int SeekableDevice::write(const char* _pb, size_t _bl, int64_t _off)
+ssize_t SeekableDevice::write(const char* _pb, size_t _bl, int64_t _off)
 {
 #ifdef SOLID_ON_WINDOWS
     int64_t off(seek(0, SeekCur));
     seek(_off);
-    int rv = Device::write(_pb, _bl);
+    ssize_t rv = Device::write(_pb, _bl);
     seek(off);
     return rv;
 #else
@@ -728,7 +728,7 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
     if (rv < 0) {
         return last_socket_error();
     }
-    rv = listen(descriptor(), _listencnt);
+    rv = listen(descriptor(), static_cast<int>(_listencnt));
     if (rv < 0) {
         return last_socket_error();
     }
@@ -887,47 +887,47 @@ ErrorCodeT SocketDevice::isBlocking(bool& _rrv) const
 #endif
 }
 
-int SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
+ssize_t SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
 {
 #ifdef SOLID_ON_WINDOWS
     return -1;
 #else
-    int rv      = ::send(descriptor(), _pb, _ul, 0);
+    ssize_t rv  = ::send(descriptor(), _pb, _ul, 0);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
     _rerr       = last_socket_error();
     return rv;
 #endif
 }
-int SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
+ssize_t SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
 {
 #ifdef SOLID_ON_WINDOWS
     return -1;
 #else
-    int rv      = ::recv(descriptor(), _pb, _ul, 0);
+    ssize_t rv  = ::recv(descriptor(), _pb, _ul, 0);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
     _rerr       = last_socket_error();
     return rv;
 #endif
 }
-int SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub& _sap, bool& _rcan_retry, ErrorCodeT& _rerr)
+ssize_t SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub& _sap, bool& _rcan_retry, ErrorCodeT& _rerr)
 {
 #ifdef SOLID_ON_WINDOWS
     return -1;
 #else
-    int rv      = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
+    ssize_t rv  = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
     _rerr       = last_socket_error();
     return rv;
 #endif
 }
-int SocketDevice::recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rcan_retry, ErrorCodeT& _rerr)
+ssize_t SocketDevice::recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rcan_retry, ErrorCodeT& _rerr)
 {
 #ifdef SOLID_ON_WINDOWS
     return -1;
 #else
     _rsa.clear();
     _rsa.sz     = SocketAddress::Capacity;
-    int rv      = ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
+    ssize_t rv  = ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
     _rerr       = last_socket_error();
     return rv;

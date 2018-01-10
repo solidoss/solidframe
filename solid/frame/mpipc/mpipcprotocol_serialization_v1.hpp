@@ -44,7 +44,7 @@ struct Serializer : public mpipc::Serializer {
     }
     /*virtual*/ int run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
     {
-        return ser.run(_pdata, _data_len, _rctx);
+        return ser.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
     /*virtual*/ ErrorConditionT error() const override
     {
@@ -81,7 +81,7 @@ struct Deserializer : public mpipc::Deserializer {
     }
     /*virtual*/ int run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
     {
-        return des.run(_pdata, _data_len, _rctx);
+        return des.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
     /*virtual*/ ErrorConditionT error() const override
     {

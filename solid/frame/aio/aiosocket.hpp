@@ -20,7 +20,7 @@ namespace aio {
 
 class Socket {
 public:
-    using VerifyMaskT = int;
+    using VerifyMaskT = unsigned long;
 
     Socket(SocketDevice&& _rsd)
         : sd(std::move(_rsd))
@@ -69,12 +69,12 @@ public:
         return _evt;
     }
 
-    int recv(void* /*_pctx*/, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+    ssize_t recv(void* /*_pctx*/, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
     {
         return sd.recv(_pb, _bl, _can_retry, _rerr);
     }
 
-    int send(void* /*_pctx*/, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+    ssize_t send(void* /*_pctx*/, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
     {
         return sd.send(_pb, _bl, _can_retry, _rerr);
     }
@@ -89,12 +89,12 @@ public:
         return sd;
     }
 
-    int recvFrom(char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
+    ssize_t recvFrom(char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
     {
         return sd.recv(_pb, _bl, _addr, _can_retry, _rerr);
     }
 
-    int sendTo(const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
+    ssize_t sendTo(const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
     {
         return sd.send(_pb, _bl, _rsas, _can_retry, _rerr);
     }

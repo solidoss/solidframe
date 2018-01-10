@@ -16,7 +16,7 @@
 namespace solid {
 
 struct MemoryFile::BuffCmp {
-    int operator()(const uint32_t& _k1, const MemoryFile::Buffer& _k2) const
+    int operator()(const size_t& _k1, const MemoryFile::Buffer& _k2) const
     {
         if (_k1 < _k2.idx)
             return -1;
@@ -24,7 +24,7 @@ struct MemoryFile::BuffCmp {
             return 1;
         return 0;
     }
-    int operator()(const MemoryFile::Buffer& _k1, const uint32_t& _k2) const
+    int operator()(const MemoryFile::Buffer& _k1, const size_t& _k2) const
     {
         if (_k1.idx < _k2)
             return -1;
@@ -72,35 +72,35 @@ int64_t MemoryFile::capacity() const
 {
     return cp;
 }
-int MemoryFile::read(char* _pb, uint32_t _bl)
+ssize_t MemoryFile::read(char* _pb, size_t _bl)
 {
-    int rv(read(_pb, _bl, off));
+    ssize_t rv(read(_pb, _bl, off));
     if (rv > 0)
         off += rv;
     return rv;
 }
 
-int MemoryFile::write(const char* _pb, uint32_t _bl)
+ssize_t MemoryFile::write(const char* _pb, uint32_t _bl)
 {
-    int rv(write(_pb, _bl, off));
+    ssize_t rv(write(_pb, _bl, off));
     if (rv > 0)
         off += rv;
     return rv;
 }
 
-int MemoryFile::read(char* _pb, uint32_t _bl, int64_t _off)
+ssize_t MemoryFile::read(char* _pb, size_t _bl, int64_t _off)
 {
-    uint32_t buffidx(static_cast<uint32_t>(_off / bufsz));
-    uint32_t buffoff(_off % bufsz);
-    int      rd(0);
+    size_t  buffidx(static_cast<size_t>(_off / bufsz));
+    size_t  buffoff(_off % bufsz);
+    ssize_t rd(0);
     if (_off >= sz)
         return -1;
-    if ((_off + _bl) > sz) {
+    if (static_cast<int64_t>(_off + _bl) > sz) {
         _bl = static_cast<uint32_t>(sz - _off);
     }
     while (_bl) {
-        char*    bf(doGetBuffer(buffidx));
-        uint32_t tocopy(bufsz - buffoff);
+        char*  bf(doGetBuffer(buffidx));
+        size_t tocopy(bufsz - buffoff);
         if (tocopy > _bl)
             tocopy = _bl;
         if (!bf) {
@@ -122,17 +122,17 @@ int MemoryFile::read(char* _pb, uint32_t _bl, int64_t _off)
     return rd;
 }
 
-int MemoryFile::write(const char* _pb, uint32_t _bl, int64_t _off)
+ssize_t MemoryFile::write(const char* _pb, size_t _bl, int64_t _off)
 {
-    uint32_t buffidx(static_cast<uint32_t>(_off / bufsz));
-    uint32_t buffoff(_off % bufsz);
-    int      wd(0);
+    size_t  buffidx(static_cast<size_t>(_off / bufsz));
+    size_t  buffoff(_off % bufsz);
+    ssize_t wd(0);
     while (_bl) {
         bool  created(false);
         char* bf(doCreateBuffer(buffidx, created));
         if (!bf)
             break;
-        uint32_t tocopy(bufsz - buffoff);
+        size_t tocopy(bufsz - buffoff);
         if (tocopy > _bl)
             tocopy = _bl;
         if (created) {
@@ -192,11 +192,11 @@ int MemoryFile::truncate(int64_t _len)
     bv.clear();
     return -1;
 }
-inline binary_search_result_t MemoryFile::doFindBuffer(uint32_t _idx) const
+inline binary_search_result_t MemoryFile::doFindBuffer(const size_t _idx) const
 {
     return solid::binary_search(bv.begin(), bv.end(), _idx, BuffCmp());
 }
-inline char* MemoryFile::doGetBuffer(uint32_t _idx) const
+inline char* MemoryFile::doGetBuffer(const size_t _idx) const
 {
     binary_search_result_t pos(doLocateBuffer(_idx));
     if (pos.first)
@@ -204,7 +204,7 @@ inline char* MemoryFile::doGetBuffer(uint32_t _idx) const
     return nullptr;
 }
 
-char* MemoryFile::doCreateBuffer(uint32_t _idx, bool& _created)
+char* MemoryFile::doCreateBuffer(const size_t _idx, bool& _created)
 {
     binary_search_result_t pos(doLocateBuffer(_idx));
     if (pos.first) { //found buffer, return the data
@@ -212,7 +212,7 @@ char* MemoryFile::doCreateBuffer(uint32_t _idx, bool& _created)
     }
     //buffer not found
     //see if we did not reach the capacity
-    if ((static_cast<int64_t>(bv.size()) * bufsz + bufsz) > cp)
+    if (static_cast<int64_t>(static_cast<int64_t>(bv.size()) * bufsz + bufsz) > cp)
         return nullptr;
     _created = true;
     char* b  = ra.allocate();
@@ -220,7 +220,7 @@ char* MemoryFile::doCreateBuffer(uint32_t _idx, bool& _created)
     return b;
 }
 
-binary_search_result_t MemoryFile::doLocateBuffer(uint32_t _idx) const
+binary_search_result_t MemoryFile::doLocateBuffer(const size_t _idx) const
 {
     if (bv.empty() || _idx > bv.back().idx) { //append
         crtbuffidx = bv.size();
@@ -231,8 +231,8 @@ binary_search_result_t MemoryFile::doLocateBuffer(uint32_t _idx) const
         if (bv[crtbuffidx].idx == _idx)
             return binary_search_result_t(true, crtbuffidx);
         //see if its the next buffer:
-        int nextidx(crtbuffidx + 1);
-        if (static_cast<uint>(nextidx) < bv.size() && bv[nextidx].idx == _idx) {
+        size_t nextidx(crtbuffidx + 1);
+        if (nextidx < bv.size() && bv[nextidx].idx == _idx) {
             crtbuffidx = nextidx;
             return binary_search_result_t(true, crtbuffidx);
         }

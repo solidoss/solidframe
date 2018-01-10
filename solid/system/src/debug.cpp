@@ -49,20 +49,20 @@ namespace solid {
 
 //-----------------------------------------------------------------
 
-/*static*/ const unsigned Debug::any(Debug::the().registerModule("ANY"));
-/*static*/ const unsigned Debug::system(Debug::the().registerModule("SYSTEM"));
-/*static*/ const unsigned Debug::specific(Debug::the().registerModule("SPECIFIC"));
-/*static*/ const unsigned Debug::proto_txt(Debug::the().registerModule("PROTO_TXT"));
-/*static*/ const unsigned Debug::proto_bin(Debug::the().registerModule("PROTO_BIN"));
-/*static*/ const unsigned Debug::ser_bin(Debug::the().registerModule("SER_BIN"));
-/*static*/ const unsigned Debug::utility(Debug::the().registerModule("UTILITY"));
-/*static*/ const unsigned Debug::frame(Debug::the().registerModule("FRAME"));
-/*static*/ const unsigned Debug::mpipc(Debug::the().registerModule("FRAME_MPIPC"));
-/*static*/ const unsigned Debug::tcp(Debug::the().registerModule("FRAME_TCP"));
-/*static*/ const unsigned Debug::udp(Debug::the().registerModule("FRAME_UDP"));
-/*static*/ const unsigned Debug::log(Debug::the().registerModule("LOG"));
-/*static*/ const unsigned Debug::aio(Debug::the().registerModule("FRAME_AIO"));
-/*static*/ const unsigned Debug::file(Debug::the().registerModule("FRAME_FILE"));
+/*static*/ const size_t Debug::any(Debug::the().registerModule("ANY"));
+/*static*/ const size_t Debug::system(Debug::the().registerModule("SYSTEM"));
+/*static*/ const size_t Debug::specific(Debug::the().registerModule("SPECIFIC"));
+/*static*/ const size_t Debug::proto_txt(Debug::the().registerModule("PROTO_TXT"));
+/*static*/ const size_t Debug::proto_bin(Debug::the().registerModule("PROTO_BIN"));
+/*static*/ const size_t Debug::ser_bin(Debug::the().registerModule("SER_BIN"));
+/*static*/ const size_t Debug::utility(Debug::the().registerModule("UTILITY"));
+/*static*/ const size_t Debug::frame(Debug::the().registerModule("FRAME"));
+/*static*/ const size_t Debug::mpipc(Debug::the().registerModule("FRAME_MPIPC"));
+/*static*/ const size_t Debug::tcp(Debug::the().registerModule("FRAME_TCP"));
+/*static*/ const size_t Debug::udp(Debug::the().registerModule("FRAME_UDP"));
+/*static*/ const size_t Debug::log(Debug::the().registerModule("LOG"));
+/*static*/ const size_t Debug::aio(Debug::the().registerModule("FRAME_AIO"));
+/*static*/ const size_t Debug::file(Debug::the().registerModule("FRAME_FILE"));
 
 //-----------------------------------------------------------------
 
@@ -153,8 +153,8 @@ protected:
 private:
     bool flush()
     {
-        int towrite = bpos - bbeg;
-        bpos        = bbeg;
+        ptrdiff_t towrite = bpos - bbeg;
+        bpos              = bbeg;
         if (pd->write(bbeg, towrite) != towrite)
             return false;
         sz += towrite;
@@ -284,7 +284,7 @@ struct Debug::Data {
     typedef std::bitset<DEBUG_BITSET_SIZE> BitSetT;
 
     typedef std::vector<ModuleStub> ModuleVectorT;
-    typedef std::map<const char*, unsigned, StrLess> StringMapT;
+    typedef std::map<const char*, size_t, StrLess> StringMapT;
     Data()
         : lvlmsk(0)
         , sz(0)
@@ -311,7 +311,7 @@ struct Debug::Data {
     void doRespin();
     bool isActive() const { return lvlmsk != 0 && !bs.none(); }
 
-    unsigned registerModule(const char* _name, uint32_t _lvlmsk);
+    size_t registerModule(const char* _name, uint32_t _lvlmsk);
 
     mutex                m;
     BitSetT              bs;
@@ -418,13 +418,13 @@ void Debug::Data::setBit(const char* _pbeg, const char* _pend)
     } else if (!cstring::ncasecmp(name.c_str(), "none", name.size())) {
         bs.reset();
     } else {
-        unsigned pos       = registerModule(name.c_str(), 0);
+        size_t pos         = registerModule(name.c_str(), 0);
         modvec[pos].lvlmsk = lvls;
         bs.set(pos);
     }
 }
 
-unsigned Debug::Data::registerModule(const char* _name, uint32_t _lvlmsk)
+size_t Debug::Data::registerModule(const char* _name, uint32_t _lvlmsk)
 {
     std::string name = _name;
     for (std::string::iterator it = name.begin(); it != name.end(); ++it) {
@@ -589,8 +589,8 @@ void Debug::initStdErr(
 void Debug::initFile(
     const char*  _prefix,
     bool         _buffered,
-    ulong        _respincnt,
-    ulong        _respinsize,
+    uint32_t     _respincnt,
+    uint64_t     _respinsize,
     std::string* _output)
 {
     unique_lock<mutex> lock(impl_->m);
@@ -735,17 +735,17 @@ void Debug::resetAllModuleBits()
     unique_lock<mutex> lock(impl_->m);
     impl_->bs.reset();
 }
-void Debug::setModuleBit(unsigned _v)
+void Debug::setModuleBit(const size_t _v)
 {
     unique_lock<mutex> lock(impl_->m);
     impl_->bs.set(_v);
 }
-void Debug::resetModuleBit(unsigned _v)
+void Debug::resetModuleBit(const size_t _v)
 {
     unique_lock<mutex> lock(impl_->m);
     impl_->bs.reset(_v);
 }
-unsigned Debug::registerModule(const char* _name)
+size_t Debug::registerModule(const char* _name)
 {
     unique_lock<mutex> lock(impl_->m);
     return impl_->registerModule(_name, -1);
@@ -758,11 +758,11 @@ std::ostream& Debug::print()
 }
 
 std::ostream& Debug::print(
-    const char  _t,
-    unsigned    _module,
-    const char* _file,
-    const char* _fnc,
-    int         _line)
+    const char   _t,
+    const size_t _module,
+    const char*  _file,
+    const char*  _fnc,
+    int          _line)
 {
     impl_->m.lock();
     if (impl_->respinsz && impl_->respinsz <= impl_->sz) {
@@ -811,11 +811,11 @@ DebugTraceTest::~DebugTraceTest()
 }
 
 std::ostream& Debug::printTraceIn(
-    const char  _t,
-    unsigned    _module,
-    const char* _file,
-    const char* _fnc,
-    int         _line)
+    const char   _t,
+    const size_t _module,
+    const char*  _file,
+    const char*  _fnc,
+    int          _line)
 {
     impl_->m.lock();
     if (impl_->respinsz && impl_->respinsz <= impl_->sz) {
@@ -857,11 +857,11 @@ std::ostream& Debug::printTraceIn(
 }
 
 std::ostream& Debug::printTraceOut(
-    const char  _t,
-    unsigned    _module,
-    const char* _file,
-    const char* _fnc,
-    int         _line)
+    const char   _t,
+    const size_t _module,
+    const char*  _file,
+    const char*  _fnc,
+    int          _line)
 {
     impl_->m.lock();
     if (impl_->respinsz && impl_->respinsz <= impl_->sz) {
@@ -921,7 +921,7 @@ void Debug::doneTraceOut()
     impl_->m.unlock();
 }
 
-bool Debug::isSet(Level _lvl, unsigned _v) const
+bool Debug::isSet(Level _lvl, const size_t _v) const
 {
     return (impl_->lvlmsk & _lvl) && _v < impl_->bs.size() && impl_->bs[_v] && impl_->modvec[_v].lvlmsk & _lvl;
 }

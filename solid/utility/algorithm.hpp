@@ -43,7 +43,7 @@ inline uint64_t max_value_without_crc_64()
 inline bool compute_value_with_crc(uint32_t& _to, uint32_t _from)
 {
     if (_from < (1 << 27)) {
-        _to = bit_count(_from) | (_from << 5);
+        _to = static_cast<uint32_t>(bit_count(_from)) | (_from << 5);
         return true;
     } else {
         return false;

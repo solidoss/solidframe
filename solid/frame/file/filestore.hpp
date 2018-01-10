@@ -22,7 +22,7 @@ class Manager;
 
 namespace file {
 
-uint32_t dbgid();
+size_t dbgid();
 
 enum {
     MemoryLevelFlag   = 1,
@@ -80,7 +80,7 @@ struct File {
         delete ptmp;
         ptmp = nullptr;
     }
-    bool open(const char* _path, const size_t _openflags)
+    bool open(const char* _path, const int _openflags)
     {
         return fd.open(_path, _openflags);
     }
@@ -88,7 +88,7 @@ struct File {
     //We only offer offset based io because in case of shared use
     //the file offset will be kept by streams
 
-    int read(char* _pb, uint32_t _bl, int64_t _off)
+    ssize_t read(char* _pb, size_t _bl, int64_t _off)
     {
         if (!ptmp) {
             return fd.read(_pb, _bl, _off);
@@ -96,7 +96,7 @@ struct File {
             return ptmp->read(_pb, _bl, _off);
         }
     }
-    int write(const char* _pb, uint32_t _bl, int64_t _off)
+    ssize_t write(const char* _pb, size_t _bl, int64_t _off)
     {
         if (!ptmp) {
             return fd.write(_pb, _bl, _off);
