@@ -13,6 +13,7 @@
 #include "solid/utility/ioformat.hpp"
 #include <atomic>
 #include <cstring>
+#include <cstddef>
 
 namespace solid {
 namespace serialization {

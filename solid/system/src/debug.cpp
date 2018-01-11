@@ -33,6 +33,7 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <cstddef>
 
 #ifdef SOLID_ON_SOLARIS
 #include <strings.h>
