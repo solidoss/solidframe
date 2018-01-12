@@ -31,9 +31,9 @@
 #include "solid/system/socketdevice.hpp"
 
 #include <chrono>
+#include <cstddef>
 #include <mutex>
 #include <thread>
-#include <cstddef>
 
 #ifdef SOLID_ON_SOLARIS
 #include <strings.h>
@@ -757,6 +757,32 @@ std::ostream& Debug::print()
     impl_->m.lock();
     return std::cerr;
 }
+
+namespace {
+
+const char* src_file_name(char const* _fname)
+{
+#ifdef SOLID_ON_WINDOWS
+    static const size_t fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
+    return _fname + fileoff;
+#else
+    static bool         solid_found = strstr(__FILE__, "solid/system/src") != nullptr;
+    static const size_t fileoff     = (strlen(__FILE__) - strlen(strstr(__FILE__, "solid/system/src")));
+    if (solid_found) {
+        if (
+            _fname[fileoff + 0] == 's' && _fname[fileoff + 1] == 'o' && _fname[fileoff + 2] == 'l' && _fname[fileoff + 3] == 'i' && _fname[fileoff + 4] == 'd' && _fname[fileoff + 5] == '/') {
+            return _fname + fileoff;
+        }
+    }
+    const char* file_name = strrchr(_fname, '/');
+    if (file_name != nullptr) {
+        return file_name + 1;
+    }
+    return _fname;
+#endif
+}
+
+} //namespace
 
 std::ostream& Debug::print(
     const char   _t,

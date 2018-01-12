@@ -100,6 +100,4 @@ struct UnsignedType<uint64_t> {
     typedef uint64_t Type;
 };
 
-const char* src_file_name(char const* _fname);
-
 } //namespace solid

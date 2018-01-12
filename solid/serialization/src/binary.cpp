@@ -12,8 +12,8 @@
 #include "solid/system/cstring.hpp"
 #include "solid/utility/ioformat.hpp"
 #include <atomic>
-#include <cstring>
 #include <cstddef>
+#include <cstring>
 
 namespace solid {
 namespace serialization {
