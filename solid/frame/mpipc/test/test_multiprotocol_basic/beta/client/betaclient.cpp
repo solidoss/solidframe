@@ -180,4 +180,4 @@ void stop()
     mpipcclient_ptr.reset();
 }
 
-} //namespace
+} // namespace beta_client

@@ -92,9 +92,9 @@ private:
 
 private:
     typedef SOLID_FUNCTION<void(ReactorContext&, SocketDevice&)> FunctionT;
-    FunctionT            f;
-    SocketDevice         sd;
-    ReactorWaitRequestsE waitreq;
+    FunctionT                                                    f;
+    SocketDevice                                                 sd;
+    ReactorWaitRequestsE                                         waitreq;
 };
 
 } //namespace aio

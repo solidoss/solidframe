@@ -292,8 +292,8 @@ namespace binary {
 
 extern StringCheckFncT pcheckfnc;
 }
-}
-}
+} // namespace serialization
+} // namespace solid
 
 int test_clientserver_cancel_server(int argc, char** argv)
 {

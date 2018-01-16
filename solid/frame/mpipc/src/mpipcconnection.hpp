@@ -150,8 +150,8 @@ public:
         Fnc const&                        _f)
     {
         auto visit_fnc = [this, &_rsvc, &_f](
-            MessageBundle&   _rmsgbundle,
-            MessageId const& _rmsgid) {
+                             MessageBundle&   _rmsgbundle,
+                             MessageId const& _rmsgid) {
             _f(this->poolId(), _rmsgbundle, _rmsgid);
         };
         MessageWriter::VisitFunctionT fnc(std::cref(visit_fnc));
@@ -195,7 +195,7 @@ private:
 
     static bool notify(Manager& _rm, const ObjectIdT&, const RelayEngineNotification);
 
-    Service& service(frame::aio::ReactorContext& _rctx) const;
+    Service&  service(frame::aio::ReactorContext& _rctx) const;
     ObjectIdT uid(frame::aio::ReactorContext& _rctx) const;
 
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _uevent) override;

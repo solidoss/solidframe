@@ -409,9 +409,9 @@ struct Reactor::Data {
         } else if (timestore.size()) {
 
             if (_rcrt < timestore.next()) {
-                const auto crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
                 const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
-                const auto delta   = next_tp - crt_tp;
+                const auto delta = next_tp - crt_tp;
 
                 if (delta <= std::chrono::minutes(10)) {
                     return delta;
@@ -640,7 +640,7 @@ void Reactor::run()
 
         selcnt = epoll_wait(impl_->reactor_fd, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waitmsec);
 #elif defined(SOLID_USE_KQUEUE)
-        waittime      = impl_->computeWaitTimeMilliseconds(crttime);
+        waittime = impl_->computeWaitTimeMilliseconds(crttime);
 
         vdbgx(Debug::aio, "kqueue msec = " << waittime.seconds() << ':' << waittime.nanoSeconds());
 
@@ -877,11 +877,11 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
         ctx.reactor_event_ = systemEventsToReactorEvents(rev.events);
         ctx.channel_index_ = rev.data.u64;
 #elif defined(SOLID_USE_KQUEUE)
-        struct kevent&         rev = impl_->eventvec[i];
+        struct kevent& rev = impl_->eventvec[i];
         CompletionHandlerStub& rch = impl_->chdq[voidToIndex(rev.udata)];
 
-        ctx.reactor_event_    = systemEventsToReactorEvents(rev.flags, rev.filter);
-        ctx.channel_index_    = voidToIndex(rev.udata);
+        ctx.reactor_event_ = systemEventsToReactorEvents(rev.flags, rev.filter);
+        ctx.channel_index_ = voidToIndex(rev.udata);
 #endif
         ctx.object_index_ = rch.objidx;
 
@@ -1090,8 +1090,8 @@ bool Reactor::modDevice(ReactorContext& _rctx, CompletionHandler const& _rch, De
         return false;
     }
 #elif defined(SOLID_USE_KQUEUE)
-    int           read_flags  = 0;
-    int           write_flags = 0;
+    int read_flags = 0;
+    int write_flags = 0;
     struct kevent ev[2];
 
     switch (_req) {
@@ -1171,7 +1171,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, CompletionHandler const& _rch, De
         }
     }
 #elif defined(SOLID_USE_KQUEUE)
-    int read_flags  = EV_ADD;
+    int read_flags = EV_ADD;
     int write_flags = EV_ADD;
 
     switch (_req) {

@@ -28,8 +28,8 @@ struct TempFile : TempBase {
 private:
     /*virtual*/ ~TempFile();
 
-    /*virtual*/ bool open(const char* _path, const size_t _openflags, bool _remove, ErrorCodeT& _rerr);
-    /*virtual*/ void close(const char* _path, bool _remove);
+    /*virtual*/ bool    open(const char* _path, const size_t _openflags, bool _remove, ErrorCodeT& _rerr);
+    /*virtual*/ void    close(const char* _path, bool _remove);
     /*virtual*/ ssize_t read(char* _pb, size_t _bl, int64_t _off);
     /*virtual*/ ssize_t write(const char* _pb, size_t _bl, int64_t _off);
     /*virtual*/ int64_t size() const;
@@ -49,8 +49,8 @@ struct TempMemory : TempBase {
 private:
     /*virtual*/ ~TempMemory();
 
-    /*virtual*/ bool open(const char* _path, const size_t _openflags, bool _remove, ErrorCodeT& _rerr);
-    /*virtual*/ void close(const char* _path, bool _remove);
+    /*virtual*/ bool    open(const char* _path, const size_t _openflags, bool _remove, ErrorCodeT& _rerr);
+    /*virtual*/ void    close(const char* _path, bool _remove);
     /*virtual*/ ssize_t read(char* _pb, size_t _bl, int64_t _off);
     /*virtual*/ ssize_t write(const char* _pb, size_t _bl, int64_t _off);
     /*virtual*/ int64_t size() const;

@@ -149,7 +149,7 @@ private:
 
     void doStopObject(ReactorContext& _rctx);
 
-    void onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx);
+    void        onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx);
     static void call_object_on_event(ReactorContext& _rctx, Event&& _uev);
     static void increase_event_vector_size(ReactorContext& _rctx, Event&& _uev);
     static void stop_object(ReactorContext& _rctx, Event&& _uevent);

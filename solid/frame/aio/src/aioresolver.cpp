@@ -87,6 +87,6 @@ void ReverseResolve::doRun(std::string& _rhost, std::string& _rsrvc)
     synchronous_resolve(_rhost, _rsrvc, addr, flags);
 }
 
-} //namespace aio;
+} // namespace aio
 } //namespace frame
 } //namespace solid

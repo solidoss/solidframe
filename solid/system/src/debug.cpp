@@ -284,7 +284,7 @@ struct ModuleStub {
 struct Debug::Data {
     typedef std::bitset<DEBUG_BITSET_SIZE> BitSetT;
 
-    typedef std::vector<ModuleStub> ModuleVectorT;
+    typedef std::vector<ModuleStub>                ModuleVectorT;
     typedef std::map<const char*, size_t, StrLess> StringMapT;
     Data()
         : lvlmsk(0)
@@ -818,7 +818,7 @@ std::ostream& Debug::print(
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000),
         impl_->modvec[_module].name.c_str() //,
         //Thread::currentId()
-        );
+    );
 #ifdef SOLID_ON_WINDOWS
     return (*impl_->pos) << buf << '[' << src_file_name(_file) << ':' << _line << ' ' << _fnc << "][" << std::this_thread::get_id() << ']' << ' ';
 #else
@@ -871,7 +871,7 @@ std::ostream& Debug::printTraceIn(
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
         //impl_->nv[_module],
         //Thread::currentId()
-        );
+    );
     (*impl_->pos) << buf;
     impl_->pos->write(tabs, impl_->trace_debth);
     ++impl_->trace_debth;
@@ -917,7 +917,7 @@ std::ostream& Debug::printTraceOut(
         static_cast<unsigned int>(time_point_cast<milliseconds>(now).time_since_epoch().count() % 1000)
         //impl_->nv[_module],
         //Thread::currentId()
-        );
+    );
     (*impl_->pos) << buf;
     --impl_->trace_debth;
     impl_->pos->write(tabs, impl_->trace_debth);

@@ -49,7 +49,7 @@ struct ResolveIterator {
     sockaddr*        sockAddr() const;
     operator bool() const;
     ResolveIterator& operator++();
-    bool operator==(const ResolveIterator& _rrit) const;
+    bool             operator==(const ResolveIterator& _rrit) const;
 
 private:
     friend struct ResolveData;
@@ -98,7 +98,7 @@ struct ResolveData {
     ResolveData& operator=(const ResolveData& _rrd);
 
 private:
-    static void delete_addrinfo(void* _pv);
+    static void                       delete_addrinfo(void* _pv);
     typedef std::shared_ptr<addrinfo> AddrInfoSharedPtrT;
     AddrInfoSharedPtrT                aiptr;
 };
@@ -241,12 +241,12 @@ public:
     const in_addr&  address4() const;
     const in6_addr& address6() const;
     int             port() const;
-    bool port(int _port);
-    void   clear();
-    size_t hash() const;
-    size_t addressHash() const;
+    bool            port(int _port);
+    void            clear();
+    size_t          hash() const;
+    size_t          addressHash() const;
 
-    void path(const char* _pth);
+    void        path(const char* _pth);
     const char* path() const;
 
 private:
@@ -305,8 +305,8 @@ public:
     const in_addr&  address4() const;
     const in6_addr& address6() const;
 
-    int  port() const;
-    bool port(int _port);
+    int    port() const;
+    bool   port(int _port);
     void   clear();
     size_t hash() const;
     size_t addressHash() const;
@@ -365,8 +365,8 @@ public:
 
     const in_addr& address() const;
 
-    int  port() const;
-    void port(int _port);
+    int    port() const;
+    void   port(int _port);
     void   clear();
     size_t hash() const;
     size_t addressHash() const;
@@ -420,8 +420,8 @@ public:
 
     const in6_addr& address() const;
 
-    int  port() const;
-    void port(int _port);
+    int    port() const;
+    void   port(int _port);
     void   clear();
     size_t hash() const;
     size_t addressHash() const;
@@ -484,7 +484,7 @@ public:
     size_t hash() const;
     size_t addressHash() const;
 
-    void path(const char* _pth);
+    void        path(const char* _pth);
     const char* path() const;
 
 private:

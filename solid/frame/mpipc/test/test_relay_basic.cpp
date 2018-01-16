@@ -433,10 +433,10 @@ int test_relay_basic(int argc, char** argv)
                 }
             };
             auto con_register = [&relay_engine](
-                frame::mpipc::ConnectionContext& _rctx,
-                std::shared_ptr<Register>&       _rsent_msg_ptr,
-                std::shared_ptr<Register>&       _rrecv_msg_ptr,
-                ErrorConditionT const&           _rerror) {
+                                    frame::mpipc::ConnectionContext& _rctx,
+                                    std::shared_ptr<Register>&       _rsent_msg_ptr,
+                                    std::shared_ptr<Register>&       _rrecv_msg_ptr,
+                                    ErrorConditionT const&           _rerror) {
                 SOLID_CHECK(!_rerror);
                 if (_rrecv_msg_ptr) {
                     SOLID_CHECK(!_rsent_msg_ptr);

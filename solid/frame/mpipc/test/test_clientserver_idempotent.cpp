@@ -203,8 +203,7 @@ void client_complete_message(
             wdbg("send message complete: <" << _rerror.message() << "> <" << _rctx.error().message() << "> <" << _rctx.systemError().message() << ">");
             SOLID_CHECK(_rsent_msg_ptr->idx == 0 or _rsent_msg_ptr->idx == 2);
             SOLID_ASSERT(
-                _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError())
-                                                                          or (_rctx.error() and _rctx.systemError())));
+                _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError()) or (_rctx.error() and _rctx.systemError())));
         }
     }
     if (_rrecv_msg_ptr.get()) {

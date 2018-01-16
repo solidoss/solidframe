@@ -90,7 +90,7 @@ public:
             toread = _rw.readsz;
             if (toread > sz)
                 toread = sz;
-            int rv     = _pfile->read(_rw.buf, toread);
+            int rv = _pfile->read(_rw.buf, toread);
             cnt += rv;
             sz -= rv;
         }

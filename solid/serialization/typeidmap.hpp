@@ -253,7 +253,7 @@ protected:
     bool findTypeIndex(const uint64_t& _rid, size_t& _rindex) const;
 
     size_t doAllocateNewIndex(const size_t _protocol_id, uint64_t& _rid);
-    bool doFindTypeIndex(const size_t _protocol_id, size_t _idx, uint64_t& _rid) const;
+    bool   doFindTypeIndex(const size_t _protocol_id, size_t _idx, uint64_t& _rid) const;
 
     template <class T, class StoreF, class LoadF>
     size_t doRegisterType(StoreF _sf, LoadF _lf, const size_t _protocol_id, size_t _idx)
@@ -399,7 +399,7 @@ public:
     }
 
 private:
-    virtual ErrorConditionT storeNullPointer(Ser& _rs, const char* _name) const = 0;
+    virtual ErrorConditionT storeNullPointer(Ser& _rs, const char* _name) const                               = 0;
     virtual ErrorConditionT storePointer(Ser& _rs, void* _p, std::type_index const&, const char* _name) const = 0;
     virtual ErrorConditionT storePointer(Ser& _rs, void* _p, const size_t _type_id, const char* _name) const  = 0;
 

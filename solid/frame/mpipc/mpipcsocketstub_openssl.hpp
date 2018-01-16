@@ -263,7 +263,7 @@ inline unsigned long basic_secure_start(
 
 inline bool basic_secure_verify(
     frame::aio::ReactorContext& _rctx, ConnectionContext& /*_rctx*/, StreamSocketT&, bool _preverified, frame::aio::openssl::VerifyContext& /*_rverify_ctx*/
-    )
+)
 {
     return _preverified;
 }

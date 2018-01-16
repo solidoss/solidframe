@@ -42,4 +42,4 @@ void register_messages(frame::mpipc::serialization_v1::Protocol& _rprotocol)
     gamma_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol);
 }
 
-} //namespace
+} // namespace gamma_server

@@ -55,4 +55,4 @@ private:
 void to_string(const Record& record, std::string& data);
 void from_string(Record& record, const std::string& data);
 
-} // namespace
+} // namespace boost_test

@@ -25,7 +25,7 @@ struct cstring {
     //! Equivalent to strcasecmp
     static int casecmp(const char* _s1, const char* _s2);
     //! Equivalent to strncasecmp
-    static int ncasecmp(const char* _s1, const char* _s2, size_t _len);
+    static int    ncasecmp(const char* _s1, const char* _s2, size_t _len);
     static size_t nlen(const char* s, size_t maxlen);
     template <class T, T C1>
     static T* find(T* _pc)

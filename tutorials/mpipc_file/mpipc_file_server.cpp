@@ -139,7 +139,7 @@ struct MessageSetup {
     }
 };
 
-} //namespace
+} // namespace ipc_file_server
 
 //-----------------------------------------------------------------------------
 

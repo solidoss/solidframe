@@ -21,7 +21,7 @@ namespace {
 condition_variable cnd;
 bool               running = true;
 mutex              mtx;
-}
+} // namespace
 
 // enum Events{
 //  EventStartE = 0,

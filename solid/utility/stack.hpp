@@ -83,7 +83,7 @@ public:
 
     bool   empty() const { return !sz; }
     size_t size() const { return sz; }
-    void push(const T& _t)
+    void   push(const T& _t)
     {
         if ((sz)&NodeMask)
             ++p;

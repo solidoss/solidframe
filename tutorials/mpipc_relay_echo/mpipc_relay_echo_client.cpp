@@ -87,10 +87,10 @@ int main(int argc, char* argv[])
 
         {
             auto con_register = [](
-                frame::mpipc::ConnectionContext& _rctx,
-                std::shared_ptr<Register>&       _rsent_msg_ptr,
-                std::shared_ptr<Register>&       _rrecv_msg_ptr,
-                ErrorConditionT const&           _rerror) {
+                                    frame::mpipc::ConnectionContext& _rctx,
+                                    std::shared_ptr<Register>&       _rsent_msg_ptr,
+                                    std::shared_ptr<Register>&       _rrecv_msg_ptr,
+                                    ErrorConditionT const&           _rerror) {
                 SOLID_CHECK(!_rerror);
 
                 if (_rrecv_msg_ptr and _rrecv_msg_ptr->name.empty()) {
@@ -103,10 +103,10 @@ int main(int argc, char* argv[])
                 }
             };
             auto on_message = [&p](
-                frame::mpipc::ConnectionContext& _rctx,
-                std::shared_ptr<Message>&        _rsent_msg_ptr,
-                std::shared_ptr<Message>&        _rrecv_msg_ptr,
-                ErrorConditionT const&           _rerror) {
+                                  frame::mpipc::ConnectionContext& _rctx,
+                                  std::shared_ptr<Message>&        _rsent_msg_ptr,
+                                  std::shared_ptr<Message>&        _rrecv_msg_ptr,
+                                  ErrorConditionT const&           _rerror) {
 
                 if (_rrecv_msg_ptr) {
                     cout << _rrecv_msg_ptr->name << ": " << _rrecv_msg_ptr->data << endl;

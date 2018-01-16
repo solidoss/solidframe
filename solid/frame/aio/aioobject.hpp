@@ -91,7 +91,7 @@ protected:
 
 private:
     virtual void onEvent(ReactorContext& _rctx, Event&& _uevent);
-    bool doPrepareStop(ReactorContext& _rctx);
+    bool         doPrepareStop(ReactorContext& _rctx);
 };
 
 } //namespace aio

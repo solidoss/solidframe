@@ -17,7 +17,7 @@ namespace {
 
 mutex_t mtx;
 using FunctionJobT = std::function<void()>;
-}
+} // namespace
 
 int test_workpool(int argc, char* argv[])
 {

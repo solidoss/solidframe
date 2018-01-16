@@ -81,4 +81,4 @@ struct SecondMessage : solid::frame::mpipc::Message {
 
 using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<1, FirstMessage, SecondMessage, ThirdMessage>;
 
-} //namespace
+} // namespace beta_protocol

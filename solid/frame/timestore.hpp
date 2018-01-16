@@ -99,9 +99,9 @@ public:
 
 private:
     typedef std::pair<NanoTime, ValueT> TimePairT;
-    typedef std::vector<TimePairT> TimeVectorT;
-    TimeVectorT                    tv;
-    NanoTime                       mint;
+    typedef std::vector<TimePairT>      TimeVectorT;
+    TimeVectorT                         tv;
+    NanoTime                            mint;
 };
 
 } //namespace frame

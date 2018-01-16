@@ -49,7 +49,7 @@ struct MessageSetup {
     }
 };
 
-} //namespace
+} // namespace ipc_file_client
 
 namespace {
 streampos stream_size(iostream& _rios)
@@ -60,7 +60,7 @@ streampos stream_size(iostream& _rios)
     _rios.seekg(pos);
     return endpos;
 }
-}
+} // namespace
 
 //-----------------------------------------------------------------------------
 

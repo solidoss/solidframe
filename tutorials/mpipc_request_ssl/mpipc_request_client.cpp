@@ -121,7 +121,7 @@ struct MessageSetup {
     }
 };
 
-} //namespace
+} // namespace ipc_request_client
 
 namespace {
 ostream& operator<<(ostream& _ros, const ipc_request::Date& _rd)
@@ -134,7 +134,7 @@ ostream& operator<<(ostream& _ros, const ipc_request::UserData& _rud)
     _ros << _rud.full_name << ", " << _rud.email << ", " << _rud.country << ", " << _rud.city << ", " << _rud.birth_date;
     return _ros;
 }
-}
+} // namespace
 //-----------------------------------------------------------------------------
 
 bool parseArguments(Parameters& _par, int argc, char* argv[]);
@@ -225,10 +225,10 @@ int main(int argc, char* argv[])
                     recipient = line.substr(0, offset);
 
                     auto lambda = [](
-                        frame::mpipc::ConnectionContext&        _rctx,
-                        std::shared_ptr<ipc_request::Request>&  _rsent_msg_ptr,
-                        std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
-                        ErrorConditionT const&                  _rerror) {
+                                      frame::mpipc::ConnectionContext&        _rctx,
+                                      std::shared_ptr<ipc_request::Request>&  _rsent_msg_ptr,
+                                      std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
+                                      ErrorConditionT const&                  _rerror) {
                         if (_rerror) {
                             cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
                             return;

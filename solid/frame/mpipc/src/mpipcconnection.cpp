@@ -804,7 +804,7 @@ void Connection::onStopped(frame::aio::ReactorContext& _rctx)
 void Connection::doHandleEventStart(
     frame::aio::ReactorContext& _rctx,
     Event& /*_revent*/
-    )
+)
 {
 
     const bool has_valid_socket = this->hasValidSocket();
@@ -819,7 +819,7 @@ void Connection::doHandleEventStart(
 void Connection::doHandleEventKill(
     frame::aio::ReactorContext& _rctx,
     Event& /*_revent*/
-    )
+)
 {
     doStop(_rctx, error_connection_killed);
 }
@@ -1248,7 +1248,7 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
 {
     Configuration const& config      = service(_rctx).configuration();
     size_t               ack_buf_cnt = 0;
-    const auto done_lambda           = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
+    const auto           done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
         if (_rbuf.use_count() == 1) {
             ++ack_buf_cnt;
             this->recv_buf_vec_.emplace_back(std::move(_rbuf));
@@ -1631,7 +1631,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         ErrorConditionT      error;
         const Configuration& rconfig = service(_rctx).configuration();
         ConnectionContext    conctx(service(_rctx), *this);
-        auto relay_poll_push_lambda = [this, &rconfig](RelayData*& _rprelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id, bool& _rmore) -> bool {
+        auto                 relay_poll_push_lambda = [this, &rconfig](RelayData*& _rprelay_data, const MessageId& _rengine_msg_id, MessageId& _rconn_msg_id, bool& _rmore) -> bool {
             return msg_writer_.enqueue(rconfig.writer, _rprelay_data, _rengine_msg_id, _rconn_msg_id, _rmore);
         };
         //we do a pollPoolForUpdates here because we want to be able to
@@ -1896,7 +1896,7 @@ void Connection::doCancelRelayed(
 
     const Configuration& rconfig     = service(_rctx).configuration();
     size_t               ack_buf_cnt = 0;
-    const auto done_lambda           = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
+    const auto           done_lambda = [this, &ack_buf_cnt](RecvBufferPointerT& _rbuf) {
         if (_rbuf.use_count() == 1) {
             ++ack_buf_cnt;
             this->recv_buf_vec_.emplace_back(std::move(_rbuf));

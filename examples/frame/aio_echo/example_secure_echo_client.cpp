@@ -81,10 +81,10 @@ public:
 
 protected:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
-    static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
-    static void onSent(frame::aio::ReactorContext& _rctx);
-    static void onSecureConnect(frame::aio::ReactorContext& _rctx);
-    static bool onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx);
+    static void      onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
+    static void      onSent(frame::aio::ReactorContext& _rctx);
+    static void      onSecureConnect(frame::aio::ReactorContext& _rctx);
+    static bool      onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx);
 
     unsigned crtFillIdx() const
     {

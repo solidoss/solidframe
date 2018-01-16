@@ -76,9 +76,9 @@ public:
         virtual ~Sender();
 
         virtual ErrorConditionT completeMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/);
-        virtual void completeRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
-        virtual void cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/);
-        virtual void cancelRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
+        virtual void            completeRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
+        virtual void            cancelMessage(MessageBundle& /*_rmsgbundle*/, MessageId const& /*_rmsgid*/);
+        virtual void            cancelRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
     };
 
     using VisitFunctionT = SOLID_FUNCTION<void(

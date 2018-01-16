@@ -22,4 +22,4 @@ void from_string(Record& record, const std::string& data)
     archiver >> record;
 }
 
-} // namespace
+} // namespace cereal_test

@@ -107,7 +107,7 @@ public:
 
     Service& service(ReactorContext const& _rctx) const;
 
-    Object& object(ReactorContext const& _rctx) const;
+    Object&  object(ReactorContext const& _rctx) const;
     UniqueId objectUid(ReactorContext const& _rctx) const;
 
     CompletionHandler* completionHandler(ReactorContext const& _rctx) const;
@@ -136,7 +136,7 @@ private:
 
     void doStopObject(ReactorContext& _rctx);
 
-    void onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx);
+    void        onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx);
     static void call_object_on_event(ReactorContext& _rctx, Event&& _uevent);
     static void stop_object_repost(ReactorContext& _rctx, Event&& _uevent);
     static void stop_object(ReactorContext& _rctx, Event&& _uevent);

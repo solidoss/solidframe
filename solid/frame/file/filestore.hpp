@@ -296,9 +296,9 @@ struct Utf8OpenCommandBase {
 template <class Base = Utf8Controller>
 class Store : public shared::Store<File, Store<Base>>, public Base {
 
-    typedef Base BaseT;
+    typedef Base                             BaseT;
     typedef shared::Store<File, Store<Base>> StoreT;
-    typedef Store<Base> ThisT;
+    typedef Store<Base>                      ThisT;
 
 public:
     template <typename C>

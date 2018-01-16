@@ -80,8 +80,8 @@ public:
 private:
     binary_search_result_t doFindBuffer(const size_t _idx) const;
     binary_search_result_t doLocateBuffer(const size_t _idx) const;
-    char* doGetBuffer(const size_t _idx) const;
-    char* doCreateBuffer(const size_t _idx, bool& _created);
+    char*                  doGetBuffer(const size_t _idx) const;
+    char*                  doCreateBuffer(const size_t _idx, bool& _created);
 
 private:
     struct Buffer {

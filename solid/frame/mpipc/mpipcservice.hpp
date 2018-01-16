@@ -247,12 +247,12 @@ public:
         RecipientId const& _rrecipient_id,
         CompleteFnc        _complete_fnc,
         const size_t       _send_buffer_capacity = 0 //0 means: leave as it is
-        );
+    );
 
     ErrorConditionT connectionNotifyEnterActiveState(
         RecipientId const& _rrecipient_id,
         const size_t       _send_buffer_capacity = 0 //0 means: leave as it is
-        );
+    );
 
     template <class CompleteFnc>
     ErrorConditionT connectionNotifyStartSecureHandshake(
@@ -794,7 +794,7 @@ ErrorConditionT Service::connectionNotifyEnterActiveState(
     RecipientId const& _rrecipient_id,
     CompleteFnc        _complete_fnc,
     const size_t       _send_buffer_capacity /* = 0*/ //0 means: leave as it is
-    )
+)
 {
     ConnectionEnterActiveCompleteFunctionT complete_fnc(_complete_fnc);
     return doConnectionNotifyEnterActiveState(_rrecipient_id, std::move(complete_fnc), _send_buffer_capacity);
@@ -803,7 +803,7 @@ ErrorConditionT Service::connectionNotifyEnterActiveState(
 inline ErrorConditionT Service::connectionNotifyEnterActiveState(
     RecipientId const& _rrecipient_id,
     const size_t       _send_buffer_capacity //0 means: leave as it is
-    )
+)
 {
     ConnectionEnterActiveCompleteFunctionT complete_fnc([](ConnectionContext&, ErrorConditionT const&) { return MessagePointerT(); });
     return doConnectionNotifyEnterActiveState(_rrecipient_id, std::move(complete_fnc), _send_buffer_capacity);

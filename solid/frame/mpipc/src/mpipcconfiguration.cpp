@@ -196,7 +196,7 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
     RelayData* /*_prelay_data*/,
     MessageId const& /*_rengine_msg_id*/,
     bool& /*_rmore*/
-    )
+)
 {
     SOLID_THROW("should not be called");
 }
@@ -206,7 +206,7 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
     RelayData* /*_prelay_data*/,
     MessageId const& /*_rengine_msg_id*/,
     DoneFunctionT& /*_done_fnc*/
-    )
+)
 {
     SOLID_THROW("should not be called");
 }

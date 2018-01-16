@@ -129,4 +129,4 @@ void stop()
     mpipcclient_ptr.reset();
 }
 
-} //namespace
+} // namespace gamma_client

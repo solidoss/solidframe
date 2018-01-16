@@ -40,11 +40,11 @@ size_t dbgid()
 //---------------------------------------------------------------------------
 //      Utf8Controller::Data
 //---------------------------------------------------------------------------
-typedef std::atomic<size_t> AtomicSizeT;
+typedef std::atomic<size_t>       AtomicSizeT;
 typedef std::pair<size_t, size_t> SizePairT;
-typedef std::vector<SizePairT> SizePairVectorT;
-typedef std::vector<size_t>    SizeVectorT;
-typedef Stack<size_t>          SizeStackT;
+typedef std::vector<SizePairT>    SizePairVectorT;
+typedef std::vector<size_t>       SizeVectorT;
+typedef Stack<size_t>             SizeStackT;
 
 typedef std::deque<Utf8PathStub> PathDequeT;
 
@@ -111,7 +111,7 @@ struct IndexHash {
 
 typedef std::unordered_set<const Utf8PathStub*, PathHash, PathEqual>   PathSetT;
 typedef std::unordered_set<const Utf8PathStub*, IndexHash, IndexEqual> IndexSetT;
-typedef Stack<Utf8PathStub*> PathStubStackT;
+typedef Stack<Utf8PathStub*>                                           PathStubStackT;
 
 struct SizePairCompare {
     bool operator()(SizePairT const& _a, SizePairT const& _b) const

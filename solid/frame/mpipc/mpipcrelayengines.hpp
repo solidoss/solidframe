@@ -26,8 +26,8 @@ public:
     ErrorConditionT registerConnection(const ConnectionContext& _rconctx, std::string&& _uname);
 
 private:
-    void unregisterConnectionName(Proxy& _proxy, size_t _conidx) override;
-    size_t registerConnection(Proxy& _proxy, std::string&& _uname) override;
+    void          unregisterConnectionName(Proxy& _proxy, size_t _conidx) override;
+    size_t        registerConnection(Proxy& _proxy, std::string&& _uname) override;
     std::ostream& print(std::ostream& _ros, const ConnectionStubBase& _rcon) const override;
 
 private:

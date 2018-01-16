@@ -639,8 +639,8 @@ ErrorCodeT SocketDevice::connect(const SocketAddressStub& _rsas, bool& _rcan_wai
     const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
     _rcan_wait   = (WSAGetLastError() == WSAEWOULDBLOCK);
 #else
-    const int rv    = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-    _rcan_wait      = (errno == EINPROGRESS);
+    const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+    _rcan_wait = (errno == EINPROGRESS);
 #endif
     return rv == 0 ? ErrorCodeT() : last_socket_error();
 }
@@ -650,7 +650,7 @@ ErrorCodeT SocketDevice::connect(const SocketAddressStub& _rsas)
 #ifdef SOLID_ON_WINDOWS
     int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #else
-    int       rv    = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+    int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #endif
     return rv == 0 ? ErrorCodeT() : last_socket_error();
 }
@@ -660,9 +660,9 @@ ErrorCodeT SocketDevice::checkConnect() const
 #ifdef SOLID_ON_WINDOWS
     return ErrorCodeT();
 #else
-    int       val   = 0;
+    int val = 0;
     socklen_t valsz = sizeof(int);
-    int       rv    = getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, &val, &valsz);
+    int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, &val, &valsz);
     if (rv == 0) {
         if (val == 0) {
             return ErrorCodeT();
@@ -719,7 +719,7 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
     return last_socket_error();
 #else
     int yes = 1;
-    int rv  = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes));
+    int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes));
     if (rv < 0) {
         return last_socket_error();
     }
@@ -746,7 +746,7 @@ ErrorCodeT SocketDevice::accept(SocketDevice& _dev, bool& _rcan_retry)
     return last_socket_error();
 #elif defined(SOLID_ON_DARWIN) || defined(SOLID_ON_FREEBSD)
     const int rv = ::accept(descriptor(), nullptr, nullptr);
-    _rcan_retry  = (errno == EAGAIN || errno == ENETDOWN || errno == EPROTO || errno == ENOPROTOOPT || errno == EHOSTDOWN || errno == EHOSTUNREACH || errno == EOPNOTSUPP || errno == ENETUNREACH);
+    _rcan_retry = (errno == EAGAIN || errno == ENETDOWN || errno == EPROTO || errno == ENOPROTOOPT || errno == EHOSTDOWN || errno == EHOSTUNREACH || errno == EOPNOTSUPP || errno == ENETUNREACH);
     _dev.Device::descriptor(rv);
 
     return rv > 0 ? ErrorCodeT() : last_socket_error();
@@ -834,9 +834,9 @@ ErrorCodeT SocketDevice::makeBlocking(size_t _msec)
         return last_socket_error();
     }
     struct timeval timeout;
-    timeout.tv_sec  = _msec / 1000;
+    timeout.tv_sec = _msec / 1000;
     timeout.tv_usec = _msec % 1000;
-    rv              = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+    rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
     if (rv != 0) {
         return last_socket_error();
     }
@@ -892,9 +892,9 @@ ssize_t SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, Error
 #ifdef SOLID_ON_WINDOWS
     return -1;
 #else
-    ssize_t rv  = ::send(descriptor(), _pb, _ul, 0);
+    ssize_t rv = ::send(descriptor(), _pb, _ul, 0);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
-    _rerr       = last_socket_error();
+    _rerr = last_socket_error();
     return rv;
 #endif
 }
@@ -903,9 +903,9 @@ ssize_t SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT&
 #ifdef SOLID_ON_WINDOWS
     return -1;
 #else
-    ssize_t rv  = ::recv(descriptor(), _pb, _ul, 0);
+    ssize_t rv = ::recv(descriptor(), _pb, _ul, 0);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
-    _rerr       = last_socket_error();
+    _rerr = last_socket_error();
     return rv;
 #endif
 }
@@ -914,9 +914,9 @@ ssize_t SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub&
 #ifdef SOLID_ON_WINDOWS
     return -1;
 #else
-    ssize_t rv  = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
+    ssize_t rv = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
-    _rerr       = last_socket_error();
+    _rerr = last_socket_error();
     return rv;
 #endif
 }
@@ -926,10 +926,10 @@ ssize_t SocketDevice::recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rc
     return -1;
 #else
     _rsa.clear();
-    _rsa.sz     = SocketAddress::Capacity;
-    ssize_t rv  = ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
+    _rsa.sz = SocketAddress::Capacity;
+    ssize_t rv = ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
-    _rerr       = last_socket_error();
+    _rerr = last_socket_error();
     return rv;
 #endif
 }
@@ -941,7 +941,7 @@ ErrorCodeT SocketDevice::remoteAddress(SocketAddress& _rsa) const
 #else
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
-    int rv  = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
+    int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
     if (!rv) {
         return ErrorCodeT();
     }
@@ -956,7 +956,7 @@ ErrorCodeT SocketDevice::localAddress(SocketAddress& _rsa) const
 #else
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
-    int rv  = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
+    int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
     if (!rv) {
         return ErrorCodeT();
     }
@@ -969,9 +969,9 @@ ErrorCodeT SocketDevice::type(int& _rrv) const
 #ifdef SOLID_ON_WINDOWS
     return solid::error_not_implemented;
 #else
-    int       val   = 0;
+    int val = 0;
     socklen_t valsz = sizeof(int);
-    int       rv    = getsockopt(descriptor(), SOL_SOCKET, SO_TYPE, &val, &valsz);
+    int rv = getsockopt(descriptor(), SOL_SOCKET, SO_TYPE, &val, &valsz);
     if (rv == 0) {
         _rrv = val;
         return ErrorCodeT();
@@ -1006,7 +1006,7 @@ ErrorCodeT SocketDevice::enableNoDelay()
     return solid::error_not_implemented;
 #else
     int flag = 1;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1020,7 +1020,7 @@ ErrorCodeT SocketDevice::disableNoDelay()
     return solid::error_not_implemented;
 #else
     int flag = 0;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1034,7 +1034,7 @@ ErrorCodeT SocketDevice::enableNoSignal()
     return solid::error_not_implemented;
 #else
     int flag = 1;
-    int rv   = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1048,7 +1048,7 @@ ErrorCodeT SocketDevice::disableNoSignal()
     return solid::error_not_implemented;
 #else
     int flag = 0;
-    int rv   = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1071,9 +1071,9 @@ ErrorCodeT SocketDevice::hasNoDelay(bool& _rrv) const
 #ifdef SOLID_ON_WINDOWS
     return solid::error_not_implemented;
 #else
-    int       flag = 0;
+    int flag = 0;
     socklen_t sz(sizeof(flag));
-    int       rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
+    int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
     if (rv == 0) {
         _rrv = (flag != 0);
         return ErrorCodeT();
@@ -1088,7 +1088,7 @@ ErrorCodeT SocketDevice::enableCork()
     return solid::error_not_implemented;
 #elif defined(SOLID_ON_LINUX)
     int flag = 1;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1104,7 +1104,7 @@ ErrorCodeT SocketDevice::disableCork()
     return solid::error_not_implemented;
 #elif defined(SOLID_ON_LINUX)
     int flag = 0;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1119,9 +1119,9 @@ ErrorCodeT SocketDevice::hasCork(bool& _rrv) const
 #ifdef SOLID_ON_WINDOWS
     return solid::error_not_implemented;
 #elif defined(SOLID_ON_LINUX)
-    int       flag = 0;
+    int flag = 0;
     socklen_t sz(sizeof(flag));
-    int       rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
+    int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
     if (rv == 0) {
         _rrv = (flag != 0);
         return ErrorCodeT();
@@ -1145,9 +1145,9 @@ ErrorCodeT SocketDevice::sendBufferSize(int& _rsz)
         }
         return last_socket_error();
     } else {
-        int       sockbufsz(0);
+        int sockbufsz(0);
         socklen_t sz(sizeof(sockbufsz));
-        int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+        int rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
 
         if (rv == 0) {
             _rsz = sockbufsz;
@@ -1170,9 +1170,9 @@ ErrorCodeT SocketDevice::recvBufferSize(int& _rsz)
             return ErrorCodeT();
         }
     } else {
-        int       sockbufsz(0);
+        int sockbufsz(0);
         socklen_t sz(sizeof(sockbufsz));
-        int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+        int rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
         if (rv == 0) {
             _rsz = sockbufsz;
             return ErrorCodeT();
@@ -1187,9 +1187,9 @@ ErrorCodeT SocketDevice::sendBufferSize(int& _rsz) const
 #ifdef SOLID_ON_WINDOWS
     return solid::error_not_implemented;
 #else
-    int       sockbufsz(0);
+    int sockbufsz(0);
     socklen_t sz(sizeof(sockbufsz));
-    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+    int rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
 
     if (rv == 0) {
         _rsz = sockbufsz;
@@ -1204,9 +1204,9 @@ ErrorCodeT SocketDevice::recvBufferSize(int& _rsz) const
 #ifdef SOLID_ON_WINDOWS
     return solid::error_not_implemented;
 #else
-    int       sockbufsz(0);
+    int sockbufsz(0);
     socklen_t sz(sizeof(sockbufsz));
-    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+    int rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
     if (rv == 0) {
         _rsz = sockbufsz;
         return ErrorCodeT();
@@ -1220,7 +1220,7 @@ ErrorCodeT SocketDevice::lastError() const
 #ifdef SOLID_ON_WINDOWS
     return solid::error_not_implemented;
 #else
-    int       err    = 0;
+    int err = 0;
     socklen_t errlen = sizeof(err);
     getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, (void*)&err, &errlen);
 

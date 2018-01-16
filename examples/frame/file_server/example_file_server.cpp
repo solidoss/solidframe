@@ -63,7 +63,7 @@ namespace {
 mutex              mtx;
 condition_variable cnd;
 bool               run(true);
-void term_handler(int signum)
+void               term_handler(int signum)
 {
     switch (signum) {
     case SIGINT:
@@ -103,7 +103,7 @@ public:
 
 private:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
-    void onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
+    void             onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 
     typedef frame::aio::Listener ListenerSocketT;
 
@@ -128,12 +128,12 @@ public:
 
 private:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
-    static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
-    static void onSend(frame::aio::ReactorContext& _rctx);
-    const char* findEnd(const char* _p);
-    void doExecuteCommand(frame::aio::ReactorContext& _rctx);
-    void doRun(frame::aio::ReactorContext& _rctx);
-    void handle(FilePointerMessage& _rmsgptr);
+    static void      onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
+    static void      onSend(frame::aio::ReactorContext& _rctx);
+    const char*      findEnd(const char* _p);
+    void             doExecuteCommand(frame::aio::ReactorContext& _rctx);
+    void             doRun(frame::aio::ReactorContext& _rctx);
+    void             handle(FilePointerMessage& _rmsgptr);
 
 private:
     enum { BufferCapacity = 1024 };
@@ -517,7 +517,7 @@ struct OpenCbk {
         frame::file::Store<>&,
         frame::file::FilePointerT& _rptr,
         ErrorCodeT const& /*_rerr*/
-        )
+    )
     {
         idbg("");
         Event ev{generic_event_message};

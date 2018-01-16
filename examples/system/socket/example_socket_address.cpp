@@ -65,10 +65,10 @@ int main(int argc, char* argv[])
     }
     const char* node = nullptr;
     if (strlen(argv[1]))
-        node        = argv[1];
+        node = argv[1];
     const char* srv = nullptr;
     if (strlen(argv[2]))
-        srv    = argv[2];
+        srv = argv[2];
     int flags  = 0;
     int family = SocketInfo::Inet4;
     int type   = SocketInfo::Stream;

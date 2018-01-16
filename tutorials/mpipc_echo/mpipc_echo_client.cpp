@@ -56,7 +56,7 @@ struct MessageSetup {
     }
 };
 
-} //namespace
+} // namespace ipc_echo_client
 
 //-----------------------------------------------------------------------------
 

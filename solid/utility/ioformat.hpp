@@ -52,7 +52,7 @@ struct Format {
     std::string str;
 };
 
-template <size_t  Sz, typename... Args>
+template <size_t Sz, typename... Args>
 inline Format<Sz> format(const char* _fmt, Args... args)
 {
     Format<Sz>   fmt;

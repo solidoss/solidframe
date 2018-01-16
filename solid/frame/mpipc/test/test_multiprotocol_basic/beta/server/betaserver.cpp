@@ -96,4 +96,4 @@ void register_messages(solid::frame::mpipc::serialization_v1::Protocol& _rprotoc
 {
     beta_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol);
 }
-}
+} // namespace beta_server

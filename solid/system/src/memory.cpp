@@ -70,8 +70,8 @@ size_t getMemoryPageSize()
 #endif
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    /*
  * Author:  David Robert Nadeau
  * Site:    http://NadeauSoftware.com/
  * License: Creative Commons Attribution 3.0 Unported License
@@ -120,14 +120,14 @@ size_t getMemorySize()
 
 #if defined(CTL_HW) && (defined(HW_MEMSIZE) || defined(HW_PHYSMEM64))
     int mib[2];
-    mib[0]       = CTL_HW;
+    mib[0] = CTL_HW;
 #if defined(HW_MEMSIZE)
-    mib[1]       = HW_MEMSIZE; /* OSX. --------------------- */
+    mib[1] = HW_MEMSIZE; /* OSX. --------------------- */
 #elif defined(HW_PHYSMEM64)
     mib[1] = HW_PHYSMEM64; /* NetBSD, OpenBSD. --------- */
 #endif
     int64_t size = 0; /* 64-bit */
-    size_t  len  = sizeof(size);
+    size_t len = sizeof(size);
     if (sysctl(mib, 2, &size, &len, nullptr, 0) == 0)
         return (size_t)size;
     return 0L; /* Failed? */

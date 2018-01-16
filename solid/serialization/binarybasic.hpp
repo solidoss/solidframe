@@ -109,7 +109,7 @@ inline const char* load(const char* _ps, uint64_t& _val)
     _val |= lower;
     return _ps;
 }
-template <size_t   S>
+template <size_t S>
 inline const char* load(const char* _ps, std::array<uint8_t, S>& _val)
 {
     memcpy(_val.data, _ps, S);

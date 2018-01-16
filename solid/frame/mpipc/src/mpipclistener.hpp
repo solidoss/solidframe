@@ -23,7 +23,7 @@ namespace aio {
 namespace openssl {
 class Context;
 }
-}
+} // namespace aio
 
 namespace mpipc {
 
@@ -42,7 +42,7 @@ public:
 
 private:
     Service& service(frame::aio::ReactorContext& _rctx);
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    void     onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
 
     void onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 

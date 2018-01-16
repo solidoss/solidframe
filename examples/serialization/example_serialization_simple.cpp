@@ -238,9 +238,10 @@ void solidSerialize(S& _s, IntegerVector& _iv)
 {
     _s.pushContainer(_iv.iv, "IntegerVector::iv").pushContainer(_iv.piv1, "piv1").pushContainer(_iv.piv2, "piv2");
 }
-/*binary*/}/*serialization*/
-} /*solid*/
-}
+/*binary*/ // namespace binary
+} /*serialization*/
+} // namespace serialization
+} // namespace solid
 
 struct Array : Base {
     Array()
@@ -345,11 +346,12 @@ void solidSerialize(S& _s, pair<int32_t, int32_t>& _tb)
 {
     _s.push(_tb.first, "first").push(_tb.second, "second");
 }
-/*binary*/}/*serialization*/
-} /*solid*/
-}
+/*binary*/ // namespace binary
+} /*serialization*/
+} // namespace serialization
+} // namespace solid
 
-typedef std::deque<std::string> StrDeqT;
+typedef std::deque<std::string>                 StrDeqT;
 typedef std::deque<std::pair<int32_t, int32_t>> PairIntDeqT;
 
 void print(StrDeqT& _rsdq);
@@ -382,8 +384,8 @@ int main(int argc, char* argv[])
     int       rv = 3;
     //TestA ta;
     //cout<<ta<<endl;
-    typedef serialization::binary::Serializer<void>   BinSerializerT;
-    typedef serialization::binary::Deserializer<void> BinDeserializerT;
+    typedef serialization::binary::Serializer<void>                    BinSerializerT;
+    typedef serialization::binary::Deserializer<void>                  BinDeserializerT;
     typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT> TypeIdMapT;
 
     TypeIdMapT tm;

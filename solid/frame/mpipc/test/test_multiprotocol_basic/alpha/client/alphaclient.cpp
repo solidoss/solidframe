@@ -181,4 +181,4 @@ void stop()
     mpipcclient_ptr.reset();
 }
 
-} //namespace
+} // namespace alpha_client

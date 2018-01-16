@@ -37,4 +37,4 @@ void from_string(DeserializerT& _rd, Record& record, const std::string& data)
     _rd.run(data.data(), data.size());
 }
 
-} //namespace
+} // namespace solid_test

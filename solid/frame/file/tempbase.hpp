@@ -45,9 +45,9 @@ struct TempBase {
 
     virtual ssize_t read(char* _pb, size_t _bl, int64_t _off)        = 0;
     virtual ssize_t write(const char* _pb, size_t _bl, int64_t _off) = 0;
-    virtual int64_t size() const = 0;
-    virtual bool truncate(int64_t _len = 0) = 0;
-    virtual void flush();
+    virtual int64_t size() const                                     = 0;
+    virtual bool    truncate(int64_t _len = 0)                       = 0;
+    virtual void    flush();
 };
 
 } //namespace file

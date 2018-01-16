@@ -29,9 +29,9 @@ class ReactorBase {
 public:
     virtual bool raise(UniqueId const& _robjuid, Event const& _re) = 0;
     virtual bool raise(UniqueId const& _robjuid, Event&& _ue)      = 0;
-    virtual void stop() = 0;
+    virtual void stop()                                            = 0;
 
-    bool prepareThread(const bool _success);
+    bool   prepareThread(const bool _success);
     void   unprepareThread();
     size_t load() const;
 
@@ -47,10 +47,10 @@ protected:
     {
     }
 
-    void stopObject(ObjectBase& _robj, Manager& _rm);
+    void           stopObject(ObjectBase& _robj, Manager& _rm);
     SchedulerBase& scheduler();
-    UniqueId popUid(ObjectBase& _robj);
-    void pushUid(UniqueId const& _ruid);
+    UniqueId       popUid(ObjectBase& _robj);
+    void           pushUid(UniqueId const& _ruid);
 
     AtomicSizeT crtload;
 

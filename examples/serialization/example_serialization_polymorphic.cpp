@@ -48,8 +48,8 @@ struct TestB : Base {
     }
 };
 
-typedef serialization::binary::Serializer<void>   BinSerializerT;
-typedef serialization::binary::Deserializer<void> BinDeserializerT;
+typedef serialization::binary::Serializer<void>                                 BinSerializerT;
+typedef serialization::binary::Deserializer<void>                               BinDeserializerT;
 typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT, std::string> TypeIdMapT;
 
 template <class S, class T>

@@ -110,4 +110,4 @@ void register_messages(frame::mpipc::serialization_v1::Protocol& _rprotocol)
     //  );
 }
 
-} //namespace
+} // namespace alpha_server

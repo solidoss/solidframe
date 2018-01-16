@@ -1743,7 +1743,7 @@ bool Service::doNonMainConnectionStopping(
     MessageBundle& /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
-    )
+)
 {
 
     idbgx(Debug::mpipc, this << ' ' << &_rcon);
@@ -1783,7 +1783,7 @@ bool Service::doMainConnectionStoppingNotLast(
     MessageBundle& /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
-    )
+)
 {
 
     idbgx(Debug::mpipc, this << ' ' << &_rcon);
@@ -1810,7 +1810,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
     MessageBundle& _rmsg_bundle,
     Event&         _revent_context,
     ErrorConditionT& /*_rerror*/
-    )
+)
 {
 
     idbgx(Debug::mpipc, this << ' ' << &_rcon);
@@ -1870,7 +1870,7 @@ bool Service::doMainConnectionStoppingCleanAll(
     MessageBundle& _rmsg_bundle,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
-    )
+)
 {
 
     idbgx(Debug::mpipc, this << ' ' << &_rcon);
@@ -1915,7 +1915,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
     MessageBundle& /*_rmsg_bundle*/,
     Event& _revent_context,
     ErrorConditionT& /*_rerror*/
-    )
+)
 {
 
     idbgx(Debug::mpipc, this << ' ' << &_rcon);
@@ -1960,7 +1960,7 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
     MessageBundle& /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
-    )
+)
 {
 
     idbgx(Debug::mpipc, this << ' ' << &_rcon);
@@ -1989,7 +1989,7 @@ bool Service::doMainConnectionRestarting(
     MessageBundle& /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
-    )
+)
 {
 
     idbgx(Debug::mpipc, this << ' ' << &_rcon);

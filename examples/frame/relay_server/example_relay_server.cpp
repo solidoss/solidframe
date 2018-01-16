@@ -169,7 +169,7 @@ protected:
     static void onSendSock1(frame::aio::ReactorContext& _rctx);
     static void onSendSock2(frame::aio::ReactorContext& _rctx);
 
-    void onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t _sz);
+    void        onRecvId(frame::aio::ReactorContext& _rctx, size_t _off, size_t _sz);
     static void onSendId(frame::aio::ReactorContext& _rctx);
 
     void onConnect(frame::aio::ReactorContext& _rctx);

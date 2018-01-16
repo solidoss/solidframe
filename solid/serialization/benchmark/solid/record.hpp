@@ -47,4 +47,4 @@ void from_string(Record& record, const std::string& data);
 void to_string(SerializerT& _rs, Record& record, std::string& data);
 void from_string(DeserializerT& _rd, Record& record, const std::string& data);
 
-} // namespace
+} // namespace solid_test

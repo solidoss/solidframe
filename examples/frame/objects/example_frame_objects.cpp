@@ -72,7 +72,7 @@ mutex              mtx;
 size_t             running_objcnt = 0;
 size_t             started_objcnt = 0;
 size_t             ondisk_objcnt  = 0;
-}
+} // namespace
 
 int main(int argc, char* argv[])
 {

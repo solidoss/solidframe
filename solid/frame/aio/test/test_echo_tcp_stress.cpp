@@ -83,8 +83,8 @@ private:
 };
 //-----------------------------------------------------------------------------
 class Connection : public frame::aio::Object {
-    virtual void start(frame::aio::ReactorContext& _rctx)        = 0;
-    virtual void postRecvSome(frame::aio::ReactorContext& _rctx) = 0;
+    virtual void start(frame::aio::ReactorContext& _rctx)                  = 0;
+    virtual void postRecvSome(frame::aio::ReactorContext& _rctx)           = 0;
     virtual bool sendAll(frame::aio::ReactorContext& _rctx, size_t _sz)    = 0;
     virtual bool recvSome(frame::aio::ReactorContext& _rctx, size_t& _rsz) = 0;
 
@@ -96,8 +96,8 @@ protected:
     }
     virtual ~Connection() {}
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
-    static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
-    static void onSend(frame::aio::ReactorContext& _rctx);
+    static void      onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
+    static void      onSend(frame::aio::ReactorContext& _rctx);
 
 protected:
     enum { BufferCapacity = 1024 * 2 };
@@ -214,8 +214,8 @@ protected:
     }
 
 private:
-    virtual void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas) = 0;
-    virtual void postRecvSome(frame::aio::ReactorContext& _rctx) = 0;
+    virtual void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas)          = 0;
+    virtual void postRecvSome(frame::aio::ReactorContext& _rctx)                                     = 0;
     virtual void postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, const size_t _sz) = 0;
 
 private:

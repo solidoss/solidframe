@@ -186,8 +186,8 @@ private:
 
     size_t doForEachServiceObject(const Service& _rsvc, const ObjectVisitFunctionT _rfct);
     size_t doForEachServiceObject(const size_t _chkidx, const ObjectVisitFunctionT _rfct);
-    bool doVisit(ObjectIdT const& _ruid, const ObjectVisitFunctionT _fctor);
-    void doUnregisterService(ServiceStub& _rss);
+    bool   doVisit(ObjectIdT const& _ruid, const ObjectVisitFunctionT _fctor);
+    void   doUnregisterService(ServiceStub& _rss);
 
 private:
     struct Data;

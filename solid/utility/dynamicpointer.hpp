@@ -133,7 +133,7 @@ public:
     DynamicT* operator->() const { return pdyn; }
     DynamicT* get() const { return pdyn; }
     bool      empty() const { return !pdyn; }
-    bool operator!() const { return empty(); }
+    bool      operator!() const { return empty(); }
 
     void clear()
     {

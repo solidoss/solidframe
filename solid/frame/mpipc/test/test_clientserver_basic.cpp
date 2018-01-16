@@ -275,8 +275,8 @@ namespace binary {
 
 extern StringCheckFncT pcheckfnc;
 }
-}
-}
+} // namespace serialization
+} // namespace solid
 
 int test_clientserver_basic(int argc, char** argv)
 {

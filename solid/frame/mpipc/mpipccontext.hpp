@@ -239,7 +239,7 @@ private:
 
 private:
     friend struct ConnectionContext;
-    Service& service(frame::aio::ReactorContext& _rctx) const;
+    Service&    service(frame::aio::ReactorContext& _rctx) const;
     Connection& connection(frame::aio::ReactorContext& _rctx) const;
 };
 

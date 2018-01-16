@@ -49,7 +49,7 @@ namespace {
 mutex              mtx;
 condition_variable cnd;
 bool               running(true);
-}
+} // namespace
 
 static void term_handler(int signum)
 {
@@ -133,9 +133,9 @@ public:
 
 protected:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
-    static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
-    static void onSend(frame::aio::ReactorContext& _rctx);
-    void onTimer(frame::aio::ReactorContext& _rctx);
+    static void      onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
+    static void      onSend(frame::aio::ReactorContext& _rctx);
+    void             onTimer(frame::aio::ReactorContext& _rctx);
 
 protected:
     typedef frame::aio::Stream<frame::aio::Socket> StreamSocketT;
@@ -155,7 +155,7 @@ class ClientConnection : public Dynamic<Connection, Connection> {
 
 private:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
-    void onConnect(frame::aio::ReactorContext& _rctx);
+    void             onConnect(frame::aio::ReactorContext& _rctx);
 
 public:
     ClientConnection(ResolveData const& _rd)
@@ -181,8 +181,8 @@ public:
 
 private:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
-    void onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz);
-    void onSend(frame::aio::ReactorContext& _rctx);
+    void             onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, size_t _sz);
+    void             onSend(frame::aio::ReactorContext& _rctx);
 
 private:
     typedef frame::aio::Datagram<frame::aio::Socket> DatagramSocketT;

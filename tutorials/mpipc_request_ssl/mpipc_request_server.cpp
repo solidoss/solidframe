@@ -359,7 +359,7 @@ struct MessageSetup {
     }
 };
 
-} //namespace
+} // namespace ipc_request_server
 
 //-----------------------------------------------------------------------------
 
@@ -412,7 +412,7 @@ int main(int argc, char* argv[])
                     return ErrorCodeT();
                 },
                 frame::mpipc::openssl::NameCheckSecureStart{"echo-client"} //does nothing - OpenSSL does not check for hostname on SSL_accept
-                );
+            );
 
             frame::mpipc::snappy::setup(cfg);
 

@@ -66,4 +66,4 @@ struct ThirdMessage : solid::frame::mpipc::Message {
 };
 
 using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<2, FirstMessage, SecondMessage, ThirdMessage>;
-}
+} // namespace gamma_protocol

@@ -23,8 +23,8 @@ struct Base {
     {
         idbg("" << this);
     }
-    virtual std::ostream& print(std::ostream&) const = 0;
-    virtual bool check(std::string* _pstr = nullptr) const = 0;
+    virtual std::ostream& print(std::ostream&) const                = 0;
+    virtual bool          check(std::string* _pstr = nullptr) const = 0;
 };
 
 using BasePointerT = std::shared_ptr<Base>;
@@ -185,9 +185,9 @@ typedef serialization::binary::Deserializer<void> BinDeserializerT;
 
 typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT, std::string> TypeIdMapT;
 
-typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT> AlphaTypeIdMapT;
+typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>         AlphaTypeIdMapT;
 typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT, string> BetaTypeIdMapT;
-typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT> DeltaTypeIdMapT;
+typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>         DeltaTypeIdMapT;
 
 int test_typeidmap(int argc, char* argv[])
 {

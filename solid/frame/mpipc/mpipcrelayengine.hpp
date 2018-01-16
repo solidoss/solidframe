@@ -65,9 +65,9 @@ public:
     struct Proxy {
         size_t              createConnection();
         ConnectionStubBase& connection(const size_t _idx);
-        bool notifyConnection(const ObjectIdT& _rrelay_con_uid, const RelayEngineNotification _what);
-        void stopConnection(const size_t _idx);
-        void registerConnectionId(const ConnectionContext& _rconctx, const size_t _idx);
+        bool                notifyConnection(const ObjectIdT& _rrelay_con_uid, const RelayEngineNotification _what);
+        void                stopConnection(const size_t _idx);
+        void                registerConnectionId(const ConnectionContext& _rconctx, const size_t _idx);
 
     private:
         friend class EngineCore;
@@ -104,7 +104,7 @@ protected:
     }
 
 private:
-    virtual void unregisterConnectionName(Proxy& _proxy, size_t _conidx)   = 0;
+    virtual void   unregisterConnectionName(Proxy& _proxy, size_t _conidx) = 0;
     virtual size_t registerConnection(Proxy& _proxy, std::string&& _uname) = 0;
 
 private:

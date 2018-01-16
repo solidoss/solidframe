@@ -25,9 +25,9 @@ namespace impl {
 //-----------------------------------------------------------------------------
 struct AnyValueBase {
     virtual ~AnyValueBase();
-    virtual const void*   get() const = 0;
-    virtual void*         get()       = 0;
-    virtual AnyValueBase* copyTo(void* _pd, const size_t _sz) const = 0;
+    virtual const void*   get() const                                                = 0;
+    virtual void*         get()                                                      = 0;
+    virtual AnyValueBase* copyTo(void* _pd, const size_t _sz) const                  = 0;
     virtual AnyValueBase* moveTo(void* _pd, const size_t _sz, const bool _uses_data) = 0;
 
     AnyValueBase& operator=(const AnyValueBase&) = delete;
@@ -315,7 +315,7 @@ public:
 
 private:
     template <size_t DS, class T, class... Args>
-    friend Any<DS>   make_any(Args&&... _args);
+    friend Any<DS> make_any(Args&&... _args);
 
     void release(impl::AnyValueBase* _pvalue)
     {
@@ -384,7 +384,7 @@ private:
 //-----------------------------------------------------------------------------
 
 template <size_t DS, class T, class... Args>
-Any<DS>          make_any(Args&&... _args)
+Any<DS> make_any(Args&&... _args)
 {
     Any<DS> a;
     a.do_reinit(TypeToType<T>(), std::forward<Args>(_args)...);

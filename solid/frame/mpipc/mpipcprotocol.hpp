@@ -108,10 +108,10 @@ struct TypeStub {
 class Deserializer {
 public:
     virtual ~Deserializer();
-    virtual void push(MessageHeader& _rmsghdr)   = 0;
-    virtual void push(MessagePointerT& _rmsgptr) = 0;
-    virtual int run(ConnectionContext&, const char* _pdata, size_t _data_len) = 0;
-    virtual ErrorConditionT error() const = 0;
+    virtual void            push(MessageHeader& _rmsghdr)                                 = 0;
+    virtual void            push(MessagePointerT& _rmsgptr)                               = 0;
+    virtual int             run(ConnectionContext&, const char* _pdata, size_t _data_len) = 0;
+    virtual ErrorConditionT error() const                                                 = 0;
 
     virtual bool empty() const = 0;
     virtual void clear()       = 0;
@@ -122,10 +122,10 @@ using DeserializerPointerT = std::unique_ptr<Deserializer>;
 class Serializer {
 public:
     virtual ~Serializer();
-    virtual void push(MessageHeader& _rmsghdr) = 0;
-    virtual void push(MessagePointerT& _rmsgptr, const size_t _msg_type_idx) = 0;
-    virtual int run(ConnectionContext&, char* _pdata, size_t _data_len) = 0;
-    virtual ErrorConditionT error() const = 0;
+    virtual void            push(MessageHeader& _rmsghdr)                               = 0;
+    virtual void            push(MessagePointerT& _rmsgptr, const size_t _msg_type_idx) = 0;
+    virtual int             run(ConnectionContext&, char* _pdata, size_t _data_len)     = 0;
+    virtual ErrorConditionT error() const                                               = 0;
 
     virtual bool empty() const = 0;
     virtual void clear()       = 0;

@@ -564,7 +564,7 @@ struct SerializerPushHelper;
 */
 class SerializerBase : public Base {
 protected:
-    template <uint      S>
+    template <uint S>
     static ReturnValues storeBinary(Base& _rs, FncData& _rfd, void* /*_pctx*/);
 
     template <typename T>
@@ -582,7 +582,7 @@ protected:
     template <typename N>
     static ReturnValues storeCross(Base& _rs, FncData& _rfd, void* /*_pctx*/);
 
-    template <size_t    V>
+    template <size_t V>
     static ReturnValues storeBitset(Base& _rs, FncData& _rfd, void* /*_pctx*/)
     {
         SerializerBase& rs(static_cast<SerializerBase&>(_rs));
@@ -618,7 +618,7 @@ protected:
         return ContinueE;
     }
 
-    template <size_t    V>
+    template <size_t V>
     static ReturnValues storeBitsetContinue(Base& _rs, FncData& _rfd, void* /*_pctx*/)
     {
         SerializerBase& rs(static_cast<SerializerBase&>(_rs));
@@ -851,7 +851,7 @@ protected:
     void doPushStreamLimit(uint64_t _v);
     void doPushContainerLimit();
     void doPushContainerLimit(size_t _v);
-    int run(char* _pb, size_t _bl, void* _pctx);
+    int  run(char* _pb, size_t _bl, void* _pctx);
 
 public:
     typedef void ContextT;
@@ -1727,7 +1727,7 @@ protected:
     template <typename T>
     static ReturnValues loadCross(Base& _rd, FncData& _rfd, void* /*_pctx*/);
 
-    template <size_t    V>
+    template <size_t V>
     static ReturnValues loadBitset(Base& _rd, FncData& _rfd, void* /*_pctx*/)
     {
         DeserializerBase& rd(static_cast<DeserializerBase&>(_rd));
@@ -1739,7 +1739,7 @@ protected:
         return ContinueE;
     }
 
-    template <size_t    V>
+    template <size_t V>
     static ReturnValues loadBitsetBegin(Base& _rd, FncData& _rfd, void* /*_pctx*/)
     {
         DeserializerBase& rd(static_cast<DeserializerBase&>(_rd));
@@ -1777,7 +1777,7 @@ protected:
         return ContinueE;
     }
 
-    template <size_t    V>
+    template <size_t V>
     static ReturnValues loadBitsetContinue(Base& _rd, FncData& _rfd, void* /*_pctx*/)
     {
         DeserializerBase& rd(static_cast<DeserializerBase&>(_rd));
@@ -1828,7 +1828,7 @@ protected:
     template <typename T, class Des, class Ctx>
     static ReturnValues load(Base& _rd, FncData& _rfd, void* /*_pctx*/);
 
-    template <uint      S>
+    template <uint S>
     static ReturnValues loadBinary(Base& _rb, FncData& _rfd, void* /*_pctx*/);
 
     static ReturnValues loadBinaryString(Base& _rb, FncData& _rfd, void* /*_pctx*/);
@@ -2119,7 +2119,7 @@ protected:
     void doPushStreamLimit(uint64_t _v);
     void doPushContainerLimit();
     void doPushContainerLimit(size_t _v);
-    int run(const char* _pb, size_t _bl, void* _pctx);
+    int  run(const char* _pb, size_t _bl, void* _pctx);
 
 public:
     typedef void ContextT;

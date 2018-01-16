@@ -71,12 +71,12 @@ protected:
 
 private:
     Device(const Device& _dev);
-    Device& operator=(const Device& _dev);
+    Device&     operator=(const Device& _dev);
     DescriptorT desc;
 };
 
 inline Device::DescriptorT Device::descriptor() const { return desc; }
-inline void Device::descriptor(DescriptorT _desc)
+inline void                Device::descriptor(DescriptorT _desc)
 {
     desc = _desc;
 }

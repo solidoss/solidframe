@@ -70,7 +70,7 @@ struct Params {
     PeerAddressVectorT connectvec;
     SocketAddressMapT  connectmap;
 
-    bool prepare(frame::ipc::Configuration& _rcfg, string& _err);
+    bool     prepare(frame::ipc::Configuration& _rcfg, string& _err);
     uint32_t server(const PeerAddressPairT&) const;
 };
 
@@ -107,7 +107,7 @@ uint32_t       wait_count = 0;
 ServerVectorT  srvvec;
 MessageVectorT msgvec;
 Params         p;
-}
+} // namespace
 
 struct FirstMessage : Dynamic<FirstMessage, DynamicShared<frame::ipc::Message>> {
     uint32_t               idx;
@@ -125,9 +125,9 @@ struct FirstMessage : Dynamic<FirstMessage, DynamicShared<frame::ipc::Message>> 
         return sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32_t) + str.size();
     }
 
-    /*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const& _rctx, MessagePointerT& _rmsgptr);
+    /*virtual*/ void     ipcOnReceive(frame::ipc::ConnectionContext const& _rctx, MessagePointerT& _rmsgptr);
     /*virtual*/ uint32_t ipcOnPrepare(frame::ipc::ConnectionContext const& _rctx);
-    /*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const& _rctx, int _err);
+    /*virtual*/ void     ipcOnComplete(frame::ipc::ConnectionContext const& _rctx, int _err);
 
     template <class S>
     void solidSerialize(S& _s, frame::ipc::ConnectionContext const& _rctx)
@@ -254,7 +254,7 @@ int main(int argc, char* argv[])
                         msgptr, it->second,
                         it->first,
                         frame::ipc::WaitResponseFlag // | fdt::ipc::Service::SynchronousSendFlag
-                        );
+                    );
                 }
             }
         }

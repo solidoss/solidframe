@@ -21,4 +21,4 @@ void from_string(Record& record, const std::string& data)
     archiver >> record;
 }
 
-} // namespace
+} // namespace boost_test

@@ -303,7 +303,7 @@ bool restart(
                 return ErrorCodeT();
             },
             frame::mpipc::openssl::NameCheckSecureStart{"echo-client"} //does nothing - OpenSSL does not check for hostname on SSL_accept
-            );
+        );
     }
 #endif
     err = _ipcsvc.reconfigure(std::move(cfg));

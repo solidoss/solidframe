@@ -30,11 +30,11 @@ protected:
     }
     bool   isEmpty() const { return !sz; }
     size_t theSize() const { return sz; }
-    Link* doPushBack(Link* _pl);
-    Link* doPushFront(Link* _pl);
-    Link* doPushBack();
-    Link* doPushFront();
-    void  doPopBack()
+    Link*  doPushBack(Link* _pl);
+    Link*  doPushFront(Link* _pl);
+    Link*  doPushBack();
+    Link*  doPushFront();
+    void   doPopBack()
     {
         doErase(lend.pprev);
     }
@@ -45,7 +45,7 @@ protected:
     Link* doErase(Link* _pl);
     Link* doInsert(Link* _at, Link* _what);
     Link* doInsert(Link* _at);
-    void doClear();
+    void  doClear();
 
     bool cacheEmpty() const { return ptop == nullptr; }
 

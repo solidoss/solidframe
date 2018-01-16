@@ -397,13 +397,13 @@ int test_relay_disabled(int argc, char** argv)
         std::string relay_port;
 
         { //mpipc relay initialization
-            auto con_start                                                   = [](frame::mpipc::ConnectionContext& _rctx) {};
-            auto con_stop                                                    = [](frame::mpipc::ConnectionContext& _rctx) {};
-            auto                                                con_register = [](
-                frame::mpipc::ConnectionContext& _rctx,
-                std::shared_ptr<Register>&       _rsent_msg_ptr,
-                std::shared_ptr<Register>&       _rrecv_msg_ptr,
-                ErrorConditionT const&           _rerror) {
+            auto con_start    = [](frame::mpipc::ConnectionContext& _rctx) {};
+            auto con_stop     = [](frame::mpipc::ConnectionContext& _rctx) {};
+            auto con_register = [](
+                                    frame::mpipc::ConnectionContext& _rctx,
+                                    std::shared_ptr<Register>&       _rsent_msg_ptr,
+                                    std::shared_ptr<Register>&       _rrecv_msg_ptr,
+                                    ErrorConditionT const&           _rerror) {
             };
 
             auto                        proto = frame::mpipc::serialization_v1::Protocol::create();

@@ -9,4 +9,4 @@ solid::ErrorConditionT start(
     Context& _rctx);
 
 void stop();
-}
+} // namespace gamma_client

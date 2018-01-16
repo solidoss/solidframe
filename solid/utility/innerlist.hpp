@@ -51,7 +51,7 @@ struct Node {
 private:
     template <size_t Sz>
     friend Link& link_accessor(Node<Sz>& _node, const size_t _index);
-    template <size_t   Sz>
+    template <size_t Sz>
     friend Link const& link_const_accessor(Node<Sz> const& _node, const size_t _index);
 
     Link links[NodeSize];
@@ -85,7 +85,7 @@ public:
     List(List<Vec, LinkId>&)  = delete;
     List(List<Vec, LinkId>&&) = delete;
     List(
-        Vec& _rvec,
+        Vec&               _rvec,
         List<Vec, LinkId>& _rinnerlist)
         : rvec_(_rvec)
         , size_(_rinnerlist.size_)

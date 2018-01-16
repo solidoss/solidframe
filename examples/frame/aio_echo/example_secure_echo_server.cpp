@@ -58,7 +58,7 @@ namespace {
 mutex              mtx;
 condition_variable cnd;
 bool               running(true);
-}
+} // namespace
 
 static void term_handler(int signum)
 {
@@ -106,7 +106,7 @@ public:
 
 private:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
-    void onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
+    void             onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd);
 
     typedef frame::aio::Listener    ListenerSocketT;
     typedef frame::aio::SteadyTimer TimerT;
@@ -135,10 +135,10 @@ public:
 
 protected:
     /*virtual*/ void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent);
-    static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
-    static void onSend(frame::aio::ReactorContext& _rctx);
-    static void onSecureAccept(frame::aio::ReactorContext& _rctx);
-    static bool onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx);
+    static void      onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
+    static void      onSend(frame::aio::ReactorContext& _rctx);
+    static void      onSecureAccept(frame::aio::ReactorContext& _rctx);
+    static bool      onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx);
 
 protected:
     typedef frame::aio::Stream<frame::aio::openssl::Socket> StreamSocketT;

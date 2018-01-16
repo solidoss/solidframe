@@ -260,7 +260,7 @@ protected:
     void notifyPeerOnSend(frame::aio::ReactorContext& _rctx)
     {
         auto& red = wpop_ed_vec[wpop_ed_vec_off++];
-        auto l    = [&red](frame::Manager::VisitContext& _rctx, Connection& _rcon) {
+        auto  l   = [&red](frame::Manager::VisitContext& _rctx, Connection& _rcon) {
             if (_rcon.pushSentBuffer(std::move(red.bufptr_))) {
                 _rctx.raiseObject(make_event(GenericEvents::Resume));
             }

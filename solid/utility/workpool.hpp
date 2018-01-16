@@ -123,8 +123,8 @@ struct WorkPoolControllerBase {
 template <class J, class C, class W = WorkerBase>
 class WorkPool : public WorkPoolBase {
 
-    typedef std::vector<J> JobVectorT;
-    typedef WorkPool<J, C, W> ThisT;
+    typedef std::vector<J>           JobVectorT;
+    typedef WorkPool<J, C, W>        ThisT;
     typedef std::vector<std::thread> ThreadVectorT;
 
     struct SingleWorker : W {

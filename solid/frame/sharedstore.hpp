@@ -103,9 +103,9 @@ protected:
 
     size_t doAllocateIndex();
     void*  doTryAllocateWait();
-    void pointerId(PointerBase& _rpb, UniqueId const& _ruid);
-    void doExecuteCache();
-    void doCacheObjectIndex(const size_t _idx);
+    void   pointerId(PointerBase& _rpb, UniqueId const& _ruid);
+    void   doExecuteCache();
+    void   doCacheObjectIndex(const size_t _idx);
     size_t atomicMaxCount() const;
 
     UidVectorT& consumeEraseVector() const;
@@ -114,16 +114,16 @@ protected:
     SizeVectorT&     indexVector() const;
     ExecWaitVectorT& executeWaitVector() const;
     Accessor         accessor();
-    void notifyObject(UniqueId const& _ruid);
-    void raise();
+    void             notifyObject(UniqueId const& _ruid);
+    void             raise();
 
 private:
     friend struct PointerBase;
-    void erasePointer(UniqueId const& _ruid, const bool _isalive);
+    void         erasePointer(UniqueId const& _ruid, const bool _isalive);
     virtual bool doDecrementObjectUseCount(UniqueId const& _uid, const bool _isalive) = 0;
-    virtual bool doExecute()                               = 0;
-    virtual void doResizeObjectVector(const size_t _newsz) = 0;
-    virtual void doExecuteOnSignal(ulong _sm)              = 0;
+    virtual bool doExecute()                                                          = 0;
+    virtual void doResizeObjectVector(const size_t _newsz)                            = 0;
+    virtual void doExecuteOnSignal(ulong _sm)                                         = 0;
 
     /*virtual*/ void onEvent(frame::ReactorContext& _rctx, Event&& _revent) override;
 
@@ -262,8 +262,8 @@ template <class T,
     class Ctl>
 class Store : public Dynamic<Store<T, Ctl>, StoreBase> {
 public:
-    typedef Pointer<T> PointerT;
-    typedef Ctl        ControllerT;
+    typedef Pointer<T>                        PointerT;
+    typedef Ctl                               ControllerT;
     typedef Dynamic<Store<T, Ctl>, StoreBase> BaseT;
 
     Store(

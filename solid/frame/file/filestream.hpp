@@ -29,17 +29,17 @@ public:
         char* _buf = nullptr, size_t _bufcp = 0);
     ~FileBuf();
     FilePointerT& device();
-    void device(FilePointerT& _rptr);
+    void          device(FilePointerT& _rptr);
 
 protected:
     /*virtual*/ std::streamsize showmanyc();
     /*virtual*/ int_type        underflow();
     /*virtual*/ int_type        uflow();
-    /*virtual*/ int_type pbackfail(int_type _c = traits_type::eof());
-    /*virtual*/ int_type overflow(int_type __c = traits_type::eof());
-    /*virtual*/ pos_type seekoff(
-        off_type _off, std::ios_base::seekdir _way,
-        std::ios_base::openmode _mode = std::ios_base::in | std::ios_base::out);
+    /*virtual*/ int_type        pbackfail(int_type _c = traits_type::eof());
+    /*virtual*/ int_type        overflow(int_type __c = traits_type::eof());
+    /*virtual*/ pos_type        seekoff(
+               off_type _off, std::ios_base::seekdir _way,
+               std::ios_base::openmode _mode = std::ios_base::in | std::ios_base::out);
     /*virtual*/ pos_type seekpos(
         pos_type                _pos,
         std::ios_base::openmode _mode = std::ios_base::in | std::ios_base::out);
@@ -62,7 +62,7 @@ private:
         return gptr() != egptr();
     }
     ssize_t writeAll(const char* _s, size_t _n);
-    void resetBoth()
+    void    resetBoth()
     {
         char* end = buf + bufcp;
         setg(end, end, end);

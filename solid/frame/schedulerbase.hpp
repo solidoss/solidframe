@@ -53,8 +53,8 @@ protected:
 private:
     friend class ReactorBase;
 
-    bool prepareThread(const size_t _idx, ReactorBase& _rsel, const bool _success);
-    void unprepareThread(const size_t _idx, ReactorBase& _rsel);
+    bool   prepareThread(const size_t _idx, ReactorBase& _rsel, const bool _success);
+    void   unprepareThread(const size_t _idx, ReactorBase& _rsel);
     size_t doComputeScheduleReactorIndex();
 
 private:
