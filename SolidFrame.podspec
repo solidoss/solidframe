@@ -46,7 +46,7 @@ Pod::Spec.new do |s|
   #
 
   #s.source       = { :git => "http://EXAMPLE/SolidFrame.git", :tag => "#{s.version}" }
-  s.source       = { :git => "https://github.com/vipalade/solidframe.git", :branch => "podspec" }
+  s.source       = { :git => "https://github.com/vipalade/solidframe.git", :branch => "work" }
 
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
