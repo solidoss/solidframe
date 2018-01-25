@@ -239,7 +239,7 @@ void solidSerialize(S& _s, IntegerVector& _iv)
     _s.pushContainer(_iv.iv, "IntegerVector::iv").pushContainer(_iv.piv1, "piv1").pushContainer(_iv.piv2, "piv2");
 }
 /*binary*/ // namespace binary
-} /*serialization*/
+} // namespace binary
 } // namespace serialization
 } // namespace solid
 
@@ -347,7 +347,7 @@ void solidSerialize(S& _s, pair<int32_t, int32_t>& _tb)
     _s.push(_tb.first, "first").push(_tb.second, "second");
 }
 /*binary*/ // namespace binary
-} /*serialization*/
+} // namespace binary
 } // namespace serialization
 } // namespace solid
 
