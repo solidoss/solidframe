@@ -25,12 +25,12 @@ add_definitions(${EXTRA_DEFINITIONS})
 # Prepare the extern path
 #-----------------------------------------------------------------
 
-if(NOT UEXTERN OR UEXTERN STREQUAL "")
+if(NOT UEXTERNAL OR UEXTERNAL STREQUAL "")
     message("Extern path not given")
-    set(EXTERN_PATH "" CACHE PATH "External prerequisites path")
+    set(EXTERNAL_PATH "" CACHE PATH "External prerequisites path")
 else()
-    set(EXTERN_PATH "${UEXTERN}/" CACHE PATH "External prerequisites path")
-    message("Extern path: \"${EXTERN_PATH}\"")
+    set(EXTERNAL_PATH "${UEXTERNAL}/" CACHE PATH "External prerequisites path")
+    message("External path: \"${EXTERNAL_PATH}\"")
 endif()
 
 
@@ -258,8 +258,8 @@ if(NOT NO_EXTERNAL)
     
     include_directories(${CMAKE_BINARY_DIR}/external/include)
     
-    if(EXTERN_PATH STREQUAL "")
-        set(EXTERN_PATH "${CMAKE_CURRENT_BINARY_DIR}/external")
+    if(EXTERNAL_PATH STREQUAL "")
+        set(EXTERNAL_PATH "${CMAKE_CURRENT_BINARY_DIR}/external")
         
         include(cmake/build_boost.cmake)
         include(cmake/build_openssl.cmake)
@@ -307,7 +307,7 @@ if(NOT (INSTALL_PATH STREQUAL ""))
 endif(NOT (INSTALL_PATH STREQUAL ""))
 
 if(ON_ANDROID)
-    set(EXTERN_PATH "${EXTERN_PATH}/${ANDROID_ABI}")
+    set(EXTERNAL_PATH "${EXTERNAL_PATH}/${ANDROID_ABI}")
 endif()
 
 #-----------------------------------------------------------------
@@ -432,7 +432,7 @@ set(CMAKE_BUILD_TYPE
 include_directories(
     ${SolidFrame_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${EXTERN_PATH}/include/
+    ${EXTERNAL_PATH}/include/
 )
 #-----------------------------------------------------------------
 
@@ -441,7 +441,7 @@ include_directories(
 #-----------------------------------------------------------------
 link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${EXTERN_PATH}/lib
+    ${EXTERNAL_PATH}/lib
 )
 
 #-----------------------------------------------------------------
@@ -452,8 +452,7 @@ if(NOT ON_CROSS)
     set( MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full" )
     set( MEMORYCHECK_SUPPRESSIONS_FILE "${PROJECT_SOURCE_DIR}/cmake/valgrind_suppress.txt" )
     
-    ENABLE_TESTING()
-    INCLUDE(CTest)
+    include(CTest)
 endif()
 
 #-----------------------------------------------------------------

@@ -111,29 +111,29 @@ Bash commands for installing _SolidFrame_:
 $ mkdir ~/work
 $ cd ~/work
 $ git clone git@github.com:vipalade/solidframe.git
-$ mkdir extern
+$ mkdir external
 $ cd extern
-$ ../solidframe/prerequisites/prepare_extern.sh
+$ ../solidframe/prerequisites/prepare_external.sh
 # ... wait until the prerequisites are built
 $ cd ../solidframe
-$ ./configure -e ~/work/extern --prefix ~/work/extern
+$ ./configure -e ~/work/external --prefix ~/work/external
 $ cd build/release
 $ make install
 # ... when finished, the header files will be located in ~/work/extern/include/solid
-# and the libraries at ~/work/extern/lib/libsolid_*.a
+# and the libraries at ~/work/external/lib/libsolid_*.a
 ```
 
 If debug build is needed, the configure line will be:
 
 ```bash
-$ ./configure -b debug -e ~/work/extern --prefix ~/work/extern
+$ ./configure -b debug -e ~/work/external --prefix ~/work/external
 $ cd build/debug
 ```
 
 Also if, on Linux clang toolchain is wanted for build, the configure line will be:
 
 ```bash
-$ CXX=clang++ CC=clang ./configure -e ~/work/extern --prefix ~/work/extern
+$ CXX=clang++ CC=clang ./configure -e ~/work/external --prefix ~/work/external
 ```
 
 For more information about ./configure script use:
@@ -149,7 +149,7 @@ _With CMake - the recommended way:_
 In CMakeLists.txt add something like:
 
 ```CMake
-set(SolidFrame_DIR "${EXTERN_PATH}/lib/cmake/SolidFrame" CACHE PATH "SolidFrame CMake configuration dir")
+set(SolidFrame_DIR "${EXTERNAL_PATH}/lib/cmake/SolidFrame" CACHE PATH "SolidFrame CMake configuration dir")
 find_package(SolidFrame)
 ```
 
