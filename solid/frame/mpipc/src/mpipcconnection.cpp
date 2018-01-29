@@ -832,22 +832,24 @@ void Connection::doHandleEventResolve(
     ResolveMessage* presolvemsg = _revent.any().cast<ResolveMessage>();
 
     if (presolvemsg) {
-        idbgx(Debug::mpipc, this << ' ' << this->id() << " Session receive resolve event message of size: " << presolvemsg->addrvec.size());
-        if (not presolvemsg->empty()) {
-            idbgx(Debug::mpipc, this << ' ' << this->id() << " Connect to " << presolvemsg->currentAddress());
+        if(not isStopping()){
+            idbgx(Debug::mpipc, this << ' ' << this->id() << " Session receive resolve event message of size: " << presolvemsg->addrvec.size());
+            if (not presolvemsg->empty()) {
+                idbgx(Debug::mpipc, this << ' ' << this->id() << " Connect to " << presolvemsg->currentAddress());
 
-            //initiate connect:
+                //initiate connect:
 
-            if (this->connect(_rctx, presolvemsg->currentAddress())) {
-                onConnect(_rctx);
+                if (this->connect(_rctx, presolvemsg->currentAddress())) {
+                    onConnect(_rctx);
+                }
+
+                presolvemsg->popAddress();
+
+                service(_rctx).forwardResolveMessage(poolId(), _revent);
+            } else {
+                wdbgx(Debug::mpipc, this << ' ' << this->id() << " Empty resolve message");
+                doStop(_rctx, error_connection_resolve);
             }
-
-            presolvemsg->popAddress();
-
-            service(_rctx).forwardResolveMessage(poolId(), _revent);
-        } else {
-            wdbgx(Debug::mpipc, this << ' ' << this->id() << " Empty resolve message");
-            doStop(_rctx, error_connection_resolve);
         }
     } else {
         SOLID_ASSERT(false);
@@ -995,32 +997,33 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
 
     EnterPassive*     pdata = _revent.any().cast<EnterPassive>();
     ConnectionContext conctx(service(_rctx), *this);
+    if(not isStopping()){
+        if (this->isRawState()) {
+            flags_.reset(FlagsE::Raw);
 
-    if (this->isRawState()) {
-        flags_.reset(FlagsE::Raw);
+            if (pdata) {
+                pdata->complete_fnc(conctx, ErrorConditionT());
+            }
 
-        if (pdata) {
-            pdata->complete_fnc(conctx, ErrorConditionT());
+            if (pending_message_vec_.size()) {
+                flags_.set(FlagsE::PollPool);
+                doSend(_rctx);
+            }
+        } else if (pdata) {
+            pdata->complete_fnc(conctx, error_connection_invalid_state);
         }
 
-        if (pending_message_vec_.size()) {
-            flags_.set(FlagsE::PollPool);
-            doSend(_rctx);
-        }
-    } else if (pdata) {
-        pdata->complete_fnc(conctx, error_connection_invalid_state);
+        this->post(
+            _rctx,
+            [this](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) {
+                doSend(_rctx);
+            });
+
+        //start receiving messages
+        this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
+
+        doResetTimerStart(_rctx);
     }
-
-    this->post(
-        _rctx,
-        [this](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) {
-            doSend(_rctx);
-        });
-
-    //start receiving messages
-    this->postRecvSome(_rctx, recv_buf_->data(), recvBufferCapacity());
-
-    doResetTimerStart(_rctx);
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Event& /*_revent*/)
@@ -1028,36 +1031,37 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
     vdbgx(Debug::mpipc, this << "");
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx(service(_rctx), *this);
+    if(not isStopping()){
+        if ((isServer() and config.server.hasSecureConfiguration()) or ((not isServer()) and config.client.hasSecureConfiguration())) {
+            ErrorConditionT error;
+            bool            done = false;
+            vdbgx(Debug::mpipc, this << "");
 
-    if ((isServer() and config.server.hasSecureConfiguration()) or ((not isServer()) and config.client.hasSecureConfiguration())) {
-        ErrorConditionT error;
-        bool            done = false;
-        vdbgx(Debug::mpipc, this << "");
+            if (isServer()) {
+                done = sock_ptr_->secureAccept(_rctx, conctx, onSecureAccept, error);
+                if (done and not error and not _rctx.error()) {
+                    onSecureAccept(_rctx);
+                }
+            } else {
+                done = sock_ptr_->secureConnect(_rctx, conctx, onSecureConnect, error);
+                if (done and not error and not _rctx.error()) {
+                    onSecureConnect(_rctx);
+                }
+            }
 
-        if (isServer()) {
-            done = sock_ptr_->secureAccept(_rctx, conctx, onSecureAccept, error);
-            if (done and not error and not _rctx.error()) {
-                onSecureAccept(_rctx);
+            if (_rctx.error()) {
+                edbgx(Debug::mpipc, this << " error = [" << error.message() << "]");
+                doStop(_rctx, _rctx.error(), _rctx.systemError());
+            }
+
+            if (error) {
+                edbgx(Debug::mpipc, this << " error = [" << error.message() << "]");
+                doStop(_rctx, error);
             }
         } else {
-            done = sock_ptr_->secureConnect(_rctx, conctx, onSecureConnect, error);
-            if (done and not error and not _rctx.error()) {
-                onSecureConnect(_rctx);
-            }
+            vdbgx(Debug::mpipc, this << "");
+            doStop(_rctx, error_connection_no_secure_configuration);
         }
-
-        if (_rctx.error()) {
-            edbgx(Debug::mpipc, this << " error = [" << error.message() << "]");
-            doStop(_rctx, _rctx.error(), _rctx.systemError());
-        }
-
-        if (error) {
-            edbgx(Debug::mpipc, this << " error = [" << error.message() << "]");
-            doStop(_rctx, error);
-        }
-    } else {
-        vdbgx(Debug::mpipc, this << "");
-        doStop(_rctx, error_connection_no_secure_configuration);
     }
 }
 //-----------------------------------------------------------------------------
@@ -2143,6 +2147,10 @@ void ConnectionContext::relayId(const UniqueId& _relay_id) const
 const std::string& ConnectionContext::recipientName() const
 {
     return rconnection.poolName();
+}
+//-----------------------------------------------------------------------------
+SocketDevice const& ConnectionContext::device() const{
+    return rconnection.device();
 }
 //-----------------------------------------------------------------------------
 bool ConnectionContext::isConnectionActive() const

@@ -727,9 +727,9 @@ size_t Service::doPushNewConnectionPool()
     impl_->lockAllConnectionPoolMutexes();
 
     for (size_t i = 0; i < impl_->mtxsarrcp; ++i) {
-        size_t idx = impl_->pooldq.size();
+        const size_t pool_idx = impl_->pooldq.size();
         impl_->pooldq.push_back(ConnectionPoolStub());
-        impl_->conpoolcachestk.push(impl_->mtxsarrcp - idx - 1);
+        impl_->conpoolcachestk.push(pool_idx);
     }
     impl_->unlockAllConnectionPoolMutexes();
     size_t idx = impl_->conpoolcachestk.top();
@@ -2284,8 +2284,9 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
 
     size_t                  pool_index;
     unique_lock<std::mutex> lock(impl_->mtx);
-
-    if (impl_->conpoolcachestk.size()) {
+    bool                    from_cache = impl_->conpoolcachestk.size() != 0;
+    
+    if (from_cache) {
         pool_index = impl_->conpoolcachestk.top();
         impl_->conpoolcachestk.pop();
     } else {

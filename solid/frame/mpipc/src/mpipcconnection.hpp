@@ -123,6 +123,8 @@ public:
     bool isSecured() const;
 
     bool isWriterEmpty() const;
+    
+    SocketDevice const& device() const;
 
     Any<>& any();
 
@@ -443,6 +445,10 @@ inline const UniqueId& Connection::relayId() const
 inline void Connection::relayId(const UniqueId& _relay_id)
 {
     relay_id_ = _relay_id;
+}
+
+inline SocketDevice const& Connection::device() const{
+    return sock_ptr_->device();
 }
 
 inline Connection* new_connection(
