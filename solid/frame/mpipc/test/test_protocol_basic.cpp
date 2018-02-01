@@ -187,8 +187,11 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
     frame::mpipc::MessageWriter::RequestIdVectorT reqvec;
     uint8_t                                       ackd_count;
 
-    Receiver(frame::mpipc::serialization_v1::Protocol& _rprotocol)
-        : rprotocol_(_rprotocol)
+    Receiver(frame::mpipc::ReaderConfiguration&   _rconfig,
+        frame::mpipc::serialization_v1::Protocol& _rprotocol,
+        frame::mpipc::ConnectionContext&          _conctx)
+        : frame::mpipc::MessageReader::Receiver(_rconfig, _rprotocol, _conctx)
+        , rprotocol_(_rprotocol)
         , ackd_count(15)
     {
     }
@@ -322,7 +325,7 @@ int test_protocol_basic(int argc, char** argv)
     }
 
     {
-        Receiver rcvr(*mpipcprotocol);
+        Receiver rcvr(mpipcreaderconfig, *mpipcprotocol, mpipcconctx);
         Sender   sndr(mpipcwriterconfig, *mpipcprotocol, mpipcconctx);
 
         mpipcmsgreader.prepare(mpipcreaderconfig);
@@ -348,7 +351,7 @@ int test_protocol_basic(int argc, char** argv)
             }
             if (!error and wb.size()) {
 
-                mpipcmsgreader.read(wb.data(), wb.size(), rcvr, mpipcreaderconfig, *mpipcprotocol, mpipcconctx, error);
+                mpipcmsgreader.read(wb.data(), wb.size(), rcvr, error);
             } else {
                 is_running = false;
             }

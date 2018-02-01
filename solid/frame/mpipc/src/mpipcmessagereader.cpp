@@ -41,13 +41,10 @@ void MessageReader::unprepare()
 }
 //-----------------------------------------------------------------------------
 size_t MessageReader::read(
-    const char*                _pbuf,
-    size_t                     _bufsz,
-    Receiver&                  _receiver,
-    ReaderConfiguration const& _rconfig,
-    Protocol const&            _rproto,
-    ConnectionContext&         _rctx,
-    ErrorConditionT&           _rerror)
+    const char*      _pbuf,
+    size_t           _bufsz,
+    Receiver&        _receiver,
+    ErrorConditionT& _rerror)
 {
     const char*  pbufpos = _pbuf;
     const char*  pbufend = _pbuf + _bufsz;
@@ -65,7 +62,7 @@ size_t MessageReader::read(
 
         if (state_ == StateE::ReadPacketBody) {
             //try read the data
-            const char* tmpbufpos = packet_header.load(pbufpos, _rproto);
+            const char* tmpbufpos = packet_header.load(pbufpos, _receiver.protocol());
             if (static_cast<size_t>(pbufend - tmpbufpos) >= packet_header.size()) {
                 pbufpos = tmpbufpos;
             } else {
@@ -84,9 +81,6 @@ size_t MessageReader::read(
             pbufpos,
             packet_header,
             _receiver,
-            _rconfig,
-            _rproto,
-            _rctx,
             _rerror);
 
         if (!_rerror) {
@@ -103,13 +97,10 @@ size_t MessageReader::read(
 //-----------------------------------------------------------------------------
 //TODO: change the CHECKs below to propper protocol errors.
 void MessageReader::doConsumePacket(
-    const char*                _pbuf,
-    PacketHeader const&        _packet_header,
-    Receiver&                  _receiver,
-    ReaderConfiguration const& _rconfig,
-    Protocol const&            _rproto,
-    ConnectionContext&         _rctx,
-    ErrorConditionT&           _rerror)
+    const char*         _pbuf,
+    PacketHeader const& _packet_header,
+    Receiver&           _receiver,
+    ErrorConditionT&    _rerror)
 {
     const char* pbufpos = _pbuf;
     const char* pbufend = _pbuf + _packet_header.size();
@@ -117,7 +108,7 @@ void MessageReader::doConsumePacket(
     uint32_t    message_idx;
 
     if (_packet_header.isCompressed()) {
-        size_t uncompressed_size = _rconfig.decompress_fnc(tmpbuf, pbufpos, pbufend - pbufpos, _rerror);
+        size_t uncompressed_size = _receiver.configuration().decompress_fnc(tmpbuf, pbufpos, pbufend - pbufpos, _rerror);
 
         if (!_rerror) {
             pbufpos = tmpbuf;
@@ -142,21 +133,21 @@ void MessageReader::doConsumePacket(
 
     while (pbufpos < pbufend and not _rerror) {
         uint8_t cmd = 0;
-        pbufpos     = _rproto.loadValue(pbufpos, cmd);
+        pbufpos     = _receiver.protocol().loadValue(pbufpos, cmd);
 
         switch (static_cast<PacketHeader::CommandE>(cmd)) {
         case PacketHeader::CommandE::NewMessage:
         case PacketHeader::CommandE::FullMessage:
         case PacketHeader::CommandE::Message:
         case PacketHeader::CommandE::EndMessage:
-            pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
-            if (pbufpos and message_idx < _rconfig.max_message_count_multiplex) {
+            pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
+            if (pbufpos and message_idx < _receiver.configuration().max_message_count_multiplex) {
                 vdbgx(Debug::mpipc, "messagetype = " << (int)cmd << " msgidx = " << message_idx);
                 if (message_idx >= message_vec_.size()) {
                     message_vec_.resize(message_idx + 1);
                 }
 
-                pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, cmd, _receiver, _rproto, _rctx, _rerror);
+                pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, cmd, _receiver, _rerror);
             } else {
                 _rerror = error_reader_protocol;
                 SOLID_ASSERT(false);
@@ -164,7 +155,7 @@ void MessageReader::doConsumePacket(
             }
             break;
         case PacketHeader::CommandE::CancelMessage:
-            pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
+            pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             edbgx(Debug::mpipc, "CancelMessage " << message_idx);
             if (pbufpos and message_idx < message_vec_.size()) {
                 MessageStub& rmsgstub = message_vec_[message_idx];
@@ -183,8 +174,8 @@ void MessageReader::doConsumePacket(
             break;
         case PacketHeader::CommandE::CancelRequest: {
             RequestId requid;
-            pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, requid.index);
-            if (pbufpos and (pbufpos = _rproto.loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique))) {
+            pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.index);
+            if (pbufpos and (pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique))) {
                 vdbgx(Debug::mpipc, "CancelRequest: " << requid);
                 _receiver.receiveCancelRequest(requid);
             } else {
@@ -197,7 +188,7 @@ void MessageReader::doConsumePacket(
             vdbgx(Debug::mpipc, "AckdCount");
             if (pbufpos < pbufend) {
                 uint8_t count = 0;
-                pbufpos       = _rproto.loadValue(pbufpos, count);
+                pbufpos       = _receiver.protocol().loadValue(pbufpos, count);
                 vdbgx(Debug::mpipc, "AckdCount " << (int)count);
                 _receiver.receiveAckCount(count);
             } else {
@@ -214,14 +205,12 @@ void MessageReader::doConsumePacket(
 }
 //-----------------------------------------------------------------------------
 const char* MessageReader::doConsumeMessage(
-    const char*        _pbufpos,
-    const char* const  _pbufend,
-    const uint32_t     _msgidx,
-    const uint8_t      _cmd,
-    Receiver&          _receiver,
-    Protocol const&    _rproto,
-    ConnectionContext& _rctx,
-    ErrorConditionT&   _rerror)
+    const char*       _pbufpos,
+    const char* const _pbufend,
+    const uint32_t    _msgidx,
+    const uint8_t     _cmd,
+    Receiver&         _receiver,
+    ErrorConditionT&  _rerror)
 {
     MessageStub& rmsgstub     = message_vec_[_msgidx];
     uint16_t     message_size = 0;
@@ -233,19 +222,19 @@ const char* MessageReader::doConsumeMessage(
     switch (rmsgstub.state_) {
     case MessageStub::StateE::NotStarted:
         vdbgx(Debug::mpipc, "NotStarted msgidx = " << _msgidx);
-        rmsgstub.deserializer_ptr_ = _rproto.createDeserializer();
-        _rproto.reset(*rmsgstub.deserializer_ptr_);
+        rmsgstub.deserializer_ptr_ = createDeserializer(_receiver);
+        rmsgstub.deserializer_ptr_->resetLimits();
         rmsgstub.deserializer_ptr_->push(rmsgstub.message_header_);
         rmsgstub.state_ = MessageStub::StateE::ReadHead;
     case MessageStub::StateE::ReadHead:
         vdbgx(Debug::mpipc, "ReadHead " << _msgidx);
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
-            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+            _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
             if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
-                _rctx.pmessage_header = &rmsgstub.message_header_;
+                _receiver.context().pmessage_header = &rmsgstub.message_header_;
 
-                const int rv = rmsgstub.deserializer_ptr_->run(_rctx, _pbufpos, message_size);
+                const int rv = rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
                 _pbufpos += message_size;
 
                 if (rv >= 0) {
@@ -259,13 +248,12 @@ const char* MessageReader::doConsumeMessage(
                             if (rsp_state == ResponseStateE::Cancel) {
                                 idbgx(Debug::mpipc, "Canceled response");
                                 rmsgstub.state_ = MessageStub::StateE::IgnoreBody;
-                                rmsgstub.deserializer_ptr_->clear();
+                                cache(rmsgstub.deserializer_ptr_);
                                 rmsgstub.deserializer_ptr_.reset();
                             } else if (rsp_state == ResponseStateE::RelayedWait) {
                                 idbgx(Debug::mpipc, "Relayed response");
                                 rmsgstub.state_ = MessageStub::StateE::RelayResponse;
-                                rmsgstub.deserializer_ptr_->clear();
-                                rmsgstub.deserializer_ptr_.reset();
+                                cache(rmsgstub.deserializer_ptr_);
                             } else if (_receiver.isRelayDisabled() or rmsgstub.message_header_.url_.empty()) {
                                 idbgx(Debug::mpipc, "Read Body");
                                 rmsgstub.state_ = MessageStub::StateE::ReadBody;
@@ -274,8 +262,7 @@ const char* MessageReader::doConsumeMessage(
                             } else {
                                 idbgx(Debug::mpipc, "Relay message");
                                 rmsgstub.state_ = MessageStub::StateE::RelayStart;
-                                rmsgstub.deserializer_ptr_->clear();
-                                rmsgstub.deserializer_ptr_.reset();
+                                cache(rmsgstub.deserializer_ptr_);
                             }
                         }
                         break;
@@ -283,6 +270,7 @@ const char* MessageReader::doConsumeMessage(
                 } else {
                     _rerror  = rmsgstub.deserializer_ptr_->error();
                     _pbufpos = _pbufend;
+                    cache(rmsgstub.deserializer_ptr_);
                     rmsgstub.clear();
                     SOLID_ASSERT(false);
                     break;
@@ -301,14 +289,14 @@ const char* MessageReader::doConsumeMessage(
             (rmsgstub.packet_count_ & 15) != 0 or _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id) != ResponseStateE::Cancel) {
             ++rmsgstub.packet_count_;
             if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
-                _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+                _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
                 vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
 
                 if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
 
-                    _rctx.pmessage_header = &rmsgstub.message_header_;
+                    _receiver.context().pmessage_header = &rmsgstub.message_header_;
 
-                    const int rv = rmsgstub.deserializer_ptr_->run(_rctx, _pbufpos, message_size);
+                    const int rv = rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
                     _pbufpos += message_size;
 
                     if (rv >= 0) {
@@ -318,8 +306,9 @@ const char* MessageReader::doConsumeMessage(
                                 if (rmsgstub.deserializer_ptr_->empty()) {
                                     //done parsing the message body
                                     MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
+                                    cache(rmsgstub.deserializer_ptr_);
                                     rmsgstub.clear();
-                                    const size_t message_type_id = msgptr.get() ? _rproto.typeIndex(msgptr.get()) : InvalidIndex();
+                                    const size_t message_type_id = msgptr.get() ? _receiver.protocol().typeIndex(msgptr.get()) : InvalidIndex();
                                     _receiver.receiveMessage(msgptr, message_type_id);
                                     break;
                                 }
@@ -335,7 +324,8 @@ const char* MessageReader::doConsumeMessage(
                         }
                     } else {
                         edbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
-                        _rerror  = rmsgstub.deserializer_ptr_->error();
+                        _rerror = rmsgstub.deserializer_ptr_->error();
+                        cache(rmsgstub.deserializer_ptr_);
                         _pbufpos = _pbufend;
                         rmsgstub.clear();
                         SOLID_ASSERT(false);
@@ -362,13 +352,14 @@ const char* MessageReader::doConsumeMessage(
         vdbgx(Debug::mpipc, "IgnoreBody " << _msgidx);
         ++rmsgstub.packet_count_;
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
-            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+            _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
             if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
 
                 _pbufpos += message_size;
 
                 if (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) {
+                    cache(rmsgstub.deserializer_ptr_);
                     rmsgstub.clear();
                 }
                 break;
@@ -386,7 +377,7 @@ const char* MessageReader::doConsumeMessage(
         break;
     case MessageStub::StateE::RelayStart:
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
-            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+            _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
 
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size << " is_message_end = " << is_message_end);
@@ -412,7 +403,7 @@ const char* MessageReader::doConsumeMessage(
         break;
     case MessageStub::StateE::RelayBody:
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
-            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+            _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
 
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
@@ -437,7 +428,7 @@ const char* MessageReader::doConsumeMessage(
         break;
     case MessageStub::StateE::RelayFail:
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
-            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+            _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
             _pbufpos += message_size;
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
@@ -454,7 +445,7 @@ const char* MessageReader::doConsumeMessage(
         break;
     case MessageStub::StateE::RelayResponse:
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
-            _pbufpos = _rproto.loadValue(_pbufpos, message_size);
+            _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
 
             vdbgx(Debug::mpipc, "msgidx = " << _msgidx << " message_size = " << message_size);
             const bool is_message_end = (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0;
@@ -486,7 +477,26 @@ const char* MessageReader::doConsumeMessage(
     SOLID_ASSERT(!_rerror || (_rerror && _pbufpos == _pbufend));
     return _pbufpos;
 }
-
+//-----------------------------------------------------------------------------
+void MessageReader::cache(Deserializer::PointerT& _des)
+{
+    if (_des) {
+        _des->clear();
+        _des->link(des_top_);
+        des_top_ = std::move(_des);
+    }
+}
+//-----------------------------------------------------------------------------
+Deserializer::PointerT MessageReader::createDeserializer(Receiver& _receiver)
+{
+    if (des_top_) {
+        Deserializer::PointerT des{std::move(des_top_)};
+        des_top_ = std::move(des->link());
+        return des;
+    } else {
+        return _receiver.protocol().createDeserializer();
+    }
+}
 //-----------------------------------------------------------------------------
 
 /*virtual*/ MessageReader::Receiver::~Receiver() {}

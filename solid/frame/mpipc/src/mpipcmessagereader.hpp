@@ -26,12 +26,25 @@ struct PacketHeader;
 class MessageReader {
 public:
     struct Receiver {
-        uint8_t request_buffer_ack_count_;
+        uint8_t                    request_buffer_ack_count_;
+        ReaderConfiguration const& rconfig_;
+        Protocol const&            rproto_;
+        ConnectionContext&         rconctx_;
 
-        Receiver()
+        Receiver(
+            ReaderConfiguration const& _rconfig,
+            Protocol const&            _rproto,
+            ConnectionContext&         _rconctx)
             : request_buffer_ack_count_(0)
+            , rconfig_(_rconfig)
+            , rproto_(_rproto)
+            , rconctx_(_rconctx)
         {
         }
+
+        ReaderConfiguration const& configuration() const { return rconfig_; }
+        Protocol const&            protocol() const { return rproto_; }
+        ConnectionContext&         context() const { return rconctx_; }
 
         virtual ~Receiver();
 
@@ -53,36 +66,31 @@ public:
     ~MessageReader();
 
     size_t read(
-        const char*                _pbuf,
-        size_t                     _bufsz,
-        Receiver&                  _receiver,
-        ReaderConfiguration const& _rconfig,
-        Protocol const&            _rproto,
-        ConnectionContext&         _rctx,
-        ErrorConditionT&           _rerror);
+        const char*      _pbuf,
+        size_t           _bufsz,
+        Receiver&        _receiver,
+        ErrorConditionT& _rerror);
 
     void prepare(ReaderConfiguration const& _rconfig);
     void unprepare();
 
 private:
     void doConsumePacket(
-        const char*                _pbuf,
-        PacketHeader const&        _packet_header,
-        Receiver&                  _receiver,
-        ReaderConfiguration const& _rconfig,
-        Protocol const&            _rproto,
-        ConnectionContext&         _rctx,
-        ErrorConditionT&           _rerror);
+        const char*         _pbuf,
+        PacketHeader const& _packet_header,
+        Receiver&           _receiver,
+        ErrorConditionT&    _rerror);
 
     const char* doConsumeMessage(
-        const char*        _pbufpos,
-        const char* const  _pbufend,
-        const uint32_t     _msgidx,
-        const uint8_t      _cmd,
-        Receiver&          _receiver,
-        Protocol const&    _rproto,
-        ConnectionContext& _rctx,
-        ErrorConditionT&   _rerror);
+        const char*       _pbufpos,
+        const char* const _pbufend,
+        const uint32_t    _msgidx,
+        const uint8_t     _cmd,
+        Receiver&         _receiver,
+        ErrorConditionT&  _rerror);
+
+    void                   cache(Deserializer::PointerT& _des);
+    Deserializer::PointerT createDeserializer(Receiver& _receiver);
 
 private:
     enum struct StateE {
@@ -102,12 +110,12 @@ private:
             RelayResponse,
         };
 
-        MessagePointerT      message_ptr_;
-        DeserializerPointerT deserializer_ptr_;
-        MessageHeader        message_header_;
-        size_t               packet_count_;
-        MessageId            relay_id;
-        StateE               state_;
+        MessagePointerT        message_ptr_;
+        Deserializer::PointerT deserializer_ptr_;
+        MessageHeader          message_header_;
+        size_t                 packet_count_;
+        MessageId              relay_id;
+        StateE                 state_;
 
         MessageStub()
             : packet_count_(0)
@@ -126,9 +134,10 @@ private:
     };
     using MessageVectorT = std::deque<MessageStub>;
 
-    MessageVectorT message_vec_;
-    uint64_t       current_message_type_id_;
-    StateE         state_;
+    MessageVectorT         message_vec_;
+    uint64_t               current_message_type_id_;
+    StateE                 state_;
+    Deserializer::PointerT des_top_;
 };
 
 } //namespace mpipc

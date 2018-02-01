@@ -178,15 +178,15 @@ private:
             RelayedCancel,
         };
 
-        MessageBundle      msgbundle_;
-        uint32_t           unique_;
-        size_t             packet_count_;
-        SerializerPointerT serializer_ptr_;
-        MessageId          pool_msg_id_;
-        StateE             state_;
-        RelayData*         prelay_data_; //TODO: make somehow prelay_data_ act as a const pointer as its data must not be changed by Writer
-        const char*        prelay_pos_;
-        size_t             relay_size_;
+        MessageBundle        msgbundle_;
+        uint32_t             unique_;
+        size_t               packet_count_;
+        Serializer::PointerT serializer_ptr_;
+        MessageId            pool_msg_id_;
+        StateE               state_;
+        RelayData*           prelay_data_; //TODO: make somehow prelay_data_ act as a const pointer as its data must not be changed by Writer
+        const char*          prelay_pos_;
+        size_t               relay_size_;
 
         MessageStub(
             MessageBundle& _rmsgbundle)
@@ -312,13 +312,12 @@ private:
         ErrorConditionT&             _rerror);
 
     char* doWriteMessageBody(
-        char*               _pbufpos,
-        char*               _pbufend,
-        const size_t        _msgidx,
-        PacketOptions&      _rpacket_options,
-        Sender&             _rsender,
-        SerializerPointerT& _rtmp_serializer,
-        ErrorConditionT&    _rerror);
+        char*            _pbufpos,
+        char*            _pbufend,
+        const size_t     _msgidx,
+        PacketOptions&   _rpacket_options,
+        Sender&          _rsender,
+        ErrorConditionT& _rerror);
 
     char* doWriteRelayedHead(
         char*                        _pbufpos,
@@ -327,7 +326,6 @@ private:
         PacketOptions&               _rpacket_options,
         Sender&                      _rsender,
         const PacketHeader::CommandE _cmd,
-        SerializerPointerT&          _rtmp_serializer,
         ErrorConditionT&             _rerror);
 
     char* doWriteRelayedBody(
@@ -360,12 +358,14 @@ private:
         Sender&          _rsender,
         ErrorConditionT& _rerror);
     void doTryCompleteMessageAfterSerialization(
-        const size_t        _msgidx,
-        Sender&             _rsender,
-        SerializerPointerT& _rtmp_serializer,
-        ErrorConditionT&    _rerror);
+        const size_t     _msgidx,
+        Sender&          _rsender,
+        ErrorConditionT& _rerror);
 
     void doUnprepareMessageStub(const size_t _msgidx);
+
+    void                 cache(Serializer::PointerT& _ser);
+    Serializer::PointerT createSerializer(Sender& _sender);
 
 private:
     MessageVectorT          message_vec_;
@@ -374,6 +374,7 @@ private:
     MessageOrderInnerListT  order_inner_list_;
     MessageStatusInnerListT write_inner_list_;
     MessageStatusInnerListT cache_inner_list_;
+    Serializer::PointerT    ser_top_;
 };
 
 typedef std::pair<MessageWriter const&, MessageWriter::PrintWhat> MessageWriterPrintPairT;

@@ -498,7 +498,7 @@ public:
     ConnectionOnEventFunctionT    connection_on_event_fnc;
     RecvAllocateBufferFunctionT   connection_recv_buffer_allocate_fnc;
     SendAllocateBufferFunctionT   connection_send_buffer_allocate_fnc;
-    ProtocolPointerT              protocol_ptr;
+    Protocol::PointerT            protocol_ptr;
 
     Protocol& protocol()
     {

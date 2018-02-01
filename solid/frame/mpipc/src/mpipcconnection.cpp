@@ -832,7 +832,7 @@ void Connection::doHandleEventResolve(
     ResolveMessage* presolvemsg = _revent.any().cast<ResolveMessage>();
 
     if (presolvemsg) {
-        if(not isStopping()){
+        if (not isStopping()) {
             idbgx(Debug::mpipc, this << ' ' << this->id() << " Session receive resolve event message of size: " << presolvemsg->addrvec.size());
             if (not presolvemsg->empty()) {
                 idbgx(Debug::mpipc, this << ' ' << this->id() << " Connect to " << presolvemsg->currentAddress());
@@ -997,7 +997,7 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
 
     EnterPassive*     pdata = _revent.any().cast<EnterPassive>();
     ConnectionContext conctx(service(_rctx), *this);
-    if(not isStopping()){
+    if (not isStopping()) {
         if (this->isRawState()) {
             flags_.reset(FlagsE::Raw);
 
@@ -1031,7 +1031,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
     vdbgx(Debug::mpipc, this << "");
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx(service(_rctx), *this);
-    if(not isStopping()){
+    if (not isStopping()) {
         if ((isServer() and config.server.hasSecureConfiguration()) or ((not isServer()) and config.client.hasSecureConfiguration())) {
             ErrorConditionT error;
             bool            done = false;
@@ -1477,8 +1477,14 @@ struct Connection::Receiver : MessageReader::Receiver {
     Connection&                 rcon_;
     frame::aio::ReactorContext& rctx_;
 
-    Receiver(Connection& _rcon, frame::aio::ReactorContext& _rctx)
-        : rcon_(_rcon)
+    Receiver(
+        Connection&                 _rcon,
+        frame::aio::ReactorContext& _rctx,
+        ReaderConfiguration const&  _rconfig,
+        Protocol const&             _rproto,
+        ConnectionContext&          _rconctx)
+        : MessageReader::Receiver(_rconfig, _rproto, _rconctx)
+        , rcon_(_rcon)
         , rctx_(_rctx)
     {
     }
@@ -1566,7 +1572,7 @@ struct Connection::Receiver : MessageReader::Receiver {
     size_t               bufsz          = 0;
     const uint32_t       recvbufcp      = rthis.recvBufferCapacity();
     bool                 recv_something = false;
-    Receiver             rcvr(rthis, _rctx);
+    Receiver             rcvr(rthis, _rctx, rconfig.reader, rconfig.protocol(), conctx);
     ErrorConditionT      error;
 
     rthis.doResetTimerRecv(_rctx);
@@ -1582,8 +1588,7 @@ struct Connection::Receiver : MessageReader::Receiver {
 
             rcvr.request_buffer_ack_count_ = 0;
 
-            rthis.cons_buf_off_ += rthis.msg_reader_.read(
-                pbuf, bufsz, rcvr, rconfig.reader, rconfig.protocol(), conctx, error);
+            rthis.cons_buf_off_ += rthis.msg_reader_.read(pbuf, bufsz, rcvr, error);
 
             vdbgx(Debug::mpipc, &rthis << " consumed size " << rthis.cons_buf_off_ << " of " << bufsz);
 
@@ -2149,7 +2154,8 @@ const std::string& ConnectionContext::recipientName() const
     return rconnection.poolName();
 }
 //-----------------------------------------------------------------------------
-SocketDevice const& ConnectionContext::device() const{
+SocketDevice const& ConnectionContext::device() const
+{
     return rconnection.device();
 }
 //-----------------------------------------------------------------------------

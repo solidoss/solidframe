@@ -2285,7 +2285,7 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
     size_t                  pool_index;
     unique_lock<std::mutex> lock(impl_->mtx);
     bool                    from_cache = impl_->conpoolcachestk.size() != 0;
-    
+
     if (from_cache) {
         pool_index = impl_->conpoolcachestk.top();
         impl_->conpoolcachestk.pop();

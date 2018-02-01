@@ -60,6 +60,10 @@ struct Serializer : public mpipc::Serializer {
     {
         return ser.clear();
     }
+    /*virtual*/ void resetLimits() override
+    {
+        ser.resetLimits();
+    }
 };
 
 struct Deserializer : public mpipc::Deserializer {
@@ -96,24 +100,28 @@ struct Deserializer : public mpipc::Deserializer {
     {
         return des.clear();
     }
+
+    /*virtual*/ void resetLimits() override
+    {
+        des.resetLimits();
+    }
 };
 
-struct Protocol;
-using ProtocolPointerT = std::shared_ptr<Protocol>;
-
 struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol> {
+    using PointerT = std::shared_ptr<Protocol>;
+
     TypeIdMapT type_map;
 
     LimitsT limits;
 
-    static ProtocolPointerT create()
+    static PointerT create()
     {
         struct EnableMakeSharedProtocol : Protocol {
         };
         return std::make_shared<EnableMakeSharedProtocol>();
     }
 
-    static ProtocolPointerT create(const LimitsT& _limits)
+    static PointerT create(const LimitsT& _limits)
     {
         struct EnableMakeSharedProtocol : Protocol {
             EnableMakeSharedProtocol(const LimitsT& _limits)
@@ -124,7 +132,7 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
         return std::make_shared<EnableMakeSharedProtocol>(_limits);
     }
 
-    ProtocolPointerT pointerFromThis()
+    PointerT pointerFromThis()
     {
         return shared_from_this();
     }
@@ -259,22 +267,13 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
         return type_map[_idx];
     }
 
-    /*virtual*/ SerializerPointerT createSerializer() const override
+    /*virtual*/ Serializer::PointerT createSerializer() const override
     {
-        return SerializerPointerT(new Serializer(limits, type_map));
+        return Serializer::PointerT(new Serializer(limits, type_map));
     }
-    /*virtual*/ DeserializerPointerT createDeserializer() const override
+    /*virtual*/ Deserializer::PointerT createDeserializer() const override
     {
-        return DeserializerPointerT(new Deserializer(limits, type_map));
-    }
-
-    /*virtual*/ void reset(mpipc::Serializer& _ser) const override
-    {
-        static_cast<Serializer&>(_ser).ser.resetLimits();
-    }
-    /*virtual*/ void reset(mpipc::Deserializer& _des) const override
-    {
-        static_cast<Deserializer&>(_des).des.resetLimits();
+        return Deserializer::PointerT(new Deserializer(limits, type_map));
     }
 
     /*virtual*/ size_t minimumFreePacketDataSize() const override

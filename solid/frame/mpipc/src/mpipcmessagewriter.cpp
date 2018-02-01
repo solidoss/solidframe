@@ -457,8 +457,7 @@ size_t MessageWriter::doWritePacketData(
     Sender&           _rsender,
     ErrorConditionT&  _rerror)
 {
-    SerializerPointerT tmp_serializer;
-    char*              pbufpos = _pbufbeg;
+    char* pbufpos = _pbufbeg;
 
     if (_rackd_buf_count) {
         vdbgx(Debug::mpipc, this << " stored ackd_buf_count = " << (int)_rackd_buf_count);
@@ -491,13 +490,9 @@ size_t MessageWriter::doWritePacketData(
         case MessageStub::StateE::WriteStart: {
             MessageStub& rmsgstub = message_vec_[msgidx];
 
-            if (tmp_serializer) {
-                rmsgstub.serializer_ptr_ = std::move(tmp_serializer);
-            } else {
-                rmsgstub.serializer_ptr_ = _rsender.protocol().createSerializer();
-            }
+            rmsgstub.serializer_ptr_ = createSerializer(_rsender);
 
-            _rsender.protocol().reset(*rmsgstub.serializer_ptr_);
+            rmsgstub.serializer_ptr_->resetLimits();
 
             rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::StartedSend);
 
@@ -513,7 +508,7 @@ size_t MessageWriter::doWritePacketData(
             pbufpos = doWriteMessageHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, cmd, _rerror);
             break;
         case MessageStub::StateE::WriteBody:
-            pbufpos = doWriteMessageBody(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, tmp_serializer, _rerror);
+            pbufpos = doWriteMessageBody(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
             break;
         case MessageStub::StateE::WriteWait:
             SOLID_THROW("Invalid state for write queue - WriteWait");
@@ -524,13 +519,9 @@ size_t MessageWriter::doWritePacketData(
         case MessageStub::StateE::RelayedStart: {
             MessageStub& rmsgstub = message_vec_[msgidx];
 
-            if (tmp_serializer) {
-                rmsgstub.serializer_ptr_ = std::move(tmp_serializer);
-            } else {
-                rmsgstub.serializer_ptr_ = _rsender.protocol().createSerializer();
-            }
+            rmsgstub.serializer_ptr_ = createSerializer(_rsender);
 
-            _rsender.protocol().reset(*rmsgstub.serializer_ptr_);
+            rmsgstub.serializer_ptr_->resetLimits();
 
             rmsgstub.state_ = MessageStub::StateE::RelayedHead;
 
@@ -541,7 +532,7 @@ size_t MessageWriter::doWritePacketData(
             cmd = PacketHeader::CommandE::NewMessage;
         }
         case MessageStub::StateE::RelayedHead:
-            pbufpos = doWriteRelayedHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, cmd, tmp_serializer, _rerror);
+            pbufpos = doWriteRelayedHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, cmd, _rerror);
             break;
         case MessageStub::StateE::RelayedBody:
             pbufpos = doWriteRelayedBody(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
@@ -616,13 +607,12 @@ char* MessageWriter::doWriteMessageHead(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteMessageBody(
-    char*               _pbufpos,
-    char*               _pbufend,
-    const size_t        _msgidx,
-    PacketOptions&      _rpacket_options,
-    Sender&             _rsender,
-    SerializerPointerT& _rtmp_serializer,
-    ErrorConditionT&    _rerror)
+    char*            _pbufpos,
+    char*            _pbufend,
+    const size_t     _msgidx,
+    PacketOptions&   _rpacket_options,
+    Sender&          _rsender,
+    ErrorConditionT& _rerror)
 {
     char* pcmdpos = nullptr;
 
@@ -655,7 +645,7 @@ char* MessageWriter::doWriteMessageBody(
             //we've just finished serializing body
             cmd |= static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag);
 
-            doTryCompleteMessageAfterSerialization(_msgidx, _rsender, _rtmp_serializer, _rerror);
+            doTryCompleteMessageAfterSerialization(_msgidx, _rsender, _rerror);
         } else {
             //try reschedule message - so we can multiplex multiple messages on the same stream
             ++rmsgstub.packet_count_;
@@ -694,7 +684,6 @@ char* MessageWriter::doWriteRelayedHead(
     PacketOptions&               _rpacket_options,
     Sender&                      _rsender,
     const PacketHeader::CommandE _cmd,
-    SerializerPointerT&          _rtmp_serializer,
     ErrorConditionT&             _rerror)
 {
     uint8_t cmd = static_cast<uint8_t>(_cmd);
@@ -722,14 +711,13 @@ char* MessageWriter::doWriteRelayedHead(
 
         if (rmsgstub.serializer_ptr_->empty()) {
             //we've just finished serializing header
-
-            _rtmp_serializer = std::move(rmsgstub.serializer_ptr_);
-            rmsgstub.state_  = MessageStub::StateE::RelayedBody;
+            cache(rmsgstub.serializer_ptr_);
+            rmsgstub.state_ = MessageStub::StateE::RelayedBody;
         }
         _pbufpos += rv;
     } else {
-        _rtmp_serializer = std::move(rmsgstub.serializer_ptr_);
-        _rerror          = rmsgstub.serializer_ptr_->error();
+        cache(rmsgstub.serializer_ptr_);
+        _rerror = rmsgstub.serializer_ptr_->error();
     }
 
     return _pbufpos;
@@ -887,10 +875,9 @@ char* MessageWriter::doWriteRelayedCancelRequest(
 }
 //-----------------------------------------------------------------------------
 void MessageWriter::doTryCompleteMessageAfterSerialization(
-    const size_t        _msgidx,
-    Sender&             _rsender,
-    SerializerPointerT& _rtmp_serializer,
-    ErrorConditionT&    _rerror)
+    const size_t     _msgidx,
+    Sender&          _rsender,
+    ErrorConditionT& _rerror)
 {
 
     MessageStub& rmsgstub(message_vec_[_msgidx]);
@@ -898,7 +885,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
     vdbgx(Debug::mpipc, "done serializing message " << requid << ". Message id sent to client " << _rsender.context().request_id);
 
-    _rtmp_serializer = std::move(rmsgstub.serializer_ptr_);
+    cache(rmsgstub.serializer_ptr_);
 
     SOLID_ASSERT(write_inner_list_.size());
     write_inner_list_.popFront();
@@ -995,6 +982,30 @@ void MessageWriter::print(std::ostream& _ros, const PrintWhat _what) const
 
 //-----------------------------------------------------------------------------
 
+void MessageWriter::cache(Serializer::PointerT& _ser)
+{
+    if (_ser) {
+        _ser->clear();
+        _ser->link(ser_top_);
+        ser_top_ = std::move(_ser);
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+Serializer::PointerT MessageWriter::createSerializer(Sender& _sender)
+{
+    if (ser_top_) {
+        Serializer::PointerT ser{std::move(ser_top_)};
+        ser_top_ = std::move(ser->link());
+        return ser;
+    } else {
+        return _sender.protocol().createSerializer();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 /*virtual*/ MessageWriter::Sender::~Sender()
 {
 }
@@ -1011,7 +1022,6 @@ void MessageWriter::print(std::ostream& _ros, const PrintWhat _what) const
 /*virtual*/ void MessageWriter::Sender::cancelRelayed(RelayData* _relay_data, MessageId const& _rmsgid)
 {
 }
-
 //-----------------------------------------------------------------------------
 
 std::ostream& operator<<(std::ostream& _ros, std::pair<MessageWriter const&, MessageWriter::PrintWhat> const& _msgwriterpair)
