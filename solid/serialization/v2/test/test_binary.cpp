@@ -1,4 +1,5 @@
 #include "solid/serialization/v2/typetraits.hpp"
+#include "solid/serialization/serialization.hpp"
 #include <vector>
 #include <deque>
 #include <string>
@@ -40,6 +41,13 @@ class Test{
     
     void populate(){
         
+    }
+    
+public:
+    Test(){}
+    
+    Test(bool){
+        populate();
     }
     
     template <class S>
@@ -93,11 +101,11 @@ int test_binary(int argc, char* argv[]){
             istringstream iss(oss.str());
             serialization::binary::Deserializer<Context> des;
             
-            Test t_c;
-            
-            des.add(t_c, "t");
-            
+            Test    t_c;
             Context ctx;
+            
+            des.add(t_c, "t", ctx);
+            
             iss>>des.wrap(ctx);
         }
     }
