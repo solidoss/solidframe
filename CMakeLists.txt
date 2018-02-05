@@ -33,16 +33,7 @@ else()
     message("External path: \"${EXTERNAL_PATH}\"")
 endif()
 
-
-if(NOT UINSTALL_PREFIX OR UINSTALL_PREFIX STREQUAL "")
-    set(UINSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-    message("Default install path: \"${UINSTALL_PREFIX}\"")
-endif()
-
-
-set(INSTALL_PATH "${UINSTALL_PREFIX}/" CACHE PATH "External prerequisites path")
-
-message("Install path: \"${INSTALL_PATH}\"")
+message("Install path: \"${CMAKE_INSTALL_PREFIX}\"")
 
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
@@ -296,15 +287,6 @@ endif()
 #-----------------------------------------------------------------
 # install prefix
 #-----------------------------------------------------------------
-if(NOT (INSTALL_PATH STREQUAL ""))
-    set(CMAKE_INSTALL_PREFIX "${INSTALL_PATH}")
-
-    if(ON_ANDROID)
-        set(CMAKE_INSTALL_PREFIX "${INSTALL_PATH}/${ANDROID_ABI}")
-    endif()
-
-    message("Using install prefix: ${CMAKE_INSTALL_PREFIX}")
-endif(NOT (INSTALL_PATH STREQUAL ""))
 
 if(ON_ANDROID)
     set(EXTERNAL_PATH "${EXTERNAL_PATH}/${ANDROID_ABI}")
@@ -460,6 +442,18 @@ endif()
 #-----------------------------------------------------------------
 
 add_subdirectory (solid)
+
+add_custom_target(libraries
+    DEPENDS
+    solid_system
+    solid_utility
+    solid_serialization
+    solid_frame
+    solid_frame_aio
+    solid_frame_aio_openssl
+    solid_frame_file
+    solid_frame_mpipc
+)
 
 include(CMakePackageConfigHelpers)
 
