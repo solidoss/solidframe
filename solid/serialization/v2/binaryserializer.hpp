@@ -1,6 +1,7 @@
 #pragma once
 
 #include "solid/serialization/v2/binarybase.hpp"
+#include <ostream>
 
 namespace solid{
 namespace serialization{
@@ -23,7 +24,19 @@ public:
         
         return *this;
     }
+    
+    std::ostream& run(std::ostream &_ros){
+        return _ros;
+    }
 };
+
+std::ostream& operator<<(std::ostream &_ros, Serializer<> &_rser){
+    return _rser.run(_ros);
+}
+
+
+
+
 }//namespace binary
 }//namespace v2
 }//namespace serialization

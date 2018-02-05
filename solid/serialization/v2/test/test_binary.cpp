@@ -104,7 +104,7 @@ int test_binary(int argc, char* argv[]){
             Test    t_c;
             Context ctx;
             
-            des.add(t_c, "t", ctx);
+            des.add(t_c, ctx, "t");
             
             iss>>des.wrap(ctx);
         }
