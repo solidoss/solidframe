@@ -84,12 +84,14 @@ int test_binary(int argc, char* argv[]){
     
     {
         const Test t{true};
+        const std::shared_ptr<Test> tp{std::make_shared<Test>(true)};
+        const std::unique_ptr<Test> tup{new Test(true)};
         
         ostringstream oss;
         {
             serialization::binary::Serializer<> ser;
             
-            ser.add(t, "t");
+            ser.add(t, "t").add(tp, "tp").add(tup, "tup");
             
             oss<<ser;
         }
@@ -98,9 +100,11 @@ int test_binary(int argc, char* argv[]){
             serialization::binary::Deserializer<Context> des;
             
             Test    t_c;
+            std::shared_ptr<Test> tp_c;
+            std::unique_ptr<Test> tup_c;
             Context ctx;
             
-            des.add(t_c, ctx, "t");
+            des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c");
             
             iss>>des.wrap(ctx);
         }

@@ -45,6 +45,14 @@ struct is_callable_helper
 
 template<class F, class...Args>
 struct is_callable: std::conditional<is_callable_helper<F, Args...>::value, std::true_type, std::false_type>::type{};
+
+// template <class T>
+// struct is_unique_ptr : std::false_type
+// {};
+// 
+// template <class T, class D>
+// struct is_unique_ptr<std::unique_ptr<T, D>> : std::true_type
+// {};
         
 }//namespace serialization
 }//namespace solid

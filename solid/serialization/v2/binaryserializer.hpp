@@ -58,6 +58,24 @@ public:
         idbg("");
     }
     
+    template <class S, class T>
+    void addPointer(S &_rs, const std::shared_ptr<T> &_rp, const char *_name){
+        idbg("");
+    }
+    
+    template <class S, class T, class Ctx>
+    void addPointer(S &_rs, const std::shared_ptr<T> &_rp, Ctx &_rctx, const char *_name){
+        idbg("");
+    }
+    template <class S, class T, class D>
+    void addPointer(S &_rs, const std::unique_ptr<T, D> &_rp, const char *_name){
+        idbg("");
+    }
+    
+    template <class S, class T, class D, class Ctx>
+    void addPointer(S &_rs, const std::unique_ptr<T, D> &_rp, Ctx &_rctx, const char *_name){
+        idbg("");
+    }
 };
 
 

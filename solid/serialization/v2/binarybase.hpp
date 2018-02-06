@@ -1,9 +1,11 @@
 #pragma once
+#include <memory>
 
 namespace solid{
 namespace serialization{
 namespace v2{
 namespace binary{
+
 
 class Base{
     
@@ -73,14 +75,56 @@ void solidSerializeV2IsFunction(S &_rs, T &_rt, Ctx &_rctx, const char *_name, s
     solidSerializeV2IsContainer(_rs, _rt, _rctx, _name, is_container<T>());
 }
 
+
+template <class S, class T>
+void solidSerializeV2(S &_rs, std::shared_ptr<T> &_rp, const char *_name){
+    _rs.addPointer(_rs, _rp, _name);
+}
+
+template <class S, class T, class Ctx>
+void solidSerializeV2(S &_rs, std::shared_ptr<T> &_rp, Ctx &_rctx, const char *_name){
+    _rs.addPointer(_rs, _rp, _rctx, _name);
+}
+
+template <class S, class T>
+void solidSerializeV2(S &_rs, const std::shared_ptr<T> &_rp, const char *_name){
+    _rs.addPointer(_rs, _rp, _name);
+}
+
+template <class S, class T, class Ctx>
+void solidSerializeV2(S &_rs, const std::shared_ptr<T> &_rp, Ctx &_rctx, const char *_name){
+    _rs.addPointer(_rs, _rp, _rctx, _name);
+}
+
+
+template <class S, class T, class D>
+void solidSerializeV2(S &_rs, std::unique_ptr<T, D> &_rp, const char *_name){
+    _rs.addPointer(_rs, _rp, _name);
+}
+
+template <class S, class T, class D, class Ctx>
+void solidSerializeV2(S &_rs, std::unique_ptr<T, D> &_rp, Ctx &_rctx, const char *_name){
+    _rs.addPointer(_rs, _rp, _rctx, _name);
+}
+
+template <class S, class T, class D>
+void solidSerializeV2(S &_rs, const std::unique_ptr<T, D> &_rp, const char *_name){
+    _rs.addPointer(_rs, _rp, _name);
+}
+
+template <class S, class T, class D, class Ctx>
+void solidSerializeV2(S &_rs, const std::unique_ptr<T, D> &_rp, Ctx &_rctx, const char *_name){
+    _rs.addPointer(_rs, _rp, _rctx, _name);
+}
+
 template <class S, class T>
 void solidSerializeV2(S &_rs, T &_rt, const char *_name){
-    solidSerializeV2IsFunction(_rs, _rt, _name, std::is_function<T>());
+    solidSerializeV2IsFunction(_rs, _rt, _name, is_callable<T, S&, const char*>());
 }
 
 template <class S, class T, class Ctx>
 void solidSerializeV2(S &_rs, T &_rt, Ctx &_rctx, const char *_name){
-    solidSerializeV2IsFunction(_rs, _rt, _rctx, _name, std::is_function<T>());
+    solidSerializeV2IsFunction(_rs, _rt, _rctx, _name, is_callable<T, S&, Ctx&, const char*>());
 }
 
 template <class S, class T>
@@ -92,6 +136,7 @@ template <class S, class T, class Ctx>
 void solidSerializeV2(S &_rs, const T &_rt, Ctx &_rctx, const char *_name){
     solidSerializeV2IsFunction(_rs, _rt, _rctx, _name, is_callable<T, S&, Ctx&, const char*>());
 }
+
 
 }//namespace binary
 }//namespace v2
