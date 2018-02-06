@@ -31,16 +31,16 @@ namespace solid {
 namespace serialization {
 namespace binary {
 
-BASIC_DECL(int8_t);
-BASIC_DECL(uint8_t);
-BASIC_DECL(int16_t);
-BASIC_DECL(uint16_t);
-BASIC_DECL(int32_t);
-BASIC_DECL(uint32_t);
-BASIC_DECL(int64_t);
-BASIC_DECL(uint64_t);
-BASIC_DECL(bool);
-BASIC_DECL(std::string);
+// BASIC_DECL(int8_t);
+// BASIC_DECL(uint8_t);
+// BASIC_DECL(int16_t);
+// BASIC_DECL(uint16_t);
+// BASIC_DECL(int32_t);
+// BASIC_DECL(uint32_t);
+// BASIC_DECL(int64_t);
+// BASIC_DECL(uint64_t);
+// BASIC_DECL(bool);
+// BASIC_DECL(std::string);
 
 typedef void (*StringCheckFncT)(std::string const& /*_rstr*/, const char* /*_pb*/, size_t /*_len*/);
 

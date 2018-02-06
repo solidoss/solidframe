@@ -33,5 +33,18 @@ struct is_container<
             >::type
         > : public std::true_type {};
 
+template<class F, class...Args>
+struct is_callable_helper
+{
+    template<class U> static auto test(U* p) -> decltype((*p)(std::declval<Args>()...), void(), std::true_type());
+    template<class U> static auto test(...) -> decltype(std::false_type());
+
+    static constexpr bool value = decltype(test<F>(0))::value;
+    using type = decltype(test<F>(0));
+};
+
+template<class F, class...Args>
+struct is_callable: std::conditional<is_callable_helper<F, Args...>::value, std::true_type, std::false_type>::type{};
+        
 }//namespace serialization
 }//namespace solid

@@ -1,27 +1,83 @@
 #pragma once
 
-#include "solid/serialization/v2/binarybase.hpp"
 #include <ostream>
+#include <functional>
+#include "solid/serialization/v2/typetraits.hpp"
+#include "solid/serialization/v2/binarybase.hpp"
+#include "solid/system/debug.hpp"
 
 namespace solid{
 namespace serialization{
 namespace v2{
 namespace binary{
+
 class SerializerBase: public Base{
+public:
+    
+    void addBasic(const bool &_rb, const char *_name){
+        idbg("");
+    }
+    
+    void addBasic(const int32_t &_rb, const char *_name){
+        idbg("");
+    }
+    void addBasic(const uint64_t &_rb, const char *_name){
+        idbg("");
+    }
+    
+    template <class Ctx>
+    void addBasic(const int32_t &_rb, Ctx &_rctx, const char *_name){
+        idbg("");
+    }
+    template <class Ctx>
+    void addBasic(const uint64_t &_rb, Ctx &_rctx, const char *_name){
+        idbg("");
+    }
+    
+    
+    
+    template <class S, class F>
+    void addFunction(S &_rs, F &_rf, const char *_name){
+        idbg("");
+        _rf(_rs, _name);
+    }
+    
+    template <class S, class F, class Ctx>
+    void addFunction(S &_rs, F &_rf, Ctx &_rctx, const char *_name){
+        idbg("");
+        _rf(_rs, _rctx, _name);
+    }
+    
+    template <class S, class C>
+    void addContainer(S &_rs, const C &_rc, const char *_name){
+        idbg("");
+    }
+    
+    template <class S, class C, class Ctx>
+    void addContainer(S &_rs, const C &_rc, Ctx &_rctx, const char *_name){
+        idbg("");
+    }
     
 };
+
 
 template <class Ctx = void>
 class Serializer;
 
 template <>
-class Serializer<void>: SerializerBase{
+class Serializer<void>: public SerializerBase{
 public:
     using ThisT = Serializer<void>;
     
     template <typename T>
+    ThisT& add(T &_rt, const char *_name){
+        solidSerializeV2(*this, _rt, _name);
+        return *this;
+    }
+    
+    template <typename T>
     ThisT& add(const T &_rt, const char *_name){
-        
+        solidSerializeV2(*this, _rt, _name);
         return *this;
     }
     

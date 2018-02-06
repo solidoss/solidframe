@@ -5,29 +5,25 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <type_traits>
 
 using namespace std;
 using namespace solid;
 
-template <typename T>
-void add_impl(T &_rt, std::true_type){
-    cout<<"add container"<<endl;
-}
-
-template <typename T>
-void add_impl(T &_rt, std::false_type){
-    cout<<"add non container"<<endl;
-}
-
-
-template <typename T>
-void add(T &_rt){
-    add_impl(_rt, serialization::is_container<T>());
-}
-
 struct A{
-    int     b;
+    int32_t     a;
+    uint64_t    b;
 };
+
+template <class S>
+void solidSerializeV2(S &_rs, const A &_r, const char *_name){
+    _rs.add(_r.a, "a").add(_r.b, "b");
+}
+
+template <class S, class Ctx>
+void solidSerializeV2(S &_rs, A &_r, Ctx &_rctx, const char *_name){
+    _rs.add(_r.a, _rctx, "a").add(_r.b, _rctx, "b");
+}
 
 struct Context{
     
@@ -51,41 +47,41 @@ public:
     }
     
     template <class S>
-    void solidSerializeV2(S &_rs){
+    void solidSerializeV2(S &_rs, const char *_name)const{
         _rs.add(b, "b").add(
-            [this](S &_rs){
+            [this](S &_rs, const char* _name){
                 if(this->b){
                     _rs.add(v, "v");
                 }else{
                     _rs.add(d, "d");
                 }
-            }
+            }, "f"
         ).add(a, "a");
+        //_rs.add(b, "b").add(v, "v").add(a, "a");
     }
     
     template <class S>
-    void solidSerializeV2(S &_rs, Context &_rctx){
-        _rs.add(b, "b").add(
-            [this](S &_rs, Context &_rctx){
+    void solidSerializeV2(S &_rs, Context &_rctx, const char *_name){
+        _rs.add(b, _rctx, "b").add(
+            [this](S &_rs, Context &_rctx, const char*_name){
                 if(this->b){
-                    _rs.add(v, "v");
+                    _rs.add(v, _rctx, "v");
                 }else{
-                    _rs.add(d, "d");
+                    _rs.add(d, _rctx, "d");
                 }
-            }
-        ).add(a, "a");
+            }, _rctx, "f"
+        ).add(a, _rctx, "a");
+        //_rs.add(b, _rctx, "b").add(v, _rctx, "v").add(a, _rctx, "a");
     }
 };
 
 int test_binary(int argc, char* argv[]){
-    {
-        vector<A>   v;
-        A           a;
-        deque<A>    d;
-        add(a);
-        add(v);
-        add(d);
-    }
+#ifdef SOLID_HAS_DEBUG
+    Debug::the().levelMask("view");
+    Debug::the().moduleMask("any");
+    Debug::the().initStdErr(false, nullptr);
+#endif
+    
     {
         const Test t{true};
         
