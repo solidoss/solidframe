@@ -14,27 +14,16 @@ namespace binary{
 class SerializerBase: public Base{
 public:
     
-    void addBasic(const bool &_rb, const char *_name){
-        idbg("");
-    }
+    void addBasic(const bool &_rb, const char *_name);
+    void addBasic(const int32_t &_rb, const char *_name);
+    void addBasic(const uint64_t &_rb, const char *_name);
     
-    void addBasic(const int32_t &_rb, const char *_name){
+    template <class T, class Ctx>
+    void addBasic(const T &_rb, Ctx &_rctx, const char *_name){
         idbg("");
+        //ignore the context
+        addBasic(_rb, _name);
     }
-    void addBasic(const uint64_t &_rb, const char *_name){
-        idbg("");
-    }
-    
-    template <class Ctx>
-    void addBasic(const int32_t &_rb, Ctx &_rctx, const char *_name){
-        idbg("");
-    }
-    template <class Ctx>
-    void addBasic(const uint64_t &_rb, Ctx &_rctx, const char *_name){
-        idbg("");
-    }
-    
-    
     
     template <class S, class F>
     void addFunction(S &_rs, F &_rf, const char *_name){
@@ -104,7 +93,7 @@ public:
     }
 };
 
-std::ostream& operator<<(std::ostream &_ros, Serializer<> &_rser){
+inline std::ostream& operator<<(std::ostream &_ros, Serializer<> &_rser){
     return _rser.run(_ros);
 }
 

@@ -14,32 +14,15 @@ namespace binary{
 class DeserializerBase: public Base{
 public:
     
-    void addBasic(bool &_rb, const char *_name){
-        idbg("");
-    }
+    void addBasic(bool &_rb, const char *_name);
+    void addBasic(int32_t &_rb, const char *_name);
+    void addBasic(uint64_t &_rb, const char *_name);
     
-    template <class Ctx>
-    void addBasic(bool &_rb, Ctx &_rctx, const char *_name){
+    template <class T, class Ctx>
+    void addBasic(T &_rb, Ctx &_rctx, const char *_name){
         idbg("");
+        addBasic(_rb, _name);
     }
-    
-    void addBasic(int32_t &_rb, const char *_name){
-        idbg("");
-    }
-    void addBasic(uint64_t &_rb, const char *_name){
-        idbg("");
-    }
-    
-    template <class Ctx>
-    void addBasic(int32_t &_rb, Ctx &_rctx, const char *_name){
-        idbg("");
-    }
-    template <class Ctx>
-    void addBasic(uint64_t &_rb, Ctx &_rctx, const char *_name){
-        idbg("");
-    }
-    
-    
     
     template <class D, class F>
     void addFunction(D &_rd, F &_rf, const char *_name){
@@ -118,7 +101,7 @@ public:
 };
 
 template <typename D>
-std::istream& operator>>(std::istream &_ris, std::pair<D&, typename D::ContextT&> _des){
+inline std::istream& operator>>(std::istream &_ris, std::pair<D&, typename D::ContextT&> _des){
     return _des.first.run(_ris, _des.second);
 }
 
