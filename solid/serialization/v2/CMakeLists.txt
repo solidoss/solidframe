@@ -1,9 +1,14 @@
 set(Sources
-    src/binary.cpp
+    src/binarybasic.cpp
+    src/binaryserializer.cpp
+    src/binarydeserializer.cpp
 )
 
 set(Headers
     binarybase.hpp
+    binarybasic.hpp
+    binaryserializer.hpp
+    binarydeserializer.hpp
 )
 
 set(Inlines

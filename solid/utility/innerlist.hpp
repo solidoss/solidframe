@@ -127,7 +127,19 @@ public:
 
         ++size_;
     }
-
+    
+    void insertBefore(const size_t _sentinel, const size_t _index){
+        Link& rsent_link = link(_sentinel);
+        Link& rcrt_link = link(_index);
+        
+        rcrt_link = Link(rsent_link.prev_, _sentinel);
+        rsent_link.prev_ = _index;
+        if(front_ == _sentinel){
+            front_ = _index;
+        }
+        ++size_;
+    }
+        
     ValueT& front()
     {
         return rvec_[front_];
