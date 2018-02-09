@@ -53,7 +53,7 @@ DONE:
     return rv;
 }
 
-void DeserializerBase::schedule(Runnable&& _ur)
+size_t DeserializerBase::schedule(Runnable&& _ur)
 {
     size_t idx;
     if(cache_lst_.size()){
@@ -69,6 +69,7 @@ void DeserializerBase::schedule(Runnable&& _ur)
     }else{
         run_lst_.insertBefore(sentinel_, idx);
     }
+    return idx;
 }
 
 void DeserializerBase::addBasic(bool& _rb, const char* _name)
@@ -76,7 +77,7 @@ void DeserializerBase::addBasic(bool& _rb, const char* _name)
     idbg("");
     Runnable r{&_rb, &load_bool, 1, 0, _name};
 
-    if (run_lst_.empty()) {
+    if (isRunEmpty()) {
         if (load_bool(*this, r, nullptr) == ReturnE::Done) {
             return;
         }

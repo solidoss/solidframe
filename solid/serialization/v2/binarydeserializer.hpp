@@ -61,8 +61,10 @@ public:
     void addBasic(T& _rb, Ctx& _rctx, const char* _name)
     {
         idbg("");
+        
         Runnable r{&_rb, &load_cross<T>, 0, 0, _name};
-        if (run_lst_.empty()) {
+        
+        if (isRunEmpty()) {
             if (load_cross<T>(*this, r, nullptr) == ReturnE::Done) {
                 return;
             }
@@ -75,7 +77,7 @@ public:
     void addFunction(D& _rd, F _f, const char* _name)
     {
         idbg("");
-        if(_rd.pcrt_ != _rd.pend_){
+        if(isRunEmpty() and _rd.pcrt_ != _rd.pend_){
             _f(_rd, _name);
         }else{
             Runnable r{
@@ -94,7 +96,7 @@ public:
     void addFunction(D& _rd, F _f, Ctx& _rctx, const char* _name)
     {
         idbg("");
-        if(_rd.pcrt_ != _rd.pend_){
+        if(isRunEmpty() and _rd.pcrt_ != _rd.pend_){
             _f(_rd, _rctx, _name);
         }else{
             Runnable r{
@@ -122,34 +124,63 @@ public:
         addBasic(data_.u64_, _rctx, _name);
         
         if(_rd.pcrt_ != _rd.pend_){
-            if(_data_.u64_ == 0){
+            if(data_.u64_ == 0){
                 return;
             }
         }
         
         typename C::value_type value;
-        auto lambda = [value](DeserializerBase& _rs, Runnable& _rr, void* _pctx)mutable{
-            C &rcontainer = *static_cast<const C*>(_rr.ptr_);
-            S &rs = static_cast<S&>(_rs);
+        bool parsing_value = false;
+        auto lambda = [value, parsing_value](DeserializerBase& _rd, Runnable& _rr, void* _pctx)mutable{
+            C &rcontainer = *static_cast<C*>(_rr.ptr_);
+            D &rd = static_cast<D&>(_rd);
+            Ctx &rctx = *static_cast<Ctx*>(_pctx);
             
-            _rr.data_ = _rs.sentinel();
+            _rr.data_ = _rd.sentinel();
             
-            while(_rs.pcrt_ != _rs.pend_ and it != rcontainer.cend()){
-                rs.add(*it, _rr.name_);
-                ++it;
+            if(_rr.size_  == 0){
+                rd.addBasic(_rr.size_, rctx, _rr.name_);
+                if(!_rd.isRunEmpty()){
+                    return ReturnE::Wait;
+                }
             }
             
-            if(it != rcontainer.cend()){
-                return ReturnE::Wait;
-            }else{
-                _rs.sentinel(_rr.data_);
+            if(parsing_value){
+                rcontainer.insert(rcontainer.end(), value);
+                parsing_value = false;
+            }
+            
+            while(_rd.pcrt_ != _rd.pend_ and _rr.size_ != 0){
+                rd.add(value, rctx, _rr.name_);
+                --_rr.size_;
+                
+                if(_rd.isRunEmpty()){
+                    //the value was parsed
+                    rcontainer.insert(rcontainer.end(), value);
+                }else{
+                    parsing_value = true;
+                    SOLID_CHECK(_rd.pcrt_ == _rd.pend_, "buffer not empty");
+                }
+            }
+            
+            if(_rr.size_ == 0){
+                _rd.sentinel(_rr.data_);
                 return ReturnE::Done;
             }
+            return ReturnE::Wait;
         };
     
-        Runnable r{&_rc, store_function, 0, 0, _name};
+        Runnable r{&_rc, load_function, 0, 0, _name};
         r.fnc_ = lambda;
-        schedule(std::move(r));
+        size_t idx = schedule(std::move(r));
+        if(idx == run_lst_.frontIndex()){
+            //we try run the function on spot
+            
+            ReturnE v = run_lst_.front().call_(*this, run_lst_.front(), &_rctx);
+            if(v == ReturnE::Done){
+                cache_lst_.pushBack(run_lst_.popFront());
+            }
+        }
         
     }
 
@@ -177,7 +208,7 @@ public:
         idbg("");
     }
 private:
-    void schedule(Runnable&& _ur);
+    size_t schedule(Runnable&& _ur);
     
     size_t sentinel(){
         size_t olds = sentinel_;
@@ -187,6 +218,10 @@ private:
     
     void sentinel(const size_t _s){
         sentinel_ = _s;
+    }
+    
+    bool isRunEmpty()const{
+        return sentinel_ == run_lst_.frontIndex();
     }
     
     static ReturnE load_bool(DeserializerBase& _rd, Runnable& _rr, void* _pctx);

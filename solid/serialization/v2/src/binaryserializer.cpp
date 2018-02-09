@@ -55,7 +55,7 @@ DONE:
     return rv;
 }
 
-void SerializerBase::schedule(Runnable&& _ur)
+size_t SerializerBase::schedule(Runnable&& _ur)
 {
     size_t idx;
     if(cache_lst_.size()){
@@ -71,6 +71,7 @@ void SerializerBase::schedule(Runnable&& _ur)
     }else{
         run_lst_.insertBefore(sentinel_, idx);
     }
+    return idx;
 }
 
 void SerializerBase::addBasic(const bool& _rb, const char* _name)
@@ -78,7 +79,7 @@ void SerializerBase::addBasic(const bool& _rb, const char* _name)
     idbg("");
     Runnable r{&_rb, &store_bool, 1, 0, _name};
 
-    if (run_lst_.empty()) {
+    if (isRunEmpty()) {
         if (store_bool(*this, r, nullptr) == ReturnE::Done) {
             return;
         }
@@ -91,7 +92,7 @@ void SerializerBase::addBasic(const int32_t& _rb, const char* _name)
 {
     idbg("");
     Runnable r{nullptr, &store_cross, 0, static_cast<uint64_t>(_rb), _name};
-    if (run_lst_.empty()) {
+    if (isRunEmpty()) {
         if (store_cross(*this, r, nullptr) == ReturnE::Done) {
             return;
         }
@@ -103,7 +104,7 @@ void SerializerBase::addBasic(const uint64_t& _rb, const char* _name)
 {
     idbg("");
     Runnable r{nullptr, &store_cross, 0, static_cast<uint64_t>(_rb), _name};
-    if (run_lst_.empty()) {
+    if (isRunEmpty()) {
         if (store_cross(*this, r, nullptr) == ReturnE::Done) {
             return;
         }

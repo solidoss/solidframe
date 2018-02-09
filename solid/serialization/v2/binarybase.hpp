@@ -72,6 +72,12 @@ void solidSerializeV2IsContainer(S& _rs, const T& _rt, Ctx& _rctx, const char* _
     _rs.addContainer(_rs, _rt, _rctx, _name);
 }
 
+template <class S, class T, class Ctx>
+void solidSerializeV2IsContainer(S& _rs, T& _rt, Ctx& _rctx, const char* _name, std::true_type)
+{
+    _rs.addContainer(_rs, _rt, _rctx, _name);
+}
+
 template <class S, class T>
 void solidSerializeV2IsContainer(S& _rs, T& _rt, const char* _name, std::false_type)
 {

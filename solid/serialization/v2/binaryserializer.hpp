@@ -69,7 +69,7 @@ public:
     void addFunction(S& _rs, F _f, const char* _name)
     {
         idbg("");
-        if(_rs.pcrt_ != _rs.pend_){
+        if(isRunEmpty() and _rs.pcrt_ != _rs.pend_){
             _f(_rs, _name);
         }else{
             Runnable r{
@@ -88,7 +88,7 @@ public:
     void addFunction(S& _rs, F _f, Ctx& _rctx, const char* _name)
     {
         idbg("");
-        if(_rs.pcrt_ != _rs.pend_){
+        if(isRunEmpty() and _rs.pcrt_ != _rs.pend_){
             _f(_rs, _rctx, _name);
         }else{
             Runnable r{
@@ -210,7 +210,7 @@ public:
     }
 
 private:
-    void schedule(Runnable&& _ur);
+    size_t schedule(Runnable&& _ur);
     
     size_t sentinel(){
         size_t olds = sentinel_;
@@ -220,6 +220,10 @@ private:
     
     void sentinel(const size_t _s){
         sentinel_ = _s;
+    }
+    
+    bool isRunEmpty()const{
+        return sentinel_ == run_lst_.frontIndex();
     }
     
     static ReturnE store_bool(SerializerBase& _rs, Runnable& _rr, void* _pctx);
