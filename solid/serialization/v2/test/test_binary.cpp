@@ -14,8 +14,9 @@ using namespace solid;
 struct A {
     int32_t  a;
     uint64_t b;
-    
-    bool operator==(const A &_ra)const{
+
+    bool operator==(const A& _ra) const
+    {
         return a == _ra.a && b == _ra.b;
     }
 };
@@ -43,14 +44,15 @@ class Test {
 
     void populate(bool _b)
     {
-        if(_b){
-            for(size_t i = 0; i < 100; ++i){
+        b = _b;
+        if (_b) {
+            for (size_t i = 0; i < 100; ++i) {
                 v.emplace_back();
                 v.back().a = i;
                 v.back().b = 100 - i;
             }
-        }else{
-            for(size_t i = 0; i < 100; ++i){
+        } else {
+            for (size_t i = 0; i < 100; ++i) {
                 d.emplace_back();
                 d.back().a = i;
                 d.back().b = 100 - i;
@@ -63,14 +65,14 @@ public:
 
     Test(bool _b)
     {
-        populate(b);
+        populate(_b);
     }
-    
-    
-    bool operator==(const Test &_rt)const {
+
+    bool operator==(const Test& _rt) const
+    {
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d;
     }
-    
+
     template <class S>
     void solidSerializeV2(S& _rs, const char* _name) const
     {
@@ -125,6 +127,7 @@ int test_binary(int argc, char* argv[])
             oss << ser;
         }
         {
+            idbg("oss.str.size = " << oss.str().size());
             istringstream                                iss(oss.str());
             serialization::binary::Deserializer<Context> des;
 
@@ -136,7 +139,7 @@ int test_binary(int argc, char* argv[])
             des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c");
 
             iss >> des.wrap(ctx);
-            
+
             SOLID_CHECK(t == t_c, "check failed");
         }
     }

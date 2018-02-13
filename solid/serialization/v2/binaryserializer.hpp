@@ -3,11 +3,11 @@
 #include "solid/serialization/v2/binarybase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/debug.hpp"
+#include "solid/system/function.hpp"
 #include "solid/utility/innerlist.hpp"
-#include <functional>
+#include <deque>
 #include <ostream>
 #include <vector>
-#include <deque>
 
 namespace solid {
 namespace serialization {
@@ -18,8 +18,8 @@ class SerializerBase : public Base {
     struct Runnable;
 
     typedef ReturnE (*CallbackT)(SerializerBase&, Runnable&, void*);
-    
-    using FunctionT = std::function<ReturnE(SerializerBase&, Runnable &, void*)>;
+
+    using FunctionT = SOLID_FUNCTION<ReturnE(SerializerBase&, Runnable&, void*)>;
 
     struct Runnable : inner::Node<InnerListCount> {
         Runnable(
@@ -35,9 +35,24 @@ class SerializerBase : public Base {
             , name_(_name)
         {
         }
-        
+
         template <class F>
-        Runnable(CallbackT _call, F _f, const char *_name):ptr_(nullptr), call_(_call), size_(0), data_(0), name_(_name), fnc_(_f){}
+        Runnable(CallbackT _call, F _f, const char* _name)
+            : ptr_(nullptr)
+            , call_(_call)
+            , size_(0)
+            , data_(0)
+            , name_(_name)
+            , fnc_(_f)
+        {
+        }
+
+        void clear()
+        {
+            ptr_  = nullptr;
+            call_ = nullptr;
+            SOLID_FUNCTION_CLEAR(fnc_);
+        }
 
         const void* ptr_;
         CallbackT   call_;
@@ -57,29 +72,25 @@ public:
     void addBasic(const int32_t& _rb, const char* _name);
     void addBasic(const uint64_t& _rb, const char* _name);
 
-    template <class T, class Ctx>
-    void addBasic(const T& _rb, Ctx& _rctx, const char* _name)
-    {
-        idbg("");
-        //ignore the context
-        addBasic(_rb, _name);
-    }
-
     template <class S, class F>
     void addFunction(S& _rs, F _f, const char* _name)
     {
         idbg("");
-        if(isRunEmpty() and _rs.pcrt_ != _rs.pend_){
+        if (isRunEmpty() and _rs.pcrt_ != _rs.pend_) {
             _f(_rs, _name);
-        }else{
+        } else {
             Runnable r{
-                store_function,
-                [_f](SerializerBase& _rs, Runnable& _rr, void* _pctx){
+                call_function,
+                [_f](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
+                    size_t old_sentinel = _rs.sentinel();
+
                     _f(static_cast<S&>(_rs), _rr.name_);
-                    return ReturnE::Done;
+
+                    _rr.call_ = remove_sentinel;
+                    _rr.data_ = old_sentinel;
+                    return Base::ReturnE::Continue;
                 },
-                _name
-            };
+                _name};
             schedule(std::move(r));
         }
     }
@@ -88,17 +99,21 @@ public:
     void addFunction(S& _rs, F _f, Ctx& _rctx, const char* _name)
     {
         idbg("");
-        if(isRunEmpty() and _rs.pcrt_ != _rs.pend_){
+        if (isRunEmpty() and _rs.pcrt_ != _rs.pend_) {
             _f(_rs, _rctx, _name);
-        }else{
+        } else {
             Runnable r{
-                store_function,
-                [_f](SerializerBase& _rs, Runnable& _rr, void* _pctx){
+                call_function,
+                [_f](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
+                    size_t old_sentinel = _rs.sentinel();
+
                     _f(static_cast<S&>(_rs), *static_cast<Ctx*>(_pctx), _rr.name_);
-                    return ReturnE::Done;
+
+                    _rr.call_ = remove_sentinel;
+                    _rr.data_ = old_sentinel;
+                    return Base::ReturnE::Continue;
                 },
-                _name
-            };
+                _name};
             schedule(std::move(r));
         }
     }
@@ -108,35 +123,38 @@ public:
     {
         idbg("");
         addBasic(_rc.size(), _name);
-        if(_rc.size()){
+        if (_rc.size()) {
             typename C::const_iterator it = _rc.cbegin();
-            
-            while(_rs.pcrt_ != _rs.pend_ and it != _rc.cend()){
+
+            while (_rs.pcrt_ != _rs.pend_ and it != _rc.cend()) {
                 _rs.add(*it, _name);
                 ++it;
             }
-        
-            if(it != _rc.cend()){
-                auto lambda = [it](SerializerBase& _rs, Runnable& _rr, void* _pctx)mutable{
-                    const C &rcontainer = *static_cast<const C*>(_rr.ptr_);
-                    S &rs = static_cast<S&>(_rs);
-                    
-                    _rr.data_ = _rs.sentinel();
-                    
-                    while(_rs.pcrt_ != _rs.pend_ and it != rcontainer.cend()){
+
+            if (it != _rc.cend()) {
+                auto lambda = [it](SerializerBase& _rs, Runnable& _rr, void* _pctx) mutable {
+                    const C& rcontainer = *static_cast<const C*>(_rr.ptr_);
+                    S&       rs         = static_cast<S&>(_rs);
+
+                    if (_rr.size_ == 0) {
+                        _rr.data_ = _rs.sentinel();
+                        ++_rr.size_;
+                    }
+
+                    while (_rs.pcrt_ != _rs.pend_ and it != rcontainer.cend()) {
                         rs.add(*it, _rr.name_);
                         ++it;
                     }
-                    
-                    if(it != rcontainer.cend()){
+
+                    if (it != rcontainer.cend()) {
                         return ReturnE::Wait;
-                    }else{
+                    } else {
                         _rs.sentinel(_rr.data_);
                         return ReturnE::Done;
                     }
                 };
-            
-                Runnable r{&_rc, store_function, 0, 0, _name};
+
+                Runnable r{&_rc, call_function, 0, 0, _name};
                 r.fnc_ = lambda;
                 schedule(std::move(r));
             }
@@ -147,39 +165,42 @@ public:
     void addContainer(S& _rs, const C& _rc, Ctx& _rctx, const char* _name)
     {
         idbg("");
-        
+
         addBasic(_rc.size(), _name);
-        
-        if(_rc.size()){
+
+        if (_rc.size()) {
             typename C::const_iterator it = _rc.cbegin();
-            
-            while(_rs.pcrt_ != _rs.pend_ and it != _rc.cend()){
+
+            while (_rs.pcrt_ != _rs.pend_ and it != _rc.cend()) {
                 _rs.add(*it, _rctx, _name);
                 ++it;
             }
-        
-            if(it != _rc.cend()){
-                auto lambda = [it](SerializerBase& _rs, Runnable& _rr, void* _pctx)mutable{
-                    const C &rcontainer = *static_cast<const C*>(_rr.ptr_);
-                    Ctx     &rctx = *static_cast<Ctx*>(_pctx);
-                    S &rs = static_cast<S&>(_rs);
-                    
-                    _rr.data_ = _rs.sentinel();
-                    
-                    while(_rs.pcrt_ != _rs.pend_ and it != rcontainer.cend()){
+
+            if (it != _rc.cend()) {
+                auto lambda = [it](SerializerBase& _rs, Runnable& _rr, void* _pctx) mutable {
+                    const C& rcontainer = *static_cast<const C*>(_rr.ptr_);
+                    Ctx&     rctx       = *static_cast<Ctx*>(_pctx);
+                    S&       rs         = static_cast<S&>(_rs);
+
+                    if (_rr.size_ == 0) {
+                        _rr.data_ = _rs.sentinel();
+                        ++_rr.size_;
+                    }
+
+                    while (_rs.pcrt_ != _rs.pend_ and it != rcontainer.cend()) {
                         rs.add(*it, rctx, _rr.name_);
                         ++it;
                     }
-                    
-                    if(it != rcontainer.cend()){
+
+                    if (it != rcontainer.cend()) {
                         return ReturnE::Wait;
-                    }else{
+                    } else {
                         _rs.sentinel(_rr.data_);
                         return ReturnE::Done;
                     }
                 };
-            
-                Runnable r{&_rc, store_function, 0, 0, _name};
+
+                Runnable r{&_rc, call_function, 0, 0, _name};
                 r.fnc_ = lambda;
                 schedule(std::move(r));
             }
@@ -211,34 +232,41 @@ public:
 
 private:
     size_t schedule(Runnable&& _ur);
-    
-    size_t sentinel(){
+
+    size_t sentinel()
+    {
         size_t olds = sentinel_;
-        sentinel_ = run_lst_.frontIndex();
+        sentinel_   = run_lst_.frontIndex();
         return olds;
     }
-    
-    void sentinel(const size_t _s){
+
+    void sentinel(const size_t _s)
+    {
         sentinel_ = _s;
     }
-    
-    bool isRunEmpty()const{
+
+    bool isRunEmpty() const
+    {
         return sentinel_ == run_lst_.frontIndex();
     }
-    
+
     static ReturnE store_bool(SerializerBase& _rs, Runnable& _rr, void* _pctx);
     static ReturnE store_cross(SerializerBase& _rs, Runnable& _rr, void* _pctx);
     static ReturnE store_binary(SerializerBase& _rs, Runnable& _rr, void* _pctx);
-    static ReturnE store_function(SerializerBase& _rs, Runnable& _rr, void* _pctx);
+
+    static ReturnE call_function(SerializerBase& _rs, Runnable& _rr, void* _pctx);
+
+    static ReturnE remove_sentinel(SerializerBase& _rs, Runnable& _rr, void* _pctx);
+
 private:
     enum {
         BufferCapacityE = sizeof(uint64_t) * 2
     };
-    
+
     using RunVectorT = std::deque<Runnable>;
     using RunListT   = inner::List<RunVectorT, InnerListRun>;
     using CacheListT = inner::List<RunVectorT, InnerListCache>;
-    
+
     char*      pbeg_;
     char*      pend_;
     char*      pcrt_;

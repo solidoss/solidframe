@@ -1,6 +1,6 @@
 
-#include "solid/serialization/v2/binarybasic.hpp"
 #include "solid/serialization/v2/binaryserializer.hpp"
+#include "solid/serialization/v2/binarybasic.hpp"
 #include "solid/system/exception.hpp"
 
 namespace solid {
@@ -21,7 +21,7 @@ SerializerBase::SerializerBase()
 
 std::ostream& SerializerBase::run(std::ostream& _ros)
 {
-    const size_t buf_cap = 8 * 1024;
+    const size_t buf_cap = 11; //8 * 1024;
     char         buf[buf_cap];
     long         len;
 
@@ -38,9 +38,11 @@ long SerializerBase::run(char* _pbeg, unsigned _sz, void* _pctx)
     pcrt_ = _pbeg;
 
     while (not run_lst_.empty()) {
-        const ReturnE rv = run_lst_.front().call_(*this, run_lst_.front(), _pctx);
+        Runnable&     rr = run_lst_.front();
+        const ReturnE rv = rr.call_(*this, rr, _pctx);
         switch (rv) {
         case ReturnE::Done:
+            rr.clear();
             cache_lst_.pushBack(run_lst_.popFront());
             break;
         case ReturnE::Continue:
@@ -58,18 +60,19 @@ DONE:
 size_t SerializerBase::schedule(Runnable&& _ur)
 {
     size_t idx;
-    if(cache_lst_.size()){
-        idx = cache_lst_.popFront();
+    if (cache_lst_.size()) {
+        idx           = cache_lst_.popFront();
         run_vec_[idx] = std::move(_ur);
-    }else{
+    } else {
         idx = run_vec_.size();
         run_vec_.emplace_back(std::move(_ur));
     }
-    
-    if(sentinel_ == InvalidIndex()){
+
+    if (sentinel_ == InvalidIndex()) {
         run_lst_.pushBack(idx);
-    }else{
-        run_lst_.insertBefore(sentinel_, idx);
+    } else {
+        //insert in front of the setinel
+        run_lst_.insertFront(sentinel_, idx);
     }
     return idx;
 }
@@ -159,13 +162,21 @@ Base::ReturnE SerializerBase::store_binary(SerializerBase& _rs, Runnable& _rr, v
         memcpy(_rs.pcrt_, _rr.ptr_, towrite);
         _rs.pcrt_ += towrite;
         _rr.size_ -= towrite;
+        _rr.ptr_ = reinterpret_cast<const uint8_t*>(_rr.ptr_) + towrite;
         return _rr.size_ == 0 ? ReturnE::Done : ReturnE::Wait;
     }
     return ReturnE::Wait;
 }
 
-Base::ReturnE SerializerBase::store_function(SerializerBase& _rs, Runnable& _rr, void* _pctx){
+Base::ReturnE SerializerBase::call_function(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+{
     return _rr.fnc_(_rs, _rr, _pctx);
+}
+
+Base::ReturnE SerializerBase::remove_sentinel(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+{
+    _rs.sentinel(_rr.data_);
+    return ReturnE::Done;
 }
 
 } //namespace binary

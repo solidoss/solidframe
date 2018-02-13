@@ -1,6 +1,6 @@
 #pragma once
-#include <memory>
 #include "solid/serialization/v2/typetraits.hpp"
+#include <memory>
 namespace solid {
 namespace serialization {
 namespace v2 {
@@ -13,7 +13,7 @@ protected:
         Continue,
         Wait
     };
-    
+
     enum {
         InnerListRun,
         InnerListCache,
@@ -32,7 +32,7 @@ protected:
     template <class S, class Ctx>                                        \
     void solidSerializeV2(S& _rs, T& _rt, Ctx& _rctx, const char* _name) \
     {                                                                    \
-        _rs.addBasic(_rt, _rctx, _name);                                 \
+        _rs.addBasic(_rt, _name);                                        \
     }
 
 // SOLID_SERIALIZATION_BASIC(int8_t);
