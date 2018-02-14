@@ -40,8 +40,8 @@ class DeserializerBase : public Base {
         }
 
         template <class F>
-        Runnable(CallbackT _call, F _f, const char* _name)
-            : ptr_(nullptr)
+        Runnable(void* _ptr, CallbackT _call, F _f, const char* _name)
+            : ptr_(_ptr)
             , call_(_call)
             , size_(0)
             , data_(0)
@@ -72,11 +72,14 @@ public:
     long          run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
 
     void addBasic(bool& _rb, const char* _name);
+    void addBasic(int8_t& _rb, const char* _name);
+    void addBasic(uint8_t& _rb, const char* _name);
+    void addBasic(std::string& _rb, const char* _name);
 
     template <class T>
     void addBasic(T& _rb, const char* _name)
     {
-        idbg("");
+        idbg(_name);
 
         Runnable r{&_rb, &load_cross<T>, 0, 0, _name};
 
@@ -92,7 +95,7 @@ public:
     template <class D, class F>
     void addFunction(D& _rd, F _f, const char* _name)
     {
-        idbg("");
+        idbg(_name);
         if (isRunEmpty() and _rd.pcrt_ != _rd.pend_) {
             _f(_rd, _name);
         } else {
@@ -103,9 +106,14 @@ public:
 
                     _f(static_cast<D&>(_rd), _rr.name_);
 
-                    _rr.call_ = remove_sentinel;
-                    _rr.data_ = old_sentinel;
-                    return Base::ReturnE::Continue;
+                    const bool is_run_empty = _rd.isRunEmpty();
+                    _rd.sentinel(old_sentinel);
+                    if (is_run_empty) {
+                        return Base::ReturnE::Done;
+                    } else {
+                        _rr.call_ = noop;
+                        return Base::ReturnE::Wait;
+                    }
                 },
                 _name};
             schedule(std::move(r));
@@ -115,20 +123,26 @@ public:
     template <class D, class F, class Ctx>
     void addFunction(D& _rd, F _f, Ctx& _rctx, const char* _name)
     {
-        idbg("");
+        idbg(_name);
         if (isRunEmpty() and _rd.pcrt_ != _rd.pend_) {
             _f(_rd, _rctx, _name);
         } else {
             Runnable r{
+                nullptr,
                 call_function,
                 [_f](DeserializerBase& _rd, Runnable& _rr, void* _pctx) {
                     size_t old_sentinel = _rd.sentinel();
 
                     _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
 
-                    _rr.call_ = remove_sentinel;
-                    _rr.data_ = old_sentinel;
-                    return Base::ReturnE::Continue;
+                    const bool is_run_empty = _rd.isRunEmpty();
+                    _rd.sentinel(old_sentinel);
+                    if (is_run_empty) {
+                        return Base::ReturnE::Done;
+                    } else {
+                        _rr.call_ = noop;
+                        return Base::ReturnE::Wait;
+                    }
                 },
                 _name};
             schedule(std::move(r));
@@ -138,13 +152,13 @@ public:
     template <class D, class C>
     void addContainer(D& _rd, C& _rc, const char* _name)
     {
-        idbg("");
+        idbg(_name);
     }
 
     template <class D, class C, class Ctx>
     void addContainer(D& _rd, C& _rc, Ctx& _rctx, const char* _name)
     {
-        idbg("");
+        idbg(_name);
 
         typename C::value_type value;
         bool                   init          = true;
@@ -155,11 +169,13 @@ public:
             Ctx& rctx       = *static_cast<Ctx*>(_pctx);
 
             if (init) {
-                init      = false;
-                _rr.data_ = _rd.sentinel();
+                init                = false;
+                size_t old_sentinel = _rd.sentinel();
                 SOLID_ASSERT(_rd.isRunEmpty());
                 rd.addBasic(_rr.size_, _rr.name_);
-                if (!_rd.isRunEmpty()) {
+                const bool is_run_empty = _rd.isRunEmpty();
+                _rd.sentinel(old_sentinel);
+                if (not is_run_empty) {
                     return ReturnE::Wait;
                 }
             }
@@ -168,6 +184,8 @@ public:
                 rcontainer.insert(rcontainer.end(), value);
                 parsing_value = false;
             }
+
+            size_t old_sentinel = _rd.sentinel();
 
             while (_rd.pcrt_ != _rd.pend_ and _rr.size_ != 0) {
                 rd.add(value, rctx, _rr.name_);
@@ -182,62 +200,60 @@ public:
                 }
             }
 
-            if (_rr.size_ == 0) {
-                _rd.sentinel(_rr.data_);
+            const bool is_run_empty = _rd.isRunEmpty();
+            _rd.sentinel(old_sentinel);
+
+            if (_rr.size_ == 0 and is_run_empty) {
                 return ReturnE::Done;
             }
             return ReturnE::Wait;
         };
 
-        Runnable r{&_rc, call_function, 0, 0, _name};
-        r.fnc_     = lambda;
-        size_t idx = schedule(std::move(r));
-        if (idx == run_lst_.frontIndex()) {
-            //we try run the function on spot
+        Runnable r{&_rc, call_function, lambda, _name};
 
-            ReturnE v = run_lst_.front().call_(*this, run_lst_.front(), &_rctx);
-            if (v == ReturnE::Done) {
-                cache_lst_.pushBack(run_lst_.popFront());
-            }
-        }
+        tryRun(std::move(r), &_rctx);
     }
 
     template <class S, class T>
     void addPointer(S& _rd, std::shared_ptr<T>& _rp, const char* _name)
     {
-        idbg("");
+        idbg(_name);
     }
 
     template <class S, class T, class Ctx>
     void addPointer(S& _rd, std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
     {
-        idbg("");
+        idbg(_name);
     }
 
     template <class S, class T, class D>
     void addPointer(S& _rd, std::unique_ptr<T, D>& _rp, const char* _name)
     {
-        idbg("");
+        idbg(_name);
     }
 
     template <class S, class T, class D, class Ctx>
     void addPointer(S& _rd, std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
     {
-        idbg("");
+        idbg(_name);
     }
 
 private:
+    void tryRun(Runnable&& _ur, void* _pctx = nullptr);
+
     size_t schedule(Runnable&& _ur);
 
     size_t sentinel()
     {
         size_t olds = sentinel_;
         sentinel_   = run_lst_.frontIndex();
+        idbg(olds << ' ' << sentinel_);
         return olds;
     }
 
     void sentinel(const size_t _s)
     {
+        idbg(_s);
         sentinel_ = _s;
     }
 
@@ -247,6 +263,7 @@ private:
     }
 
     static ReturnE load_bool(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
+    static ReturnE load_byte(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
     static ReturnE load_binary(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
     static ReturnE call_function(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
 
@@ -309,7 +326,7 @@ private:
         return ReturnE::Wait;
     }
 
-    static ReturnE remove_sentinel(DeserializerBase& _rs, Runnable& _rr, void* _pctx);
+    static ReturnE noop(DeserializerBase& _rs, Runnable& _rr, void* _pctx);
 
 private:
     enum {

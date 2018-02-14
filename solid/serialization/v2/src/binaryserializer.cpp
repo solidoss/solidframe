@@ -2,6 +2,7 @@
 #include "solid/serialization/v2/binaryserializer.hpp"
 #include "solid/serialization/v2/binarybasic.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/utility/ioformat.hpp"
 
 namespace solid {
 namespace serialization {
@@ -38,11 +39,13 @@ long SerializerBase::run(char* _pbeg, unsigned _sz, void* _pctx)
     pcrt_ = _pbeg;
 
     while (not run_lst_.empty()) {
+        idbg("run frontIndex = " << run_lst_.frontIndex());
         Runnable&     rr = run_lst_.front();
         const ReturnE rv = rr.call_(*this, rr, _pctx);
         switch (rv) {
         case ReturnE::Done:
             rr.clear();
+            idbg("done frontIndex = " << run_lst_.frontIndex());
             cache_lst_.pushBack(run_lst_.popFront());
             break;
         case ReturnE::Continue:
@@ -69,9 +72,11 @@ size_t SerializerBase::schedule(Runnable&& _ur)
     }
 
     if (sentinel_ == InvalidIndex()) {
+        idbg("pushBack= " << idx);
         run_lst_.pushBack(idx);
     } else {
         //insert in front of the setinel
+        idbg("insert " << idx << " in front of " << sentinel_);
         run_lst_.insertFront(sentinel_, idx);
     }
     return idx;
@@ -79,11 +84,11 @@ size_t SerializerBase::schedule(Runnable&& _ur)
 
 void SerializerBase::addBasic(const bool& _rb, const char* _name)
 {
-    idbg("");
-    Runnable r{&_rb, &store_bool, 1, 0, _name};
+    idbg(_name);
+    Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb ? 0xFF : 0xAA), _name};
 
     if (isRunEmpty()) {
-        if (store_bool(*this, r, nullptr) == ReturnE::Done) {
+        if (store_byte(*this, r, nullptr) == ReturnE::Done) {
             return;
         }
     }
@@ -91,24 +96,44 @@ void SerializerBase::addBasic(const bool& _rb, const char* _name)
     schedule(std::move(r));
 }
 
-void SerializerBase::addBasic(const int32_t& _rb, const char* _name)
+void SerializerBase::addBasic(const int8_t& _rb, const char* _name)
 {
-    idbg("");
-    Runnable r{nullptr, &store_cross, 0, static_cast<uint64_t>(_rb), _name};
+    idbg(_name);
+    Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
+
     if (isRunEmpty()) {
-        if (store_cross(*this, r, nullptr) == ReturnE::Done) {
+        if (store_byte(*this, r, nullptr) == ReturnE::Done) {
             return;
         }
     }
 
     schedule(std::move(r));
 }
-void SerializerBase::addBasic(const uint64_t& _rb, const char* _name)
+
+void SerializerBase::addBasic(const uint8_t& _rb, const char* _name)
 {
-    idbg("");
-    Runnable r{nullptr, &store_cross, 0, static_cast<uint64_t>(_rb), _name};
+    idbg(_name);
+    Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
+
     if (isRunEmpty()) {
-        if (store_cross(*this, r, nullptr) == ReturnE::Done) {
+        if (store_byte(*this, r, nullptr) == ReturnE::Done) {
+            return;
+        }
+    }
+
+    schedule(std::move(r));
+}
+
+void SerializerBase::addBasic(const std::string& _rb, const char* _name)
+{
+    idbg(_name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+
+    addBasic(_rb.size(), _name);
+
+    Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
+
+    if (isRunEmpty()) {
+        if (store_binary(*this, r, nullptr) == ReturnE::Done) {
             return;
         }
     }
@@ -118,11 +143,11 @@ void SerializerBase::addBasic(const uint64_t& _rb, const char* _name)
 
 //-- store functions ----------------------------------------------------------
 
-Base::ReturnE SerializerBase::store_bool(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE SerializerBase::store_byte(SerializerBase& _rs, Runnable& _rr, void* _pctx)
 {
     if (_rs.pcrt_ != _rs.pend_) {
-        const bool* pb = static_cast<const bool*>(_rr.ptr_);
-        *_rs.pcrt_     = (*pb) ? 0xFF : 0xAA;
+        const char c = static_cast<char>(_rr.data_);
+        *_rs.pcrt_   = c;
         ++_rs.pcrt_;
         return ReturnE::Done;
     }
@@ -173,9 +198,8 @@ Base::ReturnE SerializerBase::call_function(SerializerBase& _rs, Runnable& _rr, 
     return _rr.fnc_(_rs, _rr, _pctx);
 }
 
-Base::ReturnE SerializerBase::remove_sentinel(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE SerializerBase::noop(SerializerBase& _rs, Runnable& _rr, void* _pctx)
 {
-    _rs.sentinel(_rr.data_);
     return ReturnE::Done;
 }
 

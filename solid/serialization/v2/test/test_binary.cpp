@@ -13,24 +13,25 @@ using namespace solid;
 
 struct A {
     int32_t  a;
+    string   s;
     uint64_t b;
 
     bool operator==(const A& _ra) const
     {
-        return a == _ra.a && b == _ra.b;
+        return a == _ra.a && b == _ra.b && s == _ra.s;
     }
 };
 
 template <class S>
 void solidSerializeV2(S& _rs, const A& _r, const char* _name)
 {
-    _rs.add(_r.a, "a").add(_r.b, "b");
+    _rs.add(_r.a, "A.a").add(_r.s, "A.s").add(_r.b, "A.b");
 }
 
 template <class S, class Ctx>
 void solidSerializeV2(S& _rs, A& _r, Ctx& _rctx, const char* _name)
 {
-    _rs.add(_r.a, _rctx, "a").add(_r.b, _rctx, "b");
+    _rs.add(_r.a, _rctx, "A.a").add(_r.s, _rctx, "A.s").add(_r.b, _rctx, "A.b");
 }
 
 struct Context {
@@ -50,12 +51,18 @@ class Test {
                 v.emplace_back();
                 v.back().a = i;
                 v.back().b = 100 - i;
+                v.back().s = to_string(v.back().a) + " - " + to_string(v.back().b);
+                a.s += v.back().s;
+                a.s += ' ';
             }
         } else {
             for (size_t i = 0; i < 100; ++i) {
                 d.emplace_back();
                 d.back().a = i;
                 d.back().b = 100 - i;
+                d.back().s = to_string(d.back().a) + " - " + to_string(d.back().b);
+                a.s += d.back().s;
+                a.s += ' ';
             }
         }
     }

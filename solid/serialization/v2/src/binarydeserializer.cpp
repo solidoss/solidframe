@@ -76,9 +76,24 @@ size_t DeserializerBase::schedule(Runnable&& _ur)
     return idx;
 }
 
+void DeserializerBase::tryRun(Runnable&& _ur, void* _pctx)
+{
+    size_t idx = schedule(std::move(_ur));
+
+    if (idx == run_lst_.frontIndex()) {
+        //we try run the function on spot
+        Runnable& rr = run_lst_.front();
+        ReturnE   v  = rr.call_(*this, rr, _pctx);
+        if (v == ReturnE::Done) {
+            rr.clear();
+            cache_lst_.pushBack(run_lst_.popFront());
+        }
+    }
+}
+
 void DeserializerBase::addBasic(bool& _rb, const char* _name)
 {
-    idbg("");
+    idbg(_name);
     Runnable r{&_rb, &load_bool, 1, 0, _name};
 
     if (isRunEmpty()) {
@@ -90,6 +105,70 @@ void DeserializerBase::addBasic(bool& _rb, const char* _name)
     schedule(std::move(r));
 }
 
+void DeserializerBase::addBasic(int8_t& _rb, const char* _name)
+{
+    idbg(_name);
+    Runnable r{&_rb, &load_byte, 1, 0, _name};
+
+    if (isRunEmpty()) {
+        if (load_byte(*this, r, nullptr) == ReturnE::Done) {
+            return;
+        }
+    }
+
+    schedule(std::move(r));
+}
+
+void DeserializerBase::addBasic(uint8_t& _rb, const char* _name)
+{
+    idbg(_name);
+    Runnable r{&_rb, &load_byte, 1, 0, _name};
+
+    if (isRunEmpty()) {
+        if (load_byte(*this, r, nullptr) == ReturnE::Done) {
+            return;
+        }
+    }
+
+    schedule(std::move(r));
+}
+
+void DeserializerBase::addBasic(std::string& _rb, const char* _name)
+{
+    idbg(_name);
+    bool init   = true;
+    auto lambda = [init](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
+        if (init) {
+            init      = false;
+            _rr.data_ = _rd.sentinel();
+            SOLID_ASSERT(_rd.isRunEmpty());
+            _rd.addBasic(_rr.size_, _rr.name_);
+
+            const bool is_run_empty = _rd.isRunEmpty(); //isRunEmpty depends on the current sentinel
+
+            _rd.sentinel(_rr.data_);
+
+            if (not is_run_empty) {
+                return ReturnE::Wait;
+            }
+        }
+
+        //at this point _rr.size_ contains the size of the string
+        std::string& rs = *static_cast<std::string*>(_rr.ptr_);
+        rs.resize(_rr.size_);
+
+        _rr.ptr_  = const_cast<char*>(rs.data());
+        _rr.data_ = 0;
+        _rr.call_ = load_binary;
+
+        return load_binary(_rd, _rr, _pctx);
+    };
+
+    Runnable r{&_rb, call_function, lambda, _name};
+
+    tryRun(std::move(r));
+}
+
 //-- load functions ----------------------------------------------------------
 
 Base::ReturnE DeserializerBase::load_bool(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
@@ -97,6 +176,17 @@ Base::ReturnE DeserializerBase::load_bool(DeserializerBase& _rd, Runnable& _rr, 
     if (_rd.pcrt_ != _rd.pend_) {
         bool* pb = static_cast<bool*>(_rr.ptr_);
         *pb      = *reinterpret_cast<const uint8_t*>(_rd.pcrt_) == 0xFF ? true : false;
+        ++_rd.pcrt_;
+        return ReturnE::Done;
+    }
+    return ReturnE::Wait;
+}
+
+Base::ReturnE DeserializerBase::load_byte(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+{
+    if (_rd.pcrt_ != _rd.pend_) {
+        uint8_t* pb = static_cast<uint8_t*>(_rr.ptr_);
+        *pb         = *reinterpret_cast<const uint8_t*>(_rd.pcrt_);
         ++_rd.pcrt_;
         return ReturnE::Done;
     }
@@ -113,6 +203,7 @@ Base::ReturnE DeserializerBase::load_binary(DeserializerBase& _rd, Runnable& _rr
         memcpy(_rr.ptr_, _rd.pcrt_, toread);
         _rd.pcrt_ += toread;
         _rr.size_ -= toread;
+        _rr.ptr_ = reinterpret_cast<uint8_t*>(_rr.ptr_) + toread;
         return _rr.size_ == 0 ? ReturnE::Done : ReturnE::Wait;
     }
     return ReturnE::Wait;
@@ -123,9 +214,8 @@ Base::ReturnE DeserializerBase::call_function(DeserializerBase& _rd, Runnable& _
     return _rr.fnc_(_rd, _rr, _pctx);
 }
 
-Base::ReturnE DeserializerBase::remove_sentinel(DeserializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE DeserializerBase::noop(DeserializerBase& _rs, Runnable& _rr, void* _pctx)
 {
-    _rs.sentinel(_rr.data_);
     return ReturnE::Done;
 }
 
