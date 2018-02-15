@@ -1,7 +1,10 @@
 #include "solid/serialization/serialization.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/utility/any.hpp"
+#include "solid/utility/function.hpp"
 #include <deque>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -35,13 +38,17 @@ void solidSerializeV2(S& _rs, A& _r, Ctx& _rctx, const char* _name)
 }
 
 struct Context {
+    string output_file_path;
 };
 
 class Test {
-    bool      b;
-    vector<A> v;
-    deque<A>  d;
-    A         a;
+    string             p;
+    bool               b;
+    vector<A>          v;
+    deque<A>           d;
+    A                  a;
+    std::ifstream      ifs;
+    std::ostringstream oss;
 
     void populate(bool _b)
     {
@@ -70,6 +77,12 @@ class Test {
 public:
     Test() {}
 
+    Test(bool _b, const string& _path)
+        : p(_path)
+    {
+        populate(_b);
+    }
+
     Test(bool _b)
     {
         populate(_b);
@@ -83,15 +96,29 @@ public:
     template <class S>
     void solidSerializeV2(S& _rs, const char* _name) const
     {
-        _rs.add(b, "b").add(
-                           [this](S& _rs, const char* _name) {
-                               if (this->b) {
-                                   _rs.add(v, "v");
-                               } else {
-                                   _rs.add(d, "d");
-                               }
-                           },
-                           "f")
+        _rs
+            .add(b, "b")
+            .add(
+                [this](S& _rs, const char* _name) {
+                    if (this->b) {
+                        _rs.add(v, "v");
+                    } else {
+                        _rs.add(d, "d");
+                    }
+                },
+                "f");
+
+        _rs
+            .push(make_choice<S::is_serializer>(
+                      [this](S& _rs, const char* _name) mutable {
+                          //this->ifs.open(p);
+                          //_rs.add(ifs, _name);
+                          return true;
+                      },
+                      [](S& _rs, const char* _name) {
+                          return true;
+                      }),
+                "s")
             .add(a, "a");
         //_rs.add(b, "b").add(v, "v").add(a, "a");
     }
@@ -99,14 +126,27 @@ public:
     template <class S>
     void solidSerializeV2(S& _rs, Context& _rctx, const char* _name)
     {
-        _rs.add(b, _rctx, "b").add([this](S& _rs, Context& _rctx, const char* _name) {
-                                  if (this->b) {
-                                      _rs.add(v, _rctx, "v");
-                                  } else {
-                                      _rs.add(d, _rctx, "d");
-                                  }
-                              },
-                                  _rctx, "f")
+        _rs
+            .add(b, _rctx, "b")
+            .add(
+                [this](S& _rs, Context& _rctx, const char* _name) {
+                    if (this->b) {
+                        _rs.add(v, _rctx, "v");
+                    } else {
+                        _rs.add(d, _rctx, "d");
+                    }
+                },
+                _rctx, "f")
+            .push(
+                make_choice<S::is_serializer>(
+                    [](S& _rs, Context& _rctx, const char* _name) mutable {
+                        return true;
+                    },
+                    [this](S& _rs, Context& _rctx, const char* _name) {
+                        //_rs.add(oss, _rctx, _name);
+                        return true;
+                    }),
+                _rctx, "s")
             .add(a, _rctx, "a");
         //_rs.add(b, _rctx, "b").add(v, _rctx, "v").add(a, _rctx, "a");
     }
@@ -120,8 +160,37 @@ int test_binary(int argc, char* argv[])
     Debug::the().initStdErr(false, nullptr);
 #endif
 
+    std::string input_file_path;
+    std::string output_file_path;
     {
-        const Test                  t{true};
+        std::ifstream ifs;
+        Any<>         a{std::move(ifs)};
+        a.cast<ifstream>()->open("test.txt");
+    }
+
+    {
+        std::ifstream ifs;
+        auto          lambda = [ifs = std::move(ifs)]() mutable
+        {
+            ifs.open("test.txt");
+        };
+        Function<128, void()> f{std::move(lambda)};
+        f();
+    }
+
+    if (argc > 1) {
+        input_file_path = argv[1];
+        size_t pos      = input_file_path.rfind('/');
+        if (pos == string::npos) {
+            pos = 0;
+        }
+        output_file_path = "./";
+        output_file_path += input_file_path.substr(pos + 1);
+        output_file_path += ".copy";
+    }
+
+    {
+        const Test                  t{true, input_file_path};
         const std::shared_ptr<Test> tp{std::make_shared<Test>(true)};
         const std::unique_ptr<Test> tup{new Test(true)};
 
@@ -142,6 +211,7 @@ int test_binary(int argc, char* argv[])
             std::shared_ptr<Test> tp_c;
             std::unique_ptr<Test> tup_c;
             Context               ctx;
+            ctx.output_file_path = output_file_path;
 
             des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c");
 

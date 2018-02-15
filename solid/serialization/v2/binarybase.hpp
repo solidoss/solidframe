@@ -174,6 +174,34 @@ void solidSerializeV2(S& _rs, const T& _rt, Ctx& _rctx, const char* _name)
     solidSerializeV2IsFunction(_rs, _rt, _rctx, _name, is_callable<T, S&, Ctx&, const char*>());
 }
 
+// == SerializePush ===========================================================
+
+//dispatch
+
+template <class S, class T>
+void solidSerializePushV2IsFunction(S& _rs, T&& _rt, const char* _name, std::true_type)
+{
+    _rs.pushFunction(_rs, std::move(_rt), _name);
+}
+
+template <class S, class T, class Ctx>
+void solidSerializePushV2IsFunction(S& _rs, T&& _rt, Ctx& _rctx, const char* _name, std::true_type)
+{
+    _rs.pushFunction(_rs, std::move(_rt), _rctx, _name);
+}
+
+template <class S, class T>
+void solidSerializePushV2(S& _rs, T&& _rt, const char* _name)
+{
+    solidSerializePushV2IsFunction(_rs, std::move(_rt), _name, is_callable<T, S&, const char*>());
+}
+
+template <class S, class T, class Ctx>
+void solidSerializePushV2(S& _rs, T&& _rt, Ctx& _rctx, const char* _name)
+{
+    solidSerializePushV2IsFunction(_rs, std::move(_rt), _rctx, _name, is_callable<T, S&, Ctx&, const char*>());
+}
+
 } //namespace binary
 } //namespace v2
 } //namespace serialization

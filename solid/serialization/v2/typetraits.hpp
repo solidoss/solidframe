@@ -1,6 +1,6 @@
 #pragma once
 
-#include <type_traits>
+#include "solid/utility/typetraits.hpp"
 
 namespace solid {
 namespace serialization {

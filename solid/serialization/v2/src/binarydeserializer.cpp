@@ -214,7 +214,7 @@ Base::ReturnE DeserializerBase::call_function(DeserializerBase& _rd, Runnable& _
     return _rr.fnc_(_rd, _rr, _pctx);
 }
 
-Base::ReturnE DeserializerBase::noop(DeserializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE DeserializerBase::noop(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
 {
     return ReturnE::Done;
 }

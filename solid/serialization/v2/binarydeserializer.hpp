@@ -10,6 +10,7 @@
 #include "solid/utility/innerlist.hpp"
 #include <deque>
 #include <istream>
+#include <ostream>
 #include <vector>
 
 namespace solid {
@@ -64,6 +65,10 @@ class DeserializerBase : public Base {
         const char* name_;
         FunctionT   fnc_;
     };
+
+public:
+    static constexpr bool is_serializer   = false;
+    static constexpr bool is_deserializer = true;
 
 public:
     DeserializerBase();
@@ -147,6 +152,72 @@ public:
                 _name};
             schedule(std::move(r));
         }
+    }
+
+    template <class D, class F>
+    void pushFunction(D& _rd, F&& _f, const char* _name)
+    {
+        idbg(_name);
+        auto lambda = [_f = std::move(_f)](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
+        {
+            size_t     old_sentinel = _rd.sentinel();
+            const bool done         = _f(static_cast<D&>(_rd), _rr.name_);
+
+            const bool is_run_empty = _rd.isRunEmpty();
+            _rd.sentinel(old_sentinel);
+
+            if (done) {
+                _rr.call_ = noop;
+            }
+            if (is_run_empty) {
+                if (done) {
+                    return Base::ReturnE::Done;
+                } else {
+                    return Base::ReturnE::Continue;
+                }
+            } else {
+                if (done) {
+                    _rr.call_ = noop;
+                }
+                return Base::ReturnE::Wait;
+            }
+        };
+        Runnable r{nullptr, call_function, lambda, _name};
+
+        tryRun(std::move(r));
+    }
+
+    template <class D, class F, class Ctx>
+    void pushFunction(D& _rd, F&& _f, Ctx& _rctx, const char* _name)
+    {
+        idbg(_name);
+        auto lambda = [_f = std::move(_f)](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
+        {
+            size_t     old_sentinel = _rd.sentinel();
+            const bool done         = _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
+
+            const bool is_run_empty = _rd.isRunEmpty();
+            _rd.sentinel(old_sentinel);
+
+            if (done) {
+                _rr.call_ = noop;
+            }
+            if (is_run_empty) {
+                if (done) {
+                    return Base::ReturnE::Done;
+                } else {
+                    return Base::ReturnE::Continue;
+                }
+            } else {
+                if (done) {
+                    _rr.call_ = noop;
+                }
+                return Base::ReturnE::Wait;
+            }
+        };
+        Runnable r{nullptr, call_function, lambda, _name};
+
+        tryRun(std::move(r), &_rctx);
     }
 
     template <class D, class C>
@@ -326,7 +397,7 @@ private:
         return ReturnE::Wait;
     }
 
-    static ReturnE noop(DeserializerBase& _rs, Runnable& _rr, void* _pctx);
+    static ReturnE noop(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
 
 private:
     enum {
@@ -356,6 +427,11 @@ public:
     using ThisT    = Deserializer<Ctx>;
     using ContextT = Ctx;
 
+    ThisT& add(std::ostream& _ros, Ctx& _rctx, const char* _name)
+    {
+        return *this;
+    }
+
     template <typename T>
     ThisT& add(T& _rt, Ctx& _rctx, const char* _name)
     {
@@ -367,6 +443,20 @@ public:
     ThisT& add(const T& _rt, Ctx& _rctx, const char* _name)
     {
         solidSerializeV2(*this, _rt, _rctx, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& push(T& _rt, Ctx& _rctx, const char* _name)
+    {
+        solidSerializePushV2(*this, std::move(_rt), _rctx, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& push(T&& _rt, Ctx& _rctx, const char* _name)
+    {
+        solidSerializePushV2(*this, std::move(_rt), _rctx, _name);
         return *this;
     }
 

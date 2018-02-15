@@ -6,6 +6,7 @@
 #include "solid/system/function.hpp"
 #include "solid/utility/innerlist.hpp"
 #include <deque>
+#include <istream>
 #include <ostream>
 #include <vector>
 
@@ -36,14 +37,25 @@ class SerializerBase : public Base {
         {
         }
 
+        //         template <class F>
+        //         Runnable(const void* _ptr, CallbackT _call, F _f, const char* _name)
+        //             : ptr_(_ptr)
+        //             , call_(_call)
+        //             , size_(0)
+        //             , data_(0)
+        //             , name_(_name)
+        //             , fnc_(_f)
+        //         {
+        //         }
+
         template <class F>
-        Runnable(const void* _ptr, CallbackT _call, F _f, const char* _name)
+        Runnable(const void* _ptr, CallbackT _call, F&& _f, const char* _name)
             : ptr_(_ptr)
             , call_(_call)
             , size_(0)
             , data_(0)
             , name_(_name)
-            , fnc_(_f)
+            , fnc_(std::move(_f))
         {
         }
 
@@ -63,10 +75,14 @@ class SerializerBase : public Base {
     };
 
 public:
-    SerializerBase();
+    static constexpr bool is_serializer   = true;
+    static constexpr bool is_deserializer = false;
 
     std::ostream& run(std::ostream& _ros);
     long          run(char* _pbeg, unsigned _sz, void* _pctx = nullptr);
+
+public: //should be protected
+    SerializerBase();
 
     void addBasic(const bool& _rb, const char* _name);
     void addBasic(const int8_t& _rb, const char* _name);
@@ -142,6 +158,72 @@ public:
                 _name};
             schedule(std::move(r));
         }
+    }
+
+    template <class S, class F>
+    void pushFunction(S& _rs, F&& _f, const char* _name)
+    {
+        idbg(_name);
+        auto lambda = [_f = std::move(_f)](SerializerBase & _rs, Runnable & _rr, void* _pctx) mutable
+        {
+            size_t     old_sentinel = _rs.sentinel();
+            const bool done         = _f(static_cast<S&>(_rs), _rr.name_);
+
+            const bool is_run_empty = _rs.isRunEmpty();
+            _rs.sentinel(old_sentinel);
+
+            if (done) {
+                _rr.call_ = noop;
+            }
+            if (is_run_empty) {
+                if (done) {
+                    return Base::ReturnE::Done;
+                } else {
+                    return Base::ReturnE::Continue;
+                }
+            } else {
+                if (done) {
+                    _rr.call_ = noop;
+                }
+                return Base::ReturnE::Wait;
+            }
+        };
+        Runnable r{nullptr, call_function, std::move(lambda), _name};
+
+        tryRun(std::move(r));
+    }
+
+    template <class S, class F, class Ctx>
+    void pushFunction(S& _rs, F&& _f, Ctx& _rctx, const char* _name)
+    {
+        idbg(_name);
+        auto lambda = [_f = std::move(_f)](SerializerBase & _rs, Runnable & _rr, void* _pctx) mutable
+        {
+            size_t     old_sentinel = _rs.sentinel();
+            const bool done         = _f(static_cast<S&>(_rs), *static_cast<Ctx*>(_pctx), _rr.name_);
+
+            const bool is_run_empty = _rs.isRunEmpty();
+            _rs.sentinel(old_sentinel);
+
+            if (done) {
+                _rr.call_ = noop;
+            }
+            if (is_run_empty) {
+                if (done) {
+                    return Base::ReturnE::Done;
+                } else {
+                    return Base::ReturnE::Continue;
+                }
+            } else {
+                if (done) {
+                    _rr.call_ = noop;
+                }
+                return Base::ReturnE::Wait;
+            }
+        };
+        Runnable r{nullptr, call_function, std::move(lambda), _name};
+
+        tryRun(std::move(r), &_rctx);
     }
 
     template <class S, class C>
@@ -253,6 +335,8 @@ public:
     }
 
 private:
+    void tryRun(Runnable&& _ur, void* _pctx = nullptr);
+
     size_t schedule(Runnable&& _ur);
 
     size_t sentinel()
@@ -320,6 +404,32 @@ public:
     ThisT& add(const T& _rt, const char* _name)
     {
         solidSerializeV2(*this, _rt, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& push(T& _rt, const char* _name)
+    {
+        solidSerializePushV2(*this, std::move(_rt), _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& push(T&& _rt, const char* _name)
+    {
+        solidSerializePushV2(*this, std::move(_rt), _name);
+        return *this;
+    }
+
+    template <class CF, class PF, class DF>
+    ThisT& add(CF _cf, PF _pf, DF _df)
+    {
+        addStream(_cf, _pf, _df);
+        return *this;
+    }
+
+    ThisT& add(std::istream& _ris, const char* _name)
+    {
         return *this;
     }
 };

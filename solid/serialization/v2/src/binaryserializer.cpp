@@ -82,6 +82,21 @@ size_t SerializerBase::schedule(Runnable&& _ur)
     return idx;
 }
 
+void SerializerBase::tryRun(Runnable&& _ur, void* _pctx)
+{
+    size_t idx = schedule(std::move(_ur));
+
+    if (idx == run_lst_.frontIndex()) {
+        //we try run the function on spot
+        Runnable& rr = run_lst_.front();
+        ReturnE   v  = rr.call_(*this, rr, _pctx);
+        if (v == ReturnE::Done) {
+            rr.clear();
+            cache_lst_.pushBack(run_lst_.popFront());
+        }
+    }
+}
+
 void SerializerBase::addBasic(const bool& _rb, const char* _name)
 {
     idbg(_name);
