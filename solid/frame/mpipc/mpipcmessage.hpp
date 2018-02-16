@@ -11,7 +11,7 @@
 #pragma once
 
 #include "solid/system/common.hpp"
-#include "solid/system/function.hpp"
+#include "solid/utility/function.hpp"
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcmessageflags.hpp"

@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "solid/system/function.hpp"
 #include "solid/system/socketdevice.hpp"
+#include "solid/utility/function.hpp"
 
 #include "solid/utility/any.hpp"
 #include "solid/utility/event.hpp"
@@ -30,10 +30,10 @@ namespace openssl {
 using ContextT      = frame::aio::openssl::Context;
 using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 
-using ConnectionPrepareServerFunctionT = SOLID_FUNCTION<unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&)>;
-using ConnectionPrepareClientFunctionT = SOLID_FUNCTION<unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&)>;
-using ConnectionServerVerifyFunctionT  = SOLID_FUNCTION<bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&)>;
-using ConnectionClientVerifyFunctionT  = SOLID_FUNCTION<bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&)>;
+using ConnectionPrepareServerFunctionT = SOLID_FUNCTION(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&));
+using ConnectionPrepareClientFunctionT = SOLID_FUNCTION(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&));
+using ConnectionServerVerifyFunctionT  = SOLID_FUNCTION(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&));
+using ConnectionClientVerifyFunctionT  = SOLID_FUNCTION(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&));
 
 struct ClientConfiguration {
     ClientConfiguration()
@@ -312,7 +312,7 @@ inline void setup_client(
         _rcfg.client.secure_any = make_any<0, ClientConfiguration>();
     }
 
-    _rcfg.client.connection_create_socket_fnc = create_client_socket;
+    _rcfg.client.connection_create_socket_fnc = &create_client_socket;
 
     ClientConfiguration& rsecure_cfg = *_rcfg.client.secure_any.cast<ClientConfiguration>();
 
@@ -338,7 +338,7 @@ inline void setup_server(
         _rcfg.server.secure_any = make_any<0, ServerConfiguration>();
     }
 
-    _rcfg.server.connection_create_socket_fnc = create_server_socket;
+    _rcfg.server.connection_create_socket_fnc = &create_server_socket;
 
     ServerConfiguration& rsecure_cfg = *_rcfg.server.secure_any.cast<ServerConfiguration>();
 

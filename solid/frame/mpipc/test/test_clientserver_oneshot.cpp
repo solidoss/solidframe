@@ -252,8 +252,8 @@ int test_clientserver_oneshot(int argc, char** argv)
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
 
-            cfg.connection_stop_fnc         = client_connection_stop;
-            cfg.client.connection_start_fnc = client_connection_start;
+            cfg.connection_stop_fnc         = &client_connection_stop;
+            cfg.client.connection_start_fnc = &client_connection_start;
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 

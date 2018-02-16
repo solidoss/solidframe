@@ -9,6 +9,7 @@ set( UtilityTestSuite
     test_workpool_fast.cpp
     test_ioformat.cpp
     test_flags.cpp
+    test_function.cpp
 )
 
 create_test_sourcelist( UtilityTests test_utility.cpp ${UtilityTestSuite})
@@ -32,4 +33,5 @@ add_test(NAME TestUtilityMemoryFile         COMMAND  test_utility test_memory_fi
 add_test(NAME TestUtilityMemoryFile2M       COMMAND  test_utility test_memory_file 2222222)
 add_test(NAME TestUtilityMemoryFile3M       COMMAND  test_utility test_memory_file 3333333)
 add_test(NAME TestUtilityMemoryFile5M       COMMAND  test_utility test_memory_file 5555555)
+add_test(NAME TestUtilityFunction           COMMAND  test_utility test_function)
 #==============================================================================

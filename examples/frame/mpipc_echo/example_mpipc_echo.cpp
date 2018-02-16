@@ -272,9 +272,9 @@ bool restart(
     if (app_params.connectstringvec.size()) {
         cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(_resolver, app_params.baseport.c_str());
     }
-    cfg.connection_stop_fnc           = connection_stop;
-    cfg.server.connection_start_fnc   = incoming_connection_start;
-    cfg.client.connection_start_fnc   = outgoing_connection_start;
+    cfg.connection_stop_fnc           = &connection_stop;
+    cfg.server.connection_start_fnc   = &incoming_connection_start;
+    cfg.client.connection_start_fnc   = &outgoing_connection_start;
     cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
     cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 #if 1

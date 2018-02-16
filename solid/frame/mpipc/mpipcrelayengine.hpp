@@ -108,7 +108,7 @@ private:
     virtual size_t registerConnection(Proxy& _proxy, std::string&& _uname) = 0;
 
 private:
-    using ExecuteFunctionT = SOLID_FUNCTION<void(Proxy&)>;
+    using ExecuteFunctionT = SOLID_FUNCTION(void(Proxy&));
 
     void doExecute(ExecuteFunctionT& _rfnc);
 

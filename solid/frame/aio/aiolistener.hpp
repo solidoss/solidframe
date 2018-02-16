@@ -91,10 +91,10 @@ private:
     void doClear(ReactorContext& _rctx);
 
 private:
-    typedef SOLID_FUNCTION<void(ReactorContext&, SocketDevice&)> FunctionT;
-    FunctionT                                                    f;
-    SocketDevice                                                 sd;
-    ReactorWaitRequestsE                                         waitreq;
+    typedef SOLID_FUNCTION(void(ReactorContext&, SocketDevice&)) FunctionT;
+    FunctionT            f;
+    SocketDevice         sd;
+    ReactorWaitRequestsE waitreq;
 };
 
 } //namespace aio

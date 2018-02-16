@@ -47,7 +47,6 @@ class Test {
     vector<A>          v;
     deque<A>           d;
     A                  a;
-    std::ifstream      ifs;
     std::ostringstream oss;
 
     void populate(bool _b)
@@ -96,6 +95,7 @@ public:
     template <class S>
     void solidSerializeV2(S& _rs, const char* _name) const
     {
+
         _rs
             .add(b, "b")
             .add(
@@ -108,10 +108,11 @@ public:
                 },
                 "f");
 
+        std::ifstream ifs;
         _rs
             .push(make_choice<S::is_serializer>(
-                      [this](S& _rs, const char* _name) mutable {
-                          //this->ifs.open(p);
+                      [ this, ifs = std::move(ifs) ](S & _rs, const char* _name) mutable {
+                          ifs.open(p);
                           //_rs.add(ifs, _name);
                           return true;
                       },

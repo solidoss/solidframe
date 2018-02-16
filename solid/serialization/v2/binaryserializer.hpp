@@ -3,7 +3,7 @@
 #include "solid/serialization/v2/binarybase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/debug.hpp"
-#include "solid/system/function.hpp"
+#include "solid/utility/function.hpp"
 #include "solid/utility/innerlist.hpp"
 #include <deque>
 #include <istream>
@@ -20,7 +20,7 @@ class SerializerBase : public Base {
 
     typedef ReturnE (*CallbackT)(SerializerBase&, Runnable&, void*);
 
-    using FunctionT = SOLID_FUNCTION<ReturnE(SerializerBase&, Runnable&, void*)>;
+    using FunctionT = SOLID_FUNCTION(ReturnE(SerializerBase&, Runnable&, void*));
 
     struct Runnable : inner::Node<InnerListCount> {
         Runnable(

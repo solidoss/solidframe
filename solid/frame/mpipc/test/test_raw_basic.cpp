@@ -401,8 +401,8 @@ int test_raw_basic(int argc, char** argv)
             cfg.connection_send_buffer_max_capacity_kb = 1;
 
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Raw;
-            cfg.connection_stop_fnc           = server_connection_stop;
-            cfg.server.connection_start_fnc   = server_connection_start;
+            cfg.connection_stop_fnc           = &server_connection_stop;
+            cfg.server.connection_start_fnc   = &server_connection_start;
 
             cfg.server.listener_address_str = "0.0.0.0:0";
 
@@ -434,8 +434,8 @@ int test_raw_basic(int argc, char** argv)
 
             cfg.client.connection_start_state = frame::mpipc::ConnectionState::Raw;
 
-            cfg.connection_stop_fnc         = client_connection_stop;
-            cfg.client.connection_start_fnc = client_connection_start;
+            cfg.connection_stop_fnc         = &client_connection_stop;
+            cfg.client.connection_start_fnc = &client_connection_start;
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 

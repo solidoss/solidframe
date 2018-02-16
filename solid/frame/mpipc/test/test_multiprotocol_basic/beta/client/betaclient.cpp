@@ -134,8 +134,8 @@ ErrorConditionT start(
 
         beta_protocol::ProtoSpecT::setup<MessageSetup>(*proto);
 
-        cfg.connection_stop_fnc         = client_connection_stop;
-        cfg.client.connection_start_fnc = client_connection_start;
+        cfg.connection_stop_fnc         = &client_connection_stop;
+        cfg.client.connection_start_fnc = &client_connection_start;
 
         cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 

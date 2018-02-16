@@ -12,7 +12,7 @@
 
 #include "solid/frame/mpipc/mpipcerror.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
-#include "solid/system/function.hpp"
+#include "solid/utility/function.hpp"
 
 #include <memory>
 
@@ -98,8 +98,8 @@ struct CompleteHandler {
     }
 };
 
-using MessageCompleteFunctionT = SOLID_FUNCTION<void(
-    ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&)>;
+using MessageCompleteFunctionT = SOLID_FUNCTION(void(
+    ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&));
 
 struct TypeStub {
     MessageCompleteFunctionT complete_fnc;

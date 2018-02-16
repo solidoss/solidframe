@@ -252,9 +252,14 @@ public:
         return const_cast<T*>(cast<T>());
     }
 
-    bool empty() const
+    bool empty() const noexcept
     {
         return pvalue_ == nullptr;
+    }
+
+    explicit operator bool() const noexcept
+    {
+        return !empty();
     }
 
     void clear()

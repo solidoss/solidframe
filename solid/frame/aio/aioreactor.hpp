@@ -42,7 +42,7 @@ typedef DynamicPointer<Object> ObjectPointerT;
 
 */
 class Reactor : public frame::ReactorBase {
-    typedef SOLID_FUNCTION<void(ReactorContext&, Event&&)> EventFunctionT;
+    typedef SOLID_FUNCTION(void(ReactorContext&, Event&&)) EventFunctionT;
 
     template <class Function>
     struct StopObjectF {

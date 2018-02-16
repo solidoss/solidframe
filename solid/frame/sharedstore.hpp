@@ -13,9 +13,9 @@
 #include "solid/frame/common.hpp"
 #include "solid/frame/object.hpp"
 #include "solid/system/error.hpp"
-#include "solid/system/function.hpp"
 #include "solid/system/pimpl.hpp"
 #include "solid/utility/dynamictype.hpp"
+#include "solid/utility/function.hpp"
 #include <deque>
 #include <mutex>
 #include <vector>
@@ -542,7 +542,7 @@ public:
     }
 
 private:
-    typedef SOLID_FUNCTION<void(ControllerT&, PointerT&, ErrorCodeT const&)> FunctionT;
+    typedef SOLID_FUNCTION(void(ControllerT&, PointerT&, ErrorCodeT const&)) FunctionT;
 
     struct WaitStub {
         WaitStub()

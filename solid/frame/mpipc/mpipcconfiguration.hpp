@@ -15,9 +15,9 @@
 #include "solid/frame/mpipc/mpipcmessage.hpp"
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
 #include "solid/frame/scheduler.hpp"
-#include "solid/system/function.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
+#include "solid/utility/function.hpp"
 #include <vector>
 
 #include "solid/frame/mpipc/mpipcsocketstub.hpp"
@@ -175,9 +175,9 @@ enum struct RelayEngineNotification {
 class RelayEngine {
 
 protected:
-    using PushFunctionT   = SOLID_FUNCTION<bool(RelayData*&, const MessageId&, MessageId&, bool&)>;
-    using DoneFunctionT   = SOLID_FUNCTION<void(RecvBufferPointerT&)>;
-    using CancelFunctionT = SOLID_FUNCTION<void(const MessageHeader&)>;
+    using PushFunctionT   = SOLID_FUNCTION(bool(RelayData*&, const MessageId&, MessageId&, bool&));
+    using DoneFunctionT   = SOLID_FUNCTION(void(RecvBufferPointerT&));
+    using CancelFunctionT = SOLID_FUNCTION(void(const MessageHeader&));
 
     RelayEngine() {}
     virtual ~RelayEngine();
@@ -292,24 +292,24 @@ private:
 };
 
 using AddressVectorT                            = std::vector<SocketAddressInet>;
-using ServerSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
-using ClientSetupSocketDeviceFunctionT          = SOLID_FUNCTION<bool(SocketDevice&)>;
-using ResolveCompleteFunctionT                  = SOLID_FUNCTION<void(AddressVectorT&&)>;
-using ConnectionStopFunctionT                   = SOLID_FUNCTION<void(ConnectionContext&)>;
-using ConnectionStartFunctionT                  = SOLID_FUNCTION<void(ConnectionContext&)>;
-using SendAllocateBufferFunctionT               = SOLID_FUNCTION<SendBufferPointerT(const uint32_t)>;
-using RecvAllocateBufferFunctionT               = SOLID_FUNCTION<RecvBufferPointerT(const uint32_t)>;
-using CompressFunctionT                         = SOLID_FUNCTION<size_t(char*, size_t, ErrorConditionT&)>;
-using UncompressFunctionT                       = SOLID_FUNCTION<size_t(char*, const char*, size_t, ErrorConditionT&)>;
-using ExtractRecipientNameFunctionT             = SOLID_FUNCTION<const char*(const char*, std::string&, std::string&)>;
+using ServerSetupSocketDeviceFunctionT          = SOLID_FUNCTION(bool(SocketDevice&));
+using ClientSetupSocketDeviceFunctionT          = SOLID_FUNCTION(bool(SocketDevice&));
+using ResolveCompleteFunctionT                  = SOLID_FUNCTION(void(AddressVectorT&&));
+using ConnectionStopFunctionT                   = SOLID_FUNCTION(void(ConnectionContext&));
+using ConnectionStartFunctionT                  = SOLID_FUNCTION(void(ConnectionContext&));
+using SendAllocateBufferFunctionT               = SOLID_FUNCTION(SendBufferPointerT(const uint32_t));
+using RecvAllocateBufferFunctionT               = SOLID_FUNCTION(RecvBufferPointerT(const uint32_t));
+using CompressFunctionT                         = SOLID_FUNCTION(size_t(char*, size_t, ErrorConditionT&));
+using UncompressFunctionT                       = SOLID_FUNCTION(size_t(char*, const char*, size_t, ErrorConditionT&));
+using ExtractRecipientNameFunctionT             = SOLID_FUNCTION(const char*(const char*, std::string&, std::string&));
 using AioSchedulerT                             = frame::Scheduler<frame::aio::Reactor>;
-using ConnectionEnterActiveCompleteFunctionT    = SOLID_FUNCTION<MessagePointerT(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionEnterPassiveCompleteFunctionT   = SOLID_FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionSecureHandhakeCompleteFunctionT = SOLID_FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionSendRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, ErrorConditionT const&)>;
-using ConnectionRecvRawDataCompleteFunctionT    = SOLID_FUNCTION<void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&)>;
-using ConnectionOnEventFunctionT                = SOLID_FUNCTION<void(ConnectionContext&, Event&)>;
-//using ResetSerializerLimitsFunctionT              = SOLID_FUNCTION<void(ConnectionContext &, serialization::binary::Limits&)>;
+using ConnectionEnterActiveCompleteFunctionT    = SOLID_FUNCTION(MessagePointerT(ConnectionContext&, ErrorConditionT const&));
+using ConnectionEnterPassiveCompleteFunctionT   = SOLID_FUNCTION(void(ConnectionContext&, ErrorConditionT const&));
+using ConnectionSecureHandhakeCompleteFunctionT = SOLID_FUNCTION(void(ConnectionContext&, ErrorConditionT const&));
+using ConnectionSendRawDataCompleteFunctionT    = SOLID_FUNCTION(void(ConnectionContext&, ErrorConditionT const&));
+using ConnectionRecvRawDataCompleteFunctionT    = SOLID_FUNCTION(void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&));
+using ConnectionOnEventFunctionT                = SOLID_FUNCTION(void(ConnectionContext&, Event&));
+//using ResetSerializerLimitsFunctionT              = SOLID_FUNCTION(void(ConnectionContext &, serialization::binary::Limits&) );
 
 enum struct ConnectionState {
     Raw,
@@ -429,8 +429,8 @@ public:
     WriterConfiguration writer;
 
     struct Server {
-        using ConnectionCreateSocketFunctionT    = SOLID_FUNCTION<SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, SocketDevice&&, char*)>;
-        using ConnectionSecureHandshakeFunctionT = SOLID_FUNCTION<void(ConnectionContext&)>;
+        using ConnectionCreateSocketFunctionT    = SOLID_FUNCTION(SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, SocketDevice&&, char*));
+        using ConnectionSecureHandshakeFunctionT = SOLID_FUNCTION(void(ConnectionContext&));
 
         Server()
             : listener_port(-1)
@@ -464,9 +464,9 @@ public:
     } server;
 
     struct Client {
-        using ConnectionCreateSocketFunctionT    = SOLID_FUNCTION<SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, char*)>;
-        using AsyncResolveFunctionT              = SOLID_FUNCTION<void(const std::string&, ResolveCompleteFunctionT&)>;
-        using ConnectionSecureHandshakeFunctionT = SOLID_FUNCTION<void(ConnectionContext&)>;
+        using ConnectionCreateSocketFunctionT    = SOLID_FUNCTION(SocketStubPtrT(Configuration const&, frame::aio::ObjectProxy const&, char*));
+        using AsyncResolveFunctionT              = SOLID_FUNCTION(void(const std::string&, ResolveCompleteFunctionT&));
+        using ConnectionSecureHandshakeFunctionT = SOLID_FUNCTION(void(ConnectionContext&));
 
         bool hasSecureConfiguration() const
         {

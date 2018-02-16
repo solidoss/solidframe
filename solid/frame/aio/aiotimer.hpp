@@ -119,7 +119,7 @@ private:
     }
 
 private:
-    typedef SOLID_FUNCTION<void(ReactorContext&)> FunctionT;
+    typedef SOLID_FUNCTION(void(ReactorContext&)) FunctionT;
 
     FunctionT f;
     size_t    storeidx;

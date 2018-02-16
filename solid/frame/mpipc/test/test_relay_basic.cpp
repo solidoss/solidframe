@@ -509,8 +509,8 @@ int test_relay_basic(int argc, char** argv)
 
             proto->registerType<Message>(peera_complete_message, 0 /*protocol id*/, 20 /*message id*/);
 
-            cfg.connection_stop_fnc           = peera_connection_stop;
-            cfg.client.connection_start_fnc   = peera_connection_start;
+            cfg.connection_stop_fnc           = &peera_connection_stop;
+            cfg.client.connection_start_fnc   = &peera_connection_start;
             cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
@@ -550,8 +550,8 @@ int test_relay_basic(int argc, char** argv)
             proto->registerType<Register>(peerb_complete_register, 0, 10);
             proto->registerType<Message>(peerb_complete_message, 0, 20);
 
-            cfg.connection_stop_fnc         = peerb_connection_stop;
-            cfg.client.connection_start_fnc = peerb_connection_start;
+            cfg.connection_stop_fnc         = &peerb_connection_stop;
+            cfg.client.connection_start_fnc = &peerb_connection_start;
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 

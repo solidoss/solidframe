@@ -124,8 +124,8 @@ int test_multiprotocol_basic(int argc, char** argv)
             beta_server::register_messages(*proto);
             alpha_server::register_messages(*proto);
 
-            cfg.connection_stop_fnc         = server_connection_stop;
-            cfg.server.connection_start_fnc = server_connection_start;
+            cfg.connection_stop_fnc         = &server_connection_stop;
+            cfg.server.connection_start_fnc = &server_connection_start;
 
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
             cfg.server.listener_address_str   = "0.0.0.0:0";

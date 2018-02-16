@@ -27,8 +27,8 @@ struct ReactorContext;
 template <class Sock>
 class Stream : public CompletionHandler {
     using ThisT         = Stream<Sock>;
-    using RecvFunctionT = SOLID_FUNCTION<void(ThisT&, ReactorContext&)>;
-    using SendFunctionT = SOLID_FUNCTION<void(ThisT&, ReactorContext&)>;
+    using RecvFunctionT = SOLID_FUNCTION(void(ThisT&, ReactorContext&));
+    using SendFunctionT = SOLID_FUNCTION(void(ThisT&, ReactorContext&));
 
     static void on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx)
     {

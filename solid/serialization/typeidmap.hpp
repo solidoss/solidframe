@@ -12,9 +12,9 @@
 
 #include "solid/system/error.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/system/function.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/dynamicpointer.hpp"
+#include "solid/utility/function.hpp"
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
@@ -36,8 +36,8 @@ class TypeIdMapBase {
 protected:
     //typedef void(*LoadFunctionT)(void*, void*, const char*);
     //typedef void(*StoreFunctionT)(void*, void*, const char*);
-    typedef SOLID_FUNCTION<void(void*, void*, const char*)> LoadFunctionT;
-    typedef SOLID_FUNCTION<void(void*, void*, const char*)> StoreFunctionT;
+    typedef SOLID_FUNCTION(void(void*, void*, const char*)) LoadFunctionT;
+    typedef SOLID_FUNCTION(void(void*, void*, const char*)) StoreFunctionT;
 
     typedef void (*CastFunctionT)(void*, void*);
 
@@ -54,7 +54,7 @@ protected:
         CastFunctionT shared_cast;
     };
 
-    typedef SOLID_FUNCTION<void*(const CastFunctionT&, void*)> FactoryFunctionT;
+    typedef SOLID_FUNCTION(void*(const CastFunctionT&, void*)) FactoryFunctionT;
 
     typedef std::pair<std::type_index, size_t> CastIdT;
 
@@ -243,8 +243,8 @@ protected:
         stubvec.push_back(Stub());
         stubvec.back().plain_factory  = factory;
         stubvec.back().shared_factory = factory;
-        stubvec.back().loadfnc        = load_nullptr;
-        stubvec.back().storefnc       = store_nullptr;
+        stubvec.back().loadfnc        = &load_nullptr;
+        stubvec.back().storefnc       = &store_nullptr;
         stubvec.back().id             = 0;
 
         msgidmap[0] = 0;
@@ -272,8 +272,8 @@ protected:
         msgidmap[id]                        = vecidx;
 
         stubvec.push_back(Stub());
-        stubvec.back().plain_factory  = plain_factory<T>;
-        stubvec.back().shared_factory = shared_factory<T>;
+        stubvec.back().plain_factory  = &plain_factory<T>;
+        stubvec.back().shared_factory = &shared_factory<T>;
         stubvec.back().loadfnc        = _lf;
         stubvec.back().storefnc       = _sf;
         stubvec.back().id             = id;

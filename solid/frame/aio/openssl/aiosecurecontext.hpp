@@ -12,7 +12,7 @@
 
 #include "openssl/ssl.h"
 #include "solid/system/error.hpp"
-#include "solid/system/function.hpp"
+#include "solid/utility/function.hpp"
 
 namespace solid {
 namespace frame {
@@ -89,7 +89,7 @@ private:
     ErrorCodeT doSetPasswordCallback();
 
 private:
-    using PasswordFunctionT = SOLID_FUNCTION<std::string(std::size_t, PasswordPurpose)>;
+    using PasswordFunctionT = SOLID_FUNCTION(std::string(std::size_t, PasswordPurpose));
 
     friend class Socket;
     SSL_CTX*          pctx;

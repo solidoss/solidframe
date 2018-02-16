@@ -12,6 +12,7 @@
 
 #include "solid/system/exception.hpp"
 #include <cstddef>
+#include <functional>
 #include <type_traits>
 #include <typeindex>
 #include <typeinfo>
@@ -25,12 +26,21 @@ namespace impl {
 //-----------------------------------------------------------------------------
 struct FunctionValueBase {
     virtual ~FunctionValueBase();
-    virtual const void*   get() const                                                = 0;
-    virtual void*         get()                                                      = 0;
+    virtual const void*        get() const                                                = 0;
+    virtual void*              get()                                                      = 0;
     virtual FunctionValueBase* copyTo(void* _pd, const size_t _sz) const                  = 0;
     virtual FunctionValueBase* moveTo(void* _pd, const size_t _sz, const bool _uses_data) = 0;
 
     FunctionValueBase& operator=(const FunctionValueBase&) = delete;
+};
+
+//-----------------------------------------------------------------------------
+//      FunctionValueInter<T>
+//-----------------------------------------------------------------------------
+
+template <class R, class... ArgTypes>
+struct FunctionValueInter : FunctionValueBase {
+    virtual R call(ArgTypes... args) = 0;
 };
 
 //-----------------------------------------------------------------------------
@@ -40,11 +50,15 @@ template <class T, bool CopyConstructible, class R, class... ArgTypes>
 struct FunctionValue;
 
 template <class T, class R, class... ArgTypes>
-struct FunctionValue<T, true, R, ArgTypes...> : FunctionValueBase {
+struct FunctionValue<T, true, R, ArgTypes...> : FunctionValueInter<R, ArgTypes...> {
 
-    template <class... Args>
-    explicit FunctionValue(Args&&... _args)
-        : value_(std::forward<Args>(_args)...)
+    FunctionValue(T&& _rt)
+        : value_(std::forward<T>(_rt))
+    {
+    }
+
+    FunctionValue(const T& _rt)
+        : value_(_rt)
     {
     }
 
@@ -71,7 +85,7 @@ struct FunctionValue<T, true, R, ArgTypes...> : FunctionValueBase {
     FunctionValue* moveTo(void* _pd, const size_t _sz, const bool _uses_data) override
     {
         using FunctionValueT = FunctionValue<T, std::is_copy_constructible<T>::value, R, ArgTypes...>;
-        
+
         if (sizeof(FunctionValueT) <= _sz) {
             return new (_pd) FunctionValueT{std::forward<T>(value_)};
         } else if (!_uses_data) { //the pointer was allocated
@@ -80,8 +94,9 @@ struct FunctionValue<T, true, R, ArgTypes...> : FunctionValueBase {
             return new FunctionValueT{std::forward<T>(value_)};
         }
     }
-    
-    R call(ArgTypes... _args){
+
+    R call(ArgTypes... _args) override
+    {
         return value_(std::forward<ArgTypes>(_args)...);
     }
 
@@ -89,10 +104,10 @@ struct FunctionValue<T, true, R, ArgTypes...> : FunctionValueBase {
 };
 
 template <class T, class R, class... ArgTypes>
-struct FunctionValue<T, false, R, ArgTypes...> : FunctionValueBase {
-    template <class... Args>
-    explicit FunctionValue(Args&&... _args)
-        : value_(std::forward<Args>(_args)...)
+struct FunctionValue<T, false, R, ArgTypes...> : FunctionValueInter<R, ArgTypes...> {
+
+    explicit FunctionValue(T&& _rt)
+        : value_(std::forward<T>(_rt))
     {
     }
 
@@ -123,8 +138,9 @@ struct FunctionValue<T, false, R, ArgTypes...> : FunctionValueBase {
             return new FunctionValueT{std::move(value_)};
         }
     }
-    
-    R call(ArgTypes... _args){
+
+    R call(ArgTypes... _args) override
+    {
         return value_(std::forward<ArgTypes>(_args)...);
     }
 
@@ -133,7 +149,7 @@ struct FunctionValue<T, false, R, ArgTypes...> : FunctionValueBase {
 
 } //namespace impl
 
-constexpr size_t function_min_data_size = sizeof(impl::FunctionValue<void*, true, void>);
+//constexpr size_t function_min_data_size = sizeof(impl::FunctionValue<void*, true, void>);
 
 // template <class T>
 // constexpr size_t function_data_size()
@@ -178,23 +194,21 @@ protected:
 //      Function<Size>
 //-----------------------------------------------------------------------------
 
-template<size_t DataSize, class> class Function; // undefined
+template <size_t DataSize, class>
+class Function; // undefined
 
-template<size_t DataSize, class R, class... ArgTypes>
-class Function<DataSize, R(ArgTypes...)>: public FunctionBase{
-    //template <size_t DS>
-    //friend class Function<DS, R, ArgTypes...>;
-
-    static bool canCast(const impl::FunctionValueBase& _rv, const std::type_info& _req_type)
-    {
-        return std::type_index(_req_type) == std::type_index(typeid(_rv));
-    }
-
+template <size_t DataSize, class R, class... ArgTypes>
+class Function<DataSize, R(ArgTypes...)> : public FunctionBase {
 public:
-    using ThisT = Function<DataSize, R, ArgTypes...>;
+    using ThisT = Function<DataSize, R(ArgTypes...)>;
+
     template <class T>
-    using FunctionValueT = impl::FunctionValue<T, std::is_copy_constructible<T>::value, R, ArgTypes...>;
+    using FunctionValueT      = impl::FunctionValue<T, std::is_copy_constructible<T>::value, R, ArgTypes...>;
+    using FunctionValueInterT = impl::FunctionValueInter<R, ArgTypes...>;
+
     Function() {}
+
+    Function(std::nullptr_t) {}
 
     Function(const ThisT& _rany)
         : FunctionBase(doCopyFrom(_rany, data_, DataSize))
@@ -208,13 +222,12 @@ public:
     }
 
     template <class T>
-    Function(
-        const T& _rt)
+    Function(const T& _t)
         : FunctionBase(
               do_allocate<T>(
                   BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(),
                   BoolToType<sizeof(FunctionValueT<T>) <= DataSize>(),
-                  _rt))
+                  _t))
     {
     }
 
@@ -234,39 +247,14 @@ public:
         clear();
     }
 
-    template <typename T>
-    T* cast()
-    {
-        if (pvalue_) {
-            const std::type_info& req_type = typeid(FunctionValueT<T>);
-            if (canCast(*pvalue_, req_type)) {
-                return reinterpret_cast<T*>(pvalue_->get());
-            }
-        }
-        return nullptr;
-    }
-
-    template <typename T>
-    const T* cast() const
-    {
-        if (pvalue_) {
-            const std::type_info& req_type = typeid(FunctionValueT<T>);
-            if (canCast(*pvalue_, req_type)) {
-                return reinterpret_cast<const T*>(pvalue_->get());
-            }
-        }
-        return nullptr;
-    }
-
-    template <typename T>
-    T* constCast() const
-    {
-        return const_cast<T*>(cast<T>());
-    }
-
-    bool empty() const
+    bool empty() const noexcept
     {
         return pvalue_ == nullptr;
+    }
+
+    explicit operator bool() const noexcept
+    {
+        return !empty();
     }
 
     void clear()
@@ -298,25 +286,9 @@ public:
         return *this;
     }
 
-    template <typename T>
-    ThisT& operator=(const T& _rt)
+    ThisT& operator=(std::nullptr_t)
     {
-        if (static_cast<const void*>(this) != static_cast<const void*>(&_rt)) {
-            clear();
-
-            pvalue_ = do_allocate<T>(BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(), BoolToType<sizeof(FunctionValueT<T>) <= DataSize>(), _rt);
-        }
-        return *this;
-    }
-
-    template <class T>
-    ThisT& operator=(T&& _ut)
-    {
-        if (static_cast<const void*>(this) != static_cast<const void*>(&_ut)) {
-            clear();
-
-            pvalue_ = do_allocate<T>(BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(), BoolToType<sizeof(FunctionValueT<T>) <= DataSize>(), std::forward<T>(_ut));
-        }
+        clear();
         return *this;
     }
 
@@ -324,15 +296,17 @@ public:
     {
         return reinterpret_cast<const void*>(pvalue_) == reinterpret_cast<const void*>(data_);
     }
-    
-    R operator()(ArgTypes... args) const{
-        //return (*any_.cast<StubBase>())(std::forward<ArgTypes>(args)...);
+
+    R operator()(ArgTypes... args) const
+    {
+        if (!empty()) {
+            return static_cast<FunctionValueInterT*>(pvalue_)->call(std::forward<ArgTypes>(args)...);
+        } else {
+            throw std::bad_function_call();
+        }
     }
 
 private:
-    //template <size_t DS, class T, class... Args>
-    //friend Function<DS> make_any(Args&&... _args);
-
     void release(impl::FunctionValueBase* _pvalue)
     {
         if (_pvalue == pvalue_) {
@@ -345,24 +319,24 @@ private:
         pvalue_ = nullptr;
     }
 
-    template <class T, class... Args>
-    void do_reinit(const TypeToType<T>&, Args&&... _args)
+    template <class T>
+    void do_reinit(const TypeToType<T>&, T&& _arg)
     {
         clear();
         pvalue_ = do_allocate<T>(
-            BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(), BoolToType<sizeof(FunctionValueT<T>) <= DataSize>(), std::forward<Args>(_args)...);
+            BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(), BoolToType<sizeof(FunctionValueT<T>) <= DataSize>(), std::forward<T>(_arg));
     }
 
-    template <class T, class... Args>
-    impl::FunctionValueBase* do_allocate(BoolToType<false> /*_is_any*/, BoolToType<true> /*_emplace_new*/, Args&&... _args)
+    template <class T>
+    impl::FunctionValueBase* do_allocate(BoolToType<false> /*_is_any*/, BoolToType<true> /*_emplace_new*/, T&& _arg)
     {
-        return new (data_) FunctionValueT<T>(std::forward<Args>(_args)...);
+        return new (data_) FunctionValueT<T>(std::forward<T>(_arg));
     }
 
-    template <class T, class... Args>
-    impl::FunctionValueBase* do_allocate(BoolToType<false> /*_is_any*/, BoolToType<false> /*_plain_new*/, Args&&... _args)
+    template <class T>
+    impl::FunctionValueBase* do_allocate(BoolToType<false> /*_is_any*/, BoolToType<false> /*_plain_new*/, T&& _arg)
     {
-        return new FunctionValueT<T>(std::forward<Args>(_args)...);
+        return new FunctionValueT<T>(std::forward<T>(_arg));
     }
 
     template <class T>
@@ -399,65 +373,9 @@ private:
 
 //-----------------------------------------------------------------------------
 
-// template <size_t DS, class T, class... Args>
-// Function<DS> make_any(Args&&... _args)
-// {
-//     Function<DS> a;
-//     a.do_reinit(TypeToType<T>(), std::forward<Args>(_args)...);
-//     return a;
-// }
-
-//-----------------------------------------------------------------------------
-
 } //namespace solid
 
-
-#if 0
-#pragma once
-
-#include "solid/utility/any.hpp"
-#include "solid/utility/common.hpp"
-
-
-namespace solid{
-
-template<size_t DataSize, class> class Function; // undefined
-
-template<size_t DataSize, class R, class... ArgTypes>
-class Function<DataSize, R(ArgTypes...)>{
-    
-    struct StubBase{
-        virtual ~StubBase(){}
-        virtual R operator()(ArgTypes... args) = 0;
-    };
-    
-    template <class T>
-    struct Stub: StubBase{
-        T   t_;
-        
-        Stub(T &&_ut):t_(std::move(_ut)){}
-        
-        R operator()(ArgTypes... args) override{
-            return t_(std::forward<ArgTypes>(args)...);
-        }
-    };
-public:
-    template <class T>
-    Function(T &&_ut):any_(Stub<T>(std::move(_ut))){
-        
-    }
-    
-    
-    explicit operator bool() const noexcept{
-        return not any_.empty();
-    }
-    
-    R operator()(ArgTypes... args) const{
-        return (*any_.cast<StubBase>())(std::forward<ArgTypes>(args)...);
-    }
-private:
-    Function<DataSize>   any_;
-};
-
-}//namespace solid
-#endif
+//#define SOLID_FUNCTION(...) solid::Function<128, __VA_ARGS__>
+#define SOLID_FUNCTION(...) std::function<__VA_ARGS__>
+#define SOLID_FUNCTION_EMPTY(f) (!f)
+#define SOLID_FUNCTION_CLEAR(f) (f = nullptr)

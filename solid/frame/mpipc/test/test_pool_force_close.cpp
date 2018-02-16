@@ -294,8 +294,8 @@ int test_pool_force_close(int argc, char** argv)
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
 
-            cfg.connection_stop_fnc           = server_connection_stop;
-            cfg.server.connection_start_fnc   = server_connection_start;
+            cfg.connection_stop_fnc           = &server_connection_stop;
+            cfg.server.connection_start_fnc   = &server_connection_start;
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 
             cfg.server.listener_address_str = "0.0.0.0:0";
@@ -327,8 +327,8 @@ int test_pool_force_close(int argc, char** argv)
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
 
-            cfg.connection_stop_fnc           = client_connection_stop;
-            cfg.client.connection_start_fnc   = client_connection_start;
+            cfg.connection_stop_fnc           = &client_connection_stop;
+            cfg.client.connection_start_fnc   = &client_connection_start;
             cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
