@@ -168,7 +168,7 @@ public:
     template <typename F>
     EventCategory(const std::string& _name, F _f)
         : EventCategoryBase(_name)
-        , names_fnc_(_f)
+        , names_fnc_(std::move(_f))
     {
     }
 

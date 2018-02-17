@@ -47,7 +47,7 @@ class DeserializerBase : public Base {
             , size_(0)
             , data_(0)
             , name_(_name)
-            , fnc_(_f)
+            , fnc_(std::move(_f))
         {
         }
 

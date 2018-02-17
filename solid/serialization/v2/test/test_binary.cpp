@@ -111,7 +111,7 @@ public:
         std::ifstream ifs;
         _rs
             .push(make_choice<S::is_serializer>(
-                      [ this, ifs = std::move(ifs) ](S & _rs, const char* _name) mutable {
+                      [this, ifs = std::move(ifs)](S& _rs, const char* _name) mutable {
                           ifs.open(p);
                           //_rs.add(ifs, _name);
                           return true;

@@ -1,6 +1,8 @@
 #include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/any.hpp"
+#include <array>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -243,6 +245,77 @@ int test_any(int argc, char* argv[])
 
         any_0 = Test{5};
         SOLID_CHECK(not any_0.empty());
+    }
+    {
+
+        using Array4T = std::array<size_t, 4>;
+        Any<8> any(Array4T{1, 2, 3, 4});
+        SOLID_CHECK((*any.cast<Array4T>())[0] == 1);
+        SOLID_CHECK((*any.cast<Array4T>())[1] == 2);
+        SOLID_CHECK((*any.cast<Array4T>())[2] == 3);
+        SOLID_CHECK((*any.cast<Array4T>())[3] == 4);
+        (*any.cast<Array4T>())[3] = 10;
+        SOLID_CHECK((*any.cast<Array4T>())[3] == 10);
+    }
+    {
+
+        using Array4T = std::array<size_t, 4>;
+        Any<128> any(Array4T{1, 2, 3, 4});
+        SOLID_CHECK((*any.cast<Array4T>())[0] == 1);
+        SOLID_CHECK((*any.cast<Array4T>())[1] == 2);
+        SOLID_CHECK((*any.cast<Array4T>())[2] == 3);
+        SOLID_CHECK((*any.cast<Array4T>())[3] == 4);
+        (*any.cast<Array4T>())[3] = 10;
+        SOLID_CHECK((*any.cast<Array4T>())[3] == 10);
+    }
+    {
+
+        using Array4T = std::array<size_t, 4>;
+        Any<128> any;
+        any = Array4T{1, 2, 3, 4};
+        SOLID_CHECK((*any.cast<Array4T>())[0] == 1);
+        SOLID_CHECK((*any.cast<Array4T>())[1] == 2);
+        SOLID_CHECK((*any.cast<Array4T>())[2] == 3);
+        SOLID_CHECK((*any.cast<Array4T>())[3] == 4);
+        (*any.cast<Array4T>())[3] = 10;
+        SOLID_CHECK((*any.cast<Array4T>())[3] == 10);
+    }
+    {
+        using Array4T = std::array<size_t, 4>;
+        Array4T arr{1, 2, 3, 4};
+        auto    lambda = [arr = std::move(arr)](const char* _txt) mutable
+        {
+            SOLID_CHECK(arr[3] == 4);
+            arr[3] = 10;
+        };
+        Any<128> any;
+        any = lambda;
+        (*any.cast<decltype(lambda)>())("Test");
+    }
+    {
+        using Array4T = std::array<size_t, 4>;
+        Array4T arr{1, 2, 3, 4};
+        auto    lambda = [arr = std::move(arr)](const char* _txt) mutable
+        {
+            SOLID_CHECK(arr[3] == 4);
+            arr[3] = 10;
+        };
+        Any<128> any(lambda);
+
+        (*any.cast<decltype(lambda)>())("Test");
+    }
+    {
+        using Array4T = std::array<size_t, 4>;
+        Array4T       arr{1, 2, 3, 4};
+        std::ifstream ifs;
+        auto          lambda = [ arr = std::move(arr), ifs = std::move(ifs) ](const char* _txt) mutable
+        {
+            SOLID_CHECK(arr[3] == 4);
+            arr[3] = 10;
+        };
+        Any<128> any(std::move(lambda));
+
+        (*any.cast<decltype(lambda)>())("Test");
     }
     return 0;
 }

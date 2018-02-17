@@ -320,8 +320,8 @@ inline void setup_client(
 
     _ctx_fnc(rsecure_cfg.context);
 
-    rsecure_cfg.connection_prepare_secure_fnc = _start_fnc;
-    rsecure_cfg.connection_verify_fnc         = _verify_fnc;
+    rsecure_cfg.connection_prepare_secure_fnc = std::move(_start_fnc);
+    rsecure_cfg.connection_verify_fnc         = std::move(_verify_fnc);
 }
 
 template <class ContextSetupFunction,
@@ -346,8 +346,8 @@ inline void setup_server(
 
     _ctx_fnc(rsecure_cfg.context);
 
-    rsecure_cfg.connection_prepare_secure_fnc = _start_fnc;
-    rsecure_cfg.connection_verify_fnc         = _verify_fnc;
+    rsecure_cfg.connection_prepare_secure_fnc = std::move(_start_fnc);
+    rsecure_cfg.connection_verify_fnc         = std::move(_verify_fnc);
 }
 
 } //namespace openssl

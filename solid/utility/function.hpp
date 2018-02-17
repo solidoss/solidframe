@@ -199,6 +199,9 @@ class Function; // undefined
 
 template <size_t DataSize, class R, class... ArgTypes>
 class Function<DataSize, R(ArgTypes...)> : public FunctionBase {
+    template <bool B>
+    using bool_constant = std::integral_constant<bool, B>;
+
 public:
     using ThisT = Function<DataSize, R(ArgTypes...)>;
 
@@ -224,9 +227,9 @@ public:
     template <class T>
     Function(const T& _t)
         : FunctionBase(
-              do_allocate<T>(
-                  BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(),
-                  BoolToType<sizeof(FunctionValueT<T>) <= DataSize>(),
+              do_allocate<typename std::remove_reference<T>::type>(
+                  bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(),
+                  bool_constant<sizeof(FunctionValueT<typename std::remove_reference<T>::type>) <= DataSize>(),
                   _t))
     {
     }
@@ -235,9 +238,9 @@ public:
     Function(
         T&& _ut)
         : FunctionBase(
-              do_allocate<T>(
-                  BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(),
-                  BoolToType<sizeof(FunctionValueT<T>) <= DataSize>(),
+              do_allocate<typename std::remove_reference<T>::type>(
+                  bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(),
+                  bool_constant<sizeof(FunctionValueT<typename std::remove_reference<T>::type>) <= DataSize>(),
                   std::forward<T>(_ut)))
     {
     }
@@ -292,6 +295,28 @@ public:
         return *this;
     }
 
+    template <typename T>
+    ThisT& operator=(const T& _rt)
+    {
+        if (static_cast<const void*>(this) != static_cast<const void*>(&_rt)) {
+            clear();
+            using RealT = typename std::remove_reference<T>::type;
+            pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, FunctionBase*>::value>(), bool_constant<sizeof(FunctionValueT<RealT>) <= DataSize>(), _rt);
+        }
+        return *this;
+    }
+
+    template <class T>
+    ThisT& operator=(T&& _ut)
+    {
+        if (static_cast<const void*>(this) != static_cast<const void*>(&_ut)) {
+            clear();
+            using RealT = typename std::remove_reference<T>::type;
+            pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, FunctionBase*>::value>(), bool_constant<sizeof(FunctionValueT<RealT>) <= DataSize>(), std::forward<T>(_ut));
+        }
+        return *this;
+    }
+
     bool usesData() const
     {
         return reinterpret_cast<const void*>(pvalue_) == reinterpret_cast<const void*>(data_);
@@ -324,35 +349,35 @@ private:
     {
         clear();
         pvalue_ = do_allocate<T>(
-            BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(), BoolToType<sizeof(FunctionValueT<T>) <= DataSize>(), std::forward<T>(_arg));
+            bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(), bool_constant<sizeof(FunctionValueT<T>) <= DataSize>(), std::forward<T>(_arg));
     }
 
     template <class T>
-    impl::FunctionValueBase* do_allocate(BoolToType<false> /*_is_any*/, BoolToType<true> /*_emplace_new*/, T&& _arg)
+    impl::FunctionValueBase* do_allocate(std::false_type /*_is_any*/, std::true_type /*_emplace_new*/, T&& _arg)
     {
         return new (data_) FunctionValueT<T>(std::forward<T>(_arg));
     }
 
     template <class T>
-    impl::FunctionValueBase* do_allocate(BoolToType<false> /*_is_any*/, BoolToType<false> /*_plain_new*/, T&& _arg)
+    impl::FunctionValueBase* do_allocate(std::false_type /*_is_any*/, std::false_type /*_plain_new*/, T&& _arg)
     {
         return new FunctionValueT<T>(std::forward<T>(_arg));
     }
 
     template <class T>
-    impl::FunctionValueBase* do_allocate(BoolToType<true> /*_is_any*/, BoolToType<true> /*_emplace_new*/, const T& _rany)
+    impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, const T& _rany)
     {
         return doCopyFrom(_rany, data_, DataSize);
     }
 
     template <class T>
-    impl::FunctionValueBase* do_allocate(BoolToType<true> /*_is_any*/, BoolToType<false> /*_plain_new*/, const T& _rany)
+    impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, const T& _rany)
     {
         return doCopyFrom(_rany, data_, DataSize);
     }
 
     template <class T>
-    impl::FunctionValueBase* do_allocate(BoolToType<true> /*_is_any*/, BoolToType<true> /*_emplace_new*/, T&& _uany)
+    impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, T&& _uany)
     {
         impl::FunctionValueBase* rv = doMoveFrom(_uany, data_, DataSize, _uany.usesData());
         _uany.release(rv);
@@ -360,7 +385,7 @@ private:
     }
 
     template <class T>
-    impl::FunctionValueBase* do_allocate(BoolToType<true> /*_is_any*/, BoolToType<false> /*_plain_new*/, T&& _uany)
+    impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, T&& _uany)
     {
         impl::FunctionValueBase* rv = doMoveFrom(_uany, data_, DataSize, _uany.usesData());
         _uany.release(rv);
@@ -374,8 +399,19 @@ private:
 //-----------------------------------------------------------------------------
 
 } //namespace solid
+#ifdef SOLID_USE_STD_FUNCTION
 
-//#define SOLID_FUNCTION(...) solid::Function<128, __VA_ARGS__>
 #define SOLID_FUNCTION(...) std::function<__VA_ARGS__>
+
+#else
+
+#ifndef SOLID_FUNCTION_STORAGE
+#define SOLID_FUNCTION_STORAGE 128
+#endif
+
+#define SOLID_FUNCTION(...) solid::Function<SOLID_FUNCTION_STORAGE, __VA_ARGS__>
+
+#endif
+
 #define SOLID_FUNCTION_EMPTY(f) (!f)
 #define SOLID_FUNCTION_CLEAR(f) (f = nullptr)

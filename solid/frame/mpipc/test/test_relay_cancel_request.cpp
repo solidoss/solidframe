@@ -513,8 +513,8 @@ int test_relay_cancel_request(int argc, char** argv)
 
             cfg.server.listener_address_str      = "0.0.0.0:0";
             cfg.pool_max_active_connection_count = 2 * max_per_pool_connection_count;
-            cfg.connection_stop_fnc              = con_stop;
-            cfg.client.connection_start_fnc      = con_start;
+            cfg.connection_stop_fnc              = std::move(con_stop);
+            cfg.client.connection_start_fnc      = std::move(con_start);
             cfg.client.connection_start_state    = frame::mpipc::ConnectionState::Active;
             cfg.relay_enabled                    = true;
 

@@ -241,8 +241,8 @@ protected:
             return nullptr;
         };
         stubvec.push_back(Stub());
-        stubvec.back().plain_factory  = factory;
-        stubvec.back().shared_factory = factory;
+        stubvec.back().plain_factory  = std::move(factory);
+        stubvec.back().shared_factory = std::move(factory);
         stubvec.back().loadfnc        = &load_nullptr;
         stubvec.back().storefnc       = &store_nullptr;
         stubvec.back().id             = 0;
@@ -274,8 +274,8 @@ protected:
         stubvec.push_back(Stub());
         stubvec.back().plain_factory  = &plain_factory<T>;
         stubvec.back().shared_factory = &shared_factory<T>;
-        stubvec.back().loadfnc        = _lf;
-        stubvec.back().storefnc       = _sf;
+        stubvec.back().loadfnc        = std::move(_lf);
+        stubvec.back().storefnc       = std::move(_sf);
         stubvec.back().id             = id;
 
         doRegisterCast<T, T>();

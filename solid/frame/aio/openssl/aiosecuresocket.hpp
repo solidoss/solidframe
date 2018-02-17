@@ -106,7 +106,7 @@ public:
     template <typename Cbk>
     ErrorCodeT setVerifyCallback(VerifyMaskT _verify_mask, Cbk _cbk)
     {
-        verify_cbk = _cbk;
+        verify_cbk = std::move(_cbk);
         return doPrepareVerifyCallback(_verify_mask);
     }
 

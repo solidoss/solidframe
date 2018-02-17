@@ -137,8 +137,8 @@ int main(int argc, char* argv[])
             proto->registerType<Register>(con_register, 0, 10);
             proto->registerType<Message>(on_message, 1, 10);
 
-            cfg.client.connection_start_fnc = on_connection_start;
-            cfg.connection_stop_fnc         = on_connection_stop;
+            cfg.client.connection_start_fnc = std::move(on_connection_start);
+            cfg.connection_stop_fnc         = std::move(on_connection_stop);
 
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.server_port.c_str());
 

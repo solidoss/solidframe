@@ -58,7 +58,7 @@ public:
     bool postAccept(ReactorContext& _rctx, F _f)
     {
         if (SOLID_FUNCTION_EMPTY(f)) {
-            f = _f;
+            f = std::move(_f);
             doPostAccept(_rctx);
             return false;
         } else {
@@ -76,7 +76,7 @@ public:
             if (this->doTryAccept(_rctx, _rsd)) {
                 return true;
             }
-            f = _f;
+            f = std::move(_f);
             return false;
         } else {
             error(_rctx, error_already);

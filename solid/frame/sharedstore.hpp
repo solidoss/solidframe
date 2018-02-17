@@ -652,7 +652,7 @@ private:
             pwait = &waitdq.back();
         }
         pwait->kind  = _k;
-        pwait->fnc   = _f;
+        pwait->fnc   = std::move(_f);
         pwait->pnext = nullptr;
 
         if (rs.pwaitlast == nullptr) {
