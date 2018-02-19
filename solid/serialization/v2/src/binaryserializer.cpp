@@ -218,6 +218,50 @@ Base::ReturnE SerializerBase::noop(SerializerBase& _rs, Runnable& _rr, void* _pc
     return ReturnE::Done;
 }
 
+Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+{
+    std::istream& ris    = *const_cast<std::istream*>(static_cast<const std::istream*>(_rr.ptr_));
+    size_t        toread = _rs.pend_ - _rs.pcrt_;
+
+    if (toread > 2) {
+        toread -= 2;
+        if (_rr.size_ != InvalidSize()) {
+            if (_rr.size_ < toread) {
+                toread = _rr.size_;
+            }
+        }
+
+        if (ris) {
+            ris.read(_rs.pcrt_ + 2, toread);
+            toread = ris.gcount();
+        } else {
+            toread = 0;
+        }
+        SOLID_CHECK(toread <= 0xffff);
+        uint16_t chunk_len = static_cast<uint16_t>(toread);
+        _rs.pcrt_          = store(_rs.pcrt_, chunk_len);
+        _rs.pcrt_ += toread;
+        _rr.data_ += toread;
+
+        bool done = (toread == 0); //we need to have written a final chunk_len == 0
+
+        if (_rr.size_ != InvalidSize()) {
+            _rr.size_ -= toread;
+        }
+
+        if (!done) {
+            _rr.fnc_(_rs, _rr, _pctx);
+            return ReturnE::Wait;
+        } else {
+            _rr.size_ = 0;
+            _rr.fnc_(_rs, _rr, _pctx);
+        }
+    } else {
+        return ReturnE::Wait;
+    }
+    return ReturnE::Done;
+}
+
 } //namespace binary
 } //namespace v2
 } //namespace serialization

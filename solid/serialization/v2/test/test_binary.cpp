@@ -89,7 +89,12 @@ public:
 
     bool operator==(const Test& _rt) const
     {
-        return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d;
+        std::ifstream     t(p);
+        std::stringstream buffer;
+        buffer << t.rdbuf();
+        string s1 = buffer.str();
+        string s2 = _rt.oss.str();
+        return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2;
     }
 
     template <class S>
@@ -109,11 +114,14 @@ public:
                 "f");
 
         std::ifstream ifs;
+        ifs.open(p);
         _rs
             .push(make_choice<S::is_serializer>(
-                      [this, ifs = std::move(ifs)](S& _rs, const char* _name) mutable {
-                          ifs.open(p);
-                          //_rs.add(ifs, _name);
+                      [ this, ifs = std::move(ifs) ](S & _rs, const char* _name) mutable {
+                          _rs.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, const char* _name) {
+                              idbg("Progress(" << _name << "): " << _len << " done = " << _done);
+                          },
+                              _name);
                           return true;
                       },
                       [](S& _rs, const char* _name) {
@@ -144,7 +152,10 @@ public:
                         return true;
                     },
                     [this](S& _rs, Context& _rctx, const char* _name) {
-                        //_rs.add(oss, _rctx, _name);
+                        _rs.add(oss, [](std::ostream& _ros, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
+                            idbg("Progress(" << _name << "): " << _len << " done = " << _done);
+                        },
+                            _rctx, _name);
                         return true;
                     }),
                 _rctx, "s")

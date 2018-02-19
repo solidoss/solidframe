@@ -51,6 +51,23 @@ class DeserializerBase : public Base {
         {
         }
 
+        template <class F>
+        Runnable(
+            void*       _ptr,
+            CallbackT   _call,
+            uint64_t    _size,
+            uint64_t    _data,
+            F&&         _f,
+            const char* _name)
+            : ptr_(_ptr)
+            , call_(_call)
+            , size_(_size)
+            , data_(_data)
+            , name_(_name)
+            , fnc_(std::move(_f))
+        {
+        }
+
         void clear()
         {
             ptr_  = nullptr;
@@ -309,6 +326,29 @@ public:
         idbg(_name);
     }
 
+    template <class F, class Ctx>
+    void addStream(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
+    {
+        uint64_t len    = 0;
+        auto     lambda = [ _f = std::move(_f), len ](DeserializerBase & _rs, Runnable & _rr, void* _pctx) mutable
+        {
+            Ctx&          rctx = *static_cast<Ctx*>(_pctx);
+            std::ostream& ros  = *const_cast<std::ostream*>(static_cast<const std::ostream*>(_rr.ptr_));
+            len += _rr.data_;
+            _f(ros, len, _rr.data_ == 0, rctx, _rr.name_);
+            return ReturnE::Done;
+        };
+
+        Runnable r{&_ros, &load_stream, 0, 0, lambda, _name};
+        if (isRunEmpty()) {
+            if (load_stream(*this, r, &_rctx) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
 private:
     void tryRun(Runnable&& _ur, void* _pctx = nullptr);
 
@@ -399,6 +439,11 @@ private:
 
     static ReturnE noop(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
 
+    static ReturnE load_stream(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
+    static ReturnE load_stream_chunk_length(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
+    static ReturnE load_stream_chunk_begin(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
+    static ReturnE load_stream_chunk(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
+
 private:
     enum {
         BufferCapacityE = sizeof(uint64_t) * 2
@@ -416,7 +461,7 @@ private:
     RunListT    run_lst_;
     CacheListT  cache_lst_;
     char        buf_[BufferCapacityE];
-};
+}; // namespace v2
 
 template <class Ctx = void>
 class Deserializer;
@@ -427,8 +472,10 @@ public:
     using ThisT    = Deserializer<Ctx>;
     using ContextT = Ctx;
 
-    ThisT& add(std::ostream& _ros, Ctx& _rctx, const char* _name)
+    template <typename F>
+    ThisT& add(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
     {
+        addStream(_ros, _f, _rctx, _name);
         return *this;
     }
 
@@ -477,7 +524,7 @@ inline std::istream& operator>>(std::istream& _ris, std::pair<D&, typename D::Co
     return _des.first.run(_ris, _des.second);
 }
 
-} //namespace binary
-} //namespace v2
-} //namespace serialization
-} //namespace solid
+} // namespace binary
+} // namespace v2
+} // namespace serialization
+} // namespace solid

@@ -37,23 +37,29 @@ class SerializerBase : public Base {
         {
         }
 
-        //         template <class F>
-        //         Runnable(const void* _ptr, CallbackT _call, F _f, const char* _name)
-        //             : ptr_(_ptr)
-        //             , call_(_call)
-        //             , size_(0)
-        //             , data_(0)
-        //             , name_(_name)
-        //             , fnc_(_f)
-        //         {
-        //         }
-
         template <class F>
         Runnable(const void* _ptr, CallbackT _call, F&& _f, const char* _name)
             : ptr_(_ptr)
             , call_(_call)
             , size_(0)
             , data_(0)
+            , name_(_name)
+            , fnc_(std::move(_f))
+        {
+        }
+
+        template <class F>
+        Runnable(
+            const void* _ptr,
+            CallbackT   _call,
+            uint64_t    _size,
+            uint64_t    _data,
+            F&&         _f,
+            const char* _name)
+            : ptr_(_ptr)
+            , call_(_call)
+            , size_(_size)
+            , data_(_data)
             , name_(_name)
             , fnc_(std::move(_f))
         {
@@ -334,6 +340,27 @@ public: //should be protected
         idbg(_name);
     }
 
+    template <class F>
+    void addStream(std::istream& _ris, const uint64_t _sz, F _f, const char* _name)
+    {
+        auto lambda = [_f = std::move(_f)](SerializerBase & _rs, Runnable & _rr, void* _pctx)
+        {
+            std::istream& ris = *const_cast<std::istream*>(static_cast<const std::istream*>(_rr.ptr_));
+            _f(ris, _rr.data_, _rr.size_ == 0, _rr.name_);
+            return ReturnE::Done;
+        };
+
+        Runnable r{&_ris, &store_stream, _sz, 0, lambda, _name};
+
+        if (isRunEmpty()) {
+            if (store_stream(*this, r, nullptr) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
 private:
     void tryRun(Runnable&& _ur, void* _pctx = nullptr);
 
@@ -366,6 +393,8 @@ private:
 
     static ReturnE noop(SerializerBase& _rs, Runnable& _rr, void* _pctx);
 
+    static ReturnE store_stream(SerializerBase& _rs, Runnable& _rr, void* _pctx);
+
 private:
     enum {
         BufferCapacityE = sizeof(uint64_t) * 2
@@ -383,7 +412,7 @@ private:
     RunListT   run_lst_;
     CacheListT cache_lst_;
     char       buf_[BufferCapacityE];
-};
+}; // namespace v2
 
 template <class Ctx = void>
 class Serializer;
@@ -392,6 +421,19 @@ template <>
 class Serializer<void> : public SerializerBase {
 public:
     using ThisT = Serializer<void>;
+
+    template <typename F>
+    ThisT& add(std::istream& _ris, const uint64_t _sz, F _f, const char* _name)
+    {
+        addStream(_ris, _sz, _f, _name);
+        return *this;
+    }
+    template <typename F>
+    ThisT& add(std::istream& _ris, F _f, const char* _name)
+    {
+        addStream(_ris, InvalidSize(), _f, _name);
+        return *this;
+    }
 
     template <typename T>
     ThisT& add(T& _rt, const char* _name)
@@ -418,18 +460,6 @@ public:
     ThisT& push(T&& _rt, const char* _name)
     {
         solidSerializePushV2(*this, std::move(_rt), _name);
-        return *this;
-    }
-
-    template <class CF, class PF, class DF>
-    ThisT& add(CF _cf, PF _pf, DF _df)
-    {
-        addStream(_cf, _pf, _df);
-        return *this;
-    }
-
-    ThisT& add(std::istream& _ris, const char* _name)
-    {
         return *this;
     }
 };

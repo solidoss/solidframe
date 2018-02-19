@@ -219,6 +219,85 @@ Base::ReturnE DeserializerBase::noop(DeserializerBase& _rd, Runnable& _rr, void*
     return ReturnE::Done;
 }
 
+Base::ReturnE DeserializerBase::load_stream_chunk_length(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+{
+    //we can only use _rd.buf_ and _rr.size_ - the length will be stored in _rr.size_
+
+    size_t len = _rd.pend_ - _rd.pcrt_;
+    if (len > _rr.size_) {
+        len = _rr.size_;
+    }
+
+    memcpy(_rd.buf_ + _rr.data_, _rd.pcrt_, len);
+
+    _rr.size_ -= len;
+    _rr.data_ += len;
+    _rd.pcrt_ += len;
+
+    if (_rr.size_ == 0) {
+        uint16_t v;
+        load(_rd.buf_, v);
+        _rr.size_ = v;
+        _rr.call_ = load_stream_chunk_begin;
+        return load_stream_chunk_begin(_rd, _rr, _pctx);
+    }
+
+    return ReturnE::Wait;
+}
+
+Base::ReturnE DeserializerBase::load_stream(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+{
+    ptrdiff_t len = _rd.pend_ - _rd.pcrt_;
+    if (len >= 2) {
+        uint16_t v;
+        _rd.pcrt_ = load(_rd.pcrt_, v);
+        _rr.size_ = v;
+        _rr.call_ = load_stream_chunk_begin;
+        return load_stream_chunk_begin(_rd, _rr, _pctx);
+    } else {
+        _rr.size_ = 2;
+        _rr.data_ = 0;
+        _rr.call_ = load_stream_chunk_length;
+        return load_stream_chunk_length(_rd, _rr, _pctx);
+    }
+}
+
+Base::ReturnE DeserializerBase::load_stream_chunk_begin(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+{
+    if (_rr.size_ == 0) {
+        _rr.data_ = 0;
+        _rr.fnc_(_rd, _rr, _pctx);
+        return ReturnE::Done;
+    } else {
+        _rr.call_ = load_stream_chunk;
+        return load_stream_chunk(_rd, _rr, _pctx);
+    }
+}
+
+Base::ReturnE DeserializerBase::load_stream_chunk(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+{
+    std::ostream& ros = *const_cast<std::ostream*>(static_cast<const std::ostream*>(_rr.ptr_));
+    size_t        len = _rd.pend_ - _rd.pcrt_;
+    if (len) {
+        if (len > _rr.size_) {
+            len = _rr.size_;
+        }
+
+        ros.write(_rd.pcrt_, len);
+
+        _rr.size_ -= len;
+        _rd.pcrt_ += len;
+
+        _rr.data_ = len;
+        _rr.fnc_(_rd, _rr, _pctx);
+        if (_rr.size_ == 0) {
+            _rr.call_ = load_stream;
+            return load_stream(_rd, _rr, _pctx);
+        }
+    }
+    return ReturnE::Wait;
+}
+
 } //namespace binary
 } //namespace v2
 } //namespace serialization

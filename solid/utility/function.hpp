@@ -214,12 +214,12 @@ public:
     Function(std::nullptr_t) {}
 
     Function(const ThisT& _rany)
-        : FunctionBase(doCopyFrom(_rany, data_, DataSize))
+        : FunctionBase(doCopyFrom(_rany, u_.data_, DataSize))
     {
     }
 
     Function(ThisT&& _rany)
-        : FunctionBase(doMoveFrom(_rany, data_, DataSize, _rany.usesData()))
+        : FunctionBase(doMoveFrom(_rany, u_.data_, DataSize, _rany.usesData()))
     {
         _rany.release(pvalue_);
     }
@@ -274,7 +274,7 @@ public:
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
-            pvalue_ = doCopyFrom(_rany, data_, DataSize);
+            pvalue_ = doCopyFrom(_rany, u_.data_, DataSize);
         }
         return *this;
     }
@@ -283,7 +283,7 @@ public:
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
-            pvalue_ = doMoveFrom(_rany, data_, DataSize, _rany.usesData());
+            pvalue_ = doMoveFrom(_rany, u_.data_, DataSize, _rany.usesData());
             _rany.release(pvalue_);
         }
         return *this;
@@ -319,7 +319,7 @@ public:
 
     bool usesData() const
     {
-        return reinterpret_cast<const void*>(pvalue_) == reinterpret_cast<const void*>(data_);
+        return reinterpret_cast<const void*>(pvalue_) == reinterpret_cast<const void*>(u_.data_);
     }
 
     R operator()(ArgTypes... args) const
@@ -355,7 +355,7 @@ private:
     template <class T>
     impl::FunctionValueBase* do_allocate(std::false_type /*_is_any*/, std::true_type /*_emplace_new*/, T&& _arg)
     {
-        return new (data_) FunctionValueT<T>(std::forward<T>(_arg));
+        return new (u_.data_) FunctionValueT<T>(std::forward<T>(_arg));
     }
 
     template <class T>
@@ -367,19 +367,19 @@ private:
     template <class T>
     impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, const T& _rany)
     {
-        return doCopyFrom(_rany, data_, DataSize);
+        return doCopyFrom(_rany, u_.data_, DataSize);
     }
 
     template <class T>
     impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, const T& _rany)
     {
-        return doCopyFrom(_rany, data_, DataSize);
+        return doCopyFrom(_rany, u_.data_, DataSize);
     }
 
     template <class T>
     impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, T&& _uany)
     {
-        impl::FunctionValueBase* rv = doMoveFrom(_uany, data_, DataSize, _uany.usesData());
+        impl::FunctionValueBase* rv = doMoveFrom(_uany, u_.data_, DataSize, _uany.usesData());
         _uany.release(rv);
         return rv;
     }
@@ -387,13 +387,16 @@ private:
     template <class T>
     impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, T&& _uany)
     {
-        impl::FunctionValueBase* rv = doMoveFrom(_uany, data_, DataSize, _uany.usesData());
+        impl::FunctionValueBase* rv = doMoveFrom(_uany, u_.data_, DataSize, _uany.usesData());
         _uany.release(rv);
         return rv;
     }
 
 private:
-    char data_[DataSize];
+    union {
+        char     data_[DataSize];
+        uint64_t v_;
+    } u_;
 };
 
 //-----------------------------------------------------------------------------
@@ -406,7 +409,7 @@ private:
 #else
 
 #ifndef SOLID_FUNCTION_STORAGE
-#define SOLID_FUNCTION_STORAGE 128
+#define SOLID_FUNCTION_STORAGE 32
 #endif
 
 #define SOLID_FUNCTION(...) solid::Function<SOLID_FUNCTION_STORAGE, __VA_ARGS__>
