@@ -86,7 +86,9 @@ public:
 
     std::ostream& run(std::ostream& _ros);
     long          run(char* _pbeg, unsigned _sz, void* _pctx = nullptr);
-
+    
+    void limits(const Limits &_rlimits);
+    
 public: //should be protected
     SerializerBase();
 
@@ -460,6 +462,11 @@ public:
     ThisT& push(T&& _rt, const char* _name)
     {
         solidSerializePushV2(*this, std::move(_rt), _name);
+        return *this;
+    }
+    
+    ThisT& limits(const Limits &_rlimits){
+        SerializerBase::limits(_rlimits);
         return *this;
     }
 };

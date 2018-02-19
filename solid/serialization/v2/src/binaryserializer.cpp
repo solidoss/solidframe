@@ -156,6 +156,23 @@ void SerializerBase::addBasic(const std::string& _rb, const char* _name)
     schedule(std::move(r));
 }
 
+void SerializerBase::limits(const Limits &_rlimits){
+    idbg("");
+    if (isRunEmpty()) {
+        limits_ = _rlimits;
+    } else {
+        Runnable r{
+            nullptr,
+            call_function,
+            [_rlimits](SerializerBase& _rs, Runnable& /*_rr*/, void* /*_pctx*/) {
+                _rs.limits_ = _rlimits;
+                return Base::ReturnE::Done;
+            }, ""
+            };
+        schedule(std::move(r));
+    }
+}
+
 //-- store functions ----------------------------------------------------------
 
 Base::ReturnE SerializerBase::store_byte(SerializerBase& _rs, Runnable& _rr, void* _pctx)

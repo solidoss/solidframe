@@ -92,6 +92,8 @@ public:
 
     std::istream& run(std::istream& _ris, void* _pctx = nullptr);
     long          run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
+    
+    void limits(const Limits &_rlimits);
 
     void addBasic(bool& _rb, const char* _name);
     void addBasic(int8_t& _rb, const char* _name);
@@ -506,7 +508,12 @@ public:
         solidSerializePushV2(*this, std::move(_rt), _rctx, _name);
         return *this;
     }
-
+    
+    ThisT& limits(const Limits &_rlimits){
+        DeserializerBase::limits(_rlimits);
+        return *this;
+    }
+    
     std::istream& run(std::istream& _ris, Ctx& _rctx)
     {
         return DeserializerBase::run(_ris, &_rctx);

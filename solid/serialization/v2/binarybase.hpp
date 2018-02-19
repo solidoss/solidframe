@@ -1,12 +1,35 @@
 #pragma once
 #include "solid/serialization/v2/typetraits.hpp"
+#include "solid/serialization/v2/error.hpp"
+#include "solid/utility/common.hpp"
 #include <memory>
 namespace solid {
 namespace serialization {
 namespace v2 {
 namespace binary {
 
+struct Limits {
+    Limits(
+        size_t   _stringlimit    = InvalidSize(),
+        size_t   _containerlimit = InvalidSize(),
+        uint64_t _streamlimit    = InvalidSize())
+        : stringlimit(_stringlimit)
+        , containerlimit(_containerlimit)
+        , streamlimit(_streamlimit)
+    {
+    } //unlimited by default
+
+    size_t   stringlimit;
+    size_t   containerlimit;
+    uint64_t streamlimit;
+};
+
+
 class Base {
+public:
+    const ErrorConditionT& error()const{
+        return error_;
+    }
 protected:
     enum struct ReturnE {
         Done = 0,
@@ -21,6 +44,9 @@ protected:
         //Add above
         InnerListCount,
     };
+protected:
+    Limits limits_;
+    ErrorConditionT error_;
 };
 
 #define SOLID_SERIALIZATION_BASIC(T)                                     \

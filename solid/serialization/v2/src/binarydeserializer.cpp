@@ -169,6 +169,24 @@ void DeserializerBase::addBasic(std::string& _rb, const char* _name)
     tryRun(std::move(r));
 }
 
+void DeserializerBase::limits(const Limits &_rlimits){
+    idbg("");
+    if (isRunEmpty()) {
+        limits_ = _rlimits;
+    } else {
+        Runnable r{
+            nullptr,
+            call_function,
+            [_rlimits](DeserializerBase& _rd, Runnable& /*_rr*/, void* /*_pctx*/) {
+                _rd.limits_ = _rlimits;
+                return Base::ReturnE::Done;
+            }, ""
+            };
+        schedule(std::move(r));
+    }
+}
+
+
 //-- load functions ----------------------------------------------------------
 
 Base::ReturnE DeserializerBase::load_bool(DeserializerBase& _rd, Runnable& _rr, void* _pctx)

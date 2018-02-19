@@ -2,6 +2,7 @@ set(Sources
     src/binarybasic.cpp
     src/binaryserializer.cpp
     src/binarydeserializer.cpp
+    src/error.cpp
 )
 
 set(Headers
@@ -9,6 +10,7 @@ set(Headers
     binarybasic.hpp
     binaryserializer.hpp
     binarydeserializer.hpp
+    error.hpp
 )
 
 set(Inlines
