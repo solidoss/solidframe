@@ -93,7 +93,16 @@ public:
     std::istream& run(std::istream& _ris, void* _pctx = nullptr);
     long          run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
     
+    void clear();
+    
     void limits(const Limits &_rlimits);
+    
+    const Limits& limits()const{
+        return Base::limits();
+    }
+    const ErrorConditionT& error()const{
+        return Base::error();
+    }
 
     void addBasic(bool& _rb, const char* _name);
     void addBasic(int8_t& _rb, const char* _name);
@@ -243,6 +252,61 @@ public:
     void addContainer(D& _rd, C& _rc, const char* _name)
     {
         idbg(_name);
+        
+        typename C::value_type value;
+        bool                   init          = true;
+        bool                   parsing_value = false;
+        auto                   lambda        = [value, parsing_value, init](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
+            C&   rcontainer = *static_cast<C*>(_rr.ptr_);
+            D&   rd         = static_cast<D&>(_rd);
+
+            if (init) {
+                init                = false;
+                size_t old_sentinel = _rd.sentinel();
+                SOLID_ASSERT(_rd.isRunEmpty());
+                rd.addBasic(_rr.size_, _rr.name_);
+                const bool is_run_empty = _rd.isRunEmpty();
+                _rd.sentinel(old_sentinel);
+                if (not is_run_empty) {
+                    return ReturnE::Wait;
+                }
+            }
+
+            if (parsing_value) {
+                rcontainer.insert(rcontainer.end(), value);
+                parsing_value = false;
+            } else if(_rd.limits().hasContainer() && _rr.size_ > _rd.limits().container()){
+                _rd.error(error_limit_stream);
+                return ReturnE::Done;
+            }
+
+            size_t old_sentinel = _rd.sentinel();
+
+            while (_rd.pcrt_ != _rd.pend_ and _rr.size_ != 0) {
+                rd.add(value, _rr.name_);
+                --_rr.size_;
+
+                if (_rd.isRunEmpty()) {
+                    //the value was parsed
+                    rcontainer.insert(rcontainer.end(), value);
+                } else {
+                    parsing_value = true;
+                    SOLID_CHECK(_rd.pcrt_ == _rd.pend_, "buffer not empty");
+                }
+            }
+
+            const bool is_run_empty = _rd.isRunEmpty();
+            _rd.sentinel(old_sentinel);
+
+            if (_rr.size_ == 0 and is_run_empty) {
+                return ReturnE::Done;
+            }
+            return ReturnE::Wait;
+        };
+
+        Runnable r{&_rc, call_function, lambda, _name};
+
+        tryRun(std::move(r));
     }
 
     template <class D, class C, class Ctx>
@@ -273,6 +337,9 @@ public:
             if (parsing_value) {
                 rcontainer.insert(rcontainer.end(), value);
                 parsing_value = false;
+            } else if(_rd.limits().hasContainer() && _rr.size_ > _rd.limits().container()){
+                _rd.error(error_limit_stream);
+                return ReturnE::Done;
             }
 
             size_t old_sentinel = _rd.sentinel();
@@ -332,12 +399,17 @@ public:
     void addStream(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
     {
         uint64_t len    = 0;
-        auto     lambda = [ _f = std::move(_f), len ](DeserializerBase & _rs, Runnable & _rr, void* _pctx) mutable
+        auto     lambda = [ _f = std::move(_f), len ](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
         {
             Ctx&          rctx = *static_cast<Ctx*>(_pctx);
             std::ostream& ros  = *const_cast<std::ostream*>(static_cast<const std::ostream*>(_rr.ptr_));
             len += _rr.data_;
+            
             _f(ros, len, _rr.data_ == 0, rctx, _rr.name_);
+            
+            if(_rd.limits().hasStream() && len > _rd.limits().stream()){
+                _rd.error(error_limit_stream);
+            }
             return ReturnE::Done;
         };
 
@@ -355,6 +427,13 @@ private:
     void tryRun(Runnable&& _ur, void* _pctx = nullptr);
 
     size_t schedule(Runnable&& _ur);
+    
+    void error(const ErrorConditionT &_err){
+        if(!error_){
+            error_ = _err;
+            pcrt_ = pbeg_ = pend_ = nullptr;
+        }
+    }
 
     size_t sentinel()
     {
@@ -394,14 +473,22 @@ private:
 
                     T vt = static_cast<T>(v);
 
-                    SOLID_CHECK(static_cast<uint64_t>(vt) == v, "TODO: handle error");
-
-                    *reinterpret_cast<T*>(_rr.ptr_) = vt;
+                    if(static_cast<uint64_t>(vt) == v){
+                        *reinterpret_cast<T*>(_rr.ptr_) = vt;
+                    }else{
+                        _rd.error(error_cross_integer);
+                    }
+                    
                     return ReturnE::Done;
                 } else {
                     //not enough data
                     _rr.size_ = cross::size(_rd.pcrt_);
-                    SOLID_CHECK(_rr.size_ != InvalidSize(), "TODO: handle error");
+                    
+                    if(_rr.size_ == InvalidSize()){
+                        _rd.error(error_cross_integer);
+                        return ReturnE::Done;
+                    }
+                    
                     size_t toread = _rd.pend_ - _rd.pcrt_;
                     SOLID_CHECK(toread < _rr.size_, "Should not happen");
                     memcpy(_rd.buf_ + _rr.data_, _rd.pcrt_, toread);
@@ -424,13 +511,19 @@ private:
                     uint64_t    v;
                     T           vt;
                     const char* p = cross::load(_rd.buf_, _rr.data_, v);
-                    SOLID_CHECK(p != nullptr, "TODO: handle error");
+                    if(p == nullptr){
+                        _rd.error(error_cross_integer);
+                        return ReturnE::Done;
+                    }
 
                     vt = static_cast<T>(v);
 
-                    SOLID_CHECK(static_cast<uint64_t>(vt) == v, "TODO: handle error");
+                    if(static_cast<uint64_t>(vt) == v){
+                        *reinterpret_cast<T*>(_rr.ptr_) = vt;
+                    }else{
+                        _rd.error(error_cross_integer);
+                    }
 
-                    *reinterpret_cast<T*>(_rr.ptr_) = vt;
                     return ReturnE::Done;
                 }
                 return ReturnE::Wait;
@@ -467,6 +560,54 @@ private:
 
 template <class Ctx = void>
 class Deserializer;
+
+
+template <>
+class Deserializer<void> : public DeserializerBase {
+public:
+    using ThisT = Deserializer<void>;
+
+    template <typename F>
+    ThisT& add(std::ostream& _ros, F _f, const char* _name)
+    {
+        addStream(_ros, _f, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(T& _rt, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(const T& _rt, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& push(T& _rt, const char* _name)
+    {
+        solidSerializePushV2(*this, std::move(_rt), _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& push(T&& _rt, const char* _name)
+    {
+        solidSerializePushV2(*this, std::move(_rt), _name);
+        return *this;
+    }
+    
+    ThisT& limits(const Limits &_rlimits){
+        DeserializerBase::limits(_rlimits);
+        return *this;
+    }
+};
+
 
 template <class Ctx>
 class Deserializer : public DeserializerBase {

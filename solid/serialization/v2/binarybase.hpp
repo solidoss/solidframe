@@ -13,15 +13,39 @@ struct Limits {
         size_t   _stringlimit    = InvalidSize(),
         size_t   _containerlimit = InvalidSize(),
         uint64_t _streamlimit    = InvalidSize())
-        : stringlimit(_stringlimit)
-        , containerlimit(_containerlimit)
-        , streamlimit(_streamlimit)
+        : stringlimit_(_stringlimit)
+        , containerlimit_(_containerlimit)
+        , streamlimit_(_streamlimit)
     {
     } //unlimited by default
-
-    size_t   stringlimit;
-    size_t   containerlimit;
-    uint64_t streamlimit;
+    
+    bool hasStream()const{
+        return streamlimit_ != InvalidSize(); 
+    }
+    
+    bool hasString()const{
+        return stringlimit_ != InvalidSize();
+    }
+    
+    bool hasContainer()const{
+        return containerlimit_ != InvalidSize();
+    }
+    
+    size_t string()const{
+        return stringlimit_;
+    }
+    
+    size_t container()const{
+        return containerlimit_;
+    }
+    
+    uint64_t stream()const{
+        return streamlimit_;
+    }
+    
+    size_t   stringlimit_;
+    size_t   containerlimit_;
+    uint64_t streamlimit_;
 };
 
 
@@ -29,6 +53,10 @@ class Base {
 public:
     const ErrorConditionT& error()const{
         return error_;
+    }
+    
+    const Limits& limits()const{
+        return limits_;
     }
 protected:
     enum struct ReturnE {
@@ -55,8 +83,18 @@ protected:
     {                                                                    \
         _rs.addBasic(_rt, _name);                                        \
     }                                                                    \
+    template <class S>                                                   \
+    void solidSerializeV2(S& _rs, T& _rt, const char* _name)       \
+    {                                                                    \
+        _rs.addBasic(_rt, _name);                                        \
+    }                                                                    \
     template <class S, class Ctx>                                        \
     void solidSerializeV2(S& _rs, T& _rt, Ctx& _rctx, const char* _name) \
+    {                                                                    \
+        _rs.addBasic(_rt, _name);                                        \
+    }                                                                    \
+    template <class S, class Ctx>                                        \
+    void solidSerializeV2(S& _rs, const T& _rt, Ctx& _rctx, const char* _name) \
     {                                                                    \
         _rs.addBasic(_rt, _name);                                        \
     }
@@ -102,6 +140,12 @@ template <class S, class T, class Ctx>
 void solidSerializeV2IsContainer(S& _rs, T& _rt, Ctx& _rctx, const char* _name, std::true_type)
 {
     _rs.addContainer(_rs, _rt, _rctx, _name);
+}
+
+template <class S, class T>
+void solidSerializeV2IsContainer(S& _rs, T& _rt, const char* _name, std::true_type)
+{
+    _rs.addContainer(_rs, _rt, _name);
 }
 
 template <class S, class T>

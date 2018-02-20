@@ -8,7 +8,10 @@ namespace v2{
 namespace {
 
 enum {
-    Error_E = 1,
+    Error_Limit_Container_E = 1,
+    Error_Limit_String_E,
+    Error_Limit_Stream_E,
+    Error_Cross_Integer_E,
 };
 
 class ErrorCategory : public ErrorCategoryT {
@@ -33,9 +36,17 @@ std::string ErrorCategory::message(int _ev) const
     case 0:
         oss << "Success";
         break;
-    case Error_E:
-        oss << "Generic";
+    case Error_Limit_Container_E:
+        oss << "Limit container";
         break;
+    case Error_Limit_String_E:
+        oss << "Limit string";
+        break;
+    case Error_Limit_Stream_E:
+        oss << "Limit stream";
+        break;
+    case Error_Cross_Integer_E:
+        oss << "Cross integer checks failed";
     default:
         oss << "Unknown";
         break;
@@ -45,7 +56,10 @@ std::string ErrorCategory::message(int _ev) const
 
 } //namespace
 
-/*extern*/ const ErrorConditionT error_(Error_E, category);
+/*extern*/ const ErrorConditionT error_limit_container(Error_Limit_Container_E, category);
+/*extern*/ const ErrorConditionT error_limit_string(Error_Limit_Container_E, category);
+/*extern*/ const ErrorConditionT error_limit_stream(Error_Limit_Container_E, category);
+/*extern*/ const ErrorConditionT error_cross_integer(Error_Cross_Integer_E, category);
     
 }//namespace v2
 }//namespace serialization

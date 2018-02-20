@@ -87,7 +87,13 @@ public:
     std::ostream& run(std::ostream& _ros);
     long          run(char* _pbeg, unsigned _sz, void* _pctx = nullptr);
     
+    void clear();
+    
     void limits(const Limits &_rlimits);
+    
+    const Limits& limits()const{
+        return Base::limits();
+    }
     
 public: //should be protected
     SerializerBase();
@@ -238,6 +244,10 @@ public: //should be protected
     void addContainer(S& _rs, const C& _rc, const char* _name)
     {
         idbg(_name << ' ' << _rc.size());
+        if(_rc.size() > limits().container()){
+            error(error_limit_container);
+            return;
+        }
         addBasic(_rc.size(), _name);
         if (_rc.size()) {
             typename C::const_iterator it = _rc.cbegin();
@@ -278,7 +288,11 @@ public: //should be protected
     void addContainer(S& _rs, const C& _rc, Ctx& _rctx, const char* _name)
     {
         idbg(_name << ' ' << _rc.size());
-
+        
+        if(_rc.size() > limits().container()){
+            error(error_limit_container);
+            return;
+        }
         addBasic(_rc.size(), _name);
 
         if (_rc.size()) {
@@ -375,7 +389,14 @@ private:
         idbg(olds << ' ' << sentinel_);
         return olds;
     }
-
+    
+    void error(const ErrorConditionT &_err){
+        if(!error_){
+            error_ = _err;
+            pcrt_ = pbeg_ = pend_ = nullptr;
+        }
+    }
+    
     void sentinel(const size_t _s)
     {
         idbg(_s);

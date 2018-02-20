@@ -21,7 +21,7 @@ DeserializerBase::DeserializerBase()
 
 std::istream& DeserializerBase::run(std::istream& _ris, void* _pctx)
 {
-    const size_t buf_cap = 11; //8 * 1024;
+    const size_t buf_cap = 8 * 1024;
     char         buf[buf_cap];
 
     do {
@@ -52,9 +52,15 @@ long DeserializerBase::run(const char* _pbeg, unsigned _sz, void* _pctx)
         }
     }
 DONE:
-    long rv = pcrt_ - pbeg_;
+    long rv = error_ ? -1 : pcrt_ - pbeg_;
     pcrt_ = pbeg_ = pend_ = nullptr;
     return rv;
+}
+
+
+void DeserializerBase::clear(){
+    run_lst_.clear();
+    run_vec_.clear();
 }
 
 size_t DeserializerBase::schedule(Runnable&& _ur)
@@ -152,7 +158,12 @@ void DeserializerBase::addBasic(std::string& _rb, const char* _name)
                 return ReturnE::Wait;
             }
         }
-
+        
+        if(_rd.limits().hasString() && _rr.size_ > _rd.limits().string()){
+            _rd.error(error_limit_string);
+            return ReturnE::Done;
+        }
+        
         //at this point _rr.size_ contains the size of the string
         std::string& rs = *static_cast<std::string*>(_rr.ptr_);
         rs.resize(_rr.size_);
@@ -308,6 +319,11 @@ Base::ReturnE DeserializerBase::load_stream_chunk(DeserializerBase& _rd, Runnabl
 
         _rr.data_ = len;
         _rr.fnc_(_rd, _rr, _pctx);
+        
+        if(_rd.error()){
+            return ReturnE::Done;
+        }
+        
         if (_rr.size_ == 0) {
             _rr.call_ = load_stream;
             return load_stream(_rd, _rr, _pctx);

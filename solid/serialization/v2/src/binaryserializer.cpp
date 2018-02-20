@@ -22,7 +22,7 @@ SerializerBase::SerializerBase()
 
 std::ostream& SerializerBase::run(std::ostream& _ros)
 {
-    const size_t buf_cap = 11; //8 * 1024;
+    const size_t buf_cap = 8 * 1024;
     char         buf[buf_cap];
     long         len;
 
@@ -55,9 +55,14 @@ long SerializerBase::run(char* _pbeg, unsigned _sz, void* _pctx)
         }
     }
 DONE:
-    long rv = pcrt_ - pbeg_;
+    long rv = error_ ? -1 : pcrt_ - pbeg_;
     pcrt_ = pbeg_ = pend_ = nullptr;
     return rv;
+}
+
+void SerializerBase::clear(){
+    run_lst_.clear();
+    run_vec_.clear();
 }
 
 size_t SerializerBase::schedule(Runnable&& _ur)
@@ -142,7 +147,12 @@ void SerializerBase::addBasic(const uint8_t& _rb, const char* _name)
 void SerializerBase::addBasic(const std::string& _rb, const char* _name)
 {
     idbg(_name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
-
+    
+    if(limits().hasString() && _rb.size() > limits().string()){
+        error(error_limit_string);
+        return;
+    }
+    
     addBasic(_rb.size(), _name);
 
     Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
@@ -189,21 +199,18 @@ Base::ReturnE SerializerBase::store_byte(SerializerBase& _rs, Runnable& _rr, voi
 Base::ReturnE SerializerBase::store_cross(SerializerBase& _rs, Runnable& _rr, void* _pctx)
 {
     if (_rs.pcrt_ != _rs.pend_) {
-        if (_rr.ptr_ == nullptr) {
-            //first run
-            char* p = cross::store(_rs.pcrt_, _rs.pend_ - _rs.pcrt_, _rr.data_);
-            if (p != nullptr) {
-                _rs.pcrt_ = p;
-                return ReturnE::Done;
-            } else {
-                p = cross::store(_rs.buf_, BufferCapacityE, _rr.data_);
-                SOLID_CHECK(p, "should not be null");
-                _rr.ptr_  = _rs.buf_;
-                _rr.size_ = p - _rs.buf_;
-                _rr.data_ = 0;
-                _rr.call_ = store_binary;
-                return store_binary(_rs, _rr, _pctx);
-            }
+        char* p = cross::store(_rs.pcrt_, _rs.pend_ - _rs.pcrt_, _rr.data_);
+        if (p != nullptr) {
+            _rs.pcrt_ = p;
+            return ReturnE::Done;
+        } else {
+            p = cross::store(_rs.buf_, BufferCapacityE, _rr.data_);
+            SOLID_CHECK(p, "should not be null");
+            _rr.ptr_  = _rs.buf_;
+            _rr.size_ = p - _rs.buf_;
+            _rr.data_ = 0;
+            _rr.call_ = store_binary;
+            return store_binary(_rs, _rr, _pctx);
         }
     }
     return ReturnE::Wait;
@@ -259,6 +266,11 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         _rs.pcrt_          = store(_rs.pcrt_, chunk_len);
         _rs.pcrt_ += toread;
         _rr.data_ += toread;
+        
+        if(_rs.limits().hasStream() && _rr.data_ > _rs.limits().stream()){
+            _rs.error(error_limit_stream);
+            return ReturnE::Done;
+        }
 
         bool done = (toread == 0); //we need to have written a final chunk_len == 0
 
