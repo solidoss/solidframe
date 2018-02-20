@@ -153,7 +153,7 @@ void SerializerBase::addBasic(const std::string& _rb, const char* _name)
         return;
     }
     
-    addBasic(_rb.size(), _name);
+    addBasicWithCheck(_rb.size(), _name);
 
     Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
 
@@ -196,15 +196,20 @@ Base::ReturnE SerializerBase::store_byte(SerializerBase& _rs, Runnable& _rr, voi
     return ReturnE::Wait;
 }
 
-Base::ReturnE SerializerBase::store_cross(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE SerializerBase::store_cross(SerializerBase& _rs, Runnable& _rr, void* _pctx){
+    
+    return ReturnE::Wait;
+}
+
+Base::ReturnE SerializerBase::store_cross_with_check(SerializerBase& _rs, Runnable& _rr, void* _pctx)
 {
     if (_rs.pcrt_ != _rs.pend_) {
-        char* p = cross::store(_rs.pcrt_, _rs.pend_ - _rs.pcrt_, _rr.data_);
+        char* p = cross::store_with_check(_rs.pcrt_, _rs.pend_ - _rs.pcrt_, _rr.data_);
         if (p != nullptr) {
             _rs.pcrt_ = p;
             return ReturnE::Done;
         } else {
-            p = cross::store(_rs.buf_, BufferCapacityE, _rr.data_);
+            p = cross::store_with_check(_rs.buf_, BufferCapacityE, _rr.data_);
             SOLID_CHECK(p, "should not be null");
             _rr.ptr_  = _rs.buf_;
             _rr.size_ = p - _rs.buf_;

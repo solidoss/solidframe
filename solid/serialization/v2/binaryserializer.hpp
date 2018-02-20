@@ -107,9 +107,30 @@ public: //should be protected
     void addBasic(const T& _rb, const char* _name)
     {
         idbg(_name << ' ' << _rb);
-        Runnable r{nullptr, &store_cross, 0, static_cast<uint64_t>(_rb), _name};
+#if 0
+        Runnable r{std::addressof(_rb), &store_binary, sizeof(T), static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
-            if (store_cross(*this, r, nullptr) == ReturnE::Done) {
+            if (store_binary(*this, r, nullptr) == ReturnE::Done) {
+                return;
+            }
+        }
+#else
+        Runnable r{nullptr, &store_cross_with_check, 0, static_cast<uint64_t>(_rb), _name};
+        if (isRunEmpty()) {
+            if (store_cross_with_check(*this, r, nullptr) == ReturnE::Done) {
+                return;
+            }
+        }
+#endif
+        schedule(std::move(r));
+    }
+    template <typename T>
+    void addBasicWithCheck(const T& _rb, const char* _name)
+    {
+        idbg(_name << ' ' << _rb);
+        Runnable r{nullptr, &store_cross_with_check, 0, static_cast<uint64_t>(_rb), _name};
+        if (isRunEmpty()) {
+            if (store_cross_with_check(*this, r, nullptr) == ReturnE::Done) {
                 return;
             }
         }
@@ -248,7 +269,9 @@ public: //should be protected
             error(error_limit_container);
             return;
         }
-        addBasic(_rc.size(), _name);
+        
+        addBasicWithCheck(_rc.size(), _name);
+        
         if (_rc.size()) {
             typename C::const_iterator it = _rc.cbegin();
 
@@ -293,7 +316,8 @@ public: //should be protected
             error(error_limit_container);
             return;
         }
-        addBasic(_rc.size(), _name);
+        
+        addBasicWithCheck(_rc.size(), _name);
 
         if (_rc.size()) {
             typename C::const_iterator it = _rc.cbegin();
@@ -410,6 +434,7 @@ private:
 
     static ReturnE store_byte(SerializerBase& _rs, Runnable& _rr, void* _pctx);
     static ReturnE store_cross(SerializerBase& _rs, Runnable& _rr, void* _pctx);
+    static ReturnE store_cross_with_check(SerializerBase& _rs, Runnable& _rr, void* _pctx);
     static ReturnE store_binary(SerializerBase& _rs, Runnable& _rr, void* _pctx);
 
     static ReturnE call_function(SerializerBase& _rs, Runnable& _rr, void* _pctx);

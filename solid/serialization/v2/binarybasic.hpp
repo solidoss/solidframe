@@ -135,15 +135,15 @@ inline size_t size(uint64_t _v)
     return max_padded_byte_cout(_v) + 1;
 }
 
-char* store(char* _pd, const size_t _sz, uint8_t _v);
-char* store(char* _pd, const size_t _sz, uint16_t _v);
-char* store(char* _pd, const size_t _sz, uint32_t _v);
-char* store(char* _pd, const size_t _sz, uint64_t _v);
+char* store_with_check(char* _pd, const size_t _sz, uint8_t _v);
+char* store_with_check(char* _pd, const size_t _sz, uint16_t _v);
+char* store_with_check(char* _pd, const size_t _sz, uint32_t _v);
+char* store_with_check(char* _pd, const size_t _sz, uint64_t _v);
 
-const char* load(const char* _ps, const size_t _sz, uint8_t& _val);
-const char* load(const char* _ps, const size_t _sz, uint16_t& _val);
-const char* load(const char* _ps, const size_t _sz, uint32_t& _val);
-const char* load(const char* _ps, const size_t _sz, uint64_t& _val);
+const char* load_with_check(const char* _ps, const size_t _sz, uint8_t& _val);
+const char* load_with_check(const char* _ps, const size_t _sz, uint16_t& _val);
+const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& _val);
+const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& _val);
 } //namespace cross
 } //namespace binary
 } //namespace v2

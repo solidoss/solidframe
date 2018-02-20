@@ -113,11 +113,35 @@ public:
     void addBasic(T& _rb, const char* _name)
     {
         idbg(_name);
-
-        Runnable r{&_rb, &load_cross<T>, 0, 0, _name};
+#if 0
+        Runnable r{&_rb, &load_binary, sizeof(T), 0, _name};
 
         if (isRunEmpty()) {
-            if (load_cross<T>(*this, r, nullptr) == ReturnE::Done) {
+            if (load_binary(*this, r, nullptr) == ReturnE::Done) {
+                return;
+            }
+        }
+#else
+        Runnable r{&_rb, &load_cross_with_check<T>, 0, 0, _name};
+
+        if (isRunEmpty()) {
+            if (load_cross_with_check<T>(*this, r, nullptr) == ReturnE::Done) {
+                return;
+            }
+        }
+#endif
+        schedule(std::move(r));
+    }
+    
+    template <class T>
+    void addBasicWithCheck(T& _rb, const char* _name)
+    {
+        idbg(_name);
+
+        Runnable r{&_rb, &load_cross_with_check<T>, 0, 0, _name};
+
+        if (isRunEmpty()) {
+            if (load_cross_with_check<T>(*this, r, nullptr) == ReturnE::Done) {
                 return;
             }
         }
@@ -264,7 +288,9 @@ public:
                 init                = false;
                 size_t old_sentinel = _rd.sentinel();
                 SOLID_ASSERT(_rd.isRunEmpty());
-                rd.addBasic(_rr.size_, _rr.name_);
+                
+                rd.addBasicWithCheck(_rr.size_, _rr.name_);
+                
                 const bool is_run_empty = _rd.isRunEmpty();
                 _rd.sentinel(old_sentinel);
                 if (not is_run_empty) {
@@ -326,7 +352,9 @@ public:
                 init                = false;
                 size_t old_sentinel = _rd.sentinel();
                 SOLID_ASSERT(_rd.isRunEmpty());
-                rd.addBasic(_rr.size_, _rr.name_);
+                
+                rd.addBasicWithCheck(_rr.size_, _rr.name_);
+                
                 const bool is_run_empty = _rd.isRunEmpty();
                 _rd.sentinel(old_sentinel);
                 if (not is_run_empty) {
@@ -458,15 +486,21 @@ private:
     static ReturnE load_byte(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
     static ReturnE load_binary(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
     static ReturnE call_function(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
-
+    
     template <typename T>
     static ReturnE load_cross(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    {
+        return ReturnE::Wait;
+    }
+    
+    template <typename T>
+    static ReturnE load_cross_with_check(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
         if (_rd.pcrt_ != _rd.pend_) {
             if (_rr.size_ == 0) {
                 //first run
                 uint64_t    v;
-                const char* p = cross::load(_rd.pcrt_, _rd.pend_ - _rd.pcrt_, v);
+                const char* p = cross::load_with_check(_rd.pcrt_, _rd.pend_ - _rd.pcrt_, v);
 
                 if (p) {
                     _rd.pcrt_ = p;
@@ -510,7 +544,7 @@ private:
                 if (_rr.size_ == 0) {
                     uint64_t    v;
                     T           vt;
-                    const char* p = cross::load(_rd.buf_, _rr.data_, v);
+                    const char* p = cross::load_with_check(_rd.buf_, _rr.data_, v);
                     if(p == nullptr){
                         _rd.error(error_cross_integer);
                         return ReturnE::Done;

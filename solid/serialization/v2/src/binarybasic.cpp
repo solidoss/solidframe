@@ -17,7 +17,7 @@ namespace v2 {
 namespace binary {
 namespace cross {
 //========================================================================
-char* store(char* _pd, const size_t _sz, uint8_t _v)
+char* store_with_check(char* _pd, const size_t _sz, uint8_t _v)
 {
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -33,7 +33,7 @@ char* store(char* _pd, const size_t _sz, uint8_t _v)
     }
     return nullptr;
 }
-char* store(char* _pd, const size_t _sz, uint16_t _v)
+char* store_with_check(char* _pd, const size_t _sz, uint16_t _v)
 {
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -62,7 +62,7 @@ char* store(char* _pd, const size_t _sz, uint16_t _v)
     }
     return nullptr;
 }
-char* store(char* _pd, const size_t _sz, uint32_t _v)
+char* store_with_check(char* _pd, const size_t _sz, uint32_t _v)
 {
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -107,7 +107,7 @@ char* store(char* _pd, const size_t _sz, uint32_t _v)
     }
     return nullptr;
 }
-char* store(char* _pd, const size_t _sz, uint64_t _v)
+char* store_with_check(char* _pd, const size_t _sz, uint64_t _v)
 {
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -209,7 +209,7 @@ char* store(char* _pd, const size_t _sz, uint64_t _v)
     return nullptr;
 }
 
-const char* load(const char* _ps, const size_t _sz, uint8_t& _val)
+const char* load_with_check(const char* _ps, const size_t _sz, uint8_t& _val)
 {
     if (_sz != 0) {
         const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
@@ -237,7 +237,7 @@ const char* load(const char* _ps, const size_t _sz, uint8_t& _val)
     return nullptr;
 }
 
-const char* load(const char* _ps, const size_t _sz, uint16_t& _val)
+const char* load_with_check(const char* _ps, const size_t _sz, uint16_t& _val)
 {
     if (_sz != 0) {
         const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
@@ -268,7 +268,7 @@ const char* load(const char* _ps, const size_t _sz, uint16_t& _val)
     return nullptr;
 }
 
-const char* load(const char* _ps, const size_t _sz, uint32_t& _val)
+const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& _val)
 {
     if (_sz != 0) {
         const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
@@ -310,7 +310,7 @@ const char* load(const char* _ps, const size_t _sz, uint32_t& _val)
     return nullptr;
 }
 
-const char* load(const char* _ps, const size_t _sz, uint64_t& _val)
+const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& _val)
 {
     if (_sz != 0) {
         const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);

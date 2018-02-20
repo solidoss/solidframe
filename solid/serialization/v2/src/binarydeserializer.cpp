@@ -148,7 +148,8 @@ void DeserializerBase::addBasic(std::string& _rb, const char* _name)
             init      = false;
             _rr.data_ = _rd.sentinel();
             SOLID_ASSERT(_rd.isRunEmpty());
-            _rd.addBasic(_rr.size_, _rr.name_);
+            
+            _rd.addBasicWithCheck(_rr.size_, _rr.name_);
 
             const bool is_run_empty = _rd.isRunEmpty(); //isRunEmpty depends on the current sentinel
 
