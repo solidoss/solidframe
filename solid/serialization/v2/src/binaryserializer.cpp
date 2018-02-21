@@ -2,7 +2,6 @@
 #include "solid/serialization/v2/binaryserializer.hpp"
 #include "solid/serialization/v2/binarybasic.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/utility/ioformat.hpp"
 
 namespace solid {
 namespace serialization {
@@ -60,7 +59,8 @@ DONE:
     return rv;
 }
 
-void SerializerBase::clear(){
+void SerializerBase::clear()
+{
     run_lst_.clear();
     run_vec_.clear();
 }
@@ -102,71 +102,8 @@ void SerializerBase::tryRun(Runnable&& _ur, void* _pctx)
     }
 }
 
-void SerializerBase::addBasic(const bool& _rb, const char* _name)
+void SerializerBase::limits(const Limits& _rlimits)
 {
-    idbg(_name);
-    Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb ? 0xFF : 0xAA), _name};
-
-    if (isRunEmpty()) {
-        if (store_byte(*this, r, nullptr) == ReturnE::Done) {
-            return;
-        }
-    }
-
-    schedule(std::move(r));
-}
-
-void SerializerBase::addBasic(const int8_t& _rb, const char* _name)
-{
-    idbg(_name);
-    Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
-
-    if (isRunEmpty()) {
-        if (store_byte(*this, r, nullptr) == ReturnE::Done) {
-            return;
-        }
-    }
-
-    schedule(std::move(r));
-}
-
-void SerializerBase::addBasic(const uint8_t& _rb, const char* _name)
-{
-    idbg(_name);
-    Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
-
-    if (isRunEmpty()) {
-        if (store_byte(*this, r, nullptr) == ReturnE::Done) {
-            return;
-        }
-    }
-
-    schedule(std::move(r));
-}
-
-void SerializerBase::addBasic(const std::string& _rb, const char* _name)
-{
-    idbg(_name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
-    
-    if(limits().hasString() && _rb.size() > limits().string()){
-        error(error_limit_string);
-        return;
-    }
-    
-    addBasicWithCheck(_rb.size(), _name);
-
-    Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
-
-    if (isRunEmpty()) {
-        if (store_binary(*this, r, nullptr) == ReturnE::Done) {
-            return;
-        }
-    }
-
-    schedule(std::move(r));
-}
-
-void SerializerBase::limits(const Limits &_rlimits){
     idbg("");
     if (isRunEmpty()) {
         limits_ = _rlimits;
@@ -177,8 +114,8 @@ void SerializerBase::limits(const Limits &_rlimits){
             [_rlimits](SerializerBase& _rs, Runnable& /*_rr*/, void* /*_pctx*/) {
                 _rs.limits_ = _rlimits;
                 return Base::ReturnE::Done;
-            }, ""
-            };
+            },
+            ""};
         schedule(std::move(r));
     }
 }
@@ -187,54 +124,23 @@ void SerializerBase::limits(const Limits &_rlimits){
 
 Base::ReturnE SerializerBase::store_byte(SerializerBase& _rs, Runnable& _rr, void* _pctx)
 {
-    if (_rs.pcrt_ != _rs.pend_) {
-        const char c = static_cast<char>(_rr.data_);
-        *_rs.pcrt_   = c;
-        ++_rs.pcrt_;
-        return ReturnE::Done;
-    }
-    return ReturnE::Wait;
+    return _rs.doStoreByte(_rr);
 }
 
-Base::ReturnE SerializerBase::store_cross(SerializerBase& _rs, Runnable& _rr, void* _pctx){
-    
-    return ReturnE::Wait;
+Base::ReturnE SerializerBase::store_cross(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+{
+
+    return _rs.doStoreCross(_rr);
 }
 
 Base::ReturnE SerializerBase::store_cross_with_check(SerializerBase& _rs, Runnable& _rr, void* _pctx)
 {
-    if (_rs.pcrt_ != _rs.pend_) {
-        char* p = cross::store_with_check(_rs.pcrt_, _rs.pend_ - _rs.pcrt_, _rr.data_);
-        if (p != nullptr) {
-            _rs.pcrt_ = p;
-            return ReturnE::Done;
-        } else {
-            p = cross::store_with_check(_rs.buf_, BufferCapacityE, _rr.data_);
-            SOLID_CHECK(p, "should not be null");
-            _rr.ptr_  = _rs.buf_;
-            _rr.size_ = p - _rs.buf_;
-            _rr.data_ = 0;
-            _rr.call_ = store_binary;
-            return store_binary(_rs, _rr, _pctx);
-        }
-    }
-    return ReturnE::Wait;
+    return _rs.doStoreCrossWithCheck(_rr);
 }
 
 Base::ReturnE SerializerBase::store_binary(SerializerBase& _rs, Runnable& _rr, void* _pctx)
 {
-    if (_rs.pcrt_ != _rs.pend_) {
-        size_t towrite = _rs.pend_ - _rs.pcrt_;
-        if (towrite > _rr.size_) {
-            towrite = _rr.size_;
-        }
-        memcpy(_rs.pcrt_, _rr.ptr_, towrite);
-        _rs.pcrt_ += towrite;
-        _rr.size_ -= towrite;
-        _rr.ptr_ = reinterpret_cast<const uint8_t*>(_rr.ptr_) + towrite;
-        return _rr.size_ == 0 ? ReturnE::Done : ReturnE::Wait;
-    }
-    return ReturnE::Wait;
+    return _rs.doStoreBinary(_rr);
 }
 
 Base::ReturnE SerializerBase::call_function(SerializerBase& _rs, Runnable& _rr, void* _pctx)
@@ -271,8 +177,8 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         _rs.pcrt_          = store(_rs.pcrt_, chunk_len);
         _rs.pcrt_ += toread;
         _rr.data_ += toread;
-        
-        if(_rs.limits().hasStream() && _rr.data_ > _rs.limits().stream()){
+
+        if (_rs.limits().hasStream() && _rr.data_ > _rs.limits().stream()) {
             _rs.error(error_limit_stream);
             return ReturnE::Done;
         }

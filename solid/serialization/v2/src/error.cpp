@@ -1,9 +1,9 @@
 #include "solid/serialization/v2/error.hpp"
 #include <sstream>
 
-namespace solid{
-namespace serialization{
-namespace v2{
+namespace solid {
+namespace serialization {
+namespace v2 {
 
 namespace {
 
@@ -60,7 +60,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_limit_string(Error_Limit_Container_E, category);
 /*extern*/ const ErrorConditionT error_limit_stream(Error_Limit_Container_E, category);
 /*extern*/ const ErrorConditionT error_cross_integer(Error_Cross_Integer_E, category);
-    
-}//namespace v2
-}//namespace serialization
-}//namespace solid
+
+} //namespace v2
+} //namespace serialization
+} //namespace solid

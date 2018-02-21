@@ -1,10 +1,12 @@
 #pragma once
 
 #include "solid/serialization/v2/binarybase.hpp"
+#include "solid/serialization/v2/binarybasic.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/debug.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/innerlist.hpp"
+#include "solid/utility/ioformat.hpp"
 #include <deque>
 #include <istream>
 #include <ostream>
@@ -86,22 +88,82 @@ public:
 
     std::ostream& run(std::ostream& _ros);
     long          run(char* _pbeg, unsigned _sz, void* _pctx = nullptr);
-    
+
     void clear();
-    
-    void limits(const Limits &_rlimits);
-    
-    const Limits& limits()const{
+
+    void limits(const Limits& _rlimits);
+
+    const Limits& limits() const
+    {
         return Base::limits();
     }
-    
+
 public: //should be protected
     SerializerBase();
 
-    void addBasic(const bool& _rb, const char* _name);
-    void addBasic(const int8_t& _rb, const char* _name);
-    void addBasic(const uint8_t& _rb, const char* _name);
-    void addBasic(const std::string& _rb, const char* _name);
+    inline void addBasic(const bool& _rb, const char* _name)
+    {
+        idbg(_name);
+        Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb ? 0xFF : 0xAA), _name};
+
+        if (isRunEmpty()) {
+            if (doStoreByte(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
+    inline void addBasic(const int8_t& _rb, const char* _name)
+    {
+        idbg(_name);
+        Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
+
+        if (isRunEmpty()) {
+            if (doStoreByte(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
+    inline void addBasic(const uint8_t& _rb, const char* _name)
+    {
+        idbg(_name);
+        Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
+
+        if (isRunEmpty()) {
+            if (doStoreByte(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
+    inline void addBasic(const std::string& _rb, const char* _name)
+    {
+        idbg(_name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+
+        if (limits().hasString() && _rb.size() > limits().string()) {
+            error(error_limit_string);
+            return;
+        }
+
+        addBasicWithCheck(_rb.size(), _name);
+
+        Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
+
+        if (isRunEmpty()) {
+            if (doStoreBinary(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
 
     template <typename T>
     void addBasic(const T& _rb, const char* _name)
@@ -110,14 +172,21 @@ public: //should be protected
 #if 0
         Runnable r{std::addressof(_rb), &store_binary, sizeof(T), static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
-            if (store_binary(*this, r, nullptr) == ReturnE::Done) {
+            if (doStoreBinary(r) == ReturnE::Done) {
+                return;
+            }
+        }
+#elif 1
+        Runnable r{std::addressof(_rb), &store_cross, 0, static_cast<uint64_t>(_rb), _name};
+        if (isRunEmpty()) {
+            if (doStoreCross(r) == ReturnE::Done) {
                 return;
             }
         }
 #else
         Runnable r{nullptr, &store_cross_with_check, 0, static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
-            if (store_cross_with_check(*this, r, nullptr) == ReturnE::Done) {
+            if (doStoreCrossWithCheck(r) == ReturnE::Done) {
                 return;
             }
         }
@@ -125,12 +194,12 @@ public: //should be protected
         schedule(std::move(r));
     }
     template <typename T>
-    void addBasicWithCheck(const T& _rb, const char* _name)
+    inline void addBasicWithCheck(const T& _rb, const char* _name)
     {
         idbg(_name << ' ' << _rb);
         Runnable r{nullptr, &store_cross_with_check, 0, static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
-            if (store_cross_with_check(*this, r, nullptr) == ReturnE::Done) {
+            if (doStoreCrossWithCheck(r) == ReturnE::Done) {
                 return;
             }
         }
@@ -265,13 +334,13 @@ public: //should be protected
     void addContainer(S& _rs, const C& _rc, const char* _name)
     {
         idbg(_name << ' ' << _rc.size());
-        if(_rc.size() > limits().container()){
+        if (_rc.size() > limits().container()) {
             error(error_limit_container);
             return;
         }
-        
+
         addBasicWithCheck(_rc.size(), _name);
-        
+
         if (_rc.size()) {
             typename C::const_iterator it = _rc.cbegin();
 
@@ -311,12 +380,12 @@ public: //should be protected
     void addContainer(S& _rs, const C& _rc, Ctx& _rctx, const char* _name)
     {
         idbg(_name << ' ' << _rc.size());
-        
-        if(_rc.size() > limits().container()){
+
+        if (_rc.size() > limits().container()) {
             error(error_limit_container);
             return;
         }
-        
+
         addBasicWithCheck(_rc.size(), _name);
 
         if (_rc.size()) {
@@ -413,14 +482,15 @@ private:
         idbg(olds << ' ' << sentinel_);
         return olds;
     }
-    
-    void error(const ErrorConditionT &_err){
-        if(!error_){
+
+    void error(const ErrorConditionT& _err)
+    {
+        if (!error_) {
             error_ = _err;
             pcrt_ = pbeg_ = pend_ = nullptr;
         }
     }
-    
+
     void sentinel(const size_t _s)
     {
         idbg(_s);
@@ -444,6 +514,69 @@ private:
     static ReturnE store_stream(SerializerBase& _rs, Runnable& _rr, void* _pctx);
 
 private:
+    inline Base::ReturnE doStoreByte(Runnable& _rr)
+    {
+        if (pcrt_ != pend_) {
+            const char c = static_cast<char>(_rr.data_);
+            *pcrt_       = c;
+            ++pcrt_;
+            return ReturnE::Done;
+        }
+        return ReturnE::Wait;
+    }
+
+    inline Base::ReturnE doStoreBinary(Runnable& _rr)
+    {
+        if (pcrt_ != pend_) {
+            size_t towrite = pend_ - pcrt_;
+            if (towrite > _rr.size_) {
+                towrite = _rr.size_;
+            }
+            memcpy(pcrt_, _rr.ptr_, towrite);
+            pcrt_ += towrite;
+            _rr.size_ -= towrite;
+            _rr.ptr_ = reinterpret_cast<const uint8_t*>(_rr.ptr_) + towrite;
+            return _rr.size_ == 0 ? ReturnE::Done : ReturnE::Wait;
+        }
+        return ReturnE::Wait;
+    }
+
+    inline Base::ReturnE doStoreCrossWithCheck(Runnable& _rr)
+    {
+        if (pcrt_ != pend_) {
+            char* p = cross::store_with_check(pcrt_, pend_ - pcrt_, _rr.data_);
+            if (p != nullptr) {
+                pcrt_ = p;
+                return ReturnE::Done;
+            } else {
+                p = cross::store_with_check(data_.buf_, BufferCapacityE, _rr.data_);
+                SOLID_CHECK(p, "should not be null");
+                _rr.ptr_  = data_.buf_;
+                _rr.size_ = p - data_.buf_;
+                _rr.data_ = 0;
+                _rr.call_ = store_binary;
+                return doStoreBinary(_rr);
+            }
+        }
+        return ReturnE::Wait;
+    }
+
+    inline Base::ReturnE doStoreCross(Runnable& _rr)
+    {
+        if (pcrt_ != pend_) {
+            const size_t sz = max_padded_byte_cout(_rr.data_);
+            *pcrt_          = static_cast<char>(sz);
+            idbg("sz = " << sz << " c = " << (int)*pcrt_);
+            ++pcrt_;
+            _rr.size_ = sz;
+            _rr.call_ = store_binary;
+            _rr.ptr_  = &_rr.data_;
+            return doStoreBinary(_rr);
+        }
+        return ReturnE::Wait;
+    }
+
+private:
     enum {
         BufferCapacityE = sizeof(uint64_t) * 2
     };
@@ -459,7 +592,11 @@ private:
     RunVectorT run_vec_;
     RunListT   run_lst_;
     CacheListT cache_lst_;
-    char       buf_[BufferCapacityE];
+    union {
+        char     buf_[BufferCapacityE];
+        uint64_t u64_;
+        void*    p_;
+    } data_;
 }; // namespace v2
 
 template <class Ctx = void>
@@ -510,8 +647,9 @@ public:
         solidSerializePushV2(*this, std::move(_rt), _name);
         return *this;
     }
-    
-    ThisT& limits(const Limits &_rlimits){
+
+    ThisT& limits(const Limits& _rlimits)
+    {
         SerializerBase::limits(_rlimits);
         return *this;
     }
