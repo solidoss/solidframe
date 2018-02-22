@@ -3,6 +3,8 @@
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/utility/common.hpp"
 #include <memory>
+#include <utility>
+
 namespace solid {
 namespace serialization {
 namespace v2 {
@@ -47,6 +49,13 @@ struct Limits {
     uint64_t stream() const
     {
         return streamlimit_;
+    }
+
+    void clear()
+    {
+        stringlimit_    = InvalidSize();
+        containerlimit_ = InvalidIndex();
+        streamlimit_    = InvalidIndex();
     }
 
     size_t   stringlimit_;
@@ -118,6 +127,34 @@ SOLID_SERIALIZATION_BASIC(int64_t);
 SOLID_SERIALIZATION_BASIC(uint64_t);
 SOLID_SERIALIZATION_BASIC(bool);
 SOLID_SERIALIZATION_BASIC(std::string);
+
+//pair
+
+template <class S, class T1, class T2>
+inline void solidSerializeV2(S& _rs, std::pair<T1, T2>& _rp, const char* _name)
+{
+    using FirstT = typename std::remove_reference<typename std::remove_const<T1>::type>::type;
+    _rs.add(const_cast<FirstT&>(_rp.first), "first").add(_rp.second, "second");
+}
+
+template <class S, class T1, class T2>
+inline void solidSerializeV2(S& _rs, const std::pair<T1, T2>& _rp, const char* _name)
+{
+    _rs.add(_rp.first, "first").add(_rp.second, "second");
+}
+
+template <class S, class T1, class T2, class Ctx>
+inline void solidSerializeV2(S& _rs, std::pair<T1, T2>& _rp, Ctx& _rctx, const char* _name)
+{
+    using FirstT = typename std::remove_reference<typename std::remove_const<T1>::type>::type;
+    _rs.add(const_cast<FirstT&>(_rp.first), _rctx, "first").add(_rp.second, _rctx, "second");
+}
+
+template <class S, class T1, class T2, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::pair<T1, T2>& _rp, Ctx& _rctx, const char* _name)
+{
+    _rs.add(_rp.first, _rctx, "first").add(_rp.second, _rctx, "second");
+}
 
 //dispatch
 

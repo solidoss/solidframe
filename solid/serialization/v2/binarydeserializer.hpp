@@ -8,10 +8,9 @@
 #include "solid/system/exception.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/innerlist.hpp"
-#include <deque>
 #include <istream>
+#include <list>
 #include <ostream>
-#include <vector>
 
 namespace solid {
 namespace serialization {
@@ -25,7 +24,7 @@ class DeserializerBase : public Base {
 
     using FunctionT = SOLID_FUNCTION(ReturnE(DeserializerBase&, Runnable&, void*));
 
-    struct Runnable : inner::Node<InnerListCount> {
+    struct Runnable {
         Runnable(
             void*       _ptr,
             CallbackT   _call,
@@ -82,6 +81,9 @@ class DeserializerBase : public Base {
         const char* name_;
         FunctionT   fnc_;
     };
+
+    using RunListT         = std::list<Runnable>;
+    using RunListIteratorT = std::list<Runnable>::const_iterator;
 
 public:
     static constexpr bool is_serializer   = false;
@@ -220,7 +222,7 @@ public:
             Runnable r{
                 call_function,
                 [_f](DeserializerBase& _rd, Runnable& _rr, void* _pctx) {
-                    size_t old_sentinel = _rd.sentinel();
+                    const RunListIteratorT old_sentinel = _rd.sentinel();
 
                     _f(static_cast<D&>(_rd), _rr.name_);
 
@@ -249,7 +251,7 @@ public:
                 nullptr,
                 call_function,
                 [_f](DeserializerBase& _rd, Runnable& _rr, void* _pctx) {
-                    size_t old_sentinel = _rd.sentinel();
+                    const RunListIteratorT old_sentinel = _rd.sentinel();
 
                     _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
 
@@ -273,8 +275,8 @@ public:
         idbg(_name);
         auto lambda = [_f = std::move(_f)](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
         {
-            size_t     old_sentinel = _rd.sentinel();
-            const bool done         = _f(static_cast<D&>(_rd), _rr.name_);
+            const RunListIteratorT old_sentinel = _rd.sentinel();
+            const bool             done         = _f(static_cast<D&>(_rd), _rr.name_);
 
             const bool is_run_empty = _rd.isRunEmpty();
             _rd.sentinel(old_sentinel);
@@ -306,8 +308,8 @@ public:
         idbg(_name);
         auto lambda = [_f = std::move(_f)](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
         {
-            size_t     old_sentinel = _rd.sentinel();
-            const bool done         = _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
+            const RunListIteratorT old_sentinel = _rd.sentinel();
+            const bool             done         = _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
 
             const bool is_run_empty = _rd.isRunEmpty();
             _rd.sentinel(old_sentinel);
@@ -346,8 +348,8 @@ public:
             D& rd         = static_cast<D&>(_rd);
 
             if (init) {
-                init                = false;
-                size_t old_sentinel = _rd.sentinel();
+                init                                = false;
+                const RunListIteratorT old_sentinel = _rd.sentinel();
                 SOLID_ASSERT(_rd.isRunEmpty());
 
                 rd.addBasicWithCheck(_rr.size_, _rr.name_);
@@ -367,7 +369,7 @@ public:
                 return ReturnE::Done;
             }
 
-            size_t old_sentinel = _rd.sentinel();
+            const RunListIteratorT old_sentinel = _rd.sentinel();
 
             while (_rd.pcrt_ != _rd.pend_ and _rr.size_ != 0) {
                 rd.add(value, _rr.name_);
@@ -410,8 +412,8 @@ public:
             Ctx& rctx       = *static_cast<Ctx*>(_pctx);
 
             if (init) {
-                init                = false;
-                size_t old_sentinel = _rd.sentinel();
+                init                                = false;
+                const RunListIteratorT old_sentinel = _rd.sentinel();
                 SOLID_ASSERT(_rd.isRunEmpty());
 
                 rd.addBasicWithCheck(_rr.size_, _rr.name_);
@@ -431,7 +433,7 @@ public:
                 return ReturnE::Done;
             }
 
-            size_t old_sentinel = _rd.sentinel();
+            const RunListIteratorT old_sentinel = _rd.sentinel();
 
             while (_rd.pcrt_ != _rd.pend_ and _rr.size_ != 0) {
                 rd.add(value, rctx, _rr.name_);
@@ -512,10 +514,53 @@ public:
         schedule(std::move(r));
     }
 
+    void addBinary(void* _pv, const size_t _sz, const char* _name)
+    {
+        Runnable r{_pv, &load_binary, _sz, 0, _name};
+
+        if (isRunEmpty()) {
+            if (doLoadBinary(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
+protected:
+    void doPrepareRun(const char* _pbeg, unsigned _sz)
+    {
+        pbeg_ = _pbeg;
+        pend_ = _pbeg + _sz;
+        pcrt_ = _pbeg;
+    }
+    long doRun(void* _pctx = nullptr);
+
 private:
     void tryRun(Runnable&& _ur, void* _pctx = nullptr);
 
-    size_t schedule(Runnable&& _ur);
+    RunListIteratorT sentinel()
+    {
+        RunListIteratorT old = sentinel_;
+        sentinel_            = run_lst_.cbegin();
+        return old;
+    }
+
+    void sentinel(const RunListIteratorT _s)
+    {
+        sentinel_ = _s;
+    }
+
+    bool isRunEmpty() const
+    {
+        return sentinel_ == run_lst_.cbegin();
+    }
+
+    RunListIteratorT schedule(Runnable&& _ur)
+    {
+
+        return run_lst_.emplace(sentinel_, std::move(_ur));
+    }
 
     void error(const ErrorConditionT& _err)
     {
@@ -523,25 +568,6 @@ private:
             error_ = _err;
             pcrt_ = pbeg_ = pend_ = nullptr;
         }
-    }
-
-    size_t sentinel()
-    {
-        size_t olds = sentinel_;
-        sentinel_   = run_lst_.frontIndex();
-        idbg(olds << ' ' << sentinel_);
-        return olds;
-    }
-
-    void sentinel(const size_t _s)
-    {
-        idbg(_s);
-        sentinel_ = _s;
-    }
-
-    bool isRunEmpty() const
-    {
-        return sentinel_ == run_lst_.frontIndex();
     }
 
     static ReturnE load_bool(DeserializerBase& _rd, Runnable& _rr, void* _pctx);
@@ -764,20 +790,15 @@ private:
 
 private:
     enum {
-        BufferCapacityE = sizeof(uint64_t) * 2
+        BufferCapacityE = sizeof(uint64_t) * 1
     };
 
-    using RunVectorT = std::deque<Runnable>;
-    using RunListT   = inner::List<RunVectorT, InnerListRun>;
-    using CacheListT = inner::List<RunVectorT, InnerListCache>;
+    const char*      pbeg_;
+    const char*      pend_;
+    const char*      pcrt_;
+    RunListT         run_lst_;
+    RunListIteratorT sentinel_;
 
-    const char* pbeg_;
-    const char* pend_;
-    const char* pcrt_;
-    size_t      sentinel_;
-    RunVectorT  run_vec_;
-    RunListT    run_lst_;
-    CacheListT  cache_lst_;
     union {
         char     buf_[BufferCapacityE];
         uint64_t u64_;
@@ -814,6 +835,12 @@ public:
         return *this;
     }
 
+    ThisT& add(void* _pv, size_t _sz, const char* _name)
+    {
+        addBinary(_pv, _sz, _name);
+        return *this;
+    }
+
     template <typename T>
     ThisT& push(T& _rt, const char* _name)
     {
@@ -832,6 +859,38 @@ public:
     {
         DeserializerBase::limits(_rlimits);
         return *this;
+    }
+
+    template <typename F>
+    long run(const char* _pbeg, unsigned _sz, F _f)
+    {
+        doPrepareRun(_pbeg, _sz);
+        _f(*this);
+        return doRun();
+    }
+
+    template <typename F>
+    std::istream& run(std::istream& _ris, F _f)
+    {
+        const size_t buf_cap = 8 * 1024;
+        char         buf[buf_cap];
+
+        clear();
+        _ris.read(buf, buf_cap);
+
+        if (_ris.gcount()) {
+            doPrepareRun(buf, _ris.gcount());
+
+            _f(*this);
+
+            if (_ris.gcount() == doRun()) {
+                do {
+                    _ris.read(buf, buf_cap);
+                } while (_ris.gcount() and (_ris.gcount() == DeserializerBase::run(buf, _ris.gcount())));
+            }
+        }
+
+        return _ris;
     }
 };
 
@@ -859,6 +918,12 @@ public:
     ThisT& add(const T& _rt, Ctx& _rctx, const char* _name)
     {
         solidSerializeV2(*this, _rt, _rctx, _name);
+        return *this;
+    }
+
+    ThisT& add(void* _pv, size_t _sz, const char* _name)
+    {
+        addBinary(_pv, _sz, _name);
         return *this;
     }
 
@@ -890,6 +955,38 @@ public:
     std::pair<ThisT&, Ctx&> wrap(Ctx& _rct)
     {
         return std::make_pair(std::ref(*this), std::ref(_rct));
+    }
+
+    template <typename F>
+    long run(const char* _pbeg, unsigned _sz, F _f, Ctx& _rctx)
+    {
+        doPrepareRun(_pbeg, _sz);
+        _f(*this, _rctx);
+        return doRun(&_rctx);
+    }
+
+    template <typename F>
+    std::istream& run(std::istream& _ris, F _f, Ctx& _rctx)
+    {
+        const size_t buf_cap = 8 * 1024;
+        char         buf[buf_cap];
+
+        clear();
+        _ris.read(buf, buf_cap);
+
+        if (_ris.gcount()) {
+            doPrepareRun(buf, _ris.gcount());
+
+            _f(*this, _rctx);
+
+            if (_ris.gcount() == doRun(&_rctx)) {
+                do {
+                    _ris.read(buf, buf_cap);
+                } while (_ris.gcount() and (_ris.gcount() == DeserializerBase::run(buf, _ris.gcount(), &_rctx)));
+            }
+        }
+
+        return _ris;
     }
 };
 

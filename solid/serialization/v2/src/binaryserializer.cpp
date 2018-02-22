@@ -13,9 +13,7 @@ SerializerBase::SerializerBase()
     : pbeg_(nullptr)
     , pend_(nullptr)
     , pcrt_(nullptr)
-    , sentinel_(InvalidIndex())
-    , run_lst_(run_vec_)
-    , cache_lst_(run_vec_)
+    , sentinel_(run_lst_.cend())
 {
 }
 
@@ -25,6 +23,8 @@ std::ostream& SerializerBase::run(std::ostream& _ros)
     char         buf[buf_cap];
     long         len;
 
+    clear();
+
     while ((len = run(buf, buf_cap)) > 0) {
         _ros.write(buf, len);
     }
@@ -33,19 +33,19 @@ std::ostream& SerializerBase::run(std::ostream& _ros)
 
 long SerializerBase::run(char* _pbeg, unsigned _sz, void* _pctx)
 {
-    pbeg_ = _pbeg;
-    pend_ = _pbeg + _sz;
-    pcrt_ = _pbeg;
+    doPrepareRun(_pbeg, _sz);
+    return doRun(_pctx);
+}
 
+long SerializerBase::doRun(void* _pctx)
+{
     while (not run_lst_.empty()) {
-        idbg("run frontIndex = " << run_lst_.frontIndex());
         Runnable&     rr = run_lst_.front();
         const ReturnE rv = rr.call_(*this, rr, _pctx);
         switch (rv) {
         case ReturnE::Done:
             rr.clear();
-            idbg("done frontIndex = " << run_lst_.frontIndex());
-            cache_lst_.pushBack(run_lst_.popFront());
+            run_lst_.pop_front();
             break;
         case ReturnE::Continue:
             break;
@@ -62,42 +62,20 @@ DONE:
 void SerializerBase::clear()
 {
     run_lst_.clear();
-    run_vec_.clear();
-}
-
-size_t SerializerBase::schedule(Runnable&& _ur)
-{
-    size_t idx;
-    if (cache_lst_.size()) {
-        idx           = cache_lst_.popFront();
-        run_vec_[idx] = std::move(_ur);
-    } else {
-        idx = run_vec_.size();
-        run_vec_.emplace_back(std::move(_ur));
-    }
-
-    if (sentinel_ == InvalidIndex()) {
-        idbg("pushBack= " << idx);
-        run_lst_.pushBack(idx);
-    } else {
-        //insert in front of the setinel
-        idbg("insert " << idx << " in front of " << sentinel_);
-        run_lst_.insertFront(sentinel_, idx);
-    }
-    return idx;
+    error_ = ErrorConditionT();
+    limits_.clear();
 }
 
 void SerializerBase::tryRun(Runnable&& _ur, void* _pctx)
 {
-    size_t idx = schedule(std::move(_ur));
+    const RunListIteratorT it = schedule(std::move(_ur));
 
-    if (idx == run_lst_.frontIndex()) {
+    if (it == run_lst_.cbegin()) {
         //we try run the function on spot
         Runnable& rr = run_lst_.front();
         ReturnE   v  = rr.call_(*this, rr, _pctx);
         if (v == ReturnE::Done) {
-            rr.clear();
-            cache_lst_.pushBack(run_lst_.popFront());
+            run_lst_.pop_front();
         }
     }
 }

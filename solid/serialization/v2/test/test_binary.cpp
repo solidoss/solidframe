@@ -6,9 +6,13 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <set>
 #include <sstream>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using namespace std;
@@ -42,11 +46,16 @@ struct Context {
 };
 
 class Test {
-    string             p;
-    bool               b;
-    vector<A>          v;
-    deque<A>           d;
-    A                  a;
+    string                   p;
+    bool                     b;
+    vector<A>                v;
+    deque<A>                 d;
+    map<string, A>           m;
+    set<string>              s;
+    unordered_map<string, A> um;
+    unordered_set<string>    us;
+    A                        a;
+
     std::ostringstream oss;
 
     void populate(bool _b)
@@ -71,6 +80,17 @@ class Test {
                 a.s += ' ';
             }
         }
+        for (size_t i = 0; i < 10; ++i) {
+            A a;
+            a.a = i;
+            a.b = 10 - i;
+            a.s = to_string(a.a) + ' ' + to_string(a.b);
+            s.insert(a.s);
+            us.insert(a.s);
+
+            m[to_string(i)]  = a;
+            um[to_string(i)] = std::move(a);
+        }
     }
 
 public:
@@ -94,7 +114,7 @@ public:
         buffer << t.rdbuf();
         string s1 = buffer.str();
         string s2 = _rt.oss.str();
-        return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2;
+        return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us;
     }
 
     template <class S>
@@ -128,6 +148,10 @@ public:
                           return true;
                       }),
                 "s")
+            .add(m, "m")
+            .add(s, "s")
+            .add(um, "um")
+            .add(us, "us")
             .add(a, "a");
         //_rs.add(b, "b").add(v, "v").add(a, "a");
     }
@@ -159,6 +183,10 @@ public:
                         return true;
                     }),
                 _rctx, "s")
+            .add(m, _rctx, "m")
+            .add(s, _rctx, "s")
+            .add(um, _rctx, "um")
+            .add(us, _rctx, "us")
             .add(a, _rctx, "a");
         //_rs.add(b, _rctx, "b").add(v, _rctx, "v").add(a, _rctx, "a");
     }
@@ -210,9 +238,11 @@ int test_binary(int argc, char* argv[])
         {
             serialization::binary::Serializer<> ser;
 
-            ser.add(t, "t").add(tp, "tp").add(tup, "tup");
-
-            oss << ser;
+            ser.run(
+                oss,
+                [&t, &tp, &tup](decltype(ser)& ser) {
+                    ser.add(t, "t").add(tp, "tp").add(tup, "tup");
+                });
         }
         {
             idbg("oss.str.size = " << oss.str().size());
@@ -225,9 +255,13 @@ int test_binary(int argc, char* argv[])
             Context               ctx;
             ctx.output_file_path = output_file_path;
 
-            des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c");
+            des.run(iss,
+                [&t_c, &tp_c, &tup_c](decltype(des)& des, Context& ctx) {
+                    des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c");
+                },
+                ctx);
 
-            iss >> des.wrap(ctx);
+            //iss >> des.wrap(ctx);
 
             SOLID_CHECK(t == t_c, "check failed");
         }
