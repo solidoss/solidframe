@@ -5,7 +5,7 @@
 #include "solid/system/exception.hpp"
 #include <vector>
 
-#include "solid/serialization/binary.hpp"
+#include "solid/serialization/v1/binary.hpp"
 
 using namespace std;
 using namespace solid;

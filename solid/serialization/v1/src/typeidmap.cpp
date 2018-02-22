@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#include "solid/serialization/typeidmap.hpp"
+#include "solid/serialization/v1/typeidmap.hpp"
 #include "solid/utility/algorithm.hpp"
 
 namespace solid {

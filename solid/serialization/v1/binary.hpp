@@ -17,7 +17,7 @@
 #include <string>
 #include <typeinfo>
 
-#include "solid/serialization/typeidmap.hpp"
+#include "solid/serialization/v1/typeidmap.hpp"
 
 #include "binarybasic.hpp"
 #include "solid/system/cassert.hpp"

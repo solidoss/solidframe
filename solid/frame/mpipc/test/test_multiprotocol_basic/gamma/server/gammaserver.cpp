@@ -1,7 +1,7 @@
 #include "gammaserver.hpp"
 #include "../gammamessages.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
-#include "solid/serialization/typeidmap.hpp"
+#include "solid/serialization/v1/typeidmap.hpp"
 #include "solid/system/debug.hpp"
 
 using namespace solid;

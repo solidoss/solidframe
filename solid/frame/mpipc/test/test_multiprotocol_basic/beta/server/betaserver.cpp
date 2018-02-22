@@ -2,7 +2,7 @@
 #include "../betamessages.hpp"
 
 #include "solid/frame/mpipc/mpipcservice.hpp"
-#include "solid/serialization/typeidmap.hpp"
+#include "solid/serialization/v1/typeidmap.hpp"
 #include "solid/system/debug.hpp"
 #include "solid/utility/dynamicpointer.hpp"
 

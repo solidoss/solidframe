@@ -6,7 +6,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
     target_link_libraries (example_echo_server
         solid_frame
         solid_frame_aio
-        solid_serialization
+        solid_serialization_v1
         solid_utility
         solid_system
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -38,7 +38,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_frame
         solid_frame_aio
         solid_frame_aio_openssl
-        solid_serialization
+        solid_serialization_v1
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
@@ -56,7 +56,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_frame
         solid_frame_aio
         solid_frame_aio_openssl
-        solid_serialization
+        solid_serialization_v1
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}

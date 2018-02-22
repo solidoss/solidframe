@@ -14,8 +14,8 @@
 #include <stack>
 #include <vector>
 //#undef SOLID_HAS_DEBUG
-#include "solid/serialization/binary.hpp"
-#include "solid/serialization/binarybasic.hpp"
+#include "solid/serialization/v1/binary.hpp"
+#include "solid/serialization/v1/binarybasic.hpp"
 #include "solid/system/debug.hpp"
 #include "solid/system/socketaddress.hpp"
 

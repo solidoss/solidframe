@@ -17,8 +17,8 @@
 #include "solid/system/cassert.hpp"
 #include "solid/system/debug.hpp"
 
-#include "solid/serialization/binary.hpp"
-#include "solid/serialization/binarybasic.hpp"
+#include "solid/serialization/v1/binary.hpp"
+#include "solid/serialization/v1/binarybasic.hpp"
 #include "solid/system/socketaddress.hpp"
 
 using namespace std;

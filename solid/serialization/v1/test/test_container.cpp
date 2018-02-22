@@ -1,4 +1,4 @@
-#include "solid/serialization/binary.hpp"
+#include "solid/serialization/v1/binary.hpp"
 #include <bitset>
 #include <deque>
 #include <map>

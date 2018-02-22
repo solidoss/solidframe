@@ -1,4 +1,4 @@
-#include "solid/serialization/binarybasic.hpp"
+#include "solid/serialization/v1/binarybasic.hpp"
 #include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/algorithm.hpp"

@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#include "solid/serialization/binary.hpp"
-#include "solid/serialization/binarybasic.hpp"
+#include "solid/serialization/v1/binary.hpp"
+#include "solid/serialization/v1/binarybasic.hpp"
 #include "solid/system/cstring.hpp"
 #include "solid/utility/ioformat.hpp"
 #include <atomic>

@@ -1,5 +1,5 @@
-#include "solid/serialization/binarybasic.hpp"
-#include "solid/serialization/typeidmap.hpp"
+#include "solid/serialization/v1/binarybasic.hpp"
+#include "solid/serialization/v1/typeidmap.hpp"
 #include "solid/system/exception.hpp"
 #include <iostream>
 
