@@ -110,13 +110,12 @@ public:
     using PointerT = std::unique_ptr<Deserializer>;
 
     virtual ~Deserializer();
-    virtual void            push(MessageHeader& _rmsghdr)                                 = 0;
-    virtual void            push(MessagePointerT& _rmsgptr)                               = 0;
-    virtual int             run(ConnectionContext&, const char* _pdata, size_t _data_len) = 0;
+    virtual long            run(ConnectionContext&, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)                                 = 0;
+    virtual long            run(ConnectionContext&, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr)                               = 0;
+    virtual long            run(ConnectionContext&, const char* _pdata, size_t _data_len) = 0;
     virtual ErrorConditionT error() const                                                 = 0;
     virtual bool            empty() const                                                 = 0;
     virtual void            clear()                                                       = 0;
-    virtual void            resetLimits()                                                 = 0;
 
     void link(PointerT& _ptr)
     {
@@ -141,13 +140,12 @@ public:
     using PointerT = std::unique_ptr<Serializer>;
 
     virtual ~Serializer();
-    virtual void            push(MessageHeader& _rmsghdr)                               = 0;
-    virtual void            push(MessagePointerT& _rmsgptr, const size_t _msg_type_idx) = 0;
-    virtual int             run(ConnectionContext&, char* _pdata, size_t _data_len)     = 0;
+    virtual long            run(ConnectionContext&, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)                               = 0;
+    virtual long            run(ConnectionContext&, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t _msg_type_idx) = 0;
+    virtual long            run(ConnectionContext&, char* _pdata, size_t _data_len)     = 0;
     virtual ErrorConditionT error() const                                               = 0;
     virtual bool            empty() const                                               = 0;
     virtual void            clear()                                                     = 0;
-    virtual void            resetLimits()                                               = 0;
 
     void link(PointerT& _ptr)
     {
@@ -167,6 +165,9 @@ private:
     PointerT next_;
 };
 
+struct ReaderConfiguration;
+struct WriterConfiguration;
+
 class Protocol {
 public:
     enum {
@@ -176,6 +177,9 @@ public:
     using PointerT = std::shared_ptr<Protocol>;
 
     virtual ~Protocol();
+    
+    virtual void reconfigure(Deserializer &_rdes, const ReaderConfiguration &_rconf) const = 0;
+    virtual void reconfigure(Serializer &_rser, const WriterConfiguration &_rconf) const = 0;
 
     virtual char* storeValue(char* _pd, uint8_t _v) const  = 0;
     virtual char* storeValue(char* _pd, uint16_t _v) const = 0;
@@ -195,8 +199,8 @@ public:
 
     virtual const TypeStub& operator[](const size_t _idx) const = 0;
 
-    virtual Serializer::PointerT   createSerializer() const   = 0;
-    virtual Deserializer::PointerT createDeserializer() const = 0;
+    virtual Serializer::PointerT   createSerializer(const WriterConfiguration &_rconf) const   = 0;
+    virtual Deserializer::PointerT createDeserializer(const ReaderConfiguration &_rconf) const = 0;
 
     virtual size_t minimumFreePacketDataSize() const = 0;
 };

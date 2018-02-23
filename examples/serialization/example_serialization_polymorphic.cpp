@@ -23,7 +23,7 @@ struct TestA : Base {
     {
     }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
     }
@@ -42,7 +42,7 @@ struct TestB : Base {
     int32_t a;
     void    print() const { cout << "testb: a = " << a << " Base::value = " << val << endl; }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(a, "b::a");
     }
@@ -53,7 +53,7 @@ typedef serialization::binary::Deserializer<void>                               
 typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT, std::string> TypeIdMapT;
 
 template <class S, class T>
-void solidSerialize(S& _rs, T& _rt, const char* _name)
+void solidSerializeV1(S& _rs, T& _rt, const char* _name)
 {
     _rs.pushCross(static_cast<Base&>(_rt).val, "base::value");
     _rs.push(_rt, _name);
@@ -69,7 +69,7 @@ int main()
     TypeIdMapT typemap;
 
     typemap.registerType<TestA>("testa");
-    typemap.registerType<TestB>("testb", solidSerialize<BinSerializerT, TestB>, solidSerialize<BinDeserializerT, TestB>);
+    typemap.registerType<TestB>("testb", solidSerializeV1<BinSerializerT, TestB>, solidSerializeV1<BinDeserializerT, TestB>);
     typemap.registerCast<TestA, Base>();
     typemap.registerCast<TestB, Base>();
 

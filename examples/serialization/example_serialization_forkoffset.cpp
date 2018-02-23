@@ -37,7 +37,7 @@ streampos stream_size(iostream& _rios)
 struct Test {
     Test(const char* _fn = nullptr);
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(no, "Test::no").template pushCall([this](S& _rs, uint64_t _val, ErrorConditionT& _rerr) { return serializationReinit(_rs, _val, _rerr); }, 0, "Test::call").push(fn, "Test::fn");
     }

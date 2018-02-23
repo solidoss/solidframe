@@ -19,7 +19,7 @@ struct Test {
     uint32_t        v32;
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(str, "Test::str");
         _s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");

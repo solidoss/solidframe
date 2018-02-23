@@ -22,7 +22,7 @@ struct ListRequest : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(path, "path");
     }
@@ -39,7 +39,7 @@ struct ListResponse : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.pushContainer(node_dq, "node_dq");
     }
@@ -59,7 +59,7 @@ struct FileRequest : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(remote_path, "remote_path");
     }
@@ -81,7 +81,7 @@ struct FileResponse : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.pushCall(
             [this](S& _rs, solid::frame::mpipc::ConnectionContext& _rctx, uint64_t _val, solid::ErrorConditionT& _rerr) {

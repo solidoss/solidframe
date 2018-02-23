@@ -33,36 +33,36 @@ struct Serializer : public mpipc::Serializer {
     {
     }
 
-    /*virtual*/ void push(MessageHeader& _rmsghdr) override
+    long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
         ser.push(_rmsghdr, "message_header");
+        return ser.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
 
-    /*virtual*/ void push(MessagePointerT& _rmsgptr, const size_t _msg_type_idx) override
+    long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t _msg_type_idx) override
     {
         ser.push(_rmsgptr, _msg_type_idx, "message");
+        return ser.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
-    /*virtual*/ int run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
+    
+    long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
     {
         return ser.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
-    /*virtual*/ ErrorConditionT error() const override
+    
+    ErrorConditionT error() const override
     {
         return ser.error();
     }
 
-    /*virtual*/ bool empty() const override
+    bool empty() const override
     {
         return ser.empty();
     }
 
-    /*virtual*/ void clear() override
+    void clear() override
     {
         return ser.clear();
-    }
-    /*virtual*/ void resetLimits() override
-    {
-        ser.resetLimits();
     }
 };
 
@@ -74,36 +74,33 @@ struct Deserializer : public mpipc::Deserializer {
     {
     }
 
-    /*virtual*/ void push(MessageHeader& _rmsghdr) override
+    long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
         des.push(_rmsghdr, "message_header");
+        return des.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
 
-    /*virtual*/ void push(MessagePointerT& _rmsgptr) override
+    long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) override
     {
         des.push(_rmsgptr, "message");
+        return des.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
-    /*virtual*/ int run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
+    long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
     {
         return des.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
-    /*virtual*/ ErrorConditionT error() const override
+    ErrorConditionT error() const override
     {
         return des.error();
     }
 
-    /*virtual*/ bool empty() const override
+    bool empty() const override
     {
         return des.empty();
     }
-    /*virtual*/ void clear() override
+    void clear() override
     {
         return des.clear();
-    }
-
-    /*virtual*/ void resetLimits() override
-    {
-        des.resetLimits();
     }
 };
 
@@ -174,7 +171,7 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
         ts.complete_fnc = MessageCompleteFunctionT(CompleteHandlerT(_complete_fnc));
 
         size_t rv = type_map.registerType<Msg>(
-            ts, Message::solidSerialize<SerializerT, Msg>, Message::solidSerialize<DeserializerT, Msg>,
+            ts, Message::solidSerializeV1<SerializerT, Msg>, Message::solidSerializeV1<DeserializerT, Msg>,
             _protocol_id, _idx);
         registerCast<Msg, mpipc::Message>();
         return rv;
@@ -196,7 +193,7 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
         ts.complete_fnc = MessageCompleteFunctionT(CompleteHandlerT(_complete_fnc));
 
         size_t rv = type_map.registerTypeAlloc<Msg>(
-            ts, Message::solidSerialize<SerializerT, Msg>, Message::solidSerialize<DeserializerT, Msg>, _allocator,
+            ts, Message::solidSerializeV1<SerializerT, Msg>, Message::solidSerializeV1<DeserializerT, Msg>, _allocator,
             _protocol_id, _idx);
         registerCast<Msg, mpipc::Message>();
         return rv;
@@ -214,69 +211,78 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
         return type_map.registerDownCast<Derived, Base>();
     }
 
-    /*virtual*/ char* storeValue(char* _pd, uint8_t _v) const override
+    char* storeValue(char* _pd, uint8_t _v) const override
     {
         return serialization::binary::store(_pd, _v);
     }
-    /*virtual*/ char* storeValue(char* _pd, uint16_t _v) const override
+    char* storeValue(char* _pd, uint16_t _v) const override
     {
         return serialization::binary::store(_pd, _v);
     }
-    /*virtual*/ char* storeValue(char* _pd, uint32_t _v) const override
+    char* storeValue(char* _pd, uint32_t _v) const override
     {
         return serialization::binary::store(_pd, _v);
     }
-    /*virtual*/ char* storeValue(char* _pd, uint64_t _v) const override
+    char* storeValue(char* _pd, uint64_t _v) const override
     {
         return serialization::binary::store(_pd, _v);
     }
 
-    /*virtual*/ char* storeCrossValue(char* _pd, const size_t _sz, uint32_t _v) const override
+    char* storeCrossValue(char* _pd, const size_t _sz, uint32_t _v) const override
     {
         return serialization::binary::cross::store(_pd, _sz, _v);
     }
 
-    /*virtual*/ const char* loadValue(const char* _ps, uint8_t& _v) const override
+    const char* loadValue(const char* _ps, uint8_t& _v) const override
     {
         return serialization::binary::load(_ps, _v);
     }
-    /*virtual*/ const char* loadValue(const char* _ps, uint16_t& _v) const override
+    const char* loadValue(const char* _ps, uint16_t& _v) const override
     {
         return serialization::binary::load(_ps, _v);
     }
-    /*virtual*/ const char* loadValue(const char* _ps, uint32_t& _v) const override
+    const char* loadValue(const char* _ps, uint32_t& _v) const override
     {
         return serialization::binary::load(_ps, _v);
     }
-    /*virtual*/ const char* loadValue(const char* _ps, uint64_t& _v) const override
+    const char* loadValue(const char* _ps, uint64_t& _v) const override
     {
         return serialization::binary::load(_ps, _v);
     }
-    /*virtual*/ const char* loadCrossValue(const char* _ps, const size_t _sz, uint32_t& _v) const override
+    const char* loadCrossValue(const char* _ps, const size_t _sz, uint32_t& _v) const override
     {
         return serialization::binary::cross::load(_ps, _sz, _v);
     }
 
-    /*virtual*/ size_t typeIndex(const Message* _pmsg) const override
+    size_t typeIndex(const Message* _pmsg) const override
     {
         return type_map.index(_pmsg);
     }
 
-    /*virtual*/ const TypeStub& operator[](const size_t _idx) const override
+    const TypeStub& operator[](const size_t _idx) const override
     {
         return type_map[_idx];
     }
 
-    /*virtual*/ Serializer::PointerT createSerializer() const override
+    Serializer::PointerT createSerializer(const WriterConfiguration &_rconfig) const override
     {
         return Serializer::PointerT(new Serializer(limits, type_map));
     }
-    /*virtual*/ Deserializer::PointerT createDeserializer() const override
+    
+    Deserializer::PointerT createDeserializer(const ReaderConfiguration &_rconfig) const override
     {
         return Deserializer::PointerT(new Deserializer(limits, type_map));
     }
-
-    /*virtual*/ size_t minimumFreePacketDataSize() const override
+    
+    void reconfigure(mpipc::Deserializer &_rdes, const ReaderConfiguration &_rconfig)const override{
+        static_cast<Deserializer&>(_rdes).des.resetLimits();
+    }
+    
+    void reconfigure(mpipc::Serializer &_rser, const WriterConfiguration &_rconfig)const override{
+        static_cast<Serializer&>(_rser).ser.resetLimits();
+    }
+    
+    size_t minimumFreePacketDataSize() const override
     {
         return 16;
     }

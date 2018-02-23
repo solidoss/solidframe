@@ -36,7 +36,7 @@ struct TestA : Dynamic<TestA, Test> {
     {
     }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
     }
@@ -54,7 +54,7 @@ struct TestB : Dynamic<TestB, Test> {
     int32_t a;
     void    print() const { cout << "testb: a = " << a << endl; }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(a, "b::a");
     }
@@ -90,7 +90,7 @@ public:
         tstvec.push_back(_ptst);
     }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.template pushCall([this](S& _rs, uint64_t _val, ErrorConditionT& _rerr) { return serializationReinit(_rs, _val, _rerr); }, 0, "Test::call");
     }

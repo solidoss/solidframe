@@ -43,7 +43,7 @@ struct Message : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(data, "data").push(name, "name");
     }

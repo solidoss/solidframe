@@ -70,7 +70,7 @@ struct MessageHeader {
         flags_ = 0;
     }
     template <class S>
-    void solidSerialize(S& _rs, frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _rs, frame::mpipc::ConnectionContext& _rctx)
     {
         if (S::IsSerializer) {
             //because a message can be sent to multiple destinations (usign DynamicPointer)
@@ -263,7 +263,7 @@ struct Message : std::enable_shared_from_this<Message> {
     }
 
     template <class S, class T>
-    static void solidSerialize(S& _rs, T& _rt, const char* _name)
+    static void solidSerializeV1(S& _rs, T& _rt, const char* _name)
     {
         //here we do only pushes so we can have access to context
         //using the above "serialize" function

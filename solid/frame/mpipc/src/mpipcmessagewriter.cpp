@@ -285,7 +285,8 @@ void MessageWriter::doCancel(
     } else {
         //usually called when reader receives a cancel request
         switch (rmsgstub.state_) {
-        case MessageStub::StateE::RelayedHead:
+        case MessageStub::StateE::RelayedHeadStart:
+        case MessageStub::StateE::RelayedHeadContinue:
             rmsgstub.serializer_ptr_->clear();
         case MessageStub::StateE::RelayedBody:
             rmsgstub.state_ = MessageStub::StateE::RelayedCancelRequest;
@@ -492,22 +493,20 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.serializer_ptr_ = createSerializer(_rsender);
 
-            rmsgstub.serializer_ptr_->resetLimits();
-
             rmsgstub.msgbundle_.message_flags.set(MessageFlagsE::StartedSend);
 
-            rmsgstub.state_ = MessageStub::StateE::WriteHead;
+            rmsgstub.state_ = MessageStub::StateE::WriteHeadStart;
 
             vdbgx(Debug::mpipc, this << " message header url: " << rmsgstub.msgbundle_.message_url);
 
-            rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr->header_);
-
             cmd = PacketHeader::CommandE::NewMessage;
         }
-        case MessageStub::StateE::WriteHead:
+        case MessageStub::StateE::WriteHeadStart:
+        case MessageStub::StateE::WriteHeadContinue:
             pbufpos = doWriteMessageHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, cmd, _rerror);
             break;
-        case MessageStub::StateE::WriteBody:
+        case MessageStub::StateE::WriteBodyStart:
+        case MessageStub::StateE::WriteBodyContinue:
             pbufpos = doWriteMessageBody(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
             break;
         case MessageStub::StateE::WriteWait:
@@ -521,17 +520,14 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.serializer_ptr_ = createSerializer(_rsender);
 
-            rmsgstub.serializer_ptr_->resetLimits();
-
-            rmsgstub.state_ = MessageStub::StateE::RelayedHead;
+            rmsgstub.state_ = MessageStub::StateE::RelayedHeadStart;
 
             vdbgx(Debug::mpipc, this << " message header url: " << rmsgstub.prelay_data_->pmessage_header_->url_);
 
-            rmsgstub.serializer_ptr_->push(*rmsgstub.prelay_data_->pmessage_header_);
-
             cmd = PacketHeader::CommandE::NewMessage;
         }
-        case MessageStub::StateE::RelayedHead:
+        case MessageStub::StateE::RelayedHeadStart:
+        case MessageStub::StateE::RelayedHeadContinue:
             pbufpos = doWriteRelayedHead(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, cmd, _rerror);
             break;
         case MessageStub::StateE::RelayedBody:
@@ -585,7 +581,8 @@ char* MessageWriter::doWriteMessageHead(
     _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
     _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
 
-    const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    const long rv = rmsgstub.state_ == MessageStub::StateE::WriteHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr->header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    rmsgstub.state_ = MessageStub::StateE::WriteHeadContinue;
 
     if (rv >= 0) {
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
@@ -593,10 +590,7 @@ char* MessageWriter::doWriteMessageHead(
 
         if (rmsgstub.serializer_ptr_->empty()) {
             //we've just finished serializing header
-
-            rmsgstub.serializer_ptr_->push(rmsgstub.msgbundle_.message_ptr, rmsgstub.msgbundle_.message_type_id);
-
-            rmsgstub.state_ = MessageStub::StateE::WriteBody;
+            rmsgstub.state_ = MessageStub::StateE::WriteBodyStart;
         }
         _pbufpos += rv;
     } else {
@@ -633,7 +627,8 @@ char* MessageWriter::doWriteMessageBody(
     _rsender.context().message_flags     = rmsgstub.msgbundle_.message_flags;
     _rsender.context().pmessage_url      = &rmsgstub.msgbundle_.message_url;
 
-    const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    const long rv = rmsgstub.state_ == MessageStub::StateE::WriteBodyStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, rmsgstub.msgbundle_.message_ptr, rmsgstub.msgbundle_.message_type_id) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    rmsgstub.state_ = MessageStub::StateE::WriteBodyContinue;
 
     if (rv >= 0) {
 
@@ -703,7 +698,8 @@ char* MessageWriter::doWriteRelayedHead(
     _rsender.context().message_flags.set(MessageFlagsE::Relayed);
     _rsender.context().pmessage_url = &rmsgstub.prelay_data_->pmessage_header_->url_;
 
-    const int rv = rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    const long rv = rmsgstub.state_ == MessageStub::StateE::RelayedHeadStart ? rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos, *rmsgstub.prelay_data_->pmessage_header_) : rmsgstub.serializer_ptr_->run(_rsender.context(), _pbufpos, _pbufend - _pbufpos);
+    rmsgstub.state_ = MessageStub::StateE::RelayedHeadContinue;
 
     if (rv >= 0) {
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
@@ -998,9 +994,10 @@ Serializer::PointerT MessageWriter::createSerializer(Sender& _sender)
     if (ser_top_) {
         Serializer::PointerT ser{std::move(ser_top_)};
         ser_top_ = std::move(ser->link());
+        _sender.protocol().reconfigure(*ser, _sender.configuration());
         return ser;
     } else {
-        return _sender.protocol().createSerializer();
+        return _sender.protocol().createSerializer(_sender.configuration());
     }
 }
 

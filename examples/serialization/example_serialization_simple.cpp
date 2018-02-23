@@ -36,7 +36,7 @@ struct TestA {
     {
     }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
     }
@@ -54,7 +54,7 @@ struct TestB {
     int32_t a;
     void    print() const { cout << "testb: a = " << a << endl; }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(a, "b::a");
     }
@@ -104,7 +104,7 @@ struct TestD {
         cout << "testd: sa = " << hoststr << ':' << portstr << endl;
     }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(a, "b::a");
         _s.push(addr, "addr");
@@ -133,7 +133,7 @@ struct String : Base {
     {
     }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         if (dflt) {
             //_s;
@@ -161,7 +161,7 @@ struct Integer : Base {
     {
     }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(tc, "tc");
     }
@@ -181,10 +181,10 @@ struct UnsignedInteger : Integer {
     {
     }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(u, "String::str");
-        Integer::solidSerialize(_s);
+        Integer::solidSerializeV1(_s);
     }
     void print() const
     {
@@ -234,7 +234,7 @@ namespace solid {
 namespace serialization {
 namespace binary {
 template <class S>
-void solidSerialize(S& _s, IntegerVector& _iv)
+void solidSerializeV1(S& _s, IntegerVector& _iv)
 {
     _s.pushContainer(_iv.iv, "IntegerVector::iv").pushContainer(_iv.piv1, "piv1").pushContainer(_iv.piv2, "piv2");
 }
@@ -278,7 +278,7 @@ struct Array : Base {
         delete[] pta1;
     }
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.pushArray(sa, sasz, 3, "sa");
         _s.pushArray(td, tdsz, 4, "td");
@@ -330,19 +330,19 @@ namespace solid {
 namespace serialization {
 namespace binary {
 template <class S>
-void solidSerialize(S& _s, Base&)
+void solidSerializeV1(S& _s, Base&)
 {
     SOLID_ASSERT(false);
 }
 
 template <class S>
-void solidSerialize(S& _s, TestC& _tb)
+void solidSerializeV1(S& _s, TestC& _tb)
 {
     _s.push(_tb.a, "c::a");
 }
 
 template <class S>
-void solidSerialize(S& _s, pair<int32_t, int32_t>& _tb)
+void solidSerializeV1(S& _s, pair<int32_t, int32_t>& _tb)
 {
     _s.push(_tb.first, "first").push(_tb.second, "second");
 }

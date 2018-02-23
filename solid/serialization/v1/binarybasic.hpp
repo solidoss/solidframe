@@ -20,12 +20,12 @@ namespace binary {
 
 #define BASIC_DECL(tp)                       \
     template <class S>                       \
-    void solidSerialize(S& _s, tp& _t)       \
+    void solidSerializeV1(S& _s, tp& _t)       \
     {                                        \
         _s.push(_t, "basic");                \
     }                                        \
     template <class S, class Ctx>            \
-    void solidSerialize(S& _s, tp& _t, Ctx&) \
+    void solidSerializeV1(S& _s, tp& _t, Ctx&) \
     {                                        \
         _s.push(_t, "basic");                \
     }

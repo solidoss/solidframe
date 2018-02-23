@@ -52,7 +52,7 @@ struct Test {
     size_t          u8a_sz;
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(str, "Test::str");
         _s.push(b, "Test::b");

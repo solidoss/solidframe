@@ -20,7 +20,7 @@ struct ThirdMessage : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(str, "str");
         _s.push(v, "v");
@@ -47,7 +47,7 @@ struct FirstMessage : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(str, "str");
         _s.push(v, "v");
@@ -72,7 +72,7 @@ struct SecondMessage : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(str, "str");
         _s.push(v, "v");

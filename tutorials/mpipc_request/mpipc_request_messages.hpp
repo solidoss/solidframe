@@ -20,7 +20,7 @@ struct Request : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(userid_regex, "userid_regex");
     }
@@ -32,7 +32,7 @@ struct Date {
     uint16_t year;
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(day, "day").push(month, "month").push(year, "year");
     }
@@ -46,7 +46,7 @@ struct UserData {
     Date        birth_date;
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(full_name, "full_name").push(email, "email");
         _s.push(country, "country").push(city, "city").push(birth_date, "birth_date");
@@ -66,7 +66,7 @@ struct Response : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
     {
         _s.pushContainer(user_data_map, "user_data_map");
     }

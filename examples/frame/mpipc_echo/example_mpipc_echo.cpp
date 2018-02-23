@@ -111,7 +111,7 @@ struct FirstMessage : frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV1(S& _s, frame::mpipc::ConnectionContext& _rctx)
     {
         _s.push(str, "data");
     }

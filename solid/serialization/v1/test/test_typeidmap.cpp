@@ -63,7 +63,7 @@ struct Test : Base {
     }
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(value, "alpha::Test::value");
     }
@@ -105,7 +105,7 @@ struct Test : Base {
     }
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(value, "beta::Test::value");
     }
@@ -171,7 +171,7 @@ struct Test : Base {
     }
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(value, "delta::Test::value");
     }
