@@ -207,7 +207,7 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
     {
         frame::mpipc::MessagePointerT message_ptr;
         ErrorConditionT               error;
-        rprotocol_[_msg_type_id].complete_fnc(mpipcconctx, message_ptr, _rresponse_ptr, error);
+        rprotocol_.complete(_msg_type_id, mpipcconctx, message_ptr, _rresponse_ptr, error);
     }
 
     void receiveKeepAlive() override
@@ -253,7 +253,7 @@ struct Sender : frame::mpipc::MessageWriter::Sender {
         idbg("writer complete message");
         frame::mpipc::MessagePointerT response_ptr;
         ErrorConditionT               error;
-        rprotocol_[_rmsgbundle.message_type_id].complete_fnc(mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
+        rprotocol_.complete(_rmsgbundle.message_type_id, mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
         return ErrorConditionT();
     }
 };

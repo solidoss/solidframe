@@ -1,6 +1,6 @@
 // solid/frame/mpipc/mpipcprotocol_binary_serialization_v1.hpp
 //
-// Copyright (c) 2016 Valentin Palade (vipalade @ gmail . com)
+// Copyright (c) 2018 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -10,19 +10,14 @@
 
 #pragma once
 
+#include <memory>
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
-#include "solid/serialization/v1/binary.hpp"
-#include "solid/serialization/v1/binarybasic.hpp"
-#include "solid/serialization/v1/typeidmap.hpp"
+#include "solid/serialization/v2/serialization.hpp"
 
 namespace solid {
 namespace frame {
 namespace mpipc {
-namespace serialization_v1 {
-
-struct TypeStub {
-    MessageCompleteFunctionT complete_fnc;
-};
+namespace serialization_v2 {
 
 using SerializerT   = serialization::binary::Serializer<ConnectionContext>;
 using DeserializerT = serialization::binary::Deserializer<ConnectionContext>;
@@ -263,11 +258,15 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
         return type_map.index(_pmsg);
     }
 
-    void complete(const size_t _idx, ConnectionContext& _rctx, MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr, ErrorConditionT const& _rerr) const override
-    {
-        type_map[_idx].complete_fnc(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerr);
+//     const TypeStub& operator[](const size_t _idx) const override
+//     {
+//         return type_map[_idx];
+//     }
+    
+    void execute(const size_t _idx, ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&) override{
+        
     }
-
+    
     Serializer::PointerT createSerializer(const WriterConfiguration& _rconfig) const override
     {
         return Serializer::PointerT(new Serializer(limits, type_map));
@@ -347,7 +346,8 @@ struct ProtoSpec {
     }
 };
 
-} //namespace serialization_v1
+} //namespace serialization_v2
 } //namespace mpipc
 } //namespace frame
 } //namespace solid
+

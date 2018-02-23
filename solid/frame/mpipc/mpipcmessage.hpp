@@ -300,6 +300,9 @@ private:
 
 using MessagePointerT = std::shared_ptr<Message>;
 
+using MessageCompleteFunctionT = SOLID_FUNCTION(void(
+    ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&));
+
 } //namespace mpipc
 } //namespace frame
 } //namespace solid

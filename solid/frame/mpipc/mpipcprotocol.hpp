@@ -98,13 +98,6 @@ struct CompleteHandler {
     }
 };
 
-using MessageCompleteFunctionT = SOLID_FUNCTION(void(
-    ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&));
-
-struct TypeStub {
-    MessageCompleteFunctionT complete_fnc;
-};
-
 class Deserializer {
 public:
     using PointerT = std::unique_ptr<Deserializer>;
@@ -197,7 +190,8 @@ public:
 
     virtual size_t typeIndex(const Message* _pmsg) const = 0;
 
-    virtual const TypeStub& operator[](const size_t _idx) const = 0;
+    //virtual const TypeStub& operator[](const size_t _idx) const = 0;
+    virtual void complete(const size_t _idx, ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&) const = 0;
 
     virtual Serializer::PointerT   createSerializer(const WriterConfiguration& _rconf) const   = 0;
     virtual Deserializer::PointerT createDeserializer(const ReaderConfiguration& _rconf) const = 0;
