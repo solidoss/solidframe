@@ -44,12 +44,12 @@ struct Serializer : public mpipc::Serializer {
         ser.push(_rmsgptr, _msg_type_idx, "message");
         return ser.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
-    
+
     long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
     {
         return ser.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
-    
+
     ErrorConditionT error() const override
     {
         return ser.error();
@@ -264,24 +264,26 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
         return type_map[_idx];
     }
 
-    Serializer::PointerT createSerializer(const WriterConfiguration &_rconfig) const override
+    Serializer::PointerT createSerializer(const WriterConfiguration& _rconfig) const override
     {
         return Serializer::PointerT(new Serializer(limits, type_map));
     }
-    
-    Deserializer::PointerT createDeserializer(const ReaderConfiguration &_rconfig) const override
+
+    Deserializer::PointerT createDeserializer(const ReaderConfiguration& _rconfig) const override
     {
         return Deserializer::PointerT(new Deserializer(limits, type_map));
     }
-    
-    void reconfigure(mpipc::Deserializer &_rdes, const ReaderConfiguration &_rconfig)const override{
+
+    void reconfigure(mpipc::Deserializer& _rdes, const ReaderConfiguration& _rconfig) const override
+    {
         static_cast<Deserializer&>(_rdes).des.resetLimits();
     }
-    
-    void reconfigure(mpipc::Serializer &_rser, const WriterConfiguration &_rconfig)const override{
+
+    void reconfigure(mpipc::Serializer& _rser, const WriterConfiguration& _rconfig) const override
+    {
         static_cast<Serializer&>(_rser).ser.resetLimits();
     }
-    
+
     size_t minimumFreePacketDataSize() const override
     {
         return 16;

@@ -223,7 +223,7 @@ const char* MessageReader::doConsumeMessage(
     case MessageStub::StateE::NotStarted:
         vdbgx(Debug::mpipc, "NotStarted msgidx = " << _msgidx);
         rmsgstub.deserializer_ptr_ = createDeserializer(_receiver);
-        rmsgstub.state_ = MessageStub::StateE::ReadHeadStart;
+        rmsgstub.state_            = MessageStub::StateE::ReadHeadStart;
     case MessageStub::StateE::ReadHeadStart:
     case MessageStub::StateE::ReadHeadContinue:
         vdbgx(Debug::mpipc, "ReadHead " << _msgidx);
@@ -233,8 +233,8 @@ const char* MessageReader::doConsumeMessage(
             if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
                 _receiver.context().pmessage_header = &rmsgstub.message_header_;
 
-                const long rv = rmsgstub.state_ ==  MessageStub::StateE::ReadHeadStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size, rmsgstub.message_header_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
-                
+                const long rv = rmsgstub.state_ == MessageStub::StateE::ReadHeadStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size, rmsgstub.message_header_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
+
                 rmsgstub.state_ = MessageStub::StateE::ReadHeadContinue;
                 _pbufpos += message_size;
 
@@ -299,7 +299,7 @@ const char* MessageReader::doConsumeMessage(
                     _receiver.context().pmessage_header = &rmsgstub.message_header_;
 
                     const long rv = rmsgstub.state_ == MessageStub::StateE::ReadBodyStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size, rmsgstub.message_ptr_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
-                    
+
                     rmsgstub.state_ = MessageStub::StateE::ReadBodyContinue;
                     _pbufpos += message_size;
 

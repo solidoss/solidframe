@@ -318,11 +318,11 @@ enum struct ConnectionState {
 
 struct ReaderConfiguration {
     ReaderConfiguration();
-    
-    size_t              string_size_limit;
-    size_t              container_size_limit;
-    uint64_t            stream_size_limit;
-    
+
+    size_t   string_size_limit;
+    size_t   container_size_limit;
+    uint64_t stream_size_limit;
+
     size_t              max_message_count_multiplex;
     UncompressFunctionT decompress_fnc;
 };
@@ -333,10 +333,10 @@ struct WriterConfiguration {
     size_t max_message_count_multiplex;
     size_t max_message_count_response_wait;
     size_t max_message_continuous_packet_count;
-    
-    size_t              string_size_limit;
-    size_t              container_size_limit;
-    uint64_t            stream_size_limit;
+
+    size_t   string_size_limit;
+    size_t   container_size_limit;
+    uint64_t stream_size_limit;
 
     CompressFunctionT inplace_compress_fnc;
 };
