@@ -13,7 +13,7 @@
 
 #include "solid/frame/mpipc/mpipccompression_snappy.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
@@ -372,11 +372,10 @@ int test_clientserver_basic(int argc, char** argv)
         std::string server_port;
 
         { //mpipc server initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = frame::mpipc::serialization_v2::Protocol<uint8_t>::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
 
-            proto->registerType<Message>(
-                server_complete_message);
+            proto->registerType<Message>(server_complete_message);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;

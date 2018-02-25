@@ -11,6 +11,7 @@
 #pragma once
 
 #include <memory>
+#include "solid/system/error.hpp"
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
 #include "solid/serialization/v2/serialization.hpp"
 
@@ -24,55 +25,54 @@ using DeserializerT = serialization::binary::Deserializer<ConnectionContext>;
 using TypeIdMapT    = serialization::TypeIdMap<SerializerT, DeserializerT, TypeStub>;
 using LimitsT       = serialization::binary::Limits;
 
-struct Serializer : public mpipc::Serializer {
-    SerializerT ser;
-
-    Serializer(const LimitsT& _rlimits, TypeIdMapT const& _ridmap)
-        : ser(_rlimits, &_ridmap)
+class Serializer : public mpipc::Serializer {
+    SerializerT ser_;
+public:
+    Serializer(TypeIdMapT const& _ridmap)
+        : ser_(&_ridmap)
     {
     }
-
+private:
     long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
-        ser.push(_rmsghdr, "message_header");
-        return ser.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
+        ser_.push(_rmsghdr, "message_header");
+        return ser_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](SerializerT &_rs, ConnectionContext& _rctx){_rs.add(_rmsghdr, _rctx, "message");}, _rctx);
     }
 
     long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t _msg_type_idx) override
     {
-        ser.push(_rmsgptr, _msg_type_idx, "message");
-        return ser.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
+        return ser_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](SerializerT &_rs, ConnectionContext& _rctx){_rs.add(_rmsgptr, _rctx, "message");}, _rctx);
     }
 
     long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
     {
-        return ser.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
+        return ser_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
 
     ErrorConditionT error() const override
     {
-        return ser.error();
+        return ser_.error();
     }
 
     bool empty() const override
     {
-        return ser.empty();
+        return ser_.empty();
     }
 
     void clear() override
     {
-        return ser.clear();
+        return ser_.clear();
     }
 };
 
-struct Deserializer : public mpipc::Deserializer {
-    DeserializerT des;
-
-    Deserializer(const LimitsT& _rlimits, TypeIdMapT const& _ridmap)
-        : des(_rlimits, &_ridmap)
+class Deserializer : public mpipc::Deserializer {
+    DeserializerT des_;
+public:
+    Deserializer(TypeIdMapT const& _ridmap)
+        : des_(&_ridmap)
     {
     }
-
+private:
     long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
         des.push(_rmsghdr, "message_header");
@@ -86,46 +86,35 @@ struct Deserializer : public mpipc::Deserializer {
     }
     long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
     {
-        return des.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
+        return des_.run(_pdata, static_cast<unsigned>(_data_len), _rctx);
     }
     ErrorConditionT error() const override
     {
-        return des.error();
+        return des_.error();
     }
 
     bool empty() const override
     {
-        return des.empty();
+        return des_.empty();
     }
     void clear() override
     {
-        return des.clear();
+        return des_.clear();
     }
 };
 
-struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol> {
-    using PointerT = std::shared_ptr<Protocol>;
+template <typename TypeId>
+struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol<TypeId>> {
+    using ThisT = Protocol<TypeId>;
+    using PointerT = std::shared_ptr<ThisT>;
 
-    TypeIdMapT type_map;
-
-    LimitsT limits;
+    TypeIdMapT type_map_;
 
     static PointerT create()
     {
-        struct EnableMakeSharedProtocol : Protocol {
+        struct EnableMakeSharedProtocol : ThisT {
         };
         return std::make_shared<EnableMakeSharedProtocol>();
-    }
-
-    static PointerT create(const LimitsT& _limits)
-    {
-        struct EnableMakeSharedProtocol : Protocol {
-            EnableMakeSharedProtocol(const LimitsT& _limits)
-                : Protocol(_limits)
-            {
-            }
-        };
-        return std::make_shared<EnableMakeSharedProtocol>(_limits);
     }
 
     PointerT pointerFromThis()
@@ -134,9 +123,7 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
     }
 
     template <class T>
-    size_t registerType(
-        const size_t _protocol_id = 0,
-        const size_t _idx         = 0)
+    size_t registerType(const TypeId &_rtid)
     {
         TypeStub ts;
         size_t   rv = type_map.registerType<T>(ts, _protocol_id, _idx);
@@ -252,21 +239,17 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol>
     {
         return serialization::binary::cross::load(_ps, _sz, _v);
     }
-
+    
     size_t typeIndex(const Message* _pmsg) const override
     {
         return type_map.index(_pmsg);
     }
 
-//     const TypeStub& operator[](const size_t _idx) const override
-//     {
-//         return type_map[_idx];
-//     }
-    
-    void execute(const size_t _idx, ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&) override{
-        
+    void complete(const size_t _idx, ConnectionContext& _rctx, MessagePointerT& _rsent_msg_ptr, MessagePointerT& _rrecv_msg_ptr, ErrorConditionT const& _rerr) const override
+    {
+        type_map[_idx].complete_fnc(_rctx, _rsent_msg_ptr, _rrecv_msg_ptr, _rerr);
     }
-    
+
     Serializer::PointerT createSerializer(const WriterConfiguration& _rconfig) const override
     {
         return Serializer::PointerT(new Serializer(limits, type_map));
