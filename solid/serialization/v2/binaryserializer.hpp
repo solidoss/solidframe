@@ -88,7 +88,7 @@ public:
     static constexpr bool is_serializer   = true;
     static constexpr bool is_deserializer = false;
 
-    std::ostream& run(std::ostream& _ros);
+    std::ostream& run(std::ostream& _ros, void* _pctx = nullptr);
     long          run(char* _pbeg, unsigned _sz, void* _pctx = nullptr);
 
     void clear();
@@ -99,8 +99,13 @@ public:
     {
         return Base::limits();
     }
+    
+    bool empty()const{
+        return run_lst_.empty();
+    }
 
 public: //should be protected
+    SerializerBase(const Limits& _rlimits);
     SerializerBase();
 
     inline void addBasic(const bool& _rb, const char* _name)
@@ -622,7 +627,10 @@ template <>
 class Serializer<void> : public SerializerBase {
 public:
     using ThisT = Serializer<void>;
-
+    
+    Serializer(const Limits& _rlimits):SerializerBase(_rlimits){}
+    Serializer(){}
+    
     template <typename F>
     ThisT& add(std::istream& _ris, const uint64_t _sz, F _f, const char* _name)
     {
@@ -705,10 +713,113 @@ public:
     }
 };
 
+template <class Ctx>
+class Serializer : public SerializerBase {
+public:
+    using ThisT = Serializer<Ctx>;
+    using ContextT = Ctx;
+    
+    Serializer(const Limits& _rlimits):SerializerBase(_rlimits){}
+    Serializer(){}
+
+    template <typename F>
+    ThisT& add(std::istream& _ris, const uint64_t _sz, F _f, Ctx& _rctx, const char* _name)
+    {
+        addStream(_ris, _sz, _f, _name);
+        return *this;
+    }
+    template <typename F>
+    ThisT& add(std::istream& _ris, F _f, Ctx& _rctx, const char* _name)
+    {
+        addStream(_ris, InvalidSize(), _f, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(T& _rt, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _rctx, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(const T& _rt, Ctx& _rctx, const char* _name)
+    {
+        solidSerializeV2(*this, _rt, _rctx, _name);
+        return *this;
+    }
+
+    ThisT& add(const void* _pv, size_t _sz, Ctx& _rctx, const char* _name)
+    {
+        addBinary(_pv, _sz, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& push(T& _rt, Ctx& _rctx, const char* _name)
+    {
+        solidSerializePushV2(*this, std::move(_rt), _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& push(T&& _rt, Ctx& _rctx, const char* _name)
+    {
+        solidSerializePushV2(*this, std::move(_rt), _name);
+        return *this;
+    }
+
+    ThisT& limits(const Limits& _rlimits)
+    {
+        SerializerBase::limits(_rlimits);
+        return *this;
+    }
+
+    template <typename F>
+    long run(char* _pbeg, unsigned _sz, F _f, Ctx& _rctx)
+    {
+        doPrepareRun(_pbeg, _sz);
+        _f(*this, _rctx);
+        return doRun(&_rctx);
+    }
+
+    template <typename F>
+    std::ostream& run(std::ostream& _ros, F _f, Ctx& _rctx)
+    {
+        const size_t buf_cap = 8 * 1024;
+        char         buf[buf_cap];
+        long         len;
+
+        clear();
+
+        doPrepareRun(buf, buf_cap);
+        _f(*this, _rctx);
+        len = doRun(&_rctx);
+
+        while (len > 0) {
+            _ros.write(buf, len);
+            len = SerializerBase::run(buf, buf_cap, &_rctx);
+        }
+        return _ros;
+    }
+    std::pair<ThisT&, Ctx&> wrap(Ctx& _rct)
+    {
+        return std::make_pair(std::ref(*this), std::ref(_rct));
+    }
+};
+
+
 inline std::ostream& operator<<(std::ostream& _ros, Serializer<>& _rser)
 {
     return _rser.SerializerBase::run(_ros);
 }
+
+template <typename S>
+inline std::ostream& operator>>(std::ostream& _ros, std::pair<S&, typename S::ContextT&> _ser)
+{
+    return _ser.first.run(_ros, _ser.second);
+}
+
 
 } //namespace binary
 } //namespace v2

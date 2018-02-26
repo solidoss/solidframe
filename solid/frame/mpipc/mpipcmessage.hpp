@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+#include "solid/utility/typetraits.hpp"
 #include "solid/utility/function.hpp"
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
@@ -98,6 +99,30 @@ struct MessageHeader {
             _rs.push(url_, "url");
             _rs.pushCross(flags_, "flags");
         }
+    }
+    
+    template <class S>
+    void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, const char *_name)
+    {
+        if_then_else<S::is_serializer>(
+            [this](S &_rs, frame::mpipc::ConnectionContext& _rctx, const char *_name){
+                SOLID_CHECK(_rctx.pmessage_url, "message url must not be null");
+                uint64_t tmp = _rctx.message_flags.toUint64(); //not nice but safe - better solution in future versions
+                _rs.add(tmp, _rctx, "flags").add(*_rctx.pmessage_url, _rctx, "url");
+                _rs.add(_rctx.request_id.index, _rctx, "sender_request_index");
+                _rs.add(_rctx.request_id.unique, _rctx, "sender_request_unique");
+                _rs.add(sender_request_id_.index, _rctx, "recipient_request_index");
+                _rs.add(sender_request_id_.unique, _rctx, "recipient_request_unique");
+                
+            },
+            [this](S &_rs, frame::mpipc::ConnectionContext& _rctx, const char *_name){
+                _rs.add(flags_, _rctx, "flags_").add(url_, _rctx, "url");
+                _rs.add(sender_request_id_.index, _rctx, "sender_request_index");
+                _rs.add(sender_request_id_.unique, _rctx, "sender_request_unique");
+                _rs.add(recipient_request_id_.index, _rctx, "recipient_request_index");
+                _rs.add(recipient_request_id_.unique, _rctx, "recipient_request_unique");
+            }
+        )(_rs, _rctx, _name);
     }
 };
 

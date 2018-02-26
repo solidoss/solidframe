@@ -9,6 +9,15 @@ namespace v2 {
 namespace binary {
 
 //== Serializer  ==============================================================
+SerializerBase::SerializerBase(const Limits& _rlimits)
+    : Base(_rlimits)
+    , pbeg_(nullptr)
+    , pend_(nullptr)
+    , pcrt_(nullptr)
+    , sentinel_(run_lst_.cend())
+{
+}
+
 SerializerBase::SerializerBase()
     : pbeg_(nullptr)
     , pend_(nullptr)
@@ -17,7 +26,7 @@ SerializerBase::SerializerBase()
 {
 }
 
-std::ostream& SerializerBase::run(std::ostream& _ros)
+std::ostream& SerializerBase::run(std::ostream& _ros, void* _pctx)
 {
     const size_t buf_cap = 8 * 1024;
     char         buf[buf_cap];
@@ -25,7 +34,7 @@ std::ostream& SerializerBase::run(std::ostream& _ros)
 
     clear();
 
-    while ((len = run(buf, buf_cap)) > 0) {
+    while ((len = run(buf, buf_cap, _pctx)) > 0) {
         _ros.write(buf, len);
     }
     return _ros;

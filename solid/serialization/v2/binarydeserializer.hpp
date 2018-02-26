@@ -90,6 +90,7 @@ public:
     static constexpr bool is_deserializer = true;
 
 public:
+    DeserializerBase(const Limits& _rlimits);
     DeserializerBase();
 
     std::istream& run(std::istream& _ris, void* _pctx = nullptr);
@@ -106,6 +107,10 @@ public:
     const ErrorConditionT& error() const
     {
         return Base::error();
+    }
+    
+    bool empty()const{
+        return run_lst_.empty();
     }
 
     inline void addBasic(bool& _rb, const char* _name)
@@ -813,7 +818,10 @@ template <>
 class Deserializer<void> : public DeserializerBase {
 public:
     using ThisT = Deserializer<void>;
-
+    
+    Deserializer(const Limits& _rlimits):DeserializerBase(_rlimits){}
+    Deserializer(){}
+    
     template <typename F>
     ThisT& add(std::ostream& _ros, F _f, const char* _name)
     {
@@ -899,7 +907,10 @@ class Deserializer : public DeserializerBase {
 public:
     using ThisT    = Deserializer<Ctx>;
     using ContextT = Ctx;
-
+    
+    Deserializer(const Limits& _rlimits):DeserializerBase(_rlimits){}
+    Deserializer(){}
+    
     template <typename F>
     ThisT& add(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
     {

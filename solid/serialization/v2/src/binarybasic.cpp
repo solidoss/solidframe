@@ -9,12 +9,18 @@
 //
 
 #include "solid/serialization/v2/binarybasic.hpp"
+#include "solid/serialization/v2/binarybase.hpp"
 #include "solid/system/cassert.hpp"
 
 namespace solid {
 namespace serialization {
 namespace v2 {
 namespace binary {
+//========================================================================
+/*virtual*/ Base::~Base(){
+    
+}
+//========================================================================
 namespace cross {
 //========================================================================
 char* store_with_check(char* _pd, const size_t _sz, uint8_t _v)

@@ -136,7 +136,7 @@ public:
         std::ifstream ifs;
         ifs.open(p);
         _rs
-            .push(make_choice<S::is_serializer>(
+            .push(if_then_else<S::is_serializer>(
                       [ this, ifs = std::move(ifs) ](S & _rs, const char* _name) mutable {
                           _rs.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, const char* _name) {
                               idbg("Progress(" << _name << "): " << _len << " done = " << _done);

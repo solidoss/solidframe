@@ -8,7 +8,16 @@ namespace serialization {
 namespace v2 {
 namespace binary {
 
-//== Serializer  ==============================================================
+//== Deserializer  ==============================================================
+DeserializerBase::DeserializerBase(const Limits& _rlimits)
+    : Base(_rlimits)
+    , pbeg_(nullptr)
+    , pend_(nullptr)
+    , pcrt_(nullptr)
+    , sentinel_(run_lst_.cend())
+{
+}
+
 DeserializerBase::DeserializerBase()
     : pbeg_(nullptr)
     , pend_(nullptr)
@@ -16,7 +25,6 @@ DeserializerBase::DeserializerBase()
     , sentinel_(run_lst_.cend())
 {
 }
-
 std::istream& DeserializerBase::run(std::istream& _ris, void* _pctx)
 {
     const size_t buf_cap = 8 * 1024;

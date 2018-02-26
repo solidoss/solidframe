@@ -89,7 +89,11 @@ protected:
         //Add above
         InnerListCount,
     };
-
+    
+    Base(){}
+    Base(const Limits& _rlimits):limits_(_rlimits){}
+    virtual ~Base();
+    
 protected:
     Limits          limits_;
     ErrorConditionT error_;
