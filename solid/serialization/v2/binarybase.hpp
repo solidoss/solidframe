@@ -1,6 +1,7 @@
 #pragma once
 #include "solid/serialization/v2/error.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
+#include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/utility/common.hpp"
 #include <memory>
 #include <utility>
@@ -63,7 +64,7 @@ struct Limits {
     uint64_t streamlimit_;
 };
 
-class Base {
+class Base: public v2::Base {
 public:
     const ErrorConditionT& error() const
     {
@@ -92,7 +93,6 @@ protected:
     
     Base(){}
     Base(const Limits& _rlimits):limits_(_rlimits){}
-    virtual ~Base();
     
 protected:
     Limits          limits_;

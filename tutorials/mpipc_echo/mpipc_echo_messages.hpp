@@ -24,9 +24,9 @@ struct Message : solid::frame::mpipc::Message {
     }
     
     template <class S>
-    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char *_name)
     {
-        _s.add(str, "str");
+        _s.add(str, _rctx, "str");
     }
 };
 

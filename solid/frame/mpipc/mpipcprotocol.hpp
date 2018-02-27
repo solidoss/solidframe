@@ -134,7 +134,7 @@ public:
 
     virtual ~Serializer();
     virtual long            run(ConnectionContext&, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr)                               = 0;
-    virtual long            run(ConnectionContext&, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t _msg_type_idx) = 0;
+    virtual long            run(ConnectionContext&, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t _msg_type_idx = 0) = 0;
     virtual long            run(ConnectionContext&, char* _pdata, size_t _data_len)                                                        = 0;
     virtual ErrorConditionT error() const                                                                                                  = 0;
     virtual bool            empty() const                                                                                                  = 0;

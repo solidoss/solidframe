@@ -3,6 +3,7 @@ set(Sources
     src/binaryserializer.cpp
     src/binarydeserializer.cpp
     src/error.cpp
+    src/serialization.cpp
 )
 
 set(Headers
@@ -10,6 +11,9 @@ set(Headers
     binarybasic.hpp
     binaryserializer.hpp
     binarydeserializer.hpp
+    typemapbase.hpp
+    typemap.hpp
+    serialization.hpp
     error.hpp
 )
 

@@ -102,28 +102,33 @@ struct MessageHeader {
     }
     
     template <class S>
+    void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, std::integral_constant<bool, true> _is_serializer, const char *_name)
+    {
+        SOLID_CHECK(_rctx.pmessage_url, "message url must not be null");
+        const uint64_t tmp = _rctx.message_flags.toUint64();
+        _rs.add(tmp, _rctx, "flags").add(*_rctx.pmessage_url, _rctx, "url");
+        _rs.add(_rctx.request_id.index, _rctx, "sender_request_index");
+        _rs.add(_rctx.request_id.unique, _rctx, "sender_request_unique");
+        _rs.add(sender_request_id_.index, _rctx, "recipient_request_index");
+        _rs.add(sender_request_id_.unique, _rctx, "recipient_request_unique");
+    }
+    
+    template <class S>
+    void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, std::integral_constant<bool, false> _is_deserializer, const char *_name)
+    {
+        _rs.add(flags_, _rctx, "flags_").add(url_, _rctx, "url");
+        _rs.add(sender_request_id_.index, _rctx, "sender_request_index");
+        _rs.add(sender_request_id_.unique, _rctx, "sender_request_unique");
+        _rs.add(recipient_request_id_.index, _rctx, "recipient_request_index");
+        _rs.add(recipient_request_id_.unique, _rctx, "recipient_request_unique");
+    }
+    
+    template <class S>
     void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, const char *_name)
     {
-        if_then_else<S::is_serializer>(
-            [this](S &_rs, frame::mpipc::ConnectionContext& _rctx, const char *_name){
-                SOLID_CHECK(_rctx.pmessage_url, "message url must not be null");
-                uint64_t tmp = _rctx.message_flags.toUint64(); //not nice but safe - better solution in future versions
-                _rs.add(tmp, _rctx, "flags").add(*_rctx.pmessage_url, _rctx, "url");
-                _rs.add(_rctx.request_id.index, _rctx, "sender_request_index");
-                _rs.add(_rctx.request_id.unique, _rctx, "sender_request_unique");
-                _rs.add(sender_request_id_.index, _rctx, "recipient_request_index");
-                _rs.add(sender_request_id_.unique, _rctx, "recipient_request_unique");
-                
-            },
-            [this](S &_rs, frame::mpipc::ConnectionContext& _rctx, const char *_name){
-                _rs.add(flags_, _rctx, "flags_").add(url_, _rctx, "url");
-                _rs.add(sender_request_id_.index, _rctx, "sender_request_index");
-                _rs.add(sender_request_id_.unique, _rctx, "sender_request_unique");
-                _rs.add(recipient_request_id_.index, _rctx, "recipient_request_index");
-                _rs.add(recipient_request_id_.unique, _rctx, "recipient_request_unique");
-            }
-        )(_rs, _rctx, _name);
+        solidSerializeV2(_rs, _rctx,  std::integral_constant<bool, S::is_serializer>(), _name);
     }
+    
 };
 
 struct Message : std::enable_shared_from_this<Message> {
@@ -290,8 +295,6 @@ struct Message : std::enable_shared_from_this<Message> {
     template <class S, class T>
     static void solidSerializeV1(S& _rs, T& _rt, const char* _name)
     {
-        //here we do only pushes so we can have access to context
-        //using the above "serialize" function
         _rs.push(_rt, _name);
         if (S::IsDeserializer) {
             _rs.pushCall(
@@ -302,7 +305,21 @@ struct Message : std::enable_shared_from_this<Message> {
                 "call");
         }
     }
-
+    
+    template <class S, class T>
+    static void solidSerializeV2(S& _rs, T& _rt, frame::mpipc::ConnectionContext& _rctx, const char* _name){
+        _rs.add(_rt, _rctx, _name);
+    }
+    
+    template <class S, class T>
+    static void solidDeserializeV2(S& _rs, T& _rt, frame::mpipc::ConnectionContext& _rctx, const char* _name){
+        _rs.add(
+            [&_rt](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name){
+                _rt.header_ = std::move(*_rctx.pmessage_header);
+            }, _rctx, _name);
+        _rs.add(_rt, _rctx, _name);
+    }
+    
     RequestId const& senderRequestId() const
     {
         return header_.sender_request_id_;

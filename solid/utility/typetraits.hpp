@@ -37,9 +37,9 @@ T2 if_then_else_help(T1&& _t1, T2&& _t2, std::false_type _tt)
 }
 
 template <bool B, typename T1, typename T2>
-typename std::conditional<B, T1, T2>::type if_then_else(T1&& _t1, T2&& _t2)
+typename std::conditional<B, T1, T2>::type if_then_else(T1&& _then, T2&& _else)
 {
-    return if_then_else_help(std::move(_t1), std::move(_t2), std::integral_constant<bool, B>());
+    return if_then_else_help(std::move(_then), std::move(_else), std::integral_constant<bool, B>());
 }
 
 } //namespace solid

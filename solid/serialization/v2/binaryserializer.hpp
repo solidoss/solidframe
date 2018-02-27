@@ -3,6 +3,7 @@
 #include "solid/serialization/v2/binarybase.hpp"
 #include "solid/serialization/v2/binarybasic.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
+#include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/system/debug.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/innerlist.hpp"
@@ -84,6 +85,12 @@ class SerializerBase : public Base {
     using RunListT         = std::list<Runnable>;
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 
+protected:
+    friend class TypeMapBase;
+    
+    SerializerBase(const TypeMapBase &_rtype_map, const Limits& _rlimits);
+    SerializerBase(const TypeMapBase &_rtype_map);
+    
 public:
     static constexpr bool is_serializer   = true;
     static constexpr bool is_deserializer = false;
@@ -105,8 +112,6 @@ public:
     }
 
 public: //should be protected
-    SerializerBase(const Limits& _rlimits);
-    SerializerBase();
 
     inline void addBasic(const bool& _rb, const char* _name)
     {
@@ -433,23 +438,27 @@ public: //should be protected
     void addPointer(S& _rs, const std::shared_ptr<T>& _rp, const char* _name)
     {
         idbg(_name);
+        rtype_map_.serialize(_rs, _rp.get(), _name); 
     }
 
     template <class S, class T, class Ctx>
     void addPointer(S& _rs, const std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
     {
         idbg(_name);
+        rtype_map_.serialize(_rs, _rp.get(), _rctx, _name);
     }
     template <class S, class T, class D>
     void addPointer(S& _rs, const std::unique_ptr<T, D>& _rp, const char* _name)
     {
         idbg(_name);
+        rtype_map_.serialize(_rs, _rp.get(), _name);
     }
 
     template <class S, class T, class D, class Ctx>
     void addPointer(S& _rs, const std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
     {
         idbg(_name);
+        rtype_map_.serialize(_rs, _rp.get(), _rctx, _name);
     }
 
     template <class F>
@@ -607,7 +616,7 @@ private:
     enum {
         BufferCapacityE = sizeof(uint64_t) * 1
     };
-
+    const TypeMapBase &rtype_map_;
     char*            pbeg_;
     char*            pend_;
     char*            pcrt_;
@@ -625,11 +634,12 @@ class Serializer;
 
 template <>
 class Serializer<void> : public SerializerBase {
+    friend class TypeMapBase;
 public:
     using ThisT = Serializer<void>;
     
-    Serializer(const Limits& _rlimits):SerializerBase(_rlimits){}
-    Serializer(){}
+    explicit Serializer(const TypeMapBase &_rtype_map, const Limits& _rlimits):SerializerBase(_rtype_map, _rlimits){}
+    explicit Serializer(const TypeMapBase &_rtype_map):SerializerBase(_rtype_map){}
     
     template <typename F>
     ThisT& add(std::istream& _ris, const uint64_t _sz, F _f, const char* _name)
@@ -715,12 +725,13 @@ public:
 
 template <class Ctx>
 class Serializer : public SerializerBase {
+    friend class TypeMapBase;
 public:
+    explicit Serializer(const TypeMapBase &_rtype_map, const Limits& _rlimits):SerializerBase(_rtype_map, _rlimits){}
+    explicit Serializer(const TypeMapBase &_rtype_map):SerializerBase(_rtype_map){}
+    
     using ThisT = Serializer<Ctx>;
     using ContextT = Ctx;
-    
-    Serializer(const Limits& _rlimits):SerializerBase(_rlimits){}
-    Serializer(){}
 
     template <typename F>
     ThisT& add(std::istream& _ris, const uint64_t _sz, F _f, Ctx& _rctx, const char* _name)
@@ -802,6 +813,15 @@ public:
         }
         return _ros;
     }
+    
+    long run(char* _pbeg, unsigned _sz, Ctx& _rctx){
+        return SerializerBase::run(_pbeg, _sz, &_rctx);
+    }
+    
+    const ErrorConditionT& error()const{
+        return Base::error();
+    }
+    
     std::pair<ThisT&, Ctx&> wrap(Ctx& _rct)
     {
         return std::make_pair(std::ref(*this), std::ref(_rct));
