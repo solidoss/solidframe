@@ -1,7 +1,7 @@
 #pragma once
 #include "solid/serialization/v2/error.hpp"
-#include "solid/serialization/v2/typetraits.hpp"
 #include "solid/serialization/v2/typemapbase.hpp"
+#include "solid/serialization/v2/typetraits.hpp"
 #include "solid/utility/common.hpp"
 #include <memory>
 #include <utility>
@@ -64,7 +64,7 @@ struct Limits {
     uint64_t streamlimit_;
 };
 
-class Base: public v2::Base {
+class Base : public v2::Base {
 public:
     const ErrorConditionT& error() const
     {
@@ -90,10 +90,13 @@ protected:
         //Add above
         InnerListCount,
     };
-    
-    Base(){}
-    Base(const Limits& _rlimits):limits_(_rlimits){}
-    
+
+    Base() {}
+    Base(const Limits& _rlimits)
+        : limits_(_rlimits)
+    {
+    }
+
 protected:
     Limits          limits_;
     ErrorConditionT error_;
@@ -225,49 +228,49 @@ inline void solidSerializeV2IsFunction(S& _rs, T& _rt, Ctx& _rctx, const char* _
 template <class S, class T>
 inline void solidSerializeV2(S& _rs, std::shared_ptr<T>& _rp, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _name);
+    _rs.addPointer(_rp, _name);
 }
 
 template <class S, class T, class Ctx>
 inline void solidSerializeV2(S& _rs, std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _rctx, _name);
+    _rs.addPointer(_rp, _rctx, _name);
 }
 
 template <class S, class T>
 inline void solidSerializeV2(S& _rs, const std::shared_ptr<T>& _rp, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _name);
+    _rs.addPointer(_rp, _name);
 }
 
 template <class S, class T, class Ctx>
 inline void solidSerializeV2(S& _rs, const std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _rctx, _name);
+    _rs.addPointer(_rp, _rctx, _name);
 }
 
 template <class S, class T, class D>
 inline void solidSerializeV2(S& _rs, std::unique_ptr<T, D>& _rp, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _name);
+    _rs.addPointer(_rp, _name);
 }
 
 template <class S, class T, class D, class Ctx>
 inline void solidSerializeV2(S& _rs, std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _rctx, _name);
+    _rs.addPointer(_rp, _rctx, _name);
 }
 
 template <class S, class T, class D>
 inline void solidSerializeV2(S& _rs, const std::unique_ptr<T, D>& _rp, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _name);
+    _rs.addPointer(_rp, _name);
 }
 
 template <class S, class T, class D, class Ctx>
 inline void solidSerializeV2(S& _rs, const std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _rctx, _name);
+    _rs.addPointer(_rp, _rctx, _name);
 }
 
 template <class S, class T>

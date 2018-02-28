@@ -15,7 +15,7 @@ using namespace solid;
 using namespace std;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
-using ProtocolT = frame::mpipc::serialization_v2::Protocol<ipc_echo::TypeId>;
+using ProtocolT     = frame::mpipc::serialization_v2::Protocol<ipc_echo::TypeId>;
 //-----------------------------------------------------------------------------
 //      Parameters
 //-----------------------------------------------------------------------------
@@ -54,7 +54,7 @@ void complete_message(
 }
 
 struct MessageSetup {
-    void operator()(ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ProtocolT::TypeIdT &_rtid)
+    void operator()(ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ProtocolT::TypeIdT& _rtid)
     {
         _rprotocol.null(_rtid);
         _rprotocol.registerMessage<ipc_echo::Message>(complete_message<ipc_echo::Message>, _rtid);

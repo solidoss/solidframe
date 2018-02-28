@@ -8,4 +8,3 @@ namespace serialization {
 using namespace v2;
 }
 } // namespace solid
-

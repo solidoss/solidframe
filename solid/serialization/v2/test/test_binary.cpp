@@ -29,10 +29,10 @@ struct A {
     }
 };
 
-template <class S>
-void solidSerializeV2(S& _rs, const A& _r, const char* _name)
+template <class S, class Ctx>
+void solidSerializeV2(S& _rs, const A& _r, Ctx& _rctx, const char* _name)
 {
-    _rs.add(_r.a, "A.a").add(_r.s, "A.s").add(_r.b, "A.b");
+    _rs.add(_r.a, _rctx, "A.a").add(_r.s, _rctx, "A.s").add(_r.b, _rctx, "A.b");
 }
 
 template <class S, class Ctx>
@@ -118,41 +118,38 @@ public:
     }
 
     template <class S>
-    void solidSerializeV2(S& _rs, const char* _name) const
+    void solidSerializeV2(S& _rs, Context& _rctx, const char* _name) const
     {
 
         _rs
-            .add(b, "b")
+            .add(b, _rctx, "b")
             .add(
-                [this](S& _rs, const char* _name) {
+                [this](S& _rs, Context& _rctx, const char* _name) {
                     if (this->b) {
-                        _rs.add(v, "v");
+                        _rs.add(v, _rctx, "v");
                     } else {
-                        _rs.add(d, "d");
+                        _rs.add(d, _rctx, "d");
                     }
                 },
-                "f");
+                _rctx, "f");
 
         std::ifstream ifs;
         ifs.open(p);
         _rs
-            .push(if_then_else<S::is_serializer>(
-                      [ this, ifs = std::move(ifs) ](S & _rs, const char* _name) mutable {
-                          _rs.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, const char* _name) {
-                              idbg("Progress(" << _name << "): " << _len << " done = " << _done);
-                          },
-                              _name);
-                          return true;
-                      },
-                      [](S& _rs, const char* _name) {
-                          return true;
-                      }),
-                "s")
-            .add(m, "m")
-            .add(s, "s")
-            .add(um, "um")
-            .add(us, "us")
-            .add(a, "a");
+            .push(
+                [ this, ifs = std::move(ifs) ](S & _rs, Context & _rctx, const char* _name) mutable {
+                    _rs.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
+                        idbg("Progress(" << _name << "): " << _len << " done = " << _done);
+                    },
+                        _rctx, _name);
+                    return true;
+                },
+                _rctx, "s")
+            .add(m, _rctx, "m")
+            .add(s, _rctx, "s")
+            .add(um, _rctx, "um")
+            .add(us, _rctx, "us")
+            .add(a, _rctx, "a");
         //_rs.add(b, "b").add(v, "v").add(a, "a");
     }
 
@@ -171,7 +168,7 @@ public:
                 },
                 _rctx, "f")
             .push(
-                make_choice<S::is_serializer>(
+                if_then_else<S::is_serializer>(
                     [](S& _rs, Context& _rctx, const char* _name) mutable {
                         return true;
                     },
@@ -229,30 +226,38 @@ int test_binary(int argc, char* argv[])
         output_file_path += ".copy";
     }
 
+    using TypeMapT = serialization::TypeMap<uint8_t, Context, serialization::binary::Serializer, serialization::binary::Deserializer, uint64_t>;
+
+    TypeMapT tm;
+
+    tm.null(0);
+
     {
         const Test                  t{true, input_file_path};
         const std::shared_ptr<Test> tp{std::make_shared<Test>(true)};
         const std::unique_ptr<Test> tup{new Test(true)};
+        Context                     ctx;
+        ostringstream               oss;
 
-        ostringstream oss;
         {
-            serialization::binary::Serializer<> ser;
+            typename TypeMapT::SerializerT ser = tm.createSerializer();
 
             ser.run(
                 oss,
-                [&t, &tp, &tup](decltype(ser)& ser) {
-                    ser.add(t, "t").add(tp, "tp").add(tup, "tup");
-                });
+                [&t, &tp, &tup](decltype(ser)& ser, Context& _rctx) {
+                    ser.add(t, _rctx, "t").add(tp, _rctx, "tp").add(tup, _rctx, "tup");
+                },
+                ctx);
         }
         {
             idbg("oss.str.size = " << oss.str().size());
-            istringstream                                iss(oss.str());
-            serialization::binary::Deserializer<Context> des;
+            istringstream                    iss(oss.str());
+            typename TypeMapT::DeserializerT des = tm.createDeserializer();
 
             Test                  t_c;
             std::shared_ptr<Test> tp_c;
             std::unique_ptr<Test> tup_c;
-            Context               ctx;
+
             ctx.output_file_path = output_file_path;
 
             des.run(iss,

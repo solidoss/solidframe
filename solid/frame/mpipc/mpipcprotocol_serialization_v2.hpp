@@ -10,46 +10,49 @@
 
 #pragma once
 
-#include <memory>
-#include "solid/system/error.hpp"
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
 #include "solid/serialization/v2/serialization.hpp"
+#include "solid/system/error.hpp"
+#include <memory>
 
 namespace solid {
 namespace frame {
 namespace mpipc {
 namespace serialization_v2 {
 
-template <class Ctx>
-using SerializerTT   = serialization::binary::Serializer<Ctx>;
-template <class Ctx>
-using DeserializerTT = serialization::binary::Deserializer<Ctx>;
+template <typename TypeId, class Ctx>
+using SerializerTT = serialization::binary::Serializer<TypeId, Ctx>;
+template <typename TypeId, class Ctx>
+using DeserializerTT = serialization::binary::Deserializer<TypeId, Ctx>;
 template <typename TypeId, typename Data>
-using TypeMapTT      = serialization::TypeMap<TypeId, ConnectionContext, SerializerTT, DeserializerTT, Data>;
-using LimitsT       = serialization::binary::Limits;
+using TypeMapTT = serialization::TypeMap<TypeId, ConnectionContext, SerializerTT, DeserializerTT, Data>;
+using LimitsT   = serialization::binary::Limits;
 
 template <class S>
 class Serializer : public mpipc::Serializer {
     using SerializerT = S;
     SerializerT ser_;
+
 public:
     template <class TM>
-    Serializer(const TM &_rtm, const LimitsT &_rlimits)
+    Serializer(const TM& _rtm, const LimitsT& _rlimits)
         : ser_(_rtm.createSerializer(_rlimits))
     {
     }
-    void limits(const LimitsT &_rl){
+    void limits(const LimitsT& _rl)
+    {
         ser_.limits(_rl);
     }
+
 private:
     long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
-        return ser_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](SerializerT &_rs, ConnectionContext& _rctx){_rs.add(_rmsghdr, _rctx, "message");}, _rctx);
+        return ser_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsghdr, _rctx, "message"); }, _rctx);
     }
 
     long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr, const size_t /*_msg_type_idx*/) override
     {
-        return ser_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](SerializerT &_rs, ConnectionContext& _rctx){_rs.add(_rmsgptr, _rctx, "message");}, _rctx);
+        return ser_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](SerializerT& _rs, ConnectionContext& _rctx) { _rs.add(_rmsgptr, _rctx, "message"); }, _rctx);
     }
 
     long run(ConnectionContext& _rctx, char* _pdata, size_t _data_len) override
@@ -77,24 +80,27 @@ template <class D>
 class Deserializer : public mpipc::Deserializer {
     using DeserializerT = D;
     DeserializerT des_;
+
 public:
     template <class TM>
-    Deserializer(const TM &_rtm, const LimitsT &_rlimits)
+    Deserializer(const TM& _rtm, const LimitsT& _rlimits)
         : des_(_rtm.createDeserializer(_rlimits))
     {
     }
-    void limits(const LimitsT &_rl){
+    void limits(const LimitsT& _rl)
+    {
         des_.limits(_rl);
     }
+
 private:
     long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessageHeader& _rmsghdr) override
     {
-        return des_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](DeserializerT &_rd, ConnectionContext& _rctx)mutable{_rd.add(_rmsghdr, _rctx, "message");}, _rctx);
+        return des_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsghdr](DeserializerT& _rd, ConnectionContext& _rctx) mutable { _rd.add(_rmsghdr, _rctx, "message"); }, _rctx);
     }
 
     long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len, MessagePointerT& _rmsgptr) override
     {
-        return des_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](DeserializerT &_rd, ConnectionContext& _rctx){_rd.add(_rmsgptr, _rctx, "message");}, _rctx);
+        return des_.run(_pdata, static_cast<unsigned>(_data_len), [&_rmsgptr](DeserializerT& _rd, ConnectionContext& _rctx) { _rd.add(_rmsgptr, _rctx, "message"); }, _rctx);
     }
     long run(ConnectionContext& _rctx, const char* _pdata, size_t _data_len) override
     {
@@ -119,22 +125,26 @@ template <typename TypeId>
 struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol<TypeId>> {
     struct TypeData {
         template <class F>
-        TypeData(F&& _f):complete_fnc_(std::forward<F>(_f)){}
-        
-        TypeData(){}
-        
-        void complete(ConnectionContext& _rctx, MessagePointerT& _p1, MessagePointerT& _p2, ErrorConditionT const&_e)const{
+        TypeData(F&& _f)
+            : complete_fnc_(std::forward<F>(_f))
+        {
+        }
+
+        TypeData() {}
+
+        void complete(ConnectionContext& _rctx, MessagePointerT& _p1, MessagePointerT& _p2, ErrorConditionT const& _e) const
+        {
             complete_fnc_(_rctx, _p1, _p2, _e);
         }
-        
+
         MessageCompleteFunctionT complete_fnc_;
     };
 
-    using ThisT = Protocol<TypeId>;
-    using PointerT = std::shared_ptr<ThisT>;
-    using TypeIdT = TypeId;
-    using TypeMapT = TypeMapTT<TypeIdT, TypeData>;
-    using SerializerT = Serializer<typename TypeMapT::SerializerT>;
+    using ThisT         = Protocol<TypeId>;
+    using PointerT      = std::shared_ptr<ThisT>;
+    using TypeIdT       = TypeId;
+    using TypeMapT      = TypeMapTT<TypeIdT, TypeData>;
+    using SerializerT   = Serializer<typename TypeMapT::SerializerT>;
     using DeserializerT = Deserializer<typename TypeMapT::DeserializerT>;
 
     TypeMapT type_map_;
@@ -150,29 +160,30 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol<
     {
         return this->shared_from_this();
     }
-    
-    void null(const TypeId &_rtid){
+
+    void null(const TypeId& _rtid)
+    {
         type_map_.null(_rtid);
     }
-    
+
     template <class T>
-    size_t registerType(const TypeId &_rtid)
+    size_t registerType(const TypeId& _rtid)
     {
         return type_map_.template registerType<T>(_rtid);
     }
 
     template <class T, class Allocator>
     size_t registerType(
-        Allocator    _allocator,
-        const TypeId &_rtid)
+        Allocator     _allocator,
+        const TypeId& _rtid)
     {
         return type_map_.template registerType<T>(_allocator, _rtid);
     }
 
     template <class Msg, class CompleteFnc>
     size_t registerMessage(
-        CompleteFnc  _complete_fnc,
-        const TypeId &_rtid)
+        CompleteFnc   _complete_fnc,
+        const TypeId& _rtid)
     {
         using CompleteHandlerT = CompleteHandler<CompleteFnc,
             typename message_complete_traits<decltype(_complete_fnc)>::send_type,
@@ -180,17 +191,16 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol<
 
         size_t rv = type_map_.template registerType<Msg>(
             CompleteHandlerT(_complete_fnc), Message::solidSerializeV2<typename TypeMapT::SerializerT, Msg>, Message::solidDeserializeV2<typename TypeMapT::DeserializerT, Msg>,
-            _rtid
-        );
+            _rtid);
         registerCast<Msg, mpipc::Message>();
         return rv;
     }
 
     template <class Msg, class Allocator, class CompleteFnc>
     size_t registerMessage(
-        Allocator    _allocator,
-        CompleteFnc  _complete_fnc,
-        const TypeId &_rtid)
+        Allocator     _allocator,
+        CompleteFnc   _complete_fnc,
+        const TypeId& _rtid)
     {
         using CompleteHandlerT = CompleteHandler<CompleteFnc,
             typename message_complete_traits<decltype(_complete_fnc)>::send_type,
@@ -198,8 +208,7 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol<
 
         size_t rv = type_map_.template registerType<Msg>(
             CompleteHandlerT(_complete_fnc), Message::solidSerializeV2<typename TypeMapT::SerializerT, Msg>, Message::solidDeserializeV2<typename TypeMapT::DeserializerT, Msg>, _allocator,
-            _rtid
-        );
+            _rtid);
         registerCast<Msg, mpipc::Message>();
         return rv;
     }
@@ -258,7 +267,7 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol<
     {
         return serialization::binary::cross::load_with_check(_ps, _sz, _v);
     }
-    
+
     size_t typeIndex(const Message* _pmsg) const override
     {
         return type_map_.index(_pmsg);
@@ -306,4 +315,3 @@ protected:
 } //namespace mpipc
 } //namespace frame
 } //namespace solid
-

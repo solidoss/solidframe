@@ -9,7 +9,7 @@ namespace v2 {
 namespace binary {
 
 //== Serializer  ==============================================================
-SerializerBase::SerializerBase(const TypeMapBase &_rtype_map, const Limits& _rlimits)
+SerializerBase::SerializerBase(const TypeMapBase& _rtype_map, const Limits& _rlimits)
     : Base(_rlimits)
     , rtype_map_(_rtype_map)
     , pbeg_(nullptr)
@@ -19,7 +19,7 @@ SerializerBase::SerializerBase(const TypeMapBase &_rtype_map, const Limits& _rli
 {
 }
 
-SerializerBase::SerializerBase(const TypeMapBase &_rtype_map)
+SerializerBase::SerializerBase(const TypeMapBase& _rtype_map)
     : rtype_map_(_rtype_map)
     , pbeg_(nullptr)
     , pend_(nullptr)

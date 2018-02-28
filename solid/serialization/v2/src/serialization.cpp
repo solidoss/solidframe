@@ -2,13 +2,12 @@
 
 namespace solid {
 namespace serialization {
-namespace v2{
+namespace v2 {
 //========================================================================
-/*virtual*/ Base::~Base(){
-    
+/*virtual*/ Base::~Base()
+{
 }
 //========================================================================
-}
-}
+} // namespace v2
+} // namespace serialization
 } // namespace solid
-

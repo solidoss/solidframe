@@ -9,7 +9,7 @@ namespace v2 {
 namespace binary {
 
 //== Deserializer  ==============================================================
-DeserializerBase::DeserializerBase(const TypeMapBase &_rtype_map, const Limits& _rlimits)
+DeserializerBase::DeserializerBase(const TypeMapBase& _rtype_map, const Limits& _rlimits)
     : Base(_rlimits)
     , rtype_map_(_rtype_map)
     , pbeg_(nullptr)
@@ -19,7 +19,7 @@ DeserializerBase::DeserializerBase(const TypeMapBase &_rtype_map, const Limits& 
 {
 }
 
-DeserializerBase::DeserializerBase(const TypeMapBase &_rtype_map)
+DeserializerBase::DeserializerBase(const TypeMapBase& _rtype_map)
     : rtype_map_(_rtype_map)
     , pbeg_(nullptr)
     , pend_(nullptr)

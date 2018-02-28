@@ -11,8 +11,8 @@
 #pragma once
 
 #include "solid/system/common.hpp"
-#include "solid/utility/typetraits.hpp"
 #include "solid/utility/function.hpp"
+#include "solid/utility/typetraits.hpp"
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcmessageflags.hpp"
@@ -100,9 +100,9 @@ struct MessageHeader {
             _rs.pushCross(flags_, "flags");
         }
     }
-    
+
     template <class S>
-    void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, std::integral_constant<bool, true> _is_serializer, const char *_name)
+    void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, std::integral_constant<bool, true> _is_serializer, const char* _name)
     {
         SOLID_CHECK(_rctx.pmessage_url, "message url must not be null");
         const uint64_t tmp = _rctx.message_flags.toUint64();
@@ -112,9 +112,9 @@ struct MessageHeader {
         _rs.add(sender_request_id_.index, _rctx, "recipient_request_index");
         _rs.add(sender_request_id_.unique, _rctx, "recipient_request_unique");
     }
-    
+
     template <class S>
-    void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, std::integral_constant<bool, false> _is_deserializer, const char *_name)
+    void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, std::integral_constant<bool, false> _is_deserializer, const char* _name)
     {
         _rs.add(flags_, _rctx, "flags_").add(url_, _rctx, "url");
         _rs.add(sender_request_id_.index, _rctx, "sender_request_index");
@@ -122,13 +122,12 @@ struct MessageHeader {
         _rs.add(recipient_request_id_.index, _rctx, "recipient_request_index");
         _rs.add(recipient_request_id_.unique, _rctx, "recipient_request_unique");
     }
-    
+
     template <class S>
-    void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, const char *_name)
+    void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name)
     {
-        solidSerializeV2(_rs, _rctx,  std::integral_constant<bool, S::is_serializer>(), _name);
+        solidSerializeV2(_rs, _rctx, std::integral_constant<bool, S::is_serializer>(), _name);
     }
-    
 };
 
 struct Message : std::enable_shared_from_this<Message> {
@@ -305,21 +304,24 @@ struct Message : std::enable_shared_from_this<Message> {
                 "call");
         }
     }
-    
+
     template <class S, class T>
-    static void solidSerializeV2(S& _rs, T& _rt, frame::mpipc::ConnectionContext& _rctx, const char* _name){
+    static void solidSerializeV2(S& _rs, T& _rt, frame::mpipc::ConnectionContext& _rctx, const char* _name)
+    {
         _rs.add(_rt, _rctx, _name);
     }
-    
+
     template <class S, class T>
-    static void solidDeserializeV2(S& _rs, T& _rt, frame::mpipc::ConnectionContext& _rctx, const char* _name){
+    static void solidDeserializeV2(S& _rs, T& _rt, frame::mpipc::ConnectionContext& _rctx, const char* _name)
+    {
         _rs.add(
-            [&_rt](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name){
+            [&_rt](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name) {
                 _rt.header_ = std::move(*_rctx.pmessage_header);
-            }, _rctx, _name);
+            },
+            _rctx, _name);
         _rs.add(_rt, _rctx, _name);
     }
-    
+
     RequestId const& senderRequestId() const
     {
         return header_.sender_request_id_;
