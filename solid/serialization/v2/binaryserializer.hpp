@@ -500,7 +500,7 @@ protected:
     }
     long doRun(void* _pctx = nullptr);
 
-    void error(const ErrorConditionT& _err)
+    void error(const ErrorConditionT& _err) override
     {
         if (!error_) {
             error_ = _err;

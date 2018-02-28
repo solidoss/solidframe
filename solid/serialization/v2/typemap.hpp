@@ -33,7 +33,7 @@ public:
     template <class T>
     size_t index(const T* _p) const
     {
-        return InvalidIndex();
+        return TypeMapBase::index(_p);
     }
 
     const Data& operator[](const size_t _idx) const
@@ -76,6 +76,38 @@ public:
     bool registerCast()
     {
         return false;
+    }
+
+private:
+    void getTypeId(const size_t _idx, void* _ptype_id) const override
+    {
+    }
+    ErrorConditionT doSerialize(Base& _rs, const void* _pt, const size_t _idx, const char* _name) const override
+    {
+        return ErrorConditionT();
+    }
+    ErrorConditionT doSerialize(Base& _rs, const void* _pt, const size_t _idx, void* _pctx, const char* _name) const override
+    {
+        return ErrorConditionT();
+    }
+
+    ErrorConditionT doDeserializeUnique(Base& _rd, const UniqueFunctionT& _fnc, const void* _ptype_id, const char* _name) const override
+    {
+        return ErrorConditionT();
+    }
+
+    ErrorConditionT doDeserializeUnique(Base& _rd, const UniqueFunctionT& _fnc, const void* _ptype_id, void* _pctx, const char* _name) const override
+    {
+        return ErrorConditionT();
+    }
+
+    ErrorConditionT doDeserializeShared(Base& _rd, void* _psp, const std::type_index& _spt, const void* _ptype_id, const char* _name) const override
+    {
+        return ErrorConditionT();
+    }
+    ErrorConditionT doDeserializeShared(Base& _rd, void* _psp, const std::type_index& _spt, const void* _ptype_id, void* _pctx, const char* _name) const override
+    {
+        return ErrorConditionT();
     }
 
 private:
