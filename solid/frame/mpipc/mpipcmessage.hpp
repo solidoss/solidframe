@@ -306,7 +306,7 @@ struct Message : std::enable_shared_from_this<Message> {
     }
 
     template <class S, class T>
-    static void solidSerializeV2(S& _rs, T& _rt, frame::mpipc::ConnectionContext& _rctx, const char* _name)
+    static void solidSerializeV2(S& _rs, const T& _rt, frame::mpipc::ConnectionContext& _rctx, const char* _name)
     {
         _rs.add(_rt, _rctx, _name);
     }

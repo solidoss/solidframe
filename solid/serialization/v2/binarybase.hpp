@@ -213,6 +213,12 @@ inline void solidSerializeV2IsContainer(S& _rs, T& _rt, Ctx& _rctx, const char* 
     _rt.solidSerializeV2(_rs, _rctx, _name);
 }
 
+template <class S, class T, class Ctx>
+inline void solidSerializeV2IsContainer(S& _rs, const T& _rt, Ctx& _rctx, const char* _name, std::false_type)
+{
+    _rt.solidSerializeV2(_rs, _rctx, _name);
+}
+
 template <class S, class T>
 inline void solidSerializeV2IsFunction(S& _rs, T& _rt, const char* _name, std::false_type)
 {
@@ -221,6 +227,12 @@ inline void solidSerializeV2IsFunction(S& _rs, T& _rt, const char* _name, std::f
 
 template <class S, class T, class Ctx>
 inline void solidSerializeV2IsFunction(S& _rs, T& _rt, Ctx& _rctx, const char* _name, std::false_type)
+{
+    solidSerializeV2IsContainer(_rs, _rt, _rctx, _name, is_container<T>());
+}
+
+template <class S, class T, class Ctx>
+inline void solidSerializeV2IsFunction(S& _rs, const T& _rt, Ctx& _rctx, const char* _name, std::false_type)
 {
     solidSerializeV2IsContainer(_rs, _rt, _rctx, _name, is_container<T>());
 }

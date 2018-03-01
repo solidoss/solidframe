@@ -15,7 +15,7 @@ using namespace solid;
 using namespace std;
 
 using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
-using ProtocolT     = frame::mpipc::serialization_v2::Protocol<ipc_echo::TypeId>;
+
 //-----------------------------------------------------------------------------
 //      Parameters
 //-----------------------------------------------------------------------------
@@ -45,7 +45,7 @@ void complete_message(
 
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(not _rsent_msg_ptr);
-        SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
+        SOLID_CHECK(not _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
     }
 
     if (_rsent_msg_ptr) {
@@ -54,9 +54,8 @@ void complete_message(
 }
 
 struct MessageSetup {
-    void operator()(ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ProtocolT::TypeIdT& _rtid)
+    void operator()(ipc_echo::ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.null(_rtid);
         _rprotocol.registerMessage<ipc_echo::Message>(complete_message<ipc_echo::Message>, _rtid);
     }
 };
@@ -94,7 +93,7 @@ int main(int argc, char* argv[])
         }
 
         {
-            auto                        proto = ProtocolT::create();
+            auto                        proto = ipc_echo::ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
             ipc_echo::protocol_setup(ipc_echo_server::MessageSetup(), *proto);

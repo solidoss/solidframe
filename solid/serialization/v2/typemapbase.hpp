@@ -20,8 +20,8 @@ private:
 
 class TypeMapBase {
 protected:
-    using TypeIndexMapT   = std::unordered_map<std::type_index, size_t>;
-    using UniqueFunctionT = std::function<void(void*)>;
+    using TypeIndexMapT    = std::unordered_map<std::type_index, size_t>;
+    using PointerFunctionT = std::function<void(void*)>;
 
     TypeIndexMapT type_map_;
 
@@ -57,13 +57,17 @@ public:
     template <typename TypeId, class T>
     size_t id(TypeId& _rtypeid, const T* _p, ErrorConditionT& _rerr) const
     {
-        const auto it = type_map_.find(std::type_index(typeid(*_p)));
-        if (it != type_map_.cend()) {
-            getTypeId(it->second, std::addressof(_rtypeid));
-            return it->second;
+        if (_p != nullptr) {
+            const auto it = type_map_.find(std::type_index(typeid(*_p)));
+            if (it != type_map_.cend()) {
+                getTypeId(it->second, std::addressof(_rtypeid));
+                return it->second;
+            } else {
+                _rerr = error_no_type();
+                return InvalidIndex();
+            }
         } else {
-            _rerr = error_no_type();
-            return InvalidIndex();
+            return getNullTypeId(std::addressof(_rtypeid));
         }
     }
 
@@ -109,7 +113,7 @@ public:
         auto lambda = [&_rup](void* _pv) {
             _rup.reset(reinterpret_cast<T*>(_pv));
         };
-        const ErrorConditionT err = doDeserializeUnique(_rd, std::cref(lambda), std::addressof(_rtypeid), _name);
+        const ErrorConditionT err = doDeserializeUnique(_rd, std::cref(lambda), std::type_index(typeid(T)), std::addressof(_rtypeid), _name);
 
         if (err) {
             _rd.error(err);
@@ -121,7 +125,7 @@ public:
         auto lambda = [&_rup](void* _pv) {
             _rup.reset(reinterpret_cast<T*>(_pv));
         };
-        const ErrorConditionT err = doDeserializeUnique(_rd, std::cref(lambda), std::addressof(_rtypeid), std::addressof(_rctx), _name);
+        const ErrorConditionT err = doDeserializeUnique(_rd, std::cref(lambda), std::type_index(typeid(T)), std::addressof(_rtypeid), std::addressof(_rctx), _name);
 
         if (err) {
             _rd.error(err);
@@ -129,13 +133,14 @@ public:
     }
 
 private:
-    virtual void getTypeId(const size_t _idx, void* _ptype_id) const = 0;
+    virtual void   getTypeId(const size_t _idx, void* _ptype_id) const = 0;
+    virtual size_t getNullTypeId(void* _ptype_id) const                = 0;
 
     virtual ErrorConditionT doSerialize(Base& _rs, const void* _pt, const size_t _idx, const char* _name) const              = 0;
     virtual ErrorConditionT doSerialize(Base& _rs, const void* _pt, const size_t _idx, void* _pctx, const char* _name) const = 0;
 
-    virtual ErrorConditionT doDeserializeUnique(Base& _rd, const UniqueFunctionT& _fnc, const void* _ptype_id, const char* _name) const              = 0;
-    virtual ErrorConditionT doDeserializeUnique(Base& _rd, const UniqueFunctionT& _fnc, const void* _ptype_id, void* _pctx, const char* _name) const = 0;
+    virtual ErrorConditionT doDeserializeUnique(Base& _rd, const PointerFunctionT& _fnc, const std::type_index& _spt, const void* _ptype_id, const char* _name) const              = 0;
+    virtual ErrorConditionT doDeserializeUnique(Base& _rd, const PointerFunctionT& _fnc, const std::type_index& _spt, const void* _ptype_id, void* _pctx, const char* _name) const = 0;
 
     virtual ErrorConditionT doDeserializeShared(Base& _rd, void* _psp, const std::type_index& _spt, const void* _ptype_id, const char* _name) const              = 0;
     virtual ErrorConditionT doDeserializeShared(Base& _rd, void* _psp, const std::type_index& _spt, const void* _ptype_id, void* _pctx, const char* _name) const = 0;

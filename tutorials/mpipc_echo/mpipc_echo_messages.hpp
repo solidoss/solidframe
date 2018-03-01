@@ -24,6 +24,11 @@ struct Message : solid::frame::mpipc::Message {
     }
 
     template <class S>
+    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) const
+    {
+        _s.add(str, _rctx, "str");
+    }
+    template <class S>
     void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)
     {
         _s.add(str, _rctx, "str");
@@ -32,8 +37,10 @@ struct Message : solid::frame::mpipc::Message {
 
 using TypeId = uint8_t;
 
-template <class R, class P>
-inline void protocol_setup(R _r, P& _rproto)
+using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<ipc_echo::TypeId>;
+
+template <class R>
+inline void protocol_setup(R _r, ProtocolT& _rproto)
 {
     _rproto.null(static_cast<TypeId>(0));
 

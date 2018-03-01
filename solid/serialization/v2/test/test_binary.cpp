@@ -231,11 +231,14 @@ int test_binary(int argc, char* argv[])
     TypeMapT tm;
 
     tm.null(0);
+    tm.registerType<Test>(1);
 
     {
         const Test                  t{true, input_file_path};
         const std::shared_ptr<Test> tp{std::make_shared<Test>(true)};
         const std::unique_ptr<Test> tup{new Test(true)};
+        std::shared_ptr<Test>       sp1;
+        std::unique_ptr<Test>       up1;
         Context                     ctx;
         ostringstream               oss;
 
@@ -244,8 +247,8 @@ int test_binary(int argc, char* argv[])
 
             ser.run(
                 oss,
-                [&t, &tp, &tup](decltype(ser)& ser, Context& _rctx) {
-                    ser.add(t, _rctx, "t").add(tp, _rctx, "tp").add(tup, _rctx, "tup");
+                [&t, &tp, &tup, &sp1, &up1](decltype(ser)& ser, Context& _rctx) {
+                    ser.add(t, _rctx, "t").add(tp, _rctx, "tp").add(tup, _rctx, "tup").add(sp1, _rctx, "sp1").add(up1, _rctx, "up1");
                 },
                 ctx);
         }
@@ -257,18 +260,24 @@ int test_binary(int argc, char* argv[])
             Test                  t_c;
             std::shared_ptr<Test> tp_c;
             std::unique_ptr<Test> tup_c;
+            std::shared_ptr<Test> sp1_c;
+            std::unique_ptr<Test> up1_c;
 
             ctx.output_file_path = output_file_path;
 
             des.run(iss,
-                [&t_c, &tp_c, &tup_c](decltype(des)& des, Context& ctx) {
-                    des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c");
+                [&t_c, &tp_c, &tup_c, &sp1_c, &up1_c](decltype(des)& des, Context& ctx) {
+                    des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c").add(sp1_c, ctx, "sp1").add(up1_c, ctx, "up1");
                 },
                 ctx);
 
             //iss >> des.wrap(ctx);
-
+            SOLID_CHECK(!des.error(), "check failed");
             SOLID_CHECK(t == t_c, "check failed");
+            SOLID_CHECK(*tp == *tp_c, "check failed");
+            SOLID_CHECK(*tup == *tup_c, "check failed");
+            SOLID_CHECK(!sp1_c, "check failed");
+            SOLID_CHECK(!up1_c, "check failed");
         }
     }
     return 0;

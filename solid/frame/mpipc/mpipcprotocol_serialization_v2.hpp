@@ -214,15 +214,15 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol<
     }
 
     template <class Derived, class Base>
-    bool registerCast()
+    void registerCast()
     {
-        return type_map_.template registerCast<Derived, Base>();
+        type_map_.template registerCast<Derived, Base>();
     }
 
     template <class Derived, class Base>
-    bool registerDownCast()
+    void registerDownCast()
     {
-        return type_map_.template registerDownCast<Derived, Base>();
+        type_map_.template registerDownCast<Derived, Base>();
     }
 
     char* storeValue(char* _pd, uint8_t _v) const override
