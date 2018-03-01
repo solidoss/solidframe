@@ -17,32 +17,35 @@ struct Message : solid::frame::mpipc::Message {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
-    {
-        _s.push(str, "str");
-    }
-
+#if 0
     template <class S>
     void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) const
     {
-        _s.add(str, _rctx, "str");
+        solidSerializeV2(_s, *this, _rctx, _name);
     }
     template <class S>
     void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)
     {
-        _s.add(str, _rctx, "str");
+        solidSerializeV2(_s, *this, _rctx, _name);
     }
+    
+    template <class S, class T>
+    static void solidSerializeV2(S &_s, T &_rt, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name){
+        _s.add(_rt.str, _rctx, "str");
+    }
+#else
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+        _s.add(_rthis.str, _rctx, "str");
+    }
+#endif
 };
 
-using TypeId = uint8_t;
-
-using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<ipc_echo::TypeId>;
+using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 template <class R>
 inline void protocol_setup(R _r, ProtocolT& _rproto)
 {
-    _rproto.null(static_cast<TypeId>(0));
+    _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
 
     _r(_rproto, solid::TypeToType<Message>(), 1);
 }
