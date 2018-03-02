@@ -30,8 +30,9 @@
 using namespace std;
 using namespace solid;
 
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-typedef frame::aio::openssl::Context          SecureContextT;
+using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using SecureContextT = frame::aio::openssl::Context;
+using ProtocolT = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -83,7 +84,7 @@ size_t real_size(size_t _sz)
 struct Message : frame::mpipc::Message {
     uint32_t    idx;
     std::string str;
-    bool        serialized;
+    mutable bool        serialized;
 
     Message(uint32_t _idx)
         : idx(_idx)
@@ -103,18 +104,14 @@ struct Message : frame::mpipc::Message {
 
         SOLID_ASSERT(serialized or this->isBackOnSender());
     }
-
-    template <class S>
-    void solidSerializeV1(S& _s, frame::mpipc::ConnectionContext& _rctx)
-    {
-        _s.push(str, "str");
-        _s.push(idx, "idx");
-
-        if (S::IsSerializer) {
-            serialized = true;
+    
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+        _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
+        if(_s.is_serializer){
+            _rthis.serialized = true;
         }
     }
-
+    
     void init()
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
@@ -259,25 +256,6 @@ void server_complete_message(
 
 } //namespace
 
-char pattern_check[256];
-
-void string_check(std::string const& _rstr, const char* _pb, size_t _len)
-{
-    if (_rstr.size() > 1024 and _len) {
-
-        SOLID_CHECK(pattern_check[static_cast<size_t>(_rstr.back())] == _pb[0]);
-    }
-}
-
-namespace solid {
-namespace serialization {
-namespace binary {
-
-extern StringCheckFncT pcheckfnc;
-}
-} // namespace serialization
-} // namespace solid
-
 int test_clientserver_basic(int argc, char** argv)
 {
 #ifdef SOLID_HAS_DEBUG
@@ -286,8 +264,7 @@ int test_clientserver_basic(int argc, char** argv)
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
 #endif
-    solid::serialization::binary::pcheckfnc = &string_check;
-
+    
     size_t max_per_pool_connection_count = 1;
 
     if (argc > 1) {
@@ -333,10 +310,6 @@ int test_clientserver_basic(int argc, char** argv)
         pattern.resize(sz);
     }
 
-    for (auto it = pattern.cbegin(); it != pattern.cend(); ++it) {
-        pattern_check[static_cast<size_t>(*it)] = pattern[static_cast<size_t>(((it - pattern.cbegin()) + 1) % pattern.size())];
-    }
-
     {
         AioSchedulerT sch_client;
         AioSchedulerT sch_server;
@@ -372,10 +345,11 @@ int test_clientserver_basic(int argc, char** argv)
         std::string server_port;
 
         { //mpipc server initialization
-            auto                        proto = frame::mpipc::serialization_v2::Protocol<uint8_t>::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
-
-            proto->registerType<Message>(server_complete_message);
+            
+            proto->null(0);
+            proto->registerMessage<Message>(server_complete_message, 1);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -419,11 +393,11 @@ int test_clientserver_basic(int argc, char** argv)
         }
 
         { //mpipc client initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_client, proto);
 
-            proto->registerType<Message>(
-                client_complete_message);
+            proto->null(0);
+            proto->registerMessage<Message>(client_complete_message, 1);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
