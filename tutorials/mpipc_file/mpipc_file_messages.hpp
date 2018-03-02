@@ -21,7 +21,8 @@ struct ListRequest : solid::frame::mpipc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.path, _rctx, "path");
     }
 };
@@ -36,7 +37,8 @@ struct ListResponse : solid::frame::mpipc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.node_dq, _rctx, "nodes");
     }
 };
@@ -54,14 +56,15 @@ struct FileRequest : solid::frame::mpipc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.remote_path, _rctx, "remote_path");
     }
 };
 
 struct FileResponse : solid::frame::mpipc::Message {
-    std::string  remote_path;
-    int64_t      remote_file_size;
+    std::string remote_path;
+    int64_t     remote_file_size;
 
     FileResponse() {}
 
@@ -72,28 +75,30 @@ struct FileResponse : solid::frame::mpipc::Message {
         , remote_file_size(solid::InvalidSize())
     {
     }
-    
+
     template <class S>
     void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) const
     {
         std::ifstream ifs;
         ifs.open(remote_path);
-        if(ifs){
+        if (ifs) {
             std::streampos pos = ifs.tellg();
             ifs.seekg(0, ifs.end);
             std::streampos endpos = ifs.tellg();
             ifs.seekg(pos);
             const int64_t file_size = endpos;
             _s.add(file_size, _rctx, "remote_file_size");
-            
-            _s.push([ifs = std::move(ifs)](S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)mutable{
+
+            _s.push([ifs = std::move(ifs)](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
                 _s.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
                     //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
-                }, _rctx, _name);
+                },
+                    _rctx, _name);
                 return true;
-            }, _rctx, _name);
-        }else{
-            const int64_t file_size =  solid::InvalidSize();
+            },
+                _rctx, _name);
+        } else {
+            const int64_t file_size = solid::InvalidSize();
             _s.add(file_size, _rctx, "remote_file_size");
         }
     }
@@ -101,24 +106,27 @@ struct FileResponse : solid::frame::mpipc::Message {
     void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)
     {
         _s.add(remote_file_size, _rctx, "remote_file_size");
-        _s.add([this](S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name){
-            if(remote_file_size != solid::InvalidIndex()){
-                std::ofstream ofs;
+        _s.add([this](S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+            if (remote_file_size != solid::InvalidIndex()) {
+                std::ofstream      ofs;
                 const std::string* plocal_path = localPath(_rctx);
-                if(plocal_path != nullptr){
+                if (plocal_path != nullptr) {
                     ofs.open(*plocal_path);
-                    _s.push([this, ofs = std::move(ofs)](S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)mutable{
+                    _s.push([ this, ofs = std::move(ofs) ](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
                         _s.add(ofs, [this](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
-                            
+
                             //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
-                        }, _rctx, _name);
+                        },
+                            _rctx, _name);
                         return true;
-                    }, _rctx, _name);
+                    },
+                        _rctx, _name);
                 }
             }
-        }, _rctx, _name);
-        
+        },
+            _rctx, _name);
     }
+
 private:
     const std::string* localPath(solid::frame::mpipc::ConnectionContext& _rctx) const
     {

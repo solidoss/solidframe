@@ -41,7 +41,7 @@ class DeserializerBase : public Base {
         }
 
         template <class F>
-        Runnable(void* _ptr, CallbackT _call, F &&_f, const char* _name)
+        Runnable(void* _ptr, CallbackT _call, F&& _f, const char* _name)
             : ptr_(_ptr)
             , call_(_call)
             , size_(0)

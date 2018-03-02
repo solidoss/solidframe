@@ -3,7 +3,7 @@
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include <map>
 #include <ostream>
 #include <vector>
@@ -88,10 +88,9 @@ struct RequestKeyAnd : Visitable<RequestKeyAnd> {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(second, "second").push(first, "first");
+        _s.add(_rthis.first, _rctx, "first").add(_rthis.second, _rctx, "second");
     }
 
     void print(std::ostream& _ros) const override
@@ -121,10 +120,9 @@ struct RequestKeyOr : Visitable<RequestKeyOr> {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(second, "second").push(first, "first");
+        _s.add(_rthis.first, _rctx, "first").add(_rthis.second, _rctx, "second");
     }
 
     void print(std::ostream& _ros) const override
@@ -150,10 +148,9 @@ struct RequestKeyAndList : Visitable<RequestKeyAndList> {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.pushContainer(key_vec, "key_vec");
+        _s.add(_rthis.key_vec, _rctx, "key_vec");
     }
 
     void print(std::ostream& _ros) const override
@@ -179,10 +176,9 @@ struct RequestKeyOrList : Visitable<RequestKeyOrList> {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.pushContainer(key_vec, "key_vec");
+        _s.add(_rthis.key_vec, _rctx, "key_vec");
     }
 
     void print(std::ostream& _ros) const override
@@ -207,10 +203,9 @@ struct RequestKeyUserIdRegex : Visitable<RequestKeyUserIdRegex> {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(regex, "regex");
+        _s.add(_rthis.regex, _rctx, "regex");
     }
 
     void print(std::ostream& _ros) const override
@@ -229,10 +224,9 @@ struct RequestKeyEmailRegex : Visitable<RequestKeyEmailRegex> {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(regex, "regex");
+        _s.add(_rthis.regex, _rctx, "regex");
     }
 
     void print(std::ostream& _ros) const override
@@ -249,10 +243,9 @@ struct RequestKeyYearLess : Visitable<RequestKeyYearLess> {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(year, "year");
+        _s.add(_rthis.year, _rctx, "year");
     }
 
     void print(std::ostream& _ros) const override
@@ -271,10 +264,9 @@ struct Request : solid::frame::mpipc::Message {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(key, "key");
+        _s.add(_rthis.key, _rctx, "key");
     }
 };
 
@@ -283,10 +275,9 @@ struct Date {
     uint8_t  month;
     uint16_t year;
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(day, "day").push(month, "month").push(year, "year");
+        _s.add(_rthis.day, _rctx, "day").add(_rthis.month, _rctx, "month").add(_rthis.year, _rctx, "year");
     }
 };
 
@@ -297,11 +288,10 @@ struct UserData {
     std::string city;
     Date        birth_date;
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(full_name, "full_name").push(email, "email");
-        _s.push(country, "country").push(city, "city").push(birth_date, "birth_date");
+        _s.add(_rthis.full_name, _rctx, "full_name").add(_rthis.email, _rctx, "email").add(_rthis.country, _rctx, "country");
+        _s.add(_rthis.city, _rctx, "city").add(_rthis.birth_date, _rctx, "birth_date");
     }
 };
 
@@ -317,22 +307,28 @@ struct Response : solid::frame::mpipc::Message {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.pushContainer(user_data_map, "user_data_map");
+        _s.add(_rthis.user_data_map, _rctx, "user_data_map");
     }
 };
 
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0,
-    Request,
-    Response,
-    RequestKeyAnd,
-    RequestKeyOr,
-    RequestKeyAndList,
-    RequestKeyOrList,
-    RequestKeyUserIdRegex,
-    RequestKeyEmailRegex,
-    RequestKeyYearLess>;
+using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+
+template <class R>
+inline void protocol_setup(R _r, ProtocolT& _rproto)
+{
+    _rproto.null(ProtocolT::TypeIdT(0));
+
+    _r(_rproto, solid::TypeToType<Request>(), 1);
+    _r(_rproto, solid::TypeToType<Response>(), 2);
+    _r(_rproto, solid::TypeToType<RequestKeyAnd>(), 3);
+    _r(_rproto, solid::TypeToType<RequestKeyOr>(), 4);
+    _r(_rproto, solid::TypeToType<RequestKeyAndList>(), 5);
+    _r(_rproto, solid::TypeToType<RequestKeyOrList>(), 6);
+    _r(_rproto, solid::TypeToType<RequestKeyUserIdRegex>(), 7);
+    _r(_rproto, solid::TypeToType<RequestKeyEmailRegex>(), 8);
+    _r(_rproto, solid::TypeToType<RequestKeyYearLess>(), 9);
+}
 
 } //namespace ipc_request

@@ -34,7 +34,8 @@ struct Message : solid::frame::mpipc::Message {
         _s.add(_rt.str, _rctx, "str");
     }
 #else
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.str, _rctx, "str");
     }
 #endif

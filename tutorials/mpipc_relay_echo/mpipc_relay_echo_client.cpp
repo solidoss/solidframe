@@ -42,10 +42,10 @@ struct Message : solid::frame::mpipc::Message {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(data, "data").push(name, "name");
+        _s.add(_rthis.name, _rctx, "name");
+        _s.add(_rthis.data, _rctx, "data");
     }
 };
 
@@ -131,11 +131,12 @@ int main(int argc, char* argv[])
                 cout << "Connection stopped" << endl;
             };
 
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
-            proto->registerType<Register>(con_register, 0, 10);
-            proto->registerType<Message>(on_message, 1, 10);
+            proto->null(null_type_id);
+            proto->registerMessage<Register>(con_register, register_type_id);
+            proto->registerMessage<Message>(on_message, TypeIdT{1, 1});
 
             cfg.client.connection_start_fnc = std::move(on_connection_start);
             cfg.connection_stop_fnc         = std::move(on_connection_stop);

@@ -311,18 +311,18 @@ protected:
     Protocol() {}
 };
 
-#define SOLID_PROTOCOL_V2(ser, rthis, ctx, name)\
-    template <class S>\
-    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) const\
-    {\
-        solidSerializeV2(_s, *this, _rctx, _name);\
-    }\
-    template <class S>\
-    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)\
-    {\
-        solidSerializeV2(_s, *this, _rctx, _name);\
-    }\
-    template <class S, class T>\
+#define SOLID_PROTOCOL_V2(ser, rthis, ctx, name)                                                         \
+    template <class S>                                                                                   \
+    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) const \
+    {                                                                                                    \
+        solidSerializeV2(_s, *this, _rctx, _name);                                                       \
+    }                                                                                                    \
+    template <class S>                                                                                   \
+    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)       \
+    {                                                                                                    \
+        solidSerializeV2(_s, *this, _rctx, _name);                                                       \
+    }                                                                                                    \
+    template <class S, class T>                                                                          \
     static void solidSerializeV2(S& ser, T& rthis, solid::frame::mpipc::ConnectionContext& ctx, const char* name)
 
 } //namespace serialization_v2

@@ -52,14 +52,14 @@ struct MessageSetup {
 } // namespace ipc_file_client
 
 namespace {
-streampos file_size(const std::string &_path)
+streampos file_size(const std::string& _path)
 {
     std::ifstream ifs(_path);
-    if(ifs){
+    if (ifs) {
         ifs.seekg(0, ifs.end);
         streampos endpos = ifs.tellg();
         return endpos;
-    }else{
+    } else {
         return -1;
     }
 }
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
             auto                        proto = ipc_file::ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_file::protocol_setup(ipc_file_client::MessageSetup(),*proto);
+            ipc_file::protocol_setup(ipc_file_client::MessageSetup(), *proto);
 
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 

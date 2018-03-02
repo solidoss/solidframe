@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
             auto                        proto = ipc_file::ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_file::protocol_setup(ipc_file_server::MessageSetup(),*proto);
+            ipc_file::protocol_setup(ipc_file_server::MessageSetup(), *proto);
 
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';
