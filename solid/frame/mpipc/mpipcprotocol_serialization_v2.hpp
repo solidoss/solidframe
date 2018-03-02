@@ -1,4 +1,4 @@
-// solid/frame/mpipc/mpipcprotocol_binary_serialization_v1.hpp
+// solid/frame/mpipc/mpipcprotocol_binary_serialization_v2.hpp
 //
 // Copyright (c) 2018 Valentin Palade (vipalade @ gmail . com)
 //
