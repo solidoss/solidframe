@@ -1,10 +1,12 @@
-#include "betaclient.hpp"
-#include "../betamessages.hpp"
+#include "alphaclient.hpp"
+#include "../alphamessages.hpp"
+#include <condition_variable>
+#include <mutex>
 
 using namespace std;
 using namespace solid;
 
-namespace beta_client {
+namespace alpha_client {
 
 using IpcServicePointerT = shared_ptr<frame::mpipc::ServiceT>;
 IpcServicePointerT mpipcclient_ptr;
@@ -21,10 +23,18 @@ void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
     idbg(_rctx.recipientId());
 }
 
-void complete_message_first(
+template <class M>
+void complete_message(
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<M>&              _rsent_msg_ptr,
+    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror);
+
+template <>
+void complete_message<alpha_protocol::FirstMessage>(
     frame::mpipc::ConnectionContext&               _rctx,
-    std::shared_ptr<beta_protocol::FirstMessage>&  _rsent_msg_ptr,
-    std::shared_ptr<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
+    std::shared_ptr<alpha_protocol::FirstMessage>& _rsent_msg_ptr,
+    std::shared_ptr<alpha_protocol::FirstMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                         _rerror)
 {
     idbg("");
@@ -41,10 +51,32 @@ void complete_message_first(
     }
 }
 
-void complete_message_second(
+template <>
+void complete_message<alpha_protocol::SecondMessage>(
+    frame::mpipc::ConnectionContext&                _rctx,
+    std::shared_ptr<alpha_protocol::SecondMessage>& _rsent_msg_ptr,
+    std::shared_ptr<alpha_protocol::SecondMessage>& _rrecv_msg_ptr,
+    ErrorConditionT const&                          _rerror)
+{
+    idbg("");
+    SOLID_CHECK(not _rerror);
+    SOLID_CHECK(_rsent_msg_ptr and _rrecv_msg_ptr);
+    SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
+    SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
+    {
+        unique_lock<mutex> lock(pctx->rmtx);
+        --pctx->rwait_count;
+        if (pctx->rwait_count == 0) {
+            pctx->rcnd.notify_one();
+        }
+    }
+}
+
+template <>
+void complete_message<alpha_protocol::ThirdMessage>(
     frame::mpipc::ConnectionContext&               _rctx,
-    std::shared_ptr<beta_protocol::SecondMessage>& _rsent_msg_ptr,
-    std::shared_ptr<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
+    std::shared_ptr<alpha_protocol::ThirdMessage>& _rsent_msg_ptr,
+    std::shared_ptr<alpha_protocol::ThirdMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                         _rerror)
 {
     idbg("");
@@ -61,50 +93,11 @@ void complete_message_second(
     }
 }
 
-void complete_message_third(
-    frame::mpipc::ConnectionContext&              _rctx,
-    std::shared_ptr<beta_protocol::ThirdMessage>& _rsent_msg_ptr,
-    std::shared_ptr<beta_protocol::FirstMessage>& _rrecv_msg_ptr,
-    ErrorConditionT const&                        _rerror)
-{
-    idbg("");
-    SOLID_CHECK(not _rerror);
-    SOLID_CHECK(_rsent_msg_ptr and _rrecv_msg_ptr);
-    SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
-    SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
+struct MessageSetup {
+    template <class T>
+    void operator()(ProtocolT& _rprotocol, solid::TypeToType<T> _rt2t, const TypeIdT &_rtid)
     {
-        unique_lock<mutex> lock(pctx->rmtx);
-        --pctx->rwait_count;
-        if (pctx->rwait_count == 0) {
-            pctx->rcnd.notify_one();
-        }
-    }
-}
-
-template <typename T>
-struct MessageSetup;
-
-template <>
-struct MessageSetup<beta_protocol::FirstMessage> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
-    {
-        _rprotocol.registerType<beta_protocol::FirstMessage>(complete_message_first, _protocol_idx, _message_idx);
-    }
-};
-
-template <>
-struct MessageSetup<beta_protocol::SecondMessage> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
-    {
-        _rprotocol.registerType<beta_protocol::SecondMessage>(complete_message_second, _protocol_idx, _message_idx);
-    }
-};
-
-template <>
-struct MessageSetup<beta_protocol::ThirdMessage> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
-    {
-        _rprotocol.registerType<beta_protocol::ThirdMessage>(complete_message_third, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
@@ -129,10 +122,11 @@ ErrorConditionT start(
     pctx = &_rctx;
 
     if (not mpipcclient_ptr) { //mpipc client initialization
-        auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+        auto                        proto = ProtocolT::create();
         frame::mpipc::Configuration cfg(_rctx.rsched, proto);
 
-        beta_protocol::ProtoSpecT::setup<MessageSetup>(*proto);
+        proto->null(TypeIdT(0,0));
+        alpha_protocol::protocol_setup(MessageSetup(), *proto);
 
         cfg.connection_stop_fnc         = &client_connection_stop;
         cfg.client.connection_start_fnc = &client_connection_start;
@@ -153,19 +147,19 @@ ErrorConditionT start(
         _rctx.rwait_count += 3;
 
         err = mpipcclient_ptr->sendMessage(
-            "localhost", std::make_shared<beta_protocol::FirstMessage>(100000, make_string(100000)),
+            "localhost", std::make_shared<alpha_protocol::FirstMessage>(100000, make_string(100000)),
             {frame::mpipc::MessageFlagsE::WaitResponse});
         if (err) {
             return err;
         }
         err = mpipcclient_ptr->sendMessage(
-            "localhost", std::make_shared<beta_protocol::SecondMessage>(200000, make_string(200000)),
+            "localhost", std::make_shared<alpha_protocol::SecondMessage>(200000, make_string(200000)),
             {frame::mpipc::MessageFlagsE::WaitResponse});
         if (err) {
             return err;
         }
         err = mpipcclient_ptr->sendMessage(
-            "localhost", std::make_shared<beta_protocol::ThirdMessage>(30000, make_string(30000)),
+            "localhost", std::make_shared<alpha_protocol::ThirdMessage>(30000, make_string(30000)),
             {frame::mpipc::MessageFlagsE::WaitResponse});
         if (err) {
             return err;
@@ -180,4 +174,4 @@ void stop()
     mpipcclient_ptr.reset();
 }
 
-} // namespace beta_client
+} // namespace alpha_client

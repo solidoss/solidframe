@@ -1,0 +1,1 @@
+add_library(multiprotocol_alpha_client alphaclient.hpp alphaclient.cpp)

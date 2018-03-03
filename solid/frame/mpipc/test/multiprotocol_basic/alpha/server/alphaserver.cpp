@@ -78,36 +78,17 @@ void complete_message<alpha_protocol::ThirdMessage>(
     }
 }
 
-template <typename T>
 struct MessageSetup {
-    std::string str;
-
-    MessageSetup(std::string&& _rstr)
-        : str(_rstr)
+    template <class T>
+    void operator()(ProtocolT& _rprotocol, solid::TypeToType<T> _rt2t, const TypeIdT &_rtid)
     {
-    }
-    MessageSetup() {}
-
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
-    {
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
-void register_messages(frame::mpipc::serialization_v1::Protocol& _rprotocol)
+void register_messages(ProtocolT& _rprotocol)
 {
-    alpha_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol);
-    //alpha_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol, 0, std::string("ceva"));
-
-    //  _rprotocol.registerType<alpha_protocol::FirstMessage>(
-    //      complete_message<alpha_protocol::FirstMessage>
-    //  );
-    //  _rprotocol.registerType<alpha_protocol::SecondMessage>(
-    //      complete_message<alpha_protocol::SecondMessage>
-    //  );
-    //  _rprotocol.registerType<alpha_protocol::ThirdMessage>(
-    //      complete_message<alpha_protocol::ThirdMessage>
-    //  );
+    alpha_protocol::protocol_setup(MessageSetup(), _rprotocol);
 }
 
 } // namespace alpha_server

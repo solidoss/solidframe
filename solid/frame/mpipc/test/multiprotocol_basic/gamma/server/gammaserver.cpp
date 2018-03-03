@@ -29,17 +29,18 @@ void complete_message(
     }
 }
 
-template <typename T>
 struct MessageSetup {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    template <class T>
+    void operator()(ProtocolT& _rprotocol, solid::TypeToType<T> _rt2t, const TypeIdT &_rtid)
     {
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
-void register_messages(frame::mpipc::serialization_v1::Protocol& _rprotocol)
+
+void register_messages(ProtocolT& _rprotocol)
 {
-    gamma_protocol::ProtoSpecT::setup<MessageSetup>(_rprotocol);
+    gamma_protocol::protocol_setup(MessageSetup(), _rprotocol);
 }
 
 } // namespace gamma_server

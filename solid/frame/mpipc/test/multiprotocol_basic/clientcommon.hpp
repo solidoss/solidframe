@@ -1,20 +1,14 @@
 
 #pragma once
 
-#include "solid/system/common.hpp"
-
-#include "solid/frame/aio/aioreactor.hpp"
-#include "solid/frame/scheduler.hpp"
-
+#include "common.hpp"
 #include "solid/frame/aio/aioresolver.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/system/error.hpp"
 #include <condition_variable>
 #include <memory>
 #include <mutex>
-
-typedef solid::frame::Scheduler<solid::frame::aio::Reactor> AioSchedulerT;
 
 struct Context {
     AioSchedulerT&               rsched;

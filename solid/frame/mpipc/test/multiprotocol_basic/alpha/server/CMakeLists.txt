@@ -1,0 +1,1 @@
+add_library(multiprotocol_alpha_server alphaserver.hpp alphaserver.cpp)

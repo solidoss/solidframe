@@ -3,6 +3,8 @@
 
 using namespace solid;
 
+using ProtocolT = frame::mpipc::serialization_v2::Protocol<uint8_t>;
+
 namespace {
 
 struct InitStub {
@@ -60,11 +62,8 @@ struct Message : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, frame::mpipc::ConnectionContext& _rctx)
-    {
-        _s.push(str, "str");
-        _s.push(idx, "idx");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+        _s.add(_rthis.str, _rctx, "str").add(_rthis.idx, _rctx, "idx");
     }
 
     void init()
@@ -170,12 +169,12 @@ void complete_message(
 }
 
 struct Receiver : frame::mpipc::MessageReader::Receiver {
-    frame::mpipc::serialization_v1::Protocol&     rprotocol_;
+    ProtocolT&     rprotocol_;
     frame::mpipc::MessageWriter::RequestIdVectorT reqvec;
     uint8_t                                       ackd_count;
 
     Receiver(frame::mpipc::ReaderConfiguration&   _rconfig,
-        frame::mpipc::serialization_v1::Protocol& _rprotocol,
+        ProtocolT& _rprotocol,
         frame::mpipc::ConnectionContext&          _conctx)
         : frame::mpipc::MessageReader::Receiver(_rconfig, _rprotocol, _conctx)
         , rprotocol_(_rprotocol)
@@ -224,11 +223,11 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
 };
 
 struct Sender : frame::mpipc::MessageWriter::Sender {
-    frame::mpipc::serialization_v1::Protocol& rprotocol_;
+    ProtocolT& rprotocol_;
 
     Sender(
         frame::mpipc::WriterConfiguration&        _rconfig,
-        frame::mpipc::serialization_v1::Protocol& _rprotocol,
+        ProtocolT& _rprotocol,
         frame::mpipc::ConnectionContext&          _conctx)
         : frame::mpipc::MessageWriter::Sender(_rconfig, _rprotocol, _conctx)
         , rprotocol_(_rprotocol)
@@ -275,7 +274,7 @@ int test_protocol_synchronous(int argc, char** argv)
 
     frame::mpipc::WriterConfiguration mpipcwriterconfig;
     frame::mpipc::ReaderConfiguration mpipcreaderconfig;
-    auto                              mpipcprotocol = frame::mpipc::serialization_v1::Protocol::create();
+    auto                              mpipcprotocol = ProtocolT::create();
     frame::mpipc::MessageReader       mpipcmsgreader;
     frame::mpipc::MessageWriter       mpipcmsgwriter;
 
@@ -288,9 +287,9 @@ int test_protocol_synchronous(int argc, char** argv)
     ctx.mpipcmsgwriter    = &mpipcmsgwriter;
 
     mpipcmsgwriter.prepare(mpipcwriterconfig);
-
-    mpipcprotocol->registerType<::Message>(
-        complete_message);
+    
+    mpipcprotocol->null(0);
+    mpipcprotocol->registerMessage<::Message>(complete_message, 1);
 
     const size_t start_count = 10;
 

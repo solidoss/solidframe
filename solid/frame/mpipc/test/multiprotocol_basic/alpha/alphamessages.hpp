@@ -3,8 +3,8 @@
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
-#include "solid/system/common.hpp"
+
+#include "../common.hpp"
 
 namespace alpha_protocol {
 
@@ -18,12 +18,9 @@ struct FirstMessage : solid::frame::mpipc::Message {
         , str(std::move(_str))
     {
     }
-
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
-    {
-        _s.push(str, "str");
-        _s.push(v, "v");
+    
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+        _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
     }
 };
 
@@ -38,11 +35,8 @@ struct SecondMessage : solid::frame::mpipc::Message {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
-    {
-        _s.push(str, "str");
-        _s.push(v, "v");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+        _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
     }
 };
 
@@ -57,14 +51,17 @@ struct ThirdMessage : solid::frame::mpipc::Message {
     {
     }
 
-    template <class S>
-    void solidSerializeV1(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
-    {
-        _s.push(str, "str");
-        _s.push(v, "v");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+        _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
     }
 };
 
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, FirstMessage, SecondMessage, ThirdMessage>;
+template <class R>
+inline void protocol_setup(R _r, ProtocolT& _rproto)
+{
+    _r(_rproto, solid::TypeToType<FirstMessage>(), TypeIdT(0, 1));
+    _r(_rproto, solid::TypeToType<SecondMessage>(), TypeIdT(0, 2));
+    _r(_rproto, solid::TypeToType<ThirdMessage>(), TypeIdT(0, 3));
+}
 
 } // namespace alpha_protocol

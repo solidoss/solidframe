@@ -42,19 +42,11 @@ void complete_message(
     }
 }
 
-template <typename T>
 struct MessageSetup {
-    std::string str;
-
-    MessageSetup(std::string&& _rstr)
-        : str(_rstr)
+    template <class T>
+    void operator()(ProtocolT& _rprotocol, solid::TypeToType<T> _rt2t, const TypeIdT &_rtid)
     {
-    }
-    MessageSetup() {}
-
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
-    {
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
@@ -79,10 +71,11 @@ ErrorConditionT start(
     pctx = &_rctx;
 
     if (not mpipcclient_ptr) { //mpipc client initialization
-        auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+        auto                        proto = ProtocolT::create();
         frame::mpipc::Configuration cfg(_rctx.rsched, proto);
 
-        gamma_protocol::ProtoSpecT::setup<MessageSetup>(*proto);
+        proto->null(TypeIdT(0,0));
+        gamma_protocol::protocol_setup(MessageSetup(), *proto);
 
         cfg.connection_stop_fnc         = &client_connection_stop;
         cfg.client.connection_start_fnc = &client_connection_start;
