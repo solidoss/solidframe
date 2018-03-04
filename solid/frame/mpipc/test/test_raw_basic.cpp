@@ -27,9 +27,9 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT = frame::mpipc::serialization_v2::Protocol<uint8_t>;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -95,9 +95,9 @@ void init_string(std::string& _rstr, const size_t _idx)
 
 struct Message : frame::mpipc::Message {
 
-    uint32_t    idx;
-    std::string str;
-    mutable bool        serialized;
+    uint32_t     idx;
+    std::string  str;
+    mutable bool serialized;
 
     Message(uint32_t _idx)
         : idx(_idx)
@@ -117,9 +117,10 @@ struct Message : frame::mpipc::Message {
         SOLID_ASSERT(serialized or this->isBackOnSender());
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
-        if(_s.is_serializer){
+        if (_s.is_serializer) {
             _rthis.serialized = true;
         }
     }
@@ -390,7 +391,7 @@ int test_raw_basic(int argc, char** argv)
         { //mpipc server initialization
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
-            
+
             proto->null(0);
             proto->registerMessage<Message>(server_complete_message, 1);
 
@@ -422,7 +423,7 @@ int test_raw_basic(int argc, char** argv)
         { //mpipc client initialization
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_client, proto);
-            
+
             proto->null(0);
             proto->registerMessage<Message>(client_complete_message, 1);
 

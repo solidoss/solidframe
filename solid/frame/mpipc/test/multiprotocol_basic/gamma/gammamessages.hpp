@@ -1,9 +1,9 @@
 
 #pragma once
 
+#include "../common.hpp"
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
-#include "../common.hpp"
 
 namespace gamma_protocol {
 
@@ -18,7 +18,8 @@ struct FirstMessage : solid::frame::mpipc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
     }
 };
@@ -34,7 +35,8 @@ struct SecondMessage : solid::frame::mpipc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
     }
 };
@@ -50,7 +52,8 @@ struct ThirdMessage : solid::frame::mpipc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
     }
 };

@@ -44,7 +44,7 @@ void complete_message(
 
 struct MessageSetup {
     template <class T>
-    void operator()(ProtocolT& _rprotocol, solid::TypeToType<T> _rt2t, const TypeIdT &_rtid)
+    void operator()(ProtocolT& _rprotocol, solid::TypeToType<T> _rt2t, const TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
@@ -74,7 +74,7 @@ ErrorConditionT start(
         auto                        proto = ProtocolT::create();
         frame::mpipc::Configuration cfg(_rctx.rsched, proto);
 
-        proto->null(TypeIdT(0,0));
+        proto->null(TypeIdT(0, 0));
         gamma_protocol::protocol_setup(MessageSetup(), *proto);
 
         cfg.connection_stop_fnc         = &client_connection_stop;

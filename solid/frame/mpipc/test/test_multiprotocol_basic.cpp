@@ -119,7 +119,7 @@ int test_multiprotocol_basic(int argc, char** argv)
         { //mpipc server initialization
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
-            
+
             proto->null(TypeIdT(0, 0));
             gamma_server::register_messages(*proto);
             beta_server::register_messages(*proto);

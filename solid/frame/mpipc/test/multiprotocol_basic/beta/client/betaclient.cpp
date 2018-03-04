@@ -82,18 +82,18 @@ void complete_message_third(
 }
 
 struct MessageSetup {
-    
-    void operator()(ProtocolT& _rprotocol, solid::TypeToType<beta_protocol::FirstMessage> _rt2t, const TypeIdT &_rtid)
+
+    void operator()(ProtocolT& _rprotocol, solid::TypeToType<beta_protocol::FirstMessage> _rt2t, const TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<beta_protocol::FirstMessage>(complete_message_first, _rtid);
     }
-    
-    void operator()(ProtocolT& _rprotocol, solid::TypeToType<beta_protocol::SecondMessage> _rt2t, const TypeIdT &_rtid)
+
+    void operator()(ProtocolT& _rprotocol, solid::TypeToType<beta_protocol::SecondMessage> _rt2t, const TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<beta_protocol::SecondMessage>(complete_message_second, _rtid);
     }
-    
-    void operator()(ProtocolT& _rprotocol, solid::TypeToType<beta_protocol::ThirdMessage> _rt2t, const TypeIdT &_rtid)
+
+    void operator()(ProtocolT& _rprotocol, solid::TypeToType<beta_protocol::ThirdMessage> _rt2t, const TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<beta_protocol::ThirdMessage>(complete_message_third, _rtid);
     }
@@ -123,7 +123,7 @@ ErrorConditionT start(
         auto                        proto = ProtocolT::create();
         frame::mpipc::Configuration cfg(_rctx.rsched, proto);
 
-        proto->null(TypeIdT(0,0));
+        proto->null(TypeIdT(0, 0));
         beta_protocol::protocol_setup(MessageSetup(), *proto);
 
         cfg.connection_stop_fnc         = &client_connection_stop;

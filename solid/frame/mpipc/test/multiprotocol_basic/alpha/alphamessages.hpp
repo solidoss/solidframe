@@ -18,8 +18,9 @@ struct FirstMessage : solid::frame::mpipc::Message {
         , str(std::move(_str))
     {
     }
-    
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
     }
 };
@@ -35,7 +36,8 @@ struct SecondMessage : solid::frame::mpipc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
     }
 };
@@ -51,7 +53,8 @@ struct ThirdMessage : solid::frame::mpipc::Message {
     {
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.str, _rctx, "str").add(_rthis.v, _rctx, "v");
     }
 };

@@ -382,6 +382,7 @@ public: //should be protected
                         rs.add(*it, _rr.name_);
                         ++it;
                     }
+
                     const bool is_run_empty = _rs.isRunEmpty();
                     _rs.sentinel(old_sentinel);
 
@@ -430,9 +431,10 @@ public: //should be protected
                         ++it;
                     }
 
+                    const bool is_run_empty = _rs.isRunEmpty();
                     _rs.sentinel(old_sentinel);
 
-                    if (it != rcontainer.cend()) {
+                    if (it != rcontainer.cend() or not is_run_empty) {
                         return ReturnE::Wait;
                     } else {
                         return ReturnE::Done;

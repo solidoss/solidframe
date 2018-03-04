@@ -30,9 +30,9 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT = frame::mpipc::serialization_v2::Protocol<uint8_t>;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -101,7 +101,8 @@ struct Request : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
     }
 
@@ -161,7 +162,8 @@ struct Response : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
     }
 };
@@ -418,11 +420,11 @@ int test_clientserver_sendrequest(int argc, char** argv)
         { //mpipc server initialization
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
-            
+
             proto->null(0);
             proto->registerMessage<Request>(server_complete_request, 1);
             proto->registerMessage<Response>(server_complete_response, 2);
-            
+
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
 

@@ -29,9 +29,9 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT = frame::mpipc::serialization_v2::Protocol<uint8_t>;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -107,7 +107,8 @@ struct Message : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
     }
 
@@ -331,7 +332,7 @@ int test_keepalive_fail(int argc, char** argv)
         { //mpipc server initialization
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
-            
+
             proto->null(0);
             proto->registerMessage<Message>(server_complete_message, 1);
 
@@ -373,7 +374,7 @@ int test_keepalive_fail(int argc, char** argv)
         { //mpipc client initialization
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_client, proto);
-            
+
             proto->null(0);
             proto->registerMessage<Message>(client_complete_message, 1);
 

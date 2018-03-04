@@ -80,7 +80,7 @@ void complete_message<alpha_protocol::ThirdMessage>(
 
 struct MessageSetup {
     template <class T>
-    void operator()(ProtocolT& _rprotocol, solid::TypeToType<T> _rt2t, const TypeIdT &_rtid)
+    void operator()(ProtocolT& _rprotocol, solid::TypeToType<T> _rt2t, const TypeIdT& _rtid)
     {
         _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }

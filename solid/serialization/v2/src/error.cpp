@@ -8,7 +8,6 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-
 #include "solid/serialization/v2/error.hpp"
 #include <sstream>
 

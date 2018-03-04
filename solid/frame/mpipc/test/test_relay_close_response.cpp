@@ -34,9 +34,9 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT = frame::mpipc::serialization_v2::Protocol<uint8_t>;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -118,15 +118,16 @@ struct Register : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.err, _rctx, "err").add(_rthis.str, _rctx, "str");
     }
 };
 
 struct Message : frame::mpipc::Message {
-    uint32_t    idx;
-    std::string str;
-    mutable bool        serialized;
+    uint32_t     idx;
+    std::string  str;
+    mutable bool serialized;
 
     Message(uint32_t _idx)
         : idx(_idx)
@@ -149,11 +150,12 @@ struct Message : frame::mpipc::Message {
         ++deleted_count;
         try_stop();
     }
-    
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.idx, _rctx, "idx");
-        
-        _s.add([&_rthis](S &_rs, frame::mpipc::ConnectionContext& _rctx, const char *_name){
+
+        _s.add([&_rthis](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name) {
             if (_rthis.isBackOnSender()) {
                 ++back_on_sender_count;
                 SOLID_ASSERT(back_on_sender_count <= writecount);
@@ -168,16 +170,16 @@ struct Message : frame::mpipc::Message {
                         });
                 }
             }
-        }, _rctx, _name);
-        
+        },
+            _rctx, _name);
+
         _s.add(_rthis.str, _rctx, "str");
-        
-        
-        if(_s.is_serializer){
+
+        if (_s.is_serializer) {
             _rthis.serialized = true;
         }
     }
-    
+
     void init()
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
@@ -458,7 +460,7 @@ int test_relay_close_response(int argc, char** argv)
 
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_relay, relay_engine, proto);
-        
+
             proto->null(0);
             proto->registerMessage<Register>(con_register, 1);
 
@@ -508,7 +510,7 @@ int test_relay_close_response(int argc, char** argv)
         { //mpipc peera initialization
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_peera, proto);
-            
+
             proto->null(0);
             proto->registerMessage<Message>(peera_complete_message, 2);
 
@@ -549,7 +551,7 @@ int test_relay_close_response(int argc, char** argv)
         { //mpipc peerb initialization
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_peerb, proto);
-            
+
             proto->null(0);
             proto->registerMessage<Register>(peerb_complete_register, 1);
             proto->registerMessage<Message>(peerb_complete_message, 2);

@@ -352,3 +352,17 @@ inline void solidSerializePushV2(S& _rs, T&& _rt, Ctx& _rctx, const char* _name)
 } //namespace v2
 } //namespace serialization
 } //namespace solid
+
+#define SOLID_SERIALIZATION_CONTEXT_V2(ser, rthis, ctx, name)       \
+    template <class S, class C>                                     \
+    void solidSerializeV2(S& _s, C& _rctx, const char* _name) const \
+    {                                                               \
+        solidSerializeV2(_s, *this, _rctx, _name);                  \
+    }                                                               \
+    template <class S, class C>                                     \
+    void solidSerializeV2(S& _s, C& _rctx, const char* _name)       \
+    {                                                               \
+        solidSerializeV2(_s, *this, _rctx, _name);                  \
+    }                                                               \
+    template <class S, class T, class C>                            \
+    static void solidSerializeV2(S& ser, T& rthis, C& ctx, const char* name)

@@ -29,9 +29,9 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT = frame::mpipc::serialization_v2::Protocol<uint8_t>;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -68,9 +68,9 @@ size_t real_size(size_t _sz)
 }
 
 struct Message : frame::mpipc::Message {
-    uint32_t    idx;
-    std::string str;
-    mutable bool        serialized;
+    uint32_t     idx;
+    std::string  str;
+    mutable bool serialized;
 
     Message(uint32_t _idx)
         : idx(_idx)
@@ -90,9 +90,10 @@ struct Message : frame::mpipc::Message {
         SOLID_ASSERT(not serialized);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
-        if(_s.is_serializer){
+        if (_s.is_serializer) {
             _rthis.serialized = true;
         }
     }

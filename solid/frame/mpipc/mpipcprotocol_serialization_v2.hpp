@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "solid/frame/mpipc/mpipcprotocol.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
+#include "solid/frame/mpipc/mpipcprotocol.hpp"
 #include "solid/serialization/v2/serialization.hpp"
 #include "solid/system/error.hpp"
 #include <memory>

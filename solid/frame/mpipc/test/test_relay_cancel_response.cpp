@@ -32,9 +32,9 @@
 using namespace std;
 using namespace solid;
 
-using AioSchedulerT = frame::Scheduler<frame::aio::Reactor>;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using SecureContextT = frame::aio::openssl::Context;
-using ProtocolT = frame::mpipc::serialization_v2::Protocol<uint8_t>;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -131,15 +131,16 @@ struct Register : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.err, _rctx, "err").add(_rthis.str, _rctx, "str");
     }
 };
 
 struct Message : frame::mpipc::Message {
-    uint32_t    idx;
-    std::string str;
-    mutable bool        serialized;
+    uint32_t     idx;
+    std::string  str;
+    mutable bool serialized;
 
     Message(uint32_t _idx)
         : idx(_idx)
@@ -174,23 +175,24 @@ struct Message : frame::mpipc::Message {
     {
         return initarray[idx % initarraysize].cancel;
     }
-    
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.idx, _rctx, "idx");
-        
-        _s.add([&_rthis](S &_rs, frame::mpipc::ConnectionContext& _rctx, const char *_name){
+
+        _s.add([&_rthis](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name) {
             if (_rthis.cancelable() and _rthis.isBackOnSender()) {
                 idbg("Cancel message: " << _rthis.idx << " " << msgid_vec[_rthis.idx].second);
                 //we're on the peerb,
                 //we now cancel the message on peer a
                 pmpipcpeera->cancelMessage(msgid_vec[_rthis.idx].first, msgid_vec[_rthis.idx].second);
             }
-        }, _rctx, _name);
-        
+        },
+            _rctx, _name);
+
         _s.add(_rthis.str, _rctx, "str");
-        
-        
-        if(_s.is_serializer){
+
+        if (_s.is_serializer) {
             _rthis.serialized = true;
         }
     }
@@ -594,7 +596,7 @@ int test_relay_cancel_response(int argc, char** argv)
         { //mpipc peerb initialization
             auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_peerb, proto);
-            
+
             proto->null(0);
             proto->registerMessage<Register>(peerb_complete_register, 1);
             proto->registerMessage<Message>(peerb_complete_message, 2);

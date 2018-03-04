@@ -62,7 +62,8 @@ struct Message : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name){
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
         _s.add(_rthis.str, _rctx, "str").add(_rthis.idx, _rctx, "idx");
     }
 
@@ -169,13 +170,13 @@ void complete_message(
 }
 
 struct Receiver : frame::mpipc::MessageReader::Receiver {
-    ProtocolT&     rprotocol_;
+    ProtocolT&                                    rprotocol_;
     frame::mpipc::MessageWriter::RequestIdVectorT reqvec;
     uint8_t                                       ackd_count;
 
-    Receiver(frame::mpipc::ReaderConfiguration&   _rconfig,
-        ProtocolT& _rprotocol,
-        frame::mpipc::ConnectionContext&          _conctx)
+    Receiver(frame::mpipc::ReaderConfiguration& _rconfig,
+        ProtocolT&                              _rprotocol,
+        frame::mpipc::ConnectionContext&        _conctx)
         : frame::mpipc::MessageReader::Receiver(_rconfig, _rprotocol, _conctx)
         , rprotocol_(_rprotocol)
         , ackd_count(15)
@@ -226,9 +227,9 @@ struct Sender : frame::mpipc::MessageWriter::Sender {
     ProtocolT& rprotocol_;
 
     Sender(
-        frame::mpipc::WriterConfiguration&        _rconfig,
-        ProtocolT& _rprotocol,
-        frame::mpipc::ConnectionContext&          _conctx)
+        frame::mpipc::WriterConfiguration& _rconfig,
+        ProtocolT&                         _rprotocol,
+        frame::mpipc::ConnectionContext&   _conctx)
         : frame::mpipc::MessageWriter::Sender(_rconfig, _rprotocol, _conctx)
         , rprotocol_(_rprotocol)
     {
@@ -287,7 +288,7 @@ int test_protocol_synchronous(int argc, char** argv)
     ctx.mpipcmsgwriter    = &mpipcmsgwriter;
 
     mpipcmsgwriter.prepare(mpipcwriterconfig);
-    
+
     mpipcprotocol->null(0);
     mpipcprotocol->registerMessage<::Message>(complete_message, 1);
 
