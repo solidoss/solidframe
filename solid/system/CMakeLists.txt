@@ -19,7 +19,6 @@ set(Headers
     error.hpp
     exception.hpp
     filedevice.hpp
-    function.hpp
     memory.hpp
     mutualstore.hpp
     seekabledevice.hpp

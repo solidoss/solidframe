@@ -34,7 +34,7 @@ if(OPENSSL_FOUND)
         solid_frame_mpipc
         solid_frame_aio
         solid_frame
-        solid_serialization
+        solid_serialization_v2
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
@@ -69,7 +69,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization
+        solid_serialization_v2
         solid_utility
         solid_system
         ${SNAPPY_LIB}
@@ -132,7 +132,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization
+        solid_serialization_v2
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
@@ -162,7 +162,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization
+        solid_serialization_v2
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
@@ -190,7 +190,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization
+        solid_serialization_v2
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
@@ -208,7 +208,7 @@ if(OPENSSL_FOUND)
 
     #==============================================================================
 
-    add_subdirectory(test_multiprotocol_basic)
+    add_subdirectory(multiprotocol_basic)
 
     set( mpipcMultiProtocolTestSuite
         test_multiprotocol_basic.cpp
@@ -221,17 +221,17 @@ if(OPENSSL_FOUND)
     add_dependencies(test_mpipc_multiprotocol build_openssl)
 
     target_link_libraries(test_mpipc_multiprotocol
-        test_multiprotocol_alpha_client
-        test_multiprotocol_alpha_server
-        test_multiprotocol_beta_client
-        test_multiprotocol_beta_server
-        test_multiprotocol_gamma_client
-        test_multiprotocol_gamma_server
+        multiprotocol_alpha_client
+        multiprotocol_alpha_server
+        multiprotocol_beta_client
+        multiprotocol_beta_server
+        multiprotocol_gamma_client
+        multiprotocol_gamma_server
         solid_frame_mpipc
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization
+        solid_serialization_v2
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
@@ -259,7 +259,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization
+        solid_serialization_v2
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}
@@ -291,7 +291,7 @@ if(OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_aio_openssl
         solid_frame
-        solid_serialization
+        solid_serialization_v2
         solid_utility
         solid_system
         ${SNAPPY_LIB}
@@ -323,7 +323,7 @@ if(OPENSSL_FOUND)
         solid_frame_mpipc
         solid_frame_aio
         solid_frame
-        solid_serialization
+        solid_serialization_v2
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}

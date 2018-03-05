@@ -11,7 +11,7 @@
 #pragma once
 
 #include "solid/system/exception.hpp"
-#include "solid/system/function.hpp"
+#include "solid/utility/function.hpp"
 
 #include "solid/frame/service.hpp"
 
@@ -551,7 +551,7 @@ ErrorConditionT Service::sendRequest(
     MessagePointerT          msgptr(std::static_pointer_cast<Message>(_rmsgptr));
     RecipientId              recipient_id;
     CompleteHandlerT         fnc(_complete_fnc);
-    MessageCompleteFunctionT complete_handler(fnc);
+    MessageCompleteFunctionT complete_handler(std::move(fnc));
 
     return doSendMessage(_recipient_url, recipient_id, msgptr, complete_handler, nullptr, nullptr, _flags | MessageFlagsE::WaitResponse);
 }
@@ -772,7 +772,7 @@ ErrorConditionT Service::forceCloseConnectionPool(
         _f(_rctx);
     };
 
-    MessageCompleteFunctionT complete_handler(fnc);
+    MessageCompleteFunctionT complete_handler(std::move(fnc));
     return doForceCloseConnectionPool(_rrecipient_id, complete_handler);
 }
 //-------------------------------------------------------------------------
@@ -785,7 +785,7 @@ ErrorConditionT Service::delayCloseConnectionPool(
         _f(_rctx);
     };
 
-    MessageCompleteFunctionT complete_handler(fnc);
+    MessageCompleteFunctionT complete_handler(std::move(fnc));
     return doDelayCloseConnectionPool(_rrecipient_id, complete_handler);
 }
 //-------------------------------------------------------------------------
@@ -796,7 +796,7 @@ ErrorConditionT Service::connectionNotifyEnterActiveState(
     const size_t       _send_buffer_capacity /* = 0*/ //0 means: leave as it is
 )
 {
-    ConnectionEnterActiveCompleteFunctionT complete_fnc(_complete_fnc);
+    ConnectionEnterActiveCompleteFunctionT complete_fnc(std::move(_complete_fnc));
     return doConnectionNotifyEnterActiveState(_rrecipient_id, std::move(complete_fnc), _send_buffer_capacity);
 }
 //-------------------------------------------------------------------------
@@ -840,7 +840,7 @@ ErrorConditionT Service::connectionNotifySendAllRawData(
     CompleteFnc        _complete_fnc,
     std::string&&      _rdata)
 {
-    ConnectionSendRawDataCompleteFunctionT complete_fnc(_complete_fnc);
+    ConnectionSendRawDataCompleteFunctionT complete_fnc(std::move(_complete_fnc));
     return doConnectionNotifySendRawData(_rrecipient_id, std::move(complete_fnc), std::move(_rdata));
 }
 //-------------------------------------------------------------------------
@@ -849,7 +849,7 @@ ErrorConditionT Service::connectionNotifyRecvSomeRawData(
     RecipientId const& _rrecipient_id,
     CompleteFnc        _complete_fnc)
 {
-    ConnectionRecvRawDataCompleteFunctionT complete_fnc(_complete_fnc);
+    ConnectionRecvRawDataCompleteFunctionT complete_fnc(std::move(_complete_fnc));
     return doConnectionNotifyRecvRawData(_rrecipient_id, std::move(complete_fnc));
 }
 

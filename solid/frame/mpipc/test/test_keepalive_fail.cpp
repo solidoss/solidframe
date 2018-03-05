@@ -13,7 +13,7 @@
 
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcerror.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 
 #include <condition_variable>
@@ -29,8 +29,9 @@
 using namespace std;
 using namespace solid;
 
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-typedef frame::aio::openssl::Context          SecureContextT;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using SecureContextT = frame::aio::openssl::Context;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -106,11 +107,9 @@ struct Message : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    template <class S>
-    void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(str, "str");
-        _s.push(idx, "idx");
+        _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
     }
 
     void init()
@@ -331,17 +330,17 @@ int test_keepalive_fail(int argc, char** argv)
         std::string server_port;
 
         { //mpipc server initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
 
-            proto->registerType<Message>(
-                server_complete_message);
+            proto->null(0);
+            proto->registerMessage<Message>(server_complete_message, 1);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
 
-            cfg.connection_stop_fnc         = server_connection_stop;
-            cfg.server.connection_start_fnc = server_connection_start;
+            cfg.connection_stop_fnc         = &server_connection_stop;
+            cfg.server.connection_start_fnc = &server_connection_start;
 
             cfg.server.listener_address_str   = "0.0.0.0:0";
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
@@ -373,11 +372,11 @@ int test_keepalive_fail(int argc, char** argv)
         }
 
         { //mpipc client initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_client, proto);
 
-            proto->registerType<Message>(
-                client_complete_message);
+            proto->null(0);
+            proto->registerMessage<Message>(client_complete_message, 1);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
@@ -389,8 +388,8 @@ int test_keepalive_fail(int argc, char** argv)
                 cfg.connection_keepalive_timeout_seconds = 100;
             }
 
-            cfg.connection_stop_fnc         = client_connection_stop;
-            cfg.client.connection_start_fnc = client_connection_start;
+            cfg.connection_stop_fnc         = &client_connection_stop;
+            cfg.client.connection_start_fnc = &client_connection_start;
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 

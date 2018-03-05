@@ -13,7 +13,7 @@
 
 #include "solid/frame/mpipc/mpipccompression_snappy.hpp"
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include "solid/frame/mpipc/mpipcrelayengines.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
@@ -34,8 +34,9 @@
 using namespace std;
 using namespace solid;
 
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-typedef frame::aio::openssl::Context          SecureContextT;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using SecureContextT = frame::aio::openssl::Context;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -117,18 +118,16 @@ struct Register : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    template <class S>
-    void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(str, "str");
-        _s.push(err, "err");
+        _s.add(_rthis.err, _rctx, "err").add(_rthis.str, _rctx, "str");
     }
 };
 
 struct Message : frame::mpipc::Message {
-    uint32_t    idx;
-    std::string str;
-    bool        serialized;
+    uint32_t     idx;
+    std::string  str;
+    mutable bool serialized;
 
     Message(uint32_t _idx)
         : idx(_idx)
@@ -152,35 +151,32 @@ struct Message : frame::mpipc::Message {
         try_stop();
     }
 
-    template <class S>
-    void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(str, "str");
-        if (S::IsDeserializer) {
-            _s.template pushCall(
-                [this](S& _rs, frame::mpipc::ConnectionContext& _rctx, uint64_t _val, ErrorConditionT& _rerr) {
-                    if (this->isBackOnSender()) {
-                        ++back_on_sender_count;
-                        SOLID_ASSERT(back_on_sender_count <= writecount);
-                        if (back_on_sender_count == writecount) {
-                            idbg("Close connection: " << idx << " " << msgid_vec[this->idx].first);
-                            //we're on the peerb,
-                            //we now cancel the message on peer a
-                            pmpipcpeera->forceCloseConnectionPool(
-                                msgid_vec[this->idx].first,
-                                [](frame::mpipc::ConnectionContext& _rctx) {
-                                    edbg("Close pool callback");
-                                });
-                        }
-                    }
-                },
-                0,
-                "call");
-        }
-        _s.push(idx, "idx");
+        _s.add(_rthis.idx, _rctx, "idx");
 
-        if (S::IsSerializer) {
-            serialized = true;
+        _s.add([&_rthis](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+            if (_rthis.isBackOnSender()) {
+                ++back_on_sender_count;
+                SOLID_ASSERT(back_on_sender_count <= writecount);
+                if (back_on_sender_count == writecount) {
+                    idbg("Close connection: " << _rthis.idx << " " << msgid_vec[_rthis.idx].first);
+                    //we're on the peerb,
+                    //we now cancel the message on peer a
+                    pmpipcpeera->forceCloseConnectionPool(
+                        msgid_vec[_rthis.idx].first,
+                        [](frame::mpipc::ConnectionContext& _rctx) {
+                            edbg("Close pool callback");
+                        });
+                }
+            }
+        },
+            _rctx, _name);
+
+        _s.add(_rthis.str, _rctx, "str");
+
+        if (_s.is_serializer) {
+            _rthis.serialized = true;
         }
     }
 
@@ -462,15 +458,16 @@ int test_relay_close_response(int argc, char** argv)
                 }
             };
 
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_relay, relay_engine, proto);
 
-            proto->registerType<Register>(con_register, 0, 10);
+            proto->null(0);
+            proto->registerMessage<Register>(con_register, 1);
 
             cfg.server.listener_address_str      = "0.0.0.0:0";
             cfg.pool_max_active_connection_count = 2 * max_per_pool_connection_count;
-            cfg.connection_stop_fnc              = con_stop;
-            cfg.client.connection_start_fnc      = con_start;
+            cfg.connection_stop_fnc              = std::move(con_stop);
+            cfg.client.connection_start_fnc      = std::move(con_start);
             cfg.client.connection_start_state    = frame::mpipc::ConnectionState::Active;
             cfg.relay_enabled                    = true;
 
@@ -511,13 +508,14 @@ int test_relay_close_response(int argc, char** argv)
         pmpipcpeerb = &mpipcpeerb;
 
         { //mpipc peera initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_peera, proto);
 
-            proto->registerType<Message>(peera_complete_message, 0 /*protocol id*/, 20 /*message id*/);
+            proto->null(0);
+            proto->registerMessage<Message>(peera_complete_message, 2);
 
-            cfg.connection_stop_fnc           = peera_connection_stop;
-            cfg.client.connection_start_fnc   = peera_connection_start;
+            cfg.connection_stop_fnc           = &peera_connection_stop;
+            cfg.client.connection_start_fnc   = &peera_connection_start;
             cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
@@ -551,14 +549,15 @@ int test_relay_close_response(int argc, char** argv)
         }
 
         { //mpipc peerb initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_peerb, proto);
 
-            proto->registerType<Register>(peerb_complete_register, 0, 10);
-            proto->registerType<Message>(peerb_complete_message, 0, 20);
+            proto->null(0);
+            proto->registerMessage<Register>(peerb_complete_register, 1);
+            proto->registerMessage<Message>(peerb_complete_message, 2);
 
-            cfg.connection_stop_fnc         = peerb_connection_stop;
-            cfg.client.connection_start_fnc = peerb_connection_start;
+            cfg.connection_stop_fnc         = &peerb_connection_stop;
+            cfg.client.connection_start_fnc = &peerb_connection_start;
 
             cfg.pool_max_active_connection_count = max_per_pool_connection_count;
 

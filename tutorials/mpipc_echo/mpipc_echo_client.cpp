@@ -48,11 +48,10 @@ void complete_message(
     cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg_ptr->str << endl;
 }
 
-template <typename T>
 struct MessageSetup {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    void operator()(ipc_echo::ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<ipc_echo::Message>(complete_message<ipc_echo::Message>, _rtid);
     }
 };
 
@@ -99,10 +98,10 @@ int main(int argc, char* argv[])
         }
 
         {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ipc_echo::ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_echo::ProtoSpecT::setup<ipc_echo_client::MessageSetup>(*proto);
+            ipc_echo::protocol_setup(ipc_echo_client::MessageSetup(), *proto);
 
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 

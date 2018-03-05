@@ -301,7 +301,7 @@ struct ExecStub {
         UniqueId const& _ruid, F _f, UniqueId const& _rchnuid, Event&& _uevent = Event())
         : objuid(_ruid)
         , chnuid(_rchnuid)
-        , exefnc(_f)
+        , exefnc(std::move(_f))
         , event(std::move(_uevent))
     {
     }

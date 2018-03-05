@@ -126,8 +126,11 @@ bool default_setup_socket_device(SocketDevice& _rsd)
 ReaderConfiguration::ReaderConfiguration()
 {
     max_message_count_multiplex = 64 + 128;
+    string_size_limit           = InvalidSize();
+    stream_size_limit           = InvalidSize();
+    container_size_limit        = InvalidSize();
 
-    decompress_fnc = default_decompress;
+    decompress_fnc = &default_decompress;
 }
 
 WriterConfiguration::WriterConfiguration()
@@ -137,8 +140,11 @@ WriterConfiguration::WriterConfiguration()
     max_message_continuous_packet_count = 4;
     max_message_count_response_wait     = 128;
 
-    inplace_compress_fnc = default_compress;
-    //reset_serializer_limits_fnc = empty_reset_serializer_limits;
+    string_size_limit    = InvalidSize();
+    stream_size_limit    = InvalidSize();
+    container_size_limit = InvalidSize();
+
+    inplace_compress_fnc = &default_compress;
 }
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -243,23 +249,23 @@ void Configuration::init()
     client.connection_start_state  = ConnectionState::Passive;
     client.connection_start_secure = true;
 
-    connection_recv_buffer_allocate_fnc = default_allocate_recv_buffer;
-    connection_send_buffer_allocate_fnc = default_allocate_send_buffer;
+    connection_recv_buffer_allocate_fnc = &default_allocate_recv_buffer;
+    connection_send_buffer_allocate_fnc = &default_allocate_send_buffer;
 
-    connection_stop_fnc = empty_connection_stop;
+    connection_stop_fnc = &empty_connection_stop;
 
-    server.connection_start_fnc = empty_connection_start;
-    client.connection_start_fnc = empty_connection_start;
+    server.connection_start_fnc = &empty_connection_start;
+    client.connection_start_fnc = &empty_connection_start;
 
-    connection_on_event_fnc = empty_connection_on_event;
+    connection_on_event_fnc = &empty_connection_on_event;
 
-    client.connection_create_socket_fnc = default_create_client_socket;
-    server.connection_create_socket_fnc = default_create_server_socket;
+    client.connection_create_socket_fnc = &default_create_client_socket;
+    server.connection_create_socket_fnc = &default_create_server_socket;
 
-    server.socket_device_setup_fnc = default_setup_socket_device;
-    client.socket_device_setup_fnc = default_setup_socket_device;
+    server.socket_device_setup_fnc = &default_setup_socket_device;
+    client.socket_device_setup_fnc = &default_setup_socket_device;
 
-    extract_recipient_name_fnc = default_extract_recipient_name;
+    extract_recipient_name_fnc = &default_extract_recipient_name;
 
     pool_max_active_connection_count  = 1;
     pool_max_pending_connection_count = 1;

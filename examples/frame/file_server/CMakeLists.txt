@@ -7,7 +7,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         solid_frame_aio
         solid_frame_file
         solid_frame
-        solid_serialization
+        solid_serialization_v1
         solid_utility
         solid_system
         ${OPENSSL_LIBRARIES}

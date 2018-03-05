@@ -1810,7 +1810,7 @@ struct Connection::SenderResponse : Connection::Sender {
             request_found_ = true;
         } else if (_rmsg_bundle.message_ptr) {
             idbgx(Debug::mpipc, this << " " << _rmsg_bundle.message_type_id);
-            rproto_[_rmsg_bundle.message_type_id].complete_fnc(context(), _rmsg_bundle.message_ptr, rresponse_ptr_, err_);
+            rproto_.complete(_rmsg_bundle.message_type_id, context(), _rmsg_bundle.message_ptr, rresponse_ptr_, err_);
             request_found_ = true;
         }
     }
@@ -1836,7 +1836,7 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePoi
     MessageBundle empty_msg_bundle; //request message
 
     idbgx(Debug::mpipc, this << " " << _response_type_id);
-    rproto[_response_type_id].complete_fnc(conctx, empty_msg_bundle.message_ptr, _rresponse_ptr, error);
+    rproto.complete(_response_type_id, conctx, empty_msg_bundle.message_ptr, _rresponse_ptr, error);
 }
 //-----------------------------------------------------------------------------
 void Connection::doCompleteMessage(
@@ -1861,7 +1861,7 @@ void Connection::doCompleteMessage(
         _rmsg_bundle.complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
     } else {
         idbgx(Debug::mpipc, this << " " << _rmsg_bundle.message_type_id);
-        rproto[_rmsg_bundle.message_type_id].complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
+        rproto.complete(_rmsg_bundle.message_type_id, conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
     }
 }
 //-----------------------------------------------------------------------------

@@ -223,10 +223,9 @@ const char* MessageReader::doConsumeMessage(
     case MessageStub::StateE::NotStarted:
         vdbgx(Debug::mpipc, "NotStarted msgidx = " << _msgidx);
         rmsgstub.deserializer_ptr_ = createDeserializer(_receiver);
-        rmsgstub.deserializer_ptr_->resetLimits();
-        rmsgstub.deserializer_ptr_->push(rmsgstub.message_header_);
-        rmsgstub.state_ = MessageStub::StateE::ReadHead;
-    case MessageStub::StateE::ReadHead:
+        rmsgstub.state_            = MessageStub::StateE::ReadHeadStart;
+    case MessageStub::StateE::ReadHeadStart:
+    case MessageStub::StateE::ReadHeadContinue:
         vdbgx(Debug::mpipc, "ReadHead " << _msgidx);
         if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
             _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);
@@ -234,11 +233,13 @@ const char* MessageReader::doConsumeMessage(
             if (message_size <= static_cast<size_t>(_pbufend - _pbufpos)) {
                 _receiver.context().pmessage_header = &rmsgstub.message_header_;
 
-                const int rv = rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
+                const long rv = rmsgstub.state_ == MessageStub::StateE::ReadHeadStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size, rmsgstub.message_header_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
+
+                rmsgstub.state_ = MessageStub::StateE::ReadHeadContinue;
                 _pbufpos += message_size;
 
                 if (rv >= 0) {
-                    if (rv <= static_cast<int>(message_size)) {
+                    if (rv <= static_cast<long>(message_size)) {
 
                         if (rmsgstub.deserializer_ptr_->empty()) {
                             vdbgx(Debug::mpipc, "message_size = " << message_size << " recipient_req_id = " << rmsgstub.message_header_.recipient_request_id_ << " sender_req_id = " << rmsgstub.message_header_.sender_request_id_ << " url = " << rmsgstub.message_header_.url_);
@@ -256,9 +257,9 @@ const char* MessageReader::doConsumeMessage(
                                 cache(rmsgstub.deserializer_ptr_);
                             } else if (_receiver.isRelayDisabled() or rmsgstub.message_header_.url_.empty()) {
                                 idbgx(Debug::mpipc, "Read Body");
-                                rmsgstub.state_ = MessageStub::StateE::ReadBody;
+                                rmsgstub.state_ = MessageStub::StateE::ReadBodyStart;
                                 rmsgstub.deserializer_ptr_->clear();
-                                rmsgstub.deserializer_ptr_->push(rmsgstub.message_ptr_);
+                                //rmsgstub.deserializer_ptr_->push(rmsgstub.message_ptr_);
                             } else {
                                 idbgx(Debug::mpipc, "Relay message");
                                 rmsgstub.state_ = MessageStub::StateE::RelayStart;
@@ -283,7 +284,8 @@ const char* MessageReader::doConsumeMessage(
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
-    case MessageStub::StateE::ReadBody:
+    case MessageStub::StateE::ReadBodyStart:
+    case MessageStub::StateE::ReadBodyContinue:
         vdbgx(Debug::mpipc, "ReadBody " << _msgidx);
         if (
             (rmsgstub.packet_count_ & 15) != 0 or _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id) != ResponseStateE::Cancel) {
@@ -296,7 +298,9 @@ const char* MessageReader::doConsumeMessage(
 
                     _receiver.context().pmessage_header = &rmsgstub.message_header_;
 
-                    const int rv = rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
+                    const long rv = rmsgstub.state_ == MessageStub::StateE::ReadBodyStart ? rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size, rmsgstub.message_ptr_) : rmsgstub.deserializer_ptr_->run(_receiver.context(), _pbufpos, message_size);
+
+                    rmsgstub.state_ = MessageStub::StateE::ReadBodyContinue;
                     _pbufpos += message_size;
 
                     if (rv >= 0) {
@@ -492,9 +496,10 @@ Deserializer::PointerT MessageReader::createDeserializer(Receiver& _receiver)
     if (des_top_) {
         Deserializer::PointerT des{std::move(des_top_)};
         des_top_ = std::move(des->link());
+        _receiver.protocol().reconfigure(*des, _receiver.configuration());
         return des;
     } else {
-        return _receiver.protocol().createDeserializer();
+        return _receiver.protocol().createDeserializer(_receiver.configuration());
     }
 }
 //-----------------------------------------------------------------------------

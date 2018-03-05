@@ -24,6 +24,7 @@
 
 #include "solid/utility/any.hpp"
 #include "solid/utility/common.hpp"
+#include "solid/utility/function.hpp"
 
 namespace solid {
 
@@ -161,13 +162,13 @@ private:
 
 template <typename EventIds>
 class EventCategory : public EventCategoryBase {
-    using FunctionT = std::function<const char*(const EventIds)>;
+    using FunctionT = SOLID_FUNCTION(const char*(const EventIds));
 
 public:
     template <typename F>
     EventCategory(const std::string& _name, F _f)
         : EventCategoryBase(_name)
-        , names_fnc_(_f)
+        , names_fnc_(std::move(_f))
     {
     }
 
@@ -325,7 +326,7 @@ protected:
 template <typename RetVal, typename... Args>
 class EventHandler : protected EventHandlerBase {
 public:
-    using FunctionT = std::function<RetVal(Event&, Args...)>;
+    using FunctionT = SOLID_FUNCTION(RetVal(Event&, Args...));
 
 private:
     using FunctionVectorT = std::vector<FunctionT>;
@@ -398,7 +399,7 @@ public:
             const SizeTPairT& categ_pair = map_it->second;
             if (eventId(_revt) <= categ_pair.second) {
                 const FunctionT& rfnc = function_vec_[categ_pair.first + eventId(_revt)];
-                if (rfnc != nullptr) {
+                if (rfnc) {
                     return rfnc(_revt, args...);
                 }
             }

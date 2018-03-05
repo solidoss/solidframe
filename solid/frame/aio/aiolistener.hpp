@@ -58,7 +58,7 @@ public:
     bool postAccept(ReactorContext& _rctx, F _f)
     {
         if (SOLID_FUNCTION_EMPTY(f)) {
-            f = _f;
+            f = std::move(_f);
             doPostAccept(_rctx);
             return false;
         } else {
@@ -76,7 +76,7 @@ public:
             if (this->doTryAccept(_rctx, _rsd)) {
                 return true;
             }
-            f = _f;
+            f = std::move(_f);
             return false;
         } else {
             error(_rctx, error_already);
@@ -91,10 +91,10 @@ private:
     void doClear(ReactorContext& _rctx);
 
 private:
-    typedef SOLID_FUNCTION<void(ReactorContext&, SocketDevice&)> FunctionT;
-    FunctionT                                                    f;
-    SocketDevice                                                 sd;
-    ReactorWaitRequestsE                                         waitreq;
+    typedef SOLID_FUNCTION(void(ReactorContext&, SocketDevice&)) FunctionT;
+    FunctionT            f;
+    SocketDevice         sd;
+    ReactorWaitRequestsE waitreq;
 };
 
 } //namespace aio

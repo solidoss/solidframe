@@ -198,14 +198,14 @@ ErrorConditionT SchedulerBase::doStart(
             SOLID_FUNCTION_CLEAR(impl_->threnfnc);
             std::swap(impl_->threnfnc, _renf);
         } else {
-            impl_->threnfnc = dummy_thread_enter;
+            impl_->threnfnc = &dummy_thread_enter;
         }
 
         if (not SOLID_FUNCTION_EMPTY(_rexf)) {
             SOLID_FUNCTION_CLEAR(impl_->threxfnc);
             std::swap(impl_->threxfnc, _rexf);
         } else {
-            impl_->threxfnc = dummy_thread_exit;
+            impl_->threxfnc = &dummy_thread_exit;
         }
 
         for (size_t i = 0; i < _reactorcnt; ++i) {

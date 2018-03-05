@@ -28,8 +28,8 @@ struct ReactorContex;
 template <class Sock>
 class Datagram : public CompletionHandler {
     using ThisT         = Datagram<Sock>;
-    using RecvFunctionT = SOLID_FUNCTION<void(ThisT&, ReactorContext&)>;
-    using SendFunctionT = SOLID_FUNCTION<void(ThisT&, ReactorContext&)>;
+    using RecvFunctionT = SOLID_FUNCTION(void(ThisT&, ReactorContext&));
+    using SendFunctionT = SOLID_FUNCTION(void(ThisT&, ReactorContext&));
 
     static void on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx)
     {

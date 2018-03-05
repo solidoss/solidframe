@@ -128,6 +128,24 @@ public:
         ++size_;
     }
 
+    //insert in front of the sentinel
+    void insertFront(const size_t _sentinel, const size_t _index)
+    {
+        Link& rsent_link = link(_sentinel);
+        Link& rcrt_link  = link(_index);
+
+        rcrt_link        = Link(rsent_link.prev_, _sentinel);
+        rsent_link.prev_ = _index;
+
+        if (front_ == _sentinel) {
+            front_ = _index;
+        } else {
+            Link& lnk = link(rcrt_link.prev_);
+            lnk.next_ = _index;
+        }
+        ++size_;
+    }
+
     ValueT& front()
     {
         return rvec_[front_];

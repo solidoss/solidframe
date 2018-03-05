@@ -41,11 +41,11 @@ void complete_message(
     SOLID_CHECK(false); //this method should not be called
 }
 
-template <typename T>
 struct MessageSetup {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    template <class T>
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
@@ -104,10 +104,10 @@ int main(int argc, char* argv[])
         }
 
         {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ipc_request::ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_request::ProtoSpecT::setup<ipc_request_client::MessageSetup>(*proto);
+            ipc_request::protocol_setup(ipc_request_client::MessageSetup(), *proto);
 
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 

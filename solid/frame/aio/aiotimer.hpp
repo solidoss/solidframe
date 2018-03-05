@@ -80,7 +80,7 @@ public:
     template <class Clock, class Duration, typename F>
     bool waitUntil(ReactorContext& _rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F _f)
     {
-        f = _f;
+        f = std::move(_f);
         NanoTime steady_nt{time_point_clock_cast<std::chrono::steady_clock>(_rtp)};
         this->addTimer(_rctx, steady_nt, storeidx);
         return false;
@@ -119,7 +119,7 @@ private:
     }
 
 private:
-    typedef SOLID_FUNCTION<void(ReactorContext&)> FunctionT;
+    typedef SOLID_FUNCTION(void(ReactorContext&)) FunctionT;
 
     FunctionT f;
     size_t    storeidx;

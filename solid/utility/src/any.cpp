@@ -9,10 +9,15 @@
 //
 
 #include "solid/utility/any.hpp"
+#include "solid/utility/function.hpp"
 
 namespace solid {
 
 namespace impl {
+
+/*virtual*/ FunctionValueBase::~FunctionValueBase()
+{
+}
 
 /*virtual*/ AnyValueBase::~AnyValueBase()
 {

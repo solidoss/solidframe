@@ -14,7 +14,7 @@
 
 #include "solid/system/common.hpp"
 #include "solid/system/error.hpp"
-#include "solid/system/function.hpp"
+#include "solid/utility/function.hpp"
 
 #include "mpipcutility.hpp"
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
@@ -81,15 +81,15 @@ public:
         virtual void            cancelRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
     };
 
-    using VisitFunctionT = SOLID_FUNCTION<void(
+    using VisitFunctionT = SOLID_FUNCTION(void(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
-        )>;
+        ));
 
-    using CompleteFunctionT = SOLID_FUNCTION<ErrorConditionT(
+    using CompleteFunctionT = SOLID_FUNCTION(ErrorConditionT(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
-        )>;
+        ));
 
     enum PrintWhat {
         PrintInnerListsE,
@@ -165,13 +165,16 @@ private:
 
         enum struct StateE : uint8_t {
             WriteStart,
-            WriteHead,
-            WriteBody,
+            WriteHeadStart,
+            WriteHeadContinue,
+            WriteBodyStart,
+            WriteBodyContinue,
             WriteWait,
             WriteCanceled,
             WriteWaitCanceled,
             RelayedStart, //add non-relayed states above
-            RelayedHead,
+            RelayedHeadStart,
+            RelayedHeadContinue,
             RelayedBody,
             RelayedWait,
             RelayedCancelRequest,
@@ -233,12 +236,12 @@ private:
 
         bool isHeadState() const noexcept
         {
-            return state_ == StateE::WriteHead or state_ == StateE::RelayedHead;
+            return state_ == StateE::WriteHeadStart or state_ == StateE::WriteHeadContinue or state_ == StateE::RelayedHeadStart or state_ == StateE::RelayedHeadContinue;
         }
 
         bool isStartOrHeadState() const noexcept
         {
-            return state_ == StateE::WriteStart or state_ == StateE::WriteHead or state_ == StateE::RelayedStart or state_ == StateE::RelayedHead;
+            return state_ == StateE::WriteStart or state_ == StateE::WriteHeadStart or state_ == StateE::WriteHeadContinue or state_ == StateE::RelayedStart or state_ == StateE::RelayedHeadStart or state_ == StateE::RelayedHeadContinue;
         }
 
         bool isWaitResponseState() const noexcept

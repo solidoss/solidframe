@@ -82,7 +82,7 @@ void complete_message<ipc_file::ListRequest>(
             ++it;
         }
     }
-    SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -116,7 +116,7 @@ void complete_message<ipc_file::FileRequest>(
         msgptr->remote_file_size = fs::file_size(fs::path(_rrecv_msg_ptr->remote_path), error);
     }
 
-    SOLID_CHECK(_rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -131,11 +131,11 @@ void complete_message<ipc_file::FileResponse>(
     SOLID_CHECK(_rsent_msg_ptr);
 }
 
-template <typename T>
 struct MessageSetup {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    template <class T>
+    void operator()(ipc_file::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
@@ -172,10 +172,10 @@ int main(int argc, char* argv[])
         }
 
         {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ipc_file::ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_file::ProtoSpecT::setup<ipc_file_server::MessageSetup>(*proto);
+            ipc_file::protocol_setup(ipc_file_server::MessageSetup(), *proto);
 
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';

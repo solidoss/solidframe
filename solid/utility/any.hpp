@@ -179,6 +179,9 @@ class Any : public AnyBase {
         return std::type_index(_req_type) == std::type_index(typeid(_rv));
     }
 
+    template <bool B>
+    using bool_constant = std::integral_constant<bool, B>;
+
 public:
     using ThisT = Any<DataSize>;
 
@@ -199,9 +202,9 @@ public:
     Any(
         const T& _rt)
         : AnyBase(
-              do_allocate<T>(
-                  BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(),
-                  BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>(),
+              do_allocate<typename std::remove_reference<T>::type>(
+                  bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(),
+                  bool_constant<sizeof(impl::AnyValue<typename std::remove_reference<T>::type>) <= DataSize>(),
                   _rt))
     {
     }
@@ -210,9 +213,9 @@ public:
     Any(
         T&& _ut)
         : AnyBase(
-              do_allocate<T>(
-                  BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(),
-                  BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>(),
+              do_allocate<typename std::remove_reference<T>::type>(
+                  bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(),
+                  bool_constant<sizeof(impl::AnyValue<typename std::remove_reference<T>::type>) <= DataSize>(),
                   std::forward<T>(_ut)))
     {
     }
@@ -252,9 +255,14 @@ public:
         return const_cast<T*>(cast<T>());
     }
 
-    bool empty() const
+    bool empty() const noexcept
     {
         return pvalue_ == nullptr;
+    }
+
+    explicit operator bool() const noexcept
+    {
+        return !empty();
     }
 
     void clear()
@@ -291,8 +299,8 @@ public:
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rt)) {
             clear();
-
-            pvalue_ = do_allocate<T>(BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(), BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>(), _rt);
+            using RealT = typename std::remove_reference<T>::type;
+            pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, AnyBase*>::value>(), bool_constant<sizeof(impl::AnyValue<RealT>) <= DataSize>(), _rt);
         }
         return *this;
     }
@@ -302,8 +310,8 @@ public:
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_ut)) {
             clear();
-
-            pvalue_ = do_allocate<T>(BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(), BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>(), std::forward<T>(_ut));
+            using RealT = typename std::remove_reference<T>::type;
+            pvalue_     = do_allocate<RealT>(bool_constant<std::is_convertible<RealT*, AnyBase*>::value>(), bool_constant<sizeof(impl::AnyValue<RealT>) <= DataSize>(), std::forward<T>(_ut));
         }
         return *this;
     }
@@ -333,36 +341,37 @@ private:
     void do_reinit(const TypeToType<T>&, Args&&... _args)
     {
         clear();
-        pvalue_ = do_allocate<T>(
-            BoolToType<std::is_convertible<typename std::remove_reference<T>::type*, AnyBase*>::value>(), BoolToType<sizeof(impl::AnyValue<T>) <= DataSize>(), std::forward<Args>(_args)...);
+        using RealT = typename std::remove_reference<T>::type;
+        pvalue_     = do_allocate<RealT>(
+            bool_constant<std::is_convertible<RealT*, AnyBase*>::value>(), bool_constant<sizeof(impl::AnyValue<RealT>) <= DataSize>(), std::forward<Args>(_args)...);
     }
 
     template <class T, class... Args>
-    impl::AnyValueBase* do_allocate(BoolToType<false> /*_is_any*/, BoolToType<true> /*_emplace_new*/, Args&&... _args)
+    impl::AnyValueBase* do_allocate(std::false_type /*_is_any*/, std::true_type /*_emplace_new*/, Args&&... _args)
     {
         return new (data_) impl::AnyValue<T>(std::forward<Args>(_args)...);
     }
 
     template <class T, class... Args>
-    impl::AnyValueBase* do_allocate(BoolToType<false> /*_is_any*/, BoolToType<false> /*_plain_new*/, Args&&... _args)
+    impl::AnyValueBase* do_allocate(std::false_type /*_is_any*/, std::false_type /*_plain_new*/, Args&&... _args)
     {
         return new impl::AnyValue<T>(std::forward<Args>(_args)...);
     }
 
     template <class T>
-    impl::AnyValueBase* do_allocate(BoolToType<true> /*_is_any*/, BoolToType<true> /*_emplace_new*/, const T& _rany)
+    impl::AnyValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, const T& _rany)
     {
         return doCopyFrom(_rany, data_, DataSize);
     }
 
     template <class T>
-    impl::AnyValueBase* do_allocate(BoolToType<true> /*_is_any*/, BoolToType<false> /*_plain_new*/, const T& _rany)
+    impl::AnyValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, const T& _rany)
     {
         return doCopyFrom(_rany, data_, DataSize);
     }
 
     template <class T>
-    impl::AnyValueBase* do_allocate(BoolToType<true> /*_is_any*/, BoolToType<true> /*_emplace_new*/, T&& _uany)
+    impl::AnyValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, T&& _uany)
     {
         impl::AnyValueBase* rv = doMoveFrom(_uany, data_, DataSize, _uany.usesData());
         _uany.release(rv);
@@ -370,7 +379,7 @@ private:
     }
 
     template <class T>
-    impl::AnyValueBase* do_allocate(BoolToType<true> /*_is_any*/, BoolToType<false> /*_plain_new*/, T&& _uany)
+    impl::AnyValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, T&& _uany)
     {
         impl::AnyValueBase* rv = doMoveFrom(_uany, data_, DataSize, _uany.usesData());
         _uany.release(rv);

@@ -12,7 +12,7 @@
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 
 #include <condition_variable>
@@ -23,17 +23,17 @@
 
 #include "solid/system/debug.hpp"
 
-#include "test_multiprotocol_basic/alpha/server/alphaserver.hpp"
-#include "test_multiprotocol_basic/beta/server/betaserver.hpp"
-#include "test_multiprotocol_basic/gamma/server/gammaserver.hpp"
+#include "multiprotocol_basic/alpha/server/alphaserver.hpp"
+#include "multiprotocol_basic/beta/server/betaserver.hpp"
+#include "multiprotocol_basic/gamma/server/gammaserver.hpp"
 
-#include "test_multiprotocol_basic/alpha/client/alphaclient.hpp"
-#include "test_multiprotocol_basic/beta/client/betaclient.hpp"
-#include "test_multiprotocol_basic/gamma/client/gammaclient.hpp"
+#include "multiprotocol_basic/alpha/client/alphaclient.hpp"
+#include "multiprotocol_basic/beta/client/betaclient.hpp"
+#include "multiprotocol_basic/gamma/client/gammaclient.hpp"
 
 #include <iostream>
 
-#include "test_multiprotocol_basic/clientcommon.hpp"
+#include "multiprotocol_basic/clientcommon.hpp"
 
 using namespace std;
 using namespace solid;
@@ -117,15 +117,16 @@ int test_multiprotocol_basic(int argc, char** argv)
         std::string server_port;
 
         { //mpipc server initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
 
+            proto->null(TypeIdT(0, 0));
             gamma_server::register_messages(*proto);
             beta_server::register_messages(*proto);
             alpha_server::register_messages(*proto);
 
-            cfg.connection_stop_fnc         = server_connection_stop;
-            cfg.server.connection_start_fnc = server_connection_start;
+            cfg.connection_stop_fnc         = &server_connection_stop;
+            cfg.server.connection_start_fnc = &server_connection_start;
 
             cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
             cfg.server.listener_address_str   = "0.0.0.0:0";

@@ -12,8 +12,8 @@
 
 #include "openssl/ssl.h"
 #include "solid/frame/aio/aiocommon.hpp"
-#include "solid/system/function.hpp"
 #include "solid/system/socketdevice.hpp"
+#include "solid/utility/function.hpp"
 #include <cerrno>
 
 namespace solid {
@@ -106,7 +106,7 @@ public:
     template <typename Cbk>
     ErrorCodeT setVerifyCallback(VerifyMaskT _verify_mask, Cbk _cbk)
     {
-        verify_cbk = _cbk;
+        verify_cbk = std::move(_cbk);
         return doPrepareVerifyCallback(_verify_mask);
     }
 
@@ -133,7 +133,7 @@ private:
     static int on_verify(int preverify_ok, X509_STORE_CTX* x509_ctx);
 
 private:
-    using VerifyFunctionT = SOLID_FUNCTION<bool(void*, bool, VerifyContextT&)>;
+    using VerifyFunctionT = SOLID_FUNCTION(bool(void*, bool, VerifyContextT&));
 
     SSL*         pssl;
     SocketDevice sd;

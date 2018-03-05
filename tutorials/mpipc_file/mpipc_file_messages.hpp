@@ -3,7 +3,7 @@
 
 #include "solid/frame/mpipc/mpipccontext.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include <deque>
 #include <fstream>
 #include <iostream>
@@ -21,10 +21,9 @@ struct ListRequest : solid::frame::mpipc::Message {
     {
     }
 
-    template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(path, "path");
+        _s.add(_rthis.path, _rctx, "path");
     }
 };
 
@@ -38,10 +37,9 @@ struct ListResponse : solid::frame::mpipc::Message {
     {
     }
 
-    template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.pushContainer(node_dq, "node_dq");
+        _s.add(_rthis.node_dq, _rctx, "nodes");
     }
 };
 
@@ -58,17 +56,15 @@ struct FileRequest : solid::frame::mpipc::Message {
     {
     }
 
-    template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(remote_path, "remote_path");
+        _s.add(_rthis.remote_path, _rctx, "remote_path");
     }
 };
 
 struct FileResponse : solid::frame::mpipc::Message {
-    std::string  remote_path;
-    std::fstream fs;
-    int64_t      remote_file_size;
+    std::string remote_path;
+    int64_t     remote_file_size;
 
     FileResponse() {}
 
@@ -81,41 +77,58 @@ struct FileResponse : solid::frame::mpipc::Message {
     }
 
     template <class S>
-    void solidSerialize(S& _s, solid::frame::mpipc::ConnectionContext& _rctx)
+    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) const
     {
-        _s.pushCall(
-            [this](S& _rs, solid::frame::mpipc::ConnectionContext& _rctx, uint64_t _val, solid::ErrorConditionT& _rerr) {
-                if (S::IsSerializer) {
-                    fs.open(remote_path.c_str());
-                    _rs.pushStream(static_cast<std::istream*>(&fs), "fs");
+        std::ifstream ifs;
+        ifs.open(remote_path);
+        if (ifs) {
+            std::streampos pos = ifs.tellg();
+            ifs.seekg(0, ifs.end);
+            std::streampos endpos = ifs.tellg();
+            ifs.seekg(pos);
+            const int64_t file_size = endpos;
+            _s.add(file_size, _rctx, "remote_file_size");
 
-                    if (fs) {
-                        std::streampos pos = fs.tellg();
-                        fs.seekg(0, fs.end);
-                        std::streampos endpos = fs.tellg();
-                        fs.seekg(pos);
-                        remote_file_size = endpos;
-                    } else {
-                        remote_file_size = solid::InvalidSize();
-                    }
-                    _rs.push(remote_file_size, "remote_file_size");
-                } else {
-                    std::string* plocal_path = localPath(_rctx);
-
-                    if (remote_file_size != solid::InvalidSize() && plocal_path) {
-                        fs.open(plocal_path->c_str(), std::fstream::out | std::fstream::binary);
-                    }
-                    _rs.pushStream(static_cast<std::ostream*>(&fs), "fs");
-                }
+            _s.push([ifs = std::move(ifs)](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
+                _s.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+                    //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
+                },
+                    _rctx, _name);
+                return true;
             },
-            0, "reinit");
-        if (!S::IsSerializer) {
-            _s.push(remote_file_size, "remote_file_size");
+                _rctx, _name);
+        } else {
+            const int64_t file_size = solid::InvalidSize();
+            _s.add(file_size, _rctx, "remote_file_size");
         }
+    }
+    template <class S>
+    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)
+    {
+        _s.add(remote_file_size, _rctx, "remote_file_size");
+        _s.add([this](S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+            if (remote_file_size != solid::InvalidIndex()) {
+                std::ofstream      ofs;
+                const std::string* plocal_path = localPath(_rctx);
+                if (plocal_path != nullptr) {
+                    ofs.open(*plocal_path);
+                    _s.push([ this, ofs = std::move(ofs) ](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
+                        _s.add(ofs, [this](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+
+                            //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
+                        },
+                            _rctx, _name);
+                        return true;
+                    },
+                        _rctx, _name);
+                }
+            }
+        },
+            _rctx, _name);
     }
 
 private:
-    std::string* localPath(solid::frame::mpipc::ConnectionContext& _rctx) const
+    const std::string* localPath(solid::frame::mpipc::ConnectionContext& _rctx) const
     {
         auto req_ptr = std::dynamic_pointer_cast<FileRequest>(_rctx.fetchRequest(*this));
         if (req_ptr) {
@@ -125,6 +138,17 @@ private:
     }
 };
 
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, ListRequest, ListResponse, FileRequest, FileResponse>;
+using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+
+template <class R>
+inline void protocol_setup(R _r, ProtocolT& _rproto)
+{
+    _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
+
+    _r(_rproto, solid::TypeToType<ListRequest>(), 1);
+    _r(_rproto, solid::TypeToType<ListResponse>(), 2);
+    _r(_rproto, solid::TypeToType<FileRequest>(), 3);
+    _r(_rproto, solid::TypeToType<FileResponse>(), 4);
+}
 
 } //namespace ipc_file

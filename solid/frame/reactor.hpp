@@ -34,7 +34,7 @@ typedef DynamicPointer<Object> ObjectPointerT;
 
 */
 class Reactor : public frame::ReactorBase {
-    typedef SOLID_FUNCTION<void(ReactorContext&, Event&&)> EventFunctionT;
+    typedef SOLID_FUNCTION(void(ReactorContext&, Event&&)) EventFunctionT;
     template <class Function>
     struct StopObjectF {
         Function function;
@@ -69,7 +69,7 @@ public:
     template <typename Function>
     void post(ReactorContext& _rctx, Function _fnc, Event&& _uev)
     {
-        EventFunctionT eventfnc(_fnc);
+        EventFunctionT eventfnc(std::move(_fnc));
         doPost(_rctx, eventfnc, std::move(_uev));
     }
 

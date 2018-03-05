@@ -101,8 +101,10 @@ private:
     struct MessageStub {
         enum struct StateE : uint8_t {
             NotStarted,
-            ReadHead,
-            ReadBody,
+            ReadHeadStart,
+            ReadHeadContinue,
+            ReadBodyStart,
+            ReadBodyContinue,
             IgnoreBody,
             RelayStart,
             RelayBody,

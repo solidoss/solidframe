@@ -1,0 +1,1 @@
+add_library(multiprotocol_beta_client betaclient.hpp betaclient.cpp)

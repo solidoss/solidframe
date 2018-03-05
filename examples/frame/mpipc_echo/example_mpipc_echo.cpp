@@ -12,7 +12,7 @@
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
@@ -32,8 +32,9 @@
 using namespace std;
 using namespace solid;
 
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-typedef frame::aio::openssl::Context          SecureContextT;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using SecureContextT = frame::aio::openssl::Context;
+using ProtocolT      = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -110,10 +111,9 @@ struct FirstMessage : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    template <class S>
-    void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(str, "data");
+        _s.add(_rthis.str, _rctx, "data");
     }
 };
 
@@ -234,7 +234,7 @@ bool restart(
     AioSchedulerT&          _sch)
 {
     ErrorConditionT err;
-    auto            proto = frame::mpipc::serialization_v1::Protocol::create();
+    auto            proto = ProtocolT::create();
 
     frame::Manager& rm = _ipcsvc.manager();
 
@@ -260,8 +260,8 @@ bool restart(
 
     frame::mpipc::Configuration cfg(_sch, proto);
 
-    proto->registerType<FirstMessage>(
-        MessageHandler(_ipcsvc));
+    proto->null(0);
+    proto->registerMessage<FirstMessage>(MessageHandler(_ipcsvc), 1);
 
     if (app_params.baseport.size()) {
         cfg.server.listener_address_str = "0.0.0.0:";
@@ -272,9 +272,9 @@ bool restart(
     if (app_params.connectstringvec.size()) {
         cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(_resolver, app_params.baseport.c_str());
     }
-    cfg.connection_stop_fnc           = connection_stop;
-    cfg.server.connection_start_fnc   = incoming_connection_start;
-    cfg.client.connection_start_fnc   = outgoing_connection_start;
+    cfg.connection_stop_fnc           = &connection_stop;
+    cfg.server.connection_start_fnc   = &incoming_connection_start;
+    cfg.client.connection_start_fnc   = &outgoing_connection_start;
     cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
     cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 #if 1
