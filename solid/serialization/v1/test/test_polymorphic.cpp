@@ -27,7 +27,7 @@ struct OrKey : Key {
     }
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(second, "second").push(first, "first");
     }
@@ -58,7 +58,7 @@ struct OrVecKey : Key {
     }
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.pushContainer(keys, "keys");
     }
@@ -84,7 +84,7 @@ struct IntKey : Key {
     }
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(v, "v");
     }
@@ -105,7 +105,7 @@ struct StringKey : Key {
     }
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(v, "v");
     }
@@ -128,7 +128,7 @@ struct Command {
     }
 
     template <class S>
-    void solidSerialize(S& _s)
+    void solidSerializeV1(S& _s)
     {
         _s.push(key, "key");
     }

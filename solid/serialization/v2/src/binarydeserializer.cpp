@@ -1,3 +1,12 @@
+// solid/serialization/v2/src/binarydeserializer.cpp
+//
+// Copyright (c) 2018 Valentin Palade (vipalade @ gmail . com)
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 
 #include "solid/serialization/v2/binarydeserializer.hpp"
 #include "solid/serialization/v2/binarybasic.hpp"
@@ -8,15 +17,25 @@ namespace serialization {
 namespace v2 {
 namespace binary {
 
-//== Serializer  ==============================================================
-DeserializerBase::DeserializerBase()
-    : pbeg_(nullptr)
+//== Deserializer  ==============================================================
+DeserializerBase::DeserializerBase(const TypeMapBase& _rtype_map, const Limits& _rlimits)
+    : Base(_rlimits)
+    , rtype_map_(_rtype_map)
+    , pbeg_(nullptr)
     , pend_(nullptr)
     , pcrt_(nullptr)
     , sentinel_(run_lst_.cend())
 {
 }
 
+DeserializerBase::DeserializerBase(const TypeMapBase& _rtype_map)
+    : rtype_map_(_rtype_map)
+    , pbeg_(nullptr)
+    , pend_(nullptr)
+    , pcrt_(nullptr)
+    , sentinel_(run_lst_.cend())
+{
+}
 std::istream& DeserializerBase::run(std::istream& _ris, void* _pctx)
 {
     const size_t buf_cap = 8 * 1024;

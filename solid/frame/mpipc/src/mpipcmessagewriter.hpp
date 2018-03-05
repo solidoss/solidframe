@@ -165,13 +165,16 @@ private:
 
         enum struct StateE : uint8_t {
             WriteStart,
-            WriteHead,
-            WriteBody,
+            WriteHeadStart,
+            WriteHeadContinue,
+            WriteBodyStart,
+            WriteBodyContinue,
             WriteWait,
             WriteCanceled,
             WriteWaitCanceled,
             RelayedStart, //add non-relayed states above
-            RelayedHead,
+            RelayedHeadStart,
+            RelayedHeadContinue,
             RelayedBody,
             RelayedWait,
             RelayedCancelRequest,
@@ -233,12 +236,12 @@ private:
 
         bool isHeadState() const noexcept
         {
-            return state_ == StateE::WriteHead or state_ == StateE::RelayedHead;
+            return state_ == StateE::WriteHeadStart or state_ == StateE::WriteHeadContinue or state_ == StateE::RelayedHeadStart or state_ == StateE::RelayedHeadContinue;
         }
 
         bool isStartOrHeadState() const noexcept
         {
-            return state_ == StateE::WriteStart or state_ == StateE::WriteHead or state_ == StateE::RelayedStart or state_ == StateE::RelayedHead;
+            return state_ == StateE::WriteStart or state_ == StateE::WriteHeadStart or state_ == StateE::WriteHeadContinue or state_ == StateE::RelayedStart or state_ == StateE::RelayedHeadStart or state_ == StateE::RelayedHeadContinue;
         }
 
         bool isWaitResponseState() const noexcept

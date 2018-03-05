@@ -1,5 +1,17 @@
+// solid/serialization/v2/binarybase.hpp
+//
+// Copyright (c) 2018 Valentin Palade (vipalade @ gmail . com)
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
+
 #pragma once
+
 #include "solid/serialization/v2/error.hpp"
+#include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/utility/common.hpp"
 #include <memory>
@@ -63,7 +75,7 @@ struct Limits {
     uint64_t streamlimit_;
 };
 
-class Base {
+class Base : public v2::Base {
 public:
     const ErrorConditionT& error() const
     {
@@ -89,6 +101,12 @@ protected:
         //Add above
         InnerListCount,
     };
+
+    Base() {}
+    Base(const Limits& _rlimits)
+        : limits_(_rlimits)
+    {
+    }
 
 protected:
     Limits          limits_;
@@ -206,6 +224,12 @@ inline void solidSerializeV2IsContainer(S& _rs, T& _rt, Ctx& _rctx, const char* 
     _rt.solidSerializeV2(_rs, _rctx, _name);
 }
 
+template <class S, class T, class Ctx>
+inline void solidSerializeV2IsContainer(S& _rs, const T& _rt, Ctx& _rctx, const char* _name, std::false_type)
+{
+    _rt.solidSerializeV2(_rs, _rctx, _name);
+}
+
 template <class S, class T>
 inline void solidSerializeV2IsFunction(S& _rs, T& _rt, const char* _name, std::false_type)
 {
@@ -218,52 +242,58 @@ inline void solidSerializeV2IsFunction(S& _rs, T& _rt, Ctx& _rctx, const char* _
     solidSerializeV2IsContainer(_rs, _rt, _rctx, _name, is_container<T>());
 }
 
+template <class S, class T, class Ctx>
+inline void solidSerializeV2IsFunction(S& _rs, const T& _rt, Ctx& _rctx, const char* _name, std::false_type)
+{
+    solidSerializeV2IsContainer(_rs, _rt, _rctx, _name, is_container<T>());
+}
+
 template <class S, class T>
 inline void solidSerializeV2(S& _rs, std::shared_ptr<T>& _rp, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _name);
+    _rs.addPointer(_rp, _name);
 }
 
 template <class S, class T, class Ctx>
 inline void solidSerializeV2(S& _rs, std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _rctx, _name);
+    _rs.addPointer(_rp, _rctx, _name);
 }
 
 template <class S, class T>
 inline void solidSerializeV2(S& _rs, const std::shared_ptr<T>& _rp, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _name);
+    _rs.addPointer(_rp, _name);
 }
 
 template <class S, class T, class Ctx>
 inline void solidSerializeV2(S& _rs, const std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _rctx, _name);
+    _rs.addPointer(_rp, _rctx, _name);
 }
 
 template <class S, class T, class D>
 inline void solidSerializeV2(S& _rs, std::unique_ptr<T, D>& _rp, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _name);
+    _rs.addPointer(_rp, _name);
 }
 
 template <class S, class T, class D, class Ctx>
 inline void solidSerializeV2(S& _rs, std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _rctx, _name);
+    _rs.addPointer(_rp, _rctx, _name);
 }
 
 template <class S, class T, class D>
 inline void solidSerializeV2(S& _rs, const std::unique_ptr<T, D>& _rp, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _name);
+    _rs.addPointer(_rp, _name);
 }
 
 template <class S, class T, class D, class Ctx>
 inline void solidSerializeV2(S& _rs, const std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
 {
-    _rs.addPointer(_rs, _rp, _rctx, _name);
+    _rs.addPointer(_rp, _rctx, _name);
 }
 
 template <class S, class T>
@@ -322,3 +352,17 @@ inline void solidSerializePushV2(S& _rs, T&& _rt, Ctx& _rctx, const char* _name)
 } //namespace v2
 } //namespace serialization
 } //namespace solid
+
+#define SOLID_SERIALIZATION_CONTEXT_V2(ser, rthis, ctx, name)       \
+    template <class S, class C>                                     \
+    void solidSerializeV2(S& _s, C& _rctx, const char* _name) const \
+    {                                                               \
+        solidSerializeV2(_s, *this, _rctx, _name);                  \
+    }                                                               \
+    template <class S, class C>                                     \
+    void solidSerializeV2(S& _s, C& _rctx, const char* _name)       \
+    {                                                               \
+        solidSerializeV2(_s, *this, _rctx, _name);                  \
+    }                                                               \
+    template <class S, class T, class C>                            \
+    static void solidSerializeV2(S& ser, T& rthis, C& ctx, const char* name)

@@ -309,7 +309,6 @@ using ConnectionSecureHandhakeCompleteFunctionT = SOLID_FUNCTION(void(Connection
 using ConnectionSendRawDataCompleteFunctionT    = SOLID_FUNCTION(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionRecvRawDataCompleteFunctionT    = SOLID_FUNCTION(void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&));
 using ConnectionOnEventFunctionT                = SOLID_FUNCTION(void(ConnectionContext&, Event&));
-//using ResetSerializerLimitsFunctionT              = SOLID_FUNCTION(void(ConnectionContext &, serialization::binary::Limits&) );
 
 enum struct ConnectionState {
     Raw,
@@ -319,6 +318,10 @@ enum struct ConnectionState {
 
 struct ReaderConfiguration {
     ReaderConfiguration();
+
+    size_t   string_size_limit;
+    size_t   container_size_limit;
+    uint64_t stream_size_limit;
 
     size_t              max_message_count_multiplex;
     UncompressFunctionT decompress_fnc;
@@ -331,8 +334,11 @@ struct WriterConfiguration {
     size_t max_message_count_response_wait;
     size_t max_message_continuous_packet_count;
 
+    size_t   string_size_limit;
+    size_t   container_size_limit;
+    uint64_t stream_size_limit;
+
     CompressFunctionT inplace_compress_fnc;
-    //ResetSerializerLimitsFunctionT    reset_serializer_limits_fnc;
 };
 
 struct Configuration {

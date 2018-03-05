@@ -1,3 +1,12 @@
+// solid/serialization/v2/src/binaryserializer.cpp
+//
+// Copyright (c) 2018 Valentin Palade (vipalade @ gmail . com)
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 
 #include "solid/serialization/v2/binaryserializer.hpp"
 #include "solid/serialization/v2/binarybasic.hpp"
@@ -9,15 +18,26 @@ namespace v2 {
 namespace binary {
 
 //== Serializer  ==============================================================
-SerializerBase::SerializerBase()
-    : pbeg_(nullptr)
+SerializerBase::SerializerBase(const TypeMapBase& _rtype_map, const Limits& _rlimits)
+    : Base(_rlimits)
+    , rtype_map_(_rtype_map)
+    , pbeg_(nullptr)
     , pend_(nullptr)
     , pcrt_(nullptr)
     , sentinel_(run_lst_.cend())
 {
 }
 
-std::ostream& SerializerBase::run(std::ostream& _ros)
+SerializerBase::SerializerBase(const TypeMapBase& _rtype_map)
+    : rtype_map_(_rtype_map)
+    , pbeg_(nullptr)
+    , pend_(nullptr)
+    , pcrt_(nullptr)
+    , sentinel_(run_lst_.cend())
+{
+}
+
+std::ostream& SerializerBase::run(std::ostream& _ros, void* _pctx)
 {
     const size_t buf_cap = 8 * 1024;
     char         buf[buf_cap];
@@ -25,7 +45,7 @@ std::ostream& SerializerBase::run(std::ostream& _ros)
 
     clear();
 
-    while ((len = run(buf, buf_cap)) > 0) {
+    while ((len = run(buf, buf_cap, _pctx)) > 0) {
         _ros.write(buf, len);
     }
     return _ros;

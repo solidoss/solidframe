@@ -12,7 +12,7 @@
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
@@ -29,8 +29,9 @@
 using namespace std;
 using namespace solid;
 
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-typedef frame::aio::openssl::Context          SecureContextT;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using SecureContextT = frame::aio::openssl::Context;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -67,9 +68,9 @@ size_t real_size(size_t _sz)
 }
 
 struct Message : frame::mpipc::Message {
-    uint32_t    idx;
-    std::string str;
-    bool        serialized;
+    uint32_t     idx;
+    std::string  str;
+    mutable bool serialized;
 
     Message(uint32_t _idx)
         : idx(_idx)
@@ -89,14 +90,11 @@ struct Message : frame::mpipc::Message {
         SOLID_ASSERT(not serialized);
     }
 
-    template <class S>
-    void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(str, "str");
-        _s.push(idx, "idx");
-
-        if (S::IsSerializer) {
-            serialized = true;
+        _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
+        if (_s.is_serializer) {
+            _rthis.serialized = true;
         }
     }
 
@@ -243,11 +241,11 @@ int test_clientserver_oneshot(int argc, char** argv)
         std::string server_port = "60432";
 
         { //mpipc client initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_client, proto);
 
-            proto->registerType<Message>(
-                client_complete_message);
+            proto->null(0);
+            proto->registerMessage<Message>(client_complete_message, 1);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;

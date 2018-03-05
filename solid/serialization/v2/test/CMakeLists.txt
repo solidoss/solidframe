@@ -1,6 +1,9 @@
 #==============================================================================
 set( SerializationTestSuite
     test_binary.cpp
+    test_binary_basic.cpp
+    test_polymorphic.cpp
+    test_container.cpp
 )
 
 create_test_sourcelist( SerializationTests test_serialization.cpp ${SerializationTestSuite})
@@ -14,4 +17,9 @@ target_link_libraries(test_serialization_v2
     ${SYS_BASIC_LIBS}
 )
 
-add_test(NAME TestSerializationBinary       COMMAND  test_serialization_v2 test_binary)
+add_test(NAME TestSerializationV2Binary       COMMAND  test_serialization_v2 test_binary)
+add_test(NAME TestSerializationV2BinaryBasic  COMMAND  test_serialization_v2 test_binary_basic)
+add_test(NAME TestSerializationV2Polymorphic  COMMAND  test_serialization_v2 test_polymorphic)
+add_test(NAME TestSerializationV2Container    COMMAND  test_serialization_v2 test_container)
+
+#==============================================================================

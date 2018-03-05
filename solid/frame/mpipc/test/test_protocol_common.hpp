@@ -2,7 +2,7 @@
 #pragma once
 
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 
 #include "solid/frame/mpipc/src/mpipcmessagereader.hpp"
 #include "solid/frame/mpipc/src/mpipcmessagewriter.hpp"

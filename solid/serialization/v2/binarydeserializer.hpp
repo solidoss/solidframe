@@ -1,7 +1,18 @@
+// solid/serialization/v2/binarydeserializer.hpp
+//
+// Copyright (c) 2018 Valentin Palade (vipalade @ gmail . com)
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
+
 #pragma once
 
 #include "solid/serialization/v2/binarybase.hpp"
 #include "solid/serialization/v2/binarybasic.hpp"
+#include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/cassert.hpp"
 #include "solid/system/debug.hpp"
@@ -40,7 +51,7 @@ class DeserializerBase : public Base {
         }
 
         template <class F>
-        Runnable(void* _ptr, CallbackT _call, F _f, const char* _name)
+        Runnable(void* _ptr, CallbackT _call, F&& _f, const char* _name)
             : ptr_(_ptr)
             , call_(_call)
             , size_(0)
@@ -85,13 +96,15 @@ class DeserializerBase : public Base {
     using RunListT         = std::list<Runnable>;
     using RunListIteratorT = std::list<Runnable>::const_iterator;
 
+protected:
+    DeserializerBase(const TypeMapBase& _rtype_map, const Limits& _rlimits);
+    DeserializerBase(const TypeMapBase& _rtype_map);
+
 public:
     static constexpr bool is_serializer   = false;
     static constexpr bool is_deserializer = true;
 
 public:
-    DeserializerBase();
-
     std::istream& run(std::istream& _ris, void* _pctx = nullptr);
     long          run(const char* _pbeg, unsigned _sz, void* _pctx = nullptr);
 
@@ -106,6 +119,11 @@ public:
     const ErrorConditionT& error() const
     {
         return Base::error();
+    }
+
+    bool empty() const
+    {
+        return run_lst_.empty();
     }
 
     inline void addBasic(bool& _rb, const char* _name)
@@ -221,7 +239,7 @@ public:
         } else {
             Runnable r{
                 call_function,
-                [_f](DeserializerBase& _rd, Runnable& _rr, void* _pctx) {
+                [_f](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
                     const RunListIteratorT old_sentinel = _rd.sentinel();
 
                     _f(static_cast<D&>(_rd), _rr.name_);
@@ -250,7 +268,7 @@ public:
             Runnable r{
                 nullptr,
                 call_function,
-                [_f](DeserializerBase& _rd, Runnable& _rr, void* _pctx) {
+                [_f](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
                     const RunListIteratorT old_sentinel = _rd.sentinel();
 
                     _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
@@ -270,15 +288,15 @@ public:
     }
 
     template <class D, class F>
-    void pushFunction(D& _rd, F&& _f, const char* _name)
+    void pushFunction(D& _rd, F _f, const char* _name)
     {
         idbg(_name);
         auto lambda = [_f = std::move(_f)](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
         {
             const RunListIteratorT old_sentinel = _rd.sentinel();
             const bool             done         = _f(static_cast<D&>(_rd), _rr.name_);
+            const bool             is_run_empty = _rd.isRunEmpty();
 
-            const bool is_run_empty = _rd.isRunEmpty();
             _rd.sentinel(old_sentinel);
 
             if (done) {
@@ -303,15 +321,15 @@ public:
     }
 
     template <class D, class F, class Ctx>
-    void pushFunction(D& _rd, F&& _f, Ctx& _rctx, const char* _name)
+    void pushFunction(D& _rd, F _f, Ctx& _rctx, const char* _name)
     {
         idbg(_name);
         auto lambda = [_f = std::move(_f)](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
         {
             const RunListIteratorT old_sentinel = _rd.sentinel();
             const bool             done         = _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
+            const bool             is_run_empty = _rd.isRunEmpty();
 
-            const bool is_run_empty = _rd.isRunEmpty();
             _rd.sentinel(old_sentinel);
 
             if (done) {
@@ -462,30 +480,6 @@ public:
         tryRun(std::move(r), &_rctx);
     }
 
-    template <class S, class T>
-    void addPointer(S& _rd, std::shared_ptr<T>& _rp, const char* _name)
-    {
-        idbg(_name);
-    }
-
-    template <class S, class T, class Ctx>
-    void addPointer(S& _rd, std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
-    {
-        idbg(_name);
-    }
-
-    template <class S, class T, class D>
-    void addPointer(S& _rd, std::unique_ptr<T, D>& _rp, const char* _name)
-    {
-        idbg(_name);
-    }
-
-    template <class S, class T, class D, class Ctx>
-    void addPointer(S& _rd, std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
-    {
-        idbg(_name);
-    }
-
     template <class F, class Ctx>
     void addStream(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
     {
@@ -537,6 +531,7 @@ protected:
     long doRun(void* _pctx = nullptr);
 
 private:
+    friend class TypeMapBase;
     void tryRun(Runnable&& _ur, void* _pctx = nullptr);
 
     RunListIteratorT sentinel()
@@ -562,7 +557,7 @@ private:
         return run_lst_.emplace(sentinel_, std::move(_ur));
     }
 
-    void error(const ErrorConditionT& _err)
+    void error(const ErrorConditionT& _err) override
     {
         if (!error_) {
             error_ = _err;
@@ -788,31 +783,44 @@ private:
         return ReturnE::Wait;
     }
 
-private:
+protected:
     enum {
         BufferCapacityE = sizeof(uint64_t) * 1
     };
-
-    const char*      pbeg_;
-    const char*      pend_;
-    const char*      pcrt_;
-    RunListT         run_lst_;
-    RunListIteratorT sentinel_;
-
+    const TypeMapBase& rtype_map_;
     union {
         char     buf_[BufferCapacityE];
         uint64_t u64_;
         void*    p_;
     } data_;
-}; // namespace v2
 
-template <class Ctx = void>
+private:
+    const char*      pbeg_;
+    const char*      pend_;
+    const char*      pcrt_;
+    RunListT         run_lst_;
+    RunListIteratorT sentinel_;
+}; // namespace solid
+
+template <typename TypeId, class Ctx = void>
 class Deserializer;
 
-template <>
-class Deserializer<void> : public DeserializerBase {
+template <typename TypeId>
+class Deserializer<TypeId, void> : public DeserializerBase {
+    friend class TypeMapBase;
+    TypeId type_id_;
+
 public:
-    using ThisT = Deserializer<void>;
+    using ThisT = Deserializer<TypeId, void>;
+
+    explicit Deserializer(const TypeMapBase& _rtype_map, const Limits& _rlimits)
+        : DeserializerBase(_rtype_map, _rlimits)
+    {
+    }
+    explicit Deserializer(const TypeMapBase& _rtype_map)
+        : DeserializerBase(_rtype_map)
+    {
+    }
 
     template <typename F>
     ThisT& add(std::ostream& _ros, F _f, const char* _name)
@@ -892,13 +900,47 @@ public:
 
         return _ris;
     }
+
+    template <class T>
+    void addPointer(std::shared_ptr<T>& _rp, const char* _name)
+    {
+        idbg(_name);
+        add(type_id_, _name);
+        add([&_rp](ThisT& _rd, const char* _name) mutable {
+            _rd.rtype_map_.deserialize(_rd, _rp, _rd.type_id_, _name);
+        },
+            _name);
+    }
+
+    template <class T, class D>
+    void addPointer(std::unique_ptr<T, D>& _rp, const char* _name)
+    {
+        idbg(_name);
+        add(type_id_, _name);
+        add([&_rp](ThisT& _rd, const char* _name) mutable {
+            _rd.rtype_map_.deserialize(_rd, _rp, _rd.type_id_, _name);
+        },
+            _name);
+    }
 };
 
-template <class Ctx>
+template <typename TypeId, class Ctx>
 class Deserializer : public DeserializerBase {
+    friend class TypeMapBase;
+    TypeId type_id_;
+
 public:
-    using ThisT    = Deserializer<Ctx>;
+    using ThisT    = Deserializer<TypeId, Ctx>;
     using ContextT = Ctx;
+
+    explicit Deserializer(const TypeMapBase& _rtype_map, const Limits& _rlimits)
+        : DeserializerBase(_rtype_map, _rlimits)
+    {
+    }
+    explicit Deserializer(const TypeMapBase& _rtype_map)
+        : DeserializerBase(_rtype_map)
+    {
+    }
 
     template <typename F>
     ThisT& add(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
@@ -965,6 +1007,11 @@ public:
         return doRun(&_rctx);
     }
 
+    long run(const char* _pbeg, unsigned _sz, Ctx& _rctx)
+    {
+        return DeserializerBase::run(_pbeg, _sz, &_rctx);
+    }
+
     template <typename F>
     std::istream& run(std::istream& _ris, F _f, Ctx& _rctx)
     {
@@ -988,7 +1035,40 @@ public:
 
         return _ris;
     }
+
+    const ErrorConditionT& error() const
+    {
+        return Base::error();
+    }
+
+    template <class T>
+    void addPointer(std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
+    {
+        idbg(_name);
+        add(type_id_, _rctx, _name);
+        add([&_rp](ThisT& _rd, Ctx& _rctx, const char* _name) mutable {
+            _rd.rtype_map_.deserialize(_rd, _rp, _rd.type_id_, _rctx, _name);
+        },
+            _rctx, _name);
+    }
+
+    template <class T, class D>
+    void addPointer(std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
+    {
+        idbg(_name);
+        add(type_id_, _rctx, _name);
+        add([&_rp](ThisT& _rd, Ctx& _rctx, const char* _name) mutable {
+            _rd.rtype_map_.deserialize(_rd, _rp, _rd.type_id_, _rctx, _name);
+        },
+            _rctx, _name);
+    }
 };
+
+template <typename TypeId>
+inline std::istream& operator>>(std::istream& _ris, Deserializer<TypeId>& _rdes)
+{
+    return _rdes.DeserializerBase::run(_ris);
+}
 
 template <typename D>
 inline std::istream& operator>>(std::istream& _ris, std::pair<D&, typename D::ContextT&> _des)

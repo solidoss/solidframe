@@ -45,7 +45,7 @@ void complete_message(
 
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(not _rsent_msg_ptr);
-        SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
+        SOLID_CHECK(not _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
     }
 
     if (_rsent_msg_ptr) {
@@ -53,11 +53,10 @@ void complete_message(
     }
 }
 
-template <typename T>
 struct MessageSetup {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    void operator()(ipc_echo::ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<ipc_echo::Message>(complete_message<ipc_echo::Message>, _rtid);
     }
 };
 
@@ -94,10 +93,10 @@ int main(int argc, char* argv[])
         }
 
         {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ipc_echo::ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_echo::ProtoSpecT::setup<ipc_echo_server::MessageSetup>(*proto);
+            ipc_echo::protocol_setup(ipc_echo_server::MessageSetup(), *proto);
 
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';

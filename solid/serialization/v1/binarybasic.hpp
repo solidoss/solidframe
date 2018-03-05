@@ -18,16 +18,16 @@ namespace solid {
 namespace serialization {
 namespace binary {
 
-#define BASIC_DECL(tp)                       \
-    template <class S>                       \
-    void solidSerialize(S& _s, tp& _t)       \
-    {                                        \
-        _s.push(_t, "basic");                \
-    }                                        \
-    template <class S, class Ctx>            \
-    void solidSerialize(S& _s, tp& _t, Ctx&) \
-    {                                        \
-        _s.push(_t, "basic");                \
+#define BASIC_DECL(tp)                         \
+    template <class S>                         \
+    void solidSerializeV1(S& _s, tp& _t)       \
+    {                                          \
+        _s.push(_t, "basic");                  \
+    }                                          \
+    template <class S, class Ctx>              \
+    void solidSerializeV1(S& _s, tp& _t, Ctx&) \
+    {                                          \
+        _s.push(_t, "basic");                  \
     }
 
 inline char* store(char* _pd, const uint8_t _val)

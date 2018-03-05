@@ -1,0 +1,1 @@
+add_library(multiprotocol_gamma_server gammaserver.hpp gammaserver.cpp)

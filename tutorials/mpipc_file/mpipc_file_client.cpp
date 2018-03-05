@@ -41,24 +41,27 @@ void complete_message(
     SOLID_CHECK(false); //this method should not be called
 }
 
-template <typename T>
 struct MessageSetup {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    template <class T>
+    void operator()(ipc_file::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
 } // namespace ipc_file_client
 
 namespace {
-streampos stream_size(iostream& _rios)
+streampos file_size(const std::string& _path)
 {
-    streampos pos = _rios.tellg();
-    _rios.seekg(0, _rios.end);
-    streampos endpos = _rios.tellg();
-    _rios.seekg(pos);
-    return endpos;
+    std::ifstream ifs(_path);
+    if (ifs) {
+        ifs.seekg(0, ifs.end);
+        streampos endpos = ifs.tellg();
+        return endpos;
+    } else {
+        return -1;
+    }
 }
 } // namespace
 
@@ -103,10 +106,10 @@ int main(int argc, char* argv[])
         }
 
         {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ipc_file::ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_file::ProtoSpecT::setup<ipc_file_client::MessageSetup>(*proto);
+            ipc_file::protocol_setup(ipc_file_client::MessageSetup(), *proto);
 
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 
@@ -202,13 +205,13 @@ int main(int argc, char* argv[])
                                 SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
 
                                 cout << "Done copy from " << _rctx.recipientName() << ":" << _rsent_msg_ptr->remote_path << " to " << _rsent_msg_ptr->local_path << ": ";
-
-                                if (_rrecv_msg_ptr->remote_file_size != InvalidSize() and _rrecv_msg_ptr->remote_file_size == stream_size(_rrecv_msg_ptr->fs)) {
+                                int64_t local_file_size = file_size(_rsent_msg_ptr->local_path);
+                                if (_rrecv_msg_ptr->remote_file_size != InvalidSize() and _rrecv_msg_ptr->remote_file_size == local_file_size) {
                                     cout << "Success(" << _rrecv_msg_ptr->remote_file_size << ")" << endl;
                                 } else if (_rrecv_msg_ptr->remote_file_size == InvalidSize()) {
                                     cout << "Fail(no remote)" << endl;
                                 } else {
-                                    cout << "Fail(" << stream_size(_rrecv_msg_ptr->fs) << " instead of " << _rrecv_msg_ptr->remote_file_size << ")" << endl;
+                                    cout << "Fail(" << local_file_size << " instead of " << _rrecv_msg_ptr->remote_file_size << ")" << endl;
                                 }
                             },
                             0);

@@ -83,10 +83,11 @@ int main(int argc, char* argv[])
                 }
             };
 
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, relay_engine, proto);
 
-            proto->registerType<Register>(con_register, 0, 10);
+            proto->null(null_type_id);
+            proto->registerMessage<Register>(con_register, register_type_id);
 
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';

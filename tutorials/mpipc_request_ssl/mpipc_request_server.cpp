@@ -270,7 +270,7 @@ void complete_message<ipc_request::Request>(
         }
     }
 
-    SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -285,77 +285,54 @@ void complete_message<ipc_request::Response>(
     SOLID_CHECK(_rsent_msg_ptr);
 }
 
-template <typename T>
-struct MessageSetup;
+struct MessageSetup {
 
-template <>
-struct MessageSetup<RequestKeyAnd> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAnd> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<RequestKeyAnd>(_protocol_idx);
+        _rprotocol.registerType<RequestKeyAnd>(_rtid);
         _rprotocol.registerCast<RequestKeyAnd, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyOr> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOr> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<RequestKeyOr>(_protocol_idx);
+        _rprotocol.registerType<RequestKeyOr>(_rtid);
         _rprotocol.registerCast<RequestKeyOr, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyAndList> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAndList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<RequestKeyAndList>(_protocol_idx);
+        _rprotocol.registerType<RequestKeyAndList>(_rtid);
         _rprotocol.registerCast<RequestKeyAndList, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyOrList> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOrList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<RequestKeyOrList>(_protocol_idx);
+        _rprotocol.registerType<RequestKeyOrList>(_rtid);
         _rprotocol.registerCast<RequestKeyOrList, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyUserIdRegex> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyUserIdRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<RequestKeyUserIdRegex>(_protocol_idx);
+        _rprotocol.registerType<RequestKeyUserIdRegex>(_rtid);
         _rprotocol.registerCast<RequestKeyUserIdRegex, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyEmailRegex> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyEmailRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<RequestKeyEmailRegex>(_protocol_idx);
+        _rprotocol.registerType<RequestKeyEmailRegex>(_rtid);
         _rprotocol.registerCast<RequestKeyEmailRegex, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyYearLess> {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyYearLess> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<RequestKeyYearLess>(_protocol_idx);
+        _rprotocol.registerType<RequestKeyYearLess>(_rtid);
         _rprotocol.registerCast<RequestKeyYearLess, RequestKey>();
     }
-};
 
-template <typename T>
-struct MessageSetup {
-    void operator()(frame::mpipc::serialization_v1::Protocol& _rprotocol, const size_t _protocol_idx, const size_t _message_idx)
+    template <class T>
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
     {
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
@@ -392,10 +369,10 @@ int main(int argc, char* argv[])
         }
 
         {
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ipc_request::ProtocolT::create();
             frame::mpipc::Configuration cfg(scheduler, proto);
 
-            ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
+            ipc_request::protocol_setup(ipc_request_server::MessageSetup(), *proto);
 
             cfg.server.listener_address_str = p.listener_addr;
             cfg.server.listener_address_str += ':';

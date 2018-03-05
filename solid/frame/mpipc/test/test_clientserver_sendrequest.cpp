@@ -14,7 +14,7 @@
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
 #include <condition_variable>
@@ -30,8 +30,9 @@
 using namespace std;
 using namespace solid;
 
-typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
-typedef frame::aio::openssl::Context          SecureContextT;
+using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
+using SecureContextT = frame::aio::openssl::Context;
+using ProtocolT      = frame::mpipc::serialization_v2::Protocol<uint8_t>;
 
 namespace {
 
@@ -100,11 +101,9 @@ struct Request : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    template <class S>
-    void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(str, "str");
-        _s.push(idx, "idx");
+        _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
     }
 
     void init()
@@ -163,11 +162,9 @@ struct Response : frame::mpipc::Message {
         idbg("DELETE ---------------- " << (void*)this);
     }
 
-    template <class S>
-    void solidSerialize(S& _s, frame::mpipc::ConnectionContext& _rctx)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
     {
-        _s.push(idx, "idx");
-        _s.push(str, "str");
+        _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
     }
 };
 
@@ -421,13 +418,13 @@ int test_clientserver_sendrequest(int argc, char** argv)
         std::string server_port;
 
         { //mpipc server initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_server, proto);
 
-            proto->registerType<Request>(
-                server_complete_request);
-            proto->registerType<Response>(
-                server_complete_response);
+            proto->null(0);
+            proto->registerMessage<Request>(server_complete_request, 1);
+            proto->registerMessage<Response>(server_complete_response, 2);
+
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;
 
@@ -466,13 +463,12 @@ int test_clientserver_sendrequest(int argc, char** argv)
         }
 
         { //mpipc client initialization
-            auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+            auto                        proto = ProtocolT::create();
             frame::mpipc::Configuration cfg(sch_client, proto);
 
-            proto->registerType<Request>(
-                client_complete_request);
-            proto->registerType<Response>(
-                client_complete_response);
+            proto->null(0);
+            proto->registerMessage<Request>(client_complete_request, 1);
+            proto->registerMessage<Response>(client_complete_response, 2);
 
             //cfg.recv_buffer_capacity = 1024;
             //cfg.send_buffer_capacity = 1024;

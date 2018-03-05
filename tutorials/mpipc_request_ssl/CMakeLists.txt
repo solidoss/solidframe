@@ -24,7 +24,7 @@ target_link_libraries (tutorial_mpipc_request_ssl_server
     solid_frame_aio
     solid_frame_aio_openssl
     solid_frame
-    solid_serialization_v1
+    solid_serialization_v2
     solid_utility
     solid_system
     ${SNAPPY_LIB}
@@ -42,7 +42,7 @@ target_link_libraries (tutorial_mpipc_request_ssl_client
     solid_frame_aio
     solid_frame_aio_openssl
     solid_frame
-    solid_serialization_v1
+    solid_serialization_v2
     solid_utility
     solid_system
     ${SNAPPY_LIB}
