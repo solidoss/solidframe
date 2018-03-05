@@ -70,12 +70,21 @@ Pod::Spec.new do |s|
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 
-  s.subspec 'serialization' do |sp|
-    sp.name = 'serialization'
+  s.subspec 'serialization_v1' do |sp|
+    sp.name = 'serialization_v1'
     sp.dependency 'SolidFrame/utility'
-    sp.preserve_paths = "solid/serialization", "solid/serialization/*.hpp"
-    sp.public_header_files = 'solid/serialization/*.hpp'
-    sp.source_files = 'solid/serialization/src/*.{cpp,hpp}', 'solid/serialization/*.hpp'
+    sp.preserve_paths = "solid/serialization/v1", "solid/serialization/v1/*.hpp"
+    sp.public_header_files = 'solid/serialization/v1/*.hpp'
+    sp.source_files = 'solid/serialization/v1/src/*.{cpp,hpp}', 'solid/serialization/v1/*.hpp'
+    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
+  end
+  
+  s.subspec 'serialization_v2' do |sp|
+    sp.name = 'serialization_v2'
+    sp.dependency 'SolidFrame/utility'
+    sp.preserve_paths = "solid/serialization/v2", "solid/serialization/v2/*.hpp"
+    sp.public_header_files = 'solid/serialization/v2/*.hpp'
+    sp.source_files = 'solid/serialization/v2/src/*.{cpp,hpp}', 'solid/serialization/v2/*.hpp'
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
 

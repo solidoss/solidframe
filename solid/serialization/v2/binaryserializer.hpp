@@ -110,12 +110,11 @@ public:
 
     void clear();
 
-    void limits(const Limits& _rlimits);
+    void limits(const Limits& _rlimits, const char* _name);
 
-    const Limits& limits() const
-    {
-        return Base::limits();
-    }
+    void limitString(const size_t _sz, const char* _name);
+    void limitContainer(const size_t _sz, const char* _name);
+    void limitStream(const uint64_t _sz, const char* _name);
 
     bool empty() const
     {
@@ -169,7 +168,7 @@ public: //should be protected
     {
         idbg(_name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
-        if (limits().hasString() && _rb.size() > limits().string()) {
+        if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
             error(error_limit_string);
             return;
         }
@@ -357,7 +356,7 @@ public: //should be protected
     void addContainer(S& _rs, const C& _rc, const char* _name)
     {
         idbg(_name << ' ' << _rc.size());
-        if (_rc.size() > limits().container()) {
+        if (_rc.size() > Base::limits().container()) {
             error(error_limit_container);
             return;
         }
@@ -404,7 +403,7 @@ public: //should be protected
     {
         idbg(_name << ' ' << _rc.size());
 
-        if (_rc.size() > limits().container()) {
+        if (_rc.size() > Base::limits().container()) {
             error(error_limit_container);
             return;
         }
@@ -710,9 +709,14 @@ public:
         return *this;
     }
 
-    ThisT& limits(const Limits& _rlimits)
+    const Limits& limits() const
     {
-        SerializerBase::limits(_rlimits);
+        return Base::limits();
+    }
+
+    ThisT& limits(const Limits& _rlimits, const char* _name)
+    {
+        SerializerBase::limits(_rlimits, _name);
         return *this;
     }
 
@@ -842,9 +846,32 @@ public:
         return *this;
     }
 
-    ThisT& limits(const Limits& _rlimits)
+    const Limits& limits() const
     {
-        SerializerBase::limits(_rlimits);
+        return Base::limits();
+    }
+
+    ThisT& limits(const Limits& _rlimits, const char* _name)
+    {
+        SerializerBase::limits(_rlimits, _name);
+        return *this;
+    }
+
+    ThisT& limitString(const size_t _sz, const char* _name)
+    {
+        SerializerBase::limitString(_sz, _name);
+        return *this;
+    }
+
+    ThisT& limitContainer(const size_t _sz, const char* _name)
+    {
+        SerializerBase::limitContainer(_sz, _name);
+        return *this;
+    }
+
+    ThisT& limitStream(const uint64_t _sz, const char* _name)
+    {
+        SerializerBase::limitStream(_sz, _name);
         return *this;
     }
 

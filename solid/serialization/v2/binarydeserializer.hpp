@@ -110,12 +110,12 @@ public:
 
     void clear();
 
-    void limits(const Limits& _rlimits);
+    void limits(const Limits& _rlimits, const char* _name);
 
-    const Limits& limits() const
-    {
-        return Base::limits();
-    }
+    void limitString(const size_t _sz, const char* _name);
+    void limitContainer(const size_t _sz, const char* _name);
+    void limitStream(const uint64_t _sz, const char* _name);
+
     const ErrorConditionT& error() const
     {
         return Base::error();
@@ -382,7 +382,7 @@ public:
             if (parsing_value) {
                 rcontainer.insert(rcontainer.end(), value);
                 parsing_value = false;
-            } else if (_rd.limits().hasContainer() && _rr.size_ > _rd.limits().container()) {
+            } else if (rd.limits().hasContainer() && _rr.size_ > rd.limits().container()) {
                 _rd.error(error_limit_stream);
                 return ReturnE::Done;
             }
@@ -446,7 +446,7 @@ public:
             if (parsing_value) {
                 rcontainer.insert(rcontainer.end(), value);
                 parsing_value = false;
-            } else if (_rd.limits().hasContainer() && _rr.size_ > _rd.limits().container()) {
+            } else if (rd.limits().hasContainer() && _rr.size_ > rd.limits().container()) {
                 _rd.error(error_limit_stream);
                 return ReturnE::Done;
             }
@@ -492,7 +492,7 @@ public:
 
             _f(ros, len, _rr.data_ == 0, rctx, _rr.name_);
 
-            if (_rd.limits().hasStream() && len > _rd.limits().stream()) {
+            if (_rd.Base::limits().hasStream() && len > _rd.Base::limits().stream()) {
                 _rd.error(error_limit_stream);
             }
             return ReturnE::Done;
@@ -714,7 +714,7 @@ private:
             _rr.size_ = data_.u64_;
             idbg("size = " << _rr.size_);
 
-            if (limits().hasString() && _rr.size_ > limits().string()) {
+            if (Base::limits().hasString() && _rr.size_ > Base::limits().string()) {
                 error(error_limit_string);
                 return ReturnE::Done;
             }
@@ -863,9 +863,14 @@ public:
         return *this;
     }
 
-    ThisT& limits(const Limits& _rlimits)
+    const Limits& limits() const
     {
-        DeserializerBase::limits(_rlimits);
+        return Base::limits();
+    }
+
+    ThisT& limits(const Limits& _rlimits, const char* _name)
+    {
+        DeserializerBase::limits(_rlimits, _name);
         return *this;
     }
 
@@ -983,9 +988,32 @@ public:
         return *this;
     }
 
-    ThisT& limits(const Limits& _rlimits)
+    const Limits& limits() const
     {
-        DeserializerBase::limits(_rlimits);
+        return Base::limits();
+    }
+
+    ThisT& limits(const Limits& _rlimits, const char* _name)
+    {
+        DeserializerBase::limits(_rlimits, _name);
+        return *this;
+    }
+
+    ThisT& limitString(const size_t _sz, const char* _name)
+    {
+        DeserializerBase::limitString(_sz, _name);
+        return *this;
+    }
+
+    ThisT& limitContainer(const size_t _sz, const char* _name)
+    {
+        DeserializerBase::limitContainer(_sz, _name);
+        return *this;
+    }
+
+    ThisT& limitStream(const uint64_t _sz, const char* _name)
+    {
+        DeserializerBase::limitStream(_sz, _name);
         return *this;
     }
 

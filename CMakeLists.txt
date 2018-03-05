@@ -448,6 +448,7 @@ add_custom_target(libraries
     solid_system
     solid_utility
     solid_serialization_v1
+    solid_serialization_v2
     solid_frame
     solid_frame_aio
     solid_frame_aio_openssl

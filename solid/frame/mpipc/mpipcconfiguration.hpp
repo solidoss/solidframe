@@ -409,6 +409,24 @@ public:
         return !isServer() && isClient();
     }
 
+    void limitString(const size_t _sz)
+    {
+        reader.string_size_limit = _sz;
+        writer.string_size_limit = _sz;
+    }
+
+    void limitContainer(const size_t _sz)
+    {
+        reader.container_size_limit = _sz;
+        writer.container_size_limit = _sz;
+    }
+
+    void limitStream(const uint64_t _sz)
+    {
+        reader.stream_size_limit = _sz;
+        writer.stream_size_limit = _sz;
+    }
+
     RecvBufferPointerT allocateRecvBuffer(uint8_t& _rbuffer_capacity_kb) const;
 
     SendBufferPointerT allocateSendBuffer(uint8_t& _rbuffer_capacity_kb) const;

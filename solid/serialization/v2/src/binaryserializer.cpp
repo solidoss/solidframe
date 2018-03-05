@@ -100,9 +100,9 @@ void SerializerBase::tryRun(Runnable&& _ur, void* _pctx)
     }
 }
 
-void SerializerBase::limits(const Limits& _rlimits)
+void SerializerBase::limits(const Limits& _rlimits, const char* _name)
 {
-    idbg("");
+    idbg(_name);
     if (isRunEmpty()) {
         limits_ = _rlimits;
     } else {
@@ -113,7 +113,67 @@ void SerializerBase::limits(const Limits& _rlimits)
                 _rs.limits_ = _rlimits;
                 return Base::ReturnE::Done;
             },
-            ""};
+            _name};
+        schedule(std::move(r));
+    }
+}
+
+void SerializerBase::limitString(const size_t _sz, const char* _name)
+{
+    idbg(_name);
+    if (isRunEmpty()) {
+        limits_.stringlimit_ = _sz;
+    } else {
+        Runnable r{
+            nullptr,
+            call_function,
+            _sz,
+            0,
+            [](SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
+                _rs.limits_.stringlimit_ = _rr.size_;
+                return Base::ReturnE::Done;
+            },
+            _name};
+        schedule(std::move(r));
+    }
+}
+
+void SerializerBase::limitContainer(const size_t _sz, const char* _name)
+{
+    idbg(_name);
+    if (isRunEmpty()) {
+        limits_.containerlimit_ = _sz;
+    } else {
+        Runnable r{
+            nullptr,
+            call_function,
+            _sz,
+            0,
+            [](SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
+                _rs.limits_.containerlimit_ = _rr.size_;
+                return Base::ReturnE::Done;
+            },
+            _name};
+        schedule(std::move(r));
+    }
+}
+
+void SerializerBase::limitStream(const uint64_t _sz, const char* _name)
+{
+    idbg(_name);
+    if (isRunEmpty()) {
+        limits_.streamlimit_ = _sz;
+    } else {
+        Runnable r{
+            nullptr,
+            call_function,
+            _sz,
+            0,
+            [](SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
+                _rs.limits_.streamlimit_ = _rr.size_;
+                return Base::ReturnE::Done;
+            },
+            _name};
         schedule(std::move(r));
     }
 }
@@ -176,7 +236,7 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         _rs.pcrt_ += toread;
         _rr.data_ += toread;
 
-        if (_rs.limits().hasStream() && _rr.data_ > _rs.limits().stream()) {
+        if (_rs.Base::limits().hasStream() && _rr.data_ > _rs.Base::limits().stream()) {
             _rs.error(error_limit_stream);
             return ReturnE::Done;
         }

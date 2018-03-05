@@ -98,9 +98,9 @@ void DeserializerBase::tryRun(Runnable&& _ur, void* _pctx)
     }
 }
 
-void DeserializerBase::limits(const Limits& _rlimits)
+void DeserializerBase::limits(const Limits& _rlimits, const char* _name)
 {
-    idbg("");
+    idbg(_name);
     if (isRunEmpty()) {
         limits_ = _rlimits;
     } else {
@@ -111,7 +111,67 @@ void DeserializerBase::limits(const Limits& _rlimits)
                 _rd.limits_ = _rlimits;
                 return Base::ReturnE::Done;
             },
-            ""};
+            _name};
+        schedule(std::move(r));
+    }
+}
+
+void DeserializerBase::limitString(const size_t _sz, const char* _name)
+{
+    idbg(_name);
+    if (isRunEmpty()) {
+        limits_.stringlimit_ = _sz;
+    } else {
+        Runnable r{
+            nullptr,
+            call_function,
+            _sz,
+            0,
+            [](DeserializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
+                _rs.limits_.stringlimit_ = _rr.size_;
+                return Base::ReturnE::Done;
+            },
+            _name};
+        schedule(std::move(r));
+    }
+}
+
+void DeserializerBase::limitContainer(const size_t _sz, const char* _name)
+{
+    idbg(_name);
+    if (isRunEmpty()) {
+        limits_.containerlimit_ = _sz;
+    } else {
+        Runnable r{
+            nullptr,
+            call_function,
+            _sz,
+            0,
+            [](DeserializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
+                _rs.limits_.containerlimit_ = _rr.size_;
+                return Base::ReturnE::Done;
+            },
+            _name};
+        schedule(std::move(r));
+    }
+}
+
+void DeserializerBase::limitStream(const uint64_t _sz, const char* _name)
+{
+    idbg(_name);
+    if (isRunEmpty()) {
+        limits_.streamlimit_ = _sz;
+    } else {
+        Runnable r{
+            nullptr,
+            call_function,
+            _sz,
+            0,
+            [](DeserializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
+                _rs.limits_.streamlimit_ = _rr.size_;
+                return Base::ReturnE::Done;
+            },
+            _name};
         schedule(std::move(r));
     }
 }
