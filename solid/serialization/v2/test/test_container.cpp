@@ -62,7 +62,10 @@ struct Test {
     {
         _s.add(_rthis.str, _rctx, "Test::str");
         _s.add(_rthis.b, _rctx, "Test::b");
-        _s.add(_rthis.kv_vec, _rctx, "Test::kv_vec"); //.add(_rthis.kv_map, _rctx, "Test::kv_map").add(_rthis.kb_map, _rctx, "Test::kb_map").add(_rthis.bool_deq, _rctx, "bool_deq");
+        _s.add(_rthis.kv_vec, _rctx, "Test::kv_vec");
+        _s.add(_rthis.kv_map, _rctx, "Test::kv_map");
+        _s.add(_rthis.kb_map, _rctx, "Test::kb_map");
+        _s.add(_rthis.bool_deq, _rctx, "bool_deq");
         _s.add(_rthis.v32, _rctx, "Test::v32");
         //_s.add(_rthis.bs5, _rctx, "bs5");
         //_s.add(_rthis.bs10, _rctx, "bs10");

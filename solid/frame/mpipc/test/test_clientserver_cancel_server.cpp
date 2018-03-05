@@ -57,7 +57,7 @@ InitStub initarray[] = {
     {2048000, false, 0}, //not caceled
     {1024000, true, 0},
     {512000, false, {frame::mpipc::MessageFlagsE::Synchronous}}, //not canceled
-    {256000, true, 0},
+    {2560000, true, 0},
     {1280000, true, 0},
     {6400000, true, 0},
     {32000, false, 0}, //not canceled

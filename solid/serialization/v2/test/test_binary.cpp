@@ -114,6 +114,14 @@ public:
         buffer << t.rdbuf();
         string s1 = buffer.str();
         string s2 = _rt.oss.str();
+        SOLID_ASSERT(b == _rt.b);
+        SOLID_ASSERT(v == _rt.v);
+        SOLID_ASSERT(d == _rt.d);
+        SOLID_ASSERT(s1 == s2);
+        SOLID_ASSERT(m == _rt.m);
+        SOLID_ASSERT(s == _rt.s);
+        SOLID_ASSERT(um == _rt.um);
+        SOLID_ASSERT(us == _rt.us);
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us;
     }
 
