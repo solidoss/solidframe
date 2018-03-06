@@ -67,12 +67,12 @@ struct Test {
         _s.add(_rthis.kb_map, _rctx, "Test::kb_map");
         _s.add(_rthis.bool_deq, _rctx, "bool_deq");
         _s.add(_rthis.v32, _rctx, "Test::v32");
-        //_s.add(_rthis.bs5, _rctx, "bs5");
-        //_s.add(_rthis.bs10, _rctx, "bs10");
-        //_s.add(_rthis.bs20, _rctx, "bs20");
-        //_s.add(_rthis.bs50, _rctx, "bs50");
-        //_s.add(_rthis.bs100, _rctx, "bs100");
-        //_s.add(_rthis.bs1000, _rctx, "bs1000");
+        _s.add(_rthis.bs5, _rctx, "bs5");
+        _s.add(_rthis.bs10, _rctx, "bs10");
+        _s.add(_rthis.bs20, _rctx, "bs20");
+        _s.add(_rthis.bs50, _rctx, "bs50");
+        _s.add(_rthis.bs100, _rctx, "bs100");
+        _s.add(_rthis.bs1000, _rctx, "bs1000");
         _s.add(_rthis.bv5, _rctx, "bv5");
         _s.add(_rthis.bv10, _rctx, "bv10");
         _s.add(_rthis.bv20, _rctx, "bv20");
@@ -334,7 +334,7 @@ void Test::check() const
             SOLID_CHECK(not bv1000[i]);
         }
     }
-
+#if 0
     SOLID_CHECK(sa_sz == 100);
     for (size_t i = 0; i < sa_sz; ++i) {
         SOLID_CHECK(sa[i] == kv_array[i % kv_array_size].second);
@@ -344,6 +344,7 @@ void Test::check() const
     for (size_t i = 0; i < u8a_sz; ++i) {
         SOLID_CHECK(u8a[i] == (i % std::numeric_limits<uint8_t>::max()));
     }
+#endif
 }
 
 } //namespace

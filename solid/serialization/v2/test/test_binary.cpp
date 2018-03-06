@@ -3,6 +3,7 @@
 #include "solid/system/exception.hpp"
 #include "solid/utility/any.hpp"
 #include "solid/utility/function.hpp"
+#include <bitset>
 #include <deque>
 #include <fstream>
 #include <iostream>
@@ -55,6 +56,8 @@ class Test {
     unordered_map<string, A> um;
     unordered_set<string>    us;
     A                        a;
+    vector<bool>             vb;
+    bitset<20>               bs;
 
     std::ostringstream oss;
 
@@ -91,6 +94,10 @@ class Test {
             m[to_string(i)]  = a;
             um[to_string(i)] = std::move(a);
         }
+        for (size_t i = 0; i < 20; ++i) {
+            vb.push_back((i % 2) == 0);
+            bs[i] = ((i % 2) == 0);
+        }
     }
 
 public:
@@ -122,7 +129,9 @@ public:
         SOLID_ASSERT(s == _rt.s);
         SOLID_ASSERT(um == _rt.um);
         SOLID_ASSERT(us == _rt.us);
-        return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us;
+        SOLID_ASSERT(vb == _rt.vb);
+        SOLID_ASSERT(bs == _rt.bs);
+        return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs;
     }
 
     template <class S>
@@ -158,6 +167,8 @@ public:
             .add(um, _rctx, "um")
             .add(us, _rctx, "us")
             .add(a, _rctx, "a");
+        _rs.add(vb, _rctx, "vb");
+        _rs.add(bs, _rctx, "bs");
         //_rs.add(b, "b").add(v, "v").add(a, "a");
     }
 
@@ -193,6 +204,8 @@ public:
             .add(um, _rctx, "um")
             .add(us, _rctx, "us")
             .add(a, _rctx, "a");
+        _rs.add(vb, _rctx, "vb");
+        _rs.add(bs, _rctx, "bs");
         //_rs.add(b, _rctx, "b").add(v, _rctx, "v").add(a, _rctx, "a");
     }
 };
@@ -280,7 +293,7 @@ int test_binary(int argc, char* argv[])
                 ctx);
 
             //iss >> des.wrap(ctx);
-            SOLID_CHECK(!des.error(), "check failed");
+            SOLID_CHECK(!des.error(), "check failed: " << des.error().message());
             SOLID_CHECK(t == t_c, "check failed");
             SOLID_CHECK(*tp == *tp_c, "check failed");
             SOLID_CHECK(*tup == *tup_c, "check failed");

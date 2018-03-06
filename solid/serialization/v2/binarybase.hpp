@@ -14,8 +14,10 @@
 #include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/utility/common.hpp"
+#include <bitset>
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace solid {
 namespace serialization {
@@ -146,7 +148,99 @@ SOLID_SERIALIZATION_BASIC(uint64_t);
 SOLID_SERIALIZATION_BASIC(bool);
 SOLID_SERIALIZATION_BASIC(std::string);
 
-//pair
+//bitset ----------------------------------------------------------------------
+
+template <class S, size_t N>
+inline void solidSerializeV2(S& _rs, const std::bitset<N>& _rt, const char* _name)
+{
+    _rs.addBitset(_rt, _name);
+}
+template <class S, size_t N>
+inline void solidSerializeV2(S& _rs, std::bitset<N>& _rt, const char* _name)
+{
+    _rs.addBitset(_rt, _name);
+}
+template <class S, size_t N, class Ctx>
+inline void solidSerializeV2(S& _rs, std::bitset<N>& _rt, Ctx& _rctx, const char* _name)
+{
+    _rs.addBitset(_rt, _name);
+}
+template <class S, size_t N, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::bitset<N>& _rt, Ctx& _rctx, const char* _name)
+{
+    _rs.addBitset(_rt, _name);
+}
+
+//vector<bool> ----------------------------------------------------------------
+
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, const std::vector<bool, A>& _rt, const char* _name)
+{
+    _rs.addVectorBool(_rt, _name);
+}
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, std::vector<bool, A>& _rt, const char* _name)
+{
+    _rs.addVectorBool(_rt, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, std::vector<bool, A>& _rt, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorBool(_rt, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::vector<bool, A>& _rt, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorBool(_rt, _name);
+}
+
+//vector<char> ----------------------------------------------------------------
+
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, const std::vector<char, A>& _rt, const char* _name)
+{
+    _rs.addVectorChar(_rt, _name);
+}
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, std::vector<char, A>& _rt, const char* _name)
+{
+    _rs.addVectorChar(_rt, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, std::vector<char, A>& _rt, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorChar(_rt, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::vector<char, A>& _rt, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorChar(_rt, _name);
+}
+
+//vector<char> ----------------------------------------------------------------
+
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, const std::vector<uint8_t, A>& _rt, const char* _name)
+{
+    _rs.addVectorChar(_rt, _name);
+}
+template <class S, class A>
+inline void solidSerializeV2(S& _rs, std::vector<uint8_t, A>& _rt, const char* _name)
+{
+    _rs.addVectorChar(_rt, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, std::vector<uint8_t, A>& _rt, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorChar(_rt, _name);
+}
+template <class S, class A, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::vector<uint8_t, A>& _rt, Ctx& _rctx, const char* _name)
+{
+    _rs.addVectorChar(_rt, _name);
+}
+
+//pair ------------------------------------------------------------------------
 
 template <class S, class T1, class T2>
 inline void solidSerializeV2(S& _rs, std::pair<T1, T2>& _rp, const char* _name)

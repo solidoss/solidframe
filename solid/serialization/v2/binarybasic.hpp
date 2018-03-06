@@ -321,6 +321,25 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& 
     return nullptr;
 }
 } //namespace cross
+
+inline void store_bit_at(uint8_t* _pbeg, const size_t _bit_idx, const bool _opt)
+{
+    _pbeg += (_bit_idx >> 3);
+    const size_t  bit_off = _bit_idx & 7;
+    const uint8_t opt     = _opt;
+    //clear the bit
+    *_pbeg &= ~static_cast<uint8_t>(1 << bit_off);
+    *_pbeg |= ((opt & 1) << bit_off);
+}
+
+inline bool load_bit_from(const uint8_t* _pbeg, const size_t _bit_idx)
+{
+    static const bool b[2] = {false, true};
+    _pbeg += (_bit_idx >> 3);
+    const size_t bit_off = _bit_idx & 7;
+    return b[(*_pbeg >> bit_off) & 1];
+}
+
 } //namespace binary
 } //namespace v2
 } //namespace serialization
