@@ -186,6 +186,52 @@ public: //should be protected
         schedule(std::move(r));
     }
 
+    template <typename T, class A>
+    inline void addVectorChar(const std::vector<T, A>& _rb, const char* _name)
+    {
+        idbgx(Debug::ser_bin, _name << ' ' << _rb.size());
+
+        if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
+            error(error_limit_string);
+            return;
+        }
+
+        addBasicWithCheck(_rb.size(), _name);
+
+        Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
+
+        if (isRunEmpty()) {
+            if (doStoreBinary(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
+    template <class A>
+    inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const char* _name)
+    {
+        idbgx(Debug::ser_bin, _name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+
+        if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
+            error(error_limit_string);
+            return;
+        }
+
+        addBasicWithCheck(_rb.size(), _name);
+
+        Runnable r{_rb.data(), &store_binary, _rb.size(), 0, _name};
+
+        if (isRunEmpty()) {
+            if (doStoreBinary(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
     template <typename T>
     void addBasic(const T& _rb, const char* _name)
     {

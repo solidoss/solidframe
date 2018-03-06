@@ -264,6 +264,23 @@ public:
         schedule(std::move(r));
     }
 
+    template <typename T, class A>
+    void addVectorChar(std::vector<T, A>& _rb, const char* _name)
+    {
+        idbgx(Debug::ser_bin, _name);
+        Runnable r{&_rb, &load_vector_char<T, A>, 0, 0, _name};
+
+        _rb.clear(); //necessary otherwise map<string, something> would not work on gcc5.3
+
+        if (isRunEmpty()) {
+            if (load_vector_char<T, A>(*this, r, nullptr) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
     template <class D, class F>
     void addFunction(D& _rd, F _f, const char* _name)
     {
@@ -805,6 +822,35 @@ private:
             return _rr.size_ == 0 ? ReturnE::Done : ReturnE::Wait;
         }
         return ReturnE::Wait;
+    }
+
+    template <typename T, class A>
+    static Base::ReturnE load_vector_char(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    {
+        idbgx(Debug::ser_bin, _rr.name_);
+        //_rr.ptr_ contains pointer to string object
+        void* pstr      = _rr.ptr_;
+        _rr.ptr_        = &_rd.data_.u64_;
+        const ReturnE r = load_cross_with_check<uint64_t>(_rd, _rr, nullptr);
+        _rr.ptr_        = pstr;
+
+        if (r == ReturnE::Done and _rd.data_.u64_ != 0) {
+            _rr.size_ = _rd.data_.u64_;
+            idbgx(Debug::ser_bin, "size = " << _rr.size_);
+
+            if (_rd.Base::limits().hasString() && _rr.size_ > _rd.Base::limits().string()) {
+                _rd.error(error_limit_string);
+                return ReturnE::Done;
+            }
+
+            std::vector<T, A>& rstr = *static_cast<std::vector<T, A>*>(pstr);
+            rstr.resize(_rr.size_);
+            _rr.ptr_  = const_cast<char*>(reinterpret_cast<const char*>(rstr.data()));
+            _rr.data_ = 0;
+            _rr.call_ = load_binary;
+            return _rd.doLoadBinary(_rr);
+        }
+        return r;
     }
 
 private:

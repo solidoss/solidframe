@@ -58,6 +58,7 @@ class Test {
     A                        a;
     vector<bool>             vb;
     bitset<20>               bs;
+    vector<char>             vc;
 
     std::ostringstream oss;
 
@@ -97,6 +98,7 @@ class Test {
         for (size_t i = 0; i < 20; ++i) {
             vb.push_back((i % 2) == 0);
             bs[i] = ((i % 2) == 0);
+            vc.push_back('a' + i);
         }
     }
 
@@ -131,7 +133,8 @@ public:
         SOLID_ASSERT(us == _rt.us);
         SOLID_ASSERT(vb == _rt.vb);
         SOLID_ASSERT(bs == _rt.bs);
-        return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs;
+        SOLID_ASSERT(vc == _rt.vc);
+        return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs && vc == _rt.vc;
     }
 
     template <class S>
@@ -169,6 +172,7 @@ public:
             .add(a, _rctx, "a");
         _rs.add(vb, _rctx, "vb");
         _rs.add(bs, _rctx, "bs");
+        _rs.add(vc, _rctx, "vc");
         //_rs.add(b, "b").add(v, "v").add(a, "a");
     }
 
@@ -206,6 +210,7 @@ public:
             .add(a, _rctx, "a");
         _rs.add(vb, _rctx, "vb");
         _rs.add(bs, _rctx, "bs");
+        _rs.add(vc, _rctx, "vc");
         //_rs.add(b, _rctx, "b").add(v, _rctx, "v").add(a, _rctx, "a");
     }
 };
