@@ -35,28 +35,20 @@ The downside is that **solid_frame_mpipc** will always be a C++ only library whi
 
 On the other hand you should be able to call native C/C++ code from other languages.
 
-Here are two examples of Android applications using **solid_frame_mpipc** to communicate with a central server:
- * [Bubbles](https://github.com/vipalade/bubbles) - C++ Linux server + Qt Linux Client + Android client application all using **solid_frame_mpipc** with secure communication
- * [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient) - C++ Linux server + Android client application all using **solid_frame_mpipc** with secure communication
+An examples of Android and iOS applications using **solid_frame_mpipc** to communicate with a central server:
+ * [Bubbles](https://github.com/vipalade/bubbles) - C++ Linux server + Qt Linux Client + Android client + iOS clinet application  all using **solid_frame_mpipc** with secure communication
 
-Both examples implement the communication and application logic in a C++ library and use a JNI (Java Native Interface) _facade_ for interacting with Android Java user interface code.
+The example implements the communication and application logic in a C++ library and use a native _facade_ for interacting with Android Java/iOS Swift user interface code.
 
 ### Serialization Engine
 
-The default pluggable serialization engine is based on **solid_serialization** library, which resembles somehow _boost_serialization_ / _cereal_ libraries.
+The default pluggable serialization engine is based on **solid_serialization_v2** library, which resembles somehow _boost_serialization_ / _cereal_ libraries.
 
-The main difference, comes from the fact that **solid_serialization** is asynchronous enabled while the others are synchronous.
+The main difference, comes from the fact that **solid_serialization_v2** is asynchronous enabled while the others are synchronous.
 
 Synchronous serialization means that a message can be started to be deserialized (e.g. reconstructed on peer process) only after the entire serialization data is present.
 
 With asynchronous serialization engines the deserialization starts with the first byte received and continues with every data part received, this way you end-up using less memory (useful for big messages) and you get more flexibility in passing streams (e.g. file streams) from one side to the other (follow this [tutorial](../../../tutorials/mpipc_file) for more details).
-
-Here are some advantages I have observed for the asynchronous model while having used both models in network communication libraries:
- 
- * more "natural" integration with an asynchronous communication libraries (like _solid_frame_aio_ or _boost_asio_);
- * more "natural" support for transmitting streams (e.g. files) with error handling.
- * easier to implement message multiplexing.
- * a lot more control over serialization / deserialization with support for imposing per item limits - e.g. for a certain message, we can impose a limit for certain/all strings to be less than 1K in size - the serializer / deserializer will immediately error on the first string exceeding the limit (for now, **solid_serialization** library supports three kinds of limits: for string size, for container size and for stream size).
 
 
 ## <a id="relay_engine"></a>Relay Engine
@@ -72,22 +64,19 @@ The aim of the relay support in the MPIPC library, is to enable cloud infrastruc
 
 Follow this [tutorial](../../../tutorials/mpipc_relay_echo) for details.
 
-## Backlog
-* solid_frame_mpipc: test_unresolved_recipient
-* solid_frame_mpipc: test_raw_proxy
-* solid_frame_mpipc: SOCKS5
-* solid_frame_mpipc: test with thousands of connections
+## v4.0
+* (DONE) move to solid_serialization_v2
 
-## TODO v3.0
+## v3.0
 * (DONE) solid_frame_mpipc: improve protocol to allow transparent (i.e. not knowing the type of the mesage) message handling - e.g. skipping, relaying.
 * (DONE) solid_frame_mpipc: support for generic message relaying: solid::frame::mpipc::relay::Engine. 
 
-## TODO v2.1
-* (DONE) solid_frame_mpipc: Pluggable (header only) support for SSL
+## v2.1
+* (DONE) solid_frame_mpipc: Pluggable (header only) support for SSL via solid_frame_aio_openssl
 * (DONE) solid_frame_mpipc: Pluggable (header only) basic compression support using [Snappy](https://google.github.io/snappy/)
 
 
-## TODO v2.0:
+## v2.0:
 * (DONE) test_raw_basic
 * (DONE) test_multiprotocol
 * (DONE) test_connection_close

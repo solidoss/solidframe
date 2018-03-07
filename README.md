@@ -46,7 +46,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
     * _Stream_ - asynchronous TCP socket
     * _Datagram_ - asynchronous UDP socket
     * _Timer_ - allows objects to schedule time based events
-* [__solid_serialization__](#solid_serialization): binary serialization/marshaling
+* [__solid_serialization_v2__](#solid_serialization_v2): binary serialization/marshaling
     * _binary::Serializer_
     * _binary::Deserializer_
     * _TypeIdMap_
@@ -63,7 +63,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
     * _Stack_ - alternative to std::stack
     * _Queue_ - alternative to std:queue
     * _WorkPool_ - generic thread pool
-* [__solid_serialization__](#solid_serialization): binary serialization/marshalling
+* [__solid_serialization_v2__](#solid_serialization_v2): binary serialization/marshalling
     * _binary::Serializer_
     * _binary::Deserializer_
     * _TypeIdMap_
@@ -390,7 +390,7 @@ __InnerList__: [Sample code](solid/utility/test/test_innerlist.cpp)
 
 __MemoryFile__: [Sample code](solid/utility/test/test_memory_file.cpp)
 
-### <a id="solid_serialization"></a>solid_serialization
+### <a id="solid_serialization_v2"></a>solid_serialization_v2
  * [_binary.hpp_](solid/serialization/binary.hpp): Binary "asynchronous" serializer/deserializer.
  * [_binarybasic.hpp_](solid/serialization/binarybasic.hpp): Some "synchronous" load/store functions for basic types.
  * [_typeidmap.hpp_](solid/serialization/typeidmap.hpp): Class for helping "asynchronous" serializer/deserializer support polymorphism: serialize pointers to base classes.
@@ -401,7 +401,7 @@ The majority of serializers/deserializers offers the following functionality:
 
 This means that at a certain moment, one will have the data structure twice in memory: the initial one and the one from the stream.
 
-The __solid_serialization__ library takes another, let us call it "asynchronous" approach. In solid_serialization the marshaling is made in two overlapping steps:
+The __solid_serialization_v2__ library takes another - let us call it - "asynchronous" approach. In solid_serialization_v2 the marshaling is made in two overlapping steps:
   * Push data structures into serialization/deserialization engine. No serialization is done at this step. The data structure is split into sub-parts known by the serialization engine and scheduled for serialization.
   * Marshaling/Unmarshaling
     * Marshaling: Given a fixed size buffer buffer (char*) do:
@@ -416,7 +416,7 @@ The __solid_serialization__ library takes another, let us call it "asynchronous"
 This approach allows serializing data that is bigger than the system memory - e.g. serializing a data structure containing a file stream (see [ipc file tutorial](tutorials/ipc_file) especially [messages definition](tutorials/ipc_file/ipc_file_messages.hpp)).
 
 
-[Sample code](solid/serialization/test/test_binary.cpp)
+[Sample code](solid/serialization/v2/test/test_binary.cpp)
 
 A structure with serialization support:
 
@@ -430,37 +430,39 @@ struct Test{
     MapT                kv_map;
     uint32_t            v32;
 
-    template <class S>
-    void solidSerialize(S &_s){
-        _s.push(str, "Test::str");
-        _s.pushContainer(kv_vec, "Test::kv_vec").pushContainer(kv_map, "Test::kv_map");
-        _s.pushCross(v32, "Test::v32");
+    SOLID_SERIALIZE_V2(_s, _rthis, _rctx, _name){
+        _s.add(str, _rctx, "Test::str");
+        _s.add(kv_vec, _rctx, "Test::kv_vec").add(kv_map, _rctx, "Test::kv_map");
+        _s.add(v32, _rctx, "Test::v32");
     }
 };
 ```
 
-Defining the serializer/deserializer/typeidmap:
+Defining the serializer/deserializer/typemap:
 
 ```C++
-#include "solid/serialization/binary.hpp"
-
-using SerializerT   = serialization::binary::Serializer<void>;
-using DeserializerT = serialization::binary::Deserializer<void>;
-using TypeIdMapT    = serialization::TypeIdMap<SerializerT, DeserializerT>;
+#include "solid/serialization/serialization.hpp"
+struct Context{};
+struct TypeData{};
+using TypeIdT = uint8_t;//the type that is serialized and used to identify the registered type.
+using TypeMapT    = serialization::TypeIdMap<TypeIdT, Context, solid::serialization::Serializer, solid::serialization::Deserializer, TypeData>;
+using SerializerT   = TypeMapT::SerializerT;
+using DeserializerT = TypeMapT::DeserializerT;
 ```
 
-Prepare the typeidmap:
+Prepare the typemap:
 
 ```C++
-TypeIdMapT  typemap;
-typemap.registerType<Test>(0/*protocol ID*/);
+TypeMapT  typemap;
+typemap.registerType<Test>(0/*type id*/);
 ```
 
 Serialize and deserialize a Test structure:
 ```C++
 std::string     data;
 {//serialize
-    SerializerT     ser(&typeidmap);
+    Context         ctx;
+    SerializerT     ser = typemap.createSerializer();
     const int       bufcp = 64;
     char            buf[bufcp];
     int             rv;
@@ -468,20 +470,21 @@ std::string     data;
     std::shared_ptr<Test>   test_ptr = Test::create();
     test_ptr->init();
 
-    ser.push(test_ptr, "test_ptr");
+    ser.add(test_ptr, ctx, "test_ptr");
 
-    while((rv = ser.run(buf, bufcp)) > 0){
+    while((rv = ser.run(buf, bufcp, ctx)) > 0){
         data.append(buf, rv);
     }
 }
 {//deserialize
-    DeserializerT           des(&typeidmap);
+    Context                 ctx;
+    DeserializerT           des = typemap.createDeserializer();
 
     std::shared_ptr<Test>   test_ptr;
 
-    des.push(test_ptr, "test_ptr");
+    des.add(test_ptr, ctx, "test_ptr");
 
-    size_t                  rv = des.run(data.data(), data.size());
+    size_t                  rv = des.run(data.data(), data.size(), ctx);
     SOLID_CHECK(rv == data.size());
 }
 ```
