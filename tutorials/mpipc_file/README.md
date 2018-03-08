@@ -54,7 +54,7 @@ First enter the list messages:
 ```C++
 #include "solid/frame/mpipc/mpipcmessage.hpp"
 #include "solid/frame/mpipc/mpipccontext.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include <vector>
 #include <deque>
 #include <fstream>
@@ -69,9 +69,9 @@ struct ListRequest: solid::frame::mpipc::Message{
 
     ListRequest(std::string && _path): path(std::move(_path)){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(path, "path");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.path, _rctx, "path");
     }
 };
 
@@ -82,9 +82,9 @@ struct ListResponse: solid::frame::mpipc::Message{
 
     ListResponse(const ListRequest &_rmsg):solid::frame::mpipc::Message(_rmsg){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.pushContainer(node_dq, "node_dq");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.node_dq, _rctx, "nodes");
     }
 };
 ```
@@ -106,9 +106,9 @@ struct FileRequest: solid::frame::mpipc::Message{
         std::string && _remote_path, std::string && _local_path
     ): remote_path(std::move(_remote_path)), local_path(std::move(_local_path)){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(remote_path, "remote_path");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.remote_path, _rctx, "remote_path");
     }
 };
 ```
@@ -117,54 +117,76 @@ which consists of two strings - the remote path and the local path. The interest
 Last is the FileResponse message with its little more complicated serialization method:
 
 ```C++
-struct FileResponse: solid::frame::mpipc::Message{
-    std::string         remote_path;
-    std::fstream        fs;
-    int64_t             remote_file_size;
+struct FileResponse : solid::frame::mpipc::Message {
+    std::string remote_path;
+    int64_t     remote_file_size;
 
-    FileResponse(){}
+    FileResponse() {}
 
     FileResponse(
-        const FileRequest &_rmsg
-    ):  solid::frame::mpipc::Message(_rmsg), remote_path(_rmsg.remote_path),
-        remote_file_size(solid::InvalidSize()){}
+        const FileRequest& _rmsg)
+        : solid::frame::mpipc::Message(_rmsg)
+        , remote_path(_rmsg.remote_path)
+        , remote_file_size(solid::InvalidSize())
+    {
+    }
 
     template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.pushCall(
-            [this](S &_rs, solid::frame::mpipc::ConnectionContext &_rctx, uint64_t _val, solid::ErrorConditionT &_rerr){
-                if(S::IsSerializer){
-                    fs.open(remote_path.c_str());
-                    _rs.pushStream(static_cast<std::istream*>(&fs), "fs");
+    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) const
+    {
+        std::ifstream ifs;
+        ifs.open(remote_path);
+        if (ifs) {
+            std::streampos pos = ifs.tellg();
+            ifs.seekg(0, ifs.end);
+            std::streampos endpos = ifs.tellg();
+            ifs.seekg(pos);
+            const int64_t file_size = endpos;
+            _s.add(file_size, _rctx, "remote_file_size");
 
-                    if(fs){
-                        std::streampos pos = fs.tellg();
-                        fs.seekg(0, fs.end);
-                        std::streampos endpos = fs.tellg();
-                        fs.seekg(pos);
-                        remote_file_size = endpos;
-                    }else{
-                        remote_file_size = solid::InvalidSize();
-                    }
-                    _rs.push(remote_file_size, "remote_file_size");
-                }else{
-                    std::string *plocal_path = localPath(_rctx);
-
-                    if(remote_file_size != solid::InvalidSize() and plocal_path){
-                        fs.open(plocal_path->c_str(), std::fstream::out | std::fstream::binary);
-                    }
-                    _rs.pushStream(static_cast<std::ostream*>(&fs), "fs");
-                }
-            }, 0, "reinit"
-        );
-        if(not S::IsSerializer){
-            _s.push(remote_file_size, "remote_file_size");
+            _s.push([ifs = std::move(ifs)](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
+                _s.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+                    //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
+                },
+                    _rctx, _name);
+                return true;
+            },
+                _rctx, _name);
+        } else {
+            const int64_t file_size = solid::InvalidSize();
+            _s.add(file_size, _rctx, "remote_file_size");
         }
     }
+    template <class S>
+    void solidSerializeV2(S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name)
+    {
+        _s.add(remote_file_size, _rctx, "remote_file_size");
+        _s.add([this](S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+            if (remote_file_size != solid::InvalidIndex()) {
+                std::ofstream      ofs;
+                const std::string* plocal_path = localPath(_rctx);
+                if (plocal_path != nullptr) {
+                    ofs.open(*plocal_path);
+                    _s.push([ this, ofs = std::move(ofs) ](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
+                        _s.add(ofs, [this](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+
+                            //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
+                        },
+                            _rctx, _name);
+                        return true;
+                    },
+                        _rctx, _name);
+                }
+            }
+        },
+            _rctx, _name);
+    }
+
 private:
-    std::string * localPath(solid::frame::mpipc::ConnectionContext &_rctx)const{
+    const std::string* localPath(solid::frame::mpipc::ConnectionContext& _rctx) const
+    {
         auto req_ptr = std::dynamic_pointer_cast<FileRequest>(_rctx.fetchRequest(*this));
-        if(req_ptr){
+        if (req_ptr) {
             return &req_ptr->local_path;
         }
         return nullptr;
@@ -198,7 +220,19 @@ Another thing worth mentioning about the above messages is that every response m
 One last thing is needed to finish with the protocol definition - define the ProtoSpec type:
 
 ```C++
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, ListRequest, ListResponse, FileRequest, FileResponse>;
+using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+
+template <class R>
+inline void protocol_setup(R _r, ProtocolT& _rproto)
+{
+    _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
+
+    _r(_rproto, solid::TypeToType<ListRequest>(), 1);
+    _r(_rproto, solid::TypeToType<ListResponse>(), 2);
+    _r(_rproto, solid::TypeToType<FileRequest>(), 3);
+    _r(_rproto, solid::TypeToType<FileResponse>(), 4);
+}
+
 ```
 
 ## The client implementation
@@ -234,10 +268,10 @@ if(err){
 Next, configure the ipcservice:
 ```C++
 {
-    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    auto                        proto = ProtocolT::create();
     frame::mpipc::Configuration cfg(scheduler, proto);
 
-    ipc_file::ProtoSpecT::setup<ipc_file_client::MessageSetup>(*proto);
+    ipc_file::protocol_setup(ipc_file_client::MessageSetup(), *proto);
 
     cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 
@@ -259,20 +293,22 @@ namespace ipc_file_client{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<M> &_rsent_msg_ptr,
-    std::shared_ptr<M> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
-    SOLID_CHECK(false);//this method should not be called
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<M>&              _rsent_msg_ptr,
+    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
+{
+    SOLID_CHECK(false); //this method should not be called
 }
 
-template <typename T>
-struct MessageSetup{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+struct MessageSetup {
+    template <class T>
+    void operator()(ipc_file::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
+
 
 }//namespace
 ```
@@ -415,10 +451,10 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
 
 ```C++
 {
-    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    auto                        proto = ProtocolT::create();
     frame::mpipc::Configuration cfg(scheduler, proto);
 
-    ipc_file::ProtoSpecT::setup<ipc_file_server::MessageSetup>(*proto);
+    ipc_file::protocol_setup(ipc_file_server::MessageSetup(), *proto);
 
     cfg.server.listener_address_str = p.listener_addr;
     cfg.server.listener_address_str += ':';
@@ -444,7 +480,7 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
 Notable is the protocol implementation:
 
 ```C++
-ipc_file::ProtoSpecT::setup<ipc_file_server::MessageSetup>(*proto);
+ipc_file::protocol_setup(ipc_file_server::MessageSetup(), *proto);
 ```
 
 which uses ipc_file_server::MessageSetup defined as follows:
@@ -454,93 +490,97 @@ namespace ipc_file_server{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<M> &_rsent_msg_ptr,
-    std::shared_ptr<M> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-);
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<M>&              _rsent_msg_ptr,
+    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror);
 
 template <>
 void complete_message<ipc_file::ListRequest>(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<ipc_file::ListRequest> &_rsent_msg_ptr,
-    std::shared_ptr<ipc_file::ListRequest> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
+    frame::mpipc::ConnectionContext&        _rctx,
+    std::shared_ptr<ipc_file::ListRequest>& _rsent_msg_ptr,
+    std::shared_ptr<ipc_file::ListRequest>& _rrecv_msg_ptr,
+    ErrorConditionT const&                  _rerror)
+{
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
     SOLID_CHECK(not _rsent_msg_ptr);
 
     auto msgptr = std::make_shared<ipc_file::ListResponse>(*_rrecv_msg_ptr);
 
+    fs::path fs_path(_rrecv_msg_ptr->path.c_str() /*, fs::native*/);
 
-    fs::path fs_path(msgptr->path.c_str()/*, fs::native*/);
+    if (fs::exists(fs_path) and fs::is_directory(fs_path)) {
+        fs::directory_iterator it, end;
 
-    if(fs::exists( fs_path ) and fs::is_directory(fs_path)){
-        fs::directory_iterator  it,end;
-
-        try{
+        try {
             it = fs::directory_iterator(fs_path);
-        }catch ( const std::exception & ex ){
+        } catch (const std::exception& ex) {
             it = end;
         }
 
-        while(it != end){
+        while (it != end) {
             msgptr->node_dq.emplace_back(std::string(it->path().c_str()), static_cast<uint8_t>(is_directory(*it)));
             ++it;
         }
     }
-    SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
 void complete_message<ipc_file::ListResponse>(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<ipc_file::ListResponse> &_rsent_msg_ptr,
-    std::shared_ptr<ipc_file::ListResponse> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
+    frame::mpipc::ConnectionContext&         _rctx,
+    std::shared_ptr<ipc_file::ListResponse>& _rsent_msg_ptr,
+    std::shared_ptr<ipc_file::ListResponse>& _rrecv_msg_ptr,
+    ErrorConditionT const&                   _rerror)
+{
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(not _rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr);
 }
 
-
 template <>
 void complete_message<ipc_file::FileRequest>(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<ipc_file::FileRequest> &_rsent_msg_ptr,
-    std::shared_ptr<ipc_file::FileRequest> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
+    frame::mpipc::ConnectionContext&        _rctx,
+    std::shared_ptr<ipc_file::FileRequest>& _rsent_msg_ptr,
+    std::shared_ptr<ipc_file::FileRequest>& _rrecv_msg_ptr,
+    ErrorConditionT const&                  _rerror)
+{
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
     SOLID_CHECK(not _rsent_msg_ptr);
 
     auto msgptr = std::make_shared<ipc_file::FileResponse>(*_rrecv_msg_ptr);
 
-    SOLID_CHECK(_rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr)));
+    if (0) {
+        boost::system::error_code error;
+
+        msgptr->remote_file_size = fs::file_size(fs::path(_rrecv_msg_ptr->remote_path), error);
+    }
+
+    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
 void complete_message<ipc_file::FileResponse>(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<ipc_file::FileResponse> &_rsent_msg_ptr,
-    std::shared_ptr<ipc_file::FileResponse> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
+    frame::mpipc::ConnectionContext&         _rctx,
+    std::shared_ptr<ipc_file::FileResponse>& _rsent_msg_ptr,
+    std::shared_ptr<ipc_file::FileResponse>& _rrecv_msg_ptr,
+    ErrorConditionT const&                   _rerror)
+{
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(not _rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr);
 }
 
-
-template <typename T>
-struct MessageSetup{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+struct MessageSetup {
+    template <class T>
+    void operator()(ipc_file::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_file::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
+
 }//namespace
 ```
 

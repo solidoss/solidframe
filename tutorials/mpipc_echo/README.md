@@ -38,12 +38,12 @@ When designing a client-server application, you should start with protocol defin
 For our example this is quite straight forward:
 
 ```C++
-#ifndef TUTORIAL_MPIPC_ECHO_MESSAGES_HPP
-#define TUTORIAL_MPIPC_ECHO_MESSAGES_HPP
+#pragma once
 
 #include "solid/frame/mpipc/mpipcmessage.hpp"
 #include "solid/frame/mpipc/mpipccontext.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
+#include "solid/system/common.hpp"
 
 namespace ipc_echo{
 
@@ -54,13 +54,21 @@ struct Message: solid::frame::mpipc::Message{
 
     Message(std::string && _ustr): str(std::move(_ustr)){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(str, "str");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.str, _rctx, "str");
     }
 };
 
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, Message>;
+using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+
+template <class R>
+inline void protocol_setup(R _r, ProtocolT& _rproto)
+{
+    _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
+
+    _r(_rproto, solid::TypeToType<Message>(), 1);
+}
 
 }//namespace ipc_echo
 
@@ -70,28 +78,31 @@ using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, Message>;
 For every message of the protocol:
  * you must provide the empty constructor - it will be used on deserialization.
  * you can provide a convenient constructor for convenient sender side initialization.
- * you must provide the template serialization method.
+ * you must provide the SOLID_PROTOCOL_V2 method.
 
-Let us get in more details with the _serialize_ method.
-The first parameter is a reference to the serialization/deserializtation engine. You will use this reference for scheduling primitive items (i.e. items that the serialization engine knows how to marshal) for marshaling.
-The second parameter is a reference to a context for the currently running MPIPC connection.
+Let us get in more details with the SOLID_PROTOCOL_V2 method:
+ * The first parameter is a reference to the serialization/deserializtation engine.
+ * The second parameter is a reference to "this" object - it is a const reference in case of serialization and non-const in case of deserialization.
+ * The third parameter is a reference to context.
+ * The fourth parameter is "const char *" containing the name of the object in upper level - for now the name is only used for debugging.
 
-One very important line is this one:
-
-```C++
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, Message>;
-```
-
-It helps us maintaining the same list of messages on both the client code and the server code.
-
-The zero from the template parameter list is the protocol ID.
-Afterwards, follows the list of message types. Here's an example with multiple messages:
+Next code:
 
 ```C++
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<2, FirstMessage, SecondMessage, ThirdMessage>;
+using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+
+template <class Stub>
+inline void protocol_setup(Stub _s, ProtocolT& _rproto)
+{
+    _rproto.null(static_cast<ProtocolT::TypeIdT>(0));
+
+    _s(_rproto, solid::TypeToType<Message>(), 1);
+}
 ```
 
-You'll see further in the client and server code how to use this ProtoSpecT type definition.
+is the actual definition of the protocol - i.e. the messages it is composed of. protocol_setup does not do the actual message registration it is done by the given Stub.
+
+You'll see further in the client and server code how is protocol_setup being used.
 
 ## The client implementation
 
@@ -141,10 +152,10 @@ Next we configure the ipcservice like this:
 
 ```C++
 {
-    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    auto                        proto = ProtocolT::create();
     frame::mpipc::Configuration cfg(scheduler, proto);
 
-    ipc_echo::ProtoSpecT::setup<ipc_echo_client::MessageSetup>(*proto);
+    ipc_echo::protocol_setup(ipc_echo_client::MessageSetup(), *proto);
 
     cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 
@@ -159,13 +170,13 @@ Next we configure the ipcservice like this:
 }
 ```
 
-The first interesting line is:
+The first line of interest is:
 
 ```C++
-ipc_echo::ProtoSpecT::setup<ipc_echo_client::MessageSetup>(*proto);
+ipc_echo::protocol_setup(ipc_echo_client::MessageSetup(), *proto);
 ```
 
-where we make use of the ProtoSpecT type definition we've encounter in the protocol definition header.
+where we make use of the ipc_echo::protocol_setup type definition we've encounter in the protocol definition header.
 
 The ipc_echo_client::MessageSetup helper structure is defined this way:
 
@@ -174,32 +185,31 @@ namespace ipc_echo_client{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<M> &_rsent_msg_ptr,
-    std::shared_ptr<M> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
-    if(_rerror){
-        cout<<"Error sending message to "<<_rctx.recipientName()<<". Error: "<<_rerror.message()<<endl;
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<M>&              _rsent_msg_ptr,
+    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
+{
+    if (_rerror) {
+        cout << "Error sending message to " << _rctx.recipientName() << ". Error: " << _rerror.message() << endl;
         return;
     }
 
     SOLID_CHECK(_rrecv_msg_ptr and _rsent_msg_ptr);
 
-    cout<<"Received from "<<_rctx.recipientName()<<": "<<_rrecv_msg_ptr->str<<endl;
+    cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg_ptr->str << endl;
 }
 
-template <typename T>
-struct MessageSetup{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+struct MessageSetup {
+    void operator()(ipc_echo::ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerMessage<ipc_echo::Message>(complete_message<ipc_echo::Message>, _rtid);
     }
 };
 
-
 }//namespace
 ```
-It is used by the ipc_echo::ProtoSpecT::setup function to register a message type allong with its message completion callback.
+and, it is used by the ipc_echo::protocol_setup function to register a message type allong with its message completion callback.
 
 A message completion callback is called when:
  * a message failed to be sent
@@ -281,10 +291,10 @@ The code of the server is simpler than, and quite similar to, the client one.
 E.g. the initialization of the ipcservice and its prerequisites is the same as on the client. Different is, offcourse, the configuration, which is done like this:
 ```C++
 {
-    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    auto                        proto = ProtocolT::create();
     frame::mpipc::Configuration cfg(scheduler, proto);
 
-    ipc_echo::ProtoSpecT::setup<ipc_echo_server::MessageSetup>(*proto);
+    ipc_echo::protocol_setup(ipc_echo_server::MessageSetup(), *proto);
 
     cfg.server.listener_address_str = p.listener_addr;
     cfg.server.listener_address_str += ':';
@@ -310,7 +320,7 @@ E.g. the initialization of the ipcservice and its prerequisites is the same as o
 The first interesting part is the one setting up the protocol - which also is similar to the client code:
 
 ```C++
-ipc_echo::ProtoSpecT::setup<ipc_echo_server::MessageSetup>(*proto);
+ipc_echo::protocol_setup(ipc_echo_server::MessageSetup(), *proto);
 ```
 
 The implementation for ipc_echo_server::MessageSetup being:
@@ -320,30 +330,29 @@ namespace ipc_echo_server{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<M> &_rsent_msg_ptr,
-    std::shared_ptr<M> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<M>&              _rsent_msg_ptr,
+    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
+{
     SOLID_CHECK(not _rerror);
 
-    if(_rrecv_msg_ptr){
+    if (_rrecv_msg_ptr) {
         SOLID_CHECK(not _rsent_msg_ptr);
-        SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
+        SOLID_CHECK(not _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
     }
 
-    if(_rsent_msg_ptr){
+    if (_rsent_msg_ptr) {
         SOLID_CHECK(not _rrecv_msg_ptr);
     }
 }
 
-template <typename T>
-struct MessageSetup{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+struct MessageSetup {
+    void operator()(ipc_echo::ProtocolT& _rprotocol, TypeToType<ipc_echo::Message> _t2t, const ipc_echo::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerMessage<ipc_echo::Message>(complete_message<ipc_echo::Message>, _rtid);
     }
 };
-
 
 }//namespace
 ```

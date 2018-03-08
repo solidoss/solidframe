@@ -36,9 +36,9 @@ struct Request: solid::frame::mpipc::Message{
 
     Request(std::shared_ptr<RequestKey> && _key): key(std::move(_key)){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(key, "key");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.key, _rctx, "key");
     }
 };
 ```
@@ -138,9 +138,9 @@ struct RequestKeyAnd: Visitable<RequestKeyAnd>{
     ):  first(std::move(std::static_pointer_cast<RequestKey>(_p1))),
         second(std::move(std::static_pointer_cast<RequestKey>(_p2))){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(second, "second").push(first, "first");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.first, _rctx, "first").add(_rthis.second, _rctx, "second");
     }
 
     void print(std::ostream &_ros) const override{
@@ -166,9 +166,9 @@ struct RequestKeyOr: Visitable<RequestKeyOr>{
     ):  first(std::move(std::static_pointer_cast<RequestKey>(_p1))),
         second(std::move(std::static_pointer_cast<RequestKey>(_p2))){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(second, "second").push(first, "first");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.first, _rctx, "first").add(_rthis.second, _rctx, "second");
     }
 
     void print(std::ostream &_ros) const override{
@@ -188,9 +188,9 @@ struct RequestKeyAndList: Visitable<RequestKeyAndList>{
     template <class ...Args>
     RequestKeyAndList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.pushContainer(key_vec, "key_vec");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.key_vec, _rctx, "key_vec");
     }
 
     void print(std::ostream &_ros) const override{
@@ -212,9 +212,9 @@ struct RequestKeyOrList: Visitable<RequestKeyOrList>{
     template <class ...Args>
     RequestKeyOrList(std::shared_ptr<Args>&& ..._args):key_vec{std::move(_args)...}{}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.pushContainer(key_vec, "key_vec");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.key_vec, _rctx, "key_vec");
     }
 
     void print(std::ostream &_ros) const override{
@@ -234,9 +234,9 @@ struct RequestKeyUserIdRegex: Visitable<RequestKeyUserIdRegex>{
 
     RequestKeyUserIdRegex(std::string && _ustr): regex(std::move(_ustr)){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(regex, "regex");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.regex, _rctx, "regex");
     }
 
     void print(std::ostream &_ros) const override{
@@ -251,9 +251,9 @@ struct RequestKeyEmailRegex: Visitable<RequestKeyEmailRegex>{
 
     RequestKeyEmailRegex(std::string && _ustr): regex(std::move(_ustr)){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(regex, "regex");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.regex, _rctx, "regex");
     }
 
     void print(std::ostream &_ros) const override{
@@ -267,9 +267,9 @@ struct RequestKeyYearLess: Visitable<RequestKeyYearLess>{
 
     RequestKeyYearLess(uint16_t _year = 0xffff):year(_year){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(year, "year");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.year, _rctx, "year");
     }
 
     void print(std::ostream &_ros) const override{
@@ -284,18 +284,23 @@ Next on the protocol header contains the declarations for the Response message w
 The last thing that differs is the protocol definition - which now will contain the RequestKeys too:
 
 ```C++
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<
-    0,
-    Request,
-    Response,
-    RequestKeyAnd,
-    RequestKeyOr,
-    RequestKeyAndList,
-    RequestKeyOrList,
-    RequestKeyUserIdRegex,
-    RequestKeyEmailRegex,
-    RequestKeyYearLess
->;
+using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+
+template <class R>
+inline void protocol_setup(R _r, ProtocolT& _rproto)
+{
+    _rproto.null(ProtocolT::TypeIdT(0));
+
+    _r(_rproto, solid::TypeToType<Request>(), 1);
+    _r(_rproto, solid::TypeToType<Response>(), 2);
+    _r(_rproto, solid::TypeToType<RequestKeyAnd>(), 3);
+    _r(_rproto, solid::TypeToType<RequestKeyOr>(), 4);
+    _r(_rproto, solid::TypeToType<RequestKeyAndList>(), 5);
+    _r(_rproto, solid::TypeToType<RequestKeyOrList>(), 6);
+    _r(_rproto, solid::TypeToType<RequestKeyUserIdRegex>(), 7);
+    _r(_rproto, solid::TypeToType<RequestKeyEmailRegex>(), 8);
+    _r(_rproto, solid::TypeToType<RequestKeyYearLess>(), 9);
+}
 ```
 
 ## The client implementation
@@ -305,63 +310,59 @@ We will continue by presenting only the differences from the previous tutorial r
 ipc_request_client::MessageSetup must be changed as follows:
 
 ```C++
-template <typename T>
-struct MessageSetup;
+using namespace ipc_request;
 
-template <>
-struct MessageSetup<RequestKeyAnd>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyAnd>(_protocol_idx);
+template <class M>
+void complete_message(
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<M>&              _rsent_msg_ptr,
+    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
+{
+    SOLID_CHECK(false); //this method should not be called
+}
+
+struct MessageSetup {
+
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAnd> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyAnd>(_rtid);
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyOr>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyOr>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOr> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyOr>(_rtid);
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyAndList>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyAndList>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAndList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyAndList>(_rtid);
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyOrList>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyOrList>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOrList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyOrList>(_rtid);
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyUserIdRegex>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyUserIdRegex>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyUserIdRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyUserIdRegex>(_rtid);
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyEmailRegex>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyEmailRegex>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyEmailRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyEmailRegex>(_rtid);
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyYearLess>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyYearLess>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyYearLess> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyYearLess>(_rtid);
     }
-};
 
-
-template <typename T>
-struct MessageSetup{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+    template <class T>
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
@@ -448,89 +449,74 @@ We'll start by configuring the serialization engine for the new Request.
 For that, we continue to have the same line for configuring the protocol:
 
 ```C++
-ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
+ipc_request::protocol_setup(ipc_request_server::MessageSetup(), *proto);
 ```
 
 but now, ipc_request_server::MessageSetup is a little more complex:
 
 ```C++
-template <typename T>
-struct MessageSetup;
+struct MessageSetup {
 
-template <>
-struct MessageSetup<RequestKeyAnd>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyAnd>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAnd> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyAnd>(_rtid);
         _rprotocol.registerCast<RequestKeyAnd, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyOr>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyOr>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOr> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyOr>(_rtid);
         _rprotocol.registerCast<RequestKeyOr, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyAndList>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyAndList>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyAndList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyAndList>(_rtid);
         _rprotocol.registerCast<RequestKeyAndList, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyOrList>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyOrList>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyOrList> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyOrList>(_rtid);
         _rprotocol.registerCast<RequestKeyOrList, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyUserIdRegex>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyUserIdRegex>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyUserIdRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyUserIdRegex>(_rtid);
         _rprotocol.registerCast<RequestKeyUserIdRegex, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyEmailRegex>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyEmailRegex>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyEmailRegex> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyEmailRegex>(_rtid);
         _rprotocol.registerCast<RequestKeyEmailRegex, RequestKey>();
     }
-};
 
-template <>
-struct MessageSetup<RequestKeyYearLess>{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<RequestKeyYearLess>(_protocol_idx);
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<RequestKeyYearLess> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerType<RequestKeyYearLess>(_rtid);
         _rprotocol.registerCast<RequestKeyYearLess, RequestKey>();
     }
-};
 
-template <typename T>
-struct MessageSetup{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+    template <class T>
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 ```
 
-So, in the above code we specialize MessageSetup for every type in the ipc_request::ProtoSpecT, but:
- * while command messages are registered as before with a complete_message callback
+So, in the above code we specialize MessageSetup::operator() for every type of the protocol, but:
+ * while command messages are registered as before with a complete_message callback,
  * the RequestKeys are registered using the basic version of registerType (without callback) and a call to registerCast from the concrete RequestKey class to the base Key class namely RequestKey.
 
- The above registerCast is needed because the Request command and the RequestKeys only hold shared_ptrs to the base class (RequestKey).
+The above registerCast is needed because the Request command and the RequestKeys only hold shared_ptrs to the base class (RequestKey).
 
- The complete_message<Response> is same as in previous tutorial, but complete_message<Request> function has changed like this:
+The complete_message<Response> is same as in previous tutorial, but complete_message<Request> function has changed like this:
 
- ```C++
- template <>
+```C++
+template <>
 void complete_message<ipc_request::Request>(
     frame::mpipc::ConnectionContext &_rctx,
     std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
@@ -569,15 +555,15 @@ void complete_message<ipc_request::Request>(
 
     SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
- ```
+```
 
 In the above code we're using two RequestKey visitors:
  * A non-const visitor - PrepareKeyVisitor - which builds a cache of std::regex-es for every key that needs regex matches and store the cache id in the RequestKey::cache_idx.
  * A const visitor - AccountDataKeyVisitor - which is used for deciding whether a database record should be sent to the client or skipped.
 
- Here is PrepareKeyVisitor implementation:
+Here is PrepareKeyVisitor implementation:
 
- ```C++
+```C++
 using namespace ipc_request;
 
 struct PrepareKeyVisitor: RequestKeyVisitor{

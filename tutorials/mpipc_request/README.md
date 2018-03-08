@@ -52,7 +52,7 @@ The first piece consists of includes and the definition for the Request message:
 ```C++
 #include "solid/frame/mpipc/mpipcmessage.hpp"
 #include "solid/frame/mpipc/mpipccontext.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v1.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include <vector>
 #include <map>
 
@@ -65,9 +65,9 @@ struct Request: solid::frame::mpipc::Message{
 
     Request(std::string && _ustr): userid_regex(std::move(_ustr)){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(userid_regex, "userid_regex");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.userid_regex, _rctx, "userid_regex");
     }
 };
 ```
@@ -80,9 +80,9 @@ struct Date{
     uint8_t     month;
     uint16_t    year;
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(day, "day").push(month, "month").push(year, "year");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.day, _rctx, "day").add(_rthis.month, _rctx, "month").add(_rthis.year, _rctx, "year");
     }
 };
 
@@ -93,10 +93,10 @@ struct UserData{
     std::string     city;
     Date            birth_date;
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.push(full_name, "full_name").push(email, "email");
-        _s.push(country, "country").push(city, "city").push(birth_date, "birth_date");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.full_name, _rctx, "full_name").add(_rthis.email, _rctx, "email").add(_rthis.country, _rctx, "country");
+        _s.add(_rthis.city, _rctx, "city").add(_rthis.birth_date, _rctx, "birth_date");
     }
 };
 
@@ -109,19 +109,28 @@ struct Response: solid::frame::mpipc::Message{
 
     Response(const solid::frame::mpipc::Message &_rmsg):solid::frame::mpipc::Message(_rmsg){}
 
-    template <class S>
-    void solidSerialize(S &_s, solid::frame::mpipc::ConnectionContext &_rctx){
-        _s.pushContainer(user_data_map, "user_data_map");
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    {
+        _s.add(_rthis.user_data_map, _rctx, "user_data_map");
     }
 };
 ```
 
 On the above code, please note that we're using a std::map for storing the records in the response message which is strictly for exemplification purpose - normally a std::vector would have been a better option.
 
-The last block of code for the protocol definition is the declaration of ProtoSpecT:
+The last block of code for the protocol definition is the declaration of protocol_setup:
 
 ```C++
-using ProtoSpecT = solid::frame::mpipc::serialization_v1::ProtoSpec<0, Request, Response>;
+using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
+
+template <class R>
+inline void protocol_setup(R _r, ProtocolT& _rproto)
+{
+    _rproto.null(ProtocolT::TypeIdT(0));
+
+    _r(_rproto, solid::TypeToType<Request>(), 1);
+    _r(_rproto, solid::TypeToType<Response>(), 2);
+}
 
 }//namespace ipc_request
 ```
@@ -169,10 +178,10 @@ if(err){
 Next, configure the ipcservice:
 ```C++
 {
-    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    auto                        proto = ipc_request::ProtocolT::create();
     frame::mpipc::Configuration cfg(scheduler, proto);
 
-    ipc_request::ProtoSpecT::setup<ipc_request_client::MessageSetup>(*proto);
+    ipc_request::protocol_setup(ipc_request_client::MessageSetup(), *proto);
 
     cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, p.port.c_str());
 
@@ -194,18 +203,19 @@ namespace ipc_request_client{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<M> &_rsent_msg_ptr,
-    std::shared_ptr<M> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
-    SOLID_CHECK(false);//this method should not be called
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<M>&              _rsent_msg_ptr,
+    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror)
+{
+    SOLID_CHECK(false); //this method should not be called
 }
 
-template <typename T>
-struct MessageSetup{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+struct MessageSetup {
+    template <class T>
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 
@@ -288,10 +298,10 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
 
 ```C++
 {
-    auto                        proto = frame::mpipc::serialization_v1::Protocol::create();
+    auto                        proto = ipc_request::ProtocolT::create();
     frame::mpipc::Configuration cfg(scheduler, proto);
 
-    ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
+    ipc_request::protocol_setup(ipc_request_server::MessageSetup(), *proto);
 
     cfg.server.listener_address_str = p.listener_addr;
     cfg.server.listener_address_str += ':';
@@ -317,7 +327,7 @@ We will skip the the initialization of the ipcservice and its prerequisites as i
 Notable is the protocol implementation:
 
 ```C++
-ipc_request::ProtoSpecT::setup<ipc_request_server::MessageSetup>(*proto);
+ipc_request::protocol_setup(ipc_request_server::MessageSetup(), *proto);
 ```
 
 which uses ipc_request_server::MessageSetup defined as follows:
@@ -327,53 +337,52 @@ namespace ipc_request_server{
 
 template <class M>
 void complete_message(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<M> &_rsent_msg_ptr,
-    std::shared_ptr<M> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-);
+    frame::mpipc::ConnectionContext& _rctx,
+    std::shared_ptr<M>&              _rsent_msg_ptr,
+    std::shared_ptr<M>&              _rrecv_msg_ptr,
+    ErrorConditionT const&           _rerror);
 
 template <>
 void complete_message<ipc_request::Request>(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<ipc_request::Request> &_rsent_msg_ptr,
-    std::shared_ptr<ipc_request::Request> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
+    frame::mpipc::ConnectionContext&       _rctx,
+    std::shared_ptr<ipc_request::Request>& _rsent_msg_ptr,
+    std::shared_ptr<ipc_request::Request>& _rrecv_msg_ptr,
+    ErrorConditionT const&                 _rerror)
+{
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
     SOLID_CHECK(not _rsent_msg_ptr);
 
     auto msgptr = std::make_shared<ipc_request::Response>(*_rrecv_msg_ptr);
 
+    std::regex userid_regex(_rrecv_msg_ptr->userid_regex);
 
-    std::regex  userid_regex(_rrecv_msg_ptr->userid_regex);
-
-    for(const auto &ad: account_dq){
-        if(std::regex_match(ad.userid, userid_regex)){
-            msgptr->user_data_map.insert(ipc_request::Response::UserDataMapT::value_type(ad.userid, std::move(make_user_data(ad))));
+    for (const auto& ad : account_dq) {
+        if (std::regex_match(ad.userid, userid_regex)) {
+            msgptr->user_data_map.insert(ipc_request::Response::UserDataMapT::value_type(ad.userid, make_user_data(ad)));
         }
     }
 
-    SOLID_CHECK(_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
 void complete_message<ipc_request::Response>(
-    frame::mpipc::ConnectionContext &_rctx,
-    std::shared_ptr<ipc_request::Response> &_rsent_msg_ptr,
-    std::shared_ptr<ipc_request::Response> &_rrecv_msg_ptr,
-    ErrorConditionT const &_rerror
-){
+    frame::mpipc::ConnectionContext&        _rctx,
+    std::shared_ptr<ipc_request::Response>& _rsent_msg_ptr,
+    std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
+    ErrorConditionT const&                  _rerror)
+{
     SOLID_CHECK(not _rerror);
     SOLID_CHECK(not _rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr);
 }
 
-template <typename T>
-struct MessageSetup{
-    void operator()(frame::mpipc::serialization_v1::Protocol &_rprotocol, const size_t _protocol_idx, const size_t _message_idx){
-        _rprotocol.registerType<T>(complete_message<T>, _protocol_idx, _message_idx);
+struct MessageSetup {
+    template <class T>
+    void operator()(ipc_request::ProtocolT& _rprotocol, TypeToType<T> _t2t, const ipc_request::ProtocolT::TypeIdT& _rtid)
+    {
+        _rprotocol.registerMessage<T>(complete_message<T>, _rtid);
     }
 };
 

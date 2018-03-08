@@ -47,9 +47,9 @@ Boost Software License - Version 1.0 - August 17th, 2003
     * _Datagram_ - asynchronous UDP socket
     * _Timer_ - allows objects to schedule time based events
 * [__solid_serialization_v2__](#solid_serialization_v2): binary serialization/marshaling
+    * _TypeMap_
     * _binary::Serializer_
     * _binary::Deserializer_
-    * _TypeIdMap_
 
 **All:**
 
@@ -64,9 +64,9 @@ Boost Software License - Version 1.0 - August 17th, 2003
     * _Queue_ - alternative to std:queue
     * _WorkPool_ - generic thread pool
 * [__solid_serialization_v2__](#solid_serialization_v2): binary serialization/marshalling
+    * _TypeMap_
     * _binary::Serializer_
     * _binary::Deserializer_
-    * _TypeIdMap_
 * [__solid_frame__](#solid_frame):
     * _Object_ - reactive object
     * _Manager_ - store services and notifies objects within services
@@ -391,8 +391,10 @@ __InnerList__: [Sample code](solid/utility/test/test_innerlist.cpp)
 __MemoryFile__: [Sample code](solid/utility/test/test_memory_file.cpp)
 
 ### <a id="solid_serialization_v2"></a>solid_serialization_v2
- * [_binary.hpp_](solid/serialization/binary.hpp): Binary "asynchronous" serializer/deserializer.
- * [_binarybasic.hpp_](solid/serialization/binarybasic.hpp): Some "synchronous" load/store functions for basic types.
+ * [_typemap.hpp_](solid/serialization/v2/typemap.hpp): Enable polimorphism support in serializers/deserializers.
+ * [_binaryserializer.hpp_](solid/serialization/v2/binaryserializer.hpp): Binary "asynchronous" serializer.
+ * [_binarydeserializer.hpp_](solid/serialization/v2/binarydeserializer.hpp): Binary "asynchronous" deserializer.
+ * [_binarybasic.hpp_](solid/serialization/v2/binarybasic.hpp): Some "synchronous" load/store functions for basic types.
  * [_typeidmap.hpp_](solid/serialization/typeidmap.hpp): Class for helping "asynchronous" serializer/deserializer support polymorphism: serialize pointers to base classes.
 
 The majority of serializers/deserializers offers the following functionality:
@@ -401,19 +403,15 @@ The majority of serializers/deserializers offers the following functionality:
 
 This means that at a certain moment, one will have the data structure twice in memory: the initial one and the one from the stream.
 
-The __solid_serialization_v2__ library takes another - let us call it - "asynchronous" approach. In solid_serialization_v2 the marshaling is made in two overlapping steps:
-  * Push data structures into serialization/deserialization engine. No serialization is done at this step. The data structure is split into sub-parts known by the serialization engine and scheduled for serialization.
-  * Marshaling/Unmarshaling
-    * Marshaling: Given a fixed size buffer buffer (char*) do:
-      * call serializer.run to fill the buffer
-      * do something with the filled buffer - write it on socket, on file etc.
-      * loop until serialization finishes.
-    * Unmarshaling: Given a fixed size buffer (char*) do:
-      * fill the buffer with data from a file/socket etc.
-      * call deserializer.run with the given data
-      * loop until deserialization finishes
+The first version of the solid serialization library had two distinct steps for serilization:
+ * schedule items for serialization in a stack like callback structure
+ * do the actual item serialzation/deserialization when output or input data is available
+ 
+In order to improve speed, the second version of the library tries to overlap the above two steps - i.e. the items are scheduled only if the serialization/deserialization cannot be done inplace - e.g. the buffer is either full or empty. 
 
-This approach allows serializing data that is bigger than the system memory - e.g. serializing a data structure containing a file stream (see [ipc file tutorial](tutorials/ipc_file) especially [messages definition](tutorials/ipc_file/ipc_file_messages.hpp)).
+Notable are two other abilities of the serialization engine:
+ * The support serializing streams - see [ipc file tutorial](tutorials/ipc_file) especially [messages definition](tutorials/ipc_file/ipc_file_messages.hpp)
+ * The support for imposing limits on items: string, container, stream - i.e. serialization/deserialization terminates with an error if an item exceeds the limit set for the item category (either string, container, stream). This is very important when usend in an online protocol.
 
 
 [Sample code](solid/serialization/v2/test/test_binary.cpp)
@@ -438,14 +436,16 @@ struct Test{
 };
 ```
 
-Defining the serializer/deserializer/typemap:
+Defining the typemap/serializer/deserializer:
 
 ```C++
 #include "solid/serialization/serialization.hpp"
+
 struct Context{};
 struct TypeData{};
-using TypeIdT = uint8_t;//the type that is serialized and used to identify the registered type.
-using TypeMapT    = serialization::TypeIdMap<TypeIdT, Context, solid::serialization::Serializer, solid::serialization::Deserializer, TypeData>;
+
+using TypeIdT       = uint8_t;//the type that is serialized and used to identify the registered type.
+using TypeMapT      = serialization::TypeIdMap<TypeIdT, Context, solid::serialization::Serializer, solid::serialization::Deserializer, TypeData>;
 using SerializerT   = TypeMapT::SerializerT;
 using DeserializerT = TypeMapT::DeserializerT;
 ```
@@ -454,7 +454,8 @@ Prepare the typemap:
 
 ```C++
 TypeMapT  typemap;
-typemap.registerType<Test>(0/*type id*/);
+typemap.null(0);//null typeid
+typemap.registerType<Test>(1/*type id*/);
 ```
 
 Serialize and deserialize a Test structure:
