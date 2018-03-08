@@ -405,18 +405,18 @@ This means that at a certain moment, one will have the data structure twice in m
 
 The first version of the solid serialization library had two distinct steps for serilization:
  * schedule items for serialization in a stack like callback structure
- * do the actual item serialzation/deserialization when output or input data is available
+ * do the actual item serialzation/deserialization when output space or input data is available
  
 In order to improve speed, the second version of the library tries to overlap the above two steps - i.e. the items are scheduled only if the serialization/deserialization cannot be done inplace - e.g. the buffer is either full or empty. 
 
 Notable are two other abilities of the serialization engine:
- * The support serializing streams - see [ipc file tutorial](tutorials/ipc_file) especially [messages definition](tutorials/ipc_file/ipc_file_messages.hpp)
+ * The support serializing streams - see [ipc file tutorial](tutorials/mpipc_file) especially [messages definition](tutorials/mpipc_file/mpipc_file_messages.hpp)
  * The support for imposing limits on items: string, container, stream - i.e. serialization/deserialization terminates with an error if an item exceeds the limit set for the item category (either string, container, stream). This is very important when usend in an online protocol.
 
 
 [Sample code](solid/serialization/v2/test/test_binary.cpp)
 
-A structure with serialization support:
+A C++ structure with serialization support:
 
 ```C++
 struct Test{
@@ -553,6 +553,7 @@ The header only plugins ensure that solid_frame_mpipc itself does not depend on 
 __Usefull links__
  * [MPIPC README](solid/frame/mpipc/README.md)
  * [MPIPC Relay](solid/frame/mpipc/README.md#relay_engine)
+ * [Tutorial: aio_echo](tutorials/aio_echo/README.md)
  * [Tutorial: mpipc_echo](tutorials/mpipc_echo/README.md)
  * [Tutorial: mpipc_request](tutorials/mpipc_request/README.md)
  * [Tutorial: mpipc_request_ssl](tutorials/mpipc_request_ssl/README.md)

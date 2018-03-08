@@ -86,7 +86,7 @@ Let us get in more details with the SOLID_PROTOCOL_V2 method:
  * The third parameter is a reference to context.
  * The fourth parameter is "const char *" containing the name of the object in upper level - for now the name is only used for debugging.
 
-Next code:
+The following code:
 
 ```C++
 using ProtocolT = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
@@ -100,9 +100,9 @@ inline void protocol_setup(Stub _s, ProtocolT& _rproto)
 }
 ```
 
-is the actual definition of the protocol - i.e. the messages it is composed of. protocol_setup does not do the actual message registration it is done by the given Stub.
+is the actual definition of the protocol - i.e. the messages it is composed of. __protocol_setup__ does not do the actual message registration - it is done by the given Stub.
 
-You'll see further in the client and server code how is protocol_setup being used.
+You'll see further in the client and server code how is __protocol_setup__ being used.
 
 ## The client implementation
 
@@ -176,9 +176,7 @@ The first line of interest is:
 ipc_echo::protocol_setup(ipc_echo_client::MessageSetup(), *proto);
 ```
 
-where we make use of the ipc_echo::protocol_setup type definition we've encounter in the protocol definition header.
-
-The ipc_echo_client::MessageSetup helper structure is defined this way:
+where we call ipc_echo::protocol_setup we've encounter in the protocol definition header using ipc_echo_client::MessageSetup structure from below:
 
 ```C++
 namespace ipc_echo_client{
@@ -209,7 +207,8 @@ struct MessageSetup {
 
 }//namespace
 ```
-and, it is used by the ipc_echo::protocol_setup function to register a message type allong with its message completion callback.
+
+The MessageSetup::operator() will register a message onto protocol, with its completion callback.
 
 A message completion callback is called when:
  * a message failed to be sent
@@ -362,7 +361,7 @@ It is a single callback, called on two situations:
  * When a message is received - in which case _rrecv_msg_ptr is not empty
  * When a response was sent back - in which case _rsent_msg_ptr is not empty.
 
-Also please note the main action of the callback:
+Also, please note the main action of the callback:
 ```C++
 ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 ```

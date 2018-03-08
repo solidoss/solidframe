@@ -194,24 +194,23 @@ private:
 };
 ```
 
-Lets delve a little into the _serialize_ method.
+Lets delve a little into the _solidSerializeV2_ methods.
 
 **First, some background**
 
-The serialization engine from solid framework is _lazy_ - this means that the serialization does not happen right-away but it is scheduled for later when input data or output space will be available. That is why, pushing items into serialization engine, schedules them in a stack (LastInFirstOut) like fashion. This is why the elements you push last will actually get serialized first.
-In some situation, as is the case with FileResponse, some serialization engine decisions/operations must happen after some certain fields were already serialized. In our case, on the deserialization (client) side, before starting to serialize the stream we need it opened for writing to a file. For that we use the pushCall functionality of the serialization engine - which schedules a call to a lambda after the other message items (in case of deserializer, remote_file_size) were completed.
+The serialization engine used by the mpipc protocol, is asynchronus, which means that serialization/deserialization of an item might not happen inplace but at a later mement when more buffer space is available (in case of serialization) or more data is available (in case of deserialization). In this situations the serialization item is pushed in a completion queue to be handled later.
 
-In the above code, we use remote_file_size as a mean to notify the client side, the deserialization side of the message, that the remote file could not be opened and there is no reason to create the local file (the destination file on the client).
+FileResponse has two solidSerializeV2 methods:
+ * a const one used by serilizers
+ * a non-const one used by deserializer.
 
-In the lambda, if the engine is a serializer (on the sending side - i.e. the server):
- * open a filestream to the file pointed by remote_path (remember we're on the server)
- * schedules the stream for serialization (pushStream)
- * compute the file size (use an invalid size in case of error)
- * schedules the remote_file_size for serialization (will get serialized before the stream)
+The const serialization method, tries to open a file stream for reading given a path (this would happen on the server side, when sending the response back to the client).
+ * On succes, it determines the file size and adds that value as serialization item. Then pushes a lambda which on its side, adds the file stream as serialization item (the lambda given to add(ofs, ...) is used for progress monitoring).
+ * On failure it just adds an InvalidSize (-1) as serialization item.
 
-Else, if the engine is a Deserializer (on the receiving side - i.e. back on client):
- * If the remote_file_size field we've already parsed has a valid size, open a output stream for a file pointed by localPath (we're on the client and we get the localPath from the request)
- * schedules the stream for deserialization via pushStream. Note that the pushStream is called whether we've opened the file or not letting the serialization engine handle errors.
+Serilizers and deserializers support adding a closure (a function or function object or lambda) as serialization item. The closure is called inplace if the completion queue is empty otherwise it is scheduled on the queue. Pushing a closure onto serializer/deserializer forces it into the completion queue. The items added by the closure are pushed into the completion queue in front of the item containing the closure, and the closure is destroyed after the items added by it get completed. This is usefull in our case because it will keep the file stream alive untils after its serialization has finished.
+
+TODO: ... the deserialization case ...
 
 FileResponse and FileRequest are also examples of how and when to access the Request Message that is waiting for the response from within the response's serialization method. This is an effective way to store data that is needed by the response during the deserialization. Another way would have been to use Connection's "any" data (_rctx.any()) but it would have not been such a clean solution.
 
