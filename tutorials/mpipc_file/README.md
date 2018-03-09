@@ -212,9 +212,9 @@ Serilizers and deserializers support adding a closure (a function or function ob
 
 Please note that the lambda that we're pushing onto the serializer is mutable. This is because we want to be able to modify the captured stream from within the lambda.
 
-Lets move on to the deserialization method where we first add "remote_file_size" item for deserialization. Next we should check it to see if we should open an output stream or not. Because of the asynchronous nature of the deserializer, we cannot do the check directly because "remote_file_size" might be scheduled for deserialization instead of being deserilized inplace. So, we do the check inside a closure added to the deserializer and it will be called after the remote_file_size item got deserialized.
+Lets move on to the deserialization method where we first add "remote_file_size" item for deserialization. Next we should check it to see if we should open an output stream or not. Because of the asynchronous nature of the deserializer, we cannot do the check directly because "remote_file_size" might be scheduled for deserialization instead of being deserilized inplace. So, we do the check inside a closure added to the deserializer which will be called after the remote_file_size item got deserialized.
 
-Inside the lambda, we decide whether we should open an output stream or not, based on remote_file_size value. Once we've decided that a stream was serialized, we try to open an output stream and continue with stream deserialization not mattering if the stream was successfully opened or not. The same as on the serialization side, we're __pushing__ a closure containing the stream onto the deserializer in order to ensure that the stream object outlives its deserialization process.
+Inside the lambda, we decide whether we should open an output stream or not, based on remote_file_size value. Once we've decided that a stream is to be deserialized, we try to open an output stream and continue with stream deserialization not mattering if the stream was successfully opened or not. The same as on the serialization side, we're __pushing__ a closure containing the stream onto the deserializer in order to ensure that the stream object outlives its deserialization process.
 
 ---
 
