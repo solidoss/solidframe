@@ -216,12 +216,14 @@ Lets move one to the deserialization method first we add "remote_file_size" item
 
 Inside the lambda, we decide whether we should open an output stream or not, based on remote_file_size value. Once we've decided that a stream was serialized, we try to open an output stream and continue with stream deserialization not mattering if the stream was successfully opened or not. The same as on the serialization side, we're __pushing__ a closure containing the stream onto the deserializer in order to ensure that the stream object outlives its deserialization process.
 
-__Note on movable lambdas and std::function__
-
 ---
 
-> As you can see, we're using mutable lambdas capturing a mutable only object (the stream), using a C++14 addition - capture initializers.
-> In the begining, serializer and the deserializer were using std::function to store the lambdas for further execution. But, at least on g++ (last version tried 7.3.1) the function object given to a std::function can only be copy constructible. That is a limitation that would prevent us to write code as the one above - we would not be able to schedule a move only function object. This is why solid::Function came to birth and got used across SolidFrame project.
+__Note on movable lambdas and std::function__
+
+As you can see, we're using mutable lambdas capturing a mutable only object (the stream), using a C++14 addition - capture initializers.
+In the begining, serializer and the deserializer were using std::function to store the lambdas for further execution. But, at least on g++ (last version tried 7.3.1) the function object given to a std::function can only be copy constructible. That is a limitation that would prevent us to write code as the one above - we would not be able to schedule a move only function object. This is why solid::Function came to birth and got used across SolidFrame project.
+
+---
 
 FileResponse and FileRequest are also examples of how and when to access the Request Message that is waiting for the response from within the response's serialization method. This is an effective way to store data that is needed by the response during the deserialization. Another way would have been to use Connection's "any" data (_rctx.any()) but it would have not been such a clean solution.
 
