@@ -167,16 +167,16 @@ struct FileResponse : solid::frame::mpipc::Message {
                 const std::string* plocal_path = localPath(_rctx);
                 if (plocal_path != nullptr) {
                     ofs.open(*plocal_path);
-                    _s.push([ this, ofs = std::move(ofs) ](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
-                        _s.add(ofs, [this](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+                }
+                _s.push([ this, ofs = std::move(ofs) ](S & _s, solid::frame::mpipc::ConnectionContext & _rctx, const char* _name) mutable {
+                    _s.add(ofs, [this](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
 
-                            //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
-                        },
-                            _rctx, _name);
-                        return true;
+                        //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
                     },
                         _rctx, _name);
-                }
+                    return true;
+                },
+                    _rctx, _name);
             }
         },
             _rctx, _name);
@@ -205,12 +205,23 @@ FileResponse has two solidSerializeV2 methods:
  * a non-const one used by deserializer.
 
 The const serialization method, tries to open a file stream for reading given a path (this would happen on the server side, when sending the response back to the client).
- * On succes, it determines the file size and adds that value as serialization item. Then pushes a lambda which on its side, adds the file stream as serialization item (the lambda given to add(ofs, ...) is used for progress monitoring).
+ * On succes, it determines the file size and adds that value as serialization item. Then pushes a lambda which when executed, it adds the file stream as serialization item (the lambda given to add(ofs, ...) is used for progress monitoring).
  * On failure it just adds an InvalidSize (-1) as serialization item.
 
-Serilizers and deserializers support adding a closure (a function or function object or lambda) as serialization item. The closure is called inplace if the completion queue is empty otherwise it is scheduled on the queue. Pushing a closure onto serializer/deserializer forces it into the completion queue. The items added by the closure are pushed into the completion queue in front of the item containing the closure, and the closure is destroyed after the items added by it get completed. This is usefull in our case because it will keep the file stream alive untils after its serialization has finished.
+Serilizers and deserializers support adding a closure (a function or function object or lambda) as serialization item. The closure is called inplace if the completion queue is empty otherwise it is scheduled on the queue. __Pushing__ a closure onto serializer/deserializer forces it into the completion queue. The items added by the closure are pushed into the completion queue in front of the item containing the closure, and the closure is destroyed only after the items added by it got completed. This is usefull in our case because it will keep the file stream alive until after its serialization has finished.
 
-TODO: ... the deserialization case ...
+Please note that the lambda that we're pushing onto the serializer is mutable. This is because we want to be able to modify the captured stream from within the lambda.
+
+Lets move one to the deserialization method first we add "remote_file_size" item for deserialization. Next we should check it to see if we should open an output stream or not. Because of the asynchronous nature of the deserializer, we cannot do the check directly because "remote_file_size" might be scheduled for deserialization instead of being deserilized inplace. So, we do the check inside a closure added to the deserializer and it will be called after the remote_file_size item got deserialized.
+
+Inside the lambda, we decide whether we should open an output stream or not, based on remote_file_size value. Once we've decided that a stream was serialized, we try to open an output stream and continue with stream deserialization not mattering if the stream was successfully opened or not. The same as on the serialization side, we're __pushing__ a closure containing the stream onto the deserializer in order to ensure that the stream object outlives its deserialization process.
+
+__Note on movable lambdas and std::function__
+
+---
+
+> As you can see, we're using mutable lambdas capturing a mutable only object (the stream), using a C++14 addition - capture initializers.
+> In the begining, serializer and the deserializer were using std::function to store the lambdas for further execution. But, at least on g++ (last version tried 7.3.1) the function object given to a std::function can only be copy constructible. That is a limitation that would prevent us to write code as the one above - we would not be able to schedule a move only function object. This is why solid::Function came to birth and got used across SolidFrame project.
 
 FileResponse and FileRequest are also examples of how and when to access the Request Message that is waiting for the response from within the response's serialization method. This is an effective way to store data that is needed by the response during the deserialization. Another way would have been to use Connection's "any" data (_rctx.any()) but it would have not been such a clean solution.
 
