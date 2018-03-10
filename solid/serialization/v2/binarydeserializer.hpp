@@ -958,7 +958,6 @@ private:
             ++pcrt_;
 
             if (_rr.size_ > sizeof(uint64_t)) {
-                SOLID_ASSERT(false);
                 error(error_cross_integer);
                 return ReturnE::Done;
             } else if (_rr.size_ == 0) {
