@@ -83,8 +83,8 @@ public:
     template <class EnterFct, class ExitFct>
     ErrorConditionT start(EnterFct _enf, ExitFct _exf, const size_t _reactorcnt = 1)
     {
-        ThreadEnterFunctionT enf(_enf);
-        ThreadExitFunctionT  exf(_exf); //we don't want to copy _exf
+        ThreadEnterFunctionT enf(std::move(_enf));
+        ThreadExitFunctionT  exf(std::move(_exf)); //we don't want to copy _exf
         return SchedulerBase::doStart(Worker::create, enf, exf, _reactorcnt);
     }
 
