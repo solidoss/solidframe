@@ -222,7 +222,7 @@ __Note on move only lambdas and std::function__
 
 In the above code, we're using mutable lambdas capturing a move only object (the stream), using a C++14 addition - capture initializers.
 
-When implementing the new version of serializer and deserilizer, std::function was used for storing callable objects for defered execution. The problem is that at least on g++ (last version tested: 7.3.1) implementation of std::function, the Callable object must be copy constructible, even though it is "moved" onto the std::function.
+When implementing the new version of serializer and deserilizer, std::function was used for storing callable objects for deferred execution. The problem is that at least on g++ (last version tested: 7.3.1) implementation of std::function, the Callable object must be copy constructible, even though it is "moved" onto the std::function.
 
 
 This is why [solid::Function](../../solid/utility/function.hpp) was created and got used across SolidFrame project.
