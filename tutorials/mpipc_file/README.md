@@ -218,15 +218,14 @@ Inside the lambda, we decide whether we should open an output stream or not, bas
 
 ---
 
-__Note on movable lambdas and std::function__
+__Note on move only lambdas and std::function__
 
-As you can see, we're using mutable lambdas capturing a mutable only object (the stream), using a C++14 addition - capture initializers.
+In the above code, we're using mutable lambdas capturing a move only object (the stream), using a C++14 addition - capture initializers.
 
-In the begining, serializer and the deserializer were using std::function to store the lambdas for further execution. But, at least on g++ (last version tried 7.3.1) the function object given to a std::function can only be copy constructible.
+When implementing the new version of serializer and deserilizer, std::function was used for storing callable objects for defered execution. The problem is that at least on g++ (last version tested: 7.3.1) implementation of std::function, the Callable object must be copy constructible, even though it is "moved" onto the std::function.
 
-That is a limitation that would prevent us to write code as the one above - we would not be able to schedule a move only function object.
 
-This is why [solid::Function](../../solid/utility/function.hpp) came to birth and got used across SolidFrame project.
+This is why [solid::Function](../../solid/utility/function.hpp) was created and got used across SolidFrame project.
 
 ---
 
