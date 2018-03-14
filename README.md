@@ -23,14 +23,14 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * C++11 enabled compiler
 * [CMake](https://cmake.org/): for build system
 * [boost](http://www.boost.org/): for tests, examples and tutorials - not for libraries themselves.
-* [OpenSSL](https://www.openssl.org/)/[BorringSSL](https://boringssl.googlesource.com/boringssl/): needed by solid_frame_aio_openssl library.
+* [OpenSSL](https://www.openssl.org/)/[BoringSSL](https://boringssl.googlesource.com/boringssl/): needed by solid_frame_aio_openssl library.
 
 ## Supported platforms
 
 * **Linux** - _gcc_ - (tested on latest Fedora i686/x86_64, Ubuntu LTS and Raspian on Raspberry Pi 2 armv7l)
 * **FreeBSD** - _llvm_ - (tested on FreeBSD/PcBSD 10.3)
 * **Darwin/macOS** - _llvm_ - (starting with XCode 8 which has support for thread_local)
-* **Android** - _llvm/gcc_ - (starting with Android Studio 2.2 - examples: [Bubbles](https://github.com/vipalade/bubbles), [EchoClient](https://github.com/vipalade/study_android/tree/master/EchoClient))
+* **Android** - _llvm/gcc_ - (starting with Android Studio 2.2 - examples: [Bubbles](https://github.com/vipalade/bubbles))
 * Windows - MSVC - (partial)
 
 ## Libraries
@@ -183,7 +183,7 @@ Windows is not yet supported.
 _SolidFrame_ is an experimental framework to be used for implementing cross-platform C++ network enabled applications or modules.
 
 The consisting libraries only depend on C++ STL with one exception:
- * __solid_frame_aio_openssl__: which depends on either [OpenSSL](https://www.openssl.org/) or [BorringSSL](https://boringssl.googlesource.com/boringssl/)
+ * __solid_frame_aio_openssl__: which depends on either [OpenSSL](https://www.openssl.org/) or [BoringSSL](https://boringssl.googlesource.com/boringssl/)
 
 In order to keep the framework as dependency-free as possible some components that can be found in other libraries/frameworks were re-implemented here too, most of them being locate in either __solid_utility__ or __solid_system__ libraries.
 
@@ -530,7 +530,7 @@ __Usefull links__
 
 ### <a id="solid_frame_aio_openssl"></a>solid_frame_aio_openssl
 
-Work in progress: The library extends solid_frame_aio with support for Secure Sockets based on OpenSSL/BorringSSL libraries.
+Work in progress: The library extends solid_frame_aio with support for Secure Sockets based on OpenSSL/BoringSSL libraries.
  * [__aiosecuresocket.hpp__](solid/frame/aio/openssl/aiosecuresocket.hpp): Used by aio::Stream for SSL.
  * [__aiosecurecontext.hpp__](solid/frame/aio/openssl/aiosecurecontext.hpp): OpenSSL context wrapper.
 
