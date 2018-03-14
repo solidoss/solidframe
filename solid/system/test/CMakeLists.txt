@@ -1,8 +1,5 @@
 
 set( MyTests
-    test_thread.cpp
-    test_file.cpp
-    test_socket.cpp
     test_nanotime.cpp
     test_exception.cpp
 )

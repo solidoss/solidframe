@@ -99,7 +99,7 @@ struct AnyValue<T, false> : AnyValueBase {
         return &value_;
     }
 
-    AnyValueBase* copyTo(void* _pd, const size_t _sz) const override
+    AnyValueBase* copyTo(void* /*_pd*/, const size_t /*_sz*/) const override
     {
         SOLID_THROW("Copy on Non Copyable");
         return nullptr;

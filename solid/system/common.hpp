@@ -42,16 +42,6 @@ struct EmptyType {
 class NullType {
 };
 
-template <size_t V>
-struct SizeToType {
-    enum { value = V };
-};
-
-template <bool V>
-struct BoolToType {
-    enum { value = V };
-};
-
 template <class T>
 struct TypeToType {
     using TypeT = T;

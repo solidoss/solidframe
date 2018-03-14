@@ -29,7 +29,7 @@ typedef std::vector<size_t> DynamicIdVectorT;
 //struct DynamicPointerBase;
 //! A base for all types that needs dynamic typeid.
 struct DynamicBase {
-    static bool isType(const size_t _id)
+    static bool isType(const size_t /*_id*/)
     {
         return false;
     }
@@ -38,10 +38,10 @@ struct DynamicBase {
 
     static bool isTypeDynamic(const size_t _id);
 
-    static void staticTypeIds(DynamicIdVectorT& _rv)
+    static void staticTypeIds(DynamicIdVectorT& /*_rv*/)
     {
     }
-    virtual void dynamicTypeIds(DynamicIdVectorT& _rv) const
+    virtual void dynamicTypeIds(DynamicIdVectorT& /*_rv*/) const
     {
     }
 

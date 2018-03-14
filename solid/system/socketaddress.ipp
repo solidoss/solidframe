@@ -480,7 +480,7 @@ inline size_t SocketAddress::addressHash() const
     return in_addr_hash(address4());
 }
 
-inline void SocketAddress::path(const char* _pth)
+inline void SocketAddress::path(const char* /*_pth*/)
 {
     //TODO
 }
@@ -1137,10 +1137,23 @@ inline size_t in_addr_hash(const in_addr& _inaddr)
     return _inaddr.s_addr;
 }
 
+inline size_t in_addr_hash(const unsigned char *_p, std::integral_constant<size_t, 4>){
+    //32 bit systems
+    const size_t *ps = reinterpret_cast<const size_t*>(_p);
+    return ps[0] ^ ps[1] ^ ps[2] ^ ps[3];
+}
+
+
+inline size_t in_addr_hash(const unsigned char *_p, std::integral_constant<size_t, 2>){
+    //64 bit systems
+    const size_t *ps = reinterpret_cast<const size_t*>(_p);
+    return ps[0] ^ ps[1];
+}
+
 inline size_t in_addr_hash(const in6_addr& _inaddr)
 {
-    //TODO
-    return 0;
+    static constexpr size_t cnt = sizeof(in6_addr::s6_addr) / sizeof(size_t);
+    return in_addr_hash(_inaddr.s6_addr, std::integral_constant<size_t, cnt>());
 }
 
 //-----------------------------------------------------------------------
@@ -1150,8 +1163,9 @@ inline size_t in_addr_hash(const in6_addr& _inaddr)
 inline SocketAddressLocal::SocketAddressLocal()
 {
 }
-inline SocketAddressLocal::SocketAddressLocal(const char* _path)
+inline SocketAddressLocal::SocketAddressLocal(const char* /*_path*/)
 {
+    //TODO:
 }
 
 inline SocketAddressLocal& SocketAddressLocal::operator=(const SocketAddressStub&)
@@ -1183,12 +1197,12 @@ inline SocketAddressLocal::operator const sockaddr*() const
     return sockAddr();
 }
 
-inline bool SocketAddressLocal::operator<(const SocketAddressLocal& _raddr) const
+inline bool SocketAddressLocal::operator<(const SocketAddressLocal& /*_raddr*/) const
 {
     //TODO
     return false;
 }
-inline bool SocketAddressLocal::operator==(const SocketAddressLocal& _raddr) const
+inline bool SocketAddressLocal::operator==(const SocketAddressLocal& /*_raddr*/) const
 {
     //TODO
     return false;
@@ -1209,7 +1223,7 @@ inline size_t SocketAddressLocal::addressHash() const
     return 0;
 }
 
-inline void SocketAddressLocal::path(const char* _pth)
+inline void SocketAddressLocal::path(const char* /*_pth*/)
 {
     //TODO
 }

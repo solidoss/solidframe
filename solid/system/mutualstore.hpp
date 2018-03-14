@@ -81,7 +81,7 @@ public:
     }
     inline MutualObjectT& at(const size_t i, const unsigned _objpermutbts)
     {
-        return doGetObject(i >> objpermutbts);
+        return doGetObject(i >> _objpermutbts);
     }
     inline MutualObjectT const& at(const size_t i) const
     {

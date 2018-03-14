@@ -236,14 +236,14 @@ struct ExtendedData {
     T* generic(const T& _rt)
     {
         clear();
-        return doGenericCreate(_rt, BoolToType<sizeof(T) <= MAX_GENERIC_SIZE>());
+        return doGenericCreate(_rt, std::integral_constant<bool, sizeof(T) <= MAX_GENERIC_SIZE>());
     }
 
     template <class T>
     T* generic(T&& _ut)
     {
         clear();
-        return doGenericCreate(std::move(_ut), BoolToType<sizeof(T) <= MAX_GENERIC_SIZE>());
+        return doGenericCreate(std::move(_ut), std::integral_constant<bool, sizeof(T) <= MAX_GENERIC_SIZE>());
     }
 
     template <class T>
@@ -279,7 +279,7 @@ struct ExtendedData {
 
 private:
     template <class T>
-    T* doGenericCreate(const T& _rt, BoolToType<true> /*_b*/)
+    T* doGenericCreate(const T& _rt, std::integral_constant<bool, true> /*_b*/)
     {
         T* retval           = new (generic_.buffer) T(_rt);
         generic_.ptr        = retval;
@@ -288,7 +288,7 @@ private:
         return retval;
     }
     template <class T>
-    T* doGenericCreate(const T& _rt, BoolToType<false> /*_b*/)
+    T* doGenericCreate(const T& _rt, std::integral_constant<bool, false> /*_b*/)
     {
         T* retval           = new T(_rt);
         generic_.ptr        = retval;
@@ -298,7 +298,7 @@ private:
     }
 
     template <class T>
-    T* doGenericCreate(T&& _ut, BoolToType<true> /*_b*/)
+    T* doGenericCreate(T&& _ut, std::integral_constant<bool, true> /*_b*/)
     {
         T* retval           = new (generic_.buffer) T{std::move(_ut)};
         generic_.ptr        = retval;
@@ -307,7 +307,7 @@ private:
         return retval;
     }
     template <class T>
-    T* doGenericCreate(T&& _ut, BoolToType<false> /*_b*/)
+    T* doGenericCreate(T&& _ut, std::integral_constant<bool, false> /*_b*/)
     {
         T* retval           = new T{std::move(_ut)};
         generic_.ptr        = retval;

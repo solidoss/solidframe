@@ -172,15 +172,15 @@ inline size_t max_padded_byte_cout(uint64_t _v)
 //---
 
 //=============================================================================
-#if 1
+
 template <class It, class Cmp>
-size_t find_cmp(It _it, Cmp const&, SizeToType<1> _s)
+size_t find_cmp(It /*_it*/, Cmp const&, std::integral_constant<size_t, 1> _s)
 {
     return 0;
 }
 
 template <class It, class Cmp>
-size_t find_cmp(It _it, Cmp const& _rcmp, SizeToType<2> _s)
+size_t find_cmp(It _it, Cmp const& _rcmp, std::integral_constant<size_t, 2> /*_s*/)
 {
     if (_rcmp(*_it, *(_it + 1))) {
         return 0;
@@ -189,18 +189,18 @@ size_t find_cmp(It _it, Cmp const& _rcmp, SizeToType<2> _s)
 }
 
 template <class It, class Cmp, size_t S>
-size_t find_cmp(It _it, Cmp const& _rcmp, SizeToType<S> s)
+size_t find_cmp(It _it, Cmp const& _rcmp, std::integral_constant<size_t, S> s)
 {
 
-    const size_t off1 = find_cmp(_it, _rcmp, SizeToType<S / 2>());
-    const size_t off2 = find_cmp(_it + S / 2, _rcmp, SizeToType<S - S / 2>()) + S / 2;
+    const size_t off1 = find_cmp(_it, _rcmp, std::integral_constant<size_t, S / 2>());
+    const size_t off2 = find_cmp(_it + S / 2, _rcmp, std::integral_constant<size_t, S - S / 2>()) + S / 2;
 
     if (_rcmp(*(_it + off1), *(_it + off2))) {
         return off1;
     }
     return off2;
 }
-#endif
+
 //=============================================================================
 
 struct binary_search_basic_comparator {

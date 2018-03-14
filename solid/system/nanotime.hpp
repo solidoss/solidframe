@@ -122,13 +122,13 @@ private:
         tv_nsec = -1;
     }
     template <class Clock, class Duration>
-    void doClockCast(std::chrono::time_point<Clock, Duration>& _rtp, const std::chrono::time_point<Clock, Duration>& _rmytp) const
+    void doClockCast(std::chrono::time_point<Clock, Duration>& _rtp, const std::chrono::time_point<Clock, Duration>& /*_rmytp*/) const
     {
         _rtp = timePointCast<std::chrono::time_point<Clock, Duration>>();
     }
 
     template <class Clock, class MyClock, class Duration>
-    void doClockCast(std::chrono::time_point<Clock, Duration>& _rtp, const std::chrono::time_point<MyClock, Duration>& _rmytp) const
+    void doClockCast(std::chrono::time_point<Clock, Duration>& _rtp, const std::chrono::time_point<MyClock, Duration>& /*_rmytp*/) const
     {
         const typename Clock::time_point   other_now = Clock::now();
         const typename MyClock::time_point my_now    = MyClock::now();
@@ -146,7 +146,7 @@ void time_point_clock_cast(std::chrono::time_point<Clock, RetDuration>& _rret_tp
 }
 
 template <class RetClock, class RetDuration, class Clock, class Duration>
-void time_point_clock_cast(std::chrono::time_point<RetClock, RetDuration>& _rret_tp, const std::chrono::time_point<Clock, Duration>& _rtp)
+void time_point_clock_cast(std::chrono::time_point<RetClock, RetDuration>& /*_rret_tp*/, const std::chrono::time_point<Clock, Duration>& _rtp)
 {
     const typename RetClock::time_point ret_now = RetClock::now();
     const typename Clock::time_point    my_now  = Clock::now();

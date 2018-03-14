@@ -31,7 +31,7 @@ public:
 #else
     typedef int DescriptorT;
 #endif
-    static const DescriptorT invalidDescriptor()
+    static DescriptorT invalidDescriptor()
     {
 #ifdef SOLID_ON_WINDOWS
         return INVALID_HANDLE_VALUE;

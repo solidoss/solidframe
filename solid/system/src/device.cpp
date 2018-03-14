@@ -1128,6 +1128,8 @@ ErrorCodeT SocketDevice::hasCork(bool& _rrv) const
     }
     return last_socket_error();
 #else
+    //TODO:
+    (void)_rrv;
     return solid::error_not_implemented;
 #endif
 }

@@ -333,25 +333,25 @@ size_t SchedulerBase::doComputeScheduleReactorIndex()
     case 1:
         return 0;
     case 2: {
-        return find_cmp(impl_->reactorvec.begin(), less_cmp, SizeToType<2>());
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 2>());
     }
     case 3: {
-        return find_cmp(impl_->reactorvec.begin(), less_cmp, SizeToType<3>());
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 3>());
     }
     case 4: {
-        return find_cmp(impl_->reactorvec.begin(), less_cmp, SizeToType<4>());
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 4>());
     }
     case 5: {
-        return find_cmp(impl_->reactorvec.begin(), less_cmp, SizeToType<5>());
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 5>());
     }
     case 6: {
-        return find_cmp(impl_->reactorvec.begin(), less_cmp, SizeToType<6>());
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 6>());
     }
     case 7: {
-        return find_cmp(impl_->reactorvec.begin(), less_cmp, SizeToType<7>());
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 7>());
     }
     case 8: {
-        return find_cmp(impl_->reactorvec.begin(), less_cmp, SizeToType<8>());
+        return find_cmp(impl_->reactorvec.begin(), less_cmp, std::integral_constant<size_t, 8>());
     }
     default:
         break;
