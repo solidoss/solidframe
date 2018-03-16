@@ -50,6 +50,8 @@ public:
         this->deactivate();
     }
 
+    SocketDevice reset(ReactorContext& _rctx, SocketDevice&& _rnewdev = std::move(dummy_socket_device()));
+
     const SocketDevice& device() const;
 
     //Returns false when the operation is scheduled for completion. On completion _f(...) will be called.

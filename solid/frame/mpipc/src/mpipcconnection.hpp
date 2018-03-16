@@ -82,6 +82,7 @@ public:
     static Event eventNewQueueMessage();
     static Event eventCancelConnMessage(const MessageId&);
     static Event eventCancelPoolMessage(const MessageId&);
+    static Event eventClosePoolMessage(const MessageId&);
     static Event eventStopping();
     static Event eventEnterActive(ConnectionEnterActiveCompleteFunctionT&&, const size_t _send_buffer_capacity);
     static Event eventEnterPassive(ConnectionEnterPassiveCompleteFunctionT&&);
@@ -303,6 +304,7 @@ private:
     void doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
+    void doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Event& _revent);
     void doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Event& _revent);

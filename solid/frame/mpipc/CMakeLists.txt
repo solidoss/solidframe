@@ -42,8 +42,8 @@ target_include_directories(solid_frame_mpipc PUBLIC
 
 target_link_libraries(solid_frame_mpipc solid_frame_aio)
 
-install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/mpipc)
-install (TARGETS solid_frame_mpipc DESTINATION lib EXPORT SolidFrameConfig)
+install (FILES ${Headers} ${Inlines} DESTINATION include/gperftool/frame/mpipc)
+install (TARGETS solid_frame_mpipc DESTINATION lib EXPORT GPerfToolsConfig)
 
 if(NOT ON_CROSS)
     add_subdirectory(test)

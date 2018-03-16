@@ -139,7 +139,7 @@ struct Test {
     }
 };
 
-int test_any(int argc, char* argv[])
+int test_any(int /*argc*/, char* /*argv*/ [])
 {
 #ifdef TEST_BOOST_ANY
     {
@@ -249,7 +249,7 @@ int test_any(int argc, char* argv[])
     {
 
         using Array4T = std::array<size_t, 4>;
-        Any<8> any(Array4T{1, 2, 3, 4});
+        Any<8> any{Array4T{{1, 2, 3, 4}}};
         SOLID_CHECK((*any.cast<Array4T>())[0] == 1);
         SOLID_CHECK((*any.cast<Array4T>())[1] == 2);
         SOLID_CHECK((*any.cast<Array4T>())[2] == 3);
@@ -260,7 +260,7 @@ int test_any(int argc, char* argv[])
     {
 
         using Array4T = std::array<size_t, 4>;
-        Any<128> any(Array4T{1, 2, 3, 4});
+        Any<128> any(Array4T{{1, 2, 3, 4}});
         SOLID_CHECK((*any.cast<Array4T>())[0] == 1);
         SOLID_CHECK((*any.cast<Array4T>())[1] == 2);
         SOLID_CHECK((*any.cast<Array4T>())[2] == 3);
@@ -272,7 +272,7 @@ int test_any(int argc, char* argv[])
 
         using Array4T = std::array<size_t, 4>;
         Any<128> any;
-        any = Array4T{1, 2, 3, 4};
+        any = Array4T{{1, 2, 3, 4}};
         SOLID_CHECK((*any.cast<Array4T>())[0] == 1);
         SOLID_CHECK((*any.cast<Array4T>())[1] == 2);
         SOLID_CHECK((*any.cast<Array4T>())[2] == 3);
@@ -282,8 +282,8 @@ int test_any(int argc, char* argv[])
     }
     {
         using Array4T = std::array<size_t, 4>;
-        Array4T arr{1, 2, 3, 4};
-        auto    lambda = [arr = std::move(arr)](const char* _txt) mutable
+        Array4T arr{{1, 2, 3, 4}};
+        auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable
         {
             SOLID_CHECK(arr[3] == 4);
             arr[3] = 10;
@@ -294,8 +294,8 @@ int test_any(int argc, char* argv[])
     }
     {
         using Array4T = std::array<size_t, 4>;
-        Array4T arr{1, 2, 3, 4};
-        auto    lambda = [arr = std::move(arr)](const char* _txt) mutable
+        Array4T arr{{1, 2, 3, 4}};
+        auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable
         {
             SOLID_CHECK(arr[3] == 4);
             arr[3] = 10;
@@ -306,9 +306,9 @@ int test_any(int argc, char* argv[])
     }
     {
         using Array4T = std::array<size_t, 4>;
-        Array4T       arr{1, 2, 3, 4};
+        Array4T       arr{{1, 2, 3, 4}};
         std::ifstream ifs;
-        auto          lambda = [ arr = std::move(arr), ifs = std::move(ifs) ](const char* _txt) mutable
+        auto          lambda = [ arr = std::move(arr), ifs = std::move(ifs) ](const char* /*_txt*/) mutable
         {
             SOLID_CHECK(arr[3] == 4);
             arr[3] = 10;

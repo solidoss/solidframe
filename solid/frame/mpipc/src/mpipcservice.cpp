@@ -664,7 +664,10 @@ ErrorConditionT Service::doStart()
 
         if (not rd.empty()) {
             sd.create(rd.begin());
-            sd.prepareAccept(rd.begin(), Listener::backlog_size());
+            const ErrorCodeT errc = sd.prepareAccept(rd.begin(), Listener::backlog_size());
+            if (errc) {
+                sd.close();
+            }
         }
 
         if (sd) {
@@ -968,7 +971,7 @@ ErrorConditionT Service::doSendMessage(
         rpool.isCleaningOneShotMessages() and Message::is_one_shot(_flags)) {
         success = manager().notify(
             rpool.main_connection_id,
-            Connection::eventCancelPoolMessage(msgid));
+            Connection::eventClosePoolMessage(msgid));
 
         if (success) {
             vdbgx(Debug::mpipc, this << " message " << msgid << " from pool " << pool_index << " sent for canceling to " << rpool.main_connection_id);

@@ -485,8 +485,8 @@ int test_clientserver_idempotent(int argc, char** argv)
         {
             unique_lock<mutex> lock(mtx);
 
-            if (not cnd.wait_for(lock, std::chrono::seconds(10), []() { return start_sleep; })) {
-                SOLID_THROW("Process is taking too long.");
+            if (not cnd.wait_for(lock, std::chrono::seconds(100), []() { return start_sleep; })) {
+                SOLID_THROW("Start is taking too long.");
             }
         }
 

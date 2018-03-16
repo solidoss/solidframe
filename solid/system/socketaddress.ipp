@@ -1137,16 +1137,17 @@ inline size_t in_addr_hash(const in_addr& _inaddr)
     return _inaddr.s_addr;
 }
 
-inline size_t in_addr_hash(const unsigned char *_p, std::integral_constant<size_t, 4>){
+inline size_t in_addr_hash(const unsigned char* _p, std::integral_constant<size_t, 4>)
+{
     //32 bit systems
-    const size_t *ps = reinterpret_cast<const size_t*>(_p);
+    const size_t* ps = reinterpret_cast<const size_t*>(_p);
     return ps[0] ^ ps[1] ^ ps[2] ^ ps[3];
 }
 
-
-inline size_t in_addr_hash(const unsigned char *_p, std::integral_constant<size_t, 2>){
+inline size_t in_addr_hash(const unsigned char* _p, std::integral_constant<size_t, 2>)
+{
     //64 bit systems
-    const size_t *ps = reinterpret_cast<const size_t*>(_p);
+    const size_t* ps = reinterpret_cast<const size_t*>(_p);
     return ps[0] ^ ps[1];
 }
 

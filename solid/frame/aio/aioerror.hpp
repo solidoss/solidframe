@@ -33,6 +33,7 @@ extern const ErrorConditionT error_stream_shutdown;
 extern const ErrorConditionT error_timer_cancel;
 
 extern const ErrorConditionT error_listener_system;
+extern const ErrorConditionT error_listener_hangup;
 
 extern const ErrorCodeT error_secure_context;
 extern const ErrorCodeT error_secure_socket;

@@ -171,6 +171,30 @@ inline void solidSerializeV2(S& _rs, const std::bitset<N>& _rt, Ctx& _rctx, cons
     _rs.addBitset(_rt, _name);
 }
 
+//array ----------------------------------------------------------------------
+
+template <class S, class T, size_t N>
+inline void solidSerializeV2(S& _rs, const std::array<T, N>& _rt, const char* _name)
+{
+    _rs.addArray(_rs, _rt, N, _name);
+}
+template <class S, class T, size_t N>
+inline void solidSerializeV2(S& _rs, std::array<T, N>& _rt, const char* _name)
+{
+    _rs.addArray(_rs, _rt, N, _name);
+}
+template <class S, class T, size_t N, class Ctx>
+inline void solidSerializeV2(S& _rs, std::array<T, N>& _rt, Ctx& _rctx, const char* _name)
+{
+    static size_t s;
+    _rs.addArray(_rs, _rt, s, _rctx, _name);
+}
+template <class S, class T, size_t N, class Ctx>
+inline void solidSerializeV2(S& _rs, const std::array<T, N>& _rt, Ctx& _rctx, const char* _name)
+{
+    _rs.addArray(_rs, _rt, N, _rctx, _name);
+}
+
 //vector<bool> ----------------------------------------------------------------
 
 template <class S, class A>

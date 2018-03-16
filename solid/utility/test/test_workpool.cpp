@@ -19,7 +19,7 @@ mutex_t mtx;
 using FunctionJobT = std::function<void()>;
 } // namespace
 
-int test_workpool(int argc, char* argv[])
+int test_workpool(int /*argc*/, char* /*argv*/ [])
 {
     auto l = [](FunctionJobT& _jf) {
         _jf();

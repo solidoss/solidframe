@@ -79,17 +79,17 @@ protected:
  * a template parameter for WorkPool.
  */
 struct WorkPoolControllerBase {
-    bool prepareWorker(WorkerBase& _rw)
+    bool prepareWorker(WorkerBase& /*_rw*/)
     {
         return true;
     }
-    void unprepareWorker(WorkerBase& _rw)
+    void unprepareWorker(WorkerBase& /*_rw*/)
     {
     }
     void onPush(WorkPoolBase&, size_t)
     {
     }
-    void onMultiPush(WorkPoolBase&, size_t _cnd, size_t)
+    void onMultiPush(WorkPoolBase&, size_t /*_cnd*/, size_t)
     {
     }
     size_t onPopStart(WorkPoolBase&, WorkerBase&, size_t _maxcnt)

@@ -11,7 +11,7 @@ using namespace std;
 
 std::atomic<size_t> val{0};
 
-int test_workpool_fast(int argc, char* argv[])
+int test_workpool_fast(int /*argc*/, char* /*argv*/ [])
 {
     FunctionWorkPoolT<size_t> wp{
         [](size_t _v) {

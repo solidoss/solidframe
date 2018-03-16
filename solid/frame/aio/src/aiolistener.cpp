@@ -48,6 +48,9 @@ namespace aio {
             SocketDevice sd;
             FunctionT    tmpf;
             std::swap(tmpf, rthis.f);
+
+            rthis.error(_rctx, error_listener_hangup);
+
             tmpf(_rctx, sd);
         }
         break;
@@ -74,6 +77,20 @@ namespace aio {
 
 /*static*/ void Listener::on_dummy(ReactorContext&, SocketDevice&)
 {
+}
+
+SocketDevice Listener::reset(ReactorContext& _rctx, SocketDevice&& _rnewdev)
+{
+    if (sd) {
+        remDevice(_rctx, sd);
+    }
+    SocketDevice tmpsd(std::move(sd));
+    sd = std::move(_rnewdev);
+    if (sd) {
+        completionCallback(&on_completion);
+        addDevice(_rctx, sd, ReactorWaitRead);
+    }
+    return tmpsd;
 }
 
 void Listener::doPostAccept(ReactorContext& _rctx)

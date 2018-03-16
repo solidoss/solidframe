@@ -47,6 +47,8 @@ struct Context {
 };
 
 class Test {
+    static constexpr size_t BlobCapacity = 40 * 1024;
+
     string                   p;
     bool                     b;
     vector<A>                v;
@@ -59,11 +61,17 @@ class Test {
     vector<bool>             vb;
     bitset<20>               bs;
     vector<char>             vc;
+    array<A, 10>             a1;
+    array<A, 20>             a2;
+    uint16_t                 a2_sz;
+    uint32_t                 blob_sz;
+    char                     blob[BlobCapacity];
 
     std::ostringstream oss;
 
     void populate(bool _b)
     {
+        string blb;
         b = _b;
         if (_b) {
             for (size_t i = 0; i < 100; ++i) {
@@ -73,6 +81,7 @@ class Test {
                 v.back().s = to_string(v.back().a) + " - " + to_string(v.back().b);
                 a.s += v.back().s;
                 a.s += ' ';
+                blb += a.s;
             }
         } else {
             for (size_t i = 0; i < 100; ++i) {
@@ -82,6 +91,7 @@ class Test {
                 d.back().s = to_string(d.back().a) + " - " + to_string(d.back().b);
                 a.s += d.back().s;
                 a.s += ' ';
+                blb += a.s;
             }
         }
         for (size_t i = 0; i < 10; ++i) {
@@ -89,17 +99,25 @@ class Test {
             a.a = i;
             a.b = 10 - i;
             a.s = to_string(a.a) + ' ' + to_string(a.b);
+            blb += a.s;
             s.insert(a.s);
             us.insert(a.s);
 
             m[to_string(i)]  = a;
+            a1[i]            = a;
+            a2[i]            = a;
             um[to_string(i)] = std::move(a);
         }
+        a2_sz = 10;
         for (size_t i = 0; i < 20; ++i) {
             vb.push_back((i % 2) == 0);
             bs[i] = ((i % 2) == 0);
             vc.push_back('a' + i);
         }
+
+        SOLID_ASSERT(blb.size() < BlobCapacity);
+        memcpy(blob, blb.data(), blb.size());
+        blob_sz = blb.size();
     }
 
 public:
@@ -134,6 +152,18 @@ public:
         SOLID_ASSERT(vb == _rt.vb);
         SOLID_ASSERT(bs == _rt.bs);
         SOLID_ASSERT(vc == _rt.vc);
+        SOLID_ASSERT(a1 == _rt.a1);
+        SOLID_ASSERT(a2_sz == _rt.a2_sz);
+        for (decltype(a2_sz) i = 0; i < a2_sz; ++i) {
+            if (a2[i] == _rt.a2[i]) {
+
+            } else {
+                SOLID_ASSERT(false);
+                return false;
+            }
+        }
+        SOLID_ASSERT(blob_sz == _rt.blob_sz);
+        SOLID_ASSERT(memcmp(blob, _rt.blob, blob_sz) == 0);
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs && vc == _rt.vc;
     }
 
@@ -173,6 +203,9 @@ public:
         _rs.add(vb, _rctx, "vb");
         _rs.add(bs, _rctx, "bs");
         _rs.add(vc, _rctx, "vc");
+        _rs.add(a1, _rctx, "a1");
+        _rs.add(a2, a2_sz, _rctx, "a2");
+        _rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
         //_rs.add(b, "b").add(v, "v").add(a, "a");
     }
 
@@ -211,6 +244,9 @@ public:
         _rs.add(vb, _rctx, "vb");
         _rs.add(bs, _rctx, "bs");
         _rs.add(vc, _rctx, "vc");
+        _rs.add(a1, _rctx, "a1");
+        _rs.add(a2, a2_sz, _rctx, "a2");
+        _rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
         //_rs.add(b, _rctx, "b").add(v, _rctx, "v").add(a, _rctx, "a");
     }
 };

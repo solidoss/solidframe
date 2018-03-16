@@ -547,6 +547,27 @@ public: //should be protected
 
         schedule(std::move(r));
     }
+
+    void addBlob(const void* _pv, const size_t _sz, const size_t _cp, const char* _name)
+    {
+        if (_sz > _cp) {
+            error(error_limit_blob);
+            return;
+        }
+
+        addBasicWithCheck(_sz, _name);
+
+        Runnable r{_pv, &store_binary, _sz, 0, _name};
+
+        if (isRunEmpty()) {
+            if (doStoreBinary(r) == ReturnE::Done) {
+                return;
+            }
+        }
+
+        schedule(std::move(r));
+    }
+
     template <typename A>
     void addVectorBool(const std::vector<bool, A>& _rc, const char* _name)
     {
@@ -591,6 +612,21 @@ public: //should be protected
         }
 
         schedule(std::move(r));
+    }
+
+    template <class S, class T, size_t N, class C>
+    void addArray(S& _rs, const std::array<T, N>& _rc, const size_t _sz, C& _rctx, const char* _name)
+    {
+        if (Base::limits().hasContainer() && _sz > Base::limits().container()) {
+            error(error_limit_container);
+            return;
+        }
+
+        addBasicWithCheck(_sz, _name);
+
+        Runnable r{&_rc, &store_array<S, T, N, C>, _sz, 0, _name};
+
+        tryRun(std::move(r));
     }
 
 protected:
@@ -702,6 +738,28 @@ private:
         }
         return ReturnE::Wait;
     }
+    template <class S, class T, size_t N, class Ctx>
+    static ReturnE store_array(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+    {
+        const std::array<T, N>& rcontainer   = *static_cast<const std::array<T, N>*>(_rr.ptr_);
+        Ctx&                    rctx         = *static_cast<Ctx*>(_pctx);
+        S&                      rs           = static_cast<S&>(_rs);
+        const RunListIteratorT  old_sentinel = _rs.sentinel();
+
+        while (_rs.pcrt_ != _rs.pend_ and _rr.data_ < _rr.size_) {
+            rs.add(rcontainer[_rr.data_], rctx, _rr.name_);
+            ++_rr.data_;
+        }
+
+        const bool is_run_empty = _rs.isRunEmpty();
+        _rs.sentinel(old_sentinel);
+
+        if (_rr.data_ != _rr.size_ or not is_run_empty) {
+            return ReturnE::Wait;
+        } else {
+            return ReturnE::Done;
+        }
+    }
 
 private:
     inline Base::ReturnE doStoreByte(Runnable& _rr)
@@ -787,11 +845,12 @@ private:
 
 //-----------------------------------------------------------------------------
 
-template <typename TypeId, class Ctx = void>
+template <typename TypeId, class Ctx = size_t>
 class Serializer;
 
 //-----------------------------------------------------------------------------
-
+//NOTE: for now we do not support void Context
+#if 0
 template <typename TypeId>
 class Serializer<TypeId, void> : public SerializerBase {
     friend class TypeMapBase;
@@ -927,6 +986,7 @@ public:
         }
     }
 };
+#endif
 
 template <typename TypeId, class Ctx>
 class Serializer : public SerializerBase {
@@ -973,9 +1033,16 @@ public:
         return *this;
     }
 
-    ThisT& add(const void* _pv, size_t _sz, Ctx& _rctx, const char* _name)
+    template <typename T, size_t N>
+    ThisT& add(const std::array<T, N>& _rt, const size_t _sz, Ctx& _rctx, const char* _name)
     {
-        addBinary(_pv, _sz, _name);
+        addArray(*this, _rt, _sz, _rctx, _name);
+        return *this;
+    }
+
+    ThisT& add(const void* _pv, const size_t _sz, const size_t _cp, Ctx& /*_rctx*/, const char* _name)
+    {
+        addBlob(_pv, _sz, _cp, _name);
         return *this;
     }
 

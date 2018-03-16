@@ -30,6 +30,7 @@ enum {
     ErrorStreamShutdownE,
     ErrorTimerCancelE,
     ErrorListenerSystemE,
+    ErrorListenerHangupE,
     ErrorSecureContextE,
     ErrorSecureSocketE,
     ErrorSecureRecvE,
@@ -97,6 +98,9 @@ std::string ErrorCategory::message(int _ev) const
     case ErrorListenerSystemE:
         oss << "Listener: system";
         break;
+    case ErrorListenerHangupE:
+        oss << "Listener: Hangup";
+        break;
     case ErrorSecureContextE:
         oss << "Secure: context";
         break;
@@ -144,6 +148,7 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_timer_cancel(ErrorTimerCancelE, category);
 
 /*extern*/ const ErrorConditionT error_listener_system(ErrorListenerSystemE, category);
+/*extern*/ const ErrorConditionT error_listener_hangup(ErrorListenerHangupE, category);
 
 /*extern*/ const ErrorCodeT error_secure_context(ErrorSecureContextE, category);
 /*extern*/ const ErrorCodeT error_secure_socket(ErrorSecureSocketE, category);

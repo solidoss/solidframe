@@ -28,6 +28,7 @@ enum class ConnectionEvents {
     NewConnMessage,
     CancelConnMessage,
     CancelPoolMessage,
+    ClosePoolMessage,
     EnterActive,
     EnterPassive,
     StartSecure,
@@ -55,6 +56,8 @@ const EventCategory<ConnectionEvents> connection_event_category{
             return "CancelConnMessage";
         case ConnectionEvents::CancelPoolMessage:
             return "CancelPoolMessage";
+        case ConnectionEvents::ClosePoolMessage:
+            return "ClosePoolMessage";
         case ConnectionEvents::EnterActive:
             return "EnterActive";
         case ConnectionEvents::EnterPassive:
@@ -124,6 +127,13 @@ inline ObjectIdT Connection::uid(frame::aio::ReactorContext& _rctx) const
 /*static*/ Event Connection::eventCancelPoolMessage(const MessageId& _rmsgid)
 {
     Event event = connection_event_category.event(ConnectionEvents::CancelPoolMessage);
+    event.any() = _rmsgid;
+    return event;
+}
+//-----------------------------------------------------------------------------
+/*static*/ Event Connection::eventClosePoolMessage(const MessageId& _rmsgid)
+{
+    Event event = connection_event_category.event(ConnectionEvents::ClosePoolMessage);
     event.any() = _rmsgid;
     return event;
 }
@@ -759,6 +769,10 @@ void Connection::onStopped(frame::aio::ReactorContext& _rctx)
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         _rcon.doHandleEventCancelPoolMessage(_rctx, _revt);
                     }},
+                {connection_event_category.event(ConnectionEvents::ClosePoolMessage),
+                    [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
+                        _rcon.doHandleEventClosePoolMessage(_rctx, _revt);
+                    }},
                 {connection_event_category.event(ConnectionEvents::EnterActive),
                     [](Event& _revt, Connection& _rcon, frame::aio::ReactorContext& _rctx) {
                         _rcon.doHandleEventEnterActive(_rctx, _revt);
@@ -929,6 +943,21 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rct
 
         if (service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)) {
             doCompleteMessage(_rctx, *pmsgid, msg_bundle, error_message_canceled);
+        }
+    }
+}
+//-----------------------------------------------------------------------------
+void Connection::doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent)
+{
+
+    MessageId* pmsgid = _revent.any().cast<MessageId>();
+    SOLID_ASSERT(pmsgid);
+
+    if (pmsgid) {
+        MessageBundle msg_bundle;
+
+        if (service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)) {
+            doCompleteMessage(_rctx, *pmsgid, msg_bundle, error_message_connection);
         }
     }
 }

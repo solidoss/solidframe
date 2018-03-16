@@ -44,7 +44,7 @@ public:
                 arr[j] = i;
             }
             push(
-                [arr = std::move(arr)](const size_t _i) {
+                [arr = std::move(arr)](const size_t /*_i*/) {
                     uint64_t r = 0;
                     for (const auto& v : arr) {
                         r += v;

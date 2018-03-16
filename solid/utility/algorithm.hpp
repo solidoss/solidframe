@@ -174,7 +174,7 @@ inline size_t max_padded_byte_cout(uint64_t _v)
 //=============================================================================
 
 template <class It, class Cmp>
-size_t find_cmp(It /*_it*/, Cmp const&, std::integral_constant<size_t, 1> _s)
+size_t find_cmp(It /*_it*/, Cmp const&, std::integral_constant<size_t, 1> /*_s*/)
 {
     return 0;
 }
@@ -189,7 +189,7 @@ size_t find_cmp(It _it, Cmp const& _rcmp, std::integral_constant<size_t, 2> /*_s
 }
 
 template <class It, class Cmp, size_t S>
-size_t find_cmp(It _it, Cmp const& _rcmp, std::integral_constant<size_t, S> s)
+size_t find_cmp(It _it, Cmp const& _rcmp, std::integral_constant<size_t, S> /*_s*/)
 {
 
     const size_t off1 = find_cmp(_it, _rcmp, std::integral_constant<size_t, S / 2>());

@@ -121,7 +121,7 @@ struct FunctionValue<T, false, R, ArgTypes...> : FunctionValueInter<R, ArgTypes.
         return &value_;
     }
 
-    FunctionValue* copyTo(void* _pd, const size_t _sz) const override
+    FunctionValue* copyTo(void* /*_pd*/, const size_t /*_sz*/) const override
     {
         SOLID_THROW("Copy on Non Copyable");
         return nullptr;

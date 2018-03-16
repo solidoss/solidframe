@@ -572,6 +572,54 @@ public:
         schedule(std::move(r));
     }
 
+    template <class D, class T, size_t N, class S, class C>
+    void addArray(D& _rd, std::array<T, N>& _rc, S& _rsz, C& _rctx, const char* _name)
+    {
+        _rd.addBasicWithCheck(data_.u64_, _name);
+
+        {
+            Runnable r{&_rsz, &load_array_size<S>, 0, 0, _name};
+            if (isRunEmpty()) {
+                load_array_size<S>(*this, r, &_rctx);
+            } else {
+                schedule(std::move(r));
+            }
+        }
+        {
+            Runnable r{&_rc, load_array_start<D, T, N, C>, 0, 0, _name};
+
+            tryRun(std::move(r), &_rctx);
+        }
+    }
+
+    template <class T>
+    void addBlob(void* _pv, T& _rsz, const size_t _cp, const char* _name)
+    {
+
+        addBasicWithCheck(data_.u64_, _name);
+
+        {
+            Runnable r{&_rsz, &load_array_size<T>, 0, 0, _name};
+            if (isRunEmpty()) {
+                load_array_size<T>(*this, r, nullptr);
+            } else {
+                schedule(std::move(r));
+            }
+        }
+
+        {
+            Runnable r{_pv, &load_blob, _cp, 0, _name};
+
+            if (isRunEmpty()) {
+                if (load_blob(*this, r, nullptr) == ReturnE::Done) {
+                    return;
+                }
+            }
+
+            schedule(std::move(r));
+        }
+    }
+
 protected:
     void doPrepareRun(const char* _pbeg, unsigned _sz)
     {
@@ -852,6 +900,64 @@ private:
         }
         return r;
     }
+    template <class T>
+    static ReturnE load_array_size(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    {
+        const uint64_t v  = _rd.data_.u64_;
+        const T        vt = static_cast<T>(v);
+        idbgx(Debug::ser_bin, "vt = " << vt);
+
+        if (static_cast<uint64_t>(vt) == v) {
+            *reinterpret_cast<T*>(_rr.ptr_) = vt;
+        } else {
+            _rd.error(error_cross_integer);
+        }
+        return ReturnE::Done;
+    }
+    template <class D, class T, size_t N, class C>
+    static ReturnE load_array_start(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    {
+        _rr.size_ = _rd.data_.u64_;
+        _rr.data_ = 0;
+        _rr.call_ = load_array_continue<D, T, N, C>;
+        return load_array_continue<D, T, N, C>(_rd, _rr, _pctx);
+    }
+
+    template <class D, class T, size_t N, class Ctx>
+    static ReturnE load_array_continue(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    {
+        std::array<T, N>& rcontainer = *static_cast<std::array<T, N>*>(_rr.ptr_);
+        D&                rd         = static_cast<D&>(_rd);
+        Ctx&              rctx       = *static_cast<Ctx*>(_pctx);
+
+        const RunListIteratorT old_sentinel = _rd.sentinel();
+
+        while (_rd.pcrt_ != _rd.pend_ and _rr.data_ < _rr.size_) {
+            rd.add(rcontainer[_rr.data_], rctx, _rr.name_);
+            ++_rr.data_;
+        }
+
+        const bool is_run_empty = _rd.isRunEmpty();
+        _rd.sentinel(old_sentinel);
+
+        if (_rr.data_ == _rr.size_ and is_run_empty) {
+            return ReturnE::Done;
+        }
+        return ReturnE::Wait;
+    }
+
+    static ReturnE load_blob(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+    {
+        if (_rd.data_.u64_ > _rr.size_) {
+            _rd.error(error_limit_blob);
+            return ReturnE::Done;
+        }
+
+        _rr.call_ = load_binary;
+        _rr.size_ = _rd.data_.u64_;
+
+        return _rd.doLoadBinary(_rr);
+    }
 
 private:
     inline Base::ReturnE doLoadBinary(Runnable& _rr)
@@ -990,9 +1096,13 @@ private:
     RunListIteratorT sentinel_;
 }; // namespace solid
 
-template <typename TypeId, class Ctx = void>
+//-----------------------------------------------------------------------------
+template <typename TypeId, class Ctx = size_t>
 class Deserializer;
 
+//-----------------------------------------------------------------------------
+//NOTE: for now we do not support void Context
+#if 0
 template <typename TypeId>
 class Deserializer<TypeId, void> : public DeserializerBase {
     friend class TypeMapBase;
@@ -1116,6 +1226,7 @@ public:
             _name);
     }
 };
+#endif
 
 template <typename TypeId, class Ctx>
 class Deserializer : public DeserializerBase {
@@ -1156,9 +1267,17 @@ public:
         return *this;
     }
 
-    ThisT& add(void* _pv, size_t _sz, const char* _name)
+    template <typename T, size_t N, typename S>
+    ThisT& add(std::array<T, N>& _rt, S& _rsz, Ctx& _rctx, const char* _name)
     {
-        addBinary(_pv, _sz, _name);
+        addArray(*this, _rt, _rsz, _rctx, _name);
+        return *this;
+    }
+
+    template <typename T>
+    ThisT& add(void* _pv, T& _rsz, const size_t _cp, Ctx& /*_rctx*/, const char* _name)
+    {
+        addBlob(_pv, _rsz, _cp, _name);
         return *this;
     }
 
