@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
 #include <cstddef>
 #include <type_traits>
