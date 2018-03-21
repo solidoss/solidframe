@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
 #include <cstddef>
 #include <type_traits>
@@ -101,7 +102,6 @@ struct AnyValue<T, false> : AnyValueBase {
 
     AnyValueBase* copyTo(void* /*_pd*/, const size_t /*_sz*/) const override
     {
-        SOLID_THROW("Copy on Non Copyable");
         return nullptr;
     }
 
@@ -190,6 +190,7 @@ public:
     Any(const ThisT& _rany)
         : AnyBase(doCopyFrom(_rany, data_, DataSize))
     {
+        SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
     }
 
     Any(ThisT&& _rany)
@@ -199,7 +200,7 @@ public:
     }
 
     template <class T>
-    Any(
+    explicit Any(
         const T& _rt)
         : AnyBase(
               do_allocate<typename std::remove_reference<T>::type>(
@@ -210,7 +211,7 @@ public:
     }
 
     template <class T>
-    Any(
+    explicit Any(
         T&& _ut)
         : AnyBase(
               do_allocate<typename std::remove_reference<T>::type>(
@@ -280,6 +281,7 @@ public:
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
             pvalue_ = doCopyFrom(_rany, data_, DataSize);
+            SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
         }
         return *this;
     }

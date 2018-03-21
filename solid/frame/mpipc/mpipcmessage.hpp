@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/common.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/typetraits.hpp"
 

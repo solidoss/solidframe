@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "solid/system/exception.hpp"
+#include "solid/system/cassert.hpp"
 #include <cstddef>
 #include <functional>
 #include <type_traits>
@@ -123,7 +123,6 @@ struct FunctionValue<T, false, R, ArgTypes...> : FunctionValueInter<R, ArgTypes.
 
     FunctionValue* copyTo(void* /*_pd*/, const size_t /*_sz*/) const override
     {
-        SOLID_THROW("Copy on Non Copyable");
         return nullptr;
     }
 
@@ -211,11 +210,12 @@ public:
 
     Function() {}
 
-    Function(std::nullptr_t) {}
+    explicit Function(std::nullptr_t) {}
 
     Function(const ThisT& _rany)
         : FunctionBase(doCopyFrom(_rany, u_.data_, DataSize))
     {
+        SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
     }
 
     Function(ThisT&& _rany)
@@ -225,7 +225,7 @@ public:
     }
 
     template <class T>
-    Function(const T& _t)
+    explicit Function(const T& _t)
         : FunctionBase(
               do_allocate<typename std::remove_reference<T>::type>(
                   bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(),
@@ -235,7 +235,7 @@ public:
     }
 
     template <class T>
-    Function(
+    explicit Function(
         T&& _ut)
         : FunctionBase(
               do_allocate<typename std::remove_reference<T>::type>(
@@ -275,6 +275,7 @@ public:
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
             pvalue_ = doCopyFrom(_rany, u_.data_, DataSize);
+            SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
         }
         return *this;
     }

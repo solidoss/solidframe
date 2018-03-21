@@ -17,6 +17,7 @@
 #include <thread>
 
 #include "solid/system/debug.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
 

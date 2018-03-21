@@ -15,6 +15,7 @@
 #include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/debug.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/innerlist.hpp"
 #include "solid/utility/ioformat.hpp"

@@ -12,6 +12,7 @@
 #include "solid/frame/aio/aioresolver.hpp"
 
 #include "solid/system/debug.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
 #include <condition_variable>
