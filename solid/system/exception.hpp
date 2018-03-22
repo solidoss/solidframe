@@ -99,7 +99,7 @@ private:
 #define SOLID_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
 #define SOLID_LIKELY(x) (!!(x))
-#define SOLID_UNLIKELY(x) (!!(x))
+#define SOLID_UNLIKELY(x) (!(x))
 #endif
 
 #define SOLID_CHECK1(a) \
@@ -108,16 +108,20 @@ private:
 #define SOLID_CHECK2(a, msg) \
     (SOLID_LIKELY(a) ? static_cast<void>(0) : SOLID_THROW(#a " check failed: " << msg));
 
+//adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429
+#if 1
+#define SOLID_CHECK(...) SOLID_CALL_OVERLOAD(SOLID_CHECK, __VA_ARGS__)
+#else
 #define GET_3RD_ARG(arg1, arg2, arg3, ...) arg3
 
 #define SOLID_CHECK_MACRO_CHOOSER(...)     \
     GET_3RD_ARG(__VA_ARGS__, SOLID_CHECK2, \
-        SOLID_CHECK1, )
+        SOLID_CHECK1 )
 
 #define SOLID_CHECK(...)                   \
     SOLID_CHECK_MACRO_CHOOSER(__VA_ARGS__) \
     (__VA_ARGS__)
-
+#endif
 #define SOLID_CHECK_CONDITION(a, c) \
     (SOLID_LIKELY(a) ? static_cast<void>(0) : SOLID_THROW_CONDITION(c));
 

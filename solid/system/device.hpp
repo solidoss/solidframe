@@ -21,6 +21,12 @@
 #endif
 #include "solid/system/common.hpp"
 
+#ifdef SOLID_ON_WINDOWS
+
+using ssize_t = long;
+
+#endif
+
 namespace solid {
 
 //! A wrapper for what on POSIX is a descriptor
@@ -28,6 +34,7 @@ class Device {
 public:
 #ifdef SOLID_ON_WINDOWS
     typedef HANDLE DescriptorT;
+	using ssize_t = long;
 #else
     typedef int DescriptorT;
 #endif

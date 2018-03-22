@@ -91,3 +91,19 @@ struct UnsignedType<uint64_t> {
 };
 
 } //namespace solid
+
+//Some macro helpers:
+
+//adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429
+#define SOLID_GLUE(x, y) x y
+
+#define SOLID_RETURN_ARG_COUNT(_1_, _2_, _3_, _4_, _5_, count, ...) count
+#define SOLID_EXPAND_ARGS(args) SOLID_RETURN_ARG_COUNT args
+#define SOLID_COUNT_ARGS_MAX5(...) SOLID_EXPAND_ARGS((__VA_ARGS__, 5, 4, 3, 2, 1, 0))
+
+#define SOLID_OVERLOAD_MACRO2(name, count) name##count
+#define SOLID_OVERLOAD_MACRO1(name, count) SOLID_OVERLOAD_MACRO2(name, count)
+#define SOLID_OVERLOAD_MACRO(name, count) SOLID_OVERLOAD_MACRO1(name, count)
+
+#define SOLID_CALL_OVERLOAD(name, ...) SOLID_GLUE(SOLID_OVERLOAD_MACRO(name, SOLID_COUNT_ARGS_MAX5(__VA_ARGS__)), (__VA_ARGS__))
+

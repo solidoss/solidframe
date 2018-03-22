@@ -9,7 +9,12 @@
 //
 #include "solid/system/memory.hpp"
 #include <cstdlib>
+
+#ifdef SOLID_ON_WINDOWS
+#include <Windows.h>
+#else
 #include <unistd.h>
+#endif
 
 #ifdef SOLID_ON_LINUX
 #include <malloc.h>

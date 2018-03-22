@@ -40,7 +40,7 @@ std::string ErrorCategory::message(int _ev) const
 const solid::ErrorConditionT error_test{1, category};
 } //namespace
 
-int test_exception(int argc, char** argv)
+int test_exception(int argc, char* argv[])
 {
     bool        is_ok = false;
     std::string check_str;

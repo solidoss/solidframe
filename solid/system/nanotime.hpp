@@ -14,13 +14,6 @@
 #include <chrono>
 #include <time.h>
 
-#ifdef SOLID_ON_WINDOWS
-struct timespec {
-    time_t tv_sec;
-    long   tv_nsec;
-};
-#endif
-
 namespace solid {
 
 //! A timespec wrapper

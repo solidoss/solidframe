@@ -7,6 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include "solid/system/common.hpp"
+
 #ifdef SOLID_ON_WINDOWS
 #include <WinSock2.h>
 #include <Windows.h>
@@ -215,27 +217,27 @@ HANDLE do_open(WCHAR* _pwc, const char* _fname, const size_t _sz, const size_t _
         pwctmp   = _pwc;
     }
     DWORD acc(0);
-    if (_how & FileDevice::RO) {
+    if (_how & FileDevice::ReadOnlyE) {
         acc |= GENERIC_READ;
-    } else if (_how & FileDevice::WO) {
+    } else if (_how & FileDevice::WriteOnlyE) {
         acc |= GENERIC_WRITE;
-    } else if (_how & FileDevice::RW) {
+    } else if (_how & FileDevice::ReadWriteE) {
         acc |= (GENERIC_READ | GENERIC_WRITE);
     }
 
     DWORD creat(0);
 
-    if (_how & FileDevice::CR) {
-        if (_how & FileDevice::TR) {
+    if (_how & FileDevice::CreateE) {
+        if (_how & FileDevice::TruncateE) {
             creat |= CREATE_ALWAYS;
         } else {
             creat |= CREATE_NEW;
         }
     } else {
         creat |= OPEN_EXISTING;
-        if (_how & FileDevice::AP) {
+        if (_how & FileDevice::AppendE) {
         }
-        if (_how & FileDevice::TR) {
+        if (_how & FileDevice::TruncateE) {
             creat |= TRUNCATE_EXISTING;
         }
     }
@@ -268,7 +270,7 @@ bool FileDevice::open(const char* _fname, int _how)
         descriptor(do_open(pwc, _fname, sz, 4096, _how));
     }
     if (ok()) {
-        if (_how & AP) {
+        if (_how & AppendE) {
             seek(0, SeekEnd);
         }
     }
@@ -314,7 +316,7 @@ bool FileDevice::canRetryOpen() const
 {
 #ifdef SOLID_ON_WINDOWS
     FileDevice fd;
-    if (fd.open(_fname, RO)) {
+    if (fd.open(_fname, ReadOnlyE)) {
         return -1;
     }
     return fd.size();

@@ -11,6 +11,9 @@
 #include "solid/system/error.hpp"
 #include "solid/system/exception.hpp"
 #include <sstream>
+#ifdef SOLID_ON_WINDOWS
+#include <Windows.h>
+#endif
 
 namespace solid {
 

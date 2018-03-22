@@ -73,20 +73,20 @@ struct UnsignedConvertor<unsigned long long> {
 
 inline uint32_t bitsToMask32(unsigned v)
 {
-    return (1 << v) - 1;
+    return (1UL << v) - 1;
 }
 inline uint32_t bitsToCount32(unsigned v)
 {
-    return (1 << v) & (~static_cast<uint32_t>(1));
+    return (1UL << v) & (~static_cast<uint32_t>(1));
 }
 
 inline uint64_t bitsToMask64(unsigned v)
 {
-    return (1 << v) - 1;
+    return (1ULL << v) - 1;
 }
 inline uint64_t bitsToCount64(unsigned v)
 {
-    return (1 << v) & (~static_cast<uint64_t>(1));
+    return (1ULL << v) & (~static_cast<uint64_t>(1));
 }
 
 inline size_t bitsToMask(unsigned v)
@@ -95,7 +95,7 @@ inline size_t bitsToMask(unsigned v)
 }
 inline size_t bitsToCount(unsigned v)
 {
-    return (1 << v) & (~static_cast<size_t>(1));
+    return (1ULL << v) & (~static_cast<size_t>(1));
 }
 
 inline uint32_t toNetwork(uint32_t _v)

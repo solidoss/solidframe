@@ -13,42 +13,42 @@ add_custom_target(tutorial_mpipc_request_ssl_certs
     ${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem
 )
 
+if(OPENSSL_FOUND)
 
+    add_executable (tutorial_mpipc_request_ssl_server mpipc_request_server.cpp mpipc_request_messages.hpp)
 
-add_executable (tutorial_mpipc_request_ssl_server mpipc_request_server.cpp mpipc_request_messages.hpp)
+    add_dependencies(tutorial_mpipc_request_ssl_server tutorial_mpipc_request_ssl_certs build_openssl build_snappy)
 
-add_dependencies(tutorial_mpipc_request_ssl_server tutorial_mpipc_request_ssl_certs build_openssl build_snappy)
+    target_link_libraries (tutorial_mpipc_request_ssl_server
+        solid_frame_mpipc
+        solid_frame_aio
+        solid_frame_aio_openssl
+        solid_frame
+        solid_serialization_v2
+        solid_utility
+        solid_system
+        ${SNAPPY_LIB}
+        ${OPENSSL_LIBRARIES}
+        ${SYS_BASIC_LIBS}
+        ${SYS_DYNAMIC_LOAD_LIB}
+    )
 
-target_link_libraries (tutorial_mpipc_request_ssl_server
-    solid_frame_mpipc
-    solid_frame_aio
-    solid_frame_aio_openssl
-    solid_frame
-    solid_serialization_v2
-    solid_utility
-    solid_system
-    ${SNAPPY_LIB}
-    ${OPENSSL_LIBRARIES}
-    ${SYS_BASIC_LIBS}
-    ${SYS_DYNAMIC_LOAD_LIB}
-)
+    add_executable (tutorial_mpipc_request_ssl_client mpipc_request_client.cpp mpipc_request_messages.hpp)
 
-add_executable (tutorial_mpipc_request_ssl_client mpipc_request_client.cpp mpipc_request_messages.hpp)
+    add_dependencies(tutorial_mpipc_request_ssl_client tutorial_mpipc_request_ssl_certs build_openssl build_snappy)
 
-add_dependencies(tutorial_mpipc_request_ssl_client tutorial_mpipc_request_ssl_certs build_openssl build_snappy)
-
-target_link_libraries (tutorial_mpipc_request_ssl_client
-    solid_frame_mpipc
-    solid_frame_aio
-    solid_frame_aio_openssl
-    solid_frame
-    solid_serialization_v2
-    solid_utility
-    solid_system
-    ${SNAPPY_LIB}
-    ${OPENSSL_LIBRARIES}
-    ${SYS_BASIC_LIBS}
-    ${SYS_DYNAMIC_LOAD_LIB}
-)
-
+    target_link_libraries (tutorial_mpipc_request_ssl_client
+        solid_frame_mpipc
+        solid_frame_aio
+        solid_frame_aio_openssl
+        solid_frame
+        solid_serialization_v2
+        solid_utility
+        solid_system
+        ${SNAPPY_LIB}
+        ${OPENSSL_LIBRARIES}
+        ${SYS_BASIC_LIBS}
+        ${SYS_DYNAMIC_LOAD_LIB}
+    )
+endif(OPENSSL_FOUND)
 

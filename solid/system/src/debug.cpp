@@ -8,6 +8,8 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #define DO_EXPORT_DLL 1
+#include "solid/system/common.hpp"
+
 #ifdef SOLID_ON_WINDOWS
 #include <process.h>
 #else
@@ -15,9 +17,6 @@
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
-#include <fstream>
-#include <iostream>
-#include <map>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -30,6 +29,9 @@
 #include "solid/system/filedevice.hpp"
 #include "solid/system/socketdevice.hpp"
 
+#include <fstream>
+#include <iostream>
+#include <map>
 #include <chrono>
 #include <cstddef>
 #include <mutex>
