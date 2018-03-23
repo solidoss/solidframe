@@ -9,7 +9,7 @@
 using namespace solid;
 using namespace std;
 
-int test_nanotime(int /*argc*/, char**const /*argv*/)
+int test_nanotime(int /*argc*/, char** const /*argv*/)
 {
     for (int i = 0; i < 1; ++i) {
         auto steady_now = std::chrono::steady_clock::now();

@@ -92,7 +92,6 @@ struct UnsignedType<uint64_t> {
 
 } //namespace solid
 
-
 #ifdef SOLID_ON_WINDOWS
 
 using ssize_t = long;
@@ -113,4 +112,3 @@ using ssize_t = long;
 #define SOLID_OVERLOAD_MACRO(name, count) SOLID_OVERLOAD_MACRO1(name, count)
 
 #define SOLID_CALL_OVERLOAD(name, ...) SOLID_GLUE(SOLID_OVERLOAD_MACRO(name, SOLID_COUNT_ARGS_MAX5(__VA_ARGS__)), (__VA_ARGS__))
-

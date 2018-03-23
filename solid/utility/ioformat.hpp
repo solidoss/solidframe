@@ -51,8 +51,8 @@ struct Format;
 
 template <>
 struct Format<0> {
-	char		buf[1];
-	std::string str;
+    char        buf[1];
+    std::string str;
 };
 
 template <size_t Sz>

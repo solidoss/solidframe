@@ -116,7 +116,7 @@ private:
 
 #define SOLID_CHECK_MACRO_CHOOSER(...)     \
     GET_3RD_ARG(__VA_ARGS__, SOLID_CHECK2, \
-        SOLID_CHECK1 )
+        SOLID_CHECK1)
 
 #define SOLID_CHECK(...)                   \
     SOLID_CHECK_MACRO_CHOOSER(__VA_ARGS__) \

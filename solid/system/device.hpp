@@ -28,7 +28,7 @@ class Device {
 public:
 #ifdef SOLID_ON_WINDOWS
     typedef HANDLE DescriptorT;
-	using ssize_t = long;
+    using ssize_t = long;
 #else
     typedef int DescriptorT;
 #endif
