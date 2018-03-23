@@ -101,7 +101,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         idbg("DELETE ---------------- " << (void*)this);
-        SOLID_ASSERT(serialized or this->isBackOnSender() or (idx == 1));
+        SOLID_ASSERT(serialized || this->isBackOnSender() || (idx == 1));
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -184,7 +184,7 @@ void client_complete_message(
         } else {
             //it should be the one shot message
             SOLID_CHECK(
-                _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError()) or (_rctx.error() and _rctx.systemError())));
+                _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError()) || (_rctx.error() and _rctx.systemError())));
             SOLID_CHECK(_rsent_msg_ptr->idx == 1);
             SOLID_CHECK(not _rrecv_msg_ptr);
         }
@@ -278,7 +278,7 @@ int test_clientserver_delayed(int argc, char** argv)
     bool secure = false;
 
     if (argc > 2) {
-        if (*argv[2] == 's' or *argv[2] == 'S') {
+        if (*argv[2] == 's' || *argv[2] == 'S') {
             secure = true;
         }
     }

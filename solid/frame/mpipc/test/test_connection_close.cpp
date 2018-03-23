@@ -82,7 +82,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         idbg("DELETE ---------------- " << (void*)this);
-        SOLID_ASSERT(serialized or this->isBackOnSender());
+        SOLID_ASSERT(serialized || this->isBackOnSender());
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)

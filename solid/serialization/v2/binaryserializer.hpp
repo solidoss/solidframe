@@ -432,7 +432,7 @@ public: //should be protected
                     const bool is_run_empty = _rs.isRunEmpty();
                     _rs.sentinel(old_sentinel);
 
-                    if (it != rcontainer.cend() or not is_run_empty) {
+                    if (it != rcontainer.cend() || not is_run_empty) {
                         return ReturnE::Wait;
                     } else {
                         return ReturnE::Done;
@@ -480,7 +480,7 @@ public: //should be protected
                     const bool is_run_empty = _rs.isRunEmpty();
                     _rs.sentinel(old_sentinel);
 
-                    if (it != rcontainer.cend() or not is_run_empty) {
+                    if (it != rcontainer.cend() || not is_run_empty) {
                         return ReturnE::Wait;
                     } else {
                         return ReturnE::Done;
@@ -755,7 +755,7 @@ private:
         const bool is_run_empty = _rs.isRunEmpty();
         _rs.sentinel(old_sentinel);
 
-        if (_rr.data_ != _rr.size_ or not is_run_empty) {
+        if (_rr.data_ != _rr.size_ || not is_run_empty) {
             return ReturnE::Wait;
         } else {
             return ReturnE::Done;

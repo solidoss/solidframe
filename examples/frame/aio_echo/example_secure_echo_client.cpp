@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
 
             getline(cin, line);
 
-            if (line == "q" or line == "Q" or line == "quit") {
+            if (line == "q" || line == "Q" || line == "quit") {
                 break;
             }
             line += "\r\n";

@@ -199,9 +199,9 @@ void client_complete_message(
         if (!_rerror) {
         } else {
             wdbg("send message complete: <" << _rerror.message() << "> <" << _rctx.error().message() << "> <" << _rctx.systemError().message() << ">");
-            SOLID_CHECK(_rsent_msg_ptr->idx == 0 or _rsent_msg_ptr->idx == 2);
+            SOLID_CHECK(_rsent_msg_ptr->idx == 0 || _rsent_msg_ptr->idx == 2);
             SOLID_ASSERT(
-                _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError()) or (_rctx.error() and _rctx.systemError())));
+                _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError()) || (_rctx.error() and _rctx.systemError())));
         }
     }
     if (_rrecv_msg_ptr.get()) {
@@ -218,7 +218,7 @@ void client_complete_message(
             SOLID_THROW("Message not back on sender!.");
         }
 
-        SOLID_CHECK(_rrecv_msg_ptr->idx == 1 or _rrecv_msg_ptr->idx == 3 or _rrecv_msg_ptr->idx == 4);
+        SOLID_CHECK(_rrecv_msg_ptr->idx == 1 || _rrecv_msg_ptr->idx == 3 || _rrecv_msg_ptr->idx == 4);
 
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;
@@ -297,7 +297,7 @@ int test_clientserver_idempotent(int argc, char** argv)
     bool secure = false;
 
     if (argc > 2) {
-        if (*argv[2] == 's' or *argv[2] == 'S') {
+        if (*argv[2] == 's' || *argv[2] == 'S') {
             secure = true;
         }
     }

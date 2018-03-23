@@ -60,7 +60,7 @@ bool MessageWriter::enqueue(
 {
 
     //see if we can accept the message
-    if (full(_rconfig) or cache_inner_list_.empty()) {
+    if (full(_rconfig) || cache_inner_list_.empty()) {
         return false;
     }
 
@@ -122,7 +122,7 @@ bool MessageWriter::enqueue(
     } else {
         msgidx = _rconn_msg_id.index;
         SOLID_ASSERT(message_vec_[msgidx].unique_ == _rconn_msg_id.unique);
-        if (message_vec_[msgidx].unique_ != _rconn_msg_id.unique or message_vec_[msgidx].prelay_data_ != nullptr) {
+        if (message_vec_[msgidx].unique_ != _rconn_msg_id.unique || message_vec_[msgidx].prelay_data_ != nullptr) {
             return false;
         }
     }
@@ -272,7 +272,7 @@ void MessageWriter::doCancel(
         } else if (!_force and rmsgstub.state_ == MessageStub::StateE::WriteWait) {
             //message is waiting response
             rmsgstub.state_ = MessageStub::StateE::WriteWaitCanceled;
-        } else if (rmsgstub.state_ == MessageStub::StateE::WriteWait or rmsgstub.state_ == MessageStub::StateE::WriteWaitCanceled) {
+        } else if (rmsgstub.state_ == MessageStub::StateE::WriteWait || rmsgstub.state_ == MessageStub::StateE::WriteWaitCanceled) {
             order_inner_list_.erase(_msgidx);
             doUnprepareMessageStub(_msgidx);
         } else {
@@ -420,7 +420,7 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
             return true; //prevent splitting the header
 
         if (rmsgstub.isSynchronous()) {
-            if (current_synchronous_message_idx_ == InvalidIndex() or msgidx == current_synchronous_message_idx_) {
+            if (current_synchronous_message_idx_ == InvalidIndex() || msgidx == current_synchronous_message_idx_) {
             } else {
                 write_inner_list_.pushBack(write_inner_list_.popFront());
                 continue;

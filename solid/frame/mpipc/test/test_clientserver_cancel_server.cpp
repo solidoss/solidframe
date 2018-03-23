@@ -287,7 +287,7 @@ int test_clientserver_cancel_server(int argc, char** argv)
     bool secure = false;
 
     if (argc > 1) {
-        if (*argv[1] == 's' or *argv[1] == 'S') {
+        if (*argv[1] == 's' || *argv[1] == 'S') {
             secure = true;
         }
     }

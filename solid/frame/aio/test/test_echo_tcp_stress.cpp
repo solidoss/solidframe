@@ -436,19 +436,19 @@ int test_echo_tcp_stress(int argc, char** argv)
     }
 
     if (argc > 2) {
-        if (*argv[2] == 's' or *argv[2] == 'S') {
+        if (*argv[2] == 's' || *argv[2] == 'S') {
             be_secure = true;
         }
-        if (*argv[2] == 'r' or *argv[2] == 'R') {
+        if (*argv[2] == 'r' || *argv[2] == 'R') {
             use_relay = true;
         }
     }
 
     if (argc > 3) {
-        if (*argv[3] == 's' or *argv[3] == 'S') {
+        if (*argv[3] == 's' || *argv[3] == 'S') {
             be_secure = true;
         }
-        if (*argv[3] == 'r' or *argv[3] == 'R') {
+        if (*argv[3] == 'r' || *argv[3] == 'R') {
             use_relay = true;
         }
     }

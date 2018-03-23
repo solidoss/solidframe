@@ -166,7 +166,7 @@ struct Message : frame::mpipc::Message {
         if (cancelable()) {
             ++cancelable_deleted_count;
         } else {
-            SOLID_ASSERT(serialized or this->isBackOnSender());
+            SOLID_ASSERT(serialized || this->isBackOnSender());
         }
         try_stop();
     }
@@ -400,13 +400,13 @@ int test_relay_cancel_response(int argc, char** argv)
     bool compress = false;
 
     if (argc > 2) {
-        if (*argv[2] == 's' or *argv[2] == 'S') {
+        if (*argv[2] == 's' || *argv[2] == 'S') {
             secure = true;
         }
-        if (*argv[2] == 'c' or *argv[2] == 'C') {
+        if (*argv[2] == 'c' || *argv[2] == 'C') {
             compress = true;
         }
-        if (*argv[2] == 'b' or *argv[2] == 'B') {
+        if (*argv[2] == 'b' || *argv[2] == 'B') {
             secure   = true;
             compress = true;
         }

@@ -38,7 +38,7 @@ inline Service& Listener::service(frame::aio::ReactorContext& _rctx)
 {
     idbgx(Debug::mpipc, "event = " << _uevent);
     if (
-        _uevent == generic_event_start or _uevent == generic_event_timer) {
+        _uevent == generic_event_start || _uevent == generic_event_timer) {
         sock.postAccept(
             _rctx,
             [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); });

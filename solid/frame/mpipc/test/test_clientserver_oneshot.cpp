@@ -158,7 +158,7 @@ void client_complete_message(
     SOLID_CHECK(_rsent_msg_ptr);
 
     SOLID_CHECK(
-        _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError()) or (_rctx.error() and _rctx.systemError())));
+        _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError()) || (_rctx.error() and _rctx.systemError())));
 
     {
         unique_lock<mutex> lock(mtx);
@@ -193,7 +193,7 @@ int test_clientserver_oneshot(int argc, char** argv)
     bool secure = false;
 
     if (argc > 2) {
-        if (*argv[2] == 's' or *argv[2] == 'S') {
+        if (*argv[2] == 's' || *argv[2] == 'S') {
             secure = true;
         }
     }

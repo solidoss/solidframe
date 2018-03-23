@@ -527,13 +527,13 @@ ReactorEventsE Socket::filterReactorEvents(
         break;
     case ReactorEventRecvSend:
         //idbgx(Debug::aio, "EventRecvSend "<<want_read_on_send<<' '<<want_read_on_recv<<' '<<want_write_on_send<<' '<<want_write_on_recv);
-        if (want_read_on_send and (want_read_on_recv or want_write_on_recv)) {
+        if (want_read_on_send and (want_read_on_recv || want_write_on_recv)) {
             return ReactorEventSendRecv;
-        } else if ((want_write_on_send or want_write_on_send) and (want_write_on_recv or want_read_on_recv)) {
+        } else if ((want_write_on_send || want_write_on_send) and (want_write_on_recv || want_read_on_recv)) {
             return _evt;
-        } else if (want_write_on_send or want_read_on_send) {
+        } else if (want_write_on_send || want_read_on_send) {
             return ReactorEventSend;
-        } else if (want_read_on_recv or want_write_on_recv) {
+        } else if (want_read_on_recv || want_write_on_recv) {
             return ReactorEventRecv;
         }
         break;

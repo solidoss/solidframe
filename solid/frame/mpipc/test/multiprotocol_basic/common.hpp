@@ -20,7 +20,7 @@ struct hash<TypeIdT> {
     {
         result_type const h1(std::hash<uint8_t>{}(s.first));
         result_type const h2(std::hash<uint>{}(s.second));
-        return h1 ^ (h2 << 1); // or use boost::hash_combine (see Discussion)
+        return h1 ^ (h2 << 1); // || use boost::hash_combine (see Discussion)
     }
 };
 } //namespace std

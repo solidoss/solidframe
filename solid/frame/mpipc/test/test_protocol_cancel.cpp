@@ -174,7 +174,7 @@ void complete_message(
         size_t idx = static_cast<Message&>(*_rmessage_ptr).idx;
         if (crtreadidx) {
             //not the first message
-            SOLID_CHECK((!_rerr and not initarray[idx % initarraysize].cancel) or (initarray[idx % initarraysize].cancel and _rerr == frame::mpipc::error_message_canceled));
+            SOLID_CHECK((!_rerr and not initarray[idx % initarraysize].cancel) || (initarray[idx % initarraysize].cancel and _rerr == frame::mpipc::error_message_canceled));
         }
         idbg(static_cast<Message&>(*_rmessage_ptr).str.size() << ' ' << _rerr.message());
     }

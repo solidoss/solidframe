@@ -255,7 +255,7 @@ const char* MessageReader::doConsumeMessage(
                                 idbgx(Debug::mpipc, "Relayed response");
                                 rmsgstub.state_ = MessageStub::StateE::RelayResponse;
                                 cache(rmsgstub.deserializer_ptr_);
-                            } else if (_receiver.isRelayDisabled() or rmsgstub.message_header_.url_.empty()) {
+                            } else if (_receiver.isRelayDisabled() || rmsgstub.message_header_.url_.empty()) {
                                 idbgx(Debug::mpipc, "Read Body");
                                 rmsgstub.state_ = MessageStub::StateE::ReadBodyStart;
                                 rmsgstub.deserializer_ptr_->clear();
@@ -288,7 +288,7 @@ const char* MessageReader::doConsumeMessage(
     case MessageStub::StateE::ReadBodyContinue:
         vdbgx(Debug::mpipc, "ReadBody " << _msgidx);
         if (
-            (rmsgstub.packet_count_ & 15) != 0 or _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id) != ResponseStateE::Cancel) {
+            (rmsgstub.packet_count_ & 15) != 0 || _receiver.checkResponseState(rmsgstub.message_header_, rmsgstub.relay_id) != ResponseStateE::Cancel) {
             ++rmsgstub.packet_count_;
             if (static_cast<size_t>(_pbufend - _pbufpos) >= sizeof(uint16_t)) {
                 _pbufpos = _receiver.protocol().loadValue(_pbufpos, message_size);

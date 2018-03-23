@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
             string line;
             getline(cin, line);
 
-            if (line == "q" or line == "Q" or line == "quit") {
+            if (line == "q" || line == "Q" || line == "quit") {
                 break;
             }
             {

@@ -236,17 +236,17 @@ private:
 
         bool isHeadState() const noexcept
         {
-            return state_ == StateE::WriteHeadStart or state_ == StateE::WriteHeadContinue or state_ == StateE::RelayedHeadStart or state_ == StateE::RelayedHeadContinue;
+            return state_ == StateE::WriteHeadStart || state_ == StateE::WriteHeadContinue || state_ == StateE::RelayedHeadStart || state_ == StateE::RelayedHeadContinue;
         }
 
         bool isStartOrHeadState() const noexcept
         {
-            return state_ == StateE::WriteStart or state_ == StateE::WriteHeadStart or state_ == StateE::WriteHeadContinue or state_ == StateE::RelayedStart or state_ == StateE::RelayedHeadStart or state_ == StateE::RelayedHeadContinue;
+            return state_ == StateE::WriteStart || state_ == StateE::WriteHeadStart || state_ == StateE::WriteHeadContinue || state_ == StateE::RelayedStart || state_ == StateE::RelayedHeadStart || state_ == StateE::RelayedHeadContinue;
         }
 
         bool isWaitResponseState() const noexcept
         {
-            return state_ == StateE::WriteWait or state_ == StateE::RelayedWait;
+            return state_ == StateE::WriteWait || state_ == StateE::RelayedWait;
         }
 
         bool isStop() const noexcept
@@ -256,7 +256,7 @@ private:
 
         bool isRelay() const noexcept
         {
-            return not msgbundle_.message_url.empty() or Message::is_relayed(msgbundle_.message_flags); //TODO: optimize!!
+            return not msgbundle_.message_url.empty() || Message::is_relayed(msgbundle_.message_flags); //TODO: optimize!!
         }
 
         bool isRelayed() const noexcept

@@ -777,7 +777,7 @@ ErrorConditionT Service::createConnectionPool(const char* _recipient_url, const 
     unique_lock<std::mutex> lock(impl_->mtx);
     const char*             recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
 
-    if (recipient_name == nullptr or recipient_name[0] == '\0') {
+    if (recipient_name == nullptr || recipient_name[0] == '\0') {
         edbgx(Debug::mpipc, this << " failed extracting recipient name");
         error = error_service_invalid_url;
         return error;
@@ -880,7 +880,7 @@ ErrorConditionT Service::doSendMessage(
     std::string message_url;
     const char* recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
 
-    if (_recipient_url != nullptr and (recipient_name == nullptr or recipient_name[0] == '\0')) {
+    if (_recipient_url != nullptr and (recipient_name == nullptr || recipient_name[0] == '\0')) {
         edbgx(Debug::mpipc, this << " failed extracting recipient name");
         error = error_service_invalid_url;
         return error;
@@ -1032,7 +1032,7 @@ ErrorConditionT Service::doSendMessageToConnection(
 
     const size_t pool_index = _rrecipient_id_in.poolId().index;
 
-    if (pool_index >= impl_->pooldq.size() or impl_->pooldq[pool_index].unique != _rrecipient_id_in.poolId().unique) {
+    if (pool_index >= impl_->pooldq.size() || impl_->pooldq[pool_index].unique != _rrecipient_id_in.poolId().unique) {
         return error_service_unknown_connection;
     }
 
@@ -1931,7 +1931,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 
     rpool.resetMainConnectionActive();
 
-    if (rpool.msgorder_inner_list.size() or rpool.persistent_connection_count != 0) {
+    if (rpool.msgorder_inner_list.size() || rpool.persistent_connection_count != 0) {
         rpool.setCleaningOneShotMessages();
 
         _revent_context.any() = rpool.msgorder_inner_list.frontIndex();
@@ -2014,7 +2014,7 @@ bool Service::doMainConnectionRestarting(
         rpool.retry_connect_count = 0;
     }
 
-    if (rpool.hasAnyMessage() or rpool.persistent_connection_count != 0) {
+    if (rpool.hasAnyMessage() || rpool.persistent_connection_count != 0) {
 
         ErrorConditionT error;
         bool            success = false;
@@ -2090,7 +2090,7 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
     vdbgx(Debug::mpipc, this);
 
     ConnectionPoolStub& rpool(impl_->pooldq[_pool_index]);
-    const bool          is_new_connection_needed = rpool.active_connection_count < rpool.persistent_connection_count or (rpool.hasAnyMessage() and rpool.conn_waitingq.size() < rpool.msgorder_inner_list.size());
+    const bool          is_new_connection_needed = rpool.active_connection_count < rpool.persistent_connection_count || (rpool.hasAnyMessage() and rpool.conn_waitingq.size() < rpool.msgorder_inner_list.size());
 
     if (
         rpool.active_connection_count < configuration().pool_max_active_connection_count and rpool.pending_connection_count == 0 and is_new_connection_needed and isRunning()) {
@@ -2198,7 +2198,7 @@ void Service::doPushFrontMessageToPool(
     SOLID_ASSERT(rpool.unique == _rpool_id.unique);
 
     if (
-        Message::is_idempotent(_rmsgbundle.message_flags) or not Message::is_done_send(_rmsgbundle.message_flags)) {
+        Message::is_idempotent(_rmsgbundle.message_flags) || not Message::is_done_send(_rmsgbundle.message_flags)) {
 
         vdbgx(Debug::mpipc, this << " " << _rmsgbundle.message_ptr.get());
 

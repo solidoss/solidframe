@@ -283,7 +283,7 @@ size_t Configuration::connectionReconnectTimeoutSeconds(
     if (_failed_create_connection_object) {
         return connection_reconnect_timeout_seconds / 2;
     }
-    if (_last_connection_was_active or _last_connection_was_connected) {
+    if (_last_connection_was_active || _last_connection_was_connected) {
         return 0; //reconnect right away
     }
     size_t retry_count   = _retry_count / 2;

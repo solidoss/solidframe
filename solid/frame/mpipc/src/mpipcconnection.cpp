@@ -499,7 +499,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         Event             event;
         bool              can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 
-        if (msg_bundle.message_ptr.get() or not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+        if (msg_bundle.message_ptr.get() || not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
             doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
         }
 
@@ -605,7 +605,7 @@ void Connection::doCompleteAllMessages(
 
         msg_writer_.cancelOldest(sender);
 
-        has_any_message = (not msg_writer_.empty()) or (not pending_message_vec_.empty());
+        has_any_message = (not msg_writer_.empty()) || (not pending_message_vec_.empty());
 
     } else if (_offset < pending_message_vec_.size()) {
         idbgx(Debug::mpipc, this);
@@ -679,7 +679,7 @@ void Connection::doContinueStopping(
 
     bool can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 
-    if (msg_bundle.message_ptr or not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+    if (msg_bundle.message_ptr || not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
         doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
     }
 
@@ -1061,7 +1061,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx(service(_rctx), *this);
     if (not isStopping()) {
-        if ((isServer() and config.server.hasSecureConfiguration()) or ((not isServer()) and config.client.hasSecureConfiguration())) {
+        if ((isServer() and config.server.hasSecureConfiguration()) || ((not isServer()) and config.client.hasSecureConfiguration())) {
             ErrorConditionT error;
             bool            done = false;
             vdbgx(Debug::mpipc, this << "");
@@ -1297,7 +1297,7 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
 
     config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
 
-    if (ack_buf_cnt or cancel_remote_msg_vec_.size()) {
+    if (ack_buf_cnt || cancel_remote_msg_vec_.size()) {
         ackd_buf_count_ += ack_buf_cnt;
         doSend(_rctx);
     }
@@ -1852,7 +1852,7 @@ void Connection::doCompleteMessage(frame::aio::ReactorContext& _rctx, MessagePoi
     const Protocol&      rproto  = rconfig.protocol();
     ErrorConditionT      error;
 
-    if (_rresponse_ptr->isBackOnSender() or _rresponse_ptr->isBackOnPeer()) {
+    if (_rresponse_ptr->isBackOnSender() || _rresponse_ptr->isBackOnPeer()) {
         idbgx(Debug::mpipc, this << ' ' << "Completing back on sender message: " << _rresponse_ptr->requestId());
         SenderResponse sender(*this, _rctx, rconfig.writer, rproto, conctx, _rresponse_ptr);
 

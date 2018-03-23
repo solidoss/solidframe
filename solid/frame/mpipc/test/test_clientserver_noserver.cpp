@@ -192,7 +192,7 @@ int test_clientserver_noserver(int argc, char** argv)
     bool secure = false;
 
     if (argc > 2) {
-        if (*argv[2] == 's' or *argv[2] == 'S') {
+        if (*argv[2] == 's' || *argv[2] == 'S') {
             secure = true;
         }
     }

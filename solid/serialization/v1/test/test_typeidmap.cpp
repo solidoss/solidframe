@@ -347,7 +347,7 @@ int test_typeidmap(int argc, char* argv[])
                 return 0;
             }
 
-            if (/*pa1 == nullptr or pa2 == nullptr or*/ pa3 != nullptr) {
+            if (/*pa1 == nullptr || pa2 == nullptr or*/ pa3 != nullptr) {
                 SOLID_THROW("Deserialization error - alpha - empty");
                 return 0;
             }
@@ -355,7 +355,7 @@ int test_typeidmap(int argc, char* argv[])
             pa1->print(cout);
             pa2->print(cout);
 
-            if (!pa1->check() or !pa2->check()) {
+            if (!pa1->check() || !pa2->check()) {
                 SOLID_THROW("Deserialization error - alpha - check");
                 return 0;
             }
@@ -398,7 +398,7 @@ int test_typeidmap(int argc, char* argv[])
                 return 0;
             }
 
-            if (not pa1 or not pa2) {
+            if (not pa1 || not pa2) {
                 SOLID_THROW("Deserialization error - beta - empty");
                 return 0;
             }
@@ -409,7 +409,7 @@ int test_typeidmap(int argc, char* argv[])
             cout << "Data for pa1 = " << typemap[pa1.get()] << endl;
             cout << "Data for pa2 = " << typemap[pa2.get()] << endl;
 
-            if (!pa1->check(&typemap[pa1.get()]) or !pa2->check(&typemap[pa2.get()])) {
+            if (!pa1->check(&typemap[pa1.get()]) || !pa2->check(&typemap[pa2.get()])) {
                 SOLID_THROW("Deserialization error - beta - check");
                 return 0;
             }
@@ -443,7 +443,7 @@ int test_typeidmap(int argc, char* argv[])
                 return 0;
             }
 
-            if (pa1 == nullptr or pa2 == nullptr) {
+            if (pa1 == nullptr || pa2 == nullptr) {
                 SOLID_THROW("Deserialization error - delta - empty");
                 return 0;
             }
@@ -451,7 +451,7 @@ int test_typeidmap(int argc, char* argv[])
             pa1->print(cout);
             pa2->print(cout);
 
-            if (!pa1->check() or !pa2->check()) {
+            if (!pa1->check() || !pa2->check()) {
                 SOLID_THROW("Deserialization error - delta - check");
                 return 0;
             }

@@ -69,7 +69,7 @@ ErrorConditionT SingleNameEngine::registerConnection(const ConnectionContext& _r
                 rcon.name_                           = std::move(_uname);
                 impl_->con_umap_[rcon.name_.c_str()] = conidx;
             } else {
-                if (_proxy.connection(nameidx).id_.isInvalid() or _proxy.connection(nameidx).id_ == _rconctx.connectionId()) {
+                if (_proxy.connection(nameidx).id_.isInvalid() || _proxy.connection(nameidx).id_ == _rconctx.connectionId()) {
                     //use the connection already registered by name
                     conidx = nameidx;
                 } else {
