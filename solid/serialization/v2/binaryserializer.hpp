@@ -963,7 +963,7 @@ public:
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);
 
-        if (not err) {
+        if (!err) {
             add(type_id_, _name);
             rtype_map_.serialize(*this, p, idx, _name);
         } else {
@@ -979,7 +979,7 @@ public:
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);
 
-        if (not err) {
+        if (!err) {
             add(type_id_, _name);
             rtype_map_.serialize(*this, p, idx, _name);
         } else {
@@ -1157,7 +1157,7 @@ public:
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);
 
-        if (not err) {
+        if (!err) {
             add(type_id_, _rctx, _name);
             rtype_map_.serialize(*this, p, idx, _rctx, _name);
         } else {

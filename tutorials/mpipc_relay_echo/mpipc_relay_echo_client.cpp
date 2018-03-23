@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
 
                 auto            msgptr = std::make_shared<Register>(p.name);
                 ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageFlagsE::WaitResponse});
-                SOLID_CHECK(not err, "failed send Register");
+                SOLID_CHECK(!err, "failed send Register");
             };
 
             auto on_connection_stop = [&p](frame::mpipc::ConnectionContext& _rctx) {

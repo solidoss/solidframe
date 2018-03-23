@@ -87,7 +87,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         idbg("DELETE ---------------- " << (void*)this);
-        SOLID_ASSERT(not serialized);
+        SOLID_ASSERT(!serialized);
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -154,7 +154,7 @@ void client_complete_message(
 {
     idbg(_rctx.recipientId());
 
-    SOLID_CHECK(not _rrecv_msg_ptr);
+    SOLID_CHECK(!_rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr);
 
     SOLID_CHECK(_rerror == frame::mpipc::error_message_canceled);
@@ -291,18 +291,18 @@ int test_clientserver_noserver(int argc, char** argv)
                 "localhost", msgptr,
                 recipient_id, message_id,
                 {frame::mpipc::MessageFlagsE::WaitResponse});
-            SOLID_CHECK(not err);
+            SOLID_CHECK(!err);
         }
 
         sleep(30);
 
         err = mpipcclient.cancelMessage(recipient_id, message_id);
 
-        SOLID_CHECK(not err);
+        SOLID_CHECK(!err);
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 

@@ -285,7 +285,7 @@ struct ConnectFunction {
 
         send_strs[crtFillIdx()].append(*pline);
 
-        if (not sock.hasPendingSend()) {
+        if (!sock.hasPendingSend()) {
             crt_send_idx = crtFillIdx();
             sock.postSendAll(_rctx, send_strs[crtSendIdx()].data(), send_strs[crtSendIdx()].size(), onSent);
         }
@@ -313,7 +313,7 @@ struct ConnectFunction {
 
         SOLID_CHECK(presolve_data != nullptr);
 
-        if (not presolve_data->empty()) {
+        if (!presolve_data->empty()) {
             ConnectFunction cf;
             cf.event    = std::move(_revent);
             cf.iterator = presolve_data->begin();

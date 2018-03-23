@@ -583,7 +583,7 @@ bool EngineCore::doRelay(
                 ConnectionStub& rrcvcon                  = impl_->con_dq_[rmsg.receiver_con_id_.index];
                 bool            should_notify_connection = (rrcvcon.recv_msg_list_.backIndex() == msgidx || not rrcvcon.recv_msg_list_.back().hasData());
 
-                SOLID_ASSERT(not rrcvcon.recv_msg_list_.empty());
+                SOLID_ASSERT(!rrcvcon.recv_msg_list_.empty());
 
                 //move the message at the back of the list so it get processed sooner - somewhat unfair
                 //but this way we can keep using a single list for send messages
@@ -722,7 +722,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
             } else {
                 //the connection has received the SendCancel event for the message,
                 //we can now safely delete the message
-                SOLID_ASSERT(not rmsg.pfront_->bufptr_);
+                SOLID_ASSERT(!rmsg.pfront_->bufptr_);
                 SOLID_ASSERT(pnext == nullptr);
 
                 if (rmsg.sender_con_id_.isValid()) {
@@ -987,7 +987,7 @@ void EngineCore::doCancel(
     }
 
     if (_prelay_data) {
-        SOLID_ASSERT(not _prelay_data->bufptr_);
+        SOLID_ASSERT(!_prelay_data->bufptr_);
         _prelay_data->clear();
         impl_->eraseRelayData(_prelay_data);
     }

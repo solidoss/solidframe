@@ -29,7 +29,7 @@ void complete_message(
     ErrorConditionT const&           _rerror)
 {
     idbg("");
-    SOLID_CHECK(not _rerror);
+    SOLID_CHECK(!_rerror);
     SOLID_CHECK(_rsent_msg_ptr && _rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
     SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
@@ -70,7 +70,7 @@ ErrorConditionT start(
 
     pctx = &_rctx;
 
-    if (not mpipcclient_ptr) { //mpipc client initialization
+    if (!mpipcclient_ptr) { //mpipc client initialization
         auto                        proto = ProtocolT::create();
         frame::mpipc::Configuration cfg(_rctx.rsched, proto);
 

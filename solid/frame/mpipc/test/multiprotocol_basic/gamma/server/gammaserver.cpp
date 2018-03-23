@@ -17,15 +17,15 @@ void complete_message(
     ErrorConditionT const&           _rerror)
 {
     idbg("");
-    SOLID_CHECK(not _rerror);
+    SOLID_CHECK(!_rerror);
     if (_rrecv_msg_ptr) {
-        SOLID_CHECK(not _rsent_msg_ptr);
+        SOLID_CHECK(!_rsent_msg_ptr);
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
-        SOLID_CHECK(not _rrecv_msg_ptr);
+        SOLID_CHECK(!_rrecv_msg_ptr);
     }
 }
 

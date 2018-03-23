@@ -60,9 +60,9 @@ void complete_message<ipc_file::ListRequest>(
     std::shared_ptr<ipc_file::ListRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
-    SOLID_CHECK(not _rerror);
+    SOLID_CHECK(!_rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
-    SOLID_CHECK(not _rsent_msg_ptr);
+    SOLID_CHECK(!_rsent_msg_ptr);
 
     auto msgptr = std::make_shared<ipc_file::ListResponse>(*_rrecv_msg_ptr);
 
@@ -92,8 +92,8 @@ void complete_message<ipc_file::ListResponse>(
     std::shared_ptr<ipc_file::ListResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
-    SOLID_CHECK(not _rerror);
-    SOLID_CHECK(not _rrecv_msg_ptr);
+    SOLID_CHECK(!_rerror);
+    SOLID_CHECK(!_rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr);
 }
 
@@ -104,9 +104,9 @@ void complete_message<ipc_file::FileRequest>(
     std::shared_ptr<ipc_file::FileRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
-    SOLID_CHECK(not _rerror);
+    SOLID_CHECK(!_rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
-    SOLID_CHECK(not _rsent_msg_ptr);
+    SOLID_CHECK(!_rsent_msg_ptr);
 
     auto msgptr = std::make_shared<ipc_file::FileResponse>(*_rrecv_msg_ptr);
 
@@ -126,8 +126,8 @@ void complete_message<ipc_file::FileResponse>(
     std::shared_ptr<ipc_file::FileResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
-    SOLID_CHECK(not _rerror);
-    SOLID_CHECK(not _rrecv_msg_ptr);
+    SOLID_CHECK(!_rerror);
+    SOLID_CHECK(!_rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr);
 }
 

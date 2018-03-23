@@ -330,7 +330,7 @@ struct ConnectionPoolStub {
     {
         MessageStub& rmsgstub(msgvec[_rmsgid.index]);
 
-        SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr && rmsgstub.unique == _rmsgid.unique);
+        SOLID_ASSERT(!rmsgstub.msgbundle.message_ptr && rmsgstub.unique == _rmsgid.unique);
 
         rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc, _msg_url);
 
@@ -636,7 +636,7 @@ ErrorConditionT Service::doStart()
 
     ErrorConditionT error;
 
-    if (not BaseT::start()) {
+    if (!BaseT::start()) {
         error = error_service_start;
         return error;
     }
@@ -662,7 +662,7 @@ ErrorConditionT Service::doStart()
         ResolveData  rd = synchronous_resolve(hst_name, svc_name, 0, -1, SocketInfo::Stream);
         SocketDevice sd;
 
-        if (not rd.empty()) {
+        if (!rd.empty()) {
             sd.create(rd.begin());
             const ErrorCodeT errc = sd.prepareAccept(rd.begin(), Listener::backlog_size());
             if (errc) {
@@ -808,7 +808,7 @@ ErrorConditionT Service::createConnectionPool(const char* _recipient_url, const 
             rpool.name                        = recipient_name;
             rpool.persistent_connection_count = _persistent_connection_count;
 
-            if (not doTryCreateNewConnectionForPool(pool_index, error)) {
+            if (!doTryCreateNewConnectionForPool(pool_index, error)) {
                 rpool.clear();
                 impl_->conpoolcachestk.push(pool_index);
                 return error;
@@ -841,7 +841,7 @@ ErrorConditionT Service::doSendMessage(
 
     unique_lock<std::mutex> lock(impl_->mtx);
 
-    if (not isRunning()) {
+    if (!isRunning()) {
         edbgx(Debug::mpipc, this << " service stopping");
         error = error_service_stopping;
         return error;
@@ -994,16 +994,16 @@ ErrorConditionT Service::doSendMessage(
         SOLID_ASSERT(success);
     }
 
-    if (not success && not Message::is_synchronous(_flags)) {
+    if (!success && not Message::is_synchronous(_flags)) {
         success = doTryNotifyPoolWaitingConnection(pool_index);
     }
 
-    if (not success) {
+    if (!success) {
         doTryCreateNewConnectionForPool(pool_index, error);
         error.clear();
     }
 
-    if (not success) {
+    if (!success) {
         wdbgx(Debug::mpipc, this << " no connection notified about the new message");
     }
 
@@ -1025,7 +1025,7 @@ ErrorConditionT Service::doSendMessageToConnection(
 
     vdbgx(Debug::mpipc, this);
 
-    if (not _rrecipient_id_in.isValidPool()) {
+    if (!_rrecipient_id_in.isValidPool()) {
         SOLID_ASSERT(false);
         return error_service_unknown_connection;
     }
@@ -1108,7 +1108,7 @@ ErrorConditionT Service::doSendMessageToNewPool(
 
     MessageId msgid = rpool.pushBackMessage(_rmsgptr, _msg_type_idx, _rcomplete_fnc, _flags, _msg_url);
 
-    if (not doTryCreateNewConnectionForPool(pool_index, error)) {
+    if (!doTryCreateNewConnectionForPool(pool_index, error)) {
         edbgx(Debug::mpipc, this << " Starting Session: " << error.message());
         rpool.popFrontMessage();
         rpool.clear();
@@ -1150,9 +1150,9 @@ bool Service::doTryPushMessageToConnection(
     const bool          message_is_null         = not rmsgstub.msgbundle.message_ptr;
     bool                success                 = false;
 
-    SOLID_ASSERT(not Message::is_canceled(rmsgstub.msgbundle.message_flags));
+    SOLID_ASSERT(!Message::is_canceled(rmsgstub.msgbundle.message_flags));
 
-    if (not rmsgstub.msgbundle.message_ptr) {
+    if (!rmsgstub.msgbundle.message_ptr) {
         return false;
     }
 
@@ -1207,7 +1207,7 @@ bool Service::doTryPushMessageToConnection(
     MessageStub& rmsgstub = rpool.msgvec[_rmsg_id.index];
     bool         success  = false;
 
-    SOLID_ASSERT(not Message::is_canceled(rmsgstub.msgbundle.message_flags));
+    SOLID_ASSERT(!Message::is_canceled(rmsgstub.msgbundle.message_flags));
 
     if (rmsgstub.isCancelable()) {
 
@@ -1332,7 +1332,7 @@ ErrorConditionT Service::pollPoolForUpdates(
     //or it will call pollPoolForUpdates asap.
     //this is because we need to be able to notify connection about
     //pool force close imeditely
-    if (not _rconnection.isInPoolWaitingQueue()) {
+    if (!_rconnection.isInPoolWaitingQueue()) {
         rpool.conn_waitingq.push(_robjuid);
         _rconnection.setInPoolWaitingQueue();
     }
@@ -1365,7 +1365,7 @@ bool Service::doTryNotifyPoolWaitingConnection(const size_t _pool_index)
     bool                success = false;
 
     //we were not able to handle the message, try notify another connection
-    while (not success && rpool.conn_waitingq.size()) {
+    while (!success && rpool.conn_waitingq.size()) {
         //a connection is waiting for something to send
         ObjectIdT objuid = rpool.conn_waitingq.front();
 
@@ -1496,7 +1496,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
 
                 vdbgx(Debug::mpipc, this << " message " << _rmsg_id << " from pool " << pool_index << " is handled by connection " << rmsgstub.objid);
 
-                SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr);
+                SOLID_ASSERT(!rmsgstub.msgbundle.message_ptr);
 
                 rmsgstub.msgbundle.message_flags.set(MessageFlagsE::Canceled);
 
@@ -1555,7 +1555,7 @@ ErrorConditionT Service::doConnectionNotifyEnterActiveState(
         _rrecipient_id.connectionId(),
         Connection::eventEnterActive(std::move(_ucomplete_fnc), _send_buffer_capacity));
 
-    if (not success) {
+    if (!success) {
         wdbgx(Debug::mpipc, this << " failed notify enter active event to " << _rrecipient_id.connectionId());
         error = error_service_unknown_connection;
     }
@@ -1575,7 +1575,7 @@ ErrorConditionT Service::doConnectionNotifyStartSecureHandshake(
         _rrecipient_id.connectionId(),
         Connection::eventStartSecure(std::move(_ucomplete_fnc)));
 
-    if (not success) {
+    if (!success) {
         wdbgx(Debug::mpipc, this << " failed notify start secure event to " << _rrecipient_id.connectionId());
         error = error_service_unknown_connection;
     }
@@ -1595,7 +1595,7 @@ ErrorConditionT Service::doConnectionNotifyEnterPassiveState(
         _rrecipient_id.connectionId(),
         Connection::eventEnterPassive(std::move(_ucomplete_fnc)));
 
-    if (not success) {
+    if (!success) {
         wdbgx(Debug::mpipc, this << " failed notify enter passive event to " << _rrecipient_id.connectionId());
         error = error_service_unknown_connection;
     }
@@ -1616,7 +1616,7 @@ ErrorConditionT Service::doConnectionNotifySendRawData(
         _rrecipient_id.connectionId(),
         Connection::eventSendRaw(std::move(_ucomplete_fnc), std::move(_rdata)));
 
-    if (not success) {
+    if (!success) {
         wdbgx(Debug::mpipc, this << " failed notify send raw event to " << _rrecipient_id.connectionId());
         error = error_service_unknown_connection;
     }
@@ -1636,7 +1636,7 @@ ErrorConditionT Service::doConnectionNotifyRecvRawData(
         _rrecipient_id.connectionId(),
         Connection::eventRecvRaw(std::move(_ucomplete_fnc)));
 
-    if (not success) {
+    if (!success) {
         wdbgx(Debug::mpipc, this << " failed notify recv raw event to " << _rrecipient_id.connectionId());
         error = error_service_unknown_connection;
     }
@@ -1722,9 +1722,9 @@ bool Service::connectionStopping(
 
     idbgx(Debug::mpipc, this << ' ' << pool_index << " active_connection_count " << rpool.active_connection_count << " pending_connection_count " << rpool.pending_connection_count);
 
-    if (not rpool.isMainConnection(_robjuid)) {
+    if (!rpool.isMainConnection(_robjuid)) {
         return doNonMainConnectionStopping(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
-    } else if (not rpool.isLastConnection()) {
+    } else if (!rpool.isLastConnection()) {
         return doMainConnectionStoppingNotLast(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
     } else if (rpool.isCleaningOneShotMessages()) {
         return doMainConnectionStoppingCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
@@ -1732,7 +1732,7 @@ bool Service::connectionStopping(
         return doMainConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
     } else if (rpool.isRestarting() && isRunning()) {
         return doMainConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
-    } else if (not rpool.isFastClosing() && not rpool.isServerSide() && isRunning() && _rerror != error_connection_resolve) {
+    } else if (!rpool.isFastClosing() && not rpool.isServerSide() && isRunning() && _rerror != error_connection_resolve) {
         return doMainConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
     } else {
         return doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
@@ -1757,7 +1757,7 @@ bool Service::doNonMainConnectionStopping(
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count;
     } else {
-        SOLID_ASSERT(not _rcon.isServer());
+        SOLID_ASSERT(!_rcon.isServer());
         SOLID_ASSERT(rpool.pending_connection_count >= 0);
         --rpool.pending_connection_count;
     }
@@ -1770,7 +1770,7 @@ bool Service::doNonMainConnectionStopping(
             Connection::eventStopping());
     }
 
-    if (not rpool.isFastClosing()) {
+    if (!rpool.isFastClosing()) {
         doFetchResendableMessagesFromConnection(_rcon);
         ErrorConditionT error;
         doTryCreateNewConnectionForPool(pool_index, error);
@@ -1799,7 +1799,7 @@ bool Service::doMainConnectionStoppingNotLast(
     rpool.setMainConnectionStopping();
     rpool.resetMainConnectionActive();
 
-    if (not rpool.isFastClosing()) {
+    if (!rpool.isFastClosing()) {
         doFetchResendableMessagesFromConnection(_rcon);
     }
 
@@ -1843,7 +1843,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
             _rmsg_bundle = std::move(rmsgstub.msgbundle);
             _rmsg_id     = MessageId(crtmsgidx, rmsgstub.unique);
             rpool.clearPopAndCacheMessage(crtmsgidx);
-        } else if (not rmsgstub.msgbundle.message_ptr && rpool.msgorder_inner_list.size() == 1) {
+        } else if (!rmsgstub.msgbundle.message_ptr && rpool.msgorder_inner_list.size() == 1) {
             _rmsg_bundle = std::move(rmsgstub.msgbundle);
             _rmsg_id     = MessageId(crtmsgidx, rmsgstub.unique);
             rpool.clearPopAndCacheMessage(crtmsgidx);
@@ -2031,11 +2031,11 @@ bool Service::doMainConnectionRestarting(
 
         ++rpool.retry_connect_count;
 
-        if (not success) {
+        if (!success) {
             if (_rcon.isActiveState()) {
                 ++rpool.active_connection_count;
             } else {
-                SOLID_ASSERT(not _rcon.isServer());
+                SOLID_ASSERT(!_rcon.isServer());
                 ++rpool.pending_connection_count;
             }
 

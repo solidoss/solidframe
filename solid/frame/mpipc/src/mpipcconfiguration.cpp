@@ -328,10 +328,10 @@ void Configuration::prepare()
         connection_send_buffer_start_capacity_kb = connection_send_buffer_max_capacity_kb;
     }
 
-    if (not server.hasSecureConfiguration()) {
+    if (!server.hasSecureConfiguration()) {
         server.connection_start_secure = false;
     }
-    if (not client.hasSecureConfiguration()) {
+    if (!client.hasSecureConfiguration()) {
         client.connection_start_secure = false;
     }
 }

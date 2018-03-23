@@ -259,16 +259,16 @@ void peera_complete_message(
     SOLID_CHECK(_rsent_msg_ptr, "Error: no request message");
 
     if (_rsent_msg_ptr->cancelable()) {
-        SOLID_CHECK(not _rrecv_msg_ptr, "Error: there should be no response");
+        SOLID_CHECK(!_rrecv_msg_ptr, "Error: there should be no response");
         ++canceled_count;
         return;
     }
 
     SOLID_CHECK(_rrecv_msg_ptr, "Error: no response message");
-    SOLID_CHECK(not _rerror, "Error sending message: " << _rerror.message());
+    SOLID_CHECK(!_rerror, "Error sending message: " << _rerror.message());
 
     idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
-    if (not _rrecv_msg_ptr->check()) {
+    if (!_rrecv_msg_ptr->check()) {
         SOLID_THROW("Message check failed.");
     }
 
@@ -293,7 +293,7 @@ void peerb_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
     auto            msgptr = std::make_shared<Register>("b");
     ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageFlagsE::WaitResponse});
-    SOLID_CHECK(not err, "failed send Register");
+    SOLID_CHECK(!err, "failed send Register");
 }
 
 void peerb_connection_stop(frame::mpipc::ConnectionContext& _rctx)
@@ -307,7 +307,7 @@ void peerb_complete_register(
     ErrorConditionT const& _rerror)
 {
     idbg(_rctx.recipientId());
-    SOLID_CHECK(not _rerror);
+    SOLID_CHECK(!_rerror);
 
     if (_rrecv_msg_ptr && _rrecv_msg_ptr->err == 0) {
         auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
@@ -328,7 +328,7 @@ void peerb_complete_message(
     if (_rrecv_msg_ptr) {
         idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
 
-        if (not _rrecv_msg_ptr->check()) {
+        if (!_rrecv_msg_ptr->check()) {
             SOLID_ASSERT(false);
             SOLID_THROW("Message check failed.");
         }
@@ -640,7 +640,7 @@ int test_relay_cancel_response(int argc, char** argv)
 
         //ensure we have provisioned connections on peerb
         err = mpipcpeerb.createConnectionPool("localhost");
-        SOLID_CHECK(not err, "failed create connection from peerb: " << err.message());
+        SOLID_CHECK(!err, "failed create connection from peerb: " << err.message());
 
         for (; crtwriteidx < start_count;) {
             mtx.lock();
@@ -656,7 +656,7 @@ int test_relay_cancel_response(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(60 * 4), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(60 * 4), []() { return not running; })) {
             relay_engine.debugDump();
             SOLID_THROW("Process is taking too long.");
         }

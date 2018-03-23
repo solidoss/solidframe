@@ -190,7 +190,7 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
     SOLID_CHECK(_rmsgptr->check(), "Message check failed.");
 
     const size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-    SOLID_CHECK(not initarray[idx % initarraysize].cancel, "Canceled message " << idx << " should not reach client side");
+    SOLID_CHECK(!initarray[idx % initarraysize].cancel, "Canceled message " << idx << " should not reach client side");
 
     //cout<< _rmsgptr->str.size()<<'\n';
     transfered_size += _rmsgptr->str.size();
@@ -449,7 +449,7 @@ int test_clientserver_cancel_server(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(520), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(520), []() { return not running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 

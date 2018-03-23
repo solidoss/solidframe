@@ -425,7 +425,7 @@ public:
 
                 const bool is_run_empty = _rd.isRunEmpty();
                 _rd.sentinel(old_sentinel);
-                if (not is_run_empty) {
+                if (!is_run_empty) {
                     return ReturnE::Wait;
                 }
             }
@@ -489,7 +489,7 @@ public:
 
                 const bool is_run_empty = _rd.isRunEmpty();
                 _rd.sentinel(old_sentinel);
-                if (not is_run_empty) {
+                if (!is_run_empty) {
                     return ReturnE::Wait;
                 }
             }

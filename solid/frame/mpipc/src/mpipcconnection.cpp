@@ -425,13 +425,13 @@ void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incom
 
     if (_is_incoming) {
         flags_.set(FlagsE::Server);
-        if (not start_secure) {
+        if (!start_secure) {
             service(_rctx).onIncomingConnectionStart(conctx);
         }
     } else {
         flags_.set(FlagsE::Connected);
         config.client.socket_device_setup_fnc(sock_ptr_->device());
-        if (not start_secure) {
+        if (!start_secure) {
             service(_rctx).onOutgoingConnectionStart(conctx);
         }
     }
@@ -481,7 +481,7 @@ void Connection::doStart(frame::aio::ReactorContext& _rctx, const bool _is_incom
 void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT& _rerr, const ErrorCodeT& _rsyserr)
 {
 
-    if (not isStopping()) {
+    if (!isStopping()) {
 
         error_     = _rerr;
         sys_error_ = _rsyserr;
@@ -605,7 +605,7 @@ void Connection::doCompleteAllMessages(
 
         msg_writer_.cancelOldest(sender);
 
-        has_any_message = (not msg_writer_.empty()) || (not pending_message_vec_.empty());
+        has_any_message = (!msg_writer_.empty()) || (!pending_message_vec_.empty());
 
     } else if (_offset < pending_message_vec_.size()) {
         idbgx(Debug::mpipc, this);
@@ -846,9 +846,9 @@ void Connection::doHandleEventResolve(
     ResolveMessage* presolvemsg = _revent.any().cast<ResolveMessage>();
 
     if (presolvemsg) {
-        if (not isStopping()) {
+        if (!isStopping()) {
             idbgx(Debug::mpipc, this << ' ' << this->id() << " Session receive resolve event message of size: " << presolvemsg->addrvec.size());
-            if (not presolvemsg->empty()) {
+            if (!presolvemsg->empty()) {
                 idbgx(Debug::mpipc, this << ' ' << this->id() << " Connect to " << presolvemsg->currentAddress());
 
                 //initiate connect:
@@ -902,9 +902,9 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, 
 
     if (pmsgid) {
 
-        if (not this->isStopping()) {
+        if (!this->isStopping()) {
             pending_message_vec_.push_back(*pmsgid);
-            if (not this->isRawState()) {
+            if (!this->isRawState()) {
                 flags_.set(FlagsE::PollPool);
                 doSend(_rctx);
             }
@@ -970,11 +970,11 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
     ConnectionContext conctx(service(_rctx), *this);
     EnterActive*      pdata = _revent.any().cast<EnterActive>();
 
-    if (not isStopping()) {
+    if (!isStopping()) {
 
         ErrorConditionT error = service(_rctx).activateConnection(*this, uid(_rctx));
 
-        if (not error) {
+        if (!error) {
             flags_.set(FlagsE::Active);
 
             if (pdata) {
@@ -986,7 +986,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
                 }
             }
 
-            if (not isServer()) {
+            if (!isServer()) {
                 //poll pool only for clients
                 flags_.set(FlagsE::PollPool);
             }
@@ -1026,7 +1026,7 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
 
     EnterPassive*     pdata = _revent.any().cast<EnterPassive>();
     ConnectionContext conctx(service(_rctx), *this);
-    if (not isStopping()) {
+    if (!isStopping()) {
         if (this->isRawState()) {
             flags_.reset(FlagsE::Raw);
 
@@ -1060,8 +1060,8 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
     vdbgx(Debug::mpipc, this << "");
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx(service(_rctx), *this);
-    if (not isStopping()) {
-        if ((isServer() && config.server.hasSecureConfiguration()) || ((not isServer()) && config.client.hasSecureConfiguration())) {
+    if (!isStopping()) {
+        if ((isServer() && config.server.hasSecureConfiguration()) || ((!isServer()) && config.client.hasSecureConfiguration())) {
             ErrorConditionT error;
             bool            done = false;
             vdbgx(Debug::mpipc, this << "");
@@ -1106,11 +1106,11 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
         return;
     }
 
-    if (not SOLID_FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)) {
+    if (!SOLID_FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)) {
         config.client.connection_on_secure_handshake_fnc(conctx);
     }
 
-    if (not config.client.connection_start_secure) {
+    if (!config.client.connection_start_secure) {
         vdbgx(Debug::mpipc, &rthis << "");
         //we need the connection_on_secure_connect_fnc for advancing.
         if (SOLID_FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)) {
@@ -1126,7 +1126,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
         case ConnectionState::Raw:
             break;
         case ConnectionState::Active:
-            if (not rthis.isActiveState()) {
+            if (!rthis.isActiveState()) {
                 rthis.post(
                     _rctx,
                     [&rthis](frame::aio::ReactorContext& _rctx, Event&& _revent) { rthis.onEvent(_rctx, std::move(_revent)); },
@@ -1135,7 +1135,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
             break;
         case ConnectionState::Passive:
         default:
-            if (not rthis.isActiveState() && rthis.isRawState()) {
+            if (!rthis.isActiveState() && rthis.isRawState()) {
                 rthis.post(
                     _rctx,
                     [&rthis](frame::aio::ReactorContext& _rctx, Event&& _revent) { rthis.onEvent(_rctx, std::move(_revent)); },
@@ -1158,11 +1158,11 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
         return;
     }
 
-    if (not SOLID_FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)) {
+    if (!SOLID_FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)) {
         config.server.connection_on_secure_handshake_fnc(conctx);
     }
 
-    if (not config.server.connection_start_secure) {
+    if (!config.server.connection_start_secure) {
         vdbgx(Debug::mpipc, &rthis << "");
         //we need the connection_on_secure_accept_fnc for advancing.
         if (SOLID_FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)) {
@@ -1178,7 +1178,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
         case ConnectionState::Raw:
             break;
         case ConnectionState::Active:
-            if (not rthis.isActiveState()) {
+            if (!rthis.isActiveState()) {
                 rthis.post(
                     _rctx,
                     [&rthis](frame::aio::ReactorContext& _rctx, Event&& _revent) { rthis.onEvent(_rctx, std::move(_revent)); },
@@ -1187,7 +1187,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
             break;
         case ConnectionState::Passive:
         default:
-            if (not rthis.isActiveState() && rthis.isRawState()) {
+            if (!rthis.isActiveState() && rthis.isRawState()) {
                 rthis.post(
                     _rctx,
                     [&rthis](frame::aio::ReactorContext& _rctx, Event&& _revent) { rthis.onEvent(_rctx, std::move(_revent)); },
@@ -1393,7 +1393,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
-    SOLID_ASSERT(not rthis.isServer());
+    SOLID_ASSERT(!rthis.isServer());
     rthis.flags_.set(FlagsE::Keepalive);
     rthis.flags_.reset(FlagsE::WaitKeepAliveTimer);
     idbgx(Debug::mpipc, &rthis << " post send");
@@ -1411,7 +1411,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
     if (pdata) {
 
-        if (not _rctx.error()) {
+        if (!_rctx.error()) {
 
             size_t tocopy = pdata->data.size() - pdata->offset;
 
@@ -1665,7 +1665,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
     vdbgx(Debug::mpipc, this << " isstopping = " << this->isStopping());
 
-    if (not this->isStopping()) {
+    if (!this->isStopping()) {
         ErrorConditionT      error;
         const Configuration& rconfig = service(_rctx).configuration();
         ConnectionContext    conctx(service(_rctx), *this);
@@ -1685,13 +1685,13 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             bool more = false;
             rconfig.relayEngine().pollNew(relay_id_, relay_poll_push_lambda, more);
 
-            if (not more) {
+            if (!more) {
                 flags_.reset(FlagsE::PollRelayEngine); //reset flag
             }
             idbgx(Debug::mpipc, this << ' ' << id() << " shouldPollRelayEngine = " << shouldPollRelayEngine());
         }
 
-        if (not this->hasPendingSend()) {
+        if (!this->hasPendingSend()) {
             unsigned                   repeatcnt      = 4;
             bool                       sent_something = false;
             Sender                     sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx);
@@ -1712,7 +1712,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
                     bool more = false;
                     rconfig.relayEngine().pollNew(relay_id_, relay_poll_push_lambda, more);
 
-                    if (not more) {
+                    if (!more) {
                         flags_.reset(FlagsE::PollRelayEngine); //reset flag
                     }
                     idbgx(Debug::mpipc, this << ' ' << id() << " shouldPollRelayEngine = " << shouldPollRelayEngine());
@@ -1771,9 +1771,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             }
             //idbgx(Debug::mpipc, this<<" done-doSend "<<this->sendmsgvec[0].size()<<" "<<this->sendmsgvec[1].size());
 
-        } //if(not this->hasPendingSend())
+        } //if(!this->hasPendingSend())
 
-    } //if(not this->isStopping())
+    } //if(!this->isStopping())
 }
 //-----------------------------------------------------------------------------
 /*static*/ void Connection::onSend(frame::aio::ReactorContext& _rctx)
@@ -1782,7 +1782,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
     if (!_rctx.error()) {
-        if (not rthis.isStopping()) {
+        if (!rthis.isStopping()) {
             idbgx(Debug::mpipc, &rthis);
             rthis.doResetTimerSend(_rctx);
         }
@@ -1833,7 +1833,7 @@ struct Connection::SenderResponse : Connection::Sender {
         context().request_id    = rresponse_ptr_->requestId();
         context().message_id    = _rpool_msg_id;
 
-        if (not SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
+        if (!SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
             idbgx(Debug::mpipc, this);
             _rmsg_bundle.complete_fnc(context(), _rmsg_bundle.message_ptr, rresponse_ptr_, err_);
             request_found_ = true;
@@ -1885,7 +1885,7 @@ void Connection::doCompleteMessage(
     conctx.message_flags = _rmsg_bundle.message_flags;
     conctx.message_id    = _rpool_msg_id;
 
-    if (not SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
+    if (!SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
         idbgx(Debug::mpipc, this);
         _rmsg_bundle.complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
     } else {

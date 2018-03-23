@@ -70,7 +70,7 @@ size_t MessageReader::read(
             }
         }
 
-        if (not packet_header.isOk()) {
+        if (!packet_header.isOk()) {
             _rerror = error_reader_invalid_packet_header;
             SOLID_ASSERT(false);
             break;
@@ -318,7 +318,7 @@ const char* MessageReader::doConsumeMessage(
                                 }
                                 //fail: protocol error
                                 SOLID_ASSERT(false);
-                            } else if (not rmsgstub.deserializer_ptr_->empty()) {
+                            } else if (!rmsgstub.deserializer_ptr_->empty()) {
                                 break;
                             } else {
                                 SOLID_ASSERT(false);

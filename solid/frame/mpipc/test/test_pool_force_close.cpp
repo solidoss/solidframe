@@ -98,7 +98,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         idbg("DELETE ---------------- " << (void*)this);
-        //      if(not serialized && not this->isBackOnSender()){
+        //      if(!serialized && not this->isBackOnSender()){
         //          SOLID_THROW("Message not serialized.");
         //      }
     }
@@ -197,7 +197,7 @@ void client_complete_message(
         SOLID_CHECK(_rerror);
         ++crtackidx;
     }
-    SOLID_CHECK(not _rrecv_msg_ptr);
+    SOLID_CHECK(!_rrecv_msg_ptr);
 }
 
 void server_complete_message(
@@ -380,7 +380,7 @@ int test_pool_force_close(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 

@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
 
         frame::aio::Resolver resolver;
 
-        if (not restart(ipcsvc, resolver, sch)) {
+        if (!restart(ipcsvc, resolver, sch)) {
             return 1;
         }
 
@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
                 if (s.size() == 1 && (s[0] == 'q' || s[0] == 'Q')) {
                     s.clear();
                 } else if (s.size() == 1 && (s[0] == 'r' || s[0] == 'R')) {
-                    if (not restart(ipcsvc, resolver, sch)) {
+                    if (!restart(ipcsvc, resolver, sch)) {
                         return 1;
                     }
                 } else {

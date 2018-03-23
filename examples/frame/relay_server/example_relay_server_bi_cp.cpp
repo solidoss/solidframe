@@ -385,7 +385,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
             idbg(this << " on sent ack event " << (int)buf_crt_recv << ' ' << (int)buf_ack_send << ' ' << sock.hasPendingRecv());
 
             if (buf_ack_send != buf_crt_recv) {
-                if (not sock.hasPendingRecv()) {
+                if (!sock.hasPendingRecv()) {
                     sock.postRecvSome(_rctx, buf[buf_crt_recv], BufferCapacity, Connection::onRecv);
                 }
             }

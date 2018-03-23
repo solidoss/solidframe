@@ -291,7 +291,7 @@ void MessageWriter::doCancel(
         case MessageStub::StateE::RelayedBody:
             rmsgstub.state_ = MessageStub::StateE::RelayedCancelRequest;
             _rsender.cancelRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
-            if (not rmsgstub.prelay_data_) { //message not in write_inner_list_
+            if (!rmsgstub.prelay_data_) { //message not in write_inner_list_
                 write_inner_list_.pushBack(_msgidx);
             }
             rmsgstub.prelay_data_ = nullptr;
@@ -358,7 +358,7 @@ ErrorConditionT MessageWriter::write(
 
         if (fillsz) {
 
-            if (not packet_options.force_no_compress) {
+            if (!packet_options.force_no_compress) {
                 ErrorConditionT compress_error;
                 size_t          compressed_size = _rsender.configuration().inplace_compress_fnc(pbufdata, fillsz, compress_error);
 
@@ -394,7 +394,7 @@ ErrorConditionT MessageWriter::write(
         }
     }
 
-    if (not error && _rbuffer.data() == pbufpos) {
+    if (!error && _rbuffer.data() == pbufpos) {
         if (_flags.has(WriteFlagsE::ShouldSendKeepAlive)) {
             PacketHeader packet_header(PacketHeader::TypeE::KeepAlive);
             pbufpos = packet_header.store(pbufpos, _rsender.protocol());
@@ -898,7 +898,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
     vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
 
-    if (not Message::is_waiting_response(rmsgstub.msgbundle_.message_flags)) {
+    if (!Message::is_waiting_response(rmsgstub.msgbundle_.message_flags)) {
         //no wait response for the message - complete
         MessageBundle tmp_msg_bundle(std::move(rmsgstub.msgbundle_));
         MessageId     tmp_pool_msg_id(rmsgstub.pool_msg_id_);
@@ -933,7 +933,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
                 rmsgstub.msgbundle_,
                 rmsgstub.pool_msg_id_);
 
-            if (not rmsgstub.msgbundle_.message_ptr) { //message fetched
+            if (!rmsgstub.msgbundle_.message_ptr) { //message fetched
 
                 if (message_in_write_queue) {
                     SOLID_ASSERT(write_inner_list_.size());

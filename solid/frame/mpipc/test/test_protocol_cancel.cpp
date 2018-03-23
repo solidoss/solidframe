@@ -179,7 +179,7 @@ void complete_message(
         idbg(static_cast<Message&>(*_rmessage_ptr).str.size() << ' ' << _rerr.message());
     }
     if (_rresponse_ptr.get()) {
-        if (not static_cast<Message&>(*_rresponse_ptr).check()) {
+        if (!static_cast<Message&>(*_rresponse_ptr).check()) {
             SOLID_THROW("Message check failed.");
         }
 
@@ -196,7 +196,7 @@ void complete_message(
         } else {
             idbg(crtreadidx);
             size_t idx = static_cast<Message&>(*_rresponse_ptr).idx;
-            SOLID_CHECK(not initarray[idx % initarraysize].cancel);
+            SOLID_CHECK(!initarray[idx % initarraysize].cancel);
         }
     }
 }
@@ -324,7 +324,7 @@ int test_protocol_cancel(int argc, char** argv)
         SOLID_CHECK(rv);
         idbg(frame::mpipc::MessageWriterPrintPairT(mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
 
-        if (not initarray[crtwriteidx % initarraysize].cancel) {
+        if (!initarray[crtwriteidx % initarraysize].cancel) {
             idbg("do not cancel " << message_uid_vec.back());
             message_uid_vec.pop_back(); //we do not cancel this one
         }

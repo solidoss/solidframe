@@ -232,7 +232,7 @@ int SerializerBase::run(char* _pb, size_t _bl, void* _pctx)
 
         uint64_t crcsz;
 
-        if (not compute_value_with_crc(crcsz, pbs->size())) {
+        if (!compute_value_with_crc(crcsz, pbs->size())) {
             rs.err = make_error(ERR_CONTAINER_MAX_LIMIT);
             return FailureE;
         }
@@ -581,7 +581,7 @@ ReturnValues SerializerBase::store<std::string>(Base& _rb, FncData& _rfd, void* 
 
     uint64_t crcsz;
 
-    if (not compute_value_with_crc(crcsz, c->size())) {
+    if (!compute_value_with_crc(crcsz, c->size())) {
         rs.err = make_error(ERR_STRING_MAX_LIMIT);
         return FailureE;
     }

@@ -269,8 +269,8 @@ void Test::check() const
             SOLID_CHECK(bs5[i]);
             SOLID_CHECK(bv5[i]);
         } else {
-            SOLID_CHECK(not bs5[i]);
-            SOLID_CHECK(not bv5[i]);
+            SOLID_CHECK(!bs5[i]);
+            SOLID_CHECK(!bv5[i]);
         }
     }
 
@@ -279,8 +279,8 @@ void Test::check() const
             SOLID_CHECK(bs10[i]);
             SOLID_CHECK(bv10[i]);
         } else {
-            SOLID_CHECK(not bs10[i]);
-            SOLID_CHECK(not bv10[i]);
+            SOLID_CHECK(!bs10[i]);
+            SOLID_CHECK(!bv10[i]);
         }
     }
 
@@ -289,8 +289,8 @@ void Test::check() const
             SOLID_CHECK(bs20[i]);
             SOLID_CHECK(bv20[i]);
         } else {
-            SOLID_CHECK(not bs20[i]);
-            SOLID_CHECK(not bv20[i]);
+            SOLID_CHECK(!bs20[i]);
+            SOLID_CHECK(!bv20[i]);
         }
     }
 
@@ -299,8 +299,8 @@ void Test::check() const
             SOLID_CHECK(bs50[i]);
             SOLID_CHECK(bv50[i]);
         } else {
-            SOLID_CHECK(not bs50[i]);
-            SOLID_CHECK(not bv50[i]);
+            SOLID_CHECK(!bs50[i]);
+            SOLID_CHECK(!bv50[i]);
         }
     }
 
@@ -309,8 +309,8 @@ void Test::check() const
             SOLID_CHECK(bs100[i]);
             SOLID_CHECK(bv100[i]);
         } else {
-            SOLID_CHECK(not bs100[i]);
-            SOLID_CHECK(not bv100[i]);
+            SOLID_CHECK(!bs100[i]);
+            SOLID_CHECK(!bv100[i]);
         }
     }
 
@@ -319,8 +319,8 @@ void Test::check() const
             SOLID_CHECK(bs1000[i]);
             SOLID_CHECK(bv1000[i]);
         } else {
-            SOLID_CHECK(not bs1000[i]);
-            SOLID_CHECK(not bv1000[i]);
+            SOLID_CHECK(!bs1000[i]);
+            SOLID_CHECK(!bv1000[i]);
         }
     }
 

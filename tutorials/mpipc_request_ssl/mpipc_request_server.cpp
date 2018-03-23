@@ -242,9 +242,9 @@ void complete_message<ipc_request::Request>(
     std::shared_ptr<ipc_request::Request>& _rrecv_msg_ptr,
     ErrorConditionT const&                 _rerror)
 {
-    SOLID_CHECK(not _rerror);
+    SOLID_CHECK(!_rerror);
     SOLID_CHECK(_rrecv_msg_ptr);
-    SOLID_CHECK(not _rsent_msg_ptr);
+    SOLID_CHECK(!_rsent_msg_ptr);
 
     cout << "Received request: ";
     if (_rrecv_msg_ptr->key) {
@@ -280,8 +280,8 @@ void complete_message<ipc_request::Response>(
     std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
-    SOLID_CHECK(not _rerror);
-    SOLID_CHECK(not _rrecv_msg_ptr);
+    SOLID_CHECK(!_rerror);
+    SOLID_CHECK(!_rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr);
 }
 

@@ -118,7 +118,7 @@ bool parseArguments(Params& _par, int argc, char* argv[]);
 int main(int argc, char* argv[])
 {
     Params p;
-    if (not parseArguments(p, argc, argv))
+    if (!parseArguments(p, argc, argv))
         return 0;
 
     signal(SIGPIPE, SIG_IGN);

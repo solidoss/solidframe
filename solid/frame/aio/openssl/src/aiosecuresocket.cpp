@@ -383,7 +383,7 @@ ErrorCodeT Context::doSetPasswordCallback()
 
     buf[0] = 0;
 
-    if (not SOLID_FUNCTION_EMPTY(rthis.pwdfnc)) {
+    if (!SOLID_FUNCTION_EMPTY(rthis.pwdfnc)) {
         std::string pwd = rthis.pwdfnc(size, rwflag == 1 ? PasswordPurpose::Write : PasswordPurpose::Read);
         size_t      sz  = strlen(pwd.c_str());
 
@@ -872,7 +872,7 @@ ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask)
     SOLID_CHECK(ssl);
     SOLID_CHECK(pthis);
 
-    if (not SOLID_FUNCTION_EMPTY(pthis->verify_cbk)) {
+    if (!SOLID_FUNCTION_EMPTY(pthis->verify_cbk)) {
         VerifyContext vctx(x509_ctx);
 
         bool rv = pthis->verify_cbk(pctx, preverify_ok != 0, vctx);

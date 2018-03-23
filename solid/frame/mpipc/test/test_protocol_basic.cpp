@@ -156,7 +156,7 @@ void complete_message(
 
     if (_rresponse_ptr.get()) {
 
-        if (not static_cast<Message&>(*_rresponse_ptr).check()) {
+        if (!static_cast<Message&>(*_rresponse_ptr).check()) {
             SOLID_THROW("Message check failed.");
         }
 

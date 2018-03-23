@@ -172,7 +172,7 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
 {
     idbg(_rctx.recipientId());
 
-    if (not _rmsgptr->check()) {
+    if (!_rmsgptr->check()) {
         SOLID_THROW("Message check failed.");
     }
 
@@ -214,7 +214,7 @@ void client_complete_message(
 void server_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_ptr<Message>& _rmsgptr)
 {
     idbg(_rctx.recipientId() << " message id on sender " << _rmsgptr->senderRequestId());
-    if (not _rmsgptr->check()) {
+    if (!_rmsgptr->check()) {
         SOLID_THROW("Message check failed.");
     }
 
@@ -413,7 +413,7 @@ int test_keepalive_success(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 

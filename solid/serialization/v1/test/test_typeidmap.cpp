@@ -398,7 +398,7 @@ int test_typeidmap(int argc, char* argv[])
                 return 0;
             }
 
-            if (not pa1 || not pa2) {
+            if (!pa1 || not pa2) {
                 SOLID_THROW("Deserialization error - beta - empty");
                 return 0;
             }

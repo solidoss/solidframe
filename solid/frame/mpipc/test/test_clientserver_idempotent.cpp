@@ -93,7 +93,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         idbg("DELETE ---------------- " << (void*)this << " idx = " << idx << " str.size = " << str.size());
-        //      if(not serialized && not this->isBackOnSender() && idx != 0){
+        //      if(!serialized && not this->isBackOnSender() && idx != 0){
         //          SOLID_THROW("Message not serialized.");
         //      }
     }
@@ -206,11 +206,11 @@ void client_complete_message(
     }
     if (_rrecv_msg_ptr.get()) {
         idbg("idx = " << _rrecv_msg_ptr->idx);
-        if (not _rrecv_msg_ptr->check()) {
+        if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
 
-        SOLID_CHECK(not _rerror);
+        SOLID_CHECK(!_rerror);
 
         //cout<< _rmsgptr->str.size()<<'\n';
 
@@ -242,7 +242,7 @@ void server_complete_message(
 
         //SOLID_CHECK(_rrecv_msg_ptr->idx != 0);
 
-        if (not _rrecv_msg_ptr->check()) {
+        if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
 
@@ -485,7 +485,7 @@ int test_clientserver_idempotent(int argc, char** argv)
         {
             unique_lock<mutex> lock(mtx);
 
-            if (not cnd.wait_for(lock, std::chrono::seconds(100), []() { return start_sleep; })) {
+            if (!cnd.wait_for(lock, std::chrono::seconds(100), []() { return start_sleep; })) {
                 SOLID_THROW("Start is taking too long.");
             }
         }
@@ -502,7 +502,7 @@ int test_clientserver_idempotent(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 

@@ -174,7 +174,7 @@ struct RecvClosure {
     void operator()(frame::mpipc::ConnectionContext& _rctx, const char* _pdata, size_t& _rsz, ErrorConditionT const& _rerror)
     {
         idbg("received raw data: sz = " << _rsz << " error = " << _rerror.message());
-        SOLID_CHECK(not _rerror);
+        SOLID_CHECK(!_rerror);
         SOLID_CHECK(_rsz != 0);
 
         size_t towrite = raw_data.size() - data.size();
@@ -202,12 +202,12 @@ void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
     auto lambda = [](frame::mpipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror) {
         idbg("sent raw data: " << _rerror.message());
-        SOLID_CHECK(not _rerror);
+        SOLID_CHECK(!_rerror);
         //sent the raw_data, prepare receive the message back:
 
         auto lambda = [](frame::mpipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror, std::string&& _rdata) {
             idbg("received back raw data: " << _rerror.message() << " data.size = " << _rdata.size());
-            SOLID_CHECK(not _rerror);
+            SOLID_CHECK(!_rerror);
             SOLID_CHECK(_rdata == raw_data);
             //activate concetion
             _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId());
@@ -231,7 +231,7 @@ void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
         auto lambda = [](frame::mpipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror) {
             idbg("sent raw data: " << _rerror.message());
-            SOLID_CHECK(not _rerror);
+            SOLID_CHECK(!_rerror);
             //now that we've sent the raw string back, activate the connection
             _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId());
         };
@@ -258,7 +258,7 @@ void client_complete_message(
         }
     }
     if (_rrecv_msg_ptr) {
-        if (not _rrecv_msg_ptr->check()) {
+        if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
 
@@ -288,7 +288,7 @@ void server_complete_message(
     if (_rrecv_msg_ptr) {
         idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
 
-        if (not _rrecv_msg_ptr->check()) {
+        if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
 
@@ -464,7 +464,7 @@ int test_raw_proxy(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 

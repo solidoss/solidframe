@@ -234,11 +234,11 @@ void on_receive_response(
 {
     idbg(_rctx.recipientId());
 
-    if (not _rreqmsgptr) {
+    if (!_rreqmsgptr) {
         SOLID_THROW("Request should not be empty");
     }
 
-    if (not _rresmsgptr) {
+    if (!_rresmsgptr) {
         SOLID_THROW("Response should not be empty");
     }
 
@@ -286,14 +286,14 @@ void server_complete_request(
         return;
     }
 
-    if (not _rrecvmsgptr) {
+    if (!_rrecvmsgptr) {
         SOLID_THROW("Server should receive Request");
         return;
     }
 
     idbg(_rctx.recipientId() << " message id on sender " << _rrecvmsgptr->senderRequestId());
 
-    if (not _rrecvmsgptr->check()) {
+    if (!_rrecvmsgptr->check()) {
         SOLID_THROW("Message check failed.");
     }
 
@@ -336,7 +336,7 @@ void server_complete_response(
         return;
     }
 
-    if (not _rsendmsgptr) {
+    if (!_rsendmsgptr) {
         SOLID_THROW("Send message should not be empty");
     }
 
@@ -527,7 +527,7 @@ int test_clientserver_sendrequest(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 

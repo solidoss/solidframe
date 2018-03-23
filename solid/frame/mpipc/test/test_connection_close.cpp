@@ -186,7 +186,7 @@ void client_complete_message(
     SOLID_CHECK(_rsent_msg_ptr.get() && _rrecv_msg_ptr.get());
 
     if (_rrecv_msg_ptr.get()) {
-        if (not _rrecv_msg_ptr->check()) {
+        if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
 
@@ -229,7 +229,7 @@ void server_complete_message(
     if (_rrecv_msg_ptr.get()) {
         idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
 
-        if (not _rrecv_msg_ptr->check()) {
+        if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
 
@@ -419,7 +419,7 @@ int test_connection_close(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (not cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 
