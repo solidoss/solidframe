@@ -93,7 +93,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         idbg("DELETE ---------------- " << (void*)this << " idx = " << idx << " str.size = " << str.size());
-        //      if(!serialized && not this->isBackOnSender() && idx != 0){
+        //      if(!serialized && !this->isBackOnSender() && idx != 0){
         //          SOLID_THROW("Message not serialized.");
         //      }
     }
@@ -201,7 +201,7 @@ void client_complete_message(
             wdbg("send message complete: <" << _rerror.message() << "> <" << _rctx.error().message() << "> <" << _rctx.systemError().message() << ">");
             SOLID_CHECK(_rsent_msg_ptr->idx == 0 || _rsent_msg_ptr->idx == 2);
             SOLID_ASSERT(
-                _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && not _rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
+                _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && !_rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
         }
     }
     if (_rrecv_msg_ptr.get()) {

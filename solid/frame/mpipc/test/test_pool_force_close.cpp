@@ -98,7 +98,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         idbg("DELETE ---------------- " << (void*)this);
-        //      if(!serialized && not this->isBackOnSender()){
+        //      if(!serialized && !this->isBackOnSender()){
         //          SOLID_THROW("Message not serialized.");
         //      }
     }

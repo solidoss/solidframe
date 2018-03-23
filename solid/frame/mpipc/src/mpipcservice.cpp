@@ -994,7 +994,7 @@ ErrorConditionT Service::doSendMessage(
         SOLID_ASSERT(success);
     }
 
-    if (!success && not Message::is_synchronous(_flags)) {
+    if (!success && !Message::is_synchronous(_flags)) {
         success = doTryNotifyPoolWaitingConnection(pool_index);
     }
 
@@ -1160,7 +1160,7 @@ bool Service::doTryPushMessageToConnection(
 
         success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId(_msg_idx, rmsgstub.unique));
 
-        if (success && not message_is_null) {
+        if (success && !message_is_null) {
 
             rmsgstub.objid = _robjuid;
 
@@ -1175,7 +1175,7 @@ bool Service::doTryPushMessageToConnection(
 
         success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId());
 
-        if (success && not message_is_null) {
+        if (success && !message_is_null) {
 
             rpool.eraseMessageOrder(_msg_idx);
 
@@ -1732,7 +1732,7 @@ bool Service::connectionStopping(
         return doMainConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
     } else if (rpool.isRestarting() && isRunning()) {
         return doMainConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
-    } else if (!rpool.isFastClosing() && not rpool.isServerSide() && isRunning() && _rerror != error_connection_resolve) {
+    } else if (!rpool.isFastClosing() && !rpool.isServerSide() && isRunning() && _rerror != error_connection_resolve) {
         return doMainConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
     } else {
         return doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
@@ -1901,7 +1901,7 @@ bool Service::doMainConnectionStoppingCleanAll(
         ++rpool.stopping_connection_count;
         rpool.resetCleaningAllMessages();
 
-        if (rpool.name.size() && not rpool.isClosing()) { //closing pools are already unregistered from namemap
+        if (rpool.name.size() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
             impl_->namemap.erase(rpool.name.c_str());
             rpool.setClosing();
             vdbgx(Debug::mpipc, this << " pool " << pool_index << " set closing");
@@ -1947,7 +1947,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 
         ++rpool.stopping_connection_count;
 
-        if (rpool.name.size() && not rpool.isClosing()) { //closing pools are already unregistered from namemap
+        if (rpool.name.size() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
             impl_->namemap.erase(rpool.name.c_str());
             rpool.setClosing();
             vdbgx(Debug::mpipc, this << " pool " << pool_index << " set closing");
@@ -1972,7 +1972,7 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
     const size_t        pool_index = _rcon.poolId().index;
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    if (rpool.name.size() && not rpool.isClosing()) { //closing pools are already unregistered from namemap
+    if (rpool.name.size() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
         impl_->namemap.erase(rpool.name.c_str());
     }
 
@@ -2076,7 +2076,7 @@ void Service::connectionStop(Connection const& _rcon)
         SOLID_ASSERT(rpool.msgorder_inner_list.empty());
         impl_->conpoolcachestk.push(pool_index);
 
-        if (rpool.name.size() && not rpool.isClosing()) { //closing pools are already unregistered from namemap
+        if (rpool.name.size() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
             impl_->namemap.erase(rpool.name.c_str());
         }
 
@@ -2198,7 +2198,7 @@ void Service::doPushFrontMessageToPool(
     SOLID_ASSERT(rpool.unique == _rpool_id.unique);
 
     if (
-        Message::is_idempotent(_rmsgbundle.message_flags) || not Message::is_done_send(_rmsgbundle.message_flags)) {
+        Message::is_idempotent(_rmsgbundle.message_flags) || !Message::is_done_send(_rmsgbundle.message_flags)) {
 
         vdbgx(Debug::mpipc, this << " " << _rmsgbundle.message_ptr.get());
 

@@ -184,7 +184,7 @@ void client_complete_message(
         } else {
             //it should be the one shot message
             SOLID_CHECK(
-                _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && not _rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
+                _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && !_rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
             SOLID_CHECK(_rsent_msg_ptr->idx == 1);
             SOLID_CHECK(!_rrecv_msg_ptr);
         }

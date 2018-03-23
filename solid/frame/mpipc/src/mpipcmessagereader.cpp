@@ -131,7 +131,7 @@ void MessageReader::doConsumePacket(
 
     //DeserializerPointerT  tmp_deserializer;
 
-    while (pbufpos < pbufend && not _rerror) {
+    while (pbufpos < pbufend && !_rerror) {
         uint8_t cmd = 0;
         pbufpos     = _receiver.protocol().loadValue(pbufpos, cmd);
 

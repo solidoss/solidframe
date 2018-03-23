@@ -499,7 +499,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         Event             event;
         bool              can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 
-        if (msg_bundle.message_ptr.get() || not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+        if (msg_bundle.message_ptr.get() || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
             doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
         }
 
@@ -679,7 +679,7 @@ void Connection::doContinueStopping(
 
     bool can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 
-    if (msg_bundle.message_ptr || not SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+    if (msg_bundle.message_ptr || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
         doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
     }
 
@@ -1068,12 +1068,12 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
 
             if (isServer()) {
                 done = sock_ptr_->secureAccept(_rctx, conctx, onSecureAccept, error);
-                if (done && not error && not _rctx.error()) {
+                if (done && !error && !_rctx.error()) {
                     onSecureAccept(_rctx);
                 }
             } else {
                 done = sock_ptr_->secureConnect(_rctx, conctx, onSecureConnect, error);
-                if (done && not error && not _rctx.error()) {
+                if (done && !error && !_rctx.error()) {
                     onSecureConnect(_rctx);
                 }
             }
@@ -1357,7 +1357,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
             flags_.set(FlagsE::HasActivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds && not isWaitingKeepAliveTimer()) {
+        if (config.connection_keepalive_timeout_seconds && !isWaitingKeepAliveTimer()) {
             flags_.set(FlagsE::WaitKeepAliveTimer);
 
             idbgx(Debug::mpipc, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");

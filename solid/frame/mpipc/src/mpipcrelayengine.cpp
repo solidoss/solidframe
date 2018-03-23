@@ -417,7 +417,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
                     rmsg.push(impl_->createSendCancelRelayData());
                     {
                         ConnectionStub& rrcvcon                  = impl_->con_dq_[rcv_conidx];
-                        bool            should_notify_connection = (rrcvcon.recv_msg_list_.backIndex() == msgidx || not rrcvcon.recv_msg_list_.back().hasData());
+                        bool            should_notify_connection = (rrcvcon.recv_msg_list_.backIndex() == msgidx || !rrcvcon.recv_msg_list_.back().hasData());
 
                         rrcvcon.recv_msg_list_.erase(msgidx);
                         rrcvcon.recv_msg_list_.pushBack(msgidx);
@@ -543,7 +543,7 @@ bool EngineCore::doRelayStart(
 
     rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
 
-    bool should_notify_connection = (rrcvcon.recv_msg_list_.empty() || not rrcvcon.recv_msg_list_.back().hasData());
+    bool should_notify_connection = (rrcvcon.recv_msg_list_.empty() || !rrcvcon.recv_msg_list_.back().hasData());
 
     rrcvcon.recv_msg_list_.pushBack(msgidx);
 
@@ -581,7 +581,7 @@ bool EngineCore::doRelay(
 
             if (is_msg_relay_data_queue_empty) {
                 ConnectionStub& rrcvcon                  = impl_->con_dq_[rmsg.receiver_con_id_.index];
-                bool            should_notify_connection = (rrcvcon.recv_msg_list_.backIndex() == msgidx || not rrcvcon.recv_msg_list_.back().hasData());
+                bool            should_notify_connection = (rrcvcon.recv_msg_list_.backIndex() == msgidx || !rrcvcon.recv_msg_list_.back().hasData());
 
                 SOLID_ASSERT(!rrcvcon.recv_msg_list_.empty());
 
@@ -657,7 +657,7 @@ bool EngineCore::doRelayResponse(
 
             ConnectionStub& rrcvcon                  = impl_->con_dq_[rcv_conidx];
             ConnectionStub& rsndcon                  = impl_->con_dq_[snd_conidx];
-            bool            should_notify_connection = rrcvcon.recv_msg_list_.empty() || not rrcvcon.recv_msg_list_.back().hasData();
+            bool            should_notify_connection = rrcvcon.recv_msg_list_.empty() || !rrcvcon.recv_msg_list_.back().hasData();
 
             rsndcon.recv_msg_list_.erase(msgidx); //
             rrcvcon.send_msg_list_.erase(msgidx); //MUST do the erase before push!!!
@@ -916,7 +916,7 @@ void EngineCore::doCancel(
 
                 rmsg.push(impl_->createSendCancelRelayData());
                 {
-                    bool should_notify_connection = (rrcvcon.recv_msg_list_.backIndex() == msgidx || not rrcvcon.recv_msg_list_.back().hasData());
+                    bool should_notify_connection = (rrcvcon.recv_msg_list_.backIndex() == msgidx || !rrcvcon.recv_msg_list_.back().hasData());
 
                     rrcvcon.recv_msg_list_.erase(msgidx);
                     rrcvcon.recv_msg_list_.pushBack(msgidx);

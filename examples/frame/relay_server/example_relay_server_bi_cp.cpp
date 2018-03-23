@@ -371,7 +371,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
             idbg(this << " new data to sent " << (int)buf_pop_sending << ' ' << (int)buf_push_sending << ' ' << pbufpair->second);
             buf_sending[buf_push_sending] = *pbufpair;
 
-            if (buf_push_sending == buf_pop_sending && not sock.hasPendingSend()) {
+            if (buf_push_sending == buf_pop_sending && !sock.hasPendingSend()) {
                 idbg(this << " sending " << buf_sending[buf_pop_sending].second);
                 //sock.postSendAll(_rctx, buf_sending[buf_pop_sending].first, buf_sending[buf_pop_sending].second, Connection::onSend);
                 buf_push_sending = (buf_push_sending + 1) % BufferCount;

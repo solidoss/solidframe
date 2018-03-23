@@ -158,7 +158,7 @@ void client_complete_message(
     SOLID_CHECK(_rsent_msg_ptr);
 
     SOLID_CHECK(
-        _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && not _rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
+        _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && !_rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
 
     {
         unique_lock<mutex> lock(mtx);
