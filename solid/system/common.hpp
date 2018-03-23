@@ -92,6 +92,13 @@ struct UnsignedType<uint64_t> {
 
 } //namespace solid
 
+
+#ifdef SOLID_ON_WINDOWS
+
+using ssize_t = long;
+
+#endif
+
 //Some macro helpers:
 
 //adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429

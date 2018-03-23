@@ -253,7 +253,7 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& 
         const bool     ok = check_value_with_crc(v, v);
         const size_t   sz = v;
 
-        if (ok and (sz + 1) <= _sz) {
+        if (ok && (sz + 1) <= _sz) {
             ++ps;
 
             switch (sz) {

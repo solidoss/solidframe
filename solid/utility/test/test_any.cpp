@@ -60,7 +60,7 @@ void test_any_no_copy_copy(const Any<32>& _rany)
     } catch (std::exception& rex) {
         cout << "Exception: " << rex.what() << endl;
     }
-    SOLID_CHECK(not _rany.empty());
+    SOLID_CHECK(!_rany.empty());
 
     Any<32> tmp_any;
 
@@ -74,7 +74,7 @@ void test_any_no_copy_copy(const Any<32>& _rany)
     }
 
     SOLID_CHECK(tmp_any.empty());
-    SOLID_CHECK(not _rany.empty());
+    SOLID_CHECK(!_rany.empty());
     SOLID_CHECK(caught_exception);
 }
 
@@ -163,7 +163,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
 
     cout << "sizeof(any0) = " << sizeof(any0) << endl;
 
-    SOLID_CHECK(not any32.empty());
+    SOLID_CHECK(!any32.empty());
     SOLID_CHECK(any32.cast<string>() != nullptr);
     SOLID_CHECK(any32.cast<int>() == nullptr);
 
@@ -172,7 +172,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
     any0 = std::move(any32);
 
     SOLID_CHECK(any32.empty());
-    SOLID_CHECK(not any0.empty());
+    SOLID_CHECK(!any0.empty());
 
     SOLID_CHECK(any0.cast<string>() != nullptr);
     SOLID_CHECK(any0.cast<int>() == nullptr);
@@ -181,22 +181,22 @@ int test_any(int /*argc*/, char* /*argv*/ [])
 
     any32 = any0;
 
-    SOLID_CHECK(not any32.empty());
-    SOLID_CHECK(not any0.empty());
+    SOLID_CHECK(!any32.empty());
+    SOLID_CHECK(!any0.empty());
 
     Any<16> any16_0(any32);
     Any<16> any16_1(any16_0);
 
-    SOLID_CHECK(not any32.empty());
-    SOLID_CHECK(not any16_0.empty());
-    SOLID_CHECK(not any16_1.empty());
+    SOLID_CHECK(!any32.empty());
+    SOLID_CHECK(!any16_0.empty());
+    SOLID_CHECK(!any16_1.empty());
 
     SOLID_CHECK(*any16_1.cast<string>() == *any32.cast<string>() && *any16_1.cast<string>() == *any16_0.cast<string>());
 
     Any<16> any16_2(std::move(any16_0));
 
     SOLID_CHECK(any16_0.empty());
-    SOLID_CHECK(not any16_2.empty());
+    SOLID_CHECK(!any16_2.empty());
 
     SOLID_CHECK(*any16_2.cast<string>() == *any32.cast<string>());
 
@@ -223,7 +223,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
         cout << "ptr.get = " << ptr.get() << endl;
         cout << "ptr usecount = " << ptr.use_count() << endl;
         SOLID_CHECK(ptr.use_count() == 3);
-        SOLID_CHECK(ptr.get() == any_ptr1.cast<std::shared_ptr<Data>>()->get() and any_ptr2.cast<std::shared_ptr<Data>>()->get() == ptr.get());
+        SOLID_CHECK(ptr.get() == any_ptr1.cast<std::shared_ptr<Data>>()->get() && any_ptr2.cast<std::shared_ptr<Data>>()->get() == ptr.get());
 
         Any<256> any_ptr3 = make_any<256, std::shared_ptr<Data>>(std::move(ptr));
 
@@ -236,15 +236,15 @@ int test_any(int /*argc*/, char* /*argv*/ [])
         Any<>                      any_0{std::move(any_t)};
 
         SOLID_CHECK(any_t.empty());
-        SOLID_CHECK(not any_0.empty());
+        SOLID_CHECK(!any_0.empty());
 
         any_t = std::move(any_0);
 
         SOLID_CHECK(any_0.empty());
-        SOLID_CHECK(not any_t.empty());
+        SOLID_CHECK(!any_t.empty());
 
         any_0 = Test{5};
-        SOLID_CHECK(not any_0.empty());
+        SOLID_CHECK(!any_0.empty());
     }
     {
 

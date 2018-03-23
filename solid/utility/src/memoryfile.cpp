@@ -36,11 +36,11 @@ struct MemoryFile::BuffCmp {
 
 /*static*/ int64_t MemoryFile::compute_capacity(int64_t _cp, Allocator& _ra)
 {
-    if (_cp <= 0 or _cp == std::numeric_limits<int64_t>::max()) {
+    if (_cp <= 0 || _cp == std::numeric_limits<int64_t>::max()) {
         return std::numeric_limits<int64_t>::max();
     }
     _cp = _ra.computeCapacity(_cp);
-    if (_cp <= 0 or _cp == std::numeric_limits<int64_t>::max()) {
+    if (_cp <= 0 || _cp == std::numeric_limits<int64_t>::max()) {
         return std::numeric_limits<int64_t>::max();
     }
     return _cp;

@@ -724,7 +724,7 @@ private:
                 size_t toread = _rd.pend_ - _rd.pcrt_;
                 SOLID_CHECK(toread >= _rr.size_, "Should not happen");
                 if (toread > _rr.size_) {
-                    toread = _rr.size_;
+                    toread = static_cast<size_t>(_rr.size_);
                 }
                 memcpy(_rd.data_.buf_ + _rr.data_, _rd.pcrt_, toread);
                 _rd.pcrt_ += toread;
@@ -733,7 +733,7 @@ private:
                 if (_rr.size_ == 0) {
                     uint64_t    v;
                     T           vt;
-                    const char* p = cross::load_with_check(_rd.data_.buf_, _rr.data_, v);
+                    const char* p = cross::load_with_check(_rd.data_.buf_, static_cast<size_t>(_rr.data_), v);
                     if (p == nullptr) {
                         _rd.error(error_cross_integer);
                         return ReturnE::Done;
@@ -965,7 +965,7 @@ private:
         if (pcrt_ != pend_) {
             size_t toread = pend_ - pcrt_;
             if (toread > _rr.size_) {
-                toread = _rr.size_;
+                toread = static_cast<size_t>(_rr.size_);
             }
             memcpy(_rr.ptr_, pcrt_, toread);
             pcrt_ += toread;
@@ -1005,7 +1005,7 @@ private:
         const ReturnE r = load_cross_with_check<uint64_t>(*this, _rr, nullptr);
         _rr.ptr_        = pstr;
 
-        if (r == ReturnE::Done and data_.u64_ != 0) {
+        if (r == ReturnE::Done && data_.u64_ != 0) {
             _rr.size_ = data_.u64_;
             idbgx(Debug::ser_bin, "size = " << _rr.size_);
 
@@ -1015,7 +1015,7 @@ private:
             }
 
             std::string& rstr = *static_cast<std::string*>(pstr);
-            rstr.resize(_rr.size_);
+            rstr.resize(static_cast<size_t>(_rr.size_));
             _rr.ptr_  = const_cast<char*>(rstr.data());
             _rr.data_ = 0;
             _rr.call_ = load_binary;
@@ -1357,14 +1357,14 @@ public:
         _ris.read(buf, buf_cap);
 
         if (_ris.gcount()) {
-            doPrepareRun(buf, _ris.gcount());
+            doPrepareRun(buf, static_cast<size_t>(_ris.gcount()));
 
             _f(*this, _rctx);
 
             if (_ris.gcount() == doRun(&_rctx)) {
                 do {
                     _ris.read(buf, buf_cap);
-                } while (_ris.gcount() and (_ris.gcount() == DeserializerBase::run(buf, _ris.gcount(), &_rctx)));
+                } while (_ris.gcount() && (_ris.gcount() == DeserializerBase::run(buf, _ris.gcount(), &_rctx)));
             }
         }
 

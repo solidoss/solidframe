@@ -779,7 +779,7 @@ private:
         if (pcrt_ != pend_) {
             size_t towrite = pend_ - pcrt_;
             if (towrite > _rr.size_) {
-                towrite = _rr.size_;
+                towrite = static_cast<size_t>(_rr.size_);
             }
             memcpy(pcrt_, _rr.ptr_, towrite);
             pcrt_ += towrite;
@@ -1141,7 +1141,7 @@ public:
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);
 
-        if (not err) {
+        if (!err) {
             add(type_id_, _rctx, _name);
             rtype_map_.serialize(*this, p, idx, _rctx, _name);
         } else {

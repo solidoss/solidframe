@@ -59,7 +59,7 @@ long SerializerBase::run(char* _pbeg, unsigned _sz, void* _pctx)
 
 long SerializerBase::doRun(void* _pctx)
 {
-    while (not run_lst_.empty()) {
+    while (!run_lst_.empty()) {
         Runnable&     rr = run_lst_.front();
         const ReturnE rv = rr.call_(*this, rr, _pctx);
         switch (rv) {
@@ -130,7 +130,7 @@ void SerializerBase::limitString(const size_t _sz, const char* _name)
             _sz,
             0,
             [](SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
-                _rs.limits_.stringlimit_ = _rr.size_;
+                _rs.limits_.stringlimit_ = static_cast<size_t>(_rr.size_);
                 return Base::ReturnE::Done;
             },
             _name};
@@ -150,7 +150,7 @@ void SerializerBase::limitContainer(const size_t _sz, const char* _name)
             _sz,
             0,
             [](SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
-                _rs.limits_.containerlimit_ = _rr.size_;
+                _rs.limits_.containerlimit_ = static_cast<size_t>(_rr.size_);
                 return Base::ReturnE::Done;
             },
             _name};
@@ -170,7 +170,7 @@ void SerializerBase::limitStream(const uint64_t _sz, const char* _name)
             _sz,
             0,
             [](SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
-                _rs.limits_.streamlimit_ = _rr.size_;
+                _rs.limits_.streamlimit_ = static_cast<size_t>(_rr.size_);
                 return Base::ReturnE::Done;
             },
             _name};
@@ -220,13 +220,13 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         toread -= 2;
         if (_rr.size_ != InvalidSize()) {
             if (_rr.size_ < toread) {
-                toread = _rr.size_;
+                toread = static_cast<size_t>(_rr.size_);
             }
         }
 
         if (ris) {
             ris.read(_rs.pcrt_ + 2, toread);
-            toread = ris.gcount();
+            toread = static_cast<size_t>(ris.gcount());
         } else {
             toread = 0;
         }

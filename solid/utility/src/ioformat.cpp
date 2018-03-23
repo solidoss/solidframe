@@ -27,7 +27,7 @@ std::ostream& operator<<(std::ostream& _ros, TrimString const& _trimstr)
     }
 
     _ros.write(_trimstr.pstr, beglen);
-    if (endlen != 0 or beglen < _trimstr.strlen) {
+    if (endlen != 0 || beglen < _trimstr.strlen) {
         _ros << '.' << '.' << '.';
     }
     _ros.write(_trimstr.pstr + _trimstr.strlen - endlen, endlen);

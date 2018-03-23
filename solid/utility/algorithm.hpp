@@ -66,7 +66,7 @@ inline uint32_t max_value_without_crc_32()
 inline bool compute_value_with_crc(uint16_t& _to, uint16_t _from)
 {
     if (_from < (1 << 12)) {
-        _to = bit_count(_from) | (_from << 4);
+        _to = static_cast<uint16_t>(bit_count(_from)) | (_from << 4);
         return true;
     } else {
         return false;
@@ -89,7 +89,7 @@ inline uint16_t max_value_without_crc_16()
 inline bool compute_value_with_crc(uint8_t& _to, uint8_t _from)
 {
     if (_from < (1 << 5)) {
-        _to = bit_count(_from) | (_from << 3);
+        _to = static_cast<uint8_t>(bit_count(_from)) | (_from << 3);
         return true;
     } else {
         return false;

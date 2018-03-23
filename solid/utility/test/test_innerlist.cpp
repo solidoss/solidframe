@@ -1,6 +1,7 @@
 #include "solid/system/cassert.hpp"
 #include "solid/utility/innerlist.hpp"
 #include <iostream>
+#include <string>
 #include <vector>
 
 using namespace std;

@@ -47,6 +47,15 @@ inline TrimString trim_str(const char* _pcstr, size_t _strlen, size_t _beglen, s
 std::ostream& operator<<(std::ostream& _ros, TrimString const&);
 
 template <size_t Sz>
+struct Format;
+
+template <>
+struct Format<0> {
+	char		buf[1];
+	std::string str;
+};
+
+template <size_t Sz>
 struct Format {
     char        buf[Sz];
     std::string str;

@@ -112,7 +112,7 @@ class Test {
         for (size_t i = 0; i < 20; ++i) {
             vb.push_back((i % 2) == 0);
             bs[i] = ((i % 2) == 0);
-            vc.push_back('a' + i);
+            vc.push_back('a' + static_cast<char>(i));
         }
 
         SOLID_ASSERT(blb.size() < BlobCapacity);

@@ -45,7 +45,7 @@ std::istream& DeserializerBase::run(std::istream& _ris, void* _pctx)
 
     do {
         _ris.read(buf, buf_cap);
-    } while (_ris.gcount() and (_ris.gcount() == run(buf, _ris.gcount())));
+    } while (_ris.gcount() && (_ris.gcount() == run(buf, static_cast<unsigned>(_ris.gcount()))));
 
     return _ris;
 }
@@ -58,7 +58,7 @@ long DeserializerBase::run(const char* _pbeg, unsigned _sz, void* _pctx)
 
 long DeserializerBase::doRun(void* _pctx)
 {
-    while (not run_lst_.empty()) {
+    while (!run_lst_.empty()) {
         Runnable&     rr = run_lst_.front();
         const ReturnE rv = rr.call_(*this, rr, _pctx);
         switch (rv) {
@@ -128,7 +128,7 @@ void DeserializerBase::limitString(const size_t _sz, const char* _name)
             _sz,
             0,
             [](DeserializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
-                _rs.limits_.stringlimit_ = _rr.size_;
+                _rs.limits_.stringlimit_ = static_cast<size_t>(_rr.size_);
                 return Base::ReturnE::Done;
             },
             _name};
@@ -148,7 +148,7 @@ void DeserializerBase::limitContainer(const size_t _sz, const char* _name)
             _sz,
             0,
             [](DeserializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
-                _rs.limits_.containerlimit_ = _rr.size_;
+                _rs.limits_.containerlimit_ = static_cast<size_t>(_rr.size_);
                 return Base::ReturnE::Done;
             },
             _name};
@@ -168,7 +168,7 @@ void DeserializerBase::limitStream(const uint64_t _sz, const char* _name)
             _sz,
             0,
             [](DeserializerBase& _rs, Runnable& _rr, void* /*_pctx*/) {
-                _rs.limits_.streamlimit_ = _rr.size_;
+                _rs.limits_.streamlimit_ = static_cast<size_t>(_rr.size_);
                 return Base::ReturnE::Done;
             },
             _name};
@@ -214,7 +214,7 @@ Base::ReturnE DeserializerBase::load_stream_chunk_length(DeserializerBase& _rd, 
 
     size_t len = _rd.pend_ - _rd.pcrt_;
     if (len > _rr.size_) {
-        len = _rr.size_;
+        len = static_cast<size_t>(_rr.size_);
     }
 
     memcpy(_rd.data_.buf_ + _rr.data_, _rd.pcrt_, len);
@@ -269,7 +269,7 @@ Base::ReturnE DeserializerBase::load_stream_chunk(DeserializerBase& _rd, Runnabl
     size_t        len = _rd.pend_ - _rd.pcrt_;
     if (len) {
         if (len > _rr.size_) {
-            len = _rr.size_;
+            len = static_cast<size_t>(_rr.size_);
         }
 
         ros.write(_rd.pcrt_, len);

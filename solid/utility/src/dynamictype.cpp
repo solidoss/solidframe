@@ -37,7 +37,7 @@ typedef MutualStore<std::mutex> MutexStoreT;
 
 MutexStoreT& mutexStore()
 {
-    static MutexStoreT mtxstore(3, 2, 2);
+    static MutexStoreT mtxstore(true, 3, 2, 2);
     return mtxstore;
 }
 
