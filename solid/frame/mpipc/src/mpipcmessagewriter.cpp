@@ -66,7 +66,7 @@ bool MessageWriter::enqueue(
 
     //see if we have too many messages waiting for responses
     if (
-        Message::is_waiting_response(_rmsgbundle.message_flags) and ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
+        Message::is_waiting_response(_rmsgbundle.message_flags) && ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
         return false;
     }
 
@@ -111,7 +111,7 @@ bool MessageWriter::enqueue(
             return false;
         }
         if (
-            Message::is_waiting_response(_rprelay_data->pmessage_header_->flags_) and ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
+            Message::is_waiting_response(_rprelay_data->pmessage_header_->flags_) && ((order_inner_list_.size() - write_inner_list_.size()) >= _rconfig.max_message_count_response_wait)) {
             return false;
         }
 
@@ -176,14 +176,14 @@ void MessageWriter::cancel(
     Sender&          _rsender,
     const bool       _force)
 {
-    if (_rmsguid.isValid() and _rmsguid.index < message_vec_.size() and _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
+    if (_rmsguid.isValid() && _rmsguid.index < message_vec_.size() && _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
         doCancel(_rmsguid.index, _rsender, _force);
     }
 }
 //-----------------------------------------------------------------------------
 MessagePointerT MessageWriter::fetchRequest(MessageId const& _rmsguid) const
 {
-    if (_rmsguid.isValid() and _rmsguid.index < message_vec_.size() and _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
+    if (_rmsguid.isValid() && _rmsguid.index < message_vec_.size() && _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
         const MessageStub& rmsgstub = message_vec_[_rmsguid.index];
         return MessagePointerT(rmsgstub.msgbundle_.message_ptr);
     }
@@ -192,7 +192,7 @@ MessagePointerT MessageWriter::fetchRequest(MessageId const& _rmsguid) const
 //-----------------------------------------------------------------------------
 ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, MessageId& _rrelay_id)
 {
-    if (_rmsguid.isValid() and _rmsguid.index < message_vec_.size() and _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
+    if (_rmsguid.isValid() && _rmsguid.index < message_vec_.size() && _rmsguid.unique == message_vec_[_rmsguid.index].unique_) {
         MessageStub& rmsgstub = message_vec_[_rmsguid.index];
         switch (rmsgstub.state_) {
         case MessageStub::StateE::WriteWait:
@@ -269,7 +269,7 @@ void MessageWriter::doCancel(
             //the message is being sent
             rmsgstub.serializer_ptr_->clear();
             rmsgstub.state_ = MessageStub::StateE::WriteCanceled;
-        } else if (!_force and rmsgstub.state_ == MessageStub::StateE::WriteWait) {
+        } else if (!_force && rmsgstub.state_ == MessageStub::StateE::WriteWait) {
             //message is waiting response
             rmsgstub.state_ = MessageStub::StateE::WriteWaitCanceled;
         } else if (rmsgstub.state_ == MessageStub::StateE::WriteWait || rmsgstub.state_ == MessageStub::StateE::WriteWaitCanceled) {
@@ -349,7 +349,7 @@ ErrorConditionT MessageWriter::write(
     bool            more    = true;
     ErrorConditionT error;
 
-    while (more and freesz >= (PacketHeader::SizeOfE + _rsender.protocol().minimumFreePacketDataSize())) {
+    while (more && freesz >= (PacketHeader::SizeOfE + _rsender.protocol().minimumFreePacketDataSize())) {
 
         PacketHeader  packet_header(PacketHeader::TypeE::Data, 0, 0);
         PacketOptions packet_options;
@@ -394,7 +394,7 @@ ErrorConditionT MessageWriter::write(
         }
     }
 
-    if (not error and _rbuffer.data() == pbufpos) {
+    if (not error && _rbuffer.data() == pbufpos) {
         if (_flags.has(WriteFlagsE::ShouldSendKeepAlive)) {
             PacketHeader packet_header(PacketHeader::TypeE::KeepAlive);
             pbufpos = packet_header.store(pbufpos, _rsender.protocol());
@@ -468,7 +468,7 @@ size_t MessageWriter::doWritePacketData(
         _rackd_buf_count = 0;
     }
 
-    while (_cancel_remote_msg_vec.size() and static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
+    while (_cancel_remote_msg_vec.size() && static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
         vdbgx(Debug::mpipc, this << " send CancelRequest " << _cancel_remote_msg_vec.back());
         uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
         pbufpos     = _rsender.protocol().storeValue(pbufpos, cmd);
@@ -480,7 +480,7 @@ size_t MessageWriter::doWritePacketData(
     }
 
     while (
-        not _rerror and static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() and doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos)) {
+        not _rerror && static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() && doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos)) {
         const size_t msgidx = write_inner_list_.frontIndex();
 
         PacketHeader::CommandE cmd = PacketHeader::CommandE::Message;

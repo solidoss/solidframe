@@ -93,7 +93,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         idbg("DELETE ---------------- " << (void*)this << " idx = " << idx << " str.size = " << str.size());
-        //      if(not serialized and not this->isBackOnSender() and idx != 0){
+        //      if(not serialized && not this->isBackOnSender() && idx != 0){
         //          SOLID_THROW("Message not serialized.");
         //      }
     }
@@ -201,7 +201,7 @@ void client_complete_message(
             wdbg("send message complete: <" << _rerror.message() << "> <" << _rctx.error().message() << "> <" << _rctx.systemError().message() << ">");
             SOLID_CHECK(_rsent_msg_ptr->idx == 0 || _rsent_msg_ptr->idx == 2);
             SOLID_ASSERT(
-                _rerror == frame::mpipc::error_message_connection and ((_rctx.error() == frame::aio::error_stream_shutdown and not _rctx.systemError()) || (_rctx.error() and _rctx.systemError())));
+                _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && not _rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
         }
     }
     if (_rrecv_msg_ptr.get()) {
@@ -261,7 +261,7 @@ void server_complete_message(
 
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        SOLID_CHECK(!(err and err != frame::mpipc::error_service_stopping), "sendResponse should not fail: " << err.message());
+        SOLID_CHECK(!(err && err != frame::mpipc::error_service_stopping), "sendResponse should not fail: " << err.message());
     }
     if (_rsent_msg_ptr.get()) {
         idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
@@ -305,7 +305,7 @@ int test_clientserver_idempotent(int argc, char** argv)
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if (isprint(c) and !isblank(c)) {
+            if (isprint(c) && !isblank(c)) {
                 pattern += static_cast<char>(c);
             }
         }

@@ -440,7 +440,7 @@ public:
 
             const RunListIteratorT old_sentinel = _rd.sentinel();
 
-            while (_rd.pcrt_ != _rd.pend_ and _rr.size_ != 0) {
+            while (_rd.pcrt_ != _rd.pend_ && _rr.size_ != 0) {
                 rd.add(value, _rr.name_);
                 --_rr.size_;
 
@@ -456,7 +456,7 @@ public:
             const bool is_run_empty = _rd.isRunEmpty();
             _rd.sentinel(old_sentinel);
 
-            if (_rr.size_ == 0 and is_run_empty) {
+            if (_rr.size_ == 0 && is_run_empty) {
                 return ReturnE::Done;
             }
             return ReturnE::Wait;
@@ -504,7 +504,7 @@ public:
 
             const RunListIteratorT old_sentinel = _rd.sentinel();
 
-            while (_rd.pcrt_ != _rd.pend_ and _rr.size_ != 0) {
+            while (_rd.pcrt_ != _rd.pend_ && _rr.size_ != 0) {
                 rd.add(value, rctx, _rr.name_);
                 --_rr.size_;
 
@@ -520,7 +520,7 @@ public:
             const bool is_run_empty = _rd.isRunEmpty();
             _rd.sentinel(old_sentinel);
 
-            if (_rr.size_ == 0 and is_run_empty) {
+            if (_rr.size_ == 0 && is_run_empty) {
                 return ReturnE::Done;
             }
             return ReturnE::Wait;
@@ -772,7 +772,7 @@ private:
         const ReturnE r = load_cross_with_check<uint64_t>(_rd, _rr, nullptr);
         _rr.ptr_        = pstr;
 
-        if (r == ReturnE::Done and _rd.data_.u64_ != 0) {
+        if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
             _rr.size_ = _rd.data_.u64_;
             idbgx(Debug::ser_bin, "size = " << _rr.size_);
 
@@ -826,7 +826,7 @@ private:
         const ReturnE r = load_cross_with_check<uint64_t>(_rd, _rr, nullptr);
         _rr.ptr_        = pstr;
 
-        if (r == ReturnE::Done and _rd.data_.u64_ != 0) {
+        if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
             _rr.size_ = _rd.data_.u64_;
             idbgx(Debug::ser_bin, "size = " << _rr.size_);
 
@@ -882,7 +882,7 @@ private:
         const ReturnE r = load_cross_with_check<uint64_t>(_rd, _rr, nullptr);
         _rr.ptr_        = pstr;
 
-        if (r == ReturnE::Done and _rd.data_.u64_ != 0) {
+        if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
             _rr.size_ = _rd.data_.u64_;
             idbgx(Debug::ser_bin, "size = " << _rr.size_);
 
@@ -932,7 +932,7 @@ private:
 
         const RunListIteratorT old_sentinel = _rd.sentinel();
 
-        while (_rd.pcrt_ != _rd.pend_ and _rr.data_ < _rr.size_) {
+        while (_rd.pcrt_ != _rd.pend_ && _rr.data_ < _rr.size_) {
             rd.add(rcontainer[_rr.data_], rctx, _rr.name_);
             ++_rr.data_;
         }
@@ -940,7 +940,7 @@ private:
         const bool is_run_empty = _rd.isRunEmpty();
         _rd.sentinel(old_sentinel);
 
-        if (_rr.data_ == _rr.size_ and is_run_empty) {
+        if (_rr.data_ == _rr.size_ && is_run_empty) {
             return ReturnE::Done;
         }
         return ReturnE::Wait;
@@ -1197,7 +1197,7 @@ public:
             if (_ris.gcount() == doRun()) {
                 do {
                     _ris.read(buf, buf_cap);
-                } while (_ris.gcount() and (_ris.gcount() == DeserializerBase::run(buf, _ris.gcount())));
+                } while (_ris.gcount() && (_ris.gcount() == DeserializerBase::run(buf, _ris.gcount())));
             }
         }
 

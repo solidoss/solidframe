@@ -200,7 +200,7 @@ int test_clientserver_noserver(int argc, char** argv)
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if (isprint(c) and !isblank(c)) {
+            if (isprint(c) && !isblank(c)) {
                 pattern += static_cast<char>(c);
             }
         }

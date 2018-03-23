@@ -96,7 +96,7 @@ bool try_stop()
     //
     edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
     if (
-        crtwriteidx >= writecount and canceled_count == cancelable_created_count and 2 * cancelable_created_count == cancelable_deleted_count and response_count == (writecount - canceled_count)) {
+        crtwriteidx >= writecount && canceled_count == cancelable_created_count && 2 * cancelable_created_count == cancelable_deleted_count && response_count == (writecount - canceled_count)) {
         unique_lock<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
@@ -309,7 +309,7 @@ void peerb_complete_register(
     idbg(_rctx.recipientId());
     SOLID_CHECK(not _rerror);
 
-    if (_rrecv_msg_ptr and _rrecv_msg_ptr->err == 0) {
+    if (_rrecv_msg_ptr && _rrecv_msg_ptr->err == 0) {
         auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
             idbg("peerb --- enter active error: " << _rerror.message());
             return frame::mpipc::MessagePointerT();
@@ -353,7 +353,7 @@ void peerb_complete_message(
         SOLID_ASSERT(!err);
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
-        for (int i = 0; i < 2 and crtwriteidx < writecount; ++i) {
+        for (int i = 0; i < 2 && crtwriteidx < writecount; ++i) {
             mtx.lock();
             msgid_vec.emplace_back();
             auto& back_msg_id = msgid_vec.back();
@@ -414,7 +414,7 @@ int test_relay_cancel_request(int argc, char** argv)
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if (isprint(c) and !isblank(c)) {
+            if (isprint(c) && !isblank(c)) {
                 pattern += static_cast<char>(c);
             }
         }

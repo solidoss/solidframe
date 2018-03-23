@@ -131,7 +131,7 @@ void MessageReader::doConsumePacket(
 
     //DeserializerPointerT  tmp_deserializer;
 
-    while (pbufpos < pbufend and not _rerror) {
+    while (pbufpos < pbufend && not _rerror) {
         uint8_t cmd = 0;
         pbufpos     = _receiver.protocol().loadValue(pbufpos, cmd);
 
@@ -141,7 +141,7 @@ void MessageReader::doConsumePacket(
         case PacketHeader::CommandE::Message:
         case PacketHeader::CommandE::EndMessage:
             pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
-            if (pbufpos and message_idx < _receiver.configuration().max_message_count_multiplex) {
+            if (pbufpos && message_idx < _receiver.configuration().max_message_count_multiplex) {
                 vdbgx(Debug::mpipc, "messagetype = " << (int)cmd << " msgidx = " << message_idx);
                 if (message_idx >= message_vec_.size()) {
                     message_vec_.resize(message_idx + 1);
@@ -157,7 +157,7 @@ void MessageReader::doConsumePacket(
         case PacketHeader::CommandE::CancelMessage:
             pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             edbgx(Debug::mpipc, "CancelMessage " << message_idx);
-            if (pbufpos and message_idx < message_vec_.size()) {
+            if (pbufpos && message_idx < message_vec_.size()) {
                 MessageStub& rmsgstub = message_vec_[message_idx];
                 SOLID_ASSERT(rmsgstub.state_ != MessageStub::StateE::NotStarted);
                 if (rmsgstub.state_ == MessageStub::StateE::RelayBody) {
@@ -175,7 +175,7 @@ void MessageReader::doConsumePacket(
         case PacketHeader::CommandE::CancelRequest: {
             RequestId requid;
             pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.index);
-            if (pbufpos and (pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique))) {
+            if (pbufpos && (pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique))) {
                 vdbgx(Debug::mpipc, "CancelRequest: " << requid);
                 _receiver.receiveCancelRequest(requid);
             } else {

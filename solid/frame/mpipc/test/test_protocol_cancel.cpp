@@ -167,14 +167,14 @@ void complete_message(
     frame::mpipc::MessagePointerT&   _rresponse_ptr,
     ErrorConditionT const&           _rerr)
 {
-    if (_rerr and _rerr != frame::mpipc::error_message_canceled) {
+    if (_rerr && _rerr != frame::mpipc::error_message_canceled) {
         SOLID_THROW("Message complete with error");
     }
     if (_rmessage_ptr.get()) {
         size_t idx = static_cast<Message&>(*_rmessage_ptr).idx;
         if (crtreadidx) {
             //not the first message
-            SOLID_CHECK((!_rerr and not initarray[idx % initarraysize].cancel) || (initarray[idx % initarraysize].cancel and _rerr == frame::mpipc::error_message_canceled));
+            SOLID_CHECK((!_rerr && not initarray[idx % initarraysize].cancel) || (initarray[idx % initarraysize].cancel && _rerr == frame::mpipc::error_message_canceled));
         }
         idbg(static_cast<Message&>(*_rmessage_ptr).str.size() << ' ' << _rerr.message());
     }
@@ -267,7 +267,7 @@ int test_protocol_cancel(int argc, char** argv)
 #endif
 
     for (int i = 0; i < 127; ++i) {
-        if (isprint(i) and !isblank(i)) {
+        if (isprint(i) && !isblank(i)) {
             pattern += static_cast<char>(i);
         }
     }
@@ -340,7 +340,7 @@ int test_protocol_cancel(int argc, char** argv)
         size_t i          = 10;
         bool   refill     = false;
 
-        while (is_running and !error) {
+        while (is_running && !error) {
             refill = false;
             --rcvr.ackd_count;
             if (i) {
@@ -358,7 +358,7 @@ int test_protocol_cancel(int argc, char** argv)
                 rcvr.fillRequestVector(10);
             }
 
-            if (!error and wb.size()) {
+            if (!error && wb.size()) {
 
                 mpipcmsgreader.read(wb.data(), wb.size(), rcvr, error);
             } else {

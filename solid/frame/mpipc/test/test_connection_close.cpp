@@ -142,7 +142,7 @@ void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
         //NOTE: (***) in order for client_received_logout check to work, one shoud better
         // use delayCloseConnectionPool instead of closeConnection
         // in server_complete_logout
-        SOLID_CHECK(client_received_message and client_received_logout);
+        SOLID_CHECK(client_received_message && client_received_logout);
 
         ++connection_count;
         running = false;
@@ -183,7 +183,7 @@ void client_complete_message(
     idbg(_rctx.recipientId());
 
     SOLID_CHECK(!_rerror);
-    SOLID_CHECK(_rsent_msg_ptr.get() and _rrecv_msg_ptr.get());
+    SOLID_CHECK(_rsent_msg_ptr.get() && _rrecv_msg_ptr.get());
 
     if (_rrecv_msg_ptr.get()) {
         if (not _rrecv_msg_ptr->check()) {
@@ -216,7 +216,7 @@ void client_complete_logout(
     ErrorConditionT const& _rerror)
 {
     SOLID_CHECK(!_rerror);
-    SOLID_CHECK(_rsent_msg_ptr.get() and _rrecv_msg_ptr.get());
+    SOLID_CHECK(_rsent_msg_ptr.get() && _rrecv_msg_ptr.get());
     SOLID_CHECK(_rctx.service().closeConnection(_rctx.recipientId()));
     client_received_logout = true;
 }
@@ -301,7 +301,7 @@ int test_connection_close(int argc, char** argv)
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if (isprint(c) and !isblank(c)) {
+            if (isprint(c) && !isblank(c)) {
                 pattern += static_cast<char>(c);
             }
         }

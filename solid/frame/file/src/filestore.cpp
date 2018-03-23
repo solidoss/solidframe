@@ -346,8 +346,8 @@ bool Utf8Controller::prepareIndex(
     shared::StoreBase::Accessor& /*_rsbacc*/, Utf8OpenCommandBase& _rcmd,
     size_t& _ridx, size_t& _rflags, ErrorCodeT& _rerr)
 {
-    //find _rcmd.inpath file and set _rcmd.outpath
-    //if found set _ridx and return true
+    //find _rcmd.inpath file && set _rcmd.outpath
+    //if found set _ridx && return true
     //else return false
     const size_t storeidx = impl_->findFileStorage(_rcmd.inpath);
 

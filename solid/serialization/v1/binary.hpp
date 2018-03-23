@@ -374,10 +374,10 @@ void container_reserve_helper(C& _rc, size_t _cp)
 }
 
 //===============================================================
-//! A base class for binary serializer and deserializer
+//! A base class for binary serializer && deserializer
 /*!
-    The main goals for serializer and deserializer was to
-    be ease to use and to be reentrant.
+    The main goals for serializer && deserializer was to
+    be ease to use && to be reentrant.
     The ease of use means that one should do little things to
     make a class serializable. E.g. :<br>
     <code>
@@ -1152,7 +1152,7 @@ public:
         up until the serialization will end.
 
         The given name is meaningless for binary serialization, it will be usefull for
-        text oriented serialization, and I want a common interface for push, so one
+        text oriented serialization, && I want a common interface for push, so one
         can write a single template function for serializing an object.
     */
     template <typename T>
@@ -1438,7 +1438,7 @@ public:
         up until the serialization will end.
 
         The given name is meaningless for binary serialization, it will be usefull for
-        text oriented serialization, and I want a common interface for push, so one
+        text oriented serialization, && I want a common interface for push, so one
         can write a single template function for serializing an object.
     */
     template <typename T>

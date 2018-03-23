@@ -505,9 +505,9 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
 
         //at this point we need to start completing all connection's remaining messages
 
-        bool has_no_message = pending_message_vec_.empty() and msg_writer_.empty();
+        bool has_no_message = pending_message_vec_.empty() && msg_writer_.empty();
 
-        if (can_stop and has_no_message) {
+        if (can_stop && has_no_message) {
             idbgx(Debug::mpipc, this << ' ' << this->id() << " postStop");
             //can stop rightaway
             postStop(_rctx,
@@ -872,7 +872,7 @@ void Connection::doHandleEventResolve(
 //-----------------------------------------------------------------------------
 bool Connection::willAcceptNewMessage(frame::aio::ReactorContext& _rctx) const
 {
-    return not isStopping() /* and waiting_message_vec.empty() and msg_writer.willAcceptNewMessage(service(_rctx).configuration().writer)*/;
+    return not isStopping() /* && waiting_message_vec.empty() && msg_writer.willAcceptNewMessage(service(_rctx).configuration().writer)*/;
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventNewPoolQueueMessage(frame::aio::ReactorContext& _rctx, Event& _revent)
@@ -1061,19 +1061,19 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
     Configuration const& config = service(_rctx).configuration();
     ConnectionContext    conctx(service(_rctx), *this);
     if (not isStopping()) {
-        if ((isServer() and config.server.hasSecureConfiguration()) || ((not isServer()) and config.client.hasSecureConfiguration())) {
+        if ((isServer() && config.server.hasSecureConfiguration()) || ((not isServer()) && config.client.hasSecureConfiguration())) {
             ErrorConditionT error;
             bool            done = false;
             vdbgx(Debug::mpipc, this << "");
 
             if (isServer()) {
                 done = sock_ptr_->secureAccept(_rctx, conctx, onSecureAccept, error);
-                if (done and not error and not _rctx.error()) {
+                if (done && not error && not _rctx.error()) {
                     onSecureAccept(_rctx);
                 }
             } else {
                 done = sock_ptr_->secureConnect(_rctx, conctx, onSecureConnect, error);
-                if (done and not error and not _rctx.error()) {
+                if (done && not error && not _rctx.error()) {
                     onSecureConnect(_rctx);
                 }
             }
@@ -1135,7 +1135,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
             break;
         case ConnectionState::Passive:
         default:
-            if (not rthis.isActiveState() and rthis.isRawState()) {
+            if (not rthis.isActiveState() && rthis.isRawState()) {
                 rthis.post(
                     _rctx,
                     [&rthis](frame::aio::ReactorContext& _rctx, Event&& _revent) { rthis.onEvent(_rctx, std::move(_revent)); },
@@ -1187,7 +1187,7 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
             break;
         case ConnectionState::Passive:
         default:
-            if (not rthis.isActiveState() and rthis.isRawState()) {
+            if (not rthis.isActiveState() && rthis.isRawState()) {
                 rthis.post(
                     _rctx,
                     [&rthis](frame::aio::ReactorContext& _rctx, Event&& _revent) { rthis.onEvent(_rctx, std::move(_revent)); },
@@ -1205,7 +1205,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, Event& 
 
     SOLID_ASSERT(pdata);
 
-    if (this->isRawState() and pdata) {
+    if (this->isRawState() && pdata) {
 
         idbgx(Debug::mpipc, this << " datasize = " << pdata->data.size());
 
@@ -1242,7 +1242,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
 
     idbgx(Debug::mpipc, this);
 
-    if (this->isRawState() and pdata) {
+    if (this->isRawState() && pdata) {
         if (recv_buf_off_ == cons_buf_off_) {
             if (this->postRecvSome(_rctx, recv_buf_->data(), this->recvBufferCapacity(), _revent)) {
 
@@ -1338,7 +1338,7 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext& _rctx)
             flags_.set(FlagsE::HasActivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds and isWaitingKeepAliveTimer()) {
+        if (config.connection_keepalive_timeout_seconds && isWaitingKeepAliveTimer()) {
 
             vdbgx(Debug::mpipc, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
 
@@ -1357,7 +1357,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
             flags_.set(FlagsE::HasActivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds and not isWaitingKeepAliveTimer()) {
+        if (config.connection_keepalive_timeout_seconds && not isWaitingKeepAliveTimer()) {
             flags_.set(FlagsE::WaitKeepAliveTimer);
 
             idbgx(Debug::mpipc, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");

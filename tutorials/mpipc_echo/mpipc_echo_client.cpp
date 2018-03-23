@@ -43,7 +43,7 @@ void complete_message(
         return;
     }
 
-    SOLID_CHECK(_rrecv_msg_ptr and _rsent_msg_ptr);
+    SOLID_CHECK(_rrecv_msg_ptr && _rsent_msg_ptr);
 
     cout << "Received from " << _rctx.recipientName() << ": " << _rrecv_msg_ptr->str << endl;
 }

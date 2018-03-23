@@ -258,7 +258,7 @@ int SerializerBase::run(char* _pb, size_t _bl, void* _pctx)
     const std::vector<bool>* pbs    = reinterpret_cast<std::vector<bool>*>(_rfd.p);
     size_t                   bitoff = 0;
 
-    while ((rs.be - rs.cpb) and _rfd.s < pbs->size()) {
+    while ((rs.be - rs.cpb) && _rfd.s < pbs->size()) {
         uint8_t* puc = reinterpret_cast<uint8_t*>(rs.cpb);
 
         if (bitoff == 0) {
@@ -1000,7 +1000,7 @@ int DeserializerBase::run(const char* _pb, size_t _bl, void* _pctx)
     uint64_t&          len    = rd.estk.top().first_uint64_t_value();
     size_t             bitoff = 0;
 
-    while ((rd.be - rd.cpb) > 0 and _rfd.s < len) {
+    while ((rd.be - rd.cpb) > 0 && _rfd.s < len) {
         const uint8_t* puc = reinterpret_cast<const uint8_t*>(rd.cpb);
 
         (*pbs)[_rfd.s] = ((*puc & (1 << bitoff)) != 0);

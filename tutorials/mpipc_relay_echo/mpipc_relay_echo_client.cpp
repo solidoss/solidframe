@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
                                     ErrorConditionT const&           _rerror) {
                 SOLID_CHECK(!_rerror);
 
-                if (_rrecv_msg_ptr and _rrecv_msg_ptr->name.empty()) {
+                if (_rrecv_msg_ptr && _rrecv_msg_ptr->name.empty()) {
                     auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
                         idbg("peerb --- enter active error: " << _rerror.message());
                         return frame::mpipc::MessagePointerT();

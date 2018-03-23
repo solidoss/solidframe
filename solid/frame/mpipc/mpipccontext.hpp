@@ -151,7 +151,7 @@ struct RequestId {
 
     bool operator==(const RequestId& _reqid) const
     {
-        return index == _reqid.index and unique == _reqid.unique;
+        return index == _reqid.index && unique == _reqid.unique;
     }
 
     RequestId(

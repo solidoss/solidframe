@@ -30,7 +30,7 @@ void complete_message(
 {
     idbg("");
     SOLID_CHECK(not _rerror);
-    SOLID_CHECK(_rsent_msg_ptr and _rrecv_msg_ptr);
+    SOLID_CHECK(_rsent_msg_ptr && _rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
     SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
     {

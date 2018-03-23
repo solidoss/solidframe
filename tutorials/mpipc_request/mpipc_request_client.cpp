@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
                             return;
                         }
 
-                        SOLID_CHECK(not _rerror and _rsent_msg_ptr and _rrecv_msg_ptr);
+                        SOLID_CHECK(not _rerror && _rsent_msg_ptr && _rrecv_msg_ptr);
 
                         cout << "Received " << _rrecv_msg_ptr->user_data_map.size() << " users:" << endl;
 

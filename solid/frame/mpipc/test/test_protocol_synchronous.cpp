@@ -257,7 +257,7 @@ int test_protocol_synchronous(int argc, char** argv)
 #endif
 
     for (int i = 0; i < 127; ++i) {
-        if (isprint(i) and !isblank(i)) {
+        if (isprint(i) && !isblank(i)) {
             pattern += static_cast<char>(i);
         }
     }
@@ -322,7 +322,7 @@ int test_protocol_synchronous(int argc, char** argv)
         size_t i          = 10;
         bool   refill     = false;
 
-        while (is_running and !error) {
+        while (is_running && !error) {
             refill = false;
             --rcvr.ackd_count;
             if (i) {
@@ -340,7 +340,7 @@ int test_protocol_synchronous(int argc, char** argv)
                 rcvr.fillRequestVector(10);
             }
 
-            if (!error and wb.size()) {
+            if (!error && wb.size()) {
 
                 mpipcmsgreader.read(wb.data(), wb.size(), rcvr, error);
             } else {

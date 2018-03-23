@@ -251,7 +251,7 @@ private:
 
         bool isStop() const noexcept
         {
-            return not msgbundle_.message_ptr and not Message::is_canceled(msgbundle_.message_flags);
+            return not msgbundle_.message_ptr && not Message::is_canceled(msgbundle_.message_flags);
         }
 
         bool isRelay() const noexcept

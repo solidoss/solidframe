@@ -121,9 +121,9 @@ struct Test : Base {
         ostringstream oss;
         oss << "beta::Test<" << V << ">";
         if (_pstr) {
-            return value == oss.str() and V == Base::value and *_pstr == value;
+            return value == oss.str() && V == Base::value && *_pstr == value;
         } else {
-            return value == oss.str() and V == Base::value;
+            return value == oss.str() && V == Base::value;
         }
     }
 };

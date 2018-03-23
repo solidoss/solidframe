@@ -97,7 +97,7 @@ struct MessageStub : inner::Node<InnerLinkCount> {
     }
     void clear()
     {
-        SOLID_ASSERT(pfront_ == nullptr and pback_ == nullptr);
+        SOLID_ASSERT(pfront_ == nullptr && pback_ == nullptr);
         state_  = MessageStateE::Cache;
         pfront_ = nullptr;
         pback_  = nullptr;
@@ -314,7 +314,7 @@ struct EngineCore::Data {
     }
     bool isValid(const UniqueId& _rrelay_con_uid) const
     {
-        return _rrelay_con_uid.index < con_dq_.size() and con_dq_[_rrelay_con_uid.index].unique_ == _rrelay_con_uid.unique;
+        return _rrelay_con_uid.index < con_dq_.size() && con_dq_[_rrelay_con_uid.index].unique_ == _rrelay_con_uid.unique;
     }
 };
 //-----------------------------------------------------------------------------
@@ -360,7 +360,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
                 case MessageStateE::WaitResponse:
                     rmsg.state_ = MessageStateE::RecvCancel;
 
-                    SOLID_ASSERT(snd_conidx < impl_->con_dq_.size() and impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique);
+                    SOLID_ASSERT(snd_conidx < impl_->con_dq_.size() && impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique);
 
                     {
                         ConnectionStub& rsndcon                  = impl_->con_dq_[snd_conidx];
@@ -413,7 +413,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
                 case MessageStateE::WaitResponse:
                     rmsg.state_ = MessageStateE::SendCancel;
 
-                    SOLID_ASSERT(rcv_conidx < impl_->con_dq_.size() and impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique);
+                    SOLID_ASSERT(rcv_conidx < impl_->con_dq_.size() && impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique);
                     rmsg.push(impl_->createSendCancelRelayData());
                     {
                         ConnectionStub& rrcvcon                  = impl_->con_dq_[rcv_conidx];
@@ -547,7 +547,7 @@ bool EngineCore::doRelayStart(
 
     rrcvcon.recv_msg_list_.pushBack(msgidx);
 
-    if (should_notify_connection and rrcvcon.id_.isValid()) {
+    if (should_notify_connection && rrcvcon.id_.isValid()) {
         SOLID_CHECK(notifyConnection(impl_->manager(), rrcvcon.id_, RelayEngineNotification::NewData), "Connection should be alive");
     }
 
@@ -567,7 +567,7 @@ bool EngineCore::doRelay(
     SOLID_ASSERT(_rrelay_con_uid.isValid());
     SOLID_ASSERT(impl_->isValid(_rrelay_con_uid));
 
-    if (_rrelay_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
+    if (_rrelay_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
         const size_t msgidx                        = _rrelay_id.index;
         MessageStub& rmsg                          = impl_->msg_dq_[msgidx];
         bool         is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
@@ -625,7 +625,7 @@ bool EngineCore::doRelayResponse(
     SOLID_ASSERT(_rrelay_con_uid.isValid());
     SOLID_ASSERT(impl_->isValid(_rrelay_con_uid));
 
-    if (_rrelay_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
+    if (_rrelay_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rrelay_id.index].unique_ == _rrelay_id.unique) {
         const size_t msgidx            = _rrelay_id.index;
         MessageStub& rmsg              = impl_->msg_dq_[msgidx];
         RequestId    sender_request_id = rmsg.header_.recipient_request_id_; //the request ids were swapped on doRelayStart
@@ -652,8 +652,8 @@ bool EngineCore::doRelayResponse(
 
             const size_t rcv_conidx = rmsg.receiver_con_id_.index;
             const size_t snd_conidx = rmsg.sender_con_id_.index;
-            SOLID_ASSERT(rcv_conidx < impl_->con_dq_.size() and impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique);
-            SOLID_ASSERT(snd_conidx < impl_->con_dq_.size() and impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique);
+            SOLID_ASSERT(rcv_conidx < impl_->con_dq_.size() && impl_->con_dq_[rcv_conidx].unique_ == rmsg.receiver_con_id_.unique);
+            SOLID_ASSERT(snd_conidx < impl_->con_dq_.size() && impl_->con_dq_[snd_conidx].unique_ == rmsg.sender_con_id_.unique);
 
             ConnectionStub& rrcvcon                  = impl_->con_dq_[rcv_conidx];
             ConnectionStub& rsndcon                  = impl_->con_dq_[snd_conidx];
@@ -698,7 +698,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
     bool   can_retry = true;
     size_t msgidx    = rcon.recv_msg_list_.backIndex();
 
-    while (can_retry and msgidx != InvalidIndex() and impl_->msg_dq_[msgidx].hasData()) {
+    while (can_retry && msgidx != InvalidIndex() && impl_->msg_dq_[msgidx].hasData()) {
         MessageStub& rmsg        = impl_->msg_dq_[msgidx];
         const size_t prev_msgidx = rcon.recv_msg_list_.previousIndex(msgidx);
         RelayData*   pnext       = rmsg.pfront_ ? rmsg.pfront_->pnext_ : nullptr;
@@ -727,7 +727,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
 
                 if (rmsg.sender_con_id_.isValid()) {
                     //we can safely unlink message from sender connection
-                    SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
+                    SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() && impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
 
                     ConnectionStub& rsndcon = impl_->con_dq_[rmsg.sender_con_id_.index];
 
@@ -746,7 +746,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
         msgidx = prev_msgidx;
     } //while
 
-    _rmore = rcon.recv_msg_list_.size() and rcon.recv_msg_list_.back().hasData();
+    _rmore = rcon.recv_msg_list_.size() && rcon.recv_msg_list_.back().hasData();
     idbgx(Debug::mpipc, _rrelay_con_uid << " more = " << _rmore << " rcv_lst = " << rcon.recv_msg_list_);
 }
 //-----------------------------------------------------------------------------
@@ -779,7 +779,7 @@ void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _don
 
     SOLID_ASSERT(rcon.send_msg_list_.check());
 
-    while (rcon.send_msg_list_.size() and rcon.send_msg_list_.front().state_ == MessageStateE::RecvCancel) {
+    while (rcon.send_msg_list_.size() && rcon.send_msg_list_.front().state_ == MessageStateE::RecvCancel) {
         MessageStub& rmsg   = rcon.send_msg_list_.front();
         size_t       msgidx = rcon.send_msg_list_.popFront();
 
@@ -812,13 +812,13 @@ void EngineCore::doComplete(
     idbgx(Debug::mpipc, _rrelay_con_uid << " try complete msg " << _rengine_msg_id);
     SOLID_ASSERT(_prelay_data);
 
-    if (_rengine_msg_id.index < impl_->msg_dq_.size() and impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
+    if (_rengine_msg_id.index < impl_->msg_dq_.size() && impl_->msg_dq_[_rengine_msg_id.index].unique_ == _rengine_msg_id.unique) {
         const size_t    msgidx  = _rengine_msg_id.index;
         MessageStub&    rmsg    = impl_->msg_dq_[msgidx];
         ConnectionStub& rrcvcon = impl_->con_dq_[rmsg.receiver_con_id_.index]; //the connection currently calling this method
 
         if (rmsg.sender_con_id_.isValid()) {
-            SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
+            SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() && impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
 
             ConnectionStub& rsndcon                  = impl_->con_dq_[rmsg.sender_con_id_.index];
             bool            should_notify_connection = rsndcon.pdone_relay_data_top_ == nullptr;
@@ -833,7 +833,7 @@ void EngineCore::doComplete(
             if (_prelay_data->is_last_) {
                 SOLID_ASSERT(rmsg.pfront_ == nullptr);
 
-                if (rmsg.state_ == MessageStateE::Relay and Message::is_waiting_response(_prelay_data->pmessage_header_->flags_)) {
+                if (rmsg.state_ == MessageStateE::Relay && Message::is_waiting_response(_prelay_data->pmessage_header_->flags_)) {
                     rmsg.state_ = MessageStateE::WaitResponse;
 
                     rrcvcon.recv_msg_list_.erase(msgidx);
@@ -849,11 +849,11 @@ void EngineCore::doComplete(
                 }
             }
 
-            _rmore = rrcvcon.recv_msg_list_.size() and rrcvcon.recv_msg_list_.back().hasData();
+            _rmore = rrcvcon.recv_msg_list_.size() && rrcvcon.recv_msg_list_.back().hasData();
             idbgx(Debug::mpipc, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
             return;
         }
-        _rmore = rrcvcon.recv_msg_list_.size() and rrcvcon.recv_msg_list_.back().hasData();
+        _rmore = rrcvcon.recv_msg_list_.size() && rrcvcon.recv_msg_list_.back().hasData();
         idbgx(Debug::mpipc, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
     }
     //it happens for canceled relayed messages - see MessageWriter::doWriteRelayedCancelRequest
@@ -880,7 +880,7 @@ void EngineCore::doCancel(
     idbgx(Debug::mpipc, _rrelay_con_uid << " try complete cancel msg " << _rengine_msg_id);
     const size_t msgidx = _rengine_msg_id.index;
 
-    if (msgidx < impl_->msg_dq_.size() and impl_->msg_dq_[msgidx].unique_ == _rengine_msg_id.unique) {
+    if (msgidx < impl_->msg_dq_.size() && impl_->msg_dq_[msgidx].unique_ == _rengine_msg_id.unique) {
         MessageStub& rmsg = impl_->msg_dq_[msgidx];
         //need to findout on which side we are - sender or receiver
         if (rmsg.sender_con_id_ == _rrelay_con_uid) {
@@ -909,7 +909,7 @@ void EngineCore::doCancel(
             rsndcon.pdone_relay_data_top_ = nullptr;
 
             if (rmsg.receiver_con_id_.isValid()) {
-                SOLID_ASSERT(rmsg.receiver_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.receiver_con_id_.index].unique_ == rmsg.receiver_con_id_.unique);
+                SOLID_ASSERT(rmsg.receiver_con_id_.index < impl_->con_dq_.size() && impl_->con_dq_[rmsg.receiver_con_id_.index].unique_ == rmsg.receiver_con_id_.unique);
 
                 ConnectionStub& rrcvcon = impl_->con_dq_[rmsg.receiver_con_id_.index];
                 rmsg.state_             = MessageStateE::SendCancel;
@@ -952,7 +952,7 @@ void EngineCore::doCancel(
             rmsg.state_ = MessageStateE::RecvCancel;
 
             if (rmsg.sender_con_id_.isValid()) {
-                SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() and impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
+                SOLID_ASSERT(rmsg.sender_con_id_.index < impl_->con_dq_.size() && impl_->con_dq_[rmsg.sender_con_id_.index].unique_ == rmsg.sender_con_id_.unique);
 
                 ConnectionStub& rsndcon                  = impl_->con_dq_[rmsg.sender_con_id_.index];
                 bool            should_notify_connection = rsndcon.pdone_relay_data_top_ == nullptr;

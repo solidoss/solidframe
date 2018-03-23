@@ -68,7 +68,7 @@ void complete_message<ipc_file::ListRequest>(
 
     fs::path fs_path(_rrecv_msg_ptr->path.c_str() /*, fs::native*/);
 
-    if (fs::exists(fs_path) and fs::is_directory(fs_path)) {
+    if (fs::exists(fs_path) && fs::is_directory(fs_path)) {
         fs::directory_iterator it, end;
 
         try {

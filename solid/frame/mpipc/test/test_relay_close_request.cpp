@@ -80,7 +80,7 @@ bool try_stop()
     //
     edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " deleted_cnt = " << deleted_count);
     if (
-        crtwriteidx >= writecount and canceled_count == writecount and created_count == deleted_count and created_count == 2 * writecount) {
+        crtwriteidx >= writecount && canceled_count == writecount && created_count == deleted_count && created_count == 2 * writecount) {
         unique_lock<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
@@ -272,7 +272,7 @@ void peerb_complete_register(
     idbg(_rctx.recipientId());
     SOLID_CHECK(not _rerror);
 
-    if (_rrecv_msg_ptr and _rrecv_msg_ptr->err == 0) {
+    if (_rrecv_msg_ptr && _rrecv_msg_ptr->err == 0) {
         auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
             idbg("peerb --- enter active error: " << _rerror.message());
             return frame::mpipc::MessagePointerT();
@@ -364,7 +364,7 @@ int test_relay_close_request(int argc, char** argv)
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if (isprint(c) and !isblank(c)) {
+            if (isprint(c) && !isblank(c)) {
                 pattern += static_cast<char>(c);
             }
         }

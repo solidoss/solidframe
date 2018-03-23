@@ -279,7 +279,7 @@ public: //should be protected
     void addFunction(S& _rs, F _f, const char* _name)
     {
         idbgx(Debug::ser_bin, _name);
-        if (isRunEmpty() and _rs.pcrt_ != _rs.pend_) {
+        if (isRunEmpty() && _rs.pcrt_ != _rs.pend_) {
             _f(_rs, _name);
         } else {
             Runnable r{
@@ -308,7 +308,7 @@ public: //should be protected
     void addFunction(S& _rs, F _f, Ctx& _rctx, const char* _name)
     {
         idbgx(Debug::ser_bin, _name);
-        if (isRunEmpty() and _rs.pcrt_ != _rs.pend_) {
+        if (isRunEmpty() && _rs.pcrt_ != _rs.pend_) {
             _f(_rs, _rctx, _name);
         } else {
             Runnable r{
@@ -403,7 +403,7 @@ public: //should be protected
     void addContainer(S& _rs, const C& _rc, const char* _name)
     {
         idbgx(Debug::ser_bin, _name << ' ' << _rc.size());
-        if (Base::limits().hasContainer() and _rc.size() > Base::limits().container()) {
+        if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
             error(error_limit_container);
             return;
         }
@@ -413,7 +413,7 @@ public: //should be protected
         if (_rc.size()) {
             typename C::const_iterator it = _rc.cbegin();
 
-            while (_rs.pcrt_ != _rs.pend_ and it != _rc.cend()) {
+            while (_rs.pcrt_ != _rs.pend_ && it != _rc.cend()) {
                 _rs.add(*it, _name);
                 ++it;
             }
@@ -424,7 +424,7 @@ public: //should be protected
                     S&                     rs           = static_cast<S&>(_rs);
                     const RunListIteratorT old_sentinel = _rs.sentinel();
 
-                    while (_rs.pcrt_ != _rs.pend_ and it != rcontainer.cend()) {
+                    while (_rs.pcrt_ != _rs.pend_ && it != rcontainer.cend()) {
                         rs.add(*it, _rr.name_);
                         ++it;
                     }
@@ -450,7 +450,7 @@ public: //should be protected
     {
         idbgx(Debug::ser_bin, _name << ' ' << _rc.size());
 
-        if (Base::limits().hasContainer() and _rc.size() > Base::limits().container()) {
+        if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
             error(error_limit_container);
             return;
         }
@@ -460,7 +460,7 @@ public: //should be protected
         if (_rc.size()) {
             typename C::const_iterator it = _rc.cbegin();
 
-            while (_rs.pcrt_ != _rs.pend_ and it != _rc.cend()) {
+            while (_rs.pcrt_ != _rs.pend_ && it != _rc.cend()) {
                 _rs.add(*it, _rctx, _name);
                 ++it;
             }
@@ -472,7 +472,7 @@ public: //should be protected
                     S&                     rs           = static_cast<S&>(_rs);
                     const RunListIteratorT old_sentinel = _rs.sentinel();
 
-                    while (_rs.pcrt_ != _rs.pend_ and it != rcontainer.cend()) {
+                    while (_rs.pcrt_ != _rs.pend_ && it != rcontainer.cend()) {
                         rs.add(*it, rctx, _rr.name_);
                         ++it;
                     }
@@ -747,7 +747,7 @@ private:
         S&                      rs           = static_cast<S&>(_rs);
         const RunListIteratorT  old_sentinel = _rs.sentinel();
 
-        while (_rs.pcrt_ != _rs.pend_ and _rr.data_ < _rr.size_) {
+        while (_rs.pcrt_ != _rs.pend_ && _rr.data_ < _rr.size_) {
             rs.add(rcontainer[_rr.data_], rctx, _rr.name_);
             ++_rr.data_;
         }

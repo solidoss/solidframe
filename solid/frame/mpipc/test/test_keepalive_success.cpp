@@ -268,7 +268,7 @@ int test_keepalive_success(int argc, char** argv)
     }
 
     for (int i = 0; i < 127; ++i) {
-        if (isprint(i) and !isblank(i)) {
+        if (isprint(i) && !isblank(i)) {
             pattern += static_cast<char>(i);
         }
     }

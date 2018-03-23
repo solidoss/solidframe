@@ -330,7 +330,7 @@ struct ConnectionPoolStub {
     {
         MessageStub& rmsgstub(msgvec[_rmsgid.index]);
 
-        SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr and rmsgstub.unique == _rmsgid.unique);
+        SOLID_ASSERT(not rmsgstub.msgbundle.message_ptr && rmsgstub.unique == _rmsgid.unique);
 
         rmsgstub.msgbundle = MessageBundle(_rmsgptr, _msg_type_idx, _flags, _rcomplete_fnc, _msg_url);
 
@@ -410,7 +410,7 @@ struct ConnectionPoolStub {
     {
         SOLID_ASSERT(_rmsgid.index < msgvec.size());
         SOLID_ASSERT(msgvec[_rmsgid.index].unique == _rmsgid.unique);
-        if (_rmsgid.index < msgvec.size() and msgvec[_rmsgid.index].unique == _rmsgid.unique) {
+        if (_rmsgid.index < msgvec.size() && msgvec[_rmsgid.index].unique == _rmsgid.unique) {
             msgvec[_rmsgid.index].clear();
             msgcache_inner_list.pushBack(_rmsgid.index);
         }
@@ -446,7 +446,7 @@ struct ConnectionPoolStub {
 
     bool hasNoConnection() const
     {
-        return pending_connection_count == 0 and active_connection_count == 0 and stopping_connection_count == 0;
+        return pending_connection_count == 0 && active_connection_count == 0 && stopping_connection_count == 0;
     }
 
     bool isClosing() const
@@ -544,12 +544,12 @@ struct ConnectionPoolStub {
 
     bool isFull(const size_t _max_message_queue_size) const
     {
-        return msgcache_inner_list.empty() and msgvec.size() >= _max_message_queue_size;
+        return msgcache_inner_list.empty() && msgvec.size() >= _max_message_queue_size;
     }
 
     bool shouldClose() const
     {
-        return isClosing() and hasNoMessage();
+        return isClosing() && hasNoMessage();
     }
 };
 
@@ -880,7 +880,7 @@ ErrorConditionT Service::doSendMessage(
     std::string message_url;
     const char* recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
 
-    if (_recipient_url != nullptr and (recipient_name == nullptr || recipient_name[0] == '\0')) {
+    if (_recipient_url != nullptr && (recipient_name == nullptr || recipient_name[0] == '\0')) {
         edbgx(Debug::mpipc, this << " failed extracting recipient name");
         error = error_service_invalid_url;
         return error;
@@ -968,7 +968,7 @@ ErrorConditionT Service::doSendMessage(
     bool success = false;
 
     if (
-        rpool.isCleaningOneShotMessages() and Message::is_one_shot(_flags)) {
+        rpool.isCleaningOneShotMessages() && Message::is_one_shot(_flags)) {
         success = manager().notify(
             rpool.main_connection_id,
             Connection::eventClosePoolMessage(msgid));
@@ -985,7 +985,7 @@ ErrorConditionT Service::doSendMessage(
     }
 
     if (
-        not success and Message::is_synchronous(_flags) and
+        not success && Message::is_synchronous(_flags) and
         //      rpool.main_connection_id.isValid() and
         rpool.isMainConnectionActive()) {
         success = manager().notify(
@@ -994,7 +994,7 @@ ErrorConditionT Service::doSendMessage(
         SOLID_ASSERT(success);
     }
 
-    if (not success and not Message::is_synchronous(_flags)) {
+    if (not success && not Message::is_synchronous(_flags)) {
         success = doTryNotifyPoolWaitingConnection(pool_index);
     }
 
@@ -1160,7 +1160,7 @@ bool Service::doTryPushMessageToConnection(
 
         success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId(_msg_idx, rmsgstub.unique));
 
-        if (success and not message_is_null) {
+        if (success && not message_is_null) {
 
             rmsgstub.objid = _robjuid;
 
@@ -1175,7 +1175,7 @@ bool Service::doTryPushMessageToConnection(
 
         success = _rcon.tryPushMessage(configuration(), rmsgstub.msgbundle, rmsgstub.msgid, MessageId());
 
-        if (success and not message_is_null) {
+        if (success && not message_is_null) {
 
             rpool.eraseMessageOrder(_msg_idx);
 
@@ -1248,7 +1248,7 @@ ErrorConditionT Service::pollPoolForUpdates(
         return error;
     }
 
-    if (rpool.isMainConnectionStopping() and rpool.main_connection_id != _robjuid) {
+    if (rpool.isMainConnectionStopping() && rpool.main_connection_id != _robjuid) {
 
         idbgx(Debug::mpipc, this << ' ' << &_rconnection << " switch message main connection from " << rpool.main_connection_id << " to " << _robjuid);
 
@@ -1271,7 +1271,7 @@ ErrorConditionT Service::pollPoolForUpdates(
         return error;
     }
 
-    if (_rconnection.isWriterEmpty() and rpool.shouldClose()) {
+    if (_rconnection.isWriterEmpty() && rpool.shouldClose()) {
         idbgx(Debug::mpipc, this << ' ' << &_rconnection << " pool is DelayClosing");
         error = error_service_pool_stopping;
         return error;
@@ -1291,7 +1291,7 @@ ErrorConditionT Service::pollPoolForUpdates(
         size_t count = 0;
 
         for (const auto& rmsgid : _rconnection.pendingMessageVector()) {
-            if (rmsgid.index < rpool.msgvec.size() and rmsgid.unique == rpool.msgvec[rmsgid.index].unique) {
+            if (rmsgid.index < rpool.msgvec.size() && rmsgid.unique == rpool.msgvec[rmsgid.index].unique) {
                 connection_may_handle_more_messages = doTryPushMessageToConnection(_rconnection, _robjuid, pool_index, rmsgid);
                 if (connection_may_handle_more_messages) {
                 } else {
@@ -1309,7 +1309,7 @@ ErrorConditionT Service::pollPoolForUpdates(
 
     if (connection_can_handle_synchronous_messages) {
         //use the order inner queue
-        while (rpool.msgorder_inner_list.size() and connection_may_handle_more_messages) {
+        while (rpool.msgorder_inner_list.size() && connection_may_handle_more_messages) {
             connection_may_handle_more_messages = doTryPushMessageToConnection(
                 _rconnection,
                 _robjuid,
@@ -1320,7 +1320,7 @@ ErrorConditionT Service::pollPoolForUpdates(
     } else {
 
         //use the async inner queue
-        while (rpool.msgasync_inner_list.size() and connection_may_handle_more_messages) {
+        while (rpool.msgasync_inner_list.size() && connection_may_handle_more_messages) {
             connection_may_handle_more_messages = doTryPushMessageToConnection(
                 _rconnection,
                 _robjuid,
@@ -1365,7 +1365,7 @@ bool Service::doTryNotifyPoolWaitingConnection(const size_t _pool_index)
     bool                success = false;
 
     //we were not able to handle the message, try notify another connection
-    while (not success and rpool.conn_waitingq.size()) {
+    while (not success && rpool.conn_waitingq.size()) {
         //a connection is waiting for something to send
         ObjectIdT objuid = rpool.conn_waitingq.front();
 
@@ -1484,7 +1484,7 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
         return error_service_unknown_connection;
     }
 
-    if (_rmsg_id.index < rpool.msgvec.size() and rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
+    if (_rmsg_id.index < rpool.msgvec.size() && rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
         MessageStub& rmsgstub = rpool.msgvec[_rmsg_id.index];
         bool         success  = false;
 
@@ -1654,7 +1654,7 @@ bool Service::fetchMessage(Connection& _rcon, ObjectIdT const& _robjuid, Message
     ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
 
     if (
-        _rmsg_id.index < rpool.msgvec.size() and rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
+        _rmsg_id.index < rpool.msgvec.size() && rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
         return doTryPushMessageToConnection(_rcon, _robjuid, pool_index, _rmsg_id.index);
     }
     return false;
@@ -1670,7 +1670,7 @@ bool Service::fetchCanceledMessage(Connection const& _rcon, MessageId const& _rm
     ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
 
     if (
-        _rmsg_id.index < rpool.msgvec.size() and rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
+        _rmsg_id.index < rpool.msgvec.size() && rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
         MessageStub& rmsgstub = rpool.msgvec[_rmsg_id.index];
 
         if (rpool.msgorder_inner_list.contains(_rmsg_id.index)) {
@@ -1730,9 +1730,9 @@ bool Service::connectionStopping(
         return doMainConnectionStoppingCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
     } else if (rpool.isCleaningAllMessages()) {
         return doMainConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
-    } else if (rpool.isRestarting() and isRunning()) {
+    } else if (rpool.isRestarting() && isRunning()) {
         return doMainConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
-    } else if (not rpool.isFastClosing() and not rpool.isServerSide() and isRunning() and _rerror != error_connection_resolve) {
+    } else if (not rpool.isFastClosing() && not rpool.isServerSide() && isRunning() && _rerror != error_connection_resolve) {
         return doMainConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
     } else {
         return doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
@@ -1764,7 +1764,7 @@ bool Service::doNonMainConnectionStopping(
 
     ++rpool.stopping_connection_count;
 
-    if (rpool.isLastConnection() and rpool.isMainConnectionStopping()) {
+    if (rpool.isLastConnection() && rpool.isMainConnectionStopping()) {
         manager().notify(
             rpool.main_connection_id,
             Connection::eventStopping());
@@ -1839,11 +1839,11 @@ bool Service::doMainConnectionStoppingCleanOneShot(
             SOLID_ASSERT(false);
         }
 
-        if (rmsgstub.msgbundle.message_ptr.get() and Message::is_one_shot(rmsgstub.msgbundle.message_flags)) {
+        if (rmsgstub.msgbundle.message_ptr.get() && Message::is_one_shot(rmsgstub.msgbundle.message_flags)) {
             _rmsg_bundle = std::move(rmsgstub.msgbundle);
             _rmsg_id     = MessageId(crtmsgidx, rmsgstub.unique);
             rpool.clearPopAndCacheMessage(crtmsgidx);
-        } else if (not rmsgstub.msgbundle.message_ptr and rpool.msgorder_inner_list.size() == 1) {
+        } else if (not rmsgstub.msgbundle.message_ptr && rpool.msgorder_inner_list.size() == 1) {
             _rmsg_bundle = std::move(rmsgstub.msgbundle);
             _rmsg_id     = MessageId(crtmsgidx, rmsgstub.unique);
             rpool.clearPopAndCacheMessage(crtmsgidx);
@@ -1901,7 +1901,7 @@ bool Service::doMainConnectionStoppingCleanAll(
         ++rpool.stopping_connection_count;
         rpool.resetCleaningAllMessages();
 
-        if (rpool.name.size() and not rpool.isClosing()) { //closing pools are already unregistered from namemap
+        if (rpool.name.size() && not rpool.isClosing()) { //closing pools are already unregistered from namemap
             impl_->namemap.erase(rpool.name.c_str());
             rpool.setClosing();
             vdbgx(Debug::mpipc, this << " pool " << pool_index << " set closing");
@@ -1947,7 +1947,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
 
         ++rpool.stopping_connection_count;
 
-        if (rpool.name.size() and not rpool.isClosing()) { //closing pools are already unregistered from namemap
+        if (rpool.name.size() && not rpool.isClosing()) { //closing pools are already unregistered from namemap
             impl_->namemap.erase(rpool.name.c_str());
             rpool.setClosing();
             vdbgx(Debug::mpipc, this << " pool " << pool_index << " set closing");
@@ -1972,7 +1972,7 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
     const size_t        pool_index = _rcon.poolId().index;
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    if (rpool.name.size() and not rpool.isClosing()) { //closing pools are already unregistered from namemap
+    if (rpool.name.size() && not rpool.isClosing()) { //closing pools are already unregistered from namemap
         impl_->namemap.erase(rpool.name.c_str());
     }
 
@@ -2076,7 +2076,7 @@ void Service::connectionStop(Connection const& _rcon)
         SOLID_ASSERT(rpool.msgorder_inner_list.empty());
         impl_->conpoolcachestk.push(pool_index);
 
-        if (rpool.name.size() and not rpool.isClosing()) { //closing pools are already unregistered from namemap
+        if (rpool.name.size() && not rpool.isClosing()) { //closing pools are already unregistered from namemap
             impl_->namemap.erase(rpool.name.c_str());
         }
 
@@ -2090,10 +2090,10 @@ bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorCon
     vdbgx(Debug::mpipc, this);
 
     ConnectionPoolStub& rpool(impl_->pooldq[_pool_index]);
-    const bool          is_new_connection_needed = rpool.active_connection_count < rpool.persistent_connection_count || (rpool.hasAnyMessage() and rpool.conn_waitingq.size() < rpool.msgorder_inner_list.size());
+    const bool          is_new_connection_needed = rpool.active_connection_count < rpool.persistent_connection_count || (rpool.hasAnyMessage() && rpool.conn_waitingq.size() < rpool.msgorder_inner_list.size());
 
     if (
-        rpool.active_connection_count < configuration().pool_max_active_connection_count and rpool.pending_connection_count == 0 and is_new_connection_needed and isRunning()) {
+        rpool.active_connection_count < configuration().pool_max_active_connection_count && rpool.pending_connection_count == 0 && is_new_connection_needed && isRunning()) {
 
         idbgx(Debug::mpipc, this << " try create new connection in pool " << rpool.active_connection_count << " pending connections " << rpool.pending_connection_count);
 

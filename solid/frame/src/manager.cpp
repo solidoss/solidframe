@@ -974,7 +974,7 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
 
         const bool cnt = doForEachServiceObject(rss.firstchk, ObjectVisitFunctionT{raise_lambda});
 
-        if (cnt == 0 and rss.objcnt == 0) {
+        if (cnt == 0 && rss.objcnt == 0) {
             rss.state = StateStoppedE;
             vdbgx(Debug::frame, "StateStoppedE on " << svcidx);
             return;
