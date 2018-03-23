@@ -23,9 +23,9 @@
 #include <sys/types.h>
 
 #elif defined(SOLID_USE_WSAPOLL)
+#include <mstcpip.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <mstcpip.h>
 #endif
 
 #include <cerrno>
@@ -653,8 +653,8 @@ void Reactor::run()
 
         selcnt = kevent(impl_->reactor_fd, nullptr, 0, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::maximum ? &waittime : nullptr);
 #elif defined(SOLID_USE_WSAPOLL)
-		selcnt = 0;
-		//TODO:
+        selcnt = 0;
+        //TODO:
 #endif
         crttime = std::chrono::steady_clock::now();
 
@@ -893,9 +893,9 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
         ctx.reactor_event_ = systemEventsToReactorEvents(rev.flags, rev.filter);
         ctx.channel_index_ = voidToIndex(rev.udata);
 #elif defined(SOLID_USE_WSAPOLL)
-		WSAPOLLFD &rev = impl_->eventvec[i];
-		CompletionHandlerStub& rch = impl_->chdq[0];
-		//TODO: properly set rch
+        WSAPOLLFD&             rev = impl_->eventvec[i];
+        CompletionHandlerStub& rch = impl_->chdq[0];
+        //TODO: properly set rch
 #endif
         ctx.object_index_ = rch.objidx;
 

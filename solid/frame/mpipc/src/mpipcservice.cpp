@@ -792,7 +792,7 @@ ErrorConditionT Service::createConnectionPool(const char* _recipient_url, const 
             unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
             ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
 
-			rpool.persistent_connection_count = static_cast<uint16_t>(_persistent_connection_count);
+            rpool.persistent_connection_count = static_cast<uint16_t>(_persistent_connection_count);
             doTryCreateNewConnectionForPool(pool_index, error);
         } else {
             if (impl_->conpoolcachestk.size()) {

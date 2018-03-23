@@ -12,9 +12,9 @@
 
 #include "solid/utility/common.hpp"
 #include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
-#include <cctype>
 #include <string>
 
 namespace solid {

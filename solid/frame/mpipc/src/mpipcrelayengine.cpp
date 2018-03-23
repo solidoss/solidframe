@@ -314,7 +314,7 @@ struct EngineCore::Data {
     }
     bool isValid(const UniqueId& _rrelay_con_uid) const
     {
-		const size_t idx = static_cast<size_t>(_rrelay_con_uid.index);
+        const size_t idx = static_cast<size_t>(_rrelay_con_uid.index);
         return idx < con_dq_.size() && con_dq_[idx].unique_ == _rrelay_con_uid.unique;
     }
 };
