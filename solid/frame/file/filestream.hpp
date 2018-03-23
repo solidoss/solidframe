@@ -176,19 +176,19 @@ public:
     explicit FileOStream(
         FilePointerT& _rdev,
         const size_t  _bufcp = 0)
-        : std::ostream()
+        : std::ostream(&buf)
         , pb(_bufcp ? new char[_bufcp] : nullptr)
         , buf(_rdev, pb, _bufcp)
     {
-        rdbuf(&buf);
+        //rdbuf(&buf);
     }
     FileOStream(
         const size_t _bufcp = 0)
-        : std::ostream()
+        : std::ostream(&buf)
         , pb(_bufcp ? new char[_bufcp] : nullptr)
         , buf(pb, _bufcp)
     {
-        rdbuf(&buf);
+        //rdbuf(&buf);
     }
     ~FileOStream()
     {

@@ -268,7 +268,7 @@ Connection::Connection(
     , recv_buf_count_(0)
     , recv_buf_(nullptr)
     , send_buf_(nullptr)
-    , send_relay_free_count_(_rconfiguration.connection_relay_buffer_count)
+    , send_relay_free_count_(static_cast<uint8_t>(_rconfiguration.connection_relay_buffer_count))
     , ackd_buf_count_(0)
     , recv_buf_cp_kb_(0)
     , send_buf_cp_kb_(0)
@@ -293,7 +293,7 @@ Connection::Connection(
     , recv_buf_count_(0)
     , recv_buf_(nullptr)
     , send_buf_(nullptr)
-    , send_relay_free_count_(_rconfiguration.connection_relay_buffer_count)
+    , send_relay_free_count_(static_cast<uint8_t>(_rconfiguration.connection_relay_buffer_count))
     , ackd_buf_count_(0)
     , recv_buf_cp_kb_(0)
     , send_buf_cp_kb_(0)
@@ -594,7 +594,7 @@ void Connection::doCompleteAllMessages(
     Event&                      _revent)
 {
 
-    bool has_any_message = not msg_writer_.empty();
+    bool has_any_message = !msg_writer_.empty();
 
     if (has_any_message) {
         idbgx(Debug::mpipc, this);
@@ -872,7 +872,7 @@ void Connection::doHandleEventResolve(
 //-----------------------------------------------------------------------------
 bool Connection::willAcceptNewMessage(frame::aio::ReactorContext& _rctx) const
 {
-    return not isStopping() /* && waiting_message_vec.empty() && msg_writer.willAcceptNewMessage(service(_rctx).configuration().writer)*/;
+    return !isStopping() /* && waiting_message_vec.empty() && msg_writer.willAcceptNewMessage(service(_rctx).configuration().writer)*/;
 }
 //-----------------------------------------------------------------------------
 void Connection::doHandleEventNewPoolQueueMessage(frame::aio::ReactorContext& _rctx, Event& _revent)
@@ -1298,7 +1298,7 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
     config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
 
     if (ack_buf_cnt || cancel_remote_msg_vec_.size()) {
-        ackd_buf_count_ += ack_buf_cnt;
+        ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
         doSend(_rctx);
     }
 }
@@ -1586,7 +1586,7 @@ struct Connection::Receiver : MessageReader::Receiver {
     bool isRelayDisabled() const override
     {
         const Configuration& rconfig = rcon_.service(rctx_).configuration();
-        return not rconfig.relay_enabled;
+        return !rconfig.relay_enabled;
     }
 };
 
@@ -1944,7 +1944,7 @@ void Connection::doCancelRelayed(
     rconfig.relayEngine().cancel(relay_id_, _prelay_data, _rengine_msg_id, done_lambda);
 
     if (ack_buf_cnt) {
-        ackd_buf_count_ += ack_buf_cnt;
+        ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
         flags_.set(FlagsE::PollRelayEngine); //set flag
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
     }

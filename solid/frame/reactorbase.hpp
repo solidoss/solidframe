@@ -96,7 +96,7 @@ inline void ReactorBase::pushUid(UniqueId const& _ruid)
 
 inline size_t ReactorBase::runIndex(ObjectBase& _robj) const
 {
-    return _robj.runId().index;
+    return static_cast<const size_t>(_robj.runId().index);
 }
 
 } //namespace frame

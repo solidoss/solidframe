@@ -118,7 +118,7 @@ struct SizePairCompare {
     {
         return (_a.first < _b.first);
     }
-    bool operator()(SizePairT const& _a, size_t _b) const
+    int operator()(SizePairT const& _a, size_t _b) const
     {
         if (_a.first < _b)
             return -1;
@@ -383,7 +383,7 @@ bool Utf8Controller::preparePointer(
         impl_->pathdq.push_back(_rcmd.outpath);
         ppath = &impl_->pathdq.back();
     }
-    ppath->idx = _rptr.id().index;
+    ppath->idx = static_cast<size_t>(_rptr.id().index);
     impl_->pathset.insert(ppath);
     impl_->indexset.insert(ppath);
     return true; //we don't store _runiptr for later use
@@ -592,7 +592,7 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor& _rsbacc, const s
         //we schedule for erase the waitit pointer
         _rsbacc.consumeEraseVector().push_back(it->objuid);
         //delete the whole range [waitit, itend]
-        const size_t objidx = it->objuid.index;
+        const size_t objidx = static_cast<size_t>(it->objuid.index);
 
         if (waitit == impl_->tempwaitdq.begin()) {
             while (waitit != impl_->tempwaitdq.end() && (waitit->objuid.index == objidx || waitit->pfile == nullptr)) {

@@ -189,6 +189,37 @@ protected:
     impl::FunctionValueBase* pvalue_;
 };
 
+template <size_t Size>
+struct FunctionData;
+
+template <>
+struct FunctionData<0>{
+	inline const void* dataPtr()const {
+		return nullptr;
+	}
+
+	inline void* dataPtr() {
+		return nullptr;
+	}
+};
+
+template <size_t Size>
+struct FunctionData{
+    union {
+        char     data_[Size];
+        uint64_t v_;
+    } u_;
+
+	inline const void* dataPtr()const {
+		return reinterpret_cast<const void*>(&u_.data_[0]);
+	}
+
+	inline void* dataPtr() {
+		return reinterpret_cast<void*>(&u_.data_[0]);
+	}
+};
+
+
 //-----------------------------------------------------------------------------
 //      Function<Size>
 //-----------------------------------------------------------------------------
@@ -197,7 +228,7 @@ template <size_t DataSize, class>
 class Function; // undefined
 
 template <size_t DataSize, class R, class... ArgTypes>
-class Function<DataSize, R(ArgTypes...)> : public FunctionBase {
+class Function<DataSize, R(ArgTypes...)> : public FunctionBase, protected FunctionData<DataSize> {
     template <bool B>
     using bool_constant = std::integral_constant<bool, B>;
 
@@ -213,13 +244,13 @@ public:
     explicit Function(std::nullptr_t) {}
 
     Function(const ThisT& _rany)
-        : FunctionBase(doCopyFrom(_rany, u_.data_, DataSize))
+        : FunctionBase(doCopyFrom(_rany, dataPtr(), DataSize))
     {
         SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
     }
 
     Function(ThisT&& _rany)
-        : FunctionBase(doMoveFrom(_rany, u_.data_, DataSize, _rany.usesData()))
+        : FunctionBase(doMoveFrom(_rany, dataPtr(), DataSize, _rany.usesData()))
     {
         _rany.release(pvalue_);
     }
@@ -274,7 +305,7 @@ public:
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
-            pvalue_ = doCopyFrom(_rany, u_.data_, DataSize);
+            pvalue_ = doCopyFrom(_rany, dataPtr(), DataSize);
             SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
         }
         return *this;
@@ -284,7 +315,7 @@ public:
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
-            pvalue_ = doMoveFrom(_rany, u_.data_, DataSize, _rany.usesData());
+            pvalue_ = doMoveFrom(_rany, dataPtr(), DataSize, _rany.usesData());
             _rany.release(pvalue_);
         }
         return *this;
@@ -320,7 +351,7 @@ public:
 
     bool usesData() const
     {
-        return reinterpret_cast<const void*>(pvalue_) == reinterpret_cast<const void*>(u_.data_);
+        return dataPtr() && reinterpret_cast<const void*>(pvalue_) == dataPtr();
     }
 
     R operator()(ArgTypes... args) const
@@ -368,19 +399,19 @@ private:
     template <class T>
     impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, const T& _rany)
     {
-        return doCopyFrom(_rany, u_.data_, DataSize);
+        return doCopyFrom(_rany, dataPtr(), DataSize);
     }
 
     template <class T>
     impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, const T& _rany)
     {
-        return doCopyFrom(_rany, u_.data_, DataSize);
+        return doCopyFrom(_rany, dataPtr(), DataSize);
     }
 
     template <class T>
     impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, T&& _uany)
     {
-        impl::FunctionValueBase* rv = doMoveFrom(_uany, u_.data_, DataSize, _uany.usesData());
+        impl::FunctionValueBase* rv = doMoveFrom(_uany, dataPtr(), DataSize, _uany.usesData());
         _uany.release(rv);
         return rv;
     }
@@ -388,16 +419,10 @@ private:
     template <class T>
     impl::FunctionValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, T&& _uany)
     {
-        impl::FunctionValueBase* rv = doMoveFrom(_uany, u_.data_, DataSize, _uany.usesData());
+        impl::FunctionValueBase* rv = doMoveFrom(_uany, dataPtr(), DataSize, _uany.usesData());
         _uany.release(rv);
         return rv;
     }
-
-private:
-    union {
-        char     data_[DataSize];
-        uint64_t v_;
-    } u_;
 };
 
 //-----------------------------------------------------------------------------

@@ -24,6 +24,9 @@ file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/kqueue.cpp" source_code)
 
 CHECK_CXX_SOURCE_RUNS("${source_code}" SOLID_USE_KQUEUE)
 
+file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/wsapoll.cpp" source_code)
+
+CHECK_CXX_SOURCE_COMPILES("${source_code}" SOLID_USE_WSAPOLL)
 
 file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/gnuatomic.cpp" source_code)
 

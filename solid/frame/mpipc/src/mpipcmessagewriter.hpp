@@ -251,12 +251,12 @@ private:
 
         bool isStop() const noexcept
         {
-            return not msgbundle_.message_ptr && !Message::is_canceled(msgbundle_.message_flags);
+            return !msgbundle_.message_ptr && !Message::is_canceled(msgbundle_.message_flags);
         }
 
         bool isRelay() const noexcept
         {
-            return not msgbundle_.message_url.empty() || Message::is_relayed(msgbundle_.message_flags); //TODO: optimize!!
+            return !msgbundle_.message_url.empty() || Message::is_relayed(msgbundle_.message_flags); //TODO: optimize!!
         }
 
         bool isRelayed() const noexcept

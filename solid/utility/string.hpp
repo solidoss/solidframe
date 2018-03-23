@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <cctype>
 #include <string>
 
 namespace solid {

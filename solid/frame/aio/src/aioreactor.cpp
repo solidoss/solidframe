@@ -22,6 +22,10 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#elif defined(SOLID_USE_WSAPOLL)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <mstcpip.h>
 #endif
 
 #include <cerrno>
@@ -102,7 +106,7 @@ struct EventHandler : CompletionHandler {
 
     bool init();
 
-    int descriptor() const
+    Device::DescriptorT descriptor() const
     {
         return dev.descriptor();
     }
@@ -342,6 +346,9 @@ typedef std::vector<epoll_event> EventVectorT;
 #elif defined(SOLID_USE_KQUEUE)
 
 typedef std::vector<struct kevent> EventVectorT;
+#elif defined(SOLID_USE_WSAPOLL)
+
+using EventVectorT = std::vector<WSAPOLLFD>;
 
 #endif
 
@@ -645,6 +652,9 @@ void Reactor::run()
         vdbgx(Debug::aio, "kqueue msec = " << waittime.seconds() << ':' << waittime.nanoSeconds());
 
         selcnt = kevent(impl_->reactor_fd, nullptr, 0, impl_->eventvec.data(), static_cast<int>(impl_->eventvec.size()), waittime != NanoTime::maximum ? &waittime : nullptr);
+#elif defined(SOLID_USE_WSAPOLL)
+		selcnt = 0;
+		//TODO:
 #endif
         crttime = std::chrono::steady_clock::now();
 
@@ -882,6 +892,10 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
 
         ctx.reactor_event_ = systemEventsToReactorEvents(rev.flags, rev.filter);
         ctx.channel_index_ = voidToIndex(rev.udata);
+#elif defined(SOLID_USE_WSAPOLL)
+		WSAPOLLFD &rev = impl_->eventvec[i];
+		CompletionHandlerStub& rch = impl_->chdq[0];
+		//TODO: properly set rch
 #endif
         ctx.object_index_ = rch.objidx;
 
@@ -953,13 +967,13 @@ void Reactor::doCompleteExec(NanoTime const& _rcrttime)
         vdbgx(Debug::aio, sz << " qsz = " << impl_->exeq.size());
 
         ExecStub&              rexe(impl_->exeq.front());
-        ObjectStub&            ros(impl_->objdq[rexe.objuid.index]);
-        CompletionHandlerStub& rcs(impl_->chdq[rexe.chnuid.index]);
+        ObjectStub&            ros(impl_->objdq[static_cast<size_t>(rexe.objuid.index)]);
+        CompletionHandlerStub& rcs(impl_->chdq[static_cast<size_t>(rexe.chnuid.index)]);
 
         if (ros.unique == rexe.objuid.unique && rcs.unique == rexe.chnuid.unique) {
             ctx.clearError();
-            ctx.channel_index_ = rexe.chnuid.index;
-            ctx.object_index_  = rexe.objuid.index;
+            ctx.channel_index_ = static_cast<size_t>(rexe.chnuid.index);
+            ctx.object_index_  = static_cast<size_t>(rexe.objuid.index);
             rexe.exefnc(ctx, std::move(rexe.event));
         }
         impl_->exeq.pop();
@@ -1013,9 +1027,9 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 
             NewTaskStub& rnewobj(*it);
             if (rnewobj.uid.index >= impl_->objdq.size()) {
-                impl_->objdq.resize(rnewobj.uid.index + 1);
+                impl_->objdq.resize(static_cast<size_t>(rnewobj.uid.index + 1));
             }
-            ObjectStub& ros = impl_->objdq[rnewobj.uid.index];
+            ObjectStub& ros = impl_->objdq[static_cast<size_t>(rnewobj.uid.index)];
 
             SOLID_ASSERT(ros.unique == rnewobj.uid.unique);
 
@@ -1031,7 +1045,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 
             ctx.clearError();
             ctx.channel_index_ = InvalidIndex();
-            ctx.object_index_  = rnewobj.uid.index;
+            ctx.object_index_  = static_cast<size_t>(rnewobj.uid.index);
 
             ros.objptr->registerCompletionHandlers();
 
@@ -1321,7 +1335,7 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Object const& _
 
     CompletionHandlerStub& rcs = impl_->chdq[idx];
 
-    rcs.objidx = _robj.ObjectBase::runId().index;
+    rcs.objidx = static_cast<size_t>(_robj.ObjectBase::runId().index);
     rcs.pch    = &_rch;
 
     _rch.idxreactor = idx;

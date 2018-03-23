@@ -172,7 +172,7 @@ void StoreBase::erasePointer(UniqueId const& _ruid, const bool _isalive)
     if (_ruid.index < impl_->objmaxcnt.load()) {
         bool do_notify = true;
         {
-            std::unique_lock<std::mutex> lock(mutex(_ruid.index));
+            std::unique_lock<std::mutex> lock(mutex(static_cast<size_t>(_ruid.index)));
             do_notify = doDecrementObjectUseCount(_ruid, _isalive);
             (void)do_notify;
         }

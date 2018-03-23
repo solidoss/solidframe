@@ -212,7 +212,7 @@ ErrorConditionT SchedulerBase::doStart(
             ReactorStub& rrs = impl_->reactorvec[i];
             //rrs.thrptr.reset((*_pf)(*this, i));
 
-            if (not(*_pf)(*this, i, rrs.thr)) {
+            if (!(*_pf)(*this, i, rrs.thr)) {
                 start_err = true;
                 break;
             }

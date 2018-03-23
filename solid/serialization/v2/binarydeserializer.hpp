@@ -797,7 +797,7 @@ private:
             size_t toread = (_rd.pend_ - _rd.pcrt_) << 3;
 
             if (toread > _rr.size_) {
-                toread = _rr.size_;
+                toread = static_cast<size_t>(_rr.size_);
             }
 
             std::vector<bool, A>& vec = *reinterpret_cast<std::vector<bool, A>*>(_rr.ptr_);
@@ -851,13 +851,13 @@ private:
             size_t toread = (_rd.pend_ - _rd.pcrt_) << 3;
 
             if (toread > _rr.size_) {
-                toread = _rr.size_;
+                toread = static_cast<size_t>(_rr.size_);
             }
 
             std::bitset<N>& vec = *reinterpret_cast<std::bitset<N>*>(_rr.ptr_);
 
             for (size_t i = 0; i < toread; ++i) {
-                vec.set(_rr.data_ + i, load_bit_from(reinterpret_cast<const uint8_t*>(_rd.pcrt_), i));
+                vec.set(static_cast<size_t>(_rr.data_ + i), load_bit_from(reinterpret_cast<const uint8_t*>(_rd.pcrt_), i));
             }
 
             _rd.pcrt_ += (toread >> 3);
@@ -892,7 +892,7 @@ private:
             }
 
             std::vector<T, A>& rstr = *static_cast<std::vector<T, A>*>(pstr);
-            rstr.resize(_rr.size_);
+            rstr.resize(static_cast<size_t>(_rr.size_));
             _rr.ptr_  = const_cast<char*>(reinterpret_cast<const char*>(rstr.data()));
             _rr.data_ = 0;
             _rr.call_ = load_binary;
@@ -933,7 +933,7 @@ private:
         const RunListIteratorT old_sentinel = _rd.sentinel();
 
         while (_rd.pcrt_ != _rd.pend_ && _rr.data_ < _rr.size_) {
-            rd.add(rcontainer[_rr.data_], rctx, _rr.name_);
+            rd.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, _rr.name_);
             ++_rr.data_;
         }
 
@@ -1030,7 +1030,7 @@ private:
         if (pcrt_ != pend_) {
             size_t toread = pend_ - pcrt_;
             if (toread > _rr.size_) {
-                toread = _rr.size_;
+                toread = static_cast<size_t>(_rr.size_);
             }
 
             memcpy(data_.buf_ + _rr.data_, pcrt_, toread);
@@ -1364,7 +1364,7 @@ public:
             if (_ris.gcount() == doRun(&_rctx)) {
                 do {
                     _ris.read(buf, buf_cap);
-                } while (_ris.gcount() && (_ris.gcount() == DeserializerBase::run(buf, _ris.gcount(), &_rctx)));
+                } while (_ris.gcount() && (_ris.gcount() == DeserializerBase::run(buf, static_cast<unsigned>(_ris.gcount()), &_rctx)));
             }
         }
 

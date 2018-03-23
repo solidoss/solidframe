@@ -530,13 +530,13 @@ void Reactor::doCompleteExec(NanoTime const& _rcrttime)
     size_t         sz = impl_->exeq.size();
     while (sz--) {
         ExecStub&              rexe(impl_->exeq.front());
-        ObjectStub&            ros(impl_->objdq[rexe.objuid.index]);
-        CompletionHandlerStub& rcs(impl_->chdq[rexe.chnuid.index]);
+        ObjectStub&            ros(impl_->objdq[static_cast<size_t>(rexe.objuid.index)]);
+        CompletionHandlerStub& rcs(impl_->chdq[static_cast<size_t>(rexe.chnuid.index)]);
 
         if (ros.unique == rexe.objuid.unique && rcs.unique == rexe.chnuid.unique) {
             ctx.clearError();
-            ctx.chnidx = rexe.chnuid.index;
-            ctx.objidx = rexe.objuid.index;
+            ctx.chnidx = static_cast<size_t>(rexe.chnuid.index);
+            ctx.objidx = static_cast<size_t>(rexe.objuid.index);
             rexe.exefnc(ctx, std::move(rexe.event));
         }
         impl_->exeq.pop();
@@ -599,10 +599,10 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
             NewTaskStub& rnewobj(*it);
 
             if (rnewobj.uid.index >= impl_->objdq.size()) {
-                impl_->objdq.resize(rnewobj.uid.index + 1);
+                impl_->objdq.resize(static_cast<size_t>(rnewobj.uid.index + 1));
             }
 
-            ObjectStub& ros = impl_->objdq[rnewobj.uid.index];
+            ObjectStub& ros = impl_->objdq[static_cast<size_t>(rnewobj.uid.index)];
             SOLID_ASSERT(ros.unique == rnewobj.uid.unique);
 
             {
@@ -617,7 +617,7 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
 
             ctx.clearError();
             ctx.chnidx = InvalidIndex();
-            ctx.objidx = rnewobj.uid.index;
+            ctx.objidx = static_cast<size_t>(rnewobj.uid.index);
 
             ros.objptr->registerCompletionHandlers();
 
@@ -678,7 +678,7 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Object const& _
         impl_->chdq.push_back(CompletionHandlerStub());
     }
     CompletionHandlerStub& rcs = impl_->chdq[idx];
-    rcs.objidx                 = _robj.ObjectBase::runId().index;
+    rcs.objidx                 = static_cast<size_t>(_robj.ObjectBase::runId().index);
     rcs.pch                    = &_rch;
     //rcs.waitreq = ReactorWaitNone;
     _rch.idxreactor = idx;

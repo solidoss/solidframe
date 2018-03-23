@@ -205,7 +205,7 @@ struct InvalidIndex {
     template <typename SizeT>
     operator SizeT() const
     {
-        return std::numeric_limits<SizeT>::max();
+        return (std::numeric_limits<SizeT>::max)();
     }
 };
 
@@ -213,7 +213,7 @@ struct InvalidSize {
     template <typename SizeT>
     operator SizeT() const
     {
-        return std::numeric_limits<SizeT>::max();
+        return (std::numeric_limits<SizeT>::max)();
     }
 };
 

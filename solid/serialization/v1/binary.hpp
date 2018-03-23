@@ -1146,6 +1146,21 @@ public:
         return *this;
     }
 
+	template <typename T>
+	SerializerT& push(T* _pt, const char* _name = Base::default_name)
+	{
+		if (ptypeidmap) {
+			err = ptypeidmap->store(*this, _pt, _name);
+			if (err) {
+				SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, 0));
+			}
+		}
+		else {
+			SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_NO_TYPE_MAP));
+		}
+		return *this;
+	}
+
     //! Schedule a non pointer object for serialization
     /*!
         The object is only scheduled for serialization so it must remain in memory
@@ -1160,20 +1175,6 @@ public:
     {
         SerializerPushHelper<T> sph;
         sph(*this, _t, _name);
-        return *this;
-    }
-
-    template <typename T>
-    SerializerT& push(T* _pt, const char* _name = Base::default_name)
-    {
-        if (ptypeidmap) {
-            err = ptypeidmap->store(*this, _pt, _name);
-            if (err) {
-                SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, 0));
-            }
-        } else {
-            SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeReturnError, nullptr, _name, SerializerBase::ERR_NO_TYPE_MAP));
-        }
         return *this;
     }
 

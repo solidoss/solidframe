@@ -148,7 +148,7 @@ struct PointerBase {
     std::mutex* mutex() const
     {
         if (!empty()) {
-            return &psb->mutex(uid.index);
+            return &psb->mutex(static_cast<size_t>(uid.index));
         } else
             return nullptr;
     }

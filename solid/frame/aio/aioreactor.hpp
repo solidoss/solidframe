@@ -34,6 +34,8 @@ class Object;
 class CompletionHandler;
 struct ChangeTimerIndexCallback;
 struct TimerCallback;
+struct EventHandler;
+struct ExecStub;
 
 typedef DynamicPointer<Object> ObjectPointerT;
 
@@ -125,7 +127,7 @@ public:
     CompletionHandler* completionHandler(ReactorContext const& _rctx) const;
 
 private:
-    friend struct EventHandler;
+	friend struct EventHandler;
     friend class CompletionHandler;
     friend struct ChangeTimerIndexCallback;
     friend struct TimerCallback;

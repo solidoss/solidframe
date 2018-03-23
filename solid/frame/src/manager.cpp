@@ -676,10 +676,10 @@ void Manager::unregisterObject(ObjectBase& _robj)
     size_t objidx = InvalidIndex();
     {
         const size_t                 objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk&                 robjchk(*impl_->chunk(objstoreidx, _robj.id()));
+        ObjectChunk&                 robjchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
         std::unique_lock<std::mutex> lock2(robjchk.rmtx);
 
-        objidx = _robj.id();
+        objidx = static_cast<size_t>(_robj.id());
 
         impl_->releaseReadObjectStore(objstoreidx);
 
@@ -718,7 +718,7 @@ bool Manager::disableObjectVisits(ObjectBase& _robj)
     bool retval = false;
     if (_robj.isRegistered()) {
         const size_t                 objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk&                 robjchk(*impl_->chunk(objstoreidx, _robj.id()));
+        ObjectChunk&                 robjchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
         std::unique_lock<std::mutex> lock(robjchk.rmtx);
 
         impl_->releaseReadObjectStore(objstoreidx);
@@ -774,10 +774,10 @@ bool Manager::doVisit(ObjectIdT const& _ruid, const ObjectVisitFunctionT _rfct)
     bool retval = false;
     if (_ruid.index < impl_->maxobjcnt) {
         const size_t objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk& rchk(*impl_->chunk(objstoreidx, _ruid.index));
+        ObjectChunk& rchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_ruid.index)));
         {
             std::unique_lock<std::mutex> lock(rchk.rmtx);
-            ObjectStub const&            ros(impl_->object(objstoreidx, _ruid.index));
+            ObjectStub const&            ros(impl_->object(objstoreidx, static_cast<size_t>(_ruid.index)));
 
             if (ros.unique == _ruid.unique && ros.pobject && ros.preactor) {
                 VisitContext ctx(*this, *ros.preactor, *ros.pobject);
@@ -794,7 +794,7 @@ bool Manager::raise(const ObjectBase& _robj, Event const& _re)
     //Current chunk's mutex must be locked
 
     const size_t      objstoreidx = impl_->aquireReadObjectStore();
-    ObjectStub const& ros(impl_->object(objstoreidx, _robj.id()));
+    ObjectStub const& ros(impl_->object(objstoreidx, static_cast<size_t>(_robj.id())));
 
     impl_->releaseReadObjectStore(objstoreidx);
 
@@ -808,7 +808,7 @@ std::mutex& Manager::mutex(const ObjectBase& _robj) const
     std::mutex* pmtx;
     {
         const size_t objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk& rchk(*impl_->chunk(objstoreidx, _robj.id()));
+        ObjectChunk& rchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
 
         pmtx = &rchk.rmtx;
         impl_->releaseReadObjectStore(objstoreidx);
@@ -823,7 +823,7 @@ ObjectIdT Manager::id(const ObjectBase& _robj) const
 
     if (objidx != InvalidIndex()) {
         const size_t      objstoreidx = impl_->aquireReadObjectStore();
-        ObjectStub const& ros(impl_->object(objstoreidx, objidx));
+        ObjectStub const& ros(impl_->object(objstoreidx, static_cast<size_t>(objidx)));
         ObjectBase*       pobj = ros.pobject;
         SOLID_ASSERT(pobj == &_robj);
         retval = ObjectIdT(objidx, ros.unique);
@@ -906,7 +906,7 @@ Service& Manager::service(const ObjectBase& _robj) const
     size_t   svcidx = InvalidIndex();
     {
         const size_t objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk& rchk(*impl_->chunk(objstoreidx, _robj.id()));
+        ObjectChunk& rchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
 
         std::unique_lock<std::mutex> lock(rchk.rmtx);
 

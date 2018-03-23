@@ -14,6 +14,8 @@
 #include <WinSock2.h>
 #include <Windows.h>
 #include <Ws2tcpip.h>
+#undef min
+#undef max
 #else
 #include <netdb.h>
 #include <netinet/in.h>

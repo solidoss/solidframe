@@ -30,6 +30,7 @@ struct ReactorContext;
 namespace mpipc {
 
 struct Message;
+class  Service;
 struct MessageHeader;
 
 namespace relay {

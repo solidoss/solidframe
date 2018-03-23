@@ -9,17 +9,20 @@
 //
 
 #pragma once
+
+#include "solid/system/common.hpp"
+
 #ifdef SOLID_ON_WINDOWS
 #include <WinSock2.h>
 #include <Windows.h>
 #include <Ws2tcpip.h>
-
+#undef min
+#undef max
 #else
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #endif
-#include "solid/system/common.hpp"
 
 namespace solid {
 
@@ -28,7 +31,6 @@ class Device {
 public:
 #ifdef SOLID_ON_WINDOWS
     typedef HANDLE DescriptorT;
-    using ssize_t = long;
 #else
     typedef int DescriptorT;
 #endif

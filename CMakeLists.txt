@@ -50,6 +50,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     set(SOLID_HAS_DEBUG TRUE)
     set(SOLID_HAS_STATISTICS TRUE)
     set(SOLID_HAS_ASSERT TRUE)
+
+    #force a single configuration type on Windows builds
+    set(CMAKE_CONFIGURATION_TYPES "release" CACHE STRING "" FORCE)
 endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
 
@@ -59,6 +62,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "debug")
     set(SOLID_HAS_NO_INLINES TRUE)
     set(SOLID_HAS_STATISTICS TRUE)
     set(SOLID_HAS_ASSERT TRUE)
+    #force a single configuration type on Windows builds
+    set(CMAKE_CONFIGURATION_TYPES "debug" CACHE STRING "" FORCE)
 endif(CMAKE_BUILD_TYPE STREQUAL "debug")
 
 
@@ -66,6 +71,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "nolog")
     set(CMAKE_VERBOSE_MAKEFILE ON)
     set(SOLID_HAS_NO_INLINES TRUE)
     set(SOLID_HAS_ASSERT TRUE)
+    #force a single configuration type on Windows builds
+    set(CMAKE_CONFIGURATION_TYPES "debug" CACHE STRING "" FORCE)
 endif(CMAKE_BUILD_TYPE STREQUAL "nolog")
 
 set(SOLID_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})

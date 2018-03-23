@@ -691,13 +691,13 @@ private:
             size_t towrite = (_rs.pend_ - _rs.pcrt_) << 3; //*8 bits
 
             if (towrite > _rr.size_) {
-                towrite = _rr.size_;
+                towrite = static_cast<size_t>(_rr.size_);
             }
 
             const std::vector<bool, A>& vec = *reinterpret_cast<const std::vector<bool, A>*>(_rr.ptr_);
 
             for (size_t i = 0; i < towrite; ++i) {
-                store_bit_at(reinterpret_cast<uint8_t*>(_rs.pcrt_), i, vec[_rr.data_ + i]);
+                store_bit_at(reinterpret_cast<uint8_t*>(_rs.pcrt_), i, vec[static_cast<size_t>(_rr.data_ + i)]);
             }
 
             _rs.pcrt_ += (towrite >> 3);
@@ -719,13 +719,13 @@ private:
             size_t towrite = (_rs.pend_ - _rs.pcrt_) << 3; //*8 bits
 
             if (towrite > _rr.size_) {
-                towrite = _rr.size_;
+                towrite = static_cast<size_t>(_rr.size_);
             }
 
             const std::bitset<N>& bs = *reinterpret_cast<const std::bitset<N>*>(_rr.ptr_);
 
             for (size_t i = 0; i < towrite; ++i) {
-                store_bit_at(reinterpret_cast<uint8_t*>(_rs.pcrt_), i, bs[_rr.data_ + i]);
+                store_bit_at(reinterpret_cast<uint8_t*>(_rs.pcrt_), i, bs[static_cast<size_t>(_rr.data_ + i)]);
             }
 
             _rs.pcrt_ += (towrite >> 3);
@@ -748,7 +748,7 @@ private:
         const RunListIteratorT  old_sentinel = _rs.sentinel();
 
         while (_rs.pcrt_ != _rs.pend_ && _rr.data_ < _rr.size_) {
-            rs.add(rcontainer[_rr.data_], rctx, _rr.name_);
+            rs.add(rcontainer[static_cast<size_t>(_rr.data_)], rctx, _rr.name_);
             ++_rr.data_;
         }
 

@@ -6,6 +6,8 @@
 #include <set>
 #include <vector>
 
+#undef max
+
 using namespace solid;
 using namespace std;
 

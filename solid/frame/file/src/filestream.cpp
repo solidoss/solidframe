@@ -213,7 +213,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
         newoff += _off;
         ssize_t bufoff = egptr() - eback();
         if (newoff >= off && newoff < (off + bufoff)) {
-            ssize_t newbufoff = newoff - off;
+            ssize_t newbufoff = static_cast<ssize_t>(newoff - off);
             setg(buf, buf + newbufoff, egptr());
             newoff = off + newbufoff;
         } else {
@@ -273,19 +273,19 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
             if (sz > _n) {
                 sz = _n;
             }
-            memcpy(_s, gptr(), sz);
+            memcpy(_s, gptr(), static_cast<size_t>(sz));
             gbump(static_cast<int>(sz));
             return sz;
         }
         //read directly in the given buffer
-        ssize_t rv = dev->read(_s, _n, off);
+        ssize_t rv = dev->read(_s, static_cast<size_t>(_n), off);
         if (rv > 0) {
             off += rv;
             resetGet();
             return rv;
         }
     } else {
-        const ssize_t rv = dev->read(_s, _n, off);
+        const ssize_t rv = dev->read(_s, static_cast<size_t>(_n), off);
         if (rv > 0) {
             off += rv;
             return rv;
@@ -329,7 +329,7 @@ bool FileBuf::flushPut()
 
         const streamsize sz      = _n;
         const size_t     wleftsz = bufcp - (pptr() - pbase());
-        size_t           towrite = _n;
+        size_t           towrite = static_cast<size_t>(_n);
 
         if (wleftsz < towrite) {
             towrite = wleftsz;
@@ -344,10 +344,10 @@ bool FileBuf::flushPut()
                 return 0;
             }
             if (_n && static_cast<size_t>(_n) <= bufcp / 2) {
-                memcpy(pptr(), _s, _n);
+                memcpy(pptr(), _s, static_cast<size_t>(_n));
                 pbump(static_cast<int>(_n));
             } else if (_n) {
-                size_t  towrite = _n;
+                size_t  towrite = static_cast<size_t>(_n);
                 ssize_t rv      = writeAll(_s, towrite);
                 if (static_cast<size_t>(rv) == towrite) {
                     off += rv;
@@ -361,7 +361,7 @@ bool FileBuf::flushPut()
         }
         return sz;
     } else {
-        const ssize_t rv = dev->write(_s, _n, off);
+        const ssize_t rv = dev->write(_s, static_cast<size_t>(_n), off);
         if (rv > 0) {
             off += rv;
             return rv;

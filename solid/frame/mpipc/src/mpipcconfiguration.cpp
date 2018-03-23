@@ -230,8 +230,8 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
 //-----------------------------------------------------------------------------
 void Configuration::init()
 {
-    connection_recv_buffer_start_capacity_kb = memory_page_size() / 1024;
-    connection_send_buffer_start_capacity_kb = memory_page_size() / 1024;
+    connection_recv_buffer_start_capacity_kb = static_cast<uint8_t>(memory_page_size() / 1024);
+    connection_send_buffer_start_capacity_kb = static_cast<uint8_t>(memory_page_size() / 1024);
 
     connection_recv_buffer_max_capacity_kb = connection_send_buffer_max_capacity_kb = 64;
 

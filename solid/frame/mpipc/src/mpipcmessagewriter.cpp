@@ -480,7 +480,7 @@ size_t MessageWriter::doWritePacketData(
     }
 
     while (
-        not _rerror && static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() && doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos)) {
+        !_rerror && static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize() && doFindEligibleMessage(_relay_free_count != 0, _pbufend - pbufpos)) {
         const size_t msgidx = write_inner_list_.frontIndex();
 
         PacketHeader::CommandE cmd = PacketHeader::CommandE::Message;
@@ -926,7 +926,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
     while (msgidx != InvalidIndex()) {
         MessageStub& rmsgstub = message_vec_[msgidx];
 
-        const bool message_in_write_queue = not rmsgstub.isWaitResponseState();
+        const bool message_in_write_queue = !rmsgstub.isWaitResponseState();
 
         if (rmsgstub.msgbundle_.message_ptr) { //skip relayed messages
             _rvisit_fnc(

@@ -141,7 +141,7 @@ struct Message : std::enable_shared_from_this<Message> {
     }
     static bool is_asynchronous(const MessageFlagsT& _flags)
     {
-        return not is_synchronous(_flags);
+        return  !is_synchronous(_flags);
     }
 
     static bool is_waiting_response(const MessageFlagsT& _flags)

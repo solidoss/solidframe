@@ -5,6 +5,7 @@
 #cmakedefine SOLID_USE_EVENTFD
 #cmakedefine SOLID_USE_EPOLL
 #cmakedefine SOLID_USE_KQUEUE
+#cmakedefine SOLID_USE_WSAPOLL
 #cmakedefine SOLID_USE_SAFE_STATIC
 #cmakedefine SOLID_USE_GNU_ATOMIC
 #cmakedefine SOLID_USE_EPOLLRDHUP

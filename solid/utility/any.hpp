@@ -161,6 +161,34 @@ protected:
     impl::AnyValueBase* pvalue_;
 };
 
+
+template <size_t Size>
+struct AnyData;
+
+template <>
+struct AnyData<0> {
+	inline const void* dataPtr()const {
+		return nullptr;
+	}
+
+	inline void* dataPtr(){
+		return nullptr;
+	}
+};
+
+template <size_t Size>
+struct AnyData{
+	char data_[Size];
+
+	inline const void* dataPtr()const {
+		return reinterpret_cast<const void*>(&data_[0]);
+	}
+
+	inline void* dataPtr(){
+		return reinterpret_cast<void*>(&data_[0]);
+	}
+};
+
 //-----------------------------------------------------------------------------
 //      Any<Size>
 //-----------------------------------------------------------------------------
@@ -169,7 +197,7 @@ template <size_t DataSize = 0>
 class Any;
 
 template <size_t DataSize>
-class Any : public AnyBase {
+class Any : public AnyBase, protected AnyData<DataSize>{
     template <size_t DS>
     friend class Any;
 
@@ -187,13 +215,13 @@ public:
     Any() {}
 
     Any(const ThisT& _rany)
-        : AnyBase(doCopyFrom(_rany, data_, DataSize))
+        : AnyBase(doCopyFrom(_rany, dataPtr(), DataSize))
     {
         SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
     }
 
     Any(ThisT&& _rany)
-        : AnyBase(doMoveFrom(_rany, data_, DataSize, _rany.usesData()))
+        : AnyBase(doMoveFrom(_rany, dataPtr(), DataSize, _rany.usesData()))
     {
         _rany.release(pvalue_);
     }
@@ -279,7 +307,7 @@ public:
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
-            pvalue_ = doCopyFrom(_rany, data_, DataSize);
+            pvalue_ = doCopyFrom(_rany, dataPtr(), DataSize);
             SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
         }
         return *this;
@@ -289,7 +317,7 @@ public:
     {
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
-            pvalue_ = doMoveFrom(_rany, data_, DataSize, _rany.usesData());
+            pvalue_ = doMoveFrom(_rany, dataPtr(), DataSize, _rany.usesData());
             _rany.release(pvalue_);
         }
         return *this;
@@ -319,7 +347,7 @@ public:
 
     bool usesData() const
     {
-        return reinterpret_cast<const void*>(pvalue_) == reinterpret_cast<const void*>(data_);
+        return dataPtr() && reinterpret_cast<const void*>(pvalue_) == dataPtr();
     }
 
 private:
@@ -362,19 +390,19 @@ private:
     template <class T>
     impl::AnyValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, const T& _rany)
     {
-        return doCopyFrom(_rany, data_, DataSize);
+        return doCopyFrom(_rany, dataPtr(), DataSize);
     }
 
     template <class T>
     impl::AnyValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, const T& _rany)
     {
-        return doCopyFrom(_rany, data_, DataSize);
+        return doCopyFrom(_rany, dataPtr(), DataSize);
     }
 
     template <class T>
     impl::AnyValueBase* do_allocate(std::true_type /*_is_any*/, std::true_type /*_emplace_new*/, T&& _uany)
     {
-        impl::AnyValueBase* rv = doMoveFrom(_uany, data_, DataSize, _uany.usesData());
+        impl::AnyValueBase* rv = doMoveFrom(_uany, dataPtr(), DataSize, _uany.usesData());
         _uany.release(rv);
         return rv;
     }
@@ -382,13 +410,10 @@ private:
     template <class T>
     impl::AnyValueBase* do_allocate(std::true_type /*_is_any*/, std::false_type /*_plain_new*/, T&& _uany)
     {
-        impl::AnyValueBase* rv = doMoveFrom(_uany, data_, DataSize, _uany.usesData());
+        impl::AnyValueBase* rv = doMoveFrom(_uany, dataPtr(), DataSize, _uany.usesData());
         _uany.release(rv);
         return rv;
     }
-
-private:
-    char data_[DataSize];
 };
 
 //-----------------------------------------------------------------------------

@@ -93,8 +93,9 @@ struct UnsignedType<uint64_t> {
 } //namespace solid
 
 #ifdef SOLID_ON_WINDOWS
+#include <type_traits>
 
-using ssize_t = long;
+using ssize_t = std::make_signed<size_t>::type;
 
 #endif
 
