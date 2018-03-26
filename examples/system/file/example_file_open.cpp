@@ -35,7 +35,8 @@ int main(int argc, char* argv[])
         return 0;
     }
     char c;
-    char name[1024];
+    constexpr size_t name_sz = 1024;
+    char name[name_sz];
     //int minsz = atoi(argv[2]);
     //int maxsz = atoi(argv[3]);
     int    filecnt   = atoi(argv[2]);
@@ -49,7 +50,7 @@ int main(int argc, char* argv[])
         line += c;
     cout << "line" << endl
          << line << endl;
-    sprintf(name, "%s", argv[1]);
+    snprintf(name, name_sz, "%s", argv[1]);
     char*      fldname = name + strlen(argv[1]);
     char*      fname   = name + strlen(argv[1]) + 1 + 8;
     FileDeuqeT fdq;
