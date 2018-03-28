@@ -247,7 +247,7 @@ struct Sender : frame::mpipc::MessageWriter::Sender {
 
 } //namespace
 
-int test_protocol_synchronous(int argc, char** argv)
+int test_protocol_synchronous(int argc, char* argv[])
 {
 
 #ifdef SOLID_HAS_DEBUG

@@ -329,9 +329,12 @@ void peerb_complete_message(
 //-----------------------------------------------------------------------------
 } //namespace
 
-int test_relay_close_response(int argc, char** argv)
+int test_relay_close_response(int argc, char* argv[])
 {
-    signal(SIGPIPE, SIG_IGN);
+#ifndef SOLID_ON_WINDOWS
+	signal(SIGPIPE, SIG_IGN);
+#endif
+
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
     Debug::the().moduleMask("frame_mpipc:view any:view");
@@ -611,7 +614,7 @@ int test_relay_close_response(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (!cnd.wait_for(lock, std::chrono::seconds(60 * 2), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(60 * 2), []() { return !running; })) {
             relay_engine.debugDump();
             SOLID_THROW("Process is taking too long.");
         }

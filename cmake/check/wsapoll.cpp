@@ -2,6 +2,9 @@
 #include <ws2tcpip.h>
 #include <mstcpip.h>
 
+// Need to link with Ws2_32.lib
+#pragma comment(lib, "ws2_32.lib")
+
 #define WS_VER          0x0202
 #define DEFAULT_WAIT    30000
 

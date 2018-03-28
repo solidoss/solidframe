@@ -27,6 +27,10 @@
 #include "openssl/evp.h"
 #include "openssl/ssl.h"
 
+#ifdef SOLID_ON_WINDOWS
+#pragma comment (lib, "crypt32")
+#endif
+
 namespace {
 class OpenSSLErrorCategory : public solid::ErrorCategoryT {
 public:

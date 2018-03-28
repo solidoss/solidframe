@@ -210,7 +210,7 @@ void server_complete_message(
 
 } //namespace
 
-int test_pool_force_close(int argc, char** argv)
+int test_pool_force_close(int argc, char* argv[])
 {
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
@@ -380,7 +380,7 @@ int test_pool_force_close(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return !running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 

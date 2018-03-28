@@ -257,7 +257,7 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
 
 } //namespace
 
-int test_protocol_cancel(int argc, char** argv)
+int test_protocol_cancel(int argc, char* argv[])
 {
 
 #ifdef SOLID_HAS_DEBUG

@@ -415,7 +415,7 @@ protected:
 };
 } //namespace relay
 
-int test_echo_tcp_stress(int argc, char** argv)
+int test_echo_tcp_stress(int argc, char* argv[])
 {
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
@@ -586,7 +586,7 @@ int test_echo_tcp_stress(int argc, char** argv)
         {
             unique_lock<mutex> lock(mtx);
 
-            if (!cnd.wait_for(lock, std::chrono::seconds(connection_count * 100), []() { return not running; })) {
+            if (!cnd.wait_for(lock, std::chrono::seconds(connection_count * 100), []() { return !running; })) {
                 SOLID_THROW("Process is taking too long.");
             }
             cout << "Received " << recv_count / 1024 << "KB on " << connection_count << " connections" << endl;

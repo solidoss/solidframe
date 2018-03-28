@@ -5,7 +5,7 @@ printUsage()
     echo
     echo "Usage:"
     echo
-    echo "./prepare_extern.sh [--all] [--boost] [--openssl] [--force-download] [--debug] [-h|--help]"
+    echo "./prepare_extern.sh [--all] [--boost] [--openssl] [--boringssl] [--force-download] [--debug] [--64bit] [-h|--help]"
     echo
     echo "Examples:"
     echo
@@ -30,6 +30,7 @@ BOOST_ADDR="http://sourceforge.net/projects/boost/files/boost/1.66.0/boost_1_66_
 OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.0h.tar.gz"
 
 SYSTEM=
+BIT64=
 
 downloadArchive()
 {
@@ -174,6 +175,14 @@ buildOpenssl()
         else
             ./Configure --prefix="$EXT_DIR" --openssldir="ssl_" darwin64-x86_64-cc
         fi
+    elif    [[ "$SYSTEM" =~ "MINGW" ]]; then
+        if [ $BIT64 = true ]; then
+            OPENSSL_TARGET="VC-WIN64A"
+        else
+            OPENSSL_TARGET="VC-WIN32"
+        fi
+
+        wperl Configure $OPENSSL_TARGET --prefix="$EXT_DIR" --openssldir="ssl_"  no-shared
     else
         if [ $DEBUG ] ; then
             ./config --prefix="$EXT_DIR" --openssldir="ssl_"
@@ -181,8 +190,11 @@ buildOpenssl()
             ./config --prefix="$EXT_DIR" --openssldir="ssl_"
         fi
     fi
-    
-    make && make install_sw
+    if    [[ "$SYSTEM" =~ "MINGW" ]]; then
+        nmake && nmake install_sw
+    else
+        make && make install_sw
+    fi
     
     cd ..
     
@@ -223,7 +235,7 @@ function buildBoringSSL
     
     cmake -DCMAKE_INSTALL_PREFIX="$EXT_DIR" ..
     
-    make
+    cmake --build . --config release
     
     if [ ! -d $EXT_DIR/include ]; then
         mkdir -p "$EXT_DIR/include"
@@ -285,6 +297,9 @@ while [ "$#" -gt 0 ]; do
     --system)
         shift
         SYSTEM="$1"
+        ;;
+    --64bit)
+        BIT64=true
         ;;
     -h|--help)
         HELP="yes"

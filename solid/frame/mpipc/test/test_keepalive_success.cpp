@@ -250,7 +250,7 @@ void server_complete_message(
 
 } //namespace
 
-int test_keepalive_success(int argc, char** argv)
+int test_keepalive_success(int argc, char* argv[])
 {
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
@@ -400,7 +400,7 @@ int test_keepalive_success(int argc, char** argv)
         }
         idbg("before sleep");
 
-        sleep(60);
+        this_thread::sleep_for(chrono::seconds(60));
 
         idbg("after sleep");
         {
@@ -413,7 +413,7 @@ int test_keepalive_success(int argc, char** argv)
 
         unique_lock<mutex> lock(mtx);
 
-        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return not running; })) {
+        if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return !running; })) {
             SOLID_THROW("Process is taking too long.");
         }
 

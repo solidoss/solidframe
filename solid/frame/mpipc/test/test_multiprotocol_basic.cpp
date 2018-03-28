@@ -62,7 +62,7 @@ void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
 } //namespace
 
-int test_multiprotocol_basic(int argc, char** argv)
+int test_multiprotocol_basic(int argc, char* argv[])
 {
 #ifdef SOLID_HAS_DEBUG
     Debug::the().levelMask("ew");
