@@ -486,7 +486,7 @@ void filePath(string& _out, uint32_t _pos, const string& _path, const string& _n
     _out = _path;
     _out += _name;
     constexpr size_t bufsz = 2048;
-    char buf[bufsz];
+    char             buf[bufsz];
 
     if (_pos) {
         snprintf(buf, bufsz, "_%04lu.dbg", (unsigned long)_pos);
@@ -798,12 +798,12 @@ std::ostream& Debug::print(
         impl_->doRespin();
     }
     constexpr size_t bufsz = 128;
-    char       buf[bufsz];
-    const auto now   = system_clock::now();
-    time_t     t_now = system_clock::to_time_t(now);
-    tm*        ploctm;
+    char             buf[bufsz];
+    const auto       now   = system_clock::now();
+    time_t           t_now = system_clock::to_time_t(now);
+    tm*              ploctm;
 #ifdef SOLID_ON_WINDOWS
-    struct tm loctm; 
+    struct tm loctm;
     localtime_s(&loctm, &t_now);
     ploctm = &loctm;
 #else
@@ -854,12 +854,12 @@ std::ostream& Debug::printTraceIn(
         impl_->doRespin();
     }
     constexpr size_t bufsz = 128;
-    char       buf[bufsz];
-    const auto now   = system_clock::now();
-    time_t     t_now = system_clock::to_time_t(now);
-    tm*        ploctm;
+    char             buf[bufsz];
+    const auto       now   = system_clock::now();
+    time_t           t_now = system_clock::to_time_t(now);
+    tm*              ploctm;
 #ifdef SOLID_ON_WINDOWS
-    struct tm loctm; 
+    struct tm loctm;
     localtime_s(&loctm, &t_now);
     ploctm = &loctm;
 #else
@@ -903,12 +903,12 @@ std::ostream& Debug::printTraceOut(
         impl_->doRespin();
     }
     constexpr size_t bufsz = 128;
-    char       buf[bufsz];
-    const auto now   = system_clock::now();
-    time_t     t_now = system_clock::to_time_t(now);
-    tm*        ploctm;
+    char             buf[bufsz];
+    const auto       now   = system_clock::now();
+    time_t           t_now = system_clock::to_time_t(now);
+    tm*              ploctm;
 #ifdef SOLID_ON_WINDOWS
-    struct tm loctm; 
+    struct tm loctm;
     localtime_s(&loctm, &t_now);
     ploctm = &loctm;
 #else

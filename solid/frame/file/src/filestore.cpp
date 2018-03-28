@@ -659,12 +659,12 @@ bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint
     if (*_rpath.rbegin() != '/') {
         _rpath += '/';
     }
-    
+
     constexpr size_t bufsz = 128;
-    char   fldrbuf[bufsz];
-    char   filebuf[bufsz];
-    size_t fldrid;
-    size_t fileid;
+    char             fldrbuf[bufsz];
+    char             filebuf[bufsz];
+    size_t           fldrid;
+    size_t           fileid;
 
     split_id(_id, fldrid, fileid);
 

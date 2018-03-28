@@ -28,9 +28,9 @@
 #include <cstring>
 
 #include "solid/system/cassert.hpp"
-#include "solid/system/exception.hpp"
 #include "solid/system/debug.hpp"
 #include "solid/system/directory.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/filedevice.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/system/socketinfo.hpp"
@@ -454,13 +454,13 @@ int do_erase_file(WCHAR* _pwc, const char* _path, size_t _sz, size_t _wcp)
 /*static*/ bool Directory::renameFile(const char* _to, const char* _from)
 {
 #ifdef SOLID_ON_WINDOWS
-    const size_t szto(strlen(_to));
-    const size_t szfr(strlen(_from));
-	constexpr size_t sz = 4096;
-    WCHAR        pwcto[sz];
-    WCHAR        pwcfr[sz];
-    WCHAR*       pwctmpto(nullptr);
-    WCHAR*       pwctmpfr(nullptr);
+    const size_t     szto(strlen(_to));
+    const size_t     szfr(strlen(_from));
+    constexpr size_t sz = 4096;
+    WCHAR            pwcto[sz];
+    WCHAR            pwcfr[sz];
+    WCHAR*           pwctmpto(nullptr);
+    WCHAR*           pwctmpfr(nullptr);
 
     //first convert _to to _pwc
     int rv = MultiByteToWideChar(CP_UTF8, 0, _to, static_cast<int>(szto), pwcto, static_cast<int>(sz));
@@ -537,19 +537,21 @@ struct wsa_cleaner {
 //---- SocketDevice ---------------------------------
 #ifdef SOLID_ON_WINDOWS
 namespace {
-	struct Starter {
-		WSADATA wsaData;
-		Starter() {
-			WORD wVersionRequested;
-			wVersionRequested = MAKEWORD(2, 2);
-			int err = WSAStartup(wVersionRequested, &wsaData);
-            SOLID_CHECK(err == 0, "Error WSAStartup: "<<err);
-		}
-		~Starter() {
-			WSACleanup();
-		}
-	} __starter;
-}//namespace
+struct Starter {
+    WSADATA wsaData;
+    Starter()
+    {
+        WORD wVersionRequested;
+        wVersionRequested = MAKEWORD(2, 2);
+        int err           = WSAStartup(wVersionRequested, &wsaData);
+        SOLID_CHECK(err == 0, "Error WSAStartup: " << err);
+    }
+    ~Starter()
+    {
+        WSACleanup();
+    }
+} __starter;
+} //namespace
 #endif
 
 ErrorCodeT last_socket_error()
@@ -739,8 +741,8 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
 ErrorCodeT SocketDevice::accept(SocketDevice& _dev, bool& _rcan_retry)
 {
 #if defined(SOLID_ON_WINDOWS)
-    const SOCKET  rv = ::accept(descriptor(), nullptr, nullptr);
-    _rcan_retry      = (WSAGetLastError() == WSAEWOULDBLOCK);
+    const SOCKET rv = ::accept(descriptor(), nullptr, nullptr);
+    _rcan_retry     = (WSAGetLastError() == WSAEWOULDBLOCK);
     _dev.Device::descriptor((HANDLE)rv);
     return _dev ? ErrorCodeT() : last_socket_error();
 #elif defined(SOLID_ON_DARWIN) || defined(SOLID_ON_FREEBSD)
@@ -889,10 +891,10 @@ ErrorCodeT SocketDevice::isBlocking(bool& _rrv) const
 ssize_t SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
 {
 #ifdef SOLID_ON_WINDOWS
-	ssize_t rv = ::send(descriptor(), _pb, static_cast<int>(_ul), 0);
-	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-	_rerr = last_socket_error();
-	return rv;
+    ssize_t rv  = ::send(descriptor(), _pb, static_cast<int>(_ul), 0);
+    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
+    _rerr       = last_socket_error();
+    return rv;
 #else
     ssize_t rv = ::send(descriptor(), _pb, _ul, 0);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
@@ -903,10 +905,10 @@ ssize_t SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, Error
 ssize_t SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
 {
 #ifdef SOLID_ON_WINDOWS
-	ssize_t rv = ::recv(descriptor(), _pb, static_cast<int>(_ul), 0);
-	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-	_rerr = last_socket_error();
-	return rv;
+    ssize_t rv  = ::recv(descriptor(), _pb, static_cast<int>(_ul), 0);
+    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
+    _rerr       = last_socket_error();
+    return rv;
 #else
     ssize_t rv = ::recv(descriptor(), _pb, _ul, 0);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
@@ -917,10 +919,10 @@ ssize_t SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT&
 ssize_t SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub& _sap, bool& _rcan_retry, ErrorCodeT& _rerr)
 {
 #ifdef SOLID_ON_WINDOWS
-	ssize_t rv = ::sendto(descriptor(), _pb, static_cast<int>(_ul), 0, _sap.sockAddr(), _sap.size());
-	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-	_rerr = last_socket_error();
-	return rv;
+    ssize_t rv  = ::sendto(descriptor(), _pb, static_cast<int>(_ul), 0, _sap.sockAddr(), _sap.size());
+    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
+    _rerr       = last_socket_error();
+    return rv;
 #else
     ssize_t rv = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
@@ -931,12 +933,12 @@ ssize_t SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub&
 ssize_t SocketDevice::recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rcan_retry, ErrorCodeT& _rerr)
 {
 #ifdef SOLID_ON_WINDOWS
-	_rsa.clear();
-	_rsa.sz = SocketAddress::Capacity;
-	ssize_t rv = ::recvfrom(descriptor(), _pb, static_cast<int>(_ul), 0, _rsa.sockAddr(), &_rsa.sz);
-	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-	_rerr = last_socket_error();
-	return rv;
+    _rsa.clear();
+    _rsa.sz     = SocketAddress::Capacity;
+    ssize_t rv  = ::recvfrom(descriptor(), _pb, static_cast<int>(_ul), 0, _rsa.sockAddr(), &_rsa.sz);
+    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
+    _rerr       = last_socket_error();
+    return rv;
 #else
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
@@ -952,7 +954,7 @@ ErrorCodeT SocketDevice::remoteAddress(SocketAddress& _rsa) const
 #ifdef SOLID_ON_WINDOWS
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
-    int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
+    int rv  = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
     if (!rv) {
         return ErrorCodeT();
     }
@@ -973,7 +975,7 @@ ErrorCodeT SocketDevice::localAddress(SocketAddress& _rsa) const
 #ifdef SOLID_ON_WINDOWS
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
-    int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
+    int rv  = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
     if (!rv) {
         return ErrorCodeT();
     }
@@ -1244,7 +1246,7 @@ ErrorCodeT SocketDevice::recvBufferSize(int& _rsz) const
 
 ErrorCodeT SocketDevice::error() const
 {
-    int err = 0;
+    int       err    = 0;
     socklen_t errlen = sizeof(err);
     getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&err), &errlen);
 

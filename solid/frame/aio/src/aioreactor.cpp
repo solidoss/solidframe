@@ -24,9 +24,9 @@
 
 #elif defined(SOLID_USE_WSAPOLL)
 #define WIN32_LEAN_AND_MEAN
+#include <Mstcpip.h>
 #include <WinSock2.h>
 #include <ws2ipdef.h>
-#include <Mstcpip.h>
 #endif
 
 #include <cerrno>
@@ -718,6 +718,8 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events)
     case EPOLLERR | EPOLLOUT | EPOLLIN:
     case EPOLLERR | EPOLLOUT | EPOLLHUP:
     case EPOLLERR | EPOLLIN | EPOLLHUP:
+    case EPOLLERR | EPOLLIN:
+    case EPOLLERR | EPOLLOUT:
         retval = ReactorEventHangup;
         break;
 #ifdef SOLID_USE_EPOLLRDHUP

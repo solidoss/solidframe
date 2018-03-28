@@ -34,9 +34,9 @@ int main(int argc, char* argv[])
         cout << "./file_open_pool /path/to/folder file-count folder-count" << endl;
         return 0;
     }
-    char c;
+    char             c;
     constexpr size_t name_sz = 1024;
-    char name[name_sz];
+    char             name[name_sz];
     //int minsz = atoi(argv[2]);
     //int maxsz = atoi(argv[3]);
     int    filecnt   = atoi(argv[2]);
