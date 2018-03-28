@@ -295,7 +295,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
             SOLID_CHECK(!err, "" << err.message());
         }
 
-		this_thread::sleep_for(chrono::seconds(5));
+        this_thread::sleep_for(chrono::seconds(5));
 
         err = mpipcclient.cancelMessage(recipient_id, message_id);
 

@@ -28,7 +28,7 @@
 #include "openssl/ssl.h"
 
 #ifdef SOLID_ON_WINDOWS
-#pragma comment (lib, "crypt32")
+#pragma comment(lib, "crypt32")
 #endif
 
 namespace {

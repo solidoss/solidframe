@@ -1246,9 +1246,9 @@ ErrorCodeT SocketDevice::recvBufferSize(int& _rsz) const
 
 ErrorCodeT SocketDevice::error() const
 {
-    int val = 0;
+    int       val   = 0;
     socklen_t valsz = sizeof(int);
-    int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&val), &valsz);
+    int       rv    = getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&val), &valsz);
     if (rv == 0) {
         return ErrorCodeT(val, std::system_category());
     }

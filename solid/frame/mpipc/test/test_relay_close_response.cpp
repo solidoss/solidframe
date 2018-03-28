@@ -332,7 +332,7 @@ void peerb_complete_message(
 int test_relay_close_response(int argc, char* argv[])
 {
 #ifndef SOLID_ON_WINDOWS
-	signal(SIGPIPE, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
 #endif
 
 #ifdef SOLID_HAS_DEBUG
