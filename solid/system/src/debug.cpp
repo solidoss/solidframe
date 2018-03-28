@@ -485,13 +485,13 @@ void filePath(string& _out, uint32_t _pos, const string& _path, const string& _n
 {
     _out = _path;
     _out += _name;
-
-    char buf[2048];
+    constexpr size_t bufsz = 2048;
+    char buf[bufsz];
 
     if (_pos) {
-        sprintf(buf, "_%04lu.dbg", (unsigned long)_pos);
+        snprintf(buf, bufsz, "_%04lu.dbg", (unsigned long)_pos);
     } else {
-        sprintf(buf, ".dbg");
+        snprintf(buf, bufsz, ".dbg");
     }
     _out += buf;
 }
@@ -797,18 +797,21 @@ std::ostream& Debug::print(
     if (impl_->respinsz && impl_->respinsz <= impl_->sz) {
         impl_->doRespin();
     }
-    char       buf[128];
+    constexpr size_t bufsz = 128;
+    char       buf[bufsz];
     const auto now   = system_clock::now();
     time_t     t_now = system_clock::to_time_t(now);
     tm*        ploctm;
 #ifdef SOLID_ON_WINDOWS
-    ploctm = localtime(&t_now);
+    struct tm loctm; 
+    localtime_s(&loctm, &t_now);
+    ploctm = &loctm;
 #else
     tm loctm;
     ploctm = localtime_r(&t_now, &loctm);
 #endif
-    sprintf(
-        buf,
+    snprintf(
+        buf, bufsz,
         "%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s]",
         _t,
         ploctm->tm_year + 1900,
@@ -850,18 +853,21 @@ std::ostream& Debug::printTraceIn(
     if (impl_->respinsz && impl_->respinsz <= impl_->sz) {
         impl_->doRespin();
     }
-    char       buf[128];
+    constexpr size_t bufsz = 128;
+    char       buf[bufsz];
     const auto now   = system_clock::now();
     time_t     t_now = system_clock::to_time_t(now);
     tm*        ploctm;
 #ifdef SOLID_ON_WINDOWS
-    ploctm = localtime(&t_now);
+    struct tm loctm; 
+    localtime_s(&loctm, &t_now);
+    ploctm = &loctm;
 #else
     tm loctm;
     ploctm = localtime_r(&t_now, &loctm);
 #endif
-    sprintf(
-        buf,
+    snprintf(
+        buf, bufsz,
         "%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
         _t,
         ploctm->tm_year + 1900,
@@ -896,18 +902,21 @@ std::ostream& Debug::printTraceOut(
     if (impl_->respinsz && impl_->respinsz <= impl_->sz) {
         impl_->doRespin();
     }
-    char       buf[128];
+    constexpr size_t bufsz = 128;
+    char       buf[bufsz];
     const auto now   = system_clock::now();
     time_t     t_now = system_clock::to_time_t(now);
     tm*        ploctm;
 #ifdef SOLID_ON_WINDOWS
-    ploctm = localtime(&t_now);
+    struct tm loctm; 
+    localtime_s(&loctm, &t_now);
+    ploctm = &loctm;
 #else
     tm loctm;
     ploctm = localtime_r(&t_now, &loctm);
 #endif
-    sprintf(
-        buf,
+    snprintf(
+        buf, bufsz,
         "%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
         _t,
         ploctm->tm_year + 1900,

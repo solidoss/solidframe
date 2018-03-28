@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <deque>
 #include <mutex>
+#include <thread>
 
 #include "solid/system/cassert.hpp"
 #include "solid/system/debug.hpp"
@@ -148,7 +149,7 @@ int main(int argc, char* argv[])
 
             cout << "Notify all update: DONE. " << duration.count() << "ms" << endl;
 
-            sleep(20);
+			this_thread::sleep_for(chrono::seconds(20));
 
             cout << "Notify all raise: START" << endl;
             start_time = std::chrono::steady_clock::now();

@@ -7,6 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include "solid/system/common.hpp"
+
 #ifndef SOLID_ON_WINDOWS
 #include <poll.h>
 #include <unistd.h>
@@ -22,6 +24,7 @@
 #include <netinet/in.h>
 
 #endif
+
 #include "solid/system/cassert.hpp"
 #include "solid/system/nanotime.hpp"
 #include "solid/system/socketaddress.hpp"
@@ -35,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 
 using namespace std;
 using namespace solid;

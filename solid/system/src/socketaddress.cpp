@@ -75,8 +75,9 @@ ResolveData synchronous_resolve(
 
 ResolveData synchronous_resolve(const char* _node, int _port)
 {
-    char buf[12];
-    sprintf(buf, "%u", _port);
+    constexpr size_t bufsz = 12;
+    char buf[bufsz];
+    snprintf(buf, bufsz, "%u", _port);
     return synchronous_resolve(_node, buf);
 }
 ResolveData synchronous_resolve(
@@ -87,8 +88,9 @@ ResolveData synchronous_resolve(
     int         _type,
     int         _proto)
 {
-    char buf[12];
-    sprintf(buf, "%u", _port);
+    constexpr size_t bufsz = 12;
+    char buf[bufsz];
+    snprintf(buf, bufsz, "%u", _port);
     return synchronous_resolve(_node, buf, _flags, _family, _type, _proto);
 }
 

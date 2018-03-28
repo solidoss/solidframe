@@ -12,6 +12,10 @@
 #ifdef SOLID_ON_WINDOWS
 #include <WinSock2.h>
 #include <Windows.h>
+
+// Need to link with Ws2_32.lib
+#pragma comment(lib, "ws2_32.lib")
+
 #else
 #define _FILE_OFFSET_BITS 64
 #include <netinet/tcp.h>
@@ -24,6 +28,7 @@
 #include <cstring>
 
 #include "solid/system/cassert.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/debug.hpp"
 #include "solid/system/directory.hpp"
 #include "solid/system/filedevice.hpp"
@@ -62,7 +67,7 @@ ssize_t Device::read(char* _pb, size_t _bl)
     SOLID_ASSERT(ok());
 #ifdef SOLID_ON_WINDOWS
     DWORD cnt;
-    if (ReadFile(desc, _pb, _bl, &cnt, nullptr)) {
+    if (ReadFile(desc, _pb, static_cast<DWORD>(_bl), &cnt, nullptr)) {
         return cnt;
     } else {
         return -1;
@@ -81,7 +86,7 @@ ssize_t Device::write(const char* _pb, size_t _bl)
     ovp.Offset = 0;
     ovp.OffsetHigh = 0;
     ovp.hEvent = nullptr;*/
-    if (WriteFile(desc, const_cast<char*>(_pb), _bl, &cnt, nullptr)) {
+    if (WriteFile(desc, const_cast<char*>(_pb), static_cast<DWORD>(_bl), &cnt, nullptr)) {
         return cnt;
     } else {
         return -1;
@@ -130,7 +135,7 @@ ssize_t SeekableDevice::read(char* _pb, size_t _bl, int64_t _off)
 #ifdef SOLID_ON_WINDOWS
     int64_t off(seek(0, SeekCur));
     seek(_off);
-    int rv = Device::read(_pb, _bl);
+    ssize_t rv = Device::read(_pb, _bl);
     seek(off);
     return rv;
 #else
@@ -196,15 +201,15 @@ HANDLE do_open(WCHAR* _pwc, const char* _fname, const size_t _sz, const size_t _
 {
     WCHAR* pwctmp(nullptr);
     //first convert _fname to _pwc
-    int rv = MultiByteToWideChar(CP_UTF8, 0, _fname, _sz, _pwc, _wcp);
+    int rv = MultiByteToWideChar(CP_UTF8, 0, _fname, static_cast<int>(_sz), _pwc, static_cast<int>(_wcp));
     if (rv == 0) {
         if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            rv = MultiByteToWideChar(CP_UTF8, 0, _fname, _sz, _pwc, 0);
+            rv = MultiByteToWideChar(CP_UTF8, 0, _fname, static_cast<int>(_sz), _pwc, 0);
             if (rv == 0) {
                 return Device::invalidDescriptor();
             }
             pwctmp = new WCHAR[rv + 1];
-            rv     = MultiByteToWideChar(CP_UTF8, 0, _fname, _sz, _pwc, rv + 1);
+            rv     = MultiByteToWideChar(CP_UTF8, 0, _fname, static_cast<int>(_sz), _pwc, rv + 1);
             if (rv == 0) {
                 return Device::invalidDescriptor();
             }
@@ -333,15 +338,15 @@ int do_create_directory(WCHAR* _pwc, const char* _path, size_t _sz, size_t _wcp)
 {
     WCHAR* pwctmp(nullptr);
     //first convert _fname to _pwc
-    int rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, _wcp);
+    ssize_t rv = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, static_cast<int>(_wcp));
     if (rv == 0) {
         if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, 0);
+            rv = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, 0);
             if (rv == 0) {
                 return -1;
             }
             pwctmp = new WCHAR[rv + 1];
-            rv     = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, rv + 1);
+            rv     = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, rv + 1);
             if (rv == 0) {
                 return -1;
             }
@@ -392,15 +397,15 @@ int do_erase_file(WCHAR* _pwc, const char* _path, size_t _sz, size_t _wcp)
 {
     WCHAR* pwctmp(nullptr);
     //first convert _fname to _pwc
-    int rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, _wcp);
+    int rv = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, static_cast<int>(_wcp));
     if (rv == 0) {
         if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, 0);
+            rv = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, 0);
             if (rv == 0) {
                 return -1;
             }
             pwctmp = new WCHAR[rv + 1];
-            rv     = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, rv + 1);
+            rv     = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, rv + 1);
             if (rv == 0) {
                 return -1;
             }
@@ -451,21 +456,22 @@ int do_erase_file(WCHAR* _pwc, const char* _path, size_t _sz, size_t _wcp)
 #ifdef SOLID_ON_WINDOWS
     const size_t szto(strlen(_to));
     const size_t szfr(strlen(_from));
-    WCHAR        pwcto[4096];
-    WCHAR        pwcfr[4096];
+	constexpr size_t sz = 4096;
+    WCHAR        pwcto[sz];
+    WCHAR        pwcfr[sz];
     WCHAR*       pwctmpto(nullptr);
     WCHAR*       pwctmpfr(nullptr);
 
     //first convert _to to _pwc
-    int rv = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, 4096);
+    int rv = MultiByteToWideChar(CP_UTF8, 0, _to, static_cast<int>(szto), pwcto, static_cast<int>(sz));
     if (rv == 0) {
         if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            rv = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, 0);
+            rv = MultiByteToWideChar(CP_UTF8, 0, _to, static_cast<int>(szto), pwcto, 0);
             if (rv == 0) {
                 return false;
             }
             pwctmpto = new WCHAR[rv + 1];
-            rv       = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, rv + 1);
+            rv       = MultiByteToWideChar(CP_UTF8, 0, _to, static_cast<int>(szto), pwcto, rv + 1);
             if (rv == 0) {
                 return false;
             }
@@ -478,15 +484,15 @@ int do_erase_file(WCHAR* _pwc, const char* _path, size_t _sz, size_t _wcp)
         pwctmpto  = pwcto;
     }
 
-    rv = MultiByteToWideChar(CP_UTF8, 0, _from, szfr, pwcfr, 4096);
+    rv = MultiByteToWideChar(CP_UTF8, 0, _from, static_cast<int>(szfr), pwcfr, static_cast<int>(sz));
     if (rv == 0) {
         if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            rv = MultiByteToWideChar(CP_UTF8, 0, _from, szfr, pwcfr, 0);
+            rv = MultiByteToWideChar(CP_UTF8, 0, _from, static_cast<int>(szfr), pwcfr, 0);
             if (rv == 0) {
                 return false;
             }
             pwctmpfr = new WCHAR[rv + 1];
-            rv       = MultiByteToWideChar(CP_UTF8, 0, _from, szfr, pwcfr, rv + 1);
+            rv       = MultiByteToWideChar(CP_UTF8, 0, _from, static_cast<int>(szfr), pwcfr, rv + 1);
             if (rv == 0) {
                 return false;
             }
@@ -529,6 +535,23 @@ struct wsa_cleaner {
 #endif
 
 //---- SocketDevice ---------------------------------
+#ifdef SOLID_ON_WINDOWS
+namespace {
+	struct Starter {
+		WSADATA wsaData;
+		Starter() {
+			WORD wVersionRequested;
+			wVersionRequested = MAKEWORD(2, 2);
+			int err = WSAStartup(wVersionRequested, &wsaData);
+            SOLID_CHECK(err == 0, "Error WSAStartup: "<<err);
+		}
+		~Starter() {
+			WSACleanup();
+		}
+	} __starter;
+}//namespace
+#endif
+
 ErrorCodeT last_socket_error()
 {
 #ifdef SOLID_ON_WINDOWS
@@ -611,8 +634,7 @@ void SocketDevice::close()
 ErrorCodeT SocketDevice::create(const ResolveIterator& _rri)
 {
 #ifdef SOLID_ON_WINDOWS
-    //SOCKET s = socket(_rai.family(), _rai.type(), _rai.protocol());
-    SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), nullptr, 0, 0);
+    SOCKET s = socket(_rri.family(), _rri.type(), _rri.protocol());
     Device::descriptor((HANDLE)s);
 #else
     Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));
@@ -626,8 +648,7 @@ ErrorCodeT SocketDevice::create(
     int                _proto)
 {
 #ifdef SOLID_ON_WINDOWS
-    //SOCKET s = socket(_family, _type, _proto);
-    SOCKET s = WSASocket(_family, _type, _proto, nullptr, 0, 0);
+    SOCKET s = socket(_family, _type, _proto);
     Device::descriptor((HANDLE)s);
 #else
     Device::descriptor(socket(_family, _type, _proto));
@@ -655,29 +676,6 @@ ErrorCodeT SocketDevice::connect(const SocketAddressStub& _rsas)
     int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 #endif
     return rv == 0 ? ErrorCodeT() : last_socket_error();
-}
-
-ErrorCodeT SocketDevice::checkConnect() const
-{
-#ifdef SOLID_ON_WINDOWS
-    return ErrorCodeT();
-#else
-    int val = 0;
-    socklen_t valsz = sizeof(int);
-    int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, &val, &valsz);
-    if (rv == 0) {
-        if (val == 0) {
-            return ErrorCodeT();
-        } else {
-            //TODO:
-            ErrorCodeT err;
-            err.assign(val, err.category());
-            return err;
-        }
-    }
-
-    return last_socket_error();
-#endif
 }
 
 // int SocketDevice::connect(const ResolveIterator &_rai){
@@ -714,7 +712,7 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
     if (rv < 0) {
         return last_socket_error();
     }
-    rv = listen(descriptor(), _listencnt);
+    rv = listen(descriptor(), static_cast<int>(_listencnt));
     if (rv < 0) {
         return last_socket_error();
     }
@@ -741,11 +739,10 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
 ErrorCodeT SocketDevice::accept(SocketDevice& _dev, bool& _rcan_retry)
 {
 #if defined(SOLID_ON_WINDOWS)
-    SocketAddress sa;
-    const SOCKET  rv = ::accept(descriptor(), sa, &sa.sz);
+    const SOCKET  rv = ::accept(descriptor(), nullptr, nullptr);
     _rcan_retry      = (WSAGetLastError() == WSAEWOULDBLOCK);
     _dev.Device::descriptor((HANDLE)rv);
-    return last_socket_error();
+    return _dev ? ErrorCodeT() : last_socket_error();
 #elif defined(SOLID_ON_DARWIN) || defined(SOLID_ON_FREEBSD)
     const int rv = ::accept(descriptor(), nullptr, nullptr);
     _rcan_retry = (errno == EAGAIN || errno == ENETDOWN || errno == EPROTO || errno == ENOPROTOOPT || errno == EHOSTDOWN || errno == EHOSTUNREACH || errno == EOPNOTSUPP || errno == ENETUNREACH);
@@ -814,12 +811,12 @@ ErrorCodeT SocketDevice::makeBlocking(size_t _msec)
     if (rv != NO_ERROR) {
         return last_socket_error();
     }
-    DWORD tout(_msec);
+    DWORD tout(static_cast<DWORD>(_msec));
     rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char*)&tout, sizeof(tout));
     if (rv == SOCKET_ERROR) {
         return last_socket_error();
     }
-    tout = _msec;
+    tout = static_cast<DWORD>(_msec);
     rv   = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char*)&tout, sizeof(tout));
     if (rv == SOCKET_ERROR) {
         return last_socket_error();
@@ -892,7 +889,10 @@ ErrorCodeT SocketDevice::isBlocking(bool& _rrv) const
 ssize_t SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
 {
 #ifdef SOLID_ON_WINDOWS
-    return -1;
+	ssize_t rv = ::send(descriptor(), _pb, static_cast<int>(_ul), 0);
+	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
+	_rerr = last_socket_error();
+	return rv;
 #else
     ssize_t rv = ::send(descriptor(), _pb, _ul, 0);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
@@ -903,7 +903,10 @@ ssize_t SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, Error
 ssize_t SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT& _rerr, unsigned)
 {
 #ifdef SOLID_ON_WINDOWS
-    return -1;
+	ssize_t rv = ::recv(descriptor(), _pb, static_cast<int>(_ul), 0);
+	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
+	_rerr = last_socket_error();
+	return rv;
 #else
     ssize_t rv = ::recv(descriptor(), _pb, _ul, 0);
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
@@ -914,7 +917,10 @@ ssize_t SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT&
 ssize_t SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub& _sap, bool& _rcan_retry, ErrorCodeT& _rerr)
 {
 #ifdef SOLID_ON_WINDOWS
-    return -1;
+	ssize_t rv = ::sendto(descriptor(), _pb, static_cast<int>(_ul), 0, _sap.sockAddr(), _sap.size());
+	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
+	_rerr = last_socket_error();
+	return rv;
 #else
     ssize_t rv = ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
     _rcan_retry = (errno == EAGAIN || errno == EWOULDBLOCK);
@@ -925,7 +931,12 @@ ssize_t SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub&
 ssize_t SocketDevice::recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rcan_retry, ErrorCodeT& _rerr)
 {
 #ifdef SOLID_ON_WINDOWS
-    return -1;
+	_rsa.clear();
+	_rsa.sz = SocketAddress::Capacity;
+	ssize_t rv = ::recvfrom(descriptor(), _pb, static_cast<int>(_ul), 0, _rsa.sockAddr(), &_rsa.sz);
+	_rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
+	_rerr = last_socket_error();
+	return rv;
 #else
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
@@ -939,7 +950,13 @@ ssize_t SocketDevice::recv(char* _pb, size_t _ul, SocketAddress& _rsa, bool& _rc
 ErrorCodeT SocketDevice::remoteAddress(SocketAddress& _rsa) const
 {
 #ifdef SOLID_ON_WINDOWS
-    return solid::error_not_implemented;
+    _rsa.clear();
+    _rsa.sz = SocketAddress::Capacity;
+    int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
+    if (!rv) {
+        return ErrorCodeT();
+    }
+    return last_socket_error();
 #else
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
@@ -954,7 +971,13 @@ ErrorCodeT SocketDevice::remoteAddress(SocketAddress& _rsa) const
 ErrorCodeT SocketDevice::localAddress(SocketAddress& _rsa) const
 {
 #ifdef SOLID_ON_WINDOWS
-    return solid::error_not_implemented;
+    _rsa.clear();
+    _rsa.sz = SocketAddress::Capacity;
+    int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
+    if (!rv) {
+        return ErrorCodeT();
+    }
+    return last_socket_error();
 #else
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
@@ -1219,18 +1242,35 @@ ErrorCodeT SocketDevice::recvBufferSize(int& _rsz) const
 #endif
 }
 
-ErrorCodeT SocketDevice::lastError() const
+ErrorCodeT SocketDevice::error() const
 {
-#ifdef SOLID_ON_WINDOWS
-    return solid::error_not_implemented;
-#else
     int err = 0;
     socklen_t errlen = sizeof(err);
-    getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, (void*)&err, &errlen);
+    getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&err), &errlen);
 
     return ErrorCodeT(err, std::system_category());
-#endif
 }
+
+#if 0
+ErrorCodeT SocketDevice::error() const
+{
+    int val = 0;
+    socklen_t valsz = sizeof(int);
+    int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&val), &valsz);
+    if (rv == 0) {
+        if (val == 0) {
+            return ErrorCodeT();
+        } else {
+            //TODO:
+            ErrorCodeT err;
+            err.assign(val, err.category());
+            return err;
+        }
+    }
+
+    return last_socket_error();
+}
+#endif
 
 std::ostream& operator<<(std::ostream& _ros, const LocalAddressPlot& _ra)
 {

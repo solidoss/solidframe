@@ -671,7 +671,7 @@ private:
 
     void doCheckConnect(ReactorContext& _rctx)
     {
-        ErrorCodeT err = s.device().checkConnect();
+        ErrorCodeT err = s.device().error();
         if (!err) {
             modDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
         } else {
@@ -683,7 +683,7 @@ private:
     void doError(ReactorContext& _rctx)
     {
         error(_rctx, error_stream_socket);
-        systemError(_rctx, s.device().lastError());
+        systemError(_rctx, s.device().error());
 
         if (!SOLID_FUNCTION_EMPTY(send_fnc)) {
             send_buf_sz = send_buf_cp = 0;

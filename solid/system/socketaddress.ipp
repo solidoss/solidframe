@@ -411,7 +411,6 @@ inline bool SocketAddress::operator==(const SocketAddress& _raddr) const
 
 inline void SocketAddress::address(const char* _str)
 {
-#ifndef SOLID_ON_WINDOWS
     d.addr.sa_family          = 0;
     d.inaddr4.sin_addr.s_addr = 0;
     sz                        = 0;
@@ -427,8 +426,6 @@ inline void SocketAddress::address(const char* _str)
         sz                    = sizeof(d.inaddr4);
         return;
     }
-#else
-#endif
 }
 
 inline const in_addr& SocketAddress::address4() const
@@ -686,7 +683,6 @@ inline bool SocketAddressInet::operator==(const SocketAddressInet& _raddr) const
 
 inline void SocketAddressInet::address(const char* _str)
 {
-#ifndef SOLID_ON_WINDOWS
     d.addr.sa_family          = 0;
     d.inaddr4.sin_addr.s_addr = 0;
     sz                        = 0;
@@ -702,8 +698,6 @@ inline void SocketAddressInet::address(const char* _str)
         sz                    = sizeof(d.inaddr4);
         return;
     }
-#else
-#endif
 }
 
 inline const in_addr& SocketAddressInet::address4() const
@@ -883,7 +877,6 @@ inline bool SocketAddressInet4::operator==(const SocketAddressInet4& _raddr) con
 
 inline void SocketAddressInet4::address(const char* _str)
 {
-#ifndef SOLID_ON_WINDOWS
     d.addr.sa_family          = AF_INET;
     d.inaddr4.sin_addr.s_addr = 0;
     int rv                    = inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
@@ -891,8 +884,6 @@ inline void SocketAddressInet4::address(const char* _str)
         sockAddr()->sa_family = AF_INET;
         return;
     }
-#else
-#endif
 }
 
 inline const in_addr& SocketAddressInet4::address() const
@@ -1052,7 +1043,6 @@ inline bool SocketAddressInet6::operator==(const SocketAddressInet6& _raddr) con
 
 inline void SocketAddressInet6::address(const char* _str)
 {
-#ifndef SOLID_ON_WINDOWS
     d.addr.sa_family = AF_INET6;
     memset(d.inaddr6.sin6_addr.s6_addr, 0, sizeof(d.inaddr6.sin6_addr.s6_addr));
     int rv = inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
@@ -1060,8 +1050,6 @@ inline void SocketAddressInet6::address(const char* _str)
         sockAddr()->sa_family = AF_INET6;
         return;
     }
-#else
-#endif
 }
 
 inline const in6_addr& SocketAddressInet6::address() const

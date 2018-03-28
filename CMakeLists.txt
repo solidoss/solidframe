@@ -22,7 +22,7 @@ add_definitions(${EXTRA_DEFINITIONS})
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
-# Prepare the extern path
+# Prepare the external path
 #-----------------------------------------------------------------
 
 if(NOT UEXTERNAL OR UEXTERNAL STREQUAL "")
@@ -205,7 +205,7 @@ if(CMAKE_SYSTEM MATCHES "Windows*")
     set(SYS_NOLOG_LINKER_FLAGS "")
     set(SYS_RELEASE_LINKER_FLAGS "")
 
-    set(SYS_BASIC_LIBS Ws2_32 ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+    #add_definitions(-D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00)
 endif(CMAKE_SYSTEM MATCHES "Windows*")
 
 
@@ -235,13 +235,9 @@ if(CMAKE_SYSTEM MATCHES "Android*")
     set(SYS_DYNAMIC_LOAD_LIB dl)
 endif(CMAKE_SYSTEM MATCHES "Android*")
 
-message("")
-
 if(NOT ON_FOUND)
     message("\r\n === Sorry unsupported system - please contact project owner ===\r\n")
     return()
-else(NOT ON_FOUND)
-
 endif(NOT ON_FOUND)
 
 #-----------------------------------------------------------------
@@ -429,7 +425,6 @@ include_directories(
 # Global link directories
 #-----------------------------------------------------------------
 link_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
     ${EXTERNAL_PATH}/lib
 )
 

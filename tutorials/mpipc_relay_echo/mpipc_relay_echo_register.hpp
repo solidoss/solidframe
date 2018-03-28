@@ -32,7 +32,7 @@ struct hash<TypeIdT> {
     result_type         operator()(argument_type const& s) const noexcept
     {
         result_type const h1(std::hash<uint8_t>{}(s.first));
-        result_type const h2(std::hash<uint>{}(s.second));
+        result_type const h2(std::hash<uint8_t>{}(s.second));
         return h1 ^ (h2 << 1); // || use boost::hash_combine (see Discussion)
     }
 };

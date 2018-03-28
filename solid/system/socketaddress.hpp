@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "solid/system/common.hpp"
+
 #ifndef SOLID_ON_WINDOWS
 #include <arpa/inet.h>
 #include <sys/un.h>
@@ -18,7 +20,6 @@
 #include <array>
 #include <ostream>
 
-#include "solid/system/common.hpp"
 #include "solid/system/socketinfo.hpp"
 
 #include <memory>

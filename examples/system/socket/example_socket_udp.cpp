@@ -1,6 +1,7 @@
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
 #include <iostream>
+#include <string>
 
 using namespace std;
 using namespace solid;

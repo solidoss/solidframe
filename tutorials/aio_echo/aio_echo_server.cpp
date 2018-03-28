@@ -120,8 +120,9 @@ int main(int argc, char* argv[])
     Params p;
     if (!parseArguments(p, argc, argv))
         return 0;
-
+#ifndef SOLID_ON_WINDOWS
     signal(SIGPIPE, SIG_IGN);
+#endif
 
     AioSchedulerT scheduler;
 
