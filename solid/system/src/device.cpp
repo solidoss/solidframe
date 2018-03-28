@@ -1246,33 +1246,14 @@ ErrorCodeT SocketDevice::recvBufferSize(int& _rsz) const
 
 ErrorCodeT SocketDevice::error() const
 {
-    int       err    = 0;
-    socklen_t errlen = sizeof(err);
-    getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&err), &errlen);
-
-    return ErrorCodeT(err, std::system_category());
-}
-
-#if 0
-ErrorCodeT SocketDevice::error() const
-{
     int val = 0;
     socklen_t valsz = sizeof(int);
     int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&val), &valsz);
     if (rv == 0) {
-        if (val == 0) {
-            return ErrorCodeT();
-        } else {
-            //TODO:
-            ErrorCodeT err;
-            err.assign(val, err.category());
-            return err;
-        }
+        return ErrorCodeT(val, std::system_category());
     }
-
     return last_socket_error();
 }
-#endif
 
 std::ostream& operator<<(std::ostream& _ros, const LocalAddressPlot& _ra)
 {
