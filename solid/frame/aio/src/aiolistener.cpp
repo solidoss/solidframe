@@ -105,6 +105,9 @@ bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 
     if (!err) {
     } else if (can_retry) {
+#if defined(SOLID_USE_WSAPOLL)
+		modDevice(_rctx, sd, ReactorWaitRead);
+#endif
         return false;
     } else {
         systemError(_rctx, err);

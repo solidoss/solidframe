@@ -34,7 +34,11 @@ class Stream : public CompletionHandler {
     {
         ThisT& rthis = static_cast<ThisT&>(_rch);
         rthis.completionCallback(&on_completion);
+#if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
         rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitReadOrWrite);
+#else
+		rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitNone);
+#endif
     }
 
     static void on_completion(CompletionHandler& _rch, ReactorContext& _rctx)
@@ -444,7 +448,7 @@ public:
             ErrorCodeT err;
             if (s.create(_rsas, err)) {
                 completionCallback(&on_completion);
-                addDevice(_rctx, s.device(), ReactorWaitWrite);
+                addDevice(_rctx, s.device(), ReactorWaitNone);
 
                 bool can_retry;
                 bool rv = s.connect(_rsas, can_retry, err);
@@ -452,6 +456,9 @@ public:
                     doCheckConnect(_rctx);
                 } else if (can_retry) {
                     send_fnc = ConnectFunctor<F>{_f};
+#if defined(SOLID_USE_WSAPOLL)
+					modDevice(_rctx, s.device(), ReactorWaitWrite);
+#endif
                     return false;
                 } else {
                     error(_rctx, error_stream_system);
@@ -631,6 +638,9 @@ private:
             recv_buf_sz = recv_buf_cp = 0;
         } else if (rv < 0) {
             if (can_retry) {
+#if defined(SOLID_USE_WSAPOLL)
+				modDevice(_rctx, s.device(), ReactorWaitRead);
+#endif
                 return false;
             } else {
                 recv_buf_sz = recv_buf_cp = 0;
@@ -658,6 +668,9 @@ private:
             send_buf_sz = send_buf_cp = 0;
         } else if (rv < 0) {
             if (can_retry) {
+#if defined(SOLID_USE_WSAPOLL)
+				modDevice(_rctx, s.device(), ReactorWaitWrite);
+#endif
                 return false;
             } else {
                 send_buf_sz = send_buf_cp = 0;
@@ -673,7 +686,11 @@ private:
     {
         ErrorCodeT err = s.device().error();
         if (!err) {
-            modDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
+#if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
+			modDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
+#else
+			modDevice(_rctx, s.device(), ReactorWaitNone);
+#endif
         } else {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
