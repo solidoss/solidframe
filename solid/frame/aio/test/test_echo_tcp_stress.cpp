@@ -464,14 +464,14 @@ int test_echo_tcp_stress(int argc, char* argv[])
             return -1;
         }
         if (be_secure) {
-			ErrorCodeT err;
-			err = srv_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-			SOLID_CHECK(!err, "failed loadVerifyFile " << err.message());
-			err = srv_secure_ctx.loadCertificateFile("echo-server-cert.pem");
-			SOLID_CHECK(!err, "failed loadCertificateFile " << err.message());
-			err = srv_secure_ctx.loadPrivateKeyFile("echo-server-key.pem");
-			SOLID_CHECK(!err, "failed loadPrivateKeyFile " << err.message());
-		}
+            ErrorCodeT err;
+            err = srv_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
+            SOLID_CHECK(!err, "failed loadVerifyFile " << err.message());
+            err = srv_secure_ctx.loadCertificateFile("echo-server-cert.pem");
+            SOLID_CHECK(!err, "failed loadCertificateFile " << err.message());
+            err = srv_secure_ctx.loadPrivateKeyFile("echo-server-key.pem");
+            SOLID_CHECK(!err, "failed loadPrivateKeyFile " << err.message());
+        }
 
         if (srv_sch.start(thread::hardware_concurrency())) {
             running = false;

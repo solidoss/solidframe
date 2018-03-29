@@ -37,7 +37,7 @@ class Stream : public CompletionHandler {
 #if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
         rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitReadOrWrite);
 #else
-		rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitNone);
+        rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitNone);
 #endif
     }
 
@@ -461,7 +461,7 @@ public:
                 } else if (can_retry) {
                     send_fnc = ConnectFunctor<F>{_f};
 #if defined(SOLID_USE_WSAPOLL)
-					modDevice(_rctx, s.device(), ReactorWaitWrite);
+                    modDevice(_rctx, s.device(), ReactorWaitWrite);
 #endif
                     return false;
                 } else {
@@ -643,7 +643,7 @@ private:
         } else if (rv < 0) {
             if (can_retry) {
 #if defined(SOLID_USE_WSAPOLL)
-				modDevice(_rctx, s.device(), ReactorWaitRead);
+                modDevice(_rctx, s.device(), ReactorWaitRead);
 #endif
                 return false;
             } else {
@@ -673,7 +673,7 @@ private:
         } else if (rv < 0) {
             if (can_retry) {
 #if defined(SOLID_USE_WSAPOLL)
-				modDevice(_rctx, s.device(), ReactorWaitWrite);
+                modDevice(_rctx, s.device(), ReactorWaitWrite);
 #endif
                 return false;
             } else {
@@ -691,9 +691,9 @@ private:
         ErrorCodeT err = s.device().error();
         if (!err) {
 #if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
-			modDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
+            modDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
 #else
-			modDevice(_rctx, s.device(), ReactorWaitNone);
+            modDevice(_rctx, s.device(), ReactorWaitNone);
 #endif
         } else {
             error(_rctx, error_stream_system);

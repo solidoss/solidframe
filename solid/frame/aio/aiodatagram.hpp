@@ -9,7 +9,6 @@
 //
 
 #pragma once
-#include "solid/system/common.hpp"
 #include "solid/frame/aio/aiocompletion.hpp"
 #include "solid/frame/aio/aioerror.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
@@ -38,7 +37,7 @@ class Datagram : public CompletionHandler {
 #if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
         rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitReadOrWrite);
 #else
-		rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitNone);
+        rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitNone);
 #endif
     }
 
@@ -118,7 +117,7 @@ class Datagram : public CompletionHandler {
                 } else if (rv == -1) {
                     if (can_retry) {
 #if defined(SOLID_USE_WSAPOLL)
-						_rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitRead);
+                        _rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitRead);
 #endif
                         return;
                     } else {
@@ -160,7 +159,7 @@ class Datagram : public CompletionHandler {
                 } else if (rv == -1) {
                     if (can_retry) {
 #if defined(SOLID_USE_WSAPOLL)
-						_rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitRead);
+                        _rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitRead);
 #endif
                         return;
                     } else {
@@ -199,7 +198,7 @@ class Datagram : public CompletionHandler {
                 } else if (rv == -1) {
                     if (can_retry) {
 #if defined(SOLID_USE_WSAPOLL)
-						_rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitWrite);
+                        _rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitWrite);
 #endif
                         return;
                     } else {
@@ -238,7 +237,7 @@ class Datagram : public CompletionHandler {
                 } else if (rv == -1) {
                     if (can_retry) {
 #if defined(SOLID_USE_WSAPOLL)
-						_rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitWrite);
+                        _rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitWrite);
 #endif
                         return;
                     } else {
@@ -333,7 +332,7 @@ public:
                 } else if (can_retry) {
                     send_fnc = ConnectFunctor<F>(_f);
 #if defined(SOLID_USE_WSAPOLL)
-					modDevice(_rctx, s.device(), ReactorWaitWrite);
+                    modDevice(_rctx, s.device(), ReactorWaitWrite);
 #endif
                     return false;
                 } else {
@@ -419,7 +418,7 @@ public:
                     recv_fnc    = RecvFromFunctor<F>(_f);
                     errorClear(_rctx);
 #if defined(SOLID_USE_WSAPOLL)
-					modDevice(_rctx, s.device(), ReactorWaitRead);
+                    modDevice(_rctx, s.device(), ReactorWaitRead);
 #endif
                     return false;
                 } else {
@@ -460,7 +459,7 @@ public:
                     recv_fnc    = RecvFunctor<F>(_f);
                     errorClear(_rctx);
 #if defined(SOLID_USE_WSAPOLL)
-					modDevice(_rctx, s.device(), ReactorWaitRead);
+                    modDevice(_rctx, s.device(), ReactorWaitRead);
 #endif
                     return false;
                 } else {
@@ -543,7 +542,7 @@ public:
                     send_fnc    = SendToFunctor<F>(_f);
                     errorClear(_rctx);
 #if defined(SOLID_USE_WSAPOLL)
-					modDevice(_rctx, s.device(), ReactorWaitWrite);
+                    modDevice(_rctx, s.device(), ReactorWaitWrite);
 #endif
                     return false;
                 } else {
@@ -581,7 +580,7 @@ public:
                     send_fnc    = SendFunctor<F>(_f);
                     errorClear(_rctx);
 #if defined(SOLID_USE_WSAPOLL)
-					modDevice(_rctx, s.device(), ReactorWaitWrite);
+                    modDevice(_rctx, s.device(), ReactorWaitWrite);
 #endif
                     return false;
                 } else {

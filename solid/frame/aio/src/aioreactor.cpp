@@ -105,10 +105,10 @@ struct EventHandler : CompletionHandler {
 
     bool init();
 #if defined(SOLID_USE_EPOLL)
-	Device::DescriptorT descriptor() const
-	{
-		return dev.descriptor();
-	}
+    Device::DescriptorT descriptor() const
+    {
+        return dev.descriptor();
+    }
 
 #elif defined(SOLID_USE_WSAPOLL)
     SocketDevice::DescriptorT descriptor() const
@@ -121,7 +121,7 @@ private:
 #if defined(SOLID_USE_EPOLL)
     Device dev;
 #elif defined(SOLID_USE_WSAPOLL)
-	SocketDevice dev;
+    SocketDevice dev;
 #endif
 };
 
@@ -156,11 +156,11 @@ private:
     } while (rv == sizeof(v));
 #elif defined(SOLID_USE_WSAPOLL)
     constexpr size_t buf_sz = 64;
-    char buf[buf_sz];
-    bool can_retry;
-    ErrorCodeT err;
+    char             buf[buf_sz];
+    bool             can_retry;
+    ErrorCodeT       err;
     rthis.dev.recv(buf, buf_sz, can_retry, err);
-	rthis.modDevice(_rctx, rthis.dev, ReactorWaitRead);
+    rthis.modDevice(_rctx, rthis.dev, ReactorWaitRead);
 #endif
     rthis.reactor(_rctx).doCompleteEvents(_rctx);
 }
@@ -179,19 +179,23 @@ bool EventHandler::init()
 #elif defined(SOLID_USE_WSAPOLL)
     ErrorCodeT err;
     err = dev.create(SocketInfo::Inet4, SocketInfo::Datagram);
-	if (err) return false;
+    if (err)
+        return false;
 
     err = dev.bind(SocketAddressInet4("127.0.0.1", 0));
-	if (err) return false;
+    if (err)
+        return false;
 
-    SocketAddress   sa;
+    SocketAddress sa;
     err = dev.localAddress(sa);
-	if (err) return false;
+    if (err)
+        return false;
 
     err = dev.connect(SocketAddressInet4("127.0.0.1", sa.port()));
-	if (err) return false;
+    if (err)
+        return false;
 
-	dev.makeNonBlocking();
+    dev.makeNonBlocking();
 #endif
     return true;
 }
@@ -382,14 +386,16 @@ typedef std::vector<epoll_event> EventVectorT;
 
 typedef std::vector<struct kevent> EventVectorT;
 #elif defined(SOLID_USE_WSAPOLL)
-struct PollStub: WSAPOLLFD{
-    PollStub(){
-		clear();
-	}
-    void clear(){
+struct PollStub : WSAPOLLFD {
+    PollStub()
+    {
+        clear();
+    }
+    void clear()
+    {
         this->fd = SocketDevice::invalidDescriptor();
         this->events = 0;
-        this->revents= 0;
+        this->revents = 0;
     }
 };
 using EventVectorT = std::vector<PollStub>;
@@ -488,10 +494,10 @@ struct Reactor::Data {
             if (_rcrt < timestore.next()) {
 
                 constexpr int64_t maxwait = 1000 * 60 * 10; //ten minutes
-                int64_t       diff    = 0;
-                const auto    crt_tp  = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
-                const auto    next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
-                diff                  = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
+                int64_t diff = 0;
+                const auto crt_tp = _rcrt.timePointCast<std::chrono::steady_clock::time_point>();
+                const auto next_tp = timestore.next().timePointCast<std::chrono::steady_clock::time_point>();
+                diff = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
 
                 if (diff > maxwait) {
                     return maxwait;
@@ -515,7 +521,7 @@ struct Reactor::Data {
         return UniqueId(idx, chdq[idx].unique);
     }
 
-	int                     reactor_fd;
+    int                     reactor_fd;
     AtomicBoolT             running;
     size_t                  crtpushtskvecidx;
     size_t                  crtraisevecidx;
@@ -591,18 +597,17 @@ bool Reactor::start()
 
 #if defined(SOLID_USE_EPOLL)
     impl_->reactor_fd = epoll_create(MinEventCapacity);
-	if (impl_->reactor_fd < 0) {
-		edbgx(Debug::aio, "reactor create: " << last_system_error().message());
-		return false;
-	}
+    if (impl_->reactor_fd < 0) {
+        edbgx(Debug::aio, "reactor create: " << last_system_error().message());
+        return false;
+    }
 #elif defined(SOLID_USE_KQUEUE)
     impl_->reactor_fd = kqueue();
-	if (impl_->reactor_fd < 0) {
-		edbgx(Debug::aio, "reactor create: " << last_system_error().message());
-		return false;
-	}
+    if (impl_->reactor_fd < 0) {
+        edbgx(Debug::aio, "reactor create: " << last_system_error().message());
+        return false;
+    }
 #endif
-
 
     if (!impl_->eventobj.eventhandler.init()) {
         return false;
@@ -836,36 +841,36 @@ inline constexpr ReactorEventsE systemEventsToReactorEvents(const unsigned short
     return retval;
 }
 #elif defined(SOLID_USE_WSAPOLL)
-inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events, decltype(WSAPOLLFD::events) &_revs)
+inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events, decltype(WSAPOLLFD::events) & _revs)
 {
-	if (_events & POLLERR) { 
-		_revs = 0;
-		return ReactorEventError;
-	}
-	if (_events & POLLHUP) {
-		_revs = 0;
-		return ReactorEventHangup;
-	}
+    if (_events & POLLERR) {
+        _revs = 0;
+        return ReactorEventError;
+    }
+    if (_events & POLLHUP) {
+        _revs = 0;
+        return ReactorEventHangup;
+    }
     ReactorEventsE retval = ReactorEventNone;
     switch (_events) {
-        case POLLPRI:
-            retval = ReactorEventOOB;
-            break;
-        case POLLRDNORM:
-            retval = ReactorEventRecv;
-			_revs &= ~(POLLRDNORM);
-            break;
-        case POLLWRNORM:
-            retval = ReactorEventSend;
-			_revs &= ~(POLLWRNORM);
-            break;
-        case POLLRDNORM | POLLWRNORM:
-            retval = ReactorEventRecvSend;
-			_revs = 0;
-            break;
-        default:
-            SOLID_ASSERT(false);
-            break;
+    case POLLPRI:
+        retval = ReactorEventOOB;
+        break;
+    case POLLRDNORM:
+        retval = ReactorEventRecv;
+        _revs &= ~(POLLRDNORM);
+        break;
+    case POLLWRNORM:
+        retval = ReactorEventSend;
+        _revs &= ~(POLLWRNORM);
+        break;
+    case POLLRDNORM | POLLWRNORM:
+        retval = ReactorEventRecvSend;
+        _revs = 0;
+        break;
+    default:
+        SOLID_ASSERT(false);
+        break;
     }
     return retval;
 }
@@ -1020,30 +1025,31 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
 
     vdbgx(Debug::aio, "selcnt = " << _sz);
 
-
 #if defined(SOLID_USE_EPOLL)
-	for (size_t i = 0; i < _sz; ++i) {
+    for (size_t i = 0; i < _sz; ++i) {
         epoll_event&           rev = impl_->eventvec[i];
         CompletionHandlerStub& rch = impl_->chdq[rev.data.u64];
 
         ctx.reactor_event_ = systemEventsToReactorEvents(rev.events);
         ctx.channel_index_ = rev.data.u64;
 #elif defined(SOLID_USE_KQUEUE)
-	for (size_t i = 0; i < _sz; ++i) {
+    for (size_t i = 0; i < _sz; ++i) {
         struct kevent& rev = impl_->eventvec[i];
         CompletionHandlerStub& rch = impl_->chdq[voidToIndex(rev.udata)];
 
         ctx.reactor_event_ = systemEventsToReactorEvents(rev.flags, rev.filter);
         ctx.channel_index_ = voidToIndex(rev.udata);
 #elif defined(SOLID_USE_WSAPOLL)
-	const size_t vecsz = impl_->eventvec.size();
-	size_t		 evcnt = _sz;
-	for (size_t i = 0; i < vecsz; ++i) {
-		if (evcnt == 0) break;
+    const size_t vecsz = impl_->eventvec.size();
+    size_t evcnt = _sz;
+    for (size_t i = 0; i < vecsz; ++i) {
+        if (evcnt == 0)
+            break;
 
-        WSAPOLLFD&             rev = impl_->eventvec[i];
-        if(rev.revents == 0 || rev.revents & POLLNVAL) continue;
-		--evcnt;
+        WSAPOLLFD& rev = impl_->eventvec[i];
+        if (rev.revents == 0 || rev.revents & POLLNVAL)
+            continue;
+        --evcnt;
         CompletionHandlerStub& rch = impl_->chdq[i];
         ctx.reactor_event_ = systemEventsToReactorEvents(rev.revents, rev.events);
         ctx.channel_index_ = i;
@@ -1312,10 +1318,10 @@ bool Reactor::addDevice(ReactorContext& _rctx, CompletionHandler const& _rch, De
         }
     }
 #elif defined(SOLID_USE_WSAPOLL)
-    if(_rch.idxreactor >= impl_->eventvec.size()){
+    if (_rch.idxreactor >= impl_->eventvec.size()) {
         impl_->eventvec.resize(_rch.idxreactor + 1);
     }
-    
+
     impl_->eventvec[_rch.idxreactor].fd = reinterpret_cast<SocketDevice::DescriptorT>(_rsd.descriptor());
     impl_->eventvec[_rch.idxreactor].events = reactorRequestsToSystemEvents(_req);
 #endif
@@ -1396,12 +1402,11 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         }
     }
 #elif defined(SOLID_USE_WSAPOLL)
-	if (_req != ReactorWaitNone) {
-		impl_->eventvec[_rch.idxreactor].events |= reactorRequestsToSystemEvents(_req);
-	}
-	else {
-		impl_->eventvec[_rch.idxreactor].events = reactorRequestsToSystemEvents(_req);
-	}
+    if (_req != ReactorWaitNone) {
+        impl_->eventvec[_rch.idxreactor].events |= reactorRequestsToSystemEvents(_req);
+    } else {
+        impl_->eventvec[_rch.idxreactor].events = reactorRequestsToSystemEvents(_req);
+    }
 #endif
     return true;
 }
