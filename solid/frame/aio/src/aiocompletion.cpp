@@ -133,7 +133,7 @@ void CompletionHandler::addDevice(ReactorContext& _rctx, Device const& _rsd, con
 void CompletionHandler::modDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req)
 {
     SOLID_ASSERT(isActive());
-    _rctx.reactor().modDevice(_rctx, *this, _rsd, _req);
+    _rctx.reactor().modDevice(_rctx, _rsd, _req);
 }
 
 void CompletionHandler::remDevice(ReactorContext& _rctx, Device const& _rsd)

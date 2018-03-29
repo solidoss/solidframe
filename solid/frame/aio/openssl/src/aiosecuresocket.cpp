@@ -499,7 +499,6 @@ bool Socket::connect(SocketAddressStub const& _rsas, bool& _can_retry, ErrorCode
 ErrorCodeT Socket::renegotiate(bool& _can_retry)
 {
     const int retval = ::SSL_renegotiate(pssl);
-    //const int             err_cond = ::SSL_get_error(pssl, retval);
     const unsigned long err_code = ::ERR_get_error();
     (void)retval;
     return ssl_category.makeError(err_code);

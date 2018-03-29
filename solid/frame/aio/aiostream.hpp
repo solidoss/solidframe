@@ -448,7 +448,11 @@ public:
             ErrorCodeT err;
             if (s.create(_rsas, err)) {
                 completionCallback(&on_completion);
+#if defined(SOLID_USE_WSAPOLL)
                 addDevice(_rctx, s.device(), ReactorWaitNone);
+#else
+                addDevice(_rctx, s.device(), ReactorWaitWrite);
+#endif
 
                 bool can_retry;
                 bool rv = s.connect(_rsas, can_retry, err);
