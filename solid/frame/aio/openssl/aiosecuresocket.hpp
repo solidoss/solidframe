@@ -61,7 +61,7 @@ private:
     NativeContextT* ssl_ctx;
 };
 
-class Socket: public SocketBase{
+class Socket : public SocketBase {
 public:
     using NativeHandleT  = SSL*;
     using VerifyMaskT    = openssl::VerifyMaskT;
@@ -130,7 +130,7 @@ private:
 private:
     using VerifyFunctionT = SOLID_FUNCTION(bool(void*, bool, VerifyContextT&));
 
-    SSL*         pssl;
+    SSL*            pssl;
     bool            want_read_on_recv;
     bool            want_read_on_send;
     bool            want_write_on_recv;

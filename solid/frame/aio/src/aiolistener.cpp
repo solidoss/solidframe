@@ -85,9 +85,9 @@ SocketDevice Listener::reset(ReactorContext& _rctx, SocketDevice&& _rnewdev)
     if (s.device()) {
         remDevice(_rctx, s.device());
     }
-    
+
     contextBind(_rctx);
-    
+
     SocketDevice tmpsd = s.resetAccept(_rctx, std::move(_rnewdev));
     if (s.device()) {
         completionCallback(&on_completion);

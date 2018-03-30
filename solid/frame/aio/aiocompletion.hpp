@@ -65,8 +65,8 @@ protected:
     void           error(ReactorContext& _rctx, ErrorConditionT const& _err) const;
     void           errorClear(ReactorContext& _rctx) const;
     void           systemError(ReactorContext& _rctx, ErrorCodeT const& _err) const;
-    void           contextBind(ReactorContext& _rctx)const;
-    void           contextUnbind(ReactorContext& _rctx)const;
+    void           contextBind(ReactorContext& _rctx) const;
+    void           contextUnbind(ReactorContext& _rctx) const;
     void           remDevice(ReactorContext& _rctx, Device const& _rsd);
     void           addTimer(ReactorContext& _rctx, NanoTime const& _rt, size_t& _storedidx);
     void           remTimer(ReactorContext& _rctx, size_t const& _storedidx);
@@ -129,12 +129,14 @@ inline void CompletionHandler::systemError(ReactorContext& _rctx, ErrorCodeT con
     _rctx.systemError(_err);
 }
 
-inline void CompletionHandler::contextBind(ReactorContext& _rctx)const{
+inline void CompletionHandler::contextBind(ReactorContext& _rctx) const
+{
     SOLID_ASSERT(isActive());
     _rctx.channel_index_ = idxreactor;
 }
 
-inline void CompletionHandler::contextUnbind(ReactorContext& _rctx)const{
+inline void CompletionHandler::contextUnbind(ReactorContext& _rctx) const
+{
     _rctx.channel_index_ = InvalidIndex();
 }
 

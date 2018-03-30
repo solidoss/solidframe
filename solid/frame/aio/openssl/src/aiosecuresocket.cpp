@@ -451,7 +451,7 @@ Socket::~Socket()
 
 SocketDevice Socket::reset(ReactorContext& _rctx, SocketDevice&& _rsd)
 {
-    
+
     SocketDevice sd = SocketBase::reset(_rctx, std::move(_rsd));
     if (device()) {
         SSL_set_fd(pssl, sd.descriptor());
@@ -461,11 +461,10 @@ SocketDevice Socket::reset(ReactorContext& _rctx, SocketDevice&& _rsd)
     return sd;
 }
 
-
 bool Socket::create(ReactorContext& _rctx, SocketAddressStub const& _rsas, ErrorCodeT& _rerr)
 {
     bool rv = SocketBase::create(_rctx, _rsas, _rerr);
-    
+
     if (rv) {
         SSL_set_fd(pssl, device().descriptor());
     }

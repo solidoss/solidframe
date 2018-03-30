@@ -638,7 +638,7 @@ private:
     }
 
 private:
-    Sock s;
+    Sock          s;
     char*         recv_buf;
     size_t        recv_buf_cp;
     RecvFunctionT recv_fnc;

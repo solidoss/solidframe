@@ -130,7 +130,7 @@ private:
 /*static*/ void EventHandler::on_init(CompletionHandler& _rch, ReactorContext& _rctx)
 {
     EventHandler& rthis = static_cast<EventHandler&>(_rch);
-    
+
     rthis.contextBind(_rctx);
 
 #if defined(SOLID_USE_EPOLL)
@@ -1251,9 +1251,9 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req)
 {
     idbgx(Debug::aio, _rsd.descriptor());
-    
+
     //SOLID_ASSERT(_rctx.channel_index_ == _rch.idxreactor);
-    
+
 #if defined(SOLID_USE_EPOLL)
     epoll_event ev;
     ev.data.u64 = _rctx.channel_index_;

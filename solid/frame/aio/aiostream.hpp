@@ -349,9 +349,9 @@ public:
         if (s.device()) {
             remDevice(_rctx, s.device());
         }
-        
+
         contextBind(_rctx);
-        
+
         SocketDevice sd(s.reset(_rctx, std::move(_rnewdev)));
         if (s.device()) {
             completionCallback(&on_completion);
@@ -671,15 +671,16 @@ private:
         }
         return true;
     }
-    
-    void doCheckConnect(ReactorContext& _rctx){
+
+    void doCheckConnect(ReactorContext& _rctx)
+    {
         ErrorCodeT err = s.checkConnect(_rctx);
-        if(err){
+        if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
         }
     }
-    
+
     void doError(ReactorContext& _rctx)
     {
         error(_rctx, error_stream_socket);
