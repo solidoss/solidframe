@@ -105,7 +105,7 @@ class Datagram : public CompletionHandler {
             if (!_rctx.error()) {
                 bool       can_retry;
                 ErrorCodeT err;
-                ssize_t    rv = _rthis.s.recv(_rthis.recv_buf, _rthis.recv_buf_cp, can_retry, err);
+                ssize_t    rv = _rthis.s.recv(_rctx, _rthis.recv_buf, _rthis.recv_buf_cp, can_retry, err);
 
                 if (rv > 0) {
                     recv_sz = rv;
@@ -113,9 +113,6 @@ class Datagram : public CompletionHandler {
                     _rthis.error(_rctx, error_datagram_shutdown);
                 } else if (rv == -1) {
                     if (can_retry) {
-#if defined(SOLID_USE_WSAPOLL)
-                        _rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitRead);
-#endif
                         return;
                     } else {
                         _rthis.error(_rctx, error_datagram_system);
@@ -147,7 +144,7 @@ class Datagram : public CompletionHandler {
             if (!_rctx.error()) {
                 bool       can_retry;
                 ErrorCodeT err;
-                ssize_t    rv = _rthis.s.recvFrom(_rthis.recv_buf, _rthis.recv_buf_cp, addr, can_retry, err);
+                ssize_t    rv = _rthis.s.recvFrom(_rctx, _rthis.recv_buf, _rthis.recv_buf_cp, addr, can_retry, err);
 
                 if (rv > 0) {
                     recv_sz = rv;
@@ -155,9 +152,6 @@ class Datagram : public CompletionHandler {
                     _rthis.error(_rctx, error_datagram_shutdown);
                 } else if (rv == -1) {
                     if (can_retry) {
-#if defined(SOLID_USE_WSAPOLL)
-                        _rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitRead);
-#endif
                         return;
                     } else {
                         _rthis.error(_rctx, error_datagram_system);
@@ -187,16 +181,13 @@ class Datagram : public CompletionHandler {
             if (!_rctx.error()) {
                 bool       can_retry;
                 ErrorCodeT err;
-                ssize_t    rv = _rthis.s.send(_rthis.send_buf, _rthis.send_buf_cp, can_retry, err);
+                ssize_t    rv = _rthis.s.send(_rctx, _rthis.send_buf, _rthis.send_buf_cp, can_retry, err);
 
                 if (rv == _rthis.send_buf_cp) {
                 } else if (rv >= 0) {
                     _rthis.error(_rctx, error_datagram_shutdown);
                 } else if (rv == -1) {
                     if (can_retry) {
-#if defined(SOLID_USE_WSAPOLL)
-                        _rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitWrite);
-#endif
                         return;
                     } else {
                         _rthis.error(_rctx, error_datagram_system);
@@ -226,16 +217,13 @@ class Datagram : public CompletionHandler {
             if (!_rctx.error()) {
                 bool       can_retry;
                 ErrorCodeT err;
-                ssize_t    rv = _rthis.s.sendTo(_rthis.send_buf, _rthis.send_buf_cp, _rthis.send_addr, can_retry, err);
+                ssize_t    rv = _rthis.s.sendTo(_rctx, _rthis.send_buf, _rthis.send_buf_cp, _rthis.send_addr, can_retry, err);
 
                 if (rv == static_cast<int>(_rthis.send_buf_cp)) {
                 } else if (rv >= 0) {
                     _rthis.error(_rctx, error_datagram_shutdown);
                 } else if (rv == -1) {
                     if (can_retry) {
-#if defined(SOLID_USE_WSAPOLL)
-                        _rthis.modDevice(_rctx, _rthis.s.device(), ReactorWaitWrite);
-#endif
                         return;
                     } else {
                         _rthis.error(_rctx, error_datagram_system);
@@ -433,7 +421,7 @@ public:
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
             bool       can_retry;
             ErrorCodeT err;
-            ssize_t    rv = s.recv(_rcxt, _buf, _bufcp, can_retry, err);
+            ssize_t    rv = s.recv(_rctx, _buf, _bufcp, can_retry, err);
 
             if (rv == _bufcp) {
                 _sz = rv;

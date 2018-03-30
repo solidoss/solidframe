@@ -13,7 +13,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         ${SYS_BASIC_LIBS}
         ${SYS_DYNAMIC_LOAD_LIB}
     )
-    
+
     add_executable (example_relay_server_bi example_relay_server_bi.cpp)
 
     add_dependencies(example_relay_server_bi build_boost)
@@ -28,7 +28,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         ${SYS_BASIC_LIBS}
         ${SYS_DYNAMIC_LOAD_LIB}
     )
-    
+
     add_executable (example_relay_server_bi_cp example_relay_server_bi_cp.cpp)
 
     add_dependencies(example_relay_server_bi_cp build_boost)
@@ -43,7 +43,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         ${SYS_BASIC_LIBS}
         ${SYS_DYNAMIC_LOAD_LIB}
     )
-    
+
     add_executable (example_relay_server_bi_sh example_relay_server_bi_sh.cpp)
 
     add_dependencies(example_relay_server_bi_sh build_boost)
@@ -58,7 +58,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         ${SYS_BASIC_LIBS}
         ${SYS_DYNAMIC_LOAD_LIB}
     )
-    
+
     add_executable (example_relay_server_bi_ex example_relay_server_bi_ex.cpp)
 
     add_dependencies(example_relay_server_bi_ex build_boost)
@@ -73,7 +73,7 @@ if(${Boost_FOUND} AND OPENSSL_FOUND)
         ${SYS_BASIC_LIBS}
         ${SYS_DYNAMIC_LOAD_LIB}
     )
-    
+
 endif()
 
 

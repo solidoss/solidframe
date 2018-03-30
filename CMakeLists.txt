@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 # The project
 #-----------------------------------------------------------------
 project (SolidFrame VERSION 3.0)
-    
+
 execute_process(
     COMMAND "git" "rev-parse" "HEAD"
     WORKING_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR}
@@ -249,12 +249,12 @@ if(NOT NO_EXTERNAL)
 
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
     include(cmake/build_snappy.cmake)
-    
+
     include_directories(${CMAKE_BINARY_DIR}/external/include)
-    
+
     if(EXTERNAL_PATH STREQUAL "")
         set(EXTERNAL_PATH "${CMAKE_CURRENT_BINARY_DIR}/external")
-        
+
         include(cmake/build_boost.cmake)
         include(cmake/build_openssl.cmake)
     else()
@@ -435,7 +435,7 @@ if(NOT ON_CROSS)
     find_program( MEMORYCHECK_COMMAND valgrind )
     set( MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full" )
     set( MEMORYCHECK_SUPPRESSIONS_FILE "${PROJECT_SOURCE_DIR}/cmake/valgrind_suppress.txt" )
-    
+
     include(CTest)
 endif()
 

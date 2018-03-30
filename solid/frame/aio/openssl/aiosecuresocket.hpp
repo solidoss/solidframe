@@ -75,8 +75,6 @@ public:
 
     SocketDevice reset(ReactorContext& _rctx, SocketDevice&& _rsd);
 
-    void shutdown();
-
     bool create(ReactorContext& _rctx, SocketAddressStub const& _rsas, ErrorCodeT& _rerr);
 
     ErrorCodeT renegotiate(bool& _can_retry);
