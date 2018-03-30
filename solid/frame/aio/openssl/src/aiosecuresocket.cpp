@@ -122,8 +122,15 @@ struct Starter {
     Starter()
     {
 #ifndef OPENSSL_IS_BORINGSSL
-        ::OPENSSL_init_ssl(0, NULL);
-        ::OPENSSL_init_crypto(0, NULL);
+        //::OPENSSL_init_ssl(0, NULL);
+        //::OPENSSL_init_crypto(0, NULL);
+		(void)SSL_library_init();
+
+		SSL_load_error_strings();
+
+		/* ERR_load_crypto_strings(); */
+
+		OPENSSL_config(NULL);
 #endif
         ::OpenSSL_add_all_algorithms();
     }
@@ -269,7 +276,7 @@ ErrorCodeT Context::loadVerifyFile(const char* _path)
 {
     ErrorCodeT err;
     ::ERR_clear_error();
-    if (SSL_CTX_load_verify_locations(pctx, _path, nullptr)) {
+    if (SSL_CTX_load_verify_locations(pctx, _path, nullptr) != 1) {
         err = ssl_category.makeError(::ERR_get_error());
     }
     return err;
@@ -278,7 +285,7 @@ ErrorCodeT Context::loadVerifyPath(const char* _path)
 {
     ErrorCodeT err;
     ::ERR_clear_error();
-    if (SSL_CTX_load_verify_locations(pctx, nullptr, _path)) {
+    if (SSL_CTX_load_verify_locations(pctx, nullptr, _path) != 1) {
         err = ssl_category.makeError(::ERR_get_error());
     }
     return err;
@@ -288,7 +295,7 @@ ErrorCodeT Context::loadCertificateFile(const char* _path, const FileFormat _ffo
 {
     ErrorCodeT err;
     ::ERR_clear_error();
-    if (SSL_CTX_use_certificate_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1)) {
+    if (SSL_CTX_use_certificate_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1) != 1) {
         err = ssl_category.makeError(::ERR_get_error());
     }
     return err;
@@ -333,9 +340,10 @@ ErrorCodeT Context::loadPrivateKeyFile(const char* _path, const FileFormat _ffor
 {
     ErrorCodeT err;
     ::ERR_clear_error();
-    if (SSL_CTX_use_PrivateKey_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1)) {
+    if (SSL_CTX_use_PrivateKey_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1) != 1) {
         err = ssl_category.makeError(::ERR_get_error());
     }
+	SOLID_ASSERT(SSL_CTX_check_private_key(pctx));
     return err;
 }
 
@@ -429,7 +437,8 @@ Socket::Socket(
     ::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
     ::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
     if (device()) {
-        SSL_set_fd(pssl, device().descriptor());
+        int rv = SSL_set_fd(pssl, device().descriptor());
+		SOLID_ASSERT(rv != 0);
     }
 }
 

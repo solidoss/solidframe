@@ -167,7 +167,7 @@ private:
             if (!_rctx.error()) {
                 sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
             } else {
-                edbg(this << " postStop");
+                edbg(this << " postStop: "<<_rctx.systemError().message());
                 postStop(_rctx);
             }
         }
@@ -418,8 +418,8 @@ protected:
 int test_echo_tcp_stress(int argc, char* argv[])
 {
 #ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("frame_aio:view any:view");
+    Debug::the().levelMask("view");
+    Debug::the().moduleMask("frame_aio:ew any:vew");
     Debug::the().initStdErr(false, nullptr);
 //Debug::the().initFile("test_clientserver_basic", false);
 #endif
@@ -554,12 +554,11 @@ int test_echo_tcp_stress(int argc, char* argv[])
 
         if (be_secure) {
             ErrorCodeT err = clt_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-            if (err) {
-                cout << "error configuring openssl: " << err.message() << endl;
-                return -1;
-            }
-            clt_secure_ctx.loadCertificateFile("echo-client-cert.pem");
-            clt_secure_ctx.loadPrivateKeyFile("echo-client-key.pem");
+			SOLID_CHECK(!err, "failed loadVerifyFile " << err.message());
+            err = clt_secure_ctx.loadCertificateFile("echo-client-cert.pem");
+			SOLID_CHECK(!err, "failed loadCertificateFile " << err.message());
+            err = clt_secure_ctx.loadPrivateKeyFile("echo-client-key.pem");
+			SOLID_CHECK(!err, "failed loadPrivateKeyFile " << err.message());
         }
 
         if (clt_sch.start(thread::hardware_concurrency())) {
@@ -578,8 +577,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 } else {
                     objptr.reset(new client::PlainConnection(i));
                 }
-
-                ++concnt;
+				++concnt;
                 objuid = clt_sch.startObject(objptr, clt_svc, make_event(GenericEvents::Start), err);
                 if (objuid.isInvalid()) {
                     --concnt;
@@ -590,7 +588,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
         {
             unique_lock<mutex> lock(mtx);
 
-            if (!cnd.wait_for(lock, std::chrono::seconds(connection_count * 100), []() { return !running; })) {
+            if (!cnd.wait_for(lock, std::chrono::seconds(30), []() { return !running; })) {
                 SOLID_THROW("Process is taking too long.");
             }
             cout << "Received " << recv_count / 1024 << "KB on " << connection_count << " connections" << endl;

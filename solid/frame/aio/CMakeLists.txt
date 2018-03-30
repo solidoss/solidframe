@@ -21,6 +21,7 @@ set(Headers
     aioreactor.hpp
     aioresolver.hpp
     aiosocket.hpp
+	aiosocketbase.hpp
     aiostream.hpp
     aiotimer.hpp
 )

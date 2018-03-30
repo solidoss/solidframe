@@ -1,9 +1,9 @@
 #==============================================================================
 
 if(OPENSSL_FOUND)
-    if(SOLID_ON_WINDOWS)
-        set(SUFFIX "${CMAKE_BUILD_TYPE}")
-    endif()
+    #if(SOLID_ON_WINDOWS)
+    #    set(SUFFIX "${CMAKE_BUILD_TYPE}")
+    #endif()
 
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/echo-ca-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-server-cert.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-key.pem ${CMAKE_CURRENT_BINARY_DIR}/echo-client-cert.pem

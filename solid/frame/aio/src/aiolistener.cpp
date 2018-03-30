@@ -102,6 +102,8 @@ void Listener::doPostAccept(ReactorContext& _rctx)
 
 bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
+	contextBind(_rctx);
+
     bool       can_retry;
     ErrorCodeT err = s.accept(_rctx, _rsd, can_retry);
 
@@ -117,6 +119,8 @@ bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 
 void Listener::doAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
+	contextBind(_rctx);
+
     bool       can_retry;
     ErrorCodeT err = s.accept(_rctx, _rsd, can_retry);
 

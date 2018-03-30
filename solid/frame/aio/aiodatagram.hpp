@@ -305,6 +305,7 @@ public:
             ErrorCodeT err;
 
             errorClear(_rctx);
+			contextBind(_rctx);
 
             if (s.create(_rctx, _rsas, err)) {
                 completionCallback(&on_completion);
@@ -382,9 +383,12 @@ public:
         size_t&        _sz)
     {
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
+			contextBind(_rctx);
+
             bool       can_retry;
             ErrorCodeT err;
             ssize_t    rv = s.recvFrom(_rctx, _buf, _bufcp, _raddr, can_retry, err);
+
             if (rv == static_cast<ssize_t>(_bufcp)) {
                 _sz = rv;
                 errorClear(_rctx);
@@ -419,6 +423,8 @@ public:
         size_t& _sz)
     {
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
+			contextBind(_rctx);
+
             bool       can_retry;
             ErrorCodeT err;
             ssize_t    rv = s.recv(_rctx, _buf, _bufcp, can_retry, err);
@@ -501,6 +507,8 @@ public:
         F                        _f)
     {
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
+			contextBind(_rctx);
+
             bool       can_retry;
             ErrorCodeT err;
             ssize_t    rv = s.sendTo(_rctx, _buf, _bufcp, _addrstub, can_retry, err);
@@ -537,6 +545,8 @@ public:
         size_t& _sz)
     {
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
+			contextBind(_rctx);
+
             bool       can_retry;
             ErrorCodeT err;
             ssize_t    rv = s.sendTo(_rctx, _buf, _bufcp, can_retry, err);
@@ -578,6 +588,7 @@ private:
     {
         if (!recv_is_posted && !SOLID_FUNCTION_EMPTY(recv_fnc)) {
             errorClear(_rctx);
+			contextBind(_rctx);
             recv_fnc(*this, _rctx);
         }
     }
@@ -586,6 +597,7 @@ private:
     {
         if (!send_is_posted && !SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
+			contextBind(_rctx);
             send_fnc(*this, _rctx);
         }
     }
