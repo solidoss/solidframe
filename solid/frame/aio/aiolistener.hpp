@@ -11,9 +11,9 @@
 #pragma once
 
 #include "solid/system/common.hpp"
-#include "solid/system/socketdevice.hpp"
 
-#include "aiocompletion.hpp"
+#include "solid/frame/aio/aiocompletion.hpp"
+#include "solid/frame/aio/aiosocketbase.hpp"
 #include "aioerror.hpp"
 #include "aioreactorcontext.hpp"
 
@@ -36,12 +36,9 @@ public:
         ObjectProxy const& _robj,
         SocketDevice&&     _rsd)
         : CompletionHandler(_robj, Listener::on_init_completion)
-        , sd(std::move(_rsd))
+        , s(std::move(_rsd))
         , waitreq(ReactorWaitNone)
     {
-        if (sd) {
-            sd.makeNonBlocking();
-        }
     }
 
     ~Listener()
@@ -52,7 +49,7 @@ public:
 
     SocketDevice reset(ReactorContext& _rctx, SocketDevice&& _rnewdev = std::move(dummy_socket_device()));
 
-    const SocketDevice& device() const;
+    //const SocketDevice& device() const;
 
     //Returns false when the operation is scheduled for completion. On completion _f(...) will be called.
     //Returns true when operation could not be scheduled for completion - e.g. operation already in progress.
@@ -95,7 +92,7 @@ private:
 private:
     typedef SOLID_FUNCTION(void(ReactorContext&, SocketDevice&)) FunctionT;
     FunctionT            f;
-    SocketDevice         sd;
+    SocketBase           s;
     ReactorWaitRequestsE waitreq;
 };
 

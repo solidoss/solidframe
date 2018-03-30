@@ -11,7 +11,7 @@
 #pragma once
 
 #include "openssl/ssl.h"
-#include "solid/frame/aio/aiocommon.hpp"
+#include "solid/frame/aio/aiosocketbase.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/utility/function.hpp"
 #include <cerrno>
@@ -61,7 +61,7 @@ private:
     NativeContextT* ssl_ctx;
 };
 
-class Socket {
+class Socket: public SocketBase{
 public:
     using NativeHandleT  = SSL*;
     using VerifyMaskT    = openssl::VerifyMaskT;
@@ -73,35 +73,30 @@ public:
 
     ~Socket();
 
-    SocketDevice reset(const Context& _rctx, SocketDevice&& _rsd, ErrorCodeT& _rerr);
+    SocketDevice reset(ReactorContext& _rctx, SocketDevice&& _rsd);
 
     void shutdown();
 
-    bool create(SocketAddressStub const& _rsas, ErrorCodeT& _rerr);
-
-    bool connect(SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr);
+    bool create(ReactorContext& _rctx, SocketAddressStub const& _rsas, ErrorCodeT& _rerr);
 
     ErrorCodeT renegotiate(bool& _can_retry);
 
     ReactorEventsE filterReactorEvents(
         const ReactorEventsE _evt) const;
 
-    ssize_t recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr);
+    ssize_t recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr);
 
-    ssize_t send(void* _pctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr);
-
-    SocketDevice const& device() const;
-    SocketDevice&       device();
+    ssize_t send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr);
 
     NativeHandleT nativeHandle() const;
 
-    ssize_t recvFrom(char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr);
+    ssize_t recvFrom(ReactorContext& _rctx, char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr);
 
-    ssize_t sendTo(const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr);
+    ssize_t sendTo(ReactorContext& _rctx, const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr);
 
-    bool secureAccept(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr);
-    bool secureConnect(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr);
-    bool secureShutdown(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr);
+    bool secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _rerr);
+    bool secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _rerr);
+    bool secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _rerr);
 
     template <typename Cbk>
     ErrorCodeT setVerifyCallback(VerifyMaskT _verify_mask, Cbk _cbk)
@@ -136,8 +131,6 @@ private:
     using VerifyFunctionT = SOLID_FUNCTION(bool(void*, bool, VerifyContextT&));
 
     SSL*         pssl;
-    SocketDevice sd;
-
     bool            want_read_on_recv;
     bool            want_read_on_send;
     bool            want_write_on_recv;

@@ -34,11 +34,8 @@ class Datagram : public CompletionHandler {
     {
         ThisT& rthis = static_cast<ThisT&>(_rch);
         rthis.completionCallback(&on_completion);
-#if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
-        rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitReadOrWrite);
-#else
-        rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitNone);
-#endif
+        rthis.contextBind(_rctx);
+        rthis.s.init(_rctx);
     }
 
     static void on_completion(CompletionHandler& _rch, ReactorContext& _rctx)
@@ -321,19 +318,15 @@ public:
 
             errorClear(_rctx);
 
-            if (s.create(_rsas, err)) {
+            if (s.create(_rctx, _rsas, err)) {
                 completionCallback(&on_completion);
-                addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
 
                 bool can_retry;
-                bool rv = s.connect(_rsas, can_retry, err);
+                bool rv = s.connect(_rctx, _rsas, can_retry, err);
                 if (rv) {
 
                 } else if (can_retry) {
                     send_fnc = ConnectFunctor<F>(_f);
-#if defined(SOLID_USE_WSAPOLL)
-                    modDevice(_rctx, s.device(), ReactorWaitWrite);
-#endif
                     return false;
                 } else {
                     systemError(_rctx, err);
@@ -403,7 +396,7 @@ public:
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
             bool       can_retry;
             ErrorCodeT err;
-            ssize_t    rv = s.recvFrom(_buf, _bufcp, _raddr, can_retry, err);
+            ssize_t    rv = s.recvFrom(_rctx, _buf, _bufcp, _raddr, can_retry, err);
             if (rv == static_cast<ssize_t>(_bufcp)) {
                 _sz = rv;
                 errorClear(_rctx);
@@ -417,9 +410,6 @@ public:
                     recv_buf_cp = _bufcp;
                     recv_fnc    = RecvFromFunctor<F>(_f);
                     errorClear(_rctx);
-#if defined(SOLID_USE_WSAPOLL)
-                    modDevice(_rctx, s.device(), ReactorWaitRead);
-#endif
                     return false;
                 } else {
                     error(_rctx, error_datagram_system);
@@ -443,7 +433,7 @@ public:
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
             bool       can_retry;
             ErrorCodeT err;
-            ssize_t    rv = s.recv(_buf, _bufcp, can_retry, err);
+            ssize_t    rv = s.recv(_rcxt, _buf, _bufcp, can_retry, err);
 
             if (rv == _bufcp) {
                 _sz = rv;
@@ -458,9 +448,6 @@ public:
                     recv_buf_cp = _bufcp;
                     recv_fnc    = RecvFunctor<F>(_f);
                     errorClear(_rctx);
-#if defined(SOLID_USE_WSAPOLL)
-                    modDevice(_rctx, s.device(), ReactorWaitRead);
-#endif
                     return false;
                 } else {
                     error(_rctx, error_datagram_system);
@@ -528,7 +515,7 @@ public:
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             bool       can_retry;
             ErrorCodeT err;
-            ssize_t    rv = s.sendTo(_buf, _bufcp, _addrstub, can_retry, err);
+            ssize_t    rv = s.sendTo(_rctx, _buf, _bufcp, _addrstub, can_retry, err);
 
             if (rv == static_cast<ssize_t>(_bufcp)) {
                 errorClear(_rctx);
@@ -541,9 +528,6 @@ public:
                     send_addr   = _addrstub;
                     send_fnc    = SendToFunctor<F>(_f);
                     errorClear(_rctx);
-#if defined(SOLID_USE_WSAPOLL)
-                    modDevice(_rctx, s.device(), ReactorWaitWrite);
-#endif
                     return false;
                 } else {
                     error(_rctx, error_datagram_system);
@@ -567,7 +551,7 @@ public:
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             bool       can_retry;
             ErrorCodeT err;
-            ssize_t    rv = s.sendTo(_buf, _bufcp, can_retry, err);
+            ssize_t    rv = s.sendTo(_rctx, _buf, _bufcp, can_retry, err);
 
             if (rv == _bufcp) {
                 errorClear(_rctx);
@@ -579,9 +563,6 @@ public:
                     send_buf_cp = _bufcp;
                     send_fnc    = SendFunctor<F>(_f);
                     errorClear(_rctx);
-#if defined(SOLID_USE_WSAPOLL)
-                    modDevice(_rctx, s.device(), ReactorWaitWrite);
-#endif
                     return false;
                 } else {
                     error(_rctx, error_datagram_system);
@@ -658,7 +639,6 @@ private:
 
 private:
     Sock s;
-
     char*         recv_buf;
     size_t        recv_buf_cp;
     RecvFunctionT recv_fnc;

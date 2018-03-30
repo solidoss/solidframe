@@ -34,11 +34,8 @@ class Stream : public CompletionHandler {
     {
         ThisT& rthis = static_cast<ThisT&>(_rch);
         rthis.completionCallback(&on_completion);
-#if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
-        rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitReadOrWrite);
-#else
-        rthis.addDevice(_rctx, rthis.s.device(), ReactorWaitNone);
-#endif
+        rthis.contextBind(_rctx);
+        rthis.s.init(_rctx);
     }
 
     static void on_completion(CompletionHandler& _rch, ReactorContext& _rctx)
@@ -170,7 +167,7 @@ class Stream : public CompletionHandler {
             _rthis.errorClear(_rctx);
             bool       can_retry;
             ErrorCodeT err;
-            if (_rthis.s.secureConnect(&_rctx, can_retry, err)) {
+            if (_rthis.s.secureConnect(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 return;
             } else {
@@ -198,7 +195,7 @@ class Stream : public CompletionHandler {
             _rthis.errorClear(_rctx);
             bool       can_retry;
             ErrorCodeT err;
-            if (_rthis.s.secureAccept(&_rctx, can_retry, err)) {
+            if (_rthis.s.secureAccept(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 return;
             } else {
@@ -226,7 +223,7 @@ class Stream : public CompletionHandler {
             _rthis.errorClear(_rctx);
             bool       can_retry;
             ErrorCodeT err;
-            if (_rthis.s.secureShutdown(&_rctx, can_retry, err)) {
+            if (_rthis.s.secureShutdown(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 return;
             } else {
@@ -352,10 +349,12 @@ public:
         if (s.device()) {
             remDevice(_rctx, s.device());
         }
-        SocketDevice sd(s.reset(std::move(_rnewdev)));
+        
+        contextBind(_rctx);
+        
+        SocketDevice sd(s.reset(_rctx, std::move(_rnewdev)));
         if (s.device()) {
             completionCallback(&on_completion);
-            addDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
         }
         return sd;
     }
@@ -446,23 +445,16 @@ public:
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
             ErrorCodeT err;
-            if (s.create(_rsas, err)) {
+            contextBind(_rctx);
+            if (s.create(_rctx, _rsas, err)) {
                 completionCallback(&on_completion);
-#if defined(SOLID_USE_WSAPOLL)
-                addDevice(_rctx, s.device(), ReactorWaitNone);
-#else
-                addDevice(_rctx, s.device(), ReactorWaitWrite);
-#endif
 
                 bool can_retry;
-                bool rv = s.connect(_rsas, can_retry, err);
+                bool rv = s.connect(_rctx, _rsas, can_retry, err);
                 if (rv) {
                     doCheckConnect(_rctx);
                 } else if (can_retry) {
                     send_fnc = ConnectFunctor<F>{_f};
-#if defined(SOLID_USE_WSAPOLL)
-                    modDevice(_rctx, s.device(), ReactorWaitWrite);
-#endif
                     return false;
                 } else {
                     error(_rctx, error_stream_system);
@@ -493,7 +485,7 @@ public:
             errorClear(_rctx);
             bool       can_retry;
             ErrorCodeT err;
-            if (s.secureConnect(&_rctx, can_retry, err)) {
+            if (s.secureConnect(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 send_fnc = SecureConnectFunctor<F>(_f);
                 return false;
@@ -513,7 +505,7 @@ public:
             errorClear(_rctx);
             bool       can_retry;
             ErrorCodeT err;
-            if (s.secureAccept(&_rctx, can_retry, err)) {
+            if (s.secureAccept(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 recv_fnc = SecureAcceptFunctor<F>(_f);
                 return false;
@@ -533,7 +525,7 @@ public:
             errorClear(_rctx);
             bool       can_retry;
             ErrorCodeT err;
-            if (s.secureShutdown(&_rctx, can_retry, err)) {
+            if (s.secureShutdown(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 send_fnc = SecureShutdownFunctor<F>(_f);
                 return false;
@@ -630,7 +622,7 @@ private:
         bool       can_retry;
         ErrorCodeT err;
 
-        ssize_t rv = s.recv(&_rctx, recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
+        ssize_t rv = s.recv(_rctx, recv_buf, recv_buf_cp - recv_buf_sz, can_retry, err);
 
         vdbgx(Debug::aio, "recv (" << (recv_buf_cp - recv_buf_sz) << ") = " << rv);
 
@@ -642,9 +634,6 @@ private:
             recv_buf_sz = recv_buf_cp = 0;
         } else if (rv < 0) {
             if (can_retry) {
-#if defined(SOLID_USE_WSAPOLL)
-                modDevice(_rctx, s.device(), ReactorWaitRead);
-#endif
                 return false;
             } else {
                 recv_buf_sz = recv_buf_cp = 0;
@@ -660,7 +649,7 @@ private:
     {
         bool       can_retry;
         ErrorCodeT err;
-        ssize_t    rv = s.send(&_rctx, send_buf, send_buf_cp - send_buf_sz, can_retry, err);
+        ssize_t    rv = s.send(_rctx, send_buf, send_buf_cp - send_buf_sz, can_retry, err);
 
         vdbgx(Debug::aio, "send (" << (send_buf_cp - send_buf_sz) << ") = " << rv << ' ' << can_retry);
 
@@ -672,9 +661,6 @@ private:
             send_buf_sz = send_buf_cp = 0;
         } else if (rv < 0) {
             if (can_retry) {
-#if defined(SOLID_USE_WSAPOLL)
-                modDevice(_rctx, s.device(), ReactorWaitWrite);
-#endif
                 return false;
             } else {
                 send_buf_sz = send_buf_cp = 0;
@@ -685,22 +671,15 @@ private:
         }
         return true;
     }
-
-    void doCheckConnect(ReactorContext& _rctx)
-    {
-        ErrorCodeT err = s.device().error();
-        if (!err) {
-#if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
-            modDevice(_rctx, s.device(), ReactorWaitReadOrWrite);
-#else
-            modDevice(_rctx, s.device(), ReactorWaitNone);
-#endif
-        } else {
+    
+    void doCheckConnect(ReactorContext& _rctx){
+        ErrorCodeT err = s.checkConnect(_rctx);
+        if(err){
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
         }
     }
-
+    
     void doError(ReactorContext& _rctx)
     {
         error(_rctx, error_stream_socket);

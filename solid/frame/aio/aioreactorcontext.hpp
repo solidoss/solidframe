@@ -73,6 +73,7 @@ private:
     friend class CompletionHandler;
     friend class Reactor;
     friend class Object;
+    friend class SocketBase;
 
     Reactor& reactor()
     {

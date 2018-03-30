@@ -130,13 +130,15 @@ private:
 /*static*/ void EventHandler::on_init(CompletionHandler& _rch, ReactorContext& _rctx)
 {
     EventHandler& rthis = static_cast<EventHandler&>(_rch);
+    
+    rthis.contextBind(_rctx);
 
 #if defined(SOLID_USE_EPOLL)
-    rthis.reactor(_rctx).addDevice(_rctx, rthis, rthis.dev, ReactorWaitRead);
+    rthis.reactor(_rctx).addDevice(_rctx, rthis.dev, ReactorWaitRead);
 #elif defined(SOLID_USE_KQUEUE)
-    rthis.reactor(_rctx).addDevice(_rctx, rthis, rthis.dev, ReactorWaitUser);
+    rthis.reactor(_rctx).addDevice(_rctx, rthis.dev, ReactorWaitUser);
 #elif defined(SOLID_USE_WSAPOLL)
-    rthis.reactor(_rctx).addDevice(_rctx, rthis, rthis.dev, ReactorWaitRead);
+    rthis.reactor(_rctx).addDevice(_rctx, rthis.dev, ReactorWaitRead);
 #endif
     rthis.completionCallback(&on_completion);
 }
@@ -1246,12 +1248,15 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 
 //-----------------------------------------------------------------------------
 
-bool Reactor::addDevice(ReactorContext& _rctx, CompletionHandler const& _rch, Device const& _rsd, const ReactorWaitRequestsE _req)
+bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req)
 {
     idbgx(Debug::aio, _rsd.descriptor());
+    
+    //SOLID_ASSERT(_rctx.channel_index_ == _rch.idxreactor);
+    
 #if defined(SOLID_USE_EPOLL)
     epoll_event ev;
-    ev.data.u64 = _rch.idxreactor;
+    ev.data.u64 = _rctx.channel_index_;
     ev.events   = reactorRequestsToSystemEvents(_req);
 
     if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)) {
@@ -1286,7 +1291,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, CompletionHandler const& _rch, De
         break;
     case ReactorWaitUser: {
         struct kevent ev;
-        EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, indexToVoid(_rch.idxreactor));
+        EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
         if (kevent(impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
             edbgx(Debug::aio, "kevent: " << last_system_error().message());
             SOLID_ASSERT(false);
@@ -1305,8 +1310,8 @@ bool Reactor::addDevice(ReactorContext& _rctx, CompletionHandler const& _rch, De
     }
 
     struct kevent ev[2];
-    EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, read_flags | EV_CLEAR, 0, 0, indexToVoid(_rch.idxreactor));
-    EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags | EV_CLEAR, 0, 0, indexToVoid(_rch.idxreactor));
+    EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, read_flags | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
+    EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
     if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
         edbgx(Debug::aio, "kevent: " << last_system_error().message());
         SOLID_ASSERT(false);
@@ -1318,12 +1323,12 @@ bool Reactor::addDevice(ReactorContext& _rctx, CompletionHandler const& _rch, De
         }
     }
 #elif defined(SOLID_USE_WSAPOLL)
-    if (_rch.idxreactor >= impl_->eventvec.size()) {
-        impl_->eventvec.resize(_rch.idxreactor + 1);
+    if (_rctx.channel_index_ >= impl_->eventvec.size()) {
+        impl_->eventvec.resize(_rctx.channel_index_ + 1);
     }
 
-    impl_->eventvec[_rch.idxreactor].fd = reinterpret_cast<SocketDevice::DescriptorT>(_rsd.descriptor());
-    impl_->eventvec[_rch.idxreactor].events = reactorRequestsToSystemEvents(_req);
+    impl_->eventvec[_rctx.channel_index_].fd = reinterpret_cast<SocketDevice::DescriptorT>(_rsd.descriptor());
+    impl_->eventvec[_rctx.channel_index_].events = reactorRequestsToSystemEvents(_req);
 #endif
     return true;
 }
@@ -1369,7 +1374,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
         struct kevent ev;
 
-        EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, indexToVoid(_rch.idxreactor));
+        EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD, 0, 0, indexToVoid(_rctx.channel_index_));
 
         if (kevent(impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
             edbgx(Debug::aio, "kevent: " << last_system_error().message());
@@ -1388,8 +1393,8 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         return false;
     }
 
-    EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, read_flags, 0, 0, indexToVoid(_rch.idxreactor));
-    EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, indexToVoid(_rch.idxreactor));
+    EV_SET(&ev[0], _rsd.descriptor(), EVFILT_READ, read_flags, 0, 0, indexToVoid(_rctx.channel_index_));
+    EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags, 0, 0, indexToVoid(_rctx.channel_index_));
 
     if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
         edbgx(Debug::aio, "kevent: " << last_system_error().message());
@@ -1403,9 +1408,9 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     }
 #elif defined(SOLID_USE_WSAPOLL)
     if (_req != ReactorWaitNone) {
-        impl_->eventvec[_rch.idxreactor].events |= reactorRequestsToSystemEvents(_req);
+        impl_->eventvec[_rctx.channel_index_].events |= reactorRequestsToSystemEvents(_req);
     } else {
-        impl_->eventvec[_rch.idxreactor].events = reactorRequestsToSystemEvents(_req);
+        impl_->eventvec[_rctx.channel_index_].events = reactorRequestsToSystemEvents(_req);
     }
 #endif
     return true;

@@ -101,7 +101,7 @@ public:
         doPost(_rctx, eventfnc, std::move(_uev));
     }
 
-    bool addDevice(ReactorContext& _rctx, CompletionHandler const& _rch, Device const& _rsd, const ReactorWaitRequestsE _req);
+    bool addDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req);
 
     bool modDevice(ReactorContext& _rctx, Device const& _rsd, const ReactorWaitRequestsE _req);
 

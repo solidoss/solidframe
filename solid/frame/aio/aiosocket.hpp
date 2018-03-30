@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "solid/frame/aio/aiocommon.hpp"
+#include "solid/frame/aio/aiosocketbase.hpp"
 #include "solid/system/socketdevice.hpp"
 #include <cerrno>
 
@@ -18,89 +18,66 @@ namespace solid {
 namespace frame {
 namespace aio {
 
-class Socket {
+class Socket: public SocketBase{
 public:
-    using VerifyMaskT = unsigned long;
-
+    using VerifyMaskT    = unsigned long;
+    
     Socket(SocketDevice&& _rsd)
-        : sd(std::move(_rsd))
-    {
-        if (sd) {
-            sd.makeNonBlocking();
-        }
-    }
-
-    Socket()
+        : SocketBase(std::move(_rsd))
     {
     }
 
-    SocketDevice reset(SocketDevice&& _rsd)
-    {
-        SocketDevice tmpsd = std::move(sd);
-        sd                 = std::move(_rsd);
-        return tmpsd;
-    }
-
-    void shutdown()
-    {
-        if (sd) {
-            sd.shutdownReadWrite();
-        }
-    }
-
-    bool create(SocketAddressStub const& _rsas, ErrorCodeT& _rerr)
-    {
-        _rerr = sd.create(_rsas.family());
-        if (!_rerr) {
-            _rerr = sd.makeNonBlocking();
-        }
-        return !_rerr;
-    }
-
-    bool connect(SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
-    {
-        _rerr = sd.connect(_rsas, _can_retry);
-        return !_rerr;
-    }
-
+    Socket(){}
+    
     ReactorEventsE filterReactorEvents(
         const ReactorEventsE _evt) const
     {
         return _evt;
     }
 
-    ssize_t recv(void* /*_pctx*/, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+    ssize_t recv(ReactorContext &_rctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
     {
-        return sd.recv(_pb, _bl, _can_retry, _rerr);
+        const ssize_t rv = device().recv(_pb, _bl, _can_retry, _rerr);
+#if defined(SOLID_USE_WSAPOLL)
+        if(rv < 0 && _can_retry){
+            modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+        }
+#endif
+        return rv;
     }
 
-    ssize_t send(void* /*_pctx*/, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+    ssize_t send(ReactorContext &_rctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
     {
-        return sd.send(_pb, _bl, _can_retry, _rerr);
+        const ssize_t rv = device().send(_pb, _bl, _can_retry, _rerr);
+#if defined(SOLID_USE_WSAPOLL)
+        if(rv < 0 && _can_retry){
+            modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+        }
+#endif
+        return rv;
     }
 
-    SocketDevice const& device() const
+    ssize_t recvFrom(ReactorContext &_rctx, char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
     {
-        return sd;
+        const ssize_t rv = device().recv(_pb, _bl, _addr, _can_retry, _rerr);
+#if defined(SOLID_USE_WSAPOLL)
+        if(rv < 0 && _can_retry){
+            modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+        }
+#endif
+        return rv;
     }
 
-    SocketDevice& device()
+    ssize_t sendTo(ReactorContext &_rctx, const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
     {
-        return sd;
+        const ssize_t rv = device().send(_pb, _bl, _rsas, _can_retry, _rerr);
+#if defined(SOLID_USE_WSAPOLL)
+        if(rv < 0 && _can_retry){
+            modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+        }
+#endif
+        return rv;
     }
-
-    ssize_t recvFrom(char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
-    {
-        return sd.recv(_pb, _bl, _addr, _can_retry, _rerr);
-    }
-
-    ssize_t sendTo(const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
-    {
-        return sd.send(_pb, _bl, _rsas, _can_retry, _rerr);
-    }
-
-private:
-    SocketDevice sd;
 };
 
 } //namespace aio

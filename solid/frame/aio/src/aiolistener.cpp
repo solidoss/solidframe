@@ -23,7 +23,8 @@ namespace aio {
     Listener& rthis = static_cast<Listener&>(_rch);
     //rthis.completionCallback(on_dummy_completion);
     rthis.completionCallback(&on_completion);
-    rthis.addDevice(_rctx, rthis.sd, ReactorWaitRead);
+    rthis.contextBind(_rctx);
+    rthis.s.initAccept(_rctx);
 }
 
 /*static*/ void Listener::on_completion(CompletionHandler& _rch, ReactorContext& _rctx)
@@ -81,14 +82,15 @@ namespace aio {
 
 SocketDevice Listener::reset(ReactorContext& _rctx, SocketDevice&& _rnewdev)
 {
-    if (sd) {
-        remDevice(_rctx, sd);
+    if (s.device()) {
+        remDevice(_rctx, s.device());
     }
-    SocketDevice tmpsd(std::move(sd));
-    sd = std::move(_rnewdev);
-    if (sd) {
+    
+    contextBind(_rctx);
+    
+    SocketDevice tmpsd = s.resetAccept(_rctx, std::move(_rnewdev));
+    if (s.device()) {
         completionCallback(&on_completion);
-        addDevice(_rctx, sd, ReactorWaitRead);
     }
     return tmpsd;
 }
@@ -101,13 +103,10 @@ void Listener::doPostAccept(ReactorContext& _rctx)
 bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
     bool       can_retry;
-    ErrorCodeT err = sd.accept(_rsd, can_retry);
+    ErrorCodeT err = s.accept(_rctx, _rsd, can_retry);
 
     if (!err) {
     } else if (can_retry) {
-#if defined(SOLID_USE_WSAPOLL)
-        modDevice(_rctx, sd, ReactorWaitRead);
-#endif
         return false;
     } else {
         systemError(_rctx, err);
@@ -119,7 +118,7 @@ bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 void Listener::doAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
     bool       can_retry;
-    ErrorCodeT err = sd.accept(_rsd, can_retry);
+    ErrorCodeT err = s.accept(_rctx, _rsd, can_retry);
 
     if (!err) {
     } else if (can_retry) {
@@ -133,7 +132,7 @@ void Listener::doAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 void Listener::doClear(ReactorContext& _rctx)
 {
     SOLID_FUNCTION_CLEAR(f);
-    remDevice(_rctx, sd);
+    remDevice(_rctx, s.device());
     f = &on_dummy;
 }
 

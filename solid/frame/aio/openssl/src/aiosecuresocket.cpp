@@ -419,7 +419,7 @@ ErrorCodeT Context::doSetPasswordCallback()
 
 Socket::Socket(
     const Context& _rctx, SocketDevice&& _rsd)
-    : sd(std::move(_rsd))
+    : SocketBase(std::move(_rsd))
     , want_read_on_recv(false)
     , want_read_on_send(false)
     , want_write_on_recv(false)
@@ -428,9 +428,8 @@ Socket::Socket(
     pssl = SSL_new(_rctx.pctx);
     ::SSL_set_mode(pssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
     ::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
-    if (sd) {
-        sd.makeNonBlocking();
-        SSL_set_fd(pssl, sd.descriptor());
+    if (device()) {
+        SSL_set_fd(pssl, device().descriptor());
     }
 }
 
@@ -450,50 +449,27 @@ Socket::~Socket()
     SSL_free(pssl);
 }
 
-SocketDevice Socket::reset(const Context& _rctx, SocketDevice&& _rsd, ErrorCodeT& _rerr)
+SocketDevice Socket::reset(ReactorContext& _rctx, SocketDevice&& _rsd)
 {
-    SocketDevice tmpsd = std::move(sd);
-    sd                 = std::move(_rsd);
-    if (sd) {
-        sd.makeNonBlocking();
+    
+    SocketDevice sd = SocketBase::reset(_rctx, std::move(_rsd));
+    if (device()) {
         SSL_set_fd(pssl, sd.descriptor());
     } else {
         SSL_set_fd(pssl, -1);
     }
-    return tmpsd;
-}
-
-void Socket::shutdown()
-{
-    sd.shutdownReadWrite();
-}
-
-SocketDevice const& Socket::device() const
-{
     return sd;
 }
 
-SocketDevice& Socket::device()
-{
-    return sd;
-}
 
-bool Socket::create(SocketAddressStub const& _rsas, ErrorCodeT& _rerr)
+bool Socket::create(ReactorContext& _rctx, SocketAddressStub const& _rsas, ErrorCodeT& _rerr)
 {
-    _rerr = sd.create(_rsas.family());
-    if (!_rerr) {
-        _rerr = sd.makeNonBlocking();
+    bool rv = SocketBase::create(_rctx, _rsas, _rerr);
+    
+    if (rv) {
+        SSL_set_fd(pssl, device().descriptor());
     }
-    if (!_rerr) {
-        SSL_set_fd(pssl, sd.descriptor());
-    }
-    return !_rerr;
-}
-
-bool Socket::connect(SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
-{
-    _rerr = sd.connect(_rsas, _can_retry);
-    return !_rerr;
+    return rv;
 }
 
 ErrorCodeT Socket::renegotiate(bool& _can_retry)
@@ -546,12 +522,12 @@ ReactorEventsE Socket::filterReactorEvents(
     return _evt;
 }
 
-ssize_t Socket::recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::recv(ReactorContext& _rctx, char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
 {
     want_read_on_recv = want_write_on_recv = false;
 
     storeThisPointer();
-    storeContextPointer(_pctx);
+    storeContextPointer(&_rctx);
 
     ::ERR_clear_error();
 
@@ -574,10 +550,16 @@ ssize_t Socket::recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, Error
     case SSL_ERROR_WANT_READ:
         _can_retry        = true;
         want_read_on_recv = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+#endif
         return -1;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_recv = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+#endif
         return -1;
     case SSL_ERROR_SYSCALL:
         _can_retry = false;
@@ -602,12 +584,12 @@ ssize_t Socket::recv(void* _pctx, char* _pb, size_t _bl, bool& _can_retry, Error
     return -1;
 }
 
-ssize_t Socket::send(void* _pctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::send(ReactorContext& _rctx, const char* _pb, size_t _bl, bool& _can_retry, ErrorCodeT& _rerr)
 {
     want_read_on_send = want_write_on_send = false;
 
     storeThisPointer();
-    storeContextPointer(_pctx);
+    storeContextPointer(&_rctx);
 
     ::ERR_clear_error();
 
@@ -629,10 +611,16 @@ ssize_t Socket::send(void* _pctx, const char* _pb, size_t _bl, bool& _can_retry,
     case SSL_ERROR_WANT_READ:
         _can_retry        = true;
         want_read_on_send = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+#endif
         return -1;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_send = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+#endif
         return -1;
     case SSL_ERROR_SYSCALL:
         _can_retry = false;
@@ -656,12 +644,12 @@ ssize_t Socket::send(void* _pctx, const char* _pb, size_t _bl, bool& _can_retry,
     return -1;
 }
 
-bool Socket::secureAccept(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
+bool Socket::secureAccept(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _rerr)
 {
     want_read_on_recv = want_write_on_recv = false;
 
     storeThisPointer();
-    storeContextPointer(_pctx);
+    storeContextPointer(&_rctx);
 
     ::ERR_clear_error();
 
@@ -680,10 +668,16 @@ bool Socket::secureAccept(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
     case SSL_ERROR_WANT_READ:
         _can_retry        = true;
         want_read_on_recv = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+#endif
         return false;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_recv = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+#endif
         return false;
     case SSL_ERROR_SYSCALL:
         _can_retry = false;
@@ -707,12 +701,12 @@ bool Socket::secureAccept(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
     return false;
 }
 
-bool Socket::secureConnect(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
+bool Socket::secureConnect(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _rerr)
 {
     want_read_on_send = want_write_on_send = false;
 
     storeThisPointer();
-    storeContextPointer(_pctx);
+    storeContextPointer(&_rctx);
 
     ::ERR_clear_error();
 
@@ -733,10 +727,16 @@ bool Socket::secureConnect(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
     case SSL_ERROR_WANT_READ:
         _can_retry        = true;
         want_read_on_send = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+#endif
         return false;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_send = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+#endif
         return false;
     case SSL_ERROR_SYSCALL:
         _can_retry = false;
@@ -760,12 +760,12 @@ bool Socket::secureConnect(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
     return false;
 }
 
-bool Socket::secureShutdown(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
+bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT& _rerr)
 {
     want_read_on_send = want_write_on_send = false;
 
     storeThisPointer();
-    storeContextPointer(_pctx);
+    storeContextPointer(&_rctx);
 
     ::ERR_clear_error();
 
@@ -784,10 +784,16 @@ bool Socket::secureShutdown(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
     case SSL_ERROR_WANT_READ:
         _can_retry        = true;
         want_read_on_send = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitRead);
+#endif
         return false;
     case SSL_ERROR_WANT_WRITE:
         _can_retry         = true;
         want_write_on_send = true;
+#if defined(SOLID_USE_WSAPOLL)
+        modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+#endif
         return false;
     case SSL_ERROR_SYSCALL:
         _can_retry = false;
@@ -811,12 +817,12 @@ bool Socket::secureShutdown(void* _pctx, bool& _can_retry, ErrorCodeT& _rerr)
     return false;
 }
 
-ssize_t Socket::recvFrom(char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::recvFrom(ReactorContext& _rctx, char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
 {
     return -1;
 }
 
-ssize_t Socket::sendTo(const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::sendTo(ReactorContext& _rctx, const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
 {
     return -1;
 }
