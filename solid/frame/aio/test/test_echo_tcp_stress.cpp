@@ -167,7 +167,7 @@ private:
             if (!_rctx.error()) {
                 sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
             } else {
-                edbg(this << " postStop: "<<_rctx.systemError().message());
+                edbg(this << " postStop: " << _rctx.systemError().message());
                 postStop(_rctx);
             }
         }
@@ -554,11 +554,11 @@ int test_echo_tcp_stress(int argc, char* argv[])
 
         if (be_secure) {
             ErrorCodeT err = clt_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-			SOLID_CHECK(!err, "failed loadVerifyFile " << err.message());
+            SOLID_CHECK(!err, "failed loadVerifyFile " << err.message());
             err = clt_secure_ctx.loadCertificateFile("echo-client-cert.pem");
-			SOLID_CHECK(!err, "failed loadCertificateFile " << err.message());
+            SOLID_CHECK(!err, "failed loadCertificateFile " << err.message());
             err = clt_secure_ctx.loadPrivateKeyFile("echo-client-key.pem");
-			SOLID_CHECK(!err, "failed loadPrivateKeyFile " << err.message());
+            SOLID_CHECK(!err, "failed loadPrivateKeyFile " << err.message());
         }
 
         if (clt_sch.start(thread::hardware_concurrency())) {
@@ -577,7 +577,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 } else {
                     objptr.reset(new client::PlainConnection(i));
                 }
-				++concnt;
+                ++concnt;
                 objuid = clt_sch.startObject(objptr, clt_svc, make_event(GenericEvents::Start), err);
                 if (objuid.isInvalid()) {
                     --concnt;

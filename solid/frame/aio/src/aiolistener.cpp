@@ -23,7 +23,7 @@ namespace aio {
     Listener& rthis = static_cast<Listener&>(_rch);
     //rthis.completionCallback(on_dummy_completion);
     rthis.completionCallback(&on_completion);
-    rthis.contextBind(_rctx);
+    //rthis.contextBind(_rctx);
     rthis.s.initAccept(_rctx);
 }
 
@@ -102,8 +102,6 @@ void Listener::doPostAccept(ReactorContext& _rctx)
 
 bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
-	contextBind(_rctx);
-
     bool       can_retry;
     ErrorCodeT err = s.accept(_rctx, _rsd, can_retry);
 
@@ -119,8 +117,6 @@ bool Listener::doTryAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 
 void Listener::doAccept(ReactorContext& _rctx, SocketDevice& _rsd)
 {
-	contextBind(_rctx);
-
     bool       can_retry;
     ErrorCodeT err = s.accept(_rctx, _rsd, can_retry);
 

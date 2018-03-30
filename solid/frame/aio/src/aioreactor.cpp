@@ -162,8 +162,8 @@ private:
     bool             can_retry;
     ErrorCodeT       err;
     rthis.dev.recv(buf, buf_sz, can_retry, err);
-	rthis.contextBind(_rctx);
-	rthis.reactor(_rctx).modDevice(_rctx, rthis.dev, ReactorWaitRead);
+    rthis.contextBind(_rctx);
+    rthis.reactor(_rctx).modDevice(_rctx, rthis.dev, ReactorWaitRead);
 #endif
     rthis.reactor(_rctx).doCompleteEvents(_rctx);
 }

@@ -34,7 +34,7 @@ class Stream : public CompletionHandler {
     {
         ThisT& rthis = static_cast<ThisT&>(_rch);
         rthis.completionCallback(&on_completion);
-        rthis.contextBind(_rctx);
+        //rthis.contextBind(_rctx);
         rthis.s.init(_rctx);
     }
 
@@ -165,12 +165,12 @@ class Stream : public CompletionHandler {
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
             _rthis.errorClear(_rctx);
-			_rthis.contextBind(_rctx);
+            //_rthis.contextBind(_rctx);
 
             bool       can_retry;
             ErrorCodeT err;
-            
-			if (_rthis.s.secureConnect(_rctx, can_retry, err)) {
+
+            if (_rthis.s.secureConnect(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 return;
             } else {
@@ -196,12 +196,12 @@ class Stream : public CompletionHandler {
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
             _rthis.errorClear(_rctx);
-			_rthis.contextBind(_rctx);
+            //_rthis.contextBind(_rctx);
 
             bool       can_retry;
             ErrorCodeT err;
-            
-			if (_rthis.s.secureAccept(_rctx, can_retry, err)) {
+
+            if (_rthis.s.secureAccept(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 return;
             } else {
@@ -227,12 +227,12 @@ class Stream : public CompletionHandler {
         void operator()(ThisT& _rthis, ReactorContext& _rctx)
         {
             _rthis.errorClear(_rctx);
-			_rthis.contextBind(_rctx);
+            //_rthis.contextBind(_rctx);
 
             bool       can_retry;
             ErrorCodeT err;
-            
-			if (_rthis.s.secureShutdown(_rctx, can_retry, err)) {
+
+            if (_rthis.s.secureShutdown(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 return;
             } else {
@@ -390,8 +390,8 @@ public:
     bool recvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f, size_t& _sz)
     {
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
-			errorClear(_rctx);
-			contextBind(_rctx);
+            errorClear(_rctx);
+            contextBind(_rctx);
 
             recv_buf    = _buf;
             recv_buf_cp = _bufcp;
@@ -434,8 +434,8 @@ public:
     bool sendAll(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f)
     {
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
-			errorClear(_rctx);
-			contextBind(_rctx);
+            errorClear(_rctx);
+            contextBind(_rctx);
 
             send_buf    = _buf;
             send_buf_cp = _bufcp;
@@ -459,11 +459,11 @@ public:
     {
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
-			contextBind(_rctx);
+            contextBind(_rctx);
 
             ErrorCodeT err;
-            
-			if (s.create(_rctx, _rsas, err)) {
+
+            if (s.create(_rctx, _rsas, err)) {
                 completionCallback(&on_completion);
 
                 bool can_retry;
@@ -500,12 +500,12 @@ public:
     {
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
-			contextBind(_rctx);
+            contextBind(_rctx);
 
             bool       can_retry;
             ErrorCodeT err;
-            
-			if (s.secureConnect(_rctx, can_retry, err)) {
+
+            if (s.secureConnect(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 send_fnc = SecureConnectFunctor<F>(_f);
                 return false;
@@ -523,12 +523,12 @@ public:
     {
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
             errorClear(_rctx);
-			contextBind(_rctx);
+            contextBind(_rctx);
 
             bool       can_retry;
             ErrorCodeT err;
-			
-			if (s.secureAccept(_rctx, can_retry, err)) {
+
+            if (s.secureAccept(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 recv_fnc = SecureAcceptFunctor<F>(_f);
                 return false;
@@ -546,12 +546,12 @@ public:
     {
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
-			contextBind(_rctx);
-            
-			bool       can_retry;
+            contextBind(_rctx);
+
+            bool       can_retry;
             ErrorCodeT err;
-            
-			if (s.secureShutdown(_rctx, can_retry, err)) {
+
+            if (s.secureShutdown(_rctx, can_retry, err)) {
             } else if (can_retry) {
                 send_fnc = SecureShutdownFunctor<F>(_f);
                 return false;
@@ -630,8 +630,7 @@ private:
     {
         if (!recv_is_posted && !SOLID_FUNCTION_EMPTY(recv_fnc)) {
             vdbgx(Debug::aio, "");
-			errorClear(_rctx);
-			contextBind(_rctx);
+            errorClear(_rctx);
 
             recv_fnc(*this, _rctx);
         }
@@ -640,8 +639,7 @@ private:
     void doSend(ReactorContext& _rctx)
     {
         if (!send_is_posted && !SOLID_FUNCTION_EMPTY(send_fnc)) {
-			errorClear(_rctx);
-			contextBind(_rctx);
+            errorClear(_rctx);
 
             send_fnc(*this, _rctx);
         }

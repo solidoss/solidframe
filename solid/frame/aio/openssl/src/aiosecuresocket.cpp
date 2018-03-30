@@ -124,13 +124,13 @@ struct Starter {
 #ifndef OPENSSL_IS_BORINGSSL
         //::OPENSSL_init_ssl(0, NULL);
         //::OPENSSL_init_crypto(0, NULL);
-		(void)SSL_library_init();
+        (void)SSL_library_init();
 
-		SSL_load_error_strings();
+        SSL_load_error_strings();
 
-		/* ERR_load_crypto_strings(); */
+        /* ERR_load_crypto_strings(); */
 
-		OPENSSL_config(NULL);
+        OPENSSL_config(NULL);
 #endif
         ::OpenSSL_add_all_algorithms();
     }
@@ -343,7 +343,7 @@ ErrorCodeT Context::loadPrivateKeyFile(const char* _path, const FileFormat _ffor
     if (SSL_CTX_use_PrivateKey_file(pctx, _path, _fformat == FileFormat::Pem ? SSL_FILETYPE_PEM : SSL_FILETYPE_ASN1) != 1) {
         err = ssl_category.makeError(::ERR_get_error());
     }
-	SOLID_ASSERT(SSL_CTX_check_private_key(pctx));
+    SOLID_ASSERT(SSL_CTX_check_private_key(pctx));
     return err;
 }
 
@@ -438,7 +438,7 @@ Socket::Socket(
     ::SSL_set_mode(pssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
     if (device()) {
         int rv = SSL_set_fd(pssl, device().descriptor());
-		SOLID_ASSERT(rv != 0);
+        SOLID_ASSERT(rv != 0);
     }
 }
 

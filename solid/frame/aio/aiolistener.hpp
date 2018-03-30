@@ -72,6 +72,8 @@ public:
     bool accept(ReactorContext& _rctx, F _f, SocketDevice& _rsd)
     {
         if (SOLID_FUNCTION_EMPTY(f)) {
+            contextBind(_rctx);
+
             if (this->doTryAccept(_rctx, _rsd)) {
                 return true;
             }

@@ -34,7 +34,7 @@ class Datagram : public CompletionHandler {
     {
         ThisT& rthis = static_cast<ThisT&>(_rch);
         rthis.completionCallback(&on_completion);
-        rthis.contextBind(_rctx);
+        //rthis.contextBind(_rctx);
         rthis.s.init(_rctx);
     }
 
@@ -305,7 +305,7 @@ public:
             ErrorCodeT err;
 
             errorClear(_rctx);
-			contextBind(_rctx);
+            contextBind(_rctx);
 
             if (s.create(_rctx, _rsas, err)) {
                 completionCallback(&on_completion);
@@ -383,7 +383,7 @@ public:
         size_t&        _sz)
     {
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
-			contextBind(_rctx);
+            contextBind(_rctx);
 
             bool       can_retry;
             ErrorCodeT err;
@@ -423,7 +423,7 @@ public:
         size_t& _sz)
     {
         if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
-			contextBind(_rctx);
+            contextBind(_rctx);
 
             bool       can_retry;
             ErrorCodeT err;
@@ -507,7 +507,7 @@ public:
         F                        _f)
     {
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
-			contextBind(_rctx);
+            contextBind(_rctx);
 
             bool       can_retry;
             ErrorCodeT err;
@@ -545,7 +545,7 @@ public:
         size_t& _sz)
     {
         if (SOLID_FUNCTION_EMPTY(send_fnc)) {
-			contextBind(_rctx);
+            contextBind(_rctx);
 
             bool       can_retry;
             ErrorCodeT err;
@@ -588,7 +588,6 @@ private:
     {
         if (!recv_is_posted && !SOLID_FUNCTION_EMPTY(recv_fnc)) {
             errorClear(_rctx);
-			contextBind(_rctx);
             recv_fnc(*this, _rctx);
         }
     }
@@ -597,7 +596,6 @@ private:
     {
         if (!send_is_posted && !SOLID_FUNCTION_EMPTY(send_fnc)) {
             errorClear(_rctx);
-			contextBind(_rctx);
             send_fnc(*this, _rctx);
         }
     }
