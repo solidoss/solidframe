@@ -118,7 +118,7 @@ struct EventHandler : CompletionHandler {
 #endif
 
 private:
-#if defined(SOLID_USE_EPOLL)
+#if defined(SOLID_USE_EPOLL) || defined(SOLID_USE_KQUEUE)
     Device dev;
 #elif defined(SOLID_USE_WSAPOLL)
     SocketDevice dev;
@@ -778,7 +778,7 @@ void Reactor::run()
 
 //-----------------------------------------------------------------------------
 #if defined(SOLID_USE_EPOLL)
-inline constexpr ReactorEventsE systemEventsToReactorEvents(const uint32_t _events)
+inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events)
 {
     ReactorEventsE retval = ReactorEventNone;
 
@@ -881,7 +881,7 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events, declty
 
 //-----------------------------------------------------------------------------
 #if defined(SOLID_USE_EPOLL)
-inline constexpr uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests)
+inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests)
 {
     uint32_t evs = 0;
     switch (_requests) {
@@ -902,7 +902,7 @@ inline constexpr uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequest
     return evs;
 }
 #elif defined(SOLID_USE_WSAPOLL)
-inline constexpr uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests)
+inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _requests)
 {
     uint32_t evs = 0;
     switch (_requests) {
