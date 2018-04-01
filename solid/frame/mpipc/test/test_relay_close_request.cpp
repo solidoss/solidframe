@@ -165,6 +165,10 @@ struct Message : frame::mpipc::Message {
                 pmpipcpeera->forceCloseConnectionPool(
                     msgid_vec[_rthis.idx].first,
                     [](frame::mpipc::ConnectionContext& _rctx) {
+                        static int cnt = 0;
+                        ++cnt;
+                        SOLID_CHECK(cnt == 1, "connection pool callback called twice");
+                        SOLID_ASSERT(cnt == 1);
                         edbg("Close pool callback");
                     });
             }
