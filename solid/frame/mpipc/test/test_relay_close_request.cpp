@@ -157,23 +157,25 @@ struct Message : frame::mpipc::Message {
     {
         _s.add(_rthis.idx, _rctx, "idx");
 
-        _s.add([&_rthis](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name) {
-            if (_rthis.cancelable()) {
-                edbg("Close connection: " << _rthis.idx << " " << msgid_vec[_rthis.idx].first);
-                //we're on the peerb,
-                //we now cancel the message on peer a
-                pmpipcpeera->forceCloseConnectionPool(
-                    msgid_vec[_rthis.idx].first,
-                    [](frame::mpipc::ConnectionContext& _rctx) {
-                        static int cnt = 0;
-                        ++cnt;
-                        SOLID_CHECK(cnt == 1, "connection pool callback called twice");
-                        SOLID_ASSERT(cnt == 1);
-                        edbg("Close pool callback");
-                    });
-            }
-        },
-            _rctx, _name);
+        if (_s.is_deserializer) {
+            _s.add([&_rthis](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name) {
+                if (_rthis.cancelable()) {
+                    edbg("Close connection: " << _rthis.idx << " " << msgid_vec[_rthis.idx].first);
+                    //we're on the peerb,
+                    //we now cancel the message on peer a
+                    pmpipcpeera->forceCloseConnectionPool(
+                        msgid_vec[_rthis.idx].first,
+                        [](frame::mpipc::ConnectionContext& _rctx) {
+                            static int cnt = 0;
+                            ++cnt;
+                            SOLID_CHECK(cnt == 1, "connection pool callback called twice");
+                            SOLID_ASSERT(cnt == 1);
+                            edbg("Close pool callback");
+                        });
+                }
+            },
+                _rctx, _name);
+        }
 
         _s.add(_rthis.str, _rctx, "str");
 
