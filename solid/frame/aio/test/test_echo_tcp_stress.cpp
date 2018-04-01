@@ -588,7 +588,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
         {
             unique_lock<mutex> lock(mtx);
 
-            if (!cnd.wait_for(lock, std::chrono::seconds(30), []() { return !running; })) {
+            if (!cnd.wait_for(lock, std::chrono::seconds(60), []() { return !running; })) {
                 SOLID_THROW("Process is taking too long.");
             }
             cout << "Received " << recv_count / 1024 << "KB on " << connection_count << " connections" << endl;

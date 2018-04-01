@@ -113,7 +113,7 @@ public:
 #endif
     void close();
 
-	static ErrorCodeT error(const DescriptorT _des);
+    static ErrorCodeT error(const DescriptorT _des);
 
     ErrorCodeT error() const;
 

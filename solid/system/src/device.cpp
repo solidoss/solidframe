@@ -1255,14 +1255,15 @@ ErrorCodeT SocketDevice::error() const
     return last_socket_error();
 }
 
-/*static*/ ErrorCodeT SocketDevice::error(const DescriptorT _des) {
-	int       val = 0;
-	socklen_t valsz = sizeof(int);
-	int       rv = getsockopt(_des, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&val), &valsz);
-	if (rv == 0) {
-		return ErrorCodeT(val, std::system_category());
-	}
-	return last_socket_error();
+/*static*/ ErrorCodeT SocketDevice::error(const DescriptorT _des)
+{
+    int       val   = 0;
+    socklen_t valsz = sizeof(int);
+    int       rv    = getsockopt(_des, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&val), &valsz);
+    if (rv == 0) {
+        return ErrorCodeT(val, std::system_category());
+    }
+    return last_socket_error();
 }
 
 std::ostream& operator<<(std::ostream& _ros, const LocalAddressPlot& _ra)
