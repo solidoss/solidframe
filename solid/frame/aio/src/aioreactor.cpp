@@ -301,12 +301,18 @@ struct CompletionHandlerStub {
         : pch(_pch)
         , objidx(_objidx)
         , unique(0)
+#if defined(SOLID_USE_WSAPOLL)
+		, connectidx(InvalidIndex())
+#endif
     {
     }
 
     CompletionHandler* pch;
     size_t             objidx;
     UniqueT            unique;
+#if defined(SOLID_USE_WSAPOLL)
+	size_t			   connectidx;
+#endif
 };
 
 //=============================================================================
@@ -405,12 +411,13 @@ using EventVectorT = std::vector<PollStub>;
 
 #endif
 
-typedef std::deque<CompletionHandlerStub> CompletionHandlerDequeT;
-typedef std::vector<UniqueId>             UidVectorT;
-typedef std::deque<ObjectStub>            ObjectDequeT;
-typedef Queue<ExecStub>                   ExecQueueT;
-typedef Stack<size_t>                     SizeStackT;
-typedef TimeStore<size_t>                 TimeStoreT;
+using CompletionHandlerDequeT = std::deque<CompletionHandlerStub>;
+using UidVectorT = std::vector<UniqueId>;
+using ObjectDequeT = std::deque<ObjectStub>;
+using ExecQueueT = Queue<ExecStub>;
+using SizeStackT = Stack<size_t>;
+using TimeStoreT = TimeStore<size_t>;
+using SizeTVectorT = std::vector<size_t>;
 
 //=============================================================================
 //  Reactor::Data
@@ -503,9 +510,9 @@ struct Reactor::Data {
                 diff = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
 
                 if (diff > maxwait) {
-                    return maxwait;
+                    return connectvec.empty() ? maxwait : 1000;//wait 1 sec when connect opperations are in place
                 } else {
-                    return static_cast<int>(diff);
+                    return connectvec.empty() ? static_cast<int>(diff) : 1000;
                 }
 
             } else {
@@ -513,7 +520,7 @@ struct Reactor::Data {
             }
 
         } else {
-            return -1;
+            return connectvec.empty() ? -1 : 1000;
         }
     }
 #endif
@@ -543,6 +550,9 @@ struct Reactor::Data {
     ObjectDequeT            objdq;
     ExecQueueT              exeq;
     SizeStackT              chposcache;
+#if defined(SOLID_USE_WSAPOLL)
+	SizeTVectorT			connectvec;
+#endif
 };
 //-----------------------------------------------------------------------------
 void EventHandler::write(Reactor& _rreactor)
@@ -750,7 +760,11 @@ void Reactor::run()
 #endif
         crttime = std::chrono::steady_clock::now();
 
-        if (selcnt > 0) {
+#if defined(SOLID_USE_WSAPOLL)
+        if (selcnt > 0 || impl_->connectvec.size()) {
+#else
+		if (selcnt > 0) {
+#endif
             crtload += selcnt;
             doCompleteIo(crttime, selcnt);
         } else if (selcnt < 0 && errno != EINTR) {
@@ -769,6 +783,7 @@ void Reactor::run()
 
         running = impl_->running || (impl_->objcnt != 0) || !impl_->exeq.empty();
     }
+
     impl_->eventobj.stop();
     doClearSpecific();
     idbgx(Debug::aio, "<exit>");
@@ -1056,14 +1071,58 @@ void Reactor::doCompleteIo(NanoTime const& _rcrttime, const size_t _sz)
         CompletionHandlerStub& rch = impl_->chdq[i];
         ctx.reactor_event_ = systemEventsToReactorEvents(rev.revents, rev.events);
         ctx.channel_index_ = i;
+		if (rch.connectidx != InvalidIndex()) {
+			//we have events on a connecting socket
+			//so we remove it from connect waiting list
+			remConnect(ctx);
+		}
 #endif
         ctx.object_index_ = rch.objidx;
 
         rch.pch->handleCompletion(ctx);
         ctx.clearError();
     }
+#if defined(SOLID_USE_WSAPOLL)
+	for (size_t j = 0; j < impl_->connectvec.size();) {
+		const size_t i = impl_->connectvec[j];
+		WSAPOLLFD& rev = impl_->eventvec[i];
+		CompletionHandlerStub& rch = impl_->chdq[i];
+		
+		if (SocketDevice::error(rev.fd)) {
+
+			ctx.reactor_event_ = systemEventsToReactorEvents(POLLERR, rev.events);
+			ctx.channel_index_ = i;
+			ctx.object_index_ = rch.objidx;
+			
+
+			remConnect(ctx);
+
+			rch.pch->handleCompletion(ctx);
+			ctx.clearError();
+		}
+		else {
+			++j;
+		}
+	}
+#endif
 }
 
+//-----------------------------------------------------------------------------
+#if defined(SOLID_USE_WSAPOLL)
+void Reactor::addConnect(ReactorContext& _rctx){
+	CompletionHandlerStub& rch = impl_->chdq[_rctx.channel_index_];
+	rch.connectidx = impl_->connectvec.size();
+	impl_->connectvec.emplace_back(_rctx.channel_index_);
+}
+
+void Reactor::remConnect(ReactorContext& _rctx){
+	CompletionHandlerStub& rch = impl_->chdq[_rctx.channel_index_];
+	impl_->connectvec[rch.connectidx] = impl_->connectvec.back();
+	impl_->chdq[impl_->connectvec.back()].connectidx = rch.connectidx;
+	rch.connectidx = InvalidIndex();
+	impl_->connectvec.pop_back();
+}
+#endif
 //-----------------------------------------------------------------------------
 
 struct ChangeTimerIndexCallback {

@@ -113,6 +113,8 @@ public:
 #endif
     void close();
 
+	static ErrorCodeT error(const DescriptorT _des);
+
     ErrorCodeT error() const;
 
     //! Get the socket type

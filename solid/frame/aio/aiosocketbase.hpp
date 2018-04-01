@@ -113,6 +113,7 @@ public:
 #if defined(SOLID_USE_WSAPOLL)
         if (_rerr && _can_retry) {
             modifyReactorRequestEvents(_rctx, ReactorWaitWrite);
+			addReactorConnect(_rctx);
         }
 #endif
         return !_rerr;
@@ -150,6 +151,14 @@ protected:
     {
         _rctx.reactor().modDevice(_rctx, device(), _req);
     }
+	void addReactorConnect(ReactorContext& _rctx) const
+	{
+		_rctx.reactor().addConnect(_rctx);
+	}
+	void remReactorConnect(ReactorContext& _rctx) const
+	{
+		_rctx.reactor().remConnect(_rctx);
+	}
 
 private:
     SocketDevice dev_;

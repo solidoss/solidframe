@@ -110,6 +110,9 @@ public:
     bool addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_t& _rstoreidx);
     bool remTimer(CompletionHandler const& _rch, size_t const& _rstoreidx);
 
+	void addConnect(ReactorContext& _rctx);
+	void remConnect(ReactorContext& _rctx);
+
     bool start();
 
     bool raise(UniqueId const& _robjuid, Event const& _revt) override;
