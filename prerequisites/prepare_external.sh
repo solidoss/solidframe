@@ -93,9 +93,9 @@ buildBoost()
     
     
     if [ $DEBUG ] ; then
-        VARIANT_BUILD="variant=debug"
+        VARIANT_BUILD="debug"
     else
-        VARIANT_BUILD="variant=release"
+        VARIANT_BUILD="release"
     fi
     
     
@@ -106,6 +106,15 @@ buildBoost()
         sh bootstrap.sh
         ./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
         echo
+    elif    [[ "$SYSTEM" =~ "MINGW" ]]; then
+        if [ $BIT64 = true ]; then
+            BOOST_ADDRESS_MODEL="64"
+        else
+            BOOST_ADDRESS_MODEL="32"
+        fi
+        
+        ./bootstrap.bat vc14
+        ./b2 --abbreviate-paths --hash --with-system --with-thread --with-date_time --with-chrono --with-regex --with-program_options toolset=msvc-15.0 --layout=system address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
     else
         sh bootstrap.sh
         ./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
