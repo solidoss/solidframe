@@ -107,7 +107,7 @@ inline size_t padded_size(const size_t _sz, const size_t _pad)
 inline size_t fast_padded_size(const size_t _sz, const size_t _bitpad)
 {
     //return padded_size(_sz, 1<<_bitpad);
-    const size_t padv   = 1 << _bitpad;
+    const size_t padv   = static_cast<size_t>(1) << _bitpad;
     const size_t padmsk = padv - 1;
     const size_t pad    = (padv - (_sz & padmsk)) & padmsk;
     return _sz + pad;
