@@ -130,7 +130,7 @@ struct Starter {
 
         /* ERR_load_crypto_strings(); */
 
-        OPENSSL_config(NULL);
+        //OPENSSL_config(NULL);
 #endif
         ::OpenSSL_add_all_algorithms();
     }
