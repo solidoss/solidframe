@@ -167,7 +167,7 @@ $ ./configure -b release -f vsrls64 -e ~/work/external -g "Visual Studio 15 2017
 $ cd build/vsrls64
 # the current folder contains SolidFrame.sln solution which can be opened in Visual Studio 2017
 #
-# continue with the build from from command line
+# issue a full build from from command line
 $ cmake --build . --config release
 # the following command can be used on build only the libraries:
 # cmake --build . --config release --target libraries
