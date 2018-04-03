@@ -15,7 +15,7 @@ ExternalProject_Add(
     LOG_INSTALL ON
 )
 if(SOLID_ON_WINDOWS)
-set(SNAPPY_LIB ${CMAKE_BINARY_DIR}/external/lib/snappy.lib)
+    set(SNAPPY_LIB ${CMAKE_BINARY_DIR}/external/lib/snappy.lib)
 else()
     set(SNAPPY_LIB ${CMAKE_BINARY_DIR}/external/lib/libsnappy.a)
 endif()
