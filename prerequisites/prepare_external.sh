@@ -114,7 +114,7 @@ buildBoost()
         fi
         
         ./bootstrap.bat vc14
-        ./b2 --abbreviate-paths --hash --with-system --with-thread --with-date_time --with-chrono --with-regex --with-program_options toolset=msvc-14.1 address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
+        ./b2 --abbreviate-paths --hash --with-system --with-thread --with-date_time --with-chrono --with-regex --with-program_options address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
     else
         sh bootstrap.sh
         ./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install

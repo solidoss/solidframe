@@ -45,6 +45,9 @@ endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
 
+#force a single configuration type on Windows builds
+set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
+
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     set(CMAKE_VERBOSE_MAKEFILE ON)
     set(SOLID_HAS_DEBUG TRUE)

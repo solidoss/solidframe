@@ -31,7 +31,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 * **FreeBSD** - _llvm_ - (tested on FreeBSD/PcBSD 10.3)
 * **Darwin/macOS** - _llvm_ - (starting with XCode 8 which has support for thread_local)
 * **Android** - _llvm/gcc_ - (starting with Android Studio 2.2 - examples: [Bubbles](https://github.com/vipalade/bubbles))
-* Windows - MSVC - (partial)
+* **Android** - MSVC - tested on Windows 10 with Visual Studio 2017
 
 ## Libraries
 
@@ -142,6 +142,40 @@ For more information about ./configure script use:
 $ ./configure --help
 ```
 
+### Windows
+
+System prerequisites:
+ * Visual Studio 2017
+ * [CMake](https://cmake.org/)
+ * [Git for Windows](https://git-scm.com/download/win) - the build workflow uses Git Bash so it must be installed
+ * [Perl for Windows](http://strawberryperl.com/) - it is needed to build OpenSSL for Windows. Windows Git Bash installation also comes with __perl__ but it won't work with OpenSSL build.
+
+The Windows build flow, only relies on the prebuilt external folder of dependencies (on Linux/macOS/FreeBSD it is also available an workflow based on cmake's ExternalProject_Add, which automatically downdloads and builds the external prerequisites). To prepare the external folder one should use the prerequisites/prepare_external.sh script from Git Bash console as described below:
+
+```bash
+$ mkdir ~/work
+$ cd ~/work
+$ git clone https://github.com/vipalade/solidframe.git
+$ mkdir external
+$ cd external
+$ ../solidframe/prerequisites/run_in_vs2017_env.sh amd64 bash
+# a new Git Bash instance will be created with Visual Studio 2017 environment set up.
+# build OpenSSL
+$ ../solidframe/prerequisites/prepare_external.sh --openssl --64bit
+$ cd ../solidframe
+$ ./configure -b release -f vsrls64 -e ~/work/external -g "Visual Studio 15 2017 Win64"
+$ cd build/vsrls64
+# the current folder contains SolidFrame.sln solution which can be opened in Visual Studio 2017
+#
+# we'll continue with the build from from command line
+$ cmake --build . --config release
+# we can build only the libraries with the following command
+# cmake --build . --config release --target libraries
+#
+# next command will be used for running the tests.
+$ cmake --build . --config release --target RUN_TESTS
+``` 
+
 #### Use SolidFrame in your projects
 
 _With CMake - the recommended way:_
@@ -153,13 +187,13 @@ set(SolidFrame_DIR "${EXTERNAL_PATH}/lib/cmake/SolidFrame" CACHE PATH "SolidFram
 find_package(SolidFrame)
 ```
 
-Where EXTERN_PATH points to where SolidFrame was installed (e.g. ~/work/extern).
+Where EXTERNAL_PATH points to where SolidFrame was installed (e.g. ~/work/external).
 
 You can also directly use SolidFrame libraries from SolidFrame's build directory by specifying the SolidFrame_DIR when running cmake for your project:
 
 ```bash
 $ cd my_project/build
-$ cmake -DEXTERN_PATH=~/work/extern -DSolidFrame_DIR=~/work/solidframe/build/release -DCMAKE_BUILD_TYPE=debug ..
+$ cmake -DEXTERNAL_PATH=~/work/external -DSolidFrame_DIR=~/work/solidframe/build/release -DCMAKE_BUILD_TYPE=debug ..
 ```
 
 _Without CMake:_
