@@ -1030,7 +1030,7 @@ ErrorCodeT SocketDevice::type(int& _rrv) const
 ErrorCodeT SocketDevice::enableNoDelay()
 {
     int flag = 1;
-    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1040,7 +1040,7 @@ ErrorCodeT SocketDevice::enableNoDelay()
 ErrorCodeT SocketDevice::disableNoDelay()
 {
     int flag = 0;
-    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1087,9 +1087,9 @@ ErrorCodeT SocketDevice::disableLinger()
 
 ErrorCodeT SocketDevice::hasNoDelay(bool& _rrv) const
 {
-    int flag = 0;
+    int       flag = 0;
     socklen_t sz(sizeof(flag));
-    int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
+    int       rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
     if (rv == 0) {
         _rrv = (flag != 0);
         return ErrorCodeT();
@@ -1159,9 +1159,9 @@ ErrorCodeT SocketDevice::sendBufferSize(int& _rsz)
         }
         return last_socket_error();
     } else {
-        int sockbufsz(0);
+        int       sockbufsz(0);
         socklen_t sz(sizeof(sockbufsz));
-        int rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+        int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
 
         if (rv == 0) {
             _rsz = sockbufsz;
@@ -1180,9 +1180,9 @@ ErrorCodeT SocketDevice::recvBufferSize(int& _rsz)
             return ErrorCodeT();
         }
     } else {
-        int sockbufsz(0);
+        int       sockbufsz(0);
         socklen_t sz(sizeof(sockbufsz));
-        int rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+        int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
         if (rv == 0) {
             _rsz = sockbufsz;
             return ErrorCodeT();
@@ -1193,9 +1193,9 @@ ErrorCodeT SocketDevice::recvBufferSize(int& _rsz)
 
 ErrorCodeT SocketDevice::sendBufferSize(int& _rsz) const
 {
-    int sockbufsz(0);
+    int       sockbufsz(0);
     socklen_t sz(sizeof(sockbufsz));
-    int rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
 
     if (rv == 0) {
         _rsz = sockbufsz;
@@ -1206,9 +1206,9 @@ ErrorCodeT SocketDevice::sendBufferSize(int& _rsz) const
 
 ErrorCodeT SocketDevice::recvBufferSize(int& _rsz) const
 {
-    int sockbufsz(0);
+    int       sockbufsz(0);
     socklen_t sz(sizeof(sockbufsz));
-    int rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
     if (rv == 0) {
         _rsz = sockbufsz;
         return ErrorCodeT();
