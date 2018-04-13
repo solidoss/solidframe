@@ -145,7 +145,7 @@ $ ./configure --help
 ### Windows
 
 System prerequisites:
- * Visual Studio 2017
+ * [Visual Studio 2017](https://www.visualstudio.com/) - e.g. Cummunity Edition.
  * [CMake](https://cmake.org/)
  * [Git for Windows](https://git-scm.com/download/win) - the build flow uses Git Bash
  * [Perl for Windows](http://strawberryperl.com/) - needed for building OpenSSL. Windows Git Bash installation also comes with __perl__ but it won't work with OpenSSL build.
@@ -158,8 +158,8 @@ $ cd ~/work
 $ git clone https://github.com/vipalade/solidframe.git
 $ mkdir external
 $ cd external
-$ ../solidframe/prerequisites/run_in_vs2017_env.sh amd64 bash
-# a new Git Bash instance will be created with Visual Studio 2017 environment set up.
+$ ../solidframe/prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash
+# a new Git Bash instance will be created with Visual Studio 2017 environment setup.
 # build OpenSSL
 $ ../solidframe/prerequisites/prepare_external.sh --openssl --64bit
 $ cd ../solidframe

@@ -264,11 +264,9 @@ if(NOT NO_EXTERNAL)
         #define dummy targets
         add_custom_target(build_boost)
         add_custom_target(build_openssl)
-        #add_custom_target(build_snappy)
 
         include(cmake/find_boost.cmake)
         include(cmake/find_openssl.cmake)
-        #include(cmake/find_snappy.cmake)
 
         message("")
         if(${Boost_FOUND})
@@ -418,9 +416,9 @@ set(CMAKE_BUILD_TYPE
 # Global include directories
 #-----------------------------------------------------------------
 include_directories(
-    ${SolidFrame_SOURCE_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR}
-    ${EXTERNAL_PATH}/include/
+    "${SolidFrame_SOURCE_DIR}"
+    "${CMAKE_CURRENT_BINARY_DIR}"
+    "${EXTERNAL_PATH}/include"
 )
 #-----------------------------------------------------------------
 
@@ -428,7 +426,7 @@ include_directories(
 # Global link directories
 #-----------------------------------------------------------------
 link_directories(
-    ${EXTERNAL_PATH}/lib
+    "${EXTERNAL_PATH}/lib"
 )
 
 #-----------------------------------------------------------------

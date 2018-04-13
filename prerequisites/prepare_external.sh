@@ -9,7 +9,7 @@ printUsage()
     echo
     echo "Examples:"
     echo
-    echo "Build SolidFrame dependencies:"
+    echo "Build all external dependencies:"
     echo "$ ./prepare_extern.sh"
     echo
     echo "Build all supported dependencies:"
@@ -37,20 +37,16 @@ downloadArchive()
     local url="$1"
     local arc="$(basename "${url}")"
     echo "Downloading: [$arc] from [$url]"
-    #wget --no-check-certificate -O $arc $url
-    #wget -O $arc $url
     curl -L -O $url
 }
 
 extractTarBz2()
 {
-#    bzip2 -dc "$1" | tar -xf -
     tar -xjf "$1"
 }
 
 extractTarGz()
 {
-#    gzip -dc "$1" | tar -xf -
     tar -xzf "$1"
 }
 
@@ -114,7 +110,7 @@ buildBoost()
         fi
         
         ./bootstrap.bat vc14
-        ./b2 --abbreviate-paths --hash --with-system --with-thread --with-date_time --with-chrono --with-regex --with-program_options address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
+        ./b2 --abbreviate-paths --hash address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
     else
         sh bootstrap.sh
         ./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
@@ -320,9 +316,6 @@ while [ "$#" -gt 0 ]; do
     esac
     shift
 done
-
-#echo "Debug build = $DEBUG"
-#echo "Force download = $DOWNLOAD"
 
 if [ "$HELP" = "yes" ]; then
     printUsage

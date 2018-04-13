@@ -1,69 +1,69 @@
 #!/usr/bin/env bash
 
 make_cmake_list(){
-	if [ -e CMakeLists.txt ]; then
-		rm CMakeLists.txt
-	fi
-	if [ $1 = "*" ]; then
-		echo "No child folder found!"
-		echo "# Automaticaly created" >> CMakeLists.txt
-	else
-		echo "# Automaticaly created" >> CMakeLists.txt
-		for name in $*
-			do
-			if [ $name = "CMakeLists.txt" ]; then
-				echo "Skip CMakeLists.txt"
-			else
-				echo "Adding dir: " $name
-				echo -ne "add_subdirectory("$name")\r\n" >> CMakeLists.txt
-			fi
-			done
-	fi
+    if [ -e CMakeLists.txt ]; then
+        rm CMakeLists.txt
+    fi
+    if [ $1 = "*" ]; then
+        echo "No child folder found!"
+        echo "# Automaticaly created" >> CMakeLists.txt
+    else
+        echo "# Automaticaly created" >> CMakeLists.txt
+        for name in $*
+            do
+            if [ $name = "CMakeLists.txt" ]; then
+                echo "Skip CMakeLists.txt"
+            else
+                echo "Adding dir: " $name
+                echo -ne "add_subdirectory("$name")\r\n" >> CMakeLists.txt
+            fi
+            done
+    fi
 }
 
 
 print_usage(){
-	echo "Usage:"
-	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
-	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
-	echo -ne " [-e|--external-path ExternalPath] [-P|--cmake-param]"
-	echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr] [-c|--create-lists] [-]\n"
-	echo
-	echo -ne "Options:\n"
-	echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
-	echo "[-e|--external-path ExternalPath]: path to external libraries"
-	echo "[-f|--folder-name FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
-	echo "[--prefix] Install path prefix"
-	echo 
-	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
-	echo "[-F|--folder-path FolderPath]: Specify the build folder path - unlike the build folder-name wich creates a folder under build, this flag allows creating a build folder anywhere"
-	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
-	echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
-	echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
-	echo
-	echo "Examples:"
-	echo
-	echo "1) create simple make release build:"
-	echo "$ ./configure -e ~/work/external"
-	echo "$ cd build/release"
-	echo "$ make"
-	echo "$ sudo make install"
-	echo
-	echo "2) create debug build:"
-	echo "$ ./configure -b debug -e ~/work/external --prefix ~/work/external"
-	echo "$ cd build/debug"
-	echo "$ make install"
-	echo
-	echo "3) create a maintain build locate in \"./build/mnt\" with instalation prefix:"
-	echo "$ ./configure -f mnt -e ~/work/external -b maintain --prefix ~/work/install"
-	echo "$ cd build/mnt"
-	echo "$ make install"
-	echo
-	exit
+    echo "Usage:"
+    echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
+    echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
+    echo -ne " [-e|--external-path ExternalPath] [-P|--cmake-param]"
+    echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr] [-c|--create-lists] [-]\n"
+    echo
+    echo -ne "Options:\n"
+    echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
+    echo "[-e|--external-path ExternalPath]: path to external libraries"
+    echo "[-f|--folder-name FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
+    echo "[--prefix] Install path prefix"
+    echo 
+    echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
+    echo "[-F|--folder-path FolderPath]: Specify the build folder path - unlike the build folder-name wich creates a folder under build, this flag allows creating a build folder anywhere"
+    echo "[-d|--documentation full/fast]: Build either fast or full documentation"
+    echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
+    echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
+    echo
+    echo "Examples:"
+    echo
+    echo "1) create simple make release build:"
+    echo "$ ./configure -e ~/work/external"
+    echo "$ cd build/release"
+    echo "$ make"
+    echo "$ sudo make install"
+    echo
+    echo "2) create debug build:"
+    echo "$ ./configure -b debug -e ~/work/external --prefix ~/work/external"
+    echo "$ cd build/debug"
+    echo "$ make install"
+    echo
+    echo "3) create a maintain build locate in \"./build/mnt\" with instalation prefix:"
+    echo "$ ./configure -f mnt -e ~/work/external -b maintain --prefix ~/work/install"
+    echo "$ cd build/mnt"
+    echo "$ make install"
+    echo
+    exit
 }
 
 # if [ "$1" = "" ] ; then
-# 	print_usage
+#   print_usage
 # fi
 
 # First define and initilaize the variables
@@ -88,108 +88,81 @@ pass_arg_count=0
 #while [ "$#" -gt 0 ]; do
 while [ $# -gt $pass_arg_count ]
 do
-	CURRENT_OPT="$1"
-	UNKNOWN_ARG=no
-	case "$1" in
-	-g|--generator)
-		shift
-		GENERATOR=$1
-		;;
-	-f|--folder-name)
-		shift
-		FOLDER_NAME=$1
-		;;
-	-F|--folder-path)
-		shift
-		FOLDER_PATH=$1
-		;;
-	-b|--build)
-		shift
-		BUILD_TYPE=$1
-		;;
-	-d|--documentation)
-		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
-			DOCUMENTATION="fast"
-		else
-			shift;
-			DOCUMENTATION=$1
-		fi
-		;;
-	-p|--param)
-		shift
-		PARAM=$PARAM"$1 "
-		;;
-	--prefix)
-		shift
-		INSTALL_PREFIX="$1"
-		;;
-	-P|--cmake-param)
-		shift
-		#CMAKE_PARAM=($CMAKE_PARAM "$1")
-		arg="$1"
-		set -- "$@" "$arg"
-		pass_arg_count=`expr $pass_arg_count + 1`
-		;;
-	-e|--external-path)
+    CURRENT_OPT="$1"
+    UNKNOWN_ARG=no
+    case "$1" in
+    -g|--generator)
+        shift
+        GENERATOR=$1
+        ;;
+    -f|--folder-name)
+        shift
+        FOLDER_NAME=$1
+        ;;
+    -F|--folder-path)
+        shift
+        FOLDER_PATH=$1
+        ;;
+    -b|--build)
+        shift
+        BUILD_TYPE=$1
+        ;;
+    -d|--documentation)
+        if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
+            DOCUMENTATION="fast"
+        else
+            shift;
+            DOCUMENTATION=$1
+        fi
+        ;;
+    -p|--param)
+        shift
+        PARAM=$PARAM"$1 "
+        ;;
+    --prefix)
+        shift
+        INSTALL_PREFIX="$1"
+        ;;
+    -P|--cmake-param)
+        shift
+        #CMAKE_PARAM=($CMAKE_PARAM "$1")
+        arg="$1"
+        set -- "$@" "$arg"
+        pass_arg_count=`expr $pass_arg_count + 1`
+        ;;
+    -e|--external-path)
         shift;
         EXTERNAL_PATH=$1
-		;;
-	-c|--create-lists)
-		CREATE_LISTS="yes"
-		;;
-	-h|--help)
-		HELP="yes"
-		;;
-	-t|--enable-testing)
-		ENABLE_TESTING="yes"
-		;;
-	--test-name)
-		shift
-		TEST_NAME="$1"
-		;;
-	--test-site)
-		shift
-		TEST_SITE="$1"
-		;;
-	*)
-		HELP="yes"
-		;;
-	esac
-	shift
+        ;;
+    -c|--create-lists)
+        CREATE_LISTS="yes"
+        ;;
+    -h|--help)
+        HELP="yes"
+        ;;
+    -t|--enable-testing)
+        ENABLE_TESTING="yes"
+        ;;
+    --test-name)
+        shift
+        TEST_NAME="$1"
+        ;;
+    --test-site)
+        shift
+        TEST_SITE="$1"
+        ;;
+    *)
+        HELP="yes"
+        ;;
+    esac
+    shift
 done
 
 
-#echo "generator = $GENERATOR"
-#echo "folder = $FOLDER_NAME"
-#echo "build = $BUILD_TYPE"
-#echo "documentation = $DOCUMENTATION"
-#echo "parameters = $PARAM"
-#echo "help = $HELP"
-#echo "extern = $EXTERN"
-#echo "parameters = $CMAKE_PARAM"
-
 if [ "$HELP" = "yes" ]; then
-	print_usage
-	exit
+    print_usage
+    exit
 fi
-
-#if [ "$CREATE_LISTS" = "yes" ]; then
-#	if [ ! -d application ]; then
-#		mkdir application
-# 	fi
-# 	cd application
-# 	make_cmake_list *
-# 	cd ../
-# 	
-# 	if [ ! -d library ]; then
-# 		mkdir library
-# 	fi
-# 	cd library
-# 	make_cmake_list *
-# 	cd ../
-# 
-# 	exit
-# fi
 
 if [ ! -z $EXTERNAL_PATH ]; then
 
@@ -206,63 +179,50 @@ fi
 echo "Using extern prerequisites from: $EXTERNAL_PATH"
 
 if [ "$DOCUMENTATION" = "full" ]; then
-	echo "Building full documentation ..."
-	rm -rf documentation/html/
-	rm -rf  documentation/latex/
-	doxygen documentation/Doxyfile
-	tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
-	echo "Done building full documentation"
-	exit
+    echo "Building full documentation ..."
+    rm -rf documentation/html/
+    rm -rf  documentation/latex/
+    doxygen documentation/Doxyfile
+    tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
+    echo "Done building full documentation"
+    exit
 fi
 
 if [ "$DOCUMENTATION" = "fast" ]; then
-	echo "Building documentation..."
-	rm -rf documentation/html/
-	doxygen documentation/Doxyfile.fast
-	tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
-	echo "Done building documentation"
-	exit
+    echo "Building documentation..."
+    rm -rf documentation/html/
+    doxygen documentation/Doxyfile.fast
+    tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
+    echo "Done building documentation"
+    exit
 fi
 
 if [ "$BUILD_TYPE" = "" ]; then
-	BUILD_TYPE="release"
+    BUILD_TYPE="release"
 fi
 
 if [ "$FOLDER_NAME" = "" ]; then
-	if [ "$GENERATOR" = "" ]; then
-		FOLDER_NAME=$BUILD_TYPE
-	else
-		FOLDER_NAME=$GENERATOR
-	fi
+    if [ "$GENERATOR" = "" ]; then
+        FOLDER_NAME=$BUILD_TYPE
+    else
+        FOLDER_NAME=$GENERATOR
+    fi
 fi
 
 echo "Configure an out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME and params $PARAM"
-# if [ ! -d application ]; then
-# 	mkdir application
-# fi
-# cd application
-# make_cmake_list *
-# cd ../
-# 
-# if [ ! -d library ]; then
-# 	mkdir library
-# fi
-# cd library
-# make_cmake_list *
-# cd ../
 
 SRC_PATH="`pwd`"
 
 if [ "$FOLDER_PATH" = "" ]; then
-	if [ ! -d build ]; then
-		mkdir build
-	fi
-	mkdir "build/$FOLDER_NAME"
-	cd "build/$FOLDER_NAME"
+    if [ ! -d build ]; then
+        mkdir build
+    fi
+    mkdir "build/$FOLDER_NAME"
+    cd "build/$FOLDER_NAME"
 else
-	echo "$FOLDER_PATH"
-	mkdir "$FOLDER_PATH"
-	cd "$FOLDER_PATH"
+    echo "$FOLDER_PATH"
+    mkdir "$FOLDER_PATH"
+    cd "$FOLDER_PATH"
 fi
 echo $GENERATOR
 
@@ -275,16 +235,16 @@ echo
 echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -p \"$PARAM\" -e \"$EXTERNAL_PATH\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
 
 if [ "$GENERATOR" = "" ]; then
-	echo "Using cmake's default generator:"
-	echo ""
-	
-	exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERNAL:STRING="$EXTERNAL_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
-	echo "Done!"
+    echo "Using cmake's default generator:"
+    echo ""
+    
+    exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERNAL:STRING="$EXTERNAL_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+    echo "Done!"
 else
-	echo "Using cmake's $GENERATOR"
-	echo ""
-	
-	exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERNAL:STRING="$EXTERNAL_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+    echo "Using cmake's $GENERATOR"
+    echo ""
+    
+    exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERNAL:STRING="$EXTERNAL_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
 fi
 
 exit
