@@ -10,6 +10,15 @@
     * **Travis**: Apple LLVM version 8.1.0 (clang-802.0.42)
 * **FreeBSD**:
     * TrueOS - FreeBSD 12.0 - clang version 4.0.0 (based on LLVM 4.0.0)
+* **Windows**:
+    * Windows10 - Visual Studio 2017.
+
+## Version 4.0
+* (DONE) port to Windows
+* (DONE) SolidFrame.podspec
+* (DONE) solid_frame_mpipc: messagereader - cache deserializer
+* (DONE) solid_frame_mpipc: messagewriter - cache serializer
+* (DONE) solid_serialization_v2 - improved binary serialization engine
 
 ## Version 3.0
 * (DONE) solid_frame_mpipc: improve protocol to allow transparent (i.e. not knowing the type of the mesage) message handling - e.g. skipping, relaying.
