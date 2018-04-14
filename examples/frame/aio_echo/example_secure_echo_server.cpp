@@ -162,8 +162,10 @@ int main(int argc, char* argv[])
     if (parseArguments(p, argc, argv))
         return 0;
 
+#ifndef SOLID_ON_WINDOWS
     signal(SIGINT, term_handler); /* Die on SIGTERM */
     signal(SIGPIPE, SIG_IGN);
+#endif
 
 #ifdef SOLID_HAS_DEBUG
     {

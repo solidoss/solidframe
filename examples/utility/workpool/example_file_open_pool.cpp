@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/system/filedevice.hpp"
+#include "solid/system/memory.hpp"
 #include "solid/utility/workpool.hpp"
 #include <boost/filesystem/exception.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -44,7 +45,7 @@ static T align(T _v, const solid::ulong _by)
     }
 }
 
-const uint32_t pagesize = getpagesize();
+const uint32_t pagesize = memory_page_size();
 
 ///\cond 0
 typedef std::deque<FileDevice> FileDeuqeT;

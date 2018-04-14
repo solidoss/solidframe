@@ -78,7 +78,7 @@ void complete_message<ipc_file::ListRequest>(
         }
 
         while (it != end) {
-            msgptr->node_dq.emplace_back(std::string(it->path().c_str()), static_cast<uint8_t>(is_directory(*it)));
+            msgptr->node_dq.emplace_back(std::string(it->path().generic_string()), static_cast<uint8_t>(is_directory(*it)));
             ++it;
         }
     }
