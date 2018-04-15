@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   # ―――  Spec Metadata  ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   
   s.name         = "SolidFrame"
-  s.version      = "3.1.0"
+  s.version      = "4.0.0"
   s.summary      = "Cross-platform C++ framework for asynchronous, distributed applications."
 
   s.description  = <<-DESC
