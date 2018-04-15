@@ -15,8 +15,8 @@
 #include "solid/system/filedevice.hpp"
 #include <cerrno>
 #include <cstring>
-#include <string>
 #include <deque>
+#include <string>
 
 using namespace std;
 using namespace solid;
