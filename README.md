@@ -145,15 +145,15 @@ $ ./configure --help
 
 ### Android
 
-**SolidFrame** can be intergrated into any Android project, by enabling C++ and CMake support and from CMakeLists.txt, build SolidFrame either as a git submodule or as CMake external project.
+**SolidFrame** can be intergrated into any Android project by enabling C++ and CMake support and build **SolidFrame** from the project's CMakeLists.txt file, either as a git submodule or as CMake external project.
 
-[Bubbles](https://github.com/vipalade/bubbles/tree/master/client/android/bubbles)) Android Studio project, exemplifies how to use SolidFrame as a git submodule.
+[Bubbles](https://github.com/vipalade/bubbles/tree/master/client/android/bubbles) Android Studio project, exemplifies how to integrate **SolidFrame** as a git submodule.
 
-The [CMakeLists.txt](https://github.com/vipalade/bubbles/blob/master/client/android/bubbles/app/CMakeLists.txt) file also exemplifies how to use [Google Snappy](https://github.com/google/snappy) library as an ExternalProject which can be used as a starting point for how to integrate SolidFrame as an CMake ExternalProject too. 
+The [CMakeLists.txt](https://github.com/vipalade/bubbles/blob/master/client/android/bubbles/app/CMakeLists.txt) file also exemplifies how to use [Google Snappy](https://github.com/google/snappy) library as an ExternalProject which can be used as a starting point for how to integrate **SolidFrame** as a CMake ExternalProject too. 
 
 ### iOS
 
-**SolidFrame** can be integrated into any iOS (Swift) project as an [Cocoa Pod](https://cocoapods.org/) by adding lines as the followings, to the project's Podfile:
+**SolidFrame** can be integrated into any iOS (Swift) project as an [Cocoa Pod](https://cocoapods.org/) by adding lines as the following, to the project's Podfile:
 
 ```Podfile
   pod 'SolidFrame/frame_mpipc', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
@@ -161,7 +161,7 @@ The [CMakeLists.txt](https://github.com/vipalade/bubbles/blob/master/client/andr
   pod 'SolidFrame/frame_aio_openssl', :configuration => 'Debug', :git => 'https://github.com/vipalade/solidframe.git', :branch => 'master'
 ```
 
-[Bubbles](https://github.com/vipalade/bubbles/tree/master/client/ios/bubbles) is a sample XCode CocoaPod enabled project using SolidFrame.
+[Bubbles](https://github.com/vipalade/bubbles/tree/master/client/ios/bubbles) is a sample XCode Swift CocoaPod enabled project using **SolidFrame**.
 
 ### Windows
 
@@ -182,7 +182,7 @@ $ cd external
 $ ../solidframe/prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash
 # a new Git Bash instance will be created with Visual Studio 2017 environment setup.
 # build OpenSSL
-$ ../solidframe/prerequisites/prepare_external.sh --openssl --64bit
+$ ../solidframe/prerequisites/prepare_external.sh --64bit
 $ cd ../solidframe
 $ ./configure -b release -f vsrls64 -e ~/work/external -g "Visual Studio 15 2017 Win64"
 $ cd build/vsrls64
