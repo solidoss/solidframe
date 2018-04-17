@@ -568,7 +568,7 @@ void Debug::initStdErr(
     bool         _buffered,
     std::string* _output)
 {
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
 
     impl_->dos.close();
     impl_->dbos.close();
@@ -596,7 +596,7 @@ void Debug::initFile(
     uint64_t     _respinsize,
     std::string* _output)
 {
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     impl_->respinsz = 0;
 
     impl_->dos.close();
@@ -656,7 +656,7 @@ void Debug::initSocket(
         impl_->sd.close(); //make sure the socket is closed
     }
 
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     impl_->respinsz = 0;
 
     impl_->dos.close();
@@ -708,7 +708,7 @@ void Debug::levelMask(const char* _msk)
     if (!_msk) {
         _msk = "iewrvt";
     }
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     impl_->lvlmsk = parseLevels(_msk);
 }
 void Debug::moduleMask(const char* _msk)
@@ -716,13 +716,13 @@ void Debug::moduleMask(const char* _msk)
     if (!_msk) {
         _msk = "all";
     }
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     impl_->setModuleMask(_msk);
 }
 
 void Debug::moduleNames(std::string& _ros)
 {
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     for (Data::ModuleVectorT::const_iterator it(impl_->modvec.begin()); it != impl_->modvec.end(); ++it) {
         _ros += it->name;
         _ros += ' ';
@@ -730,27 +730,27 @@ void Debug::moduleNames(std::string& _ros)
 }
 void Debug::setAllModuleBits()
 {
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     impl_->bs.set();
 }
 void Debug::resetAllModuleBits()
 {
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     impl_->bs.reset();
 }
 void Debug::setModuleBit(const size_t _v)
 {
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     impl_->bs.set(_v);
 }
 void Debug::resetModuleBit(const size_t _v)
 {
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     impl_->bs.reset(_v);
 }
 size_t Debug::registerModule(const char* _name)
 {
-    unique_lock<mutex> lock(impl_->m);
+    lock_guard<mutex> lock(impl_->m);
     return impl_->registerModule(_name, -1);
 }
 

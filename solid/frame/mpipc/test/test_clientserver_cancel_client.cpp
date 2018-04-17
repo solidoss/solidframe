@@ -231,7 +231,7 @@ void server_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
 
     if (!crtreadidx) {
         idbg("canceling all messages");
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         for (auto& msguid : message_uid_vec) {
             idbg("Cancel message: " << msguid);
             pmpipcclient->cancelMessage(recipient_id, msguid);
@@ -241,7 +241,7 @@ void server_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
     ++crtreadidx;
 
     if (crtreadidx == expected_transfered_count) {
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
     }
@@ -427,7 +427,7 @@ int test_clientserver_cancel_client(int argc, char* argv[])
 
         {
             writecount = initarraysize; //start_count;//
-            unique_lock<mutex> lock(mtx);
+            lock_guard<mutex> lock(mtx);
             for (crtwriteidx = 0; crtwriteidx < writecount; ++crtwriteidx) {
                 frame::mpipc::MessageId msguid;
 

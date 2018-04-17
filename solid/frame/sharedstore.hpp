@@ -274,53 +274,53 @@ public:
 
     PointerT insertAlive(T& _rt)
     {
-        std::unique_lock<std::mutex> lock(this->mutex());
-        const size_t                 idx = this->doAllocateIndex();
-        PointerT                     ptr;
+        std::lock_guard<std::mutex> lock(this->mutex());
+        const size_t                idx = this->doAllocateIndex();
+        PointerT                    ptr;
         {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
-            Stub&                        rs = stubvec[idx];
-            rs.obj                          = _rt;
-            ptr                             = doTryGetAlive(idx);
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
+            Stub&                       rs = stubvec[idx];
+            rs.obj                         = _rt;
+            ptr                            = doTryGetAlive(idx);
         }
         return ptr;
     }
 
     PointerT insertShared(T& _rt)
     {
-        std::unique_lock<std::mutex> lock(this->mutex());
-        const size_t                 idx = this->doAllocateIndex();
-        PointerT                     ptr;
+        std::lock_guard<std::mutex> lock(this->mutex());
+        const size_t                idx = this->doAllocateIndex();
+        PointerT                    ptr;
         {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
-            Stub&                        rs = stubvec[idx];
-            rs.obj                          = _rt;
-            ptr                             = doTryGetShared(idx);
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
+            Stub&                       rs = stubvec[idx];
+            rs.obj                         = _rt;
+            ptr                            = doTryGetShared(idx);
         }
         return ptr;
     }
 
     PointerT insertUnique(T& _rt)
     {
-        std::unique_lock<std::mutex> lock(this->mutex());
-        const size_t                 idx = this->doAllocateIndex();
-        PointerT                     ptr;
+        std::lock_guard<std::mutex> lock(this->mutex());
+        const size_t                idx = this->doAllocateIndex();
+        PointerT                    ptr;
         {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
-            Stub&                        rs = stubvec[idx];
-            rs.obj                          = _rt;
-            ptr                             = doTryGetUnique(idx);
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
+            Stub&                       rs = stubvec[idx];
+            rs.obj                         = _rt;
+            ptr                            = doTryGetUnique(idx);
         }
         return ptr;
     }
 
     PointerT insertAlive()
     {
-        std::unique_lock<std::mutex> lock(this->mutex());
-        const size_t                 idx = this->doAllocateIndex();
-        PointerT                     ptr;
+        std::lock_guard<std::mutex> lock(this->mutex());
+        const size_t                idx = this->doAllocateIndex();
+        PointerT                    ptr;
         {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
             ptr = doTryGetAlive(idx);
         }
         return ptr;
@@ -328,11 +328,11 @@ public:
 
     PointerT insertShared()
     {
-        std::unique_lock<std::mutex> lock(this->mutex());
-        const size_t                 idx = this->doAllocateIndex();
-        PointerT                     ptr;
+        std::lock_guard<std::mutex> lock(this->mutex());
+        const size_t                idx = this->doAllocateIndex();
+        PointerT                    ptr;
         {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
             ptr = doTryGetShared(idx);
         }
         return ptr;
@@ -340,11 +340,11 @@ public:
 
     PointerT insertUnique()
     {
-        std::unique_lock<std::mutex> lock(this->mutex());
-        const size_t                 idx = this->doAllocateIndex();
-        PointerT                     ptr;
+        std::lock_guard<std::mutex> lock(this->mutex());
+        const size_t                idx = this->doAllocateIndex();
+        PointerT                    ptr;
         {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
             ptr = doTryGetUnique(idx);
         }
         return ptr;
@@ -356,8 +356,8 @@ public:
         PointerT     ptr;
         const size_t idx = _ruid.index;
         if (idx < this->atomicMaxCount()) {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
-            Stub&                        rs = stubvec[idx];
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
+            Stub&                       rs = stubvec[idx];
             if (rs.uid == _ruid.unique) {
                 ptr = doTryGetAlive(idx);
             }
@@ -371,8 +371,8 @@ public:
         PointerT     ptr;
         const size_t idx = _ruid.index;
         if (idx < this->atomicMaxCount()) {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
-            Stub&                        rs = stubvec[idx];
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
+            Stub&                       rs = stubvec[idx];
             if (rs.uid == _ruid.unique) {
                 ptr = doTryGetUnique(idx);
             }
@@ -386,8 +386,8 @@ public:
         PointerT     ptr;
         const size_t idx = _ruid.index;
         if (idx < this->atomicMaxCount()) {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
-            Stub&                        rs = stubvec[idx];
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
+            Stub&                       rs = stubvec[idx];
             if (rs.uid == _ruid.unique) {
                 ptr = doTryGetShared(idx);
             }
@@ -402,8 +402,8 @@ public:
         if (!_rptr.empty()) {
             const size_t idx = _rptr.id().index;
             if (idx < this->atomicMaxCount()) {
-                std::unique_lock<std::mutex> lock2(this->mutex(idx));
-                Stub&                        rs = stubvec[idx];
+                std::lock_guard<std::mutex> lock2(this->mutex(idx));
+                Stub&                       rs = stubvec[idx];
                 if (rs.uid == _rptr.id().unique) {
                     if (doSwitchUniqueToShared(idx)) {
                         if (rs.pwaitfirst && rs.pwaitfirst->kind == StoreBase::SharedWaitE) {
@@ -429,14 +429,14 @@ public:
         ErrorCodeT          err;
         StoreBase::Accessor acc = StoreBase::accessor();
         {
-            std::unique_lock<std::mutex> lock(this->mutex());
-            bool                         found = controller().prepareIndex(acc, _f, idx, _flags, err);
+            std::lock_guard<std::mutex> lock(this->mutex());
+            bool                        found = controller().prepareIndex(acc, _f, idx, _flags, err);
             if (!found && !err) {
                 //an index was not found - need to allocate one
                 idx = this->doAllocateIndex();
             }
             if (!err) {
-                std::unique_lock<std::mutex> lock(this->mutex(idx));
+                std::lock_guard<std::mutex> lock(this->mutex(idx));
                 ptr = doTryGetReinit(idx);
                 if (ptr.empty()) {
                     doPushWait(idx, _f, StoreBase::ReinitWaitE);
@@ -461,8 +461,8 @@ public:
         ErrorCodeT   err;
         const size_t idx = _ruid.index;
         if (idx < this->atomicMaxCount()) {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
-            Stub&                        rs = stubvec[idx];
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
+            Stub&                       rs = stubvec[idx];
             if (rs.uid == _ruid.unique) {
                 ptr = doTryGetShared(idx);
                 if (ptr.empty()) {
@@ -488,8 +488,8 @@ public:
         ErrorCodeT   err;
         const size_t idx = _ruid.index;
         if (idx < this->atomicMaxCount()) {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
-            Stub&                        rs = stubvec[idx];
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
+            Stub&                       rs = stubvec[idx];
             if (rs.uid == _ruid.unique) {
                 ptr = doTryGetUnique(idx);
                 if (ptr.empty()) {
@@ -516,8 +516,8 @@ public:
         ErrorCodeT   err;
         const size_t idx = _ruid.index;
         if (idx < this->atomicMaxCount()) {
-            std::unique_lock<std::mutex> lock2(this->mutex(idx));
-            Stub&                        rs = stubvec[idx];
+            std::lock_guard<std::mutex> lock2(this->mutex(idx));
+            Stub&                       rs = stubvec[idx];
             if (rs.uid == _ruid.unique) {
                 ptr = doTryGetReinit(idx);
                 if (ptr.empty()) {
@@ -729,7 +729,7 @@ private:
         }
 
         {
-            std::unique_lock<std::mutex> lock(this->mutex());
+            std::lock_guard<std::mutex> lock(this->mutex());
             if (rcacheidxvec.size()) {
                 pmtx = &this->mutex(rcacheidxvec.front());
                 pmtx->lock();

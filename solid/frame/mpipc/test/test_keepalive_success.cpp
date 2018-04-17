@@ -188,7 +188,7 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
 
     if (crtbackidx == writecount) {
         idbg("done running " << crtackidx << " " << writecount);
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
     }

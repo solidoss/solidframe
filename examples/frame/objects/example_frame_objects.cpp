@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
                 DynamicPointer<frame::Object> objptr(&objdq.back());
                 solid::frame::ObjectIdT       objuid;
                 {
-                    unique_lock<mutex> lock(mtx);
+                    lock_guard<mutex> lock(mtx);
 
                     objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
 
@@ -174,7 +174,7 @@ int main(int argc, char* argv[])
     idbg("event = " << _uevent);
     if (_uevent == generic_event_start) {
         {
-            unique_lock<mutex> lock(mtx);
+            lock_guard<mutex> lock(mtx);
             ++started_objcnt;
             if (started_objcnt == running_objcnt) {
                 cnd.notify_one();
@@ -186,7 +186,7 @@ int main(int argc, char* argv[])
         if (status_ != StatusOnDisk) {
             status_ = StatusOnDisk;
             timer_.cancel(_rctx);
-            unique_lock<mutex> lock(mtx);
+            lock_guard<mutex> lock(mtx);
             ++ondisk_objcnt;
             if (ondisk_objcnt == running_objcnt) {
                 cnd.notify_one();
@@ -207,7 +207,7 @@ void BasicObject::onTimer(frame::ReactorContext& _rctx)
         timer_.waitFor(_rctx, std::chrono::seconds(10) + std::chrono::milliseconds(this->id() % 1000), [this](frame::ReactorContext& _rctx) { return onTimer(_rctx); });
     } else if (status_ == StatusCompressed) {
         status_ = StatusOnDisk;
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         ++ondisk_objcnt;
         if (ondisk_objcnt == running_objcnt) {
             cnd.notify_one();

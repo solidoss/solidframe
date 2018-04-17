@@ -164,13 +164,13 @@ void server_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 
     if (test_scenario == 0) {
         if (_rctx.error() == frame::mpipc::error_connection_too_many_keepalive_packets_received) {
-            unique_lock<mutex> lock(mtx);
+            lock_guard<mutex> lock(mtx);
             running = false;
             cnd.notify_one();
         }
     } else if (test_scenario == 1) {
         if (_rctx.error() == frame::mpipc::error_connection_inactivity_timeout) {
-            unique_lock<mutex> lock(mtx);
+            lock_guard<mutex> lock(mtx);
             running = false;
             cnd.notify_one();
         }
@@ -203,7 +203,7 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
     ++crtbackidx;
 
     //  if(crtbackidx == writecount){
-    //      unique_lock<mutex> lock(mtx);
+    //      lock_guard<mutex> lock(mtx);
     //      running = false;
     //      cnd.notify_one();
     //  }

@@ -172,7 +172,7 @@ void StoreBase::erasePointer(UniqueId const& _ruid, const bool _isalive)
     if (_ruid.index < impl_->objmaxcnt.load()) {
         bool do_notify = true;
         {
-            std::unique_lock<std::mutex> lock(mutex(static_cast<size_t>(_ruid.index)));
+            std::lock_guard<std::mutex> lock(mutex(static_cast<size_t>(_ruid.index)));
             do_notify = doDecrementObjectUseCount(_ruid, _isalive);
             (void)do_notify;
         }
@@ -184,7 +184,7 @@ void StoreBase::notifyObject(UniqueId const& _ruid)
 {
     bool do_raise = false;
     {
-        std::unique_lock<std::mutex> lock(mutex());
+        std::lock_guard<std::mutex> lock(mutex());
         impl_->pfillerasevec->push_back(_ruid);
         do_raise = impl_->pfillerasevec->size() == 1;
     }
@@ -202,8 +202,8 @@ void StoreBase::raise()
 {
     if (_revent == generic_event_raise) {
         {
-            std::unique_lock<std::mutex> lock(mutex());
-            ulong                        sm = 0;
+            std::lock_guard<std::mutex> lock(mutex());
+            ulong                       sm = 0;
             if (impl_->pfillerasevec->size()) {
                 solid::exchange(impl_->pconserasevec, impl_->pfillerasevec);
             }

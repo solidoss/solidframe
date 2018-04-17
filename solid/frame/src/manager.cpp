@@ -298,7 +298,7 @@ struct Manager::Data {
         if (svcstore[idx].nowantwrite && svcstore[idx].usecnt.fetch_add(1) >= 0) {
             return idx;
         }
-        std::unique_lock<std::mutex> lock(mtx);
+        std::lock_guard<std::mutex> lock(mtx);
         idx    = crtsvcstoreidx;
         long v = svcstore[idx].usecnt.fetch_add(1);
         SOLID_ASSERT(v >= 0);
@@ -338,7 +338,7 @@ struct Manager::Data {
         if (objstore[idx].nowantwrite && objstore[idx].usecnt.fetch_add(1) >= 0) {
             return idx;
         }
-        std::unique_lock<std::mutex> lock(mtx);
+        std::lock_guard<std::mutex> lock(mtx);
         idx    = crtobjstoreidx;
         long v = objstore[idx].usecnt.fetch_add(1);
         SOLID_ASSERT(v >= 0);
@@ -449,7 +449,7 @@ Manager::Manager(
 bool Manager::registerService(
     Service& _rs)
 {
-    std::unique_lock<std::mutex> lock(impl_->mtx);
+    std::lock_guard<std::mutex> lock(impl_->mtx);
 
     if (_rs.isRegistered()) {
         return false;
@@ -508,7 +508,7 @@ void Manager::unregisterService(Service& _rsvc)
     const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
     ServiceStub& rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
 
-    std::unique_lock<std::mutex> lock(rss.rmtx);
+    std::lock_guard<std::mutex> lock(rss.rmtx);
 
     if (rss.psvc != &_rsvc) {
         return;
@@ -521,7 +521,7 @@ void Manager::unregisterService(Service& _rsvc)
 
 void Manager::doUnregisterService(ServiceStub& _rss)
 {
-    std::unique_lock<std::mutex> lock2(impl_->mtx);
+    std::lock_guard<std::mutex> lock2(impl_->mtx);
 
     const size_t objvecidx = impl_->crtobjstoreidx; //inside lock, so crtobjstoreidx will not change
 
@@ -562,10 +562,10 @@ ObjectIdT Manager::registerObject(
         return retval;
     }
 
-    size_t                       objidx      = InvalidIndex();
-    const size_t                 svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-    ServiceStub&                 rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
-    std::unique_lock<std::mutex> lock(rss.rmtx);
+    size_t                      objidx      = InvalidIndex();
+    const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
+    ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
+    std::lock_guard<std::mutex> lock(rss.rmtx);
 
     impl_->releaseReadServiceStore(svcstoreidx);
 
@@ -586,8 +586,8 @@ ObjectIdT Manager::registerObject(
 
     } else {
 
-        std::unique_lock<std::mutex> lock2(impl_->mtx);
-        size_t                       chkidx = InvalidIndex();
+        std::lock_guard<std::mutex> lock2(impl_->mtx);
+        size_t                      chkidx = InvalidIndex();
         if (impl_->chkcache.size()) {
             chkidx = impl_->chkcache.top();
             impl_->chkcache.pop();
@@ -624,16 +624,16 @@ ObjectIdT Manager::registerObject(
 
             ObjectChunk& laschk(*impl_->objstore[objstoreidx].vec[rss.lastchk]);
 
-            std::unique_lock<std::mutex> lock3(laschk.rmtx);
+            std::lock_guard<std::mutex> lock3(laschk.rmtx);
 
             laschk.nextchk = chkidx;
         }
         rss.lastchk = chkidx;
     }
     {
-        const size_t                 objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk&                 robjchk(*impl_->chunk(objstoreidx, objidx));
-        std::unique_lock<std::mutex> lock2(robjchk.rmtx);
+        const size_t                objstoreidx = impl_->aquireReadObjectStore();
+        ObjectChunk&                robjchk(*impl_->chunk(objstoreidx, objidx));
+        std::lock_guard<std::mutex> lock2(robjchk.rmtx);
 
         impl_->releaseReadObjectStore(objstoreidx);
 
@@ -675,9 +675,9 @@ void Manager::unregisterObject(ObjectBase& _robj)
     size_t svcidx = InvalidIndex();
     size_t objidx = InvalidIndex();
     {
-        const size_t                 objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk&                 robjchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
-        std::unique_lock<std::mutex> lock2(robjchk.rmtx);
+        const size_t                objstoreidx = impl_->aquireReadObjectStore();
+        ObjectChunk&                robjchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
+        std::lock_guard<std::mutex> lock2(robjchk.rmtx);
 
         objidx = static_cast<size_t>(_robj.id());
 
@@ -698,9 +698,9 @@ void Manager::unregisterObject(ObjectBase& _robj)
     {
         SOLID_ASSERT(objidx != InvalidIndex());
 
-        const size_t                 svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-        ServiceStub&                 rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
-        std::unique_lock<std::mutex> lock(rss.rmtx);
+        const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
+        ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
+        std::lock_guard<std::mutex> lock(rss.rmtx);
 
         impl_->releaseReadServiceStore(svcstoreidx);
 
@@ -717,9 +717,9 @@ bool Manager::disableObjectVisits(ObjectBase& _robj)
 {
     bool retval = false;
     if (_robj.isRegistered()) {
-        const size_t                 objstoreidx = impl_->aquireReadObjectStore();
-        ObjectChunk&                 robjchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
-        std::unique_lock<std::mutex> lock(robjchk.rmtx);
+        const size_t                objstoreidx = impl_->aquireReadObjectStore();
+        ObjectChunk&                robjchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
+        std::lock_guard<std::mutex> lock(robjchk.rmtx);
 
         impl_->releaseReadObjectStore(objstoreidx);
 
@@ -747,8 +747,8 @@ bool Manager::notify(ObjectIdT const& _ruid, Event&& _uevt, const size_t _sigmsk
         const size_t objstoreidx = impl_->aquireReadObjectStore();
         ObjectChunk& rchk(*impl_->chunk(objstoreidx, _ruid.index));
         {
-            std::unique_lock<std::mutex> lock(rchk.rmtx);
-            ObjectStub const&            ros(impl_->object(objstoreidx, _ruid.index));
+            std::lock_guard<std::mutex> lock(rchk.rmtx);
+            ObjectStub const&           ros(impl_->object(objstoreidx, _ruid.index));
 
             if (ros.unique == _ruid.unique && ros.pobject && ros.preactor) {
                 retval = notify_object(*ros.pobject, *ros.preactor, std::move(_uevt), _sigmsk);
@@ -776,8 +776,8 @@ bool Manager::doVisit(ObjectIdT const& _ruid, const ObjectVisitFunctionT _rfct)
         const size_t objstoreidx = impl_->aquireReadObjectStore();
         ObjectChunk& rchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_ruid.index)));
         {
-            std::unique_lock<std::mutex> lock(rchk.rmtx);
-            ObjectStub const&            ros(impl_->object(objstoreidx, static_cast<size_t>(_ruid.index)));
+            std::lock_guard<std::mutex> lock(rchk.rmtx);
+            ObjectStub const&           ros(impl_->object(objstoreidx, static_cast<size_t>(_ruid.index)));
 
             if (ros.unique == _ruid.unique && ros.pobject && ros.preactor) {
                 VisitContext ctx(*this, *ros.preactor, *ros.pobject);
@@ -856,8 +856,8 @@ size_t Manager::doForEachServiceObject(const Service& _rsvc, const ObjectVisitFu
     {
         const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
         {
-            ServiceStub&                 rss = *impl_->svcstore[svcstoreidx].vec[svcidx];
-            std::unique_lock<std::mutex> lock(rss.rmtx);
+            ServiceStub&                rss = *impl_->svcstore[svcstoreidx].vec[svcidx];
+            std::lock_guard<std::mutex> lock(rss.rmtx);
 
             chkidx = rss.firstchk;
         }
@@ -879,7 +879,7 @@ size_t Manager::doForEachServiceObject(const size_t _chkidx, const ObjectVisitFu
 
         ObjectChunk& rchk = *impl_->objstore[objstoreidx].vec[crtchkidx];
 
-        std::unique_lock<std::mutex> lock(rchk.rmtx);
+        std::lock_guard<std::mutex> lock(rchk.rmtx);
 
         impl_->releaseReadObjectStore(objstoreidx);
 
@@ -908,7 +908,7 @@ Service& Manager::service(const ObjectBase& _robj) const
         const size_t objstoreidx = impl_->aquireReadObjectStore();
         ObjectChunk& rchk(*impl_->chunk(objstoreidx, static_cast<size_t>(_robj.id())));
 
-        std::unique_lock<std::mutex> lock(rchk.rmtx);
+        std::lock_guard<std::mutex> lock(rchk.rmtx);
 
         SOLID_ASSERT(rchk.object(_robj.id() % impl_->objchkcnt).pobject == &_robj);
 
@@ -928,11 +928,10 @@ bool Manager::startService(Service& _rsvc)
     if (!_rsvc.isRegistered()) {
         return false;
     }
-    const size_t svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
-    const size_t svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
-    ServiceStub& rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
-
-    std::unique_lock<std::mutex> lock(rss.rmtx);
+    const size_t                svcidx      = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
+    const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
+    ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
+    std::lock_guard<std::mutex> lock(rss.rmtx);
 
     impl_->releaseReadServiceStore(svcstoreidx);
 
@@ -1046,7 +1045,7 @@ void Manager::stop()
         if (*it) {
             ServiceStub& rss = *(*it);
 
-            std::unique_lock<std::mutex> lock(rss.rmtx);
+            std::lock_guard<std::mutex> lock(rss.rmtx);
 
             if (rss.psvc && rss.state == StateRunningE) {
                 rss.psvc->resetRunning();
@@ -1083,7 +1082,7 @@ void Manager::stop()
     impl_->releaseReadServiceStore(svcstoreidx);
 
     {
-        std::unique_lock<std::mutex> lock(impl_->mtx);
+        std::lock_guard<std::mutex> lock(impl_->mtx);
         impl_->state = StateStoppedE;
         impl_->cnd.notify_all();
     }

@@ -648,7 +648,7 @@ bool Reactor::start()
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
-        unique_lock<std::mutex> lock(impl_->mtx);
+        lock_guard<std::mutex> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].emplace_back(_robjuid, std::move(_uevent));
         raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
@@ -668,7 +668,7 @@ bool Reactor::start()
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
-        unique_lock<std::mutex> lock(impl_->mtx);
+        lock_guard<std::mutex> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].push_back(RaiseEventStub(_robjuid, _revent));
         raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
@@ -698,8 +698,8 @@ bool Reactor::push(TaskT& _robj, Service& _rsvc, Event&& _uevent)
     bool   rv        = true;
     size_t pushvecsz = 0;
     {
-        unique_lock<std::mutex> lock(impl_->mtx);
-        const UniqueId          uid = this->popUid(*_robj);
+        lock_guard<std::mutex> lock(impl_->mtx);
+        const UniqueId         uid = this->popUid(*_robj);
 
         vdbgx(Debug::aio, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _uevent);
 
@@ -1217,7 +1217,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
         size_t crtpushvecidx;
         size_t crtraisevecidx;
         {
-            unique_lock<std::mutex> lock(impl_->mtx);
+            lock_guard<std::mutex> lock(impl_->mtx);
 
             crtpushvecidx  = impl_->crtpushtskvecidx;
             crtraisevecidx = impl_->crtraisevecidx;
@@ -1256,7 +1256,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
                 //NOTE: we must lock the mutex of the object
                 //in order to ensure that object is fully registered onto the manager
 
-                unique_lock<std::mutex> lock(rnewobj.rsvc.mutex(*rnewobj.objptr));
+                lock_guard<std::mutex> lock(rnewobj.rsvc.mutex(*rnewobj.objptr));
             }
 
             ros.objptr = std::move(rnewobj.objptr);

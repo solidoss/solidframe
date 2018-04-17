@@ -303,7 +303,7 @@ protected:
         if (!wcan_swap)
             return false;
         {
-            std::unique_lock<std::mutex> lock{_rctx.objectMutex()};
+            std::lock_guard<std::mutex> lock{_rctx.objectMutex()};
             std::swap(wpop_ed_vec, wpush_ed_vec);
         }
         wcan_swap = false;
@@ -561,7 +561,7 @@ struct ResolvFunc {
         BufferPtrT  tmpbufptr;
         BufferBase* pbufend;
         {
-            std::unique_lock<std::mutex> lock{_rctx.objectMutex()};
+            std::lock_guard<std::mutex> lock{_rctx.objectMutex()};
             tmpbufptr     = std::move(rpushbufptr_);
             pbufend       = prpushbufend_;
             prpushbufend_ = nullptr;

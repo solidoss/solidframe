@@ -106,7 +106,7 @@ struct Message : frame::mpipc::Message {
         }
 
         if (_rthis.isOnPeer()) {
-            unique_lock<mutex> lock(mtx);
+            lock_guard<mutex> lock(mtx);
             if (!start_sleep) {
                 start_sleep = true;
                 cnd.notify_one();
@@ -225,7 +225,7 @@ void client_complete_message(
         ++crtbackidx;
 
         if (crtbackidx == writecount) {
-            unique_lock<mutex> lock(mtx);
+            lock_guard<mutex> lock(mtx);
             running = false;
             cnd.notify_one();
         }

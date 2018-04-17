@@ -118,7 +118,7 @@ struct Message : frame::mpipc::Message {
                         recipinet_id,
                         [](frame::mpipc::ConnectionContext& _rctx) {
                             idbg("------------------");
-                            unique_lock<mutex> lock(mtx);
+                            lock_guard<mutex> lock(mtx);
                             running = false;
                             cnd.notify_one();
                         });

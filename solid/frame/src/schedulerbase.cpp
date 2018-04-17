@@ -250,7 +250,7 @@ ErrorConditionT SchedulerBase::doStart(
         }
     }
 
-    unique_lock<mutex> lock(impl_->mtx);
+    lock_guard<mutex> lock(impl_->mtx);
     impl_->status = StatusStoppedE;
     impl_->cnd.notify_all();
     return error_worker();
@@ -301,7 +301,7 @@ void SchedulerBase::doStop(bool _wait /* = true*/)
                 it->clear();
             }
         }
-        unique_lock<mutex> lock(impl_->mtx);
+        lock_guard<mutex> lock(impl_->mtx);
         impl_->status = StatusStoppedE;
         impl_->cnd.notify_all();
     }
@@ -366,8 +366,8 @@ bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase& _rreactor, con
 {
     const bool thrensuccess = impl_->threnfnc();
     {
-        unique_lock<mutex> lock(impl_->mtx);
-        ReactorStub&       rrs = impl_->reactorvec[_idx];
+        lock_guard<mutex> lock(impl_->mtx);
+        ReactorStub&      rrs = impl_->reactorvec[_idx];
 
         if (_success && impl_->status == StatusStartingWaitE && thrensuccess) {
             rrs.preactor = &_rreactor;
@@ -388,9 +388,9 @@ bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase& _rreactor, con
 void SchedulerBase::unprepareThread(const size_t _idx, ReactorBase& _rreactor)
 {
     {
-        unique_lock<mutex> lock(impl_->mtx);
-        ReactorStub&       rrs = impl_->reactorvec[_idx];
-        rrs.preactor           = nullptr;
+        lock_guard<mutex> lock(impl_->mtx);
+        ReactorStub&      rrs = impl_->reactorvec[_idx];
+        rrs.preactor          = nullptr;
         --impl_->reactorcnt;
         impl_->cnd.notify_one();
     }

@@ -160,7 +160,7 @@ void client_complete_message(
     SOLID_CHECK(_rerror == frame::mpipc::error_message_canceled);
 
     {
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
     }

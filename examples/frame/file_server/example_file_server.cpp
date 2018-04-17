@@ -69,7 +69,7 @@ void               term_handler(int signum)
     case SIGINT:
     case SIGTERM: {
         if (run) {
-            unique_lock<mutex> lock(mtx);
+            lock_guard<mutex> lock(mtx);
             run = false;
             cnd.notify_all();
         }

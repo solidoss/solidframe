@@ -768,7 +768,7 @@ TempMemory::TempMemory(
 
 /*virtual*/ bool TempMemory::open(const char* _path, const size_t _openflags, bool /*_remove*/, ErrorCodeT& _rerr)
 {
-    unique_lock<mutex> lock(shared_mutex(this));
+    lock_guard<mutex> lock(shared_mutex(this));
     mf.truncate(0);
     return true;
 }
@@ -777,23 +777,23 @@ TempMemory::TempMemory(
 }
 /*virtual*/ ssize_t TempMemory::read(char* _pb, size_t _bl, int64_t _off)
 {
-    unique_lock<mutex> lock(shared_mutex(this));
+    lock_guard<mutex> lock(shared_mutex(this));
     return mf.read(_pb, _bl, _off);
 }
 /*virtual*/ ssize_t TempMemory::write(const char* _pb, size_t _bl, int64_t _off)
 {
-    unique_lock<mutex> lock(shared_mutex(this));
+    lock_guard<mutex> lock(shared_mutex(this));
     return mf.write(_pb, _bl, _off);
 }
 /*virtual*/ int64_t TempMemory::size() const
 {
-    unique_lock<mutex> lock(shared_mutex(this));
+    lock_guard<mutex> lock(shared_mutex(this));
     return mf.size();
 }
 
 /*virtual*/ bool TempMemory::truncate(int64_t _len)
 {
-    unique_lock<mutex> lock(shared_mutex(this));
+    lock_guard<mutex> lock(shared_mutex(this));
     return mf.truncate(_len) == 0;
 }
 

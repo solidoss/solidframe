@@ -421,7 +421,7 @@ int test_pool_delay_close(int argc, char* argv[])
                 recipinet_id,
                 [](frame::mpipc::ConnectionContext& _rctx) {
                     idbg("------------------");
-                    unique_lock<mutex> lock(mtx);
+                    lock_guard<mutex> lock(mtx);
                     running = false;
                     cnd.notify_one();
                 });

@@ -125,7 +125,7 @@ void BasicObject::onTimer(frame::ReactorContext& _rctx, size_t _idx)
             SOLID_ASSERT(!_rctx.error());
         } else {
             t2.cancel(_rctx);
-            unique_lock<mutex> lock(mtx);
+            lock_guard<mutex> lock(mtx);
             running = false;
             cnd.notify_one();
             postStop(_rctx);

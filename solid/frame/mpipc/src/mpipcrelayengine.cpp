@@ -338,7 +338,7 @@ Manager& EngineCore::manager()
 //-----------------------------------------------------------------------------
 void EngineCore::stopConnection(const UniqueId& _rrelay_con_uid)
 {
-    unique_lock<mutex> lock(impl_->mtx_);
+    lock_guard<mutex> lock(impl_->mtx_);
     if (_rrelay_con_uid.isValid()) {
         doStopConnection(static_cast<size_t>(_rrelay_con_uid.index));
     }
@@ -464,8 +464,8 @@ void EngineCore::doStopConnection(const size_t _conidx)
 //-----------------------------------------------------------------------------
 void EngineCore::doExecute(ExecuteFunctionT& _rfnc)
 {
-    Proxy              proxy(*this);
-    unique_lock<mutex> lock(impl_->mtx_);
+    Proxy             proxy(*this);
+    lock_guard<mutex> lock(impl_->mtx_);
     _rfnc(proxy);
 }
 //-----------------------------------------------------------------------------
@@ -503,8 +503,8 @@ bool EngineCore::doRelayStart(
     MessageId&       _rrelay_id,
     ErrorConditionT& _rerror)
 {
-    size_t             msgidx;
-    unique_lock<mutex> lock(impl_->mtx_);
+    size_t            msgidx;
+    lock_guard<mutex> lock(impl_->mtx_);
     SOLID_ASSERT(_rcon_uid.isValid());
 
     size_t snd_conidx = static_cast<size_t>(_rrelay_con_uid.index);
@@ -562,7 +562,7 @@ bool EngineCore::doRelay(
     const MessageId& _rrelay_id,
     ErrorConditionT& _rerror)
 {
-    unique_lock<mutex> lock(impl_->mtx_);
+    lock_guard<mutex> lock(impl_->mtx_);
 
     SOLID_ASSERT(_rrelay_id.isValid());
     SOLID_ASSERT(_rrelay_con_uid.isValid());
@@ -620,7 +620,7 @@ bool EngineCore::doRelayResponse(
     const MessageId& _rrelay_id,
     ErrorConditionT& _rerror)
 {
-    unique_lock<mutex> lock(impl_->mtx_);
+    lock_guard<mutex> lock(impl_->mtx_);
 
     SOLID_ASSERT(_rrelay_id.isValid());
     SOLID_ASSERT(_rrelay_con_uid.isValid());
@@ -684,7 +684,7 @@ bool EngineCore::doRelayResponse(
 // called by the receiver connection on new relay data
 void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_push_fnc, bool& _rmore)
 {
-    unique_lock<mutex> lock(impl_->mtx_);
+    lock_guard<mutex> lock(impl_->mtx_);
 
     SOLID_ASSERT(_rrelay_con_uid.isValid());
     SOLID_ASSERT(impl_->isValid(_rrelay_con_uid));
@@ -756,7 +756,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
 // have messages canceled by receiving connections
 void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _done_fnc, CancelFunctionT& _cancel_fnc)
 {
-    unique_lock<mutex> lock(impl_->mtx_);
+    lock_guard<mutex> lock(impl_->mtx_);
 
     SOLID_ASSERT(_rrelay_con_uid.isValid());
     SOLID_ASSERT(impl_->isValid(_rrelay_con_uid));
@@ -805,7 +805,7 @@ void EngineCore::doComplete(
     MessageId const& _rengine_msg_id,
     bool&            _rmore)
 {
-    unique_lock<mutex> lock(impl_->mtx_);
+    lock_guard<mutex> lock(impl_->mtx_);
 
     SOLID_ASSERT(_rrelay_con_uid.isValid());
     SOLID_ASSERT(impl_->isValid(_rrelay_con_uid));
@@ -873,7 +873,7 @@ void EngineCore::doCancel(
     MessageId const& _rengine_msg_id,
     DoneFunctionT&   _done_fnc)
 {
-    unique_lock<mutex> lock(impl_->mtx_);
+    lock_guard<mutex> lock(impl_->mtx_);
 
     SOLID_ASSERT(_rrelay_con_uid.isValid());
     SOLID_ASSERT(impl_->isValid(_rrelay_con_uid));
@@ -1003,8 +1003,8 @@ void EngineCore::doRegisterConnectionId(const ConnectionContext& _rconctx, const
 //-----------------------------------------------------------------------------
 void EngineCore::debugDump()
 {
-    unique_lock<mutex> lock(impl_->mtx_);
-    int                i = 0;
+    lock_guard<mutex> lock(impl_->mtx_);
+    int               i = 0;
     for (const auto& msg : impl_->msg_dq_) {
         size_t datacnt = 0;
         {

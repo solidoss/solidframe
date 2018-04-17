@@ -213,7 +213,7 @@ void peera_complete_message(
     ++crtbackidx;
 
     if (crtbackidx == writecount) {
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
     }

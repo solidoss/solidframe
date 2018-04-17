@@ -97,7 +97,7 @@ bool try_stop()
     edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
     if (
         crtwriteidx >= writecount && canceled_count == cancelable_created_count && 2 * cancelable_created_count == cancelable_deleted_count && response_count == (writecount - canceled_count)) {
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
         return true;

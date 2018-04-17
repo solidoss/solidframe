@@ -161,7 +161,7 @@ void client_complete_message(
         _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && !_rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
 
     {
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
     }

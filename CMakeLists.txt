@@ -45,9 +45,6 @@ endif()
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
 
-#force a single configuration type on Windows builds
-set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
-
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
     set(CMAKE_VERBOSE_MAKEFILE ON)
     set(SOLID_HAS_DEBUG TRUE)
@@ -96,6 +93,11 @@ set(SYS_RELEASE_LINKER_FLAGS "")
 
 set(SYS_BASIC_LIBS "")
 set(SYS_DYNAMIC_LOAD_LIB "")
+
+#-----------------------------------------------------------------
+# Per OS configuration
+#-----------------------------------------------------------------
+
 message("")
 message("CMake's system: ${CMAKE_SYSTEM}")
 message("")
@@ -239,7 +241,7 @@ if(CMAKE_SYSTEM MATCHES "Android*")
 endif(CMAKE_SYSTEM MATCHES "Android*")
 
 if(NOT ON_FOUND)
-    message("\r\n === Sorry unsupported system - please contact project owner ===\r\n")
+    message("\r\n === Unsupported system - please contact project owner ===\r\n")
     return()
 endif(NOT ON_FOUND)
 
@@ -310,6 +312,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BIN
 
 
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp DESTINATION include/solid)
+
+#-----------------------------------------------------------------
+# C++ Standard
+#-----------------------------------------------------------------
 
 if (CMAKE_VERSION VERSION_LESS "3.1")
     set (CMAKE_CXX_FLAGS "--std=c++14 ${CMAKE_CXX_FLAGS}")

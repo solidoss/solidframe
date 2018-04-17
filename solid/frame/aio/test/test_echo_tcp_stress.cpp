@@ -223,7 +223,7 @@ private:
     void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
     void onStop(frame::Manager& _rm) override
     {
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         --concnt;
         recv_count += recvcnt;
         if (concnt == 0) {

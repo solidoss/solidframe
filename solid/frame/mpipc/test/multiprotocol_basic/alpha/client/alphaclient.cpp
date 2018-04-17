@@ -43,7 +43,7 @@ void complete_message<alpha_protocol::FirstMessage>(
     SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
     SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
     {
-        unique_lock<mutex> lock(pctx->rmtx);
+        lock_guard<mutex> lock(pctx->rmtx);
         --pctx->rwait_count;
         if (pctx->rwait_count == 0) {
             pctx->rcnd.notify_one();
@@ -64,7 +64,7 @@ void complete_message<alpha_protocol::SecondMessage>(
     SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
     SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
     {
-        unique_lock<mutex> lock(pctx->rmtx);
+        lock_guard<mutex> lock(pctx->rmtx);
         --pctx->rwait_count;
         if (pctx->rwait_count == 0) {
             pctx->rcnd.notify_one();
@@ -85,7 +85,7 @@ void complete_message<alpha_protocol::ThirdMessage>(
     SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
     SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
     {
-        unique_lock<mutex> lock(pctx->rmtx);
+        lock_guard<mutex> lock(pctx->rmtx);
         --pctx->rwait_count;
         if (pctx->rwait_count == 0) {
             pctx->rcnd.notify_one();

@@ -315,7 +315,7 @@ bool Reactor::start()
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
-        unique_lock<mutex> lock(impl_->mtx);
+        lock_guard<mutex> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].push_back(RaiseEventStub(_robjuid, _revent));
         raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
@@ -333,7 +333,7 @@ bool Reactor::start()
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
-        unique_lock<mutex> lock(impl_->mtx);
+        lock_guard<mutex> lock(impl_->mtx);
 
         impl_->raisevec[impl_->crtraisevecidx].push_back(RaiseEventStub(_robjuid, std::move(_uevent)));
         raisevecsz           = impl_->raisevec[impl_->crtraisevecidx].size();
@@ -348,7 +348,7 @@ bool Reactor::start()
 /*virtual*/ void Reactor::stop()
 {
     vdbgx(Debug::aio, "");
-    unique_lock<mutex> lock(impl_->mtx);
+    lock_guard<mutex> lock(impl_->mtx);
     impl_->must_stop = true;
     impl_->cnd.notify_one();
 }
@@ -360,8 +360,8 @@ bool Reactor::push(TaskT& _robj, Service& _rsvc, Event const& _revent)
     bool   rv        = true;
     size_t pushvecsz = 0;
     {
-        unique_lock<mutex> lock(impl_->mtx);
-        const UniqueId     uid = this->popUid(*_robj);
+        lock_guard<mutex> lock(impl_->mtx);
+        const UniqueId    uid = this->popUid(*_robj);
 
         vdbgx(Debug::aio, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _revent);
 
@@ -609,7 +609,7 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
                 //NOTE: we must lock the mutex of the object
                 //in order to ensure that object is fully registered onto the manager
 
-                unique_lock<std::mutex> lock(rnewobj.rsvc.mutex(*rnewobj.objptr));
+                lock_guard<std::mutex> lock(rnewobj.rsvc.mutex(*rnewobj.objptr));
             }
 
             ros.objptr = std::move(rnewobj.objptr);
@@ -678,9 +678,9 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Object const& _
         impl_->chdq.push_back(CompletionHandlerStub());
     }
     CompletionHandlerStub& rcs = impl_->chdq[idx];
-    rcs.objidx                 = static_cast<size_t>(_robj.ObjectBase::runId().index);
-    rcs.pch                    = &_rch;
-    //rcs.waitreq = ReactorWaitNone;
+
+    rcs.objidx      = static_cast<size_t>(_robj.ObjectBase::runId().index);
+    rcs.pch         = &_rch;
     _rch.idxreactor = idx;
     {
         NanoTime       dummytime;

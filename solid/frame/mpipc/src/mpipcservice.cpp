@@ -624,8 +624,8 @@ Configuration const& Service::configuration() const
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::start()
 {
-    std::unique_lock<std::mutex> lock(impl_->mtx);
-    ErrorConditionT              err = doStart();
+    lock_guard<std::mutex> lock(impl_->mtx);
+    ErrorConditionT        err = doStart();
     return err;
 }
 //-----------------------------------------------------------------------------
@@ -707,7 +707,7 @@ ErrorConditionT Service::reconfigure(Configuration&& _ucfg)
 
     BaseT::stop(true); //block until all objects are destroyed
 
-    unique_lock<std::mutex> lock(impl_->mtx);
+    lock_guard<std::mutex> lock(impl_->mtx);
 
     {
         ErrorConditionT error;
@@ -774,8 +774,8 @@ ErrorConditionT Service::createConnectionPool(const char* _recipient_url, const 
     size_t                 pool_index;
     std::string            message_url;
 
-    unique_lock<std::mutex> lock(impl_->mtx);
-    const char*             recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
+    lock_guard<std::mutex> lock(impl_->mtx);
+    const char*            recipient_name = configuration().extract_recipient_name_fnc(_recipient_url, message_url, impl_->tmp_str);
 
     if (recipient_name == nullptr || recipient_name[0] == '\0') {
         edbgx(Debug::mpipc, this << " failed extracting recipient name");
@@ -789,8 +789,8 @@ ErrorConditionT Service::createConnectionPool(const char* _recipient_url, const 
         if (it != impl_->namemap.end()) {
             pool_index = it->second;
 
-            unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-            ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+            lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+            ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
             rpool.persistent_connection_count = static_cast<uint16_t>(_persistent_connection_count);
             doTryCreateNewConnectionForPool(pool_index, error);
@@ -802,8 +802,8 @@ ErrorConditionT Service::createConnectionPool(const char* _recipient_url, const 
                 pool_index = this->doPushNewConnectionPool();
             }
 
-            unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-            ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+            lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+            ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
             rpool.name                        = recipient_name;
             rpool.persistent_connection_count = static_cast<uint16_t>(_persistent_connection_count);
@@ -838,8 +838,7 @@ ErrorConditionT Service::doSendMessage(
     size_t                 pool_index;
     uint32_t               unique    = -1;
     bool                   check_uid = false;
-
-    unique_lock<std::mutex> lock(impl_->mtx);
+    lock_guard<std::mutex> lock(impl_->mtx);
 
     if (!isRunning()) {
         edbgx(Debug::mpipc, this << " service stopping");
@@ -925,8 +924,8 @@ ErrorConditionT Service::doSendMessage(
         return error;
     }
 
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     if (check_uid && rpool.unique != unique) {
         //failed uid check
@@ -1036,10 +1035,10 @@ ErrorConditionT Service::doSendMessageToConnection(
         return error_service_unknown_connection;
     }
 
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool = impl_->pooldq[pool_index];
-    solid::ErrorConditionT  error;
-    const bool              is_server_side_pool = rpool.isServerSide(); //unnamed pool has a single connection
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool = impl_->pooldq[pool_index];
+    solid::ErrorConditionT error;
+    const bool             is_server_side_pool = rpool.isServerSide(); //unnamed pool has a single connection
 
     MessageId msgid;
 
@@ -1101,8 +1100,8 @@ ErrorConditionT Service::doSendMessageToNewPool(
         pool_index = this->doPushNewConnectionPool();
     }
 
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     rpool.name = _recipient_name;
 
@@ -1236,9 +1235,9 @@ ErrorConditionT Service::pollPoolForUpdates(
 
     vdbgx(Debug::mpipc, this << " " << &_rconnection);
 
-    const size_t            pool_index = static_cast<size_t>(_rconnection.poolId().index);
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    const size_t           pool_index = static_cast<size_t>(_rconnection.poolId().index);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     ErrorConditionT error;
 
@@ -1345,9 +1344,9 @@ void Service::rejectNewPoolMessage(Connection const& _rconnection)
 
     vdbgx(Debug::mpipc, this);
 
-    const size_t            pool_index = static_cast<size_t>(_rconnection.poolId().index);
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    const size_t           pool_index = static_cast<size_t>(_rconnection.poolId().index);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     SOLID_ASSERT(rpool.unique == _rconnection.poolId().unique);
     if (rpool.unique != _rconnection.poolId().unique)
@@ -1385,11 +1384,11 @@ ErrorConditionT Service::doDelayCloseConnectionPool(
 
     vdbgx(Debug::mpipc, this);
 
-    ErrorConditionT         error;
-    const size_t            pool_index = static_cast<size_t>(_rrecipient_id.poolId().index);
-    unique_lock<std::mutex> lock(impl_->mtx);
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    ErrorConditionT        error;
+    const size_t           pool_index = static_cast<size_t>(_rrecipient_id.poolId().index);
+    lock_guard<std::mutex> lock(impl_->mtx);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     if (rpool.unique != _rrecipient_id.poolId().unique) {
         return error_service_unknown_connection;
@@ -1429,11 +1428,11 @@ ErrorConditionT Service::doForceCloseConnectionPool(
 
     vdbgx(Debug::mpipc, this);
 
-    ErrorConditionT         error;
-    const size_t            pool_index = static_cast<size_t>(_rrecipient_id.poolId().index);
-    unique_lock<std::mutex> lock(impl_->mtx);
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    ErrorConditionT        error;
+    const size_t           pool_index = static_cast<size_t>(_rrecipient_id.poolId().index);
+    lock_guard<std::mutex> lock(impl_->mtx);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     if (pool_index >= impl_->pooldq.size() || rpool.unique != _rrecipient_id.poolId().unique) {
         return error_service_unknown_connection;
@@ -1474,11 +1473,10 @@ ErrorConditionT Service::cancelMessage(RecipientId const& _rrecipient_id, Messag
 
     vdbgx(Debug::mpipc, this);
 
-    ErrorConditionT error;
-    const size_t    pool_index = static_cast<size_t>(_rrecipient_id.poolId().index);
-    //unique_lock<std::mutex>   lock(impl_->mtx);
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    ErrorConditionT        error;
+    const size_t           pool_index = static_cast<size_t>(_rrecipient_id.poolId().index);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     if (rpool.unique != _rrecipient_id.poolId().unique) {
         return error_service_unknown_connection;
@@ -1649,9 +1647,9 @@ bool Service::fetchMessage(Connection& _rcon, ObjectIdT const& _robjuid, Message
 
     vdbgx(Debug::mpipc, this);
 
-    unique_lock<std::mutex> lock2(impl_->poolMutex(static_cast<size_t>(_rcon.poolId().index)));
-    const size_t            pool_index = static_cast<size_t>(_rcon.poolId().index);
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(static_cast<size_t>(_rcon.poolId().index)));
+    const size_t           pool_index = static_cast<size_t>(_rcon.poolId().index);
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     if (
         _rmsg_id.index < rpool.msgvec.size() && rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
@@ -1665,9 +1663,9 @@ bool Service::fetchCanceledMessage(Connection const& _rcon, MessageId const& _rm
 
     vdbgx(Debug::mpipc, this);
 
-    unique_lock<std::mutex> lock2(impl_->poolMutex(static_cast<size_t>(_rcon.poolId().index)));
-    const size_t            pool_index = static_cast<size_t>(_rcon.poolId().index);
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(static_cast<size_t>(_rcon.poolId().index)));
+    const size_t           pool_index = static_cast<size_t>(_rcon.poolId().index);
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     if (
         _rmsg_id.index < rpool.msgvec.size() && rpool.msgvec[_rmsg_id.index].unique == _rmsg_id.unique) {
@@ -1708,10 +1706,10 @@ bool Service::connectionStopping(
 {
 
     vdbgx(Debug::mpipc, this);
-    unique_lock<std::mutex> lock(impl_->mtx);
-    const size_t            pool_index = static_cast<size_t>(_rcon.poolId().index);
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    lock_guard<std::mutex> lock(impl_->mtx);
+    const size_t           pool_index = static_cast<size_t>(_rcon.poolId().index);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     _rseconds_to_wait = 0;
     _rmsg_bundle.clear();
@@ -2059,10 +2057,10 @@ void Service::connectionStop(Connection const& _rcon)
 
     idbgx(Debug::mpipc, this << ' ' << &_rcon);
 
-    const size_t            pool_index = static_cast<size_t>(_rcon.poolId().index);
-    unique_lock<std::mutex> lock(impl_->mtx);
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
+    const size_t           pool_index = static_cast<size_t>(_rcon.poolId().index);
+    lock_guard<std::mutex> lock(impl_->mtx);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     SOLID_ASSERT(rpool.unique == _rcon.poolId().unique);
     if (rpool.unique != _rcon.poolId().unique)
@@ -2143,8 +2141,8 @@ void Service::forwardResolveMessage(ConnectionPoolId const& _rpoolid, Event& _re
     ErrorConditionT error;
 
     if (presolvemsg->addrvec.size()) {
-        unique_lock<std::mutex> lock(impl_->poolMutex(static_cast<size_t>(_rpoolid.index)));
-        ConnectionPoolStub&     rpool(impl_->pooldq[static_cast<size_t>(_rpoolid.index)]);
+        lock_guard<std::mutex> lock(impl_->poolMutex(static_cast<size_t>(_rpoolid.index)));
+        ConnectionPoolStub&    rpool(impl_->pooldq[static_cast<size_t>(_rpoolid.index)]);
 
         if (rpool.pending_connection_count < configuration().pool_max_pending_connection_count) {
 
@@ -2164,7 +2162,7 @@ void Service::forwardResolveMessage(ConnectionPoolId const& _rpoolid, Event& _re
             rpool.connect_addr_vec = std::move(presolvemsg->addrvec);
         }
     } else {
-        unique_lock<std::mutex> lock(impl_->poolMutex(static_cast<size_t>(_rpoolid.index)));
+        lock_guard<std::mutex> lock(impl_->poolMutex(static_cast<size_t>(_rpoolid.index)));
 
         doTryCreateNewConnectionForPool(static_cast<size_t>(_rpoolid.index), error);
     }
@@ -2228,10 +2226,10 @@ ErrorConditionT Service::activateConnection(Connection& _rconnection, ObjectIdT 
 
     vdbgx(Debug::mpipc, this);
 
-    const size_t            pool_index = static_cast<size_t>(_rconnection.poolId().index);
-    unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
-    ErrorConditionT         error;
+    const size_t           pool_index = static_cast<size_t>(_rconnection.poolId().index);
+    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
+    ErrorConditionT        error;
 
     SOLID_ASSERT(rpool.unique == _rconnection.poolId().unique);
     if (rpool.unique != _rconnection.poolId().unique) {
@@ -2285,9 +2283,9 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
 
     configuration().server.socket_device_setup_fnc(_rsd);
 
-    size_t                  pool_index;
-    unique_lock<std::mutex> lock(impl_->mtx);
-    bool                    from_cache = impl_->conpoolcachestk.size() != 0;
+    size_t                 pool_index;
+    lock_guard<std::mutex> lock(impl_->mtx);
+    bool                   from_cache = impl_->conpoolcachestk.size() != 0;
 
     if (from_cache) {
         pool_index = impl_->conpoolcachestk.top();
@@ -2297,7 +2295,7 @@ void Service::acceptIncomingConnection(SocketDevice& _rsd)
     }
 
     {
-        unique_lock<std::mutex> lock2(impl_->poolMutex(pool_index));
+        lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
 
         ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 

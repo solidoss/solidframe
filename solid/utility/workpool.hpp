@@ -414,7 +414,7 @@ private:
 
     bool enterWorker(WorkerT& _rw)
     {
-        std::unique_lock<std::mutex> lock(mtx);
+        std::lock_guard<std::mutex> lock(mtx);
         if (!ctrl.prepareWorker(_rw)) {
             return false;
         }
@@ -424,7 +424,7 @@ private:
     }
     void exitWorker(WorkerT& _rw)
     {
-        std::unique_lock<std::mutex> lock(mtx);
+        std::lock_guard<std::mutex> lock(mtx);
         ctrl.unprepareWorker(_rw);
         --wkrcnt;
         SOLID_ASSERT(wkrcnt >= 0);

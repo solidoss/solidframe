@@ -56,7 +56,7 @@ std::mutex& global_mutex()
 
 std::mutex& shared_mutex_safe(const void* _p)
 {
-    std::unique_lock<std::mutex> lock(global_mutex());
+    std::lock_guard<std::mutex> lock(global_mutex());
     return mutexStore().safeAt(reinterpret_cast<size_t>(_p));
 }
 std::mutex& shared_mutex(const void* _p)

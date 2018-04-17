@@ -81,7 +81,7 @@ bool try_stop()
     edbg("writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " deleted_cnt = " << deleted_count);
     if (
         crtwriteidx >= writecount && canceled_count == writecount && created_count == deleted_count && created_count == 2 * writecount) {
-        unique_lock<mutex> lock(mtx);
+        lock_guard<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
         return true;
