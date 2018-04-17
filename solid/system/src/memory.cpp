@@ -20,8 +20,10 @@
 #include <malloc.h>
 #endif
 
+namespace{
 size_t getMemorySize();
 size_t getMemoryPageSize();
+}//namespace
 
 namespace solid {
 
@@ -61,6 +63,8 @@ size_t memory_size()
 
 } //namespace solid
 
+
+namespace{
 /**
  * Returns the size of physical memory (RAM) in bytes.
  */
@@ -75,8 +79,8 @@ size_t getMemoryPageSize()
 #endif
 }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    /*
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
  * Author:  David Robert Nadeau
  * Site:    http://NadeauSoftware.com/
  * License: Creative Commons Attribution 3.0 Unported License
@@ -171,3 +175,5 @@ size_t getMemorySize()
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+}//namespace
