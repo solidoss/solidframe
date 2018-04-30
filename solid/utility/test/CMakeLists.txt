@@ -8,7 +8,6 @@ set( UtilityTestSuite
     test_workpool.cpp
     test_workpool_fast.cpp
     test_ioformat.cpp
-    test_flags.cpp
     test_function.cpp
     test_function_perf.cpp
 )

@@ -765,23 +765,26 @@ namespace {
 const char* src_file_name(char const* _fname)
 {
 #ifdef SOLID_ON_WINDOWS
-    static const size_t fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
-    return _fname + fileoff;
+    static const bool    solid_found = strstr(__FILE__, "solid\\system\\src") != nullptr;
+    static const size_t  fileoff     = (strlen(__FILE__) - strlen(strstr(__FILE__, "solid\\system\\src")));
+    constexpr const char sep         = '\\';
 #else
-    static bool         solid_found = strstr(__FILE__, "solid/system/src") != nullptr;
-    static const size_t fileoff     = (strlen(__FILE__) - strlen(strstr(__FILE__, "solid/system/src")));
+    static const bool    solid_found = strstr(__FILE__, "solid/system/src") != nullptr;
+    static const size_t  fileoff     = (strlen(__FILE__) - strlen(strstr(__FILE__, "solid/system/src")));
+    constexpr const char sep         = '/';
+#endif
+
     if (solid_found) {
         if (
-            _fname[fileoff + 0] == 's' && _fname[fileoff + 1] == 'o' && _fname[fileoff + 2] == 'l' && _fname[fileoff + 3] == 'i' && _fname[fileoff + 4] == 'd' && _fname[fileoff + 5] == '/') {
+            _fname[fileoff + 0] == 's' && _fname[fileoff + 1] == 'o' && _fname[fileoff + 2] == 'l' && _fname[fileoff + 3] == 'i' && _fname[fileoff + 4] == 'd' && _fname[fileoff + 5] == sep) {
             return _fname + fileoff;
         }
     }
-    const char* file_name = strrchr(_fname, '/');
+    const char* file_name = strrchr(_fname, sep);
     if (file_name != nullptr) {
         return file_name + 1;
     }
     return _fname;
-#endif
 }
 
 } //namespace
@@ -807,7 +810,7 @@ std::ostream& Debug::print(
     localtime_s(&loctm, &t_now);
     ploctm = &loctm;
 #else
-    tm loctm;
+    tm                   loctm;
     ploctm = localtime_r(&t_now, &loctm);
 #endif
     snprintf(

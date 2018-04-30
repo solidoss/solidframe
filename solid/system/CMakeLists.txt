@@ -27,6 +27,7 @@ set(Headers
     socketinfo.hpp
     nanotime.hpp
     pimpl.hpp
+    flags.hpp
 )
 
 set(Inlines

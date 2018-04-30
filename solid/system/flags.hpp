@@ -1,4 +1,4 @@
-// solid/utility/flags.hpp
+// solid/system/flags.hpp
 //
 // Copyright (c) 2017 Valentin Palade (vipalade @ gmail . com)
 //
@@ -21,6 +21,7 @@ class Flags {
 public:
     using UTypeT                  = typename std::underlying_type<E>::type;
     using ThisT                   = Flags<E, Last>;
+    using FlagT                   = E;
     static constexpr size_t count = 1 + static_cast<UTypeT>(Last);
 
 private:

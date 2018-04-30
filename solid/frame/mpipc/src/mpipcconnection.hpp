@@ -12,9 +12,9 @@
 
 #include "solid/system/socketdevice.hpp"
 
+#include "solid/system/flags.hpp"
 #include "solid/utility/any.hpp"
 #include "solid/utility/event.hpp"
-#include "solid/utility/flags.hpp"
 #include "solid/utility/queue.hpp"
 
 #include "solid/frame/aio/aioobject.hpp"

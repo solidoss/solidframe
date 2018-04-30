@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "solid/utility/flags.hpp"
+#include "solid/system/flags.hpp"
 
 namespace solid {
 namespace frame {

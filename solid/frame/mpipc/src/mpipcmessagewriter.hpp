@@ -19,7 +19,7 @@
 #include "mpipcutility.hpp"
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
 
-#include "solid/utility/flags.hpp"
+#include "solid/system/flags.hpp"
 #include "solid/utility/innerlist.hpp"
 
 namespace solid {
