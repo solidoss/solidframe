@@ -28,11 +28,11 @@
 
 namespace solid {
 
-#ifndef CRT_FUNCTION_NAME
+#ifndef SOLID_FUNCTION_NAME
 #ifdef SOLID_ON_WINDOWS
-#define CRT_FUNCTION_NAME __func__
+#define SOLID_FUNCTION_NAME __func__
 #else
-#define CRT_FUNCTION_NAME __FUNCTION__
+#define SOLID_FUNCTION_NAME __FUNCTION__
 #endif
 #endif
 
@@ -70,7 +70,7 @@ private:
             os << '[' << _file << '(' << _line << ")][" << _fnc << "] " << x; \
             return os.str();                                                  \
         },                                                                    \
-        __FILE__, __LINE__, CRT_FUNCTION_NAME)
+        __FILE__, __LINE__, SOLID_FUNCTION_NAME)
 
 #define SOLID_THROW_CONDITION(c)                                                                  \
     throw solid::RuntimeErrorCondition((c),                                                       \
@@ -79,7 +79,7 @@ private:
             os << '[' << _file << '(' << _line << ")][" << _fnc << "]: " << _err.message();       \
             return os.str();                                                                      \
         },                                                                                        \
-        __FILE__, __LINE__, CRT_FUNCTION_NAME)
+        __FILE__, __LINE__, SOLID_FUNCTION_NAME)
 
 #define SOLID_TRY_THROW_CONDITION(c)                                                                  \
     if ((c)) {                                                                                        \
@@ -89,7 +89,7 @@ private:
                 os << '[' << _file << '(' << _line << ")][" << _fnc << "]: " << _err.message();       \
                 return os.str();                                                                      \
             },                                                                                        \
-            __FILE__, __LINE__, CRT_FUNCTION_NAME);                                                   \
+            __FILE__, __LINE__, SOLID_FUNCTION_NAME);                                                   \
     } else {                                                                                          \
     }
 
