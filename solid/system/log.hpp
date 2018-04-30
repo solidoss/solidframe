@@ -52,15 +52,17 @@ public:
 
 using LoggerT = Logger<>;
 
-ErrorConditionT log_start(...);
+extern const LoggerT basic_logger;
+
+//ErrorConditionT log_start(...);
 
 } //namespace solid
 
-#ifndef CRT_FUNCTION_NAME
+#ifndef SOLID_FUNCTION_NAME
 #ifdef SOLID_ON_WINDOWS
-#define CRT_FUNCTION_NAME __func__
+#define SOLID_FUNCTION_NAME __func__
 #else
-#define CRT_FUNCTION_NAME __FUNCTION__
+#define SOLID_FUNCTION_NAME __FUNCTION__
 #endif
 #endif
 
@@ -72,4 +74,7 @@ ErrorConditionT log_start(...);
 
 #endif
 
-#define solid_log(...)
+#define solid_log(Lgr, Flg, Txt)\
+    if(Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)){\
+        Lgr.log(decltype(Lgr)::FlagT::Flg, __FILE__, SOLID_FUNCTION_NAME, __LINE__) << Txt;\
+        Lgr.done();}
