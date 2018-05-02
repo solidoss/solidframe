@@ -528,7 +528,7 @@ private:
     {
         TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(_tid);
         if (it != TypeIdMapBase::typemap.end()) {
-            TypeIdMapBase::Stub const& rstub = TypeIdMapBase::stubvec[it->second];
+            const auto& rstub = this->TypeIdMapBase::stubvec[it->second];
             rstub.storefnc(&_rs, _p, _name);
             _rs.pushCross(rstub.id, _name);
             return ErrorConditionT();
@@ -539,7 +539,7 @@ private:
     /*virtual*/ ErrorConditionT storePointer(Ser& _rs, void* _p, const size_t _type_id, const char* _name) const
     {
         if (_type_id < TypeIdMapBase::stubvec.size()) {
-            TypeIdMapBase::Stub const& rstub = TypeIdMapBase::stubvec[_type_id];
+            const auto& rstub = this->TypeIdMapBase::stubvec[_type_id];
             rstub.storefnc(&_rs, _p, _name);
             _rs.pushCross(rstub.id, _name);
             return ErrorConditionT();
@@ -570,8 +570,8 @@ private:
         TypeIdMapBase::CastMapT::const_iterator it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, stubindex));
 
         if (it != TypeIdMapBase::castmap.end()) {
-            TypeIdMapBase::Stub const& rstub   = TypeIdMapBase::stubvec[stubindex];
-            void*                      realptr = rstub.plain_factory(it->second.plain_cast, _rptr);
+            const auto& rstub   = this->TypeIdMapBase::stubvec[stubindex];
+            void*       realptr = rstub.plain_factory(it->second.plain_cast, _rptr);
 
             rstub.loadfnc(&_rd, realptr, _name);
             return ErrorConditionT();
@@ -596,8 +596,8 @@ private:
         TypeIdMapBase::CastMapT::const_iterator it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, stubindex));
 
         if (it != TypeIdMapBase::castmap.end()) {
-            TypeIdMapBase::Stub const& rstub   = TypeIdMapBase::stubvec[stubindex];
-            void*                      realptr = rstub.shared_factory(it->second.shared_cast, _rptr);
+            const auto& rstub   = this->TypeIdMapBase::stubvec[stubindex];
+            void*       realptr = rstub.shared_factory(it->second.shared_cast, _rptr);
 
             rstub.loadfnc(&_rd, realptr, _name);
             return ErrorConditionT();
@@ -769,7 +769,7 @@ private:
     {
         TypeIdMapBase::TypeIndexMapT::const_iterator it = TypeIdMapBase::typemap.find(_tid);
         if (it != TypeIdMapBase::typemap.end()) {
-            TypeIdMapBase::Stub const& rstub = TypeIdMapBase::stubvec[it->second];
+            const auto& rstub = this->TypeIdMapBase::stubvec[it->second];
             rstub.storefnc(&_rs, _p, _name);
             _rs.pushCross(rstub.id, _name);
             return ErrorConditionT();
@@ -781,7 +781,7 @@ private:
     /*virtual*/ ErrorConditionT storePointer(Ser& _rs, void* _p, const size_t _type_id, const char* _name) const
     {
         if (_type_id < TypeIdMapBase::stubvec.size()) {
-            TypeIdMapBase::Stub const& rstub = TypeIdMapBase::stubvec[_type_id];
+            const auto& rstub = this->TypeIdMapBase::stubvec[_type_id];
             rstub.storefnc(&_rs, _p, _name);
             _rs.pushCross(rstub.id, _name);
             return ErrorConditionT();
@@ -811,8 +811,8 @@ private:
         TypeIdMapBase::CastMapT::const_iterator it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, stubindex));
 
         if (it != TypeIdMapBase::castmap.end()) {
-            TypeIdMapBase::Stub const& rstub   = TypeIdMapBase::stubvec[stubindex];
-            void*                      realptr = rstub.plain_factory(it->second.plain_cast, _rptr);
+            const auto& rstub   = this->TypeIdMapBase::stubvec[stubindex];
+            void*       realptr = rstub.plain_factory(it->second.plain_cast, _rptr);
 
             rstub.loadfnc(&_rd, realptr, _name);
             return ErrorConditionT();
@@ -836,8 +836,8 @@ private:
         TypeIdMapBase::CastMapT::const_iterator it = TypeIdMapBase::castmap.find(TypeIdMapBase::CastIdT(_rtidx, stubindex));
 
         if (it != TypeIdMapBase::castmap.end()) {
-            TypeIdMapBase::Stub const& rstub   = TypeIdMapBase::stubvec[stubindex];
-            void*                      realptr = rstub.shared_factory(it->second.shared_cast, _rptr);
+            const auto& rstub   = this->TypeIdMapBase::stubvec[stubindex];
+            void*       realptr = rstub.shared_factory(it->second.shared_cast, _rptr);
 
             rstub.loadfnc(&_rd, realptr, _name);
             return ErrorConditionT();

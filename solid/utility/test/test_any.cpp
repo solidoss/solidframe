@@ -283,8 +283,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
     {
         using Array4T = std::array<size_t, 4>;
         Array4T arr{{1, 2, 3, 4}};
-        auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable
-        {
+        auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable {
             SOLID_CHECK(arr[3] == 4);
             arr[3] = 10;
         };
@@ -295,8 +294,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
     {
         using Array4T = std::array<size_t, 4>;
         Array4T arr{{1, 2, 3, 4}};
-        auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable
-        {
+        auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable {
             SOLID_CHECK(arr[3] == 4);
             arr[3] = 10;
         };
@@ -308,8 +306,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
         using Array4T = std::array<size_t, 4>;
         Array4T       arr{{1, 2, 3, 4}};
         std::ifstream ifs;
-        auto          lambda = [ arr = std::move(arr), ifs = std::move(ifs) ](const char* /*_txt*/) mutable
-        {
+        auto          lambda = [arr = std::move(arr), ifs = std::move(ifs)](const char* /*_txt*/) mutable {
             SOLID_CHECK(arr[3] == 4);
             arr[3] = 10;
         };

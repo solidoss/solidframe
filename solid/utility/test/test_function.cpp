@@ -79,8 +79,7 @@ int test_function(int /*argc*/, char* /*argv*/ [])
     {
         std::string s{"sdfadsfads"};
         Test2       t;
-        auto        lambda = [s = std::move(s)](void* _p, const char* _t)
-        {
+        auto        lambda = [s = std::move(s)](void* _p, const char* _t) {
             cout << s << " " << _p << " " << _t << endl;
         };
         t.set(lambda);
@@ -95,8 +94,7 @@ int test_function(int /*argc*/, char* /*argv*/ [])
     {
         std::string s{"sdfadsfads"};
         Test3       t;
-        auto        lambda = [s = std::move(s)](void* _p, const char* _t)
-        {
+        auto        lambda = [s = std::move(s)](void* _p, const char* _t) {
             cout << s << " " << _p << " " << _t << endl;
         };
         t.set(lambda);

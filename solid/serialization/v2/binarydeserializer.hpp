@@ -342,8 +342,7 @@ public:
     void pushFunction(D& _rd, F _f, const char* _name)
     {
         idbgx(Debug::ser_bin, _name);
-        auto lambda = [_f = std::move(_f)](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
-        {
+        auto lambda = [_f = std::move(_f)](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rd.sentinel();
             const bool             done         = _f(static_cast<D&>(_rd), _rr.name_);
             const bool             is_run_empty = _rd.isRunEmpty();
@@ -375,8 +374,7 @@ public:
     void pushFunction(D& _rd, F _f, Ctx& _rctx, const char* _name)
     {
         idbgx(Debug::ser_bin, _name);
-        auto lambda = [_f = std::move(_f)](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
-        {
+        auto lambda = [_f = std::move(_f)](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rd.sentinel();
             const bool             done         = _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
             const bool             is_run_empty = _rd.isRunEmpty();
@@ -535,8 +533,7 @@ public:
     void addStream(std::ostream& _ros, F _f, Ctx& _rctx, const char* _name)
     {
         uint64_t len    = 0;
-        auto     lambda = [ _f = std::move(_f), len ](DeserializerBase & _rd, Runnable & _rr, void* _pctx) mutable
-        {
+        auto     lambda = [_f = std::move(_f), len](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             Ctx&          rctx = *static_cast<Ctx*>(_pctx);
             std::ostream& ros  = *const_cast<std::ostream*>(static_cast<const std::ostream*>(_rr.ptr_));
             len += _rr.data_;

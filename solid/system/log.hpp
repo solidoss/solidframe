@@ -12,13 +12,13 @@
 
 #include "solid/system/common.hpp"
 #include "solid/system/error.hpp"
-#include "solid/system/flags.hpp"
 #include <ostream>
 #include <string>
+#include <atomic>
 
 namespace solid {
 
-enum struct LogLevels {
+enum struct LogFlags : size_t {
     Verbose,
     Info,
     Warning,
@@ -26,35 +26,76 @@ enum struct LogLevels {
     LastFlag
 };
 
-struct LogCategory {
-    static const LogCategory& basic();
+using LogAtomicFlagsT = std::atomic<unsigned long>;
 
-    virtual ~LogCategory();
+struct LogCategory {
+    static const LogCategory& the();
+    
+    void parse(LogAtomicFlagsT &_rflags, const std::string &_txt)const;
+    const char *flagName(const LogFlags _flag)const{
+        return "test";
+    }
 };
 
-using LogFlagsT = Flags<LogLevels>;
+class LoggerBase {
+    const std::string  name_;
+    const size_t       idx_;
+protected:
+    LoggerBase(const std::string& _name):name_(_name), idx_(0){}
+    
+    std::ostream& doLog(const char *_flag_name, const char* _file, const char* _fnc, int _line)const{}
+    void doDone()const{}
+};
 
-template <class Flgs = LogFlagsT>
-class Logger {
-    const size_t idx_;
-
+template <class Flgs = LogFlags, class LogCat = LogCategory>
+class Logger : protected LoggerBase {
+    LogAtomicFlagsT     flags_;
+    const LogCat&       rcat_;
 public:
-    using ThisT = Logger<Flgs>;
-    using FlagT = typename Flgs::FlagT;
+    using ThisT = Logger<Flgs, LogCat>;
+    using FlagT = Flgs;
 
-    Logger(const std::string& _name, const LogCategory& _rcat = LogCategory::basic());
+    Logger(const std::string& _name)
+        : LoggerBase(_name), flags_(0), rcat_(LogCat::the())
+    {
+    }
 
-    bool shouldLog(const FlagT _flag) const;
+    bool shouldLog(const FlagT _flag) const
+    {
+        return (flags_.load(std::memory_order_relaxed) & (1UL << static_cast<size_t>(_flag))) != 0;
+    }
 
-    std::ostream& log(const FlagT _flag, const char* _file, const char* _fnc, int _line) const;
-    void          done() const;
+    std::ostream& log(const FlagT _flag, const char* _file, const char* _fnc, int _line) const
+    {
+        return this->doLog(rcat_.flagName(_flag), _file, _fnc, _line);
+    }
+    void done() const {
+        doDone();
+    }
+private:
+    void setFlags(const std::string &_txt){
+        rcat_.parse(flags_, _txt);
+    }
 };
 
 using LoggerT = Logger<>;
 
 extern const LoggerT basic_logger;
 
-//ErrorConditionT log_start(...);
+ErrorConditionT log_start(std::ostream& _ros, const std::string& _rmask, std::vector<std::string>&& _rmodule_mask_vec);
+
+ErrorConditionT log_start(
+    const char*        _fname,
+    const std::string& _rmask, std::vector<std::string>&& _rmodule_mask_vec,
+    bool     _buffered   = true,
+    uint32_t _respincnt  = 2,
+    uint64_t _respinsize = 1024 * 1024 * 1024);
+
+ErrorConditionT log_start(
+    const char*        _addr,
+    const char*        _port,
+    const std::string& _rmask, std::vector<std::string>&& _rmodule_mask_vec,
+    bool _buffered = true);
 
 } //namespace solid
 
@@ -68,13 +109,20 @@ extern const LoggerT basic_logger;
 
 #ifdef SOLID_HAS_DEBUG
 
+#define solid_dbg(Lgr, Flg, Txt)                                                            \
+    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                         \
+        Lgr.log(decltype(Lgr)::FlagT::Flg, __FILE__, SOLID_FUNCTION_NAME, __LINE__) << Txt; \
+        Lgr.done();                                                                         \
+    }
+
 #else
 
 #define solid_dbg(...)
 
 #endif
 
-#define solid_log(Lgr, Flg, Txt)\
-    if(Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)){\
-        Lgr.log(decltype(Lgr)::FlagT::Flg, __FILE__, SOLID_FUNCTION_NAME, __LINE__) << Txt;\
-        Lgr.done();}
+#define solid_log(Lgr, Flg, Txt)                                                            \
+    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                         \
+        Lgr.log(decltype(Lgr)::FlagT::Flg, __FILE__, SOLID_FUNCTION_NAME, __LINE__) << Txt; \
+        Lgr.done();                                                                         \
+    }

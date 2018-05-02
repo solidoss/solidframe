@@ -107,7 +107,6 @@ int main(int argc, char* argv[])
                                   std::shared_ptr<Message>&        _rsent_msg_ptr,
                                   std::shared_ptr<Message>&        _rrecv_msg_ptr,
                                   ErrorConditionT const&           _rerror) {
-
                 if (_rrecv_msg_ptr) {
                     cout << _rrecv_msg_ptr->name << ": " << _rrecv_msg_ptr->data << endl;
                     if (!_rsent_msg_ptr) {

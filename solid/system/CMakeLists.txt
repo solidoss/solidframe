@@ -6,6 +6,7 @@ set(Sources
     src/error.cpp
     src/memory.cpp
     src/system.cpp
+    src/log.cpp
 )
 
 set(Headers

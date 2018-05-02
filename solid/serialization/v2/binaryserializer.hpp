@@ -337,8 +337,7 @@ public: //should be protected
     void pushFunction(S& _rs, F _f, const char* _name)
     {
         idbgx(Debug::ser_bin, _name);
-        auto lambda = [_f = std::move(_f)](SerializerBase & _rs, Runnable & _rr, void* _pctx) mutable
-        {
+        auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rs.sentinel();
             const bool             done         = _f(static_cast<S&>(_rs), _rr.name_);
 
@@ -370,8 +369,7 @@ public: //should be protected
     void pushFunction(S& _rs, F _f, Ctx& _rctx, const char* _name)
     {
         idbgx(Debug::ser_bin, _name);
-        auto lambda = [_f = std::move(_f)](SerializerBase & _rs, Runnable & _rr, void* _pctx) mutable
-        {
+        auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rs.sentinel();
             const bool             done         = _f(static_cast<S&>(_rs), *static_cast<Ctx*>(_pctx), _rr.name_);
 
@@ -496,8 +494,7 @@ public: //should be protected
     template <class F>
     void addStream(std::istream& _ris, const uint64_t _sz, F _f, const char* _name)
     {
-        auto lambda = [_f = std::move(_f)](SerializerBase & _rs, Runnable & _rr, void* _pctx)
-        {
+        auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
             std::istream& ris = *const_cast<std::istream*>(static_cast<const std::istream*>(_rr.ptr_));
             _f(ris, _rr.data_, _rr.size_ == 0, _rr.name_);
             return ReturnE::Done;
@@ -517,8 +514,7 @@ public: //should be protected
     template <class F, class Ctx>
     void addStream(std::istream& _ris, const uint64_t _sz, F _f, Ctx& _rctx, const char* _name)
     {
-        auto lambda = [_f = std::move(_f)](SerializerBase & _rs, Runnable & _rr, void* _pctx)
-        {
+        auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) {
             std::istream& ris  = *const_cast<std::istream*>(static_cast<const std::istream*>(_rr.ptr_));
             Ctx&          rctx = *static_cast<Ctx*>(_pctx);
             _f(ris, _rr.data_, _rr.size_ == 0, rctx, _rr.name_);

@@ -71,11 +71,6 @@ public:
         }
     }
 
-    Flags(const Flags& _flags)
-        : bits_(_flags.bits_)
-    {
-    }
-
     ThisT& operator|=(const Flags& _flags)
     {
         bits_ |= _flags.bits_;

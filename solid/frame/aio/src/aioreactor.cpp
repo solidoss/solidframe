@@ -859,7 +859,7 @@ inline constexpr ReactorEventsE systemEventsToReactorEvents(const unsigned short
     return retval;
 }
 #elif defined(SOLID_USE_WSAPOLL)
-inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events, decltype(WSAPOLLFD::events) & _revs)
+inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events, decltype(WSAPOLLFD::events)& _revs)
 {
     if (_events & POLLERR) {
         _revs = 0;

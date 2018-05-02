@@ -145,7 +145,6 @@ public:
         type_vec_.emplace_back(_rtid);
 
         type_vec_.back().plain_factory_fnc_ = [](const CastFunctionT& _cast_fnc, const PointerFunctionT& _ptr_fnc) {
-
             T*    ptr   = new T;
             void* pdest = nullptr;
             _cast_fnc(ptr, &pdest);
@@ -191,7 +190,6 @@ public:
         //TODO: For now we cannot use Allocator with naked pointer as the pointer will be aquired by an unique_ptr
         //so we leave the default allocator
         type_vec_.back().plain_factory_fnc_ = [](const CastFunctionT& _cast_fnc, const PointerFunctionT& _ptr_fnc) {
-
             T*    ptr   = new T;
             void* pdest = nullptr;
             _cast_fnc(ptr, &pdest);
@@ -235,7 +233,6 @@ public:
         type_vec_.emplace_back(_rtid, std::forward<D>(_d));
 
         type_vec_.back().plain_factory_fnc_ = [](const CastFunctionT& _cast_fnc, const PointerFunctionT& _ptr_fnc) {
-
             T*    ptr   = new T;
             void* pdest = nullptr;
             _cast_fnc(ptr, &pdest);
@@ -281,7 +278,6 @@ public:
         //TODO: For now we cannot use Allocator with naked pointer as the pointer will be aquired by an unique_ptr
         //so we leave the default allocator
         type_vec_.back().plain_factory_fnc_ = [](const CastFunctionT& _cast_fnc, const PointerFunctionT& _ptr_fnc) {
-
             T*    ptr   = new T;
             void* pdest = nullptr;
             _cast_fnc(ptr, &pdest);

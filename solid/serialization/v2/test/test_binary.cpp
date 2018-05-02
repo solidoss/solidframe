@@ -187,7 +187,7 @@ public:
         ifs.open(p);
         _rs
             .push(
-                [ this, ifs = std::move(ifs) ](S & _rs, Context & _rctx, const char* _name) mutable {
+                [this, ifs = std::move(ifs)](S& _rs, Context& _rctx, const char* _name) mutable {
                     _rs.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
                         idbg("Progress(" << _name << "): " << _len << " done = " << _done);
                     },
@@ -269,8 +269,7 @@ int test_binary(int argc, char* argv[])
 
     {
         std::ifstream ifs;
-        auto          lambda = [ifs = std::move(ifs)]() mutable
-        {
+        auto          lambda = [ifs = std::move(ifs)]() mutable {
             ifs.open("test.txt");
         };
         Function<128, void()> f{std::move(lambda)};

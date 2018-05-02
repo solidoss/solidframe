@@ -228,7 +228,6 @@ void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
     idbg(_rctx.recipientId());
 
     auto lambda = [](frame::mpipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror, std::string&& _rdata) {
-
         auto lambda = [](frame::mpipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror) {
             idbg("sent raw data: " << _rerror.message());
             SOLID_CHECK(!_rerror);
@@ -239,7 +238,6 @@ void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
         idbg("received raw data: " << _rerror.message() << " data_size: " << _rdata.size());
 
         _rctx.service().connectionNotifySendAllRawData(_rctx.recipientId(), lambda, std::move(_rdata));
-
     };
 
     _rctx.service().connectionNotifyRecvSomeRawData(_rctx.recipientId(), RecvClosure<decltype(lambda)>(std::move(lambda)));

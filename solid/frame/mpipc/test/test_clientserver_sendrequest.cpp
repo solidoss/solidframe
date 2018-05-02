@@ -318,7 +318,8 @@ void server_complete_request(
             ResponseHandler()
             /*[](frame::mpipc::ConnectionContext &_rctx, std::shared_ptr<Response> &_rmsgptr, ErrorConditionT const &_rerr)->void{
                     on_receive_response(_rctx, _rmsgptr, _rerr);
-                }*/,
+                }*/
+            ,
             initarray[crtwriteidx % initarraysize].flags);
     }
 }
