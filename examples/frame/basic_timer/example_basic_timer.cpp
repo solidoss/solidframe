@@ -6,7 +6,7 @@
 #include "solid/frame/timer.hpp"
 
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 #include <condition_variable>
 #include <mutex>
 
@@ -53,22 +53,7 @@ private:
 
 int main(int argc, char* argv[])
 {
-#ifdef SOLID_HAS_DEBUG
-    {
-        string dbgout;
-        Debug::the().levelMask("view");
-        Debug::the().moduleMask("all");
-
-        Debug::the().initStdErr(
-            false,
-            &dbgout);
-
-        cout << "Debug output: " << dbgout << endl;
-        dbgout.clear();
-        Debug::the().moduleNames(dbgout);
-        cout << "Debug modules: " << dbgout << endl;
-    }
-#endif
+    solid::log_start(std::cerr, {".*:VIEW"});
 
     {
         SchedulerT s;
@@ -85,7 +70,7 @@ int main(int argc, char* argv[])
                 solid::frame::ObjectIdT       objuid;
 
                 objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                idbg("Started BasicObject: " << objuid.index << ',' << objuid.unique);
+                solid_log(basic_logger, Info, "Started BasicObject: " << objuid.index << ',' << objuid.unique);
             }
 
             {
@@ -104,7 +89,7 @@ int main(int argc, char* argv[])
 
 /*virtual*/ void BasicObject::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
 {
-    idbg("event = " << _uevent);
+    solid_log(basic_logger, Info, "event = " << _uevent);
     if (_uevent == generic_event_start) {
         t1.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(5), [this](frame::ReactorContext& _rctx) { return onTimer(_rctx, 0); });
         t2.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(10), [this](frame::ReactorContext& _rctx) { return onTimer(_rctx, 1); });
@@ -115,7 +100,7 @@ int main(int argc, char* argv[])
 
 void BasicObject::onTimer(frame::ReactorContext& _rctx, size_t _idx)
 {
-    idbg("timer = " << _idx);
+    solid_log(basic_logger, Info, "timer = " << _idx);
     if (_idx == 0) {
         if (repeat--) {
             t2.cancel(_rctx);

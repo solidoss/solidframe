@@ -2,7 +2,7 @@
 #include "../gammamessages.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/serialization/v1/typeidmap.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 
 using namespace solid;
 using namespace std;
@@ -16,7 +16,7 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    idbg("");
+    solid_dbg(basic_logger, Info, "");
     SOLID_CHECK(!_rerror);
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(!_rsent_msg_ptr);

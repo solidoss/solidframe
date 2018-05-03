@@ -13,6 +13,7 @@
 #include "solid/serialization/v2/error.hpp"
 #include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/common.hpp"
 #include <bitset>
 #include <memory>
@@ -23,6 +24,8 @@ namespace solid {
 namespace serialization {
 namespace v2 {
 namespace binary {
+
+extern const LoggerT logger;
 
 struct Limits {
     Limits(

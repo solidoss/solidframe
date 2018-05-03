@@ -48,14 +48,13 @@ enum Events {
 //------------------------------------------------------------------
 
 struct Params {
-    int    start_port;
-    string dbg_levels;
-    string dbg_modules;
-    string dbg_addr;
-    string dbg_port;
-    bool   dbg_console;
-    bool   dbg_buffered;
-    bool   log;
+    int            start_port;
+    vector<string> dbg_modules;
+    string         dbg_addr;
+    string         dbg_port;
+    bool           dbg_console;
+    bool           dbg_buffered;
+    bool           log;
 };
 
 namespace {
@@ -169,41 +168,29 @@ bool parseArguments(Params& _par, int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
-    Params p;
-    if (parseArguments(p, argc, argv))
+    Params params;
+    if (parseArguments(params, argc, argv))
         return 0;
 
     signal(SIGINT, term_handler); /* Die on SIGTERM */
 
-#ifdef SOLID_HAS_DEBUG
-    {
-        string dbgout;
-        Debug::the().levelMask(p.dbg_levels.c_str());
-        Debug::the().moduleMask(p.dbg_modules.c_str());
-        if (p.dbg_addr.size() && p.dbg_port.size()) {
-            Debug::the().initSocket(
-                p.dbg_addr.c_str(),
-                p.dbg_port.c_str(),
-                p.dbg_buffered,
-                &dbgout);
-        } else if (p.dbg_console) {
-            Debug::the().initStdErr(
-                p.dbg_buffered,
-                &dbgout);
-        } else {
-            Debug::the().initFile(
-                *argv[0] == '.' ? argv[0] + 2 : argv[0],
-                p.dbg_buffered,
-                3,
-                1024 * 1024 * 64,
-                &dbgout);
-        }
-        cout << "Debug output: " << dbgout << endl;
-        dbgout.clear();
-        Debug::the().moduleNames(dbgout);
-        cout << "Debug modules: " << dbgout << endl;
+    if (params.dbg_addr.size() && params.dbg_port.size()) {
+        solid::log_start(
+            params.dbg_addr.c_str(),
+            params.dbg_port.c_str(),
+            params.dbg_modules,
+            params.dbg_buffered);
+
+    } else if (params.dbg_console) {
+        solid::log_start(std::cerr, params.dbg_modules);
+    } else {
+        solid::log_start(
+            *argv[0] == '.' ? argv[0] + 2 : argv[0],
+            params.dbg_modules,
+            params.dbg_buffered,
+            3,
+            1024 * 1024 * 64);
     }
-#endif
 
     {
         AioSchedulerT aiosched;
@@ -254,7 +241,7 @@ int main(int argc, char* argv[])
             }
 
             {
-                ResolveData rd = synchronous_resolve("0.0.0.0", p.start_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+                ResolveData rd = synchronous_resolve("0.0.0.0", params.start_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
                 SocketDevice sd;
 
@@ -267,7 +254,7 @@ int main(int argc, char* argv[])
                     solid::frame::ObjectIdT            objuid;
 
                     objuid = aiosched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                    idbg("Started Listener object: " << objuid.index << ',' << objuid.unique);
+                    solid_log(basic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
                     run = false;
@@ -307,7 +294,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     using namespace boost::program_options;
     try {
         options_description desc("SolidFrame concept application");
-        desc.add_options()("help,h", "List program options")("port,p", value<int>(&_par.start_port)->default_value(2000), "Listen port")("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("iew"), "Debug logging levels")("debug-modules,M", value<string>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")("use-log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered");
+        desc.add_options()("help,h", "List program options")("port,p", value<int>(&_par.start_port)->default_value(2000), "Listen port")("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")("use-log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered");
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
         notify(vm);
@@ -325,7 +312,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 //------------------------------------------------------------------
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    idbg("event = " << _revent);
+    solid_log(basic_logger, Info, "event = " << _revent);
     if (generic_event_start == _revent) {
         sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { return onAccept(_rctx, _rsd); });
     } else if (generic_event_kill == _revent) {
@@ -335,7 +322,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    idbg("");
+    solid_log(basic_logger, Info, "");
     unsigned repeatcnt = 4;
 
     do {
@@ -385,7 +372,7 @@ Connection::Connection(SocketDevice& _rsd)
 Connection::~Connection()
 {
     //state(-1);
-    idbg("");
+    solid_log(basic_logger, Info, "");
 }
 
 const char* Connection::findEnd(const char* _p)
@@ -409,16 +396,16 @@ const char* Connection::findEnd(const char* _p)
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    idbg("" << _revent);
+    solid_log(basic_logger, Info, "" << _revent);
     if (generic_event_start == _revent) {
-        idbg("Start");
+        solid_log(basic_logger, Info, "Start");
         sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
         state = ReadCommand;
     } else if (generic_event_kill == _revent) {
-        idbg("Stop");
+        solid_log(basic_logger, Info, "Stop");
         this->postStop(_rctx);
     } else if (generic_event_message == _revent) {
-        idbg("Message");
+        solid_log(basic_logger, Info, "Message");
         FilePointerMessage* pfileptrmsg = _revent.any().cast<FilePointerMessage>();
         if (pfileptrmsg) {
             this->handle(*pfileptrmsg);
@@ -471,7 +458,7 @@ void Connection::doRun(frame::aio::ReactorContext& _rctx)
     case WaitRead:
     case WaitWrite:
         //keep waiting
-        idbg("keep waiting");
+        solid_log(basic_logger, Info, "keep waiting");
         break;
     case RunRead:
         if (!iofs.eof()) {
@@ -519,7 +506,7 @@ struct OpenCbk {
         ErrorCodeT const& /*_rerr*/
     )
     {
-        idbg("");
+        solid_log(basic_logger, Info, "");
         Event ev{generic_event_message};
         ev.any() = FilePointerMessage(_rptr);
 
@@ -540,7 +527,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 'r':
         state = WaitRead;
         ++bpos;
-        idbg("Request open file: " << path);
+        solid_log(basic_logger, Info, "Request open file: " << path);
         filestoreptr->requestOpenFile(OpenCbk(rm, rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
         //post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
         break;
@@ -548,17 +535,17 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 'w':
         state = WaitWrite;
         ++bpos;
-        idbg("Request create file: " << path);
+        solid_log(basic_logger, Info, "Request create file: " << path);
         filestoreptr->requestCreateFile(OpenCbk(rm, rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
         //post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
         break;
     case 'S':
     case 's':
         if (tempuid.isValid()) {
-            idbg("Request shared temp - no temp");
+            solid_log(basic_logger, Info, "Request shared temp - no temp");
             this->postStop(_rctx);
         } else {
-            idbg("Request shared temp - " << tempuid.index << '.' << tempuid.unique);
+            solid_log(basic_logger, Info, "Request shared temp - " << tempuid.index << '.' << tempuid.unique);
             state = WaitRead;
             ++bpos;
             filestoreptr->requestShared(OpenCbk(rm, rm.id(*this)), tempuid);
@@ -568,10 +555,10 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 'U':
     case 'u':
         if (tempuid.isValid()) {
-            idbg("Request unique temp - no temp");
+            solid_log(basic_logger, Info, "Request unique temp - no temp");
             postStop(_rctx);
         } else {
-            idbg("Request unique temp - " << tempuid.index << '.' << tempuid.unique);
+            solid_log(basic_logger, Info, "Request unique temp - " << tempuid.index << '.' << tempuid.unique);
             state = WaitRead;
             ++bpos;
             filestoreptr->requestShared(OpenCbk(rm, rm.id(*this)), tempuid);
@@ -581,7 +568,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 't':
         state = WaitWrite;
         ++bpos;
-        idbg("Request read temp");
+        solid_log(basic_logger, Info, "Request read temp");
         filestoreptr->requestCreateTemp(OpenCbk(rm, rm.id(*this)), 4 * 1024);
         state = WaitWrite;
         break;
@@ -589,14 +576,14 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 'f':
         state = WaitWrite;
         ++bpos;
-        idbg("Request file temp");
+        solid_log(basic_logger, Info, "Request file temp");
         filestoreptr->requestCreateTemp(OpenCbk(rm, rm.id(*this)), 4 * 1024, frame::file::VeryFastLevelFlag);
         break;
     case 'M':
     case 'm':
         state = WaitWrite;
         ++bpos;
-        idbg("Request memory temp");
+        solid_log(basic_logger, Info, "Request memory temp");
         filestoreptr->requestCreateTemp(OpenCbk(rm, rm.id(*this)), 4 * 1024, frame::file::MemoryLevelFlag);
         state = WaitWrite;
     default:
@@ -617,7 +604,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
 
 void Connection::handle(FilePointerMessage& _rmsgptr)
 {
-    idbg("");
+    solid_log(basic_logger, Info, "");
     if (!_rmsgptr.ptr.empty()) {
         iofs.device(_rmsgptr.ptr);
         if (state == WaitRead) {

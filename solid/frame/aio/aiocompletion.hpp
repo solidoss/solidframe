@@ -15,6 +15,7 @@
 #include "solid/frame/aio/aioreactorcontext.hpp"
 #include "solid/system/cassert.hpp"
 #include "solid/system/error.hpp"
+#include "solid/system/log.hpp"
 
 namespace solid {
 class Device;
@@ -22,6 +23,8 @@ class SocketDevice;
 struct NanoTime;
 namespace frame {
 namespace aio {
+
+extern const LoggerT logger;
 
 class Object;
 class Reactor;

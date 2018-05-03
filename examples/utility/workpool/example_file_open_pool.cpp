@@ -109,7 +109,7 @@ typedef WorkPool<FileDevice*, MyWorkPoolController, MyWorkerBase> MyWorkPoolT;
 //  //char buf[readsz];
 //  //SOLID_ASSERT(buf == bf);
 //  while(pop(_wk.wid(), pfile) != BAD){
-//      idbg(_wk.wid()<<" is processing");
+//      solid_log(basic_logger, Info, _wk.wid()<<" is processing");
 //      int64_t sz = pfile->size();
 //      int toread;
 //      int cnt = 0;

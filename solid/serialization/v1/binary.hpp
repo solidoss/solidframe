@@ -21,7 +21,7 @@
 
 #include "binarybasic.hpp"
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/algorithm.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/dynamicpointer.hpp"
@@ -41,6 +41,8 @@ namespace binary {
 // BASIC_DECL(uint64_t);
 // BASIC_DECL(bool);
 // BASIC_DECL(std::string);
+
+extern const LoggerT logger;
 
 typedef void (*StringCheckFncT)(std::string const& /*_rstr*/, const char* /*_pb*/, size_t /*_len*/);
 
@@ -607,11 +609,11 @@ protected:
             }
             _rfd.f = &SerializerBase::storeBitsetContinue<V>;
             _rfd.s = 0;
-            idbgx(Debug::ser_bin, " sz = " << crcsz);
+            solid_dbg(logger, Info, " sz = " << crcsz);
             rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64_t>, nullptr, n, 0, crcsz));
         } else {
 
-            idbgx(Debug::ser_bin, " sz = " << -1);
+            solid_dbg(logger, Info, " sz = " << -1);
             _rfd.f = &SerializerBase::template storeCross<uint64_t>;
             _rfd.d = -1;
         }
@@ -661,7 +663,7 @@ protected:
     template <typename T, class Ser>
     static ReturnValues storeContainer(Base& _rs, FncData& _rfd, void* _pctx)
     {
-        idbgx(Debug::ser_bin, "store generic container sizeof(iterator) = " << sizeof(typename T::iterator) << " " << _rfd.n);
+        solid_dbg(logger, Info, "store generic container sizeof(iterator) = " << sizeof(typename T::iterator) << " " << _rfd.n);
         SerializerBase& rs(static_cast<SerializerBase&>(_rs));
 
         if (!rs.cpb)
@@ -697,10 +699,10 @@ protected:
 
             *pit = c->begin();
 
-            idbgx(Debug::ser_bin, " sz = " << crcsz);
+            solid_dbg(logger, Info, " sz = " << crcsz);
             rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64_t>, nullptr, n, 0, crcsz));
         } else {
-            idbgx(Debug::ser_bin, " sz = " << -1);
+            solid_dbg(logger, Info, " sz = " << -1);
             _rfd.f = &SerializerBase::template storeCross<uint64_t>;
             _rfd.d = -1;
         }
@@ -728,7 +730,7 @@ protected:
     template <typename T, class Ser>
     static ReturnValues storeArray(Base& _rs, FncData& _rfd, void* /*_pctx*/)
     {
-        idbgx(Debug::ser_bin, "store generic array " << _rfd.n);
+        solid_dbg(logger, Info, "store generic array " << _rfd.n);
         SerializerBase& rs(static_cast<SerializerBase&>(_rs));
         if (!rs.cpb) {
             return SuccessE;
@@ -745,14 +747,14 @@ protected:
             } else if (compute_value_with_crc(crcsz, _rfd.s)) {
                 _rfd.f = &SerializerBase::storeArrayContinue<T, Ser>;
                 _rfd.d = 0; //used as the current position within the array
-                idbgx(Debug::ser_bin, "store array size " << crcsz);
+                solid_dbg(logger, Info, "store array size " << crcsz);
                 rs.fstk.push(FncData(&SerializerBase::template storeCross<uint64_t>, nullptr, n, 0, crcsz));
             } else {
                 rs.err = make_error(ERR_ARRAY_MAX_LIMIT);
                 return FailureE;
             }
         } else {
-            idbgx(Debug::ser_bin, "store array size " << 0);
+            solid_dbg(logger, Info, "store array size " << 0);
             _rfd.f = &SerializerBase::template storeCross<uint64_t>;
             _rfd.d = 0;
         }
@@ -765,7 +767,7 @@ protected:
         Ser& rs(static_cast<Ser&>(_rs));
         T*   c = reinterpret_cast<T*>(_rfd.p);
 
-        idbgx(Debug::ser_bin, "store generic array cont " << _rfd.n << " rsz = " << _rfd.s << " ri = " << _rfd.d);
+        solid_dbg(logger, Info, "store generic array cont " << _rfd.n << " rsz = " << _rfd.s << " ri = " << _rfd.d);
 
         if (rs.cpb && _rfd.d < _rfd.s) {
             rs.push(c[_rfd.d], _rfd.n);
@@ -944,7 +946,7 @@ ReturnValues SerializerBase::store(Base& _rs, FncData& _rfd, void* /*_pctx*/)
 template <typename T, class Ser>
 ReturnValues SerializerBase::store(Base& _rs, FncData& _rfd, void* /*_pctx*/)
 {
-    idbgx(Debug::ser_bin, "store generic non pointer");
+    solid_dbg(logger, Info, "store generic non pointer");
     Ser& rs(static_cast<Ser&>(_rs));
     if (!rs.cpb)
         return SuccessE;
@@ -957,7 +959,7 @@ ReturnValues SerializerBase::store(Base& _rs, FncData& _rfd, void* /*_pctx*/)
 template <typename T, class Ser, class Ctx>
 ReturnValues SerializerBase::store(Base& _rs, FncData& _rfd, void* _pctx)
 {
-    idbgx(Debug::ser_bin, "store generic non pointer with context");
+    solid_dbg(logger, Info, "store generic non pointer with context");
     Ser& rs(static_cast<Ser&>(_rs));
     if (!rs.cpb)
         return SuccessE;
@@ -1225,7 +1227,7 @@ public:
         uint64_t crcsz;
 
         if (compute_value_with_crc(crcsz, _sz)) {
-            idbgx(Debug::ser_bin, "store array size " << crcsz);
+            solid_dbg(logger, Info, "store array size " << crcsz);
             SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBinary<0>, _p, _name, _sz));
             SerializerBase::fstk.push(FncData(&SerializerBase::template storeCross<uint64_t>, nullptr, _name, 0, crcsz));
         } else {
@@ -1240,7 +1242,7 @@ public:
         uint64_t crcsz;
 
         if (compute_value_with_crc(crcsz, _sz)) {
-            idbgx(Debug::ser_bin, "store array size " << crcsz);
+            solid_dbg(logger, Info, "store array size " << crcsz);
             SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeBinary<0>, _p, _name, _sz));
             SerializerBase::fstk.push(FncData(&SerializerBase::template storeCross<uint64_t>, nullptr, _name, 0, crcsz));
         } else {
@@ -1761,13 +1763,13 @@ protected:
             }
         }
         if (len >= rd.lmts.containerlimit) {
-            idbgx(Debug::ser_bin, "error");
+            solid_dbg(logger, Info, "error");
             rd.err = make_error(ERR_CONTAINER_LIMIT);
             return FailureE;
         }
 
         if (len > V) {
-            idbgx(Debug::ser_bin, "error");
+            solid_dbg(logger, Info, "error");
             rd.err = make_error(ERR_BITSET_SIZE);
             return FailureE;
         }
@@ -1838,7 +1840,7 @@ protected:
     template <typename T, class Des>
     static ReturnValues loadContainer(Base& _rb, FncData& _rfd, void* /*_pctx*/)
     {
-        idbgx(Debug::ser_bin, "load generic non pointer container " << _rfd.n);
+        solid_dbg(logger, Info, "load generic non pointer container " << _rfd.n);
         DeserializerBase& rd = static_cast<DeserializerBase&>(_rb);
         if (!rd.cpb)
             return SuccessE;
@@ -1860,7 +1862,7 @@ protected:
         {
             const uint64_t i = _rfd.d;
 
-            idbgx(Debug::ser_bin, " sz = " << i);
+            solid_dbg(logger, Info, " sz = " << i);
 
             if (i != InvalidIndex()) {
                 uint64_t crcsz;
@@ -1875,11 +1877,11 @@ protected:
 
         const uint64_t i(_rfd.d);
 
-        vdbgx(Debug::ser_bin, "i = " << i);
+        solid_dbg(logger, Verbose, "i = " << i);
 
         if (
             i != InvalidIndex() && i > rd.lmts.containerlimit) {
-            idbgx(Debug::ser_bin, "error");
+            solid_dbg(logger, Info, "error");
             rd.err = make_error(ERR_CONTAINER_LIMIT);
             return FailureE;
         }
@@ -1891,7 +1893,7 @@ protected:
             return SuccessE;
         } else if (!_rfd.s) {
             T** c = reinterpret_cast<T**>(_rfd.p);
-            vdbgx(Debug::ser_bin, "");
+            solid_dbg(logger, Verbose, "");
             *c     = new T;
             _rfd.p = *c;
         }
@@ -1941,7 +1943,7 @@ protected:
     template <class Des>
     static ReturnValues loadArrayInt8(Base& _rb, FncData& _rfd, void* /*_pctx*/)
     {
-        idbgx(Debug::ser_bin, "load int8 array");
+        solid_dbg(logger, Info, "load int8 array");
 
         DeserializerBase& rd(static_cast<DeserializerBase&>(_rb));
 
@@ -1951,7 +1953,7 @@ protected:
         {
             const uint64_t& rsz(_rfd.s);
             uint64_t        crcsz;
-            idbgx(Debug::ser_bin, "size " << rsz);
+            solid_dbg(logger, Info, "size " << rsz);
 
             if (check_value_with_crc(crcsz, rsz)) {
                 _rfd.s = crcsz;
@@ -1964,10 +1966,10 @@ protected:
         const uint64_t& rsz(_rfd.s);
         size_t&         rreturn_sz(*reinterpret_cast<size_t*>(rd.estk.top().first_void_value())); //the returned size
 
-        idbgx(Debug::ser_bin, "size " << rsz);
+        solid_dbg(logger, Info, "size " << rsz);
 
         if (rsz > rd.lmts.containerlimit || rsz > _rfd.d) {
-            idbgx(Debug::ser_bin, "error");
+            solid_dbg(logger, Info, "error");
             rd.err = make_error(ERR_ARRAY_LIMIT);
             return FailureE;
         }
@@ -1981,7 +1983,7 @@ protected:
     template <typename T, class Des>
     static ReturnValues loadArray(Base& _rb, FncData& _rfd, void* /*_pctx*/)
     {
-        idbgx(Debug::ser_bin, "load generic array");
+        solid_dbg(logger, Info, "load generic array");
         DeserializerBase& rd(static_cast<DeserializerBase&>(_rb));
         if (!rd.cpb) {
             return SuccessE;
@@ -1989,7 +1991,7 @@ protected:
         {
             const uint64_t& rsz(_rfd.s);
             uint64_t        crcsz;
-            idbgx(Debug::ser_bin, "size " << rsz);
+            solid_dbg(logger, Info, "size " << rsz);
 
             if (check_value_with_crc(crcsz, rsz)) {
                 _rfd.s = crcsz;
@@ -2002,10 +2004,10 @@ protected:
         const uint64_t& rsz(_rfd.s);
         size_t&         rreturn_sz(*reinterpret_cast<size_t*>(rd.estk.top().first_void_value())); //the returned size
 
-        idbgx(Debug::ser_bin, "size " << rsz);
+        solid_dbg(logger, Info, "size " << rsz);
 
         if (rsz > rd.lmts.containerlimit || rsz > _rfd.d) {
-            idbgx(Debug::ser_bin, "error");
+            solid_dbg(logger, Info, "error");
             rd.err = make_error(ERR_ARRAY_LIMIT);
             return FailureE;
         }
@@ -2026,7 +2028,7 @@ protected:
             return SuccessE;
         }
 
-        idbgx(Debug::ser_bin, "load generic array continue " << _rfd.n << " idx = " << _rfd.d << " sz = " << _rfd.s);
+        solid_dbg(logger, Info, "load generic array continue " << _rfd.n << " idx = " << _rfd.d << " sz = " << _rfd.s);
 
         if (rd.cpb && _rfd.d < _rfd.s) {
             T* c = reinterpret_cast<T*>(_rfd.p);
@@ -2214,7 +2216,7 @@ ReturnValues DeserializerBase::load(Base& _rd, FncData& _rfd, void* /*_pctx*/)
 template <typename T, class Des>
 ReturnValues DeserializerBase::load(Base& _rd, FncData& _rfd, void* _pctx)
 {
-    idbgx(Debug::ser_bin, "load generic non pointer");
+    solid_dbg(logger, Info, "load generic non pointer");
     Des& rd(static_cast<Des&>(_rd));
     if (!rd.cpb)
         return SuccessE;
@@ -2226,7 +2228,7 @@ ReturnValues DeserializerBase::load(Base& _rd, FncData& _rfd, void* _pctx)
 template <typename T, class Des, class Ctx>
 ReturnValues DeserializerBase::load(Base& _rd, FncData& _rfd, void* _pctx)
 {
-    idbgx(Debug::ser_bin, "load generic non pointer");
+    solid_dbg(logger, Info, "load generic non pointer");
     Des& rd(static_cast<Des&>(_rd));
     if (!rd.cpb)
         return SuccessE;

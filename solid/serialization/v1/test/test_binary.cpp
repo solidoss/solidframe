@@ -1,4 +1,5 @@
 #include "solid/serialization/v1/binary.hpp"
+#include <iostream>
 #include <map>
 #include <memory>
 #include <vector>
@@ -41,12 +42,7 @@ using TypeIdMapT    = serialization::TypeIdMap<SerializerT, DeserializerT>;
 
 int test_binary(int argc, char* argv[])
 {
-
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("all");
-    Debug::the().initStdErr(false, nullptr);
-#endif
+    solid::log_start(std::cerr, {".*:EW"});
 
     string     test_data;
     TypeIdMapT typemap;
@@ -118,7 +114,7 @@ void Test::init()
 
 void Test::check() const
 {
-    idbg("str = " << str);
+    solid_dbg(basic_logger, Info, "str = " << str);
     SOLID_CHECK(kv_vec.size() == kv_map.size());
     string tmpstr;
     for (size_t i = 0; i < kv_vec.size(); ++i) {

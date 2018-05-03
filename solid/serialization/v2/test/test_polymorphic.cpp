@@ -145,11 +145,7 @@ struct Command {
 int test_polymorphic(int argc, char* argv[])
 {
 
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("all");
-    Debug::the().initStdErr(false, nullptr);
-#endif
+    solid::log_start(std::cerr, {".*:EW"});
 
     using TypeMapT      = serialization::TypeMap<uint8_t, Context, serialization::binary::Serializer, serialization::binary::Deserializer, TypeData>;
     using SerializerT   = TypeMapT::SerializerT;

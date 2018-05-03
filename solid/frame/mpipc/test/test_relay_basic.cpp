@@ -25,7 +25,7 @@
 
 #include "solid/system/exception.hpp"
 
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 
 #include <iostream>
 
@@ -98,7 +98,7 @@ struct Register : frame::mpipc::Message {
         : str(_rstr)
         , err(_err)
     {
-        idbg("CREATE ---------------- " << (void*)this);
+        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     Register(uint32_t _err = -1)
         : err(_err)
@@ -107,7 +107,7 @@ struct Register : frame::mpipc::Message {
 
     ~Register()
     {
-        idbg("DELETE ---------------- " << (void*)this);
+        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -125,17 +125,17 @@ struct Message : frame::mpipc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        idbg("CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
-        idbg("CREATE ---------------- " << (void*)this);
+        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
-        idbg("DELETE ---------------- " << (void*)this);
+        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this);
 
         SOLID_ASSERT(serialized || this->isBackOnSender());
     }
@@ -164,7 +164,7 @@ struct Message : frame::mpipc::Message {
     bool check() const
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
-        idbg("str.size = " << str.size() << " should be equal to " << sz);
+        solid_dbg(basic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
         if (sz != str.size()) {
             return false;
         }
@@ -190,12 +190,12 @@ struct Message : frame::mpipc::Message {
 
 void peera_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId());
+    solid_dbg(basic_logger, Info, _rctx.recipientId());
 }
 
 void peera_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
     if (!running) {
         ++connection_count;
     }
@@ -206,14 +206,14 @@ void peera_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    idbg(_rctx.recipientId() << " error: " << _rerror.message());
+    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
     SOLID_CHECK(!_rerror, "Error sending message: " << _rerror.message());
     SOLID_CHECK(_rsent_msg_ptr, "Error: no request message");
 
     ++crtackidx;
 
     if (_rrecv_msg_ptr) {
-        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
+        solid_dbg(basic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
         if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
@@ -242,7 +242,7 @@ void peera_complete_message(
 
 void peerb_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId());
+    solid_dbg(basic_logger, Info, _rctx.recipientId());
 
     auto            msgptr = std::make_shared<Register>("b");
     ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageFlagsE::WaitResponse});
@@ -251,7 +251,7 @@ void peerb_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
 void peerb_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
 void peerb_complete_register(
@@ -259,17 +259,17 @@ void peerb_complete_register(
     std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    idbg(_rctx.recipientId());
+    solid_dbg(basic_logger, Info, _rctx.recipientId());
     SOLID_CHECK(!_rerror);
 
     if (_rrecv_msg_ptr && _rrecv_msg_ptr->err == 0) {
         auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
-            idbg("peerb --- enter active error: " << _rerror.message());
+            solid_dbg(basic_logger, Info, "peerb --- enter active error: " << _rerror.message());
             return frame::mpipc::MessagePointerT();
         };
         _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
     } else {
-        idbg("");
+        solid_dbg(basic_logger, Info, "");
     }
 }
 
@@ -279,7 +279,7 @@ void peerb_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
-        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
+        solid_dbg(basic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
 
         if (!_rrecv_msg_ptr->check()) {
             SOLID_ASSERT(false);
@@ -307,7 +307,7 @@ void peerb_complete_message(
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
 
         ++crtreadidx;
-        idbg(crtreadidx << " < " << writecount);
+        solid_dbg(basic_logger, Info, crtreadidx << " < " << writecount);
         if (crtwriteidx < writecount) {
             err = pmpipcpeera->sendMessage(
                 "localhost/b", std::make_shared<Message>(crtwriteidx++),
@@ -317,7 +317,7 @@ void peerb_complete_message(
         }
     }
     if (_rsent_msg_ptr) {
-        idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
+        solid_dbg(basic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
     }
 }
 //-----------------------------------------------------------------------------
@@ -325,12 +325,7 @@ void peerb_complete_message(
 
 int test_relay_basic(int argc, char* argv[])
 {
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("frame_mpipc:view any:view");
-    Debug::the().initStdErr(false, nullptr);
-//Debug::the().initFile("test_clientserver_basic", false);
-#endif
+    solid::log_start(std::cerr, {".*:EW"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -392,28 +387,28 @@ int test_relay_basic(int argc, char* argv[])
         err = sch_peera.start(1);
 
         if (err) {
-            edbg("starting aio peera scheduler: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio peera scheduler: " << err.message());
             return 1;
         }
 
         err = sch_peerb.start(1);
 
         if (err) {
-            edbg("starting aio peerb scheduler: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio peerb scheduler: " << err.message());
             return 1;
         }
 
         err = sch_relay.start(1);
 
         if (err) {
-            edbg("starting aio relay scheduler: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio relay scheduler: " << err.message());
             return 1;
         }
 
         err = resolver.start(1);
 
         if (err) {
-            edbg("starting aio resolver: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio resolver: " << err.message());
             return 1;
         }
 
@@ -421,7 +416,7 @@ int test_relay_basic(int argc, char* argv[])
 
         { //mpipc relay initialization
             auto con_start = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) {
-                idbg(_rctx.recipientId());
+                solid_dbg(basic_logger, Info, _rctx.recipientId());
             };
             auto con_stop = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) {
                 if (!running) {
@@ -436,7 +431,7 @@ int test_relay_basic(int argc, char* argv[])
                 SOLID_CHECK(!_rerror);
                 if (_rrecv_msg_ptr) {
                     SOLID_CHECK(!_rsent_msg_ptr);
-                    idbg("recv register request: " << _rrecv_msg_ptr->str);
+                    solid_dbg(basic_logger, Info, "recv register request: " << _rrecv_msg_ptr->str);
 
                     relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->str));
 
@@ -447,7 +442,7 @@ int test_relay_basic(int argc, char* argv[])
 
                 } else {
                     SOLID_CHECK(!_rrecv_msg_ptr);
-                    idbg("sent register response");
+                    solid_dbg(basic_logger, Info, "sent register response");
                 }
             };
 
@@ -465,7 +460,7 @@ int test_relay_basic(int argc, char* argv[])
             cfg.relay_enabled                    = true;
 
             if (secure) {
-                idbg("Configure SSL server -------------------------------------");
+                solid_dbg(basic_logger, Info, "Configure SSL server -------------------------------------");
                 frame::mpipc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -484,7 +479,7 @@ int test_relay_basic(int argc, char* argv[])
             err = mpipcrelay.reconfigure(std::move(cfg));
 
             if (err) {
-                edbg("starting server mpipcservice: " << err.message());
+                solid_dbg(basic_logger, Error, "starting server mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -493,7 +488,7 @@ int test_relay_basic(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << mpipcrelay.configuration().server.listenerPort();
                 relay_port = oss.str();
-                idbg("relay listens on port: " << relay_port);
+                solid_dbg(basic_logger, Info, "relay listens on port: " << relay_port);
             }
         }
 
@@ -516,7 +511,7 @@ int test_relay_basic(int argc, char* argv[])
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, relay_port.c_str() /*, SocketInfo::Inet4*/);
 
             if (secure) {
-                idbg("Configure SSL client ------------------------------------");
+                solid_dbg(basic_logger, Info, "Configure SSL client ------------------------------------");
                 frame::mpipc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -535,7 +530,7 @@ int test_relay_basic(int argc, char* argv[])
             err = mpipcpeera.reconfigure(std::move(cfg));
 
             if (err) {
-                edbg("starting peera mpipcservice: " << err.message());
+                solid_dbg(basic_logger, Error, "starting peera mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -557,7 +552,7 @@ int test_relay_basic(int argc, char* argv[])
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, relay_port.c_str() /*, SocketInfo::Inet4*/);
 
             if (secure) {
-                idbg("Configure SSL client ------------------------------------");
+                solid_dbg(basic_logger, Info, "Configure SSL client ------------------------------------");
                 frame::mpipc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -576,7 +571,7 @@ int test_relay_basic(int argc, char* argv[])
             err = mpipcpeerb.reconfigure(std::move(cfg));
 
             if (err) {
-                edbg("starting peerb mpipcservice: " << err.message());
+                solid_dbg(basic_logger, Error, "starting peerb mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }

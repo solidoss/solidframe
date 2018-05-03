@@ -17,6 +17,8 @@ namespace serialization {
 namespace v2 {
 namespace binary {
 
+const LoggerT logger{"solid::serialization::v2::binary"};
+
 //== Deserializer  ==============================================================
 DeserializerBase::DeserializerBase(const TypeMapBase& _rtype_map, const Limits& _rlimits)
     : Base(_rlimits)
@@ -100,7 +102,7 @@ void DeserializerBase::tryRun(Runnable&& _ur, void* _pctx)
 
 void DeserializerBase::limits(const Limits& _rlimits, const char* _name)
 {
-    idbg(_name);
+    solid_dbg(basic_logger, Info, _name);
     if (isRunEmpty()) {
         limits_ = _rlimits;
     } else {
@@ -118,7 +120,7 @@ void DeserializerBase::limits(const Limits& _rlimits, const char* _name)
 
 void DeserializerBase::limitString(const size_t _sz, const char* _name)
 {
-    idbg(_name);
+    solid_dbg(basic_logger, Info, _name);
     if (isRunEmpty()) {
         limits_.stringlimit_ = _sz;
     } else {
@@ -138,7 +140,7 @@ void DeserializerBase::limitString(const size_t _sz, const char* _name)
 
 void DeserializerBase::limitContainer(const size_t _sz, const char* _name)
 {
-    idbg(_name);
+    solid_dbg(basic_logger, Info, _name);
     if (isRunEmpty()) {
         limits_.containerlimit_ = _sz;
     } else {
@@ -158,7 +160,7 @@ void DeserializerBase::limitContainer(const size_t _sz, const char* _name)
 
 void DeserializerBase::limitStream(const uint64_t _sz, const char* _name)
 {
-    idbg(_name);
+    solid_dbg(basic_logger, Info, _name);
     if (isRunEmpty()) {
         limits_.streamlimit_ = _sz;
     } else {

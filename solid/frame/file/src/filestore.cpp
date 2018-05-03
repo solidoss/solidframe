@@ -10,8 +10,8 @@
 
 #include "solid/frame/file/filestore.hpp"
 
-#include "solid/system/debug.hpp"
 #include "solid/system/directory.hpp"
+#include "solid/system/log.hpp"
 #include <atomic>
 #include <functional>
 #include <unordered_set>
@@ -31,11 +31,7 @@ namespace solid {
 namespace frame {
 namespace file {
 
-size_t dbgid()
-{
-    static size_t id = Debug::the().registerModule("frame_file");
-    return id;
-}
+const LoggerT logger("solid::frame::file");
 
 //---------------------------------------------------------------------------
 //      Utf8Controller::Data

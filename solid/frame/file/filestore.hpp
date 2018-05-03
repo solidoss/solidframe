@@ -13,6 +13,7 @@
 #include "solid/frame/file/tempbase.hpp"
 #include "solid/frame/sharedstore.hpp"
 #include "solid/system/filedevice.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/pimpl.hpp"
 
 namespace solid {
@@ -22,7 +23,7 @@ class Manager;
 
 namespace file {
 
-size_t dbgid();
+extern const LoggerT logger;
 
 enum {
     MemoryLevelFlag   = 1,

@@ -22,11 +22,11 @@ Listener::Listener(
     : sock(this->proxy(), std::move(_rsd))
     , timer(this->proxy())
 {
-    idbgx(Debug::mpipc, this);
+    solid_dbg(logger, Info, this);
 }
 Listener::~Listener()
 {
-    idbgx(Debug::mpipc, this);
+    solid_dbg(logger, Info, this);
 }
 
 inline Service& Listener::service(frame::aio::ReactorContext& _rctx)
@@ -36,7 +36,7 @@ inline Service& Listener::service(frame::aio::ReactorContext& _rctx)
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _uevent)
 {
-    idbgx(Debug::mpipc, "event = " << _uevent);
+    solid_dbg(logger, Info, "event = " << _uevent);
     if (
         _uevent == generic_event_start || _uevent == generic_event_timer) {
         sock.postAccept(
@@ -49,18 +49,18 @@ inline Service& Listener::service(frame::aio::ReactorContext& _rctx)
 
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    idbgx(Debug::mpipc, "");
+    solid_dbg(logger, Info, "");
     size_t repeatcnt = backlog_size();
 
     do {
         if (!_rctx.error()) {
             service(_rctx).acceptIncomingConnection(_rsd);
         } else if (_rctx.error() == aio::error_listener_hangup) {
-            edbgx(Debug::mpipc, "listen hangup" << _rctx.error().message());
+            solid_dbg(logger, Error, "listen hangup" << _rctx.error().message());
             //TODO: maybe you shoud restart the listener.
             postStop(_rctx);
         } else {
-            idbgx(Debug::mpipc, "listen error" << _rctx.error().message());
+            solid_dbg(logger, Info, "listen error" << _rctx.error().message());
             timer.waitFor(
                 _rctx, std::chrono::seconds(10),
                 [this](frame::aio::ReactorContext& _rctx) { onEvent(_rctx, make_event(GenericEvents::Timer)); });

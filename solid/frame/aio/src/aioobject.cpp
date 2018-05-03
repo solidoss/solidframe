@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 
 #include "solid/frame/aio/aiocompletion.hpp"
 #include "solid/frame/aio/aioobject.hpp"
@@ -20,6 +20,7 @@
 namespace solid {
 namespace frame {
 namespace aio {
+
 //---------------------------------------------------------------------
 //----  Object  ----
 //---------------------------------------------------------------------
@@ -37,7 +38,7 @@ bool Object::isRunning() const
 
 bool Object::registerCompletionHandler(CompletionHandler& _rch)
 {
-    idbgx(Debug::aio, "" << &_rch);
+    solid_dbg(logger, Info, "" << &_rch);
     _rch.pnext = this->pnext;
     if (_rch.pnext) {
         _rch.pnext->pprev = &_rch;
@@ -49,7 +50,7 @@ bool Object::registerCompletionHandler(CompletionHandler& _rch)
 
 void Object::registerCompletionHandlers()
 {
-    idbgx(Debug::aio, "");
+    solid_dbg(logger, Info, "");
     CompletionHandler* pch = this->pnext;
 
     while (pch != nullptr) {

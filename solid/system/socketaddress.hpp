@@ -26,7 +26,6 @@
 
 #ifndef SOLID_HAS_NO_INLINES
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
 #endif
 
 namespace solid {

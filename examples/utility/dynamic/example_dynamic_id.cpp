@@ -1,4 +1,4 @@
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/dynamictype.hpp"
 #include <iostream>
 

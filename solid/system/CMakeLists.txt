@@ -1,5 +1,4 @@
 set(Sources
-    src/debug.cpp
     src/device.cpp
     src/socketaddress.cpp
     src/cstring.cpp
@@ -14,7 +13,6 @@ set(Headers
     common.hpp
     convertors.hpp
     cstring.hpp
-    debug.hpp
     device.hpp
     directory.hpp
     error.hpp

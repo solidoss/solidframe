@@ -148,11 +148,7 @@ using TypeIdMapT    = serialization::TypeIdMap<SerializerT, DeserializerT>;
 int test_polymorphic(int argc, char* argv[])
 {
 
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("all");
-    Debug::the().initStdErr(false, nullptr);
-#endif
+    solid::log_start(std::cerr, {".*:EW"});
 
     string     check_data;
     string     test_data;

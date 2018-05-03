@@ -11,7 +11,6 @@
 #pragma once
 
 #include "solid/system/common.hpp"
-#include "solid/system/debug.hpp"
 #include "solid/system/error.hpp"
 #include <exception>
 #include <iosfwd>

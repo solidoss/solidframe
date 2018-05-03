@@ -12,8 +12,8 @@
 #include <deque>
 #include <vector>
 
-#include "solid/system/debug.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include <condition_variable>
 
 #include "solid/system/mutualstore.hpp"
@@ -28,6 +28,10 @@
 namespace solid {
 namespace frame {
 
+namespace {
+const LoggerT logger("solid::frame::Service");
+}
+
 Service::Service(
     UseServiceShell _force_shell)
     : rm(_force_shell.rmanager)
@@ -35,15 +39,15 @@ Service::Service(
     , running(false)
 {
     rm.registerService(*this);
-    vdbgx(Debug::frame, "" << this);
+    solid_dbg(logger, Verbose, "" << this);
 }
 
 Service::~Service()
 {
-    vdbgx(Debug::frame, "" << this);
+    solid_dbg(logger, Verbose, "" << this);
     stop(true);
     rm.unregisterService(*this);
-    vdbgx(Debug::frame, "" << this);
+    solid_dbg(logger, Verbose, "" << this);
 }
 
 void Service::notifyAll(Event const& _revt)

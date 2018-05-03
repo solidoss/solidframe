@@ -14,11 +14,14 @@
 #include "solid/frame/mpipc/mpipcerror.hpp"
 
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 
 namespace solid {
 namespace frame {
 namespace mpipc {
+
+extern const LoggerT logger;
+
 //-----------------------------------------------------------------------------
 MessageWriter::MessageWriter()
     : current_message_type_id_(InvalidIndex())
@@ -85,7 +88,7 @@ bool MessageWriter::enqueue(
 
     order_inner_list_.pushBack(idx);
     write_inner_list_.pushBack(idx);
-    vdbgx(Debug::mpipc, "is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
+    solid_dbg(logger, Verbose, "is_relayed = " << Message::is_relayed(rmsgstub.msgbundle_.message_ptr->flags()) << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
 
     return true;
 }
@@ -133,7 +136,7 @@ bool MessageWriter::enqueue(
 
     if (_rprelay_data->pdata_ != nullptr) {
 
-        vdbgx(Debug::mpipc, msgidx << " relay_data.is_last " << _rprelay_data->is_last_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
+        solid_dbg(logger, Verbose, msgidx << " relay_data.is_last " << _rprelay_data->is_last_ << ' ' << MessageWriterPrintPairT(*this, PrintInnerListsE));
 
         write_inner_list_.pushBack(msgidx);
         rmsgstub.prelay_data_ = _rprelay_data;
@@ -143,19 +146,19 @@ bool MessageWriter::enqueue(
         _rprelay_data         = nullptr;
     } else if (rmsgstub.state_ < MessageStub::StateE::RelayedWait) {
         SOLID_ASSERT(rmsgstub.relay_size_ == 0);
-        edbgx(Debug::mpipc, "" << msgidx << " uid = " << rmsgstub.unique_ << " state = " << (int)rmsgstub.state_);
+        solid_dbg(logger, Error, "" << msgidx << " uid = " << rmsgstub.unique_ << " state = " << (int)rmsgstub.state_);
         //called from relay engine on cancel request from the reader (RR - see mpipcrelayengine.cpp) side of the link.
         //after the current function call, the MessageStub in the RelayEngine is distroyed.
         //we need to forward the cancel on the connection
         rmsgstub.state_ = MessageStub::StateE::RelayedCancel;
         write_inner_list_.pushBack(msgidx);
-        vdbgx(Debug::mpipc, "relayedcancel msg " << msgidx);
+        solid_dbg(logger, Verbose, "relayedcancel msg " << msgidx);
         //we do not need the relay_data - leave it to the relay engine to delete it.
     } else if (rmsgstub.state_ == MessageStub::StateE::RelayedWait) {
-        vdbgx(Debug::mpipc, "relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
+        solid_dbg(logger, Verbose, "relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
         //do nothing - we cannot erase a message stub waiting for response
     } else {
-        vdbgx(Debug::mpipc, "relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
+        solid_dbg(logger, Verbose, "relayedcancel erase msg " << msgidx << " state = " << (int)rmsgstub.state_);
         order_inner_list_.erase(msgidx);
         doUnprepareMessageStub(msgidx);
     }
@@ -234,12 +237,12 @@ void MessageWriter::doCancel(
     const bool   _force)
 {
 
-    vdbgx(Debug::mpipc, "" << _msgidx);
+    solid_dbg(logger, Verbose, "" << _msgidx);
 
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
     if (rmsgstub.state_ == MessageStub::StateE::WriteWaitCanceled) {
-        vdbgx(Debug::mpipc, "" << _msgidx << " already canceled");
+        solid_dbg(logger, Verbose, "" << _msgidx << " already canceled");
 
         if (_force) {
             order_inner_list_.erase(_msgidx);
@@ -249,7 +252,7 @@ void MessageWriter::doCancel(
     }
 
     if (rmsgstub.state_ == MessageStub::StateE::WriteCanceled) {
-        vdbgx(Debug::mpipc, "" << _msgidx << " already canceled");
+        solid_dbg(logger, Verbose, "" << _msgidx << " already canceled");
 
         if (_force) {
             SOLID_ASSERT(write_inner_list_.size());
@@ -376,7 +379,7 @@ ErrorConditionT MessageWriter::write(
             }
             if (packet_options.request_accept) {
                 SOLID_ASSERT(_rrelay_free_count != 0);
-                vdbgx(Debug::mpipc, "send AckRequestFlagE");
+                solid_dbg(logger, Verbose, "send AckRequestFlagE");
                 --_rrelay_free_count;
                 packet_header.flags(packet_header.flags() | static_cast<uint8_t>(PacketHeader::FlagE::AckRequest));
                 more = false; //do not allow multiple packets per relay buffer
@@ -436,10 +439,10 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
                 continue;
             }
         }
-        vdbgx(Debug::mpipc, "FOUND eligible message");
+        solid_dbg(logger, Verbose, "FOUND eligible message");
         return true;
     }
-    vdbgx(Debug::mpipc, "NO eligible message in a queue of " << write_inner_list_.size());
+    solid_dbg(logger, Verbose, "NO eligible message in a queue of " << write_inner_list_.size());
     return false;
 }
 //-----------------------------------------------------------------------------
@@ -461,7 +464,7 @@ size_t MessageWriter::doWritePacketData(
     char* pbufpos = _pbufbeg;
 
     if (_rackd_buf_count) {
-        vdbgx(Debug::mpipc, this << " stored ackd_buf_count = " << (int)_rackd_buf_count);
+        solid_dbg(logger, Verbose, this << " stored ackd_buf_count = " << (int)_rackd_buf_count);
         uint8_t cmd      = static_cast<uint8_t>(PacketHeader::CommandE::AckdCount);
         pbufpos          = _rsender.protocol().storeValue(pbufpos, cmd);
         pbufpos          = _rsender.protocol().storeValue(pbufpos, _rackd_buf_count);
@@ -469,7 +472,7 @@ size_t MessageWriter::doWritePacketData(
     }
 
     while (_cancel_remote_msg_vec.size() && static_cast<size_t>(_pbufend - pbufpos) >= _rsender.protocol().minimumFreePacketDataSize()) {
-        vdbgx(Debug::mpipc, this << " send CancelRequest " << _cancel_remote_msg_vec.back());
+        solid_dbg(logger, Verbose, this << " send CancelRequest " << _cancel_remote_msg_vec.back());
         uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
         pbufpos     = _rsender.protocol().storeValue(pbufpos, cmd);
         pbufpos     = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
@@ -485,7 +488,7 @@ size_t MessageWriter::doWritePacketData(
 
         PacketHeader::CommandE cmd = PacketHeader::CommandE::Message;
 
-        vdbgx(Debug::mpipc, this << " msgidx = " << msgidx << " state " << (int)message_vec_[msgidx].state_);
+        solid_dbg(logger, Verbose, this << " msgidx = " << msgidx << " state " << (int)message_vec_[msgidx].state_);
 
         switch (message_vec_[msgidx].state_) {
         case MessageStub::StateE::WriteStart: {
@@ -497,7 +500,7 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.state_ = MessageStub::StateE::WriteHeadStart;
 
-            vdbgx(Debug::mpipc, this << " message header url: " << rmsgstub.msgbundle_.message_url);
+            solid_dbg(logger, Verbose, this << " message header url: " << rmsgstub.msgbundle_.message_url);
 
             cmd = PacketHeader::CommandE::NewMessage;
         }
@@ -522,7 +525,7 @@ size_t MessageWriter::doWritePacketData(
 
             rmsgstub.state_ = MessageStub::StateE::RelayedHeadStart;
 
-            vdbgx(Debug::mpipc, this << " message header url: " << rmsgstub.prelay_data_->pmessage_header_->url_);
+            solid_dbg(logger, Verbose, this << " message header url: " << rmsgstub.prelay_data_->pmessage_header_->url_);
 
             cmd = PacketHeader::CommandE::NewMessage;
         }
@@ -549,7 +552,7 @@ size_t MessageWriter::doWritePacketData(
         }
     } //while
 
-    vdbgx(Debug::mpipc, this << " write_q_size " << write_inner_list_.size() << " order_q_size " << order_inner_list_.size());
+    solid_dbg(logger, Verbose, this << " write_q_size " << write_inner_list_.size() << " order_q_size " << order_inner_list_.size());
 
     return pbufpos - _pbufbeg;
 }
@@ -586,7 +589,7 @@ char* MessageWriter::doWriteMessageHead(
 
     if (rv >= 0) {
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
-        vdbgx(Debug::mpipc, "stored message header with index = " << _msgidx << " and size = " << rv);
+        solid_dbg(logger, Verbose, "stored message header with index = " << _msgidx << " and size = " << rv);
 
         if (rmsgstub.serializer_ptr_->empty()) {
             //we've just finished serializing header
@@ -654,7 +657,7 @@ char* MessageWriter::doWriteMessageBody(
                 write_inner_list_.popFront();
                 write_inner_list_.pushBack(_msgidx);
 
-                vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+                solid_dbg(logger, Verbose, MessageWriterPrintPairT(*this, PrintInnerListsE));
             }
         }
 
@@ -662,7 +665,7 @@ char* MessageWriter::doWriteMessageBody(
 
         //store the data size
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
-        vdbgx(Debug::mpipc, "stored message body with index = " << _msgidx << " and size = " << rv << " cmd = " << (int)cmd);
+        solid_dbg(logger, Verbose, "stored message body with index = " << _msgidx << " and size = " << rv << " cmd = " << (int)cmd);
 
         _pbufpos += rv;
     } else {
@@ -703,7 +706,7 @@ char* MessageWriter::doWriteRelayedHead(
 
     if (rv >= 0) {
         _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(rv));
-        vdbgx(Debug::mpipc, "stored message header with index = " << _msgidx << " and size = " << rv);
+        solid_dbg(logger, Verbose, "stored message header with index = " << _msgidx << " and size = " << rv);
 
         if (rmsgstub.serializer_ptr_->empty()) {
             //we've just finished serializing header
@@ -754,8 +757,8 @@ char* MessageWriter::doWriteRelayedBody(
     rmsgstub.prelay_pos_ += towrite;
     rmsgstub.relay_size_ -= towrite;
 
-    vdbgx(Debug::mpipc, "storing " << towrite << " bytes"
-                                   << " for msg " << _msgidx << " cmd = " << (int)cmd << " is_last = " << rmsgstub.prelay_data_->is_last_ << " relaydata = " << rmsgstub.prelay_data_);
+    solid_dbg(logger, Verbose, "storing " << towrite << " bytes"
+                                          << " for msg " << _msgidx << " cmd = " << (int)cmd << " is_last = " << rmsgstub.prelay_data_->is_last_ << " relaydata = " << rmsgstub.prelay_data_);
 
     if (rmsgstub.relay_size_ == 0) {
         SOLID_ASSERT(write_inner_list_.size());
@@ -794,7 +797,7 @@ char* MessageWriter::doWriteMessageCancel(
     ErrorConditionT& _rerror)
 {
 
-    vdbgx(Debug::mpipc, "" << _msgidx);
+    solid_dbg(logger, Verbose, "" << _msgidx);
 
     uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
@@ -822,7 +825,7 @@ char* MessageWriter::doWriteRelayedCancel(
 {
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
-    edbgx(Debug::mpipc, "" << _msgidx << " uid = " << rmsgstub.unique_ << " state = " << (int)rmsgstub.state_);
+    solid_dbg(logger, Error, "" << _msgidx << " uid = " << rmsgstub.unique_ << " state = " << (int)rmsgstub.state_);
 
     uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
@@ -852,7 +855,7 @@ char* MessageWriter::doWriteRelayedCancelRequest(
     ErrorConditionT& _rerror)
 {
 
-    vdbgx(Debug::mpipc, "" << _msgidx);
+    solid_dbg(logger, Verbose, "" << _msgidx);
 
     uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelMessage);
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
@@ -879,7 +882,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
     MessageStub& rmsgstub(message_vec_[_msgidx]);
     RequestId    requid(static_cast<uint32_t>(_msgidx), rmsgstub.unique_);
 
-    vdbgx(Debug::mpipc, "done serializing message " << requid << ". Message id sent to client " << _rsender.context().request_id);
+    solid_dbg(logger, Verbose, "done serializing message " << requid << ". Message id sent to client " << _rsender.context().request_id);
 
     cache(rmsgstub.serializer_ptr_);
 
@@ -896,7 +899,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
     rmsgstub.serializer_ptr_ = nullptr;
     rmsgstub.state_          = MessageStub::StateE::WriteStart;
 
-    vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+    solid_dbg(logger, Verbose, MessageWriterPrintPairT(*this, PrintInnerListsE));
 
     if (!Message::is_waiting_response(rmsgstub.msgbundle_.message_flags)) {
         //no wait response for the message - complete
@@ -908,19 +911,19 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
         _rerror = _rsender.completeMessage(tmp_msg_bundle, tmp_pool_msg_id);
 
-        vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+        solid_dbg(logger, Verbose, MessageWriterPrintPairT(*this, PrintInnerListsE));
     } else {
         rmsgstub.state_ = MessageStub::StateE::WriteWait;
     }
 
-    vdbgx(Debug::mpipc, MessageWriterPrintPairT(*this, PrintInnerListsE));
+    solid_dbg(logger, Verbose, MessageWriterPrintPairT(*this, PrintInnerListsE));
 }
 
 //-----------------------------------------------------------------------------
 void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_fnc)
 {
 
-    vdbgx(Debug::mpipc, "");
+    solid_dbg(logger, Verbose, "");
     size_t msgidx = order_inner_list_.backIndex();
 
     while (msgidx != InvalidIndex()) {

@@ -9,7 +9,6 @@
 //
 
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
 #include <mutex>
 
 #include "solid/system/mutualstore.hpp"

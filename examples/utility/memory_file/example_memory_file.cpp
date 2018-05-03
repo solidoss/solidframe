@@ -1,6 +1,6 @@
 #include "solid/system/common.hpp"
-#include "solid/system/debug.hpp"
 #include "solid/system/filedevice.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/memoryfile.hpp"
 #include <cerrno>
 #include <cstring>

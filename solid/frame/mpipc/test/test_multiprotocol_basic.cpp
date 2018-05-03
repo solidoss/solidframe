@@ -21,7 +21,7 @@
 
 #include "solid/system/exception.hpp"
 
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 
 #include "multiprotocol_basic/alpha/server/alphaserver.hpp"
 #include "multiprotocol_basic/beta/server/betaserver.hpp"
@@ -52,24 +52,19 @@ std::atomic<size_t>   connection_count(0);
 
 void server_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
 void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId());
+    solid_dbg(basic_logger, Info, _rctx.recipientId());
 }
 
 } //namespace
 
 int test_multiprotocol_basic(int argc, char* argv[])
 {
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("frame_mpipc:view any:view frame:view");
-    Debug::the().initStdErr(false, nullptr);
-//Debug::the().initFile("test_clientserver_basic", false);
-#endif
+    solid::log_start(std::cerr, {".*:EW"});
 
     size_t max_per_pool_connection_count = 1;
 
@@ -96,21 +91,21 @@ int test_multiprotocol_basic(int argc, char* argv[])
         err = sch_client.start(1);
 
         if (err) {
-            edbg("starting aio client scheduler: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio client scheduler: " << err.message());
             return 1;
         }
 
         err = sch_server.start(1);
 
         if (err) {
-            edbg("starting aio server scheduler: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio server scheduler: " << err.message());
             return 1;
         }
 
         err = resolver.start(1);
 
         if (err) {
-            edbg("starting aio resolver: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio resolver: " << err.message());
             return 1;
         }
 
@@ -134,7 +129,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
             err = mpipcserver.reconfigure(std::move(cfg));
 
             if (err) {
-                edbg("starting server mpipcservice: " << err.message());
+                solid_dbg(basic_logger, Error, "starting server mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -143,7 +138,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << mpipcserver.configuration().server.listenerPort();
                 server_port = oss.str();
-                idbg("server listens on port: " << server_port);
+                solid_dbg(basic_logger, Info, "server listens on port: " << server_port);
             }
         }
 
@@ -152,7 +147,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
         err = alpha_client::start(ctx);
 
         if (err) {
-            edbg("starting alpha mpipcservice: " << err.message());
+            solid_dbg(basic_logger, Error, "starting alpha mpipcservice: " << err.message());
             //exiting
             return 1;
         }
@@ -160,7 +155,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
         err = beta_client::start(ctx);
 
         if (err) {
-            edbg("starting alpha mpipcservice: " << err.message());
+            solid_dbg(basic_logger, Error, "starting alpha mpipcservice: " << err.message());
             //exiting
             return 1;
         }
@@ -168,7 +163,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
         err = gamma_client::start(ctx);
 
         if (err) {
-            edbg("starting gamma mpipcservice: " << err.message());
+            solid_dbg(basic_logger, Error, "starting gamma mpipcservice: " << err.message());
             //exiting
             return 1;
         }

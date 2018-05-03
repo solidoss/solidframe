@@ -16,8 +16,8 @@
 #include <mutex>
 #include <thread>
 
-#include "solid/system/debug.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
 
@@ -167,7 +167,7 @@ private:
             if (!_rctx.error()) {
                 sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
             } else {
-                edbg(this << " postStop: " << _rctx.systemError().message());
+                solid_dbg(basic_logger, Error, this << " postStop: " << _rctx.systemError().message());
                 postStop(_rctx);
             }
         }
@@ -176,17 +176,17 @@ private:
     {
         SecureConnection& rthis = static_cast<SecureConnection&>(_rctx.object());
         if (!_rctx.error()) {
-            idbg(&rthis << " postRecvSome");
+            solid_dbg(basic_logger, Info, &rthis << " postRecvSome");
             rthis.postRecvSome(_rctx); //fully asynchronous call
         } else {
-            edbg(&rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt << " error " << _rctx.systemError().message());
+            solid_dbg(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt << " error " << _rctx.systemError().message());
             rthis.postStop(_rctx);
         }
     }
     static bool onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& /*_rverify_ctx*/)
     {
         SecureConnection& rthis = static_cast<SecureConnection&>(_rctx.object());
-        idbg(&rthis << " " << _preverified);
+        solid_dbg(basic_logger, Info, &rthis << " " << _preverified);
         return _preverified;
     }
 
@@ -321,7 +321,7 @@ private:
     void onConnect(frame::aio::ReactorContext& _rctx)
     {
         if (!_rctx.error()) {
-            idbg(this << " Connected");
+            solid_dbg(basic_logger, Info, this << " Connected");
             sock.device().enableNoDelay();
             sock.secureSetVerifyDepth(_rctx, 10);
             sock.secureSetCheckHostName(_rctx, "echo-server");
@@ -330,7 +330,7 @@ private:
                 Connection::onConnect(_rctx);
             }
         } else {
-            edbg(this << " postStop");
+            solid_dbg(basic_logger, Error, this << " postStop");
             postStop(_rctx);
         }
     }
@@ -338,7 +338,7 @@ private:
     static bool onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx)
     {
         SecureConnection& rthis = static_cast<SecureConnection&>(_rctx.object());
-        idbg(&rthis << " " << _preverified);
+        solid_dbg(basic_logger, Info, &rthis << " " << _preverified);
         return _preverified;
     }
 
@@ -417,12 +417,8 @@ protected:
 
 int test_echo_tcp_stress(int argc, char* argv[])
 {
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("view");
-    Debug::the().moduleMask("frame_aio:ew any:vew");
-    Debug::the().initStdErr(false, nullptr);
-//Debug::the().initFile("test_clientserver_basic", false);
-#endif
+    solid::log_start(std::cerr, {"solid::frame::aio.*:EW", "basic:VEW"});
+
     size_t connection_count = 1;
 
     if (argc > 1) {
@@ -500,7 +496,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 solid::frame::ObjectIdT            objuid;
 
                 objuid = srv_sch.startObject(objptr, srv_svc, make_event(GenericEvents::Start), err);
-                idbg("Started Listener object: " << objuid.index << ',' << objuid.unique);
+                solid_dbg(basic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
                 running = false;
@@ -539,7 +535,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                     solid::frame::ObjectIdT            objuid;
 
                     objuid = rly_sch.startObject(objptr, rly_svc, make_event(GenericEvents::Start), err);
-                    idbg("Started Listener object: " << objuid.index << ',' << objuid.unique);
+                    solid_dbg(basic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
                     running = false;
@@ -582,7 +578,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
                 if (objuid.isInvalid()) {
                     --concnt;
                 }
-                idbg("Started Connection Object: " << objuid.index << ',' << objuid.unique);
+                solid_dbg(basic_logger, Info, "Started Connection Object: " << objuid.index << ',' << objuid.unique);
             }
         }
         {
@@ -614,7 +610,7 @@ namespace server {
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    idbg("event = " << _revent);
+    solid_dbg(basic_logger, Info, "event = " << _revent);
     if (generic_event_start == _revent) {
         sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); });
     } else if (generic_event_kill == _revent) {
@@ -624,7 +620,7 @@ namespace server {
 
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    idbg("");
+    solid_dbg(basic_logger, Info, "");
     size_t repeatcnt = backlog_size();
 
     do {
@@ -660,12 +656,12 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 //-----------------------------------------------------------------------------
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    edbg(this << " event = " << _revent);
+    solid_dbg(basic_logger, Error, this << " event = " << _revent);
     if (generic_event_start == _revent) {
         //postRecvSome(_rctx); //fully asynchronous call
         start(_rctx);
     } else if (generic_event_kill == _revent) {
-        edbg(this << " postStop");
+        solid_dbg(basic_logger, Error, this << " postStop");
         postStop(_rctx);
     }
 }
@@ -674,32 +670,32 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     unsigned    repeatcnt = 2;
     Connection& rthis     = static_cast<Connection&>(_rctx.object());
-    idbg(&rthis << " " << _sz);
+    solid_dbg(basic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
-            idbg(&rthis << " write: " << _sz);
+            solid_dbg(basic_logger, Info, &rthis << " write: " << _sz);
             rthis.recvcnt += _sz;
             rthis.sendcrt = _sz;
             if (rthis.sendAll(_rctx, _sz)) {
                 if (_rctx.error()) {
-                    edbg(&rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
+                    solid_dbg(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
                     rthis.postStop(_rctx);
                     break;
                 }
                 rthis.sendcnt += rthis.sendcrt;
             } else {
-                idbg(&rthis << "");
+                solid_dbg(basic_logger, Info, &rthis << "");
                 break;
             }
         } else {
-            edbg(&rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
+            solid_dbg(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
             rthis.postStop(_rctx);
             break;
         }
         --repeatcnt;
     } while (repeatcnt && rthis.recvSome(_rctx, _sz));
 
-    idbg(&rthis << " " << repeatcnt);
+    solid_dbg(basic_logger, Info, &rthis << " " << repeatcnt);
 
     if (repeatcnt == 0) {
         rthis.postRecvSome(_rctx); //fully asynchronous call
@@ -710,11 +706,11 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
     if (!_rctx.error()) {
-        idbg(&rthis << " postRecvSome");
+        solid_dbg(basic_logger, Info, &rthis << " postRecvSome");
         rthis.sendcnt += rthis.sendcrt;
         rthis.postRecvSome(_rctx); //fully asynchronous call
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
+        solid_dbg(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
         rthis.postStop(_rctx);
     }
 }
@@ -802,19 +798,19 @@ struct ResolvFunc {
 
         ev.any() = std::move(_rrd);
 
-        idbg(this << " send resolv_message");
+        solid_dbg(basic_logger, Info, this << " send resolv_message");
         rm.notify(objuid, std::move(ev));
     }
 };
 
 void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    idbg("event = " << _revent);
+    solid_dbg(basic_logger, Info, "event = " << _revent);
     if (_revent == generic_event_start) {
         //we must resolve the address then connect
-        idbg("async_resolve = "
-            << "127.0.0.1"
-            << " " << srv_port_str);
+        solid_dbg(basic_logger, Info, "async_resolve = "
+                << "127.0.0.1"
+                << " " << srv_port_str);
         async_resolver().requestResolve(
             ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), "127.0.0.1",
             use_relay ? rly_port_str.c_str() : srv_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
@@ -824,7 +820,7 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
         ResolveData* presolvemsg = _revent.any().cast<ResolveData>();
         if (presolvemsg) {
             if (presolvemsg->empty()) {
-                edbg(this << " postStop");
+                solid_dbg(basic_logger, Error, this << " postStop");
                 //++stats.donecnt;
                 postStop(_rctx);
             } else {
@@ -840,7 +836,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     const auto& str     = send_data_vec[sendidx];
     expect_recvcnt      = str.size();
 
-    idbg(this << " sending " << str.size());
+    solid_dbg(basic_logger, Info, this << " sending " << str.size());
 
     sendcnt += str.size();
 
@@ -852,11 +848,11 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
     if (!_rctx.error()) {
-        edbg(&rthis << " SUCCESS");
+        solid_dbg(basic_logger, Error, &rthis << " SUCCESS");
         rthis.postRecvSome(_rctx);
         rthis.doSend(_rctx);
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
+        solid_dbg(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
         //++stats.donecnt;
         rthis.postStop(_rctx);
     }
@@ -872,7 +868,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         SOLID_CHECK(_sz <= rthis.expect_recvcnt);
         SOLID_CHECK(rthis.checkRecvData(_sz));
 
-        idbg(&rthis << " received " << _sz);
+        solid_dbg(basic_logger, Info, &rthis << " received " << _sz);
 
         rthis.expect_recvcnt -= _sz;
 
@@ -887,7 +883,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         }
         rthis.postRecvSome(_rctx);
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message() << " " << _rctx.error().message());
+        solid_dbg(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message() << " " << _rctx.error().message());
         //++stats.donecnt;
         rthis.postStop(_rctx);
     }
@@ -898,9 +894,9 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
     if (!_rctx.error()) {
-        idbg(&rthis << " " << rthis.recvcnt);
+        solid_dbg(basic_logger, Info, &rthis << " " << rthis.recvcnt);
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
+        solid_dbg(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
         //++stats.donecnt;
         rthis.postStop(_rctx);
     }
@@ -925,7 +921,7 @@ namespace relay {
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    idbg("event = " << _revent);
+    solid_dbg(basic_logger, Info, "event = " << _revent);
     if (_revent == generic_event_start) {
         sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { onAccept(_rctx, _rsd); });
     } else if (_revent == generic_event_kill) {
@@ -935,7 +931,7 @@ namespace relay {
 
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    idbg("");
+    solid_dbg(basic_logger, Info, "");
     unsigned repeatcnt = SocketInfo::max_listen_backlog_size();
 
     do {
@@ -980,30 +976,30 @@ struct ResolvFunc {
 
         ev.any() = std::move(_rrd);
 
-        idbg(this << " send resolv_message");
+        solid_dbg(basic_logger, Info, this << " send resolv_message");
         rm.notify(objuid, std::move(ev));
     }
 };
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    edbg(this << " " << _revent);
+    solid_dbg(basic_logger, Error, this << " " << _revent);
     if (generic_event_start == _revent) {
         //we must resolve the address then connect
-        idbg("async_resolve = "
-            << "127.0.0.1"
-            << " " << srv_port_str);
+        solid_dbg(basic_logger, Info, "async_resolve = "
+                << "127.0.0.1"
+                << " " << srv_port_str);
         async_resolver().requestResolve(
             ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), "127.0.0.1",
             srv_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
     } else if (generic_event_kill == _revent) {
-        edbg(this << " postStop");
+        solid_dbg(basic_logger, Error, this << " postStop");
         postStop(_rctx);
     } else if (generic_event_message == _revent) {
         ResolveData* presolvemsg = _revent.any().cast<ResolveData>();
         if (presolvemsg) {
             if (presolvemsg->empty()) {
-                edbg(this << " postStop");
+                solid_dbg(basic_logger, Error, this << " postStop");
                 //sock.shutdown(_rctx);
                 postStop(_rctx);
             } else {
@@ -1018,12 +1014,12 @@ struct ResolvFunc {
 void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     if (!_rctx.error()) {
-        idbg(this << " SUCCESS");
+        solid_dbg(basic_logger, Info, this << " SUCCESS");
         sock2.device().enableNoDelay();
         sock1.postRecvSome(_rctx, buf1, BufferCapacity, Connection::onRecvSock1);
         sock2.postRecvSome(_rctx, buf2, BufferCapacity, Connection::onRecvSock2);
     } else {
-        edbg(this << " postStop " << recvcnt << " " << sendcnt << " " << _rctx.systemError().message());
+        solid_dbg(basic_logger, Error, this << " postStop " << recvcnt << " " << sendcnt << " " << _rctx.systemError().message());
         postStop(_rctx);
     }
 }
@@ -1032,13 +1028,13 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     unsigned    repeatcnt = 4;
     Connection& rthis     = static_cast<Connection&>(_rctx.object());
-    idbg(&rthis << " " << _sz);
+    solid_dbg(basic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
             bool rv = rthis.sock2.sendAll(_rctx, rthis.buf1, _sz, Connection::onSendSock2);
             if (rv) {
                 if (_rctx.error()) {
-                    edbg(&rthis << " postStop");
+                    solid_dbg(basic_logger, Error, &rthis << " postStop");
                     rthis.postStop(_rctx);
                     break;
                 }
@@ -1046,7 +1042,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
                 break;
             }
         } else {
-            edbg(&rthis << " postStop");
+            solid_dbg(basic_logger, Error, &rthis << " postStop");
             rthis.postStop(_rctx);
             break;
         }
@@ -1063,13 +1059,13 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     unsigned    repeatcnt = 4;
     Connection& rthis     = static_cast<Connection&>(_rctx.object());
-    idbg(&rthis << " " << _sz);
+    solid_dbg(basic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
             bool rv = rthis.sock1.sendAll(_rctx, rthis.buf2, _sz, Connection::onSendSock1);
             if (rv) {
                 if (_rctx.error()) {
-                    edbg(&rthis << " postStop");
+                    solid_dbg(basic_logger, Error, &rthis << " postStop");
                     rthis.postStop(_rctx);
                     break;
                 }
@@ -1077,7 +1073,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
                 break;
             }
         } else {
-            edbg(&rthis << " postStop");
+            solid_dbg(basic_logger, Error, &rthis << " postStop");
             rthis.postStop(_rctx);
             break;
         }
@@ -1096,7 +1092,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     if (!_rctx.error()) {
         rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2);
     } else {
-        edbg(&rthis << " postStop");
+        solid_dbg(basic_logger, Error, &rthis << " postStop");
         rthis.postStop(_rctx);
     }
 }
@@ -1107,7 +1103,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
     if (!_rctx.error()) {
         rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1);
     } else {
-        edbg(&rthis << " postStop");
+        solid_dbg(basic_logger, Error, &rthis << " postStop");
         rthis.postStop(_rctx);
     }
 }

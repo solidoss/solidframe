@@ -1,7 +1,6 @@
 
 set(Sources
     src/mpipcerror.cpp
-    src/mpipcservice.cpp
     src/mpipclistener.cpp
     src/mpipcconnection.cpp
     src/mpipcconfiguration.cpp
@@ -10,6 +9,7 @@ set(Sources
     src/mpipcprotocol.cpp
     src/mpipcrelayengine.cpp
     src/mpipcrelayengines.cpp
+    src/mpipcservice.cpp
 )
 
 set(Headers

@@ -62,7 +62,6 @@ bool CompletionHandler::activate(Object const& _robj)
 
 void CompletionHandler::unregister()
 {
-    idbgx(Debug::aio, "" << this << " " << isRegistered());
     if (isRegistered()) {
         this->pprev->pnext = this->pnext;
         if (this->pnext) {

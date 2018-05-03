@@ -13,7 +13,7 @@ int test_log_file(int argc, char* argv[])
 
     ostringstream oss;
 
-    solid::log_start(oss, {"*:VIEW"});
+    solid::log_start(oss, {".*:VIEW"});
 
     solid_log(solid::basic_logger, Info, "First line of log: " << argc << " " << argv[0]);
     solid_log(logger, Verbose, "Second line of log: " << argc << ' ' << argv[0]);

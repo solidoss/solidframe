@@ -1,5 +1,5 @@
 #include "solid/serialization/v1/binary.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 #include <sstream>
 
 #include <iostream>
@@ -17,11 +17,11 @@ enum struct Protocols : size_t {
 struct Base {
     Base()
     {
-        idbg("" << this);
+        solid_dbg(basic_logger, Info, "" << this);
     }
     virtual ~Base()
     {
-        idbg("" << this);
+        solid_dbg(basic_logger, Info, "" << this);
     }
     virtual std::ostream& print(std::ostream&) const                = 0;
     virtual bool          check(std::string* _pstr = nullptr) const = 0;
@@ -37,11 +37,11 @@ namespace alpha {
 struct Base {
     Base()
     {
-        idbg("" << this);
+        solid_dbg(basic_logger, Info, "" << this);
     }
     virtual ~Base()
     {
-        idbg("" << this);
+        solid_dbg(basic_logger, Info, "" << this);
     }
     virtual std::ostream& print(std::ostream&) const = 0;
     virtual bool          check() const              = 0;
@@ -192,11 +192,7 @@ typedef serialization::TypeIdMap<BinSerializerT, BinDeserializerT>         Delta
 int test_typeidmap(int argc, char* argv[])
 {
 
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("all");
-    Debug::the().initStdErr(false, nullptr);
-#endif
+    solid::log_start(std::cerr, {".*:EW"});
 
     std::string alpha_data;
     std::string beta_data;

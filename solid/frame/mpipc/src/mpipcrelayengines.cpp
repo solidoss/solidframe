@@ -10,7 +10,7 @@
 
 #include "solid/frame/mpipc/mpipcrelayengines.hpp"
 #include "mpipcutility.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/string.hpp"
 #include <deque>
 #include <mutex>

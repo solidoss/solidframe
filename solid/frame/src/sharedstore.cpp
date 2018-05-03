@@ -12,6 +12,7 @@
 #include "solid/frame/reactorcontext.hpp"
 #include "solid/frame/service.hpp"
 #include "solid/system/cassert.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/mutualstore.hpp"
 #include "solid/utility/event.hpp"
 #include "solid/utility/queue.hpp"
@@ -24,6 +25,10 @@ using namespace std;
 namespace solid {
 namespace frame {
 namespace shared {
+
+namespace {
+const LoggerT logger("solid::frame::shared");
+} //namespace
 
 enum {
     S_RAISE = 1,
@@ -209,7 +214,7 @@ void StoreBase::raise()
             }
             doExecuteOnSignal(sm);
         }
-        vdbgx(Debug::frame, "");
+        solid_dbg(logger, Verbose, "");
         if (this->doExecute()) {
             this->post(
                 _rctx,
@@ -229,7 +234,7 @@ void StoreBase::doCacheObjectIndex(const size_t _idx)
 
 void StoreBase::doExecuteCache()
 {
-    vdbgx(Debug::frame, "");
+    solid_dbg(logger, Verbose, "");
     for (ExecWaitVectorT::const_iterator it(impl_->exewaitvec.begin()); it != impl_->exewaitvec.end(); ++it) {
         impl_->cachewaitstk.push(it->pw);
     }
@@ -239,7 +244,7 @@ void StoreBase::doExecuteCache()
 
 void* StoreBase::doTryAllocateWait()
 {
-    vdbgx(Debug::frame, "");
+    solid_dbg(logger, Verbose, "");
     if (impl_->cachewaitstk.size()) {
         void* rv = impl_->cachewaitstk.top();
         impl_->cachewaitstk.pop();

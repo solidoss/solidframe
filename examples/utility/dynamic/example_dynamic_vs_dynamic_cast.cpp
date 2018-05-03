@@ -1,5 +1,5 @@
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/dynamicpointer.hpp"
 #include "solid/utility/dynamictype.hpp"
 #include "solid/utility/queue.hpp"

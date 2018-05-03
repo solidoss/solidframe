@@ -1,5 +1,4 @@
 #include "solid/system/common.hpp"
-#include "solid/system/debug.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/memoryfile.hpp"
 #include <cerrno>

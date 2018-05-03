@@ -15,7 +15,6 @@
 #include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/innerlist.hpp"
@@ -128,7 +127,7 @@ public:
 
     inline void addBasic(bool& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{&_rb, &load_bool, 1, 0, _name};
 
         if (isRunEmpty()) {
@@ -142,7 +141,7 @@ public:
 
     inline void addBasic(int8_t& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{&_rb, &load_byte, 1, 0, _name};
 
         if (isRunEmpty()) {
@@ -156,7 +155,7 @@ public:
 
     inline void addBasic(uint8_t& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{&_rb, &load_byte, 1, 0, _name};
 
         if (isRunEmpty()) {
@@ -171,7 +170,7 @@ public:
     template <typename A>
     inline void addVectorBool(std::vector<bool, A>& _rv, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{&_rv, &load_vector_bool<A>, 0, 0, _name};
 
         if (isRunEmpty()) {
@@ -186,7 +185,7 @@ public:
     template <size_t N>
     inline void addBitset(std::bitset<N>& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{&_rb, &load_bitset<N>, 0, 0, _name};
 
         _rb.reset();
@@ -203,7 +202,7 @@ public:
     template <class T>
     void addBasic(T& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
 #if 0
         Runnable r{&_rb, &load_binary, sizeof(T), 0, _name};
 
@@ -235,7 +234,7 @@ public:
     template <class T>
     void addBasicWithCheck(T& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
 
         Runnable r{&_rb, &load_cross_with_check<T>, 0, 0, _name};
 
@@ -250,7 +249,7 @@ public:
 
     void addBasic(std::string& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{&_rb, &load_string, 0, 0, _name};
 
         _rb.clear(); //necessary otherwise map<string, something> would not work on gcc5.3
@@ -267,7 +266,7 @@ public:
     template <typename T, class A>
     void addVectorChar(std::vector<T, A>& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{&_rb, &load_vector_char<T, A>, 0, 0, _name};
 
         _rb.clear(); //necessary otherwise map<string, something> would not work on gcc5.3
@@ -284,7 +283,7 @@ public:
     template <class D, class F>
     void addFunction(D& _rd, F _f, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         if (isRunEmpty()) {
             _f(_rd, _name);
         } else {
@@ -312,7 +311,7 @@ public:
     template <class D, class F, class Ctx>
     void addFunction(D& _rd, F _f, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         if (isRunEmpty()) {
             _f(_rd, _rctx, _name);
         } else {
@@ -341,7 +340,7 @@ public:
     template <class D, class F>
     void pushFunction(D& _rd, F _f, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         auto lambda = [_f = std::move(_f)](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rd.sentinel();
             const bool             done         = _f(static_cast<D&>(_rd), _rr.name_);
@@ -373,7 +372,7 @@ public:
     template <class D, class F, class Ctx>
     void pushFunction(D& _rd, F _f, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         auto lambda = [_f = std::move(_f)](DeserializerBase& _rd, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rd.sentinel();
             const bool             done         = _f(static_cast<D&>(_rd), *static_cast<Ctx*>(_pctx), _rr.name_);
@@ -405,7 +404,7 @@ public:
     template <class D, class C>
     void addContainer(D& _rd, C& _rc, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
 
         typename C::value_type value;
         bool                   init          = true;
@@ -468,7 +467,7 @@ public:
     template <class D, class C, class Ctx>
     void addContainer(D& _rd, C& _rc, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
 
         typename C::value_type value;
         bool                   init          = true;
@@ -771,7 +770,7 @@ private:
 
         if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
             _rr.size_ = _rd.data_.u64_;
-            idbgx(Debug::ser_bin, "size = " << _rr.size_);
+            solid_dbg(logger, Info, "size = " << _rr.size_);
 
             if (_rd.Base::limits().hasContainer() && _rr.size_ > _rd.Base::limits().container()) {
                 _rd.error(error_limit_container);
@@ -825,7 +824,7 @@ private:
 
         if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
             _rr.size_ = _rd.data_.u64_;
-            idbgx(Debug::ser_bin, "size = " << _rr.size_);
+            solid_dbg(logger, Info, "size = " << _rr.size_);
 
             if (_rr.size_ > N || (_rd.Base::limits().hasContainer() && _rr.size_ > _rd.Base::limits().container())) {
                 _rd.error(error_limit_container);
@@ -872,7 +871,7 @@ private:
     template <typename T, class A>
     static Base::ReturnE load_vector_char(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
-        idbgx(Debug::ser_bin, _rr.name_);
+        solid_dbg(logger, Info, _rr.name_);
         //_rr.ptr_ contains pointer to string object
         void* pstr      = _rr.ptr_;
         _rr.ptr_        = &_rd.data_.u64_;
@@ -881,7 +880,7 @@ private:
 
         if (r == ReturnE::Done && _rd.data_.u64_ != 0) {
             _rr.size_ = _rd.data_.u64_;
-            idbgx(Debug::ser_bin, "size = " << _rr.size_);
+            solid_dbg(logger, Info, "size = " << _rr.size_);
 
             if (_rd.Base::limits().hasString() && _rr.size_ > _rd.Base::limits().string()) {
                 _rd.error(error_limit_string);
@@ -902,7 +901,7 @@ private:
     {
         const uint64_t v  = _rd.data_.u64_;
         const T        vt = static_cast<T>(v);
-        idbgx(Debug::ser_bin, "vt = " << vt);
+        solid_dbg(logger, Info, "vt = " << vt);
 
         if (static_cast<uint64_t>(vt) == v) {
             *reinterpret_cast<T*>(_rr.ptr_) = vt;
@@ -995,7 +994,7 @@ private:
     }
     inline Base::ReturnE doLoadString(Runnable& _rr)
     {
-        idbgx(Debug::ser_bin, _rr.name_);
+        solid_dbg(logger, Info, _rr.name_);
         //_rr.ptr_ contains pointer to string object
         void* pstr      = _rr.ptr_;
         _rr.ptr_        = &data_.u64_;
@@ -1004,7 +1003,7 @@ private:
 
         if (r == ReturnE::Done && data_.u64_ != 0) {
             _rr.size_ = data_.u64_;
-            idbgx(Debug::ser_bin, "size = " << _rr.size_);
+            solid_dbg(logger, Info, "size = " << _rr.size_);
 
             if (Base::limits().hasString() && _rr.size_ > Base::limits().string()) {
                 error(error_limit_string);
@@ -1039,7 +1038,7 @@ private:
             if (_rr.size_ == 0) {
                 const uint64_t v  = data_.u64_;
                 const T        vt = static_cast<T>(v);
-                idbgx(Debug::ser_bin, "vt = " << vt);
+                solid_dbg(logger, Info, "vt = " << vt);
 
                 if (static_cast<uint64_t>(vt) == v) {
                     *reinterpret_cast<T*>(_rr.ptr_) = vt;
@@ -1057,7 +1056,7 @@ private:
     {
         if (pcrt_ != pend_) {
             _rr.size_ = *pcrt_;
-            idbgx(Debug::ser_bin, "sz = " << _rr.size_ << " c = " << (int)*pcrt_);
+            solid_dbg(logger, Info, "sz = " << _rr.size_ << " c = " << (int)*pcrt_);
             ++pcrt_;
 
             if (_rr.size_ > sizeof(uint64_t)) {
@@ -1204,7 +1203,7 @@ public:
     template <class T>
     void addPointer(std::shared_ptr<T>& _rp, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         add(type_id_, _name);
         add([&_rp](ThisT& _rd, const char* _name) mutable {
             _rd.rtype_map_.deserialize(_rd, _rp, _rd.type_id_, _name);
@@ -1215,7 +1214,7 @@ public:
     template <class T, class D>
     void addPointer(std::unique_ptr<T, D>& _rp, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         add(type_id_, _name);
         add([&_rp](ThisT& _rd, const char* _name) mutable {
             _rd.rtype_map_.deserialize(_rd, _rp, _rd.type_id_, _name);
@@ -1376,7 +1375,7 @@ public:
     template <class T>
     void addPointer(std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         add(type_id_, _rctx, _name);
         add([&_rp](ThisT& _rd, Ctx& _rctx, const char* _name) mutable {
             _rd.rtype_map_.deserialize(_rd, _rp, _rd.type_id_, _rctx, _name);
@@ -1387,7 +1386,7 @@ public:
     template <class T, class D>
     void addPointer(std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         add(type_id_, _rctx, _name);
         add([&_rp](ThisT& _rd, Ctx& _rctx, const char* _name) mutable {
             _rd.rtype_map_.deserialize(_rd, _rp, _rd.type_id_, _rctx, _name);

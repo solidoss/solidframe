@@ -11,7 +11,7 @@
 #include <mutex>
 #include <thread>
 
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
 
@@ -33,16 +33,15 @@ typedef frame::Scheduler<frame::aio::Reactor> AioSchedulerT;
 //------------------------------------------------------------------
 
 struct Params {
-    int    listener_port;
-    int    talker_port;
-    int    connect_port;
-    string dbg_levels;
-    string dbg_modules;
-    string dbg_addr;
-    string dbg_port;
-    bool   dbg_console;
-    bool   dbg_buffered;
-    bool   log;
+    int            listener_port;
+    int            talker_port;
+    int            connect_port;
+    vector<string> dbg_modules;
+    string         dbg_addr;
+    string         dbg_port;
+    bool           dbg_console;
+    bool           dbg_buffered;
+    bool           log;
 };
 
 namespace {
@@ -198,43 +197,31 @@ bool parseArguments(Params& _par, int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
-    Params p;
-    if (parseArguments(p, argc, argv))
+    Params params;
+    if (parseArguments(params, argc, argv))
         return 0;
 #ifndef SOLID_ON_WINDOWS
     signal(SIGINT, term_handler); /* Die on SIGTERM */
     signal(SIGPIPE, SIG_IGN);
 #endif
 
-#ifdef SOLID_HAS_DEBUG
-    {
-        string dbgout;
-        Debug::the().levelMask(p.dbg_levels.c_str());
-        Debug::the().moduleMask(p.dbg_modules.c_str());
-        if (p.dbg_addr.size() && p.dbg_port.size()) {
-            Debug::the().initSocket(
-                p.dbg_addr.c_str(),
-                p.dbg_port.c_str(),
-                p.dbg_buffered,
-                &dbgout);
-        } else if (p.dbg_console) {
-            Debug::the().initStdErr(
-                p.dbg_buffered,
-                &dbgout);
-        } else {
-            Debug::the().initFile(
-                *argv[0] == '.' ? argv[0] + 2 : argv[0],
-                p.dbg_buffered,
-                3,
-                1024 * 1024 * 64,
-                &dbgout);
-        }
-        cout << "Debug output: " << dbgout << endl;
-        dbgout.clear();
-        Debug::the().moduleNames(dbgout);
-        cout << "Debug modules: " << dbgout << endl;
+    if (params.dbg_addr.size() && params.dbg_port.size()) {
+        solid::log_start(
+            params.dbg_addr.c_str(),
+            params.dbg_port.c_str(),
+            params.dbg_modules,
+            params.dbg_buffered);
+
+    } else if (params.dbg_console) {
+        solid::log_start(std::cerr, params.dbg_modules);
+    } else {
+        solid::log_start(
+            *argv[0] == '.' ? argv[0] + 2 : argv[0],
+            params.dbg_modules,
+            params.dbg_buffered,
+            3,
+            1024 * 1024 * 64);
     }
-#endif
     {
 
         AioSchedulerT sch;
@@ -246,7 +233,7 @@ int main(int argc, char* argv[])
             running = false;
             cout << "Error starting scheduler" << endl;
         } else {
-            ResolveData rd = synchronous_resolve("0.0.0.0", p.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+            ResolveData rd = synchronous_resolve("0.0.0.0", params.listener_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
             SocketDevice sd;
 
@@ -259,14 +246,14 @@ int main(int argc, char* argv[])
                 solid::frame::ObjectIdT            objuid;
 
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                idbg("Started Listener object: " << objuid.index << ',' << objuid.unique);
+                solid_log(basic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
                 running = false;
             }
 #ifdef USE_CONNECTION
             {
-                rd = synchronous_resolve("127.0.0.1", p.connect_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+                rd = synchronous_resolve("127.0.0.1", params.connect_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 
                 DynamicPointer<frame::aio::Object> objptr(new ClientConnection(rd));
                 solid::ErrorConditionT             err;
@@ -274,11 +261,11 @@ int main(int argc, char* argv[])
 
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
 
-                idbg("Started Client Connection object: " << objuid.index << ',' << objuid.unique);
+                solid_log(basic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
             }
 #endif
 #ifdef USE_TALKER
-            rd = synchronous_resolve("0.0.0.0", p.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+            rd = synchronous_resolve("0.0.0.0", params.talker_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 
             sd.create(rd.begin());
             sd.bind(rd.begin());
@@ -291,7 +278,7 @@ int main(int argc, char* argv[])
 
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
 
-                idbg("Started Talker object: " << objuid.index << ',' << objuid.unique);
+                solid_log(basic_logger, Info, "Started Talker object: " << objuid.index << ',' << objuid.unique);
             } else {
                 cout << "Error creating talker socket" << endl;
                 running = false;
@@ -319,7 +306,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     using namespace boost::program_options;
     try {
         options_description desc("SolidFrame concept application");
-        desc.add_options()("help,h", "List program options")("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")("talk-port,t", value<int>(&_par.talker_port)->default_value(3000), "Talker port")("connection-port,c", value<int>(&_par.connect_port)->default_value(5000), "Connection port")("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"), "Debug logging levels")("debug-modules,M", value<string>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        desc.add_options()("help,h", "List program options")("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")("talk-port,t", value<int>(&_par.talker_port)->default_value(3000), "Talker port")("connection-port,c", value<int>(&_par.connect_port)->default_value(5000), "Connection port")("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
         notify(vm);
@@ -339,7 +326,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    idbg("event = " << _revent);
+    solid_log(basic_logger, Info, "event = " << _revent);
     if (generic_event_start == _revent) {
         sock.postAccept(_rctx, std::bind(&Listener::onAccept, this, _1, _2));
         //sock.postAccept(_rctx, [this](frame::aio::ReactorContext &_rctx, SocketDevice &_rsd){return onAccept(_rctx, _rsd);});
@@ -352,7 +339,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 
 void Listener::onTimer(frame::aio::ReactorContext& _rctx)
 {
-    idbg("On Listener Timer");
+    solid_log(basic_logger, Info, "On Listener Timer");
     ptimer->waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(2), [this](frame::aio::ReactorContext& _rctx) { return onTimer(_rctx); });
     ++timercnt;
     if (timercnt == 4) {
@@ -363,7 +350,7 @@ void Listener::onTimer(frame::aio::ReactorContext& _rctx)
 
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    idbg("");
+    solid_log(basic_logger, Info, "");
     size_t repeatcnt = backlog_size();
 
     do {
@@ -398,11 +385,11 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 #ifdef USE_CONNECTION
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    edbg(this << " event = " << _revent);
+    solid_log(basic_logger, Error, this << " event = " << _revent);
     if (generic_event_start == _revent) {
         sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
     } else if (generic_event_kill == _revent) {
-        edbg(this << " postStop");
+        solid_log(basic_logger, Error, this << " postStop");
         sock.shutdown(_rctx);
         postStop(_rctx);
     }
@@ -412,32 +399,32 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     unsigned    repeatcnt = 2;
     Connection& rthis     = static_cast<Connection&>(_rctx.object());
-    idbg(&rthis << " " << _sz);
+    solid_log(basic_logger, Info, &rthis << " " << _sz);
     do {
         if (!_rctx.error()) {
-            idbg(&rthis << " write: " << _sz);
+            solid_log(basic_logger, Info, &rthis << " write: " << _sz);
             rthis.recvcnt += _sz;
             rthis.sendcrt = _sz;
             if (rthis.sock.sendAll(_rctx, rthis.buf, _sz, Connection::onSend)) {
                 if (_rctx.error()) {
-                    edbg(&rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
+                    solid_log(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
                     rthis.postStop(_rctx);
                     break;
                 }
                 rthis.sendcnt += rthis.sendcrt;
             } else {
-                idbg(&rthis << "");
+                solid_log(basic_logger, Info, &rthis << "");
                 break;
             }
         } else {
-            edbg(&rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
+            solid_log(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
             rthis.postStop(_rctx);
             break;
         }
         --repeatcnt;
     } while (repeatcnt && rthis.sock.recvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv, _sz));
 
-    idbg(&rthis << " " << repeatcnt);
+    solid_log(basic_logger, Info, &rthis << " " << repeatcnt);
 
     if (repeatcnt == 0) {
         bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
@@ -449,11 +436,11 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
     if (!_rctx.error()) {
-        idbg(&rthis << " postRecvSome");
+        solid_log(basic_logger, Info, &rthis << " postRecvSome");
         rthis.sendcnt += rthis.sendcrt;
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
+        solid_log(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << rthis.sendcnt);
         rthis.postStop(_rctx);
     }
 }
@@ -466,7 +453,7 @@ void Connection::onTimer(frame::aio::ReactorContext& _rctx)
 
 /*virtual*/ void ClientConnection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    edbg(this << " event = " << _revent);
+    solid_log(basic_logger, Error, this << " event = " << _revent);
     if (generic_event_start == _revent) {
 
         string hoststr;
@@ -478,23 +465,23 @@ void Connection::onTimer(frame::aio::ReactorContext& _rctx)
             rd.begin(),
             ReverseResolveInfo::Numeric);
 
-        idbg("Connect to " << hoststr << ":" << servstr);
+        solid_log(basic_logger, Info, "Connect to " << hoststr << ":" << servstr);
 
         if (sock.connect(_rctx, rd.begin(), std::bind(&ClientConnection::onConnect, this, _1))) {
             onConnect(_rctx);
         }
     } else if (generic_event_kill == _revent) {
-        edbg(this << " postStop");
+        solid_log(basic_logger, Error, this << " postStop");
         postStop(_rctx);
     }
 }
 void ClientConnection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     if (!_rctx.error()) {
-        idbg(this << " SUCCESS");
+        solid_log(basic_logger, Info, this << " SUCCESS");
         sock.postRecvSome(_rctx, buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
     } else {
-        edbg(this << " postStop " << recvcnt << " " << sendcnt << " " << _rctx.systemError().message());
+        solid_log(basic_logger, Error, this << " postStop " << recvcnt << " " << sendcnt << " " << _rctx.systemError().message());
         postStop(_rctx);
     }
 }
@@ -507,11 +494,11 @@ void ClientConnection::onConnect(frame::aio::ReactorContext& _rctx)
 #ifdef USE_TALKER
 /*virtual*/ void Talker::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    idbg(this << " event = " << _revent);
+    solid_log(basic_logger, Info, this << " event = " << _revent);
     if (generic_event_start == _revent) {
         sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3)); //fully asynchronous call
     } else if (generic_event_kill == _revent) {
-        edbg(this << " postStop");
+        solid_log(basic_logger, Error, this << " postStop");
         postStop(_rctx);
     }
 }
@@ -523,7 +510,7 @@ void Talker::onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, si
         if (!_rctx.error()) {
             if (sock.sendTo(_rctx, buf, _sz, _raddr, std::bind(&Talker::onSend, this, _1))) {
                 if (_rctx.error()) {
-                    edbg(this << " postStop");
+                    solid_log(basic_logger, Error, this << " postStop");
                     postStop(_rctx);
                     break;
                 }
@@ -531,14 +518,14 @@ void Talker::onRecv(frame::aio::ReactorContext& _rctx, SocketAddress& _raddr, si
                 break;
             }
         } else {
-            edbg(this << " postStop");
+            solid_log(basic_logger, Error, this << " postStop");
             postStop(_rctx);
             break;
         }
         --repeatcnt;
     } while (repeatcnt && sock.recvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3), _raddr, _sz));
 
-    idbg(repeatcnt);
+    solid_log(basic_logger, Info, repeatcnt);
     if (repeatcnt == 0) {
         bool rv = sock.postRecvFrom(_rctx, buf, BufferCapacity, std::bind(&Talker::onRecv, this, _1, _2, _3)); //fully asynchronous call
         SOLID_ASSERT(!rv);

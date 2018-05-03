@@ -11,8 +11,8 @@
 
 #include "solid/frame/aio/aioresolver.hpp"
 
-#include "solid/system/debug.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
 #include <condition_variable>
@@ -38,15 +38,14 @@ typedef frame::aio::openssl::Context          SecureContextT;
 //------------------------------------------------------------------
 
 struct Params {
-    string connect_addr;
-    string connect_port;
-    string dbg_levels;
-    string dbg_modules;
-    string dbg_addr;
-    string dbg_port;
-    bool   dbg_console;
-    bool   dbg_buffered;
-    bool   log;
+    string         connect_addr;
+    string         connect_port;
+    vector<string> dbg_modules;
+    string         dbg_addr;
+    string         dbg_port;
+    bool           dbg_console;
+    bool           dbg_buffered;
+    bool           log;
 };
 
 using ConnectStT = std::pair<std::string&, std::string&>;
@@ -116,8 +115,8 @@ bool parseArguments(Params& _par, int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
-    Params p;
-    if (parseArguments(p, argc, argv))
+    Params params;
+    if (parseArguments(params, argc, argv))
         return 0;
 
     SecureContextT secure_ctx(SecureContextT::create());
@@ -135,35 +134,23 @@ int main(int argc, char* argv[])
     signal(SIGPIPE, SIG_IGN);
 #endif
 
-#ifdef SOLID_HAS_DEBUG
-    {
-        string dbgout;
-        Debug::the().levelMask(p.dbg_levels.c_str());
-        Debug::the().moduleMask(p.dbg_modules.c_str());
-        if (p.dbg_addr.size() && p.dbg_port.size()) {
-            Debug::the().initSocket(
-                p.dbg_addr.c_str(),
-                p.dbg_port.c_str(),
-                p.dbg_buffered,
-                &dbgout);
-        } else if (p.dbg_console) {
-            Debug::the().initStdErr(
-                p.dbg_buffered,
-                &dbgout);
-        } else {
-            Debug::the().initFile(
-                *argv[0] == '.' ? argv[0] + 2 : argv[0],
-                p.dbg_buffered,
-                3,
-                1024 * 1024 * 64,
-                &dbgout);
-        }
-        cout << "Debug output: " << dbgout << endl;
-        dbgout.clear();
-        Debug::the().moduleNames(dbgout);
-        cout << "Debug modules: " << dbgout << endl;
+    if (params.dbg_addr.size() && params.dbg_port.size()) {
+        solid::log_start(
+            params.dbg_addr.c_str(),
+            params.dbg_port.c_str(),
+            params.dbg_modules,
+            params.dbg_buffered);
+
+    } else if (params.dbg_console) {
+        solid::log_start(std::cerr, params.dbg_modules);
+    } else {
+        solid::log_start(
+            *argv[0] == '.' ? argv[0] + 2 : argv[0],
+            params.dbg_modules,
+            params.dbg_buffered,
+            3,
+            1024 * 1024 * 64);
     }
-#endif
 
     {
         ErrorCodeT err = secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
@@ -205,9 +192,9 @@ int main(int argc, char* argv[])
             DynamicPointer<frame::aio::Object> objptr(new Connection(secure_ctx));
             solid::ErrorConditionT             err;
 
-            objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, p.connect_addr, p.connect_port)), err);
+            objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
 
-            idbg("Started Client Connection object: " << objuid.index << ',' << objuid.unique);
+            solid_log(basic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
         }
 
         while (true) {
@@ -233,7 +220,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     using namespace boost::program_options;
     try {
         options_description desc("SolidFrame concept application");
-        desc.add_options()("help,h", "List program options")("connect-addr,a", value<string>(&_par.connect_addr), "Connect address")("connect-port,p", value<string>(&_par.connect_port)->default_value("5000"), "Connect port")("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"), "Debug logging levels")("debug-modules,M", value<string>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        desc.add_options()("help,h", "List program options")("connect-addr,a", value<string>(&_par.connect_addr), "Connect address")("connect-port,p", value<string>(&_par.connect_port)->default_value("5000"), "Connect port")("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
         notify(vm);
@@ -280,7 +267,7 @@ struct ConnectFunction {
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    edbg(this << " " << _revent);
+    solid_log(basic_logger, Error, this << " " << _revent);
     if (generic_event_message == _revent) {
         std::string* pline = _revent.any().cast<std::string>();
 
@@ -297,7 +284,7 @@ struct ConnectFunction {
         ConnectStub* pconnect_stub = _revent.any().cast<ConnectStub>();
 
         SOLID_CHECK(pconnect_stub != nullptr);
-        idbg("Resolving: " << pconnect_stub->connect_addr << ':' << pconnect_stub->connect_port);
+        solid_log(basic_logger, Info, "Resolving: " << pconnect_stub->connect_addr << ':' << pconnect_stub->connect_port);
 
         frame::Manager&  manager = _rctx.service().manager();
         frame::ObjectIdT objuid  = _rctx.service().manager().id(*this);
@@ -306,7 +293,7 @@ struct ConnectFunction {
 
         pconnect_stub->resolver.requestResolve(
             [&manager, objuid](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
-                idbg("send resolv_message");
+                solid_log(basic_logger, Info, "send resolv_message");
                 manager.notify(objuid, make_event(GenericEvents::Raise, std::move(_rrd)));
             },
             pconnect_stub->connect_addr.c_str(),
@@ -322,17 +309,17 @@ struct ConnectFunction {
             cf.iterator = presolve_data->begin();
             SocketAddressInet inetaddr(cf.iterator);
 
-            idbg("Connect to: " << inetaddr);
+            solid_log(basic_logger, Info, "Connect to: " << inetaddr);
 
             if (sock.connect(_rctx, cf.iterator, cf)) {
                 onConnect(_rctx, cf);
             }
         } else {
-            edbg(this << " postStop");
+            solid_log(basic_logger, Error, this << " postStop");
             postStop(_rctx);
         }
     } else if (generic_event_kill == _revent) {
-        edbg(this << " postStop");
+        solid_log(basic_logger, Error, this << " postStop");
         sock.shutdown(_rctx);
         postStop(_rctx);
     }
@@ -341,13 +328,13 @@ struct ConnectFunction {
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
-    idbg(&rthis << " " << _sz);
+    solid_log(basic_logger, Info, &rthis << " " << _sz);
     cout.write(rthis.buf, _sz);
     //cout<<endl;
     if (!_rctx.error()) {
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
     } else {
-        edbg(&rthis << " postStop");
+        solid_log(basic_logger, Error, &rthis << " postStop");
         rthis.postStop(_rctx);
     }
 }
@@ -356,7 +343,7 @@ struct ConnectFunction {
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
     if (!_rctx.error()) {
-        idbg(&rthis << " postRecvSome");
+        solid_log(basic_logger, Info, &rthis << " postRecvSome");
 
         rthis.send_strs[rthis.crtSendIdx()].clear();
 
@@ -366,7 +353,7 @@ struct ConnectFunction {
             rthis.sock.postSendAll(_rctx, rthis.send_strs[rthis.crtSendIdx()].data(), rthis.send_strs[rthis.crtSendIdx()].size(), onSent);
         }
     } else {
-        edbg(&rthis << " postStop");
+        solid_log(basic_logger, Error, &rthis << " postStop");
         rthis.postStop(_rctx);
     }
 }
@@ -375,7 +362,7 @@ struct ConnectFunction {
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
     if (!_rctx.error()) {
-        idbg(&rthis << "");
+        solid_log(basic_logger, Info, &rthis << "");
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
 
         rthis.crt_send_idx = 0;
@@ -384,7 +371,7 @@ struct ConnectFunction {
             rthis.sock.postSendAll(_rctx, rthis.send_strs[0].data(), rthis.send_strs[0].size(), onSent);
         }
     } else {
-        edbg(&rthis << " postStop because: " << _rctx.systemError().message());
+        solid_log(basic_logger, Error, &rthis << " postStop because: " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
 }
@@ -393,10 +380,10 @@ struct ConnectFunction {
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
-    idbg(&rthis << "");
+    solid_log(basic_logger, Info, &rthis << "");
 
     if (!_rctx.error()) {
-        idbg(&rthis << " Connected");
+        solid_log(basic_logger, Info, &rthis << " Connected");
         rthis.sock.secureSetVerifyDepth(_rctx, 10);
         rthis.sock.secureSetCheckHostName(_rctx, "echo-server");
         rthis.sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
@@ -415,7 +402,7 @@ struct ConnectFunction {
                 rthis.post(_rctx, std::move(_rcf));
             }
         } else {
-            edbg(&rthis << " postStop");
+            solid_log(basic_logger, Error, &rthis << " postStop");
             rthis.postStop(_rctx);
         }
     }
@@ -424,6 +411,6 @@ struct ConnectFunction {
 /*static*/ bool Connection::onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
-    idbg(&rthis << " " << _preverified);
+    solid_log(basic_logger, Info, &rthis << " " << _preverified);
     return _preverified;
 }

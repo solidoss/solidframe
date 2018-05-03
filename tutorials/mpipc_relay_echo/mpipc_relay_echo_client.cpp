@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
 
                 if (_rrecv_msg_ptr && _rrecv_msg_ptr->name.empty()) {
                     auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
-                        idbg("peerb --- enter active error: " << _rerror.message());
+                        solid_log(basic_logger, Info, "peerb --- enter active error: " << _rerror.message());
                         return frame::mpipc::MessagePointerT();
                     };
                     cout << "Connection registered" << endl;
@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
                 }
             };
             auto on_connection_start = [&p](frame::mpipc::ConnectionContext& _rctx) {
-                idbg(_rctx.recipientId());
+                solid_log(basic_logger, Info, _rctx.recipientId());
 
                 auto            msgptr = std::make_shared<Register>(p.name);
                 ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageFlagsE::WaitResponse});

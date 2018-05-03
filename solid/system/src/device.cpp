@@ -28,7 +28,6 @@
 #include <cstring>
 
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
 #include "solid/system/directory.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/system/filedevice.hpp"

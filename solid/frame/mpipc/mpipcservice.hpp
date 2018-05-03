@@ -20,6 +20,7 @@
 #include "solid/frame/mpipc/mpipcerror.hpp"
 #include "solid/frame/mpipc/mpipcmessage.hpp"
 #include "solid/frame/mpipc/mpipcprotocol.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/pimpl.hpp"
 
 namespace solid {
@@ -30,6 +31,8 @@ struct ReactorContext;
 } //namespace aio
 
 namespace mpipc {
+
+extern const LoggerT logger;
 
 struct Message;
 struct Configuration;

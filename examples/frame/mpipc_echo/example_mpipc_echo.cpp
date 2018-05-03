@@ -42,8 +42,7 @@ using ProtocolT      = solid::frame::mpipc::serialization_v2::Protocol<uint8_t>;
 struct Params {
     typedef std::vector<std::string>       StringVectorT;
     typedef std::vector<SocketAddressInet> PeerAddressVectorT;
-    string                                 dbg_levels;
-    string                                 dbg_modules;
+    vector<string>                         dbg_modules;
     string                                 dbg_addr;
     string                                 dbg_port;
     bool                                   dbg_console;
@@ -87,9 +86,7 @@ struct FirstMessage;
 namespace {
 mutex              mtx;
 condition_variable cnd;
-//bool                  run = true;
-//uint32_t                  wait_count = 0;
-Params app_params;
+Params             params;
 
 void broadcast_message(frame::mpipc::Service& _rsvc, std::shared_ptr<frame::mpipc::Message>& _rmsgptr);
 } //namespace
@@ -100,15 +97,15 @@ struct FirstMessage : frame::mpipc::Message {
     FirstMessage(std::string const& _str)
         : str(_str)
     {
-        idbg("CREATE ---------------- " << (void*)this);
+        solid_log(basic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     FirstMessage()
     {
-        idbg("CREATE ---------------- " << (void*)this);
+        solid_log(basic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~FirstMessage()
     {
-        idbg("DELETE ---------------- " << (void*)this);
+        solid_log(basic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -133,17 +130,17 @@ struct MessageHandler {
 
 void connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_log(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
 void incoming_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId());
+    solid_log(basic_logger, Info, _rctx.recipientId());
 }
 
 void outgoing_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId());
+    solid_log(basic_logger, Info, _rctx.recipientId());
 }
 
 std::string loadFile(const char* _path);
@@ -161,39 +158,26 @@ int main(int argc, char* argv[])
 
     cout << "Built on SolidFrame version " << SOLID_VERSION_MAJOR << '.' << SOLID_VERSION_MINOR << '.' << SOLID_VERSION_PATCH << endl;
 
-    if (parseArguments(app_params, argc, argv))
+    if (parseArguments(params, argc, argv))
         return 0;
 
-#ifdef SOLID_HAS_DEBUG
-    {
-        string dbgout;
-        Debug::the().levelMask(app_params.dbg_levels.c_str());
-        Debug::the().moduleMask(app_params.dbg_modules.c_str());
-        if (app_params.dbg_addr.size() && app_params.dbg_port.size()) {
-            Debug::the().initSocket(
-                app_params.dbg_addr.c_str(),
-                app_params.dbg_port.c_str(),
-                app_params.dbg_buffered,
-                &dbgout);
-        } else if (app_params.dbg_console) {
-            Debug::the().initStdErr(
-                app_params.dbg_buffered,
-                &dbgout);
-        } else {
-            Debug::the().initFile(
-                *argv[0] == '.' ? argv[0] + 2 : argv[0],
-                app_params.dbg_buffered,
-                3,
-                1024 * 1024 * 64,
-                &dbgout);
-        }
-        cout << "Debug output: " << dbgout << endl;
-        dbgout.clear();
-        Debug::the().moduleNames(dbgout);
-        cout << "Debug modules: " << dbgout << endl;
-    }
-#endif
+    if (params.dbg_addr.size() && params.dbg_port.size()) {
+        solid::log_start(
+            params.dbg_addr.c_str(),
+            params.dbg_port.c_str(),
+            params.dbg_modules,
+            params.dbg_buffered);
 
+    } else if (params.dbg_console) {
+        solid::log_start(std::cerr, params.dbg_modules);
+    } else {
+        solid::log_start(
+            *argv[0] == '.' ? argv[0] + 2 : argv[0],
+            params.dbg_modules,
+            params.dbg_buffered,
+            3,
+            1024 * 1024 * 64);
+    }
     {
         AioSchedulerT sch;
 
@@ -223,7 +207,7 @@ int main(int argc, char* argv[])
                 }
             } while (s.size());
         }
-        vdbg("done stop");
+        solid_log(basic_logger, Verbose, "done stop");
     }
     return 0;
 }
@@ -263,14 +247,14 @@ bool restart(
     proto->null(0);
     proto->registerMessage<FirstMessage>(MessageHandler(_ipcsvc), 1);
 
-    if (app_params.baseport.size()) {
+    if (params.baseport.size()) {
         cfg.server.listener_address_str = "0.0.0.0:";
-        cfg.server.listener_address_str += app_params.baseport;
-        cfg.server.listener_service_str = app_params.baseport;
+        cfg.server.listener_address_str += params.baseport;
+        cfg.server.listener_service_str = params.baseport;
     }
 
-    if (app_params.connectstringvec.size()) {
-        cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(_resolver, app_params.baseport.c_str());
+    if (params.connectstringvec.size()) {
+        cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(_resolver, params.baseport.c_str());
     }
     cfg.connection_stop_fnc           = &connection_stop;
     cfg.server.connection_start_fnc   = &incoming_connection_start;
@@ -278,9 +262,9 @@ bool restart(
     cfg.client.connection_start_state = frame::mpipc::ConnectionState::Active;
     cfg.server.connection_start_state = frame::mpipc::ConnectionState::Active;
 #if 1
-    if (app_params.secure) {
+    if (params.secure) {
         //configure OpenSSL:
-        idbg("Configure SSL ---------------------------------------");
+        solid_log(basic_logger, Info, "Configure SSL ---------------------------------------");
         frame::mpipc::openssl::setup_client(
             cfg,
             [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -316,7 +300,7 @@ bool restart(
     {
         std::ostringstream oss;
         oss << _ipcsvc.configuration().server.listenerPort();
-        idbg("server listens on port: " << oss.str());
+        solid_log(basic_logger, Info, "server listens on port: " << oss.str());
     }
     return true;
 }
@@ -330,8 +314,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
         // clang-format off
         desc.add_options()
             ("help,h", "List program options")
-            ("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"), "Debug logging levels")
-            ("debug-modules,M", value<string>(&_par.dbg_modules), "Debug logging modules")
+            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
             ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 9999)")
             ("debug-port,P", value<string>(&_par.dbg_port)->default_value("9999"), "Debug server port (e.g. on linux use: nc -l 9999)")
             ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
@@ -370,7 +353,7 @@ void MessageHandler::operator()(
     ErrorConditionT const&           _rerr)
 {
     if (_rrecv_msg) {
-        idbg(_rctx.recipientId() << " Message received: is_on_sender: " << _rrecv_msg->isOnSender() << ", is_on_peer: " << _rrecv_msg->isOnPeer() << ", is_back_on_sender: " << _rrecv_msg->isBackOnSender());
+        solid_log(basic_logger, Info, _rctx.recipientId() << " Message received: is_on_sender: " << _rrecv_msg->isOnSender() << ", is_on_peer: " << _rrecv_msg->isOnPeer() << ", is_back_on_sender: " << _rrecv_msg->isBackOnSender());
         if (_rrecv_msg->isOnPeer()) {
             rsvc.sendResponse(_rctx.recipientId(), _rrecv_msg);
         } else if (_rrecv_msg->isBackOnSender()) {
@@ -392,9 +375,9 @@ namespace {
 void broadcast_message(frame::mpipc::Service& _rsvc, std::shared_ptr<frame::mpipc::Message>& _rmsgptr)
 {
 
-    vdbg("done stop===============================");
+    solid_log(basic_logger, Verbose, "done stop===============================");
 
-    for (Params::StringVectorT::const_iterator it(app_params.connectstringvec.begin()); it != app_params.connectstringvec.end(); ++it) {
+    for (Params::StringVectorT::const_iterator it(params.connectstringvec.begin()); it != params.connectstringvec.end(); ++it) {
         _rsvc.sendMessage(it->c_str(), _rmsgptr, {frame::mpipc::MessageFlagsE::WaitResponse});
     }
 }

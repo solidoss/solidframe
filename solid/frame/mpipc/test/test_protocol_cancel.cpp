@@ -1,6 +1,7 @@
 #include "solid/frame/mpipc/mpipcerror.hpp"
 #include "solid/system/exception.hpp"
 #include "test_protocol_common.hpp"
+#include <iostream>
 
 using namespace solid;
 
@@ -56,16 +57,16 @@ struct Message : frame::mpipc::Message {
     Message(uint32_t _idx)
         : idx(_idx)
     {
-        idbg("CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
     }
     Message()
     {
-        idbg("CREATE ---------------- " << (void*)this);
+        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
-        idbg("DELETE ---------------- " << (void*)this);
+        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -88,7 +89,7 @@ struct Message : frame::mpipc::Message {
     bool check() const
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
-        idbg("str.size = " << str.size() << " should be equal to " << sz);
+        solid_dbg(basic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
         if (sz != str.size()) {
             return false;
         }
@@ -148,7 +149,7 @@ struct Sender : frame::mpipc::MessageWriter::Sender {
 
     ErrorConditionT completeMessage(frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& /*_rmsgid*/) override
     {
-        idbg("writer complete message");
+        solid_dbg(basic_logger, Info, "writer complete message");
         frame::mpipc::MessagePointerT response_ptr;
         ErrorConditionT               error;
         rprotocol_.complete(_rmsgbundle.message_type_id, mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
@@ -157,7 +158,7 @@ struct Sender : frame::mpipc::MessageWriter::Sender {
 
     void cancelMessage(frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& /*_rmsgid*/) override
     {
-        idbg("Cancel message " << static_cast<Message&>(*_rmsgbundle.message_ptr).str.size());
+        solid_dbg(basic_logger, Info, "Cancel message " << static_cast<Message&>(*_rmsgbundle.message_ptr).str.size());
     }
 };
 
@@ -176,7 +177,7 @@ void complete_message(
             //not the first message
             SOLID_CHECK((!_rerr && !initarray[idx % initarraysize].cancel) || (initarray[idx % initarraysize].cancel && _rerr == frame::mpipc::error_message_canceled));
         }
-        idbg(static_cast<Message&>(*_rmessage_ptr).str.size() << ' ' << _rerr.message());
+        solid_dbg(basic_logger, Info, static_cast<Message&>(*_rmessage_ptr).str.size() << ' ' << _rerr.message());
     }
     if (_rresponse_ptr.get()) {
         if (!static_cast<Message&>(*_rresponse_ptr).check()) {
@@ -186,7 +187,7 @@ void complete_message(
         ++crtreadidx;
 
         if (crtreadidx == 1) {
-            idbg(crtreadidx << " canceling all messages");
+            solid_dbg(basic_logger, Info, crtreadidx << " canceling all messages");
             for (const auto& msguid : message_uid_vec) {
 
                 Sender sndr(*ctx.mpipcwriterconfig, *mpipcprotocol, mpipcconctx);
@@ -194,7 +195,7 @@ void complete_message(
                 ctx.mpipcmsgwriter->cancel(msguid, sndr);
             }
         } else {
-            idbg(crtreadidx);
+            solid_dbg(basic_logger, Info, crtreadidx);
             size_t idx = static_cast<Message&>(*_rresponse_ptr).idx;
             SOLID_CHECK(!initarray[idx % initarraysize].cancel);
         }
@@ -231,17 +232,17 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
 
     void receiveKeepAlive() override
     {
-        idbg("");
+        solid_dbg(basic_logger, Info, "");
     }
 
     void receiveAckCount(uint8_t _count) override
     {
-        idbg("" << (int)_count);
+        solid_dbg(basic_logger, Info, "" << (int)_count);
         SOLID_CHECK(_count == ackd_count, "invalid ack count");
     }
     void receiveCancelRequest(const frame::mpipc::RequestId& _reqid) override
     {
-        vdbg("" << _reqid);
+        solid_dbg(basic_logger, Verbose, "" << _reqid);
         bool found = false;
         for (auto it = reqvec.cbegin(); it != reqvec.cend();) {
             if (*it == _reqid) {
@@ -259,12 +260,7 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
 
 int test_protocol_cancel(int argc, char* argv[])
 {
-
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("any:view frame_mpipc:view");
-    Debug::the().initStdErr(false, nullptr);
-#endif
+    solid::log_start(std::cerr, {".*:EW"});
 
     for (int i = 0; i < 127; ++i) {
         if (isprint(i) && !isblank(i)) {
@@ -320,12 +316,12 @@ int test_protocol_cancel(int argc, char* argv[])
 
         message_uid_vec.push_back(writer_msg_id);
 
-        idbg("enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
+        solid_dbg(basic_logger, Info, "enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
         SOLID_CHECK(rv);
-        idbg(frame::mpipc::MessageWriterPrintPairT(mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
+        solid_dbg(basic_logger, Info, frame::mpipc::MessageWriterPrintPairT(mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
 
         if (!initarray[crtwriteidx % initarraysize].cancel) {
-            idbg("do not cancel " << message_uid_vec.back());
+            solid_dbg(basic_logger, Info, "do not cancel " << message_uid_vec.back());
             message_uid_vec.pop_back(); //we do not cancel this one
         }
     }

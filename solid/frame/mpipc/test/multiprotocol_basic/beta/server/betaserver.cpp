@@ -3,7 +3,7 @@
 
 #include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/serialization/v1/typeidmap.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/dynamicpointer.hpp"
 
 using namespace solid;
@@ -25,7 +25,7 @@ void complete_message<beta_protocol::FirstMessage>(
     std::shared_ptr<beta_protocol::FirstMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                        _rerror)
 {
-    idbg("");
+    solid_dbg(basic_logger, Info, "");
     SOLID_CHECK(!_rerror);
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(!_rsent_msg_ptr);
@@ -48,7 +48,7 @@ void complete_message<beta_protocol::SecondMessage>(
     std::shared_ptr<beta_protocol::SecondMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                         _rerror)
 {
-    idbg("");
+    solid_dbg(basic_logger, Info, "");
     SOLID_CHECK(!_rerror);
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(!_rsent_msg_ptr);
@@ -68,7 +68,7 @@ void complete_message<beta_protocol::ThirdMessage>(
     std::shared_ptr<beta_protocol::ThirdMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                        _rerror)
 {
-    idbg("");
+    solid_dbg(basic_logger, Info, "");
     SOLID_CHECK(!_rerror);
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(!_rsent_msg_ptr);

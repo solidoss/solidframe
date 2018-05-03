@@ -15,10 +15,10 @@
 #include <vector>
 
 #include "solid/system/common.hpp"
-#include "solid/system/debug.hpp"
 #include "solid/system/device.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/nanotime.hpp"
 #include <condition_variable>
 #include <mutex>
@@ -43,6 +43,8 @@ namespace solid {
 namespace frame {
 
 namespace {
+
+const LoggerT logger("solid::frame::Reactor");
 
 void dummy_completion(CompletionHandler&, ReactorContext&)
 {
@@ -284,18 +286,18 @@ Reactor::Reactor(
     : ReactorBase(_rsched, _idx)
     , impl_(make_pimpl<Data>())
 {
-    vdbgx(Debug::aio, "");
+    solid_dbg(logger, Verbose, "");
 }
 
 Reactor::~Reactor()
 {
-    vdbgx(Debug::aio, "");
+    solid_dbg(logger, Verbose, "");
 }
 
 bool Reactor::start()
 {
     doStoreSpecific();
-    vdbgx(Debug::aio, "");
+    solid_dbg(logger, Verbose, "");
 
     impl_->objdq.push_back(ObjectStub());
     impl_->objdq.back().objptr = &impl_->eventobj;
@@ -311,7 +313,7 @@ bool Reactor::start()
 
 /*virtual*/ bool Reactor::raise(UniqueId const& _robjuid, Event const& _revent)
 {
-    vdbgx(Debug::aio, (void*)this << " uid = " << _robjuid.index << ',' << _robjuid.unique << " event = " << _revent);
+    solid_dbg(logger, Verbose, (void*)this << " uid = " << _robjuid.index << ',' << _robjuid.unique << " event = " << _revent);
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
@@ -329,7 +331,7 @@ bool Reactor::start()
 
 /*virtual*/ bool Reactor::raise(UniqueId const& _robjuid, Event&& _uevent)
 {
-    vdbgx(Debug::aio, (void*)this << " uid = " << _robjuid.index << ',' << _robjuid.unique << " event = " << _uevent);
+    solid_dbg(logger, Verbose, (void*)this << " uid = " << _robjuid.index << ',' << _robjuid.unique << " event = " << _uevent);
     bool   rv         = true;
     size_t raisevecsz = 0;
     {
@@ -347,7 +349,7 @@ bool Reactor::start()
 
 /*virtual*/ void Reactor::stop()
 {
-    vdbgx(Debug::aio, "");
+    solid_dbg(logger, Verbose, "");
     lock_guard<mutex> lock(impl_->mtx);
     impl_->must_stop = true;
     impl_->cnd.notify_one();
@@ -356,14 +358,14 @@ bool Reactor::start()
 //Called from outside reactor's thread
 bool Reactor::push(TaskT& _robj, Service& _rsvc, Event const& _revent)
 {
-    vdbgx(Debug::aio, (void*)this);
+    solid_dbg(logger, Verbose, (void*)this);
     bool   rv        = true;
     size_t pushvecsz = 0;
     {
         lock_guard<mutex> lock(impl_->mtx);
         const UniqueId    uid = this->popUid(*_robj);
 
-        vdbgx(Debug::aio, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _revent);
+        solid_dbg(logger, Verbose, (void*)this << " uid = " << uid.index << ',' << uid.unique << " event = " << _revent);
 
         impl_->pushtskvec[impl_->crtpushtskvecidx].push_back(NewTaskStub(uid, _robj, _rsvc, _revent));
         pushvecsz           = impl_->pushtskvec[impl_->crtpushtskvecidx].size();
@@ -378,7 +380,7 @@ bool Reactor::push(TaskT& _robj, Service& _rsvc, Event const& _revent)
 
 void Reactor::run()
 {
-    vdbgx(Debug::aio, "<enter>");
+    solid_dbg(logger, Verbose, "<enter>");
     bool     running = true;
     NanoTime crttime;
 
@@ -400,7 +402,7 @@ void Reactor::run()
     }
     impl_->eventobj.stop();
     doClearSpecific();
-    vdbgx(Debug::aio, "<exit>");
+    solid_dbg(logger, Verbose, "<exit>");
 }
 
 UniqueId Reactor::objectUid(ReactorContext const& _rctx) const
@@ -585,7 +587,7 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime)
 
 void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
 {
-    vdbgx(Debug::aio, "");
+    solid_dbg(logger, Verbose, "");
 
     NewTaskVectorT&    crtpushvec  = *impl_->pcrtpushtskvec;
     RaiseEventVectorT& crtraisevec = *impl_->pcrtraisevec;
@@ -668,7 +670,7 @@ bool Reactor::remTimer(CompletionHandler const& _rch, size_t const& _rstoreidx)
 
 void Reactor::registerCompletionHandler(CompletionHandler& _rch, Object const& _robj)
 {
-    vdbgx(Debug::aio, "");
+    solid_dbg(logger, Verbose, "");
     size_t idx;
     if (impl_->chposcache.size()) {
         idx = impl_->chposcache.top();
@@ -696,7 +698,7 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Object const& _
 
 void Reactor::unregisterCompletionHandler(CompletionHandler& _rch)
 {
-    vdbgx(Debug::aio, "");
+    solid_dbg(logger, Verbose, "");
     CompletionHandlerStub& rcs = impl_->chdq[_rch.idxreactor];
     {
         NanoTime       dummytime;
@@ -732,7 +734,7 @@ void Reactor::doClearSpecific()
 
 /*static*/ Reactor& Reactor::specific()
 {
-    vdbgx(Debug::aio, "");
+    solid_dbg(logger, Verbose, "");
     return *safeSpecific();
 }
 

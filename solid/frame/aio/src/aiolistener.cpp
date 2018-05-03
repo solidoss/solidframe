@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
+#include "solid/system/log.hpp"
 #include "solid/utility/event.hpp"
 
 #include "solid/frame/aio/aiocommon.hpp"
@@ -17,6 +18,8 @@
 namespace solid {
 namespace frame {
 namespace aio {
+
+const LoggerT logger("solid::frame::aio");
 
 /*static*/ void Listener::on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx)
 {

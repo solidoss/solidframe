@@ -10,7 +10,7 @@
 #include "solid/frame/aio/aiostream.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
 
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
 #include "solid/utility/event.hpp"
@@ -53,12 +53,11 @@ struct Params {
     string   connect_addr_str;
     string   connect_port_str;
 
-    string dbg_levels;
-    string dbg_modules;
-    string dbg_addr;
-    string dbg_port;
-    bool   dbg_console;
-    bool   dbg_buffered;
+    vector<string> dbg_modules;
+    string         dbg_addr;
+    string         dbg_port;
+    bool           dbg_console;
+    bool           dbg_buffered;
 };
 
 mutex              mtx;
@@ -176,35 +175,24 @@ int main(int argc, char* argv[])
     signal(SIGPIPE, SIG_IGN);
 #endif
 
-#ifdef SOLID_HAS_DEBUG
-    {
-        string dbgout;
-        Debug::the().levelMask(params.dbg_levels.c_str());
-        Debug::the().moduleMask(params.dbg_modules.c_str());
-        if (params.dbg_addr.size() && params.dbg_port.size()) {
-            Debug::the().initSocket(
-                params.dbg_addr.c_str(),
-                params.dbg_port.c_str(),
-                params.dbg_buffered,
-                &dbgout);
-        } else if (params.dbg_console) {
-            Debug::the().initStdErr(
-                params.dbg_buffered,
-                &dbgout);
-        } else {
-            Debug::the().initFile(
-                *argv[0] == '.' ? argv[0] + 2 : argv[0],
-                params.dbg_buffered,
-                3,
-                1024 * 1024 * 64,
-                &dbgout);
-        }
-        cout << "Debug output: " << dbgout << endl;
-        dbgout.clear();
-        Debug::the().moduleNames(dbgout);
-        cout << "Debug modules: " << dbgout << endl;
+    if (params.dbg_addr.size() && params.dbg_port.size()) {
+        solid::log_start(
+            params.dbg_addr.c_str(),
+            params.dbg_port.c_str(),
+            params.dbg_modules,
+            params.dbg_buffered);
+
+    } else if (params.dbg_console) {
+        solid::log_start(std::cerr, params.dbg_modules);
+    } else {
+        solid::log_start(
+            *argv[0] == '.' ? argv[0] + 2 : argv[0],
+            params.dbg_modules,
+            params.dbg_buffered,
+            3,
+            1024 * 1024 * 64);
     }
-#endif
+
     async_resolver().start(1);
     {
 
@@ -226,7 +214,7 @@ int main(int argc, char* argv[])
                 if (objuid.isInvalid()) {
                     --concnt;
                 }
-                idbg("Started Connection Object: " << objuid.index << ',' << objuid.unique);
+                solid_log(basic_logger, Info, "Started Connection Object: " << objuid.index << ',' << objuid.unique);
             }
         }
 
@@ -249,7 +237,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     using namespace boost::program_options;
     try {
         options_description desc("SolidFrame concept application");
-        desc.add_options()("connect,c", value<string>(&_par.connect_addr_str)->default_value(""), "Connect address")("connection-count,N", value<uint32_t>(&_par.connection_count)->default_value(1), "Connection count")("repeat-count,R", value<uint32_t>(&_par.repeat_count)->default_value(100), "Repeat count")("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"), "Debug logging levels")("debug-modules,M", value<string>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")("help,h", "List program options");
+        desc.add_options()("connect,c", value<string>(&_par.connect_addr_str)->default_value(""), "Connect address")("connection-count,N", value<uint32_t>(&_par.connection_count)->default_value(1), "Connection count")("repeat-count,R", value<uint32_t>(&_par.repeat_count)->default_value(100), "Repeat count")("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")("help,h", "List program options");
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
         notify(vm);
@@ -318,18 +306,18 @@ struct ResolvFunc {
 
         ev.any() = std::move(_rrd);
 
-        idbg(this << " send resolv_message");
+        solid_log(basic_logger, Info, this << " send resolv_message");
         rm.notify(objuid, std::move(ev));
     }
 };
 
 void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    idbg("event = " << _revent);
+    solid_log(basic_logger, Info, "event = " << _revent);
     if (_revent == generic_event_start) {
         if (params.connect_addr_str.size()) {
             //we must resolve the address then connect
-            idbg("async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
+            solid_log(basic_logger, Info, "async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
                 ResolvFunc(_rctx.service().manager(), _rctx.service().manager().id(*this)), params.connect_addr_str.c_str(),
                 params.connect_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
@@ -340,7 +328,7 @@ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
         ResolveData* presolvemsg = _revent.any().cast<ResolveData>();
         if (presolvemsg) {
             if (presolvemsg->empty()) {
-                edbg(this << " postStop");
+                solid_log(basic_logger, Error, this << " postStop");
                 //++stats.donecnt;
                 postStop(_rctx);
             } else {
@@ -359,7 +347,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     const auto& str     = send_data_vec[sendidx];
     expect_recvcnt      = str.size();
 
-    idbg(this << " sending " << str.size());
+    solid_log(basic_logger, Info, this << " sending " << str.size());
 
     sock.postSendAll(_rctx, str.data(), str.size(), &Connection::onSend);
 }
@@ -369,13 +357,13 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     --stats.connectcnt;
     Connection& rthis = static_cast<Connection&>(_rctx.object());
     if (!_rctx.error()) {
-        idbg(&rthis << " SUCCESS");
+        solid_log(basic_logger, Info, &rthis << " SUCCESS");
         ++stats.connectedcnt;
         rthis.sock.device().enableNoDelay();
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);
         rthis.doSend(_rctx);
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
+        solid_log(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
         //++stats.donecnt;
         rthis.postStop(_rctx);
     }
@@ -390,7 +378,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
         SOLID_ASSERT(_sz <= rthis.expect_recvcnt);
 
-        idbg(&rthis << " received " << _sz);
+        solid_log(basic_logger, Info, &rthis << " received " << _sz);
 
         rthis.expect_recvcnt -= _sz;
 
@@ -405,7 +393,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
         }
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv);
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
+        solid_log(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
         //++stats.donecnt;
         rthis.postStop(_rctx);
     }
@@ -417,7 +405,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
     if (!_rctx.error()) {
     } else {
-        edbg(&rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
+        solid_log(basic_logger, Error, &rthis << " postStop " << rthis.recvcnt << " " << _rctx.systemError().message());
         //++stats.donecnt;
         rthis.postStop(_rctx);
     }

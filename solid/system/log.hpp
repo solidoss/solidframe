@@ -179,3 +179,12 @@ ErrorConditionT log_start(
         Lgr.log(decltype(Lgr)::FlagT::Flg, __FILE__, SOLID_FUNCTION_NAME, __LINE__) << Txt << std::endl; \
         Lgr.done();                                                                                      \
     }
+
+#ifdef SOLID_HAS_STATISTICS
+
+#define SOLID_COLLECT(om, ...) \
+    om(__VA_ARGS__)
+
+#else
+#define SOLID_COLLECT(...)
+#endif

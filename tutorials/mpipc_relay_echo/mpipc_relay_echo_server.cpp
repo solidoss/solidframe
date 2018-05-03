@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
                 SOLID_CHECK(!_rerror);
                 if (_rrecv_msg_ptr) {
                     SOLID_CHECK(!_rsent_msg_ptr);
-                    idbg("recv register request: " << _rrecv_msg_ptr->name);
+                    solid_log(basic_logger, Info, "recv register request: " << _rrecv_msg_ptr->name);
 
                     relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->name));
 
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 
                 } else {
                     SOLID_CHECK(!_rrecv_msg_ptr);
-                    idbg("sent register response");
+                    solid_log(basic_logger, Info, "sent register response");
                 }
             };
 

@@ -21,7 +21,7 @@
 
 #include "solid/system/exception.hpp"
 
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 
 #include <iostream>
 
@@ -71,17 +71,17 @@ struct Message : frame::mpipc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        idbg("CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
-        idbg("CREATE ---------------- " << (void*)this);
+        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
-        idbg("DELETE ---------------- " << (void*)this);
+        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this);
         SOLID_ASSERT(serialized || this->isBackOnSender());
     }
 
@@ -109,7 +109,7 @@ struct Message : frame::mpipc::Message {
     bool check() const
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
-        idbg("str.size = " << str.size() << " should be equal to " << sz);
+        solid_dbg(basic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
         if (sz != str.size()) {
             return false;
         }
@@ -137,7 +137,7 @@ struct Logout : frame::mpipc::Message {
 
 void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
     if (_rctx.isConnectionActive()) {
         //NOTE: (***) in order for client_received_logout check to work, one shoud better
         // use delayCloseConnectionPool instead of closeConnection
@@ -152,9 +152,9 @@ void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 
 void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId());
+    solid_dbg(basic_logger, Info, _rctx.recipientId());
     auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
-        idbg("enter active error: " << _rerror.message());
+        solid_dbg(basic_logger, Info, "enter active error: " << _rerror.message());
         return frame::mpipc::MessagePointerT();
     };
     _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
@@ -162,14 +162,14 @@ void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
 void server_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId() << " error " << _rctx.error().message());
+    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error " << _rctx.error().message());
 }
 
 void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId());
+    solid_dbg(basic_logger, Info, _rctx.recipientId());
     auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
-        idbg("enter active error: " << _rerror.message());
+        solid_dbg(basic_logger, Info, "enter active error: " << _rerror.message());
         return frame::mpipc::MessagePointerT();
     };
     _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
@@ -180,7 +180,7 @@ void client_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    idbg(_rctx.recipientId());
+    solid_dbg(basic_logger, Info, _rctx.recipientId());
 
     SOLID_CHECK(!_rerror);
     SOLID_CHECK(_rsent_msg_ptr.get() && _rrecv_msg_ptr.get());
@@ -227,7 +227,7 @@ void server_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
-        idbg(_rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
+        solid_dbg(basic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
 
         if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
@@ -246,7 +246,7 @@ void server_complete_message(
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr.get()) {
-        idbg(_rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
+        solid_dbg(basic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
     }
 }
 
@@ -265,7 +265,7 @@ void server_complete_logout(
             SOLID_THROW("Connection id should not be invalid!");
         }
 
-        idbg("send back logout");
+        solid_dbg(basic_logger, Info, "send back logout");
 
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
@@ -273,14 +273,14 @@ void server_complete_logout(
     }
 
     if (_rsent_msg_ptr.get()) {
-        idbg("close connection");
+        solid_dbg(basic_logger, Info, "close connection");
 //see NOTE (***) above
 //SOLID_CHECK(_rctx.service().closeConnection(_rctx.recipientId()));
 #if 0
         _rctx.service().delayCloseConnectionPool(
             _rctx.recipientId(),
             [](frame::mpipc::ConnectionContext &_rctx){
-                idbg("------------------");
+                solid_dbg(basic_logger, Info, "------------------");
             }
         );
 #endif
@@ -291,12 +291,7 @@ void server_complete_logout(
 
 int test_connection_close(int argc, char* argv[])
 {
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("ew");
-    Debug::the().moduleMask("frame_mpipc:ew any:ew frame:ew");
-    Debug::the().initStdErr(false, nullptr);
-//Debug::the().initFile("test_clientserver_basic", false);
-#endif
+    solid::log_start(std::cerr, {".*:EW"});
 
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
@@ -329,21 +324,21 @@ int test_connection_close(int argc, char* argv[])
         err = sch_client.start(1);
 
         if (err) {
-            edbg("starting aio client scheduler: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio client scheduler: " << err.message());
             return 1;
         }
 
         err = sch_server.start(1);
 
         if (err) {
-            edbg("starting aio server scheduler: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio server scheduler: " << err.message());
             return 1;
         }
 
         err = resolver.start(1);
 
         if (err) {
-            edbg("starting aio resolver: " << err.message());
+            solid_dbg(basic_logger, Error, "starting aio resolver: " << err.message());
             return 1;
         }
 
@@ -368,7 +363,7 @@ int test_connection_close(int argc, char* argv[])
             err = mpipcserver.reconfigure(std::move(cfg));
 
             if (err) {
-                edbg("starting server mpipcservice: " << err.message());
+                solid_dbg(basic_logger, Error, "starting server mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -377,7 +372,7 @@ int test_connection_close(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << mpipcserver.configuration().server.listenerPort();
                 server_port = oss.str();
-                idbg("server listens on port: " << server_port);
+                solid_dbg(basic_logger, Info, "server listens on port: " << server_port);
             }
         }
 
@@ -402,7 +397,7 @@ int test_connection_close(int argc, char* argv[])
             err = mpipcclient.reconfigure(std::move(cfg));
 
             if (err) {
-                edbg("starting client mpipcservice: " << err.message());
+                solid_dbg(basic_logger, Error, "starting client mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -423,7 +418,7 @@ int test_connection_close(int argc, char* argv[])
             SOLID_THROW("Process is taking too long.");
         }
 
-        vdbg("stopping");
+        solid_dbg(basic_logger, Verbose, "stopping");
         //m.stop();
     }
 

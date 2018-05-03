@@ -9,13 +9,15 @@
 //
 
 #include "solid/frame/file/filestream.hpp"
-#include "solid/system/debug.hpp"
+#include "solid/system/log.hpp"
 
 using namespace std;
 
 namespace solid {
 namespace frame {
 namespace file {
+
+extern const LoggerT logger;
 
 FileBuf::FileBuf(
     FilePointerT& _rptr,
@@ -43,7 +45,7 @@ FileBuf::FileBuf(
 }
 FileBuf::~FileBuf()
 {
-    idbgx(dbgid(), "");
+    solid_dbg(logger, Info, "");
     if (dev.get()) {
         sync();
         dev.clear();
@@ -52,24 +54,24 @@ FileBuf::~FileBuf()
 
 FilePointerT& FileBuf::device()
 {
-    idbgx(dbgid(), "");
+    solid_dbg(logger, Info, "");
     return dev;
 }
 void FileBuf::device(FilePointerT& _rptr)
 {
-    idbgx(dbgid(), "");
+    solid_dbg(logger, Info, "");
     dev = _rptr;
 }
 
 /*virtual*/ streamsize FileBuf::showmanyc()
 {
-    idbgx(dbgid(), "");
+    solid_dbg(logger, Info, "");
     return 0;
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::underflow()
 {
-    //idbgx(dbgid(), "");
+    //solid_dbg(logger, Info, "");
     if (hasBuf()) {
         if (hasPut()) {
             SOLID_ASSERT(false);
@@ -81,7 +83,7 @@ void FileBuf::device(FilePointerT& _rptr)
             return traits_type::to_int_type(*gptr());
         }
         //refill rbuf
-        idbgx(dbgid(), "read " << bufcp << " from " << off);
+        solid_dbg(logger, Info, "read " << bufcp << " from " << off);
         ssize_t rv = dev->read(buf, bufcp, off);
         if (rv > 0) {
             char* end = buf + rv;
@@ -103,7 +105,7 @@ void FileBuf::device(FilePointerT& _rptr)
 
 /*virtual*/ FileBuf::int_type FileBuf::uflow()
 {
-    //idbgx(dbgid(), "");
+    //solid_dbg(logger, Info, "");
     if (hasBuf()) {
         return streambuf::uflow();
     } else {
@@ -120,7 +122,7 @@ void FileBuf::device(FilePointerT& _rptr)
 
 /*virtual*/ FileBuf::int_type FileBuf::pbackfail(int_type _c)
 {
-    idbgx(dbgid(), "" << _c);
+    solid_dbg(logger, Info, "" << _c);
     return traits_type::eof();
 }
 
@@ -143,7 +145,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
 
 /*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c)
 {
-    idbgx(dbgid(), "" << _c << " off = " << off);
+    solid_dbg(logger, Info, "" << _c << " off = " << off);
     if (hasBuf()) {
         if (pptr() == nullptr) {
             if (hasGet()) {
@@ -186,7 +188,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
     off_type _off, ios_base::seekdir _way,
     ios_base::openmode _mode)
 {
-    idbgx(dbgid(), "seekoff = " << _off << " way = " << _way << " mode = " << _mode << " off = " << off);
+    solid_dbg(logger, Info, "seekoff = " << _off << " way = " << _way << " mode = " << _mode << " off = " << off);
     if (hasBuf()) {
         if (hasPut()) {
             SOLID_ASSERT(!hasGet());
@@ -238,13 +240,13 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
     pos_type           _pos,
     ios_base::openmode _mode)
 {
-    idbgx(dbgid(), "" << _pos);
+    solid_dbg(logger, Info, "" << _pos);
     return seekoff(_pos, std::ios_base::beg, _mode);
 }
 
 /*virtual*/ int FileBuf::sync()
 {
-    idbgx(dbgid(), "");
+    solid_dbg(logger, Info, "");
     if (hasPut()) {
         flushPut();
     }
@@ -258,7 +260,7 @@ ssize_t FileBuf::writeAll(const char* _s, size_t _n)
 
 /*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n)
 {
-    idbgx(dbgid(), "" << _n << " off = " << off);
+    solid_dbg(logger, Info, "" << _n << " off = " << off);
     if (hasBuf()) {
         if (hasPut()) {
             if (!flushPut()) {
@@ -299,7 +301,7 @@ bool FileBuf::flushPut()
 {
     if (pptr() != epptr()) {
         size_t towrite = pptr() - pbase();
-        idbgx(dbgid(), "" << towrite << " off = " << off);
+        solid_dbg(logger, Info, "" << towrite << " off = " << off);
         ssize_t rv = writeAll(buf, towrite);
         if (static_cast<size_t>(rv) == towrite) {
             off += towrite;
@@ -314,7 +316,7 @@ bool FileBuf::flushPut()
 
 /*virtual*/ streamsize FileBuf::xsputn(const char_type* _s, streamsize _n)
 {
-    idbgx(dbgid(), "" << _n << " off = " << off);
+    solid_dbg(logger, Info, "" << _n << " off = " << off);
     if (hasBuf()) {
         //NOTE: it should work with the following line too
         //return streambuf::xsputn(_s, _n);

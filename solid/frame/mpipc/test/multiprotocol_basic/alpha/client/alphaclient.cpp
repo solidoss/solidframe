@@ -15,12 +15,12 @@ Context* pctx;
 
 void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
 void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    idbg(_rctx.recipientId());
+    solid_dbg(basic_logger, Info, _rctx.recipientId());
 }
 
 template <class M>
@@ -37,7 +37,7 @@ void complete_message<alpha_protocol::FirstMessage>(
     std::shared_ptr<alpha_protocol::FirstMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                         _rerror)
 {
-    idbg("");
+    solid_dbg(basic_logger, Info, "");
     SOLID_CHECK(!_rerror);
     SOLID_CHECK(_rsent_msg_ptr && _rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
@@ -58,7 +58,7 @@ void complete_message<alpha_protocol::SecondMessage>(
     std::shared_ptr<alpha_protocol::SecondMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                          _rerror)
 {
-    idbg("");
+    solid_dbg(basic_logger, Info, "");
     SOLID_CHECK(!_rerror);
     SOLID_CHECK(_rsent_msg_ptr && _rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
@@ -79,7 +79,7 @@ void complete_message<alpha_protocol::ThirdMessage>(
     std::shared_ptr<alpha_protocol::ThirdMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                         _rerror)
 {
-    idbg("");
+    solid_dbg(basic_logger, Info, "");
     SOLID_CHECK(!_rerror);
     SOLID_CHECK(_rsent_msg_ptr && _rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);

@@ -14,8 +14,8 @@
 #include "solid/serialization/v2/binarybasic.hpp"
 #include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
-#include "solid/system/debug.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/innerlist.hpp"
 #include "solid/utility/ioformat.hpp"
@@ -125,7 +125,7 @@ public:
 public: //should be protected
     inline void addBasic(const bool& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb ? 0xFF : 0xAA), _name};
 
         if (isRunEmpty()) {
@@ -139,7 +139,7 @@ public: //should be protected
 
     inline void addBasic(const int8_t& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
 
         if (isRunEmpty()) {
@@ -153,7 +153,7 @@ public: //should be protected
 
     inline void addBasic(const uint8_t& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         Runnable r{nullptr, &store_byte, 1, static_cast<uint64_t>(_rb), _name};
 
         if (isRunEmpty()) {
@@ -167,7 +167,7 @@ public: //should be protected
 
     inline void addBasic(const std::string& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
         if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
             error(error_limit_string);
@@ -190,7 +190,7 @@ public: //should be protected
     template <typename T, class A>
     inline void addVectorChar(const std::vector<T, A>& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name << ' ' << _rb.size());
+        solid_dbg(logger, Info, _name << ' ' << _rb.size());
 
         if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
             error(error_limit_string);
@@ -213,7 +213,7 @@ public: //should be protected
     template <class A>
     inline void addVectorChar(const std::vector<uint8_t, A>& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
+        solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
         if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
             error(error_limit_string);
@@ -236,7 +236,7 @@ public: //should be protected
     template <typename T>
     void addBasic(const T& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name << ' ' << _rb);
+        solid_dbg(logger, Info, _name << ' ' << _rb);
 #if 0
         Runnable r{std::addressof(_rb), &store_binary, sizeof(T), static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
@@ -264,7 +264,7 @@ public: //should be protected
     template <typename T>
     inline void addBasicWithCheck(const T& _rb, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name << ' ' << _rb);
+        solid_dbg(logger, Info, _name << ' ' << _rb);
         Runnable r{nullptr, &store_cross_with_check, 0, static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
             if (doStoreCrossWithCheck(r) == ReturnE::Done) {
@@ -278,7 +278,7 @@ public: //should be protected
     template <class S, class F>
     void addFunction(S& _rs, F _f, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         if (isRunEmpty() && _rs.pcrt_ != _rs.pend_) {
             _f(_rs, _name);
         } else {
@@ -307,7 +307,7 @@ public: //should be protected
     template <class S, class F, class Ctx>
     void addFunction(S& _rs, F _f, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         if (isRunEmpty() && _rs.pcrt_ != _rs.pend_) {
             _f(_rs, _rctx, _name);
         } else {
@@ -336,7 +336,7 @@ public: //should be protected
     template <class S, class F>
     void pushFunction(S& _rs, F _f, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rs.sentinel();
             const bool             done         = _f(static_cast<S&>(_rs), _rr.name_);
@@ -368,7 +368,7 @@ public: //should be protected
     template <class S, class F, class Ctx>
     void pushFunction(S& _rs, F _f, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         auto lambda = [_f = std::move(_f)](SerializerBase& _rs, Runnable& _rr, void* _pctx) mutable {
             const RunListIteratorT old_sentinel = _rs.sentinel();
             const bool             done         = _f(static_cast<S&>(_rs), *static_cast<Ctx*>(_pctx), _rr.name_);
@@ -400,7 +400,7 @@ public: //should be protected
     template <class S, class C>
     void addContainer(S& _rs, const C& _rc, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name << ' ' << _rc.size());
+        solid_dbg(logger, Info, _name << ' ' << _rc.size());
         if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
             error(error_limit_container);
             return;
@@ -446,7 +446,7 @@ public: //should be protected
     template <class S, class C, class Ctx>
     void addContainer(S& _rs, const C& _rc, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name << ' ' << _rc.size());
+        solid_dbg(logger, Info, _name << ' ' << _rc.size());
 
         if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
             error(error_limit_container);
@@ -568,7 +568,7 @@ public: //should be protected
     template <typename A>
     void addVectorBool(const std::vector<bool, A>& _rc, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name << ' ' << _rc.size());
+        solid_dbg(logger, Info, _name << ' ' << _rc.size());
 
         if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
             error(error_limit_container);
@@ -591,7 +591,7 @@ public: //should be protected
     template <size_t N>
     void addBitset(const std::bitset<N>& _rc, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name << ' ' << _rc.size());
+        solid_dbg(logger, Info, _name << ' ' << _rc.size());
 
         if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
             error(error_limit_container);
@@ -811,7 +811,7 @@ private:
         if (pcrt_ != pend_) {
             const size_t sz = max_padded_byte_cout(_rr.data_);
             *pcrt_          = static_cast<char>(sz);
-            idbgx(Debug::ser_bin, "sz = " << sz << " c = " << (int)*pcrt_);
+            solid_dbg(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_);
             ++pcrt_;
             _rr.size_ = sz;
             _rr.call_ = store_binary;
@@ -954,7 +954,7 @@ public:
     template <class T>
     void addPointer(const std::shared_ptr<T>& _rp, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         const T*        p = _rp.get();
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);
@@ -970,7 +970,7 @@ public:
     template <class T, class D>
     void addPointer(const std::unique_ptr<T, D>& _rp, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         const T*        p = _rp.get();
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);
@@ -1132,7 +1132,7 @@ public:
     template <class T>
     void addPointer(const std::shared_ptr<T>& _rp, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         const T*        p = _rp.get();
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);
@@ -1148,7 +1148,7 @@ public:
     template <class T, class D>
     void addPointer(const std::unique_ptr<T, D>& _rp, Ctx& _rctx, const char* _name)
     {
-        idbgx(Debug::ser_bin, _name);
+        solid_dbg(logger, Info, _name);
         const T*        p = _rp.get();
         ErrorConditionT err;
         const size_t    idx = rtype_map_.id(type_id_, p, err);

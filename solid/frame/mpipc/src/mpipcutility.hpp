@@ -11,6 +11,7 @@
 #pragma once
 
 #include "solid/system/cassert.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/socketaddress.hpp"
 
 #include "solid/frame/mpipc/mpipcservice.hpp"

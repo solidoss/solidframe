@@ -1,6 +1,7 @@
 #include "solid/serialization/v2/serialization.hpp"
 #include <bitset>
 #include <deque>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <set>
@@ -98,11 +99,7 @@ struct Test {
 int test_container(int argc, char* argv[])
 {
 
-#ifdef SOLID_HAS_DEBUG
-    Debug::the().levelMask("view");
-    Debug::the().moduleMask("all");
-    Debug::the().initStdErr(false, nullptr);
-#endif
+    solid::log_start(std::cerr, {".*:VIEW"});
 
     using TypeMapT      = serialization::TypeMap<uint8_t, Context, serialization::binary::Serializer, serialization::binary::Deserializer, TypeData>;
     using SerializerT   = TypeMapT::SerializerT;
@@ -247,13 +244,13 @@ void Test::init()
 
 void Test::check() const
 {
-    idbg("str = " << str);
-    idbg("bs5 = " << bs5.to_string());
-    idbg("bs10 = " << bs10.to_string());
-    idbg("bs20 = " << bs20.to_string());
-    idbg("bs50 = " << bs50.to_string());
-    idbg("bs100 = " << bs100.to_string());
-    idbg("bs1000 = " << bs1000.to_string());
+    solid_dbg(basic_logger, Info, "str = " << str);
+    solid_dbg(basic_logger, Info, "bs5 = " << bs5.to_string());
+    solid_dbg(basic_logger, Info, "bs10 = " << bs10.to_string());
+    solid_dbg(basic_logger, Info, "bs20 = " << bs20.to_string());
+    solid_dbg(basic_logger, Info, "bs50 = " << bs50.to_string());
+    solid_dbg(basic_logger, Info, "bs100 = " << bs100.to_string());
+    solid_dbg(basic_logger, Info, "bs1000 = " << bs1000.to_string());
     SOLID_CHECK(b);
     SOLID_CHECK(kv_vec.size() == kv_map.size());
     string tmpstr;

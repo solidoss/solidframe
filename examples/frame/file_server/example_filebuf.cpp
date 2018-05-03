@@ -1,6 +1,6 @@
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
 #include "solid/system/filedevice.hpp"
+#include "solid/system/log.hpp"
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -17,18 +17,16 @@ using namespace solid;
 int main(int argc, char* argv[])
 {
 
-    Debug::the().levelMask("view");
-    Debug::the().moduleMask("any");
-    Debug::the().initStdErr(false);
+    solid::log_start(std::cerr, {".*:VIEW"});
 
-    idbg("FileBuf example");
+    solid_log(basic_logger, Info, "FileBuf example");
 
     if (0) {
 
         frame::file::File         fd;
         frame::file::FilePointerT ptr(&fd);
         if (!fd.open("test.txt", FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::TruncateE)) {
-            idbg("Could not open file for writing");
+            solid_log(basic_logger, Info, "Could not open file for writing");
             return 0;
         }
         frame::file::FileOStream<0> ofs(ptr, 0);
@@ -40,7 +38,7 @@ int main(int argc, char* argv[])
         frame::file::FilePointerT ptr(&fd);
 
         if (!fd.open("test.txt", FileDevice::ReadWriteE)) {
-            idbg("Could not open file for read-write");
+            solid_log(basic_logger, Info, "Could not open file for read-write");
             return 0;
         }
         frame::file::FileIOStream<8> iofs /*(0, 0)*/;
@@ -61,7 +59,7 @@ int main(int argc, char* argv[])
         frame::file::File         fd;
         frame::file::FilePointerT ptr(&fd);
         if (!fd.open("test.txt", FileDevice::ReadOnlyE)) {
-            idbg("Could not open file for read");
+            solid_log(basic_logger, Info, "Could not open file for read");
             return 0;
         }
         frame::file::FileIStream<8> ifs;
@@ -124,7 +122,7 @@ int main(int argc, char* argv[])
         frame::file::File         fd;
         frame::file::FilePointerT ptr(&fd);
         if (!fd.open("test_2.txt", FileDevice::ReadWriteE | FileDevice::CreateE | FileDevice::TruncateE)) {
-            idbg("Could not open file for read-write");
+            solid_log(basic_logger, Info, "Could not open file for read-write");
             return 0;
         }
         frame::file::FileIOStream<1024> fs /*(0, 0)*/;

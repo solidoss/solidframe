@@ -17,8 +17,8 @@
 #include <thread>
 
 #include "solid/system/cassert.hpp"
-#include "solid/system/debug.hpp"
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
 #include "solid/system/memory.hpp"
 #include <atomic>
 
@@ -35,6 +35,8 @@ namespace solid {
 namespace frame {
 
 namespace {
+
+const LoggerT logger("solid::frame::Manager");
 
 enum {
     ErrorServiceUnknownE = 1,
@@ -192,7 +194,7 @@ struct ServiceStub {
 
     void reset()
     {
-        vdbgx(Debug::frame, "" << psvc);
+        solid_dbg(logger, Verbose, "" << psvc);
         psvc      = nullptr;
         firstchk  = InvalidIndex();
         lastchk   = InvalidIndex();
@@ -412,7 +414,7 @@ Manager::Manager(
     )
     : impl_(make_pimpl<Data>(*this))
 {
-    vdbgx(Debug::frame, "" << this);
+    solid_dbg(logger, Verbose, "" << this);
 
     if (_objmtxcnt == 0) {
         impl_->objmtxcnt = memory_page_size() / sizeof(std::mutex);
@@ -439,9 +441,9 @@ Manager::Manager(
 
 /*virtual*/ Manager::~Manager()
 {
-    vdbgx(Debug::frame, "" << this);
+    solid_dbg(logger, Verbose, "" << this);
     stop();
-    vdbgx(Debug::frame, "" << this);
+    solid_dbg(logger, Verbose, "" << this);
     delete[] impl_->pobjmtxarr; //TODO: get rid of delete
     delete[] impl_->psvcmtxarr;
 }
@@ -706,7 +708,7 @@ void Manager::unregisterObject(ObjectBase& _robj)
 
         rss.objcache.push(objidx);
         --rss.objcnt;
-        vdbgx(Debug::frame, "" << this << " serviceid = " << svcidx << " objcnt = " << rss.objcnt);
+        solid_dbg(logger, Verbose, "" << this << " serviceid = " << svcidx << " objcnt = " << rss.objcnt);
         if (rss.objcnt == 0 && rss.state == StateStoppingE) {
             impl_->cnd.notify_all();
         }
@@ -955,12 +957,12 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
 
     std::unique_lock<std::mutex> lock(rss.rmtx);
 
-    vdbgx(Debug::frame, "" << svcidx << " objcnt = " << rss.objcnt);
+    solid_dbg(logger, Verbose, "" << svcidx << " objcnt = " << rss.objcnt);
 
     impl_->releaseReadServiceStore(svcstoreidx);
 
     if (rss.state == StateStoppedE) {
-        vdbgx(Debug::frame, "" << svcidx);
+        solid_dbg(logger, Verbose, "" << svcidx);
         return;
     }
     if (rss.state == StateRunningE) {
@@ -975,18 +977,18 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
 
         if (cnt == 0 && rss.objcnt == 0) {
             rss.state = StateStoppedE;
-            vdbgx(Debug::frame, "StateStoppedE on " << svcidx);
+            solid_dbg(logger, Verbose, "StateStoppedE on " << svcidx);
             return;
         }
         rss.state = StateStoppingE;
     }
 
     if (rss.state == StateStoppingE && _wait) {
-        vdbgx(Debug::frame, "" << svcidx);
+        solid_dbg(logger, Verbose, "" << svcidx);
         while (rss.objcnt) {
             impl_->cnd.wait(lock);
         }
-        vdbgx(Debug::frame, "StateStoppedE on " << svcidx);
+        solid_dbg(logger, Verbose, "StateStoppedE on " << svcidx);
         rss.state = StateStoppedE;
     }
 }
@@ -1053,7 +1055,7 @@ void Manager::stop()
                 const size_t cnt = doForEachServiceObject(rss.firstchk, ObjectVisitFunctionT{raise_lambda});
                 (void)cnt;
                 rss.state = (rss.objcnt != 0) ? StateStoppingE : StateStoppedE;
-                vdbgx(Debug::frame, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
+                solid_dbg(logger, Verbose, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
             }
         }
     }
@@ -1066,14 +1068,14 @@ void Manager::stop()
             std::unique_lock<std::mutex> lock(rss.rmtx);
 
             if (rss.psvc && rss.state == StateStoppingE) {
-                vdbgx(Debug::frame, "wait stop service: " << (it - rsvcstore.vec.begin()));
+                solid_dbg(logger, Verbose, "wait stop service: " << (it - rsvcstore.vec.begin()));
                 while (rss.objcnt) {
                     impl_->cnd.wait(lock);
                 }
                 rss.state = StateStoppedE;
-                vdbgx(Debug::frame, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
+                solid_dbg(logger, Verbose, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
             } else if (rss.psvc) {
-                vdbgx(Debug::frame, "unregister already stopped service: " << (it - rsvcstore.vec.begin()) << " " << rss.psvc << " " << rss.state);
+                solid_dbg(logger, Verbose, "unregister already stopped service: " << (it - rsvcstore.vec.begin()) << " " << rss.psvc << " " << rss.state);
                 SOLID_ASSERT(rss.state == StateStoppedE);
             }
         }
