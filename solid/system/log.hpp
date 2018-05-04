@@ -119,17 +119,11 @@ public:
     {
         doDone();
     }
-
-private:
-    void setFlags(const std::string& _txt)
-    {
-        rcat_.parse(flags_, _txt);
-    }
 };
 
 using LoggerT = Logger<>;
 
-extern const LoggerT basic_logger;
+extern const LoggerT generic_logger;
 
 void log_reset();
 

@@ -97,15 +97,15 @@ struct FirstMessage : frame::mpipc::Message {
     FirstMessage(std::string const& _str)
         : str(_str)
     {
-        solid_log(basic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_log(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     FirstMessage()
     {
-        solid_log(basic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_log(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~FirstMessage()
     {
-        solid_log(basic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_log(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -130,17 +130,17 @@ struct MessageHandler {
 
 void connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_log(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_log(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
 void incoming_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_log(basic_logger, Info, _rctx.recipientId());
+    solid_log(generic_logger, Info, _rctx.recipientId());
 }
 
 void outgoing_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_log(basic_logger, Info, _rctx.recipientId());
+    solid_log(generic_logger, Info, _rctx.recipientId());
 }
 
 std::string loadFile(const char* _path);
@@ -207,7 +207,7 @@ int main(int argc, char* argv[])
                 }
             } while (s.size());
         }
-        solid_log(basic_logger, Verbose, "done stop");
+        solid_log(generic_logger, Verbose, "done stop");
     }
     return 0;
 }
@@ -264,7 +264,7 @@ bool restart(
 #if 1
     if (params.secure) {
         //configure OpenSSL:
-        solid_log(basic_logger, Info, "Configure SSL ---------------------------------------");
+        solid_log(generic_logger, Info, "Configure SSL ---------------------------------------");
         frame::mpipc::openssl::setup_client(
             cfg,
             [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -300,7 +300,7 @@ bool restart(
     {
         std::ostringstream oss;
         oss << _ipcsvc.configuration().server.listenerPort();
-        solid_log(basic_logger, Info, "server listens on port: " << oss.str());
+        solid_log(generic_logger, Info, "server listens on port: " << oss.str());
     }
     return true;
 }
@@ -353,7 +353,7 @@ void MessageHandler::operator()(
     ErrorConditionT const&           _rerr)
 {
     if (_rrecv_msg) {
-        solid_log(basic_logger, Info, _rctx.recipientId() << " Message received: is_on_sender: " << _rrecv_msg->isOnSender() << ", is_on_peer: " << _rrecv_msg->isOnPeer() << ", is_back_on_sender: " << _rrecv_msg->isBackOnSender());
+        solid_log(generic_logger, Info, _rctx.recipientId() << " Message received: is_on_sender: " << _rrecv_msg->isOnSender() << ", is_on_peer: " << _rrecv_msg->isOnPeer() << ", is_back_on_sender: " << _rrecv_msg->isBackOnSender());
         if (_rrecv_msg->isOnPeer()) {
             rsvc.sendResponse(_rctx.recipientId(), _rrecv_msg);
         } else if (_rrecv_msg->isBackOnSender()) {
@@ -375,7 +375,7 @@ namespace {
 void broadcast_message(frame::mpipc::Service& _rsvc, std::shared_ptr<frame::mpipc::Message>& _rmsgptr)
 {
 
-    solid_log(basic_logger, Verbose, "done stop===============================");
+    solid_log(generic_logger, Verbose, "done stop===============================");
 
     for (Params::StringVectorT::const_iterator it(params.connectstringvec.begin()); it != params.connectstringvec.end(); ++it) {
         _rsvc.sendMessage(it->c_str(), _rmsgptr, {frame::mpipc::MessageFlagsE::WaitResponse});

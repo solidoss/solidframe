@@ -17,7 +17,7 @@ int test_log_basic(int argc, char* argv[])
 
         solid::log_start(oss, {".*:VIEW"});
 
-        solid_log(solid::basic_logger, Info, "First line of log: " << argc << " " << argv[0]);
+        solid_log(solid::generic_logger, Info, "First line of log: " << argc << " " << argv[0]);
         solid_log(logger, Verbose, "Second line of log: " << argc << ' ' << argv[0]);
 
         string s{oss.str()};
@@ -30,7 +30,7 @@ int test_log_basic(int argc, char* argv[])
 
         solid::log_start(oss, {".*:VI"});
 
-        solid_log(solid::basic_logger, Error, "First line of log: " << argc << " " << argv[0]);
+        solid_log(solid::generic_logger, Error, "First line of log: " << argc << " " << argv[0]);
         solid_log(logger, Warning, "Second line of log: " << argc << ' ' << argv[0]);
 
         string s{oss.str()};
@@ -43,7 +43,7 @@ int test_log_basic(int argc, char* argv[])
 
         solid::log_start(oss, {".*:VIEW", "test:v"});
 
-        solid_log(solid::basic_logger, Info, "First line of log: " << argc << " " << argv[0]);
+        solid_log(solid::generic_logger, Info, "First line of log: " << argc << " " << argv[0]);
         solid_log(logger, Verbose, "HIDDEN - Second line of log: " << argc << ' ' << argv[0]);
         solid_log(logger, Info, "Second line of log: " << argc << ' ' << argv[0]);
 

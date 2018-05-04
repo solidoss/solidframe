@@ -82,17 +82,17 @@ struct Message : frame::mpipc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
-        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this << " idx = " << idx << " str.size = " << str.size());
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this << " idx = " << idx << " str.size = " << str.size());
         //      if(!serialized && !this->isBackOnSender() && idx != 0){
         //          SOLID_THROW("Message not serialized.");
         //      }
@@ -132,7 +132,7 @@ struct Message : frame::mpipc::Message {
     bool check() const
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
-        solid_dbg(basic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
+        solid_dbg(generic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
         if (sz != str.size()) {
             return false;
         }
@@ -154,7 +154,7 @@ struct Message : frame::mpipc::Message {
 
 void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
     if (!running) {
         ++connection_count;
     }
@@ -162,9 +162,9 @@ void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 
 void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
     auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
-        solid_dbg(basic_logger, Info, "enter active error: " << _rerror.message());
+        solid_dbg(generic_logger, Info, "enter active error: " << _rerror.message());
         return frame::mpipc::MessagePointerT();
     };
     _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
@@ -172,14 +172,14 @@ void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
 void server_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
 void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
     auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
-        solid_dbg(basic_logger, Info, "enter active error: " << _rerror.message());
+        solid_dbg(generic_logger, Info, "enter active error: " << _rerror.message());
         return frame::mpipc::MessagePointerT();
     };
     _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
@@ -190,22 +190,22 @@ void client_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
 
     ++crtackidx;
 
     if (_rsent_msg_ptr.get()) {
-        solid_dbg(basic_logger, Info, "idx = " << _rsent_msg_ptr->idx);
+        solid_dbg(generic_logger, Info, "idx = " << _rsent_msg_ptr->idx);
         if (!_rerror) {
         } else {
-            solid_dbg(basic_logger, Warning, "send message complete: <" << _rerror.message() << "> <" << _rctx.error().message() << "> <" << _rctx.systemError().message() << ">");
+            solid_dbg(generic_logger, Warning, "send message complete: <" << _rerror.message() << "> <" << _rctx.error().message() << "> <" << _rctx.systemError().message() << ">");
             SOLID_CHECK(_rsent_msg_ptr->idx == 0 || _rsent_msg_ptr->idx == 2);
             SOLID_ASSERT(
                 _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && !_rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
         }
     }
     if (_rrecv_msg_ptr.get()) {
-        solid_dbg(basic_logger, Info, "idx = " << _rrecv_msg_ptr->idx);
+        solid_dbg(generic_logger, Info, "idx = " << _rrecv_msg_ptr->idx);
         if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
         }
@@ -238,7 +238,7 @@ void server_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
-        solid_dbg(basic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " idx = " << _rrecv_msg_ptr->idx);
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " idx = " << _rrecv_msg_ptr->idx);
 
         //SOLID_CHECK(_rrecv_msg_ptr->idx != 0);
 
@@ -264,7 +264,7 @@ void server_complete_message(
         SOLID_CHECK(!(err && err != frame::mpipc::error_service_stopping), "sendResponse should not fail: " << err.message());
     }
     if (_rsent_msg_ptr.get()) {
-        solid_dbg(basic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
     }
 }
 
@@ -329,21 +329,21 @@ int test_clientserver_idempotent(int argc, char* argv[])
         err = sch_client.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio client scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio client scheduler: " << err.message());
             return 1;
         }
 
         err = sch_server.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio server scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio server scheduler: " << err.message());
             return 1;
         }
 
         err = resolver.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio resolver: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio resolver: " << err.message());
             return 1;
         }
 
@@ -366,7 +366,7 @@ int test_clientserver_idempotent(int argc, char* argv[])
             cfg.server.listener_address_str += server_port;
 
             if (secure) {
-                solid_dbg(basic_logger, Info, "Configure SSL server -------------------------------------");
+                solid_dbg(generic_logger, Info, "Configure SSL server -------------------------------------");
                 frame::mpipc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -381,7 +381,7 @@ int test_clientserver_idempotent(int argc, char* argv[])
             err = mpipcserver.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting server mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting server mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -390,7 +390,7 @@ int test_clientserver_idempotent(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << mpipcserver.configuration().server.listenerPort();
                 server_port = oss.str();
-                solid_dbg(basic_logger, Info, "server listens on port: " << server_port);
+                solid_dbg(generic_logger, Info, "server listens on port: " << server_port);
             }
         }
 
@@ -412,7 +412,7 @@ int test_clientserver_idempotent(int argc, char* argv[])
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
 
             if (secure) {
-                solid_dbg(basic_logger, Info, "Configure SSL client ------------------------------------");
+                solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
                 frame::mpipc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -427,7 +427,7 @@ int test_clientserver_idempotent(int argc, char* argv[])
             err = mpipcclient.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting client mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting client mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -486,15 +486,15 @@ int test_clientserver_idempotent(int argc, char* argv[])
             }
         }
 
-        solid_dbg(basic_logger, Info, "---- Before server stopping ----");
+        solid_dbg(generic_logger, Info, "---- Before server stopping ----");
         mpipcserver.stop();
-        solid_dbg(basic_logger, Info, "---- After server stopped ----");
+        solid_dbg(generic_logger, Info, "---- After server stopped ----");
 
         std::this_thread::sleep_for(std::chrono::milliseconds(5 * 1000));
 
-        solid_dbg(basic_logger, Info, "---- Before server start ----");
+        solid_dbg(generic_logger, Info, "---- Before server start ----");
         mpipcserver.start();
-        solid_dbg(basic_logger, Info, "---- After server started ----");
+        solid_dbg(generic_logger, Info, "---- After server started ----");
 
         unique_lock<mutex> lock(mtx);
 

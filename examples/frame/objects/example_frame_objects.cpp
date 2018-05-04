@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 
                     objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
 
-                    solid_log(basic_logger, Info, "Started BasicObject: " << objuid.index << ',' << objuid.unique);
+                    solid_log(generic_logger, Info, "Started BasicObject: " << objuid.index << ',' << objuid.unique);
 
                     if (err) {
                         cout << "Error starting object " << i << ": " << err.message() << endl;
@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
 
 /*virtual*/ void BasicObject::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
 {
-    solid_log(basic_logger, Info, "event = " << _uevent);
+    solid_log(generic_logger, Info, "event = " << _uevent);
     if (_uevent == generic_event_start) {
         {
             lock_guard<mutex> lock(mtx);
@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
 
 void BasicObject::onTimer(frame::ReactorContext& _rctx)
 {
-    solid_log(basic_logger, Info, "");
+    solid_log(generic_logger, Info, "");
 
     if (status_ == StatusInMemory) {
         status_ = StatusCompressed;

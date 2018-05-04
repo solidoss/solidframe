@@ -76,17 +76,17 @@ struct Message : frame::mpipc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
-        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
         SOLID_ASSERT(!serialized);
     }
 
@@ -114,7 +114,7 @@ struct Message : frame::mpipc::Message {
     bool check() const
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
-        solid_dbg(basic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
+        solid_dbg(generic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
         if (sz != str.size()) {
             return false;
         }
@@ -136,7 +136,7 @@ struct Message : frame::mpipc::Message {
 
 void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
     if (!running) {
         ++connection_count;
     }
@@ -144,7 +144,7 @@ void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 
 void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
 void client_complete_message(
@@ -152,7 +152,7 @@ void client_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " " << _rerror.message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " " << _rerror.message());
 
     SOLID_CHECK(!_rrecv_msg_ptr);
     SOLID_CHECK(_rsent_msg_ptr);
@@ -222,14 +222,14 @@ int test_clientserver_oneshot(int argc, char* argv[])
         err = sch_client.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio client scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio client scheduler: " << err.message());
             return 1;
         }
 
         err = resolver.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio resolver: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio resolver: " << err.message());
             return 1;
         }
 
@@ -255,7 +255,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, server_port.c_str() /*, SocketInfo::Inet4*/);
 
             if (secure) {
-                solid_dbg(basic_logger, Info, "Configure SSL client ------------------------------------");
+                solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
                 frame::mpipc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -270,7 +270,7 @@ int test_clientserver_oneshot(int argc, char* argv[])
             err = mpipcclient.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting client mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting client mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }

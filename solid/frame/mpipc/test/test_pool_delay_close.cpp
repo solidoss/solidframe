@@ -80,17 +80,17 @@ struct Message : frame::mpipc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
-        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
         //      if(!serialized && !this->isBackOnSender()){
         //          SOLID_THROW("Message not serialized.");
         //      }
@@ -104,7 +104,7 @@ struct Message : frame::mpipc::Message {
         }
         if (_rthis.isOnPeer()) {
             ++crtreadidx;
-            solid_dbg(basic_logger, Info, crtreadidx);
+            solid_dbg(generic_logger, Info, crtreadidx);
 
             if (crtreadidx == 2) {
                 cnd.notify_one();
@@ -128,7 +128,7 @@ struct Message : frame::mpipc::Message {
     bool check() const
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
-        solid_dbg(basic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
+        solid_dbg(generic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
         if (sz != str.size()) {
             return false;
         }
@@ -150,7 +150,7 @@ struct Message : frame::mpipc::Message {
 
 void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
     if (_rctx.isConnectionActive()) {
         ++connection_count;
     }
@@ -158,17 +158,17 @@ void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 
 void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
 void server_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
 void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
 void client_complete_message(
@@ -176,10 +176,10 @@ void client_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
 
     if (_rsent_msg_ptr.get()) {
-        solid_dbg(basic_logger, Info, "" << _rsent_msg_ptr->idx);
+        solid_dbg(generic_logger, Info, "" << _rsent_msg_ptr->idx);
 
         if (!_rerror) {
             ++crtackidx;
@@ -188,7 +188,7 @@ void client_complete_message(
 
     if (_rrecv_msg_ptr.get()) {
 
-        solid_dbg(basic_logger, Info, "" << _rrecv_msg_ptr->idx);
+        solid_dbg(generic_logger, Info, "" << _rrecv_msg_ptr->idx);
 
         if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
@@ -218,7 +218,7 @@ void server_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr.get()) {
-        solid_dbg(basic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
 
         if (!_rrecv_msg_ptr->check()) {
             SOLID_THROW("Message check failed.");
@@ -237,7 +237,7 @@ void server_complete_message(
         SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr.get()) {
-        solid_dbg(basic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr->idx);
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr->idx);
     }
 }
 
@@ -290,21 +290,21 @@ int test_pool_delay_close(int argc, char* argv[])
         err = sch_client.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio client scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio client scheduler: " << err.message());
             return 1;
         }
 
         err = sch_server.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio server scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio server scheduler: " << err.message());
             return 1;
         }
 
         err = resolver.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio resolver: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio resolver: " << err.message());
             return 1;
         }
 
@@ -331,7 +331,7 @@ int test_pool_delay_close(int argc, char* argv[])
             err = mpipcserver.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting server mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting server mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -340,7 +340,7 @@ int test_pool_delay_close(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << mpipcserver.configuration().server.listenerPort();
                 server_port = oss.str();
-                solid_dbg(basic_logger, Info, "server listens on port: " << server_port);
+                solid_dbg(generic_logger, Info, "server listens on port: " << server_port);
             }
         }
 
@@ -367,7 +367,7 @@ int test_pool_delay_close(int argc, char* argv[])
             err = mpipcclient.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting client mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting client mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -415,7 +415,7 @@ int test_pool_delay_close(int argc, char* argv[])
             pmpipcclient->delayCloseConnectionPool(
                 recipinet_id,
                 [](frame::mpipc::ConnectionContext& _rctx) {
-                    solid_dbg(basic_logger, Info, "------------------");
+                    solid_dbg(generic_logger, Info, "------------------");
                     lock_guard<mutex> lock(mtx);
                     running = false;
                     cnd.notify_one();
@@ -426,7 +426,7 @@ int test_pool_delay_close(int argc, char* argv[])
                 ErrorConditionT               err = pmpipcclient->sendMessage(
                     recipinet_id, msgptr,
                     {frame::mpipc::MessageFlagsE::WaitResponse});
-                solid_dbg(basic_logger, Info, "send message error message: " << err.message());
+                solid_dbg(generic_logger, Info, "send message error message: " << err.message());
                 SOLID_CHECK(err);
             }
         }

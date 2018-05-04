@@ -94,7 +94,7 @@ bool try_stop()
     //cancelable_created_count were realy canceld on peera
     //2xcancelable_created_count == cancelable_deleted_count
     //
-    solid_dbg(basic_logger, Error, "writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
+    solid_dbg(generic_logger, Error, "writeidx = " << crtwriteidx << " writecnt = " << writecount << " canceled_cnt = " << canceled_count << " create_cnt = " << created_count << " cancelable_created_cnt = " << cancelable_created_count << " cancelable_deleted_cnt = " << cancelable_deleted_count << " response_cnt = " << response_count);
     if (
         crtwriteidx >= writecount && canceled_count == cancelable_created_count && 2 * cancelable_created_count == cancelable_deleted_count && response_count == (writecount - canceled_count)) {
         lock_guard<mutex> lock(mtx);
@@ -119,7 +119,7 @@ struct Register : frame::mpipc::Message {
         : str(_rstr)
         , err(_err)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     Register(uint32_t _err = -1)
         : err(_err)
@@ -128,7 +128,7 @@ struct Register : frame::mpipc::Message {
 
     ~Register()
     {
-        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -146,7 +146,7 @@ struct Message : frame::mpipc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
         ++created_count;
         if (cancelable()) {
@@ -157,11 +157,11 @@ struct Message : frame::mpipc::Message {
         : serialized(false)
     {
         ++created_count;
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
-        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this << " idx = " << idx);
 
         if (cancelable()) {
             ++cancelable_deleted_count;
@@ -182,7 +182,7 @@ struct Message : frame::mpipc::Message {
 
         _s.add([&_rthis](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name) {
             if (_rthis.cancelable()) {
-                solid_dbg(basic_logger, Info, "Cancel message: " << _rthis.idx << " " << msgid_vec[_rthis.idx].second);
+                solid_dbg(generic_logger, Info, "Cancel message: " << _rthis.idx << " " << msgid_vec[_rthis.idx].second);
                 //we're on the peerb,
                 //we now cancel the message on peer a
                 pmpipcpeera->cancelMessage(msgid_vec[_rthis.idx].first, msgid_vec[_rthis.idx].second);
@@ -213,7 +213,7 @@ struct Message : frame::mpipc::Message {
     bool check() const
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
-        solid_dbg(basic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
+        solid_dbg(generic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
         if (sz != str.size()) {
             return false;
         }
@@ -239,12 +239,12 @@ struct Message : frame::mpipc::Message {
 
 void peera_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
 void peera_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
     if (!running) {
         ++connection_count;
     }
@@ -255,7 +255,7 @@ void peera_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
     SOLID_CHECK(_rsent_msg_ptr, "Error: no request message");
 
     if (_rsent_msg_ptr->cancelable()) {
@@ -267,7 +267,7 @@ void peera_complete_message(
     SOLID_CHECK(_rrecv_msg_ptr, "Error: no response message");
     SOLID_CHECK(!_rerror, "Error sending message: " << _rerror.message());
 
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
     if (!_rrecv_msg_ptr->check()) {
         SOLID_THROW("Message check failed.");
     }
@@ -289,7 +289,7 @@ void peera_complete_message(
 
 void peerb_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
 
     auto            msgptr = std::make_shared<Register>("b");
     ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageFlagsE::WaitResponse});
@@ -298,7 +298,7 @@ void peerb_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
 void peerb_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
 void peerb_complete_register(
@@ -306,17 +306,17 @@ void peerb_complete_register(
     std::shared_ptr<Register>& _rsent_msg_ptr, std::shared_ptr<Register>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
     SOLID_CHECK(!_rerror);
 
     if (_rrecv_msg_ptr && _rrecv_msg_ptr->err == 0) {
         auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
-            solid_dbg(basic_logger, Info, "peerb --- enter active error: " << _rerror.message());
+            solid_dbg(generic_logger, Info, "peerb --- enter active error: " << _rerror.message());
             return frame::mpipc::MessagePointerT();
         };
         _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId(), lambda);
     } else {
-        solid_dbg(basic_logger, Info, "");
+        solid_dbg(generic_logger, Info, "");
     }
 }
 
@@ -326,7 +326,7 @@ void peerb_complete_message(
     ErrorConditionT const& _rerror)
 {
     if (_rrecv_msg_ptr) {
-        solid_dbg(basic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
 
         if (!_rrecv_msg_ptr->check()) {
             SOLID_ASSERT(false);
@@ -368,7 +368,7 @@ void peerb_complete_message(
         }
     }
     if (_rsent_msg_ptr) {
-        solid_dbg(basic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
+        solid_dbg(generic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
     }
 }
 //-----------------------------------------------------------------------------
@@ -438,28 +438,28 @@ int test_relay_cancel_request(int argc, char* argv[])
         err = sch_peera.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio peera scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio peera scheduler: " << err.message());
             return 1;
         }
 
         err = sch_peerb.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio peerb scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio peerb scheduler: " << err.message());
             return 1;
         }
 
         err = sch_relay.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio relay scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio relay scheduler: " << err.message());
             return 1;
         }
 
         err = resolver.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio resolver: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio resolver: " << err.message());
             return 1;
         }
 
@@ -467,7 +467,7 @@ int test_relay_cancel_request(int argc, char* argv[])
 
         { //mpipc relay initialization
             auto con_start = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) {
-                solid_dbg(basic_logger, Info, _rctx.recipientId());
+                solid_dbg(generic_logger, Info, _rctx.recipientId());
             };
             auto con_stop = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) {
                 if (!running) {
@@ -482,7 +482,7 @@ int test_relay_cancel_request(int argc, char* argv[])
                 SOLID_CHECK(!_rerror);
                 if (_rrecv_msg_ptr) {
                     SOLID_CHECK(!_rsent_msg_ptr);
-                    solid_dbg(basic_logger, Info, "recv register request: " << _rrecv_msg_ptr->str);
+                    solid_dbg(generic_logger, Info, "recv register request: " << _rrecv_msg_ptr->str);
 
                     relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->str));
 
@@ -493,7 +493,7 @@ int test_relay_cancel_request(int argc, char* argv[])
 
                 } else {
                     SOLID_CHECK(!_rrecv_msg_ptr);
-                    solid_dbg(basic_logger, Info, "sent register response");
+                    solid_dbg(generic_logger, Info, "sent register response");
                 }
             };
 
@@ -511,7 +511,7 @@ int test_relay_cancel_request(int argc, char* argv[])
             cfg.relay_enabled                    = true;
 
             if (secure) {
-                solid_dbg(basic_logger, Info, "Configure SSL server -------------------------------------");
+                solid_dbg(generic_logger, Info, "Configure SSL server -------------------------------------");
                 frame::mpipc::openssl::setup_server(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -530,7 +530,7 @@ int test_relay_cancel_request(int argc, char* argv[])
             err = mpipcrelay.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting server mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting server mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -539,7 +539,7 @@ int test_relay_cancel_request(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << mpipcrelay.configuration().server.listenerPort();
                 relay_port = oss.str();
-                solid_dbg(basic_logger, Info, "relay listens on port: " << relay_port);
+                solid_dbg(generic_logger, Info, "relay listens on port: " << relay_port);
             }
         }
 
@@ -562,7 +562,7 @@ int test_relay_cancel_request(int argc, char* argv[])
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, relay_port.c_str() /*, SocketInfo::Inet4*/);
 
             if (secure) {
-                solid_dbg(basic_logger, Info, "Configure SSL client ------------------------------------");
+                solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
                 frame::mpipc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -581,7 +581,7 @@ int test_relay_cancel_request(int argc, char* argv[])
             err = mpipcpeera.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting peera mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting peera mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }
@@ -603,7 +603,7 @@ int test_relay_cancel_request(int argc, char* argv[])
             cfg.client.name_resolve_fnc = frame::mpipc::InternetResolverF(resolver, relay_port.c_str() /*, SocketInfo::Inet4*/);
 
             if (secure) {
-                solid_dbg(basic_logger, Info, "Configure SSL client ------------------------------------");
+                solid_dbg(generic_logger, Info, "Configure SSL client ------------------------------------");
                 frame::mpipc::openssl::setup_client(
                     cfg,
                     [](frame::aio::openssl::Context& _rctx) -> ErrorCodeT {
@@ -622,7 +622,7 @@ int test_relay_cancel_request(int argc, char* argv[])
             err = mpipcpeerb.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting peerb mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting peerb mpipcservice: " << err.message());
                 //exiting
                 return 1;
             }

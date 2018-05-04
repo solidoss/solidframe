@@ -328,7 +328,7 @@ void LoggerBase::doDone() const
 //-----------------------------------------------------------------------------
 //  log_start
 //-----------------------------------------------------------------------------
-const LoggerT basic_logger{"basic"};
+const LoggerT generic_logger{"*"};
 
 void log_reset()
 {

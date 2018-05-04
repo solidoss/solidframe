@@ -18,7 +18,6 @@
 #include "solid/system/device.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/system/log.hpp"
 #include "solid/system/nanotime.hpp"
 #include <condition_variable>
 #include <mutex>
@@ -43,8 +42,6 @@ namespace solid {
 namespace frame {
 
 namespace {
-
-const LoggerT logger("solid::frame::Reactor");
 
 void dummy_completion(CompletionHandler&, ReactorContext&)
 {

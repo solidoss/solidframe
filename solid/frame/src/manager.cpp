@@ -18,7 +18,6 @@
 
 #include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
-#include "solid/system/log.hpp"
 #include "solid/system/memory.hpp"
 #include <atomic>
 
@@ -34,9 +33,9 @@
 namespace solid {
 namespace frame {
 
-namespace {
+const LoggerT logger("solid::frame");
 
-const LoggerT logger("solid::frame::Manager");
+namespace {
 
 enum {
     ErrorServiceUnknownE = 1,

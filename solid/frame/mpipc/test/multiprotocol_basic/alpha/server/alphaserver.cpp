@@ -23,7 +23,7 @@ void complete_message<alpha_protocol::FirstMessage>(
     std::shared_ptr<alpha_protocol::FirstMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                         _rerror)
 {
-    solid_dbg(basic_logger, Info, "");
+    solid_dbg(generic_logger, Info, "");
 
     SOLID_CHECK(!_rerror);
 
@@ -45,7 +45,7 @@ void complete_message<alpha_protocol::SecondMessage>(
     std::shared_ptr<alpha_protocol::SecondMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                          _rerror)
 {
-    solid_dbg(basic_logger, Info, "");
+    solid_dbg(generic_logger, Info, "");
     SOLID_CHECK(!_rerror);
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(!_rsent_msg_ptr);
@@ -65,7 +65,7 @@ void complete_message<alpha_protocol::ThirdMessage>(
     std::shared_ptr<alpha_protocol::ThirdMessage>& _rrecv_msg_ptr,
     ErrorConditionT const&                         _rerror)
 {
-    solid_dbg(basic_logger, Info, "");
+    solid_dbg(generic_logger, Info, "");
     SOLID_CHECK(!_rerror);
     if (_rrecv_msg_ptr) {
         SOLID_CHECK(!_rsent_msg_ptr);

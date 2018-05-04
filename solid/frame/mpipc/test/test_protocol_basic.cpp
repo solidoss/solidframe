@@ -67,16 +67,16 @@ struct Message : frame::mpipc::Message {
     Message(uint32_t _idx)
         : idx(_idx)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
     }
     Message()
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
-        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -99,7 +99,7 @@ struct Message : frame::mpipc::Message {
     bool check() const
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
-        solid_dbg(basic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
+        solid_dbg(generic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
         if (sz != str.size()) {
             return false;
         }
@@ -152,7 +152,7 @@ void complete_message(
         SOLID_THROW("Message complete with error");
     }
     if (_rmessage_ptr.get()) {
-        solid_dbg(basic_logger, Info, static_cast<Message*>(_rmessage_ptr.get())->idx);
+        solid_dbg(generic_logger, Info, static_cast<Message*>(_rmessage_ptr.get())->idx);
     }
 
     if (_rresponse_ptr.get()) {
@@ -162,7 +162,7 @@ void complete_message(
         }
 
         ++crtreadidx;
-        solid_dbg(basic_logger, Info, crtreadidx);
+        solid_dbg(generic_logger, Info, crtreadidx);
 
         if (crtwriteidx < writecount) {
             frame::mpipc::MessageBundle msgbundle;
@@ -176,8 +176,8 @@ void complete_message(
             bool rv = ctx.mpipcmsgwriter->enqueue(
                 *ctx.mpipcwriterconfig, msgbundle, pool_msg_id, writer_msg_id);
 
-            solid_dbg(basic_logger, Info, "enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
-            solid_dbg(basic_logger, Info, frame::mpipc::MessageWriterPrintPairT(*ctx.mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
+            solid_dbg(generic_logger, Info, "enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
+            solid_dbg(generic_logger, Info, frame::mpipc::MessageWriterPrintPairT(*ctx.mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
             ++crtwriteidx;
         }
     }
@@ -213,17 +213,17 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
 
     void receiveKeepAlive() override
     {
-        solid_dbg(basic_logger, Info, "");
+        solid_dbg(generic_logger, Info, "");
     }
 
     void receiveAckCount(uint8_t _count) override
     {
-        solid_dbg(basic_logger, Info, "" << (int)_count);
+        solid_dbg(generic_logger, Info, "" << (int)_count);
         SOLID_CHECK(_count == ackd_count, "invalid ack count");
     }
     void receiveCancelRequest(const frame::mpipc::RequestId& _reqid) override
     {
-        solid_dbg(basic_logger, Verbose, "" << _reqid);
+        solid_dbg(generic_logger, Verbose, "" << _reqid);
         bool found = false;
         for (auto it = reqvec.cbegin(); it != reqvec.cend();) {
             if (*it == _reqid) {
@@ -251,7 +251,7 @@ struct Sender : frame::mpipc::MessageWriter::Sender {
 
     ErrorConditionT completeMessage(frame::mpipc::MessageBundle& _rmsgbundle, frame::mpipc::MessageId const& /*_rmsgid*/) override
     {
-        solid_dbg(basic_logger, Info, "writer complete message");
+        solid_dbg(generic_logger, Info, "writer complete message");
         frame::mpipc::MessagePointerT response_ptr;
         ErrorConditionT               error;
         rprotocol_.complete(_rmsgbundle.message_type_id, mpipcconctx, _rmsgbundle.message_ptr, response_ptr, error);
@@ -317,8 +317,8 @@ int test_protocol_basic(int argc, char* argv[])
 
         bool rv = mpipcmsgwriter.enqueue(
             mpipcwriterconfig, msgbundle, pool_msg_id, writer_msg_id);
-        solid_dbg(basic_logger, Info, "enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
-        solid_dbg(basic_logger, Info, frame::mpipc::MessageWriterPrintPairT(mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
+        solid_dbg(generic_logger, Info, "enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
+        solid_dbg(generic_logger, Info, frame::mpipc::MessageWriterPrintPairT(mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
     }
 
     {

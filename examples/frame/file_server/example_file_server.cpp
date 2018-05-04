@@ -254,7 +254,7 @@ int main(int argc, char* argv[])
                     solid::frame::ObjectIdT            objuid;
 
                     objuid = aiosched.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                    solid_log(basic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                    solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
                 } else {
                     cout << "Error creating listener socket" << endl;
                     run = false;
@@ -294,7 +294,17 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     using namespace boost::program_options;
     try {
         options_description desc("SolidFrame concept application");
-        desc.add_options()("help,h", "List program options")("port,p", value<int>(&_par.start_port)->default_value(2000), "Listen port")("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")("use-log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered");
+        // clang-format off
+        desc.add_options()
+            ("help,h", "List program options")
+            ("port,p", value<int>(&_par.start_port)->default_value(2000), "Listen port")
+            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
+            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
+            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
+            ("use-log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered");
+        // clang-format on
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
         notify(vm);
@@ -312,7 +322,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 //------------------------------------------------------------------
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    solid_log(basic_logger, Info, "event = " << _revent);
+    solid_log(generic_logger, Info, "event = " << _revent);
     if (generic_event_start == _revent) {
         sock.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { return onAccept(_rctx, _rsd); });
     } else if (generic_event_kill == _revent) {
@@ -322,7 +332,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    solid_log(basic_logger, Info, "");
+    solid_log(generic_logger, Info, "");
     unsigned repeatcnt = 4;
 
     do {
@@ -372,7 +382,7 @@ Connection::Connection(SocketDevice& _rsd)
 Connection::~Connection()
 {
     //state(-1);
-    solid_log(basic_logger, Info, "");
+    solid_log(generic_logger, Info, "");
 }
 
 const char* Connection::findEnd(const char* _p)
@@ -396,16 +406,16 @@ const char* Connection::findEnd(const char* _p)
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    solid_log(basic_logger, Info, "" << _revent);
+    solid_log(generic_logger, Info, "" << _revent);
     if (generic_event_start == _revent) {
-        solid_log(basic_logger, Info, "Start");
+        solid_log(generic_logger, Info, "Start");
         sock.postRecvSome(_rctx, bbeg, BufferCapacity, Connection::onRecv);
         state = ReadCommand;
     } else if (generic_event_kill == _revent) {
-        solid_log(basic_logger, Info, "Stop");
+        solid_log(generic_logger, Info, "Stop");
         this->postStop(_rctx);
     } else if (generic_event_message == _revent) {
-        solid_log(basic_logger, Info, "Message");
+        solid_log(generic_logger, Info, "Message");
         FilePointerMessage* pfileptrmsg = _revent.any().cast<FilePointerMessage>();
         if (pfileptrmsg) {
             this->handle(*pfileptrmsg);
@@ -458,7 +468,7 @@ void Connection::doRun(frame::aio::ReactorContext& _rctx)
     case WaitRead:
     case WaitWrite:
         //keep waiting
-        solid_log(basic_logger, Info, "keep waiting");
+        solid_log(generic_logger, Info, "keep waiting");
         break;
     case RunRead:
         if (!iofs.eof()) {
@@ -506,7 +516,7 @@ struct OpenCbk {
         ErrorCodeT const& /*_rerr*/
     )
     {
-        solid_log(basic_logger, Info, "");
+        solid_log(generic_logger, Info, "");
         Event ev{generic_event_message};
         ev.any() = FilePointerMessage(_rptr);
 
@@ -527,7 +537,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 'r':
         state = WaitRead;
         ++bpos;
-        solid_log(basic_logger, Info, "Request open file: " << path);
+        solid_log(generic_logger, Info, "Request open file: " << path);
         filestoreptr->requestOpenFile(OpenCbk(rm, rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
         //post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
         break;
@@ -535,17 +545,17 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 'w':
         state = WaitWrite;
         ++bpos;
-        solid_log(basic_logger, Info, "Request create file: " << path);
+        solid_log(generic_logger, Info, "Request create file: " << path);
         filestoreptr->requestCreateFile(OpenCbk(rm, rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
         //post(_rctx, [this](frame::aio::ReactorContext &_rctx, frame::Event const &_revent){this->run(_rctx);});
         break;
     case 'S':
     case 's':
         if (tempuid.isValid()) {
-            solid_log(basic_logger, Info, "Request shared temp - no temp");
+            solid_log(generic_logger, Info, "Request shared temp - no temp");
             this->postStop(_rctx);
         } else {
-            solid_log(basic_logger, Info, "Request shared temp - " << tempuid.index << '.' << tempuid.unique);
+            solid_log(generic_logger, Info, "Request shared temp - " << tempuid.index << '.' << tempuid.unique);
             state = WaitRead;
             ++bpos;
             filestoreptr->requestShared(OpenCbk(rm, rm.id(*this)), tempuid);
@@ -555,10 +565,10 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 'U':
     case 'u':
         if (tempuid.isValid()) {
-            solid_log(basic_logger, Info, "Request unique temp - no temp");
+            solid_log(generic_logger, Info, "Request unique temp - no temp");
             postStop(_rctx);
         } else {
-            solid_log(basic_logger, Info, "Request unique temp - " << tempuid.index << '.' << tempuid.unique);
+            solid_log(generic_logger, Info, "Request unique temp - " << tempuid.index << '.' << tempuid.unique);
             state = WaitRead;
             ++bpos;
             filestoreptr->requestShared(OpenCbk(rm, rm.id(*this)), tempuid);
@@ -568,7 +578,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 't':
         state = WaitWrite;
         ++bpos;
-        solid_log(basic_logger, Info, "Request read temp");
+        solid_log(generic_logger, Info, "Request read temp");
         filestoreptr->requestCreateTemp(OpenCbk(rm, rm.id(*this)), 4 * 1024);
         state = WaitWrite;
         break;
@@ -576,14 +586,14 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
     case 'f':
         state = WaitWrite;
         ++bpos;
-        solid_log(basic_logger, Info, "Request file temp");
+        solid_log(generic_logger, Info, "Request file temp");
         filestoreptr->requestCreateTemp(OpenCbk(rm, rm.id(*this)), 4 * 1024, frame::file::VeryFastLevelFlag);
         break;
     case 'M':
     case 'm':
         state = WaitWrite;
         ++bpos;
-        solid_log(basic_logger, Info, "Request memory temp");
+        solid_log(generic_logger, Info, "Request memory temp");
         filestoreptr->requestCreateTemp(OpenCbk(rm, rm.id(*this)), 4 * 1024, frame::file::MemoryLevelFlag);
         state = WaitWrite;
     default:
@@ -604,7 +614,7 @@ void Connection::doExecuteCommand(frame::aio::ReactorContext& _rctx)
 
 void Connection::handle(FilePointerMessage& _rmsgptr)
 {
-    solid_log(basic_logger, Info, "");
+    solid_log(generic_logger, Info, "");
     if (!_rmsgptr.ptr.empty()) {
         iofs.device(_rmsgptr.ptr);
         if (state == WaitRead) {

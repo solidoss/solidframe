@@ -402,7 +402,7 @@ int main(int argc, char* argv[])
                 solid::frame::ObjectIdT            objuid;
 
                 objuid = sch.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(basic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
+                solid_log(generic_logger, Info, "Started Listener object: " << objuid.index << ',' << objuid.unique);
             } else {
                 cout << "Error creating listener socket" << endl;
             }
@@ -423,7 +423,17 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     using namespace boost::program_options;
     try {
         options_description desc("SolidFrame Example Relay-Server Application");
-        desc.add_options()("help,h", "List program options")("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")("connect-addr,c", value<string>(&_par.connect_addr_str)->default_value(""), "Connect address")("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        // clang-format off
+        desc.add_options()
+            ("help,h", "List program options")
+            ("listen-port,l", value<int>(&_par.listener_port)->default_value(2000), "Listener port")
+            ("connect-addr,c", value<string>(&_par.connect_addr_str)->default_value(""), "Connect address")
+            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
+            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
+            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        // clang-format on
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
         notify(vm);
@@ -457,7 +467,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 
 /*virtual*/ void Listener::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    solid_log(basic_logger, Info, "event = " << _revent);
+    solid_log(generic_logger, Info, "event = " << _revent);
     if (_revent == generic_event_start) {
         sock_.postAccept(_rctx, [this](frame::aio::ReactorContext& _rctx, SocketDevice& _rsd) { this->onAccept(_rctx, _rsd); });
     } else if (_revent == generic_event_kill) {
@@ -467,7 +477,7 @@ bool parseArguments(Params& _par, int argc, char* argv[])
 
 void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 {
-    solid_log(basic_logger, Info, "");
+    solid_log(generic_logger, Info, "");
     unsigned repeatcnt = 4;
 
     do {
@@ -529,14 +539,14 @@ struct ResolvFunc {
 
         ev.any() = std::move(_rrd);
 
-        solid_log(basic_logger, Info, this << " send resolv_message");
+        solid_log(generic_logger, Info, this << " send resolv_message");
         rm.notify(objuid, std::move(ev));
     }
 };
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    solid_log(basic_logger, Error, this << " " << _revent);
+    solid_log(generic_logger, Error, this << " " << _revent);
     if (generic_event_raise == _revent) {
         wcan_swap = true;
         if (wpop_ed_vec.empty()) {
@@ -571,19 +581,19 @@ struct ResolvFunc {
             //wait for peer to connect
         } else {
             //the connecting socket
-            solid_log(basic_logger, Info, "async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
+            solid_log(generic_logger, Info, "async_resolve = " << params.connect_addr_str << " " << params.connect_port_str);
             async_resolver().requestResolve(
                 ResolvFunc(_rctx.manager(), _rctx.manager().id(*this)), params.connect_addr_str.c_str(),
                 params.connect_port_str.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
         }
     } else if (generic_event_kill == _revent) {
-        solid_log(basic_logger, Error, this << " postStop");
+        solid_log(generic_logger, Error, this << " postStop");
         postStop(_rctx);
     } else if (generic_event_message == _revent) {
         ResolveData* presolvemsg = _revent.any().cast<ResolveData>();
         if (presolvemsg) {
             if (presolvemsg->empty()) {
-                solid_log(basic_logger, Error, this << " postStop");
+                solid_log(generic_logger, Error, this << " postStop");
                 postStop(_rctx);
             } else {
                 if (sock_.connect(_rctx, presolvemsg->begin(), &Connection::onConnect)) {
@@ -607,11 +617,11 @@ struct ResolvFunc {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
     if (!_rctx.error()) {
-        solid_log(basic_logger, Info, &rthis << " SUCCESS");
+        solid_log(generic_logger, Info, &rthis << " SUCCESS");
 
         Event ev(make_event(GenericEvents::Message, _rctx.manager().id(rthis)));
 
-        solid_log(basic_logger, Info, &rthis << " send resolv_message");
+        solid_log(generic_logger, Info, &rthis << " send resolv_message");
         if (_rctx.manager().notify(rthis.peer_objuid_, std::move(ev))) {
 
             rthis.sock_.device().enableNoDelay();
@@ -619,11 +629,11 @@ struct ResolvFunc {
             rthis.sock_.postRecvSome(_rctx, rthis.rbufptr_->data(), rthis.rbufptr_->capacity(), Connection::onRecv);
         } else {
             //peer has died
-            solid_log(basic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
+            solid_log(generic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
             rthis.postStop(_rctx);
         }
     } else {
-        solid_log(basic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
+        solid_log(generic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
 }
@@ -632,7 +642,7 @@ struct ResolvFunc {
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
-    solid_log(basic_logger, Info, &rthis << " " << _sz);
+    solid_log(generic_logger, Info, &rthis << " " << _sz);
 
     if (!_rctx.error()) {
 
@@ -645,7 +655,7 @@ struct ResolvFunc {
         }
 
     } else {
-        solid_log(basic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
+        solid_log(generic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
 }
@@ -657,7 +667,7 @@ struct ResolvFunc {
     if (!_rctx.error()) {
         rthis.notifyPeerOnSend(_rctx);
 
-        solid_log(basic_logger, Info, &rthis << " ");
+        solid_log(generic_logger, Info, &rthis << " ");
 
         if (
             rthis.wpop_ed_vec_off != rthis.wpop_ed_vec.size() || (rthis.swapWriteEventDataVectors(_rctx))) {
@@ -665,7 +675,7 @@ struct ResolvFunc {
         }
 
     } else {
-        solid_log(basic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
+        solid_log(generic_logger, Error, &rthis << " postStop " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
 }

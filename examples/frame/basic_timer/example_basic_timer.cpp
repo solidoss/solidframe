@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
                 solid::frame::ObjectIdT       objuid;
 
                 objuid = s.startObject(objptr, svc, make_event(GenericEvents::Start), err);
-                solid_log(basic_logger, Info, "Started BasicObject: " << objuid.index << ',' << objuid.unique);
+                solid_log(generic_logger, Info, "Started BasicObject: " << objuid.index << ',' << objuid.unique);
             }
 
             {
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 
 /*virtual*/ void BasicObject::onEvent(frame::ReactorContext& _rctx, Event&& _uevent)
 {
-    solid_log(basic_logger, Info, "event = " << _uevent);
+    solid_log(generic_logger, Info, "event = " << _uevent);
     if (_uevent == generic_event_start) {
         t1.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(5), [this](frame::ReactorContext& _rctx) { return onTimer(_rctx, 0); });
         t2.waitUntil(_rctx, _rctx.steadyTime() + std::chrono::seconds(10), [this](frame::ReactorContext& _rctx) { return onTimer(_rctx, 1); });
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 
 void BasicObject::onTimer(frame::ReactorContext& _rctx, size_t _idx)
 {
-    solid_log(basic_logger, Info, "timer = " << _idx);
+    solid_log(generic_logger, Info, "timer = " << _idx);
     if (_idx == 0) {
         if (repeat--) {
             t2.cancel(_rctx);

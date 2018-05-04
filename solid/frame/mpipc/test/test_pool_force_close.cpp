@@ -87,17 +87,17 @@ struct Message : frame::mpipc::Message {
         : idx(_idx)
         , serialized(false)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this << " idx = " << idx);
         init();
     }
     Message()
         : serialized(false)
     {
-        solid_dbg(basic_logger, Info, "CREATE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
     ~Message()
     {
-        solid_dbg(basic_logger, Info, "DELETE ---------------- " << (void*)this);
+        solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
         //      if(!serialized && !this->isBackOnSender()){
         //          SOLID_THROW("Message not serialized.");
         //      }
@@ -111,13 +111,13 @@ struct Message : frame::mpipc::Message {
         } else {
             if (_rthis.isOnPeer()) {
                 ++crtreadidx;
-                solid_dbg(basic_logger, Info, crtreadidx);
+                solid_dbg(generic_logger, Info, crtreadidx);
                 if (crtreadidx == 1) {
 
                     pmpipcclient->forceCloseConnectionPool(
                         recipinet_id,
                         [](frame::mpipc::ConnectionContext& _rctx) {
-                            solid_dbg(basic_logger, Info, "------------------");
+                            solid_dbg(generic_logger, Info, "------------------");
                             lock_guard<mutex> lock(mtx);
                             running = false;
                             cnd.notify_one();
@@ -143,7 +143,7 @@ struct Message : frame::mpipc::Message {
     bool check() const
     {
         const size_t sz = real_size(initarray[idx % initarraysize].size);
-        solid_dbg(basic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
+        solid_dbg(generic_logger, Info, "str.size = " << str.size() << " should be equal to " << sz);
         if (sz != str.size()) {
             return false;
         }
@@ -165,7 +165,7 @@ struct Message : frame::mpipc::Message {
 
 void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
     if (_rctx.isConnectionActive()) {
         ++connection_count;
     }
@@ -173,17 +173,17 @@ void client_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 
 void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
 void server_connection_stop(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rctx.error().message());
 }
 
 void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId());
+    solid_dbg(generic_logger, Info, _rctx.recipientId());
 }
 
 void client_complete_message(
@@ -191,7 +191,7 @@ void client_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    solid_dbg(basic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
+    solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
 
     if (_rsent_msg_ptr.get()) {
         SOLID_CHECK(_rerror);
@@ -257,21 +257,21 @@ int test_pool_force_close(int argc, char* argv[])
         err = sch_client.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio client scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio client scheduler: " << err.message());
             return 1;
         }
 
         err = sch_server.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio server scheduler: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio server scheduler: " << err.message());
             return 1;
         }
 
         err = resolver.start(1);
 
         if (err) {
-            solid_dbg(basic_logger, Error, "starting aio resolver: " << err.message());
+            solid_dbg(generic_logger, Error, "starting aio resolver: " << err.message());
             return 1;
         }
 
@@ -298,7 +298,7 @@ int test_pool_force_close(int argc, char* argv[])
             err = mpipcserver.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting server mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting server mpipcservice: " << err.message());
                 return 1;
             }
 
@@ -306,7 +306,7 @@ int test_pool_force_close(int argc, char* argv[])
                 std::ostringstream oss;
                 oss << mpipcserver.configuration().server.listenerPort();
                 server_port = oss.str();
-                solid_dbg(basic_logger, Info, "server listens on port: " << server_port);
+                solid_dbg(generic_logger, Info, "server listens on port: " << server_port);
             }
         }
 
@@ -333,7 +333,7 @@ int test_pool_force_close(int argc, char* argv[])
             err = mpipcclient.reconfigure(std::move(cfg));
 
             if (err) {
-                solid_dbg(basic_logger, Error, "starting client mpipcservice: " << err.message());
+                solid_dbg(generic_logger, Error, "starting client mpipcservice: " << err.message());
                 return 1;
             }
         }
@@ -366,7 +366,7 @@ int test_pool_force_close(int argc, char* argv[])
                     err = mpipcclient.sendMessage(
                         recipinet_id, *it, 0);
                     if (err) {
-                        solid_dbg(basic_logger, Error, "Message not sent: " << err.message());
+                        solid_dbg(generic_logger, Error, "Message not sent: " << err.message());
                         ++crtackidx;
                     }
                 }

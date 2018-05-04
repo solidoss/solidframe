@@ -114,7 +114,7 @@ void Test::init()
 
 void Test::check() const
 {
-    solid_dbg(basic_logger, Info, "str = " << str);
+    solid_dbg(generic_logger, Info, "str = " << str);
     SOLID_CHECK(kv_vec.size() == kv_map.size());
     string tmpstr;
     for (size_t i = 0; i < kv_vec.size(); ++i) {

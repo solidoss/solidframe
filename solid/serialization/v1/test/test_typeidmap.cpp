@@ -17,11 +17,11 @@ enum struct Protocols : size_t {
 struct Base {
     Base()
     {
-        solid_dbg(basic_logger, Info, "" << this);
+        solid_dbg(generic_logger, Info, "" << this);
     }
     virtual ~Base()
     {
-        solid_dbg(basic_logger, Info, "" << this);
+        solid_dbg(generic_logger, Info, "" << this);
     }
     virtual std::ostream& print(std::ostream&) const                = 0;
     virtual bool          check(std::string* _pstr = nullptr) const = 0;
@@ -37,11 +37,11 @@ namespace alpha {
 struct Base {
     Base()
     {
-        solid_dbg(basic_logger, Info, "" << this);
+        solid_dbg(generic_logger, Info, "" << this);
     }
     virtual ~Base()
     {
-        solid_dbg(basic_logger, Info, "" << this);
+        solid_dbg(generic_logger, Info, "" << this);
     }
     virtual std::ostream& print(std::ostream&) const = 0;
     virtual bool          check() const              = 0;

@@ -189,7 +189,7 @@ public:
             .push(
                 [this, ifs = std::move(ifs)](S& _rs, Context& _rctx, const char* _name) mutable {
                     _rs.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
-                        solid_dbg(basic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
+                        solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                     },
                         _rctx, _name);
                     return true;
@@ -230,7 +230,7 @@ public:
                     },
                     [this](S& _rs, Context& _rctx, const char* _name) {
                         _rs.add(oss, [](std::ostream& _ros, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
-                            solid_dbg(basic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
+                            solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                         },
                             _rctx, _name);
                         return true;
@@ -310,7 +310,7 @@ int test_binary(int argc, char* argv[])
                 ctx);
         }
         {
-            solid_dbg(basic_logger, Info, "oss.str.size = " << oss.str().size());
+            solid_dbg(generic_logger, Info, "oss.str.size = " << oss.str().size());
             istringstream                    iss(oss.str());
             typename TypeMapT::DeserializerT des = tm.createDeserializer();
 

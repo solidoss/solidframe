@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
 
             objuid = scheduler.startObject(objptr, service, make_event(GenericEvents::Start, ConnectStub(resolver, params.connect_addr, params.connect_port)), err);
 
-            solid_log(basic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
+            solid_log(generic_logger, Info, "Started Client Connection object: " << objuid.index << ',' << objuid.unique);
         }
 
         while (true) {
@@ -220,7 +220,17 @@ bool parseArguments(Params& _par, int argc, char* argv[])
     using namespace boost::program_options;
     try {
         options_description desc("SolidFrame concept application");
-        desc.add_options()("help,h", "List program options")("connect-addr,a", value<string>(&_par.connect_addr), "Connect address")("connect-port,p", value<string>(&_par.connect_port)->default_value("5000"), "Connect port")("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        // clang-format off
+        desc.add_options()
+            ("help,h", "List program options")
+            ("connect-addr,a", value<string>(&_par.connect_addr), "Connect address")
+            ("connect-port,p", value<string>(&_par.connect_port)->default_value("5000"), "Connect port")
+            ("debug-modules,M", value<vector<string>>(&_par.dbg_modules), "Debug logging modules")
+            ("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+            ("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+            ("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
+            ("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered");
+        // clang-format on
         variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
         notify(vm);
@@ -267,7 +277,7 @@ struct ConnectFunction {
 
 /*virtual*/ void Connection::onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent)
 {
-    solid_log(basic_logger, Error, this << " " << _revent);
+    solid_log(generic_logger, Error, this << " " << _revent);
     if (generic_event_message == _revent) {
         std::string* pline = _revent.any().cast<std::string>();
 
@@ -284,7 +294,7 @@ struct ConnectFunction {
         ConnectStub* pconnect_stub = _revent.any().cast<ConnectStub>();
 
         SOLID_CHECK(pconnect_stub != nullptr);
-        solid_log(basic_logger, Info, "Resolving: " << pconnect_stub->connect_addr << ':' << pconnect_stub->connect_port);
+        solid_log(generic_logger, Info, "Resolving: " << pconnect_stub->connect_addr << ':' << pconnect_stub->connect_port);
 
         frame::Manager&  manager = _rctx.service().manager();
         frame::ObjectIdT objuid  = _rctx.service().manager().id(*this);
@@ -293,7 +303,7 @@ struct ConnectFunction {
 
         pconnect_stub->resolver.requestResolve(
             [&manager, objuid](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
-                solid_log(basic_logger, Info, "send resolv_message");
+                solid_log(generic_logger, Info, "send resolv_message");
                 manager.notify(objuid, make_event(GenericEvents::Raise, std::move(_rrd)));
             },
             pconnect_stub->connect_addr.c_str(),
@@ -309,17 +319,17 @@ struct ConnectFunction {
             cf.iterator = presolve_data->begin();
             SocketAddressInet inetaddr(cf.iterator);
 
-            solid_log(basic_logger, Info, "Connect to: " << inetaddr);
+            solid_log(generic_logger, Info, "Connect to: " << inetaddr);
 
             if (sock.connect(_rctx, cf.iterator, cf)) {
                 onConnect(_rctx, cf);
             }
         } else {
-            solid_log(basic_logger, Error, this << " postStop");
+            solid_log(generic_logger, Error, this << " postStop");
             postStop(_rctx);
         }
     } else if (generic_event_kill == _revent) {
-        solid_log(basic_logger, Error, this << " postStop");
+        solid_log(generic_logger, Error, this << " postStop");
         sock.shutdown(_rctx);
         postStop(_rctx);
     }
@@ -328,13 +338,13 @@ struct ConnectFunction {
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
-    solid_log(basic_logger, Info, &rthis << " " << _sz);
+    solid_log(generic_logger, Info, &rthis << " " << _sz);
     cout.write(rthis.buf, _sz);
     //cout<<endl;
     if (!_rctx.error()) {
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
     } else {
-        solid_log(basic_logger, Error, &rthis << " postStop");
+        solid_log(generic_logger, Error, &rthis << " postStop");
         rthis.postStop(_rctx);
     }
 }
@@ -343,7 +353,7 @@ struct ConnectFunction {
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
     if (!_rctx.error()) {
-        solid_log(basic_logger, Info, &rthis << " postRecvSome");
+        solid_log(generic_logger, Info, &rthis << " postRecvSome");
 
         rthis.send_strs[rthis.crtSendIdx()].clear();
 
@@ -353,7 +363,7 @@ struct ConnectFunction {
             rthis.sock.postSendAll(_rctx, rthis.send_strs[rthis.crtSendIdx()].data(), rthis.send_strs[rthis.crtSendIdx()].size(), onSent);
         }
     } else {
-        solid_log(basic_logger, Error, &rthis << " postStop");
+        solid_log(generic_logger, Error, &rthis << " postStop");
         rthis.postStop(_rctx);
     }
 }
@@ -362,7 +372,7 @@ struct ConnectFunction {
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
     if (!_rctx.error()) {
-        solid_log(basic_logger, Info, &rthis << "");
+        solid_log(generic_logger, Info, &rthis << "");
         rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
 
         rthis.crt_send_idx = 0;
@@ -371,7 +381,7 @@ struct ConnectFunction {
             rthis.sock.postSendAll(_rctx, rthis.send_strs[0].data(), rthis.send_strs[0].size(), onSent);
         }
     } else {
-        solid_log(basic_logger, Error, &rthis << " postStop because: " << _rctx.systemError().message());
+        solid_log(generic_logger, Error, &rthis << " postStop because: " << _rctx.systemError().message());
         rthis.postStop(_rctx);
     }
 }
@@ -380,10 +390,10 @@ struct ConnectFunction {
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
-    solid_log(basic_logger, Info, &rthis << "");
+    solid_log(generic_logger, Info, &rthis << "");
 
     if (!_rctx.error()) {
-        solid_log(basic_logger, Info, &rthis << " Connected");
+        solid_log(generic_logger, Info, &rthis << " Connected");
         rthis.sock.secureSetVerifyDepth(_rctx, 10);
         rthis.sock.secureSetCheckHostName(_rctx, "echo-server");
         rthis.sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
@@ -402,7 +412,7 @@ struct ConnectFunction {
                 rthis.post(_rctx, std::move(_rcf));
             }
         } else {
-            solid_log(basic_logger, Error, &rthis << " postStop");
+            solid_log(generic_logger, Error, &rthis << " postStop");
             rthis.postStop(_rctx);
         }
     }
@@ -411,6 +421,6 @@ struct ConnectFunction {
 /*static*/ bool Connection::onSecureVerify(frame::aio::ReactorContext& _rctx, bool _preverified, frame::aio::openssl::VerifyContext& _rverify_ctx)
 {
     Connection& rthis = static_cast<Connection&>(_rctx.object());
-    solid_log(basic_logger, Info, &rthis << " " << _preverified);
+    solid_log(generic_logger, Info, &rthis << " " << _preverified);
     return _preverified;
 }

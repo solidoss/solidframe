@@ -244,13 +244,13 @@ void Test::init()
 
 void Test::check() const
 {
-    solid_dbg(basic_logger, Info, "str = " << str);
-    solid_dbg(basic_logger, Info, "bs5 = " << bs5.to_string());
-    solid_dbg(basic_logger, Info, "bs10 = " << bs10.to_string());
-    solid_dbg(basic_logger, Info, "bs20 = " << bs20.to_string());
-    solid_dbg(basic_logger, Info, "bs50 = " << bs50.to_string());
-    solid_dbg(basic_logger, Info, "bs100 = " << bs100.to_string());
-    solid_dbg(basic_logger, Info, "bs1000 = " << bs1000.to_string());
+    solid_dbg(generic_logger, Info, "str = " << str);
+    solid_dbg(generic_logger, Info, "bs5 = " << bs5.to_string());
+    solid_dbg(generic_logger, Info, "bs10 = " << bs10.to_string());
+    solid_dbg(generic_logger, Info, "bs20 = " << bs20.to_string());
+    solid_dbg(generic_logger, Info, "bs50 = " << bs50.to_string());
+    solid_dbg(generic_logger, Info, "bs100 = " << bs100.to_string());
+    solid_dbg(generic_logger, Info, "bs1000 = " << bs1000.to_string());
     SOLID_CHECK(b);
     SOLID_CHECK(kv_vec.size() == kv_map.size());
     string tmpstr;

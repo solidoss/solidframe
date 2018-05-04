@@ -28,13 +28,13 @@ struct MyWorkPoolController : WorkPoolControllerBase {
     }
     void execute(WorkPoolBase& _rwp, WorkerBase&, int _i)
     {
-        solid_log(basic_logger, Info, "i = " << _i);
+        solid_log(generic_logger, Info, "i = " << _i);
         std::this_thread::sleep_for(std::chrono::milliseconds(_i * 10));
     }
     void execute(WorkPoolBase& _rwp, WorkerBase&, IntVectorT& _rjobvec)
     {
         for (IntVectorT::const_iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it) {
-            solid_log(basic_logger, Info, "it = " << *it);
+            solid_log(generic_logger, Info, "it = " << *it);
             std::this_thread::sleep_for(std::chrono::milliseconds(*it * 10));
         }
     }
