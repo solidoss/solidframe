@@ -13,23 +13,27 @@ namespace {
 solid::LoggerT logger{"test"};
 }
 
-int test_log_file(int argc, char* argv[])
+int test_log_socket(int argc, char* argv[])
 {
 
-    const char* prefix = argv[0];
+    const char* host = "localhost";
+    const char* port = "4444";
 
     if (argc > 1) {
-        prefix = argv[1];
+        host = argv[1];
+    }
+
+    if (argc > 2) {
+        port = argv[2];
     }
 
     int count = 1000 * 1000;
 
-    if (argc > 2) {
+    if (argc > 3) {
         count = atoi(argv[2]);
     }
 
-    auto err = solid::log_start(prefix, {".*:VIEW"}, true, 10, 1024 * 1024 * 10);
-
+    auto err = solid::log_start(host, port, {".*:VIEW"});
     if (err) {
         cout << "Log start error: " << err.message() << endl;
         return 0;
