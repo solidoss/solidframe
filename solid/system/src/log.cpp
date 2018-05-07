@@ -19,6 +19,7 @@
 #include <iostream>
 #include <mutex>
 #include <regex>
+#include <sstream>
 #include <thread>
 
 using namespace std;
