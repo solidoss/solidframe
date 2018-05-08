@@ -109,7 +109,7 @@ buildBoost()
             BOOST_ADDRESS_MODEL="32"
         fi
         
-        ./bootstrap.bat vc14
+        ./bootstrap.bat vc141
         ./b2 --abbreviate-paths --hash address-model="$BOOST_ADDRESS_MODEL" variant="$VARIANT_BUILD" link=static threading=multi --prefix="$EXT_DIR" install
     else
         sh bootstrap.sh
