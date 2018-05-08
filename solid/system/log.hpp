@@ -125,7 +125,7 @@ using LoggerT = Logger<>;
 
 extern const LoggerT generic_logger;
 
-void log_reset();
+void log_stop();
 
 ErrorConditionT log_start(
     std::ostream&                   _ros,

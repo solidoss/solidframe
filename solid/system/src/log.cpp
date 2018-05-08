@@ -132,24 +132,40 @@ public:
     }
 
 protected:
+    bool writeAll(const char* _s, size_t _n){
+        do{
+            ssize_t written = dev_.write(_s, _n);
+            if(written >= 0){
+                _n -= written;
+                _s += written;
+            }else{
+                return false;
+            }
+        } while (_n != 0);
+        return true;
+    }
+
     // write one character
     int_type overflow(int_type c) override
     {
         if (c != EOF) {
             char z = c;
-            if (dev_.write(&z, 1) != 1) {
+            if (!writeAll(&z, 1)) {
                 return EOF;
             }
             ++rsz_;
         }
         return c;
     }
+    
     // write multiple characters
     std::streamsize xsputn(const char* s, std::streamsize num) override
     {
-        std::streamsize sz = dev_.write(s, static_cast<uint32_t>(num));
-        rsz_ += sz;
-        return sz;
+        if(writeAll(s, num)){
+            return num;
+        }else{
+            return -1;
+        }
     }
 
 private:
@@ -216,11 +232,25 @@ protected:
     std::streamsize xsputn(const char* s, std::streamsize num) override;
 
 private:
+
+    bool writeAll(const char* _s, size_t _n){
+        do{
+            ssize_t written = dev_.write(_s, _n);
+            if(written >= 0){
+                _n -= written;
+                _s += written;
+            }else{
+                return false;
+            }
+        } while (_n != 0);
+        return true;
+    }
+
     bool flush()
     {
         ptrdiff_t towrite = bpos - bbeg;
         bpos              = bbeg;
-        if (dev_.write(bbeg, towrite) != towrite)
+        if (!writeAll(bbeg, towrite))
             return false;
         rsz_ += towrite;
         return true;
@@ -391,6 +421,7 @@ public:
     void reset()
     {
         lock_guard<mutex> lock(mtx_);
+        doClose();
         pos_ = &null_os_;
     }
 
@@ -872,7 +903,7 @@ void LoggerBase::doDone() const
 //-----------------------------------------------------------------------------
 const LoggerT generic_logger{"*"};
 
-void log_reset()
+void log_stop()
 {
     Engine::the().reset();
 }

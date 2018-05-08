@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #ifdef SOLID_ON_WINDOWS
+#include <windows.h>
 #else
 #include <sys/types.h>
 #include <unistd.h>
@@ -36,8 +37,9 @@ int test_log_file(int argc, char* argv[])
     }
 
 #ifdef SOLID_ON_WINDOWS
+    const auto proc_id = GetCurrentProcessId();
 #else
-    pid_t proc_id = getpid();
+    const auto proc_id = getpid();
 #endif
 
     for (int i = 0; i < count; ++i) {
