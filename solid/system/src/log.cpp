@@ -132,13 +132,14 @@ public:
     }
 
 protected:
-    bool writeAll(const char* _s, size_t _n){
-        do{
+    bool writeAll(const char* _s, size_t _n)
+    {
+        do {
             ssize_t written = dev_.write(_s, _n);
-            if(written >= 0){
+            if (written >= 0) {
                 _n -= written;
                 _s += written;
-            }else{
+            } else {
                 return false;
             }
         } while (_n != 0);
@@ -157,13 +158,13 @@ protected:
         }
         return c;
     }
-    
+
     // write multiple characters
     std::streamsize xsputn(const char* s, std::streamsize num) override
     {
-        if(writeAll(s, num)){
+        if (writeAll(s, num)) {
             return num;
-        }else{
+        } else {
             return -1;
         }
     }
@@ -232,14 +233,14 @@ protected:
     std::streamsize xsputn(const char* s, std::streamsize num) override;
 
 private:
-
-    bool writeAll(const char* _s, size_t _n){
-        do{
+    bool writeAll(const char* _s, size_t _n)
+    {
+        do {
             ssize_t written = dev_.write(_s, _n);
-            if(written >= 0){
+            if (written >= 0) {
                 _n -= written;
                 _s += written;
-            }else{
+            } else {
                 return false;
             }
         } while (_n != 0);
