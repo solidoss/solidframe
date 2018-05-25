@@ -1,5 +1,5 @@
 * text=auto
 *.cmake text eol=lf
 *.sh text eol=lf
-configure text=lf
-CMakeLists.txt text=lf
+configure text eol=lf
+CMakeLists.txt text eol=lf
