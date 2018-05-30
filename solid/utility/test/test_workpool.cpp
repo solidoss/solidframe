@@ -1,4 +1,5 @@
 #include "solid/system/exception.hpp"
+#include "solid/utility/function.hpp"
 #include "solid/utility/workpool.hpp"
 #include <atomic>
 #include <functional>
@@ -16,7 +17,8 @@ using unique_lock_t = std::unique_lock<mutex_t>;
 namespace {
 
 mutex_t mtx;
-using FunctionJobT = std::function<void()>;
+//using FunctionJobT = std::function<void()>;
+using FunctionJobT = solid::Function<32, void()>;
 } // namespace
 
 int test_workpool(int /*argc*/, char* /*argv*/ [])
@@ -25,11 +27,11 @@ int test_workpool(int /*argc*/, char* /*argv*/ [])
         _jf();
     };
 
-    FunctionWorkPoolT<FunctionJobT> wp{l, 5};
+    FunctionWorkPoolT<FunctionJobT> wp{l, thread::hardware_concurrency()};
     std::atomic<size_t>             val{0};
     const size_t                    cnt{5000000};
 
-    wp.start(5);
+    wp.start(thread::hardware_concurrency());
 
     cout << "wp started" << endl;
 

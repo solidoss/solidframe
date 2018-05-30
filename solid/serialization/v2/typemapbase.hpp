@@ -26,7 +26,7 @@ struct Base {
 
 private:
     friend class TypeMapBase;
-    virtual void error(const ErrorConditionT& _err) = 0;
+    virtual void baseError(const ErrorConditionT& _err) = 0;
 };
 
 class TypeMapBase {
@@ -87,7 +87,7 @@ public:
     {
         const ErrorConditionT err = doSerialize(_rs, _pt, _idx, _name);
         if (err) {
-            _rs.error(err);
+            _rs.baseError(err);
         }
     }
 
@@ -96,7 +96,7 @@ public:
     {
         const ErrorConditionT err = doSerialize(_rs, _pt, _idx, std::addressof(_rctx), _name);
         if (err) {
-            _rs.error(err);
+            _rs.baseError(err);
         }
     }
 
@@ -105,7 +105,7 @@ public:
     {
         const ErrorConditionT err = doDeserializeShared(_rd, std::addressof(_rsp), std::type_index(typeid(T)), std::addressof(_rtypeid), _name);
         if (err) {
-            _rd.error(err);
+            _rd.baseError(err);
         }
     }
 
@@ -114,7 +114,7 @@ public:
     {
         const ErrorConditionT err = doDeserializeShared(_rd, std::addressof(_rsp), std::type_index(typeid(T)), std::addressof(_rtypeid), std::addressof(_rctx), _name);
         if (err) {
-            _rd.error(err);
+            _rd.baseError(err);
         }
     }
 
@@ -127,7 +127,7 @@ public:
         const ErrorConditionT err = doDeserializeUnique(_rd, std::cref(lambda), std::type_index(typeid(T)), std::addressof(_rtypeid), _name);
 
         if (err) {
-            _rd.error(err);
+            _rd.baseError(err);
         }
     }
     template <typename TypeId, class T, class D, class Ctx>
@@ -139,7 +139,7 @@ public:
         const ErrorConditionT err = doDeserializeUnique(_rd, std::cref(lambda), std::type_index(typeid(T)), std::addressof(_rtypeid), std::addressof(_rctx), _name);
 
         if (err) {
-            _rd.error(err);
+            _rd.baseError(err);
         }
     }
 

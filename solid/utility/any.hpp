@@ -200,7 +200,7 @@ template <size_t DataSize = 0>
 class Any;
 
 template <size_t DataSize>
-class Any : public AnyBase, protected AnyData<DataSize> {
+class Any : protected AnyData<DataSize>, public AnyBase {
     template <size_t DS>
     friend class Any;
 

@@ -13,6 +13,7 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <queue>
 #include <thread>
 #include <vector>
 
@@ -440,6 +441,7 @@ private:
     }
 
 private:
+    //std::queue<JobT> jobq;
     Queue<JobT>   jobq;
     ControllerT   ctrl;
     ThreadVectorT thread_vec;

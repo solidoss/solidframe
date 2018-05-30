@@ -231,7 +231,7 @@ template <size_t DataSize, class>
 class Function; // undefined
 
 template <size_t DataSize, class R, class... ArgTypes>
-class Function<DataSize, R(ArgTypes...)> : public FunctionBase, protected FunctionData<DataSize> {
+class Function<DataSize, R(ArgTypes...)> : protected FunctionData<DataSize>, public FunctionBase {
     template <bool B>
     using bool_constant = std::integral_constant<bool, B>;
 
@@ -259,7 +259,7 @@ public:
     }
 
     template <class T>
-    explicit Function(const T& _t)
+    Function(const T& _t)
         : FunctionBase(
               do_allocate<typename std::remove_reference<T>::type>(
                   bool_constant<std::is_convertible<typename std::remove_reference<T>::type*, FunctionBase*>::value>(),
@@ -269,7 +269,7 @@ public:
     }
 
     template <class T>
-    explicit Function(
+    Function(
         T&& _ut)
         : FunctionBase(
               do_allocate<typename std::remove_reference<T>::type>(

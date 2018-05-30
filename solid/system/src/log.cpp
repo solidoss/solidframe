@@ -365,7 +365,6 @@ class Engine {
     ModuleVectorT     module_vec_;
     uint64_t          respin_size_;
     uint32_t          respin_count_;
-    uint32_t          respin_pos_;
     uint64_t          current_size_;
     DeviceBasicStream basic_stream_;
     DeviceStream      stream_;

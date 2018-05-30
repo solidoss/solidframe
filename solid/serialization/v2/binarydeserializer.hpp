@@ -431,7 +431,7 @@ public:
                 rcontainer.insert(rcontainer.end(), std::move(value));
                 parsing_value = false;
             } else if (rd.limits().hasContainer() && _rr.size_ > rd.limits().container()) {
-                _rd.error(error_limit_stream);
+                _rd.baseError(error_limit_stream);
                 return ReturnE::Done;
             }
 
@@ -495,7 +495,7 @@ public:
                 rcontainer.insert(rcontainer.end(), std::move(value));
                 parsing_value = false;
             } else if (rd.limits().hasContainer() && _rr.size_ > rd.limits().container()) {
-                _rd.error(error_limit_stream);
+                _rd.baseError(error_limit_stream);
                 return ReturnE::Done;
             }
 
@@ -540,7 +540,7 @@ public:
             _f(ros, len, _rr.data_ == 0, rctx, _rr.name_);
 
             if (_rd.Base::limits().hasStream() && len > _rd.Base::limits().stream()) {
-                _rd.error(error_limit_stream);
+                _rd.baseError(error_limit_stream);
             }
             return ReturnE::Done;
         };
@@ -652,7 +652,7 @@ private:
         return run_lst_.emplace(sentinel_, std::move(_ur));
     }
 
-    void error(const ErrorConditionT& _err) override
+    void baseError(const ErrorConditionT& _err) override
     {
         if (!error_) {
             error_ = _err;
@@ -695,7 +695,7 @@ private:
                     if (static_cast<uint64_t>(vt) == v) {
                         *reinterpret_cast<T*>(_rr.ptr_) = vt;
                     } else {
-                        _rd.error(error_cross_integer);
+                        _rd.baseError(error_cross_integer);
                     }
 
                     return ReturnE::Done;
@@ -704,7 +704,7 @@ private:
                     _rr.size_ = cross::size(_rd.pcrt_);
 
                     if (_rr.size_ == InvalidSize()) {
-                        _rd.error(error_cross_integer);
+                        _rd.baseError(error_cross_integer);
                         return ReturnE::Done;
                     }
 
@@ -731,7 +731,7 @@ private:
                     T           vt;
                     const char* p = cross::load_with_check(_rd.data_.buf_, static_cast<size_t>(_rr.data_), v);
                     if (p == nullptr) {
-                        _rd.error(error_cross_integer);
+                        _rd.baseError(error_cross_integer);
                         return ReturnE::Done;
                     }
 
@@ -740,7 +740,7 @@ private:
                     if (static_cast<uint64_t>(vt) == v) {
                         *reinterpret_cast<T*>(_rr.ptr_) = vt;
                     } else {
-                        _rd.error(error_cross_integer);
+                        _rd.baseError(error_cross_integer);
                     }
 
                     return ReturnE::Done;
@@ -773,7 +773,7 @@ private:
             solid_dbg(logger, Info, "size = " << _rr.size_);
 
             if (_rd.Base::limits().hasContainer() && _rr.size_ > _rd.Base::limits().container()) {
-                _rd.error(error_limit_container);
+                _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
 
@@ -827,7 +827,7 @@ private:
             solid_dbg(logger, Info, "size = " << _rr.size_);
 
             if (_rr.size_ > N || (_rd.Base::limits().hasContainer() && _rr.size_ > _rd.Base::limits().container())) {
-                _rd.error(error_limit_container);
+                _rd.baseError(error_limit_container);
                 return ReturnE::Done;
             }
 
@@ -883,7 +883,7 @@ private:
             solid_dbg(logger, Info, "size = " << _rr.size_);
 
             if (_rd.Base::limits().hasString() && _rr.size_ > _rd.Base::limits().string()) {
-                _rd.error(error_limit_string);
+                _rd.baseError(error_limit_string);
                 return ReturnE::Done;
             }
 
@@ -906,7 +906,7 @@ private:
         if (static_cast<uint64_t>(vt) == v) {
             *reinterpret_cast<T*>(_rr.ptr_) = vt;
         } else {
-            _rd.error(error_cross_integer);
+            _rd.baseError(error_cross_integer);
         }
         return ReturnE::Done;
     }
@@ -945,7 +945,7 @@ private:
     static ReturnE load_blob(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
     {
         if (_rd.data_.u64_ > _rr.size_) {
-            _rd.error(error_limit_blob);
+            _rd.baseError(error_limit_blob);
             return ReturnE::Done;
         }
 
@@ -1006,7 +1006,7 @@ private:
             solid_dbg(logger, Info, "size = " << _rr.size_);
 
             if (Base::limits().hasString() && _rr.size_ > Base::limits().string()) {
-                error(error_limit_string);
+                baseError(error_limit_string);
                 return ReturnE::Done;
             }
 
@@ -1043,7 +1043,7 @@ private:
                 if (static_cast<uint64_t>(vt) == v) {
                     *reinterpret_cast<T*>(_rr.ptr_) = vt;
                 } else {
-                    error(error_cross_integer);
+                    baseError(error_cross_integer);
                 }
                 return ReturnE::Done;
             }
@@ -1060,7 +1060,7 @@ private:
             ++pcrt_;
 
             if (_rr.size_ > sizeof(uint64_t)) {
-                error(error_cross_integer);
+                baseError(error_cross_integer);
                 return ReturnE::Done;
             } else if (_rr.size_ == 0) {
                 *reinterpret_cast<T*>(_rr.ptr_) = 0;

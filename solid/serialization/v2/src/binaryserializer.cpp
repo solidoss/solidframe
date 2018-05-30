@@ -237,7 +237,7 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         _rr.data_ += toread;
 
         if (_rs.Base::limits().hasStream() && _rr.data_ > _rs.Base::limits().stream()) {
-            _rs.error(error_limit_stream);
+            _rs.baseError(error_limit_stream);
             return ReturnE::Done;
         }
 

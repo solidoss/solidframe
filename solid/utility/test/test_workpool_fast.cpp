@@ -17,10 +17,10 @@ int test_workpool_fast(int /*argc*/, char* /*argv*/ [])
         [](size_t _v) {
             val += _v;
         },
-        5};
+        thread::hardware_concurrency()};
     const size_t cnt{5000000};
 
-    wp.start(5);
+    wp.start(thread::hardware_concurrency());
 
     cout << "wp started" << endl;
 

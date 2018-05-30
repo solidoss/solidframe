@@ -170,7 +170,7 @@ public: //should be protected
         solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
         if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
-            error(error_limit_string);
+            baseError(error_limit_string);
             return;
         }
 
@@ -193,7 +193,7 @@ public: //should be protected
         solid_dbg(logger, Info, _name << ' ' << _rb.size());
 
         if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
-            error(error_limit_string);
+            baseError(error_limit_string);
             return;
         }
 
@@ -216,7 +216,7 @@ public: //should be protected
         solid_dbg(logger, Info, _name << ' ' << _rb.size() << ' ' << trim_str(_rb.c_str(), _rb.size(), 4, 4));
 
         if (Base::limits().hasString() && _rb.size() > Base::limits().string()) {
-            error(error_limit_string);
+            baseError(error_limit_string);
             return;
         }
 
@@ -402,7 +402,7 @@ public: //should be protected
     {
         solid_dbg(logger, Info, _name << ' ' << _rc.size());
         if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
-            error(error_limit_container);
+            baseError(error_limit_container);
             return;
         }
 
@@ -449,7 +449,7 @@ public: //should be protected
         solid_dbg(logger, Info, _name << ' ' << _rc.size());
 
         if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
-            error(error_limit_container);
+            baseError(error_limit_container);
             return;
         }
 
@@ -548,7 +548,7 @@ public: //should be protected
     void addBlob(const void* _pv, const size_t _sz, const size_t _cp, const char* _name)
     {
         if (_sz > _cp) {
-            error(error_limit_blob);
+            baseError(error_limit_blob);
             return;
         }
 
@@ -571,7 +571,7 @@ public: //should be protected
         solid_dbg(logger, Info, _name << ' ' << _rc.size());
 
         if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
-            error(error_limit_container);
+            baseError(error_limit_container);
             return;
         }
 
@@ -594,7 +594,7 @@ public: //should be protected
         solid_dbg(logger, Info, _name << ' ' << _rc.size());
 
         if (Base::limits().hasContainer() && _rc.size() > Base::limits().container()) {
-            error(error_limit_container);
+            baseError(error_limit_container);
             return;
         }
 
@@ -615,7 +615,7 @@ public: //should be protected
     void addArray(S& _rs, const std::array<T, N>& _rc, const size_t _sz, C& _rctx, const char* _name)
     {
         if (Base::limits().hasContainer() && _sz > Base::limits().container()) {
-            error(error_limit_container);
+            baseError(error_limit_container);
             return;
         }
 
@@ -635,7 +635,7 @@ protected:
     }
     long doRun(void* _pctx = nullptr);
 
-    void error(const ErrorConditionT& _err) override
+    void baseError(const ErrorConditionT& _err) override
     {
         if (!error_) {
             error_ = _err;
@@ -1141,7 +1141,7 @@ public:
             add(type_id_, _rctx, _name);
             rtype_map_.serialize(*this, p, idx, _rctx, _name);
         } else {
-            SerializerBase::error(err);
+            SerializerBase::baseError(err);
         }
     }
 
@@ -1157,7 +1157,7 @@ public:
             add(type_id_, _rctx, _name);
             rtype_map_.serialize(*this, p, idx, _rctx, _name);
         } else {
-            SerializerBase::error(err);
+            SerializerBase::baseError(err);
         }
     }
 };
