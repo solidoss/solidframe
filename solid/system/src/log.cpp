@@ -869,7 +869,7 @@ std::ostream& LoggerBase::doLog(const char* _flag_name, const char* _file, const
 #endif
     int sz = snprintf(
         buf, bufsz,
-        "%s[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s][%s:%d %s][",
+        "%s[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s][%s:%d %s]",
         _flag_name,
         ploctm->tm_year + 1900,
         ploctm->tm_mon + 1,
