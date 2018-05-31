@@ -6,6 +6,7 @@ set(Sources
     src/ioformat.cpp
     src/any.cpp
     src/event.cpp
+    src/workpool.cpp
 )
 
 set(Headers

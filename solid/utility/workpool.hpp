@@ -18,10 +18,14 @@
 #include <vector>
 
 #include "solid/system/exception.hpp"
+#include "solid/system/log.hpp"
+#include "solid/system/statistic.hpp"
 #include "solid/utility/common.hpp"
 #include "solid/utility/queue.hpp"
 
 namespace solid {
+
+extern const LoggerT workpool_logger;
 
 //! Base class for every workpool workers
 struct WorkerBase {
@@ -55,6 +59,31 @@ struct WorkPoolBase {
     {
         return wkrcnt;
     }
+#ifdef SOLID_HAS_STATISTICS
+    struct Statistic : solid::Statistic {
+        std::atomic<size_t>   max_worker_count_;
+        std::atomic<size_t>   max_jobs_in_queue_;
+        std::atomic<uint64_t> max_jobs_on_thread_;
+        std::atomic<uint64_t> min_jobs_on_thread_;
+
+        Statistic()
+            : max_worker_count_(0)
+            , max_jobs_in_queue_(0)
+            , max_jobs_on_thread_(0)
+            , min_jobs_on_thread_(-1)
+        {
+        }
+
+        std::ostream& print(std::ostream& _ros) const override
+        {
+            _ros << " max_worker_count_ = " << max_worker_count_;
+            _ros << " max_jobs_in_queue_ = " << max_jobs_in_queue_;
+            _ros << " max_jobs_on_thread_ = " << max_jobs_on_thread_;
+            _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;
+            return _ros;
+        }
+    } statistic_;
+#endif
 
 protected:
     //static ErrorConditionT error_running;
@@ -110,7 +139,7 @@ struct WorkPoolControllerBase {
     }
 };
 
-//! A generic workpool
+//! Generic workpool
 /*!
  * The template parameters are:<br>
  * J - the Job type to be processed by the workpool. I
@@ -138,11 +167,13 @@ class WorkPool : public WorkPoolBase {
             if (!rw.enterWorker(*this)) {
                 return;
             }
-            J job;
+            uint64_t job_count = 0;
+            J        job;
             while (rw.pop(*this, job)) {
                 rw.execute(*this, job);
+                solid_statistic_inc(job_count);
             }
-            rw.exitWorker(*this);
+            rw.exitWorker(*this, job_count);
         }
         ThisT& rw;
     };
@@ -159,14 +190,16 @@ class WorkPool : public WorkPoolBase {
             if (!rw.enterWorker(*this)) {
                 return;
             }
+            uint64_t   job_count = 0;
             JobVectorT jobvec;
             if (maxcnt == 0)
                 maxcnt = 1;
             while (rw.pop(*this, jobvec, maxcnt)) {
                 rw.execute(*this, jobvec);
+                solid_statistic_add(job_count, jobvec.size());
                 jobvec.clear();
             }
-            rw.exitWorker(*this);
+            rw.exitWorker(*this, job_count);
         }
         ThisT& rw;
         size_t maxcnt;
@@ -214,60 +247,78 @@ public:
     template <class JT>
     void push(const JT& _jb)
     {
-        std::unique_lock<std::mutex> lock(mtx);
+        size_t qsz;
+        {
+            std::unique_lock<std::mutex> lock(mtx);
 
-        if (jobq.size() < ctrl.maxQueueSize()) {
-        } else {
-            do {
-                sigcnd.wait(lock);
-            } while (jobq.size() >= ctrl.maxQueueSize());
-        }
-
-        jobq.push(_jb);
-        sigcnd.notify_one();
-        ctrl.onPush(*this, jobq.size());
-    }
-
-    template <class JT>
-    void push(JT&& _jb)
-    {
-        std::unique_lock<std::mutex> lock(mtx);
-
-        if (jobq.size() < ctrl.maxQueueSize()) {
-        } else {
-            do {
-                sigcnd.wait(lock);
-            } while (jobq.size() >= ctrl.maxQueueSize());
-        }
-
-        jobq.push(std::move(_jb));
-        sigcnd.notify_one();
-        ctrl.onPush(*this, jobq.size());
-    }
-
-    //! Push multiple jobs
-    template <class I>
-    void push(I _i, const I& _end)
-    {
-        std::unique_lock<std::mutex> lock(mtx);
-        size_t                       cnt(_end - _i);
-
-        for (; _i != _end; ++_i) {
             if (jobq.size() < ctrl.maxQueueSize()) {
             } else {
                 do {
                     sigcnd.wait(lock);
                 } while (jobq.size() >= ctrl.maxQueueSize());
             }
-            jobq.push(std::move(*_i));
+
+            jobq.push(_jb);
+            sigcnd.notify_one();
+            ctrl.onPush(*this, jobq.size());
+            qsz = jobq.size();
         }
-        sigcnd.notify_all();
-        ctrl.onMultiPush(*this, cnt, jobq.size());
+        solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    }
+
+    template <class JT>
+    void push(JT&& _jb)
+    {
+        size_t qsz;
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+
+            if (jobq.size() < ctrl.maxQueueSize()) {
+            } else {
+                do {
+                    sigcnd.wait(lock);
+                } while (jobq.size() >= ctrl.maxQueueSize());
+            }
+
+            jobq.push(std::move(_jb));
+            sigcnd.notify_one();
+
+            ctrl.onPush(*this, jobq.size());
+
+            qsz = jobq.size();
+        }
+        solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
+    }
+
+    //! Push multiple jobs
+    template <class I>
+    void push(I _i, const I& _end)
+    {
+        size_t qsz;
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            size_t                       cnt(_end - _i);
+
+            for (; _i != _end; ++_i) {
+                if (jobq.size() < ctrl.maxQueueSize()) {
+                } else {
+                    do {
+                        sigcnd.wait(lock);
+                    } while (jobq.size() >= ctrl.maxQueueSize());
+                }
+                jobq.push(std::move(*_i));
+            }
+            sigcnd.notify_all();
+            ctrl.onMultiPush(*this, cnt, jobq.size());
+            qsz = jobq.size();
+        }
+        solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
     }
 
     //! Starts the workpool, creating _minwkrcnt
     void start(ushort _minwkrcnt = 0)
     {
+        solid_dbg(workpool_logger, Verbose, this << " start " << _minwkrcnt);
         std::unique_lock<std::mutex> lock(mtx);
         if (state() == Running) {
             return;
@@ -290,16 +341,13 @@ public:
     */
     void stop(bool _wait = true)
     {
+        solid_dbg(workpool_logger, Verbose, this << " stop " << _wait);
         std::unique_lock<std::mutex> lock(mtx);
-        doStop(lock, _wait);
-    }
-    size_t size() const
-    {
-        return jobq.size();
-    }
-    bool empty() const
-    {
-        return jobq.empty();
+        if (doStop(lock, _wait)) {
+#ifdef SOLID_HAS_STATISTICS
+            solid_dbg(workpool_logger, Verbose, "Workpool " << this << " statistic:" << this->statistic_);
+#endif
+        }
     }
 
     void createWorker()
@@ -316,6 +364,8 @@ public:
             --wkrcnt;
             thread_vec.pop_back();
             thrcnd.notify_all();
+        } else {
+            solid_statistic_max(statistic_.max_worker_count_, wkrcnt);
         }
     }
 
@@ -343,15 +393,24 @@ private:
     friend struct SingleWorker;
     friend struct MultiWorker;
 
-    void doStop(std::unique_lock<std::mutex>& _lock, bool _wait)
+    size_t size() const
+    {
+        return jobq.size();
+    }
+    bool empty() const
+    {
+        return jobq.empty();
+    }
+
+    bool doStop(std::unique_lock<std::mutex>& _lock, bool _wait)
     {
         if (state() == Stopped)
-            return;
+            return false;
         state(Stopping);
         sigcnd.notify_all();
         ctrl.onStop();
         if (!_wait)
-            return;
+            return false;
         while (wkrcnt) {
             thrcnd.wait(_lock);
         }
@@ -360,6 +419,7 @@ private:
         }
         thread_vec.clear();
         state(Stopped);
+        return true;
     }
 
     bool pop(WorkerT& _rw, JobVectorT& _rjobvec, size_t _maxcnt)
@@ -415,26 +475,34 @@ private:
 
     bool enterWorker(WorkerT& _rw)
     {
+
         std::lock_guard<std::mutex> lock(mtx);
         if (!ctrl.prepareWorker(_rw)) {
+            solid_dbg(workpool_logger, Verbose, this << " worker " << &_rw << " enter fail");
             return false;
         }
-        //++wkrcnt;
+        solid_dbg(workpool_logger, Verbose, this << " worker " << &_rw << " enter success");
         thrcnd.notify_all();
         return true;
     }
-    void exitWorker(WorkerT& _rw)
+    void exitWorker(WorkerT& _rw, const uint64_t& _job_count)
     {
+        solid_dbg(workpool_logger, Verbose, this << " worker " << &_rw << " exited after handling " << _job_count << " jobs");
+        solid_statistic_max(statistic_.max_jobs_on_thread_, _job_count);
+        solid_statistic_min(statistic_.min_jobs_on_thread_, _job_count);
+
         std::lock_guard<std::mutex> lock(mtx);
         ctrl.unprepareWorker(_rw);
         --wkrcnt;
         SOLID_ASSERT(wkrcnt >= 0);
         thrcnd.notify_all();
     }
+
     void execute(WorkerT& _rw, JobT& _rjob)
     {
         ctrl.execute(*this, _rw, _rjob);
     }
+
     void execute(WorkerT& _rw, JobVectorT& _rjobvec)
     {
         ctrl.execute(*this, _rw, _rjobvec);

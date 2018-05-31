@@ -23,6 +23,8 @@ using FunctionJobT = solid::Function<32, void()>;
 
 int test_workpool(int /*argc*/, char* /*argv*/ [])
 {
+    solid::log_start(std::cerr, {".*:VIEW"});
+
     auto l = [](FunctionJobT& _jf) {
         _jf();
     };
@@ -33,7 +35,7 @@ int test_workpool(int /*argc*/, char* /*argv*/ [])
 
     wp.start(thread::hardware_concurrency());
 
-    cout << "wp started" << endl;
+    solid_log(generic_logger, Verbose, "wp started");
 
     for (size_t i = 0; i < cnt; ++i) {
         auto l = [i, &val]() {
@@ -48,7 +50,9 @@ int test_workpool(int /*argc*/, char* /*argv*/ [])
     };
 
     wp.stop();
-    cout << "val = " << val << endl;
+
+    solid_log(generic_logger, Verbose, "val = " << val);
+
     const size_t v = ((cnt - 1) * cnt) / 2;
 
     SOLID_CHECK(v == val);

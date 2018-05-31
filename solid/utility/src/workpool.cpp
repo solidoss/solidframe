@@ -11,4 +11,6 @@
 
 namespace solid {
 
+const LoggerT workpool_logger{"solid::workpool"};
+
 } //namespace solid

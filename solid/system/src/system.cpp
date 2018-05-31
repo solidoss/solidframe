@@ -10,6 +10,7 @@
 
 #include "solid/system/exception.hpp"
 #include "solid/system/nanotime.hpp"
+#include "solid/system/statistic.hpp"
 #include <cstring>
 
 #if defined(SOLID_ON_FREEBSD)
@@ -46,5 +47,15 @@ namespace solid {
 #ifdef SOLID_HAS_NO_INLINES
 #include "solid/system/nanotime.ipp"
 #endif
+
+//=============================================================================
+//  statistic
+//=============================================================================
+
+/*virtual*/ Statistic::~Statistic() {}
+/*virtual*/ std::ostream& Statistic::print(std::ostream& _ros) const
+{
+    return _ros;
+}
 
 } //namespace solid
