@@ -190,14 +190,15 @@ public:
         ThreadVectorT thr_vec;
         {
             std::unique_lock<std::mutex> lock(mtx_);
-            if (doStop(lock, _wait, thr_vec)) {
-#ifdef SOLID_HAS_STATISTICS
-                solid_dbg(workpool_logger, Verbose, "Workpool " << this << " statistic:" << this->statistic_);
-#endif
-            }
+            doStop(lock, _wait, thr_vec);
         }
         for (auto& t : thr_vec) {
             t.join();
+        }
+        if (thr_vec.size()) {
+#ifdef SOLID_HAS_STATISTICS
+            solid_dbg(workpool_logger, Verbose, "Workpool " << this << " statistic:" << this->statistic_);
+#endif
         }
     }
 
@@ -237,15 +238,15 @@ private:
         WorkerFactoryT worker_factory_fnc = [_job_handler_fnc, this]() {
             return std::thread(
                 [this](JobHandlerFnc _job_handler_fnc) {
-                    
                     Job      job;
                     uint64_t job_count = 0;
-                    
+
                     while (pop(job)) {
                         _job_handler_fnc(job);
                         solid_statistic_inc(job_count);
                     }
-                    
+
+                    solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs");
                     solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
                     solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
                 },
@@ -268,15 +269,17 @@ private:
                 [this](JobHandlerFnc _job_handler_fnc, Args&&... _args) {
                     using SecondArgumentT = typename function_traits<JobHandlerFnc>::template argument<1>;
                     using ContextT        = typename std::remove_cv<typename std::remove_reference<SecondArgumentT>::type>::type;
-                    
+
                     ContextT ctx{std::forward<Args>(_args)...};
                     Job      job;
                     uint64_t job_count = 0;
-                    
+
                     while (pop(job)) {
                         _job_handler_fnc(job, std::ref(ctx));
                         solid_statistic_inc(job_count);
                     }
+
+                    solid_dbg(workpool_logger, Verbose, this << " worker exited after handling " << job_count << " jobs");
                     solid_statistic_max(statistic_.max_jobs_on_thread_, job_count);
                     solid_statistic_min(statistic_.min_jobs_on_thread_, job_count);
                 },

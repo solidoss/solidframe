@@ -6,6 +6,7 @@ set( UtilityTestSuite
     test_event.cpp
     test_memory_file.cpp
     test_workpool.cpp
+    test_workpool2.cpp
     test_workpool_fast.cpp
     test_workpool2_fast.cpp
     test_ioformat.cpp
@@ -24,6 +25,7 @@ target_link_libraries(test_utility
 )
 
 add_test(NAME TestUtilityWorkPool           COMMAND  test_utility test_workpool)
+add_test(NAME TestUtilityWorkPool2          COMMAND  test_utility test_workpool2)
 add_test(NAME TestUtilityWorkPoolFast       COMMAND  test_utility test_workpool_fast)
 add_test(NAME TestUtilityWorkPool2Fast      COMMAND  test_utility test_workpool2_fast)
 add_test(NAME TestUtilityIoFormat           COMMAND  test_utility test_ioformat)
