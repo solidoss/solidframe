@@ -58,4 +58,3 @@ int test_workpool(int /*argc*/, char* /*argv*/ [])
     SOLID_CHECK(v == val);
     return 0;
 }
-
