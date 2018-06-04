@@ -46,7 +46,7 @@ std::string        rly_port_str;
 bool               be_secure = false;
 bool               use_relay = false;
 //-----------------------------------------------------------------------------
-frame::aio::Resolver& async_resolver();
+frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr);
 //-----------------------------------------------------------------------------
 namespace server {
 class Listener final : public Dynamic<Listener, frame::aio::Object> {
@@ -450,15 +450,17 @@ int test_echo_tcp_stress(int argc, char* argv[])
     }
 
     {
-        AioSchedulerT   srv_sch;
-        frame::Manager  srv_mgr;
-        SecureContextT  srv_secure_ctx{SecureContextT::create()};
-        frame::ServiceT srv_svc{srv_mgr};
+        AioSchedulerT        srv_sch;
+        frame::Manager       srv_mgr;
+        SecureContextT       srv_secure_ctx{SecureContextT::create()};
+        frame::ServiceT      srv_svc{srv_mgr};
+        FunctionWorkPool     fwp;
+        frame::aio::Resolver resolver(fwp);
 
-        if (async_resolver().start(1)) {
-            cout << "failed to start async_resolver" << endl;
-            return -1;
-        }
+        fwp.start(WorkPoolConfiguration());
+
+        async_resolver(&resolver);
+
         if (be_secure) {
             ErrorCodeT err;
             err = srv_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
@@ -596,9 +598,9 @@ int test_echo_tcp_stress(int argc, char* argv[])
 }
 
 //-----------------------------------------------------------------------------
-frame::aio::Resolver& async_resolver()
+frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres /* = nullptr*/)
 {
-    static frame::aio::Resolver r;
+    static frame::aio::Resolver& r = *_pres;
     return r;
 }
 //-----------------------------------------------------------------------------

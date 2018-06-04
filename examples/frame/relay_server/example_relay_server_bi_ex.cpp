@@ -52,9 +52,9 @@ struct Params {
 
 Params params;
 
-frame::aio::Resolver& async_resolver()
+frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 {
-    static frame::aio::Resolver r;
+    static frame::aio::Resolver& r = *_pres;
     return r;
 }
 
@@ -378,7 +378,12 @@ int main(int argc, char* argv[])
 
     cout << "sizeof(Connection) = " << sizeof(Connection) << endl;
 
-    async_resolver().start(1);
+    FunctionWorkPool     fwp;
+    frame::aio::Resolver resolver(fwp);
+
+    fwp.start(WorkPoolConfiguration());
+
+    async_resolver(&resolver);
     {
 
         AioSchedulerT sch;
@@ -409,8 +414,6 @@ int main(int argc, char* argv[])
         }
 
         cin.ignore();
-
-        async_resolver().stop();
         m.stop();
     }
 

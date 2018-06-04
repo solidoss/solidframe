@@ -11,6 +11,7 @@
 #pragma once
 
 #ifdef SOLID_ON_WINDOWS
+#define NOMINMAX
 #include <WinSock2.h>
 #include <Windows.h>
 #include <Ws2tcpip.h>

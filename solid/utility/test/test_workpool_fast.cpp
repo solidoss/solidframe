@@ -9,22 +9,25 @@
 using namespace solid;
 using namespace std;
 
+namespace {
 std::atomic<size_t> val{0};
+}
 
 int test_workpool_fast(int /*argc*/, char* /*argv*/ [])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    FunctionWorkPoolT<size_t> wp{
-        [](size_t _v) {
+    WorkPool<size_t> wp;
+    const size_t     cnt{5000000};
+
+    wp.start(
+        thread::hardware_concurrency(),
+        WorkPoolConfiguration(),
+        [](size_t _v, const std::string& _rs) {
+            //SOLID_CHECK(_rs == "this is a string", "failed string check");
             val += _v;
         },
-        thread::hardware_concurrency()};
-    const size_t cnt{5000000};
-
-    wp.start(thread::hardware_concurrency());
-
-    solid_log(generic_logger, Verbose, "wp started");
+        "this is a string");
 
     for (size_t i = 0; i < cnt; ++i) {
         wp.push(i);

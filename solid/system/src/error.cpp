@@ -12,6 +12,7 @@
 #include "solid/system/exception.hpp"
 #include <sstream>
 #ifdef SOLID_ON_WINDOWS
+#define NOMINMAX
 #include <Windows.h>
 #endif
 

@@ -78,22 +78,16 @@ int main(int argc, char* argv[])
 
         frame::Manager         manager;
         frame::mpipc::ServiceT ipcservice(manager);
+        FunctionWorkPool       fwp;
+        frame::aio::Resolver   resolver(fwp);
+        ErrorConditionT        err;
 
-        frame::aio::Resolver resolver;
-
-        ErrorConditionT err;
+        fwp.start(WorkPoolConfiguration());
 
         err = scheduler.start(1);
 
         if (err) {
             cout << "Error starting aio scheduler: " << err.message() << endl;
-            return 1;
-        }
-
-        err = resolver.start(1);
-
-        if (err) {
-            cout << "Error starting aio resolver: " << err.message() << endl;
             return 1;
         }
 

@@ -1,6 +1,6 @@
-// open.cpp
+// example_file_open_pool.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
+// Copyright (c) 2007, 2008, 2018 Valentin Palade (vipalade @ gmail . com)
 //
 // This file is part of SolidFrame framework.
 //
@@ -21,6 +21,8 @@
 
 using namespace std;
 using namespace solid;
+
+namespace {
 
 template <class T>
 static T align(T _v, solid::ulong _by);
@@ -47,21 +49,16 @@ static T align(T _v, const solid::ulong _by)
 
 const uint32_t pagesize = memory_page_size();
 
-///\cond 0
-typedef std::deque<FileDevice> FileDeuqeT;
-//typedef std::deque<auto_ptr<FileDevice> > AutoFileDequeT;
-///\endcond
+using FileDeuqeT = std::deque<FileDevice>;
 
-///\cond 0
-
-struct MyWorkerBase : WorkerBase {
-    MyWorkerBase()
+struct Context {
+    Context()
         : readsz(4 * pagesize)
         , bf(new char[readsz + pagesize])
         , buf(align(bf, pagesize))
     {
     }
-    ~MyWorkerBase()
+    ~Context()
     {
         delete[] bf;
     }
@@ -71,68 +68,7 @@ struct MyWorkerBase : WorkerBase {
     char*              buf;
 };
 
-class MyWorkPoolController;
-
-typedef WorkPool<FileDevice*, MyWorkPoolController, MyWorkerBase> MyWorkPoolT;
-
-class MyWorkPoolController : public WorkPoolControllerBase {
-public:
-    bool createWorker(MyWorkPoolT& _rwp, ushort _wkrcnt, std::thread& _rthr)
-    {
-        _rwp.createSingleWorker(_rthr);
-        return true;
-    }
-    void execute(WorkPoolBase& _rwp, MyWorkerBase& _rw, FileDevice* _pfile)
-    {
-        int64_t sz = _pfile->size();
-        int     toread;
-        int     cnt = 0;
-        while (sz > 0) {
-            toread = _rw.readsz;
-            if (toread > sz)
-                toread = sz;
-            int rv = _pfile->read(_rw.buf, toread);
-            cnt += rv;
-            sz -= rv;
-        }
-    }
-};
-
-typedef WorkPool<FileDevice*, MyWorkPoolController, MyWorkerBase> MyWorkPoolT;
-
-///\endcond
-// void MyWorkPool::run(Worker &_wk){
-//  FileDevice* pfile;
-//  const ulong readsz = 4* pagesize;
-//  char *bf(new char[readsz + pagesize]) ;
-//  char *buf(align(bf, pagesize));
-//  //char buf[readsz];
-//  //SOLID_ASSERT(buf == bf);
-//  while(pop(_wk.wid(), pfile) != BAD){
-//      solid_log(generic_logger, Info, _wk.wid()<<" is processing");
-//      int64_t sz = pfile->size();
-//      int toread;
-//      int cnt = 0;
-//      while(sz > 0){
-//          toread = readsz;
-//          if(toread > sz) toread = sz;
-//          int rv = pfile->read(buf, toread);
-//          cnt += rv;
-//          sz -= rv;
-//      }
-//      //cout<<"read count "<<cnt<<endl;
-//      //Thread::sleep(100);
-//  }
-//  delete []bf;
-// }
-
-// int MyWorkPool::createWorkers(uint _cnt){
-//  for(uint i = 0; i < _cnt; ++i){
-//      Worker *pw = createWorker<Worker>(*this);
-//      pw->start(true);
-//  }
-//  return _cnt;
-// }
+} //namespace
 
 int main(int argc, char* argv[])
 {
@@ -169,8 +105,26 @@ int main(int argc, char* argv[])
     }
     cout << "fdq size = " << fdq.size() << " total size " << totsz << endl;
     //return 0;
-    MyWorkPoolT wp;
-    wp.start(4);
+
+    using WorkPoolT = WorkPool<FileDevice*>;
+
+    WorkPoolT wp;
+    wp.start(
+        std::thread::hardware_concurrency(),
+        solid::WorkPoolConfiguration(),
+        [](FileDevice* _pfile, Context& _rctx) {
+            int64_t sz = _pfile->size();
+            int     toread;
+            int     cnt = 0;
+            while (sz > 0) {
+                toread = _rctx.readsz;
+                if (toread > sz)
+                    toread = sz;
+                int rv = _pfile->read(_rctx.buf, toread);
+                cnt += rv;
+                sz -= rv;
+            }
+        });
     for (FileDeuqeT::iterator it(fdq.begin()); it != fdq.end(); ++it) {
         wp.push(&(*it));
     }

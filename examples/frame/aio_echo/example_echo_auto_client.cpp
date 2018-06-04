@@ -103,9 +103,9 @@ const size_t sizes_size = sizeof(sizes) / sizeof(size_t);
 
 vector<string> send_data_vec;
 
-frame::aio::Resolver& async_resolver()
+frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr)
 {
-    static frame::aio::Resolver r;
+    static frame::aio::Resolver& r = *_pres;
     return r;
 }
 
@@ -193,7 +193,12 @@ int main(int argc, char* argv[])
             1024 * 1024 * 64);
     }
 
-    async_resolver().start(1);
+    FunctionWorkPool     fwp;
+    frame::aio::Resolver resolver(fwp);
+
+    fwp.start(WorkPoolConfiguration());
+
+    async_resolver(&resolver);
     {
 
         AioSchedulerT sch;
@@ -224,7 +229,6 @@ int main(int argc, char* argv[])
             cnd.wait(lock);
         }
         cout << "Received " << recv_count / 1024 << "KB on " << params.connection_count << " connections" << endl;
-        async_resolver().stop();
         m.stop();
     }
 

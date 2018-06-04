@@ -10,6 +10,7 @@
 #include "solid/system/common.hpp"
 
 #ifdef SOLID_ON_WINDOWS
+#define NOMINMAX
 #include <WinSock2.h>
 #include <Windows.h>
 

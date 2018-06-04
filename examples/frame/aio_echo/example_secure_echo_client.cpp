@@ -170,20 +170,15 @@ int main(int argc, char* argv[])
         frame::ServiceT  service(manager);
         frame::ObjectIdT objuid;
 
-        frame::aio::Resolver resolver;
+        FunctionWorkPool     fwp;
+        frame::aio::Resolver resolver(fwp);
         ErrorConditionT      err;
 
+        fwp.start(WorkPoolConfiguration());
         err = scheduler.start(1);
 
         if (err) {
             cout << "Error starting aio scheduler: " << err.message() << endl;
-            return 1;
-        }
-
-        err = resolver.start(1);
-
-        if (err) {
-            cout << "Error starting aio resolver: " << err.message() << endl;
             return 1;
         }
 

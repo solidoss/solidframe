@@ -184,8 +184,10 @@ int main(int argc, char* argv[])
         frame::Manager         m;
         frame::mpipc::ServiceT ipcsvc(m);
         ErrorConditionT        err;
+        FunctionWorkPool       fwp;
+        frame::aio::Resolver   resolver(fwp);
 
-        frame::aio::Resolver resolver;
+        fwp.start(WorkPoolConfiguration());
 
         if (!restart(ipcsvc, resolver, sch)) {
             return 1;
@@ -223,7 +225,6 @@ bool restart(
     frame::Manager& rm = _ipcsvc.manager();
 
     rm.stop();
-    _resolver.stop();
     _sch.stop();
 
     rm.start();
@@ -232,13 +233,6 @@ bool restart(
 
     if (err) {
         cout << "Error starting aio scheduler: " << err.message() << endl;
-        return 1;
-    }
-
-    err = _resolver.start(1);
-
-    if (err) {
-        cout << "Error starting aio resolver: " << err.message() << endl;
         return 1;
     }
 

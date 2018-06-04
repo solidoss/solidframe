@@ -11,6 +11,7 @@
 #include <cstdlib>
 
 #ifdef SOLID_ON_WINDOWS
+#define NOMINMAX
 #include <Windows.h>
 #else
 #include <unistd.h>
@@ -87,7 +88,6 @@ size_t getMemoryPageSize()
  */
 
 #if defined(_WIN32)
-#include <Windows.h>
 
 #elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
 #include <sys/param.h>

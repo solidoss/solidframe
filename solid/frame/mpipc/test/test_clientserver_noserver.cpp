@@ -215,20 +215,15 @@ int test_clientserver_noserver(int argc, char* argv[])
         frame::Manager         m;
         frame::mpipc::ServiceT mpipcclient(m);
         ErrorConditionT        err;
+        FunctionWorkPool       fwp;
+        frame::aio::Resolver   resolver(fwp);
 
-        frame::aio::Resolver resolver;
+        fwp.start(WorkPoolConfiguration());
 
         err = sch_client.start(1);
 
         if (err) {
             solid_dbg(generic_logger, Error, "starting aio client scheduler: " << err.message());
-            return 1;
-        }
-
-        err = resolver.start(1);
-
-        if (err) {
-            solid_dbg(generic_logger, Error, "starting aio resolver: " << err.message());
             return 1;
         }
 

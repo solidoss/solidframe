@@ -14,14 +14,14 @@
 #include "solid/system/pimpl.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/utility/dynamictype.hpp"
-#include "solid/utility/function.hpp"
+#include "solid/utility/workpool.hpp"
 #include <string>
 
 namespace solid {
 namespace frame {
 namespace aio {
 
-struct ResolveBase : Dynamic<ResolveBase> {
+struct ResolveBase {
 
     ErrorCodeT error;
     int        flags;
@@ -30,9 +30,6 @@ struct ResolveBase : Dynamic<ResolveBase> {
         : flags(_flags)
     {
     }
-
-    virtual ~ResolveBase();
-    virtual void run(bool _fail) = 0;
 };
 
 struct DirectResolve : ResolveBase {
@@ -95,16 +92,11 @@ struct DirectResolveCbk : DirectResolve {
     {
     }
 
-    /*virtual*/ void run(bool _fail)
+    void operator()()
     {
-
         ResolveData rd;
 
-        if (!_fail) {
-            rd = this->doRun();
-        } else {
-            this->error = error_resolver_direct;
-        }
+        rd = this->doRun();
         cbk(rd, this->error);
     }
 };
@@ -123,23 +115,20 @@ struct ReverseResolveCbk : ReverseResolve {
     {
     }
 
-    /*virtual*/ void run(bool _fail)
+    void operator()()
     {
-        if (!_fail) {
-            this->doRun(cbk.hostString(), cbk.serviceString());
-        } else {
-            this->error = error_resolver_reverse;
-        }
+        this->doRun(cbk.hostString(), cbk.serviceString());
         cbk(this->error);
     }
 };
 
 class Resolver {
 public:
-    Resolver(const size_t _max_thr_cnt = 0, const size_t _max_job_cnt = 1024 * 64);
-    ~Resolver();
-
-    ErrorConditionT start(ushort _thrcnt = 0);
+    Resolver(FunctionWorkPool& _rfwp)
+        : rfwp_(_rfwp)
+    {
+    }
+    ~Resolver() {}
 
     template <class Cbk>
     void requestResolve(
@@ -151,7 +140,7 @@ public:
         int         _type   = -1,
         int         _proto  = -1)
     {
-        doSchedule(new DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
+        rfwp_.push(DirectResolveCbk<Cbk>(_cbk, _host, _srvc, _flags, _family, _type, _proto));
     }
 
     template <class Cbk>
@@ -160,17 +149,11 @@ public:
         const SocketAddressStub& _rsa,
         int                      _flags = 0)
     {
-        doSchedule(new ReverseResolveCbk<Cbk>(_rsa, _flags));
+        rfwp_.push(ReverseResolveCbk<Cbk>(_rsa, _flags));
     }
 
-    void stop();
-
 private:
-    void doSchedule(ResolveBase* _pb);
-
-private:
-    struct Data;
-    PimplT<Data> impl_;
+    FunctionWorkPool& rfwp_;
 };
 
 } //namespace aio

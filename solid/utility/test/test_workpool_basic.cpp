@@ -1,5 +1,5 @@
 #include "solid/system/exception.hpp"
-#include "solid/utility/workpool2.hpp"
+#include "solid/utility/workpool.hpp"
 #include <atomic>
 #include <functional>
 #include <iostream>
@@ -9,25 +9,20 @@
 using namespace solid;
 using namespace std;
 
-namespace {
-std::atomic<size_t> val{0};
-}
-
-int test_workpool2_fast(int /*argc*/, char* /*argv*/ [])
+int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    WorkPool2<size_t> wp;
-    const size_t      cnt{5000000};
+    WorkPool<size_t>    wp;
+    const size_t        cnt{5000000};
+    std::atomic<size_t> val{0};
 
     wp.start(
-        thread::hardware_concurrency(),
+        0,
         WorkPoolConfiguration(),
-        [](size_t _v, const std::string& _rs) {
-            //SOLID_CHECK(_rs == "this is a string", "failed string check");
+        [&val](size_t _v) {
             val += _v;
-        },
-        "this is a string");
+        });
 
     for (size_t i = 0; i < cnt; ++i) {
         wp.push(i);
