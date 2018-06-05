@@ -30,38 +30,6 @@ namespace solid {
 
 extern const LoggerT workpool_logger;
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-namespace thread_safe{
-
-template <class T, unsigned NBits = 5>
-class Queue {
-    static constexpr const size_t node_mask = bitsToMask(NBits);
-    static constexpr const size_t node_size = bitsToCount(NBits);
-    
-    struct Node {
-        Node(Node* _pnext = nullptr)
-            : next(_pnext)
-        {
-        }
-        Node*    next;
-        uint8_t  data[node_size * sizeof(T)];
-    };
-public:
-    void push(const T &_rt, const size_t _max_queue_size){
-        
-    }
-    
-    void push(T &&_rt, const size_t _max_queue_size){
-        
-    }
-    
-};
-}//namespace thread_safe
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 struct WorkPoolConfiguration {
     size_t max_worker_count_;
     size_t max_job_queue_size_;
@@ -85,19 +53,15 @@ class WorkPool {
     using ThisT          = WorkPool<Job>;
     using WorkerFactoryT = std::function<std::thread()>;
     using ThreadVectorT  = std::vector<std::thread>;
-    using JobQueueT      = /*thread_safe::*/Queue<Job>;
-    using AtomicStateT   = std::atomic<States>;
+    using JobQueueT      = Queue<Job>;
 
     WorkerFactoryT          worker_factory_fnc_;
     JobQueueT               job_q_;
     ThreadVectorT           thr_vec_;
     std::mutex              mtx_;
-    std::mutex              thr_mtx_;
-    AtomicStateT            state_;
+    States                  state_;
     std::condition_variable sig_cnd_;
     WorkPoolConfiguration   config_;
-    std::atomic<size_t>     max_job_queue_size_;
-    std::atomic<size_t>     thr_cnt_;
 #ifdef SOLID_HAS_STATISTICS
     struct Statistic : solid::Statistic {
         std::atomic<size_t>   max_worker_count_;
@@ -124,7 +88,7 @@ class WorkPool {
     } statistic_;
 #endif
 public:
-    WorkPool():state_(StoppedE)
+    WorkPool()
     {
     }
 
@@ -177,7 +141,7 @@ private:
 
     void doStart(const WorkPoolConfiguration& _cfg, size_t _start_wkr_cnt, WorkerFactoryT&& _uworker_factory_fnc);
 
-    bool doStop(const bool _wait);
+    bool doStop(std::unique_lock<std::mutex>& _lock, const bool _wait, ThreadVectorT& _rthr_vec);
 
     template <class JobHandlerFnc>
     void doStart(
@@ -202,28 +166,24 @@ void WorkPool<Job>::push(const JT& _jb)
 {
     size_t qsz;
     {
-        bool should_try_create_new_worker = false;
-        {
-            std::unique_lock<std::mutex> lock(mtx_);
+        std::unique_lock<std::mutex> lock(mtx_);
 
-            if (job_q_.size() < config_.max_job_queue_size_) {
-            } else {
-                do {
-                    sig_cnd_.wait(lock);
-                } while (job_q_.size() >= config_.max_job_queue_size_);
-            }
+        if (job_q_.size() < config_.max_job_queue_size_) {
+        } else {
+            do {
+                sig_cnd_.wait(lock);
+            } while (job_q_.size() >= config_.max_job_queue_size_);
+        }
 
-            job_q_.push(_jb);
-            qsz = job_q_.size();
-            sig_cnd_.notify_one();
+        job_q_.push(_jb);
+        sig_cnd_.notify_one();
+
+        if (job_q_.size() > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+            thr_vec_.emplace_back(worker_factory_fnc_());
+            solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
         }
-        if(should_try_create_new_worker){
-            std::lock_guard<std::mutex> lock(thr_mtx_);
-            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-                thr_vec_.emplace_back(worker_factory_fnc_());
-                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
-            }
-        }
+
+        qsz = job_q_.size();
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
@@ -234,31 +194,48 @@ void WorkPool<Job>::push(JT&& _jb)
 {
     size_t qsz;
     {
-        bool should_try_create_new_worker = false;
-        {
-            std::unique_lock<std::mutex> lock(mtx_);
+        std::unique_lock<std::mutex> lock(mtx_);
 
-            if (job_q_.size() < config_.max_job_queue_size_) {
-            } else {
-                do {
-                    sig_cnd_.wait(lock);
-                } while (job_q_.size() >= config_.max_job_queue_size_);
-            }
+        if (job_q_.size() < config_.max_job_queue_size_) {
+        } else {
+            do {
+                sig_cnd_.wait(lock);
+            } while (job_q_.size() >= config_.max_job_queue_size_);
+        }
 
-            job_q_.push(std::move(_jb));
-            qsz = job_q_.size();
-            sig_cnd_.notify_one();
+        job_q_.push(std::move(_jb));
+        sig_cnd_.notify_one();
+
+        if (job_q_.size() > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+            thr_vec_.emplace_back(worker_factory_fnc_());
+            solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
         }
-        if(should_try_create_new_worker){
-            std::lock_guard<std::mutex> lock(thr_mtx_);
-            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-                thr_vec_.emplace_back(worker_factory_fnc_());
-                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
-            }
-        }
+
+        qsz = job_q_.size();
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
+
+//-----------------------------------------------------------------------------
+template <typename Job>
+void WorkPool<Job>::stop(bool _wait)
+{
+    solid_dbg(workpool_logger, Verbose, this << " stop " << _wait);
+    ThreadVectorT thr_vec;
+    {
+        std::unique_lock<std::mutex> lock(mtx_);
+        doStop(lock, _wait, thr_vec);
+    }
+    for (auto& t : thr_vec) {
+        t.join();
+    }
+    if (thr_vec.size()) {
+#ifdef SOLID_HAS_STATISTICS
+        solid_dbg(workpool_logger, Verbose, "Workpool " << this << " statistic:" << this->statistic_);
+#endif
+    }
+}
+
 //-----------------------------------------------------------------------------
 template <typename Job>
 size_t WorkPool<Job>::doWaitJob(std::unique_lock<std::mutex>& _lock)
@@ -294,14 +271,15 @@ void WorkPool<Job>::doStart(const WorkPoolConfiguration& _cfg, size_t _start_wkr
     if (_start_wkr_cnt > _cfg.max_worker_count_) {
         _start_wkr_cnt = _cfg.max_worker_count_;
     }
+    ThreadVectorT thr_vec;
     {
-        std::unique_lock<std::mutex> lock(thr_mtx_);
-        
-        doStop(true);
+        std::unique_lock<std::mutex> lock(mtx_);
 
         worker_factory_fnc_ = std::move(_uworker_factory_fnc);
 
-        config_ = _cfg;
+        if (state_ != StoppedE) {
+            doStop(lock, true, thr_vec);
+        }
 
         state_ = RunningE;
 
@@ -310,45 +288,28 @@ void WorkPool<Job>::doStart(const WorkPoolConfiguration& _cfg, size_t _start_wkr
             solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
         }
     }
+    for (auto& t : thr_vec) {
+        t.join();
+    }
 }
 //-----------------------------------------------------------------------------
 template <typename Job>
-bool WorkPool<Job>::doStop(const bool _wait)
+bool WorkPool<Job>::doStop(std::unique_lock<std::mutex>& _lock, const bool _wait, ThreadVectorT& _rthr_vec)
 {
-    States expect = RunningE;
-    
-    if(state_.compare_exchange_strong(expect, StoppingE)){
-        sig_cnd_.notify_all();
-    }else if(expect == StoppedE){
+    if (state_ == StoppedE)
         return false;
-    }
-    
-    SOLID_ASSERT(state_ == StoppingE);
+    state_ = StoppingE;
+
+    sig_cnd_.notify_all();
 
     if (!_wait)
         return false;
 
-    for (auto& t : thr_vec_) {
-        t.join();
-    }
-    state_ = StoppedE;
-    if(thr_vec_.size()){
-#ifdef SOLID_HAS_STATISTICS
-        solid_dbg(workpool_logger, Verbose, "Workpool " << this << " statistic:" << this->statistic_);
-#endif
-    }
+    _rthr_vec = std::move(thr_vec_);
+
     thr_vec_.clear();
+    state_ = StoppedE;
     return true;
-}
-//-----------------------------------------------------------------------------
-template <typename Job>
-void WorkPool<Job>::stop(bool _wait)
-{
-    solid_dbg(workpool_logger, Verbose, this << " stop " << _wait);
-    {
-        std::unique_lock<std::mutex> lock(thr_mtx_);
-        doStop(_wait);
-    }
 }
 //-----------------------------------------------------------------------------
 template <typename Job>

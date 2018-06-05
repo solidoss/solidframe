@@ -71,29 +71,31 @@ struct UnsignedConvertor<unsigned long long> {
 #define BitsToMask(v) ((1 << (v)) - 1)
 #define BitsToCount(v) ((1 << (v)) & (~1))
 
-inline uint32_t bitsToMask32(unsigned v)
+constexpr inline uint32_t bitsToMask32(unsigned v)
 {
     return (1UL << v) - 1;
 }
-inline uint32_t bitsToCount32(unsigned v)
+constexpr inline uint32_t bitsToCount32(unsigned v)
 {
     return (1UL << v) & (~static_cast<uint32_t>(1));
 }
 
-inline uint64_t bitsToMask64(unsigned v)
+constexpr inline uint64_t bitsToMask64(unsigned v)
 {
     return (1ULL << v) - 1;
 }
-inline uint64_t bitsToCount64(unsigned v)
+
+constexpr inline uint64_t bitsToCount64(unsigned v)
 {
     return (1ULL << v) & (~static_cast<uint64_t>(1));
 }
 
-inline size_t bitsToMask(unsigned v)
+constexpr inline size_t bitsToMask(unsigned v)
 {
     return (static_cast<size_t>(1) << v) - 1;
 }
-inline size_t bitsToCount(unsigned v)
+
+constexpr inline size_t bitsToCount(unsigned v)
 {
     return (1ULL << v) & (~static_cast<size_t>(1));
 }
