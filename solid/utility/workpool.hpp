@@ -143,7 +143,7 @@ private:
     size_t doWaitJob(std::unique_lock<std::mutex>& _lock);
 
     bool pop(Job& _rjob);
-    
+
     void doStart(const WorkPoolConfiguration& _cfg, size_t _start_wkr_cnt, WorkerFactoryT&& _uworker_factory_fnc);
 
     bool doStop(std::unique_lock<std::mutex>& _lock, const bool _wait, ThreadVectorT& _rthr_vec);
@@ -166,7 +166,7 @@ private:
 
 //-----------------------------------------------------------------------------
 template <typename Job>
-template<class JT>
+template <class JT>
 void WorkPool<Job>::push(const JT& _jb)
 {
     size_t qsz;
