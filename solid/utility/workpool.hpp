@@ -285,6 +285,7 @@ template <typename Job>
 bool WorkPool<Job>::doWaitJob(std::unique_lock<std::mutex>& _lock)
 {
     while (job_q_.empty() && running_.load(std::memory_order_relaxed)) {
+        solid_statistic_inc(statistic_.wait_count_);
         sig_cnd_.wait(_lock);
     }
     return !job_q_.empty();
