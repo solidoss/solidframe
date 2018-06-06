@@ -32,32 +32,32 @@ extern const LoggerT workpool_logger;
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-namespace thread_safe{
+namespace thread_safe {
 
 template <class T, unsigned NBits = 5>
 class Queue {
     static constexpr const size_t node_mask = bitsToMask(NBits);
     static constexpr const size_t node_size = bitsToCount(NBits);
-    
+
     struct Node {
         Node(Node* _pnext = nullptr)
             : next(_pnext)
         {
         }
-        Node*    next;
-        uint8_t  data[node_size * sizeof(T)];
+        Node*   next;
+        uint8_t data[node_size * sizeof(T)];
     };
+
 public:
-    void push(const T &_rt, const size_t _max_queue_size){
-        
+    void push(const T& _rt, const size_t _max_queue_size)
+    {
     }
-    
-    void push(T &&_rt, const size_t _max_queue_size){
-        
+
+    void push(T&& _rt, const size_t _max_queue_size)
+    {
     }
-    
 };
-}//namespace thread_safe
+} //namespace thread_safe
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -94,7 +94,7 @@ struct WorkPoolConfiguration {
  *          this way stopping multiple workpools may take longer
  *      = One can use WorkPool as a shared_ptr to ensure it is available for as long as it is needed.
  */
- 
+
 //-----------------------------------------------------------------------------
 
 template <typename Job>
@@ -102,30 +102,32 @@ class WorkPool {
     using ThisT          = WorkPool<Job>;
     using WorkerFactoryT = std::function<std::thread()>;
     using ThreadVectorT  = std::vector<std::thread>;
-    using JobQueueT      = /*thread_safe::*/Queue<Job>;
-    using AtomicBoolT   = std::atomic<bool>;
-    
-    const WorkPoolConfiguration   config_;
-    AtomicBoolT             running_;
-    std::atomic<size_t>     thr_cnt_;
-    WorkerFactoryT          worker_factory_fnc_;
-    JobQueueT               job_q_;
-    ThreadVectorT           thr_vec_;
-    std::mutex              mtx_;
-    std::mutex              thr_mtx_;
-    std::condition_variable sig_cnd_;
+    using JobQueueT      = /*thread_safe::*/ Queue<Job>;
+    using AtomicBoolT    = std::atomic<bool>;
+
+    const WorkPoolConfiguration config_;
+    AtomicBoolT                 running_;
+    std::atomic<size_t>         thr_cnt_;
+    WorkerFactoryT              worker_factory_fnc_;
+    JobQueueT                   job_q_;
+    ThreadVectorT               thr_vec_;
+    std::mutex                  mtx_;
+    std::mutex                  thr_mtx_;
+    std::condition_variable     sig_cnd_;
 #ifdef SOLID_HAS_STATISTICS
     struct Statistic : solid::Statistic {
         std::atomic<size_t>   max_worker_count_;
         std::atomic<size_t>   max_jobs_in_queue_;
         std::atomic<uint64_t> max_jobs_on_thread_;
         std::atomic<uint64_t> min_jobs_on_thread_;
+        std::atomic<size_t>   wait_count_;
 
         Statistic()
             : max_worker_count_(0)
             , max_jobs_in_queue_(0)
             , max_jobs_on_thread_(0)
             , min_jobs_on_thread_(-1)
+            , wait_count_(0)
         {
         }
 
@@ -135,6 +137,7 @@ class WorkPool {
             _ros << " max_jobs_in_queue_ = " << max_jobs_in_queue_;
             _ros << " max_jobs_on_thread_ = " << max_jobs_on_thread_;
             _ros << " min_jobs_on_thread_ = " << min_jobs_on_thread_;
+            _ros << " wait_count_ = " << wait_count_;
             return _ros;
         }
     } statistic_;
@@ -145,7 +148,10 @@ public:
         const size_t                 _start_wkr_cnt,
         const WorkPoolConfiguration& _cfg,
         JobHandleFnc                 _job_handler_fnc,
-        Args... _args):config_(_cfg), running_(true), thr_cnt_(0)
+        Args... _args)
+        : config_(_cfg)
+        , running_(true)
+        , thr_cnt_(0)
     {
         doStart(
             std::integral_constant<size_t, function_traits<JobHandleFnc>::arity>(),
@@ -158,7 +164,10 @@ public:
     WorkPool(
         const WorkPoolConfiguration& _cfg,
         JobHandleFnc                 _job_handler_fnc,
-        Args... _args):config_(_cfg), running_(true), thr_cnt_(0)
+        Args... _args)
+        : config_(_cfg)
+        , running_(true)
+        , thr_cnt_(0)
     {
         doStart(
             std::integral_constant<size_t, function_traits<JobHandleFnc>::arity>(),
@@ -166,7 +175,6 @@ public:
             _job_handler_fnc,
             _args...);
     }
-
 
     ~WorkPool()
     {
@@ -191,14 +199,14 @@ private:
     template <class JobHandlerFnc>
     void doStart(
         std::integral_constant<size_t, 1>,
-        const size_t                 _start_wkr_cnt,
-        JobHandlerFnc                _job_handler_fnc);
+        const size_t  _start_wkr_cnt,
+        JobHandlerFnc _job_handler_fnc);
 
     template <class JobHandlerFnc, typename... Args>
     void doStart(
         std::integral_constant<size_t, 2>,
-        const size_t                 _start_wkr_cnt,
-        JobHandlerFnc                _job_handler_fnc,
+        const size_t  _start_wkr_cnt,
+        JobHandlerFnc _job_handler_fnc,
         Args... _args);
 }; //WorkPool
 
@@ -223,10 +231,10 @@ void WorkPool<Job>::push(const JT& _jb)
             qsz = job_q_.size();
             sig_cnd_.notify_one();
         }
-        
+
         const size_t thr_cnt = thr_cnt_.load();
-        
-        if(thr_cnt < config_.max_worker_count_ && qsz > thr_cnt){
+
+        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
             std::lock_guard<std::mutex> lock(thr_mtx_);
             if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
                 thr_vec_.emplace_back(worker_factory_fnc_());
@@ -258,10 +266,10 @@ void WorkPool<Job>::push(JT&& _jb)
             qsz = job_q_.size();
             sig_cnd_.notify_one();
         }
-        
+
         const size_t thr_cnt = thr_cnt_.load();
-        
-        if(thr_cnt < config_.max_worker_count_ && qsz > thr_cnt){
+
+        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
             std::lock_guard<std::mutex> lock(thr_mtx_);
             if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
                 thr_vec_.emplace_back(worker_factory_fnc_());
@@ -307,9 +315,9 @@ void WorkPool<Job>::doStart(size_t _start_wkr_cnt, WorkerFactoryT&& _uworker_fac
     if (_start_wkr_cnt > config_.max_worker_count_) {
         _start_wkr_cnt = config_.max_worker_count_;
     }
-    
+
     worker_factory_fnc_ = std::move(_uworker_factory_fnc);
-    
+
     {
         std::unique_lock<std::mutex> lock(thr_mtx_);
 
@@ -325,10 +333,10 @@ template <typename Job>
 void WorkPool<Job>::doStop()
 {
     bool expect = true;
-    
-    if(running_.compare_exchange_strong(expect, false)){
-    }else{
-        SOLID_ASSERT(false);//doStop called multiple times
+
+    if (running_.compare_exchange_strong(expect, false)) {
+    } else {
+        SOLID_ASSERT(false); //doStop called multiple times
         return;
     }
     {
@@ -351,8 +359,8 @@ template <typename Job>
 template <class JobHandlerFnc>
 void WorkPool<Job>::doStart(
     std::integral_constant<size_t, 1>,
-    const size_t                 _start_wkr_cnt,
-    JobHandlerFnc                _job_handler_fnc)
+    const size_t  _start_wkr_cnt,
+    JobHandlerFnc _job_handler_fnc)
 {
     WorkerFactoryT worker_factory_fnc = [_job_handler_fnc, this]() {
         return std::thread(
@@ -379,8 +387,8 @@ template <typename Job>
 template <class JobHandlerFnc, typename... Args>
 void WorkPool<Job>::doStart(
     std::integral_constant<size_t, 2>,
-    const size_t                 _start_wkr_cnt,
-    JobHandlerFnc                _job_handler_fnc,
+    const size_t  _start_wkr_cnt,
+    JobHandlerFnc _job_handler_fnc,
     Args... _args)
 {
     WorkerFactoryT worker_factory_fnc = [_job_handler_fnc, this, _args...]() {
@@ -416,22 +424,24 @@ struct FunctionWorkPool : WorkPool<std::function<void()>> {
     using WorkPoolT = WorkPool<std::function<void()>>;
     FunctionWorkPool(
         const size_t                 _start_wkr_cnt,
-        const WorkPoolConfiguration& _cfg):WorkPoolT(
-            _start_wkr_cnt,
-            _cfg,
-            [](std::function<void()>& _rfnc) {
-                _rfnc();
-            })
+        const WorkPoolConfiguration& _cfg)
+        : WorkPoolT(
+              _start_wkr_cnt,
+              _cfg,
+              [](std::function<void()>& _rfnc) {
+                  _rfnc();
+              })
     {
     }
 
     FunctionWorkPool(
-        const WorkPoolConfiguration& _cfg): WorkPoolT(
-            0,
-            _cfg,
-            [](std::function<void()>& _rfnc) {
-                _rfnc();
-            })
+        const WorkPoolConfiguration& _cfg)
+        : WorkPoolT(
+              0,
+              _cfg,
+              [](std::function<void()>& _rfnc) {
+                  _rfnc();
+              })
     {
     }
 };

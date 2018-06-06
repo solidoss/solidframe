@@ -72,7 +72,6 @@ int main(int argc, char* argv[])
         FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
-        
         (WorkPoolConfiguration());
 
         err = scheduler.start(1);

@@ -25,9 +25,8 @@ int main(int argc, char* argv[])
         [](int _v) {
             solid_log(generic_logger, Info, "v = " << _v);
             std::this_thread::sleep_for(std::chrono::milliseconds(_v * 10));
-        }
-    };
-    
+        }};
+
     for (int i(0); i < 100; ++i) {
         wp.push(i);
     }

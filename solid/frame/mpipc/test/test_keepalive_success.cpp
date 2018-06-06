@@ -288,7 +288,6 @@ int test_keepalive_success(int argc, char* argv[])
         FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
-        
         err = sch_client.start(1);
 
         if (err) {

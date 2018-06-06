@@ -187,7 +187,6 @@ int main(int argc, char* argv[])
         FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
-        
         if (!restart(ipcsvc, resolver, sch)) {
             return 1;
         }

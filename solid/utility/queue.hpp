@@ -29,23 +29,22 @@ template <class T, unsigned NBits = 5>
 class Queue {
     static constexpr const size_t node_mask = bitsToMask(NBits);
     static constexpr const size_t node_size = bitsToCount(NBits);
-    
+
     struct Node {
         Node(Node* _pnext = nullptr)
             : next(_pnext)
         {
         }
-        Node*    next;
-        uint8_t  data[node_size * sizeof(T)];
+        Node*   next;
+        uint8_t data[node_size * sizeof(T)];
     };
-    
-    
+
     size_t sz;
     size_t popsz;
     T*     pb; //back
     T*     pf; //front
     Node*  ptn; //empty nodes
-    
+
 public:
     typedef T&       reference;
     typedef T const& const_reference;
@@ -72,10 +71,10 @@ public:
         _rq.pf    = nullptr;
         _rq.ptn   = nullptr;
     }
-    
+
     Queue(const Queue&) = delete;
     Queue& operator=(const Queue&) = delete;
-    
+
     ~Queue()
     {
         clear();
@@ -84,7 +83,7 @@ public:
     Queue& operator=(Queue&& _rq)
     {
         clear();
-        
+
         sz    = _rq.sz;
         popsz = _rq.popsz;
         pb    = _rq.pb;
@@ -144,19 +143,20 @@ public:
             popsz = 0;
         }
     }
-    
+
     reference front()
     {
         return *pf;
     }
-    
+
     const_reference front() const
     {
         return *pf;
     }
-    
-    void clear(){
-        while (sz){
+
+    void clear()
+    {
+        while (sz) {
             pop();
         }
         Node* pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)) : nullptr;
@@ -168,15 +168,16 @@ public:
         }
         delete pn;
     }
+
 private:
-    
-    constexpr Node* node(void *_p)const{
+    constexpr Node* node(void* _p) const
+    {
         return reinterpret_cast<Node*>(static_cast<uint8_t*>(_p) - node_size * sizeof(T) + sizeof(T) - sizeof(Node*));
     }
-    
+
     T* pushNode(void* _p)
     {
-        Node* pn = _p ?  node(_p) : nullptr;
+        Node* pn = _p ? node(_p) : nullptr;
         if (ptn) {
             Node* tn = ptn;
             ptn      = ptn->next;
@@ -214,7 +215,5 @@ private:
         }
     }
 };
-
-
 
 } //namespace solid

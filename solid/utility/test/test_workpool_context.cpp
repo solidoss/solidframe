@@ -33,7 +33,7 @@ struct Context {
     }
 };
 
-using FunctionJobT = std::function<void(Context &)>;
+using FunctionJobT = std::function<void(Context&)>;
 //using FunctionJobT = solid::Function<32, void(Context&)>;
 
 } // namespace
@@ -41,10 +41,10 @@ using FunctionJobT = std::function<void(Context &)>;
 int test_workpool_context(int /*argc*/, char* /*argv*/ [])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
-    
-    const size_t           cnt{5000000};
-    std::atomic<size_t>    val{0};
-    
+
+    const size_t        cnt{5000000};
+    std::atomic<size_t> val{0};
+
     {
         WorkPool<FunctionJobT> wp{
             WorkPoolConfiguration(),
@@ -52,8 +52,7 @@ int test_workpool_context(int /*argc*/, char* /*argv*/ [])
                 _rj(_rctx);
             },
             "simple text",
-            0UL
-        };
+            0UL};
 
         solid_log(generic_logger, Verbose, "wp started");
 

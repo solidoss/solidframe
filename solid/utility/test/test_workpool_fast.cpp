@@ -17,7 +17,7 @@ int test_workpool_fast(int /*argc*/, char* /*argv*/ [])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    const size_t     cnt{5000000};
+    const size_t cnt{5000000};
     {
         WorkPool<size_t> wp{
             thread::hardware_concurrency(),
@@ -26,13 +26,11 @@ int test_workpool_fast(int /*argc*/, char* /*argv*/ [])
                 //SOLID_CHECK(_rs == "this is a string", "failed string check");
                 val += _v;
             },
-            "this is a string"
-        };
+            "this is a string"};
 
         for (size_t i = 0; i < cnt; ++i) {
             wp.push(i);
         };
-
     }
 
     solid_log(generic_logger, Verbose, "val = " << val);
