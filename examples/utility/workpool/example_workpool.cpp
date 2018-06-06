@@ -19,15 +19,15 @@ int main(int argc, char* argv[])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    WorkPool<int> wp;
-    wp.start(
+    WorkPool<int> wp{
         0,
         WorkPoolConfiguration(),
         [](int _v) {
             solid_log(generic_logger, Info, "v = " << _v);
             std::this_thread::sleep_for(std::chrono::milliseconds(_v * 10));
-        });
-
+        }
+    };
+    
     for (int i(0); i < 100; ++i) {
         wp.push(i);
     }

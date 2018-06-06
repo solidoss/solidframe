@@ -17,23 +17,23 @@ int test_workpool_fast(int /*argc*/, char* /*argv*/ [])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    WorkPool<size_t> wp;
     const size_t     cnt{5000000};
+    {
+        WorkPool<size_t> wp{
+            thread::hardware_concurrency(),
+            WorkPoolConfiguration(),
+            [](size_t _v, const std::string& _rs) {
+                //SOLID_CHECK(_rs == "this is a string", "failed string check");
+                val += _v;
+            },
+            "this is a string"
+        };
 
-    wp.start(
-        thread::hardware_concurrency(),
-        WorkPoolConfiguration(),
-        [](size_t _v, const std::string& _rs) {
-            //SOLID_CHECK(_rs == "this is a string", "failed string check");
-            val += _v;
-        },
-        "this is a string");
+        for (size_t i = 0; i < cnt; ++i) {
+            wp.push(i);
+        };
 
-    for (size_t i = 0; i < cnt; ++i) {
-        wp.push(i);
-    };
-
-    wp.stop();
+    }
 
     solid_log(generic_logger, Verbose, "val = " << val);
 

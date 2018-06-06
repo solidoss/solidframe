@@ -454,10 +454,8 @@ int test_echo_tcp_stress(int argc, char* argv[])
         frame::Manager       srv_mgr;
         SecureContextT       srv_secure_ctx{SecureContextT::create()};
         frame::ServiceT      srv_svc{srv_mgr};
-        FunctionWorkPool     fwp;
+        FunctionWorkPool     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver resolver(fwp);
-
-        fwp.start(WorkPoolConfiguration());
 
         async_resolver(&resolver);
 

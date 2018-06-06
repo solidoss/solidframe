@@ -12,24 +12,24 @@ using namespace std;
 int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
-
-    WorkPool<size_t>    wp;
+    
     const size_t        cnt{5000000};
     std::atomic<size_t> val{0};
+    
+    {
+        WorkPool<size_t>    wp{
+            0,
+            WorkPoolConfiguration(),
+            [&val](size_t _v) {
+                val += _v;
+            }
+        };
 
-    wp.start(
-        0,
-        WorkPoolConfiguration(),
-        [&val](size_t _v) {
-            val += _v;
-        });
-
-    for (size_t i = 0; i < cnt; ++i) {
-        wp.push(i);
-    };
-
-    wp.stop();
-
+        for (size_t i = 0; i < cnt; ++i) {
+            wp.push(i);
+        };
+    }
+    
     solid_log(generic_logger, Verbose, "val = " << val);
 
     const size_t v = ((cnt - 1) * cnt) / 2;

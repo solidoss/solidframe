@@ -177,10 +177,8 @@ int main(int argc, char* argv[])
             1024 * 1024 * 64);
     }
 
-    FunctionWorkPool     fwp;
+    FunctionWorkPool     fwp{WorkPoolConfiguration()};
     frame::aio::Resolver resolver(fwp);
-
-    fwp.start(WorkPoolConfiguration());
 
     async_resolver(&resolver);
     {

@@ -303,10 +303,9 @@ int test_clientserver_cancel_client(int argc, char* argv[])
         frame::mpipc::ServiceT mpipcserver(m);
         frame::mpipc::ServiceT mpipcclient(m);
         ErrorConditionT        err;
-        FunctionWorkPool       fwp;
+        FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
 
-        fwp.start(WorkPoolConfiguration());
         err = sch_client.start(1);
 
         if (err) {

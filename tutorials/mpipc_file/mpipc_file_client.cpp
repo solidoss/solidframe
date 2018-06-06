@@ -86,11 +86,8 @@ int main(int argc, char* argv[])
 
         frame::Manager         manager;
         frame::mpipc::ServiceT ipcservice(manager);
-        FunctionWorkPool       fwp;
+        FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
-
-        fwp.start(WorkPoolConfiguration());
-
         ErrorConditionT err;
 
         err = scheduler.start(1);

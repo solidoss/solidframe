@@ -33,39 +33,39 @@ struct Context {
     }
 };
 
-//using FunctionJobT = std::function<void(Context &)>;
-using FunctionJobT = solid::Function<32, void(Context&)>;
+using FunctionJobT = std::function<void(Context &)>;
+//using FunctionJobT = solid::Function<32, void(Context&)>;
 
 } // namespace
 
 int test_workpool_context(int /*argc*/, char* /*argv*/ [])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
-
-    WorkPool<FunctionJobT> wp;
-    std::atomic<size_t>    val{0};
+    
     const size_t           cnt{5000000};
-
-    wp.start(
-        WorkPoolConfiguration(),
-        [](FunctionJobT& _rj, Context& _rctx) {
-            _rj(_rctx);
-        },
-        "simple text",
-        0UL);
-
-    solid_log(generic_logger, Verbose, "wp started");
-
-    for (size_t i = 0; i < cnt; ++i) {
-        auto l = [i, &val](Context& _rctx) {
-            //this_thread::sleep_for(std::chrono::seconds(2));
-            ++_rctx.count_;
-            val += i;
+    std::atomic<size_t>    val{0};
+    
+    {
+        WorkPool<FunctionJobT> wp{
+            WorkPoolConfiguration(),
+            [](FunctionJobT& _rj, Context& _rctx) {
+                _rj(_rctx);
+            },
+            "simple text",
+            0UL
         };
-        wp.push(l);
-    };
 
-    wp.stop();
+        solid_log(generic_logger, Verbose, "wp started");
+
+        for (size_t i = 0; i < cnt; ++i) {
+            auto l = [i, &val](Context& _rctx) {
+                //this_thread::sleep_for(std::chrono::seconds(2));
+                ++_rctx.count_;
+                val += i;
+            };
+            wp.push(l);
+        };
+    }
 
     solid_log(generic_logger, Verbose, "val = " << val);
 

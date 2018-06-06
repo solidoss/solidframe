@@ -316,13 +316,11 @@ int test_connection_close(int argc, char* argv[])
 
         frame::Manager m;
 
-        FunctionWorkPool       fwp;
+        FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
         frame::mpipc::ServiceT mpipcserver(m);
         frame::mpipc::ServiceT mpipcclient(m);
         ErrorConditionT        err;
-
-        fwp.start(WorkPoolConfiguration());
 
         err = sch_client.start(1);
 

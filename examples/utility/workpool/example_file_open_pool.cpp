@@ -108,8 +108,7 @@ int main(int argc, char* argv[])
 
     using WorkPoolT = WorkPool<FileDevice*>;
 
-    WorkPoolT wp;
-    wp.start(
+    WorkPoolT wp{
         std::thread::hardware_concurrency(),
         solid::WorkPoolConfiguration(),
         [](FileDevice* _pfile, Context& _rctx) {
@@ -124,10 +123,9 @@ int main(int argc, char* argv[])
                 cnt += rv;
                 sz -= rv;
             }
-        });
+        }};
     for (FileDeuqeT::iterator it(fdq.begin()); it != fdq.end(); ++it) {
         wp.push(&(*it));
     }
-    wp.stop(true);
     return 0;
 }

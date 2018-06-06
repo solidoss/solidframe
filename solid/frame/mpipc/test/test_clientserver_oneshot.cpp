@@ -216,10 +216,8 @@ int test_clientserver_oneshot(int argc, char* argv[])
         frame::Manager         m;
         frame::mpipc::ServiceT mpipcclient(m);
         ErrorConditionT        err;
-        FunctionWorkPool       fwp;
+        FunctionWorkPool       fwp{WorkPoolConfiguration()};
         frame::aio::Resolver   resolver(fwp);
-
-        fwp.start(WorkPoolConfiguration());
 
         err = sch_client.start(1);
 

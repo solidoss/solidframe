@@ -434,10 +434,8 @@ int test_relay_cancel_response(int argc, char* argv[])
         frame::mpipc::ServiceT                mpipcpeera(m);
         frame::mpipc::ServiceT                mpipcpeerb(m);
         ErrorConditionT                       err;
-        FunctionWorkPool                      fwp;
+        FunctionWorkPool                      fwp{WorkPoolConfiguration()};
         frame::aio::Resolver                  resolver(fwp);
-
-        fwp.start(WorkPoolConfiguration());
 
         err = sch_peera.start(1);
 

@@ -308,10 +308,8 @@ int main(int argc, char* argv[])
 
     cout << "sizeof(Connection) = " << sizeof(Connection) << endl;
 
-    FunctionWorkPool     fwp;
+    FunctionWorkPool     fwp{WorkPoolConfiguration()};
     frame::aio::Resolver resolver(fwp);
-
-    fwp.start(WorkPoolConfiguration());
 
     async_resolver(&resolver);
     {

@@ -170,11 +170,10 @@ int main(int argc, char* argv[])
         frame::ServiceT  service(manager);
         frame::ObjectIdT objuid;
 
-        FunctionWorkPool     fwp;
+        FunctionWorkPool     fwp{WorkPoolConfiguration()};
         frame::aio::Resolver resolver(fwp);
         ErrorConditionT      err;
 
-        fwp.start(WorkPoolConfiguration());
         err = scheduler.start(1);
 
         if (err) {
