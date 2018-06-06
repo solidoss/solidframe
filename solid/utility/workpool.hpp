@@ -16,6 +16,7 @@
 #include <queue>
 #include <thread>
 #include <type_traits>
+#include <memory>
 #include <vector>
 
 #include "solid/system/exception.hpp"
@@ -40,21 +41,38 @@ class Queue {
     static constexpr const size_t node_size = bitsToCount(NBits);
 
     struct Node {
-        Node(Node* _pnext = nullptr)
-            : next(_pnext)
+        Node(std::unique_ptr<Node>& _rnext)
+            : next_(std::move(_rnext))
         {
         }
-        Node*   next;
-        uint8_t data[node_size * sizeof(T)];
+        Node(){}
+        std::unique_ptr<Node>   next_;
+        uint8_t data_[node_size * sizeof(T)];
     };
 
+    std::atomic<size_t> size_;
+    std::atomic<size_t> pop_off_;
+    T*     pback_; //back
+    T*     pfront_; //front
+    std::unique_ptr<Node>  pempty_; //empty nodes
 public:
-    void push(const T& _rt, const size_t _max_queue_size)
+    Queue():size_(0), pop_off_(0), pback_(nullptr), pfront_(nullptr){}
+    
+    size_t push(const T& _rt, const size_t _max_queue_size)
     {
+        
     }
 
-    void push(T&& _rt, const size_t _max_queue_size)
+    size_t push(T&& _rt, const size_t _max_queue_size)
     {
+    }
+    
+    bool pop(T &_rt, std::atomic<bool> &_running, const size_t _max_queue_size){
+        
+    }
+    
+    void wake(){
+        
     }
 };
 } //namespace thread_safe
@@ -102,7 +120,7 @@ class WorkPool {
     using ThisT          = WorkPool<Job>;
     using WorkerFactoryT = std::function<std::thread()>;
     using ThreadVectorT  = std::vector<std::thread>;
-    using JobQueueT      = /*thread_safe::*/ Queue<Job>;
+    using JobQueueT      = thread_safe::Queue<Job>;
     using AtomicBoolT    = std::atomic<bool>;
 
     const WorkPoolConfiguration config_;
@@ -111,9 +129,7 @@ class WorkPool {
     WorkerFactoryT              worker_factory_fnc_;
     JobQueueT                   job_q_;
     ThreadVectorT               thr_vec_;
-    std::mutex                  mtx_;
     std::mutex                  thr_mtx_;
-    std::condition_variable     sig_cnd_;
 #ifdef SOLID_HAS_STATISTICS
     struct Statistic : solid::Statistic {
         std::atomic<size_t>   max_worker_count_;
@@ -188,8 +204,6 @@ public:
     void push(JT&& _jb);
 
 private:
-    bool doWaitJob(std::unique_lock<std::mutex>& _lock);
-
     bool pop(Job& _rjob);
 
     void doStart(size_t _start_wkr_cnt, WorkerFactoryT&& _uworker_factory_fnc);
@@ -215,32 +229,15 @@ template <typename Job>
 template <class JT>
 void WorkPool<Job>::push(const JT& _jb)
 {
-    size_t qsz;
-    {
-        {
-            std::unique_lock<std::mutex> lock(mtx_);
+    const size_t qsz = job_q_.push(_jb, config_.max_job_queue_size_);
+    const size_t thr_cnt = thr_cnt_.load();
 
-            if (job_q_.size() < config_.max_job_queue_size_) {
-            } else {
-                do {
-                    sig_cnd_.wait(lock);
-                } while (job_q_.size() >= config_.max_job_queue_size_);
-            }
-
-            job_q_.push(_jb);
-            qsz = job_q_.size();
-            sig_cnd_.notify_one();
-        }
-
-        const size_t thr_cnt = thr_cnt_.load();
-
-        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
-            std::lock_guard<std::mutex> lock(thr_mtx_);
-            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-                thr_vec_.emplace_back(worker_factory_fnc_());
-                ++thr_cnt_;
-                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
-            }
+    if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+        std::lock_guard<std::mutex> lock(thr_mtx_);
+        if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+            thr_vec_.emplace_back(worker_factory_fnc_());
+            ++thr_cnt_;
+            solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
         }
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
@@ -250,63 +247,24 @@ template <typename Job>
 template <class JT>
 void WorkPool<Job>::push(JT&& _jb)
 {
-    size_t qsz;
-    {
-        {
-            std::unique_lock<std::mutex> lock(mtx_);
+    const size_t qsz = job_q_.push(std::move(_jb), config_.max_job_queue_size_);
+    const size_t thr_cnt = thr_cnt_.load();
 
-            if (job_q_.size() < config_.max_job_queue_size_) {
-            } else {
-                do {
-                    sig_cnd_.wait(lock);
-                } while (job_q_.size() >= config_.max_job_queue_size_);
-            }
-
-            job_q_.push(std::move(_jb));
-            qsz = job_q_.size();
-            sig_cnd_.notify_one();
-        }
-
-        const size_t thr_cnt = thr_cnt_.load();
-
-        if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
-            std::lock_guard<std::mutex> lock(thr_mtx_);
-            if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
-                thr_vec_.emplace_back(worker_factory_fnc_());
-                ++thr_cnt_;
-                solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
-            }
+    if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
+        std::lock_guard<std::mutex> lock(thr_mtx_);
+        if (qsz > thr_vec_.size() && thr_vec_.size() < config_.max_worker_count_) {
+            thr_vec_.emplace_back(worker_factory_fnc_());
+            ++thr_cnt_;
+            solid_statistic_max(statistic_.max_worker_count_, thr_vec_.size());
         }
     }
     solid_statistic_max(statistic_.max_jobs_in_queue_, qsz);
 }
 //-----------------------------------------------------------------------------
 template <typename Job>
-bool WorkPool<Job>::doWaitJob(std::unique_lock<std::mutex>& _lock)
-{
-    while (job_q_.empty() && running_.load(std::memory_order_relaxed)) {
-        solid_statistic_inc(statistic_.wait_count_);
-        sig_cnd_.wait(_lock);
-    }
-    return !job_q_.empty();
-}
-//-----------------------------------------------------------------------------
-template <typename Job>
 bool WorkPool<Job>::pop(Job& _rjob)
 {
-
-    std::unique_lock<std::mutex> lock(mtx_);
-
-    if (doWaitJob(lock)) {
-        const bool was_full = job_q_.size() == config_.max_job_queue_size_;
-        _rjob               = std::move(job_q_.front());
-        job_q_.pop();
-
-        if (was_full)
-            sig_cnd_.notify_all();
-        return true;
-    }
-    return false;
+    return job_q_.pop(_rjob, running_, config_.max_job_queue_size_);
 }
 //-----------------------------------------------------------------------------
 template <typename Job>
@@ -342,7 +300,7 @@ void WorkPool<Job>::doStop()
     }
     {
         std::unique_lock<std::mutex> lock(thr_mtx_);
-        sig_cnd_.notify_all();
+        job_q_.wake();
 
         for (auto& t : thr_vec_) {
             t.join();
