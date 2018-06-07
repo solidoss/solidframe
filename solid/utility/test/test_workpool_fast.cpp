@@ -17,11 +17,11 @@ int test_workpool_fast(int /*argc*/, char* /*argv*/ [])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    const size_t cnt{5000000};
+    const size_t cnt{70};
     {
         WorkPool<size_t> wp{
-            thread::hardware_concurrency(),
-            WorkPoolConfiguration(),
+            1/*thread::hardware_concurrency()*/,
+            WorkPoolConfiguration(1),
             [](size_t _v, const std::string& _rs) {
                 //SOLID_CHECK(_rs == "this is a string", "failed string check");
                 val += _v;

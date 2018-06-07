@@ -159,7 +159,8 @@ public:
         while (sz) {
             pop();
         }
-        Node* pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)) : nullptr;
+        Node* pn = pf ? reinterpret_cast<Node*>(static_cast<uint8_t*>(pf) - popsz * sizeof(T) + sizeof(T) - sizeof(Node*)) : nullptr;
+
         while (ptn) {
             Node* tn = ptn->next;
             SOLID_ASSERT(ptn != pn);

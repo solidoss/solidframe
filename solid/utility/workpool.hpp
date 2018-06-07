@@ -12,11 +12,11 @@
 #define NOMINMAX
 #include <condition_variable>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <thread>
 #include <type_traits>
-#include <memory>
 #include <vector>
 
 #include "solid/system/exception.hpp"
@@ -41,38 +41,222 @@ class Queue {
     static constexpr const size_t node_size = bitsToCount(NBits);
 
     struct Node {
-        Node(std::unique_ptr<Node>& _rnext)
-            : next_(std::move(_rnext))
+        std::atomic<size_t> push_pos_;
+        std::atomic<size_t> pop_pos_;
+        std::atomic<size_t> use_cnt_;
+        std::atomic<Node*>  next_;
+        uint32_t            unique_;
+        uint8_t             data_[node_size * sizeof(T)];
+        
+        Node()
+            : push_pos_(0)
+            , pop_pos_(0)
+            , use_cnt_(0)
+            , next_(nullptr)
         {
         }
-        Node(){}
-        std::unique_ptr<Node>   next_;
-        uint8_t data_[node_size * sizeof(T)];
+        
+        void clear()
+        {
+            push_pos_ = 0;
+            pop_pos_  = 0;
+            next_     = nullptr;
+        }
+
+        T& item(const size_t _i)
+        {
+            return reinterpret_cast<T*>(data_)[_i];
+        }
     };
 
-    std::atomic<size_t> size_;
-    std::atomic<size_t> pop_off_;
-    T*     pback_; //back
-    T*     pfront_; //front
-    std::unique_ptr<Node>  pempty_; //empty nodes
+    std::atomic<size_t>     size_;
+    std::atomic<Node*>      ppush_; //push end
+    std::atomic<Node*>      ppop_; //pop end
+    Node*                   pempty_; //empty nodes
+    std::mutex              push_mtx_;
+    std::mutex              pop_mtx_;
+    std::condition_variable push_cnd_;
+    std::condition_variable pop_cnd_;
+    std::atomic<size_t>     push_wait_cnt_;
+    size_t                  push_wait_size_;
+
 public:
-    Queue():size_(0), pop_off_(0), pback_(nullptr), pfront_(nullptr){}
-    
+    Queue()
+        : size_(0)
+        , ppush_(nullptr)
+        , ppop_(nullptr)
+        , pempty_(nullptr)
+        , push_wait_cnt_(0)
+        , push_wait_size_(0)
+    {
+        ppush_ = ppop_ = popEmptyNode();
+    }
+
+    ~Queue()
+    {
+        Node* pn = ppop_.load();
+        while (pn) {
+            Node* p = pn;
+            pn      = pn->next_.load();
+            delete p;
+        }
+
+        pn = pempty_;
+        while (pn) {
+            Node* p = pn;
+            pn      = pn->next_.load();
+            delete p;
+        }
+        pempty_ = nullptr;
+    }
+
     size_t push(const T& _rt, const size_t _max_queue_size)
     {
-        
+        do {
+            Node*        pn  = ppush_.fetch();
+            const size_t pos = pn->push_pos_.fetch_add(1);
+
+            if (pos < node_size) {
+                new (pn->data_ + (pos * sizeof(T))) T(_rt);
+                return size_.fetch_add(1) + 1;
+            } else if (pos >= node_size) {
+                std::unique_lock<std::mutex> lock(push_mtx_);
+
+                const auto unique = pn->unique_; //try to prevent ABA problem
+
+                push_wait_size_ = size_.load(); //TODO???
+
+                push_wait_cnt_.fetch_add(1);
+                while (push_wait_size_ >= _max_queue_size) {
+                    push_cnd_.wait(lock);
+                }
+                push_wait_cnt_.fetch_sub(1);
+
+                if (ppush_.load() == pn && pn->unique_ == unique) {
+                    ++pn->unique_;
+                    Node* pempty = popEmptyNode();
+                    pn->next_    = pempty;
+                    ppush_       = pempty;
+                }
+            }
+        } while (true);
     }
 
     size_t push(T&& _rt, const size_t _max_queue_size)
     {
+        do {
+            Node*        pn  = ppush_.load();
+            const size_t pos = pn->push_pos_.fetch_add(1);
+
+            if (pos < node_size) {
+                new (pn->data_ + (pos * sizeof(T))) T(std::move(_rt));
+                return size_.fetch_add(1) + 1;
+            } else if (pos >= node_size) {
+                std::unique_lock<std::mutex> lock(push_mtx_);
+
+                const auto unique = pn->unique_; //try to prevent ABA problem
+
+                push_wait_size_ = size_.load(); //TODO???
+
+                push_wait_cnt_.fetch_add(1);
+                while (push_wait_size_ >= _max_queue_size) {
+                    push_cnd_.wait(lock);
+                }
+                push_wait_cnt_.fetch_sub(1);
+
+                if (ppush_.load() == pn && pn->unique_ == unique) {
+                    ++pn->unique_;
+                    Node* pempty = popEmptyNode();
+                    pn->next_    = pempty;
+                    ppush_       = pempty;
+                }
+            }
+        } while (true);
     }
-    
-    bool pop(T &_rt, std::atomic<bool> &_running, const size_t _max_queue_size){
+
+    bool pop(T& _rt, std::atomic<bool>& _running, const size_t _max_queue_size)
+    {
+        Node* pn = ppop_.load();
         
+        do {
+            pn->use_cnt_.fetch_add(1);
+            size_t pos = pn->pop_pos_.fetch_add(1); //reserve waiting spot
+            if (pos < pn->push_pos_.load() && pos < node_size) {
+                _rt             = std::move(pn->item(pos));
+                const size_t sz = size_.fetch_sub(1) - 1;
+                if (sz < _max_queue_size && (_max_queue_size - sz) < push_wait_cnt_.load()) {
+                    std::lock_guard<std::mutex> lock(push_mtx_);
+                    push_wait_size_ = sz;
+                    push_cnd_.notify_one();
+                }
+                pn->use_cnt_.fetch_sub(1);
+                return true;
+            } else if (pos < node_size) {
+                {
+                    std::unique_lock<std::mutex> lock(pop_mtx_);
+                    while (pos >= pn->push_pos_.load() && _running.load()) {
+                        pop_cnd_.wait(lock);
+                    }
+                }
+                if (pos < pn->push_pos_.load()) {
+                    _rt = std::move(pn->item(pos));
+
+                    const size_t sz = size_.fetch_sub(1) - 1;
+                    if (sz < _max_queue_size && (_max_queue_size - sz) < push_wait_cnt_.load()) {
+                        std::lock_guard<std::mutex> lock(push_mtx_);
+                        push_wait_size_ = sz;
+                        push_cnd_.notify_one();
+                    }
+                    pn->use_cnt_.fetch_sub(1);
+                    return true;
+                } else {
+                    pn->use_cnt_.fetch_sub(1);
+                    return false;
+                }
+            } else {
+                Node* pnn = pn->next_.load();
+                if (pn->use_cnt_.fetch_sub(1) == 1) {
+                    std::lock_guard<std::mutex> lock(push_mtx_);
+                    pushEmptyNode(pn);
+                    pn = nullptr;
+                }
+                if (pnn == nullptr) {
+                    std::unique_lock<std::mutex> lock(pop_mtx_);
+                    while (size_.load() == 0 && _running.load()) {
+                        pop_cnd_.wait(lock);
+                    }
+                    pn = ppop_.load();
+                }else{
+                    pn = pnn;
+                    ppop_.store(pnn);//TODO???
+                }
+            }
+        } while (true);
     }
-    
-    void wake(){
-        
+
+    void wake()
+    {
+        pop_cnd_.notify_all();
+    }
+
+private:
+    Node* popEmptyNode()
+    {
+        Node* pn;
+        if (pempty_) {
+            pn      = pempty_;
+            pempty_ = pempty_->next_.load();
+        } else {
+            pn = new Node;
+        }
+        return pn;
+    }
+
+    void pushEmptyNode(Node* _pn)
+    {
+        _pn->clear();
+        _pn->next_ = pempty_;
+        pempty_    = _pn;
     }
 };
 } //namespace thread_safe
@@ -229,7 +413,7 @@ template <typename Job>
 template <class JT>
 void WorkPool<Job>::push(const JT& _jb)
 {
-    const size_t qsz = job_q_.push(_jb, config_.max_job_queue_size_);
+    const size_t qsz     = job_q_.push(_jb, config_.max_job_queue_size_);
     const size_t thr_cnt = thr_cnt_.load();
 
     if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
@@ -247,7 +431,7 @@ template <typename Job>
 template <class JT>
 void WorkPool<Job>::push(JT&& _jb)
 {
-    const size_t qsz = job_q_.push(std::move(_jb), config_.max_job_queue_size_);
+    const size_t qsz     = job_q_.push(std::move(_jb), config_.max_job_queue_size_);
     const size_t thr_cnt = thr_cnt_.load();
 
     if (thr_cnt < config_.max_worker_count_ && qsz > thr_cnt) {
