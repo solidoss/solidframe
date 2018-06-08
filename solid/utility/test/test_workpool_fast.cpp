@@ -20,7 +20,7 @@ int test_workpool_fast(int /*argc*/, char* /*argv*/ [])
     const size_t cnt{70};
     {
         WorkPool<size_t> wp{
-            1/*thread::hardware_concurrency()*/,
+            1 /*thread::hardware_concurrency()*/,
             WorkPoolConfiguration(1),
             [](size_t _v, const std::string& _rs) {
                 //SOLID_CHECK(_rs == "this is a string", "failed string check");

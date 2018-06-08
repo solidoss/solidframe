@@ -47,7 +47,7 @@ class Queue {
         std::atomic<Node*>  next_;
         uint32_t            unique_;
         uint8_t             data_[node_size * sizeof(T)];
-        
+
         Node()
             : push_pos_(0)
             , pop_pos_(0)
@@ -55,7 +55,7 @@ class Queue {
             , next_(nullptr)
         {
         }
-        
+
         void clear()
         {
             push_pos_ = 0;
@@ -78,7 +78,7 @@ class Queue {
     std::condition_variable push_cnd_;
     std::condition_variable pop_cnd_;
     std::atomic<size_t>     push_wait_cnt_;
-    size_t                  push_wait_size_;
+    std::atomic<size_t>     pop_wait_cnt_;
 
 public:
     Queue()
@@ -87,7 +87,7 @@ public:
         , ppop_(nullptr)
         , pempty_(nullptr)
         , push_wait_cnt_(0)
-        , push_wait_size_(0)
+        , pop_wait_cnt_(0)
     {
         ppush_ = ppop_ = popEmptyNode();
     }
@@ -112,57 +112,36 @@ public:
 
     size_t push(const T& _rt, const size_t _max_queue_size)
     {
-        do {
-            Node*        pn  = ppush_.fetch();
-            const size_t pos = pn->push_pos_.fetch_add(1);
-
-            if (pos < node_size) {
-                new (pn->data_ + (pos * sizeof(T))) T(_rt);
-                return size_.fetch_add(1) + 1;
-            } else if (pos >= node_size) {
-                std::unique_lock<std::mutex> lock(push_mtx_);
-
-                const auto unique = pn->unique_; //try to prevent ABA problem
-
-                push_wait_size_ = size_.load(); //TODO???
-
-                push_wait_cnt_.fetch_add(1);
-                while (push_wait_size_ >= _max_queue_size) {
-                    push_cnd_.wait(lock);
-                }
-                push_wait_cnt_.fetch_sub(1);
-
-                if (ppush_.load() == pn && pn->unique_ == unique) {
-                    ++pn->unique_;
-                    Node* pempty = popEmptyNode();
-                    pn->next_    = pempty;
-                    ppush_       = pempty;
-                }
-            }
-        } while (true);
     }
 
     size_t push(T&& _rt, const size_t _max_queue_size)
     {
         do {
-            Node*        pn  = ppush_.load();
+            Node* const  pn  = ppush_.load();
             const size_t pos = pn->push_pos_.fetch_add(1);
 
             if (pos < node_size) {
                 new (pn->data_ + (pos * sizeof(T))) T(std::move(_rt));
-                return size_.fetch_add(1) + 1;
+
+                const size_t sz = size_.fetch_add(1) + 1;
+
+                if (sz < pop_wait_cnt_.load()) {
+                    std::unique_lock<std::mutex> lock(pop_mtx_);
+                    pop_cnd_.notify_one();
+                }
+
+                return sz;
             } else if (pos >= node_size) {
+                //overflow
                 std::unique_lock<std::mutex> lock(push_mtx_);
 
                 const auto unique = pn->unique_; //try to prevent ABA problem
 
-                push_wait_size_ = size_.load(); //TODO???
-
-                push_wait_cnt_.fetch_add(1);
-                while (push_wait_size_ >= _max_queue_size) {
+                while (size_.load() >= _max_queue_size) {
+                    push_wait_cnt_.fetch_add(1);
                     push_cnd_.wait(lock);
+                    push_wait_cnt_.fetch_sub(1);
                 }
-                push_wait_cnt_.fetch_sub(1);
 
                 if (ppush_.load() == pn && pn->unique_ == unique) {
                     ++pn->unique_;
@@ -177,10 +156,69 @@ public:
     bool pop(T& _rt, std::atomic<bool>& _running, const size_t _max_queue_size)
     {
         Node* pn = ppop_.load();
+
+        do {
+            pn->use_cnt_.fetch_add(1);
+
+            const size_t pos = pn->pop_pos_.fetch_add(1); //reserve waiting spot
+            size_t       crt_size;
+            if (pos < pn->push_pos_.load() && pos < node_size && (crt_size = size_.load()) != 0) {
+                //size_ != 0 ensures that in case push_pos and pop_pos point to the same
+                //position, we read the item after it was written
+                _rt             = std::move(pn->item(pos));
+                const size_t sz = size_.fetch_sub(1) - 1;
+                if (sz < _max_queue_size && (_max_queue_size - sz) < push_wait_cnt_.load()) {
+                    std::lock_guard<std::mutex> lock(push_mtx_);
+                    //we need the lock here so we are certain that push threads
+                    // are either waiting on push_cnd_ or have not yet read size_ value
+                    push_cnd_.notify_one();
+                }
+                pn->use_cnt_.fetch_sub(1);
+                return true;
+            } else if (pos < node_size) {
+                // wait on reserved pop position
+                {
+                    std::unique_lock<std::mutex> lock(pop_mtx_);
+
+                    while (pos >= pn->push_pos_.load() && size_.load() && _running.load()) {
+                        pop_wait_cnt_.fetch_add(1);
+                        pop_cnd_.wait(lock);
+                        pop_wait_cnt_.fetch_sub(1);
+                    }
+                }
+
+                if (pos < pn->push_pos_.load()) {
+                    _rt = std::move(pn->item(pos));
+
+                    const size_t sz = size_.fetch_sub(1) - 1;
+                    if (sz < _max_queue_size && (_max_queue_size - sz) < push_wait_cnt_.load()) {
+                        std::lock_guard<std::mutex> lock(push_mtx_);
+                        //we need the lock here so we are certain that push threads
+                        // are either waiting on push_cnd_ or have not yet read size_ value
+                        push_cnd_.notify_one();
+                    }
+                    pn->use_cnt_.fetch_sub(1);
+                    return true;
+                } else {
+                    //no pending items and !running
+                    pn->use_cnt_.fetch_sub(1);
+                    return false;
+                }
+            } else {
+                // try to move to the next node
+            }
+        } while (true);
+    }
+#if 0
+    bool pop(T& _rt, std::atomic<bool>& _running, const size_t _max_queue_size)
+    {
+        Node* pn = ppop_.load();
         
         do {
             pn->use_cnt_.fetch_add(1);
+            
             size_t pos = pn->pop_pos_.fetch_add(1); //reserve waiting spot
+            
             if (pos < pn->push_pos_.load() && pos < node_size) {
                 _rt             = std::move(pn->item(pos));
                 const size_t sz = size_.fetch_sub(1) - 1;
@@ -233,7 +271,7 @@ public:
             }
         } while (true);
     }
-
+#endif
     void wake()
     {
         pop_cnd_.notify_all();
