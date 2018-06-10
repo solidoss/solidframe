@@ -206,6 +206,33 @@ public:
                 }
             } else {
                 // try to move to the next node
+                Node *pnn = pn->next_.load();
+                if(pnn && ppop_.compare_exchange_strong(pn, pnn)){
+                    //TODO: save pn
+                    if(pn->use_cnt_.fetch_sub(1) == 0){
+                        std::lock_guard<std::mutex> lock(push_mtx_);
+                        pushEmptyNode(pn);
+                        pn = nullptr;
+                    }else{
+                        //node still in use
+                    }
+                    pn = pnn;
+                }else if(pnn == nullptr){
+                    std::unique_lock<std::mutex> lock(pop_mtx_);
+
+                    while (size_.load() && _running.load()) {
+                        pop_wait_cnt_.fetch_add(1);
+                        pop_cnd_.wait(lock);
+                        pop_wait_cnt_.fetch_sub(1);
+                    }
+                    if(size_.load() || !_running.load()){
+                        pn->use_cnt_.fetch_sub(1);
+                        pn = ppop_.load();
+                    }else{
+                        pn->use_cnt_.fetch_sub(1);
+                        return false;
+                    }
+                }
             }
         } while (true);
     }
