@@ -38,9 +38,9 @@ int test_workpool_fast(int argc, char* argv[])
         };
     }
 
-    solid_log(generic_logger, Verbose, "val = " << val);
-
     const size_t v = ((cnt - 1) * cnt) / 2;
+
+    solid_log(generic_logger, Verbose, "val = " << val<<" expected val = "<<v);
 
     SOLID_CHECK(v == val);
     return 0;
