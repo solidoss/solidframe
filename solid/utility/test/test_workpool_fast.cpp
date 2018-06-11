@@ -13,21 +13,26 @@ namespace {
 std::atomic<size_t> val{0};
 }
 
-int test_workpool_fast(int /*argc*/, char* /*argv*/ [])
+int test_workpool_fast(int argc, char* argv[])
 {
     solid::log_start(std::cerr, {".*:VIEW"});
 
-    const size_t cnt{70};
+    size_t cnt{5000000};
+    
+    if(argc > 1){
+        cnt = atoi(argv[1]);
+    }
+    
     {
         WorkPool<size_t> wp{
-            1 /*thread::hardware_concurrency()*/,
-            WorkPoolConfiguration(1),
+            2/*thread::hardware_concurrency()*/,
+            WorkPoolConfiguration(),
             [](size_t _v, const std::string& _rs) {
                 //SOLID_CHECK(_rs == "this is a string", "failed string check");
                 val += _v;
             },
             "this is a string"};
-
+        //this_thread::sleep_for(chrono::seconds(1));
         for (size_t i = 0; i < cnt; ++i) {
             wp.push(i);
         };
