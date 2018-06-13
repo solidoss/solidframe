@@ -26,6 +26,7 @@ enum struct LogFlags : LogAtomicFlagsBackT {
     Info,
     Warning,
     Error,
+    Statistic,
     LastFlag
 };
 
@@ -49,6 +50,8 @@ struct LogCategory : public LogCategoryBase {
             return "W";
         case LogFlags::Error:
             return "E";
+        case LogFlags::Statistic:
+            return "S";
         case LogFlags::LastFlag:
             break;
         }
