@@ -69,6 +69,7 @@ class Queue {
             next_            = nullptr;
             use_cnt_         = 0;
             done_            = false;
+            ++unique_;
         }
 
         T& item(const size_t _i)
@@ -137,6 +138,7 @@ public:
     {
         ppush_ = ppop_ = popEmptyNode();
         pop_spin_lock_.clear();
+        ppush_.load()->use_cnt_.fetch_add(1);
     }
 
     ~Queue();
@@ -153,7 +155,7 @@ public:
     }
 
 private:
-    void releaseNode(Node*& _rpn, const size_t /*_pop_pos*/)
+    void releaseNode(Node*& _rpn, const size_t _pop_pos)
     {
         spinLockAcquire();
         const size_t use_cnt = _rpn->use_cnt_.fetch_sub(1) - 1;
@@ -162,6 +164,7 @@ private:
         //solid_dbg(workpool_logger, Verbose, "pn "<<_rpn<<" "<<use_cnt);
         if (done && use_cnt == 0) {
             std::lock_guard<std::mutex> lock(push_mtx_);
+            solid_dbg(workpool_logger, Verbose, "release node " << _pop_pos << " " << _rpn);
             pushEmptyNode(_rpn);
             _rpn = nullptr;
         }
@@ -176,6 +179,7 @@ private:
         //solid_dbg(workpool_logger, Verbose, "pn "<<_rpn<<" "<<use_cnt);
         if (done && use_cnt == 0) {
             std::lock_guard<std::mutex> lock(push_mtx_);
+            solid_dbg(workpool_logger, Verbose, "release node " << _rpn);
             pushEmptyNode(_rpn);
             _rpn = nullptr;
         }
@@ -192,7 +196,7 @@ private:
             pn = new Node;
             solid_statistic_inc(statistic_.new_node_count_);
         }
-        //solid_dbg(workpool_logger, Verbose, pn);
+        solid_dbg(workpool_logger, Verbose, pn<<" sz = "<<size_.load());
         solid_statistic_inc(statistic_.pop_node_count_);
         return pn;
     }
@@ -265,32 +269,36 @@ size_t Queue<T, NBits>::push(const T& _rt, const size_t _max_queue_size)
 
             const size_t commit_pos = pn->push_commit_pos_.fetch_add(1) + 1;
             const size_t sz         = size_.fetch_add(1) + 1;
+            const size_t pn_pop_pos = pn->pop_pos_.load();
+            const size_t pop_wait_cnt = pop_wait_cnt_.load();
 
-            if (commit_pos >= pn->pop_pos_.load() && pop_wait_cnt_.load() != 0) {
+            if (/*(commit_pos <= pn_pop_pos || sz == 1) &&*/ pop_wait_cnt != 0) {
                 {
                     std::unique_lock<std::mutex> lock(pop_mtx_);
                 }
-                pop_cnd_.notify_one();
-                solid_dbg(workpool_logger, Verbose, "pop notif " << sz << " < " << pop_wait_cnt_.load());
+                pop_cnd_.notify_all();//see NOTE(*) below
+                //solid_dbg(workpool_logger, Verbose, "pop notif " << sz << " < " << pop_wait_cnt);
+            }else{
+                //solid_dbg(workpool_logger, Verbose, "NOT pop notif "<<sz<<" "<<commit_pos<<" "<<pn_pop_pos<<" "<<pop_wait_cnt);
             }
             solid_statistic_inc(statistic_.push_count_);
-            solid_dbg(workpool_logger, Verbose, sz << ' ' << pos << ' ' << pn);
+            //solid_dbg(workpool_logger, Verbose, sz << ' ' << pos << ' ' << pn);
             return sz;
-        } else if (pos >= node_size) {
+        } else {
             //overflow
             std::unique_lock<std::mutex> lock(push_mtx_);
 
             const auto unique = pn->unique_; //try to prevent ABA problem
 
             push_wait_cnt_.fetch_add(1);
-            while (size_.load() >= _max_queue_size) {
-                push_cnd_.wait(lock);
-            }
+            push_cnd_.wait(lock, [this, _max_queue_size](){return size_.load() < _max_queue_size;});
             push_wait_cnt_.fetch_sub(1);
-
+            
             if (ppush_.load() == pn && pn->unique_ == unique) {
                 ++pn->unique_;
                 Node* pempty = popEmptyNode();
+                const size_t crt_push_pos = pn->push_pos_.load();
+                SOLID_ASSERT(crt_push_pos >= node_size);
                 pn->next_.store(pempty);
                 ppush_.store(pempty);
             }
@@ -298,44 +306,55 @@ size_t Queue<T, NBits>::push(const T& _rt, const size_t _max_queue_size)
     } while (true);
 }
 //-----------------------------------------------------------------------------
+//NOTE(*):
+//      we cannot use notify_one because we have no control on which thread is waken up.
+//      Suppose we have two threads waiting, one for position 4 and one for 5
+//      push() thread, fills-up position 4, increments push_commit_pos_ to 5 and notifies waiting threads.
+//      If we would use notify_one, it may happen that the the waken up thread be the one waiting on
+//      position 5 - its waiting condition is not satisfied and it keeps on waiting and the
+//      thread waiting for position 4 is never waken.
 template <class T, unsigned NBits>
 size_t Queue<T, NBits>::push(T&& _rt, const size_t _max_queue_size)
 {
     do {
-        Node* const  pn  = ppush_.load();
-        const size_t pos = pn->push_pos_.fetch_add(1);
-
-        if (pos < node_size) {
+        Node* pn  = ppush_.load();
+        size_t pos;
+        
+        if (pn && (pos = pn->push_pos_.load()) < node_size) {
             new (pn->data_ + (pos * sizeof(T))) T{std::move(_rt)};
 
             const size_t commit_pos = pn->push_commit_pos_.fetch_add(1) + 1;
             const size_t sz         = size_.fetch_add(1) + 1;
+            const size_t pn_pop_pos = pn->pop_pos_.load();
+            const size_t pop_wait_cnt = pop_wait_cnt_.load();
 
-            if (commit_pos >= pn->pop_pos_.load() && pop_wait_cnt_.load() != 0) {
+            if (/*(commit_pos <= pn_pop_pos || sz == 1) &&*/ pop_wait_cnt != 0) {
                 {
                     std::unique_lock<std::mutex> lock(pop_mtx_);
                 }
-                pop_cnd_.notify_one();
-                solid_dbg(workpool_logger, Verbose, "pop notif " << sz << " < " << pop_wait_cnt_.load());
+                pop_cnd_.notify_all();//see NOTE(*) above
+                //solid_dbg(workpool_logger, Verbose, "pop notif " << sz << " < " << pop_wait_cnt);
+            }else{
+                //solid_dbg(workpool_logger, Verbose, "NOT pop notif "<<sz<<" "<<commit_pos<<" "<<pn_pop_pos<<" "<<pop_wait_cnt);
             }
             solid_statistic_inc(statistic_.push_count_);
-            solid_dbg(workpool_logger, Verbose, sz << ' ' << pos << ' ' << pn);
+            //solid_dbg(workpool_logger, Verbose, sz << ' ' << pos << ' ' << pn);
+            
             return sz;
-        } else if (pos >= node_size) {
+        } else {
             //overflow
+            pn = nullptr;
             std::unique_lock<std::mutex> lock(push_mtx_);
 
-            const auto unique = pn->unique_; //try to prevent ABA problem
-
             push_wait_cnt_.fetch_add(1);
-            while (size_.load() >= _max_queue_size) {
-                push_cnd_.wait(lock);
-            }
+            push_cnd_.wait(lock, [this, _max_queue_size](){return size_.load() < _max_queue_size;});
             push_wait_cnt_.fetch_sub(1);
 
-            if (ppush_.load() == pn && pn->unique_ == unique) {
+            if ((pn = ppush_.load()) != nullptr && pn->unique_ == unique) {
                 ++pn->unique_;
                 Node* pempty = popEmptyNode();
+                const size_t crt_push_pos = pn->push_pos_.load();
+                SOLID_ASSERT(crt_push_pos >= node_size);
                 pn->next_.store(pempty);
                 ppush_.store(pempty);
             }
@@ -368,14 +387,14 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                     std::lock_guard<std::mutex> lock(push_mtx_);
                 }
                 push_cnd_.notify_one();
-                solid_dbg(workpool_logger, Verbose, "push notify");
+                //solid_dbg(workpool_logger, Verbose, "push notify");
             }
-            solid_dbg(workpool_logger, Verbose, "pop " << pos << ' ' << pn << " sz = " << sz << " push_wait = " << push_wait_cnt_.load());
+            //solid_dbg(workpool_logger, Verbose, "pop " << pos << ' ' << pn << " sz = " << sz << " push_wait = " << push_wait_cnt_.load());
             releaseNode(pn, pos);
             return true;
         } else if (pos < node_size) {
             // wait on reserved pop position
-            solid_dbg(workpool_logger, Verbose, "before wait " << pos << ' ' << pn);
+            //solid_dbg(workpool_logger, Verbose, "before wait " << pos << ' ' << pn);
             {
                 std::unique_lock<std::mutex> lock(pop_mtx_);
 
@@ -383,11 +402,11 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                 pop_cnd_.wait(
                     lock,
                     [pn, pos, &_running]() {
-                        return (pos < pn->push_commit_pos_.load()) || (pos >= pn->push_pos_.load() && !_running.load());
+                        return (pos < pn->push_commit_pos_.load()) || (!_running.load() && pos >= pn->push_pos_.load());
                     });
                 pop_wait_cnt_.fetch_sub(1);
             }
-            solid_dbg(workpool_logger, Verbose, "after wait " << pos << ' ' << pn->push_commit_pos_.load() << ' ' << size_.load());
+            //solid_dbg(workpool_logger, Verbose, "after wait " << pos << ' ' << pn->push_commit_pos_.load() << ' ' << size_.load());
 
             if (pos < pn->push_commit_pos_.load()) {
                 _rt = std::move(pn->item(pos));
@@ -400,15 +419,15 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                         std::lock_guard<std::mutex> lock(push_mtx_);
                     }
                     push_cnd_.notify_one();
-                    solid_dbg(workpool_logger, Verbose, "push notify");
+                    //solid_dbg(workpool_logger, Verbose, "push notify");
                 }
 
-                solid_dbg(workpool_logger, Verbose, "pop " << pos << " " << pn << " sz = " << sz << " push_wait = " << push_wait_cnt_.load());
+                //solid_dbg(workpool_logger, Verbose, "pop " << pos << " " << pn << " sz = " << sz << " push_wait = " << push_wait_cnt_.load());
                 releaseNode(pn, pos);
                 return true;
             } else {
                 //no pending items and !running
-                solid_dbg(workpool_logger, Verbose, "release node " << pos << " " << pn);
+                //solid_dbg(workpool_logger, Verbose, "release node " << pos << " " << pn);
                 releaseNode(pn);
                 return false;
             }
@@ -435,6 +454,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
 
                 if (pold_use_cnt == 1 && pold_done) { //node pn can be released
                     std::lock_guard<std::mutex> lock(push_mtx_);
+                    solid_dbg(workpool_logger, Verbose, "release node " << pold);
                     pushEmptyNode(pold);
                     pold = nullptr;
                 }
@@ -465,10 +485,11 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                 pn->use_cnt_.fetch_add(1);
                 spinLockRelease();
 
-                solid_dbg(workpool_logger, Verbose, "pold " << pold << " " << pold_use_cnt << " pn = " << pn);
+                //solid_dbg(workpool_logger, Verbose, "pold " << pold << " " << pold_use_cnt << " pn = " << pn);
 
                 if (pold_use_cnt == 1 && pold_done) {
                     std::lock_guard<std::mutex> lock(push_mtx_);
+                    solid_dbg(workpool_logger, Verbose, "release node " << pold);
                     pushEmptyNode(pold);
                     pold = nullptr;
                 }

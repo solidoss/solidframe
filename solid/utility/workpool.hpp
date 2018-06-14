@@ -11,6 +11,8 @@
 #pragma once
 #include "solid/utility/common.hpp"
 
+//#define SOLID_USE_WORKPOOL_MUTEX
+
 #ifdef SOLID_USE_WORKPOOL_MUTEX
 #include "solid/utility/workpool_mutex.hpp"
 #else
