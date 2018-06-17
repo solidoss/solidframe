@@ -39,6 +39,12 @@ template <class T, unsigned NBits = 5>
 class Queue {
     static constexpr const size_t node_mask = bitsToMask(NBits);
     static constexpr const size_t node_size = bitsToCount(NBits);
+    
+    enum EndsE{
+        EndPopE = 0,
+        EndPushE,
+        EndCount,
+    };
 
     struct Node {
         std::atomic<size_t> push_pos_;
@@ -46,8 +52,6 @@ class Queue {
         std::atomic<size_t> pop_pos_;
         std::atomic<size_t> use_cnt_;
         std::atomic<Node*>  next_;
-        std::atomic<bool>   done_;
-        uint32_t            unique_;
         uint8_t             data_[node_size * sizeof(T)];
 
         Node()
@@ -56,8 +60,6 @@ class Queue {
             , pop_pos_(0)
             , use_cnt_(0)
             , next_(nullptr)
-            , done_(false)
-            , unique_(0)
         {
         }
 
@@ -77,18 +79,53 @@ class Queue {
             return reinterpret_cast<T*>(data_)[_i];
         }
     };
+    
+    struct End{
+        std::atomic<size_t>     wait_count_;
+        Node*                   pnode_;
+        std::atomic_flag        spin_lock_;
+        std::mutex              mutex_;
+        std::condition_variable condition_;
+        
+        End():pnode_(nullptr), wait_count_(0){
+            spin_lock_.clear();
+        }
+        
+        void spinLockAcquire()
+        {
+            while (spin_lock_.test_and_set(std::memory_order_acquire)) {
+                std::this_thread::yield();
+            }
+        }
+
+        void spinLockRelease()
+        {
+            spin_lock_.clear(std::memory_order_release);
+        }
+        
+        Node* nodeAcquire(){
+            Node *pn;
+            spinLockAcquire();
+            pn = pnode_;
+            pn->use_cnt_.fetch_add(1);
+            spinLockRelease();
+            return pn;
+        }
+        
+        Node* nodeExchange(Node *_pn){
+            Node *pn;
+            _pn->use_cnt_.fetch_add(1);
+            spinLockAcquire();
+            pn = pnode_;
+            pnode_ = _pn;
+            spinLockRelease();
+            return pn;
+        }
+    };
 
     std::atomic<size_t>     size_;
-    std::atomic<Node*>      ppush_; //push end
-    std::atomic<Node*>      ppop_; //pop end
-    Node*                   pempty_; //empty nodes
-    std::mutex              push_mtx_;
-    std::mutex              pop_mtx_;
-    std::condition_variable push_cnd_;
-    std::condition_variable pop_cnd_;
-    std::atomic<size_t>     push_wait_cnt_;
-    std::atomic<size_t>     pop_wait_cnt_;
-    std::atomic_flag        pop_spin_lock_;
+    End                     end_[EndCount];
+    std::atomic<Node*>      pempty_;
 #ifdef SOLID_HAS_STATISTICS
     struct Statistic : solid::Statistic {
         std::atomic<size_t> push_count_;
@@ -130,15 +167,10 @@ public:
 
     Queue()
         : size_(0)
-        , ppush_(nullptr)
-        , ppop_(nullptr)
-        , pempty_(nullptr)
-        , push_wait_cnt_(0)
-        , pop_wait_cnt_(0)
     {
-        ppush_ = ppop_ = popEmptyNode();
-        pop_spin_lock_.clear();
-        ppush_.load()->use_cnt_.fetch_add(1);
+        Node *pn = newNode();
+        end_[EndPopE].nodeExchange(pn);
+        end_[EndPushE].nodeExchange(pn);
     }
 
     ~Queue();
@@ -155,71 +187,42 @@ public:
     }
 
 private:
-    void releaseNode(Node*& _rpn, const size_t _pop_pos)
-    {
-        spinLockAcquire();
-        const size_t use_cnt = _rpn->use_cnt_.fetch_sub(1) - 1;
-        const bool   done    = _rpn->done_.load(); //_pop_pos >= node_size/* && _rpn->push_pos_.load() >= node_size*/;
-        spinLockRelease();
-        //solid_dbg(workpool_logger, Verbose, "pn "<<_rpn<<" "<<use_cnt);
-        if (done && use_cnt == 0) {
-            std::lock_guard<std::mutex> lock(push_mtx_);
-            solid_dbg(workpool_logger, Verbose, "release node " << _pop_pos << " " << _rpn);
-            pushEmptyNode(_rpn);
-            _rpn = nullptr;
-        }
-    }
 
-    void releaseNode(Node*& _rpn)
+    Node* newNode()
     {
-        spinLockAcquire();
-        const size_t use_cnt = _rpn->use_cnt_.fetch_sub(1) - 1;
-        const bool   done    = _rpn->done_.load(); //_pop_pos >= node_size/* && _rpn->push_pos_.load() >= node_size*/;
-        spinLockRelease();
-        //solid_dbg(workpool_logger, Verbose, "pn "<<_rpn<<" "<<use_cnt);
-        if (done && use_cnt == 0) {
-            std::lock_guard<std::mutex> lock(push_mtx_);
-            solid_dbg(workpool_logger, Verbose, "release node " << _rpn);
-            pushEmptyNode(_rpn);
-            _rpn = nullptr;
+        Node *pold = pempty_.load();
+        while(pold && !pempty_.compare_exchange_weak(pold, pold->next_.load())){
         }
-    }
-
-    Node* popEmptyNode()
-    {
-        Node* pn;
-        if (pempty_) {
-            pn      = pempty_;
-            pempty_ = pempty_->next_.load();
-            pn->next_.store(nullptr);
-        } else {
-            pn = new Node;
-            solid_statistic_inc(statistic_.new_node_count_);
+        if(pold == nullptr){
+            pold = new Node;
         }
-        solid_dbg(workpool_logger, Verbose, pn<<" sz = "<<size_.load());
-        solid_statistic_inc(statistic_.pop_node_count_);
-        return pn;
+        return pold;
     }
 
     void pushEmptyNode(Node* _pn)
     {
         _pn->clear();
-        _pn->next_ = pempty_;
-        pempty_    = _pn;
-        solid_statistic_inc(statistic_.push_node_count_);
-        //solid_dbg(workpool_logger, Verbose, _pn);
+        Node * pcrt = pempty_.load();
+        _pn->next_ = pcrt;
+        while(!pempty_.compare_exchange_weak(pcrt, _pn)){
+            _pn->next_ = pcrt;
+        }
+        
     }
-
-    void spinLockAcquire()
-    {
-        while (pop_spin_lock_.test_and_set(std::memory_order_acquire)) {
-            std::this_thread::yield();
+    
+    void nodeRelease(Node *_pn){
+        if(_pn->use_cnt_.fetch_sub(1) == 1){
+            //the last one
+            pushEmptyNode(_pn);
         }
     }
-
-    void spinLockRelease()
-    {
-        pop_spin_lock_.clear(std::memory_order_release);
+    
+    Node* popNodeAquire(){
+        return end_[EndPopE].nodeAcquire();
+    }
+    
+    Node *pushNodeAcquire(){
+        return end_[EndPushE].nodeAcquire();
     }
 };
 
@@ -229,29 +232,8 @@ template <class T, unsigned NBits>
 Queue<T, NBits>::~Queue()
 {
     solid_dbg(workpool_logger, Verbose, this);
-    Node*  pn      = ppop_.load();
-    size_t pop_cnt = 0;
-    while (pn) {
-        Node* p = pn;
-        pn      = pn->next_.load();
-        ++pop_cnt;
-        delete p;
-        //solid_dbg(workpool_logger, Verbose, this << "delete "<<p);
-        solid_statistic_inc(statistic_.del_node_count_);
-    }
-
-    size_t empty_cnt = 0;
-    pn               = pempty_;
-    while (pn) {
-        Node* p = pn;
-        pn      = pn->next_.load();
-        ++empty_cnt;
-        delete p;
-        //solid_dbg(workpool_logger, Verbose, this << "delete "<<p);
-        solid_statistic_inc(statistic_.del_node_count_);
-    }
-    pempty_ = nullptr;
-    solid_dbg(workpool_logger, Verbose, this << " pop_cnt = " << pop_cnt << " empty_cnt = " << empty_cnt);
+    //TODO:
+    solid_dbg(workpool_logger, Verbose, this);
 #ifdef SOLID_HAS_STATISTICS
     solid_dbg(workpool_logger, Statistic, "Queue: " << this << " statistic:" << this->statistic_);
 #endif
@@ -261,47 +243,43 @@ template <class T, unsigned NBits>
 size_t Queue<T, NBits>::push(const T& _rt, const size_t _max_queue_size)
 {
     do {
-        Node* const  pn  = ppush_.load();
+        Node*        pn  = pushNodeAcquire();
         const size_t pos = pn->push_pos_.fetch_add(1);
 
         if (pos < node_size) {
             new (pn->data_ + (pos * sizeof(T))) T{_rt};
-
-            const size_t commit_pos = pn->push_commit_pos_.fetch_add(1) + 1;
+            
+            pn->push_commit_pos_.fetch_add(1);
             const size_t sz         = size_.fetch_add(1) + 1;
-            const size_t pn_pop_pos = pn->pop_pos_.load();
-            const size_t pop_wait_cnt = pop_wait_cnt_.load();
+            const size_t pop_wait_cnt = end_[EndPopE].wait_count_.load();
 
-            if (/*(commit_pos <= pn_pop_pos || sz == 1) &&*/ pop_wait_cnt != 0) {
+            if (pop_wait_cnt != 0) {
                 {
-                    std::unique_lock<std::mutex> lock(pop_mtx_);
+                    std::unique_lock<std::mutex> lock(end_[EndPopE].mutex_);
                 }
-                pop_cnd_.notify_all();//see NOTE(*) below
-                //solid_dbg(workpool_logger, Verbose, "pop notif " << sz << " < " << pop_wait_cnt);
-            }else{
-                //solid_dbg(workpool_logger, Verbose, "NOT pop notif "<<sz<<" "<<commit_pos<<" "<<pn_pop_pos<<" "<<pop_wait_cnt);
+                end_[EndPopE].condition_.notify_all();//see NOTE(*) below
             }
+            nodeRelease(pn);
             solid_statistic_inc(statistic_.push_count_);
-            //solid_dbg(workpool_logger, Verbose, sz << ' ' << pos << ' ' << pn);
             return sz;
         } else {
             //overflow
-            std::unique_lock<std::mutex> lock(push_mtx_);
+            std::unique_lock<std::mutex> lock(end_[EndPushE].mutex_);
 
-            const auto unique = pn->unique_; //try to prevent ABA problem
-
-            push_wait_cnt_.fetch_add(1);
-            push_cnd_.wait(lock, [this, _max_queue_size](){return size_.load() < _max_queue_size;});
-            push_wait_cnt_.fetch_sub(1);
             
-            if (ppush_.load() == pn && pn->unique_ == unique) {
-                ++pn->unique_;
-                Node* pempty = popEmptyNode();
-                const size_t crt_push_pos = pn->push_pos_.load();
-                SOLID_ASSERT(crt_push_pos >= node_size);
-                pn->next_.store(pempty);
-                ppush_.store(pempty);
+            end_[EndPushE].wait_count_.fetch_add(1);
+            push_cnd_.wait(lock, [this, _max_queue_size](){return size_.load() < _max_queue_size;});
+            end_[EndPushE].wait_count_.fetch_sub(1);
+            
+            //pn is locked!
+            //the following check is safe because end_[EndPushE].pnode_ is
+            //modified only under end_[EndPushE].mutex_ lock
+            if(end_[EndPushE].pnode_ == pn){
+                //ABA cannot happen because pn is locked and cannot be in the empty stack
+                end_[EndPushE].nodeExchange(newNode());
+                nodeRelease(pn);
             }
+            nodeRelease(pn);
         }
     } while (true);
 }
@@ -317,51 +295,105 @@ template <class T, unsigned NBits>
 size_t Queue<T, NBits>::push(T&& _rt, const size_t _max_queue_size)
 {
     do {
-        Node* pn  = ppush_.load();
-        size_t pos;
-        
-        if (pn && (pos = pn->push_pos_.load()) < node_size) {
+        Node*        pn  = pushNodeAcquire();
+        const size_t pos = pn->push_pos_.fetch_add(1);
+
+        if (pos < node_size) {
             new (pn->data_ + (pos * sizeof(T))) T{std::move(_rt)};
-
-            const size_t commit_pos = pn->push_commit_pos_.fetch_add(1) + 1;
-            const size_t sz         = size_.fetch_add(1) + 1;
-            const size_t pn_pop_pos = pn->pop_pos_.load();
-            const size_t pop_wait_cnt = pop_wait_cnt_.load();
-
-            if (/*(commit_pos <= pn_pop_pos || sz == 1) &&*/ pop_wait_cnt != 0) {
-                {
-                    std::unique_lock<std::mutex> lock(pop_mtx_);
-                }
-                pop_cnd_.notify_all();//see NOTE(*) above
-                //solid_dbg(workpool_logger, Verbose, "pop notif " << sz << " < " << pop_wait_cnt);
-            }else{
-                //solid_dbg(workpool_logger, Verbose, "NOT pop notif "<<sz<<" "<<commit_pos<<" "<<pn_pop_pos<<" "<<pop_wait_cnt);
-            }
-            solid_statistic_inc(statistic_.push_count_);
-            //solid_dbg(workpool_logger, Verbose, sz << ' ' << pos << ' ' << pn);
             
+            pn->push_commit_pos_.fetch_add(1);
+            const size_t sz         = size_.fetch_add(1) + 1;
+            const size_t pop_wait_cnt = end_[EndPopE].wait_count_.load();
+
+            if (pop_wait_cnt != 0) {
+                {
+                    std::unique_lock<std::mutex> lock(end_[EndPopE].mutex_);
+                }
+                end_[EndPopE].condition_.notify_all();//see NOTE(*) below
+            }
+            nodeRelease(pn);
+            solid_statistic_inc(statistic_.push_count_);
             return sz;
         } else {
             //overflow
-            pn = nullptr;
-            std::unique_lock<std::mutex> lock(push_mtx_);
+            std::unique_lock<std::mutex> lock(end_[EndPushE].mutex_);
 
-            push_wait_cnt_.fetch_add(1);
+            
+            end_[EndPushE].wait_count_.fetch_add(1);
             push_cnd_.wait(lock, [this, _max_queue_size](){return size_.load() < _max_queue_size;});
-            push_wait_cnt_.fetch_sub(1);
-
-            if ((pn = ppush_.load()) != nullptr && pn->unique_ == unique) {
-                ++pn->unique_;
-                Node* pempty = popEmptyNode();
-                const size_t crt_push_pos = pn->push_pos_.load();
-                SOLID_ASSERT(crt_push_pos >= node_size);
-                pn->next_.store(pempty);
-                ppush_.store(pempty);
+            end_[EndPushE].wait_count_.fetch_sub(1);
+            
+            //pn is locked!
+            //the following check is safe because end_[EndPushE].pnode_ is
+            //modified only under end_[EndPushE].mutex_ lock
+            if(end_[EndPushE].pnode_ == pn){
+                //ABA cannot happen because pn is locked and cannot be in the empty stack
+                Node *ptmpn = end_[EndPushE].nodeExchange(newNode());
+                SOLID_CHECK(ptmpn == pn, ptmpn << " != "<<pn);
+                nodeRelease(ptmpn);
             }
+            nodeRelease(pn);
         }
     } while (true);
 }
 //-----------------------------------------------------------------------------
+template <class T, unsigned NBits>
+bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max_queue_size)
+{
+    do{
+        Node *pn = popNodeAquire();
+        const size_t pos = pn->pop_pos_.fetch_add(1); //reserve waiting spot
+        
+        if(pos < node_size){
+            {
+                const size_t push_commit_pos = pn->push_commit_pos_.load();
+                if(pos >= push_commit_pos){
+                    //need to wait
+                    std::unique_lock<std::mutex> lock(end_[EndPopE].mutex_);
+
+                    end_[EndPopE].wait_count_.fetch_add(1);
+                    end_[EndPopE].condition_.wait(
+                        lock,
+                        [pn, pos, &_running]() {
+                            return (pos < pn->push_commit_pos_.load()) || !_running.load();
+                        });
+                    end_[EndPopE].wait_count_.fetch_sub(1);
+                }
+            }
+            if(pos >= pn->push_commit_pos_.load()){
+                nodeRelease(pn);
+                return false;
+            }
+            _rt = std::move(pn->item(pos));
+            size_.fetch_sub(1);
+            nodeRelease(pn);
+        }else{
+            std::unique_lock<std::mutex> lock(end_[EndPopE].mutex_);
+            end_[EndPopE].wait_count_.fetch_add(1);
+            end_[EndPopE].condition_.wait(
+                lock,
+                [pn, &_running]() {
+                    return pn->next_.load() != nullptr || !_running.load();
+                });
+            end_[EndPopE].wait_count_.fetch_sub(1);
+            
+            if(pn->next_.load() == nullptr){
+                nodeRelease(pn);
+                return false;
+            }
+            
+            if(end_[EndPopE].pnode_ == pn){
+                //ABA cannot happen because pn is locked and cannot be in the empty stack
+                Node *ptmpn = end_[EndPopE].nodeExchange(pn->next_.load());
+                SOLID_CHECK(ptmpn == pn, ptmpn << " != "<<pn);
+                nodeRelease(ptmpn);
+            }
+            nodeRelease(pn);
+        }
+        
+    }while(true);
+}
+#if 0
 template <class T, unsigned NBits>
 bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max_queue_size)
 {
@@ -497,6 +529,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
         }
     } while (true);
 }
+#endif
 } //namespace thread_safe
 
 //-----------------------------------------------------------------------------
