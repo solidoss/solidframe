@@ -28,6 +28,7 @@ add_test(NAME TestUtilityWorkPoolBasic      COMMAND  test_utility test_workpool_
 # test_workpool args: JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS
 add_test(NAME TestUtilityWorkPool           COMMAND  test_utility test_workpool)
 
+add_test(NAME TestUtilityWorkPool_0         COMMAND  test_utility test_workpool 1000 10 0 0 1 0 0)
 add_test(NAME TestUtilityWorkPool_1         COMMAND  test_utility test_workpool 100000 10 100 0 2 0 0)
 add_test(NAME TestUtilityWorkPool_2         COMMAND  test_utility test_workpool 10 10 0 0 2 100 0)
 add_test(NAME TestUtilityWorkPool_3         COMMAND  test_utility test_workpool 10 10 0 0 2 0 100)
