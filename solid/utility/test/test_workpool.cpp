@@ -34,6 +34,8 @@ struct Context {
     }
 };
 
+#define EXTRA_CHECKING
+
 int test_workpool(int argc, char* argv[])
 {
     solid::log_start(std::cerr, {".*:EWS"});
@@ -128,22 +130,37 @@ int test_workpool(int argc, char* argv[])
 
     const size_t v = (((job_count - 1) * job_count) / 2) * (producer_count == 0 ? 1 : producer_count);
 
-    solid_log(generic_logger, Verbose, "val = " << val << " expected val = " << v);
+    solid_log(generic_logger, Warning, "val = " << val << " expected val = " << v);
 
 #ifdef EXTRA_CHECKING
     sort(gdq.begin(), gdq.end());
 
-    const size_t  dv = -1;
-    const size_t* pv = &dv;
+    const size_t  dv1 = -1;
+    const size_t  dv2 = -1;
+    const size_t* pv1 = &dv1;
+    const size_t* pv2 = &dv2;
 
-    for (const auto& cv : gdq) {
-        if (cv == *pv) {
-            cout << cv << ' ';
+    for (size_t i = 0; i < gdq.size() - 1; i += 2) {
+        const auto& cv1 = gdq[i];
+        const auto& cv2 = gdq[i + 1];
+        if (cv1 == *pv1) {
+            cout << cv1 << '-';
         }
-        pv = &cv;
+        if (cv2 == *pv2) {
+            cout << cv2 << '+';
+        }
+        pv1 = &cv1;
+        pv2 = &cv2;
     }
+
+    //     for (const auto& cv : gdq) {
+    //         if (cv != *pv) {
+    //             cout << cv << ' ';
+    //         }
+    //         pv = &cv;
+    //     }
     cout << endl;
 #endif
-    SOLID_CHECK(v == val);
+    SOLID_CHECK(v == val, v << " != " << val);
     return 0;
 }
