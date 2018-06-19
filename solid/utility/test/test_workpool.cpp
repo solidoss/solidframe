@@ -43,7 +43,7 @@ int test_workpool(int argc, char* argv[])
     cout << "usage: " << argv[0] << " JOB_COUNT WAIT_SECONDS QUEUE_SIZE PRODUCER_COUNT CONSUMER_COUNT PUSH_SLEEP_MSECS JOB_SLEEP_MSECS" << endl;
 
     size_t        job_count        = 5000000;
-    int           wait_seconds     = 10;
+    int           wait_seconds     = 100;
     int           queue_size       = -1;
     int           producer_count   = 0;
     int           consumer_count   = thread::hardware_concurrency();

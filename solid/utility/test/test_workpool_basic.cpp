@@ -14,7 +14,7 @@ int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
 {
     solid::log_start(std::cerr, {".*:EWS"});
 
-    const int           wait_seconds = 10;
+    const int           wait_seconds = 100;
     const size_t        cnt{5000000};
     std::atomic<size_t> val{0};
     promise<void>       prom;
