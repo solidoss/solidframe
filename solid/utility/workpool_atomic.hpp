@@ -204,7 +204,6 @@ private:
             pold->next_.store(nullptr);
         }
         solid_statistic_inc(statistic_.pop_node_count_);
-        solid_dbg(workpool_logger, Statistic, " new_empty " << pold);
         return pold;
     }
 
@@ -232,8 +231,6 @@ private:
         const size_t cnt = _pn->use_cnt_.fetch_sub(1);
         SOLID_ASSERT(cnt != 0);
         if (cnt == 1) {
-            solid_dbg(workpool_logger, Statistic, '[' << _line << "] push_empty " << _pn);
-            SOLID_ASSERT(_pn != pop_end_.pnode_ && _pn != push_end_.pnode_);
             //the last one
             pushEmptyNode(_pn);
         }
@@ -277,12 +274,14 @@ size_t Queue<T, NBits>::push(const T& _rt, const size_t _max_queue_size)
     SOLID_ASSERT(false);
 }
 //-----------------------------------------------------------------------------
-inline void printt(const size_t &_rt, const int _l, void *_pn, const size_t _pos){
-    solid_dbg(workpool_logger, Statistic, '['<<_l<<"] "<<_rt<<' '<<_pn<<' '<<_pos);
+#ifdef SOLID_WP_PRINT
+inline void printt(const size_t& _rt, const int _l, void* _pn, const size_t _pos)
+{
+    solid_dbg(workpool_logger, Info, '[' << _l << "] " << _rt << ' ' << _pn << ' ' << _pos);
 }
 template <class T>
-inline void printt(const T&, const int, void *, const size_t){}
-
+inline void printt(const T&, const int, void*, const size_t) {}
+#endif
 //NOTE(*):
 //      we cannot use notify_one because we have no control on which thread is waken up.
 //      Suppose we have two threads waiting, one for position 4 and one for 5
@@ -290,6 +289,13 @@ inline void printt(const T&, const int, void *, const size_t){}
 //      If we would use notify_one, it may happen that the the waken up thread be the one waiting on
 //      position 5 - its waiting condition is not satisfied and it keeps on waiting and the
 //      thread waiting for position 4 is never waken.
+//NOTE(**):
+//      Problematic situation:
+//      push threads reserve positions: 5,6
+//      pop threads reserve positions: 5,6
+//
+//      position 6 is commited but pop thread handling position 5 must make no progress until position 5
+//      is also commited
 template <class T, unsigned NBits>
 size_t Queue<T, NBits>::push(T&& _rt, const size_t _max_queue_size)
 {
@@ -298,13 +304,26 @@ size_t Queue<T, NBits>::push(T&& _rt, const size_t _max_queue_size)
         const size_t pos = pn->push_pos_.fetch_add(1);
 
         if (pos < node_size) {
-            if(pos == 0){
+            new (pn->data_ + (pos * sizeof(T))) T{std::move(_rt)};
+            const size_t sz = size_.fetch_add(1) + 1;
+
+            std::atomic_thread_fence(std::memory_order_release);
+
+            {
+                size_t crtpos = pos;
+                while (!pn->push_commit_pos_.compare_exchange_weak(crtpos, pos + 1, std::memory_order_relaxed, std::memory_order_relaxed)) {
+                    crtpos = pos;
+                    //std::this_thread::yield();
+                }
+            }
+            //pn->push_commit_pos_.fetch_add(1);
+            nodeRelease(pn, __LINE__);
+#ifdef SOLID_WP_PRINT
+            if (pos == 0) {
                 printt(_rt, __LINE__, pn, 0);
             }
-            new (pn->data_ + (pos * sizeof(T))) T{std::move(_rt)};
+#endif
 
-            pn->push_commit_pos_.fetch_add(1);
-            const size_t sz           = size_.fetch_add(1) + 1;
             const size_t pop_wait_cnt = pop_end_.wait_count_.load();
 
             if (pop_wait_cnt != 0) {
@@ -314,44 +333,44 @@ size_t Queue<T, NBits>::push(T&& _rt, const size_t _max_queue_size)
                 solid_dbg(workpool_logger, Verbose, this << " pop_wait_cnt = " << pop_wait_cnt);
                 pop_end_.condition_.notify_all(); //see NOTE(*) below
             }
-            nodeRelease(pn, __LINE__);
+
             solid_statistic_inc(statistic_.push_count_);
             solid_dbg(workpool_logger, Verbose, this << " done push " << sz);
             return sz;
         } else {
             //overflow
-            std::unique_lock<std::mutex> lock(push_end_.mutex_);
+            bool do_notify_pop_end = false;
+            {
+                std::unique_lock<std::mutex> lock(push_end_.mutex_);
 
-            push_end_.wait_count_.fetch_add(1);
-            push_end_.condition_.wait(lock, [this, _max_queue_size]() { return size_.load() < _max_queue_size; });
-            push_end_.wait_count_.fetch_sub(1);
+                push_end_.wait_count_.fetch_add(1);
+                push_end_.condition_.wait(lock, [this, _max_queue_size]() { return size_.load() < _max_queue_size; });
+                push_end_.wait_count_.fetch_sub(1);
 
-            //pn is locked!
-            //the following check is safe because push_end_.pnode_ is
-            //modified only under push_end_.mutex_ lock
-            if (push_end_.pnode_ == pn) {
-                solid_dbg(workpool_logger, Verbose, this << " newNode");
-                //ABA cannot happen because pn is locked and cannot be in the empty stack
-                Node* pnewn = newNode();
-                pnewn->use_cnt_.fetch_add(1); //one for ptmpn->next_
-                Node* ptmpn = push_end_.nodeExchange(pnewn);
-                SOLID_CHECK(ptmpn == pn, ptmpn << " != " << pn);
-                SOLID_CHECK(ptmpn->next_.load() == nullptr, ptmpn->next_.load());
-                SOLID_CHECK(ptmpn != pnewn, ptmpn << " != "<<pnewn);
-                ptmpn->next_.store(pnewn);
+                //pn is locked!
+                //the following check is safe because push_end_.pnode_ is
+                //modified only under push_end_.mutex_ lock
+                if (push_end_.pnode_ == pn) {
+                    solid_dbg(workpool_logger, Verbose, this << " newNode");
+                    //ABA cannot happen because pn is locked and cannot be in the empty stack
+                    Node* pnewn = newNode();
+                    pnewn->use_cnt_.fetch_add(1); //one for ptmpn->next_
+                    Node* ptmpn = push_end_.nodeExchange(pnewn);
 
-                nodeRelease(ptmpn, __LINE__);
-                const size_t pop_wait_cnt = pop_end_.wait_count_.load();
+                    ptmpn->next_.store(pnewn);
 
-                if (pop_wait_cnt != 0) {
-                    {
-                        std::unique_lock<std::mutex> lock(pop_end_.mutex_);
-                    }
-                    solid_dbg(workpool_logger, Verbose, this << " pop_wait_cnt = " << pop_wait_cnt);
-                    pop_end_.condition_.notify_all(); //see NOTE(*) below
+                    nodeRelease(ptmpn, __LINE__);
+
+                    do_notify_pop_end = pop_end_.wait_count_.load() != 0;
                 }
+                nodeRelease(pn, __LINE__);
             }
-            nodeRelease(pn, __LINE__);
+            if (do_notify_pop_end) {
+                {
+                    std::unique_lock<std::mutex> lock(pop_end_.mutex_);
+                }
+                pop_end_.condition_.notify_all(); //see NOTE(*) below
+            }
         }
     } while (true);
 }
@@ -365,7 +384,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
 
         if (pos < node_size) {
             {
-                const size_t push_commit_pos = pn->push_commit_pos_.load();
+                const size_t push_commit_pos = pn->push_commit_pos_.load(std::memory_order_relaxed);
                 if (pos >= push_commit_pos) {
                     solid_dbg(workpool_logger, Verbose, this << " need to wait - pos = " << pos << " >= commit_pos = " << push_commit_pos);
                     //need to wait
@@ -375,22 +394,29 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                     pop_end_.condition_.wait(
                         lock,
                         [pn, pos, &_running]() {
-                            return (pos < pn->push_commit_pos_.load()) || !_running.load();
+                            return (pos < pn->push_commit_pos_.load(std::memory_order_relaxed)) || !_running.load();
                         });
                     pop_end_.wait_count_.fetch_sub(1);
                 }
             }
-            const size_t push_commit_pos = pn->push_commit_pos_.load();
+            const size_t push_commit_pos = pn->push_commit_pos_.load(std::memory_order_relaxed);
+
+            std::atomic_thread_fence(std::memory_order_acquire);
+
             if (pos >= push_commit_pos) {
                 solid_dbg(workpool_logger, Warning, this << " stop worker");
                 nodeRelease(pn, __LINE__);
                 return false;
             }
+
             _rt             = std::move(pn->item(pos));
-            if(pos == 0){
+            const size_t sz = size_.fetch_sub(1) - 1;
+#ifdef SOLID_WP_PRINT
+            if (pos == 0) {
                 printt(_rt, __LINE__, pn, push_commit_pos);
             }
-            const size_t sz = size_.fetch_sub(1) - 1;
+#endif
+            SOLID_CHECK(sz < 10000000ULL);
             nodeRelease(pn, __LINE__);
             if (sz < _max_queue_size && (_max_queue_size - sz) <= push_end_.wait_count_.load()) {
                 solid_dbg(workpool_logger, Verbose, this << " notify push - size = " << sz << " wait_count = " << push_end_.wait_count_.load());
@@ -424,7 +450,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
             if (pop_end_.pnode_ == pn) {
                 //ABA cannot happen because pn is locked and cannot be in the empty stack
                 Node* ptmpn = pop_end_.nodeNext();
-                solid_dbg(workpool_logger, Statistic, this << " move to new node " << pn<<" -> "<<pn->next_.load());
+                solid_dbg(workpool_logger, Verbose, this << " move to new node " << pn << " -> " << pn->next_.load());
                 SOLID_CHECK(ptmpn == pn, ptmpn << " != " << pn);
                 nodeRelease(ptmpn, __LINE__);
             }
