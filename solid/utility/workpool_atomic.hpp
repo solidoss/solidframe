@@ -140,7 +140,6 @@ class Queue {
         std::atomic<size_t> pop_node_count_;
         std::atomic<size_t> new_node_count_;
         std::atomic<size_t> del_node_count_;
-        std::atomic<size_t> switch_node_count_;
         std::atomic<size_t> pop_notif_;
         std::atomic<size_t> push_notif_;
         std::atomic<size_t> wait_pop_on_pos_;
@@ -152,7 +151,6 @@ class Queue {
             , pop_node_count_(0)
             , new_node_count_(0)
             , del_node_count_(0)
-            , switch_node_count_(0)
             , pop_notif_(0)
             , push_notif_(0)
             , wait_pop_on_pos_(0)
@@ -168,11 +166,10 @@ class Queue {
             _ros << " push_node_count_ = " << push_node_count_;
             _ros << " new_node_count_ = " << new_node_count_;
             _ros << " del_node_count_ = " << del_node_count_;
-            _ros << " switch_node_count_ = " << switch_node_count_;
-            _ros<< " pop_notif_ = "<<pop_notif_;
-            _ros<< " push_notif_ = "<<push_notif_;
-            _ros<< " wait_pop_on_pos_ = "<<wait_pop_on_pos_;
-            _ros<< " wait_pop_on_next_ = "<<wait_pop_on_next_;
+            _ros << " pop_notif_ = " << pop_notif_;
+            _ros << " push_notif_ = " << push_notif_;
+            _ros << " wait_pop_on_pos_ = " << wait_pop_on_pos_;
+            _ros << " wait_pop_on_next_ = " << wait_pop_on_next_;
             return _ros;
         }
     } statistic_;
@@ -194,9 +191,17 @@ public:
 
     ~Queue();
 
-    size_t push(const T& _rt, const size_t _max_queue_size);
+    size_t push(const T& _rt, const size_t _max_queue_size)
+    {
+        T* pt = nullptr;
+        return doPush(_rt, std::move(*pt), _max_queue_size, std::integral_constant<bool, true>());
+    }
 
-    size_t push(T&& _rt, const size_t _max_queue_size);
+    size_t push(T&& _rt, const size_t _max_queue_size)
+    {
+        T* pt = nullptr;
+        return doPush(*pt, std::move(_rt), _max_queue_size, std::integral_constant<bool, false>());
+    }
 
     bool pop(T& _rt, std::atomic<bool>& _running, const size_t _max_queue_size);
 
@@ -257,6 +262,19 @@ private:
     {
         return push_end_.nodeAcquire();
     }
+
+    T* doCopyOrMove(Node& _rn, const size_t _pos, const T& _rt, T&& _ut, std::integral_constant<bool, true>)
+    {
+        return new (_rn.data_ + (_pos * sizeof(T))) T{_rt};
+    }
+
+    T* doCopyOrMove(Node& _rn, const size_t _pos, const T& _rt, T&& _ut, std::integral_constant<bool, false>)
+    {
+        return new (_rn.data_ + (_pos * sizeof(T))) T{std::move(_ut)};
+    }
+
+    template <bool IsCopy>
+    size_t doPush(const T& _rt, T&& _ut, const size_t _max_queue_size, std::integral_constant<bool, IsCopy>);
 };
 
 //-----------------------------------------------------------------------------
@@ -278,12 +296,6 @@ Queue<T, NBits>::~Queue()
 #ifdef SOLID_HAS_STATISTICS
     solid_dbg(workpool_logger, Statistic, "Queue: " << this << " statistic:" << this->statistic_);
 #endif
-}
-//-----------------------------------------------------------------------------
-template <class T, unsigned NBits>
-size_t Queue<T, NBits>::push(const T& _rt, const size_t _max_queue_size)
-{
-    SOLID_ASSERT(false);
 }
 //-----------------------------------------------------------------------------
 #ifdef SOLID_WP_PRINT
@@ -309,14 +321,16 @@ inline void printt(const T&, const int, void*, const size_t) {}
 //      position 6 is commited but pop thread handling position 5 must make no progress until position 5
 //      is also commited
 template <class T, unsigned NBits>
-size_t Queue<T, NBits>::push(T&& _rt, const size_t _max_queue_size)
+template <bool IsCopy>
+size_t Queue<T, NBits>::doPush(const T& _rt, T&& _ut, const size_t _max_queue_size, std::integral_constant<bool, IsCopy> _is_copy)
 {
     do {
         Node*        pn  = pushNodeAcquire();
         const size_t pos = pn->push_pos_.fetch_add(1);
 
         if (pos < node_size) {
-            new (pn->data_ + (pos * sizeof(T))) T{std::move(_rt)};
+            doCopyOrMove(*pn, pos, _rt, std::move(_ut), _is_copy);
+
             const size_t sz = size_.fetch_add(1) + 1;
 
             std::atomic_thread_fence(std::memory_order_release);
@@ -328,7 +342,6 @@ size_t Queue<T, NBits>::push(T&& _rt, const size_t _max_queue_size)
                     std::this_thread::yield();
                 }
             }
-            //pn->push_commit_pos_.fetch_add(1);
             nodeRelease(pn, __LINE__);
 #ifdef SOLID_WP_PRINT
             if (pos == 0) {
@@ -354,13 +367,13 @@ size_t Queue<T, NBits>::push(T&& _rt, const size_t _max_queue_size)
             bool do_notify_pop_end = false;
             {
                 std::unique_lock<std::mutex> lock(push_end_.mutex_);
-                
-                if(size_.load() >= _max_queue_size){
+
+                if (size_.load() >= _max_queue_size) {
                     push_end_.wait_count_.fetch_add(1);
                     push_end_.condition_.wait(lock, [this, _max_queue_size]() { return size_.load() < _max_queue_size; });
                     push_end_.wait_count_.fetch_sub(1);
                 }
-                
+
                 //pn is locked!
                 //the following check is safe because push_end_.pnode_ is
                 //modified only under push_end_.mutex_ lock
@@ -399,7 +412,13 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
 
         if (pos < node_size) {
             {
-                const size_t push_commit_pos = pn->push_commit_pos_.load(std::memory_order_relaxed);
+                size_t push_commit_pos;
+                size_t count = 64;
+
+                while (pos >= (push_commit_pos = pn->push_commit_pos_.load(std::memory_order_relaxed)) && count--) {
+                    std::this_thread::yield();
+                }
+
                 if (pos >= push_commit_pos) {
                     solid_dbg(workpool_logger, Verbose, this << " need to wait - pos = " << pos << " >= commit_pos = " << push_commit_pos);
                     //need to wait
@@ -450,8 +469,8 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
         } else {
             std::unique_lock<std::mutex> lock(pop_end_.mutex_);
 
-            if(pn->next_.load() != nullptr){
-            }else{
+            if (pn->next_.load() != nullptr) {
+            } else {
                 pop_end_.wait_count_.fetch_add(1);
                 pop_end_.condition_.wait(
                     lock,
