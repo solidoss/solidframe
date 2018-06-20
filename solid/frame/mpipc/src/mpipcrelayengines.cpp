@@ -47,7 +47,7 @@ ErrorConditionT SingleNameEngine::registerConnection(const ConnectionContext& _r
 {
     SOLID_ASSERT(!_uname.empty());
     ErrorConditionT err;
-    auto            lambda = [&_uname, this, &_rconctx, &err](EngineCore::Proxy& _proxy) {
+    auto            lambda = [&_uname, this, &_rconctx /*, &err*/](EngineCore::Proxy& _proxy) {
         size_t conidx = static_cast<size_t>(_rconctx.relayId().index);
 
         size_t nameidx = InvalidIndex();

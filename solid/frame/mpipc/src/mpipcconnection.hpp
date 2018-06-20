@@ -152,7 +152,7 @@ public:
     void fetchResendableMessages(Service& _rsvc,
         Fnc const&                        _f)
     {
-        auto visit_fnc = [this, &_rsvc, &_f](
+        auto visit_fnc = [this /*, &_rsvc*/, &_f](
                              MessageBundle&   _rmsgbundle,
                              MessageId const& _rmsgid) {
             _f(this->poolId(), _rmsgbundle, _rmsgid);

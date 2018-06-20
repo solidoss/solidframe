@@ -419,10 +419,10 @@ int test_relay_close_request(int argc, char* argv[])
         std::string relay_port;
 
         { //mpipc relay initialization
-            auto con_start = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) {
+            auto con_start = [](frame::mpipc::ConnectionContext& _rctx) {
                 solid_dbg(generic_logger, Info, _rctx.recipientId());
             };
-            auto con_stop = [&relay_engine](frame::mpipc::ConnectionContext& _rctx) {
+            auto con_stop = [](frame::mpipc::ConnectionContext& _rctx) {
                 if (!running) {
                     ++connection_count;
                 }
