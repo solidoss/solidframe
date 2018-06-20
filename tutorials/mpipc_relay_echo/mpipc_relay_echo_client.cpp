@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
                 SOLID_CHECK(!err, "failed send Register");
             };
 
-            auto on_connection_stop = [&p](frame::mpipc::ConnectionContext& _rctx) {
+            auto on_connection_stop = [](frame::mpipc::ConnectionContext& /*_rctx*/) {
                 cout << "Connection stopped" << endl;
             };
 

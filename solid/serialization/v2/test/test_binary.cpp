@@ -187,7 +187,7 @@ public:
         ifs.open(p);
         _rs
             .push(
-                [this, ifs = std::move(ifs)](S& _rs, Context& _rctx, const char* _name) mutable {
+                [ifs = std::move(ifs)](S& _rs, Context& _rctx, const char* _name) mutable {
                     _rs.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
                         solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                     },

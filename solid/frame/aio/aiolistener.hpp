@@ -37,7 +37,6 @@ public:
         SocketDevice&&     _rsd)
         : CompletionHandler(_robj, Listener::on_init_completion)
         , s(std::move(_rsd))
-        , waitreq(ReactorWaitNone)
     {
     }
 
@@ -93,9 +92,8 @@ private:
 
 private:
     typedef SOLID_FUNCTION(void(ReactorContext&, SocketDevice&)) FunctionT;
-    FunctionT            f;
-    SocketBase           s;
-    ReactorWaitRequestsE waitreq;
+    FunctionT  f;
+    SocketBase s;
 };
 
 } //namespace aio

@@ -113,7 +113,7 @@ struct FileResponse : solid::frame::mpipc::Message {
                 if (plocal_path != nullptr) {
                     ofs.open(*plocal_path);
                 }
-                _s.push([this, ofs = std::move(ofs)](S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) mutable {
+                _s.push([ofs = std::move(ofs)](S& _s, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) mutable {
                     _s.add(ofs, [](std::ostream& _ros, uint64_t _len, const bool _done, solid::frame::mpipc::ConnectionContext& _rctx, const char* _name) {
                         //idbg("Progress(" << _name << "): " << _len << " done = " << _done);
                     },

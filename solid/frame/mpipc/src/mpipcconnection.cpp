@@ -636,7 +636,7 @@ void Connection::doCompleteAllMessages(
         solid_dbg(logger, Info, this);
         //can stop rightaway
         postStop(_rctx,
-            [_rerr](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) {
+            [](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) {
                 Connection& rthis = static_cast<Connection&>(_rctx.object());
                 rthis.onStopped(_rctx);
             }); //there might be events pending which will be delivered, but after this call
@@ -645,14 +645,14 @@ void Connection::doCompleteAllMessages(
         solid_dbg(logger, Info, this << " secs to wait = " << _seconds_to_wait);
         timer_.waitFor(_rctx,
             std::chrono::seconds(_seconds_to_wait),
-            [_rerr, _revent](frame::aio::ReactorContext& _rctx) {
+            [_revent](frame::aio::ReactorContext& _rctx) {
                 Connection& rthis = static_cast<Connection&>(_rctx.object());
                 rthis.doContinueStopping(_rctx, _revent);
             });
     } else {
         solid_dbg(logger, Info, this);
         post(_rctx,
-            [_rerr](frame::aio::ReactorContext& _rctx, Event&& _revent) {
+            [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
                 Connection& rthis = static_cast<Connection&>(_rctx.object());
                 rthis.doContinueStopping(_rctx, _revent);
             },
