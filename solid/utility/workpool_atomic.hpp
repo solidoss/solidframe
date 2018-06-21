@@ -439,7 +439,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
             std::atomic_thread_fence(std::memory_order_acquire);
 
             if (pos >= push_commit_pos) {
-                solid_dbg(workpool_logger, Warning, this << " stop worker");
+                solid_dbg(workpool_logger, Info, this << " stop worker");
                 nodeRelease(pn, __LINE__);
                 return false;
             }

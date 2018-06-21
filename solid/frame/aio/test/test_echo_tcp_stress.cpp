@@ -35,6 +35,7 @@ using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using AtomicSizeT    = atomic<size_t>;
 using SecureContextT = frame::aio::openssl::Context;
 //-----------------------------------------------------------------------------
+namespace{
 bool               running = true;
 mutex              mtx;
 condition_variable cnd;
@@ -45,6 +46,8 @@ std::string        srv_port_str;
 std::string        rly_port_str;
 bool               be_secure = false;
 bool               use_relay = false;
+unsigned           wait_seconds = 60;
+}//namespace
 //-----------------------------------------------------------------------------
 frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr);
 //-----------------------------------------------------------------------------
@@ -417,7 +420,7 @@ protected:
 
 int test_echo_tcp_stress(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {"solid::frame::aio.*:EW", "basic:VEW", "solid::workpool: VIEWS"});
+    solid::log_start(std::cerr, {"solid::frame::aio.*:EW", "basic:VEW", "solid::workpool: EWS"});
 
     size_t connection_count = 1;
 
@@ -584,7 +587,7 @@ int test_echo_tcp_stress(int argc, char* argv[])
         {
             unique_lock<mutex> lock(mtx);
 
-            if (!cnd.wait_for(lock, std::chrono::seconds(30), []() { return !running; })) {
+            if (!cnd.wait_for(lock, std::chrono::seconds(wait_seconds), []() { return !running; })) {
                 SOLID_THROW("Process is taking too long.");
             }
             cout << "Received " << recv_count / 1024 << "KB on " << connection_count << " connections" << endl;
