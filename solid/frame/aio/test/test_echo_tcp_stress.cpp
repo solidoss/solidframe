@@ -35,7 +35,7 @@ using AioSchedulerT  = frame::Scheduler<frame::aio::Reactor>;
 using AtomicSizeT    = atomic<size_t>;
 using SecureContextT = frame::aio::openssl::Context;
 //-----------------------------------------------------------------------------
-namespace{
+namespace {
 bool               running = true;
 mutex              mtx;
 condition_variable cnd;
@@ -44,10 +44,10 @@ size_t             recv_count   = 0;
 const size_t       repeat_count = 10000;
 std::string        srv_port_str;
 std::string        rly_port_str;
-bool               be_secure = false;
-bool               use_relay = false;
+bool               be_secure    = false;
+bool               use_relay    = false;
 unsigned           wait_seconds = 60;
-}//namespace
+} //namespace
 //-----------------------------------------------------------------------------
 frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr);
 //-----------------------------------------------------------------------------
