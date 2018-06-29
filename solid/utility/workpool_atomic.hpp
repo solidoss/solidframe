@@ -453,7 +453,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
 #endif
             SOLID_CHECK(sz < 10000000ULL);
             nodeRelease(pn, __LINE__);
-            if (sz < _max_queue_size && (_max_queue_size - sz) <= push_end_.wait_count_.load()) {
+            if (sz < _max_queue_size && push_end_.wait_count_.load()) {
                 solid_dbg(workpool_logger, Verbose, this << " notify push - size = " << sz << " wait_count = " << push_end_.wait_count_.load());
                 //we need the lock here in order to be certain that push threads
                 // are either waiting on push_end_.condition_ or have not yet read size_ value
