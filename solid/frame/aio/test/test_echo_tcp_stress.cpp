@@ -46,7 +46,7 @@ std::string        srv_port_str;
 std::string        rly_port_str;
 bool               be_secure    = false;
 bool               use_relay    = false;
-unsigned           wait_seconds = 60;
+unsigned           wait_seconds = 70;
 } //namespace
 //-----------------------------------------------------------------------------
 frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr);
