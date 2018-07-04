@@ -10,6 +10,9 @@
 
 #pragma once
 
+//NOTE: on Windows, when compiling against BoringSSL
+//we need to include "openssl/ssl.hpp" before any
+//inclusion of Windows.h
 #include "solid/frame/aio/openssl/aiosecurecontext.hpp"
 #include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 

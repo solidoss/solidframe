@@ -1,13 +1,16 @@
+//NOTE: on Windows, when compiling against BoringSSL
+//we need to include "openssl/ssl.hpp" before any
+//inclusion of Windows.h
+#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
+#include "solid/frame/mpipc/mpipccompression_snappy.hpp"
+#include "solid/frame/mpipc/mpipcconfiguration.hpp"
+#include "solid/frame/mpipc/mpipcservice.hpp"
+
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
 
 #include "solid/frame/aio/aioresolver.hpp"
-
-#include "solid/frame/mpipc/mpipccompression_snappy.hpp"
-#include "solid/frame/mpipc/mpipcconfiguration.hpp"
-#include "solid/frame/mpipc/mpipcservice.hpp"
-#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
 #include "mpipc_request_messages.hpp"
 #include <deque>
