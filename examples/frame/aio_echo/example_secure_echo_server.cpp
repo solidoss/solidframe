@@ -7,6 +7,9 @@ $ openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.
 
 */
 
+#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
+#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
+
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
@@ -15,8 +18,6 @@ $ openssl x509 -req -in server-req.pem -days 1000 -CA ca-cert.pem -CAkey ca-key.
 #include "solid/frame/aio/aioobject.hpp"
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
-#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
-#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 #include "solid/system/log.hpp"
 #include "solid/system/socketaddress.hpp"
