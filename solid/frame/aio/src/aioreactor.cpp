@@ -193,7 +193,7 @@ bool EventHandler::init()
     err = dev.localAddress(sa);
     if (err)
         return false;
-
+    dev.enableLoopbackFastPath();
     err = dev.connect(SocketAddressInet4("127.0.0.1", sa.port()));
     if (err)
         return false;
@@ -496,7 +496,6 @@ struct Reactor::Data {
 #elif defined(SOLID_USE_WSAPOLL)
     int computeWaitTimeMilliseconds(NanoTime const& _rcrt) const
     {
-
         if (exeq.size()) {
             return 0;
         } else if (timestore.size()) {
@@ -731,7 +730,7 @@ bool Reactor::push(TaskT& _robj, Service& _rsvc, Event&& _uevent)
 void Reactor::run()
 {
     solid_dbg(logger, Info, "<enter>");
-    int      selcnt;
+    long      selcnt;
     bool     running = true;
     NanoTime crttime;
     int      waitmsec;

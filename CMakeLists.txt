@@ -210,7 +210,7 @@ if(CMAKE_SYSTEM MATCHES "Windows*")
     set(SYS_NOLOG_LINKER_FLAGS "")
     set(SYS_RELEASE_LINKER_FLAGS "")
 
-    #add_definitions(-D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00)
+    add_definitions(-D_WIN32_WINNT=0x0601 -DWINVER=0x0601)
 endif(CMAKE_SYSTEM MATCHES "Windows*")
 
 

@@ -3,6 +3,11 @@
 // 2. On server receive message, send messages as in test_protocol_cancel
 // 3. On client receive first message cancel all messages from the server side
 
+#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
+#include "solid/frame/mpipc/mpipcconfiguration.hpp"
+#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
+#include "solid/frame/mpipc/mpipcservice.hpp"
+
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
@@ -12,14 +17,6 @@
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aioresolver.hpp"
 #include "solid/frame/aio/aiotimer.hpp"
-
-#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
-#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
-
-#include "solid/frame/mpipc/mpipcconfiguration.hpp"
-#include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
-#include "solid/frame/mpipc/mpipcservice.hpp"
-#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
 #include <condition_variable>
 #include <mutex>

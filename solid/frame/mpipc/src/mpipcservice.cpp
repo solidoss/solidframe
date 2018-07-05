@@ -1749,11 +1749,10 @@ bool Service::doNonMainConnectionStopping(
     ErrorConditionT& /*_rerror*/
 )
 {
-
-    solid_dbg(logger, Info, this << ' ' << &_rcon);
-
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
+
+    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count<<" is active = "<<_rcon.isActiveState());
 
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count;
@@ -1789,13 +1788,12 @@ bool Service::doMainConnectionStoppingNotLast(
     ErrorConditionT& /*_rerror*/
 )
 {
-
-    solid_dbg(logger, Info, this << ' ' << &_rcon);
-
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    //is main connection but is not the last one
+    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
+
+    //it's the main connection but it is not the last one
     _rseconds_to_wait = 10;
     rpool.setMainConnectionStopping();
     rpool.resetMainConnectionActive();
@@ -1817,10 +1815,10 @@ bool Service::doMainConnectionStoppingCleanOneShot(
 )
 {
 
-    solid_dbg(logger, Info, this << ' ' << &_rcon);
-
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
+
+    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
 
     size_t* pmsgidx = _revent_context.any().cast<size_t>();
     SOLID_ASSERT(pmsgidx);
@@ -1876,11 +1874,10 @@ bool Service::doMainConnectionStoppingCleanAll(
     ErrorConditionT& /*_rerror*/
 )
 {
-
-    solid_dbg(logger, Info, this << ' ' << &_rcon);
-
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
+
+    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
 
     if (rpool.msgorder_inner_list.size()) {
         const size_t msgidx = rpool.msgorder_inner_list.frontIndex();
@@ -1921,12 +1918,11 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
     ErrorConditionT& /*_rerror*/
 )
 {
-
-    solid_dbg(logger, Info, this << ' ' << &_rcon);
-
     //the last connection
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
+
+    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
 
     doFetchResendableMessagesFromConnection(_rcon);
 
@@ -1966,12 +1962,11 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
     ErrorConditionT& /*_rerror*/
 )
 {
-
-    solid_dbg(logger, Info, this << ' ' << &_rcon);
-
     //the last connection - fast closing or server side
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
+
+    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
 
     if (rpool.name.size() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
         impl_->namemap.erase(rpool.name.c_str());
@@ -1995,11 +1990,10 @@ bool Service::doMainConnectionRestarting(
     ErrorConditionT& /*_rerror*/
 )
 {
-
-    solid_dbg(logger, Info, this << ' ' << &_rcon);
-
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
+
+    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
 
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count;

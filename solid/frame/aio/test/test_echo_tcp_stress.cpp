@@ -1,3 +1,6 @@
+#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
+#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
+
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
@@ -8,9 +11,6 @@
 #include "solid/frame/aio/aioresolver.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
-
-#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
-#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -47,6 +47,7 @@ std::string        rly_port_str;
 bool               be_secure    = false;
 bool               use_relay    = false;
 unsigned           wait_seconds = 70;
+constexpr const bool enable_no_delay = true;
 } //namespace
 //-----------------------------------------------------------------------------
 frame::aio::Resolver& async_resolver(frame::aio::Resolver* _pres = nullptr);
@@ -284,7 +285,22 @@ private:
     }
     void onConnect(frame::aio::ReactorContext& _rctx)
     {
-        sock.device().enableNoDelay();
+        if(0){
+            int rcvsz = 1062000;
+            int sndsz = 2626560;
+            
+            sock.device().recvBufferSize(rcvsz);
+            sock.device().sendBufferSize(sndsz);
+            
+            rcvsz = sndsz = -1;
+            sock.device().recvBufferSize(rcvsz);
+            sock.device().sendBufferSize(sndsz);
+            
+            solid_log(generic_logger, Error, "recvbufsz = "<<rcvsz<<" sendbufsz = "<<sndsz);
+        }
+        if(enable_no_delay){
+            sock.device().enableNoDelay();
+        }
         Connection::onConnect(_rctx);
     }
 
@@ -325,7 +341,9 @@ private:
     {
         if (!_rctx.error()) {
             solid_dbg(generic_logger, Info, this << " Connected");
-            sock.device().enableNoDelay();
+            if(enable_no_delay){
+                sock.device().enableNoDelay();
+            }
             sock.secureSetVerifyDepth(_rctx, 10);
             sock.secureSetCheckHostName(_rctx, "echo-server");
             sock.secureSetVerifyCallback(_rctx, frame::aio::openssl::VerifyModePeer, onSecureVerify);
@@ -420,7 +438,7 @@ protected:
 
 int test_echo_tcp_stress(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {"solid::frame::aio.*:EW", "basic:VEW", "solid::workpool: EWS"});
+    solid::log_start(std::cerr, {"solid::frame::aio.*:EW", "\\*:VEW", "solid::workpool:EWS"});
 
     size_t connection_count = 1;
 
@@ -628,7 +646,22 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            _rsd.enableNoDelay();
+            if(0){
+                int rcvsz = 1062000;
+                int sndsz = 2626560;
+                
+                _rsd.recvBufferSize(rcvsz);
+                _rsd.sendBufferSize(sndsz);
+                
+                rcvsz = sndsz = -1;
+                _rsd.recvBufferSize(rcvsz);
+                _rsd.sendBufferSize(sndsz);
+                
+                solid_log(generic_logger, Error, "recvbufsz = "<<rcvsz<<" sendbufsz = "<<sndsz);
+            }
+            if(enable_no_delay){
+                _rsd.enableNoDelay();
+            }
             DynamicPointer<frame::aio::Object> objptr;
             solid::ErrorConditionT             err;
 
@@ -671,7 +704,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
 /*static*/ void Connection::onRecv(frame::aio::ReactorContext& _rctx, size_t _sz)
 {
-    unsigned    repeatcnt = 2;
+    unsigned    repeatcnt = 1;
     Connection& rthis     = static_cast<Connection&>(_rctx.object());
     solid_dbg(generic_logger, Info, &rthis << " " << _sz);
     do {
@@ -939,7 +972,9 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            _rsd.enableNoDelay();
+            if(enable_no_delay){
+                _rsd.enableNoDelay();
+            }
             DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd)));
             solid::ErrorConditionT             err;
 
@@ -1018,7 +1053,9 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     if (!_rctx.error()) {
         solid_dbg(generic_logger, Info, this << " SUCCESS");
-        sock2.device().enableNoDelay();
+        if(enable_no_delay){
+            sock2.device().enableNoDelay();
+        }
         sock1.postRecvSome(_rctx, buf1, BufferCapacity, Connection::onRecvSock1);
         sock2.postRecvSome(_rctx, buf2, BufferCapacity, Connection::onRecvSock2);
     } else {

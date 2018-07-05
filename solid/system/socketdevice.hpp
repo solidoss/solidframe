@@ -81,6 +81,8 @@ public:
     ErrorCodeT disableCork();
     ErrorCodeT hasCork(bool& _rrv) const;
 
+    ErrorCodeT enableLoopbackFastPath();
+
     //ErrorCodeT sendBufferSize(size_t _sz);
     //ErrorCodeT recvBufferSize(size_t _sz);
     ErrorCodeT sendBufferSize(int& _rrv);

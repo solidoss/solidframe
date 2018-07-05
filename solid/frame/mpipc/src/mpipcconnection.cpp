@@ -718,6 +718,11 @@ void Connection::onStopped(frame::aio::ReactorContext& _rctx)
 
     service(_rctx).onConnectionStop(conctx);
 
+    //TODO:
+    //when forcefully closing a connection pool,
+    //the callback given to forceCloseConnectionPool
+    //is called before last connection's close callback which is cumbersome
+
     doUnprepare(_rctx);
     (void)objuid;
 }
