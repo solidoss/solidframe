@@ -317,13 +317,13 @@ private:
 
     ErrorConditionT activateConnection(Connection& _rcon, ObjectIdT const& _robjuid);
 
-    void connectionStop(Connection const& _rcon);
+    void connectionStop(Connection const& _rcon, ConnectionContext& _rconctx);
 
     bool connectionStopping(
         Connection& _rcon, ObjectIdT const& _robjuid,
         ulong&           _rseconds_to_wait,
         MessageId&       _rmsg_id,
-        MessageBundle&   _rmsg_bundle,
+        MessageBundle*   _pmsg_bundle,
         Event&           _revent_context,
         ErrorConditionT& _rerror);
 
@@ -331,7 +331,7 @@ private:
         Connection& _rcon, ObjectIdT const& _robjuid,
         ulong&           _rseconds_to_wait,
         MessageId&       _rmsg_id,
-        MessageBundle&   _rmsg_bundle,
+        MessageBundle*   _pmsg_bundle,
         Event&           _revent_context,
         ErrorConditionT& _rerror);
 
@@ -339,7 +339,7 @@ private:
         Connection& _rcon, ObjectIdT const& /*_robjuid*/,
         ulong&      _rseconds_to_wait,
         MessageId& /*_rmsg_id*/,
-        MessageBundle& /*_rmsg_bundle*/,
+        MessageBundle* /*_rmsg_bundle*/,
         Event&           _revent_context,
         ErrorConditionT& _rerror);
 
@@ -347,7 +347,7 @@ private:
         Connection& _rcon, ObjectIdT const& _robjuid,
         ulong&           _rseconds_to_wait,
         MessageId&       _rmsg_id,
-        MessageBundle&   _rmsg_bundle,
+        MessageBundle*   _rmsg_bundle,
         Event&           _revent_context,
         ErrorConditionT& _rerror);
 
@@ -355,7 +355,7 @@ private:
         Connection& _rcon, ObjectIdT const& _robjuid,
         ulong&           _rseconds_to_wait,
         MessageId&       _rmsg_id,
-        MessageBundle&   _rmsg_bundle,
+        MessageBundle*   _rmsg_bundle,
         Event&           _revent_context,
         ErrorConditionT& _rerror);
 
@@ -363,7 +363,7 @@ private:
         Connection& _rcon, ObjectIdT const& /*_robjuid*/,
         ulong& /*_rseconds_to_wait*/,
         MessageId& /*_rmsg_id*/,
-        MessageBundle& /*_rmsg_bundle*/,
+        MessageBundle* /*_rmsg_bundle*/,
         Event& _revent_context,
         ErrorConditionT& /*_rerror*/);
 
@@ -371,7 +371,7 @@ private:
         Connection& _rcon, ObjectIdT const& /*_robjuid*/,
         ulong& /*_rseconds_to_wait*/,
         MessageId& /*_rmsg_id*/,
-        MessageBundle& /*_rmsg_bundle*/,
+        MessageBundle* /*_rmsg_bundle*/,
         Event&           _revent_context,
         ErrorConditionT& _rerror);
 
@@ -379,13 +379,12 @@ private:
         Connection& _rcon, ObjectIdT const& /*_robjuid*/,
         ulong& /*_rseconds_to_wait*/,
         MessageId& /*_rmsg_id*/,
-        MessageBundle& /*_rmsg_bundle*/,
+        MessageBundle* /*_rmsg_bundle*/,
         Event&           _revent_context,
         ErrorConditionT& _rerror);
 
     void onIncomingConnectionStart(ConnectionContext& _rconctx);
     void onOutgoingConnectionStart(ConnectionContext& _rconctx);
-    void onConnectionStop(ConnectionContext& _rconctx);
 
     ErrorConditionT pollPoolForUpdates(
         Connection&      _rcon,

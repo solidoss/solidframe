@@ -221,7 +221,9 @@ private:
 
     bool hasCompletingMessages() const;
 
-    void onStopped(frame::aio::ReactorContext& _rctx);
+    void onStopped(frame::aio::ReactorContext& _rctx,
+        MessageId const&                   _rpool_msg_id,
+        MessageBundle&                     _rmsg_local);
 
     void doStart(frame::aio::ReactorContext& _rctx, const bool _is_incoming);
 

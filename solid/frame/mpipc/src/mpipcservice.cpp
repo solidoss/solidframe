@@ -1703,7 +1703,7 @@ bool Service::connectionStopping(
     ObjectIdT const& _robjuid,
     ulong&           _rseconds_to_wait,
     MessageId&       _rmsg_id,
-    MessageBundle&   _rmsg_bundle,
+    MessageBundle*   _pmsg_bundle,
     Event&           _revent_context,
     ErrorConditionT& _rerror)
 {
@@ -1715,7 +1715,10 @@ bool Service::connectionStopping(
     ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     _rseconds_to_wait = 0;
-    _rmsg_bundle.clear();
+    
+    if(_pmsg_bundle){
+        _pmsg_bundle->clear();
+    }
 
     SOLID_ASSERT(rpool.unique == _rcon.poolId().unique);
     if (rpool.unique != _rcon.poolId().unique)
@@ -1724,19 +1727,19 @@ bool Service::connectionStopping(
     solid_dbg(logger, Info, this << ' ' << pool_index << " active_connection_count " << rpool.active_connection_count << " pending_connection_count " << rpool.pending_connection_count);
 
     if (!rpool.isMainConnection(_robjuid)) {
-        return doNonMainConnectionStopping(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
+        return doNonMainConnectionStopping(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
     } else if (!rpool.isLastConnection()) {
-        return doMainConnectionStoppingNotLast(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
+        return doMainConnectionStoppingNotLast(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
     } else if (rpool.isCleaningOneShotMessages()) {
-        return doMainConnectionStoppingCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
+        return doMainConnectionStoppingCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
     } else if (rpool.isCleaningAllMessages()) {
-        return doMainConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
+        return doMainConnectionStoppingCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
     } else if (rpool.isRestarting() && isRunning()) {
-        return doMainConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
+        return doMainConnectionRestarting(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
     } else if (!rpool.isFastClosing() && !rpool.isServerSide() && isRunning() && _rerror != error_connection_resolve) {
-        return doMainConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
+        return doMainConnectionStoppingPrepareCleanOneShot(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
     } else {
-        return doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _rmsg_bundle, _revent_context, _rerror);
+        return doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
     }
 }
 //-----------------------------------------------------------------------------
@@ -1744,7 +1747,7 @@ bool Service::doNonMainConnectionStopping(
     Connection& _rcon, ObjectIdT const& _robjuid,
     ulong& /*_rseconds_to_wait*/,
     MessageId& /*_rmsg_id*/,
-    MessageBundle& /*_rmsg_bundle*/,
+    MessageBundle* /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
@@ -1783,7 +1786,7 @@ bool Service::doMainConnectionStoppingNotLast(
     Connection& _rcon, ObjectIdT const& /*_robjuid*/,
     ulong&      _rseconds_to_wait,
     MessageId& /*_rmsg_id*/,
-    MessageBundle& /*_rmsg_bundle*/,
+    MessageBundle* /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
@@ -1809,7 +1812,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
     Connection& _rcon, ObjectIdT const& _robjuid,
     ulong&         _rseconds_to_wait,
     MessageId&     _rmsg_id,
-    MessageBundle& _rmsg_bundle,
+    MessageBundle* _rmsg_bundle,
     Event&         _revent_context,
     ErrorConditionT& /*_rerror*/
 )
@@ -1869,7 +1872,7 @@ bool Service::doMainConnectionStoppingCleanAll(
     Connection& _rcon, ObjectIdT const& _robjuid,
     ulong& /*_rseconds_to_wait*/,
     MessageId&     _rmsg_id,
-    MessageBundle& _rmsg_bundle,
+    MessageBundle* _pmsg_bundle,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
@@ -1883,12 +1886,13 @@ bool Service::doMainConnectionStoppingCleanAll(
         const size_t msgidx = rpool.msgorder_inner_list.frontIndex();
         {
             MessageStub& rmsgstub = rpool.msgorder_inner_list.front();
-            _rmsg_bundle          = std::move(rmsgstub.msgbundle);
+            *_pmsg_bundle          = std::move(rmsgstub.msgbundle);
             _rmsg_id              = MessageId(msgidx, rmsgstub.unique);
         }
         rpool.clearPopAndCacheMessage(msgidx);
-        return false;
-    } else {
+    }
+    
+    if (rpool.msgorder_inner_list.empty()) {
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count;
         } else {
@@ -1906,6 +1910,8 @@ bool Service::doMainConnectionStoppingCleanAll(
         }
 
         return true; //TODO: maybe we can return false
+    }else{
+        return false;
     }
 }
 //-----------------------------------------------------------------------------
@@ -1913,7 +1919,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
     Connection& _rcon, ObjectIdT const& /*_robjuid*/,
     ulong& /*_rseconds_to_wait*/,
     MessageId& /*_rmsg_id*/,
-    MessageBundle& /*_rmsg_bundle*/,
+    MessageBundle* /*_rmsg_bundle*/,
     Event& _revent_context,
     ErrorConditionT& /*_rerror*/
 )
@@ -1957,7 +1963,7 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
     Connection& _rcon, ObjectIdT const& /*_robjuid*/,
     ulong& /*_rseconds_to_wait*/,
     MessageId& /*_rmsg_id*/,
-    MessageBundle& /*_rmsg_bundle*/,
+    MessageBundle* /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
@@ -1985,7 +1991,7 @@ bool Service::doMainConnectionRestarting(
     Connection& _rcon, ObjectIdT const& _robjuid,
     ulong& _rseconds_to_wait,
     MessageId& /*_rmsg_id*/,
-    MessageBundle& /*_rmsg_bundle*/,
+    MessageBundle* /*_rmsg_bundle*/,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
@@ -2049,7 +2055,7 @@ bool Service::doMainConnectionRestarting(
     return true;
 }
 //-----------------------------------------------------------------------------
-void Service::connectionStop(Connection const& _rcon)
+void Service::connectionStop(Connection const& _rcon, ConnectionContext& _rconctx)
 {
 
     solid_dbg(logger, Info, this << ' ' << &_rcon);
@@ -2077,6 +2083,9 @@ void Service::connectionStop(Connection const& _rcon)
 
         rpool.clear();
     }
+    
+    configuration().relayEngine().stopConnection(_rconctx.relayId());
+    configuration().connection_stop_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------
 bool Service::doTryCreateNewConnectionForPool(const size_t _pool_index, ErrorConditionT& _rerror)
@@ -2327,13 +2336,6 @@ void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
 {
     solid_dbg(logger, Verbose, this);
     configuration().client.connection_start_fnc(_rconctx);
-}
-//-----------------------------------------------------------------------------
-void Service::onConnectionStop(ConnectionContext& _rconctx)
-{
-    solid_dbg(logger, Verbose, this);
-    configuration().relayEngine().stopConnection(_rconctx.relayId());
-    configuration().connection_stop_fnc(_rconctx);
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::sendRelay(const ObjectIdT& _rconid, RelayData&& _urelmsg)

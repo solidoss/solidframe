@@ -485,7 +485,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         error_     = _rerr;
         sys_error_ = _rsyserr;
 
-        solid_dbg(logger, Error, this << ' ' << this->id() << " [" << error_.message() << "][" << sys_error_.message() << "]");
+        solid_dbg(logger, Info, this << ' ' << this->id() << " [" << error_.message() << "][" << sys_error_.message() << "]");
 
         flags_.set(FlagsE::Stopping);
 
@@ -678,45 +678,48 @@ void Connection::doContinueStopping(
 
     bool can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
 
-    if (msg_bundle.message_ptr || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
-        doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
-    }
-
     if (can_stop) {
         //can stop rightaway
         postStop(_rctx,
-            [](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) {
+            [msg_bundle = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
                 Connection& rthis = static_cast<Connection&>(_rctx.object());
-                rthis.onStopped(_rctx);
+                rthis.onStopped(_rctx, pool_msg_id, msg_bundle);
             }); //there might be events pending which will be delivered, but after this call
         //no event get posted
-    } else if (seconds_to_wait) {
-        solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << seconds_to_wait << " seconds");
-        timer_.waitFor(_rctx,
-            std::chrono::seconds(seconds_to_wait),
-            [_revent](frame::aio::ReactorContext& _rctx) {
-                Connection& rthis = static_cast<Connection&>(_rctx.object());
-                rthis.doContinueStopping(_rctx, _revent);
-            });
     } else {
-        post(_rctx,
-            [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
-                Connection& rthis = static_cast<Connection&>(_rctx.object());
-                rthis.doContinueStopping(_rctx, _revent);
-            },
-            std::move(event));
+        
+        if (seconds_to_wait) {
+            solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << seconds_to_wait << " seconds");
+            timer_.waitFor(_rctx,
+                std::chrono::seconds(seconds_to_wait),
+                [_revent](frame::aio::ReactorContext& _rctx) {
+                    Connection& rthis = static_cast<Connection&>(_rctx.object());
+                    rthis.doContinueStopping(_rctx, _revent);
+                });
+        } else {
+            if (msg_bundle.message_ptr || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+                doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
+            }
+            post(_rctx,
+                [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
+                    Connection& rthis = static_cast<Connection&>(_rctx.object());
+                    rthis.doContinueStopping(_rctx, _revent);
+                },
+                std::move(event));
+        }
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::onStopped(frame::aio::ReactorContext& _rctx)
+void Connection::onStopped(
+        frame::aio::ReactorContext& _rctx,
+        MessageId const&                   _rpool_msg_id,
+        MessageBundle&                     _rmsg_local)
 {
 
     ObjectIdT         objuid(uid(_rctx));
     ConnectionContext conctx(service(_rctx), *this);
 
-    service(_rctx).connectionStop(*this);
-
-    service(_rctx).onConnectionStop(conctx);
+    service(_rctx).connectionStop(*this, conctx);
 
     //TODO:
     //when forcefully closing a connection pool,
@@ -1636,7 +1639,7 @@ struct Connection::Receiver : MessageReader::Receiver {
                 rthis.doOptimizeRecvBufferForced();
             }
         } else {
-            solid_dbg(logger, Error, &rthis << ' ' << rthis.id() << " receiving " << _rctx.error().message());
+            solid_dbg(logger, Info, &rthis << ' ' << rthis.id() << " receiving " << _rctx.error().message());
             rthis.flags_.set(FlagsE::StopPeer);
             rthis.doStop(_rctx, _rctx.error(), _rctx.systemError());
             recv_something = false; //prevent calling doResetTimerRecv after doStop
