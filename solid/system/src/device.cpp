@@ -11,9 +11,10 @@
 
 #ifdef SOLID_ON_WINDOWS
 #define NOMINMAX
-#include <Mstcpip.h>
 #include <WinSock2.h>
 #include <Windows.h>
+
+#include <Mstcpip.h>
 
 // Need to link with Ws2_32.lib
 #pragma comment(lib, "ws2_32.lib")

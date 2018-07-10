@@ -1,3 +1,6 @@
+#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
+#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
+
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
@@ -6,8 +9,6 @@
 #include "solid/frame/aio/aioreactor.hpp"
 #include "solid/frame/aio/aiosocket.hpp"
 #include "solid/frame/aio/aiostream.hpp"
-#include "solid/frame/aio/openssl/aiosecurecontext.hpp"
-#include "solid/frame/aio/openssl/aiosecuresocket.hpp"
 
 #include "solid/frame/aio/aioresolver.hpp"
 

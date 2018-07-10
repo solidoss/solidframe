@@ -1,3 +1,5 @@
+#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
+
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"
 #include "solid/frame/service.hpp"
@@ -14,7 +16,6 @@
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
-#include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
 
 #include "solid/system/socketaddress.hpp"
 #include <condition_variable>
