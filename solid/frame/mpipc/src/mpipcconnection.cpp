@@ -496,27 +496,28 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         MessageBundle     msg_bundle;
         MessageId         pool_msg_id;
         Event             event;
-        bool              can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
+        const bool        has_no_message = pending_message_vec_.empty() && msg_writer_.empty();
+        const bool        can_stop       = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, has_no_message ? &msg_bundle : nullptr, event, tmp_error);
 
-        if (msg_bundle.message_ptr.get() || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
-            doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
-        }
-
-        //at this point we need to start completing all connection's remaining messages
-
-        bool has_no_message = pending_message_vec_.empty() && msg_writer_.empty();
-
-        if (can_stop && has_no_message) {
+        if (can_stop) {
+            SOLID_ASSERT(has_no_message);
             solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
-            //can stop rightaway
+            auto lambda = [msg_b{std::move(msg_bundle)}, pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
+                Connection& rthis = static_cast<Connection&>(_rctx.object());
+                rthis.onStopped(_rctx, pool_msg_id, msg_b);
+            };
+            //can stop rightaway - we will handle the last message
+            //from service on onStopped method
             postStop(_rctx,
-                [](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) {
-                    Connection& rthis = static_cast<Connection&>(_rctx.object());
-                    rthis.onStopped(_rctx);
-                }); //there might be events pending which will be delivered, but after this call
+                std::move(lambda)); //there might be events pending which will be delivered, but after this call
             //no event get posted
         } else if (has_no_message) {
+            // try handle the returned message if any
+            if (msg_bundle.message_ptr.get() || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+                doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
+            }
             solid_dbg(logger, Info, this << ' ' << this->id() << " wait " << seconds_to_wait << " seconds");
+
             if (seconds_to_wait) {
                 timer_.waitFor(_rctx,
                     std::chrono::seconds(seconds_to_wait),
@@ -532,17 +533,19 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
                     },
                     std::move(event));
             }
+
         } else {
-            solid_dbg(logger, Info, this << ' ' << this->id() << " post message cleanup");
+            //we have initiated the stopping process but we cannot finish it right away because
+            //we have some local messages to handle
+            SOLID_ASSERT(event.empty());
             size_t offset = 0;
             post(_rctx,
-                [seconds_to_wait, can_stop, offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
+                [offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
                     Connection& rthis = static_cast<Connection&>(_rctx.object());
-                    rthis.doCompleteAllMessages(_rctx, offset, can_stop, seconds_to_wait, error_message_connection, _revent);
-                },
-                std::move(event));
+                    rthis.doCompleteAllMessages(_rctx, offset);
+                });
         }
-    }
+    } //if(!isStopping())
 }
 //-----------------------------------------------------------------------------
 struct Connection::Sender : MessageWriter::Sender {
@@ -586,11 +589,7 @@ struct Connection::Sender : MessageWriter::Sender {
 
 void Connection::doCompleteAllMessages(
     frame::aio::ReactorContext& _rctx,
-    size_t                      _offset,
-    const bool                  _can_stop,
-    const ulong                 _seconds_to_wait,
-    ErrorConditionT const&      _rerr,
-    Event&                      _revent)
+    size_t                      _offset)
 {
 
     bool has_any_message = !msg_writer_.empty();
@@ -600,7 +599,7 @@ void Connection::doCompleteAllMessages(
         //complete msg_writer messages
         ConnectionContext    conctx(service(_rctx), *this);
         Configuration const& rconfig = service(_rctx).configuration();
-        Sender               sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, _rerr);
+        Sender               sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, error_message_connection);
 
         msg_writer_.cancelOldest(sender);
 
@@ -612,7 +611,7 @@ void Connection::doCompleteAllMessages(
         MessageBundle msg_bundle;
 
         if (service(_rctx).fetchCanceledMessage(*this, pending_message_vec_[_offset], msg_bundle)) {
-            doCompleteMessage(_rctx, pending_message_vec_[_offset], msg_bundle, _rerr);
+            doCompleteMessage(_rctx, pending_message_vec_[_offset], msg_bundle, error_message_connection);
         }
         ++_offset;
         if (_offset == pending_message_vec_.size()) {
@@ -627,27 +626,10 @@ void Connection::doCompleteAllMessages(
         solid_dbg(logger, Info, this);
         post(
             _rctx,
-            [_rerr, _seconds_to_wait, _can_stop, _offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
+            [_offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
+                SOLID_ASSERT(_revent.empty());
                 Connection& rthis = static_cast<Connection&>(_rctx.object());
-                rthis.doCompleteAllMessages(_rctx, _offset, _can_stop, _seconds_to_wait, _rerr, _revent);
-            },
-            std::move(_revent));
-    } else if (_can_stop) {
-        solid_dbg(logger, Info, this);
-        //can stop rightaway
-        postStop(_rctx,
-            [](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) {
-                Connection& rthis = static_cast<Connection&>(_rctx.object());
-                rthis.onStopped(_rctx);
-            }); //there might be events pending which will be delivered, but after this call
-        //no event get posted
-    } else if (_seconds_to_wait) {
-        solid_dbg(logger, Info, this << " secs to wait = " << _seconds_to_wait);
-        timer_.waitFor(_rctx,
-            std::chrono::seconds(_seconds_to_wait),
-            [_revent](frame::aio::ReactorContext& _rctx) {
-                Connection& rthis = static_cast<Connection&>(_rctx.object());
-                rthis.doContinueStopping(_rctx, _revent);
+                rthis.doCompleteAllMessages(_rctx, _offset);
             });
     } else {
         solid_dbg(logger, Info, this);
@@ -655,8 +637,7 @@ void Connection::doCompleteAllMessages(
             [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
                 Connection& rthis = static_cast<Connection&>(_rctx.object());
                 rthis.doContinueStopping(_rctx, _revent);
-            },
-            std::move(_revent));
+            });
     }
 }
 //-----------------------------------------------------------------------------
@@ -670,13 +651,10 @@ void Connection::doContinueStopping(
     ErrorConditionT tmp_error(error());
     ObjectIdT       objuid(uid(_rctx));
     ulong           seconds_to_wait = 0;
-
-    MessageBundle msg_bundle;
-    MessageId     pool_msg_id;
-
-    Event event(_revent);
-
-    bool can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, msg_bundle, event, tmp_error);
+    MessageBundle   msg_bundle;
+    MessageId       pool_msg_id;
+    Event           event(_revent);
+    const bool      can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
 
     if (can_stop) {
         //can stop rightaway
@@ -687,7 +665,9 @@ void Connection::doContinueStopping(
             }); //there might be events pending which will be delivered, but after this call
         //no event get posted
     } else {
-        
+        if (msg_bundle.message_ptr || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+            doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
+        }
         if (seconds_to_wait) {
             solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << seconds_to_wait << " seconds");
             timer_.waitFor(_rctx,
@@ -697,9 +677,6 @@ void Connection::doContinueStopping(
                     rthis.doContinueStopping(_rctx, _revent);
                 });
         } else {
-            if (msg_bundle.message_ptr || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
-                doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
-            }
             post(_rctx,
                 [](frame::aio::ReactorContext& _rctx, Event&& _revent) {
                     Connection& rthis = static_cast<Connection&>(_rctx.object());
@@ -711,9 +688,9 @@ void Connection::doContinueStopping(
 }
 //-----------------------------------------------------------------------------
 void Connection::onStopped(
-        frame::aio::ReactorContext& _rctx,
-        MessageId const&                   _rpool_msg_id,
-        MessageBundle&                     _rmsg_local)
+    frame::aio::ReactorContext& _rctx,
+    MessageId const&            _rpool_msg_id,
+    MessageBundle&              _rmsg_bundle)
 {
 
     ObjectIdT         objuid(uid(_rctx));
@@ -721,10 +698,9 @@ void Connection::onStopped(
 
     service(_rctx).connectionStop(*this, conctx);
 
-    //TODO:
-    //when forcefully closing a connection pool,
-    //the callback given to forceCloseConnectionPool
-    //is called before last connection's close callback which is cumbersome
+    if (_rmsg_bundle.message_ptr || !SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
+        doCompleteMessage(_rctx, _rpool_msg_id, _rmsg_bundle, error_message_connection);
+    }
 
     doUnprepare(_rctx);
     (void)objuid;

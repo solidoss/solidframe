@@ -25,6 +25,7 @@
 #include "solid/frame/aio/aiostream.hpp"
 
 #include "solid/frame/mpipc/mpipcsocketstub.hpp"
+
 #include "solid/frame/mpipc/mpipcservice.hpp"
 
 namespace solid {

@@ -11,9 +11,9 @@
 
 #ifdef SOLID_ON_WINDOWS
 #define NOMINMAX
+#include <Mstcpip.h>
 #include <WinSock2.h>
 #include <Windows.h>
-#include <Mstcpip.h>
 
 // Need to link with Ws2_32.lib
 #pragma comment(lib, "ws2_32.lib")
@@ -697,7 +697,7 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
     if (rv < 0) {
         return last_socket_error();
     }
-    
+
     rv = listen(descriptor(), static_cast<int>(_listencnt));
     if (rv < 0) {
         return last_socket_error();
@@ -883,15 +883,16 @@ ssize_t SocketDevice::send(const char* _pb, size_t _ul, bool& _rcan_retry, Error
     _rerr       = last_socket_error();
     return rv;
 #else
-    DWORD bytes_sent = 0;
-    int status;
+    DWORD  bytes_sent = 0;
+    int    status;
     WSABUF buffer;
-    buffer.len = _ul;
-    buffer.buf = (char*)_pb;
-    status = WSASend(descriptor(), &buffer, 1, &bytes_sent, 0, NULL, NULL);
+    buffer.len  = _ul;
+    buffer.buf  = (char*)_pb;
+    status      = WSASend(descriptor(), &buffer, 1, &bytes_sent, 0, NULL, NULL);
     _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
     _rerr       = last_socket_error();
-    if(bytes_sent) return bytes_sent;
+    if (bytes_sent)
+        return bytes_sent;
     return -1;
 #endif
 #else
@@ -911,14 +912,15 @@ ssize_t SocketDevice::recv(char* _pb, size_t _ul, bool& _rcan_retry, ErrorCodeT&
     return rv;
 #else
     WSABUF buffer;
-    DWORD  flags = 0;
-    buffer.buf = _pb;
-    buffer.len = _ul;
-    DWORD  bytes_read = 0;
-    int rv = WSARecv(descriptor(), &buffer, 1, &bytes_read, &flags, NULL, NULL);
-    _rcan_retry = (WSAGetLastError() == WSAEWOULDBLOCK);
-    _rerr       = last_socket_error();
-    if(bytes_read) return bytes_read;
+    DWORD  flags     = 0;
+    buffer.buf       = _pb;
+    buffer.len       = _ul;
+    DWORD bytes_read = 0;
+    int   rv         = WSARecv(descriptor(), &buffer, 1, &bytes_read, &flags, NULL, NULL);
+    _rcan_retry      = (WSAGetLastError() == WSAEWOULDBLOCK);
+    _rerr            = last_socket_error();
+    if (bytes_read)
+        return bytes_read;
     return -1;
 #endif
 #else
@@ -1039,12 +1041,13 @@ ErrorCodeT SocketDevice::type(int& _rrv) const
 // #endif
 // }
 
-ErrorCodeT SocketDevice::enableLoopbackFastPath(){
+ErrorCodeT SocketDevice::enableLoopbackFastPath()
+{
 #if defined(SOLID_ON_WINDOWS)
     uint32_t param = 1;
-    DWORD ret;
-    int rv = WSAIoctl(descriptor(), SIO_LOOPBACK_FAST_PATH/*_WSAIOW(IOC_VENDOR, 16)*/,
-                        &param, sizeof(param), NULL, 0, &ret, 0, 0);
+    DWORD    ret;
+    int      rv = WSAIoctl(descriptor(), SIO_LOOPBACK_FAST_PATH /*_WSAIOW(IOC_VENDOR, 16)*/,
+        &param, sizeof(param), NULL, 0, &ret, 0, 0);
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1058,10 +1061,10 @@ ErrorCodeT SocketDevice::enableNoDelay()
 {
 #if defined(SOLID_ON_WINDOWS)
     BOOL flag = true;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int  rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 #else
     int flag = 1;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 #endif
     if (rv == 0) {
         return ErrorCodeT();
@@ -1073,10 +1076,10 @@ ErrorCodeT SocketDevice::disableNoDelay()
 {
 #if defined(SOLID_ON_WINDOWS)
     BOOL flag = false;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int  rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 #else
     int flag = 0;
-    int rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 #endif
     if (rv == 0) {
         return ErrorCodeT();

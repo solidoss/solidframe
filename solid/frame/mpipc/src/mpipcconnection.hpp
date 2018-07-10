@@ -222,8 +222,8 @@ private:
     bool hasCompletingMessages() const;
 
     void onStopped(frame::aio::ReactorContext& _rctx,
-        MessageId const&                   _rpool_msg_id,
-        MessageBundle&                     _rmsg_local);
+        MessageId const&                       _rpool_msg_id,
+        MessageBundle&                         _rmsg_local);
 
     void doStart(frame::aio::ReactorContext& _rctx, const bool _is_incoming);
 
@@ -321,11 +321,7 @@ private:
 
     void doCompleteAllMessages(
         frame::aio::ReactorContext& _rctx,
-        size_t                      _offset,
-        const bool                  _can_stop,
-        const ulong                 _seconds_to_wait,
-        ErrorConditionT const&      _rerr,
-        Event&                      _revent);
+        size_t                      _offset);
     void doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint8_t _request_buffer_ack_count, ErrorConditionT& _rerr);
 
 private:

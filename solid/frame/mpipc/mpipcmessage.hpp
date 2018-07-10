@@ -106,7 +106,7 @@ struct MessageHeader {
     void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, std::integral_constant<bool, true> _is_serializer, const char* _name)
     {
         SOLID_CHECK(_rctx.pmessage_url, "message url must not be null");
-        const uint64_t tmp = _rctx.message_flags.toUint64();
+        const MessageFlagsValueT tmp = _rctx.message_flags.toUint64();
         _rs.add(tmp, _rctx, "flags").add(*_rctx.pmessage_url, _rctx, "url");
         _rs.add(_rctx.request_id.index, _rctx, "sender_request_index");
         _rs.add(_rctx.request_id.unique, _rctx, "sender_request_unique");

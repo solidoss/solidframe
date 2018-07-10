@@ -65,6 +65,11 @@ struct Event {
 
     bool isDefault() const;
 
+    bool empty() const
+    {
+        return isDefault();
+    }
+
 private:
     friend class EventCategoryBase;
     friend class EventHandlerBase;

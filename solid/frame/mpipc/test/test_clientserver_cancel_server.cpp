@@ -4,9 +4,10 @@
 // 3. On client receive first message cancel all messages from the server side
 
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
+
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
-#include "solid/frame/mpipc/mpipcservice.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
+#include "solid/frame/mpipc/mpipcservice.hpp"
 
 #include "solid/frame/manager.hpp"
 #include "solid/frame/scheduler.hpp"

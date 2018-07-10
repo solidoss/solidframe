@@ -79,7 +79,7 @@ protected:
     void postStop(ReactorContext& _rctx, F _f, Event&& _uevent = Event())
     {
         if (doPrepareStop(_rctx)) {
-            _rctx.reactor().postObjectStop(_rctx, _f, std::move(_uevent));
+            _rctx.reactor().postObjectStop(_rctx, std::move(_f), std::move(_uevent));
         }
     }
 

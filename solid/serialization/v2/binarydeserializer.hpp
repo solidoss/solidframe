@@ -203,15 +203,6 @@ public:
     void addBasic(T& _rb, const char* _name)
     {
         solid_dbg(logger, Info, _name);
-#if 0
-        Runnable r{&_rb, &load_binary, sizeof(T), 0, _name};
-
-        if (isRunEmpty()) {
-            if (doLoadBinary(r) == ReturnE::Done) {
-                return;
-            }
-        }
-#elif 1
         Runnable r{&_rb, &load_cross<T>, 0, 0, _name};
 
         if (isRunEmpty()) {
@@ -219,15 +210,6 @@ public:
                 return;
             }
         }
-#else
-        Runnable r{&_rb, &load_cross_with_check<T>, 0, 0, _name};
-
-        if (isRunEmpty()) {
-            if (load_cross_with_check<T>(*this, r, nullptr) == ReturnE::Done) {
-                return;
-            }
-        }
-#endif
         schedule(std::move(r));
     }
 
@@ -1054,6 +1036,7 @@ private:
     template <typename T>
     inline ReturnE doLoadCross(Runnable& _rr)
     {
+#if 1
         if (pcrt_ != pend_) {
             _rr.size_ = *pcrt_;
             solid_dbg(logger, Info, "sz = " << _rr.size_ << " c = " << (int)*pcrt_);
@@ -1071,6 +1054,12 @@ private:
             return doLoadCrossData<T>(_rr);
         }
         return ReturnE::Wait;
+#else
+        _rr.size_  = sizeof(T);
+        _rr.call_  = load_cross_data<T>;
+        data_.u64_ = 0;
+        return doLoadCrossData<T>(_rr);
+#endif
     }
 
 protected:

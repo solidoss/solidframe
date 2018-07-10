@@ -1,4 +1,5 @@
 #include "solid/frame/mpipc/mpipcsocketstub_openssl.hpp"
+
 #include "solid/frame/mpipc/mpipcconfiguration.hpp"
 #include "solid/frame/mpipc/mpipcprotocol_serialization_v2.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"

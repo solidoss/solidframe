@@ -730,7 +730,7 @@ bool Reactor::push(TaskT& _robj, Service& _rsvc, Event&& _uevent)
 void Reactor::run()
 {
     solid_dbg(logger, Info, "<enter>");
-    long      selcnt;
+    long     selcnt;
     bool     running = true;
     NanoTime crttime;
     int      waitmsec;

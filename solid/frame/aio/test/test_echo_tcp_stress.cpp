@@ -36,17 +36,17 @@ using AtomicSizeT    = atomic<size_t>;
 using SecureContextT = frame::aio::openssl::Context;
 //-----------------------------------------------------------------------------
 namespace {
-bool               running = true;
-mutex              mtx;
-condition_variable cnd;
-size_t             concnt       = 0;
-size_t             recv_count   = 0;
-const size_t       repeat_count = 10000;
-std::string        srv_port_str;
-std::string        rly_port_str;
-bool               be_secure    = false;
-bool               use_relay    = false;
-unsigned           wait_seconds = 70;
+bool                 running = true;
+mutex                mtx;
+condition_variable   cnd;
+size_t               concnt       = 0;
+size_t               recv_count   = 0;
+const size_t         repeat_count = 10000;
+std::string          srv_port_str;
+std::string          rly_port_str;
+bool                 be_secure       = false;
+bool                 use_relay       = false;
+unsigned             wait_seconds    = 70;
 constexpr const bool enable_no_delay = true;
 } //namespace
 //-----------------------------------------------------------------------------
@@ -285,20 +285,20 @@ private:
     }
     void onConnect(frame::aio::ReactorContext& _rctx)
     {
-        if(0){
+        if (0) {
             int rcvsz = 1062000;
             int sndsz = 2626560;
-            
+
             sock.device().recvBufferSize(rcvsz);
             sock.device().sendBufferSize(sndsz);
-            
+
             rcvsz = sndsz = -1;
             sock.device().recvBufferSize(rcvsz);
             sock.device().sendBufferSize(sndsz);
-            
-            solid_log(generic_logger, Error, "recvbufsz = "<<rcvsz<<" sendbufsz = "<<sndsz);
+
+            solid_log(generic_logger, Error, "recvbufsz = " << rcvsz << " sendbufsz = " << sndsz);
         }
-        if(enable_no_delay){
+        if (enable_no_delay) {
             sock.device().enableNoDelay();
         }
         Connection::onConnect(_rctx);
@@ -341,7 +341,7 @@ private:
     {
         if (!_rctx.error()) {
             solid_dbg(generic_logger, Info, this << " Connected");
-            if(enable_no_delay){
+            if (enable_no_delay) {
                 sock.device().enableNoDelay();
             }
             sock.secureSetVerifyDepth(_rctx, 10);
@@ -646,20 +646,20 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            if(0){
+            if (0) {
                 int rcvsz = 1062000;
                 int sndsz = 2626560;
-                
+
                 _rsd.recvBufferSize(rcvsz);
                 _rsd.sendBufferSize(sndsz);
-                
+
                 rcvsz = sndsz = -1;
                 _rsd.recvBufferSize(rcvsz);
                 _rsd.sendBufferSize(sndsz);
-                
-                solid_log(generic_logger, Error, "recvbufsz = "<<rcvsz<<" sendbufsz = "<<sndsz);
+
+                solid_log(generic_logger, Error, "recvbufsz = " << rcvsz << " sendbufsz = " << sndsz);
             }
-            if(enable_no_delay){
+            if (enable_no_delay) {
                 _rsd.enableNoDelay();
             }
             DynamicPointer<frame::aio::Object> objptr;
@@ -972,7 +972,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     do {
         if (!_rctx.error()) {
-            if(enable_no_delay){
+            if (enable_no_delay) {
                 _rsd.enableNoDelay();
             }
             DynamicPointer<frame::aio::Object> objptr(new Connection(std::move(_rsd)));
@@ -1053,7 +1053,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 {
     if (!_rctx.error()) {
         solid_dbg(generic_logger, Info, this << " SUCCESS");
-        if(enable_no_delay){
+        if (enable_no_delay) {
             sock2.device().enableNoDelay();
         }
         sock1.postRecvSome(_rctx, buf1, BufferCapacity, Connection::onRecvSock1);

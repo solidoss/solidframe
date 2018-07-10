@@ -1715,8 +1715,8 @@ bool Service::connectionStopping(
     ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     _rseconds_to_wait = 0;
-    
-    if(_pmsg_bundle){
+
+    if (_pmsg_bundle) {
         _pmsg_bundle->clear();
     }
 
@@ -1755,7 +1755,7 @@ bool Service::doNonMainConnectionStopping(
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count<<" is active = "<<_rcon.isActiveState());
+    solid_dbg(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count << " is active = " << _rcon.isActiveState());
 
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count;
@@ -1786,7 +1786,7 @@ bool Service::doMainConnectionStoppingNotLast(
     Connection& _rcon, ObjectIdT const& /*_robjuid*/,
     ulong&      _rseconds_to_wait,
     MessageId& /*_rmsg_id*/,
-    MessageBundle* /*_rmsg_bundle*/,
+    MessageBundle* _pmsg_bundle,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
@@ -1794,10 +1794,12 @@ bool Service::doMainConnectionStoppingNotLast(
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
+    solid_dbg(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count);
 
     //it's the main connection but it is not the last one
-    _rseconds_to_wait = 10;
+
+    _rseconds_to_wait = 1;
+
     rpool.setMainConnectionStopping();
     rpool.resetMainConnectionActive();
 
@@ -1812,7 +1814,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
     Connection& _rcon, ObjectIdT const& _robjuid,
     ulong&         _rseconds_to_wait,
     MessageId&     _rmsg_id,
-    MessageBundle* _rmsg_bundle,
+    MessageBundle* _pmsg_bundle,
     Event&         _revent_context,
     ErrorConditionT& /*_rerror*/
 )
@@ -1821,7 +1823,7 @@ bool Service::doMainConnectionStoppingCleanOneShot(
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
+    solid_dbg(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count);
 
     size_t* pmsgidx = _revent_context.any().cast<size_t>();
     SOLID_ASSERT(pmsgidx);
@@ -1842,12 +1844,12 @@ bool Service::doMainConnectionStoppingCleanOneShot(
         }
 
         if (rmsgstub.msgbundle.message_ptr.get() && Message::is_one_shot(rmsgstub.msgbundle.message_flags)) {
-            _rmsg_bundle = std::move(rmsgstub.msgbundle);
-            _rmsg_id     = MessageId(crtmsgidx, rmsgstub.unique);
+            *_pmsg_bundle = std::move(rmsgstub.msgbundle);
+            _rmsg_id      = MessageId(crtmsgidx, rmsgstub.unique);
             rpool.clearPopAndCacheMessage(crtmsgidx);
         } else if (!rmsgstub.msgbundle.message_ptr && rpool.msgorder_inner_list.size() == 1) {
-            _rmsg_bundle = std::move(rmsgstub.msgbundle);
-            _rmsg_id     = MessageId(crtmsgidx, rmsgstub.unique);
+            *_pmsg_bundle = std::move(rmsgstub.msgbundle);
+            _rmsg_id      = MessageId(crtmsgidx, rmsgstub.unique);
             rpool.clearPopAndCacheMessage(crtmsgidx);
         }
         return false;
@@ -1880,18 +1882,18 @@ bool Service::doMainConnectionStoppingCleanAll(
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
+    solid_dbg(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count);
 
     if (rpool.msgorder_inner_list.size()) {
         const size_t msgidx = rpool.msgorder_inner_list.frontIndex();
         {
             MessageStub& rmsgstub = rpool.msgorder_inner_list.front();
-            *_pmsg_bundle          = std::move(rmsgstub.msgbundle);
+            *_pmsg_bundle         = std::move(rmsgstub.msgbundle);
             _rmsg_id              = MessageId(msgidx, rmsgstub.unique);
         }
         rpool.clearPopAndCacheMessage(msgidx);
     }
-    
+
     if (rpool.msgorder_inner_list.empty()) {
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count;
@@ -1910,7 +1912,7 @@ bool Service::doMainConnectionStoppingCleanAll(
         }
 
         return true; //TODO: maybe we can return false
-    }else{
+    } else {
         return false;
     }
 }
@@ -1919,8 +1921,8 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
     Connection& _rcon, ObjectIdT const& /*_robjuid*/,
     ulong& /*_rseconds_to_wait*/,
     MessageId& /*_rmsg_id*/,
-    MessageBundle* /*_rmsg_bundle*/,
-    Event& _revent_context,
+    MessageBundle* _pmsg_bundle,
+    Event&         _revent_context,
     ErrorConditionT& /*_rerror*/
 )
 {
@@ -1928,17 +1930,18 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
+    solid_dbg(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count);
 
     doFetchResendableMessagesFromConnection(_rcon);
 
     rpool.resetMainConnectionActive();
 
     if (rpool.msgorder_inner_list.size() || rpool.persistent_connection_count != 0) {
-        rpool.setCleaningOneShotMessages();
+        if (_pmsg_bundle) {
+            rpool.setCleaningOneShotMessages();
 
-        _revent_context.any() = rpool.msgorder_inner_list.frontIndex();
-
+            _revent_context.any() = rpool.msgorder_inner_list.frontIndex();
+        }
         return false;
     } else {
         if (_rcon.isActiveState()) {
@@ -1972,7 +1975,7 @@ bool Service::doMainConnectionStoppingPrepareCleanAll(
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
+    solid_dbg(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count);
 
     if (rpool.name.size() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
         impl_->namemap.erase(rpool.name.c_str());
@@ -1999,7 +2002,7 @@ bool Service::doMainConnectionRestarting(
     const size_t        pool_index = static_cast<size_t>(_rcon.poolId().index);
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
-    solid_dbg(logger, Info, this << ' ' << &_rcon<<" pending = "<<rpool.pending_connection_count<<" active = "<<rpool.active_connection_count);
+    solid_dbg(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count);
 
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count;
@@ -2083,7 +2086,7 @@ void Service::connectionStop(Connection const& _rcon, ConnectionContext& _rconct
 
         rpool.clear();
     }
-    
+
     configuration().relayEngine().stopConnection(_rconctx.relayId());
     configuration().connection_stop_fnc(_rconctx);
 }

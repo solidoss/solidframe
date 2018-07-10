@@ -237,28 +237,12 @@ public: //should be protected
     void addBasic(const T& _rb, const char* _name)
     {
         solid_dbg(logger, Info, _name << ' ' << _rb);
-#if 0
-        Runnable r{std::addressof(_rb), &store_binary, sizeof(T), static_cast<uint64_t>(_rb), _name};
-        if (isRunEmpty()) {
-            if (doStoreBinary(r) == ReturnE::Done) {
-                return;
-            }
-        }
-#elif 1
-        Runnable r{std::addressof(_rb), &store_cross, 0, static_cast<uint64_t>(_rb), _name};
+        Runnable r{std::addressof(_rb), &store_cross, sizeof(T), static_cast<uint64_t>(_rb), _name};
         if (isRunEmpty()) {
             if (doStoreCross(r) == ReturnE::Done) {
                 return;
             }
         }
-#else
-        Runnable r{nullptr, &store_cross_with_check, 0, static_cast<uint64_t>(_rb), _name};
-        if (isRunEmpty()) {
-            if (doStoreCrossWithCheck(r) == ReturnE::Done) {
-                return;
-            }
-        }
-#endif
         schedule(std::move(r));
     }
     template <typename T>
@@ -808,6 +792,7 @@ private:
 
     inline Base::ReturnE doStoreCross(Runnable& _rr)
     {
+#if 1
         if (pcrt_ != pend_) {
             const size_t sz = max_padded_byte_cout(_rr.data_);
             *pcrt_          = static_cast<char>(sz);
@@ -819,6 +804,14 @@ private:
             return doStoreBinary(_rr);
         }
         return ReturnE::Wait;
+#else
+        if (pcrt_ != pend_) {
+            _rr.call_ = store_binary;
+            _rr.ptr_  = &_rr.data_;
+            return doStoreBinary(_rr);
+        }
+        return ReturnE::Wait;
+#endif
     }
 
 protected:
