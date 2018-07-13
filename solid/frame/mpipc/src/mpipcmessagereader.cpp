@@ -327,8 +327,8 @@ const char* MessageReader::doConsumeMessage(
                             SOLID_ASSERT(false);
                         }
                     } else {
-                        solid_dbg(logger, Error, "msgidx = " << _msgidx << " message_size = " << message_size);
                         _rerror = rmsgstub.deserializer_ptr_->error();
+                        solid_dbg(logger, Error, "msgidx = " << _msgidx << " message_size = " << message_size << " error: " << _rerror.message());
                         cache(rmsgstub.deserializer_ptr_);
                         _pbufpos = _pbufend;
                         rmsgstub.clear();

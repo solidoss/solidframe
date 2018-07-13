@@ -1943,7 +1943,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
             _revent_context.any() = rpool.msgorder_inner_list.frontIndex();
         }
         return false;
-    } else {
+    } else if (_pmsg_bundle) {
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count;
         } else {
@@ -1959,6 +1959,8 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
             solid_dbg(logger, Verbose, this << " pool " << pool_index << " set closing");
         }
         return true; //the connection can call connectionStop asap
+    } else {
+        return false;
     }
 }
 //-----------------------------------------------------------------------------
@@ -2062,29 +2064,30 @@ void Service::connectionStop(Connection const& _rcon, ConnectionContext& _rconct
 {
 
     solid_dbg(logger, Info, this << ' ' << &_rcon);
+    {
+        const size_t           pool_index = static_cast<size_t>(_rcon.poolId().index);
+        lock_guard<std::mutex> lock(impl_->mtx);
+        lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+        ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
-    const size_t           pool_index = static_cast<size_t>(_rcon.poolId().index);
-    lock_guard<std::mutex> lock(impl_->mtx);
-    lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
-    ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
+        SOLID_ASSERT(rpool.unique == _rcon.poolId().unique);
+        if (rpool.unique != _rcon.poolId().unique)
+            return;
 
-    SOLID_ASSERT(rpool.unique == _rcon.poolId().unique);
-    if (rpool.unique != _rcon.poolId().unique)
-        return;
+        --rpool.stopping_connection_count;
+        rpool.resetRestarting();
 
-    --rpool.stopping_connection_count;
-    rpool.resetRestarting();
+        if (rpool.hasNoConnection()) {
 
-    if (rpool.hasNoConnection()) {
+            SOLID_ASSERT(rpool.msgorder_inner_list.empty());
+            impl_->conpoolcachestk.push(pool_index);
 
-        SOLID_ASSERT(rpool.msgorder_inner_list.empty());
-        impl_->conpoolcachestk.push(pool_index);
+            if (rpool.name.size() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
+                impl_->namemap.erase(rpool.name.c_str());
+            }
 
-        if (rpool.name.size() && !rpool.isClosing()) { //closing pools are already unregistered from namemap
-            impl_->namemap.erase(rpool.name.c_str());
+            rpool.clear();
         }
-
-        rpool.clear();
     }
 
     configuration().relayEngine().stopConnection(_rconctx.relayId());

@@ -61,6 +61,7 @@ std::string ErrorCategory::message(int _ev) const
         break;
     case Error_Cross_Integer_E:
         oss << "Cross integer checks failed";
+        break;
     default:
         oss << "Unknown";
         break;

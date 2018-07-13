@@ -245,6 +245,7 @@ public: //should be protected
         }
         schedule(std::move(r));
     }
+
     template <typename T>
     inline void addBasicWithCheck(const T& _rb, const char* _name)
     {
@@ -758,12 +759,16 @@ private:
     {
         if (pcrt_ != pend_) {
             size_t towrite = pend_ - pcrt_;
+
             if (towrite > _rr.size_) {
                 towrite = static_cast<size_t>(_rr.size_);
             }
+
             memcpy(pcrt_, _rr.ptr_, towrite);
+
             pcrt_ += towrite;
             _rr.size_ -= towrite;
+
             _rr.ptr_ = reinterpret_cast<const uint8_t*>(_rr.ptr_) + towrite;
             return _rr.size_ == 0 ? ReturnE::Done : ReturnE::Wait;
         }
@@ -798,9 +803,10 @@ private:
             *pcrt_          = static_cast<char>(sz);
             solid_dbg(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_);
             ++pcrt_;
-            _rr.size_ = sz;
-            _rr.call_ = store_binary;
-            _rr.ptr_  = &_rr.data_;
+            _rr.size_  = sz;
+            _rr.call_  = store_binary;
+            data_.u64_ = _rr.data_;
+            _rr.ptr_   = data_.buf_;
             return doStoreBinary(_rr);
         }
         return ReturnE::Wait;

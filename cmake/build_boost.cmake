@@ -6,7 +6,7 @@ ExternalProject_Add(
     build_boost
     EXCLUDE_FROM_ALL 1
     PREFIX ${EXTERNAL_PATH}/boost
-    URL "http://sourceforge.net/projects/boost/files/boost/1.66.0/boost_1_66_0.tar.bz2"
+    URL "http://sourceforge.net/projects/boost/files/boost/1.67.0/boost_1_67_0.tar.bz2"
     #URL_MD5 "6f4571e7c5a66ccc3323da6c24be8f05"
     CONFIGURE_COMMAND ./bootstrap.sh ${WITH_TOOLSET} --with-libraries=system,thread,program_options,serialization,filesystem
     BUILD_COMMAND ./b2 --prefix=${EXTERNAL_PATH} --layout=system link=static threading=multi install
