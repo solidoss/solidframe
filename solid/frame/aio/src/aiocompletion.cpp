@@ -95,8 +95,9 @@ void CompletionHandler::deactivate()
 
 void CompletionHandler::remDevice(ReactorContext& _rctx, Device const& _rsd)
 {
-    SOLID_ASSERT(isActive());
-    _rctx.reactor().remDevice(*this, _rsd);
+    if(isActive()){
+        _rctx.reactor().remDevice(*this, _rsd);
+    }
 }
 
 void CompletionHandler::addTimer(ReactorContext& _rctx, NanoTime const& _rt, size_t& _storedidx)

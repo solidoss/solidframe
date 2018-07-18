@@ -646,8 +646,6 @@ void Connection::doContinueStopping(
     const Event&                _revent)
 {
 
-    solid_dbg(logger, Info, this << ' ' << this->id() << "");
-
     ErrorConditionT tmp_error(error());
     ObjectIdT       objuid(uid(_rctx));
     ulong           seconds_to_wait = 0;
@@ -655,9 +653,12 @@ void Connection::doContinueStopping(
     MessageId       pool_msg_id;
     Event           event(_revent);
     const bool      can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
-
+    
+    solid_dbg(logger, Info, this << ' ' << this->id() << ' '<<can_stop);
+    
     if (can_stop) {
         //can stop rightaway
+        solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
         postStop(_rctx,
             [msg_bundle = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
                 Connection& rthis = static_cast<Connection&>(_rctx.object());

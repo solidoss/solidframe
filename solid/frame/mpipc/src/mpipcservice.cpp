@@ -1747,7 +1747,7 @@ bool Service::doNonMainConnectionStopping(
     Connection& _rcon, ObjectIdT const& _robjuid,
     ulong& /*_rseconds_to_wait*/,
     MessageId& /*_rmsg_id*/,
-    MessageBundle* /*_rmsg_bundle*/,
+    MessageBundle* _rmsg_bundle,
     Event& /*_revent_context*/,
     ErrorConditionT& /*_rerror*/
 )
@@ -1756,7 +1756,12 @@ bool Service::doNonMainConnectionStopping(
     ConnectionPoolStub& rpool(impl_->pooldq[pool_index]);
 
     solid_dbg(logger, Info, this << ' ' << &_rcon << " pending = " << rpool.pending_connection_count << " active = " << rpool.active_connection_count << " is active = " << _rcon.isActiveState());
-
+    
+    if(_rmsg_bundle == nullptr){
+        //cannot stop the connection right now - the connection has to clean its messages first
+        return false;
+    }
+    
     if (_rcon.isActiveState()) {
         --rpool.active_connection_count;
     } else {
