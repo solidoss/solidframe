@@ -18,6 +18,8 @@
 
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
+#include "solid/system/exception.hpp"
+
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -204,7 +206,7 @@ int main(int argc, char* argv[])
                 frame::file::Utf8Configuration utf8cfg;
                 frame::file::TempConfiguration tempcfg;
 
-                (void)system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver");
+                SOLID_CHECK(system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver") >= 0, "Error system");
 
                 const char* homedir = getenv("HOME");
 
