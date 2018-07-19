@@ -399,12 +399,7 @@ public:
     size_t registerLogger(LoggerBase& _rlg, const LogCategoryBase& _rlc);
     void   unregisterLogger(const size_t _idx);
 
-    ostream& start(const size_t _idx);
-
-    void done(const size_t _idx)
-    {
-        mtx_.unlock();
-    }
+    void log(const size_t _idx, impl::LogLineStreamBase &_log_ros);
 
     ErrorConditionT configure(ostream& _ros, const std::vector<std::string>& _rmodule_mask_vec);
     ErrorConditionT configure(
@@ -507,13 +502,14 @@ void Engine::unregisterLogger(const size_t _idx)
     module_vec_[_idx].clear();
 }
 
-ostream& Engine::start(const size_t _idx)
+void Engine::log(const size_t _idx, impl::LogLineStreamBase &_log_ros)
 {
     if (shouldRespin()) {
         doRespin();
     }
-    mtx_.lock();
-    return *pos_;
+    
+    std::lock_guard<std::mutex> lock(mtx_);
+    _log_ros.writeTo(*pos_);
 }
 
 ErrorConditionT Engine::configure(ostream& _ros, const std::vector<std::string>& _rmodule_mask_vec)
@@ -858,7 +854,7 @@ LoggerBase::~LoggerBase()
     Engine::the().unregisterLogger(idx_);
 }
 
-std::ostream& LoggerBase::doLog(const char* _flag_name, const char* _file, const char* _fnc, int _line) const
+std::ostream& LoggerBase::doLog(std::ostream& _ros, const char* _flag_name, const char* _file, const char* _fnc, int _line) const
 {
     constexpr size_t bufsz = 4 * 1024;
     char             buf[bufsz];
@@ -888,20 +884,18 @@ std::ostream& LoggerBase::doLog(const char* _flag_name, const char* _file, const
         src_file_name(_file),
         _line, _fnc);
 
-    ostream& ros = Engine::the().start(idx_);
-
-    ros.write(buf, sz);
+    _ros.write(buf, sz);
 
 #ifdef SOLID_ON_WINDOWS
-    return ros << '[' << std::this_thread::get_id() << ']' << ' ';
+    return _ros << '[' << std::this_thread::get_id() << ']' << ' ';
 #else
-    return ros << "[0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ';
+    return _ros << "[0x" << std::hex << std::this_thread::get_id() << std::dec << ']' << ' ';
 #endif
 }
 
-void LoggerBase::doDone() const
+void LoggerBase::doDone(impl::LogLineStreamBase &_log_ros) const
 {
-    Engine::the().done(idx_);
+    Engine::the().log(idx_, _log_ros);
 }
 
 //-----------------------------------------------------------------------------
