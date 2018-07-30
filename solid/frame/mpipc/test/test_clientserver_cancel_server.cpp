@@ -149,7 +149,7 @@ struct Message : frame::mpipc::Message {
 
         for (uint64_t i = 0; i < count; ++i) {
             if (pu[i] != pup[(i + idx) % pattern_size]) {
-                SOLID_THROW("Message check failed.");
+                solid_throw("Message check failed.");
                 return false;
             }
         }
@@ -184,10 +184,10 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
-    SOLID_CHECK(_rmsgptr->check(), "Message check failed.");
+    solid_check(_rmsgptr->check(), "Message check failed.");
 
     const size_t idx = static_cast<Message&>(*_rmsgptr).idx;
-    SOLID_CHECK(!initarray[idx % initarraysize].cancel, "Canceled message " << idx << " should not reach client side");
+    solid_check(!initarray[idx % initarraysize].cancel, "Canceled message " << idx << " should not reach client side");
 
     //cout<< _rmsgptr->str.size()<<'\n';
     transfered_size += _rmsgptr->str.size();
@@ -237,13 +237,13 @@ void server_complete_message(
     if (_rrecv_msg_ptr.get()) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " message id on sender " << _rrecv_msg_ptr->senderRequestId());
 
-        SOLID_CHECK(_rrecv_msg_ptr->check(), "Message check failed!");
+        solid_check(_rrecv_msg_ptr->check(), "Message check failed!");
 
-        SOLID_CHECK(_rrecv_msg_ptr->isOnPeer(), "Message not on peer!");
+        solid_check(_rrecv_msg_ptr->isOnPeer(), "Message not on peer!");
 
-        SOLID_CHECK(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
+        solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
-        SOLID_CHECK(recipient_id.isInvalidConnection());
+        solid_check(recipient_id.isInvalidConnection());
 
         recipient_id = _rctx.recipientId();
 
@@ -259,7 +259,7 @@ void server_complete_message(
                 recipient_id, frame::mpipc::MessagePointerT(new Message(crtwriteidx)),
                 msguid);
 
-            SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
+            solid_check(!err, "Connection id should not be invalid! " << err.message());
 
             if (initarray[crtwriteidx % initarraysize].cancel) {
                 message_uid_vec.push_back(msguid); //we cancel this one
@@ -436,11 +436,11 @@ int test_clientserver_cancel_server(int argc, char* argv[])
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(520), []() { return !running; })) {
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
 
         if (crtbackidx != expected_transfered_count) {
-            SOLID_THROW("Not all messages were completed");
+            solid_throw("Not all messages were completed");
         }
 
         //m.stop();

@@ -134,7 +134,7 @@ inline void CompletionHandler::systemError(ReactorContext& _rctx, ErrorCodeT con
 
 inline void CompletionHandler::contextBind(ReactorContext& _rctx) const
 {
-    SOLID_ASSERT(isActive());
+    solid_assert(isActive());
     _rctx.channel_index_ = idxreactor;
 }
 

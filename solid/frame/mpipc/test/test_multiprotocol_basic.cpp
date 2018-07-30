@@ -163,7 +163,7 @@ int test_multiprotocol_basic(int argc, char* argv[])
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return wait_count == 0; })) {
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
         //client service must not outlive manager!!
         alpha_client::stop();

@@ -115,7 +115,7 @@ class Test {
             vc.push_back('a' + static_cast<char>(i));
         }
 
-        SOLID_ASSERT(blb.size() < BlobCapacity);
+        solid_assert(blb.size() < BlobCapacity);
         memcpy(blob, blb.data(), blb.size());
         blob_sz = blb.size();
     }
@@ -141,29 +141,29 @@ public:
         buffer << t.rdbuf();
         string s1 = buffer.str();
         string s2 = _rt.oss.str();
-        SOLID_ASSERT(b == _rt.b);
-        SOLID_ASSERT(v == _rt.v);
-        SOLID_ASSERT(d == _rt.d);
-        SOLID_ASSERT(s1 == s2);
-        SOLID_ASSERT(m == _rt.m);
-        SOLID_ASSERT(s == _rt.s);
-        SOLID_ASSERT(um == _rt.um);
-        SOLID_ASSERT(us == _rt.us);
-        SOLID_ASSERT(vb == _rt.vb);
-        SOLID_ASSERT(bs == _rt.bs);
-        SOLID_ASSERT(vc == _rt.vc);
-        SOLID_ASSERT(a1 == _rt.a1);
-        SOLID_ASSERT(a2_sz == _rt.a2_sz);
+        solid_assert(b == _rt.b);
+        solid_assert(v == _rt.v);
+        solid_assert(d == _rt.d);
+        solid_assert(s1 == s2);
+        solid_assert(m == _rt.m);
+        solid_assert(s == _rt.s);
+        solid_assert(um == _rt.um);
+        solid_assert(us == _rt.us);
+        solid_assert(vb == _rt.vb);
+        solid_assert(bs == _rt.bs);
+        solid_assert(vc == _rt.vc);
+        solid_assert(a1 == _rt.a1);
+        solid_assert(a2_sz == _rt.a2_sz);
         for (decltype(a2_sz) i = 0; i < a2_sz; ++i) {
             if (a2[i] == _rt.a2[i]) {
 
             } else {
-                SOLID_ASSERT(false);
+                solid_assert(false);
                 return false;
             }
         }
-        SOLID_ASSERT(blob_sz == _rt.blob_sz);
-        SOLID_ASSERT(memcmp(blob, _rt.blob, blob_sz) == 0);
+        solid_assert(blob_sz == _rt.blob_sz);
+        solid_assert(memcmp(blob, _rt.blob, blob_sz) == 0);
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs && vc == _rt.vc;
     }
 
@@ -329,12 +329,12 @@ int test_binary(int argc, char* argv[])
                 ctx);
 
             //iss >> des.wrap(ctx);
-            SOLID_CHECK(!des.error(), "check failed: " << des.error().message());
-            SOLID_CHECK(t == t_c, "check failed");
-            SOLID_CHECK(*tp == *tp_c, "check failed");
-            SOLID_CHECK(*tup == *tup_c, "check failed");
-            SOLID_CHECK(!sp1_c, "check failed");
-            SOLID_CHECK(!up1_c, "check failed");
+            solid_check(!des.error(), "check failed: " << des.error().message());
+            solid_check(t == t_c, "check failed");
+            solid_check(*tp == *tp_c, "check failed");
+            solid_check(*tup == *tup_c, "check failed");
+            solid_check(!sp1_c, "check failed");
+            solid_check(!up1_c, "check failed");
         }
     }
     return 0;

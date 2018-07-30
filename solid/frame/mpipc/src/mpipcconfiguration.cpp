@@ -77,7 +77,7 @@ size_t default_compress(char*, size_t, ErrorConditionT&)
 size_t default_decompress(char*, const char*, size_t, ErrorConditionT& _rerror)
 {
     //This should never be called
-    SOLID_ASSERT(false);
+    solid_assert(false);
     _rerror = error_compression_unavailable;
     return 0;
 }
@@ -204,7 +204,7 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
     bool& /*_rmore*/
 )
 {
-    SOLID_THROW("should not be called");
+    solid_throw("should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doCancel(
@@ -214,17 +214,17 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
     DoneFunctionT& /*_done_fnc*/
 )
 {
-    SOLID_THROW("should not be called");
+    solid_throw("should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doPollNew(const UniqueId& _rrelay_uid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
 {
-    SOLID_THROW("should not be called");
+    solid_throw("should not be called");
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doPollDone(const UniqueId& _rrelay_uid, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/)
 {
-    SOLID_THROW("should not be called");
+    solid_throw("should not be called");
 }
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

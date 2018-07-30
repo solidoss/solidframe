@@ -137,19 +137,19 @@ size_t dynamic_main(const size_t _loop_count, const size_t _queue_count)
             //cout<<endl;
 
             if (A<2>::cast(&rb)) {
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
 
             if (AA<2, 2>::cast(&rb)) {
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
 
             if (AAA<2, 2, 2>::cast(&rb)) {
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
 
             if (AAAA<2, 2, 2, 2>::cast(&rb)) {
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
 
             dq.pop();
@@ -201,19 +201,19 @@ size_t dcast_main(const size_t _loop_count, const size_t _queue_count)
 //cout<<endl;
 #if 0
             if(dynamic_cast<A<5>*>(&rb)){
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
 
             if(dynamic_cast<AA<5, 5>*>(&rb)){
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
 
             if(dynamic_cast<AAA<5, 5, 5>*>(&rb)){
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
 
             if(dynamic_cast<AAAA<5, 5, 5, 5>*>(&rb)){
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
 #endif
             dq.pop();

@@ -230,7 +230,7 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         } else {
             toread = 0;
         }
-        SOLID_CHECK(toread <= 0xffff);
+        solid_check(toread <= 0xffff);
         uint16_t chunk_len = static_cast<uint16_t>(toread);
         _rs.pcrt_          = store(_rs.pcrt_, chunk_len);
         _rs.pcrt_ += toread;

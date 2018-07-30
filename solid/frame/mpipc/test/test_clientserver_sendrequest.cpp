@@ -200,7 +200,7 @@ void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
 // void client_receive_request(frame::mpipc::ConnectionContext &_rctx, std::shared_ptr<Request> &_rmsgptr){
 //  solid_dbg(generic_logger, Info, _rctx.recipientId());
-//  SOLID_THROW("Received request on client.");
+//  solid_throw("Received request on client.");
 // }
 
 void client_complete_request(
@@ -210,7 +210,7 @@ void client_complete_request(
     ErrorConditionT const&           _rerr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
-    SOLID_THROW("Should not be called");
+    solid_throw("Should not be called");
 }
 
 void client_complete_response(
@@ -220,7 +220,7 @@ void client_complete_response(
     ErrorConditionT const&           _rerr)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
-    SOLID_THROW("Should not be called");
+    solid_throw("Should not be called");
 }
 
 void on_receive_response(
@@ -232,11 +232,11 @@ void on_receive_response(
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
     if (!_rreqmsgptr) {
-        SOLID_THROW("Request should not be empty");
+        solid_throw("Request should not be empty");
     }
 
     if (!_rresmsgptr) {
-        SOLID_THROW("Response should not be empty");
+        solid_throw("Response should not be empty");
     }
 
     ++crtbackidx;
@@ -246,7 +246,7 @@ void on_receive_response(
     ++transfered_count;
 
     if (!_rresmsgptr->isBackOnSender()) {
-        SOLID_THROW("Message not back on sender!.");
+        solid_throw("Message not back on sender!.");
     }
 
     if (crtbackidx == writecount) {
@@ -274,28 +274,28 @@ void server_complete_request(
     ErrorConditionT const&           _rerr)
 {
     if (_rerr) {
-        SOLID_THROW("Error");
+        solid_throw("Error");
         return;
     }
 
     if (_rsendmsgptr.get()) {
-        SOLID_THROW("Server does not send Request");
+        solid_throw("Server does not send Request");
         return;
     }
 
     if (!_rrecvmsgptr) {
-        SOLID_THROW("Server should receive Request");
+        solid_throw("Server should receive Request");
         return;
     }
 
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " message id on sender " << _rrecvmsgptr->senderRequestId());
 
     if (!_rrecvmsgptr->check()) {
-        SOLID_THROW("Message check failed.");
+        solid_throw("Message check failed.");
     }
 
     if (!_rrecvmsgptr->isOnPeer()) {
-        SOLID_THROW("Message not on peer!.");
+        solid_throw("Message not on peer!.");
     }
 
     //send message back
@@ -330,16 +330,16 @@ void server_complete_response(
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
     if (_rerr) {
-        SOLID_THROW("Error");
+        solid_throw("Error");
         return;
     }
 
     if (!_rsendmsgptr) {
-        SOLID_THROW("Send message should not be empty");
+        solid_throw("Send message should not be empty");
     }
 
     if (_rrecvmsgptr) {
-        SOLID_THROW("Recv message should be empty");
+        solid_throw("Recv message should be empty");
     }
 }
 
@@ -515,11 +515,11 @@ int test_clientserver_sendrequest(int argc, char* argv[])
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return !running; })) {
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
 
         if (crtwriteidx != crtackidx) {
-            SOLID_THROW("Not all messages were completed");
+            solid_throw("Not all messages were completed");
         }
 
         //m.stop();

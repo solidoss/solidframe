@@ -137,9 +137,9 @@ int main(int argc, char* argv[])
 
         cout << "sa4_1 host = " << hoststr << ":" << servstr << endl;
 
-        SOLID_ASSERT(sa4_0 < sa4_1);
+        solid_assert(sa4_0 < sa4_1);
 
-        SOLID_ASSERT(sa4_0.address() < sa4_1.address());
+        solid_assert(sa4_0.address() < sa4_1.address());
 
         SocketAddressInet4::DataArrayT binaddr4;
         sa4_0.toBinary(binaddr4, portx);
@@ -153,10 +153,10 @@ int main(int argc, char* argv[])
 
         cout << "sa4_2 host = " << hoststr << ":" << servstr << endl;
 
-        SOLID_ASSERT(!(sa4_1 == sa4_2));
-        SOLID_ASSERT(sa4_0 == sa4_2);
-        SOLID_ASSERT(!(sa4_0 < sa4_2));
-        SOLID_ASSERT(!(sa4_2 < sa4_0));
+        solid_assert(!(sa4_1 == sa4_2));
+        solid_assert(sa4_0 == sa4_2);
+        solid_assert(!(sa4_0 < sa4_2));
+        solid_assert(!(sa4_2 < sa4_0));
 
         //      int sd = socket(it.family(), it.type(), it.protocol());
         //      struct timeval tosnd;

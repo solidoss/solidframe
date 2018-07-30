@@ -249,7 +249,7 @@ public:
     Function(const ThisT& _rany)
         : FunctionBase(doCopyFrom(_rany, this->dataPtr(), DataSize))
     {
-        SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
+        solid_check(_rany.empty() == this->empty(), "Copy Non Copyable");
     }
 
     Function(ThisT&& _rany)
@@ -309,7 +309,7 @@ public:
         if (static_cast<const void*>(this) != static_cast<const void*>(&_rany)) {
             clear();
             pvalue_ = doCopyFrom(_rany, this->dataPtr(), DataSize);
-            SOLID_CHECK(_rany.empty() == this->empty(), "Copy Non Copyable");
+            solid_check(_rany.empty() == this->empty(), "Copy Non Copyable");
         }
         return *this;
     }
@@ -433,7 +433,7 @@ private:
 } //namespace solid
 #ifdef SOLID_USE_STD_FUNCTION
 
-#define SOLID_FUNCTION(...) std::function<__VA_ARGS__>
+#define solid_function_t(...) std::function<__VA_ARGS__>
 
 #else
 
@@ -441,9 +441,9 @@ private:
 #define SOLID_FUNCTION_STORAGE 32
 #endif
 
-#define SOLID_FUNCTION(...) solid::Function<SOLID_FUNCTION_STORAGE, __VA_ARGS__>
+#define solid_function_t(...) solid::Function<SOLID_FUNCTION_STORAGE, __VA_ARGS__>
 
 #endif
 
-#define SOLID_FUNCTION_EMPTY(f) (!f)
-#define SOLID_FUNCTION_CLEAR(f) (f = nullptr)
+#define solid_function_empty(f) (!f)
+#define solid_function_clear(f) (f = nullptr)

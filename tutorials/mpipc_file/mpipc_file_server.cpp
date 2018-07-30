@@ -60,9 +60,9 @@ void complete_message<ipc_file::ListRequest>(
     std::shared_ptr<ipc_file::ListRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
-    SOLID_CHECK(!_rerror);
-    SOLID_CHECK(_rrecv_msg_ptr);
-    SOLID_CHECK(!_rsent_msg_ptr);
+    solid_check(!_rerror);
+    solid_check(_rrecv_msg_ptr);
+    solid_check(!_rsent_msg_ptr);
 
     auto msgptr = std::make_shared<ipc_file::ListResponse>(*_rrecv_msg_ptr);
 
@@ -82,7 +82,7 @@ void complete_message<ipc_file::ListRequest>(
             ++it;
         }
     }
-    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    solid_check(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -92,9 +92,9 @@ void complete_message<ipc_file::ListResponse>(
     std::shared_ptr<ipc_file::ListResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
-    SOLID_CHECK(!_rerror);
-    SOLID_CHECK(!_rrecv_msg_ptr);
-    SOLID_CHECK(_rsent_msg_ptr);
+    solid_check(!_rerror);
+    solid_check(!_rrecv_msg_ptr);
+    solid_check(_rsent_msg_ptr);
 }
 
 template <>
@@ -104,9 +104,9 @@ void complete_message<ipc_file::FileRequest>(
     std::shared_ptr<ipc_file::FileRequest>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
-    SOLID_CHECK(!_rerror);
-    SOLID_CHECK(_rrecv_msg_ptr);
-    SOLID_CHECK(!_rsent_msg_ptr);
+    solid_check(!_rerror);
+    solid_check(_rrecv_msg_ptr);
+    solid_check(!_rsent_msg_ptr);
 
     auto msgptr = std::make_shared<ipc_file::FileResponse>(*_rrecv_msg_ptr);
 
@@ -116,7 +116,7 @@ void complete_message<ipc_file::FileRequest>(
         msgptr->remote_file_size = fs::file_size(fs::path(_rrecv_msg_ptr->remote_path), error);
     }
 
-    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    solid_check(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -126,9 +126,9 @@ void complete_message<ipc_file::FileResponse>(
     std::shared_ptr<ipc_file::FileResponse>& _rrecv_msg_ptr,
     ErrorConditionT const&                   _rerror)
 {
-    SOLID_CHECK(!_rerror);
-    SOLID_CHECK(!_rrecv_msg_ptr);
-    SOLID_CHECK(_rsent_msg_ptr);
+    solid_check(!_rerror);
+    solid_check(!_rrecv_msg_ptr);
+    solid_check(_rsent_msg_ptr);
 }
 
 struct MessageSetup {

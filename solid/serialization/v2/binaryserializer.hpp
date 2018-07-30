@@ -33,7 +33,7 @@ class SerializerBase : public Base {
 
     typedef ReturnE (*CallbackT)(SerializerBase&, Runnable&, void*);
 
-    using FunctionT = SOLID_FUNCTION(ReturnE(SerializerBase&, Runnable&, void*));
+    using FunctionT = solid_function_t(ReturnE(SerializerBase&, Runnable&, void*));
 
     struct Runnable {
         Runnable(
@@ -82,7 +82,7 @@ class SerializerBase : public Base {
         {
             ptr_  = nullptr;
             call_ = nullptr;
-            SOLID_FUNCTION_CLEAR(fnc_);
+            solid_function_clear(fnc_);
         }
 
         const void* ptr_;
@@ -784,7 +784,7 @@ private:
                 return ReturnE::Done;
             } else {
                 p = cross::store_with_check(data_.buf_, BufferCapacityE, _rr.data_);
-                SOLID_CHECK(p, "should not be null");
+                solid_check(p, "should not be null");
                 _rr.ptr_  = data_.buf_;
                 _rr.size_ = p - data_.buf_;
                 _rr.data_ = 0;

@@ -286,7 +286,7 @@ std::streamsize DeviceBuffer::xsputn(const char* s, std::streamsize num)
     memcpy(bpos, s, towrite);
     bpos += towrite;
     if (static_cast<size_t>(bpos - bbeg) > buffer_flush && !flush()) {
-        SOLID_ASSERT(0);
+        solid_assert(0);
         return -1;
     }
     if (num == towrite)
@@ -295,7 +295,7 @@ std::streamsize DeviceBuffer::xsputn(const char* s, std::streamsize num)
     s += towrite;
     if (num >= static_cast<std::streamsize>(buffer_flush)) {
         std::streamsize retv = dev_.write(s, static_cast<uint32_t>(num));
-        SOLID_ASSERT(retv != num);
+        solid_assert(retv != num);
         return retv;
     }
     memcpy(bpos, s, static_cast<size_t>(num));
@@ -399,7 +399,7 @@ public:
     size_t registerLogger(LoggerBase& _rlg, const LogCategoryBase& _rlc);
     void   unregisterLogger(const size_t _idx);
 
-    void log(const size_t _idx, impl::LogLineStreamBase &_log_ros);
+    void log(const size_t _idx, impl::LogLineStreamBase& _log_ros);
 
     ErrorConditionT configure(ostream& _ros, const std::vector<std::string>& _rmodule_mask_vec);
     ErrorConditionT configure(
@@ -502,12 +502,12 @@ void Engine::unregisterLogger(const size_t _idx)
     module_vec_[_idx].clear();
 }
 
-void Engine::log(const size_t _idx, impl::LogLineStreamBase &_log_ros)
+void Engine::log(const size_t _idx, impl::LogLineStreamBase& _log_ros)
 {
     if (shouldRespin()) {
         doRespin();
     }
-    
+
     std::lock_guard<std::mutex> lock(mtx_);
     _log_ros.writeTo(*pos_);
 }
@@ -707,7 +707,7 @@ void Engine::doRespin()
     } else if (pos_ == &stream_) {
         stream_.swapDevice(fd);
     } else {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
 
     fd.flush();
@@ -758,7 +758,7 @@ void Engine::doRespin()
         } else if (pos_ == &stream_) {
             stream_.device(std::move(fd));
         } else {
-            SOLID_ASSERT(false);
+            solid_assert(false);
         }
     }
 }
@@ -893,7 +893,7 @@ std::ostream& LoggerBase::doLog(std::ostream& _ros, const char* _flag_name, cons
 #endif
 }
 
-void LoggerBase::doDone(impl::LogLineStreamBase &_log_ros) const
+void LoggerBase::doDone(impl::LogLineStreamBase& _log_ros) const
 {
     Engine::the().log(idx_, _log_ros);
 }

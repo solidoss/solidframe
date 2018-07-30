@@ -13,7 +13,7 @@ bool test(const uint32_t _protocol_id, const uint64_t _message_id, bool _should_
     uint64_t tid;
 
     if (!joinTypeId(tid, _protocol_id, _message_id) && !_should_fail_join) {
-        SOLID_THROW("fail join");
+        solid_throw("fail join");
         return false;
     } else if (_should_fail_join) {
         return true;
@@ -29,7 +29,7 @@ bool test(const uint32_t _protocol_id, const uint64_t _message_id, bool _should_
     if (mid == _message_id && pid == _protocol_id) {
         return true;
     } else {
-        SOLID_THROW("fail split");
+        solid_throw("fail split");
         return false;
     }
 }

@@ -16,9 +16,9 @@
 #include "solid/utility/dynamictype.hpp"
 #include "solid/utility/event.hpp"
 
+#include "solid/system/exception.hpp"
 #include "solid/system/socketaddress.hpp"
 #include "solid/system/socketdevice.hpp"
-#include "solid/system/exception.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
                 frame::file::Utf8Configuration utf8cfg;
                 frame::file::TempConfiguration tempcfg;
 
-                SOLID_CHECK(system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver") >= 0, "Error system");
+                solid_check(system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver") >= 0, "Error system");
 
                 const char* homedir = getenv("HOME");
 

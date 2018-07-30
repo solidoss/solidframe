@@ -192,7 +192,7 @@ int SerializerBase::run(char* _pb, size_t _bl, void* _pctx)
     cpb = pb = _pb;
     be       = cpb + _bl;
     while (fstk.size()) {
-        SOLID_COLLECT(statistics_.onLoop);
+        solid_collect(statistics_.onLoop);
         FncData& rfd = fstk.top();
         switch ((*reinterpret_cast<FncT>(rfd.f))(*this, rfd, _pctx)) {
         case ContinueE:
@@ -212,7 +212,7 @@ int SerializerBase::run(char* _pb, size_t _bl, void* _pctx)
 
     resetLimits();
 
-    SOLID_ASSERT(fstk.size() || (fstk.empty() && estk.empty()));
+    solid_assert(fstk.size() || (fstk.empty() && estk.empty()));
     return static_cast<int>(cpb - pb);
 }
 
@@ -918,7 +918,7 @@ int DeserializerBase::run(const char* _pb, size_t _bl, void* _pctx)
     cpb = pb = _pb;
     be       = pb + _bl;
     while (fstk.size()) {
-        SOLID_COLLECT(statistics_.onLoop);
+        solid_collect(statistics_.onLoop);
         FncData& rfd = fstk.top();
         switch ((*reinterpret_cast<FncT>(rfd.f))(*this, rfd, _pctx)) {
         case ContinueE:
@@ -938,7 +938,7 @@ int DeserializerBase::run(const char* _pb, size_t _bl, void* _pctx)
 
     resetLimits();
 
-    SOLID_ASSERT(fstk.size() || (fstk.empty() && estk.empty()));
+    solid_assert(fstk.size() || (fstk.empty() && estk.empty()));
 
     return static_cast<int>(cpb - pb);
 }

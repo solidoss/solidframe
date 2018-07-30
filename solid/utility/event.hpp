@@ -167,7 +167,7 @@ private:
 
 template <typename EventIds>
 class EventCategory : public EventCategoryBase {
-    using FunctionT = SOLID_FUNCTION(const char*(const EventIds));
+    using FunctionT = solid_function_t(const char*(const EventIds));
 
 public:
     template <typename F>
@@ -331,7 +331,7 @@ protected:
 template <typename RetVal, typename... Args>
 class EventHandler : protected EventHandlerBase {
 public:
-    using FunctionT = SOLID_FUNCTION(RetVal(Event&, Args...));
+    using FunctionT = solid_function_t(RetVal(Event&, Args...));
 
 private:
     using FunctionVectorT = std::vector<FunctionT>;

@@ -29,10 +29,10 @@ void complete_message(
     ErrorConditionT const&           _rerror)
 {
     solid_dbg(generic_logger, Info, "");
-    SOLID_CHECK(!_rerror);
-    SOLID_CHECK(_rsent_msg_ptr && _rrecv_msg_ptr);
-    SOLID_CHECK(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
-    SOLID_CHECK(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
+    solid_check(!_rerror);
+    solid_check(_rsent_msg_ptr && _rrecv_msg_ptr);
+    solid_check(_rsent_msg_ptr->v == _rrecv_msg_ptr->v);
+    solid_check(_rsent_msg_ptr->str == _rrecv_msg_ptr->str);
     {
         lock_guard<mutex> lock(pctx->rmtx);
         --pctx->rwait_count;

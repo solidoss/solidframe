@@ -302,7 +302,7 @@ struct Manager::Data {
         std::lock_guard<std::mutex> lock(mtx);
         idx    = crtsvcstoreidx;
         long v = svcstore[idx].usecnt.fetch_add(1);
-        SOLID_ASSERT(v >= 0);
+        solid_assert(v >= 0);
         return idx;
     }
 
@@ -342,7 +342,7 @@ struct Manager::Data {
         std::lock_guard<std::mutex> lock(mtx);
         idx    = crtobjstoreidx;
         long v = objstore[idx].usecnt.fetch_add(1);
-        SOLID_ASSERT(v >= 0);
+        solid_assert(v >= 0);
         return idx;
     }
 
@@ -642,7 +642,7 @@ ObjectIdT Manager::registerObject(
             robjchk.svcidx = _rsvc.idx;
         }
 
-        SOLID_ASSERT(robjchk.svcidx == _rsvc.idx);
+        solid_assert(robjchk.svcidx == _rsvc.idx);
 
         _robj.id(objidx);
 
@@ -694,10 +694,10 @@ void Manager::unregisterObject(ObjectBase& _robj)
 
         --robjchk.objcnt;
         svcidx = robjchk.svcidx;
-        SOLID_ASSERT(svcidx != InvalidIndex());
+        solid_assert(svcidx != InvalidIndex());
     }
     {
-        SOLID_ASSERT(objidx != InvalidIndex());
+        solid_assert(objidx != InvalidIndex());
 
         const size_t                svcstoreidx = impl_->aquireReadServiceStore(); //can lock impl_->mtx
         ServiceStub&                rss         = *impl_->svcstore[svcstoreidx].vec[svcidx];
@@ -799,7 +799,7 @@ bool Manager::raise(const ObjectBase& _robj, Event const& _re)
 
     impl_->releaseReadObjectStore(objstoreidx);
 
-    SOLID_ASSERT(ros.pobject == &_robj);
+    solid_assert(ros.pobject == &_robj);
 
     return ros.preactor->raise(ros.pobject->runId(), _re);
 }
@@ -826,7 +826,7 @@ ObjectIdT Manager::id(const ObjectBase& _robj) const
         const size_t      objstoreidx = impl_->aquireReadObjectStore();
         ObjectStub const& ros(impl_->object(objstoreidx, static_cast<size_t>(objidx)));
         ObjectBase*       pobj = ros.pobject;
-        SOLID_ASSERT(pobj == &_robj);
+        solid_assert(pobj == &_robj);
         retval = ObjectIdT(objidx, ros.unique);
         impl_->releaseReadObjectStore(objstoreidx);
     }
@@ -911,7 +911,7 @@ Service& Manager::service(const ObjectBase& _robj) const
 
         std::lock_guard<std::mutex> lock(rchk.rmtx);
 
-        SOLID_ASSERT(rchk.object(_robj.id() % impl_->objchkcnt).pobject == &_robj);
+        solid_assert(rchk.object(_robj.id() % impl_->objchkcnt).pobject == &_robj);
 
         svcidx = rchk.svcidx;
         impl_->releaseReadObjectStore(objstoreidx);
@@ -1075,7 +1075,7 @@ void Manager::stop()
                 solid_dbg(logger, Verbose, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
             } else if (rss.psvc) {
                 solid_dbg(logger, Verbose, "unregister already stopped service: " << (it - rsvcstore.vec.begin()) << " " << rss.psvc << " " << rss.state);
-                SOLID_ASSERT(rss.state == StateStoppedE);
+                solid_assert(rss.state == StateStoppedE);
             }
         }
     }

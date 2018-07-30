@@ -55,7 +55,7 @@ public:
     template <typename F>
     bool postAccept(ReactorContext& _rctx, F _f)
     {
-        if (SOLID_FUNCTION_EMPTY(f)) {
+        if (solid_function_empty(f)) {
             f = std::move(_f);
             doPostAccept(_rctx);
             return false;
@@ -70,7 +70,7 @@ public:
     template <typename F>
     bool accept(ReactorContext& _rctx, F _f, SocketDevice& _rsd)
     {
-        if (SOLID_FUNCTION_EMPTY(f)) {
+        if (solid_function_empty(f)) {
             contextBind(_rctx);
 
             if (this->doTryAccept(_rctx, _rsd)) {
@@ -91,7 +91,7 @@ private:
     void doClear(ReactorContext& _rctx);
 
 private:
-    typedef SOLID_FUNCTION(void(ReactorContext&, SocketDevice&)) FunctionT;
+    typedef solid_function_t(void(ReactorContext&, SocketDevice&)) FunctionT;
     FunctionT  f;
     SocketBase s;
 };

@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
                                     std::shared_ptr<Register>&       _rsent_msg_ptr,
                                     std::shared_ptr<Register>&       _rrecv_msg_ptr,
                                     ErrorConditionT const&           _rerror) {
-                SOLID_CHECK(!_rerror);
+                solid_check(!_rerror);
 
                 if (_rrecv_msg_ptr && _rrecv_msg_ptr->name.empty()) {
                     auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
 
                 auto            msgptr = std::make_shared<Register>(p.name);
                 ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageFlagsE::WaitResponse});
-                SOLID_CHECK(!err, "failed send Register");
+                solid_check(!err, "failed send Register");
             };
 
             auto on_connection_stop = [](frame::mpipc::ConnectionContext& /*_rctx*/) {

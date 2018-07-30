@@ -66,19 +66,19 @@ int main(int argc, char* argv[])
                                     std::shared_ptr<Register>&       _rsent_msg_ptr,
                                     std::shared_ptr<Register>&       _rrecv_msg_ptr,
                                     ErrorConditionT const&           _rerror) {
-                SOLID_CHECK(!_rerror);
+                solid_check(!_rerror);
                 if (_rrecv_msg_ptr) {
-                    SOLID_CHECK(!_rsent_msg_ptr);
+                    solid_check(!_rsent_msg_ptr);
                     solid_log(generic_logger, Info, "recv register request: " << _rrecv_msg_ptr->name);
 
                     relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->name));
 
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-                    SOLID_CHECK(!err, "Failed sending register response: " << err.message());
+                    solid_check(!err, "Failed sending register response: " << err.message());
 
                 } else {
-                    SOLID_CHECK(!_rrecv_msg_ptr);
+                    solid_check(!_rrecv_msg_ptr);
                     solid_log(generic_logger, Info, "sent register response");
                 }
             };

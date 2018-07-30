@@ -41,15 +41,15 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    SOLID_CHECK(!_rerror);
+    solid_check(!_rerror);
 
     if (_rrecv_msg_ptr) {
-        SOLID_CHECK(!_rsent_msg_ptr);
-        SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
+        solid_check(!_rsent_msg_ptr);
+        solid_check(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr)));
     }
 
     if (_rsent_msg_ptr) {
-        SOLID_CHECK(!_rrecv_msg_ptr);
+        solid_check(!_rrecv_msg_ptr);
     }
 }
 

@@ -74,7 +74,7 @@ int test_binary(int argc, char* argv[])
 
         int rv = des.run(test_data.data(), test_data.size());
 
-        SOLID_CHECK(rv == static_cast<int>(test_data.size()));
+        solid_check(rv == static_cast<int>(test_data.size()));
         test->check();
     }
     return 0;
@@ -115,16 +115,16 @@ void Test::init()
 void Test::check() const
 {
     solid_dbg(generic_logger, Info, "str = " << str);
-    SOLID_CHECK(kv_vec.size() == kv_map.size());
+    solid_check(kv_vec.size() == kv_map.size());
     string tmpstr;
     for (size_t i = 0; i < kv_vec.size(); ++i) {
         tmpstr.append(kv_array[i].first);
         tmpstr.append(kv_array[i].second);
-        SOLID_CHECK(kv_vec[i] == kv_array[i]);
+        solid_check(kv_vec[i] == kv_array[i]);
         MapT::const_iterator it = kv_map.find(kv_array[i].first);
-        SOLID_CHECK(it != kv_map.end());
-        SOLID_CHECK(it->second == i);
+        solid_check(it != kv_map.end());
+        solid_check(it->second == i);
     }
-    SOLID_CHECK(tmpstr == str);
-    SOLID_CHECK(str.size() == v32);
+    solid_check(tmpstr == str);
+    solid_check(str.size() == v32);
 }

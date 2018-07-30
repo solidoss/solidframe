@@ -34,7 +34,7 @@ int test_innerlist(int /*argc*/, char* /*argv*/ [])
     NodeVectorT     node_vec;
     InnerOrderListT order_list(node_vec);
 
-    SOLID_ASSERT(order_list.empty());
+    solid_assert(order_list.empty());
 
     node_vec.push_back(Node("a", 0));
     node_vec.push_back(Node("b", 1));
@@ -43,19 +43,19 @@ int test_innerlist(int /*argc*/, char* /*argv*/ [])
     node_vec.push_back(Node("e", 4));
 
     order_list.pushBack(0);
-    SOLID_ASSERT(order_list.size() == 1);
+    solid_assert(order_list.size() == 1);
     order_list.pushBack(1);
-    SOLID_ASSERT(order_list.size() == 2);
+    solid_assert(order_list.size() == 2);
     order_list.pushBack(2);
-    SOLID_ASSERT(order_list.size() == 3);
+    solid_assert(order_list.size() == 3);
     order_list.pushBack(3);
-    SOLID_ASSERT(order_list.size() == 4);
+    solid_assert(order_list.size() == 4);
     order_list.pushBack(4);
-    SOLID_ASSERT(order_list.size() == 5);
+    solid_assert(order_list.size() == 5);
 
     cout << "order_list(" << order_list.size() << "): ";
 
-    auto visit_fnc = [](const size_t _index, Node const& _rnode) { cout << _rnode.str << ' '; SOLID_ASSERT(_index == _rnode.idx); };
+    auto visit_fnc = [](const size_t _index, Node const& _rnode) { cout << _rnode.str << ' '; solid_assert(_index == _rnode.idx); };
 
     order_list.forEach(visit_fnc);
     cout << endl;
@@ -63,35 +63,35 @@ int test_innerlist(int /*argc*/, char* /*argv*/ [])
     cout << "front = " << order_list.front().str << endl;
 
     order_list.erase(3);
-    SOLID_ASSERT(order_list.size() == 4);
+    solid_assert(order_list.size() == 4);
 
     cout << "after erase(3) order_list(" << order_list.size() << "): ";
     order_list.forEach(visit_fnc);
     cout << endl;
 
     order_list.popFront();
-    SOLID_ASSERT(order_list.size() == 3);
+    solid_assert(order_list.size() == 3);
 
     cout << "after popFront order_list(" << order_list.size() << "): ";
     order_list.forEach(visit_fnc);
     cout << endl;
 
     order_list.popFront();
-    SOLID_ASSERT(order_list.size() == 2);
+    solid_assert(order_list.size() == 2);
 
-    SOLID_ASSERT(order_list.front().idx == 2);
-    SOLID_ASSERT(order_list.back().idx == 4);
+    solid_assert(order_list.front().idx == 2);
+    solid_assert(order_list.back().idx == 4);
 
     order_list.popFront();
 
-    SOLID_ASSERT(order_list.size() == 1);
+    solid_assert(order_list.size() == 1);
 
-    SOLID_ASSERT(order_list.frontIndex() == order_list.backIndex());
+    solid_assert(order_list.frontIndex() == order_list.backIndex());
 
     order_list.popBack();
 
-    SOLID_ASSERT(order_list.empty());
-    SOLID_ASSERT(order_list.size() == 0);
+    solid_assert(order_list.empty());
+    solid_assert(order_list.size() == 0);
 
     return 0;
 }

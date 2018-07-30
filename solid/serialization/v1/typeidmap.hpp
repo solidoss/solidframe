@@ -36,8 +36,8 @@ class TypeIdMapBase {
 protected:
     //typedef void(*LoadFunctionT)(void*, void*, const char*);
     //typedef void(*StoreFunctionT)(void*, void*, const char*);
-    typedef SOLID_FUNCTION(void(void*, void*, const char*)) LoadFunctionT;
-    typedef SOLID_FUNCTION(void(void*, void*, const char*)) StoreFunctionT;
+    typedef solid_function_t(void(void*, void*, const char*)) LoadFunctionT;
+    typedef solid_function_t(void(void*, void*, const char*)) StoreFunctionT;
 
     typedef void (*CastFunctionT)(void*, void*);
 
@@ -54,7 +54,7 @@ protected:
         CastFunctionT shared_cast;
     };
 
-    typedef SOLID_FUNCTION(void*(const CastFunctionT&, void*)) FactoryFunctionT;
+    typedef solid_function_t(void*(const CastFunctionT&, void*)) FactoryFunctionT;
 
     typedef std::pair<std::type_index, size_t> CastIdT;
 
@@ -320,7 +320,7 @@ protected:
         if (it != TypeIdMapBase::typemap.end()) {
             return doRegisterDownCast<Derived>(it->second);
         } else {
-            SOLID_THROW("Base type not registered");
+            solid_throw("Base type not registered");
             return false;
         }
     }
@@ -332,7 +332,7 @@ protected:
             typemap[std::type_index(typeid(Derived))] = _idx;
             return true;
         } else {
-            SOLID_THROW("Invalid type index " << _idx);
+            solid_throw("Invalid type index " << _idx);
             return false;
         }
     }
@@ -347,7 +347,7 @@ protected:
             castmap[CastIdT(std::type_index(typeid(Base)), 0)]          = &cast_void_pointer<Base>;
             return true;
         } else {
-            SOLID_THROW("Derived type not registered");
+            solid_throw("Derived type not registered");
             return false;
         }
     }
@@ -360,7 +360,7 @@ protected:
             castmap[CastIdT(std::type_index(typeid(Derived)), 0)] = &cast_void_pointer<Derived>;
             return true;
         } else {
-            SOLID_THROW("Derived type not registered");
+            solid_throw("Derived type not registered");
             return false;
         }
     }

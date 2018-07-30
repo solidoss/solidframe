@@ -169,19 +169,19 @@ void complete_message(
     ErrorConditionT const&           _rerr)
 {
     if (_rerr && _rerr != frame::mpipc::error_message_canceled) {
-        SOLID_THROW("Message complete with error");
+        solid_throw("Message complete with error");
     }
     if (_rmessage_ptr.get()) {
         size_t idx = static_cast<Message&>(*_rmessage_ptr).idx;
         if (crtreadidx) {
             //not the first message
-            SOLID_CHECK((!_rerr && !initarray[idx % initarraysize].cancel) || (initarray[idx % initarraysize].cancel && _rerr == frame::mpipc::error_message_canceled));
+            solid_check((!_rerr && !initarray[idx % initarraysize].cancel) || (initarray[idx % initarraysize].cancel && _rerr == frame::mpipc::error_message_canceled));
         }
         solid_dbg(generic_logger, Info, static_cast<Message&>(*_rmessage_ptr).str.size() << ' ' << _rerr.message());
     }
     if (_rresponse_ptr.get()) {
         if (!static_cast<Message&>(*_rresponse_ptr).check()) {
-            SOLID_THROW("Message check failed.");
+            solid_throw("Message check failed.");
         }
 
         ++crtreadidx;
@@ -197,7 +197,7 @@ void complete_message(
         } else {
             solid_dbg(generic_logger, Info, crtreadidx);
             size_t idx = static_cast<Message&>(*_rresponse_ptr).idx;
-            SOLID_CHECK(!initarray[idx % initarraysize].cancel);
+            solid_check(!initarray[idx % initarraysize].cancel);
         }
     }
 }
@@ -238,7 +238,7 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
     void receiveAckCount(uint8_t _count) override
     {
         solid_dbg(generic_logger, Info, "" << (int)_count);
-        SOLID_CHECK(_count == ackd_count, "invalid ack count");
+        solid_check(_count == ackd_count, "invalid ack count");
     }
     void receiveCancelRequest(const frame::mpipc::RequestId& _reqid) override
     {
@@ -252,7 +252,7 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
                 ++it;
             }
         }
-        SOLID_CHECK(found, "request not found");
+        solid_check(found, "request not found");
     }
 };
 
@@ -317,7 +317,7 @@ int test_protocol_cancel(int argc, char* argv[])
         message_uid_vec.push_back(writer_msg_id);
 
         solid_dbg(generic_logger, Info, "enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
-        SOLID_CHECK(rv);
+        solid_check(rv);
         solid_dbg(generic_logger, Info, frame::mpipc::MessageWriterPrintPairT(mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
 
         if (!initarray[crtwriteidx % initarraysize].cancel) {

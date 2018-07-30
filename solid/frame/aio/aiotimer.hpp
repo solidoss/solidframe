@@ -46,7 +46,7 @@ class SteadyTimer : public CompletionHandler {
             rthis.f = &on_dummy;
             break;
         default:
-            SOLID_ASSERT(false);
+            solid_assert(false);
         }
     }
     static void on_dummy(ReactorContext& _rctx)
@@ -93,7 +93,7 @@ public:
 
     void cancel(ReactorContext& _rctx)
     {
-        if (!SOLID_FUNCTION_EMPTY(f)) {
+        if (!solid_function_empty(f)) {
             remTimer(_rctx, storeidx);
             error(_rctx, error_timer_cancel);
             doExec(_rctx);
@@ -113,13 +113,13 @@ private:
     }
     void doClear(ReactorContext& _rctx)
     {
-        SOLID_FUNCTION_CLEAR(f);
+        solid_function_clear(f);
         remTimer(_rctx, storeidx);
         storeidx = InvalidIndex();
     }
 
 private:
-    typedef SOLID_FUNCTION(void(ReactorContext&)) FunctionT;
+    typedef solid_function_t(void(ReactorContext&)) FunctionT;
 
     FunctionT f;
     size_t    storeidx;

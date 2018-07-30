@@ -246,7 +246,7 @@ private:
     void nodeRelease(Node* _pn, const int _line)
     {
         const size_t cnt = _pn->use_cnt_.fetch_sub(1);
-        SOLID_ASSERT(cnt != 0);
+        solid_assert(cnt != 0);
         if (cnt == 1) {
             //the last one
             pushEmptyNode(_pn);
@@ -451,7 +451,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                 printt(_rt, __LINE__, pn, push_commit_pos);
             }
 #endif
-            SOLID_CHECK(sz < 10000000ULL);
+            solid_check(sz < 10000000ULL);
             nodeRelease(pn, __LINE__);
             if (sz < _max_queue_size && push_end_.wait_count_.load()) {
                 solid_dbg(workpool_logger, Verbose, this << " notify push - size = " << sz << " wait_count = " << push_end_.wait_count_.load());
@@ -491,7 +491,7 @@ bool Queue<T, NBits>::pop(T& _rt, std::atomic<bool>& _running, const size_t _max
                 //ABA cannot happen because pn is locked and cannot be in the empty stack
                 Node* ptmpn = pop_end_.nodeNext();
                 solid_dbg(workpool_logger, Verbose, this << " move to new node " << pn << " -> " << pn->next_.load());
-                SOLID_CHECK(ptmpn == pn, ptmpn << " != " << pn);
+                solid_check(ptmpn == pn, ptmpn << " != " << pn);
                 nodeRelease(ptmpn, __LINE__);
             }
             nodeRelease(pn, __LINE__);
@@ -721,7 +721,7 @@ void WorkPool<Job, QNBits>::doStop()
 
     if (running_.compare_exchange_strong(expect, false)) {
     } else {
-        SOLID_ASSERT(false); //doStop called multiple times
+        solid_assert(false); //doStop called multiple times
         return;
     }
     {
@@ -737,8 +737,8 @@ void WorkPool<Job, QNBits>::doStop()
 #ifdef SOLID_HAS_STATISTICS
         solid_dbg(workpool_logger, Statistic, "Workpool " << this << " statistic:" << this->statistic_);
         const size_t max_jobs_in_queue = config_.max_job_queue_size_ == static_cast<size_t>(-1) ? config_.max_job_queue_size_ : config_.max_job_queue_size_ + JobQueueT::nodeSize();
-        SOLID_CHECK(statistic_.max_jobs_in_queue_ <= max_jobs_in_queue, "statistic_.max_jobs_in_queue_ = " << statistic_.max_jobs_in_queue_ << " <= config_.max_job_queue_size_ = " << max_jobs_in_queue);
-        SOLID_CHECK(statistic_.max_worker_count_ <= config_.max_worker_count_, "statistic_.max_worker_count_ = " << statistic_.max_worker_count_ << " <= config_.max_worker_count_ = " << config_.max_worker_count_);
+        solid_check(statistic_.max_jobs_in_queue_ <= max_jobs_in_queue, "statistic_.max_jobs_in_queue_ = " << statistic_.max_jobs_in_queue_ << " <= config_.max_job_queue_size_ = " << max_jobs_in_queue);
+        solid_check(statistic_.max_worker_count_ <= config_.max_worker_count_, "statistic_.max_worker_count_ = " << statistic_.max_worker_count_ << " <= config_.max_worker_count_ = " << config_.max_worker_count_);
 #endif
     }
 }

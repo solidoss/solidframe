@@ -17,7 +17,7 @@
 
 ## Version 4.1
 * (DONE) fix compilation on g++ 8.1.1
-* (DONE) system/debug.hpp -> system/log.hpp - redesign debug logging engine.
+* (DONE) system/debug.hpp -> system/log.hpp - redesign debug logging engine. No locking while handling log line parameters.
 * (DONE) utility/workpool.hpp -> improved locking for a better performance on macOS
 * (DONE) mpipc: call connection pool close callback after calling connection close callback for every connection in the pool
 

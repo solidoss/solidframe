@@ -38,7 +38,7 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    SOLID_CHECK(false); //this method should not be called
+    solid_check(false); //this method should not be called
 }
 
 struct MessageSetup {
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
                                     return;
                                 }
 
-                                SOLID_CHECK(!_rerror && _rsent_msg_ptr && _rrecv_msg_ptr);
+                                solid_check(!_rerror && _rsent_msg_ptr && _rrecv_msg_ptr);
 
                                 cout << "File List from " << _rctx.recipientName() << ":" << _rsent_msg_ptr->path << " with " << _rrecv_msg_ptr->node_dq.size() << " items: {" << endl;
 
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
                                     return;
                                 }
 
-                                SOLID_CHECK(!_rerror && _rsent_msg_ptr && _rrecv_msg_ptr);
+                                solid_check(!_rerror && _rsent_msg_ptr && _rrecv_msg_ptr);
 
                                 cout << "Done copy from " << _rctx.recipientName() << ":" << _rsent_msg_ptr->remote_path << " to " << _rsent_msg_ptr->local_path << ": ";
                                 int64_t local_file_size = file_size(_rsent_msg_ptr->local_path);

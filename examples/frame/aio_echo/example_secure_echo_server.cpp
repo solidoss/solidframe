@@ -372,7 +372,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
     //timer.waitFor(_rctx, NanoTime(30), std::bind(&Connection::onTimer, this, _1));
     if (repeatcnt == 0) {
         bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
-        SOLID_ASSERT(!rv);
+        solid_assert(!rv);
     }
 }
 

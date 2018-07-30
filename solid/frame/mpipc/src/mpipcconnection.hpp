@@ -55,7 +55,7 @@ struct ResolveMessage {
 
     void popAddress()
     {
-        SOLID_ASSERT(addrvec.size());
+        solid_assert(addrvec.size());
         addrvec.pop_back();
     }
 

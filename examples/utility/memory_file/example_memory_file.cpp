@@ -1,7 +1,7 @@
 #include "solid/system/common.hpp"
+#include "solid/system/exception.hpp"
 #include "solid/system/filedevice.hpp"
 #include "solid/system/log.hpp"
-#include "solid/system/exception.hpp"
 #include "solid/utility/memoryfile.hpp"
 #include <cerrno>
 #include <cstring>
@@ -77,9 +77,9 @@ int main(int argc, char* argv[])
     }
     string s("sha1sum ");
     s += argv[1];
-    SOLID_CHECK(system(s.c_str()) >= 0, "Error system: "<<s);
+    solid_check(system(s.c_str()) >= 0, "Error system: " << s);
     s = "sha1sum ";
     s += "test.dat";
-    SOLID_CHECK(system(s.c_str()) >= 0, "Error system: "<<s);
+    solid_check(system(s.c_str()) >= 0, "Error system: " << s);
     return 0;
 }

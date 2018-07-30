@@ -441,7 +441,7 @@ public:
                 if (ptr.empty()) {
                     doPushWait(idx, _f, StoreBase::ReinitWaitE);
                 } else if (!controller().preparePointer(acc, _f, ptr, _flags, err)) {
-                    SOLID_ASSERT(ptr.empty());
+                    solid_assert(ptr.empty());
                     doPushWait(idx, _f, StoreBase::ReinitWaitE);
                 }
             }
@@ -542,7 +542,7 @@ public:
     }
 
 private:
-    typedef SOLID_FUNCTION(void(ControllerT&, PointerT&, ErrorCodeT const&)) FunctionT;
+    typedef solid_function_t(void(ControllerT&, PointerT&, ErrorCodeT const&)) FunctionT;
 
     struct WaitStub {
         WaitStub()
@@ -614,7 +614,7 @@ private:
     {
         Stub& rs = stubvec[_idx];
         if (rs.usecnt == 0) {
-            SOLID_ASSERT(rs.pwaitfirst == nullptr);
+            solid_assert(rs.pwaitfirst == nullptr);
             ++rs.usecnt;
             rs.state = StoreBase::UniqueLockStateE;
             return PointerT(&rs.obj, this, UniqueId(_idx, rs.uid));
@@ -636,7 +636,7 @@ private:
         Stub& rs = stubvec[_idx];
 
         if (rs.state == StoreBase::UniqueLockStateE) {
-            SOLID_ASSERT(rs.usecnt == 1);
+            solid_assert(rs.usecnt == 1);
             rs.state = StoreBase::SharedLockStateE;
             return true;
         }
@@ -787,7 +787,7 @@ private:
                 }
                 break;
             default:
-                SOLID_ASSERT(false);
+                solid_assert(false);
                 return;
             }
             ++rs.usecnt;

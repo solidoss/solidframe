@@ -49,7 +49,7 @@ Link* ListBase::doErase(Link* _pl)
     _pl->pprev->pnext = pn;
     pn->pprev         = _pl->pprev;
     _pl->pnext        = ptop;
-    SOLID_ASSERT(_pl != &lend);
+    solid_assert(_pl != &lend);
     ptop = _pl;
     return pn;
 }

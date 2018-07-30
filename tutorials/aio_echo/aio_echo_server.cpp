@@ -295,7 +295,7 @@ void Listener::onAccept(frame::aio::ReactorContext& _rctx, SocketDevice& _rsd)
 
     if (repeatcnt == 0) {
         bool rv = rthis.sock.postRecvSome(_rctx, rthis.buf, BufferCapacity, Connection::onRecv); //fully asynchronous call
-        SOLID_ASSERT(!rv);
+        solid_assert(!rv);
     }
 }
 

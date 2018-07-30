@@ -40,8 +40,8 @@ int test_nanotime(int /*argc*/, char** const /*argv*/)
         }
         cout << endl;
 
-        SOLID_CHECK(steady_now == now2);
-        //SOLID_CHECK(steady_now == now4);
+        solid_check(steady_now == now2);
+        //solid_check(steady_now == now4);
     }
     return 0;
 }

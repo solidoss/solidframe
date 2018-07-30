@@ -32,7 +32,7 @@ class DeserializerBase : public Base {
 
     typedef ReturnE (*CallbackT)(DeserializerBase&, Runnable&, void*);
 
-    using FunctionT = SOLID_FUNCTION(ReturnE(DeserializerBase&, Runnable&, void*));
+    using FunctionT = solid_function_t(ReturnE(DeserializerBase&, Runnable&, void*));
 
     struct Runnable {
         Runnable(
@@ -81,7 +81,7 @@ class DeserializerBase : public Base {
         {
             ptr_  = nullptr;
             call_ = nullptr;
-            SOLID_FUNCTION_CLEAR(fnc_);
+            solid_function_clear(fnc_);
         }
 
         void*       ptr_;
@@ -398,7 +398,7 @@ public:
             if (init) {
                 init                                = false;
                 const RunListIteratorT old_sentinel = _rd.sentinel();
-                SOLID_ASSERT(_rd.isRunEmpty());
+                solid_assert(_rd.isRunEmpty());
 
                 rd.addBasicWithCheck(_rr.size_, _rr.name_);
 
@@ -428,7 +428,7 @@ public:
                     rcontainer.insert(rcontainer.end(), std::move(value));
                 } else {
                     parsing_value = true;
-                    SOLID_CHECK(_rd.pcrt_ == _rd.pend_, "buffer not empty");
+                    solid_check(_rd.pcrt_ == _rd.pend_, "buffer not empty");
                 }
             }
 
@@ -462,7 +462,7 @@ public:
             if (init) {
                 init                                = false;
                 const RunListIteratorT old_sentinel = _rd.sentinel();
-                SOLID_ASSERT(_rd.isRunEmpty());
+                solid_assert(_rd.isRunEmpty());
 
                 rd.addBasicWithCheck(_rr.size_, _rr.name_);
 
@@ -492,7 +492,7 @@ public:
                     rcontainer.insert(rcontainer.end(), std::move(value));
                 } else {
                     parsing_value = true;
-                    SOLID_CHECK(_rd.pcrt_ == _rd.pend_, "buffer not empty");
+                    solid_check(_rd.pcrt_ == _rd.pend_, "buffer not empty");
                 }
             }
 
@@ -691,7 +691,7 @@ private:
                     }
 
                     size_t toread = _rd.pend_ - _rd.pcrt_;
-                    SOLID_CHECK(toread < _rr.size_, "Should not happen");
+                    solid_check(toread < _rr.size_, "Should not happen");
                     memcpy(_rd.data_.buf_ + _rr.data_, _rd.pcrt_, toread);
                     _rd.pcrt_ += toread;
                     _rr.size_ -= toread;
@@ -700,7 +700,7 @@ private:
                 }
             } else {
                 size_t toread = _rd.pend_ - _rd.pcrt_;
-                SOLID_CHECK(toread >= _rr.size_, "Should not happen");
+                solid_check(toread >= _rr.size_, "Should not happen");
                 if (toread > _rr.size_) {
                     toread = static_cast<size_t>(_rr.size_);
                 }

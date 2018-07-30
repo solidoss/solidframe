@@ -45,10 +45,10 @@ class TypeMap : protected TypeMapBase {
         }
     };
 
-    using LoadFunctionT          = SOLID_FUNCTION(void(void*, void*, void*, const char*));
-    using StoreFunctionT         = SOLID_FUNCTION(void(void*, const void*, void*, const char*));
-    using PlainFactoryFunctionT  = SOLID_FUNCTION(void*(const CastFunctionT&, const PointerFunctionT&));
-    using SharedFactoryFunctionT = SOLID_FUNCTION(void*(const CastFunctionT&, void*));
+    using LoadFunctionT          = solid_function_t(void(void*, void*, void*, const char*));
+    using StoreFunctionT         = solid_function_t(void(void*, const void*, void*, const char*));
+    using PlainFactoryFunctionT  = solid_function_t(void*(const CastFunctionT&, const PointerFunctionT&));
+    using SharedFactoryFunctionT = solid_function_t(void*(const CastFunctionT&, void*));
 
     struct TypeStub {
         template <typename D>
@@ -102,7 +102,7 @@ public:
 
     size_t null(const TypeId& _rtid)
     {
-        SOLID_CHECK(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
+        solid_check(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
         type_id_map_[_rtid] = type_vec_.size();
         type_vec_.emplace_back(_rtid);
 
@@ -137,8 +137,8 @@ public:
     template <class T>
     size_t registerType(const TypeId& _rtid)
     {
-        SOLID_CHECK(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
-        SOLID_CHECK(type_map_.find(std::type_index(typeid(T))) == type_map_.end(), "type already registered");
+        solid_check(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
+        solid_check(type_map_.find(std::type_index(typeid(T))) == type_map_.end(), "type already registered");
         type_id_map_[_rtid]                   = type_vec_.size();
         type_map_[std::type_index(typeid(T))] = type_vec_.size();
 
@@ -180,8 +180,8 @@ public:
     template <class T, class D, class Allocator>
     size_t registerType(D&& _d, Allocator _allocator, const TypeId& _rtid)
     {
-        SOLID_CHECK(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
-        SOLID_CHECK(type_map_.find(std::type_index(typeid(T))) == type_map_.end(), "type already registered");
+        solid_check(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
+        solid_check(type_map_.find(std::type_index(typeid(T))) == type_map_.end(), "type already registered");
         type_id_map_[_rtid]                   = type_vec_.size();
         type_map_[std::type_index(typeid(T))] = type_vec_.size();
 
@@ -225,8 +225,8 @@ public:
     template <class T, class D, class StoreF, class LoadF>
     size_t registerType(D&& _d, StoreF _sf, LoadF _lf, const TypeId& _rtid)
     {
-        SOLID_CHECK(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
-        SOLID_CHECK(type_map_.find(std::type_index(typeid(T))) == type_map_.end(), "type already registered");
+        solid_check(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
+        solid_check(type_map_.find(std::type_index(typeid(T))) == type_map_.end(), "type already registered");
         type_id_map_[_rtid]                   = type_vec_.size();
         type_map_[std::type_index(typeid(T))] = type_vec_.size();
 
@@ -268,8 +268,8 @@ public:
     template <class T, class D, class StoreF, class LoadF, class Allocator>
     size_t registerType(D&& _d, StoreF _sf, LoadF _lf, Allocator _allocator, const TypeId& _rtid)
     {
-        SOLID_CHECK(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
-        SOLID_CHECK(type_map_.find(std::type_index(typeid(T))) == type_map_.end(), "type already registered");
+        solid_check(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
+        solid_check(type_map_.find(std::type_index(typeid(T))) == type_map_.end(), "type already registered");
         type_id_map_[_rtid]                   = type_vec_.size();
         type_map_[std::type_index(typeid(T))] = type_vec_.size();
 
@@ -314,7 +314,7 @@ public:
     void registerDownCast()
     {
         const auto it = type_map_.find(std::type_index(typeid(Base)));
-        SOLID_CHECK(it != type_map_.end(), "Base type not registered");
+        solid_check(it != type_map_.end(), "Base type not registered");
 
         type_map_[std::type_index(typeid(Derived))] = it->second;
     }
@@ -323,8 +323,8 @@ public:
     void registerCast()
     {
         const auto it = type_map_.find(std::type_index(typeid(Derived)));
-        SOLID_CHECK(it != type_map_.end(), "Derived type not registered");
-        SOLID_CHECK(null_index_ != InvalidIndex(), "Null not set");
+        solid_check(it != type_map_.end(), "Derived type not registered");
+        solid_check(null_index_ != InvalidIndex(), "Null not set");
 
         cast_map_[CastIdT(std::type_index(typeid(Base)), it->second)]     = CastStub(cast_plain_pointer<Base, Derived>, cast_shared_pointer<Base, Derived>);
         cast_map_[CastIdT(std::type_index(typeid(Derived)), null_index_)] = &cast_void_pointer<Derived>;
@@ -335,8 +335,8 @@ public:
     void registerCast()
     {
         const auto it = type_map_.find(std::type_index(typeid(Derived)));
-        SOLID_CHECK(it != type_map_.end(), "Derived type not registered");
-        SOLID_CHECK(null_index_ != InvalidIndex(), "Null not set");
+        solid_check(it != type_map_.end(), "Derived type not registered");
+        solid_check(null_index_ != InvalidIndex(), "Null not set");
 
         cast_map_[CastIdT(std::type_index(typeid(Derived)), null_index_)] = &cast_void_pointer<Derived>;
     }

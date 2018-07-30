@@ -425,7 +425,7 @@ CompletionHandler* Reactor::completionHandler(ReactorContext const& _rctx) const
 void Reactor::doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev)
 {
     impl_->exeq.push(ExecStub(_rctx.objectUid(), std::move(_uev)));
-    SOLID_FUNCTION_CLEAR(impl_->exeq.back().exefnc);
+    solid_function_clear(impl_->exeq.back().exefnc);
     std::swap(impl_->exeq.back().exefnc, _revfn);
     impl_->exeq.back().chnuid = impl_->dummyCompletionHandlerUid();
 }
@@ -433,7 +433,7 @@ void Reactor::doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev
 void Reactor::doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev, CompletionHandler const& _rch)
 {
     impl_->exeq.push(ExecStub(_rctx.objectUid(), std::move(_uev)));
-    SOLID_FUNCTION_CLEAR(impl_->exeq.back().exefnc);
+    solid_function_clear(impl_->exeq.back().exefnc);
     std::swap(impl_->exeq.back().exefnc, _revfn);
     impl_->exeq.back().chnuid = UniqueId(_rch.idxreactor, impl_->chdq[_rch.idxreactor].unique);
 }
@@ -602,7 +602,7 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
             }
 
             ObjectStub& ros = impl_->objdq[static_cast<size_t>(rnewobj.uid.index)];
-            SOLID_ASSERT(ros.unique == rnewobj.uid.unique);
+            solid_assert(ros.unique == rnewobj.uid.unique);
 
             {
                 //NOTE: we must lock the mutex of the object
@@ -643,7 +643,7 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 {
     if (_rstoreidx != InvalidIndex()) {
         size_t idx = impl_->timestore.change(_rstoreidx, _rt);
-        SOLID_ASSERT(idx == _rch.idxreactor);
+        solid_assert(idx == _rch.idxreactor);
     } else {
         _rstoreidx = impl_->timestore.push(_rt, _rch.idxreactor);
     }
@@ -653,7 +653,7 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
-    SOLID_ASSERT(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx);
+    solid_assert(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx);
     static_cast<SteadyTimer*>(rch.pch)->storeidx = _newidx;
 }
 

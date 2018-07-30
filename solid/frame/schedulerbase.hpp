@@ -25,7 +25,7 @@ class ReactorBase;
 class ObjectBase;
 
 //typedef FunctorReference<bool, ReactorBase&>  ScheduleFunctorT;
-typedef SOLID_FUNCTION(bool(ReactorBase&)) ScheduleFunctionT;
+typedef solid_function_t(bool(ReactorBase&)) ScheduleFunctionT;
 
 //! A base class for all schedulers
 class SchedulerBase {
@@ -33,8 +33,8 @@ public:
 protected:
     typedef bool (*CreateWorkerF)(SchedulerBase& _rsch, const size_t, std::thread& _rthr);
 
-    typedef SOLID_FUNCTION(bool()) ThreadEnterFunctionT;
-    typedef SOLID_FUNCTION(void()) ThreadExitFunctionT;
+    typedef solid_function_t(bool()) ThreadEnterFunctionT;
+    typedef solid_function_t(void()) ThreadExitFunctionT;
 
     ErrorConditionT doStart(
         CreateWorkerF         _pf,

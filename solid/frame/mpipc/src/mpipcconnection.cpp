@@ -500,7 +500,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         const bool        can_stop       = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, has_no_message ? &msg_bundle : nullptr, event, tmp_error);
 
         if (can_stop) {
-            SOLID_ASSERT(has_no_message);
+            solid_assert(has_no_message);
             solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
             auto lambda = [msg_b{std::move(msg_bundle)}, pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
                 Connection& rthis = static_cast<Connection&>(_rctx.object());
@@ -513,7 +513,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
             //no event get posted
         } else if (has_no_message) {
             // try handle the returned message if any
-            if (msg_bundle.message_ptr.get() || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+            if (msg_bundle.message_ptr.get() || !solid_function_empty(msg_bundle.complete_fnc)) {
                 doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
             }
             solid_dbg(logger, Info, this << ' ' << this->id() << " wait " << seconds_to_wait << " seconds");
@@ -537,7 +537,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         } else {
             //we have initiated the stopping process but we cannot finish it right away because
             //we have some local messages to handle
-            SOLID_ASSERT(event.empty());
+            solid_assert(event.empty());
             size_t offset = 0;
             post(_rctx,
                 [offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
@@ -627,7 +627,7 @@ void Connection::doCompleteAllMessages(
         post(
             _rctx,
             [_offset](frame::aio::ReactorContext& _rctx, Event&& _revent) {
-                SOLID_ASSERT(_revent.empty());
+                solid_assert(_revent.empty());
                 Connection& rthis = static_cast<Connection&>(_rctx.object());
                 rthis.doCompleteAllMessages(_rctx, _offset);
             });
@@ -653,9 +653,9 @@ void Connection::doContinueStopping(
     MessageId       pool_msg_id;
     Event           event(_revent);
     const bool      can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
-    
-    solid_dbg(logger, Info, this << ' ' << this->id() << ' '<<can_stop);
-    
+
+    solid_dbg(logger, Info, this << ' ' << this->id() << ' ' << can_stop);
+
     if (can_stop) {
         //can stop rightaway
         solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
@@ -666,7 +666,7 @@ void Connection::doContinueStopping(
             }); //there might be events pending which will be delivered, but after this call
         //no event get posted
     } else {
-        if (msg_bundle.message_ptr || !SOLID_FUNCTION_EMPTY(msg_bundle.complete_fnc)) {
+        if (msg_bundle.message_ptr || !solid_function_empty(msg_bundle.complete_fnc)) {
             doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
         }
         if (seconds_to_wait) {
@@ -699,7 +699,7 @@ void Connection::onStopped(
 
     service(_rctx).connectionStop(*this, conctx);
 
-    if (_rmsg_bundle.message_ptr || !SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
+    if (_rmsg_bundle.message_ptr || !solid_function_empty(_rmsg_bundle.complete_fnc)) {
         doCompleteMessage(_rctx, _rpool_msg_id, _rmsg_bundle, error_message_connection);
     }
 
@@ -850,7 +850,7 @@ void Connection::doHandleEventResolve(
             }
         }
     } else {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
 }
 //-----------------------------------------------------------------------------
@@ -882,7 +882,7 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, 
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    SOLID_ASSERT(pmsgid);
+    solid_assert(pmsgid);
 
     if (pmsgid) {
 
@@ -906,7 +906,7 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rct
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    SOLID_ASSERT(pmsgid);
+    solid_assert(pmsgid);
 
     if (pmsgid) {
         ConnectionContext    conctx(service(_rctx), *this);
@@ -920,7 +920,7 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rct
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    SOLID_ASSERT(pmsgid);
+    solid_assert(pmsgid);
 
     if (pmsgid) {
         MessageBundle msg_bundle;
@@ -935,7 +935,7 @@ void Connection::doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx
 {
 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
-    SOLID_ASSERT(pmsgid);
+    solid_assert(pmsgid);
 
     if (pmsgid) {
         MessageBundle msg_bundle;
@@ -1090,14 +1090,14 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
         return;
     }
 
-    if (!SOLID_FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)) {
+    if (!solid_function_empty(config.client.connection_on_secure_handshake_fnc)) {
         config.client.connection_on_secure_handshake_fnc(conctx);
     }
 
     if (!config.client.connection_start_secure) {
         solid_dbg(logger, Verbose, &rthis << "");
         //we need the connection_on_secure_connect_fnc for advancing.
-        if (SOLID_FUNCTION_EMPTY(config.client.connection_on_secure_handshake_fnc)) {
+        if (solid_function_empty(config.client.connection_on_secure_handshake_fnc)) {
             rthis.doStop(_rctx, error_connection_invalid_state); //TODO: add new error
         }
     } else {
@@ -1142,14 +1142,14 @@ void Connection::doHandleEventStartSecure(frame::aio::ReactorContext& _rctx, Eve
         return;
     }
 
-    if (!SOLID_FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)) {
+    if (!solid_function_empty(config.server.connection_on_secure_handshake_fnc)) {
         config.server.connection_on_secure_handshake_fnc(conctx);
     }
 
     if (!config.server.connection_start_secure) {
         solid_dbg(logger, Verbose, &rthis << "");
         //we need the connection_on_secure_accept_fnc for advancing.
-        if (SOLID_FUNCTION_EMPTY(config.server.connection_on_secure_handshake_fnc)) {
+        if (solid_function_empty(config.server.connection_on_secure_handshake_fnc)) {
             rthis.doStop(_rctx, error_connection_invalid_state); //TODO: add new error
         }
     } else {
@@ -1187,7 +1187,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, Event& 
     SendRaw*          pdata = _revent.any().cast<SendRaw>();
     ConnectionContext conctx(service(_rctx), *this);
 
-    SOLID_ASSERT(pdata);
+    solid_assert(pdata);
 
     if (this->isRawState() && pdata) {
 
@@ -1222,7 +1222,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
     ConnectionContext conctx(service(_rctx), *this);
     size_t            used_size = 0;
 
-    SOLID_ASSERT(pdata);
+    solid_assert(pdata);
 
     solid_dbg(logger, Info, this);
 
@@ -1246,7 +1246,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
             if (cons_buf_off_ == recv_buf_off_) {
                 cons_buf_off_ = recv_buf_off_ = 0;
             } else {
-                SOLID_ASSERT(cons_buf_off_ < recv_buf_off_);
+                solid_assert(cons_buf_off_ < recv_buf_off_);
             }
         }
     } else if (pdata) {
@@ -1377,7 +1377,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
     Connection& rthis = static_cast<Connection&>(_rctx.object());
 
-    SOLID_ASSERT(!rthis.isServer());
+    solid_assert(!rthis.isServer());
     rthis.flags_.set(FlagsE::Keepalive);
     rthis.flags_.reset(FlagsE::WaitKeepAliveTimer);
     solid_dbg(logger, Info, &rthis << " post send");
@@ -1391,7 +1391,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     SendRaw*          pdata = _revent.any().cast<SendRaw>();
     ConnectionContext conctx(rthis.service(_rctx), rthis);
 
-    SOLID_ASSERT(pdata);
+    solid_assert(pdata);
 
     if (pdata) {
 
@@ -1427,7 +1427,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     RecvRaw*          pdata = _revent.any().cast<RecvRaw>();
     ConnectionContext conctx(rthis.service(_rctx), rthis);
 
-    SOLID_ASSERT(pdata);
+    solid_assert(pdata);
 
     if (pdata) {
 
@@ -1474,7 +1474,7 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
     } else {
         //tried to relay received messages/message parts - but all failed
         //so we need to ack the buffer
-        SOLID_ASSERT(recv_buf_.use_count());
+        solid_assert(recv_buf_.use_count());
         solid_dbg(logger, Info, this << " send accept for " << (int)_request_buffer_ack_count << " buffers");
 
         if (ackd_buf_count_ == 0) {
@@ -1625,7 +1625,7 @@ struct Connection::Receiver : MessageReader::Receiver {
         --repeatcnt;
         rthis.doOptimizeRecvBuffer();
 
-        SOLID_ASSERT(rthis.recv_buf_);
+        solid_assert(rthis.recv_buf_);
 
         pbuf = rthis.recv_buf_->data() + rthis.recv_buf_off_;
 
@@ -1639,7 +1639,7 @@ struct Connection::Receiver : MessageReader::Receiver {
 
     if (repeatcnt == 0) {
         bool rv = rthis.postRecvSome(_rctx, pbuf, bufsz); //fully asynchronous call
-        SOLID_ASSERT(!rv);
+        solid_assert(!rv);
         (void)rv;
     }
 }
@@ -1817,7 +1817,7 @@ struct Connection::SenderResponse : Connection::Sender {
         context().request_id    = rresponse_ptr_->requestId();
         context().message_id    = _rpool_msg_id;
 
-        if (!SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
+        if (!solid_function_empty(_rmsg_bundle.complete_fnc)) {
             solid_dbg(logger, Info, this);
             _rmsg_bundle.complete_fnc(context(), _rmsg_bundle.message_ptr, rresponse_ptr_, err_);
             request_found_ = true;
@@ -1869,7 +1869,7 @@ void Connection::doCompleteMessage(
     conctx.message_flags = _rmsg_bundle.message_flags;
     conctx.message_id    = _rpool_msg_id;
 
-    if (!SOLID_FUNCTION_EMPTY(_rmsg_bundle.complete_fnc)) {
+    if (!solid_function_empty(_rmsg_bundle.complete_fnc)) {
         solid_dbg(logger, Info, this);
         _rmsg_bundle.complete_fnc(conctx, _rmsg_bundle.message_ptr, dummy_recv_msg_ptr, _rerror);
     } else {

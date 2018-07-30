@@ -83,7 +83,7 @@ int test_workpool(int argc, char* argv[])
 
     thread wait_thread(
         [](promise<void>& _rprom, const int _wait_time_seconds) {
-            SOLID_CHECK(_rprom.get_future().wait_for(chrono::seconds(_wait_time_seconds)) == future_status::ready, " Test is taking too long - waited " << _wait_time_seconds << " secs");
+            solid_check(_rprom.get_future().wait_for(chrono::seconds(_wait_time_seconds)) == future_status::ready, " Test is taking too long - waited " << _wait_time_seconds << " secs");
         },
         std::ref(prom), wait_seconds);
 
@@ -92,7 +92,7 @@ int test_workpool(int argc, char* argv[])
             1,
             WorkPoolConfiguration(consumer_count, queue_size <= 0 ? std::numeric_limits<size_t>::max() : queue_size),
             [job_sleep_msecs](size_t _v, Context& _rctx) {
-                //SOLID_CHECK(_rs == "this is a string", "failed string check");
+                //solid_check(_rs == "this is a string", "failed string check");
                 val += _v;
                 if (job_sleep_msecs) {
                     this_thread::sleep_for(chrono::milliseconds(job_sleep_msecs));
@@ -161,6 +161,6 @@ int test_workpool(int argc, char* argv[])
     //     }
     cout << endl;
 #endif
-    SOLID_CHECK(v == val, v << " != " << val);
+    solid_check(v == val, v << " != " << val);
     return 0;
 }

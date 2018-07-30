@@ -81,12 +81,12 @@ public:
         virtual void            cancelRelayed(RelayData* _relay_data, MessageId const& _rmsgid);
     };
 
-    using VisitFunctionT = SOLID_FUNCTION(void(
+    using VisitFunctionT = solid_function_t(void(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
         ));
 
-    using CompleteFunctionT = SOLID_FUNCTION(ErrorConditionT(
+    using CompleteFunctionT = solid_function_t(ErrorConditionT(
         MessageBundle& /*_rmsgbundle*/,
         MessageId const& /*_rmsgid*/
         ));
@@ -227,7 +227,7 @@ private:
             ++unique_;
             packet_count_ = 0;
 
-            SOLID_ASSERT(prelay_data_ == nullptr);
+            solid_assert(prelay_data_ == nullptr);
             serializer_ptr_ = nullptr;
 
             pool_msg_id_.clear();

@@ -253,7 +253,7 @@ int test_typeidmap(int argc, char* argv[])
             }
             if (rv < 0) {
                 cout << "ERROR: serialization: " << ser.error().category().name() << ": " << ser.error().message() << endl;
-                SOLID_THROW("Serialization error - alpha");
+                solid_throw("Serialization error - alpha");
                 return 0;
             } else {
                 alpha_data.append(buf, rv);
@@ -280,7 +280,7 @@ int test_typeidmap(int argc, char* argv[])
             }
             if (rv < 0) {
                 cout << "ERROR: serialization: " << ser.error().category().name() << ": " << ser.error().message() << endl;
-                SOLID_THROW("Serialization error - beta");
+                solid_throw("Serialization error - beta");
                 return 0;
             } else {
                 beta_data.append(buf, rv);
@@ -306,7 +306,7 @@ int test_typeidmap(int argc, char* argv[])
             }
             if (rv < 0) {
                 cout << "ERROR: serialization: " << ser.error().category().name() << ": " << ser.error().message() << endl;
-                SOLID_THROW("Serialization error - delta");
+                solid_throw("Serialization error - delta");
                 return 0;
             } else {
                 delta_data.append(buf, rv);
@@ -339,12 +339,12 @@ int test_typeidmap(int argc, char* argv[])
 
             if (rv != static_cast<int>(alpha_data.size())) {
                 cout << "ERROR: deserialization: " << des.error().category().name() << ": " << des.error().message() << endl;
-                SOLID_THROW("Deserialization error - alpha");
+                solid_throw("Deserialization error - alpha");
                 return 0;
             }
 
             if (/*pa1 == nullptr || pa2 == nullptr or*/ pa3 != nullptr) {
-                SOLID_THROW("Deserialization error - alpha - empty");
+                solid_throw("Deserialization error - alpha - empty");
                 return 0;
             }
 
@@ -352,7 +352,7 @@ int test_typeidmap(int argc, char* argv[])
             pa2->print(cout);
 
             if (!pa1->check() || !pa2->check()) {
-                SOLID_THROW("Deserialization error - alpha - check");
+                solid_throw("Deserialization error - alpha - check");
                 return 0;
             }
             delete pa1;
@@ -390,12 +390,12 @@ int test_typeidmap(int argc, char* argv[])
 
             if (rv != static_cast<int>(beta_data.size())) {
                 cout << "ERROR: deserialization: " << des.error().category().name() << ": " << des.error().message() << endl;
-                SOLID_THROW("Deserialization error - beta");
+                solid_throw("Deserialization error - beta");
                 return 0;
             }
 
             if (!pa1 || !pa2) {
-                SOLID_THROW("Deserialization error - beta - empty");
+                solid_throw("Deserialization error - beta - empty");
                 return 0;
             }
 
@@ -406,7 +406,7 @@ int test_typeidmap(int argc, char* argv[])
             cout << "Data for pa2 = " << typemap[pa2.get()] << endl;
 
             if (!pa1->check(&typemap[pa1.get()]) || !pa2->check(&typemap[pa2.get()])) {
-                SOLID_THROW("Deserialization error - beta - check");
+                solid_throw("Deserialization error - beta - check");
                 return 0;
             }
         }
@@ -435,12 +435,12 @@ int test_typeidmap(int argc, char* argv[])
 
             if (rv != static_cast<int>(delta_data.size())) {
                 cout << "ERROR: deserialization: " << des.error().category().name() << ": " << des.error().message() << endl;
-                SOLID_THROW("Deserialization error - delta");
+                solid_throw("Deserialization error - delta");
                 return 0;
             }
 
             if (pa1 == nullptr || pa2 == nullptr) {
-                SOLID_THROW("Deserialization error - delta - empty");
+                solid_throw("Deserialization error - delta - empty");
                 return 0;
             }
 
@@ -448,7 +448,7 @@ int test_typeidmap(int argc, char* argv[])
             pa2->print(cout);
 
             if (!pa1->check() || !pa2->check()) {
-                SOLID_THROW("Deserialization error - delta - check");
+                solid_throw("Deserialization error - delta - check");
                 return 0;
             }
             delete pa1;

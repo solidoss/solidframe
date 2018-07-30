@@ -72,7 +72,7 @@ size_t MessageReader::read(
 
         if (!packet_header.isOk()) {
             _rerror = error_reader_invalid_packet_header;
-            SOLID_ASSERT(false);
+            solid_assert(false);
             break;
         }
 
@@ -86,7 +86,7 @@ size_t MessageReader::read(
         if (!_rerror) {
             pbufpos += packet_header.size();
         } else {
-            SOLID_ASSERT(false);
+            solid_assert(false);
             break;
         }
         state_ = StateE::ReadPacketHead;
@@ -114,7 +114,7 @@ void MessageReader::doConsumePacket(
             pbufpos = tmpbuf;
             pbufend = tmpbuf + uncompressed_size;
         } else {
-            SOLID_ASSERT(false);
+            solid_assert(false);
             return;
         }
     }
@@ -150,7 +150,7 @@ void MessageReader::doConsumePacket(
                 pbufpos = doConsumeMessage(pbufpos, pbufend, message_idx, cmd, _receiver, _rerror);
             } else {
                 _rerror = error_reader_protocol;
-                SOLID_ASSERT(false);
+                solid_assert(false);
                 return;
             }
             break;
@@ -159,14 +159,14 @@ void MessageReader::doConsumePacket(
             solid_dbg(logger, Error, "CancelMessage " << message_idx);
             if (pbufpos && message_idx < message_vec_.size()) {
                 MessageStub& rmsgstub = message_vec_[message_idx];
-                SOLID_ASSERT(rmsgstub.state_ != MessageStub::StateE::NotStarted);
+                solid_assert(rmsgstub.state_ != MessageStub::StateE::NotStarted);
                 if (rmsgstub.state_ == MessageStub::StateE::RelayBody) {
                     _receiver.cancelRelayed(rmsgstub.relay_id);
                 }
                 rmsgstub.clear();
             } else {
                 _rerror = error_reader_protocol;
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
             break;
         case PacketHeader::CommandE::Update:
@@ -181,7 +181,7 @@ void MessageReader::doConsumePacket(
             } else {
                 solid_dbg(logger, Verbose, "CancelRequest - error parsing requestid");
                 _rerror = error_reader_protocol;
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
         } break;
         case PacketHeader::CommandE::AckdCount:
@@ -193,7 +193,7 @@ void MessageReader::doConsumePacket(
                 _receiver.receiveAckCount(count);
             } else {
                 _rerror = error_reader_protocol;
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
             break;
         default:
@@ -273,7 +273,7 @@ const char* MessageReader::doConsumeMessage(
                     _pbufpos = _pbufend;
                     cache(rmsgstub.deserializer_ptr_);
                     rmsgstub.clear();
-                    SOLID_ASSERT(false);
+                    solid_assert(false);
                     break;
                 }
             }
@@ -317,14 +317,14 @@ const char* MessageReader::doConsumeMessage(
                                     break;
                                 }
                                 //fail: protocol error
-                                SOLID_ASSERT(false);
+                                solid_assert(false);
                             } else if (!rmsgstub.deserializer_ptr_->empty()) {
                                 break;
                             } else {
-                                SOLID_ASSERT(false);
+                                solid_assert(false);
                             }
                         } else {
-                            SOLID_ASSERT(false);
+                            solid_assert(false);
                         }
                     } else {
                         _rerror = rmsgstub.deserializer_ptr_->error();
@@ -332,14 +332,14 @@ const char* MessageReader::doConsumeMessage(
                         cache(rmsgstub.deserializer_ptr_);
                         _pbufpos = _pbufend;
                         rmsgstub.clear();
-                        SOLID_ASSERT(false);
+                        solid_assert(false);
                         break;
                     }
                 } else {
-                    SOLID_ASSERT(false);
+                    solid_assert(false);
                 }
             } else {
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
 
             //protocol error
@@ -368,10 +368,10 @@ const char* MessageReader::doConsumeMessage(
                 }
                 break;
             } else {
-                SOLID_ASSERT(false);
+                solid_assert(false);
             }
         } else {
-            SOLID_ASSERT(false);
+            solid_assert(false);
         }
 
         //protocol error
@@ -401,7 +401,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        SOLID_ASSERT(false);
+        solid_assert(false);
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
@@ -426,7 +426,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        SOLID_ASSERT(false);
+        solid_assert(false);
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
@@ -443,7 +443,7 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        SOLID_ASSERT(false);
+        solid_assert(false);
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
@@ -470,15 +470,15 @@ const char* MessageReader::doConsumeMessage(
         }
         //protocol error
         _rerror = error_reader_protocol;
-        SOLID_ASSERT(false);
+        solid_assert(false);
         _pbufpos = _pbufend;
         rmsgstub.clear();
         break;
     default:
-        SOLID_CHECK(false, "Invalid message state: " << (int)rmsgstub.state_);
+        solid_check(false, "Invalid message state: " << (int)rmsgstub.state_);
         break;
     }
-    SOLID_ASSERT(!_rerror || (_rerror && _pbufpos == _pbufend));
+    solid_assert(!_rerror || (_rerror && _pbufpos == _pbufend));
     return _pbufpos;
 }
 //-----------------------------------------------------------------------------

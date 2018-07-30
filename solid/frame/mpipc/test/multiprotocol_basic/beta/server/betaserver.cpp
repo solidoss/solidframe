@@ -26,18 +26,18 @@ void complete_message<beta_protocol::FirstMessage>(
     ErrorConditionT const&                        _rerror)
 {
     solid_dbg(generic_logger, Info, "");
-    SOLID_CHECK(!_rerror);
+    solid_check(!_rerror);
     if (_rrecv_msg_ptr) {
-        SOLID_CHECK(!_rsent_msg_ptr);
+        solid_check(!_rsent_msg_ptr);
 
         ErrorConditionT err = _rctx.service().sendResponse(
             _rctx.recipientId(),
             std::make_shared<beta_protocol::SecondMessage>(std::move(*_rrecv_msg_ptr)));
 
-        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
+        solid_check(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
-        SOLID_CHECK(!_rrecv_msg_ptr);
+        solid_check(!_rrecv_msg_ptr);
     }
 }
 
@@ -49,15 +49,15 @@ void complete_message<beta_protocol::SecondMessage>(
     ErrorConditionT const&                         _rerror)
 {
     solid_dbg(generic_logger, Info, "");
-    SOLID_CHECK(!_rerror);
+    solid_check(!_rerror);
     if (_rrecv_msg_ptr) {
-        SOLID_CHECK(!_rsent_msg_ptr);
+        solid_check(!_rsent_msg_ptr);
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
+        solid_check(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
-        SOLID_CHECK(!_rrecv_msg_ptr);
+        solid_check(!_rrecv_msg_ptr);
     }
 }
 
@@ -69,18 +69,18 @@ void complete_message<beta_protocol::ThirdMessage>(
     ErrorConditionT const&                        _rerror)
 {
     solid_dbg(generic_logger, Info, "");
-    SOLID_CHECK(!_rerror);
+    solid_check(!_rerror);
     if (_rrecv_msg_ptr) {
-        SOLID_CHECK(!_rsent_msg_ptr);
+        solid_check(!_rsent_msg_ptr);
 
         ErrorConditionT err = _rctx.service().sendResponse(
             _rctx.recipientId(),
             std::make_shared<beta_protocol::FirstMessage>(std::move(*_rrecv_msg_ptr)));
 
-        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
+        solid_check(!err, "Connection id should not be invalid! " << err.message());
     }
     if (_rsent_msg_ptr) {
-        SOLID_CHECK(!_rrecv_msg_ptr);
+        solid_check(!_rrecv_msg_ptr);
     }
 }
 

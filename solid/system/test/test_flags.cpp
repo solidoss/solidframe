@@ -28,24 +28,24 @@ int test_flags(int /*argc*/, char* /*argv*/ [])
     {
         FruitsFlagsT fruits;
         fruits.set(Fruits::Apple).set(Fruits::Berry);
-        SOLID_CHECK(fruits.has(Fruits::Apple));
-        SOLID_CHECK(fruits.has(Fruits::Berry));
-        SOLID_CHECK(!fruits.has(Fruits::Cherry));
-        SOLID_CHECK(!fruits.has(Fruits::Banana));
+        solid_check(fruits.has(Fruits::Apple));
+        solid_check(fruits.has(Fruits::Berry));
+        solid_check(!fruits.has(Fruits::Cherry));
+        solid_check(!fruits.has(Fruits::Banana));
     }
     {
         FruitsFlagsT fruits{Fruits::Apple, Fruits::Berry};
-        SOLID_CHECK(fruits.has(Fruits::Apple));
-        SOLID_CHECK(fruits.has(Fruits::Berry));
-        SOLID_CHECK(!fruits.has(Fruits::Cherry));
-        SOLID_CHECK(!fruits.has(Fruits::Banana));
+        solid_check(fruits.has(Fruits::Apple));
+        solid_check(fruits.has(Fruits::Berry));
+        solid_check(!fruits.has(Fruits::Cherry));
+        solid_check(!fruits.has(Fruits::Banana));
 
         fruits = add_banana(fruits);
 
-        SOLID_CHECK(fruits.has(Fruits::Apple));
-        SOLID_CHECK(fruits.has(Fruits::Berry));
-        SOLID_CHECK(!fruits.has(Fruits::Cherry));
-        SOLID_CHECK(fruits.has(Fruits::Banana));
+        solid_check(fruits.has(Fruits::Apple));
+        solid_check(fruits.has(Fruits::Berry));
+        solid_check(!fruits.has(Fruits::Cherry));
+        solid_check(fruits.has(Fruits::Banana));
     }
     return 0;
 }

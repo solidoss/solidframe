@@ -15,7 +15,7 @@ int test_ioformat(int /*argc*/, char* /*argv*/ [])
 
         cout << oss.str() << endl;
 
-        SOLID_CHECK(oss.str() == "1000.333_");
+        solid_check(oss.str() == "1000.333_");
     }
     {
         ostringstream oss;
@@ -24,7 +24,7 @@ int test_ioformat(int /*argc*/, char* /*argv*/ [])
 
         cout << oss.str() << endl;
 
-        SOLID_CHECK(oss.str() == "1000.333_");
+        solid_check(oss.str() == "1000.333_");
     }
     return 0;
 }

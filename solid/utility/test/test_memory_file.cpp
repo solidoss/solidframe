@@ -47,13 +47,13 @@ void test_read_write(size_t _sz, const std::vector<size_t>& _write_size_vec, con
                 to_write = static_cast<int>(instr.size() - off);
             }
             int rv = mf.write(instr.data() + off, to_write);
-            SOLID_CHECK(rv == to_write);
+            solid_check(rv == to_write);
             off += to_write;
             ++idx;
         } while (off < instr.size());
     }
 
-    SOLID_CHECK(mf.size() == static_cast<int64_t>(instr.size()));
+    solid_check(mf.size() == static_cast<int64_t>(instr.size()));
     mf.seek(0, SeekBeg);
 
     {
@@ -65,16 +65,16 @@ void test_read_write(size_t _sz, const std::vector<size_t>& _write_size_vec, con
         do {
 
             int to_read = static_cast<int>(_read_size_vec[idx % _read_size_vec.size()]);
-            SOLID_CHECK(to_read < buf_cp);
+            solid_check(to_read < buf_cp);
             int rv = mf.read(buf, to_read);
             if (rv > 0) {
-                SOLID_CHECK(rv <= to_read);
+                solid_check(rv <= to_read);
                 outstr.append(buf, rv);
             }
             fwd = (rv == to_read);
         } while (fwd);
 
-        SOLID_CHECK(outstr == instr);
+        solid_check(outstr == instr);
     }
 }
 

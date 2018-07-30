@@ -85,7 +85,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
-        SOLID_ASSERT(!serialized);
+        solid_assert(!serialized);
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -124,7 +124,7 @@ struct Message : frame::mpipc::Message {
 
         for (uint64_t i = 0; i < count; ++i) {
             if (pu[i] != pup[(i + idx) % pattern_size]) {
-                SOLID_THROW("Message check failed.");
+                solid_throw("Message check failed.");
                 return false;
             }
         }
@@ -152,10 +152,10 @@ void client_complete_message(
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " " << _rerror.message());
 
-    SOLID_CHECK(!_rrecv_msg_ptr);
-    SOLID_CHECK(_rsent_msg_ptr);
+    solid_check(!_rrecv_msg_ptr);
+    solid_check(_rsent_msg_ptr);
 
-    SOLID_CHECK(
+    solid_check(
         _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && !_rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
 
     {
@@ -278,23 +278,23 @@ int test_clientserver_oneshot(int argc, char* argv[])
                 "localhost", msgptr,
                 recipient_id, message_id,
                 {frame::mpipc::MessageFlagsE::WaitResponse, frame::mpipc::MessageFlagsE::OneShotSend});
-            SOLID_CHECK(!err, "" << err.message());
+            solid_check(!err, "" << err.message());
         }
 
         this_thread::sleep_for(chrono::seconds(5));
 
         err = mpipcclient.cancelMessage(recipient_id, message_id);
 
-        SOLID_CHECK(err, err.message());
+        solid_check(err, err.message());
 
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return !running; })) {
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
 
         if (crtwriteidx != crtackidx) {
-            SOLID_THROW("Not all messages were completed");
+            solid_throw("Not all messages were completed");
         }
 
         m.stop();

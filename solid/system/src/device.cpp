@@ -66,7 +66,7 @@ Device::~Device()
 
 ssize_t Device::read(char* _pb, size_t _bl)
 {
-    SOLID_ASSERT(ok());
+    solid_assert(ok());
 #ifdef SOLID_ON_WINDOWS
     DWORD cnt;
     if (ReadFile(desc, _pb, static_cast<DWORD>(_bl), &cnt, nullptr)) {
@@ -81,7 +81,7 @@ ssize_t Device::read(char* _pb, size_t _bl)
 
 ssize_t Device::write(const char* _pb, size_t _bl)
 {
-    SOLID_ASSERT(ok());
+    solid_assert(ok());
 #ifdef SOLID_ON_WINDOWS
     DWORD cnt;
     /*OVERLAPPED ovp;
@@ -114,7 +114,7 @@ void Device::close()
         CloseHandle(desc);
 #else
         if (::close(desc) != 0) {
-            SOLID_ASSERT(errno != EBADF);
+            solid_assert(errno != EBADF);
         }
 #endif
         desc = invalidDescriptor();
@@ -123,7 +123,7 @@ void Device::close()
 
 void Device::flush()
 {
-    SOLID_ASSERT(ok());
+    solid_assert(ok());
 #ifdef SOLID_ON_WINDOWS
     FlushFileBuffers(desc);
 #else
@@ -523,7 +523,7 @@ struct Starter {
         WORD wVersionRequested;
         wVersionRequested = MAKEWORD(2, 2);
         int err           = WSAStartup(wVersionRequested, &wsaData);
-        SOLID_CHECK(err == 0, "Error WSAStartup: " << err);
+        solid_check(err == 0, "Error WSAStartup: " << err);
     }
     ~Starter()
     {

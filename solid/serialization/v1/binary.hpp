@@ -536,7 +536,7 @@ protected:
     void pushExtended(Args&&... _args)
     {
         estk.push(ExtendedData(std::forward<Args>(_args)...));
-        SOLID_COLLECT(statistics_.onPushExtended);
+        solid_collect(statistics_.onPushExtended);
     }
 
 protected:
@@ -673,7 +673,7 @@ protected:
         const char* n = _rfd.n;
 
         if (c) {
-            SOLID_ASSERT(sizeof(typename T::iterator) <= sizeof(ExtendedData));
+            solid_assert(sizeof(typename T::iterator) <= sizeof(ExtendedData));
             if (c->size() > rs.lmts.containerlimit) {
                 rs.err = make_error(ERR_CONTAINER_LIMIT);
                 return FailureE;
@@ -1887,7 +1887,7 @@ protected:
         }
 
         if (i == InvalidIndex()) {
-            SOLID_ASSERT(!_rfd.s);
+            solid_assert(!_rfd.s);
             T** c = reinterpret_cast<T**>(_rfd.p);
             *c    = nullptr;
             return SuccessE;
@@ -2481,7 +2481,7 @@ public:
     template <typename T>
     Deserializer& pushContainer(T*& _t, const char* _name = Base::default_name)
     {
-        SOLID_ASSERT(!_t); //the pointer must be null!!
+        solid_assert(!_t); //the pointer must be null!!
         this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadContainer<T, DeserializerT>, (void*)&_t, _name, 0));
         return *this;
     }
@@ -2781,7 +2781,7 @@ public:
     template <typename T>
     Deserializer& pushContainer(T*& _t, const char* _name = Base::default_name)
     {
-        SOLID_ASSERT(!_t); //the pointer must be null!!
+        solid_assert(!_t); //the pointer must be null!!
         this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadContainer<T, DeserializerT>, (void*)&_t, _name, 0));
         return *this;
     }

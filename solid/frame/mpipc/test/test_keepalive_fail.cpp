@@ -174,7 +174,7 @@ void server_connection_stop(frame::mpipc::ConnectionContext& _rctx)
             cnd.notify_one();
         }
     } else {
-        SOLID_THROW("Invalid test scenario.");
+        solid_throw("Invalid test scenario.");
     }
 }
 
@@ -188,7 +188,7 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
     if (!_rmsgptr->check()) {
-        SOLID_THROW("Message check failed.");
+        solid_throw("Message check failed.");
     }
 
     //cout<< _rmsgptr->str.size()<<'\n';
@@ -196,7 +196,7 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
     ++transfered_count;
 
     if (!_rmsgptr->isBackOnSender()) {
-        SOLID_THROW("Message not back on sender!.");
+        solid_throw("Message not back on sender!.");
     }
 
     ++crtbackidx;
@@ -229,11 +229,11 @@ void server_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " message id on sender " << _rmsgptr->senderRequestId());
     if (!_rmsgptr->check()) {
-        SOLID_THROW("Message check failed.");
+        solid_throw("Message check failed.");
     }
 
     if (!_rmsgptr->isOnPeer()) {
-        SOLID_THROW("Message not on peer!.");
+        solid_throw("Message not on peer!.");
     }
 
     //send message back
@@ -272,7 +272,7 @@ int test_keepalive_fail(int argc, char* argv[])
     if (argc > 1) {
         test_scenario = atoi(argv[1]);
         if (test_scenario > 1) {
-            SOLID_THROW("Invalid test scenario.");
+            solid_throw("Invalid test scenario.");
         }
     }
 
@@ -409,11 +409,11 @@ int test_keepalive_fail(int argc, char* argv[])
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return !running; })) {
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
 
         if (crtwriteidx != crtackidx) {
-            SOLID_THROW("Not all messages were completed");
+            solid_throw("Not all messages were completed");
         }
 
         //m.stop();

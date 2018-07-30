@@ -367,7 +367,7 @@ size_t Connection::doneBuffer(frame::aio::ReactorContext& _rctx)
 
         if (pbufpair) {
             //new data to send
-            SOLID_ASSERT(buf_sending[buf_push_sending].first == nullptr);
+            solid_assert(buf_sending[buf_push_sending].first == nullptr);
             solid_log(generic_logger, Info, this << " new data to sent " << (int)buf_pop_sending << ' ' << (int)buf_push_sending << ' ' << pbufpair->second);
             buf_sending[buf_push_sending] = *pbufpair;
 

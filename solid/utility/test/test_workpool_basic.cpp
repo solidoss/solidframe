@@ -21,7 +21,7 @@ int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
 
     thread wait_thread(
         [](promise<void>& _rprom, const int _wait_time_seconds) {
-            SOLID_CHECK(_rprom.get_future().wait_for(chrono::seconds(_wait_time_seconds)) == future_status::ready, " Test is taking too long - waited " << _wait_time_seconds << " secs");
+            solid_check(_rprom.get_future().wait_for(chrono::seconds(_wait_time_seconds)) == future_status::ready, " Test is taking too long - waited " << _wait_time_seconds << " secs");
         },
         std::ref(prom), wait_seconds);
 
@@ -43,6 +43,6 @@ int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
 
     const size_t v = ((cnt - 1) * cnt) / 2;
 
-    SOLID_CHECK(v == val);
+    solid_check(v == val);
     return 0;
 }

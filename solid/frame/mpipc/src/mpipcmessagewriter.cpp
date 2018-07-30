@@ -73,7 +73,7 @@ bool MessageWriter::enqueue(
         return false;
     }
 
-    SOLID_ASSERT(_rmsgbundle.message_ptr.get());
+    solid_assert(_rmsgbundle.message_ptr.get());
 
     //clear all disrupting flags
     _rmsgbundle.message_flags.reset(MessageFlagsE::StartedSend).reset(MessageFlagsE::DoneSend);
@@ -124,13 +124,13 @@ bool MessageWriter::enqueue(
         order_inner_list_.pushBack(msgidx);
     } else {
         msgidx = _rconn_msg_id.index;
-        SOLID_ASSERT(message_vec_[msgidx].unique_ == _rconn_msg_id.unique);
+        solid_assert(message_vec_[msgidx].unique_ == _rconn_msg_id.unique);
         if (message_vec_[msgidx].unique_ != _rconn_msg_id.unique || message_vec_[msgidx].prelay_data_ != nullptr) {
             return false;
         }
     }
 
-    SOLID_ASSERT(_rprelay_data);
+    solid_assert(_rprelay_data);
 
     MessageStub& rmsgstub(message_vec_[msgidx]);
 
@@ -145,7 +145,7 @@ bool MessageWriter::enqueue(
         rmsgstub.pool_msg_id_ = _rengine_msg_id;
         _rprelay_data         = nullptr;
     } else if (rmsgstub.state_ < MessageStub::StateE::RelayedWait) {
-        SOLID_ASSERT(rmsgstub.relay_size_ == 0);
+        solid_assert(rmsgstub.relay_size_ == 0);
         solid_dbg(logger, Error, "" << msgidx << " uid = " << rmsgstub.unique_ << " state = " << (int)rmsgstub.state_);
         //called from relay engine on cancel request from the reader (RR - see mpipcrelayengine.cpp) side of the link.
         //after the current function call, the MessageStub in the RelayEngine is distroyed.
@@ -206,7 +206,7 @@ ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, Mess
             doUnprepareMessageStub(_rmsguid.index);
             return ResponseStateE::RelayedWait;
         case MessageStub::StateE::WriteCanceled:
-            SOLID_ASSERT(write_inner_list_.size());
+            solid_assert(write_inner_list_.size());
             order_inner_list_.erase(_rmsguid.index);
             write_inner_list_.erase(_rmsguid.index);
             doUnprepareMessageStub(_rmsguid.index);
@@ -216,8 +216,8 @@ ResponseStateE MessageWriter::checkResponseState(MessageId const& _rmsguid, Mess
             doUnprepareMessageStub(_rmsguid.index);
             return ResponseStateE::Cancel;
         default:
-            SOLID_ASSERT(false);
-            //SOLID_CHECK(false, "Unknown state for response: "<<(int)rmsgstub.state_<<" for messageid: "<<_rmsguid);
+            solid_assert(false);
+            //solid_check(false, "Unknown state for response: "<<(int)rmsgstub.state_<<" for messageid: "<<_rmsguid);
             return ResponseStateE::Invalid;
         }
     }
@@ -255,7 +255,7 @@ void MessageWriter::doCancel(
         solid_dbg(logger, Verbose, "" << _msgidx << " already canceled");
 
         if (_force) {
-            SOLID_ASSERT(write_inner_list_.size());
+            solid_assert(write_inner_list_.size());
             order_inner_list_.erase(_msgidx);
             write_inner_list_.erase(_msgidx);
             doUnprepareMessageStub(_msgidx);
@@ -280,7 +280,7 @@ void MessageWriter::doCancel(
             doUnprepareMessageStub(_msgidx);
         } else {
             //message is waiting to be sent
-            SOLID_ASSERT(write_inner_list_.size());
+            solid_assert(write_inner_list_.size());
             order_inner_list_.erase(_msgidx);
             write_inner_list_.erase(_msgidx);
             doUnprepareMessageStub(_msgidx);
@@ -316,7 +316,7 @@ void MessageWriter::doCancel(
                 return;
             }
         default:
-            SOLID_ASSERT(false);
+            solid_assert(false);
             return;
         }
     }
@@ -378,14 +378,14 @@ ErrorConditionT MessageWriter::write(
                 }
             }
             if (packet_options.request_accept) {
-                SOLID_ASSERT(_rrelay_free_count != 0);
+                solid_assert(_rrelay_free_count != 0);
                 solid_dbg(logger, Verbose, "send AckRequestFlagE");
                 --_rrelay_free_count;
                 packet_header.flags(packet_header.flags() | static_cast<uint8_t>(PacketHeader::FlagE::AckRequest));
                 more = false; //do not allow multiple packets per relay buffer
             }
 
-            SOLID_ASSERT(static_cast<size_t>(fillsz) < static_cast<size_t>(0xffffUL));
+            solid_assert(static_cast<size_t>(fillsz) < static_cast<size_t>(0xffffUL));
 
             packet_header.size(static_cast<uint32_t>(fillsz));
 
@@ -476,9 +476,9 @@ size_t MessageWriter::doWritePacketData(
         uint8_t cmd = static_cast<uint8_t>(PacketHeader::CommandE::CancelRequest);
         pbufpos     = _rsender.protocol().storeValue(pbufpos, cmd);
         pbufpos     = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().index);
-        SOLID_CHECK(pbufpos != nullptr, "fail store cross value");
+        solid_check(pbufpos != nullptr, "fail store cross value");
         pbufpos = _rsender.protocol().storeCrossValue(pbufpos, _pbufend - pbufpos, _cancel_remote_msg_vec.back().unique);
-        SOLID_CHECK(pbufpos != nullptr, "fail store cross value");
+        solid_check(pbufpos != nullptr, "fail store cross value");
         _cancel_remote_msg_vec.pop_back();
     }
 
@@ -513,7 +513,7 @@ size_t MessageWriter::doWritePacketData(
             pbufpos = doWriteMessageBody(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
             break;
         case MessageStub::StateE::WriteWait:
-            SOLID_THROW("Invalid state for write queue - WriteWait");
+            solid_throw("Invalid state for write queue - WriteWait");
             break;
         case MessageStub::StateE::WriteCanceled:
             pbufpos = doWriteMessageCancel(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
@@ -537,7 +537,7 @@ size_t MessageWriter::doWritePacketData(
             pbufpos = doWriteRelayedBody(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
             break;
         case MessageStub::StateE::RelayedWait:
-            SOLID_THROW("Invalid state for write queue - RelayedWait");
+            solid_throw("Invalid state for write queue - RelayedWait");
             break;
         case MessageStub::StateE::RelayedCancelRequest:
             pbufpos = doWriteRelayedCancelRequest(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
@@ -546,8 +546,8 @@ size_t MessageWriter::doWritePacketData(
             pbufpos = doWriteRelayedCancel(pbufpos, _pbufend, msgidx, _rpacket_options, _rsender, _rerror);
             break;
         default:
-            //SOLID_CHECK(false, "message state not handled: "<<(int)message_vec_[msgidx].state_<<" for message "<<msgidx);
-            SOLID_ASSERT(false);
+            //solid_check(false, "message state not handled: "<<(int)message_vec_[msgidx].state_<<" for message "<<msgidx);
+            solid_assert(false);
             break;
         }
     } //while
@@ -571,7 +571,7 @@ char* MessageWriter::doWriteMessageHead(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+    solid_check(_pbufpos != nullptr, "fail store cross value");
 
     char* psizepos = _pbufpos;
     _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
@@ -617,7 +617,7 @@ char* MessageWriter::doWriteMessageBody(
     _pbufpos += 1;
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+    solid_check(_pbufpos != nullptr, "fail store cross value");
 
     char* psizepos = _pbufpos;
     _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
@@ -688,7 +688,7 @@ char* MessageWriter::doWriteRelayedHead(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+    solid_check(_pbufpos != nullptr, "fail store cross value");
 
     char* psizepos = _pbufpos;
     _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
@@ -736,7 +736,7 @@ char* MessageWriter::doWriteRelayedBody(
     _pbufpos += 1;
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+    solid_check(_pbufpos != nullptr, "fail store cross value");
 
     char* psizepos = _pbufpos;
     _pbufpos       = _rsender.protocol().storeValue(psizepos, static_cast<uint16_t>(0));
@@ -744,7 +744,7 @@ char* MessageWriter::doWriteRelayedBody(
 
     MessageStub& rmsgstub = message_vec_[_msgidx];
 
-    SOLID_ASSERT(rmsgstub.prelay_data_);
+    solid_assert(rmsgstub.prelay_data_);
 
     size_t towrite = _pbufend - _pbufpos;
     if (towrite > rmsgstub.relay_size_) {
@@ -761,7 +761,7 @@ char* MessageWriter::doWriteRelayedBody(
                                           << " for msg " << _msgidx << " cmd = " << (int)cmd << " is_last = " << rmsgstub.prelay_data_->is_last_ << " relaydata = " << rmsgstub.prelay_data_);
 
     if (rmsgstub.relay_size_ == 0) {
-        SOLID_ASSERT(write_inner_list_.size());
+        solid_assert(write_inner_list_.size());
         write_inner_list_.erase(_msgidx); //call before _rsender.pollRelayEngine
 
         const bool is_last                 = rmsgstub.prelay_data_->is_last_;
@@ -803,9 +803,9 @@ char* MessageWriter::doWriteMessageCancel(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+    solid_check(_pbufpos != nullptr, "fail store cross value");
 
-    SOLID_ASSERT(write_inner_list_.size());
+    solid_assert(write_inner_list_.size());
     write_inner_list_.erase(_msgidx);
     order_inner_list_.erase(_msgidx);
     doUnprepareMessageStub(_msgidx);
@@ -831,12 +831,12 @@ char* MessageWriter::doWriteRelayedCancel(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
-    SOLID_ASSERT(rmsgstub.prelay_data_ == nullptr);
+    solid_check(_pbufpos != nullptr, "fail store cross value");
+    solid_assert(rmsgstub.prelay_data_ == nullptr);
     //_rsender.completeRelayed(rmsgstub.prelay_data_, rmsgstub.pool_msg_id_);
     //rmsgstub.prelay_data_ = nullptr;
 
-    SOLID_ASSERT(write_inner_list_.size());
+    solid_assert(write_inner_list_.size());
     write_inner_list_.erase(_msgidx);
     order_inner_list_.erase(_msgidx);
     doUnprepareMessageStub(_msgidx);
@@ -861,9 +861,9 @@ char* MessageWriter::doWriteRelayedCancelRequest(
     _pbufpos    = _rsender.protocol().storeValue(_pbufpos, cmd);
 
     _pbufpos = _rsender.protocol().storeCrossValue(_pbufpos, _pbufend - _pbufpos, static_cast<uint32_t>(_msgidx));
-    SOLID_CHECK(_pbufpos != nullptr, "fail store cross value");
+    solid_check(_pbufpos != nullptr, "fail store cross value");
 
-    SOLID_ASSERT(write_inner_list_.size());
+    solid_assert(write_inner_list_.size());
     write_inner_list_.erase(_msgidx);
     order_inner_list_.erase(_msgidx);
     doUnprepareMessageStub(_msgidx);
@@ -886,7 +886,7 @@ void MessageWriter::doTryCompleteMessageAfterSerialization(
 
     cache(rmsgstub.serializer_ptr_);
 
-    SOLID_ASSERT(write_inner_list_.size());
+    solid_assert(write_inner_list_.size());
     write_inner_list_.popFront();
 
     if (current_synchronous_message_idx_ == _msgidx) {
@@ -939,7 +939,7 @@ void MessageWriter::forEveryMessagesNewerToOlder(VisitFunctionT const& _rvisit_f
             if (!rmsgstub.msgbundle_.message_ptr) { //message fetched
 
                 if (message_in_write_queue) {
-                    SOLID_ASSERT(write_inner_list_.size());
+                    solid_assert(write_inner_list_.size());
                     write_inner_list_.erase(msgidx);
                 }
 

@@ -84,7 +84,7 @@ bool try_stop()
         lock_guard<mutex> lock(mtx);
         running = false;
         cnd.notify_one();
-        SOLID_CHECK(canceled_count != 0);
+        solid_check(canceled_count != 0);
         return true;
     }
     return false;
@@ -156,7 +156,7 @@ struct Message : frame::mpipc::Message {
         _s.add([&_rthis](S& _rs, frame::mpipc::ConnectionContext& _rctx, const char* _name) {
             if (_rthis.isBackOnSender()) {
                 ++back_on_sender_count;
-                SOLID_ASSERT(back_on_sender_count <= writecount);
+                solid_assert(back_on_sender_count <= writecount);
                 if (back_on_sender_count == writecount) {
                     solid_dbg(generic_logger, Info, "Close connection: " << _rthis.idx << " " << msgid_vec[_rthis.idx].first);
                     //we're on the peerb,
@@ -206,7 +206,7 @@ struct Message : frame::mpipc::Message {
 
         for (uint64_t i = 0; i < count; ++i) {
             if (pu[i] != pup[(i + idx) % pattern_size]) {
-                SOLID_THROW("Message check failed.");
+                solid_throw("Message check failed.");
                 return false;
             }
         }
@@ -238,14 +238,14 @@ void peera_complete_message(
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
 
-    SOLID_CHECK(_rsent_msg_ptr, "Error: there should be a request message");
+    solid_check(_rsent_msg_ptr, "Error: there should be a request message");
     if (_rerror) {
-        SOLID_CHECK(!_rrecv_msg_ptr, "Error: there should be no response");
+        solid_check(!_rrecv_msg_ptr, "Error: there should be no response");
         ++canceled_count;
     } else {
         ++success_count;
-        SOLID_CHECK(_rrecv_msg_ptr, "Error: there should be a response");
-        SOLID_CHECK(_rrecv_msg_ptr->check());
+        solid_check(_rrecv_msg_ptr, "Error: there should be a response");
+        solid_check(_rrecv_msg_ptr->check());
     }
 
     try_stop();
@@ -261,7 +261,7 @@ void peerb_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
     auto            msgptr = std::make_shared<Register>("b");
     ErrorConditionT err    = _rctx.service().sendMessage(_rctx.recipientId(), std::move(msgptr), {frame::mpipc::MessageFlagsE::WaitResponse});
-    SOLID_CHECK(!err, "failed send Register");
+    solid_check(!err, "failed send Register");
 }
 
 void peerb_connection_stop(frame::mpipc::ConnectionContext& _rctx)
@@ -275,7 +275,7 @@ void peerb_complete_register(
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
-    SOLID_CHECK(!_rerror);
+    solid_check(!_rerror);
 
     if (_rrecv_msg_ptr && _rrecv_msg_ptr->err == 0) {
         auto lambda = [](frame::mpipc::ConnectionContext&, ErrorConditionT const& _rerror) {
@@ -297,24 +297,24 @@ void peerb_complete_message(
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " datasz = " << _rrecv_msg_ptr->str.size());
 
         if (!_rrecv_msg_ptr->check()) {
-            SOLID_ASSERT(false);
-            SOLID_THROW("Message check failed.");
+            solid_assert(false);
+            solid_throw("Message check failed.");
         }
 
         if (!_rrecv_msg_ptr->isOnPeer()) {
-            SOLID_ASSERT(false);
-            SOLID_THROW("Message not on peer!.");
+            solid_assert(false);
+            solid_throw("Message not on peer!.");
         }
 
         if (!_rrecv_msg_ptr->isRelayed()) {
-            SOLID_ASSERT(false);
-            SOLID_THROW("Message not relayed!.");
+            solid_assert(false);
+            solid_throw("Message not relayed!.");
         }
 
         //send message back
         if (_rctx.recipientId().isInvalidConnection()) {
-            SOLID_ASSERT(false);
-            SOLID_THROW("Connection id should not be invalid!");
+            solid_assert(false);
+            solid_throw("Connection id should not be invalid!");
         }
 
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
@@ -430,9 +430,9 @@ int test_relay_close_response(int argc, char* argv[])
                                     std::shared_ptr<Register>&       _rsent_msg_ptr,
                                     std::shared_ptr<Register>&       _rrecv_msg_ptr,
                                     ErrorConditionT const&           _rerror) {
-                SOLID_CHECK(!_rerror);
+                solid_check(!_rerror);
                 if (_rrecv_msg_ptr) {
-                    SOLID_CHECK(!_rsent_msg_ptr);
+                    solid_check(!_rsent_msg_ptr);
                     solid_dbg(generic_logger, Info, "recv register request: " << _rrecv_msg_ptr->str);
 
                     relay_engine.registerConnection(_rctx, std::move(_rrecv_msg_ptr->str));
@@ -440,10 +440,10 @@ int test_relay_close_response(int argc, char* argv[])
                     _rrecv_msg_ptr->str.clear();
                     ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-                    SOLID_CHECK(!err, "Failed sending register response: " << err.message());
+                    solid_check(!err, "Failed sending register response: " << err.message());
 
                 } else {
-                    SOLID_CHECK(!_rrecv_msg_ptr);
+                    solid_check(!_rrecv_msg_ptr);
                     solid_dbg(generic_logger, Info, "sent register response");
                 }
             };
@@ -585,7 +585,7 @@ int test_relay_close_response(int argc, char* argv[])
 
         //ensure we have provisioned connections on peerb
         err = mpipcpeerb.createConnectionPool("localhost");
-        SOLID_CHECK(!err, "failed create connection from peerb: " << err.message());
+        solid_check(!err, "failed create connection from peerb: " << err.message());
 
         for (; crtwriteidx < start_count;) {
             mtx.lock();
@@ -603,7 +603,7 @@ int test_relay_close_response(int argc, char* argv[])
 
         if (!cnd.wait_for(lock, std::chrono::seconds(60 * 2), []() { return !running; })) {
             relay_engine.debugDump();
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
     }
 

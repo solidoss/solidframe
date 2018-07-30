@@ -26,8 +26,8 @@ struct ReactorContext;
 template <class Sock>
 class Stream : public CompletionHandler {
     using ThisT         = Stream<Sock>;
-    using RecvFunctionT = SOLID_FUNCTION(void(ThisT&, ReactorContext&));
-    using SendFunctionT = SOLID_FUNCTION(void(ThisT&, ReactorContext&));
+    using RecvFunctionT = solid_function_t(void(ThisT&, ReactorContext&));
+    using SendFunctionT = solid_function_t(void(ThisT&, ReactorContext&));
 
     static void on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx)
     {
@@ -66,7 +66,7 @@ class Stream : public CompletionHandler {
             rthis.doClear(_rctx);
             break;
         default:
-            SOLID_ASSERT(false);
+            solid_assert(false);
         }
     }
 
@@ -175,7 +175,7 @@ class Stream : public CompletionHandler {
             } else {
                 _rthis.error(_rctx, error_stream_system);
                 _rthis.systemError(_rctx, err);
-                SOLID_ASSERT(err);
+                solid_assert(err);
             }
             F tmp{std::move(f)};
             _rthis.doClearSend(_rctx);
@@ -206,7 +206,7 @@ class Stream : public CompletionHandler {
             } else {
                 _rthis.error(_rctx, error_stream_system);
                 _rthis.systemError(_rctx, err);
-                SOLID_ASSERT(err);
+                solid_assert(err);
             }
             F tmp{std::move(f)};
             _rthis.doClearRecv(_rctx);
@@ -237,7 +237,7 @@ class Stream : public CompletionHandler {
             } else {
                 _rthis.error(_rctx, error_stream_system);
                 _rthis.systemError(_rctx, err);
-                SOLID_ASSERT(err);
+                solid_assert(err);
             }
 
             F tmp{std::move(f)};
@@ -331,12 +331,12 @@ public:
 
     bool hasPendingRecv() const
     {
-        return !SOLID_FUNCTION_EMPTY(recv_fnc);
+        return !solid_function_empty(recv_fnc);
     }
 
     bool hasPendingSend() const
     {
-        return !SOLID_FUNCTION_EMPTY(send_fnc);
+        return !solid_function_empty(send_fnc);
     }
     SocketDevice& device()
     {
@@ -370,7 +370,7 @@ public:
     template <typename F>
     bool postRecvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f)
     {
-        if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
+        if (solid_function_empty(recv_fnc)) {
             recv_fnc       = RecvSomeFunctor<F>(_f);
             recv_buf       = _buf;
             recv_buf_cp    = _bufcp;
@@ -388,7 +388,7 @@ public:
     template <typename F>
     bool recvSome(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f, size_t& _sz)
     {
-        if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
+        if (solid_function_empty(recv_fnc)) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -413,7 +413,7 @@ public:
     template <typename F>
     bool postSendAll(ReactorContext& _rctx, const char* _buf, size_t _bufcp, F _f)
     {
-        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
+        if (solid_function_empty(send_fnc)) {
             send_fnc       = SendAllFunctor<F>(_f);
             send_buf       = _buf;
             send_buf_cp    = _bufcp;
@@ -424,7 +424,7 @@ public:
             return false;
         } else {
             error(_rctx, error_already);
-            SOLID_ASSERT(false);
+            solid_assert(false);
             return true;
         }
     }
@@ -432,7 +432,7 @@ public:
     template <typename F>
     bool sendAll(ReactorContext& _rctx, char* _buf, size_t _bufcp, F _f)
     {
-        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
+        if (solid_function_empty(send_fnc)) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -456,7 +456,7 @@ public:
     template <typename F>
     bool connect(ReactorContext& _rctx, SocketAddressStub const& _rsas, F _f)
     {
-        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
+        if (solid_function_empty(send_fnc)) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -475,12 +475,12 @@ public:
                 } else {
                     error(_rctx, error_stream_system);
                     systemError(_rctx, err);
-                    SOLID_ASSERT(err);
+                    solid_assert(err);
                 }
             } else {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                SOLID_ASSERT(err);
+                solid_assert(err);
             }
 
         } else {
@@ -497,7 +497,7 @@ public:
     template <typename F>
     bool secureConnect(ReactorContext& _rctx, F _f)
     {
-        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
+        if (solid_function_empty(send_fnc)) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -511,7 +511,7 @@ public:
             } else {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                SOLID_ASSERT(err);
+                solid_assert(err);
             }
         }
         return true;
@@ -520,7 +520,7 @@ public:
     template <typename F>
     bool secureAccept(ReactorContext& _rctx, F _f)
     {
-        if (SOLID_FUNCTION_EMPTY(recv_fnc)) {
+        if (solid_function_empty(recv_fnc)) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -534,7 +534,7 @@ public:
             } else {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                SOLID_ASSERT(err);
+                solid_assert(err);
             }
         }
         return true;
@@ -543,7 +543,7 @@ public:
     template <typename F>
     bool secureShutdown(ReactorContext& _rctx, F _f)
     {
-        if (SOLID_FUNCTION_EMPTY(send_fnc)) {
+        if (solid_function_empty(send_fnc)) {
             errorClear(_rctx);
             contextBind(_rctx);
 
@@ -557,7 +557,7 @@ public:
             } else {
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                SOLID_ASSERT(err);
+                solid_assert(err);
             }
         }
         return true;
@@ -569,7 +569,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            SOLID_ASSERT(err);
+            solid_assert(err);
         }
     }
 
@@ -581,7 +581,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            SOLID_ASSERT(err);
+            solid_assert(err);
         }
     }
 
@@ -591,7 +591,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            SOLID_ASSERT(err);
+            solid_assert(err);
         }
     }
 
@@ -601,7 +601,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            SOLID_ASSERT(err);
+            solid_assert(err);
         }
     }
 
@@ -611,7 +611,7 @@ public:
         if (err) {
             error(_rctx, error_stream_system);
             systemError(_rctx, err);
-            SOLID_ASSERT(err);
+            solid_assert(err);
         }
     }
 
@@ -627,7 +627,7 @@ private:
 
     void doRecv(ReactorContext& _rctx)
     {
-        if (!recv_is_posted && !SOLID_FUNCTION_EMPTY(recv_fnc)) {
+        if (!recv_is_posted && !solid_function_empty(recv_fnc)) {
             solid_dbg(logger, Verbose, "");
             errorClear(_rctx);
 
@@ -637,7 +637,7 @@ private:
 
     void doSend(ReactorContext& _rctx)
     {
-        if (!send_is_posted && !SOLID_FUNCTION_EMPTY(send_fnc)) {
+        if (!send_is_posted && !solid_function_empty(send_fnc)) {
             errorClear(_rctx);
 
             send_fnc(*this, _rctx);
@@ -666,7 +666,7 @@ private:
                 recv_buf_sz = recv_buf_cp = 0;
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                SOLID_ASSERT(err);
+                solid_assert(err);
             }
         }
         return true;
@@ -693,7 +693,7 @@ private:
                 send_buf_sz = send_buf_cp = 0;
                 error(_rctx, error_stream_system);
                 systemError(_rctx, err);
-                SOLID_ASSERT(err);
+                solid_assert(err);
             }
         }
         return true;
@@ -713,11 +713,11 @@ private:
         error(_rctx, error_stream_socket);
         systemError(_rctx, s.device().error());
 
-        if (!SOLID_FUNCTION_EMPTY(send_fnc)) {
+        if (!solid_function_empty(send_fnc)) {
             send_buf_sz = send_buf_cp = 0;
             send_fnc(*this, _rctx);
         }
-        if (!SOLID_FUNCTION_EMPTY(recv_fnc)) {
+        if (!solid_function_empty(recv_fnc)) {
             recv_buf_sz = recv_buf_cp = 0;
             recv_fnc(*this, _rctx);
         }
@@ -725,16 +725,16 @@ private:
 
     void doClearRecv(ReactorContext& _rctx)
     {
-        SOLID_FUNCTION_CLEAR(recv_fnc);
-        SOLID_ASSERT(SOLID_FUNCTION_EMPTY(recv_fnc));
+        solid_function_clear(recv_fnc);
+        solid_assert(solid_function_empty(recv_fnc));
         recv_buf    = nullptr;
         recv_buf_sz = recv_buf_cp = 0;
     }
 
     void doClearSend(ReactorContext& _rctx)
     {
-        SOLID_FUNCTION_CLEAR(send_fnc);
-        SOLID_ASSERT(SOLID_FUNCTION_EMPTY(send_fnc));
+        solid_function_clear(send_fnc);
+        solid_assert(solid_function_empty(send_fnc));
         send_buf    = nullptr;
         send_buf_sz = send_buf_cp = 0;
     }

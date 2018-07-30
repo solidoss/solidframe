@@ -149,7 +149,7 @@ void complete_message(
     ErrorConditionT const&           _rerr)
 {
     if (_rerr) {
-        SOLID_THROW("Message complete with error");
+        solid_throw("Message complete with error");
     }
     if (_rmessage_ptr.get()) {
         solid_dbg(generic_logger, Info, static_cast<Message*>(_rmessage_ptr.get())->idx);
@@ -158,7 +158,7 @@ void complete_message(
     if (_rresponse_ptr.get()) {
 
         if (!static_cast<Message&>(*_rresponse_ptr).check()) {
-            SOLID_THROW("Message check failed.");
+            solid_throw("Message check failed.");
         }
 
         ++crtreadidx;
@@ -219,7 +219,7 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
     void receiveAckCount(uint8_t _count) override
     {
         solid_dbg(generic_logger, Info, "" << (int)_count);
-        SOLID_CHECK(_count == ackd_count, "invalid ack count");
+        solid_check(_count == ackd_count, "invalid ack count");
     }
     void receiveCancelRequest(const frame::mpipc::RequestId& _reqid) override
     {
@@ -233,7 +233,7 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
                 ++it;
             }
         }
-        SOLID_CHECK(found, "request not found");
+        solid_check(found, "request not found");
     }
 };
 

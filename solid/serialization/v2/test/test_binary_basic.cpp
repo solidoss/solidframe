@@ -29,22 +29,22 @@ bool test(const T& _v, const size_t _estimated_size)
     char   tmp[256] = {0};
     size_t sz       = cross::size(_v);
     if (sz != _estimated_size) {
-        SOLID_THROW("error");
+        solid_throw("error");
         return false;
     }
     char* p = cross::store_with_check(tmp, 256, _v);
     if (p == nullptr) {
-        SOLID_THROW("error");
+        solid_throw("error");
         return false;
     }
 
     if (static_cast<size_t>(p - tmp) != _estimated_size) {
-        SOLID_THROW("error");
+        solid_throw("error");
         return false;
     }
 
     if (cross::size(tmp) != _estimated_size) {
-        SOLID_THROW("error");
+        solid_throw("error");
         return false;
     }
 
@@ -55,17 +55,17 @@ bool test(const T& _v, const size_t _estimated_size)
     cp = cross::load_with_check(tmp, 256, v);
 
     if (cp == nullptr) {
-        SOLID_THROW("error");
+        solid_throw("error");
         return false;
     }
 
     if (static_cast<size_t>(cp - tmp) != _estimated_size) {
-        SOLID_THROW("error");
+        solid_throw("error");
         return false;
     }
 
     if (v != _v) {
-        SOLID_THROW("error");
+        solid_throw("error");
         return false;
     }
     return true;
@@ -89,69 +89,69 @@ int test_binary_basic(int argc, char* argv[])
     print(0xffffffff);
 
     if (!test(static_cast<uint8_t>(0x00), 1)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
 
     if (!test(static_cast<uint8_t>(0x1), 2)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
 
     if (!test(static_cast<uint8_t>(0xff), 2)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
 
     if (!test(static_cast<uint16_t>(0), 1)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint16_t>(0xff), 2)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint16_t>(0xffff), 3)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
 
     if (!test(static_cast<uint32_t>(0), 1)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint32_t>(0xff), 2)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint32_t>(0xffff), 3)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint32_t>(0xffffff), 4)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint32_t>(0xffffffff), 5)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
 
     if (!test(static_cast<uint64_t>(0), 1)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint64_t>(0xff), 2)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint64_t>(0xffff), 3)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint64_t>(0xffffff), 4)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint64_t>(0xffffffff), 5)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint64_t>(0xffffffffffULL), 6)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint64_t>(0xffffffffffffULL), 7)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint64_t>(0xffffffffffffffULL), 8)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     if (!test(static_cast<uint64_t>(0xffffffffffffffffULL), 9)) {
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     return 0;
 }

@@ -113,7 +113,7 @@ struct Message : frame::mpipc::Message {
     ~Message()
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
-        SOLID_ASSERT(serialized || this->isBackOnSender());
+        solid_assert(serialized || this->isBackOnSender());
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -144,7 +144,7 @@ struct Message : frame::mpipc::Message {
 
         for (uint64_t i = 0; i < count; ++i) {
             if (pu[i] != pup[(i + idx) % pattern_size]) {
-                SOLID_THROW("Message check failed.");
+                solid_throw("Message check failed.");
                 return false;
             }
         }
@@ -173,8 +173,8 @@ struct RecvClosure {
     void operator()(frame::mpipc::ConnectionContext& _rctx, const char* _pdata, size_t& _rsz, ErrorConditionT const& _rerror)
     {
         solid_dbg(generic_logger, Info, "received raw data: sz = " << _rsz << " error = " << _rerror.message());
-        SOLID_CHECK(!_rerror);
-        SOLID_CHECK(_rsz != 0);
+        solid_check(!_rerror);
+        solid_check(_rsz != 0);
 
         size_t towrite = raw_data.size() - data.size();
 
@@ -201,13 +201,13 @@ void client_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
     auto lambda = [](frame::mpipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror) {
         solid_dbg(generic_logger, Info, "sent raw data: " << _rerror.message());
-        SOLID_CHECK(!_rerror);
+        solid_check(!_rerror);
         //sent the raw_data, prepare receive the message back:
 
         auto lambda = [](frame::mpipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror, std::string&& _rdata) {
             solid_dbg(generic_logger, Info, "received back raw data: " << _rerror.message() << " data.size = " << _rdata.size());
-            SOLID_CHECK(!_rerror);
-            SOLID_CHECK(_rdata == raw_data);
+            solid_check(!_rerror);
+            solid_check(_rdata == raw_data);
             //activate concetion
             _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId());
         };
@@ -229,7 +229,7 @@ void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
     auto lambda = [](frame::mpipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror, std::string&& _rdata) {
         auto lambda = [](frame::mpipc::ConnectionContext& _rctx, ErrorConditionT const& _rerror) {
             solid_dbg(generic_logger, Info, "sent raw data: " << _rerror.message());
-            SOLID_CHECK(!_rerror);
+            solid_check(!_rerror);
             //now that we've sent the raw string back, activate the connection
             _rctx.service().connectionNotifyEnterActiveState(_rctx.recipientId());
         };
@@ -256,7 +256,7 @@ void client_complete_message(
     }
     if (_rrecv_msg_ptr) {
         if (!_rrecv_msg_ptr->check()) {
-            SOLID_THROW("Message check failed.");
+            solid_throw("Message check failed.");
         }
 
         //cout<< _rmsgptr->str.size()<<'\n';
@@ -264,7 +264,7 @@ void client_complete_message(
         ++transfered_count;
 
         if (!_rrecv_msg_ptr->isBackOnSender()) {
-            SOLID_THROW("Message not back on sender!.");
+            solid_throw("Message not back on sender!.");
         }
 
         ++crtbackidx;
@@ -286,20 +286,20 @@ void server_complete_message(
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
 
         if (!_rrecv_msg_ptr->check()) {
-            SOLID_THROW("Message check failed.");
+            solid_throw("Message check failed.");
         }
 
         if (!_rrecv_msg_ptr->isOnPeer()) {
-            SOLID_THROW("Message not on peer!.");
+            solid_throw("Message not on peer!.");
         }
 
         //send message back
         if (_rctx.recipientId().isInvalidConnection()) {
-            SOLID_THROW("Connection id should not be invalid!");
+            solid_throw("Connection id should not be invalid!");
         }
         ErrorConditionT err = _rctx.service().sendMessage(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
+        solid_check(!err, "Connection id should not be invalid! " << err.message());
 
         ++crtreadidx;
         solid_dbg(generic_logger, Info, crtreadidx);
@@ -450,11 +450,11 @@ int test_raw_proxy(int argc, char* argv[])
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return !running; })) {
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
 
         if (crtwriteidx != crtackidx) {
-            SOLID_THROW("Not all messages were completed");
+            solid_throw("Not all messages were completed");
         }
 
         //m.stop();

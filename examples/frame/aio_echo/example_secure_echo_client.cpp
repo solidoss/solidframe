@@ -276,7 +276,7 @@ struct ConnectFunction {
     if (generic_event_message == _revent) {
         std::string* pline = _revent.any().cast<std::string>();
 
-        SOLID_CHECK(pline != nullptr);
+        solid_check(pline != nullptr);
 
         send_strs[crtFillIdx()].append(*pline);
 
@@ -288,7 +288,7 @@ struct ConnectFunction {
     } else if (generic_event_start == _revent) {
         ConnectStub* pconnect_stub = _revent.any().cast<ConnectStub>();
 
-        SOLID_CHECK(pconnect_stub != nullptr);
+        solid_check(pconnect_stub != nullptr);
         solid_log(generic_logger, Info, "Resolving: " << pconnect_stub->connect_addr << ':' << pconnect_stub->connect_port);
 
         frame::Manager&  manager = _rctx.service().manager();
@@ -306,7 +306,7 @@ struct ConnectFunction {
     } else if (generic_event_raise == _revent) {
         ResolveData* presolve_data = _revent.any().cast<ResolveData>();
 
-        SOLID_CHECK(presolve_data != nullptr);
+        solid_check(presolve_data != nullptr);
 
         if (!presolve_data->empty()) {
             ConnectFunction cf;
@@ -398,7 +398,7 @@ struct ConnectFunction {
     } else {
         ResolveData* presolve_data = _rcf.event.any().cast<ResolveData>();
 
-        SOLID_CHECK(presolve_data != nullptr);
+        solid_check(presolve_data != nullptr);
 
         ++_rcf.iterator;
 

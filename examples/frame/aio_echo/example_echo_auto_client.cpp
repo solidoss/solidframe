@@ -389,7 +389,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     if (!_rctx.error()) {
         rthis.recvcnt += _sz;
 
-        SOLID_ASSERT(_sz <= rthis.expect_recvcnt);
+        solid_assert(_sz <= rthis.expect_recvcnt);
 
         solid_log(generic_logger, Info, &rthis << " received " << _sz);
 

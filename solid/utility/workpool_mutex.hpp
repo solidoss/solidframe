@@ -305,7 +305,7 @@ void WorkPool<Job, QNBits>::doStop()
 
     if (running_.compare_exchange_strong(expect, false)) {
     } else {
-        SOLID_ASSERT(false); //doStop called multiple times
+        solid_assert(false); //doStop called multiple times
         return;
     }
     {

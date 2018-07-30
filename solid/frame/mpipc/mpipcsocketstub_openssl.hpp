@@ -36,10 +36,10 @@ namespace openssl {
 using ContextT      = frame::aio::openssl::Context;
 using StreamSocketT = frame::aio::Stream<frame::aio::openssl::Socket>;
 
-using ConnectionPrepareServerFunctionT = SOLID_FUNCTION(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&));
-using ConnectionPrepareClientFunctionT = SOLID_FUNCTION(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&));
-using ConnectionServerVerifyFunctionT  = SOLID_FUNCTION(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&));
-using ConnectionClientVerifyFunctionT  = SOLID_FUNCTION(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&));
+using ConnectionPrepareServerFunctionT = solid_function_t(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&));
+using ConnectionPrepareClientFunctionT = solid_function_t(unsigned long(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, ErrorConditionT&));
+using ConnectionServerVerifyFunctionT  = solid_function_t(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&));
+using ConnectionClientVerifyFunctionT  = solid_function_t(bool(frame::aio::ReactorContext&, ConnectionContext&, StreamSocketT&, bool, frame::aio::openssl::VerifyContext&));
 
 struct ClientConfiguration {
     ClientConfiguration()

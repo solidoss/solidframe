@@ -483,11 +483,11 @@ int test_echo_tcp_stress(int argc, char* argv[])
         if (be_secure) {
             ErrorCodeT err;
             err = srv_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-            SOLID_CHECK(!err, "failed loadVerifyFile " << err.message());
+            solid_check(!err, "failed loadVerifyFile " << err.message());
             err = srv_secure_ctx.loadCertificateFile("echo-server-cert.pem");
-            SOLID_CHECK(!err, "failed loadCertificateFile " << err.message());
+            solid_check(!err, "failed loadCertificateFile " << err.message());
             err = srv_secure_ctx.loadPrivateKeyFile("echo-server-key.pem");
-            SOLID_CHECK(!err, "failed loadPrivateKeyFile " << err.message());
+            solid_check(!err, "failed loadPrivateKeyFile " << err.message());
         }
 
         if (srv_sch.start(thread::hardware_concurrency())) {
@@ -571,11 +571,11 @@ int test_echo_tcp_stress(int argc, char* argv[])
 
         if (be_secure) {
             ErrorCodeT err = clt_secure_ctx.loadVerifyFile("echo-ca-cert.pem" /*"/etc/pki/tls/certs/ca-bundle.crt"*/);
-            SOLID_CHECK(!err, "failed loadVerifyFile " << err.message());
+            solid_check(!err, "failed loadVerifyFile " << err.message());
             err = clt_secure_ctx.loadCertificateFile("echo-client-cert.pem");
-            SOLID_CHECK(!err, "failed loadCertificateFile " << err.message());
+            solid_check(!err, "failed loadCertificateFile " << err.message());
             err = clt_secure_ctx.loadPrivateKeyFile("echo-client-key.pem");
-            SOLID_CHECK(!err, "failed loadPrivateKeyFile " << err.message());
+            solid_check(!err, "failed loadPrivateKeyFile " << err.message());
         }
 
         if (clt_sch.start(thread::hardware_concurrency())) {
@@ -606,10 +606,10 @@ int test_echo_tcp_stress(int argc, char* argv[])
             unique_lock<mutex> lock(mtx);
 
             if (!cnd.wait_for(lock, std::chrono::seconds(wait_seconds), []() { return !running; })) {
-                SOLID_THROW("Process is taking too long.");
+                solid_throw("Process is taking too long.");
             }
             cout << "Received " << recv_count / 1024 << "KB on " << connection_count << " connections" << endl;
-            SOLID_CHECK(recv_count != 0);
+            solid_check(recv_count != 0);
         }
     }
 
@@ -901,8 +901,8 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
     if (!_rctx.error()) {
         rthis.recvcnt += _sz;
 
-        SOLID_CHECK(_sz <= rthis.expect_recvcnt);
-        SOLID_CHECK(rthis.checkRecvData(_sz));
+        solid_check(_sz <= rthis.expect_recvcnt);
+        solid_check(rthis.checkRecvData(_sz));
 
         solid_dbg(generic_logger, Info, &rthis << " received " << _sz);
 
@@ -913,7 +913,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             if (rthis.crt_send_idx != repeat_count) {
                 rthis.doSend(_rctx);
             } else {
-                SOLID_CHECK(rthis.recvcnt == rthis.sendcnt);
+                solid_check(rthis.recvcnt == rthis.sendcnt);
                 rthis.postStop(_rctx);
             }
         }
@@ -1091,7 +1091,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 
     if (repeatcnt == 0) {
         bool rv = rthis.sock1.postRecvSome(_rctx, rthis.buf1, BufferCapacity, Connection::onRecvSock1); //fully asynchronous call
-        SOLID_ASSERT(!rv);
+        solid_assert(!rv);
     }
 }
 
@@ -1122,7 +1122,7 @@ void Connection::onConnect(frame::aio::ReactorContext& _rctx)
 
     if (repeatcnt == 0) {
         bool rv = rthis.sock2.postRecvSome(_rctx, rthis.buf2, BufferCapacity, Connection::onRecvSock2); //fully asynchronous call
-        SOLID_ASSERT(!rv);
+        solid_assert(!rv);
     }
 }
 

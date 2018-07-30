@@ -16,10 +16,10 @@
 
 #include <cassert>
 
-#define SOLID_ASSERT(a) assert((a))
+#define solid_assert(a) assert((a))
 
 #else
-#define SOLID_ASSERT(a)
+#define solid_assert(a)
 
 #endif
 

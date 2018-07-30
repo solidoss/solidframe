@@ -182,7 +182,7 @@ int64_t MemoryFile::seek(int64_t _pos, SeekRef _ref)
 int MemoryFile::truncate(int64_t _len)
 {
     //TODO:
-    SOLID_ASSERT(_len == 0);
+    solid_assert(_len == 0);
     sz         = 0;
     off        = 0;
     crtbuffidx = -1;

@@ -56,11 +56,11 @@ void test_any_no_copy_copy(const Any<32>& _rany)
 {
     try {
         Any<32> tmp_any(_rany);
-        SOLID_CHECK(tmp_any.empty());
+        solid_check(tmp_any.empty());
     } catch (std::exception& rex) {
         cout << "Exception: " << rex.what() << endl;
     }
-    SOLID_CHECK(!_rany.empty());
+    solid_check(!_rany.empty());
 
     Any<32> tmp_any;
 
@@ -73,21 +73,21 @@ void test_any_no_copy_copy(const Any<32>& _rany)
         caught_exception = true;
     }
 
-    SOLID_CHECK(tmp_any.empty());
-    SOLID_CHECK(!_rany.empty());
-    SOLID_CHECK(caught_exception);
+    solid_check(tmp_any.empty());
+    solid_check(!_rany.empty());
+    solid_check(caught_exception);
 }
 
 std::string test_any_no_copy_move(Any<32>& _rany)
 {
     Any<32> tmp_any(std::move(_rany));
 
-    SOLID_CHECK(_rany.empty());
-    SOLID_CHECK(!tmp_any.empty());
+    solid_check(_rany.empty());
+    solid_check(!tmp_any.empty());
 
     TestNoCopy* p = tmp_any.cast<TestNoCopy>();
 
-    SOLID_CHECK(p != nullptr);
+    solid_check(p != nullptr);
     return p->str;
 }
 
@@ -163,42 +163,42 @@ int test_any(int /*argc*/, char* /*argv*/ [])
 
     cout << "sizeof(any0) = " << sizeof(any0) << endl;
 
-    SOLID_CHECK(!any32.empty());
-    SOLID_CHECK(any32.cast<string>() != nullptr);
-    SOLID_CHECK(any32.cast<int>() == nullptr);
+    solid_check(!any32.empty());
+    solid_check(any32.cast<string>() != nullptr);
+    solid_check(any32.cast<int>() == nullptr);
 
     cout << "value = " << *any32.cast<string>() << endl;
 
     any0 = std::move(any32);
 
-    SOLID_CHECK(any32.empty());
-    SOLID_CHECK(!any0.empty());
+    solid_check(any32.empty());
+    solid_check(!any0.empty());
 
-    SOLID_CHECK(any0.cast<string>() != nullptr);
-    SOLID_CHECK(any0.cast<int>() == nullptr);
+    solid_check(any0.cast<string>() != nullptr);
+    solid_check(any0.cast<int>() == nullptr);
 
     cout << "value = " << *any0.cast<string>() << endl;
 
     any32 = any0;
 
-    SOLID_CHECK(!any32.empty());
-    SOLID_CHECK(!any0.empty());
+    solid_check(!any32.empty());
+    solid_check(!any0.empty());
 
     Any<16> any16_0(any32);
     Any<16> any16_1(any16_0);
 
-    SOLID_CHECK(!any32.empty());
-    SOLID_CHECK(!any16_0.empty());
-    SOLID_CHECK(!any16_1.empty());
+    solid_check(!any32.empty());
+    solid_check(!any16_0.empty());
+    solid_check(!any16_1.empty());
 
-    SOLID_CHECK(*any16_1.cast<string>() == *any32.cast<string>() && *any16_1.cast<string>() == *any16_0.cast<string>());
+    solid_check(*any16_1.cast<string>() == *any32.cast<string>() && *any16_1.cast<string>() == *any16_0.cast<string>());
 
     Any<16> any16_2(std::move(any16_0));
 
-    SOLID_CHECK(any16_0.empty());
-    SOLID_CHECK(!any16_2.empty());
+    solid_check(any16_0.empty());
+    solid_check(!any16_2.empty());
 
-    SOLID_CHECK(*any16_2.cast<string>() == *any32.cast<string>());
+    solid_check(*any16_2.cast<string>() == *any32.cast<string>());
 
     Any<32> any_nc_0(make_any<32, TestNoCopy>("a string"));
 
@@ -222,69 +222,69 @@ int test_any(int /*argc*/, char* /*argv*/ [])
 
         cout << "ptr.get = " << ptr.get() << endl;
         cout << "ptr usecount = " << ptr.use_count() << endl;
-        SOLID_CHECK(ptr.use_count() == 3);
-        SOLID_CHECK(ptr.get() == any_ptr1.cast<std::shared_ptr<Data>>()->get() && any_ptr2.cast<std::shared_ptr<Data>>()->get() == ptr.get());
+        solid_check(ptr.use_count() == 3);
+        solid_check(ptr.get() == any_ptr1.cast<std::shared_ptr<Data>>()->get() && any_ptr2.cast<std::shared_ptr<Data>>()->get() == ptr.get());
 
         Any<256> any_ptr3 = make_any<256, std::shared_ptr<Data>>(std::move(ptr));
 
-        SOLID_CHECK(any_ptr2.cast<std::shared_ptr<Data>>()->get() == any_ptr2.cast<std::shared_ptr<Data>>()->get());
-        SOLID_CHECK(any_ptr2.cast<std::shared_ptr<Data>>()->use_count() == 3);
-        SOLID_CHECK(ptr.use_count() == 0);
+        solid_check(any_ptr2.cast<std::shared_ptr<Data>>()->get() == any_ptr2.cast<std::shared_ptr<Data>>()->get());
+        solid_check(any_ptr2.cast<std::shared_ptr<Data>>()->use_count() == 3);
+        solid_check(ptr.use_count() == 0);
     }
     {
         Any<any_data_size<Test>()> any_t{Test{10}};
         Any<>                      any_0{std::move(any_t)};
 
-        SOLID_CHECK(any_t.empty());
-        SOLID_CHECK(!any_0.empty());
+        solid_check(any_t.empty());
+        solid_check(!any_0.empty());
 
         any_t = std::move(any_0);
 
-        SOLID_CHECK(any_0.empty());
-        SOLID_CHECK(!any_t.empty());
+        solid_check(any_0.empty());
+        solid_check(!any_t.empty());
 
         any_0 = Test{5};
-        SOLID_CHECK(!any_0.empty());
+        solid_check(!any_0.empty());
     }
     {
 
         using Array4T = std::array<size_t, 4>;
         Any<8> any{Array4T{{1, 2, 3, 4}}};
-        SOLID_CHECK((*any.cast<Array4T>())[0] == 1);
-        SOLID_CHECK((*any.cast<Array4T>())[1] == 2);
-        SOLID_CHECK((*any.cast<Array4T>())[2] == 3);
-        SOLID_CHECK((*any.cast<Array4T>())[3] == 4);
+        solid_check((*any.cast<Array4T>())[0] == 1);
+        solid_check((*any.cast<Array4T>())[1] == 2);
+        solid_check((*any.cast<Array4T>())[2] == 3);
+        solid_check((*any.cast<Array4T>())[3] == 4);
         (*any.cast<Array4T>())[3] = 10;
-        SOLID_CHECK((*any.cast<Array4T>())[3] == 10);
+        solid_check((*any.cast<Array4T>())[3] == 10);
     }
     {
 
         using Array4T = std::array<size_t, 4>;
         Any<128> any(Array4T{{1, 2, 3, 4}});
-        SOLID_CHECK((*any.cast<Array4T>())[0] == 1);
-        SOLID_CHECK((*any.cast<Array4T>())[1] == 2);
-        SOLID_CHECK((*any.cast<Array4T>())[2] == 3);
-        SOLID_CHECK((*any.cast<Array4T>())[3] == 4);
+        solid_check((*any.cast<Array4T>())[0] == 1);
+        solid_check((*any.cast<Array4T>())[1] == 2);
+        solid_check((*any.cast<Array4T>())[2] == 3);
+        solid_check((*any.cast<Array4T>())[3] == 4);
         (*any.cast<Array4T>())[3] = 10;
-        SOLID_CHECK((*any.cast<Array4T>())[3] == 10);
+        solid_check((*any.cast<Array4T>())[3] == 10);
     }
     {
 
         using Array4T = std::array<size_t, 4>;
         Any<128> any;
         any = Array4T{{1, 2, 3, 4}};
-        SOLID_CHECK((*any.cast<Array4T>())[0] == 1);
-        SOLID_CHECK((*any.cast<Array4T>())[1] == 2);
-        SOLID_CHECK((*any.cast<Array4T>())[2] == 3);
-        SOLID_CHECK((*any.cast<Array4T>())[3] == 4);
+        solid_check((*any.cast<Array4T>())[0] == 1);
+        solid_check((*any.cast<Array4T>())[1] == 2);
+        solid_check((*any.cast<Array4T>())[2] == 3);
+        solid_check((*any.cast<Array4T>())[3] == 4);
         (*any.cast<Array4T>())[3] = 10;
-        SOLID_CHECK((*any.cast<Array4T>())[3] == 10);
+        solid_check((*any.cast<Array4T>())[3] == 10);
     }
     {
         using Array4T = std::array<size_t, 4>;
         Array4T arr{{1, 2, 3, 4}};
         auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable {
-            SOLID_CHECK(arr[3] == 4);
+            solid_check(arr[3] == 4);
             arr[3] = 10;
         };
         Any<128> any;
@@ -295,7 +295,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
         using Array4T = std::array<size_t, 4>;
         Array4T arr{{1, 2, 3, 4}};
         auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable {
-            SOLID_CHECK(arr[3] == 4);
+            solid_check(arr[3] == 4);
             arr[3] = 10;
         };
         Any<128> any(lambda);
@@ -307,7 +307,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
         Array4T       arr{{1, 2, 3, 4}};
         std::ifstream ifs;
         auto          lambda = [arr = std::move(arr), ifs = std::move(ifs)](const char* /*_txt*/) mutable {
-            SOLID_CHECK(arr[3] == 4);
+            solid_check(arr[3] == 4);
             arr[3] = 10;
         };
         Any<128> any(std::move(lambda));

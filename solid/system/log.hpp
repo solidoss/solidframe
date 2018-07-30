@@ -12,11 +12,11 @@
 
 #include "solid/system/common.hpp"
 #include "solid/system/error.hpp"
-#include <memory>
 #include <atomic>
+#include <cstring>
+#include <memory>
 #include <ostream>
 #include <string>
-#include <cstring>
 
 namespace solid {
 
@@ -64,43 +64,50 @@ private:
     void parse(LogAtomicFlagsBackT& _ror_flags, LogAtomicFlagsBackT& _rand_flags, const std::string& _txt) const override;
 };
 
-namespace impl{
+namespace impl {
 
 template <size_t Size>
-class LogLineBuffer: public std::streambuf{
-    struct BufNode{
+class LogLineBuffer : public std::streambuf {
+    struct BufNode {
         static constexpr const size_t buffer_capacity = Size - sizeof(std::unique_ptr<BufNode>);
-        
+
         char buf_[buffer_capacity];
-        
-        const char* begin()const{
+
+        const char* begin() const
+        {
             return &buf_[0];
         }
-        const char *end()const{
+        const char* end() const
+        {
             return &buf_[buffer_capacity];
         }
-        
+
         std::unique_ptr<BufNode> pnext_;
-        
-        BufNode():pnext_(nullptr){}
-        
+
+        BufNode()
+            : pnext_(nullptr)
+        {
+        }
+
     } first_;
-    BufNode *plast_;
-    char    *pcrt_;
+    BufNode*    plast_;
+    char*       pcrt_;
     const char* pend_;
+
 private:
-    
-    void allocate(){
+    void allocate()
+    {
         plast_->pnext_.reset(new BufNode);
         plast_ = plast_->pnext_.get();
-        pcrt_ = plast_->buf_;
-        pend_ = plast_->end();
+        pcrt_  = plast_->buf_;
+        pend_  = plast_->end();
     }
-    
+
     // write one character
-    int_type overflow(int_type c) override{
-        if(c != EOF){
-            if(pcrt_ == pend_){
+    int_type overflow(int_type c) override
+    {
+        if (c != EOF) {
+            if (pcrt_ == pend_) {
                 allocate();
             }
             *pcrt_ = c;
@@ -108,16 +115,18 @@ private:
         }
         return c;
     }
-    
+
     // write multiple characters
-    std::streamsize xsputn(const char* s, std::streamsize num) override{
+    std::streamsize xsputn(const char* s, std::streamsize num) override
+    {
         std::streamsize sz = num;
-        while(sz){
-            if(pcrt_ == pend_){
+        while (sz) {
+            if (pcrt_ == pend_) {
                 allocate();
             }
             std::streamsize towrite = pend_ - pcrt_;
-            if(towrite > sz) towrite = sz;
+            if (towrite > sz)
+                towrite = sz;
             memcpy(pcrt_, s, towrite);
             s += towrite;
             sz -= towrite;
@@ -125,28 +134,38 @@ private:
         }
         return num;
     }
+
 public:
-    LogLineBuffer():plast_(&first_), pcrt_(first_.buf_), pend_(first_.end()){
+    LogLineBuffer()
+        : plast_(&first_)
+        , pcrt_(first_.buf_)
+        , pend_(first_.end())
+    {
         static_assert(sizeof(BufNode) == Size, "sizeof(BufNode) not equal to Size");
     }
-    
-    std::ostream& writeTo(std::ostream &_ros)const{
-        const BufNode *pbn = &first_;
-        do{
-            if(pbn == plast_){
+
+    std::ostream& writeTo(std::ostream& _ros) const
+    {
+        const BufNode* pbn = &first_;
+        do {
+            if (pbn == plast_) {
                 _ros.write(pbn->buf_, pcrt_ - pbn->begin());
-            }else{
+            } else {
                 _ros.write(pbn->buf_, BufNode::buffer_capacity);
             }
             pbn = pbn->pnext_.get();
-        }while(pbn);
+        } while (pbn);
         return _ros;
     }
 };
 
-class LogLineStreamBase: public std::ostream{
+class LogLineStreamBase : public std::ostream {
 protected:
-    LogLineStreamBase():std::ostream(0){}
+    LogLineStreamBase()
+        : std::ostream(0)
+    {
+    }
+
 public:
     virtual std::ostream& writeTo(std::ostream&) = 0;
 };
@@ -161,13 +180,14 @@ public:
     {
         rdbuf(&buf_);
     }
-    
-    std::ostream& writeTo(std::ostream& _ros) override{
+
+    std::ostream& writeTo(std::ostream& _ros) override
+    {
         return buf_.writeTo(_ros);
     }
 };
 
-}//namespace impl
+} //namespace impl
 
 namespace {
 class Engine;
@@ -184,8 +204,8 @@ protected:
     LoggerBase(const std::string& _name, const LogCategoryBase& _rlc);
     ~LoggerBase();
 
-    std::ostream& doLog(std::ostream &_ros, const char* _flag_name, const char* _file, const char* _fnc, int _line) const;
-    void          doDone(impl::LogLineStreamBase &_log_ros) const;
+    std::ostream& doLog(std::ostream& _ros, const char* _flag_name, const char* _file, const char* _fnc, int _line) const;
+    void          doDone(impl::LogLineStreamBase& _log_ros) const;
 
 public:
     const std::string& name() const
@@ -221,11 +241,11 @@ public:
         return (flags() & (1UL << static_cast<size_t>(_flag))) != 0;
     }
 
-    std::ostream& log(std::ostream &_ros, const FlagT _flag, const char* _file, const char* _fnc, int _line) const
+    std::ostream& log(std::ostream& _ros, const FlagT _flag, const char* _file, const char* _fnc, int _line) const
     {
         return this->doLog(_ros, rcat_.flagName(_flag), _file, _fnc, _line);
     }
-    void done(impl::LogLineStreamBase &_log_ros) const
+    void done(impl::LogLineStreamBase& _log_ros) const
     {
         doDone(_log_ros);
     }
@@ -256,25 +276,25 @@ ErrorConditionT log_start(
 
 } //namespace solid
 
-#ifndef SOLID_FUNCTION_NAME
+#ifndef solid_function_t_NAME
 #ifdef SOLID_ON_WINDOWS
-#define SOLID_FUNCTION_NAME __func__
+#define solid_function_t_NAME __func__
 #else
-#define SOLID_FUNCTION_NAME __FUNCTION__
+#define solid_function_t_NAME __FUNCTION__
 #endif
 #endif
 
 #ifndef SOLID_LOG_BUFFER_SIZE
-#define SOLID_LOG_BUFFER_SIZE 2*1024
+#define SOLID_LOG_BUFFER_SIZE 2 * 1024
 #endif
 
 #ifdef SOLID_HAS_DEBUG
 
-#define solid_dbg(Lgr, Flg, Txt)                                                                         \
-    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                      \
-        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;\
-        Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, SOLID_FUNCTION_NAME, __LINE__) << Txt << std::endl; \
-        Lgr.done(os);                                                                                      \
+#define solid_dbg(Lgr, Flg, Txt)                                                                               \
+    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                            \
+        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                  \
+        Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, solid_function_t_NAME, __LINE__) << Txt << std::endl; \
+        Lgr.done(os);                                                                                          \
     }
 
 #else
@@ -283,18 +303,18 @@ ErrorConditionT log_start(
 
 #endif
 
-#define solid_log(Lgr, Flg, Txt)                                                                         \
-    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                      \
-        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;\
-        Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, SOLID_FUNCTION_NAME, __LINE__) << Txt << std::endl; \
-        Lgr.done(os);                                                                                      \
+#define solid_log(Lgr, Flg, Txt)                                                                               \
+    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                            \
+        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                  \
+        Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, solid_function_t_NAME, __LINE__) << Txt << std::endl; \
+        Lgr.done(os);                                                                                          \
     }
 
 #ifdef SOLID_HAS_STATISTICS
 
-#define SOLID_COLLECT(om, ...) \
+#define solid_collect(om, ...) \
     om(__VA_ARGS__)
 
 #else
-#define SOLID_COLLECT(...)
+#define solid_collect(...)
 #endif

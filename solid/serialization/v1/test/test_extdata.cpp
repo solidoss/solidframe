@@ -21,7 +21,7 @@ int test_extdata(int argc, char* argv[])
 
     cout << *e1.genericCast<std::string>() << endl;
 
-    SOLID_CHECK(e1.genericCast<std::vector<int>>() == nullptr);
+    solid_check(e1.genericCast<std::vector<int>>() == nullptr);
 
     return 0;
 }

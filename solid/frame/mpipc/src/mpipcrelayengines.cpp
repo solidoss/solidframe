@@ -45,7 +45,7 @@ SingleNameEngine::~SingleNameEngine()
 //-----------------------------------------------------------------------------
 ErrorConditionT SingleNameEngine::registerConnection(const ConnectionContext& _rconctx, std::string&& _uname)
 {
-    SOLID_ASSERT(!_uname.empty());
+    solid_assert(!_uname.empty());
     ErrorConditionT err;
     auto            lambda = [&_uname, this, &_rconctx /*, &err*/](EngineCore::Proxy& _proxy) {
         size_t conidx = static_cast<size_t>(_rconctx.relayId().index);
@@ -99,7 +99,7 @@ ErrorConditionT SingleNameEngine::registerConnection(const ConnectionContext& _r
         rcon.id_                 = _rconctx.connectionId();
         _proxy.registerConnectionId(_rconctx, conidx);
 
-        SOLID_CHECK(_proxy.notifyConnection(_proxy.connection(conidx).id_, RelayEngineNotification::NewData), "Connection should be alive");
+        solid_check(_proxy.notifyConnection(_proxy.connection(conidx).id_, RelayEngineNotification::NewData), "Connection should be alive");
     };
 
     to_lower(_uname);

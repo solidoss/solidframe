@@ -49,34 +49,34 @@ int test_exception(int argc, char* argv[])
     {
         ostringstream oss;
         const int     line = 62;
-        oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "] argc == 0 check failed: some error: " << argc << " " << argv[0] << " " << argv[1];
+        oss << '[' << __FILE__ << '(' << line << ")][" << solid_function_t_NAME << "] argc == 0 check failed: some error: " << argc << " " << argv[0] << " " << argv[1];
         check_str = oss.str();
     }
     {
         ostringstream oss;
         const int     line = 71;
-        oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "]: " << error_test.message();
+        oss << '[' << __FILE__ << '(' << line << ")][" << solid_function_t_NAME << "]: " << error_test.message();
         check_condition_str = oss.str();
     }
     try {
-        SOLID_CHECK(argc == 0, "some error: " << argc << " " << argv[0] << " " << argv[1]);
+        solid_check(argc == 0, "some error: " << argc << " " << argv[0] << " " << argv[1]);
     } catch (std::logic_error& _rerr) {
         is_ok = true;
         //cout<<check_str<<endl;
         //cout<<_rerr.what()<<endl;
-        SOLID_ASSERT(check_str == _rerr.what());
+        solid_assert(check_str == _rerr.what());
     }
 
     try {
-        SOLID_CHECK_CONDITION(argc == 0, error_test);
+        solid_check_CONDITION(argc == 0, error_test);
     } catch (solid::RuntimeErrorCondition& _rerr) {
         //cout<<_rerr.what()<<endl;
         //cout<<check_condition_str<<endl;
-        SOLID_ASSERT(check_condition_str == _rerr.what());
-        SOLID_ASSERT(_rerr.error() == error_test);
+        solid_assert(check_condition_str == _rerr.what());
+        solid_assert(_rerr.error() == error_test);
     }
 
-    SOLID_ASSERT(is_ok);
+    solid_assert(is_ok);
 
     return 0;
 }

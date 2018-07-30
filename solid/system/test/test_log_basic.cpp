@@ -21,7 +21,7 @@ int test_log_basic(int argc, char* argv[])
         solid_log(logger, Verbose, "Second line of log: " << argc << ' ' << argv[0]);
 
         string s{oss.str()};
-        SOLID_CHECK(!s.empty(), "no log");
+        solid_check(!s.empty(), "no log");
         cout.write(s.data(), s.size());
     }
 
@@ -34,7 +34,7 @@ int test_log_basic(int argc, char* argv[])
         solid_log(logger, Warning, "Second line of log: " << argc << ' ' << argv[0]);
 
         string s{oss.str()};
-        SOLID_CHECK(s.empty(), "some log");
+        solid_check(s.empty(), "some log");
         cout.write(s.data(), s.size());
     }
 
@@ -48,8 +48,8 @@ int test_log_basic(int argc, char* argv[])
         solid_log(logger, Info, "Second line of log: " << argc << ' ' << argv[0]);
 
         string s{oss.str()};
-        SOLID_CHECK(!s.empty(), "no log");
-        SOLID_CHECK(s.find("HIDDEN") == string::npos, "found HIDDEN");
+        solid_check(!s.empty(), "no log");
+        solid_check(s.find("HIDDEN") == string::npos, "found HIDDEN");
         cout.write(s.data(), s.size());
     }
     return 0;

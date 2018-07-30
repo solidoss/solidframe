@@ -246,9 +246,9 @@ void complete_message<ipc_request::Request>(
     std::shared_ptr<ipc_request::Request>& _rrecv_msg_ptr,
     ErrorConditionT const&                 _rerror)
 {
-    SOLID_CHECK(!_rerror);
-    SOLID_CHECK(_rrecv_msg_ptr);
-    SOLID_CHECK(!_rsent_msg_ptr);
+    solid_check(!_rerror);
+    solid_check(_rrecv_msg_ptr);
+    solid_check(!_rsent_msg_ptr);
 
     cout << "Received request: ";
     if (_rrecv_msg_ptr->key) {
@@ -274,7 +274,7 @@ void complete_message<ipc_request::Request>(
         }
     }
 
-    SOLID_CHECK(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
+    solid_check(!_rctx.service().sendResponse(_rctx.recipientId(), std::move(msgptr)));
 }
 
 template <>
@@ -284,9 +284,9 @@ void complete_message<ipc_request::Response>(
     std::shared_ptr<ipc_request::Response>& _rrecv_msg_ptr,
     ErrorConditionT const&                  _rerror)
 {
-    SOLID_CHECK(!_rerror);
-    SOLID_CHECK(!_rrecv_msg_ptr);
-    SOLID_CHECK(_rsent_msg_ptr);
+    solid_check(!_rerror);
+    solid_check(!_rrecv_msg_ptr);
+    solid_check(_rsent_msg_ptr);
 }
 
 struct MessageSetup {

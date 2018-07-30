@@ -137,7 +137,7 @@ int test_container(int argc, char* argv[])
 
         long rv = des.run(test_data.data(), test_data.size(), [&test](decltype(des)& des, Context& _rctx) { des.add(test, _rctx, "test"); }, ctx);
 
-        SOLID_CHECK(rv == static_cast<long>(test_data.size()));
+        solid_check(rv == static_cast<long>(test_data.size()));
         test->check();
     }
     return 0;
@@ -251,95 +251,95 @@ void Test::check() const
     solid_dbg(generic_logger, Info, "bs50 = " << bs50.to_string());
     solid_dbg(generic_logger, Info, "bs100 = " << bs100.to_string());
     solid_dbg(generic_logger, Info, "bs1000 = " << bs1000.to_string());
-    SOLID_CHECK(b);
-    SOLID_CHECK(kv_vec.size() == kv_map.size());
+    solid_check(b);
+    solid_check(kv_vec.size() == kv_map.size());
     string tmpstr;
     for (size_t i = 0; i < kv_vec.size(); ++i) {
         tmpstr.append(kv_array[i].first);
         tmpstr.append(kv_array[i].second);
-        SOLID_CHECK(kv_vec[i] == kv_array[i]);
-        SOLID_CHECK(bool_deq[i] == ((i % 2) == 0));
+        solid_check(kv_vec[i] == kv_array[i]);
+        solid_check(bool_deq[i] == ((i % 2) == 0));
         MapT::const_iterator it = kv_map.find(kv_array[i].first);
-        SOLID_CHECK(it != kv_map.end());
-        SOLID_CHECK(it->second == i);
+        solid_check(it != kv_map.end());
+        solid_check(it->second == i);
         MapBoolT::const_iterator itb = kb_map.find(kv_array[i].first);
-        SOLID_CHECK(itb != kb_map.end());
-        SOLID_CHECK(itb->second == ((i % 2) == 0));
+        solid_check(itb != kb_map.end());
+        solid_check(itb->second == ((i % 2) == 0));
 
         SetT::const_iterator ssit = ss.find(kv_array[i].first);
-        SOLID_CHECK(ssit != ss.end());
+        solid_check(ssit != ss.end());
     }
-    SOLID_CHECK(tmpstr == str);
-    SOLID_CHECK(str.size() == v32);
+    solid_check(tmpstr == str);
+    solid_check(str.size() == v32);
 
     for (size_t i = 0; i < bs5.size(); ++i) {
         if ((i % 2) == 0) {
-            SOLID_CHECK(bs5[i]);
-            SOLID_CHECK(bv5[i]);
+            solid_check(bs5[i]);
+            solid_check(bv5[i]);
         } else {
-            SOLID_CHECK(!bs5[i]);
-            SOLID_CHECK(!bv5[i]);
+            solid_check(!bs5[i]);
+            solid_check(!bv5[i]);
         }
     }
 
     for (size_t i = 0; i < bs10.size(); ++i) {
         if ((i % 2) == 0) {
-            SOLID_CHECK(bs10[i]);
-            SOLID_CHECK(bv10[i]);
+            solid_check(bs10[i]);
+            solid_check(bv10[i]);
         } else {
-            SOLID_CHECK(!bs10[i]);
-            SOLID_CHECK(!bv10[i]);
+            solid_check(!bs10[i]);
+            solid_check(!bv10[i]);
         }
     }
 
     for (size_t i = 0; i < bs20.size(); ++i) {
         if ((i % 2) == 0) {
-            SOLID_CHECK(bs20[i]);
-            SOLID_CHECK(bv20[i]);
+            solid_check(bs20[i]);
+            solid_check(bv20[i]);
         } else {
-            SOLID_CHECK(!bs20[i]);
-            SOLID_CHECK(!bv20[i]);
+            solid_check(!bs20[i]);
+            solid_check(!bv20[i]);
         }
     }
 
     for (size_t i = 0; i < bs50.size(); ++i) {
         if ((i % 2) == 0) {
-            SOLID_CHECK(bs50[i]);
-            SOLID_CHECK(bv50[i]);
+            solid_check(bs50[i]);
+            solid_check(bv50[i]);
         } else {
-            SOLID_CHECK(!bs50[i]);
-            SOLID_CHECK(!bv50[i]);
+            solid_check(!bs50[i]);
+            solid_check(!bv50[i]);
         }
     }
 
     for (size_t i = 0; i < bs100.size(); ++i) {
         if ((i % 2) == 0) {
-            SOLID_CHECK(bs100[i]);
-            SOLID_CHECK(bv100[i]);
+            solid_check(bs100[i]);
+            solid_check(bv100[i]);
         } else {
-            SOLID_CHECK(!bs100[i]);
-            SOLID_CHECK(!bv100[i]);
+            solid_check(!bs100[i]);
+            solid_check(!bv100[i]);
         }
     }
 
     for (size_t i = 0; i < bs1000.size(); ++i) {
         if ((i % 2) == 0) {
-            SOLID_CHECK(bs1000[i]);
-            SOLID_CHECK(bv1000[i]);
+            solid_check(bs1000[i]);
+            solid_check(bv1000[i]);
         } else {
-            SOLID_CHECK(!bs1000[i]);
-            SOLID_CHECK(!bv1000[i]);
+            solid_check(!bs1000[i]);
+            solid_check(!bv1000[i]);
         }
     }
 #if 0
-    SOLID_CHECK(sa_sz == 100);
+    solid_check(sa_sz == 100);
     for (size_t i = 0; i < sa_sz; ++i) {
-        SOLID_CHECK(sa[i] == kv_array[i % kv_array_size].second);
+        solid_check(sa[i] == kv_array[i % kv_array_size].second);
     }
 
-    SOLID_CHECK(u8a_sz == 500);
+    solid_check(u8a_sz == 500);
     for (size_t i = 0; i < u8a_sz; ++i) {
-        SOLID_CHECK(u8a[i] == (i % std::numeric_limits<uint8_t>::max()));
+        solid_check(u8a[i] == (i % std::numeric_limits<uint8_t>::max()));
     }
 #endif
 }

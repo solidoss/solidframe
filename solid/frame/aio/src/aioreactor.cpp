@@ -568,7 +568,7 @@ void EventHandler::write(Reactor& _rreactor)
 
     if (kevent(_rreactor.impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
         solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
 #elif defined(SOLID_USE_WSAPOLL)
     const uint32_t v = 1;
@@ -833,7 +833,7 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events)
         break;
 #endif
     default:
-        SOLID_ASSERT(false);
+        solid_assert(false);
         break;
     }
     return retval;
@@ -886,7 +886,7 @@ inline ReactorEventsE systemEventsToReactorEvents(const uint32_t _events, declty
         _revs = 0;
         break;
     default:
-        SOLID_ASSERT(false);
+        solid_assert(false);
         break;
     }
     return retval;
@@ -911,7 +911,7 @@ inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _reques
         evs = EPOLLET | EPOLLIN | EPOLLOUT;
         break;
     default:
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     return evs;
 }
@@ -932,7 +932,7 @@ inline uint32_t reactorRequestsToSystemEvents(const ReactorWaitRequestsE _reques
         evs = POLLWRNORM | POLLRDNORM;
         break;
     default:
-        SOLID_ASSERT(false);
+        solid_assert(false);
     }
     return evs;
 }
@@ -971,7 +971,7 @@ void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT& _revfn, Eve
 {
     solid_dbg(logger, Verbose, "exeq " << impl_->exeq.size());
     impl_->exeq.push(ExecStub(objectUid(_rctx), std::move(_uev)));
-    SOLID_FUNCTION_CLEAR(impl_->exeq.back().exefnc);
+    solid_function_clear(impl_->exeq.back().exefnc);
     std::swap(impl_->exeq.back().exefnc, _revfn);
     impl_->exeq.back().chnuid = impl_->dummyCompletionHandlerUid();
 }
@@ -982,7 +982,7 @@ void Reactor::doPost(ReactorContext& _rctx, Reactor::EventFunctionT& _revfn, Eve
 {
     solid_dbg(logger, Verbose, "exeq " << impl_->exeq.size() << ' ' << &_rch);
     impl_->exeq.push(ExecStub(_rctx.objectUid(), std::move(_uev)));
-    SOLID_FUNCTION_CLEAR(impl_->exeq.back().exefnc);
+    solid_function_clear(impl_->exeq.back().exefnc);
     std::swap(impl_->exeq.back().exefnc, _revfn);
     impl_->exeq.back().chnuid = UniqueId(_rch.idxreactor, impl_->chdq[_rch.idxreactor].unique);
 }
@@ -1249,7 +1249,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
             }
             ObjectStub& ros = impl_->objdq[static_cast<size_t>(rnewobj.uid.index)];
 
-            SOLID_ASSERT(ros.unique == rnewobj.uid.unique);
+            solid_assert(ros.unique == rnewobj.uid.unique);
 
             {
                 //NOTE: we must lock the mutex of the object
@@ -1311,7 +1311,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 {
     solid_dbg(logger, Info, _rsd.descriptor());
 
-    //SOLID_ASSERT(_rctx.channel_index_ == _rch.idxreactor);
+    //solid_assert(_rctx.channel_index_ == _rch.idxreactor);
 
 #if defined(SOLID_USE_EPOLL)
     epoll_event ev;
@@ -1320,7 +1320,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
     if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)) {
         solid_dbg(logger, Error, "epoll_ctl: " << last_system_error().message());
-        SOLID_THROW("epoll_ctl");
+        solid_throw("epoll_ctl");
         return false;
     } else {
         ++impl_->devcnt;
@@ -1353,7 +1353,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         EV_SET(&ev, _rsd.descriptor(), EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
         if (kevent(impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
             solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-            SOLID_ASSERT(false);
+            solid_assert(false);
             return false;
         } else {
             ++impl_->devcnt;
@@ -1364,7 +1364,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         return true;
     }
     default:
-        SOLID_ASSERT(false);
+        solid_assert(false);
         return false;
     }
 
@@ -1373,7 +1373,7 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, write_flags | EV_CLEAR, 0, 0, indexToVoid(_rctx.channel_index_));
     if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
         solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-        SOLID_ASSERT(false);
+        solid_assert(false);
         return false;
     } else {
         ++impl_->devcnt;
@@ -1405,7 +1405,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
     if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev)) {
         solid_dbg(logger, Error, "epoll_ctl: " << last_system_error().message());
-        SOLID_THROW("epoll_ctl");
+        solid_throw("epoll_ctl");
         return false;
     }
 #elif defined(SOLID_USE_KQUEUE)
@@ -1437,7 +1437,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
         if (kevent(impl_->reactor_fd, &ev, 1, nullptr, 0, nullptr)) {
             solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-            SOLID_ASSERT(false);
+            solid_assert(false);
             return false;
         } else {
             ++impl_->devcnt;
@@ -1448,7 +1448,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
         return true;
     }
     default:
-        SOLID_ASSERT(false);
+        solid_assert(false);
         return false;
     }
 
@@ -1457,7 +1457,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
     if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
         solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-        SOLID_ASSERT(false);
+        solid_assert(false);
         return false;
     } else {
         ++impl_->devcnt;
@@ -1489,7 +1489,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
 
     if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev)) {
         solid_dbg(logger, Error, "epoll_ctl: " << last_system_error().message());
-        SOLID_THROW("epoll_ctl");
+        solid_throw("epoll_ctl");
         return false;
     } else {
         --impl_->devcnt;
@@ -1502,7 +1502,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
         EV_SET(&ev[1], _rsd.descriptor(), EVFILT_WRITE, EV_DELETE, 0, 0, 0);
         if (kevent(impl_->reactor_fd, ev, 2, nullptr, 0, nullptr)) {
             solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-            SOLID_ASSERT(false);
+            solid_assert(false);
             return false;
         } else {
             --impl_->devcnt;
@@ -1511,7 +1511,7 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
         EV_SET(ev, _rsd.descriptor(), EVFILT_USER, EV_DELETE, 0, 0, 0);
         if (kevent(impl_->reactor_fd, ev, 1, nullptr, 0, nullptr)) {
             solid_dbg(logger, Error, "kevent: " << last_system_error().message());
-            SOLID_ASSERT(false);
+            solid_assert(false);
             return false;
         } else {
             --impl_->devcnt;
@@ -1532,7 +1532,7 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 {
     if (_rstoreidx != InvalidIndex()) {
         size_t idx = impl_->timestore.change(_rstoreidx, _rt);
-        SOLID_ASSERT(idx == _rch.idxreactor);
+        solid_assert(idx == _rch.idxreactor);
     } else {
         _rstoreidx = impl_->timestore.push(_rt, _rch.idxreactor);
     }
@@ -1544,7 +1544,7 @@ bool Reactor::addTimer(CompletionHandler const& _rch, NanoTime const& _rt, size_
 void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, const size_t _oldidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
-    SOLID_ASSERT(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx);
+    solid_assert(static_cast<SteadyTimer*>(rch.pch)->storeidx == _oldidx);
     static_cast<SteadyTimer*>(rch.pch)->storeidx = _newidx;
 }
 

@@ -92,7 +92,7 @@ struct Message : frame::mpipc::Message {
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this << " idx = " << idx << " str.size = " << str.size());
         //      if(!serialized && !this->isBackOnSender() && idx != 0){
-        //          SOLID_THROW("Message not serialized.");
+        //          solid_throw("Message not serialized.");
         //      }
     }
 
@@ -142,7 +142,7 @@ struct Message : frame::mpipc::Message {
 
         for (uint64_t i = 0; i < count; ++i) {
             if (pu[i] != pup[(i + idx) % pattern_size]) {
-                SOLID_THROW("Message check failed.");
+                solid_throw("Message check failed.");
                 return false;
             }
         }
@@ -197,26 +197,26 @@ void client_complete_message(
         if (!_rerror) {
         } else {
             solid_dbg(generic_logger, Warning, "send message complete: <" << _rerror.message() << "> <" << _rctx.error().message() << "> <" << _rctx.systemError().message() << ">");
-            SOLID_CHECK(_rsent_msg_ptr->idx == 0 || _rsent_msg_ptr->idx == 2);
-            SOLID_ASSERT(
+            solid_check(_rsent_msg_ptr->idx == 0 || _rsent_msg_ptr->idx == 2);
+            solid_assert(
                 _rerror == frame::mpipc::error_message_connection && ((_rctx.error() == frame::aio::error_stream_shutdown && !_rctx.systemError()) || (_rctx.error() && _rctx.systemError())));
         }
     }
     if (_rrecv_msg_ptr.get()) {
         solid_dbg(generic_logger, Info, "idx = " << _rrecv_msg_ptr->idx);
         if (!_rrecv_msg_ptr->check()) {
-            SOLID_THROW("Message check failed.");
+            solid_throw("Message check failed.");
         }
 
-        SOLID_CHECK(!_rerror);
+        solid_check(!_rerror);
 
         //cout<< _rmsgptr->str.size()<<'\n';
 
         if (!_rrecv_msg_ptr->isBackOnSender()) {
-            SOLID_THROW("Message not back on sender!.");
+            solid_throw("Message not back on sender!.");
         }
 
-        SOLID_CHECK(_rrecv_msg_ptr->idx == 1 || _rrecv_msg_ptr->idx == 3 || _rrecv_msg_ptr->idx == 4);
+        solid_check(_rrecv_msg_ptr->idx == 1 || _rrecv_msg_ptr->idx == 3 || _rrecv_msg_ptr->idx == 4);
 
         transfered_size += _rrecv_msg_ptr->str.size();
         ++transfered_count;
@@ -238,14 +238,14 @@ void server_complete_message(
     if (_rrecv_msg_ptr.get()) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId() << " idx = " << _rrecv_msg_ptr->idx);
 
-        //SOLID_CHECK(_rrecv_msg_ptr->idx != 0);
+        //solid_check(_rrecv_msg_ptr->idx != 0);
 
         if (!_rrecv_msg_ptr->check()) {
-            SOLID_THROW("Message check failed.");
+            solid_throw("Message check failed.");
         }
 
         if (!_rrecv_msg_ptr->isOnPeer()) {
-            SOLID_THROW("Message not on peer!.");
+            solid_throw("Message not on peer!.");
         }
 
         if (_rrecv_msg_ptr->idx == 0) {
@@ -254,12 +254,12 @@ void server_complete_message(
 
         //send message back
         if (_rctx.recipientId().isInvalidConnection()) {
-            SOLID_THROW("Connection id should not be invalid!");
+            solid_throw("Connection id should not be invalid!");
         }
 
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        SOLID_CHECK(!(err && err != frame::mpipc::error_service_stopping), "sendResponse should not fail: " << err.message());
+        solid_check(!(err && err != frame::mpipc::error_service_stopping), "sendResponse should not fail: " << err.message());
     }
     if (_rsent_msg_ptr.get()) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " done sent message " << _rsent_msg_ptr.get());
@@ -473,7 +473,7 @@ int test_clientserver_idempotent(int argc, char* argv[])
             unique_lock<mutex> lock(mtx);
 
             if (!cnd.wait_for(lock, std::chrono::seconds(100), []() { return start_sleep; })) {
-                SOLID_THROW("Start is taking too long.");
+                solid_throw("Start is taking too long.");
             }
         }
 
@@ -490,11 +490,11 @@ int test_clientserver_idempotent(int argc, char* argv[])
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return !running; })) {
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
 
         if (crtwriteidx != crtackidx) {
-            SOLID_THROW("Not all messages were completed");
+            solid_throw("Not all messages were completed");
         }
 
         //m.stop();

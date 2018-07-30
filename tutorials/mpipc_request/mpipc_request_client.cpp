@@ -38,7 +38,7 @@ void complete_message(
     std::shared_ptr<M>&              _rrecv_msg_ptr,
     ErrorConditionT const&           _rerror)
 {
-    SOLID_CHECK(false); //this method should not be called
+    solid_check(false); //this method should not be called
 }
 
 struct MessageSetup {
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
                             return;
                         }
 
-                        SOLID_CHECK(!_rerror && _rsent_msg_ptr && _rrecv_msg_ptr);
+                        solid_check(!_rerror && _rsent_msg_ptr && _rrecv_msg_ptr);
 
                         cout << "Received " << _rrecv_msg_ptr->user_data_map.size() << " users:" << endl;
 

@@ -98,7 +98,7 @@ struct Message : frame::mpipc::Message {
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
         //      if(!serialized && !this->isBackOnSender()){
-        //          SOLID_THROW("Message not serialized.");
+        //          solid_throw("Message not serialized.");
         //      }
     }
 
@@ -154,7 +154,7 @@ struct Message : frame::mpipc::Message {
 
         for (uint64_t i = 0; i < count; ++i) {
             if (pu[i] != pup[(i + idx) % pattern_size]) {
-                SOLID_THROW("Message check failed.");
+                solid_throw("Message check failed.");
                 return false;
             }
         }
@@ -193,10 +193,10 @@ void client_complete_message(
     solid_dbg(generic_logger, Info, _rctx.recipientId() << " error: " << _rerror.message());
 
     if (_rsent_msg_ptr.get()) {
-        SOLID_CHECK(_rerror);
+        solid_check(_rerror);
         ++crtackidx;
     }
-    SOLID_CHECK(!_rrecv_msg_ptr);
+    solid_check(!_rrecv_msg_ptr);
 }
 
 void server_complete_message(
@@ -204,7 +204,7 @@ void server_complete_message(
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
     ErrorConditionT const& _rerror)
 {
-    SOLID_CHECK(false);
+    solid_check(false);
 }
 
 } //namespace
@@ -368,11 +368,11 @@ int test_pool_force_close(int argc, char* argv[])
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(120), []() { return !running; })) {
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
 
         if (crtwriteidx != crtackidx) {
-            SOLID_THROW("Not all messages were completed");
+            solid_throw("Not all messages were completed");
         }
 
         //m.stop();

@@ -133,7 +133,7 @@ void complete_message(
     ErrorConditionT const&           _rerr)
 {
     if (_rerr) {
-        SOLID_THROW("Message complete with error");
+        solid_throw("Message complete with error");
     }
     if (_rmessage_ptr.get()) {
         solid_dbg(generic_logger, Info, static_cast<Message*>(_rmessage_ptr.get())->idx);
@@ -143,9 +143,9 @@ void complete_message(
 
         size_t msgidx = static_cast<Message&>(*_rresponse_ptr).idx;
 
-        SOLID_CHECK(static_cast<Message&>(*_rresponse_ptr).check(), "Message check failed.");
+        solid_check(static_cast<Message&>(*_rresponse_ptr).check(), "Message check failed.");
 
-        SOLID_CHECK(msgidx == crtreadidx, "Message index invalid - SynchronousFlagE failed.");
+        solid_check(msgidx == crtreadidx, "Message index invalid - SynchronousFlagE failed.");
 
         ++crtreadidx;
 
@@ -206,7 +206,7 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
     void receiveAckCount(uint8_t _count) override
     {
         solid_dbg(generic_logger, Info, "" << (int)_count);
-        SOLID_CHECK(_count == ackd_count, "invalid ack count");
+        solid_check(_count == ackd_count, "invalid ack count");
     }
     void receiveCancelRequest(const frame::mpipc::RequestId& _reqid) override
     {
@@ -220,7 +220,7 @@ struct Receiver : frame::mpipc::MessageReader::Receiver {
                 ++it;
             }
         }
-        SOLID_CHECK(found, "request not found");
+        solid_check(found, "request not found");
     }
 };
 
@@ -304,7 +304,7 @@ int test_protocol_synchronous(int argc, char* argv[])
 
         bool rv = mpipcmsgwriter.enqueue(
             mpipcwriterconfig, msgbundle, pool_msg_id, writer_msg_id);
-        SOLID_CHECK(rv);
+        solid_check(rv);
         solid_dbg(generic_logger, Info, "enqueue rv = " << rv << " writer_msg_id = " << writer_msg_id);
         solid_dbg(generic_logger, Info, frame::mpipc::MessageWriterPrintPairT(mpipcmsgwriter, frame::mpipc::MessageWriter::PrintInnerListsE));
     }

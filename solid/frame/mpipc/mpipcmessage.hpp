@@ -85,7 +85,7 @@ struct MessageHeader {
 
             _rs.pushCross(_rctx.request_id.index, "sender_request_index");
             _rs.pushCross(_rctx.request_id.unique, "sender_request_unique");
-            SOLID_CHECK(_rctx.pmessage_url, "message url must not be null");
+            solid_check(_rctx.pmessage_url, "message url must not be null");
             _rs.push(*_rctx.pmessage_url, "url");
             uint64_t tmp = _rctx.message_flags.toUint64(); //not nice but safe - better solution in future versions
             _rs.pushCross(tmp, "flags");
@@ -105,7 +105,7 @@ struct MessageHeader {
     template <class S>
     void solidSerializeV2(S& _rs, frame::mpipc::ConnectionContext& _rctx, std::integral_constant<bool, true> _is_serializer, const char* _name)
     {
-        SOLID_CHECK(_rctx.pmessage_url, "message url must not be null");
+        solid_check(_rctx.pmessage_url, "message url must not be null");
         const MessageFlagsValueT tmp = _rctx.message_flags.toUint64();
         _rs.add(tmp, _rctx, "flags").add(*_rctx.pmessage_url, _rctx, "url");
         _rs.add(_rctx.request_id.index, _rctx, "sender_request_index");
@@ -345,7 +345,7 @@ private:
 
 using MessagePointerT = std::shared_ptr<Message>;
 
-using MessageCompleteFunctionT = SOLID_FUNCTION(void(
+using MessageCompleteFunctionT = solid_function_t(void(
     ConnectionContext&, MessagePointerT&, MessagePointerT&, ErrorConditionT const&));
 
 } //namespace mpipc

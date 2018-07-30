@@ -44,7 +44,7 @@ class SteadyTimer : public CompletionHandler {
             rthis.f = &on_dummy;
             break;
         default:
-            SOLID_ASSERT(false);
+            solid_assert(false);
         }
     }
     static void on_dummy(ReactorContext& _rctx)
@@ -77,7 +77,7 @@ public:
     template <class Clock, class Duration, typename F>
     bool waitUntil(ReactorContext& _rctx, std::chrono::time_point<Clock, Duration> const& _rtp, F _f)
     {
-        if (SOLID_FUNCTION_EMPTY(f)) {
+        if (solid_function_empty(f)) {
             f = std::move(_f);
             NanoTime steady_nt{time_point_clock_cast<std::chrono::steady_clock>(_rtp)};
             this->addTimer(_rctx, steady_nt, storeidx);
@@ -104,13 +104,13 @@ private:
     }
     void doClear(ReactorContext& _rctx)
     {
-        SOLID_FUNCTION_CLEAR(f);
+        solid_function_clear(f);
         remTimer(_rctx, storeidx);
         storeidx = InvalidIndex();
     }
 
 private:
-    typedef SOLID_FUNCTION(void(ReactorContext&)) FunctionT;
+    typedef solid_function_t(void(ReactorContext&)) FunctionT;
 
     FunctionT f;
     size_t    storeidx;

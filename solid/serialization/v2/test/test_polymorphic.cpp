@@ -210,7 +210,7 @@ int test_polymorphic(int argc, char* argv[])
 
         long rv = des.run(test_data.data(), test_data.size(), ctx);
 
-        SOLID_CHECK(rv == static_cast<int>(test_data.size()));
+        solid_check(rv == static_cast<int>(test_data.size()));
 
         ostringstream oss;
 
@@ -218,7 +218,7 @@ int test_polymorphic(int argc, char* argv[])
 
         cout << "check_data = " << oss.str() << endl;
 
-        SOLID_CHECK(check_data == oss.str());
+        solid_check(check_data == oss.str());
     }
     return 0;
 }

@@ -163,7 +163,7 @@ public:
 
         while (ptn) {
             Node* tn = ptn->next;
-            SOLID_ASSERT(ptn != pn);
+            solid_assert(ptn != pn);
             delete ptn;
             ptn = tn;
         }
@@ -202,7 +202,7 @@ private:
     }
     T* popNode(void* _p)
     {
-        SOLID_ASSERT(_p);
+        solid_assert(_p);
         Node* pn  = node(_p);
         Node* ppn = pn->next;
         pn->next  = ptn;
@@ -210,7 +210,7 @@ private:
         if (ppn) {
             return (T*)(ppn->data);
         } else {
-            SOLID_ASSERT(!sz);
+            solid_assert(!sz);
             pb = nullptr;
             return nullptr;
         }

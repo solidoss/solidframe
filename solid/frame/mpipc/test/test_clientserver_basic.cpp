@@ -100,7 +100,7 @@ struct Message : frame::mpipc::Message {
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
 
-        SOLID_ASSERT(serialized || this->isBackOnSender());
+        solid_assert(serialized || this->isBackOnSender());
     }
 
     SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
@@ -139,7 +139,7 @@ struct Message : frame::mpipc::Message {
 
         for (uint64_t i = 0; i < count; ++i) {
             if (pu[i] != pup[(i + idx) % pattern_size]) {
-                SOLID_THROW("Message check failed.");
+                solid_throw("Message check failed.");
                 return false;
             }
         }
@@ -194,7 +194,7 @@ void client_complete_message(
     }
     if (_rrecv_msg_ptr) {
         if (!_rrecv_msg_ptr->check()) {
-            SOLID_THROW("Message check failed.");
+            solid_throw("Message check failed.");
         }
 
         //cout<< _rmsgptr->str.size()<<'\n';
@@ -202,7 +202,7 @@ void client_complete_message(
         ++transfered_count;
 
         if (!_rrecv_msg_ptr->isBackOnSender()) {
-            SOLID_THROW("Message not back on sender!.");
+            solid_throw("Message not back on sender!.");
         }
 
         ++crtbackidx;
@@ -224,20 +224,20 @@ void server_complete_message(
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
 
         if (!_rrecv_msg_ptr->check()) {
-            SOLID_THROW("Message check failed.");
+            solid_throw("Message check failed.");
         }
 
         if (!_rrecv_msg_ptr->isOnPeer()) {
-            SOLID_THROW("Message not on peer!.");
+            solid_throw("Message not on peer!.");
         }
 
         //send message back
 
-        SOLID_CHECK(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
+        solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
         ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
 
-        SOLID_CHECK(!err, "Connection id should not be invalid: " << err.message());
+        solid_check(!err, "Connection id should not be invalid: " << err.message());
 
         ++crtreadidx;
         solid_dbg(generic_logger, Info, crtreadidx);
@@ -245,7 +245,7 @@ void server_complete_message(
             err = pmpipcclient->sendMessage(
                 "localhost", std::make_shared<Message>(crtwriteidx++),
                 initarray[crtwriteidx % initarraysize].flags | frame::mpipc::MessageFlagsE::WaitResponse);
-            SOLID_CHECK(!err, "Connection id should not be invalid! " << err.message());
+            solid_check(!err, "Connection id should not be invalid! " << err.message());
         }
     }
     if (_rsent_msg_ptr) {
@@ -438,11 +438,11 @@ int test_clientserver_basic(int argc, char* argv[])
         unique_lock<mutex> lock(mtx);
 
         if (!cnd.wait_for(lock, std::chrono::seconds(220), []() { return !running; })) {
-            SOLID_THROW("Process is taking too long.");
+            solid_throw("Process is taking too long.");
         }
 
         if (crtwriteidx != crtackidx) {
-            SOLID_THROW("Not all messages were completed");
+            solid_throw("Not all messages were completed");
         }
 
         //m.stop();
