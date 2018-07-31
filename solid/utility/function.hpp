@@ -438,7 +438,7 @@ private:
 #else
 
 #ifndef SOLID_FUNCTION_STORAGE
-#define SOLID_FUNCTION_STORAGE 32
+#define SOLID_FUNCTION_STORAGE 24
 #endif
 
 #define solid_function_t(...) solid::Function<SOLID_FUNCTION_STORAGE, __VA_ARGS__>

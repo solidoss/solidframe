@@ -20,12 +20,24 @@ public:
     virtual uint64_t run(const size_t)    = 0;
 };
 
+struct PrintSize {
+    PrintSize(const size_t _sz)
+    {
+        cout << "sizeof(closure): " << _sz << endl;
+    }
+};
+
 template <class F, size_t CS>
 class FunctionTest : public TestBase {
     using DequeT = std::deque<F>;
     DequeT fnc_dq;
 
 public:
+    FunctionTest()
+    {
+        cout << "sizeof(F) = " << sizeof(F) << endl;
+    }
+
     void clear() override
     {
         fnc_dq.clear();
@@ -33,6 +45,7 @@ public:
     template <class Fnc>
     void push(Fnc _f)
     {
+        static const PrintSize ps(sizeof(_f));
         fnc_dq.emplace_back(std::move(_f));
     }
 
@@ -92,7 +105,7 @@ TestBase* create_test(const FunctionChoice _fnc_choice, const size_t _closure_si
 {
     switch (_fnc_choice) {
     case FunctionChoice::Solid:
-        return create_test<solid::Function<16, uint64_t(const size_t)>>(_closure_size);
+        return create_test<solid::Function<24, uint64_t(const size_t)>>(_closure_size);
     case FunctionChoice::Standard:
         return create_test<std::function<uint64_t(const size_t)>>(_closure_size);
     }
