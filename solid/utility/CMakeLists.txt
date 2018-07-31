@@ -1,5 +1,4 @@
 set(Sources
-    src/list.cpp
     src/utility.cpp
     src/dynamictype.cpp
     src/memoryfile.cpp
@@ -18,7 +17,6 @@ set(Headers
     event.hpp
     innerlist.hpp
     ioformat.hpp
-    list.hpp
     memoryfile.hpp
     queue.hpp
     sharedmutex.hpp
