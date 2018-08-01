@@ -82,8 +82,7 @@ int main(int argc, char* argv[])
 
     {
 
-        AioSchedulerT scheduler;
-
+        AioSchedulerT          scheduler;
         frame::Manager         manager;
         frame::mpipc::ServiceT ipcservice(manager);
         FunctionWorkPool       fwp{WorkPoolConfiguration()};

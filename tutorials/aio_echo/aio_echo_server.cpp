@@ -124,8 +124,7 @@ int main(int argc, char* argv[])
     signal(SIGPIPE, SIG_IGN);
 #endif
 
-    AioSchedulerT scheduler;
-
+    AioSchedulerT   scheduler;
     frame::Manager  manager;
     frame::ServiceT service(manager);
 

@@ -49,7 +49,7 @@ int test_exception(int argc, char* argv[])
     {
         ostringstream oss;
         const int     line = 62;
-        oss << '[' << __FILE__ << '(' << line << ")][" << solid_function_t_NAME << "] argc == 0 check failed: some error: " << argc << " " << argv[0] << " " << argv[1];
+        oss << '[' << __FILE__ << '(' << line << ")][" << solid_function_t_NAME << "] (argc == 0) check failed: some error: " << argc << " " << argv[0] << " " << argv[1];
         check_str = oss.str();
     }
     {
@@ -63,7 +63,7 @@ int test_exception(int argc, char* argv[])
     } catch (std::logic_error& _rerr) {
         is_ok = true;
         //cout<<check_str<<endl;
-        //cout<<_rerr.what()<<endl;
+        cout << _rerr.what() << endl;
         solid_assert(check_str == _rerr.what());
     }
 

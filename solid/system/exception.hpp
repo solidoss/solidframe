@@ -102,10 +102,10 @@ private:
 #endif
 
 #define solid_check1(a) \
-    (solid_likely(a) ? static_cast<void>(0) : solid_throw(#a " check failed"));
+    (solid_likely(a) ? static_cast<void>(0) : solid_throw("(" #a ") check failed"));
 
 #define solid_check2(a, msg) \
-    (solid_likely(a) ? static_cast<void>(0) : solid_throw(#a " check failed: " << msg));
+    (solid_likely(a) ? static_cast<void>(0) : solid_throw("(" #a ") check failed: " << msg));
 
 //adapted from: https://stackoverflow.com/questions/9183993/msvc-variadic-macro-expansion/9338429#9338429
 #if 1
