@@ -394,6 +394,12 @@ private:
     }
 
     template <class T>
+    impl::FunctionValueBase* do_allocate(std::false_type /*_is_any*/, std::true_type /*_emplace_new*/, const T& _arg)
+    {
+        return new (this->dataPtr()) FunctionValueT<T>(_arg);
+    }
+
+    template <class T>
     impl::FunctionValueBase* do_allocate(std::false_type /*_is_any*/, std::false_type /*_plain_new*/, T&& _arg)
     {
         return new FunctionValueT<T>(std::forward<T>(_arg));

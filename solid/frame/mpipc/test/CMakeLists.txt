@@ -183,6 +183,7 @@ if(OPENSSL_FOUND)
     #==============================================================================
 
     set( mpipcPoolTestSuite
+        test_pool_basic.cpp
         test_pool_force_close.cpp
         test_pool_delay_close.cpp
     )
@@ -201,11 +202,14 @@ if(OPENSSL_FOUND)
         solid_serialization_v2
         solid_utility
         solid_system
+        ${SNAPPY_LIB}
         ${OPENSSL_LIBRARIES}
         ${SYS_DYNAMIC_LOAD_LIB}
         ${SYS_BASIC_LIBS}
     )
 
+    add_test(NAME TestPoolBasic1            COMMAND  test_mpipc_pool test_pool_basic 1)
+    
     add_test(NAME TestPoolForceClose1       COMMAND  test_mpipc_pool test_pool_force_close 1)
     add_test(NAME TestPoolForceClose2       COMMAND  test_mpipc_pool test_pool_force_close 2)
     add_test(NAME TestPoolForceClose4       COMMAND  test_mpipc_pool test_pool_force_close 4)

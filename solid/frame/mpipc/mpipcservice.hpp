@@ -34,6 +34,9 @@ namespace mpipc {
 
 extern const LoggerT logger;
 
+extern const Event pool_event_connect;
+extern const Event pool_event_disconnect;
+
 struct Message;
 struct Configuration;
 class Connection;
@@ -95,6 +98,13 @@ public:
     Configuration const& configuration() const;
 
     ErrorConditionT createConnectionPool(const char* _recipient_url, const size_t _persistent_connection_count = 1);
+
+    template <class F>
+    ErrorConditionT createConnectionPool(
+        const char*  _recipient_url,
+        RecipientId& _rrecipient_id,
+        const F      _event_fnc,
+        const size_t _persistent_connection_count = 1);
 
     // send message using recipient name --------------------------------------
     template <class T>
@@ -457,6 +467,12 @@ private:
         MessageId const&  _rmsgid);
 
     bool doTryNotifyPoolWaitingConnection(const size_t _conpoolindex);
+
+    ErrorConditionT doCreateConnectionPool(
+        const char*           _recipient_url,
+        RecipientId&          _rrecipient_id_out,
+        PoolOnEventFunctionT& _event_fnc,
+        const size_t          _persistent_connection_count);
 
     ErrorConditionT doForceCloseConnectionPool(
         RecipientId const&        _rrecipient_id,
@@ -854,7 +870,26 @@ ErrorConditionT Service::connectionNotifyRecvSomeRawData(
     ConnectionRecvRawDataCompleteFunctionT complete_fnc(std::move(_complete_fnc));
     return doConnectionNotifyRecvRawData(_rrecipient_id, std::move(complete_fnc));
 }
-
+//-------------------------------------------------------------------------
+inline ErrorConditionT Service::createConnectionPool(const char* _recipient_url, const size_t _persistent_connection_count)
+{
+    RecipientId          recipient_id;
+    PoolOnEventFunctionT fnc([](Event&&, const ErrorConditionT&) {});
+    return doCreateConnectionPool(_recipient_url, recipient_id, fnc, _persistent_connection_count);
+}
+//-------------------------------------------------------------------------
+template <class F>
+ErrorConditionT Service::createConnectionPool(
+    const char*  _recipient_url,
+    RecipientId& _rrecipient_id,
+    const F      _event_fnc,
+    const size_t _persistent_connection_count)
+{
+    PoolOnEventFunctionT fnc(_event_fnc);
+    return doCreateConnectionPool(_recipient_url, _rrecipient_id, fnc, _persistent_connection_count);
+}
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 } //namespace mpipc
 } //namespace frame
 } //namespace solid

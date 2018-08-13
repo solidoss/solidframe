@@ -48,7 +48,8 @@ enum {
     ErrorServiceMessageNullE,
     ErrorServiceServerOnlyE,
     ErrorServiceUnknownRecipientE,
-    ErrorServiceUnknownPoolE,
+    ErrorServicePoolExistsE,
+    ErrorServicePoolUnknownE,
     ErrorServicePoolStoppingE,
     ErrorServicePoolFullE,
     ErrorServiceUnknownConnectionE,
@@ -174,8 +175,11 @@ std::string ErrorCategory::message(int _ev) const
     case ErrorServiceUnknownRecipientE:
         oss << "Service: unknown recipient";
         break;
-    case ErrorServiceUnknownPoolE:
-        oss << "Service: unknown pool";
+    case ErrorServicePoolUnknownE:
+        oss << "Service: pool unknown";
+        break;
+    case ErrorServicePoolExistsE:
+        oss << "Service: pool already exists";
         break;
     case ErrorServicePoolStoppingE:
         oss << "Service: pool stopping";
@@ -261,7 +265,8 @@ std::string ErrorCategory::message(int _ev) const
 /*extern*/ const ErrorConditionT error_service_message_null(ErrorServiceMessageNullE, category);
 /*extern*/ const ErrorConditionT error_service_server_only(ErrorServiceServerOnlyE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_recipient(ErrorServiceUnknownRecipientE, category);
-/*extern*/ const ErrorConditionT error_service_unknown_pool(ErrorServiceUnknownPoolE, category);
+/*extern*/ const ErrorConditionT error_service_pool_unknown(ErrorServicePoolUnknownE, category);
+/*extern*/ const ErrorConditionT error_service_pool_exists(ErrorServicePoolExistsE, category);
 /*extern*/ const ErrorConditionT error_service_pool_stopping(ErrorServicePoolStoppingE, category);
 /*extern*/ const ErrorConditionT error_service_pool_full(ErrorServicePoolFullE, category);
 /*extern*/ const ErrorConditionT error_service_unknown_connection(ErrorServiceUnknownConnectionE, category);
