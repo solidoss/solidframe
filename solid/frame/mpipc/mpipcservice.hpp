@@ -325,9 +325,9 @@ private:
 
     void acceptIncomingConnection(SocketDevice& _rsd);
 
-    ErrorConditionT activateConnection(Connection& _rcon, ObjectIdT const& _robjuid);
+    ErrorConditionT activateConnection(ConnectionContext& _rconctx, ObjectIdT const& _robjui);
 
-    void connectionStop(Connection const& _rcon, ConnectionContext& _rconctx);
+    void connectionStop(ConnectionContext& _rconctx);
 
     bool connectionStopping(
         Connection& _rcon, ObjectIdT const& _robjuid,

@@ -311,7 +311,7 @@ using ConnectionSecureHandhakeCompleteFunctionT = solid_function_t(void(Connecti
 using ConnectionSendRawDataCompleteFunctionT    = solid_function_t(void(ConnectionContext&, ErrorConditionT const&));
 using ConnectionRecvRawDataCompleteFunctionT    = solid_function_t(void(ConnectionContext&, const char*, size_t&, ErrorConditionT const&));
 using ConnectionOnEventFunctionT                = solid_function_t(void(ConnectionContext&, Event&));
-using PoolOnEventFunctionT                      = solid_function_t(void(Event&&, const ErrorConditionT&));
+using PoolOnEventFunctionT                      = solid_function_t(void(ConnectionContext&, Event&&, const ErrorConditionT&));
 
 enum struct ConnectionState {
     Raw,

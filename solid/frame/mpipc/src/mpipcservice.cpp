@@ -53,18 +53,24 @@ namespace mpipc {
 const LoggerT logger("solid::frame::mpipc");
 namespace {
 enum class PoolEvents {
-    Connect,
-    Disconnect,
+    ConnectionStart,
+    ConnectionActivate,
+    ConnectionDeactivate,
+    ConnectionStop,
 };
 
 const EventCategory<PoolEvents> pool_event_category{
     "solid::frame::mpipc::pool_event_category",
     [](const PoolEvents _evt) {
         switch (_evt) {
-        case PoolEvents::Connect:
-            return "Connect";
-        case PoolEvents::Disconnect:
-            return "Disconnect";
+        case PoolEvents::ConnectionStart:
+            return "ConnectionStart";
+        case PoolEvents::ConnectionActivate:
+            return "ConnectionActivate";
+        case PoolEvents::ConnectionDeactivate:
+            return "ConnectionDeactivate";
+        case PoolEvents::ConnectionStop:
+            return "ConnectionStop";
         default:
             return "unknown";
         }
@@ -74,8 +80,10 @@ const EventCategory<PoolEvents> pool_event_category{
 using NameMapT       = std::unordered_map<const char*, size_t, CStringHash, CStringEqual>;
 using ObjectIdQueueT = Queue<ObjectIdT>;
 
-/*extern*/ const Event pool_event_connect    = pool_event_category.event(PoolEvents::Connect);
-/*extern*/ const Event pool_event_disconnect = pool_event_category.event(PoolEvents::Disconnect);
+/*extern*/ const Event pool_event_connection_start      = pool_event_category.event(PoolEvents::ConnectionStart);
+/*extern*/ const Event pool_event_connection_activate   = pool_event_category.event(PoolEvents::ConnectionActivate);
+/*extern*/ const Event pool_event_connection_deactivate = pool_event_category.event(PoolEvents::ConnectionDeactivate);
+/*extern*/ const Event pool_event_connection_stop       = pool_event_category.event(PoolEvents::ConnectionStop);
 
 enum {
     InnerLinkOrder = 0,
@@ -1730,8 +1738,7 @@ bool Service::connectionStopping(
 {
 
     solid_dbg(logger, Verbose, this);
-    PoolOnEventFunctionT pool_event_fnc;
-    bool                 retval;
+    bool retval;
     {
         lock_guard<std::mutex> lock(impl_->mtx);
         const size_t           pool_index = static_cast<size_t>(_rcon.poolId().index);
@@ -1767,14 +1774,6 @@ bool Service::connectionStopping(
         } else {
             retval = doMainConnectionStoppingPrepareCleanAll(_rcon, _robjuid, _rseconds_to_wait, _rmsg_id, _pmsg_bundle, _revent_context, _rerror);
         }
-
-        if (active_connection_count == 1 && rpool.active_connection_count == 0) {
-            pool_event_fnc = rpool.on_event_fnc;
-            solid_function_clear(rpool.on_event_fnc);
-        }
-    }
-    if (!solid_function_empty(pool_event_fnc)) {
-        pool_event_fnc(pool_event_category.event(PoolEvents::Disconnect), _rerror);
     }
     return retval;
 }
@@ -2101,18 +2100,18 @@ bool Service::doMainConnectionRestarting(
     return true;
 }
 //-----------------------------------------------------------------------------
-void Service::connectionStop(Connection const& _rcon, ConnectionContext& _rconctx)
+void Service::connectionStop(ConnectionContext& _rconctx)
 {
 
-    solid_dbg(logger, Info, this << ' ' << &_rcon);
+    solid_dbg(logger, Info, this << ' ' << &_rconctx.connection());
     {
-        const size_t           pool_index = static_cast<size_t>(_rcon.poolId().index);
+        const size_t           pool_index = static_cast<size_t>(_rconctx.connection().poolId().index);
         lock_guard<std::mutex> lock(impl_->mtx);
         lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
         ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
-        solid_assert(rpool.unique == _rcon.poolId().unique);
-        if (rpool.unique != _rcon.poolId().unique)
+        solid_assert(rpool.unique == _rconctx.connection().poolId().unique);
+        if (rpool.unique != _rconctx.connection().poolId().unique)
             return;
 
         --rpool.stopping_connection_count;
@@ -2273,12 +2272,12 @@ void Service::doPushFrontMessageToPool(
     }
 }
 //-----------------------------------------------------------------------------
-ErrorConditionT Service::activateConnection(Connection& _rconnection, ObjectIdT const& _robjuid)
+ErrorConditionT Service::activateConnection(ConnectionContext& _rconctx, ObjectIdT const& _robjuid)
 {
 
     solid_dbg(logger, Verbose, this);
 
-    const size_t pool_index = static_cast<size_t>(_rconnection.poolId().index);
+    const size_t pool_index = static_cast<size_t>(_rconctx.connection().poolId().index);
 
     ConnectionPoolStub* pconpool = nullptr;
     ErrorConditionT     error;
@@ -2286,13 +2285,13 @@ ErrorConditionT Service::activateConnection(Connection& _rconnection, ObjectIdT 
         lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
         ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
-        solid_assert(rpool.unique == _rconnection.poolId().unique);
-        if (rpool.unique != _rconnection.poolId().unique) {
+        solid_assert(rpool.unique == _rconctx.connection().poolId().unique);
+        if (rpool.unique != _rconctx.connection().poolId().unique) {
             error = error_service_pool_unknown;
             return error;
         }
 
-        if (_rconnection.isActiveState()) {
+        if (_rconctx.connection().isActiveState()) {
             error = error_service_already_active;
             return error;
         }
@@ -2329,13 +2328,13 @@ ErrorConditionT Service::activateConnection(Connection& _rconnection, ObjectIdT 
             }
         }
 
-        if (rpool.active_connection_count == 1 && !solid_function_empty(rpool.on_event_fnc)) {
+        if (!solid_function_empty(rpool.on_event_fnc)) {
             pconpool = &rpool;
         }
     }
 
     if (pconpool) {
-        pconpool->on_event_fnc(pool_event_category.event(PoolEvents::Connect), error);
+        pconpool->on_event_fnc(_rconctx, pool_event_category.event(PoolEvents::ConnectionActivate), error);
     }
     return error;
 }
@@ -2393,7 +2392,30 @@ void Service::onIncomingConnectionStart(ConnectionContext& _rconctx)
 void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
 {
     solid_dbg(logger, Verbose, this);
+    ConnectionPoolStub* ppool = nullptr;
+    {
+        const size_t           pool_index = static_cast<size_t>(_rconctx.connection().poolId().index);
+        lock_guard<std::mutex> lock(impl_->mtx);
+        lock_guard<std::mutex> lock2(impl_->poolMutex(pool_index));
+        ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
+
+        solid_assert(rpool.unique == _rconctx.connection().poolId().unique);
+        if (rpool.unique != _rconctx.connection().poolId().unique)
+            return;
+
+        if (!solid_function_empty(rpool.on_event_fnc)) {
+            ppool = &rpool;
+        }
+    }
+
+    //first call the more general function
     configuration().client.connection_start_fnc(_rconctx);
+
+    if (ppool) {
+        //it should be safe using the pool right now because it is used
+        // from within a pool's connection
+        ppool->on_event_fnc(_rconctx, pool_event_category.event(PoolEvents::ConnectionStart), ErrorConditionT());
+    }
 }
 //-----------------------------------------------------------------------------
 ErrorConditionT Service::sendRelay(const ObjectIdT& _rconid, RelayData&& _urelmsg)

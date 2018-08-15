@@ -309,6 +309,7 @@ private:
     friend struct Message;
     friend class TestEntryway;
     friend class relay::EngineCore;
+    friend class Service;
 
     Service&       rservice;
     Connection&    rconnection;
@@ -330,6 +331,11 @@ private:
 
     ConnectionContext(ConnectionContext const&);
     ConnectionContext& operator=(ConnectionContext const&);
+
+    Connection& connection()
+    {
+        return rconnection;
+    }
 };
 
 } //namespace mpipc

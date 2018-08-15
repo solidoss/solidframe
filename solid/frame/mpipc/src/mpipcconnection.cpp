@@ -697,7 +697,7 @@ void Connection::onStopped(
     ObjectIdT         objuid(uid(_rctx));
     ConnectionContext conctx(service(_rctx), *this);
 
-    service(_rctx).connectionStop(*this, conctx);
+    service(_rctx).connectionStop(conctx);
 
     if (_rmsg_bundle.message_ptr || !solid_function_empty(_rmsg_bundle.complete_fnc)) {
         doCompleteMessage(_rctx, _rpool_msg_id, _rmsg_bundle, error_message_connection);
