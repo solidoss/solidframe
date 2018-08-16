@@ -641,5 +641,5 @@ localhost:3333 c /home/user/file.txt ./file.txt
 
 Next you can learn how to use the relay support from the solid_frame_mpipc library:
 
- * [MPIPC Relay Echo](../mpipc_relay_echo)
+ * [MPIPC Relay Echo](../mpipc_echo_relay)
 
