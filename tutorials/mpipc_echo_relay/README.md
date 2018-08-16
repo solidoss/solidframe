@@ -3,9 +3,9 @@
 Exemplifies the use of solid_frame_mpipc for relaying messages between connections.
 
 __Source files__
- * Register message definition: [mpipc_relay_echo_register.hpp](mpipc_relay_echo_register.hpp)
- * The relay server: [mpipc_relay_echo_server.cpp](mpipc_relay_echo_server.cpp)
- * The client: [mpipc_relay_echo_client.cpp](mpipc_relay_echo_client.cpp)
+ * Register message definition: [mpipc_echo_relay_register.hpp](mpipc_echo_relay_register.hpp)
+ * The relay server: [mpipc_echo_relay_server.cpp](mpipc_echo_relay_server.cpp)
+ * The client: [mpipc_echo_relay_client.cpp](mpipc_echo_relay_client.cpp)
 
 Before continuing with this tutorial, you should:
  * prepare a SolidFrame build as explained [here](../../README.md#installation).
@@ -30,9 +30,9 @@ The client will send a message to a peer specified by its relay name.
  * relays messages from registered connections.
 
 You will need three source files:
- * _mpipc_relay_echo_register.hpp_: connection register protocol message.
- * _mpipc_relay_echo_client.cpp_: the client implementation.
- * _mpipc_relay_echo_relay.cpp_: the relay server implementation.
+ * _mpipc_echo_relay_register.hpp_: connection register protocol message.
+ * _mpipc_echo_relay_client.cpp_: the client implementation.
+ * _mpipc_echo_relay_relay.cpp_: the relay server implementation.
 
 
 ## Protocol definition
@@ -41,7 +41,7 @@ There are two protocols involved in this tutorial environment:
  * the one between clients and the relay server, used for registering connections onto relay server: Register message
  * the one between clients themselves: Message.
 
-We put the definition of the Register message in a separate header(mpipc_relay_echo_register.hpp) used by both the client and server code:
+We put the definition of the Register message in a separate header(mpipc_echo_relay_register.hpp) used by both the client and server code:
 ```C++
 #pragma once
 
@@ -88,7 +88,7 @@ constexpr TypeIdT null_type_id{0, 0};
 constexpr TypeIdT register_type_id{0, 1};
 ```
 
-The Message is only used by the client so it will be defined in the mpipc_relay_echo_client.cpp as follows:
+The Message is only used by the client so it will be defined in the mpipc_echo_relay_client.cpp as follows:
 ```C++
 struct Message : solid::frame::mpipc::Message {
     std::string name;
@@ -236,7 +236,7 @@ Notable is that now we specify the recipient name of the form "relay_host_addr/p
 
 ```bash
 $ cd solid_frame_tutorials/mpipc_relay_echo
-$ c++ -o mpipc_relay_echo_client mpipc_relay_echo_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ c++ -o mpipc_echo_relay_client mpipc_echo_relay_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 Now that we have a client application, we need a server to connect to. Let's move one on implementing the server.
 
@@ -391,7 +391,7 @@ If everything was Ok, the server awaits for the user to press ENTER, and then ex
 
 ```bash
 $ cd solid_frame_tutorials/mpipc_relay_echo
-$ c++ -o mpipc_relay_echo_relay mpipc_relay_echo_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
+$ c++ -o mpipc_echo_relay_relay mpipc_echo_relay_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 
 ## Test
@@ -400,17 +400,17 @@ Now that we have both the client and the relay server applications, let us test 
 
 **Console-1**:
 ```BASH
-$ ./mpipc_relay_echo_server
+$ ./mpipc_echo_relay_server
 ```
 **Console-2**:
 ```BASH
-$ ./mpipc_relay_echo_client alpha
+$ ./mpipc_echo_relay_client alpha
 beta Some text sent from alpha to beta
 beta Some other text sent from alpha to beta
 ```
 **Console-3**:
 ```BASH
-$ ./mpipc_relay_echo_client beta
+$ ./mpipc_echo_relay_client beta
 alpha Some text sent from beta to alpha
 alpha Some other text sent from beta to alpha
 ```

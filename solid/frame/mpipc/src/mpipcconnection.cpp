@@ -497,7 +497,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         MessageId         pool_msg_id;
         Event             event;
         const bool        has_no_message = pending_message_vec_.empty() && msg_writer_.empty();
-        const bool        can_stop       = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, has_no_message ? &msg_bundle : nullptr, event, tmp_error);
+        const bool        can_stop       = service(_rctx).connectionStopping(conctx, objuid, seconds_to_wait, pool_msg_id, has_no_message ? &msg_bundle : nullptr, event, tmp_error);
 
         if (can_stop) {
             solid_assert(has_no_message);
@@ -646,13 +646,14 @@ void Connection::doContinueStopping(
     const Event&                _revent)
 {
 
-    ErrorConditionT tmp_error(error());
-    ObjectIdT       objuid(uid(_rctx));
-    ulong           seconds_to_wait = 0;
-    MessageBundle   msg_bundle;
-    MessageId       pool_msg_id;
-    Event           event(_revent);
-    const bool      can_stop = service(_rctx).connectionStopping(*this, objuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
+    ErrorConditionT   tmp_error(error());
+    ObjectIdT         objuid(uid(_rctx));
+    ulong             seconds_to_wait = 0;
+    MessageBundle     msg_bundle;
+    MessageId         pool_msg_id;
+    Event             event(_revent);
+    ConnectionContext conctx(service(_rctx), *this);
+    const bool        can_stop = service(_rctx).connectionStopping(conctx, objuid, seconds_to_wait, pool_msg_id, &msg_bundle, event, tmp_error);
 
     solid_dbg(logger, Info, this << ' ' << this->id() << ' ' << can_stop);
 
@@ -956,7 +957,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
 
     if (!isStopping()) {
 
-        ErrorConditionT error = service(_rctx).activateConnection(*this, uid(_rctx));
+        ErrorConditionT error = service(_rctx).activateConnection(conctx, uid(_rctx));
 
         if (!error) {
             flags_.set(FlagsE::Active);

@@ -431,12 +431,8 @@ int test_pool_basic(int argc, char* argv[])
 
         err = mpipcclient.createConnectionPool(
             "localhost", client_id,
-            [](Event&& _revent, const ErrorConditionT& _rerr) {
-                if (_revent == frame::mpipc::pool_event_connect) {
-                    solid_dbg(generic_logger, Warning, "client pool connected: " << _rerr.message());
-                } else if (_revent == frame::mpipc::pool_event_disconnect) {
-                    solid_dbg(generic_logger, Warning, "client pool disconnected: " << _rerr.message());
-                }
+            [](frame::mpipc::ConnectionContext& _rctx, Event&& _revent, const ErrorConditionT& _rerr) {
+                solid_dbg(generic_logger, Warning, "client pool event: " << _revent << " error: " << _rerr.message());
             },
             max_per_pool_connection_count);
 

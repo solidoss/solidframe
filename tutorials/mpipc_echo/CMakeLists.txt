@@ -24,3 +24,16 @@ target_link_libraries (tutorial_mpipc_echo_client
     ${SYS_DYNAMIC_LOAD_LIB}
 )
 
+
+add_executable (tutorial_mpipc_echo_client_pool mpipc_echo_client_pool.cpp mpipc_echo_messages.hpp)
+
+target_link_libraries (tutorial_mpipc_echo_client_pool
+    solid_frame_mpipc
+    solid_frame_aio
+    solid_frame
+    solid_serialization_v2
+    solid_utility
+    solid_system
+    ${SYS_BASIC_LIBS}
+    ${SYS_DYNAMIC_LOAD_LIB}
+)

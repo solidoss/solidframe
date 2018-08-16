@@ -1,6 +1,6 @@
-add_executable (tutorial_mpipc_relay_echo_client mpipc_relay_echo_client.cpp)
+add_executable (tutorial_mpipc_echo_relay_client mpipc_echo_relay_client.cpp)
 
-target_link_libraries (tutorial_mpipc_relay_echo_client
+target_link_libraries (tutorial_mpipc_echo_relay_client
     solid_frame_mpipc
     solid_frame_aio
     solid_frame
@@ -11,9 +11,9 @@ target_link_libraries (tutorial_mpipc_relay_echo_client
     ${SYS_DYNAMIC_LOAD_LIB}
 )
 
-add_executable (tutorial_mpipc_relay_echo_server mpipc_relay_echo_server.cpp)
+add_executable (tutorial_mpipc_echo_relay_server mpipc_echo_relay_server.cpp)
 
-target_link_libraries (tutorial_mpipc_relay_echo_server
+target_link_libraries (tutorial_mpipc_echo_relay_server
     solid_frame_mpipc
     solid_frame_aio
     solid_frame

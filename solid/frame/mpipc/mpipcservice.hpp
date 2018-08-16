@@ -330,12 +330,13 @@ private:
     void connectionStop(ConnectionContext& _rconctx);
 
     bool connectionStopping(
-        Connection& _rcon, ObjectIdT const& _robjuid,
-        ulong&           _rseconds_to_wait,
-        MessageId&       _rmsg_id,
-        MessageBundle*   _pmsg_bundle,
-        Event&           _revent_context,
-        ErrorConditionT& _rerror);
+        ConnectionContext& _rconctx,
+        ObjectIdT const&   _robjuid,
+        ulong&             _rseconds_to_wait,
+        MessageId&         _rmsg_id,
+        MessageBundle*     _pmsg_bundle,
+        Event&             _revent_context,
+        ErrorConditionT&   _rerror);
 
     bool doNonMainConnectionStopping(
         Connection& _rcon, ObjectIdT const& _robjuid,
@@ -349,7 +350,7 @@ private:
         Connection& _rcon, ObjectIdT const& /*_robjuid*/,
         ulong&      _rseconds_to_wait,
         MessageId& /*_rmsg_id*/,
-        MessageBundle* /*_rmsg_bundle*/,
+        MessageBundle* /*_pmsg_bundle*/,
         Event&           _revent_context,
         ErrorConditionT& _rerror);
 
@@ -874,7 +875,7 @@ ErrorConditionT Service::connectionNotifyRecvSomeRawData(
 inline ErrorConditionT Service::createConnectionPool(const char* _recipient_url, const size_t _persistent_connection_count)
 {
     RecipientId          recipient_id;
-    PoolOnEventFunctionT fnc([](Event&&, const ErrorConditionT&) {});
+    PoolOnEventFunctionT fnc([](ConnectionContext& _rctx, Event&&, const ErrorConditionT&) {});
     return doCreateConnectionPool(_recipient_url, recipient_id, fnc, _persistent_connection_count);
 }
 //-------------------------------------------------------------------------
