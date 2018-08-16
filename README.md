@@ -610,7 +610,7 @@ __Usefull links__
  * [Tutorial: mpipc_request](tutorials/mpipc_request/README.md)
  * [Tutorial: mpipc_request_ssl](tutorials/mpipc_request_ssl/README.md)
  * [Tutorial: mpipc_file](tutorials/mpipc_file/README.md)
- * [Tutorial: mpipc_relay_echo](tutorials/mpipc_relay_echo/README.md)
+ * [Tutorial: mpipc_echo_relay](tutorials/mpipc_echo_relay/README.md)
 
 ### <a id="solid_frame_file"></a>solid_frame_file
 
