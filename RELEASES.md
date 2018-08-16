@@ -31,7 +31,7 @@
 ## Version 3.0
 * (DONE) solid_frame_mpipc: improve protocol to allow transparent (i.e. not knowing the type of the mesage) message handling - e.g. skipping, relaying.
 * (DONE) solid_frame_mpipc: support for generic message relaying: solid::frame::mpipc::relay::Engine. 
-* (DONE) tutorials: mpipc_relay_echo
+* (DONE) tutorials: mpipc_echo_relay
 * (DONE) solid_system: improve SOLID_CHECK and SOLID_THROW
 * (DONE) solid_system: pimpl.h with make_pimpl support
 * (DONE) solid_utility: fix and improve solid::inner::List

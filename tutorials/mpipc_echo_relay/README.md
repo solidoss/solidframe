@@ -235,7 +235,7 @@ Notable is that now we specify the recipient name of the form "relay_host_addr/p
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_relay_echo
+$ cd solid_frame_tutorials/mpipc_echo_relay
 $ c++ -o mpipc_echo_relay_client mpipc_echo_relay_client.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 Now that we have a client application, we need a server to connect to. Let's move one on implementing the server.
@@ -390,7 +390,7 @@ If everything was Ok, the server awaits for the user to press ENTER, and then ex
 ### Compile
 
 ```bash
-$ cd solid_frame_tutorials/mpipc_relay_echo
+$ cd solid_frame_tutorials/mpipc_echo_relay
 $ c++ -o mpipc_echo_relay_relay mpipc_echo_relay_server.cpp -I~/work/extern/include/ -L~/work/extern/lib -lsolid_frame_mpipc -lsolid_frame_aio -lsolid_frame -lsolid_utility -lsolid_system -lpthread
 ```
 
