@@ -20,6 +20,7 @@
 * (DONE) system/debug.hpp -> system/log.hpp - redesign debug logging engine. No locking while handling log line parameters.
 * (DONE) utility/workpool.hpp -> improved locking for a better performance on macOS
 * (DONE) mpipc: call connection pool close callback after calling connection close callback for every connection in the pool
+* (DONE) mpipc: improve connection pool with support for events like ConnectionActivated, PoolDisconnect, ConnectionStop
 
 ## Version 4.0
 * (DONE) port to Windows

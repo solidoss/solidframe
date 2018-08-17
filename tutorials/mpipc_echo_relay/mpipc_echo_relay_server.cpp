@@ -8,7 +8,7 @@
 #include "solid/frame/mpipc/mpipcrelayengines.hpp"
 #include "solid/frame/mpipc/mpipcservice.hpp"
 
-#include "mpipc_relay_echo_register.hpp"
+#include "mpipc_echo_relay_register.hpp"
 
 #include <iostream>
 

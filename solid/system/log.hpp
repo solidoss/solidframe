@@ -29,6 +29,7 @@ enum struct LogFlags : LogAtomicFlagsBackT {
     Warning,
     Error,
     Statistic,
+    Raw,
     LastFlag
 };
 
@@ -54,6 +55,8 @@ struct LogCategory : public LogCategoryBase {
             return "E";
         case LogFlags::Statistic:
             return "S";
+        case LogFlags::Raw:
+            return "R";
         case LogFlags::LastFlag:
             break;
         }
@@ -62,6 +65,10 @@ struct LogCategory : public LogCategoryBase {
 
 private:
     void parse(LogAtomicFlagsBackT& _ror_flags, LogAtomicFlagsBackT& _rand_flags, const std::string& _txt) const override;
+};
+
+struct LogLineBase {
+    virtual std::ostream& writeTo(std::ostream&) const = 0;
 };
 
 namespace impl {
@@ -159,19 +166,8 @@ public:
     }
 };
 
-class LogLineStreamBase : public std::ostream {
-protected:
-    LogLineStreamBase()
-        : std::ostream(0)
-    {
-    }
-
-public:
-    virtual std::ostream& writeTo(std::ostream&) = 0;
-};
-
 template <size_t Size>
-class LogLineStream : public LogLineStreamBase {
+class LogLineStream : public std::ostream, public LogLineBase {
 protected:
     LogLineBuffer<Size> buf_;
 
@@ -181,7 +177,7 @@ public:
         rdbuf(&buf_);
     }
 
-    std::ostream& writeTo(std::ostream& _ros) override
+    std::ostream& writeTo(std::ostream& _ros) const override
     {
         return buf_.writeTo(_ros);
     }
@@ -192,6 +188,8 @@ public:
 namespace {
 class Engine;
 } //namespace
+
+std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line);
 
 class LoggerBase {
     friend class Engine;
@@ -205,7 +203,7 @@ protected:
     ~LoggerBase();
 
     std::ostream& doLog(std::ostream& _ros, const char* _flag_name, const char* _file, const char* _fnc, int _line) const;
-    void          doDone(impl::LogLineStreamBase& _log_ros) const;
+    void          doDone(LogLineBase& _log_ros) const;
 
 public:
     const std::string& name() const
@@ -245,7 +243,7 @@ public:
     {
         return this->doLog(_ros, rcat_.flagName(_flag), _file, _fnc, _line);
     }
-    void done(impl::LogLineStreamBase& _log_ros) const
+    void done(LogLineBase& _log_ros) const
     {
         doDone(_log_ros);
     }
@@ -256,6 +254,28 @@ using LoggerT = Logger<>;
 extern const LoggerT generic_logger;
 
 void log_stop();
+
+struct Recorder {
+    virtual ~Recorder();
+
+    virtual void recordLine(const solid::LogLineBase& /*_rlog_line*/);
+};
+
+struct StreamRecorder : Recorder {
+    std::ostream& ros_;
+    StreamRecorder(std::ostream& _ros)
+        : ros_(_ros)
+    {
+    }
+
+    void recordLine(const solid::LogLineBase& _rlog_line) override;
+};
+
+using RecorderPtrT = std::shared_ptr<Recorder>;
+
+ErrorConditionT log_start(
+    RecorderPtrT&&                  _rec_ptr,
+    const std::vector<std::string>& _rmodule_mask_vec);
 
 ErrorConditionT log_start(
     std::ostream&                   _ros,
@@ -309,6 +329,12 @@ ErrorConditionT log_start(
         Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, solid_function_t_NAME, __LINE__) << Txt << std::endl; \
         Lgr.done(os);                                                                                          \
     }
+
+#define solid_log_raw(Txt)                                       \
+    if (solid::generic_logger.shouldLog(solid::LogFlags::Raw)) { \
+        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;    \
+        os << Txt;                                               \
+    Lgr.done(os)
 
 #ifdef SOLID_HAS_STATISTICS
 
