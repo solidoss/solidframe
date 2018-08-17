@@ -32,11 +32,11 @@ std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line)
     return _line.writeTo(_ros);
 }
 
-Recorder::~Recorder() {}
+LogRecorder::~LogRecorder() {}
 
-void Recorder::recordLine(const solid::LogLineBase& /*_rlog_line*/) {}
+void LogRecorder::recordLine(const solid::LogLineBase& /*_rlog_line*/) {}
 
-void StreamRecorder::recordLine(const solid::LogLineBase& _rlog_line)
+void LogStreamRecorder::recordLine(const solid::LogLineBase& _rlog_line)
 {
     ros_ << _rlog_line;
 }
@@ -313,7 +313,7 @@ public:
     }
 };
 
-struct SocketRecorder : Recorder {
+struct SocketRecorder : LogRecorder {
     uint64_t          current_size_;
     DeviceBasicStream unbuffered_stream_;
     DeviceStream      buffered_stream_;
@@ -389,7 +389,7 @@ void splitPrefix(string& _path, string& _name, const char* _prefix)
     }
 }
 
-struct FileRecorder : Recorder {
+struct FileRecorder : LogRecorder {
     uint64_t          current_size_;
     DeviceBasicStream unbuffered_stream_;
     DeviceStream      buffered_stream_;
@@ -546,7 +546,7 @@ class Engine {
     mutex             mtx_;
     StringPairVectorT module_mask_vec_;
     ModuleVectorT     module_vec_;
-    RecorderPtrT      recorder_ptr_;
+    LogRecorderPtrT   recorder_ptr_;
 
 public:
     static Engine& the()
@@ -556,7 +556,7 @@ public:
     }
 
     Engine()
-        : recorder_ptr_(std::make_shared<Recorder>())
+        : recorder_ptr_(std::make_shared<LogRecorder>())
 
     {
     }
@@ -571,12 +571,12 @@ public:
 
     void log(const size_t _idx, LogLineBase& _log_ros);
 
-    ErrorConditionT configure(RecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec);
+    ErrorConditionT configure(LogRecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec);
 
     void close()
     {
         lock_guard<mutex> lock(mtx_);
-        recorder_ptr_ = std::make_shared<Recorder>();
+        recorder_ptr_ = std::make_shared<LogRecorder>();
     }
 
 private:
@@ -603,7 +603,7 @@ void Engine::log(const size_t _idx, LogLineBase& _log_ros)
     recorder_ptr_->recordLine(_log_ros);
 }
 
-ErrorConditionT Engine::configure(RecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec)
+ErrorConditionT Engine::configure(LogRecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec)
 {
     lock_guard<mutex> lock(mtx_);
     doConfigureMasks(_rmodule_mask_vec);
@@ -808,14 +808,14 @@ void log_stop()
     Engine::the().close();
 }
 
-ErrorConditionT log_start(RecorderPtrT&& _rec_ptr, const std::vector<std::string>& _rmodule_mask_vec)
+ErrorConditionT log_start(LogRecorderPtrT&& _rec_ptr, const std::vector<std::string>& _rmodule_mask_vec)
 {
     return Engine::the().configure(std::move(_rec_ptr), _rmodule_mask_vec);
 }
 
 ErrorConditionT log_start(std::ostream& _ros, const std::vector<std::string>& _rmodule_mask_vec)
 {
-    return Engine::the().configure(std::make_shared<StreamRecorder>(_ros), _rmodule_mask_vec);
+    return Engine::the().configure(std::make_shared<LogStreamRecorder>(_ros), _rmodule_mask_vec);
 }
 
 ErrorConditionT log_start(

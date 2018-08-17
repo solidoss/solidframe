@@ -255,15 +255,15 @@ extern const LoggerT generic_logger;
 
 void log_stop();
 
-struct Recorder {
-    virtual ~Recorder();
+struct LogRecorder {
+    virtual ~LogRecorder();
 
     virtual void recordLine(const solid::LogLineBase& /*_rlog_line*/);
 };
 
-struct StreamRecorder : Recorder {
+struct LogStreamRecorder : LogRecorder {
     std::ostream& ros_;
-    StreamRecorder(std::ostream& _ros)
+    LogStreamRecorder(std::ostream& _ros)
         : ros_(_ros)
     {
     }
@@ -271,10 +271,10 @@ struct StreamRecorder : Recorder {
     void recordLine(const solid::LogLineBase& _rlog_line) override;
 };
 
-using RecorderPtrT = std::shared_ptr<Recorder>;
+using LogRecorderPtrT = std::shared_ptr<LogRecorder>;
 
 ErrorConditionT log_start(
-    RecorderPtrT&&                  _rec_ptr,
+    LogRecorderPtrT&&               _rec_ptr,
     const std::vector<std::string>& _rmodule_mask_vec);
 
 ErrorConditionT log_start(

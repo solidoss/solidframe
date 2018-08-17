@@ -15,7 +15,7 @@ int test_log_recorder(int argc, char* argv[])
     {
         ostringstream oss;
 
-        solid::log_start(std::make_shared<solid::StreamRecorder>(std::ref(oss)), {".*:VIEW"});
+        solid::log_start(std::make_shared<solid::LogStreamRecorder>(std::ref(oss)), {".*:VIEW"});
 
         solid_log(solid::generic_logger, Info, "First line of log: " << argc << " " << argv[0]);
         solid_log(logger, Verbose, "Second line of log: " << argc << ' ' << argv[0]);
@@ -28,7 +28,7 @@ int test_log_recorder(int argc, char* argv[])
     {
         ostringstream oss;
 
-        solid::log_start(std::make_shared<solid::StreamRecorder>(std::ref(oss)), {".*:VI"});
+        solid::log_start(std::make_shared<solid::LogStreamRecorder>(std::ref(oss)), {".*:VI"});
 
         solid_log(solid::generic_logger, Error, "First line of log: " << argc << " " << argv[0]);
         solid_log(logger, Warning, "Second line of log: " << argc << ' ' << argv[0]);
@@ -41,7 +41,7 @@ int test_log_recorder(int argc, char* argv[])
     {
         ostringstream oss;
 
-        solid::log_start(std::make_shared<solid::StreamRecorder>(std::ref(oss)), {".*:VIEW", "test:v"});
+        solid::log_start(std::make_shared<solid::LogStreamRecorder>(std::ref(oss)), {".*:VIEW", "test:v"});
 
         solid_log(solid::generic_logger, Info, "First line of log: " << argc << " " << argv[0]);
         solid_log(logger, Verbose, "HIDDEN - Second line of log: " << argc << ' ' << argv[0]);
