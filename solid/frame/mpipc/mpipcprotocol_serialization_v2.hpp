@@ -181,17 +181,18 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol<
         return type_map_.template registerType<T>(_allocator, _rtid);
     }
 
-    template <class Msg, class CompleteFnc>
+    template <class Msg, typename CompleteFnc>
     size_t registerMessage(
-        CompleteFnc   &&_complete_fnc,
+        CompleteFnc   _complete_fnc,
         const TypeId& _rtid)
     {
-        using CompleteHandlerT = CompleteHandler<CompleteFnc,
-            typename message_complete_traits<std::remove_reference_t<decltype(_complete_fnc)>>::send_type,
-            typename message_complete_traits<std::remove_reference_t<decltype(_complete_fnc)>>::recv_type>;
+        using CompleteFncT     = CompleteFnc;
+        using CompleteHandlerT = CompleteHandler<CompleteFncT,
+            typename message_complete_traits<CompleteFncT>::send_type,
+            typename message_complete_traits<CompleteFncT>::recv_type>;
 
         size_t rv = type_map_.template registerType<Msg>(
-            CompleteHandlerT(std::forward<CompleteFnc>(_complete_fnc)), Message::solidSerializeV2<typename TypeMapT::SerializerT, Msg>, Message::solidDeserializeV2<typename TypeMapT::DeserializerT, Msg>,
+            CompleteHandlerT(std::move(_complete_fnc)), Message::solidSerializeV2<typename TypeMapT::SerializerT, Msg>, Message::solidDeserializeV2<typename TypeMapT::DeserializerT, Msg>,
             _rtid);
         registerCast<Msg, mpipc::Message>();
         return rv;
@@ -200,15 +201,16 @@ struct Protocol : public mpipc::Protocol, std::enable_shared_from_this<Protocol<
     template <class Msg, class Allocator, class CompleteFnc>
     size_t registerMessage(
         Allocator     _allocator,
-        CompleteFnc   &&_complete_fnc,
+        CompleteFnc   _complete_fnc,
         const TypeId& _rtid)
     {
+        using CompleteFncT     = CompleteFnc;
         using CompleteHandlerT = CompleteHandler<CompleteFnc,
-            typename message_complete_traits<std::remove_reference_t<decltype(_complete_fnc)>>::send_type,
-            typename message_complete_traits<std::remove_reference_t<decltype(_complete_fnc)>>::recv_type>;
+            typename message_complete_traits<CompleteFncT>::send_type,
+            typename message_complete_traits<CompleteFncT>::recv_type>;
 
         size_t rv = type_map_.template registerType<Msg>(
-            CompleteHandlerT(std::forward<CompleteFnc>(_complete_fnc)), Message::solidSerializeV2<typename TypeMapT::SerializerT, Msg>, Message::solidDeserializeV2<typename TypeMapT::DeserializerT, Msg>, _allocator,
+            CompleteHandlerT(std::move(_complete_fnc)), Message::solidSerializeV2<typename TypeMapT::SerializerT, Msg>, Message::solidDeserializeV2<typename TypeMapT::DeserializerT, Msg>, _allocator,
             _rtid);
         registerCast<Msg, mpipc::Message>();
         return rv;

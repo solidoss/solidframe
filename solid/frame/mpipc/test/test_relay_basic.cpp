@@ -415,12 +415,17 @@ int test_relay_basic(int argc, char* argv[])
                     ++connection_count;
                 }
             };
-            auto con_register = [&relay_engine](
+
+            std::unique_ptr<std::string> test_ptr(new string("test"));
+
+            auto con_register = [&relay_engine, test_ptr = std::move(test_ptr)](
                                     frame::mpipc::ConnectionContext& _rctx,
                                     std::shared_ptr<Register>&       _rsent_msg_ptr,
                                     std::shared_ptr<Register>&       _rrecv_msg_ptr,
                                     ErrorConditionT const&           _rerror) {
                 solid_check(!_rerror);
+                solid_check(*test_ptr == "test", "");
+
                 if (_rrecv_msg_ptr) {
                     solid_check(!_rsent_msg_ptr);
                     solid_dbg(generic_logger, Info, "recv register request: " << _rrecv_msg_ptr->str);
@@ -442,7 +447,7 @@ int test_relay_basic(int argc, char* argv[])
             frame::mpipc::Configuration cfg(sch_relay, relay_engine, proto);
 
             proto->null(0);
-            proto->registerMessage<Register>(con_register, 1);
+            proto->registerMessage<Register>(std::move(con_register), 1);
 
             cfg.server.listener_address_str      = "0.0.0.0:0";
             cfg.pool_max_active_connection_count = 2 * max_per_pool_connection_count;

@@ -66,8 +66,7 @@ public:
 template <class F, class Req, class Res>
 struct CompleteHandler {
     F f;
-
-    CompleteHandler(F &&_f)
+    CompleteHandler(F&& _f)
         : f(std::forward<F>(_f))
     {
     }
