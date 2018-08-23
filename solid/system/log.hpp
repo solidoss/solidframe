@@ -172,7 +172,7 @@ protected:
     LogLineBuffer<Size> buf_;
 
 public:
-    LogLineStream()
+    LogLineStream(): std::ostream(nullptr)
     {
         rdbuf(&buf_);
     }
