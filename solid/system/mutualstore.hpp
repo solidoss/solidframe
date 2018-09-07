@@ -51,12 +51,12 @@ public:
         unsigned   _mutrowsbts   = 3,
         unsigned   _mutcolsbts   = 3)
         : objpermutbts(_objpermutbts)
-        , objpermutmsk(bitsToMask(_objpermutbts))
+        , objpermutmsk(bits_to_mask(_objpermutbts))
         , mutrowsbts(_mutrowsbts)
-        , mutrowsmsk(bitsToMask(_mutrowsbts))
-        , mutrowscnt(bitsToCount(_mutrowsbts))
-        , mutcolsmsk(bitsToMask(_mutcolsbts))
-        , mutcolscnt(bitsToCount(_mutcolsbts))
+        , mutrowsmsk(bits_to_mask(_mutrowsbts))
+        , mutrowscnt(bits_to_count(_mutrowsbts))
+        , mutcolsmsk(bits_to_mask(_mutcolsbts))
+        , mutcolscnt(bits_to_count(_mutcolsbts))
         , objmat(new MutualObjectT*[mutrowscnt])
     {
         for (uint i = 0; i < mutrowscnt; ++i) {
@@ -171,7 +171,7 @@ public:
     }
     size_t rowRangeSize() const
     {
-        return mutcolscnt * bitsToCount(objpermutbts);
+        return mutcolscnt * bits_to_count(objpermutbts);
     }
 
 private:

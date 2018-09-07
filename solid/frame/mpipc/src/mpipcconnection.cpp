@@ -502,7 +502,7 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
         if (can_stop) {
             solid_assert(has_no_message);
             solid_dbg(logger, Info, this << ' ' << this->id() << " postStop");
-            auto lambda = [msg_b{std::move(msg_bundle)}, pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
+            auto lambda = [msg_b = std::move(msg_bundle), pool_msg_id](frame::aio::ReactorContext& _rctx, Event&& /*_revent*/) mutable {
                 Connection& rthis = static_cast<Connection&>(_rctx.object());
                 rthis.onStopped(_rctx, pool_msg_id, msg_b);
             };

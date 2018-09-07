@@ -27,8 +27,8 @@ namespace solid {
 */
 template <class T, unsigned NBits = 5>
 class Queue {
-    static constexpr const size_t node_mask = bitsToMask(NBits);
-    static constexpr const size_t node_size = bitsToCount(NBits);
+    static constexpr const size_t node_mask = bits_to_mask(NBits);
+    static constexpr const size_t node_size = bits_to_count(NBits);
 
     struct Node {
         Node(Node* _pnext = nullptr)

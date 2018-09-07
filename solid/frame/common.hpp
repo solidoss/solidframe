@@ -103,7 +103,7 @@ inline uint64_t unite_index<uint64_t>(uint64_t _hi, const uint64_t& _lo, const i
 template <>
 inline void split_index<uint32_t>(uint32_t& _hi, uint32_t& _lo, const int _hibitcnt, const uint32_t _v)
 {
-    const uint32_t lomsk = bitsToMask32(32 - _hibitcnt); //(1 << (32 - _hibitcnt)) - 1;
+    const uint32_t lomsk = bits_to_mask32(32 - _hibitcnt); //(1 << (32 - _hibitcnt)) - 1;
     _lo                  = _v & lomsk;
     _hi                  = bit_revert(_v & (~lomsk));
 }
@@ -111,7 +111,7 @@ inline void split_index<uint32_t>(uint32_t& _hi, uint32_t& _lo, const int _hibit
 template <>
 inline void split_index<uint64_t>(uint64_t& _hi, uint64_t& _lo, const int _hibitcnt, const uint64_t _v)
 {
-    const uint64_t lomsk = bitsToMask64(64 - _hibitcnt); //(1ULL << (64 - _hibitcnt)) - 1;
+    const uint64_t lomsk = bits_to_mask64(64 - _hibitcnt); //(1ULL << (64 - _hibitcnt)) - 1;
     _lo                  = _v & lomsk;
     _hi                  = bit_revert(_v & (~lomsk));
 }

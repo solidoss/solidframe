@@ -92,13 +92,13 @@ public:
         return limits_;
     }
 
-protected:
     enum struct ReturnE {
         Done = 0,
         Continue,
         Wait
     };
 
+protected:
     enum {
         InnerListRun,
         InnerListCache,

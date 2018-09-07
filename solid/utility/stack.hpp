@@ -26,8 +26,8 @@ namespace solid {
 template <class T, size_t NBits = 5>
 class Stack {
     enum {
-        NodeMask = BitsToMask(NBits),
-        NodeSize = BitsToCount(NBits)
+        NodeMask = bits_to_mask(NBits),
+        NodeSize = bits_to_count(NBits)
     };
     struct Node {
         Node(Node* _pprev = nullptr)

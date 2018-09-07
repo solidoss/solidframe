@@ -68,56 +68,48 @@ struct UnsignedConvertor<unsigned long long> {
     typedef unsigned long long UnsignedType;
 };
 
-#define BitsToMask(v) ((1 << (v)) - 1)
-#define BitsToCount(v) ((1 << (v)) & (~1))
-
-constexpr inline uint32_t bitsToMask32(unsigned v)
+constexpr inline uint32_t bits_to_mask32(unsigned v)
 {
     return (1UL << v) - 1;
 }
-constexpr inline uint32_t bitsToCount32(unsigned v)
+constexpr inline uint32_t bits_to_count32(unsigned v)
 {
     return (1UL << v) & (~static_cast<uint32_t>(1));
 }
 
-constexpr inline uint64_t bitsToMask64(unsigned v)
+constexpr inline uint64_t bits_to_mask64(unsigned v)
 {
     return (1ULL << v) - 1;
 }
 
-constexpr inline uint64_t bitsToCount64(unsigned v)
+constexpr inline uint64_t bits_to_count64(unsigned v)
 {
     return (1ULL << v) & (~static_cast<uint64_t>(1));
 }
 
-constexpr inline size_t bitsToMask(unsigned v)
+constexpr inline size_t bits_to_mask(const size_t v)
 {
     return (static_cast<size_t>(1) << v) - 1;
 }
 
-constexpr inline size_t bitsToCount(unsigned v)
+constexpr inline size_t bits_to_count(const size_t v)
 {
     return (1ULL << v) & (~static_cast<size_t>(1));
 }
 
-inline uint32_t toNetwork(uint32_t _v)
+constexpr inline uint16_t swap_bytes(const uint16_t _v)
 {
-    return htonl(_v);
+    return ((((_v) >> 8) & 0xff) | (((_v)&0xff) << 8));
 }
 
-inline uint32_t toHost(uint32_t _v)
+constexpr inline uint32_t swap_bytes(const uint32_t _v)
 {
-    return ntohl(_v);
+    return ((((_v)&0xff000000) >> 24) | (((_v)&0x00ff0000) >> 8) | (((_v)&0x0000ff00) << 8) | (((_v)&0x000000ff) << 24));
 }
 
-inline uint16_t toNetwork(uint16_t _v)
+constexpr inline uint64_t swap_bytes(const uint64_t _v)
 {
-    return htons(_v);
-}
-
-inline uint16_t toHost(uint16_t _v)
-{
-    return ntohs(_v);
+    return ((((_v)&0xff00000000000000ull) >> 56) | (((_v)&0x00ff000000000000ull) >> 40) | (((_v)&0x0000ff0000000000ull) >> 24) | (((_v)&0x000000ff00000000ull) >> 8) | (((_v)&0x00000000ff000000ull) << 8) | (((_v)&0x0000000000ff0000ull) << 24) | (((_v)&0x000000000000ff00ull) << 40) | (((_v)&0x00000000000000ffull) << 56));
 }
 
 } //namespace solid
