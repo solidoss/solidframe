@@ -1,6 +1,7 @@
 include (CheckIncludeFiles)
 include (CheckCXXSourceRuns)
 include (CheckCXXCompilerFlag)
+INCLUDE(TestBigEndian)
 
 # just as an idea
 check_include_files(pthread.h SOLID_USE_PTHREAD)
@@ -32,3 +33,4 @@ file (READ "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check/gnuatomic.cpp" source_code)
 
 CHECK_CXX_SOURCE_RUNS("${source_code}" SOLID_USE_GNU_ATOMIC)
 
+TEST_BIG_ENDIAN(SOLID_ON_BIG_ENDIAN)

@@ -16,6 +16,8 @@
 #cmakedefine SOLID_ON_DARWIN
 #cmakedefine SOLID_ON_POSIX
 
+#cmakedefine SOLID_ON_BIG_ENDIAN
+
 #cmakedefine SOLID_HAS_DEBUG
 #cmakedefine SOLID_HAS_NO_INLINES
 #cmakedefine SOLID_HAS_ASSERT
