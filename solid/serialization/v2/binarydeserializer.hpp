@@ -10,12 +10,12 @@
 
 #pragma once
 
-#include "solid/system/convertors.hpp"
 #include "solid/serialization/v2/binarybase.hpp"
 #include "solid/serialization/v2/binarybasic.hpp"
 #include "solid/serialization/v2/typemapbase.hpp"
 #include "solid/serialization/v2/typetraits.hpp"
 #include "solid/system/cassert.hpp"
+#include "solid/system/convertors.hpp"
 #include "solid/system/exception.hpp"
 #include "solid/utility/function.hpp"
 #include "solid/utility/innerlist.hpp"
@@ -1020,11 +1020,11 @@ private:
 
             if (_rr.size_ == 0) {
 #ifdef SOLID_ON_BIG_ENDIAN
-                const uint64_t v  = swap_bites(data_.u64_);
+                const uint64_t v = swap_bites(data_.u64_);
 #else
-                const uint64_t v  = data_.u64_;
+                const uint64_t v = data_.u64_;
 #endif
-                const T        vt = static_cast<T>(v);
+                const T vt = static_cast<T>(v);
                 solid_dbg(logger, Info, "vt = " << vt);
 
                 if (static_cast<uint64_t>(vt) == v) {
@@ -1060,8 +1060,8 @@ private:
         }
         return ReturnE::Wait;
 #else
-        _rr.size_  = sizeof(T);
-        _rr.call_  = load_cross_data<T>;
+        _rr.size_ = sizeof(T);
+        _rr.call_ = load_cross_data<T>;
         data_.u64_ = 0;
         return doLoadCrossData<T>(_rr);
 #endif

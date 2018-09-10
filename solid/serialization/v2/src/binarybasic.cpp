@@ -53,9 +53,8 @@ char* store_with_check(char* _pd, const size_t _sz, uint16_t _v)
                 *pd = (_v & 0xff);
                 break;
             case 2:
-                *(pd + 0) = (_v & 0xff);
-                _v >>= 8;
-                *(pd + 1) = (_v & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
                 break;
             default:
                 return nullptr;
@@ -98,34 +97,39 @@ const char* load_with_check(const char* _ps, const size_t _sz, uint8_t& _val)
 const char* load_with_check(const char* _ps, const size_t _sz, uint16_t& _val)
 {
     if (_sz != 0) {
-        const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-        uint8_t        v  = *ps;
-        const bool     ok = check_value_with_crc(v, v);
-        const size_t   sz = v;
+        const uint8_t* ps  = reinterpret_cast<const uint8_t*>(_ps);
+        uint8_t        vsz = *ps;
+        const bool     ok  = check_value_with_crc(vsz, vsz);
+        const size_t   sz  = vsz;
+        uint16_t       v   = 0;
 
         if (ok && (sz + 1) <= _sz) {
             ++ps;
 
             switch (sz) {
             case 0:
-                _val = 0;
+                v = 0;
                 break;
             case 1:
-                _val = *ps;
+                v = *ps;
                 break;
             case 2:
-                _val = *ps;
-                _val |= static_cast<uint16_t>(*(ps + 1)) << 8;
+                v = *ps;
+                v |= static_cast<uint16_t>(*(ps + 1)) << 8;
                 break;
             default:
                 return nullptr;
             }
-            return _ps + static_cast<size_t>(v) + 1;
+#ifdef SOLID_ON_BIG_ENDIAN
+            _val = swap_bytes(v);
+#else
+            _val = v;
+#endif
+            return _ps + static_cast<size_t>(vsz) + 1;
         }
     }
     return nullptr;
 }
-
 
 //========================================================================
 } //namespace cross

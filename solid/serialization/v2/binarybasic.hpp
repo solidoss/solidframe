@@ -31,11 +31,11 @@ inline char* store(char* _pd, const uint16_t _val)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
 #ifdef SOLID_ON_BIG_ENDIAN
-    *(pd)       = ((_val >> 8) & 0xff);
-    *(pd + 1)   = (_val & 0xff);
+    *(pd)     = ((_val >> 8) & 0xff);
+    *(pd + 1) = (_val & 0xff);
 #else
-    *(pd)       = (_val & 0xff);
-    *(pd + 1)   = ((_val >> 8) & 0xff);
+    *(pd)     = (_val & 0xff);
+    *(pd + 1) = ((_val >> 8) & 0xff);
 #endif
     return _pd + 2;
 }
@@ -44,15 +44,15 @@ inline char* store(char* _pd, const uint32_t _val)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
 #ifdef SOLID_ON_BIG_ENDIAN
-    *(pd)       = ((_val >> 24) & 0xff);
-    *(pd + 1)   = ((_val >> 16) & 0xff);
-    *(pd + 2)   = ((_val >> 8)  & 0xff);
-    *(pd + 3)   = (_val & 0xff);
+    *(pd)     = ((_val >> 24) & 0xff);
+    *(pd + 1) = ((_val >> 16) & 0xff);
+    *(pd + 2) = ((_val >> 8) & 0xff);
+    *(pd + 3) = (_val & 0xff);
 #else
-    *(pd)       = (_val & 0xff);
-    *(pd + 1)   = ((_val >> 8)  & 0xff);
-    *(pd + 2)   = ((_val >> 16) & 0xff);
-    *(pd + 3)   = ((_val >> 24) & 0xff);
+    *(pd)     = (_val & 0xff);
+    *(pd + 1) = ((_val >> 8) & 0xff);
+    *(pd + 2) = ((_val >> 16) & 0xff);
+    *(pd + 3) = ((_val >> 24) & 0xff);
 #endif
     return _pd + 4;
 }
@@ -61,23 +61,23 @@ inline char* store(char* _pd, const uint64_t _val)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
 #ifdef SOLID_ON_BIG_ENDIAN
-    *(pd + 0)   = ((_val >> 56) & 0xff);
-    *(pd + 1)   = ((_val >> 48) & 0xff);
-    *(pd + 2)   = ((_val >> 40) & 0xff);
-    *(pd + 3)   = ((_val >> 32) & 0xff);
-    *(pd + 4)   = ((_val >> 24) & 0xff);
-    *(pd + 5)   = ((_val >> 16) & 0xff);
-    *(pd + 6)   = ((_val >> 8)  & 0xff);
-    *(pd + 7)   = (_val & 0xff);
+    *(pd + 0) = ((_val >> 56) & 0xff);
+    *(pd + 1) = ((_val >> 48) & 0xff);
+    *(pd + 2) = ((_val >> 40) & 0xff);
+    *(pd + 3) = ((_val >> 32) & 0xff);
+    *(pd + 4) = ((_val >> 24) & 0xff);
+    *(pd + 5) = ((_val >> 16) & 0xff);
+    *(pd + 6) = ((_val >> 8) & 0xff);
+    *(pd + 7) = (_val & 0xff);
 #else
-    *(pd + 0)   = (_val & 0xff);
-    *(pd + 1)   = ((_val >> 8)  & 0xff);
-    *(pd + 2)   = ((_val >> 16) & 0xff);
-    *(pd + 3)   = ((_val >> 24) & 0xff);
-    *(pd + 4)   = ((_val >> 32) & 0xff);
-    *(pd + 5)   = ((_val >> 40) & 0xff);
-    *(pd + 6)   = ((_val >> 48) & 0xff);
-    *(pd + 7)   = ((_val >> 56) & 0xff);
+    *(pd + 0) = (_val & 0xff);
+    *(pd + 1) = ((_val >> 8) & 0xff);
+    *(pd + 2) = ((_val >> 16) & 0xff);
+    *(pd + 3) = ((_val >> 24) & 0xff);
+    *(pd + 4) = ((_val >> 32) & 0xff);
+    *(pd + 5) = ((_val >> 40) & 0xff);
+    *(pd + 6) = ((_val >> 48) & 0xff);
+    *(pd + 7) = ((_val >> 56) & 0xff);
 #endif
     return _pd + 8;
 }
@@ -99,12 +99,12 @@ inline const char* load(const char* _ps, uint8_t& _val)
 inline const char* load(const char* _ps, uint16_t& _val)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint16_t v = *ps;
+    uint16_t       v  = *ps;
 #ifdef SOLID_ON_BIG_ENDIAN
     v = (v << 8) | *(ps + 1);
 #else
     v |= (static_cast<uint16_t>(*(ps + 1) << 8));
-#endif    
+#endif
     _val = v;
     return _ps + 2;
 }
@@ -112,7 +112,7 @@ inline const char* load(const char* _ps, uint16_t& _val)
 inline const char* load(const char* _ps, uint32_t& _val)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint32_t v = *ps;
+    uint32_t       v  = *ps;
 #ifdef SOLID_ON_BIG_ENDIAN
     v = (v << 8) | *(ps + 1);
     v = (v << 8) | *(ps + 2);
@@ -122,7 +122,7 @@ inline const char* load(const char* _ps, uint32_t& _val)
     v |= (static_cast<uint32_t>(*(ps + 2)) << 16);
     v |= (static_cast<uint32_t>(*(ps + 3)) << 24);
 #endif
-    
+
     _val = v;
     return _ps + 4;
 }
@@ -130,8 +130,8 @@ inline const char* load(const char* _ps, uint32_t& _val)
 inline const char* load(const char* _ps, uint64_t& _val)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint64_t v = *ps;
-    
+    uint64_t       v  = *ps;
+
 #ifdef SOLID_ON_BIG_ENDIAN
     v = (v << 8) | *(ps + 1);
     v = (v << 8) | *(ps + 2);
@@ -149,7 +149,7 @@ inline const char* load(const char* _ps, uint64_t& _val)
     v |= (static_cast<uint64_t>(*(ps + 6)) << 48);
     v |= (static_cast<uint64_t>(*(ps + 7)) << 56);
 #endif
-    
+
     _val = v;
     return _ps + 8;
 }
@@ -198,7 +198,7 @@ char* store_with_check(char* _pd, const size_t _sz, uint16_t _v);
 inline char* store_with_check(char* _pd, const size_t _sz, uint32_t _v)
 {
 #ifdef SOLID_ON_BIG_ENDIAN
-    _v = swap_bites(_v);
+    _v = swap_bytes(_v);
 #endif
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -214,19 +214,19 @@ inline char* store_with_check(char* _pd, const size_t _sz, uint32_t _v)
                 *pd = (_v & 0xff);
                 break;
             case 2:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
                 break;
             case 3:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
-                *(pd + 2)   = ((_v >> 16) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
+                *(pd + 2) = ((_v >> 16) & 0xff);
                 break;
             case 4:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
-                *(pd + 2)   = ((_v >> 16) & 0xff);
-                *(pd + 3)   = ((_v >> 24) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
+                *(pd + 2) = ((_v >> 16) & 0xff);
+                *(pd + 3) = ((_v >> 24) & 0xff);
                 break;
             default:
                 return nullptr;
@@ -241,7 +241,7 @@ inline char* store_with_check(char* _pd, const size_t _sz, uint32_t _v)
 inline char* store_with_check(char* _pd, const size_t _sz, uint64_t _v)
 {
 #ifdef SOLID_ON_BIG_ENDIAN
-    _v = swap_bites(_v);
+    _v = swap_bytes(_v);
 #endif
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
@@ -257,53 +257,53 @@ inline char* store_with_check(char* _pd, const size_t _sz, uint64_t _v)
                 *pd = (_v & 0xff);
                 break;
             case 2:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
                 break;
             case 3:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
-                *(pd + 2)   = ((_v >> 16) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
+                *(pd + 2) = ((_v >> 16) & 0xff);
                 break;
             case 4:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
-                *(pd + 2)   = ((_v >> 16) & 0xff);
-                *(pd + 3)   = ((_v >> 24) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
+                *(pd + 2) = ((_v >> 16) & 0xff);
+                *(pd + 3) = ((_v >> 24) & 0xff);
                 break;
             case 5:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
-                *(pd + 2)   = ((_v >> 16) & 0xff);
-                *(pd + 3)   = ((_v >> 24) & 0xff);
-                *(pd + 4)   = ((_v >> 32) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
+                *(pd + 2) = ((_v >> 16) & 0xff);
+                *(pd + 3) = ((_v >> 24) & 0xff);
+                *(pd + 4) = ((_v >> 32) & 0xff);
                 break;
             case 6:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
-                *(pd + 2)   = ((_v >> 16) & 0xff);
-                *(pd + 3)   = ((_v >> 24) & 0xff);
-                *(pd + 4)   = ((_v >> 32) & 0xff);
-                *(pd + 5)   = ((_v >> 40) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
+                *(pd + 2) = ((_v >> 16) & 0xff);
+                *(pd + 3) = ((_v >> 24) & 0xff);
+                *(pd + 4) = ((_v >> 32) & 0xff);
+                *(pd + 5) = ((_v >> 40) & 0xff);
                 break;
             case 7:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
-                *(pd + 2)   = ((_v >> 16) & 0xff);
-                *(pd + 3)   = ((_v >> 24) & 0xff);
-                *(pd + 4)   = ((_v >> 32) & 0xff);
-                *(pd + 5)   = ((_v >> 40) & 0xff);
-                *(pd + 6)   = ((_v >> 48) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
+                *(pd + 2) = ((_v >> 16) & 0xff);
+                *(pd + 3) = ((_v >> 24) & 0xff);
+                *(pd + 4) = ((_v >> 32) & 0xff);
+                *(pd + 5) = ((_v >> 40) & 0xff);
+                *(pd + 6) = ((_v >> 48) & 0xff);
                 break;
             case 8:
-                *(pd)       = (_v & 0xff);
-                *(pd + 1)   = ((_v >> 8) & 0xff);
-                *(pd + 2)   = ((_v >> 16) & 0xff);
-                *(pd + 3)   = ((_v >> 24) & 0xff);
-                *(pd + 4)   = ((_v >> 32) & 0xff);
-                *(pd + 5)   = ((_v >> 40) & 0xff);
-                *(pd + 6)   = ((_v >> 48) & 0xff);
-                *(pd + 7)   = ((_v >> 56) & 0xff);
+                *(pd)     = (_v & 0xff);
+                *(pd + 1) = ((_v >> 8) & 0xff);
+                *(pd + 2) = ((_v >> 16) & 0xff);
+                *(pd + 3) = ((_v >> 24) & 0xff);
+                *(pd + 4) = ((_v >> 32) & 0xff);
+                *(pd + 5) = ((_v >> 40) & 0xff);
+                *(pd + 6) = ((_v >> 48) & 0xff);
+                *(pd + 7) = ((_v >> 56) & 0xff);
                 break;
             default:
                 return nullptr;
@@ -321,11 +321,11 @@ const char* load_with_check(const char* _ps, const size_t _sz, uint16_t& _val);
 inline const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& _val)
 {
     if (_sz != 0) {
-        const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-        uint8_t        vsz  = *ps;
-        const bool     ok = check_value_with_crc(vsz, vsz);
-        const size_t   sz = vsz;
-        uint32_t       v;
+        const uint8_t* ps  = reinterpret_cast<const uint8_t*>(_ps);
+        uint8_t        vsz = *ps;
+        const bool     ok  = check_value_with_crc(vsz, vsz);
+        const size_t   sz  = vsz;
+        uint32_t       v   = 0;
 
         if (ok && (sz + 1) <= _sz) {
             ++ps;
@@ -356,7 +356,7 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& 
                 return nullptr;
             }
 #ifdef SOLID_ON_BIG_ENDIAN
-            _val = swap_bites(v);
+            _val = swap_bytes(v);
 #else
             _val = v;
 #endif
@@ -369,11 +369,11 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& 
 inline const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& _val)
 {
     if (_sz != 0) {
-        const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-        uint8_t        vsz  = *ps;
-        const bool     ok = check_value_with_crc(vsz, vsz);
-        const size_t   sz = vsz;
-        uint64_t       v;
+        const uint8_t* ps  = reinterpret_cast<const uint8_t*>(_ps);
+        uint8_t        vsz = *ps;
+        const bool     ok  = check_value_with_crc(vsz, vsz);
+        const size_t   sz  = vsz;
+        uint64_t       v   = 0;
 
         if (ok && (sz + 1) <= _sz) {
             ++ps;
@@ -438,7 +438,7 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& 
                 return nullptr;
             }
 #ifdef SOLID_ON_BIG_ENDIAN
-            _val = swap_bites(v);
+            _val = swap_bytes(v);
 #else
             _val = v;
 #endif

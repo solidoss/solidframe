@@ -284,12 +284,12 @@ int test_binary(int argc, char* argv[])
         output_file_path += input_file_path.substr(pos + 1);
         output_file_path += ".copy";
     }
-    
-    if(argc > 2){
+
+    if (argc > 2) {
         choice = argv[2][0];
     }
-    
-    if(argc > 3){
+
+    if (argc > 3) {
         archive_path = argv[3];
     }
 
@@ -309,16 +309,16 @@ int test_binary(int argc, char* argv[])
         Context                     ctx;
         ostringstream               oss;
 
-        if(choice != 'l'){
+        if (choice != 'l') {
             typename TypeMapT::SerializerT ser = tm.createSerializer();
-            ofstream ofs;
-            
-            if(!archive_path.empty()){
+            ofstream                       ofs;
+
+            if (!archive_path.empty()) {
                 ofs.open(archive_path);
             }
-            
-            ostream &ros = ofs ? static_cast<ostream&>(std::ref(ofs)) : static_cast<ostream&>(std::ref(oss));
-            
+
+            ostream& ros = ofs ? static_cast<ostream&>(std::ref(ofs)) : static_cast<ostream&>(std::ref(oss));
+
             ser.run(
                 ros,
                 [&t, &tp, &tup, &sp1, &up1](decltype(ser)& ser, Context& _rctx) {
@@ -326,22 +326,22 @@ int test_binary(int argc, char* argv[])
                 },
                 ctx);
         }
-        
-        if(choice != 's'){
-            
+
+        if (choice != 's') {
+
             solid_dbg(generic_logger, Info, "oss.str.size = " << oss.str().size());
-            
-            ifstream                         ifs;
-            
-            if(!archive_path.empty()){
+
+            ifstream ifs;
+
+            if (!archive_path.empty()) {
                 ifs.open(archive_path);
             }
-            
+
             istringstream                    iss(oss.str());
             typename TypeMapT::DeserializerT des = tm.createDeserializer();
-            
-            istream                          &ris = ifs ? static_cast<istream&>(std::ref(ifs)) : static_cast<istream&>(std::ref(iss));
-            
+
+            istream& ris = ifs ? static_cast<istream&>(std::ref(ifs)) : static_cast<istream&>(std::ref(iss));
+
             Test                  t_c;
             std::shared_ptr<Test> tp_c;
             std::unique_ptr<Test> tup_c;
