@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "solid/system/convertors.hpp"
 #include "solid/serialization/v2/binarybase.hpp"
 #include "solid/serialization/v2/binarybasic.hpp"
 #include "solid/serialization/v2/typemapbase.hpp"
@@ -1018,7 +1019,11 @@ private:
             pcrt_ += toread;
 
             if (_rr.size_ == 0) {
+#ifdef SOLID_ON_BIG_ENDIAN
+                const uint64_t v  = swap_bites(data_.u64_);
+#else
                 const uint64_t v  = data_.u64_;
+#endif
                 const T        vt = static_cast<T>(v);
                 solid_dbg(logger, Info, "vt = " << vt);
 

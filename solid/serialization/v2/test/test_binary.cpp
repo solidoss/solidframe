@@ -253,10 +253,12 @@ public:
 
 int test_binary(int argc, char* argv[])
 {
-    solid::log_start(std::cerr, {".*:EW"});
+    solid::log_start(std::cerr, {".*:VIEW"});
 
     std::string input_file_path;
     std::string output_file_path;
+    char        choice = 'v';
+    std::string archive_path;
     {
         std::ifstream ifs;
         Any<>         a{std::move(ifs)};
@@ -282,6 +284,14 @@ int test_binary(int argc, char* argv[])
         output_file_path += input_file_path.substr(pos + 1);
         output_file_path += ".copy";
     }
+    
+    if(argc > 2){
+        choice = argv[2][0];
+    }
+    
+    if(argc > 3){
+        archive_path = argv[3];
+    }
 
     using TypeMapT = serialization::TypeMap<uint8_t, Context, serialization::binary::Serializer, serialization::binary::Deserializer, uint64_t>;
 
@@ -299,21 +309,39 @@ int test_binary(int argc, char* argv[])
         Context                     ctx;
         ostringstream               oss;
 
-        {
+        if(choice != 'l'){
             typename TypeMapT::SerializerT ser = tm.createSerializer();
-
+            ofstream ofs;
+            
+            if(!archive_path.empty()){
+                ofs.open(archive_path);
+            }
+            
+            ostream &ros = ofs ? static_cast<ostream&>(std::ref(ofs)) : static_cast<ostream&>(std::ref(oss));
+            
             ser.run(
-                oss,
+                ros,
                 [&t, &tp, &tup, &sp1, &up1](decltype(ser)& ser, Context& _rctx) {
                     ser.add(t, _rctx, "t").add(tp, _rctx, "tp").add(tup, _rctx, "tup").add(sp1, _rctx, "sp1").add(up1, _rctx, "up1");
                 },
                 ctx);
         }
-        {
+        
+        if(choice != 's'){
+            
             solid_dbg(generic_logger, Info, "oss.str.size = " << oss.str().size());
+            
+            ifstream                         ifs;
+            
+            if(!archive_path.empty()){
+                ifs.open(archive_path);
+            }
+            
             istringstream                    iss(oss.str());
             typename TypeMapT::DeserializerT des = tm.createDeserializer();
-
+            
+            istream                          &ris = ifs ? static_cast<istream&>(std::ref(ifs)) : static_cast<istream&>(std::ref(iss));
+            
             Test                  t_c;
             std::shared_ptr<Test> tp_c;
             std::unique_ptr<Test> tup_c;
@@ -322,7 +350,7 @@ int test_binary(int argc, char* argv[])
 
             ctx.output_file_path = output_file_path;
 
-            des.run(iss,
+            des.run(ris,
                 [&t_c, &tp_c, &tup_c, &sp1_c, &up1_c](decltype(des)& des, Context& ctx) {
                     des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c").add(sp1_c, ctx, "sp1").add(up1_c, ctx, "up1");
                 },

@@ -99,17 +99,51 @@ constexpr inline size_t bits_to_count(const size_t v)
 
 constexpr inline uint16_t swap_bytes(const uint16_t _v)
 {
+#ifdef SOLID_ON_WINDOWS
+    return _byteswap_ushort(_v);
+#else
     return ((((_v) >> 8) & 0xff) | (((_v)&0xff) << 8));
+#endif
 }
 
 constexpr inline uint32_t swap_bytes(const uint32_t _v)
 {
-    return ((((_v)&0xff000000) >> 24) | (((_v)&0x00ff0000) >> 8) | (((_v)&0x0000ff00) << 8) | (((_v)&0x000000ff) << 24));
+#ifdef SOLID_ON_WINDOWS
+    return _byteswap_ulong(_v);
+#elif defined(SOLID_USE_GCC_BSWAP)
+    return __builtin_bswap32(_v);
+#else
+    // clang-format off
+    return (
+        (((_v)&0xff000000) >> 24) |
+        (((_v)&0x00ff0000) >> 8)  |
+        (((_v)&0x0000ff00) << 8)  |
+        (((_v)&0x000000ff) << 24)
+    );
+    // clang-format on
+#endif
 }
 
 constexpr inline uint64_t swap_bytes(const uint64_t _v)
 {
-    return ((((_v)&0xff00000000000000ull) >> 56) | (((_v)&0x00ff000000000000ull) >> 40) | (((_v)&0x0000ff0000000000ull) >> 24) | (((_v)&0x000000ff00000000ull) >> 8) | (((_v)&0x00000000ff000000ull) << 8) | (((_v)&0x0000000000ff0000ull) << 24) | (((_v)&0x000000000000ff00ull) << 40) | (((_v)&0x00000000000000ffull) << 56));
+#ifdef SOLID_ON_WINDOWS
+    return _byteswap_uint64(_v);
+#elif defined(SOLID_USE_GCC_BSWAP)
+    return __builtin_bswap64(_v);
+#else
+    // clang-format off
+    return (
+        (((_v)&0xff00000000000000ull) >> 56) |
+        (((_v)&0x00ff000000000000ull) >> 40) |
+        (((_v)&0x0000ff0000000000ull) >> 24) |
+        (((_v)&0x000000ff00000000ull) >> 8)  |
+        (((_v)&0x00000000ff000000ull) << 8)  |
+        (((_v)&0x0000000000ff0000ull) << 24) |
+        (((_v)&0x000000000000ff00ull) << 40) |
+        (((_v)&0x00000000000000ffull) << 56)
+    );
+    // clang-format on
+#endif
 }
 
 } //namespace solid
