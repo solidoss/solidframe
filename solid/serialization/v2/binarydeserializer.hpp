@@ -1020,7 +1020,7 @@ private:
 
             if (_rr.size_ == 0) {
 #ifdef SOLID_ON_BIG_ENDIAN
-                const uint64_t v = swap_bites(data_.u64_);
+                const uint64_t v = swap_bytes(data_.u64_);
 #else
                 const uint64_t v = data_.u64_;
 #endif
