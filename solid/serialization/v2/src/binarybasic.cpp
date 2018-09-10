@@ -37,7 +37,7 @@ char* store_with_check(char* _pd, const size_t _sz, uint8_t _v)
 char* store_with_check(char* _pd, const size_t _sz, uint16_t _v)
 {
 #ifdef SOLID_ON_BIG_ENDIAN
-    _v = swap_bites(_v);
+    _v = swap_bytes(_v);
 #endif
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
