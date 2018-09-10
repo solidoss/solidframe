@@ -800,7 +800,7 @@ private:
 #if 1
         if (pcrt_ != pend_) {
 #ifdef SOLID_ON_BIG_ENDIAN
-            _rr.data_ = swap_bites(_rr.data_);
+            _rr.data_ = swap_bytes(_rr.data_);
 #endif
             const size_t sz = max_padded_byte_cout(_rr.data_);
             *pcrt_          = static_cast<char>(sz);
