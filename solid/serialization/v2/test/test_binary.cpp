@@ -79,10 +79,17 @@ class Test {
         b = _b;
         a.a = 540554784UL;
         a.b = 2321664020290347053ULL;
-        serialization::binary::store32(blob32, a.a);
-        serialization::binary::store64(blob32, a.b);
+        serialization::binary::store(blob32, static_cast<uint32_t>(a.a));
+        {
+            uint32_t v;
+            solid::serialization::binary::load(blob32, v);
+            solid_assert(v == static_cast<uint32_t>(a.a));
+        }
+        
+        serialization::binary::store(blob64, a.b);
         blob32_sz = sizeof(uint32_t);
         blob64_sz = sizeof(uint64_t);
+        
         if (_b) {
             for (size_t i = 0; i < 100; ++i) {
                 v.emplace_back();

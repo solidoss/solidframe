@@ -21,11 +21,73 @@ namespace serialization {
 namespace v2 {
 namespace binary {
 
-inline char* store8(char* _pd, const uint8_t _val)
+namespace impl{
+inline char* store(char* _pd, const uint8_t _val, TypeToType<uint8_t> _ff)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
     *pd         = _val;
     return _pd + 1;
+}
+
+union Convert16{
+    uint16_t value_;
+    uint8_t  bytes_[sizeof(uint16_t)];
+};
+
+inline char* store(char* _pd, const uint16_t _val, TypeToType<uint16_t> _ff)
+{
+    uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
+    Convert16 c;
+    c.value_ = _val;
+    *(pd + 0) = c.bytes_[0];
+    *(pd + 1) = c.bytes_[1];
+    return _pd + 2;
+}
+
+union Convert32{
+    uint32_t value_;
+    uint8_t  bytes_[sizeof(uint32_t)];
+};
+
+inline char* store(char* _pd, const uint32_t _val, TypeToType<uint32_t> _ff)
+{
+    uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
+    Convert32 c;
+    c.value_ = _val;
+    *(pd + 0) = c.bytes_[0];
+    *(pd + 1) = c.bytes_[1];
+    *(pd + 2) = c.bytes_[2];
+    *(pd + 3) = c.bytes_[3];
+    return _pd + 4;
+}
+
+union Convert64{
+    uint64_t value_;
+    uint8_t  bytes_[sizeof(uint64_t)];
+};
+
+inline char* store(char* _pd, const uint64_t _val, TypeToType<uint64_t> _ff)
+{
+    uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
+    Convert64 c;
+    c.value_ = _val;
+    *(pd + 0) = c.bytes_[0];
+    *(pd + 1) = c.bytes_[1];
+    *(pd + 2) = c.bytes_[2];
+    *(pd + 3) = c.bytes_[3];
+    *(pd + 4) = c.bytes_[4];
+    *(pd + 5) = c.bytes_[5];
+    *(pd + 6) = c.bytes_[6];
+    *(pd + 7) = c.bytes_[7];
+    return _pd + 8;
+}
+
+}//namespace impl
+
+
+template <typename T>
+inline char* store(char *_pd, const T _v){
+    return impl::store(_pd, _v, TypeToType<T>());
 }
 
 inline const char* load(const char* _ps, uint8_t& _val)
@@ -36,90 +98,26 @@ inline const char* load(const char* _ps, uint8_t& _val)
 }
 
 
-inline char* store16(char* _pd, const uint16_t _val)
-{
-    uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
-#ifdef SOLID_ON_BIG_ENDIAN
-    *(pd + 0) = ((_val >> 8) & 0xff);
-    *(pd + 1) = (_val & 0xff);
-#else
-    *(pd + 0) = (_val & 0xFFU);
-    *(pd + 1) = ((_val >> 8) & 0xFFU);
-#endif
-    return _pd + 2;
-}
-
 inline const char* load(const char* _ps, uint16_t& _val)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint16_t       v  = *ps;
-#ifdef SOLID_ON_BIG_ENDIAN
-    v = (v << 8) | *(ps + 1);
-#else
-    v |= (static_cast<uint16_t>(*(ps + 1) << 8));
-#endif
-    _val = v;
+    impl::Convert16 c;
+    c.bytes_[0] = *(ps + 0);
+    c.bytes_[1] = *(ps + 1);
+    _val = c.value_;
     return _ps + 2;
-}
-
-inline char* store32(char* _pd, const uint32_t _val)
-{
-    uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
-#ifdef SOLID_ON_BIG_ENDIAN
-    *(pd + 0) = ((_val >> 24) & 0xff);
-    *(pd + 1) = ((_val >> 16) & 0xff);
-    *(pd + 2) = ((_val >> 8) & 0xff);
-    *(pd + 3) = (_val & 0xff);
-#else
-    *(pd + 0) = (_val & 0xFFU);
-    *(pd + 1) = ((_val >> 8) & 0xFFU);
-    *(pd + 2) = ((_val >> 16) & 0xFFU);
-    *(pd + 3) = ((_val >> 24) & 0xFFU);
-#endif
-    return _pd + 4;
 }
 
 inline const char* load(const char* _ps, uint32_t& _val)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint32_t       v  = *ps;
-#ifdef SOLID_ON_BIG_ENDIAN
-    v = (v << 8) | *(ps + 1);
-    v = (v << 8) | *(ps + 2);
-    v = (v << 8) | *(ps + 3);
-#else
-    v |= (static_cast<uint32_t>(*(ps + 1)) << 8);
-    v |= (static_cast<uint32_t>(*(ps + 2)) << 16);
-    v |= (static_cast<uint32_t>(*(ps + 3)) << 24);
-#endif
-
-    _val = v;
+    impl::Convert32 c;
+    c.bytes_[0] = *(ps + 0);
+    c.bytes_[1] = *(ps + 1);
+    c.bytes_[2] = *(ps + 2);
+    c.bytes_[3] = *(ps + 3);
+    _val = c.value_;
     return _ps + 4;
-}
-
-inline char* store64(char* _pd, const uint64_t _val)
-{
-    uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
-#ifdef SOLID_ON_BIG_ENDIAN
-    *(pd + 0) = ((_val >> 56) & 0xff);
-    *(pd + 1) = ((_val >> 48) & 0xff);
-    *(pd + 2) = ((_val >> 40) & 0xff);
-    *(pd + 3) = ((_val >> 32) & 0xff);
-    *(pd + 4) = ((_val >> 24) & 0xff);
-    *(pd + 5) = ((_val >> 16) & 0xff);
-    *(pd + 6) = ((_val >> 8) & 0xff);
-    *(pd + 7) = (_val & 0xff);
-#else
-    *(pd + 0) = (_val & 0xff);
-    *(pd + 1) = ((_val >> 8) & 0xff);
-    *(pd + 2) = ((_val >> 16) & 0xff);
-    *(pd + 3) = ((_val >> 24) & 0xff);
-    *(pd + 4) = ((_val >> 32) & 0xff);
-    *(pd + 5) = ((_val >> 40) & 0xff);
-    *(pd + 6) = ((_val >> 48) & 0xff);
-    *(pd + 7) = ((_val >> 56) & 0xff);
-#endif
-    return _pd + 8;
 }
 
 template <size_t S>
@@ -132,27 +130,16 @@ inline char* store(char* _pd, const std::array<uint8_t, S> _val)
 inline const char* load(const char* _ps, uint64_t& _val)
 {
     const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint64_t       v  = *ps;
-
-#ifdef SOLID_ON_BIG_ENDIAN
-    v = (v << 8) | *(ps + 1);
-    v = (v << 8) | *(ps + 2);
-    v = (v << 8) | *(ps + 3);
-    v = (v << 8) | *(ps + 4);
-    v = (v << 8) | *(ps + 5);
-    v = (v << 8) | *(ps + 6);
-    v = (v << 8) | *(ps + 7);
-#else
-    v |= (static_cast<uint64_t>(*(ps + 1)) << 8);
-    v |= (static_cast<uint64_t>(*(ps + 2)) << 16);
-    v |= (static_cast<uint64_t>(*(ps + 3)) << 24);
-    v |= (static_cast<uint64_t>(*(ps + 4)) << 32);
-    v |= (static_cast<uint64_t>(*(ps + 5)) << 40);
-    v |= (static_cast<uint64_t>(*(ps + 6)) << 48);
-    v |= (static_cast<uint64_t>(*(ps + 7)) << 56);
-#endif
-
-    _val = v;
+    impl::Convert64 c;
+    c.bytes_[0] = *(ps + 0);
+    c.bytes_[1] = *(ps + 1);
+    c.bytes_[2] = *(ps + 2);
+    c.bytes_[3] = *(ps + 3);
+    c.bytes_[4] = *(ps + 4);
+    c.bytes_[5] = *(ps + 5);
+    c.bytes_[6] = *(ps + 6);
+    c.bytes_[7] = *(ps + 7);
+    _val = c.value_;
     return _ps + 8;
 }
 template <size_t S>
