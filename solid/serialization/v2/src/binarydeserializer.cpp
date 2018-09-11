@@ -42,12 +42,12 @@ std::istream& DeserializerBase::run(std::istream& _ris, void* _pctx)
 {
     const size_t buf_cap = 8 * 1024;
     char         buf[buf_cap];
-
+    std::streamsize   readsz;
     clear();
 
     do {
-        _ris.read(buf, buf_cap);
-    } while (_ris.gcount() && (_ris.gcount() == run(buf, static_cast<unsigned>(_ris.gcount()))));
+        readsz = _ris.readsome(buf, buf_cap);
+    } while (readsz && (readsz == run(buf, static_cast<unsigned>(readsz))));
 
     return _ris;
 }

@@ -366,6 +366,78 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& 
     return nullptr;
 }
 
+inline const char* load_without_check(const char* _ps, const size_t _sz, uint64_t& _val){
+    const uint8_t* ps  = reinterpret_cast<const uint8_t*>(_ps);
+    const size_t   sz  = _sz;
+    uint64_t       v   = 0;
+
+    switch (sz) {
+    case 0:
+        v = 0;
+        break;
+    case 1:
+        v = *ps;
+        break;
+    case 2:
+        v = *ps;
+        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
+        break;
+    case 3:
+        v = *ps;
+        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
+        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
+        break;
+    case 4:
+        v = *ps;
+        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
+        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
+        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
+        break;
+    case 5:
+        v = *ps;
+        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
+        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
+        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
+        v |= static_cast<uint64_t>(*(ps + 4)) << 32;
+        break;
+    case 6:
+        v = *ps;
+        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
+        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
+        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
+        v |= static_cast<uint64_t>(*(ps + 4)) << 32;
+        v |= static_cast<uint64_t>(*(ps + 5)) << 40;
+        break;
+    case 7:
+        v = *ps;
+        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
+        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
+        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
+        v |= static_cast<uint64_t>(*(ps + 4)) << 32;
+        v |= static_cast<uint64_t>(*(ps + 5)) << 40;
+        v |= static_cast<uint64_t>(*(ps + 6)) << 48;
+        break;
+    case 8:
+        v = *ps;
+        v |= static_cast<uint64_t>(*(ps + 1)) << 8;
+        v |= static_cast<uint64_t>(*(ps + 2)) << 16;
+        v |= static_cast<uint64_t>(*(ps + 3)) << 24;
+        v |= static_cast<uint64_t>(*(ps + 4)) << 32;
+        v |= static_cast<uint64_t>(*(ps + 5)) << 40;
+        v |= static_cast<uint64_t>(*(ps + 6)) << 48;
+        v |= static_cast<uint64_t>(*(ps + 7)) << 56;
+        break;
+    default:
+        return nullptr;
+    }
+#ifdef SOLID_ON_BIG_ENDIAN
+    _val = swap_bytes(v);
+#else
+    _val = v;
+#endif
+    return _ps + sz;
+}
+
 inline const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& _val)
 {
     if (_sz != 0) {
@@ -373,76 +445,9 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& 
         uint8_t        vsz = *ps;
         const bool     ok  = check_value_with_crc(vsz, vsz);
         const size_t   sz  = vsz;
-        uint64_t       v   = 0;
-
+        
         if (ok && (sz + 1) <= _sz) {
-            ++ps;
-
-            switch (sz) {
-            case 0:
-                v = 0;
-                break;
-            case 1:
-                v = *ps;
-                break;
-            case 2:
-                v = *ps;
-                v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-                break;
-            case 3:
-                v = *ps;
-                v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-                v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-                break;
-            case 4:
-                v = *ps;
-                v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-                v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-                v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-                break;
-            case 5:
-                v = *ps;
-                v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-                v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-                v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-                v |= static_cast<uint64_t>(*(ps + 4)) << 32;
-                break;
-            case 6:
-                v = *ps;
-                v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-                v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-                v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-                v |= static_cast<uint64_t>(*(ps + 4)) << 32;
-                v |= static_cast<uint64_t>(*(ps + 5)) << 40;
-                break;
-            case 7:
-                v = *ps;
-                v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-                v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-                v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-                v |= static_cast<uint64_t>(*(ps + 4)) << 32;
-                v |= static_cast<uint64_t>(*(ps + 5)) << 40;
-                v |= static_cast<uint64_t>(*(ps + 6)) << 48;
-                break;
-            case 8:
-                v = *ps;
-                v |= static_cast<uint64_t>(*(ps + 1)) << 8;
-                v |= static_cast<uint64_t>(*(ps + 2)) << 16;
-                v |= static_cast<uint64_t>(*(ps + 3)) << 24;
-                v |= static_cast<uint64_t>(*(ps + 4)) << 32;
-                v |= static_cast<uint64_t>(*(ps + 5)) << 40;
-                v |= static_cast<uint64_t>(*(ps + 6)) << 48;
-                v |= static_cast<uint64_t>(*(ps + 7)) << 56;
-                break;
-            default:
-                return nullptr;
-            }
-#ifdef SOLID_ON_BIG_ENDIAN
-            _val = swap_bytes(v);
-#else
-            _val = v;
-#endif
-            return _ps + static_cast<size_t>(vsz) + 1;
+            return load_without_check(_ps + 1, sz, _val);
         }
     }
     return nullptr;

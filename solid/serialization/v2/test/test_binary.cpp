@@ -170,7 +170,6 @@ public:
     template <class S>
     void solidSerializeV2(S& _rs, Context& _rctx, const char* _name) const
     {
-
         _rs
             .add(b, _rctx, "b")
             .add(
@@ -182,13 +181,15 @@ public:
                     }
                 },
                 _rctx, "f");
-
-        std::ifstream ifs;
-        ifs.open(p);
+        
+        using IFStreamPtrT = std::unique_ptr<std::ifstream>;
+        
+        IFStreamPtrT pifs(new ifstream);
+        pifs->open(p);
         _rs
             .push(
-                [ifs = std::move(ifs)](S& _rs, Context& _rctx, const char* _name) mutable {
-                    _rs.add(ifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
+                [pifs = std::move(pifs)](S& _rs, Context& _rctx, const char* _name) mutable {
+                    _rs.add(*pifs, [](std::istream& _ris, uint64_t _len, const bool _done, Context& _rctx, const char* _name) {
                         solid_dbg(generic_logger, Info, "Progress(" << _name << "): " << _len << " done = " << _done);
                     },
                         _rctx, _name);
@@ -259,16 +260,17 @@ int test_binary(int argc, char* argv[])
     std::string output_file_path;
     char        choice = 'v';
     std::string archive_path;
+
     {
-        std::ifstream ifs;
-        Any<>         a{std::move(ifs)};
-        a.cast<ifstream>()->open("test.txt");
+        using IFStreamPtrT = std::unique_ptr<std::ifstream>;
+        IFStreamPtrT pifs(new ifstream);
+        Any<>         a{std::move(pifs)};
+        (*a.cast<IFStreamPtrT>())->open("test.txt");
     }
 
     {
-        std::ifstream ifs;
-        auto          lambda = [ifs = std::move(ifs)]() mutable {
-            ifs.open("test.txt");
+        auto          lambda = [pifs = std::unique_ptr<std::ifstream>(new ifstream)]() mutable {
+            pifs->open("test.txt");
         };
         Function<128, void()> f{std::move(lambda)};
         f();
@@ -317,7 +319,7 @@ int test_binary(int argc, char* argv[])
                 ofs.open(archive_path);
             }
 
-            ostream& ros = ofs ? static_cast<ostream&>(std::ref(ofs)) : static_cast<ostream&>(std::ref(oss));
+            ostream& ros = ofs.is_open() ? static_cast<ostream&>(std::ref(ofs)) : static_cast<ostream&>(std::ref(oss));
 
             ser.run(
                 ros,
@@ -340,7 +342,7 @@ int test_binary(int argc, char* argv[])
             istringstream                    iss(oss.str());
             typename TypeMapT::DeserializerT des = tm.createDeserializer();
 
-            istream& ris = ifs ? static_cast<istream&>(std::ref(ifs)) : static_cast<istream&>(std::ref(iss));
+            istream& ris = ifs.is_open() ? static_cast<istream&>(std::ref(ifs)) : static_cast<istream&>(std::ref(iss));
 
             Test                  t_c;
             std::shared_ptr<Test> tp_c;
@@ -355,7 +357,7 @@ int test_binary(int argc, char* argv[])
                     des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c").add(sp1_c, ctx, "sp1").add(up1_c, ctx, "up1");
                 },
                 ctx);
-
+            
             //iss >> des.wrap(ctx);
             solid_check(!des.error(), "check failed: " << des.error().message());
             solid_check(t == t_c, "check failed");

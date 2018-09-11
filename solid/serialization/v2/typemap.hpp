@@ -105,7 +105,8 @@ public:
         solid_check(type_id_map_.find(_rtid) == type_id_map_.end(), "type_id already used");
         type_id_map_[_rtid] = type_vec_.size();
         type_vec_.emplace_back(_rtid);
-
+        
+        using PointerFunctionT = TypeMapBase::PointerFunctionT;
         type_vec_.back().plain_factory_fnc_ = [](const CastFunctionT& _cast_fnc, const PointerFunctionT& _ptr_fnc) {
             _ptr_fnc(nullptr);
             return nullptr;
@@ -143,7 +144,8 @@ public:
         type_map_[std::type_index(typeid(T))] = type_vec_.size();
 
         type_vec_.emplace_back(_rtid);
-
+        
+        using PointerFunctionT = TypeMapBase::PointerFunctionT;
         type_vec_.back().plain_factory_fnc_ = [](const CastFunctionT& _cast_fnc, const PointerFunctionT& _ptr_fnc) {
             T*    ptr   = new T;
             void* pdest = nullptr;
@@ -189,6 +191,7 @@ public:
 
         //TODO: For now we cannot use Allocator with naked pointer as the pointer will be aquired by an unique_ptr
         //so we leave the default allocator
+        using PointerFunctionT = TypeMapBase::PointerFunctionT;
         type_vec_.back().plain_factory_fnc_ = [](const CastFunctionT& _cast_fnc, const PointerFunctionT& _ptr_fnc) {
             T*    ptr   = new T;
             void* pdest = nullptr;
@@ -231,7 +234,8 @@ public:
         type_map_[std::type_index(typeid(T))] = type_vec_.size();
 
         type_vec_.emplace_back(_rtid, std::forward<D>(_d));
-
+        
+        using PointerFunctionT = TypeMapBase::PointerFunctionT;
         type_vec_.back().plain_factory_fnc_ = [](const CastFunctionT& _cast_fnc, const PointerFunctionT& _ptr_fnc) {
             T*    ptr   = new T;
             void* pdest = nullptr;
@@ -277,6 +281,7 @@ public:
 
         //TODO: For now we cannot use Allocator with naked pointer as the pointer will be aquired by an unique_ptr
         //so we leave the default allocator
+        using PointerFunctionT = TypeMapBase::PointerFunctionT;
         type_vec_.back().plain_factory_fnc_ = [](const CastFunctionT& _cast_fnc, const PointerFunctionT& _ptr_fnc) {
             T*    ptr   = new T;
             void* pdest = nullptr;

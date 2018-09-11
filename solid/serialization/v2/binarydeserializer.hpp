@@ -672,7 +672,6 @@ private:
 
                 if (p) {
                     _rd.pcrt_ = p;
-
                     T vt = static_cast<T>(v);
 
                     if (static_cast<uint64_t>(vt) == v) {
@@ -690,9 +689,12 @@ private:
                         _rd.baseError(error_cross_integer);
                         return ReturnE::Done;
                     }
-
+                    
+                    ++_rd.pcrt_;//skip the size char
+                    --_rr.size_;
+                    
                     size_t toread = _rd.pend_ - _rd.pcrt_;
-                    solid_check(toread < _rr.size_, "Should not happen");
+                    solid_check(toread <= _rr.size_, "Should not happen");
                     memcpy(_rd.data_.buf_ + _rr.data_, _rd.pcrt_, toread);
                     _rd.pcrt_ += toread;
                     _rr.size_ -= toread;
@@ -931,10 +933,10 @@ private:
             _rd.baseError(error_limit_blob);
             return ReturnE::Done;
         }
-
+        
         _rr.call_ = load_binary;
         _rr.size_ = _rd.data_.u64_;
-
+        
         return _rd.doLoadBinary(_rr);
     }
 
@@ -986,8 +988,7 @@ private:
 
         if (r == ReturnE::Done && data_.u64_ != 0) {
             _rr.size_ = data_.u64_;
-            solid_dbg(logger, Info, "size = " << _rr.size_);
-
+            
             if (Base::limits().hasString() && _rr.size_ > Base::limits().string()) {
                 baseError(error_limit_string);
                 return ReturnE::Done;
@@ -1069,7 +1070,7 @@ private:
 
 protected:
     enum {
-        BufferCapacityE = sizeof(uint64_t) * 1
+        BufferCapacityE = (sizeof(uint64_t) * 1)
     };
     const TypeMapBase& rtype_map_;
     union {
@@ -1342,19 +1343,19 @@ public:
     {
         const size_t buf_cap = 8 * 1024;
         char         buf[buf_cap];
-
+        
         clear();
-        _ris.read(buf, buf_cap);
-
-        if (_ris.gcount()) {
-            doPrepareRun(buf, static_cast<size_t>(_ris.gcount()));
+        std::streamsize readsz = _ris.readsome(buf, buf_cap);
+        
+        if (readsz) {
+            doPrepareRun(buf, static_cast<size_t>(readsz));
 
             _f(*this, _rctx);
 
-            if (_ris.gcount() == doRun(&_rctx)) {
+            if (readsz == doRun(&_rctx)) {
                 do {
-                    _ris.read(buf, buf_cap);
-                } while (_ris.gcount() && (_ris.gcount() == DeserializerBase::run(buf, static_cast<unsigned>(_ris.gcount()), &_rctx)));
+                    readsz = _ris.readsome(buf, buf_cap);
+                } while (readsz && (readsz == DeserializerBase::run(buf, static_cast<unsigned>(readsz), &_rctx)));
             }
         }
 
