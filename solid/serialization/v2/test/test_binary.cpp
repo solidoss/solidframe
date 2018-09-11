@@ -66,6 +66,10 @@ class Test {
     uint16_t                 a2_sz;
     uint32_t                 blob_sz;
     char                     blob[BlobCapacity];
+    uint32_t                 blob32_sz;
+    char                     blob32[sizeof(uint32_t)];
+    uint32_t                 blob64_sz;
+    char                     blob64[sizeof(uint64_t)];
 
     std::ostringstream oss;
 
@@ -73,6 +77,12 @@ class Test {
     {
         string blb;
         b = _b;
+        a.a = 540554784UL;
+        a.b = 2321664020290347053ULL;
+        serialization::binary::store32(blob32, a.a);
+        serialization::binary::store64(blob32, a.b);
+        blob32_sz = sizeof(uint32_t);
+        blob64_sz = sizeof(uint64_t);
         if (_b) {
             for (size_t i = 0; i < 100; ++i) {
                 v.emplace_back();
@@ -164,6 +174,17 @@ public:
         }
         solid_assert(blob_sz == _rt.blob_sz);
         solid_assert(memcmp(blob, _rt.blob, blob_sz) == 0);
+        {
+            uint32_t v;
+            solid::serialization::binary::load(blob32, v);
+            solid_assert(v == static_cast<uint32_t>(a.a));
+        }
+        {
+            uint64_t v;
+            solid::serialization::binary::load(blob64, v);
+            solid_assert(v == a.b);
+        }
+        
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs && vc == _rt.vc;
     }
 
@@ -207,6 +228,8 @@ public:
         _rs.add(a1, _rctx, "a1");
         _rs.add(a2, a2_sz, _rctx, "a2");
         _rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
+        _rs.add(blob32, blob32_sz, sizeof(uint32_t), _rctx, "blob32");
+        _rs.add(blob64, blob64_sz, sizeof(uint64_t), _rctx, "blob64");
         //_rs.add(b, "b").add(v, "v").add(a, "a");
     }
 
@@ -248,6 +271,8 @@ public:
         _rs.add(a1, _rctx, "a1");
         _rs.add(a2, a2_sz, _rctx, "a2");
         _rs.add(blob, blob_sz, BlobCapacity, _rctx, "blob");
+        _rs.add(blob32, blob32_sz, sizeof(uint32_t), _rctx, "blob32");
+        _rs.add(blob64, blob64_sz, sizeof(uint64_t), _rctx, "blob64");
         //_rs.add(b, _rctx, "b").add(v, _rctx, "v").add(a, _rctx, "a");
     }
 };

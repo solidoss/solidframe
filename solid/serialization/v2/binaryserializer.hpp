@@ -799,16 +799,17 @@ private:
     {
 #if 1
         if (pcrt_ != pend_) {
-#ifdef SOLID_ON_BIG_ENDIAN
-            _rr.data_ = swap_bytes(_rr.data_);
-#endif
             const size_t sz = max_padded_byte_cout(_rr.data_);
             *pcrt_          = static_cast<char>(sz);
-            solid_dbg(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_);
+            solid_dbg(logger, Info, "sz = " << sz << " c = " << (int)*pcrt_<<" data = "<<_rr.data_)
             ++pcrt_;
             _rr.size_  = sz;
             _rr.call_  = store_binary;
+#ifdef SOLID_ON_BIG_ENDIAN
+            data_.u64_ = swap_bytes(_rr.data_);
+#else
             data_.u64_ = _rr.data_;
+#endif
             _rr.ptr_   = data_.buf_;
             return doStoreBinary(_rr);
         }

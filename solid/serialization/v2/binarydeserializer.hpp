@@ -714,7 +714,7 @@ private:
                 if (_rr.size_ == 0) {
                     uint64_t    v;
                     T           vt;
-                    const char* p = cross::load_with_check(_rd.data_.buf_, static_cast<size_t>(_rr.data_), v);
+                    const char* p = cross::load_without_check(_rd.data_.buf_, static_cast<size_t>(_rr.data_), v);
                     if (p == nullptr) {
                         _rd.baseError(error_cross_integer);
                         return ReturnE::Done;

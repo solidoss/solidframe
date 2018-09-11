@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "solid/system/cassert.hpp"
 #include "solid/system/convertors.hpp"
 #include "solid/utility/algorithm.hpp"
 #include <array>
@@ -20,44 +21,83 @@ namespace serialization {
 namespace v2 {
 namespace binary {
 
-inline char* store(char* _pd, const uint8_t _val)
+inline char* store8(char* _pd, const uint8_t _val)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
     *pd         = _val;
     return _pd + 1;
 }
 
-inline char* store(char* _pd, const uint16_t _val)
+inline const char* load(const char* _ps, uint8_t& _val)
+{
+    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
+    _val              = *ps;
+    return _ps + 1;
+}
+
+
+inline char* store16(char* _pd, const uint16_t _val)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
 #ifdef SOLID_ON_BIG_ENDIAN
-    *(pd)     = ((_val >> 8) & 0xff);
+    *(pd + 0) = ((_val >> 8) & 0xff);
     *(pd + 1) = (_val & 0xff);
 #else
-    *(pd)     = (_val & 0xff);
-    *(pd + 1) = ((_val >> 8) & 0xff);
+    *(pd + 0) = (_val & 0xFFU);
+    *(pd + 1) = ((_val >> 8) & 0xFFU);
 #endif
     return _pd + 2;
 }
 
-inline char* store(char* _pd, const uint32_t _val)
+inline const char* load(const char* _ps, uint16_t& _val)
+{
+    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
+    uint16_t       v  = *ps;
+#ifdef SOLID_ON_BIG_ENDIAN
+    v = (v << 8) | *(ps + 1);
+#else
+    v |= (static_cast<uint16_t>(*(ps + 1) << 8));
+#endif
+    _val = v;
+    return _ps + 2;
+}
+
+inline char* store32(char* _pd, const uint32_t _val)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
 #ifdef SOLID_ON_BIG_ENDIAN
-    *(pd)     = ((_val >> 24) & 0xff);
+    *(pd + 0) = ((_val >> 24) & 0xff);
     *(pd + 1) = ((_val >> 16) & 0xff);
     *(pd + 2) = ((_val >> 8) & 0xff);
     *(pd + 3) = (_val & 0xff);
 #else
-    *(pd)     = (_val & 0xff);
-    *(pd + 1) = ((_val >> 8) & 0xff);
-    *(pd + 2) = ((_val >> 16) & 0xff);
-    *(pd + 3) = ((_val >> 24) & 0xff);
+    *(pd + 0) = (_val & 0xFFU);
+    *(pd + 1) = ((_val >> 8) & 0xFFU);
+    *(pd + 2) = ((_val >> 16) & 0xFFU);
+    *(pd + 3) = ((_val >> 24) & 0xFFU);
 #endif
     return _pd + 4;
 }
 
-inline char* store(char* _pd, const uint64_t _val)
+inline const char* load(const char* _ps, uint32_t& _val)
+{
+    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
+    uint32_t       v  = *ps;
+#ifdef SOLID_ON_BIG_ENDIAN
+    v = (v << 8) | *(ps + 1);
+    v = (v << 8) | *(ps + 2);
+    v = (v << 8) | *(ps + 3);
+#else
+    v |= (static_cast<uint32_t>(*(ps + 1)) << 8);
+    v |= (static_cast<uint32_t>(*(ps + 2)) << 16);
+    v |= (static_cast<uint32_t>(*(ps + 3)) << 24);
+#endif
+
+    _val = v;
+    return _ps + 4;
+}
+
+inline char* store64(char* _pd, const uint64_t _val)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
 #ifdef SOLID_ON_BIG_ENDIAN
@@ -87,44 +127,6 @@ inline char* store(char* _pd, const std::array<uint8_t, S> _val)
 {
     memcpy(_pd, _val.data(), S);
     return _pd + S;
-}
-
-inline const char* load(const char* _ps, uint8_t& _val)
-{
-    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    _val              = *ps;
-    return _ps + 1;
-}
-
-inline const char* load(const char* _ps, uint16_t& _val)
-{
-    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint16_t       v  = *ps;
-#ifdef SOLID_ON_BIG_ENDIAN
-    v = (v << 8) | *(ps + 1);
-#else
-    v |= (static_cast<uint16_t>(*(ps + 1) << 8));
-#endif
-    _val = v;
-    return _ps + 2;
-}
-
-inline const char* load(const char* _ps, uint32_t& _val)
-{
-    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
-    uint32_t       v  = *ps;
-#ifdef SOLID_ON_BIG_ENDIAN
-    v = (v << 8) | *(ps + 1);
-    v = (v << 8) | *(ps + 2);
-    v = (v << 8) | *(ps + 3);
-#else
-    v |= (static_cast<uint32_t>(*(ps + 1)) << 8);
-    v |= (static_cast<uint32_t>(*(ps + 2)) << 16);
-    v |= (static_cast<uint32_t>(*(ps + 3)) << 24);
-#endif
-
-    _val = v;
-    return _ps + 4;
 }
 
 inline const char* load(const char* _ps, uint64_t& _val)
@@ -197,11 +199,11 @@ char* store_with_check(char* _pd, const size_t _sz, uint16_t _v);
 
 inline char* store_with_check(char* _pd, const size_t _sz, uint32_t _v)
 {
-#ifdef SOLID_ON_BIG_ENDIAN
-    _v = swap_bytes(_v);
-#endif
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
+#ifdef SOLID_ON_BIG_ENDIAN
+//    _v = swap_bytes(_v);
+#endif
     if ((sz + 1) <= _sz) {
         const bool ok = compute_value_with_crc(*pd, static_cast<uint8_t>(sz));
         if (ok) {
@@ -240,11 +242,11 @@ inline char* store_with_check(char* _pd, const size_t _sz, uint32_t _v)
 
 inline char* store_with_check(char* _pd, const size_t _sz, uint64_t _v)
 {
-#ifdef SOLID_ON_BIG_ENDIAN
-    _v = swap_bytes(_v);
-#endif
     uint8_t*     pd = reinterpret_cast<uint8_t*>(_pd);
     const size_t sz = max_padded_byte_cout(_v);
+#ifdef SOLID_ON_BIG_ENDIAN
+//    _v = swap_bytes(_v);
+#endif
     if ((sz + 1) <= _sz) {
         const bool ok = compute_value_with_crc(*pd, static_cast<uint8_t>(sz));
         if (ok) {
@@ -356,7 +358,7 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& 
                 return nullptr;
             }
 #ifdef SOLID_ON_BIG_ENDIAN
-            _val = swap_bytes(v);
+            _val = v;//swap_bytes(v);
 #else
             _val = v;
 #endif
@@ -431,7 +433,7 @@ inline const char* load_without_check(const char* _ps, const size_t _sz, uint64_
         return nullptr;
     }
 #ifdef SOLID_ON_BIG_ENDIAN
-    _val = swap_bytes(v);
+    _val = v;//swap_bytes(v);
 #else
     _val = v;
 #endif
