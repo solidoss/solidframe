@@ -190,7 +190,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     set(SYS_NOLOG_LINKER_FLAGS "")
     set(SYS_RELEASE_LINKER_FLAGS "-O3")
 
-    set(SYS_BASIC_LIBS pthread rt)
+    set(SYS_BASIC_LIBS pthread rt atomic)
     set(SYS_DYNAMIC_LOAD_LIB dl)
 endif(CMAKE_SYSTEM MATCHES "Linux*")
 

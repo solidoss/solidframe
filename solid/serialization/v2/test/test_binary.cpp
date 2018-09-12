@@ -181,6 +181,10 @@ public:
         }
         solid_assert(blob_sz == _rt.blob_sz);
         solid_assert(memcmp(blob, _rt.blob, blob_sz) == 0);
+        solid_assert(blob32_sz == _rt.blob32_sz);
+        solid_assert(memcmp(blob32, _rt.blob32, blob32_sz) == 0);
+        solid_assert(blob64_sz == _rt.blob64_sz);
+        solid_assert(memcmp(blob64, _rt.blob64, blob64_sz) == 0);
         {
             uint32_t v;
             solid::serialization::binary::load(blob32, v);
