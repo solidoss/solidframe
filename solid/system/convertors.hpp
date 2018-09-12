@@ -97,7 +97,10 @@ constexpr inline size_t bits_to_count(const size_t v)
     return (1ULL << v) & (~static_cast<size_t>(1));
 }
 
-constexpr inline uint16_t swap_bytes(const uint16_t _v)
+#ifndef SOLID_ON_WINDOWS
+constexpr
+#endif
+inline uint16_t swap_bytes(const uint16_t _v)
 {
 #ifdef SOLID_ON_WINDOWS
     return _byteswap_ushort(_v);
@@ -106,7 +109,10 @@ constexpr inline uint16_t swap_bytes(const uint16_t _v)
 #endif
 }
 
-constexpr inline uint32_t swap_bytes(const uint32_t _v)
+#ifndef SOLID_ON_WINDOWS
+constexpr
+#endif
+inline uint32_t swap_bytes(const uint32_t _v)
 {
 #ifdef SOLID_ON_WINDOWS
     return _byteswap_ulong(_v);
@@ -124,7 +130,10 @@ constexpr inline uint32_t swap_bytes(const uint32_t _v)
 #endif
 }
 
-constexpr inline uint64_t swap_bytes(const uint64_t _v)
+#ifndef SOLID_ON_WINDOWS
+constexpr
+#endif
+inline uint64_t swap_bytes(const uint64_t _v)
 {
 #ifdef SOLID_ON_WINDOWS
     return _byteswap_uint64(_v);
