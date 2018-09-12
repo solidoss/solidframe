@@ -21,7 +21,7 @@ namespace serialization {
 namespace v2 {
 namespace binary {
 
-namespace impl{
+namespace impl {
 inline char* store(char* _pd, const uint8_t _val, TypeToType<uint8_t> _ff)
 {
     uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
@@ -29,64 +29,87 @@ inline char* store(char* _pd, const uint8_t _val, TypeToType<uint8_t> _ff)
     return _pd + 1;
 }
 
-union Convert16{
+union Convert16 {
     uint16_t value_;
     uint8_t  bytes_[sizeof(uint16_t)];
 };
 
 inline char* store(char* _pd, const uint16_t _val, TypeToType<uint16_t> _ff)
 {
-    uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
+    uint8_t*  pd = reinterpret_cast<uint8_t*>(_pd);
     Convert16 c;
     c.value_ = _val;
-    *(pd + 0) = c.bytes_[0];
-    *(pd + 1) = c.bytes_[1];
+#ifdef SOLID_ON_BIG_ENDIAN
+    *(pd + 0) = c.bytes_[1];
+    *(pd + 1) = c.bytes_[0];
+#else
+    *(pd + 0)   = c.bytes_[0];
+    *(pd + 1)   = c.bytes_[1];
+#endif
     return _pd + 2;
 }
 
-union Convert32{
+union Convert32 {
     uint32_t value_;
     uint8_t  bytes_[sizeof(uint32_t)];
 };
 
 inline char* store(char* _pd, const uint32_t _val, TypeToType<uint32_t> _ff)
 {
-    uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
+    uint8_t*  pd = reinterpret_cast<uint8_t*>(_pd);
     Convert32 c;
     c.value_ = _val;
-    *(pd + 0) = c.bytes_[0];
-    *(pd + 1) = c.bytes_[1];
-    *(pd + 2) = c.bytes_[2];
-    *(pd + 3) = c.bytes_[3];
+#ifdef SOLID_ON_BIG_ENDIAN
+    *(pd + 0) = c.bytes_[3];
+    *(pd + 1) = c.bytes_[2];
+    *(pd + 2) = c.bytes_[1];
+    *(pd + 3) = c.bytes_[0];
+#else
+    *(pd + 0)   = c.bytes_[0];
+    *(pd + 1)   = c.bytes_[1];
+    *(pd + 2)   = c.bytes_[2];
+    *(pd + 3)   = c.bytes_[3];
+#endif
     return _pd + 4;
 }
 
-union Convert64{
+union Convert64 {
     uint64_t value_;
     uint8_t  bytes_[sizeof(uint64_t)];
 };
 
 inline char* store(char* _pd, const uint64_t _val, TypeToType<uint64_t> _ff)
 {
-    uint8_t* pd = reinterpret_cast<uint8_t*>(_pd);
+    uint8_t*  pd = reinterpret_cast<uint8_t*>(_pd);
     Convert64 c;
     c.value_ = _val;
-    *(pd + 0) = c.bytes_[0];
-    *(pd + 1) = c.bytes_[1];
-    *(pd + 2) = c.bytes_[2];
-    *(pd + 3) = c.bytes_[3];
-    *(pd + 4) = c.bytes_[4];
-    *(pd + 5) = c.bytes_[5];
-    *(pd + 6) = c.bytes_[6];
-    *(pd + 7) = c.bytes_[7];
+#ifdef SOLID_ON_BIG_ENDIAN
+    *(pd + 0) = c.bytes_[7];
+    *(pd + 1) = c.bytes_[6];
+    *(pd + 2) = c.bytes_[5];
+    *(pd + 3) = c.bytes_[4];
+    *(pd + 4) = c.bytes_[3];
+    *(pd + 5) = c.bytes_[2];
+    *(pd + 6) = c.bytes_[1];
+    *(pd + 7) = c.bytes_[0];
+#else
+    *(pd + 0)   = c.bytes_[0];
+    *(pd + 1)   = c.bytes_[1];
+    *(pd + 2)   = c.bytes_[2];
+    *(pd + 3)   = c.bytes_[3];
+    *(pd + 4)   = c.bytes_[4];
+    *(pd + 5)   = c.bytes_[5];
+    *(pd + 6)   = c.bytes_[6];
+    *(pd + 7)   = c.bytes_[7];
+#endif
     return _pd + 8;
 }
 
-}//namespace impl
-
+} //namespace impl
 
 template <typename T>
-inline char* store(char *_pd, const T _v){
+inline char* store(char* _pd, const T _v)
+{
     return impl::store(_pd, _v, TypeToType<T>());
 }
 
@@ -97,25 +120,36 @@ inline const char* load(const char* _ps, uint8_t& _val)
     return _ps + 1;
 }
 
-
 inline const char* load(const char* _ps, uint16_t& _val)
 {
-    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
+    const uint8_t*  ps = reinterpret_cast<const uint8_t*>(_ps);
     impl::Convert16 c;
+#ifdef SOLID_ON_BIG_ENDIAN
+    c.bytes_[0] = *(ps + 1);
+    c.bytes_[1] = *(ps + 0);
+#else
     c.bytes_[0] = *(ps + 0);
     c.bytes_[1] = *(ps + 1);
+#endif
     _val = c.value_;
     return _ps + 2;
 }
 
 inline const char* load(const char* _ps, uint32_t& _val)
 {
-    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
+    const uint8_t*  ps = reinterpret_cast<const uint8_t*>(_ps);
     impl::Convert32 c;
+#ifdef SOLID_ON_BIG_ENDIAN
+    c.bytes_[0] = *(ps + 3);
+    c.bytes_[1] = *(ps + 2);
+    c.bytes_[2] = *(ps + 1);
+    c.bytes_[3] = *(ps + 0);
+#else
     c.bytes_[0] = *(ps + 0);
     c.bytes_[1] = *(ps + 1);
     c.bytes_[2] = *(ps + 2);
     c.bytes_[3] = *(ps + 3);
+#endif
     _val = c.value_;
     return _ps + 4;
 }
@@ -129,8 +163,18 @@ inline char* store(char* _pd, const std::array<uint8_t, S> _val)
 
 inline const char* load(const char* _ps, uint64_t& _val)
 {
-    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
+    const uint8_t*  ps = reinterpret_cast<const uint8_t*>(_ps);
     impl::Convert64 c;
+#ifdef SOLID_ON_BIG_ENDIAN
+    c.bytes_[0] = *(ps + 7);
+    c.bytes_[1] = *(ps + 6);
+    c.bytes_[2] = *(ps + 5);
+    c.bytes_[3] = *(ps + 4);
+    c.bytes_[4] = *(ps + 3);
+    c.bytes_[5] = *(ps + 2);
+    c.bytes_[6] = *(ps + 1);
+    c.bytes_[7] = *(ps + 0);
+#else
     c.bytes_[0] = *(ps + 0);
     c.bytes_[1] = *(ps + 1);
     c.bytes_[2] = *(ps + 2);
@@ -139,6 +183,7 @@ inline const char* load(const char* _ps, uint64_t& _val)
     c.bytes_[5] = *(ps + 5);
     c.bytes_[6] = *(ps + 6);
     c.bytes_[7] = *(ps + 7);
+#endif
     _val = c.value_;
     return _ps + 8;
 }
@@ -345,7 +390,7 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& 
                 return nullptr;
             }
 #ifdef SOLID_ON_BIG_ENDIAN
-            _val = v;//swap_bytes(v);
+            _val = v; //swap_bytes(v);
 #else
             _val = v;
 #endif
@@ -355,10 +400,11 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint32_t& 
     return nullptr;
 }
 
-inline const char* load_without_check(const char* _ps, const size_t _sz, uint64_t& _val){
-    const uint8_t* ps  = reinterpret_cast<const uint8_t*>(_ps);
-    const size_t   sz  = _sz;
-    uint64_t       v   = 0;
+inline const char* load_without_check(const char* _ps, const size_t _sz, uint64_t& _val)
+{
+    const uint8_t* ps = reinterpret_cast<const uint8_t*>(_ps);
+    const size_t   sz = _sz;
+    uint64_t       v  = 0;
 
     switch (sz) {
     case 0:
@@ -420,7 +466,7 @@ inline const char* load_without_check(const char* _ps, const size_t _sz, uint64_
         return nullptr;
     }
 #ifdef SOLID_ON_BIG_ENDIAN
-    _val = v;//swap_bytes(v);
+    _val = v; //swap_bytes(v);
 #else
     _val = v;
 #endif
@@ -434,7 +480,7 @@ inline const char* load_with_check(const char* _ps, const size_t _sz, uint64_t& 
         uint8_t        vsz = *ps;
         const bool     ok  = check_value_with_crc(vsz, vsz);
         const size_t   sz  = vsz;
-        
+
         if (ok && (sz + 1) <= _sz) {
             return load_without_check(_ps + 1, sz, _val);
         }

@@ -40,9 +40,9 @@ DeserializerBase::DeserializerBase(const TypeMapBase& _rtype_map)
 }
 std::istream& DeserializerBase::run(std::istream& _ris, void* _pctx)
 {
-    const size_t buf_cap = 8 * 1024;
-    char         buf[buf_cap];
-    std::streamsize   readsz;
+    const size_t    buf_cap = 8 * 1024;
+    char            buf[buf_cap];
+    std::streamsize readsz;
     clear();
 
     do {

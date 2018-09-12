@@ -76,7 +76,7 @@ class Test {
     void populate(bool _b)
     {
         string blb;
-        b = _b;
+        b   = _b;
         a.a = 540554784UL;
         a.b = 2321664020290347053ULL;
         serialization::binary::store(blob32, static_cast<uint32_t>(a.a));
@@ -85,11 +85,11 @@ class Test {
             solid::serialization::binary::load(blob32, v);
             solid_assert(v == static_cast<uint32_t>(a.a));
         }
-        
+
         serialization::binary::store(blob64, a.b);
         blob32_sz = sizeof(uint32_t);
         blob64_sz = sizeof(uint64_t);
-        
+
         if (_b) {
             for (size_t i = 0; i < 100; ++i) {
                 v.emplace_back();
@@ -191,7 +191,7 @@ public:
             solid::serialization::binary::load(blob64, v);
             solid_assert(v == a.b);
         }
-        
+
         return b == _rt.b && a == _rt.a && v == _rt.v && d == _rt.d && s1 == s2 && m == _rt.m && s == _rt.s && um == _rt.um && us == _rt.us && vb == _rt.vb && bs == _rt.bs && vc == _rt.vc;
     }
 
@@ -209,9 +209,9 @@ public:
                     }
                 },
                 _rctx, "f");
-        
+
         using IFStreamPtrT = std::unique_ptr<std::ifstream>;
-        
+
         IFStreamPtrT pifs(new ifstream);
         pifs->open(p);
         _rs
@@ -296,12 +296,12 @@ int test_binary(int argc, char* argv[])
     {
         using IFStreamPtrT = std::unique_ptr<std::ifstream>;
         IFStreamPtrT pifs(new ifstream);
-        Any<>         a{std::move(pifs)};
+        Any<>        a{std::move(pifs)};
         (*a.cast<IFStreamPtrT>())->open("test.txt");
     }
 
     {
-        auto          lambda = [pifs = std::unique_ptr<std::ifstream>(new ifstream)]() mutable {
+        auto lambda = [pifs = std::unique_ptr<std::ifstream>(new ifstream)]() mutable {
             pifs->open("test.txt");
         };
         Function<128, void()> f{std::move(lambda)};
@@ -389,7 +389,7 @@ int test_binary(int argc, char* argv[])
                     des.add(t_c, ctx, "t").add(tp_c, ctx, "tp_c").add(tup_c, ctx, "tup_c").add(sp1_c, ctx, "sp1").add(up1_c, ctx, "up1");
                 },
                 ctx);
-            
+
             //iss >> des.wrap(ctx);
             solid_check(!des.error(), "check failed: " << des.error().message());
             solid_check(t == t_c, "check failed");

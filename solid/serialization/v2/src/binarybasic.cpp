@@ -121,7 +121,7 @@ const char* load_with_check(const char* _ps, const size_t _sz, uint16_t& _val)
                 return nullptr;
             }
 #ifdef SOLID_ON_BIG_ENDIAN
-            _val = v;//swap_bytes(v);
+            _val = v; //swap_bytes(v);
 #else
             _val = v;
 #endif
