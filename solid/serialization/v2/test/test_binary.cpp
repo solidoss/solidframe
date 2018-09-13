@@ -290,7 +290,7 @@ public:
 
 int test_binary(int argc, char* argv[])
 {
-    solid::log_start(std::cout, {".*:VIEW"});
+    solid::log_start(std::cout, {".*:EW"});
 
     std::string input_file_path;
     std::string output_file_path;
@@ -314,18 +314,17 @@ int test_binary(int argc, char* argv[])
 
     if (argc > 1) {
 #ifdef SOLID_ON_WINDOWS
-		const char path_sep = '\\';
+        const char path_sep = '\\';
 #else
-		const char path_sep = '/';
+        const char path_sep = '/';
 #endif
         input_file_path = argv[1];
         size_t pos      = input_file_path.rfind(path_sep);
         if (pos == string::npos) {
             pos = 0;
-		}
-		else {
-			++pos;
-		}
+        } else {
+            ++pos;
+        }
         //output_file_path = "./";
         output_file_path += input_file_path.substr(pos);
         output_file_path += ".copy";
@@ -360,7 +359,7 @@ int test_binary(int argc, char* argv[])
             ofstream                       ofs;
 
             if (!archive_path.empty()) {
-                ofs.open(archive_path, ios_base::out| ios_base::binary);
+                ofs.open(archive_path, ios_base::out | ios_base::binary);
             }
 
             ostream& ros = ofs.is_open() ? static_cast<ostream&>(std::ref(ofs)) : static_cast<ostream&>(std::ref(oss));
@@ -380,8 +379,8 @@ int test_binary(int argc, char* argv[])
             ifstream ifs;
 
             if (!archive_path.empty()) {
-                ifs.open(archive_path, ios_base::in| ios_base::binary);
-				solid_assert(ifs.is_open());
+                ifs.open(archive_path, ios_base::in | ios_base::binary);
+                solid_assert(ifs.is_open());
             }
 
             istringstream                    iss(oss.str());

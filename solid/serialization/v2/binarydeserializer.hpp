@@ -1345,8 +1345,8 @@ public:
         char         buf[buf_cap];
 
         clear();
-		_ris.read(buf, buf_cap);
-		std::streamsize readsz = _ris.gcount();
+        _ris.read(buf, buf_cap);
+        std::streamsize readsz = _ris.gcount();
 
         if (readsz) {
             doPrepareRun(buf, static_cast<size_t>(readsz));
@@ -1355,8 +1355,8 @@ public:
 
             if (readsz == doRun(&_rctx)) {
                 do {
-					_ris.read(buf, buf_cap);
-					readsz = _ris.gcount();
+                    _ris.read(buf, buf_cap);
+                    readsz = _ris.gcount();
                 } while (readsz && (readsz == DeserializerBase::run(buf, static_cast<unsigned>(readsz), &_rctx)));
             }
         }
