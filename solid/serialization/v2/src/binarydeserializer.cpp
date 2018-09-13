@@ -46,7 +46,8 @@ std::istream& DeserializerBase::run(std::istream& _ris, void* _pctx)
     clear();
 
     do {
-        readsz = _ris.readsome(buf, buf_cap);
+		_ris.read(buf, buf_cap);
+		readsz = _ris.gcount();
     } while (readsz && (readsz == run(buf, static_cast<unsigned>(readsz))));
 
     return _ris;
