@@ -20,7 +20,7 @@ public:
     //! Erase a file
     static bool eraseFile(const char*);
     //! Rename a file
-    static bool renameFile(const char* _to, const char* _from);
+    static bool renameFile(const char* _from, const char* _to);
 };
 
 } //namespace solid

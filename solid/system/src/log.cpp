@@ -27,18 +27,13 @@ using namespace std::chrono;
 
 namespace solid {
 
-std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line)
-{
-    return _line.writeTo(_ros);
-}
-
 LogRecorder::~LogRecorder() {}
 
 void LogRecorder::recordLine(const solid::LogLineBase& /*_rlog_line*/) {}
 
 void LogStreamRecorder::recordLine(const solid::LogLineBase& _rlog_line)
 {
-    ros_ << _rlog_line;
+    _rlog_line.writeTo(ros_);
 }
 
 namespace {
@@ -352,7 +347,7 @@ struct SocketRecorder : LogRecorder {
 
     void recordLine(const solid::LogLineBase& _rlog_line) override
     {
-        ros_ << _rlog_line;
+        _rlog_line.writeTo(ros_);
     }
 };
 
@@ -394,10 +389,10 @@ struct FileRecorder : LogRecorder {
     DeviceBasicStream unbuffered_stream_;
     DeviceStream      buffered_stream_;
     std::ostream&     ros_;
-    std::string       path_;
-    std::string       name_;
-    uint64_t          respin_size_;
-    uint32_t          respin_count_;
+    const std::string path_;
+    const std::string name_;
+    const uint64_t    respin_size_;
+    const uint32_t    respin_count_;
 
     std::ostream& stream(const bool _buffered, FileDevice&& _rsd)
     {
@@ -417,7 +412,7 @@ struct FileRecorder : LogRecorder {
         const uint64_t _respinsize,
         const uint32_t _respincnt,
         const bool     _buffered)
-        : current_size_(0)
+        : current_size_(_rfd.size()) //inherit the current size of the file
         , unbuffered_stream_(current_size_)
         , buffered_stream_(current_size_)
         , ros_(stream(_buffered, std::move(_rfd)))
@@ -439,9 +434,9 @@ struct FileRecorder : LogRecorder {
         fd.flush();
     }
 
-    bool shouldRespin() const
+    bool shouldRespin(const size_t _sz) const
     {
-        return respin_size_ && respin_size_ < current_size_;
+        return respin_size_ && respin_size_ < (current_size_ + _sz);
     }
 
     void doRespin()
@@ -485,29 +480,29 @@ struct FileRecorder : LogRecorder {
 
             while (lastpos) {
                 filePath(frompath, lastpos, path_, name_);
-                Directory::renameFile(topath.c_str(), frompath.c_str());
+                Directory::renameFile(frompath.c_str(), topath.c_str());
                 topath = frompath;
                 --lastpos;
             }
 
             filePath(frompath, 0, path_, name_);
-            Directory::renameFile(topath.c_str(), frompath.c_str());
+            Directory::renameFile(frompath.c_str(), topath.c_str());
             fname = frompath;
         }
 
         if (!fd.create(fname.c_str(), FileDevice::WriteOnlyE)) {
             cerr << "Cannot create log file: " << fname << endl;
-            respin_size_ = 0; //no more respins
+            //respin_size_ = 0; //no more respins
         }
         stream(buffered, std::move(fd));
     }
 
     void recordLine(const solid::LogLineBase& _rlog_line) override
     {
-        if (shouldRespin()) {
+        if (shouldRespin(_rlog_line.size())) {
             doRespin();
         }
-        ros_ << _rlog_line;
+        _rlog_line.writeTo(ros_);
     }
 };
 
@@ -569,7 +564,7 @@ public:
     size_t registerLogger(LoggerBase& _rlg, const LogCategoryBase& _rlc);
     void   unregisterLogger(const size_t _idx);
 
-    void log(const size_t _idx, LogLineBase& _log_ros);
+    void log(const size_t _idx, const LogLineBase& _log_ros);
 
     ErrorConditionT configure(LogRecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec);
 
@@ -597,7 +592,7 @@ void Engine::unregisterLogger(const size_t _idx)
     module_vec_[_idx].clear();
 }
 
-void Engine::log(const size_t _idx, LogLineBase& _log_ros)
+void Engine::log(const size_t _idx, const LogLineBase& _log_ros)
 {
     std::lock_guard<std::mutex> lock(mtx_);
     recorder_ptr_->recordLine(_log_ros);
@@ -793,7 +788,7 @@ std::ostream& LoggerBase::doLog(std::ostream& _ros, const char* _flag_name, cons
 #endif
 }
 
-void LoggerBase::doDone(LogLineBase& _log_ros) const
+void LoggerBase::doDone(const LogLineBase& _log_ros) const
 {
     Engine::the().log(idx_, _log_ros);
 }

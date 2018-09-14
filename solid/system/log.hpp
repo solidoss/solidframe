@@ -69,6 +69,7 @@ private:
 
 struct LogLineBase {
     virtual std::ostream& writeTo(std::ostream&) const = 0;
+    virtual size_t        size() const                 = 0;
 };
 
 namespace impl {
@@ -97,9 +98,10 @@ class LogLineBuffer : public std::streambuf {
         }
 
     } first_;
-    BufNode*    plast_;
-    char*       pcrt_;
-    const char* pend_;
+    BufNode*        plast_;
+    char*           pcrt_;
+    const char*     pend_;
+    std::streamsize size_;
 
 private:
     void allocate()
@@ -119,6 +121,7 @@ private:
             }
             *pcrt_ = c;
             ++pcrt_;
+            ++size_;
         }
         return c;
     }
@@ -139,6 +142,7 @@ private:
             sz -= towrite;
             pcrt_ += towrite;
         }
+        size_ += num;
         return num;
     }
 
@@ -147,6 +151,7 @@ public:
         : plast_(&first_)
         , pcrt_(first_.buf_)
         , pend_(first_.end())
+        , size_(0)
     {
         static_assert(sizeof(BufNode) == Size, "sizeof(BufNode) not equal to Size");
     }
@@ -163,6 +168,11 @@ public:
             pbn = pbn->pnext_.get();
         } while (pbn);
         return _ros;
+    }
+
+    std::streamsize size() const
+    {
+        return size_;
     }
 };
 
@@ -182,6 +192,10 @@ public:
     {
         return buf_.writeTo(_ros);
     }
+    size_t size() const override
+    {
+        return buf_.size();
+    }
 };
 
 } //namespace impl
@@ -189,8 +203,6 @@ public:
 namespace {
 class Engine;
 } //namespace
-
-std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line);
 
 class LoggerBase {
     friend class Engine;
@@ -204,7 +216,7 @@ protected:
     ~LoggerBase();
 
     std::ostream& doLog(std::ostream& _ros, const char* _flag_name, const char* _file, const char* _fnc, int _line) const;
-    void          doDone(LogLineBase& _log_ros) const;
+    void          doDone(const LogLineBase& _log_ros) const;
 
 public:
     const std::string& name() const
@@ -244,7 +256,7 @@ public:
     {
         return this->doLog(_ros, rcat_.flagName(_flag), _file, _fnc, _line);
     }
-    void done(LogLineBase& _log_ros) const
+    void done(const LogLineBase& _log_ros) const
     {
         doDone(_log_ros);
     }

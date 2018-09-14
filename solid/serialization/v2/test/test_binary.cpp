@@ -291,6 +291,7 @@ public:
 int test_binary(int argc, char* argv[])
 {
     solid::log_start(std::cout, {".*:EW"});
+    //solid::log_start(argv[0], {".*:VIEW"}, true, 2, 1024 * 1024);
 
     std::string input_file_path;
     std::string output_file_path;

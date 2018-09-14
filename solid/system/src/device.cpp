@@ -312,191 +312,27 @@ bool FileDevice::canRetryOpen() const
 #endif
 }
 //-- Directory -------------------------------------
-#ifdef SOLID_ON_WINDOWS
-int do_create_directory(WCHAR* _pwc, const char* _path, size_t _sz, size_t _wcp)
-{
-    WCHAR* pwctmp(nullptr);
-    //first convert _fname to _pwc
-    ssize_t rv = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, static_cast<int>(_wcp));
-    if (rv == 0) {
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            rv = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, 0);
-            if (rv == 0) {
-                return -1;
-            }
-            pwctmp = new WCHAR[rv + 1];
-            rv     = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, rv + 1);
-            if (rv == 0) {
-                return -1;
-            }
-            pwctmp[rv] = 0;
-        } else {
-            return -1;
-        }
-    } else {
-        _pwc[rv] = 0;
-        pwctmp   = _pwc;
-    }
-    BOOL brv = CreateDirectoryW(pwctmp, nullptr);
-    if (_pwc != pwctmp) {
-        delete[] pwctmp;
-    }
-    if (brv) {
-        return 0;
-    }
-    return -1;
-}
-#endif
 /*static*/ bool Directory::create(const char* _fname)
 {
 #ifdef SOLID_ON_WINDOWS
-    const size_t sz(strlen(_fname));
-    const size_t szex = sz + 1;
-    if (szex < 256) {
-        WCHAR pwc[512];
-        return do_create_directory(pwc, _fname, sz, 512) == 0;
-    } else if (szex < 512) {
-        WCHAR pwc[1024];
-        return do_create_directory(pwc, _fname, sz, 1024) == 0;
-    } else if (szex < 1024) {
-        WCHAR pwc[2048];
-        return do_create_directory(pwc, _fname, sz, 2048) == 0;
-    } else {
-        WCHAR pwc[4096];
-        return do_create_directory(pwc, _fname, sz, 4096) == 0;
-    }
-    return false;
+    return CreateDirectoryA(_fname, nullptr) == TRUE;
 #else
     return mkdir(_fname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
 #endif
 }
 
-#ifdef SOLID_ON_WINDOWS
-int do_erase_file(WCHAR* _pwc, const char* _path, size_t _sz, size_t _wcp)
-{
-    WCHAR* pwctmp(nullptr);
-    //first convert _fname to _pwc
-    int rv = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, static_cast<int>(_wcp));
-    if (rv == 0) {
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            rv = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, 0);
-            if (rv == 0) {
-                return -1;
-            }
-            pwctmp = new WCHAR[rv + 1];
-            rv     = MultiByteToWideChar(CP_UTF8, 0, _path, static_cast<int>(_sz), _pwc, rv + 1);
-            if (rv == 0) {
-                return -1;
-            }
-            pwctmp[rv] = 0;
-        } else {
-            return -1;
-        }
-    } else {
-        _pwc[rv] = 0;
-        pwctmp   = _pwc;
-    }
-    BOOL brv = DeleteFileW(pwctmp);
-    if (_pwc != pwctmp) {
-        delete[] pwctmp;
-    }
-    if (brv) {
-        return 0;
-    }
-    return -1;
-}
-#endif
-
 /*static*/ bool Directory::eraseFile(const char* _fname)
 {
 #ifdef SOLID_ON_WINDOWS
-    const size_t sz(strlen(_fname));
-    const size_t szex = sz + 1;
-    if (szex < 256) {
-        WCHAR pwc[512];
-        return do_erase_file(pwc, _fname, sz, 512) == 0;
-    } else if (szex < 512) {
-        WCHAR pwc[1024];
-        return do_erase_file(pwc, _fname, sz, 1024) == 0;
-    } else if (szex < 1024) {
-        WCHAR pwc[2048];
-        return do_erase_file(pwc, _fname, sz, 2048) == 0;
-    } else {
-        WCHAR pwc[4096];
-        return do_erase_file(pwc, _fname, sz, 4096) == 0;
-    }
-    return false;
+    return DeleteFileA(_fname) == TRUE;
 #else
     return unlink(_fname) == 0;
 #endif
 }
-/*static*/ bool Directory::renameFile(const char* _to, const char* _from)
+/*static*/ bool Directory::renameFile(const char* _from, const char* _to)
 {
 #ifdef SOLID_ON_WINDOWS
-    const size_t     szto(strlen(_to));
-    const size_t     szfr(strlen(_from));
-    constexpr size_t sz = 4096;
-    WCHAR            pwcto[sz];
-    WCHAR            pwcfr[sz];
-    WCHAR*           pwctmpto(nullptr);
-    WCHAR*           pwctmpfr(nullptr);
-
-    //first convert _to to _pwc
-    int rv = MultiByteToWideChar(CP_UTF8, 0, _to, static_cast<int>(szto), pwcto, static_cast<int>(sz));
-    if (rv == 0) {
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            rv = MultiByteToWideChar(CP_UTF8, 0, _to, static_cast<int>(szto), pwcto, 0);
-            if (rv == 0) {
-                return false;
-            }
-            pwctmpto = new WCHAR[rv + 1];
-            rv       = MultiByteToWideChar(CP_UTF8, 0, _to, static_cast<int>(szto), pwcto, rv + 1);
-            if (rv == 0) {
-                return false;
-            }
-            pwctmpto[rv] = 0;
-        } else {
-            return false;
-        }
-    } else {
-        pwcto[rv] = 0;
-        pwctmpto  = pwcto;
-    }
-
-    rv = MultiByteToWideChar(CP_UTF8, 0, _from, static_cast<int>(szfr), pwcfr, static_cast<int>(sz));
-    if (rv == 0) {
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            rv = MultiByteToWideChar(CP_UTF8, 0, _from, static_cast<int>(szfr), pwcfr, 0);
-            if (rv == 0) {
-                return false;
-            }
-            pwctmpfr = new WCHAR[rv + 1];
-            rv       = MultiByteToWideChar(CP_UTF8, 0, _from, static_cast<int>(szfr), pwcfr, rv + 1);
-            if (rv == 0) {
-                return false;
-            }
-            pwctmpfr[rv] = 0;
-        } else {
-            return false;
-        }
-    } else {
-        pwcfr[rv] = 0;
-        pwctmpfr  = pwcfr;
-    }
-
-    BOOL brv = MoveFileW(pwctmpfr, pwctmpto);
-
-    if (pwctmpfr != pwcfr) {
-        delete[] pwctmpfr;
-    }
-    if (pwctmpto != pwcto) {
-        delete[] pwctmpto;
-    }
-    if (brv) {
-        return true;
-    } else {
-        return false;
-    }
+    return MoveFileA(_from, _to);
 #else
     return ::rename(_from, _to) == 0;
 #endif
