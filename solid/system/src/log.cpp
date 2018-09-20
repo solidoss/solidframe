@@ -27,6 +27,11 @@ using namespace std::chrono;
 
 namespace solid {
 
+std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line)
+{
+    return _line.writeTo(_ros);
+}
+
 LogRecorder::~LogRecorder() {}
 
 void LogRecorder::recordLine(const solid::LogLineBase& /*_rlog_line*/) {}

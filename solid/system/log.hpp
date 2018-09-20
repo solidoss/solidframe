@@ -204,6 +204,8 @@ namespace {
 class Engine;
 } //namespace
 
+std::ostream& operator<<(std::ostream& _ros, const LogLineBase& _line);
+
 class LoggerBase {
     friend class Engine;
 
