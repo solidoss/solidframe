@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   # ―――  Spec Metadata  ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   
   s.name         = "SolidFrame"
-  s.version      = "4.1.0"
+  s.version      = "5.0.0"
   s.summary      = "Cross-platform C++ framework for asynchronous, distributed applications."
 
   s.description  = <<-DESC
@@ -67,15 +67,6 @@ Pod::Spec.new do |s|
     sp.preserve_paths = "solid/utility", "solid/utility/*.hpp"
     sp.public_header_files = 'solid/utility/*.hpp'
     sp.source_files = 'solid/utility/src/*.{cpp,hpp}', 'solid/utility/*.hpp'
-    sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
-  end
-
-  s.subspec 'serialization_v1' do |sp|
-    sp.name = 'serialization_v1'
-    sp.dependency 'SolidFrame/utility'
-    sp.preserve_paths = "solid/serialization/v1", "solid/serialization/v1/*.hpp"
-    sp.public_header_files = 'solid/serialization/v1/*.hpp'
-    sp.source_files = 'solid/serialization/v1/src/*.{cpp,hpp}', 'solid/serialization/v1/*.hpp'
     sp.xcconfig = { 'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"',  'USER_HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/SolidFrame"'}
   end
   

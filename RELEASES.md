@@ -15,6 +15,9 @@
 * **Windows**:
     * Windows10 - Visual Studio 2017.
 
+## Version 5.0
+* (DONE) add support for endianess on seralization/v2
+
 ## Version 4.1
 * (DONE) fix compilation on g++ 8.1.1
 * (DONE) system/debug.hpp -> system/log.hpp - redesign debug logging engine. No locking while handling log line parameters.
