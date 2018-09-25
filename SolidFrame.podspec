@@ -130,7 +130,7 @@ Pod::Spec.new do |s|
 
       #define SOLID_VERSION_MAJOR 5
       #define SOLID_VERSION_MINOR 0
-      #define SOLID_VERSION_PATCH "xxx"
+      #define SOLID_VERSION_PATCH "0"
     #endif
     EOF
   END_OF_COMMAND
