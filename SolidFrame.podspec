@@ -30,13 +30,10 @@ Pod::Spec.new do |s|
   s.author             =  "Valentin Palade"
   
   # ――― Platform Specifics ――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
-  
+  # support all platforms
 
-  s.platform     = :ios
-  s.platform     = :ios, "7.0"
-
-  s.ios.deployment_target = "7.0"
-  s.osx.deployment_target = "10.7"
+  s.ios.deployment_target = '9.0'#minimum necessary to support thread local variables
+  s.osx.deployment_target = '10.8'
   s.tvos.deployment_target = '9.0'
 
   # ――― Source Location ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
@@ -45,7 +42,6 @@ Pod::Spec.new do |s|
   #  Supports git, hg, bzr, svn and HTTP.
   #
 
-  #s.source       = { :git => "http://EXAMPLE/SolidFrame.git", :tag => "#{s.version}" }
   s.source       = { :git => "https://github.com/vipalade/solidframe.git", :branch => "work" }
 
 
