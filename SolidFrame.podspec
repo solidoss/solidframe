@@ -31,10 +31,11 @@ Pod::Spec.new do |s|
   
   # ――― Platform Specifics ――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   # support all platforms
-
+  
   s.ios.deployment_target = '9.0'#minimum necessary to support thread local variables
   s.osx.deployment_target = '10.8'
   s.tvos.deployment_target = '9.0'
+  s.watchos.deployment_target = '2.0'
 
   # ――― Source Location ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   #
