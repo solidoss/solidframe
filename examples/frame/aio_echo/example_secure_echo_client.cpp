@@ -294,8 +294,6 @@ struct ConnectFunction {
         frame::Manager&  manager = _rctx.service().manager();
         frame::ObjectIdT objuid  = _rctx.service().manager().id(*this);
 
-        sock.secureSetCheckHostName(_rctx, "echo-server" /*pconnect_stub->connect_addr*/);
-
         pconnect_stub->resolver.requestResolve(
             [&manager, objuid](ResolveData& _rrd, ErrorCodeT const& /*_rerr*/) {
                 solid_log(generic_logger, Info, "send resolv_message");

@@ -164,6 +164,9 @@ struct Starter {
     } else {
         rv.pctx = ::SSL_CTX_new(_pm);
     }
+
+    SSL_CTX_set_min_proto_version(rv.pctx, 0);
+    SSL_CTX_set_max_proto_version(rv.pctx, 0);
     return rv;
 }
 
@@ -924,7 +927,7 @@ ErrorCodeT Socket::setCheckHostName(const std::string& _hostname)
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
 
     //X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-    if (X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), 0)) {
+    if (X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), _hostname.size())) { //boringssl requires namelen to be nonzero
         return ErrorCodeT();
     } else {
         return wrapper_category.makeError(WrapperError::SetCheckHostName);
@@ -934,8 +937,8 @@ ErrorCodeT Socket::setCheckHostName(const std::string& _hostname)
 ErrorCodeT Socket::setCheckEmail(const std::string& _email)
 {
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
-    ;
-    if (X509_VERIFY_PARAM_set1_email(param, _email.c_str(), 0)) {
+
+    if (X509_VERIFY_PARAM_set1_email(param, _email.c_str(), _email.size())) { //boringssl requires emaillen to be nonzero
         return ErrorCodeT();
     } else {
         return wrapper_category.makeError(WrapperError::SetCheckEmail);
