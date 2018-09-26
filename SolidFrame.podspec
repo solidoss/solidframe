@@ -125,6 +125,7 @@ Pod::Spec.new do |s|
       #define SOLID_USE_SAFE_STATIC
       #define SOLID_ON_DARWIN
       #define SOLID_ON_POSIX
+      #define SOLID_HAS_DEBUG
 
       #define SOLID_USE_GCC_BSWAP
 
