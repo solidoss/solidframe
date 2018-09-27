@@ -588,7 +588,10 @@ size_t Engine::registerLogger(LoggerBase& _rlg, const LogCategoryBase& _rlc)
 {
     lock_guard<mutex> lock(mtx_);
     module_vec_.emplace_back(&_rlg, &_rlc);
-    return module_vec_.size() - 1;
+    size_t idx = module_vec_.size() - 1;
+    
+    doConfigureModule(idx);
+    return idx;
 }
 
 void Engine::unregisterLogger(const size_t _idx)
