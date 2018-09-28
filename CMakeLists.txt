@@ -330,7 +330,7 @@ endif ()
 # Debug build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_DEBUG
-    "${SYS_DEBUG_FLAGS}"
+    "${CMAKE_CXX_FLAGS_DEBUG} ${SYS_DEBUG_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during debug builds."
     FORCE
 )
@@ -340,17 +340,17 @@ set(CMAKE_CXX_FLAGS_DEBUG
 # Maintain build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_MAINTAIN
-    "${SYS_MAINTAIN_FLAGS}"
+    "${CMAKE_CXX_FLAGS_MAINTAIN} ${SYS_MAINTAIN_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during maintain builds."
     FORCE
 )
 set(CMAKE_EXE_LINKER_FLAGS_MAINTAIN
-    "${SYS_MAINTAIN_LINKER_FLAGS}"
+    "${CMAKE_EXE_LINKER_FLAGS_MAINTAIN} ${SYS_MAINTAIN_LINKER_FLAGS}"
     CACHE STRING "Flags used for linking binaries during maintain builds."
     FORCE
 )
 set(CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
-    "${SYS_MAINTAIN_LINKER_FLAGS}"
+    "${CMAKE_SHARED_LINKER_FLAGS_MAINTAIN} ${SYS_MAINTAIN_LINKER_FLAGS}"
     CACHE STRING "Flags used by the shared libraries linker during maintain builds."
     FORCE
 )
@@ -360,7 +360,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
 # Optimized build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_OPTIMIZED
-    "${SYS_OPTIMIZED_FLAGS}"
+    "${CMAKE_CXX_FLAGS_OPTIMIZED} ${SYS_OPTIMIZED_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during optimized builds."
     FORCE
 )
@@ -370,7 +370,7 @@ set(CMAKE_CXX_FLAGS_OPTIMIZED
 # Release build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_RELEASE
-    "${SYS_RELEASE_FLAGS}"
+    "${CMAKE_CXX_FLAGS_RELEASE} ${SYS_RELEASE_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during release builds."
     FORCE
 )
@@ -380,7 +380,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
 # Nolog build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_NOLOG
-    "${SYS_NOLOG_FLAGS}"
+    "${CMAKE_CXX_FLAGS_NOLOG} ${SYS_NOLOG_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during nolog builds."
     FORCE
 )
