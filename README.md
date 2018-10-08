@@ -114,7 +114,7 @@ $ cd ~/work
 $ git clone git@github.com:vipalade/solidframe.git
 $ mkdir external
 $ cd extern
-$ ../solidframe/prerequisites/prepare_external.sh
+$ ../solidframe/prerequisites/build.sh
 # ... wait until the prerequisites are built
 $ cd ../solidframe
 $ ./configure -e ~/work/external --prefix ~/work/external
@@ -171,7 +171,7 @@ System prerequisites:
  * [Git for Windows](https://git-scm.com/download/win) - the build flow uses Git Bash
  * [Perl for Windows](http://strawberryperl.com/) - needed for building OpenSSL. Windows Git Bash installation also comes with __perl__ but it won't work with OpenSSL build.
 
-The Windows build flow, only relies on the prebuilt external folder of dependencies (on Linux/macOS/FreeBSD it is also available a build flow based on cmake's ExternalProject_Add, which automatically downdloads and builds the external prerequisites). To prepare the external folder one should use the prerequisites/prepare_external.sh script from Git Bash console as described below:
+The Windows build flow, only relies on the prebuilt external folder of dependencies (on Linux/macOS/FreeBSD it is also available a build flow based on cmake's ExternalProject_Add, which automatically downdloads and builds the external prerequisites). To prepare the external folder one should use the prerequisites/build.sh script from Git Bash console as described below:
 
 ```bash
 $ mkdir ~/work
@@ -182,7 +182,7 @@ $ cd external
 $ ../solidframe/prerequisites/run_in_visual_studio_2017_environment.sh amd64 bash
 # a new Git Bash instance will be created with Visual Studio 2017 environment setup.
 # build OpenSSL
-$ ../solidframe/prerequisites/prepare_external.sh --64bit
+$ ../solidframe/prerequisites/build.sh --64bit
 $ cd ../solidframe
 $ ./configure -b release -f vsrls64 -e ~/work/external -g "Visual Studio 15 2017 Win64"
 $ cd build/vsrls64

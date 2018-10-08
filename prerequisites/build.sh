@@ -5,24 +5,24 @@ printUsage()
     echo
     echo "Usage:"
     echo
-    echo "./prepare_extern.sh [--all] [--boost] [--openssl] [--boringssl] [--force-download] [--debug] [--64bit] [-h|--help]"
+    echo "./build.sh [--all] [--boost] [--openssl] [--boringssl] [--force-download] [--debug] [--64bit] [-h|--help]"
     echo
     echo "Examples:"
     echo
     echo "Build all external dependencies:"
-    echo "$ ./prepare_extern.sh"
+    echo "$ ./build.sh"
     echo
     echo "Build all supported dependencies:"
-    echo "$ ./prepare_extern.sh --all"
+    echo "$ ./build.sh --all"
     echo
     echo "Build only boost:"
-    echo "$ ./prepare_extern.sh --boost"
+    echo "$ ./build.sh --boost"
     echo
     echo "Build only boost with debug simbols and force download the archive:"
-    echo "$ ./prepare_extern.sh --boost --force-download -d"
+    echo "$ ./build.sh --boost --force-download -d"
     echo
     echo "Build boost and openssl:"
-    echo "$ ./prepare_extern.sh --boost --openssl"
+    echo "$ ./build.sh --boost --openssl"
     echo
 }
 

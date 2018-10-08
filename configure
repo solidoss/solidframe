@@ -26,12 +26,12 @@ print_usage(){
     echo "Usage:"
     echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
     echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
-    echo -ne " [-e|--external-path ExternalPath] [-P|--cmake-param]"
+    echo -ne " [-e|--external-dir ExternalDir] [-P|--cmake-param]"
     echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr] [-c|--create-lists] [-]\n"
     echo
     echo -ne "Options:\n"
     echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
-    echo "[-e|--external-path ExternalPath]: path to external libraries"
+    echo "[-e|--external-dir ExternalDir]: path to external libraries"
     echo "[-f|--folder-name FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
     echo "[--prefix] Install path prefix"
     echo 
@@ -76,7 +76,7 @@ FOLDER_NAME=
 FOLDER_PATH=
 HELP="no"
 PARAM=
-EXTERNAL_PATH=
+EXTERNAL_DIR=
 ENABLE_TESTING=
 TEST_NAME=
 TEST_SITE=
@@ -130,9 +130,9 @@ do
         set -- "$@" "$arg"
         pass_arg_count=`expr $pass_arg_count + 1`
         ;;
-    -e|--external-path)
+    -e|--external-dir)
         shift;
-        EXTERNAL_PATH=$1
+        EXTERNAL_DIR=$1
         ;;
     -c|--create-lists)
         CREATE_LISTS="yes"
@@ -164,19 +164,19 @@ if [ "$HELP" = "yes" ]; then
     exit
 fi
 
-if [ ! -z $EXTERNAL_PATH ]; then
+if [ ! -z $EXTERNAL_DIR ]; then
 
-    if [ ! -d $EXTERNAL_PATH ]; then
-        echo "Invalid prerequisites path: $EXTERNAL_PATH"
+    if [ ! -d $EXTERNAL_DIR ]; then
+        echo "Invalid prerequisites path: $EXTERNAL_DIR"
         exit
     fi
 
-    cd $EXTERNAL_PATH
-    EXTERNAL_PATH=`pwd`
+    cd $EXTERNAL_DIR
+    EXTERNAL_DIR=`pwd`
     cd -
 fi
 
-echo "Using extern prerequisites from: $EXTERNAL_PATH"
+echo "Using extern prerequisites from: $EXTERNAL_DIR"
 
 if [ "$DOCUMENTATION" = "full" ]; then
     echo "Building full documentation ..."
@@ -232,19 +232,19 @@ for param in "$@"; do
 done
 echo
 
-echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -p \"$PARAM\" -e \"$EXTERNAL_PATH\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
+echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -p \"$PARAM\" -e \"$EXTERNAL_DIR\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
 
 if [ "$GENERATOR" = "" ]; then
     echo "Using cmake's default generator:"
     echo ""
     
-    exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERNAL:STRING="$EXTERNAL_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+    exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
     echo "Done!"
 else
     echo "Using cmake's $GENERATOR"
     echo ""
     
-    exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERNAL:STRING="$EXTERNAL_PATH" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+    exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
 fi
 
 exit

@@ -25,15 +25,10 @@ add_definitions(${EXTRA_DEFINITIONS})
 # Prepare the external path
 #-----------------------------------------------------------------
 
-if(NOT UEXTERNAL OR UEXTERNAL STREQUAL "")
-    message("Extern path not given")
-    set(EXTERNAL_PATH "" CACHE PATH "External prerequisites path")
-else()
-    set(EXTERNAL_PATH "${UEXTERNAL}/" CACHE PATH "External prerequisites path")
-    message("External path: \"${EXTERNAL_PATH}\"")
-endif()
+set(EXTERNAL_DIR "${EXTERNAL_DIR}" CACHE PATH "External dependencies directory")
 
 message("Install path: \"${CMAKE_INSTALL_PREFIX}\"")
+message("External path: \"${EXTERNAL_DIR}\"")
 
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
@@ -258,8 +253,8 @@ if(NOT NO_EXTERNAL)
 
     include_directories(${CMAKE_BINARY_DIR}/external/include)
 
-    if(EXTERNAL_PATH STREQUAL "")
-        set(EXTERNAL_PATH "${CMAKE_CURRENT_BINARY_DIR}/external")
+    if(EXTERNAL_DIR STREQUAL "")
+        set(EXTERNAL_DIR "${CMAKE_CURRENT_BINARY_DIR}/external")
 
         include(cmake/build_boost.cmake)
         include(cmake/build_openssl.cmake)
@@ -296,7 +291,7 @@ endif()
 #-----------------------------------------------------------------
 
 if(ON_ANDROID)
-    set(EXTERNAL_PATH "${EXTERNAL_PATH}/${ANDROID_ABI}")
+    set(EXTERNAL_DIR "${EXTERNAL_DIR}/${ANDROID_ABI}")
 endif()
 
 #-----------------------------------------------------------------
@@ -425,7 +420,7 @@ set(CMAKE_BUILD_TYPE
 include_directories(
     "${SolidFrame_SOURCE_DIR}"
     "${CMAKE_CURRENT_BINARY_DIR}"
-    "${EXTERNAL_PATH}/include"
+    "${EXTERNAL_DIR}/include"
 )
 #-----------------------------------------------------------------
 
@@ -433,7 +428,7 @@ include_directories(
 # Global link directories
 #-----------------------------------------------------------------
 link_directories(
-    "${EXTERNAL_PATH}/lib"
+    "${EXTERNAL_DIR}/lib"
 )
 
 #-----------------------------------------------------------------
