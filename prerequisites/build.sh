@@ -5,7 +5,7 @@ printUsage()
     echo
     echo "Usage:"
     echo
-    echo "./build.sh [--all] [--boost] [--openssl] [--boringssl] [--force-download] [--debug] [--64bit] [-h|--help]"
+    echo "./build.sh [--all] [--boost] [--openssl] [--boringssl] [--force-download] [--debug] [--64bit] [--no-cleanup] [-h|--help]"
     echo
     echo "Examples:"
     echo
@@ -31,6 +31,7 @@ OPENSSL_ADDR="https://www.openssl.org/source/openssl-1.1.0i.tar.gz"
 
 SYSTEM=
 BIT64=
+NOCLEANUP=
 
 downloadArchive()
 {
@@ -117,11 +118,14 @@ buildBoost()
         echo
     fi
     
+    cd ..
+    if [ ! $NOCLEANUP ]; then
+        rm -rf "$BOOST_DIR"
+    fi
     
     echo
     echo "Done BOOST!"
     echo
-    cd ..
 }
 
 buildOpenssl()
@@ -168,7 +172,7 @@ buildOpenssl()
 
     cd $DIR_NAME
     
-    if		[ "$SYSTEM" = "FreeBSD" ] ; then
+    if  [ "$SYSTEM" = "FreeBSD" ] ; then
         if [ $DEBUG ] ; then
             CC=cc ./config --prefix="$EXT_DIR" --openssldir="ssl_"
         else
@@ -202,10 +206,10 @@ buildOpenssl()
     fi
     
     cd ..
-    
-    echo "Copy test certificates to ssl_ dir..."
-    
-    cp $DIR_NAME/demos/tunala/*.pem ssl_/certs/.
+
+    if [ ! $NOCLEANUP ]; then
+        rm -rf $DIR_NAME
+    fi
     
     echo
     echo "Done $WHAT!"

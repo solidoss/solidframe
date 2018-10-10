@@ -13,6 +13,10 @@ execute_process(
 set(PROJECT_VERSION_PATCH "${GIT_VERSION}")
 
 message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+#-----------------------------------------------------------------
+# Set policies
+#-----------------------------------------------------------------
+cmake_policy(SET CMP0074 NEW)
 
 #-----------------------------------------------------------------
 # Extra user definitions
@@ -265,21 +269,6 @@ if(NOT NO_EXTERNAL)
 
         include(cmake/find_boost.cmake)
         include(cmake/find_openssl.cmake)
-
-        message("")
-        if(${Boost_FOUND})
-            message("Boost found with version: ${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
-        else()
-            message("Boost not found - some targets will not compile")
-        endif()
-
-        if(OPENSSL_FOUND)
-            message("OpenSSL found with version: ${OPENSSL_VERSION}")
-        else()
-            message("OpenSSL not found - some targets will not compile")
-        endif()
-
-        message("")
     endif()
 
 else()
