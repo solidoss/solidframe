@@ -589,7 +589,7 @@ size_t Engine::registerLogger(LoggerBase& _rlg, const LogCategoryBase& _rlc)
     lock_guard<mutex> lock(mtx_);
     module_vec_.emplace_back(&_rlg, &_rlc);
     size_t idx = module_vec_.size() - 1;
-    
+
     doConfigureModule(idx);
     return idx;
 }
