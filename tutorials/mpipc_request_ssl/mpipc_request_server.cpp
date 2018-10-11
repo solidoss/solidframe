@@ -48,15 +48,17 @@ struct Date {
     uint8_t  day;
     uint8_t  month;
     uint16_t year;
+
+	Date(const uint8_t _day = 0, const uint8_t _month = 0, const uint16_t _year = 0):day(_day), month(_month), year(_year){}
 };
 
-struct AccountData {
+struct AccountData{
     string userid;
-    string full_name;
-    string email;
-    string country;
-    string city;
-    Date   birth_date;
+	string full_name;
+	string email;
+	string country;
+	string city;
+	Date   birth_date;
 };
 
 using AccountDataDequeT = std::deque<AccountData>;
