@@ -16,7 +16,9 @@ message("SolidFrame version: ${PROJECT_VERSION} - ${PROJECT_VERSION_MAJOR}.${PRO
 #-----------------------------------------------------------------
 # Set policies
 #-----------------------------------------------------------------
-cmake_policy(SET CMP0074 NEW)
+if(NOT ${CMAKE_VERSION} VERSION_LESS "3.12.0") 
+    cmake_policy(SET CMP0074 NEW)
+endif()
 
 #-----------------------------------------------------------------
 # Extra user definitions
