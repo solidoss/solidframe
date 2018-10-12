@@ -23,7 +23,7 @@ endif()
 #-----------------------------------------------------------------
 # Extra user definitions
 #-----------------------------------------------------------------
-set(EXTRA_DEFINITIONS "${UDEFS}" CACHE STRING "Extra compiler definitions")
+set(EXTRA_DEFINITIONS "${EXTRA_DEFINITIONS}" CACHE STRING "Extra compiler definitions")
 add_definitions(${EXTRA_DEFINITIONS})
 #-----------------------------------------------------------------
 
