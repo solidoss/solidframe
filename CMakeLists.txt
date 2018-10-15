@@ -190,8 +190,16 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     set(SYS_OPTIMIZED_LINKER_FLAGS "")
     set(SYS_NOLOG_LINKER_FLAGS "")
     set(SYS_RELEASE_LINKER_FLAGS "-O3")
-
-    set(SYS_BASIC_LIBS pthread rt atomic)
+    
+    set(SYS_BASIC_LIBS pthread rt)
+    
+    find_library(ATOMIC_LIB NAMES atomic atomic.so.1 libatomic.so.1)
+    
+    if(ATOMIC_LIB)
+        message("Atomic library found: ${ATOMIC_LIB}")
+        set(SYS_BASIC_LIBS ${SYS_BASIC_LIBS} atomic)
+    endif()
+    
     set(SYS_DYNAMIC_LOAD_LIB dl)
 endif(CMAKE_SYSTEM MATCHES "Linux*")
 
