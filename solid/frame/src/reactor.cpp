@@ -111,7 +111,7 @@ struct RaiseEventStub {
     RaiseEventStub(const RaiseEventStub&) = delete;
 
     RaiseEventStub(
-        RaiseEventStub&& _ures)
+        RaiseEventStub&& _ures) noexcept
         : uid(_ures.uid)
         , event(std::move(_ures.event))
     {
@@ -172,7 +172,14 @@ struct ExecStub {
         , event(std::move(_revent))
     {
     }
-
+    
+    ExecStub(
+        UniqueId const& _ruid, Event && _revent)
+        : objuid(_ruid)
+        , event(std::move(_revent))
+    {
+    }
+        
     ExecStub(
         UniqueId const& _ruid, Event const& _revent = Event())
         : objuid(_ruid)
@@ -181,9 +188,9 @@ struct ExecStub {
     }
 
     ExecStub(
-        ExecStub&& _res)
-        : objuid(std::move(_res.objuid))
-        , chnuid(std::move(_res.chnuid))
+        ExecStub&& _res)noexcept
+        : objuid(_res.objuid)
+        , chnuid(_res.chnuid)
         , event(std::move(_res.event))
     {
         std::swap(exefnc, _res.exefnc);
@@ -208,7 +215,7 @@ struct Reactor::Data {
     Data(
 
         )
-        : running(0)
+        : running(false)
         , must_stop(false)
         , crtpushtskvecidx(0)
         , crtraisevecidx(0)
@@ -223,9 +230,11 @@ struct Reactor::Data {
 
     int computeWaitTimeMilliseconds(NanoTime const& _rcrt) const
     {
-        if (exeq.size()) {
+        if (!exeq.empty()) {
             return 0;
-        } else if (timestore.size()) {
+        }
+        
+        if (timestore.size() != 0u) {
             if (_rcrt < timestore.next()) {
                 const int64_t maxwait = 1000 * 60; //1 minute
                 int64_t       diff    = 0;
@@ -238,15 +247,13 @@ struct Reactor::Data {
                 diff               = std::chrono::duration_cast<std::chrono::milliseconds>(next_tp - crt_tp).count();
                 if (diff > maxwait) {
                     return maxwait;
-                } else {
-                    return static_cast<int>(diff);
                 }
-            } else {
-                return 0;
+                return static_cast<int>(diff);
             }
-        } else {
-            return -1;
+            
+            return 0;
         }
+        return -1;
     }
 
     UniqueId dummyCompletionHandlerUid() const
@@ -438,7 +445,7 @@ void Reactor::doPost(ReactorContext& _rctx, EventFunctionT& _revfn, Event&& _uev
     impl_->exeq.back().chnuid = UniqueId(_rch.idxreactor, impl_->chdq[_rch.idxreactor].unique);
 }
 
-/*static*/ void Reactor::stop_object_repost(ReactorContext& _rctx, Event&& _uevent)
+/*static*/ void Reactor::stop_object_repost(ReactorContext& _rctx, Event&& /*_uevent*/)
 {
     Reactor& rthis = _rctx.reactor();
     rthis.impl_->exeq.push(ExecStub(_rctx.objectUid()));
@@ -504,7 +511,7 @@ struct TimerCallback {
     }
 };
 
-void Reactor::onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx)
+void Reactor::onTimer(ReactorContext& _rctx, const size_t /*_tidx*/, const size_t _chidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
 
@@ -527,7 +534,7 @@ void Reactor::doCompleteExec(NanoTime const& _rcrttime)
 {
     ReactorContext ctx(*this, _rcrttime);
     size_t         sz = impl_->exeq.size();
-    while (sz--) {
+    while ((sz--) != 0) {
         ExecStub&              rexe(impl_->exeq.front());
         ObjectStub&            ros(impl_->objdq[static_cast<size_t>(rexe.objuid.index)]);
         CompletionHandlerStub& rcs(impl_->chdq[static_cast<size_t>(rexe.chnuid.index)]);
@@ -560,10 +567,10 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime)
         impl_->running   = false;
         impl_->must_stop = false;
     }
-    if (impl_->crtpushvecsz) {
+    if (impl_->crtpushvecsz != 0u) {
         impl_->crtpushvecsz = 0;
-        for (auto it = impl_->freeuidvec.begin(); it != impl_->freeuidvec.end(); ++it) {
-            this->pushUid(*it);
+        for(auto &v: impl_->freeuidvec){
+            this->pushUid(v);
         }
         impl_->freeuidvec.clear();
 
@@ -572,7 +579,7 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime)
         impl_->pcrtpushtskvec      = &impl_->pushtskvec[crtpushvecidx];
         rv                         = true;
     }
-    if (impl_->crtraisevecsz) {
+    if (impl_->crtraisevecsz != 0u) {
         impl_->crtraisevecsz        = 0;
         const size_t crtraisevecidx = impl_->crtraisevecidx;
         impl_->crtraisevecidx       = ((crtraisevecidx + 1) & 1);
@@ -590,12 +597,11 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
     RaiseEventVectorT& crtraisevec = *impl_->pcrtraisevec;
     ReactorContext     ctx(*this, _rcrttime);
 
-    if (crtpushvec.size()) {
+    if (!crtpushvec.empty()) {
 
         impl_->objcnt += crtpushvec.size();
 
-        for (auto it = crtpushvec.begin(); it != crtpushvec.end(); ++it) {
-            NewTaskStub& rnewobj(*it);
+        for(auto &rnewobj: crtpushvec){
 
             if (rnewobj.uid.index >= impl_->objdq.size()) {
                 impl_->objdq.resize(static_cast<size_t>(rnewobj.uid.index + 1));
@@ -625,9 +631,8 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
         crtpushvec.clear();
     }
 
-    if (crtraisevec.size()) {
-        for (auto it = crtraisevec.begin(); it != crtraisevec.end(); ++it) {
-            RaiseEventStub& revent = *it;
+    if (!crtraisevec.empty()) {
+        for(auto &revent: crtraisevec){
             impl_->exeq.push(ExecStub(revent.uid, &call_object_on_event, impl_->dummyCompletionHandlerUid(), std::move(revent.event)));
         }
         crtraisevec.clear();
@@ -657,7 +662,7 @@ void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, cons
     static_cast<SteadyTimer*>(rch.pch)->storeidx = _newidx;
 }
 
-bool Reactor::remTimer(CompletionHandler const& _rch, size_t const& _rstoreidx)
+bool Reactor::remTimer(CompletionHandler const& /*_rch*/, size_t const& _rstoreidx)
 {
     if (_rstoreidx != InvalidIndex()) {
         impl_->timestore.pop(_rstoreidx, ChangeTimerIndexCallback(*this));
@@ -669,7 +674,7 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Object const& _
 {
     solid_dbg(logger, Verbose, "");
     size_t idx;
-    if (impl_->chposcache.size()) {
+    if (!impl_->chposcache.empty()) {
         idx = impl_->chposcache.top();
         impl_->chposcache.pop();
     } else {
@@ -782,7 +787,7 @@ CompletionHandler* ReactorContext::completionHandler() const
 UniqueId ReactorBase::popUid(ObjectBase& _robj)
 {
     UniqueId rv(crtidx, 0);
-    if (uidstk.size()) {
+    if (!uidstk.empty()) {
         rv = uidstk.top();
         uidstk.pop();
     } else {

@@ -24,7 +24,7 @@ namespace frame {
 
 Object::Object() {}
 
-/*virtual*/ void Object::onEvent(ReactorContext& _rctx, Event&& _uevent)
+/*virtual*/ void Object::onEvent(ReactorContext& /*_rctx*/, Event&& /*_uevent*/)
 {
 }
 
@@ -36,7 +36,7 @@ bool Object::isRunning() const
 bool Object::registerCompletionHandler(CompletionHandler& _rch)
 {
     _rch.pnext = this->pnext;
-    if (_rch.pnext) {
+    if (_rch.pnext != nullptr) {
         _rch.pnext->pprev = &_rch;
     }
     this->pnext = &_rch;
@@ -112,7 +112,7 @@ ObjectBase::~ObjectBase()
 {
 }
 
-/*virtual*/ void ObjectBase::onStop(Manager& _rm)
+/*virtual*/ void ObjectBase::onStop(Manager& /*_rm*/)
 {
 }
 void ObjectBase::stop(Manager& _rm)

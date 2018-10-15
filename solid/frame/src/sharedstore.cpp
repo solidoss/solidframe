@@ -36,7 +36,7 @@ enum {
 
 void PointerBase::doClear(const bool _isalive)
 {
-    if (psb) {
+    if (psb != nullptr) {
         psb->erasePointer(id(), _isalive);
         uid = UniqueId::invalid();
         psb = nullptr;
@@ -155,7 +155,7 @@ size_t StoreBase::doAllocateIndex()
 {
     //mutex is locked
     size_t rv;
-    if (impl_->cacheobjidxstk.size()) {
+    if (!impl_->cacheobjidxstk.empty()) {
         rv = impl_->cacheobjidxstk.top();
         impl_->cacheobjidxstk.pop();
     } else {
@@ -209,7 +209,7 @@ void StoreBase::raise()
         {
             std::lock_guard<std::mutex> lock(mutex());
             ulong                       sm = 0;
-            if (impl_->pfillerasevec->size()) {
+            if (!impl_->pfillerasevec->empty()) {
                 solid::exchange(impl_->pconserasevec, impl_->pfillerasevec);
             }
             doExecuteOnSignal(sm);
@@ -245,7 +245,7 @@ void StoreBase::doExecuteCache()
 void* StoreBase::doTryAllocateWait()
 {
     solid_dbg(logger, Verbose, "");
-    if (impl_->cachewaitstk.size()) {
+    if (!impl_->cachewaitstk.empty()) {
         void* rv = impl_->cachewaitstk.top();
         impl_->cachewaitstk.pop();
         return rv;

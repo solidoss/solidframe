@@ -42,12 +42,12 @@ public:
     ErrorCategory() {}
 
 private:
-    const char* name() const noexcept(true)
+    const char* name() const noexcept override
     {
         return "solid::frame::Scheduler";
     }
 
-    std::string message(int _ev) const
+    std::string message(int _ev) const override
     {
         switch (_ev) {
         case AlreadyE:
@@ -96,7 +96,7 @@ struct ReactorStub {
     {
     }
 
-    ReactorStub(ReactorStub&& _urs)
+    ReactorStub(ReactorStub&& _urs)noexcept
         : thr(std::move(_urs.thr))
         , preactor(_urs.preactor)
     {
@@ -186,10 +186,12 @@ ErrorConditionT SchedulerBase::doStart(
 
         if (impl_->status == StatusRunningE) {
             return error_already();
-        } else if (impl_->status != StatusStoppedE || impl_->stopwaitcnt) {
+        }
+        
+        if (impl_->status != StatusStoppedE || impl_->stopwaitcnt != 0u) {
             do {
                 impl_->cnd.wait(lock);
-            } while (impl_->status != StatusStoppedE || impl_->stopwaitcnt);
+            } while (impl_->status != StatusStoppedE || impl_->stopwaitcnt != 0u);
         }
 
         impl_->reactorvec.resize(_reactorcnt);
@@ -232,9 +234,9 @@ ErrorConditionT SchedulerBase::doStart(
         }
 
         if (start_err) {
-            for (auto it = impl_->reactorvec.begin(); it != impl_->reactorvec.end(); ++it) {
-                if (it->preactor) {
-                    it->preactor->stop();
+            for(auto &v: impl_->reactorvec){
+                if (v.preactor != nullptr) {
+                    v.preactor->stop();
                 }
             }
         } else {
@@ -243,10 +245,10 @@ ErrorConditionT SchedulerBase::doStart(
         }
     }
 
-    for (auto it = impl_->reactorvec.begin(); it != impl_->reactorvec.end(); ++it) {
-        if (it->isActive()) {
-            it->thr.join();
-            it->clear();
+    for(auto &v: impl_->reactorvec){
+        if (v.isActive()) {
+            v.thr.join();
+            v.clear();
         }
     }
 
@@ -269,9 +271,10 @@ void SchedulerBase::doStop(bool _wait /* = true*/)
 
         if (impl_->status == StatusRunningE) {
             impl_->status = _wait ? StatusStoppingWaitE : StatusStoppingE;
-            for (auto it = impl_->reactorvec.begin(); it != impl_->reactorvec.end(); ++it) {
-                if (it->preactor) {
-                    it->preactor->stop();
+            
+            for(auto &v : impl_->reactorvec){
+                if (v.preactor != nullptr) {
+                    v.preactor->stop();
                 }
             }
         } else if (impl_->status == StatusStoppingE) {
@@ -292,13 +295,13 @@ void SchedulerBase::doStop(bool _wait /* = true*/)
     }
 
     if (_wait) {
-        while (impl_->usecnt) {
+        while (impl_->usecnt != 0u) {
             this_thread::yield();
         }
-        for (auto it = impl_->reactorvec.begin(); it != impl_->reactorvec.end(); ++it) {
-            if (it->isActive()) {
-                it->thr.join();
-                it->clear();
+        for (auto &v: impl_->reactorvec){
+            if (v.isActive()) {
+                v.thr.join();
+                v.clear();
             }
         }
         lock_guard<mutex> lock(impl_->mtx);
@@ -385,7 +388,7 @@ bool SchedulerBase::prepareThread(const size_t _idx, ReactorBase& _rreactor, con
     return false;
 }
 
-void SchedulerBase::unprepareThread(const size_t _idx, ReactorBase& _rreactor)
+void SchedulerBase::unprepareThread(const size_t _idx, ReactorBase& /*_rreactor*/)
 {
     {
         lock_guard<mutex> lock(impl_->mtx);

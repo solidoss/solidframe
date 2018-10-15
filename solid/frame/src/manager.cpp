@@ -47,12 +47,12 @@ class ErrorCategory : public ErrorCategoryT {
 public:
     ErrorCategory() {}
 
-    const char* name() const noexcept
+    const char* name() const noexcept override
     {
         return "solid::frame";
     }
 
-    std::string message(int _ev) const;
+    std::string message(int _ev) const override;
 };
 
 const ErrorCategory category;
@@ -187,8 +187,9 @@ struct ServiceStub {
         endobjidx = InvalidIndex();
         objcnt    = 0;
         state     = StateRunningE;
-        while (objcache.size())
+        while (!objcache.empty()){
             objcache.pop();
+        }
     }
 
     void reset()
@@ -201,8 +202,9 @@ struct ServiceStub {
         endobjidx = InvalidIndex();
         objcnt    = 0;
         state     = StateStoppedE;
-        while (objcache.size())
+        while (!objcache.empty()){
             objcache.pop();
+        }
     }
 
     Service*    psvc;
@@ -374,7 +376,7 @@ struct Manager::Data {
 };
 
 Manager::Data::Data(
-    Manager& _rm)
+    Manager& /*_rm*/)
     : crtsvcstoreidx(0)
     , crtsvcidx(0)
     , svccnt(0)
@@ -391,8 +393,8 @@ Manager::Data::~Data()
         objstoreidx = 1;
     }
     ChunkDequeT& rchdq = objstore[objstoreidx].vec;
-    for (auto it = rchdq.begin(); it != rchdq.end(); ++it) {
-        delete[](*it)->data();
+    for(auto &v: rchdq){
+        delete[] v->data();
     }
 }
 
@@ -463,7 +465,7 @@ bool Manager::registerService(
     size_t crtsvcstoreidx = impl_->crtsvcstoreidx;
     size_t svcidx         = InvalidIndex();
 
-    if (impl_->svccache.size()) {
+    if (!impl_->svccache.empty()) {
 
         svcidx = impl_->svccache.top();
         impl_->svccache.top();
@@ -575,7 +577,7 @@ ObjectIdT Manager::registerObject(
         return retval;
     }
 
-    if (rss.objcache.size()) {
+    if (!rss.objcache.empty()) {
 
         objidx = rss.objcache.top();
         rss.objcache.pop();
@@ -589,7 +591,7 @@ ObjectIdT Manager::registerObject(
 
         std::lock_guard<std::mutex> lock2(impl_->mtx);
         size_t                      chkidx = InvalidIndex();
-        if (impl_->chkcache.size()) {
+        if (!impl_->chkcache.empty()) {
             chkidx = impl_->chkcache.top();
             impl_->chkcache.pop();
         } else {
@@ -780,7 +782,7 @@ bool Manager::doVisit(ObjectIdT const& _ruid, const ObjectVisitFunctionT _rfct)
             std::lock_guard<std::mutex> lock(rchk.rmtx);
             ObjectStub const&           ros(impl_->object(objstoreidx, static_cast<size_t>(_ruid.index)));
 
-            if (ros.unique == _ruid.unique && ros.pobject && ros.preactor) {
+            if (ros.unique == _ruid.unique && ros.pobject != nullptr && ros.preactor != nullptr) {
                 VisitContext ctx(*this, *ros.preactor, *ros.pobject);
                 retval = _rfct(ctx);
             }
@@ -850,7 +852,7 @@ std::mutex& Manager::mutex(const Service& _rsvc) const
 size_t Manager::doForEachServiceObject(const Service& _rsvc, const ObjectVisitFunctionT _rfct)
 {
     if (!_rsvc.isRegistered()) {
-        return false;
+        return 0u;
     }
     const size_t svcidx = _rsvc.idx.load(/*std::memory_order_seq_cst*/);
     size_t       chkidx = InvalidIndex();
@@ -887,7 +889,7 @@ size_t Manager::doForEachServiceObject(const size_t _chkidx, const ObjectVisitFu
         ObjectStub* poss = rchk.objects();
 
         for (size_t i(0), cnt(0); i < impl_->objchkcnt && cnt < rchk.objcnt; ++i) {
-            if (poss[i].pobject && poss[i].preactor) {
+            if (poss[i].pobject != nullptr && poss[i].preactor != nullptr) {
                 VisitContext ctx(*this, *poss[i].preactor, *poss[i].pobject);
                 _rfct(ctx);
                 ++visited_count;
@@ -972,7 +974,7 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
 
         rss.psvc->resetRunning();
 
-        const bool cnt = doForEachServiceObject(rss.firstchk, ObjectVisitFunctionT{raise_lambda});
+        const size_t cnt = doForEachServiceObject(rss.firstchk, ObjectVisitFunctionT{raise_lambda});
 
         if (cnt == 0 && rss.objcnt == 0) {
             rss.state = StateStoppedE;
@@ -984,7 +986,7 @@ void Manager::stopService(Service& _rsvc, const bool _wait)
 
     if (rss.state == StateStoppingE && _wait) {
         solid_dbg(logger, Verbose, "" << svcidx);
-        while (rss.objcnt) {
+        while (rss.objcnt != 0u) {
             impl_->cnd.wait(lock);
         }
         solid_dbg(logger, Verbose, "StateStoppedE on " << svcidx);
@@ -1004,7 +1006,9 @@ void Manager::start()
             }
             if (impl_->state == StateRunningE) {
                 continue;
-            } else if (impl_->state == StateStoppingE) {
+            }
+            
+            if (impl_->state == StateStoppingE) {
                 while (impl_->state == StateStoppingE) {
                     impl_->cnd.wait(lock);
                 }
@@ -1025,7 +1029,7 @@ void Manager::stop()
         if (impl_->state == StateRunningE) {
             impl_->state = StateStoppingE;
         } else if (impl_->state == StateStoppingE) {
-            while (impl_->svccnt) {
+            while (impl_->svccnt != 0u) {
                 impl_->cnd.wait(lock);
             }
         } else {
@@ -1043,12 +1047,12 @@ void Manager::stop()
 
     //broadcast to all objects to stop
     for (auto it = rsvcstore.vec.begin(); it != rsvcstore.vec.end(); ++it) {
-        if (*it) {
+        if (*it != nullptr) {
             ServiceStub& rss = *(*it);
 
             std::lock_guard<std::mutex> lock(rss.rmtx);
 
-            if (rss.psvc && rss.state == StateRunningE) {
+            if (rss.psvc != nullptr && rss.state == StateRunningE) {
                 rss.psvc->resetRunning();
 
                 const size_t cnt = doForEachServiceObject(rss.firstchk, ObjectVisitFunctionT{raise_lambda});
@@ -1061,19 +1065,19 @@ void Manager::stop()
 
     //wait for all services to stop
     for (auto it = rsvcstore.vec.begin(); it != rsvcstore.vec.end(); ++it) {
-        if (*it) {
+        if (*it != nullptr) {
             ServiceStub& rss = *(*it);
 
             std::unique_lock<std::mutex> lock(rss.rmtx);
 
-            if (rss.psvc && rss.state == StateStoppingE) {
+            if (rss.psvc != nullptr && rss.state == StateStoppingE) {
                 solid_dbg(logger, Verbose, "wait stop service: " << (it - rsvcstore.vec.begin()));
-                while (rss.objcnt) {
+                while (rss.objcnt != 0u) {
                     impl_->cnd.wait(lock);
                 }
                 rss.state = StateStoppedE;
                 solid_dbg(logger, Verbose, "StateStoppedE on " << (it - rsvcstore.vec.begin()));
-            } else if (rss.psvc) {
+            } else if (rss.psvc != nullptr) {
                 solid_dbg(logger, Verbose, "unregister already stopped service: " << (it - rsvcstore.vec.begin()) << " " << rss.psvc << " " << rss.state);
                 solid_assert(rss.state == StateStoppedE);
             }

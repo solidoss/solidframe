@@ -83,7 +83,7 @@ void CompletionHandler::systemError(ReactorContext& _rctx, ErrorCodeT const& _er
 bool CompletionHandler::activate(Object const& _robj)
 {
     Reactor* preactor = nullptr;
-    if (!isActive() && (preactor = Reactor::safeSpecific())) {
+    if (!isActive() && (preactor = Reactor::safeSpecific()) != nullptr) {
         preactor->registerCompletionHandler(*this, _robj);
     }
     return isActive();
@@ -100,7 +100,7 @@ void CompletionHandler::unregister()
 void CompletionHandler::deactivate()
 {
     Reactor* preactor = nullptr;
-    if (isActive() && (preactor = Reactor::safeSpecific())) {
+    if (isActive() && (preactor = Reactor::safeSpecific()) != nullptr) {
         //the object has entered the reactor
         preactor->unregisterCompletionHandler(*this);
         idxreactor = InvalidIndex();
@@ -110,7 +110,7 @@ void CompletionHandler::deactivate()
     }
 }
 
-/*static*/ void CompletionHandler::on_init_completion(CompletionHandler& _rch, ReactorContext& _rctx)
+/*static*/ void CompletionHandler::on_init_completion(CompletionHandler& _rch, ReactorContext& /*_rctx*/)
 {
     _rch.call = nullptr;
 }
