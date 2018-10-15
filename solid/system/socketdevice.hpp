@@ -26,13 +26,13 @@ public:
 #endif
 
     //!Copy constructor
-    SocketDevice(SocketDevice&& _sd);
+    SocketDevice(SocketDevice&& _sd)noexcept;
     //!Basic constructor
     SocketDevice();
     //!Destructor
     ~SocketDevice();
     //!Assign operator
-    SocketDevice& operator=(SocketDevice&& _dev);
+    SocketDevice& operator=(SocketDevice&& _dev)noexcept;
     //! Shutdown reading
     void shutdownRead();
     //! Shutdown writing

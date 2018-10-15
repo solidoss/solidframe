@@ -27,14 +27,14 @@ namespace solid {
 //-----------------------------------------------------------------------
 void ResolveData::delete_addrinfo(void* _pv)
 {
-    if (_pv) {
+    if (_pv != nullptr) {
         freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
     }
 }
 
 ResolveData synchronous_resolve(const char* _node, const char* _service)
 {
-    if (!_node && !_service) {
+    if ((_node == nullptr) || (_service == nullptr)) {
         return ResolveData();
     }
     addrinfo* paddr = nullptr;
@@ -49,15 +49,18 @@ ResolveData synchronous_resolve(
     int         _type,
     int         _proto)
 {
-    if (!_node && !_service) {
+    if ((_node == nullptr) || (_service == nullptr)) {
         return ResolveData();
     }
-    if (_family < 0)
+    if (_family < 0){
         _family = AF_UNSPEC;
-    if (_type < 0)
+    }
+    if (_type < 0){
         _type = 0;
-    if (_proto < 0)
+    }
+    if (_proto < 0){
         _proto = 0;
+    }
     addrinfo h;
     h.ai_flags      = _flags;
     h.ai_family     = _family;
@@ -101,11 +104,10 @@ bool synchronous_resolve(std::string& _rhost, std::string& _rserv, const SocketA
         _rhost.assign(hbuf);
         _rserv.assign(sbuf);
         return true;
-    } else {
-        _rhost.clear();
-        _rserv.clear();
-        return false;
     }
+    _rhost.clear();
+    _rserv.clear();
+    return false;
 }
 
 std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa)

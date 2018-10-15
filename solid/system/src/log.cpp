@@ -53,11 +53,11 @@ enum {
 class ErrorCategory : public ErrorCategoryT {
 public:
     ErrorCategory() {}
-    const char* name() const noexcept
+    const char* name() const noexcept override
     {
         return "solid::log";
     }
-    std::string message(int _ev) const;
+    std::string message(int _ev) const override;
 };
 
 std::string ErrorCategory::message(int _ev) const
@@ -151,9 +151,8 @@ protected:
     {
         if (writeAll(s, num)) {
             return num;
-        } else {
-            return -1;
         }
+        return -1;
     }
 
 private:
@@ -169,7 +168,7 @@ protected:
 
 public:
     DeviceBasicStream(uint64_t& _rsz)
-        : std::ostream(0)
+        : std::ostream(nullptr)
         , buf(_rsz)
     {
         rdbuf(&buf);
@@ -238,8 +237,9 @@ private:
     {
         ptrdiff_t towrite = bpos - bbeg;
         bpos              = bbeg;
-        if (!writeAll(bbeg, towrite))
+        if (!writeAll(bbeg, towrite)){
             return false;
+        }
         rsz_ += towrite;
         return true;
     }
@@ -268,16 +268,18 @@ std::streamsize DeviceBuffer::xsputn(const char* s, std::streamsize num)
 {
     //we can safely put BUFF_FLUSH into the buffer
     long towrite = buffer_capacity - buffer_flush;
-    if (towrite > static_cast<int>(num))
+    if (towrite > static_cast<int>(num)){
         towrite = static_cast<int>(num);
+    }
     memcpy(bpos, s, towrite);
     bpos += towrite;
     if (static_cast<size_t>(bpos - bbeg) > buffer_flush && !flush()) {
         solid_assert(0);
         return -1;
     }
-    if (num == towrite)
+    if (num == towrite){
         return num;
+    }
     num -= towrite;
     s += towrite;
     if (num >= static_cast<std::streamsize>(buffer_flush)) {
@@ -296,7 +298,7 @@ protected:
 
 public:
     DeviceStream(uint64_t& _rsz)
-        : std::ostream(0)
+        : std::ostream(nullptr)
         , buf(_rsz)
     {
         rdbuf(&buf);
@@ -324,10 +326,9 @@ struct SocketRecorder : LogRecorder {
         if (_buffered) {
             buffered_stream_.device(std::move(_rsd));
             return buffered_stream_;
-        } else {
-            unbuffered_stream_.device(std::move(_rsd));
-            return unbuffered_stream_;
         }
+        unbuffered_stream_.device(std::move(_rsd));
+        return unbuffered_stream_;
     }
 
     SocketRecorder(
@@ -339,7 +340,7 @@ struct SocketRecorder : LogRecorder {
     {
     }
 
-    ~SocketRecorder()
+    ~SocketRecorder() override
     {
         SocketDevice sd;
         unbuffered_stream_.swapDevice(sd);
@@ -370,8 +371,8 @@ void filePath(string& _out, uint32_t _pos, const string& _path, const string& _n
     _out = _path;
     _out += _name;
 
-    if (_pos) {
-        snprintf(buf, bufcp, "_%04lu.log", (unsigned long)_pos);
+    if (_pos != 0u) {
+        snprintf(buf, bufcp, "_%04lu.log", static_cast<unsigned long>(_pos));
     } else {
         snprintf(buf, bufcp, ".log");
     }
@@ -381,7 +382,7 @@ void filePath(string& _out, uint32_t _pos, const string& _path, const string& _n
 void splitPrefix(string& _path, string& _name, const char* _prefix)
 {
     const char* p = strrchr(_prefix, path_separator);
-    if (!p) {
+    if (p == nullptr) {
         _name = _prefix;
     } else {
         _path.assign(_prefix, (p - _prefix) + 1);
@@ -404,10 +405,9 @@ struct FileRecorder : LogRecorder {
         if (_buffered) {
             buffered_stream_.device(std::move(_rsd));
             return buffered_stream_;
-        } else {
-            unbuffered_stream_.device(std::move(_rsd));
-            return unbuffered_stream_;
         }
+        unbuffered_stream_.device(std::move(_rsd));
+        return unbuffered_stream_;
     }
 
     FileRecorder(
@@ -428,7 +428,7 @@ struct FileRecorder : LogRecorder {
     {
     }
 
-    ~FileRecorder()
+    ~FileRecorder() override
     {
         FileDevice fd;
         unbuffered_stream_.swapDevice(fd);
@@ -441,7 +441,7 @@ struct FileRecorder : LogRecorder {
 
     bool shouldRespin(const size_t _sz) const
     {
-        return respin_size_ && respin_size_ < (current_size_ + _sz);
+        return (respin_size_ != 0u) && respin_size_ < (current_size_ + _sz);
     }
 
     void doRespin()
@@ -483,7 +483,7 @@ struct FileRecorder : LogRecorder {
                 filePath(topath, lastpos + 1, path_, name_);
             }
 
-            while (lastpos) {
+            while (lastpos != 0u) {
                 filePath(frompath, lastpos, path_, name_);
                 Directory::renameFile(frompath.c_str(), topath.c_str());
                 topath = frompath;
@@ -567,9 +567,9 @@ public:
     }
 
     size_t registerLogger(LoggerBase& _rlg, const LogCategoryBase& _rlc);
-    void   unregisterLogger(const size_t _idx);
+    void   unregisterLogger(size_t _idx);
 
-    void log(const size_t _idx, const LogLineBase& _log_ros);
+    void log(size_t _idx, const LogLineBase& _log_ros);
 
     ErrorConditionT configure(LogRecorderPtrT&& _recorder_ptr, const std::vector<std::string>& _rmodule_mask_vec);
 
@@ -581,7 +581,7 @@ public:
 
 private:
     void doConfigureMasks(const std::vector<std::string>& _rmodule_mask_vec);
-    void doConfigureModule(const size_t _idx);
+    void doConfigureModule(size_t _idx);
 };
 
 size_t Engine::registerLogger(LoggerBase& _rlg, const LogCategoryBase& _rlc)
@@ -600,7 +600,7 @@ void Engine::unregisterLogger(const size_t _idx)
     module_vec_[_idx].clear();
 }
 
-void Engine::log(const size_t _idx, const LogLineBase& _log_ros)
+void Engine::log(const size_t /*_idx*/, const LogLineBase& _log_ros)
 {
     std::lock_guard<std::mutex> lock(mtx_);
     recorder_ptr_->recordLine(_log_ros);
@@ -832,7 +832,7 @@ ErrorConditionT log_start(
     std::string path;
     std::string name;
 
-    if (_prefix && *_prefix) {
+    if (_prefix != nullptr && (*_prefix != 0)) {
         splitPrefix(path, name, _prefix);
         if (path.empty()) {
             path = "log";
@@ -868,9 +868,8 @@ ErrorConditionT log_start(
         while (it != rd.end()) {
             if (!sd.create(it) && !sd.connect(it)) {
                 break;
-            } else {
-                sd.close();
             }
+            sd.close();
             ++it;
         }
         if (!sd) {

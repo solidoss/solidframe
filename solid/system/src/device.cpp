@@ -41,13 +41,13 @@ using namespace std;
 
 namespace solid {
 
-Device::Device(Device&& _dev)
+Device::Device(Device&& _dev)noexcept
     : desc(_dev.descriptor())
 {
     _dev.desc = invalidDescriptor();
 }
 
-Device& Device::operator=(Device&& _dev)
+Device& Device::operator=(Device&& _dev)noexcept
 {
     close();
     desc      = _dev.descriptor();
@@ -283,8 +283,9 @@ int64_t FileDevice::size() const
     }
 #else
     struct stat st;
-    if (fstat(descriptor(), &st))
+    if (fstat(descriptor(), &st) != 0){
         return -1;
+    }
     return st.st_size;
 #endif
 }
@@ -306,8 +307,9 @@ bool FileDevice::canRetryOpen() const
     return fd.size();
 #else
     struct stat st;
-    if (stat(_fname, &st))
+    if (stat(_fname, &st) != 0){
         return -1;
+    }
     return st.st_size;
 #endif
 }
@@ -379,7 +381,7 @@ ErrorCodeT last_socket_error()
 #endif
 }
 
-SocketDevice::SocketDevice(SocketDevice&& _sd)
+SocketDevice::SocketDevice(SocketDevice&& _sd)noexcept
     : Device(std::move(_sd))
 {
 #ifndef SOLID_HAS_DEBUG
@@ -393,7 +395,7 @@ SocketDevice::SocketDevice()
 {
 }
 
-SocketDevice& SocketDevice::operator=(SocketDevice&& _dev)
+SocketDevice& SocketDevice::operator=(SocketDevice&& _dev)noexcept
 {
     *static_cast<Device*>(this) = static_cast<Device&&>(_dev);
     return *this;
@@ -407,31 +409,37 @@ SocketDevice::~SocketDevice()
 void SocketDevice::shutdownRead()
 {
 #ifdef SOLID_ON_WINDOWS
-    if (ok())
+    if (ok()){
         shutdown(descriptor(), SD_RECEIVE);
+    }
 #else
-    if (ok())
+    if (ok()){
         shutdown(descriptor(), SHUT_RD);
+    }
 #endif
 }
 void SocketDevice::shutdownWrite()
 {
 #ifdef SOLID_ON_WINDOWS
-    if (ok())
+    if (ok()){
         shutdown(descriptor(), SD_SEND);
+    }
 #else
-    if (ok())
+    if (ok()){
         shutdown(descriptor(), SHUT_WR);
+    }
 #endif
 }
 void SocketDevice::shutdownReadWrite()
 {
 #ifdef SOLID_ON_WINDOWS
-    if (ok())
+    if (ok()){
         shutdown(descriptor(), SD_BOTH);
+    }
 #else
-    if (ok())
+    if (ok()){
         shutdown(descriptor(), SHUT_RDWR);
+    }
 #endif
 }
 void SocketDevice::close()
@@ -542,7 +550,7 @@ ErrorCodeT SocketDevice::prepareAccept(const SocketAddressStub& _rsas, size_t _l
     return last_socket_error();
 #else
     int yes = 1;
-    int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes));
+    int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&yes), sizeof(yes));
     if (rv < 0) {
         return last_socket_error();
     }
@@ -660,11 +668,11 @@ ErrorCodeT SocketDevice::makeBlocking(size_t _msec)
     struct timeval timeout;
     timeout.tv_sec = _msec / 1000;
     timeout.tv_usec = _msec % 1000;
-    rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+    rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
     if (rv != 0) {
         return last_socket_error();
     }
-    rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
+    rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
     if (rv != 0) {
         return last_socket_error();
     }
@@ -806,7 +814,7 @@ ErrorCodeT SocketDevice::remoteAddress(SocketAddress& _rsa) const
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
     int rv  = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-    if (!rv) {
+    if (rv == 0) {
         return ErrorCodeT();
     }
     return last_socket_error();
@@ -814,7 +822,7 @@ ErrorCodeT SocketDevice::remoteAddress(SocketAddress& _rsa) const
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
     int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-    if (!rv) {
+    if (rv == 0) {
         return ErrorCodeT();
     }
     return last_socket_error();
@@ -827,7 +835,7 @@ ErrorCodeT SocketDevice::localAddress(SocketAddress& _rsa) const
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
     int rv  = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-    if (!rv) {
+    if (rv == 0) {
         return ErrorCodeT();
     }
     return last_socket_error();
@@ -835,7 +843,7 @@ ErrorCodeT SocketDevice::localAddress(SocketAddress& _rsa) const
     _rsa.clear();
     _rsa.sz = SocketAddress::Capacity;
     int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-    if (!rv) {
+    if (rv == 0) {
         return ErrorCodeT();
     }
     return last_socket_error();
@@ -898,10 +906,10 @@ ErrorCodeT SocketDevice::enableNoDelay()
 {
 #if defined(SOLID_ON_WINDOWS)
     BOOL flag = true;
-    int  rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int  rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), sizeof(flag));
 #else
     int flag = 1;
-    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), sizeof(flag));
 #endif
     if (rv == 0) {
         return ErrorCodeT();
@@ -913,10 +921,10 @@ ErrorCodeT SocketDevice::disableNoDelay()
 {
 #if defined(SOLID_ON_WINDOWS)
     BOOL flag = false;
-    int  rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int  rv   = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), sizeof(flag));
 #else
     int flag = 0;
-    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), sizeof(flag));
 #endif
     if (rv == 0) {
         return ErrorCodeT();
@@ -930,7 +938,7 @@ ErrorCodeT SocketDevice::enableNoSignal()
     return solid::error_not_implemented;
 #else
     int flag = 1;
-    int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, reinterpret_cast<char*>(&flag), sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -944,7 +952,7 @@ ErrorCodeT SocketDevice::disableNoSignal()
     return solid::error_not_implemented;
 #else
     int flag = 0;
-    int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), SOL_SOCKET, MSG_NOSIGNAL, reinterpret_cast<char*>(&flag), sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -966,7 +974,7 @@ ErrorCodeT SocketDevice::hasNoDelay(bool& _rrv) const
 {
     int       flag = 0;
     socklen_t sz(sizeof(flag));
-    int       rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
+    int       rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag), &sz);
     if (rv == 0) {
         _rrv = (flag != 0);
         return ErrorCodeT();
@@ -980,7 +988,7 @@ ErrorCodeT SocketDevice::enableCork()
     return solid::error_not_implemented;
 #elif defined(SOLID_ON_LINUX)
     int flag = 1;
-    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, reinterpret_cast<char*>(&flag), sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -996,7 +1004,7 @@ ErrorCodeT SocketDevice::disableCork()
     return solid::error_not_implemented;
 #elif defined(SOLID_ON_LINUX)
     int flag = 0;
-    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
+    int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, reinterpret_cast<char*>(&flag), sizeof(flag));
     if (rv == 0) {
         return ErrorCodeT();
     }
@@ -1013,7 +1021,7 @@ ErrorCodeT SocketDevice::hasCork(bool& _rrv) const
 #elif defined(SOLID_ON_LINUX)
     int flag = 0;
     socklen_t sz(sizeof(flag));
-    int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
+    int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, reinterpret_cast<char*>(&flag), &sz);
     if (rv == 0) {
         _rrv = (flag != 0);
         return ErrorCodeT();
@@ -1030,36 +1038,35 @@ ErrorCodeT SocketDevice::sendBufferSize(int& _rsz)
 {
     if (_rsz >= 0) {
         int sockbufsz(_rsz);
-        int rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, sizeof(sockbufsz));
+        int rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&sockbufsz), sizeof(sockbufsz));
         if (rv == 0) {
             return ErrorCodeT();
         }
         return last_socket_error();
-    } else {
-        int       sockbufsz(0);
-        socklen_t sz(sizeof(sockbufsz));
-        int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+    }   
+    int       sockbufsz(0);
+    socklen_t sz(sizeof(sockbufsz));
+    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&sockbufsz), &sz);
 
-        if (rv == 0) {
-            _rsz = sockbufsz;
-            return ErrorCodeT();
-        }
-        return last_socket_error();
+    if (rv == 0) {
+        _rsz = sockbufsz;
+        return ErrorCodeT();
     }
+    return last_socket_error();
 }
 
 ErrorCodeT SocketDevice::recvBufferSize(int& _rsz)
 {
     if (_rsz >= 0) {
         int sockbufsz(_rsz);
-        int rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, sizeof(sockbufsz));
+        int rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char*>(&sockbufsz), sizeof(sockbufsz));
         if (rv == 0) {
             return ErrorCodeT();
         }
     } else {
         int       sockbufsz(0);
         socklen_t sz(sizeof(sockbufsz));
-        int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+        int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char*>(&sockbufsz), &sz);
         if (rv == 0) {
             _rsz = sockbufsz;
             return ErrorCodeT();
@@ -1072,7 +1079,7 @@ ErrorCodeT SocketDevice::sendBufferSize(int& _rsz) const
 {
     int       sockbufsz(0);
     socklen_t sz(sizeof(sockbufsz));
-    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&sockbufsz), &sz);
 
     if (rv == 0) {
         _rsz = sockbufsz;
@@ -1085,7 +1092,7 @@ ErrorCodeT SocketDevice::recvBufferSize(int& _rsz) const
 {
     int       sockbufsz(0);
     socklen_t sz(sizeof(sockbufsz));
-    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+    int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char*>(&sockbufsz), &sz);
     if (rv == 0) {
         _rsz = sockbufsz;
         return ErrorCodeT();

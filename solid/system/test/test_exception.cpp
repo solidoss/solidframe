@@ -9,11 +9,11 @@ namespace {
 class ErrorCategory : public solid::ErrorCategoryT {
 public:
     ErrorCategory() {}
-    const char* name() const noexcept
+    const char* name() const noexcept override
     {
         return "test";
     }
-    std::string message(int _ev) const;
+    std::string message(int _ev) const override;
 };
 
 const ErrorCategory category;

@@ -75,7 +75,7 @@ size_t getMemoryPageSize()
     GetSystemInfo(&siSysInfo);
     return siSysInfo.dwPageSize;
 #else
-    return (size_t)sysconf(_SC_PAGESIZE);
+    return static_cast<size_t>(sysconf(_SC_PAGESIZE));
 #endif
 }
 
@@ -146,7 +146,7 @@ size_t getMemorySize()
 
 #elif defined(_SC_PHYS_PAGES) && defined(_SC_PAGESIZE)
     /* FreeBSD, Linux, OpenBSD, and Solaris. -------------------- */
-    return (size_t)sysconf(_SC_PHYS_PAGES) * (size_t)sysconf(_SC_PAGESIZE);
+    return static_cast<size_t>(sysconf(_SC_PHYS_PAGES)) * static_cast<size_t>(sysconf(_SC_PAGESIZE));
 
 #elif defined(_SC_PHYS_PAGES) && defined(_SC_PAGE_SIZE)
     /* Legacy. -------------------------------------------------- */
