@@ -552,7 +552,7 @@ struct Reactor::Data {
 #endif
 };
 //-----------------------------------------------------------------------------
-void EventHandler::write(Reactor& /*_rreactor*/)
+void EventHandler::write(Reactor& _rreactor)
 {
 #if defined(SOLID_USE_EPOLL)
     const uint64_t v = 1;
