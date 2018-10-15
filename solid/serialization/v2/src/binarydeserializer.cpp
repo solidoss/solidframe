@@ -247,7 +247,7 @@ Base::ReturnE DeserializerBase::load_stream(DeserializerBase& _rd, Runnable& _rr
         _rr.call_ = load_stream_chunk_begin;
         return load_stream_chunk_begin(_rd, _rr, _pctx);
     }
-    
+
     _rr.size_ = 2;
     _rr.data_ = 0;
     _rr.call_ = load_stream_chunk_length;

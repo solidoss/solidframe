@@ -419,7 +419,7 @@ bool MessageWriter::doFindEligibleMessage(const bool _can_send_relay, const size
         const size_t msgidx   = write_inner_list_.frontIndex();
         MessageStub& rmsgstub = message_vec_[msgidx];
 
-        if (rmsgstub.isHeadState()){
+        if (rmsgstub.isHeadState()) {
             return true; //prevent splitting the header
         }
 
@@ -559,10 +559,10 @@ size_t MessageWriter::doWritePacketData(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteMessageHead(
-    char*                        _pbufpos,
-    char*                        _pbufend,
-    const size_t                 _msgidx,
-    PacketOptions&               /*_rpacket_options*/,
+    char*        _pbufpos,
+    char*        _pbufend,
+    const size_t _msgidx,
+    PacketOptions& /*_rpacket_options*/,
     Sender&                      _rsender,
     const PacketHeader::CommandE _cmd,
     ErrorConditionT&             _rerror)
@@ -677,10 +677,10 @@ char* MessageWriter::doWriteMessageBody(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteRelayedHead(
-    char*                        _pbufpos,
-    char*                        _pbufend,
-    const size_t                 _msgidx,
-    PacketOptions&               /*_rpacket_options*/,
+    char*        _pbufpos,
+    char*        _pbufend,
+    const size_t _msgidx,
+    PacketOptions& /*_rpacket_options*/,
     Sender&                      _rsender,
     const PacketHeader::CommandE _cmd,
     ErrorConditionT&             _rerror)
@@ -724,11 +724,11 @@ char* MessageWriter::doWriteRelayedHead(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteRelayedBody(
-    char*            _pbufpos,
-    char*            _pbufend,
-    const size_t     _msgidx,
-    PacketOptions&   /*_rpacket_options*/,
-    Sender&          _rsender,
+    char*        _pbufpos,
+    char*        _pbufend,
+    const size_t _msgidx,
+    PacketOptions& /*_rpacket_options*/,
+    Sender& _rsender,
     ErrorConditionT& /*_rerror*/)
 {
     char* pcmdpos = nullptr;
@@ -790,11 +790,11 @@ char* MessageWriter::doWriteRelayedBody(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteMessageCancel(
-    char*            _pbufpos,
-    char*            _pbufend,
-    const size_t     _msgidx,
-    PacketOptions&   /*_rpacket_options*/,
-    Sender&          _rsender,
+    char*        _pbufpos,
+    char*        _pbufend,
+    const size_t _msgidx,
+    PacketOptions& /*_rpacket_options*/,
+    Sender& _rsender,
     ErrorConditionT& /*_rerror*/)
 {
 
@@ -817,11 +817,11 @@ char* MessageWriter::doWriteMessageCancel(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteRelayedCancel(
-    char*            _pbufpos,
-    char*            _pbufend,
-    const size_t     _msgidx,
-    PacketOptions&   /*_rpacket_options*/,
-    Sender&          _rsender,
+    char*        _pbufpos,
+    char*        _pbufend,
+    const size_t _msgidx,
+    PacketOptions& /*_rpacket_options*/,
+    Sender& _rsender,
     ErrorConditionT& /*_rerror*/)
 {
     MessageStub& rmsgstub = message_vec_[_msgidx];
@@ -848,11 +848,11 @@ char* MessageWriter::doWriteRelayedCancel(
 }
 //-----------------------------------------------------------------------------
 char* MessageWriter::doWriteRelayedCancelRequest(
-    char*            _pbufpos,
-    char*            _pbufend,
-    const size_t     _msgidx,
-    PacketOptions&   /*_rpacket_options*/,
-    Sender&          _rsender,
+    char*        _pbufpos,
+    char*        _pbufend,
+    const size_t _msgidx,
+    PacketOptions& /*_rpacket_options*/,
+    Sender& _rsender,
     ErrorConditionT& /*_rerror*/)
 {
 

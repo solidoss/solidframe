@@ -767,7 +767,7 @@ ErrorConditionT Service::reconfigure(Configuration&& _ucfg)
 
         error = _ucfg.check();
 
-        if (error){
+        if (error) {
             return error;
         }
 
@@ -949,7 +949,7 @@ ErrorConditionT Service::doSendMessage(
             _flags,
             message_url);
     }
-    
+
     if (recipient_name != nullptr) {
         NameMapT::const_iterator it = impl_->namemap.find(recipient_name);
 
@@ -1403,7 +1403,7 @@ void Service::rejectNewPoolMessage(Connection const& _rconnection)
     ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
     solid_assert(rpool.unique == _rconnection.poolId().unique);
-    if (rpool.unique != _rconnection.poolId().unique){
+    if (rpool.unique != _rconnection.poolId().unique) {
         return;
     }
 
@@ -1777,7 +1777,7 @@ bool Service::connectionStopping(
         }
 
         solid_assert(rpool.unique == rcon.poolId().unique);
-        if (rpool.unique != rcon.poolId().unique){
+        if (rpool.unique != rcon.poolId().unique) {
             return false;
         }
 
@@ -1886,7 +1886,7 @@ bool Service::doMainConnectionStoppingNotLast(
 }
 //-----------------------------------------------------------------------------
 bool Service::doMainConnectionStoppingCleanOneShot(
-    Connection& _rcon, ObjectIdT const& /*_robjuid*/,
+    Connection&    _rcon, ObjectIdT const& /*_robjuid*/,
     ulong&         _rseconds_to_wait,
     MessageId&     _rmsg_id,
     MessageBundle* _pmsg_bundle,
@@ -2018,7 +2018,7 @@ bool Service::doMainConnectionStoppingPrepareCleanOneShot(
         }
         return false;
     }
-    
+
     if (_pmsg_bundle != nullptr) {
         if (_rcon.isActiveState()) {
             --rpool.active_connection_count;
@@ -2146,7 +2146,7 @@ void Service::connectionStop(ConnectionContext& _rconctx)
         ConnectionPoolStub&     rpool(impl_->pooldq[pool_index]);
 
         solid_assert(rpool.unique == _rconctx.connection().poolId().unique);
-        if (rpool.unique != _rconctx.connection().poolId().unique){
+        if (rpool.unique != _rconctx.connection().poolId().unique) {
             return;
         }
 
@@ -2455,7 +2455,7 @@ void Service::onOutgoingConnectionStart(ConnectionContext& _rconctx)
         ConnectionPoolStub&    rpool(impl_->pooldq[pool_index]);
 
         solid_assert(rpool.unique == _rconctx.connection().poolId().unique);
-        if (rpool.unique != _rconctx.connection().poolId().unique){
+        if (rpool.unique != _rconctx.connection().poolId().unique) {
             return;
         }
 

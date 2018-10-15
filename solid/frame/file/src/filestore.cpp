@@ -116,10 +116,10 @@ struct SizePairCompare {
     }
     int operator()(SizePairT const& _a, size_t _b) const
     {
-        if (_a.first < _b){
+        if (_a.first < _b) {
             return -1;
         }
-        if (_b < _a.first){
+        if (_b < _a.first) {
             return 1;
         }
         return 0;
@@ -143,8 +143,8 @@ struct Utf8ConfigurationImpl {
     Utf8ConfigurationImpl(Utf8Configuration const& _cfg)
     {
         storagevec.reserve(_cfg.storagevec.size());
-        
-        for(const auto & v: _cfg.storagevec){
+
+        for (const auto& v : _cfg.storagevec) {
             storagevec.push_back(Storage(v));
         }
     }
@@ -220,7 +220,7 @@ struct TempConfigurationImpl {
     TempConfigurationImpl(TempConfiguration const& _cfg)
     {
         storagevec.reserve(_cfg.storagevec.size());
-        for(const auto &v:_cfg.storagevec){
+        for (const auto& v : _cfg.storagevec) {
             storagevec.push_back(Storage(v));
         }
     }
@@ -646,7 +646,7 @@ void split_id(const uint32_t _id, size_t& _rfldrid, size_t& _rfileid)
 bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint32_t _id)
 {
     _rpath.assign(_prefix);
-    if (_rpath.empty()){
+    if (_rpath.empty()) {
         return false;
     }
 

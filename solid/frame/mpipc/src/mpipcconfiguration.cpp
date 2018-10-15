@@ -94,7 +94,7 @@ SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::a
 
 const char* default_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
 {
-    if (_purl == nullptr){
+    if (_purl == nullptr) {
         return nullptr;
     }
 
@@ -169,19 +169,19 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngine::doRelayStart(
     const ObjectIdT& /*_rcon_uid*/,
-    UniqueId&        /*_rrelay_uid*/,
-    MessageHeader&   /*_rmsghdr*/,
-    RelayData&&      /*_urelay_data*/,
-    MessageId&       /*_rrelay_id*/,
+    UniqueId& /*_rrelay_uid*/,
+    MessageHeader& /*_rmsghdr*/,
+    RelayData&& /*_urelay_data*/,
+    MessageId& /*_rrelay_id*/,
     ErrorConditionT& /*_rerror*/)
 {
     return false;
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngine::doRelayResponse(
-    const UniqueId&  /*_rrelay_uid*/,
-    MessageHeader&   /*_rmsghdr*/,
-    RelayData&&      /*_urelay_data*/,
+    const UniqueId& /*_rrelay_uid*/,
+    MessageHeader& /*_rmsghdr*/,
+    RelayData&& /*_urelay_data*/,
     const MessageId& /*_rrelay_id*/,
     ErrorConditionT& /*_rerror*/)
 {
@@ -189,8 +189,8 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngine::doRelay(
-    const UniqueId&  /*_rrelay_uid*/,
-    RelayData&&      /*_urelay_data*/,
+    const UniqueId& /*_rrelay_uid*/,
+    RelayData&& /*_urelay_data*/,
     const MessageId& /*_rrelay_id*/,
     ErrorConditionT& /*_rerror*/)
 {
@@ -278,7 +278,7 @@ size_t Configuration::connectionReconnectTimeoutSeconds(
     const bool    _failed_create_connection_object,
     const bool    _last_connection_was_connected,
     const bool    _last_connection_was_active,
-    const bool    /*_last_connection_was_secured*/) const
+    const bool /*_last_connection_was_secured*/) const
 {
     if (_failed_create_connection_object) {
         return connection_reconnect_timeout_seconds / 2;

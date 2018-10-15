@@ -26,7 +26,7 @@ char* store_with_check(char* _pd, const size_t _sz, uint8_t _v)
         const bool ok = compute_value_with_crc(*pd, static_cast<uint8_t>(sz));
         if (ok) {
             ++pd;
-            if (sz!=0u) {
+            if (sz != 0u) {
                 *pd = _v;
             }
             return _pd + sz + 1;

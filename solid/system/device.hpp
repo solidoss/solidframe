@@ -42,7 +42,7 @@ public:
         return -1;
 #endif
     }
-    Device(Device&& _dev)noexcept;
+    Device(Device&& _dev) noexcept;
     //! The copy constructor which will grab the desc from the given device (like std::autoptr)
     Device(DescriptorT _desc = invalidDescriptor());
     ~Device();
@@ -61,7 +61,7 @@ public:
     {
         return ok();
     }
-    Device& operator=(Device&& _dev)noexcept;
+    Device& operator=(Device&& _dev) noexcept;
     //! The native descriptor associated to the socket
     DescriptorT descriptor() const;
 

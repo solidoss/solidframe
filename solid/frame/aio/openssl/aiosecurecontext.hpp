@@ -39,11 +39,11 @@ public:
 
     Context(Context const&) = delete;
 
-    Context(Context&& _rctx)noexcept;
+    Context(Context&& _rctx) noexcept;
 
     Context& operator=(Context const&) = delete;
 
-    Context& operator=(Context&& _rctx)noexcept;
+    Context& operator=(Context&& _rctx) noexcept;
 
     ~Context();
 

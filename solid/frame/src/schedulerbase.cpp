@@ -96,7 +96,7 @@ struct ReactorStub {
     {
     }
 
-    ReactorStub(ReactorStub&& _urs)noexcept
+    ReactorStub(ReactorStub&& _urs) noexcept
         : thr(std::move(_urs.thr))
         , preactor(_urs.preactor)
     {
@@ -187,7 +187,7 @@ ErrorConditionT SchedulerBase::doStart(
         if (impl_->status == StatusRunningE) {
             return error_already();
         }
-        
+
         if (impl_->status != StatusStoppedE || impl_->stopwaitcnt != 0u) {
             do {
                 impl_->cnd.wait(lock);
@@ -234,7 +234,7 @@ ErrorConditionT SchedulerBase::doStart(
         }
 
         if (start_err) {
-            for(auto &v: impl_->reactorvec){
+            for (auto& v : impl_->reactorvec) {
                 if (v.preactor != nullptr) {
                     v.preactor->stop();
                 }
@@ -245,7 +245,7 @@ ErrorConditionT SchedulerBase::doStart(
         }
     }
 
-    for(auto &v: impl_->reactorvec){
+    for (auto& v : impl_->reactorvec) {
         if (v.isActive()) {
             v.thr.join();
             v.clear();
@@ -271,8 +271,8 @@ void SchedulerBase::doStop(bool _wait /* = true*/)
 
         if (impl_->status == StatusRunningE) {
             impl_->status = _wait ? StatusStoppingWaitE : StatusStoppingE;
-            
-            for(auto &v : impl_->reactorvec){
+
+            for (auto& v : impl_->reactorvec) {
                 if (v.preactor != nullptr) {
                     v.preactor->stop();
                 }
@@ -298,7 +298,7 @@ void SchedulerBase::doStop(bool _wait /* = true*/)
         while (impl_->usecnt != 0u) {
             this_thread::yield();
         }
-        for (auto &v: impl_->reactorvec){
+        for (auto& v : impl_->reactorvec) {
             if (v.isActive()) {
                 v.thr.join();
                 v.clear();

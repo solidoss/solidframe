@@ -52,13 +52,13 @@ ResolveData synchronous_resolve(
     if ((_node == nullptr) || (_service == nullptr)) {
         return ResolveData();
     }
-    if (_family < 0){
+    if (_family < 0) {
         _family = AF_UNSPEC;
     }
-    if (_type < 0){
+    if (_type < 0) {
         _type = 0;
     }
-    if (_proto < 0){
+    if (_proto < 0) {
         _proto = 0;
     }
     addrinfo h;

@@ -98,7 +98,7 @@ struct Test {
 
 } //namespace
 
-int test_container(int /*argc*/, char* /*argv*/[])
+int test_container(int /*argc*/, char* /*argv*/ [])
 {
 
     solid::log_start(std::cerr, {".*:VIEW"});

@@ -61,7 +61,7 @@ bool joinTypeId(uint64_t& _rtype_id, const uint32_t _protocol_id, const uint64_t
 {
     size_t proto_bit_count = max_bit_count(_protocol_id);
 
-    if (proto_bit_count > 30){
+    if (proto_bit_count > 30) {
         return false;
     }
 

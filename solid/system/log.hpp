@@ -325,11 +325,11 @@ ErrorConditionT log_start(
 
 #ifdef SOLID_HAS_DEBUG
 
-#define solid_dbg(Lgr, Flg, Txt)                                                                               \
-    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                            \
-        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                  \
+#define solid_dbg(Lgr, Flg, Txt)                                                                                                         \
+    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                                                      \
+        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                                            \
         Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, static_cast<const char*>((SOLID_FUNCTION_NAME)), __LINE__) << Txt << std::endl; \
-        Lgr.done(os);                                                                                          \
+        Lgr.done(os);                                                                                                                    \
     }
 
 #else
@@ -338,11 +338,11 @@ ErrorConditionT log_start(
 
 #endif
 
-#define solid_log(Lgr, Flg, Txt)                                                                               \
-    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                            \
-        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                  \
+#define solid_log(Lgr, Flg, Txt)                                                                                                         \
+    if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                                                      \
+        solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                                            \
         Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, static_cast<const char*>((SOLID_FUNCTION_NAME)), __LINE__) << Txt << std::endl; \
-        Lgr.done(os);                                                                                          \
+        Lgr.done(os);                                                                                                                    \
     }
 
 #define solid_log_raw(Txt)                                       \

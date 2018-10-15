@@ -27,12 +27,12 @@ struct TestNoCopy {
     TestNoCopy(const TestNoCopy&) = delete;
     TestNoCopy& operator=(const TestNoCopy&) = delete;
 
-    TestNoCopy(TestNoCopy&& _utnc)noexcept
+    TestNoCopy(TestNoCopy&& _utnc) noexcept
         : str(std::move(_utnc.str))
     {
     }
 
-    TestNoCopy& operator=(TestNoCopy&& _utnc)noexcept
+    TestNoCopy& operator=(TestNoCopy&& _utnc) noexcept
     {
         str = std::move(_utnc.str);
         return *this;
@@ -124,7 +124,7 @@ struct Test {
         cout << "Test(const Test&): " << this << " : " << i_ << endl;
     }
 
-    Test(Test&& _t)noexcept
+    Test(Test&& _t) noexcept
         : i_(_t.i_)
     {
         _t.i_ = 0;

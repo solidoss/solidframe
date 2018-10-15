@@ -172,14 +172,14 @@ struct ExecStub {
         , event(std::move(_revent))
     {
     }
-    
+
     ExecStub(
-        UniqueId const& _ruid, Event && _revent)
+        UniqueId const& _ruid, Event&& _revent)
         : objuid(_ruid)
         , event(std::move(_revent))
     {
     }
-        
+
     ExecStub(
         UniqueId const& _ruid, Event const& _revent = Event())
         : objuid(_ruid)
@@ -188,7 +188,7 @@ struct ExecStub {
     }
 
     ExecStub(
-        ExecStub&& _res)noexcept
+        ExecStub&& _res) noexcept
         : objuid(_res.objuid)
         , chnuid(_res.chnuid)
         , event(std::move(_res.event))
@@ -233,7 +233,7 @@ struct Reactor::Data {
         if (!exeq.empty()) {
             return 0;
         }
-        
+
         if (timestore.size() != 0u) {
             if (_rcrt < timestore.next()) {
                 const int64_t maxwait = 1000 * 60; //1 minute
@@ -250,7 +250,7 @@ struct Reactor::Data {
                 }
                 return static_cast<int>(diff);
             }
-            
+
             return 0;
         }
         return -1;
@@ -569,7 +569,7 @@ bool Reactor::doWaitEvent(NanoTime const& _rcrttime)
     }
     if (impl_->crtpushvecsz != 0u) {
         impl_->crtpushvecsz = 0;
-        for(auto &v: impl_->freeuidvec){
+        for (auto& v : impl_->freeuidvec) {
             this->pushUid(v);
         }
         impl_->freeuidvec.clear();
@@ -601,7 +601,7 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
 
         impl_->objcnt += crtpushvec.size();
 
-        for(auto &rnewobj: crtpushvec){
+        for (auto& rnewobj : crtpushvec) {
 
             if (rnewobj.uid.index >= impl_->objdq.size()) {
                 impl_->objdq.resize(static_cast<size_t>(rnewobj.uid.index + 1));
@@ -632,7 +632,7 @@ void Reactor::doCompleteEvents(NanoTime const& _rcrttime)
     }
 
     if (!crtraisevec.empty()) {
-        for(auto &revent: crtraisevec){
+        for (auto& revent : crtraisevec) {
             impl_->exeq.push(ExecStub(revent.uid, &call_object_on_event, impl_->dummyCompletionHandlerUid(), std::move(revent.event)));
         }
         crtraisevec.clear();

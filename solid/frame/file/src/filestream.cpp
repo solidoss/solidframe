@@ -361,7 +361,7 @@ bool FileBuf::flushPut()
         }
         return sz;
     }
-    
+
     const ssize_t rv = dev->write(_s, static_cast<size_t>(_n), off);
     if (rv > 0) {
         off += rv;

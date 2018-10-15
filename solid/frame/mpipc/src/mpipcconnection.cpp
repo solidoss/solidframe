@@ -1614,7 +1614,7 @@ struct Connection::Receiver : MessageReader::Receiver {
                 recv_something = false; //prevent calling doResetTimerRecv after doStop
                 break;
             }
-            
+
             if (rthis.cons_buf_off_ < bufsz) {
                 rthis.doOptimizeRecvBufferForced();
             }
@@ -2053,7 +2053,7 @@ ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rct
             });
         return ResponseStateE::Cancel;
     }
-    
+
     if (rv == ResponseStateE::Cancel) {
         if (_rmsghdr.sender_request_id_.isValid()) {
             solid_dbg(logger, Info, this << " cancel_remote_msg = " << _rmsghdr.sender_request_id_);

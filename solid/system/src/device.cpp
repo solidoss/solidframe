@@ -41,13 +41,13 @@ using namespace std;
 
 namespace solid {
 
-Device::Device(Device&& _dev)noexcept
+Device::Device(Device&& _dev) noexcept
     : desc(_dev.descriptor())
 {
     _dev.desc = invalidDescriptor();
 }
 
-Device& Device::operator=(Device&& _dev)noexcept
+Device& Device::operator=(Device&& _dev) noexcept
 {
     close();
     desc      = _dev.descriptor();
@@ -283,7 +283,7 @@ int64_t FileDevice::size() const
     }
 #else
     struct stat st;
-    if (fstat(descriptor(), &st) != 0){
+    if (fstat(descriptor(), &st) != 0) {
         return -1;
     }
     return st.st_size;
@@ -307,7 +307,7 @@ bool FileDevice::canRetryOpen() const
     return fd.size();
 #else
     struct stat st;
-    if (stat(_fname, &st) != 0){
+    if (stat(_fname, &st) != 0) {
         return -1;
     }
     return st.st_size;
@@ -381,7 +381,7 @@ ErrorCodeT last_socket_error()
 #endif
 }
 
-SocketDevice::SocketDevice(SocketDevice&& _sd)noexcept
+SocketDevice::SocketDevice(SocketDevice&& _sd) noexcept
     : Device(std::move(_sd))
 {
 #ifndef SOLID_HAS_DEBUG
@@ -395,7 +395,7 @@ SocketDevice::SocketDevice()
 {
 }
 
-SocketDevice& SocketDevice::operator=(SocketDevice&& _dev)noexcept
+SocketDevice& SocketDevice::operator=(SocketDevice&& _dev) noexcept
 {
     *static_cast<Device*>(this) = static_cast<Device&&>(_dev);
     return *this;
@@ -409,11 +409,11 @@ SocketDevice::~SocketDevice()
 void SocketDevice::shutdownRead()
 {
 #ifdef SOLID_ON_WINDOWS
-    if (ok()){
+    if (ok()) {
         shutdown(descriptor(), SD_RECEIVE);
     }
 #else
-    if (ok()){
+    if (ok()) {
         shutdown(descriptor(), SHUT_RD);
     }
 #endif
@@ -421,11 +421,11 @@ void SocketDevice::shutdownRead()
 void SocketDevice::shutdownWrite()
 {
 #ifdef SOLID_ON_WINDOWS
-    if (ok()){
+    if (ok()) {
         shutdown(descriptor(), SD_SEND);
     }
 #else
-    if (ok()){
+    if (ok()) {
         shutdown(descriptor(), SHUT_WR);
     }
 #endif
@@ -433,11 +433,11 @@ void SocketDevice::shutdownWrite()
 void SocketDevice::shutdownReadWrite()
 {
 #ifdef SOLID_ON_WINDOWS
-    if (ok()){
+    if (ok()) {
         shutdown(descriptor(), SD_BOTH);
     }
 #else
-    if (ok()){
+    if (ok()) {
         shutdown(descriptor(), SHUT_RDWR);
     }
 #endif
@@ -1043,7 +1043,7 @@ ErrorCodeT SocketDevice::sendBufferSize(int& _rsz)
             return ErrorCodeT();
         }
         return last_socket_error();
-    }   
+    }
     int       sockbufsz(0);
     socklen_t sz(sizeof(sockbufsz));
     int       rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&sockbufsz), &sz);

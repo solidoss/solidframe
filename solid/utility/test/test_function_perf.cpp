@@ -15,7 +15,7 @@ enum struct FunctionChoice {
 class TestBase {
 public:
     virtual ~TestBase() {}
-    virtual void     clear()              = 0;
+    virtual void     clear()        = 0;
     virtual void     create(size_t) = 0;
     virtual uint64_t run(size_t)    = 0;
 };
@@ -103,7 +103,7 @@ TestBase* create_test(const size_t _closure_size)
     }
     if (_closure_size < 128) {
         return new FunctionTest<F, 64>();
-    } 
+    }
     return new FunctionTest<F, 128>();
 }
 

@@ -187,7 +187,7 @@ struct ServiceStub {
         endobjidx = InvalidIndex();
         objcnt    = 0;
         state     = StateRunningE;
-        while (!objcache.empty()){
+        while (!objcache.empty()) {
             objcache.pop();
         }
     }
@@ -202,7 +202,7 @@ struct ServiceStub {
         endobjidx = InvalidIndex();
         objcnt    = 0;
         state     = StateStoppedE;
-        while (!objcache.empty()){
+        while (!objcache.empty()) {
             objcache.pop();
         }
     }
@@ -393,7 +393,7 @@ Manager::Data::~Data()
         objstoreidx = 1;
     }
     ChunkDequeT& rchdq = objstore[objstoreidx].vec;
-    for(auto &v: rchdq){
+    for (auto& v : rchdq) {
         delete[] v->data();
     }
 }
@@ -1007,7 +1007,7 @@ void Manager::start()
             if (impl_->state == StateRunningE) {
                 continue;
             }
-            
+
             if (impl_->state == StateStoppingE) {
                 while (impl_->state == StateStoppingE) {
                     impl_->cnd.wait(lock);

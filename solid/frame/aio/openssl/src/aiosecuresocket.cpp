@@ -226,21 +226,21 @@ typedef void (*EVP_PKEYDeleter)(EVP_PKEY*);
 
 void bio_deleter(BIO* _pbio)
 {
-    if (_pbio != nullptr){
+    if (_pbio != nullptr) {
         ::BIO_free(_pbio);
     }
 }
 
 void x509_deleter(X509* _px509)
 {
-    if (_px509 != nullptr){
+    if (_px509 != nullptr) {
         ::X509_free(_px509);
     }
 }
 
 void evp_pkey_deleter(EVP_PKEY* _pkey)
 {
-    if (_pkey != nullptr){
+    if (_pkey != nullptr) {
         ::EVP_PKEY_free(_pkey);
     }
 }
@@ -872,16 +872,16 @@ void Socket::clearThisPointer()
 static int convertMask(const VerifyMaskT _verify_mask)
 {
     int rv = 0;
-    if ((_verify_mask & VerifyModeNone) != 0u){
+    if ((_verify_mask & VerifyModeNone) != 0u) {
         rv |= SSL_VERIFY_NONE;
     }
-    if ((_verify_mask & VerifyModePeer) != 0u){
+    if ((_verify_mask & VerifyModePeer) != 0u) {
         rv |= SSL_VERIFY_PEER;
     }
-    if ((_verify_mask & VerifyModeFailIfNoPeerCert) != 0u){
+    if ((_verify_mask & VerifyModeFailIfNoPeerCert) != 0u) {
         rv |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
     }
-    if ((_verify_mask & VerifyModeClientOnce) != 0u){
+    if ((_verify_mask & VerifyModeClientOnce) != 0u) {
         rv |= SSL_VERIFY_CLIENT_ONCE;
     }
     return rv;
@@ -955,7 +955,7 @@ ErrorCodeT Socket::setCheckIP(const std::string& _ip)
     if (X509_VERIFY_PARAM_set1_ip_asc(param, _ip.c_str()) != 0) {
         return ErrorCodeT();
     }
-    
+
     return wrapper_category.makeError(WrapperError::SetCheckIP);
 }
 

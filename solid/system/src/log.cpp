@@ -237,7 +237,7 @@ private:
     {
         ptrdiff_t towrite = bpos - bbeg;
         bpos              = bbeg;
-        if (!writeAll(bbeg, towrite)){
+        if (!writeAll(bbeg, towrite)) {
             return false;
         }
         rsz_ += towrite;
@@ -268,7 +268,7 @@ std::streamsize DeviceBuffer::xsputn(const char* s, std::streamsize num)
 {
     //we can safely put BUFF_FLUSH into the buffer
     long towrite = buffer_capacity - buffer_flush;
-    if (towrite > static_cast<int>(num)){
+    if (towrite > static_cast<int>(num)) {
         towrite = static_cast<int>(num);
     }
     memcpy(bpos, s, towrite);
@@ -277,7 +277,7 @@ std::streamsize DeviceBuffer::xsputn(const char* s, std::streamsize num)
         solid_assert(0);
         return -1;
     }
-    if (num == towrite){
+    if (num == towrite) {
         return num;
     }
     num -= towrite;

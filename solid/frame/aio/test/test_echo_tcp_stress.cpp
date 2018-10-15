@@ -100,9 +100,9 @@ protected:
     {
     }
     ~Connection() override {}
-    void onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
-    static void      onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
-    static void      onSend(frame::aio::ReactorContext& _rctx);
+    void        onEvent(frame::aio::ReactorContext& _rctx, Event&& _revent) override;
+    static void onRecv(frame::aio::ReactorContext& _rctx, size_t _sz);
+    static void onSend(frame::aio::ReactorContext& _rctx);
 
 protected:
     enum { BufferCapacity = 1024 * 2 };
@@ -219,8 +219,8 @@ protected:
     }
 
 private:
-    virtual void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas)          = 0;
-    virtual void postRecvSome(frame::aio::ReactorContext& _rctx)                                     = 0;
+    virtual void connect(frame::aio::ReactorContext& _rctx, SocketAddressStub const& _rsas)    = 0;
+    virtual void postRecvSome(frame::aio::ReactorContext& _rctx)                               = 0;
     virtual void postSendAll(frame::aio::ReactorContext& _rctx, const char* _pbuf, size_t _sz) = 0;
 
 private:

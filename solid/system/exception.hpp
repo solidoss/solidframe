@@ -88,7 +88,7 @@ private:
                 os << '[' << _file << '(' << _line << ")][" << _fnc << "]: " << _err.message();       \
                 return os.str();                                                                      \
             },                                                                                        \
-            __FILE__, __LINE__, SOLID_FUNCTION_NAME);                                               \
+            __FILE__, __LINE__, SOLID_FUNCTION_NAME);                                                 \
     } else {                                                                                          \
     }
 
