@@ -36,11 +36,11 @@ namespace {
 class OpenSSLErrorCategory : public solid::ErrorCategoryT {
 public:
     OpenSSLErrorCategory() {}
-    const char* name() const noexcept
+    const char* name() const noexcept override
     {
         return "OpenSSL";
     }
-    std::string message(int _ev) const;
+    std::string message(int _ev) const override;
 
     solid::ErrorCodeT makeError(unsigned long _err) const
     {
@@ -71,11 +71,11 @@ enum struct WrapperError : int {
 class ErrorCategory : public solid::ErrorCategoryT {
 public:
     ErrorCategory() {}
-    const char* name() const noexcept
+    const char* name() const noexcept override
     {
         return "solid::frame::aio::openssl";
     }
-    std::string message(int _ev) const;
+    std::string message(int _ev) const override;
 
     solid::ErrorCodeT makeError(WrapperError _err) const
     {
@@ -180,12 +180,12 @@ bool Context::empty() const
     return pctx == nullptr;
 }
 
-Context::Context(Context&& _rctx)
+Context::Context(Context&& _rctx) noexcept
 {
     pctx       = _rctx.pctx;
     _rctx.pctx = nullptr;
 }
-Context& Context::operator=(Context&& _rctx)
+Context& Context::operator=(Context&& _rctx) noexcept
 {
     if (isValid()) {
         SSL_CTX_free(pctx);
@@ -226,20 +226,23 @@ typedef void (*EVP_PKEYDeleter)(EVP_PKEY*);
 
 void bio_deleter(BIO* _pbio)
 {
-    if (_pbio)
+    if (_pbio != nullptr){
         ::BIO_free(_pbio);
+    }
 }
 
 void x509_deleter(X509* _px509)
 {
-    if (_px509)
+    if (_px509 != nullptr){
         ::X509_free(_px509);
+    }
 }
 
 void evp_pkey_deleter(EVP_PKEY* _pkey)
 {
-    if (_pkey)
+    if (_pkey != nullptr){
         ::EVP_PKEY_free(_pkey);
+    }
 }
 
 } //namespace
@@ -253,7 +256,7 @@ ErrorCodeT Context::addVerifyAuthority(const unsigned char* _data, const size_t 
 
     if (bio_ptr) {
 
-        std::unique_ptr<::X509, X509Deleter> cert_ptr(::PEM_read_bio_X509(bio_ptr.get(), 0, 0, 0), x509_deleter);
+        std::unique_ptr<::X509, X509Deleter> cert_ptr(::PEM_read_bio_X509(bio_ptr.get(), nullptr, nullptr, nullptr), x509_deleter);
 
         if (cert_ptr) {
             if (X509_STORE* store = ::SSL_CTX_get_cert_store(pctx)) {
@@ -273,11 +276,10 @@ ErrorCodeT Context::addVerifyAuthority(const std::string& _str)
 
 ErrorCodeT Context::loadDefaultVerifyPaths()
 {
-    if (SSL_CTX_set_default_verify_paths(pctx)) {
+    if (SSL_CTX_set_default_verify_paths(pctx) != 0) {
         return ErrorCodeT();
-    } else {
-        return wrapper_category.makeError(WrapperError::Call);
     }
+    return wrapper_category.makeError(WrapperError::Call);
 }
 
 ErrorCodeT Context::loadVerifyFile(const char* _path)
@@ -326,7 +328,7 @@ ErrorCodeT Context::loadCertificate(const unsigned char* _data, const size_t _da
     } else if (_fformat == FileFormat::Pem) {
         std::unique_ptr<::BIO, BIODeleter> bio_ptr(::BIO_new_mem_buf(_data, static_cast<int>(_data_size)), bio_deleter);
         if (bio_ptr) {
-            std::unique_ptr<::X509, X509Deleter> cert_ptr(::PEM_read_bio_X509(bio_ptr.get(), 0, 0, 0), x509_deleter);
+            std::unique_ptr<::X509, X509Deleter> cert_ptr(::PEM_read_bio_X509(bio_ptr.get(), nullptr, nullptr, nullptr), x509_deleter);
             if (cert_ptr) {
                 if (::SSL_CTX_use_certificate(pctx, cert_ptr.get()) == 1) {
                     return err;
@@ -364,7 +366,7 @@ ErrorCodeT Context::loadPrivateKey(const unsigned char* _data, const size_t _dat
     std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter> key_ptr(nullptr, evp_pkey_deleter);
 
     if (_fformat == FileFormat::Asn1) {
-        key_ptr = std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>(::d2i_PrivateKey_bio(bio_ptr.get(), 0), evp_pkey_deleter);
+        key_ptr = std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>(::d2i_PrivateKey_bio(bio_ptr.get(), nullptr), evp_pkey_deleter);
     } else if (_fformat == FileFormat::Pem) {
 #ifndef OPENSSL_IS_BORINGSSL
         pem_password_cb* callback    = ::SSL_CTX_get_default_passwd_cb(pctx);
@@ -375,7 +377,7 @@ ErrorCodeT Context::loadPrivateKey(const unsigned char* _data, const size_t _dat
 #endif
         key_ptr = std::unique_ptr<::EVP_PKEY, EVP_PKEYDeleter>(
             ::PEM_read_bio_PrivateKey(
-                bio_ptr.get(), 0, callback,
+                bio_ptr.get(), nullptr, callback,
                 cb_userdata),
             evp_pkey_deleter);
     } else {
@@ -488,7 +490,7 @@ bool Socket::create(ReactorContext& _rctx, SocketAddressStub const& _rsas, Error
     return rv;
 }
 
-ErrorCodeT Socket::renegotiate(bool& _can_retry)
+ErrorCodeT Socket::renegotiate(bool& /*_can_retry*/)
 {
     const int           retval   = ::SSL_renegotiate(pssl);
     const unsigned long err_code = ::ERR_get_error();
@@ -833,26 +835,26 @@ bool Socket::secureShutdown(ReactorContext& _rctx, bool& _can_retry, ErrorCodeT&
     return false;
 }
 
-ssize_t Socket::recvFrom(ReactorContext& _rctx, char* _pb, size_t _bl, SocketAddress& _addr, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::recvFrom(ReactorContext& /*_rctx*/, char* /*_pb*/, size_t /*_bl*/, SocketAddress& /*_addr*/, bool& /*_can_retry*/, ErrorCodeT& /*_rerr*/)
 {
     return -1;
 }
 
-ssize_t Socket::sendTo(ReactorContext& _rctx, const char* _pb, size_t _bl, SocketAddressStub const& _rsas, bool& _can_retry, ErrorCodeT& _rerr)
+ssize_t Socket::sendTo(ReactorContext& /*_rctx*/, const char* /*_pb*/, size_t /*_bl*/, SocketAddressStub const& /*_rsas*/, bool& /*_can_retry*/, ErrorCodeT& /*_rerr*/)
 {
     return -1;
 }
 
 void Socket::storeContextPointer(void* _pctx)
 {
-    if (pssl) {
+    if (pssl != nullptr) {
         SSL_set_ex_data(pssl, contextPointerSSLDataIndex(), _pctx);
     }
 }
 
 void Socket::clearContextPointer()
 {
-    if (pssl) {
+    if (pssl != nullptr) {
         SSL_set_ex_data(pssl, contextPointerSSLDataIndex(), nullptr);
     }
 }
@@ -870,14 +872,18 @@ void Socket::clearThisPointer()
 static int convertMask(const VerifyMaskT _verify_mask)
 {
     int rv = 0;
-    if (_verify_mask & VerifyModeNone)
+    if ((_verify_mask & VerifyModeNone) != 0u){
         rv |= SSL_VERIFY_NONE;
-    if (_verify_mask & VerifyModePeer)
+    }
+    if ((_verify_mask & VerifyModePeer) != 0u){
         rv |= SSL_VERIFY_PEER;
-    if (_verify_mask & VerifyModeFailIfNoPeerCert)
+    }
+    if ((_verify_mask & VerifyModeFailIfNoPeerCert) != 0u){
         rv |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
-    if (_verify_mask & VerifyModeClientOnce)
+    }
+    if ((_verify_mask & VerifyModeClientOnce) != 0u){
         rv |= SSL_VERIFY_CLIENT_ONCE;
+    }
     return rv;
 }
 
@@ -902,9 +908,8 @@ ErrorCodeT Socket::doPrepareVerifyCallback(VerifyMaskT _verify_mask)
 
         bool rv = pthis->verify_cbk(pctx, preverify_ok != 0, vctx);
         return rv ? 1 : 0;
-    } else {
-        return preverify_ok;
     }
+    return preverify_ok;
 }
 
 ErrorCodeT Socket::setVerifyDepth(const int _depth)
@@ -927,33 +932,31 @@ ErrorCodeT Socket::setCheckHostName(const std::string& _hostname)
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
 
     //X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-    if (X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), _hostname.size())) { //boringssl requires namelen to be nonzero
+    if (X509_VERIFY_PARAM_set1_host(param, _hostname.c_str(), _hostname.size()) != 0) { //boringssl requires namelen to be nonzero
         return ErrorCodeT();
-    } else {
-        return wrapper_category.makeError(WrapperError::SetCheckHostName);
     }
+    return wrapper_category.makeError(WrapperError::SetCheckHostName);
 }
 
 ErrorCodeT Socket::setCheckEmail(const std::string& _email)
 {
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
 
-    if (X509_VERIFY_PARAM_set1_email(param, _email.c_str(), _email.size())) { //boringssl requires emaillen to be nonzero
+    if (X509_VERIFY_PARAM_set1_email(param, _email.c_str(), _email.size()) != 0) { //boringssl requires emaillen to be nonzero
         return ErrorCodeT();
-    } else {
-        return wrapper_category.makeError(WrapperError::SetCheckEmail);
     }
+    return wrapper_category.makeError(WrapperError::SetCheckEmail);
 }
 
 ErrorCodeT Socket::setCheckIP(const std::string& _ip)
 {
     X509_VERIFY_PARAM* param = SSL_get0_param(pssl);
     ;
-    if (X509_VERIFY_PARAM_set1_ip_asc(param, _ip.c_str())) {
+    if (X509_VERIFY_PARAM_set1_ip_asc(param, _ip.c_str()) != 0) {
         return ErrorCodeT();
-    } else {
-        return wrapper_category.makeError(WrapperError::SetCheckIP);
     }
+    
+    return wrapper_category.makeError(WrapperError::SetCheckIP);
 }
 
 } //namespace openssl

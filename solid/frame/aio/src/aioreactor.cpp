@@ -249,7 +249,7 @@ struct NewTaskStub {
     NewTaskStub(const NewTaskStub&) = delete;
 
     NewTaskStub(
-        NewTaskStub&& _unts)
+        NewTaskStub&& _unts) noexcept
         : uid(_unts.uid)
         , objptr(std::move(_unts.objptr))
         , rsvc(_unts.rsvc)
@@ -282,7 +282,7 @@ struct RaiseEventStub {
 
     RaiseEventStub(const RaiseEventStub&) = delete;
     RaiseEventStub(
-        RaiseEventStub&& _uevs)
+        RaiseEventStub&& _uevs) noexcept
         : uid(_uevs.uid)
         , event(std::move(_uevs.event))
     {
@@ -368,9 +368,9 @@ struct ExecStub {
     ExecStub(const ExecStub&) = delete;
 
     ExecStub(
-        ExecStub&& _res)
-        : objuid(std::move(_res.objuid))
-        , chnuid(std::move(_res.chnuid))
+        ExecStub&& _res) noexcept
+        : objuid(_res.objuid)
+        , chnuid(_res.chnuid)
         , event(std::move(_res.event))
     {
         std::swap(exefnc, _res.exefnc);
@@ -427,7 +427,7 @@ struct Reactor::Data {
 
         )
         : reactor_fd(-1)
-        , running(0)
+        , running(false)
         , crtpushtskvecidx(0)
         , crtraisevecidx(0)
         , crtpushvecsz(0)
@@ -441,9 +441,11 @@ struct Reactor::Data {
     int computeWaitTimeMilliseconds(NanoTime const& _rcrt) const
     {
 
-        if (exeq.size()) {
+        if (!exeq.empty()) {
             return 0;
-        } else if (timestore.size()) {
+        }
+        
+        if (timestore.size() != 0u) {
 
             if (_rcrt < timestore.next()) {
 
@@ -455,17 +457,14 @@ struct Reactor::Data {
 
                 if (diff > maxwait) {
                     return maxwait;
-                } else {
-                    return static_cast<int>(diff);
                 }
+                return static_cast<int>(diff);
 
-            } else {
-                return 0;
             }
-
-        } else {
-            return -1;
+            
+            return 0;
         }
+        return -1;
     }
 #elif defined(SOLID_USE_KQUEUE)
     NanoTime computeWaitTimeMilliseconds(NanoTime const& _rcrt) const
@@ -554,7 +553,7 @@ struct Reactor::Data {
 #endif
 };
 //-----------------------------------------------------------------------------
-void EventHandler::write(Reactor& _rreactor)
+void EventHandler::write(Reactor& /*_rreactor*/)
 {
 #if defined(SOLID_USE_EPOLL)
     const uint64_t v = 1;
@@ -1152,7 +1151,7 @@ struct TimerCallback {
     }
 };
 
-void Reactor::onTimer(ReactorContext& _rctx, const size_t _tidx, const size_t _chidx)
+void Reactor::onTimer(ReactorContext& _rctx, const size_t /*_tidx*/, const size_t _chidx)
 {
     CompletionHandlerStub& rch = impl_->chdq[_chidx];
 
@@ -1180,7 +1179,7 @@ void Reactor::doCompleteExec(NanoTime const& _rcrttime)
     ReactorContext ctx(*this, _rcrttime);
     size_t         sz = impl_->exeq.size();
 
-    while (sz--) {
+    while ((sz--) != 0) {
 
         solid_dbg(logger, Verbose, sz << " qsz = " << impl_->exeq.size());
 
@@ -1212,7 +1211,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 {
     solid_dbg(logger, Verbose, "");
 
-    if (impl_->crtpushvecsz || impl_->crtraisevecsz) {
+    if (impl_->crtpushvecsz != 0u || impl_->crtraisevecsz != 0u) {
         size_t crtpushvecidx;
         size_t crtraisevecidx;
         {
@@ -1224,8 +1223,8 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
             impl_->crtpushtskvecidx = ((crtpushvecidx + 1) & 1);
             impl_->crtraisevecidx   = ((crtraisevecidx + 1) & 1);
 
-            for (auto it = impl_->freeuidvec.begin(); it != impl_->freeuidvec.end(); ++it) {
-                this->pushUid(*it);
+            for(const auto &v: impl_->freeuidvec){
+                this->pushUid(v);
             }
             impl_->freeuidvec.clear();
 
@@ -1241,9 +1240,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
 
         solid_dbg(logger, Verbose, impl_->exeq.size());
 
-        for (auto it = crtpushvec.begin(); it != crtpushvec.end(); ++it) {
-
-            NewTaskStub& rnewobj(*it);
+        for(auto &rnewobj: crtpushvec){
             if (rnewobj.uid.index >= impl_->objdq.size()) {
                 impl_->objdq.resize(static_cast<size_t>(rnewobj.uid.index + 1));
             }
@@ -1273,8 +1270,7 @@ void Reactor::doCompleteEvents(ReactorContext const& _rctx)
         solid_dbg(logger, Verbose, impl_->exeq.size());
         crtpushvec.clear();
 
-        for (auto it = crtraisevec.begin(); it != crtraisevec.end(); ++it) {
-            RaiseEventStub& revent = *it;
+        for(auto &revent: crtraisevec){
             impl_->exeq.push(ExecStub(revent.uid, &call_object_on_event, impl_->dummyCompletionHandlerUid(), std::move(revent.event)));
         }
 
@@ -1318,15 +1314,14 @@ bool Reactor::addDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     ev.data.u64 = _rctx.channel_index_;
     ev.events   = reactorRequestsToSystemEvents(_req);
 
-    if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev)) {
+    if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_ADD, _rsd.Device::descriptor(), &ev) != 0) {
         solid_dbg(logger, Error, "epoll_ctl: " << last_system_error().message());
         solid_throw("epoll_ctl");
         return false;
-    } else {
-        ++impl_->devcnt;
-        if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
-            impl_->eventobj.post(_rctx, &Reactor::increase_event_vector_size);
-        }
+    }
+    ++impl_->devcnt;
+    if (impl_->devcnt == (impl_->eventvec.size() + 1)) {
+        impl_->eventobj.post(_rctx, &Reactor::increase_event_vector_size);
     }
 #elif defined(SOLID_USE_KQUEUE)
     int read_flags = EV_ADD;
@@ -1403,7 +1398,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
     ev.data.u64 = _rctx.channel_index_;
     ev.events   = reactorRequestsToSystemEvents(_req);
 
-    if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev)) {
+    if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_MOD, _rsd.Device::descriptor(), &ev) != 0) {
         solid_dbg(logger, Error, "epoll_ctl: " << last_system_error().message());
         solid_throw("epoll_ctl");
         return false;
@@ -1477,7 +1472,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
 //-----------------------------------------------------------------------------
 
-bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
+bool Reactor::remDevice(CompletionHandler const& /*_rch*/, Device const& _rsd)
 {
     solid_dbg(logger, Info, _rsd.descriptor());
 #if defined(SOLID_USE_EPOLL)
@@ -1487,13 +1482,13 @@ bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
         return false;
     }
 
-    if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev)) {
+    if (epoll_ctl(impl_->reactor_fd, EPOLL_CTL_DEL, _rsd.Device::descriptor(), &ev) != 0) {
         solid_dbg(logger, Error, "epoll_ctl: " << last_system_error().message());
         solid_throw("epoll_ctl");
         return false;
-    } else {
-        --impl_->devcnt;
     }
+    
+    --impl_->devcnt;
 #elif defined(SOLID_USE_KQUEUE)
     struct kevent ev[2];
 
@@ -1550,7 +1545,7 @@ void Reactor::doUpdateTimerIndex(const size_t _chidx, const size_t _newidx, cons
 
 //-----------------------------------------------------------------------------
 
-bool Reactor::remTimer(CompletionHandler const& _rch, size_t const& _rstoreidx)
+bool Reactor::remTimer(CompletionHandler const& /*_rch*/, size_t const& _rstoreidx)
 {
     if (_rstoreidx != InvalidIndex()) {
         impl_->timestore.pop(_rstoreidx, ChangeTimerIndexCallback(*this));
@@ -1564,7 +1559,7 @@ void Reactor::registerCompletionHandler(CompletionHandler& _rch, Object const& _
 {
     size_t idx;
 
-    if (impl_->chposcache.size()) {
+    if (!impl_->chposcache.empty()) {
         idx = impl_->chposcache.top();
         impl_->chposcache.pop();
     } else {

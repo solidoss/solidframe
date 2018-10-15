@@ -27,7 +27,7 @@ namespace aio {
 
 Object::Object() {}
 
-/*virtual*/ void Object::onEvent(ReactorContext& _rctx, Event&& _uevent)
+/*virtual*/ void Object::onEvent(ReactorContext& /*_rctx*/, Event&& /*_uevent*/)
 {
 }
 
@@ -40,7 +40,7 @@ bool Object::registerCompletionHandler(CompletionHandler& _rch)
 {
     solid_dbg(logger, Info, "" << &_rch);
     _rch.pnext = this->pnext;
-    if (_rch.pnext) {
+    if (_rch.pnext != nullptr) {
         _rch.pnext->pprev = &_rch;
     }
     this->pnext = &_rch;
