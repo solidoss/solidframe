@@ -1,5 +1,6 @@
 
 option(CMake_RUN_CLANG_TIDY "Run clang-tidy with the compiler." OFF)
+
 if(CMake_RUN_CLANG_TIDY)
   if(CMake_SOURCE_DIR STREQUAL CMake_BINARY_DIR)
     message(FATAL_ERROR "CMake_RUN_CLANG_TIDY requires an out-of-source build!")
