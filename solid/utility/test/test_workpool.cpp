@@ -94,7 +94,7 @@ int test_workpool(int argc, char* argv[])
             [job_sleep_msecs](size_t _v, Context& _rctx) {
                 //solid_check(_rs == "this is a string", "failed string check");
                 val += _v;
-                if (job_sleep_msecs) {
+                if (job_sleep_msecs != 0) {
                     this_thread::sleep_for(chrono::milliseconds(job_sleep_msecs));
                 }
 #ifdef EXTRA_CHECKING
@@ -105,15 +105,16 @@ int test_workpool(int argc, char* argv[])
 
         auto producer_lambda = [job_count, push_sleep_msecs, &wp]() {
             for (size_t i = 0; i < job_count; ++i) {
-                if (push_sleep_msecs) {
+                if (push_sleep_msecs != 0) {
                     this_thread::sleep_for(chrono::milliseconds(push_sleep_msecs));
                 }
                 wp.push(i);
             };
         };
 
-        if (producer_count) {
+        if (producer_count != 0) {
             vector<thread> thr_vec;
+            thr_vec.reserve(producer_count);
             for (int i = 0; i < producer_count; ++i) {
                 thr_vec.emplace_back(producer_lambda);
             }

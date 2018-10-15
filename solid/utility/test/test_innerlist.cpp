@@ -91,7 +91,6 @@ int test_innerlist(int /*argc*/, char* /*argv*/ [])
     order_list.popBack();
 
     solid_assert(order_list.empty());
-    solid_assert(order_list.size() == 0);
 
     return 0;
 }

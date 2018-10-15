@@ -64,17 +64,17 @@ size_t bit_count(const uint8_t _v)
 
 size_t bit_count(const uint16_t _v)
 {
-    return bit_count((uint8_t)(_v & 0xff)) + bit_count((uint8_t)(_v >> 8));
+    return bit_count(static_cast<uint8_t>(_v & 0xff)) + bit_count(static_cast<uint8_t>(_v >> 8));
 }
 
 size_t bit_count(const uint32_t _v)
 {
-    return bit_count((uint8_t)(_v & 0xff)) + bit_count((uint8_t)((_v >> 8) & 0xff)) + bit_count((uint8_t)((_v >> 16) & 0xff)) + bit_count((uint8_t)((_v >> 24) & 0xff));
+    return bit_count(static_cast<uint8_t>(_v & 0xff)) + bit_count(static_cast<uint8_t>((_v >> 8) & 0xff)) + bit_count(static_cast<uint8_t>((_v >> 16) & 0xff)) + bit_count(static_cast<uint8_t>((_v >> 24) & 0xff));
 }
 
 size_t bit_count(const uint64_t _v)
 {
-    return bit_count((uint32_t)(_v & 0xffffffff)) + bit_count((uint32_t)(_v >> 32));
+    return bit_count(static_cast<uint32_t>(_v & 0xffffffff)) + bit_count(static_cast<uint32_t>(_v >> 32));
 }
 
 } //namespace solid

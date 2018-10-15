@@ -6,6 +6,7 @@ misc-*,\
 -misc-macro-parentheses,\
 -misc-misplaced-widening-cast,\
 -misc-static-assert,\
+-misc-lambda-function-name,\
 modernize-*,\
 -modernize-deprecated-headers,\
 -modernize-pass-by-value,\

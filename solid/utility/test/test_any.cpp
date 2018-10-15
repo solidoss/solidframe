@@ -27,12 +27,12 @@ struct TestNoCopy {
     TestNoCopy(const TestNoCopy&) = delete;
     TestNoCopy& operator=(const TestNoCopy&) = delete;
 
-    TestNoCopy(TestNoCopy&& _utnc)
+    TestNoCopy(TestNoCopy&& _utnc)noexcept
         : str(std::move(_utnc.str))
     {
     }
 
-    TestNoCopy& operator=(TestNoCopy&& _utnc)
+    TestNoCopy& operator=(TestNoCopy&& _utnc)noexcept
     {
         str = std::move(_utnc.str);
         return *this;
@@ -57,6 +57,7 @@ void test_any_no_copy_copy(const Any<32>& _rany)
     try {
         Any<32> tmp_any(_rany);
         solid_check(tmp_any.empty());
+        tmp_any.cast<TestNoCopy>()->str.clear();
     } catch (std::exception& rex) {
         cout << "Exception: " << rex.what() << endl;
     }
@@ -123,7 +124,7 @@ struct Test {
         cout << "Test(const Test&): " << this << " : " << i_ << endl;
     }
 
-    Test(Test&& _t)
+    Test(Test&& _t)noexcept
         : i_(_t.i_)
     {
         _t.i_ = 0;
@@ -283,7 +284,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
     {
         using Array4T = std::array<size_t, 4>;
         Array4T arr{{1, 2, 3, 4}};
-        auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable {
+        auto    lambda = [arr](const char* /*_txt*/) mutable {
             solid_check(arr[3] == 4);
             arr[3] = 10;
         };
@@ -294,7 +295,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
     {
         using Array4T = std::array<size_t, 4>;
         Array4T arr{{1, 2, 3, 4}};
-        auto    lambda = [arr = std::move(arr)](const char* /*_txt*/) mutable {
+        auto    lambda = [arr](const char* /*_txt*/) mutable {
             solid_check(arr[3] == 4);
             arr[3] = 10;
         };
@@ -306,7 +307,7 @@ int test_any(int /*argc*/, char* /*argv*/ [])
         using Array4T = std::array<size_t, 4>;
         Array4T       arr{{1, 2, 3, 4}};
         std::ifstream ifs;
-        auto          lambda = [arr = std::move(arr), ifs = std::move(ifs)](const char* /*_txt*/) mutable {
+        auto          lambda = [arr, ifs = std::move(ifs)](const char* /*_txt*/) mutable {
             solid_check(arr[3] == 4);
             arr[3] = 10;
         };

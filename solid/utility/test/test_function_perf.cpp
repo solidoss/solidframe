@@ -16,8 +16,8 @@ class TestBase {
 public:
     virtual ~TestBase() {}
     virtual void     clear()              = 0;
-    virtual void     create(const size_t) = 0;
-    virtual uint64_t run(const size_t)    = 0;
+    virtual void     create(size_t) = 0;
+    virtual uint64_t run(size_t)    = 0;
 };
 
 struct PrintSize {
@@ -82,23 +82,29 @@ TestBase* create_test(const size_t _closure_size)
 {
     if (_closure_size < 1) {
         return new FunctionTest<F, 0>();
-    } else if (_closure_size < 2) {
-        return new FunctionTest<F, 1>();
-    } else if (_closure_size < 4) {
-        return new FunctionTest<F, 2>();
-    } else if (_closure_size < 8) {
-        return new FunctionTest<F, 4>();
-    } else if (_closure_size < 16) {
-        return new FunctionTest<F, 8>();
-    } else if (_closure_size < 32) {
-        return new FunctionTest<F, 16>();
-    } else if (_closure_size < 64) {
-        return new FunctionTest<F, 32>();
-    } else if (_closure_size < 128) {
-        return new FunctionTest<F, 64>();
-    } else {
-        return new FunctionTest<F, 128>();
     }
+    if (_closure_size < 2) {
+        return new FunctionTest<F, 1>();
+    }
+    if (_closure_size < 4) {
+        return new FunctionTest<F, 2>();
+    }
+    if (_closure_size < 8) {
+        return new FunctionTest<F, 4>();
+    }
+    if (_closure_size < 16) {
+        return new FunctionTest<F, 8>();
+    }
+    if (_closure_size < 32) {
+        return new FunctionTest<F, 16>();
+    }
+    if (_closure_size < 64) {
+        return new FunctionTest<F, 32>();
+    }
+    if (_closure_size < 128) {
+        return new FunctionTest<F, 64>();
+    } 
+    return new FunctionTest<F, 128>();
 }
 
 TestBase* create_test(const FunctionChoice _fnc_choice, const size_t _closure_size)

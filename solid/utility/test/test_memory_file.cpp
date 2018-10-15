@@ -85,7 +85,7 @@ int test_memory_file(int argc, char* argv[])
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if (isprint(c) && !isblank(c)) {
+            if (isprint(c) != 0 && isblank(c) == 0) {
                 pattern += static_cast<char>(c);
             }
         }

@@ -70,8 +70,9 @@ std::mutex& shared_mutex(const void* _p)
 void DynamicPointerBase::clear(DynamicBase* _pdyn)
 {
     solid_assert(_pdyn);
-    if (!_pdyn->release())
+    if (_pdyn->release() == 0u){
         delete _pdyn;
+    }
 }
 
 void DynamicPointerBase::use(DynamicBase* _pdyn)
