@@ -180,23 +180,23 @@ void SerializerBase::limitStream(const uint64_t _sz, const char* _name)
 
 //-- store functions ----------------------------------------------------------
 
-Base::ReturnE SerializerBase::store_byte(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE SerializerBase::store_byte(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
 {
     return _rs.doStoreByte(_rr);
 }
 
-Base::ReturnE SerializerBase::store_cross(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE SerializerBase::store_cross(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
 {
 
     return _rs.doStoreCross(_rr);
 }
 
-Base::ReturnE SerializerBase::store_cross_with_check(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE SerializerBase::store_cross_with_check(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
 {
     return _rs.doStoreCrossWithCheck(_rr);
 }
 
-Base::ReturnE SerializerBase::store_binary(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE SerializerBase::store_binary(SerializerBase& _rs, Runnable& _rr, void* /*_pctx*/)
 {
     return _rs.doStoreBinary(_rr);
 }
@@ -206,7 +206,7 @@ Base::ReturnE SerializerBase::call_function(SerializerBase& _rs, Runnable& _rr, 
     return _rr.fnc_(_rs, _rr, _pctx);
 }
 
-Base::ReturnE SerializerBase::noop(SerializerBase& _rs, Runnable& _rr, void* _pctx)
+Base::ReturnE SerializerBase::noop(SerializerBase& /*_rs*/, Runnable& /*_rr*/, void* /*_pctx*/)
 {
     return ReturnE::Done;
 }
@@ -250,10 +250,9 @@ Base::ReturnE SerializerBase::store_stream(SerializerBase& _rs, Runnable& _rr, v
         if (!done) {
             _rr.fnc_(_rs, _rr, _pctx);
             return ReturnE::Wait;
-        } else {
-            _rr.size_ = 0;
-            _rr.fnc_(_rs, _rr, _pctx);
         }
+        _rr.size_ = 0;
+        _rr.fnc_(_rs, _rr, _pctx);
     } else {
         return ReturnE::Wait;
     }

@@ -32,7 +32,7 @@ struct OrKey : Key {
     {
     }
 
-    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, _name)
+    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.first, _rctx, "first").add(_rthis.second, _rctx, "second");
     }
@@ -62,7 +62,7 @@ struct OrVecKey : Key {
     {
     }
 
-    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, _name)
+    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.keys, _rctx, "keys");
     }
@@ -87,7 +87,7 @@ struct IntKey : Key {
     {
     }
 
-    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, _name)
+    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.v, _rctx, "v");
     }
@@ -107,7 +107,7 @@ struct StringKey : Key {
     {
     }
 
-    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, _name)
+    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.v, _rctx, "v");
     }
@@ -129,7 +129,7 @@ struct Command {
     {
     }
 
-    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, _name)
+    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.key, _rctx, "key");
     }
@@ -142,7 +142,7 @@ struct Command {
     }
 };
 
-int test_polymorphic(int argc, char* argv[])
+int test_polymorphic(int /*argc*/, char* /*argv*/[])
 {
 
     solid::log_start(std::cerr, {".*:EW"});

@@ -31,13 +31,13 @@ struct A {
 };
 
 template <class S, class Ctx>
-void solidSerializeV2(S& _rs, const A& _r, Ctx& _rctx, const char* _name)
+void solidSerializeV2(S& _rs, const A& _r, Ctx& _rctx, const char* /*_name*/)
 {
     _rs.add(_r.a, _rctx, "A.a").add(_r.s, _rctx, "A.s").add(_r.b, _rctx, "A.b");
 }
 
 template <class S, class Ctx>
-void solidSerializeV2(S& _rs, A& _r, Ctx& _rctx, const char* _name)
+void solidSerializeV2(S& _rs, A& _r, Ctx& _rctx, const char* /*_name*/)
 {
     _rs.add(_r.a, _rctx, "A.a").add(_r.s, _rctx, "A.s").add(_r.b, _rctx, "A.b");
 }
@@ -200,12 +200,12 @@ public:
     }
 
     template <class S>
-    void solidSerializeV2(S& _rs, Context& _rctx, const char* _name) const
+    void solidSerializeV2(S& _rs, Context& _rctx, const char* /*_name*/) const
     {
         _rs
             .add(b, _rctx, "b")
             .add(
-                [this](S& _rs, Context& _rctx, const char* _name) {
+                [this](S& _rs, Context& _rctx, const char* /*_name*/) {
                     if (this->b) {
                         _rs.add(v, _rctx, "v");
                     } else {
@@ -245,12 +245,12 @@ public:
     }
 
     template <class S>
-    void solidSerializeV2(S& _rs, Context& _rctx, const char* _name)
+    void solidSerializeV2(S& _rs, Context& _rctx, const char* /*_name*/)
     {
         _rs
             .add(b, _rctx, "b")
             .add(
-                [this](S& _rs, Context& _rctx, const char* _name) {
+                [this](S& _rs, Context& _rctx, const char* /*_name*/) {
                     if (this->b) {
                         _rs.add(v, _rctx, "v");
                     } else {
@@ -260,7 +260,7 @@ public:
                 _rctx, "f")
             .push(
                 if_then_else<S::is_serializer>(
-                    [](S& _rs, Context& _rctx, const char* _name) mutable {
+                    [](S& _rs, Context& _rctx, const char* /*_name*/) mutable {
                         return true;
                     },
                     [this](S& _rs, Context& _rctx, const char* _name) {

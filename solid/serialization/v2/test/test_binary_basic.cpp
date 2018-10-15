@@ -71,9 +71,9 @@ bool test(const T& _v, const size_t _estimated_size)
     return true;
 }
 
-int test_binary_basic(int argc, char* argv[])
+int test_binary_basic(int /*argc*/, char* /*argv*/[])
 {
-    cout << "max uint8_t value with crc: " << (int)max_value_without_crc_8() << endl;
+    cout << "max uint8_t value with crc: " << static_cast<int>(max_value_without_crc_8()) << endl;
 
     print(0);
     print(1);

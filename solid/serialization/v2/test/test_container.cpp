@@ -61,7 +61,7 @@ struct Test {
     uint8_t         u8a[512];
     size_t          u8a_sz;
 
-    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, _name)
+    SOLID_SERIALIZE_CONTEXT_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.str, _rctx, "Test::str");
         _s.add(_rthis.b, _rctx, "Test::b");
@@ -98,7 +98,7 @@ struct Test {
 
 } //namespace
 
-int test_container(int argc, char* argv[])
+int test_container(int /*argc*/, char* /*argv*/[])
 {
 
     solid::log_start(std::cerr, {".*:VIEW"});

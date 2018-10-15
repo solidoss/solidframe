@@ -29,12 +29,12 @@ public:
     ErrorCategory() {}
 
 private:
-    const char* name() const noexcept(true)
+    const char* name() const noexcept override
     {
         return "solid::serialization::TypeIdMap";
     }
 
-    std::string message(int _ev) const
+    std::string message(int _ev) const override
     {
         switch (_ev) {
         case NoTypeE:

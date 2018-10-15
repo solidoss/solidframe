@@ -38,7 +38,7 @@ DeserializerBase::DeserializerBase(const TypeMapBase& _rtype_map)
     , sentinel_(run_lst_.cend())
 {
 }
-std::istream& DeserializerBase::run(std::istream& _ris, void* _pctx)
+std::istream& DeserializerBase::run(std::istream& _ris, void* /*_pctx*/)
 {
     const size_t    buf_cap = 8 * 1024;
     char            buf[buf_cap];
@@ -48,7 +48,7 @@ std::istream& DeserializerBase::run(std::istream& _ris, void* _pctx)
     do {
         _ris.read(buf, buf_cap);
         readsz = _ris.gcount();
-    } while (readsz && (readsz == run(buf, static_cast<unsigned>(readsz))));
+    } while (readsz != 0 && (readsz == run(buf, static_cast<unsigned>(readsz))));
 
     return _ris;
 }
@@ -181,17 +181,17 @@ void DeserializerBase::limitStream(const uint64_t _sz, const char* _name)
 
 //-- load functions ----------------------------------------------------------
 
-Base::ReturnE DeserializerBase::load_bool(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+Base::ReturnE DeserializerBase::load_bool(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
 {
     return _rd.doLoadBool(_rr);
 }
 
-Base::ReturnE DeserializerBase::load_byte(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+Base::ReturnE DeserializerBase::load_byte(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
 {
     return _rd.doLoadByte(_rr);
 }
 
-Base::ReturnE DeserializerBase::load_binary(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+Base::ReturnE DeserializerBase::load_binary(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
 {
     return _rd.doLoadBinary(_rr);
 }
@@ -201,12 +201,12 @@ Base::ReturnE DeserializerBase::call_function(DeserializerBase& _rd, Runnable& _
     return _rr.fnc_(_rd, _rr, _pctx);
 }
 
-Base::ReturnE DeserializerBase::noop(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+Base::ReturnE DeserializerBase::noop(DeserializerBase& /*_rd*/, Runnable& /*_rr*/, void* /*_pctx*/)
 {
     return ReturnE::Done;
 }
 
-Base::ReturnE DeserializerBase::load_string(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
+Base::ReturnE DeserializerBase::load_string(DeserializerBase& _rd, Runnable& _rr, void* /*_pctx*/)
 {
     return _rd.doLoadString(_rr);
 }
@@ -246,12 +246,12 @@ Base::ReturnE DeserializerBase::load_stream(DeserializerBase& _rd, Runnable& _rr
         _rr.size_ = v;
         _rr.call_ = load_stream_chunk_begin;
         return load_stream_chunk_begin(_rd, _rr, _pctx);
-    } else {
-        _rr.size_ = 2;
-        _rr.data_ = 0;
-        _rr.call_ = load_stream_chunk_length;
-        return load_stream_chunk_length(_rd, _rr, _pctx);
     }
+    
+    _rr.size_ = 2;
+    _rr.data_ = 0;
+    _rr.call_ = load_stream_chunk_length;
+    return load_stream_chunk_length(_rd, _rr, _pctx);
 }
 
 Base::ReturnE DeserializerBase::load_stream_chunk_begin(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
@@ -260,17 +260,16 @@ Base::ReturnE DeserializerBase::load_stream_chunk_begin(DeserializerBase& _rd, R
         _rr.data_ = 0;
         _rr.fnc_(_rd, _rr, _pctx);
         return ReturnE::Done;
-    } else {
-        _rr.call_ = load_stream_chunk;
-        return load_stream_chunk(_rd, _rr, _pctx);
     }
+    _rr.call_ = load_stream_chunk;
+    return load_stream_chunk(_rd, _rr, _pctx);
 }
 
 Base::ReturnE DeserializerBase::load_stream_chunk(DeserializerBase& _rd, Runnable& _rr, void* _pctx)
 {
     std::ostream& ros = *const_cast<std::ostream*>(static_cast<const std::ostream*>(_rr.ptr_));
     size_t        len = _rd.pend_ - _rd.pcrt_;
-    if (len) {
+    if (len != 0u) {
         if (len > _rr.size_) {
             len = static_cast<size_t>(_rr.size_);
         }
