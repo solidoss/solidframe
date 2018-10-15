@@ -27,11 +27,11 @@
 
 namespace solid {
 
-#ifndef solid_function_t_NAME
+#ifndef SOLID_FUNCTION_NAME
 #ifdef SOLID_ON_WINDOWS
-#define solid_function_t_NAME __func__
+#define SOLID_FUNCTION_NAME __func__
 #else
-#define solid_function_t_NAME __FUNCTION__
+#define SOLID_FUNCTION_NAME __FUNCTION__
 #endif
 #endif
 
@@ -69,7 +69,7 @@ private:
             os << '[' << _file << '(' << _line << ")][" << _fnc << "] " << x; \
             return os.str();                                                  \
         },                                                                    \
-        __FILE__, __LINE__, solid_function_t_NAME)
+        __FILE__, __LINE__, static_cast<const char*>((SOLID_FUNCTION_NAME)))
 
 #define solid_throw_condition(c)                                                                  \
     throw solid::RuntimeErrorCondition((c),                                                       \
@@ -78,7 +78,7 @@ private:
             os << '[' << _file << '(' << _line << ")][" << _fnc << "]: " << _err.message();       \
             return os.str();                                                                      \
         },                                                                                        \
-        __FILE__, __LINE__, solid_function_t_NAME)
+        __FILE__, __LINE__, SOLID_FUNCTION_NAME)
 
 #define solid_try_throw_condition(c)                                                                  \
     if ((c)) {                                                                                        \
@@ -88,7 +88,7 @@ private:
                 os << '[' << _file << '(' << _line << ")][" << _fnc << "]: " << _err.message();       \
                 return os.str();                                                                      \
             },                                                                                        \
-            __FILE__, __LINE__, solid_function_t_NAME);                                               \
+            __FILE__, __LINE__, SOLID_FUNCTION_NAME);                                               \
     } else {                                                                                          \
     }
 

@@ -311,11 +311,11 @@ ErrorConditionT log_start(
 
 } //namespace solid
 
-#ifndef solid_function_t_NAME
+#ifndef SOLID_FUNCTION_NAME
 #ifdef SOLID_ON_WINDOWS
-#define solid_function_t_NAME __func__
+#define SOLID_FUNCTION_NAME __func__
 #else
-#define solid_function_t_NAME __FUNCTION__
+#define SOLID_FUNCTION_NAME __FUNCTION__
 #endif
 #endif
 
@@ -328,7 +328,7 @@ ErrorConditionT log_start(
 #define solid_dbg(Lgr, Flg, Txt)                                                                               \
     if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                            \
         solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                  \
-        Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, solid_function_t_NAME, __LINE__) << Txt << std::endl; \
+        Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, static_cast<const char*>((SOLID_FUNCTION_NAME)), __LINE__) << Txt << std::endl; \
         Lgr.done(os);                                                                                          \
     }
 
@@ -341,7 +341,7 @@ ErrorConditionT log_start(
 #define solid_log(Lgr, Flg, Txt)                                                                               \
     if (Lgr.shouldLog(decltype(Lgr)::FlagT::Flg)) {                                                            \
         solid::impl::LogLineStream<SOLID_LOG_BUFFER_SIZE> os;                                                  \
-        Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, solid_function_t_NAME, __LINE__) << Txt << std::endl; \
+        Lgr.log(os, decltype(Lgr)::FlagT::Flg, __FILE__, static_cast<const char*>((SOLID_FUNCTION_NAME)), __LINE__) << Txt << std::endl; \
         Lgr.done(os);                                                                                          \
     }
 

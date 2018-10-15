@@ -61,8 +61,9 @@ bool joinTypeId(uint64_t& _rtype_id, const uint32_t _protocol_id, const uint64_t
 {
     size_t proto_bit_count = max_bit_count(_protocol_id);
 
-    if (proto_bit_count > 30)
+    if (proto_bit_count > 30){
         return false;
+    }
 
     const size_t proto_byte_count = (fast_padded_size(proto_bit_count + 2, 3) >> 3);
     const size_t msgid_byte_count = max_padded_byte_cout(_message_id);

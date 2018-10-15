@@ -31,6 +31,7 @@ readability-*,\
 -readability-redundant-declaration,\
 -readability-redundant-member-init,\
 -readability-simplify-boolean-expr,\
+bugprone-*,\
 "
 HeaderFilterRegex: 'Source/cm[^/]*\.(h|hpp|cpp)$'
 ...

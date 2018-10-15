@@ -113,7 +113,7 @@ struct Message : frame::mpipc::Message {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
         if (_s.is_serializer) {
@@ -193,7 +193,7 @@ void client_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
     transfered_size += _rmsgptr->str.size();
     ++transfered_count;
 
-    if (!crtbackidx) {
+    if (crtbackidx == 0u) {
         solid_dbg(generic_logger, Info, "canceling all messages");
         lock_guard<mutex> lock(mtx);
         for (const auto& msguid : message_uid_vec) {
@@ -217,24 +217,24 @@ void client_complete_message(
     ErrorConditionT const& _rerror)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
-    if (_rsent_msg_ptr.get()) {
+    if (_rsent_msg_ptr) {
         if (!_rerror) {
             ++crtackidx;
         }
     }
 
-    if (_rrecv_msg_ptr.get()) {
+    if (_rrecv_msg_ptr) {
         client_receive_message(_rctx, _rrecv_msg_ptr);
     }
 }
 
 void server_complete_message(
     frame::mpipc::ConnectionContext& _rctx,
-    std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
-    ErrorConditionT const& _rerror)
+    std::shared_ptr<Message>& /*_rsent_msg_ptr*/, std::shared_ptr<Message>& _rrecv_msg_ptr,
+    ErrorConditionT const& /*_rerror*/)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
-    if (_rrecv_msg_ptr.get()) {
+    if (_rrecv_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " message id on sender " << _rrecv_msg_ptr->senderRequestId());
 
         solid_check(_rrecv_msg_ptr->check(), "Message check failed!");
@@ -292,7 +292,7 @@ int test_clientserver_cancel_server(int argc, char* argv[])
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if (isprint(c) && !isblank(c)) {
+            if (isprint(c) != 0 && isblank(c) == 0) {
                 pattern += static_cast<char>(c);
             }
         }

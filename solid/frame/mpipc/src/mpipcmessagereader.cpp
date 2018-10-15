@@ -31,7 +31,7 @@ MessageReader::~MessageReader()
 {
 }
 //-----------------------------------------------------------------------------
-void MessageReader::prepare(ReaderConfiguration const& _rconfig)
+void MessageReader::prepare(ReaderConfiguration const& /*_rconfig*/)
 {
     //message_vec_.push(MessageStub()); //start with an empty message
 }
@@ -119,7 +119,7 @@ void MessageReader::doConsumePacket(
         }
     }
 
-    if (_packet_header.flags() & static_cast<uint8_t>(PacketHeader::FlagE::AckRequest)) {
+    if ((_packet_header.flags() & static_cast<uint8_t>(PacketHeader::FlagE::AckRequest)) != 0u) {
         ++_receiver.request_buffer_ack_count_;
     }
 
@@ -141,7 +141,7 @@ void MessageReader::doConsumePacket(
         case PacketHeader::CommandE::Message:
         case PacketHeader::CommandE::EndMessage:
             pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
-            if (pbufpos && message_idx < _receiver.configuration().max_message_count_multiplex) {
+            if (pbufpos != nullptr && message_idx < _receiver.configuration().max_message_count_multiplex) {
                 solid_dbg(logger, Verbose, "messagetype = " << (int)cmd << " msgidx = " << message_idx);
                 if (message_idx >= message_vec_.size()) {
                     message_vec_.resize(message_idx + 1);
@@ -157,7 +157,7 @@ void MessageReader::doConsumePacket(
         case PacketHeader::CommandE::CancelMessage:
             pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, message_idx);
             solid_dbg(logger, Error, "CancelMessage " << message_idx);
-            if (pbufpos && message_idx < message_vec_.size()) {
+            if (pbufpos != nullptr && message_idx < message_vec_.size()) {
                 MessageStub& rmsgstub = message_vec_[message_idx];
                 solid_assert(rmsgstub.state_ != MessageStub::StateE::NotStarted);
                 if (rmsgstub.state_ == MessageStub::StateE::RelayBody) {
@@ -175,7 +175,7 @@ void MessageReader::doConsumePacket(
         case PacketHeader::CommandE::CancelRequest: {
             RequestId requid;
             pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.index);
-            if (pbufpos && (pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique))) {
+            if (pbufpos != nullptr && (pbufpos = _receiver.protocol().loadCrossValue(pbufpos, pbufend - pbufpos, requid.unique)) != nullptr) {
                 solid_dbg(logger, Verbose, "CancelRequest: " << requid);
                 _receiver.receiveCancelRequest(requid);
             } else {
@@ -215,7 +215,7 @@ const char* MessageReader::doConsumeMessage(
     MessageStub& rmsgstub     = message_vec_[_msgidx];
     uint16_t     message_size = 0;
 
-    if (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::NewMessage)) {
+    if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::NewMessage)) != 0u) {
         rmsgstub.clear();
     }
 
@@ -306,13 +306,13 @@ const char* MessageReader::doConsumeMessage(
                     if (rv >= 0) {
                         if (rv <= static_cast<int>(message_size)) {
 
-                            if (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) {
+                            if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0u) {
                                 if (rmsgstub.deserializer_ptr_->empty()) {
                                     //done parsing the message body
                                     MessagePointerT msgptr{std::move(rmsgstub.message_ptr_)};
                                     cache(rmsgstub.deserializer_ptr_);
                                     rmsgstub.clear();
-                                    const size_t message_type_id = msgptr.get() ? _receiver.protocol().typeIndex(msgptr.get()) : InvalidIndex();
+                                    const size_t message_type_id = msgptr ? _receiver.protocol().typeIndex(msgptr.get()) : InvalidIndex();
                                     _receiver.receiveMessage(msgptr, message_type_id);
                                     break;
                                 }
@@ -347,11 +347,10 @@ const char* MessageReader::doConsumeMessage(
             _pbufpos = _pbufend;
             rmsgstub.clear();
             break;
-        } else {
-            rmsgstub.state_ = MessageStub::StateE::IgnoreBody;
-            rmsgstub.deserializer_ptr_->clear();
-            rmsgstub.deserializer_ptr_.reset();
         }
+        rmsgstub.state_ = MessageStub::StateE::IgnoreBody;
+        rmsgstub.deserializer_ptr_->clear();
+        rmsgstub.deserializer_ptr_.reset();
     case MessageStub::StateE::IgnoreBody:
         solid_dbg(logger, Verbose, "IgnoreBody " << _msgidx);
         ++rmsgstub.packet_count_;
@@ -362,14 +361,13 @@ const char* MessageReader::doConsumeMessage(
 
                 _pbufpos += message_size;
 
-                if (_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) {
+                if ((_cmd & static_cast<uint8_t>(PacketHeader::CommandE::EndMessageFlag)) != 0u) {
                     cache(rmsgstub.deserializer_ptr_);
                     rmsgstub.clear();
                 }
                 break;
-            } else {
-                solid_assert(false);
             }
+            solid_assert(false);
         } else {
             solid_assert(false);
         }
@@ -498,27 +496,26 @@ Deserializer::PointerT MessageReader::createDeserializer(Receiver& _receiver)
         des_top_ = std::move(des->link());
         _receiver.protocol().reconfigure(*des, _receiver.configuration());
         return des;
-    } else {
-        return _receiver.protocol().createDeserializer(_receiver.configuration());
     }
+    return _receiver.protocol().createDeserializer(_receiver.configuration());
 }
 //-----------------------------------------------------------------------------
 
 /*virtual*/ MessageReader::Receiver::~Receiver() {}
 
-/*virtual*/ bool MessageReader::Receiver::receiveRelayStart(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+/*virtual*/ bool MessageReader::Receiver::receiveRelayStart(MessageHeader& /*_rmsghdr*/, const char* /*_pbeg*/, size_t /*_sz*/, MessageId& /*_rrelay_id*/, const bool /*_is_last*/, ErrorConditionT& /*_rerror*/)
 {
     return false;
 }
-/*virtual*/ bool MessageReader::Receiver::receiveRelayBody(const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+/*virtual*/ bool MessageReader::Receiver::receiveRelayBody(const char* /*_pbeg*/, size_t /*_sz*/, const MessageId& /*_rrelay_id*/, const bool /*_is_last*/, ErrorConditionT& /*_rerror*/)
 {
     return false;
 }
-/*virtual*/ bool MessageReader::Receiver::receiveRelayResponse(MessageHeader& _rmsghdr, const char* _pbeg, size_t _sz, const MessageId& _rrelay_id, const bool _is_last, ErrorConditionT& _rerror)
+/*virtual*/ bool MessageReader::Receiver::receiveRelayResponse(MessageHeader& /*_rmsghdr*/, const char* /*_pbeg*/, size_t /*_sz*/, const MessageId& /*_rrelay_id*/, const bool /*_is_last*/, ErrorConditionT& /*_rerror*/)
 {
     return false;
 }
-/*virtual*/ ResponseStateE MessageReader::Receiver::checkResponseState(const MessageHeader& _rmsghdr, MessageId& _rrelay_id) const
+/*virtual*/ ResponseStateE MessageReader::Receiver::checkResponseState(const MessageHeader& /*_rmsghdr*/, MessageId& /*_rrelay_id*/) const
 {
     return ResponseStateE::None;
 }

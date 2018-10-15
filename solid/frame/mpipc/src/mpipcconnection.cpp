@@ -403,7 +403,7 @@ void Connection::doPrepare(frame::aio::ReactorContext& _rctx)
     msg_writer_.prepare(service(_rctx).configuration().writer);
 }
 //-----------------------------------------------------------------------------
-void Connection::doUnprepare(frame::aio::ReactorContext& _rctx)
+void Connection::doUnprepare(frame::aio::ReactorContext& /*_rctx*/)
 {
     solid_dbg(logger, Verbose, this << ' ' << this->id());
     msg_reader_.unprepare();
@@ -513,12 +513,12 @@ void Connection::doStop(frame::aio::ReactorContext& _rctx, const ErrorConditionT
             //no event get posted
         } else if (has_no_message) {
             // try handle the returned message if any
-            if (msg_bundle.message_ptr.get() || !solid_function_empty(msg_bundle.complete_fnc)) {
+            if (msg_bundle.message_ptr || !solid_function_empty(msg_bundle.complete_fnc)) {
                 doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
             }
             solid_dbg(logger, Info, this << ' ' << this->id() << " wait " << seconds_to_wait << " seconds");
 
-            if (seconds_to_wait) {
+            if (seconds_to_wait != 0u) {
                 timer_.waitFor(_rctx,
                     std::chrono::seconds(seconds_to_wait),
                     [event](frame::aio::ReactorContext& _rctx) {
@@ -670,7 +670,7 @@ void Connection::doContinueStopping(
         if (msg_bundle.message_ptr || !solid_function_empty(msg_bundle.complete_fnc)) {
             doCompleteMessage(_rctx, pool_msg_id, msg_bundle, error_message_connection);
         }
-        if (seconds_to_wait) {
+        if (seconds_to_wait != 0u) {
             solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << seconds_to_wait << " seconds");
             timer_.waitFor(_rctx,
                 std::chrono::seconds(seconds_to_wait),
@@ -830,7 +830,7 @@ void Connection::doHandleEventResolve(
 
     ResolveMessage* presolvemsg = _revent.any().cast<ResolveMessage>();
 
-    if (presolvemsg) {
+    if (presolvemsg != nullptr) {
         if (!isStopping()) {
             solid_dbg(logger, Info, this << ' ' << this->id() << " Session receive resolve event message of size: " << presolvemsg->addrvec.size());
             if (!presolvemsg->empty()) {
@@ -855,7 +855,7 @@ void Connection::doHandleEventResolve(
     }
 }
 //-----------------------------------------------------------------------------
-bool Connection::willAcceptNewMessage(frame::aio::ReactorContext& _rctx) const
+bool Connection::willAcceptNewMessage(frame::aio::ReactorContext& /*_rctx*/) const
 {
     return !isStopping() /* && waiting_message_vec.empty() && msg_writer.willAcceptNewMessage(service(_rctx).configuration().writer)*/;
 }
@@ -868,7 +868,7 @@ void Connection::doHandleEventNewPoolQueueMessage(frame::aio::ReactorContext& _r
     doHandleEventNewPoolMessage(_rctx, _revent);
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, Event& _revent)
+void Connection::doHandleEventNewPoolMessage(frame::aio::ReactorContext& _rctx, Event& /*_revent*/)
 {
 
     if (willAcceptNewMessage(_rctx)) {
@@ -885,7 +885,7 @@ void Connection::doHandleEventNewConnMessage(frame::aio::ReactorContext& _rctx, 
     MessageId* pmsgid = _revent.any().cast<MessageId>();
     solid_assert(pmsgid);
 
-    if (pmsgid) {
+    if (pmsgid != nullptr) {
 
         if (!this->isStopping()) {
             pending_message_vec_.push_back(*pmsgid);
@@ -909,7 +909,7 @@ void Connection::doHandleEventCancelConnMessage(frame::aio::ReactorContext& _rct
     MessageId* pmsgid = _revent.any().cast<MessageId>();
     solid_assert(pmsgid);
 
-    if (pmsgid) {
+    if (pmsgid != nullptr) {
         ConnectionContext    conctx(service(_rctx), *this);
         Configuration const& rconfig = service(_rctx).configuration();
         Sender               sender(*this, _rctx, rconfig.writer, rconfig.protocol(), conctx, error_message_canceled);
@@ -923,7 +923,7 @@ void Connection::doHandleEventCancelPoolMessage(frame::aio::ReactorContext& _rct
     MessageId* pmsgid = _revent.any().cast<MessageId>();
     solid_assert(pmsgid);
 
-    if (pmsgid) {
+    if (pmsgid != nullptr) {
         MessageBundle msg_bundle;
 
         if (service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)) {
@@ -938,7 +938,7 @@ void Connection::doHandleEventClosePoolMessage(frame::aio::ReactorContext& _rctx
     MessageId* pmsgid = _revent.any().cast<MessageId>();
     solid_assert(pmsgid);
 
-    if (pmsgid) {
+    if (pmsgid != nullptr) {
         MessageBundle msg_bundle;
 
         if (service(_rctx).fetchCanceledMessage(*this, *pmsgid, msg_bundle)) {
@@ -962,7 +962,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
         if (!error) {
             flags_.set(FlagsE::Active);
 
-            if (pdata) {
+            if (pdata != nullptr) {
 
                 MessagePointerT msg_ptr = pdata->complete_fnc(conctx, error);
 
@@ -989,7 +989,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
 
         } else {
 
-            if (pdata) {
+            if (pdata != nullptr) {
 
                 MessagePointerT msg_ptr = pdata->complete_fnc(conctx, error);
 
@@ -1001,7 +1001,7 @@ void Connection::doHandleEventEnterActive(frame::aio::ReactorContext& _rctx, Eve
 
             doStop(_rctx, error);
         }
-    } else if (pdata) {
+    } else if (pdata != nullptr) {
         pdata->complete_fnc(conctx, error_connection_stopping);
     }
 }
@@ -1015,15 +1015,15 @@ void Connection::doHandleEventEnterPassive(frame::aio::ReactorContext& _rctx, Ev
         if (this->isRawState()) {
             flags_.reset(FlagsE::Raw);
 
-            if (pdata) {
+            if (pdata != nullptr) {
                 pdata->complete_fnc(conctx, ErrorConditionT());
             }
 
-            if (pending_message_vec_.size()) {
+            if (!pending_message_vec_.empty()) {
                 flags_.set(FlagsE::PollPool);
                 doSend(_rctx);
             }
-        } else if (pdata) {
+        } else if (pdata != nullptr) {
             pdata->complete_fnc(conctx, error_connection_invalid_state);
         }
 
@@ -1190,7 +1190,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, Event& 
 
     solid_assert(pdata);
 
-    if (this->isRawState() && pdata) {
+    if (this->isRawState() && pdata != nullptr) {
 
         solid_dbg(logger, Info, this << " datasize = " << pdata->data.size());
 
@@ -1202,7 +1202,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, Event& 
 
         memcpy(send_buf_.get(), pdata->data.data(), tocopy);
 
-        if (tocopy) {
+        if (tocopy != 0u) {
             pdata->offset = tocopy;
             if (this->postSendAll(_rctx, send_buf_.get(), tocopy, _revent)) {
                 pdata->complete_fnc(conctx, _rctx.error());
@@ -1211,7 +1211,7 @@ void Connection::doHandleEventSendRaw(frame::aio::ReactorContext& _rctx, Event& 
             pdata->complete_fnc(conctx, ErrorConditionT());
         }
 
-    } else if (pdata) {
+    } else if (pdata != nullptr) {
         pdata->complete_fnc(conctx, error_connection_invalid_state);
     }
 }
@@ -1227,7 +1227,7 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
 
     solid_dbg(logger, Info, this);
 
-    if (this->isRawState() && pdata) {
+    if (this->isRawState() && pdata != nullptr) {
         if (recv_buf_off_ == cons_buf_off_) {
             if (this->postRecvSome(_rctx, recv_buf_->data(), this->recvBufferCapacity(), _revent)) {
 
@@ -1250,19 +1250,19 @@ void Connection::doHandleEventRecvRaw(frame::aio::ReactorContext& _rctx, Event& 
                 solid_assert(cons_buf_off_ < recv_buf_off_);
             }
         }
-    } else if (pdata) {
+    } else if (pdata != nullptr) {
 
         pdata->complete_fnc(conctx, nullptr, used_size, error_connection_invalid_state);
     }
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, Event& _revent)
+void Connection::doHandleEventRelayNew(frame::aio::ReactorContext& _rctx, Event& /*_revent*/)
 {
     flags_.set(FlagsE::PollRelayEngine);
     doSend(_rctx);
 }
 //-----------------------------------------------------------------------------
-void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event& _revent)
+void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event& /*_revent*/)
 {
     Configuration const& config      = service(_rctx).configuration();
     size_t               ack_buf_cnt = 0;
@@ -1282,7 +1282,7 @@ void Connection::doHandleEventRelayDone(frame::aio::ReactorContext& _rctx, Event
 
     config.relayEngine().pollDone(relay_id_, done_lambda, cancel_lambda);
 
-    if (ack_buf_cnt || cancel_remote_msg_vec_.size()) {
+    if (ack_buf_cnt != 0u || !cancel_remote_msg_vec_.empty()) {
         ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
         doSend(_rctx);
     }
@@ -1294,7 +1294,7 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext& _rctx)
     Configuration const& config = service(_rctx).configuration();
 
     if (isServer()) {
-        if (config.connection_inactivity_timeout_seconds) {
+        if (config.connection_inactivity_timeout_seconds != 0u) {
             recv_keepalive_count_ = 0;
             flags_.reset(FlagsE::HasActivity);
 
@@ -1303,7 +1303,7 @@ void Connection::doResetTimerStart(frame::aio::ReactorContext& _rctx)
             timer_.waitFor(_rctx, std::chrono::seconds(config.connection_inactivity_timeout_seconds), onTimerInactivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds) {
+        if (config.connection_keepalive_timeout_seconds != 0u) {
             flags_.set(FlagsE::WaitKeepAliveTimer);
 
             solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
@@ -1319,11 +1319,11 @@ void Connection::doResetTimerSend(frame::aio::ReactorContext& _rctx)
     Configuration const& config = service(_rctx).configuration();
 
     if (isServer()) {
-        if (config.connection_inactivity_timeout_seconds) {
+        if (config.connection_inactivity_timeout_seconds != 0u) {
             flags_.set(FlagsE::HasActivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds && isWaitingKeepAliveTimer()) {
+        if (config.connection_keepalive_timeout_seconds != 0u && isWaitingKeepAliveTimer()) {
 
             solid_dbg(logger, Verbose, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
 
@@ -1338,11 +1338,11 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
     Configuration const& config = service(_rctx).configuration();
 
     if (isServer()) {
-        if (config.connection_inactivity_timeout_seconds) {
+        if (config.connection_inactivity_timeout_seconds != 0u) {
             flags_.set(FlagsE::HasActivity);
         }
     } else { //client
-        if (config.connection_keepalive_timeout_seconds && !isWaitingKeepAliveTimer()) {
+        if (config.connection_keepalive_timeout_seconds != 0u && !isWaitingKeepAliveTimer()) {
             flags_.set(FlagsE::WaitKeepAliveTimer);
 
             solid_dbg(logger, Info, this << ' ' << this->id() << " wait for " << config.connection_keepalive_timeout_seconds << " seconds");
@@ -1394,7 +1394,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
     solid_assert(pdata);
 
-    if (pdata) {
+    if (pdata != nullptr) {
 
         if (!_rctx.error()) {
 
@@ -1406,7 +1406,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
             memcpy(rthis.send_buf_.get(), pdata->data.data() + pdata->offset, tocopy);
 
-            if (tocopy) {
+            if (tocopy != 0u) {
                 pdata->offset += tocopy;
                 if (rthis.postSendAll(_rctx, rthis.send_buf_.get(), tocopy, _revent)) {
                     pdata->complete_fnc(conctx, _rctx.error());
@@ -1430,7 +1430,7 @@ void Connection::doResetTimerRecv(frame::aio::ReactorContext& _rctx)
 
     solid_assert(pdata);
 
-    if (pdata) {
+    if (pdata != nullptr) {
 
         size_t used_size = _sz;
 
@@ -1454,7 +1454,7 @@ void Connection::doResetRecvBuffer(frame::aio::ReactorContext& _rctx, const uint
     } else if (recv_buf_.use_count() > 1) {
         solid_dbg(logger, Verbose, this << " buffer used for relay - try replace it. vec_size = " << recv_buf_vec_.size() << " count = " << recv_buf_count_);
         RecvBufferPointerT new_buf;
-        if (recv_buf_vec_.size()) {
+        if (!recv_buf_vec_.empty()) {
             new_buf = std::move(recv_buf_vec_.back());
             recv_buf_vec_.pop_back();
         } else if (recv_buf_count_ < service(_rctx).configuration().connection_relay_buffer_count) {
@@ -1613,7 +1613,9 @@ struct Connection::Receiver : MessageReader::Receiver {
                 rthis.doStop(_rctx, error);
                 recv_something = false; //prevent calling doResetTimerRecv after doStop
                 break;
-            } else if (rthis.cons_buf_off_ < bufsz) {
+            }
+            
+            if (rthis.cons_buf_off_ < bufsz) {
                 rthis.doOptimizeRecvBufferForced();
             }
         } else {
@@ -1632,7 +1634,7 @@ struct Connection::Receiver : MessageReader::Receiver {
 
         bufsz = recvbufcp - rthis.recv_buf_off_;
         //solid_dbg(logger, Info, &rthis<<" buffer size "<<bufsz);
-    } while (repeatcnt && rthis.recvSome(_rctx, pbuf, bufsz, _sz));
+    } while (repeatcnt != 0u && rthis.recvSome(_rctx, pbuf, bufsz, _sz));
 
     if (recv_something) {
         rthis.doResetTimerRecv(_rctx);
@@ -1683,7 +1685,7 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
             MessageWriter::WriteFlagsT write_flags;
             //doResetTimerSend(_rctx);
 
-            while (repeatcnt) {
+            while (repeatcnt != 0u) {
 
                 if (shouldPollPool()) {
                     flags_.reset(FlagsE::PollPool); //reset flag
@@ -1718,23 +1720,22 @@ void Connection::doSend(frame::aio::ReactorContext& _rctx)
 
                 if (!error) {
 
-                    if (buffer.size() && this->sendAll(_rctx, buffer.data(), buffer.size())) {
+                    if (!buffer.empty() && this->sendAll(_rctx, buffer.data(), buffer.size())) {
                         if (_rctx.error()) {
                             solid_dbg(logger, Error, this << ' ' << id() << " sending " << buffer.size() << ": " << _rctx.error().message());
                             flags_.set(FlagsE::StopPeer);
                             doStop(_rctx, _rctx.error(), _rctx.systemError());
                             sent_something = false; //prevent calling doResetTimerSend after doStop
                             break;
-                        } else {
-                            sent_something = true;
                         }
+                        sent_something = true;
                     } else {
                         break;
                     }
                 } else {
                     solid_dbg(logger, Error, this << ' ' << id() << " size to send " << buffer.size() << " error " << error.message());
 
-                    if (buffer.size()) {
+                    if (!buffer.empty()) {
                         this->sendAll(_rctx, buffer.data(), buffer.size());
                     }
 
@@ -1928,7 +1929,7 @@ void Connection::doCancelRelayed(
 
     rconfig.relayEngine().cancel(relay_id_, _prelay_data, _rengine_msg_id, done_lambda);
 
-    if (ack_buf_cnt) {
+    if (ack_buf_cnt != 0u) {
         ackd_buf_count_ += static_cast<uint8_t>(ack_buf_cnt);
         flags_.set(FlagsE::PollRelayEngine); //set flag
         this->post(_rctx, [this](frame::aio::ReactorContext& _rctx, Event const& /*_revent*/) { this->doSend(_rctx); });
@@ -2051,7 +2052,9 @@ ResponseStateE Connection::doCheckResponseState(frame::aio::ReactorContext& _rct
                 this->doStop(_rctx, error_connection_invalid_response_state);
             });
         return ResponseStateE::Cancel;
-    } else if (rv == ResponseStateE::Cancel) {
+    }
+    
+    if (rv == ResponseStateE::Cancel) {
         if (_rmsghdr.sender_request_id_.isValid()) {
             solid_dbg(logger, Info, this << " cancel_remote_msg = " << _rmsghdr.sender_request_id_);
             cancel_remote_msg_vec_.push_back(_rmsghdr.sender_request_id_);

@@ -173,17 +173,17 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     set(SOLID_ON_POSIX TRUE)
 
 
-    set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
+    set(SYS_DEBUG_FLAGS " -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
     if(CMAKE_CXX_COMPILER MATCHES "clang")
-        set(SYS_DEBUG_FLAGS "-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-        set(SYS_MAINTAIN_FLAGS "-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wabi -O3 -g3")
+        set(SYS_DEBUG_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
+        set(SYS_MAINTAIN_FLAGS "${CMAKE_CXX_FLAGS_MAINTAIN} -Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wabi -O3 -g3")
     else()
-        set(SYS_DEBUG_FLAGS "-Wall -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-        set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
+        set(SYS_DEBUG_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
+        set(SYS_MAINTAIN_FLAGS "${CMAKE_CXX_FLAGS_MAINTAIN}")
     endif()
     set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
     set(SYS_NOLOG_FLAGS "-g3")
-    set(SYS_RELEASE_FLAGS "-O3")
+    set(SYS_RELEASE_FLAGS "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
     set(SYS_DEBUG_LINKER_FLAGS "")# -D_GLIBCXX_DEBUG
     set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
@@ -316,7 +316,7 @@ endif ()
 # Debug build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_DEBUG
-    "${CMAKE_CXX_FLAGS_DEBUG} ${SYS_DEBUG_FLAGS}"
+    "${SYS_DEBUG_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during debug builds."
     FORCE
 )
@@ -326,17 +326,17 @@ set(CMAKE_CXX_FLAGS_DEBUG
 # Maintain build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_MAINTAIN
-    "${CMAKE_CXX_FLAGS_MAINTAIN} ${SYS_MAINTAIN_FLAGS}"
+    "${SYS_MAINTAIN_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during maintain builds."
     FORCE
 )
 set(CMAKE_EXE_LINKER_FLAGS_MAINTAIN
-    "${CMAKE_EXE_LINKER_FLAGS_MAINTAIN} ${SYS_MAINTAIN_LINKER_FLAGS}"
+    "${SYS_MAINTAIN_LINKER_FLAGS}"
     CACHE STRING "Flags used for linking binaries during maintain builds."
     FORCE
 )
 set(CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
-    "${CMAKE_SHARED_LINKER_FLAGS_MAINTAIN} ${SYS_MAINTAIN_LINKER_FLAGS}"
+    "${SYS_MAINTAIN_LINKER_FLAGS}"
     CACHE STRING "Flags used by the shared libraries linker during maintain builds."
     FORCE
 )
@@ -346,7 +346,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
 # Optimized build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_OPTIMIZED
-    "${CMAKE_CXX_FLAGS_OPTIMIZED} ${SYS_OPTIMIZED_FLAGS}"
+    "${SYS_OPTIMIZED_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during optimized builds."
     FORCE
 )
@@ -356,7 +356,7 @@ set(CMAKE_CXX_FLAGS_OPTIMIZED
 # Release build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_RELEASE
-    "${CMAKE_CXX_FLAGS_RELEASE} ${SYS_RELEASE_FLAGS}"
+    "${SYS_RELEASE_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during release builds."
     FORCE
 )
@@ -366,7 +366,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
 # Nolog build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_NOLOG
-    "${CMAKE_CXX_FLAGS_NOLOG} ${SYS_NOLOG_FLAGS}"
+    "${SYS_NOLOG_FLAGS}"
     CACHE STRING "Flags used by the C++ compiler during nolog builds."
     FORCE
 )

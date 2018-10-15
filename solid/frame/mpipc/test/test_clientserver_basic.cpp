@@ -96,14 +96,14 @@ struct Message : frame::mpipc::Message {
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
-    ~Message()
+    ~Message() override
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
 
         solid_assert(serialized || this->isBackOnSender());
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
         if (_s.is_serializer) {
@@ -218,7 +218,7 @@ void client_complete_message(
 void server_complete_message(
     frame::mpipc::ConnectionContext& _rctx,
     std::shared_ptr<Message>& _rsent_msg_ptr, std::shared_ptr<Message>& _rrecv_msg_ptr,
-    ErrorConditionT const& _rerror)
+    ErrorConditionT const& /*_rerror*/)
 {
     if (_rrecv_msg_ptr) {
         solid_dbg(generic_logger, Info, _rctx.recipientId() << " received message with id on sender " << _rrecv_msg_ptr->senderRequestId());
@@ -235,7 +235,7 @@ void server_complete_message(
 
         solid_check(_rctx.recipientId().isValidConnection(), "Connection id should not be invalid!");
 
-        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), std::move(_rrecv_msg_ptr));
+        ErrorConditionT err = _rctx.service().sendResponse(_rctx.recipientId(), _rrecv_msg_ptr);
 
         solid_check(!err, "Connection id should not be invalid: " << err.message());
 
@@ -291,7 +291,7 @@ int test_clientserver_basic(int argc, char* argv[])
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if (isprint(c) && !isblank(c)) {
+            if (isprint(c) != 0 && isblank(c) == 0) {
                 pattern += static_cast<char>(c);
             }
         }

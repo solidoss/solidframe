@@ -94,18 +94,18 @@ SocketStubPtrT default_create_server_socket(Configuration const& _rcfg, frame::a
 
 const char* default_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
 {
-    if (_purl == nullptr)
+    if (_purl == nullptr){
         return nullptr;
+    }
 
     const char* p = strchr(_purl, '/');
 
     if (p == nullptr) {
         return _purl;
-    } else {
-        _msgurl = (p + 1);
-        _tmpstr.assign(_purl, p - _purl);
-        return _tmpstr.c_str();
     }
+    _msgurl = (p + 1);
+    _tmpstr.assign(_purl, p - _purl);
+    return _tmpstr.c_str();
 }
 
 // const char* default_fast_extract_recipient_name(const char* _purl, std::string& _msgurl, std::string& _tmpstr)
@@ -163,42 +163,42 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
 {
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngine::stopConnection(const UniqueId& _rrelay_uid)
+/*virtual*/ void RelayEngine::stopConnection(const UniqueId& /*_rrelay_uid*/)
 {
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngine::doRelayStart(
-    const ObjectIdT& _rcon_uid,
-    UniqueId&        _rrelay_uid,
-    MessageHeader&   _rmsghdr,
-    RelayData&&      _urelay_data,
-    MessageId&       _rrelay_id,
-    ErrorConditionT& _rerror)
+    const ObjectIdT& /*_rcon_uid*/,
+    UniqueId&        /*_rrelay_uid*/,
+    MessageHeader&   /*_rmsghdr*/,
+    RelayData&&      /*_urelay_data*/,
+    MessageId&       /*_rrelay_id*/,
+    ErrorConditionT& /*_rerror*/)
 {
     return false;
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngine::doRelayResponse(
-    const UniqueId&  _rrelay_uid,
-    MessageHeader&   _rmsghdr,
-    RelayData&&      _urelay_data,
-    const MessageId& _rrelay_id,
-    ErrorConditionT& _rerror)
+    const UniqueId&  /*_rrelay_uid*/,
+    MessageHeader&   /*_rmsghdr*/,
+    RelayData&&      /*_urelay_data*/,
+    const MessageId& /*_rrelay_id*/,
+    ErrorConditionT& /*_rerror*/)
 {
     return false;
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ bool RelayEngine::doRelay(
-    const UniqueId&  _rrelay_uid,
-    RelayData&&      _urelay_data,
-    const MessageId& _rrelay_id,
-    ErrorConditionT& _rerror)
+    const UniqueId&  /*_rrelay_uid*/,
+    RelayData&&      /*_urelay_data*/,
+    const MessageId& /*_rrelay_id*/,
+    ErrorConditionT& /*_rerror*/)
 {
     return false;
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doComplete(
-    const UniqueId& _rrelay_uid,
+    const UniqueId& /*_rrelay_uid*/,
     RelayData* /*_prelay_data*/,
     MessageId const& /*_rengine_msg_id*/,
     bool& /*_rmore*/
@@ -208,7 +208,7 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
 }
 //-----------------------------------------------------------------------------
 /*virtual*/ void RelayEngine::doCancel(
-    const UniqueId& _rrelay_uid,
+    const UniqueId& /*_rrelay_uid*/,
     RelayData* /*_prelay_data*/,
     MessageId const& /*_rengine_msg_id*/,
     DoneFunctionT& /*_done_fnc*/
@@ -217,12 +217,12 @@ bool RelayEngine::notifyConnection(Manager& _rm, const ObjectIdT& _rrelay_uid, c
     solid_throw("should not be called");
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngine::doPollNew(const UniqueId& _rrelay_uid, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
+/*virtual*/ void RelayEngine::doPollNew(const UniqueId& /*_rrelay_uid*/, PushFunctionT& /*_try_push_fnc*/, bool& /*_rmore*/)
 {
     solid_throw("should not be called");
 }
 //-----------------------------------------------------------------------------
-/*virtual*/ void RelayEngine::doPollDone(const UniqueId& _rrelay_uid, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/)
+/*virtual*/ void RelayEngine::doPollDone(const UniqueId& /*_rrelay_uid*/, DoneFunctionT& /*_done_fnc*/, CancelFunctionT& /*_cancel_fnc*/)
 {
     solid_throw("should not be called");
 }
@@ -278,7 +278,7 @@ size_t Configuration::connectionReconnectTimeoutSeconds(
     const bool    _failed_create_connection_object,
     const bool    _last_connection_was_connected,
     const bool    _last_connection_was_active,
-    const bool    _last_connection_was_secured) const
+    const bool    /*_last_connection_was_secured*/) const
 {
     if (_failed_create_connection_object) {
         return connection_reconnect_timeout_seconds / 2;

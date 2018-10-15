@@ -69,11 +69,11 @@ enum {
 class ErrorCategory : public ErrorCategoryT {
 public:
     ErrorCategory() {}
-    const char* name() const noexcept
+    const char* name() const noexcept override
     {
         return "solid::frame::mpipc";
     }
-    std::string message(int _ev) const;
+    std::string message(int _ev) const override;
 };
 
 const ErrorCategory category;

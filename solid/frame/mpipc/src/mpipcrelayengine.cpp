@@ -111,7 +111,7 @@ struct MessageStub : inner::Node<InnerLinkCount> {
 
     void push(RelayData* _prd)
     {
-        if (pback_) {
+        if (pback_ != nullptr) {
             pback_->pnext_ = _prd;
             pback_         = _prd;
         } else {
@@ -124,7 +124,7 @@ struct MessageStub : inner::Node<InnerLinkCount> {
     RelayData* pop()
     {
         RelayData* p = nullptr;
-        if (pfront_) {
+        if (pfront_ != nullptr) {
             p       = pfront_;
             pfront_ = p->pnext_;
             if (pfront_ == nullptr) {
@@ -247,7 +247,7 @@ struct EngineCore::Data {
     RelayData* createRelayData(RelayData&& _urd)
     {
         RelayData* prd = nullptr;
-        if (prelay_data_cache_top_) {
+        if (prelay_data_cache_top_ != nullptr) {
             prd                    = prelay_data_cache_top_;
             prelay_data_cache_top_ = prelay_data_cache_top_->pnext_;
             *prd                   = std::move(_urd);
@@ -260,7 +260,7 @@ struct EngineCore::Data {
     RelayData* createSendCancelRelayData()
     {
         RelayData* prd = nullptr;
-        if (prelay_data_cache_top_) {
+        if (prelay_data_cache_top_ != nullptr) {
             prd                    = prelay_data_cache_top_;
             prelay_data_cache_top_ = prelay_data_cache_top_->pnext_;
             prd->clear();
@@ -283,12 +283,11 @@ struct EngineCore::Data {
     {
         size_t idx;
 
-        if (msg_cache_inner_list_.size()) {
+        if (!msg_cache_inner_list_.empty()) {
             return msg_cache_inner_list_.popBack();
-        } else {
-            idx = msg_dq_.size();
-            msg_dq_.emplace_back();
         }
+        idx = msg_dq_.size();
+        msg_dq_.emplace_back();
         return idx;
     }
     void eraseMessage(const size_t _idx)
@@ -299,7 +298,7 @@ struct EngineCore::Data {
     size_t createConnection()
     {
         size_t conidx;
-        if (con_cache_.size()) {
+        if (!con_cache_.empty()) {
             conidx = con_cache_.top();
             con_cache_.pop();
         } else {
@@ -350,7 +349,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
 {
     ConnectionStub& rcon = impl_->con_dq_[_conidx];
     {
-        while (rcon.recv_msg_list_.size()) {
+        while (!rcon.recv_msg_list_.empty()) {
             MessageStub& rmsg       = rcon.recv_msg_list_.front();
             const size_t msgidx     = rcon.recv_msg_list_.popFront();
             const size_t snd_conidx = static_cast<size_t>(rmsg.sender_con_id_.index);
@@ -387,7 +386,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
             }
             //simply erase the message
             RelayData* prd;
-            while ((prd = rmsg.pop())) {
+            while ((prd = rmsg.pop()) != nullptr) {
                 impl_->eraseRelayData(prd);
             }
             rmsg.clear();
@@ -396,7 +395,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
     }
 
     {
-        while (rcon.send_msg_list_.size()) {
+        while (!rcon.send_msg_list_.empty()) {
             MessageStub& rmsg       = rcon.send_msg_list_.front();
             const size_t msgidx     = rcon.send_msg_list_.popFront();
             const size_t rcv_conidx = static_cast<size_t>(rmsg.receiver_con_id_.index);
@@ -406,7 +405,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
 
             //clean message relay data
             RelayData* prd;
-            while ((prd = rmsg.pop())) {
+            while ((prd = rmsg.pop()) != nullptr) {
                 impl_->eraseRelayData(prd);
             }
 
@@ -449,7 +448,7 @@ void EngineCore::doStopConnection(const size_t _conidx)
 
         solid_dbg(logger, Info, _conidx << ' ' << plot(rcon));
 
-        while (prd) {
+        while (prd != nullptr) {
             RelayData* ptmprd = prd->pnext_;
             prd->clear();
             impl_->eraseRelayData(prd);
@@ -503,7 +502,7 @@ bool EngineCore::doRelayStart(
     MessageHeader&   _rmsghdr,
     RelayData&&      _rrelmsg,
     MessageId&       _rrelay_id,
-    ErrorConditionT& _rerror)
+    ErrorConditionT& /*_rerror*/)
 {
     size_t            msgidx;
     lock_guard<mutex> lock(impl_->mtx_);
@@ -562,7 +561,7 @@ bool EngineCore::doRelay(
     const UniqueId&  _rrelay_con_uid,
     RelayData&&      _rrelmsg,
     const MessageId& _rrelay_id,
-    ErrorConditionT& _rerror)
+    ErrorConditionT& /*_rerror*/)
 {
     lock_guard<mutex> lock(impl_->mtx_);
 
@@ -575,12 +574,13 @@ bool EngineCore::doRelay(
         MessageStub& rmsg                          = impl_->msg_dq_[msgidx];
         bool         is_msg_relay_data_queue_empty = (rmsg.pfront_ == nullptr);
         size_t       data_size                     = _rrelmsg.data_size_;
+        bool         is_msg_last                   = _rrelmsg.is_last_;
 
         rmsg.push(impl_->createRelayData(std::move(_rrelmsg)));
 
         if (rmsg.state_ == MessageStateE::Relay) {
 
-            solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " rcv_conidx " << rmsg.receiver_con_id_.index << " snd_conidx " << rmsg.sender_con_id_.index << " is_last = " << _rrelmsg.is_last_ << " is_mrq_empty = " << is_msg_relay_data_queue_empty << " dsz = " << data_size);
+            solid_dbg(logger, Info, _rrelay_con_uid << " msgid = " << _rrelay_id << " rcv_conidx " << rmsg.receiver_con_id_.index << " snd_conidx " << rmsg.sender_con_id_.index << " is_last = " << is_msg_last << " is_mrq_empty = " << is_msg_relay_data_queue_empty << " dsz = " << data_size);
 
             if (is_msg_relay_data_queue_empty) {
                 ConnectionStub& rrcvcon                  = impl_->con_dq_[static_cast<size_t>(rmsg.receiver_con_id_.index)];
@@ -605,10 +605,9 @@ bool EngineCore::doRelay(
             solid_dbg(logger, Warning, _rrelay_con_uid << " message not in relay state instead in " << static_cast<size_t>(rmsg.state_));
         }
         return true;
-    } else {
-        solid_dbg(logger, Error, _rrelay_con_uid << " message not found " << _rrelay_id);
-        return false;
     }
+    solid_dbg(logger, Error, _rrelay_con_uid << " message not found " << _rrelay_id);
+    return false;
 }
 //-----------------------------------------------------------------------------
 // called by receiving connection on relaying the message response
@@ -620,7 +619,7 @@ bool EngineCore::doRelayResponse(
     MessageHeader&   _rmsghdr,
     RelayData&&      _rrelmsg,
     const MessageId& _rrelay_id,
-    ErrorConditionT& _rerror)
+    ErrorConditionT& /*_rerror*/)
 {
     lock_guard<mutex> lock(impl_->mtx_);
 
@@ -677,10 +676,9 @@ bool EngineCore::doRelayResponse(
             }
         }
         return true;
-    } else {
-        solid_dbg(logger, Error, "message not found");
-        return false;
     }
+    solid_dbg(logger, Error, "message not found");
+    return false;
 }
 //-----------------------------------------------------------------------------
 // called by the receiver connection on new relay data
@@ -704,7 +702,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
     while (can_retry && msgidx != InvalidIndex() && impl_->msg_dq_[msgidx].hasData()) {
         MessageStub& rmsg        = impl_->msg_dq_[msgidx];
         const size_t prev_msgidx = rcon.recv_msg_list_.previousIndex(msgidx);
-        RelayData*   pnext       = rmsg.pfront_ ? rmsg.pfront_->pnext_ : nullptr;
+        RelayData*   pnext       = rmsg.pfront_ != nullptr ? rmsg.pfront_->pnext_ : nullptr;
 
         if (_try_push_fnc(rmsg.pfront_, MessageId(msgidx, rmsg.unique_), rmsg.receiver_msg_id_, can_retry)) {
             if (rmsg.pfront_ == nullptr) {
@@ -715,7 +713,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
                 }
 
                 //relay data accepted
-                if (rmsg.pfront_) {
+                if (rmsg.pfront_ != nullptr) {
                     //message has more data - leave it where it is on the list
                 } else {
                     //message has no more data, move it to front
@@ -749,7 +747,7 @@ void EngineCore::doPollNew(const UniqueId& _rrelay_con_uid, PushFunctionT& _try_
         msgidx = prev_msgidx;
     } //while
 
-    _rmore = rcon.recv_msg_list_.size() && rcon.recv_msg_list_.back().hasData();
+    _rmore = !rcon.recv_msg_list_.empty() && rcon.recv_msg_list_.back().hasData();
     solid_dbg(logger, Info, _rrelay_con_uid << " more = " << _rmore << " rcv_lst = " << rcon.recv_msg_list_);
 }
 //-----------------------------------------------------------------------------
@@ -770,7 +768,7 @@ void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _don
 
     RelayData* prd = rcon.pdone_relay_data_top_;
 
-    while (prd) {
+    while (prd != nullptr) {
         _done_fnc(prd->bufptr_);
         RelayData* ptmprd = prd->pnext_;
         prd->clear();
@@ -782,13 +780,13 @@ void EngineCore::doPollDone(const UniqueId& _rrelay_con_uid, DoneFunctionT& _don
 
     solid_assert(rcon.send_msg_list_.check());
 
-    while (rcon.send_msg_list_.size() && rcon.send_msg_list_.front().state_ == MessageStateE::RecvCancel) {
+    while (!rcon.send_msg_list_.empty() && rcon.send_msg_list_.front().state_ == MessageStateE::RecvCancel) {
         MessageStub& rmsg   = rcon.send_msg_list_.front();
         size_t       msgidx = rcon.send_msg_list_.popFront();
 
         solid_assert(rmsg.receiver_con_id_.isInvalid());
 
-        while ((prd = rmsg.pop())) {
+        while ((prd = rmsg.pop()) != nullptr) {
             _done_fnc(prd->bufptr_);
             prd->clear();
             impl_->eraseRelayData(prd);
@@ -852,11 +850,11 @@ void EngineCore::doComplete(
                 }
             }
 
-            _rmore = rrcvcon.recv_msg_list_.size() && rrcvcon.recv_msg_list_.back().hasData();
+            _rmore = !rrcvcon.recv_msg_list_.empty() && rrcvcon.recv_msg_list_.back().hasData();
             solid_dbg(logger, Info, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
             return;
         }
-        _rmore = rrcvcon.recv_msg_list_.size() && rrcvcon.recv_msg_list_.back().hasData();
+        _rmore = !rrcvcon.recv_msg_list_.empty() && rrcvcon.recv_msg_list_.back().hasData();
         solid_dbg(logger, Info, _rrelay_con_uid << " " << _rengine_msg_id << " more " << _rmore << " rcv_lst = " << rrcvcon.recv_msg_list_);
     }
     //it happens for canceled relayed messages - see MessageWriter::doWriteRelayedCancelRequest
@@ -895,13 +893,13 @@ void EngineCore::doCancel(
             // might have already captured a message buffer which MUST return to the sender connection
 
             RelayData* prd;
-            while ((prd = rmsg.pop())) {
+            while ((prd = rmsg.pop()) != nullptr) {
                 prd->pnext_                   = rsndcon.pdone_relay_data_top_;
                 rsndcon.pdone_relay_data_top_ = prd;
             }
             prd = rsndcon.pdone_relay_data_top_;
 
-            while (prd) {
+            while (prd != nullptr) {
                 _done_fnc(prd->bufptr_);
                 RelayData* ptmprd = prd->pnext_;
                 prd->clear();
@@ -960,7 +958,7 @@ void EngineCore::doCancel(
                 ConnectionStub& rsndcon                  = impl_->con_dq_[static_cast<size_t>(rmsg.sender_con_id_.index)];
                 bool            should_notify_connection = rsndcon.pdone_relay_data_top_ == nullptr;
 
-                if (_prelay_data) {
+                if (_prelay_data != nullptr) {
                     _prelay_data->pnext_          = rsndcon.pdone_relay_data_top_;
                     rsndcon.pdone_relay_data_top_ = _prelay_data;
                     _prelay_data                  = nullptr;
@@ -989,7 +987,7 @@ void EngineCore::doCancel(
         solid_dbg(logger, Error, _rrelay_con_uid << " message not found " << _rengine_msg_id);
     }
 
-    if (_prelay_data) {
+    if (_prelay_data != nullptr) {
         solid_assert(!_prelay_data->bufptr_);
         _prelay_data->clear();
         impl_->eraseRelayData(_prelay_data);
@@ -1011,7 +1009,7 @@ void EngineCore::debugDump()
         size_t datacnt = 0;
         {
             auto p = msg.pfront_;
-            while (p) {
+            while (p != nullptr) {
                 ++datacnt;
                 p = p->pnext_;
             }

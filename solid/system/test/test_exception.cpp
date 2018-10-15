@@ -49,13 +49,13 @@ int test_exception(int argc, char* argv[])
     {
         ostringstream oss;
         const int     line = 62;
-        oss << '[' << __FILE__ << '(' << line << ")][" << solid_function_t_NAME << "] (argc == 0) check failed: some error: " << argc << " " << argv[0] << " " << argv[1];
+        oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "] (argc == 0) check failed: some error: " << argc << " " << argv[0] << " " << argv[1];
         check_str = oss.str();
     }
     {
         ostringstream oss;
         const int     line = 71;
-        oss << '[' << __FILE__ << '(' << line << ")][" << solid_function_t_NAME << "]: " << error_test.message();
+        oss << '[' << __FILE__ << '(' << line << ")][" << SOLID_FUNCTION_NAME << "]: " << error_test.message();
         check_condition_str = oss.str();
     }
     try {

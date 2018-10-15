@@ -116,10 +116,12 @@ struct SizePairCompare {
     }
     int operator()(SizePairT const& _a, size_t _b) const
     {
-        if (_a.first < _b)
+        if (_a.first < _b){
             return -1;
-        if (_b < _a.first)
+        }
+        if (_b < _a.first){
             return 1;
+        }
         return 0;
     }
 } szcmp;
@@ -141,11 +143,9 @@ struct Utf8ConfigurationImpl {
     Utf8ConfigurationImpl(Utf8Configuration const& _cfg)
     {
         storagevec.reserve(_cfg.storagevec.size());
-        for (
-            Utf8Configuration::StorageVectorT::const_iterator it = _cfg.storagevec.begin();
-            it != _cfg.storagevec.end();
-            ++it) {
-            storagevec.push_back(Storage(*it));
+        
+        for(const auto & v: _cfg.storagevec){
+            storagevec.push_back(Storage(v));
         }
     }
 
@@ -191,15 +191,15 @@ struct TempConfigurationImpl {
         }
         bool canUse(const uint64_t _sz, const size_t _flags) const
         {
-            return _flags & level && _sz <= maxsize && _sz >= minsize;
+            return (_flags & level) != 0u && _sz <= maxsize && _sz >= minsize;
         }
         bool shouldUse(const uint64_t _sz) const
         {
-            return waitcount == 0 && ((capacity - usedsize) >= _sz);
+            return waitcount == 0u && ((capacity - usedsize) >= _sz);
         }
         bool canDeliver() const
         {
-            return waitcount && ((capacity - usedsize) >= waitsizefirst);
+            return waitcount != 0u && ((capacity - usedsize) >= waitsizefirst);
         }
         std::string    path;
         uint32_t       level;
@@ -220,11 +220,8 @@ struct TempConfigurationImpl {
     TempConfigurationImpl(TempConfiguration const& _cfg)
     {
         storagevec.reserve(_cfg.storagevec.size());
-        for (
-            TempConfiguration::StorageVectorT::const_iterator it = _cfg.storagevec.begin();
-            it != _cfg.storagevec.end();
-            ++it) {
-            storagevec.push_back(Storage(*it));
+        for(const auto &v:_cfg.storagevec){
+            storagevec.push_back(Storage(v));
         }
     }
     typedef std::vector<Storage> StorageVectorT;
@@ -340,7 +337,7 @@ Utf8Controller::~Utf8Controller()
 
 bool Utf8Controller::prepareIndex(
     shared::StoreBase::Accessor& /*_rsbacc*/, Utf8OpenCommandBase& _rcmd,
-    size_t& _ridx, size_t& _rflags, ErrorCodeT& _rerr)
+    size_t& _ridx, size_t& /*_rflags*/, ErrorCodeT& _rerr)
 {
     //find _rcmd.inpath file && set _rcmd.outpath
     //if found set _ridx && return true
@@ -367,11 +364,11 @@ bool Utf8Controller::prepareIndex(
 
 bool Utf8Controller::preparePointer(
     shared::StoreBase::Accessor& /*_rsbacc*/, Utf8OpenCommandBase& _rcmd,
-    FilePointerT& _rptr, size_t& _rflags, ErrorCodeT& _rerr)
+    FilePointerT& _rptr, size_t& /*_rflags*/, ErrorCodeT& /*_rerr*/)
 {
     //just do map[_rcmd.outpath] = _rptr.uid().first
     Utf8PathStub* ppath;
-    if (impl_->pathcache.size()) {
+    if (!impl_->pathcache.empty()) {
         ppath  = impl_->pathcache.top();
         *ppath = _rcmd.outpath;
         impl_->pathcache.pop();
@@ -399,8 +396,8 @@ void Utf8Controller::openFile(Utf8OpenCommandBase& _rcmd, FilePointerT& _rptr, E
 }
 
 bool Utf8Controller::prepareIndex(
-    shared::StoreBase::Accessor& _rsbacc, CreateTempCommandBase& _rcmd,
-    size_t& _ridx, size_t& _rflags, ErrorCodeT& _rerr)
+    shared::StoreBase::Accessor& /*_rsbacc*/, CreateTempCommandBase& /*_rcmd*/,
+    size_t& /*_ridx*/, size_t& /*_rflags*/, ErrorCodeT& /*_rerr*/)
 {
     //nothing to do
     return false; //no stored index
@@ -408,7 +405,7 @@ bool Utf8Controller::prepareIndex(
 
 bool Utf8Controller::preparePointer(
     shared::StoreBase::Accessor& _rsbacc, CreateTempCommandBase& _rcmd,
-    FilePointerT& _rptr, size_t& _rflags, ErrorCodeT& _rerr)
+    FilePointerT& _rptr, size_t& /*_rflags*/, ErrorCodeT& /*_rerr*/)
 {
     //We're under Store's mutex lock
     UniqueId uid = _rptr.id();
@@ -423,7 +420,7 @@ bool Utf8Controller::preparePointer(
     return false; //will always store _rptr
 }
 
-void Utf8Controller::executeOnSignal(shared::StoreBase::Accessor& _rsbacc, ulong _sm)
+void Utf8Controller::executeOnSignal(shared::StoreBase::Accessor& /*_rsbacc*/, ulong /*_sm*/)
 {
     //We're under Store's mutex lock
     solid::exchange(impl_->pfilltempwaitvec, impl_->pconstempwaitvec);
@@ -433,7 +430,7 @@ void Utf8Controller::executeOnSignal(shared::StoreBase::Accessor& _rsbacc, ulong
 bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor& _rsbacc)
 {
     //We're NOT under Store's mutex lock
-    if (impl_->pconstempwaitvec->size()) {
+    if (!impl_->pconstempwaitvec->empty()) {
         for (
             TempWaitVectorT::const_iterator waitit = impl_->pconstempwaitvec->begin();
             waitit != impl_->pconstempwaitvec->end();
@@ -472,7 +469,7 @@ bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor& _rsbacc)
             }
         }
     }
-    if (impl_->tempidxvec.size()) {
+    if (!impl_->tempidxvec.empty()) {
         for (SizeVectorT::const_iterator it = impl_->tempidxvec.begin(); it != impl_->tempidxvec.begin(); ++it) {
             doDeliverTemp(_rsbacc, *it);
         }
@@ -481,7 +478,7 @@ bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor& _rsbacc)
     return false;
 }
 
-bool Utf8Controller::clear(shared::StoreBase::Accessor& _rsbacc, File& _rf, const size_t _idx)
+bool Utf8Controller::clear(shared::StoreBase::Accessor& /*_rsbacc*/, File& _rf, const size_t _idx)
 {
     //We're under Store's mutex lock
     //We're under File's mutex lock
@@ -519,7 +516,7 @@ void Utf8Controller::doPrepareOpenTemp(File& _rf, uint64_t _sz, const size_t _st
     TempConfigurationImpl::Storage& rstrg(impl_->tempcfg.storagevec[_storeid]);
     uint32_t                        fileid;
 
-    if (rstrg.idcache.size()) {
+    if (!rstrg.idcache.empty()) {
         fileid = static_cast<uint32_t>(rstrg.idcache.top());
         rstrg.idcache.pop();
     } else {
@@ -529,7 +526,7 @@ void Utf8Controller::doPrepareOpenTemp(File& _rf, uint64_t _sz, const size_t _st
     rstrg.usedsize += _sz;
 
     //only creates the file backend - does not open it:
-    if ((rstrg.level & MemoryLevelFlag) && rstrg.path.empty()) {
+    if ((rstrg.level & MemoryLevelFlag) != 0u && rstrg.path.empty()) {
         _rf.ptmp = new TempMemory(_storeid, fileid, _sz);
     } else {
         _rf.ptmp = new TempFile(_storeid, fileid, _sz);
@@ -601,7 +598,7 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor& _rsbacc, const s
             }
         }
         it = waitit;
-        if (!rstrg.waitcount) {
+        if (rstrg.waitcount == 0u) {
             break;
         }
     }
@@ -649,8 +646,9 @@ void split_id(const uint32_t _id, size_t& _rfldrid, size_t& _rfileid)
 bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint32_t _id)
 {
     _rpath.assign(_prefix);
-    if (_rpath.empty())
+    if (_rpath.empty()){
         return false;
+    }
 
     if (*_rpath.rbegin() != '/') {
         _rpath += '/';
@@ -679,7 +677,7 @@ bool prepare_temp_file_path(std::string& _rpath, const char* _prefix, const uint
 
 } //namespace
 
-/*virtual*/ bool TempFile::open(const char* _path, const size_t _openflags, bool _remove, ErrorCodeT& _rerr)
+/*virtual*/ bool TempFile::open(const char* _path, const size_t /*_openflags*/, bool _remove, ErrorCodeT& _rerr)
 {
 
     std::string path;
@@ -762,7 +760,7 @@ TempMemory::TempMemory(
 {
 }
 
-/*virtual*/ bool TempMemory::open(const char* _path, const size_t _openflags, bool /*_remove*/, ErrorCodeT& _rerr)
+/*virtual*/ bool TempMemory::open(const char* /*_path*/, const size_t /*_openflags*/, bool /*_remove*/, ErrorCodeT& /*_rerr*/)
 {
     lock_guard<mutex> lock(shared_mutex(this));
     mf.truncate(0);

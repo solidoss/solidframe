@@ -82,13 +82,13 @@ struct Message : frame::mpipc::Message {
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
-    ~Message()
+    ~Message() override
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
         solid_assert(!serialized);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
         if (_s.is_serializer) {
@@ -193,7 +193,7 @@ int test_clientserver_noserver(int argc, char* argv[])
     for (int j = 0; j < 1; ++j) {
         for (int i = 0; i < 127; ++i) {
             int c = (i + j) % 127;
-            if (isprint(c) && !isblank(c)) {
+            if (isprint(c) != 0 && isblank(c) == 0) {
                 pattern += static_cast<char>(c);
             }
         }

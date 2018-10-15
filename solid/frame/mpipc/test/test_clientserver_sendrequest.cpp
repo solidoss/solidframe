@@ -93,12 +93,12 @@ struct Request : frame::mpipc::Message {
     {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
-    ~Request()
+    ~Request() override
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
     }
@@ -130,8 +130,9 @@ struct Request : frame::mpipc::Message {
         const size_t    pattern_size = pattern.size() / sizeof(uint64_t);
 
         for (uint64_t i = 0; i < count; ++i) {
-            if (pu[i] != pup[i % pattern_size])
+            if (pu[i] != pup[i % pattern_size]){
                 return false;
+            }
         }
         return true;
     }
@@ -154,12 +155,12 @@ struct Response : frame::mpipc::Message {
         solid_dbg(generic_logger, Info, "CREATE ---------------- " << (void*)this);
     }
 
-    ~Response()
+    ~Response() override
     {
         solid_dbg(generic_logger, Info, "DELETE ---------------- " << (void*)this);
     }
 
-    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, _name)
+    SOLID_PROTOCOL_V2(_s, _rthis, _rctx, /*_name*/)
     {
         _s.add(_rthis.idx, _rctx, "idx").add(_rthis.str, _rctx, "str");
     }
@@ -205,9 +206,9 @@ void server_connection_start(frame::mpipc::ConnectionContext& _rctx)
 
 void client_complete_request(
     frame::mpipc::ConnectionContext& _rctx,
-    std::shared_ptr<Request>&        _rsendmsgptr,
-    std::shared_ptr<Response>&       _rrecvmsgptr,
-    ErrorConditionT const&           _rerr)
+    std::shared_ptr<Request>&        /*_rsendmsgptr*/,
+    std::shared_ptr<Response>&       /*_rrecvmsgptr*/,
+    ErrorConditionT const&           /*_rerr*/)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
     solid_throw("Should not be called");
@@ -215,9 +216,9 @@ void client_complete_request(
 
 void client_complete_response(
     frame::mpipc::ConnectionContext& _rctx,
-    std::shared_ptr<Response>&       _rsendmsgptr,
-    std::shared_ptr<Response>&       _rrecvmsgptr,
-    ErrorConditionT const&           _rerr)
+    std::shared_ptr<Response>&       /*_rsendmsgptr*/,
+    std::shared_ptr<Response>&       /*_rrecvmsgptr*/,
+    ErrorConditionT const&           /*_rerr*/)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
     solid_throw("Should not be called");
@@ -227,7 +228,7 @@ void on_receive_response(
     frame::mpipc::ConnectionContext& _rctx,
     std::shared_ptr<Request>&        _rreqmsgptr,
     std::shared_ptr<Response>&       _rresmsgptr,
-    ErrorConditionT const&           _rerr)
+    ErrorConditionT const&           /*_rerr*/)
 {
     solid_dbg(generic_logger, Info, _rctx.recipientId());
 
@@ -278,7 +279,7 @@ void server_complete_request(
         return;
     }
 
-    if (_rsendmsgptr.get()) {
+    if (_rsendmsgptr) {
         solid_throw("Server does not send Request");
         return;
     }
@@ -364,7 +365,7 @@ int test_clientserver_sendrequest(int argc, char* argv[])
     }
 
     for (int i = 0; i < 127; ++i) {
-        if (isprint(i) && !isblank(i)) {
+        if (isprint(i) != 0 && isblank(i) == 0) {
             pattern += static_cast<char>(i);
         }
     }
