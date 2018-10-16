@@ -1471,7 +1471,7 @@ bool Reactor::modDevice(ReactorContext& _rctx, Device const& _rsd, const Reactor
 
 //-----------------------------------------------------------------------------
 
-bool Reactor::remDevice(CompletionHandler const& /*_rch*/, Device const& _rsd)
+bool Reactor::remDevice(CompletionHandler const& _rch, Device const& _rsd)
 {
     solid_dbg(logger, Info, _rsd.descriptor());
 #if defined(SOLID_USE_EPOLL)
