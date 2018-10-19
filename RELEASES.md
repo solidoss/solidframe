@@ -17,6 +17,7 @@
 
 ## Version 5.0
 * (DONE) add support for endianess on seralization/v2
+* (DONE) clang tidy support
 
 ## Version 4.1
 * (DONE) fix compilation on g++ 8.1.1
