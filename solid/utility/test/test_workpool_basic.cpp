@@ -22,6 +22,7 @@ int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
     const int             wait_seconds = 500;
     const int             loop_cnt     = 10;
     const uint64_t        cnt{5000000};
+    const uint64_t        v = (((cnt - 1) * cnt)) / 2;
     std::atomic<uint64_t> val{0};
     promise<void>         prom;
     AtomicPWPT            pwp{nullptr};
@@ -37,27 +38,28 @@ int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
         std::ref(prom), std::ref(pwp), wait_seconds);
 
     for (int i = 0; i < loop_cnt; ++i) {
-        WorkPoolT wp{
-            2,
-            WorkPoolConfiguration(),
-            [&val](size_t _v) {
-                val += _v;
-            }};
-        pwp = &wp;
-        solid_log(logger, Verbose, "before loop");
-        for (size_t i = 0; i < cnt; ++i) {
-            wp.push(i);
-        };
-        pwp = nullptr;
-        solid_log(logger, Verbose, "after loop");
+        {
+            WorkPoolT wp{
+                2,
+                WorkPoolConfiguration(),
+                [&val](size_t _v) {
+                    val += _v;
+                }};
+            pwp = &wp;
+            solid_log(logger, Verbose, "before loop");
+            for (size_t i = 0; i < cnt; ++i) {
+                wp.push(i);
+            };
+            pwp = nullptr;
+        }
+        solid_log(logger, Verbose, "after loop: val = " << val << " v = " << v);
+        solid_check(v == val);
+        val = 0;
     }
     prom.set_value();
-    solid_log(logger, Verbose, "after promise set value");
+    solid_log(logger, Verbose, "after promise set value - before join");
     wait_thread.join();
-    solid_log(logger, Verbose, "after wait thread join: val = " << val);
+    solid_log(logger, Verbose, "after join");
 
-    const uint64_t v = (loop_cnt * ((cnt - 1) * cnt)) / 2;
-
-    solid_check(v == val);
     return 0;
 }
