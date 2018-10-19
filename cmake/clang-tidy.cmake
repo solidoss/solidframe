@@ -1,4 +1,4 @@
-
+# https://clang.llvm.org/extra/clang-tidy/checks/list.html
 option(CMake_RUN_CLANG_TIDY "Run clang-tidy with the compiler." OFF)
 
 if(CMake_RUN_CLANG_TIDY)
