@@ -2,6 +2,7 @@ branches:
   only:
     - master
     - work
+    - travis
 
 language: cpp
 matrix:
@@ -22,6 +23,6 @@ matrix:
       env: [ CXX_COMPILER=clang++, C_COMPILER=clang]
 
 script:
- - ./configure -b maintain -P -DCMAKE_C_COMPILER=$C_COMPILER -P -DCMAKE_CXX_COMPILER=$CXX_COMPILER && cd build/maintain && make Experimental
+ - ./configure -b maintain -P -DCMAKE_C_COMPILER=$C_COMPILER -P -DCMAKE_CXX_COMPILER=$CXX_COMPILER && cd build/maintain/solid/utility/test && make -j2 && && make test 
 
 
