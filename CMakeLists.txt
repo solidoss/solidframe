@@ -303,6 +303,10 @@ elseif(ON_ANDROID)
     set(SOLID_USE_EVENTFD TRUE)
 endif()
 
+if(ON_CROSS)
+    set(SOLID_TEST_NONE TRUE)
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/solid/solid_config.hpp)
 
 

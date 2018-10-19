@@ -45,6 +45,6 @@ target_link_libraries(solid_frame_mpipc solid_frame_aio)
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/frame/mpipc)
 install (TARGETS solid_frame_mpipc DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT ON_CROSS)
+if(NOT SOLID_TEST_NONE OR SOLID_TEST_MPIPC)
     add_subdirectory(test)
 endif()

@@ -47,6 +47,6 @@ install (TARGETS solid_frame_aio DESTINATION lib EXPORT SolidFrameConfig)
 
 add_subdirectory(openssl)
 
-if(NOT ON_CROSS)
+if(NOT SOLID_TEST_NONE OR SOLID_TEST_AIO)
     add_subdirectory(test)
 endif()

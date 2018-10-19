@@ -41,6 +41,6 @@ target_link_libraries(solid_utility solid_system)
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/utility)
 install (TARGETS solid_utility DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT ON_CROSS)
+if(NOT SOLID_TEST_NONE OR SOLID_TEST_UTILITY)
     add_subdirectory(test)
 endif()

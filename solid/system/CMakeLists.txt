@@ -48,6 +48,6 @@ target_include_directories(solid_system PUBLIC
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/system)
 install (TARGETS solid_system DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT ON_CROSS)
+if(NOT SOLID_TEST_NONE OR SOLID_TEST_SYSTEM)
     add_subdirectory(test)
 endif()

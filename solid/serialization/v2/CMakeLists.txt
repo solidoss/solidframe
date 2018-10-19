@@ -34,6 +34,6 @@ target_link_libraries(solid_serialization_v2 solid_utility solid_system)
 install (FILES ${Headers} ${Inlines} DESTINATION include/solid/serialization/v2)
 install (TARGETS solid_serialization_v2 DESTINATION lib EXPORT SolidFrameConfig)
 
-if(NOT ON_CROSS)
+if(NOT SOLID_TEST_NONE OR SOLID_TEST_SERIALIZATION)
     add_subdirectory(test)
 endif()
