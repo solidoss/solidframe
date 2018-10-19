@@ -814,7 +814,6 @@ void WorkPool<Job, QNBits>::doStart(
 }
 //-----------------------------------------------------------------------------
 template <typename Job, size_t QNBits>
-template <class JobHandlerFnc, typename... Args>
 void WorkPool<Job, QNBits>::dumpStatistics() const
 {
 #ifdef SOLID_HAS_STATISTICS
