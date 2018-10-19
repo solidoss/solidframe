@@ -209,6 +209,7 @@ public:
     {
         pop_end_.condition_.notify_all();
     }
+    void dumpStatistics() const;
 
 private:
     Node* newNode()
@@ -278,6 +279,13 @@ private:
 };
 
 //-----------------------------------------------------------------------------
+template <class T, unsigned NBits>
+void Queue<T, NBits>::dumpStatistics() const
+{
+#ifdef SOLID_HAS_STATISTICS
+    solid_dbg(workpool_logger, Statistic, "Queue: " << this << " statistic:" << this->statistic_);
+#endif
+}
 
 template <class T, unsigned NBits>
 Queue<T, NBits>::~Queue()
@@ -293,9 +301,7 @@ Queue<T, NBits>::~Queue()
     }
 
     solid_dbg(workpool_logger, Verbose, this);
-#ifdef SOLID_HAS_STATISTICS
-    solid_dbg(workpool_logger, Statistic, "Queue: " << this << " statistic:" << this->statistic_);
-#endif
+    dumpStatistics();
 }
 //-----------------------------------------------------------------------------
 #ifdef SOLID_WP_PRINT
@@ -629,6 +635,8 @@ public:
     template <class JT>
     void push(JT&& _jb);
 
+    void dumpStatistics() const;
+
 private:
     bool pop(Job& _rjob);
 
@@ -733,9 +741,9 @@ void WorkPool<Job, QNBits>::doStop()
         }
         thr_vec_.clear();
     }
+    dumpStatistics();
     {
 #ifdef SOLID_HAS_STATISTICS
-        solid_dbg(workpool_logger, Statistic, "Workpool " << this << " statistic:" << this->statistic_);
         const size_t max_jobs_in_queue = config_.max_job_queue_size_ == static_cast<size_t>(-1) ? config_.max_job_queue_size_ : config_.max_job_queue_size_ + JobQueueT::nodeSize();
         solid_check(statistic_.max_jobs_in_queue_ <= max_jobs_in_queue, "statistic_.max_jobs_in_queue_ = " << statistic_.max_jobs_in_queue_ << " <= config_.max_job_queue_size_ = " << max_jobs_in_queue);
         solid_check(statistic_.max_worker_count_ <= config_.max_worker_count_, "statistic_.max_worker_count_ = " << statistic_.max_worker_count_ << " <= config_.max_worker_count_ = " << config_.max_worker_count_);
@@ -803,6 +811,16 @@ void WorkPool<Job, QNBits>::doStart(
     };
 
     doStart(_start_wkr_cnt, std::move(worker_factory_fnc));
+}
+//-----------------------------------------------------------------------------
+template <typename Job, size_t QNBits>
+template <class JobHandlerFnc, typename... Args>
+void WorkPool<Job, QNBits>::dumpStatistics() const
+{
+#ifdef SOLID_HAS_STATISTICS
+    job_q_.dumpStatistics();
+    solid_log(workpool_logger, Statistic, "Workpool " << this << " statistic:" << this->statistic_);
+#endif
 }
 
 //-----------------------------------------------------------------------------

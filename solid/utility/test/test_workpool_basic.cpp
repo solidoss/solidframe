@@ -9,37 +9,45 @@
 
 using namespace solid;
 using namespace std;
+namespace {
+const LoggerT logger("test_basic");
+}
 
 int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
 {
-    solid::log_start(std::cerr, {".*:EWS"});
-
+    solid::log_start(std::cerr, {".*:EWS", "test_basic:VIEW"});
+    using WorkPoolT                  = WorkPool<size_t>;
     const int           wait_seconds = 100;
     const size_t        cnt{5000000};
     std::atomic<size_t> val{0};
     promise<void>       prom;
-
+    WorkPoolT           wp{
+        2,
+        WorkPoolConfiguration(),
+        [&val](size_t _v) {
+            val += _v;
+        }};
     thread wait_thread(
-        [](promise<void>& _rprom, const int _wait_time_seconds) {
-            solid_check(_rprom.get_future().wait_for(chrono::seconds(_wait_time_seconds)) == future_status::ready, " Test is taking too long - waited " << _wait_time_seconds << " secs");
+        [](promise<void>& _rprom, WorkPoolT& _rwp, const int _wait_time_seconds) {
+            if (_rprom.get_future().wait_for(chrono::seconds(_wait_time_seconds)) != future_status::ready) {
+
+                _rwp.dumpStatistics();
+                solid_throw(" Test is taking too long - waited " << _wait_time_seconds << " secs");
+            }
         },
-        std::ref(prom), wait_seconds);
+        std::ref(prom), std::ref(wp), wait_seconds);
 
     {
-        WorkPool<size_t> wp{
-            0,
-            WorkPoolConfiguration(),
-            [&val](size_t _v) {
-                val += _v;
-            }};
-
+        solid_log(logger, Verbose, "before loop");
         for (size_t i = 0; i < cnt; ++i) {
             wp.push(i);
         };
+        solid_log(logger, Verbose, "after loop");
     }
     prom.set_value();
+    solid_log(logger, Verbose, "after promise set value");
     wait_thread.join();
-    solid_log(generic_logger, Verbose, "val = " << val);
+    solid_log(logger, Verbose, "after wait thread join: val = " << val);
 
     const size_t v = ((cnt - 1) * cnt) / 2;
 

@@ -227,7 +227,7 @@ void server_receive_message(frame::mpipc::ConnectionContext& _rctx, std::shared_
     transfered_size += _rmsgptr->str.size();
     ++transfered_count;
 
-    if (!crtreadidx != 0) {
+    if (crtreadidx == 0) {
         solid_dbg(generic_logger, Info, "canceling all messages");
         lock_guard<mutex> lock(mtx);
         for (auto& msguid : message_uid_vec) {
