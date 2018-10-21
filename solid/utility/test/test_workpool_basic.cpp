@@ -13,14 +13,14 @@ namespace {
 const LoggerT logger("test_basic");
 }
 
-int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
+int test_workpool_basic(int argc, char* argv [])
 {
     solid::log_start(std::cerr, {".*:EWS", "test_basic:VIEW"});
     using WorkPoolT  = WorkPool<size_t>;
     using AtomicPWPT = std::atomic<WorkPoolT*>;
 
     const int           wait_seconds = 500;
-    const int           loop_cnt     = 10;
+    int                 loop_cnt     = 10;
     const size_t        cnt{5000000};
     const size_t        v = (((cnt - 1) * cnt)) / 2;
     std::atomic<size_t> val{0};
@@ -36,7 +36,11 @@ int test_workpool_basic(int /*argc*/, char* /*argv*/ [])
             }
         },
         std::ref(prom), std::ref(pwp), wait_seconds);
-
+    
+    if(argc > 1){
+        loop_cnt = atoi(argv[1]);
+    }
+    
     for (int i = 0; i < loop_cnt; ++i) {
         {
             WorkPoolT wp{
