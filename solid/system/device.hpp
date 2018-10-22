@@ -18,10 +18,6 @@
 #include <WinSock2.h>
 #include <Windows.h>
 #include <Ws2tcpip.h>
-#else
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 #endif
 
 namespace solid {
