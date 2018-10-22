@@ -21,11 +21,6 @@ if(NOT ${CMAKE_VERSION} VERSION_LESS "3.12.0")
 endif()
 
 #-----------------------------------------------------------------
-# Extra user definitions
-#-----------------------------------------------------------------
-set(EXTRA_DEFINITIONS "${EXTRA_DEFINITIONS}" CACHE STRING "Extra compiler definitions")
-add_definitions(${EXTRA_DEFINITIONS})
-#-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
 # Prepare the external path
@@ -171,25 +166,23 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
     set(ON_FOUND TRUE)
     set(SOLID_ON_LINUX TRUE)
     set(SOLID_ON_POSIX TRUE)
-
+    
+    
 
     set(SYS_DEBUG_FLAGS " -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
     if(CMAKE_CXX_COMPILER MATCHES "clang")
-        set(SYS_DEBUG_FLAGS "-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-        set(SYS_MAINTAIN_FLAGS "-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wabi -O3 -g3")
+        add_compile_options(
+            "$<$<CONFIG:RELASE>:-O3>"
+            "$<$<CONFIG:DEBUG>:-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wreorder -Wreturn-type -Wunused-variable -Winline -g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall -Wshorten-64-to-32 -Wunreachable-code -Wconditional-uninitialized -Wabi -O3 -g3>"
+        )
     else()
-        set(SYS_DEBUG_FLAGS "-Wall -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-        set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
+        add_compile_options(
+            "$<$<CONFIG:RELASE>:-O3>"
+            "$<$<CONFIG:DEBUG>:-Wall;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
+            "$<$<CONFIG:MAINTAIN>:-Wall;-Wabi;-O3;-g3>"
+        )
     endif()
-    set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
-    set(SYS_NOLOG_FLAGS "-g3")
-    set(SYS_RELEASE_FLAGS "-O3")
-
-    set(SYS_DEBUG_LINKER_FLAGS "")# -D_GLIBCXX_DEBUG
-    set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
-    set(SYS_OPTIMIZED_LINKER_FLAGS "")
-    set(SYS_NOLOG_LINKER_FLAGS "")
-    set(SYS_RELEASE_LINKER_FLAGS "-O3")
     
     set(SYS_BASIC_LIBS pthread rt)
     
@@ -320,97 +313,6 @@ endif ()
 
 #-----------------------------------------------------------------
 
-#-----------------------------------------------------------------
-# Debug build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_DEBUG
-    "${SYS_DEBUG_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during debug builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Maintain build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_MAINTAIN
-    "${SYS_MAINTAIN_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during maintain builds."
-    FORCE
-)
-set(CMAKE_EXE_LINKER_FLAGS_MAINTAIN
-    "${SYS_MAINTAIN_LINKER_FLAGS}"
-    CACHE STRING "Flags used for linking binaries during maintain builds."
-    FORCE
-)
-set(CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
-    "${SYS_MAINTAIN_LINKER_FLAGS}"
-    CACHE STRING "Flags used by the shared libraries linker during maintain builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Optimized build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_OPTIMIZED
-    "${SYS_OPTIMIZED_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during optimized builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Release build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_RELEASE
-    "${SYS_RELEASE_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during release builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Nolog build
-#-----------------------------------------------------------------
-set(CMAKE_CXX_FLAGS_NOLOG
-    "${SYS_NOLOG_FLAGS}"
-    CACHE STRING "Flags used by the C++ compiler during nolog builds."
-    FORCE
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-mark_as_advanced(
-    CMAKE_CXX_FLAGS_NOLOG
-    CMAKE_C_FLAGS_NOLOG
-    CMAKE_EXE_LINKER_FLAGS_NOLOG
-    CMAKE_SHARED_LINKER_FLAGS_NOLOG
-)
-#-----------------------------------------------------------------
-mark_as_advanced(
-    CMAKE_CXX_FLAGS_MAINTAIN
-    CMAKE_C_FLAGS_MAINTAIN
-    CMAKE_EXE_LINKER_FLAGS_MAINTAIN
-    CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
-)
-#-----------------------------------------------------------------
-mark_as_advanced(
-    CMAKE_CXX_FLAGS_OPTIMIZED
-    CMAKE_C_FLAGS_OPTIMIZED
-    CMAKE_EXE_LINKER_FLAGS_OPTIMIZED
-    CMAKE_SHARED_LINKER_FLAGS_OPTIMIZED
-)
-#-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Update the documentation string of CMAKE_BUILD_TYPE for GUIs
-#-----------------------------------------------------------------
-set(CMAKE_BUILD_TYPE
-    "${CMAKE_BUILD_TYPE}"
-    CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel nolog maintain optimized:"
-    FORCE
-)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------

@@ -75,7 +75,6 @@ BUILD_TYPE=
 FOLDER_NAME=
 FOLDER_PATH=
 HELP="no"
-PARAM=
 EXTERNAL_DIR=
 CREATE_LISTS=
 INSTALL_PREFIX=
@@ -111,10 +110,6 @@ do
             shift;
             DOCUMENTATION=$1
         fi
-        ;;
-    -p|--param)
-        shift
-        PARAM=$PARAM"$1 "
         ;;
     --prefix)
         shift
@@ -203,7 +198,7 @@ if [ "$FOLDER_NAME" = "" ]; then
     fi
 fi
 
-echo "Configure an out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME and params $PARAM"
+echo "Configure an out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME"
 
 SRC_PATH="`pwd`"
 
@@ -226,19 +221,19 @@ for param in "$@"; do
 done
 echo
 
-echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -p \"$PARAM\" -e \"$EXTERNAL_DIR\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
+echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -e \"$EXTERNAL_DIR\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
 
 if [ "$GENERATOR" = "" ]; then
     echo "Using cmake's default generator:"
     echo ""
     
-    exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTRA_DEFINITIONS:STRING="$PARAM" -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+    exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
     echo "Done!"
 else
     echo "Using cmake's $GENERATOR"
     echo ""
     
-    exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTRA_DEFINITIONS:STRING="$PARAM" -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
+    exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DEXTERNAL_DIR:PATH="$EXTERNAL_DIR" -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" "$@" "$SRC_PATH"
 fi
 
 exit
