@@ -120,11 +120,9 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
     add_compile_options(
         "$<$<CONFIG:RELASE>:-O3>"
         "$<$<CONFIG:DEBUG>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wreorder;-Wreturn-type;-Wunused-variable;-Winline;-g3>"
-        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3;-Wl,--warn-unresolved-symbols,--warn-once>"
+        "$<$<CONFIG:MAINTAIN>:-Wall;-Wshorten-64-to-32;-Wunreachable-code;-Wconditional-uninitialized;-Wabi;-O3;-g3>"
     )
     
-    #add_compile_options("SHELL: -framework ApplicationServices")
-    #add_compile_options("SHELL: -framework CoreFoundation")
     string(APPEND CMAKE_EXE_LINKER_FLAGS "-framework ApplicationServices -framework CoreFoundation")
     
     set(SYSTEM_BASIC_LIBRARIES pthread)
