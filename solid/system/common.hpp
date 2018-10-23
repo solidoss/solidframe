@@ -13,6 +13,7 @@
 #include "solid/solid_config.hpp"
 #include <cstdint>
 #include <cstdlib>
+#include <type_traits>
 
 #ifdef SOLID_ON_WINDOWS
 #define UBOOSTMUTEX
@@ -90,14 +91,9 @@ struct UnsignedType<uint64_t> {
     typedef uint64_t Type;
 };
 
-} //namespace solid
-
-#ifdef SOLID_ON_WINDOWS
-#include <type_traits>
-
 using ssize_t = std::make_signed<size_t>::type;
 
-#endif
+} //namespace solid
 
 //Some macro helpers:
 
