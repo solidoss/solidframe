@@ -101,7 +101,7 @@ buildBoost()
         ./b2 toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
     elif	[ "$SYSTEM" = "Darwin" ] ; then
         sh bootstrap.sh
-        ./b2 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+        ./b2 cxxstd=14 --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
         echo
     elif    [[ "$SYSTEM" =~ "MINGW" ]]; then
         if [ $BIT64 = true ]; then
