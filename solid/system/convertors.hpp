@@ -11,11 +11,7 @@
 #pragma once
 
 #include "common.hpp"
-#ifdef SOLID_ON_WINDOWS
-#include <WinSock2.h>
-#else
-#include <arpa/inet.h>
-#endif
+
 namespace solid {
 //!A template convertor to an unsigned
 /*!
