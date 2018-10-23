@@ -24,7 +24,11 @@ public:
 #endif
     static constexpr DescriptorT invalidDescriptor()
     {
+#ifdef SOLID_ON_WINDOWS
         return reinterpret_cast<DescriptorT>(static_cast<ptrdiff_t>(-1));
+#else
+        return -1;
+#endif
     }
     Device(Device&& _dev) noexcept;
     //! The copy constructor which will grab the desc from the given device (like std::autoptr)

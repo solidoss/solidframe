@@ -15,12 +15,6 @@
 #include <cstdlib>
 #include <type_traits>
 
-#ifdef SOLID_ON_WINDOWS
-#define UBOOSTMUTEX
-#define UBOOSTSHAREDPTR
-//#endif
-#endif
-
 namespace solid {
 
 typedef unsigned char uchar;
